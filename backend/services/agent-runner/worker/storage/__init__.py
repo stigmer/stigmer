@@ -23,11 +23,12 @@ Configuration:
         LOCAL_ARTIFACT_PATH: Base path for artifacts (default: /var/stigmer/artifacts)
         LOCAL_ARTIFACT_SERVE_URL: Base URL for serving (default: http://localhost:8080)
     
-    R2 storage:
-        R2_ENDPOINT: R2 endpoint URL
-        R2_ACCESS_KEY_ID: R2 access key
-        R2_SECRET_ACCESS_KEY: R2 secret key
-        R2_BUCKET: R2 bucket name
+    R2 storage (for agent execution artifacts):
+        AGENT_EXECUTION_ARTIFACT_R2_ENDPOINT: R2 endpoint URL
+        AGENT_EXECUTION_ARTIFACT_R2_ACCESS_KEY_ID: R2 access key
+        AGENT_EXECUTION_ARTIFACT_R2_SECRET_ACCESS_KEY: R2 secret key
+        AGENT_EXECUTION_ARTIFACT_R2_BUCKET: R2 bucket name
+        AGENT_EXECUTION_ARTIFACT_R2_REGION: R2 region (default: "auto")
 """
 
 import logging
@@ -103,11 +104,11 @@ class ArtifactStorageConfig:
             ARTIFACT_STORAGE_TYPE: Storage type ("local" or "r2")
             LOCAL_ARTIFACT_PATH: Path for local artifact storage
             LOCAL_ARTIFACT_SERVE_URL: Base URL for serving local artifacts
-            R2_ENDPOINT: R2 endpoint URL
-            R2_ACCESS_KEY_ID: R2 access key
-            R2_SECRET_ACCESS_KEY: R2 secret key
-            R2_BUCKET: R2 bucket name
-            R2_REGION: R2 region (default: "auto")
+            AGENT_EXECUTION_ARTIFACT_R2_ENDPOINT: R2 endpoint URL
+            AGENT_EXECUTION_ARTIFACT_R2_ACCESS_KEY_ID: R2 access key
+            AGENT_EXECUTION_ARTIFACT_R2_SECRET_ACCESS_KEY: R2 secret key
+            AGENT_EXECUTION_ARTIFACT_R2_BUCKET: R2 bucket name
+            AGENT_EXECUTION_ARTIFACT_R2_REGION: R2 region (default: "auto")
         """
         # Default storage type based on mode
         default_type = "local" if mode == "local" else "r2"
@@ -117,12 +118,12 @@ class ArtifactStorageConfig:
         local_path = os.getenv("LOCAL_ARTIFACT_PATH", "/var/stigmer/artifacts")
         local_serve_url = os.getenv("LOCAL_ARTIFACT_SERVE_URL", "http://localhost:8080")
         
-        # R2 storage configuration
-        r2_endpoint = os.getenv("R2_ENDPOINT")
-        r2_access_key = os.getenv("R2_ACCESS_KEY_ID")
-        r2_secret_key = os.getenv("R2_SECRET_ACCESS_KEY")
-        r2_bucket = os.getenv("R2_BUCKET")
-        r2_region = os.getenv("R2_REGION", "auto")
+        # R2 storage configuration (agent execution artifacts)
+        r2_endpoint = os.getenv("AGENT_EXECUTION_ARTIFACT_R2_ENDPOINT")
+        r2_access_key = os.getenv("AGENT_EXECUTION_ARTIFACT_R2_ACCESS_KEY_ID")
+        r2_secret_key = os.getenv("AGENT_EXECUTION_ARTIFACT_R2_SECRET_ACCESS_KEY")
+        r2_bucket = os.getenv("AGENT_EXECUTION_ARTIFACT_R2_BUCKET")
+        r2_region = os.getenv("AGENT_EXECUTION_ARTIFACT_R2_REGION", "auto")
         
         config = cls(
             storage_type=storage_type,
@@ -156,13 +157,13 @@ class ArtifactStorageConfig:
         if self.storage_type == "r2":
             missing = []
             if not self.r2_endpoint:
-                missing.append("R2_ENDPOINT")
+                missing.append("AGENT_EXECUTION_ARTIFACT_R2_ENDPOINT")
             if not self.r2_access_key:
-                missing.append("R2_ACCESS_KEY_ID")
+                missing.append("AGENT_EXECUTION_ARTIFACT_R2_ACCESS_KEY_ID")
             if not self.r2_secret_key:
-                missing.append("R2_SECRET_ACCESS_KEY")
+                missing.append("AGENT_EXECUTION_ARTIFACT_R2_SECRET_ACCESS_KEY")
             if not self.r2_bucket:
-                missing.append("R2_BUCKET")
+                missing.append("AGENT_EXECUTION_ARTIFACT_R2_BUCKET")
             
             if missing:
                 raise ValueError(

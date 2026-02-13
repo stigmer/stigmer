@@ -121,9 +121,147 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-13
-**Last Session**: 2026-02-13 - Agent Runner Python Implementation completed
-**Current Task**: T02 (Agent Runner Implementation)
-**Status**: ✅ COMPLETED - Full Python artifact lifecycle implemented
+**Last Session**: 2026-02-13 Session 4 - Java Backend Implementation completed
+**Current Task**: T07 (Java Backend / Cloud Implementation)
+**Status**: ✅ COMPLETED - Full Java backend artifact lifecycle implementation for stigmer-cloud
+
+---
+
+## Session Progress (2026-02-13 - Session 4)
+
+### Completed ✅
+- **Task 7**: Java Backend Implementation (stigmer-cloud)
+  - **Critical Bug Fix**
+    - Fixed missing artifacts merge in `AgentExecutionUpdateStatusHandler.BuildNewStateWithStatusStep`
+    - Mirrors the fix previously applied to Go backend
+    - Ensures agent-published artifacts persist to MongoDB
+  - **R2 Configuration Layer**
+    - Created `AgentExecutionArtifactR2Config` with dedicated bucket configuration
+    - Created `AgentExecutionArtifactR2ClientConfig` with S3Client and S3Presigner beans
+    - Added Spring profile `application-agent-execution-r2.yaml`
+    - Separate from skill artifacts for independent lifecycle policies
+  - **R2 Store Implementation**
+    - Created `AgentExecutionArtifactR2Store` with presigned URL support
+    - Methods: `upload()`, `getPresignedDownloadUrl()`, `exists()`, `delete()`, `isHealthy()`
+    - 7-day maximum presigned URL expiration (R2 limit)
+  - **Upload Attachment Handler**
+    - Implemented `AgentExecutionUploadAttachmentHandler` using pipeline pattern
+    - No authorization (storage_key acts as capability token)
+    - ULID-based storage keys: `attachments/{ulid}/{filename}`
+    - Content type detection from filename or request
+  - **Download URL Handler**
+    - Implemented `AgentExecutionGetArtifactDownloadUrlHandler` with security validation
+    - **Security**: Path traversal prevention - validates `storage_key` starts with `artifacts/{execution_id}/`
+    - Proto-level authorization (`can_view` permission via interceptor)
+    - Returns presigned URL with 7-day expiration + ISO 8601 timestamp
+  - **Kustomize Configuration**
+    - **Moved** R2 config from base to prod overlay (stigmer-service)
+    - **Added** R2 config to agent-runner prod overlay
+    - Environment-specific: `AGENT_EXECUTION_ARTIFACT_R2_BUCKET`, `_ENDPOINT`, `_REGION`, `_ACCESS_KEY_ID`, `_SECRET_ACCESS_KEY`
+  - **Python Agent Runner Updates**
+    - Updated `worker/storage/__init__.py` to use specific env var naming
+    - Changed from generic `R2_*` to `AGENT_EXECUTION_ARTIFACT_R2_*`
+    - Consistent naming across all services
+
+### Key Architectural Decisions
+- **Separate R2 Bucket**: Agent execution artifacts use dedicated bucket (different lifecycle from skill artifacts)
+- **Domain-Specific Storage**: `AgentExecutionArtifactR2Store` vs `SkillArtifactR2Store` (different semantics)
+- **Environment-Based Config**: R2 configs in prod overlay, not base (endpoints/credentials are environment-specific)
+- **Consistent Naming**: `AGENT_EXECUTION_ARTIFACT_R2_*` across Java, Python, and Kustomize
+
+### Data Flow Completed
+```
+Java Backend (stigmer-cloud/stigmer-service):
+  CLI → uploadAttachment RPC → stigmer-service → R2 → storage_key returned
+  CLI → getArtifactDownloadUrl RPC → stigmer-service → presigned URL → HTTP GET download
+  
+Python Agent Runner (stigmer/agent-runner):
+  Agent → publish_artifact tool → R2 upload → artifacts/{execution_id}/{filename}
+  Agent → updateStatus RPC → artifacts[] persisted to MongoDB (via Java or Go backend)
+```
+
+### Files Created (stigmer-cloud)
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/config/r2/AgentExecutionArtifactR2Config.java`
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/config/r2/AgentExecutionArtifactR2ClientConfig.java`
+- `backend/services/stigmer-service/src/main/resources/application-agent-execution-r2.yaml`
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentexecution/artifact/AgentExecutionArtifactR2Store.java`
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentexecution/request/handler/AgentExecutionUploadAttachmentHandler.java`
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentexecution/request/handler/AgentExecutionGetArtifactDownloadUrlHandler.java`
+
+### Files Modified
+- **stigmer-cloud**: 93 files (Java stubs regenerated, handlers, configs, Kustomize)
+- **stigmer**: 4 files (agent-runner Kustomize, Python storage module, next-task.md, checkpoint)
+
+### Build Verification
+- ✅ Java artifact handlers compile successfully (no errors in new code)
+- ✅ Java stubs regenerated from updated protos
+- ✅ Pre-existing build issues in other services (unrelated to artifact work)
+
+---
+
+## Session Progress (2026-02-13 - Session 3)
+
+### Completed ✅
+- **Task 3**: Go Backend Implementation
+  - **Proto Renaming** (Industry Standard Alignment)
+    - `ExecutionOutput` → `ExecutionArtifact`
+    - `ExecutionOutputKind` → `ExecutionArtifactKind`
+    - `outputs` field → `artifacts` field in `AgentExecutionStatus`
+    - Storage path: `outputs/` → `artifacts/`
+  - **New RPC Endpoints** (command.proto, query.proto)
+    - `uploadAttachment`: CLI pre-upload for large files (>4MB)
+    - `getArtifactDownloadUrl`: Generate presigned URLs for downloads
+    - Comprehensive proto documentation for both endpoints
+  - **Python Updates** (agent-runner)
+    - Renamed `publish_output.py` → `publish_artifact.py`
+    - Updated `StatusBuilder`: `add_output()` → `add_artifact()`
+    - Updated storage prefix throughout: `outputs/` → `artifacts/`
+  - **Go Handler Implementation**
+    - Created `upload_attachment.go`: Validates input, generates ULID, uploads to `attachments/{ulid}/{filename}`
+    - Created `get_artifact_download_url.go`: Security validation, presigned URL generation (7-day expiry)
+    - Fixed critical bug in `update_status.go`: Added artifacts merge (was missing)
+  - **Server Wiring**
+    - Verified artifact storage already initialized in server.go
+    - Configuration supports both local filesystem and R2
+    - Health checks on startup
+
+### Key Technical Decisions
+- **Naming**: "Artifact" matches GitHub Actions and industry conventions
+- **Security**: Path traversal prevention in download handler (`storage_key` must start with `artifacts/{execution_id}/`)
+- **Authorization**: Upload has no auth (capability-based), download requires `can_view` permission
+- **Expiration**: 7-day presigned URLs (R2 maximum)
+
+### Data Flow Completed
+```
+Attachment Upload:
+  CLI → uploadAttachment RPC → attachments/{ulid}/{filename} → returns storage_key
+
+Artifact Download:
+  Agent → publish_artifact tool → artifacts/{execution_id}/{filename}
+  Agent → updateStatus RPC → artifacts[] in status → persisted to DB
+  CLI → getArtifactDownloadUrl RPC → presigned URL → HTTP GET download
+```
+
+### Files Created
+- `backend/services/stigmer-server/pkg/domain/agentexecution/controller/upload_attachment.go`
+- `backend/services/stigmer-server/pkg/domain/agentexecution/controller/get_artifact_download_url.go`
+- `backend/services/agent-runner/worker/tools/publish_artifact.py` (renamed from publish_output.py)
+- `_changelog/2026-02/2026-02-13-132838-artifact-naming-and-cli-endpoints.md`
+
+### Files Modified (37 total)
+- 5 proto files (api, command, query, enum, io)
+- 22 generated stubs (Go and Python)
+- 10 source files (Python agent-runner, Go backend, config)
+
+### Build Verification
+- ✅ Go backend compiles successfully
+- ✅ Python code compiles without errors
+- ✅ All proto stubs regenerated
+
+### Commit
+- **SHA**: 54f80e6a
+- **Message**: feat(artifact-lifecycle): rename outputs to artifacts and add CLI endpoints
+- **Changes**: +3755 insertions, -333 deletions
 
 ---
 
@@ -191,50 +329,64 @@ When starting a new session:
 
 | Order | Task | Status |
 |-------|------|--------|
-| 1 | Artifact proto definitions | ✅ COMPLETED |
-| 2 | Artifact storage service (R2) | Pending |
-| 3 | Artifact gRPC controllers | Pending |
-| 4 | Agent execution spec extension | Pending |
-| 5 | Input artifact injection (Python) | Pending |
-| 6 | `publish_artifact` tool (Python) | Pending |
-| 7 | CLI artifact commands | Pending |
-| 8 | CLI `--attach` flag for run | Pending |
-| 9 | Daytona Volume integration | Pending |
-| 10 | Session/Project model update | Pending |
-| 11 | Lifecycle webhooks | Pending |
+| 1 | Artifact proto definitions | ✅ COMPLETED (Session 1) |
+| 2 | Agent Runner Python Implementation | ✅ COMPLETED (Session 2) |
+| 3 | Go Backend Implementation | ✅ COMPLETED (Session 3) |
+| 7 | Java cloud backend (stigmer-service) | ✅ COMPLETED (Session 4) |
+| 4 | CLI artifact commands | 🔴 NEXT - Ready to implement |
+| 5 | CLI `--attach` flag for run | Pending |
+| 6 | Integration testing | Pending |
+| 8 | Daytona Volume integration | Future (M2) |
+| 9 | Lifecycle webhooks | Future (M3) |
 
 ---
 
 ## Next Steps
 
-### Immediate (Task 2: Agent Runner Python Implementation)
-1. Implement attachment injection in agent-runner
-   - Create `inject_attachments()` function in `execute_graphton.py`
-   - Handle inline content vs storage_key references
-   - Upload files to sandbox at mount_path using Daytona SDK
+### Immediate (Task 4: CLI Implementation)
 
-2. Implement `publish_output` tool
-   - Create `backend/services/agent-runner/worker/tools/publish_output.py`
-   - Handle file vs directory (ZIP for directories)
-   - Upload to R2 artifact store
-   - Generate signed download URLs
-   - Return `ExecutionOutput` proto
+Ready to implement CLI commands using the completed backend:
 
-3. Register tool with agent
-   - Wire `publish_output` into graphton agent tools list
+1. **Implement `stigmer execution upload` command**
+   - Call `uploadAttachment` RPC with file contents
+   - Handle large files (>4MB)
+   - Display returned storage_key
 
-### Following (Task 3: CLI Implementation)
-1. Add `--attach` flag to `stigmer run agent` command
-2. Implement file attachment creation (inline or upload to R2)
-3. Display outputs in execution result
-4. Add `stigmer execution download` command
+2. **Add `--attach` flag to `stigmer run agent`**
+   - Parse file paths from CLI
+   - Pre-upload large files using `uploadAttachment`
+   - Create `Attachment` messages with storage_keys
+   - Include attachments in `AgentExecutionSpec`
+
+3. **Implement `stigmer execution artifacts` command**
+   - List artifacts from execution status
+   - Show artifact metadata (name, size, kind, created_at)
+
+4. **Implement `stigmer execution download` command**
+   - Call `getArtifactDownloadUrl` RPC
+   - Download artifact using presigned URL
+   - Save to local filesystem
+
+### Following (Task 5: Integration Testing)
+1. End-to-end test: CLI upload → Agent execution → CLI download
+2. Test large file handling (>4MB)
+3. Test directory artifacts (ZIP handling)
+4. Test presigned URL expiration and refresh
+5. Test security validation (path traversal prevention)
 
 ### Context for Resume
-- Proto definitions are complete and linting passes
-- Generated stubs are in place (Go + Python)
-- All validation constraints documented in proto comments
-- Field numbering follows sequential pattern (9, 15)
-- Next work is Python agent-runner implementation
+- **Backend Complete**: All backends implemented (Go OSS, Java Cloud, Python Agent Runner)
+- **Proto Complete**: All types renamed to "artifact" terminology, stubs regenerated
+- **Storage Ready**: Both local filesystem and R2 backends functional in all services
+- **Security**: Path traversal prevention and authorization in place
+- **Configuration**: R2 configs moved to prod overlays (environment-specific)
+- **Next Work**: CLI implementation to consume the backend endpoints
+
+### Important Notes for CLI Implementation
+- Use `uploadAttachment` RPC for files >4MB (returns `storage_key`)
+- For small files (<4MB), can use inline `content` in `Attachment`
+- Download flow: Get execution → Extract `storage_key` → Call `getArtifactDownloadUrl` → HTTP GET
+- Presigned URLs expire after 7 days (configurable)
 
 ---
 
