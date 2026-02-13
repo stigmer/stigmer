@@ -48,5 +48,5 @@ spec:
     presenting the final output.
   skill_refs:
     - kind: skill
-      org: stigmer
+      org: local
       slug: skill-creator

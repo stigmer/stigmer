@@ -158,9 +158,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-07 13:36
-**Updated**: 2026-02-08 (Session 3)
-**Current Task**: T01 Phase 2.1, 2.2 (Bootstrap state machine + Server integration)
-**Status**: Phase 1.1, 1.2, 1.3, 2.1, 2.2 Complete ✅
+**Updated**: 2026-02-13 (Post-deferral cleanup)
+**Current Task**: Phase 5.1 - `stigmer draft agent` command
+**Status**: Phases 1.1-2.2 Complete ✅ | Phases 3.1, 4.1 Deferred 🚫
 
 **Active Plan**: `tasks/T01_2_practical_plan.md` (research-informed, APPROVED)
 
@@ -261,44 +261,53 @@ backend/services/stigmer-server/pkg/server/
 
 ## Next Steps (for Next Session)
 
-1. **Start Phase 3.1**: Skill Resolver
-   - Create resolver that checks registry first, falls back to embedded
-   - Enable skills to be loaded from seedpack during agent execution
+**DEFERRED**: Phase 3.1 (Skill Resolver) has been deferred. Skills are available in the registry via bootstrap; the embedded fallback resolver is not needed at this time.
 
-2. **Then Phase 4.1**: Agent Runtime Integration
-   - Wire skill resolver into agent invocation flow
-   - Enable skill-creator-agent to actually use skill-creator skill
+**Recommended Next Task: Phase 5.1 - `stigmer draft agent` command**
 
-3. **Future Phases**:
-   - Phase 5.1: `stigmer draft agent` command
-   - Phase 5.2: Other draft commands (workflow, skill, mcpserver)
-   - Phase 6.1: `stigmer seed update` command
-   - Phase 6.2: `stigmer system` commands
+This is the user-facing feature that delivers the project goal. Prerequisites are met:
+- `skill-creator` skill is pushed to registry via bootstrap
+- `skill-creator-agent` is created via bootstrap  
+- Agent can be invoked using existing `stigmer run agent` flow
+
+1. **Phase 5.1**: `stigmer draft agent` command
+   - Create `draft` command group
+   - Implement `draft agent` that invokes `skill-creator-agent`
+   - Streaming conversation support
+
+2. **Phase 5.2**: Other draft commands (workflow, skill, mcpserver)
+   - Extend pattern to other resource types
+
+3. **Phase 6.1**: `stigmer seed update` command
+   - Explicit upstream sync (requires network)
+
+4. **Phase 6.2**: `stigmer system` commands
+   - list, status, disable, enable
 
 ## Quick Commands
 
 After loading context:
-- "Start Phase 1.2" - Create manifest.json
+- "Start Phase 5.1" - Implement `stigmer draft agent` command
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
 
 ## Implementation Order (from T01_2 Practical Plan)
 
-| Order | Phase | Task | Description |
-|-------|-------|------|-------------|
-| 1 | 1.1 | Vendor skill-creator | Pin to commit SHA, record provenance |
-| 2 | 1.2 | Seedpack structure | Directory and manifest setup |
-| 3 | 1.3 | Go embed infrastructure | Load skills from binary |
-| 4 | 2.1 | Bootstrap state machine | Durable bootstrap logic |
-| 5 | 2.2 | Server integration | Hook bootstrap to server start |
-| 6 | 3.1 | Skill resolver | Resolve from registry or embedded |
-| 7 | 4.1 | Agent runtime integration | Wire skills into agent invocation |
-| 8 | 4.2 | skill-creator-agent | The agent that creates skills |
-| 9 | 5.1 | `draft agent` command | User-facing feature |
-| 10 | 5.2 | Other draft commands | workflow, skill, mcpserver |
-| 11 | 6.1 | Seed update command | Explicit upstream sync |
-| 12 | 6.2 | System commands | list, status, disable, enable |
+| Order | Phase | Task | Description | Status |
+|-------|-------|------|-------------|--------|
+| 1 | 1.1 | Vendor skill-creator | Pin to commit SHA, record provenance | ✅ Complete |
+| 2 | 1.2 | Seedpack structure | Directory and manifest setup | ✅ Complete |
+| 3 | 1.3 | Go embed infrastructure | Load skills from binary | ✅ Complete |
+| 4 | 2.1 | Bootstrap state machine | Durable bootstrap logic | ✅ Complete |
+| 5 | 2.2 | Server integration | Hook bootstrap to server start | ✅ Complete |
+| ~~6~~ | ~~3.1~~ | ~~Skill resolver~~ | ~~Resolve from registry or embedded~~ | 🚫 Deferred |
+| ~~7~~ | ~~4.1~~ | ~~Agent runtime integration~~ | ~~Wire skills into agent invocation~~ | 🚫 Deferred |
+| ~~8~~ | ~~4.2~~ | ~~skill-creator-agent~~ | ~~The agent that creates skills~~ | ✅ Created via bootstrap |
+| **→ 6** | **5.1** | **`draft agent` command** | **User-facing feature** | 🎯 Next |
+| 7 | 5.2 | Other draft commands | workflow, skill, mcpserver | Pending |
+| 8 | 6.1 | Seed update command | Explicit upstream sync | Pending |
+| 9 | 6.2 | System commands | list, status, disable, enable | Pending |
 
 ## Key Design Decisions (from Research)
 
@@ -309,6 +318,8 @@ After loading context:
 | Bootstrap as state machine | Resumable, debuggable (K3s AddOn status) |
 | Explicit update command | User controls network usage (Terraform `-upgrade`) |
 | System scope with disable | Override without mutation (Codex system skills) |
+| **Defer skill resolver (Phase 3.1)** | Skills are in registry via bootstrap; embedded fallback not needed now |
+| **Defer agent runtime integration (Phase 4.1)** | Agents invoke skills from registry using existing patterns |
 
 ---
 
