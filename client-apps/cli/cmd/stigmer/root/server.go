@@ -168,7 +168,35 @@ func handleServerStart(cmd *cobra.Command) {
 
 	cliprint.PrintInfo("Starting Stigmer server...")
 
-	// Create progress display
+	// Load config early to check for required secrets BEFORE starting progress display
+	// This prevents terminal conflicts between BubbleTea and password prompts
+	cfg, err := config.Load()
+	if err != nil {
+		cliprint.PrintWarning("Failed to load config, using defaults")
+		cfg = config.GetDefault()
+	}
+
+	// Resolve LLM provider and check if we need to prompt for API keys
+	llmProvider := cfg.Backend.Local.ResolveLLMProvider()
+	llmModel := cfg.Backend.Local.ResolveLLMModel()
+
+	// Show what LLM we're using
+	if llmProvider == "ollama" {
+		cliprint.PrintSuccess("Using local LLM (no API key required)")
+	} else {
+		cliprint.PrintInfo("Using %s with model %s", llmProvider, llmModel)
+	}
+
+	// Gather secrets BEFORE starting progress display to avoid terminal conflicts
+	// BubbleTea takes control of the terminal, which breaks term.ReadPassword()
+	secrets, err := daemon.GatherRequiredSecrets(llmProvider)
+	if err != nil {
+		cliprint.PrintError("Failed to gather required credentials")
+		clierr.Handle(err)
+		return
+	}
+
+	// Create progress display (now safe since we're done prompting)
 	progress := cliprint.NewProgressDisplay()
 	progress.Start()
 	progress.SetPhase(cliprint.PhaseStarting, "Preparing environment")
@@ -180,7 +208,7 @@ func handleServerStart(cmd *cobra.Command) {
 	sandboxCleanup, _ := cmd.Flags().GetBool("sandbox-cleanup")
 	sandboxTTL, _ := cmd.Flags().GetInt("sandbox-ttl")
 
-	// Start daemon with progress tracking and execution options
+	// Start daemon with progress tracking, execution options, and pre-gathered secrets
 	if err := daemon.StartWithOptions(dataDir, daemon.StartOptions{
 		Progress:        progress,
 		ExecutionMode:   executionMode,
@@ -188,6 +216,7 @@ func handleServerStart(cmd *cobra.Command) {
 		SandboxAutoPull: sandboxAutoPull,
 		SandboxCleanup:  sandboxCleanup,
 		SandboxTTL:      sandboxTTL,
+		Secrets:         secrets,
 	}); err != nil {
 		progress.Stop()
 		cliprint.PrintError("Failed to start server")

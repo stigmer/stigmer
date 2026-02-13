@@ -47,7 +47,7 @@ async def inject_attachments(
     storage: ArtifactStorage,
     logger,
     local_root: str | None = None,
-) -> None:
+) -> list[dict]:
     """Inject attachments into sandbox at their mount_path.
     
     All attachments must have a storage_key. The content is downloaded from
@@ -61,11 +61,14 @@ async def inject_attachments(
         logger: Activity logger for debugging
         local_root: Root path for local filesystem mode (when sandbox is None)
         
+    Returns:
+        List of dicts with injected file info: [{"filename": str, "path": str, "size": int}]
+        
     Raises:
         ValueError: If any attachment is missing storage_key
     """
     if not attachments:
-        return
+        return []
     
     logger.info(f"Injecting {len(attachments)} attachments into sandbox")
     
@@ -76,6 +79,7 @@ async def inject_attachments(
         FileUpload = None  # Local mode doesn't need this
     
     file_uploads = []  # For Daytona batch upload
+    injected_files = []  # Track injected files for return
     
     for attachment in attachments:
         if not attachment.storage_key:
@@ -85,30 +89,70 @@ async def inject_attachments(
         content = storage.download(attachment.storage_key)
         logger.debug(f"Downloaded {len(content)} bytes for {attachment.filename}")
         
-        # Determine mount path (default to /inputs/{filename})
-        mount_path = attachment.mount_path if attachment.mount_path else f"/inputs/{attachment.filename}"
+        # Determine mount path - use workspace-relative path for better discoverability
+        # Default: inputs/{filename} (relative to workspace root)
+        if attachment.mount_path:
+            mount_path = attachment.mount_path.lstrip('/')
+        else:
+            mount_path = f"inputs/{attachment.filename}"
         
         if sandbox is not None:
             # Daytona sandbox mode - collect for batch upload
+            # Daytona expects absolute paths starting with /
+            daytona_path = f"/{mount_path}" if not mount_path.startswith('/') else mount_path
             if FileUpload is None:
                 raise RuntimeError("Daytona FileUpload not available")
-            file_uploads.append(FileUpload(source=content, destination=mount_path))
-            logger.info(f"Prepared attachment: {attachment.filename} -> {mount_path}")
+            file_uploads.append(FileUpload(source=content, destination=daytona_path))
+            logger.info(f"Prepared attachment: {attachment.filename} -> {daytona_path}")
+            injected_files.append({
+                "filename": attachment.filename,
+                "path": mount_path,  # Workspace-relative for agent
+                "size": len(content),
+            })
         else:
             # Local filesystem mode - write directly
             if not local_root:
                 raise ValueError("local_root required for local filesystem mode")
             
             from pathlib import Path
-            file_path = Path(local_root) / mount_path.lstrip('/')
+            file_path = Path(local_root) / mount_path
             file_path.parent.mkdir(parents=True, exist_ok=True)
             file_path.write_bytes(content)
-            logger.info(f"Wrote attachment to local filesystem: {attachment.filename} -> {file_path}")
+            
+            # Verify file was written correctly
+            if file_path.exists():
+                actual_size = file_path.stat().st_size
+                logger.info(
+                    f"Wrote attachment to local filesystem: {attachment.filename} -> {file_path} "
+                    f"(size: {actual_size} bytes, expected: {len(content)} bytes)"
+                )
+                if actual_size != len(content):
+                    logger.warning(
+                        f"Size mismatch for {attachment.filename}: "
+                        f"wrote {len(content)} bytes but file is {actual_size} bytes"
+                    )
+            else:
+                logger.error(f"Failed to write attachment: {file_path} does not exist after write")
+                raise ValueError(f"Failed to write attachment {attachment.filename}")
+            
+            injected_files.append({
+                "filename": attachment.filename,
+                "path": mount_path,  # Workspace-relative for agent
+                "size": len(content),
+            })
     
     # Batch upload to Daytona sandbox
     if sandbox is not None and file_uploads:
         sandbox.fs.upload_files(file_uploads)
         logger.info(f"Uploaded {len(file_uploads)} attachments to sandbox")
+    
+    # Log summary of all injected files
+    logger.info(
+        f"Attachment injection complete. Files available to agent:\n"
+        + "\n".join(f"  - {f['path']} ({f['size']} bytes)" for f in injected_files)
+    )
+    
+    return injected_files
 
 
 @activity.defn(name="ExecuteGraphton")
@@ -530,11 +574,12 @@ async def _execute_graphton_impl(
         #
         # Attachments are files provided by the user with the execution request.
         # They are injected into the sandbox at their specified mount_path
-        # (default: /inputs/{filename}), making them available to the agent.
+        # (default: inputs/{filename}), making them available to the agent.
         #
         # All attachments must have storage_key (pre-uploaded via uploadAttachment RPC).
         # ─────────────────────────────────────────────────────────────────────────────
         attachments = list(execution.spec.attachments) if execution.spec.attachments else []
+        injected_files: list[dict] = []  # Track injected files for system prompt
         
         if attachments:
             activity_logger.info(
@@ -550,14 +595,14 @@ async def _execute_graphton_impl(
             )
             
             try:
-                await inject_attachments(
+                injected_files = await inject_attachments(
                     sandbox=sandbox,  # None for local mode
                     attachments=attachments,
                     storage=artifact_storage,
                     logger=activity_logger,
                     local_root=sandbox_config.get('root_dir') if worker_config.is_local_mode() else None,
                 )
-                activity_logger.info(f"Successfully injected {len(attachments)} attachments")
+                activity_logger.info(f"Successfully injected {len(injected_files)} attachments")
             except Exception as e:
                 activity_logger.error(f"Failed to inject attachments: {e}")
                 raise ValueError(f"Attachment injection failed: {e}") from e
@@ -784,7 +829,7 @@ async def _execute_graphton_impl(
         
         # Initialize context info on status builder
         status_builder.initialize_context_info(
-            context_window_limit=model_metadata.context_window,
+            context_window_limit=model_metadata.context_window_tokens,
             trigger_threshold=summarization_config.trigger_threshold,
             target_tokens=summarization_config.target_tokens,
             enabled=summarization_config.enabled,
@@ -799,6 +844,24 @@ async def _execute_graphton_impl(
         if skills_prompt_section:
             enhanced_system_prompt += skills_prompt_section
             activity_logger.info("Enhanced system prompt with skills metadata")
+        
+        # Add input files section to system prompt if attachments were injected
+        if injected_files:
+            input_files_section = "\n\n## Input Files\n\n"
+            input_files_section += (
+                "The following files have been provided as input for this task. "
+                "Use the `read` tool to access them:\n\n"
+            )
+            for f in injected_files:
+                input_files_section += f"- `{f['path']}` ({f['size']} bytes)\n"
+            input_files_section += (
+                "\nThese files are available in your workspace. "
+                "Read them using the `read` tool with the paths shown above."
+            )
+            enhanced_system_prompt += input_files_section
+            activity_logger.info(
+                f"Enhanced system prompt with {len(injected_files)} input files"
+            )
         
         # Configure sandbox for Graphton agent
         if worker_config.is_local_mode():

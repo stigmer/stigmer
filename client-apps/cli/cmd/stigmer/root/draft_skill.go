@@ -18,6 +18,7 @@ func NewDraftSkillCommand() *cobra.Command {
 	var attachFlags []string
 	var outputDir string
 	var follow bool
+	var model string
 
 	cmd := &cobra.Command{
 		Use:   "skill",
@@ -49,13 +50,17 @@ The generated skill will be saved to the output directory (default: current dire
   stigmer draft skill -m "Create a YAML validator skill" --output ./skills/yaml-validator/
 
   # Stream agent logs during creation
-  stigmer draft skill -m "Create a skill for X" --follow`,
+  stigmer draft skill -m "Create a skill for X" --follow
+
+  # Use a specific model
+  stigmer draft skill -m "Create a skill for X" --model claude-sonnet-4-20250514`,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := executeDraftSkill(draftSkillOptions{
 				Message:     message,
 				AttachFlags: attachFlags,
 				OutputDir:   outputDir,
 				Follow:      follow,
+				Model:       model,
 			})
 			clierr.Handle(err)
 		},
@@ -76,6 +81,10 @@ The generated skill will be saved to the output directory (default: current dire
 	// Follow flag for streaming logs
 	cmd.Flags().BoolVar(&follow, "follow", false,
 		"stream agent logs during skill creation")
+
+	// Model flag for specifying LLM model
+	cmd.Flags().StringVar(&model, "model", "",
+		"LLM model to use (e.g., claude-sonnet-4-20250514)")
 
 	// Mark message as required
 	cmd.MarkFlagRequired("message")
