@@ -3,13 +3,13 @@ from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from collections.abc import Mapping as _Mapping
+from collections.abc import Iterable as _Iterable, Mapping as _Mapping
 from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class AgentExecutionSpec(_message.Message):
-    __slots__ = ("session_id", "agent_id", "message", "execution_config", "runtime_env", "callback_token", "auto_approve_all", "parent_workflow_id")
+    __slots__ = ("session_id", "agent_id", "message", "execution_config", "runtime_env", "callback_token", "auto_approve_all", "parent_workflow_id", "attachments")
     class RuntimeEnvEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -25,6 +25,7 @@ class AgentExecutionSpec(_message.Message):
     CALLBACK_TOKEN_FIELD_NUMBER: _ClassVar[int]
     AUTO_APPROVE_ALL_FIELD_NUMBER: _ClassVar[int]
     PARENT_WORKFLOW_ID_FIELD_NUMBER: _ClassVar[int]
+    ATTACHMENTS_FIELD_NUMBER: _ClassVar[int]
     session_id: str
     agent_id: str
     message: str
@@ -33,7 +34,8 @@ class AgentExecutionSpec(_message.Message):
     callback_token: bytes
     auto_approve_all: bool
     parent_workflow_id: str
-    def __init__(self, session_id: _Optional[str] = ..., agent_id: _Optional[str] = ..., message: _Optional[str] = ..., execution_config: _Optional[_Union[ExecutionConfig, _Mapping]] = ..., runtime_env: _Optional[_Mapping[str, _spec_pb2.ExecutionValue]] = ..., callback_token: _Optional[bytes] = ..., auto_approve_all: bool = ..., parent_workflow_id: _Optional[str] = ...) -> None: ...
+    attachments: _containers.RepeatedCompositeFieldContainer[Attachment]
+    def __init__(self, session_id: _Optional[str] = ..., agent_id: _Optional[str] = ..., message: _Optional[str] = ..., execution_config: _Optional[_Union[ExecutionConfig, _Mapping]] = ..., runtime_env: _Optional[_Mapping[str, _spec_pb2.ExecutionValue]] = ..., callback_token: _Optional[bytes] = ..., auto_approve_all: bool = ..., parent_workflow_id: _Optional[str] = ..., attachments: _Optional[_Iterable[_Union[Attachment, _Mapping]]] = ...) -> None: ...
 
 class ExecutionConfig(_message.Message):
     __slots__ = ("model_name", "context_management")
@@ -52,3 +54,17 @@ class ContextManagementConfig(_message.Message):
     custom_trigger_threshold: int
     custom_target_tokens: int
     def __init__(self, disable_summarization: bool = ..., custom_trigger_threshold: _Optional[int] = ..., custom_target_tokens: _Optional[int] = ...) -> None: ...
+
+class Attachment(_message.Message):
+    __slots__ = ("filename", "content", "storage_key", "mount_path", "content_type")
+    FILENAME_FIELD_NUMBER: _ClassVar[int]
+    CONTENT_FIELD_NUMBER: _ClassVar[int]
+    STORAGE_KEY_FIELD_NUMBER: _ClassVar[int]
+    MOUNT_PATH_FIELD_NUMBER: _ClassVar[int]
+    CONTENT_TYPE_FIELD_NUMBER: _ClassVar[int]
+    filename: str
+    content: bytes
+    storage_key: str
+    mount_path: str
+    content_type: str
+    def __init__(self, filename: _Optional[str] = ..., content: _Optional[bytes] = ..., storage_key: _Optional[str] = ..., mount_path: _Optional[str] = ..., content_type: _Optional[str] = ...) -> None: ...

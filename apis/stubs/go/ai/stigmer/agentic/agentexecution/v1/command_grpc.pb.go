@@ -25,6 +25,11 @@ const (
 	AgentExecutionCommandController_UpdateStatus_FullMethodName   = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/updateStatus"
 	AgentExecutionCommandController_Delete_FullMethodName         = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/delete"
 	AgentExecutionCommandController_SubmitApproval_FullMethodName = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/submitApproval"
+	AgentExecutionCommandController_Cancel_FullMethodName         = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/cancel"
+	AgentExecutionCommandController_Terminate_FullMethodName      = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/terminate"
+	AgentExecutionCommandController_Recover_FullMethodName        = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/recover"
+	AgentExecutionCommandController_Pause_FullMethodName          = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/pause"
+	AgentExecutionCommandController_Resume_FullMethodName         = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/resume"
 )
 
 // AgentExecutionCommandControllerClient is the client API for AgentExecutionCommandController service.
@@ -85,6 +90,226 @@ type AgentExecutionCommandControllerClient interface {
 	// If the same approval is submitted twice (same execution, tool_call, action),
 	// the second call is a no-op and returns the current state.
 	SubmitApproval(ctx context.Context, in *SubmitApprovalInput, opts ...grpc.CallOption) (*AgentExecution, error)
+	// Cancel a running agent execution gracefully.
+	//
+	// Sends a cancellation signal to the agent execution via Temporal's CancelWorkflow API.
+	// The agent can handle the cancellation signal to save checkpoint and clean up
+	// before transitioning to the CANCELLED phase.
+	//
+	// Temporal Equivalent: `temporal workflow cancel --workflow-id <id>`
+	//
+	// ## Behavior
+	//
+	// 1. Validates execution exists and is in a cancellable phase
+	// 2. Sends cancellation signal to Temporal workflow
+	// 3. Python activity receives cancellation and saves LangGraph checkpoint
+	// 4. Execution transitions to EXECUTION_CANCELLED phase
+	// 5. Returns updated AgentExecution with new phase
+	//
+	// ## Preconditions
+	//
+	// - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+	// - Cannot cancel already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
+	//
+	// ## State Transitions
+	//
+	// - status.phase: PENDING/IN_PROGRESS → CANCELLED
+	// - status.completed_at: Set to current timestamp
+	// - LangGraph checkpoint: Preserved for potential future reference
+	//
+	// ## Idempotency
+	//
+	// Cancelling an already-cancelled execution succeeds as a no-op.
+	// The call returns the current execution state without side effects.
+	//
+	// ## Error Cases
+	//
+	// - NOT_FOUND: Execution with given ID doesn't exist
+	// - PERMISSION_DENIED: User lacks can_edit permission on the execution
+	// - FAILED_PRECONDITION: Execution is in a terminal phase
+	// - INVALID_ARGUMENT: ID is empty or malformed
+	//
+	// @since Agent Execution Lifecycle
+	Cancel(ctx context.Context, in *CancelAgentExecutionInput, opts ...grpc.CallOption) (*AgentExecution, error)
+	// Terminate an agent execution immediately.
+	//
+	// Force-stops the agent execution via Temporal's TerminateWorkflow API without
+	// allowing cleanup. Unlike cancel, the agent cannot respond to termination -
+	// it is stopped immediately. Use this for stuck or unresponsive agents.
+	//
+	// Temporal Equivalent: `temporal workflow terminate --workflow-id <id>`
+	//
+	// ## Behavior
+	//
+	// 1. Validates execution exists and is in a terminable phase
+	// 2. Force-kills workflow via Temporal (no signal sent to agent)
+	// 3. Execution transitions to EXECUTION_TERMINATED phase immediately
+	// 4. No cleanup callbacks or checkpoint saves occur
+	// 5. Returns updated AgentExecution with TERMINATED phase
+	//
+	// ## Preconditions
+	//
+	// - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+	// - Cannot terminate already-terminal executions
+	//
+	// ## State Transitions
+	//
+	// - status.phase: PENDING/IN_PROGRESS → TERMINATED
+	// - status.completed_at: Set to current timestamp
+	// - LangGraph checkpoint: May be incomplete (no graceful save)
+	//
+	// ## Terminated vs Cancelled
+	//
+	// | Aspect | cancel | terminate |
+	// |--------|--------|-----------|
+	// | Signal to agent | Yes (can handle) | No |
+	// | Checkpoint saved | Yes (graceful) | No |
+	// | Use case | Normal stop | Stuck agents |
+	// | Can recover? | No | No |
+	//
+	// ## Idempotency
+	//
+	// Terminating an already-terminated execution succeeds as a no-op.
+	//
+	// ## Error Cases
+	//
+	// - NOT_FOUND: Execution with given ID doesn't exist
+	// - PERMISSION_DENIED: User lacks can_edit permission on the execution
+	// - FAILED_PRECONDITION: Execution is in a terminal phase
+	// - INVALID_ARGUMENT: ID is empty or malformed
+	//
+	// @since Agent Execution Lifecycle
+	Terminate(ctx context.Context, in *TerminateAgentExecutionInput, opts ...grpc.CallOption) (*AgentExecution, error)
+	// Recover a failed agent execution from the last checkpoint.
+	//
+	// Resumes execution from the last LangGraph checkpoint using Temporal's
+	// ResetWorkflow API. Completed work is preserved - successful tool calls
+	// are NOT re-executed.
+	//
+	// Temporal Equivalent: `temporal workflow reset --workflow-id <id> --type LastWorkflowTask`
+	//
+	// ## Behavior
+	//
+	// 1. Validates execution is in FAILED phase (recoverable)
+	// 2. Uses Temporal ResetWorkflow to resume from last checkpoint
+	// 3. Activity re-invoked with same thread_id
+	// 4. LangGraph loads from checkpoint automatically
+	// 5. Execution transitions from FAILED to IN_PROGRESS phase
+	// 6. Agent continues from where it failed
+	//
+	// ## Preconditions
+	//
+	// - Execution must be in EXECUTION_FAILED phase
+	// - TERMINATED executions cannot be recovered (incomplete checkpoint)
+	// - CANCELLED executions cannot be recovered (intentional user action)
+	//
+	// ## State Transitions
+	//
+	// - status.phase: FAILED → IN_PROGRESS
+	// - status.completed_at: Cleared
+	// - status.error: Cleared
+	// - Completed tool calls: Preserved (not re-executed)
+	//
+	// ## Idempotency
+	//
+	// If recovery already succeeded (execution is now IN_PROGRESS),
+	// the call succeeds as a no-op.
+	//
+	// ## Error Cases
+	//
+	// - NOT_FOUND: Execution with given ID doesn't exist
+	// - PERMISSION_DENIED: User lacks can_edit permission
+	// - FAILED_PRECONDITION: Execution is not in FAILED phase
+	// - INVALID_ARGUMENT: ID is empty or malformed
+	//
+	// @since Agent Execution Lifecycle
+	Recover(ctx context.Context, in *RecoverAgentExecutionInput, opts ...grpc.CallOption) (*AgentExecution, error)
+	// Pause a running agent execution.
+	//
+	// Temporarily stops the agent at its current checkpoint. Unlike cancel,
+	// the execution is NOT terminal and can be resumed later from where it left off.
+	//
+	// ## Behavior
+	//
+	// 1. Validates execution exists and is in a pausable phase
+	// 2. Sends "pause" signal to Temporal workflow
+	// 3. Workflow cancels running activity gracefully
+	// 4. Python activity saves LangGraph checkpoint on cancellation
+	// 5. Execution transitions to EXECUTION_PAUSED phase
+	// 6. Workflow waits for resume signal (no resources consumed)
+	//
+	// ## Preconditions
+	//
+	// - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+	// - Cannot pause already-terminal or already-paused executions
+	//
+	// ## State Transitions
+	//
+	// - status.phase: PENDING/IN_PROGRESS → PAUSED
+	// - status.completed_at: NOT set (execution is not finished)
+	// - LangGraph checkpoint: Saved via thread_id
+	//
+	// ## Paused vs Cancelled
+	//
+	// | Aspect | pause | cancel |
+	// |--------|-------|--------|
+	// | Terminal state? | No | Yes |
+	// | Can resume? | Yes (via resume RPC) | No |
+	// | Checkpoint saved? | Yes | Best-effort |
+	// | Use case | Temporary stop | Permanent stop |
+	//
+	// ## Idempotency
+	//
+	// Pausing an already-paused execution succeeds as a no-op.
+	//
+	// ## Error Cases
+	//
+	// - NOT_FOUND: Execution with given ID doesn't exist
+	// - PERMISSION_DENIED: User lacks can_edit permission
+	// - FAILED_PRECONDITION: Execution is in a terminal phase
+	// - INVALID_ARGUMENT: ID is empty or malformed
+	//
+	// @since Agent Execution Lifecycle
+	Pause(ctx context.Context, in *PauseAgentExecutionInput, opts ...grpc.CallOption) (*AgentExecution, error)
+	// Resume a paused agent execution.
+	//
+	// Continues execution from the checkpoint where it was paused. The agent
+	// re-invokes with the same thread_id, loading from LangGraph checkpoint
+	// and continuing from where it left off.
+	//
+	// ## Behavior
+	//
+	// 1. Validates execution is in EXECUTION_PAUSED phase
+	// 2. Sends "resume" signal to Temporal workflow
+	// 3. Workflow unblocks and re-invokes activity
+	// 4. Activity loads from LangGraph checkpoint using thread_id
+	// 5. Execution transitions back to EXECUTION_IN_PROGRESS phase
+	// 6. Agent continues from exact pause point
+	//
+	// ## Preconditions
+	//
+	// - Execution must be in EXECUTION_PAUSED phase
+	// - Cannot resume non-paused executions
+	//
+	// ## State Transitions
+	//
+	// - status.phase: PAUSED → IN_PROGRESS
+	// - Activities: Re-invoked, load from checkpoint
+	// - LangGraph state: Loaded from checkpoint via thread_id
+	//
+	// ## Idempotency
+	//
+	// Resuming an already-running execution succeeds as a no-op.
+	//
+	// ## Error Cases
+	//
+	// - NOT_FOUND: Execution with given ID doesn't exist
+	// - PERMISSION_DENIED: User lacks can_edit permission
+	// - FAILED_PRECONDITION: Execution is not in PAUSED phase
+	// - INVALID_ARGUMENT: ID is empty or malformed
+	//
+	// @since Agent Execution Lifecycle
+	Resume(ctx context.Context, in *ResumeAgentExecutionInput, opts ...grpc.CallOption) (*AgentExecution, error)
 }
 
 type agentExecutionCommandControllerClient struct {
@@ -139,6 +364,56 @@ func (c *agentExecutionCommandControllerClient) SubmitApproval(ctx context.Conte
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(AgentExecution)
 	err := c.cc.Invoke(ctx, AgentExecutionCommandController_SubmitApproval_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentExecutionCommandControllerClient) Cancel(ctx context.Context, in *CancelAgentExecutionInput, opts ...grpc.CallOption) (*AgentExecution, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AgentExecution)
+	err := c.cc.Invoke(ctx, AgentExecutionCommandController_Cancel_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentExecutionCommandControllerClient) Terminate(ctx context.Context, in *TerminateAgentExecutionInput, opts ...grpc.CallOption) (*AgentExecution, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AgentExecution)
+	err := c.cc.Invoke(ctx, AgentExecutionCommandController_Terminate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentExecutionCommandControllerClient) Recover(ctx context.Context, in *RecoverAgentExecutionInput, opts ...grpc.CallOption) (*AgentExecution, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AgentExecution)
+	err := c.cc.Invoke(ctx, AgentExecutionCommandController_Recover_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentExecutionCommandControllerClient) Pause(ctx context.Context, in *PauseAgentExecutionInput, opts ...grpc.CallOption) (*AgentExecution, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AgentExecution)
+	err := c.cc.Invoke(ctx, AgentExecutionCommandController_Pause_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentExecutionCommandControllerClient) Resume(ctx context.Context, in *ResumeAgentExecutionInput, opts ...grpc.CallOption) (*AgentExecution, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AgentExecution)
+	err := c.cc.Invoke(ctx, AgentExecutionCommandController_Resume_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -203,6 +478,226 @@ type AgentExecutionCommandControllerServer interface {
 	// If the same approval is submitted twice (same execution, tool_call, action),
 	// the second call is a no-op and returns the current state.
 	SubmitApproval(context.Context, *SubmitApprovalInput) (*AgentExecution, error)
+	// Cancel a running agent execution gracefully.
+	//
+	// Sends a cancellation signal to the agent execution via Temporal's CancelWorkflow API.
+	// The agent can handle the cancellation signal to save checkpoint and clean up
+	// before transitioning to the CANCELLED phase.
+	//
+	// Temporal Equivalent: `temporal workflow cancel --workflow-id <id>`
+	//
+	// ## Behavior
+	//
+	// 1. Validates execution exists and is in a cancellable phase
+	// 2. Sends cancellation signal to Temporal workflow
+	// 3. Python activity receives cancellation and saves LangGraph checkpoint
+	// 4. Execution transitions to EXECUTION_CANCELLED phase
+	// 5. Returns updated AgentExecution with new phase
+	//
+	// ## Preconditions
+	//
+	// - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+	// - Cannot cancel already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
+	//
+	// ## State Transitions
+	//
+	// - status.phase: PENDING/IN_PROGRESS → CANCELLED
+	// - status.completed_at: Set to current timestamp
+	// - LangGraph checkpoint: Preserved for potential future reference
+	//
+	// ## Idempotency
+	//
+	// Cancelling an already-cancelled execution succeeds as a no-op.
+	// The call returns the current execution state without side effects.
+	//
+	// ## Error Cases
+	//
+	// - NOT_FOUND: Execution with given ID doesn't exist
+	// - PERMISSION_DENIED: User lacks can_edit permission on the execution
+	// - FAILED_PRECONDITION: Execution is in a terminal phase
+	// - INVALID_ARGUMENT: ID is empty or malformed
+	//
+	// @since Agent Execution Lifecycle
+	Cancel(context.Context, *CancelAgentExecutionInput) (*AgentExecution, error)
+	// Terminate an agent execution immediately.
+	//
+	// Force-stops the agent execution via Temporal's TerminateWorkflow API without
+	// allowing cleanup. Unlike cancel, the agent cannot respond to termination -
+	// it is stopped immediately. Use this for stuck or unresponsive agents.
+	//
+	// Temporal Equivalent: `temporal workflow terminate --workflow-id <id>`
+	//
+	// ## Behavior
+	//
+	// 1. Validates execution exists and is in a terminable phase
+	// 2. Force-kills workflow via Temporal (no signal sent to agent)
+	// 3. Execution transitions to EXECUTION_TERMINATED phase immediately
+	// 4. No cleanup callbacks or checkpoint saves occur
+	// 5. Returns updated AgentExecution with TERMINATED phase
+	//
+	// ## Preconditions
+	//
+	// - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+	// - Cannot terminate already-terminal executions
+	//
+	// ## State Transitions
+	//
+	// - status.phase: PENDING/IN_PROGRESS → TERMINATED
+	// - status.completed_at: Set to current timestamp
+	// - LangGraph checkpoint: May be incomplete (no graceful save)
+	//
+	// ## Terminated vs Cancelled
+	//
+	// | Aspect | cancel | terminate |
+	// |--------|--------|-----------|
+	// | Signal to agent | Yes (can handle) | No |
+	// | Checkpoint saved | Yes (graceful) | No |
+	// | Use case | Normal stop | Stuck agents |
+	// | Can recover? | No | No |
+	//
+	// ## Idempotency
+	//
+	// Terminating an already-terminated execution succeeds as a no-op.
+	//
+	// ## Error Cases
+	//
+	// - NOT_FOUND: Execution with given ID doesn't exist
+	// - PERMISSION_DENIED: User lacks can_edit permission on the execution
+	// - FAILED_PRECONDITION: Execution is in a terminal phase
+	// - INVALID_ARGUMENT: ID is empty or malformed
+	//
+	// @since Agent Execution Lifecycle
+	Terminate(context.Context, *TerminateAgentExecutionInput) (*AgentExecution, error)
+	// Recover a failed agent execution from the last checkpoint.
+	//
+	// Resumes execution from the last LangGraph checkpoint using Temporal's
+	// ResetWorkflow API. Completed work is preserved - successful tool calls
+	// are NOT re-executed.
+	//
+	// Temporal Equivalent: `temporal workflow reset --workflow-id <id> --type LastWorkflowTask`
+	//
+	// ## Behavior
+	//
+	// 1. Validates execution is in FAILED phase (recoverable)
+	// 2. Uses Temporal ResetWorkflow to resume from last checkpoint
+	// 3. Activity re-invoked with same thread_id
+	// 4. LangGraph loads from checkpoint automatically
+	// 5. Execution transitions from FAILED to IN_PROGRESS phase
+	// 6. Agent continues from where it failed
+	//
+	// ## Preconditions
+	//
+	// - Execution must be in EXECUTION_FAILED phase
+	// - TERMINATED executions cannot be recovered (incomplete checkpoint)
+	// - CANCELLED executions cannot be recovered (intentional user action)
+	//
+	// ## State Transitions
+	//
+	// - status.phase: FAILED → IN_PROGRESS
+	// - status.completed_at: Cleared
+	// - status.error: Cleared
+	// - Completed tool calls: Preserved (not re-executed)
+	//
+	// ## Idempotency
+	//
+	// If recovery already succeeded (execution is now IN_PROGRESS),
+	// the call succeeds as a no-op.
+	//
+	// ## Error Cases
+	//
+	// - NOT_FOUND: Execution with given ID doesn't exist
+	// - PERMISSION_DENIED: User lacks can_edit permission
+	// - FAILED_PRECONDITION: Execution is not in FAILED phase
+	// - INVALID_ARGUMENT: ID is empty or malformed
+	//
+	// @since Agent Execution Lifecycle
+	Recover(context.Context, *RecoverAgentExecutionInput) (*AgentExecution, error)
+	// Pause a running agent execution.
+	//
+	// Temporarily stops the agent at its current checkpoint. Unlike cancel,
+	// the execution is NOT terminal and can be resumed later from where it left off.
+	//
+	// ## Behavior
+	//
+	// 1. Validates execution exists and is in a pausable phase
+	// 2. Sends "pause" signal to Temporal workflow
+	// 3. Workflow cancels running activity gracefully
+	// 4. Python activity saves LangGraph checkpoint on cancellation
+	// 5. Execution transitions to EXECUTION_PAUSED phase
+	// 6. Workflow waits for resume signal (no resources consumed)
+	//
+	// ## Preconditions
+	//
+	// - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+	// - Cannot pause already-terminal or already-paused executions
+	//
+	// ## State Transitions
+	//
+	// - status.phase: PENDING/IN_PROGRESS → PAUSED
+	// - status.completed_at: NOT set (execution is not finished)
+	// - LangGraph checkpoint: Saved via thread_id
+	//
+	// ## Paused vs Cancelled
+	//
+	// | Aspect | pause | cancel |
+	// |--------|-------|--------|
+	// | Terminal state? | No | Yes |
+	// | Can resume? | Yes (via resume RPC) | No |
+	// | Checkpoint saved? | Yes | Best-effort |
+	// | Use case | Temporary stop | Permanent stop |
+	//
+	// ## Idempotency
+	//
+	// Pausing an already-paused execution succeeds as a no-op.
+	//
+	// ## Error Cases
+	//
+	// - NOT_FOUND: Execution with given ID doesn't exist
+	// - PERMISSION_DENIED: User lacks can_edit permission
+	// - FAILED_PRECONDITION: Execution is in a terminal phase
+	// - INVALID_ARGUMENT: ID is empty or malformed
+	//
+	// @since Agent Execution Lifecycle
+	Pause(context.Context, *PauseAgentExecutionInput) (*AgentExecution, error)
+	// Resume a paused agent execution.
+	//
+	// Continues execution from the checkpoint where it was paused. The agent
+	// re-invokes with the same thread_id, loading from LangGraph checkpoint
+	// and continuing from where it left off.
+	//
+	// ## Behavior
+	//
+	// 1. Validates execution is in EXECUTION_PAUSED phase
+	// 2. Sends "resume" signal to Temporal workflow
+	// 3. Workflow unblocks and re-invokes activity
+	// 4. Activity loads from LangGraph checkpoint using thread_id
+	// 5. Execution transitions back to EXECUTION_IN_PROGRESS phase
+	// 6. Agent continues from exact pause point
+	//
+	// ## Preconditions
+	//
+	// - Execution must be in EXECUTION_PAUSED phase
+	// - Cannot resume non-paused executions
+	//
+	// ## State Transitions
+	//
+	// - status.phase: PAUSED → IN_PROGRESS
+	// - Activities: Re-invoked, load from checkpoint
+	// - LangGraph state: Loaded from checkpoint via thread_id
+	//
+	// ## Idempotency
+	//
+	// Resuming an already-running execution succeeds as a no-op.
+	//
+	// ## Error Cases
+	//
+	// - NOT_FOUND: Execution with given ID doesn't exist
+	// - PERMISSION_DENIED: User lacks can_edit permission
+	// - FAILED_PRECONDITION: Execution is not in PAUSED phase
+	// - INVALID_ARGUMENT: ID is empty or malformed
+	//
+	// @since Agent Execution Lifecycle
+	Resume(context.Context, *ResumeAgentExecutionInput) (*AgentExecution, error)
 }
 
 // UnimplementedAgentExecutionCommandControllerServer should be embedded to have
@@ -226,6 +721,21 @@ func (UnimplementedAgentExecutionCommandControllerServer) Delete(context.Context
 }
 func (UnimplementedAgentExecutionCommandControllerServer) SubmitApproval(context.Context, *SubmitApprovalInput) (*AgentExecution, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SubmitApproval not implemented")
+}
+func (UnimplementedAgentExecutionCommandControllerServer) Cancel(context.Context, *CancelAgentExecutionInput) (*AgentExecution, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Cancel not implemented")
+}
+func (UnimplementedAgentExecutionCommandControllerServer) Terminate(context.Context, *TerminateAgentExecutionInput) (*AgentExecution, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Terminate not implemented")
+}
+func (UnimplementedAgentExecutionCommandControllerServer) Recover(context.Context, *RecoverAgentExecutionInput) (*AgentExecution, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Recover not implemented")
+}
+func (UnimplementedAgentExecutionCommandControllerServer) Pause(context.Context, *PauseAgentExecutionInput) (*AgentExecution, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Pause not implemented")
+}
+func (UnimplementedAgentExecutionCommandControllerServer) Resume(context.Context, *ResumeAgentExecutionInput) (*AgentExecution, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Resume not implemented")
 }
 func (UnimplementedAgentExecutionCommandControllerServer) testEmbeddedByValue() {}
 
@@ -337,6 +847,96 @@ func _AgentExecutionCommandController_SubmitApproval_Handler(srv interface{}, ct
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentExecutionCommandController_Cancel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CancelAgentExecutionInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentExecutionCommandControllerServer).Cancel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentExecutionCommandController_Cancel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentExecutionCommandControllerServer).Cancel(ctx, req.(*CancelAgentExecutionInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentExecutionCommandController_Terminate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TerminateAgentExecutionInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentExecutionCommandControllerServer).Terminate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentExecutionCommandController_Terminate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentExecutionCommandControllerServer).Terminate(ctx, req.(*TerminateAgentExecutionInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentExecutionCommandController_Recover_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RecoverAgentExecutionInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentExecutionCommandControllerServer).Recover(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentExecutionCommandController_Recover_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentExecutionCommandControllerServer).Recover(ctx, req.(*RecoverAgentExecutionInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentExecutionCommandController_Pause_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PauseAgentExecutionInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentExecutionCommandControllerServer).Pause(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentExecutionCommandController_Pause_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentExecutionCommandControllerServer).Pause(ctx, req.(*PauseAgentExecutionInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentExecutionCommandController_Resume_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResumeAgentExecutionInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentExecutionCommandControllerServer).Resume(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentExecutionCommandController_Resume_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentExecutionCommandControllerServer).Resume(ctx, req.(*ResumeAgentExecutionInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AgentExecutionCommandController_ServiceDesc is the grpc.ServiceDesc for AgentExecutionCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -363,6 +963,26 @@ var AgentExecutionCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "submitApproval",
 			Handler:    _AgentExecutionCommandController_SubmitApproval_Handler,
+		},
+		{
+			MethodName: "cancel",
+			Handler:    _AgentExecutionCommandController_Cancel_Handler,
+		},
+		{
+			MethodName: "terminate",
+			Handler:    _AgentExecutionCommandController_Terminate_Handler,
+		},
+		{
+			MethodName: "recover",
+			Handler:    _AgentExecutionCommandController_Recover_Handler,
+		},
+		{
+			MethodName: "pause",
+			Handler:    _AgentExecutionCommandController_Pause_Handler,
+		},
+		{
+			MethodName: "resume",
+			Handler:    _AgentExecutionCommandController_Resume_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

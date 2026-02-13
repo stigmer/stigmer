@@ -34,6 +34,35 @@ enum ExecutionPhase {
   EXECUTION_FAILED = 4; // Failed with error
   EXECUTION_CANCELLED = 5; // Cancelled by user
 
+  // Execution was force-stopped immediately.
+  //
+  // Unlike CANCELLED (graceful stop with cleanup opportunity), TERMINATED
+  // means the execution was killed immediately without giving the agent
+  // a chance to checkpoint. This is used for stuck or unresponsive agents.
+  //
+  // Terminal state - execution will not change phases again.
+  //
+  // When this phase is reached:
+  // - completed_at timestamp is set
+  // - error field may contain termination reason
+  // - LangGraph checkpoint may be incomplete (no graceful save)
+  //
+  // Use Cases:
+  // - Force-stop stuck agents that don't respond to cancellation
+  // - Emergency stop for agents in infinite loops
+  // - Kill agents consuming excessive resources
+  //
+  // Terminated vs Cancelled:
+  // - Terminated: Immediate kill, no checkpoint, use when agent is unresponsive
+  // - Cancelled: Graceful stop, checkpoint saved, use when you want controlled shutdown
+  //
+  // Recovery:
+  // - Terminated executions CANNOT be recovered (incomplete checkpoint)
+  // - Use terminate only when cancel doesn't work
+  //
+  // @since Agent Execution Lifecycle
+  EXECUTION_TERMINATED = 8;
+
   // Blocked on tool approval (HITL Phase 1).
   //
   // The agent has encountered a tool that requires user approval before execution.
@@ -156,4 +185,14 @@ enum SubAgentStatus {
   SUB_AGENT_IN_PROGRESS = 2; // Currently executing
   SUB_AGENT_COMPLETED = 3; // Successfully completed
   SUB_AGENT_FAILED = 4; // Failed with error
+}
+
+// ExecutionOutputKind defines the type of artifact published by an agent.
+//
+// When an agent publishes a file, it's stored as-is.
+// When an agent publishes a directory, it's archived as a ZIP file.
+enum ExecutionOutputKind {
+  EXECUTION_OUTPUT_KIND_UNSPECIFIED = 0;
+  EXECUTION_OUTPUT_KIND_FILE = 1; // Single file
+  EXECUTION_OUTPUT_KIND_DIRECTORY = 2; // Directory (stored as ZIP)
 }
