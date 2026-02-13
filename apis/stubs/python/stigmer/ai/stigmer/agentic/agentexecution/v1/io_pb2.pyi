@@ -70,3 +70,39 @@ class SubmitApprovalInput(_message.Message):
     action: _api_pb2.ApprovalAction
     comment: str
     def __init__(self, agent_execution_id: _Optional[str] = ..., tool_call_id: _Optional[str] = ..., action: _Optional[_Union[_api_pb2.ApprovalAction, str]] = ..., comment: _Optional[str] = ...) -> None: ...
+
+class CancelAgentExecutionInput(_message.Message):
+    __slots__ = ("id", "reason")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    reason: str
+    def __init__(self, id: _Optional[str] = ..., reason: _Optional[str] = ...) -> None: ...
+
+class TerminateAgentExecutionInput(_message.Message):
+    __slots__ = ("id", "reason")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    reason: str
+    def __init__(self, id: _Optional[str] = ..., reason: _Optional[str] = ...) -> None: ...
+
+class RecoverAgentExecutionInput(_message.Message):
+    __slots__ = ("id",)
+    ID_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    def __init__(self, id: _Optional[str] = ...) -> None: ...
+
+class PauseAgentExecutionInput(_message.Message):
+    __slots__ = ("id", "reason")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    reason: str
+    def __init__(self, id: _Optional[str] = ..., reason: _Optional[str] = ...) -> None: ...
+
+class ResumeAgentExecutionInput(_message.Message):
+    __slots__ = ("id",)
+    ID_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    def __init__(self, id: _Optional[str] = ...) -> None: ...

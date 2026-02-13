@@ -54,6 +54,34 @@ const (
 	ExecutionPhase_EXECUTION_COMPLETED         ExecutionPhase = 3 // Successfully completed
 	ExecutionPhase_EXECUTION_FAILED            ExecutionPhase = 4 // Failed with error
 	ExecutionPhase_EXECUTION_CANCELLED         ExecutionPhase = 5 // Cancelled by user
+	// Execution was force-stopped immediately.
+	//
+	// Unlike CANCELLED (graceful stop with cleanup opportunity), TERMINATED
+	// means the execution was killed immediately without giving the agent
+	// a chance to checkpoint. This is used for stuck or unresponsive agents.
+	//
+	// Terminal state - execution will not change phases again.
+	//
+	// When this phase is reached:
+	// - completed_at timestamp is set
+	// - error field may contain termination reason
+	// - LangGraph checkpoint may be incomplete (no graceful save)
+	//
+	// Use Cases:
+	// - Force-stop stuck agents that don't respond to cancellation
+	// - Emergency stop for agents in infinite loops
+	// - Kill agents consuming excessive resources
+	//
+	// Terminated vs Cancelled:
+	// - Terminated: Immediate kill, no checkpoint, use when agent is unresponsive
+	// - Cancelled: Graceful stop, checkpoint saved, use when you want controlled shutdown
+	//
+	// Recovery:
+	// - Terminated executions CANNOT be recovered (incomplete checkpoint)
+	// - Use terminate only when cancel doesn't work
+	//
+	// @since Agent Execution Lifecycle
+	ExecutionPhase_EXECUTION_TERMINATED ExecutionPhase = 8
 	// Blocked on tool approval (HITL Phase 1).
 	//
 	// The agent has encountered a tool that requires user approval before execution.
@@ -104,6 +132,7 @@ var (
 		3: "EXECUTION_COMPLETED",
 		4: "EXECUTION_FAILED",
 		5: "EXECUTION_CANCELLED",
+		8: "EXECUTION_TERMINATED",
 		6: "EXECUTION_WAITING_FOR_APPROVAL",
 		7: "EXECUTION_PAUSED",
 	}
@@ -114,6 +143,7 @@ var (
 		"EXECUTION_COMPLETED":            3,
 		"EXECUTION_FAILED":               4,
 		"EXECUTION_CANCELLED":            5,
+		"EXECUTION_TERMINATED":           8,
 		"EXECUTION_WAITING_FOR_APPROVAL": 6,
 		"EXECUTION_PAUSED":               7,
 	}
@@ -419,18 +449,72 @@ func (SubAgentStatus) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{4}
 }
 
+// ExecutionOutputKind defines the type of artifact published by an agent.
+//
+// When an agent publishes a file, it's stored as-is.
+// When an agent publishes a directory, it's archived as a ZIP file.
+type ExecutionOutputKind int32
+
+const (
+	ExecutionOutputKind_EXECUTION_OUTPUT_KIND_UNSPECIFIED ExecutionOutputKind = 0
+	ExecutionOutputKind_EXECUTION_OUTPUT_KIND_FILE        ExecutionOutputKind = 1 // Single file
+	ExecutionOutputKind_EXECUTION_OUTPUT_KIND_DIRECTORY   ExecutionOutputKind = 2 // Directory (stored as ZIP)
+)
+
+// Enum value maps for ExecutionOutputKind.
+var (
+	ExecutionOutputKind_name = map[int32]string{
+		0: "EXECUTION_OUTPUT_KIND_UNSPECIFIED",
+		1: "EXECUTION_OUTPUT_KIND_FILE",
+		2: "EXECUTION_OUTPUT_KIND_DIRECTORY",
+	}
+	ExecutionOutputKind_value = map[string]int32{
+		"EXECUTION_OUTPUT_KIND_UNSPECIFIED": 0,
+		"EXECUTION_OUTPUT_KIND_FILE":        1,
+		"EXECUTION_OUTPUT_KIND_DIRECTORY":   2,
+	}
+)
+
+func (x ExecutionOutputKind) Enum() *ExecutionOutputKind {
+	p := new(ExecutionOutputKind)
+	*p = x
+	return p
+}
+
+func (x ExecutionOutputKind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ExecutionOutputKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[5].Descriptor()
+}
+
+func (ExecutionOutputKind) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[5]
+}
+
+func (x ExecutionOutputKind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ExecutionOutputKind.Descriptor instead.
+func (ExecutionOutputKind) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{5}
+}
+
 var File_ai_stigmer_agentic_agentexecution_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"/ai/stigmer/agentic/agentexecution/v1/enum.proto\x12$ai.stigmer.agentic.agentexecution.v1*\xe5\x01\n" +
+	"/ai/stigmer/agentic/agentexecution/v1/enum.proto\x12$ai.stigmer.agentic.agentexecution.v1*\xff\x01\n" +
 	"\x0eExecutionPhase\x12\x1f\n" +
 	"\x1bEXECUTION_PHASE_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11EXECUTION_PENDING\x10\x01\x12\x19\n" +
 	"\x15EXECUTION_IN_PROGRESS\x10\x02\x12\x17\n" +
 	"\x13EXECUTION_COMPLETED\x10\x03\x12\x14\n" +
 	"\x10EXECUTION_FAILED\x10\x04\x12\x17\n" +
-	"\x13EXECUTION_CANCELLED\x10\x05\x12\"\n" +
+	"\x13EXECUTION_CANCELLED\x10\x05\x12\x18\n" +
+	"\x14EXECUTION_TERMINATED\x10\b\x12\"\n" +
 	"\x1eEXECUTION_WAITING_FOR_APPROVAL\x10\x06\x12\x14\n" +
 	"\x10EXECUTION_PAUSED\x10\a*t\n" +
 	"\vMessageType\x12\x1c\n" +
@@ -460,7 +544,11 @@ const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
 	"\x11SUB_AGENT_PENDING\x10\x01\x12\x19\n" +
 	"\x15SUB_AGENT_IN_PROGRESS\x10\x02\x12\x17\n" +
 	"\x13SUB_AGENT_COMPLETED\x10\x03\x12\x14\n" +
-	"\x10SUB_AGENT_FAILED\x10\x04B\xca\x02\n" +
+	"\x10SUB_AGENT_FAILED\x10\x04*\x81\x01\n" +
+	"\x13ExecutionOutputKind\x12%\n" +
+	"!EXECUTION_OUTPUT_KIND_UNSPECIFIED\x10\x00\x12\x1e\n" +
+	"\x1aEXECUTION_OUTPUT_KIND_FILE\x10\x01\x12#\n" +
+	"\x1fEXECUTION_OUTPUT_KIND_DIRECTORY\x10\x02B\xca\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\tEnumProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
@@ -475,13 +563,14 @@ func file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
+var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
 var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_goTypes = []any{
-	(ExecutionPhase)(0), // 0: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
-	(MessageType)(0),    // 1: ai.stigmer.agentic.agentexecution.v1.MessageType
-	(ToolCallStatus)(0), // 2: ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
-	(TodoStatus)(0),     // 3: ai.stigmer.agentic.agentexecution.v1.TodoStatus
-	(SubAgentStatus)(0), // 4: ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
+	(ExecutionPhase)(0),      // 0: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
+	(MessageType)(0),         // 1: ai.stigmer.agentic.agentexecution.v1.MessageType
+	(ToolCallStatus)(0),      // 2: ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
+	(TodoStatus)(0),          // 3: ai.stigmer.agentic.agentexecution.v1.TodoStatus
+	(SubAgentStatus)(0),      // 4: ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
+	(ExecutionOutputKind)(0), // 5: ai.stigmer.agentic.agentexecution.v1.ExecutionOutputKind
 }
 var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -501,7 +590,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_enum_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc)),
-			NumEnums:      5,
+			NumEnums:      6,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

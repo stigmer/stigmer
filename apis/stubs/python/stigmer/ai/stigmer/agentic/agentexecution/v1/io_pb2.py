@@ -27,7 +27,7 @@ from ai.stigmer.agentic.agentexecution.v1 import enum_pb2 as ai_dot_stigmer_dot_
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n-ai/stigmer/agentic/agentexecution/v1/io.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a.ai/stigmer/agentic/agentexecution/v1/api.proto\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a\x1b\x62uf/validate/validate.proto\"0\n\x10\x41gentExecutionId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\")\n\tSessionId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x85\x01\n\x12\x41gentExecutionList\x12\x1f\n\x0btotal_pages\x18\x01 \x01(\x05R\ntotalPages\x12N\n\x07\x65ntries\x18\x02 \x03(\x0b\x32\x34.ai.stigmer.agentic.agentexecution.v1.AgentExecutionR\x07\x65ntries\"\xb8\x01\n\x1aListAgentExecutionsRequest\x12\x1b\n\tpage_size\x18\x01 \x01(\x05R\x08pageSize\x12\x1d\n\npage_token\x18\x02 \x01(\tR\tpageToken\x12J\n\x05phase\x18\x03 \x01(\x0e\x32\x34.ai.stigmer.agentic.agentexecution.v1.ExecutionPhaseR\x05phase\x12\x12\n\x04tags\x18\x04 \x03(\tR\x04tags\"\x88\x01\n#ListAgentExecutionsBySessionRequest\x12%\n\nsession_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tsessionId\x12\x1b\n\tpage_size\x18\x02 \x01(\x05R\x08pageSize\x12\x1d\n\npage_token\x18\x03 \x01(\tR\tpageToken\"\xa9\x01\n\x1f\x41gentExecutionUpdateStatusInput\x12*\n\x0c\x65xecution_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0b\x65xecutionId\x12Z\n\x06status\x18\x02 \x01(\x0b\x32:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusB\x06\xbaH\x03\xc8\x01\x01R\x06status\"\xeb\x01\n\x13SubmitApprovalInput\x12\x35\n\x12\x61gent_execution_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x10\x61gentExecutionId\x12)\n\x0ctool_call_id\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\ntoolCallId\x12X\n\x06\x61\x63tion\x18\x03 \x01(\x0e\x32\x34.ai.stigmer.agentic.agentexecution.v1.ApprovalActionB\n\xbaH\x07\x82\x01\x04\x10\x01 \x00R\x06\x61\x63tion\x12\x18\n\x07\x63omment\x18\x04 \x01(\tR\x07\x63ommentB\xe8\x01\n(com.ai.stigmer.agentic.agentexecution.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x02\x30\x41i\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n-ai/stigmer/agentic/agentexecution/v1/io.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a.ai/stigmer/agentic/agentexecution/v1/api.proto\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a\x1b\x62uf/validate/validate.proto\"0\n\x10\x41gentExecutionId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\")\n\tSessionId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x85\x01\n\x12\x41gentExecutionList\x12\x1f\n\x0btotal_pages\x18\x01 \x01(\x05R\ntotalPages\x12N\n\x07\x65ntries\x18\x02 \x03(\x0b\x32\x34.ai.stigmer.agentic.agentexecution.v1.AgentExecutionR\x07\x65ntries\"\xb8\x01\n\x1aListAgentExecutionsRequest\x12\x1b\n\tpage_size\x18\x01 \x01(\x05R\x08pageSize\x12\x1d\n\npage_token\x18\x02 \x01(\tR\tpageToken\x12J\n\x05phase\x18\x03 \x01(\x0e\x32\x34.ai.stigmer.agentic.agentexecution.v1.ExecutionPhaseR\x05phase\x12\x12\n\x04tags\x18\x04 \x03(\tR\x04tags\"\x88\x01\n#ListAgentExecutionsBySessionRequest\x12%\n\nsession_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tsessionId\x12\x1b\n\tpage_size\x18\x02 \x01(\x05R\x08pageSize\x12\x1d\n\npage_token\x18\x03 \x01(\tR\tpageToken\"\xa9\x01\n\x1f\x41gentExecutionUpdateStatusInput\x12*\n\x0c\x65xecution_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0b\x65xecutionId\x12Z\n\x06status\x18\x02 \x01(\x0b\x32:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusB\x06\xbaH\x03\xc8\x01\x01R\x06status\"\xeb\x01\n\x13SubmitApprovalInput\x12\x35\n\x12\x61gent_execution_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x10\x61gentExecutionId\x12)\n\x0ctool_call_id\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\ntoolCallId\x12X\n\x06\x61\x63tion\x18\x03 \x01(\x0e\x32\x34.ai.stigmer.agentic.agentexecution.v1.ApprovalActionB\n\xbaH\x07\x82\x01\x04\x10\x01 \x00R\x06\x61\x63tion\x12\x18\n\x07\x63omment\x18\x04 \x01(\tR\x07\x63omment\"L\n\x19\x43\x61ncelAgentExecutionInput\x12\x17\n\x02id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x02id\x12\x16\n\x06reason\x18\x02 \x01(\tR\x06reason\"O\n\x1cTerminateAgentExecutionInput\x12\x17\n\x02id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x02id\x12\x16\n\x06reason\x18\x02 \x01(\tR\x06reason\"5\n\x1aRecoverAgentExecutionInput\x12\x17\n\x02id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x02id\"K\n\x18PauseAgentExecutionInput\x12\x17\n\x02id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x02id\x12\x16\n\x06reason\x18\x02 \x01(\tR\x06reason\"4\n\x19ResumeAgentExecutionInput\x12\x17\n\x02id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x02idB\xe8\x01\n(com.ai.stigmer.agentic.agentexecution.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x02\x30\x41i\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -51,6 +51,16 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SUBMITAPPROVALINPUT'].fields_by_name['tool_call_id']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_SUBMITAPPROVALINPUT'].fields_by_name['action']._loaded_options = None
   _globals['_SUBMITAPPROVALINPUT'].fields_by_name['action']._serialized_options = b'\272H\007\202\001\004\020\001 \000'
+  _globals['_CANCELAGENTEXECUTIONINPUT'].fields_by_name['id']._loaded_options = None
+  _globals['_CANCELAGENTEXECUTIONINPUT'].fields_by_name['id']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_TERMINATEAGENTEXECUTIONINPUT'].fields_by_name['id']._loaded_options = None
+  _globals['_TERMINATEAGENTEXECUTIONINPUT'].fields_by_name['id']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_RECOVERAGENTEXECUTIONINPUT'].fields_by_name['id']._loaded_options = None
+  _globals['_RECOVERAGENTEXECUTIONINPUT'].fields_by_name['id']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_PAUSEAGENTEXECUTIONINPUT'].fields_by_name['id']._loaded_options = None
+  _globals['_PAUSEAGENTEXECUTIONINPUT'].fields_by_name['id']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_RESUMEAGENTEXECUTIONINPUT'].fields_by_name['id']._loaded_options = None
+  _globals['_RESUMEAGENTEXECUTIONINPUT'].fields_by_name['id']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_AGENTEXECUTIONID']._serialized_start=213
   _globals['_AGENTEXECUTIONID']._serialized_end=261
   _globals['_SESSIONID']._serialized_start=263
@@ -65,4 +75,14 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_AGENTEXECUTIONUPDATESTATUSINPUT']._serialized_end=938
   _globals['_SUBMITAPPROVALINPUT']._serialized_start=941
   _globals['_SUBMITAPPROVALINPUT']._serialized_end=1176
+  _globals['_CANCELAGENTEXECUTIONINPUT']._serialized_start=1178
+  _globals['_CANCELAGENTEXECUTIONINPUT']._serialized_end=1254
+  _globals['_TERMINATEAGENTEXECUTIONINPUT']._serialized_start=1256
+  _globals['_TERMINATEAGENTEXECUTIONINPUT']._serialized_end=1335
+  _globals['_RECOVERAGENTEXECUTIONINPUT']._serialized_start=1337
+  _globals['_RECOVERAGENTEXECUTIONINPUT']._serialized_end=1390
+  _globals['_PAUSEAGENTEXECUTIONINPUT']._serialized_start=1392
+  _globals['_PAUSEAGENTEXECUTIONINPUT']._serialized_end=1467
+  _globals['_RESUMEAGENTEXECUTIONINPUT']._serialized_start=1469
+  _globals['_RESUMEAGENTEXECUTIONINPUT']._serialized_end=1521
 # @@protoc_insertion_point(module_scope)

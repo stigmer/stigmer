@@ -480,6 +480,14 @@ func (tm *TemporalManager) reinjectWorkflowCreators(temporalClient client.Client
 			controller.SetWorkflowCreator(agentExecutionWorkflowCreator)
 			log.Debug().Msg("Reinjected agent execution workflow creator")
 		}
+
+		// Inject Temporal client for lifecycle operations (cancel, terminate, recover, pause, resume)
+		if controller, ok := tm.serverDeps.agentExecutionController.(interface {
+			SetTemporalClient(client.Client)
+		}); ok {
+			controller.SetTemporalClient(temporalClient)
+			log.Debug().Msg("Reinjected Temporal client for agent execution lifecycle operations")
+		}
 	}
 
 	// 2. Create and inject workflow execution workflow creator

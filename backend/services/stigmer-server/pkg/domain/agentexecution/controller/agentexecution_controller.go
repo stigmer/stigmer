@@ -7,6 +7,7 @@ import (
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/session"
+	temporalclient "go.temporal.io/sdk/client"
 )
 
 // AgentExecutionController implements AgentExecutionCommandController and AgentExecutionQueryController
@@ -19,6 +20,7 @@ type AgentExecutionController struct {
 	sessionClient       *session.Client
 	workflowCreator     *temporal.InvokeAgentExecutionWorkflowCreator
 	streamBroker        *StreamBroker
+	temporalClient      temporalclient.Client // Temporal client for lifecycle operations
 }
 
 // NewAgentExecutionController creates a new AgentExecutionController
@@ -69,4 +71,11 @@ func (c *AgentExecutionController) SetWorkflowCreator(creator *temporal.InvokeAg
 // This allows workflow error recovery to broadcast status updates to subscribers
 func (c *AgentExecutionController) GetStreamBroker() *StreamBroker {
 	return c.streamBroker
+}
+
+// SetTemporalClient sets the Temporal client for lifecycle operations
+// This is used when the controller is created before the Temporal client is initialized
+// If nil, lifecycle operations (cancel, terminate, pause, resume, recover) will fail gracefully
+func (c *AgentExecutionController) SetTemporalClient(client temporalclient.Client) {
+	c.temporalClient = client
 }

@@ -384,9 +384,10 @@ func Run() error {
 	workflowExecutionController.SetWorkflowCreator(workflowExecutionWorkflowCreator)
 	agentExecutionController.SetWorkflowCreator(agentExecutionWorkflowCreator)
 
-	// Inject Temporal client for lifecycle operations (cancel, terminate, recover)
+	// Inject Temporal client for lifecycle operations (cancel, terminate, recover, pause, resume)
 	// This enables direct Temporal API calls for workflow lifecycle management
 	workflowExecutionController.SetTemporalClient(temporalClient)
+	agentExecutionController.SetTemporalClient(temporalClient)
 
 	// Inject AgentExecution client for HITL approval forwarding
 	// This enables WorkflowExecution.SubmitApproval to forward decisions to child agent executions

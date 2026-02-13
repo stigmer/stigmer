@@ -460,6 +460,514 @@ func (x *SubmitApprovalInput) GetComment() string {
 	return ""
 }
 
+// CancelAgentExecutionInput requests graceful cancellation of an agent execution.
+//
+// Cancellation sends a signal to the agent execution, allowing it to clean up
+// gracefully. The agent can handle the cancellation signal (e.g., save checkpoint,
+// report status) before the execution transitions to CANCELLED phase.
+//
+// ## Behavior
+//
+// - Sends cancellation signal to Temporal via CancelWorkflow API
+// - Agent activity receives cancellation and saves checkpoint
+// - Execution transitions to EXECUTION_CANCELLED phase after cleanup
+// - LangGraph checkpoint is preserved for potential future recovery
+//
+// ## Preconditions
+//
+// - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+// - User must have can_edit permission on the agent execution
+//
+// ## Idempotency
+//
+// If the execution is already cancelled (phase == EXECUTION_CANCELLED),
+// the call succeeds as a no-op and returns the current execution state.
+//
+// ## Use Cases
+//
+// - User realizes they provided incorrect input to the agent
+// - Business decision to stop a long-running agent task
+// - Graceful shutdown before maintenance window
+// - Cancel agent that is taking too long
+//
+// ## Example
+//
+//	{
+//	  "id": "aex_abc123xyz456",
+//	  "reason": "User requested cancellation - task no longer needed"
+//	}
+type CancelAgentExecutionInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Agent execution ID to cancel.
+	//
+	// Format: "aex_{ulid}" (auto-generated unique identifier)
+	// Example: "aex_abc123xyz456"
+	//
+	// Validation: Required, cannot be empty
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Human-readable reason for cancellation.
+	//
+	// Stored in the audit trail and passed to Temporal for operational debugging.
+	// Optional but strongly recommended for compliance and troubleshooting.
+	//
+	// Examples:
+	// - "User requested cancellation"
+	// - "Incorrect input provided to agent"
+	// - "Superseded by newer execution"
+	// - "Pre-maintenance shutdown"
+	Reason        string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CancelAgentExecutionInput) Reset() {
+	*x = CancelAgentExecutionInput{}
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CancelAgentExecutionInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CancelAgentExecutionInput) ProtoMessage() {}
+
+func (x *CancelAgentExecutionInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CancelAgentExecutionInput.ProtoReflect.Descriptor instead.
+func (*CancelAgentExecutionInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *CancelAgentExecutionInput) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *CancelAgentExecutionInput) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+// TerminateAgentExecutionInput requests immediate termination of an agent execution.
+//
+// Termination forcefully kills the agent execution without allowing cleanup.
+// Unlike cancellation, the agent cannot respond to termination - it is stopped
+// immediately. Use this for stuck or unresponsive agent executions.
+//
+// ## Behavior
+//
+// - Force-kills workflow via Temporal TerminateWorkflow API
+// - Agent activity does NOT receive any signal (cannot clean up)
+// - Execution transitions to EXECUTION_TERMINATED phase immediately
+// - All in-progress tool calls are stopped abruptly
+// - LangGraph checkpoint may be incomplete
+//
+// ## Preconditions
+//
+// - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+// - User must have can_edit permission on the agent execution
+//
+// ## Idempotency
+//
+// If the execution is already terminated (phase == EXECUTION_TERMINATED),
+// the call succeeds as a no-op and returns the current execution state.
+//
+// ## Terminated vs Cancelled
+//
+// | Aspect | Cancel | Terminate |
+// |--------|--------|-----------|
+// | Signal | Agent receives cancellation signal | No signal sent |
+// | Cleanup | Agent can save checkpoint | No cleanup possible |
+// | Use case | Normal cancellation | Stuck/unresponsive agents |
+// | Recovery | Cannot recover | Cannot recover |
+//
+// ## Use Cases
+//
+// - Agent is stuck and not responding to cancellation
+// - Agent is in an infinite loop
+// - Emergency stop for misbehaving agent
+// - Agent has a bug causing it to ignore cancellation signals
+//
+// ## Example
+//
+//	{
+//	  "id": "aex_abc123xyz456",
+//	  "reason": "Agent stuck in infinite loop, not responding to cancel"
+//	}
+type TerminateAgentExecutionInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Agent execution ID to terminate.
+	//
+	// Format: "aex_{ulid}" (auto-generated unique identifier)
+	// Example: "aex_abc123xyz456"
+	//
+	// Validation: Required, cannot be empty
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Human-readable reason for termination.
+	//
+	// Stored in the audit trail and passed to Temporal for operational debugging.
+	// Optional but strongly recommended - termination is a drastic action
+	// and the reason helps with post-incident analysis.
+	//
+	// Examples:
+	// - "Agent stuck for 30 minutes, not responding to cancel"
+	// - "Infinite loop detected in tool calls"
+	// - "Emergency stop - agent making unexpected API calls"
+	// - "Cancel failed after 3 attempts, force terminating"
+	Reason        string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TerminateAgentExecutionInput) Reset() {
+	*x = TerminateAgentExecutionInput{}
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TerminateAgentExecutionInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TerminateAgentExecutionInput) ProtoMessage() {}
+
+func (x *TerminateAgentExecutionInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TerminateAgentExecutionInput.ProtoReflect.Descriptor instead.
+func (*TerminateAgentExecutionInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *TerminateAgentExecutionInput) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *TerminateAgentExecutionInput) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+// RecoverAgentExecutionInput requests recovery of a failed agent execution.
+//
+// Recovery resumes execution from the last LangGraph checkpoint, preserving
+// all completed work. The agent continues from where it failed without
+// re-executing successful steps.
+//
+// ## Behavior
+//
+// - Uses Temporal ResetWorkflow API to resume from last successful point
+// - LangGraph checkpoint is loaded using the preserved thread_id
+// - Completed tool calls are NOT re-executed
+// - Execution transitions from FAILED back to IN_PROGRESS phase
+// - Agent continues from where it failed
+//
+// ## Preconditions
+//
+// - Execution must be in EXECUTION_FAILED phase
+// - TERMINATED executions cannot be recovered (incomplete checkpoint)
+// - CANCELLED executions cannot be recovered (intentional user action)
+// - User must have can_edit permission on the agent execution
+//
+// ## Idempotency
+//
+// If recovery is already in progress (execution moved to IN_PROGRESS after
+// a previous recover call), the call succeeds as a no-op and returns current state.
+//
+// ## Use Cases
+//
+// - Agent failed due to transient error (network timeout, rate limit)
+// - External API was down but is now available
+// - Bug was fixed and agent should continue from failure point
+// - Retry after investigating and fixing the root cause
+//
+// ## Example
+//
+//	{
+//	  "id": "aex_abc123xyz456"
+//	}
+type RecoverAgentExecutionInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Agent execution ID to recover.
+	//
+	// Must be in FAILED phase. TERMINATED and CANCELLED executions
+	// cannot be recovered.
+	//
+	// Format: "aex_{ulid}" (auto-generated unique identifier)
+	// Example: "aex_abc123xyz456"
+	//
+	// Validation: Required, cannot be empty
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RecoverAgentExecutionInput) Reset() {
+	*x = RecoverAgentExecutionInput{}
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RecoverAgentExecutionInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RecoverAgentExecutionInput) ProtoMessage() {}
+
+func (x *RecoverAgentExecutionInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RecoverAgentExecutionInput.ProtoReflect.Descriptor instead.
+func (*RecoverAgentExecutionInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *RecoverAgentExecutionInput) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+// PauseAgentExecutionInput requests temporarily pausing an agent execution.
+//
+// Pauses the agent at its current checkpoint. Unlike cancel, the execution
+// is NOT terminal and can be resumed later from where it left off.
+//
+// ## Behavior
+//
+// When an agent is paused:
+// 1. A "pause" signal is sent to the Temporal workflow
+// 2. Running activity is gracefully cancelled (checkpoint saved)
+// 3. LangGraph auto-saves checkpoint on cancellation
+// 4. Execution transitions to EXECUTION_PAUSED phase
+// 5. Workflow waits for resume signal (no resources consumed)
+//
+// ## Resume Flow
+//
+// The paused agent can be resumed via the resume RPC:
+// 1. Resume signal unblocks the workflow
+// 2. Activity is re-invoked with same thread_id
+// 3. LangGraph loads from checkpoint automatically
+// 4. Agent continues from exact pause point
+//
+// ## Preconditions
+//
+// - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+// - Cannot pause already paused or terminal executions
+//
+// ## Use Cases
+//
+// - User wants to review agent progress before continuing
+// - Scheduled maintenance window requires pausing work
+// - Rate limit concerns require throttling agent work
+// - Need to modify agent configuration before continuing
+//
+// ## Example
+//
+//	{
+//	  "id": "aex_abc123xyz456",
+//	  "reason": "Pausing to review progress before continuing"
+//	}
+//
+// @since Agent Execution Lifecycle
+type PauseAgentExecutionInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Agent execution ID to pause.
+	//
+	// Must be in PENDING or IN_PROGRESS phase. Cannot pause
+	// executions that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
+	//
+	// Format: "aex_{ulid}" (auto-generated unique identifier)
+	// Example: "aex_abc123xyz456"
+	//
+	// Validation: Required, cannot be empty
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Human-readable reason for pausing.
+	//
+	// Stored in the audit trail for operational debugging and compliance.
+	// Helps track why the pause was needed.
+	//
+	// Examples:
+	// - "Pausing for scheduled maintenance window"
+	// - "User requested pause to review progress"
+	// - "Pausing due to rate limit concerns"
+	// - "Emergency pause - investigating issue"
+	Reason        string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PauseAgentExecutionInput) Reset() {
+	*x = PauseAgentExecutionInput{}
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PauseAgentExecutionInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PauseAgentExecutionInput) ProtoMessage() {}
+
+func (x *PauseAgentExecutionInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PauseAgentExecutionInput.ProtoReflect.Descriptor instead.
+func (*PauseAgentExecutionInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *PauseAgentExecutionInput) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *PauseAgentExecutionInput) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+// ResumeAgentExecutionInput requests resuming a paused agent execution.
+//
+// Continues execution from the checkpoint where it was paused. The agent
+// re-invokes activities with the same thread_id, which loads from checkpoint
+// and continues from where it left off.
+//
+// ## Behavior
+//
+// When an agent is resumed:
+// 1. A "resume" signal is sent to the paused Temporal workflow
+// 2. Workflow unblocks from its wait state
+// 3. Activity is re-invoked with same execution context
+// 4. LangGraph loads checkpoint using thread_id
+// 5. Agent continues from exact pause point
+//
+// ## Preconditions
+//
+// - Execution must be in EXECUTION_PAUSED phase
+// - Cannot resume non-paused executions
+//
+// ## Idempotency
+//
+// If the execution is not paused (already IN_PROGRESS),
+// the call succeeds as a no-op and returns the current execution state.
+//
+// ## Example
+//
+//	{
+//	  "id": "aex_abc123xyz456"
+//	}
+//
+// @since Agent Execution Lifecycle
+type ResumeAgentExecutionInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Agent execution ID to resume.
+	//
+	// Must be in PAUSED phase. Cannot resume executions
+	// that are not paused.
+	//
+	// Format: "aex_{ulid}" (auto-generated unique identifier)
+	// Example: "aex_abc123xyz456"
+	//
+	// Validation: Required, cannot be empty
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResumeAgentExecutionInput) Reset() {
+	*x = ResumeAgentExecutionInput{}
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResumeAgentExecutionInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResumeAgentExecutionInput) ProtoMessage() {}
+
+func (x *ResumeAgentExecutionInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResumeAgentExecutionInput.ProtoReflect.Descriptor instead.
+func (*ResumeAgentExecutionInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *ResumeAgentExecutionInput) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_agentexecution_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc = "" +
@@ -494,7 +1002,20 @@ const file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc = "" +
 	"toolCallId\x12X\n" +
 	"\x06action\x18\x03 \x01(\x0e24.ai.stigmer.agentic.agentexecution.v1.ApprovalActionB\n" +
 	"\xbaH\a\x82\x01\x04\x10\x01 \x00R\x06action\x12\x18\n" +
-	"\acomment\x18\x04 \x01(\tR\acommentB\xc8\x02\n" +
+	"\acomment\x18\x04 \x01(\tR\acomment\"L\n" +
+	"\x19CancelAgentExecutionInput\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12\x16\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\"O\n" +
+	"\x1cTerminateAgentExecutionInput\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12\x16\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\"5\n" +
+	"\x1aRecoverAgentExecutionInput\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\"K\n" +
+	"\x18PauseAgentExecutionInput\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12\x16\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\"4\n" +
+	"\x19ResumeAgentExecutionInput\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02idB\xc8\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\aIoProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
@@ -509,7 +1030,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_ai_stigmer_agentic_agentexecution_v1_io_proto_goTypes = []any{
 	(*AgentExecutionId)(nil),                    // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionId
 	(*SessionId)(nil),                           // 1: ai.stigmer.agentic.agentexecution.v1.SessionId
@@ -518,16 +1039,21 @@ var file_ai_stigmer_agentic_agentexecution_v1_io_proto_goTypes = []any{
 	(*ListAgentExecutionsBySessionRequest)(nil), // 4: ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsBySessionRequest
 	(*AgentExecutionUpdateStatusInput)(nil),     // 5: ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput
 	(*SubmitApprovalInput)(nil),                 // 6: ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInput
-	(*AgentExecution)(nil),                      // 7: ai.stigmer.agentic.agentexecution.v1.AgentExecution
-	(ExecutionPhase)(0),                         // 8: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
-	(*AgentExecutionStatus)(nil),                // 9: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus
-	(ApprovalAction)(0),                         // 10: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	(*CancelAgentExecutionInput)(nil),           // 7: ai.stigmer.agentic.agentexecution.v1.CancelAgentExecutionInput
+	(*TerminateAgentExecutionInput)(nil),        // 8: ai.stigmer.agentic.agentexecution.v1.TerminateAgentExecutionInput
+	(*RecoverAgentExecutionInput)(nil),          // 9: ai.stigmer.agentic.agentexecution.v1.RecoverAgentExecutionInput
+	(*PauseAgentExecutionInput)(nil),            // 10: ai.stigmer.agentic.agentexecution.v1.PauseAgentExecutionInput
+	(*ResumeAgentExecutionInput)(nil),           // 11: ai.stigmer.agentic.agentexecution.v1.ResumeAgentExecutionInput
+	(*AgentExecution)(nil),                      // 12: ai.stigmer.agentic.agentexecution.v1.AgentExecution
+	(ExecutionPhase)(0),                         // 13: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
+	(*AgentExecutionStatus)(nil),                // 14: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus
+	(ApprovalAction)(0),                         // 15: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
 }
 var file_ai_stigmer_agentic_agentexecution_v1_io_proto_depIdxs = []int32{
-	7,  // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionList.entries:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecution
-	8,  // 1: ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsRequest.phase:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
-	9,  // 2: ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput.status:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus
-	10, // 3: ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInput.action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	12, // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionList.entries:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecution
+	13, // 1: ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsRequest.phase:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
+	14, // 2: ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput.status:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus
+	15, // 3: ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInput.action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
 	4,  // [4:4] is the sub-list for method output_type
 	4,  // [4:4] is the sub-list for method input_type
 	4,  // [4:4] is the sub-list for extension type_name
@@ -548,7 +1074,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
