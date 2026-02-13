@@ -881,30 +881,50 @@ async def _execute_graphton_impl(
             }
             activity_logger.info(f"Configuring agent to use existing sandbox {sandbox.id}")
         
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Resolve model name to API model ID
+        #
+        # Platform-friendly names like "claude-sonnet-4.5" are resolved to actual API
+        # model IDs like "claude-sonnet-4-5-20250929". This allows users to use
+        # simpler names while ensuring the correct model ID is sent to the provider.
+        #
+        # The resolve_or_passthrough() method handles unknown models gracefully by
+        # passing them through as-is (useful for custom/unlisted models).
+        # ─────────────────────────────────────────────────────────────────────────────
+        api_model_id, resolved_metadata = ModelRegistry.resolve_or_passthrough(
+            model_name,
+            provider=worker_config.llm.provider,
+        )
+        
+        if api_model_id != model_name:
+            activity_logger.info(
+                f"Resolved model '{model_name}' to API model ID '{api_model_id}'"
+            )
+        
         # Create LLM instance with explicit configuration
         # This ensures base_url is properly set for Ollama connections from Docker
         if worker_config.llm.provider == "ollama":
             from langchain_ollama import ChatOllama
             llm_model = ChatOllama(
-                model=model_name,
+                model=api_model_id,
                 base_url=worker_config.llm.base_url,  # Explicitly pass base_url
             )
             activity_logger.info(f"Created ChatOllama with base_url={worker_config.llm.base_url}")
         elif worker_config.llm.provider == "anthropic":
             from langchain_anthropic import ChatAnthropic
             llm_model = ChatAnthropic(
-                model=model_name,
+                model=api_model_id,
                 api_key=worker_config.llm.api_key,
             )
         elif worker_config.llm.provider == "openai":
             from langchain_openai import ChatOpenAI
             llm_model = ChatOpenAI(
-                model=model_name,
+                model=api_model_id,
                 api_key=worker_config.llm.api_key,
             )
         else:
-            # Fallback: pass model name as string and let Graphton handle it
-            llm_model = model_name
+            # Fallback: pass resolved model ID as string and let Graphton handle it
+            llm_model = api_model_id
         
         # Create approval checker for HITL tool approval flow (Phase 3B)
         # The checker evaluates the approval policy chain for each tool invocation
@@ -1010,6 +1030,13 @@ async def _execute_graphton_impl(
         # Graphton's loop detection middleware prevents infinite loops
         # approval_checker enables HITL tool approval with interrupt/resume
         # checkpointer enables HITL interrupt/resume and conversation persistence
+        #
+        # NOTE: general_purpose_agent=False disables the automatic "task" tool from
+        # deepagents' SubAgentMiddleware. This is a workaround for a bug in deepagents
+        # where subagents spawned via the task tool have recursion_limit=25 (LangGraph
+        # default) instead of inheriting the parent's recursion_limit=1000.
+        # See: https://github.com/langchain-ai/deepagents/issues/XXX (TODO: file issue)
+        # We use our own transformed_subagents which are properly configured.
         agent_graph = create_deep_agent(
             model=llm_model,  # Pass LLM instance instead of string
             system_prompt=enhanced_system_prompt,
@@ -1019,6 +1046,7 @@ async def _execute_graphton_impl(
             subagents=transformed_subagents,  # Sub-agents from AgentSpec.sub_agents
             sandbox_config=sandbox_config_for_agent,
             recursion_limit=1000,
+            general_purpose_agent=False,  # Disable deepagents' auto task tool (recursion_limit bug)
             checkpointer=checkpointer,  # Enable HITL interrupt/resume and conversation persistence
             approval_checker=approval_checker,  # Enable HITL tool approval (Phase 3B)
             summarization_config=summarization_config,  # Enable automatic context summarization

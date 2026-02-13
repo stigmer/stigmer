@@ -580,6 +580,200 @@ class TestModelMetadataFields:
 
 
 # =============================================================================
+# TestModelMetadataGetApiModelId - Tests for API model ID resolution
+# =============================================================================
+
+
+class TestModelMetadataGetApiModelId:
+    """Tests for ModelMetadata.get_api_model_id() method."""
+
+    def test_anthropic_model_returns_api_id(self):
+        """Test that Anthropic models return their api_model_id."""
+        metadata = ModelRegistry.get("claude-sonnet-4.5")
+        assert metadata.get_api_model_id() == "claude-sonnet-4-5-20250929"
+
+    def test_anthropic_opus_returns_api_id(self):
+        """Test that Claude Opus returns its api_model_id."""
+        metadata = ModelRegistry.get("claude-opus-4")
+        assert metadata.get_api_model_id() == "claude-opus-4-20250514"
+
+    def test_anthropic_haiku_returns_api_id(self):
+        """Test that Claude Haiku returns its api_model_id."""
+        metadata = ModelRegistry.get("claude-haiku-4")
+        assert metadata.get_api_model_id() == "claude-haiku-4-20250313"
+
+    def test_anthropic_sonnet_3_5_returns_api_id(self):
+        """Test that Claude Sonnet 3.5 returns its api_model_id."""
+        metadata = ModelRegistry.get("claude-sonnet-3.5")
+        assert metadata.get_api_model_id() == "claude-3-5-sonnet-20241022"
+
+    def test_anthropic_haiku_3_5_returns_api_id(self):
+        """Test that Claude Haiku 3.5 returns its api_model_id."""
+        metadata = ModelRegistry.get("claude-haiku-3.5")
+        assert metadata.get_api_model_id() == "claude-3-5-haiku-20241022"
+
+    def test_openai_model_returns_model_id(self):
+        """Test that OpenAI models return model_id (no api_model_id mapping)."""
+        metadata = ModelRegistry.get("gpt-4o")
+        assert metadata.get_api_model_id() == "gpt-4o"
+
+    def test_ollama_model_returns_model_id(self):
+        """Test that Ollama models return model_id (no api_model_id mapping)."""
+        metadata = ModelRegistry.get("qwen2.5-coder:7b")
+        assert metadata.get_api_model_id() == "qwen2.5-coder:7b"
+
+    def test_all_anthropic_models_have_api_model_id(self):
+        """Test that all Anthropic models have api_model_id set."""
+        for model in ModelRegistry.list_by_provider("anthropic"):
+            assert model.api_model_id is not None, \
+                f"{model.model_id} should have api_model_id set"
+            assert model.api_model_id != model.model_id, \
+                f"{model.model_id} api_model_id should differ from model_id"
+
+    def test_openai_ollama_models_no_api_model_id(self):
+        """Test that OpenAI and Ollama models have api_model_id=None."""
+        for provider in ["openai", "ollama"]:
+            for model in ModelRegistry.list_by_provider(provider):
+                assert model.api_model_id is None, \
+                    f"{model.model_id} should not have api_model_id set"
+
+
+# =============================================================================
+# TestModelRegistryResolve - Tests for model name resolution
+# =============================================================================
+
+
+class TestModelRegistryResolve:
+    """Tests for ModelRegistry.resolve() method."""
+
+    def test_resolve_by_model_id(self):
+        """Test resolution by exact model_id match."""
+        api_id, metadata = ModelRegistry.resolve("claude-sonnet-4.5")
+        assert api_id == "claude-sonnet-4-5-20250929"
+        assert metadata.model_id == "claude-sonnet-4.5"
+
+    def test_resolve_by_api_model_id(self):
+        """Test resolution by exact api_model_id match."""
+        api_id, metadata = ModelRegistry.resolve("claude-sonnet-4-5-20250929")
+        assert api_id == "claude-sonnet-4-5-20250929"
+        assert metadata.model_id == "claude-sonnet-4.5"
+
+    def test_resolve_case_insensitive(self):
+        """Test case-insensitive resolution."""
+        api_id, metadata = ModelRegistry.resolve("Claude-Sonnet-4.5")
+        assert api_id == "claude-sonnet-4-5-20250929"
+        assert metadata.model_id == "claude-sonnet-4.5"
+
+    def test_resolve_uppercase(self):
+        """Test uppercase resolution."""
+        api_id, metadata = ModelRegistry.resolve("CLAUDE-SONNET-4.5")
+        assert api_id == "claude-sonnet-4-5-20250929"
+        assert metadata.model_id == "claude-sonnet-4.5"
+
+    def test_resolve_openai_model(self):
+        """Test resolution of OpenAI model (no mapping)."""
+        api_id, metadata = ModelRegistry.resolve("gpt-4o")
+        assert api_id == "gpt-4o"
+        assert metadata.model_id == "gpt-4o"
+
+    def test_resolve_ollama_model(self):
+        """Test resolution of Ollama model (no mapping)."""
+        api_id, metadata = ModelRegistry.resolve("qwen2.5-coder:7b")
+        assert api_id == "qwen2.5-coder:7b"
+        assert metadata.model_id == "qwen2.5-coder:7b"
+
+    def test_resolve_unknown_model_raises_keyerror(self):
+        """Test that unknown models raise KeyError."""
+        with pytest.raises(KeyError) as exc_info:
+            ModelRegistry.resolve("nonexistent-model-xyz")
+        assert "nonexistent-model-xyz" in str(exc_info.value)
+        assert "not found" in str(exc_info.value)
+
+    def test_resolve_empty_string_raises_keyerror(self):
+        """Test that empty string raises KeyError."""
+        with pytest.raises(KeyError) as exc_info:
+            ModelRegistry.resolve("")
+        assert "empty" in str(exc_info.value).lower()
+
+    def test_resolve_whitespace_only_raises_keyerror(self):
+        """Test that whitespace-only string raises KeyError."""
+        with pytest.raises(KeyError) as exc_info:
+            ModelRegistry.resolve("   ")
+        assert "empty" in str(exc_info.value).lower()
+
+    def test_resolve_strips_whitespace(self):
+        """Test that leading/trailing whitespace is stripped."""
+        api_id, metadata = ModelRegistry.resolve("  claude-sonnet-4.5  ")
+        assert api_id == "claude-sonnet-4-5-20250929"
+        assert metadata.model_id == "claude-sonnet-4.5"
+
+    def test_resolve_all_anthropic_models(self):
+        """Test that all Anthropic models resolve correctly."""
+        expected = {
+            "claude-opus-4": "claude-opus-4-20250514",
+            "claude-sonnet-4.5": "claude-sonnet-4-5-20250929",
+            "claude-haiku-4": "claude-haiku-4-20250313",
+            "claude-sonnet-3.5": "claude-3-5-sonnet-20241022",
+            "claude-haiku-3.5": "claude-3-5-haiku-20241022",
+        }
+        for model_id, expected_api_id in expected.items():
+            api_id, metadata = ModelRegistry.resolve(model_id)
+            assert api_id == expected_api_id, \
+                f"{model_id} should resolve to {expected_api_id}, got {api_id}"
+
+
+# =============================================================================
+# TestModelRegistryResolveOrPassthrough - Tests for graceful resolution
+# =============================================================================
+
+
+class TestModelRegistryResolveOrPassthrough:
+    """Tests for ModelRegistry.resolve_or_passthrough() method."""
+
+    def test_known_model_resolved(self):
+        """Test that known models are resolved normally."""
+        api_id, metadata = ModelRegistry.resolve_or_passthrough("claude-sonnet-4.5")
+        assert api_id == "claude-sonnet-4-5-20250929"
+        assert metadata.model_id == "claude-sonnet-4.5"
+
+    def test_unknown_model_passed_through(self):
+        """Test that unknown models are passed through as-is."""
+        api_id, metadata = ModelRegistry.resolve_or_passthrough("my-custom-model")
+        assert api_id == "my-custom-model"
+        assert metadata.model_id == "my-custom-model"
+
+    def test_unknown_model_gets_default_metadata(self):
+        """Test that unknown models get conservative default metadata."""
+        api_id, metadata = ModelRegistry.resolve_or_passthrough("my-custom-model")
+        assert metadata.context_window_tokens == 8192  # Conservative default
+        assert metadata.cost_tier == CostTier.ECONOMY
+
+    def test_unknown_model_uses_provided_provider(self):
+        """Test that unknown models use the provided provider hint."""
+        api_id, metadata = ModelRegistry.resolve_or_passthrough(
+            "my-custom-model",
+            provider="anthropic",
+        )
+        assert metadata.provider == "anthropic"
+
+    def test_unknown_model_default_provider(self):
+        """Test that unknown models default to 'unknown' provider."""
+        api_id, metadata = ModelRegistry.resolve_or_passthrough("my-custom-model")
+        assert metadata.provider == "unknown"
+
+    def test_case_insensitive_known_model(self):
+        """Test case-insensitive resolution for known models."""
+        api_id, metadata = ModelRegistry.resolve_or_passthrough("Claude-Sonnet-4.5")
+        assert api_id == "claude-sonnet-4-5-20250929"
+
+    def test_empty_string_passed_through(self):
+        """Test that empty string is handled gracefully."""
+        # Should not raise, just pass through
+        api_id, metadata = ModelRegistry.resolve_or_passthrough("")
+        assert api_id == ""
+
+
+# =============================================================================
 # TestModuleExports - Tests for __all__ exports
 # =============================================================================
 
