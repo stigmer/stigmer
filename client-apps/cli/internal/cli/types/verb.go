@@ -30,6 +30,9 @@ const (
 
 	// VerbSearch searches for resources by query.
 	VerbSearch Verb = "search"
+
+	// VerbDownload downloads artifacts from an execution.
+	VerbDownload Verb = "download"
 )
 
 // String returns the string representation of the verb.
@@ -48,6 +51,7 @@ func AllVerbs() []Verb {
 		VerbRun,
 		VerbPush,
 		VerbSearch,
+		VerbDownload,
 	}
 }
 
@@ -58,7 +62,7 @@ func (v Verb) IsFileBasedVerb() bool {
 
 // IsReferenceBasedVerb returns true if the verb operates on resource references.
 func (v Verb) IsReferenceBasedVerb() bool {
-	return v == VerbGet || v == VerbDelete || v == VerbRun || v == VerbSearch
+	return v == VerbGet || v == VerbDelete || v == VerbRun || v == VerbSearch || v == VerbDownload
 }
 
 // IsListVerb returns true if the verb lists resources.
@@ -86,6 +90,8 @@ func VerbFromString(s string) (Verb, error) {
 		return VerbPush, nil
 	case "search":
 		return VerbSearch, nil
+	case "download":
+		return VerbDownload, nil
 	default:
 		return "", fmt.Errorf("unknown verb: %s", s)
 	}

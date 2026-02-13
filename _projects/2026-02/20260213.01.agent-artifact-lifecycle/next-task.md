@@ -121,9 +121,112 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-13
-**Last Session**: 2026-02-13 Session 4 - Java Backend Implementation completed
-**Current Task**: T07 (Java Backend / Cloud Implementation)
-**Status**: ✅ COMPLETED - Full Java backend artifact lifecycle implementation for stigmer-cloud
+**Last Session**: 2026-02-13 Session 5 - CLI Artifact Lifecycle Implementation completed
+**Current Task**: T04 (CLI Implementation)
+**Status**: ✅ COMPLETED - Full CLI artifact lifecycle interface with file attachments, execution management, and artifact downloads
+
+---
+
+## Session Progress (2026-02-13 - Session 5)
+
+### Completed ✅
+- **Task 4**: CLI Artifact Lifecycle Implementation
+  - **Type System Extensions**
+    - Added `VerbDownload` to verb system
+    - Added execution verb support (get, list, delete, download)
+    - Documented execution as special-case resource (uses dedicated RPCs, not SearchService)
+  - **Execution Package** (`internal/cli/execution/`)
+    - Created `get.go` - Fetch executions by ID, get artifact download URLs
+    - Created `list.go` - List executions with pagination and phase filtering
+    - Created `display.go` - Table/YAML/JSON formatting for executions and artifacts
+    - Created `cancel.go` - Graceful execution cancellation
+  - **Attachment Processing**
+    - Created `run_attachments.go` with `AttachmentProcessor` class
+    - Size-based routing: < 4MB inline, >= 4MB uploaded via RPC
+    - Content type detection from file extensions
+    - Progress feedback for large file uploads
+  - **Enhanced Run Command**
+    - Added `--attach PATH` flag (repeatable) for file inputs
+    - Added `--wait` flag to poll until completion
+    - Added `--download DIR` flag to retrieve artifacts (implies --wait)
+    - Implemented wait-and-poll logic with exponential backoff
+    - Integrated attachment processing transparently
+  - **Download Command**
+    - Created `download.go` command (new verb)
+    - Created `download_execution.go` handler
+    - Downloads all artifacts or specific artifact by name
+    - Refreshes expired presigned URLs automatically
+    - Creates output directories automatically
+  - **Command Extensions**
+    - Extended `list.go` - Special case for `stigmer list executions`
+    - Extended `get.go` - Special case for `stigmer get execution aex_xxx`
+    - Extended `delete.go` - Maps to cancel for executions
+  - **HTTP Utilities**
+    - Created `httputil/download.go` - Reusable HTTP download with progress
+    - Streaming downloads, timeout configuration, error handling
+  - **Root Integration**
+    - Wired `NewDownloadCommand()` in `root.go`
+
+### Key CLI Workflows Enabled
+
+```bash
+# Run with file attachments
+stigmer run agent data-analyzer --attach ./data.csv --attach ./config.yaml -m "Analyze"
+
+# Run, wait, and download artifacts
+stigmer run agent report-generator --attach ./data.csv --wait --download ./results
+
+# List recent executions
+stigmer list executions
+
+# Get execution details (shows artifacts)
+stigmer get execution aex_01abc123
+
+# Download artifacts
+stigmer download execution aex_01abc123 --output-dir ./reports
+
+# Cancel running execution
+stigmer delete execution aex_01abc123
+```
+
+### Architecture Highlights
+- **Execution as Special Resource**: Not in `cliRelevantKinds`, uses dedicated RPCs
+- **Transparent Complexity**: Users don't see storage_keys, 4MB threshold, or URL expiration
+- **Consistent Patterns**: Follows verb-first CLI pattern (`stigmer <verb> <resource-type>`)
+- **Clean Abstraction**: Attachment processing hidden behind simple API
+
+### Files Created (9)
+- `client-apps/cli/internal/cli/execution/get.go`
+- `client-apps/cli/internal/cli/execution/list.go`
+- `client-apps/cli/internal/cli/execution/display.go`
+- `client-apps/cli/internal/cli/execution/cancel.go`
+- `client-apps/cli/internal/cli/httputil/download.go`
+- `client-apps/cli/cmd/stigmer/root/run_attachments.go`
+- `client-apps/cli/cmd/stigmer/root/download.go`
+- `client-apps/cli/cmd/stigmer/root/download_execution.go`
+- `.cursor/plans/cli_artifact_lifecycle_834e15bf.plan.md`
+
+### Files Modified (9)
+- `client-apps/cli/internal/cli/types/verb.go` - Added VerbDownload
+- `client-apps/cli/internal/cli/types/verb_support.go` - Execution verb support
+- `client-apps/cli/cmd/stigmer/root.go` - Wired download command
+- `client-apps/cli/cmd/stigmer/root/run.go` - Added attach/wait/download flags
+- `client-apps/cli/cmd/stigmer/root/run_create.go` - Attachments parameter
+- `client-apps/cli/cmd/stigmer/root/run_handlers.go` - Wait and download logic
+- `client-apps/cli/cmd/stigmer/root/list.go` - Execution listing
+- `client-apps/cli/cmd/stigmer/root/get.go` - Execution details
+- `client-apps/cli/cmd/stigmer/root/delete.go` - Execution cancellation
+
+### Build Verification
+- ✅ CLI builds successfully with all new code
+- ✅ All commands properly wired in root.go
+- ✅ Help text follows established patterns
+- ✅ Zero linting errors in new code
+
+### Code Statistics
+- **Lines Added**: ~1200 (implementation + display logic)
+- **Zero Breaking Changes**: Fully backward compatible
+- **DDD Compliant**: Clean separation of concerns, execution domain isolated
 
 ---
 
@@ -333,9 +436,9 @@ Artifact Download:
 | 2 | Agent Runner Python Implementation | ✅ COMPLETED (Session 2) |
 | 3 | Go Backend Implementation | ✅ COMPLETED (Session 3) |
 | 7 | Java cloud backend (stigmer-service) | ✅ COMPLETED (Session 4) |
-| 4 | CLI artifact commands | 🔴 NEXT - Ready to implement |
-| 5 | CLI `--attach` flag for run | Pending |
-| 6 | Integration testing | Pending |
+| 4 | CLI artifact commands | ✅ COMPLETED (Session 5) |
+| 5 | CLI `--attach` flag for run | ✅ COMPLETED (Session 5) |
+| 6 | Integration testing | 🔴 NEXT - Ready for end-to-end testing |
 | 8 | Daytona Volume integration | Future (M2) |
 | 9 | Lifecycle webhooks | Future (M3) |
 
@@ -343,31 +446,9 @@ Artifact Download:
 
 ## Next Steps
 
-### Immediate (Task 4: CLI Implementation)
+### Immediate (Task 6: Integration Testing)
 
-Ready to implement CLI commands using the completed backend:
-
-1. **Implement `stigmer execution upload` command**
-   - Call `uploadAttachment` RPC with file contents
-   - Handle large files (>4MB)
-   - Display returned storage_key
-
-2. **Add `--attach` flag to `stigmer run agent`**
-   - Parse file paths from CLI
-   - Pre-upload large files using `uploadAttachment`
-   - Create `Attachment` messages with storage_keys
-   - Include attachments in `AgentExecutionSpec`
-
-3. **Implement `stigmer execution artifacts` command**
-   - List artifacts from execution status
-   - Show artifact metadata (name, size, kind, created_at)
-
-4. **Implement `stigmer execution download` command**
-   - Call `getArtifactDownloadUrl` RPC
-   - Download artifact using presigned URL
-   - Save to local filesystem
-
-### Following (Task 5: Integration Testing)
+All implementation complete - ready for end-to-end testing:
 1. End-to-end test: CLI upload → Agent execution → CLI download
 2. Test large file handling (>4MB)
 3. Test directory artifacts (ZIP handling)
@@ -375,18 +456,21 @@ Ready to implement CLI commands using the completed backend:
 5. Test security validation (path traversal prevention)
 
 ### Context for Resume
-- **Backend Complete**: All backends implemented (Go OSS, Java Cloud, Python Agent Runner)
+- **🎉 ALL IMPLEMENTATION COMPLETE**: Backend (Go/Java/Python) + CLI fully implemented
 - **Proto Complete**: All types renamed to "artifact" terminology, stubs regenerated
 - **Storage Ready**: Both local filesystem and R2 backends functional in all services
 - **Security**: Path traversal prevention and authorization in place
 - **Configuration**: R2 configs moved to prod overlays (environment-specific)
-- **Next Work**: CLI implementation to consume the backend endpoints
+- **CLI Complete**: Full artifact lifecycle with attach, wait, download, list, get, cancel
+- **Next Work**: Integration testing of the complete end-to-end flow
 
-### Important Notes for CLI Implementation
-- Use `uploadAttachment` RPC for files >4MB (returns `storage_key`)
-- For small files (<4MB), can use inline `content` in `Attachment`
-- Download flow: Get execution → Extract `storage_key` → Call `getArtifactDownloadUrl` → HTTP GET
-- Presigned URLs expire after 7 days (configurable)
+### Important Notes for Integration Testing
+- Test with both small (<4MB) and large (>=4MB) file attachments
+- Verify artifacts are properly stored in R2 or local filesystem
+- Test presigned URL generation and download
+- Test execution lifecycle: list, get, cancel
+- Verify wait-and-download workflow end-to-end
+- Test error cases: missing files, network failures, expired URLs
 
 ---
 
