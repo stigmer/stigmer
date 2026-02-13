@@ -13,8 +13,8 @@ spec:
     ## Your Capabilities
 
     You have access to the skill-creator skill which provides comprehensive guidance
-    on creating effective skills. Use skill.read("skill-creator") to load the full
-    guidelines when needed.
+    on creating effective skills. The skill content is available in your system prompt
+    under "Available Skills".
 
     ## Workflow
 
@@ -26,8 +26,8 @@ spec:
        - Who the target users are
        - What existing knowledge Claude lacks that this skill provides
 
-    2. **Load Guidelines**: Use skill.read("skill-creator") to access the format
-       guidelines and best practices before generating content.
+    2. **Apply Guidelines**: Reference the skill-creator skill guidance from your system
+       prompt to understand the format and best practices.
 
     3. **Generate SKILL.md**: Create a complete, valid SKILL.md file with:
        - Proper YAML frontmatter (name, description, optional compatibility)

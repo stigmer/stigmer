@@ -41,6 +41,24 @@ import os
 import time
 
 
+def heartbeat_during_setup(phase_name: str, details: dict | None = None) -> None:
+    """Send heartbeat with setup phase info to prevent timeout during initialization.
+    
+    The ExecuteGraphton activity has a 30-second heartbeat timeout. Without heartbeats
+    during the setup phase (Steps 1-8), long-running operations like gRPC calls,
+    skill fetching, or attachment downloads can cause Temporal to mark the activity
+    as failed.
+    
+    Args:
+        phase_name: Human-readable name of the current setup phase (e.g., "chain_resolution")
+        details: Optional dict with additional context (e.g., counts, IDs)
+    """
+    activity.heartbeat({
+        "setup_phase": phase_name,
+        "details": details or {},
+    })
+
+
 async def inject_attachments(
     sandbox,
     attachments: list,
@@ -348,6 +366,13 @@ async def _execute_graphton_impl(
         # Extract agent instructions
         instructions = agent.spec.instructions if agent.spec.instructions else "You are a helpful AI assistant."
         
+        # Heartbeat after chain resolution to prevent timeout during setup
+        heartbeat_during_setup("chain_resolution", {
+            "session_id": session_id,
+            "agent_instance_id": session.spec.agent_instance_id,
+            "agent_id": agent_instance.spec.agent_id,
+        })
+        
         # Step 2: Get worker configuration (for sandbox and LLM config)
         from worker.config import Config
         worker_config = Config.load_from_env()
@@ -569,6 +594,12 @@ async def _execute_graphton_impl(
                 activity_logger.error(f"Unexpected error preparing skills: {e}")
                 raise
         
+        # Heartbeat after skill writing to prevent timeout during setup
+        heartbeat_during_setup("skills_written", {
+            "skill_count": len(skills) if skills else 0,
+            "skill_names": [s.metadata.name for s in skills] if skills else [],
+        })
+        
         # ─────────────────────────────────────────────────────────────────────────────
         # Step 3.5: Inject Attachments into Sandbox
         #
@@ -606,6 +637,12 @@ async def _execute_graphton_impl(
             except Exception as e:
                 activity_logger.error(f"Failed to inject attachments: {e}")
                 raise ValueError(f"Attachment injection failed: {e}") from e
+        
+        # Heartbeat after attachment injection to prevent timeout during setup
+        heartbeat_during_setup("attachments_injected", {
+            "attachment_count": len(attachments),
+            "injected_count": len(injected_files),
+        })
         
         # Step 4: Get merged environment variables
         # Try ExecutionContext first (new flow with pre-merged/decrypted env vars)
@@ -694,6 +731,12 @@ async def _execute_graphton_impl(
                     # Continue without environments rather than failing execution
                     merged_env_vars = {}
         
+        # Heartbeat after environment merge to prevent timeout during setup
+        heartbeat_during_setup("environment_merged", {
+            "env_var_count": len(merged_env_vars),
+            "used_legacy_merge": use_legacy_env_merge,
+        })
+        
         # Step 5: Fetch and transform MCP servers (from agent template via mcp_server_usages)
         # MCP servers provide external tools via Model Context Protocol
         mcp_servers_config = {}
@@ -751,6 +794,12 @@ async def _execute_graphton_impl(
                 mcp_servers_config = {}
                 mcp_tools_config = {}
                 mcp_servers = []  # Reset to empty on failure
+        
+        # Heartbeat after MCP server transform to prevent timeout during setup
+        heartbeat_during_setup("mcp_servers_transformed", {
+            "mcp_server_count": len(mcp_servers),
+            "mcp_servers": list(mcp_servers_config.keys()) if mcp_servers_config else [],
+        })
         
         # ─────────────────────────────────────────────────────────────────────────────
         # Step 5.6: Build ApprovalConfig and Initialize StatusBuilder (HITL Phase 3A)
@@ -1054,6 +1103,13 @@ async def _execute_graphton_impl(
         )
         
         activity_logger.info(f"Graphton agent created successfully with {'new' if is_new_sandbox else 'reused'} sandbox")
+        
+        # Heartbeat after agent creation to prevent timeout during setup
+        heartbeat_during_setup("agent_created", {
+            "model": api_model_id,
+            "sandbox_new": is_new_sandbox,
+            "has_subagents": transformed_subagents is not None and len(transformed_subagents) > 0,
+        })
         
         # Step 7: Prepare invocation input
         # Append organization context to message
