@@ -371,9 +371,9 @@ def create_deep_agent(
     # This manages context window size by summarizing conversation history
     # when token count exceeds the model's threshold.
     if summarization_config is not None and summarization_config.enabled:
-        from graphton.core.summarization_middleware import SummarizationMiddleware
+        from graphton.core.summarization_middleware import ContextSummarizationMiddleware
         
-        summarization_middleware = SummarizationMiddleware(
+        summarization_middleware = ContextSummarizationMiddleware(
             config=summarization_config,
             callback=summarization_callback,  # Pass callback for observability (Phase 3)
         )
