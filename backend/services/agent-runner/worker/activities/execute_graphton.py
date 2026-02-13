@@ -27,6 +27,8 @@ from worker.activities.graphton.approval_policy import (
 from worker.activities.graphton.subagent_transformer import transform_sub_agents
 from worker.checkpointer import create_checkpointer
 from worker.mcp import transform_all_mcp_configs
+from worker.storage import ArtifactStorageConfig, create_artifact_storage, ArtifactStorage
+from worker.tools import create_publish_artifact_tool
 from worker.streaming import StreamingConfig, StreamingUpdateScheduler
 from worker.resilience import (
     GrpcRetryExecutor,
@@ -34,8 +36,141 @@ from worker.resilience import (
     GrpcNonRetryableError,
     RetryConfig,
 )
+import asyncio
 import os
 import time
+
+
+def heartbeat_during_setup(phase_name: str, details: dict | None = None) -> None:
+    """Send heartbeat with setup phase info to prevent timeout during initialization.
+    
+    The ExecuteGraphton activity has a 30-second heartbeat timeout. Without heartbeats
+    during the setup phase (Steps 1-8), long-running operations like gRPC calls,
+    skill fetching, or attachment downloads can cause Temporal to mark the activity
+    as failed.
+    
+    Args:
+        phase_name: Human-readable name of the current setup phase (e.g., "chain_resolution")
+        details: Optional dict with additional context (e.g., counts, IDs)
+    """
+    activity.heartbeat({
+        "setup_phase": phase_name,
+        "details": details or {},
+    })
+
+
+async def inject_attachments(
+    sandbox,
+    attachments: list,
+    storage: ArtifactStorage,
+    logger,
+    local_root: str | None = None,
+) -> list[dict]:
+    """Inject attachments into sandbox at their mount_path.
+    
+    All attachments must have a storage_key. The content is downloaded from
+    artifact storage and injected into the sandbox. Supports both local
+    filesystem and Daytona sandbox modes.
+    
+    Args:
+        sandbox: Daytona sandbox instance (None for local mode)
+        attachments: List of Attachment proto messages (all must have storage_key)
+        storage: ArtifactStorage for downloading attachments (required)
+        logger: Activity logger for debugging
+        local_root: Root path for local filesystem mode (when sandbox is None)
+        
+    Returns:
+        List of dicts with injected file info: [{"filename": str, "path": str, "size": int}]
+        
+    Raises:
+        ValueError: If any attachment is missing storage_key
+    """
+    if not attachments:
+        return []
+    
+    logger.info(f"Injecting {len(attachments)} attachments into sandbox")
+    
+    # Import FileUpload for Daytona sandbox uploads
+    try:
+        from daytona import FileUpload
+    except ImportError:
+        FileUpload = None  # Local mode doesn't need this
+    
+    file_uploads = []  # For Daytona batch upload
+    injected_files = []  # Track injected files for return
+    
+    for attachment in attachments:
+        if not attachment.storage_key:
+            raise ValueError(f"Attachment missing storage_key: {attachment.filename}")
+        
+        logger.debug(f"Downloading {attachment.filename} from storage key: {attachment.storage_key}")
+        content = storage.download(attachment.storage_key)
+        logger.debug(f"Downloaded {len(content)} bytes for {attachment.filename}")
+        
+        # Determine mount path - use workspace-relative path for better discoverability
+        # Default: inputs/{filename} (relative to workspace root)
+        if attachment.mount_path:
+            mount_path = attachment.mount_path.lstrip('/')
+        else:
+            mount_path = f"inputs/{attachment.filename}"
+        
+        if sandbox is not None:
+            # Daytona sandbox mode - collect for batch upload
+            # Daytona expects absolute paths starting with /
+            daytona_path = f"/{mount_path}" if not mount_path.startswith('/') else mount_path
+            if FileUpload is None:
+                raise RuntimeError("Daytona FileUpload not available")
+            file_uploads.append(FileUpload(source=content, destination=daytona_path))
+            logger.info(f"Prepared attachment: {attachment.filename} -> {daytona_path}")
+            injected_files.append({
+                "filename": attachment.filename,
+                "path": mount_path,  # Workspace-relative for agent
+                "size": len(content),
+            })
+        else:
+            # Local filesystem mode - write directly
+            if not local_root:
+                raise ValueError("local_root required for local filesystem mode")
+            
+            from pathlib import Path
+            file_path = Path(local_root) / mount_path
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            file_path.write_bytes(content)
+            
+            # Verify file was written correctly
+            if file_path.exists():
+                actual_size = file_path.stat().st_size
+                logger.info(
+                    f"Wrote attachment to local filesystem: {attachment.filename} -> {file_path} "
+                    f"(size: {actual_size} bytes, expected: {len(content)} bytes)"
+                )
+                if actual_size != len(content):
+                    logger.warning(
+                        f"Size mismatch for {attachment.filename}: "
+                        f"wrote {len(content)} bytes but file is {actual_size} bytes"
+                    )
+            else:
+                logger.error(f"Failed to write attachment: {file_path} does not exist after write")
+                raise ValueError(f"Failed to write attachment {attachment.filename}")
+            
+            injected_files.append({
+                "filename": attachment.filename,
+                "path": mount_path,  # Workspace-relative for agent
+                "size": len(content),
+            })
+    
+    # Batch upload to Daytona sandbox
+    if sandbox is not None and file_uploads:
+        sandbox.fs.upload_files(file_uploads)
+        logger.info(f"Uploaded {len(file_uploads)} attachments to sandbox")
+    
+    # Log summary of all injected files
+    logger.info(
+        f"Attachment injection complete. Files available to agent:\n"
+        + "\n".join(f"  - {f['path']} ({f['size']} bytes)" for f in injected_files)
+    )
+    
+    return injected_files
 
 
 @activity.defn(name="ExecuteGraphton")
@@ -125,7 +260,54 @@ async def _execute_graphton_impl(
     """
     Internal implementation of execute_graphton with existing error handling.
     This function contains the original implementation wrapped in the main try-except.
+    
+    Durable Execution Support:
+    - On retry (attempt > 1), extracts thread_id from last heartbeat for checkpoint resume
+    - LangGraph automatically loads checkpoint state when invoked with existing thread_id
+    - This enables crash recovery without re-running from the beginning
     """
+    # ─────────────────────────────────────────────────────────────────────────────
+    # Crash Recovery: Detect retry and resume from checkpoint
+    #
+    # When Temporal retries this activity after a crash:
+    # 1. heartbeat_details contains the last heartbeat from the previous attempt
+    # 2. We extract thread_id to resume from the LangGraph checkpoint
+    # 3. LangGraph automatically loads state when invoked with the same thread_id
+    # ─────────────────────────────────────────────────────────────────────────────
+    attempt = activity.info().attempt
+    heartbeat_details = activity.info().heartbeat_details
+    is_retry = attempt > 1 and heartbeat_details is not None
+    
+    if is_retry:
+        # Extract thread_id from last heartbeat for checkpoint resume
+        try:
+            # heartbeat_details can be a tuple/list of the heartbeat payload(s)
+            last_heartbeat = heartbeat_details[0] if isinstance(heartbeat_details, (list, tuple)) else heartbeat_details
+            
+            if isinstance(last_heartbeat, dict) and "thread_id" in last_heartbeat:
+                resume_thread_id = last_heartbeat["thread_id"]
+                activity_logger.info(
+                    f"🔄 RETRY DETECTED: attempt={attempt}, "
+                    f"resuming from checkpoint with thread_id={resume_thread_id} "
+                    f"(original thread_id={thread_id})"
+                )
+                # Override thread_id with the one from heartbeat for checkpoint resume
+                thread_id = resume_thread_id
+            else:
+                activity_logger.warning(
+                    f"⚠️ RETRY DETECTED: attempt={attempt}, but heartbeat missing thread_id. "
+                    f"Heartbeat data: {last_heartbeat}. Using provided thread_id={thread_id}"
+                )
+        except Exception as e:
+            activity_logger.warning(
+                f"⚠️ RETRY DETECTED: attempt={attempt}, failed to extract thread_id from heartbeat: {e}. "
+                f"Using provided thread_id={thread_id}"
+            )
+    else:
+        activity_logger.info(
+            f"First attempt (attempt={attempt}): using thread_id={thread_id}"
+        )
+    
     activity_logger.info(
         f"Execution parameters: agent_id={agent_id}, "
         f"session_id='{session_id_from_spec}' (empty={not session_id_from_spec})"
@@ -149,6 +331,8 @@ async def _execute_graphton_impl(
     # NOTE: StatusBuilder is initialized later after MCP servers are fetched
     # so that ApprovalConfig can be built with complete policy data.
     # See Step 5.6 below.
+    # Initialize to None here so error handler can check if it was created.
+    status_builder = None
     
     try:
         # Step 1: Resolve the full chain: execution → session → agent_instance → agent
@@ -181,6 +365,13 @@ async def _execute_graphton_impl(
         
         # Extract agent instructions
         instructions = agent.spec.instructions if agent.spec.instructions else "You are a helpful AI assistant."
+        
+        # Heartbeat after chain resolution to prevent timeout during setup
+        heartbeat_during_setup("chain_resolution", {
+            "session_id": session_id,
+            "agent_instance_id": session.spec.agent_instance_id,
+            "agent_id": agent_instance.spec.agent_id,
+        })
         
         # Step 2: Get worker configuration (for sandbox and LLM config)
         from worker.config import Config
@@ -403,6 +594,56 @@ async def _execute_graphton_impl(
                 activity_logger.error(f"Unexpected error preparing skills: {e}")
                 raise
         
+        # Heartbeat after skill writing to prevent timeout during setup
+        heartbeat_during_setup("skills_written", {
+            "skill_count": len(skills) if skills else 0,
+            "skill_names": [s.metadata.name for s in skills] if skills else [],
+        })
+        
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Step 3.5: Inject Attachments into Sandbox
+        #
+        # Attachments are files provided by the user with the execution request.
+        # They are injected into the sandbox at their specified mount_path
+        # (default: inputs/{filename}), making them available to the agent.
+        #
+        # All attachments must have storage_key (pre-uploaded via uploadAttachment RPC).
+        # ─────────────────────────────────────────────────────────────────────────────
+        attachments = list(execution.spec.attachments) if execution.spec.attachments else []
+        injected_files: list[dict] = []  # Track injected files for system prompt
+        
+        if attachments:
+            activity_logger.info(
+                f"Processing {len(attachments)} attachments: "
+                f"{[a.filename for a in attachments]}"
+            )
+            
+            # Create artifact storage for downloading attachments
+            artifact_storage = create_artifact_storage(worker_config.artifact_storage)
+            activity_logger.info(
+                f"Created artifact storage ({worker_config.artifact_storage.storage_type}) "
+                "for attachment downloads"
+            )
+            
+            try:
+                injected_files = await inject_attachments(
+                    sandbox=sandbox,  # None for local mode
+                    attachments=attachments,
+                    storage=artifact_storage,
+                    logger=activity_logger,
+                    local_root=sandbox_config.get('root_dir') if worker_config.is_local_mode() else None,
+                )
+                activity_logger.info(f"Successfully injected {len(injected_files)} attachments")
+            except Exception as e:
+                activity_logger.error(f"Failed to inject attachments: {e}")
+                raise ValueError(f"Attachment injection failed: {e}") from e
+        
+        # Heartbeat after attachment injection to prevent timeout during setup
+        heartbeat_during_setup("attachments_injected", {
+            "attachment_count": len(attachments),
+            "injected_count": len(injected_files),
+        })
+        
         # Step 4: Get merged environment variables
         # Try ExecutionContext first (new flow with pre-merged/decrypted env vars)
         # Fall back to legacy environment merging if ExecutionContext not found
@@ -490,6 +731,12 @@ async def _execute_graphton_impl(
                     # Continue without environments rather than failing execution
                     merged_env_vars = {}
         
+        # Heartbeat after environment merge to prevent timeout during setup
+        heartbeat_during_setup("environment_merged", {
+            "env_var_count": len(merged_env_vars),
+            "used_legacy_merge": use_legacy_env_merge,
+        })
+        
         # Step 5: Fetch and transform MCP servers (from agent template via mcp_server_usages)
         # MCP servers provide external tools via Model Context Protocol
         mcp_servers_config = {}
@@ -547,6 +794,12 @@ async def _execute_graphton_impl(
                 mcp_servers_config = {}
                 mcp_tools_config = {}
                 mcp_servers = []  # Reset to empty on failure
+        
+        # Heartbeat after MCP server transform to prevent timeout during setup
+        heartbeat_during_setup("mcp_servers_transformed", {
+            "mcp_server_count": len(mcp_servers),
+            "mcp_servers": list(mcp_servers_config.keys()) if mcp_servers_config else [],
+        })
         
         # ─────────────────────────────────────────────────────────────────────────────
         # Step 5.6: Build ApprovalConfig and Initialize StatusBuilder (HITL Phase 3A)
@@ -625,7 +878,7 @@ async def _execute_graphton_impl(
         
         # Initialize context info on status builder
         status_builder.initialize_context_info(
-            context_window_limit=model_metadata.context_window,
+            context_window_limit=model_metadata.context_window_tokens,
             trigger_threshold=summarization_config.trigger_threshold,
             target_tokens=summarization_config.target_tokens,
             enabled=summarization_config.enabled,
@@ -640,6 +893,24 @@ async def _execute_graphton_impl(
         if skills_prompt_section:
             enhanced_system_prompt += skills_prompt_section
             activity_logger.info("Enhanced system prompt with skills metadata")
+        
+        # Add input files section to system prompt if attachments were injected
+        if injected_files:
+            input_files_section = "\n\n## Input Files\n\n"
+            input_files_section += (
+                "The following files have been provided as input for this task. "
+                "Use the `read` tool to access them:\n\n"
+            )
+            for f in injected_files:
+                input_files_section += f"- `{f['path']}` ({f['size']} bytes)\n"
+            input_files_section += (
+                "\nThese files are available in your workspace. "
+                "Read them using the `read` tool with the paths shown above."
+            )
+            enhanced_system_prompt += input_files_section
+            activity_logger.info(
+                f"Enhanced system prompt with {len(injected_files)} input files"
+            )
         
         # Configure sandbox for Graphton agent
         if worker_config.is_local_mode():
@@ -659,30 +930,50 @@ async def _execute_graphton_impl(
             }
             activity_logger.info(f"Configuring agent to use existing sandbox {sandbox.id}")
         
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Resolve model name to API model ID
+        #
+        # Platform-friendly names like "claude-sonnet-4.5" are resolved to actual API
+        # model IDs like "claude-sonnet-4-5-20250929". This allows users to use
+        # simpler names while ensuring the correct model ID is sent to the provider.
+        #
+        # The resolve_or_passthrough() method handles unknown models gracefully by
+        # passing them through as-is (useful for custom/unlisted models).
+        # ─────────────────────────────────────────────────────────────────────────────
+        api_model_id, resolved_metadata = ModelRegistry.resolve_or_passthrough(
+            model_name,
+            provider=worker_config.llm.provider,
+        )
+        
+        if api_model_id != model_name:
+            activity_logger.info(
+                f"Resolved model '{model_name}' to API model ID '{api_model_id}'"
+            )
+        
         # Create LLM instance with explicit configuration
         # This ensures base_url is properly set for Ollama connections from Docker
         if worker_config.llm.provider == "ollama":
             from langchain_ollama import ChatOllama
             llm_model = ChatOllama(
-                model=model_name,
+                model=api_model_id,
                 base_url=worker_config.llm.base_url,  # Explicitly pass base_url
             )
             activity_logger.info(f"Created ChatOllama with base_url={worker_config.llm.base_url}")
         elif worker_config.llm.provider == "anthropic":
             from langchain_anthropic import ChatAnthropic
             llm_model = ChatAnthropic(
-                model=model_name,
+                model=api_model_id,
                 api_key=worker_config.llm.api_key,
             )
         elif worker_config.llm.provider == "openai":
             from langchain_openai import ChatOpenAI
             llm_model = ChatOpenAI(
-                model=model_name,
+                model=api_model_id,
                 api_key=worker_config.llm.api_key,
             )
         else:
-            # Fallback: pass model name as string and let Graphton handle it
-            llm_model = model_name
+            # Fallback: pass resolved model ID as string and let Graphton handle it
+            llm_model = api_model_id
         
         # Create approval checker for HITL tool approval flow (Phase 3B)
         # The checker evaluates the approval policy chain for each tool invocation
@@ -755,19 +1046,56 @@ async def _execute_graphton_impl(
                 activity_logger.warning("Continuing without sub-agents - agent will not delegate tasks")
                 transformed_subagents = None
         
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Step 5.10: Create Built-in Tools (Artifact Lifecycle)
+        #
+        # Creates the publish_artifact tool that allows agents to make files/directories
+        # available for download by users. This is a core capability for the artifact
+        # lifecycle feature.
+        # ─────────────────────────────────────────────────────────────────────────────
+        builtin_tools = []
+        
+        # Create artifact storage for artifacts (needed by publish_artifact tool)
+        artifact_storage = create_artifact_storage(worker_config.artifact_storage)
+        activity_logger.info(
+            f"Created artifact storage ({worker_config.artifact_storage.storage_type}) "
+            "for artifact publishing"
+        )
+        
+        # Create publish_artifact tool with injected dependencies
+        publish_artifact_tool = create_publish_artifact_tool(
+            sandbox=sandbox,  # None for local mode
+            storage=artifact_storage,
+            execution_id=execution_id,
+            status_builder=status_builder,
+            local_root=sandbox_config.get('root_dir') if worker_config.is_local_mode() else None,
+        )
+        builtin_tools.append(publish_artifact_tool)
+        
+        activity_logger.info(f"Created {len(builtin_tools)} built-in tools: [publish_artifact]")
+        
         # Create Graphton agent
         # Recursion limit set to 1000 for maximum autonomy
         # Graphton's loop detection middleware prevents infinite loops
         # approval_checker enables HITL tool approval with interrupt/resume
         # checkpointer enables HITL interrupt/resume and conversation persistence
+        #
+        # NOTE: general_purpose_agent=False disables the automatic "task" tool from
+        # deepagents' SubAgentMiddleware. This is a workaround for a bug in deepagents
+        # where subagents spawned via the task tool have recursion_limit=25 (LangGraph
+        # default) instead of inheriting the parent's recursion_limit=1000.
+        # See: https://github.com/langchain-ai/deepagents/issues/XXX (TODO: file issue)
+        # We use our own transformed_subagents which are properly configured.
         agent_graph = create_deep_agent(
             model=llm_model,  # Pass LLM instance instead of string
             system_prompt=enhanced_system_prompt,
             mcp_servers=mcp_servers_config if mcp_servers_config else None,
             mcp_tools=mcp_tools_config if mcp_tools_config else None,
+            tools=builtin_tools if builtin_tools else None,  # Built-in tools including publish_artifact
             subagents=transformed_subagents,  # Sub-agents from AgentSpec.sub_agents
             sandbox_config=sandbox_config_for_agent,
             recursion_limit=1000,
+            general_purpose_agent=False,  # Disable deepagents' auto task tool (recursion_limit bug)
             checkpointer=checkpointer,  # Enable HITL interrupt/resume and conversation persistence
             approval_checker=approval_checker,  # Enable HITL tool approval (Phase 3B)
             summarization_config=summarization_config,  # Enable automatic context summarization
@@ -775,6 +1103,13 @@ async def _execute_graphton_impl(
         )
         
         activity_logger.info(f"Graphton agent created successfully with {'new' if is_new_sandbox else 'reused'} sandbox")
+        
+        # Heartbeat after agent creation to prevent timeout during setup
+        heartbeat_during_setup("agent_created", {
+            "model": api_model_id,
+            "sandbox_new": is_new_sandbox,
+            "has_subagents": transformed_subagents is not None and len(transformed_subagents) > 0,
+        })
         
         # Step 7: Prepare invocation input
         # Append organization context to message
@@ -902,32 +1237,66 @@ async def _execute_graphton_impl(
                 f"burst_threshold={streaming_config.burst_threshold})"
             )
         
-        async for event in agent_graph.astream_events(
-            graph_input,
-            config=config,
-            version="v2",  # Use v2 schema for consistent event structure
-        ):
-            # Process event locally (builds status in memory)
-            await status_builder.process_event(event)
-            
-            events_processed += 1
-            
-            # Send activity heartbeat to prevent Temporal timeout
-            # Time-based: every 2 seconds (independent of status updates)
-            now = time.monotonic()
-            time_since_heartbeat_ms = (now - last_heartbeat_time) * 1000
-            if time_since_heartbeat_ms >= heartbeat_interval_ms:
-                try:
-                    activity.heartbeat({
-                        "events_processed": events_processed,
-                        "messages": len(status_builder.current_status.messages),
-                        "tool_calls": len(status_builder.current_status.tool_calls),
-                        "phase": status_builder.current_status.phase,
-                    })
-                    last_heartbeat_time = now
-                except Exception as e:
-                    # Heartbeat failure is not critical - log and continue
-                    activity_logger.debug(f"Heartbeat failed (event {events_processed}): {e}")
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Pause/Resume Support (Gap A3)
+        #
+        # The activity can be cancelled gracefully by the Java workflow when a pause
+        # signal is received. On cancellation:
+        # 1. We check activity.is_cancelled() between events
+        # 2. LangGraph automatically saves checkpoint (thread_id preserved)
+        # 3. We return EXECUTION_PAUSED status instead of failing
+        # 4. On resume, workflow re-invokes activity with same thread_id
+        # 5. LangGraph loads checkpoint and continues from where it left off
+        # ─────────────────────────────────────────────────────────────────────────────
+        
+        try:
+            async for event in agent_graph.astream_events(
+                graph_input,
+                config=config,
+                version="v2",  # Use v2 schema for consistent event structure
+            ):
+                # ─────────────────────────────────────────────────────────────────
+                # Check for pause (activity cancellation) between events
+                # This allows graceful checkpoint save before exiting
+                # ─────────────────────────────────────────────────────────────────
+                if activity.is_cancelled():
+                    activity_logger.info(
+                        f"⏸️ PAUSE: Activity cancelled for execution {execution_id}, "
+                        f"saving checkpoint (thread_id={thread_id})"
+                    )
+                    # LangGraph automatically saves checkpoint on iteration
+                    # Raise CancelledError to exit the loop gracefully
+                    raise asyncio.CancelledError("Paused by user")
+                
+                # Process event locally (builds status in memory)
+                await status_builder.process_event(event)
+                
+                events_processed += 1
+                
+                # Send activity heartbeat to prevent Temporal timeout
+                # Time-based: every 2 seconds (independent of status updates)
+                # 
+                # CRASH RECOVERY: Heartbeat includes thread_id for checkpoint resume
+                # On retry, we extract thread_id from heartbeat_details to resume from
+                # the LangGraph checkpoint instead of restarting from the beginning.
+                # 
+                # PAUSE/RESUME: Heartbeat includes paused flag for resume detection
+                now = time.monotonic()
+                time_since_heartbeat_ms = (now - last_heartbeat_time) * 1000
+                if time_since_heartbeat_ms >= heartbeat_interval_ms:
+                    try:
+                        activity.heartbeat({
+                            "thread_id": thread_id,  # For checkpoint resume on retry/resume
+                            "paused": activity.is_cancelled(),  # For pause detection
+                            "events_processed": events_processed,
+                            "messages": len(status_builder.current_status.messages),
+                            "tool_calls": len(status_builder.current_status.tool_calls),
+                            "phase": status_builder.current_status.phase,
+                        })
+                        last_heartbeat_time = now
+                    except Exception as e:
+                        # Heartbeat failure is not critical - log and continue
+                        activity_logger.debug(f"Heartbeat failed (event {events_processed}): {e}")
             
             # Send progressive status update via gRPC using hybrid scheduler
             # Triggers on: time threshold (500ms), burst (50 events), or keepalive (5s)
@@ -967,9 +1336,65 @@ async def _execute_graphton_impl(
                     )
                     update_scheduler.mark_update_sent(events_processed)
             
-            # Log progress periodically (every 50 events for reduced noise)
-            if events_processed % 50 == 0:
-                activity_logger.debug(f"Processed {events_processed} events")
+                # Log progress periodically (every 50 events for reduced noise)
+                if events_processed % 50 == 0:
+                    activity_logger.debug(f"Processed {events_processed} events")
+        
+        except asyncio.CancelledError:
+            # ─────────────────────────────────────────────────────────────────────────────
+            # Graceful Pause Handling (Gap A3)
+            #
+            # Activity was cancelled (paused by user). LangGraph has already saved
+            # the checkpoint automatically. We return EXECUTION_PAUSED status so the
+            # workflow knows this is a pause, not a failure.
+            #
+            # On resume:
+            # 1. Workflow sends resume signal
+            # 2. Workflow re-invokes this activity with same execution/thread_id
+            # 3. LangGraph loads checkpoint via thread_id
+            # 4. Agent continues from where it was paused
+            # ─────────────────────────────────────────────────────────────────────────────
+            activity_logger.info(
+                f"⏸️ Graceful pause for execution {execution_id} - checkpoint saved "
+                f"(thread_id={thread_id}, events_processed={events_processed})"
+            )
+            
+            # Finalize context info before returning (capture any accumulated data)
+            status_builder.finalize_context_info()
+            
+            # Set phase to PAUSED (not FAILED - this is a pause, not an error)
+            status_builder.current_status.phase = ExecutionPhase.EXECUTION_PAUSED
+            
+            # Add message indicating pause
+            from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
+            from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
+            from datetime import datetime
+            
+            pause_msg = AgentMessage(
+                type=MessageType.MESSAGE_SYSTEM,
+                content="⏸️ Execution paused by user. Use resume to continue from this checkpoint.",
+                timestamp=datetime.utcnow().isoformat(),
+            )
+            status_builder.current_status.messages.append(pause_msg)
+            
+            # Send paused status update via gRPC (best effort)
+            try:
+                activity_logger.info(f"📤 [PAUSE] Sending PAUSED status update")
+                await execution_client.update_status(
+                    execution_id=execution_id,
+                    status=status_builder.current_status
+                )
+                activity_logger.info(f"✅ [PAUSE] Status update sent successfully")
+            except Exception as update_error:
+                activity_logger.warning(f"[PAUSE] Failed to send status update: {update_error}")
+                # Continue - status will be returned to workflow anyway
+            
+            activity_logger.info(
+                f"⏸️ Returning PAUSED status to workflow for execution {execution_id}"
+            )
+            
+            # Return paused status to workflow
+            return status_builder.current_status
         
         # Verify stream processed data
         if events_processed == 0:
@@ -1052,7 +1477,7 @@ async def _execute_graphton_impl(
         error_str = str(e)
         error_message = f"Execution failed: {error_str}"
         
-        # Add error message to status
+        # Import required types for error message
         from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
         from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
         from datetime import datetime
@@ -1063,20 +1488,43 @@ async def _execute_graphton_impl(
             timestamp=datetime.utcnow().isoformat(),
         )
         
-        status_builder.current_status.messages.append(error_msg)
-        
-        # Finalize context info before returning (Phase 3)
-        # Even on failure, we want to capture any context tracking data
-        status_builder.finalize_context_info()
-        
-        status_builder.current_status.phase = ExecutionPhase.EXECUTION_FAILED
+        # Check if status_builder was initialized before the error occurred
+        # If not, create a minimal failed status (handles early failures like attachment injection)
+        if status_builder is not None:
+            # Use status_builder for rich error reporting
+            status_builder.current_status.messages.append(error_msg)
+            
+            # Finalize context info before returning (Phase 3)
+            # Even on failure, we want to capture any context tracking data
+            status_builder.finalize_context_info()
+            
+            status_builder.current_status.phase = ExecutionPhase.EXECUTION_FAILED
+            failed_status = status_builder.current_status
+        else:
+            # Early failure before status_builder was created
+            # Create minimal failed status (similar to outer handler)
+            activity_logger.warning(
+                f"status_builder not initialized - creating minimal failed status for {execution_id}"
+            )
+            failed_status = AgentExecutionStatus(
+                phase=ExecutionPhase.EXECUTION_FAILED,
+                error=error_message,
+                messages=[
+                    error_msg,
+                    AgentMessage(
+                        type=MessageType.MESSAGE_SYSTEM,
+                        content="Execution failed during initialization before agent could start.",
+                        timestamp=datetime.utcnow().isoformat(),
+                    )
+                ]
+            )
         
         activity_logger.info(f"Execution {execution_id} phase set to FAILED - returning error status to workflow")
         
         # Verify status is not None before returning
-        if status_builder.current_status is None:
-            activity_logger.error(f"❌ CRITICAL: current_status is None in error handler for execution {execution_id}")
-            raise RuntimeError("Status builder returned None in error handler - this should never happen")
+        if failed_status is None:
+            activity_logger.error(f"❌ CRITICAL: failed_status is None in error handler for execution {execution_id}")
+            raise RuntimeError("Failed status is None in error handler - this should never happen")
         
         # Send failed status update via gRPC with retry
         # This is critical for data persistence - use retry to handle transient failures
@@ -1085,21 +1533,21 @@ async def _execute_graphton_impl(
             await retry_executor.execute(
                 operation=lambda: execution_client.update_status(
                     execution_id=execution_id,
-                    status=status_builder.current_status
+                    status=failed_status
                 ),
                 operation_name="final_status_update",
                 context={"execution_id": execution_id, "phase": "FAILED"},
             )
             activity_logger.info(f"✅ [FINAL] Failed status update sent successfully")
-        except GrpcRetryExhaustedError as e:
+        except GrpcRetryExhaustedError as retry_err:
             activity_logger.error(
-                f"[FINAL] All retries exhausted for failed status update: {e.attempts} attempts, "
-                f"{e.total_duration_ms:.0f}ms total. Last error: {e.last_error}"
+                f"[FINAL] All retries exhausted for failed status update: {retry_err.attempts} attempts, "
+                f"{retry_err.total_duration_ms:.0f}ms total. Last error: {retry_err.last_error}"
             )
             # Continue - we'll still return status to workflow as fallback
-        except GrpcNonRetryableError as e:
+        except GrpcNonRetryableError as grpc_err:
             activity_logger.error(
-                f"[FINAL] Non-retryable error on failed status update: {e.status_code.name} - {e.original_error}"
+                f"[FINAL] Non-retryable error on failed status update: {grpc_err.status_code.name} - {grpc_err.original_error}"
             )
             # Continue - we'll still return status to workflow as fallback
         except Exception as update_error:
@@ -1108,8 +1556,8 @@ async def _execute_graphton_impl(
         
         activity_logger.info(
             f"✅ Returning failed AgentExecutionStatus to workflow: "
-            f"type={type(status_builder.current_status).__name__}"
+            f"type={type(failed_status).__name__}"
         )
         
         # Return failed status to workflow (already persisted via gRPC above)
-        return status_builder.current_status
+        return failed_status

@@ -371,9 +371,9 @@ def create_deep_agent(
     # This manages context window size by summarizing conversation history
     # when token count exceeds the model's threshold.
     if summarization_config is not None and summarization_config.enabled:
-        from graphton.core.summarization_middleware import SummarizationMiddleware
+        from graphton.core.summarization_middleware import ContextSummarizationMiddleware
         
-        summarization_middleware = SummarizationMiddleware(
+        summarization_middleware = ContextSummarizationMiddleware(
             config=summarization_config,
             callback=summarization_callback,  # Pass callback for observability (Phase 3)
         )
@@ -516,14 +516,19 @@ def create_deep_agent(
     # Create the Deep Agent using deepagents library
     # DeepAgents automatically adds SubAgentMiddleware when subagents are provided
     # Pass checkpointer for interrupt/resume support (HITL approval flow)
+    #
+    # NOTE: In deepagents 0.4.x, 'backend' was renamed to 'memory_backend' and
+    # 'general_purpose_agent' was removed. The general-purpose subagent behavior
+    # is now controlled via the subagents list - pass an empty list or None to
+    # disable automatic subagent creation.
     agent = deepagents_create_deep_agent(
         model=model_instance,
         tools=tools_list,
         system_prompt=enhanced_prompt,
         middleware=middleware_list,
-        subagents=transformed_subagents,  # Pass transformed subagents to DeepAgents
+        subagents=transformed_subagents if general_purpose_agent else [],  # Empty list disables default subagent
         context_schema=context_schema,
-        backend=backend_for_deepagents,  # May be None if using approval-aware wrappers
+        memory_backend=backend_for_deepagents,  # May be None if using approval-aware wrappers
         checkpointer=checkpointer,  # Enable interrupt/resume for HITL approval
     )
     

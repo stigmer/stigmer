@@ -165,12 +165,38 @@ func loggingUnaryInterceptor(
 	duration := time.Since(start)
 	if err != nil {
 		st, _ := status.FromError(err)
-		log.Error().
+
+		// Use appropriate log level based on error code
+		// NOT_FOUND is often expected (e.g., ExecutionContext in OSS)
+		// and should not pollute error logs
+		logEvent := log.Debug()
+		logMsg := "gRPC call returned not found"
+
+		switch st.Code() {
+		case codes.NotFound:
+			// NOT_FOUND is expected in many cases - use debug level
+			logEvent = log.Debug()
+			logMsg = "gRPC call returned not found"
+		case codes.AlreadyExists:
+			// ALREADY_EXISTS can be expected for idempotent creates
+			logEvent = log.Debug()
+			logMsg = "gRPC call returned already exists"
+		case codes.InvalidArgument, codes.FailedPrecondition:
+			// Client errors - use warn level
+			logEvent = log.Warn()
+			logMsg = "gRPC call failed with client error"
+		default:
+			// All other errors - use error level
+			logEvent = log.Error()
+			logMsg = "gRPC call failed"
+		}
+
+		logEvent.
 			Str("method", info.FullMethod).
 			Dur("duration_ms", duration).
 			Str("code", st.Code().String()).
 			Str("error", st.Message()).
-			Msg("gRPC call failed")
+			Msg(logMsg)
 	} else {
 		log.Info().
 			Str("method", info.FullMethod).
@@ -197,12 +223,32 @@ func loggingStreamInterceptor(
 	duration := time.Since(start)
 	if err != nil {
 		st, _ := status.FromError(err)
-		log.Error().
+
+		// Use appropriate log level based on error code
+		logEvent := log.Debug()
+		logMsg := "gRPC stream call returned not found"
+
+		switch st.Code() {
+		case codes.NotFound:
+			logEvent = log.Debug()
+			logMsg = "gRPC stream call returned not found"
+		case codes.AlreadyExists:
+			logEvent = log.Debug()
+			logMsg = "gRPC stream call returned already exists"
+		case codes.InvalidArgument, codes.FailedPrecondition:
+			logEvent = log.Warn()
+			logMsg = "gRPC stream call failed with client error"
+		default:
+			logEvent = log.Error()
+			logMsg = "gRPC stream call failed"
+		}
+
+		logEvent.
 			Str("method", info.FullMethod).
 			Dur("duration_ms", duration).
 			Str("code", st.Code().String()).
 			Str("error", st.Message()).
-			Msg("gRPC stream call failed")
+			Msg(logMsg)
 	} else {
 		log.Info().
 			Str("method", info.FullMethod).

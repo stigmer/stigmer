@@ -1069,3 +1069,226 @@ func TestStore_AuditOperationsAfterClose(t *testing.T) {
 	_, err = s.DeleteAuditByResourceId(ctx, apiresourcekind.ApiResourceKind_agent, "test")
 	assert.Error(t, err)
 }
+
+// =============================================================================
+// Bootstrap State Tests
+// =============================================================================
+
+func TestStore_BootstrapState_SetAndGet(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "test.sqlite")
+	s, err := NewStore(dbPath)
+	require.NoError(t, err)
+	defer s.Close()
+
+	ctx := context.Background()
+
+	// Set a value
+	err = s.SetBootstrapState(ctx, "seedpack_version", "1.1.0")
+	require.NoError(t, err)
+
+	// Get the value
+	value, err := s.GetBootstrapState(ctx, "seedpack_version")
+	require.NoError(t, err)
+	assert.Equal(t, "1.1.0", value)
+
+	// Update the value (upsert)
+	err = s.SetBootstrapState(ctx, "seedpack_version", "1.2.0")
+	require.NoError(t, err)
+
+	value, err = s.GetBootstrapState(ctx, "seedpack_version")
+	require.NoError(t, err)
+	assert.Equal(t, "1.2.0", value)
+}
+
+func TestStore_BootstrapState_GetNonExistent(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "test.sqlite")
+	s, err := NewStore(dbPath)
+	require.NoError(t, err)
+	defer s.Close()
+
+	ctx := context.Background()
+
+	// Get a non-existent key returns empty string, not an error
+	value, err := s.GetBootstrapState(ctx, "nonexistent_key")
+	require.NoError(t, err)
+	assert.Equal(t, "", value)
+}
+
+func TestStore_BootstrapState_GetAll(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "test.sqlite")
+	s, err := NewStore(dbPath)
+	require.NoError(t, err)
+	defer s.Close()
+
+	ctx := context.Background()
+
+	// Set multiple values
+	err = s.SetBootstrapState(ctx, "seedpack_version", "1.1.0")
+	require.NoError(t, err)
+	err = s.SetBootstrapState(ctx, "bootstrap_status", "completed")
+	require.NoError(t, err)
+	err = s.SetBootstrapState(ctx, "skill:skill-creator", "applied:sha256:abc123")
+	require.NoError(t, err)
+	err = s.SetBootstrapState(ctx, "agent:skill-creator-agent", "applied:sha256:def456")
+	require.NoError(t, err)
+
+	// Get all values
+	all, err := s.GetAllBootstrapState(ctx)
+	require.NoError(t, err)
+	assert.Len(t, all, 4)
+	assert.Equal(t, "1.1.0", all["seedpack_version"])
+	assert.Equal(t, "completed", all["bootstrap_status"])
+	assert.Equal(t, "applied:sha256:abc123", all["skill:skill-creator"])
+	assert.Equal(t, "applied:sha256:def456", all["agent:skill-creator-agent"])
+}
+
+func TestStore_BootstrapState_GetAllEmpty(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "test.sqlite")
+	s, err := NewStore(dbPath)
+	require.NoError(t, err)
+	defer s.Close()
+
+	ctx := context.Background()
+
+	// Get all when empty returns empty map
+	all, err := s.GetAllBootstrapState(ctx)
+	require.NoError(t, err)
+	assert.NotNil(t, all)
+	assert.Len(t, all, 0)
+}
+
+func TestStore_BootstrapState_Delete(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "test.sqlite")
+	s, err := NewStore(dbPath)
+	require.NoError(t, err)
+	defer s.Close()
+
+	ctx := context.Background()
+
+	// Set a value
+	err = s.SetBootstrapState(ctx, "test_key", "test_value")
+	require.NoError(t, err)
+
+	// Verify it exists
+	value, err := s.GetBootstrapState(ctx, "test_key")
+	require.NoError(t, err)
+	assert.Equal(t, "test_value", value)
+
+	// Delete it
+	err = s.DeleteBootstrapState(ctx, "test_key")
+	require.NoError(t, err)
+
+	// Verify it's gone
+	value, err = s.GetBootstrapState(ctx, "test_key")
+	require.NoError(t, err)
+	assert.Equal(t, "", value)
+}
+
+func TestStore_BootstrapState_DeleteNonExistent(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "test.sqlite")
+	s, err := NewStore(dbPath)
+	require.NoError(t, err)
+	defer s.Close()
+
+	ctx := context.Background()
+
+	// Deleting non-existent key should not error
+	err = s.DeleteBootstrapState(ctx, "nonexistent_key")
+	require.NoError(t, err)
+}
+
+func TestStore_BootstrapState_Clear(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "test.sqlite")
+	s, err := NewStore(dbPath)
+	require.NoError(t, err)
+	defer s.Close()
+
+	ctx := context.Background()
+
+	// Set multiple values
+	err = s.SetBootstrapState(ctx, "key1", "value1")
+	require.NoError(t, err)
+	err = s.SetBootstrapState(ctx, "key2", "value2")
+	require.NoError(t, err)
+
+	// Verify they exist
+	all, err := s.GetAllBootstrapState(ctx)
+	require.NoError(t, err)
+	assert.Len(t, all, 2)
+
+	// Clear all
+	err = s.ClearBootstrapState(ctx)
+	require.NoError(t, err)
+
+	// Verify all are gone
+	all, err = s.GetAllBootstrapState(ctx)
+	require.NoError(t, err)
+	assert.Len(t, all, 0)
+}
+
+func TestStore_BootstrapState_OperationsAfterClose(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "test.sqlite")
+	s, err := NewStore(dbPath)
+	require.NoError(t, err)
+
+	err = s.Close()
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	// All bootstrap state operations should fail after close
+	_, err = s.GetBootstrapState(ctx, "test")
+	assert.Error(t, err)
+
+	err = s.SetBootstrapState(ctx, "test", "value")
+	assert.Error(t, err)
+
+	_, err = s.GetAllBootstrapState(ctx)
+	assert.Error(t, err)
+
+	err = s.DeleteBootstrapState(ctx, "test")
+	assert.Error(t, err)
+
+	err = s.ClearBootstrapState(ctx)
+	assert.Error(t, err)
+}
+
+func TestStore_BootstrapState_Persistence(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "test.sqlite")
+
+	ctx := context.Background()
+
+	// Create store and set values
+	s1, err := NewStore(dbPath)
+	require.NoError(t, err)
+
+	err = s1.SetBootstrapState(ctx, "seedpack_version", "1.1.0")
+	require.NoError(t, err)
+	err = s1.SetBootstrapState(ctx, "skill:skill-creator", "applied:sha256:abc123")
+	require.NoError(t, err)
+
+	err = s1.Close()
+	require.NoError(t, err)
+
+	// Reopen and verify values persisted
+	s2, err := NewStore(dbPath)
+	require.NoError(t, err)
+	defer s2.Close()
+
+	value, err := s2.GetBootstrapState(ctx, "seedpack_version")
+	require.NoError(t, err)
+	assert.Equal(t, "1.1.0", value)
+
+	value, err = s2.GetBootstrapState(ctx, "skill:skill-creator")
+	require.NoError(t, err)
+	assert.Equal(t, "applied:sha256:abc123", value)
+}

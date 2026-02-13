@@ -124,7 +124,7 @@ Implement a **hybrid capabilities bundle model** for AI-powered draft commands f
   - Shows preview before writing
 
 ### 3.2 Agent Draft Command
-- [ ] Add `stigmer agent draft` subcommand
+- [ ] Add `stigmer draft agent` subcommand
 - [ ] Load `draft/agent` capability
 - [ ] Interactive prompts for agent configuration:
   - Name, description
@@ -135,7 +135,7 @@ Implement a **hybrid capabilities bundle model** for AI-powered draft commands f
 - [ ] Validate and offer to save
 
 ### 3.3 Workflow Draft Command
-- [ ] Add `stigmer workflow draft` subcommand
+- [ ] Add `stigmer draft workflow` subcommand
 - [ ] Load `draft/workflow` capability
 - [ ] Interactive prompts for workflow configuration:
   - Name, description
@@ -144,7 +144,7 @@ Implement a **hybrid capabilities bundle model** for AI-powered draft commands f
 - [ ] Generate valid workflow YAML
 
 ### 3.4 Skill Draft Command
-- [ ] Add `stigmer skill draft` subcommand
+- [ ] Add `stigmer draft skill` subcommand
 - [ ] Load `draft/skill` capability
 - [ ] Interactive prompts for skill configuration:
   - Name, description
@@ -153,7 +153,7 @@ Implement a **hybrid capabilities bundle model** for AI-powered draft commands f
 - [ ] Generate valid skill YAML
 
 ### 3.5 MCP Server Draft Command
-- [ ] Add `stigmer mcpserver draft` subcommand
+- [ ] Add `stigmer draft mcpserver` subcommand
 - [ ] Load `draft/mcpserver` capability
 - [ ] Interactive prompts for MCP server configuration:
   - Name, transport type
@@ -214,7 +214,7 @@ Implement a **hybrid capabilities bundle model** for AI-powered draft commands f
 
 ## Success Criteria
 
-1. **All 4 draft commands working**: `stigmer agent|workflow|skill|mcpserver draft`
+1. **All 4 draft commands working**: `stigmer draft agent|workflow|skill|mcpserver`
 2. **Embedded baseline bundle**: ~100KB, works offline with zero config
 3. **Capabilities commands functional**: `status`, `update`, `pin`, `list`
 4. **System capabilities hidden**: Not visible in `stigmer skill list`

@@ -2,15 +2,18 @@ package root
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/search"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
 	"google.golang.org/grpc"
@@ -33,6 +36,7 @@ The type can be specified using any alias:
   - mcpservers, mcpserver, mcp
   - projects, project, proj
   - skills, skill
+  - executions, execution, exec
 
 Both singular and plural forms are accepted.`,
 		Example: `  # List all agents
@@ -40,6 +44,9 @@ Both singular and plural forms are accepted.`,
 
   # List workflows (singular works too)
   stigmer list workflow
+
+  # List recent executions
+  stigmer list executions
 
   # List with limit
   stigmer list agents --limit 10
@@ -73,13 +80,26 @@ type listOptions struct {
 	Limit        int32
 }
 
+// isExecutionType checks if the type arg refers to executions.
+// Executions are special - not in the registry since they use dedicated RPCs.
+func isExecutionType(typeArg string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(typeArg))
+	return normalized == "execution" || normalized == "executions" || normalized == "exec"
+}
+
 // executeList lists resources of a given type.
 func executeList(opts listOptions) error {
+	// Special case: Executions don't go through the registry
+	// They use their own AgentExecutionQueryController.list() RPC
+	if isExecutionType(opts.TypeArg) {
+		return executeListExecutions(opts)
+	}
+
 	// Step 1: Resolve type from alias
 	reg := types.DefaultRegistry()
 	info, ok := reg.GetByAlias(opts.TypeArg)
 	if !ok {
-		return fmt.Errorf("unknown resource type: %s\n\nAvailable types: agents, workflows, mcpservers, projects, skills", opts.TypeArg)
+		return fmt.Errorf("unknown resource type: %s\n\nAvailable types: agents, workflows, mcpservers, projects, skills, executions", opts.TypeArg)
 	}
 
 	// Step 2: Check verb support
@@ -240,4 +260,76 @@ func listSkills(orgID, format string, limit int32, conn *grpc.ClientConn) error 
 		ResourceName: "Skill",
 	})
 	return nil
+}
+
+// executeListExecutions handles the special case of listing executions.
+// Executions use their own dedicated RPC, not the SearchService.
+func executeListExecutions(opts listOptions) error {
+	// Setup backend connection
+	cfg, err := config.Load()
+	if err != nil {
+		return errors.Wrap(err, "failed to load configuration")
+	}
+
+	if cfg.Backend.Type == config.BackendTypeLocal {
+		dataDir, err := config.GetDataDir()
+		if err != nil {
+			return errors.Wrap(err, "failed to get data directory")
+		}
+		if err := daemon.EnsureRunning(dataDir); err != nil {
+			return errors.Wrap(err, "failed to start daemon")
+		}
+	}
+
+	conn, err := backend.NewConnection()
+	if err != nil {
+		return errors.Wrap(err, "failed to connect to backend")
+	}
+	defer conn.Close()
+
+	// List executions using dedicated package
+	result, err := execution.List(&execution.ListOptions{
+		Conn:     conn,
+		PageSize: opts.Limit,
+		// Phase filter could be added via --status flag in future
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to list executions")
+	}
+
+	// Display results
+	execution.DisplayListResult(result, opts.OutputFormat)
+
+	// Show helpful hint if empty
+	if len(result.GetEntries()) == 0 {
+		fmt.Println()
+		cliprint.PrintInfo("Tip: Run an agent to create an execution:")
+		cliprint.PrintInfo("  stigmer run agent <name>")
+		fmt.Println()
+	}
+
+	return nil
+}
+
+// parsePhaseFilter parses a phase string to ExecutionPhase.
+// Used for future --status flag support.
+func parsePhaseFilter(status string) agentexecutionv1.ExecutionPhase {
+	switch strings.ToLower(status) {
+	case "pending":
+		return agentexecutionv1.ExecutionPhase_EXECUTION_PENDING
+	case "running", "in_progress", "in-progress":
+		return agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS
+	case "completed", "complete", "success":
+		return agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED
+	case "failed", "fail", "error":
+		return agentexecutionv1.ExecutionPhase_EXECUTION_FAILED
+	case "cancelled", "canceled":
+		return agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED
+	case "terminated":
+		return agentexecutionv1.ExecutionPhase_EXECUTION_TERMINATED
+	case "paused":
+		return agentexecutionv1.ExecutionPhase_EXECUTION_PAUSED
+	default:
+		return agentexecutionv1.ExecutionPhase_EXECUTION_PHASE_UNSPECIFIED
+	}
 }

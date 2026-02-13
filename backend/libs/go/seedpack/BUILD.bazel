@@ -1,0 +1,30 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "seedpack",
+    srcs = [
+        "embed.go",
+        "seedpack.go",
+    ],
+    embedsrcs = [
+        "manifest.json",
+    ] + glob([
+        "skills/**",
+        "artifacts/**",
+        "agents/**",
+    ]),
+    importpath = "github.com/stigmer/stigmer/backend/libs/go/seedpack",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
+        "@com_github_pkg_errors//:errors",
+        "@in_gopkg_yaml_v3//:yaml_v3",
+        "@org_golang_google_protobuf//encoding/protojson",
+    ],
+)
+
+go_test(
+    name = "seedpack_test",
+    srcs = ["seedpack_test.go"],
+    embed = [":seedpack"],
+)

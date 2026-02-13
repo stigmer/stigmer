@@ -25,6 +25,7 @@ from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
     ApprovalAction,
     ContextInfo,
     SummarizationEvent,
+    ExecutionArtifact,
 )
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ExecutionPhase, 
@@ -176,6 +177,14 @@ class StatusBuilder:
         
         # Accumulated summarization events during this execution
         self._summarization_events: List[SummarizationEvent] = []
+        
+        # ─────────────────────────────────────────────────────────────────────────
+        # Execution Artifacts Tracking (Artifact Lifecycle)
+        #
+        # Tracks artifacts published by the agent via the publish_artifact tool.
+        # Artifacts are accumulated during execution and added to the final status.
+        # ─────────────────────────────────────────────────────────────────────────
+        self._artifacts: List[ExecutionArtifact] = []
     
     async def process_event(self, event: Dict[str, Any]) -> None:
         """
@@ -399,6 +408,10 @@ class StatusBuilder:
                     tc.result = tool_result_content
                     tc.status = ToolCallStatus.TOOL_CALL_COMPLETED
                     tc.completed_at = now.isoformat()
+                    # Update message content for CLI display
+                    message.content = self._format_tool_message_content(
+                        tool_name, tc.args, tool_result_content
+                    )
                     break
             
             # Update in sub-agent's tool_calls list
@@ -425,6 +438,10 @@ class StatusBuilder:
                     tc.result = tool_result_content
                     tc.status = ToolCallStatus.TOOL_CALL_COMPLETED
                     tc.completed_at = now.isoformat()
+                    # Update message content for CLI display
+                    message.content = self._format_tool_message_content(
+                        tool_name, tc.args, tool_result_content
+                    )
                     break
             
             # Update in main agent's tool_calls list
@@ -680,6 +697,72 @@ class StatusBuilder:
                 return str(result["content"])
             return json.dumps(result, indent=2)
         return str(result)
+    
+    def _format_tool_message_content(
+        self,
+        tool_name: str,
+        args: Optional[Struct],
+        result: str,
+    ) -> str:
+        """Format tool message content for CLI display.
+        
+        Creates a human-readable summary of the tool call for streaming display.
+        
+        Args:
+            tool_name: Name of the tool that was called
+            args: Tool arguments as Struct proto
+            result: Tool result string
+            
+        Returns:
+            Formatted string like "read(path='file.txt') -> 123 chars"
+        """
+        # Format arguments summary
+        args_summary = ""
+        if args:
+            try:
+                args_dict = dict(args.fields)
+                # Create compact args display (first arg only for brevity)
+                if args_dict:
+                    first_key = next(iter(args_dict))
+                    first_value = args_dict[first_key]
+                    # Get string value from protobuf Value
+                    if hasattr(first_value, 'string_value') and first_value.string_value:
+                        value_str = first_value.string_value
+                        # Truncate long values
+                        if len(value_str) > 40:
+                            value_str = value_str[:37] + "..."
+                        args_summary = f"{first_key}='{value_str}'"
+                    elif hasattr(first_value, 'number_value'):
+                        args_summary = f"{first_key}={first_value.number_value}"
+                    elif hasattr(first_value, 'bool_value'):
+                        args_summary = f"{first_key}={first_value.bool_value}"
+                    
+                    if len(args_dict) > 1:
+                        args_summary += f", +{len(args_dict) - 1} more"
+            except Exception:
+                # Fall back to empty args if parsing fails
+                pass
+        
+        # Format result summary
+        result_summary = ""
+        if result:
+            # Truncate long results
+            if len(result) > 100:
+                result_summary = f"{len(result)} chars"
+            else:
+                # Show short results directly
+                result_summary = result.replace('\n', ' ')[:80]
+        
+        # Build final message
+        if args_summary:
+            call_str = f"{tool_name}({args_summary})"
+        else:
+            call_str = f"{tool_name}()"
+        
+        if result_summary:
+            return f"{call_str} -> {result_summary}"
+        else:
+            return call_str
     
     def _extract_string_content(self, content_blocks: list) -> str:
         """Extract text from multimodal content blocks."""
@@ -1505,26 +1588,68 @@ class StatusBuilder:
         """
         Finalize context info and copy to status proto.
         
-        Called at the end of execution to copy accumulated context info
-        and summarization events to the status proto.
+        Called at the end of execution to copy accumulated context info,
+        summarization events, and execution outputs to the status proto.
         """
-        if self._context_info is None:
-            # Context tracking was not initialized
-            return
+        if self._context_info is not None:
+            # Copy summarization events to context info
+            for event in self._summarization_events:
+                self._context_info.summarization_events.append(event)
+            
+            # Copy context info to status proto
+            self.current_status.context_info.CopyFrom(self._context_info)
+            
+            # Summary log
+            summarization_count = len(self._summarization_events)
+            self.logger.info(
+                f"[CONTEXT] execution={self.execution_id} "
+                f"context_info finalized: "
+                f"final_tokens={self._context_info.current_token_count}, "
+                f"utilization={self._context_info.utilization_percent:.1f}%, "
+                f"summarizations={summarization_count}"
+            )
         
-        # Copy summarization events to context info
-        for event in self._summarization_events:
-            self._context_info.summarization_events.append(event)
+        # Copy artifacts to status proto
+        if self._artifacts:
+            for artifact in self._artifacts:
+                self.current_status.artifacts.append(artifact)
+            
+            self.logger.info(
+                f"[ARTIFACTS] execution={self.execution_id} "
+                f"finalized {len(self._artifacts)} artifacts"
+            )
+    
+    # ─────────────────────────────────────────────────────────────────────────────
+    # Execution Artifacts (Artifact Lifecycle)
+    #
+    # These methods track artifacts published by the agent via the publish_artifact tool.
+    # Artifacts are accumulated during execution and added to the final status.
+    # ─────────────────────────────────────────────────────────────────────────────
+    
+    def add_artifact(self, artifact: ExecutionArtifact) -> None:
+        """
+        Add a published artifact to the tracking list.
         
-        # Copy context info to status proto
-        self.current_status.context_info.CopyFrom(self._context_info)
+        Called by the publish_artifact tool when an agent publishes
+        a file or directory as a downloadable artifact.
         
-        # Summary log
-        summarization_count = len(self._summarization_events)
+        Args:
+            artifact: ExecutionArtifact proto with download URL and metadata.
+        """
+        self._artifacts.append(artifact)
+        
         self.logger.info(
-            f"[CONTEXT] execution={self.execution_id} "
-            f"context_info finalized: "
-            f"final_tokens={self._context_info.current_token_count}, "
-            f"utilization={self._context_info.utilization_percent:.1f}%, "
-            f"summarizations={summarization_count}"
+            f"[ARTIFACT] execution={self.execution_id} "
+            f"name={artifact.name} "
+            f"size={artifact.size_bytes} bytes "
+            f"path={artifact.sandbox_path}"
         )
+    
+    def get_artifacts(self) -> List[ExecutionArtifact]:
+        """
+        Get the current list of artifacts.
+        
+        Returns:
+            List of ExecutionArtifact protos published during this execution.
+        """
+        return list(self._artifacts)

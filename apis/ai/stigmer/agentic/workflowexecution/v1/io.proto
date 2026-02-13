@@ -6,6 +6,7 @@ import "ai/stigmer/agentic/agentexecution/v1/api.proto";
 import "ai/stigmer/agentic/workflowexecution/v1/api.proto";
 import "ai/stigmer/agentic/workflowexecution/v1/enum.proto";
 import "buf/validate/validate.proto";
+import "google/protobuf/struct.proto";
 
 // WorkflowExecutionId wraps a workflow execution identifier.
 //
@@ -520,4 +521,422 @@ enum WorkflowUpdateType {
   //
   // Note: This is a terminal event - no more updates will follow.
   wf_update_execution_cancelled = 6;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Lifecycle Control Input Messages
+//
+// These messages are used by lifecycle control RPCs (cancel, terminate, recover)
+// to manage workflow execution state.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// CancelWorkflowExecutionInput requests graceful cancellation of a workflow execution.
+//
+// Cancellation sends a signal to the workflow, allowing it to clean up gracefully.
+// The workflow code can handle the cancellation signal (e.g., via defer blocks,
+// compensation logic) before the execution transitions to CANCELLED phase.
+//
+// ## Behavior
+//
+// - Sends cancellation signal to Temporal via CancelWorkflow API
+// - Workflow code receives the signal and can perform cleanup
+// - Execution transitions to EXECUTION_CANCELLED phase after cleanup
+// - In-progress tasks may complete or be interrupted depending on workflow logic
+//
+// ## Preconditions
+//
+// - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+// - User must have can_edit permission on the workflow execution
+//
+// ## Idempotency
+//
+// If the execution is already cancelled (phase == EXECUTION_CANCELLED),
+// the call succeeds as a no-op and returns the current execution state.
+//
+// ## Use Cases
+//
+// - User realizes they triggered the wrong workflow
+// - Business decision to stop a long-running process
+// - Graceful shutdown before maintenance window
+// - Cancel stuck workflow that is still responsive
+//
+// ## Example
+//
+// {
+//   "id": "wfx-abc123xyz456",
+//   "reason": "Customer requested cancellation - no longer needed"
+// }
+message CancelWorkflowExecutionInput {
+  // Workflow execution ID to cancel.
+  //
+  // Format: "wfx-{ulid}" (auto-generated unique identifier)
+  // Example: "wfx-abc123xyz456"
+  //
+  // Validation: Required, cannot be empty
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Human-readable reason for cancellation.
+  //
+  // Stored in the audit trail and passed to Temporal for operational debugging.
+  // Optional but strongly recommended for compliance and troubleshooting.
+  //
+  // Examples:
+  // - "Customer requested cancellation"
+  // - "Incorrect workflow triggered by mistake"
+  // - "Superseded by newer execution wfx-def456"
+  // - "Pre-maintenance shutdown"
+  string reason = 2;
+}
+
+// TerminateWorkflowExecutionInput requests immediate termination of a workflow execution.
+//
+// Termination forcefully kills the workflow without allowing cleanup.
+// Unlike cancellation, the workflow code cannot respond to termination -
+// it is stopped immediately. Use this for stuck or unresponsive workflows.
+//
+// ## Behavior
+//
+// - Force-kills workflow via Temporal TerminateWorkflow API
+// - Workflow code does NOT receive any signal (cannot clean up)
+// - Execution transitions to EXECUTION_TERMINATED phase immediately
+// - All in-progress tasks are stopped abruptly
+// - No compensation or defer blocks are executed
+//
+// ## Preconditions
+//
+// - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+// - User must have can_edit permission on the workflow execution
+//
+// ## Idempotency
+//
+// If the execution is already terminated (phase == EXECUTION_TERMINATED),
+// the call succeeds as a no-op and returns the current execution state.
+//
+// ## Terminated vs Cancelled
+//
+// | Aspect | Cancel | Terminate |
+// |--------|--------|-----------|
+// | Signal | Workflow receives cancellation signal | No signal sent |
+// | Cleanup | Workflow can clean up gracefully | No cleanup possible |
+// | Use case | Normal cancellation | Stuck/unresponsive workflows |
+// | Recovery | Cannot recover | Cannot recover |
+//
+// ## Use Cases
+//
+// - Workflow is stuck and not responding to cancellation
+// - Workflow is consuming excessive resources (infinite loop, memory leak)
+// - Emergency stop for misbehaving workflow
+// - Workflow has a bug causing it to ignore cancellation signals
+//
+// ## Example
+//
+// {
+//   "id": "wfx-abc123xyz456",
+//   "reason": "Workflow stuck for 2 hours, not responding to cancel"
+// }
+message TerminateWorkflowExecutionInput {
+  // Workflow execution ID to terminate.
+  //
+  // Format: "wfx-{ulid}" (auto-generated unique identifier)
+  // Example: "wfx-abc123xyz456"
+  //
+  // Validation: Required, cannot be empty
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Human-readable reason for termination.
+  //
+  // Stored in the audit trail and passed to Temporal for operational debugging.
+  // Optional but strongly recommended - termination is a drastic action
+  // and the reason helps with post-incident analysis.
+  //
+  // Examples:
+  // - "Workflow stuck for 2 hours, not responding to cancel"
+  // - "Infinite loop detected, consuming 100% CPU"
+  // - "Emergency stop - incorrect data being processed"
+  // - "Cancel failed after 3 attempts, force terminating"
+  string reason = 2;
+}
+
+// RecoverWorkflowExecutionInput requests recovery of a failed workflow execution.
+//
+// Recovery resumes execution from the last successful checkpoint, preserving
+// all completed work. This uses Temporal's Reset functionality to continue
+// the workflow without re-executing successful steps.
+//
+// ## Behavior
+//
+// - Uses Temporal ResetWorkflow API to resume from last successful point
+// - Completed tasks are preserved - NOT re-executed
+// - Creates a new Temporal run in the same workflow ID chain
+// - Execution transitions from FAILED back to IN_PROGRESS phase
+// - Workflow continues from where it failed
+//
+// ## Preconditions
+//
+// - Execution must be in EXECUTION_FAILED phase
+// - TERMINATED executions cannot be recovered (use case: data corruption risk)
+// - CANCELLED executions cannot be recovered (intentional user action)
+// - User must have can_edit permission on the workflow execution
+//
+// ## Idempotency
+//
+// If recovery is already in progress (execution moved to IN_PROGRESS after
+// a previous recover call), the call succeeds as a no-op and returns current state.
+//
+// ## Recovery vs Restart
+//
+// | Aspect | Recover | Restart (create new) |
+// |--------|---------|----------------------|
+// | Completed work | Preserved | Lost (re-executed) |
+// | Side effects | Not duplicated | May duplicate |
+// | Execution ID | Same | New ID |
+// | Use case | Resume after fix | Start fresh |
+//
+// ## Use Cases
+//
+// - Workflow failed due to transient error (network timeout, rate limit)
+// - External dependency was down but is now available
+// - Bug was fixed and workflow should continue from failure point
+// - Retry after investigating and fixing the root cause
+//
+// ## Example
+//
+// {
+//   "id": "wfx-abc123xyz456",
+//   "reason": "Stripe API was down, now recovered - resuming payment processing"
+// }
+message RecoverWorkflowExecutionInput {
+  // Workflow execution ID to recover.
+  //
+  // Must be in FAILED phase. TERMINATED and CANCELLED executions
+  // cannot be recovered.
+  //
+  // Format: "wfx-{ulid}" (auto-generated unique identifier)
+  // Example: "wfx-abc123xyz456"
+  //
+  // Validation: Required, cannot be empty
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Human-readable reason for recovery.
+  //
+  // Stored in the audit trail for operational debugging and compliance.
+  // Helps track why the recovery was needed and what was fixed.
+  //
+  // Examples:
+  // - "Stripe API recovered, resuming payment processing"
+  // - "Fixed typo in email template, continuing workflow"
+  // - "Increased timeout for slow API, retrying"
+  // - "Root cause identified and fixed in config"
+  string reason = 2;
+}
+
+// PauseWorkflowExecutionInput requests temporarily pausing a workflow execution.
+//
+// Pauses the workflow at its current checkpoint. Unlike cancel, the execution
+// is NOT terminal and can be resumed later from where it left off.
+//
+// ## Behavior
+//
+// When a workflow is paused:
+// 1. A "pause" signal is sent to the Temporal workflow
+// 2. Running activities are gracefully cancelled (checkpoint saved)
+// 3. Execution transitions to EXECUTION_PAUSED phase
+// 4. Workflow waits for resume signal (no resources consumed)
+//
+// ## Resume Flow
+//
+// The paused workflow can be resumed via the resume RPC:
+// 1. Resume signal unblocks the workflow
+// 2. Activities are re-invoked with same thread_id
+// 3. LangGraph loads from checkpoint automatically
+// 4. Execution continues from exact pause point
+//
+// @since Gap A3 (Pause/Resume Propagation)
+message PauseWorkflowExecutionInput {
+  // Workflow execution ID to pause.
+  //
+  // Must be in PENDING or IN_PROGRESS phase. Cannot pause
+  // executions that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).
+  //
+  // Format: "wfx-{ulid}" (auto-generated unique identifier)
+  // Example: "wfx-abc123xyz456"
+  //
+  // Validation: Required, cannot be empty
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Human-readable reason for pausing.
+  //
+  // Stored in the audit trail for operational debugging and compliance.
+  // Helps track why the pause was needed.
+  //
+  // Examples:
+  // - "Pausing for scheduled maintenance window"
+  // - "User requested pause to review progress"
+  // - "Pausing due to rate limit concerns"
+  // - "Emergency pause - investigating issue"
+  string reason = 2;
+}
+
+// ResumeWorkflowExecutionInput requests resuming a paused workflow execution.
+//
+// Continues execution from the checkpoint where it was paused. The workflow
+// re-invokes activities with the same thread_id, which loads from checkpoint
+// and continues from where it left off.
+//
+// ## Behavior
+//
+// When a workflow is resumed:
+// 1. A "resume" signal is sent to the paused Temporal workflow
+// 2. Workflow unblocks from its wait state
+// 3. Activities are re-invoked with same execution context
+// 4. LangGraph loads checkpoint using thread_id
+// 5. Execution continues from exact pause point
+//
+// ## Preconditions
+//
+// - Execution must be in EXECUTION_PAUSED phase
+// - Cannot resume non-paused executions
+//
+// @since Gap A3 (Pause/Resume Propagation)
+message ResumeWorkflowExecutionInput {
+  // Workflow execution ID to resume.
+  //
+  // Must be in PAUSED phase. Cannot resume executions
+  // that are not paused.
+  //
+  // Format: "wfx-{ulid}" (auto-generated unique identifier)
+  // Example: "wfx-abc123xyz456"
+  //
+  // Validation: Required, cannot be empty
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// SendSignalInput requests delivery of a signal to a workflow execution.
+//
+// Sends a signal to a running workflow execution, typically to unblock a LISTEN task.
+// Uses Temporal's SignalWithStart API internally for race-proof delivery - if the
+// workflow hasn't started yet, it will be started first and then receive the signal.
+//
+// ## Behavior
+//
+// 1. Validates execution exists and is in a signalable phase
+// 2. Uses Temporal SignalWithStart for atomic delivery:
+//    - If workflow exists → sends signal immediately
+//    - If workflow not started yet → starts workflow, then sends signal
+// 3. Signal is delivered to workflow's signal channel
+// 4. LISTEN task waiting for this signal will unblock and continue
+// 5. Returns the current WorkflowExecution state
+//
+// ## Preconditions
+//
+// - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+// - Cannot signal terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
+// - User must have can_edit permission on the workflow execution
+//
+// ## Race-Proof Delivery
+//
+// SignalWithStart solves the race condition where a signal might arrive before
+// the Temporal workflow is fully started. Without it, SignalWorkflow fails with
+// "WorkflowNotFound" if called too early. SignalWithStart handles both cases
+// atomically, ensuring signals are never lost.
+//
+// ## Use Cases
+//
+// - External system events (webhooks, CDC) triggering workflow continuation
+// - Human-in-the-loop approvals via external systems
+// - Integration with third-party services that send callbacks
+// - Testing LISTEN tasks during development
+//
+// ## Example
+//
+// {
+//   "execution_id": "wfx-abc123xyz456",
+//   "signal_name": "payment_confirmed",
+//   "payload": {
+//     "transaction_id": "txn_123",
+//     "amount": 99.99,
+//     "currency": "USD"
+//   }
+// }
+//
+// @since Gap B1 (Signal-With-Start)
+message SendSignalInput {
+  // Workflow execution ID to send the signal to.
+  //
+  // Format: "wfx-{ulid}" (auto-generated unique identifier)
+  // Example: "wfx-abc123xyz456"
+  //
+  // Validation: Required, cannot be empty
+  string execution_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Signal name to send.
+  //
+  // Must match the signal ID defined in the workflow's LISTEN task.
+  // Signal names are case-sensitive and should follow snake_case convention.
+  //
+  // Examples:
+  // - "payment_confirmed"
+  // - "approval_received"
+  // - "external_event"
+  // - "verification_complete"
+  //
+  // Validation: Required, cannot be empty
+  string signal_name = 2 [(buf.validate.field).string.min_len = 1];
+
+  // Signal payload data.
+  //
+  // JSON-serializable data to send with the signal. The payload is delivered
+  // to the workflow and can be accessed by the LISTEN task.
+  //
+  // Optional - signals can be sent without payload if they just need to
+  // unblock the workflow without passing data.
+  //
+  // Examples:
+  // - { "status": "approved", "approver": "jane@example.com" }
+  // - { "transaction_id": "txn_123", "amount": 99.99 }
+  // - { "verified": true }
+  //
+  // Note: Use google.protobuf.Struct for arbitrary JSON payloads.
+  google.protobuf.Struct payload = 3;
+
+  // Idempotency key for deduplication of signal delivery.
+  //
+  // Optional - if not provided, signal is processed without dedupe protection.
+  // When provided, duplicate signals with the same key (within the TTL window)
+  // return the cached response instead of re-delivering the signal.
+  //
+  // ## Format Recommendations
+  //
+  // - Webhook sources: "{source}:{event_id}" (e.g., "stripe:evt_1234567890")
+  // - API callers: Client-generated UUID (e.g., "550e8400-e29b-41d4-a716-446655440000")
+  // - Scheduled events: "{schedule_id}:{timestamp}" (e.g., "sched_abc:2026-02-08T12:00:00Z")
+  //
+  // ## Scope
+  //
+  // Keys are scoped to the organization to prevent cross-org collisions.
+  // The effective key stored is: "{org_id}:{idempotency_key}"
+  //
+  // ## TTL (Time-To-Live)
+  //
+  // Keys expire after 24 hours by default. After expiration, the same key
+  // can be reused and will trigger a new signal delivery. This aligns with
+  // industry standards (e.g., Stripe's 24-hour idempotency window).
+  //
+  // ## Behavior on Duplicate
+  //
+  // When a duplicate key is detected:
+  // - The signal is NOT re-delivered to the workflow
+  // - The original WorkflowExecution state is returned (idempotent response)
+  // - No error is returned (success with cached result)
+  //
+  // ## Use Cases
+  //
+  // 1. Webhook retry protection: Stripe/GitHub may retry webhooks on timeout
+  // 2. Client retry safety: API clients can safely retry on network errors
+  // 3. At-least-once to effectively-once: Convert retries into safe operations
+  //
+  // Example: "stripe:evt_1NqZP92eZvKYlo2CqOc7XYRT"
+  //
+  // @since Gap B2 (Event Dedupe)
+  string idempotency_key = 4;
 }

@@ -1,0 +1,43 @@
+{
+  "schema_version": "1",
+  "source": {
+    "type": "git",
+    "url": "https://github.com/anthropics/skills",
+    "ref": "main",
+    "commit_sha": "1ed29a03dc852d30fa6ef2ca53a67dc2c2c2c563",
+    "subdir": "skills/skill-creator"
+  },
+  "vendored_at": "2026-02-08T07:59:30Z",
+  "vendored_by": "vendor_skill.sh",
+  "content_digest": "sha256:c2cb6665d579f8eafaba1194ea4751599ab0236d8766f8ced5a89579208ff47b",
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "digest": "sha256:58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"
+    },
+    {
+      "path": "SKILL.md",
+      "digest": "sha256:d57b6e3a44535b9c0ef454dad5c86f5df78185fc80a65c7092885b4b5e10f81b"
+    },
+    {
+      "path": "references/output-patterns.md",
+      "digest": "sha256:d6027800b9d8c26589edba85b42901a41ac36d753b4e9cebc7f4cbb03cdcf0a4"
+    },
+    {
+      "path": "references/workflows.md",
+      "digest": "sha256:ef4846877d5dab47511a01a6cf31476ad64f5bc5945635459295794575338980"
+    },
+    {
+      "path": "scripts/init_skill.py",
+      "digest": "sha256:cf12790f1d4958799281920d599f56aea38fb5c26e2812a61dd740bf3d4b6b99"
+    },
+    {
+      "path": "scripts/package_skill.py",
+      "digest": "sha256:b31fbcb3e362d5c5308e99255ff8e83cde3a513e0636953964a648494ca10931"
+    },
+    {
+      "path": "scripts/quick_validate.py",
+      "digest": "sha256:67cf5703402013936c8fb75ad6a1afecd8841d45cc5e606b634eb05825fde365"
+    }
+  ]
+}

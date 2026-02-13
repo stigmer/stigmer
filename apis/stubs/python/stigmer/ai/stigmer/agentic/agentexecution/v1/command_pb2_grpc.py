@@ -43,6 +43,36 @@ class AgentExecutionCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.SubmitApprovalInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.FromString,
                 _registered_method=True)
+        self.cancel = channel.unary_unary(
+                '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/cancel',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.CancelAgentExecutionInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.FromString,
+                _registered_method=True)
+        self.terminate = channel.unary_unary(
+                '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/terminate',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.TerminateAgentExecutionInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.FromString,
+                _registered_method=True)
+        self.recover = channel.unary_unary(
+                '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/recover',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.RecoverAgentExecutionInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.FromString,
+                _registered_method=True)
+        self.pause = channel.unary_unary(
+                '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/pause',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.PauseAgentExecutionInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.FromString,
+                _registered_method=True)
+        self.resume = channel.unary_unary(
+                '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/resume',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.ResumeAgentExecutionInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.FromString,
+                _registered_method=True)
+        self.uploadAttachment = channel.unary_unary(
+                '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/uploadAttachment',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.UploadAttachmentRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.UploadAttachmentResponse.FromString,
+                _registered_method=True)
 
 
 class AgentExecutionCommandControllerServicer(object):
@@ -126,6 +156,304 @@ class AgentExecutionCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def cancel(self, request, context):
+        """─────────────────────────────────────────────────────────────────────────────
+        Lifecycle Control Operations
+
+        These RPCs control the agent execution lifecycle, mapping to Temporal
+        workflow operations. They enable users to gracefully stop, force-stop,
+        pause, resume, or recover agent executions.
+        ─────────────────────────────────────────────────────────────────────────────
+
+        Cancel a running agent execution gracefully.
+
+        Sends a cancellation signal to the agent execution via Temporal's CancelWorkflow API.
+        The agent can handle the cancellation signal to save checkpoint and clean up
+        before transitioning to the CANCELLED phase.
+
+        Temporal Equivalent: `temporal workflow cancel --workflow-id <id>`
+
+        ## Behavior
+
+        1. Validates execution exists and is in a cancellable phase
+        2. Sends cancellation signal to Temporal workflow
+        3. Python activity receives cancellation and saves LangGraph checkpoint
+        4. Execution transitions to EXECUTION_CANCELLED phase
+        5. Returns updated AgentExecution with new phase
+
+        ## Preconditions
+
+        - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+        - Cannot cancel already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)
+
+        ## State Transitions
+
+        - status.phase: PENDING/IN_PROGRESS → CANCELLED
+        - status.completed_at: Set to current timestamp
+        - LangGraph checkpoint: Preserved for potential future reference
+
+        ## Idempotency
+
+        Cancelling an already-cancelled execution succeeds as a no-op.
+        The call returns the current execution state without side effects.
+
+        ## Error Cases
+
+        - NOT_FOUND: Execution with given ID doesn't exist
+        - PERMISSION_DENIED: User lacks can_edit permission on the execution
+        - FAILED_PRECONDITION: Execution is in a terminal phase
+        - INVALID_ARGUMENT: ID is empty or malformed
+
+        @since Agent Execution Lifecycle
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def terminate(self, request, context):
+        """Terminate an agent execution immediately.
+
+        Force-stops the agent execution via Temporal's TerminateWorkflow API without
+        allowing cleanup. Unlike cancel, the agent cannot respond to termination -
+        it is stopped immediately. Use this for stuck or unresponsive agents.
+
+        Temporal Equivalent: `temporal workflow terminate --workflow-id <id>`
+
+        ## Behavior
+
+        1. Validates execution exists and is in a terminable phase
+        2. Force-kills workflow via Temporal (no signal sent to agent)
+        3. Execution transitions to EXECUTION_TERMINATED phase immediately
+        4. No cleanup callbacks or checkpoint saves occur
+        5. Returns updated AgentExecution with TERMINATED phase
+
+        ## Preconditions
+
+        - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+        - Cannot terminate already-terminal executions
+
+        ## State Transitions
+
+        - status.phase: PENDING/IN_PROGRESS → TERMINATED
+        - status.completed_at: Set to current timestamp
+        - LangGraph checkpoint: May be incomplete (no graceful save)
+
+        ## Terminated vs Cancelled
+
+        | Aspect | cancel | terminate |
+        |--------|--------|-----------|
+        | Signal to agent | Yes (can handle) | No |
+        | Checkpoint saved | Yes (graceful) | No |
+        | Use case | Normal stop | Stuck agents |
+        | Can recover? | No | No |
+
+        ## Idempotency
+
+        Terminating an already-terminated execution succeeds as a no-op.
+
+        ## Error Cases
+
+        - NOT_FOUND: Execution with given ID doesn't exist
+        - PERMISSION_DENIED: User lacks can_edit permission on the execution
+        - FAILED_PRECONDITION: Execution is in a terminal phase
+        - INVALID_ARGUMENT: ID is empty or malformed
+
+        @since Agent Execution Lifecycle
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def recover(self, request, context):
+        """Recover a failed agent execution from the last checkpoint.
+
+        Resumes execution from the last LangGraph checkpoint using Temporal's
+        ResetWorkflow API. Completed work is preserved - successful tool calls
+        are NOT re-executed.
+
+        Temporal Equivalent: `temporal workflow reset --workflow-id <id> --type LastWorkflowTask`
+
+        ## Behavior
+
+        1. Validates execution is in FAILED phase (recoverable)
+        2. Uses Temporal ResetWorkflow to resume from last checkpoint
+        3. Activity re-invoked with same thread_id
+        4. LangGraph loads from checkpoint automatically
+        5. Execution transitions from FAILED to IN_PROGRESS phase
+        6. Agent continues from where it failed
+
+        ## Preconditions
+
+        - Execution must be in EXECUTION_FAILED phase
+        - TERMINATED executions cannot be recovered (incomplete checkpoint)
+        - CANCELLED executions cannot be recovered (intentional user action)
+
+        ## State Transitions
+
+        - status.phase: FAILED → IN_PROGRESS
+        - status.completed_at: Cleared
+        - status.error: Cleared
+        - Completed tool calls: Preserved (not re-executed)
+
+        ## Idempotency
+
+        If recovery already succeeded (execution is now IN_PROGRESS),
+        the call succeeds as a no-op.
+
+        ## Error Cases
+
+        - NOT_FOUND: Execution with given ID doesn't exist
+        - PERMISSION_DENIED: User lacks can_edit permission
+        - FAILED_PRECONDITION: Execution is not in FAILED phase
+        - INVALID_ARGUMENT: ID is empty or malformed
+
+        @since Agent Execution Lifecycle
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def pause(self, request, context):
+        """Pause a running agent execution.
+
+        Temporarily stops the agent at its current checkpoint. Unlike cancel,
+        the execution is NOT terminal and can be resumed later from where it left off.
+
+        ## Behavior
+
+        1. Validates execution exists and is in a pausable phase
+        2. Sends "pause" signal to Temporal workflow
+        3. Workflow cancels running activity gracefully
+        4. Python activity saves LangGraph checkpoint on cancellation
+        5. Execution transitions to EXECUTION_PAUSED phase
+        6. Workflow waits for resume signal (no resources consumed)
+
+        ## Preconditions
+
+        - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
+        - Cannot pause already-terminal or already-paused executions
+
+        ## State Transitions
+
+        - status.phase: PENDING/IN_PROGRESS → PAUSED
+        - status.completed_at: NOT set (execution is not finished)
+        - LangGraph checkpoint: Saved via thread_id
+
+        ## Paused vs Cancelled
+
+        | Aspect | pause | cancel |
+        |--------|-------|--------|
+        | Terminal state? | No | Yes |
+        | Can resume? | Yes (via resume RPC) | No |
+        | Checkpoint saved? | Yes | Best-effort |
+        | Use case | Temporary stop | Permanent stop |
+
+        ## Idempotency
+
+        Pausing an already-paused execution succeeds as a no-op.
+
+        ## Error Cases
+
+        - NOT_FOUND: Execution with given ID doesn't exist
+        - PERMISSION_DENIED: User lacks can_edit permission
+        - FAILED_PRECONDITION: Execution is in a terminal phase
+        - INVALID_ARGUMENT: ID is empty or malformed
+
+        @since Agent Execution Lifecycle
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def resume(self, request, context):
+        """Resume a paused agent execution.
+
+        Continues execution from the checkpoint where it was paused. The agent
+        re-invokes with the same thread_id, loading from LangGraph checkpoint
+        and continuing from where it left off.
+
+        ## Behavior
+
+        1. Validates execution is in EXECUTION_PAUSED phase
+        2. Sends "resume" signal to Temporal workflow
+        3. Workflow unblocks and re-invokes activity
+        4. Activity loads from LangGraph checkpoint using thread_id
+        5. Execution transitions back to EXECUTION_IN_PROGRESS phase
+        6. Agent continues from exact pause point
+
+        ## Preconditions
+
+        - Execution must be in EXECUTION_PAUSED phase
+        - Cannot resume non-paused executions
+
+        ## State Transitions
+
+        - status.phase: PAUSED → IN_PROGRESS
+        - Activities: Re-invoked, load from checkpoint
+        - LangGraph state: Loaded from checkpoint via thread_id
+
+        ## Idempotency
+
+        Resuming an already-running execution succeeds as a no-op.
+
+        ## Error Cases
+
+        - NOT_FOUND: Execution with given ID doesn't exist
+        - PERMISSION_DENIED: User lacks can_edit permission
+        - FAILED_PRECONDITION: Execution is not in PAUSED phase
+        - INVALID_ARGUMENT: ID is empty or malformed
+
+        @since Agent Execution Lifecycle
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def uploadAttachment(self, request, context):
+        """─────────────────────────────────────────────────────────────────────────────
+        Artifact Lifecycle Operations
+
+        These RPCs support file attachments and artifacts for agent executions.
+        Attachments are input files provided before execution; artifacts are
+        output files created during execution.
+        ─────────────────────────────────────────────────────────────────────────────
+
+        Upload a file attachment for use in an agent execution.
+
+        Pre-uploads files to artifact storage before creating an execution.
+        The returned storage_key can be used in Attachment.storage_key when
+        creating the execution.
+
+        ## Authorization
+
+        This endpoint does not require authorization. The storage_key returned
+        acts as a capability token - knowing the key grants access to the content.
+        This simplifies the upload flow for CLI and other clients.
+
+        ## Storage Path
+
+        Files are stored at: attachments/{ulid}/{filename}
+        The ULID ensures unique paths and enables future cleanup policies.
+
+        ## Use Cases
+
+        - CLI uploading files (>4MB) before agent execution
+        - Pre-uploading datasets for agent processing
+        - Uploading binary files that cannot be embedded inline in Attachment
+
+        ## Example Flow
+
+        1. Client calls uploadAttachment with file content
+        2. Server uploads to storage, returns storage_key
+        3. Client creates AgentExecution with Attachment using storage_key
+        4. Agent-runner downloads attachment content when execution starts
+
+        @since Artifact Lifecycle (Attachments & Artifacts)
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_AgentExecutionCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -153,6 +481,36 @@ def add_AgentExecutionCommandControllerServicer_to_server(servicer, server):
                     servicer.submitApproval,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.SubmitApprovalInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.SerializeToString,
+            ),
+            'cancel': grpc.unary_unary_rpc_method_handler(
+                    servicer.cancel,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.CancelAgentExecutionInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.SerializeToString,
+            ),
+            'terminate': grpc.unary_unary_rpc_method_handler(
+                    servicer.terminate,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.TerminateAgentExecutionInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.SerializeToString,
+            ),
+            'recover': grpc.unary_unary_rpc_method_handler(
+                    servicer.recover,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.RecoverAgentExecutionInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.SerializeToString,
+            ),
+            'pause': grpc.unary_unary_rpc_method_handler(
+                    servicer.pause,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.PauseAgentExecutionInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.SerializeToString,
+            ),
+            'resume': grpc.unary_unary_rpc_method_handler(
+                    servicer.resume,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.ResumeAgentExecutionInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.SerializeToString,
+            ),
+            'uploadAttachment': grpc.unary_unary_rpc_method_handler(
+                    servicer.uploadAttachment,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.UploadAttachmentRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.UploadAttachmentResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -292,6 +650,168 @@ class AgentExecutionCommandController(object):
             '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/submitApproval',
             ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.SubmitApprovalInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def cancel(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/cancel',
+            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.CancelAgentExecutionInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def terminate(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/terminate',
+            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.TerminateAgentExecutionInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def recover(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/recover',
+            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.RecoverAgentExecutionInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def pause(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/pause',
+            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.PauseAgentExecutionInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def resume(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/resume',
+            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.ResumeAgentExecutionInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def uploadAttachment(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/uploadAttachment',
+            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.UploadAttachmentRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.UploadAttachmentResponse.FromString,
             options,
             channel_credentials,
             insecure,

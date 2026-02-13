@@ -64,7 +64,11 @@ func TestMarshalTaskConfig_Success(t *testing.T) {
 		{
 			name: "WAIT task",
 			proto: &tasksv1.WaitTaskConfig{
-				Seconds: 5,
+				WaitType: &tasksv1.WaitTaskConfig_Duration{
+					Duration: &tasksv1.Duration{
+						Seconds: 5,
+					},
+				},
 			},
 		},
 	}
@@ -145,7 +149,11 @@ func TestMarshalTaskConfig_RoundTrip(t *testing.T) {
 			name: "WAIT task round-trip",
 			kind: workflowv1.WorkflowTaskKind_wait,
 			original: &tasksv1.WaitTaskConfig{
-				Seconds: 10,
+				WaitType: &tasksv1.WaitTaskConfig_Duration{
+					Duration: &tasksv1.Duration{
+						Seconds: 10,
+					},
+				},
 			},
 		},
 		{

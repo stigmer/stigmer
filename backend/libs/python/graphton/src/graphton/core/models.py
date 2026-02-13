@@ -2,6 +2,9 @@
 
 This module provides utilities to parse model name strings into LangChain model instances,
 eliminating boilerplate for model instantiation and providing sensible defaults.
+
+Model name resolution is handled by ModelRegistry, which provides the single source of
+truth for mapping platform-friendly names to actual API model IDs.
 """
 
 from typing import Any
@@ -11,15 +14,12 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 
-# Model name mapping for Anthropic models (friendly name -> full model ID)
-ANTHROPIC_MODEL_MAP = {
-    "claude-sonnet-4.5": "claude-sonnet-4-5-20250929",
-    "claude-opus-4": "claude-opus-4-20250514",
-    "claude-haiku-4": "claude-haiku-4-20250313",
-}
+from graphton.core.model_registry import ModelRegistry
 
-# Model name mapping for Ollama models (friendly name -> full model ID)
-OLLAMA_MODEL_MAP = {
+# Short alias mapping for Ollama models (convenience aliases -> model_id in registry)
+# These allow users to omit the size suffix (e.g., "qwen2.5-coder" instead of "qwen2.5-coder:7b")
+# Note: These are NOT api_model_id mappings - they map to model_id which equals api_model_id for Ollama
+_OLLAMA_SHORT_ALIASES = {
     "qwen2.5-coder": "qwen2.5-coder:7b",
     "llama3.2": "llama3.2:3b",
     "deepseek-coder": "deepseek-coder-v2:16b",
@@ -83,26 +83,20 @@ def parse_model_string(
 ) -> BaseChatModel:
     """Parse a model name string into a LangChain model instance.
     
-    Supports friendly model names with automatic mapping to full model IDs
-    and sensible defaults for each provider.
+    Supports platform-friendly model names with automatic resolution to API model IDs
+    via ModelRegistry, plus sensible defaults for each provider.
     
-    Supported Models:
-        Anthropic:
-            - "claude-sonnet-4.5" -> claude-sonnet-4-5-20250929
-            - "claude-opus-4" -> claude-opus-4-20250514
-            - "claude-haiku-4" -> claude-haiku-4-20250313
+    Model Resolution:
+        Uses ModelRegistry.resolve_or_passthrough() to map platform names to API IDs:
+        - Anthropic: "claude-sonnet-4.5" -> "claude-sonnet-4-5-20250929"
+        - OpenAI: Passed through as-is (API IDs match platform names)
+        - Ollama: Short aliases expanded, then passed through
         
-        OpenAI:
-            - "gpt-4o", "gpt-4o-mini", "gpt-4-turbo"
-            - "o1", "o1-mini"
-            - Any other OpenAI model name (passed through)
-        
-        Ollama:
-            - "qwen2.5-coder" -> qwen2.5-coder:7b
-            - "llama3.2" -> llama3.2:3b
-            - "deepseek-coder" -> deepseek-coder-v2:16b
-            - "codellama" -> codellama:13b
-            - Any other Ollama model name (passed through)
+        For Ollama, short convenience aliases are also supported:
+        - "qwen2.5-coder" -> "qwen2.5-coder:7b"
+        - "llama3.2" -> "llama3.2:3b"
+        - "deepseek-coder" -> "deepseek-coder-v2:16b"
+        - "codellama" -> "codellama:13b"
     
     Args:
         model: Model name string (e.g., "claude-sonnet-4.5", "gpt-4o", "qwen2.5-coder")
@@ -146,11 +140,25 @@ def parse_model_string(
         model_name = model
         provider = _infer_provider(model_name)
     
+    # ─────────────────────────────────────────────────────────────────────────────
+    # Resolve model name to API model ID using ModelRegistry
+    #
+    # For Ollama, first check short aliases (e.g., "qwen2.5-coder" -> "qwen2.5-coder:7b")
+    # Then use ModelRegistry.resolve_or_passthrough() for API ID resolution.
+    # ─────────────────────────────────────────────────────────────────────────────
+    
+    # Expand Ollama short aliases before registry resolution
+    if provider == "ollama":
+        model_name = _OLLAMA_SHORT_ALIASES.get(model_name, model_name)
+    
+    # Use ModelRegistry to resolve to API model ID
+    api_model_id, _metadata = ModelRegistry.resolve_or_passthrough(
+        model_name,
+        provider=provider,
+    )
+    
     # Parse Anthropic models
     if provider == "anthropic":
-        # Map friendly name to full model ID
-        full_model_name = ANTHROPIC_MODEL_MAP.get(model_name, model_name)
-        
         # Build model parameters with defaults
         model_params: dict[str, Any] = {**ANTHROPIC_DEFAULTS}
         
@@ -164,7 +172,7 @@ def parse_model_string(
         model_params.update(model_kwargs)
         
         return ChatAnthropic(
-            model=full_model_name,  # type: ignore[call-arg]
+            model=api_model_id,  # type: ignore[call-arg]
             **model_params,
         )
     
@@ -183,15 +191,12 @@ def parse_model_string(
         openai_params.update(model_kwargs)
         
         return ChatOpenAI(
-            model=model_name,
+            model=api_model_id,
             **openai_params,
         )
     
     # Parse Ollama models
     elif provider == "ollama":
-        # Map friendly name to full model ID
-        full_model_name = OLLAMA_MODEL_MAP.get(model_name, model_name)
-        
         # Build model parameters with defaults
         ollama_params: dict[str, Any] = {**OLLAMA_DEFAULTS}
         
@@ -205,7 +210,7 @@ def parse_model_string(
         ollama_params.update(model_kwargs)
         
         return ChatOllama(
-            model=full_model_name,
+            model=api_model_id,
             **ollama_params,
         )
     

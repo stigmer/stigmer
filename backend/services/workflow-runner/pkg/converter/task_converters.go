@@ -17,6 +17,8 @@
 package converter
 
 import (
+	"time"
+
 	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
 )
 
@@ -181,10 +183,52 @@ func (c *Converter) convertListenTask(cfg *tasksv1.ListenTaskConfig) map[string]
 	}
 }
 
-// convertWaitTask converts WaitTaskConfig to YAML structure
+// convertWaitTask converts WaitTaskConfig to YAML structure.
+//
+// Supports two wait types:
+//   - Duration: relative wait (e.g., { days: 7 } = wait 1 week)
+//   - Until: absolute timestamp (e.g., wait until "2026-03-01T09:00:00Z")
+//
+// The Serverless Workflow SDK accepts either:
+//   - Duration object: { days: N, hours: N, minutes: N, seconds: N, milliseconds: N }
+//   - ISO 8601 timestamp string for absolute waits
 func (c *Converter) convertWaitTask(cfg *tasksv1.WaitTaskConfig) map[string]interface{} {
-	return map[string]interface{}{
-		"wait": cfg.Seconds,
+	switch w := cfg.GetWaitType().(type) {
+	case *tasksv1.WaitTaskConfig_Duration:
+		// Relative duration: convert to SDK Duration structure
+		// Only include non-zero fields to keep YAML clean
+		duration := make(map[string]interface{})
+		if w.Duration.GetDays() > 0 {
+			duration["days"] = w.Duration.GetDays()
+		}
+		if w.Duration.GetHours() > 0 {
+			duration["hours"] = w.Duration.GetHours()
+		}
+		if w.Duration.GetMinutes() > 0 {
+			duration["minutes"] = w.Duration.GetMinutes()
+		}
+		if w.Duration.GetSeconds() > 0 {
+			duration["seconds"] = w.Duration.GetSeconds()
+		}
+		if w.Duration.GetMilliseconds() > 0 {
+			duration["milliseconds"] = w.Duration.GetMilliseconds()
+		}
+		return map[string]interface{}{
+			"wait": duration,
+		}
+
+	case *tasksv1.WaitTaskConfig_Until:
+		// Absolute timestamp: convert to ISO 8601 string
+		// The SDK accepts RFC3339 format for absolute waits
+		return map[string]interface{}{
+			"wait": w.Until.AsTime().Format(time.RFC3339),
+		}
+
+	default:
+		// Fallback: zero duration (should not happen with validation)
+		return map[string]interface{}{
+			"wait": map[string]interface{}{"seconds": 0},
+		}
 	}
 }
 

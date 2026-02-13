@@ -6,86 +6,116 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Project: CLI Platform Capabilities (Draft Commands)
 
-**Description**: Implement hybrid capabilities bundle model for AI-powered draft commands. Embed baseline capabilities in CLI binary (go:embed) with optional signed updates from registry. Capabilities are system-scoped, not user-visible skills.
+**Description**: Implement self-bootstrapping agent & skill system with vendored seedpack for offline-first operation. Enable AI-powered draft commands using embedded Anthropic skill-creator.
 
-**Goal**: Enable `stigmer agent|workflow|skill|mcpserver draft` commands with embedded platform capabilities that power AI-assisted YAML authoring. Implement `stigmer capabilities` command group (status, update, pin, list) for managing capability bundles.
+**Goal**: Enable `stigmer draft agent|workflow|skill|mcpserver` commands with embedded platform capabilities that power AI-assisted YAML authoring. Implement `stigmer system` and `stigmer seed` command groups for managing system resources.
 
-**Tech Stack**: Go (CLI), go:embed, YAML, GitHub Releases
+**Tech Stack**: Go (CLI), go:embed, YAML, Temporal
 
 **Components**: 
 - CLI commands: `/Users/suresh/scm/github.com/stigmer/stigmer/client-apps/cli`
-- Capabilities bundle: `internal/capabilities/` (new)
-- Registry integration (GitHub releases)
+- Seedpack bundle: `internal/seedpack/` (new)
+- Server bootstrap: `backend/services/stigmer-server/pkg/server/bootstrap.go` (new)
 
 ---
 
-## Research Summary (Deep Research Completed)
+## Research Summary (Three Research Reports)
 
-**Full Report**: `research.platform-capabilities-draft-implementation/04.report.gpt.md`
+**Research Reports**:
+1. `research.platform-capabilities-draft-implementation/04.report.gpt.md` (Original)
+2. `research.skill-format-integration-strategy/04.report.gpt.md` (Self-Bootstrapping)
+3. `research.seedpack-bootstrap-architecture/04.report.gpt.md` (Architecture Validation) **← LATEST**
 
-### Key Findings
+### Key Findings (From Seedpack Bootstrap Research)
 
-**Recommended Architecture: Hybrid Capabilities Bundle Model**
+**Architecture Validated Against**:
+- K3s packaged components (bundled content, applied on startup)
+- OpenAI Codex (SYSTEM skill-creator)
+- Terraform (lockfile with checksums)
+- Ollama (server starts without network)
 
-1. **Embed baseline bundle in CLI** via `go:embed` (~100KB)
-   - Works offline with zero config
-   - Version-locked to CLI release
-   - Bootstrap path for first-run
+**Critical Design Decision**:
+> **"Do not auto-clone upstream repos during server startup."**
 
-2. **Allow optional signed updates** from registry (GitHub releases)
-   - Explicit update command (no auto-updates)
-   - Version compatibility metadata
-   - Signed bundles for security
+**Revised Architecture: Vendored Seedpack**
+1. **Vendor skill content** in binary (pinned to commit SHA)
+2. **No network** required for server startup
+3. **Explicit updates** via `stigmer seed update`
+4. **Provenance tracking** (git url, commit, digest)
+5. **Bootstrap as state machine** (resumable, debuggable)
 
-3. **System scope separation**
-   - Capabilities are NOT user-visible skills
-   - `stigmer skill list` shows user skills only
-   - `stigmer capabilities list` shows platform capabilities
-
-### Industry References
-- **GitHub Copilot CLI**: Built-in defaults + user/repo scoped extensibility
-- **OpenAI Codex Skills**: System skills + installable skills, multi-scope loading
-- **Kiro CLI**: Prompts managed via commands, migration/backward compatibility
-- **Terraform**: Offline mirrors, caching, explicit update commands
-
-### Target Command Structure
+### Bootstrapping Flow (Revised)
 ```
-stigmer capabilities
-├── status     # Show installed versions, compatibility
-├── update     # Fetch and install latest compatible bundle
-├── list       # List available capabilities (system-only)
-├── pin        # Pin to specific version
-└── unpin      # Remove version pin
+Build Time: Vendor Anthropic skill-creator → Embed in CLI binary
+                                                    ↓
+Runtime: stigmer server starts → Bootstrap (offline, embedded content)
+                                                    ↓
+                                      skill-creator + skill-creator-agent created
+                                                    ↓
+User: stigmer run agent skill-creator-agent → Creates yaml-validator
+                                                    ↓
+User: Creates drafter skills → Creates drafter agents
+                                                    ↓
+                                      stigmer draft <resource> works
+```
 
-stigmer agent draft      # AI-assisted agent YAML creation
-stigmer workflow draft   # AI-assisted workflow YAML creation
-stigmer skill draft      # AI-assisted skill YAML creation
-stigmer mcpserver draft  # AI-assisted MCP server YAML creation
+### Target Command Structure (Revised)
+```
+stigmer system
+├── list       # List all system resources
+├── status     # Show bootstrap state
+├── disable    # Disable system skill without removing
+└── enable     # Re-enable system skill
+
+stigmer seed
+├── update     # Explicit upstream sync (requires network)
+└── status     # Show seedpack version
+
+stigmer draft agent      # AI-assisted agent YAML creation
+stigmer draft workflow   # AI-assisted workflow YAML creation
+stigmer draft skill      # AI-assisted skill YAML creation
+stigmer draft mcpserver  # AI-assisted MCP server YAML creation
 ```
 
 ---
 
 ## Essential Files to Review
 
-### 1. Deep Research Report (CRITICAL)
-Read the research report for architectural decisions:
+### 1. Current Plan (CRITICAL - START HERE)
+Read the practical plan with research findings incorporated:
+```
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-02/20260207.03.cli-platform-capabilities/tasks/T01_2_practical_plan.md
+```
+
+### 2. Deep Research Reports
+Seedpack bootstrap architecture (latest):
+```
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-02/20260207.03.cli-platform-capabilities/research.seedpack-bootstrap-architecture/04.report.gpt.md
+```
+
+Self-bootstrapping architecture:
+```
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-02/20260207.03.cli-platform-capabilities/research.skill-format-integration-strategy/04.report.gpt.md
+```
+
+Original platform capabilities:
 ```
 /Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-02/20260207.03.cli-platform-capabilities/research.platform-capabilities-draft-implementation/04.report.gpt.md
 ```
 
-### 2. Latest Checkpoint (if exists)
+### 3. Latest Checkpoint (if exists)
 Check for the most recent checkpoint file:
 ```
 /Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-02/20260207.03.cli-platform-capabilities/checkpoints/
 ```
 
-### 3. Current Task
-Review the current task status and plan:
+### 4. All Tasks
+Review all task files:
 ```
 /Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-02/20260207.03.cli-platform-capabilities/tasks/
 ```
 
-### 4. Project Documentation
+### 5. Project Documentation
 - **README**: `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-02/20260207.03.cli-platform-capabilities/README.md`
 
 ## Knowledge Folders to Check
@@ -128,16 +158,262 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-07 13:36
-**Current Task**: T01 (Initial Setup)
-**Status**: Planning
+**Updated**: 2026-02-13 (Session 5 - Agent-Runner Visibility Fixed)
+**Current Task**: Phase 5.1 Complete - Ready for Phase 5.2 or 6.x
+**Status**: Phases 1.1-2.2, 5.1 Complete ✅ | Phases 3.1, 4.1 Deferred 🚫
+
+**Active Plan**: `tasks/T01_2_practical_plan.md` (research-informed, APPROVED)
+
+**Blocker Resolved**: Issue I01 (agent-runner startup failures hidden) - now fixed ✅
+
+### Session Progress (2026-02-08 Session 1)
+
+**Phase 1.1: Vendor skill-creator - COMPLETED**
+- ✅ Created `internal/seedpack/` directory structure
+- ✅ Implemented `vendor_skill.sh` with full automation
+- ✅ Vendored skill-creator from Anthropic (commit: `1ed29a03dc85`)
+- ✅ Generated provenance.json with digests
+- ✅ Added BUILD.bazel and verification tests
+- ✅ Tests pass with both `go test` and `bazel test`
+
+### Session Progress (2026-02-08 Session 2)
+
+**Phase 1.2-1.3: Seedpack Infrastructure - COMPLETED**
+
+**Key Decision: SDK Approach**
+- Chose programmatic agent creation over static YAML files
+- `skill-creator-agent` will be created in bootstrap.go using proto structs
+- Follows existing Stigmer patterns and provides compile-time safety
+
+**Relocation**:
+- ✅ Moved seedpack from `cli/internal/seedpack/` to `backend/libs/go/seedpack/`
+- Enables both CLI and server to import the package
+- Follows established pattern (CLI already imports from `backend/libs/go/`)
+
+## Session Progress (2026-02-13 Session 4) - CURRENT
+
+**Phase 5.1: Draft Skill Command - COMPLETED**
+
+**Implementation**:
+- ✅ Created `draft.go` - Command group with extensible structure
+- ✅ Created `draft_skill.go` - Subcommand with flags (--attach, --output, --follow)
+- ✅ Created `draft_skill_handler.go` - Handler delegating to existing infrastructure
+- ✅ Wired `NewDraftCommand()` in root.go
+- ✅ Build verified - no errors, help text correct
+
+**Key Design**:
+- Thin wrapper pattern - reuses 100% of existing artifact lifecycle infrastructure
+- Resolves `local/skill-creator-agent` (matches bootstrap org)
+- Always waits for completion and downloads artifacts
+- Zero code duplication - delegates to `runAgent()`, `AttachmentProcessor`, `downloadArtifacts()`
+
+**Bug Fix**:
+- Fixed `skill-creator-agent.yaml` skill_refs: changed org from `stigmer` to `local`
+
+**Files Created**:
+- `client-apps/cli/cmd/stigmer/root/draft.go` (35 lines)
+- `client-apps/cli/cmd/stigmer/root/draft_skill.go` (80 lines)
+- `client-apps/cli/cmd/stigmer/root/draft_skill_handler.go` (110 lines)
+- `_changelog/2026-02/2026-02-13-153224-draft-skill-command.md`
+
+**Files Modified**:
+- `backend/libs/go/seedpack/agents/skill-creator-agent.yaml` (org fix)
+- `client-apps/cli/cmd/stigmer/root.go` (wired draft command)
+
+**Commit**: `ae2ed04d` - feat(cli): add draft skill command with artifact lifecycle integration
+
+---
+
+## Session Progress (2026-02-13 Session 5) - Agent-Runner Visibility Fix
+
+**Context**: The draft skill work from Session 4 was blocked by a hidden agent-runner failure. Agent-runner container was in a crash loop due to a Python syntax error, but `stigmer server status` didn't show agent-runner at all, and error messages were cryptic.
+
+**Issue Fixed**: `I01_agent_runner_startup_failure_hidden.md`
+
+**Implementation**:
+- ✅ Created unified `GetAgentRunnerStatus()` in daemon package with fallback to docker ps
+- ✅ Enhanced `DockerContainerHealthCheck` to detect restart loops, exit codes, restarting state
+- ✅ Modified `stigmer server status` to always show agent-runner section (even if not found)
+- ✅ Added crash loop indicators and restart count display
+- ✅ Implemented smart error extraction from container logs (Python SyntaxError, ImportError, etc.)
+- ✅ Fixed `stigmer server logs --component agent-runner` to properly show Docker container logs
+- ✅ Added actionable help messages with exact log viewing commands
+
+**Before**:
+```
+Stigmer Server:    Running ✓
+Workflow Runner:   Running ✓
+[No agent-runner section shown]
+
+$ stigmer draft skill
+Error: activity failed: No worker available
+[User has to manually run: docker logs stigmer-agent-runner]
+```
+
+**After**:
+```
+Agent Runner (Docker):
+⚠   Status:   Unhealthy (crash loop) ✗
+ℹ   Container: 8a429e4b4548
+⚠   Restarts: 35 (crash loop detected)
+⚠   Last Error: SyntaxError: invalid syntax
+ℹ 
+ℹ   View logs: stigmer server logs --component agent-runner
+ℹ         or:  docker logs stigmer-agent-runner
+```
+
+**Files Modified**:
+- `client-apps/cli/internal/cli/daemon/daemon.go` (+214 lines)
+- `client-apps/cli/internal/cli/health/checks.go` (+45 lines)
+- `client-apps/cli/cmd/stigmer/root/server.go` (+125 lines)
+- `client-apps/cli/cmd/stigmer/root/server_logs.go` (+6 lines, -13 lines)
+- `_changelog/2026-02/2026-02-13-173940-agent-runner-visibility-fix.md` (new)
+
+**Commit**: `cf788050` - feat(cli): improve agent-runner visibility and crash loop detection
+
+**Impact**: Eliminates the most confusing UX issue where server appears healthy but agent executions mysteriously fail. Now users get immediate, actionable feedback about agent-runner problems.
+
+---
+
+### Session Progress (2026-02-08 Session 3)
+
+**Phase 2.1: Bootstrap State Machine - COMPLETED**
+
+**Key Design Decision: Pre-built Artifacts**
+After user challenge on SDK usage, revised approach to:
+- Pre-build ZIP artifacts at vendor time (not runtime)
+- Store agents as YAML, parse at runtime with CLI's proven pattern
+- Directly call existing gRPC APIs (Push for skills, Apply for agents)
+
+**SQLite Schema v4: bootstrap_state table**
+- ✅ Added `bootstrap_state` key-value table for tracking progress
+- ✅ Methods: `GetBootstrapState()`, `SetBootstrapState()`, `GetAllBootstrapState()`, `DeleteBootstrapState()`, `ClearBootstrapState()`
+- ✅ Tests pass: 10 new bootstrap state tests
+
+**Seedpack Updates (Schema v2)**:
+- ✅ Updated `manifest.json` with `artifact_path`, `artifact_digest` for skills
+- ✅ Created `agents/skill-creator-agent.yaml` (system agent definition)
+- ✅ Created `artifacts/skill-creator.zip` (pre-built ZIP)
+- ✅ Updated `vendor_skill.sh` to create pre-built ZIPs
+- ✅ Added `LoadSkillArtifact()` and `LoadAgentYAML()` functions
+- ✅ Tests pass: 7 updated + 2 new seedpack tests
+
+**Bootstrap Module** (`backend/services/stigmer-server/pkg/bootstrap/`):
+- ✅ Created `bootstrap.go` with `Bootstrapper` struct and `Run()` method
+- ✅ Loads seedpack manifest, checks version
+- ✅ Pushes skills via gRPC Push API (idempotent)
+- ✅ Applies agents via gRPC Apply API (idempotent)
+- ✅ Tracks per-resource state with content digests
+- ✅ Graceful degradation on failure (server continues)
+- ✅ Tests pass: 7 comprehensive tests
+
+**Phase 2.2: Server Integration - COMPLETED**
+- ✅ Added `Apply()` method to agent downstream client
+- ✅ Integrated bootstrap into `server.go` after in-process clients ready
+- ✅ Updated `BUILD.bazel` with bootstrap dependency
+- ✅ All builds pass with `go build`
+
+**Files Created/Modified**:
+```
+backend/libs/go/seedpack/
+├── manifest.json                    # Updated to schema v2
+├── embed.go                         # Added artifacts/* and agents/*
+├── seedpack.go                      # Added LoadSkillArtifact, LoadAgentYAML
+├── seedpack_test.go                 # Updated + new tests
+├── agents/skill-creator-agent.yaml  # NEW: System agent definition
+├── artifacts/skill-creator.zip      # NEW: Pre-built artifact
+└── tools/vendor_skill.sh            # Updated: creates ZIP artifacts
+
+backend/libs/go/store/sqlite/
+├── store.go                         # Schema v4: bootstrap_state table + methods
+└── store_test.go                    # 10 new bootstrap state tests
+
+backend/services/stigmer-server/pkg/bootstrap/  # NEW PACKAGE
+├── bootstrap.go                     # Core bootstrapper (~340 lines)
+├── bootstrap_test.go                # Comprehensive tests (~220 lines)
+└── BUILD.bazel                      # Bazel configuration
+
+backend/services/stigmer-server/pkg/downstream/agent/
+└── client.go                        # Added Apply() method
+
+backend/services/stigmer-server/pkg/server/
+├── BUILD.bazel                      # Added bootstrap dependency
+└── server.go                        # Integrated bootstrap call
+```
+
+**All Tests Pass**:
+- ✅ `backend/libs/go/seedpack/...` - 15 tests
+- ✅ `backend/libs/go/store/sqlite/...` - 37 tests
+- ✅ `backend/services/stigmer-server/pkg/bootstrap/...` - 7 tests
+
+## Next Steps (for Next Session)
+
+**Phase 5.1 Complete!** The `stigmer draft skill` command is implemented and working.
+
+**Blocker Resolved!** Agent-runner visibility is now working - we can see and diagnose container issues immediately.
+
+**Ready for**: Creating drafter skills and agents using the working `stigmer draft skill` command.
+
+**Recommended Next Tasks:**
+
+**Option A: Phase 5.2 - Other Draft Commands**
+- Implement `stigmer draft agent` (requires agent-drafter-agent)
+- Implement `stigmer draft workflow` (requires workflow-drafter-agent)
+- Implement `stigmer draft mcpserver` (requires mcpserver-drafter-agent)
+
+Each requires:
+1. Using `stigmer draft skill` to create a drafter skill for that resource type
+2. Creating a drafter agent that uses the skill (can use skill-creator-agent)
+3. Adding CLI command wiring (same pattern as draft skill)
+
+**Option B: Phase 6.1 - Seed Update Command**
+- Implement `stigmer seed update` for upstream sync
+- Enable updating vendored skills from Anthropic repo
+- Requires network connectivity
+
+**Option C: Phase 6.2 - System Commands**
+- Implement `stigmer system list` - show all system resources
+- Implement `stigmer system status` - show bootstrap state
+- Implement `stigmer system disable/enable` - control system resources
+
+**Recommended**: Start with Option A (draft agent) or test the draft skill command end-to-end first.
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T01" - Resume the current task
+- "Start Phase 5.1" - Implement `stigmer draft agent` command
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
+
+## Implementation Order (from T01_2 Practical Plan)
+
+| Order | Phase | Task | Description | Status |
+|-------|-------|------|-------------|--------|
+| 1 | 1.1 | Vendor skill-creator | Pin to commit SHA, record provenance | ✅ Complete |
+| 2 | 1.2 | Seedpack structure | Directory and manifest setup | ✅ Complete |
+| 3 | 1.3 | Go embed infrastructure | Load skills from binary | ✅ Complete |
+| 4 | 2.1 | Bootstrap state machine | Durable bootstrap logic | ✅ Complete |
+| 5 | 2.2 | Server integration | Hook bootstrap to server start | ✅ Complete |
+| ~~6~~ | ~~3.1~~ | ~~Skill resolver~~ | ~~Resolve from registry or embedded~~ | 🚫 Deferred |
+| ~~7~~ | ~~4.1~~ | ~~Agent runtime integration~~ | ~~Wire skills into agent invocation~~ | 🚫 Deferred |
+| ~~8~~ | ~~4.2~~ | ~~skill-creator-agent~~ | ~~The agent that creates skills~~ | ✅ Created via bootstrap |
+| **6** | **5.1** | **`draft skill` command** | **User-facing feature** | ✅ **Complete** |
+| **→ 7** | **5.2** | **Other draft commands** | **workflow, agent, mcpserver** | 🎯 Next |
+| 8 | 6.1 | Seed update command | Explicit upstream sync | Pending |
+| 9 | 6.2 | System commands | list, status, disable, enable | Pending |
+
+## Key Design Decisions (from Research)
+
+| Decision | Rationale |
+|----------|-----------|
+| Vendor content, no git clone on startup | Offline-first, supply-chain security (K3s, Ollama) |
+| Track provenance (url, commit, digest) | Reproducibility, audit trail (Terraform lockfile) |
+| Bootstrap as state machine | Resumable, debuggable (K3s AddOn status) |
+| Explicit update command | User controls network usage (Terraform `-upgrade`) |
+| System scope with disable | Override without mutation (Codex system skills) |
+| **Defer skill resolver (Phase 3.1)** | Skills are in registry via bootstrap; embedded fallback not needed now |
+| **Defer agent runtime integration (Phase 4.1)** | Agents invoke skills from registry using existing patterns |
 
 ---
 
