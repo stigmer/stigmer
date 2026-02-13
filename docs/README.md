@@ -16,11 +16,13 @@ Complete documentation index for the Stigmer open-source project.
 
 ### SDK
 - [Agent and Skill Struct-Based Args API](sdk/guides/agent-skill-struct-args-api.md) - Complete guide to creating agents and skills using Pulumi-style struct args pattern
-- [Workflow Fluent API Guide](sdk/guides/workflow-fluent-api.md) - Comprehensive guide to building workflows with fluent API
+- [Workflow Fluent API Guide](sdk/guides/workflow-fluent-api.md) - Comprehensive guide to building workflows with fluent API, including structured Duration support for WAIT tasks
 - [Go SDK Proto Integration](sdk/go-sdk-proto-integration.md) - Convert SDK resources to platform protos (Skill ready, Agent in progress)
 
 ### Guides
-- [org/slug Migration Guide](guides/org-slug-migration.md) - **NEW**: Complete migration guide from scope-based to org/slug ownership model
+- [Durable Execution](guides/durable-execution.md) - **NEW**: Complete guide to Stigmer's durability guarantees - crash recovery, checkpoint preservation, pause/resume, and the 5 durability layers
+- [Event Deduplication](guides/event-deduplication.md) - **NEW**: Idempotent signal delivery with 24-hour deduplication window - prevent duplicate webhook/event processing
+- [org/slug Migration Guide](guides/org-slug-migration.md) - Complete migration guide from scope-based to org/slug ownership model
 - [Environment Variables and Secrets](guides/environment-variables.md) - Complete guide to environment variables, secrets, `.env` files, and runtime configuration
 - [Using MCP Servers](guides/using-mcp-servers.md) - Complete guide to creating and using MCP server configurations with environment variable placeholders
 - [Uploading Skills](guides/uploading-skills.md) - Complete guide to uploading skills as artifacts using Artifact Mode
@@ -47,12 +49,13 @@ Complete documentation index for the Stigmer open-source project.
 - [SDK Code Generation](implementation/sdk-code-generation.md) - Two-stage code generation pipeline for SDK workflow tasks (proto → schemas → Go code)
 
 ### Architecture
-- [org/slug Ownership Model](architecture/org-slug-ownership-model.md) - **NEW**: GitHub-inspired ownership model with org/slug references, visibility controls, and simplified authorization
+- [Agent Execution Lifecycle](architecture/agent-execution-lifecycle.md) - **NEW**: Complete guide to agent phases, lifecycle operations (pause/resume/cancel/terminate/recover), and checkpoint preservation
+- [org/slug Ownership Model](architecture/org-slug-ownership-model.md) - GitHub-inspired ownership model with org/slug references, visibility controls, and simplified authorization
 - [Backend Modes](architecture/backend-modes.md) - Local vs cloud backend architecture, auto-start daemon, and organization handling
 - [Backend Abstraction](architecture/backend-abstraction.md) - Backend interface design and abstraction layers
 - [CLI Subprocess Lifecycle](architecture/cli-subprocess-lifecycle.md) - Production-grade subprocess management with lock files, health checks, and auto-restart
 - [Health Monitoring](architecture/health-monitoring.md) - Production-grade health monitoring and automatic restart for daemon components
-- [Workflow Execution Lifecycle](architecture/workflow-execution-lifecycle.md) - **NEW**: Complete guide to workflow phases, lifecycle commands (pause/resume/cancel/terminate), and checkpoint preservation
+- [Workflow Execution Lifecycle](architecture/workflow-execution-lifecycle.md) - Complete guide to workflow phases, lifecycle commands (pause/resume/cancel/terminate), and checkpoint preservation
 - [LLM Automation](architecture/llm-automation.md) - Zero-config local LLM setup, automatic binary downloads, and lifecycle management
 - [Go Module Structure](architecture/go-module-structure.md) - Go workspace and module organization pattern for contributors
 - [McpServer Resource](architecture/mcp-server-resource.md) - First-class MCP server resource with tri-scope support, FGA authorization, and marketplace patterns
