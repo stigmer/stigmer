@@ -55,6 +55,7 @@ type StartOptions struct {
 	SandboxAutoPull bool                      // Auto-pull sandbox image if missing - overrides config
 	SandboxCleanup  bool                      // Cleanup sandbox containers after execution - overrides config
 	SandboxTTL      int                       // Sandbox container reuse TTL in seconds - overrides config
+	Secrets         map[string]string         // Pre-gathered secrets (to avoid prompting during progress display)
 }
 
 // dockerAvailable checks if Docker is installed and running
@@ -263,8 +264,8 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		}
 	}
 
-	// Show LLM provider message
-	if opts.Progress != nil {
+	// Show LLM provider message (only if not already shown by caller)
+	if opts.Progress != nil && opts.Secrets == nil {
 		if llmProvider == "ollama" {
 			cliprint.PrintSuccess("Using local LLM (no API key required)")
 		} else {
@@ -272,13 +273,21 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		}
 	}
 
-	// Gather provider-specific secrets
-	if opts.Progress != nil {
-		opts.Progress.SetPhase(cliprint.PhaseInitializing, "Gathering credentials")
-	}
-	secrets, err := GatherRequiredSecrets(llmProvider)
-	if err != nil {
-		return errors.Wrap(err, "failed to gather required secrets")
+	// Use pre-gathered secrets if provided, otherwise gather them now
+	// Note: Gathering secrets here can cause terminal conflicts with BubbleTea progress display
+	// Callers should pre-gather secrets before starting progress display when possible
+	var secrets map[string]string
+	if opts.Secrets != nil {
+		secrets = opts.Secrets
+	} else {
+		if opts.Progress != nil {
+			opts.Progress.SetPhase(cliprint.PhaseInitializing, "Gathering credentials")
+		}
+		var err error
+		secrets, err = GatherRequiredSecrets(llmProvider)
+		if err != nil {
+			return errors.Wrap(err, "failed to gather required secrets")
+		}
 	}
 
 	// Resolve Temporal configuration
@@ -541,6 +550,13 @@ After installing Docker, restart Stigmer server.`)
 		return errors.Wrap(err, "failed to create workspace directory")
 	}
 
+	// Prepare artifacts directory for attachment storage
+	// This is shared between stigmer-server (writes) and agent-runner (reads)
+	artifactsDir := filepath.Join(dataDir, "artifacts")
+	if err := os.MkdirAll(artifactsDir, 0755); err != nil {
+		return errors.Wrap(err, "failed to create artifacts directory")
+	}
+
 	// Resolve host address for Docker container to reach host services
 	// On macOS/Windows, Docker runs in a VM, so containers must use host.docker.internal
 	// On Linux, localhost works with --network host
@@ -579,8 +595,8 @@ After installing Docker, restart Stigmer server.`)
 		"-e", fmt.Sprintf("STIGMER_LLM_PROVIDER=%s", llmProvider),
 		"-e", fmt.Sprintf("STIGMER_LLM_MODEL=%s", llmModel),
 		// Set both for backward compatibility (container may have old code)
-		"-e", fmt.Sprintf("STIGMER_LLM_BASE_URL=%s", llmBaseURLResolved),  // Legacy (old container code)
-		"-e", fmt.Sprintf("OLLAMA_BASE_URL=%s", llmBaseURLResolved),       // Standard LangChain variable
+		"-e", fmt.Sprintf("STIGMER_LLM_BASE_URL=%s", llmBaseURLResolved), // Legacy (old container code)
+		"-e", fmt.Sprintf("OLLAMA_BASE_URL=%s", llmBaseURLResolved), // Standard LangChain variable
 
 		// Execution configuration (NEW - full cascade support)
 		"-e", fmt.Sprintf("STIGMER_EXECUTION_MODE=%s", executionMode),
@@ -589,8 +605,17 @@ After installing Docker, restart Stigmer server.`)
 		"-e", fmt.Sprintf("STIGMER_SANDBOX_CLEANUP=%t", sandboxCleanup),
 		"-e", fmt.Sprintf("STIGMER_SANDBOX_TTL=%d", sandboxTTL),
 
+		// Artifact storage configuration
+		// Agent-runner reads attachments uploaded by stigmer-server
+		// Both must use the same directory (mounted into container as /artifacts)
+		"-e", "LOCAL_ARTIFACT_PATH=/artifacts",
+		"-e", fmt.Sprintf("LOCAL_ARTIFACT_SERVE_URL=%s/api/v1/artifacts", backendAddr),
+
 		// Volume mount for workspace
 		"-v", fmt.Sprintf("%s:/workspace", workspaceDir),
+
+		// Volume mount for artifacts (shared with stigmer-server for attachment storage)
+		"-v", fmt.Sprintf("%s:/artifacts", artifactsDir),
 
 		// Volume mount for Docker socket (needed for sandbox mode)
 		"-v", "/var/run/docker.sock:/var/run/docker.sock",

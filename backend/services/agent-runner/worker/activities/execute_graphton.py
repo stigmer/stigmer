@@ -269,6 +269,8 @@ async def _execute_graphton_impl(
     # NOTE: StatusBuilder is initialized later after MCP servers are fetched
     # so that ApprovalConfig can be built with complete policy data.
     # See Step 5.6 below.
+    # Initialize to None here so error handler can check if it was created.
+    status_builder = None
     
     try:
         # Step 1: Resolve the full chain: execution → session → agent_instance → agent
@@ -1328,7 +1330,7 @@ async def _execute_graphton_impl(
         error_str = str(e)
         error_message = f"Execution failed: {error_str}"
         
-        # Add error message to status
+        # Import required types for error message
         from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
         from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
         from datetime import datetime
@@ -1339,20 +1341,43 @@ async def _execute_graphton_impl(
             timestamp=datetime.utcnow().isoformat(),
         )
         
-        status_builder.current_status.messages.append(error_msg)
-        
-        # Finalize context info before returning (Phase 3)
-        # Even on failure, we want to capture any context tracking data
-        status_builder.finalize_context_info()
-        
-        status_builder.current_status.phase = ExecutionPhase.EXECUTION_FAILED
+        # Check if status_builder was initialized before the error occurred
+        # If not, create a minimal failed status (handles early failures like attachment injection)
+        if status_builder is not None:
+            # Use status_builder for rich error reporting
+            status_builder.current_status.messages.append(error_msg)
+            
+            # Finalize context info before returning (Phase 3)
+            # Even on failure, we want to capture any context tracking data
+            status_builder.finalize_context_info()
+            
+            status_builder.current_status.phase = ExecutionPhase.EXECUTION_FAILED
+            failed_status = status_builder.current_status
+        else:
+            # Early failure before status_builder was created
+            # Create minimal failed status (similar to outer handler)
+            activity_logger.warning(
+                f"status_builder not initialized - creating minimal failed status for {execution_id}"
+            )
+            failed_status = AgentExecutionStatus(
+                phase=ExecutionPhase.EXECUTION_FAILED,
+                error=error_message,
+                messages=[
+                    error_msg,
+                    AgentMessage(
+                        type=MessageType.MESSAGE_SYSTEM,
+                        content="Execution failed during initialization before agent could start.",
+                        timestamp=datetime.utcnow().isoformat(),
+                    )
+                ]
+            )
         
         activity_logger.info(f"Execution {execution_id} phase set to FAILED - returning error status to workflow")
         
         # Verify status is not None before returning
-        if status_builder.current_status is None:
-            activity_logger.error(f"❌ CRITICAL: current_status is None in error handler for execution {execution_id}")
-            raise RuntimeError("Status builder returned None in error handler - this should never happen")
+        if failed_status is None:
+            activity_logger.error(f"❌ CRITICAL: failed_status is None in error handler for execution {execution_id}")
+            raise RuntimeError("Failed status is None in error handler - this should never happen")
         
         # Send failed status update via gRPC with retry
         # This is critical for data persistence - use retry to handle transient failures
@@ -1361,21 +1386,21 @@ async def _execute_graphton_impl(
             await retry_executor.execute(
                 operation=lambda: execution_client.update_status(
                     execution_id=execution_id,
-                    status=status_builder.current_status
+                    status=failed_status
                 ),
                 operation_name="final_status_update",
                 context={"execution_id": execution_id, "phase": "FAILED"},
             )
             activity_logger.info(f"✅ [FINAL] Failed status update sent successfully")
-        except GrpcRetryExhaustedError as e:
+        except GrpcRetryExhaustedError as retry_err:
             activity_logger.error(
-                f"[FINAL] All retries exhausted for failed status update: {e.attempts} attempts, "
-                f"{e.total_duration_ms:.0f}ms total. Last error: {e.last_error}"
+                f"[FINAL] All retries exhausted for failed status update: {retry_err.attempts} attempts, "
+                f"{retry_err.total_duration_ms:.0f}ms total. Last error: {retry_err.last_error}"
             )
             # Continue - we'll still return status to workflow as fallback
-        except GrpcNonRetryableError as e:
+        except GrpcNonRetryableError as grpc_err:
             activity_logger.error(
-                f"[FINAL] Non-retryable error on failed status update: {e.status_code.name} - {e.original_error}"
+                f"[FINAL] Non-retryable error on failed status update: {grpc_err.status_code.name} - {grpc_err.original_error}"
             )
             # Continue - we'll still return status to workflow as fallback
         except Exception as update_error:
@@ -1384,8 +1409,8 @@ async def _execute_graphton_impl(
         
         activity_logger.info(
             f"✅ Returning failed AgentExecutionStatus to workflow: "
-            f"type={type(status_builder.current_status).__name__}"
+            f"type={type(failed_status).__name__}"
         )
         
         # Return failed status to workflow (already persisted via gRPC above)
-        return status_builder.current_status
+        return failed_status
