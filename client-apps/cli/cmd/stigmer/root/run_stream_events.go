@@ -241,4 +241,3 @@ func extractApprovalInfo(
 
 	return
 }
-

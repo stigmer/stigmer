@@ -50,10 +50,11 @@ func renderHumanContent(content string) string {
 	return fmt.Sprintf("💬 You: %s", content)
 }
 
-// renderToolResultContent formats tool result blocks.
-// When structured ToolCalls are available, each is rendered individually.
-// Otherwise, the fallback content preview is shown.
-func renderToolResultContent(content string, toolCalls []toolrender.ToolCallInfo) string {
+// renderToolResultPreview formats tool result blocks for the collapsed state.
+// When structured ToolCalls are available, each is rendered with
+// toolrender.Render (header + truncated preview). Otherwise, the fallback
+// content preview is shown.
+func renderToolResultPreview(content string, toolCalls []toolrender.ToolCallInfo) string {
 	if len(toolCalls) > 0 {
 		var lines []string
 		for _, tc := range toolCalls {
@@ -63,6 +64,26 @@ func renderToolResultContent(content string, toolCalls []toolrender.ToolCallInfo
 	}
 
 	return toolrender.RenderResultWithPreview(content)
+}
+
+// renderToolResultExpanded formats tool result blocks for the expanded state.
+// When structured ToolCalls are available, each is rendered with
+// toolrender.RenderExpanded (header + full result content). Otherwise, the
+// raw content is shown in full.
+func renderToolResultExpanded(content string, toolCalls []toolrender.ToolCallInfo) string {
+	if len(toolCalls) > 0 {
+		var lines []string
+		for _, tc := range toolCalls {
+			lines = append(lines, toolrender.RenderExpanded(tc))
+		}
+		return strings.Join(lines, "\n")
+	}
+
+	// Fallback: show the full content when no structured tool calls exist.
+	if content == "" {
+		return toolrender.RenderResultWithPreview(content)
+	}
+	return toolrender.RenderResultWithPreview(content) + "\n" + content
 }
 
 // renderSystemContent formats a system message with dimmed styling.
@@ -133,16 +154,64 @@ func renderApprovalPrompt(toolName, argsPreview, message string) string {
 
 // rebuildViewportContent concatenates all blocks into a single string for the
 // viewport. Each block is separated by a blank line for readability.
-func rebuildViewportContent(blocks []contentBlock) string {
+//
+// Expandable blocks receive visual indicators:
+//   - ▶ suffix when collapsed (can be expanded)
+//   - ▼ suffix when expanded (can be collapsed)
+//   - ▸ prefix when the block has keyboard focus
+//
+// focusedIndex is the index into blocks of the currently focused expandable
+// block, or -1 when no block is focused.
+func rebuildViewportContent(blocks []contentBlock, focusedIndex int) string {
 	if len(blocks) == 0 {
 		return ""
 	}
 
 	var parts []string
-	for _, b := range blocks {
-		if b.content != "" {
-			parts = append(parts, b.content)
+	for i, b := range blocks {
+		text := b.displayContent()
+		if text == "" {
+			continue
 		}
+
+		if b.expandable {
+			text = decorateExpandableBlock(text, b.expanded, i == focusedIndex)
+		}
+
+		parts = append(parts, text)
 	}
 	return strings.Join(parts, "\n\n")
+}
+
+// decorateExpandableBlock adds focus and expand/collapse indicators to an
+// expandable block's display text. The indicators are applied to the first
+// line of the block content (the header line).
+//
+//   - focused + expanded:  "▸ <header> ▼"
+//   - focused + collapsed: "▸ <header> ▶"
+//   - unfocused + expanded:  "  <header> ▼"
+//   - unfocused + collapsed: "  <header> ▶"
+func decorateExpandableBlock(text string, expanded, focused bool) string {
+	lines := strings.SplitN(text, "\n", 2)
+	header := lines[0]
+
+	// Expand/collapse indicator.
+	if expanded {
+		header += " ▼"
+	} else {
+		header += " ▶"
+	}
+
+	// Focus prefix.
+	if focused {
+		header = "▸ " + header
+	} else {
+		header = "  " + header
+	}
+
+	// Reassemble with the rest of the content (if any).
+	if len(lines) > 1 {
+		return header + "\n" + lines[1]
+	}
+	return header
 }

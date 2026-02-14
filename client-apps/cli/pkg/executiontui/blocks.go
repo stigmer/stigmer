@@ -15,20 +15,45 @@ const (
 // contentBlock represents one renderable unit in the execution output.
 // All execution output is broken into an ordered sequence of blocks that
 // the viewport renders top-to-bottom.
+//
+// Non-expandable blocks use the content field for display. Expandable blocks
+// (tool call results) store both a collapsed preview and expanded full view,
+// and displayContent() returns the appropriate one based on the expanded state.
 type contentBlock struct {
 	blockType blockType
 
-	// content is the pre-rendered display text for this block.
-	// For tool call blocks, this is the output of toolrender.Render().
+	// content is the pre-rendered display text for non-expandable blocks.
+	// For expandable blocks this field is unused — use displayContent() instead.
 	content string
 
-	// expandable indicates this block supports expand/collapse (T03).
+	// expandable indicates this block supports expand/collapse.
 	// Set to true for all tool call blocks; false for text blocks.
 	expandable bool
 
 	// expanded tracks the current expand/collapse state.
-	// Always false in T02 — expand/collapse interaction is added in T03.
+	// Toggled by user interaction (Enter key on focused block).
 	expanded bool
+
+	// preview is the collapsed rendering for expandable blocks. This is the
+	// current Render() output: header line with a truncated result preview.
+	preview string
+
+	// full is the expanded rendering for expandable blocks. This is the
+	// RenderExpanded() output: header line with the complete result content.
+	full string
+}
+
+// displayContent returns the text that should be shown for this block.
+// Non-expandable blocks return their content. Expandable blocks return
+// either the collapsed preview or the expanded full view.
+func (b contentBlock) displayContent() string {
+	if !b.expandable {
+		return b.content
+	}
+	if b.expanded {
+		return b.full
+	}
+	return b.preview
 }
 
 // newAIBlock creates a block for an AI message with text content.
@@ -47,12 +72,15 @@ func newHumanBlock(content string) contentBlock {
 	}
 }
 
-// newToolCallBlock creates an expandable block for a tool call.
-// The content is pre-rendered by the caller using toolrender.Render().
-func newToolCallBlock(content string) contentBlock {
+// newToolCallBlock creates an expandable block for a tool call result.
+// preview is the collapsed rendering (toolrender.Render output) and full is
+// the expanded rendering (toolrender.RenderExpanded output). The block starts
+// collapsed by default.
+func newToolCallBlock(preview, full string) contentBlock {
 	return contentBlock{
 		blockType:  blockToolResult,
-		content:    content,
+		preview:    preview,
+		full:       full,
 		expandable: true,
 	}
 }

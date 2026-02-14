@@ -15,7 +15,6 @@ package toolrender
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
@@ -198,116 +197,36 @@ func RenderResultWithPreview(content string) string {
 	return dimStyle.Render("  ↳ " + preview)
 }
 
-// renderKnown formats a tool call with category-specific icon, label, and primary arg.
+// RenderExpanded returns the tool call header followed by the complete result
+// content with gutter borders. Used by the TUI's expanded state to show all
+// output lines instead of a truncated preview.
 //
-// When the tool has a preview style configured and a non-empty Result, additional
-// lines are appended showing a result preview. The style determines the formatting:
-//   - previewDiscovery: compact comma-separated summary (ls, glob, grep)
-//   - previewFirstLine: first-line content excerpt
-//   - previewFileContent: multi-line gutter-bordered preview with "N more lines"
+// When the result is empty, the output is identical to the header produced by
+// Render (without the preview). For unknown tools, the generic header is used.
 //
 // Examples:
 //
-//	"  📂 List: /workspace (97 chars, 3ms)\n     inputs/, outputs/"
-//	"  📖 Read: main.go (1.5 KB, 33 lines, 4ms)\n     │ package main\n     │ ...\n     ⋮ 30 more lines"
-func renderKnown(tc ToolCallInfo, info toolDisplayInfo) string {
-	primaryVal := extractPrimaryArgWithFallbacks(tc.Args, info.primaryField, info.fallbackFields)
+//	"  📖 Read: main.go (1.5 KB, 33 lines)\n     │ package main\n     │ \n     │ import \"fmt\"\n     │ ..."
+//	"  📂 List: /workspace (97 chars)\n     │ bin\n     │ etc\n     │ home"
+func RenderExpanded(tc ToolCallInfo) string {
+	info, known := toolDisplayMap[tc.Name]
 
-	var line string
-	if primaryVal != "" {
-		styled := styleValue(primaryVal, info.dangerous)
-		line = fmt.Sprintf("  %s %s: %s", info.icon, labelStyle.Render(info.label), styled)
+	var header string
+	if known {
+		header = renderKnownHeader(tc, info)
 	} else {
-		line = fmt.Sprintf("  %s %s", info.icon, labelStyle.Render(info.label))
+		header = renderUnknown(tc)
 	}
 
-	// Build suffix — file content tools include line count alongside size.
-	var suffix string
-	if info.preview == previewFileContent && tc.Result != "" {
-		suffix = buildSuffix(tc, countLines(tc.Result))
-	} else {
-		suffix = renderSuffix(tc)
-	}
-	if suffix != "" {
-		line += " " + dimStyle.Render(suffix)
+	if tc.Result == "" {
+		return header
 	}
 
-	// Append result preview based on the configured preview style.
-	if tc.Result != "" {
-		var preview string
-		switch info.preview {
-		case previewDiscovery:
-			preview = formatResultPreview(tc.Result)
-		case previewFirstLine:
-			preview = formatFirstLinePreview(tc.Result)
-		case previewFileContent:
-			preview = formatFileContentPreview(tc.Result)
-		}
-		if preview != "" {
-			switch info.preview {
-			case previewFileContent:
-				// File content preview is already fully formatted with gutters
-				// and indentation — apply dim styling to the whole block.
-				line += "\n" + dimStyle.Render(preview)
-			default:
-				line += "\n" + dimStyle.Render("     "+preview)
-			}
-		}
+	fullContent := formatFullResultWithGutter(tc.Result)
+	if fullContent == "" {
+		return header
 	}
 
-	return line
+	return header + "\n" + dimStyle.Render(fullContent)
 }
 
-// renderUnknown formats an unrecognized tool with a generic icon and name.
-func renderUnknown(tc ToolCallInfo) string {
-	firstVal := extractFirstArg(tc.Args)
-
-	var line string
-	if firstVal != "" {
-		line = fmt.Sprintf("  🔧 %s: %s", labelStyle.Render(tc.Name), firstVal)
-	} else {
-		line = fmt.Sprintf("  🔧 %s", labelStyle.Render(tc.Name))
-	}
-
-	suffix := renderSuffix(tc)
-	if suffix != "" {
-		line += " " + dimStyle.Render(suffix)
-	}
-
-	return line
-}
-
-// renderSuffix builds an optional suffix with result size, duration, or error.
-// For tools that don't need line count metadata, this is the standard entry point.
-func renderSuffix(tc ToolCallInfo) string {
-	return buildSuffix(tc, 0)
-}
-
-// buildSuffix constructs a parenthesized suffix from the tool call metadata.
-// When lineCount > 0, a human-readable line count is inserted between the size
-// and duration parts (e.g., "(1.0 KB, 33 lines, 1ms)").
-func buildSuffix(tc ToolCallInfo, lineCount int) string {
-	if tc.Error != "" {
-		return fmt.Sprintf("(error: %s)", truncate(tc.Error, 40))
-	}
-
-	var parts []string
-
-	if tc.Result != "" {
-		parts = append(parts, formatSize(len(tc.Result)))
-	}
-
-	if lineCount > 0 {
-		parts = append(parts, formatLineCount(lineCount))
-	}
-
-	if tc.Duration > 0 {
-		parts = append(parts, formatDuration(tc.Duration))
-	}
-
-	if len(parts) == 0 {
-		return ""
-	}
-
-	return "(" + strings.Join(parts, ", ") + ")"
-}

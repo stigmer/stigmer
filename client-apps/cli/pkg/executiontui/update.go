@@ -27,8 +27,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-// handleKeyPress processes keyboard input. When approval is active, keys
-// are routed to the approval handler; otherwise, only quit keys are handled.
+// handleKeyPress processes keyboard input. Priority order:
+//  1. Quit keys (always available)
+//  2. Approval keys (when approval is active, captures all input)
+//  3. Focus/toggle keys (Tab, Shift+Tab, Enter)
+//  4. Viewport scroll keys (forwarded to bubbles/viewport)
 func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Always allow quit.
 	switch msg.String() {
@@ -36,9 +39,27 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	}
 
-	// Route to approval handler when active.
+	// Route to approval handler when active — approval captures all input.
 	if m.approval != nil {
 		return m.handleApprovalKey(msg)
+	}
+
+	// Focus and toggle keys for expandable blocks.
+	switch msg.String() {
+	case "tab":
+		m.focusNextExpandable()
+		m.refreshViewport()
+		return m, nil
+	case "shift+tab":
+		m.focusPrevExpandable()
+		m.refreshViewport()
+		return m, nil
+	case "enter":
+		if m.focusedBlockIndex >= 0 {
+			m.toggleFocusedBlock()
+			m.refreshViewport()
+			return m, nil
+		}
 	}
 
 	// Forward to viewport for default scroll handling.
@@ -68,7 +89,7 @@ func (m Model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 	}
 
 	// Rebuild and set content with current blocks.
-	m.viewport.SetContent(rebuildViewportContent(m.blocks))
+	m.viewport.SetContent(rebuildViewportContent(m.blocks, m.focusedBlockIndex))
 	if m.autoScroll {
 		m.viewport.GotoBottom()
 	}
@@ -107,7 +128,9 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 		}
 
 	case ToolResultEvent:
-		m.blocks = append(m.blocks, newToolCallBlock(renderToolResultContent(e.Content, e.ToolCalls)))
+		preview := renderToolResultPreview(e.Content, e.ToolCalls)
+		full := renderToolResultExpanded(e.Content, e.ToolCalls)
+		m.blocks = append(m.blocks, newToolCallBlock(preview, full))
 
 	case SystemMessageEvent:
 		m.blocks = append(m.blocks, newSystemBlock(renderSystemContent(e.Content)))
@@ -180,7 +203,7 @@ func (m *Model) refreshViewport() {
 	if !m.ready {
 		return
 	}
-	m.viewport.SetContent(rebuildViewportContent(m.blocks))
+	m.viewport.SetContent(rebuildViewportContent(m.blocks, m.focusedBlockIndex))
 	if m.autoScroll {
 		m.viewport.GotoBottom()
 	}
