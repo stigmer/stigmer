@@ -517,10 +517,9 @@ def create_deep_agent(
     # DeepAgents automatically adds SubAgentMiddleware when subagents are provided
     # Pass checkpointer for interrupt/resume support (HITL approval flow)
     #
-    # NOTE: In deepagents 0.4.x, 'backend' was renamed to 'memory_backend' and
-    # 'general_purpose_agent' was removed. The general-purpose subagent behavior
-    # is now controlled via the subagents list - pass an empty list or None to
-    # disable automatic subagent creation.
+    # NOTE: In deepagents 0.4.x, the 'general_purpose_agent' parameter was removed.
+    # The general-purpose subagent behavior is now controlled via the subagents
+    # list - pass an empty list or None to disable automatic subagent creation.
     agent = deepagents_create_deep_agent(
         model=model_instance,
         tools=tools_list,
@@ -528,7 +527,7 @@ def create_deep_agent(
         middleware=middleware_list,
         subagents=transformed_subagents if general_purpose_agent else [],  # Empty list disables default subagent
         context_schema=context_schema,
-        memory_backend=backend_for_deepagents,  # May be None if using approval-aware wrappers
+        backend=backend_for_deepagents,  # May be None if using approval-aware wrappers
         checkpointer=checkpointer,  # Enable interrupt/resume for HITL approval
     )
     
