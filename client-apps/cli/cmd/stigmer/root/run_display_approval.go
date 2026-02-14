@@ -10,6 +10,9 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/panel"
 )
 
+// Note: summaryPanelWidth() from run_display_summary.go is reused here
+// to maintain consistent panel widths across approval and summary displays.
+
 // displayPendingApproval renders the tool approval request as a styled panel.
 // Called when execution enters WAITING_FOR_APPROVAL phase to show the user
 // what tool is requesting approval, with what arguments, and how long it has
@@ -24,6 +27,7 @@ func displayPendingApproval(pa *agentexecutionv1.PendingApproval) {
 	output := panel.Render(content, panel.Options{
 		Title: "APPROVAL REQUIRED",
 		Style: panel.StyleWarning,
+		Width: summaryPanelWidth(),
 	})
 
 	fmt.Println(output)

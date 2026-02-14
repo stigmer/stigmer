@@ -34,12 +34,12 @@ const frameInterval = 80 * time.Millisecond
 // single line. It is safe for concurrent use — Start, Stop, and Update may
 // be called from any goroutine.
 type Spinner struct {
-	w     io.Writer
-	mu    sync.Mutex
-	label string
-	start time.Time
-	stop  chan struct{}
-	done  chan struct{}
+	w      io.Writer
+	mu     sync.Mutex
+	label  string
+	start  time.Time
+	stop   chan struct{}
+	done   chan struct{}
 	active bool
 }
 

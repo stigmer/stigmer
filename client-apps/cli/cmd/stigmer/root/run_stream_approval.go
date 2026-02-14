@@ -57,6 +57,9 @@ func needsWorkflowApprovalPrompt(
 // It displays approval details, prompts the user for a decision, submits the
 // decision to the backend, and displays a confirmation message.
 //
+// defaultAction is passed through from the --approve-default flag. When set,
+// non-interactive environments auto-resolve approvals without prompting.
+//
 // Returns an error if the prompt is cancelled or the API submission fails.
 // The caller should handle the error appropriately (e.g., exit the streaming loop).
 func handleAgentApprovalPrompt(
@@ -65,12 +68,13 @@ func handleAgentApprovalPrompt(
 	executionID string,
 	pendingApproval *agentexecutionv1.PendingApproval,
 	prompter approval.Prompter,
+	defaultAction approval.Action,
 ) error {
 	// Display the approval request details
 	displayPendingApproval(pendingApproval)
 
 	// Build prompt options from the pending approval
-	opts := buildPromptOptions(pendingApproval)
+	opts := buildPromptOptions(pendingApproval, defaultAction)
 
 	// Prompt user for decision
 	decision, err := prompter.Prompt(ctx, opts)
@@ -103,6 +107,9 @@ func handleAgentApprovalPrompt(
 // The workflow API forwards the approval to the child agent execution that
 // originally requested approval.
 //
+// defaultAction is passed through from the --approve-default flag. When set,
+// non-interactive environments auto-resolve approvals without prompting.
+//
 // Returns an error if the prompt is cancelled or the API submission fails.
 func handleWorkflowApprovalPrompt(
 	ctx context.Context,
@@ -110,12 +117,13 @@ func handleWorkflowApprovalPrompt(
 	executionID string,
 	pendingApproval *agentexecutionv1.PendingApproval,
 	prompter approval.Prompter,
+	defaultAction approval.Action,
 ) error {
 	// Display the approval request details
 	displayPendingApproval(pendingApproval)
 
 	// Build prompt options from the pending approval
-	opts := buildPromptOptions(pendingApproval)
+	opts := buildPromptOptions(pendingApproval, defaultAction)
 
 	// Prompt user for decision
 	decision, err := prompter.Prompt(ctx, opts)
@@ -142,10 +150,13 @@ func handleWorkflowApprovalPrompt(
 }
 
 // buildPromptOptions constructs approval.Options from a PendingApproval message.
-func buildPromptOptions(pendingApproval *agentexecutionv1.PendingApproval) approval.Options {
+// When defaultAction is set (not ActionUnspecified), it is passed through so
+// that non-interactive environments can auto-resolve the approval.
+func buildPromptOptions(pendingApproval *agentexecutionv1.PendingApproval, defaultAction approval.Action) approval.Options {
 	return approval.Options{
-		ToolName:    pendingApproval.ToolName,
-		Message:     pendingApproval.Message,
-		ArgsPreview: pendingApproval.ArgsPreview,
+		ToolName:      pendingApproval.ToolName,
+		Message:       pendingApproval.Message,
+		ArgsPreview:   pendingApproval.ArgsPreview,
+		DefaultAction: defaultAction,
 	}
 }

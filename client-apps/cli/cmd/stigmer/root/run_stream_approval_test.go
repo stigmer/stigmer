@@ -201,7 +201,7 @@ func TestBuildPromptOptions_AllFields(t *testing.T) {
 		ArgsPreview: `{"path": "/etc/passwd", "content": "..."}`,
 	}
 
-	opts := buildPromptOptions(pendingApproval)
+	opts := buildPromptOptions(pendingApproval, approval.ActionUnspecified)
 
 	if opts.ToolName != "write_file" {
 		t.Errorf("expected ToolName 'write_file', got '%s'", opts.ToolName)
@@ -219,7 +219,7 @@ func TestBuildPromptOptions_EmptyFields(t *testing.T) {
 		ToolCallId: "call_abc123",
 	}
 
-	opts := buildPromptOptions(pendingApproval)
+	opts := buildPromptOptions(pendingApproval, approval.ActionUnspecified)
 
 	if opts.ToolName != "" {
 		t.Errorf("expected empty ToolName, got '%s'", opts.ToolName)
@@ -229,6 +229,32 @@ func TestBuildPromptOptions_EmptyFields(t *testing.T) {
 	}
 	if opts.ArgsPreview != "" {
 		t.Errorf("expected empty ArgsPreview, got '%s'", opts.ArgsPreview)
+	}
+}
+
+func TestBuildPromptOptions_WithDefaultAction(t *testing.T) {
+	pendingApproval := &agentexecutionv1.PendingApproval{
+		ToolCallId: "call_abc123",
+		ToolName:   "write_file",
+	}
+
+	opts := buildPromptOptions(pendingApproval, approval.ActionApprove)
+
+	if opts.DefaultAction != approval.ActionApprove {
+		t.Errorf("expected DefaultAction ActionApprove, got %v", opts.DefaultAction)
+	}
+}
+
+func TestBuildPromptOptions_UnspecifiedDefaultAction(t *testing.T) {
+	pendingApproval := &agentexecutionv1.PendingApproval{
+		ToolCallId: "call_abc123",
+		ToolName:   "write_file",
+	}
+
+	opts := buildPromptOptions(pendingApproval, approval.ActionUnspecified)
+
+	if opts.DefaultAction != approval.ActionUnspecified {
+		t.Errorf("expected DefaultAction ActionUnspecified, got %v", opts.DefaultAction)
 	}
 }
 
@@ -253,6 +279,7 @@ func TestHandleAgentApprovalPrompt_PromptCancelledError(t *testing.T) {
 		"aex_test123",
 		pendingApproval,
 		prompter,
+		approval.ActionUnspecified,
 	)
 
 	if err == nil {
@@ -280,6 +307,7 @@ func TestHandleAgentApprovalPrompt_NonInteractiveNoDefaultError(t *testing.T) {
 		"aex_test123",
 		pendingApproval,
 		prompter,
+		approval.ActionUnspecified,
 	)
 
 	if err == nil {
@@ -309,6 +337,7 @@ func TestHandleAgentApprovalPrompt_PassesCorrectOptions(t *testing.T) {
 		"aex_test123",
 		pendingApproval,
 		prompter,
+		approval.ActionUnspecified,
 	)
 
 	if prompter.callCount != 1 {
@@ -343,6 +372,7 @@ func TestHandleWorkflowApprovalPrompt_PromptCancelledError(t *testing.T) {
 		"wfx_test123",
 		pendingApproval,
 		prompter,
+		approval.ActionUnspecified,
 	)
 
 	if err == nil {
@@ -370,6 +400,7 @@ func TestHandleWorkflowApprovalPrompt_NonInteractiveNoDefaultError(t *testing.T)
 		"wfx_test123",
 		pendingApproval,
 		prompter,
+		approval.ActionUnspecified,
 	)
 
 	if err == nil {

@@ -18,6 +18,7 @@ func NewDraftSkillCommand() *cobra.Command {
 	var attachFlags []string
 	var outputDir string
 	var model string
+	var approveDefault string
 
 	cmd := &cobra.Command{
 		Use:   "skill",
@@ -54,10 +55,11 @@ interactively. The generated skill will be saved to the output directory
   stigmer draft skill -m "Create a skill for X" --model claude-sonnet-4-20250514`,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := executeDraftSkill(draftSkillOptions{
-				Message:     message,
-				AttachFlags: attachFlags,
-				OutputDir:   outputDir,
-				Model:       model,
+				Message:        message,
+				AttachFlags:    attachFlags,
+				OutputDir:      outputDir,
+				Model:          model,
+				ApproveDefault: approveDefault,
 			})
 			clierr.Handle(err)
 		},
@@ -81,6 +83,10 @@ interactively. The generated skill will be saved to the output directory
 
 	// Mark message as required
 	cmd.MarkFlagRequired("message")
+
+	// Approval flag for non-interactive (CI/CD) usage
+	cmd.Flags().StringVar(&approveDefault, "approve-default", "",
+		"auto-resolve approval prompts in non-interactive mode (approve, skip, reject)")
 
 	return cmd
 }
