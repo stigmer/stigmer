@@ -53,8 +53,10 @@ func buildApprovalContent(pa *agentexecutionv1.PendingApproval) string {
 		sections = append(sections, fmt.Sprintf("Message: %s", pa.Message))
 	}
 
-	// Tool arguments, formatted by tool type
-	if pa.ArgsPreview != "" {
+	// Tool arguments, formatted by tool type.
+	// Only show arguments when there is no human-readable message
+	// (the message already includes the key arguments via its template).
+	if pa.Message == "" && pa.ArgsPreview != "" {
 		formatted := approval.FormatArgs(pa.ToolName, pa.ArgsPreview)
 		if formatted != "" {
 			sections = append(sections, "")
