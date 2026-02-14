@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/rs/zerolog/log"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
@@ -41,10 +40,16 @@ func (c *InvokeAgentExecutionWorkflowCreator) Create(execution *agentexecutionv1
 	workflowID := fmt.Sprintf("%s/%s", workflows.InvokeAgentExecutionWorkflowName, executionID)
 
 	// Build workflow options
+	//
+	// NOTE: No WorkflowRunTimeout is set intentionally. This workflow supports
+	// human-in-the-loop (HITL) approval flows where the workflow blocks waiting
+	// for a submitApproval signal. Humans may take minutes, hours, or days to
+	// respond -- any finite timeout would contradict the durable execution promise.
+	// Activity-level timeouts (StartToCloseTimeout, HeartbeatTimeout) already
+	// protect against stuck activities; the workflow itself is just an orchestrator.
 	options := client.StartWorkflowOptions{
-		ID:                 workflowID,
-		TaskQueue:          c.config.StigmerQueue,
-		WorkflowRunTimeout: 10 * time.Minute, // Max 10 minutes per execution
+		ID:        workflowID,
+		TaskQueue: c.config.StigmerQueue,
 		Memo: map[string]interface{}{
 			"activityTaskQueue": c.config.RunnerQueue, // Pass runner queue to workflow
 		},
