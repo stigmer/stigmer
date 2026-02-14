@@ -30,7 +30,7 @@ from worker.activities.graphton.approval_policy import (
     create_approval_checker,
 )
 from worker.activities.graphton.skill_writer import SkillWriter
-from worker.activities.graphton.status_builder import StatusBuilder
+from worker.activities.graphton.status_builder import StatusBuilder, _utc_timestamp
 from worker.activities.graphton.subagent_transformer import transform_sub_agents
 from worker.checkpointer import create_checkpointer
 from worker.mcp import transform_all_mcp_configs
@@ -231,12 +231,12 @@ async def execute_graphton(execution: AgentExecution, thread_id: str) -> AgentEx
                 AgentMessage(
                     type=MessageType.MESSAGE_SYSTEM,
                     content="Internal system error occurred. Please contact support if this issue persists.",
-                    timestamp=datetime.utcnow().isoformat(),
+                    timestamp=_utc_timestamp(),
                 ),
                 AgentMessage(
                     type=MessageType.MESSAGE_SYSTEM,
                     content=f"Error details: {str(system_error)}",
-                    timestamp=datetime.utcnow().isoformat(),
+                    timestamp=_utc_timestamp(),
                 )
             ]
         )
@@ -1383,7 +1383,7 @@ async def _execute_graphton_impl(
             pause_msg = AgentMessage(
                 type=MessageType.MESSAGE_SYSTEM,
                 content="⏸️ Execution paused by user. Use resume to continue from this checkpoint.",
-                timestamp=datetime.utcnow().isoformat(),
+                timestamp=_utc_timestamp(),
             )
             status_builder.current_status.messages.append(pause_msg)
             
@@ -1414,29 +1414,58 @@ async def _execute_graphton_impl(
             )
         
         activity_logger.info(
-            f"📊 Execution {execution_id} completed - processed {events_processed} events"
+            f"📊 Execution {execution_id} stream finished — processed {events_processed} events"
         )
         
         # Finalize context info before returning (Phase 3)
         # Copies accumulated context info and summarization events to status proto
         status_builder.finalize_context_info()
         
-        # Set phase to COMPLETED
-        status_builder.current_status.phase = ExecutionPhase.EXECUTION_COMPLETED
+        # Determine final phase based on current state.
+        #
+        # When LangGraph's interrupt() is called (HITL approval), the event stream
+        # ends naturally — the graph pauses at a checkpoint, producing no more events.
+        # The status_builder will have already set the phase to WAITING_FOR_APPROVAL
+        # during event processing. We must NOT overwrite that phase with COMPLETED,
+        # because the Temporal workflow uses the returned phase to decide whether to
+        # enter the HITL approval loop.
+        #
+        # Similarly, if the phase is PAUSED (set during graceful cancellation handling
+        # above), we must preserve it.
+        current_phase = status_builder.current_status.phase
         
-        # Send final status update via gRPC with retry
-        # This is critical for data persistence - use retry to handle transient failures
+        if current_phase == ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL:
+            activity_logger.info(
+                f"Stream ended with WAITING_FOR_APPROVAL phase for execution {execution_id}. "
+                f"Not setting COMPLETED — execution is paused at interrupt checkpoint."
+            )
+        elif current_phase == ExecutionPhase.EXECUTION_PAUSED:
+            activity_logger.info(
+                f"Stream ended with PAUSED phase for execution {execution_id}. "
+                f"Not setting COMPLETED — execution is paused at checkpoint."
+            )
+        else:
+            status_builder.current_status.phase = ExecutionPhase.EXECUTION_COMPLETED
+        
+        final_phase_name = ExecutionPhase.Name(status_builder.current_status.phase)
+        
+        # Send final status update via gRPC with retry.
+        # This is critical for data persistence — use retry to handle transient failures.
+        # The update is sent regardless of phase so that the latest messages, tool_calls,
+        # and context info are always persisted.
         try:
-            activity_logger.info("📤 [FINAL] Sending COMPLETED status update with retry")
+            activity_logger.info(
+                f"📤 [FINAL] Sending {final_phase_name} status update with retry"
+            )
             await retry_executor.execute(
                 operation=lambda: execution_client.update_status(
                     execution_id=execution_id,
                     status=status_builder.current_status
                 ),
                 operation_name="final_status_update",
-                context={"execution_id": execution_id, "phase": "COMPLETED"},
+                context={"execution_id": execution_id, "phase": final_phase_name},
             )
-            activity_logger.info("✅ [FINAL] Status update sent successfully")
+            activity_logger.info(f"✅ [FINAL] Status update sent successfully (phase={final_phase_name})")
         except GrpcRetryExhaustedError as e:
             activity_logger.error(
                 f"[FINAL] All retries exhausted for status update: {e.attempts} attempts, "
@@ -1496,7 +1525,7 @@ async def _execute_graphton_impl(
         error_msg = AgentMessage(
             type=MessageType.MESSAGE_SYSTEM,
             content=f"❌ Error: {error_message}",
-            timestamp=datetime.utcnow().isoformat(),
+            timestamp=_utc_timestamp(),
         )
         
         # Check if status_builder was initialized before the error occurred
@@ -1525,7 +1554,7 @@ async def _execute_graphton_impl(
                     AgentMessage(
                         type=MessageType.MESSAGE_SYSTEM,
                         content="Execution failed during initialization before agent could start.",
-                        timestamp=datetime.utcnow().isoformat(),
+                        timestamp=_utc_timestamp(),
                     )
                 ]
             )

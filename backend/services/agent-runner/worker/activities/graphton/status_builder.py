@@ -51,6 +51,21 @@ PLANNING_TOOLS = {
 }
 
 
+def _utc_timestamp(dt: datetime | None = None) -> str:
+    """Return a UTC datetime as an RFC 3339 timestamp string.
+
+    Appends the ``Z`` suffix so that consumers using strict RFC 3339 / ISO 8601
+    parsers (e.g. Go's ``time.Parse(time.RFC3339, …)``) can parse the value
+    without ambiguity.
+
+    Args:
+        dt: A UTC datetime to format. If *None*, ``datetime.utcnow()`` is used.
+    """
+    if dt is None:
+        dt = datetime.utcnow()
+    return dt.isoformat() + "Z"
+
+
 class StatusBuilder:
     """
     Builds execution status locally from astream_events.
@@ -283,7 +298,7 @@ class StatusBuilder:
             result="",
             status=initial_status,
             component_metadata=component_metadata,
-            started_at=now.isoformat(),
+            started_at=_utc_timestamp(now),
         )
         
         # If approval required, populate approval fields on the ToolCall
@@ -295,7 +310,7 @@ class StatusBuilder:
             )
             tool_call.requires_approval = True
             tool_call.approval_message = rendered_message
-            tool_call.approval_requested_at = now.isoformat()
+            tool_call.approval_requested_at = _utc_timestamp(now)
         
         # Track start time for duration calculation (even for approval-pending tools)
         self._tool_start_times[run_id] = now
@@ -304,7 +319,7 @@ class StatusBuilder:
         tool_message = AgentMessage(
             type=MessageType.MESSAGE_TOOL,
             content="",
-            timestamp=now.isoformat(),
+            timestamp=_utc_timestamp(now),
         )
         tool_message.tool_calls.append(tool_call)
         
@@ -399,7 +414,7 @@ class StatusBuilder:
                     tc = message.tool_calls[0]
                     tc.result = tool_result_content
                     tc.status = ToolCallStatus.TOOL_CALL_COMPLETED
-                    tc.completed_at = now.isoformat()
+                    tc.completed_at = _utc_timestamp(now)
                     # Update message content for CLI display
                     message.content = self._format_tool_message_content(
                         tool_name, tc.args, tool_result_content
@@ -411,7 +426,7 @@ class StatusBuilder:
                 if tool_call.id == run_id:
                     tool_call.result = tool_result_content
                     tool_call.status = ToolCallStatus.TOOL_CALL_COMPLETED
-                    tool_call.completed_at = now.isoformat()
+                    tool_call.completed_at = _utc_timestamp(now)
                     break
             
             self.logger.debug(
@@ -429,7 +444,7 @@ class StatusBuilder:
                     tc = message.tool_calls[0]
                     tc.result = tool_result_content
                     tc.status = ToolCallStatus.TOOL_CALL_COMPLETED
-                    tc.completed_at = now.isoformat()
+                    tc.completed_at = _utc_timestamp(now)
                     # Update message content for CLI display
                     message.content = self._format_tool_message_content(
                         tool_name, tc.args, tool_result_content
@@ -441,7 +456,7 @@ class StatusBuilder:
                 if tool_call.id == run_id:
                     tool_call.result = tool_result_content
                     tool_call.status = ToolCallStatus.TOOL_CALL_COMPLETED
-                    tool_call.completed_at = now.isoformat()
+                    tool_call.completed_at = _utc_timestamp(now)
                     break
             
             self.logger.debug(
@@ -495,7 +510,7 @@ class StatusBuilder:
             ai_message = AgentMessage(
                 type=MessageType.MESSAGE_AI,
                 content=token,
-                timestamp=now.isoformat(),
+                timestamp=_utc_timestamp(now),
                 is_streaming=True,  # Mark as actively streaming (finalized in on_chat_model_end)
             )
             messages_list.append(ai_message)
@@ -783,8 +798,8 @@ class StatusBuilder:
                 id=todo_id,
                 content=todo_dict.get("content", ""),
                 status=status_enum,
-                created_at=todo_dict.get("created_at", datetime.utcnow().isoformat()),
-                updated_at=datetime.utcnow().isoformat(),
+                created_at=todo_dict.get("created_at", _utc_timestamp()),
+                updated_at=_utc_timestamp(),
             )
             
             self.current_status.todos[todo_id].CopyFrom(todo_item)
@@ -838,7 +853,7 @@ class StatusBuilder:
             )
         
         now = datetime.utcnow()
-        timestamp = now.isoformat()
+        timestamp = _utc_timestamp(now)
         
         # Find and update the tool call (handles dual-reference pattern)
         tool_call = self._find_tool_call_by_id(run_id)
@@ -915,7 +930,7 @@ class StatusBuilder:
             )
         
         now = datetime.utcnow()
-        timestamp = now.isoformat()
+        timestamp = _utc_timestamp(now)
         
         # Find the tool call
         tool_call = self._find_tool_call_by_id(run_id)
@@ -1067,7 +1082,7 @@ class StatusBuilder:
             )
         
         now = datetime.utcnow()
-        timestamp = now.isoformat()
+        timestamp = _utc_timestamp(now)
         
         # Create args preview (sanitized JSON for UI display)
         args_preview = self._create_args_preview(tool_args)
@@ -1259,7 +1274,7 @@ class StatusBuilder:
             name=sub_agent_name,
             input=sub_agent_input,
             status=SubAgentStatus.SUB_AGENT_IN_PROGRESS,  # Skip PENDING - already executing
-            started_at=now.isoformat(),
+            started_at=_utc_timestamp(now),
         )
         
         # Track for namespace routing and lifecycle management
@@ -1298,7 +1313,7 @@ class StatusBuilder:
         for sub_agent in self.current_status.sub_agent_executions:
             if sub_agent.id == run_id:
                 sub_agent.output = output
-                sub_agent.completed_at = now.isoformat()
+                sub_agent.completed_at = _utc_timestamp(now)
                 
                 if is_error:
                     sub_agent.status = SubAgentStatus.SUB_AGENT_FAILED
@@ -1510,7 +1525,7 @@ class StatusBuilder:
             return
         
         # Create proto event
-        timestamp = datetime.utcnow().isoformat() + "Z"
+        timestamp = _utc_timestamp()
         proto_event = SummarizationEvent(
             timestamp=timestamp,
             tokens_before=event.tokens_before,
