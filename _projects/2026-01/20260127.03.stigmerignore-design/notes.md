@@ -443,9 +443,7 @@ warning: pattern "*.xyz" in .stigmerignore matches no files
 
 1. **v1.0**: Implement with sensible defaults, backwards compatible
 2. **Deprecation notice**: Log info message about new ignore system
-3. **v1.1**: Remove hardcoded patterns, rely entirely on new system
-
----## Open Questions1. **Should we support `.stigmerignore` in subdirectories?**
+3. **v1.1**: Remove hardcoded patterns, rely entirely on new system---## Open Questions1. **Should we support `.stigmerignore` in subdirectories?**
    - Pro: Matches Git behavior exactly
    - Con: Added complexity, may not be needed initially
    - **Recommendation**: Start with root-only, add later if needed2. **Should `stigmer.yaml` also support ignore patterns?**

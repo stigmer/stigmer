@@ -3,12 +3,13 @@ package root
 import (
 	"fmt"
 	"os"
-	"strings"
-	"time"
+
+	"github.com/charmbracelet/lipgloss"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
 )
 
 // flushStdout ensures output is immediately visible, especially important
@@ -17,13 +18,27 @@ func flushStdout() {
 	_ = os.Stdout.Sync()
 }
 
-// displayAgentPhaseChange shows when agent execution phase changes
-func displayAgentPhaseChange(phase agentexecutionv1.ExecutionPhase) {
+// displayAgentPhaseChange shows when agent execution phase changes.
+//
+// previousPhase provides context for resume-aware messaging:
+//   - WAITING_FOR_APPROVAL is suppressed entirely — the approval panel and
+//     interactive prompt are the user-facing signal; a redundant status line
+//     adds noise without information.
+//   - Transition from WAITING_FOR_APPROVAL to IN_PROGRESS shows "Resumed after
+//     approval" instead of the generic "Execution started", so the user
+//     understands this is a continuation, not a fresh start.
+func displayAgentPhaseChange(phase, previousPhase agentexecutionv1.ExecutionPhase) {
 	switch phase {
 	case agentexecutionv1.ExecutionPhase_EXECUTION_PENDING:
 		cliprint.PrintInfo("⏳ Execution pending...")
 	case agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS:
-		cliprint.PrintSuccess("▶️  Execution started")
+		if previousPhase == agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL {
+			// Returning from an approval pause — show "resumed" instead of
+			// the misleading "started" which implies a fresh execution.
+			cliprint.PrintSuccess("▶️  Resumed after approval")
+		} else {
+			cliprint.PrintSuccess("▶️  Execution started")
+		}
 	case agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED:
 		cliprint.PrintSuccess("✅ Execution completed")
 	case agentexecutionv1.ExecutionPhase_EXECUTION_FAILED:
@@ -31,33 +46,76 @@ func displayAgentPhaseChange(phase agentexecutionv1.ExecutionPhase) {
 	case agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED:
 		cliprint.PrintWarning("⚠️  Execution cancelled")
 	case agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL:
-		cliprint.PrintWarning("⏸️  Approval required")
+		// Suppressed: The approval panel ("APPROVAL REQUIRED" box) and the
+		// interactive prompt are the user-facing signal for this state.
+		// Printing an additional status line here is redundant noise.
+		return
 	}
 	fmt.Println()
 	flushStdout()
 }
 
-// displayAgentMessage displays a single agent message
-func displayAgentMessage(msg *agentexecutionv1.AgentMessage) {
-	var icon string
-	var label string
+// systemMsgStyle renders system messages with dimmed styling to create visual
+// hierarchy — system messages are informational, not primary content.
+var systemMsgStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 
+// displayAgentMessage renders a single agent message with type-aware formatting.
+//
+// Each message type gets distinct visual treatment:
+//   - HUMAN: user's own input, shown as-is
+//   - AI: agent response with optional structured tool call list
+//   - TOOL: concise result summary instead of raw content dump
+//   - SYSTEM: dimmed to distinguish from primary conversation flow
+func displayAgentMessage(msg *agentexecutionv1.AgentMessage) {
 	switch msg.Type {
 	case agentexecutionv1.MessageType_MESSAGE_HUMAN:
-		icon = "💬"
-		label = "You"
+		displayHumanMessage(msg)
 	case agentexecutionv1.MessageType_MESSAGE_AI:
-		icon = "🤖"
-		label = "Agent"
+		displayAIMessage(msg)
 	case agentexecutionv1.MessageType_MESSAGE_TOOL:
-		icon = "🔧"
-		label = "Tool"
+		displayToolMessage(msg)
 	case agentexecutionv1.MessageType_MESSAGE_SYSTEM:
-		icon = "ℹ️"
-		label = "System"
+		displaySystemMessage(msg)
+	default:
+		// Fallback for unknown message types
+		fmt.Printf("❓ Unknown: %s\n\n", msg.Content)
+		flushStdout()
+	}
+}
+
+// displayHumanMessage renders the user's input message.
+func displayHumanMessage(msg *agentexecutionv1.AgentMessage) {
+	fmt.Printf("💬 You: %s\n\n", msg.Content)
+	flushStdout()
+}
+
+// displayAIMessage renders an agent response. If the AI message initiated tool
+// calls, each is rendered below the text using structured category-aware display.
+func displayAIMessage(msg *agentexecutionv1.AgentMessage) {
+	if msg.Content != "" {
+		fmt.Printf("🤖 Agent: %s\n\n", msg.Content)
 	}
 
-	fmt.Printf("%s %s: %s\n\n", icon, label, msg.Content)
+	if len(msg.ToolCalls) > 0 {
+		displayToolCalls(msg.ToolCalls)
+	} else if msg.Content != "" {
+		flushStdout()
+	}
+}
+
+// displayToolMessage renders a tool result as a concise summary line.
+// Instead of dumping raw content, shows the result size.
+func displayToolMessage(msg *agentexecutionv1.AgentMessage) {
+	fmt.Println(toolrender.RenderResult(msg.Content))
+	fmt.Println()
+	flushStdout()
+}
+
+// displaySystemMessage renders system messages with dimmed styling.
+// Raw API errors are sanitized to user-friendly text before display.
+func displaySystemMessage(msg *agentexecutionv1.AgentMessage) {
+	content := sanitizeSystemContent(msg.Content)
+	fmt.Printf("%s\n\n", systemMsgStyle.Render("ℹ️  "+content))
 	flushStdout()
 }
 
@@ -114,108 +172,4 @@ func displayWorkflowTask(task *workflowexecutionv1.WorkflowTask) {
 
 	fmt.Println()
 	flushStdout()
-}
-
-// displayAgentExecutionComplete shows final agent execution summary
-func displayAgentExecutionComplete(execution *agentexecutionv1.AgentExecution) {
-	fmt.Println()
-	fmt.Println(strings.Repeat("─", 80))
-
-	switch execution.Status.Phase {
-	case agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED:
-		cliprint.PrintSuccess("Done!")
-	case agentexecutionv1.ExecutionPhase_EXECUTION_FAILED:
-		cliprint.PrintError("Execution failed")
-		if execution.Status.Error != "" {
-			cliprint.PrintError("Error: %s", execution.Status.Error)
-		}
-	case agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED:
-		cliprint.PrintWarning("Execution cancelled")
-	}
-
-	// Display timing information
-	if execution.Status.StartedAt != "" && execution.Status.CompletedAt != "" {
-		startTime, _ := time.Parse(time.RFC3339, execution.Status.StartedAt)
-		endTime, _ := time.Parse(time.RFC3339, execution.Status.CompletedAt)
-		duration := endTime.Sub(startTime)
-		cliprint.PrintSuccess("Duration: %s", duration.Round(time.Second))
-	}
-
-	// Display summary stats
-	cliprint.PrintSuccess("Total messages: %d", len(execution.Status.Messages))
-	cliprint.PrintSuccess("Tool calls: %d", len(execution.Status.ToolCalls))
-
-	fmt.Println(strings.Repeat("─", 80))
-	fmt.Println()
-	flushStdout()
-}
-
-// displayWorkflowExecutionComplete shows final workflow execution summary
-func displayWorkflowExecutionComplete(execution *workflowexecutionv1.WorkflowExecution) {
-	fmt.Println()
-	fmt.Println(strings.Repeat("─", 80))
-
-	switch execution.Status.Phase {
-	case workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED:
-		cliprint.PrintSuccess("Done!")
-	case workflowexecutionv1.ExecutionPhase_EXECUTION_FAILED:
-		cliprint.PrintError("Workflow execution failed")
-		if execution.Status.Error != "" {
-			cliprint.PrintError("Error: %s", execution.Status.Error)
-		}
-	case workflowexecutionv1.ExecutionPhase_EXECUTION_CANCELLED:
-		cliprint.PrintWarning("Workflow execution cancelled")
-	}
-
-	// Display timing information
-	if execution.Status.StartedAt != "" && execution.Status.CompletedAt != "" {
-		startTime, _ := time.Parse(time.RFC3339, execution.Status.StartedAt)
-		endTime, _ := time.Parse(time.RFC3339, execution.Status.CompletedAt)
-		duration := endTime.Sub(startTime)
-		cliprint.PrintSuccess("Duration: %s", duration.Round(time.Second))
-	}
-
-	// Display summary stats
-	totalTasks := len(execution.Status.Tasks)
-	completedTasks := 0
-	failedTasks := 0
-	skippedTasks := 0
-
-	for _, task := range execution.Status.Tasks {
-		switch task.Status {
-		case workflowexecutionv1.WorkflowTaskStatus_WORKFLOW_TASK_COMPLETED:
-			completedTasks++
-		case workflowexecutionv1.WorkflowTaskStatus_WORKFLOW_TASK_FAILED:
-			failedTasks++
-		case workflowexecutionv1.WorkflowTaskStatus_WORKFLOW_TASK_SKIPPED:
-			skippedTasks++
-		}
-	}
-
-	cliprint.PrintSuccess("Total tasks: %d", totalTasks)
-	cliprint.PrintSuccess("Completed: %d", completedTasks)
-	if failedTasks > 0 {
-		cliprint.PrintError("Failed: %d", failedTasks)
-	}
-	if skippedTasks > 0 {
-		cliprint.PrintInfo("Skipped: %d", skippedTasks)
-	}
-
-	fmt.Println(strings.Repeat("─", 80))
-	fmt.Println()
-	flushStdout()
-}
-
-// isTerminalAgentPhase checks if agent execution phase is terminal
-func isTerminalAgentPhase(phase agentexecutionv1.ExecutionPhase) bool {
-	return phase == agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED ||
-		phase == agentexecutionv1.ExecutionPhase_EXECUTION_FAILED ||
-		phase == agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED
-}
-
-// isTerminalWorkflowPhase checks if workflow execution phase is terminal
-func isTerminalWorkflowPhase(phase workflowexecutionv1.ExecutionPhase) bool {
-	return phase == workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED ||
-		phase == workflowexecutionv1.ExecutionPhase_EXECUTION_FAILED ||
-		phase == workflowexecutionv1.ExecutionPhase_EXECUTION_CANCELLED
 }

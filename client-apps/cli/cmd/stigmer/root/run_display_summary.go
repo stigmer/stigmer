@@ -1,0 +1,280 @@
+package root
+
+import (
+	"fmt"
+	"strings"
+	"time"
+
+	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/panel"
+)
+
+// maxPanelWidth caps panel width to maintain readability on wide terminals.
+// Panels wider than 100 columns become hard to scan visually.
+const maxPanelWidth = 100
+
+// summaryPanelWidth returns the panel width to use for summary and approval panels.
+// It uses the terminal width but caps at maxPanelWidth.
+func summaryPanelWidth() int {
+	w := display.GetTerminalWidth()
+	if w > maxPanelWidth {
+		return maxPanelWidth
+	}
+	return w
+}
+
+// displayAgentExecutionComplete renders the final agent execution summary as
+// a styled panel. The panel style reflects the execution outcome:
+//   - Completed: green success panel
+//   - Failed: red error panel with error message
+//   - Cancelled/Terminated: yellow warning panel
+func displayAgentExecutionComplete(execution *agentexecutionv1.AgentExecution) {
+	title, style := agentSummaryTitleAndStyle(execution.Status.Phase)
+	content := buildAgentSummaryContent(execution)
+
+	fmt.Println()
+	fmt.Println(panel.Render(content, panel.Options{
+		Title: title,
+		Style: style,
+		Width: summaryPanelWidth(),
+	}))
+	fmt.Println()
+	flushStdout()
+}
+
+// agentSummaryTitleAndStyle returns the panel title and style for an agent
+// execution based on its terminal phase.
+func agentSummaryTitleAndStyle(phase agentexecutionv1.ExecutionPhase) (string, panel.PanelStyle) {
+	switch phase {
+	case agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED:
+		return "EXECUTION COMPLETE", panel.StyleSuccess
+	case agentexecutionv1.ExecutionPhase_EXECUTION_FAILED:
+		return "EXECUTION FAILED", panel.StyleError
+	case agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED:
+		return "EXECUTION CANCELLED", panel.StyleWarning
+	default:
+		return "EXECUTION TERMINATED", panel.StyleWarning
+	}
+}
+
+// buildAgentSummaryContent assembles the labeled statistics displayed inside the
+// agent completion panel. For failures, the error message is shown first.
+func buildAgentSummaryContent(execution *agentexecutionv1.AgentExecution) string {
+	var sections []string
+
+	// Error message (failures only)
+	if execution.Status.Phase == agentexecutionv1.ExecutionPhase_EXECUTION_FAILED &&
+		execution.Status.Error != "" {
+		sections = append(sections, fmt.Sprintf("Error: %s", execution.Status.Error))
+		sections = append(sections, "")
+	}
+
+	// Duration
+	if d := parseDuration(execution.Status.StartedAt, execution.Status.CompletedAt); d > 0 {
+		sections = append(sections, fmt.Sprintf("Duration:    %s", d.Round(time.Second)))
+	}
+
+	// Stats
+	sections = append(sections, fmt.Sprintf("Messages:    %d", len(execution.Status.Messages)))
+	sections = append(sections, fmt.Sprintf("Tool calls:  %d", len(execution.Status.ToolCalls)))
+
+	// Tool breakdown (e.g., "read x3, execute x2, write x1")
+	if breakdown := formatToolCallBreakdown(execution.Status.ToolCalls); breakdown != "" {
+		sections = append(sections, fmt.Sprintf("             %s", breakdown))
+	}
+
+	// Approval status
+	if hadApprovalWait(execution.Status.ToolCalls) {
+		sections = append(sections, "Approval:    requested")
+	}
+
+	// Token usage
+	if usage := execution.Status.GetUsage(); usage != nil && usage.TotalTokens > 0 {
+		sections = append(sections, fmt.Sprintf("Tokens:      %s (%s in, %s out)",
+			formatTokenCount(usage.TotalTokens),
+			formatTokenCount(usage.PromptTokens),
+			formatTokenCount(usage.CompletionTokens)))
+	}
+
+	// Context utilization
+	if ctx := execution.Status.GetContextInfo(); ctx != nil && ctx.ContextWindowLimit > 0 {
+		utilPct := float64(ctx.CurrentTokenCount) / float64(ctx.ContextWindowLimit) * 100
+		sections = append(sections, fmt.Sprintf("Context:     %s / %s (%.0f%%)",
+			formatTokenCount(ctx.CurrentTokenCount),
+			formatTokenCount(ctx.ContextWindowLimit),
+			utilPct))
+	}
+
+	// Artifacts
+	if len(execution.Status.Artifacts) > 0 {
+		sections = append(sections, fmt.Sprintf("Artifacts:   %d", len(execution.Status.Artifacts)))
+	}
+
+	return strings.Join(sections, "\n")
+}
+
+// formatToolCallBreakdown returns a compact summary of tool usage, e.g., "read x3, execute x2".
+func formatToolCallBreakdown(toolCalls []*agentexecutionv1.ToolCall) string {
+	if len(toolCalls) == 0 {
+		return ""
+	}
+
+	// Count tool calls by name
+	counts := make(map[string]int)
+	for _, tc := range toolCalls {
+		counts[tc.Name]++
+	}
+
+	// Build sorted list for consistent output
+	var parts []string
+	for name, count := range counts {
+		parts = append(parts, fmt.Sprintf("%s x%d", name, count))
+	}
+
+	// Sort alphabetically for consistent output
+	if len(parts) > 1 {
+		// Simple bubble sort for small lists
+		for i := 0; i < len(parts)-1; i++ {
+			for j := i + 1; j < len(parts); j++ {
+				if parts[i] > parts[j] {
+					parts[i], parts[j] = parts[j], parts[i]
+				}
+			}
+		}
+	}
+
+	// Limit to 4 tools to keep summary compact
+	if len(parts) > 4 {
+		remaining := len(parts) - 3
+		parts = append(parts[:3], fmt.Sprintf("+%d more", remaining))
+	}
+
+	return strings.Join(parts, ", ")
+}
+
+// hadApprovalWait checks if any tool call required approval during execution.
+func hadApprovalWait(toolCalls []*agentexecutionv1.ToolCall) bool {
+	for _, tc := range toolCalls {
+		if tc.RequiresApproval {
+			return true
+		}
+	}
+	return false
+}
+
+// formatTokenCount returns a human-readable token count (e.g., "12.5K", "1.2M").
+func formatTokenCount(count int32) string {
+	if count < 1000 {
+		return fmt.Sprintf("%d", count)
+	}
+	if count < 1000000 {
+		return fmt.Sprintf("%.1fK", float64(count)/1000)
+	}
+	return fmt.Sprintf("%.1fM", float64(count)/1000000)
+}
+
+// displayWorkflowExecutionComplete renders the final workflow execution summary
+// as a styled panel. Includes a task breakdown showing completed, failed, and
+// skipped counts.
+func displayWorkflowExecutionComplete(execution *workflowexecutionv1.WorkflowExecution) {
+	title, style := workflowSummaryTitleAndStyle(execution.Status.Phase)
+	content := buildWorkflowSummaryContent(execution)
+
+	fmt.Println()
+	fmt.Println(panel.Render(content, panel.Options{
+		Title: title,
+		Style: style,
+		Width: summaryPanelWidth(),
+	}))
+	fmt.Println()
+	flushStdout()
+}
+
+// workflowSummaryTitleAndStyle returns the panel title and style for a workflow
+// execution based on its terminal phase.
+func workflowSummaryTitleAndStyle(phase workflowexecutionv1.ExecutionPhase) (string, panel.PanelStyle) {
+	switch phase {
+	case workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED:
+		return "WORKFLOW COMPLETE", panel.StyleSuccess
+	case workflowexecutionv1.ExecutionPhase_EXECUTION_FAILED:
+		return "WORKFLOW FAILED", panel.StyleError
+	case workflowexecutionv1.ExecutionPhase_EXECUTION_CANCELLED:
+		return "WORKFLOW CANCELLED", panel.StyleWarning
+	default:
+		return "WORKFLOW TERMINATED", panel.StyleWarning
+	}
+}
+
+// buildWorkflowSummaryContent assembles the labeled statistics displayed inside
+// the workflow completion panel. For failures, the error message is shown first.
+// Task counts are broken down by status.
+func buildWorkflowSummaryContent(execution *workflowexecutionv1.WorkflowExecution) string {
+	var sections []string
+
+	// Error message (failures only)
+	if execution.Status.Phase == workflowexecutionv1.ExecutionPhase_EXECUTION_FAILED &&
+		execution.Status.Error != "" {
+		sections = append(sections, fmt.Sprintf("Error: %s", execution.Status.Error))
+		sections = append(sections, "")
+	}
+
+	// Duration
+	if d := parseDuration(execution.Status.StartedAt, execution.Status.CompletedAt); d > 0 {
+		sections = append(sections, fmt.Sprintf("Duration:  %s", d.Round(time.Second)))
+	}
+
+	// Task breakdown
+	completed, failed, skipped := countWorkflowTasks(execution.Status.Tasks)
+	total := len(execution.Status.Tasks)
+
+	sections = append(sections, fmt.Sprintf("Tasks:     %d total", total))
+	if completed > 0 {
+		sections = append(sections, fmt.Sprintf("           %d completed", completed))
+	}
+	if failed > 0 {
+		sections = append(sections, fmt.Sprintf("           %d failed", failed))
+	}
+	if skipped > 0 {
+		sections = append(sections, fmt.Sprintf("           %d skipped", skipped))
+	}
+
+	return strings.Join(sections, "\n")
+}
+
+// countWorkflowTasks tallies completed, failed, and skipped tasks.
+func countWorkflowTasks(tasks []*workflowexecutionv1.WorkflowTask) (completed, failed, skipped int) {
+	for _, task := range tasks {
+		switch task.Status {
+		case workflowexecutionv1.WorkflowTaskStatus_WORKFLOW_TASK_COMPLETED:
+			completed++
+		case workflowexecutionv1.WorkflowTaskStatus_WORKFLOW_TASK_FAILED:
+			failed++
+		case workflowexecutionv1.WorkflowTaskStatus_WORKFLOW_TASK_SKIPPED:
+			skipped++
+		}
+	}
+	return
+}
+
+// parseDuration calculates elapsed time between two RFC3339 timestamps.
+// Returns zero if either timestamp is empty or unparseable.
+func parseDuration(startedAt, completedAt string) time.Duration {
+	if startedAt == "" || completedAt == "" {
+		return 0
+	}
+	start, err := time.Parse(time.RFC3339, startedAt)
+	if err != nil {
+		return 0
+	}
+	end, err := time.Parse(time.RFC3339, completedAt)
+	if err != nil {
+		return 0
+	}
+	d := end.Sub(start)
+	if d < 0 {
+		return 0
+	}
+	return d
+}

@@ -185,7 +185,7 @@ class TestTokenCounter:
             AIMessage(
                 content="Let me read that file.",
                 tool_calls=[{
-                    "name": "read_file",
+                    "name": "read",
                     "args": {"path": "/workspace/test.py"},
                 }],
             ),

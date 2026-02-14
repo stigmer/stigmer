@@ -1,9 +1,11 @@
 """Temporal activity for cleaning up Daytona sandboxes."""
 
-from temporalio import activity
-from worker.sandbox_manager import SandboxManager
 import logging
 import os
+
+from temporalio import activity
+
+from worker.sandbox_manager import SandboxManager
 
 activity_logger = logging.getLogger(__name__)
 
@@ -27,8 +29,8 @@ async def cleanup_sandbox(sandbox_id: str) -> None:
         return
     
     try:
-        sandbox_manager = SandboxManager(api_key)
-        await sandbox_manager.cleanup_sandbox(sandbox_id)
+        sandbox_manager = SandboxManager(daytona_api_key=api_key)
+        await sandbox_manager.cleanup_daytona_sandbox(sandbox_id)
         activity_logger.info(f"Successfully cleaned up sandbox: {sandbox_id}")
     except Exception as e:
         activity_logger.error(

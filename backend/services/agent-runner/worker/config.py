@@ -25,10 +25,10 @@ How Polyglot Works:
 - Temporal routes activity tasks to Python based on task queue
 """
 
-from dataclasses import dataclass
-from typing import Optional, TYPE_CHECKING
-from enum import Enum
 import os
+from dataclasses import dataclass
+from enum import Enum
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from worker.storage import ArtifactStorageConfig
@@ -70,12 +70,12 @@ class LLMConfig:
     model_name: str
     
     # Provider-specific settings
-    base_url: Optional[str] = None  # Required for Ollama
-    api_key: Optional[str] = None  # Required for Anthropic/OpenAI
+    base_url: str | None = None  # Required for Ollama
+    api_key: str | None = None  # Required for Anthropic/OpenAI
     
     # Model parameters (optional)
-    max_tokens: Optional[int] = None
-    temperature: Optional[float] = None
+    max_tokens: int | None = None
+    temperature: float | None = None
     
     @classmethod
     def load_from_env(cls, mode: str) -> "LLMConfig":
@@ -105,9 +105,9 @@ class LLMConfig:
         if mode == "local":
             default_provider = "ollama"
             default_model_name = "qwen2.5-coder:7b"
-            default_base_url: Optional[str] = "http://localhost:11434"
-            default_max_tokens: Optional[int] = 8192
-            default_temperature: Optional[float] = 0.0
+            default_base_url: str | None = "http://localhost:11434"
+            default_max_tokens: int | None = 8192
+            default_temperature: float | None = 0.0
         else:  # cloud mode
             default_provider = "anthropic"
             default_model_name = "claude-sonnet-4.5"
@@ -243,12 +243,17 @@ class CheckpointerConfig:
         Configuration Cascade:
             1. Environment variables (explicit user config)
             2. Mode-aware defaults:
-               - local mode: memory (fast, zero setup)
+               - local mode: sqlite (persistent, HITL-compatible)
                - cloud mode: mongodb (persistent, shared)
         """
         # Determine mode-aware defaults
         if mode == "local":
-            default_type = "memory"
+            # SQLite is the default for local mode because:
+            # 1. Persistent across activity re-invocations (required for HITL approval)
+            # 2. Zero setup - single file, no external dependencies
+            # 3. MemorySaver is incompatible with HITL because each Temporal activity
+            #    invocation creates a new MemorySaver instance, losing all checkpoints
+            default_type = "sqlite"
             default_sqlite_path: str | None = "./checkpoints/langgraph.db"
         else:  # cloud mode
             default_type = "mongodb"

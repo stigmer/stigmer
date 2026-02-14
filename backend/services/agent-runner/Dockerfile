@@ -49,6 +49,21 @@ ENV POETRY_VIRTUALENVS_IN_PROJECT=true
 RUN poetry config virtualenvs.in-project true && \
     poetry install --only main --no-interaction --no-ansi --no-root
 
+# WORKAROUND: deepagents-cli (0.0.3) ships files in the `deepagents/` namespace that
+# overwrite clean files from the `deepagents` package during installation. This is an
+# upstream packaging defect -- both packages write to the same directory, and the CLI
+# package's copies are corrupted/truncated. Reinstalling `deepagents` after Poetry
+# restores the correct files. The verification step below will catch any regression.
+RUN .venv/bin/pip install --force-reinstall --no-deps deepagents==0.4.0
+
+# Verify critical dependencies are importable (catches corrupted PyPI packages at build time).
+# This gate prevents a broken image from ever being tagged.
+RUN .venv/bin/python -c "\
+from deepagents.middleware.subagents import SubAgentMiddleware; \
+from deepagents.middleware.filesystem import FilesystemMiddleware; \
+from deepagents import create_deep_agent; \
+print('deepagents import verification passed')"
+
 # ---------- Runtime Image ----------
 FROM python:3.11-slim
 
@@ -104,10 +119,11 @@ RUN chown -R stigmer:stigmer /app
 # Switch to non-root user
 USER stigmer
 
-# Health check: Verify Python process can start and import dependencies
-# This is a lightweight check - full Temporal connection check happens in startup logs
+# Health check: Verify Python process can start and import critical dependencies.
+# Tests both local code (worker.config) and external packages (deepagents) to catch
+# corrupted package installations that would cause the worker to crash-loop at startup.
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s \
-    CMD /app/.venv/bin/python -c "import sys; from worker.config import Config; sys.exit(0)" || exit 1
+    CMD /app/.venv/bin/python -c "from worker.config import Config; from deepagents.middleware.subagents import SubAgentMiddleware" || exit 1
 
 # Expose volume mount point for documentation
 # Actual mount is configured by CLI: -v ~/.stigmer/data/workspace:/workspace

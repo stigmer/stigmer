@@ -22,11 +22,11 @@ Example:
 """
 
 from worker.resilience.grpc_retry import (
-    GrpcNonRetryableError,
-    GrpcRetryExhaustedError,
-    GrpcRetryExecutor,
-    RETRYABLE_STATUS_CODES,
     NON_RETRYABLE_STATUS_CODES,
+    RETRYABLE_STATUS_CODES,
+    GrpcNonRetryableError,
+    GrpcRetryExecutor,
+    GrpcRetryExhaustedError,
     RetryConfig,
     is_retryable_status_code,
 )

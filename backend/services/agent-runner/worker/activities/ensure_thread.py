@@ -1,7 +1,8 @@
 """Temporal activity for ensuring session thread exists."""
 
-from temporalio import activity
 import logging
+
+from temporalio import activity
 
 activity_logger = logging.getLogger(__name__)
 

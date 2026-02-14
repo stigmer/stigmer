@@ -4,8 +4,9 @@ import grpc
 from ai.stigmer.agentic.session.v1 import command_pb2_grpc, query_pb2_grpc
 from ai.stigmer.agentic.session.v1.api_pb2 import Session
 from ai.stigmer.agentic.session.v1.io_pb2 import SessionId
-from worker.config import Config
+
 from grpc_client.auth.client_interceptor import AuthClientInterceptor
+from worker.config import Config
 
 
 class SessionClient:

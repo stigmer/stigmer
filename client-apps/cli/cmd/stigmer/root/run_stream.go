@@ -3,18 +3,36 @@ package root
 import (
 	"context"
 	"fmt"
+	"io"
+	"os"
+
+	"github.com/pkg/errors"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
 	"google.golang.org/grpc"
 )
 
-// streamAgentExecutionLogs subscribes to execution updates and displays them in real-time.
-// When the execution enters WAITING_FOR_APPROVAL phase, it prompts the user for an
-// approval decision and submits it to the backend before continuing.
-func streamAgentExecutionLogs(executionID string, conn *grpc.ClientConn) {
+// streamAgentExecution subscribes to execution updates and displays them in real-time.
+// It handles approval prompts inline and returns the final execution state when
+// the execution reaches a terminal phase.
+//
+// The streaming loop follows the invariant: render content before status, prompt
+// before proceeding, never exit with unresolved approvals. This ensures the user
+// sees tool calls before phase transitions and always gets a chance to approve.
+//
+// Approval detection uses two tracks for defense-in-depth:
+//   - Track 1 (phase-level): Detects EXECUTION_WAITING_FOR_APPROVAL phase with PendingApproval.
+//   - Track 2 (tool-call-level): Scans ToolCalls for WAITING_APPROVAL status, catching
+//     approvals missed when the phase transitions between stream updates.
+//
+// The prompter is injected to support both interactive (TTY) and non-interactive (CI) modes.
+// defaultAction is the --approve-default flag value; when set, non-TTY approvals
+// are auto-resolved without prompting.
+func streamAgentExecution(executionID string, prompter approval.Prompter, defaultAction approval.Action, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
 	cliprint.PrintSuccess("Streaming agent execution logs")
 	fmt.Println()
 
@@ -25,69 +43,126 @@ func streamAgentExecutionLogs(executionID string, conn *grpc.ClientConn) {
 	// Subscribe to execution updates
 	stream, err := client.Subscribe(ctx, &agentexecutionv1.AgentExecutionId{Value: executionID})
 	if err != nil {
-		cliprint.PrintError("Failed to subscribe to execution: %v", err)
-		return
+		return nil, errors.Wrap(err, "failed to subscribe to agent execution")
 	}
 
-	// Track last displayed phase and approval state
-	var lastPhase agentexecutionv1.ExecutionPhase
-	var lastPendingToolCallID string
-	messageCount := 0
+	// Activity spinner — shows progress between streaming updates.
+	// Deferred Stop ensures cleanup on error exits.
+	sp := spinner.New(os.Stdout)
+	sp.Start("Waiting for agent...")
+	defer sp.Stop()
 
-	// Create prompter for interactive approvals
-	prompter := approval.NewInteractivePrompter()
+	// Track last displayed phase and approval state.
+	// promptedToolCallIDs is a set tracking all tool calls that have been prompted,
+	// preventing duplicate prompts even when multiple stream updates carry the same state.
+	var lastPhase agentexecutionv1.ExecutionPhase
+	promptedToolCallIDs := make(map[string]bool)
+
+	// Delta-based message renderer — streams AI content incrementally instead
+	// of waiting for the complete message. See run_display_stream.go.
+	renderer := newMessageStreamRenderer(os.Stdout)
 
 	// Stream updates until execution completes
 	for {
 		execution, err := stream.Recv()
 		if err != nil {
-			// Stream ended
-			if err.Error() == "EOF" {
-				break
+			sp.Stop()
+			if err == io.EOF {
+				return nil, errors.New("agent execution stream ended unexpectedly")
 			}
-			cliprint.PrintError("Stream error: %v", err)
-			break
+			return nil, errors.Wrap(err, "agent execution stream error")
 		}
 
-		// Display phase changes
-		if execution.Status.Phase != lastPhase {
-			displayAgentPhaseChange(execution.Status.Phase)
+		// Step 1: Render messages FIRST — show what happened before status changes.
+		// The renderer tracks which messages have been displayed and only prints
+		// new content — including incremental token deltas for in-progress AI messages.
+		//
+		// CRITICAL: Stop the spinner BEFORE rendering to prevent output corruption.
+		// The spinner goroutine writes \r-prefixed frames to stdout; if the renderer
+		// also writes to stdout concurrently, the tool call text appears on the same
+		// line as the spinner frame (e.g., "⠋ Agent is thinking... 📖 Read: ...").
+		// We use hasPending() to avoid unnecessary stop/start flicker when there is
+		// nothing new to render.
+		if renderer.hasPending(execution.Status.Messages) {
+			sp.Stop()
+		}
+		rendered, streaming := renderer.render(execution.Status.Messages)
+		if rendered && !streaming {
+			// Batch of complete messages finished — restart spinner while waiting.
+			sp.Start("Agent is thinking...")
+		}
+		// When streaming is active, the spinner stays stopped: the flowing
+		// text is the progress indicator.
+
+		// Step 2: Tool-call-level approval detection (defense-in-depth).
+		// Catches approvals missed by phase detection due to transient phases.
+		// Scans ToolCalls for any in WAITING_APPROVAL status not yet prompted.
+		if tc := findUnpromptedApproval(execution.Status.ToolCalls, promptedToolCallIDs); tc != nil {
+			sp.Stop()
+			if err := handleToolCallApproval(ctx, conn, executionID, tc, execution.Status.GetPendingApproval(), prompter, defaultAction); err != nil {
+				return nil, errors.Wrap(err, "agent approval failed")
+			}
+			promptedToolCallIDs[tc.Id] = true
+			// Sync lastPhase so Step 4 does not re-display the WAITING_FOR_APPROVAL
+			// phase change that the user already acted on via the approval prompt.
 			lastPhase = execution.Status.Phase
+			sp.Start("Resuming after approval...")
 		}
 
-		// Handle approval flow when entering WAITING_FOR_APPROVAL
+		// Step 3: Phase-level approval detection (primary track).
+		// Uses the execution phase and PendingApproval field for richer context.
 		if needsAgentApprovalPrompt(
 			execution.Status.Phase,
 			execution.Status.GetPendingApproval(),
-			lastPendingToolCallID,
+			promptedToolCallIDs,
 		) {
+			sp.Stop()
 			pendingApproval := execution.Status.GetPendingApproval()
-			err := handleAgentApprovalPrompt(ctx, conn, executionID, pendingApproval, prompter)
-			if err != nil {
-				cliprint.PrintError("Approval failed: %v", err)
-				return
+			if err := handleAgentApprovalPrompt(ctx, conn, executionID, pendingApproval, prompter, defaultAction); err != nil {
+				return nil, errors.Wrap(err, "agent approval failed")
 			}
-			lastPendingToolCallID = pendingApproval.ToolCallId
+			promptedToolCallIDs[pendingApproval.ToolCallId] = true
+			// Sync lastPhase so Step 4 does not re-display the WAITING_FOR_APPROVAL
+			// phase change that the user already acted on via the approval prompt.
+			lastPhase = execution.Status.Phase
+			sp.Start("Resuming after approval...")
 		}
 
-		// Display new messages
-		for i := messageCount; i < len(execution.Status.Messages); i++ {
-			displayAgentMessage(execution.Status.Messages[i])
-		}
-		messageCount = len(execution.Status.Messages)
+		// Step 4: Display phase changes (AFTER messages are flushed and approvals handled).
+		if execution.Status.Phase != lastPhase {
+			sp.Stop()
+			displayAgentPhaseChange(execution.Status.Phase, lastPhase)
+			lastPhase = execution.Status.Phase
 
-		// Check if execution reached terminal state
+			if !isTerminalAgentPhase(lastPhase) {
+				sp.Start(spinnerLabelForAgentPhase(lastPhase))
+			}
+		}
+
+		// Step 5: Terminal check with unresolved approval guard.
 		if isTerminalAgentPhase(execution.Status.Phase) {
+			sp.Stop()
+			if unresolved := countUnresolvedApprovals(execution.Status.ToolCalls, promptedToolCallIDs); unresolved > 0 {
+				cliprint.PrintWarning("%d tool call(s) required approval but completed without prompting", unresolved)
+				fmt.Println()
+			}
 			displayAgentExecutionComplete(execution)
-			break
+			return execution, nil
 		}
 	}
 }
 
-// streamWorkflowExecutionLogs subscribes to workflow execution updates and displays them in real-time.
-// When a child agent execution requires approval, it prompts the user for an approval decision
+// streamWorkflowExecution subscribes to workflow execution updates and displays them in real-time.
+// When a child agent execution requires approval, it prompts the user for a decision
 // and submits it via the workflow API (which forwards to the child agent).
-func streamWorkflowExecutionLogs(executionID string, conn *grpc.ClientConn) {
+//
+// The streaming loop follows the same invariant as streamAgentExecution: render content
+// before status, prompt before proceeding.
+//
+// The prompter is injected to support both interactive (TTY) and non-interactive (CI) modes.
+// defaultAction is the --approve-default flag value; when set, non-TTY approvals
+// are auto-resolved without prompting.
+func streamWorkflowExecution(executionID string, prompter approval.Prompter, defaultAction approval.Action, conn *grpc.ClientConn) (*workflowexecutionv1.WorkflowExecution, error) {
 	cliprint.PrintSuccess("Streaming workflow execution logs")
 	fmt.Println()
 
@@ -100,61 +175,71 @@ func streamWorkflowExecutionLogs(executionID string, conn *grpc.ClientConn) {
 		ExecutionId: executionID,
 	})
 	if err != nil {
-		cliprint.PrintError("Failed to subscribe to execution: %v", err)
-		return
+		return nil, errors.Wrap(err, "failed to subscribe to workflow execution")
 	}
 
-	// Track last displayed phase, tasks, and approval state
-	var lastPhase workflowexecutionv1.ExecutionPhase
-	var lastPendingToolCallID string
-	taskCount := 0
+	// Activity spinner — shows progress between streaming updates.
+	sp := spinner.New(os.Stdout)
+	sp.Start("Waiting for workflow...")
+	defer sp.Stop()
 
-	// Create prompter for interactive approvals
-	prompter := approval.NewInteractivePrompter()
+	// Track last displayed phase, tasks, and approval state.
+	var lastPhase workflowexecutionv1.ExecutionPhase
+	promptedToolCallIDs := make(map[string]bool)
+	taskCount := 0
 
 	// Stream updates until execution completes
 	for {
 		execution, err := stream.Recv()
 		if err != nil {
-			// Stream ended
-			if err.Error() == "EOF" {
-				break
+			sp.Stop()
+			if err == io.EOF {
+				return nil, errors.New("workflow execution stream ended unexpectedly")
 			}
-			cliprint.PrintError("Stream error: %v", err)
-			break
+			return nil, errors.Wrap(err, "workflow execution stream error")
 		}
 
-		// Display phase changes
-		if execution.Status.Phase != lastPhase {
-			displayWorkflowPhaseChange(execution.Status.Phase)
-			lastPhase = execution.Status.Phase
+		// Step 1: Display new tasks FIRST — show what happened before status changes.
+		if len(execution.Status.Tasks) > taskCount {
+			sp.Stop()
+			for i := taskCount; i < len(execution.Status.Tasks); i++ {
+				displayWorkflowTask(execution.Status.Tasks[i])
+			}
+			taskCount = len(execution.Status.Tasks)
+			sp.Start("Workflow running...")
 		}
 
-		// Handle approval flow when child agent requires approval
-		// Workflows surface approvals via PendingApproval field (populated by child agent signal)
+		// Step 2: Handle approval flow when child agent requires approval.
+		// Workflows surface approvals via PendingApproval field (populated by child agent signal).
 		if needsWorkflowApprovalPrompt(
 			execution.Status.GetPendingApproval(),
-			lastPendingToolCallID,
+			promptedToolCallIDs,
 		) {
+			sp.Stop()
 			pendingApproval := execution.Status.GetPendingApproval()
-			err := handleWorkflowApprovalPrompt(ctx, conn, executionID, pendingApproval, prompter)
-			if err != nil {
-				cliprint.PrintError("Approval failed: %v", err)
-				return
+			if err := handleWorkflowApprovalPrompt(ctx, conn, executionID, pendingApproval, prompter, defaultAction); err != nil {
+				return nil, errors.Wrap(err, "workflow approval failed")
 			}
-			lastPendingToolCallID = pendingApproval.ToolCallId
+			promptedToolCallIDs[pendingApproval.ToolCallId] = true
+			sp.Start("Resuming after approval...")
 		}
 
-		// Display new tasks
-		for i := taskCount; i < len(execution.Status.Tasks); i++ {
-			displayWorkflowTask(execution.Status.Tasks[i])
-		}
-		taskCount = len(execution.Status.Tasks)
+		// Step 3: Display phase changes (AFTER tasks and approvals handled).
+		if execution.Status.Phase != lastPhase {
+			sp.Stop()
+			displayWorkflowPhaseChange(execution.Status.Phase)
+			lastPhase = execution.Status.Phase
 
-		// Check if execution reached terminal state
+			if !isTerminalWorkflowPhase(lastPhase) {
+				sp.Start(spinnerLabelForWorkflowPhase(lastPhase))
+			}
+		}
+
+		// Step 4: Terminal check.
 		if isTerminalWorkflowPhase(execution.Status.Phase) {
+			sp.Stop()
 			displayWorkflowExecutionComplete(execution)
-			break
+			return execution, nil
 		}
 	}
 }

@@ -1,14 +1,15 @@
 """gRPC client for fetching Environment resources."""
 
+import asyncio
+import logging
+
 import grpc
 from ai.stigmer.agentic.environment.v1 import query_pb2_grpc
 from ai.stigmer.agentic.environment.v1.api_pb2 import Environment
-from ai.stigmer.agentic.environment.v1.io_pb2 import EnvironmentId
 from ai.stigmer.commons.apiresource.io_pb2 import ApiResourceReference
-from worker.config import Config
+
 from grpc_client.auth.client_interceptor import AuthClientInterceptor
-import logging
-import asyncio
+from worker.config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +43,7 @@ class EnvironmentClient:
                 interceptors=[interceptor]
             )
         
-        self.stub = query_pb2_grpc.EnvironmentQueryServiceStub(self.channel)
+        self.stub = query_pb2_grpc.EnvironmentQueryControllerStub(self.channel)
     
     async def get_by_reference(self, ref: ApiResourceReference) -> Environment:
         """Fetch environment by ApiResourceReference.

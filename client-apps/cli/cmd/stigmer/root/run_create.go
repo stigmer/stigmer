@@ -14,7 +14,8 @@ import (
 
 // createAgentExecution creates a new agent execution.
 // model is optional - if provided, it overrides the server's default model.
-func createAgentExecution(agentID string, orgID string, message string, runtimeEnv envfile.EnvMap, attachments []*agentexecutionv1.Attachment, model string, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
+// autoApproveAll when true bypasses all approval policies at the server level.
+func createAgentExecution(agentID string, orgID string, message string, runtimeEnv envfile.EnvMap, attachments []*agentexecutionv1.Attachment, model string, autoApproveAll bool, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
 	if message == "" {
 		message = "execute"
 	}
@@ -22,10 +23,11 @@ func createAgentExecution(agentID string, orgID string, message string, runtimeE
 	executionName := fmt.Sprintf("execution-%d", time.Now().UnixMicro())
 
 	spec := &agentexecutionv1.AgentExecutionSpec{
-		AgentId:     agentID,
-		Message:     message,
-		RuntimeEnv:  runtimeEnv,
-		Attachments: attachments,
+		AgentId:        agentID,
+		Message:        message,
+		RuntimeEnv:     runtimeEnv,
+		Attachments:    attachments,
+		AutoApproveAll: autoApproveAll,
 	}
 
 	// Set execution config with model override if provided

@@ -74,7 +74,6 @@ stigmer draft skill \
   --attach "$INPUTS_DIR/example-agent.yaml" \
   --attach "$INPUTS_DIR/requirements.md" \
   --output "$OUTPUTS_DIR" \
-  --follow \
   --model claude-sonnet-4.5 \
   -m "Create an agent-drafter skill that helps AI assistants create valid Stigmer Agent YAML files. Use the attached proto files for the exact schema, the managing-agents.md for CLI usage examples, and the example-agent.yaml as a reference implementation."
 

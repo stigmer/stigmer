@@ -53,52 +53,8 @@ func TestAction_String(t *testing.T) {
 	}
 }
 
-// =============================================================================
-// indexToAction Tests
-// =============================================================================
-
-func TestIndexToAction_AllCases(t *testing.T) {
-	tests := []struct {
-		name     string
-		index    int
-		expected Action
-	}{
-		{
-			name:     "Index0_Approve",
-			index:    0,
-			expected: ActionApprove,
-		},
-		{
-			name:     "Index1_Skip",
-			index:    1,
-			expected: ActionSkip,
-		},
-		{
-			name:     "Index2_Reject",
-			index:    2,
-			expected: ActionReject,
-		},
-		{
-			name:     "NegativeIndex_Unspecified",
-			index:    -1,
-			expected: ActionUnspecified,
-		},
-		{
-			name:     "OutOfBoundsIndex_Unspecified",
-			index:    100,
-			expected: ActionUnspecified,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := indexToAction(tt.index)
-			if result != tt.expected {
-				t.Errorf("expected %v, got %v", tt.expected, result)
-			}
-		})
-	}
-}
+// indexToAction tests removed — function replaced by Bubbletea prompt model.
+// See prompt_model_test.go for the new model tests.
 
 // =============================================================================
 // handleNonInteractive Tests

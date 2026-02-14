@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "toolrender",
+    srcs = [
+        "format.go",
+        "render.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_charmbracelet_lipgloss//:lipgloss",
+    ],
+)
+
+go_test(
+    name = "toolrender_test",
+    srcs = ["render_test.go"],
+    embed = [":toolrender"],
+)
