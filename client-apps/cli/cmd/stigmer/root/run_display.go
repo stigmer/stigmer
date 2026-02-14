@@ -6,9 +6,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/lipgloss"
+
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
 )
 
 // flushStdout ensures output is immediately visible, especially important
@@ -37,27 +40,65 @@ func displayAgentPhaseChange(phase agentexecutionv1.ExecutionPhase) {
 	flushStdout()
 }
 
-// displayAgentMessage displays a single agent message
-func displayAgentMessage(msg *agentexecutionv1.AgentMessage) {
-	var icon string
-	var label string
+// systemMsgStyle renders system messages with dimmed styling to create visual
+// hierarchy — system messages are informational, not primary content.
+var systemMsgStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 
+// displayAgentMessage renders a single agent message with type-aware formatting.
+//
+// Each message type gets distinct visual treatment:
+//   - HUMAN: user's own input, shown as-is
+//   - AI: agent response with optional structured tool call list
+//   - TOOL: concise result summary instead of raw content dump
+//   - SYSTEM: dimmed to distinguish from primary conversation flow
+func displayAgentMessage(msg *agentexecutionv1.AgentMessage) {
 	switch msg.Type {
 	case agentexecutionv1.MessageType_MESSAGE_HUMAN:
-		icon = "💬"
-		label = "You"
+		displayHumanMessage(msg)
 	case agentexecutionv1.MessageType_MESSAGE_AI:
-		icon = "🤖"
-		label = "Agent"
+		displayAIMessage(msg)
 	case agentexecutionv1.MessageType_MESSAGE_TOOL:
-		icon = "🔧"
-		label = "Tool"
+		displayToolMessage(msg)
 	case agentexecutionv1.MessageType_MESSAGE_SYSTEM:
-		icon = "ℹ️"
-		label = "System"
+		displaySystemMessage(msg)
+	default:
+		// Fallback for unknown message types
+		fmt.Printf("❓ Unknown: %s\n\n", msg.Content)
+		flushStdout()
+	}
+}
+
+// displayHumanMessage renders the user's input message.
+func displayHumanMessage(msg *agentexecutionv1.AgentMessage) {
+	fmt.Printf("💬 You: %s\n\n", msg.Content)
+	flushStdout()
+}
+
+// displayAIMessage renders an agent response. If the AI message initiated tool
+// calls, each is rendered below the text using structured category-aware display.
+func displayAIMessage(msg *agentexecutionv1.AgentMessage) {
+	if msg.Content != "" {
+		fmt.Printf("🤖 Agent: %s\n\n", msg.Content)
 	}
 
-	fmt.Printf("%s %s: %s\n\n", icon, label, msg.Content)
+	if len(msg.ToolCalls) > 0 {
+		displayToolCalls(msg.ToolCalls)
+	} else if msg.Content != "" {
+		flushStdout()
+	}
+}
+
+// displayToolMessage renders a tool result as a concise summary line.
+// Instead of dumping raw content, shows the result size.
+func displayToolMessage(msg *agentexecutionv1.AgentMessage) {
+	fmt.Println(toolrender.RenderResult(msg.Content))
+	fmt.Println()
+	flushStdout()
+}
+
+// displaySystemMessage renders system messages with dimmed styling.
+func displaySystemMessage(msg *agentexecutionv1.AgentMessage) {
+	fmt.Printf("%s\n\n", systemMsgStyle.Render("ℹ️  "+msg.Content))
 	flushStdout()
 }
 
@@ -206,18 +247,3 @@ func displayWorkflowExecutionComplete(execution *workflowexecutionv1.WorkflowExe
 	flushStdout()
 }
 
-// isTerminalAgentPhase checks if agent execution phase is terminal
-func isTerminalAgentPhase(phase agentexecutionv1.ExecutionPhase) bool {
-	return phase == agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED ||
-		phase == agentexecutionv1.ExecutionPhase_EXECUTION_FAILED ||
-		phase == agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED ||
-		phase == agentexecutionv1.ExecutionPhase_EXECUTION_TERMINATED
-}
-
-// isTerminalWorkflowPhase checks if workflow execution phase is terminal
-func isTerminalWorkflowPhase(phase workflowexecutionv1.ExecutionPhase) bool {
-	return phase == workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED ||
-		phase == workflowexecutionv1.ExecutionPhase_EXECUTION_FAILED ||
-		phase == workflowexecutionv1.ExecutionPhase_EXECUTION_CANCELLED ||
-		phase == workflowexecutionv1.ExecutionPhase_EXECUTION_TERMINATED
-}

@@ -1,0 +1,195 @@
+// Package toolrender formats tool call information for structured CLI display.
+//
+// It categorizes tools by type (shell, file read, file write, etc.) and renders
+// them with appropriate icons and emphasis. This package accepts primitive types
+// to stay decoupled from proto definitions.
+//
+// Usage:
+//
+//	line := toolrender.Render(toolrender.ToolCallInfo{
+//	    Name: "read_file",
+//	    Args: map[string]interface{}{"path": "main.go"},
+//	})
+//	fmt.Println(line) // "  📖 Read: main.go"
+package toolrender
+
+import (
+	"fmt"
+	"strings"
+	"time"
+
+	"github.com/charmbracelet/lipgloss"
+)
+
+// ToolCallInfo holds the primitive fields needed to render a tool call.
+// Callers convert from proto or other sources into this struct.
+type ToolCallInfo struct {
+	// Name of the tool (e.g. "shell", "read_file").
+	Name string
+
+	// Args are the tool arguments as key-value pairs.
+	Args map[string]interface{}
+
+	// Status of the tool call: "pending", "running", "completed", "failed".
+	Status string
+
+	// Result is the tool's output text (may be empty for in-progress calls).
+	Result string
+
+	// Error is populated when Status is "failed".
+	Error string
+
+	// Duration of the tool call execution. Zero if unavailable.
+	Duration time.Duration
+}
+
+// toolDisplayInfo defines how to render a specific category of tool.
+type toolDisplayInfo struct {
+	// icon is the emoji prefix for this tool category.
+	icon string
+	// label is the human-readable action name (e.g. "Read", "Shell").
+	label string
+	// primaryField is the most important argument to extract and show.
+	primaryField string
+	// dangerous marks destructive tools for warning styling.
+	dangerous bool
+}
+
+// toolDisplayMap maps known tool names to their display configuration.
+//
+// This map is intentionally extensible — add new tool names as the platform
+// introduces new agent capabilities.
+var toolDisplayMap = map[string]toolDisplayInfo{
+	// Shell/command execution
+	"shell":           {icon: "🖥 ", label: "Shell", primaryField: "command"},
+	"bash":            {icon: "🖥 ", label: "Shell", primaryField: "command"},
+	"execute_command": {icon: "🖥 ", label: "Shell", primaryField: "command"},
+	"run_command":     {icon: "🖥 ", label: "Shell", primaryField: "command"},
+	"terminal":        {icon: "🖥 ", label: "Shell", primaryField: "command"},
+
+	// File read operations
+	"read_file":      {icon: "📖", label: "Read", primaryField: "path"},
+	"list_directory":  {icon: "📂", label: "List", primaryField: "path"},
+
+	// File write operations
+	"write_file":     {icon: "📝", label: "Write", primaryField: "path"},
+	"create_file":    {icon: "📝", label: "Create", primaryField: "path"},
+	"overwrite_file": {icon: "📝", label: "Write", primaryField: "path"},
+	"edit_file":      {icon: "📝", label: "Edit", primaryField: "path"},
+
+	// File delete operations (dangerous)
+	"delete_file": {icon: "⚠️ ", label: "Delete", primaryField: "path", dangerous: true},
+	"remove_file": {icon: "⚠️ ", label: "Delete", primaryField: "path", dangerous: true},
+}
+
+// Styles for tool call rendering.
+var (
+	labelStyle  = lipgloss.NewStyle().Bold(true)
+	dimStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
+	dangerStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Bold(true)
+)
+
+// Render returns a structured single-line display of a tool call.
+//
+// Known tools are rendered with a category-specific icon and the most relevant
+// argument highlighted. Unknown tools fall back to a generic format showing the
+// tool name and first argument value.
+//
+// Examples:
+//
+//	"  📖 Read: main.go"
+//	"  🖥  Shell: ls -la /tmp"
+//	"  📝 Write: outputs/SKILL.md"
+//	"  ⚠️  Delete: /tmp/old.txt"
+//	"  🔧 custom_tool: some_value"
+//
+// This function never panics — nil or empty input produces reasonable output.
+func Render(tc ToolCallInfo) string {
+	info, known := toolDisplayMap[tc.Name]
+	if !known {
+		return renderUnknown(tc)
+	}
+
+	return renderKnown(tc, info)
+}
+
+// RenderResult returns a compact display of a tool result message.
+//
+// Used for MESSAGE_TOOL messages where we have the result content but not
+// the originating tool name. Shows a truncated preview with size info.
+//
+// Examples:
+//
+//	"  ↳ 1164 chars"
+//	"  ↳ (empty)"
+func RenderResult(content string) string {
+	if content == "" {
+		return dimStyle.Render("  ↳ (empty)")
+	}
+
+	size := formatSize(len(content))
+	return dimStyle.Render(fmt.Sprintf("  ↳ %s", size))
+}
+
+// renderKnown formats a tool call with category-specific icon, label, and primary arg.
+func renderKnown(tc ToolCallInfo, info toolDisplayInfo) string {
+	primaryVal := extractPrimaryArg(tc.Args, info.primaryField)
+
+	var line string
+	if primaryVal != "" {
+		styled := styleValue(primaryVal, info.dangerous)
+		line = fmt.Sprintf("  %s %s: %s", info.icon, labelStyle.Render(info.label), styled)
+	} else {
+		line = fmt.Sprintf("  %s %s", info.icon, labelStyle.Render(info.label))
+	}
+
+	suffix := renderSuffix(tc)
+	if suffix != "" {
+		line += " " + dimStyle.Render(suffix)
+	}
+
+	return line
+}
+
+// renderUnknown formats an unrecognized tool with a generic icon and name.
+func renderUnknown(tc ToolCallInfo) string {
+	firstVal := extractFirstArg(tc.Args)
+
+	var line string
+	if firstVal != "" {
+		line = fmt.Sprintf("  🔧 %s: %s", labelStyle.Render(tc.Name), firstVal)
+	} else {
+		line = fmt.Sprintf("  🔧 %s", labelStyle.Render(tc.Name))
+	}
+
+	suffix := renderSuffix(tc)
+	if suffix != "" {
+		line += " " + dimStyle.Render(suffix)
+	}
+
+	return line
+}
+
+// renderSuffix builds an optional suffix with result size, duration, or error.
+func renderSuffix(tc ToolCallInfo) string {
+	if tc.Error != "" {
+		return fmt.Sprintf("(error: %s)", truncate(tc.Error, 40))
+	}
+
+	var parts []string
+
+	if tc.Result != "" {
+		parts = append(parts, formatSize(len(tc.Result)))
+	}
+
+	if tc.Duration > 0 {
+		parts = append(parts, formatDuration(tc.Duration))
+	}
+
+	if len(parts) == 0 {
+		return ""
+	}
+
+	return "(" + strings.Join(parts, ", ") + ")"
+}
+
