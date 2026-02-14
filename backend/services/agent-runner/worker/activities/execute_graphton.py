@@ -1270,7 +1270,42 @@ async def _execute_graphton_impl(
         # 5. LangGraph loads checkpoint and continues from where it left off
         # ─────────────────────────────────────────────────────────────────────────────
         
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Background Heartbeat Task
+        #
+        # During astream_events(), heartbeats are only sent when events arrive.
+        # But when the LLM is "thinking" (processing a long prompt before generating
+        # output), no events are emitted — this gap can exceed the 30-second Temporal
+        # heartbeat timeout, causing Temporal to kill the activity.
+        #
+        # This background task sends heartbeats at a fixed 10-second interval,
+        # independent of event arrival. It runs concurrently with the event stream
+        # and is cancelled when the stream completes (or errors).
+        # ─────────────────────────────────────────────────────────────────────────────
+        async def _background_heartbeat() -> None:
+            """Send periodic heartbeats to Temporal, independent of event stream."""
+            background_heartbeat_interval = 10.0  # seconds (well within 30s timeout)
+            while True:
+                await asyncio.sleep(background_heartbeat_interval)
+                try:
+                    activity.heartbeat({
+                        "thread_id": thread_id,
+                        "paused": activity.is_cancelled(),
+                        "events_processed": events_processed,
+                        "messages": len(status_builder.current_status.messages),
+                        "tool_calls": len(status_builder.current_status.tool_calls),
+                        "phase": status_builder.current_status.phase,
+                        "source": "background",
+                    })
+                except Exception as hb_err:
+                    # Heartbeat failure is not critical — log at debug level and continue.
+                    # The in-loop heartbeat (when events arrive) provides redundancy.
+                    activity_logger.debug(f"Background heartbeat failed: {hb_err}")
+        
+        heartbeat_task: asyncio.Task[None] | None = None
         try:
+            heartbeat_task = asyncio.create_task(_background_heartbeat())
+            
             async for event in agent_graph.astream_events(
                 graph_input,
                 config=config,  # type: ignore[arg-type]  # LangGraph accepts dict config at runtime
@@ -1417,6 +1452,13 @@ async def _execute_graphton_impl(
             
             # Return paused status to workflow
             return status_builder.current_status
+        finally:
+            # Always cancel the background heartbeat task — whether the stream
+            # completed normally, was paused (CancelledError), or raised an error.
+            if heartbeat_task is not None:
+                heartbeat_task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await heartbeat_task
         
         # Verify stream processed data
         if events_processed == 0:
@@ -1551,6 +1593,7 @@ async def _execute_graphton_impl(
             status_builder.finalize_context_info()
             
             status_builder.current_status.phase = ExecutionPhase.EXECUTION_FAILED
+            status_builder.current_status.error = error_message
             failed_status = status_builder.current_status
         else:
             # Early failure before status_builder was created
