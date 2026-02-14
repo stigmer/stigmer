@@ -1,44 +1,50 @@
 """Temporal activity for executing Graphton agents."""
 
-from temporalio import activity
-from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentExecution, AgentExecutionStatus, ApprovalAction
-from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase
-from graphton import create_deep_agent, SummarizationConfig
-from graphton.core import ModelRegistry
-import logging
-import json
-from grpc_client.agent_client import AgentClient
-from grpc_client.agent_instance_client import AgentInstanceClient
-from grpc_client.skill_client import SkillClient
-from grpc_client.session_client import SessionClient
-from grpc_client.environment_client import EnvironmentClient
-from grpc_client.execution_context_client import ExecutionContextClient, ExecutionContextNotFoundError
-from grpc_client.agent_execution_client import AgentExecutionClient
-from grpc_client.mcp_server_client import McpServerClient
-from worker.token_manager import get_api_key
-from worker.sandbox_manager import SandboxManager
-from worker.activities.graphton.status_builder import StatusBuilder
-from worker.activities.graphton.skill_writer import SkillWriter
-from worker.activities.graphton.approval_policy import (
-    ApprovalConfig,
-    build_approval_config,
-    create_approval_checker,
-)
-from worker.activities.graphton.subagent_transformer import transform_sub_agents
-from worker.checkpointer import create_checkpointer
-from worker.mcp import transform_all_mcp_configs
-from worker.storage import ArtifactStorageConfig, create_artifact_storage, ArtifactStorage
-from worker.tools import create_publish_artifact_tool
-from worker.streaming import StreamingConfig, StreamingUpdateScheduler
-from worker.resilience import (
-    GrpcRetryExecutor,
-    GrpcRetryExhaustedError,
-    GrpcNonRetryableError,
-    RetryConfig,
-)
 import asyncio
 import os
 import time
+from typing import Any
+
+from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
+    AgentExecution,
+    AgentExecutionStatus,
+    ApprovalAction,
+)
+from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase
+from graphton import SummarizationConfig, create_deep_agent
+from graphton.core import ModelRegistry
+from temporalio import activity
+
+from grpc_client.agent_client import AgentClient
+from grpc_client.agent_execution_client import AgentExecutionClient
+from grpc_client.agent_instance_client import AgentInstanceClient
+from grpc_client.environment_client import EnvironmentClient
+from grpc_client.execution_context_client import (
+    ExecutionContextClient,
+)
+from grpc_client.mcp_server_client import McpServerClient
+from grpc_client.session_client import SessionClient
+from grpc_client.skill_client import SkillClient
+from worker.activities.graphton.approval_policy import (
+    build_approval_config,
+    create_approval_checker,
+)
+from worker.activities.graphton.skill_writer import SkillWriter
+from worker.activities.graphton.status_builder import StatusBuilder
+from worker.activities.graphton.subagent_transformer import transform_sub_agents
+from worker.checkpointer import create_checkpointer
+from worker.mcp import transform_all_mcp_configs
+from worker.resilience import (
+    GrpcNonRetryableError,
+    GrpcRetryExecutor,
+    GrpcRetryExhaustedError,
+    RetryConfig,
+)
+from worker.sandbox_manager import SandboxManager
+from worker.storage import ArtifactStorage, create_artifact_storage
+from worker.streaming import StreamingConfig, StreamingUpdateScheduler
+from worker.token_manager import get_api_key
+from worker.tools import create_publish_artifact_tool
 
 
 def heartbeat_during_setup(phase_name: str, details: dict | None = None) -> None:
@@ -94,7 +100,7 @@ async def inject_attachments(
     try:
         from daytona import FileUpload
     except ImportError:
-        FileUpload = None  # Local mode doesn't need this
+        FileUpload = None  # noqa: N806 — class reference, PascalCase is correct
     
     file_uploads = []  # For Daytona batch upload
     injected_files = []  # Track injected files for return
@@ -166,7 +172,7 @@ async def inject_attachments(
     
     # Log summary of all injected files
     logger.info(
-        f"Attachment injection complete. Files available to agent:\n"
+        "Attachment injection complete. Files available to agent:\n"
         + "\n".join(f"  - {f['path']} ({f['size']} bytes)" for f in injected_files)
     )
     
@@ -213,9 +219,10 @@ async def execute_graphton(execution: AgentExecution, thread_id: str) -> AgentEx
         
         # Create minimal failed status for system errors
         # This handles cases where status_builder was never initialized
+        from datetime import datetime
+
         from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
         from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
-        from datetime import datetime
         
         failed_status = AgentExecutionStatus(
             phase=ExecutionPhase.EXECUTION_FAILED,
@@ -476,7 +483,7 @@ async def _execute_graphton_impl(
             if not api_key:
                 raise ValueError("DAYTONA_API_KEY environment variable required for cloud mode")
             
-            sandbox_manager = SandboxManager(api_key)
+            sandbox_manager = SandboxManager(daytona_api_key=api_key)
             
             if snapshot_id := sandbox_config.get("snapshot_id"):
                 activity_logger.info(f"Using Daytona snapshot: {snapshot_id}")
@@ -503,7 +510,7 @@ async def _execute_graphton_impl(
             if sandbox_manager is None:
                 raise RuntimeError("Sandbox manager not initialized for cloud mode")
             
-            sandbox, is_new_sandbox = await sandbox_manager.get_or_create_sandbox(
+            sandbox, is_new_sandbox = await sandbox_manager.get_or_create_daytona_sandbox(
                 sandbox_config=sandbox_config,
                 session_id=resolved_session_id,
                 session_client=session_client,
@@ -952,6 +959,7 @@ async def _execute_graphton_impl(
         
         # Create LLM instance with explicit configuration
         # This ensures base_url is properly set for Ollama connections from Docker
+        llm_model: Any  # ChatOllama | ChatAnthropic | ChatOpenAI | str
         if worker_config.llm.provider == "ollama":
             from langchain_ollama import ChatOllama
             llm_model = ChatOllama(
@@ -961,7 +969,7 @@ async def _execute_graphton_impl(
             activity_logger.info(f"Created ChatOllama with base_url={worker_config.llm.base_url}")
         elif worker_config.llm.provider == "anthropic":
             from langchain_anthropic import ChatAnthropic
-            llm_model = ChatAnthropic(
+            llm_model = ChatAnthropic(  # type: ignore[call-arg]  # pydantic model accepts 'model' at runtime
                 model=api_model_id,
                 api_key=worker_config.llm.api_key,
             )
@@ -1218,6 +1226,7 @@ async def _execute_graphton_impl(
         update_scheduler = StreamingUpdateScheduler(streaming_config)
         
         # Determine graph input based on whether this is a resume or fresh execution
+        graph_input: Any  # Command[Any] | dict — depends on resume vs fresh execution
         if is_resume_from_approval and resume_decision is not None:
             # Resume from approval: use Command(resume=decision) to continue from interrupt
             from langgraph.types import Command
@@ -1252,7 +1261,7 @@ async def _execute_graphton_impl(
         try:
             async for event in agent_graph.astream_events(
                 graph_input,
-                config=config,
+                config=config,  # type: ignore[arg-type]  # LangGraph accepts dict config at runtime
                 version="v2",  # Use v2 schema for consistent event structure
             ):
                 # ─────────────────────────────────────────────────────────────────
@@ -1269,7 +1278,7 @@ async def _execute_graphton_impl(
                     raise asyncio.CancelledError("Paused by user")
                 
                 # Process event locally (builds status in memory)
-                await status_builder.process_event(event)
+                await status_builder.process_event(event)  # type: ignore[arg-type]
                 
                 events_processed += 1
                 
@@ -1366,9 +1375,10 @@ async def _execute_graphton_impl(
             status_builder.current_status.phase = ExecutionPhase.EXECUTION_PAUSED
             
             # Add message indicating pause
+            from datetime import datetime
+
             from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
             from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
-            from datetime import datetime
             
             pause_msg = AgentMessage(
                 type=MessageType.MESSAGE_SYSTEM,
@@ -1379,12 +1389,12 @@ async def _execute_graphton_impl(
             
             # Send paused status update via gRPC (best effort)
             try:
-                activity_logger.info(f"📤 [PAUSE] Sending PAUSED status update")
+                activity_logger.info("📤 [PAUSE] Sending PAUSED status update")
                 await execution_client.update_status(
                     execution_id=execution_id,
                     status=status_builder.current_status
                 )
-                activity_logger.info(f"✅ [PAUSE] Status update sent successfully")
+                activity_logger.info("✅ [PAUSE] Status update sent successfully")
             except Exception as update_error:
                 activity_logger.warning(f"[PAUSE] Failed to send status update: {update_error}")
                 # Continue - status will be returned to workflow anyway
@@ -1417,7 +1427,7 @@ async def _execute_graphton_impl(
         # Send final status update via gRPC with retry
         # This is critical for data persistence - use retry to handle transient failures
         try:
-            activity_logger.info(f"📤 [FINAL] Sending COMPLETED status update with retry")
+            activity_logger.info("📤 [FINAL] Sending COMPLETED status update with retry")
             await retry_executor.execute(
                 operation=lambda: execution_client.update_status(
                     execution_id=execution_id,
@@ -1426,7 +1436,7 @@ async def _execute_graphton_impl(
                 operation_name="final_status_update",
                 context={"execution_id": execution_id, "phase": "COMPLETED"},
             )
-            activity_logger.info(f"✅ [FINAL] Status update sent successfully")
+            activity_logger.info("✅ [FINAL] Status update sent successfully")
         except GrpcRetryExhaustedError as e:
             activity_logger.error(
                 f"[FINAL] All retries exhausted for status update: {e.attempts} attempts, "
@@ -1453,7 +1463,7 @@ async def _execute_graphton_impl(
         activity_logger.info("=" * 80)
         
         activity_logger.info(
-            f"✅ ExecuteGraphton completed - returning status to workflow for persistence"
+            "✅ ExecuteGraphton completed - returning status to workflow for persistence"
         )
         
         # Verify status is not None before returning
@@ -1478,9 +1488,10 @@ async def _execute_graphton_impl(
         error_message = f"Execution failed: {error_str}"
         
         # Import required types for error message
+        from datetime import datetime
+
         from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
         from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
-        from datetime import datetime
         
         error_msg = AgentMessage(
             type=MessageType.MESSAGE_SYSTEM,
@@ -1529,7 +1540,7 @@ async def _execute_graphton_impl(
         # Send failed status update via gRPC with retry
         # This is critical for data persistence - use retry to handle transient failures
         try:
-            activity_logger.info(f"📤 [FINAL] Sending FAILED status update with retry")
+            activity_logger.info("📤 [FINAL] Sending FAILED status update with retry")
             await retry_executor.execute(
                 operation=lambda: execution_client.update_status(
                     execution_id=execution_id,
@@ -1538,7 +1549,7 @@ async def _execute_graphton_impl(
                 operation_name="final_status_update",
                 context={"execution_id": execution_id, "phase": "FAILED"},
             )
-            activity_logger.info(f"✅ [FINAL] Failed status update sent successfully")
+            activity_logger.info("✅ [FINAL] Failed status update sent successfully")
         except GrpcRetryExhaustedError as retry_err:
             activity_logger.error(
                 f"[FINAL] All retries exhausted for failed status update: {retry_err.attempts} attempts, "

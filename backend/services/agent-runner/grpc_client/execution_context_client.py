@@ -1,13 +1,14 @@
 """gRPC client for fetching ExecutionContext resources."""
 
+import logging
+
 import grpc
 from ai.stigmer.agentic.executioncontext.v1 import query_pb2_grpc
 from ai.stigmer.agentic.executioncontext.v1.api_pb2 import ExecutionContext
 from ai.stigmer.agentic.executioncontext.v1.io_pb2 import ExecutionContextExecutionIdInput
-from worker.config import Config
+
 from grpc_client.auth.client_interceptor import AuthClientInterceptor
-import logging
-from typing import Optional
+from worker.config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +119,7 @@ class ExecutionContextClient:
                 )
                 raise
     
-    async def try_get_by_execution_id(self, execution_id: str) -> Optional[ExecutionContext]:
+    async def try_get_by_execution_id(self, execution_id: str) -> ExecutionContext | None:
         """Try to fetch ExecutionContext, returning None if not found.
         
         This is a convenience method that handles ExecutionContextNotFoundError

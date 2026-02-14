@@ -35,7 +35,7 @@ async def transform_sub_agents(
     parent_mcp_tools: dict[str, list[str]],
     parent_mcp_usages: list[McpServerUsage],
     skill_client: Any,  # SkillClient instance
-    skill_writer_class: type,  # SkillWriter class
+    skill_writer_class: Any,  # SkillWriter class (typed as Any to avoid circular import)
     skill_writer_kwargs: dict[str, Any],  # kwargs for SkillWriter constructor
     approval_checker: Callable[[str, dict[str, Any]], Any] | None = None,
     activity_logger: logging.Logger | None = None,
@@ -93,8 +93,8 @@ async def transform_sub_agents(
     all_skill_refs = _collect_all_skill_refs(sub_agents)
     
     # Batch fetch all skills
-    skills_by_id = {}
-    skill_paths = {}
+    skills_by_id: dict[str, Any] = {}
+    skill_paths: dict[str, str] = {}
     if all_skill_refs:
         try:
             skills_by_id, skill_paths = await _fetch_skills_batch(
@@ -192,7 +192,7 @@ def _collect_all_skill_refs(
 async def _fetch_skills_batch(
     skill_refs: list[ApiResourceReference],
     skill_client: Any,
-    skill_writer_class: type,
+    skill_writer_class: Any,  # SkillWriter class (typed as Any to avoid circular import)
     skill_writer_kwargs: dict[str, Any],
     log: logging.Logger,
 ) -> tuple[dict[str, Skill], dict[str, str]]:
@@ -255,9 +255,9 @@ async def _transform_single_subagent(
     parent_mcp_servers: dict[str, dict[str, Any]],
     parent_mcp_tools: dict[str, list[str]],
     usage_by_slug: dict[str, McpServerUsage],
-    skills_by_id: dict[str, Skill],
+    skills_by_id: dict[str, Any],
     skill_paths: dict[str, str],
-    skill_writer_class: type,
+    skill_writer_class: Any,  # SkillWriter class (typed as Any to avoid circular import)
     approval_checker: Callable[[str, dict[str, Any]], Any] | None,
     log: logging.Logger,
 ) -> dict[str, Any] | None:
@@ -337,7 +337,7 @@ async def _transform_single_subagent(
                 # Continue without MCP tools - graceful degradation
     
     # Build the subagent dict in graphton format
-    subagent_dict = {
+    subagent_dict: dict[str, Any] = {
         "name": name,
         "description": description,
         "system_prompt": system_prompt,

@@ -62,9 +62,48 @@ jobs:
           echo "should_release=$SHOULD_RELEASE" >> $GITHUB_OUTPUT
           echo "Building version: $VERSION (release: $SHOULD_RELEASE)"
 
+  # Lint and type-check agent-runner (Python)
+  # Gates the Docker build to prevent shipping broken code.
+  lint-and-typecheck-agent-runner:
+    needs: determine-version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate proto stubs
+        run: make protos
+
+      - name: Install dependencies
+        working-directory: backend/services/agent-runner
+        run: poetry install --no-interaction
+
+      - name: Run MyPy type checking
+        working-directory: backend/services/agent-runner
+        run: poetry run mypy grpc_client/ worker/ --show-error-codes
+
+      - name: Run Ruff linter
+        working-directory: backend/services/agent-runner
+        run: poetry run ruff check grpc_client/ worker/
+
   # Build Docker image for agent-runner (multi-arch)
   build-agent-runner-image:
-    needs: determine-version
+    needs: [determine-version, lint-and-typecheck-agent-runner]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

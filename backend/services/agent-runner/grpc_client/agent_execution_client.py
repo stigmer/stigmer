@@ -4,8 +4,9 @@ import grpc
 from ai.stigmer.agentic.agentexecution.v1 import command_pb2_grpc
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentExecution, AgentExecutionStatus
 from ai.stigmer.agentic.agentexecution.v1.io_pb2 import AgentExecutionUpdateStatusInput
-from worker.config import Config
+
 from grpc_client.auth.client_interceptor import AuthClientInterceptor
+from worker.config import Config
 
 
 class AgentExecutionClient:

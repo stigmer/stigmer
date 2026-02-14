@@ -4,8 +4,9 @@ import grpc
 from ai.stigmer.agentic.agent.v1 import query_pb2_grpc
 from ai.stigmer.agentic.agent.v1.api_pb2 import Agent
 from ai.stigmer.agentic.agent.v1.io_pb2 import AgentId
-from worker.config import Config
+
 from grpc_client.auth.client_interceptor import AuthClientInterceptor
+from worker.config import Config
 
 
 class AgentClient:

@@ -31,12 +31,12 @@ Design principles:
 
 import logging
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    pass  # For future type imports
+    from graphton.core.tool_wrappers import ApprovalRequirement as GraphtonApprovalRequirement
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ logger = logging.getLogger(__name__)
 #
 # Future enhancement: Allow user configuration via AgentSpec.platform_tool_approvals
 
-PLATFORM_TOOL_DEFAULTS: Dict[str, Dict[str, Any]] = {
+PLATFORM_TOOL_DEFAULTS: dict[str, dict[str, Any]] = {
     # Safe tools - no approval needed (read-only operations)
     "read": {"requires_approval": False},
     "ls": {"requires_approval": False},
@@ -94,7 +94,7 @@ def is_platform_tool(tool_name: str) -> bool:
     return tool_name in PLATFORM_TOOL_DEFAULTS
 
 
-def get_platform_tool_names() -> List[str]:
+def get_platform_tool_names() -> list[str]:
     """Get list of all platform tool names.
     
     Returns:
@@ -123,9 +123,9 @@ class ApprovalConfig:
         tool_to_mcp_server: Mapping of tool name to MCP server slug (for policy lookup)
     """
     auto_approve_all: bool = False
-    tool_approval_overrides: List[Any] = field(default_factory=list)
-    default_tool_approvals: Dict[str, List[Any]] = field(default_factory=dict)
-    tool_to_mcp_server: Dict[str, str] = field(default_factory=dict)
+    tool_approval_overrides: list[Any] = field(default_factory=list)
+    default_tool_approvals: dict[str, list[Any]] = field(default_factory=dict)
+    tool_to_mcp_server: dict[str, str] = field(default_factory=dict)
     
     def get_mcp_server_for_tool(self, tool_name: str) -> str:
         """
@@ -139,7 +139,7 @@ class ApprovalConfig:
         """
         return self.tool_to_mcp_server.get(tool_name, "")
     
-    def get_default_policies_for_tool(self, tool_name: str) -> List[Any]:
+    def get_default_policies_for_tool(self, tool_name: str) -> list[Any]:
         """
         Get the default approval policies for the MCP server providing a tool.
         
@@ -157,9 +157,9 @@ class ApprovalConfig:
 
 def build_approval_config(
     execution: Any,
-    mcp_server_usages: List[Any],
-    mcp_servers: List[Any],
-    mcp_tools_config: Dict[str, Optional[List[str]]],
+    mcp_server_usages: list[Any],
+    mcp_servers: list[Any],
+    mcp_tools_config: Mapping[str, list[str] | None],
 ) -> ApprovalConfig:
     """
     Build ApprovalConfig from execution context.
@@ -208,7 +208,7 @@ def build_approval_config(
     
     # 2. Collect tool_approval_overrides from all MCP server usages
     # Each usage can have per-tool overrides for its MCP server
-    tool_approval_overrides: List[Any] = []
+    tool_approval_overrides: list[Any] = []
     for usage in mcp_server_usages:
         try:
             if hasattr(usage, 'tool_approval_overrides') and usage.tool_approval_overrides:
@@ -218,7 +218,7 @@ def build_approval_config(
     
     # 3. Build default_tool_approvals dict keyed by server slug
     # Maps MCP server slug -> list of ToolApprovalPolicy protos
-    default_tool_approvals: Dict[str, List[Any]] = {}
+    default_tool_approvals: dict[str, list[Any]] = {}
     for server in mcp_servers:
         try:
             # Get the server slug from metadata
@@ -243,7 +243,7 @@ def build_approval_config(
     # 4. Build tool_to_mcp_server mapping by inverting mcp_tools_config
     # mcp_tools_config: {server_slug: [tool1, tool2, ...]}
     # tool_to_mcp_server: {tool_name: server_slug}
-    tool_to_mcp_server: Dict[str, str] = {}
+    tool_to_mcp_server: dict[str, str] = {}
     for server_slug, tool_names in mcp_tools_config.items():
         if tool_names:
             for tool_name in tool_names:
@@ -291,8 +291,8 @@ def resolve_tool_approval(
     tool_name: str,
     mcp_server_name: str,
     auto_approve_all: bool,
-    tool_approval_overrides: List[Any],
-    default_tool_approvals: List[Any],
+    tool_approval_overrides: list[Any],
+    default_tool_approvals: list[Any],
 ) -> ApprovalRequirement:
     """
     Resolve whether a tool requires approval based on the policy chain.
@@ -456,7 +456,7 @@ def resolve_tool_approval(
 def render_approval_message(
     template: str,
     tool_name: str,
-    tool_args: Dict[str, Any],
+    tool_args: dict[str, Any],
 ) -> str:
     """
     Render approval message template with tool arguments.
@@ -519,8 +519,8 @@ def render_approval_message(
 
 def _find_tool_override(
     tool_name: str,
-    overrides: List[Any],
-) -> Optional[Any]:
+    overrides: list[Any],
+) -> Any | None:
     """
     Find a ToolApprovalOverride for the given tool name.
     
@@ -540,8 +540,8 @@ def _find_tool_override(
 
 def _find_mcp_policy(
     tool_name: str,
-    policies: List[Any],
-) -> Optional[Any]:
+    policies: list[Any],
+) -> Any | None:
     """
     Find a ToolApprovalPolicy for the given tool name.
     
@@ -559,7 +559,7 @@ def _find_mcp_policy(
     return None
 
 
-def _get_nested_value(data: Dict[str, Any], field_path: str) -> Optional[Any]:
+def _get_nested_value(data: dict[str, Any], field_path: str) -> Any | None:
     """
     Get a nested value from a dictionary using dot notation.
     
@@ -577,7 +577,7 @@ def _get_nested_value(data: Dict[str, Any], field_path: str) -> Optional[Any]:
         None
     """
     parts = field_path.split(".")
-    current = data
+    current: Any = data
     
     for part in parts:
         if not isinstance(current, dict):
@@ -677,7 +677,7 @@ def _get_policy_message(policy: Any) -> str:
 
 def create_approval_checker(
     approval_config: ApprovalConfig,
-) -> "Callable[[str, Dict[str, Any]], ApprovalRequirement]":
+) -> "Callable[[str, dict[str, Any]], GraphtonApprovalRequirement]":
     """
     Create an approval checker function from ApprovalConfig.
     
@@ -713,8 +713,8 @@ def create_approval_checker(
     """
     def _check_tool_approval(
         tool_name: str,
-        tool_args: Dict[str, Any],
-    ) -> ApprovalRequirement:
+        tool_args: dict[str, Any],
+    ) -> "GraphtonApprovalRequirement":
         """
         Check if a tool requires approval based on the approval config.
         

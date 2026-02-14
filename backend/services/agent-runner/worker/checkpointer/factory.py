@@ -17,12 +17,13 @@ Design Principles:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from langgraph.checkpoint.memory import MemorySaver
 
 if TYPE_CHECKING:
     from langgraph.checkpoint.base import BaseCheckpointSaver
+
     from worker.config import CheckpointerConfig
 
 logger = logging.getLogger(__name__)
@@ -182,7 +183,7 @@ async def _create_sqlite_checkpointer(
             f"Created AsyncSqliteSaver checkpointer "
             f"(persistent, file={config.sqlite_path})"
         )
-        return checkpointer
+        return checkpointer  # type: ignore[return-value]  # from_conn_string returns context manager usable as checkpointer
         
     except Exception as e:
         raise CheckpointerCreationError(
@@ -233,7 +234,7 @@ async def _create_mongodb_checkpointer(
         # Create async MongoDB client
         from motor.motor_asyncio import AsyncIOMotorClient
         
-        client = AsyncIOMotorClient(config.mongodb_uri)
+        client: Any = AsyncIOMotorClient(config.mongodb_uri)
         
         # Create the checkpointer with optional TTL
         checkpointer = AsyncMongoDBSaver(
