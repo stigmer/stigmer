@@ -97,12 +97,17 @@ class SkillWriter:
     def _write_skills_local(self, skills: list[Skill], artifacts: dict[str, bytes] | None = None) -> dict[str, str]:
         """Write skills to local filesystem.
         
+        Returns sandbox-relative paths (no leading ``/``) so they work
+        correctly with ``FilesystemBackend._resolve_sandbox_path()`` and
+        with the ``execute`` tool where ``cwd=root_dir``.
+        
         Args:
             skills: List of Skill proto messages
             artifacts: Optional dict mapping skill ID to artifact ZIP bytes
             
         Returns:
-            Dictionary mapping skill ID to directory path
+            Dictionary mapping skill ID to sandbox-relative directory path
+            (e.g. ``{"skill-uuid": "bin/skills/abc123..."}``)
         """
         skill_paths = {}
         
@@ -128,7 +133,10 @@ class SkillWriter:
                         f.write(skill.spec.skill_md)
                     logger.info(f"Wrote SKILL.md to local filesystem: {skill_md_path}")
                 
-                skill_paths[skill_id] = skill_dir
+                # Return sandbox-relative path (strip leading "/" so
+                # FilesystemBackend resolves it relative to root_dir and
+                # shell commands resolve it relative to cwd=root_dir).
+                skill_paths[skill_id] = skill_dir.lstrip("/")
                 
             except Exception as e:
                 raise RuntimeError(
