@@ -69,7 +69,7 @@ var toolDisplayMap = map[string]toolDisplayInfo{
 
 	// File read operations
 	"read_file":      {icon: "📖", label: "Read", primaryField: "path"},
-	"list_directory":  {icon: "📂", label: "List", primaryField: "path"},
+	"list_directory": {icon: "📂", label: "List", primaryField: "path"},
 
 	// File write operations
 	"write_file":     {icon: "📝", label: "Write", primaryField: "path"},
@@ -192,4 +192,3 @@ func renderSuffix(tc ToolCallInfo) string {
 
 	return "(" + strings.Join(parts, ", ") + ")"
 }
-

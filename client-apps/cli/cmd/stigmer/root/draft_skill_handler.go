@@ -11,10 +11,11 @@ import (
 
 // draftSkillOptions contains options for the draft skill command.
 type draftSkillOptions struct {
-	Message     string
-	AttachFlags []string
-	OutputDir   string
-	Model       string
+	Message        string
+	AttachFlags    []string
+	OutputDir      string
+	Model          string
+	ApproveDefault string
 }
 
 // executeDraftSkill handles the draft skill command by invoking the skill-creator-agent.
@@ -26,14 +27,24 @@ type draftSkillOptions struct {
 // 4. Streams execution in real-time (handling approvals inline)
 // 5. Downloads the generated skill artifacts on completion
 func executeDraftSkill(opts draftSkillOptions) error {
-	// 1. Connect to backend
+	// 1. Parse --approve-default flag (if set)
+	var defaultAction approval.Action
+	if opts.ApproveDefault != "" {
+		var err error
+		defaultAction, err = approval.ParseAction(opts.ApproveDefault)
+		if err != nil {
+			return errors.Wrap(err, "invalid --approve-default value")
+		}
+	}
+
+	// 2. Connect to backend
 	conn, orgID, err := connectToBackend("")
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
 
-	// 2. Resolve skill-creator-agent (system agent in "local" org)
+	// 3. Resolve skill-creator-agent (system agent in "local" org)
 	// Bootstrap creates system agents in the "local" organization for single-tenant local mode.
 	// We use the agent name directly with the local org.
 	agentRef := skillCreatorAgentOrg + "/" + skillCreatorAgentName
@@ -45,7 +56,7 @@ func executeDraftSkill(opts draftSkillOptions) error {
 
 	cliprint.PrintInfo("Using system agent: %s", agent.Metadata.Name)
 
-	// 3. Process attachments (reuse existing AttachmentProcessor)
+	// 4. Process attachments (reuse existing AttachmentProcessor)
 	var attachments []*agentexecutionv1.Attachment
 	if len(opts.AttachFlags) > 0 {
 		processor := NewAttachmentProcessor(conn)
@@ -56,7 +67,7 @@ func executeDraftSkill(opts draftSkillOptions) error {
 		cliprint.PrintInfo("Attached %d file(s) as context", len(attachments))
 	}
 
-	// 4. Create execution
+	// 5. Create execution
 	cliprint.PrintInfo("Invoking skill-creator-agent...")
 	exec, err := createAgentExecution(agent.Metadata.Id, orgID, opts.Message, nil, attachments, opts.Model, conn)
 	if err != nil {
@@ -65,14 +76,14 @@ func executeDraftSkill(opts draftSkillOptions) error {
 	cliprint.PrintInfo("Execution ID: %s", exec.Metadata.Id)
 	fmt.Println()
 
-	// 5. Stream execution in real-time until completion
+	// 6. Stream execution in real-time until completion
 	prompter := approval.NewInteractivePrompter()
-	exec, err = streamAgentExecution(exec.Metadata.Id, prompter, conn)
+	exec, err = streamAgentExecution(exec.Metadata.Id, prompter, defaultAction, conn)
 	if err != nil {
 		return errors.Wrap(err, "execution failed")
 	}
 
-	// 6. Download artifacts (draft commands always download)
+	// 7. Download artifacts (draft commands always download)
 	if len(exec.Status.Artifacts) > 0 {
 		if err := downloadArtifacts(exec, opts.OutputDir, conn); err != nil {
 			return errors.Wrap(err, "failed to download skill artifacts")

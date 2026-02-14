@@ -6,6 +6,7 @@ go_library(
         "doc.go",
         "formatter.go",
         "interactive.go",
+        "parse.go",
         "prompt_model.go",
         "prompter.go",
         "types.go",
@@ -25,6 +26,7 @@ go_test(
     srcs = [
         "formatter_test.go",
         "interactive_test.go",
+        "parse_test.go",
         "prompt_model_test.go",
     ],
     embed = [":approval"],

@@ -10,6 +10,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/envfile"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"google.golang.org/grpc"
 )
 
@@ -24,6 +25,7 @@ func NewRunCommand() *cobra.Command {
 	var detach bool
 	var attachFlags []string
 	var downloadDir string
+	var approveDefault string
 
 	cmd := &cobra.Command{
 		Use:   "run <type> <name-or-id>",
@@ -120,6 +122,7 @@ OTHER OPTIONS:
 				OrgOverride:     orgOverride,
 				AttachFlags:     attachFlags,
 				DownloadDir:     downloadDir,
+				ApproveDefault:  approveDefault,
 			})
 			clierr.Handle(err)
 		},
@@ -153,6 +156,10 @@ OTHER OPTIONS:
 	cmd.Flags().StringVar(&downloadDir, "download", "",
 		"download artifacts to directory when complete")
 
+	// Approval flag for non-interactive (CI/CD) usage
+	cmd.Flags().StringVar(&approveDefault, "approve-default", "",
+		"auto-resolve approval prompts in non-interactive mode (approve, skip, reject)")
+
 	return cmd
 }
 
@@ -169,6 +176,7 @@ type runOptions struct {
 	OrgOverride     string
 	AttachFlags     []string
 	DownloadDir     string
+	ApproveDefault  string
 }
 
 // executeRun validates type and routes to the appropriate run handler.
@@ -185,7 +193,17 @@ func executeRun(opts runOptions) error {
 		return formatUnsupportedVerbError(info, types.VerbRun)
 	}
 
-	// Step 3: Load and merge environment variables
+	// Step 3: Parse --approve-default flag (if set)
+	var defaultAction approval.Action
+	if opts.ApproveDefault != "" {
+		var err error
+		defaultAction, err = approval.ParseAction(opts.ApproveDefault)
+		if err != nil {
+			return errors.Wrap(err, "invalid --approve-default value")
+		}
+	}
+
+	// Step 4: Load and merge environment variables
 	runtimeEnv, err := envfile.LoadAndMergeWithSecrets(
 		opts.EnvFileFlags,
 		opts.SecretFileFlags,
@@ -196,14 +214,14 @@ func executeRun(opts runOptions) error {
 		return errors.Wrap(err, "failed to load environment")
 	}
 
-	// Step 4: Connect to backend
+	// Step 5: Connect to backend
 	conn, orgID, err := connectToBackend(opts.OrgOverride)
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
 
-	// Step 5: Process attachments
+	// Step 6: Process attachments
 	var attachments []*agentexecutionv1.Attachment
 	if len(opts.AttachFlags) > 0 {
 		processor := NewAttachmentProcessor(conn)
@@ -213,18 +231,18 @@ func executeRun(opts runOptions) error {
 		}
 	}
 
-	// Step 6: Route to appropriate handler
-	return routeRun(info, opts.Reference, opts.Message, runtimeEnv, attachments, opts.Detach, opts.DownloadDir, orgID, conn)
+	// Step 7: Route to appropriate handler
+	return routeRun(info, opts.Reference, opts.Message, runtimeEnv, attachments, opts.Detach, opts.DownloadDir, orgID, defaultAction, conn)
 }
 
 // routeRun routes to the appropriate run handler based on kind.
-func routeRun(info *types.TypeInfo, ref, message string, env envfile.EnvMap, attachments []*agentexecutionv1.Attachment, detach bool, downloadDir, orgID string, conn *grpc.ClientConn) error {
+func routeRun(info *types.TypeInfo, ref, message string, env envfile.EnvMap, attachments []*agentexecutionv1.Attachment, detach bool, downloadDir, orgID string, defaultAction approval.Action, conn *grpc.ClientConn) error {
 	switch info.ProtoKind {
 	case apiresourcekind.ApiResourceKind_agent:
-		return runAgent(ref, message, env, attachments, detach, downloadDir, orgID, conn)
+		return runAgent(ref, message, env, attachments, detach, downloadDir, orgID, defaultAction, conn)
 
 	case apiresourcekind.ApiResourceKind_workflow:
-		return runWorkflow(ref, message, env, detach, orgID, conn)
+		return runWorkflow(ref, message, env, detach, orgID, defaultAction, conn)
 
 	default:
 		return fmt.Errorf("run not implemented for %s", info.DisplayName)

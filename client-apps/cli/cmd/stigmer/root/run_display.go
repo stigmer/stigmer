@@ -3,8 +3,6 @@ package root
 import (
 	"fmt"
 	"os"
-	"strings"
-	"time"
 
 	"github.com/charmbracelet/lipgloss"
 
@@ -153,96 +151,6 @@ func displayWorkflowTask(task *workflowexecutionv1.WorkflowTask) {
 		fmt.Printf("   ✗ Error: %s\n", task.Error)
 	}
 
-	fmt.Println()
-	flushStdout()
-}
-
-// displayAgentExecutionComplete shows final agent execution summary
-func displayAgentExecutionComplete(execution *agentexecutionv1.AgentExecution) {
-	fmt.Println()
-	fmt.Println(strings.Repeat("─", 80))
-
-	switch execution.Status.Phase {
-	case agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED:
-		cliprint.PrintSuccess("Done!")
-	case agentexecutionv1.ExecutionPhase_EXECUTION_FAILED:
-		cliprint.PrintError("Execution failed")
-		if execution.Status.Error != "" {
-			cliprint.PrintError("Error: %s", execution.Status.Error)
-		}
-	case agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED:
-		cliprint.PrintWarning("Execution cancelled")
-	}
-
-	// Display timing information
-	if execution.Status.StartedAt != "" && execution.Status.CompletedAt != "" {
-		startTime, _ := time.Parse(time.RFC3339, execution.Status.StartedAt)
-		endTime, _ := time.Parse(time.RFC3339, execution.Status.CompletedAt)
-		duration := endTime.Sub(startTime)
-		cliprint.PrintSuccess("Duration: %s", duration.Round(time.Second))
-	}
-
-	// Display summary stats
-	cliprint.PrintSuccess("Total messages: %d", len(execution.Status.Messages))
-	cliprint.PrintSuccess("Tool calls: %d", len(execution.Status.ToolCalls))
-
-	fmt.Println(strings.Repeat("─", 80))
-	fmt.Println()
-	flushStdout()
-}
-
-// displayWorkflowExecutionComplete shows final workflow execution summary
-func displayWorkflowExecutionComplete(execution *workflowexecutionv1.WorkflowExecution) {
-	fmt.Println()
-	fmt.Println(strings.Repeat("─", 80))
-
-	switch execution.Status.Phase {
-	case workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED:
-		cliprint.PrintSuccess("Done!")
-	case workflowexecutionv1.ExecutionPhase_EXECUTION_FAILED:
-		cliprint.PrintError("Workflow execution failed")
-		if execution.Status.Error != "" {
-			cliprint.PrintError("Error: %s", execution.Status.Error)
-		}
-	case workflowexecutionv1.ExecutionPhase_EXECUTION_CANCELLED:
-		cliprint.PrintWarning("Workflow execution cancelled")
-	}
-
-	// Display timing information
-	if execution.Status.StartedAt != "" && execution.Status.CompletedAt != "" {
-		startTime, _ := time.Parse(time.RFC3339, execution.Status.StartedAt)
-		endTime, _ := time.Parse(time.RFC3339, execution.Status.CompletedAt)
-		duration := endTime.Sub(startTime)
-		cliprint.PrintSuccess("Duration: %s", duration.Round(time.Second))
-	}
-
-	// Display summary stats
-	totalTasks := len(execution.Status.Tasks)
-	completedTasks := 0
-	failedTasks := 0
-	skippedTasks := 0
-
-	for _, task := range execution.Status.Tasks {
-		switch task.Status {
-		case workflowexecutionv1.WorkflowTaskStatus_WORKFLOW_TASK_COMPLETED:
-			completedTasks++
-		case workflowexecutionv1.WorkflowTaskStatus_WORKFLOW_TASK_FAILED:
-			failedTasks++
-		case workflowexecutionv1.WorkflowTaskStatus_WORKFLOW_TASK_SKIPPED:
-			skippedTasks++
-		}
-	}
-
-	cliprint.PrintSuccess("Total tasks: %d", totalTasks)
-	cliprint.PrintSuccess("Completed: %d", completedTasks)
-	if failedTasks > 0 {
-		cliprint.PrintError("Failed: %d", failedTasks)
-	}
-	if skippedTasks > 0 {
-		cliprint.PrintInfo("Skipped: %d", skippedTasks)
-	}
-
-	fmt.Println(strings.Repeat("─", 80))
 	fmt.Println()
 	flushStdout()
 }

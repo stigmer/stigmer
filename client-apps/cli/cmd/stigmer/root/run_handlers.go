@@ -22,7 +22,10 @@ import (
 // By default, it streams execution updates in real-time until the execution
 // reaches a terminal state. If detach is true, it creates the execution and
 // returns immediately without streaming.
-func runAgent(ref, message string, env envfile.EnvMap, attachments []*agentexecutionv1.Attachment, detach bool, downloadDir, orgID string, conn *grpc.ClientConn) error {
+//
+// defaultAction is the --approve-default flag value; when set, non-TTY approvals
+// are auto-resolved without prompting.
+func runAgent(ref, message string, env envfile.EnvMap, attachments []*agentexecutionv1.Attachment, detach bool, downloadDir, orgID string, defaultAction approval.Action, conn *grpc.ClientConn) error {
 	// Resolve agent by reference
 	agent, err := resolveAgent(ref, orgID, conn)
 	if err != nil {
@@ -54,7 +57,7 @@ func runAgent(ref, message string, env envfile.EnvMap, attachments []*agentexecu
 
 	// Stream execution in real-time until completion
 	prompter := approval.NewInteractivePrompter()
-	exec, err = streamAgentExecution(exec.Metadata.Id, prompter, conn)
+	exec, err = streamAgentExecution(exec.Metadata.Id, prompter, defaultAction, conn)
 	if err != nil {
 		return errors.Wrap(err, "error streaming execution")
 	}
@@ -239,7 +242,10 @@ func isExpired(expiresAt string) bool {
 // By default, it streams execution updates in real-time until the execution
 // reaches a terminal state. If detach is true, it creates the execution and
 // returns immediately without streaming.
-func runWorkflow(ref, message string, env envfile.EnvMap, detach bool, orgID string, conn *grpc.ClientConn) error {
+//
+// defaultAction is the --approve-default flag value; when set, non-TTY approvals
+// are auto-resolved without prompting.
+func runWorkflow(ref, message string, env envfile.EnvMap, detach bool, orgID string, defaultAction approval.Action, conn *grpc.ClientConn) error {
 	// Resolve workflow by reference
 	workflow, err := resolveWorkflow(ref, orgID, conn)
 	if err != nil {
@@ -266,7 +272,7 @@ func runWorkflow(ref, message string, env envfile.EnvMap, detach bool, orgID str
 
 	// Stream execution in real-time until completion
 	prompter := approval.NewInteractivePrompter()
-	if _, err := streamWorkflowExecution(wfExec.Metadata.Id, prompter, conn); err != nil {
+	if _, err := streamWorkflowExecution(wfExec.Metadata.Id, prompter, defaultAction, conn); err != nil {
 		return errors.Wrap(err, "error streaming workflow execution")
 	}
 

@@ -21,7 +21,9 @@ import (
 // the execution reaches a terminal phase.
 //
 // The prompter is injected to support both interactive (TTY) and non-interactive (CI) modes.
-func streamAgentExecution(executionID string, prompter approval.Prompter, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
+// defaultAction is the --approve-default flag value; when set, non-TTY approvals
+// are auto-resolved without prompting.
+func streamAgentExecution(executionID string, prompter approval.Prompter, defaultAction approval.Action, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
 	cliprint.PrintSuccess("Streaming agent execution logs")
 	fmt.Println()
 
@@ -76,7 +78,7 @@ func streamAgentExecution(executionID string, prompter approval.Prompter, conn *
 		) {
 			sp.Stop()
 			pendingApproval := execution.Status.GetPendingApproval()
-			if err := handleAgentApprovalPrompt(ctx, conn, executionID, pendingApproval, prompter); err != nil {
+			if err := handleAgentApprovalPrompt(ctx, conn, executionID, pendingApproval, prompter, defaultAction); err != nil {
 				return nil, errors.Wrap(err, "agent approval failed")
 			}
 			lastPendingToolCallID = pendingApproval.ToolCallId
@@ -107,7 +109,9 @@ func streamAgentExecution(executionID string, prompter approval.Prompter, conn *
 // and submits it via the workflow API (which forwards to the child agent).
 //
 // The prompter is injected to support both interactive (TTY) and non-interactive (CI) modes.
-func streamWorkflowExecution(executionID string, prompter approval.Prompter, conn *grpc.ClientConn) (*workflowexecutionv1.WorkflowExecution, error) {
+// defaultAction is the --approve-default flag value; when set, non-TTY approvals
+// are auto-resolved without prompting.
+func streamWorkflowExecution(executionID string, prompter approval.Prompter, defaultAction approval.Action, conn *grpc.ClientConn) (*workflowexecutionv1.WorkflowExecution, error) {
 	cliprint.PrintSuccess("Streaming workflow execution logs")
 	fmt.Println()
 
@@ -163,7 +167,7 @@ func streamWorkflowExecution(executionID string, prompter approval.Prompter, con
 		) {
 			sp.Stop()
 			pendingApproval := execution.Status.GetPendingApproval()
-			if err := handleWorkflowApprovalPrompt(ctx, conn, executionID, pendingApproval, prompter); err != nil {
+			if err := handleWorkflowApprovalPrompt(ctx, conn, executionID, pendingApproval, prompter, defaultAction); err != nil {
 				return nil, errors.Wrap(err, "workflow approval failed")
 			}
 			lastPendingToolCallID = pendingApproval.ToolCallId
