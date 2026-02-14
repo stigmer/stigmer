@@ -23,7 +23,7 @@ class TestFileNotFoundErrors:
     def test_file_not_found_pattern(self):
         """Test that 'file not found' errors get appropriate hints."""
         enriched = enrich_error_message(
-            "read_file",
+            "read",
             "File not found: /path/to/file.txt"
         )
         assert "error:" in enriched.lower()
@@ -33,7 +33,7 @@ class TestFileNotFoundErrors:
     def test_no_such_file_pattern(self):
         """Test that 'no such file' errors get appropriate hints."""
         enriched = enrich_error_message(
-            "read_file",
+            "read",
             "No such file or directory: /missing/path"
         )
         assert "recovery suggestions:" in enriched.lower()
@@ -60,7 +60,7 @@ class TestPermissionErrors:
     def test_permission_denied_pattern(self):
         """Test that 'permission denied' errors get appropriate hints."""
         enriched = enrich_error_message(
-            "write_file",
+            "write",
             "Permission denied: /protected/file.txt"
         )
         assert "recovery suggestions:" in enriched.lower()
@@ -69,7 +69,7 @@ class TestPermissionErrors:
     def test_access_denied_pattern(self):
         """Test that 'access denied' errors get appropriate hints."""
         enriched = enrich_error_message(
-            "edit_file",
+            "edit",
             "Access denied: cannot write to file"
         )
         assert "recovery suggestions:" in enriched.lower()
@@ -217,7 +217,7 @@ class TestToolSpecificHints:
     def test_edit_tool_gets_read_first_hint(self):
         """Test that edit tools get 'read first' hints."""
         enriched = enrich_error_message(
-            "edit_file",
+            "edit",
             "Failed to edit file"
         )
         assert "read" in enriched.lower()
@@ -226,7 +226,7 @@ class TestToolSpecificHints:
     def test_write_tool_gets_read_first_hint(self):
         """Test that write tools get 'read first' hints."""
         enriched = enrich_error_message(
-            "write_file",
+            "write",
             "Failed to write file"
         )
         assert "read" in enriched.lower()
@@ -279,7 +279,7 @@ class TestMessageStructure:
     def test_hints_are_bulleted(self):
         """Test that hints are formatted as bullet points."""
         enriched = enrich_error_message(
-            "read_file",
+            "read",
             "File not found"
         )
         assert "- " in enriched  # Bullet point format
@@ -287,7 +287,7 @@ class TestMessageStructure:
     def test_multiple_hints_generated(self):
         """Test that multiple hints are generated for known patterns."""
         enriched = enrich_error_message(
-            "read_file",
+            "read",
             "File not found: /path/to/file.txt"
         )
         # Count bullet points (should be multiple)

@@ -69,7 +69,7 @@ func TestRender_WriteFileTool(t *testing.T) {
 }
 
 func TestRender_AllWriteToolNames(t *testing.T) {
-	writeTools := []string{"write_file", "create_file", "overwrite_file", "edit_file"}
+	writeTools := []string{"write_file", "create_file", "overwrite_file"}
 	for _, tool := range writeTools {
 		t.Run(tool, func(t *testing.T) {
 			result := Render(ToolCallInfo{
@@ -104,6 +104,157 @@ func TestRender_AllDeleteToolNames(t *testing.T) {
 			assertContains(t, result, "Delete")
 		})
 	}
+}
+
+// =============================================================================
+// Render Tests — Platform Tools (ls, glob, grep, edit, execute)
+// =============================================================================
+
+func TestRender_LsTool(t *testing.T) {
+	result := Render(ToolCallInfo{
+		Name: "ls",
+		Args: map[string]interface{}{"path": "/workspace"},
+	})
+
+	assertContains(t, result, "📂")
+	assertContains(t, result, "List")
+	assertContains(t, result, "/workspace")
+}
+
+func TestRender_GlobTool(t *testing.T) {
+	result := Render(ToolCallInfo{
+		Name: "glob",
+		Args: map[string]interface{}{"pattern": "**/*.py"},
+	})
+
+	assertContains(t, result, "🔍")
+	assertContains(t, result, "Find")
+	assertContains(t, result, "**/*.py")
+}
+
+func TestRender_GrepTool(t *testing.T) {
+	result := Render(ToolCallInfo{
+		Name: "grep",
+		Args: map[string]interface{}{"pattern": "TODO"},
+	})
+
+	assertContains(t, result, "🔎")
+	assertContains(t, result, "Search")
+	assertContains(t, result, "TODO")
+}
+
+func TestRender_EditTool(t *testing.T) {
+	result := Render(ToolCallInfo{
+		Name: "edit",
+		Args: map[string]interface{}{"path": "main.py"},
+	})
+
+	assertContains(t, result, "✏️")
+	assertContains(t, result, "Edit")
+	assertContains(t, result, "main.py")
+}
+
+func TestRender_EditFileTool(t *testing.T) {
+	result := Render(ToolCallInfo{
+		Name: "edit_file",
+		Args: map[string]interface{}{"path": "main.py"},
+	})
+
+	assertContains(t, result, "✏️")
+	assertContains(t, result, "Edit")
+	assertContains(t, result, "main.py")
+}
+
+func TestRender_ExecuteTool(t *testing.T) {
+	result := Render(ToolCallInfo{
+		Name: "execute",
+		Args: map[string]interface{}{"command": "python test.py"},
+	})
+
+	assertContains(t, result, "🖥 ")
+	assertContains(t, result, "Execute")
+	assertContains(t, result, "python test.py")
+}
+
+// =============================================================================
+// Render Tests — Result Preview (showPreview tools)
+// =============================================================================
+
+func TestRender_LsWithResultPreview(t *testing.T) {
+	result := Render(ToolCallInfo{
+		Name:   "ls",
+		Args:   map[string]interface{}{"path": "/workspace"},
+		Result: "inputs\noutputs\nREADME.md",
+	})
+
+	// Header line
+	assertContains(t, result, "📂")
+	assertContains(t, result, "/workspace")
+
+	// Preview line (second line, dimmed, comma-separated)
+	assertContains(t, result, "inputs, outputs, README.md")
+}
+
+func TestRender_GlobWithResultPreview(t *testing.T) {
+	result := Render(ToolCallInfo{
+		Name:   "glob",
+		Args:   map[string]interface{}{"pattern": "**/init_skill.py"},
+		Result: "No files matching pattern '**/init_skill.py'",
+	})
+
+	assertContains(t, result, "🔍")
+	assertContains(t, result, "No files matching pattern")
+}
+
+func TestRender_GrepWithResultPreview(t *testing.T) {
+	result := Render(ToolCallInfo{
+		Name:   "grep",
+		Args:   map[string]interface{}{"pattern": "TODO"},
+		Result: "Found 3 matches in 2 files:\n\nmain.py:10:# TODO fix\nutils.py:5:# TODO refactor\nutils.py:20:# TODO test",
+	})
+
+	assertContains(t, result, "🔎")
+	assertContains(t, result, "Found 3 matches")
+}
+
+func TestRender_LsWithEmptyResult_NoPreview(t *testing.T) {
+	result := Render(ToolCallInfo{
+		Name:   "ls",
+		Args:   map[string]interface{}{"path": "/empty"},
+		Result: "",
+	})
+
+	// Should not have a second line
+	assertNotContains(t, result, "\n")
+}
+
+func TestRender_ReadWithResult_NoPreview(t *testing.T) {
+	// read is NOT a showPreview tool — should NOT show result preview.
+	result := Render(ToolCallInfo{
+		Name:   "read",
+		Args:   map[string]interface{}{"path": "main.go"},
+		Result: "package main\n\nfunc main() {}",
+	})
+
+	// Should show size but NOT file contents as preview
+	assertContains(t, result, "chars")
+	assertNotContains(t, result, "package main")
+}
+
+func TestRender_PreviewTruncatesLongResults(t *testing.T) {
+	// Create a result with many entries that would exceed preview width.
+	entries := make([]string, 30)
+	for i := range entries {
+		entries[i] = "some_long_directory_name"
+	}
+	result := Render(ToolCallInfo{
+		Name:   "ls",
+		Args:   map[string]interface{}{"path": "/"},
+		Result: strings.Join(entries, "\n"),
+	})
+
+	// Should contain truncation indicator
+	assertContains(t, result, "...")
 }
 
 // =============================================================================
@@ -421,6 +572,53 @@ func TestRenderResult_HasIndentation(t *testing.T) {
 	if !strings.Contains(result, "  ↳") {
 		t.Errorf("expected indented arrow, got %q", result)
 	}
+}
+
+// =============================================================================
+// formatResultPreview Tests
+// =============================================================================
+
+func TestFormatResultPreview_Empty(t *testing.T) {
+	if got := formatResultPreview(""); got != "" {
+		t.Errorf("expected empty string, got %q", got)
+	}
+}
+
+func TestFormatResultPreview_Whitespace(t *testing.T) {
+	if got := formatResultPreview("   \n\n  "); got != "" {
+		t.Errorf("expected empty string for whitespace-only input, got %q", got)
+	}
+}
+
+func TestFormatResultPreview_SingleLine(t *testing.T) {
+	got := formatResultPreview("No files matching pattern '**/*.py'")
+	if got != "No files matching pattern '**/*.py'" {
+		t.Errorf("expected single-line passthrough, got %q", got)
+	}
+}
+
+func TestFormatResultPreview_MultiLine(t *testing.T) {
+	got := formatResultPreview("inputs\noutputs\nREADME.md")
+	if got != "inputs, outputs, README.md" {
+		t.Errorf("expected comma-separated join, got %q", got)
+	}
+}
+
+func TestFormatResultPreview_SkipsBlankLines(t *testing.T) {
+	got := formatResultPreview("file1\n\nfile2\n\nfile3")
+	if got != "file1, file2, file3" {
+		t.Errorf("expected blank lines skipped, got %q", got)
+	}
+}
+
+func TestFormatResultPreview_TruncatesLong(t *testing.T) {
+	// Build a string that exceeds previewMaxWidth
+	long := strings.Repeat("abcdefghij\n", 20)
+	got := formatResultPreview(long)
+	if len(got) > previewMaxWidth {
+		t.Errorf("expected max %d chars, got %d", previewMaxWidth, len(got))
+	}
+	assertContains(t, got, "...")
 }
 
 // =============================================================================

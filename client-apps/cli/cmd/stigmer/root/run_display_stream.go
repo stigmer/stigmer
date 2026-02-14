@@ -34,6 +34,28 @@ func newMessageStreamRenderer(w io.Writer) *messageStreamRenderer {
 	return &messageStreamRenderer{w: w}
 }
 
+// hasPending reports whether the next render() call will produce output.
+//
+// This allows callers to stop an active spinner BEFORE rendering, preventing
+// concurrent writes to stdout (spinner goroutine vs. renderer) that corrupt
+// display lines. Without this check, the spinner's \r-prefixed frame can
+// interleave with renderer output on the same line.
+func (r *messageStreamRenderer) hasPending(messages []*agentexecutionv1.AgentMessage) bool {
+	if r.inStream {
+		// Mid-stream AI message — check for new content delta.
+		if r.displayedCount < len(messages) {
+			msg := messages[r.displayedCount]
+			if msg.IsStreaming {
+				return len(msg.Content) > r.streamedBytes
+			}
+			// Streaming ended — finalization will produce output.
+			return true
+		}
+		return false
+	}
+	return len(messages) > r.displayedCount
+}
+
 // render processes the latest messages slice and displays any new content.
 // Returns two flags:
 //   - rendered: true if any output was produced (caller should stop spinner)

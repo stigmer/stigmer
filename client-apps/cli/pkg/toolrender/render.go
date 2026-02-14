@@ -53,6 +53,9 @@ type toolDisplayInfo struct {
 	primaryField string
 	// dangerous marks destructive tools for warning styling.
 	dangerous bool
+	// showPreview enables a second dimmed line showing a truncated result.
+	// Used for discovery tools (ls, glob, grep) where the result IS the value.
+	showPreview bool
 }
 
 // toolDisplayMap maps known tool names to their display configuration.
@@ -71,14 +74,24 @@ var toolDisplayMap = map[string]toolDisplayInfo{
 	// File read operations
 	"read":           {icon: "📖", label: "Read", primaryField: "path"},
 	"read_file":      {icon: "📖", label: "Read", primaryField: "path"},
-	"list_directory": {icon: "📂", label: "List", primaryField: "path"},
+	"list_directory": {icon: "📂", label: "List", primaryField: "path", showPreview: true},
+
+	// Directory listing (platform tool name)
+	"ls": {icon: "📂", label: "List", primaryField: "path", showPreview: true},
+
+	// File search / pattern matching (platform tool names)
+	"glob": {icon: "🔍", label: "Find", primaryField: "pattern", showPreview: true},
+	"grep": {icon: "🔎", label: "Search", primaryField: "pattern", showPreview: true},
 
 	// File write operations
 	"write":          {icon: "📝", label: "Write", primaryField: "path"},
 	"write_file":     {icon: "📝", label: "Write", primaryField: "path"},
 	"create_file":    {icon: "📝", label: "Create", primaryField: "path"},
 	"overwrite_file": {icon: "📝", label: "Write", primaryField: "path"},
-	"edit_file":      {icon: "📝", label: "Edit", primaryField: "path"},
+
+	// File edit operations
+	"edit":      {icon: "✏️ ", label: "Edit", primaryField: "path"},
+	"edit_file": {icon: "✏️ ", label: "Edit", primaryField: "path"},
 
 	// File delete operations (dangerous)
 	"delete_file": {icon: "⚠️ ", label: "Delete", primaryField: "path", dangerous: true},
@@ -156,6 +169,15 @@ func RenderResultWithPreview(content string) string {
 }
 
 // renderKnown formats a tool call with category-specific icon, label, and primary arg.
+//
+// For discovery tools (showPreview=true) with a non-empty Result, a second
+// indented line is appended showing a truncated result preview. This gives the
+// user visibility into what the tool found without requiring separate result
+// messages.
+//
+// Example with preview:
+//
+//	"  📂 List: /workspace (97 chars, 3ms)\n     inputs/, outputs/"
 func renderKnown(tc ToolCallInfo, info toolDisplayInfo) string {
 	primaryVal := extractPrimaryArg(tc.Args, info.primaryField)
 
@@ -170,6 +192,14 @@ func renderKnown(tc ToolCallInfo, info toolDisplayInfo) string {
 	suffix := renderSuffix(tc)
 	if suffix != "" {
 		line += " " + dimStyle.Render(suffix)
+	}
+
+	// Append result preview for discovery tools (ls, glob, grep).
+	if info.showPreview && tc.Result != "" {
+		preview := formatResultPreview(tc.Result)
+		if preview != "" {
+			line += "\n" + dimStyle.Render("     "+preview)
+		}
 	}
 
 	return line
