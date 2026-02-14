@@ -34,6 +34,11 @@ class FilesystemBackend:
     for local agent runtime. It executes commands directly on the host machine
     in a specified workspace directory.
     
+    All paths are resolved relative to root_dir using chroot-like semantics:
+    absolute paths (e.g. ``/bin/skills``) are treated as relative to root_dir,
+    not as host filesystem paths. This ensures that sandbox-internal paths
+    (used by skills, attachments, etc.) resolve correctly in local mode.
+    
     Attributes:
         root_dir: Root directory for file operations and command execution
     """
@@ -48,6 +53,43 @@ class FilesystemBackend:
         
         # Create workspace directory if it doesn't exist
         self.root_dir.mkdir(parents=True, exist_ok=True)
+    
+    def _resolve_sandbox_path(self, path: str) -> Path:
+        """Resolve a path relative to the sandbox root (chroot-like).
+        
+        Absolute paths are treated as relative to root_dir so that
+        sandbox-internal paths like ``/bin/skills`` resolve to
+        ``{root_dir}/bin/skills`` instead of the host filesystem.
+        
+        Args:
+            path: Path to resolve. May be relative or absolute.
+                  Absolute paths have their leading ``/`` stripped.
+        
+        Returns:
+            Resolved Path within the sandbox root.
+        
+        Raises:
+            ValueError: If the resolved path escapes the sandbox root
+                (e.g. via ``../../`` traversal).
+        
+        Examples:
+            >>> backend = FilesystemBackend(root_dir="/workspace")
+            >>> backend._resolve_sandbox_path("/bin/skills")
+            PosixPath('/workspace/bin/skills')
+            >>> backend._resolve_sandbox_path("inputs/data.txt")
+            PosixPath('/workspace/inputs/data.txt')
+        """
+        # Strip leading "/" so pathlib treats it as relative to root_dir
+        clean = path.lstrip("/")
+        resolved = (self.root_dir / clean).resolve()
+        
+        # Prevent traversal outside the sandbox root
+        if not str(resolved).startswith(str(self.root_dir)):
+            raise ValueError(
+                f"Path '{path}' resolves outside sandbox root '{self.root_dir}'"
+            )
+        
+        return resolved
     
     def execute(
         self,
@@ -137,7 +179,7 @@ class FilesystemBackend:
         """Read file contents (deepagents compatible interface).
         
         Args:
-            path: Relative path from root_dir
+            path: Path to the file (relative or absolute within sandbox)
         
         Returns:
             File contents as string
@@ -148,19 +190,22 @@ class FilesystemBackend:
         """Read file contents.
         
         Args:
-            path: Relative path from root_dir
+            path: Path to the file (relative or absolute within sandbox)
         
         Returns:
             File contents as string
+        
+        Raises:
+            ValueError: If path escapes sandbox root
         """
-        file_path = self.root_dir / path
+        file_path = self._resolve_sandbox_path(path)
         return file_path.read_text()
     
     def write(self, path: str, content: str) -> None:
         """Write content to file (deepagents compatible interface).
         
         Args:
-            path: Relative path from root_dir
+            path: Path to the file (relative or absolute within sandbox)
             content: Content to write
         """
         self.write_file(path, content)
@@ -169,10 +214,13 @@ class FilesystemBackend:
         """Write content to file.
         
         Args:
-            path: Relative path from root_dir
+            path: Path to the file (relative or absolute within sandbox)
             content: Content to write
+        
+        Raises:
+            ValueError: If path escapes sandbox root
         """
-        file_path = self.root_dir / path
+        file_path = self._resolve_sandbox_path(path)
         file_path.parent.mkdir(parents=True, exist_ok=True)
         file_path.write_text(content)
     
@@ -180,12 +228,16 @@ class FilesystemBackend:
         """List files in directory.
         
         Args:
-            path: Relative path from root_dir (defaults to root)
+            path: Path to the directory (relative or absolute within sandbox,
+                  defaults to root)
         
         Returns:
             List of file/directory names
+        
+        Raises:
+            ValueError: If path escapes sandbox root
         """
-        dir_path = self.root_dir / path
+        dir_path = self._resolve_sandbox_path(path)
         if not dir_path.exists():
             return []
         return [item.name for item in dir_path.iterdir()]
