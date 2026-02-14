@@ -23,16 +23,16 @@ Usage:
 
 import logging
 import mimetypes
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Any
+from typing import TYPE_CHECKING
 
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ExecutionArtifact
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionArtifactKind
 
 if TYPE_CHECKING:
-    from worker.storage.base import ArtifactStorage
     from worker.activities.graphton.status_builder import StatusBuilder
+    from worker.storage.base import ArtifactStorage
 
 logger = logging.getLogger(__name__)
 
@@ -131,7 +131,7 @@ async def _publish_from_sandbox(
         # Create zip in sandbox
         result = sandbox.process.exec(f"cd {path} && zip -r {zip_path} .", timeout=60)
         if result.exit_code != 0:
-            raise IOError(f"Failed to zip directory: {result.stderr}")
+            raise OSError(f"Failed to zip directory: {result.stderr}")
         
         # Download zip from sandbox
         content = sandbox.fs.download_file(zip_path)
@@ -160,7 +160,7 @@ async def _publish_from_sandbox(
     # Generate download URL
     download_url = storage.get_download_url(storage_key, DEFAULT_EXPIRES_IN)
     
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     expires_at = now + timedelta(seconds=DEFAULT_EXPIRES_IN)
     
     artifact = ExecutionArtifact(
@@ -246,7 +246,7 @@ async def _publish_from_local(
     # Generate download URL
     download_url = storage.get_download_url(storage_key, DEFAULT_EXPIRES_IN)
     
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     expires_at = now + timedelta(seconds=DEFAULT_EXPIRES_IN)
     
     artifact = ExecutionArtifact(

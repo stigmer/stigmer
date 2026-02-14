@@ -39,11 +39,11 @@ import asyncio
 import logging
 import os
 import time
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Any, Awaitable, Callable, Dict, FrozenSet, Optional, TypeVar
+from typing import Any, TypeVar
 
 import grpc
-
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +53,7 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 # Retryable: Transient network/server issues that may succeed on retry
-RETRYABLE_STATUS_CODES: FrozenSet[grpc.StatusCode] = frozenset([
+RETRYABLE_STATUS_CODES: frozenset[grpc.StatusCode] = frozenset([
     grpc.StatusCode.UNAVAILABLE,        # Service temporarily unavailable
     grpc.StatusCode.DEADLINE_EXCEEDED,  # Timeout - may succeed with retry
     grpc.StatusCode.ABORTED,            # Operation aborted (retry may succeed)
@@ -62,7 +62,7 @@ RETRYABLE_STATUS_CODES: FrozenSet[grpc.StatusCode] = frozenset([
 ])
 
 # Non-retryable: Client errors or permanent failures - retry won't help
-NON_RETRYABLE_STATUS_CODES: FrozenSet[grpc.StatusCode] = frozenset([
+NON_RETRYABLE_STATUS_CODES: frozenset[grpc.StatusCode] = frozenset([
     grpc.StatusCode.NOT_FOUND,           # Resource doesn't exist
     grpc.StatusCode.INVALID_ARGUMENT,    # Bad request - fix client
     grpc.StatusCode.PERMISSION_DENIED,   # Auth failure - won't change
@@ -424,7 +424,7 @@ class GrpcRetryExecutor:
         ...     logger.error(f"Permanent failure: {e.status_code}")
     """
     
-    def __init__(self, config: Optional[RetryConfig] = None) -> None:
+    def __init__(self, config: RetryConfig | None = None) -> None:
         """Initialize the executor.
         
         Args:
@@ -436,7 +436,7 @@ class GrpcRetryExecutor:
         self,
         operation: Callable[[], Awaitable[T]],
         operation_name: str,
-        context: Optional[Dict[str, Any]] = None,
+        context: dict[str, Any] | None = None,
     ) -> T:
         """Execute an async gRPC operation with retry logic.
         
@@ -471,7 +471,7 @@ class GrpcRetryExecutor:
         context_str = " ".join(f"{k}={v}" for k, v in context.items())
         
         start_time = time.monotonic()
-        last_error: Optional[Exception] = None
+        last_error: Exception | None = None
         
         for attempt in range(1, self.config.max_attempts + 1):
             attempt_start = time.monotonic()

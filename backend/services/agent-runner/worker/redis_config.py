@@ -1,9 +1,9 @@
 """Redis configuration and client management for agent-runner."""
 
-import os
-import redis
 import logging
-from typing import Optional
+import os
+
+import redis
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,7 @@ class RedisConfig:
         self,
         host: str,
         port: int,
-        password: Optional[str] = None,
+        password: str | None = None,
         db: int = 0,
         socket_timeout: int = 5,
         socket_connect_timeout: int = 5,

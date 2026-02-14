@@ -1,22 +1,25 @@
 """Temporal worker for agent-runner service."""
 
-from typing import Optional
+import logging
+
+import redis
 from temporalio.client import Client
 from temporalio.worker import Worker
+
 from .config import Config
-from .token_manager import set_api_key
 from .redis_config import RedisConfig, create_redis_client
-import logging
-import redis
+from .temporal_converter import create_data_converter
+from .token_manager import set_api_key
+
 
 class AgentRunner:
     """Temporal worker that executes Graphton agent activities."""
     
     def __init__(self, config: Config):
         self.config = config
-        self.client: Optional[Client] = None
-        self.worker: Optional[Worker] = None
-        self.redis_client: Optional[redis.Redis] = None
+        self.client: Client | None = None
+        self.worker: Worker | None = None
+        self.redis_client: redis.Redis | None = None
         self.logger = logging.getLogger(__name__)
         
         # Set global API key for activities
@@ -62,9 +65,9 @@ class AgentRunner:
         - cleanup_sandbox: Sandbox cleanup (legacy, may be removed)
         """
         # Import activities here to avoid circular imports
-        from worker.activities.execute_graphton import execute_graphton
-        from worker.activities.ensure_thread import ensure_thread
         from worker.activities.cleanup_sandbox import cleanup_sandbox
+        from worker.activities.ensure_thread import ensure_thread
+        from worker.activities.execute_graphton import execute_graphton
         
         # Log execution mode
         mode = "LOCAL" if self.config.is_local_mode() else "CLOUD"
@@ -76,11 +79,15 @@ class AgentRunner:
             self.logger.info(f"🔧 Sandbox: {self.config.sandbox_type}")
             self.logger.info(f"🔧 Redis: {self.config.redis_host}:{self.config.redis_port}")
         
-        # Connect to Temporal
+        # Connect to Temporal with forward-compatible proto deserialization.
+        # The custom data converter tolerates unknown protobuf fields in JSON
+        # payloads, preventing hard failures when Go services add new proto
+        # fields before the Python worker is redeployed with updated stubs.
         try:
             self.client = await Client.connect(
                 self.config.temporal_service_address,
                 namespace=self.config.temporal_namespace,
+                data_converter=create_data_converter(),
             )
             self.logger.info(
                 f"✅ [POLYGLOT] Connected to Temporal server at {self.config.temporal_service_address}, "
@@ -106,16 +113,16 @@ class AgentRunner:
             f"✅ [POLYGLOT] Registered Python activities on task queue: '{self.config.task_queue}'"
         )
         self.logger.info(
-            f"✅ [POLYGLOT] Activities: ExecuteGraphton, EnsureThread, CleanupSandbox"
+            "✅ [POLYGLOT] Activities: ExecuteGraphton, EnsureThread, CleanupSandbox"
         )
         self.logger.info(
             f"✅ [POLYGLOT] Max concurrency: {self.config.max_concurrency}"
         )
         self.logger.info(
-            f"✅ [POLYGLOT] Java workflows (InvokeAgentExecutionWorkflow) handled by stigmer-service on same queue"
+            "✅ [POLYGLOT] Java workflows (InvokeAgentExecutionWorkflow) handled by stigmer-service on same queue"
         )
         self.logger.info(
-            f"✅ [POLYGLOT] Temporal routes: workflow tasks → Java, Python activity tasks → Python"
+            "✅ [POLYGLOT] Temporal routes: workflow tasks → Java, Python activity tasks → Python"
         )
     
     async def start(self):

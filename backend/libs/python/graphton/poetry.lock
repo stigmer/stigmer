@@ -528,14 +528,14 @@ test-randomorder = ["pytest-randomly"]
 
 [[package]]
 name = "deepagents"
-version = "0.4.1"
+version = "0.4.0"
 description = "General purpose 'deep agent' with sub-agent spawning, todo list capabilities, and mock file system. Built on LangGraph."
 optional = false
 python-versions = "<4.0,>=3.11"
 groups = ["main"]
 files = [
-    {file = "deepagents-0.4.1-py3-none-any.whl", hash = "sha256:9973c696b452ca050fbba860f4a997d8428dc56f629c5c0f7e01e483d768a4d9"},
-    {file = "deepagents-0.4.1.tar.gz", hash = "sha256:054f3b3baff2405c5053a2d004e5eaaa06b1a8346018753804ec0292a627fe64"},
+    {file = "deepagents-0.4.0-py3-none-any.whl", hash = "sha256:475af99429c7b6abe4c53d476d6b48f01960dc1bcaec7fa21093189acdfc2864"},
+    {file = "deepagents-0.4.0.tar.gz", hash = "sha256:ccfbb2394d2c50a3cf6f61457c5c1d3868354beee2177a57b8497c72c38f8e9b"},
 ]
 
 [package.dependencies]
@@ -3086,4 +3086,4 @@ cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and pyt
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<4.0"
-content-hash = "f5dbfc1f8789ec953a26bd66be519c7ab414ba8875f2a278aa15a212900fba6c"
+content-hash = "42e28ca0f6eb93f5843c99a959d1756df4932e799307a96af4db1c5a1ff9a5a8"

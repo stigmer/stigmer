@@ -1,14 +1,16 @@
 """gRPC client for Skill API."""
 
+import asyncio
+import logging
+
 import grpc
 from ai.stigmer.agentic.skill.v1 import query_pb2_grpc
-from ai.stigmer.agentic.skill.v1.io_pb2 import SkillId
 from ai.stigmer.agentic.skill.v1.api_pb2 import Skill
+from ai.stigmer.agentic.skill.v1.io_pb2 import SkillId
 from ai.stigmer.commons.apiresource.io_pb2 import ApiResourceReference
-from worker.config import Config
+
 from grpc_client.auth.client_interceptor import AuthClientInterceptor
-import logging
-import asyncio
+from worker.config import Config
 
 logger = logging.getLogger(__name__)
 

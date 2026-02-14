@@ -6,45 +6,44 @@ Status is returned to the Temporal workflow, which orchestrates persistence
 via Java activity (polyglot pattern).
 """
 
-import logging
-import json
 import hashlib
-from typing import Dict, Any, Optional, Tuple, List
+import json
+import logging
 from datetime import datetime
+from typing import Any
 
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
-    AgentMessage, 
-    ToolCall, 
-    ComponentMetadata, 
-    SubAgentExecution,
-    TodoItem,
-    UsageMetrics,
-    ResolvedExecutionContext,
+    AgentMessage,
+    ApprovalAction,
+    ComponentMetadata,
+    ContextInfo,
+    ExecutionArtifact,
     McpServerResolutionStatus,
     PendingApproval,
-    ApprovalAction,
-    ContextInfo,
+    ResolvedExecutionContext,
+    SubAgentExecution,
     SummarizationEvent,
-    ExecutionArtifact,
+    TodoItem,
+    ToolCall,
+    UsageMetrics,
 )
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
-    ExecutionPhase, 
-    MessageType, 
-    ToolCallStatus,
+    ExecutionPhase,
+    MessageType,
     SubAgentStatus,
     TodoStatus,
+    ToolCallStatus,
 )
 from google.protobuf.struct_pb2 import Struct
-from worker.component_type_inference import infer_component_type
-from worker.command_parser import format_execute_tool_name
+from graphton.core.summarization_callback import SummarizationEventData
+
 from worker.activities.graphton.approval_policy import (
     ApprovalConfig,
     ApprovalRequirement,
-    resolve_tool_approval,
     render_approval_message,
+    resolve_tool_approval,
 )
-from graphton.core.summarization_callback import SummarizationEventData
-
+from worker.component_type_inference import infer_component_type
 
 # Planning tools that update execution state without UI display
 PLANNING_TOOLS = {
@@ -74,7 +73,7 @@ class StatusBuilder:
         self,
         execution_id: str,
         initial_status: Any,
-        approval_config: Optional[ApprovalConfig] = None,
+        approval_config: ApprovalConfig | None = None,
     ):
         """
         Initialize status builder.
@@ -98,15 +97,15 @@ class StatusBuilder:
         self.tool_call_fingerprints: set = set()
         
         # Namespace mapping for sub-agent tool call routing
-        self.namespace_mapping: Dict[str, Dict[str, str]] = {}
+        self.namespace_mapping: dict[str, dict[str, str]] = {}
         
         # Track AI message generation timing for duration calculation
         # Key: message index in messages list, Value: start timestamp
-        self._message_start_times: Dict[int, datetime] = {}
+        self._message_start_times: dict[int, datetime] = {}
         
         # Track tool execution timing for duration calculation (Phase 2.2)
         # Key: run_id, Value: start timestamp
-        self._tool_start_times: Dict[str, datetime] = {}
+        self._tool_start_times: dict[str, datetime] = {}
         
         # Track accumulated token usage across all LLM calls in this execution
         self._total_prompt_tokens: int = 0
@@ -121,15 +120,15 @@ class StatusBuilder:
         
         # Track active sub-agent executions by their run_id
         # Key: run_id (from task tool), Value: SubAgentExecution proto
-        self._active_sub_agents: Dict[str, SubAgentExecution] = {}
+        self._active_sub_agents: dict[str, SubAgentExecution] = {}
         
         # Map namespace to sub-agent run_id for event routing
         # Key: namespace string, Value: sub-agent run_id
-        self._namespace_to_sub_agent_id: Dict[str, str] = {}
+        self._namespace_to_sub_agent_id: dict[str, str] = {}
         
         # Track AI message generation timing within sub-agents (separate from main)
         # Key: (sub_agent_id, message_index), Value: start timestamp
-        self._sub_agent_message_start_times: Dict[Tuple[str, int], datetime] = {}
+        self._sub_agent_message_start_times: dict[tuple[str, int], datetime] = {}
         
         # ─────────────────────────────────────────────────────────────────────────
         # Usage Metrics Tracking (Phase 2.4)
@@ -145,10 +144,10 @@ class StatusBuilder:
         
         # Per-sub-agent usage tracking
         # Key: sub_agent_id (run_id), Value: accumulated metrics
-        self._sub_agent_llm_call_count: Dict[str, int] = {}
-        self._sub_agent_prompt_tokens: Dict[str, int] = {}
-        self._sub_agent_completion_tokens: Dict[str, int] = {}
-        self._sub_agent_primary_model: Dict[str, str] = {}
+        self._sub_agent_llm_call_count: dict[str, int] = {}
+        self._sub_agent_prompt_tokens: dict[str, int] = {}
+        self._sub_agent_completion_tokens: dict[str, int] = {}
+        self._sub_agent_primary_model: dict[str, str] = {}
         
         # ─────────────────────────────────────────────────────────────────────────
         # Approval State Tracking (HITL Phase 2)
@@ -158,11 +157,11 @@ class StatusBuilder:
         # ─────────────────────────────────────────────────────────────────────────
         
         # run_id of the tool call currently pending approval (None if not waiting)
-        self._pending_tool_approval: Optional[str] = None
+        self._pending_tool_approval: str | None = None
         
         # Saved execution phase to restore after approval decision
         # (preserves IN_PROGRESS state when transitioning to WAITING_FOR_APPROVAL)
-        self._saved_phase_before_approval: Optional[int] = None
+        self._saved_phase_before_approval: int | None = None
         
         # ─────────────────────────────────────────────────────────────────────────
         # Context Management Tracking (Phase 3)
@@ -173,10 +172,10 @@ class StatusBuilder:
         # ─────────────────────────────────────────────────────────────────────────
         
         # Context info initialized via initialize_context_info()
-        self._context_info: Optional[ContextInfo] = None
+        self._context_info: ContextInfo | None = None
         
         # Accumulated summarization events during this execution
-        self._summarization_events: List[SummarizationEvent] = []
+        self._summarization_events: list[SummarizationEvent] = []
         
         # ─────────────────────────────────────────────────────────────────────────
         # Execution Artifacts Tracking (Artifact Lifecycle)
@@ -184,9 +183,9 @@ class StatusBuilder:
         # Tracks artifacts published by the agent via the publish_artifact tool.
         # Artifacts are accumulated during execution and added to the final status.
         # ─────────────────────────────────────────────────────────────────────────
-        self._artifacts: List[ExecutionArtifact] = []
+        self._artifacts: list[ExecutionArtifact] = []
     
-    async def process_event(self, event: Dict[str, Any]) -> None:
+    async def process_event(self, event: dict[str, Any]) -> None:
         """
         Process astream_events v2 event and update local status.
         
@@ -216,7 +215,7 @@ class StatusBuilder:
         elif event_type == "on_chat_model_end":
             self._handle_chat_model_end_event(event, namespace)
     
-    def _handle_tool_start_event(self, event: Dict[str, Any], namespace: str = "") -> None:
+    def _handle_tool_start_event(self, event: dict[str, Any], namespace: str = "") -> None:
         """Handle on_tool_start event - updates local status."""
         tool_name = event.get("name", "")
         tool_args_raw = event.get("data", {}).get("input", {})
@@ -251,13 +250,6 @@ class StatusBuilder:
         # Try to register namespace for event routing (for sub-agent child events)
         if namespace:
             self._register_sub_agent_namespace(namespace)
-        
-        # Transform tool name
-        display_name = tool_name
-        if tool_name.startswith("execute") or tool_name == "Shell":
-            command = tool_args.get("command", "")
-            if command:
-                display_name = format_execute_tool_name(command)
         
         # Create component metadata
         component_type = infer_component_type(tool_name)
@@ -367,7 +359,7 @@ class StatusBuilder:
                 sub_agent_name=sub_agent_name,
             )
     
-    def _handle_tool_end_event(self, event: Dict[str, Any], namespace: str = "") -> None:
+    def _handle_tool_end_event(self, event: dict[str, Any], namespace: str = "") -> None:
         """Handle on_tool_end event - updates local status with COMPLETED status."""
         tool_name = event.get("name", "")
         run_id = event.get("run_id", "")
@@ -458,7 +450,7 @@ class StatusBuilder:
                 f"duration_ms={duration_ms or 'N/A'}"
             )
     
-    def _handle_chat_model_stream_event(self, event: Dict[str, Any], namespace: str = "") -> None:
+    def _handle_chat_model_stream_event(self, event: dict[str, Any], namespace: str = "") -> None:
         """Handle on_chat_model_stream event - updates local status."""
         chunk_data = event.get("data", {}).get("chunk", {})
         
@@ -491,12 +483,10 @@ class StatusBuilder:
         
         # Find or create AI message in the correct context
         ai_message = None
-        ai_message_index = None
         for idx in range(len(messages_list) - 1, -1, -1):
             message = messages_list[idx]
             if message.type == MessageType.MESSAGE_AI:
                 ai_message = message
-                ai_message_index = idx
                 break
         
         if not ai_message:
@@ -522,7 +512,7 @@ class StatusBuilder:
         else:
             ai_message.content += token
     
-    def _handle_chat_model_end_event(self, event: Dict[str, Any], namespace: str = "") -> None:
+    def _handle_chat_model_end_event(self, event: dict[str, Any], namespace: str = "") -> None:
         """
         Handle on_chat_model_end event - finalize AI message and capture usage metrics.
         
@@ -673,7 +663,7 @@ class StatusBuilder:
         )
     
     # Helper methods
-    def _unwrap_tool_args(self, args: Dict[str, Any]) -> Dict[str, Any]:
+    def _unwrap_tool_args(self, args: dict[str, Any]) -> dict[str, Any]:
         """Unwrap LangGraph arg wrappers."""
         if "kwargs" in args and isinstance(args["kwargs"], dict):
             return args["kwargs"]
@@ -681,7 +671,7 @@ class StatusBuilder:
             return args["input"]
         return args
     
-    def _get_tool_fingerprint(self, tool_name: str, tool_args: Dict[str, Any]) -> str:
+    def _get_tool_fingerprint(self, tool_name: str, tool_args: dict[str, Any]) -> str:
         """Create fingerprint for deduplication."""
         fingerprint_data = f"{tool_name}:{json.dumps(tool_args, sort_keys=True)}"
         return hashlib.sha256(fingerprint_data.encode()).hexdigest()
@@ -701,7 +691,7 @@ class StatusBuilder:
     def _format_tool_message_content(
         self,
         tool_name: str,
-        args: Optional[Struct],
+        args: Struct | None,
         result: str,
     ) -> str:
         """Format tool message content for CLI display.
@@ -812,7 +802,7 @@ class StatusBuilder:
         self,
         run_id: str,
         tool_name: str,
-        tool_args: Dict[str, Any],
+        tool_args: dict[str, Any],
         approval_message: str,
         from_sub_agent: bool = False,
         sub_agent_name: str = "",
@@ -1009,7 +999,7 @@ class StatusBuilder:
     def _check_tool_approval_requirement(
         self,
         tool_name: str,
-        tool_args: Dict[str, Any],
+        tool_args: dict[str, Any],
     ) -> ApprovalRequirement:
         """
         Check if a tool requires approval based on the configured policy chain.
@@ -1048,7 +1038,7 @@ class StatusBuilder:
         self,
         run_id: str,
         tool_name: str,
-        tool_args: Dict[str, Any],
+        tool_args: dict[str, Any],
         approval_message: str,
         from_sub_agent: bool = False,
         sub_agent_name: str = "",
@@ -1108,7 +1098,7 @@ class StatusBuilder:
             f"status=WAITING_APPROVAL context={context_info}"
         )
     
-    def _find_tool_call_by_id(self, run_id: str) -> Optional[ToolCall]:
+    def _find_tool_call_by_id(self, run_id: str) -> ToolCall | None:
         """
         Find a ToolCall by its run_id in the current execution context.
         
@@ -1134,7 +1124,7 @@ class StatusBuilder:
         
         return None
     
-    def _create_args_preview(self, tool_args: Dict[str, Any]) -> str:
+    def _create_args_preview(self, tool_args: dict[str, Any]) -> str:
         """
         Create a sanitized preview of tool arguments for UI display.
         
@@ -1194,7 +1184,7 @@ class StatusBuilder:
     # Sub-Agent Namespace Routing (Phase 2.3)
     # ─────────────────────────────────────────────────────────────────────────────
     
-    def _get_execution_context(self, namespace: str) -> Tuple[Any, Optional[SubAgentExecution]]:
+    def _get_execution_context(self, namespace: str) -> tuple[Any, SubAgentExecution | None]:
         """
         Determine execution context based on namespace.
         
@@ -1247,7 +1237,7 @@ class StatusBuilder:
                 )
                 return
     
-    def _handle_sub_agent_start(self, event: Dict[str, Any], tool_args: Dict[str, Any], run_id: str) -> None:
+    def _handle_sub_agent_start(self, event: dict[str, Any], tool_args: dict[str, Any], run_id: str) -> None:
         """
         Handle task tool invocation - creates SubAgentExecution.
         
@@ -1281,7 +1271,7 @@ class StatusBuilder:
             f"sub_agent={sub_agent_name} id={run_id} status=IN_PROGRESS"
         )
     
-    def _handle_sub_agent_end(self, event: Dict[str, Any], run_id: str) -> None:
+    def _handle_sub_agent_end(self, event: dict[str, Any], run_id: str) -> None:
         """
         Handle task tool completion - finalize SubAgentExecution.
         
@@ -1388,9 +1378,9 @@ class StatusBuilder:
     
     def set_resolved_context(
         self,
-        environment_keys: List[str],
-        mcp_servers: Dict[str, Tuple[bool, str, int]],
-        skill_names: List[str],
+        environment_keys: list[str],
+        mcp_servers: dict[str, tuple[bool, str, int]],
+        skill_names: list[str],
     ) -> None:
         """
         Set the resolved execution context.
@@ -1645,7 +1635,7 @@ class StatusBuilder:
             f"path={artifact.sandbox_path}"
         )
     
-    def get_artifacts(self) -> List[ExecutionArtifact]:
+    def get_artifacts(self) -> list[ExecutionArtifact]:
         """
         Get the current list of artifacts.
         

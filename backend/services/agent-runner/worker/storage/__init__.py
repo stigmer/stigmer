@@ -187,7 +187,7 @@ def create_artifact_storage(config: ArtifactStorageConfig) -> ArtifactStorage:
     """
     if config.storage_type == "r2":
         logger.info("Creating R2 artifact storage")
-        R2ArtifactStorage = _get_r2_storage_class()
+        R2ArtifactStorage = _get_r2_storage_class()  # noqa: N806 — class reference
         return R2ArtifactStorage(
             endpoint=config.r2_endpoint,
             access_key=config.r2_access_key,
