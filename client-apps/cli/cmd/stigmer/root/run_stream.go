@@ -6,32 +6,33 @@ import (
 	"io"
 	"os"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/pkg/errors"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
 	"google.golang.org/grpc"
 )
 
-// streamAgentExecution subscribes to execution updates and displays them in real-time.
-// It handles approval prompts inline and returns the final execution state when
-// the execution reaches a terminal phase.
+// streamAgentExecution subscribes to execution updates and displays them in
+// a Bubbletea alt-screen TUI. The TUI provides a scrollable viewport with
+// auto-follow, inline approval handling, and streams AI content incrementally.
 //
-// The streaming loop follows the invariant: render content before status, prompt
-// before proceeding, never exit with unresolved approvals. This ensures the user
-// sees tool calls before phase transitions and always gets a chance to approve.
+// A background goroutine reads the gRPC stream and converts updates into TUI
+// events sent over a channel. The TUI model receives these events and renders
+// content blocks in a viewport.
 //
-// Approval detection uses two tracks for defense-in-depth:
-//   - Track 1 (phase-level): Detects EXECUTION_WAITING_FOR_APPROVAL phase with PendingApproval.
-//   - Track 2 (tool-call-level): Scans ToolCalls for WAITING_APPROVAL status, catching
-//     approvals missed when the phase transitions between stream updates.
+// Approval is handled inline in the TUI: when the goroutine detects an approval
+// request, it sends an ApprovalNeededEvent. The TUI shows a prompt and captures
+// the user's key press (a/s/r). The response flows back via a channel, and the
+// goroutine submits the decision to the backend API.
 //
-// The prompter is injected to support both interactive (TTY) and non-interactive (CI) modes.
-// defaultAction is the --approve-default flag value; when set, non-TTY approvals
-// are auto-resolved without prompting.
+// After the TUI exits (execution completes or user quits), a summary is printed
+// to inline stdout so the terminal history shows the final state.
 func streamAgentExecution(executionID string, prompter approval.Prompter, defaultAction approval.Action, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
 	cliprint.PrintSuccess("Streaming agent execution logs")
 	fmt.Println()
@@ -46,110 +47,70 @@ func streamAgentExecution(executionID string, prompter approval.Prompter, defaul
 		return nil, errors.Wrap(err, "failed to subscribe to agent execution")
 	}
 
-	// Activity spinner — shows progress between streaming updates.
-	// Deferred Stop ensures cleanup on error exits.
-	sp := spinner.New(os.Stdout)
-	sp.Start("Waiting for agent...")
-	defer sp.Stop()
+	// Channels for communication between gRPC goroutine and TUI.
+	// events: gRPC goroutine -> TUI (execution state changes)
+	// approvalResponses: TUI -> gRPC goroutine (user's approval decisions)
+	events := make(chan executiontui.Event, 16)
+	approvalResponses := make(chan executiontui.ApprovalResponse, 1)
 
-	// Track last displayed phase and approval state.
-	// promptedToolCallIDs is a set tracking all tool calls that have been prompted,
-	// preventing duplicate prompts even when multiple stream updates carry the same state.
-	var lastPhase agentexecutionv1.ExecutionPhase
-	promptedToolCallIDs := make(map[string]bool)
+	// Create and configure the TUI model.
+	model := executiontui.New(executiontui.Config{
+		ExecutionID:       executionID,
+		Events:            events,
+		ApprovalResponses: approvalResponses,
+	})
 
-	// Delta-based message renderer — streams AI content incrementally instead
-	// of waiting for the complete message. See run_display_stream.go.
-	renderer := newMessageStreamRenderer(os.Stdout)
+	// Launch the gRPC stream goroutine that converts proto updates to TUI events.
+	go streamToEvents(ctx, streamToEventsConfig{
+		executionID:       executionID,
+		stream:            stream,
+		events:            events,
+		approvalResponses: approvalResponses,
+		conn:              conn,
+	})
 
-	// Stream updates until execution completes
-	for {
-		execution, err := stream.Recv()
-		if err != nil {
-			sp.Stop()
-			if err == io.EOF {
-				return nil, errors.New("agent execution stream ended unexpectedly")
-			}
-			return nil, errors.Wrap(err, "agent execution stream error")
-		}
-
-		// Step 1: Render messages FIRST — show what happened before status changes.
-		// The renderer tracks which messages have been displayed and only prints
-		// new content — including incremental token deltas for in-progress AI messages.
-		//
-		// CRITICAL: Stop the spinner BEFORE rendering to prevent output corruption.
-		// The spinner goroutine writes \r-prefixed frames to stdout; if the renderer
-		// also writes to stdout concurrently, the tool call text appears on the same
-		// line as the spinner frame (e.g., "⠋ Agent is thinking... 📖 Read: ...").
-		// We use hasPending() to avoid unnecessary stop/start flicker when there is
-		// nothing new to render.
-		if renderer.hasPending(execution.Status.Messages) {
-			sp.Stop()
-		}
-		rendered, streaming := renderer.render(execution.Status.Messages)
-		if rendered && !streaming {
-			// Batch of complete messages finished — restart spinner while waiting.
-			sp.Start("Agent is thinking...")
-		}
-		// When streaming is active, the spinner stays stopped: the flowing
-		// text is the progress indicator.
-
-		// Step 2: Tool-call-level approval detection (defense-in-depth).
-		// Catches approvals missed by phase detection due to transient phases.
-		// Scans ToolCalls for any in WAITING_APPROVAL status not yet prompted.
-		if tc := findUnpromptedApproval(execution.Status.ToolCalls, promptedToolCallIDs); tc != nil {
-			sp.Stop()
-			if err := handleToolCallApproval(ctx, conn, executionID, tc, execution.Status.GetPendingApproval(), prompter, defaultAction); err != nil {
-				return nil, errors.Wrap(err, "agent approval failed")
-			}
-			promptedToolCallIDs[tc.Id] = true
-			// Sync lastPhase so Step 4 does not re-display the WAITING_FOR_APPROVAL
-			// phase change that the user already acted on via the approval prompt.
-			lastPhase = execution.Status.Phase
-			sp.Start("Resuming after approval...")
-		}
-
-		// Step 3: Phase-level approval detection (primary track).
-		// Uses the execution phase and PendingApproval field for richer context.
-		if needsAgentApprovalPrompt(
-			execution.Status.Phase,
-			execution.Status.GetPendingApproval(),
-			promptedToolCallIDs,
-		) {
-			sp.Stop()
-			pendingApproval := execution.Status.GetPendingApproval()
-			if err := handleAgentApprovalPrompt(ctx, conn, executionID, pendingApproval, prompter, defaultAction); err != nil {
-				return nil, errors.Wrap(err, "agent approval failed")
-			}
-			promptedToolCallIDs[pendingApproval.ToolCallId] = true
-			// Sync lastPhase so Step 4 does not re-display the WAITING_FOR_APPROVAL
-			// phase change that the user already acted on via the approval prompt.
-			lastPhase = execution.Status.Phase
-			sp.Start("Resuming after approval...")
-		}
-
-		// Step 4: Display phase changes (AFTER messages are flushed and approvals handled).
-		if execution.Status.Phase != lastPhase {
-			sp.Stop()
-			displayAgentPhaseChange(execution.Status.Phase, lastPhase)
-			lastPhase = execution.Status.Phase
-
-			if !isTerminalAgentPhase(lastPhase) {
-				sp.Start(spinnerLabelForAgentPhase(lastPhase))
-			}
-		}
-
-		// Step 5: Terminal check with unresolved approval guard.
-		if isTerminalAgentPhase(execution.Status.Phase) {
-			sp.Stop()
-			if unresolved := countUnresolvedApprovals(execution.Status.ToolCalls, promptedToolCallIDs); unresolved > 0 {
-				cliprint.PrintWarning("%d tool call(s) required approval but completed without prompting", unresolved)
-				fmt.Println()
-			}
-			displayAgentExecutionComplete(execution)
-			return execution, nil
-		}
+	// Run the TUI in alt-screen mode. This blocks until the TUI exits.
+	p := tea.NewProgram(model, tea.WithAltScreen())
+	finalModel, err := p.Run()
+	if err != nil {
+		return nil, errors.Wrap(err, "TUI execution failed")
 	}
+
+	// Extract the final state from the TUI model.
+	result := finalModel.(executiontui.Model)
+
+	if result.FinalError() != "" && !result.Done() {
+		return nil, errors.New(result.FinalError())
+	}
+
+	// The TUI has exited and the terminal is back to inline mode.
+	// The caller (the run command) handles printing the final execution
+	// summary to inline stdout so it appears in terminal history.
+	//
+	// We re-fetch the final execution state to return to the caller.
+	// This is necessary because the TUI events channel carries display data
+	// (strings), not the full proto execution object.
+	finalExec, err := fetchFinalExecution(ctx, conn, executionID)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to fetch final execution state")
+	}
+
+	// Print execution summary to inline stdout (visible in terminal history).
+	displayAgentExecutionComplete(finalExec)
+
+	return finalExec, nil
+}
+
+// fetchFinalExecution retrieves the current execution state from the backend.
+// Called after the TUI exits to get the full proto object for the summary display
+// and to return to the caller.
+func fetchFinalExecution(ctx context.Context, conn *grpc.ClientConn, executionID string) (*agentexecutionv1.AgentExecution, error) {
+	client := agentexecutionv1.NewAgentExecutionQueryControllerClient(conn)
+	resp, err := client.Get(ctx, &agentexecutionv1.AgentExecutionId{Value: executionID})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get agent execution")
+	}
+	return resp, nil
 }
 
 // streamWorkflowExecution subscribes to workflow execution updates and displays them in real-time.
