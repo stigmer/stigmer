@@ -8,14 +8,12 @@ This module provides three execution strategies:
 The execution mode is configured via STIGMER_EXECUTION_MODE environment variable.
 """
 
-from dataclasses import dataclass
-from typing import Any, Optional
-from enum import Enum
 import asyncio
 import logging
 import os
-import subprocess
 import time
+from dataclasses import dataclass
+from typing import Any
 
 # Optional Daytona import (only needed for cloud mode)
 try:
@@ -65,7 +63,7 @@ class SandboxManager:
         sandbox_auto_pull: bool = True,
         sandbox_cleanup: bool = True,
         sandbox_ttl: int = 3600,
-        daytona_api_key: Optional[str] = None,
+        daytona_api_key: str | None = None,
     ):
         """Initialize SandboxManager.
         
@@ -84,23 +82,40 @@ class SandboxManager:
         self.sandbox_ttl = sandbox_ttl
         
         # Daytona client (lazy init for cloud mode)
-        self._daytona = None
+        self._daytona: Any = None  # Daytona client when initialized
         self._daytona_api_key = daytona_api_key
         
         # Docker client (lazy init for sandbox mode)
-        self._docker = None
+        self._docker: Any = None  # docker.DockerClient when initialized
         
         # Active containers cache (for reuse)
         self._active_containers: dict[str, tuple[Any, float]] = {}  # container_id -> (container, created_at)
         
         logger.info(f"SandboxManager initialized with mode: {execution_mode.value}")
     
+    def _get_docker(self) -> Any:
+        """Return the Docker client, initializing lazily if needed.
+        
+        Returns:
+            docker.DockerClient instance.
+        
+        Raises:
+            RuntimeError: If Docker is not available.
+        """
+        if self._docker is None:
+            if not DOCKER_AVAILABLE:
+                raise RuntimeError(
+                    "Docker library not available. Install with: pip install docker"
+                )
+            self._docker = docker.from_env()
+        return self._docker
+    
     async def execute_command(
         self,
         command: str,
-        working_dir: Optional[str] = None,
-        env_vars: Optional[dict[str, str]] = None,
-        timeout: Optional[int] = None,
+        working_dir: str | None = None,
+        env_vars: dict[str, str] | None = None,
+        timeout: int | None = None,
     ) -> ExecutionResult:
         """Execute command based on configured execution mode.
         
@@ -183,9 +198,9 @@ class SandboxManager:
     async def _execute_local(
         self,
         command: str,
-        working_dir: Optional[str],
-        env_vars: Optional[dict[str, str]],
-        timeout: Optional[int],
+        working_dir: str | None,
+        env_vars: dict[str, str] | None,
+        timeout: int | None,
     ) -> ExecutionResult:
         """Execute command directly on host machine using subprocess.
         
@@ -221,7 +236,7 @@ class SandboxManager:
                     process.communicate(),
                     timeout=timeout
                 )
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 process.kill()
                 await process.wait()
                 raise TimeoutError(f"Command timed out after {timeout} seconds")
@@ -247,9 +262,9 @@ class SandboxManager:
     async def _execute_docker(
         self,
         command: str,
-        working_dir: Optional[str],
-        env_vars: Optional[dict[str, str]],
-        timeout: Optional[int],
+        working_dir: str | None,
+        env_vars: dict[str, str] | None,
+        timeout: int | None,
     ) -> ExecutionResult:
         """Execute command in isolated Docker container.
         
@@ -273,8 +288,7 @@ class SandboxManager:
         
         try:
             # Ensure Docker client initialized
-            if self._docker is None:
-                self._docker = docker.from_env()
+            self._get_docker()
             
             # Ensure sandbox image available
             await self._ensure_sandbox_image()

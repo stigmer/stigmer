@@ -31,8 +31,13 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
+from ai.stigmer.agentic.agent.v1.spec_pb2 import McpServerUsage
 from ai.stigmer.agentic.mcpserver.v1.api_pb2 import McpServer
-from ai.stigmer.agentic.mcpserver.v1.spec_pb2 import McpServerSpec
+from ai.stigmer.agentic.mcpserver.v1.spec_pb2 import (
+    HttpServerConfig,
+    McpServerSpec,
+    StdioServerConfig,
+)
 
 # Import placeholder resolution from dedicated module
 from worker.mcp.placeholder_resolver import PlaceholderResolver
@@ -152,7 +157,7 @@ def transform_mcp_config(
 
 
 def _transform_stdio_config(
-    stdio: "StdioServerConfig",  # noqa: F821 - forward reference
+    stdio: StdioServerConfig,
     env_vars: dict[str, str],
 ) -> dict[str, Any]:
     """Transform StdioServerConfig to LangGraph stdio format.
@@ -182,7 +187,7 @@ def _transform_stdio_config(
 
 
 def _transform_http_config(
-    http: "HttpServerConfig",  # noqa: F821 - forward reference
+    http: HttpServerConfig,
     env_vars: dict[str, str],
 ) -> dict[str, Any]:
     """Transform HttpServerConfig to LangGraph HTTP format.
@@ -226,7 +231,7 @@ def _transform_http_config(
 
 def transform_all_mcp_configs(
     mcp_servers: list[McpServer],
-    mcp_server_usages: list["McpServerUsage"],  # noqa: F821
+    mcp_server_usages: list[McpServerUsage],
     env_vars: dict[str, str],
 ) -> McpConfigResult:
     """Transform multiple MCP servers to LangGraph format.
@@ -286,7 +291,7 @@ def transform_all_mcp_configs(
             logger.warning("McpServerUsage has no slug in mcp_server_ref, skipping")
             continue
         
-        server = servers_by_slug.get(slug)
+        server = servers_by_slug.get(slug)  # type: ignore[assignment]  # .get() returns Optional, narrowed by guard below
         if not server:
             logger.error(
                 f"MCP server '{slug}' referenced in agent but not found in fetched servers"

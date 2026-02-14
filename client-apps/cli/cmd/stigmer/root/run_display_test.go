@@ -12,18 +12,55 @@ import (
 // displayAgentPhaseChange Tests
 // =============================================================================
 
-func TestDisplayAgentPhaseChange_WaitingForApproval(t *testing.T) {
-	// This test verifies that the function handles the WAITING_FOR_APPROVAL phase
-	// without panicking. The actual colored output from cliprint goes through
-	// fatih/color which writes directly, so we just verify no panic occurs.
-	// The function's behavior is verified through visual inspection and integration tests.
+func TestDisplayAgentPhaseChange_WaitingForApproval_Suppressed(t *testing.T) {
+	// WAITING_FOR_APPROVAL is suppressed — the approval panel and interactive
+	// prompt are the user-facing signal. Verify no panic and no output.
 	defer func() {
 		if r := recover(); r != nil {
 			t.Errorf("displayAgentPhaseChange panicked: %v", r)
 		}
 	}()
 
-	displayAgentPhaseChange(agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
+	output := captureStdout(t, func() {
+		displayAgentPhaseChange(
+			agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL,
+			agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS,
+		)
+	})
+
+	// WAITING_FOR_APPROVAL should produce no output — it's intentionally suppressed.
+	if strings.TrimSpace(output) != "" {
+		t.Errorf("expected no output for WAITING_FOR_APPROVAL, got: %q", output)
+	}
+}
+
+func TestDisplayAgentPhaseChange_ResumeAfterApproval(t *testing.T) {
+	// Transition from WAITING_FOR_APPROVAL → IN_PROGRESS should say "Resumed"
+	// not "Execution started".
+	output := captureColorOutput(t, func() {
+		displayAgentPhaseChange(
+			agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS,
+			agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL,
+		)
+	})
+
+	if !strings.Contains(strings.ToLower(output), "resumed") {
+		t.Errorf("expected output to contain 'resumed', got: %s", output)
+	}
+}
+
+func TestDisplayAgentPhaseChange_FreshStart(t *testing.T) {
+	// Transition from PENDING → IN_PROGRESS should say "Execution started".
+	output := captureColorOutput(t, func() {
+		displayAgentPhaseChange(
+			agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS,
+			agentexecutionv1.ExecutionPhase_EXECUTION_PENDING,
+		)
+	})
+
+	if !strings.Contains(strings.ToLower(output), "started") {
+		t.Errorf("expected output to contain 'started', got: %s", output)
+	}
 }
 
 func TestDisplayAgentPhaseChange_AllPhases(t *testing.T) {
@@ -45,7 +82,7 @@ func TestDisplayAgentPhaseChange_AllPhases(t *testing.T) {
 				}
 			}()
 
-			displayAgentPhaseChange(phase)
+			displayAgentPhaseChange(phase, agentexecutionv1.ExecutionPhase_EXECUTION_PENDING)
 		})
 	}
 }
@@ -193,6 +230,11 @@ func TestIsTerminalAgentPhase(t *testing.T) {
 			phase:    agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED,
 			expected: true,
 		},
+		{
+			name:     "terminated is terminal",
+			phase:    agentexecutionv1.ExecutionPhase_EXECUTION_TERMINATED,
+			expected: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -238,6 +280,11 @@ func TestIsTerminalWorkflowPhase(t *testing.T) {
 		{
 			name:     "cancelled is terminal",
 			phase:    workflowexecutionv1.ExecutionPhase_EXECUTION_CANCELLED,
+			expected: true,
+		},
+		{
+			name:     "terminated is terminal",
+			phase:    workflowexecutionv1.ExecutionPhase_EXECUTION_TERMINATED,
 			expected: true,
 		},
 	}

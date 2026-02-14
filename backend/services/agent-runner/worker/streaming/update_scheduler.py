@@ -31,8 +31,6 @@ import os
 import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
-
 
 logger = logging.getLogger(__name__)
 
@@ -230,7 +228,7 @@ class StreamingUpdateScheduler:
         ...         scheduler.mark_update_sent(events)
     """
     
-    def __init__(self, config: Optional[StreamingConfig] = None) -> None:
+    def __init__(self, config: StreamingConfig | None = None) -> None:
         """Initialize the scheduler.
         
         Args:

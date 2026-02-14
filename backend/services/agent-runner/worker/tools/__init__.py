@@ -24,8 +24,8 @@ Usage:
 """
 
 from worker.tools.publish_artifact import (
-    publish_artifact,
     create_publish_artifact_tool,
+    publish_artifact,
 )
 
 __all__ = [

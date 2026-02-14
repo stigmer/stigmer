@@ -264,7 +264,7 @@ While LangGraph checkpointing handles most crash recovery, there's a small windo
 
 These tools are naturally idempotent - re-running them produces the same result:
 
-- `read_file`, `search`, `list_directory`, `grep`
+- `read`, `ls`, `glob`, `grep`
 - Database queries (SELECT statements)
 - API GET requests
 

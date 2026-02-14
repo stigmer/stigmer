@@ -11,11 +11,12 @@ Directory Structure:
 - /bin/skills/{version_hash}/* - Executable implementation files (from artifact ZIP)
 """
 
-from ai.stigmer.agentic.skill.v1.api_pb2 import Skill
+import io
 import logging
 import os
 import zipfile
-import io
+
+from ai.stigmer.agentic.skill.v1.api_pb2 import Skill
 
 logger = logging.getLogger(__name__)
 
@@ -271,8 +272,6 @@ class SkillWriter:
         Raises:
             RuntimeError: If extraction fails
         """
-        artifact_zip_path = f"{skill_dir}/artifact.zip"
-        
         # Extract using unzip command in sandbox
         extract_cmd = f"cd {skill_dir} && unzip -o artifact.zip && rm artifact.zip"
         

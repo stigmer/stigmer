@@ -13,11 +13,19 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/envfile"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"google.golang.org/grpc"
 )
 
 // runAgent executes an agent.
-func runAgent(ref, message string, env envfile.EnvMap, attachments []*agentexecutionv1.Attachment, follow, wait bool, downloadDir, orgID string, conn *grpc.ClientConn) error {
+//
+// By default, it streams execution updates in real-time until the execution
+// reaches a terminal state. If detach is true, it creates the execution and
+// returns immediately without streaming.
+//
+// defaultAction is the --approve-default flag value; when set, non-TTY approvals
+// are auto-resolved without prompting.
+func runAgent(ref, message string, env envfile.EnvMap, attachments []*agentexecutionv1.Attachment, detach bool, downloadDir, orgID string, defaultAction approval.Action, conn *grpc.ClientConn) error {
 	// Resolve agent by reference
 	agent, err := resolveAgent(ref, orgID, conn)
 	if err != nil {
@@ -32,7 +40,7 @@ func runAgent(ref, message string, env envfile.EnvMap, attachments []*agentexecu
 		cliprint.PrintInfo("Creating agent execution...")
 	}
 
-	exec, err := createAgentExecution(agent.Metadata.Id, orgID, message, env, attachments, "", conn)
+	exec, err := createAgentExecution(agent.Metadata.Id, orgID, message, env, attachments, "", false, conn)
 	if err != nil {
 		return errors.Wrap(err, "failed to create execution")
 	}
@@ -42,37 +50,34 @@ func runAgent(ref, message string, env envfile.EnvMap, attachments []*agentexecu
 	cliprint.PrintInfo("  Execution ID: %s", exec.Metadata.Id)
 	fmt.Println()
 
-	// If wait or download is requested, poll until completion
-	if wait || downloadDir != "" {
-		exec, err = waitForExecution(exec.Metadata.Id, conn)
-		if err != nil {
-			return errors.Wrap(err, "error waiting for execution")
-		}
-
-		// Display final status
-		displayExecutionResult(exec)
-
-		// Download artifacts if requested
-		if downloadDir != "" && len(exec.Status.Artifacts) > 0 {
-			if err := downloadArtifacts(exec, downloadDir, conn); err != nil {
-				return errors.Wrap(err, "failed to download artifacts")
-			}
-		}
+	// Detach mode: print execution ID and return immediately
+	if detach {
 		return nil
 	}
 
-	// Stream logs if follow is enabled (and not waiting)
-	if follow {
-		streamAgentExecutionLogs(exec.Metadata.Id, conn)
-	} else {
-		cliprint.PrintInfo("View logs: stigmer run agent %s --follow", agent.Metadata.Name)
-		fmt.Println()
+	// Stream execution in real-time until completion
+	prompter := approval.NewInteractivePrompter()
+	exec, err = streamAgentExecution(exec.Metadata.Id, prompter, defaultAction, conn)
+	if err != nil {
+		return errors.Wrap(err, "error streaming execution")
+	}
+
+	// Download artifacts if requested
+	if downloadDir != "" && len(exec.Status.Artifacts) > 0 {
+		if err := downloadArtifacts(exec, downloadDir, conn); err != nil {
+			return errors.Wrap(err, "failed to download artifacts")
+		}
 	}
 
 	return nil
 }
 
 // waitForExecution polls until execution reaches a terminal state.
+//
+// LEGACY: This function is retained as a fallback for edge cases (e.g., reconnecting
+// after a stream disconnect). The primary execution path uses streamAgentExecution(),
+// which streams updates in real-time and handles approvals inline. This polling path
+// does NOT handle approvals and will hang if the execution requires user approval.
 func waitForExecution(executionID string, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
 	cliprint.PrintInfo("Waiting for execution to complete...")
 
@@ -233,7 +238,14 @@ func isExpired(expiresAt string) bool {
 }
 
 // runWorkflow executes a workflow.
-func runWorkflow(ref, message string, env envfile.EnvMap, follow bool, orgID string, conn *grpc.ClientConn) error {
+//
+// By default, it streams execution updates in real-time until the execution
+// reaches a terminal state. If detach is true, it creates the execution and
+// returns immediately without streaming.
+//
+// defaultAction is the --approve-default flag value; when set, non-TTY approvals
+// are auto-resolved without prompting.
+func runWorkflow(ref, message string, env envfile.EnvMap, detach bool, orgID string, defaultAction approval.Action, conn *grpc.ClientConn) error {
 	// Resolve workflow by reference
 	workflow, err := resolveWorkflow(ref, orgID, conn)
 	if err != nil {
@@ -243,22 +255,25 @@ func runWorkflow(ref, message string, env envfile.EnvMap, follow bool, orgID str
 
 	// Create workflow execution
 	cliprint.PrintInfo("Creating workflow execution...")
-	execution, err := createWorkflowExecution(workflow.Metadata.Id, orgID, message, env, conn)
+	wfExec, err := createWorkflowExecution(workflow.Metadata.Id, orgID, message, env, conn)
 	if err != nil {
 		return errors.Wrap(err, "failed to create execution")
 	}
 
 	// Display execution started
 	cliprint.PrintSuccess("Workflow execution started: %s", workflow.Metadata.Name)
-	cliprint.PrintInfo("  Execution ID: %s", execution.Metadata.Id)
+	cliprint.PrintInfo("  Execution ID: %s", wfExec.Metadata.Id)
 	fmt.Println()
 
-	// Stream logs if follow is enabled
-	if follow {
-		streamWorkflowExecutionLogs(execution.Metadata.Id, conn)
-	} else {
-		cliprint.PrintInfo("View logs: stigmer run workflow %s --follow", workflow.Metadata.Name)
-		fmt.Println()
+	// Detach mode: print execution ID and return immediately
+	if detach {
+		return nil
+	}
+
+	// Stream execution in real-time until completion
+	prompter := approval.NewInteractivePrompter()
+	if _, err := streamWorkflowExecution(wfExec.Metadata.Id, prompter, defaultAction, conn); err != nil {
+		return errors.Wrap(err, "error streaming workflow execution")
 	}
 
 	return nil

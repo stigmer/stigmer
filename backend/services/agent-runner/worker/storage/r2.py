@@ -31,8 +31,7 @@ logger = logging.getLogger(__name__)
 # Lazy import boto3 to make it optional
 # Only required when R2 storage is actually used
 if TYPE_CHECKING:
-    import boto3
-    from botocore.config import Config
+    pass
 
 
 class R2ArtifactStorage:
@@ -123,7 +122,7 @@ class R2ArtifactStorage:
             return key
         except Exception as e:
             logger.error(f"Failed to upload to R2: {key}: {e}")
-            raise IOError(f"R2 upload failed: {e}") from e
+            raise OSError(f"R2 upload failed: {e}") from e
     
     def download(self, key: str) -> bytes:
         """Download content from R2.
@@ -147,7 +146,7 @@ class R2ArtifactStorage:
             raise FileNotFoundError(f"Artifact not found in R2: {key}")
         except Exception as e:
             logger.error(f"Failed to download from R2: {key}: {e}")
-            raise IOError(f"R2 download failed: {e}") from e
+            raise OSError(f"R2 download failed: {e}") from e
     
     def get_download_url(self, key: str, expires_in: int = 604800) -> str:
         """Generate a presigned download URL.

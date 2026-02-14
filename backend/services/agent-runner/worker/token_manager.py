@@ -1,13 +1,11 @@
 """Global API key holder for worker activities."""
 
-from typing import Optional
-
 
 # Global API key accessible to activities
-_api_key: Optional[str] = None
+_api_key: str | None = None
 
 
-def get_api_key() -> Optional[str]:
+def get_api_key() -> str | None:
     """Get the global API key."""
     return _api_key
 

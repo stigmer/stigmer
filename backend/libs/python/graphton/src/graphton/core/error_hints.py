@@ -29,7 +29,7 @@ def enrich_error_message(tool_name: str, error: str) -> str:
         Enriched error message with recovery suggestions
     
     Examples:
-        >>> enrich_error_message("read_file", "File not found: /path/to/file.txt")
+        >>> enrich_error_message("read", "File not found: /path/to/file.txt")
         'Error: File not found: /path/to/file.txt\\n\\nRecovery suggestions:\\n- ...'
         
         >>> enrich_error_message("api_call", "429 Too Many Requests")
@@ -57,7 +57,7 @@ def enrich_error_message(tool_name: str, error: str) -> str:
     # Edit/write specific errors
     if "edit" in tool_lower or "write" in tool_lower:
         hints.append("Try reading the target first to understand its current state")
-        hints.append("If editing fails, try read + modify + write_file as a complete replacement")
+        hints.append("If editing fails, try read + modify + write as a complete replacement")
         hints.append("Check that the file format matches your content (JSON, YAML, etc.)")
     
     # Authentication/authorization errors

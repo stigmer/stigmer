@@ -72,9 +72,9 @@ class TestCapabilitySections:
         """Test file system capability section content."""
         assert "file system" in FILESYSTEM_CAPABILITY.lower()
         assert "ls" in FILESYSTEM_CAPABILITY.lower()
-        assert "read_file" in FILESYSTEM_CAPABILITY.lower()
-        assert "write_file" in FILESYSTEM_CAPABILITY.lower()
-        assert "edit_file" in FILESYSTEM_CAPABILITY.lower()
+        assert "`read`" in FILESYSTEM_CAPABILITY
+        assert "`write`" in FILESYSTEM_CAPABILITY
+        assert "`edit`" in FILESYSTEM_CAPABILITY
         assert "/" in FILESYSTEM_CAPABILITY  # absolute paths
 
     def test_mcp_tools_capability_content(self):

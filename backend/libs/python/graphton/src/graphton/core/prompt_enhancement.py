@@ -80,7 +80,7 @@ Skip planning for simple single-step tasks. Use it when the task has 3+ distinct
 """
 
 FILESYSTEM_CAPABILITY = """
-**File System**: You have file system tools (`ls`, `read_file`, `write_file`, `edit_file`,
+**File System**: You have file system tools (`ls`, `read`, `write`, `edit`,
 `glob`, `grep`) for managing information. Use the file system to:
 - Store large content that doesn't fit in context
 - Maintain state between operations
@@ -123,11 +123,11 @@ FILE_RECOVERY_STRATEGIES = """
 When file operations fail, use these recovery patterns:
 
 ### Cannot Edit File
-1. **Read first**: Use `read_file` to see current content and structure
+1. **Read first**: Use `read` to see current content and structure
 2. **Verify path**: Confirm the file exists with `ls` on the parent directory
 3. **Check format**: Ensure your edit matches the file's format (JSON, YAML, etc.)
-4. **Try write_file**: If edit_file fails repeatedly, read the full file, modify in
-   your context, and use `write_file` to replace entirely
+4. **Try write**: If `edit` fails repeatedly, read the full file, modify in
+   your context, and use `write` to replace entirely
 
 ### File Not Found
 1. **Search with glob**: Use `glob` with patterns like `**/*.py` to find files
@@ -140,9 +140,9 @@ When file operations fail, use these recovery patterns:
 3. **Try alternative location**: Write to a different location if the target is read-only
 
 ### Edit Conflicts / Merge Issues
-1. **Read current content**: Get the latest file state with `read_file`
+1. **Read current content**: Get the latest file state with `read`
 2. **Apply changes manually**: Modify the content in your reasoning
-3. **Write complete file**: Use `write_file` with the merged result
+3. **Write complete file**: Use `write` with the merged result
 
 ### Large File Issues
 1. **Read specific lines**: Use line range parameters if available

@@ -1,44 +1,51 @@
 """Temporal activity for executing Graphton agents."""
 
-from temporalio import activity
-from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentExecution, AgentExecutionStatus, ApprovalAction
+import asyncio
+import contextlib
+import os
+import time
+from typing import Any
+
+from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
+    AgentExecution,
+    AgentExecutionStatus,
+    ApprovalAction,
+)
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase
-from graphton import create_deep_agent, SummarizationConfig
+from graphton import SummarizationConfig, create_deep_agent
 from graphton.core import ModelRegistry
-import logging
-import json
+from temporalio import activity
+
 from grpc_client.agent_client import AgentClient
-from grpc_client.agent_instance_client import AgentInstanceClient
-from grpc_client.skill_client import SkillClient
-from grpc_client.session_client import SessionClient
-from grpc_client.environment_client import EnvironmentClient
-from grpc_client.execution_context_client import ExecutionContextClient, ExecutionContextNotFoundError
 from grpc_client.agent_execution_client import AgentExecutionClient
+from grpc_client.agent_instance_client import AgentInstanceClient
+from grpc_client.environment_client import EnvironmentClient
+from grpc_client.execution_context_client import (
+    ExecutionContextClient,
+)
 from grpc_client.mcp_server_client import McpServerClient
-from worker.token_manager import get_api_key
-from worker.sandbox_manager import SandboxManager
-from worker.activities.graphton.status_builder import StatusBuilder
-from worker.activities.graphton.skill_writer import SkillWriter
+from grpc_client.session_client import SessionClient
+from grpc_client.skill_client import SkillClient
 from worker.activities.graphton.approval_policy import (
-    ApprovalConfig,
     build_approval_config,
     create_approval_checker,
 )
+from worker.activities.graphton.skill_writer import SkillWriter
+from worker.activities.graphton.status_builder import StatusBuilder, _utc_timestamp
 from worker.activities.graphton.subagent_transformer import transform_sub_agents
 from worker.checkpointer import create_checkpointer
 from worker.mcp import transform_all_mcp_configs
-from worker.storage import ArtifactStorageConfig, create_artifact_storage, ArtifactStorage
-from worker.tools import create_publish_artifact_tool
-from worker.streaming import StreamingConfig, StreamingUpdateScheduler
 from worker.resilience import (
+    GrpcNonRetryableError,
     GrpcRetryExecutor,
     GrpcRetryExhaustedError,
-    GrpcNonRetryableError,
     RetryConfig,
 )
-import asyncio
-import os
-import time
+from worker.sandbox_manager import SandboxManager
+from worker.storage import ArtifactStorage, create_artifact_storage
+from worker.streaming import StreamingConfig, StreamingUpdateScheduler
+from worker.token_manager import get_api_key
+from worker.tools import create_publish_artifact_tool
 
 
 def heartbeat_during_setup(phase_name: str, details: dict | None = None) -> None:
@@ -94,7 +101,7 @@ async def inject_attachments(
     try:
         from daytona import FileUpload
     except ImportError:
-        FileUpload = None  # Local mode doesn't need this
+        FileUpload = None  # noqa: N806 — class reference, PascalCase is correct
     
     file_uploads = []  # For Daytona batch upload
     injected_files = []  # Track injected files for return
@@ -166,7 +173,7 @@ async def inject_attachments(
     
     # Log summary of all injected files
     logger.info(
-        f"Attachment injection complete. Files available to agent:\n"
+        "Attachment injection complete. Files available to agent:\n"
         + "\n".join(f"  - {f['path']} ({f['size']} bytes)" for f in injected_files)
     )
     
@@ -213,9 +220,10 @@ async def execute_graphton(execution: AgentExecution, thread_id: str) -> AgentEx
         
         # Create minimal failed status for system errors
         # This handles cases where status_builder was never initialized
+        from datetime import datetime
+
         from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
         from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
-        from datetime import datetime
         
         failed_status = AgentExecutionStatus(
             phase=ExecutionPhase.EXECUTION_FAILED,
@@ -224,12 +232,12 @@ async def execute_graphton(execution: AgentExecution, thread_id: str) -> AgentEx
                 AgentMessage(
                     type=MessageType.MESSAGE_SYSTEM,
                     content="Internal system error occurred. Please contact support if this issue persists.",
-                    timestamp=datetime.utcnow().isoformat(),
+                    timestamp=_utc_timestamp(),
                 ),
                 AgentMessage(
                     type=MessageType.MESSAGE_SYSTEM,
                     content=f"Error details: {str(system_error)}",
-                    timestamp=datetime.utcnow().isoformat(),
+                    timestamp=_utc_timestamp(),
                 )
             ]
         )
@@ -334,6 +342,11 @@ async def _execute_graphton_impl(
     # Initialize to None here so error handler can check if it was created.
     status_builder = None
     
+    # AsyncExitStack manages the checkpointer lifecycle (SQLite connection,
+    # MongoDB client, etc.) across the entire activity execution. Created
+    # outside the try block so the finally clause can always clean it up.
+    exit_stack = contextlib.AsyncExitStack()
+    
     try:
         # Step 1: Resolve the full chain: execution → session → agent_instance → agent
         activity_logger.info(f"Resolving execution chain for execution: {execution_id}")
@@ -387,8 +400,14 @@ async def _execute_graphton_impl(
         # Checkpointer selection is mode-aware:
         # - local mode: MemorySaver (ephemeral) or SqliteSaver (persistent)
         # - cloud mode: AsyncMongoDBSaver (persistent, multi-instance safe)
+        #
+        # create_checkpointer is an async context manager. We enter it via the
+        # exit_stack so the underlying resources (SQLite connection, MongoDB client)
+        # stay alive for the entire activity and are cleaned up in the finally block.
         # ─────────────────────────────────────────────────────────────────────────────
-        checkpointer = await create_checkpointer(worker_config.checkpointer)
+        checkpointer = await exit_stack.enter_async_context(
+            create_checkpointer(worker_config.checkpointer)
+        )
         activity_logger.info(
             f"Created {worker_config.checkpointer.type} checkpointer "
             f"for HITL approval flow and conversation persistence"
@@ -476,7 +495,7 @@ async def _execute_graphton_impl(
             if not api_key:
                 raise ValueError("DAYTONA_API_KEY environment variable required for cloud mode")
             
-            sandbox_manager = SandboxManager(api_key)
+            sandbox_manager = SandboxManager(daytona_api_key=api_key)
             
             if snapshot_id := sandbox_config.get("snapshot_id"):
                 activity_logger.info(f"Using Daytona snapshot: {snapshot_id}")
@@ -503,7 +522,7 @@ async def _execute_graphton_impl(
             if sandbox_manager is None:
                 raise RuntimeError("Sandbox manager not initialized for cloud mode")
             
-            sandbox, is_new_sandbox = await sandbox_manager.get_or_create_sandbox(
+            sandbox, is_new_sandbox = await sandbox_manager.get_or_create_daytona_sandbox(
                 sandbox_config=sandbox_config,
                 session_id=resolved_session_id,
                 session_client=session_client,
@@ -952,6 +971,7 @@ async def _execute_graphton_impl(
         
         # Create LLM instance with explicit configuration
         # This ensures base_url is properly set for Ollama connections from Docker
+        llm_model: Any  # ChatOllama | ChatAnthropic | ChatOpenAI | str
         if worker_config.llm.provider == "ollama":
             from langchain_ollama import ChatOllama
             llm_model = ChatOllama(
@@ -961,7 +981,7 @@ async def _execute_graphton_impl(
             activity_logger.info(f"Created ChatOllama with base_url={worker_config.llm.base_url}")
         elif worker_config.llm.provider == "anthropic":
             from langchain_anthropic import ChatAnthropic
-            llm_model = ChatAnthropic(
+            llm_model = ChatAnthropic(  # type: ignore[call-arg]  # pydantic model accepts 'model' at runtime
                 model=api_model_id,
                 api_key=worker_config.llm.api_key,
             )
@@ -1218,6 +1238,7 @@ async def _execute_graphton_impl(
         update_scheduler = StreamingUpdateScheduler(streaming_config)
         
         # Determine graph input based on whether this is a resume or fresh execution
+        graph_input: Any  # Command[Any] | dict — depends on resume vs fresh execution
         if is_resume_from_approval and resume_decision is not None:
             # Resume from approval: use Command(resume=decision) to continue from interrupt
             from langgraph.types import Command
@@ -1249,10 +1270,45 @@ async def _execute_graphton_impl(
         # 5. LangGraph loads checkpoint and continues from where it left off
         # ─────────────────────────────────────────────────────────────────────────────
         
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Background Heartbeat Task
+        #
+        # During astream_events(), heartbeats are only sent when events arrive.
+        # But when the LLM is "thinking" (processing a long prompt before generating
+        # output), no events are emitted — this gap can exceed the 30-second Temporal
+        # heartbeat timeout, causing Temporal to kill the activity.
+        #
+        # This background task sends heartbeats at a fixed 10-second interval,
+        # independent of event arrival. It runs concurrently with the event stream
+        # and is cancelled when the stream completes (or errors).
+        # ─────────────────────────────────────────────────────────────────────────────
+        async def _background_heartbeat() -> None:
+            """Send periodic heartbeats to Temporal, independent of event stream."""
+            background_heartbeat_interval = 10.0  # seconds (well within 30s timeout)
+            while True:
+                await asyncio.sleep(background_heartbeat_interval)
+                try:
+                    activity.heartbeat({
+                        "thread_id": thread_id,
+                        "paused": activity.is_cancelled(),
+                        "events_processed": events_processed,
+                        "messages": len(status_builder.current_status.messages),
+                        "tool_calls": len(status_builder.current_status.tool_calls),
+                        "phase": status_builder.current_status.phase,
+                        "source": "background",
+                    })
+                except Exception as hb_err:
+                    # Heartbeat failure is not critical — log at debug level and continue.
+                    # The in-loop heartbeat (when events arrive) provides redundancy.
+                    activity_logger.debug(f"Background heartbeat failed: {hb_err}")
+        
+        heartbeat_task: asyncio.Task[None] | None = None
         try:
+            heartbeat_task = asyncio.create_task(_background_heartbeat())
+            
             async for event in agent_graph.astream_events(
                 graph_input,
-                config=config,
+                config=config,  # type: ignore[arg-type]  # LangGraph accepts dict config at runtime
                 version="v2",  # Use v2 schema for consistent event structure
             ):
                 # ─────────────────────────────────────────────────────────────────
@@ -1269,7 +1325,7 @@ async def _execute_graphton_impl(
                     raise asyncio.CancelledError("Paused by user")
                 
                 # Process event locally (builds status in memory)
-                await status_builder.process_event(event)
+                await status_builder.process_event(event)  # type: ignore[arg-type]
                 
                 events_processed += 1
                 
@@ -1297,48 +1353,48 @@ async def _execute_graphton_impl(
                     except Exception as e:
                         # Heartbeat failure is not critical - log and continue
                         activity_logger.debug(f"Heartbeat failed (event {events_processed}): {e}")
-            
-            # Send progressive status update via gRPC using hybrid scheduler
-            # Triggers on: time threshold (500ms), burst (50 events), or keepalive (5s)
-            if update_scheduler.should_send_update(events_processed):
-                reason = update_scheduler.get_update_reason_str()
-                time_since_last = update_scheduler.get_time_since_last_update_ms()
-                events_since_last = update_scheduler.get_events_since_last_update(events_processed)
                 
-                try:
-                    activity_logger.info(
-                        f"[STREAM] execution={execution_id} "
-                        f"update_sent=true "
-                        f"reason={reason} "
-                        f"events_total={events_processed} "
-                        f"events_since_last={events_since_last} "
-                        f"time_since_last_ms={time_since_last:.0f} "
-                        f"messages={len(status_builder.current_status.messages)} "
-                        f"tool_calls={len(status_builder.current_status.tool_calls)}"
-                    )
+                # Send progressive status update via gRPC using hybrid scheduler
+                # Triggers on: time threshold (500ms), burst (50 events), or keepalive (5s)
+                if update_scheduler.should_send_update(events_processed):
+                    reason = update_scheduler.get_update_reason_str()
+                    time_since_last = update_scheduler.get_time_since_last_update_ms()
+                    events_since_last = update_scheduler.get_events_since_last_update(events_processed)
                     
-                    # Call stigmer-service updateStatus endpoint (merges status)
-                    await execution_client.update_status(
-                        execution_id=execution_id,
-                        status=status_builder.current_status
-                    )
-                    
-                    update_scheduler.mark_update_sent(events_processed)
-                    
-                except Exception as e:
-                    # Log but don't fail - keep processing events
-                    # Still mark as sent to avoid retry storm on persistent failures
-                    activity_logger.warning(
-                        f"[STREAM] execution={execution_id} "
-                        f"update_sent=false "
-                        f"reason={reason} "
-                        f"error={str(e)}"
-                    )
-                    update_scheduler.mark_update_sent(events_processed)
-            
-                # Log progress periodically (every 50 events for reduced noise)
-                if events_processed % 50 == 0:
-                    activity_logger.debug(f"Processed {events_processed} events")
+                    try:
+                        activity_logger.info(
+                            f"[STREAM] execution={execution_id} "
+                            f"update_sent=true "
+                            f"reason={reason} "
+                            f"events_total={events_processed} "
+                            f"events_since_last={events_since_last} "
+                            f"time_since_last_ms={time_since_last:.0f} "
+                            f"messages={len(status_builder.current_status.messages)} "
+                            f"tool_calls={len(status_builder.current_status.tool_calls)}"
+                        )
+                        
+                        # Call stigmer-service updateStatus endpoint (merges status)
+                        await execution_client.update_status(
+                            execution_id=execution_id,
+                            status=status_builder.current_status
+                        )
+                        
+                        update_scheduler.mark_update_sent(events_processed)
+                        
+                    except Exception as e:
+                        # Log but don't fail - keep processing events
+                        # Still mark as sent to avoid retry storm on persistent failures
+                        activity_logger.warning(
+                            f"[STREAM] execution={execution_id} "
+                            f"update_sent=false "
+                            f"reason={reason} "
+                            f"error={str(e)}"
+                        )
+                        update_scheduler.mark_update_sent(events_processed)
+                
+                    # Log progress periodically (every 50 events for reduced noise)
+                    if events_processed % 50 == 0:
+                        activity_logger.debug(f"Processed {events_processed} events")
         
         except asyncio.CancelledError:
             # ─────────────────────────────────────────────────────────────────────────────
@@ -1366,25 +1422,26 @@ async def _execute_graphton_impl(
             status_builder.current_status.phase = ExecutionPhase.EXECUTION_PAUSED
             
             # Add message indicating pause
+            from datetime import datetime
+
             from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
             from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
-            from datetime import datetime
             
             pause_msg = AgentMessage(
                 type=MessageType.MESSAGE_SYSTEM,
                 content="⏸️ Execution paused by user. Use resume to continue from this checkpoint.",
-                timestamp=datetime.utcnow().isoformat(),
+                timestamp=_utc_timestamp(),
             )
             status_builder.current_status.messages.append(pause_msg)
             
             # Send paused status update via gRPC (best effort)
             try:
-                activity_logger.info(f"📤 [PAUSE] Sending PAUSED status update")
+                activity_logger.info("📤 [PAUSE] Sending PAUSED status update")
                 await execution_client.update_status(
                     execution_id=execution_id,
                     status=status_builder.current_status
                 )
-                activity_logger.info(f"✅ [PAUSE] Status update sent successfully")
+                activity_logger.info("✅ [PAUSE] Status update sent successfully")
             except Exception as update_error:
                 activity_logger.warning(f"[PAUSE] Failed to send status update: {update_error}")
                 # Continue - status will be returned to workflow anyway
@@ -1395,6 +1452,13 @@ async def _execute_graphton_impl(
             
             # Return paused status to workflow
             return status_builder.current_status
+        finally:
+            # Always cancel the background heartbeat task — whether the stream
+            # completed normally, was paused (CancelledError), or raised an error.
+            if heartbeat_task is not None:
+                heartbeat_task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await heartbeat_task
         
         # Verify stream processed data
         if events_processed == 0:
@@ -1404,29 +1468,58 @@ async def _execute_graphton_impl(
             )
         
         activity_logger.info(
-            f"📊 Execution {execution_id} completed - processed {events_processed} events"
+            f"📊 Execution {execution_id} stream finished — processed {events_processed} events"
         )
         
         # Finalize context info before returning (Phase 3)
         # Copies accumulated context info and summarization events to status proto
         status_builder.finalize_context_info()
         
-        # Set phase to COMPLETED
-        status_builder.current_status.phase = ExecutionPhase.EXECUTION_COMPLETED
+        # Determine final phase based on current state.
+        #
+        # When LangGraph's interrupt() is called (HITL approval), the event stream
+        # ends naturally — the graph pauses at a checkpoint, producing no more events.
+        # The status_builder will have already set the phase to WAITING_FOR_APPROVAL
+        # during event processing. We must NOT overwrite that phase with COMPLETED,
+        # because the Temporal workflow uses the returned phase to decide whether to
+        # enter the HITL approval loop.
+        #
+        # Similarly, if the phase is PAUSED (set during graceful cancellation handling
+        # above), we must preserve it.
+        current_phase = status_builder.current_status.phase
         
-        # Send final status update via gRPC with retry
-        # This is critical for data persistence - use retry to handle transient failures
+        if current_phase == ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL:
+            activity_logger.info(
+                f"Stream ended with WAITING_FOR_APPROVAL phase for execution {execution_id}. "
+                f"Not setting COMPLETED — execution is paused at interrupt checkpoint."
+            )
+        elif current_phase == ExecutionPhase.EXECUTION_PAUSED:
+            activity_logger.info(
+                f"Stream ended with PAUSED phase for execution {execution_id}. "
+                f"Not setting COMPLETED — execution is paused at checkpoint."
+            )
+        else:
+            status_builder.current_status.phase = ExecutionPhase.EXECUTION_COMPLETED
+        
+        final_phase_name = ExecutionPhase.Name(status_builder.current_status.phase)
+        
+        # Send final status update via gRPC with retry.
+        # This is critical for data persistence — use retry to handle transient failures.
+        # The update is sent regardless of phase so that the latest messages, tool_calls,
+        # and context info are always persisted.
         try:
-            activity_logger.info(f"📤 [FINAL] Sending COMPLETED status update with retry")
+            activity_logger.info(
+                f"📤 [FINAL] Sending {final_phase_name} status update with retry"
+            )
             await retry_executor.execute(
                 operation=lambda: execution_client.update_status(
                     execution_id=execution_id,
                     status=status_builder.current_status
                 ),
                 operation_name="final_status_update",
-                context={"execution_id": execution_id, "phase": "COMPLETED"},
+                context={"execution_id": execution_id, "phase": final_phase_name},
             )
-            activity_logger.info(f"✅ [FINAL] Status update sent successfully")
+            activity_logger.info(f"✅ [FINAL] Status update sent successfully (phase={final_phase_name})")
         except GrpcRetryExhaustedError as e:
             activity_logger.error(
                 f"[FINAL] All retries exhausted for status update: {e.attempts} attempts, "
@@ -1453,7 +1546,7 @@ async def _execute_graphton_impl(
         activity_logger.info("=" * 80)
         
         activity_logger.info(
-            f"✅ ExecuteGraphton completed - returning status to workflow for persistence"
+            "✅ ExecuteGraphton completed - returning status to workflow for persistence"
         )
         
         # Verify status is not None before returning
@@ -1478,14 +1571,15 @@ async def _execute_graphton_impl(
         error_message = f"Execution failed: {error_str}"
         
         # Import required types for error message
+        from datetime import datetime
+
         from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
         from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
-        from datetime import datetime
         
         error_msg = AgentMessage(
             type=MessageType.MESSAGE_SYSTEM,
             content=f"❌ Error: {error_message}",
-            timestamp=datetime.utcnow().isoformat(),
+            timestamp=_utc_timestamp(),
         )
         
         # Check if status_builder was initialized before the error occurred
@@ -1499,6 +1593,7 @@ async def _execute_graphton_impl(
             status_builder.finalize_context_info()
             
             status_builder.current_status.phase = ExecutionPhase.EXECUTION_FAILED
+            status_builder.current_status.error = error_message
             failed_status = status_builder.current_status
         else:
             # Early failure before status_builder was created
@@ -1514,7 +1609,7 @@ async def _execute_graphton_impl(
                     AgentMessage(
                         type=MessageType.MESSAGE_SYSTEM,
                         content="Execution failed during initialization before agent could start.",
-                        timestamp=datetime.utcnow().isoformat(),
+                        timestamp=_utc_timestamp(),
                     )
                 ]
             )
@@ -1529,7 +1624,7 @@ async def _execute_graphton_impl(
         # Send failed status update via gRPC with retry
         # This is critical for data persistence - use retry to handle transient failures
         try:
-            activity_logger.info(f"📤 [FINAL] Sending FAILED status update with retry")
+            activity_logger.info("📤 [FINAL] Sending FAILED status update with retry")
             await retry_executor.execute(
                 operation=lambda: execution_client.update_status(
                     execution_id=execution_id,
@@ -1538,7 +1633,7 @@ async def _execute_graphton_impl(
                 operation_name="final_status_update",
                 context={"execution_id": execution_id, "phase": "FAILED"},
             )
-            activity_logger.info(f"✅ [FINAL] Failed status update sent successfully")
+            activity_logger.info("✅ [FINAL] Failed status update sent successfully")
         except GrpcRetryExhaustedError as retry_err:
             activity_logger.error(
                 f"[FINAL] All retries exhausted for failed status update: {retry_err.attempts} attempts, "
@@ -1561,3 +1656,8 @@ async def _execute_graphton_impl(
         
         # Return failed status to workflow (already persisted via gRPC above)
         return failed_status
+    
+    finally:
+        # Clean up checkpointer resources (SQLite connection, MongoDB client, etc.)
+        # This runs regardless of success or failure, ensuring no resource leaks.
+        await exit_stack.aclose()

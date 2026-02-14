@@ -1,7 +1,9 @@
 """gRPC client interceptor for adding Stigmer API key authentication."""
 
+from collections.abc import Awaitable, Callable, Sequence
+from typing import Any
+
 import grpc
-from typing import Any, Callable, Awaitable, Tuple, Optional, Sequence
 
 
 class _ClientCallDetails:
@@ -10,10 +12,10 @@ class _ClientCallDetails:
     def __init__(
         self,
         method: str,
-        timeout: Optional[float],
-        metadata: Optional[Sequence[Tuple[str, str]]],
-        credentials: Optional[grpc.CallCredentials],
-        wait_for_ready: Optional[bool],
+        timeout: float | None,
+        metadata: Sequence[tuple[str, str]] | None,
+        credentials: grpc.CallCredentials | None,
+        wait_for_ready: bool | None,
     ):
         self.method = method
         self.timeout = timeout
