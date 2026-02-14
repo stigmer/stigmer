@@ -1,9 +1,6 @@
 package root
 
 import (
-	"bytes"
-	"io"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -12,50 +9,22 @@ import (
 )
 
 // =============================================================================
-// Test Helpers
-// =============================================================================
-
-// captureStdout captures stdout during the execution of f and returns the output.
-func captureStdout(t *testing.T, f func()) string {
-	t.Helper()
-
-	oldStdout := os.Stdout
-	r, w, err := os.Pipe()
-	if err != nil {
-		t.Fatalf("failed to create pipe: %v", err)
-	}
-	os.Stdout = w
-
-	f()
-
-	w.Close()
-	os.Stdout = oldStdout
-
-	var buf bytes.Buffer
-	if _, err := io.Copy(&buf, r); err != nil {
-		t.Fatalf("failed to read captured output: %v", err)
-	}
-
-	return buf.String()
-}
-
-// =============================================================================
 // displayPendingApproval Tests
 // =============================================================================
 
 func TestDisplayPendingApproval_BasicFields(t *testing.T) {
-	approval := &agentexecutionv1.PendingApproval{
+	pa := &agentexecutionv1.PendingApproval{
 		ToolName: "write_file",
 		Message:  "Write to protected file: /etc/hosts",
 	}
 
 	output := captureStdout(t, func() {
-		displayPendingApproval(approval)
+		displayPendingApproval(pa)
 	})
 
 	// Verify tool name is displayed
-	if !strings.Contains(output, "Tool: write_file") {
-		t.Errorf("expected output to contain 'Tool: write_file', got: %s", output)
+	if !strings.Contains(output, "write_file") {
+		t.Errorf("expected output to contain tool name 'write_file', got: %s", output)
 	}
 
 	// Verify message is displayed
@@ -63,14 +32,19 @@ func TestDisplayPendingApproval_BasicFields(t *testing.T) {
 		t.Errorf("expected output to contain message, got: %s", output)
 	}
 
-	// Verify separators are present (fmt.Println output)
-	if !strings.Contains(output, "─") {
-		t.Errorf("expected output to contain separator, got: %s", output)
+	// Verify panel border is present
+	if !strings.Contains(output, "╭") || !strings.Contains(output, "╯") {
+		t.Errorf("expected output to contain panel border characters, got: %s", output)
+	}
+
+	// Verify title is present
+	if !strings.Contains(output, "APPROVAL REQUIRED") {
+		t.Errorf("expected output to contain 'APPROVAL REQUIRED' title, got: %s", output)
 	}
 }
 
 func TestDisplayPendingApproval_WithSubAgent(t *testing.T) {
-	approval := &agentexecutionv1.PendingApproval{
+	pa := &agentexecutionv1.PendingApproval{
 		ToolName:     "execute_sql",
 		Message:      "Execute SQL query",
 		FromSubAgent: true,
@@ -78,17 +52,20 @@ func TestDisplayPendingApproval_WithSubAgent(t *testing.T) {
 	}
 
 	output := captureStdout(t, func() {
-		displayPendingApproval(approval)
+		displayPendingApproval(pa)
 	})
 
-	// Verify sub-agent name is shown
-	if !strings.Contains(output, "Sub-agent: code-reviewer") {
+	// Verify sub-agent info is shown with new format
+	if !strings.Contains(output, "code-reviewer") {
 		t.Errorf("expected output to contain sub-agent name, got: %s", output)
+	}
+	if !strings.Contains(output, "sub-agent") {
+		t.Errorf("expected output to contain 'sub-agent' indicator, got: %s", output)
 	}
 }
 
 func TestDisplayPendingApproval_SubAgentNotShownWhenFalse(t *testing.T) {
-	approval := &agentexecutionv1.PendingApproval{
+	pa := &agentexecutionv1.PendingApproval{
 		ToolName:     "execute_sql",
 		Message:      "Execute SQL query",
 		FromSubAgent: false,
@@ -96,28 +73,28 @@ func TestDisplayPendingApproval_SubAgentNotShownWhenFalse(t *testing.T) {
 	}
 
 	output := captureStdout(t, func() {
-		displayPendingApproval(approval)
+		displayPendingApproval(pa)
 	})
 
 	// Verify sub-agent line is NOT shown when FromSubAgent is false
-	if strings.Contains(output, "Sub-agent:") {
-		t.Errorf("expected output NOT to contain Sub-agent line when FromSubAgent=false, got: %s", output)
+	if strings.Contains(output, "should-not-show") {
+		t.Errorf("expected output NOT to contain sub-agent name when FromSubAgent=false, got: %s", output)
+	}
+	if strings.Contains(output, "From:") {
+		t.Errorf("expected output NOT to contain 'From:' when FromSubAgent=false, got: %s", output)
 	}
 }
 
 func TestDisplayPendingApproval_WithArgsPreview(t *testing.T) {
-	argsJSON := `{
-  "path": "/etc/hosts",
-  "content": "127.0.0.1 localhost"
-}`
-	approval := &agentexecutionv1.PendingApproval{
+	argsJSON := `{"path": "/etc/hosts", "content": "127.0.0.1 localhost"}`
+	pa := &agentexecutionv1.PendingApproval{
 		ToolName:    "write_file",
 		Message:     "Write file",
 		ArgsPreview: argsJSON,
 	}
 
 	output := captureStdout(t, func() {
-		displayPendingApproval(approval)
+		displayPendingApproval(pa)
 	})
 
 	// Verify Arguments header is present
@@ -125,21 +102,24 @@ func TestDisplayPendingApproval_WithArgsPreview(t *testing.T) {
 		t.Errorf("expected output to contain 'Arguments:', got: %s", output)
 	}
 
-	// Verify args content is present (indented)
-	if !strings.Contains(output, "path") || !strings.Contains(output, "/etc/hosts") {
-		t.Errorf("expected output to contain args preview content, got: %s", output)
+	// Verify args content is formatted by the formatter
+	if !strings.Contains(output, "Path:") {
+		t.Errorf("expected output to contain formatted 'Path:' label for write_file tool, got: %s", output)
+	}
+	if !strings.Contains(output, "/etc/hosts") {
+		t.Errorf("expected output to contain path value, got: %s", output)
 	}
 }
 
 func TestDisplayPendingApproval_NoArgsPreview(t *testing.T) {
-	approval := &agentexecutionv1.PendingApproval{
+	pa := &agentexecutionv1.PendingApproval{
 		ToolName:    "read_file",
 		Message:     "Read file",
 		ArgsPreview: "",
 	}
 
 	output := captureStdout(t, func() {
-		displayPendingApproval(approval)
+		displayPendingApproval(pa)
 	})
 
 	// Verify Arguments section is NOT present when empty
@@ -162,14 +142,14 @@ func TestDisplayPendingApproval_NilApproval(t *testing.T) {
 func TestDisplayPendingApproval_FormatsWaitingDuration(t *testing.T) {
 	// Use a timestamp from 30 seconds ago
 	requestedAt := time.Now().Add(-30 * time.Second).Format(time.RFC3339)
-	approval := &agentexecutionv1.PendingApproval{
+	pa := &agentexecutionv1.PendingApproval{
 		ToolName:    "delete_file",
 		Message:     "Delete important file",
 		RequestedAt: requestedAt,
 	}
 
 	output := captureStdout(t, func() {
-		displayPendingApproval(approval)
+		displayPendingApproval(pa)
 	})
 
 	// Verify waiting duration is displayed
@@ -177,20 +157,20 @@ func TestDisplayPendingApproval_FormatsWaitingDuration(t *testing.T) {
 		t.Errorf("expected output to contain 'Waiting for:', got: %s", output)
 	}
 
-	// Verify it shows seconds (approximate, since time passes)
+	// Verify it shows seconds
 	if !strings.Contains(output, "s") {
 		t.Errorf("expected output to contain duration with seconds, got: %s", output)
 	}
 }
 
 func TestDisplayPendingApproval_EmptyMessage(t *testing.T) {
-	approval := &agentexecutionv1.PendingApproval{
+	pa := &agentexecutionv1.PendingApproval{
 		ToolName: "some_tool",
 		Message:  "",
 	}
 
 	output := captureStdout(t, func() {
-		displayPendingApproval(approval)
+		displayPendingApproval(pa)
 	})
 
 	// Verify Message line is NOT present when empty
@@ -199,7 +179,7 @@ func TestDisplayPendingApproval_EmptyMessage(t *testing.T) {
 	}
 
 	// Tool should still be shown
-	if !strings.Contains(output, "Tool: some_tool") {
+	if !strings.Contains(output, "some_tool") {
 		t.Errorf("expected output to contain tool name, got: %s", output)
 	}
 }
@@ -293,78 +273,62 @@ func TestFormatWaitingDuration_Various(t *testing.T) {
 }
 
 // =============================================================================
-// formatApprovalArgsPreview Tests
+// buildApprovalContent Tests
 // =============================================================================
 
-func TestFormatApprovalArgsPreview_EmptyString(t *testing.T) {
-	result := formatApprovalArgsPreview("")
-	if result != "" {
-		t.Errorf("expected empty string for empty input, got: %s", result)
+func TestBuildApprovalContent_AllSections(t *testing.T) {
+	pa := &agentexecutionv1.PendingApproval{
+		ToolName:     "delete_file",
+		Message:      "Delete staging file",
+		ArgsPreview:  `{"path": "/tmp/staging"}`,
+		FromSubAgent: true,
+		SubAgentName: "cleanup-agent",
+		RequestedAt:  time.Now().Add(-10 * time.Second).Format(time.RFC3339),
+	}
+
+	content := buildApprovalContent(pa)
+
+	// All sections should be present
+	if !strings.Contains(content, "delete_file") {
+		t.Error("expected tool name in content")
+	}
+	if !strings.Contains(content, "cleanup-agent") {
+		t.Error("expected sub-agent name in content")
+	}
+	if !strings.Contains(content, "Delete staging file") {
+		t.Error("expected message in content")
+	}
+	if !strings.Contains(content, "Arguments:") {
+		t.Error("expected Arguments section in content")
+	}
+	if !strings.Contains(content, "Waiting for:") {
+		t.Error("expected waiting duration in content")
 	}
 }
 
-func TestFormatApprovalArgsPreview_SingleLine(t *testing.T) {
-	result := formatApprovalArgsPreview(`{"key": "value"}`)
-
-	// Should have indent prefix
-	if !strings.HasPrefix(result, "      ") {
-		t.Errorf("expected result to start with indent, got: %s", result)
+func TestBuildApprovalContent_MinimalFields(t *testing.T) {
+	pa := &agentexecutionv1.PendingApproval{
+		ToolName: "read_file",
 	}
 
-	// Should contain the content
-	if !strings.Contains(result, `"key": "value"`) {
-		t.Errorf("expected result to contain the JSON content, got: %s", result)
+	content := buildApprovalContent(pa)
+
+	// Tool name and waiting duration should always be present
+	if !strings.Contains(content, "read_file") {
+		t.Error("expected tool name in content")
+	}
+	if !strings.Contains(content, "Waiting for:") {
+		t.Error("expected waiting duration in content")
 	}
 
-	// Should end with newline
-	if !strings.HasSuffix(result, "\n") {
-		t.Errorf("expected result to end with newline, got: %s", result)
+	// Optional sections should NOT be present
+	if strings.Contains(content, "Message:") {
+		t.Error("expected no Message section for empty message")
 	}
-}
-
-func TestFormatApprovalArgsPreview_MultilineJSON(t *testing.T) {
-	input := `{
-  "path": "/etc/hosts",
-  "content": "test"
-}`
-	result := formatApprovalArgsPreview(input)
-
-	// Count lines
-	lines := strings.Split(strings.TrimSuffix(result, "\n"), "\n")
-	if len(lines) != 4 {
-		t.Errorf("expected 4 lines, got %d: %v", len(lines), lines)
+	if strings.Contains(content, "Arguments:") {
+		t.Error("expected no Arguments section for empty args")
 	}
-
-	// Each line should be indented
-	for i, line := range lines {
-		if !strings.HasPrefix(line, "      ") {
-			t.Errorf("line %d should be indented, got: %s", i, line)
-		}
-	}
-}
-
-func TestFormatApprovalArgsPreview_PreservesContent(t *testing.T) {
-	input := `{"special": "chars: <>\"'&"}`
-	result := formatApprovalArgsPreview(input)
-
-	// Should preserve special characters
-	if !strings.Contains(result, `chars: <>\"'&`) {
-		t.Errorf("expected special characters to be preserved, got: %s", result)
-	}
-}
-
-func TestFormatApprovalArgsPreview_HandlesEmptyLines(t *testing.T) {
-	input := "line1\n\nline3"
-	result := formatApprovalArgsPreview(input)
-
-	// Should have 3 lines, including the empty one (indented)
-	lines := strings.Split(strings.TrimSuffix(result, "\n"), "\n")
-	if len(lines) != 3 {
-		t.Errorf("expected 3 lines, got %d: %v", len(lines), lines)
-	}
-
-	// Empty line should just be indent
-	if lines[1] != "      " {
-		t.Errorf("empty line should be just indent, got: '%s'", lines[1])
+	if strings.Contains(content, "From:") {
+		t.Error("expected no From section when not from sub-agent")
 	}
 }

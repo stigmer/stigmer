@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "panel",
+    srcs = ["panel.go"],
+    importpath = "github.com/stigmer/stigmer/client-apps/cli/pkg/panel",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_charmbracelet_lipgloss//:lipgloss",
+    ],
+)
+
+go_test(
+    name = "panel_test",
+    srcs = ["panel_test.go"],
+    embed = [":panel"],
+    deps = [
+        "@com_github_charmbracelet_lipgloss//:lipgloss",
+    ],
+)
