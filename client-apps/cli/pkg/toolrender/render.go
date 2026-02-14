@@ -60,6 +60,13 @@ const (
 	// content excerpt. Useful for file read tools where a peek at the content
 	// confirms the agent read the right file.
 	previewFirstLine
+
+	// previewFileContent shows a multi-line gutter-bordered preview of file
+	// content with a "N more lines" indicator. Provides richer context than
+	// previewFirstLine — shows up to filePreviewMaxLines lines so users can
+	// distinguish between files with identical first lines (e.g., proto files
+	// that all start with `syntax = "proto3";`).
+	previewFileContent
 )
 
 // toolDisplayInfo defines how to render a specific category of tool.
@@ -95,8 +102,8 @@ var toolDisplayMap = map[string]toolDisplayInfo{
 
 	// File read operations — fallbackFields handle arg name variance across
 	// agent frameworks (deepagents uses "file_path", others may use "file").
-	"read":      {icon: "📖", label: "Read", primaryField: "path", fallbackFields: []string{"file_path", "file"}, preview: previewFirstLine},
-	"read_file": {icon: "📖", label: "Read", primaryField: "path", fallbackFields: []string{"file_path", "file"}, preview: previewFirstLine},
+	"read":      {icon: "📖", label: "Read", primaryField: "path", fallbackFields: []string{"file_path", "file"}, preview: previewFileContent},
+	"read_file": {icon: "📖", label: "Read", primaryField: "path", fallbackFields: []string{"file_path", "file"}, preview: previewFileContent},
 
 	// Directory listing
 	"list_directory": {icon: "📂", label: "List", primaryField: "path", preview: previewDiscovery},
@@ -193,16 +200,16 @@ func RenderResultWithPreview(content string) string {
 
 // renderKnown formats a tool call with category-specific icon, label, and primary arg.
 //
-// When the tool has a preview style configured and a non-empty Result, a second
-// indented line is appended showing a result preview. The style determines the
-// formatting strategy:
+// When the tool has a preview style configured and a non-empty Result, additional
+// lines are appended showing a result preview. The style determines the formatting:
 //   - previewDiscovery: compact comma-separated summary (ls, glob, grep)
-//   - previewFirstLine: first-line content excerpt (read, read_file)
+//   - previewFirstLine: first-line content excerpt
+//   - previewFileContent: multi-line gutter-bordered preview with "N more lines"
 //
 // Examples:
 //
 //	"  📂 List: /workspace (97 chars, 3ms)\n     inputs/, outputs/"
-//	"  📖 Read: main.go (1.5 KB, 4ms)\n     package main"
+//	"  📖 Read: main.go (1.5 KB, 33 lines, 4ms)\n     │ package main\n     │ ...\n     ⋮ 30 more lines"
 func renderKnown(tc ToolCallInfo, info toolDisplayInfo) string {
 	primaryVal := extractPrimaryArgWithFallbacks(tc.Args, info.primaryField, info.fallbackFields)
 
@@ -214,7 +221,13 @@ func renderKnown(tc ToolCallInfo, info toolDisplayInfo) string {
 		line = fmt.Sprintf("  %s %s", info.icon, labelStyle.Render(info.label))
 	}
 
-	suffix := renderSuffix(tc)
+	// Build suffix — file content tools include line count alongside size.
+	var suffix string
+	if info.preview == previewFileContent && tc.Result != "" {
+		suffix = buildSuffix(tc, countLines(tc.Result))
+	} else {
+		suffix = renderSuffix(tc)
+	}
 	if suffix != "" {
 		line += " " + dimStyle.Render(suffix)
 	}
@@ -227,9 +240,18 @@ func renderKnown(tc ToolCallInfo, info toolDisplayInfo) string {
 			preview = formatResultPreview(tc.Result)
 		case previewFirstLine:
 			preview = formatFirstLinePreview(tc.Result)
+		case previewFileContent:
+			preview = formatFileContentPreview(tc.Result)
 		}
 		if preview != "" {
-			line += "\n" + dimStyle.Render("     "+preview)
+			switch info.preview {
+			case previewFileContent:
+				// File content preview is already fully formatted with gutters
+				// and indentation — apply dim styling to the whole block.
+				line += "\n" + dimStyle.Render(preview)
+			default:
+				line += "\n" + dimStyle.Render("     "+preview)
+			}
 		}
 	}
 
@@ -256,7 +278,15 @@ func renderUnknown(tc ToolCallInfo) string {
 }
 
 // renderSuffix builds an optional suffix with result size, duration, or error.
+// For tools that don't need line count metadata, this is the standard entry point.
 func renderSuffix(tc ToolCallInfo) string {
+	return buildSuffix(tc, 0)
+}
+
+// buildSuffix constructs a parenthesized suffix from the tool call metadata.
+// When lineCount > 0, a human-readable line count is inserted between the size
+// and duration parts (e.g., "(1.0 KB, 33 lines, 1ms)").
+func buildSuffix(tc ToolCallInfo, lineCount int) string {
 	if tc.Error != "" {
 		return fmt.Sprintf("(error: %s)", truncate(tc.Error, 40))
 	}
@@ -265,6 +295,10 @@ func renderSuffix(tc ToolCallInfo) string {
 
 	if tc.Result != "" {
 		parts = append(parts, formatSize(len(tc.Result)))
+	}
+
+	if lineCount > 0 {
+		parts = append(parts, formatLineCount(lineCount))
 	}
 
 	if tc.Duration > 0 {

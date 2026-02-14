@@ -228,19 +228,25 @@ func TestRender_LsWithEmptyResult_NoPreview(t *testing.T) {
 	assertNotContains(t, result, "\n")
 }
 
-func TestRender_ReadWithResult_ShowsFirstLinePreview(t *testing.T) {
-	// read tools now show a first-line content preview (previewFirstLine).
+func TestRender_ReadWithResult_ShowsFileContentPreview(t *testing.T) {
+	// read tools show a multi-line gutter-bordered content preview (previewFileContent).
 	result := Render(ToolCallInfo{
 		Name:   "read",
 		Args:   map[string]interface{}{"path": "main.go"},
 		Result: "package main\n\nfunc main() {}",
 	})
 
-	// Should show size in suffix AND first-line preview.
+	// Should show size and line count in suffix.
 	assertContains(t, result, "chars")
+	assertContains(t, result, "3 lines")
+
+	// All 3 lines fit within the preview window — all should be shown with gutter.
+	assertContains(t, result, "│")
 	assertContains(t, result, "package main")
-	// Should NOT show subsequent lines in the preview.
-	assertNotContains(t, result, "func main")
+	assertContains(t, result, "func main")
+
+	// Exactly 3 lines — no "more lines" indicator.
+	assertNotContains(t, result, "more lines")
 }
 
 func TestRender_PreviewTruncatesLongResults(t *testing.T) {
@@ -348,6 +354,8 @@ func TestRender_WithResult(t *testing.T) {
 	})
 
 	assertContains(t, result, "500 chars")
+	// read_file includes line count in suffix.
+	assertContains(t, result, "1 line")
 }
 
 func TestRender_WithLargeResult(t *testing.T) {
@@ -358,6 +366,7 @@ func TestRender_WithLargeResult(t *testing.T) {
 	})
 
 	assertContains(t, result, "4.2 KB")
+	assertContains(t, result, "1 line")
 }
 
 func TestRender_WithDuration(t *testing.T) {
@@ -676,10 +685,10 @@ func TestRender_Read_NoMatchingArgShowsLabelOnly(t *testing.T) {
 }
 
 // =============================================================================
-// Render Tests — Read Content Preview (previewFirstLine)
+// Render Tests — Read Content Preview (previewFileContent)
 // =============================================================================
 
-func TestRender_ReadWithMultiLineResult_ShowsFirstLine(t *testing.T) {
+func TestRender_ReadWithMultiLineResult_ShowsThreeLinePreview(t *testing.T) {
 	result := Render(ToolCallInfo{
 		Name:   "read_file",
 		Args:   map[string]interface{}{"path": "proto/api.proto"},
@@ -687,9 +696,20 @@ func TestRender_ReadWithMultiLineResult_ShowsFirstLine(t *testing.T) {
 	})
 
 	assertContains(t, result, "proto/api.proto")
+
+	// First 3 lines shown with gutter: "syntax...", "", "package...".
+	assertContains(t, result, "│")
 	assertContains(t, result, "syntax = \"proto3\";")
-	// Should NOT show subsequent lines.
-	assertNotContains(t, result, "package ai.stigmer")
+	assertContains(t, result, "package ai.stigmer;")
+
+	// Line 4+ (message Agent {}) should NOT be in the preview.
+	assertNotContains(t, result, "message Agent")
+
+	// 5 total lines, 3 shown → "2 more lines".
+	assertContains(t, result, "2 more lines")
+
+	// Suffix should include line count.
+	assertContains(t, result, "5 lines")
 }
 
 func TestRender_ReadWithEmptyResult_NoPreview(t *testing.T) {
@@ -710,12 +730,13 @@ func TestRender_ReadWithWhitespaceOnlyResult_NoPreview(t *testing.T) {
 		Result: "  \n\n  \n",
 	})
 
-	// Result has content (whitespace), so suffix shows size,
+	// Result has content (whitespace), so suffix shows size and line count,
 	// but preview should be empty since no non-empty lines.
 	assertContains(t, result, "chars")
+	assertContains(t, result, "4 lines")
 }
 
-func TestRender_ReadPreviewTruncatesLongFirstLine(t *testing.T) {
+func TestRender_ReadPreviewTruncatesLongLine(t *testing.T) {
 	longLine := strings.Repeat("x", 200)
 	result := Render(ToolCallInfo{
 		Name:   "read",
@@ -723,18 +744,24 @@ func TestRender_ReadPreviewTruncatesLongFirstLine(t *testing.T) {
 		Result: longLine,
 	})
 
+	assertContains(t, result, "│")
 	assertContains(t, result, "...")
 }
 
-func TestRender_ReadWithLeadingBlankLines_SkipsToContent(t *testing.T) {
+func TestRender_ReadWithLeadingBlankLines_FallsBackToFirstContent(t *testing.T) {
+	// First 3 lines are all blank → trimmed → fallback to first non-empty line.
 	result := Render(ToolCallInfo{
 		Name:   "read",
 		Args:   map[string]interface{}{"path": "padded.py"},
 		Result: "\n\n\nimport os\nimport sys",
 	})
 
+	assertContains(t, result, "│")
 	assertContains(t, result, "import os")
+	// Only the fallback line is shown (not "import sys").
 	assertNotContains(t, result, "import sys")
+	// 5 total lines, 1 shown → "4 more lines".
+	assertContains(t, result, "4 more lines")
 }
 
 // =============================================================================
@@ -772,7 +799,10 @@ func TestRender_ReadWithReprResult_StripsMetadata(t *testing.T) {
 		Result: "content='import os\nimport sys' name='read' tool_call_id='toolu_xyz'",
 	})
 
+	// Repr stripping extracts "import os\nimport sys" → both lines shown with gutter.
+	assertContains(t, result, "│")
 	assertContains(t, result, "import os")
+	assertContains(t, result, "import sys")
 	assertNotContains(t, result, "name='read'")
 }
 
