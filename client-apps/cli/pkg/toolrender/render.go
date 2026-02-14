@@ -43,6 +43,25 @@ type ToolCallInfo struct {
 	Duration time.Duration
 }
 
+// previewStyle controls how (or whether) a result preview line is rendered
+// beneath the main tool call line.
+type previewStyle int
+
+const (
+	// previewNone disables result previews. Used for tools where the result is
+	// either too large or not informative in summary form (shell, write, edit, delete).
+	previewNone previewStyle = iota
+
+	// previewDiscovery joins multi-line results with ", " into a compact summary.
+	// Ideal for discovery tools (ls, glob, grep) where the result IS the value.
+	previewDiscovery
+
+	// previewFirstLine shows the first non-empty line of the result as a brief
+	// content excerpt. Useful for file read tools where a peek at the content
+	// confirms the agent read the right file.
+	previewFirstLine
+)
+
 // toolDisplayInfo defines how to render a specific category of tool.
 type toolDisplayInfo struct {
 	// icon is the emoji prefix for this tool category.
@@ -51,11 +70,14 @@ type toolDisplayInfo struct {
 	label string
 	// primaryField is the most important argument to extract and show.
 	primaryField string
+	// fallbackFields are alternative argument names tried in order when
+	// primaryField is not found in the tool args. This handles variance in
+	// argument naming across different agent frameworks and sandbox tools.
+	fallbackFields []string
 	// dangerous marks destructive tools for warning styling.
 	dangerous bool
-	// showPreview enables a second dimmed line showing a truncated result.
-	// Used for discovery tools (ls, glob, grep) where the result IS the value.
-	showPreview bool
+	// preview controls the result preview style. See previewStyle constants.
+	preview previewStyle
 }
 
 // toolDisplayMap maps known tool names to their display configuration.
@@ -71,17 +93,18 @@ var toolDisplayMap = map[string]toolDisplayInfo{
 	"run_command":     {icon: "🖥 ", label: "Shell", primaryField: "command"},
 	"terminal":        {icon: "🖥 ", label: "Shell", primaryField: "command"},
 
-	// File read operations
-	"read":           {icon: "📖", label: "Read", primaryField: "path"},
-	"read_file":      {icon: "📖", label: "Read", primaryField: "path"},
-	"list_directory": {icon: "📂", label: "List", primaryField: "path", showPreview: true},
+	// File read operations — fallbackFields handle arg name variance across
+	// agent frameworks (deepagents uses "file_path", others may use "file").
+	"read":      {icon: "📖", label: "Read", primaryField: "path", fallbackFields: []string{"file_path", "file"}, preview: previewFirstLine},
+	"read_file": {icon: "📖", label: "Read", primaryField: "path", fallbackFields: []string{"file_path", "file"}, preview: previewFirstLine},
 
-	// Directory listing (platform tool name)
-	"ls": {icon: "📂", label: "List", primaryField: "path", showPreview: true},
+	// Directory listing
+	"list_directory": {icon: "📂", label: "List", primaryField: "path", preview: previewDiscovery},
+	"ls":             {icon: "📂", label: "List", primaryField: "path", preview: previewDiscovery},
 
-	// File search / pattern matching (platform tool names)
-	"glob": {icon: "🔍", label: "Find", primaryField: "pattern", showPreview: true},
-	"grep": {icon: "🔎", label: "Search", primaryField: "pattern", showPreview: true},
+	// File search / pattern matching
+	"glob": {icon: "🔍", label: "Find", primaryField: "pattern", preview: previewDiscovery},
+	"grep": {icon: "🔎", label: "Search", primaryField: "pattern", preview: previewDiscovery},
 
 	// File write operations
 	"write":          {icon: "📝", label: "Write", primaryField: "path"},
@@ -170,16 +193,18 @@ func RenderResultWithPreview(content string) string {
 
 // renderKnown formats a tool call with category-specific icon, label, and primary arg.
 //
-// For discovery tools (showPreview=true) with a non-empty Result, a second
-// indented line is appended showing a truncated result preview. This gives the
-// user visibility into what the tool found without requiring separate result
-// messages.
+// When the tool has a preview style configured and a non-empty Result, a second
+// indented line is appended showing a result preview. The style determines the
+// formatting strategy:
+//   - previewDiscovery: compact comma-separated summary (ls, glob, grep)
+//   - previewFirstLine: first-line content excerpt (read, read_file)
 //
-// Example with preview:
+// Examples:
 //
 //	"  📂 List: /workspace (97 chars, 3ms)\n     inputs/, outputs/"
+//	"  📖 Read: main.go (1.5 KB, 4ms)\n     package main"
 func renderKnown(tc ToolCallInfo, info toolDisplayInfo) string {
-	primaryVal := extractPrimaryArg(tc.Args, info.primaryField)
+	primaryVal := extractPrimaryArgWithFallbacks(tc.Args, info.primaryField, info.fallbackFields)
 
 	var line string
 	if primaryVal != "" {
@@ -194,9 +219,15 @@ func renderKnown(tc ToolCallInfo, info toolDisplayInfo) string {
 		line += " " + dimStyle.Render(suffix)
 	}
 
-	// Append result preview for discovery tools (ls, glob, grep).
-	if info.showPreview && tc.Result != "" {
-		preview := formatResultPreview(tc.Result)
+	// Append result preview based on the configured preview style.
+	if tc.Result != "" {
+		var preview string
+		switch info.preview {
+		case previewDiscovery:
+			preview = formatResultPreview(tc.Result)
+		case previewFirstLine:
+			preview = formatFirstLinePreview(tc.Result)
+		}
 		if preview != "" {
 			line += "\n" + dimStyle.Render("     "+preview)
 		}
