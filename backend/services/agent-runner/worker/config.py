@@ -243,12 +243,17 @@ class CheckpointerConfig:
         Configuration Cascade:
             1. Environment variables (explicit user config)
             2. Mode-aware defaults:
-               - local mode: memory (fast, zero setup)
+               - local mode: sqlite (persistent, HITL-compatible)
                - cloud mode: mongodb (persistent, shared)
         """
         # Determine mode-aware defaults
         if mode == "local":
-            default_type = "memory"
+            # SQLite is the default for local mode because:
+            # 1. Persistent across activity re-invocations (required for HITL approval)
+            # 2. Zero setup - single file, no external dependencies
+            # 3. MemorySaver is incompatible with HITL because each Temporal activity
+            #    invocation creates a new MemorySaver instance, losing all checkpoints
+            default_type = "sqlite"
             default_sqlite_path: str | None = "./checkpoints/langgraph.db"
         else:  # cloud mode
             default_type = "mongodb"

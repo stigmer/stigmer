@@ -247,6 +247,158 @@ func TestRenderer_IdempotentOnSameMessages(t *testing.T) {
 }
 
 // =============================================================================
+// Error Sanitization Tests
+// =============================================================================
+
+func TestSanitizeSystemContent_PassthroughNormalMessages(t *testing.T) {
+	// Non-error system messages should pass through unchanged.
+	tests := []string{
+		"Execution paused by user.",
+		"⏸️ Execution paused by user. Use resume to continue from this checkpoint.",
+		"Internal system error occurred. Please contact support if this issue persists.",
+		"Agent is processing your request.",
+		"",
+	}
+
+	for _, input := range tests {
+		result := sanitizeSystemContent(input)
+		if result != input {
+			t.Errorf("sanitizeSystemContent(%q) = %q, want passthrough", input, result)
+		}
+	}
+}
+
+func TestSanitizeSystemContent_SanitizesAnthropicError(t *testing.T) {
+	// Raw Anthropic API error should be sanitized.
+	input := "❌ Error: Execution failed: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'messages: at least one message is required'}, 'request_id': 'req_011CY7r2jVTajTkbcCUdXXfC'}"
+
+	result := sanitizeSystemContent(input)
+
+	// Should not contain the raw API error details.
+	if strings.Contains(result, "Error code: 400") {
+		t.Errorf("expected raw error code to be removed, got: %s", result)
+	}
+	if strings.Contains(result, "invalid_request_error") {
+		t.Errorf("expected raw error type to be removed, got: %s", result)
+	}
+	if strings.Contains(result, "request_id") {
+		t.Errorf("expected request_id to be removed, got: %s", result)
+	}
+
+	// Should preserve a meaningful prefix.
+	if !strings.Contains(result, "Execution failed") {
+		t.Errorf("expected sanitized output to preserve 'Execution failed', got: %s", result)
+	}
+}
+
+func TestSanitizeSystemContent_SanitizesGenericAPIError(t *testing.T) {
+	// Raw HTTP error with no prefix.
+	input := "Error code: 500 - {\"type\": \"error\", \"message\": \"internal server error\"}"
+
+	result := sanitizeSystemContent(input)
+
+	// Should produce a fallback message (no useful prefix to preserve).
+	if strings.Contains(result, "Error code: 500") {
+		t.Errorf("expected raw error code to be removed, got: %s", result)
+	}
+	if !strings.Contains(result, "internal error") {
+		t.Errorf("expected fallback error message, got: %s", result)
+	}
+}
+
+func TestSanitizeSystemContent_SanitizesErrorWithPrefix(t *testing.T) {
+	// Error with a meaningful prefix before the raw dump.
+	input := "❌ Error: Agent crashed: Error code: 429 - {'type': 'error', 'error': {'type': 'rate_limit_error'}}"
+
+	result := sanitizeSystemContent(input)
+
+	// Should keep the human-readable prefix.
+	if !strings.Contains(result, "Agent crashed") {
+		t.Errorf("expected prefix 'Agent crashed' to be preserved, got: %s", result)
+	}
+	// Should not contain the raw error body.
+	if strings.Contains(result, "rate_limit_error") {
+		t.Errorf("expected raw error type to be removed, got: %s", result)
+	}
+}
+
+func TestIsRawErrorContent(t *testing.T) {
+	tests := []struct {
+		name     string
+		content  string
+		expected bool
+	}{
+		{
+			name:     "anthropic error code",
+			content:  "Error code: 400 - {'type': 'error'}",
+			expected: true,
+		},
+		{
+			name:     "json error code",
+			content:  `Error code: 500 - {"type": "error"}`,
+			expected: true,
+		},
+		{
+			name:     "invalid_request_error keyword",
+			content:  "Something invalid_request_error happened",
+			expected: true,
+		},
+		{
+			name:     "request_id keyword",
+			content:  "Error with request_id abc123",
+			expected: true,
+		},
+		{
+			name:     "normal message",
+			content:  "Execution completed successfully",
+			expected: false,
+		},
+		{
+			name:     "empty",
+			content:  "",
+			expected: false,
+		},
+		{
+			name:     "user-facing error",
+			content:  "File not found: config.yaml",
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isRawErrorContent(tt.content)
+			if result != tt.expected {
+				t.Errorf("isRawErrorContent(%q) = %v, want %v", tt.content, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestRenderer_SystemMessage_SanitizesRawError(t *testing.T) {
+	var buf bytes.Buffer
+	r := newMessageStreamRenderer(&buf)
+
+	rawError := "❌ Error: Execution failed: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'messages: at least one message is required'}}"
+	msgs := []*agentexecutionv1.AgentMessage{
+		makeMessage(agentexecutionv1.MessageType_MESSAGE_SYSTEM, rawError, false),
+	}
+
+	rendered, streaming := r.render(msgs)
+	assertFlags(t, rendered, true, streaming, false)
+
+	output := buf.String()
+	// Should not contain the raw API error.
+	if strings.Contains(output, "invalid_request_error") {
+		t.Errorf("expected raw error to be sanitized, got: %s", output)
+	}
+	// Should contain the preserved meaningful prefix.
+	if !strings.Contains(output, "Execution failed") {
+		t.Errorf("expected sanitized output to contain 'Execution failed', got: %s", output)
+	}
+}
+
+// =============================================================================
 // Test Assertion Helpers
 // =============================================================================
 

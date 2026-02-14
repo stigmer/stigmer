@@ -96,6 +96,9 @@ func streamAgentExecution(executionID string, prompter approval.Prompter, defaul
 				return nil, errors.Wrap(err, "agent approval failed")
 			}
 			promptedToolCallIDs[tc.Id] = true
+			// Sync lastPhase so Step 4 does not re-display the WAITING_FOR_APPROVAL
+			// phase change that the user already acted on via the approval prompt.
+			lastPhase = execution.Status.Phase
 			sp.Start("Resuming after approval...")
 		}
 
@@ -112,13 +115,16 @@ func streamAgentExecution(executionID string, prompter approval.Prompter, defaul
 				return nil, errors.Wrap(err, "agent approval failed")
 			}
 			promptedToolCallIDs[pendingApproval.ToolCallId] = true
+			// Sync lastPhase so Step 4 does not re-display the WAITING_FOR_APPROVAL
+			// phase change that the user already acted on via the approval prompt.
+			lastPhase = execution.Status.Phase
 			sp.Start("Resuming after approval...")
 		}
 
 		// Step 4: Display phase changes (AFTER messages are flushed and approvals handled).
 		if execution.Status.Phase != lastPhase {
 			sp.Stop()
-			displayAgentPhaseChange(execution.Status.Phase)
+			displayAgentPhaseChange(execution.Status.Phase, lastPhase)
 			lastPhase = execution.Status.Phase
 
 			if !isTerminalAgentPhase(lastPhase) {
