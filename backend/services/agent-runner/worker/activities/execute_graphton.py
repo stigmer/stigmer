@@ -1,6 +1,7 @@
 """Temporal activity for executing Graphton agents."""
 
 import asyncio
+import contextlib
 import os
 import time
 from typing import Any
@@ -341,6 +342,11 @@ async def _execute_graphton_impl(
     # Initialize to None here so error handler can check if it was created.
     status_builder = None
     
+    # AsyncExitStack manages the checkpointer lifecycle (SQLite connection,
+    # MongoDB client, etc.) across the entire activity execution. Created
+    # outside the try block so the finally clause can always clean it up.
+    exit_stack = contextlib.AsyncExitStack()
+    
     try:
         # Step 1: Resolve the full chain: execution → session → agent_instance → agent
         activity_logger.info(f"Resolving execution chain for execution: {execution_id}")
@@ -394,8 +400,14 @@ async def _execute_graphton_impl(
         # Checkpointer selection is mode-aware:
         # - local mode: MemorySaver (ephemeral) or SqliteSaver (persistent)
         # - cloud mode: AsyncMongoDBSaver (persistent, multi-instance safe)
+        #
+        # create_checkpointer is an async context manager. We enter it via the
+        # exit_stack so the underlying resources (SQLite connection, MongoDB client)
+        # stay alive for the entire activity and are cleaned up in the finally block.
         # ─────────────────────────────────────────────────────────────────────────────
-        checkpointer = await create_checkpointer(worker_config.checkpointer)
+        checkpointer = await exit_stack.enter_async_context(
+            create_checkpointer(worker_config.checkpointer)
+        )
         activity_logger.info(
             f"Created {worker_config.checkpointer.type} checkpointer "
             f"for HITL approval flow and conversation persistence"
@@ -1601,3 +1613,8 @@ async def _execute_graphton_impl(
         
         # Return failed status to workflow (already persisted via gRPC above)
         return failed_status
+    
+    finally:
+        # Clean up checkpointer resources (SQLite connection, MongoDB client, etc.)
+        # This runs regardless of success or failure, ensuring no resource leaks.
+        await exit_stack.aclose()

@@ -1,21 +1,23 @@
 """Unit tests for checkpointer factory module.
 
 Tests cover:
-- Factory function behavior for all checkpointer types
+- Factory context manager behavior for all checkpointer types
 - Error handling for missing dependencies
 - Error handling for connection failures
+- Resource lifecycle management (connection cleanup)
 - URI masking for secure logging
 - Graceful degradation patterns
 
 Test Categories:
 1. Memory Checkpointer Tests - MemorySaver creation
-2. SQLite Checkpointer Tests - AsyncSqliteSaver creation
-3. MongoDB Checkpointer Tests - AsyncMongoDBSaver creation
+2. SQLite Checkpointer Tests - AsyncSqliteSaver creation with context manager
+3. MongoDB Checkpointer Tests - AsyncMongoDBSaver creation with client cleanup
 4. Error Handling Tests - Missing deps, connection failures
 5. Utility Function Tests - URI masking
 """
 
 import pytest
+from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from worker.config import CheckpointerConfig
@@ -58,6 +60,18 @@ def mongodb_config():
     )
 
 
+def _make_async_cm(return_value):
+    """Create a mock async context manager that yields return_value.
+    
+    Helper for mocking AsyncSqliteSaver.from_conn_string() which is
+    an @asynccontextmanager.
+    """
+    @asynccontextmanager
+    async def _cm(*args, **kwargs):
+        yield return_value
+    return _cm
+
+
 # =============================================================================
 # Tests for Memory Checkpointer
 # =============================================================================
@@ -69,11 +83,9 @@ class TestMemoryCheckpointer:
     @pytest.mark.asyncio
     async def test_creates_memory_saver(self, memory_config):
         """Test that memory config creates MemorySaver."""
-        checkpointer = await create_checkpointer(memory_config)
-        
-        # Verify it's a MemorySaver
-        from langgraph.checkpoint.memory import MemorySaver
-        assert isinstance(checkpointer, MemorySaver)
+        async with create_checkpointer(memory_config) as checkpointer:
+            from langgraph.checkpoint.memory import MemorySaver
+            assert isinstance(checkpointer, MemorySaver)
 
     def test_sync_memory_creation(self):
         """Test synchronous memory checkpointer creation."""
@@ -85,9 +97,8 @@ class TestMemoryCheckpointer:
     @pytest.mark.asyncio
     async def test_memory_requires_no_dependencies(self, memory_config):
         """Test that memory checkpointer requires no external dependencies."""
-        # This should work without any external packages
-        checkpointer = await create_checkpointer(memory_config)
-        assert checkpointer is not None
+        async with create_checkpointer(memory_config) as checkpointer:
+            assert checkpointer is not None
 
 
 # =============================================================================
@@ -104,7 +115,8 @@ class TestSqliteCheckpointer:
         config = CheckpointerConfig(type="sqlite", sqlite_path=None)
         
         with pytest.raises(CheckpointerCreationError) as exc_info:
-            await create_checkpointer(config)
+            async with create_checkpointer(config) as _:
+                pass
         
         assert "sqlite_path is required" in str(exc_info.value)
         assert exc_info.value.checkpointer_type == "sqlite"
@@ -125,22 +137,43 @@ class TestSqliteCheckpointer:
     @pytest.mark.asyncio
     async def test_sqlite_creates_parent_directory(self, sqlite_config, tmp_path):
         """Test that parent directory is created if it doesn't exist."""
-        # Create a config with a path in a non-existent directory
         nested_path = tmp_path / "subdir1" / "subdir2" / "checkpoints.db"
         config = CheckpointerConfig(
             type="sqlite",
             sqlite_path=str(nested_path),
         )
         
-        # Mock the AsyncSqliteSaver to avoid actual DB creation
+        # Mock AsyncSqliteSaver.from_conn_string as an async context manager
+        mock_saver = MagicMock()
         with patch("worker.checkpointer.factory.AsyncSqliteSaver") as mock_sqlite:
-            mock_saver = MagicMock()
-            mock_sqlite.from_conn_string.return_value = mock_saver
+            mock_sqlite.from_conn_string = _make_async_cm(mock_saver)
             
-            await create_checkpointer(config)
+            async with create_checkpointer(config) as checkpointer:
+                # Verify parent directories were created
+                assert nested_path.parent.exists()
+                # Verify the yielded checkpointer is our mock saver
+                assert checkpointer is mock_saver
+
+    @pytest.mark.asyncio
+    async def test_sqlite_yields_proper_checkpointer(self, tmp_path):
+        """Test that sqlite checkpointer yields a proper BaseCheckpointSaver, not a context manager."""
+        db_path = tmp_path / "test.db"
+        config = CheckpointerConfig(type="sqlite", sqlite_path=str(db_path))
+        
+        mock_saver = MagicMock()
+        mock_saver.put = MagicMock()
+        mock_saver.get = MagicMock()
+        
+        with patch("worker.checkpointer.factory.AsyncSqliteSaver") as mock_sqlite:
+            mock_sqlite.from_conn_string = _make_async_cm(mock_saver)
             
-            # Verify parent directories were created
-            assert nested_path.parent.exists()
+            async with create_checkpointer(config) as checkpointer:
+                # The checkpointer should be the saver, not a context manager
+                assert checkpointer is mock_saver
+                assert hasattr(checkpointer, "put")
+                assert hasattr(checkpointer, "get")
+                # Crucially, it should NOT be a context manager object
+                assert not hasattr(checkpointer, "__aenter__") or isinstance(checkpointer, MagicMock)
 
 
 # =============================================================================
@@ -157,7 +190,8 @@ class TestMongoDBCheckpointer:
         config = CheckpointerConfig(type="mongodb", mongodb_uri=None)
         
         with pytest.raises(CheckpointerCreationError) as exc_info:
-            await create_checkpointer(config)
+            async with create_checkpointer(config) as _:
+                pass
         
         assert "mongodb_uri is required" in str(exc_info.value)
         assert exc_info.value.checkpointer_type == "mongodb"
@@ -168,18 +202,56 @@ class TestMongoDBCheckpointer:
         with patch("worker.checkpointer.factory.AsyncIOMotorClient") as mock_motor:
             with patch("worker.checkpointer.factory.AsyncMongoDBSaver") as mock_saver_class:
                 mock_client = MagicMock()
+                mock_client.close = MagicMock()
                 mock_motor.return_value = mock_client
                 mock_saver = MagicMock()
                 mock_saver_class.return_value = mock_saver
                 
-                await create_checkpointer(mongodb_config)
+                async with create_checkpointer(mongodb_config) as checkpointer:
+                    # Verify AsyncMongoDBSaver was called with correct params
+                    mock_saver_class.assert_called_once_with(
+                        client=mock_client,
+                        db_name="test_checkpoints",
+                        ttl=3600,
+                    )
+                    assert checkpointer is mock_saver
                 
-                # Verify AsyncMongoDBSaver was called with correct params
-                mock_saver_class.assert_called_once_with(
-                    client=mock_client,
-                    db_name="test_checkpoints",
-                    ttl=3600,
-                )
+                # After exiting context, Motor client should be closed
+                mock_client.close.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_mongodb_client_closed_on_exit(self, mongodb_config):
+        """Test that MongoDB Motor client is properly closed when context exits."""
+        with patch("worker.checkpointer.factory.AsyncIOMotorClient") as mock_motor:
+            with patch("worker.checkpointer.factory.AsyncMongoDBSaver") as mock_saver_class:
+                mock_client = MagicMock()
+                mock_client.close = MagicMock()
+                mock_motor.return_value = mock_client
+                mock_saver_class.return_value = MagicMock()
+                
+                async with create_checkpointer(mongodb_config):
+                    # Client should NOT be closed while context is active
+                    mock_client.close.assert_not_called()
+                
+                # Client MUST be closed after context exits
+                mock_client.close.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_mongodb_client_closed_on_error(self, mongodb_config):
+        """Test that MongoDB Motor client is closed even if an error occurs during use."""
+        with patch("worker.checkpointer.factory.AsyncIOMotorClient") as mock_motor:
+            with patch("worker.checkpointer.factory.AsyncMongoDBSaver") as mock_saver_class:
+                mock_client = MagicMock()
+                mock_client.close = MagicMock()
+                mock_motor.return_value = mock_client
+                mock_saver_class.return_value = MagicMock()
+                
+                with pytest.raises(RuntimeError, match="simulated error"):
+                    async with create_checkpointer(mongodb_config):
+                        raise RuntimeError("simulated error")
+                
+                # Client MUST be closed even after an error
+                mock_client.close.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_mongodb_connection_failure_handling(self, mongodb_config):
@@ -188,7 +260,8 @@ class TestMongoDBCheckpointer:
             mock_motor.side_effect = Exception("Connection refused")
             
             with pytest.raises(CheckpointerCreationError) as exc_info:
-                await create_checkpointer(mongodb_config)
+                async with create_checkpointer(mongodb_config) as _:
+                    pass
             
             assert exc_info.value.checkpointer_type == "mongodb"
             assert "Failed to connect" in str(exc_info.value)
@@ -208,7 +281,8 @@ class TestCheckpointerErrorHandling:
         config = CheckpointerConfig(type="invalid_type")
         
         with pytest.raises(ValueError) as exc_info:
-            await create_checkpointer(config)
+            async with create_checkpointer(config) as _:
+                pass
         
         assert "Unknown checkpointer type" in str(exc_info.value)
 
@@ -300,33 +374,34 @@ class TestCheckpointerIntegration:
     @pytest.mark.asyncio
     async def test_memory_checkpointer_is_functional(self, memory_config):
         """Test that created memory checkpointer is functional."""
-        checkpointer = await create_checkpointer(memory_config)
-        
-        # Verify it has the expected interface
-        assert hasattr(checkpointer, "put")
-        assert hasattr(checkpointer, "get")
+        async with create_checkpointer(memory_config) as checkpointer:
+            # Verify it has the expected interface
+            assert hasattr(checkpointer, "put")
+            assert hasattr(checkpointer, "get")
 
     @pytest.mark.asyncio
     async def test_config_type_determines_checkpointer(self):
         """Test that config type determines which checkpointer is created."""
         memory_config = CheckpointerConfig(type="memory")
         
-        checkpointer = await create_checkpointer(memory_config)
-        
-        from langgraph.checkpoint.memory import MemorySaver
-        assert isinstance(checkpointer, MemorySaver)
+        async with create_checkpointer(memory_config) as checkpointer:
+            from langgraph.checkpoint.memory import MemorySaver
+            assert isinstance(checkpointer, MemorySaver)
 
     @pytest.mark.asyncio
     async def test_different_configs_create_different_checkpointers(self, memory_config, sqlite_config):
         """Test that different configs create different checkpointer types."""
-        memory_cp = await create_checkpointer(memory_config)
+        async with create_checkpointer(memory_config) as memory_cp:
+            memory_type = type(memory_cp).__name__
         
         # For sqlite, we need to mock since we may not have the package
+        mock_saver = MagicMock()
         with patch("worker.checkpointer.factory.AsyncSqliteSaver") as mock_sqlite:
-            mock_saver = MagicMock()
-            mock_sqlite.from_conn_string.return_value = mock_saver
+            mock_sqlite.from_conn_string = _make_async_cm(mock_saver)
             
-            sqlite_cp = await create_checkpointer(sqlite_config)
+            async with create_checkpointer(sqlite_config) as sqlite_cp:
+                sqlite_type = type(sqlite_cp).__name__
         
         # They should be different types
-        assert type(memory_cp).__name__ == "MemorySaver"
+        assert memory_type == "MemorySaver"
+        assert memory_type != sqlite_type
