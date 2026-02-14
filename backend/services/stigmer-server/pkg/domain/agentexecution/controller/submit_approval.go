@@ -88,7 +88,7 @@ func (c *AgentExecutionController) buildSubmitApprovalPipeline() *pipeline.Pipel
 		AddStep(steps.NewValidateProtoStep[*agentexecutionv1.SubmitApprovalInput]()). // 1. Validate input
 		AddStep(newLoadExistingForApprovalStep(c.store)).                             // 2. Load execution
 		AddStep(newValidateApprovalStep()).                                           // 3. Validate approval
-		AddStep(newSignalWorkflowStep(c.workflowCreator, c.store)).                    // 4. Signal workflow
+		AddStep(newSignalWorkflowStep(c.workflowCreator, c.store)).                   // 4. Signal workflow
 		AddStep(newBuildApprovalResponseStep()).                                      // 5. Build response
 		Build()
 }
@@ -339,6 +339,7 @@ func (s *signalWorkflowStep) reconcileStaleExecution(ctx context.Context, execut
 		Spec:       execution.GetSpec(),
 		Status: &agentexecutionv1.AgentExecutionStatus{
 			Phase:     agentexecutionv1.ExecutionPhase_EXECUTION_FAILED,
+			Error:     "Workflow backing this execution is no longer running. Execution has been marked as failed.",
 			Messages:  execution.GetStatus().GetMessages(),
 			ToolCalls: execution.GetStatus().GetToolCalls(),
 			Audit:     execution.GetStatus().GetAudit(),

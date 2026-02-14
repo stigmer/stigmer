@@ -996,6 +996,7 @@ class StatusBuilder:
             self._pending_tool_approval = None
             self.current_status.pending_approval.Clear()
             self.current_status.phase = ExecutionPhase.EXECUTION_FAILED
+            self.current_status.error = f"Tool '{tool_call.name}' execution rejected by {approved_by}"
             
             self.logger.info(
                 f"[APPROVAL] execution={self.execution_id} "
