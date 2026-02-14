@@ -6,6 +6,7 @@ import (
 	"github.com/pkg/errors"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 )
 
 // draftSkillOptions contains options for the draft skill command.
@@ -13,7 +14,6 @@ type draftSkillOptions struct {
 	Message     string
 	AttachFlags []string
 	OutputDir   string
-	Follow      bool
 	Model       string
 }
 
@@ -23,7 +23,8 @@ type draftSkillOptions struct {
 // 1. Resolves the skill-creator-agent from the local org (created by bootstrap)
 // 2. Processes any attached files as context for the agent
 // 3. Creates an agent execution with the user's message
-// 4. Waits for completion and downloads the generated skill artifacts
+// 4. Streams execution in real-time (handling approvals inline)
+// 5. Downloads the generated skill artifacts on completion
 func executeDraftSkill(opts draftSkillOptions) error {
 	// 1. Connect to backend
 	conn, orgID, err := connectToBackend("")
@@ -64,22 +65,14 @@ func executeDraftSkill(opts draftSkillOptions) error {
 	cliprint.PrintInfo("Execution ID: %s", exec.Metadata.Id)
 	fmt.Println()
 
-	// 5. Stream logs if follow is enabled (non-blocking observation)
-	// Note: This runs in the background while we wait for completion
-	if opts.Follow {
-		go streamAgentExecutionLogs(exec.Metadata.Id, conn)
-	}
-
-	// 6. Wait for completion (draft commands always wait)
-	exec, err = waitForExecution(exec.Metadata.Id, conn)
+	// 5. Stream execution in real-time until completion
+	prompter := approval.NewInteractivePrompter()
+	exec, err = streamAgentExecution(exec.Metadata.Id, prompter, conn)
 	if err != nil {
 		return errors.Wrap(err, "execution failed")
 	}
 
-	// 7. Display result
-	displayExecutionResult(exec)
-
-	// 8. Download artifacts (draft commands always download)
+	// 6. Download artifacts (draft commands always download)
 	if len(exec.Status.Artifacts) > 0 {
 		if err := downloadArtifacts(exec, opts.OutputDir, conn); err != nil {
 			return errors.Wrap(err, "failed to download skill artifacts")

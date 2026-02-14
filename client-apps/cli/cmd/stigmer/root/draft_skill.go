@@ -17,7 +17,6 @@ func NewDraftSkillCommand() *cobra.Command {
 	var message string
 	var attachFlags []string
 	var outputDir string
-	var follow bool
 	var model string
 
 	cmd := &cobra.Command{
@@ -36,7 +35,9 @@ The agent will:
 2. Generate a complete SKILL.md file following best practices
 3. Publish the result as an artifact for download
 
-The generated skill will be saved to the output directory (default: current directory).`,
+Execution streams in real-time by default. Approval prompts are handled
+interactively. The generated skill will be saved to the output directory
+(default: current directory).`,
 		Example: `  # Create a skill interactively
   stigmer draft skill -m "Create a skill for validating Kubernetes manifests"
 
@@ -49,9 +50,6 @@ The generated skill will be saved to the output directory (default: current dire
   # Save to specific directory
   stigmer draft skill -m "Create a YAML validator skill" --output ./skills/yaml-validator/
 
-  # Stream agent logs during creation
-  stigmer draft skill -m "Create a skill for X" --follow
-
   # Use a specific model
   stigmer draft skill -m "Create a skill for X" --model claude-sonnet-4-20250514`,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -59,7 +57,6 @@ The generated skill will be saved to the output directory (default: current dire
 				Message:     message,
 				AttachFlags: attachFlags,
 				OutputDir:   outputDir,
-				Follow:      follow,
 				Model:       model,
 			})
 			clierr.Handle(err)
@@ -77,10 +74,6 @@ The generated skill will be saved to the output directory (default: current dire
 	// Output directory
 	cmd.Flags().StringVarP(&outputDir, "output", "o", ".",
 		"directory to save the generated skill")
-
-	// Follow flag for streaming logs
-	cmd.Flags().BoolVar(&follow, "follow", false,
-		"stream agent logs during skill creation")
 
 	// Model flag for specifying LLM model
 	cmd.Flags().StringVar(&model, "model", "",

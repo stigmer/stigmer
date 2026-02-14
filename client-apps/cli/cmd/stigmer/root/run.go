@@ -21,9 +21,8 @@ func NewRunCommand() *cobra.Command {
 	var secretFlags []string
 	var secretFileFlags []string
 	var orgOverride string
-	var follow bool
+	var detach bool
 	var attachFlags []string
-	var waitFlag bool
 	var downloadDir string
 
 	cmd := &cobra.Command{
@@ -39,6 +38,9 @@ The reference can be:
   - Resource ID (e.g., agt_abc123, wfl_xyz789)
   - Slug (e.g., my-agent)
   - Org/slug (e.g., acme-corp/my-agent)
+
+By default, the command streams execution updates in real-time, handles
+approval prompts interactively, and returns when the execution completes.
 
 ENVIRONMENT VARIABLES:
 
@@ -62,11 +64,9 @@ INPUT FILES:
 OTHER OPTIONS:
 
   --message, -m:  Initial prompt to send to the agent/workflow
-  --follow:       Stream execution logs in real-time (default: true)
-                  Use --no-follow to skip streaming
-  --wait:         Wait for execution to complete (implies --no-follow for output)
-  --download DIR: Download artifacts to directory when complete (implies --wait)`,
-		Example: `  # Run an agent by name
+  --detach:       Start execution and return immediately without streaming
+  --download DIR: Download artifacts to directory when complete`,
+		Example: `  # Run an agent by name (streams by default)
   stigmer run agent my-agent
 
   # Run a workflow with a message
@@ -80,8 +80,8 @@ OTHER OPTIONS:
   # Run with org/slug format
   stigmer run agent acme-corp/code-reviewer
 
-  # Run without streaming logs
-  stigmer run agent my-agent --no-follow
+  # Start execution and return immediately (fire-and-forget)
+  stigmer run agent my-agent --detach
 
   # Run with environment variables
   stigmer run agent my-agent --env API_URL=https://api.example.com --env DEBUG=true
@@ -101,17 +101,13 @@ OTHER OPTIONS:
   # Run with file attachments
   stigmer run agent data-analyzer --attach ./data.csv --attach ./config.yaml -m "Analyze"
 
-  # Wait for completion and download artifacts
-  stigmer run agent report-generator --attach ./data.csv --wait --download ./results
+  # Stream execution and download artifacts when complete
+  stigmer run agent report-generator --attach ./data.csv --download ./results
 
   # Override organization
   stigmer run agent my-agent --org acme-corp`,
 		Args: cobra.ExactArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
-			// --download implies --wait
-			if downloadDir != "" {
-				waitFlag = true
-			}
 			err := executeRun(runOptions{
 				TypeArg:         args[0],
 				Reference:       args[1],
@@ -120,10 +116,9 @@ OTHER OPTIONS:
 				EnvFileFlags:    envFileFlags,
 				SecretFlags:     secretFlags,
 				SecretFileFlags: secretFileFlags,
-				Follow:          follow,
+				Detach:          detach,
 				OrgOverride:     orgOverride,
 				AttachFlags:     attachFlags,
-				Wait:            waitFlag,
 				DownloadDir:     downloadDir,
 			})
 			clierr.Handle(err)
@@ -146,17 +141,17 @@ OTHER OPTIONS:
 		"load secrets from file (can be repeated, all values encrypted)")
 
 	// Execution flags
-	cmd.Flags().BoolVar(&follow, "follow", true, "stream execution logs in real-time")
+	cmd.Flags().BoolVar(&detach, "detach", false,
+		"start execution and return immediately without streaming")
 	cmd.Flags().StringVar(&orgOverride, "org", "", "organization ID (overrides context)")
 
 	// Attachment flags
 	cmd.Flags().StringArrayVar(&attachFlags, "attach", []string{},
 		"file to attach as input (can be repeated)")
 
-	// Wait and download flags
-	cmd.Flags().BoolVar(&waitFlag, "wait", false, "wait for execution to complete")
+	// Download flag
 	cmd.Flags().StringVar(&downloadDir, "download", "",
-		"download artifacts to directory when complete (implies --wait)")
+		"download artifacts to directory when complete")
 
 	return cmd
 }
@@ -170,10 +165,9 @@ type runOptions struct {
 	EnvFileFlags    []string
 	SecretFlags     []string
 	SecretFileFlags []string
-	Follow          bool
+	Detach          bool
 	OrgOverride     string
 	AttachFlags     []string
-	Wait            bool
 	DownloadDir     string
 }
 
@@ -220,17 +214,17 @@ func executeRun(opts runOptions) error {
 	}
 
 	// Step 6: Route to appropriate handler
-	return routeRun(info, opts.Reference, opts.Message, runtimeEnv, attachments, opts.Follow, opts.Wait, opts.DownloadDir, orgID, conn)
+	return routeRun(info, opts.Reference, opts.Message, runtimeEnv, attachments, opts.Detach, opts.DownloadDir, orgID, conn)
 }
 
 // routeRun routes to the appropriate run handler based on kind.
-func routeRun(info *types.TypeInfo, ref, message string, env envfile.EnvMap, attachments []*agentexecutionv1.Attachment, follow, wait bool, downloadDir, orgID string, conn *grpc.ClientConn) error {
+func routeRun(info *types.TypeInfo, ref, message string, env envfile.EnvMap, attachments []*agentexecutionv1.Attachment, detach bool, downloadDir, orgID string, conn *grpc.ClientConn) error {
 	switch info.ProtoKind {
 	case apiresourcekind.ApiResourceKind_agent:
-		return runAgent(ref, message, env, attachments, follow, wait, downloadDir, orgID, conn)
+		return runAgent(ref, message, env, attachments, detach, downloadDir, orgID, conn)
 
 	case apiresourcekind.ApiResourceKind_workflow:
-		return runWorkflow(ref, message, env, follow, orgID, conn)
+		return runWorkflow(ref, message, env, detach, orgID, conn)
 
 	default:
 		return fmt.Errorf("run not implemented for %s", info.DisplayName)

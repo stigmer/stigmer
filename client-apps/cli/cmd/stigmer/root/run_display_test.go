@@ -193,6 +193,11 @@ func TestIsTerminalAgentPhase(t *testing.T) {
 			phase:    agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED,
 			expected: true,
 		},
+		{
+			name:     "terminated is terminal",
+			phase:    agentexecutionv1.ExecutionPhase_EXECUTION_TERMINATED,
+			expected: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -238,6 +243,11 @@ func TestIsTerminalWorkflowPhase(t *testing.T) {
 		{
 			name:     "cancelled is terminal",
 			phase:    workflowexecutionv1.ExecutionPhase_EXECUTION_CANCELLED,
+			expected: true,
+		},
+		{
+			name:     "terminated is terminal",
+			phase:    workflowexecutionv1.ExecutionPhase_EXECUTION_TERMINATED,
 			expected: true,
 		},
 	}
