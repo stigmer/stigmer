@@ -11,12 +11,14 @@ Design Principles:
 2. Lazy imports - optional dependencies loaded only when needed
 3. Graceful degradation - clear error messages, fallback options
 4. Production-ready - handles connection failures, timeouts
-5. Zero technical debt - clean abstractions, comprehensive logging
+5. Proper resource lifecycle - async context manager ensures cleanup
 """
 
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any
 
 from langgraph.checkpoint.memory import MemorySaver
@@ -54,14 +56,19 @@ class CheckpointerCreationError(Exception):
         super().__init__(full_message)
 
 
+@asynccontextmanager
 async def create_checkpointer(
     config: CheckpointerConfig,
-) -> BaseCheckpointSaver:
+) -> AsyncIterator[BaseCheckpointSaver]:
     """Create a checkpointer based on configuration.
     
-    Factory function for mode-aware checkpointer instantiation. Creates
-    the appropriate checkpointer type based on configuration, with proper
-    error handling and logging.
+    Async context manager factory for mode-aware checkpointer instantiation.
+    Creates the appropriate checkpointer type based on configuration, with
+    proper error handling, logging, and resource lifecycle management.
+    
+    The context manager pattern ensures that underlying resources (SQLite
+    connections, MongoDB clients) are properly cleaned up when the checkpointer
+    is no longer needed, preventing resource leaks in long-running workers.
     
     Checkpointer Types:
     ------------------
@@ -83,7 +90,7 @@ async def create_checkpointer(
     Args:
         config: CheckpointerConfig instance with type and connection details
         
-    Returns:
+    Yields:
         A BaseCheckpointSaver instance ready for use with LangGraph
         
     Raises:
@@ -92,22 +99,24 @@ async def create_checkpointer(
         
     Example:
         >>> from worker.config import CheckpointerConfig
-        >>> config = CheckpointerConfig(type="memory")
-        >>> checkpointer = await create_checkpointer(config)
-        >>> # Use with LangGraph agent
-        >>> agent = create_deep_agent(..., checkpointer=checkpointer)
+        >>> config = CheckpointerConfig(type="sqlite", sqlite_path="./checkpoints/lg.db")
+        >>> async with create_checkpointer(config) as checkpointer:
+        ...     agent = create_deep_agent(..., checkpointer=checkpointer)
+        ...     # checkpointer is valid for the lifetime of this block
     
     """
     logger.info(f"Creating checkpointer: type={config.type}")
     
     if config.type == "memory":
-        return _create_memory_checkpointer()
+        yield _create_memory_checkpointer()
     
     elif config.type == "sqlite":
-        return await _create_sqlite_checkpointer(config)
+        async with _sqlite_checkpointer(config) as saver:
+            yield saver
     
     elif config.type == "mongodb":
-        return await _create_mongodb_checkpointer(config)
+        async with _mongodb_checkpointer(config) as saver:
+            yield saver
     
     else:
         # This should be caught by config validation, but handle defensively
@@ -130,19 +139,25 @@ def _create_memory_checkpointer() -> MemorySaver:
     return MemorySaver()
 
 
-async def _create_sqlite_checkpointer(
+@asynccontextmanager
+async def _sqlite_checkpointer(
     config: CheckpointerConfig,
-) -> BaseCheckpointSaver:
-    """Create SQLite-based checkpointer.
+) -> AsyncIterator[BaseCheckpointSaver]:
+    """Create and manage SQLite-based checkpointer lifecycle.
     
     AsyncSqliteSaver stores state in a SQLite database file.
     Persistent but single-instance only due to file locking.
     
+    AsyncSqliteSaver.from_conn_string() is an async context manager that
+    opens the aiosqlite connection, creates the saver, runs setup() to
+    initialize the schema, and yields the saver. The connection is closed
+    when the context exits.
+    
     Args:
         config: CheckpointerConfig with sqlite_path
         
-    Returns:
-        AsyncSqliteSaver instance
+    Yields:
+        AsyncSqliteSaver instance with an active database connection
         
     Raises:
         CheckpointerCreationError: If SQLite setup fails
@@ -174,17 +189,20 @@ async def _create_sqlite_checkpointer(
             os.makedirs(parent_dir, exist_ok=True)
             logger.info(f"Created directory for SQLite database: {parent_dir}")
         
-        # Create the checkpointer
-        # Note: from_conn_string is an async context manager in some versions
-        # We handle both cases
-        checkpointer = AsyncSqliteSaver.from_conn_string(config.sqlite_path)
+        # from_conn_string() is an @asynccontextmanager that opens the
+        # aiosqlite connection, creates the saver, runs setup(), and
+        # yields the ready-to-use AsyncSqliteSaver instance.
+        async with AsyncSqliteSaver.from_conn_string(config.sqlite_path) as saver:
+            logger.info(
+                f"Created AsyncSqliteSaver checkpointer "
+                f"(persistent, file={config.sqlite_path})"
+            )
+            yield saver
         
-        logger.info(
-            f"Created AsyncSqliteSaver checkpointer "
-            f"(persistent, file={config.sqlite_path})"
-        )
-        return checkpointer  # type: ignore[return-value]  # from_conn_string returns context manager usable as checkpointer
+        logger.debug(f"AsyncSqliteSaver connection closed (file={config.sqlite_path})")
         
+    except CheckpointerCreationError:
+        raise
     except Exception as e:
         raise CheckpointerCreationError(
             checkpointer_type="sqlite",
@@ -193,20 +211,24 @@ async def _create_sqlite_checkpointer(
         ) from e
 
 
-async def _create_mongodb_checkpointer(
+@asynccontextmanager
+async def _mongodb_checkpointer(
     config: CheckpointerConfig,
-) -> BaseCheckpointSaver:
-    """Create MongoDB-based checkpointer.
+) -> AsyncIterator[BaseCheckpointSaver]:
+    """Create and manage MongoDB-based checkpointer lifecycle.
     
     AsyncMongoDBSaver stores state in MongoDB. Persistent and
     multi-instance safe, suitable for cloud deployments with
     horizontal scaling.
     
+    The Motor client is created on entry and closed on exit,
+    preventing connection leaks in long-running Temporal workers.
+    
     Args:
         config: CheckpointerConfig with mongodb_uri and mongodb_db_name
         
-    Returns:
-        AsyncMongoDBSaver instance
+    Yields:
+        AsyncMongoDBSaver instance with an active MongoDB connection
         
     Raises:
         CheckpointerCreationError: If MongoDB connection fails
@@ -236,23 +258,29 @@ async def _create_mongodb_checkpointer(
         
         client: Any = AsyncIOMotorClient(config.mongodb_uri)
         
-        # Create the checkpointer with optional TTL
-        checkpointer = AsyncMongoDBSaver(
-            client=client,
-            db_name=config.mongodb_db_name,
-            ttl=config.mongodb_ttl_seconds,
-        )
+        try:
+            # Create the checkpointer with optional TTL
+            checkpointer = AsyncMongoDBSaver(
+                client=client,
+                db_name=config.mongodb_db_name,
+                ttl=config.mongodb_ttl_seconds,
+            )
+            
+            # Log configuration (mask sensitive URI parts)
+            masked_uri = _mask_mongodb_uri(config.mongodb_uri)
+            ttl_info = f", ttl={config.mongodb_ttl_seconds}s" if config.mongodb_ttl_seconds else ""
+            
+            logger.info(
+                f"Created AsyncMongoDBSaver checkpointer "
+                f"(persistent, db={config.mongodb_db_name}, uri={masked_uri}{ttl_info})"
+            )
+            yield checkpointer
+        finally:
+            client.close()
+            logger.debug("MongoDB Motor client closed")
         
-        # Log configuration (mask sensitive URI parts)
-        masked_uri = _mask_mongodb_uri(config.mongodb_uri)
-        ttl_info = f", ttl={config.mongodb_ttl_seconds}s" if config.mongodb_ttl_seconds else ""
-        
-        logger.info(
-            f"Created AsyncMongoDBSaver checkpointer "
-            f"(persistent, db={config.mongodb_db_name}, uri={masked_uri}{ttl_info})"
-        )
-        return checkpointer
-        
+    except CheckpointerCreationError:
+        raise
     except Exception as e:
         raise CheckpointerCreationError(
             checkpointer_type="mongodb",
