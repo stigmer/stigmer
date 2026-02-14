@@ -14,7 +14,7 @@ Agent executions were failing with two distinct error patterns that prevented su
 
 1. **Heartbeat Timeout**: ExecuteGraphton activity failed with "Activity stopped sending heartbeat (worker may have crashed)" during lengthy setup operations (skill loading, gRPC calls, artifact downloads)
 2. **Recursion Limit**: After fixing heartbeat, agents immediately hit "Recursion limit of 25 reached" errors despite setting `recursion_limit=1000` in graphton
-3. **API Incompatibility**: Using deprecated deepagents 0.2.x API with parameters that no longer exist in 0.4.x (`backend` renamed, `general_purpose_agent` removed)
+3. **API Incompatibility**: Using deprecated deepagents 0.2.x API with parameters that no longer exist in 0.4.x (`general_purpose_agent` removed)
 
 ## Solution
 
@@ -44,13 +44,13 @@ Upgraded deepagents from 0.2.4 to 0.4.1 and fixed API compatibility issues to re
 - The auto-created general-purpose subagent ran with LangGraph's default `recursion_limit=25`, ignoring the parent's `recursion_limit=1000`
 
 **API Changes in DeepAgents 0.4.x**:
-- `backend` parameter → `memory_backend` (renamed)
+- `backend` parameter → unchanged (still `backend`; previously incorrectly documented as renamed to `memory_backend`)
 - `general_purpose_agent` parameter → removed (control via `subagents` list instead)
 
 **Key Changes**:
 - Updated `pyproject.toml`: `deepagents = ">=0.4.0,<0.5.0"`
 - Fixed `graphton/core/agent.py`:
-  - Changed `backend=` to `memory_backend=`
+  - Kept `backend=` parameter (unchanged in 0.4.x; the earlier claim that it was renamed to `memory_backend` was incorrect)
   - Removed `general_purpose_agent=` parameter
   - Now pass empty `subagents=[]` list when `general_purpose_agent=False` to disable auto-subagent creation
 - Updated poetry lock files for both graphton and agent-runner
@@ -95,7 +95,7 @@ agent = deepagents_create_deep_agent(
     model=model_instance,
     # ...
     subagents=transformed_subagents if general_purpose_agent else [],
-    memory_backend=backend_for_deepagents,
+    backend=backend_for_deepagents,
 )
 ```
 
@@ -151,3 +151,7 @@ Validated fix with `stigmer draft skill` command:
 **Status**: ✅ Production Ready
 **Timeline**: Fixed and validated February 13, 2026
 **Testing**: Local execution confirmed working with skill-creator-agent
+
+---
+
+**Errata (February 14, 2026)**: This changelog originally stated that deepagents 0.4.x renamed the `backend` parameter to `memory_backend`. This was incorrect — the parameter name remains `backend` in deepagents 0.4.x. The incorrect rename caused `create_deep_agent() got an unexpected keyword argument 'memory_backend'` at runtime. Corrected in-line above and fixed in `graphton/core/agent.py`.
