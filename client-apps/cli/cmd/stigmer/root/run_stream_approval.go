@@ -2,6 +2,7 @@ package root
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
@@ -10,14 +11,17 @@ import (
 )
 
 // needsAgentApprovalPrompt checks if we should show an interactive approval prompt
-// for an agent execution. Returns true when:
+// for an agent execution via the phase-level detection track. Returns true when:
 //   - Phase is EXECUTION_WAITING_FOR_APPROVAL
 //   - PendingApproval is non-nil with a valid ToolCallId
-//   - ToolCallId differs from lastToolCallID (prevents duplicate prompts)
+//   - ToolCallId has not already been prompted (prevents duplicate prompts)
+//
+// This is the primary approval detection track. The secondary track
+// (findUnpromptedApproval) provides defense-in-depth by scanning tool call statuses.
 func needsAgentApprovalPrompt(
 	phase agentexecutionv1.ExecutionPhase,
 	pendingApproval *agentexecutionv1.PendingApproval,
-	lastToolCallID string,
+	promptedToolCallIDs map[string]bool,
 ) bool {
 	if phase != agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL {
 		return false
@@ -28,20 +32,19 @@ func needsAgentApprovalPrompt(
 	if pendingApproval.ToolCallId == "" {
 		return false
 	}
-	// Prevent duplicate prompts for the same tool call
-	return pendingApproval.ToolCallId != lastToolCallID
+	return !promptedToolCallIDs[pendingApproval.ToolCallId]
 }
 
 // needsWorkflowApprovalPrompt checks if we should show an interactive approval prompt
 // for a workflow execution. Returns true when:
 //   - PendingApproval is non-nil with a valid ToolCallId
-//   - ToolCallId differs from lastToolCallID (prevents duplicate prompts)
+//   - ToolCallId has not already been prompted (prevents duplicate prompts)
 //
 // Note: Workflows surface approvals via PendingApproval field (not a phase),
 // which is populated when a child agent execution requires approval.
 func needsWorkflowApprovalPrompt(
 	pendingApproval *agentexecutionv1.PendingApproval,
-	lastToolCallID string,
+	promptedToolCallIDs map[string]bool,
 ) bool {
 	if pendingApproval == nil {
 		return false
@@ -49,8 +52,91 @@ func needsWorkflowApprovalPrompt(
 	if pendingApproval.ToolCallId == "" {
 		return false
 	}
-	// Prevent duplicate prompts for the same tool call
-	return pendingApproval.ToolCallId != lastToolCallID
+	return !promptedToolCallIDs[pendingApproval.ToolCallId]
+}
+
+// findUnpromptedApproval scans tool calls for any in WAITING_APPROVAL status
+// that has not been prompted yet. This is the defense-in-depth mechanism that
+// catches approvals missed by phase-level detection (e.g., when the backend
+// transitions through WAITING_FOR_APPROVAL between two stream updates).
+//
+// Returns the first unprompted tool call requiring approval, or nil if none found.
+func findUnpromptedApproval(
+	toolCalls []*agentexecutionv1.ToolCall,
+	promptedToolCallIDs map[string]bool,
+) *agentexecutionv1.ToolCall {
+	for _, tc := range toolCalls {
+		if tc.Status == agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL &&
+			tc.Id != "" &&
+			!promptedToolCallIDs[tc.Id] {
+			return tc
+		}
+	}
+	return nil
+}
+
+// countUnresolvedApprovals returns the number of tool calls in WAITING_APPROVAL
+// status that were never prompted. Used as a terminal-phase guard to warn when
+// the execution completed with unresolved approval requests.
+func countUnresolvedApprovals(
+	toolCalls []*agentexecutionv1.ToolCall,
+	promptedToolCallIDs map[string]bool,
+) int {
+	count := 0
+	for _, tc := range toolCalls {
+		if tc.Status == agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL &&
+			!promptedToolCallIDs[tc.Id] {
+			count++
+		}
+	}
+	return count
+}
+
+// handleToolCallApproval orchestrates the approval flow for a tool call detected
+// via the tool-call-level scan (defense-in-depth track). It prefers the richer
+// PendingApproval message when available and matching; otherwise, it constructs
+// a synthetic PendingApproval from the ToolCall fields.
+//
+// This ensures the user gets prompted even when the execution phase skipped
+// WAITING_FOR_APPROVAL (transient phase race condition).
+func handleToolCallApproval(
+	ctx context.Context,
+	conn *grpc.ClientConn,
+	executionID string,
+	tc *agentexecutionv1.ToolCall,
+	pendingApproval *agentexecutionv1.PendingApproval,
+	prompter approval.Prompter,
+	defaultAction approval.Action,
+) error {
+	// Prefer PendingApproval if available and matches this tool call (richer info
+	// with human-readable message, sanitized args preview, sub-agent context).
+	if pendingApproval != nil && pendingApproval.ToolCallId == tc.Id {
+		return handleAgentApprovalPrompt(ctx, conn, executionID, pendingApproval, prompter, defaultAction)
+	}
+
+	// Construct synthetic PendingApproval from ToolCall fields.
+	syntheticPA := buildPendingApprovalFromToolCall(tc)
+	return handleAgentApprovalPrompt(ctx, conn, executionID, syntheticPA, prompter, defaultAction)
+}
+
+// buildPendingApprovalFromToolCall constructs a PendingApproval message from
+// ToolCall fields. This is used when the phase-level PendingApproval is not
+// available (e.g., the phase already moved past WAITING_FOR_APPROVAL).
+func buildPendingApprovalFromToolCall(tc *agentexecutionv1.ToolCall) *agentexecutionv1.PendingApproval {
+	pa := &agentexecutionv1.PendingApproval{
+		ToolCallId:  tc.Id,
+		ToolName:    tc.Name,
+		RequestedAt: tc.StartedAt,
+	}
+
+	// Marshal args to JSON for the approval preview.
+	if tc.Args != nil {
+		if argsJSON, err := json.Marshal(tc.Args.AsMap()); err == nil {
+			pa.ArgsPreview = string(argsJSON)
+		}
+	}
+
+	return pa
 }
 
 // handleAgentApprovalPrompt orchestrates the approval flow for agent executions.
