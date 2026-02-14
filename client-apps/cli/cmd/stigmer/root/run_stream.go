@@ -76,10 +76,17 @@ func streamAgentExecution(executionID string, prompter approval.Prompter, defaul
 		// Step 1: Render messages FIRST — show what happened before status changes.
 		// The renderer tracks which messages have been displayed and only prints
 		// new content — including incremental token deltas for in-progress AI messages.
-		rendered, streaming := renderer.render(execution.Status.Messages)
-		if rendered {
+		//
+		// CRITICAL: Stop the spinner BEFORE rendering to prevent output corruption.
+		// The spinner goroutine writes \r-prefixed frames to stdout; if the renderer
+		// also writes to stdout concurrently, the tool call text appears on the same
+		// line as the spinner frame (e.g., "⠋ Agent is thinking... 📖 Read: ...").
+		// We use hasPending() to avoid unnecessary stop/start flicker when there is
+		// nothing new to render.
+		if renderer.hasPending(execution.Status.Messages) {
 			sp.Stop()
 		}
+		rendered, streaming := renderer.render(execution.Status.Messages)
 		if rendered && !streaming {
 			// Batch of complete messages finished — restart spinner while waiting.
 			sp.Start("Agent is thinking...")

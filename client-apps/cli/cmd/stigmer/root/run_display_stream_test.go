@@ -247,6 +247,81 @@ func TestRenderer_IdempotentOnSameMessages(t *testing.T) {
 }
 
 // =============================================================================
+// hasPending Tests
+// =============================================================================
+
+func TestRenderer_HasPending_NoMessages(t *testing.T) {
+	r := newMessageStreamRenderer(&bytes.Buffer{})
+	if r.hasPending(nil) {
+		t.Error("hasPending should be false with nil messages")
+	}
+	if r.hasPending([]*agentexecutionv1.AgentMessage{}) {
+		t.Error("hasPending should be false with empty messages")
+	}
+}
+
+func TestRenderer_HasPending_NewMessage(t *testing.T) {
+	r := newMessageStreamRenderer(&bytes.Buffer{})
+	msgs := []*agentexecutionv1.AgentMessage{
+		makeMessage(agentexecutionv1.MessageType_MESSAGE_HUMAN, "hello", false),
+	}
+	if !r.hasPending(msgs) {
+		t.Error("hasPending should be true when new messages are available")
+	}
+}
+
+func TestRenderer_HasPending_AllRendered(t *testing.T) {
+	var buf bytes.Buffer
+	r := newMessageStreamRenderer(&buf)
+
+	msgs := []*agentexecutionv1.AgentMessage{
+		makeMessage(agentexecutionv1.MessageType_MESSAGE_HUMAN, "hello", false),
+	}
+	r.render(msgs)
+
+	if r.hasPending(msgs) {
+		t.Error("hasPending should be false after all messages are rendered")
+	}
+}
+
+func TestRenderer_HasPending_StreamingWithNewContent(t *testing.T) {
+	var buf bytes.Buffer
+	r := newMessageStreamRenderer(&buf)
+
+	msgs := []*agentexecutionv1.AgentMessage{
+		makeMessage(agentexecutionv1.MessageType_MESSAGE_AI, "Hello", true),
+	}
+	r.render(msgs)
+
+	// Same content — no new delta.
+	if r.hasPending(msgs) {
+		t.Error("hasPending should be false when streaming has no new content")
+	}
+
+	// New content arrives.
+	msgs[0].Content = "Hello, world"
+	if !r.hasPending(msgs) {
+		t.Error("hasPending should be true when streaming has new content delta")
+	}
+}
+
+func TestRenderer_HasPending_StreamingFinalized(t *testing.T) {
+	var buf bytes.Buffer
+	r := newMessageStreamRenderer(&buf)
+
+	msgs := []*agentexecutionv1.AgentMessage{
+		makeMessage(agentexecutionv1.MessageType_MESSAGE_AI, "Done", true),
+	}
+	r.render(msgs)
+
+	// Streaming ends — finalization is pending.
+	msgs[0].IsStreaming = false
+	if !r.hasPending(msgs) {
+		t.Error("hasPending should be true when streaming message needs finalization")
+	}
+}
+
+// =============================================================================
 // Error Sanitization Tests
 // =============================================================================
 

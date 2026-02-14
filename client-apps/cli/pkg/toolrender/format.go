@@ -3,6 +3,7 @@ package toolrender
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -96,4 +97,49 @@ func truncate(s string, maxLen int) string {
 		return s[:maxLen]
 	}
 	return s[:maxLen-3] + "..."
+}
+
+// previewMaxWidth is the maximum character width for a result preview line.
+// Keeps the preview compact enough to fit on a single terminal line.
+const previewMaxWidth = 72
+
+// formatResultPreview formats a tool result as a compact, comma-separated
+// summary for display below the tool header. It splits the result by newlines,
+// joins the entries with ", ", and truncates to fit one line.
+//
+// Returns an empty string if the result is empty or contains no useful content
+// (e.g., only whitespace).
+//
+// Examples:
+//
+//	"bin, etc, home, opt, tmp, usr, var, workspace"
+//	"inputs/, outputs/"
+//	"No files matching pattern '**/*.py'"
+func formatResultPreview(result string) string {
+	result = strings.TrimSpace(result)
+	if result == "" {
+		return ""
+	}
+
+	lines := strings.Split(result, "\n")
+
+	// Single-line results (including "no match" messages) pass through directly.
+	if len(lines) == 1 {
+		return truncate(result, previewMaxWidth)
+	}
+
+	// Multi-line results: join entries with ", " for a compact summary.
+	entries := make([]string, 0, len(lines))
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			entries = append(entries, line)
+		}
+	}
+	if len(entries) == 0 {
+		return ""
+	}
+
+	joined := strings.Join(entries, ", ")
+	return truncate(joined, previewMaxWidth)
 }
