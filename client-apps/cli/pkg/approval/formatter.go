@@ -29,6 +29,7 @@ var toolCategories = map[string]toolCategory{
 	// Shell/command execution
 	"shell":           {primaryField: "command", label: "Command"},
 	"bash":            {primaryField: "command", label: "Command"},
+	"execute":         {primaryField: "command", label: "Command"},
 	"execute_command": {primaryField: "command", label: "Command"},
 	"run_command":     {primaryField: "command", label: "Command"},
 	"terminal":        {primaryField: "command", label: "Command"},
