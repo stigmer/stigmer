@@ -206,12 +206,29 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 		updated.Status.CompletedAt = requestStatus.CompletedAt
 	}
 
+	// Merge pending_approval (HITL approval flow)
+	//
+	// Python agent-runner sends pending_approval when:
+	// 1. A tool requires approval: non-empty tool_call_id = set pending_approval
+	// 2. Approval resolved/cleared: empty tool_call_id = clear pending_approval
+	// 3. Unrelated status update: field absent (nil) = preserve existing
+	//
+	// This mirrors the pattern in WorkflowExecutionUpdateStatusHandler (Java).
+	if requestStatus.PendingApproval != nil {
+		if requestStatus.PendingApproval.ToolCallId != "" {
+			updated.Status.PendingApproval = requestStatus.PendingApproval
+		} else {
+			updated.Status.PendingApproval = nil
+		}
+	}
+
 	log.Debug().
 		Str("execution_id", input.ExecutionId).
 		Str("phase", updated.Status.Phase.String()).
 		Int("messages_count", len(updated.Status.Messages)).
 		Int("tool_calls_count", len(updated.Status.ToolCalls)).
 		Int("artifacts_count", len(updated.Status.Artifacts)).
+		Bool("has_pending_approval", updated.Status.PendingApproval != nil).
 		Msg("Merged status fields")
 
 	// Store merged execution in context for persist step
