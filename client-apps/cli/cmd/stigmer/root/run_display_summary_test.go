@@ -76,12 +76,12 @@ func TestBuildAgentSummaryContent_Success(t *testing.T) {
 		t.Error("expected ~30s duration in summary content")
 	}
 
-	// Verify stats
-	if !strings.Contains(content, "Messages:   3") {
-		t.Error("expected 'Messages:   3' in summary content")
+	// Verify stats (4-space alignment)
+	if !strings.Contains(content, "Messages:    3") {
+		t.Error("expected 'Messages:    3' in summary content")
 	}
-	if !strings.Contains(content, "Tool calls: 2") {
-		t.Error("expected 'Tool calls: 2' in summary content")
+	if !strings.Contains(content, "Tool calls:  2") {
+		t.Error("expected 'Tool calls:  2' in summary content")
 	}
 
 	// Verify no error section for success
@@ -149,8 +149,8 @@ func TestBuildAgentSummaryContent_WithArtifacts(t *testing.T) {
 
 	content := buildAgentSummaryContent(execution)
 
-	if !strings.Contains(content, "Artifacts:  2") {
-		t.Error("expected 'Artifacts:  2' in summary content")
+	if !strings.Contains(content, "Artifacts:   2") {
+		t.Error("expected 'Artifacts:   2' in summary content")
 	}
 }
 

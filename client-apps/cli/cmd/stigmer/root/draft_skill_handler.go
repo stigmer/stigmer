@@ -16,6 +16,7 @@ type draftSkillOptions struct {
 	OutputDir      string
 	Model          string
 	ApproveDefault string
+	AutoApprove    bool
 }
 
 // executeDraftSkill handles the draft skill command by invoking the skill-creator-agent.
@@ -69,7 +70,7 @@ func executeDraftSkill(opts draftSkillOptions) error {
 
 	// 5. Create execution
 	cliprint.PrintInfo("Invoking skill-creator-agent...")
-	exec, err := createAgentExecution(agent.Metadata.Id, orgID, opts.Message, nil, attachments, opts.Model, conn)
+	exec, err := createAgentExecution(agent.Metadata.Id, orgID, opts.Message, nil, attachments, opts.Model, opts.AutoApprove, conn)
 	if err != nil {
 		return errors.Wrap(err, "failed to create execution")
 	}
@@ -95,7 +96,20 @@ func executeDraftSkill(opts draftSkillOptions) error {
 		cliprint.PrintInfo("  stigmer get execution %s", exec.Metadata.Id)
 	}
 
-	return nil
+	// 8. Post-execution interactive menu
+	for {
+		action := showPostExecMenu()
+		switch action {
+		case PostExecViewConversation:
+			displayConversation(exec)
+		case PostExecViewDetails:
+			cliprint.PrintInfo("Run this command to view full details:")
+			cliprint.PrintInfo("  stigmer get execution %s", exec.Metadata.Id)
+			fmt.Println()
+		case PostExecDone:
+			return nil
+		}
+	}
 }
 
 // displaySkillCreatorNotFoundError shows a helpful error when the skill-creator-agent is missing.
