@@ -3,7 +3,9 @@ package root
 import (
 	"context"
 	"fmt"
+	"io"
 
+	"github.com/pkg/errors"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
@@ -11,10 +13,12 @@ import (
 	"google.golang.org/grpc"
 )
 
-// streamAgentExecutionLogs subscribes to execution updates and displays them in real-time.
-// When the execution enters WAITING_FOR_APPROVAL phase, it prompts the user for an
-// approval decision and submits it to the backend before continuing.
-func streamAgentExecutionLogs(executionID string, conn *grpc.ClientConn) {
+// streamAgentExecution subscribes to execution updates and displays them in real-time.
+// It handles approval prompts inline and returns the final execution state when
+// the execution reaches a terminal phase.
+//
+// The prompter is injected to support both interactive (TTY) and non-interactive (CI) modes.
+func streamAgentExecution(executionID string, prompter approval.Prompter, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
 	cliprint.PrintSuccess("Streaming agent execution logs")
 	fmt.Println()
 
@@ -25,8 +29,7 @@ func streamAgentExecutionLogs(executionID string, conn *grpc.ClientConn) {
 	// Subscribe to execution updates
 	stream, err := client.Subscribe(ctx, &agentexecutionv1.AgentExecutionId{Value: executionID})
 	if err != nil {
-		cliprint.PrintError("Failed to subscribe to execution: %v", err)
-		return
+		return nil, errors.Wrap(err, "failed to subscribe to agent execution")
 	}
 
 	// Track last displayed phase and approval state
@@ -34,19 +37,14 @@ func streamAgentExecutionLogs(executionID string, conn *grpc.ClientConn) {
 	var lastPendingToolCallID string
 	messageCount := 0
 
-	// Create prompter for interactive approvals
-	prompter := approval.NewInteractivePrompter()
-
 	// Stream updates until execution completes
 	for {
 		execution, err := stream.Recv()
 		if err != nil {
-			// Stream ended
-			if err.Error() == "EOF" {
-				break
+			if err == io.EOF {
+				return nil, errors.New("agent execution stream ended unexpectedly")
 			}
-			cliprint.PrintError("Stream error: %v", err)
-			break
+			return nil, errors.Wrap(err, "agent execution stream error")
 		}
 
 		// Display phase changes
@@ -62,10 +60,8 @@ func streamAgentExecutionLogs(executionID string, conn *grpc.ClientConn) {
 			lastPendingToolCallID,
 		) {
 			pendingApproval := execution.Status.GetPendingApproval()
-			err := handleAgentApprovalPrompt(ctx, conn, executionID, pendingApproval, prompter)
-			if err != nil {
-				cliprint.PrintError("Approval failed: %v", err)
-				return
+			if err := handleAgentApprovalPrompt(ctx, conn, executionID, pendingApproval, prompter); err != nil {
+				return nil, errors.Wrap(err, "agent approval failed")
 			}
 			lastPendingToolCallID = pendingApproval.ToolCallId
 		}
@@ -79,15 +75,17 @@ func streamAgentExecutionLogs(executionID string, conn *grpc.ClientConn) {
 		// Check if execution reached terminal state
 		if isTerminalAgentPhase(execution.Status.Phase) {
 			displayAgentExecutionComplete(execution)
-			break
+			return execution, nil
 		}
 	}
 }
 
-// streamWorkflowExecutionLogs subscribes to workflow execution updates and displays them in real-time.
-// When a child agent execution requires approval, it prompts the user for an approval decision
+// streamWorkflowExecution subscribes to workflow execution updates and displays them in real-time.
+// When a child agent execution requires approval, it prompts the user for a decision
 // and submits it via the workflow API (which forwards to the child agent).
-func streamWorkflowExecutionLogs(executionID string, conn *grpc.ClientConn) {
+//
+// The prompter is injected to support both interactive (TTY) and non-interactive (CI) modes.
+func streamWorkflowExecution(executionID string, prompter approval.Prompter, conn *grpc.ClientConn) (*workflowexecutionv1.WorkflowExecution, error) {
 	cliprint.PrintSuccess("Streaming workflow execution logs")
 	fmt.Println()
 
@@ -100,8 +98,7 @@ func streamWorkflowExecutionLogs(executionID string, conn *grpc.ClientConn) {
 		ExecutionId: executionID,
 	})
 	if err != nil {
-		cliprint.PrintError("Failed to subscribe to execution: %v", err)
-		return
+		return nil, errors.Wrap(err, "failed to subscribe to workflow execution")
 	}
 
 	// Track last displayed phase, tasks, and approval state
@@ -109,19 +106,14 @@ func streamWorkflowExecutionLogs(executionID string, conn *grpc.ClientConn) {
 	var lastPendingToolCallID string
 	taskCount := 0
 
-	// Create prompter for interactive approvals
-	prompter := approval.NewInteractivePrompter()
-
 	// Stream updates until execution completes
 	for {
 		execution, err := stream.Recv()
 		if err != nil {
-			// Stream ended
-			if err.Error() == "EOF" {
-				break
+			if err == io.EOF {
+				return nil, errors.New("workflow execution stream ended unexpectedly")
 			}
-			cliprint.PrintError("Stream error: %v", err)
-			break
+			return nil, errors.Wrap(err, "workflow execution stream error")
 		}
 
 		// Display phase changes
@@ -137,10 +129,8 @@ func streamWorkflowExecutionLogs(executionID string, conn *grpc.ClientConn) {
 			lastPendingToolCallID,
 		) {
 			pendingApproval := execution.Status.GetPendingApproval()
-			err := handleWorkflowApprovalPrompt(ctx, conn, executionID, pendingApproval, prompter)
-			if err != nil {
-				cliprint.PrintError("Approval failed: %v", err)
-				return
+			if err := handleWorkflowApprovalPrompt(ctx, conn, executionID, pendingApproval, prompter); err != nil {
+				return nil, errors.Wrap(err, "workflow approval failed")
 			}
 			lastPendingToolCallID = pendingApproval.ToolCallId
 		}
@@ -154,7 +144,7 @@ func streamWorkflowExecutionLogs(executionID string, conn *grpc.ClientConn) {
 		// Check if execution reached terminal state
 		if isTerminalWorkflowPhase(execution.Status.Phase) {
 			displayWorkflowExecutionComplete(execution)
-			break
+			return execution, nil
 		}
 	}
 }

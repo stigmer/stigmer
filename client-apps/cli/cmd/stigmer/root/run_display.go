@@ -210,12 +210,14 @@ func displayWorkflowExecutionComplete(execution *workflowexecutionv1.WorkflowExe
 func isTerminalAgentPhase(phase agentexecutionv1.ExecutionPhase) bool {
 	return phase == agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED ||
 		phase == agentexecutionv1.ExecutionPhase_EXECUTION_FAILED ||
-		phase == agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED
+		phase == agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED ||
+		phase == agentexecutionv1.ExecutionPhase_EXECUTION_TERMINATED
 }
 
 // isTerminalWorkflowPhase checks if workflow execution phase is terminal
 func isTerminalWorkflowPhase(phase workflowexecutionv1.ExecutionPhase) bool {
 	return phase == workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED ||
 		phase == workflowexecutionv1.ExecutionPhase_EXECUTION_FAILED ||
-		phase == workflowexecutionv1.ExecutionPhase_EXECUTION_CANCELLED
+		phase == workflowexecutionv1.ExecutionPhase_EXECUTION_CANCELLED ||
+		phase == workflowexecutionv1.ExecutionPhase_EXECUTION_TERMINATED
 }
