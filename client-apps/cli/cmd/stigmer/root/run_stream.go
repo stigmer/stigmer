@@ -4,12 +4,15 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/pkg/errors"
+
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
 	"google.golang.org/grpc"
 )
 
@@ -32,6 +35,12 @@ func streamAgentExecution(executionID string, prompter approval.Prompter, conn *
 		return nil, errors.Wrap(err, "failed to subscribe to agent execution")
 	}
 
+	// Activity spinner — shows progress between streaming updates.
+	// Deferred Stop ensures cleanup on error exits.
+	sp := spinner.New(os.Stdout)
+	sp.Start("Waiting for agent...")
+	defer sp.Stop()
+
 	// Track last displayed phase and approval state
 	var lastPhase agentexecutionv1.ExecutionPhase
 	var lastPendingToolCallID string
@@ -41,6 +50,7 @@ func streamAgentExecution(executionID string, prompter approval.Prompter, conn *
 	for {
 		execution, err := stream.Recv()
 		if err != nil {
+			sp.Stop()
 			if err == io.EOF {
 				return nil, errors.New("agent execution stream ended unexpectedly")
 			}
@@ -49,8 +59,13 @@ func streamAgentExecution(executionID string, prompter approval.Prompter, conn *
 
 		// Display phase changes
 		if execution.Status.Phase != lastPhase {
+			sp.Stop()
 			displayAgentPhaseChange(execution.Status.Phase)
 			lastPhase = execution.Status.Phase
+
+			if !isTerminalAgentPhase(lastPhase) {
+				sp.Start(spinnerLabelForAgentPhase(lastPhase))
+			}
 		}
 
 		// Handle approval flow when entering WAITING_FOR_APPROVAL
@@ -59,21 +74,28 @@ func streamAgentExecution(executionID string, prompter approval.Prompter, conn *
 			execution.Status.GetPendingApproval(),
 			lastPendingToolCallID,
 		) {
+			sp.Stop()
 			pendingApproval := execution.Status.GetPendingApproval()
 			if err := handleAgentApprovalPrompt(ctx, conn, executionID, pendingApproval, prompter); err != nil {
 				return nil, errors.Wrap(err, "agent approval failed")
 			}
 			lastPendingToolCallID = pendingApproval.ToolCallId
+			sp.Start("Resuming after approval...")
 		}
 
 		// Display new messages
-		for i := messageCount; i < len(execution.Status.Messages); i++ {
-			displayAgentMessage(execution.Status.Messages[i])
+		if len(execution.Status.Messages) > messageCount {
+			sp.Stop()
+			for i := messageCount; i < len(execution.Status.Messages); i++ {
+				displayAgentMessage(execution.Status.Messages[i])
+			}
+			messageCount = len(execution.Status.Messages)
+			sp.Start("Agent is thinking...")
 		}
-		messageCount = len(execution.Status.Messages)
 
 		// Check if execution reached terminal state
 		if isTerminalAgentPhase(execution.Status.Phase) {
+			sp.Stop()
 			displayAgentExecutionComplete(execution)
 			return execution, nil
 		}
@@ -101,6 +123,11 @@ func streamWorkflowExecution(executionID string, prompter approval.Prompter, con
 		return nil, errors.Wrap(err, "failed to subscribe to workflow execution")
 	}
 
+	// Activity spinner — shows progress between streaming updates.
+	sp := spinner.New(os.Stdout)
+	sp.Start("Waiting for workflow...")
+	defer sp.Stop()
+
 	// Track last displayed phase, tasks, and approval state
 	var lastPhase workflowexecutionv1.ExecutionPhase
 	var lastPendingToolCallID string
@@ -110,6 +137,7 @@ func streamWorkflowExecution(executionID string, prompter approval.Prompter, con
 	for {
 		execution, err := stream.Recv()
 		if err != nil {
+			sp.Stop()
 			if err == io.EOF {
 				return nil, errors.New("workflow execution stream ended unexpectedly")
 			}
@@ -118,8 +146,13 @@ func streamWorkflowExecution(executionID string, prompter approval.Prompter, con
 
 		// Display phase changes
 		if execution.Status.Phase != lastPhase {
+			sp.Stop()
 			displayWorkflowPhaseChange(execution.Status.Phase)
 			lastPhase = execution.Status.Phase
+
+			if !isTerminalWorkflowPhase(lastPhase) {
+				sp.Start(spinnerLabelForWorkflowPhase(lastPhase))
+			}
 		}
 
 		// Handle approval flow when child agent requires approval
@@ -128,21 +161,28 @@ func streamWorkflowExecution(executionID string, prompter approval.Prompter, con
 			execution.Status.GetPendingApproval(),
 			lastPendingToolCallID,
 		) {
+			sp.Stop()
 			pendingApproval := execution.Status.GetPendingApproval()
 			if err := handleWorkflowApprovalPrompt(ctx, conn, executionID, pendingApproval, prompter); err != nil {
 				return nil, errors.Wrap(err, "workflow approval failed")
 			}
 			lastPendingToolCallID = pendingApproval.ToolCallId
+			sp.Start("Resuming after approval...")
 		}
 
 		// Display new tasks
-		for i := taskCount; i < len(execution.Status.Tasks); i++ {
-			displayWorkflowTask(execution.Status.Tasks[i])
+		if len(execution.Status.Tasks) > taskCount {
+			sp.Stop()
+			for i := taskCount; i < len(execution.Status.Tasks); i++ {
+				displayWorkflowTask(execution.Status.Tasks[i])
+			}
+			taskCount = len(execution.Status.Tasks)
+			sp.Start("Workflow running...")
 		}
-		taskCount = len(execution.Status.Tasks)
 
 		// Check if execution reached terminal state
 		if isTerminalWorkflowPhase(execution.Status.Phase) {
+			sp.Stop()
 			displayWorkflowExecutionComplete(execution)
 			return execution, nil
 		}
