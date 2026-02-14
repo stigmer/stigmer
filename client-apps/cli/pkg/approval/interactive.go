@@ -2,14 +2,15 @@ package approval
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/AlecAivazis/survey/v2"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
 )
 
-// InteractivePrompter implements Prompter using the Survey library for TTY sessions.
+// InteractivePrompter implements Prompter using Bubbletea for TTY sessions.
 type InteractivePrompter struct {
-	// askCommentOnReject controls whether to ask for rejection reason.
+	// askCommentOnReject controls whether to prompt for a rejection reason.
 	askCommentOnReject bool
 }
 
@@ -44,56 +45,26 @@ func (p *InteractivePrompter) handleNonInteractive(opts Options) (*Decision, err
 	return &Decision{Action: opts.DefaultAction}, nil
 }
 
-// showInteractivePrompt displays the Survey prompt and collects user input.
+// showInteractivePrompt runs a Bubbletea program to collect the user's
+// approval decision. The program runs inline (no alternate screen) so
+// it integrates naturally with the streaming output above it.
 func (p *InteractivePrompter) showInteractivePrompt(_ context.Context, _ Options) (*Decision, error) {
-	actionOptions := []string{
-		"Approve - Execute the tool",
-		"Skip - Continue without executing",
-		"Reject - Fail the execution",
+	model := newPromptModel(p.askCommentOnReject)
+
+	program := tea.NewProgram(model)
+	finalModel, err := program.Run()
+	if err != nil {
+		return nil, fmt.Errorf("approval prompt failed: %w", err)
 	}
 
-	prompt := &survey.Select{
-		Message: "What would you like to do?",
-		Options: actionOptions,
+	result, ok := finalModel.(promptModel)
+	if !ok {
+		return nil, fmt.Errorf("unexpected model type from approval prompt")
 	}
 
-	var selectedIndex int
-	if err := survey.AskOne(prompt, &selectedIndex); err != nil {
+	if result.cancelled {
 		return nil, ErrPromptCancelled
 	}
 
-	action := indexToAction(selectedIndex)
-	decision := &Decision{Action: action}
-
-	// Ask for comment on reject (optional)
-	if action == ActionReject && p.askCommentOnReject {
-		decision.Comment = p.askComment()
-	}
-
-	return decision, nil
-}
-
-// askComment prompts for an optional rejection reason.
-func (p *InteractivePrompter) askComment() string {
-	var comment string
-	prompt := &survey.Input{
-		Message: "Rejection reason (optional):",
-	}
-	// Ignore error - comment is optional, empty string is fine
-	_ = survey.AskOne(prompt, &comment)
-	return comment
-}
-
-// indexToAction converts the selection index to an Action.
-func indexToAction(index int) Action {
-	switch index {
-	case 0:
-		return ActionApprove
-	case 1:
-		return ActionSkip
-	case 2:
-		return ActionReject
-	default:
-		return ActionUnspecified
-	}
+	return result.decision, nil
 }
