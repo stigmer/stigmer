@@ -1306,48 +1306,48 @@ async def _execute_graphton_impl(
                     except Exception as e:
                         # Heartbeat failure is not critical - log and continue
                         activity_logger.debug(f"Heartbeat failed (event {events_processed}): {e}")
-            
-            # Send progressive status update via gRPC using hybrid scheduler
-            # Triggers on: time threshold (500ms), burst (50 events), or keepalive (5s)
-            if update_scheduler.should_send_update(events_processed):
-                reason = update_scheduler.get_update_reason_str()
-                time_since_last = update_scheduler.get_time_since_last_update_ms()
-                events_since_last = update_scheduler.get_events_since_last_update(events_processed)
                 
-                try:
-                    activity_logger.info(
-                        f"[STREAM] execution={execution_id} "
-                        f"update_sent=true "
-                        f"reason={reason} "
-                        f"events_total={events_processed} "
-                        f"events_since_last={events_since_last} "
-                        f"time_since_last_ms={time_since_last:.0f} "
-                        f"messages={len(status_builder.current_status.messages)} "
-                        f"tool_calls={len(status_builder.current_status.tool_calls)}"
-                    )
+                # Send progressive status update via gRPC using hybrid scheduler
+                # Triggers on: time threshold (500ms), burst (50 events), or keepalive (5s)
+                if update_scheduler.should_send_update(events_processed):
+                    reason = update_scheduler.get_update_reason_str()
+                    time_since_last = update_scheduler.get_time_since_last_update_ms()
+                    events_since_last = update_scheduler.get_events_since_last_update(events_processed)
                     
-                    # Call stigmer-service updateStatus endpoint (merges status)
-                    await execution_client.update_status(
-                        execution_id=execution_id,
-                        status=status_builder.current_status
-                    )
-                    
-                    update_scheduler.mark_update_sent(events_processed)
-                    
-                except Exception as e:
-                    # Log but don't fail - keep processing events
-                    # Still mark as sent to avoid retry storm on persistent failures
-                    activity_logger.warning(
-                        f"[STREAM] execution={execution_id} "
-                        f"update_sent=false "
-                        f"reason={reason} "
-                        f"error={str(e)}"
-                    )
-                    update_scheduler.mark_update_sent(events_processed)
-            
-                # Log progress periodically (every 50 events for reduced noise)
-                if events_processed % 50 == 0:
-                    activity_logger.debug(f"Processed {events_processed} events")
+                    try:
+                        activity_logger.info(
+                            f"[STREAM] execution={execution_id} "
+                            f"update_sent=true "
+                            f"reason={reason} "
+                            f"events_total={events_processed} "
+                            f"events_since_last={events_since_last} "
+                            f"time_since_last_ms={time_since_last:.0f} "
+                            f"messages={len(status_builder.current_status.messages)} "
+                            f"tool_calls={len(status_builder.current_status.tool_calls)}"
+                        )
+                        
+                        # Call stigmer-service updateStatus endpoint (merges status)
+                        await execution_client.update_status(
+                            execution_id=execution_id,
+                            status=status_builder.current_status
+                        )
+                        
+                        update_scheduler.mark_update_sent(events_processed)
+                        
+                    except Exception as e:
+                        # Log but don't fail - keep processing events
+                        # Still mark as sent to avoid retry storm on persistent failures
+                        activity_logger.warning(
+                            f"[STREAM] execution={execution_id} "
+                            f"update_sent=false "
+                            f"reason={reason} "
+                            f"error={str(e)}"
+                        )
+                        update_scheduler.mark_update_sent(events_processed)
+                
+                    # Log progress periodically (every 50 events for reduced noise)
+                    if events_processed % 50 == 0:
+                        activity_logger.debug(f"Processed {events_processed} events")
         
         except asyncio.CancelledError:
             # ─────────────────────────────────────────────────────────────────────────────
