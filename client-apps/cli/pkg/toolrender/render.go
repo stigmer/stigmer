@@ -63,15 +63,18 @@ var toolDisplayMap = map[string]toolDisplayInfo{
 	// Shell/command execution
 	"shell":           {icon: "🖥 ", label: "Shell", primaryField: "command"},
 	"bash":            {icon: "🖥 ", label: "Shell", primaryField: "command"},
+	"execute":         {icon: "🖥 ", label: "Execute", primaryField: "command"},
 	"execute_command": {icon: "🖥 ", label: "Shell", primaryField: "command"},
 	"run_command":     {icon: "🖥 ", label: "Shell", primaryField: "command"},
 	"terminal":        {icon: "🖥 ", label: "Shell", primaryField: "command"},
 
 	// File read operations
+	"read":           {icon: "📖", label: "Read", primaryField: "path"},
 	"read_file":      {icon: "📖", label: "Read", primaryField: "path"},
 	"list_directory": {icon: "📂", label: "List", primaryField: "path"},
 
 	// File write operations
+	"write":          {icon: "📝", label: "Write", primaryField: "path"},
 	"write_file":     {icon: "📝", label: "Write", primaryField: "path"},
 	"create_file":    {icon: "📝", label: "Create", primaryField: "path"},
 	"overwrite_file": {icon: "📝", label: "Write", primaryField: "path"},
@@ -129,6 +132,27 @@ func RenderResult(content string) string {
 
 	size := formatSize(len(content))
 	return dimStyle.Render(fmt.Sprintf("  ↳ %s", size))
+}
+
+// RenderResultWithPreview returns a display of a tool result message with content preview.
+//
+// The backend formats MESSAGE_TOOL content nicely (e.g., "read(path='file.txt') -> 1164 chars"),
+// so we display a truncated version of this instead of just the byte count.
+//
+// Examples:
+//
+//	"  ↳ read(path='inputs/agent-api.proto') -> 1164 chars"
+//	"  ↳ execute(command='ls -la') -> 245 chars"
+//	"  ↳ (empty)"
+func RenderResultWithPreview(content string) string {
+	if content == "" {
+		return dimStyle.Render("  ↳ (empty)")
+	}
+
+	// The content is already nicely formatted by the backend.
+	// Show a truncated preview (max ~80 chars to fit on one line).
+	preview := truncate(content, 80)
+	return dimStyle.Render("  ↳ " + preview)
 }
 
 // renderKnown formats a tool call with category-specific icon, label, and primary arg.

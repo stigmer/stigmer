@@ -40,7 +40,7 @@ func runAgent(ref, message string, env envfile.EnvMap, attachments []*agentexecu
 		cliprint.PrintInfo("Creating agent execution...")
 	}
 
-	exec, err := createAgentExecution(agent.Metadata.Id, orgID, message, env, attachments, "", conn)
+	exec, err := createAgentExecution(agent.Metadata.Id, orgID, message, env, attachments, "", false, conn)
 	if err != nil {
 		return errors.Wrap(err, "failed to create execution")
 	}

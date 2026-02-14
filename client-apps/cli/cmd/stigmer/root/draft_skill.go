@@ -19,6 +19,7 @@ func NewDraftSkillCommand() *cobra.Command {
 	var outputDir string
 	var model string
 	var approveDefault string
+	var autoApprove bool
 
 	cmd := &cobra.Command{
 		Use:   "skill",
@@ -60,6 +61,7 @@ interactively. The generated skill will be saved to the output directory
 				OutputDir:      outputDir,
 				Model:          model,
 				ApproveDefault: approveDefault,
+				AutoApprove:    autoApprove,
 			})
 			clierr.Handle(err)
 		},
@@ -87,6 +89,10 @@ interactively. The generated skill will be saved to the output directory
 	// Approval flag for non-interactive (CI/CD) usage
 	cmd.Flags().StringVar(&approveDefault, "approve-default", "",
 		"auto-resolve approval prompts in non-interactive mode (approve, skip, reject)")
+
+	// Auto-approve flag to skip all approval prompts
+	cmd.Flags().BoolVar(&autoApprove, "auto-approve", false,
+		"automatically approve all tool executions without prompting (bypasses approval policies)")
 
 	return cmd
 }

@@ -73,19 +73,106 @@ func buildAgentSummaryContent(execution *agentexecutionv1.AgentExecution) string
 
 	// Duration
 	if d := parseDuration(execution.Status.StartedAt, execution.Status.CompletedAt); d > 0 {
-		sections = append(sections, fmt.Sprintf("Duration:   %s", d.Round(time.Second)))
+		sections = append(sections, fmt.Sprintf("Duration:    %s", d.Round(time.Second)))
 	}
 
 	// Stats
-	sections = append(sections, fmt.Sprintf("Messages:   %d", len(execution.Status.Messages)))
-	sections = append(sections, fmt.Sprintf("Tool calls: %d", len(execution.Status.ToolCalls)))
+	sections = append(sections, fmt.Sprintf("Messages:    %d", len(execution.Status.Messages)))
+	sections = append(sections, fmt.Sprintf("Tool calls:  %d", len(execution.Status.ToolCalls)))
+
+	// Tool breakdown (e.g., "read x3, execute x2, write x1")
+	if breakdown := formatToolCallBreakdown(execution.Status.ToolCalls); breakdown != "" {
+		sections = append(sections, fmt.Sprintf("             %s", breakdown))
+	}
+
+	// Approval status
+	if hadApprovalWait(execution.Status.ToolCalls) {
+		sections = append(sections, "Approval:    requested")
+	}
+
+	// Token usage
+	if usage := execution.Status.GetUsage(); usage != nil && usage.TotalTokens > 0 {
+		sections = append(sections, fmt.Sprintf("Tokens:      %s (%s in, %s out)",
+			formatTokenCount(usage.TotalTokens),
+			formatTokenCount(usage.PromptTokens),
+			formatTokenCount(usage.CompletionTokens)))
+	}
+
+	// Context utilization
+	if ctx := execution.Status.GetContextInfo(); ctx != nil && ctx.ContextWindowLimit > 0 {
+		utilPct := float64(ctx.CurrentTokenCount) / float64(ctx.ContextWindowLimit) * 100
+		sections = append(sections, fmt.Sprintf("Context:     %s / %s (%.0f%%)",
+			formatTokenCount(ctx.CurrentTokenCount),
+			formatTokenCount(ctx.ContextWindowLimit),
+			utilPct))
+	}
 
 	// Artifacts
 	if len(execution.Status.Artifacts) > 0 {
-		sections = append(sections, fmt.Sprintf("Artifacts:  %d", len(execution.Status.Artifacts)))
+		sections = append(sections, fmt.Sprintf("Artifacts:   %d", len(execution.Status.Artifacts)))
 	}
 
 	return strings.Join(sections, "\n")
+}
+
+// formatToolCallBreakdown returns a compact summary of tool usage, e.g., "read x3, execute x2".
+func formatToolCallBreakdown(toolCalls []*agentexecutionv1.ToolCall) string {
+	if len(toolCalls) == 0 {
+		return ""
+	}
+
+	// Count tool calls by name
+	counts := make(map[string]int)
+	for _, tc := range toolCalls {
+		counts[tc.Name]++
+	}
+
+	// Build sorted list for consistent output
+	var parts []string
+	for name, count := range counts {
+		parts = append(parts, fmt.Sprintf("%s x%d", name, count))
+	}
+
+	// Sort alphabetically for consistent output
+	if len(parts) > 1 {
+		// Simple bubble sort for small lists
+		for i := 0; i < len(parts)-1; i++ {
+			for j := i + 1; j < len(parts); j++ {
+				if parts[i] > parts[j] {
+					parts[i], parts[j] = parts[j], parts[i]
+				}
+			}
+		}
+	}
+
+	// Limit to 4 tools to keep summary compact
+	if len(parts) > 4 {
+		remaining := len(parts) - 3
+		parts = append(parts[:3], fmt.Sprintf("+%d more", remaining))
+	}
+
+	return strings.Join(parts, ", ")
+}
+
+// hadApprovalWait checks if any tool call required approval during execution.
+func hadApprovalWait(toolCalls []*agentexecutionv1.ToolCall) bool {
+	for _, tc := range toolCalls {
+		if tc.RequiresApproval {
+			return true
+		}
+	}
+	return false
+}
+
+// formatTokenCount returns a human-readable token count (e.g., "12.5K", "1.2M").
+func formatTokenCount(count int32) string {
+	if count < 1000 {
+		return fmt.Sprintf("%d", count)
+	}
+	if count < 1000000 {
+		return fmt.Sprintf("%.1fK", float64(count)/1000)
+	}
+	return fmt.Sprintf("%.1fM", float64(count)/1000000)
 }
 
 // displayWorkflowExecutionComplete renders the final workflow execution summary

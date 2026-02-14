@@ -123,13 +123,27 @@ func (r *messageStreamRenderer) writeCompleteMessage(msg *agentexecutionv1.Agent
 		}
 		if len(msg.ToolCalls) > 0 {
 			r.writeToolCalls(msg.ToolCalls)
-		} else if msg.Content != "" {
+		} else if msg.Content == "" {
+			// AI decided to call tools without text — show indicator so user sees activity.
+			// The actual tool calls will appear in subsequent MESSAGE_TOOL messages.
+			fmt.Fprintln(r.w, systemMsgStyle.Render("🤖 Agent is invoking tools..."))
+			fmt.Fprintln(r.w)
+			r.flush()
+		} else {
 			r.flush()
 		}
 	case agentexecutionv1.MessageType_MESSAGE_TOOL:
-		fmt.Fprintln(r.w, toolrender.RenderResult(msg.Content))
-		fmt.Fprintln(r.w)
-		r.flush()
+		// Prefer structured tool call display when embedded ToolCalls are available.
+		// The backend populates msg.ToolCalls with full info (name, args, result, status).
+		if len(msg.ToolCalls) > 0 {
+			r.writeToolCalls(msg.ToolCalls)
+		} else {
+			// Fallback: show content preview. The backend formats this nicely,
+			// e.g., "read(path='file.txt') -> 1164 chars", so display it directly.
+			fmt.Fprintln(r.w, toolrender.RenderResultWithPreview(msg.Content))
+			fmt.Fprintln(r.w)
+			r.flush()
+		}
 	case agentexecutionv1.MessageType_MESSAGE_SYSTEM:
 		fmt.Fprintf(r.w, "%s\n\n", systemMsgStyle.Render("ℹ️  "+msg.Content))
 		r.flush()
