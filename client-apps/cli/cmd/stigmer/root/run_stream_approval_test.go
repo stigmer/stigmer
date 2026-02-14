@@ -38,9 +38,8 @@ func TestNeedsAgentApprovalPrompt_TrueWhenWaitingWithNewApproval(t *testing.T) {
 		ToolCallId: "call_abc123",
 		ToolName:   "write_file",
 	}
-	lastToolCallID := ""
 
-	result := needsAgentApprovalPrompt(phase, pendingApproval, lastToolCallID)
+	result := needsAgentApprovalPrompt(phase, pendingApproval, map[string]bool{})
 
 	if !result {
 		t.Error("expected true when WAITING_FOR_APPROVAL with new PendingApproval")
@@ -63,7 +62,7 @@ func TestNeedsAgentApprovalPrompt_FalseWhenNotWaitingPhase(t *testing.T) {
 
 	for _, phase := range phases {
 		t.Run(phase.String(), func(t *testing.T) {
-			result := needsAgentApprovalPrompt(phase, pendingApproval, "")
+			result := needsAgentApprovalPrompt(phase, pendingApproval, map[string]bool{})
 			if result {
 				t.Errorf("expected false for phase %s", phase)
 			}
@@ -74,7 +73,7 @@ func TestNeedsAgentApprovalPrompt_FalseWhenNotWaitingPhase(t *testing.T) {
 func TestNeedsAgentApprovalPrompt_FalseWhenNilApproval(t *testing.T) {
 	phase := agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL
 
-	result := needsAgentApprovalPrompt(phase, nil, "")
+	result := needsAgentApprovalPrompt(phase, nil, map[string]bool{})
 
 	if result {
 		t.Error("expected false when PendingApproval is nil")
@@ -88,25 +87,25 @@ func TestNeedsAgentApprovalPrompt_FalseWhenEmptyToolCallID(t *testing.T) {
 		ToolName:   "write_file",
 	}
 
-	result := needsAgentApprovalPrompt(phase, pendingApproval, "")
+	result := needsAgentApprovalPrompt(phase, pendingApproval, map[string]bool{})
 
 	if result {
 		t.Error("expected false when ToolCallId is empty")
 	}
 }
 
-func TestNeedsAgentApprovalPrompt_FalseWhenSameToolCallID(t *testing.T) {
+func TestNeedsAgentApprovalPrompt_FalseWhenAlreadyPrompted(t *testing.T) {
 	phase := agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL
 	pendingApproval := &agentexecutionv1.PendingApproval{
 		ToolCallId: "call_abc123",
 		ToolName:   "write_file",
 	}
-	lastToolCallID := "call_abc123" // Same as pending
+	prompted := map[string]bool{"call_abc123": true}
 
-	result := needsAgentApprovalPrompt(phase, pendingApproval, lastToolCallID)
+	result := needsAgentApprovalPrompt(phase, pendingApproval, prompted)
 
 	if result {
-		t.Error("expected false when ToolCallId matches lastToolCallID (duplicate)")
+		t.Error("expected false when ToolCallId already in prompted set (duplicate)")
 	}
 }
 
@@ -116,12 +115,12 @@ func TestNeedsAgentApprovalPrompt_TrueWhenDifferentToolCallID(t *testing.T) {
 		ToolCallId: "call_xyz789",
 		ToolName:   "execute_command",
 	}
-	lastToolCallID := "call_abc123" // Different from pending
+	prompted := map[string]bool{"call_abc123": true}
 
-	result := needsAgentApprovalPrompt(phase, pendingApproval, lastToolCallID)
+	result := needsAgentApprovalPrompt(phase, pendingApproval, prompted)
 
 	if !result {
-		t.Error("expected true when ToolCallId differs from lastToolCallID")
+		t.Error("expected true when ToolCallId not in prompted set")
 	}
 }
 
@@ -135,7 +134,7 @@ func TestNeedsWorkflowApprovalPrompt_TrueWhenNewApproval(t *testing.T) {
 		ToolName:   "write_file",
 	}
 
-	result := needsWorkflowApprovalPrompt(pendingApproval, "")
+	result := needsWorkflowApprovalPrompt(pendingApproval, map[string]bool{})
 
 	if !result {
 		t.Error("expected true when PendingApproval with new ToolCallId")
@@ -143,7 +142,7 @@ func TestNeedsWorkflowApprovalPrompt_TrueWhenNewApproval(t *testing.T) {
 }
 
 func TestNeedsWorkflowApprovalPrompt_FalseWhenNil(t *testing.T) {
-	result := needsWorkflowApprovalPrompt(nil, "")
+	result := needsWorkflowApprovalPrompt(nil, map[string]bool{})
 
 	if result {
 		t.Error("expected false when PendingApproval is nil")
@@ -156,23 +155,23 @@ func TestNeedsWorkflowApprovalPrompt_FalseWhenEmptyToolCallID(t *testing.T) {
 		ToolName:   "write_file",
 	}
 
-	result := needsWorkflowApprovalPrompt(pendingApproval, "")
+	result := needsWorkflowApprovalPrompt(pendingApproval, map[string]bool{})
 
 	if result {
 		t.Error("expected false when ToolCallId is empty")
 	}
 }
 
-func TestNeedsWorkflowApprovalPrompt_FalseWhenSameToolCallID(t *testing.T) {
+func TestNeedsWorkflowApprovalPrompt_FalseWhenAlreadyPrompted(t *testing.T) {
 	pendingApproval := &agentexecutionv1.PendingApproval{
 		ToolCallId: "call_abc123",
 		ToolName:   "write_file",
 	}
 
-	result := needsWorkflowApprovalPrompt(pendingApproval, "call_abc123")
+	result := needsWorkflowApprovalPrompt(pendingApproval, map[string]bool{"call_abc123": true})
 
 	if result {
-		t.Error("expected false when ToolCallId matches (duplicate)")
+		t.Error("expected false when ToolCallId already prompted (duplicate)")
 	}
 }
 
@@ -182,10 +181,10 @@ func TestNeedsWorkflowApprovalPrompt_TrueWhenDifferentToolCallID(t *testing.T) {
 		ToolName:   "execute_command",
 	}
 
-	result := needsWorkflowApprovalPrompt(pendingApproval, "call_abc123")
+	result := needsWorkflowApprovalPrompt(pendingApproval, map[string]bool{"call_abc123": true})
 
 	if !result {
-		t.Error("expected true when ToolCallId differs")
+		t.Error("expected true when ToolCallId not in prompted set")
 	}
 }
 
@@ -417,11 +416,11 @@ func TestHandleWorkflowApprovalPrompt_NonInteractiveNoDefaultError(t *testing.T)
 
 func TestNeedsApprovalPrompt_TableDriven(t *testing.T) {
 	tests := []struct {
-		name            string
-		phase           agentexecutionv1.ExecutionPhase
-		pendingApproval *agentexecutionv1.PendingApproval
-		lastToolCallID  string
-		expected        bool
+		name                string
+		phase               agentexecutionv1.ExecutionPhase
+		pendingApproval     *agentexecutionv1.PendingApproval
+		promptedToolCallIDs map[string]bool
+		expected            bool
 	}{
 		{
 			name:  "waiting with new approval",
@@ -429,8 +428,8 @@ func TestNeedsApprovalPrompt_TableDriven(t *testing.T) {
 			pendingApproval: &agentexecutionv1.PendingApproval{
 				ToolCallId: "call_new",
 			},
-			lastToolCallID: "",
-			expected:       true,
+			promptedToolCallIDs: map[string]bool{},
+			expected:            true,
 		},
 		{
 			name:  "waiting with different approval",
@@ -438,24 +437,24 @@ func TestNeedsApprovalPrompt_TableDriven(t *testing.T) {
 			pendingApproval: &agentexecutionv1.PendingApproval{
 				ToolCallId: "call_new",
 			},
-			lastToolCallID: "call_old",
-			expected:       true,
+			promptedToolCallIDs: map[string]bool{"call_old": true},
+			expected:            true,
 		},
 		{
-			name:  "waiting with same approval (duplicate)",
+			name:  "waiting with already prompted (duplicate)",
 			phase: agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL,
 			pendingApproval: &agentexecutionv1.PendingApproval{
 				ToolCallId: "call_same",
 			},
-			lastToolCallID: "call_same",
-			expected:       false,
+			promptedToolCallIDs: map[string]bool{"call_same": true},
+			expected:            false,
 		},
 		{
-			name:            "waiting but no approval",
-			phase:           agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL,
-			pendingApproval: nil,
-			lastToolCallID:  "",
-			expected:        false,
+			name:                "waiting but no approval",
+			phase:               agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL,
+			pendingApproval:     nil,
+			promptedToolCallIDs: map[string]bool{},
+			expected:            false,
 		},
 		{
 			name:  "in progress with approval (wrong phase)",
@@ -463,17 +462,190 @@ func TestNeedsApprovalPrompt_TableDriven(t *testing.T) {
 			pendingApproval: &agentexecutionv1.PendingApproval{
 				ToolCallId: "call_new",
 			},
-			lastToolCallID: "",
-			expected:       false,
+			promptedToolCallIDs: map[string]bool{},
+			expected:            false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := needsAgentApprovalPrompt(tt.phase, tt.pendingApproval, tt.lastToolCallID)
+			result := needsAgentApprovalPrompt(tt.phase, tt.pendingApproval, tt.promptedToolCallIDs)
 			if result != tt.expected {
 				t.Errorf("expected %v, got %v", tt.expected, result)
 			}
 		})
+	}
+}
+
+// =============================================================================
+// findUnpromptedApproval Tests
+// =============================================================================
+
+func TestFindUnpromptedApproval_FindsWaitingToolCall(t *testing.T) {
+	toolCalls := []*agentexecutionv1.ToolCall{
+		{Id: "call_1", Name: "read", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED},
+		{Id: "call_2", Name: "execute", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL},
+	}
+
+	result := findUnpromptedApproval(toolCalls, map[string]bool{})
+
+	if result == nil {
+		t.Fatal("expected to find unprompted approval")
+	}
+	if result.Id != "call_2" {
+		t.Errorf("expected call_2, got %s", result.Id)
+	}
+}
+
+func TestFindUnpromptedApproval_SkipsAlreadyPrompted(t *testing.T) {
+	toolCalls := []*agentexecutionv1.ToolCall{
+		{Id: "call_1", Name: "execute", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL},
+	}
+
+	result := findUnpromptedApproval(toolCalls, map[string]bool{"call_1": true})
+
+	if result != nil {
+		t.Error("expected nil when tool call already prompted")
+	}
+}
+
+func TestFindUnpromptedApproval_ReturnsNilWhenNoWaiting(t *testing.T) {
+	toolCalls := []*agentexecutionv1.ToolCall{
+		{Id: "call_1", Name: "read", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED},
+		{Id: "call_2", Name: "write", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_RUNNING},
+	}
+
+	result := findUnpromptedApproval(toolCalls, map[string]bool{})
+
+	if result != nil {
+		t.Error("expected nil when no tool calls are waiting for approval")
+	}
+}
+
+func TestFindUnpromptedApproval_EmptyList(t *testing.T) {
+	result := findUnpromptedApproval(nil, map[string]bool{})
+
+	if result != nil {
+		t.Error("expected nil for empty tool call list")
+	}
+}
+
+func TestFindUnpromptedApproval_SkipsEmptyID(t *testing.T) {
+	toolCalls := []*agentexecutionv1.ToolCall{
+		{Id: "", Name: "execute", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL},
+	}
+
+	result := findUnpromptedApproval(toolCalls, map[string]bool{})
+
+	if result != nil {
+		t.Error("expected nil when tool call has empty ID")
+	}
+}
+
+func TestFindUnpromptedApproval_FindsFirstUnprompted(t *testing.T) {
+	toolCalls := []*agentexecutionv1.ToolCall{
+		{Id: "call_1", Name: "execute", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL},
+		{Id: "call_2", Name: "write", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL},
+	}
+	prompted := map[string]bool{"call_1": true}
+
+	result := findUnpromptedApproval(toolCalls, prompted)
+
+	if result == nil {
+		t.Fatal("expected to find unprompted approval")
+	}
+	if result.Id != "call_2" {
+		t.Errorf("expected call_2 (first unprompted), got %s", result.Id)
+	}
+}
+
+// =============================================================================
+// countUnresolvedApprovals Tests
+// =============================================================================
+
+func TestCountUnresolvedApprovals_ZeroWhenNone(t *testing.T) {
+	toolCalls := []*agentexecutionv1.ToolCall{
+		{Id: "call_1", Name: "read", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED},
+		{Id: "call_2", Name: "write", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED},
+	}
+
+	count := countUnresolvedApprovals(toolCalls, map[string]bool{})
+
+	if count != 0 {
+		t.Errorf("expected 0, got %d", count)
+	}
+}
+
+func TestCountUnresolvedApprovals_CountsUnprompted(t *testing.T) {
+	toolCalls := []*agentexecutionv1.ToolCall{
+		{Id: "call_1", Name: "read", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED},
+		{Id: "call_2", Name: "execute", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL},
+		{Id: "call_3", Name: "write", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL},
+	}
+
+	count := countUnresolvedApprovals(toolCalls, map[string]bool{})
+
+	if count != 2 {
+		t.Errorf("expected 2, got %d", count)
+	}
+}
+
+func TestCountUnresolvedApprovals_ExcludesPrompted(t *testing.T) {
+	toolCalls := []*agentexecutionv1.ToolCall{
+		{Id: "call_1", Name: "execute", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL},
+		{Id: "call_2", Name: "write", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL},
+	}
+	prompted := map[string]bool{"call_1": true}
+
+	count := countUnresolvedApprovals(toolCalls, prompted)
+
+	if count != 1 {
+		t.Errorf("expected 1 (call_2 unresolved), got %d", count)
+	}
+}
+
+func TestCountUnresolvedApprovals_EmptyList(t *testing.T) {
+	count := countUnresolvedApprovals(nil, map[string]bool{})
+
+	if count != 0 {
+		t.Errorf("expected 0 for nil list, got %d", count)
+	}
+}
+
+// =============================================================================
+// buildPendingApprovalFromToolCall Tests
+// =============================================================================
+
+func TestBuildPendingApprovalFromToolCall_BasicFields(t *testing.T) {
+	tc := &agentexecutionv1.ToolCall{
+		Id:        "call_abc123",
+		Name:      "execute",
+		StartedAt: "2026-02-14T15:30:00Z",
+	}
+
+	pa := buildPendingApprovalFromToolCall(tc)
+
+	if pa.ToolCallId != "call_abc123" {
+		t.Errorf("expected ToolCallId 'call_abc123', got '%s'", pa.ToolCallId)
+	}
+	if pa.ToolName != "execute" {
+		t.Errorf("expected ToolName 'execute', got '%s'", pa.ToolName)
+	}
+	if pa.RequestedAt != "2026-02-14T15:30:00Z" {
+		t.Errorf("expected RequestedAt '2026-02-14T15:30:00Z', got '%s'", pa.RequestedAt)
+	}
+}
+
+func TestBuildPendingApprovalFromToolCall_NilArgs(t *testing.T) {
+	tc := &agentexecutionv1.ToolCall{
+		Id:   "call_abc123",
+		Name: "execute",
+		Args: nil,
+	}
+
+	pa := buildPendingApprovalFromToolCall(tc)
+
+	if pa.ArgsPreview != "" {
+		t.Errorf("expected empty ArgsPreview for nil Args, got '%s'", pa.ArgsPreview)
 	}
 }

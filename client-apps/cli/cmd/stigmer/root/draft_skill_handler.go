@@ -96,20 +96,7 @@ func executeDraftSkill(opts draftSkillOptions) error {
 		cliprint.PrintInfo("  stigmer get execution %s", exec.Metadata.Id)
 	}
 
-	// 8. Post-execution interactive menu
-	for {
-		action := showPostExecMenu()
-		switch action {
-		case PostExecViewConversation:
-			displayConversation(exec)
-		case PostExecViewDetails:
-			cliprint.PrintInfo("Run this command to view full details:")
-			cliprint.PrintInfo("  stigmer get execution %s", exec.Metadata.Id)
-			fmt.Println()
-		case PostExecDone:
-			return nil
-		}
-	}
+	return nil
 }
 
 // displaySkillCreatorNotFoundError shows a helpful error when the skill-creator-agent is missing.
