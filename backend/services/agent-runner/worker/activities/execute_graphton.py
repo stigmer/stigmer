@@ -1094,32 +1094,32 @@ async def _execute_graphton_impl(
         
         activity_logger.info(f"Created {len(builtin_tools)} built-in tools: [publish_artifact]")
         
-        # Create Graphton agent
-        # Recursion limit set to 1000 for maximum autonomy
-        # Graphton's loop detection middleware prevents infinite loops
-        # approval_checker enables HITL tool approval with interrupt/resume
-        # checkpointer enables HITL interrupt/resume and conversation persistence
+        # Create Graphton agent.
         #
-        # NOTE: general_purpose_agent=False disables the automatic "task" tool from
-        # deepagents' SubAgentMiddleware. This is a workaround for a bug in deepagents
-        # where subagents spawned via the task tool have recursion_limit=25 (LangGraph
-        # default) instead of inheriting the parent's recursion_limit=1000.
-        # See: https://github.com/langchain-ai/deepagents/issues/XXX (TODO: file issue)
-        # We use our own transformed_subagents which are properly configured.
+        # Recursion limit: 1000 for the top-level graph. deepagents 0.4.x
+        # uses langchain's create_agent() which defaults subagent graphs to
+        # DEFAULT_RECURSION_LIMIT (10,000 in langgraph 1.0.x). This gives
+        # subagents generous room while the top-level graph is capped at 1000.
+        # Graphton's loop detection middleware provides additional protection
+        # against infinite loops via pattern-based intervention.
+        #
+        # Sandbox tools: graphton creates platform tool wrappers (read, write,
+        # edit, execute, ls, glob, grep) backed by the sandbox. deepagents also
+        # creates in-memory filesystem tools (read_file, write_file, edit_file)
+        # via its FilesystemMiddleware. Both sets coexist in the tool registry.
         agent_graph = create_deep_agent(
-            model=llm_model,  # Pass LLM instance instead of string
+            model=llm_model,
             system_prompt=enhanced_system_prompt,
             mcp_servers=mcp_servers_config if mcp_servers_config else None,
             mcp_tools=mcp_tools_config if mcp_tools_config else None,
-            tools=builtin_tools if builtin_tools else None,  # Built-in tools including publish_artifact
-            subagents=transformed_subagents,  # Sub-agents from AgentSpec.sub_agents
+            tools=builtin_tools if builtin_tools else None,
+            subagents=transformed_subagents,
             sandbox_config=sandbox_config_for_agent,
             recursion_limit=1000,
-            general_purpose_agent=False,  # Disable deepagents' auto task tool (recursion_limit bug)
-            checkpointer=checkpointer,  # Enable HITL interrupt/resume and conversation persistence
-            approval_checker=approval_checker,  # Enable HITL tool approval (Phase 3B)
-            summarization_config=summarization_config,  # Enable automatic context summarization
-            summarization_callback=status_builder,  # StatusBuilder implements SummarizationCallback (Phase 3)
+            checkpointer=checkpointer,
+            approval_checker=approval_checker,
+            summarization_config=summarization_config,
+            summarization_callback=status_builder,
         )
         
         activity_logger.info(f"Graphton agent created successfully with {'new' if is_new_sandbox else 'reused'} sandbox")
@@ -1140,12 +1140,21 @@ async def _execute_graphton_impl(
             "messages": [{"role": "user", "content": message_with_context}]
         }
         
-        # Prepare config with thread_id for state persistence
+        # Prepare config with thread_id for state persistence.
+        #
+        # recursion_limit is set here as defense-in-depth. The primary limit
+        # is applied via graphton's with_config() during agent creation, but
+        # setting it at invoke-time ensures the limit is enforced even if the
+        # graph's default config is somehow lost during config merging.
+        # Note: LangGraph's merge_configs strips recursion_limit values equal
+        # to DEFAULT_RECURSION_LIMIT (10,000), but 1000 != 10,000 so this
+        # value is preserved.
         config = {
+            "recursion_limit": 1000,
             "configurable": {
                 "thread_id": thread_id,
                 "org": execution.metadata.org,
-            }
+            },
         }
         
         activity_logger.info(

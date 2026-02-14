@@ -483,55 +483,65 @@ def create_deep_agent(
     else:
         enhanced_prompt = system_prompt
     
-    # Create sandbox backend if configured (for terminal execution support)
-    backend = None
-    backend_for_deepagents = None  # May be None if we create platform tool wrappers
-    
+    # Create sandbox platform tool wrappers if sandbox is configured.
+    #
+    # Graphton always creates its own platform tool wrappers for sandbox access
+    # (read, write, edit, execute, ls, glob, grep) and passes them as explicit
+    # tools to deepagents. When approval_checker is provided, these wrappers
+    # include HITL approval checks; otherwise they execute directly.
+    #
+    # deepagents 0.4.x also creates its own FilesystemMiddleware internally
+    # with an in-memory StateBackend. The deepagents filesystem tools have
+    # different names (read_file, write_file, edit_file) than graphton's
+    # sandbox tools (read, write, edit), so they coexist without conflict.
+    # For tools with the same name (ls, glob, grep), the explicit tools from
+    # graphton take precedence in langchain's ToolNode resolution.
     if sandbox_config:
         from graphton.core.sandbox_factory import create_sandbox_backend
-        backend = create_sandbox_backend(sandbox_config)
+        from graphton.core.tool_wrappers import create_platform_tool_wrappers
         
-        if approval_checker is not None:
-            # HITL approval flow: Create approval-aware platform tool wrappers
-            # We create our own wrappers that check approval before executing,
-            # and pass backend=None to deepagents to prevent duplicate tools
-            from graphton.core.tool_wrappers import create_platform_tool_wrappers
-            
-            platform_tools = create_platform_tool_wrappers(
-                backend=backend,
-                approval_checker=approval_checker,
-            )
-            tools_list.extend(platform_tools)
-            
-            logger.info(
-                f"Created {len(platform_tools)} approval-aware platform tool wrappers "
-                "(sandbox tools will check approval before executing)"
-            )
-            # Don't pass backend to deepagents - we handle platform tools ourselves
-            backend_for_deepagents = None
-        else:
-            # No approval checker: let deepagents create platform tools normally
-            backend_for_deepagents = backend
+        sandbox_backend = create_sandbox_backend(sandbox_config)
+        platform_tools = create_platform_tool_wrappers(
+            backend=sandbox_backend,
+            approval_checker=approval_checker,
+        )
+        tools_list.extend(platform_tools)
+        
+        logger.info(
+            "Created %d platform tool wrapper(s) for sandbox "
+            "(approval_checker=%s)",
+            len(platform_tools),
+            "enabled" if approval_checker else "disabled",
+        )
     
-    # Create the Deep Agent using deepagents library
-    # DeepAgents automatically adds SubAgentMiddleware when subagents are provided
-    # Pass checkpointer for interrupt/resume support (HITL approval flow)
+    # Create the Deep Agent using deepagents library.
     #
-    # NOTE: In deepagents 0.4.x, the 'general_purpose_agent' parameter was removed.
-    # The general-purpose subagent behavior is now controlled via the subagents
-    # list - pass an empty list or None to disable automatic subagent creation.
+    # deepagents 0.4.x internally creates SubAgentMiddleware (with a
+    # general-purpose subagent) and FilesystemMiddleware (with StateBackend
+    # for in-memory file storage). The recursion_limit for all graphs
+    # created by langchain's create_agent() defaults to
+    # DEFAULT_RECURSION_LIMIT (10,000 as of langgraph 1.0.x), so subagent
+    # graphs have generous limits by default.
+    #
+    # Graphton applies an explicit recursion_limit via with_config() below
+    # to control the top-level graph's limit independently.
     agent = deepagents_create_deep_agent(
         model=model_instance,
         tools=tools_list,
         system_prompt=enhanced_prompt,
         middleware=middleware_list,
-        subagents=transformed_subagents if general_purpose_agent else [],  # Empty list disables default subagent
+        subagents=transformed_subagents or [],
         context_schema=context_schema,
-        backend=backend_for_deepagents,  # May be None if using approval-aware wrappers
-        checkpointer=checkpointer,  # Enable interrupt/resume for HITL approval
+        checkpointer=checkpointer,
     )
     
-    # Apply recursion limit configuration
+    # Apply recursion limit to the top-level graph.
+    #
+    # This overrides deepagents' default of 1000 with graphton's configured
+    # value. Note: LangGraph's merge_configs intentionally strips
+    # recursion_limit values that equal DEFAULT_RECURSION_LIMIT (10,000),
+    # treating them as "no override". Values != 10,000 (like our 1000)
+    # are preserved and take effect at runtime.
     configured_agent = agent.with_config({"recursion_limit": recursion_limit})
     
     return configured_agent  # type: ignore[no-any-return]
