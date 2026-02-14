@@ -154,4 +154,3 @@ func displayWorkflowTask(task *workflowexecutionv1.WorkflowTask) {
 	fmt.Println()
 	flushStdout()
 }
-

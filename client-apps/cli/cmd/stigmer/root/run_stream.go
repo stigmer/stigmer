@@ -46,7 +46,10 @@ func streamAgentExecution(executionID string, prompter approval.Prompter, defaul
 	// Track last displayed phase and approval state
 	var lastPhase agentexecutionv1.ExecutionPhase
 	var lastPendingToolCallID string
-	messageCount := 0
+
+	// Delta-based message renderer — streams AI content incrementally instead
+	// of waiting for the complete message. See run_display_stream.go.
+	renderer := newMessageStreamRenderer(os.Stdout)
 
 	// Stream updates until execution completes
 	for {
@@ -85,15 +88,19 @@ func streamAgentExecution(executionID string, prompter approval.Prompter, defaul
 			sp.Start("Resuming after approval...")
 		}
 
-		// Display new messages
-		if len(execution.Status.Messages) > messageCount {
+		// Render messages with delta-based streaming for AI content.
+		// The renderer tracks which messages have been displayed and only prints
+		// new content — including incremental token deltas for in-progress AI messages.
+		rendered, streaming := renderer.render(execution.Status.Messages)
+		if rendered {
 			sp.Stop()
-			for i := messageCount; i < len(execution.Status.Messages); i++ {
-				displayAgentMessage(execution.Status.Messages[i])
-			}
-			messageCount = len(execution.Status.Messages)
+		}
+		if rendered && !streaming {
+			// Batch of complete messages finished — restart spinner while waiting.
 			sp.Start("Agent is thinking...")
 		}
+		// When streaming is active, the spinner stays stopped: the flowing
+		// text is the progress indicator.
 
 		// Check if execution reached terminal state
 		if isTerminalAgentPhase(execution.Status.Phase) {
