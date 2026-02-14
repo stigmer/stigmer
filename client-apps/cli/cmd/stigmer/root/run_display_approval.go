@@ -72,12 +72,17 @@ func buildApprovalContent(pa *agentexecutionv1.PendingApproval) string {
 
 // formatWaitingDuration calculates and formats the duration since the approval
 // was requested. Returns a human-readable string like "15s", "2m30s", or "just now".
+//
+// The parser tries multiple timestamp formats for resilience: RFC 3339 (with
+// timezone), RFC 3339 Nano, and bare ISO 8601 without timezone (which the
+// Python agent-runner historically produced). If all fail, "unknown" is
+// returned.
 func formatWaitingDuration(requestedAt string) string {
 	if requestedAt == "" {
 		return "unknown"
 	}
 
-	t, err := time.Parse(time.RFC3339, requestedAt)
+	t, err := parseTimestamp(requestedAt)
 	if err != nil {
 		return "unknown"
 	}
@@ -88,4 +93,27 @@ func formatWaitingDuration(requestedAt string) string {
 	}
 
 	return duration.Truncate(time.Second).String()
+}
+
+// timestampFormats lists the formats tried by parseTimestamp, ordered from most
+// to least specific. The bare ISO 8601 layout (no timezone) is a fallback for
+// timestamps produced by Python's datetime.utcnow().isoformat() before the
+// "Z" suffix was standardised across the codebase.
+var timestampFormats = []string{
+	time.RFC3339Nano,
+	time.RFC3339,
+	"2006-01-02T15:04:05.999999", // bare ISO 8601 with microseconds (no tz)
+	"2006-01-02T15:04:05",        // bare ISO 8601 (no tz)
+}
+
+// parseTimestamp attempts to parse a timestamp string against several known
+// layouts. For bare (no-timezone) formats the value is assumed to be UTC.
+func parseTimestamp(value string) (time.Time, error) {
+	for _, layout := range timestampFormats {
+		t, err := time.Parse(layout, value)
+		if err == nil {
+			return t, nil
+		}
+	}
+	return time.Time{}, fmt.Errorf("unrecognised timestamp format: %q", value)
 }

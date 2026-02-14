@@ -55,8 +55,10 @@ const padding = 2
 // Render draws a bordered box panel around the given content.
 //
 // The panel includes a top border (with optional inline title), padded content
-// lines, and a bottom border. Content is rendered as-is — the caller is
-// responsible for line length and wrapping.
+// lines, and a bottom border. Long content lines are automatically wrapped at
+// word boundaries to fit within the panel width; words that are individually
+// wider than the content area are hard-broken so the right border is never
+// pushed beyond the panel width.
 //
 // Example output with title:
 //
@@ -91,10 +93,12 @@ func Render(content string, opts Options) string {
 	b.WriteString(renderEmptyRow(innerWidth, border))
 	b.WriteByte('\n')
 
-	// Content lines
+	// Content lines — wrap long lines to fit within the panel.
 	for _, line := range strings.Split(content, "\n") {
-		b.WriteString(renderContentRow(line, contentWidth, border))
-		b.WriteByte('\n')
+		for _, wrapped := range wrapLine(line, contentWidth) {
+			b.WriteString(renderContentRow(wrapped, contentWidth, border))
+			b.WriteByte('\n')
+		}
 	}
 
 	// Blank line below content

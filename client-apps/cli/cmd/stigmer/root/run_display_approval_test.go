@@ -273,6 +273,71 @@ func TestFormatWaitingDuration_Various(t *testing.T) {
 }
 
 // =============================================================================
+// parseTimestamp Tests
+// =============================================================================
+
+func TestParseTimestamp_RFC3339(t *testing.T) {
+	ts := "2026-02-14T15:30:00Z"
+	parsed, err := parseTimestamp(ts)
+	if err != nil {
+		t.Fatalf("expected successful parse of RFC3339, got error: %v", err)
+	}
+	if parsed.Year() != 2026 || parsed.Month() != 2 || parsed.Day() != 14 {
+		t.Errorf("unexpected parsed date: %v", parsed)
+	}
+}
+
+func TestParseTimestamp_RFC3339Nano(t *testing.T) {
+	ts := "2026-02-14T15:30:00.123456789Z"
+	_, err := parseTimestamp(ts)
+	if err != nil {
+		t.Fatalf("expected successful parse of RFC3339Nano, got error: %v", err)
+	}
+}
+
+func TestParseTimestamp_BareISO8601WithMicroseconds(t *testing.T) {
+	// This is what Python's datetime.utcnow().isoformat() produces
+	ts := "2026-02-14T15:30:00.123456"
+	parsed, err := parseTimestamp(ts)
+	if err != nil {
+		t.Fatalf("expected successful parse of bare ISO 8601 with microseconds, got error: %v", err)
+	}
+	if parsed.Year() != 2026 || parsed.Month() != 2 || parsed.Day() != 14 {
+		t.Errorf("unexpected parsed date: %v", parsed)
+	}
+}
+
+func TestParseTimestamp_BareISO8601NoFraction(t *testing.T) {
+	ts := "2026-02-14T15:30:00"
+	_, err := parseTimestamp(ts)
+	if err != nil {
+		t.Fatalf("expected successful parse of bare ISO 8601 (no fraction), got error: %v", err)
+	}
+}
+
+func TestParseTimestamp_Invalid(t *testing.T) {
+	_, err := parseTimestamp("not-a-timestamp")
+	if err == nil {
+		t.Fatal("expected error for invalid timestamp, got nil")
+	}
+}
+
+func TestFormatWaitingDuration_BareISO8601(t *testing.T) {
+	// Simulate a timestamp 10 seconds ago without timezone suffix
+	// (as Python's datetime.utcnow().isoformat() would produce)
+	ts := time.Now().UTC().Add(-10 * time.Second).Format("2006-01-02T15:04:05.999999")
+	result := formatWaitingDuration(ts)
+
+	// Should parse successfully and return a duration, not "unknown"
+	if result == "unknown" {
+		t.Errorf("expected valid duration for bare ISO 8601 timestamp, got 'unknown'")
+	}
+	if !strings.Contains(result, "s") {
+		t.Errorf("expected duration containing seconds, got: %s", result)
+	}
+}
+
+// =============================================================================
 // buildApprovalContent Tests
 // =============================================================================
 
