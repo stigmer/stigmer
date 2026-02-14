@@ -3,6 +3,8 @@ package root
 import (
 	"fmt"
 	"io"
+	"regexp"
+	"strings"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
@@ -145,7 +147,10 @@ func (r *messageStreamRenderer) writeCompleteMessage(msg *agentexecutionv1.Agent
 			r.flush()
 		}
 	case agentexecutionv1.MessageType_MESSAGE_SYSTEM:
-		fmt.Fprintf(r.w, "%s\n\n", systemMsgStyle.Render("ℹ️  "+msg.Content))
+		// Sanitize raw API errors (e.g., Anthropic 400 responses) into
+		// user-friendly text. The full error is available in execution logs.
+		content := sanitizeSystemContent(msg.Content)
+		fmt.Fprintf(r.w, "%s\n\n", systemMsgStyle.Render("ℹ️  "+content))
 		r.flush()
 	default:
 		fmt.Fprintf(r.w, "❓ Unknown: %s\n\n", msg.Content)
@@ -171,4 +176,65 @@ func (r *messageStreamRenderer) flush() {
 	if f, ok := r.w.(interface{ Sync() error }); ok {
 		_ = f.Sync()
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Error content sanitization
+// ---------------------------------------------------------------------------
+
+// rawAPIErrorPattern matches raw HTTP/API error responses that leak internal
+// details. Examples:
+//
+//	"Error code: 400 - {'type': 'error', ...}"
+//	"Error code: 500 - {\"error\": ...}"
+var rawAPIErrorPattern = regexp.MustCompile(`Error code: \d+ - [{'\"]`)
+
+// rawExceptionPatterns lists substrings that indicate raw exception or API
+// internals that should not be shown verbatim to end users.
+var rawExceptionPatterns = []string{
+	"invalid_request_error",
+	"request_id",
+	"'type': 'error'",
+	`"type": "error"`,
+}
+
+// sanitizeSystemContent rewrites raw API/exception error messages into clean
+// user-facing text. Non-error system messages pass through unchanged.
+//
+// The heuristic: if the content contains a raw HTTP error code pattern or
+// known exception internals, replace the raw detail with a concise summary.
+// The full error is always available via `stigmer get execution <id>`.
+func sanitizeSystemContent(content string) string {
+	if !isRawErrorContent(content) {
+		return content
+	}
+
+	// Try to extract a human-readable portion before the raw API dump.
+	// The agent runner often prefixes errors: "❌ Error: Execution failed: Error code: 400 - ..."
+	// We want to keep "Execution failed" but drop everything from the raw dump onward.
+	if idx := strings.Index(content, "Error code:"); idx > 0 {
+		prefix := strings.TrimSpace(content[:idx])
+		// Strip trailing colon or dash left after trimming.
+		prefix = strings.TrimRight(prefix, ":- ")
+		if prefix != "" {
+			return prefix + " (internal error — check execution logs for details)"
+		}
+	}
+
+	// Fallback: entire content is raw error — replace wholesale.
+	return "Agent execution encountered an internal error. Check execution logs for details."
+}
+
+// isRawErrorContent returns true if content looks like a raw API error response
+// rather than a curated user-facing message.
+func isRawErrorContent(content string) bool {
+	if rawAPIErrorPattern.MatchString(content) {
+		return true
+	}
+	for _, pattern := range rawExceptionPatterns {
+		if strings.Contains(content, pattern) {
+			return true
+		}
+	}
+	return false
 }

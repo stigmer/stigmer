@@ -18,13 +18,27 @@ func flushStdout() {
 	_ = os.Stdout.Sync()
 }
 
-// displayAgentPhaseChange shows when agent execution phase changes
-func displayAgentPhaseChange(phase agentexecutionv1.ExecutionPhase) {
+// displayAgentPhaseChange shows when agent execution phase changes.
+//
+// previousPhase provides context for resume-aware messaging:
+//   - WAITING_FOR_APPROVAL is suppressed entirely — the approval panel and
+//     interactive prompt are the user-facing signal; a redundant status line
+//     adds noise without information.
+//   - Transition from WAITING_FOR_APPROVAL to IN_PROGRESS shows "Resumed after
+//     approval" instead of the generic "Execution started", so the user
+//     understands this is a continuation, not a fresh start.
+func displayAgentPhaseChange(phase, previousPhase agentexecutionv1.ExecutionPhase) {
 	switch phase {
 	case agentexecutionv1.ExecutionPhase_EXECUTION_PENDING:
 		cliprint.PrintInfo("⏳ Execution pending...")
 	case agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS:
-		cliprint.PrintSuccess("▶️  Execution started")
+		if previousPhase == agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL {
+			// Returning from an approval pause — show "resumed" instead of
+			// the misleading "started" which implies a fresh execution.
+			cliprint.PrintSuccess("▶️  Resumed after approval")
+		} else {
+			cliprint.PrintSuccess("▶️  Execution started")
+		}
 	case agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED:
 		cliprint.PrintSuccess("✅ Execution completed")
 	case agentexecutionv1.ExecutionPhase_EXECUTION_FAILED:
@@ -32,7 +46,10 @@ func displayAgentPhaseChange(phase agentexecutionv1.ExecutionPhase) {
 	case agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED:
 		cliprint.PrintWarning("⚠️  Execution cancelled")
 	case agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL:
-		cliprint.PrintWarning("⏸️  Approval required")
+		// Suppressed: The approval panel ("APPROVAL REQUIRED" box) and the
+		// interactive prompt are the user-facing signal for this state.
+		// Printing an additional status line here is redundant noise.
+		return
 	}
 	fmt.Println()
 	flushStdout()
@@ -95,8 +112,10 @@ func displayToolMessage(msg *agentexecutionv1.AgentMessage) {
 }
 
 // displaySystemMessage renders system messages with dimmed styling.
+// Raw API errors are sanitized to user-friendly text before display.
 func displaySystemMessage(msg *agentexecutionv1.AgentMessage) {
-	fmt.Printf("%s\n\n", systemMsgStyle.Render("ℹ️  "+msg.Content))
+	content := sanitizeSystemContent(msg.Content)
+	fmt.Printf("%s\n\n", systemMsgStyle.Render("ℹ️  "+content))
 	flushStdout()
 }
 

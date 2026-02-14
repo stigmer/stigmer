@@ -187,11 +187,18 @@ class TestCheckpointerConfigValidation:
 class TestCheckpointerConfigEnvLoading:
     """Tests for CheckpointerConfig.load_from_env()."""
 
-    def test_local_mode_defaults_to_memory(self, clean_env):
-        """Test that local mode defaults to memory checkpointer."""
+    def test_local_mode_defaults_to_sqlite(self, clean_env):
+        """Test that local mode defaults to sqlite checkpointer.
+        
+        SQLite is the default for local mode because:
+        1. Persistent across activity re-invocations (required for HITL approval)
+        2. Zero setup - single file, no external dependencies
+        3. MemorySaver is incompatible with HITL because each Temporal activity
+           invocation creates a new MemorySaver instance, losing all checkpoints
+        """
         with patch.dict(os.environ, {}, clear=True):
             config = CheckpointerConfig.load_from_env("local")
-        assert config.type == "memory"
+        assert config.type == "sqlite"
 
     def test_cloud_mode_defaults_to_mongodb(self, clean_env):
         """Test that cloud mode defaults to mongodb checkpointer."""
@@ -264,11 +271,15 @@ class TestCheckpointerConfigEnvLoading:
 class TestCheckpointerConfigModeAware:
     """Tests for mode-aware default selection."""
 
-    def test_local_mode_uses_memory_by_default(self, clean_env):
-        """Test that local mode uses memory checkpointer by default."""
+    def test_local_mode_uses_sqlite_by_default(self, clean_env):
+        """Test that local mode uses sqlite checkpointer by default.
+        
+        SQLite is required for HITL (Human-in-the-Loop) functionality.
+        MemorySaver loses state between Temporal activity re-invocations.
+        """
         with patch.dict(os.environ, {}, clear=True):
             config = CheckpointerConfig.load_from_env("local")
-        assert config.type == "memory"
+        assert config.type == "sqlite"
 
     def test_cloud_mode_uses_mongodb_by_default(self, clean_env):
         """Test that cloud mode uses mongodb checkpointer by default."""
