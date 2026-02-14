@@ -68,14 +68,56 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-14 21:17
-**Current Task**: T03 (Expand/Collapse Tool Results)
-**Status**: T02 Complete ✅ (committed and tested)
+**Current Task**: T04 (Scroll Pause & Auto-resume)
+**Status**: T03 Complete ✅ (committed and tested)
 
-## Session Progress (2026-02-14 22:04)
+## Session Progress (2026-02-14 22:39)
 
-### T02 Implementation Complete ✅
+### T03 Implementation Complete ✅
 
 **Accomplished**:
+- ✅ Added keyboard-driven expand/collapse for tool call results
+- ✅ Implemented Tab/Shift+Tab focus navigation with wrap-around
+- ✅ Added Enter to toggle between 3-line preview and full content
+- ✅ Created `pkg/executiontui/focus.go` (75 lines) - isolated focus logic
+- ✅ Created `pkg/toolrender/render_known.go` (136 lines) - extracted from oversized `render.go`
+- ✅ Extended `pkg/toolrender/` with `RenderExpanded()` and `formatFullResultWithGutter()`
+- ✅ Fixed `pkg/toolrender/BUILD.bazel` - added missing `file_preview.go` to srcs
+- ✅ Two-stage rendering: preview/full computed on event arrival (instant toggle)
+- ✅ Visual indicators: ▸ (focused), ▶ (collapsed), ▼ (expanded)
+- ✅ Footer conditionally shows "Tab focus | Enter expand" hints
+- ✅ 187 tests passing (up from 28 in T02), full test coverage
+- ✅ All files under 250 lines, zero technical debt
+- ✅ Build passes, vet clean, no regressions
+- ✅ Changelog: `_changelog/2026-02/2026-02-14-223918-cli-tui-expand-collapse-tool-results.md`
+- ✅ Committed: 9957677d "feat(cli): add expand/collapse for tool results in TUI"
+
+**Key Technical Decisions**:
+1. **Enter only for toggle**: Space remains page-down (follows terminal TUI conventions from less/vim)
+2. **Collapsed = current preview**: 3-line preview preserved from T02 (no visual regression)
+3. **Two-stage rendering**: Both preview and full computed on event (instant toggle, no caching)
+4. **Focus model persists**: Tab stays active and cycles; no "activate, lose focus" dance
+5. **File size refactoring**: Split `render.go` → `render.go` + `render_known.go` per 250-line limit
+
+**What Works**:
+- Tab/Shift+Tab cycles focus through expandable tool blocks (wraps around)
+- Enter toggles expand/collapse for focused block
+- Collapsed state shows header + 3-line preview (matches T02)
+- Expanded state shows header + full content with gutter borders
+- Visual indicators (▸▶▼) clearly mark focus and expand state
+- Space still pages viewport down (no conflict)
+- Approval keys (a/s/r) work regardless of focus state
+- Footer adapts: shows "Tab focus | Enter expand" when expandable blocks exist
+
+**Impact**:
+- +657/-129 lines across 15 files (net +528 lines)
+- pkg/toolrender: 4 files modified, 2 new files
+- pkg/executiontui: 7 files modified, 1 new file
+- 187 tests covering focus, toggle, rendering, approval isolation
+
+## Previous Session (2026-02-14 22:04) - T02 Complete ✅
+
+**T02 Accomplished**:
 - ✅ Created `pkg/executiontui/` package (9 source files + 2 test files, 1319 lines)
   - Core model: `model.go`, `update.go`, `view.go`
   - Event system: `events.go`, `messages.go` (12 event types)
@@ -87,48 +129,38 @@ When starting a new session:
 - ✅ Created `cmd/stigmer/root/run_stream_convert.go` (proto converters, 75 lines)
 - ✅ All files comply with coding guidelines (under 250 lines)
 - ✅ Build passes, vet clean, 28 tests passing, no regressions
-- ✅ Changelog created: `_changelog/2026-02/2026-02-14-220416-cli-bubbletea-execution-viewer.md`
+- ✅ Changelog: `_changelog/2026-02/2026-02-14-220416-cli-bubbletea-execution-viewer.md`
 
-**Key Technical Decisions**:
-1. **Alt-screen mode confirmed**: Full-screen TUI during execution, summary printed to inline stdout after exit
-2. **Event-driven architecture**: gRPC goroutine sends events over buffered channel, TUI model receives via `tea.Cmd` listener
-3. **Domain separation**: `pkg/executiontui/` has zero proto imports, accepts primitive types
-4. **Minimal inline approval for T02**: Simple a/s/r key capture + channel response, no rejection reason text (deferred to T05)
-5. **Auto-scroll viewport**: Using `bubbles/viewport` with auto-follow, ready for T04 scroll-pause
+**T02 Key Decisions**:
+1. Alt-screen mode confirmed: Full-screen TUI during execution, summary printed to inline stdout after exit
+2. Event-driven architecture: gRPC goroutine sends events over buffered channel, TUI model receives via `tea.Cmd` listener
+3. Domain separation: `pkg/executiontui/` has zero proto imports, accepts primitive types
+4. Minimal inline approval for T02: Simple a/s/r key capture + channel response, no rejection reason text (deferred to T05)
+5. Auto-scroll viewport: Using `bubbles/viewport` with auto-follow, ready for T04 scroll-pause
 
-**What Works**:
-- Scrollable execution history (up/down arrows, mouse wheel)
-- Streaming AI messages with animated cursor
-- Structured tool call display (delegates to `toolrender.Render()`)
-- Inline approval (shows in viewport, a/s/r keys work)
-- Phase changes, system messages, human messages
-- Clean exit on 'q' or Ctrl+C
-- Summary prints to terminal history after TUI exits
+## Next Steps (T04: Scroll Pause & Auto-resume)
 
-## Next Steps (T03: Expand/Collapse Tool Results)
+Per the [T01 plan](tasks/T01_0_plan.md), T04 adds intelligent scroll behavior:
 
-Per the [T01 plan](tasks/T01_0_plan.md), T03 adds expand/collapse functionality for tool call results:
+1. **Scroll pause detection** (update.go)
+   - Detect when user scrolls up manually (viewport.AtBottom() == false)
+   - Set `scrollPaused` flag in Model
+   - Stop auto-scrolling new content while paused
 
-1. **Add expand state to contentBlock** (blocks.go)
-   - `expanded` bool field (already exists, set to false)
-   - `expandable` bool field (already exists, set true for tool blocks)
+2. **Auto-resume on bottom** (update.go)
+   - When user scrolls back to bottom, clear `scrollPaused` flag
+   - Resume auto-scrolling for new events
 
-2. **Implement expand/collapse logic** (update.go)
-   - Handle Tab/Shift-Tab keys to cycle focus through expandable blocks
-   - Handle Space/Enter keys to toggle expanded state of focused block
-   - Visual focus indicator (e.g., `>` prefix or highlighted border)
+3. **Visual indicator** (view.go)
+   - Show indicator when scroll is paused (e.g., "↓ Scroll paused - scroll to bottom to resume")
+   - Hide when auto-scrolling resumes
 
-3. **Conditional rendering** (render_blocks.go)
-   - When `expanded == false`: Show compact summary (tool name + args preview)
-   - When `expanded == true`: Show full `toolrender.Render()` output with result
-   - Add "(press Space to expand/collapse)" hints
+4. **Test scroll behavior** (update_test.go)
+   - Test pause detection on manual scroll up
+   - Test auto-resume when viewport returns to bottom
+   - Test that new events don't auto-scroll when paused
 
-4. **Test expand/collapse** (update_test.go)
-   - Test focus navigation with Tab/Shift-Tab
-   - Test expand toggle with Space
-   - Test that non-expandable blocks skip focus
-
-**Estimated Scope**: ~150-200 lines across 3 files (update.go, render_blocks.go, update_test.go)
+**Estimated Scope**: ~100-150 lines across 3 files (model.go, update.go, view.go, update_test.go)
 
 ## Context for Resume
 
