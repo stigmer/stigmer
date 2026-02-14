@@ -205,3 +205,73 @@ func TestFormatFileContentPreview_EllipsisPrefixAligned(t *testing.T) {
 	// The ellipsis prefix should have the same indentation width as the gutter.
 	assertContains(t, got, ellipsisPrefix)
 }
+
+// =============================================================================
+// formatFullResultWithGutter Tests
+// =============================================================================
+
+func TestFormatFullResultWithGutter_Empty(t *testing.T) {
+	if got := formatFullResultWithGutter(""); got != "" {
+		t.Errorf("expected empty string for empty input, got %q", got)
+	}
+}
+
+func TestFormatFullResultWithGutter_WhitespaceOnly(t *testing.T) {
+	if got := formatFullResultWithGutter("   \n\n  "); got != "" {
+		t.Errorf("expected empty string for whitespace-only input, got %q", got)
+	}
+}
+
+func TestFormatFullResultWithGutter_SingleLine(t *testing.T) {
+	got := formatFullResultWithGutter("package main")
+
+	if got != gutterPrefix+"package main" {
+		t.Errorf("expected %q, got %q", gutterPrefix+"package main", got)
+	}
+}
+
+func TestFormatFullResultWithGutter_MultipleLines(t *testing.T) {
+	got := formatFullResultWithGutter("line1\nline2\nline3\nline4\nline5")
+
+	assertContains(t, got, gutterPrefix+"line1")
+	assertContains(t, got, gutterPrefix+"line2")
+	assertContains(t, got, gutterPrefix+"line3")
+	assertContains(t, got, gutterPrefix+"line4")
+	assertContains(t, got, gutterPrefix+"line5")
+
+	// Should NOT have "more lines" indicator — shows everything.
+	assertNotContains(t, got, "⋮")
+	assertNotContains(t, got, "more lines")
+}
+
+func TestFormatFullResultWithGutter_PreservesBlankLines(t *testing.T) {
+	got := formatFullResultWithGutter("line1\n\nline3")
+
+	lines := strings.Split(got, "\n")
+	if len(lines) != 3 {
+		t.Errorf("expected 3 lines, got %d: %q", len(lines), got)
+	}
+	// The blank line should still have the gutter prefix.
+	if lines[1] != gutterPrefix {
+		t.Errorf("expected blank gutter line %q, got %q", gutterPrefix, lines[1])
+	}
+}
+
+func TestFormatFullResultWithGutter_ReprStripping(t *testing.T) {
+	input := "content='import os\nimport sys' name='read' tool_call_id='toolu_xyz'"
+	got := formatFullResultWithGutter(input)
+
+	assertContains(t, got, "import os")
+	assertNotContains(t, got, "name='read'")
+	assertNotContains(t, got, "content=")
+}
+
+func TestFormatFullResultWithGutter_AllLinesHaveGutter(t *testing.T) {
+	got := formatFullResultWithGutter("a\nb\nc\nd\ne\nf\ng")
+
+	for _, line := range strings.Split(got, "\n") {
+		if !strings.HasPrefix(line, gutterPrefix) {
+			t.Errorf("line missing gutter prefix: %q", line)
+		}
+	}
+}

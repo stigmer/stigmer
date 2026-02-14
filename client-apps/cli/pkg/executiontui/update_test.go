@@ -347,3 +347,302 @@ func TestView_BeforeReady_ShowsInitializing(t *testing.T) {
 		t.Errorf("view before ready = %q, want %q", view, "  Initializing...")
 	}
 }
+
+// =============================================================================
+// Focus Navigation Tests (T03)
+// =============================================================================
+
+// newTestModelWithBlocks creates a model pre-populated with a mix of expandable
+// and non-expandable blocks for testing focus navigation.
+func newTestModelWithBlocks() Model {
+	m, _, _ := newTestModel()
+
+	// Simulate a realistic block sequence:
+	// [0] human (non-expandable)
+	// [1] AI (non-expandable)
+	// [2] tool result (expandable)
+	// [3] system (non-expandable)
+	// [4] tool result (expandable)
+	// [5] phase change (non-expandable)
+	// [6] tool result (expandable)
+	events := []Event{
+		HumanMessageEvent{Content: "Read files"},
+		AIMessageEvent{Content: "Reading files..."},
+		ToolResultEvent{ToolCalls: []toolrender.ToolCallInfo{
+			{Name: "read_file", Args: map[string]interface{}{"path": "a.go"}, Result: "package a"},
+		}},
+		SystemMessageEvent{Content: "Progress 33%"},
+		ToolResultEvent{ToolCalls: []toolrender.ToolCallInfo{
+			{Name: "read_file", Args: map[string]interface{}{"path": "b.go"}, Result: "package b"},
+		}},
+		PhaseChangeEvent{Phase: "in_progress", Previous: "pending"},
+		ToolResultEvent{ToolCalls: []toolrender.ToolCallInfo{
+			{Name: "list_directory", Args: map[string]interface{}{"path": "/workspace"}, Result: "a.go\nb.go"},
+		}},
+	}
+
+	var model Model = m
+	for _, e := range events {
+		result, _ := model.Update(executionEventMsg{event: e})
+		model = result.(Model)
+	}
+	return model
+}
+
+func TestUpdate_Tab_FocusesFirstExpandableBlock(t *testing.T) {
+	m := newTestModelWithBlocks()
+
+	if m.focusedBlockIndex != -1 {
+		t.Fatalf("initial focus = %d, want -1", m.focusedBlockIndex)
+	}
+
+	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyTab})
+	model := result.(Model)
+
+	// First expandable block is at index 2.
+	if model.focusedBlockIndex != 2 {
+		t.Errorf("focus = %d, want 2 (first expandable)", model.focusedBlockIndex)
+	}
+}
+
+func TestUpdate_Tab_SkipsNonExpandableBlocks(t *testing.T) {
+	m := newTestModelWithBlocks()
+
+	// Tab to first expandable (index 2).
+	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyTab})
+	model := result.(Model)
+
+	// Tab again — should skip index 3 (system) and land on index 4.
+	result, _ = model.Update(tea.KeyMsg{Type: tea.KeyTab})
+	model = result.(Model)
+
+	if model.focusedBlockIndex != 4 {
+		t.Errorf("focus = %d, want 4 (second expandable)", model.focusedBlockIndex)
+	}
+}
+
+func TestUpdate_Tab_WrapsAround(t *testing.T) {
+	m := newTestModelWithBlocks()
+
+	// Tab three times to reach the last expandable (index 6).
+	var model Model = m
+	for i := 0; i < 3; i++ {
+		result, _ := model.Update(tea.KeyMsg{Type: tea.KeyTab})
+		model = result.(Model)
+	}
+
+	if model.focusedBlockIndex != 6 {
+		t.Fatalf("focus = %d, want 6 (third expandable)", model.focusedBlockIndex)
+	}
+
+	// Tab once more — should wrap to the first expandable (index 2).
+	result, _ := model.Update(tea.KeyMsg{Type: tea.KeyTab})
+	model = result.(Model)
+
+	if model.focusedBlockIndex != 2 {
+		t.Errorf("focus = %d, want 2 (wrapped to first expandable)", model.focusedBlockIndex)
+	}
+}
+
+func TestUpdate_ShiftTab_FocusesLastExpandableBlock(t *testing.T) {
+	m := newTestModelWithBlocks()
+
+	// Shift+Tab from unfocused should land on the last expandable block.
+	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyShiftTab})
+	model := result.(Model)
+
+	if model.focusedBlockIndex != 6 {
+		t.Errorf("focus = %d, want 6 (last expandable)", model.focusedBlockIndex)
+	}
+}
+
+func TestUpdate_ShiftTab_NavigatesBackward(t *testing.T) {
+	m := newTestModelWithBlocks()
+
+	// Tab twice to reach index 4.
+	var model Model = m
+	for i := 0; i < 2; i++ {
+		result, _ := model.Update(tea.KeyMsg{Type: tea.KeyTab})
+		model = result.(Model)
+	}
+
+	if model.focusedBlockIndex != 4 {
+		t.Fatalf("focus = %d, want 4", model.focusedBlockIndex)
+	}
+
+	// Shift+Tab should go back to index 2.
+	result, _ := model.Update(tea.KeyMsg{Type: tea.KeyShiftTab})
+	model = result.(Model)
+
+	if model.focusedBlockIndex != 2 {
+		t.Errorf("focus = %d, want 2", model.focusedBlockIndex)
+	}
+}
+
+func TestUpdate_Enter_TogglesFocusedBlock(t *testing.T) {
+	m := newTestModelWithBlocks()
+
+	// Tab to first expandable.
+	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyTab})
+	model := result.(Model)
+
+	if model.blocks[model.focusedBlockIndex].expanded {
+		t.Fatal("block should start collapsed")
+	}
+
+	// Press Enter to expand.
+	result, _ = model.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	model = result.(Model)
+
+	if !model.blocks[model.focusedBlockIndex].expanded {
+		t.Error("block should be expanded after Enter")
+	}
+
+	// Press Enter again to collapse.
+	result, _ = model.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	model = result.(Model)
+
+	if model.blocks[model.focusedBlockIndex].expanded {
+		t.Error("block should be collapsed after second Enter")
+	}
+}
+
+func TestUpdate_Enter_NoFocus_PassesThrough(t *testing.T) {
+	m := newTestModelWithBlocks()
+
+	// Focus is -1, so Enter should NOT toggle anything.
+	// It should pass through to the viewport.
+	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	model := result.(Model)
+
+	// No block should be expanded.
+	for i, b := range model.blocks {
+		if b.expanded {
+			t.Errorf("block[%d] should not be expanded when no focus", i)
+		}
+	}
+}
+
+func TestUpdate_FocusKeys_IgnoredDuringApproval(t *testing.T) {
+	m := newTestModelWithBlocks()
+
+	// Enter approval state.
+	result, _ := m.Update(executionEventMsg{event: ApprovalNeededEvent{
+		ToolCallID: "tc-789",
+		ToolName:   "shell",
+	}})
+	model := result.(Model)
+
+	if model.approval == nil {
+		t.Fatal("approval should be active")
+	}
+
+	// Tab during approval should NOT change focus (keys route to approval).
+	result, _ = model.Update(tea.KeyMsg{Type: tea.KeyTab})
+	model = result.(Model)
+
+	if model.focusedBlockIndex != -1 {
+		t.Errorf("focus = %d, want -1 (Tab should not activate during approval)", model.focusedBlockIndex)
+	}
+}
+
+func TestUpdate_Tab_NoExpandableBlocks(t *testing.T) {
+	m, _, _ := newTestModel()
+
+	// Add only non-expandable blocks.
+	result, _ := m.Update(executionEventMsg{event: HumanMessageEvent{Content: "Hello"}})
+	model := result.(Model)
+
+	// Tab should be harmless — focus stays at -1.
+	result, _ = model.Update(tea.KeyMsg{Type: tea.KeyTab})
+	model = result.(Model)
+
+	if model.focusedBlockIndex != -1 {
+		t.Errorf("focus = %d, want -1 (no expandable blocks)", model.focusedBlockIndex)
+	}
+}
+
+// =============================================================================
+// displayContent Tests (T03)
+// =============================================================================
+
+func TestDisplayContent_NonExpandableBlock(t *testing.T) {
+	b := contentBlock{
+		content: "test content",
+	}
+	if got := b.displayContent(); got != "test content" {
+		t.Errorf("displayContent() = %q, want %q", got, "test content")
+	}
+}
+
+func TestDisplayContent_ExpandableBlock_Collapsed(t *testing.T) {
+	b := contentBlock{
+		expandable: true,
+		preview:    "collapsed view",
+		full:       "expanded view",
+		expanded:   false,
+	}
+	if got := b.displayContent(); got != "collapsed view" {
+		t.Errorf("displayContent() = %q, want %q", got, "collapsed view")
+	}
+}
+
+func TestDisplayContent_ExpandableBlock_Expanded(t *testing.T) {
+	b := contentBlock{
+		expandable: true,
+		preview:    "collapsed view",
+		full:       "expanded view",
+		expanded:   true,
+	}
+	if got := b.displayContent(); got != "expanded view" {
+		t.Errorf("displayContent() = %q, want %q", got, "expanded view")
+	}
+}
+
+// =============================================================================
+// hasExpandableBlocks Tests (T03)
+// =============================================================================
+
+func TestHasExpandableBlocks_True(t *testing.T) {
+	m := newTestModelWithBlocks()
+	if !m.hasExpandableBlocks() {
+		t.Error("model with tool results should have expandable blocks")
+	}
+}
+
+func TestHasExpandableBlocks_False(t *testing.T) {
+	m, _, _ := newTestModel()
+	result, _ := m.Update(executionEventMsg{event: HumanMessageEvent{Content: "Hello"}})
+	model := result.(Model)
+
+	if model.hasExpandableBlocks() {
+		t.Error("model with only human blocks should not have expandable blocks")
+	}
+}
+
+// =============================================================================
+// Tool Result Block Preview/Full Tests (T03)
+// =============================================================================
+
+func TestToolResultBlock_HasPreviewAndFull(t *testing.T) {
+	m, _, _ := newTestModel()
+
+	event := ToolResultEvent{
+		ToolCalls: []toolrender.ToolCallInfo{
+			{Name: "read_file", Args: map[string]interface{}{"path": "main.go"}, Result: "package main\n\nimport \"fmt\"\n\nfunc main() {}"},
+		},
+	}
+	result, _ := m.Update(executionEventMsg{event: event})
+	model := result.(Model)
+
+	b := model.blocks[0]
+	if b.preview == "" {
+		t.Error("preview should not be empty")
+	}
+	if b.full == "" {
+		t.Error("full should not be empty")
+	}
+	if b.preview == b.full {
+		t.Error("preview and full should differ for blocks with result content")
+	}
+}

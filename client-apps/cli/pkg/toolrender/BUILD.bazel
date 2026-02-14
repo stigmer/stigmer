@@ -3,8 +3,10 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "toolrender",
     srcs = [
+        "file_preview.go",
         "format.go",
         "render.go",
+        "render_known.go",
     ],
     importpath = "github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender",
     visibility = ["//visibility:public"],
@@ -15,6 +17,9 @@ go_library(
 
 go_test(
     name = "toolrender_test",
-    srcs = ["render_test.go"],
+    srcs = [
+        "file_preview_test.go",
+        "render_test.go",
+    ],
     embed = [":toolrender"],
 )

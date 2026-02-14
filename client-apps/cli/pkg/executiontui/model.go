@@ -48,6 +48,11 @@ type Model struct {
 	// blocks is the ordered list of rendered content blocks.
 	blocks []contentBlock
 
+	// focusedBlockIndex is the index into blocks of the currently focused
+	// expandable block. -1 means no block is focused (the default state).
+	// Activated by Tab; moved with Tab/Shift+Tab; used by Enter to toggle.
+	focusedBlockIndex int
+
 	// autoScroll follows new content at the bottom of the viewport.
 	autoScroll bool
 
@@ -83,9 +88,10 @@ type Model struct {
 // which starts the event listener.
 func New(cfg Config) Model {
 	return Model{
-		cfg:        cfg,
-		autoScroll: true,
-		phase:      "pending",
+		cfg:               cfg,
+		autoScroll:        true,
+		phase:             "pending",
+		focusedBlockIndex: -1,
 	}
 }
 

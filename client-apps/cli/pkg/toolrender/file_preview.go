@@ -89,6 +89,36 @@ func formatFileContentPreview(result string) string {
 	return sb.String()
 }
 
+// formatFullResultWithGutter renders every line of a tool result with a left
+// gutter border, providing a visually bounded block for the TUI's expanded
+// state. Unlike formatFileContentPreview, there is no line limit, no trailing-
+// blank trimming, and no "N more lines" indicator — the full content is shown.
+//
+// The gutter style matches formatFileContentPreview so that expanding a block
+// looks like a natural extension of the collapsed preview.
+//
+// Returns an empty string if the result is empty or only whitespace.
+func formatFullResultWithGutter(result string) string {
+	if strings.TrimSpace(result) == "" {
+		return ""
+	}
+
+	// Defense: strip raw ToolMessage repr if backend didn't clean it.
+	result = stripToolMessageRepr(result)
+
+	lines := strings.Split(result, "\n")
+
+	var sb strings.Builder
+	for i, line := range lines {
+		if i > 0 {
+			sb.WriteString("\n")
+		}
+		sb.WriteString(gutterPrefix + line)
+	}
+
+	return sb.String()
+}
+
 // countLines returns the number of newline-separated lines in s.
 // An empty string has zero lines. A string with no newlines has one line.
 func countLines(s string) int {

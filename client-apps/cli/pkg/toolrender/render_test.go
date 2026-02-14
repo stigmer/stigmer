@@ -1079,6 +1079,112 @@ func TestFirstNonEmptyLine_Empty(t *testing.T) {
 }
 
 // =============================================================================
+// RenderExpanded Tests
+// =============================================================================
+
+func TestRenderExpanded_KnownTool_WithResult(t *testing.T) {
+	result := RenderExpanded(ToolCallInfo{
+		Name:   "read_file",
+		Args:   map[string]interface{}{"path": "main.go"},
+		Result: "package main\n\nimport \"fmt\"\n\nfunc main() {\n\tfmt.Println(\"hello\")\n}",
+	})
+
+	// Header should be present.
+	assertContains(t, result, "📖")
+	assertContains(t, result, "Read")
+	assertContains(t, result, "main.go")
+
+	// Full content should be shown with gutter.
+	assertContains(t, result, "│ package main")
+	assertContains(t, result, "│ import \"fmt\"")
+	assertContains(t, result, "│ func main() {")
+
+	// Should NOT have the "more lines" indicator (that's the preview).
+	assertNotContains(t, result, "more lines")
+}
+
+func TestRenderExpanded_KnownTool_EmptyResult(t *testing.T) {
+	result := RenderExpanded(ToolCallInfo{
+		Name: "read_file",
+		Args: map[string]interface{}{"path": "empty.txt"},
+	})
+
+	// Header should be present.
+	assertContains(t, result, "📖")
+	assertContains(t, result, "Read")
+	assertContains(t, result, "empty.txt")
+
+	// No gutter content since result is empty.
+	assertNotContains(t, result, "│")
+}
+
+func TestRenderExpanded_DiscoveryTool_ShowsAllEntries(t *testing.T) {
+	result := RenderExpanded(ToolCallInfo{
+		Name:   "list_directory",
+		Args:   map[string]interface{}{"path": "/workspace"},
+		Result: "bin\netc\nhome\nopt\ntmp\nusr\nvar",
+	})
+
+	// Header present.
+	assertContains(t, result, "📂")
+	assertContains(t, result, "List")
+
+	// All entries shown with gutter (not comma-joined like the preview).
+	assertContains(t, result, "│ bin")
+	assertContains(t, result, "│ etc")
+	assertContains(t, result, "│ var")
+}
+
+func TestRenderExpanded_ShellTool_ShowsFullOutput(t *testing.T) {
+	result := RenderExpanded(ToolCallInfo{
+		Name:   "shell",
+		Args:   map[string]interface{}{"command": "ls -la"},
+		Result: "total 8\ndrwxr-xr-x  5 user staff 160 Feb 14 22:00 .\ndrwxr-xr-x 10 user staff 320 Feb 14 22:00 ..",
+	})
+
+	assertContains(t, result, "🖥 ")
+	assertContains(t, result, "Shell")
+	assertContains(t, result, "│ total 8")
+	assertContains(t, result, "│ drwxr-xr-x  5 user staff")
+}
+
+func TestRenderExpanded_UnknownTool_WithResult(t *testing.T) {
+	result := RenderExpanded(ToolCallInfo{
+		Name:   "custom_tool",
+		Args:   map[string]interface{}{"input": "test"},
+		Result: "line one\nline two",
+	})
+
+	assertContains(t, result, "🔧")
+	assertContains(t, result, "custom_tool")
+	assertContains(t, result, "│ line one")
+	assertContains(t, result, "│ line two")
+}
+
+func TestRenderExpanded_UnknownTool_EmptyResult(t *testing.T) {
+	result := RenderExpanded(ToolCallInfo{
+		Name: "custom_tool",
+		Args: map[string]interface{}{"input": "test"},
+	})
+
+	assertContains(t, result, "🔧")
+	assertContains(t, result, "custom_tool")
+	assertNotContains(t, result, "│")
+}
+
+func TestRenderExpanded_IncludesMetadataSuffix(t *testing.T) {
+	result := RenderExpanded(ToolCallInfo{
+		Name:     "read_file",
+		Args:     map[string]interface{}{"path": "main.go"},
+		Result:   "package main",
+		Duration: 5 * time.Millisecond,
+	})
+
+	// Should include size and duration in the header.
+	assertContains(t, result, "5ms")
+}
+
+// =============================================================================
 // Test Helpers
 // =============================================================================
 

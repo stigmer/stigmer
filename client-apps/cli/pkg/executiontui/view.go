@@ -62,6 +62,8 @@ func (m Model) renderFooter() string {
 	var hints string
 	if m.approval != nil {
 		hints = "  [a] Approve  [s] Skip  [r] Reject  [q] Quit"
+	} else if m.hasExpandableBlocks() {
+		hints = "  ↑↓ scroll  Tab focus  Enter expand  q quit"
 	} else {
 		hints = "  ↑↓ scroll  q quit"
 	}
