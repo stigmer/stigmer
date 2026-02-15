@@ -24,6 +24,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Forward unhandled messages to the viewport for scroll handling.
 	var cmd tea.Cmd
 	m.viewport, cmd = m.viewport.Update(msg)
+	m.autoScroll = m.viewport.AtBottom()
 	return m, cmd
 }
 
@@ -31,7 +32,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 //  1. Quit keys (always available)
 //  2. Approval keys (when approval is active, captures all input)
 //  3. Focus/toggle keys (Tab, Shift+Tab, Enter)
-//  4. Viewport scroll keys (forwarded to bubbles/viewport)
+//  4. Navigation keys (g top, G bottom)
+//  5. Viewport scroll keys (forwarded to bubbles/viewport)
 func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Always allow quit.
 	switch msg.String() {
@@ -49,10 +51,14 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "tab":
 		m.focusNextExpandable()
 		m.refreshViewport()
+		m.scrollFocusedBlockIntoView()
+		m.autoScroll = m.viewport.AtBottom()
 		return m, nil
 	case "shift+tab":
 		m.focusPrevExpandable()
 		m.refreshViewport()
+		m.scrollFocusedBlockIntoView()
+		m.autoScroll = m.viewport.AtBottom()
 		return m, nil
 	case "enter":
 		if m.focusedBlockIndex >= 0 {
@@ -62,9 +68,24 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	// Forward to viewport for default scroll handling.
+	// Navigation keys: jump to top/bottom of viewport.
+	switch msg.String() {
+	case "g":
+		m.viewport.GotoTop()
+		m.autoScroll = false
+		return m, nil
+	case "G":
+		m.viewport.GotoBottom()
+		m.autoScroll = true
+		return m, nil
+	}
+
+	// Forward to viewport for default scroll handling (arrow keys, page
+	// up/down, etc.). After the viewport processes the key, update autoScroll
+	// based on whether we ended up at the bottom.
 	var cmd tea.Cmd
 	m.viewport, cmd = m.viewport.Update(msg)
+	m.autoScroll = m.viewport.AtBottom()
 	return m, cmd
 }
 
