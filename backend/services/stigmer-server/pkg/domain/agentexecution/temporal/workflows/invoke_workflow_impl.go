@@ -251,11 +251,18 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 		// The activity will fetch the latest execution from DB (which has
 		// pending_approvals with interrupt_ids) and correlate them with
 		// the decisions to build the LangGraph resume command.
+		//
+		// Wrap in ApprovalDecisionList so the Go SDK serialises it as a
+		// proto.Message (json/protobuf encoding) rather than a bare JSON
+		// array (json/plain), which the Python SDK cannot decode.
 		logger.Info("🔄 Re-invoking Graphton with approval decisions",
 			"execution_id", executionID,
 			"decisions_collected", len(approvalDecisions))
 
-		finalStatus, err = executeGraphtonActivity.ExecuteGraphton(executionID, threadID, approvalDecisions)
+		decisionList := &agentexecutionv1.ApprovalDecisionList{
+			Decisions: approvalDecisions,
+		}
+		finalStatus, err = executeGraphtonActivity.ExecuteGraphton(executionID, threadID, decisionList)
 		if err != nil {
 			return w.wrapActivityError("ExecuteGraphton", err)
 		}

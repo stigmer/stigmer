@@ -16,7 +16,10 @@ from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ExecutionPhase,
     ToolCallStatus,
 )
-from ai.stigmer.agentic.agentexecution.v1.io_pb2 import SubmitApprovalInput
+from ai.stigmer.agentic.agentexecution.v1.io_pb2 import (
+    ApprovalDecisionList,
+    SubmitApprovalInput,
+)
 from graphton import SummarizationConfig, create_deep_agent
 from graphton.core import ModelRegistry
 from temporalio import activity
@@ -230,7 +233,7 @@ async def inject_attachments(
 async def execute_graphton(
     execution_id: str,
     thread_id: str,
-    approval_decisions: list[SubmitApprovalInput] | None = None,
+    approval_decisions_wrapper: ApprovalDecisionList | None = None,
 ) -> AgentExecutionStatus:
     """
     Execute Graphton agent and return final status.
@@ -252,10 +255,11 @@ async def execute_graphton(
     Args:
         execution_id: The AgentExecution ID to fetch and execute
         thread_id: LangGraph thread ID for state persistence
-        approval_decisions: Approval decisions for HITL resume (empty/None on first invocation).
-            Each entry carries a tool_call_id, action (APPROVE/SKIP/REJECT), and optional comment.
-            The activity correlates these with pending_approvals from the fetched execution to
-            build the LangGraph Command(resume=...) dict.
+        approval_decisions_wrapper: Approval decisions wrapped in ApprovalDecisionList
+            for polyglot Temporal serialization (None on first invocation).
+            Each entry carries a tool_call_id, action (APPROVE/SKIP/REJECT), and
+            optional comment.  The activity correlates these with pending_approvals
+            from the fetched execution to build the LangGraph Command(resume=...) dict.
         
     Returns:
         AgentExecutionStatus: Final status with messages, tool_calls, phase
@@ -263,9 +267,16 @@ async def execute_graphton(
     activity_logger = activity.logger
     activity_logger.info(f"ExecuteGraphton started for execution: {execution_id}")
     
-    # Normalise approval_decisions: callers may pass None or an empty list
-    if not approval_decisions:
-        approval_decisions = []
+    # Unwrap ApprovalDecisionList → list[SubmitApprovalInput].
+    # The wrapper exists purely for polyglot Temporal serialization (a bare
+    # list is not a proto.Message, so the Go/Java SDKs would fall back to
+    # json/plain encoding that Python cannot decode).
+    if approval_decisions_wrapper is not None and approval_decisions_wrapper.decisions:
+        approval_decisions: list[SubmitApprovalInput] = list(
+            approval_decisions_wrapper.decisions
+        )
+    else:
+        approval_decisions: list[SubmitApprovalInput] = []
     
     # Top-level error handler for system errors (e.g., activity not registered, connection failures)
     # This catches errors that occur before the main try block or during initialization

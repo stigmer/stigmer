@@ -27,7 +27,7 @@ from ai.stigmer.agentic.agentexecution.v1 import enum_pb2 as ai_dot_stigmer_dot_
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n-ai/stigmer/agentic/agentexecution/v1/io.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a.ai/stigmer/agentic/agentexecution/v1/api.proto\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a\x1b\x62uf/validate/validate.proto\"0\n\x10\x41gentExecutionId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\")\n\tSessionId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x85\x01\n\x12\x41gentExecutionList\x12\x1f\n\x0btotal_pages\x18\x01 \x01(\x05R\ntotalPages\x12N\n\x07\x65ntries\x18\x02 \x03(\x0b\x32\x34.ai.stigmer.agentic.agentexecution.v1.AgentExecutionR\x07\x65ntries\"\xb8\x01\n\x1aListAgentExecutionsRequest\x12\x1b\n\tpage_size\x18\x01 \x01(\x05R\x08pageSize\x12\x1d\n\npage_token\x18\x02 \x01(\tR\tpageToken\x12J\n\x05phase\x18\x03 \x01(\x0e\x32\x34.ai.stigmer.agentic.agentexecution.v1.ExecutionPhaseR\x05phase\x12\x12\n\x04tags\x18\x04 \x03(\tR\x04tags\"\x88\x01\n#ListAgentExecutionsBySessionRequest\x12%\n\nsession_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tsessionId\x12\x1b\n\tpage_size\x18\x02 \x01(\x05R\x08pageSize\x12\x1d\n\npage_token\x18\x03 \x01(\tR\tpageToken\"\xa9\x01\n\x1f\x41gentExecutionUpdateStatusInput\x12*\n\x0c\x65xecution_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0b\x65xecutionId\x12Z\n\x06status\x18\x02 \x01(\x0b\x32:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusB\x06\xbaH\x03\xc8\x01\x01R\x06status\"\xeb\x01\n\x13SubmitApprovalInput\x12\x35\n\x12\x61gent_execution_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x10\x61gentExecutionId\x12)\n\x0ctool_call_id\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\ntoolCallId\x12X\n\x06\x61\x63tion\x18\x03 \x01(\x0e\x32\x34.ai.stigmer.agentic.agentexecution.v1.ApprovalActionB\n\xbaH\x07\x82\x01\x04\x10\x01 \x00R\x06\x61\x63tion\x12\x18\n\x07\x63omment\x18\x04 \x01(\tR\x07\x63omment\"L\n\x19\x43\x61ncelAgentExecutionInput\x12\x17\n\x02id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x02id\x12\x16\n\x06reason\x18\x02 \x01(\tR\x06reason\"O\n\x1cTerminateAgentExecutionInput\x12\x17\n\x02id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x02id\x12\x16\n\x06reason\x18\x02 \x01(\tR\x06reason\"5\n\x1aRecoverAgentExecutionInput\x12\x17\n\x02id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x02id\"K\n\x18PauseAgentExecutionInput\x12\x17\n\x02id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x02id\x12\x16\n\x06reason\x18\x02 \x01(\tR\x06reason\"4\n\x19ResumeAgentExecutionInput\x12\x17\n\x02id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x02id\"\x83\x01\n\x17UploadAttachmentRequest\x12#\n\x08\x66ilename\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x08\x66ilename\x12 \n\x07\x63ontent\x18\x02 \x01(\x0c\x42\x06\xbaH\x03\xc8\x01\x01R\x07\x63ontent\x12!\n\x0c\x63ontent_type\x18\x03 \x01(\tR\x0b\x63ontentType\";\n\x18UploadAttachmentResponse\x12\x1f\n\x0bstorage_key\x18\x01 \x01(\tR\nstorageKey\"u\n\x1dGetArtifactDownloadUrlRequest\x12*\n\x0c\x65xecution_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0b\x65xecutionId\x12(\n\x0bstorage_key\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\nstorageKey\"b\n\x1eGetArtifactDownloadUrlResponse\x12!\n\x0c\x64ownload_url\x18\x01 \x01(\tR\x0b\x64ownloadUrl\x12\x1d\n\nexpires_at\x18\x02 \x01(\tR\texpiresAtB\xe8\x01\n(com.ai.stigmer.agentic.agentexecution.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x02\x30\x41i\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n-ai/stigmer/agentic/agentexecution/v1/io.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a.ai/stigmer/agentic/agentexecution/v1/api.proto\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a\x1b\x62uf/validate/validate.proto\"0\n\x10\x41gentExecutionId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\")\n\tSessionId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x85\x01\n\x12\x41gentExecutionList\x12\x1f\n\x0btotal_pages\x18\x01 \x01(\x05R\ntotalPages\x12N\n\x07\x65ntries\x18\x02 \x03(\x0b\x32\x34.ai.stigmer.agentic.agentexecution.v1.AgentExecutionR\x07\x65ntries\"\xb8\x01\n\x1aListAgentExecutionsRequest\x12\x1b\n\tpage_size\x18\x01 \x01(\x05R\x08pageSize\x12\x1d\n\npage_token\x18\x02 \x01(\tR\tpageToken\x12J\n\x05phase\x18\x03 \x01(\x0e\x32\x34.ai.stigmer.agentic.agentexecution.v1.ExecutionPhaseR\x05phase\x12\x12\n\x04tags\x18\x04 \x03(\tR\x04tags\"\x88\x01\n#ListAgentExecutionsBySessionRequest\x12%\n\nsession_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tsessionId\x12\x1b\n\tpage_size\x18\x02 \x01(\x05R\x08pageSize\x12\x1d\n\npage_token\x18\x03 \x01(\tR\tpageToken\"\xa9\x01\n\x1f\x41gentExecutionUpdateStatusInput\x12*\n\x0c\x65xecution_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0b\x65xecutionId\x12Z\n\x06status\x18\x02 \x01(\x0b\x32:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusB\x06\xbaH\x03\xc8\x01\x01R\x06status\"\xeb\x01\n\x13SubmitApprovalInput\x12\x35\n\x12\x61gent_execution_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x10\x61gentExecutionId\x12)\n\x0ctool_call_id\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\ntoolCallId\x12X\n\x06\x61\x63tion\x18\x03 \x01(\x0e\x32\x34.ai.stigmer.agentic.agentexecution.v1.ApprovalActionB\n\xbaH\x07\x82\x01\x04\x10\x01 \x00R\x06\x61\x63tion\x12\x18\n\x07\x63omment\x18\x04 \x01(\tR\x07\x63omment\"o\n\x14\x41pprovalDecisionList\x12W\n\tdecisions\x18\x01 \x03(\x0b\x32\x39.ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInputR\tdecisions\"L\n\x19\x43\x61ncelAgentExecutionInput\x12\x17\n\x02id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x02id\x12\x16\n\x06reason\x18\x02 \x01(\tR\x06reason\"O\n\x1cTerminateAgentExecutionInput\x12\x17\n\x02id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x02id\x12\x16\n\x06reason\x18\x02 \x01(\tR\x06reason\"5\n\x1aRecoverAgentExecutionInput\x12\x17\n\x02id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x02id\"K\n\x18PauseAgentExecutionInput\x12\x17\n\x02id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x02id\x12\x16\n\x06reason\x18\x02 \x01(\tR\x06reason\"4\n\x19ResumeAgentExecutionInput\x12\x17\n\x02id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x02id\"\x83\x01\n\x17UploadAttachmentRequest\x12#\n\x08\x66ilename\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x08\x66ilename\x12 \n\x07\x63ontent\x18\x02 \x01(\x0c\x42\x06\xbaH\x03\xc8\x01\x01R\x07\x63ontent\x12!\n\x0c\x63ontent_type\x18\x03 \x01(\tR\x0b\x63ontentType\";\n\x18UploadAttachmentResponse\x12\x1f\n\x0bstorage_key\x18\x01 \x01(\tR\nstorageKey\"u\n\x1dGetArtifactDownloadUrlRequest\x12*\n\x0c\x65xecution_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0b\x65xecutionId\x12(\n\x0bstorage_key\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\nstorageKey\"b\n\x1eGetArtifactDownloadUrlResponse\x12!\n\x0c\x64ownload_url\x18\x01 \x01(\tR\x0b\x64ownloadUrl\x12\x1d\n\nexpires_at\x18\x02 \x01(\tR\texpiresAtB\xe8\x01\n(com.ai.stigmer.agentic.agentexecution.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x02\x30\x41i\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -83,22 +83,24 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_AGENTEXECUTIONUPDATESTATUSINPUT']._serialized_end=938
   _globals['_SUBMITAPPROVALINPUT']._serialized_start=941
   _globals['_SUBMITAPPROVALINPUT']._serialized_end=1176
-  _globals['_CANCELAGENTEXECUTIONINPUT']._serialized_start=1178
-  _globals['_CANCELAGENTEXECUTIONINPUT']._serialized_end=1254
-  _globals['_TERMINATEAGENTEXECUTIONINPUT']._serialized_start=1256
-  _globals['_TERMINATEAGENTEXECUTIONINPUT']._serialized_end=1335
-  _globals['_RECOVERAGENTEXECUTIONINPUT']._serialized_start=1337
-  _globals['_RECOVERAGENTEXECUTIONINPUT']._serialized_end=1390
-  _globals['_PAUSEAGENTEXECUTIONINPUT']._serialized_start=1392
-  _globals['_PAUSEAGENTEXECUTIONINPUT']._serialized_end=1467
-  _globals['_RESUMEAGENTEXECUTIONINPUT']._serialized_start=1469
-  _globals['_RESUMEAGENTEXECUTIONINPUT']._serialized_end=1521
-  _globals['_UPLOADATTACHMENTREQUEST']._serialized_start=1524
-  _globals['_UPLOADATTACHMENTREQUEST']._serialized_end=1655
-  _globals['_UPLOADATTACHMENTRESPONSE']._serialized_start=1657
-  _globals['_UPLOADATTACHMENTRESPONSE']._serialized_end=1716
-  _globals['_GETARTIFACTDOWNLOADURLREQUEST']._serialized_start=1718
-  _globals['_GETARTIFACTDOWNLOADURLREQUEST']._serialized_end=1835
-  _globals['_GETARTIFACTDOWNLOADURLRESPONSE']._serialized_start=1837
-  _globals['_GETARTIFACTDOWNLOADURLRESPONSE']._serialized_end=1935
+  _globals['_APPROVALDECISIONLIST']._serialized_start=1178
+  _globals['_APPROVALDECISIONLIST']._serialized_end=1289
+  _globals['_CANCELAGENTEXECUTIONINPUT']._serialized_start=1291
+  _globals['_CANCELAGENTEXECUTIONINPUT']._serialized_end=1367
+  _globals['_TERMINATEAGENTEXECUTIONINPUT']._serialized_start=1369
+  _globals['_TERMINATEAGENTEXECUTIONINPUT']._serialized_end=1448
+  _globals['_RECOVERAGENTEXECUTIONINPUT']._serialized_start=1450
+  _globals['_RECOVERAGENTEXECUTIONINPUT']._serialized_end=1503
+  _globals['_PAUSEAGENTEXECUTIONINPUT']._serialized_start=1505
+  _globals['_PAUSEAGENTEXECUTIONINPUT']._serialized_end=1580
+  _globals['_RESUMEAGENTEXECUTIONINPUT']._serialized_start=1582
+  _globals['_RESUMEAGENTEXECUTIONINPUT']._serialized_end=1634
+  _globals['_UPLOADATTACHMENTREQUEST']._serialized_start=1637
+  _globals['_UPLOADATTACHMENTREQUEST']._serialized_end=1768
+  _globals['_UPLOADATTACHMENTRESPONSE']._serialized_start=1770
+  _globals['_UPLOADATTACHMENTRESPONSE']._serialized_end=1829
+  _globals['_GETARTIFACTDOWNLOADURLREQUEST']._serialized_start=1831
+  _globals['_GETARTIFACTDOWNLOADURLREQUEST']._serialized_end=1948
+  _globals['_GETARTIFACTDOWNLOADURLRESPONSE']._serialized_start=1950
+  _globals['_GETARTIFACTDOWNLOADURLRESPONSE']._serialized_end=2048
 # @@protoc_insertion_point(module_scope)
