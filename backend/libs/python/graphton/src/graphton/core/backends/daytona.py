@@ -52,7 +52,17 @@ class WorkspaceNormalizingBackend:
     # -- path helpers -------------------------------------------------------
 
     def _normalize(self, path: str) -> str:
-        """Strip the workspace-root prefix if present.
+        """Strip the workspace-root prefix and leading slashes.
+
+        This ensures ALL paths resolve relative to the workspace root,
+        preventing the double-prefix bug where ``/workspace/bin/skills/…``
+        becomes ``/workspace/workspace/bin/skills/…``.
+
+        The trailing ``lstrip("/")`` is defense-in-depth: even if the
+        workspace-root prefix was not matched (e.g. the agent passes
+        ``/bin/skills/…`` without the workspace prefix), the leading
+        slash is stripped so the inner backend resolves relative to its
+        workspace root rather than the filesystem root.
 
         Examples (assuming *workspace_root* = ``/workspace``):
 
@@ -61,6 +71,8 @@ class WorkspaceNormalizingBackend:
         >>> backend._normalize("/workspace")
         '.'
         >>> backend._normalize("bin/skills/a/SKILL.md")
+        'bin/skills/a/SKILL.md'
+        >>> backend._normalize("/bin/skills/a/SKILL.md")
         'bin/skills/a/SKILL.md'
         """
         prefix = self._workspace_root + "/"
@@ -73,7 +85,9 @@ class WorkspaceNormalizingBackend:
             return stripped
         if path == self._workspace_root:
             return "."
-        return path
+        # Defense-in-depth: strip leading "/" so ALL paths resolve relative
+        # to the workspace root, not the filesystem root.
+        return path.lstrip("/") or "."
 
     # -- file-operation methods (path-normalised) ---------------------------
 
