@@ -49,7 +49,7 @@ from worker.resilience import (
     GrpcRetryExhaustedError,
     RetryConfig,
 )
-from worker.sandbox_manager import SandboxManager
+from worker.sandbox_manager import SandboxManager, get_daytona_volume_id
 from worker.storage import ArtifactStorage, create_artifact_storage
 from worker.streaming import StreamingConfig, StreamingUpdateScheduler
 from worker.token_manager import get_api_key
@@ -661,7 +661,10 @@ async def _execute_graphton_impl(
             if not api_key:
                 raise ValueError("DAYTONA_API_KEY environment variable required for cloud mode")
             
-            sandbox_manager = SandboxManager(daytona_api_key=api_key)
+            sandbox_manager = SandboxManager(
+                daytona_api_key=api_key,
+                volume_id=get_daytona_volume_id(),
+            )
             
             if snapshot_id := sandbox_config.get("snapshot_id"):
                 activity_logger.info(f"Using Daytona snapshot: {snapshot_id}")
