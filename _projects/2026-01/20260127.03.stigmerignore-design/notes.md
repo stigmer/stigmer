@@ -439,9 +439,7 @@ warning: pattern "*.xyz" in .stigmerignore matches no files
 
 ---
 
-## Migration Path
-
-1. **v1.0**: Implement with sensible defaults, backwards compatible
+## Migration Path1. **v1.0**: Implement with sensible defaults, backwards compatible
 2. **Deprecation notice**: Log info message about new ignore system
 3. **v1.1**: Remove hardcoded patterns, rely entirely on new system---## Open Questions1. **Should we support `.stigmerignore` in subdirectories?**
    - Pro: Matches Git behavior exactly

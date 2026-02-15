@@ -8,6 +8,7 @@ import tempfile
 import zipfile
 import io
 
+from graphton.core.backends.filesystem import FilesystemBackend
 from worker.activities.graphton.skill_writer import SkillWriter
 
 
@@ -123,10 +124,15 @@ class TestSkillWriterWriteSkillsLocal:
             # Act
             result = writer.write_skills([mock_skill])
             
-            # Assert
+            # Assert - skill ID present and path is sandbox-relative (no leading /)
             assert mock_skill.metadata.id in result
+            returned_path = result[mock_skill.metadata.id]
+            assert not returned_path.startswith("/"), (
+                f"Local-mode path should be relative, got: {returned_path}"
+            )
+            assert returned_path == f"bin/skills/{mock_skill.status.version_hash}"
             
-            # Verify SKILL.md was written
+            # Verify SKILL.md was written to disk
             expected_path = f"{tmpdir}/bin/skills/{mock_skill.status.version_hash}/SKILL.md"
             assert os.path.exists(expected_path)
             
@@ -144,8 +150,12 @@ class TestSkillWriterWriteSkillsLocal:
             # Act
             result = writer.write_skills([mock_skill], artifacts=artifacts)
             
-            # Assert
+            # Assert - path is sandbox-relative
             assert mock_skill.metadata.id in result
+            returned_path = result[mock_skill.metadata.id]
+            assert not returned_path.startswith("/"), (
+                f"Local-mode path should be relative, got: {returned_path}"
+            )
             
             # Verify artifact was extracted (not just SKILL.md written)
             skill_dir = f"{tmpdir}/bin/skills/{mock_skill.status.version_hash}"
@@ -169,11 +179,17 @@ class TestSkillWriterWriteSkillsLocal:
             # Act
             result = writer.write_skills([mock_skill_no_hash])
             
-            # Assert - should use slug-based path (with / replaced by _)
+            # Assert - should use slug-based path (with / replaced by _), relative
             assert mock_skill_no_hash.metadata.id in result
+            returned_path = result[mock_skill_no_hash.metadata.id]
+            assert not returned_path.startswith("/"), (
+                f"Local-mode path should be relative, got: {returned_path}"
+            )
             
             # The path should contain the slug (normalized)
             expected_slug = mock_skill_no_hash.metadata.slug.replace("/", "_")
+            assert returned_path == f"bin/skills/{expected_slug}"
+            
             expected_dir = f"{tmpdir}/bin/skills/{expected_slug}"
             assert os.path.exists(expected_dir)
 
@@ -363,3 +379,109 @@ class TestSkillWriterGetSkillDir:
         
         expected_slug = mock_skill_no_hash.metadata.slug.replace("/", "_")
         assert result == f"/bin/skills/{expected_slug}"
+
+
+class TestSkillWriterLocalModePrompt:
+    """Tests that local-mode relative paths produce correct LOCATION headers."""
+
+    def test_local_mode_location_is_relative(self, mock_skill):
+        """LOCATION header from local-mode write should be relative (no leading /)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            writer = SkillWriter(local_root=tmpdir)
+            skill_paths = writer.write_skills([mock_skill])
+
+            prompt = SkillWriter.generate_prompt_section([mock_skill], skill_paths)
+
+            # Local-mode path should NOT have leading /
+            expected_location = f"LOCATION: bin/skills/{mock_skill.status.version_hash}/"
+            assert expected_location in prompt, (
+                f"Expected relative LOCATION header, got:\n{prompt}"
+            )
+
+    def test_daytona_mode_location_is_absolute(self, mock_skill):
+        """LOCATION header from Daytona-mode write should remain absolute."""
+        mock_sandbox = MagicMock()
+        mock_sandbox.process.exec.return_value = MagicMock(exit_code=0, output="")
+        mock_sandbox.fs.upload_files = MagicMock()
+
+        writer = SkillWriter(sandbox=mock_sandbox)
+        skill_paths = writer.write_skills([mock_skill])
+
+        prompt = SkillWriter.generate_prompt_section([mock_skill], skill_paths)
+
+        # Daytona-mode path should keep the leading /
+        expected_location = f"LOCATION: /bin/skills/{mock_skill.status.version_hash}/"
+        assert expected_location in prompt, (
+            f"Expected absolute LOCATION header for Daytona, got:\n{prompt}"
+        )
+
+
+class TestSkillWriterEndToEndWithFilesystemBackend:
+    """End-to-end: write via SkillWriter, read via FilesystemBackend.
+
+    Reproduces the exact bug scenario from _cursor/logs.md where the agent
+    writes skills via SkillWriter then tries to ls/read them via the backend.
+    """
+
+    def test_write_then_ls_finds_skills(self, mock_skill):
+        """FilesystemBackend.list_files() finds skills written by SkillWriter."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Write skill
+            writer = SkillWriter(local_root=tmpdir)
+            skill_paths = writer.write_skills([mock_skill])
+
+            # Create backend with the same root
+            backend = FilesystemBackend(root_dir=tmpdir)
+
+            # ls the skills base directory using the returned path
+            skill_path = skill_paths[mock_skill.metadata.id]
+            parent_dir = os.path.dirname(skill_path)  # "bin/skills"
+            items = backend.list_files(parent_dir)
+
+            assert mock_skill.status.version_hash in items
+
+    def test_write_then_read_skill_md(self, mock_skill):
+        """FilesystemBackend.read() retrieves SKILL.md written by SkillWriter."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            writer = SkillWriter(local_root=tmpdir)
+            skill_paths = writer.write_skills([mock_skill])
+
+            backend = FilesystemBackend(root_dir=tmpdir)
+
+            # Read SKILL.md via the returned path
+            skill_path = skill_paths[mock_skill.metadata.id]
+            content = backend.read(f"{skill_path}/SKILL.md")
+
+            assert content == mock_skill.spec.skill_md
+
+    def test_write_artifact_then_ls_skill_dir(self, mock_skill, sample_artifact_zip):
+        """FilesystemBackend.list_files() sees extracted artifact files."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            writer = SkillWriter(local_root=tmpdir)
+            artifacts = {mock_skill.metadata.id: sample_artifact_zip}
+            skill_paths = writer.write_skills([mock_skill], artifacts=artifacts)
+
+            backend = FilesystemBackend(root_dir=tmpdir)
+
+            skill_path = skill_paths[mock_skill.metadata.id]
+            items = backend.list_files(skill_path)
+
+            assert "SKILL.md" in items
+            assert "run.sh" in items
+            assert "main.py" in items
+
+    def test_write_then_execute_skill_script(self, mock_skill, sample_artifact_zip):
+        """Shell execute can run skill scripts using the sandbox-relative path."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            writer = SkillWriter(local_root=tmpdir)
+            artifacts = {mock_skill.metadata.id: sample_artifact_zip}
+            skill_paths = writer.write_skills([mock_skill], artifacts=artifacts)
+
+            backend = FilesystemBackend(root_dir=tmpdir)
+
+            # Execute the Python script using the relative path
+            skill_path = skill_paths[mock_skill.metadata.id]
+            result = backend.execute(f"python3 {skill_path}/main.py")
+
+            assert result.exit_code == 0
+            assert "Hello from Python!" in result.stdout

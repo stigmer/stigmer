@@ -852,6 +852,151 @@ class TestToolCallStatus:
 
 
 # =============================================================================
+# Tests for _extract_tool_result_content (ToolMessage duck typing)
+# =============================================================================
+
+
+class _FakeToolMessage:
+    """Mimics langchain_core.messages.ToolMessage for testing.
+
+    Uses the same attribute shape as ToolMessage (content, name, tool_call_id)
+    without importing langchain_core, keeping tests decoupled.
+    """
+
+    def __init__(self, content, name="test_tool", tool_call_id="tc-123"):
+        self.content = content
+        self.name = name
+        self.tool_call_id = tool_call_id
+
+
+class TestExtractToolResultContent:
+    """Tests for _extract_tool_result_content().
+
+    This method is the single extraction point for tool output in the
+    status-building pipeline. It is called from both _handle_tool_end_event
+    (regular tools) and _handle_sub_agent_end (task tool).
+
+    Each test targets one branch of the method to ensure full coverage.
+    """
+
+    # ── Branch 1: str passthrough ────────────────────────────────────────
+
+    def test_string_passthrough(self, status_builder):
+        """Plain string results are returned verbatim."""
+        assert status_builder._extract_tool_result_content("hello world") == "hello world"
+
+    def test_empty_string_passthrough(self, status_builder):
+        """Empty strings are returned as-is (no special handling)."""
+        assert status_builder._extract_tool_result_content("") == ""
+
+    # ── Branch 2: LangGraph message objects (duck-typed .content) ────────
+
+    def test_tool_message_string_content(self, status_builder):
+        """ToolMessage with string .content extracts the content."""
+        msg = _FakeToolMessage(content="Directory listing:\nfile1.py\nfile2.py")
+        assert status_builder._extract_tool_result_content(msg) == (
+            "Directory listing:\nfile1.py\nfile2.py"
+        )
+
+    def test_tool_message_empty_string_content(self, status_builder):
+        """ToolMessage with empty string .content returns empty string."""
+        msg = _FakeToolMessage(content="")
+        assert status_builder._extract_tool_result_content(msg) == ""
+
+    def test_tool_message_multimodal_content(self, status_builder):
+        """ToolMessage with list .content (multimodal blocks) extracts text."""
+        msg = _FakeToolMessage(content=[
+            {"type": "text", "text": "First block. "},
+            {"type": "image_url", "image_url": "https://example.com/img.png"},
+            {"type": "text", "text": "Second block."},
+        ])
+        assert status_builder._extract_tool_result_content(msg) == (
+            "First block. Second block."
+        )
+
+    def test_tool_message_multimodal_empty_list(self, status_builder):
+        """ToolMessage with empty list .content returns empty string."""
+        msg = _FakeToolMessage(content=[])
+        assert status_builder._extract_tool_result_content(msg) == ""
+
+    def test_tool_message_repr_not_leaked(self, status_builder):
+        """Verify that ToolMessage repr (name=, tool_call_id=) never leaks."""
+        msg = _FakeToolMessage(
+            content="No files matching pattern '**/*.py'",
+            name="glob",
+            tool_call_id="call_abc123",
+        )
+        result = status_builder._extract_tool_result_content(msg)
+        assert "name=" not in result
+        assert "tool_call_id=" not in result
+        assert result == "No files matching pattern '**/*.py'"
+
+    # ── Branch 3: dict results ───────────────────────────────────────────
+
+    def test_dict_with_output_key(self, status_builder):
+        """Dict with 'output' key returns the output value."""
+        assert status_builder._extract_tool_result_content(
+            {"output": "command succeeded", "exit_code": 0}
+        ) == "command succeeded"
+
+    def test_dict_with_content_key(self, status_builder):
+        """Dict with 'content' key (no 'output') returns stringified content."""
+        assert status_builder._extract_tool_result_content(
+            {"content": 42}
+        ) == "42"
+
+    def test_dict_fallback_json(self, status_builder):
+        """Dict without 'output' or 'content' is JSON-serialized."""
+        result = status_builder._extract_tool_result_content({"key": "value", "count": 3})
+        import json
+        parsed = json.loads(result)
+        assert parsed == {"key": "value", "count": 3}
+
+    # ── Branch 4: unknown type fallback ──────────────────────────────────
+
+    def test_unknown_type_fallback(self, status_builder):
+        """Unknown types fall through to str() conversion."""
+        assert status_builder._extract_tool_result_content(12345) == "12345"
+
+    # ── Integration: ToolMessage through _handle_tool_end_event ──────────
+
+    @pytest.mark.asyncio
+    async def test_tool_message_end_to_end(self, status_builder):
+        """ToolMessage-like object flows through tool_end and lands clean in result."""
+        run_id = "tool-run-e2e-extract"
+
+        # Start the tool
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "ls",
+            "run_id": run_id,
+            "data": {"input": {"path": "/tmp"}},
+            "metadata": {},
+        })
+
+        # End the tool with a ToolMessage-like object as output
+        fake_msg = _FakeToolMessage(
+            content="file1.txt\nfile2.txt\nfile3.txt",
+            name="ls",
+            tool_call_id="call_xyz",
+        )
+        await status_builder.process_event({
+            "event": "on_tool_end",
+            "name": "ls",
+            "run_id": run_id,
+            "data": {"output": fake_msg},
+            "metadata": {},
+        })
+
+        # Verify the extracted content is clean
+        tool_call = status_builder.current_status.tool_calls[0]
+        assert tool_call.result == "file1.txt\nfile2.txt\nfile3.txt"
+        # Verify no ToolMessage repr artifacts leaked
+        assert "name=" not in tool_call.result
+        assert "tool_call_id=" not in tool_call.result
+
+
+# =============================================================================
 # Tests for Sub-Agent Internals (Phase 2.3)
 # =============================================================================
 
