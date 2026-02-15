@@ -93,6 +93,13 @@ func renderToolRunning(tc toolrender.ToolCallInfo) string {
 	return toolrender.RenderRunning(tc)
 }
 
+// renderToolFinalized replaces the running indicator (⏳) with a completion
+// indicator (✓) for tools that were still in-progress when execution finished.
+// This avoids leaving stale "in progress" visual cues in the final display.
+func renderToolFinalized(runningContent string) string {
+	return strings.Replace(runningContent, "⏳", "✓", 1)
+}
+
 // renderStreamingTool formats a tool call that is actively streaming output.
 // Shows the tool header with a running indicator, followed by a gutter-bordered
 // preview of the streaming content with a cursor indicator.

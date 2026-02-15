@@ -113,6 +113,18 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 		m.done = true
 		previousPhase := m.phase
 		m.phase = e.Phase
+
+		// Finalize any tools still tracked as running. When execution
+		// completes (or fails/cancels), these tools will never receive a
+		// ToolCompletedEvent, so we replace their running indicator (⏳)
+		// with a completion mark (✓) to avoid stale visual cues.
+		for _, idx := range m.runningTools {
+			if idx < len(m.blocks) {
+				m.blocks[idx].content = renderToolFinalized(m.blocks[idx].content)
+			}
+		}
+		m.runningTools = make(map[string]int)
+
 		if e.Error != "" {
 			m.exitError = e.Error
 			m.blocks = append(m.blocks, newErrorBlock(
@@ -128,6 +140,15 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 	case StreamErrorEvent:
 		m.done = true
 		m.exitError = e.Err.Error()
+
+		// Finalize running tools (same rationale as DoneEvent above).
+		for _, idx := range m.runningTools {
+			if idx < len(m.blocks) {
+				m.blocks[idx].content = renderToolFinalized(m.blocks[idx].content)
+			}
+		}
+		m.runningTools = make(map[string]int)
+
 		m.blocks = append(m.blocks, newErrorBlock(
 			renderErrorContent("Stream error: "+e.Err.Error()),
 		))
@@ -150,6 +171,15 @@ func (m Model) handleStreamClosed() (tea.Model, tea.Cmd) {
 	if !m.done {
 		m.done = true
 		m.exitError = "execution stream closed unexpectedly"
+
+		// Finalize running tools (same rationale as DoneEvent above).
+		for _, idx := range m.runningTools {
+			if idx < len(m.blocks) {
+				m.blocks[idx].content = renderToolFinalized(m.blocks[idx].content)
+			}
+		}
+		m.runningTools = make(map[string]int)
+
 		m.blocks = append(m.blocks, newErrorBlock(
 			renderErrorContent("Stream closed unexpectedly"),
 		))

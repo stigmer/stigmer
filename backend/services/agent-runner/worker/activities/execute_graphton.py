@@ -2147,6 +2147,40 @@ async def _execute_graphton_impl(
             f"📊 Execution {execution_id} stream finished — processed {events_processed} events"
         )
         
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Post-Stream Validation: Detect silent completions
+        #
+        # When the LangGraph stream ends naturally, it typically means the LLM
+        # produced a final response. However, if the last message in the status
+        # is a tool message (not an AI message), the graph may have terminated
+        # abnormally — the user sees tool output followed by immediate completion
+        # with no summary. Log a warning for observability so we can track and
+        # diagnose these cases.
+        #
+        # Similarly, if no artifacts were published, log a notice. This is not
+        # always an error (some executions don't produce artifacts), but it helps
+        # when debugging "where did my files go?" issues.
+        # ─────────────────────────────────────────────────────────────────────────────
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
+
+        messages = status_builder.current_status.messages
+        if messages:
+            last_message = messages[-1]
+            if last_message.type == MessageType.MESSAGE_TOOL:
+                activity_logger.warning(
+                    f"[POST_STREAM] execution={execution_id} — Stream ended with a tool "
+                    f"message as the last message (tool_calls={len(last_message.tool_calls)}). "
+                    f"The agent may not have produced a final summary for the user. "
+                    f"This typically means the LLM's post-tool response was empty or the "
+                    f"graph terminated before routing back to the LLM."
+                )
+
+        if not status_builder._artifacts:
+            activity_logger.info(
+                f"[POST_STREAM] execution={execution_id} — No artifacts were published. "
+                f"If the agent wrote files, it may not have called publish_artifact."
+            )
+        
         # Finalize context info before returning (Phase 3)
         # Copies accumulated context info and summarization events to status proto
         status_builder.finalize_context_info()
