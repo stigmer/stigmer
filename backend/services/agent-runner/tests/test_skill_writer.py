@@ -227,7 +227,7 @@ class TestSkillWriterGeneratePromptSection:
     def test_generate_prompt_single_skill(self, mock_skill):
         """Test prompt generation with single skill."""
         skill_paths = {
-            mock_skill.metadata.id: f"/bin/skills/{mock_skill.status.version_hash}"
+            mock_skill.metadata.id: f"bin/skills/{mock_skill.status.version_hash}"
         }
         
         result = SkillWriter.generate_prompt_section([mock_skill], skill_paths)
@@ -235,11 +235,14 @@ class TestSkillWriterGeneratePromptSection:
         # Assert - contains required sections
         assert "## Available Skills" in result
         assert f"### SKILL: {mock_skill.metadata.name}" in result
-        assert f"LOCATION: `/bin/skills/{mock_skill.status.version_hash}/`" in result
+        assert f"LOCATION: `bin/skills/{mock_skill.status.version_hash}/`" in result
         assert mock_skill.spec.skill_md in result
         
         # Assert - contains no-exploration directive
         assert "Do NOT explore the filesystem" in result
+        
+        # Assert - contains fail-stop instruction
+        assert "MUST stop execution immediately" in result
         
         # Assert - single-skill quick-reference block
         assert "Skill directory" in result
@@ -248,8 +251,8 @@ class TestSkillWriterGeneratePromptSection:
     def test_generate_prompt_multiple_skills(self, mock_skill, mock_skill_no_hash):
         """Test prompt generation with multiple skills."""
         skill_paths = {
-            mock_skill.metadata.id: f"/bin/skills/{mock_skill.status.version_hash}",
-            mock_skill_no_hash.metadata.id: f"/bin/skills/{mock_skill_no_hash.metadata.slug.replace('/', '_')}"
+            mock_skill.metadata.id: f"bin/skills/{mock_skill.status.version_hash}",
+            mock_skill_no_hash.metadata.id: f"bin/skills/{mock_skill_no_hash.metadata.slug.replace('/', '_')}"
         }
         
         result = SkillWriter.generate_prompt_section(
@@ -272,13 +275,13 @@ class TestSkillWriterGeneratePromptSection:
         
         result = SkillWriter.generate_prompt_section([mock_skill], skill_paths)
         
-        # Should still have a LOCATION with version_hash
-        assert f"LOCATION: `/bin/skills/{mock_skill.status.version_hash}/`" in result
+        # Should still have a LOCATION with version_hash (workspace-relative)
+        assert f"LOCATION: `bin/skills/{mock_skill.status.version_hash}/`" in result
 
     def test_generate_prompt_format_adr_001(self, mock_skill):
         """Test prompt follows ADR 001 format: LOCATION header + full content."""
         skill_paths = {
-            mock_skill.metadata.id: f"/bin/skills/{mock_skill.status.version_hash}"
+            mock_skill.metadata.id: f"bin/skills/{mock_skill.status.version_hash}"
         }
         
         result = SkillWriter.generate_prompt_section([mock_skill], skill_paths)
@@ -303,11 +306,18 @@ class TestSkillWriterGeneratePromptSection:
 class TestSkillWriterDaytona:
     """Tests for Daytona-specific functionality."""
 
-    def test_write_skills_daytona_creates_directories(self, mock_skill):
-        """Test that Daytona mode creates directories."""
+    @staticmethod
+    def _make_daytona_mock(work_dir: str = "/workspace") -> MagicMock:
+        """Create a mock Daytona sandbox with get_work_dir configured."""
         mock_sandbox = MagicMock()
+        mock_sandbox.get_work_dir.return_value = work_dir
         mock_sandbox.process.exec.return_value = MagicMock(exit_code=0, output="")
         mock_sandbox.fs.upload_files = MagicMock()
+        return mock_sandbox
+
+    def test_write_skills_daytona_creates_directories(self, mock_skill):
+        """Test that Daytona mode creates directories under workspace root."""
+        mock_sandbox = self._make_daytona_mock()
         
         writer = SkillWriter(sandbox=mock_sandbox)
         
@@ -320,14 +330,32 @@ class TestSkillWriterDaytona:
             if 'mkdir' in str(call)
         ]
         assert len(mkdir_calls) >= 2  # At least base dir + skill dir
+        
+        # Assert - paths include workspace root
+        for call in mkdir_calls:
+            cmd = str(call)
+            assert "/workspace/bin/skills" in cmd, (
+                f"Expected workspace-prefixed mkdir, got: {cmd}"
+            )
+
+    def test_write_skills_daytona_returns_relative_paths(self, mock_skill):
+        """Test that Daytona mode returns workspace-relative paths."""
+        mock_sandbox = self._make_daytona_mock()
+        
+        writer = SkillWriter(sandbox=mock_sandbox)
+        result = writer.write_skills([mock_skill])
+        
+        returned_path = result[mock_skill.metadata.id]
+        assert not returned_path.startswith("/"), (
+            f"Daytona-mode path should be workspace-relative, got: {returned_path}"
+        )
+        assert returned_path == f"bin/skills/{mock_skill.status.version_hash}"
 
     def test_write_skills_daytona_with_artifacts_extracts(
         self, mock_skill, sample_artifact_zip
     ):
         """Test that Daytona mode extracts artifacts."""
-        mock_sandbox = MagicMock()
-        mock_sandbox.process.exec.return_value = MagicMock(exit_code=0, output="")
-        mock_sandbox.fs.upload_files = MagicMock()
+        mock_sandbox = self._make_daytona_mock()
         
         writer = SkillWriter(sandbox=mock_sandbox)
         artifacts = {mock_skill.metadata.id: sample_artifact_zip}
@@ -335,15 +363,18 @@ class TestSkillWriterDaytona:
         # Act
         result = writer.write_skills([mock_skill], artifacts=artifacts)
         
-        # Assert - unzip command was called
+        # Assert - unzip command was called with workspace-prefixed path
         exec_calls = [str(call) for call in mock_sandbox.process.exec.call_args_list]
         assert any('unzip' in call for call in exec_calls), \
             "Expected unzip command in sandbox"
+        unzip_calls = [c for c in exec_calls if 'unzip' in c]
+        assert any('/workspace/bin/skills' in c for c in unzip_calls), (
+            f"Expected workspace-prefixed unzip path, got: {unzip_calls}"
+        )
 
     def test_write_skills_daytona_upload_failure_raises(self, mock_skill):
         """Test that upload failure raises RuntimeError."""
-        mock_sandbox = MagicMock()
-        mock_sandbox.process.exec.return_value = MagicMock(exit_code=0, output="")
+        mock_sandbox = self._make_daytona_mock()
         mock_sandbox.fs.upload_files.side_effect = Exception("Upload failed")
         
         writer = SkillWriter(sandbox=mock_sandbox)
@@ -356,11 +387,10 @@ class TestSkillWriterDaytona:
 
     def test_extract_artifact_daytona_makes_scripts_executable(self, mock_skill):
         """Test that Daytona extraction makes scripts executable."""
-        mock_sandbox = MagicMock()
-        mock_sandbox.process.exec.return_value = MagicMock(exit_code=0, output="")
+        mock_sandbox = self._make_daytona_mock()
         
         writer = SkillWriter(sandbox=mock_sandbox)
-        skill_dir = "/bin/skills/abc123"
+        skill_dir = "/workspace/bin/skills/abc123"
         
         # Act
         writer._extract_artifact_daytona(skill_dir)
@@ -372,24 +402,25 @@ class TestSkillWriterDaytona:
 
 
 class TestSkillWriterGetSkillDir:
-    """Tests for SkillWriter._get_skill_dir() method."""
+    """Tests for SkillWriter._get_skill_relative_dir() method."""
 
-    def test_get_skill_dir_with_hash(self, mock_skill):
-        """Test directory path uses version_hash."""
+    def test_get_skill_relative_dir_with_hash(self, mock_skill):
+        """Test directory path uses version_hash (workspace-relative)."""
         writer = SkillWriter(local_root="/tmp")
         
-        result = writer._get_skill_dir(mock_skill)
+        result = writer._get_skill_relative_dir(mock_skill)
         
-        assert result == f"/bin/skills/{mock_skill.status.version_hash}"
+        assert result == f"bin/skills/{mock_skill.status.version_hash}"
+        assert not result.startswith("/"), "Path should be workspace-relative"
 
-    def test_get_skill_dir_without_hash_uses_slug(self, mock_skill_no_hash):
+    def test_get_skill_relative_dir_without_hash_uses_slug(self, mock_skill_no_hash):
         """Test directory path falls back to normalized slug."""
         writer = SkillWriter(local_root="/tmp")
         
-        result = writer._get_skill_dir(mock_skill_no_hash)
+        result = writer._get_skill_relative_dir(mock_skill_no_hash)
         
         expected_slug = mock_skill_no_hash.metadata.slug.replace("/", "_")
-        assert result == f"/bin/skills/{expected_slug}"
+        assert result == f"bin/skills/{expected_slug}"
 
 
 class TestSkillWriterLocalModePrompt:
@@ -409,9 +440,10 @@ class TestSkillWriterLocalModePrompt:
                 f"Expected relative LOCATION header, got:\n{prompt}"
             )
 
-    def test_daytona_mode_location_is_absolute(self, mock_skill):
-        """LOCATION header from Daytona-mode write should remain absolute."""
+    def test_daytona_mode_location_is_relative(self, mock_skill):
+        """LOCATION header from Daytona-mode write should be workspace-relative."""
         mock_sandbox = MagicMock()
+        mock_sandbox.get_work_dir.return_value = "/workspace"
         mock_sandbox.process.exec.return_value = MagicMock(exit_code=0, output="")
         mock_sandbox.fs.upload_files = MagicMock()
 
@@ -420,10 +452,10 @@ class TestSkillWriterLocalModePrompt:
 
         prompt = SkillWriter.generate_prompt_section([mock_skill], skill_paths)
 
-        # Daytona-mode path should keep the leading /
-        expected_location = f"LOCATION: `/bin/skills/{mock_skill.status.version_hash}/`"
+        # Daytona-mode path should now be workspace-relative (no leading /)
+        expected_location = f"LOCATION: `bin/skills/{mock_skill.status.version_hash}/`"
         assert expected_location in prompt, (
-            f"Expected absolute LOCATION header for Daytona, got:\n{prompt}"
+            f"Expected workspace-relative LOCATION header for Daytona, got:\n{prompt}"
         )
 
 

@@ -83,6 +83,14 @@ async def inject_attachments(
     artifact storage and injected into the sandbox. Supports both local
     filesystem and Daytona sandbox modes.
     
+    Path convention (aligned with SkillWriter):
+    - Workspace-relative paths like ``inputs/data.txt`` are used for
+      both the upload destination and the agent-facing prompt.
+    - In Daytona mode the workspace root is obtained from
+      ``sandbox.get_work_dir()`` and prepended to create the absolute
+      sandbox path for ``FileUpload``.
+    - In local mode the ``local_root`` is the workspace root.
+    
     Args:
         sandbox: Daytona sandbox instance (None for local mode)
         attachments: List of Attachment proto messages (all must have storage_key)
@@ -99,13 +107,30 @@ async def inject_attachments(
     if not attachments:
         return []
     
-    logger.info(f"Injecting {len(attachments)} attachments into sandbox")
+    logger.info("Injecting %d attachments into sandbox", len(attachments))
     
     # Import FileUpload for Daytona sandbox uploads
     try:
         from daytona import FileUpload
     except ImportError:
         FileUpload = None  # noqa: N806 — class reference, PascalCase is correct
+    
+    # Resolve workspace root for Daytona mode so upload destinations
+    # match what the agent's backend will resolve when reading.
+    ws_root: str | None = None
+    if sandbox is not None:
+        try:
+            ws_root = sandbox.get_work_dir().rstrip("/")
+            logger.info(
+                "[attachments] Daytona workspace root: %s", ws_root,
+            )
+        except Exception as exc:
+            logger.warning(
+                "[attachments] sandbox.get_work_dir() failed (%s); "
+                "falling back to /home/daytona",
+                exc,
+            )
+            ws_root = "/home/daytona"
     
     file_uploads = []  # For Daytona batch upload
     injected_files = []  # Track injected files for return
@@ -114,25 +139,32 @@ async def inject_attachments(
         if not attachment.storage_key:
             raise ValueError(f"Attachment missing storage_key: {attachment.filename}")
         
-        logger.debug(f"Downloading {attachment.filename} from storage key: {attachment.storage_key}")
+        logger.debug(
+            "Downloading %s from storage key: %s",
+            attachment.filename,
+            attachment.storage_key,
+        )
         content = storage.download(attachment.storage_key)
-        logger.debug(f"Downloaded {len(content)} bytes for {attachment.filename}")
+        logger.debug("Downloaded %d bytes for %s", len(content), attachment.filename)
         
-        # Determine mount path - use workspace-relative path for better discoverability
-        # Default: inputs/{filename} (relative to workspace root)
+        # Determine mount path - workspace-relative (no leading /)
+        # Default: inputs/{filename}
         if attachment.mount_path:
-            mount_path = attachment.mount_path.lstrip('/')
+            mount_path = attachment.mount_path.lstrip("/")
         else:
             mount_path = f"inputs/{attachment.filename}"
         
         if sandbox is not None:
-            # Daytona sandbox mode - collect for batch upload
-            # Daytona expects absolute paths starting with /
-            daytona_path = f"/{mount_path}" if not mount_path.startswith('/') else mount_path
+            # Daytona sandbox mode - collect for batch upload.
+            # Use workspace-root-prefixed absolute path so files land
+            # where the agent's backend expects them.
+            daytona_path = f"{ws_root}/{mount_path}"
             if FileUpload is None:
                 raise RuntimeError("Daytona FileUpload not available")
             file_uploads.append(FileUpload(source=content, destination=daytona_path))
-            logger.info(f"Prepared attachment: {attachment.filename} -> {daytona_path}")
+            logger.info(
+                "Prepared attachment: %s -> %s", attachment.filename, daytona_path,
+            )
             injected_files.append({
                 "filename": attachment.filename,
                 "path": mount_path,  # Workspace-relative for agent
@@ -152,16 +184,25 @@ async def inject_attachments(
             if file_path.exists():
                 actual_size = file_path.stat().st_size
                 logger.info(
-                    f"Wrote attachment to local filesystem: {attachment.filename} -> {file_path} "
-                    f"(size: {actual_size} bytes, expected: {len(content)} bytes)"
+                    "Wrote attachment to local filesystem: %s -> %s "
+                    "(size: %d bytes, expected: %d bytes)",
+                    attachment.filename,
+                    file_path,
+                    actual_size,
+                    len(content),
                 )
                 if actual_size != len(content):
                     logger.warning(
-                        f"Size mismatch for {attachment.filename}: "
-                        f"wrote {len(content)} bytes but file is {actual_size} bytes"
+                        "Size mismatch for %s: wrote %d bytes but file is %d bytes",
+                        attachment.filename,
+                        len(content),
+                        actual_size,
                     )
             else:
-                logger.error(f"Failed to write attachment: {file_path} does not exist after write")
+                logger.error(
+                    "Failed to write attachment: %s does not exist after write",
+                    file_path,
+                )
                 raise ValueError(f"Failed to write attachment {attachment.filename}")
             
             injected_files.append({
@@ -173,7 +214,7 @@ async def inject_attachments(
     # Batch upload to Daytona sandbox
     if sandbox is not None and file_uploads:
         sandbox.fs.upload_files(file_uploads)
-        logger.info(f"Uploaded {len(file_uploads)} attachments to sandbox")
+        logger.info("Uploaded %d attachments to sandbox", len(file_uploads))
     
     # Log summary of all injected files
     logger.info(
@@ -608,6 +649,80 @@ async def _execute_graphton_impl(
                 activity_logger.info(
                     f"Successfully wrote {len(skills)} skills: {[s.metadata.name for s in skills]}"
                 )
+                
+                # ─── Diagnostic: verify skill files are accessible ───────────
+                # Log workspace root and verify skill paths exist in the
+                # sandbox at the expected location.
+                if not worker_config.is_local_mode() and sandbox is not None:
+                    try:
+                        work_dir = sandbox.get_work_dir()
+                        activity_logger.info(
+                            "[skill-diag] sandbox.get_work_dir() = %r", work_dir,
+                        )
+                    except Exception as diag_exc:
+                        activity_logger.warning(
+                            "[skill-diag] sandbox.get_work_dir() failed: %s", diag_exc,
+                        )
+                        work_dir = None
+
+                    for _sid, spath in skill_paths.items():
+                        # spath is workspace-relative, e.g. "bin/skills/abc…"
+                        # SkillWriter writes to {work_dir}/{spath}
+                        if work_dir:
+                            abs_path = f"{work_dir.rstrip('/')}/{spath}"
+                        else:
+                            abs_path = f"/{spath}"
+                        diag_result = sandbox.process.exec(
+                            f"ls -la {abs_path}/ 2>&1 | head -20", timeout=5,
+                        )
+                        diag_out = diag_result.output if diag_result.output else ""
+                        activity_logger.info(
+                            "[skill-diag] ls %s/  exit=%d  output=%s",
+                            abs_path,
+                            diag_result.exit_code,
+                            diag_out[:300],
+                        )
+
+                # ─── Post-write verification ─────────────────────────────
+                # Create the same backend the agent will use and verify
+                # every skill's SKILL.md is readable.  This catches path
+                # mismatches at setup time rather than at agent runtime.
+                if skill_paths:
+                    from graphton.core.sandbox_factory import create_sandbox_backend
+
+                    if worker_config.is_local_mode():
+                        verify_cfg = sandbox_config.copy()
+                    else:
+                        if sandbox is None:
+                            raise RuntimeError(
+                                "Sandbox not initialized for post-write verification"
+                            )
+                        verify_cfg = {
+                            "type": "daytona",
+                            "sandbox_id": sandbox.id,
+                        }
+
+                    verify_backend = create_sandbox_backend(verify_cfg)
+                    for _vid, vpath in skill_paths.items():
+                        skill_md_path = f"{vpath}/SKILL.md"
+                        try:
+                            content = verify_backend.read(skill_md_path)
+                            activity_logger.info(
+                                "Skill post-write verification passed: %s (%d bytes)",
+                                skill_md_path,
+                                len(content),
+                            )
+                        except Exception as verify_exc:
+                            activity_logger.error(
+                                "CRITICAL: Skill at %s not readable through "
+                                "agent backend: %s",
+                                skill_md_path,
+                                verify_exc,
+                            )
+                            raise RuntimeError(
+                                f"Skill verification failed for {skill_md_path}: "
+                                f"{verify_exc}"
+                            ) from verify_exc
                     
             except RuntimeError as e:
                 # Catch write/upload failures from SkillWriter
