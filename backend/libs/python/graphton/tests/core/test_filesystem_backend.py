@@ -112,6 +112,31 @@ class TestResolveSandboxPath:
         resolved = sandbox._resolve_sandbox_path("/")
         assert resolved == sandbox.root_dir
 
+    # -- Double-prefix bug (path already contains root_dir) --
+
+    def test_path_starting_with_root_dir(self, sandbox: FilesystemBackend) -> None:
+        """Paths starting with root_dir must NOT produce a double prefix."""
+        root = str(sandbox.root_dir)
+        resolved = sandbox._resolve_sandbox_path(f"{root}/bin/skills/abc/SKILL.md")
+        assert resolved == sandbox.root_dir / "bin" / "skills" / "abc" / "SKILL.md"
+
+    def test_path_equal_to_root_dir(self, sandbox: FilesystemBackend) -> None:
+        """Path exactly equal to root_dir resolves to root_dir."""
+        root = str(sandbox.root_dir)
+        resolved = sandbox._resolve_sandbox_path(root)
+        assert resolved == sandbox.root_dir
+
+    def test_all_three_path_formats_resolve_identically(
+        self, sandbox: FilesystemBackend
+    ) -> None:
+        """Relative, absolute-no-root, and absolute-with-root all resolve the same."""
+        root = str(sandbox.root_dir)
+        expected = sandbox.root_dir / "bin" / "skills" / "abc" / "SKILL.md"
+
+        assert sandbox._resolve_sandbox_path("bin/skills/abc/SKILL.md") == expected
+        assert sandbox._resolve_sandbox_path("/bin/skills/abc/SKILL.md") == expected
+        assert sandbox._resolve_sandbox_path(f"{root}/bin/skills/abc/SKILL.md") == expected
+
 
 # =============================================================================
 # list_files with absolute paths (the exact bug scenario from the logs)
@@ -206,6 +231,35 @@ class TestReadWriteAbsolutePaths:
         expected = sandbox.root_dir / "output" / "data.txt"
         assert expected.exists()
         assert expected.read_text() == "test content"
+
+    # -- Double-prefix paths (agent uses root_dir prefix) --
+
+    def test_read_with_root_dir_prefix(
+        self, sandbox_with_skills: FilesystemBackend
+    ) -> None:
+        """read('{root_dir}/bin/skills/...') should find the file (no double prefix)."""
+        root = str(sandbox_with_skills.root_dir)
+        content = sandbox_with_skills.read_file(
+            f"{root}/bin/skills/abc123hash/SKILL.md"
+        )
+        assert "test-skill" in content
+
+    def test_write_with_root_dir_prefix(self, sandbox: FilesystemBackend) -> None:
+        """write('{root_dir}/output/...', ...) should create under root_dir."""
+        root = str(sandbox.root_dir)
+        sandbox.write_file(f"{root}/output/result.txt", "double-prefix test")
+
+        expected = sandbox.root_dir / "output" / "result.txt"
+        assert expected.exists()
+        assert expected.read_text() == "double-prefix test"
+
+    def test_list_files_with_root_dir_prefix(
+        self, sandbox_with_skills: FilesystemBackend
+    ) -> None:
+        """list_files('{root_dir}/bin/skills') should list skill dirs."""
+        root = str(sandbox_with_skills.root_dir)
+        result = sandbox_with_skills.list_files(f"{root}/bin/skills")
+        assert "abc123hash" in result
 
 
 # =============================================================================
