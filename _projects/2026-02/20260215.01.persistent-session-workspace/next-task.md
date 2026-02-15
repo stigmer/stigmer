@@ -68,55 +68,56 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-15 18:35
-**Current Task**: T03 (Sandbox Restart/Recovery Before Recreation)
-**Status**: In Progress (T01 ✅, T02 ✅)
-**Last Session**: 2026-02-15 20:29 — Completed T02 (Daytona volume initialization at worker startup)
+**Current Task**: T04 (Backend Workspace Root from Volume Mount)
+**Status**: In Progress (T01 ✅, T02 ✅, T03 ✅)
+**Last Session**: 2026-02-15 20:45 — Completed T03 (Sandbox restart/recovery before recreation)
 
-## Session Progress (2026-02-15, Evening Session)
+## Session Progress (2026-02-15, Session 2 — Evening)
 
 ### What Was Accomplished
-- ✅ **T02 Completed**: Daytona volume initialization at worker startup
-- Module-level volume_id store in `sandbox_manager.py` (following `token_manager.py` pattern)
-- Worker startup integration in `AgentRunner.__init__` (following Redis init pattern)
-- Volume mounting in `_create_daytona_sandbox` with session-scoped subpaths
-- Activity wiring in `execute_graphton.py` to read and pass volume_id
-- Zero linter errors, all todos completed
+- ✅ **T03 Completed**: Sandbox restart/recovery before recreation
+- New `_try_revive_daytona_sandbox()` method — state-aware recovery chain handling STARTED, STOPPED, ARCHIVED, ERROR, DESTROYED, and all transitional states
+- Updated `get_or_create_daytona_sandbox()` caller with typed `DaytonaNotFoundError` handling
+- Added `auto_delete_interval=-1` to sandbox creation params
+- Discovered `SandboxState` enum has 16 members (not 4-5 as documented)
+- Zero linter errors, module imports verified
 
 ### Key Decisions Made
-- **Runner-startup approach chosen over per-activity**: Volume initialization happens once at worker startup alongside Redis, not per-execution
-- **Module-level store pattern**: Volume ID shared across activities via `get_daytona_volume_id()` (same pattern as API key)
-- **Fail-fast on errors**: Worker won't start if volume initialization fails (intentional — workspace persistence is non-negotiable)
-- **Backward compatible**: Local mode unaffected, ephemeral sandboxes (session_id=None) still supported
+- **One attempt per state, no retry loops**: Simple and safe — volume guarantees file survival
+- **STARTED still gets health check**: Defense-in-depth for stale SDK state
+- **Transitional states fall through**: STARTING, STOPPING, etc. are rare; no complex wait logic
+- **`auto_delete_interval=-1`**: Explicit at creation time even though SDK default is disabled
+- **`DaytonaNotFoundError`**: Typed error instead of bare `Exception` for "sandbox gone" case
 
 ### Files Modified
-- `worker/sandbox_manager.py` (+133 lines): Volume store, initialization function, VolumeMount construction
-- `worker/worker.py` (+43 lines): `_initialize_daytona_volume()` method, cloud-mode init block
-- `worker/activities/execute_graphton.py` (+7 lines): Import `get_daytona_volume_id`, pass to constructor
-- Changelog: `_changelog/2026-02/2026-02-15-202923-daytona-volume-worker-startup.md`
+- `worker/sandbox_manager.py` (+195 net lines): Recovery chain, typed errors, auto-lifecycle params
+- Changelog: `_changelog/2026-02/2026-02-15-204533-sandbox-restart-recovery-before-recreation.md`
 
 ### Committed
-- ✅ `6b654888` — feat(backend/agent-runner): initialize Daytona volume at worker startup
+- ✅ `6b654888` — feat(backend/agent-runner): initialize Daytona volume at worker startup (T02)
+- ✅ T03 commit (this session)
 
 ## Next Steps
 
-1. **T03**: Sandbox restart/recovery before recreation (independent, can start immediately)
-2. **T04**: Backend workspace root from volume mount path (depends on T02 ✅)
-3. **T05**: Simplify resume fast-path with volume safety checks (depends on T04)
-4. **T06**: Testing — comprehensive validation after all implementation complete
+1. **T04**: Backend workspace root from volume mount path (depends on T02 ✅, ready to start)
+2. **T05**: Simplify resume fast-path with volume safety checks (depends on T04)
+3. **T06**: Testing — comprehensive validation after all implementation complete
 
 ## Context for Resume
 
-- **T02 is complete**: Volume infrastructure is in place, ready to be used by new sandboxes
-- **T03 is independent**: Sandbox restart logic doesn't require volume changes
-- **Surprising discovery during planning**: The original plan had T02 as "add volume_id to proto", but that was revised to "volume initialization at worker startup" based on the design decision that volume is worker-level, not session-level
+- **T01-T03 are complete**: Local session dirs, volume infrastructure, and sandbox recovery are in place
+- **T04 is the next logical step**: Wire the volume mount path (`/home/daytona/workspace`) into the graphton backend as the workspace root, so the agent's file operations target the persistent volume
+- **Key files for T04**:
+  - `backend/libs/python/graphton/src/graphton/core/backends/daytona.py` — workspace root from config
+  - `backend/services/agent-runner/worker/activities/execute_graphton.py` — pass mount path
 - Volume mount path: `/home/daytona/workspace` with subpath `sessions/{session_id}`
 - Volume name configurable via `DAYTONA_VOLUME_NAME` (default: `stigmer-workspaces`)
+- **Surprising discovery in T03**: `SandboxState` has 16 enum members including DESTROYED (not DELETED), plus 10 transitional states like STARTING, STOPPING, ARCHIVING, etc.
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T02" - Start the proto change in stigmer-cloud
-- "Continue with T04" - Start sandbox restart/recovery (independent)
+- "Continue with T04" - Start backend workspace root wiring
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

@@ -17,7 +17,13 @@ from typing import Any
 
 # Optional Daytona import (only needed for cloud mode)
 try:
-    from daytona import Daytona, DaytonaConfig, VolumeMount
+    from daytona import (
+        Daytona,
+        DaytonaConfig,
+        DaytonaNotFoundError,
+        SandboxState,
+        VolumeMount,
+    )
     from daytona.common.daytona import CreateSandboxFromSnapshotParams
     DAYTONA_AVAILABLE = True
 except ImportError:
@@ -527,24 +533,42 @@ class SandboxManager:
                 
                 if existing_sandbox_id:
                     logger.info(f"Found existing sandbox_id: {existing_sandbox_id}")
-                    
+
                     try:
                         sandbox = self._daytona.get(existing_sandbox_id)
-                        
-                        if self._is_daytona_sandbox_alive(sandbox):
+                    except DaytonaNotFoundError:
+                        logger.info(
+                            "Sandbox %s no longer exists "
+                            "(deleted/expired), will create new",
+                            existing_sandbox_id,
+                        )
+                    except Exception as e:
+                        logger.warning(
+                            "Failed to fetch sandbox %s: %s. "
+                            "Creating new sandbox.",
+                            existing_sandbox_id,
+                            e,
+                        )
+                    else:
+                        # Sandbox object retrieved — attempt state-aware
+                        # recovery (restart / restore / recover).
+                        if self._try_revive_daytona_sandbox(sandbox):
                             logger.info(
-                                f"✅ Reusing healthy Daytona sandbox {existing_sandbox_id} for session {session_id}"
+                                "Reusing revived Daytona sandbox %s "
+                                "for session %s",
+                                existing_sandbox_id,
+                                session_id,
                             )
                             return (sandbox, False)
                         else:
                             logger.warning(
-                                f"Daytona sandbox {existing_sandbox_id} not responsive, creating new one"
+                                "Sandbox %s could not be revived "
+                                "(state: %s), creating new sandbox",
+                                existing_sandbox_id,
+                                sandbox.state.value
+                                if hasattr(sandbox.state, "value")
+                                else sandbox.state,
                             )
-                    except Exception as e:
-                        logger.warning(
-                            f"Failed to reuse Daytona sandbox {existing_sandbox_id}: {e}. "
-                            "Creating new sandbox."
-                        )
                 else:
                     logger.info(f"Session {session_id} has no sandbox_id, creating new sandbox")
                     
@@ -633,6 +657,7 @@ class SandboxManager:
                 params = CreateSandboxFromSnapshotParams(
                     snapshot=snapshot_id,
                     volumes=volume_mounts if volume_mounts else None,
+                    auto_delete_interval=-1,  # Never auto-delete; we manage lifecycle
                 )
                 sandbox = self._daytona.create(params=params)
             else:
@@ -640,6 +665,7 @@ class SandboxManager:
                     logger.info("Creating Daytona sandbox with volume mount")
                     params = CreateSandboxFromSnapshotParams(
                         volumes=volume_mounts,
+                        auto_delete_interval=-1,  # Never auto-delete; we manage lifecycle
                     )
                     sandbox = self._daytona.create(params=params)
                 else:
@@ -700,6 +726,167 @@ class SandboxManager:
             logger.warning(f"Daytona sandbox {sandbox.id} health check: ❌ ERROR: {e}")
             return False
     
+    def _try_revive_daytona_sandbox(self, sandbox: Any) -> bool:
+        """Attempt to bring an existing Daytona sandbox to a ready state.
+
+        Inspects ``sandbox.state`` and takes the appropriate recovery action
+        based on the priority chain from DD02:
+
+        1. **STARTED** -- verify responsiveness via health check, reuse.
+        2. **STOPPED** -- ``sandbox.start()`` (~5-30 s, runtime packages
+           preserved).
+        3. **ARCHIVED** -- ``sandbox.start()`` with longer timeout (~30-120 s,
+           filesystem restored from object storage, packages preserved).
+        4. **ERROR + recoverable** -- ``sandbox.recover()``.
+        5. **DESTROYED / non-recoverable ERROR / transitional / unknown** --
+           cannot revive; caller should create a new sandbox.
+
+        Each recovery action gets **one attempt** with a generous timeout.
+        If it fails the method returns ``False`` and the caller falls through
+        to sandbox creation.  The persistent volume (T02) guarantees workspace
+        file survival regardless.
+
+        Args:
+            sandbox: Daytona ``Sandbox`` instance obtained via
+                ``self._daytona.get(sandbox_id)``.
+
+        Returns:
+            ``True`` if the sandbox is now in a usable (STARTED) state,
+            ``False`` if a new sandbox must be created.
+        """
+        state = sandbox.state
+        sandbox_id = sandbox.id
+
+        # ── STARTED: sandbox claims to be running ──────────────────────
+        if state == SandboxState.STARTED:
+            if self._is_daytona_sandbox_alive(sandbox):
+                logger.info(
+                    "Sandbox %s is STARTED and responsive — reusing",
+                    sandbox_id,
+                )
+                return True
+
+            logger.warning(
+                "Sandbox %s reports STARTED but failed health check — "
+                "treating as unrecoverable",
+                sandbox_id,
+            )
+            return False
+
+        # ── STOPPED: auto-stopped after idle period ────────────────────
+        if state == SandboxState.STOPPED:
+            logger.info(
+                "Sandbox %s is STOPPED, attempting restart…", sandbox_id,
+            )
+            start_time = time.monotonic()
+            try:
+                sandbox.start(timeout=60)
+                elapsed = time.monotonic() - start_time
+                logger.info(
+                    "Sandbox %s restarted from STOPPED in %.1fs "
+                    "(runtime packages preserved)",
+                    sandbox_id,
+                    elapsed,
+                )
+                return True
+            except Exception as e:
+                elapsed = time.monotonic() - start_time
+                logger.warning(
+                    "Failed to restart STOPPED sandbox %s after %.1fs: %s",
+                    sandbox_id,
+                    elapsed,
+                    e,
+                )
+                return False
+
+        # ── ARCHIVED: filesystem moved to object storage ───────────────
+        if state == SandboxState.ARCHIVED:
+            logger.info(
+                "Sandbox %s is ARCHIVED, attempting restore + start "
+                "(this may take up to 2 min)…",
+                sandbox_id,
+            )
+            start_time = time.monotonic()
+            try:
+                sandbox.start(timeout=120)
+                elapsed = time.monotonic() - start_time
+                logger.info(
+                    "Sandbox %s restored from ARCHIVED in %.1fs "
+                    "(runtime packages preserved)",
+                    sandbox_id,
+                    elapsed,
+                )
+                return True
+            except Exception as e:
+                elapsed = time.monotonic() - start_time
+                logger.warning(
+                    "Failed to restore ARCHIVED sandbox %s after %.1fs: %s",
+                    sandbox_id,
+                    elapsed,
+                    e,
+                )
+                return False
+
+        # ── ERROR: check if the SDK considers it recoverable ───────────
+        if state == SandboxState.ERROR:
+            if sandbox.recoverable:
+                logger.info(
+                    "Sandbox %s is in ERROR (recoverable), "
+                    "error_reason='%s' — attempting recover…",
+                    sandbox_id,
+                    sandbox.error_reason,
+                )
+                start_time = time.monotonic()
+                try:
+                    sandbox.recover(timeout=60)
+                    elapsed = time.monotonic() - start_time
+                    logger.info(
+                        "Sandbox %s recovered from ERROR in %.1fs",
+                        sandbox_id,
+                        elapsed,
+                    )
+                    return True
+                except Exception as e:
+                    elapsed = time.monotonic() - start_time
+                    logger.warning(
+                        "Failed to recover sandbox %s after %.1fs: %s",
+                        sandbox_id,
+                        elapsed,
+                        e,
+                    )
+                    return False
+
+            logger.warning(
+                "Sandbox %s is in non-recoverable ERROR "
+                "(reason='%s') — will create new sandbox",
+                sandbox_id,
+                sandbox.error_reason,
+            )
+            return False
+
+        # ── DESTROYED: sandbox no longer exists on infrastructure ──────
+        if state == SandboxState.DESTROYED:
+            logger.info(
+                "Sandbox %s is DESTROYED — will create new sandbox",
+                sandbox_id,
+            )
+            return False
+
+        # ── Transitional or unknown state ──────────────────────────────
+        # States like STARTING, STOPPING, CREATING, RESTORING, ARCHIVING,
+        # DESTROYING, BUILD_FAILED, PENDING_BUILD, BUILDING_SNAPSHOT,
+        # PULLING_SNAPSHOT, UNKNOWN.  These are either short-lived
+        # transitions or terminal failures.  Rather than adding complex
+        # wait/retry logic for rare edge cases, we fall through to sandbox
+        # creation.  The persistent volume guarantees file survival.
+        logger.warning(
+            "Sandbox %s is in state '%s' (transitional/unsupported) — "
+            "will create new sandbox",
+            sandbox_id,
+            state.value if hasattr(state, 'value') else state,
+        )
+        return False
+
     async def cleanup_daytona_sandbox(self, sandbox_id: str) -> None:
         """Delete Daytona sandbox (best-effort cleanup).
         
