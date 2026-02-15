@@ -1,6 +1,7 @@
 package executiontui
 
 import (
+	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -81,24 +82,36 @@ type Model struct {
 
 	// exitError holds the error message when the stream fails.
 	exitError string
+
+	// showHelp toggles the help overlay. When true, View() renders the
+	// help panel in place of the viewport content. Toggled by ? key.
+	showHelp bool
+
+	// spinner is the animated spinner displayed in the header during the
+	// "pending" phase. It signals that the TUI is alive while waiting for
+	// the agent to start.
+	spinner spinner.Model
 }
 
 // New creates a new execution TUI model with the given configuration.
 // The model is not usable until Init() is called by the Bubbletea runtime,
 // which starts the event listener.
 func New(cfg Config) Model {
+	s := spinner.New()
+	s.Spinner = spinner.Dot
 	return Model{
 		cfg:               cfg,
 		autoScroll:        true,
 		phase:             "pending",
 		focusedBlockIndex: -1,
+		spinner:           s,
 	}
 }
 
-// Init implements tea.Model. It returns the initial command that starts
-// listening for execution events on the configured channel.
+// Init implements tea.Model. It returns the initial commands that start
+// listening for execution events and animating the pending-phase spinner.
 func (m Model) Init() tea.Cmd {
-	return listenForEvents(m.cfg.Events)
+	return tea.Batch(listenForEvents(m.cfg.Events), m.spinner.Tick)
 }
 
 // FinalError returns the error message if the execution stream failed.

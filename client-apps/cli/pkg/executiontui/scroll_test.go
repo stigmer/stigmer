@@ -47,7 +47,7 @@ func TestBlockStartLine_MultilineBlock(t *testing.T) {
 func TestBlockStartLine_SkipsEmptyBlocks(t *testing.T) {
 	blocks := []contentBlock{
 		{content: "block A"},
-		{content: ""},           // empty — skipped in rendering
+		{content: ""}, // empty — skipped in rendering
 		{content: "block C"},
 	}
 
