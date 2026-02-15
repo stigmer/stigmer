@@ -145,4 +145,3 @@ func (m Model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 
 	return m, nil
 }
-
