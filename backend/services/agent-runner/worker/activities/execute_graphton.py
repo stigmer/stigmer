@@ -4,6 +4,7 @@ import asyncio
 import contextlib
 import os
 import time
+from pathlib import Path
 from typing import Any
 
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
@@ -130,6 +131,63 @@ def heartbeat_during_setup(phase_name: str, details: dict | None = None) -> None
         "setup_phase": phase_name,
         "details": details or {},
     })
+
+
+def _check_workspace_file_exists(
+    sandbox,
+    local_root: str | None,
+    workspace_root: str | None,
+    path: str,
+    logger,
+) -> bool:
+    """Check whether a workspace-relative file exists in the sandbox.
+
+    Used as a lightweight sentinel check on the resume fast-path to verify
+    that the persistent volume is mounted and prior files are intact.
+    Returns ``True`` when the file is confirmed present, ``False`` on any
+    error or absence.
+
+    Cloud mode:
+        Runs ``test -f <absolute_path>`` inside the sandbox via
+        ``sandbox.process.exec`` — the same mechanism used for sandbox
+        health checks.
+
+    Local mode:
+        Uses ``Path.exists()`` on the local filesystem.
+
+    If neither *sandbox* nor *local_root* is available, returns ``True``
+    (vacuously — there is nothing to check against).
+    """
+    if local_root:
+        full_path = Path(local_root) / path
+        exists = full_path.exists()
+        if not exists:
+            logger.warning(
+                "[workspace-check] Sentinel file missing on local filesystem: %s",
+                full_path,
+            )
+        return exists
+
+    if sandbox is not None:
+        abs_path = f"{workspace_root.rstrip('/')}/{path}" if workspace_root else f"/{path}"
+        try:
+            result = sandbox.process.exec(f"test -f {abs_path}", timeout=5)
+            if result.exit_code != 0:
+                logger.warning(
+                    "[workspace-check] Sentinel file missing in sandbox: %s "
+                    "(exit_code=%d)",
+                    abs_path,
+                    result.exit_code,
+                )
+            return result.exit_code == 0
+        except Exception as exc:
+            logger.warning(
+                "[workspace-check] File existence check failed: %s", exc,
+            )
+            return False
+
+    # Neither sandbox nor local_root — nothing to check against.
+    return True
 
 
 async def inject_attachments(
@@ -735,6 +793,22 @@ async def _execute_graphton_impl(
                     resolved_session_id,
                 )
         
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Workspace integrity flag (resume fast-path safety net)
+        #
+        # When resuming after approval, the fast-path skips skill/attachment
+        # writes on the assumption that files persist from the prior execution
+        # (backed by the Daytona Volume or local session directory).  Before
+        # entering the fast-path, we verify a single sentinel file exists.
+        # If the check fails (e.g. volume mount failure, data loss), we set
+        # this flag to False and fall back to a full setup — gracefully
+        # degrading rather than leaving the agent in an empty workspace.
+        #
+        # Initialised here so both Step 3 (skills) and Step 3.5 (attachments)
+        # can read it.
+        # ─────────────────────────────────────────────────────────────────────────────
+        workspace_files_intact = True
+
         # Step 3: Fetch and write skills (from agent template via references)
         # Following the Agent Skills spec progressive disclosure model:
         # - Skills are written to bin/skills/{name}/ in the sandbox
@@ -746,7 +820,9 @@ async def _execute_graphton_impl(
         # invocation.  We still fetch the Skill protos (lightweight gRPC)
         # to generate the system-prompt section, but skip the expensive
         # artifact download, sandbox write, diagnostic listing, and
-        # post-write verification steps.
+        # post-write verification steps.  A sentinel check (Step 2.75 above)
+        # gates the fast-path — if the check fails, we fall through to the
+        # full setup instead.
         setup_timer.start("skills")
         skills_prompt_section = ""
         skills = []  # List of Skill protos (populated if skill_refs exist)
@@ -764,7 +840,41 @@ async def _execute_graphton_impl(
                 )
                 skills = await skill_client.list_by_refs(list(skill_refs))
                 
-                if is_resume:
+                # ─── Step 2.75: Workspace integrity check (resume only) ───
+                # Before trusting the fast-path, verify a single sentinel
+                # file from the previous execution is still accessible.
+                # This validates the full chain: volume mounted → subpath
+                # correct → data intact.  One cheap I/O call.
+                if is_resume and skills:
+                    sentinel_paths = SkillWriter.compute_skill_paths(skills)
+                    first_skill_dir = next(iter(sentinel_paths.values()))
+                    sentinel = f"{first_skill_dir}/SKILL.md"
+                    workspace_files_intact = _check_workspace_file_exists(
+                        sandbox=sandbox,
+                        local_root=(
+                            sandbox_config.get("root_dir")
+                            if worker_config.is_local_mode()
+                            else None
+                        ),
+                        workspace_root=daytona_workspace_root,
+                        path=sentinel,
+                        logger=activity_logger,
+                    )
+                    if workspace_files_intact:
+                        activity_logger.info(
+                            "[RESUME] Workspace integrity verified "
+                            "(sentinel=%s) — volume-backed files intact",
+                            sentinel,
+                        )
+                    else:
+                        activity_logger.warning(
+                            "[RESUME] Workspace integrity check FAILED "
+                            "(sentinel=%s). Falling back to full "
+                            "skill/attachment setup.",
+                            sentinel,
+                        )
+
+                if is_resume and workspace_files_intact:
                     # ─── Resume fast path ─────────────────────────────────────
                     # Skills are already in the sandbox.  Compute paths
                     # deterministically (same logic as SkillWriter.write_skills)
@@ -772,11 +882,19 @@ async def _execute_graphton_impl(
                     skill_paths = SkillWriter.compute_skill_paths(skills)
                     skills_prompt_section = SkillWriter.generate_prompt_section(skills, skill_paths)
                     activity_logger.info(
-                        f"[RESUME] Skipped skill write — reusing {len(skills)} skills "
-                        f"already in sandbox: {[s.metadata.name for s in skills]}"
+                        "[RESUME] Skipped skill write — reusing %d skills "
+                        "already in sandbox: %s",
+                        len(skills),
+                        [s.metadata.name for s in skills],
                     )
                 else:
-                    # ─── Fresh execution path ─────────────────────────────────
+                    # ─── Fresh execution path (or resume fallback) ────────────
+                    if is_resume:
+                        activity_logger.warning(
+                            "[RESUME-FALLBACK] Re-writing %d skills to "
+                            "workspace (integrity check failed)",
+                            len(skills),
+                        )
                     # Download artifacts for skills that have storage keys
                     artifacts = {}
                     for skill in skills:
@@ -944,7 +1062,7 @@ async def _execute_graphton_impl(
         injected_files: list[dict] = []  # Track injected files for system prompt
         
         if attachments:
-            if is_resume:
+            if is_resume and workspace_files_intact:
                 # ─── Resume fast path ─────────────────────────────────────
                 # Attachments are already in the sandbox.  Reconstruct the
                 # metadata list for the system prompt without any I/O.
@@ -956,11 +1074,18 @@ async def _execute_graphton_impl(
                         "size": att.size_bytes,
                     })
                 activity_logger.info(
-                    f"[RESUME] Skipped attachment injection — reusing "
-                    f"{len(injected_files)} attachments already in sandbox"
+                    "[RESUME] Skipped attachment injection — reusing "
+                    "%d attachments already in sandbox",
+                    len(injected_files),
                 )
             else:
-                # ─── Fresh execution path ─────────────────────────────────
+                # ─── Fresh execution path (or resume fallback) ────────────
+                if is_resume:
+                    activity_logger.warning(
+                        "[RESUME-FALLBACK] Re-injecting %d attachments "
+                        "into workspace (integrity check failed)",
+                        len(attachments),
+                    )
                 activity_logger.info(
                     f"Processing {len(attachments)} attachments: "
                     f"{[a.filename for a in attachments]}"

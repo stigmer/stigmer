@@ -68,9 +68,52 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-15 18:35
-**Current Task**: T05 (Simplify Resume Fast-Path) or T06 (Testing)
-**Status**: T04 Complete ✅ (T01 ✅, T02 ✅, T04 ✅)
-**Last Session**: 2026-02-15 20:59 — Completed T04 (Workspace root volume mount alignment)
+**Current Task**: T06 (Testing)
+**Status**: T05 Complete ✅ (T01 ✅, T02 ✅, T03 ✅, T04 ✅, T05 ✅)
+**Last Session**: 2026-02-15 21:22 — Completed T05 (Resume workspace integrity check)
+
+## Session Progress (2026-02-15, Late Evening Session 2)
+
+### What Was Accomplished
+- ✅ **T05 Completed**: Resume fast-path workspace integrity check
+- Added `_check_workspace_file_exists()` helper function with dual mode support
+- Implemented sentinel check (Step 2.75) using first skill's `SKILL.md` as sentinel
+- Gated both skills and attachments fast-paths with `workspace_files_intact` flag
+- Added graceful degradation with `[RESUME-FALLBACK]` logging when check fails
+- Comprehensive design review and plan approval (collaborative decision on fallback strategy)
+
+### Key Decisions Made
+- **Single sentinel, not per-file**: One cheap I/O validates entire chain
+- **Skills-based sentinel**: Use first skill's `SKILL.md` (deterministic, always written first)
+- **One flag for both paths**: Volume failure affects both skills and attachments equally
+- **Graceful degradation**: Fall back to full setup with WARNING logs (user gets served, ops gets alerted)
+- **Both modes supported**: Local uses `Path.exists()`, cloud uses `sandbox.process.exec("test -f")`
+
+### Files Modified
+- `backend/services/agent-runner/worker/activities/execute_graphton.py` (+134, -9 lines)
+  - New import: `from pathlib import Path` at module level
+  - New function: `_check_workspace_file_exists()` (lines 136-190)
+  - Flag initialization: `workspace_files_intact = True` (line 810)
+  - Sentinel check block (lines 843-875, Step 2.75)
+  - Skills fast-path gate: `if is_resume and workspace_files_intact:` (line 877)
+  - Attachments fast-path gate: `if is_resume and workspace_files_intact:` (line 1065)
+  - Fallback logging in both else blocks
+
+### Committed
+- Changelog created: `_changelog/2026-02/2026-02-15-212202-resume-workspace-integrity-check.md`
+- Ready to commit
+
+## Next Steps
+
+1. **Commit T05 changes**: Ready to commit with conventional commit message
+2. **T06**: Testing — comprehensive validation after all implementation complete
+   - Test local mode: session-scoped directories created and reused
+   - Test Daytona mode: volume mounted, files persist, sentinel check works
+   - Test resume happy path: check passes, fast-path used
+   - Test resume fallback: check fails, full setup triggered, WARNING logged
+   - Test restart: stopped sandbox restarted successfully
+3. **T03**: Independent — already complete, can verify during T06
+4. **Project wrap-up**: After T06, create final session notes and update project README
 
 ## Session Progress (2026-02-15, Late Evening Session)
 
