@@ -11,11 +11,17 @@ import (
 // ExecuteGraphtonActivity is the interface for executing Graphton agents.
 //
 // This activity is implemented in Python (agent-runner) and:
-// 1. Fetches agent configuration via gRPC
-// 2. Creates Graphton agent at runtime using create_deep_agent()
-// 3. Invokes agent with thread_id for state persistence
-// 4. Builds status locally during execution (messages, tool_calls, phase)
-// 5. Returns final status to workflow for persistence
+// 1. Fetches AgentExecution from database via gRPC get(executionID)
+// 2. Fetches Agent configuration via gRPC chain resolution
+// 3. Creates Graphton agent at runtime using create_deep_agent()
+// 4. Invokes agent with thread_id for state persistence
+// 5. Builds status locally during execution (messages, tool_calls, phase)
+// 6. Returns final status to workflow for observability
+//
+// Slim-Payload Pattern:
+// The activity receives only an executionID (not the full AgentExecution proto)
+// and hydrates it from the database.  This keeps Temporal activity payloads
+// small and bounded, avoiding the ~2 MB payload limit as status grows.
 //
 // Polyglot Pattern:
 // - Python activity builds the status locally
@@ -26,14 +32,16 @@ import (
 type ExecuteGraphtonActivity interface {
 	// ExecuteGraphton executes a Graphton agent and returns final status.
 	//
-	// Polyglot workflow pattern: Python activity returns status,
-	// Go workflow orchestrates calling persistence activity.
+	// Polyglot workflow pattern: Python activity fetches execution from DB,
+	// returns status to Go workflow for orchestration.
 	//
-	// execution: The execution protobuf containing agent_id, message, etc.
+	// executionID: The AgentExecution ID to fetch and execute
 	// threadID: The LangGraph thread ID for conversation state persistence
+	// approvalDecisions: Approval decisions for HITL resume (nil on first invocation).
+	//   Each entry carries a tool_call_id, action, and optional comment.
 	//
 	// Returns: Final execution status with messages, tool_calls, phase, etc.
-	ExecuteGraphton(execution *agentexecutionv1.AgentExecution, threadID string) (*agentexecutionv1.AgentExecutionStatus, error)
+	ExecuteGraphton(executionID string, threadID string, approvalDecisions []*agentexecutionv1.SubmitApprovalInput) (*agentexecutionv1.AgentExecutionStatus, error)
 }
 
 // ExecuteGraphtonActivityName is the activity name used for registration.
@@ -57,7 +65,7 @@ func NewExecuteGraphtonActivityStub(ctx workflow.Context, taskQueue string) Exec
 	}
 
 	ctx = workflow.WithActivityOptions(ctx, options)
-	
+
 	return &executeGraphtonActivityStub{ctx: ctx}
 }
 
@@ -66,8 +74,8 @@ type executeGraphtonActivityStub struct {
 	ctx workflow.Context
 }
 
-func (s *executeGraphtonActivityStub) ExecuteGraphton(execution *agentexecutionv1.AgentExecution, threadID string) (*agentexecutionv1.AgentExecutionStatus, error) {
+func (s *executeGraphtonActivityStub) ExecuteGraphton(executionID string, threadID string, approvalDecisions []*agentexecutionv1.SubmitApprovalInput) (*agentexecutionv1.AgentExecutionStatus, error) {
 	var result *agentexecutionv1.AgentExecutionStatus
-	err := workflow.ExecuteActivity(s.ctx, ExecuteGraphtonActivityName, execution, threadID).Get(s.ctx, &result)
+	err := workflow.ExecuteActivity(s.ctx, ExecuteGraphtonActivityName, executionID, threadID, approvalDecisions).Get(s.ctx, &result)
 	return result, err
 }

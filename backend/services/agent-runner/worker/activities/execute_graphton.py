@@ -16,6 +16,7 @@ from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ExecutionPhase,
     ToolCallStatus,
 )
+from ai.stigmer.agentic.agentexecution.v1.io_pb2 import SubmitApprovalInput
 from graphton import SummarizationConfig, create_deep_agent
 from graphton.core import ModelRegistry
 from temporalio import activity
@@ -226,39 +227,51 @@ async def inject_attachments(
 
 
 @activity.defn(name="ExecuteGraphton")
-async def execute_graphton(execution: AgentExecution, thread_id: str) -> AgentExecutionStatus:
+async def execute_graphton(
+    execution_id: str,
+    thread_id: str,
+    approval_decisions: list[SubmitApprovalInput] | None = None,
+) -> AgentExecutionStatus:
     """
     Execute Graphton agent and return final status.
     
+    Slim-Payload Pattern:
+    The activity receives only an execution_id (not the full AgentExecution proto)
+    and hydrates the execution from the database via gRPC.  This keeps Temporal
+    activity payloads small and bounded, avoiding the ~2 MB payload limit that
+    can be hit when status.tool_calls / status.messages accumulate.
+    
     Polyglot Workflow Pattern:
-    1. Fetches Agent configuration via gRPC
-    2. Creates Graphton agent at runtime
-    3. Creates/reuses Daytona sandbox
-    4. Executes agent and builds status locally
-    5. Returns final status to workflow (workflow persists via Java activity)
+    1. Fetches AgentExecution via gRPC get(execution_id)
+    2. Fetches Agent configuration via gRPC chain resolution
+    3. Creates Graphton agent at runtime
+    4. Creates/reuses Daytona sandbox
+    5. Executes agent and builds status locally
+    6. Returns final status to workflow
     
     Args:
-        execution: The AgentExecution protobuf
+        execution_id: The AgentExecution ID to fetch and execute
         thread_id: LangGraph thread ID for state persistence
+        approval_decisions: Approval decisions for HITL resume (empty/None on first invocation).
+            Each entry carries a tool_call_id, action (APPROVE/SKIP/REJECT), and optional comment.
+            The activity correlates these with pending_approvals from the fetched execution to
+            build the LangGraph Command(resume=...) dict.
         
     Returns:
         AgentExecutionStatus: Final status with messages, tool_calls, phase
     """
-    
-    execution_id = execution.metadata.id
-    agent_id = execution.spec.agent_id
-    user_message = execution.spec.message
-    session_id_from_spec = execution.spec.session_id
-    
     activity_logger = activity.logger
     activity_logger.info(f"ExecuteGraphton started for execution: {execution_id}")
+    
+    # Normalise approval_decisions: callers may pass None or an empty list
+    if not approval_decisions:
+        approval_decisions = []
     
     # Top-level error handler for system errors (e.g., activity not registered, connection failures)
     # This catches errors that occur before the main try block or during initialization
     try:
         return await _execute_graphton_impl(
-            execution, thread_id, execution_id, agent_id, user_message, 
-            session_id_from_spec, activity_logger
+            execution_id, thread_id, approval_decisions, activity_logger
         )
     except Exception as system_error:
         activity_logger.error(f"❌ SYSTEM ERROR in ExecuteGraphton for {execution_id}: {system_error}")
@@ -302,13 +315,10 @@ async def execute_graphton(execution: AgentExecution, thread_id: str) -> AgentEx
 
 
 async def _execute_graphton_impl(
-    execution: AgentExecution, 
-    thread_id: str, 
-    execution_id: str, 
-    agent_id: str, 
-    user_message: str, 
-    session_id_from_spec: str,
-    activity_logger
+    execution_id: str,
+    thread_id: str,
+    approval_decisions: list[SubmitApprovalInput],
+    activity_logger,
 ) -> AgentExecutionStatus:
     """
     Internal implementation of execute_graphton with existing error handling.
@@ -361,11 +371,6 @@ async def _execute_graphton_impl(
             f"First attempt (attempt={attempt}): using thread_id={thread_id}"
         )
     
-    activity_logger.info(
-        f"Execution parameters: agent_id={agent_id}, "
-        f"session_id='{session_id_from_spec}' (empty={not session_id_from_spec})"
-    )
-    
     # Get API key (for gRPC calls to Stigmer backend)
     api_key = get_api_key()
     if not api_key:
@@ -376,6 +381,32 @@ async def _execute_graphton_impl(
     agent_instance_client = AgentInstanceClient(api_key)
     agent_client = AgentClient(api_key)
     execution_client = AgentExecutionClient(api_key)
+    
+    # ─────────────────────────────────────────────────────────────────────────────
+    # Step 0: Hydrate AgentExecution from database via gRPC
+    #
+    # Instead of receiving the full AgentExecution proto through Temporal (which
+    # can exceed the ~2 MB payload limit as status.tool_calls/messages grow),
+    # we fetch it from the database.  The DB always has the latest persisted
+    # state because the activity sends progressive gRPC status updates during
+    # execution.
+    # ─────────────────────────────────────────────────────────────────────────────
+    activity_logger.info(f"Fetching execution {execution_id} from database via gRPC")
+    execution = await execution_client.get(execution_id)
+    
+    agent_id = execution.spec.agent_id
+    user_message = execution.spec.message
+    session_id_from_spec = execution.spec.session_id
+    
+    activity_logger.info(
+        f"Execution parameters: agent_id={agent_id}, "
+        f"session_id='{session_id_from_spec}' (empty={not session_id_from_spec})"
+    )
+    
+    heartbeat_during_setup("execution_fetch", {
+        "execution_id": execution_id,
+        "agent_id": agent_id,
+    })
     
     # Initialize retry executor for reliable final status updates
     # Uses exponential backoff (1s, 2s, 4s) with max 3 attempts
@@ -1283,9 +1314,12 @@ async def _execute_graphton_impl(
         # ─────────────────────────────────────────────────────────────────────────────
         # Step 7.5: Check for Resume from HITL Approval (Batch Approval)
         #
-        # If the execution was previously interrupted for approval
-        # (WAITING_FOR_APPROVAL) and decisions have been submitted, we resume the
-        # graph with those decisions.
+        # If the workflow passed approval_decisions, it means the execution was
+        # previously interrupted for approval (WAITING_FOR_APPROVAL) and the user
+        # has submitted decisions.  We correlate the decisions (passed as activity
+        # args — small, bounded) with pending_approvals from the DB-fetched
+        # execution status (which has interrupt_ids) to build the LangGraph
+        # Command(resume={id_A: decision_A, ...}) dict.
         #
         # With **Batch Approval**, the LLM may have issued N tool calls that each
         # required approval.  All N decisions are collected before the Temporal
@@ -1306,33 +1340,41 @@ async def _execute_graphton_impl(
             ApprovalAction.APPROVAL_ACTION_REJECT: "reject",
         }
         
-        # --- Batch path (preferred): pending_approvals with interrupt_ids --------
-        if len(execution.status.pending_approvals) > 0:
+        # --- Build resume dict from approval_decisions + pending_approvals -------
+        #
+        # approval_decisions: passed by the workflow as activity args (small payload)
+        #   Each SubmitApprovalInput has: tool_call_id, action, comment
+        #
+        # pending_approvals: fetched from the DB-persisted execution status
+        #   Each PendingApproval has: tool_call_id, interrupt_id, tool_name, ...
+        #
+        # We join on tool_call_id to pair each decision with its interrupt_id.
+        if approval_decisions:
+            # Index decisions by tool_call_id for O(1) lookup
+            decisions_by_tool_call: dict[str, SubmitApprovalInput] = {
+                d.tool_call_id: d for d in approval_decisions
+            }
+            
+            pending_approvals = list(execution.status.pending_approvals)
             resume_dict: dict[str, dict[str, str]] = {}
             
-            for pa in execution.status.pending_approvals:
-                # Look up the tool call's decision
-                approval_action = ApprovalAction.APPROVAL_ACTION_UNSPECIFIED
-                approved_by = ""
-                for tc in execution.status.tool_calls:
-                    if tc.id == pa.tool_call_id:
-                        approval_action = tc.approval_action
-                        approved_by = tc.approved_by
-                        break
-                
-                if approval_action == ApprovalAction.APPROVAL_ACTION_UNSPECIFIED:
-                    # Not all decisions have been submitted — this shouldn't
-                    # happen because the workflow only resumes when all are
-                    # decided, but handle gracefully.
+            for pa in pending_approvals:
+                decision = decisions_by_tool_call.get(pa.tool_call_id)
+                if not decision:
+                    # No decision for this pending approval — shouldn't happen
+                    # because the workflow collects all signals before re-invoking,
+                    # but handle gracefully.
                     activity_logger.warning(
                         f"⚠️ pending_approvals entry tool_call_id={pa.tool_call_id} "
-                        f"has no decision yet. Skipping batch resume."
+                        f"has no matching approval_decision. Skipping batch resume."
                     )
                     resume_dict = {}
                     break
                 
-                action_str = _action_map.get(approval_action, "unknown")
-                decision_value = {"action": action_str, "approved_by": approved_by}
+                action_str = _action_map.get(decision.action, "unknown")
+                decision_value = {"action": action_str}
+                if decision.comment:
+                    decision_value["comment"] = decision.comment
                 
                 if pa.interrupt_id:
                     # Batch path: map interrupt_id → decision
