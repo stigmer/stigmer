@@ -1179,11 +1179,6 @@ async def _execute_graphton_impl(
         #   Command(resume={id_A: decision_A, id_B: decision_B, ...})
         # so the graph processes every interrupt in one re-execution of the
         # tools node — avoiding repeated node re-runs and idempotency issues.
-        #
-        # Backward compatibility: if only the singular pending_approval is set
-        # (legacy path — no interrupt_id), we fall back to the original
-        #   Command(resume=single_decision)
-        # which works when there is exactly one pending interrupt.
         # ─────────────────────────────────────────────────────────────────────────────
         
         resume_decision: dict[str, Any] | None = None
@@ -1247,47 +1242,6 @@ async def _execute_graphton_impl(
                         f"interrupt_id={iid} action={d['action']}"
                         for iid, d in resume_dict.items()
                     )
-                )
-        
-        # --- Legacy path: singular pending_approval (no interrupt_id) ------------
-        if not is_resume_from_approval and execution.status.pending_approval.tool_call_id:
-            pending_tool_call_id = execution.status.pending_approval.tool_call_id
-            activity_logger.info(
-                f"Detected legacy pending approval for tool_call_id={pending_tool_call_id}"
-            )
-            
-            approval_action = ApprovalAction.APPROVAL_ACTION_UNSPECIFIED
-            approved_by = ""
-            
-            for tool_call in execution.status.tool_calls:
-                if tool_call.id == pending_tool_call_id:
-                    approval_action = tool_call.approval_action
-                    approved_by = tool_call.approved_by
-                    break
-            
-            if approval_action != ApprovalAction.APPROVAL_ACTION_UNSPECIFIED:
-                is_resume_from_approval = True
-                action_str = _action_map.get(approval_action, "unknown")
-                
-                # If interrupt_id is available, use the dict form; otherwise bare value
-                interrupt_id = execution.status.pending_approval.interrupt_id
-                decision_value = {"action": action_str, "approved_by": approved_by}
-                
-                if interrupt_id:
-                    resume_decision = {interrupt_id: decision_value}
-                else:
-                    resume_decision = decision_value
-                
-                activity_logger.info(
-                    f"🔄 Resuming from legacy approval: tool_call_id={pending_tool_call_id}, "
-                    f"action={action_str}, approved_by={approved_by}, "
-                    f"interrupt_id={'(set)' if interrupt_id else '(none)'}"
-                )
-            else:
-                activity_logger.warning(
-                    f"⚠️ Pending approval found but no decision set for "
-                    f"tool_call_id={pending_tool_call_id}. "
-                    "This may indicate a workflow timing issue. Proceeding with fresh execution."
                 )
         
         # Step 8: Set phase to IN_PROGRESS (status built locally)
@@ -1580,9 +1534,6 @@ async def _execute_graphton_impl(
         # LangGraph-assigned interrupt_id.  This enables the resume logic to
         # construct Command(resume={id_A: decision_A, ...}) which LangGraph
         # requires when multiple interrupts coexist.
-        #
-        # The singular pending_approval field is also set (first entry) for
-        # backward compatibility with older CLI versions.
         # ─────────────────────────────────────────────────────────────────────────────
         if status_builder.current_status.phase == ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL:
             try:
@@ -1634,9 +1585,6 @@ async def _execute_graphton_impl(
                         del status_builder.current_status.pending_approvals[:]
                         status_builder.current_status.pending_approvals.extend(pending_approvals)
                         
-                        # Backward compat: set the singular field to the first entry
-                        status_builder.current_status.pending_approval.CopyFrom(pending_approvals[0])
-                        
                         activity_logger.info(
                             f"[INTERRUPT_CAPTURE] execution={execution_id} "
                             f"captured {len(pending_approvals)} pending interrupt(s): "
@@ -1648,17 +1596,16 @@ async def _execute_graphton_impl(
                 else:
                     activity_logger.debug(
                         f"[INTERRUPT_CAPTURE] execution={execution_id} "
-                        f"WAITING_FOR_APPROVAL phase but no interrupts in graph state. "
-                        f"Falling back to status_builder's pending_approval."
+                        f"WAITING_FOR_APPROVAL phase but no interrupts in graph state."
                     )
             except Exception as capture_err:
-                # Non-fatal: if we can't capture interrupt IDs, fall back to the
-                # status_builder's existing pending_approval (which may lack
-                # interrupt_id but will still work for single-interrupt scenarios).
+                # Non-fatal: if we can't capture interrupt IDs, the existing
+                # pending_approvals from the status_builder will be used (they
+                # may lack interrupt_id but will still work for single-interrupt
+                # scenarios).
                 activity_logger.warning(
                     f"[INTERRUPT_CAPTURE] execution={execution_id} "
-                    f"failed to capture interrupt IDs from graph state: {capture_err}. "
-                    f"Falling back to status_builder's pending_approval."
+                    f"failed to capture interrupt IDs from graph state: {capture_err}."
                 )
         
         # Determine final phase based on current state.

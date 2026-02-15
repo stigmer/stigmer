@@ -129,38 +129,12 @@ message AgentExecutionStatus {
   ResolvedExecutionContext resolved_context = 12;
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Pending Approval (HITL Phase 1)
+  // Pending Approvals (HITL — Batch Approval)
   //
-  // When phase == EXECUTION_WAITING_FOR_APPROVAL, this field contains
-  // details about the tool call awaiting user decision.
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  // Current pending approval request, if any.
-  //
-  // DEPRECATED: Use pending_approvals (field 16) for new code. This singular
-  // field is kept for backward compatibility with clients that expect at most
-  // one pending approval. When pending_approvals is populated, this field
-  // mirrors the first entry in that list.
-  //
-  // Lifecycle:
-  // 1. Populated when a tool with requires_approval=true is about to execute
-  // 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
-  // 3. User submits decision via SubmitApproval RPC
-  // 4. Field is cleared, phase returns to EXECUTION_IN_PROGRESS
-  //
-  // When populated:
-  // - tool_call_id matches one entry in tool_calls[] with status WAITING_APPROVAL
-  // - UI should display approval dialog with message and args_preview
-  // - User must call SubmitApproval to continue execution
-  PendingApproval pending_approval = 13;
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Pending Approvals — Batch (Multiple Interrupts)
-  //
-  // When the LLM returns multiple tool calls that each require approval in a
-  // single response, LangGraph creates one interrupt per tool. All pending
-  // interrupts are surfaced here so the UI can collect decisions for every
-  // tool before the graph is resumed.
+  // When the LLM returns one or more tool calls that each require approval,
+  // LangGraph creates one interrupt per tool. All pending interrupts are
+  // surfaced here so the UI can collect decisions for every tool before the
+  // graph is resumed.
   //
   // The agent-runner resumes the graph with a single
   //   Command(resume={interrupt_id_A: decision_A, interrupt_id_B: decision_B, ...})
@@ -182,11 +156,8 @@ message AgentExecutionStatus {
   // - Each entry's tool_call_id matches an entry in tool_calls[] with status
   //   WAITING_APPROVAL
   // - Each entry carries its interrupt_id for targeted resume
-  // - The singular pending_approval field mirrors the first entry
   //
-  // Empty when no approvals are pending or for legacy single-interrupt flows.
-  //
-  // @since Batch Approval (Multiple Interrupts)
+  // Empty when no approvals are pending.
   repeated PendingApproval pending_approvals = 16;
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -986,9 +957,10 @@ message PendingApproval {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Child Approval Notification (HITL Phase 5.1)
+// Child Approval Notification (HITL Phase 5.1 — Batch)
 //
 // Signal payload for events-based approval propagation to parent workflows.
+// Carries ALL pending approvals from a single child agent in one signal.
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ChildApprovalNotification is the signal payload sent to parent workflows
@@ -1005,14 +977,14 @@ message PendingApproval {
 // 3. Java sends Temporal signal "child_approval_required" to parent workflow
 // 4. Parent Go workflow receives signal via signal channel
 // 5. Parent updates task status to WORKFLOW_TASK_WAITING_APPROVAL
-// 6. Parent populates WorkflowExecution.status.pending_approval
+// 6. Parent populates WorkflowExecution.status.pending_approvals
 //
 // ## Parent Workflow Actions
 //
 // Upon receiving this signal, the parent workflow should:
 // 1. Update its task status to WORKFLOW_TASK_WAITING_APPROVAL
-// 2. Populate WorkflowExecution.status.pending_approval with these details
-// 3. Surface the approval request to users via UI/API
+// 2. Populate WorkflowExecution.status.pending_approvals with all entries
+// 3. Surface the approval requests to users via UI/API
 //
 // ## Graceful Degradation
 //
@@ -1027,28 +999,15 @@ message ChildApprovalNotification {
   // Used by parent to track which child needs approval.
   string execution_id = 1;
 
-  // Tool call ID that needs approval (for correlation).
-  // Matches PendingApproval.tool_call_id in the child execution.
-  // Format: Tool call ID from the agent runtime (e.g., "call_abc123")
-  string tool_call_id = 2;
-
-  // Name of the tool requiring approval.
-  // Matches PendingApproval.tool_name for display purposes.
-  // Example: "delete_repository", "send_email", "execute_sql"
-  string tool_name = 3;
-
-  // Human-readable approval message for display.
-  // Copied from PendingApproval.message for UI convenience.
-  // Contains resolved placeholders (e.g., "Delete repo: my-repo")
-  string message = 4;
-
-  // Sanitized preview of tool arguments.
-  // Copied from PendingApproval.args_preview for informed decision-making.
-  // Sensitive values are already redacted.
-  string args_preview = 5;
-
-  // ISO 8601 timestamp when approval was requested.
-  // Copied from PendingApproval.requested_at.
-  // Example: "2026-01-30T15:30:00Z"
-  string requested_at = 6;
+  // All pending approvals from this child agent execution.
+  //
+  // Contains one entry per tool call requiring approval. Each entry carries
+  // the full PendingApproval details (tool_call_id, tool_name, message,
+  // args_preview, requested_at, interrupt_id).
+  //
+  // The child_agent_execution_id on each entry is set to execution_id above
+  // so the parent can correlate approvals to the originating child.
+  //
+  // One signal, complete picture, no partial states.
+  repeated PendingApproval pending_approvals = 2;
 }

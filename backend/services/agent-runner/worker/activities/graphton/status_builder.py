@@ -172,15 +172,7 @@ class StatusBuilder:
         # response, LangGraph creates one interrupt per tool.  We track ALL of
         # them so the post-stream interrupt-capture logic can match each
         # interrupt to its tool call.
-        #
-        # The singular _pending_tool_approval is preserved for backward
-        # compatibility with clear_pending_approval() and legacy callers.
         # ─────────────────────────────────────────────────────────────────────────
-        
-        # run_id of the tool call currently pending approval (None if not waiting).
-        # When multiple approvals are pending, this holds the LAST one added
-        # (for backward compat with callers that expect a single value).
-        self._pending_tool_approval: str | None = None
         
         # Ordered list of ALL run_ids currently pending approval.
         self._pending_tool_approvals: list[str] = []
@@ -962,18 +954,14 @@ class StatusBuilder:
             sub_agent_name=sub_agent_name,
         )
         
-        # Backward compat: singular field always mirrors the latest entry
-        self.current_status.pending_approval.CopyFrom(pending)
-        
         # Save current phase (only on the FIRST pending approval) and
         # transition to WAITING_FOR_APPROVAL
         if self._saved_phase_before_approval is None:
             self._saved_phase_before_approval = self.current_status.phase
         self.current_status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
         
-        # Track pending approval state (list + singular)
+        # Track pending approval state
         self._pending_tool_approvals.append(run_id)
-        self._pending_tool_approval = run_id
         
         context_info = f"sub_agent={sub_agent_name}" if from_sub_agent else "main_agent"
         pending_count = len(self._pending_tool_approvals)
@@ -1073,8 +1061,6 @@ class StatusBuilder:
             
             # Clear ALL pending state and set phase to FAILED
             self._pending_tool_approvals.clear()
-            self._pending_tool_approval = None
-            self.current_status.pending_approval.Clear()
             del self.current_status.pending_approvals[:]
             self.current_status.phase = ExecutionPhase.EXECUTION_FAILED
             self.current_status.error = f"Tool '{tool_call.name}' execution rejected by {approved_by}"
@@ -1101,12 +1087,6 @@ class StatusBuilder:
         if not self._pending_tool_approvals:
             # All pending approvals have been decided — clear state
             self.clear_pending_approval()
-        else:
-            # Other approvals still pending; keep WAITING_FOR_APPROVAL phase.
-            # Update the singular pending_approval to reflect the next
-            # unresolved entry (if any).  The authoritative list is
-            # pending_approvals (populated post-stream).
-            self._pending_tool_approval = self._pending_tool_approvals[0] if self._pending_tool_approvals else None
     
     def clear_pending_approval(self) -> None:
         """
@@ -1116,9 +1096,7 @@ class StatusBuilder:
         to clean up state.  Restores the execution phase to what it was before
         entering WAITING_FOR_APPROVAL (typically IN_PROGRESS).
         """
-        self._pending_tool_approval = None
         self._pending_tool_approvals.clear()
-        self.current_status.pending_approval.Clear()
         del self.current_status.pending_approvals[:]
         
         # Restore phase (default to IN_PROGRESS if not saved)
@@ -1176,7 +1154,7 @@ class StatusBuilder:
         sub_agent_name: str = "",
     ) -> None:
         """
-        Populate pending_approval field and update execution phase.
+        Populate pending approval tracking and update execution phase.
         
         This is called after the ToolCall has already been created with
         WAITING_APPROVAL status. It handles the execution-level state updates.
@@ -1192,36 +1170,12 @@ class StatusBuilder:
             from_sub_agent: True if this approval bubbles up from a sub-agent
             sub_agent_name: Name of the sub-agent (when from_sub_agent=True)
         """
-        if self._pending_tool_approval is not None:
-            self.logger.warning(
-                f"[APPROVAL] execution={self.execution_id} "
-                f"overwriting pending approval {self._pending_tool_approval} with {run_id}"
-            )
-        
-        now = datetime.utcnow()
-        timestamp = _utc_timestamp(now)
-        
-        # Create args preview (sanitized JSON for UI display)
-        args_preview = self._create_args_preview(tool_args)
-        
-        # Populate pending_approval for UI consumption
-        pending = PendingApproval(
-            tool_call_id=run_id,
-            tool_name=tool_name,
-            message=approval_message,
-            args_preview=args_preview,
-            requested_at=timestamp,
-            from_sub_agent=from_sub_agent,
-            sub_agent_name=sub_agent_name,
-        )
-        self.current_status.pending_approval.CopyFrom(pending)
-        
         # Save current phase and transition to WAITING_FOR_APPROVAL
         self._saved_phase_before_approval = self.current_status.phase
         self.current_status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
         
         # Track pending approval state
-        self._pending_tool_approval = run_id
+        self._pending_tool_approvals.append(run_id)
         
         context_info = f"sub_agent={sub_agent_name}" if from_sub_agent else "main_agent"
         self.logger.info(

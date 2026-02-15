@@ -267,24 +267,6 @@ type AgentExecutionStatus struct {
 	// Populated once before streaming begins, after all resources are resolved.
 	// Immutable after initial population - represents the "snapshot" of resolved state.
 	ResolvedContext *ResolvedExecutionContext `protobuf:"bytes,12,opt,name=resolved_context,json=resolvedContext,proto3" json:"resolved_context,omitempty"`
-	// Current pending approval request, if any.
-	//
-	// DEPRECATED: Use pending_approvals (field 16) for new code. This singular
-	// field is kept for backward compatibility with clients that expect at most
-	// one pending approval. When pending_approvals is populated, this field
-	// mirrors the first entry in that list.
-	//
-	// Lifecycle:
-	// 1. Populated when a tool with requires_approval=true is about to execute
-	// 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
-	// 3. User submits decision via SubmitApproval RPC
-	// 4. Field is cleared, phase returns to EXECUTION_IN_PROGRESS
-	//
-	// When populated:
-	// - tool_call_id matches one entry in tool_calls[] with status WAITING_APPROVAL
-	// - UI should display approval dialog with message and args_preview
-	// - User must call SubmitApproval to continue execution
-	PendingApproval *PendingApproval `protobuf:"bytes,13,opt,name=pending_approval,json=pendingApproval,proto3" json:"pending_approval,omitempty"`
 	// All pending approval requests for this execution.
 	//
 	// Lifecycle:
@@ -299,11 +281,8 @@ type AgentExecutionStatus struct {
 	//   - Each entry's tool_call_id matches an entry in tool_calls[] with status
 	//     WAITING_APPROVAL
 	//   - Each entry carries its interrupt_id for targeted resume
-	//   - The singular pending_approval field mirrors the first entry
 	//
-	// Empty when no approvals are pending or for legacy single-interrupt flows.
-	//
-	// @since Batch Approval (Multiple Interrupts)
+	// Empty when no approvals are pending.
 	PendingApprovals []*PendingApproval `protobuf:"bytes,16,rep,name=pending_approvals,json=pendingApprovals,proto3" json:"pending_approvals,omitempty"`
 	// Context window utilization and summarization tracking.
 	//
@@ -448,13 +427,6 @@ func (x *AgentExecutionStatus) GetUsage() *UsageMetrics {
 func (x *AgentExecutionStatus) GetResolvedContext() *ResolvedExecutionContext {
 	if x != nil {
 		return x.ResolvedContext
-	}
-	return nil
-}
-
-func (x *AgentExecutionStatus) GetPendingApproval() *PendingApproval {
-	if x != nil {
-		return x.PendingApproval
 	}
 	return nil
 }
@@ -2083,14 +2055,14 @@ func (x *PendingApproval) GetInterruptId() string {
 // 3. Java sends Temporal signal "child_approval_required" to parent workflow
 // 4. Parent Go workflow receives signal via signal channel
 // 5. Parent updates task status to WORKFLOW_TASK_WAITING_APPROVAL
-// 6. Parent populates WorkflowExecution.status.pending_approval
+// 6. Parent populates WorkflowExecution.status.pending_approvals
 //
 // ## Parent Workflow Actions
 //
 // Upon receiving this signal, the parent workflow should:
 // 1. Update its task status to WORKFLOW_TASK_WAITING_APPROVAL
-// 2. Populate WorkflowExecution.status.pending_approval with these details
-// 3. Surface the approval request to users via UI/API
+// 2. Populate WorkflowExecution.status.pending_approvals with all entries
+// 3. Surface the approval requests to users via UI/API
 //
 // ## Graceful Degradation
 //
@@ -2105,28 +2077,19 @@ type ChildApprovalNotification struct {
 	// Format: AgentExecution.metadata.id (e.g., "agx-abc123xyz456")
 	// Used by parent to track which child needs approval.
 	ExecutionId string `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
-	// Tool call ID that needs approval (for correlation).
-	// Matches PendingApproval.tool_call_id in the child execution.
-	// Format: Tool call ID from the agent runtime (e.g., "call_abc123")
-	ToolCallId string `protobuf:"bytes,2,opt,name=tool_call_id,json=toolCallId,proto3" json:"tool_call_id,omitempty"`
-	// Name of the tool requiring approval.
-	// Matches PendingApproval.tool_name for display purposes.
-	// Example: "delete_repository", "send_email", "execute_sql"
-	ToolName string `protobuf:"bytes,3,opt,name=tool_name,json=toolName,proto3" json:"tool_name,omitempty"`
-	// Human-readable approval message for display.
-	// Copied from PendingApproval.message for UI convenience.
-	// Contains resolved placeholders (e.g., "Delete repo: my-repo")
-	Message string `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
-	// Sanitized preview of tool arguments.
-	// Copied from PendingApproval.args_preview for informed decision-making.
-	// Sensitive values are already redacted.
-	ArgsPreview string `protobuf:"bytes,5,opt,name=args_preview,json=argsPreview,proto3" json:"args_preview,omitempty"`
-	// ISO 8601 timestamp when approval was requested.
-	// Copied from PendingApproval.requested_at.
-	// Example: "2026-01-30T15:30:00Z"
-	RequestedAt   string `protobuf:"bytes,6,opt,name=requested_at,json=requestedAt,proto3" json:"requested_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// All pending approvals from this child agent execution.
+	//
+	// Contains one entry per tool call requiring approval. Each entry carries
+	// the full PendingApproval details (tool_call_id, tool_name, message,
+	// args_preview, requested_at, interrupt_id).
+	//
+	// The child_agent_execution_id on each entry is set to execution_id above
+	// so the parent can correlate approvals to the originating child.
+	//
+	// One signal, complete picture, no partial states.
+	PendingApprovals []*PendingApproval `protobuf:"bytes,2,rep,name=pending_approvals,json=pendingApprovals,proto3" json:"pending_approvals,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ChildApprovalNotification) Reset() {
@@ -2166,39 +2129,11 @@ func (x *ChildApprovalNotification) GetExecutionId() string {
 	return ""
 }
 
-func (x *ChildApprovalNotification) GetToolCallId() string {
+func (x *ChildApprovalNotification) GetPendingApprovals() []*PendingApproval {
 	if x != nil {
-		return x.ToolCallId
+		return x.PendingApprovals
 	}
-	return ""
-}
-
-func (x *ChildApprovalNotification) GetToolName() string {
-	if x != nil {
-		return x.ToolName
-	}
-	return ""
-}
-
-func (x *ChildApprovalNotification) GetMessage() string {
-	if x != nil {
-		return x.Message
-	}
-	return ""
-}
-
-func (x *ChildApprovalNotification) GetArgsPreview() string {
-	if x != nil {
-		return x.ArgsPreview
-	}
-	return ""
-}
-
-func (x *ChildApprovalNotification) GetRequestedAt() string {
-	if x != nil {
-		return x.RequestedAt
-	}
-	return ""
+	return nil
 }
 
 var File_ai_stigmer_agentic_agentexecution_v1_api_proto protoreflect.FileDescriptor
@@ -2214,8 +2149,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x0eAgentExecutionR\x04kind\x12W\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12L\n" +
 	"\x04spec\x18\x04 \x01(\v28.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpecR\x04spec\x12R\n" +
-	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusR\x06status\"\xac\n" +
-	"\n" +
+	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusR\x06status\"\xca\t\n" +
 	"\x14AgentExecutionStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12N\n" +
 	"\bmessages\x18\x01 \x03(\v22.ai.stigmer.agentic.agentexecution.v1.AgentMessageR\bmessages\x12T\n" +
@@ -2231,8 +2165,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x0ecallback_token\x18\n" +
 	" \x01(\fR\rcallbackToken\x12H\n" +
 	"\x05usage\x18\v \x01(\v22.ai.stigmer.agentic.agentexecution.v1.UsageMetricsR\x05usage\x12i\n" +
-	"\x10resolved_context\x18\f \x01(\v2>.ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContextR\x0fresolvedContext\x12`\n" +
-	"\x10pending_approval\x18\r \x01(\v25.ai.stigmer.agentic.agentexecution.v1.PendingApprovalR\x0fpendingApproval\x12b\n" +
+	"\x10resolved_context\x18\f \x01(\v2>.ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContextR\x0fresolvedContext\x12b\n" +
 	"\x11pending_approvals\x18\x10 \x03(\v25.ai.stigmer.agentic.agentexecution.v1.PendingApprovalR\x10pendingApprovals\x12T\n" +
 	"\fcontext_info\x18\x0e \x01(\v21.ai.stigmer.agentic.agentexecution.v1.ContextInfoR\vcontextInfo\x12U\n" +
 	"\tartifacts\x18\x0f \x03(\v27.ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactR\tartifacts\x1ah\n" +
@@ -2360,15 +2293,10 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x0efrom_sub_agent\x18\x06 \x01(\bR\ffromSubAgent\x12$\n" +
 	"\x0esub_agent_name\x18\a \x01(\tR\fsubAgentName\x127\n" +
 	"\x18child_agent_execution_id\x18\b \x01(\tR\x15childAgentExecutionId\x12!\n" +
-	"\finterrupt_id\x18\t \x01(\tR\vinterruptId\"\xdd\x01\n" +
+	"\finterrupt_id\x18\t \x01(\tR\vinterruptId\"\xa2\x01\n" +
 	"\x19ChildApprovalNotification\x12!\n" +
-	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\x12 \n" +
-	"\ftool_call_id\x18\x02 \x01(\tR\n" +
-	"toolCallId\x12\x1b\n" +
-	"\ttool_name\x18\x03 \x01(\tR\btoolName\x12\x18\n" +
-	"\amessage\x18\x04 \x01(\tR\amessage\x12!\n" +
-	"\fargs_preview\x18\x05 \x01(\tR\vargsPreview\x12!\n" +
-	"\frequested_at\x18\x06 \x01(\tR\vrequestedAt*\x84\x01\n" +
+	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\x12b\n" +
+	"\x11pending_approvals\x18\x02 \x03(\v25.ai.stigmer.agentic.agentexecution.v1.PendingApprovalR\x10pendingApprovals*\x84\x01\n" +
 	"\x0eApprovalAction\x12\x1f\n" +
 	"\x1bAPPROVAL_ACTION_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17APPROVAL_ACTION_APPROVE\x10\x01\x12\x18\n" +
@@ -2432,27 +2360,27 @@ var file_ai_stigmer_agentic_agentexecution_v1_api_proto_depIdxs = []int32{
 	16, // 8: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.todos:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry
 	8,  // 9: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.usage:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageMetrics
 	9,  // 10: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.resolved_context:type_name -> ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext
-	14, // 11: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.pending_approval:type_name -> ai.stigmer.agentic.agentexecution.v1.PendingApproval
-	14, // 12: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.pending_approvals:type_name -> ai.stigmer.agentic.agentexecution.v1.PendingApproval
-	12, // 13: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.context_info:type_name -> ai.stigmer.agentic.agentexecution.v1.ContextInfo
-	13, // 14: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.artifacts:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact
-	22, // 15: ai.stigmer.agentic.agentexecution.v1.TodoItem.status:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoStatus
-	23, // 16: ai.stigmer.agentic.agentexecution.v1.AgentMessage.type:type_name -> ai.stigmer.agentic.agentexecution.v1.MessageType
-	5,  // 17: ai.stigmer.agentic.agentexecution.v1.AgentMessage.tool_calls:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCall
-	24, // 18: ai.stigmer.agentic.agentexecution.v1.AgentMessage.metadata:type_name -> google.protobuf.Struct
-	24, // 19: ai.stigmer.agentic.agentexecution.v1.ToolCall.args:type_name -> google.protobuf.Struct
-	25, // 20: ai.stigmer.agentic.agentexecution.v1.ToolCall.status:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
-	6,  // 21: ai.stigmer.agentic.agentexecution.v1.ToolCall.component_metadata:type_name -> ai.stigmer.agentic.agentexecution.v1.ComponentMetadata
-	0,  // 22: ai.stigmer.agentic.agentexecution.v1.ToolCall.approval_action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
-	24, // 23: ai.stigmer.agentic.agentexecution.v1.ComponentMetadata.metadata:type_name -> google.protobuf.Struct
-	26, // 24: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.status:type_name -> ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
-	24, // 25: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.metadata:type_name -> google.protobuf.Struct
-	5,  // 26: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.tool_calls:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCall
-	4,  // 27: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.messages:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentMessage
-	8,  // 28: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.usage:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageMetrics
-	17, // 29: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.mcp_servers:type_name -> ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntry
-	11, // 30: ai.stigmer.agentic.agentexecution.v1.ContextInfo.summarization_events:type_name -> ai.stigmer.agentic.agentexecution.v1.SummarizationEvent
-	27, // 31: ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact.kind:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactKind
+	14, // 11: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.pending_approvals:type_name -> ai.stigmer.agentic.agentexecution.v1.PendingApproval
+	12, // 12: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.context_info:type_name -> ai.stigmer.agentic.agentexecution.v1.ContextInfo
+	13, // 13: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.artifacts:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact
+	22, // 14: ai.stigmer.agentic.agentexecution.v1.TodoItem.status:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoStatus
+	23, // 15: ai.stigmer.agentic.agentexecution.v1.AgentMessage.type:type_name -> ai.stigmer.agentic.agentexecution.v1.MessageType
+	5,  // 16: ai.stigmer.agentic.agentexecution.v1.AgentMessage.tool_calls:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCall
+	24, // 17: ai.stigmer.agentic.agentexecution.v1.AgentMessage.metadata:type_name -> google.protobuf.Struct
+	24, // 18: ai.stigmer.agentic.agentexecution.v1.ToolCall.args:type_name -> google.protobuf.Struct
+	25, // 19: ai.stigmer.agentic.agentexecution.v1.ToolCall.status:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
+	6,  // 20: ai.stigmer.agentic.agentexecution.v1.ToolCall.component_metadata:type_name -> ai.stigmer.agentic.agentexecution.v1.ComponentMetadata
+	0,  // 21: ai.stigmer.agentic.agentexecution.v1.ToolCall.approval_action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	24, // 22: ai.stigmer.agentic.agentexecution.v1.ComponentMetadata.metadata:type_name -> google.protobuf.Struct
+	26, // 23: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.status:type_name -> ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
+	24, // 24: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.metadata:type_name -> google.protobuf.Struct
+	5,  // 25: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.tool_calls:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCall
+	4,  // 26: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.messages:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentMessage
+	8,  // 27: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.usage:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageMetrics
+	17, // 28: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.mcp_servers:type_name -> ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntry
+	11, // 29: ai.stigmer.agentic.agentexecution.v1.ContextInfo.summarization_events:type_name -> ai.stigmer.agentic.agentexecution.v1.SummarizationEvent
+	27, // 30: ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact.kind:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactKind
+	14, // 31: ai.stigmer.agentic.agentexecution.v1.ChildApprovalNotification.pending_approvals:type_name -> ai.stigmer.agentic.agentexecution.v1.PendingApproval
 	3,  // 32: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoItem
 	10, // 33: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.McpServerResolutionStatus
 	34, // [34:34] is the sub-list for method output_type

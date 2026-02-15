@@ -142,10 +142,15 @@ func (t *CallAgentTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 				c.Receive(ctx, &notification)
 
 				approvalSignalCount++
+				pendingCount := len(notification.PendingApprovals)
+				firstToolName := ""
+				if pendingCount > 0 {
+					firstToolName = notification.PendingApprovals[0].GetToolName()
+				}
 				logger.Info("Received child approval notification",
 					"execution_id", notification.ExecutionId,
-					"tool_call_id", notification.ToolCallId,
-					"tool_name", notification.ToolName,
+					"pending_count", pendingCount,
+					"first_tool_name", firstToolName,
 					"signal_count", approvalSignalCount,
 					"task", t.GetTaskName())
 
@@ -207,11 +212,12 @@ func (t *CallAgentTaskBuilder) updateTaskApprovalStatus(
 		return nil // Non-fatal
 	}
 
+	pendingCount := len(notification.PendingApprovals)
 	logger.Info("Updating workflow task to WAITING_APPROVAL",
 		"task", t.GetTaskName(),
 		"execution_id", executionId,
 		"agent_execution_id", notification.ExecutionId,
-		"tool_name", notification.ToolName)
+		"pending_count", pendingCount)
 
 	// Execute local activity to update workflow execution status
 	// Local activities run in-process without going through task queues

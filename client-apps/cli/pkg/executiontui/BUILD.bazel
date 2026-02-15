@@ -1,0 +1,46 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "executiontui",
+    srcs = [
+        "approval.go",
+        "blocks.go",
+        "doc.go",
+        "events.go",
+        "focus.go",
+        "handle_events.go",
+        "help.go",
+        "messages.go",
+        "model.go",
+        "render_approval.go",
+        "render_blocks.go",
+        "scroll.go",
+        "update.go",
+        "view.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//client-apps/cli/pkg/toolrender",
+        "@com_github_charmbracelet_bubbles//spinner",
+        "@com_github_charmbracelet_bubbles//viewport",
+        "@com_github_charmbracelet_bubbletea//:bubbletea",
+        "@com_github_charmbracelet_lipgloss//:lipgloss",
+    ],
+)
+
+go_test(
+    name = "executiontui_test",
+    srcs = [
+        "approval_test.go",
+        "help_test.go",
+        "render_blocks_test.go",
+        "scroll_test.go",
+        "update_test.go",
+    ],
+    embed = [":executiontui"],
+    deps = [
+        "//client-apps/cli/pkg/toolrender",
+        "@com_github_charmbracelet_bubbletea//:bubbletea",
+    ],
+)

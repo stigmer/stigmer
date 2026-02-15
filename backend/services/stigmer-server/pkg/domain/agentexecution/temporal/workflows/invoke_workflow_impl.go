@@ -190,18 +190,25 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 		pendingCount := len(pendingApprovals)
 
 		// Determine how many signals we need to collect in this cycle.
-		// For batch: one signal per pending approval.
-		// For legacy (no pending_approvals): one signal.
-		signalsNeeded := 1
+		// One signal per pending approval entry.
+		signalsNeeded := pendingCount
+		if signalsNeeded == 0 {
+			// Safety: if no pending_approvals but phase is WAITING_FOR_APPROVAL,
+			// expect at least one signal to unblock.
+			signalsNeeded = 1
+		}
+
+		// Log a summary of pending approvals for observability
+		firstToolCallId := ""
 		if pendingCount > 0 {
-			signalsNeeded = pendingCount
+			firstToolCallId = pendingApprovals[0].GetToolCallId()
 		}
 
 		logger.Info("⏳ Execution waiting for approval",
 			"execution_id", executionID,
 			"cycle", approvalCycle,
 			"pending_count", signalsNeeded,
-			"pending_tool_call", finalStatus.GetPendingApproval().GetToolCallId())
+			"first_tool_call", firstToolCallId)
 
 		// Collect all approval signals
 		for i := 0; i < signalsNeeded; i++ {
@@ -350,14 +357,13 @@ func (w *InvokeAgentExecutionWorkflowImpl) buildExecutionWithApprovalDecision(
 	}
 
 	// Build updated status with the modified tool call.
-	// Carry forward both singular and repeated pending approvals so the
-	// Python resume logic can read interrupt_ids from pending_approvals.
+	// Carry forward pending_approvals so the Python resume logic can read
+	// interrupt_ids for targeted Command(resume=...) construction.
 	updatedStatus := &agentexecutionv1.AgentExecutionStatus{
 		Phase:            status.GetPhase(),
 		Messages:         status.GetMessages(),
 		ToolCalls:        updatedToolCalls,
-		PendingApproval:  status.GetPendingApproval(),  // Keep pending until Python clears it
-		PendingApprovals: status.GetPendingApprovals(),  // Batch: all pending approvals with interrupt IDs
+		PendingApprovals: status.GetPendingApprovals(), // All pending approvals with interrupt IDs
 		Audit:            status.GetAudit(),
 	}
 
