@@ -1,6 +1,8 @@
 package executiontui
 
 import (
+	"time"
+
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -24,10 +26,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case cancelResultMsg:
 		return m.handleCancelResult(msg)
 
+	case activityTickMsg:
+		return m.handleActivityTick()
+
 	case spinner.TickMsg:
-		// Animate the spinner only during the pending phase.
-		// Once the phase changes, stop issuing tick commands.
-		if m.phase == "pending" {
+		// Animate the spinner during the pending phase and when the
+		// thinking indicator is visible (idle during in_progress).
+		// Once neither condition holds, stop issuing tick commands so
+		// the spinner sleeps until restarted by the activity tick.
+		if m.phase == "pending" || m.thinkingVisible {
 			var cmd tea.Cmd
 			m.spinner, cmd = m.spinner.Update(msg)
 			return m, cmd
@@ -179,6 +186,56 @@ func (m Model) handleCancelResult(msg cancelResultMsg) (tea.Model, tea.Cmd) {
 	// On success: nothing to do here. The backend will transition the execution
 	// to CANCELLED, and the stream will deliver a DoneEvent with phase "cancelled".
 	return m, nil
+}
+
+// activityTickInterval is the interval between activity tick checks.
+// A 1-second interval provides responsive idle detection without
+// excessive CPU usage.
+const activityTickInterval = 1 * time.Second
+
+// idleThreshold is how long the TUI waits without events before showing
+// the thinking indicator. Two seconds strikes a balance between
+// responsiveness (not too long to wait) and avoiding flicker (not shown
+// during brief gaps between rapid events).
+const idleThreshold = 2 * time.Second
+
+// connectionStaleThreshold is how long the TUI waits without any backend
+// update (including keepalives) before showing a connection warning.
+// The backend sends keepalive updates every 5 seconds, so 15 seconds
+// means 3 consecutive keepalives were missed.
+const connectionStaleThreshold = 15 * time.Second
+
+// scheduleActivityTick returns a tea.Cmd that delivers an activityTickMsg
+// after the activity tick interval. The tick runs continuously during
+// execution and is used to detect idle periods for the thinking indicator
+// and stale connections for the health warning.
+func scheduleActivityTick() tea.Cmd {
+	return tea.Tick(activityTickInterval, func(time.Time) tea.Msg {
+		return activityTickMsg{}
+	})
+}
+
+// handleActivityTick processes the periodic activity tick. When the TUI is
+// in the "in_progress" phase and no execution events have arrived for longer
+// than the idle threshold, it activates the thinking indicator (animated
+// spinner) in the header to signal that the agent is alive and processing.
+func (m Model) handleActivityTick() (tea.Model, tea.Cmd) {
+	// Don't schedule more ticks once execution is done.
+	if m.done {
+		return m, nil
+	}
+
+	// Detect idle: in_progress phase with no recent events.
+	if m.phase == "in_progress" && time.Since(m.lastEventAt) > idleThreshold {
+		if !m.thinkingVisible {
+			m.thinkingVisible = true
+			// Restart the spinner animation — it was stopped when the
+			// phase transitioned from "pending" to "in_progress".
+			return m, tea.Batch(m.spinner.Tick, scheduleActivityTick())
+		}
+	}
+
+	return m, scheduleActivityTick()
 }
 
 // handleWindowSize initializes or resizes the viewport based on terminal
