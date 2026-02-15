@@ -56,7 +56,7 @@ func blockStartLine(blocks []contentBlock, focusedIdx, targetIdx int) int {
 
 		// Lines in this block + 1 separator blank line before the next block.
 		line += strings.Count(text, "\n") + 1 // lines in the block itself
-		line++                                 // blank separator line (\n\n)
+		line++                                // blank separator line (\n\n)
 	}
 	return line
 }

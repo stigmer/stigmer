@@ -202,9 +202,9 @@ func TestUpdate_DoneEvent_SetsDone(t *testing.T) {
 		t.Errorf("exitError = %q, want empty", model.exitError)
 	}
 
-	// Should return tea.Quit command.
-	if cmd == nil {
-		t.Error("cmd should be non-nil (tea.Quit) after DoneEvent")
+	// TUI stays open after completion — cmd should be nil (no auto-quit).
+	if cmd != nil {
+		t.Error("cmd should be nil after DoneEvent (TUI stays open for browsing)")
 	}
 }
 
@@ -989,12 +989,30 @@ func TestFooter_NoPausedIndicator_WhenDone(t *testing.T) {
 	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyUp})
 	model := result.(Model)
 
-	// Mark as done.
+	// Mark as done with completed phase.
 	model.done = true
+	model.phase = "completed"
 
 	footer := model.renderFooter()
 	if strings.Contains(footer, "Paused") {
 		t.Errorf("footer should NOT show paused indicator when done, got %q", footer)
+	}
+	if !strings.Contains(footer, "Completed") {
+		t.Errorf("footer should show completion message when done, got %q", footer)
+	}
+	if !strings.Contains(footer, "q exit") {
+		t.Errorf("footer should show exit hint when done, got %q", footer)
+	}
+}
+
+func TestFooter_FailedPhase_ShowsFailedMessage(t *testing.T) {
+	m, _, _ := newTestModel()
+	m.done = true
+	m.phase = "failed"
+
+	footer := m.renderFooter()
+	if !strings.Contains(footer, "Failed") {
+		t.Errorf("footer should show failed message, got %q", footer)
 	}
 }
 

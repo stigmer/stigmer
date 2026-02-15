@@ -14,7 +14,7 @@ import (
 var (
 	systemStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 	phaseStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
-
+	errorStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Bold(true)
 )
 
 // renderAIContent formats an AI message for display.
@@ -90,6 +90,12 @@ func renderToolResultExpanded(content string, toolCalls []toolrender.ToolCallInf
 // renderSystemContent formats a system message with dimmed styling.
 func renderSystemContent(content string) string {
 	return systemStyle.Render("ℹ️  " + content)
+}
+
+// renderErrorContent formats an error message with bold red styling.
+// Visually distinct from system messages to draw immediate attention.
+func renderErrorContent(content string) string {
+	return errorStyle.Render("❌ " + content)
 }
 
 // renderPhaseChange formats a phase change notification.

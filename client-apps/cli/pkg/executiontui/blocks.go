@@ -10,6 +10,7 @@ const (
 	blockSystem                       // System/informational message
 	blockPhaseChange                  // Execution phase transition
 	blockApproval                     // Approval request display
+	blockError                        // Error message (stream failure, execution error)
 )
 
 // contentBlock represents one renderable unit in the execution output.
@@ -105,6 +106,16 @@ func newPhaseBlock(content string) contentBlock {
 func newApprovalBlock(content string) contentBlock {
 	return contentBlock{
 		blockType: blockApproval,
+		content:   content,
+	}
+}
+
+// newErrorBlock creates a block for an error message.
+// Used for stream failures and execution errors, rendered with distinct red
+// styling to differentiate from informational system blocks.
+func newErrorBlock(content string) contentBlock {
+	return contentBlock{
+		blockType: blockError,
 		content:   content,
 	}
 }

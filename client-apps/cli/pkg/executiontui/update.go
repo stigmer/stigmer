@@ -1,6 +1,7 @@
 package executiontui
 
 import (
+	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -19,6 +20,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case streamClosedMsg:
 		return m.handleStreamClosed()
+
+	case spinner.TickMsg:
+		// Animate the spinner only during the pending phase.
+		// Once the phase changes, stop issuing tick commands.
+		if m.phase == "pending" {
+			var cmd tea.Cmd
+			m.spinner, cmd = m.spinner.Update(msg)
+			return m, cmd
+		}
+		return m, nil
 	}
 
 	// Forward unhandled messages to the viewport for scroll handling.
@@ -30,15 +41,32 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // handleKeyPress processes keyboard input. Priority order:
 //  1. Quit keys (always available)
-//  2. Approval keys (when approval is active, captures all input)
-//  3. Focus/toggle keys (Tab, Shift+Tab, Enter)
-//  4. Navigation keys (g top, G bottom)
-//  5. Viewport scroll keys (forwarded to bubbles/viewport)
+//  2. Help toggle (? key — always available)
+//  3. Help dismiss (esc — only when help is shown)
+//  4. Help blocks all other keys when active
+//  5. Approval keys (when approval is active, captures all input)
+//  6. Focus/toggle keys (Tab, Shift+Tab, Enter)
+//  7. Navigation keys (g top, G bottom)
+//  8. Viewport scroll keys (forwarded to bubbles/viewport)
 func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Always allow quit.
 	switch msg.String() {
 	case "ctrl+c", "q":
 		return m, tea.Quit
+	}
+
+	// Help toggle — available in all states except approval.
+	if msg.String() == "?" && m.approval == nil {
+		m.showHelp = !m.showHelp
+		return m, nil
+	}
+
+	// When help is shown, only esc dismisses — all other keys are blocked.
+	if m.showHelp {
+		if msg.String() == "esc" {
+			m.showHelp = false
+		}
+		return m, nil
 	}
 
 	// Route to approval handler when active — approval captures all input.
@@ -118,114 +146,3 @@ func (m Model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// handleExecutionEvent dispatches a single execution event to the appropriate
-// handler based on its concrete type.
-func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
-	switch e := event.(type) {
-	case HumanMessageEvent:
-		m.blocks = append(m.blocks, newHumanBlock(renderHumanContent(e.Content)))
-
-	case AIMessageEvent:
-		m.blocks = append(m.blocks, newAIBlock(renderAIContent(e.Content, e.ToolCalls)))
-
-	case AIStreamStartEvent:
-		m.streaming = &streamingState{content: e.Content}
-		m.blocks = append(m.blocks, newAIBlock(renderStreamingAI(e.Content)))
-
-	case AIStreamDeltaEvent:
-		if m.streaming != nil {
-			m.streaming.content = e.Content
-			// Update the last block in-place with the new streaming content.
-			if len(m.blocks) > 0 {
-				m.blocks[len(m.blocks)-1].content = renderStreamingAI(e.Content)
-			}
-		}
-
-	case AIStreamEndEvent:
-		m.streaming = nil
-		// Replace the streaming block with the finalized content.
-		if len(m.blocks) > 0 {
-			m.blocks[len(m.blocks)-1] = newAIBlock(renderAIContent(e.Content, e.ToolCalls))
-		}
-
-	case ToolResultEvent:
-		preview := renderToolResultPreview(e.Content, e.ToolCalls)
-		full := renderToolResultExpanded(e.Content, e.ToolCalls)
-		m.blocks = append(m.blocks, newToolCallBlock(preview, full))
-
-	case SystemMessageEvent:
-		m.blocks = append(m.blocks, newSystemBlock(renderSystemContent(e.Content)))
-
-	case PhaseChangeEvent:
-		m.phase = e.Phase
-		rendered := renderPhaseChange(e.Phase, e.Previous)
-		if rendered != "" {
-			m.blocks = append(m.blocks, newPhaseBlock(rendered))
-		}
-
-	case ApprovalNeededEvent:
-		m.approval = &approvalState{
-			toolCallID:  e.ToolCallID,
-			toolName:    e.ToolName,
-			argsPreview: e.ArgsPreview,
-			message:     e.Message,
-		}
-		m.blocks = append(m.blocks, newApprovalBlock(
-			renderApprovalPrompt(e.ToolName, e.ArgsPreview, e.Message),
-		))
-
-	case DoneEvent:
-		m.done = true
-		m.phase = e.Phase
-		if e.Error != "" {
-			m.exitError = e.Error
-		}
-		// Render final phase change if displayable.
-		rendered := renderPhaseChange(e.Phase, m.phase)
-		if rendered != "" {
-			m.blocks = append(m.blocks, newPhaseBlock(rendered))
-		}
-
-	case StreamErrorEvent:
-		m.done = true
-		m.exitError = e.Err.Error()
-		m.blocks = append(m.blocks, newSystemBlock(
-			renderSystemContent("Stream error: "+e.Err.Error()),
-		))
-	}
-
-	// Update viewport content and scroll position.
-	m.refreshViewport()
-
-	// Continue listening for events unless the stream is done.
-	if m.done {
-		return m, tea.Quit
-	}
-	return m, listenForEvents(m.cfg.Events)
-}
-
-// handleStreamClosed is called when the events channel is closed.
-// If we haven't received a DoneEvent, treat this as an unexpected close.
-func (m Model) handleStreamClosed() (tea.Model, tea.Cmd) {
-	if !m.done {
-		m.done = true
-		m.exitError = "execution stream closed unexpectedly"
-		m.blocks = append(m.blocks, newSystemBlock(
-			renderSystemContent("Stream closed unexpectedly"),
-		))
-		m.refreshViewport()
-	}
-	return m, tea.Quit
-}
-
-// refreshViewport rebuilds the viewport content from blocks and applies
-// auto-scroll if enabled.
-func (m *Model) refreshViewport() {
-	if !m.ready {
-		return
-	}
-	m.viewport.SetContent(rebuildViewportContent(m.blocks, m.focusedBlockIndex))
-	if m.autoScroll {
-		m.viewport.GotoBottom()
-	}
-}
