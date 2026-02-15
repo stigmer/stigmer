@@ -171,13 +171,12 @@ func streamWorkflowExecution(executionID string, prompter approval.Prompter, def
 		}
 
 		// Step 2: Handle approval flow when child agent requires approval.
-		// Workflows surface approvals via PendingApproval field (populated by child agent signal).
-		if needsWorkflowApprovalPrompt(
-			execution.Status.GetPendingApproval(),
-			promptedToolCallIDs,
-		) {
+		// Workflows surface approvals via pending_approvals (populated by child agent signal).
+		for _, pendingApproval := range execution.Status.GetPendingApprovals() {
+			if pendingApproval.ToolCallId == "" || promptedToolCallIDs[pendingApproval.ToolCallId] {
+				continue
+			}
 			sp.Stop()
-			pendingApproval := execution.Status.GetPendingApproval()
 			if err := handleWorkflowApprovalPrompt(ctx, conn, executionID, pendingApproval, prompter, defaultAction); err != nil {
 				return nil, errors.Wrap(err, "workflow approval failed")
 			}

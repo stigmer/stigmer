@@ -487,11 +487,11 @@ func getLocalActivityOptions() workflow.LocalActivityOptions {
 // child agent signals that it has entered WAITING_FOR_APPROVAL phase.
 //
 // This local activity:
-// 1. Builds a PendingApproval from the ChildApprovalNotification
+// 1. Builds pending_approvals from the ChildApprovalNotification
 // 2. Updates the WorkflowExecution status via gRPC
-// 3. Enables UI to display approval request at workflow level
+// 3. Enables UI to display approval requests at workflow level
 //
-// The status update is additive - it only sets the pending_approval field
+// The status update is additive - it only sets the pending_approvals field
 // without clearing other status fields like tasks[] or phase.
 func (a *CallAgentActivities) UpdateWorkflowTaskApprovalStatus(
 	ctx context.Context,
@@ -501,11 +501,12 @@ func (a *CallAgentActivities) UpdateWorkflowTaskApprovalStatus(
 ) error {
 	logger := activity.GetLogger(ctx)
 
-	logger.Info("Updating workflow execution with pending approval",
+	pendingCount := len(notification.PendingApprovals)
+	logger.Info("Updating workflow execution with pending approvals",
 		"execution_id", executionId,
 		"task_name", taskName,
 		"agent_execution_id", notification.ExecutionId,
-		"tool_name", notification.ToolName)
+		"pending_count", pendingCount)
 
 	// Get workflow execution client
 	client, err := workflowexecclient.GetWorkflowExecutionCommandClient()
@@ -514,23 +515,27 @@ func (a *CallAgentActivities) UpdateWorkflowTaskApprovalStatus(
 		return fmt.Errorf("failed to get workflow execution client: %w", err)
 	}
 
-	// Build pending approval from notification
-	// This surfaces the child's approval request at the workflow level
-	pendingApproval := &agentexecv1.PendingApproval{
-		ToolCallId:            notification.ToolCallId,
-		ToolName:              notification.ToolName,
-		Message:               notification.Message,
-		ArgsPreview:           notification.ArgsPreview,
-		RequestedAt:           notification.RequestedAt,
-		ChildAgentExecutionId: notification.ExecutionId, // Enable workflow-level approval forwarding (Phase 5.3)
-		// Note: from_sub_agent and sub_agent_name are for sub-agent scenarios within the agent
-		// In the workflow case, the approval comes from a child agent execution
+	// Build pending approvals from notification.
+	// Each entry already carries tool_call_id, tool_name, message, etc.
+	// We set child_agent_execution_id on each to enable workflow-level forwarding.
+	pendingApprovals := make([]*agentexecv1.PendingApproval, 0, pendingCount)
+	for _, pa := range notification.PendingApprovals {
+		entry := &agentexecv1.PendingApproval{
+			ToolCallId:            pa.GetToolCallId(),
+			ToolName:              pa.GetToolName(),
+			Message:               pa.GetMessage(),
+			ArgsPreview:           pa.GetArgsPreview(),
+			RequestedAt:           pa.GetRequestedAt(),
+			InterruptId:           pa.GetInterruptId(),
+			ChildAgentExecutionId: notification.ExecutionId, // Enable workflow-level approval forwarding
+		}
+		pendingApprovals = append(pendingApprovals, entry)
 	}
 
-	// Build status update with pending approval
-	// We only set pending_approval - other fields are left unchanged
+	// Build status update with pending approvals
+	// We only set pending_approvals - other fields are left unchanged
 	status := &workflowexecv1.WorkflowExecutionStatus{
-		PendingApproval: pendingApproval,
+		PendingApprovals: pendingApprovals,
 	}
 
 	// Update workflow execution status
@@ -542,33 +547,32 @@ func (a *CallAgentActivities) UpdateWorkflowTaskApprovalStatus(
 		return fmt.Errorf("failed to update workflow execution status: %w", err)
 	}
 
-	logger.Info("Successfully updated workflow execution with pending approval",
+	logger.Info("Successfully updated workflow execution with pending approvals",
 		"execution_id", executionId,
-		"tool_name", notification.ToolName)
+		"pending_count", pendingCount)
 
 	return nil
 }
 
-// ClearWorkflowApprovalStatus clears the pending approval from a workflow
+// ClearWorkflowApprovalStatus clears pending approvals from a workflow
 // execution when the child agent task completes (whether approved, rejected,
 // or if no approval was needed).
 //
 // This is called when the agent activity completes successfully. It ensures
-// the WorkflowExecution.status.pending_approval is cleared so UI doesn't
-// show a stale approval request.
+// the WorkflowExecution.status.pending_approvals is cleared so UI doesn't
+// show stale approval requests.
 //
-// Implementation Note (Phase 5.2):
-// We send an empty PendingApproval with empty ToolCallId as the clear signal.
-// The Java handler checks hasPendingApproval() && toolCallId.isEmpty() to detect
-// the clear intent, as proto3 semantics require an explicit message to differentiate
-// "clear" from "not provided" (both appear as nil otherwise).
+// Implementation Note:
+// We send an empty pending_approvals list (with a single empty PendingApproval
+// entry with empty ToolCallId) as the clear signal. The Java handler checks
+// the first entry's ToolCallId to detect the clear intent.
 func (a *CallAgentActivities) ClearWorkflowApprovalStatus(
 	ctx context.Context,
 	executionId string,
 ) error {
 	logger := activity.GetLogger(ctx)
 
-	logger.Debug("Clearing pending approval from workflow execution",
+	logger.Debug("Clearing pending approvals from workflow execution",
 		"execution_id", executionId)
 
 	// Get workflow execution client
@@ -578,18 +582,11 @@ func (a *CallAgentActivities) ClearWorkflowApprovalStatus(
 		return fmt.Errorf("failed to get workflow execution client: %w", err)
 	}
 
-	// Build status update with empty PendingApproval to signal clearing
-	//
-	// IMPORTANT (Phase 5.2): We send an EMPTY PendingApproval (not nil) with
-	// ToolCallId = "" to signal the Java handler to clear the field.
-	//
-	// Reasoning:
-	// - Proto3 semantics: nil message field means "not set" -> handler preserves existing
-	// - Empty message with empty ToolCallId signals "clear" -> handler clears field
-	// - This allows status updates (tasks, phase) without affecting pending_approval
+	// Build status update with an empty PendingApproval entry to signal clearing.
+	// An entry with empty ToolCallId signals "clear all pending approvals".
 	status := &workflowexecv1.WorkflowExecutionStatus{
-		PendingApproval: &agentexecv1.PendingApproval{
-			ToolCallId: "", // Empty tool_call_id signals clear intent
+		PendingApprovals: []*agentexecv1.PendingApproval{
+			{ToolCallId: ""}, // Empty tool_call_id signals clear intent
 		},
 	}
 
@@ -597,13 +594,13 @@ func (a *CallAgentActivities) ClearWorkflowApprovalStatus(
 	_, err = client.UpdateStatus(ctx, executionId, status)
 	if err != nil {
 		// Log but don't fail - clearing is best-effort
-		logger.Warn("Failed to clear workflow pending approval",
+		logger.Warn("Failed to clear workflow pending approvals",
 			"execution_id", executionId,
 			"error", err)
-		return fmt.Errorf("failed to clear workflow pending approval: %w", err)
+		return fmt.Errorf("failed to clear workflow pending approvals: %w", err)
 	}
 
-	logger.Debug("Successfully cleared pending approval from workflow execution",
+	logger.Debug("Successfully cleared pending approvals from workflow execution",
 		"execution_id", executionId)
 
 	return nil
