@@ -152,6 +152,25 @@ func renderApprovalPrompt(toolName, argsPreview, message string) string {
 	return strings.Join(lines, "\n")
 }
 
+// renderedBlockText returns the final display text for a single content block,
+// including expand/collapse decorations for expandable blocks. Returns an empty
+// string for blocks that should be skipped (empty content).
+//
+// This function is the single source of truth for how a block renders in the
+// viewport. Both rebuildViewportContent (for the full viewport string) and
+// blockStartLine (for scroll-into-view line computation) use it to ensure
+// consistent layout.
+func renderedBlockText(b contentBlock, blockIdx, focusedIdx int) string {
+	text := b.displayContent()
+	if text == "" {
+		return ""
+	}
+	if b.expandable {
+		text = decorateExpandableBlock(text, b.expanded, blockIdx == focusedIdx)
+	}
+	return text
+}
+
 // rebuildViewportContent concatenates all blocks into a single string for the
 // viewport. Each block is separated by a blank line for readability.
 //
@@ -169,15 +188,10 @@ func rebuildViewportContent(blocks []contentBlock, focusedIndex int) string {
 
 	var parts []string
 	for i, b := range blocks {
-		text := b.displayContent()
+		text := renderedBlockText(b, i, focusedIndex)
 		if text == "" {
 			continue
 		}
-
-		if b.expandable {
-			text = decorateExpandableBlock(text, b.expanded, i == focusedIndex)
-		}
-
 		parts = append(parts, text)
 	}
 	return strings.Join(parts, "\n\n")

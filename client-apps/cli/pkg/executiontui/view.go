@@ -58,13 +58,26 @@ func (m Model) renderHeader() string {
 }
 
 // renderFooter returns the bottom key hints bar.
+//
+// The footer adapts to the current interaction state:
+//   - Approval active: shows approval action keys
+//   - Scroll paused (user scrolled away from bottom): shows resume hint
+//   - Normal (auto-scrolling): shows standard navigation hints
 func (m Model) renderFooter() string {
 	var hints string
-	if m.approval != nil {
+	switch {
+	case m.approval != nil:
 		hints = "  [a] Approve  [s] Skip  [r] Reject  [q] Quit"
-	} else if m.hasExpandableBlocks() {
+	case !m.autoScroll && !m.done:
+		// Scroll paused — user scrolled away from the bottom.
+		if m.hasExpandableBlocks() {
+			hints = "  ↓ Paused — G resume  Tab focus  Enter expand  q quit"
+		} else {
+			hints = "  ↓ Paused — G resume  q quit"
+		}
+	case m.hasExpandableBlocks():
 		hints = "  ↑↓ scroll  Tab focus  Enter expand  q quit"
-	} else {
+	default:
 		hints = "  ↑↓ scroll  q quit"
 	}
 

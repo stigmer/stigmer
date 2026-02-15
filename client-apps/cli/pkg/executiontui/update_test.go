@@ -1,6 +1,7 @@
 package executiontui
 
 import (
+	"strings"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -646,3 +647,370 @@ func TestToolResultBlock_HasPreviewAndFull(t *testing.T) {
 		t.Error("preview and full should differ for blocks with result content")
 	}
 }
+
+// =============================================================================
+// Scroll Pause & Auto-Resume Tests (T04)
+// =============================================================================
+
+// newTestModelWithManyBlocks creates a model with enough content to overflow
+// the viewport (20 visible lines). This enables testing scroll behavior — the
+// viewport must have scrollable content for Up/Down to change YOffset.
+func newTestModelWithManyBlocks() Model {
+	m, _, _ := newTestModel()
+
+	// Each human message is ~1 line of rendered text. With blank line separators
+	// between blocks, 15 messages produce ~29 lines (15 content + 14 separators),
+	// well exceeding the 20-line viewport.
+	var model Model = m
+	for i := 0; i < 15; i++ {
+		result, _ := model.Update(executionEventMsg{event: HumanMessageEvent{
+			Content: "Message line that fills up the viewport",
+		}})
+		model = result.(Model)
+	}
+	return model
+}
+
+func TestUpdate_AutoScroll_DefaultTrue(t *testing.T) {
+	m, _, _ := newTestModel()
+
+	if !m.autoScroll {
+		t.Error("autoScroll should default to true")
+	}
+}
+
+func TestUpdate_AutoScroll_StaysTrueAtBottom(t *testing.T) {
+	m := newTestModelWithManyBlocks()
+
+	// Model should be at bottom after adding content (autoScroll is true).
+	if !m.autoScroll {
+		t.Error("autoScroll should be true after adding content")
+	}
+	if !m.viewport.AtBottom() {
+		t.Error("viewport should be at bottom when autoScroll is true")
+	}
+}
+
+func TestUpdate_ScrollUp_PausesAutoScroll(t *testing.T) {
+	m := newTestModelWithManyBlocks()
+
+	// Press Up key to scroll up from the bottom.
+	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyUp})
+	model := result.(Model)
+
+	if model.autoScroll {
+		t.Error("autoScroll should be false after scrolling up")
+	}
+	if model.viewport.AtBottom() {
+		t.Error("viewport should not be at bottom after scrolling up")
+	}
+}
+
+func TestUpdate_ScrollDown_ResumesAutoScroll(t *testing.T) {
+	m := newTestModelWithManyBlocks()
+
+	// Scroll up to pause.
+	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyUp})
+	model := result.(Model)
+
+	if model.autoScroll {
+		t.Fatal("autoScroll should be false after scroll up (precondition)")
+	}
+
+	// Scroll back down to the bottom.
+	result, _ = model.Update(tea.KeyMsg{Type: tea.KeyDown})
+	model = result.(Model)
+
+	if !model.autoScroll {
+		t.Error("autoScroll should be true after scrolling back to bottom")
+	}
+	if !model.viewport.AtBottom() {
+		t.Error("viewport should be at bottom after scrolling down")
+	}
+}
+
+func TestUpdate_G_GoesToBottom_EnablesAutoScroll(t *testing.T) {
+	m := newTestModelWithManyBlocks()
+
+	// Scroll up first to pause.
+	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyUp})
+	model := result.(Model)
+
+	if model.autoScroll {
+		t.Fatal("autoScroll should be false (precondition)")
+	}
+
+	// Press G to jump to bottom.
+	result, _ = model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'G'}})
+	model = result.(Model)
+
+	if !model.autoScroll {
+		t.Error("autoScroll should be true after pressing G")
+	}
+	if !model.viewport.AtBottom() {
+		t.Error("viewport should be at bottom after pressing G")
+	}
+}
+
+func TestUpdate_g_GoesToTop_DisablesAutoScroll(t *testing.T) {
+	m := newTestModelWithManyBlocks()
+
+	// Verify we start at bottom.
+	if !m.viewport.AtBottom() {
+		t.Fatal("viewport should start at bottom (precondition)")
+	}
+
+	// Press g to jump to top.
+	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'g'}})
+	model := result.(Model)
+
+	if model.autoScroll {
+		t.Error("autoScroll should be false after pressing g")
+	}
+	if !model.viewport.AtTop() {
+		t.Error("viewport should be at top after pressing g")
+	}
+}
+
+func TestUpdate_NewContent_WhilePaused_DoesNotAutoScroll(t *testing.T) {
+	m := newTestModelWithManyBlocks()
+
+	// Scroll up to pause.
+	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyUp})
+	model := result.(Model)
+
+	if model.autoScroll {
+		t.Fatal("autoScroll should be false (precondition)")
+	}
+
+	// Record the current scroll position.
+	yBefore := model.viewport.YOffset
+
+	// Add new content while paused.
+	result, _ = model.Update(executionEventMsg{event: HumanMessageEvent{
+		Content: "New message while paused",
+	}})
+	model = result.(Model)
+
+	// Viewport position should not have jumped to bottom.
+	if model.viewport.YOffset != yBefore {
+		t.Errorf("YOffset changed from %d to %d — viewport should stay put while paused",
+			yBefore, model.viewport.YOffset)
+	}
+	if model.autoScroll {
+		t.Error("autoScroll should remain false after new content while paused")
+	}
+}
+
+func TestUpdate_NewContent_WhileAutoScroll_FollowsBottom(t *testing.T) {
+	m := newTestModelWithManyBlocks()
+
+	// autoScroll is true — add more content and verify we stay at bottom.
+	result, _ := m.Update(executionEventMsg{event: HumanMessageEvent{
+		Content: "New message while auto-scrolling",
+	}})
+	model := result.(Model)
+
+	if !model.viewport.AtBottom() {
+		t.Error("viewport should be at bottom when autoScroll is true")
+	}
+}
+
+func TestUpdate_gG_IgnoredDuringApproval(t *testing.T) {
+	m := newTestModelWithManyBlocks()
+
+	// Enter approval state.
+	result, _ := m.Update(executionEventMsg{event: ApprovalNeededEvent{
+		ToolCallID: "tc-nav",
+		ToolName:   "shell",
+	}})
+	model := result.(Model)
+
+	if model.approval == nil {
+		t.Fatal("approval should be active")
+	}
+
+	// Press g — should be routed to approval handler, not navigation.
+	result, _ = model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'g'}})
+	model = result.(Model)
+
+	// g is not a valid approval key, so approval should still be active
+	// (approval handler ignores unrecognized keys).
+	if model.approval == nil {
+		t.Error("approval should still be active — g is not an approval key")
+	}
+}
+
+func TestUpdate_WindowResize_PreservesScrollPosition_WhenPaused(t *testing.T) {
+	m := newTestModelWithManyBlocks()
+
+	// Scroll up to pause, then jump to top for a clear position.
+	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'g'}})
+	model := result.(Model)
+
+	if model.autoScroll {
+		t.Fatal("autoScroll should be false (precondition)")
+	}
+
+	yBefore := model.viewport.YOffset
+
+	// Resize the terminal.
+	result, _ = model.Update(tea.WindowSizeMsg{Width: 100, Height: 30})
+	model = result.(Model)
+
+	// Position should be preserved (not jumped to bottom).
+	if model.viewport.YOffset != yBefore {
+		t.Errorf("YOffset changed from %d to %d after resize — should be preserved when paused",
+			yBefore, model.viewport.YOffset)
+	}
+}
+
+// =============================================================================
+// Scroll-Into-View Tests (T04)
+// =============================================================================
+
+// newTestModelWithScrollableExpandableBlocks creates a model with enough
+// expandable blocks spread across many content blocks so that some expandable
+// blocks are off-screen. The viewport is 20 lines (80x24 terminal - 4 chrome).
+func newTestModelWithScrollableExpandableBlocks() Model {
+	m, _, _ := newTestModel()
+
+	// Add 12 tool results. Each renders as ~2-3 lines (header + preview lines).
+	// With separators, this produces well over 20 lines.
+	var model Model = m
+	for i := 0; i < 12; i++ {
+		result, _ := model.Update(executionEventMsg{event: ToolResultEvent{
+			ToolCalls: []toolrender.ToolCallInfo{
+				{Name: "read_file", Args: map[string]interface{}{"path": "file.go"}, Result: "package main\nimport fmt\nfunc main(){}"},
+			},
+		}})
+		model = result.(Model)
+	}
+	return model
+}
+
+func TestUpdate_Tab_ScrollsIntoView(t *testing.T) {
+	m := newTestModelWithScrollableExpandableBlocks()
+
+	// Jump to top so the first expandable block is visible but later ones
+	// are off-screen.
+	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'g'}})
+	model := result.(Model)
+
+	if !model.viewport.AtTop() {
+		t.Fatal("viewport should be at top (precondition)")
+	}
+
+	// Tab multiple times to reach an expandable block that should be off-screen.
+	for i := 0; i < 8; i++ {
+		result, _ = model.Update(tea.KeyMsg{Type: tea.KeyTab})
+		model = result.(Model)
+	}
+
+	if model.focusedBlockIndex < 0 {
+		t.Fatal("should have a focused block after tabbing")
+	}
+
+	// Verify the focused block is within the visible range.
+	startLine := blockStartLine(model.blocks, model.focusedBlockIndex, model.focusedBlockIndex)
+	viewTop := model.viewport.YOffset
+	viewBottom := viewTop + model.viewport.Height
+
+	if startLine < viewTop || startLine >= viewBottom {
+		t.Errorf("focused block at line %d is outside viewport [%d, %d)",
+			startLine, viewTop, viewBottom)
+	}
+}
+
+func TestUpdate_ShiftTab_ScrollsIntoView(t *testing.T) {
+	m := newTestModelWithScrollableExpandableBlocks()
+
+	// Viewport starts at bottom (autoScroll is true).
+	// Shift+Tab should focus the last expandable block (which is near the bottom
+	// and likely visible), but then another Shift+Tab should move to an earlier
+	// block that might be off-screen.
+
+	// First, jump to bottom explicitly and shift-tab several times.
+	var model Model = m
+	for i := 0; i < 8; i++ {
+		result, _ := model.Update(tea.KeyMsg{Type: tea.KeyShiftTab})
+		model = result.(Model)
+	}
+
+	if model.focusedBlockIndex < 0 {
+		t.Fatal("should have a focused block after shift-tabbing")
+	}
+
+	// Verify the focused block is within the visible range.
+	startLine := blockStartLine(model.blocks, model.focusedBlockIndex, model.focusedBlockIndex)
+	viewTop := model.viewport.YOffset
+	viewBottom := viewTop + model.viewport.Height
+
+	if startLine < viewTop || startLine >= viewBottom {
+		t.Errorf("focused block at line %d is outside viewport [%d, %d)",
+			startLine, viewTop, viewBottom)
+	}
+}
+
+// =============================================================================
+// Footer Indicator Tests (T04)
+// =============================================================================
+
+func TestFooter_ShowsPausedIndicator_WhenScrollPaused(t *testing.T) {
+	m := newTestModelWithManyBlocks()
+
+	// Scroll up to pause.
+	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyUp})
+	model := result.(Model)
+
+	footer := model.renderFooter()
+	if !strings.Contains(footer, "Paused") {
+		t.Errorf("footer should show paused indicator when scrolled up, got %q", footer)
+	}
+	if !strings.Contains(footer, "G resume") {
+		t.Errorf("footer should show G resume hint when paused, got %q", footer)
+	}
+}
+
+func TestFooter_ShowsNormalHints_WhenAtBottom(t *testing.T) {
+	m := newTestModelWithManyBlocks()
+
+	// Should be at bottom (autoScroll true).
+	footer := m.renderFooter()
+	if strings.Contains(footer, "Paused") {
+		t.Errorf("footer should NOT show paused indicator at bottom, got %q", footer)
+	}
+}
+
+func TestFooter_NoPausedIndicator_WhenDone(t *testing.T) {
+	m := newTestModelWithManyBlocks()
+
+	// Scroll up to pause.
+	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyUp})
+	model := result.(Model)
+
+	// Mark as done.
+	model.done = true
+
+	footer := model.renderFooter()
+	if strings.Contains(footer, "Paused") {
+		t.Errorf("footer should NOT show paused indicator when done, got %q", footer)
+	}
+}
+
+func TestFooter_PausedWithExpandable_ShowsFocusHints(t *testing.T) {
+	m := newTestModelWithScrollableExpandableBlocks()
+
+	// Scroll up to pause.
+	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyUp})
+	model := result.(Model)
+
+	footer := model.renderFooter()
+	if !strings.Contains(footer, "Paused") {
+		t.Errorf("footer should show paused indicator, got %q", footer)
+	}
+	if !strings.Contains(footer, "Tab focus") {
+		t.Errorf("footer should show Tab hint when paused with expandable blocks, got %q", footer)
+	}
+}
+
