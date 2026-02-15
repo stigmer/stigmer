@@ -82,6 +82,16 @@ class FilesystemBackend:
             >>> backend._resolve_sandbox_path("inputs/data.txt")
             PosixPath('/workspace/inputs/data.txt')
         """
+        # If the path already starts with root_dir, strip the prefix so we
+        # don't get a double-prefix (e.g. /workspace/workspace/...).  The
+        # agent may construct absolute paths like "/workspace/bin/skills/..."
+        # when root_dir is "/workspace" (from `pwd` output or tool context).
+        root_str = str(self.root_dir)
+        if path.startswith(root_str + "/"):
+            path = path[len(root_str):]
+        elif path == root_str:
+            path = ""
+
         # Strip leading "/" so pathlib treats it as relative to root_dir
         clean = path.lstrip("/")
         resolved = (self.root_dir / clean).resolve()
