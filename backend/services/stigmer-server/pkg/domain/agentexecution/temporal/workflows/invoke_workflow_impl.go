@@ -167,8 +167,17 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 		return fmt.Errorf("python activity returned null status - this should never happen")
 	}
 
-	// Step 3: HITL Approval Loop
-	// If the execution is waiting for approval, wait for signal and re-invoke
+	// Step 3: HITL Approval Loop (Batch Approval)
+	//
+	// When the Python activity returns EXECUTION_WAITING_FOR_APPROVAL, the
+	// status may carry one OR more pending_approvals (one per interrupted
+	// tool call).  We collect ALL approval signals before re-invoking the
+	// activity so that the Python side can construct a single
+	//   Command(resume={interrupt_id_A: decision_A, interrupt_id_B: decision_B, ...})
+	// and avoid repeated node re-executions.
+	//
+	// Falls back to single-signal behaviour when pending_approvals is empty
+	// (legacy path).
 	approvalCycle := 0
 	for finalStatus.GetPhase() == agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL {
 		approvalCycle++
@@ -177,29 +186,54 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 			return fmt.Errorf("max approval cycles (%d) reached - possible infinite loop", MaxApprovalCycles)
 		}
 
+		pendingApprovals := finalStatus.GetPendingApprovals()
+		pendingCount := len(pendingApprovals)
+
+		// Determine how many signals we need to collect in this cycle.
+		// For batch: one signal per pending approval.
+		// For legacy (no pending_approvals): one signal.
+		signalsNeeded := 1
+		if pendingCount > 0 {
+			signalsNeeded = pendingCount
+		}
+
 		logger.Info("⏳ Execution waiting for approval",
 			"execution_id", executionID,
 			"cycle", approvalCycle,
+			"pending_count", signalsNeeded,
 			"pending_tool_call", finalStatus.GetPendingApproval().GetToolCallId())
 
-		// Wait for submitApproval signal
-		approvalInput, err := w.waitForApprovalSignal(ctx, executionID)
-		if err != nil {
-			return err
+		// Collect all approval signals
+		for i := 0; i < signalsNeeded; i++ {
+			approvalInput, err := w.waitForApprovalSignal(ctx, executionID)
+			if err != nil {
+				return err
+			}
+
+			logger.Info("✅ Received approval signal",
+				"execution_id", executionID,
+				"signal_index", i+1,
+				"signals_needed", signalsNeeded,
+				"tool_call_id", approvalInput.GetToolCallId(),
+				"action", approvalInput.GetAction().String())
+
+			// Embed this decision into the execution's tool calls.
+			// For REJECT, we short-circuit: the execution is failed, no need
+			// to collect more signals.
+			currentExecution = w.buildExecutionWithApprovalDecision(ctx, currentExecution, finalStatus, approvalInput)
+
+			if approvalInput.GetAction() == agentexecutionv1.ApprovalAction_APPROVAL_ACTION_REJECT {
+				logger.Info("🛑 Tool rejected — skipping remaining approvals",
+					"execution_id", executionID,
+					"tool_call_id", approvalInput.GetToolCallId())
+				break
+			}
 		}
 
-		logger.Info("✅ Received approval signal",
+		// Re-invoke Python activity with all approval decisions embedded
+		logger.Info("🔄 Re-invoking Graphton with approval decisions",
 			"execution_id", executionID,
-			"tool_call_id", approvalInput.GetToolCallId(),
-			"action", approvalInput.GetAction().String())
-
-		// Build execution with approval decision embedded
-		currentExecution = w.buildExecutionWithApprovalDecision(ctx, currentExecution, finalStatus, approvalInput)
-
-		// Re-invoke Python activity with the approval decision
-		logger.Info("🔄 Re-invoking Graphton with approval decision",
-			"execution_id", executionID,
-			"action", approvalInput.GetAction().String())
+			"decisions_collected", signalsNeeded)
 
 		finalStatus, err = executeGraphtonActivity.ExecuteGraphton(currentExecution, threadID)
 		if err != nil {
@@ -315,13 +349,16 @@ func (w *InvokeAgentExecutionWorkflowImpl) buildExecutionWithApprovalDecision(
 		}
 	}
 
-	// Build updated status with the modified tool call
+	// Build updated status with the modified tool call.
+	// Carry forward both singular and repeated pending approvals so the
+	// Python resume logic can read interrupt_ids from pending_approvals.
 	updatedStatus := &agentexecutionv1.AgentExecutionStatus{
-		Phase:           status.GetPhase(),
-		Messages:        status.GetMessages(),
-		ToolCalls:       updatedToolCalls,
-		PendingApproval: status.GetPendingApproval(), // Keep pending until Python clears it
-		Audit:           status.GetAudit(),
+		Phase:            status.GetPhase(),
+		Messages:         status.GetMessages(),
+		ToolCalls:        updatedToolCalls,
+		PendingApproval:  status.GetPendingApproval(),  // Keep pending until Python clears it
+		PendingApprovals: status.GetPendingApprovals(),  // Batch: all pending approvals with interrupt IDs
+		Audit:            status.GetAudit(),
 	}
 
 	return &agentexecutionv1.AgentExecution{

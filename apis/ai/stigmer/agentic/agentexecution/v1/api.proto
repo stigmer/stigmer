@@ -137,20 +137,57 @@ message AgentExecutionStatus {
 
   // Current pending approval request, if any.
   //
+  // DEPRECATED: Use pending_approvals (field 16) for new code. This singular
+  // field is kept for backward compatibility with clients that expect at most
+  // one pending approval. When pending_approvals is populated, this field
+  // mirrors the first entry in that list.
+  //
   // Lifecycle:
   // 1. Populated when a tool with requires_approval=true is about to execute
   // 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
   // 3. User submits decision via SubmitApproval RPC
   // 4. Field is cleared, phase returns to EXECUTION_IN_PROGRESS
   //
-  // Only one pending approval at a time (tools execute sequentially in LangGraph).
-  // If multiple tools need approval, they are handled one at a time.
-  //
   // When populated:
   // - tool_call_id matches one entry in tool_calls[] with status WAITING_APPROVAL
   // - UI should display approval dialog with message and args_preview
   // - User must call SubmitApproval to continue execution
   PendingApproval pending_approval = 13;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Pending Approvals — Batch (Multiple Interrupts)
+  //
+  // When the LLM returns multiple tool calls that each require approval in a
+  // single response, LangGraph creates one interrupt per tool. All pending
+  // interrupts are surfaced here so the UI can collect decisions for every
+  // tool before the graph is resumed.
+  //
+  // The agent-runner resumes the graph with a single
+  //   Command(resume={interrupt_id_A: decision_A, interrupt_id_B: decision_B, ...})
+  // once ALL entries have been decided. This avoids repeated node re-execution
+  // and the idempotency risks of one-at-a-time resume.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // All pending approval requests for this execution.
+  //
+  // Lifecycle:
+  // 1. Populated after the event stream ends, by querying graph state for
+  //    pending interrupts. Each interrupt is matched to a tool call.
+  // 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL.
+  // 3. User submits decisions via SubmitApproval RPC (one per tool call).
+  // 4. After ALL entries have decisions, the Temporal workflow signals resume.
+  // 5. On resume, all decisions are sent to LangGraph in a single Command.
+  //
+  // When populated:
+  // - Each entry's tool_call_id matches an entry in tool_calls[] with status
+  //   WAITING_APPROVAL
+  // - Each entry carries its interrupt_id for targeted resume
+  // - The singular pending_approval field mirrors the first entry
+  //
+  // Empty when no approvals are pending or for legacy single-interrupt flows.
+  //
+  // @since Batch Approval (Multiple Interrupts)
+  repeated PendingApproval pending_approvals = 16;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Context Management (Phase 3)
@@ -929,6 +966,23 @@ message PendingApproval {
   //
   // @since Phase 5.3 (Approval Forwarding)
   string child_agent_execution_id = 8;
+
+  // LangGraph interrupt ID for targeted resume.
+  //
+  // When the LLM returns multiple tool calls requiring approval in a single
+  // response, LangGraph creates one interrupt per tool. Each interrupt receives
+  // a unique ID. On resume, `Command(resume={interrupt_id: value})` must target
+  // the specific interrupt; otherwise LangGraph raises
+  // "multiple pending interrupts, you must specify the interrupt id."
+  //
+  // Populated by the agent-runner after the event stream ends by querying
+  // `graph.get_state(config).interrupts`. Matched to the tool call via
+  // the interrupt's value payload (which contains tool_name).
+  //
+  // Empty for legacy executions or single-interrupt scenarios (backward compat).
+  //
+  // @since Batch Approval (Multiple Interrupts)
+  string interrupt_id = 9;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

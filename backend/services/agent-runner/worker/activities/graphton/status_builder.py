@@ -165,14 +165,25 @@ class StatusBuilder:
         self._sub_agent_primary_model: dict[str, str] = {}
         
         # ─────────────────────────────────────────────────────────────────────────
-        # Approval State Tracking (HITL Phase 2)
+        # Approval State Tracking (HITL — Batch Approval)
         #
-        # Tracks which tool call is currently pending approval.
-        # Only one tool can be pending approval at a time per execution.
+        # Tracks which tool calls are currently pending approval.  When the LLM
+        # issues multiple tool calls that each require approval in a single
+        # response, LangGraph creates one interrupt per tool.  We track ALL of
+        # them so the post-stream interrupt-capture logic can match each
+        # interrupt to its tool call.
+        #
+        # The singular _pending_tool_approval is preserved for backward
+        # compatibility with clear_pending_approval() and legacy callers.
         # ─────────────────────────────────────────────────────────────────────────
         
-        # run_id of the tool call currently pending approval (None if not waiting)
+        # run_id of the tool call currently pending approval (None if not waiting).
+        # When multiple approvals are pending, this holds the LAST one added
+        # (for backward compat with callers that expect a single value).
         self._pending_tool_approval: str | None = None
+        
+        # Ordered list of ALL run_ids currently pending approval.
+        self._pending_tool_approvals: list[str] = []
         
         # Saved execution phase to restore after approval decision
         # (preserves IN_PROGRESS state when transitioning to WAITING_FOR_APPROVAL)
@@ -843,10 +854,14 @@ class StatusBuilder:
         1. Updates the ToolCall status to WAITING_APPROVAL
         2. Sets approval-related fields on the ToolCall
         3. Populates pending_approval on AgentExecutionStatus for UI
-        4. Updates execution phase to WAITING_FOR_APPROVAL
+        4. Appends to _pending_tool_approvals list
+        5. Updates execution phase to WAITING_FOR_APPROVAL
         
-        Only one tool can be pending approval at a time. Calling this while
-        another tool is pending will log a warning but proceed (overwrites).
+        Multiple tool calls may be pending approval simultaneously when the LLM
+        issues several tool calls in one response that each require approval.
+        Each call to this method appends to the internal list; the post-stream
+        interrupt-capture logic in execute_graphton.py later reconciles these
+        with LangGraph interrupt IDs.
         
         Args:
             run_id: The tool call's run_id (from LangGraph event)
@@ -860,12 +875,6 @@ class StatusBuilder:
             The tool call must already exist in messages[].tool_calls[] or
             tool_calls[]. If not found, this method logs a warning and returns.
         """
-        if self._pending_tool_approval is not None:
-            self.logger.warning(
-                f"[APPROVAL] execution={self.execution_id} "
-                f"overwriting pending approval {self._pending_tool_approval} with {run_id}"
-            )
-        
         now = datetime.utcnow()
         timestamp = _utc_timestamp(now)
         
@@ -887,7 +896,8 @@ class StatusBuilder:
         # Create args preview (sanitized JSON for UI display)
         args_preview = self._create_args_preview(tool_args)
         
-        # Populate pending_approval for UI consumption
+        # Build a PendingApproval proto for this tool (interrupt_id is not yet
+        # known — it will be set post-stream when we query the graph state).
         pending = PendingApproval(
             tool_call_id=run_id,
             tool_name=tool_name,
@@ -897,20 +907,27 @@ class StatusBuilder:
             from_sub_agent=from_sub_agent,
             sub_agent_name=sub_agent_name,
         )
+        
+        # Backward compat: singular field always mirrors the latest entry
         self.current_status.pending_approval.CopyFrom(pending)
         
-        # Save current phase and transition to WAITING_FOR_APPROVAL
-        self._saved_phase_before_approval = self.current_status.phase
+        # Save current phase (only on the FIRST pending approval) and
+        # transition to WAITING_FOR_APPROVAL
+        if self._saved_phase_before_approval is None:
+            self._saved_phase_before_approval = self.current_status.phase
         self.current_status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
         
-        # Track pending approval state
+        # Track pending approval state (list + singular)
+        self._pending_tool_approvals.append(run_id)
         self._pending_tool_approval = run_id
         
         context_info = f"sub_agent={sub_agent_name}" if from_sub_agent else "main_agent"
+        pending_count = len(self._pending_tool_approvals)
         self.logger.info(
             f"[APPROVAL] execution={self.execution_id} "
             f"tool={tool_name} run_id={run_id} "
-            f"status=WAITING_APPROVAL context={context_info}"
+            f"status=WAITING_APPROVAL context={context_info} "
+            f"pending_count={pending_count}"
         )
     
     def set_tool_approval_decision(
@@ -923,9 +940,14 @@ class StatusBuilder:
         Record approval decision on a tool call and update state accordingly.
         
         This method processes the user's approval decision:
-        - APPROVE: Marks tool ready to execute, clears pending state
-        - SKIP: Sets tool to SKIPPED, returns skip message to LLM
-        - REJECT: Sets execution to FAILED
+        - APPROVE: Marks tool ready to execute, clears this entry from pending
+        - SKIP: Sets tool to SKIPPED, clears this entry from pending
+        - REJECT: Sets execution to FAILED, clears all pending
+        
+        With batch approval, this method only clears the specific run_id from
+        the pending list. The execution phase remains WAITING_FOR_APPROVAL if
+        other tools still need decisions.  The graph is NOT resumed until ALL
+        pending approvals are resolved (handled by the Temporal workflow).
         
         Args:
             run_id: The tool call's run_id
@@ -937,10 +959,11 @@ class StatusBuilder:
             execution (e.g., via LangGraph interrupt/resume). This method only
             updates the state to reflect the decision.
         """
-        if self._pending_tool_approval != run_id:
+        if run_id not in self._pending_tool_approvals:
             self.logger.warning(
                 f"[APPROVAL] execution={self.execution_id} "
-                f"approval decision for {run_id} but pending is {self._pending_tool_approval}"
+                f"approval decision for {run_id} but not in pending list "
+                f"{self._pending_tool_approvals}"
             )
         
         now = datetime.utcnow()
@@ -964,37 +987,41 @@ class StatusBuilder:
         action_name = ApprovalAction.Name(action)
         
         if action == ApprovalAction.APPROVAL_ACTION_APPROVE:
-            # Tool is approved - it will transition to RUNNING when execution resumes
-            # Keep status as WAITING_APPROVAL until actual execution starts
-            # Clear pending state and restore phase
-            self.clear_pending_approval()
+            # Tool is approved — it will transition to RUNNING when execution
+            # resumes. Keep status as WAITING_APPROVAL until actual execution.
+            # Remove this run_id from pending list.
+            self._remove_from_pending(run_id)
             self.logger.info(
                 f"[APPROVAL] execution={self.execution_id} "
-                f"run_id={run_id} decision=APPROVE by={approved_by}"
+                f"run_id={run_id} decision=APPROVE by={approved_by} "
+                f"remaining_pending={len(self._pending_tool_approvals)}"
             )
             
         elif action == ApprovalAction.APPROVAL_ACTION_SKIP:
-            # Tool is skipped - set terminal status and skip message
+            # Tool is skipped — set terminal status and skip message.
             tool_call.status = ToolCallStatus.TOOL_CALL_SKIPPED
             tool_call.result = f"Tool '{tool_call.name}' was skipped by user. Please proceed without this operation."
             tool_call.completed_at = timestamp
             
-            # Clear pending state and restore phase
-            self.clear_pending_approval()
+            # Remove this run_id from pending list.
+            self._remove_from_pending(run_id)
             self.logger.info(
                 f"[APPROVAL] execution={self.execution_id} "
-                f"run_id={run_id} decision=SKIP by={approved_by}"
+                f"run_id={run_id} decision=SKIP by={approved_by} "
+                f"remaining_pending={len(self._pending_tool_approvals)}"
             )
             
         elif action == ApprovalAction.APPROVAL_ACTION_REJECT:
-            # Tool is rejected - fail the execution
+            # Tool is rejected — fail the entire execution.
             tool_call.status = ToolCallStatus.TOOL_CALL_FAILED
             tool_call.error = f"Tool execution rejected by {approved_by}"
             tool_call.completed_at = timestamp
             
-            # Clear pending state but set phase to FAILED (not restore)
+            # Clear ALL pending state and set phase to FAILED
+            self._pending_tool_approvals.clear()
             self._pending_tool_approval = None
             self.current_status.pending_approval.Clear()
+            del self.current_status.pending_approvals[:]
             self.current_status.phase = ExecutionPhase.EXECUTION_FAILED
             self.current_status.error = f"Tool '{tool_call.name}' execution rejected by {approved_by}"
             
@@ -1008,16 +1035,37 @@ class StatusBuilder:
                 f"run_id={run_id} unknown action={action_name}"
             )
     
+    def _remove_from_pending(self, run_id: str) -> None:
+        """Remove a single run_id from the pending approvals list.
+        
+        If no more pending approvals remain after removal, clear the overall
+        pending state and restore the execution phase.
+        """
+        if run_id in self._pending_tool_approvals:
+            self._pending_tool_approvals.remove(run_id)
+        
+        if not self._pending_tool_approvals:
+            # All pending approvals have been decided — clear state
+            self.clear_pending_approval()
+        else:
+            # Other approvals still pending; keep WAITING_FOR_APPROVAL phase.
+            # Update the singular pending_approval to reflect the next
+            # unresolved entry (if any).  The authoritative list is
+            # pending_approvals (populated post-stream).
+            self._pending_tool_approval = self._pending_tool_approvals[0] if self._pending_tool_approvals else None
+    
     def clear_pending_approval(self) -> None:
         """
-        Clear pending approval state and restore execution phase.
+        Clear ALL pending approval state and restore execution phase.
         
-        Called after an approval decision is processed to clean up state.
-        Restores the execution phase to what it was before entering
-        WAITING_FOR_APPROVAL (typically IN_PROGRESS).
+        Called when all approval decisions have been processed (or on reject)
+        to clean up state.  Restores the execution phase to what it was before
+        entering WAITING_FOR_APPROVAL (typically IN_PROGRESS).
         """
         self._pending_tool_approval = None
+        self._pending_tool_approvals.clear()
         self.current_status.pending_approval.Clear()
+        del self.current_status.pending_approvals[:]
         
         # Restore phase (default to IN_PROGRESS if not saved)
         if self._saved_phase_before_approval is not None:
