@@ -21,6 +21,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case streamClosedMsg:
 		return m.handleStreamClosed()
 
+	case cancelResultMsg:
+		return m.handleCancelResult(msg)
+
 	case spinner.TickMsg:
 		// Animate the spinner only during the pending phase.
 		// Once the phase changes, stop issuing tick commands.
@@ -40,22 +43,30 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 // handleKeyPress processes keyboard input. Priority order:
-//  1. Quit keys (always available)
-//  2. Help toggle (? key — always available)
-//  3. Help dismiss (esc — only when help is shown)
-//  4. Help blocks all other keys when active
-//  5. Approval keys (when approval is active, captures all input)
-//  6. Focus/toggle keys (Tab, Shift+Tab, Enter)
-//  7. Navigation keys (g top, G bottom)
-//  8. Viewport scroll keys (forwarded to bubbles/viewport)
+//  1. Quit/detach keys (always available)
+//  2. Cancel confirmation keys (when cancel confirm is shown)
+//  3. Help toggle (? key — available except during approval/cancel confirm)
+//  4. Help dismiss (esc — only when help is shown)
+//  5. Help blocks all other keys when active
+//  6. Approval keys (when approval is active, captures all input)
+//  7. Cancel key (c — when execution is running)
+//  8. Focus/toggle keys (Tab, Shift+Tab, Enter)
+//  9. Navigation keys (g top, G bottom)
+//  10. Viewport scroll keys (forwarded to bubbles/viewport)
 func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	// Always allow quit.
+	// Always allow quit/detach.
 	switch msg.String() {
 	case "ctrl+c", "q":
+		m.cancelConfirm = false // dismiss any pending confirmation
 		return m, tea.Quit
 	}
 
-	// Help toggle — available in all states except approval.
+	// Cancel confirmation captures input — only y/n/esc are accepted.
+	if m.cancelConfirm {
+		return m.handleCancelConfirmKey(msg)
+	}
+
+	// Help toggle — available in all states except approval and cancel confirm.
 	if msg.String() == "?" && m.approval == nil {
 		m.showHelp = !m.showHelp
 		return m, nil
@@ -72,6 +83,12 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Route to approval handler when active — approval captures all input.
 	if m.approval != nil {
 		return m.handleApprovalKey(msg)
+	}
+
+	// Cancel key — available when execution is running and not already cancelling.
+	if msg.String() == "c" && !m.done && !m.cancelling && m.cfg.CancelFn != nil {
+		m.cancelConfirm = true
+		return m, nil
 	}
 
 	// Focus and toggle keys for expandable blocks.
@@ -115,6 +132,53 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	m.viewport, cmd = m.viewport.Update(msg)
 	m.autoScroll = m.viewport.AtBottom()
 	return m, cmd
+}
+
+// handleCancelConfirmKey processes keys during the cancel confirmation prompt.
+// Only y (confirm), n, and esc (dismiss) are accepted; other keys are ignored.
+func (m Model) handleCancelConfirmKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "y":
+		m.cancelConfirm = false
+		m.cancelling = true
+		m.blocks = append(m.blocks, newSystemBlock(
+			systemStyle.Render("Cancelling execution..."),
+		))
+		m.refreshViewport()
+		return m, m.executeCancelCmd()
+	case "n", "esc":
+		m.cancelConfirm = false
+		return m, nil
+	default:
+		// Ignore unrecognized keys during confirmation.
+		return m, nil
+	}
+}
+
+// executeCancelCmd returns a tea.Cmd that calls the CancelFn asynchronously.
+// The result is delivered as a cancelResultMsg.
+func (m Model) executeCancelCmd() tea.Cmd {
+	cancelFn := m.cfg.CancelFn
+	return func() tea.Msg {
+		err := cancelFn()
+		return cancelResultMsg{err: err}
+	}
+}
+
+// handleCancelResult processes the result of an asynchronous cancel API call.
+// On success, the TUI waits for the stream to deliver the phase change.
+// On failure, the cancelling state is cleared and an error is shown.
+func (m Model) handleCancelResult(msg cancelResultMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		m.cancelling = false
+		m.blocks = append(m.blocks, newErrorBlock(
+			renderErrorContent("Cancel failed: "+msg.err.Error()),
+		))
+		m.refreshViewport()
+	}
+	// On success: nothing to do here. The backend will transition the execution
+	// to CANCELLED, and the stream will deliver a DoneEvent with phase "cancelled".
+	return m, nil
 }
 
 // handleWindowSize initializes or resizes the viewport based on terminal
