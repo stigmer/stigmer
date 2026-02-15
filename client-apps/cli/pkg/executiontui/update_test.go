@@ -1013,4 +1013,3 @@ func TestFooter_PausedWithExpandable_ShowsFocusHints(t *testing.T) {
 		t.Errorf("footer should show Tab hint when paused with expandable blocks, got %q", footer)
 	}
 }
-

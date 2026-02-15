@@ -106,8 +106,10 @@ type StreamErrorEvent struct {
 func (StreamErrorEvent) isEvent() {}
 
 // ApprovalResponse carries the user's approval decision back to the gRPC
-// goroutine. Action is one of "approve", "skip", "reject".
+// goroutine. Action is one of "approve", "skip", "reject". Comment is an
+// optional reason (currently unused; reserved for future rejection reasons).
 type ApprovalResponse struct {
 	Action     string
 	ToolCallID string
+	Comment    string
 }

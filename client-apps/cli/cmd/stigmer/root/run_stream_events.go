@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"google.golang.org/grpc"
 )
@@ -197,7 +198,7 @@ func emitAndWaitApproval(
 	cfg.events <- executiontui.ApprovalNeededEvent{
 		ToolCallID:  toolCallID,
 		ToolName:    toolName,
-		ArgsPreview: argsPreview,
+		ArgsPreview: approval.FormatArgs(toolName, argsPreview),
 		Message:     message,
 	}
 

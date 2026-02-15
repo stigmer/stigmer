@@ -68,10 +68,10 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-14 21:17
-**Current Task**: T05 (Approval Prompt Integration)
-**Status**: T04 Complete ✅ (committed and tested)
+**Current Task**: T06 (Help, Status Bar, and Polish)
+**Status**: T05 Complete ✅ (committed and tested)
 
-## Session Progress (2026-02-15 12:04)
+## Session Progress (2026-02-15 12:33)
 
 ### T04 Implementation Complete ✅
 
@@ -110,6 +110,41 @@ When starting a new session:
 - +782/-11 lines across 7 files (net +771 lines)
 - pkg/executiontui: 4 files modified, 2 new files
 - 75 tests covering scroll pause, navigation, scroll-into-view, footer
+
+### T05 Implementation Complete ✅
+
+**Accomplished**:
+- ✅ Formatted approval args with `approval.FormatArgs` at boundary (human-readable prompts)
+- ✅ Wired `Comment` field through `ApprovalResponse` → `approval.Decision`
+- ✅ Default "rejected by user" comment on reject actions
+- ✅ Enhanced confirmation blocks with semantic color coding (green/yellow/red)
+- ✅ Extracted `pkg/executiontui/render_approval.go` (66 lines) - approval rendering
+- ✅ Created `pkg/executiontui/approval_test.go` (273 lines) - comprehensive tests
+- ✅ 93 tests passing (up from 75 in T04), full approval coverage
+- ✅ All files under 250 lines, zero technical debt
+- ✅ Build passes, vet clean, no regressions
+- ✅ Changelog: `_changelog/2026-02/2026-02-15-123311-cli-tui-approval-polish.md`
+
+**Key Technical Decisions**:
+1. **Format at boundary**: `run_stream_events.go` calls `approval.FormatArgs` before sending event
+2. **Default rejection comment**: "rejected by user" for audit trails; empty for approve/skip
+3. **File extraction**: Split approval rendering from `render_blocks.go` (256 → 207 lines)
+4. **Test isolation**: Dedicated `approval_test.go` with 18 focused tests
+5. **Styled confirmations**: Green "✅ Approved: shell", Yellow "⏭ Skipped: write_file", Red "❌ Rejected: delete_file"
+
+**What Works**:
+- Approval prompts show formatted args (bold primary field, red for dangerous tools)
+- Multi-line args properly indented in approval display
+- Confirmation blocks color-coded by action with tool names
+- Comment flows end-to-end from TUI → gRPC → backend API
+- All three actions (approve/skip/reject) individually tested
+- Sequential approvals work correctly
+- Unrecognized keys ignored during approval
+
+**Impact**:
+- +150/-49 lines across 6 files (net +101 lines)
+- pkg/executiontui: 4 files modified, 2 new files
+- 93 tests covering all approval paths, response verification, confirmation rendering
 
 ## Previous Session (2026-02-14 22:39)
 
@@ -178,48 +213,44 @@ When starting a new session:
 4. Minimal inline approval for T02: Simple a/s/r key capture + channel response, no rejection reason text (deferred to T05)
 5. Auto-scroll viewport: Using `bubbles/viewport` with auto-follow, ready for T04 scroll-pause
 
-## Next Steps (T05: Approval Prompt Integration)
+## Next Steps (T06: Help, Status Bar, and Polish)
 
-Per the [T01 plan](tasks/T01_0_plan.md), T05 integrates the approval prompt into the TUI model:
+Per the [T01 plan](tasks/T01_0_plan.md), T06 is the final UX polish pass to make the TUI production-ready:
 
-1. **Create `approvalSubModel`** (new file: approval.go)
-   - Handle approve/skip/reject keys
-   - Text input for rejection reason (optional enhancement)
-   - Convert approval state to response
+1. **Status bar header** (view.go)
+   - Enhanced header showing execution ID, phase, and duration
+   - Real-time phase transitions with icons
+   - Optional: elapsed time counter
 
-2. **Route keyboard input** (update.go)
-   - When `approval != nil`, route keys to approval sub-model
-   - Handle approval response submission
-   - Resume streaming after approval
+2. **Help overlay** (new files: help.go, help_test.go)
+   - Toggle with `?` key
+   - Show all keybindings in context
+   - Dismiss with `?` or `esc`
+   - Overlay rendering (doesn't hide viewport)
 
-3. **Render approval inline** (view.go or approval.go)
-   - Render approval options at viewport bottom (not separate program)
-   - Show tool name, args preview, message
-   - Key hints: [a] Approve [s] Skip [r] Reject
+3. **Spinner/loading indicator** (model.go, view.go)
+   - Bubbletea spinner component for "pending" phase
+   - Replace with appropriate icon when execution starts
+   - Integrate with existing phase indicator
 
-4. **Record approval interaction** (update.go)
-   - After approval response, append confirmation block to history
-   - Clear approval state
-   - Continue listening for events
+4. **Error state rendering** (render_blocks.go or new render_errors.go)
+   - Styled error messages for stream failures
+   - Distinct error blocks vs system blocks
+   - Show error context when available
 
-5. **Tests** (approval_test.go or update_test.go)
-   - Test approval key routing
-   - Test approve/skip/reject responses
-   - Test approval history in blocks
+5. **Clean exit behavior** (update.go, view.go)
+   - Final summary rendering before exit
+   - Ensure alt-screen cleanup
+   - Verify stdout summary prints correctly
 
-**Current Status**: T05 already has **minimal inline approval** implemented in T02:
-- Simple a/s/r key capture + channel response works
-- No rejection reason text input yet (deferred)
-- The approval is already integrated into the TUI model (not a separate program)
+**Estimated Scope**: ~150-200 lines (help overlay is the bulk)
 
-**Remaining Work for T05**:
-- Add rejection reason text input (optional)
-- Enhance approval UI rendering
-- Add comprehensive approval tests
-
-**Note**: The T02 implementation already meets the core T05 requirements. T05 can be treated as enhancement/polish or skipped in favor of T06.
-
-**Estimated Scope**: ~50-100 lines if adding rejection reason text input
+**Success Criteria**:
+- Help overlay shows all keybindings clearly
+- Status bar adapts to execution state
+- Spinner during pending phase
+- Errors visually distinct from normal content
+- Clean transition from TUI to stdout summary
 
 ## Context for Resume
 

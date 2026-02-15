@@ -31,18 +31,23 @@ func (m Model) handleApprovalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	// Send the response to the gRPC goroutine.
+	var comment string
+	if action == "reject" {
+		comment = "rejected by user"
+	}
 	response := ApprovalResponse{
 		Action:     action,
 		ToolCallID: m.approval.toolCallID,
+		Comment:    comment,
 	}
 
 	// Use a command to send the response asynchronously, preventing the
 	// Update loop from blocking if the channel is not immediately ready.
 	sendCmd := sendApprovalResponse(m.cfg.ApprovalResponses, response)
 
-	// Append a confirmation block.
+	// Append a confirmation block showing the action and tool name.
 	m.blocks = append(m.blocks, newSystemBlock(
-		renderSystemContent("Approval decision: "+action),
+		renderApprovalConfirmation(action, m.approval.toolName),
 	))
 
 	// Clear approval state.
