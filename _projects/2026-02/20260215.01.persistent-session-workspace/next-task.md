@@ -68,9 +68,35 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-15 18:35
-**Current Task**: T06 (Testing)
-**Status**: T05 Complete ✅ (T01 ✅, T02 ✅, T03 ✅, T04 ✅, T05 ✅)
-**Last Session**: 2026-02-15 21:22 — Completed T05 (Resume workspace integrity check)
+**Current Task**: Complete ✅
+**Status**: All tasks complete (T01 ✅, T02 ✅, T03 ✅, T04 ✅, T05 ✅, T06 ✅)
+**Last Session**: 2026-02-15 — Completed T06 (Automated tests + documentation)
+
+## Session Progress (2026-02-15, Session 3 — T06 Testing + Documentation)
+
+### What Was Accomplished
+- ✅ **T06 Completed**: Automated unit tests + documentation updates
+- Created `test_sandbox_manager_volume.py` — 30 tests covering volume init, mount wiring, recovery state machine, health check
+- Created `test_config_session_scoping.py` — 9 tests covering session-scoped directory logic and validation
+- Created `test_workspace_integrity_check.py` — 10 tests covering sentinel check in local mode, cloud mode, and edge cases
+- All 49 new tests pass; no regressions in existing suites (569 + 486 existing tests pass)
+- Updated sandbox execution-modes documentation with persistent workspace behavior
+- Updated project README and next-task with final status
+
+### Files Created
+- `backend/services/agent-runner/tests/test_sandbox_manager_volume.py` (30 tests)
+- `backend/services/agent-runner/tests/test_config_session_scoping.py` (9 tests)
+- `backend/services/agent-runner/tests/test_workspace_integrity_check.py` (10 tests)
+
+### Test Coverage Added
+| Component | Test File | Tests | What It Covers |
+|---|---|---|---|
+| Volume init + store | test_sandbox_manager_volume.py | 6 | `initialize_daytona_volume()`, `get/set_daytona_volume_id()` |
+| Volume mount wiring | test_sandbox_manager_volume.py | 7 | `_create_daytona_sandbox()` VolumeMount, auto_delete, validation |
+| Health check | test_sandbox_manager_volume.py | 3 | `_is_daytona_sandbox_alive()` success, failure, exception |
+| Recovery state machine | test_sandbox_manager_volume.py | 14 | `_try_revive_daytona_sandbox()` all SandboxState branches |
+| Session-scoped dirs | test_config_session_scoping.py | 9 | `get_sandbox_config()` local/cloud, validation, backward-compat |
+| Sentinel check | test_workspace_integrity_check.py | 10 | `_check_workspace_file_exists()` local/cloud/edge cases |
 
 ## Session Progress (2026-02-15, Late Evening Session 2)
 
@@ -105,15 +131,9 @@ When starting a new session:
 
 ## Next Steps
 
-1. **Commit T05 changes**: Ready to commit with conventional commit message
-2. **T06**: Testing — comprehensive validation after all implementation complete
-   - Test local mode: session-scoped directories created and reused
-   - Test Daytona mode: volume mounted, files persist, sentinel check works
-   - Test resume happy path: check passes, fast-path used
-   - Test resume fallback: check fails, full setup triggered, WARNING logged
-   - Test restart: stopped sandbox restarted successfully
-3. **T03**: Independent — already complete, can verify during T06
-4. **Project wrap-up**: After T06, create final session notes and update project README
+1. **Manual testing**: Validate end-to-end flows in local and Daytona modes
+2. **Commit T06 changes**: Stage and commit tests + documentation
+3. **Project wrap-up**: Merge branch, update any remaining documentation
 
 ## Session Progress (2026-02-15, Late Evening Session)
 
@@ -165,10 +185,7 @@ When starting a new session:
 ## Quick Commands
 
 After loading context:
-- "Commit T04 changes" - Stage and commit the workspace root alignment implementation
-- "Continue with T05" - Start simplifying resume fast-path with volume safety checks
-- "Continue with T03" - Start sandbox restart/recovery (independent)
-- "Continue with T06" - Start comprehensive testing
+- "Commit T06 changes" - Stage and commit automated tests + documentation
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

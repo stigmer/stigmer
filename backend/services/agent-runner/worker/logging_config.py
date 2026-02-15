@@ -26,6 +26,8 @@ def setup_logging() -> None:
     logging.getLogger("httpcore").setLevel(logging.WARNING)
     logging.getLogger("grpc").setLevel(logging.WARNING)
     logging.getLogger("grpc._cython.cygrpc").setLevel(logging.WARNING)
+    logging.getLogger("aiosqlite").setLevel(logging.WARNING)
+    logging.getLogger("langgraph.checkpoint.sqlite").setLevel(logging.WARNING)
     
     # Suppress DEBUG logs from libraries that create their own loggers
     # Show INFO and above for these (useful operational logs, no debug noise)

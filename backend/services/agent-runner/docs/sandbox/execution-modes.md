@@ -374,6 +374,100 @@ MODE=cloud DAYTONA_API_KEY=xxx stigmer server start
 
 ---
 
+## Persistent Session Workspace
+
+Agent executions run within sessions. Each session gets an isolated, persistent workspace that survives sandbox lifecycle events (stop, archive, destroy, recreate). This ensures the agent can resume after approval without losing files.
+
+### How It Works
+
+**The Problem:** Agent workspaces live on the sandbox filesystem. When a sandbox dies between the pause (waiting for approval) and resume, all files are lost -- skills, attachments, and agent work products.
+
+**The Solution:** Decouple workspace storage from sandbox compute. Workspace files live on persistent storage; sandboxes are ephemeral compute.
+
+```
+Session (persistent)
+├── thread_id    → LangGraph checkpoint (conversation state)
+├── sandbox_id   → Sandbox ID (ephemeral compute, runtime packages)
+└── Persistent workspace (files survive sandbox lifecycle)
+    ├── bin/skills/          → Agent skill files
+    ├── bin/attachments/     → User-uploaded files
+    └── ...                  → Agent work products
+```
+
+### Local Mode
+
+Each session gets its own directory under `{SANDBOX_ROOT_DIR}/sessions/{session_id}/`. Files persist as long as the directory exists.
+
+```
+workspace/
+└── sessions/
+    ├── abc-123-def/    → Session 1 workspace
+    │   ├── bin/skills/
+    │   └── ...
+    └── xyz-789-ghi/    → Session 2 workspace
+        ├── bin/skills/
+        └── ...
+```
+
+**Configuration:** Automatic when `session_id` is provided. No additional setup needed.
+
+### Cloud Mode (Daytona)
+
+A single global Daytona Volume (`stigmer-workspaces`) is created at worker startup and shared across all sessions. Each session mounts a unique subpath.
+
+```
+Daytona Volume: stigmer-workspaces
+└── sessions/
+    ├── abc-123-def/    → Mounted at /home/daytona/workspace in sandbox A
+    └── xyz-789-ghi/    → Mounted at /home/daytona/workspace in sandbox B
+```
+
+**Key properties:**
+- Volume auto-created at worker startup via `daytona.volume.get("stigmer-workspaces", create=True)` (idempotent)
+- Volume ID cached in worker memory; re-fetched on restart
+- Mount path: `/home/daytona/workspace`
+- Subpath isolation via `sessions/{session_id}` (UUID-based, no collision risk)
+- Volume name configurable via `DAYTONA_VOLUME_NAME` env var (default: `stigmer-workspaces`)
+
+### Sandbox Recovery Chain
+
+Before creating a new sandbox, the system attempts to recover the existing one. This preserves runtime state (installed packages, compiled tools) in addition to workspace files.
+
+| Sandbox State | Action | Timeout | Files | Packages |
+|---|---|---|---|---|
+| **STARTED** | Health check, reuse | 5s | Intact | Intact |
+| **STOPPED** | `sandbox.start()` | 60s | Intact | Intact |
+| **ARCHIVED** | `sandbox.start()` (restore) | 120s | Intact | Intact |
+| **ERROR** (recoverable) | `sandbox.recover()` | 60s | Intact | Intact |
+| **DESTROYED / Gone** | Create new + mount volume | ~30s | Intact (volume) | Lost |
+| **Transitional** | Create new + mount volume | ~30s | Intact (volume) | Lost |
+
+Sandbox `auto_delete_interval` is set to `-1` (disabled) so Daytona does not delete sandboxes behind our back.
+
+### Resume Integrity Check
+
+On the resume-after-approval path, a sentinel file check verifies that workspace files are intact before trusting the fast-path:
+
+1. The first skill's `SKILL.md` is used as the sentinel (deterministic, always written first)
+2. Local mode: `Path.exists()` on the local filesystem
+3. Cloud mode: `test -f <path>` via `sandbox.process.exec()`
+4. If the check passes: fast-path is used (skills and attachments are not re-written)
+5. If the check fails: graceful fallback to full setup with `[RESUME-FALLBACK]` warning logged
+
+This provides defense-in-depth: if a volume mount fails silently or data is corrupted, the agent still gets served correctly (just with a re-write penalty), and ops gets alerted via the warning log.
+
+### Configuration Reference
+
+```bash
+# Volume name for persistent workspace (cloud mode)
+DAYTONA_VOLUME_NAME=stigmer-workspaces  # Default: stigmer-workspaces
+
+# Workspace root directory (local mode)
+SANDBOX_ROOT_DIR=./workspace  # Default: ./workspace
+```
+
+---
+
 ## Philosophy
 
 **Make the common case fast, the uncommon case possible.**

@@ -60,11 +60,11 @@ See [checkpoints/](checkpoints/) for the most recent project state.
 
 ### Progress Tracking
 - [x] Project initialized
-- [ ] Initial analysis complete
-- [ ] Core implementation
-- [ ] Testing and validation
-- [ ] Documentation finalized
-- [ ] Project completed
+- [x] Initial analysis complete
+- [x] Core implementation (T01-T05)
+- [x] Testing and validation (T06 — 49 automated tests)
+- [x] Documentation finalized
+- [ ] Project completed (pending manual testing + merge)
 
 ## How to Resume Work
 
