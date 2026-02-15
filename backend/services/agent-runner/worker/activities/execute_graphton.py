@@ -49,7 +49,11 @@ from worker.resilience import (
     GrpcRetryExhaustedError,
     RetryConfig,
 )
-from worker.sandbox_manager import SandboxManager, get_daytona_volume_id
+from worker.sandbox_manager import (
+    DAYTONA_WORKSPACE_MOUNT_PATH,
+    SandboxManager,
+    get_daytona_volume_id,
+)
 from worker.storage import ArtifactStorage, create_artifact_storage
 from worker.streaming import StreamingConfig, StreamingUpdateScheduler
 from worker.token_manager import get_api_key
@@ -134,6 +138,7 @@ async def inject_attachments(
     storage: ArtifactStorage,
     logger,
     local_root: str | None = None,
+    workspace_root: str | None = None,
 ) -> list[dict]:
     """Inject attachments into sandbox at their mount_path.
     
@@ -144,9 +149,8 @@ async def inject_attachments(
     Path convention (aligned with SkillWriter):
     - Workspace-relative paths like ``inputs/data.txt`` are used for
       both the upload destination and the agent-facing prompt.
-    - In Daytona mode the workspace root is obtained from
-      ``sandbox.get_work_dir()`` and prepended to create the absolute
-      sandbox path for ``FileUpload``.
+    - In Daytona mode the workspace root is prepended to create the
+      absolute sandbox path for ``FileUpload``.
     - In local mode the ``local_root`` is the workspace root.
     
     Args:
@@ -155,6 +159,10 @@ async def inject_attachments(
         storage: ArtifactStorage for downloading attachments (required)
         logger: Activity logger for debugging
         local_root: Root path for local filesystem mode (when sandbox is None)
+        workspace_root: Explicit workspace root for Daytona mode (e.g. the
+            volume mount path).  When provided, used directly instead of
+            calling ``sandbox.get_work_dir()``.  When *None*, falls back to
+            ``sandbox.get_work_dir()`` discovery (backward-compatible).
         
     Returns:
         List of dicts with injected file info: [{"filename": str, "path": str, "size": int}]
@@ -177,18 +185,24 @@ async def inject_attachments(
     # match what the agent's backend will resolve when reading.
     ws_root: str | None = None
     if sandbox is not None:
-        try:
-            ws_root = sandbox.get_work_dir().rstrip("/")
+        if workspace_root:
+            ws_root = workspace_root.rstrip("/")
             logger.info(
-                "[attachments] Daytona workspace root: %s", ws_root,
+                "[attachments] Using configured workspace root: %s", ws_root,
             )
-        except Exception as exc:
-            logger.warning(
-                "[attachments] sandbox.get_work_dir() failed (%s); "
-                "falling back to /home/daytona",
-                exc,
-            )
-            ws_root = "/home/daytona"
+        else:
+            try:
+                ws_root = sandbox.get_work_dir().rstrip("/")
+                logger.info(
+                    "[attachments] Daytona workspace root: %s", ws_root,
+                )
+            except Exception as exc:
+                logger.warning(
+                    "[attachments] sandbox.get_work_dir() failed (%s); "
+                    "falling back to /home/daytona",
+                    exc,
+                )
+                ws_root = "/home/daytona"
     
     file_uploads = []  # For Daytona batch upload
     injected_files = []  # Track injected files for return
@@ -702,6 +716,25 @@ async def _execute_graphton_impl(
                 f"for execution {execution_id}"
             )
         
+        # Compute the authoritative workspace root for Daytona mode.
+        # When a persistent volume is mounted (volume_id + session_id),
+        # the workspace root is the volume mount path.  All consumers
+        # (SkillWriter, inject_attachments, sandbox_config_for_agent,
+        # diagnostics) use this value instead of independently calling
+        # sandbox.get_work_dir().
+        daytona_workspace_root: str | None = None
+        if not worker_config.is_local_mode() and sandbox is not None:
+            volume_id = get_daytona_volume_id()
+            if volume_id and resolved_session_id:
+                daytona_workspace_root = DAYTONA_WORKSPACE_MOUNT_PATH
+                activity_logger.info(
+                    "Volume-backed workspace: workspace_root=%s "
+                    "(volume_id=%s, session_id=%s)",
+                    daytona_workspace_root,
+                    volume_id,
+                    resolved_session_id,
+                )
+        
         # Step 3: Fetch and write skills (from agent template via references)
         # Following the Agent Skills spec progressive disclosure model:
         # - Skills are written to bin/skills/{name}/ in the sandbox
@@ -786,7 +819,10 @@ async def _execute_graphton_impl(
                             f"Uploading {len(skills)} skills to Daytona sandbox "
                             f"(sandbox {'newly created' if is_new_sandbox else 'reused, updating skills'})"
                         )
-                        skill_writer = SkillWriter(sandbox=sandbox)
+                        skill_writer = SkillWriter(
+                            sandbox=sandbox,
+                            workspace_root=daytona_workspace_root,
+                        )
                         skill_paths = skill_writer.write_skills(skills, artifacts=artifacts)
                     
                     # Generate prompt section with full SKILL.md content and LOCATION headers
@@ -800,22 +836,26 @@ async def _execute_graphton_impl(
                     # Log workspace root and verify skill paths exist in the
                     # sandbox at the expected location.
                     if not worker_config.is_local_mode() and sandbox is not None:
-                        try:
-                            work_dir = sandbox.get_work_dir()
-                            activity_logger.info(
-                                "[skill-diag] sandbox.get_work_dir() = %r", work_dir,
-                            )
-                        except Exception as diag_exc:
-                            activity_logger.warning(
-                                "[skill-diag] sandbox.get_work_dir() failed: %s", diag_exc,
-                            )
-                            work_dir = None
+                        # Use the authoritative workspace root (volume mount
+                        # path when present), falling back to get_work_dir().
+                        diag_ws_root: str | None = daytona_workspace_root
+                        if not diag_ws_root:
+                            try:
+                                diag_ws_root = sandbox.get_work_dir()
+                            except Exception as diag_exc:
+                                activity_logger.warning(
+                                    "[skill-diag] sandbox.get_work_dir() failed: %s",
+                                    diag_exc,
+                                )
+                        activity_logger.info(
+                            "[skill-diag] workspace_root = %r", diag_ws_root,
+                        )
 
                         for _sid, spath in skill_paths.items():
                             # spath is workspace-relative, e.g. "bin/skills/abc…"
-                            # SkillWriter writes to {work_dir}/{spath}
-                            if work_dir:
-                                abs_path = f"{work_dir.rstrip('/')}/{spath}"
+                            # SkillWriter writes to {workspace_root}/{spath}
+                            if diag_ws_root:
+                                abs_path = f"{diag_ws_root.rstrip('/')}/{spath}"
                             else:
                                 abs_path = f"/{spath}"
                             diag_result = sandbox.process.exec(
@@ -940,6 +980,7 @@ async def _execute_graphton_impl(
                         storage=artifact_storage,
                         logger=activity_logger,
                         local_root=sandbox_config.get('root_dir') if worker_config.is_local_mode() else None,
+                        workspace_root=daytona_workspace_root,
                     )
                     activity_logger.info(f"Successfully injected {len(injected_files)} attachments")
                 except Exception as e:
@@ -1235,11 +1276,20 @@ async def _execute_graphton_impl(
             if sandbox is None:
                 raise RuntimeError("Sandbox not initialized for cloud mode")
             
-            sandbox_config_for_agent = {
+            sandbox_config_for_agent: dict[str, Any] = {
                 "type": "daytona",
                 "sandbox_id": sandbox.id,  # Reuse existing sandbox with skills
             }
-            activity_logger.info(f"Configuring agent to use existing sandbox {sandbox.id}")
+            # When a persistent volume is mounted, tell the backend factory
+            # to use the volume mount path as the agent's workspace root.
+            if daytona_workspace_root:
+                sandbox_config_for_agent["workspace_root"] = daytona_workspace_root
+            activity_logger.info(
+                "Configuring agent to use existing sandbox %s "
+                "(workspace_root=%s)",
+                sandbox.id,
+                daytona_workspace_root or "<sandbox default>",
+            )
         
         # ─────────────────────────────────────────────────────────────────────────────
         # Resolve model name to API model ID

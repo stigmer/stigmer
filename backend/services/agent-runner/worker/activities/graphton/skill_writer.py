@@ -12,9 +12,11 @@ progressive disclosure model:
 
 Path Convention:
 - Skills live under ``bin/skills/{name}/`` relative to the workspace root.
-- In Daytona mode the workspace root is queried from the sandbox via
-  ``sandbox.get_work_dir()`` (typically ``/workspace``).  All shell commands
-  and SDK file operations use the fully-qualified path
+- In Daytona mode the workspace root is either:
+  (a) an explicit ``workspace_root`` passed to the constructor (e.g. the
+      volume mount path ``/home/daytona/workspace``), or
+  (b) discovered via ``sandbox.get_work_dir()`` (fallback).
+  All shell commands and SDK file operations use the fully-qualified path
   ``{workspace_root}/bin/skills/{name}/``.
 - In local mode the workspace root is the ``local_root`` passed to the
   constructor (e.g. ``/tmp/stigmer-sandbox``).
@@ -56,17 +58,29 @@ class SkillWriter:
     # ``_SKILLS_RELATIVE_BASE`` instead.
     SKILLS_BASE_DIR = "/bin/skills"
     
-    def __init__(self, sandbox=None, local_root: str | None = None):
+    def __init__(
+        self,
+        sandbox=None,
+        local_root: str | None = None,
+        workspace_root: str | None = None,
+    ):
         """Initialize SkillWriter.
         
         Args:
             sandbox: Daytona Sandbox instance (for cloud mode).  The workspace
-                root is resolved automatically via ``sandbox.get_work_dir()``.
+                root is resolved automatically via ``sandbox.get_work_dir()``
+                unless *workspace_root* is provided.
             local_root: Local filesystem root (for local mode, e.g.,
                 ``/tmp/stigmer-sandbox``).
+            workspace_root: Explicit workspace root for Daytona mode (e.g.
+                the volume mount path ``/home/daytona/workspace``).  When
+                provided, ``_resolve_workspace_root()`` returns this value
+                instead of calling ``sandbox.get_work_dir()``.  When *None*,
+                the existing discovery logic is used (backward-compatible).
         """
         self.sandbox = sandbox
         self.local_root = local_root
+        self._configured_workspace_root = workspace_root
         self.skills_base = self.SKILLS_BASE_DIR
     
     @staticmethod
@@ -260,27 +274,37 @@ class SkillWriter:
     def _resolve_workspace_root(self) -> str:
         """Return the absolute workspace root inside the Daytona sandbox.
 
-        The value is obtained from ``sandbox.get_work_dir()`` and cached on
-        the instance.  A trailing ``/`` is stripped so callers can safely
-        concatenate with ``/{relative_path}``.
+        Resolution order:
 
-        Falls back to ``/home/daytona`` (standard Daytona user home) if
-        ``get_work_dir()`` is not available on older SDK versions.
+        1. If an explicit *workspace_root* was passed to the constructor
+           (e.g. the volume mount path), use it directly.
+        2. Otherwise, query ``sandbox.get_work_dir()`` (standard Daytona
+           SDK discovery).
+        3. Fall back to ``/home/daytona`` if the SDK call fails.
+
+        The result is cached on the instance.  A trailing ``/`` is stripped
+        so callers can safely concatenate with ``/{relative_path}``.
         """
         cached = getattr(self, "_workspace_root", None)
         if cached is not None:
             return cached  # type: ignore[return-value]
 
-        try:
-            root = self.sandbox.get_work_dir().rstrip("/")
-            logger.info("Daytona workspace root resolved: %s", root)
-        except Exception as exc:
-            root = "/home/daytona"
-            logger.warning(
-                "sandbox.get_work_dir() failed (%s); falling back to %s",
-                exc,
-                root,
+        if self._configured_workspace_root:
+            root = self._configured_workspace_root.rstrip("/")
+            logger.info(
+                "Using configured workspace root: %s", root,
             )
+        else:
+            try:
+                root = self.sandbox.get_work_dir().rstrip("/")
+                logger.info("Daytona workspace root resolved: %s", root)
+            except Exception as exc:
+                root = "/home/daytona"
+                logger.warning(
+                    "sandbox.get_work_dir() failed (%s); falling back to %s",
+                    exc,
+                    root,
+                )
         self._workspace_root: str = root
         return root
 

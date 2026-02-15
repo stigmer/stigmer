@@ -42,6 +42,20 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
+# Daytona workspace constants
+# ---------------------------------------------------------------------------
+# DAYTONA_WORKSPACE_MOUNT_PATH is the absolute path inside the sandbox where
+# the persistent Daytona volume is mounted.  All workspace files (skills,
+# attachments, agent work products) live under this path so they survive
+# sandbox lifecycle events.  Consumers that need to know the agent's
+# workspace root should import this constant rather than hard-coding paths.
+# ---------------------------------------------------------------------------
+
+DAYTONA_WORKSPACE_MOUNT_PATH: str = "/home/daytona/workspace"
+"""Absolute mount path for the persistent Daytona volume inside sandboxes."""
+
+
+# ---------------------------------------------------------------------------
 # Worker-level Daytona volume state
 # ---------------------------------------------------------------------------
 # Initialized once at runner startup via initialize_daytona_volume(), then
@@ -607,7 +621,7 @@ class SandboxManager:
         When a ``volume_id`` was provided at construction time **and** a
         ``session_id`` is given, the sandbox is created with a
         :class:`VolumeMount` that maps the persistent volume into
-        ``/home/daytona/workspace`` using the subpath
+        :data:`DAYTONA_WORKSPACE_MOUNT_PATH` using the subpath
         ``sessions/{session_id}``.  This ensures workspace files survive
         sandbox lifecycle events.
         
@@ -635,14 +649,15 @@ class SandboxManager:
             volume_mounts.append(
                 VolumeMount(
                     volume_id=self._volume_id,
-                    mount_path="/home/daytona/workspace",
+                    mount_path=DAYTONA_WORKSPACE_MOUNT_PATH,
                     subpath=f"sessions/{session_id}",
                 )
             )
             logger.info(
                 "Volume mount configured: volume=%s, "
-                "mount_path=/home/daytona/workspace, subpath=sessions/%s",
+                "mount_path=%s, subpath=sessions/%s",
                 self._volume_id,
+                DAYTONA_WORKSPACE_MOUNT_PATH,
                 session_id,
             )
         elif not session_id:

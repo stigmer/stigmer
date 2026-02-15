@@ -36,9 +36,9 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 	defer close(cfg.events)
 
 	var (
-		displayedCount int
-		inStream       bool
-		lastPhase      agentexecutionv1.ExecutionPhase
+		displayedCount  int
+		inStream        bool
+		lastPhase       agentexecutionv1.ExecutionPhase
 		promptedIDs     = make(map[string]bool)
 		toolCallStates  = make(map[string]string) // toolCallID -> last known status string
 		toolCallResults = make(map[string]string) // toolCallID -> last known result content (for streaming delta detection)

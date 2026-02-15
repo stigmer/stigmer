@@ -1,8 +1,10 @@
 """Unit tests for WorkspaceNormalizingBackend.
 
-Tests that the normalising wrapper correctly strips workspace-root prefixes
-from paths before delegating to the inner backend, preventing the
-double-prefix bug (e.g. /workspace/workspace/bin/skills/...).
+Tests that the normalising wrapper correctly:
+1. Strips workspace-root prefixes from paths before delegating to the inner
+   backend, preventing the double-prefix bug (e.g. /workspace/workspace/...).
+2. Rebases paths when the agent workspace root is a subdirectory of the
+   sandbox root (volume-mount scenario).
 """
 
 from __future__ import annotations
@@ -29,16 +31,31 @@ def inner_backend() -> MagicMock:
 
 @pytest.fixture
 def wrapper(inner_backend: MagicMock) -> WorkspaceNormalizingBackend:
-    """Create a WorkspaceNormalizingBackend wrapping the mock."""
+    """Create a WorkspaceNormalizingBackend wrapping the mock (no rebase)."""
     return WorkspaceNormalizingBackend(inner_backend, workspace_root="/workspace")
 
 
+@pytest.fixture
+def rebase_wrapper(inner_backend: MagicMock) -> WorkspaceNormalizingBackend:
+    """Create a WorkspaceNormalizingBackend with rebase (volume-mount scenario).
+
+    workspace_root = /home/daytona/workspace  (volume mount)
+    sandbox_root   = /home/daytona            (sandbox.get_work_dir())
+    rebase_prefix  = "workspace"
+    """
+    return WorkspaceNormalizingBackend(
+        inner_backend,
+        workspace_root="/home/daytona/workspace",
+        sandbox_root="/home/daytona",
+    )
+
+
 # ---------------------------------------------------------------------------
-# Path normalisation
+# Path normalisation (no rebase)
 # ---------------------------------------------------------------------------
 
 class TestNormalize:
-    """Tests for the _normalize() path stripping logic."""
+    """Tests for the _normalize() path stripping logic without rebase."""
 
     def test_strips_workspace_prefix(self, wrapper: WorkspaceNormalizingBackend) -> None:
         assert wrapper._normalize("/workspace/bin/skills/a/SKILL.md") == "bin/skills/a/SKILL.md"
@@ -54,24 +71,109 @@ class TestNormalize:
     def test_relative_path_unchanged(self, wrapper: WorkspaceNormalizingBackend) -> None:
         assert wrapper._normalize("bin/skills/a/SKILL.md") == "bin/skills/a/SKILL.md"
 
-    def test_absolute_non_workspace_path_unchanged(self, wrapper: WorkspaceNormalizingBackend) -> None:
-        # Absolute path that does NOT start with workspace root should pass through
-        assert wrapper._normalize("/home/daytona/file.txt") == "/home/daytona/file.txt"
+    def test_absolute_non_workspace_path_stripped(self, wrapper: WorkspaceNormalizingBackend) -> None:
+        # Defense-in-depth: leading "/" is always stripped so paths resolve
+        # relative to the workspace root, not the filesystem root.
+        assert wrapper._normalize("/home/daytona/file.txt") == "home/daytona/file.txt"
 
     def test_dot_path_unchanged(self, wrapper: WorkspaceNormalizingBackend) -> None:
         assert wrapper._normalize(".") == "."
 
-    def test_empty_path_unchanged(self, wrapper: WorkspaceNormalizingBackend) -> None:
-        assert wrapper._normalize("") == ""
+    def test_empty_path_returns_dot(self, wrapper: WorkspaceNormalizingBackend) -> None:
+        # Empty path normalises to "." (current directory)
+        assert wrapper._normalize("") == "."
 
     def test_partial_match_not_stripped(self, wrapper: WorkspaceNormalizingBackend) -> None:
-        # "/workspace2/foo" should NOT be stripped (not a prefix match)
-        assert wrapper._normalize("/workspace2/foo") == "/workspace2/foo"
+        # "/workspace2/foo" should NOT be prefix-stripped (not a prefix match),
+        # but leading "/" is stripped by defense-in-depth.
+        assert wrapper._normalize("/workspace2/foo") == "workspace2/foo"
 
     def test_custom_workspace_root(self, inner_backend: MagicMock) -> None:
         w = WorkspaceNormalizingBackend(inner_backend, "/home/daytona")
         assert w._normalize("/home/daytona/skills/a") == "skills/a"
-        assert w._normalize("/workspace/skills/a") == "/workspace/skills/a"
+        # Non-matching absolute path: leading "/" stripped by defense-in-depth
+        assert w._normalize("/workspace/skills/a") == "workspace/skills/a"
+
+
+# ---------------------------------------------------------------------------
+# Path normalisation with rebase (volume-mount scenario)
+# ---------------------------------------------------------------------------
+
+class TestNormalizeRebase:
+    """Tests for _normalize() with rebase prefix (workspace != sandbox root)."""
+
+    def test_rebase_prefix_computed(self, rebase_wrapper: WorkspaceNormalizingBackend) -> None:
+        assert rebase_wrapper._rebase_prefix == "workspace"
+
+    def test_strips_workspace_prefix_and_rebases(
+        self, rebase_wrapper: WorkspaceNormalizingBackend
+    ) -> None:
+        # Absolute agent path → strip workspace root → prepend rebase prefix
+        result = rebase_wrapper._normalize(
+            "/home/daytona/workspace/bin/skills/a/SKILL.md"
+        )
+        assert result == "workspace/bin/skills/a/SKILL.md"
+
+    def test_exact_workspace_root_returns_rebase_prefix(
+        self, rebase_wrapper: WorkspaceNormalizingBackend
+    ) -> None:
+        # Exact workspace root → empty relative → returns rebase prefix only
+        assert rebase_wrapper._normalize("/home/daytona/workspace") == "workspace"
+
+    def test_relative_path_rebased(self, rebase_wrapper: WorkspaceNormalizingBackend) -> None:
+        # Workspace-relative paths get the rebase prefix prepended
+        assert rebase_wrapper._normalize("bin/skills/a/SKILL.md") == "workspace/bin/skills/a/SKILL.md"
+
+    def test_absolute_non_workspace_path_rebased(
+        self, rebase_wrapper: WorkspaceNormalizingBackend
+    ) -> None:
+        # Leading "/" stripped, then rebase prefix prepended
+        assert rebase_wrapper._normalize("/bin/skills/a/SKILL.md") == "workspace/bin/skills/a/SKILL.md"
+
+    def test_dot_path_rebased(self, rebase_wrapper: WorkspaceNormalizingBackend) -> None:
+        # "." → stripped to "." by lstrip → becomes "workspace/."
+        assert rebase_wrapper._normalize(".") == "workspace/."
+
+    def test_no_rebase_when_roots_match(self, inner_backend: MagicMock) -> None:
+        """When sandbox_root == workspace_root, no rebase prefix is added."""
+        w = WorkspaceNormalizingBackend(
+            inner_backend,
+            workspace_root="/workspace",
+            sandbox_root="/workspace",
+        )
+        assert w._rebase_prefix == ""
+        assert w._normalize("bin/skills/a/SKILL.md") == "bin/skills/a/SKILL.md"
+
+    def test_no_rebase_when_sandbox_root_omitted(self, inner_backend: MagicMock) -> None:
+        """When sandbox_root is None, defaults to workspace_root (no rebase)."""
+        w = WorkspaceNormalizingBackend(
+            inner_backend,
+            workspace_root="/workspace",
+            sandbox_root=None,
+        )
+        assert w._rebase_prefix == ""
+        assert w._normalize("bin/skills/a/SKILL.md") == "bin/skills/a/SKILL.md"
+
+    def test_no_rebase_when_workspace_not_under_sandbox(
+        self, inner_backend: MagicMock
+    ) -> None:
+        """When workspace_root is NOT a subdirectory of sandbox_root, no rebase."""
+        w = WorkspaceNormalizingBackend(
+            inner_backend,
+            workspace_root="/opt/workspace",
+            sandbox_root="/home/daytona",
+        )
+        assert w._rebase_prefix == ""
+
+    def test_rebase_with_deep_subpath(self, inner_backend: MagicMock) -> None:
+        """Rebase works with multi-level relative subpath."""
+        w = WorkspaceNormalizingBackend(
+            inner_backend,
+            workspace_root="/home/daytona/data/workspace",
+            sandbox_root="/home/daytona",
+        )
+        assert w._rebase_prefix == "data/workspace"
+        assert w._normalize("foo.txt") == "data/workspace/foo.txt"
 
 
 # ---------------------------------------------------------------------------
@@ -131,6 +233,28 @@ class TestDelegation:
     ) -> None:
         wrapper.read("bin/skills/a/SKILL.md")
         inner_backend.read.assert_called_once_with("bin/skills/a/SKILL.md")
+
+
+class TestDelegationRebase:
+    """Tests that rebased paths are forwarded correctly to the inner backend."""
+
+    def test_read_rebases(
+        self, rebase_wrapper: WorkspaceNormalizingBackend, inner_backend: MagicMock
+    ) -> None:
+        rebase_wrapper.read("/home/daytona/workspace/data.txt")
+        inner_backend.read.assert_called_once_with("workspace/data.txt")
+
+    def test_write_rebases_relative(
+        self, rebase_wrapper: WorkspaceNormalizingBackend, inner_backend: MagicMock
+    ) -> None:
+        rebase_wrapper.write("output/result.txt", "hello")
+        inner_backend.write.assert_called_once_with("workspace/output/result.txt", "hello")
+
+    def test_list_files_rebases(
+        self, rebase_wrapper: WorkspaceNormalizingBackend, inner_backend: MagicMock
+    ) -> None:
+        rebase_wrapper.list_files("bin/skills")
+        inner_backend.list_files.assert_called_once_with("workspace/bin/skills")
 
 
 # ---------------------------------------------------------------------------
