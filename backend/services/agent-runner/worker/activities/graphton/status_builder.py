@@ -705,9 +705,10 @@ class StatusBuilder:
     def _extract_tool_result_content(self, result: Any) -> str:
         """Extract displayable content string from a tool result.
 
-        Handles the three result shapes that flow through LangGraph astream_events:
+        Handles the four result shapes that flow through LangGraph astream_events:
         - str: Direct string results (most common for simple tools)
         - LangGraph message objects (ToolMessage, AIMessage): Extract .content
+        - LangGraph Command objects: Extract ToolMessage content from .update
         - dict: Extract from 'output'/'content' keys, or JSON-serialize
         """
         if isinstance(result, str):
@@ -720,12 +721,27 @@ class StatusBuilder:
                 return content
             if isinstance(content, list):
                 return self._extract_string_content(content)
+        # Handle LangGraph Command objects (returned after approval resume).
+        # When a tool goes through interrupt()/resume, on_tool_end may emit a
+        # Command object instead of the plain tool return value. The Command's
+        # .update dict contains state channel data; the "messages" channel holds
+        # ToolMessage objects with the human-readable result.
+        # Uses duck typing on .update to stay decoupled from langgraph.types.
+        # Once identified as a Command, we commit to extracting from it — even
+        # if the result is empty — rather than falling through to str(result)
+        # which would produce a useless repr string.
+        if hasattr(result, "update") and isinstance(getattr(result, "update", None), dict):
+            return self._extract_command_content(result.update)
         if isinstance(result, dict):
             if "output" in result:
                 return result.get("output", "")
             if "content" in result:
                 return str(result["content"])
             return json.dumps(result, indent=2)
+        self.logger.warning(
+            f"[TOOL] Unknown result type {type(result).__name__} for tool result "
+            f"extraction, falling back to str(). Preview: {str(result)[:200]}"
+        )
         return str(result)
     
     def _format_tool_message_content(
@@ -801,6 +817,44 @@ class StatusBuilder:
             if isinstance(block, dict) and block.get("type") == "text":
                 text_parts.append(block.get("text", ""))
         return "".join(text_parts)
+    
+    def _extract_command_content(self, update: dict[str, Any]) -> str:
+        """Extract displayable content from a LangGraph Command.update dict.
+
+        When a tool goes through the interrupt()/resume approval cycle,
+        LangGraph may wrap the result in a Command object whose .update dict
+        contains state channel mutations. The "messages" channel typically holds
+        ToolMessage objects with the human-readable tool result.
+
+        Extraction strategy:
+        1. Look in update["messages"] for ToolMessage-like objects with .content
+        2. Fall back to JSON-serializing the non-messages portion of the update
+
+        Returns an empty string if no meaningful content can be extracted.
+        """
+        messages = update.get("messages", [])
+        if isinstance(messages, list):
+            for msg in messages:
+                # Duck-type: ToolMessage has .content (str or list)
+                if hasattr(msg, "content"):
+                    content = msg.content
+                    if isinstance(content, str) and content:
+                        return content
+                    if isinstance(content, list):
+                        extracted = self._extract_string_content(content)
+                        if extracted:
+                            return extracted
+
+        # Fallback: serialize the update dict (excluding messages to avoid
+        # dumping ToolMessage repr objects back into the output).
+        fallback = {k: v for k, v in update.items() if k != "messages"}
+        if fallback:
+            try:
+                return json.dumps(fallback, indent=2, default=str)
+            except (TypeError, ValueError):
+                pass
+
+        return ""
     
     def _update_todos(self, todos_data: list) -> None:
         """Update todos in local status."""

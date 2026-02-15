@@ -11,6 +11,8 @@ Tests cover:
 - ResolvedExecutionContext population (Phase 2.5)
 """
 
+from typing import Any
+
 import pytest
 from unittest.mock import MagicMock, patch
 from datetime import datetime, timedelta
@@ -994,6 +996,166 @@ class TestExtractToolResultContent:
         # Verify no ToolMessage repr artifacts leaked
         assert "name=" not in tool_call.result
         assert "tool_call_id=" not in tool_call.result
+
+
+# =============================================================================
+# Tests for _extract_tool_result_content (LangGraph Command duck typing)
+# =============================================================================
+
+
+class _FakeCommand:
+    """Mimics langgraph.types.Command for testing.
+
+    Uses the same attribute shape as Command (.update dict) without importing
+    langgraph, keeping tests decoupled.  This covers the case where
+    on_tool_end emits a Command object after an interrupt()/resume cycle.
+    """
+
+    def __init__(self, update: dict | None = None, resume: Any = None):
+        self.update = update
+        self.resume = resume
+
+
+class TestExtractToolResultContent_Command:
+    """Tests for the LangGraph Command branch of _extract_tool_result_content().
+
+    When tools go through the interrupt()/resume approval cycle, the
+    on_tool_end event may emit a Command object instead of the plain tool
+    return value.  The extraction method must dig into Command.update to
+    find the ToolMessage content.
+    """
+
+    # ── Command with ToolMessage in messages channel ─────────────────────
+
+    def test_command_with_tool_message_string_content(self, status_builder):
+        """Command with messages containing a ToolMessage extracts its content."""
+        cmd = _FakeCommand(update={
+            "messages": [
+                _FakeToolMessage(content="Successfully wrote 42 characters to 'foo.txt'"),
+            ],
+        })
+        assert status_builder._extract_tool_result_content(cmd) == (
+            "Successfully wrote 42 characters to 'foo.txt'"
+        )
+
+    def test_command_with_multiple_messages_takes_first(self, status_builder):
+        """When multiple ToolMessages exist, the first one with content wins."""
+        cmd = _FakeCommand(update={
+            "messages": [
+                _FakeToolMessage(content="Updated file /workspace/.gitkeep"),
+                _FakeToolMessage(content="Some other message"),
+            ],
+        })
+        assert status_builder._extract_tool_result_content(cmd) == (
+            "Updated file /workspace/.gitkeep"
+        )
+
+    def test_command_with_tool_message_multimodal_content(self, status_builder):
+        """Command with ToolMessage having list .content extracts text blocks."""
+        cmd = _FakeCommand(update={
+            "messages": [
+                _FakeToolMessage(content=[
+                    {"type": "text", "text": "Created "},
+                    {"type": "text", "text": "file.txt"},
+                ]),
+            ],
+        })
+        assert status_builder._extract_tool_result_content(cmd) == "Created file.txt"
+
+    # ── Command with empty/missing messages ──────────────────────────────
+
+    def test_command_with_empty_messages_falls_back_to_json(self, status_builder):
+        """Command with empty messages list falls back to JSON of other channels."""
+        cmd = _FakeCommand(update={
+            "messages": [],
+            "files": ["/workspace/output.txt"],
+        })
+        result = status_builder._extract_tool_result_content(cmd)
+        import json
+        parsed = json.loads(result)
+        assert parsed == {"files": ["/workspace/output.txt"]}
+
+    def test_command_with_no_messages_key(self, status_builder):
+        """Command.update without a 'messages' key falls back to JSON."""
+        cmd = _FakeCommand(update={
+            "files": ["/workspace/output.txt"],
+            "status": "ok",
+        })
+        result = status_builder._extract_tool_result_content(cmd)
+        import json
+        parsed = json.loads(result)
+        assert parsed == {"files": ["/workspace/output.txt"], "status": "ok"}
+
+    def test_command_with_empty_update(self, status_builder):
+        """Command with empty update dict returns empty string."""
+        cmd = _FakeCommand(update={})
+        assert status_builder._extract_tool_result_content(cmd) == ""
+
+    # ── Command with ToolMessage having empty content ────────────────────
+
+    def test_command_with_empty_content_tool_message(self, status_builder):
+        """Command where ToolMessage has empty string content falls back."""
+        cmd = _FakeCommand(update={
+            "messages": [_FakeToolMessage(content="")],
+            "files": ["/workspace/out.txt"],
+        })
+        result = status_builder._extract_tool_result_content(cmd)
+        import json
+        parsed = json.loads(result)
+        assert parsed == {"files": ["/workspace/out.txt"]}
+
+    # ── None update (not a Command) ──────────────────────────────────────
+
+    def test_none_update_skips_command_branch(self, status_builder):
+        """Object with .update = None is not treated as a Command."""
+
+        class _NotACommand:
+            update = None
+
+        obj = _NotACommand()
+        # Falls through to str() fallback since .update is not a dict
+        result = status_builder._extract_tool_result_content(obj)
+        assert "NotACommand" in result or result == str(obj)
+
+    # ── Integration: Command through _handle_tool_end_event ──────────────
+
+    @pytest.mark.asyncio
+    async def test_command_end_to_end(self, status_builder):
+        """Command object flows through tool_end and lands as clean result."""
+        run_id = "tool-run-cmd-e2e"
+
+        # Start the tool
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "write",
+            "run_id": run_id,
+            "data": {"input": {"path": "out.txt", "content": "hello"}},
+            "metadata": {},
+        })
+
+        # End the tool with a Command-like object as output
+        cmd = _FakeCommand(update={
+            "messages": [
+                _FakeToolMessage(
+                    content="Successfully wrote 5 characters to 'out.txt'",
+                    name="write",
+                    tool_call_id="call_cmd_test",
+                ),
+            ],
+        })
+        await status_builder.process_event({
+            "event": "on_tool_end",
+            "name": "write",
+            "run_id": run_id,
+            "data": {"output": cmd},
+            "metadata": {},
+        })
+
+        # Verify the extracted content is the ToolMessage content, not repr
+        tool_call = status_builder.current_status.tool_calls[0]
+        assert tool_call.result == "Successfully wrote 5 characters to 'out.txt'"
+        assert "CommandUpdate" not in tool_call.result
+        assert "Command(" not in tool_call.result
 
 
 # =============================================================================

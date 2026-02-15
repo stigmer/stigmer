@@ -937,6 +937,81 @@ func TestStripToolMessageRepr_DoubleQuotedNameMarker(t *testing.T) {
 }
 
 // =============================================================================
+// stripToolMessageRepr — CommandUpdate repr Tests
+// =============================================================================
+
+func TestStripToolMessageRepr_CommandUpdate_SingleQuotedContent(t *testing.T) {
+	input := `CommandUpdate('files': ['/workspace/.gitkeep'], 'messages': [ToolMessage(content='Updated file /workspace/.gitkeep', tool_call_id='toolu_01Fjf')])`
+	got := stripToolMessageRepr(input)
+	if got != "Updated file /workspace/.gitkeep" {
+		t.Errorf("expected extracted ToolMessage content, got %q", got)
+	}
+}
+
+func TestStripToolMessageRepr_CommandUpdate_DoubleQuotedContent(t *testing.T) {
+	input := `CommandUpdate('files': ['/workspace/out.txt'], 'messages': [ToolMessage(content="Successfully wrote 42 characters to 'out.txt'", tool_call_id="toolu_abc")])`
+	got := stripToolMessageRepr(input)
+	if got != "Successfully wrote 42 characters to 'out.txt'" {
+		t.Errorf("expected extracted ToolMessage content, got %q", got)
+	}
+}
+
+func TestStripToolMessageRepr_CommandUpdate_NoToolMessage(t *testing.T) {
+	// CommandUpdate without an extractable ToolMessage — returns the original string.
+	input := `CommandUpdate('files': ['/workspace/out.txt'], 'status': 'ok')`
+	got := stripToolMessageRepr(input)
+	if got != input {
+		t.Errorf("expected original string passthrough, got %q", got)
+	}
+}
+
+func TestStripToolMessageRepr_CommandUpdate_EmptyContent(t *testing.T) {
+	// ToolMessage with empty content — the extracted string is empty.
+	input := `CommandUpdate('messages': [ToolMessage(content='', tool_call_id='toolu_x')])`
+	got := stripToolMessageRepr(input)
+	if got != "" {
+		t.Errorf("expected empty string, got %q", got)
+	}
+}
+
+// =============================================================================
+// extractCommandUpdateContent Tests
+// =============================================================================
+
+func TestExtractCommandUpdateContent_SingleQuoted(t *testing.T) {
+	input := `CommandUpdate('messages': [ToolMessage(content='file created', tool_call_id='id1')])`
+	got := extractCommandUpdateContent(input)
+	if got != "file created" {
+		t.Errorf("expected %q, got %q", "file created", got)
+	}
+}
+
+func TestExtractCommandUpdateContent_DoubleQuoted(t *testing.T) {
+	input := `CommandUpdate('messages': [ToolMessage(content="hello world", tool_call_id="id1")])`
+	got := extractCommandUpdateContent(input)
+	if got != "hello world" {
+		t.Errorf("expected %q, got %q", "hello world", got)
+	}
+}
+
+func TestExtractCommandUpdateContent_NoToolMessage(t *testing.T) {
+	input := `CommandUpdate('files': ['/workspace/out.txt'])`
+	got := extractCommandUpdateContent(input)
+	if got != input {
+		t.Errorf("expected original string, got %q", got)
+	}
+}
+
+func TestExtractCommandUpdateContent_ContentWithEmbeddedQuotes(t *testing.T) {
+	// Double-quoted content that contains single quotes (common in file paths).
+	input := `CommandUpdate('messages': [ToolMessage(content="Wrote to '/tmp/foo.txt'", tool_call_id="id2")])`
+	got := extractCommandUpdateContent(input)
+	if got != "Wrote to '/tmp/foo.txt'" {
+		t.Errorf("expected %q, got %q", "Wrote to '/tmp/foo.txt'", got)
+	}
+}
+
+// =============================================================================
 // unquote Tests
 // =============================================================================
 
