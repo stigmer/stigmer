@@ -75,7 +75,7 @@ class TestCapabilitySections:
         assert "`read`" in FILESYSTEM_CAPABILITY
         assert "`write`" in FILESYSTEM_CAPABILITY
         assert "`edit`" in FILESYSTEM_CAPABILITY
-        assert "/" in FILESYSTEM_CAPABILITY  # absolute paths
+        assert "workspace-relative" in FILESYSTEM_CAPABILITY
 
     def test_mcp_tools_capability_content(self):
         """Test MCP tools capability section content."""

@@ -147,7 +147,7 @@ features:
             
             # Verify skill path returned (local mode returns sandbox-relative, no leading /)
             assert skill.metadata.id in skill_paths
-            expected_path = f"bin/skills/{skill.status.version_hash}"
+            expected_path = f"bin/skills/{skill.metadata.name}"
             assert skill_paths[skill.metadata.id] == expected_path
             
             # Verify files extracted to correct location
@@ -213,7 +213,7 @@ features:
             
             # Verify skill path returned (local mode, no leading /)
             assert skill.metadata.id in skill_paths
-            expected_path = f"bin/skills/{skill.status.version_hash}"
+            expected_path = f"bin/skills/{skill.metadata.name}"
             assert skill_paths[skill.metadata.id] == expected_path
             
             # Verify SKILL.md written from spec (not from ZIP)
@@ -254,20 +254,27 @@ features:
             assert files_in_dir == ["SKILL.md"]
 
 
-class TestADR001Compliance:
-    """Tests to verify compliance with ADR 001: Skill Injection & Sandbox Mounting Strategy."""
+class TestSpecCompliance:
+    """Tests to verify compliance with the Agent Skills specification.
+
+    https://agentskills.io/specification -- progressive disclosure model:
+    - Metadata (name + description) injected at startup
+    - SKILL.md body loaded by the agent on demand
+    - Resources loaded as needed
+    """
 
     @pytest.fixture
     def sample_skill(self):
-        """Create a sample skill for ADR testing."""
+        """Create a sample skill for spec compliance testing."""
         skill = MagicMock()
-        skill.metadata.id = "adr-test-skill-001"
-        skill.metadata.name = "adr-compliance-skill"
-        skill.metadata.slug = "test-org/adr-skill"
-        skill.spec.skill_md = """# ADR Compliance Skill
+        skill.metadata.id = "spec-test-skill-001"
+        skill.metadata.name = "spec-compliance-skill"
+        skill.metadata.slug = "test-org/spec-skill"
+        skill.spec.description = "Tests compliance with the Agent Skills specification."
+        skill.spec.skill_md = """# Spec Compliance Skill
 
 ## Description
-Tests compliance with ADR 001.
+Tests compliance with the Agent Skills specification.
 
 ## Commands
 - `./calculate.sh <args>` - Run calculation
@@ -275,58 +282,59 @@ Tests compliance with ADR 001.
         skill.status.version_hash = "adr123abc456def789012345678901234567890123456789012345678901234"
         return skill
 
-    def test_prompt_includes_location_header(self, sample_skill):
-        """ADR Test 2: Generated prompt must contain LOCATION header."""
+    def test_prompt_includes_location(self, sample_skill):
+        """Prompt must contain the Location for the skill directory."""
         skill_paths = {
-            sample_skill.metadata.id: f"/bin/skills/{sample_skill.status.version_hash}"
+            sample_skill.metadata.id: f"bin/skills/{sample_skill.metadata.name}"
         }
-        
-        prompt = SkillWriter.generate_prompt_section([sample_skill], skill_paths)
-        
-        # Must contain LOCATION header per ADR 001 (backtick-wrapped path)
-        expected_location = f"LOCATION: `/bin/skills/{sample_skill.status.version_hash}/`"
-        assert expected_location in prompt, f"Prompt must contain '{expected_location}'"
 
-    def test_prompt_includes_skill_md_content(self, sample_skill):
-        """ADR Test 1: Generated prompt must contain SKILL.md text content."""
-        skill_paths = {
-            sample_skill.metadata.id: f"/bin/skills/{sample_skill.status.version_hash}"
-        }
-        
         prompt = SkillWriter.generate_prompt_section([sample_skill], skill_paths)
-        
-        # Must contain full SKILL.md content
-        assert "# ADR Compliance Skill" in prompt
-        assert "Tests compliance with ADR 001" in prompt
-        assert "./calculate.sh <args>" in prompt
 
-    def test_prompt_format_matches_adr_template(self, sample_skill):
-        """Verify prompt format matches ADR 001 template."""
+        expected = f"**Location**: `bin/skills/{sample_skill.metadata.name}/`"
+        assert expected in prompt, f"Prompt must contain '{expected}'"
+
+    def test_prompt_does_not_include_skill_md_body(self, sample_skill):
+        """Prompt must NOT contain full SKILL.md body (progressive disclosure)."""
         skill_paths = {
-            sample_skill.metadata.id: f"/bin/skills/{sample_skill.status.version_hash}"
+            sample_skill.metadata.id: f"bin/skills/{sample_skill.metadata.name}"
         }
-        
+
         prompt = SkillWriter.generate_prompt_section([sample_skill], skill_paths)
-        
-        # ADR format: ### SKILL: {name} followed by LOCATION header
-        assert "### SKILL: adr-compliance-skill" in prompt
-        
-        # LOCATION must come before SKILL.md content
-        location_pos = prompt.find("LOCATION:")
-        content_pos = prompt.find("# ADR Compliance Skill")
-        assert location_pos < content_pos, "LOCATION header must precede SKILL.md content"
+
+        # SKILL.md body markers must NOT be present
+        assert "# Spec Compliance Skill" not in prompt
+        assert "./calculate.sh <args>" not in prompt
+
+    def test_prompt_includes_description(self, sample_skill):
+        """Prompt must include the skill description."""
+        skill_paths = {
+            sample_skill.metadata.id: f"bin/skills/{sample_skill.metadata.name}"
+        }
+
+        prompt = SkillWriter.generate_prompt_section([sample_skill], skill_paths)
+
+        assert sample_skill.spec.description in prompt
+
+    def test_prompt_includes_activate_instruction(self, sample_skill):
+        """Prompt must tell the agent how to activate the skill."""
+        skill_paths = {
+            sample_skill.metadata.id: f"bin/skills/{sample_skill.metadata.name}"
+        }
+
+        prompt = SkillWriter.generate_prompt_section([sample_skill], skill_paths)
+
+        expected = f"**Activate**: `read bin/skills/{sample_skill.metadata.name}/SKILL.md`"
+        assert expected in prompt
 
     def test_skills_written_to_bin_skills_directory(self, sample_skill):
-        """ADR Decision B: Skills must be written to /bin/skills/{version_hash}/."""
+        """Skills must be written to bin/skills/{name}/."""
         with tempfile.TemporaryDirectory() as tmpdir:
             writer = SkillWriter(local_root=tmpdir)
             skill_paths = writer.write_skills([sample_skill])
-            
-            # Path must be bin/skills/{version_hash} (local mode, no leading /)
-            expected_path = f"bin/skills/{sample_skill.status.version_hash}"
+
+            expected_path = f"bin/skills/{sample_skill.metadata.name}"
             assert skill_paths[sample_skill.metadata.id] == expected_path
-            
-            # Actual directory must exist
+
             local_path = os.path.join(tmpdir, expected_path)
             assert os.path.isdir(local_path)
 
@@ -334,23 +342,24 @@ Tests compliance with ADR 001.
         """Test that multiple skills each get their own section."""
         skills = []
         skill_paths = {}
-        
+
         for i in range(3):
             skill = MagicMock()
             skill.metadata.id = f"multi-skill-{i}"
             skill.metadata.name = f"skill-{i}"
+            skill.spec.description = f"Description for skill {i}."
             skill.spec.skill_md = f"# Skill {i} Content"
-            skill.status.version_hash = f"hash{i}00000000000000000000000000000000000000000000000000000000"
+            skill.status.version_hash = f"hash{i}"
             skills.append(skill)
-            skill_paths[skill.metadata.id] = f"/bin/skills/{skill.status.version_hash}"
-        
+            skill_paths[skill.metadata.id] = f"bin/skills/skill-{i}"
+
         prompt = SkillWriter.generate_prompt_section(skills, skill_paths)
-        
-        # Each skill should have its own section
+
         for i in range(3):
-            assert f"### SKILL: skill-{i}" in prompt
-            assert f"# Skill {i} Content" in prompt
-            assert f"LOCATION: `/bin/skills/hash{i}00000" in prompt
+            assert f"### skill-{i}" in prompt
+            assert f"**Location**: `bin/skills/skill-{i}/`" in prompt
+            # Body content must NOT be injected
+            assert f"# Skill {i} Content" not in prompt
 
 
 class TestVersionResolutionIntegration:
@@ -592,31 +601,48 @@ def hello():
 
 
 class TestPathResolution:
-    """Tests for skill path resolution logic."""
+    """Tests for skill path resolution logic.
 
-    def test_skill_with_hash_uses_hash_for_path(self):
-        """Skill with version_hash should use hash for directory name."""
+    With name-based directories, the path uses ``skill.metadata.name``
+    as the directory name (human-readable), falling back to
+    ``version_hash`` or ``slug`` only when the name is absent.
+    """
+
+    def test_skill_uses_name_for_path(self):
+        """Skill with metadata.name should use name for directory."""
         skill = MagicMock()
-        skill.metadata.slug = "org/skill"
+        skill.metadata.name = "my-skill"
+        skill.metadata.slug = "org/my-skill"
         skill.status.version_hash = "abc12345678901234567890123456789012345678901234567890123456789a"
-        
+
         writer = SkillWriter(local_root="/tmp")
         path = writer._get_skill_relative_dir(skill)
-        
-        assert path == f"bin/skills/{skill.status.version_hash}"
+
+        assert path == "bin/skills/my-skill"
         assert not path.startswith("/"), "Path should be workspace-relative"
 
-    def test_skill_without_hash_falls_back_to_slug(self):
-        """Skill without version_hash should fall back to slugified name."""
+    def test_skill_without_name_falls_back_to_hash(self):
+        """Skill without metadata.name should fall back to version_hash."""
         skill = MagicMock()
-        skill.metadata.slug = "test-org/my-skill"
-        skill.metadata.name = "my-skill"
-        skill.status.version_hash = ""  # Empty hash
-        
+        skill.metadata.name = ""
+        skill.metadata.slug = "test-org/unnamed"
+        skill.status.version_hash = "fff999aaa111"
+
         writer = SkillWriter(local_root="/tmp")
         path = writer._get_skill_relative_dir(skill)
-        
-        # Slug with / replaced by _
+
+        assert path == "bin/skills/fff999aaa111"
+
+    def test_skill_without_name_or_hash_falls_back_to_slug(self):
+        """Skill without name or hash should fall back to slugified slug."""
+        skill = MagicMock()
+        skill.metadata.name = ""
+        skill.metadata.slug = "test-org/my-skill"
+        skill.status.version_hash = ""
+
+        writer = SkillWriter(local_root="/tmp")
+        path = writer._get_skill_relative_dir(skill)
+
         assert path == "bin/skills/test-org_my-skill"
 
     def test_skill_dir_base_path_is_bin_skills(self):
@@ -837,7 +863,7 @@ class TestZipFormatEndToEnd:
                 tmpdir,
                 "bin",
                 "skills",
-                mock_skill.status.version_hash,
+                mock_skill.metadata.name,
             )
 
             py_path = os.path.join(skill_dir, "scripts", "init_skill.py")

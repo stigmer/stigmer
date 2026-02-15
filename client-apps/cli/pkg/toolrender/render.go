@@ -236,4 +236,3 @@ func RenderExpanded(tc ToolCallInfo) string {
 	// syntax-highlighted content), so we append directly.
 	return header + "\n" + fullContent
 }
-

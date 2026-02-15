@@ -14,6 +14,7 @@ def mock_skill():
     skill.metadata.name = "test-skill"
     skill.metadata.slug = "test-org/test-skill"
     skill.spec.skill_md = "# Test Skill\n\nThis is a test skill."
+    skill.spec.description = "A test skill for unit tests."
     skill.status.version_hash = "abc123def456"
     skill.status.artifact_storage_key = "skills/test-org/test-skill/abc123def456.zip"
     return skill
@@ -27,7 +28,22 @@ def mock_skill_no_hash():
     skill.metadata.name = "no-hash-skill"
     skill.metadata.slug = "test-org/no-hash-skill"
     skill.spec.skill_md = "# No Hash Skill\n\nSkill without version hash."
+    skill.spec.description = "Skill for testing the no-hash fallback."
     skill.status.version_hash = ""  # Empty hash
+    skill.status.artifact_storage_key = ""
+    return skill
+
+
+@pytest.fixture
+def mock_skill_no_name():
+    """Create a mock Skill proto message without metadata.name."""
+    skill = MagicMock()
+    skill.metadata.id = "skill-789-ghi"
+    skill.metadata.name = ""  # Empty name
+    skill.metadata.slug = "test-org/unnamed-skill"
+    skill.spec.skill_md = "# Unnamed Skill\n\nSkill without a name."
+    skill.spec.description = "Skill for testing name fallback chain."
+    skill.status.version_hash = "fff999aaa111"
     skill.status.artifact_storage_key = ""
     return skill
 
