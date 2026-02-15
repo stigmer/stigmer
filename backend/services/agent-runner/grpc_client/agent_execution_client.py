@@ -1,16 +1,24 @@
-"""gRPC client for updating AgentExecution resources."""
+"""gRPC client for AgentExecution resources (read and write)."""
 
 import grpc
-from ai.stigmer.agentic.agentexecution.v1 import command_pb2_grpc
+from ai.stigmer.agentic.agentexecution.v1 import command_pb2_grpc, query_pb2_grpc
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentExecution, AgentExecutionStatus
-from ai.stigmer.agentic.agentexecution.v1.io_pb2 import AgentExecutionUpdateStatusInput
+from ai.stigmer.agentic.agentexecution.v1.io_pb2 import (
+    AgentExecutionId,
+    AgentExecutionUpdateStatusInput,
+)
 
 from grpc_client.auth.client_interceptor import AuthClientInterceptor
 from worker.config import Config
 
 
 class AgentExecutionClient:
-    """Client for sending status updates to AgentExecutionCommandController."""
+    """Client for reading and updating AgentExecution resources.
+    
+    Uses two service stubs on a shared gRPC channel:
+    - AgentExecutionQueryController  -- read operations (get, list, ...)
+    - AgentExecutionCommandController -- write operations (updateStatus, ...)
+    """
     
     def __init__(self, api_key: str):
         """
@@ -39,6 +47,30 @@ class AgentExecutionClient:
             )
         
         self.command_stub = command_pb2_grpc.AgentExecutionCommandControllerStub(self.channel)
+        self.query_stub = query_pb2_grpc.AgentExecutionQueryControllerStub(self.channel)
+    
+    async def get(self, execution_id: str) -> AgentExecution:
+        """
+        Fetch an AgentExecution by ID.
+        
+        This is used by the ExecuteGraphton activity to hydrate the execution
+        from the database instead of receiving the full proto through Temporal,
+        keeping Temporal activity payloads small and bounded.
+        
+        Args:
+            execution_id: The execution ID to fetch
+            
+        Returns:
+            The full AgentExecution protobuf (metadata + spec + status)
+            
+        Raises:
+            ValueError: If execution_id is empty
+            grpc.RpcError: On gRPC failures (NOT_FOUND, UNAVAILABLE, etc.)
+        """
+        if not execution_id:
+            raise ValueError("execution_id cannot be empty")
+        
+        return await self.query_stub.get(AgentExecutionId(value=execution_id))
     
     async def update_status(self, execution_id: str, status: AgentExecutionStatus) -> AgentExecution:
         """
