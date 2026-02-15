@@ -5,6 +5,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/charmbracelet/x/ansi"
 )
 
 // extractPrimaryArg retrieves the value of the primary field from args.
@@ -106,6 +108,9 @@ func formatDuration(d time.Duration) string {
 }
 
 // truncate shortens a string to maxLen, appending "..." if truncated.
+// This operates on raw rune counts and must only be used on plain-text strings
+// (no ANSI escape sequences). For strings that may contain ANSI codes, use
+// truncateANSI instead.
 func truncate(s string, maxLen int) string {
 	if len(s) <= maxLen {
 		return s
@@ -114,6 +119,22 @@ func truncate(s string, maxLen int) string {
 		return s[:maxLen]
 	}
 	return s[:maxLen-3] + "..."
+}
+
+// truncateANSI shortens a string that may contain ANSI escape sequences to
+// maxLen visible characters, appending "..." if truncated. ANSI escape codes
+// are preserved and do not count toward the visible width.
+//
+// This is the ANSI-safe counterpart of truncate and must be used whenever the
+// input may contain syntax-highlighted content with embedded escape codes.
+func truncateANSI(s string, maxLen int) string {
+	if ansi.StringWidth(s) <= maxLen {
+		return s
+	}
+	if maxLen <= 3 {
+		return ansi.Truncate(s, maxLen, "")
+	}
+	return ansi.Truncate(s, maxLen-3, "...")
 }
 
 // previewMaxWidth is the maximum character width for a result preview line.
