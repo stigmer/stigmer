@@ -45,6 +45,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from langchain_core.callbacks import dispatch_custom_event
 from langchain_core.tools import tool
 
 if TYPE_CHECKING:
@@ -918,6 +919,18 @@ def _create_write_tool(
         # Execute the write operation
         try:
             logger.info(f"📝 Writing file: {path} ({len(content)} chars)")
+            
+            # Emit progress event with a content preview so the UI can show
+            # what is being written while the operation is in progress.
+            preview_lines = content.split("\n")[:10]
+            preview = "\n".join(preview_lines)
+            if len(content.split("\n")) > 10:
+                preview += f"\n... ({len(content)} chars total)"
+            dispatch_custom_event(
+                "tool_progress",
+                {"chunk": preview},
+            )
+            
             backend.write(path, content)
             logger.info(f"✅ Wrote file '{path}'")
             return f"Successfully wrote {len(content)} characters to '{path}'"
@@ -963,6 +976,15 @@ def _create_execute_tool(
         # Execute the command
         try:
             logger.info(f"🔧 Executing command: {command[:100]}...")
+            
+            # Emit progress event so the UI shows the command being executed.
+            # dispatch_custom_event inherits the current tool's run_id, which
+            # the StatusBuilder uses to correlate with the correct ToolCall.
+            dispatch_custom_event(
+                "tool_progress",
+                {"chunk": f"$ {command}\n"},
+            )
+            
             result = backend.execute(command, timeout=timeout)
             
             # Format output

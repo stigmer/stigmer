@@ -70,6 +70,12 @@ type Model struct {
 	// nil when no message is actively streaming.
 	streaming *streamingState
 
+	// runningTools maps tool call IDs to their block index in the blocks slice.
+	// When a ToolRunningEvent arrives, the block is created and tracked here.
+	// When a ToolCompletedEvent arrives, the block is replaced in-place with
+	// the final expandable result and removed from this map.
+	runningTools map[string]int
+
 	// approval holds state for an active approval prompt.
 	// nil when no approval is pending.
 	approval *approvalState
@@ -120,6 +126,7 @@ func New(cfg Config) Model {
 		autoScroll:        true,
 		phase:             "pending",
 		focusedBlockIndex: -1,
+		runningTools:      make(map[string]int),
 		spinner:           s,
 	}
 }

@@ -40,6 +40,11 @@ type ToolCallInfo struct {
 
 	// Duration of the tool call execution. Zero if unavailable.
 	Duration time.Duration
+
+	// IsStreaming indicates the tool is actively producing output.
+	// When true, Result contains partial output accumulated so far.
+	// Mirrors the proto ToolCall.is_streaming field.
+	IsStreaming bool
 }
 
 // previewStyle controls how (or whether) a result preview line is rendered
@@ -156,6 +161,40 @@ func Render(tc ToolCallInfo) string {
 	}
 
 	return renderKnown(tc, info)
+}
+
+// RenderRunning returns a tool call header with a running indicator.
+// Used by the TUI to display tools that are currently executing.
+// The running indicator (⏳) signals liveness to the user.
+//
+// Examples:
+//
+//	"  📖 Read: main.go ⏳"
+//	"  🖥  Shell: ls -la /tmp ⏳"
+//	"  📝 Write: outputs/SKILL.md ⏳"
+//	"  🔧 custom_tool: some_value ⏳"
+func RenderRunning(tc ToolCallInfo) string {
+	info, known := toolDisplayMap[tc.Name]
+
+	var header string
+	if known {
+		primaryVal := extractPrimaryArgWithFallbacks(tc.Args, info.primaryField, info.fallbackFields)
+		if primaryVal != "" {
+			styled := styleValue(primaryVal, info.dangerous)
+			header = fmt.Sprintf("  %s %s: %s", info.icon, labelStyle.Render(info.label), styled)
+		} else {
+			header = fmt.Sprintf("  %s %s", info.icon, labelStyle.Render(info.label))
+		}
+	} else {
+		firstVal := extractFirstArg(tc.Args)
+		if firstVal != "" {
+			header = fmt.Sprintf("  🔧 %s: %s", labelStyle.Render(tc.Name), firstVal)
+		} else {
+			header = fmt.Sprintf("  🔧 %s", labelStyle.Render(tc.Name))
+		}
+	}
+
+	return header + " " + dimStyle.Render("⏳")
 }
 
 // RenderResult returns a compact display of a tool result message.

@@ -1271,6 +1271,60 @@ func TestRenderExpanded_IncludesMetadataSuffix(t *testing.T) {
 }
 
 // =============================================================================
+// RenderRunning Tests — Running Indicator
+// =============================================================================
+
+func TestRenderRunning_KnownTool(t *testing.T) {
+	result := RenderRunning(ToolCallInfo{
+		Name:   "write",
+		Args:   map[string]interface{}{"path": "outputs/SKILL.md"},
+		Status: "running",
+	})
+
+	assertContains(t, result, "📝")
+	assertContains(t, result, "Write")
+	assertContains(t, result, "outputs/SKILL.md")
+	assertContains(t, result, "⏳")
+}
+
+func TestRenderRunning_UnknownTool(t *testing.T) {
+	result := RenderRunning(ToolCallInfo{
+		Name:   "custom_tool",
+		Args:   map[string]interface{}{"input": "test"},
+		Status: "running",
+	})
+
+	assertContains(t, result, "🔧")
+	assertContains(t, result, "custom_tool")
+	assertContains(t, result, "test")
+	assertContains(t, result, "⏳")
+}
+
+func TestRenderRunning_NoArgs(t *testing.T) {
+	result := RenderRunning(ToolCallInfo{
+		Name:   "shell",
+		Status: "running",
+	})
+
+	assertContains(t, result, "🖥")
+	assertContains(t, result, "Shell")
+	assertContains(t, result, "⏳")
+}
+
+func TestRenderRunning_ShellTool(t *testing.T) {
+	result := RenderRunning(ToolCallInfo{
+		Name:   "execute",
+		Args:   map[string]interface{}{"command": "npm install"},
+		Status: "running",
+	})
+
+	assertContains(t, result, "🖥")
+	assertContains(t, result, "Execute")
+	assertContains(t, result, "npm install")
+	assertContains(t, result, "⏳")
+}
+
+// =============================================================================
 // Test Helpers
 // =============================================================================
 

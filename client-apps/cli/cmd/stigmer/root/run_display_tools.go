@@ -34,10 +34,11 @@ func displayToolCalls(toolCalls []*agentexecutionv1.ToolCall) {
 // the proto status enum to a human-readable string.
 func convertToolCall(tc *agentexecutionv1.ToolCall) toolrender.ToolCallInfo {
 	info := toolrender.ToolCallInfo{
-		Name:   tc.Name,
-		Status: mapToolCallStatus(tc.Status),
-		Result: tc.Result,
-		Error:  tc.Error,
+		Name:        tc.Name,
+		Status:      mapToolCallStatus(tc.Status),
+		Result:      tc.Result,
+		Error:       tc.Error,
+		IsStreaming: tc.IsStreaming,
 	}
 
 	// Convert proto Struct args to map
