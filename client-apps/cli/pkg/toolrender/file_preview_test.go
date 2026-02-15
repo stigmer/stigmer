@@ -10,19 +10,19 @@ import (
 // =============================================================================
 
 func TestFormatFileContentPreview_Empty(t *testing.T) {
-	if got := formatFileContentPreview(""); got != "" {
+	if got := formatFileContentPreview("", ""); got != "" {
 		t.Errorf("expected empty string for empty input, got %q", got)
 	}
 }
 
 func TestFormatFileContentPreview_WhitespaceOnly(t *testing.T) {
-	if got := formatFileContentPreview("   \n\n  "); got != "" {
+	if got := formatFileContentPreview("   \n\n  ", ""); got != "" {
 		t.Errorf("expected empty string for whitespace-only input, got %q", got)
 	}
 }
 
 func TestFormatFileContentPreview_SingleLine(t *testing.T) {
-	got := formatFileContentPreview("package main")
+	got := formatFileContentPreview("package main", "")
 
 	assertContains(t, got, gutterPrefix+"package main")
 
@@ -32,7 +32,7 @@ func TestFormatFileContentPreview_SingleLine(t *testing.T) {
 }
 
 func TestFormatFileContentPreview_TwoLines(t *testing.T) {
-	got := formatFileContentPreview("apiVersion: v1\nkind: Config")
+	got := formatFileContentPreview("apiVersion: v1\nkind: Config", "")
 
 	assertContains(t, got, gutterPrefix+"apiVersion: v1")
 	assertContains(t, got, gutterPrefix+"kind: Config")
@@ -42,7 +42,7 @@ func TestFormatFileContentPreview_TwoLines(t *testing.T) {
 }
 
 func TestFormatFileContentPreview_ThreeLines_NoIndicator(t *testing.T) {
-	got := formatFileContentPreview("line1\nline2\nline3")
+	got := formatFileContentPreview("line1\nline2\nline3", "")
 
 	assertContains(t, got, gutterPrefix+"line1")
 	assertContains(t, got, gutterPrefix+"line2")
@@ -53,7 +53,7 @@ func TestFormatFileContentPreview_ThreeLines_NoIndicator(t *testing.T) {
 }
 
 func TestFormatFileContentPreview_MoreThanThreeLines(t *testing.T) {
-	got := formatFileContentPreview("line1\nline2\nline3\nline4\nline5")
+	got := formatFileContentPreview("line1\nline2\nline3\nline4\nline5", "")
 
 	assertContains(t, got, gutterPrefix+"line1")
 	assertContains(t, got, gutterPrefix+"line2")
@@ -67,7 +67,7 @@ func TestFormatFileContentPreview_MoreThanThreeLines(t *testing.T) {
 
 func TestFormatFileContentPreview_PreservesBlankLinesInPreview(t *testing.T) {
 	// Proto file: line 1 is content, line 2 is blank, line 3 is content.
-	got := formatFileContentPreview("syntax = \"proto3\";\n\npackage ai.stigmer;\n\nimport \"google/protobuf/struct.proto\";")
+	got := formatFileContentPreview("syntax = \"proto3\";\n\npackage ai.stigmer;\n\nimport \"google/protobuf/struct.proto\";", "")
 
 	// All 3 preview lines should be shown, including the blank line.
 	assertContains(t, got, "syntax = \"proto3\";")
@@ -79,7 +79,7 @@ func TestFormatFileContentPreview_PreservesBlankLinesInPreview(t *testing.T) {
 
 func TestFormatFileContentPreview_TrimsTrailingBlankLinesInPreview(t *testing.T) {
 	// First 3 lines: "#!/bin/bash", "", "" — trailing blanks trimmed to just the shebang.
-	got := formatFileContentPreview("#!/bin/bash\n\n\nset -euo pipefail\necho hello")
+	got := formatFileContentPreview("#!/bin/bash\n\n\nset -euo pipefail\necho hello", "")
 
 	assertContains(t, got, gutterPrefix+"#!/bin/bash")
 
@@ -90,7 +90,7 @@ func TestFormatFileContentPreview_TrimsTrailingBlankLinesInPreview(t *testing.T)
 
 func TestFormatFileContentPreview_AllFirstThreeLinesBlank_FallsBack(t *testing.T) {
 	// First 3 lines are all blank, then real content.
-	got := formatFileContentPreview("\n\n\nimport os\nimport sys")
+	got := formatFileContentPreview("\n\n\nimport os\nimport sys", "")
 
 	// Should fall back to showing the first non-empty line.
 	assertContains(t, got, gutterPrefix+"import os")
@@ -101,7 +101,7 @@ func TestFormatFileContentPreview_AllFirstThreeLinesBlank_FallsBack(t *testing.T
 
 func TestFormatFileContentPreview_LongLineTruncated(t *testing.T) {
 	longLine := strings.Repeat("x", 200)
-	got := formatFileContentPreview(longLine)
+	got := formatFileContentPreview(longLine, "")
 
 	assertContains(t, got, "...")
 	// Ensure the gutter is present.
@@ -111,7 +111,7 @@ func TestFormatFileContentPreview_LongLineTruncated(t *testing.T) {
 func TestFormatFileContentPreview_ReprStripping(t *testing.T) {
 	// Defense-in-depth: raw ToolMessage repr should be stripped.
 	input := "content='import os\nimport sys' name='read' tool_call_id='toolu_xyz'"
-	got := formatFileContentPreview(input)
+	got := formatFileContentPreview(input, "")
 
 	assertContains(t, got, "import os")
 	assertNotContains(t, got, "name='read'")
@@ -124,7 +124,7 @@ func TestFormatFileContentPreview_ManyLines_CorrectRemaining(t *testing.T) {
 	for i := range lines {
 		lines[i] = strings.Repeat("a", 10)
 	}
-	got := formatFileContentPreview(strings.Join(lines, "\n"))
+	got := formatFileContentPreview(strings.Join(lines, "\n"), "")
 
 	// Should show 3 lines + "27 more lines".
 	assertContains(t, got, "27 more lines")
@@ -186,23 +186,27 @@ func TestFormatLineCount_Many(t *testing.T) {
 // =============================================================================
 
 func TestFormatFileContentPreview_GutterAlignment(t *testing.T) {
-	got := formatFileContentPreview("line1\nline2\nline3\nline4")
+	got := formatFileContentPreview("line1\nline2\nline3\nline4", "")
 
-	// Each preview line should start with the gutter prefix.
-	for _, line := range strings.Split(got, "\n") {
+	// Each preview line should have the gutter character (after stripping ANSI).
+	for _, line := range strings.Split(stripANSI(got), "\n") {
 		if strings.Contains(line, "more lines") {
 			// The ellipsis line uses a different prefix.
-			assertContains(t, line, ellipsisPrefix)
+			if !strings.Contains(line, "⋮") {
+				t.Errorf("expected ellipsis prefix in line %q", line)
+			}
 		} else {
-			assertContains(t, line, "│")
+			if !strings.Contains(line, "│") {
+				t.Errorf("expected gutter character in line %q", line)
+			}
 		}
 	}
 }
 
 func TestFormatFileContentPreview_EllipsisPrefixAligned(t *testing.T) {
-	got := formatFileContentPreview("a\nb\nc\nd\ne")
+	got := formatFileContentPreview("a\nb\nc\nd\ne", "")
 
-	// The ellipsis prefix should have the same indentation width as the gutter.
+	// The ellipsis prefix should be present (strip ANSI for clean check).
 	assertContains(t, got, ellipsisPrefix)
 }
 
@@ -211,27 +215,28 @@ func TestFormatFileContentPreview_EllipsisPrefixAligned(t *testing.T) {
 // =============================================================================
 
 func TestFormatFullResultWithGutter_Empty(t *testing.T) {
-	if got := formatFullResultWithGutter(""); got != "" {
+	if got := formatFullResultWithGutter("", ""); got != "" {
 		t.Errorf("expected empty string for empty input, got %q", got)
 	}
 }
 
 func TestFormatFullResultWithGutter_WhitespaceOnly(t *testing.T) {
-	if got := formatFullResultWithGutter("   \n\n  "); got != "" {
+	if got := formatFullResultWithGutter("   \n\n  ", ""); got != "" {
 		t.Errorf("expected empty string for whitespace-only input, got %q", got)
 	}
 }
 
 func TestFormatFullResultWithGutter_SingleLine(t *testing.T) {
-	got := formatFullResultWithGutter("package main")
+	got := formatFullResultWithGutter("package main", "")
+	plain := stripANSI(got)
 
-	if got != gutterPrefix+"package main" {
-		t.Errorf("expected %q, got %q", gutterPrefix+"package main", got)
+	if plain != gutterPrefix+"package main" {
+		t.Errorf("expected %q, got %q", gutterPrefix+"package main", plain)
 	}
 }
 
 func TestFormatFullResultWithGutter_MultipleLines(t *testing.T) {
-	got := formatFullResultWithGutter("line1\nline2\nline3\nline4\nline5")
+	got := formatFullResultWithGutter("line1\nline2\nline3\nline4\nline5", "")
 
 	assertContains(t, got, gutterPrefix+"line1")
 	assertContains(t, got, gutterPrefix+"line2")
@@ -245,11 +250,12 @@ func TestFormatFullResultWithGutter_MultipleLines(t *testing.T) {
 }
 
 func TestFormatFullResultWithGutter_PreservesBlankLines(t *testing.T) {
-	got := formatFullResultWithGutter("line1\n\nline3")
+	got := formatFullResultWithGutter("line1\n\nline3", "")
 
-	lines := strings.Split(got, "\n")
+	plain := stripANSI(got)
+	lines := strings.Split(plain, "\n")
 	if len(lines) != 3 {
-		t.Errorf("expected 3 lines, got %d: %q", len(lines), got)
+		t.Errorf("expected 3 lines, got %d: %q", len(lines), plain)
 	}
 	// The blank line should still have the gutter prefix.
 	if lines[1] != gutterPrefix {
@@ -259,7 +265,7 @@ func TestFormatFullResultWithGutter_PreservesBlankLines(t *testing.T) {
 
 func TestFormatFullResultWithGutter_ReprStripping(t *testing.T) {
 	input := "content='import os\nimport sys' name='read' tool_call_id='toolu_xyz'"
-	got := formatFullResultWithGutter(input)
+	got := formatFullResultWithGutter(input, "")
 
 	assertContains(t, got, "import os")
 	assertNotContains(t, got, "name='read'")
@@ -267,9 +273,10 @@ func TestFormatFullResultWithGutter_ReprStripping(t *testing.T) {
 }
 
 func TestFormatFullResultWithGutter_AllLinesHaveGutter(t *testing.T) {
-	got := formatFullResultWithGutter("a\nb\nc\nd\ne\nf\ng")
+	got := formatFullResultWithGutter("a\nb\nc\nd\ne\nf\ng", "")
 
-	for _, line := range strings.Split(got, "\n") {
+	plain := stripANSI(got)
+	for _, line := range strings.Split(plain, "\n") {
 		if !strings.HasPrefix(line, gutterPrefix) {
 			t.Errorf("line missing gutter prefix: %q", line)
 		}

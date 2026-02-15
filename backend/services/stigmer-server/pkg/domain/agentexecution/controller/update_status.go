@@ -4,11 +4,11 @@ import (
 	"context"
 
 	"github.com/rs/zerolog/log"
-	"github.com/stigmer/stigmer/backend/libs/go/store"
-	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
-	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -206,19 +206,17 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 		updated.Status.CompletedAt = requestStatus.CompletedAt
 	}
 
-	// Merge pending_approval (HITL approval flow)
+	// Merge pending_approvals (HITL approval flow)
 	//
-	// Python agent-runner sends pending_approval when:
-	// 1. A tool requires approval: non-empty tool_call_id = set pending_approval
-	// 2. Approval resolved/cleared: empty tool_call_id = clear pending_approval
-	// 3. Unrelated status update: field absent (nil) = preserve existing
-	//
-	// This mirrors the pattern in WorkflowExecutionUpdateStatusHandler (Java).
-	if requestStatus.PendingApproval != nil {
-		if requestStatus.PendingApproval.ToolCallId != "" {
-			updated.Status.PendingApproval = requestStatus.PendingApproval
+	// Python agent-runner sends pending_approvals when:
+	// 1. Tools require approval: non-empty list = set pending_approvals
+	// 2. Approvals resolved/cleared: empty list or entry with empty tool_call_id = clear
+	// 3. Unrelated status update: field absent (nil/empty) = preserve existing
+	if len(requestStatus.PendingApprovals) > 0 {
+		if requestStatus.PendingApprovals[0].ToolCallId != "" {
+			updated.Status.PendingApprovals = requestStatus.PendingApprovals
 		} else {
-			updated.Status.PendingApproval = nil
+			updated.Status.PendingApprovals = nil
 		}
 	}
 
@@ -228,7 +226,7 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 		Int("messages_count", len(updated.Status.Messages)).
 		Int("tool_calls_count", len(updated.Status.ToolCalls)).
 		Int("artifacts_count", len(updated.Status.Artifacts)).
-		Bool("has_pending_approval", updated.Status.PendingApproval != nil).
+		Int("pending_approvals_count", len(updated.Status.PendingApprovals)).
 		Msg("Merged status fields")
 
 	// Store merged execution in context for persist step

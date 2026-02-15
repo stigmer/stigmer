@@ -5,6 +5,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/charmbracelet/x/ansi"
 )
 
 // extractPrimaryArg retrieves the value of the primary field from args.
@@ -106,6 +108,9 @@ func formatDuration(d time.Duration) string {
 }
 
 // truncate shortens a string to maxLen, appending "..." if truncated.
+// This operates on raw rune counts and must only be used on plain-text strings
+// (no ANSI escape sequences). For strings that may contain ANSI codes, use
+// truncateANSI instead.
 func truncate(s string, maxLen int) string {
 	if len(s) <= maxLen {
 		return s
@@ -116,6 +121,22 @@ func truncate(s string, maxLen int) string {
 	return s[:maxLen-3] + "..."
 }
 
+// truncateANSI shortens a string that may contain ANSI escape sequences to
+// maxLen visible characters, appending "..." if truncated. ANSI escape codes
+// are preserved and do not count toward the visible width.
+//
+// This is the ANSI-safe counterpart of truncate and must be used whenever the
+// input may contain syntax-highlighted content with embedded escape codes.
+func truncateANSI(s string, maxLen int) string {
+	if ansi.StringWidth(s) <= maxLen {
+		return s
+	}
+	if maxLen <= 3 {
+		return ansi.Truncate(s, maxLen, "")
+	}
+	return ansi.Truncate(s, maxLen-3, "...")
+}
+
 // previewMaxWidth is the maximum character width for a result preview line.
 // Keeps the preview compact enough to fit on a single terminal line.
 const previewMaxWidth = 72
@@ -124,28 +145,69 @@ const previewMaxWidth = 72
 // Defense-in-depth: ToolMessage repr stripping
 // ---------------------------------------------------------------------------
 
-// stripToolMessageRepr detects and cleans raw Python ToolMessage repr strings
-// that may leak through when the backend fails to extract the .content attribute.
+// stripToolMessageRepr detects and cleans raw Python repr strings that may
+// leak through when the backend fails to extract the .content attribute.
 //
-// A ToolMessage repr looks like:
+// Two repr formats are handled:
+//
+// 1. ToolMessage repr:
 //
 //	content="Directory '/bin/skills' is empty" name='ls' tool_call_id='toolu_...'
 //	content='bin/skills/a34ed...' name='glob' tool_call_id='toolu_...'
 //
-// If the input matches this pattern, only the content value is returned.
+// 2. CommandUpdate repr (from LangGraph Command objects after approval resume):
+//
+//	CommandUpdate('files': [...], 'messages': [ToolMessage(content='Updated file foo.txt', ...)])
+//
+// If the input matches either pattern, the meaningful content is extracted.
 // Otherwise the input is returned unchanged.
 func stripToolMessageRepr(s string) string {
-	if !strings.HasPrefix(s, "content=") {
-		return s
-	}
-	// Look for ToolMessage metadata fields that follow the content value.
-	// The marker " name=" always appears after the content value in a repr.
-	for _, marker := range []string{" name='", ` name="`} {
-		if idx := strings.Index(s, marker); idx >= 0 {
-			content := s[len("content="):idx]
-			return unquote(content)
+	// Pattern 1: ToolMessage repr — starts with "content="
+	if strings.HasPrefix(s, "content=") {
+		// Look for ToolMessage metadata fields that follow the content value.
+		// The marker " name=" always appears after the content value in a repr.
+		for _, marker := range []string{" name='", ` name="`} {
+			if idx := strings.Index(s, marker); idx >= 0 {
+				content := s[len("content="):idx]
+				return unquote(content)
+			}
 		}
 	}
+
+	// Pattern 2: CommandUpdate repr — starts with "CommandUpdate("
+	if strings.HasPrefix(s, "CommandUpdate(") {
+		return extractCommandUpdateContent(s)
+	}
+
+	return s
+}
+
+// extractCommandUpdateContent extracts the ToolMessage content from a raw
+// Python CommandUpdate repr string. This handles the case where a LangGraph
+// Command object's repr leaks through to the CLI.
+//
+// It scans for ToolMessage(content='...' or ToolMessage(content="..." and
+// extracts the quoted content value.
+//
+// Returns the original string if no ToolMessage content can be found — the
+// caller's gutter formatting will still handle it gracefully.
+func extractCommandUpdateContent(s string) string {
+	// Try both single-quoted and double-quoted ToolMessage content.
+	for _, prefix := range []string{"ToolMessage(content='", `ToolMessage(content="`} {
+		idx := strings.Index(s, prefix)
+		if idx < 0 {
+			continue
+		}
+		contentStart := idx + len(prefix)
+		// The closing quote character matches the opening one.
+		closingQuote := prefix[len(prefix)-1]
+		endIdx := strings.Index(s[contentStart:], string(closingQuote))
+		if endIdx >= 0 {
+			return s[contentStart : contentStart+endIdx]
+		}
+	}
+
+	// No extractable ToolMessage content found.
 	return s
 }
 

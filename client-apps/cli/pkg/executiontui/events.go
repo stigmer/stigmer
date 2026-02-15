@@ -60,6 +60,47 @@ type ToolResultEvent struct {
 
 func (ToolResultEvent) isEvent() {}
 
+// ToolRunningEvent signals that a tool call has entered RUNNING status.
+// Emitted from tool call state tracking (not message processing) so the TUI
+// can show a running indicator with the tool header while execution is in progress.
+type ToolRunningEvent struct {
+	// ToolCallID is the unique identifier for this tool call.
+	ToolCallID string
+	// ToolCall carries the structured info for rendering (name, args, status).
+	ToolCall toolrender.ToolCallInfo
+}
+
+func (ToolRunningEvent) isEvent() {}
+
+// ToolCompletedEvent signals that a previously-running tool call has reached
+// a terminal status (COMPLETED or FAILED). The TUI replaces the running
+// indicator block with the final expandable result block.
+type ToolCompletedEvent struct {
+	// ToolCallID is the unique identifier for this tool call.
+	ToolCallID string
+	// ToolCall carries the final info including Result, Duration, and Status.
+	ToolCall toolrender.ToolCallInfo
+}
+
+func (ToolCompletedEvent) isEvent() {}
+
+// ToolStreamDeltaEvent carries the full accumulated content of an in-progress
+// streaming tool call. Emitted when a running tool has is_streaming=true and
+// its result content has changed since the last update.
+//
+// The TUI replaces the current running tool block content with this value,
+// mirroring the pattern used by AIStreamDeltaEvent for AI message streaming.
+type ToolStreamDeltaEvent struct {
+	// ToolCallID is the unique identifier for this tool call.
+	ToolCallID string
+	// ToolCall carries the current tool info (name, args, status).
+	ToolCall toolrender.ToolCallInfo
+	// Content is the full accumulated streaming output so far.
+	Content string
+}
+
+func (ToolStreamDeltaEvent) isEvent() {}
+
 // SystemMessageEvent represents a system/informational message.
 // Content is already sanitized by the caller.
 type SystemMessageEvent struct {
@@ -96,6 +137,18 @@ type DoneEvent struct {
 }
 
 func (DoneEvent) isEvent() {}
+
+// HeartbeatEvent signals that a gRPC stream update was received from the
+// backend, even if no meaningful content changed (e.g., a keepalive update).
+// The TUI uses this to track backend liveness and distinguish "agent is
+// thinking" from "connection lost."
+//
+// Unlike other events, HeartbeatEvent does NOT reset the activity tracker
+// (lastEventAt) or clear the thinking indicator. It only refreshes the
+// lastBackendUpdate timestamp for connection health monitoring.
+type HeartbeatEvent struct{}
+
+func (HeartbeatEvent) isEvent() {}
 
 // StreamErrorEvent signals that the gRPC stream encountered an error.
 // The TUI displays the error and prepares to exit.

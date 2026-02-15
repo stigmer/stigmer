@@ -64,14 +64,15 @@ func renderKnown(tc ToolCallInfo, info toolDisplayInfo) string {
 		case previewFirstLine:
 			preview = formatFirstLinePreview(tc.Result)
 		case previewFileContent:
-			preview = formatFileContentPreview(tc.Result)
+			preview = formatFileContentPreview(tc.Result, extractFilename(tc.Args))
 		}
 		if preview != "" {
 			switch info.preview {
 			case previewFileContent:
-				// File content preview is already fully formatted with gutters
-				// and indentation — apply dim styling to the whole block.
-				line += "\n" + dimStyle.Render(preview)
+				// File content preview handles its own styling internally
+				// (dim gutter + syntax-highlighted content), so we append
+				// it directly without an outer dimStyle wrapper.
+				line += "\n" + preview
 			default:
 				line += "\n" + dimStyle.Render("     "+preview)
 			}

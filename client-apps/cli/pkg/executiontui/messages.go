@@ -13,6 +13,20 @@ type executionEventMsg struct {
 // This happens when the gRPC goroutine finishes (success or error).
 type streamClosedMsg struct{}
 
+// cancelResultMsg carries the result of an asynchronous cancel API call.
+// A nil err means the cancel request was accepted by the backend; the
+// execution will transition to CANCELLED via the stream. A non-nil err
+// means the cancel failed and the TUI should inform the user.
+type cancelResultMsg struct {
+	err error
+}
+
+// activityTickMsg is a periodic timer message used to detect idle periods
+// during execution. When no execution events arrive for longer than the
+// idle threshold, the TUI activates the thinking indicator (animated spinner
+// in the header) to signal that the agent is alive and processing.
+type activityTickMsg struct{}
+
 // listenForEvents returns a tea.Cmd that blocks on the events channel and
 // delivers the next Event as an executionEventMsg. When the channel is closed,
 // it returns a streamClosedMsg.

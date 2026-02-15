@@ -22,22 +22,29 @@ const gutterPrefix = "     │ "
 const ellipsisPrefix = "     ⋮ "
 
 // formatFileContentPreview renders a multi-line gutter-bordered preview of file
-// content. It shows up to filePreviewMaxLines lines with a left-border gutter,
-// followed by a "N more lines" indicator when the file has additional content.
+// content with optional syntax highlighting. It shows up to filePreviewMaxLines
+// lines with a left-border gutter, followed by a "N more lines" indicator when
+// the file has additional content.
+//
+// When filename is non-empty and matches a known language, the content is
+// syntax-highlighted with ANSI escape codes. The gutter prefix is rendered in
+// dim style while highlighted content retains its own coloring. When
+// highlighting is unavailable, the entire line (gutter + content) is dim-styled,
+// preserving the original visual appearance.
 //
 // Trailing blank lines within the preview window are trimmed to avoid wasting
 // vertical space. If all lines in the preview window are blank, the first
 // non-empty line from the full result is shown instead.
 //
-// The returned string includes the gutter prefixes and is ready to be wrapped
-// in dimStyle.Render() by the caller.
+// The returned string is fully styled and ready to be appended to the tool
+// header — callers should NOT wrap it in dimStyle.Render().
 //
 // Examples:
 //
 //	"     │ syntax = \"proto3\";\n     │ \n     │ package ai.stigmer;\n     ⋮ 30 more lines"
 //	"     │ apiVersion: v1\n     │ kind: Config"
 //	""  (empty result)
-func formatFileContentPreview(result string) string {
+func formatFileContentPreview(result, filename string) string {
 	if strings.TrimSpace(result) == "" {
 		return ""
 	}
@@ -48,57 +55,100 @@ func formatFileContentPreview(result string) string {
 	lines := strings.Split(result, "\n")
 	totalLines := len(lines)
 
-	// Take first filePreviewMaxLines lines.
-	preview := lines
-	if len(preview) > filePreviewMaxLines {
-		preview = preview[:filePreviewMaxLines]
+	// Highlight the full content before slicing so that multi-line syntax
+	// constructs (e.g., YAML multi-line strings, JSON arrays) are tokenized
+	// correctly across line boundaries.
+	highlighted, isHighlighted := highlightContent(result, filename)
+	var hLines []string
+	if isHighlighted {
+		hLines = strings.Split(highlighted, "\n")
 	}
+
+	// --- Preview line selection (operates on original plain-text lines) ---
+
+	previewEnd := min(len(lines), filePreviewMaxLines)
 
 	// Trim trailing blank lines from the preview window to avoid wasting
 	// vertical space on empty lines at the boundary.
-	for len(preview) > 0 && strings.TrimSpace(preview[len(preview)-1]) == "" {
-		preview = preview[:len(preview)-1]
+	for previewEnd > 0 && strings.TrimSpace(lines[previewEnd-1]) == "" {
+		previewEnd--
 	}
 
-	// If all lines in the preview window were blank, fall back to the first
-	// non-empty line from the full result.
-	if len(preview) == 0 {
-		first := firstNonEmptyLine(result)
-		if first == "" {
+	// Determine which line indices to display.
+	type indexedLine struct {
+		idx   int    // position in lines / hLines
+		plain string // original plain text (for fallback rendering)
+	}
+	var display []indexedLine
+
+	if previewEnd == 0 {
+		// All lines in the preview window were blank. Fall back to the first
+		// non-empty line from the full result.
+		for i, l := range lines {
+			if strings.TrimSpace(l) != "" {
+				display = append(display, indexedLine{idx: i, plain: l})
+				break
+			}
+		}
+		if len(display) == 0 {
 			return ""
 		}
-		preview = []string{first}
+	} else {
+		display = make([]indexedLine, previewEnd)
+		for i := 0; i < previewEnd; i++ {
+			display[i] = indexedLine{idx: i, plain: lines[i]}
+		}
 	}
 
-	// Render each preview line with the gutter prefix.
+	// --- Render with gutter ---
+
+	// Pre-render the dim gutter once. When highlighted, the gutter is dim
+	// but the content retains its ANSI coloring. When not highlighted, the
+	// entire line is dim (matching the pre-highlighting behavior).
+	styledGutter := dimStyle.Render(gutterPrefix)
+	contentWidth := previewMaxWidth - len(gutterPrefix)
+
 	var sb strings.Builder
-	for i, line := range preview {
+	for i, dl := range display {
 		if i > 0 {
 			sb.WriteString("\n")
 		}
-		displayLine := truncate(line, previewMaxWidth-len(gutterPrefix))
-		sb.WriteString(gutterPrefix + displayLine)
+		if isHighlighted && dl.idx < len(hLines) {
+			sb.WriteString(styledGutter + truncateANSI(hLines[dl.idx], contentWidth))
+		} else {
+			sb.WriteString(dimStyle.Render(gutterPrefix + truncate(dl.plain, contentWidth)))
+		}
 	}
 
 	// Append "N more lines" indicator when the file extends beyond the preview.
-	remaining := totalLines - len(preview)
+	remaining := totalLines - len(display)
 	if remaining > 0 {
-		sb.WriteString(fmt.Sprintf("\n%s%d more lines", ellipsisPrefix, remaining))
+		sb.WriteString("\n")
+		sb.WriteString(dimStyle.Render(fmt.Sprintf("%s%d more lines", ellipsisPrefix, remaining)))
 	}
 
 	return sb.String()
 }
 
 // formatFullResultWithGutter renders every line of a tool result with a left
-// gutter border, providing a visually bounded block for the TUI's expanded
-// state. Unlike formatFileContentPreview, there is no line limit, no trailing-
-// blank trimming, and no "N more lines" indicator — the full content is shown.
+// gutter border and optional syntax highlighting, providing a visually bounded
+// block for the TUI's expanded state. Unlike formatFileContentPreview, there is
+// no line limit, no trailing-blank trimming, and no "N more lines" indicator —
+// the full content is shown.
+//
+// When filename is non-empty and matches a known language, content lines are
+// syntax-highlighted. The gutter prefix is always dim-styled while content
+// retains its own ANSI coloring. When highlighting is unavailable, the entire
+// line is dim-styled (matching the pre-highlighting behavior).
 //
 // The gutter style matches formatFileContentPreview so that expanding a block
 // looks like a natural extension of the collapsed preview.
 //
+// The returned string is fully styled — callers should NOT wrap it in
+// dimStyle.Render().
+//
 // Returns an empty string if the result is empty or only whitespace.
-func formatFullResultWithGutter(result string) string {
+func formatFullResultWithGutter(result, filename string) string {
 	if strings.TrimSpace(result) == "" {
 		return ""
 	}
@@ -106,14 +156,28 @@ func formatFullResultWithGutter(result string) string {
 	// Defense: strip raw ToolMessage repr if backend didn't clean it.
 	result = stripToolMessageRepr(result)
 
-	lines := strings.Split(result, "\n")
+	// Highlight the full content.
+	highlighted, isHighlighted := highlightContent(result, filename)
+
+	var contentLines []string
+	if isHighlighted {
+		contentLines = strings.Split(highlighted, "\n")
+	} else {
+		contentLines = strings.Split(result, "\n")
+	}
+
+	styledGutter := dimStyle.Render(gutterPrefix)
 
 	var sb strings.Builder
-	for i, line := range lines {
+	for i, line := range contentLines {
 		if i > 0 {
 			sb.WriteString("\n")
 		}
-		sb.WriteString(gutterPrefix + line)
+		if isHighlighted {
+			sb.WriteString(styledGutter + line)
+		} else {
+			sb.WriteString(dimStyle.Render(gutterPrefix + line))
+		}
 	}
 
 	return sb.String()

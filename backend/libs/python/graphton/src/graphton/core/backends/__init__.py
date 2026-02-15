@@ -4,7 +4,14 @@ This module provides enhanced backend implementations with execution capabilitie
 for local agent runtime.
 """
 
-from graphton.core.backends.daytona import create_daytona_backend
+from graphton.core.backends.daytona import (
+    WorkspaceNormalizingBackend,
+    create_daytona_backend,
+)
 from graphton.core.backends.filesystem import FilesystemBackend
 
-__all__ = ["FilesystemBackend", "create_daytona_backend"]
+__all__ = [
+    "FilesystemBackend",
+    "WorkspaceNormalizingBackend",
+    "create_daytona_backend",
+]

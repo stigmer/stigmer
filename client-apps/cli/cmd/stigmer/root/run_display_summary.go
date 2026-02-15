@@ -46,6 +46,10 @@ func displayAgentExecutionComplete(execution *agentexecutionv1.AgentExecution) {
 
 // agentSummaryTitleAndStyle returns the panel title and style for an agent
 // execution based on its terminal phase.
+//
+// Each terminal phase has an explicit case. The default is a true catch-all
+// for unexpected phases rather than incorrectly labeling running executions
+// as terminated.
 func agentSummaryTitleAndStyle(phase agentexecutionv1.ExecutionPhase) (string, panel.PanelStyle) {
 	switch phase {
 	case agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED:
@@ -54,9 +58,49 @@ func agentSummaryTitleAndStyle(phase agentexecutionv1.ExecutionPhase) (string, p
 		return "EXECUTION FAILED", panel.StyleError
 	case agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED:
 		return "EXECUTION CANCELLED", panel.StyleWarning
-	default:
+	case agentexecutionv1.ExecutionPhase_EXECUTION_TERMINATED:
 		return "EXECUTION TERMINATED", panel.StyleWarning
+	default:
+		return "EXECUTION STATUS UNKNOWN", panel.StyleDefault
 	}
+}
+
+// displayAgentExecutionDetached renders a detach notice when the user exits the
+// TUI while the execution is still running. The panel uses a neutral style
+// (blue border) since detaching is a normal, non-destructive action.
+//
+// It shows the current execution snapshot (phase, messages, tool calls) and
+// provides actionable hints for checking status or cancelling the execution.
+func displayAgentExecutionDetached(execution *agentexecutionv1.AgentExecution) {
+	var sections []string
+
+	sections = append(sections, fmt.Sprintf("Execution:   %s", execution.Metadata.Id))
+	sections = append(sections, fmt.Sprintf("Status:      %s", mapPhaseToString(execution.Status.Phase)))
+
+	// Snapshot stats at the time of detach.
+	sections = append(sections, fmt.Sprintf("Messages:    %d", len(execution.Status.Messages)))
+	sections = append(sections, fmt.Sprintf("Tool calls:  %d", len(execution.Status.ToolCalls)))
+	if breakdown := formatToolCallBreakdown(execution.Status.ToolCalls); breakdown != "" {
+		sections = append(sections, fmt.Sprintf("             %s", breakdown))
+	}
+
+	sections = append(sections, "")
+	sections = append(sections, "The execution continues in the background.")
+	sections = append(sections, "")
+	sections = append(sections, "Check status:")
+	sections = append(sections, fmt.Sprintf("  stigmer get execution %s", execution.Metadata.Id))
+	sections = append(sections, "")
+	sections = append(sections, "Cancel:")
+	sections = append(sections, fmt.Sprintf("  stigmer delete execution %s", execution.Metadata.Id))
+
+	fmt.Println()
+	fmt.Println(panel.Render(strings.Join(sections, "\n"), panel.Options{
+		Title: "DETACHED FROM EXECUTION",
+		Style: panel.StyleDefault,
+		Width: summaryPanelWidth(),
+	}))
+	fmt.Println()
+	flushStdout()
 }
 
 // buildAgentSummaryContent assembles the labeled statistics displayed inside the

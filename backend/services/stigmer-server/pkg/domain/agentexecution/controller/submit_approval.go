@@ -19,7 +19,7 @@ const (
 	IsIdempotentRequestKey = "isIdempotentRequest"
 )
 
-// SubmitApproval submits an approval decision for a pending tool call (HITL Phase 1).
+// SubmitApproval submits an approval decision for a pending tool call (HITL).
 //
 // This RPC enables human-in-the-loop approval flows where dangerous or sensitive
 // tool calls require explicit user approval before execution.
@@ -27,7 +27,7 @@ const (
 // ## Preconditions
 //
 //   - Execution must be in EXECUTION_WAITING_FOR_APPROVAL phase
-//   - tool_call_id must match status.pending_approval.tool_call_id
+//   - tool_call_id must match an entry in status.pending_approvals
 //   - action must be APPROVE, SKIP, or REJECT (not UNSPECIFIED)
 //
 // ## Behavior by Action
@@ -42,7 +42,7 @@ const (
 //   - ToolCall.approval_action = submitted action
 //   - ToolCall.approval_decided_at = current timestamp
 //   - ToolCall.approved_by = authenticated user ID
-//   - AgentExecutionStatus.pending_approval = cleared
+//   - AgentExecutionStatus.pending_approvals = cleared
 //   - ExecutionPhase = EXECUTION_IN_PROGRESS (or EXECUTION_FAILED if REJECT)
 //
 // ## Idempotency
@@ -174,7 +174,6 @@ func (s *validateApprovalStep) Execute(ctx *pipeline.RequestContext[*agentexecut
 	requestedToolCallId := input.GetToolCallId()
 	requestedAction := input.GetAction()
 	currentPhase := execution.GetStatus().GetPhase()
-	pendingApproval := execution.GetStatus().GetPendingApproval()
 
 	// Check for idempotency: If the tool call already has an approval action,
 	// and it matches the requested action, treat as no-op
@@ -213,28 +212,41 @@ func (s *validateApprovalStep) Execute(ctx *pipeline.RequestContext[*agentexecut
 		)
 	}
 
-	// Validate pending_approval exists
-	if pendingApproval == nil {
+	// Validate tool_call_id against pending_approvals.
+	// pending_approvals (repeated) is the sole source of truth.
+	pendingApprovals := execution.GetStatus().GetPendingApprovals()
+
+	if len(pendingApprovals) == 0 {
 		log.Debug().
 			Str("execution_id", executionID).
-			Msg("No pending approval on execution")
+			Msg("No pending approvals on execution")
 		return grpclib.FailedPreconditionError(
-			"execution %s has no pending approval",
+			"execution %s has no pending approvals",
 			executionID,
 		)
 	}
 
-	// Validate tool_call_id matches
-	expectedToolCallId := pendingApproval.GetToolCallId()
-	if requestedToolCallId != expectedToolCallId {
+	// tool_call_id must match ANY entry in pending_approvals
+	found := false
+	for _, pa := range pendingApprovals {
+		if pa.GetToolCallId() == requestedToolCallId {
+			found = true
+			break
+		}
+	}
+	if !found {
+		validIDs := make([]string, 0, len(pendingApprovals))
+		for _, pa := range pendingApprovals {
+			validIDs = append(validIDs, pa.GetToolCallId())
+		}
 		log.Debug().
 			Str("execution_id", executionID).
 			Str("requested_tool_call_id", requestedToolCallId).
-			Str("expected_tool_call_id", expectedToolCallId).
-			Msg("Tool call ID mismatch")
+			Strs("valid_tool_call_ids", validIDs).
+			Msg("Tool call ID not found in pending_approvals")
 		return grpclib.InvalidArgumentError(
-			"tool_call_id %s does not match pending approval tool_call_id %s",
-			requestedToolCallId, expectedToolCallId,
+			"tool_call_id %s not found in pending_approvals for execution %s",
+			requestedToolCallId, executionID,
 		)
 	}
 

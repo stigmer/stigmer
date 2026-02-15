@@ -5,13 +5,19 @@ go_library(
     srcs = [
         "file_preview.go",
         "format.go",
+        "highlight.go",
         "render.go",
         "render_known.go",
     ],
     importpath = "github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender",
     visibility = ["//visibility:public"],
     deps = [
+        "@com_github_alecthomas_chroma_v2//:chroma",
+        "@com_github_alecthomas_chroma_v2//formatters",
+        "@com_github_alecthomas_chroma_v2//lexers",
+        "@com_github_alecthomas_chroma_v2//styles",
         "@com_github_charmbracelet_lipgloss//:lipgloss",
+        "@com_github_charmbracelet_x_ansi//:ansi",
     ],
 )
 
@@ -19,6 +25,7 @@ go_test(
     name = "toolrender_test",
     srcs = [
         "file_preview_test.go",
+        "highlight_test.go",
         "render_test.go",
     ],
     embed = [":toolrender"],
