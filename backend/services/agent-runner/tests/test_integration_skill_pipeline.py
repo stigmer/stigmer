@@ -145,13 +145,13 @@ features:
             writer = SkillWriter(local_root=tmpdir)
             skill_paths = writer.write_skills([skill], artifacts=artifacts)
             
-            # Verify skill path returned
+            # Verify skill path returned (local mode returns sandbox-relative, no leading /)
             assert skill.metadata.id in skill_paths
-            expected_path = f"/bin/skills/{skill.status.version_hash}"
+            expected_path = f"bin/skills/{skill.status.version_hash}"
             assert skill_paths[skill.metadata.id] == expected_path
             
             # Verify files extracted to correct location
-            local_skill_dir = f"{tmpdir}{expected_path}"
+            local_skill_dir = os.path.join(tmpdir, expected_path)
             assert os.path.isdir(local_skill_dir)
             
             # Verify SKILL.md extracted from ZIP
@@ -211,13 +211,13 @@ features:
             writer = SkillWriter(local_root=tmpdir)
             skill_paths = writer.write_skills([skill], artifacts=None)
             
-            # Verify skill path returned
+            # Verify skill path returned (local mode, no leading /)
             assert skill.metadata.id in skill_paths
-            expected_path = f"/bin/skills/{skill.status.version_hash}"
+            expected_path = f"bin/skills/{skill.status.version_hash}"
             assert skill_paths[skill.metadata.id] == expected_path
             
             # Verify SKILL.md written from spec (not from ZIP)
-            local_skill_dir = f"{tmpdir}{expected_path}"
+            local_skill_dir = os.path.join(tmpdir, expected_path)
             skill_md_path = f"{local_skill_dir}/SKILL.md"
             assert os.path.isfile(skill_md_path)
             with open(skill_md_path, 'r') as f:
@@ -242,12 +242,12 @@ features:
             assert skill_without_artifact.metadata.id in skill_paths
             
             # Skill with artifact should have extracted files
-            artifact_skill_dir = f"{tmpdir}{skill_paths[skill_with_artifact.metadata.id]}"
+            artifact_skill_dir = os.path.join(tmpdir, skill_paths[skill_with_artifact.metadata.id])
             assert os.path.isfile(f"{artifact_skill_dir}/run.sh")
             assert os.path.isfile(f"{artifact_skill_dir}/helper.py")
             
             # Skill without artifact should only have SKILL.md
-            no_artifact_skill_dir = f"{tmpdir}{skill_paths[skill_without_artifact.metadata.id]}"
+            no_artifact_skill_dir = os.path.join(tmpdir, skill_paths[skill_without_artifact.metadata.id])
             assert os.path.isfile(f"{no_artifact_skill_dir}/SKILL.md")
             # Should not have any other files
             files_in_dir = os.listdir(no_artifact_skill_dir)
@@ -283,8 +283,8 @@ Tests compliance with ADR 001.
         
         prompt = SkillWriter.generate_prompt_section([sample_skill], skill_paths)
         
-        # Must contain LOCATION header per ADR 001
-        expected_location = f"LOCATION: /bin/skills/{sample_skill.status.version_hash}/"
+        # Must contain LOCATION header per ADR 001 (backtick-wrapped path)
+        expected_location = f"LOCATION: `/bin/skills/{sample_skill.status.version_hash}/`"
         assert expected_location in prompt, f"Prompt must contain '{expected_location}'"
 
     def test_prompt_includes_skill_md_content(self, sample_skill):
@@ -322,12 +322,12 @@ Tests compliance with ADR 001.
             writer = SkillWriter(local_root=tmpdir)
             skill_paths = writer.write_skills([sample_skill])
             
-            # Path must be /bin/skills/{version_hash}
-            expected_path = f"/bin/skills/{sample_skill.status.version_hash}"
+            # Path must be bin/skills/{version_hash} (local mode, no leading /)
+            expected_path = f"bin/skills/{sample_skill.status.version_hash}"
             assert skill_paths[sample_skill.metadata.id] == expected_path
             
             # Actual directory must exist
-            local_path = f"{tmpdir}{expected_path}"
+            local_path = os.path.join(tmpdir, expected_path)
             assert os.path.isdir(local_path)
 
     def test_multiple_skills_generate_multiple_sections(self):
@@ -350,7 +350,7 @@ Tests compliance with ADR 001.
         for i in range(3):
             assert f"### SKILL: skill-{i}" in prompt
             assert f"# Skill {i} Content" in prompt
-            assert f"LOCATION: /bin/skills/hash{i}00000" in prompt
+            assert f"LOCATION: `/bin/skills/hash{i}00000" in prompt
 
 
 class TestVersionResolutionIntegration:
@@ -409,10 +409,10 @@ class TestVersionResolutionIntegration:
             paths = list(skill_paths.values())
             assert len(set(paths)) == 3, "Each version should have unique path"
             
-            # Verify paths use version_hash
-            assert skill_paths[skill_latest.metadata.id] == f"/bin/skills/{skill_latest.status.version_hash}"
-            assert skill_paths[skill_tagged_stable.metadata.id] == f"/bin/skills/{skill_tagged_stable.status.version_hash}"
-            assert skill_paths[skill_pinned_hash.metadata.id] == f"/bin/skills/{skill_pinned_hash.status.version_hash}"
+            # Verify paths use version_hash (local mode, no leading /)
+            assert skill_paths[skill_latest.metadata.id] == f"bin/skills/{skill_latest.status.version_hash}"
+            assert skill_paths[skill_tagged_stable.metadata.id] == f"bin/skills/{skill_tagged_stable.status.version_hash}"
+            assert skill_paths[skill_pinned_hash.metadata.id] == f"bin/skills/{skill_pinned_hash.status.version_hash}"
 
     def test_same_hash_reuses_directory(self):
         """Skills with same version_hash should use same directory (deduplication)."""
@@ -511,7 +511,7 @@ class TestErrorRecoveryIntegration:
             assert skill.metadata.id in skill_paths
             
             # SKILL.md should exist from spec (not from artifact)
-            skill_md_path = f"{tmpdir}{skill_paths[skill.metadata.id]}/SKILL.md"
+            skill_md_path = os.path.join(tmpdir, skill_paths[skill.metadata.id], "SKILL.md")
             assert os.path.isfile(skill_md_path)
             with open(skill_md_path, 'r') as f:
                 assert "Fallback Skill Content" in f.read()
@@ -539,7 +539,7 @@ class TestPromptGenerationIntegration:
         )
         
         assert "## Available Skills" in prompt
-        assert "specialized capabilities" in prompt
+        assert "pre-installed in your workspace" in prompt
 
     def test_prompt_handles_missing_skill_path_gracefully(self):
         """Skill not in paths dict should use fallback path."""
@@ -621,3 +621,280 @@ class TestPathResolution:
         """All skill paths should be under /bin/skills/."""
         writer = SkillWriter(local_root="/tmp")
         assert writer.skills_base == "/bin/skills"
+
+
+class TestZipFormatEndToEnd:
+    """End-to-end: create ZIP in various formats → extract → list → read via backend.
+
+    These tests verify that the skill pipeline works consistently regardless of
+    how the ZIP was created (vendor_skill.sh, CLI push, or package_skill.py).
+    The critical invariant is: every file the backend can *list* must also be
+    *readable* at the listed path.
+    """
+
+    @pytest.fixture
+    def mock_skill(self):
+        """A minimal mock skill for ZIP format tests."""
+        skill = MagicMock()
+        skill.metadata.id = "zip-fmt-skill"
+        skill.metadata.name = "zip-format-skill"
+        skill.metadata.slug = "test-org/zip-format"
+        skill.spec.skill_md = "# ZIP Format Test Skill"
+        skill.status.version_hash = (
+            "e2e0000000000000000000000000000000000000000000000000000000000001"
+        )
+        skill.status.artifact_storage_key = "skills/test/zip-format.zip"
+        return skill
+
+    # ------------------------------------------------------------------
+    # Helper: create ZIPs in the three known formats
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _create_flat_zip() -> bytes:
+        """Create a ZIP with flat paths (as produced by CLI push and vendor_skill.sh).
+
+        Entries:
+            SKILL.md
+            scripts/init_skill.py
+            scripts/helper.py
+            references/guide.md
+            LICENSE.txt
+        """
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr("SKILL.md", "# Flat ZIP Skill\n\nFlat structure.")
+            zf.writestr(
+                "scripts/init_skill.py",
+                '#!/usr/bin/env python3\nprint("init")\n',
+            )
+            zf.writestr(
+                "scripts/helper.py",
+                '#!/usr/bin/env python3\nprint("helper")\n',
+            )
+            zf.writestr("references/guide.md", "# Guide\n\nReference doc.")
+            zf.writestr("LICENSE.txt", "MIT License")
+        return buf.getvalue()
+
+    @staticmethod
+    def _create_nested_zip(skill_name: str = "my-skill") -> bytes:
+        """Create a ZIP with nested skill-name prefix (old package_skill.py bug).
+
+        Entries:
+            my-skill/SKILL.md
+            my-skill/scripts/init_skill.py
+            my-skill/LICENSE.txt
+        """
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr(
+                f"{skill_name}/SKILL.md",
+                "# Nested ZIP Skill\n\nNested structure.",
+            )
+            zf.writestr(
+                f"{skill_name}/scripts/init_skill.py",
+                '#!/usr/bin/env python3\nprint("init")\n',
+            )
+            zf.writestr(f"{skill_name}/LICENSE.txt", "MIT License")
+        return buf.getvalue()
+
+    @staticmethod
+    def _create_dot_prefix_zip() -> bytes:
+        """Create a ZIP with ./ prefixed paths (as produced by ``zip -rq . ...``).
+
+        Entries:
+            ./SKILL.md
+            ./scripts/init_skill.py
+            ./LICENSE.txt
+        """
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr("./SKILL.md", "# Dot-prefix ZIP Skill")
+            zf.writestr(
+                "./scripts/init_skill.py",
+                '#!/usr/bin/env python3\nprint("init")\n',
+            )
+            zf.writestr("./LICENSE.txt", "MIT License")
+        return buf.getvalue()
+
+    # ------------------------------------------------------------------
+    # Core invariant: everything listable must be readable
+    # ------------------------------------------------------------------
+
+    def _assert_listable_files_are_readable(
+        self, backend, skill_path: str, *, depth: int = 0, max_depth: int = 5
+    ) -> list[str]:
+        """Recursively walk directories via backend and read every file.
+
+        Returns the list of all readable file paths (relative to workspace).
+        Raises AssertionError if any listed item cannot be read.
+        """
+        if depth > max_depth:
+            return []
+
+        items = backend.list_files(skill_path)
+        readable = []
+
+        for item in items:
+            item_path = f"{skill_path}/{item}"
+            try:
+                # Try to read as file first
+                backend.read(item_path)
+                readable.append(item_path)
+            except IsADirectoryError:
+                # It's a directory – recurse
+                readable.extend(
+                    self._assert_listable_files_are_readable(
+                        backend, item_path, depth=depth + 1, max_depth=max_depth
+                    )
+                )
+            except FileNotFoundError as exc:
+                raise AssertionError(
+                    f"File listed but not readable: '{item_path}'"
+                ) from exc
+
+        return readable
+
+    # ------------------------------------------------------------------
+    # Tests
+    # ------------------------------------------------------------------
+
+    def test_flat_zip_list_then_read(self, mock_skill):
+        """Flat ZIP (CLI / vendor format): every listed file must be readable."""
+        from graphton.core.backends.filesystem import FilesystemBackend
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            writer = SkillWriter(local_root=tmpdir)
+            artifacts = {mock_skill.metadata.id: self._create_flat_zip()}
+            skill_paths = writer.write_skills([mock_skill], artifacts=artifacts)
+
+            backend = FilesystemBackend(root_dir=tmpdir)
+            skill_path = skill_paths[mock_skill.metadata.id]
+
+            files = self._assert_listable_files_are_readable(backend, skill_path)
+
+            # Verify expected files are present
+            assert any("SKILL.md" in f for f in files)
+            assert any("scripts/init_skill.py" in f for f in files)
+            assert any("scripts/helper.py" in f for f in files)
+            assert any("references/guide.md" in f for f in files)
+            assert any("LICENSE.txt" in f for f in files)
+
+    def test_dot_prefix_zip_list_then_read(self, mock_skill):
+        """Dot-prefix ZIP (vendor_skill.sh format): list then read consistency."""
+        from graphton.core.backends.filesystem import FilesystemBackend
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            writer = SkillWriter(local_root=tmpdir)
+            artifacts = {mock_skill.metadata.id: self._create_dot_prefix_zip()}
+            skill_paths = writer.write_skills([mock_skill], artifacts=artifacts)
+
+            backend = FilesystemBackend(root_dir=tmpdir)
+            skill_path = skill_paths[mock_skill.metadata.id]
+
+            files = self._assert_listable_files_are_readable(backend, skill_path)
+
+            assert any("SKILL.md" in f for f in files)
+            assert any("scripts/init_skill.py" in f for f in files)
+
+    def test_nested_zip_extracts_with_extra_directory(self, mock_skill):
+        """Nested ZIP (old package_skill.py bug): files land one level deeper.
+
+        This test documents the known pathological behaviour so we can detect
+        if the nesting bug is reintroduced.  With the old format the agent
+        would see ``ls {hash}/`` returning ``['my-skill']`` instead of
+        ``['SKILL.md', 'scripts', ...]``.
+        """
+        from graphton.core.backends.filesystem import FilesystemBackend
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            writer = SkillWriter(local_root=tmpdir)
+            artifacts = {mock_skill.metadata.id: self._create_nested_zip("my-skill")}
+            skill_paths = writer.write_skills([mock_skill], artifacts=artifacts)
+
+            backend = FilesystemBackend(root_dir=tmpdir)
+            skill_path = skill_paths[mock_skill.metadata.id]
+
+            # With the nested ZIP the top-level listing shows the skill-name
+            # directory instead of the actual skill contents.
+            top_level = backend.list_files(skill_path)
+            assert "my-skill" in top_level, (
+                "Nested ZIP should extract skill-name as a subdirectory"
+            )
+            # SKILL.md should NOT be at the top level (it's nested inside)
+            assert "SKILL.md" not in top_level
+
+    def test_flat_zip_scripts_are_executable(self, mock_skill):
+        """Scripts in flat ZIP must be executable after extraction."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            writer = SkillWriter(local_root=tmpdir)
+            artifacts = {mock_skill.metadata.id: self._create_flat_zip()}
+            writer.write_skills([mock_skill], artifacts=artifacts)
+
+            skill_dir = os.path.join(
+                tmpdir,
+                "bin",
+                "skills",
+                mock_skill.status.version_hash,
+            )
+
+            py_path = os.path.join(skill_dir, "scripts", "init_skill.py")
+            assert os.path.isfile(py_path)
+            assert os.stat(py_path).st_mode & stat.S_IXUSR, (
+                "Python scripts must be executable"
+            )
+
+    def test_read_nonexistent_file_gives_diagnostic(self, mock_skill):
+        """Reading a missing file should report the resolved path and siblings."""
+        from graphton.core.backends.filesystem import FilesystemBackend
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            writer = SkillWriter(local_root=tmpdir)
+            artifacts = {mock_skill.metadata.id: self._create_flat_zip()}
+            skill_paths = writer.write_skills([mock_skill], artifacts=artifacts)
+
+            backend = FilesystemBackend(root_dir=tmpdir)
+            skill_path = skill_paths[mock_skill.metadata.id]
+
+            with pytest.raises(FileNotFoundError) as exc_info:
+                backend.read(f"{skill_path}/scripts/nonexistent.py")
+
+            error_msg = str(exc_info.value)
+            # Error should contain the resolved absolute path for debugging
+            assert "resolved to" in error_msg
+            # Error should hint at what the directory actually contains
+            assert "Parent directory" in error_msg
+
+    def test_read_directory_gives_clear_error(self, mock_skill):
+        """Reading a directory path should raise IsADirectoryError."""
+        from graphton.core.backends.filesystem import FilesystemBackend
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            writer = SkillWriter(local_root=tmpdir)
+            artifacts = {mock_skill.metadata.id: self._create_flat_zip()}
+            skill_paths = writer.write_skills([mock_skill], artifacts=artifacts)
+
+            backend = FilesystemBackend(root_dir=tmpdir)
+            skill_path = skill_paths[mock_skill.metadata.id]
+
+            with pytest.raises(IsADirectoryError) as exc_info:
+                backend.read(f"{skill_path}/scripts")
+
+            assert "is a directory" in str(exc_info.value)
+
+    def test_list_file_path_gives_clear_error(self, mock_skill):
+        """Listing a file (not directory) should raise NotADirectoryError."""
+        from graphton.core.backends.filesystem import FilesystemBackend
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            writer = SkillWriter(local_root=tmpdir)
+            artifacts = {mock_skill.metadata.id: self._create_flat_zip()}
+            skill_paths = writer.write_skills([mock_skill], artifacts=artifacts)
+
+            backend = FilesystemBackend(root_dir=tmpdir)
+            skill_path = skill_paths[mock_skill.metadata.id]
+
+            with pytest.raises(NotADirectoryError) as exc_info:
+                backend.list_files(f"{skill_path}/SKILL.md")
+
+            assert "is a file" in str(exc_info.value)

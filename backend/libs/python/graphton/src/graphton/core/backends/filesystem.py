@@ -6,11 +6,14 @@ and shell command execution for local agent runtime (ENV=local mode).
 
 from __future__ import annotations
 
+import logging
 import os
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -197,8 +200,35 @@ class FilesystemBackend:
         
         Raises:
             ValueError: If path escapes sandbox root
+            FileNotFoundError: If file does not exist (with diagnostic details)
+            IsADirectoryError: If path points to a directory
         """
         file_path = self._resolve_sandbox_path(path)
+        
+        if not file_path.exists():
+            # Build a diagnostic message to help debug path mismatches
+            diag = f"File not found: '{path}' (resolved to '{file_path}')"
+            
+            # Check if the parent directory exists and list its contents
+            parent = file_path.parent
+            if parent.exists():
+                siblings = sorted(item.name for item in parent.iterdir())
+                diag += f". Parent directory '{parent.name}/' contains: {siblings}"
+            else:
+                diag += f". Parent directory '{parent}' also does not exist"
+            
+            logger.warning(diag)
+            raise FileNotFoundError(diag)
+        
+        if file_path.is_dir():
+            contents = sorted(item.name for item in file_path.iterdir())
+            msg = (
+                f"Path '{path}' is a directory, not a file. "
+                f"Contents: {contents}. Use list_files() to list directories."
+            )
+            logger.warning(msg)
+            raise IsADirectoryError(msg)
+        
         return file_path.read_text()
     
     def write(self, path: str, content: str) -> None:
@@ -236,8 +266,23 @@ class FilesystemBackend:
         
         Raises:
             ValueError: If path escapes sandbox root
+            NotADirectoryError: If path points to a file instead of a directory
         """
         dir_path = self._resolve_sandbox_path(path)
+        
         if not dir_path.exists():
+            logger.debug(
+                "list_files: path '%s' does not exist (resolved to '%s')",
+                path, dir_path,
+            )
             return []
+        
+        if not dir_path.is_dir():
+            msg = (
+                f"Path '{path}' is a file, not a directory "
+                f"(resolved to '{dir_path}'). Use read() to read files."
+            )
+            logger.warning(msg)
+            raise NotADirectoryError(msg)
+        
         return [item.name for item in dir_path.iterdir()]
