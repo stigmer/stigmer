@@ -15,7 +15,6 @@ package toolrender
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
@@ -43,6 +42,32 @@ type ToolCallInfo struct {
 	Duration time.Duration
 }
 
+// previewStyle controls how (or whether) a result preview line is rendered
+// beneath the main tool call line.
+type previewStyle int
+
+const (
+	// previewNone disables result previews. Used for tools where the result is
+	// either too large or not informative in summary form (shell, write, edit, delete).
+	previewNone previewStyle = iota
+
+	// previewDiscovery joins multi-line results with ", " into a compact summary.
+	// Ideal for discovery tools (ls, glob, grep) where the result IS the value.
+	previewDiscovery
+
+	// previewFirstLine shows the first non-empty line of the result as a brief
+	// content excerpt. Useful for file read tools where a peek at the content
+	// confirms the agent read the right file.
+	previewFirstLine
+
+	// previewFileContent shows a multi-line gutter-bordered preview of file
+	// content with a "N more lines" indicator. Provides richer context than
+	// previewFirstLine — shows up to filePreviewMaxLines lines so users can
+	// distinguish between files with identical first lines (e.g., proto files
+	// that all start with `syntax = "proto3";`).
+	previewFileContent
+)
+
 // toolDisplayInfo defines how to render a specific category of tool.
 type toolDisplayInfo struct {
 	// icon is the emoji prefix for this tool category.
@@ -51,11 +76,14 @@ type toolDisplayInfo struct {
 	label string
 	// primaryField is the most important argument to extract and show.
 	primaryField string
+	// fallbackFields are alternative argument names tried in order when
+	// primaryField is not found in the tool args. This handles variance in
+	// argument naming across different agent frameworks and sandbox tools.
+	fallbackFields []string
 	// dangerous marks destructive tools for warning styling.
 	dangerous bool
-	// showPreview enables a second dimmed line showing a truncated result.
-	// Used for discovery tools (ls, glob, grep) where the result IS the value.
-	showPreview bool
+	// preview controls the result preview style. See previewStyle constants.
+	preview previewStyle
 }
 
 // toolDisplayMap maps known tool names to their display configuration.
@@ -71,17 +99,18 @@ var toolDisplayMap = map[string]toolDisplayInfo{
 	"run_command":     {icon: "🖥 ", label: "Shell", primaryField: "command"},
 	"terminal":        {icon: "🖥 ", label: "Shell", primaryField: "command"},
 
-	// File read operations
-	"read":           {icon: "📖", label: "Read", primaryField: "path"},
-	"read_file":      {icon: "📖", label: "Read", primaryField: "path"},
-	"list_directory": {icon: "📂", label: "List", primaryField: "path", showPreview: true},
+	// File read operations — fallbackFields handle arg name variance across
+	// agent frameworks (deepagents uses "file_path", others may use "file").
+	"read":      {icon: "📖", label: "Read", primaryField: "path", fallbackFields: []string{"file_path", "file"}, preview: previewFileContent},
+	"read_file": {icon: "📖", label: "Read", primaryField: "path", fallbackFields: []string{"file_path", "file"}, preview: previewFileContent},
 
-	// Directory listing (platform tool name)
-	"ls": {icon: "📂", label: "List", primaryField: "path", showPreview: true},
+	// Directory listing
+	"list_directory": {icon: "📂", label: "List", primaryField: "path", preview: previewDiscovery},
+	"ls":             {icon: "📂", label: "List", primaryField: "path", preview: previewDiscovery},
 
-	// File search / pattern matching (platform tool names)
-	"glob": {icon: "🔍", label: "Find", primaryField: "pattern", showPreview: true},
-	"grep": {icon: "🔎", label: "Search", primaryField: "pattern", showPreview: true},
+	// File search / pattern matching
+	"glob": {icon: "🔍", label: "Find", primaryField: "pattern", preview: previewDiscovery},
+	"grep": {icon: "🔎", label: "Search", primaryField: "pattern", preview: previewDiscovery},
 
 	// File write operations
 	"write":          {icon: "📝", label: "Write", primaryField: "path"},
@@ -168,81 +197,36 @@ func RenderResultWithPreview(content string) string {
 	return dimStyle.Render("  ↳ " + preview)
 }
 
-// renderKnown formats a tool call with category-specific icon, label, and primary arg.
+// RenderExpanded returns the tool call header followed by the complete result
+// content with gutter borders. Used by the TUI's expanded state to show all
+// output lines instead of a truncated preview.
 //
-// For discovery tools (showPreview=true) with a non-empty Result, a second
-// indented line is appended showing a truncated result preview. This gives the
-// user visibility into what the tool found without requiring separate result
-// messages.
+// When the result is empty, the output is identical to the header produced by
+// Render (without the preview). For unknown tools, the generic header is used.
 //
-// Example with preview:
+// Examples:
 //
-//	"  📂 List: /workspace (97 chars, 3ms)\n     inputs/, outputs/"
-func renderKnown(tc ToolCallInfo, info toolDisplayInfo) string {
-	primaryVal := extractPrimaryArg(tc.Args, info.primaryField)
+//	"  📖 Read: main.go (1.5 KB, 33 lines)\n     │ package main\n     │ \n     │ import \"fmt\"\n     │ ..."
+//	"  📂 List: /workspace (97 chars)\n     │ bin\n     │ etc\n     │ home"
+func RenderExpanded(tc ToolCallInfo) string {
+	info, known := toolDisplayMap[tc.Name]
 
-	var line string
-	if primaryVal != "" {
-		styled := styleValue(primaryVal, info.dangerous)
-		line = fmt.Sprintf("  %s %s: %s", info.icon, labelStyle.Render(info.label), styled)
+	var header string
+	if known {
+		header = renderKnownHeader(tc, info)
 	} else {
-		line = fmt.Sprintf("  %s %s", info.icon, labelStyle.Render(info.label))
+		header = renderUnknown(tc)
 	}
 
-	suffix := renderSuffix(tc)
-	if suffix != "" {
-		line += " " + dimStyle.Render(suffix)
+	if tc.Result == "" {
+		return header
 	}
 
-	// Append result preview for discovery tools (ls, glob, grep).
-	if info.showPreview && tc.Result != "" {
-		preview := formatResultPreview(tc.Result)
-		if preview != "" {
-			line += "\n" + dimStyle.Render("     "+preview)
-		}
+	fullContent := formatFullResultWithGutter(tc.Result)
+	if fullContent == "" {
+		return header
 	}
 
-	return line
+	return header + "\n" + dimStyle.Render(fullContent)
 }
 
-// renderUnknown formats an unrecognized tool with a generic icon and name.
-func renderUnknown(tc ToolCallInfo) string {
-	firstVal := extractFirstArg(tc.Args)
-
-	var line string
-	if firstVal != "" {
-		line = fmt.Sprintf("  🔧 %s: %s", labelStyle.Render(tc.Name), firstVal)
-	} else {
-		line = fmt.Sprintf("  🔧 %s", labelStyle.Render(tc.Name))
-	}
-
-	suffix := renderSuffix(tc)
-	if suffix != "" {
-		line += " " + dimStyle.Render(suffix)
-	}
-
-	return line
-}
-
-// renderSuffix builds an optional suffix with result size, duration, or error.
-func renderSuffix(tc ToolCallInfo) string {
-	if tc.Error != "" {
-		return fmt.Sprintf("(error: %s)", truncate(tc.Error, 40))
-	}
-
-	var parts []string
-
-	if tc.Result != "" {
-		parts = append(parts, formatSize(len(tc.Result)))
-	}
-
-	if tc.Duration > 0 {
-		parts = append(parts, formatDuration(tc.Duration))
-	}
-
-	if len(parts) == 0 {
-		return ""
-	}
-
-	return "(" + strings.Join(parts, ", ") + ")"
-}

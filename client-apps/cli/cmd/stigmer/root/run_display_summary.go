@@ -65,10 +65,11 @@ func buildAgentSummaryContent(execution *agentexecutionv1.AgentExecution) string
 	var sections []string
 
 	// Error message (failures only)
-	if execution.Status.Phase == agentexecutionv1.ExecutionPhase_EXECUTION_FAILED &&
-		execution.Status.Error != "" {
-		sections = append(sections, fmt.Sprintf("Error: %s", execution.Status.Error))
-		sections = append(sections, "")
+	if execution.Status.Phase == agentexecutionv1.ExecutionPhase_EXECUTION_FAILED {
+		if errorMsg := resolveFailureError(execution); errorMsg != "" {
+			sections = append(sections, fmt.Sprintf("Error: %s", errorMsg))
+			sections = append(sections, "")
+		}
 	}
 
 	// Duration
@@ -256,6 +257,41 @@ func countWorkflowTasks(tasks []*workflowexecutionv1.WorkflowTask) (completed, f
 		}
 	}
 	return
+}
+
+// resolveFailureError returns the error message for a failed agent execution.
+//
+// It checks three sources in priority order:
+//  1. Status.Error — the canonical error field (set by agent-runner or workflow)
+//  2. The last system message — Python error handlers append "❌ Error: ..." messages
+//  3. The first failed tool call's Error field — useful for REJECT-path failures
+//
+// Returns empty string only when no error information is available at all,
+// in which case a generic fallback message is used by the caller.
+func resolveFailureError(execution *agentexecutionv1.AgentExecution) string {
+	// Primary: canonical error field
+	if execution.Status.Error != "" {
+		return execution.Status.Error
+	}
+
+	// Fallback 1: last system message (error handlers append system messages
+	// with error details before setting the phase to FAILED)
+	for i := len(execution.Status.Messages) - 1; i >= 0; i-- {
+		msg := execution.Status.Messages[i]
+		if msg.Type == agentexecutionv1.MessageType_MESSAGE_SYSTEM && msg.Content != "" {
+			return msg.Content
+		}
+	}
+
+	// Fallback 2: first failed tool call's error
+	for _, tc := range execution.Status.ToolCalls {
+		if tc.Status == agentexecutionv1.ToolCallStatus_TOOL_CALL_FAILED && tc.Error != "" {
+			return tc.Error
+		}
+	}
+
+	// Last resort: generic message directing user to logs
+	return "Execution failed (error details unavailable — check execution logs)"
 }
 
 // parseDuration calculates elapsed time between two RFC3339 timestamps.

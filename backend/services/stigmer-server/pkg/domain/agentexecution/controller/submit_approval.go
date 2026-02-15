@@ -88,7 +88,7 @@ func (c *AgentExecutionController) buildSubmitApprovalPipeline() *pipeline.Pipel
 		AddStep(steps.NewValidateProtoStep[*agentexecutionv1.SubmitApprovalInput]()). // 1. Validate input
 		AddStep(newLoadExistingForApprovalStep(c.store)).                             // 2. Load execution
 		AddStep(newValidateApprovalStep()).                                           // 3. Validate approval
-		AddStep(newSignalWorkflowStep(c.workflowCreator)).                            // 4. Signal workflow
+		AddStep(newSignalWorkflowStep(c.workflowCreator, c.store)).                   // 4. Signal workflow
 		AddStep(newBuildApprovalResponseStep()).                                      // 5. Build response
 		Build()
 }
@@ -248,12 +248,18 @@ func (s *validateApprovalStep) Execute(ctx *pipeline.RequestContext[*agentexecut
 }
 
 // signalWorkflowStep sends a Temporal signal to the running workflow.
+//
+// If the workflow is no longer running (WorkflowNotFound), this step reconciles
+// the execution status in the database to FAILED. This prevents executions from
+// being permanently stuck in WAITING_FOR_APPROVAL when the backing workflow has
+// terminated unexpectedly (e.g., infrastructure failure, manual termination).
 type signalWorkflowStep struct {
 	workflowCreator *agentexecutiontemporal.InvokeAgentExecutionWorkflowCreator
+	store           store.Store
 }
 
-func newSignalWorkflowStep(creator *agentexecutiontemporal.InvokeAgentExecutionWorkflowCreator) *signalWorkflowStep {
-	return &signalWorkflowStep{workflowCreator: creator}
+func newSignalWorkflowStep(creator *agentexecutiontemporal.InvokeAgentExecutionWorkflowCreator, s store.Store) *signalWorkflowStep {
+	return &signalWorkflowStep{workflowCreator: creator, store: s}
 }
 
 func (s *signalWorkflowStep) Name() string {
@@ -286,15 +292,18 @@ func (s *signalWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecutio
 	err := s.workflowCreator.SignalApproval(executionID, input)
 	if err != nil {
 		if errors.Is(err, agentexecutiontemporal.ErrWorkflowNotFound) {
-			// Workflow not running - this could happen if:
-			// 1. Execution already completed
-			// 2. Workflow crashed and hasn't been restarted
-			// 3. Temporal is not available
+			// Workflow not running - reconcile the stale execution status.
+			// The DB still shows WAITING_FOR_APPROVAL but the workflow that would
+			// process the approval no longer exists. Update to FAILED so the
+			// execution is not permanently stuck.
 			log.Warn().
 				Str("execution_id", executionID).
-				Msg("Workflow not found - execution may have already completed")
+				Msg("Workflow not found - reconciling stale execution status to FAILED")
+
+			s.reconcileStaleExecution(ctx.Context(), execution)
+
 			return grpclib.FailedPreconditionError(
-				"workflow not running for execution %s - execution may have already completed",
+				"workflow not running for execution %s - the backing workflow has terminated unexpectedly and the execution has been marked as failed",
 				executionID,
 			)
 		}
@@ -311,6 +320,52 @@ func (s *signalWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecutio
 		Msg("Successfully signaled workflow with approval decision")
 
 	return nil
+}
+
+// reconcileStaleExecution updates an execution that is stuck in WAITING_FOR_APPROVAL
+// to FAILED because the backing Temporal workflow is no longer running.
+//
+// This is a best-effort reconciliation: if the DB update fails, we log the error
+// but still return the WorkflowNotFound error to the caller. The execution will
+// remain stale until another reconciliation attempt or manual intervention.
+func (s *signalWorkflowStep) reconcileStaleExecution(ctx context.Context, execution *agentexecutionv1.AgentExecution) {
+	executionID := execution.GetMetadata().GetId()
+
+	// Build the reconciled execution with FAILED status
+	reconciledExecution := &agentexecutionv1.AgentExecution{
+		ApiVersion: execution.GetApiVersion(),
+		Kind:       execution.GetKind(),
+		Metadata:   execution.GetMetadata(),
+		Spec:       execution.GetSpec(),
+		Status: &agentexecutionv1.AgentExecutionStatus{
+			Phase:     agentexecutionv1.ExecutionPhase_EXECUTION_FAILED,
+			Error:     "Workflow backing this execution is no longer running. Execution has been marked as failed.",
+			Messages:  execution.GetStatus().GetMessages(),
+			ToolCalls: execution.GetStatus().GetToolCalls(),
+			Audit:     execution.GetStatus().GetAudit(),
+			// PendingApproval intentionally omitted (cleared)
+		},
+	}
+
+	// Append a system message explaining what happened
+	reconciledExecution.Status.Messages = append(reconciledExecution.Status.Messages, &agentexecutionv1.AgentMessage{
+		Type:    agentexecutionv1.MessageType_MESSAGE_SYSTEM,
+		Content: "The workflow backing this execution is no longer running. This can happen due to infrastructure issues or manual termination. The execution has been marked as failed.",
+	})
+
+	if err := s.store.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent_execution, executionID, reconciledExecution); err != nil {
+		log.Error().
+			Err(err).
+			Str("execution_id", executionID).
+			Msg("Failed to reconcile stale execution status - execution will remain in WAITING_FOR_APPROVAL until next attempt")
+		return
+	}
+
+	log.Info().
+		Str("execution_id", executionID).
+		Str("previous_phase", "EXECUTION_WAITING_FOR_APPROVAL").
+		Str("new_phase", "EXECUTION_FAILED").
+		Msg("RECONCILIATION: Updated stale execution status to FAILED")
 }
 
 // buildApprovalResponseStep builds the response with audit logging.

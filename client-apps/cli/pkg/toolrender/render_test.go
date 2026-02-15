@@ -228,17 +228,25 @@ func TestRender_LsWithEmptyResult_NoPreview(t *testing.T) {
 	assertNotContains(t, result, "\n")
 }
 
-func TestRender_ReadWithResult_NoPreview(t *testing.T) {
-	// read is NOT a showPreview tool — should NOT show result preview.
+func TestRender_ReadWithResult_ShowsFileContentPreview(t *testing.T) {
+	// read tools show a multi-line gutter-bordered content preview (previewFileContent).
 	result := Render(ToolCallInfo{
 		Name:   "read",
 		Args:   map[string]interface{}{"path": "main.go"},
 		Result: "package main\n\nfunc main() {}",
 	})
 
-	// Should show size but NOT file contents as preview
+	// Should show size and line count in suffix.
 	assertContains(t, result, "chars")
-	assertNotContains(t, result, "package main")
+	assertContains(t, result, "3 lines")
+
+	// All 3 lines fit within the preview window — all should be shown with gutter.
+	assertContains(t, result, "│")
+	assertContains(t, result, "package main")
+	assertContains(t, result, "func main")
+
+	// Exactly 3 lines — no "more lines" indicator.
+	assertNotContains(t, result, "more lines")
 }
 
 func TestRender_PreviewTruncatesLongResults(t *testing.T) {
@@ -346,6 +354,8 @@ func TestRender_WithResult(t *testing.T) {
 	})
 
 	assertContains(t, result, "500 chars")
+	// read_file includes line count in suffix.
+	assertContains(t, result, "1 line")
 }
 
 func TestRender_WithLargeResult(t *testing.T) {
@@ -356,6 +366,7 @@ func TestRender_WithLargeResult(t *testing.T) {
 	})
 
 	assertContains(t, result, "4.2 KB")
+	assertContains(t, result, "1 line")
 }
 
 func TestRender_WithDuration(t *testing.T) {
@@ -619,6 +630,558 @@ func TestFormatResultPreview_TruncatesLong(t *testing.T) {
 		t.Errorf("expected max %d chars, got %d", previewMaxWidth, len(got))
 	}
 	assertContains(t, got, "...")
+}
+
+// =============================================================================
+// Render Tests — Fallback Field Resolution
+// =============================================================================
+
+func TestRender_ReadFile_FallbackToFilePath(t *testing.T) {
+	// deepagents may send "file_path" instead of "path".
+	result := Render(ToolCallInfo{
+		Name: "read_file",
+		Args: map[string]interface{}{"file_path": "/workspace/main.py"},
+	})
+
+	assertContains(t, result, "📖")
+	assertContains(t, result, "Read")
+	assertContains(t, result, "/workspace/main.py")
+}
+
+func TestRender_Read_FallbackToFile(t *testing.T) {
+	// Some frameworks may send "file" as the arg name.
+	result := Render(ToolCallInfo{
+		Name: "read",
+		Args: map[string]interface{}{"file": "config.yaml"},
+	})
+
+	assertContains(t, result, "Read")
+	assertContains(t, result, "config.yaml")
+}
+
+func TestRender_Read_PrimaryFieldTakesPrecedence(t *testing.T) {
+	// When both "path" and "file_path" are present, "path" wins.
+	result := Render(ToolCallInfo{
+		Name: "read",
+		Args: map[string]interface{}{
+			"path":      "correct.txt",
+			"file_path": "wrong.txt",
+		},
+	})
+
+	assertContains(t, result, "correct.txt")
+	assertNotContains(t, result, "wrong.txt")
+}
+
+func TestRender_Read_NoMatchingArgShowsLabelOnly(t *testing.T) {
+	// When none of the primary or fallback fields match, just show the label.
+	result := Render(ToolCallInfo{
+		Name: "read",
+		Args: map[string]interface{}{"url": "https://example.com"},
+	})
+
+	assertContains(t, result, "Read")
+	assertNotContains(t, result, "https://example.com")
+}
+
+// =============================================================================
+// Render Tests — Read Content Preview (previewFileContent)
+// =============================================================================
+
+func TestRender_ReadWithMultiLineResult_ShowsThreeLinePreview(t *testing.T) {
+	result := Render(ToolCallInfo{
+		Name:   "read_file",
+		Args:   map[string]interface{}{"path": "proto/api.proto"},
+		Result: "syntax = \"proto3\";\n\npackage ai.stigmer;\n\nmessage Agent {}",
+	})
+
+	assertContains(t, result, "proto/api.proto")
+
+	// First 3 lines shown with gutter: "syntax...", "", "package...".
+	assertContains(t, result, "│")
+	assertContains(t, result, "syntax = \"proto3\";")
+	assertContains(t, result, "package ai.stigmer;")
+
+	// Line 4+ (message Agent {}) should NOT be in the preview.
+	assertNotContains(t, result, "message Agent")
+
+	// 5 total lines, 3 shown → "2 more lines".
+	assertContains(t, result, "2 more lines")
+
+	// Suffix should include line count.
+	assertContains(t, result, "5 lines")
+}
+
+func TestRender_ReadWithEmptyResult_NoPreview(t *testing.T) {
+	result := Render(ToolCallInfo{
+		Name:   "read",
+		Args:   map[string]interface{}{"path": "empty.txt"},
+		Result: "",
+	})
+
+	// No preview line — no second line at all.
+	assertNotContains(t, result, "\n")
+}
+
+func TestRender_ReadWithWhitespaceOnlyResult_NoPreview(t *testing.T) {
+	result := Render(ToolCallInfo{
+		Name:   "read",
+		Args:   map[string]interface{}{"path": "blank.txt"},
+		Result: "  \n\n  \n",
+	})
+
+	// Result has content (whitespace), so suffix shows size and line count,
+	// but preview should be empty since no non-empty lines.
+	assertContains(t, result, "chars")
+	assertContains(t, result, "4 lines")
+}
+
+func TestRender_ReadPreviewTruncatesLongLine(t *testing.T) {
+	longLine := strings.Repeat("x", 200)
+	result := Render(ToolCallInfo{
+		Name:   "read",
+		Args:   map[string]interface{}{"path": "wide.txt"},
+		Result: longLine,
+	})
+
+	assertContains(t, result, "│")
+	assertContains(t, result, "...")
+}
+
+func TestRender_ReadWithLeadingBlankLines_FallsBackToFirstContent(t *testing.T) {
+	// First 3 lines are all blank → trimmed → fallback to first non-empty line.
+	result := Render(ToolCallInfo{
+		Name:   "read",
+		Args:   map[string]interface{}{"path": "padded.py"},
+		Result: "\n\n\nimport os\nimport sys",
+	})
+
+	assertContains(t, result, "│")
+	assertContains(t, result, "import os")
+	// Only the fallback line is shown (not "import sys").
+	assertNotContains(t, result, "import sys")
+	// 5 total lines, 1 shown → "4 more lines".
+	assertContains(t, result, "4 more lines")
+}
+
+// =============================================================================
+// Render Tests — Repr Stripping in Previews (Defense-in-Depth)
+// =============================================================================
+
+func TestRender_LsWithReprResult_StripsMetadata(t *testing.T) {
+	// Simulates a raw ToolMessage repr leaking through from the backend.
+	result := Render(ToolCallInfo{
+		Name:   "ls",
+		Args:   map[string]interface{}{"path": "/bin/skills"},
+		Result: "content=\"Directory '/bin/skills' is empty\" name='ls' tool_call_id='toolu_01TdxWQ1W'",
+	})
+
+	assertContains(t, result, "Directory '/bin/skills' is empty")
+	assertNotContains(t, result, "name='ls'")
+	assertNotContains(t, result, "tool_call_id=")
+}
+
+func TestRender_GlobWithReprResult_StripsMetadata(t *testing.T) {
+	result := Render(ToolCallInfo{
+		Name:   "glob",
+		Args:   map[string]interface{}{"pattern": "**/*.py"},
+		Result: "content=\"No files matching pattern '**/*.py'\" name='glob' tool_call_id='toolu_abc123'",
+	})
+
+	assertContains(t, result, "No files matching pattern '**/*.py'")
+	assertNotContains(t, result, "name='glob'")
+}
+
+func TestRender_ReadWithReprResult_StripsMetadata(t *testing.T) {
+	result := Render(ToolCallInfo{
+		Name:   "read",
+		Args:   map[string]interface{}{"path": "main.py"},
+		Result: "content='import os\nimport sys' name='read' tool_call_id='toolu_xyz'",
+	})
+
+	// Repr stripping extracts "import os\nimport sys" → both lines shown with gutter.
+	assertContains(t, result, "│")
+	assertContains(t, result, "import os")
+	assertContains(t, result, "import sys")
+	assertNotContains(t, result, "name='read'")
+}
+
+func TestRender_LsWithReprSingleQuotes_StripsMetadata(t *testing.T) {
+	result := Render(ToolCallInfo{
+		Name:   "ls",
+		Args:   map[string]interface{}{"path": "/workspace"},
+		Result: "content='tmp\nmnt\nproc\nsbin' name='ls' tool_call_id='toolu_01X'",
+	})
+
+	assertContains(t, result, "tmp, mnt, proc, sbin")
+	assertNotContains(t, result, "content=")
+}
+
+// =============================================================================
+// extractPrimaryArgWithFallbacks Tests
+// =============================================================================
+
+func TestExtractPrimaryArgWithFallbacks_PrimaryFound(t *testing.T) {
+	args := map[string]interface{}{"path": "/workspace/main.go"}
+	got := extractPrimaryArgWithFallbacks(args, "path", []string{"file_path", "file"})
+	if got != "/workspace/main.go" {
+		t.Errorf("expected %q, got %q", "/workspace/main.go", got)
+	}
+}
+
+func TestExtractPrimaryArgWithFallbacks_FirstFallbackFound(t *testing.T) {
+	args := map[string]interface{}{"file_path": "/tmp/data.csv"}
+	got := extractPrimaryArgWithFallbacks(args, "path", []string{"file_path", "file"})
+	if got != "/tmp/data.csv" {
+		t.Errorf("expected %q, got %q", "/tmp/data.csv", got)
+	}
+}
+
+func TestExtractPrimaryArgWithFallbacks_SecondFallbackFound(t *testing.T) {
+	args := map[string]interface{}{"file": "README.md"}
+	got := extractPrimaryArgWithFallbacks(args, "path", []string{"file_path", "file"})
+	if got != "README.md" {
+		t.Errorf("expected %q, got %q", "README.md", got)
+	}
+}
+
+func TestExtractPrimaryArgWithFallbacks_NoneFound(t *testing.T) {
+	args := map[string]interface{}{"url": "https://example.com"}
+	got := extractPrimaryArgWithFallbacks(args, "path", []string{"file_path", "file"})
+	if got != "" {
+		t.Errorf("expected empty string, got %q", got)
+	}
+}
+
+func TestExtractPrimaryArgWithFallbacks_NilArgs(t *testing.T) {
+	got := extractPrimaryArgWithFallbacks(nil, "path", []string{"file_path"})
+	if got != "" {
+		t.Errorf("expected empty string for nil args, got %q", got)
+	}
+}
+
+func TestExtractPrimaryArgWithFallbacks_NilFallbacks(t *testing.T) {
+	args := map[string]interface{}{"other": "value"}
+	got := extractPrimaryArgWithFallbacks(args, "path", nil)
+	if got != "" {
+		t.Errorf("expected empty string when primary not found and no fallbacks, got %q", got)
+	}
+}
+
+func TestExtractPrimaryArgWithFallbacks_EmptyFallbacks(t *testing.T) {
+	args := map[string]interface{}{"path": "found.txt"}
+	got := extractPrimaryArgWithFallbacks(args, "path", []string{})
+	if got != "found.txt" {
+		t.Errorf("expected %q, got %q", "found.txt", got)
+	}
+}
+
+// =============================================================================
+// stripToolMessageRepr Tests
+// =============================================================================
+
+func TestStripToolMessageRepr_DoubleQuoted(t *testing.T) {
+	input := `content="Directory '/bin/skills' is empty" name='ls' tool_call_id='toolu_01TdxWQ1W'`
+	got := stripToolMessageRepr(input)
+	if got != "Directory '/bin/skills' is empty" {
+		t.Errorf("expected clean content, got %q", got)
+	}
+}
+
+func TestStripToolMessageRepr_SingleQuoted(t *testing.T) {
+	input := "content='bin/skills/a34ed6ddb7e2b131' name='glob' tool_call_id='toolu_abc'"
+	got := stripToolMessageRepr(input)
+	if got != "bin/skills/a34ed6ddb7e2b131" {
+		t.Errorf("expected clean content, got %q", got)
+	}
+}
+
+func TestStripToolMessageRepr_NoMatch_NotContentPrefix(t *testing.T) {
+	input := "just a normal string"
+	got := stripToolMessageRepr(input)
+	if got != input {
+		t.Errorf("expected passthrough, got %q", got)
+	}
+}
+
+func TestStripToolMessageRepr_NoMatch_ContentPrefixButNoNameMarker(t *testing.T) {
+	// Starts with "content=" but has no " name=" marker — could be legitimate content.
+	input := "content=something without metadata"
+	got := stripToolMessageRepr(input)
+	if got != input {
+		t.Errorf("expected passthrough, got %q", got)
+	}
+}
+
+func TestStripToolMessageRepr_Empty(t *testing.T) {
+	got := stripToolMessageRepr("")
+	if got != "" {
+		t.Errorf("expected empty string, got %q", got)
+	}
+}
+
+func TestStripToolMessageRepr_MultilineContent(t *testing.T) {
+	input := "content='line1\nline2\nline3' name='read' tool_call_id='toolu_xyz'"
+	got := stripToolMessageRepr(input)
+	if got != "line1\nline2\nline3" {
+		t.Errorf("expected multiline content, got %q", got)
+	}
+}
+
+func TestStripToolMessageRepr_DoubleQuotedNameMarker(t *testing.T) {
+	input := `content="hello world" name="tool" tool_call_id="id123"`
+	got := stripToolMessageRepr(input)
+	if got != "hello world" {
+		t.Errorf("expected clean content, got %q", got)
+	}
+}
+
+// =============================================================================
+// unquote Tests
+// =============================================================================
+
+func TestUnquote_SingleQuotes(t *testing.T) {
+	if got := unquote("'hello'"); got != "hello" {
+		t.Errorf("expected %q, got %q", "hello", got)
+	}
+}
+
+func TestUnquote_DoubleQuotes(t *testing.T) {
+	if got := unquote(`"hello"`); got != "hello" {
+		t.Errorf("expected %q, got %q", "hello", got)
+	}
+}
+
+func TestUnquote_MismatchedQuotes(t *testing.T) {
+	if got := unquote(`"hello'`); got != `"hello'` {
+		t.Errorf("expected passthrough for mismatched quotes, got %q", got)
+	}
+}
+
+func TestUnquote_NoQuotes(t *testing.T) {
+	if got := unquote("hello"); got != "hello" {
+		t.Errorf("expected passthrough, got %q", got)
+	}
+}
+
+func TestUnquote_Empty(t *testing.T) {
+	if got := unquote(""); got != "" {
+		t.Errorf("expected empty, got %q", got)
+	}
+}
+
+func TestUnquote_SingleChar(t *testing.T) {
+	if got := unquote("x"); got != "x" {
+		t.Errorf("expected passthrough for single char, got %q", got)
+	}
+}
+
+func TestUnquote_EmptyQuoted(t *testing.T) {
+	if got := unquote("''"); got != "" {
+		t.Errorf("expected empty string from empty quotes, got %q", got)
+	}
+}
+
+// =============================================================================
+// formatFirstLinePreview Tests
+// =============================================================================
+
+func TestFormatFirstLinePreview_SingleLine(t *testing.T) {
+	got := formatFirstLinePreview("package main")
+	if got != "package main" {
+		t.Errorf("expected %q, got %q", "package main", got)
+	}
+}
+
+func TestFormatFirstLinePreview_MultiLine(t *testing.T) {
+	got := formatFirstLinePreview("syntax = \"proto3\";\n\npackage ai.stigmer;")
+	if got != "syntax = \"proto3\";" {
+		t.Errorf("expected first line only, got %q", got)
+	}
+}
+
+func TestFormatFirstLinePreview_Empty(t *testing.T) {
+	got := formatFirstLinePreview("")
+	if got != "" {
+		t.Errorf("expected empty, got %q", got)
+	}
+}
+
+func TestFormatFirstLinePreview_WhitespaceOnly(t *testing.T) {
+	got := formatFirstLinePreview("   \n\n  ")
+	if got != "" {
+		t.Errorf("expected empty for whitespace-only, got %q", got)
+	}
+}
+
+func TestFormatFirstLinePreview_LeadingBlankLines(t *testing.T) {
+	got := formatFirstLinePreview("\n\n\nimport os")
+	if got != "import os" {
+		t.Errorf("expected %q, got %q", "import os", got)
+	}
+}
+
+func TestFormatFirstLinePreview_TruncatesLongLine(t *testing.T) {
+	long := strings.Repeat("a", 200)
+	got := formatFirstLinePreview(long)
+	if len(got) > previewMaxWidth {
+		t.Errorf("expected max %d chars, got %d", previewMaxWidth, len(got))
+	}
+	assertContains(t, got, "...")
+}
+
+func TestFormatFirstLinePreview_ReprContaminated(t *testing.T) {
+	// Defense-in-depth: repr should be stripped before extracting first line.
+	input := "content='import os\nimport sys' name='read' tool_call_id='toolu_xyz'"
+	got := formatFirstLinePreview(input)
+	if got != "import os" {
+		t.Errorf("expected %q after repr stripping, got %q", "import os", got)
+	}
+}
+
+// =============================================================================
+// firstNonEmptyLine Tests
+// =============================================================================
+
+func TestFirstNonEmptyLine_Normal(t *testing.T) {
+	got := firstNonEmptyLine("first\nsecond\nthird")
+	if got != "first" {
+		t.Errorf("expected %q, got %q", "first", got)
+	}
+}
+
+func TestFirstNonEmptyLine_LeadingBlanks(t *testing.T) {
+	got := firstNonEmptyLine("\n  \n\nactual content")
+	if got != "actual content" {
+		t.Errorf("expected %q, got %q", "actual content", got)
+	}
+}
+
+func TestFirstNonEmptyLine_AllEmpty(t *testing.T) {
+	got := firstNonEmptyLine("\n  \n\n  \n")
+	if got != "" {
+		t.Errorf("expected empty, got %q", got)
+	}
+}
+
+func TestFirstNonEmptyLine_SingleLine(t *testing.T) {
+	got := firstNonEmptyLine("only line")
+	if got != "only line" {
+		t.Errorf("expected %q, got %q", "only line", got)
+	}
+}
+
+func TestFirstNonEmptyLine_Empty(t *testing.T) {
+	got := firstNonEmptyLine("")
+	if got != "" {
+		t.Errorf("expected empty, got %q", got)
+	}
+}
+
+// =============================================================================
+// RenderExpanded Tests
+// =============================================================================
+
+func TestRenderExpanded_KnownTool_WithResult(t *testing.T) {
+	result := RenderExpanded(ToolCallInfo{
+		Name:   "read_file",
+		Args:   map[string]interface{}{"path": "main.go"},
+		Result: "package main\n\nimport \"fmt\"\n\nfunc main() {\n\tfmt.Println(\"hello\")\n}",
+	})
+
+	// Header should be present.
+	assertContains(t, result, "📖")
+	assertContains(t, result, "Read")
+	assertContains(t, result, "main.go")
+
+	// Full content should be shown with gutter.
+	assertContains(t, result, "│ package main")
+	assertContains(t, result, "│ import \"fmt\"")
+	assertContains(t, result, "│ func main() {")
+
+	// Should NOT have the "more lines" indicator (that's the preview).
+	assertNotContains(t, result, "more lines")
+}
+
+func TestRenderExpanded_KnownTool_EmptyResult(t *testing.T) {
+	result := RenderExpanded(ToolCallInfo{
+		Name: "read_file",
+		Args: map[string]interface{}{"path": "empty.txt"},
+	})
+
+	// Header should be present.
+	assertContains(t, result, "📖")
+	assertContains(t, result, "Read")
+	assertContains(t, result, "empty.txt")
+
+	// No gutter content since result is empty.
+	assertNotContains(t, result, "│")
+}
+
+func TestRenderExpanded_DiscoveryTool_ShowsAllEntries(t *testing.T) {
+	result := RenderExpanded(ToolCallInfo{
+		Name:   "list_directory",
+		Args:   map[string]interface{}{"path": "/workspace"},
+		Result: "bin\netc\nhome\nopt\ntmp\nusr\nvar",
+	})
+
+	// Header present.
+	assertContains(t, result, "📂")
+	assertContains(t, result, "List")
+
+	// All entries shown with gutter (not comma-joined like the preview).
+	assertContains(t, result, "│ bin")
+	assertContains(t, result, "│ etc")
+	assertContains(t, result, "│ var")
+}
+
+func TestRenderExpanded_ShellTool_ShowsFullOutput(t *testing.T) {
+	result := RenderExpanded(ToolCallInfo{
+		Name:   "shell",
+		Args:   map[string]interface{}{"command": "ls -la"},
+		Result: "total 8\ndrwxr-xr-x  5 user staff 160 Feb 14 22:00 .\ndrwxr-xr-x 10 user staff 320 Feb 14 22:00 ..",
+	})
+
+	assertContains(t, result, "🖥 ")
+	assertContains(t, result, "Shell")
+	assertContains(t, result, "│ total 8")
+	assertContains(t, result, "│ drwxr-xr-x  5 user staff")
+}
+
+func TestRenderExpanded_UnknownTool_WithResult(t *testing.T) {
+	result := RenderExpanded(ToolCallInfo{
+		Name:   "custom_tool",
+		Args:   map[string]interface{}{"input": "test"},
+		Result: "line one\nline two",
+	})
+
+	assertContains(t, result, "🔧")
+	assertContains(t, result, "custom_tool")
+	assertContains(t, result, "│ line one")
+	assertContains(t, result, "│ line two")
+}
+
+func TestRenderExpanded_UnknownTool_EmptyResult(t *testing.T) {
+	result := RenderExpanded(ToolCallInfo{
+		Name: "custom_tool",
+		Args: map[string]interface{}{"input": "test"},
+	})
+
+	assertContains(t, result, "🔧")
+	assertContains(t, result, "custom_tool")
+	assertNotContains(t, result, "│")
+}
+
+func TestRenderExpanded_IncludesMetadataSuffix(t *testing.T) {
+	result := RenderExpanded(ToolCallInfo{
+		Name:     "read_file",
+		Args:     map[string]interface{}{"path": "main.go"},
+		Result:   "package main",
+		Duration: 5 * time.Millisecond,
+	})
+
+	// Should include size and duration in the header.
+	assertContains(t, result, "5ms")
 }
 
 // =============================================================================

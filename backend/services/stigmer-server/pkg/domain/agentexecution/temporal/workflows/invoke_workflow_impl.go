@@ -218,6 +218,24 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 		"phase", finalStatus.GetPhase().String(),
 		"approval_cycles", approvalCycle)
 
+	// Defense-in-depth: If the Python activity returned FAILED status, persist it
+	// as a fallback. The primary persistence path is the Python gRPC update_status
+	// call, but if that call failed (transient network issue, server down, etc.),
+	// the error would be silently lost because the activity returned successfully
+	// from Temporal's perspective. This ensures the failed state — including the
+	// error message — is always persisted and broadcast to subscribers.
+	if finalStatus.GetPhase() == agentexecutionv1.ExecutionPhase_EXECUTION_FAILED {
+		logger.Warn("Activity returned EXECUTION_FAILED — persisting as fallback",
+			"execution_id", executionID,
+			"error", finalStatus.GetError())
+
+		if err := w.persistFinalStatus(ctx, executionID, finalStatus); err != nil {
+			logger.Error("Failed to persist fallback FAILED status",
+				"execution_id", executionID, "error", err.Error())
+			// Not fatal: the Python gRPC path may have already persisted it.
+		}
+	}
+
 	return nil
 }
 
@@ -418,6 +436,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) updateStatusOnFailure(ctx workflow.Co
 	// Create failed status with error details
 	failedStatus := &agentexecutionv1.AgentExecutionStatus{
 		Phase: agentexecutionv1.ExecutionPhase_EXECUTION_FAILED,
+		Error: originalErr.Error(),
 		Messages: []*agentexecutionv1.AgentMessage{
 			{
 				Type:    agentexecutionv1.MessageType_MESSAGE_SYSTEM,
@@ -448,6 +467,37 @@ func (w *InvokeAgentExecutionWorkflowImpl) updateStatusOnFailure(ctx workflow.Co
 	}
 
 	logger.Info("✅ Updated execution status to FAILED", "execution_id", executionID)
+	return nil
+}
+
+// persistFinalStatus persists a status returned by the Python activity as a fallback.
+//
+// This is a defense-in-depth mechanism for cases where the Python gRPC update_status
+// call failed but the activity itself completed successfully (returning the failed
+// status as a return value). The UpdateExecutionStatus activity merges the status
+// into the existing record, so calling this when Python already persisted is safe
+// (the merge is idempotent for identical data).
+func (w *InvokeAgentExecutionWorkflowImpl) persistFinalStatus(ctx workflow.Context, executionID string, status *agentexecutionv1.AgentExecutionStatus) error {
+	logger := workflow.GetLogger(ctx)
+
+	localCtx := workflow.WithLocalActivityOptions(ctx, workflow.LocalActivityOptions{
+		ScheduleToCloseTimeout: 30 * time.Second,
+		RetryPolicy: &temporal.RetryPolicy{
+			MaximumAttempts: 3,
+			InitialInterval: 2 * time.Second,
+		},
+	})
+
+	err := workflow.ExecuteLocalActivity(localCtx, activities.UpdateExecutionStatusActivityName, executionID, status).Get(localCtx, nil)
+	if err != nil {
+		logger.Error("Failed to persist final status via fallback",
+			"execution_id", executionID, "error", err.Error())
+		return err
+	}
+
+	logger.Info("✅ Persisted final status via fallback",
+		"execution_id", executionID,
+		"phase", status.GetPhase().String())
 	return nil
 }
 

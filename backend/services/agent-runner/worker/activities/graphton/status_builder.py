@@ -692,9 +692,23 @@ class StatusBuilder:
         return hashlib.sha256(fingerprint_data.encode()).hexdigest()
     
     def _extract_tool_result_content(self, result: Any) -> str:
-        """Extract content from tool result."""
+        """Extract displayable content string from a tool result.
+
+        Handles the three result shapes that flow through LangGraph astream_events:
+        - str: Direct string results (most common for simple tools)
+        - LangGraph message objects (ToolMessage, AIMessage): Extract .content
+        - dict: Extract from 'output'/'content' keys, or JSON-serialize
+        """
         if isinstance(result, str):
             return result
+        # Handle LangGraph message objects (ToolMessage, AIMessage, etc.)
+        # Uses duck typing on .content to stay decoupled from langchain_core.
+        if hasattr(result, "content"):
+            content = result.content
+            if isinstance(content, str):
+                return content
+            if isinstance(content, list):
+                return self._extract_string_content(content)
         if isinstance(result, dict):
             if "output" in result:
                 return result.get("output", "")
@@ -982,6 +996,7 @@ class StatusBuilder:
             self._pending_tool_approval = None
             self.current_status.pending_approval.Clear()
             self.current_status.phase = ExecutionPhase.EXECUTION_FAILED
+            self.current_status.error = f"Tool '{tool_call.name}' execution rejected by {approved_by}"
             
             self.logger.info(
                 f"[APPROVAL] execution={self.execution_id} "
