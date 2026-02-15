@@ -308,6 +308,8 @@ class SkillWriter:
         Following ADR 001: Skill Injection Strategy
         - Injects full SKILL.md content into the prompt
         - Includes LOCATION header for each skill (path to executable files)
+        - Provides clear access instructions so the agent uses paths directly
+          instead of exploring the filesystem
         
         Args:
             skills: List of Skill proto messages
@@ -319,18 +321,55 @@ class SkillWriter:
         if not skills:
             return ""
         
+        # -----------------------------------------------------------------
+        # Preamble: teach the agent how to access skills
+        # -----------------------------------------------------------------
         prompt = "\n\n## Available Skills\n\n"
-        prompt += "The following skills provide specialized capabilities. "
-        prompt += "Each skill includes instructions and executable tools.\n"
+        prompt += (
+            "Skills are pre-installed in your workspace. "
+            "Each skill section below lists its LOCATION (directory path). "
+            "Use that path directly to read files, run scripts, or reference "
+            "resources. Do NOT explore the filesystem to discover skill files; "
+            "the paths below are authoritative.\n"
+        )
         
+        # -----------------------------------------------------------------
+        # Quick-reference table (concise, at the top for scanability)
+        # -----------------------------------------------------------------
+        if len(skills) == 1:
+            skill = skills[0]
+            skill_dir = skill_paths.get(
+                skill.metadata.id,
+                f"/bin/skills/{skill.status.version_hash}",
+            )
+            prompt += (
+                f"\n**Skill directory**: `{skill_dir}/`\n"
+                f"  - Read a file:  `read {skill_dir}/SKILL.md`\n"
+                f"  - Run a script: `execute python3 {skill_dir}/scripts/<name>.py`\n"
+                f"  - List contents: `ls {skill_dir}/`\n"
+            )
+        else:
+            prompt += "\n| Skill | Directory |\n|---|---|\n"
+            for skill in skills:
+                skill_dir = skill_paths.get(
+                    skill.metadata.id,
+                    f"/bin/skills/{skill.status.version_hash}",
+                )
+                prompt += f"| {skill.metadata.name} | `{skill_dir}/` |\n"
+            prompt += "\n"
+        
+        # -----------------------------------------------------------------
+        # Per-skill sections: access block + full SKILL.md body
+        # -----------------------------------------------------------------
         for skill in skills:
             skill_id = skill.metadata.id
             skill_name = skill.metadata.name
-            skill_dir = skill_paths.get(skill_id, f"/bin/skills/{skill.status.version_hash}")
+            skill_dir = skill_paths.get(
+                skill_id, f"/bin/skills/{skill.status.version_hash}"
+            )
             
-            # ADR format: LOCATION header + full SKILL.md content
             prompt += f"\n### SKILL: {skill_name}\n"
-            prompt += f"LOCATION: {skill_dir}/\n\n"
+            prompt += f"LOCATION: `{skill_dir}/`\n\n"
             prompt += skill.spec.skill_md
             prompt += "\n"
         

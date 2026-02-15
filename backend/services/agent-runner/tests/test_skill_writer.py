@@ -235,8 +235,15 @@ class TestSkillWriterGeneratePromptSection:
         # Assert - contains required sections
         assert "## Available Skills" in result
         assert f"### SKILL: {mock_skill.metadata.name}" in result
-        assert f"LOCATION: /bin/skills/{mock_skill.status.version_hash}/" in result
+        assert f"LOCATION: `/bin/skills/{mock_skill.status.version_hash}/`" in result
         assert mock_skill.spec.skill_md in result
+        
+        # Assert - contains no-exploration directive
+        assert "Do NOT explore the filesystem" in result
+        
+        # Assert - single-skill quick-reference block
+        assert "Skill directory" in result
+        assert "Run a script" in result
 
     def test_generate_prompt_multiple_skills(self, mock_skill, mock_skill_no_hash):
         """Test prompt generation with multiple skills."""
@@ -253,6 +260,10 @@ class TestSkillWriterGeneratePromptSection:
         # Assert - contains both skills
         assert f"### SKILL: {mock_skill.metadata.name}" in result
         assert f"### SKILL: {mock_skill_no_hash.metadata.name}" in result
+        
+        # Assert - multi-skill quick-reference table (not single-skill block)
+        assert "| Skill | Directory |" in result
+        assert "Skill directory" not in result  # single-skill format should NOT appear
 
     def test_generate_prompt_uses_fallback_path(self, mock_skill):
         """Test prompt uses version_hash fallback when path not in dict."""
@@ -262,7 +273,7 @@ class TestSkillWriterGeneratePromptSection:
         result = SkillWriter.generate_prompt_section([mock_skill], skill_paths)
         
         # Should still have a LOCATION with version_hash
-        assert f"LOCATION: /bin/skills/{mock_skill.status.version_hash}/" in result
+        assert f"LOCATION: `/bin/skills/{mock_skill.status.version_hash}/`" in result
 
     def test_generate_prompt_format_adr_001(self, mock_skill):
         """Test prompt follows ADR 001 format: LOCATION header + full content."""
@@ -393,7 +404,7 @@ class TestSkillWriterLocalModePrompt:
             prompt = SkillWriter.generate_prompt_section([mock_skill], skill_paths)
 
             # Local-mode path should NOT have leading /
-            expected_location = f"LOCATION: bin/skills/{mock_skill.status.version_hash}/"
+            expected_location = f"LOCATION: `bin/skills/{mock_skill.status.version_hash}/`"
             assert expected_location in prompt, (
                 f"Expected relative LOCATION header, got:\n{prompt}"
             )
@@ -410,7 +421,7 @@ class TestSkillWriterLocalModePrompt:
         prompt = SkillWriter.generate_prompt_section([mock_skill], skill_paths)
 
         # Daytona-mode path should keep the leading /
-        expected_location = f"LOCATION: /bin/skills/{mock_skill.status.version_hash}/"
+        expected_location = f"LOCATION: `/bin/skills/{mock_skill.status.version_hash}/`"
         assert expected_location in prompt, (
             f"Expected absolute LOCATION header for Daytona, got:\n{prompt}"
         )
