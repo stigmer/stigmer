@@ -17,7 +17,7 @@ from typing import Any
 
 # Optional Daytona import (only needed for cloud mode)
 try:
-    from daytona import Daytona, DaytonaConfig
+    from daytona import Daytona, DaytonaConfig, VolumeMount
     from daytona.common.daytona import CreateSandboxFromSnapshotParams
     DAYTONA_AVAILABLE = True
 except ImportError:
@@ -33,6 +33,70 @@ except ImportError:
 from worker.config import ExecutionMode
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Worker-level Daytona volume state
+# ---------------------------------------------------------------------------
+# Initialized once at runner startup via initialize_daytona_volume(), then
+# read by activity code via get_daytona_volume_id().  Follows the same
+# module-level store pattern as token_manager.py (API key).
+# ---------------------------------------------------------------------------
+
+_daytona_volume_id: str | None = None
+
+
+def get_daytona_volume_id() -> str | None:
+    """Return the Daytona volume ID set at worker startup, or *None*."""
+    return _daytona_volume_id
+
+
+def set_daytona_volume_id(volume_id: str) -> None:
+    """Store the Daytona volume ID (called once at worker startup)."""
+    global _daytona_volume_id
+    _daytona_volume_id = volume_id
+
+
+def initialize_daytona_volume(
+    api_key: str,
+    volume_name: str = "stigmer-workspaces",
+) -> str:
+    """Create or retrieve the global Daytona persistent volume.
+
+    Called **once** at worker startup.  Uses Daytona's idempotent
+    ``volume.get(name, create=True)`` so the call is safe to retry on
+    worker restarts.  The resulting volume ID is stored in the
+    module-level store for activities to read via
+    :func:`get_daytona_volume_id`.
+
+    Args:
+        api_key: Daytona API key.
+        volume_name: Human-readable volume name.  Configurable via the
+            ``DAYTONA_VOLUME_NAME`` environment variable (default:
+            ``"stigmer-workspaces"``).
+
+    Returns:
+        The volume ID string.
+
+    Raises:
+        RuntimeError: If the Daytona SDK is not installed.
+        Exception: Any error from the Daytona Volume API (propagated).
+    """
+    if not DAYTONA_AVAILABLE:
+        raise RuntimeError(
+            "Daytona SDK not available. Install with: pip install daytona"
+        )
+
+    daytona = Daytona(DaytonaConfig(api_key=api_key))
+    volume = daytona.volume.get(volume_name, create=True)
+    set_daytona_volume_id(volume.id)
+
+    logger.info(
+        "Daytona volume initialized: name='%s', id='%s'",
+        volume_name,
+        volume.id,
+    )
+    return volume.id
 
 
 @dataclass
@@ -64,6 +128,7 @@ class SandboxManager:
         sandbox_cleanup: bool = True,
         sandbox_ttl: int = 3600,
         daytona_api_key: str | None = None,
+        volume_id: str | None = None,
     ):
         """Initialize SandboxManager.
         
@@ -74,6 +139,10 @@ class SandboxManager:
             sandbox_cleanup: Cleanup containers after execution
             sandbox_ttl: Container reuse TTL in seconds
             daytona_api_key: Daytona API key (for cloud mode)
+            volume_id: Daytona volume ID for persistent workspace mounting.
+                Initialized at worker startup via :func:`initialize_daytona_volume`
+                and passed here by the activity.  When set, new sandboxes are
+                created with a ``VolumeMount`` using a per-session subpath.
         """
         self.execution_mode = execution_mode
         self.sandbox_image = sandbox_image
@@ -84,6 +153,9 @@ class SandboxManager:
         # Daytona client (lazy init for cloud mode)
         self._daytona: Any = None  # Daytona client when initialized
         self._daytona_api_key = daytona_api_key
+        
+        # Daytona persistent volume (set at worker startup, passed by activity)
+        self._volume_id = volume_id
         
         # Docker client (lazy init for sandbox mode)
         self._docker: Any = None  # docker.DockerClient when initialized
@@ -483,7 +555,7 @@ class SandboxManager:
         
         # Create new Daytona sandbox
         logger.info(f"Creating new Daytona sandbox with config: {sandbox_config}")
-        sandbox = self._create_daytona_sandbox(sandbox_config)
+        sandbox = self._create_daytona_sandbox(sandbox_config, session_id=session_id)
         logger.info(f"✨ Created new Daytona sandbox: {sandbox.id}")
         
         # Store in session if exists
@@ -501,11 +573,25 @@ class SandboxManager:
         
         return (sandbox, True)
     
-    def _create_daytona_sandbox(self, config: dict) -> Any:
+    def _create_daytona_sandbox(
+        self,
+        config: dict,
+        session_id: str | None = None,
+    ) -> Any:
         """Create new Daytona sandbox with polling for readiness.
         
+        When a ``volume_id`` was provided at construction time **and** a
+        ``session_id`` is given, the sandbox is created with a
+        :class:`VolumeMount` that maps the persistent volume into
+        ``/home/daytona/workspace`` using the subpath
+        ``sessions/{session_id}``.  This ensures workspace files survive
+        sandbox lifecycle events.
+        
         Args:
-            config: Sandbox configuration dict
+            config: Sandbox configuration dict (must have ``type: "daytona"``).
+            session_id: Session identifier for volume subpath isolation.
+                When *None*, the sandbox is created without a volume mount
+                (ephemeral).
             
         Returns:
             Daytona Sandbox instance
@@ -519,15 +605,46 @@ class SandboxManager:
         
         snapshot_id = config.get("snapshot_id")
         
+        # Build volume mounts for workspace persistence
+        volume_mounts: list[Any] = []
+        if self._volume_id and session_id:
+            volume_mounts.append(
+                VolumeMount(
+                    volume_id=self._volume_id,
+                    mount_path="/home/daytona/workspace",
+                    subpath=f"sessions/{session_id}",
+                )
+            )
+            logger.info(
+                "Volume mount configured: volume=%s, "
+                "mount_path=/home/daytona/workspace, subpath=sessions/%s",
+                self._volume_id,
+                session_id,
+            )
+        elif not session_id:
+            logger.info(
+                "No session_id -- creating sandbox without volume mount (ephemeral)"
+            )
+        
         try:
-            # Create sandbox
+            # Create sandbox (with optional snapshot and/or volume mount)
             if snapshot_id:
                 logger.info(f"Creating Daytona sandbox from snapshot: {snapshot_id}")
-                params = CreateSandboxFromSnapshotParams(snapshot=snapshot_id)
+                params = CreateSandboxFromSnapshotParams(
+                    snapshot=snapshot_id,
+                    volumes=volume_mounts if volume_mounts else None,
+                )
                 sandbox = self._daytona.create(params=params)
             else:
-                logger.info("Creating vanilla Daytona sandbox (no snapshot)")
-                sandbox = self._daytona.create()
+                if volume_mounts:
+                    logger.info("Creating Daytona sandbox with volume mount")
+                    params = CreateSandboxFromSnapshotParams(
+                        volumes=volume_mounts,
+                    )
+                    sandbox = self._daytona.create(params=params)
+                else:
+                    logger.info("Creating vanilla Daytona sandbox (no snapshot, no volume)")
+                    sandbox = self._daytona.create()
             
             logger.info(f"Daytona sandbox created: {sandbox.id}, waiting for readiness...")
             
