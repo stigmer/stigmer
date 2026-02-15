@@ -70,7 +70,74 @@ When starting a new session:
 **Created**: 2026-02-15 18:35
 **Current Task**: Complete ✅
 **Status**: All tasks complete (T01 ✅, T02 ✅, T03 ✅, T04 ✅, T05 ✅, T06 ✅)
-**Last Session**: 2026-02-15 — Completed T06 (Automated tests + documentation)
+**Last Session**: 2026-02-15 Session 5 — Fixed premature execution completion (skill-creator-agent, CLI, backend)
+
+## Session Progress (2026-02-15, Session 5 — Fix Premature Execution Completion)
+
+### Problem Investigated
+User reported `stigmer draft skill` completing prematurely after writing files but before publishing artifacts or providing a final AI summary. The CLI showed "Execution completed" with the write tool still displaying as pending (⏳).
+
+### Root Causes Identified
+1. **skill-creator-agent missing instructions**: Agent had access to `publish_artifact` tool but no instruction to use it or provide summaries
+2. **CLI tool state not finalized**: Running tools stayed in "pending" state even after execution completed
+3. **No observability**: No warnings logged when executions completed without final AI messages or artifacts
+
+### What Was Accomplished
+- ✅ **skill-creator-agent.yaml updated**: Added Step 5 (Publish Artifacts), Step 6 (Summarize), and two key principles ("Always Publish", "Always Summarize")
+- ✅ **CLI tool finalization**: Added `renderToolFinalized()` to replace ⏳ with ✓ in all terminal paths (`DoneEvent`, `StreamErrorEvent`, `handleStreamClosed`)
+- ✅ **Backend validation**: Added post-stream logging in `execute_graphton.py` to warn when last message is a tool (no AI follow-up) or when no artifacts published
+- ✅ **Changelog**: Created comprehensive changelog documenting the three-layer fix
+- ✅ **Committed**: `1cb5a64f fix(cli,backend,seedpack): prevent premature execution completion`
+
+### Files Modified (5 files, 128 lines)
+- `backend/libs/go/seedpack/agents/skill-creator-agent.yaml` (+29 lines) — Updated agent instructions
+- `backend/services/agent-runner/worker/activities/execute_graphton.py` (+34 lines) — Post-stream validation
+- `client-apps/cli/pkg/executiontui/handle_events.go` (+30 lines) — Tool finalization in terminal handlers
+- `client-apps/cli/pkg/executiontui/render_blocks.go` (+7 lines) — `renderToolFinalized()` helper
+- `_changelog/2026-02/2026-02-15-230923-fix-premature-execution-completion.md` (new file)
+
+### Key Design Decisions
+- **Agent instruction enhancement over code hacks**: Fixed at the source (agent prompt) rather than adding backend workarounds
+- **Observability over enforcement**: Backend logs warnings but doesn't block completion — maintains LangGraph flexibility
+- **Visual consistency**: CLI tool finalization ensures final display state reflects reality (no stale pending indicators)
+
+### Investigation Findings
+- **Recent CLI changes NOT the cause**: HeartbeatEvent and thinking indicator (session 4) were initially suspected but definitively ruled out via exhaustive code trace
+- **Graph structure correct**: deepagents ReAct loop DOES route back to LLM after tools — missing AI message was due to agent prompt gap, not graph termination bug
+- **Bootstrap reapplication**: Updated agent YAML will automatically reapply on server restart (content hash change detected)
+
+## Next Steps
+
+1. **Restart Stigmer server**: To apply updated `skill-creator-agent.yaml` (bootstrap auto-reapplies on content hash change)
+2. **Test `stigmer draft skill`**: Verify agent now publishes artifacts and provides summaries
+3. **Monitor logs**: Watch for post-stream validation warnings in agent-runner logs
+4. **Consider pattern reuse**: Apply similar validation to other system agents if needed
+
+## Session Progress (2026-02-15, Session 4 — CLI Live Activity Feedback)
+
+### What Was Accomplished
+- ✅ **CLI Thinking Indicator**: Added timer-driven idle detection (2s threshold) that reactivates the header spinner during LLM thinking periods
+- ✅ **Backend Liveness Awareness**: Added `HeartbeatEvent` emitted on every `stream.Recv()` to track backend connection health
+- ✅ **Connection Warning**: Footer shows "Connection may be interrupted" after 15s of no backend updates
+- ✅ **Changelog**: Created `_changelog/2026-02/2026-02-15-215442-cli-live-activity-feedback.md`
+- ✅ **Committed**: `7affd296 feat(cli): add thinking indicator and connection health monitoring to execution TUI`
+
+### Problem Solved
+The CLI showed a completely static screen during LLM "thinking" periods (between tool completions and the next AI response). Users could not tell if the agent was processing, stuck, or disconnected. Now the header spinner animates during idle periods, and the footer warns about connection issues.
+
+### Files Modified (7 files, +156 lines)
+- `client-apps/cli/cmd/stigmer/root/run_stream_events.go` — HeartbeatEvent emission on stream.Recv()
+- `client-apps/cli/pkg/executiontui/events.go` — HeartbeatEvent type
+- `client-apps/cli/pkg/executiontui/handle_events.go` — Activity reset + heartbeat handling
+- `client-apps/cli/pkg/executiontui/messages.go` — activityTickMsg type
+- `client-apps/cli/pkg/executiontui/model.go` — lastEventAt, thinkingVisible, lastBackendUpdate fields
+- `client-apps/cli/pkg/executiontui/update.go` — Activity tick handler, timing constants, spinner lifecycle
+- `client-apps/cli/pkg/executiontui/view.go` — Header spinner during idle, footer connection warning
+
+### Key Design Decisions
+- **Header spinner over content block**: Reuses existing spinner in the header bar — no ephemeral blocks in viewport, no block indexing complexity
+- **Separate lastEventAt vs lastBackendUpdate**: HeartbeatEvent updates liveness but doesn't reset the activity tracker — thinking indicator stays visible during keepalive-only periods
+- **Three timing constants**: activityTickInterval (1s), idleThreshold (2s), connectionStaleThreshold (15s) — all tunable
 
 ## Session Progress (2026-02-15, Session 3 — T06 Testing + Documentation)
 
