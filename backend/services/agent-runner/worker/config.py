@@ -28,6 +28,7 @@ How Polyglot Works:
 import os
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -492,22 +493,43 @@ class Config:
             artifact_storage=artifact_storage_config,
         )
     
-    def get_sandbox_config(self) -> dict:
+    def get_sandbox_config(self, session_id: str | None = None) -> dict:
         """Get sandbox configuration based on execution mode.
+        
+        Args:
+            session_id: Optional session identifier. When provided in local
+                mode, the workspace root is scoped to a per-session directory
+                (``{SANDBOX_ROOT_DIR}/sessions/{session_id}/``), ensuring each
+                session has an isolated, persistent workspace.  When *None*,
+                the flat ``SANDBOX_ROOT_DIR`` is used (backward-compatible).
+                Ignored in cloud mode (session isolation is handled by
+                Daytona volumes).
         
         Returns:
             Sandbox configuration dict for Graphton agent creation.
             
             Local mode:
-                {"type": "filesystem", "root_dir": "./workspace"}
+                {"type": "filesystem", "root_dir": "<session-scoped path>"}
             
             Cloud mode:
                 {"type": "daytona", "snapshot_id": "..."}  # snapshot_id optional
+        
+        Raises:
+            ValueError: If *session_id* contains path separators or ``..``.
         """
+        if session_id and ("/" in session_id or "\\" in session_id or ".." in session_id):
+            raise ValueError(
+                f"Invalid session_id '{session_id}': "
+                "must not contain path separators or '..'"
+            )
+        
         if self.mode == "local":
+            root_dir = self.sandbox_root_dir
+            if session_id:
+                root_dir = str(Path(self.sandbox_root_dir) / "sessions" / session_id)
             return {
                 "type": "filesystem",
-                "root_dir": self.sandbox_root_dir,
+                "root_dir": root_dir,
             }
         else:
             # Cloud mode - Daytona configuration
