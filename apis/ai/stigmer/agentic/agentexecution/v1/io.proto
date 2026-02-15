@@ -106,6 +106,18 @@ message SubmitApprovalInput {
   string comment = 4;
 }
 
+// ApprovalDecisionList wraps a batch of approval decisions for Temporal
+// activity transport.
+//
+// Required for polyglot Temporal serialization: a bare repeated field (Go
+// slice / Java List) is NOT a proto.Message, so the SDK falls back to
+// json/plain encoding which the Python worker cannot decode into typed
+// protobuf objects.  Wrapping in a message ensures the SDK uses the
+// json/protobuf payload converter on both sides.
+message ApprovalDecisionList {
+  repeated SubmitApprovalInput decisions = 1;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Lifecycle Control Input Messages
 //

@@ -38,10 +38,12 @@ type ExecuteGraphtonActivity interface {
 	// executionID: The AgentExecution ID to fetch and execute
 	// threadID: The LangGraph thread ID for conversation state persistence
 	// approvalDecisions: Approval decisions for HITL resume (nil on first invocation).
-	//   Each entry carries a tool_call_id, action, and optional comment.
+	//   Wrapped in ApprovalDecisionList for polyglot Temporal serialization —
+	//   a bare slice is not a proto.Message so the SDK would fall back to
+	//   json/plain encoding, which the Python worker cannot decode.
 	//
 	// Returns: Final execution status with messages, tool_calls, phase, etc.
-	ExecuteGraphton(executionID string, threadID string, approvalDecisions []*agentexecutionv1.SubmitApprovalInput) (*agentexecutionv1.AgentExecutionStatus, error)
+	ExecuteGraphton(executionID string, threadID string, approvalDecisions *agentexecutionv1.ApprovalDecisionList) (*agentexecutionv1.AgentExecutionStatus, error)
 }
 
 // ExecuteGraphtonActivityName is the activity name used for registration.
@@ -53,10 +55,10 @@ const ExecuteGraphtonActivityName = "ExecuteGraphton"
 func NewExecuteGraphtonActivityStub(ctx workflow.Context, taskQueue string) ExecuteGraphtonActivity {
 	// Create activity options with explicit task queue routing to Python worker
 	options := workflow.ActivityOptions{
-		TaskQueue:              taskQueue, // Route to Python worker (from memo)
+		TaskQueue:              taskQueue,        // Route to Python worker (from memo)
 		StartToCloseTimeout:    10 * time.Minute, // 10 minutes for agent execution
 		ScheduleToStartTimeout: 1 * time.Minute,  // Max wait for worker to pick up task
-		HeartbeatTimeout:       30 * time.Second,  // Activity must send heartbeat every 30s
+		HeartbeatTimeout:       30 * time.Second, // Activity must send heartbeat every 30s
 		RetryPolicy: &temporal.RetryPolicy{
 			MaximumAttempts:    1, // No retries for agent execution (not idempotent)
 			InitialInterval:    10 * time.Second,
@@ -74,7 +76,7 @@ type executeGraphtonActivityStub struct {
 	ctx workflow.Context
 }
 
-func (s *executeGraphtonActivityStub) ExecuteGraphton(executionID string, threadID string, approvalDecisions []*agentexecutionv1.SubmitApprovalInput) (*agentexecutionv1.AgentExecutionStatus, error) {
+func (s *executeGraphtonActivityStub) ExecuteGraphton(executionID string, threadID string, approvalDecisions *agentexecutionv1.ApprovalDecisionList) (*agentexecutionv1.AgentExecutionStatus, error) {
 	var result *agentexecutionv1.AgentExecutionStatus
 	err := workflow.ExecuteActivity(s.ctx, ExecuteGraphtonActivityName, executionID, threadID, approvalDecisions).Get(s.ctx, &result)
 	return result, err
