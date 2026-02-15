@@ -113,7 +113,28 @@ class SkillWriter:
         sandbox backend.
         """
         return f"{_SKILLS_RELATIVE_BASE}/{self._resolve_skill_dir_name(skill)}"
-    
+
+    @staticmethod
+    def compute_skill_paths(skills: list[Skill]) -> dict[str, str]:
+        """Compute workspace-relative skill paths without writing to the sandbox.
+
+        This is the read-only counterpart of :meth:`write_skills`.  It
+        produces the same ``{skill_id: workspace_relative_dir}`` mapping
+        that ``write_skills`` returns, but without performing any I/O.
+
+        Useful on the resume-after-approval fast path where skills have
+        already been written to the sandbox in a previous activity
+        invocation — we still need the paths for prompt generation but
+        can skip the expensive write/upload/verification steps.
+        """
+        paths: dict[str, str] = {}
+        for skill in skills:
+            name = skill.metadata.name
+            if not name:
+                name = skill.status.version_hash or skill.metadata.slug.replace("/", "_")
+            paths[skill.metadata.id] = f"{_SKILLS_RELATIVE_BASE}/{name}"
+        return paths
+
     def write_skills(self, skills: list[Skill], artifacts: dict[str, bytes] | None = None) -> dict[str, str]:
         """Write skills to sandbox.
         
