@@ -222,11 +222,18 @@ func RenderExpanded(tc ToolCallInfo) string {
 		return header
 	}
 
-	fullContent := formatFullResultWithGutter(tc.Result)
+	// Extract filename for syntax highlighting. For file-read tools, the
+	// filename comes from the args. For other tools, this returns "" and
+	// highlighting is gracefully skipped.
+	filename := extractFilename(tc.Args)
+
+	fullContent := formatFullResultWithGutter(tc.Result, filename)
 	if fullContent == "" {
 		return header
 	}
 
-	return header + "\n" + dimStyle.Render(fullContent)
+	// formatFullResultWithGutter handles styling internally (dim gutter +
+	// syntax-highlighted content), so we append directly.
+	return header + "\n" + fullContent
 }
 

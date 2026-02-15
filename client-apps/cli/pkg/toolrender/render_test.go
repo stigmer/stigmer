@@ -1,10 +1,21 @@
 package toolrender
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 	"time"
 )
+
+// ansiRe matches ANSI escape sequences (color codes, resets, etc.).
+var ansiRe = regexp.MustCompile(`\x1b\[[0-9;]*m`)
+
+// stripANSI removes all ANSI escape sequences from s, returning the visible
+// text content only. Used in tests to assert on semantic content without
+// coupling to styling details.
+func stripANSI(s string) string {
+	return ansiRe.ReplaceAllString(s, "")
+}
 
 // =============================================================================
 // Render Tests — Known Tool Categories
@@ -1263,16 +1274,22 @@ func TestRenderExpanded_IncludesMetadataSuffix(t *testing.T) {
 // Test Helpers
 // =============================================================================
 
+// assertContains checks that the visible text of s (with ANSI codes stripped)
+// contains substr. This decouples content assertions from styling details.
 func assertContains(t *testing.T, s, substr string) {
 	t.Helper()
-	if !strings.Contains(s, substr) {
-		t.Errorf("expected %q to contain %q", s, substr)
+	plain := stripANSI(s)
+	if !strings.Contains(plain, substr) {
+		t.Errorf("expected output to contain %q\n  plain: %q", substr, plain)
 	}
 }
 
+// assertNotContains checks that the visible text of s (with ANSI codes
+// stripped) does NOT contain substr.
 func assertNotContains(t *testing.T, s, substr string) {
 	t.Helper()
-	if strings.Contains(s, substr) {
-		t.Errorf("expected %q to NOT contain %q", s, substr)
+	plain := stripANSI(s)
+	if strings.Contains(plain, substr) {
+		t.Errorf("expected output to NOT contain %q\n  plain: %q", substr, plain)
 	}
 }
