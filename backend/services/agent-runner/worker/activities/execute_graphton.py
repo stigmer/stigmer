@@ -645,7 +645,7 @@ async def _execute_graphton_impl(
         
         # Get sandbox configuration from worker config
         setup_timer.start("sandbox")
-        sandbox_config = worker_config.get_sandbox_config()
+        sandbox_config = worker_config.get_sandbox_config(session_id=session_id)
         
         activity_logger.info(
             f"Sandbox mode: {worker_config.mode} - using {sandbox_config.get('type')} backend"
