@@ -86,7 +86,10 @@ FILESYSTEM_CAPABILITY = """
 - Maintain state between operations
 - Search and discover files across directories
 
-All file paths must be absolute (start with '/'). Use `ls` to explore directory structure.
+File paths should be workspace-relative (e.g., `inputs/data.txt`,
+`bin/skills/.../SKILL.md`). Do NOT prefix paths with `/workspace/` -- the
+tools handle path resolution automatically. Use `ls` to explore directory
+structure.
 """
 
 MCP_TOOLS_CAPABILITY = """

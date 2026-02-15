@@ -1,14 +1,26 @@
 """Utilities for writing skills to sandbox.
 
 Skill Injection Strategy (from ADR 001):
-- Skills are written to /bin/skills/{version_hash}/ in the sandbox
+- Skills are written to {workspace_root}/bin/skills/{version_hash}/ in the sandbox
 - The SKILL.md content is injected directly into the system prompt
 - The LOCATION header tells the agent where executable files are located
 - This allows agents to access skill implementations without reading files
 
+Path Convention:
+- Skills live under ``bin/skills/{version_hash}/`` relative to the workspace root.
+- In Daytona mode the workspace root is queried from the sandbox via
+  ``sandbox.get_work_dir()`` (typically ``/workspace``).  All shell commands
+  and SDK file operations use the fully-qualified path
+  ``{workspace_root}/bin/skills/{version_hash}/``.
+- In local mode the workspace root is the ``local_root`` passed to the
+  constructor (e.g. ``/tmp/stigmer-sandbox``).
+- Returned paths are always **workspace-relative** (e.g. ``bin/skills/abc…``)
+  so that the agent's sandbox backend resolves them correctly regardless of
+  whether it uses chroot-like semantics or the Daytona SDK working directory.
+
 Directory Structure:
-- /bin/skills/{version_hash}/SKILL.md - Interface definition
-- /bin/skills/{version_hash}/* - Executable implementation files (from artifact ZIP)
+- bin/skills/{version_hash}/SKILL.md - Interface definition
+- bin/skills/{version_hash}/* - Executable implementation files (from artifact ZIP)
 """
 
 import io
@@ -20,59 +32,74 @@ from ai.stigmer.agentic.skill.v1.api_pb2 import Skill
 
 logger = logging.getLogger(__name__)
 
+# Workspace-relative base directory for skills (no leading slash).
+_SKILLS_RELATIVE_BASE = "bin/skills"
+
 
 class SkillWriter:
     """Writes skills to sandbox (Daytona or local filesystem).
     
     Following ADR 001: Skill Injection & Sandbox Mounting Strategy:
-    - Skills are mounted at /bin/skills/{version_hash}/
+    - Skills are mounted at bin/skills/{version_hash}/ within the workspace
     - SKILL.md content is injected into the system prompt with LOCATION header
     - Skills directory is read-only to prevent accidental modification
     """
     
+    # Kept for backward-compatibility references; new code should use
+    # ``_SKILLS_RELATIVE_BASE`` instead.
     SKILLS_BASE_DIR = "/bin/skills"
     
     def __init__(self, sandbox=None, local_root: str | None = None):
         """Initialize SkillWriter.
         
         Args:
-            sandbox: Daytona Sandbox instance (for cloud mode)
-            local_root: Local filesystem root (for local mode, e.g., /tmp/stigmer-sandbox)
+            sandbox: Daytona Sandbox instance (for cloud mode).  The workspace
+                root is resolved automatically via ``sandbox.get_work_dir()``.
+            local_root: Local filesystem root (for local mode, e.g.,
+                ``/tmp/stigmer-sandbox``).
         """
         self.sandbox = sandbox
         self.local_root = local_root
         self.skills_base = self.SKILLS_BASE_DIR
     
-    def _get_skill_dir(self, skill: Skill) -> str:
-        """Get the directory path for a skill based on its version hash.
-        
-        Args:
-            skill: Skill proto message
-            
-        Returns:
-            Path like /bin/skills/{version_hash}/
-        """
+    @staticmethod
+    def _resolve_version_hash(skill: Skill) -> str:
+        """Return the version hash for a skill, falling back to a slug-based key."""
         version_hash = skill.status.version_hash
         if not version_hash:
-            # Fallback to slug if no hash (shouldn't happen in production)
             version_hash = skill.metadata.slug.replace("/", "_")
-            logger.warning(f"Skill {skill.metadata.name} has no version_hash, using slug: {version_hash}")
-        
-        return f"{self.skills_base}/{version_hash}"
+            logger.warning(
+                "Skill %s has no version_hash, using slug: %s",
+                skill.metadata.name,
+                version_hash,
+            )
+        return version_hash
+
+    def _get_skill_relative_dir(self, skill: Skill) -> str:
+        """Return the **workspace-relative** skill directory.
+
+        Example return value: ``bin/skills/abc123…``  (no leading ``/``).
+
+        This is the canonical path that will be handed to the agent in the
+        prompt LOCATION header and used for post-write verification through
+        the agent's sandbox backend.
+        """
+        return f"{_SKILLS_RELATIVE_BASE}/{self._resolve_version_hash(skill)}"
     
     def write_skills(self, skills: list[Skill], artifacts: dict[str, bytes] | None = None) -> dict[str, str]:
         """Write skills to sandbox.
         
-        Creates /bin/skills/{version_hash}/ for each skill, writes SKILL.md,
-        and optionally extracts artifact ZIP files.
+        Creates ``bin/skills/{version_hash}/`` for each skill (relative to
+        the workspace root), writes ``SKILL.md``, and optionally extracts
+        artifact ZIP files.
         
         Args:
             skills: List of Skill proto messages
             artifacts: Optional dict mapping skill ID to artifact ZIP bytes
             
         Returns:
-            Dictionary mapping skill ID to directory path in sandbox:
-            {"skill-uuid-1": "/bin/skills/abc123.../", ...}
+            Dictionary mapping skill ID to **workspace-relative** directory
+            path (e.g. ``{"skill-uuid-1": "bin/skills/abc123…"}``).
             
         Raises:
             RuntimeError: If directory creation or file upload fails
@@ -97,7 +124,7 @@ class SkillWriter:
     def _write_skills_local(self, skills: list[Skill], artifacts: dict[str, bytes] | None = None) -> dict[str, str]:
         """Write skills to local filesystem.
         
-        Returns sandbox-relative paths (no leading ``/``) so they work
+        Returns workspace-relative paths (no leading ``/``) so they work
         correctly with ``FilesystemBackend._resolve_sandbox_path()`` and
         with the ``execute`` tool where ``cwd=root_dir``.
         
@@ -106,37 +133,33 @@ class SkillWriter:
             artifacts: Optional dict mapping skill ID to artifact ZIP bytes
             
         Returns:
-            Dictionary mapping skill ID to sandbox-relative directory path
+            Dictionary mapping skill ID to workspace-relative directory path
             (e.g. ``{"skill-uuid": "bin/skills/abc123..."}``)
         """
-        skill_paths = {}
+        skill_paths: dict[str, str] = {}
         
         for skill in skills:
             skill_id = skill.metadata.id
-            skill_dir = self._get_skill_dir(skill)
+            relative_dir = self._get_skill_relative_dir(skill)
             
-            # Local path: {local_root}/bin/skills/{version_hash}/
-            local_skill_dir = f"{self.local_root}{skill_dir}"
+            # Absolute path on the host: {local_root}/bin/skills/{version_hash}/
+            local_skill_dir = os.path.join(self.local_root, relative_dir)  # type: ignore[arg-type]
             
             try:
-                # Create directory
                 os.makedirs(local_skill_dir, exist_ok=True)
                 
-                # Extract artifact if provided
                 if artifacts and skill_id in artifacts:
-                    logger.info(f"Extracting artifact for skill {skill.metadata.name}")
+                    logger.info("Extracting artifact for skill %s", skill.metadata.name)
                     self._extract_artifact_local(artifacts[skill_id], local_skill_dir)
                 else:
                     # Write SKILL.md only if no artifact (backward compatibility)
-                    skill_md_path = f"{local_skill_dir}/SKILL.md"
-                    with open(skill_md_path, 'w', encoding='utf-8') as f:
+                    skill_md_path = os.path.join(local_skill_dir, "SKILL.md")
+                    with open(skill_md_path, "w", encoding="utf-8") as f:
                         f.write(skill.spec.skill_md)
-                    logger.info(f"Wrote SKILL.md to local filesystem: {skill_md_path}")
+                    logger.info("Wrote SKILL.md to local filesystem: %s", skill_md_path)
                 
-                # Return sandbox-relative path (strip leading "/" so
-                # FilesystemBackend resolves it relative to root_dir and
-                # shell commands resolve it relative to cwd=root_dir).
-                skill_paths[skill_id] = skill_dir.lstrip("/")
+                # Workspace-relative path for the agent
+                skill_paths[skill_id] = relative_dir
                 
             except Exception as e:
                 raise RuntimeError(
@@ -144,8 +167,9 @@ class SkillWriter:
                 ) from e
         
         logger.info(
-            f"Successfully wrote {len(skills)} skills to local filesystem: "
-            f"{[s.metadata.name for s in skills]}"
+            "Successfully wrote %d skills to local filesystem: %s",
+            len(skills),
+            [s.metadata.name for s in skills],
         )
         
         return skill_paths
@@ -180,102 +204,156 @@ class SkillWriter:
         except Exception as e:
             raise RuntimeError(f"Failed to extract artifact: {e}") from e
     
-    def _write_skills_daytona(self, skills: list[Skill], artifacts: dict[str, bytes] | None = None) -> dict[str, str]:
+    # ------------------------------------------------------------------
+    # Daytona helpers
+    # ------------------------------------------------------------------
+
+    def _resolve_workspace_root(self) -> str:
+        """Return the absolute workspace root inside the Daytona sandbox.
+
+        The value is obtained from ``sandbox.get_work_dir()`` and cached on
+        the instance.  A trailing ``/`` is stripped so callers can safely
+        concatenate with ``/{relative_path}``.
+
+        Falls back to ``/home/daytona`` (standard Daytona user home) if
+        ``get_work_dir()`` is not available on older SDK versions.
+        """
+        cached = getattr(self, "_workspace_root", None)
+        if cached is not None:
+            return cached  # type: ignore[return-value]
+
+        try:
+            root = self.sandbox.get_work_dir().rstrip("/")
+            logger.info("Daytona workspace root resolved: %s", root)
+        except Exception as exc:
+            root = "/home/daytona"
+            logger.warning(
+                "sandbox.get_work_dir() failed (%s); falling back to %s",
+                exc,
+                root,
+            )
+        self._workspace_root: str = root
+        return root
+
+    def _write_skills_daytona(
+        self,
+        skills: list[Skill],
+        artifacts: dict[str, bytes] | None = None,
+    ) -> dict[str, str]:
         """Write skills to Daytona sandbox.
-        
+
+        All paths use the workspace root obtained from
+        ``sandbox.get_work_dir()`` so that the agent's backend (which
+        resolves paths relative to the same workspace root) can find them.
+
+        Returns workspace-relative paths (e.g. ``bin/skills/abc…``) that
+        the agent can use directly with its ``read`` / ``ls`` / ``execute``
+        tools.
+
         Args:
             skills: List of Skill proto messages
             artifacts: Optional dict mapping skill ID to artifact ZIP bytes
-            
+
         Returns:
-            Dictionary mapping skill ID to directory path
+            Dictionary mapping skill ID to workspace-relative directory path
         """
         from daytona import FileUpload
-        
+
+        ws_root = self._resolve_workspace_root()
+
+        # Absolute base for skills inside the sandbox:
+        # e.g. /workspace/bin/skills
+        abs_skills_base = f"{ws_root}/{_SKILLS_RELATIVE_BASE}"
+
         # Step 1: Create base skills directory
-        mkdir_cmd = f"mkdir -p {self.skills_base}"
+        mkdir_cmd = f"mkdir -p {abs_skills_base}"
         try:
             result = self.sandbox.process.exec(mkdir_cmd, timeout=5)
             if result.exit_code != 0:
                 raise RuntimeError(
                     f"Failed to create skills base directory: {result.output}"
                 )
-            logger.info(f"Created skills base directory: {self.skills_base}")
+            logger.info("Created skills base directory: %s", abs_skills_base)
         except Exception as e:
             raise RuntimeError(f"Failed to create skills base directory: {e}") from e
-        
-        # Step 2: Prepare file uploads and artifacts
-        file_uploads = []
-        skill_paths = {}
-        skill_dirs = set()
-        
+
+        # Step 2: Prepare file uploads and per-skill state
+        file_uploads: list = []
+        skill_paths: dict[str, str] = {}
+        # Collect absolute skill dirs that need to be created
+        abs_skill_dirs: set[str] = set()
+
         for skill in skills:
             skill_id = skill.metadata.id
-            skill_dir = self._get_skill_dir(skill)
-            skill_dirs.add(skill_dir)
-            skill_paths[skill_id] = skill_dir
-            
-            # If artifact provided, upload ZIP and extract it
-            # Otherwise, just upload SKILL.md (backward compatibility)
+            relative_dir = self._get_skill_relative_dir(skill)
+            abs_dir = f"{ws_root}/{relative_dir}"
+            abs_skill_dirs.add(abs_dir)
+
+            # Agent-facing path is workspace-relative
+            skill_paths[skill_id] = relative_dir
+
             if artifacts and skill_id in artifacts:
-                # Upload artifact ZIP for extraction
-                artifact_zip_path = f"{skill_dir}/artifact.zip"
+                # Upload artifact ZIP for later extraction
                 file_uploads.append(
                     FileUpload(
                         source=artifacts[skill_id],
-                        destination=artifact_zip_path
+                        destination=f"{abs_dir}/artifact.zip",
                     )
                 )
             else:
-                # Upload SKILL.md only (no artifact)
-                skill_md_path = f"{skill_dir}/SKILL.md"
+                # Upload SKILL.md only (backward compatibility / no artifact)
                 file_uploads.append(
                     FileUpload(
-                        source=skill.spec.skill_md.encode('utf-8'),
-                        destination=skill_md_path
+                        source=skill.spec.skill_md.encode("utf-8"),
+                        destination=f"{abs_dir}/SKILL.md",
                     )
                 )
-        
-        # Step 3: Create skill directories
-        for skill_dir in skill_dirs:
-            mkdir_cmd = f"mkdir -p {skill_dir}"
+
+        # Step 3: Create per-skill directories
+        for abs_dir in abs_skill_dirs:
+            mkdir_cmd = f"mkdir -p {abs_dir}"
             try:
                 result = self.sandbox.process.exec(mkdir_cmd, timeout=5)
                 if result.exit_code != 0:
                     raise RuntimeError(
-                        f"Failed to create skill directory {skill_dir}: {result.output}"
+                        f"Failed to create skill directory {abs_dir}: {result.output}"
                     )
             except Exception as e:
-                raise RuntimeError(f"Failed to create skill directory {skill_dir}: {e}") from e
-        
+                raise RuntimeError(
+                    f"Failed to create skill directory {abs_dir}: {e}"
+                ) from e
+
         # Step 4: Batch upload all files
         try:
             self.sandbox.fs.upload_files(file_uploads)
             logger.info(
-                f"Successfully uploaded files for {len(skills)} skills to Daytona: "
-                f"{[s.metadata.name for s in skills]}"
+                "Successfully uploaded files for %d skills to Daytona: %s",
+                len(skills),
+                [s.metadata.name for s in skills],
             )
         except Exception as e:
             raise RuntimeError(
                 f"Failed to upload skills to Daytona sandbox: {e}"
             ) from e
-        
+
         # Step 5: Extract artifacts if provided
         if artifacts:
             for skill in skills:
                 skill_id = skill.metadata.id
                 if skill_id in artifacts:
-                    skill_dir = self._get_skill_dir(skill)
-                    logger.info(f"Extracting artifact for skill {skill.metadata.name}")
-                    self._extract_artifact_daytona(skill_dir)
-        
+                    relative_dir = self._get_skill_relative_dir(skill)
+                    abs_dir = f"{ws_root}/{relative_dir}"
+                    logger.info("Extracting artifact for skill %s", skill.metadata.name)
+                    self._extract_artifact_daytona(abs_dir)
+
         return skill_paths
     
     def _extract_artifact_daytona(self, skill_dir: str) -> None:
         """Extract skill artifact ZIP in Daytona sandbox.
         
         Args:
-            skill_dir: Skill directory path (e.g., /bin/skills/abc123/)
+            skill_dir: Absolute skill directory path inside the sandbox
+                (e.g. ``/workspace/bin/skills/abc123…``).
             
         Raises:
             RuntimeError: If extraction fails
@@ -330,18 +408,28 @@ class SkillWriter:
             "Each skill section below lists its LOCATION (directory path). "
             "Use that path directly to read files, run scripts, or reference "
             "resources. Do NOT explore the filesystem to discover skill files; "
-            "the paths below are authoritative.\n"
+            "the paths below are authoritative.\n\n"
+            "**CRITICAL**: If you cannot read the skill files at the LOCATION "
+            "paths listed below, you MUST stop execution immediately and "
+            "report the error. Do NOT attempt to create, recreate, or "
+            "improvise skill implementations on your own. Missing skill "
+            "files indicate a platform issue that must be resolved before "
+            "execution can proceed.\n"
         )
         
         # -----------------------------------------------------------------
         # Quick-reference table (concise, at the top for scanability)
         # -----------------------------------------------------------------
+        def _dir_for(skill: Skill) -> str:
+            """Return the skill directory from ``skill_paths`` or a fallback."""
+            return skill_paths.get(
+                skill.metadata.id,
+                f"{_SKILLS_RELATIVE_BASE}/{skill.status.version_hash}",
+            )
+
         if len(skills) == 1:
             skill = skills[0]
-            skill_dir = skill_paths.get(
-                skill.metadata.id,
-                f"/bin/skills/{skill.status.version_hash}",
-            )
+            skill_dir = _dir_for(skill)
             prompt += (
                 f"\n**Skill directory**: `{skill_dir}/`\n"
                 f"  - Read a file:  `read {skill_dir}/SKILL.md`\n"
@@ -351,24 +439,16 @@ class SkillWriter:
         else:
             prompt += "\n| Skill | Directory |\n|---|---|\n"
             for skill in skills:
-                skill_dir = skill_paths.get(
-                    skill.metadata.id,
-                    f"/bin/skills/{skill.status.version_hash}",
-                )
-                prompt += f"| {skill.metadata.name} | `{skill_dir}/` |\n"
+                prompt += f"| {skill.metadata.name} | `{_dir_for(skill)}/` |\n"
             prompt += "\n"
         
         # -----------------------------------------------------------------
         # Per-skill sections: access block + full SKILL.md body
         # -----------------------------------------------------------------
         for skill in skills:
-            skill_id = skill.metadata.id
-            skill_name = skill.metadata.name
-            skill_dir = skill_paths.get(
-                skill_id, f"/bin/skills/{skill.status.version_hash}"
-            )
+            skill_dir = _dir_for(skill)
             
-            prompt += f"\n### SKILL: {skill_name}\n"
+            prompt += f"\n### SKILL: {skill.metadata.name}\n"
             prompt += f"LOCATION: `{skill_dir}/`\n\n"
             prompt += skill.spec.skill_md
             prompt += "\n"

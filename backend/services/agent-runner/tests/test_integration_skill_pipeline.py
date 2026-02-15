@@ -601,24 +601,26 @@ class TestPathResolution:
         skill.status.version_hash = "abc12345678901234567890123456789012345678901234567890123456789a"
         
         writer = SkillWriter(local_root="/tmp")
-        path = writer._get_skill_dir(skill)
+        path = writer._get_skill_relative_dir(skill)
         
-        assert path == f"/bin/skills/{skill.status.version_hash}"
+        assert path == f"bin/skills/{skill.status.version_hash}"
+        assert not path.startswith("/"), "Path should be workspace-relative"
 
     def test_skill_without_hash_falls_back_to_slug(self):
         """Skill without version_hash should fall back to slugified name."""
         skill = MagicMock()
         skill.metadata.slug = "test-org/my-skill"
+        skill.metadata.name = "my-skill"
         skill.status.version_hash = ""  # Empty hash
         
         writer = SkillWriter(local_root="/tmp")
-        path = writer._get_skill_dir(skill)
+        path = writer._get_skill_relative_dir(skill)
         
         # Slug with / replaced by _
-        assert path == "/bin/skills/test-org_my-skill"
+        assert path == "bin/skills/test-org_my-skill"
 
     def test_skill_dir_base_path_is_bin_skills(self):
-        """All skill paths should be under /bin/skills/."""
+        """Skills base dir constant is kept for backward compatibility."""
         writer = SkillWriter(local_root="/tmp")
         assert writer.skills_base == "/bin/skills"
 
