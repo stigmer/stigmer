@@ -348,6 +348,23 @@ message ToolCall {
   //   - SKIP: Tool returns skip message, execution continues
   //   - REJECT: Execution fails with rejection error
   ApprovalAction approval_action = 15;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Streaming State Fields
+  //
+  // These fields track tool output generation progress.
+  // Mirrors AgentMessage.is_streaming for consistency.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // True while the tool is actively producing output, false when complete.
+  // Mirrors AgentMessage.is_streaming for consistency.
+  // Enables UI to show live output during long-running tool executions.
+  //
+  // When true, `result` contains partial output accumulated so far.
+  // When false (default), `result` contains the final complete output.
+  // Consumers always read `result` — this flag only signals whether
+  // more content is expected.
+  bool is_streaming = 16;
 }
 
 // Metadata to guide frontend UI component rendering for tool calls.

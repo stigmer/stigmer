@@ -114,7 +114,7 @@ class AgentMessage(_message.Message):
     def __init__(self, type: _Optional[_Union[_enum_pb2.MessageType, str]] = ..., content: _Optional[str] = ..., timestamp: _Optional[str] = ..., tool_calls: _Optional[_Iterable[_Union[ToolCall, _Mapping]]] = ..., metadata: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., is_streaming: bool = ..., token_count: _Optional[int] = ..., generation_duration_ms: _Optional[int] = ...) -> None: ...
 
 class ToolCall(_message.Message):
-    __slots__ = ("id", "name", "args", "result", "status", "component_metadata", "started_at", "completed_at", "error", "requires_approval", "approval_message", "approval_requested_at", "approval_decided_at", "approved_by", "approval_action")
+    __slots__ = ("id", "name", "args", "result", "status", "component_metadata", "started_at", "completed_at", "error", "requires_approval", "approval_message", "approval_requested_at", "approval_decided_at", "approved_by", "approval_action", "is_streaming")
     ID_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
     ARGS_FIELD_NUMBER: _ClassVar[int]
@@ -130,6 +130,7 @@ class ToolCall(_message.Message):
     APPROVAL_DECIDED_AT_FIELD_NUMBER: _ClassVar[int]
     APPROVED_BY_FIELD_NUMBER: _ClassVar[int]
     APPROVAL_ACTION_FIELD_NUMBER: _ClassVar[int]
+    IS_STREAMING_FIELD_NUMBER: _ClassVar[int]
     id: str
     name: str
     args: _struct_pb2.Struct
@@ -145,7 +146,8 @@ class ToolCall(_message.Message):
     approval_decided_at: str
     approved_by: str
     approval_action: ApprovalAction
-    def __init__(self, id: _Optional[str] = ..., name: _Optional[str] = ..., args: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., result: _Optional[str] = ..., status: _Optional[_Union[_enum_pb2.ToolCallStatus, str]] = ..., component_metadata: _Optional[_Union[ComponentMetadata, _Mapping]] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., error: _Optional[str] = ..., requires_approval: bool = ..., approval_message: _Optional[str] = ..., approval_requested_at: _Optional[str] = ..., approval_decided_at: _Optional[str] = ..., approved_by: _Optional[str] = ..., approval_action: _Optional[_Union[ApprovalAction, str]] = ...) -> None: ...
+    is_streaming: bool
+    def __init__(self, id: _Optional[str] = ..., name: _Optional[str] = ..., args: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., result: _Optional[str] = ..., status: _Optional[_Union[_enum_pb2.ToolCallStatus, str]] = ..., component_metadata: _Optional[_Union[ComponentMetadata, _Mapping]] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., error: _Optional[str] = ..., requires_approval: bool = ..., approval_message: _Optional[str] = ..., approval_requested_at: _Optional[str] = ..., approval_decided_at: _Optional[str] = ..., approved_by: _Optional[str] = ..., approval_action: _Optional[_Union[ApprovalAction, str]] = ..., is_streaming: bool = ...) -> None: ...
 
 class ComponentMetadata(_message.Message):
     __slots__ = ("component_type", "component_group", "layout_hint", "metadata")

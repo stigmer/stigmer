@@ -232,6 +232,8 @@ class StatusBuilder:
             self._handle_chat_model_stream_event(event, namespace)
         elif event_type == "on_chat_model_end":
             self._handle_chat_model_end_event(event, namespace)
+        elif event_type == "on_custom_event" and event.get("name") == "tool_progress":
+            self._handle_tool_progress_event(event, namespace)
     
     def _handle_tool_start_event(self, event: dict[str, Any], namespace: str = "") -> None:
         """Handle on_tool_start event - updates local status."""
@@ -377,6 +379,51 @@ class StatusBuilder:
                 sub_agent_name=sub_agent_name,
             )
     
+    def _handle_tool_progress_event(self, event: dict[str, Any], namespace: str = "") -> None:
+        """Handle on_custom_event with name='tool_progress'.
+        
+        Appends a progress chunk to the ToolCall's result field and sets
+        is_streaming=True. This enables live output streaming for tools
+        that support progressive output (e.g., execute/shell stdout).
+        
+        The run_id is read from the event-level field (same as on_tool_start/
+        on_tool_end) — NOT from the data payload. dispatch_custom_event called
+        within a @tool function inherits the tool's run context, so the run_id
+        automatically matches.
+        
+        Expected event structure:
+            {
+                "event": "on_custom_event",
+                "name": "tool_progress",
+                "run_id": str,           # Inherited from tool's run context
+                "data": {"chunk": str},  # Partial output to append
+            }
+        """
+        run_id = event.get("run_id", "")
+        chunk = event.get("data", {}).get("chunk", "")
+        
+        if not run_id or not chunk:
+            return
+        
+        # Find the ToolCall by run_id and update it.
+        # Uses _find_tool_call_by_id which searches both main agent and sub-agents.
+        tool_call = self._find_tool_call_by_id(run_id)
+        if tool_call is None:
+            self.logger.debug(
+                f"[TOOL_PROGRESS] execution={self.execution_id} "
+                f"run_id={run_id} ignored (tool call not found)"
+            )
+            return
+        
+        tool_call.result += chunk
+        tool_call.is_streaming = True
+        
+        self.logger.debug(
+            f"[TOOL_PROGRESS] execution={self.execution_id} "
+            f"run_id={run_id} chunk_len={len(chunk)} "
+            f"total_len={len(tool_call.result)}"
+        )
+    
     def _handle_tool_end_event(self, event: dict[str, Any], namespace: str = "") -> None:
         """Handle on_tool_end event - updates local status with COMPLETED status."""
         tool_name = event.get("name", "")
@@ -418,6 +465,7 @@ class StatusBuilder:
                     tc.result = tool_result_content
                     tc.status = ToolCallStatus.TOOL_CALL_COMPLETED
                     tc.completed_at = _utc_timestamp(now)
+                    tc.is_streaming = False
                     # Update message content for CLI display
                     message.content = self._format_tool_message_content(
                         tool_name, tc.args, tool_result_content
@@ -430,6 +478,7 @@ class StatusBuilder:
                     tool_call.result = tool_result_content
                     tool_call.status = ToolCallStatus.TOOL_CALL_COMPLETED
                     tool_call.completed_at = _utc_timestamp(now)
+                    tool_call.is_streaming = False
                     break
             
             self.logger.debug(
@@ -448,6 +497,7 @@ class StatusBuilder:
                     tc.result = tool_result_content
                     tc.status = ToolCallStatus.TOOL_CALL_COMPLETED
                     tc.completed_at = _utc_timestamp(now)
+                    tc.is_streaming = False
                     # Update message content for CLI display
                     message.content = self._format_tool_message_content(
                         tool_name, tc.args, tool_result_content
@@ -460,6 +510,7 @@ class StatusBuilder:
                     tool_call.result = tool_result_content
                     tool_call.status = ToolCallStatus.TOOL_CALL_COMPLETED
                     tool_call.completed_at = _utc_timestamp(now)
+                    tool_call.is_streaming = False
                     break
             
             self.logger.debug(

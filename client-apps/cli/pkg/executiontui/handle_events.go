@@ -1,6 +1,10 @@
 package executiontui
 
-import tea "github.com/charmbracelet/bubbletea"
+import (
+	tea "github.com/charmbracelet/bubbletea"
+
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
+)
 
 // handleExecutionEvent dispatches a single execution event to the appropriate
 // handler based on its concrete type.
@@ -36,6 +40,30 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 		preview := renderToolResultPreview(e.Content, e.ToolCalls)
 		full := renderToolResultExpanded(e.Content, e.ToolCalls)
 		m.blocks = append(m.blocks, newToolCallBlock(preview, full))
+
+	case ToolRunningEvent:
+		block := newRunningToolBlock(renderToolRunning(e.ToolCall))
+		m.blocks = append(m.blocks, block)
+		m.runningTools[e.ToolCallID] = len(m.blocks) - 1
+
+	case ToolCompletedEvent:
+		tc := e.ToolCall
+		preview := renderToolResultPreview("", []toolrender.ToolCallInfo{tc})
+		full := renderToolResultExpanded("", []toolrender.ToolCallInfo{tc})
+		if idx, ok := m.runningTools[e.ToolCallID]; ok && idx < len(m.blocks) {
+			// Replace the running block in-place with the final expandable result.
+			m.blocks[idx] = newToolCallBlock(preview, full)
+			delete(m.runningTools, e.ToolCallID)
+		} else {
+			// Safety fallback: if no running block was tracked, append new block.
+			m.blocks = append(m.blocks, newToolCallBlock(preview, full))
+		}
+
+	case ToolStreamDeltaEvent:
+		if idx, ok := m.runningTools[e.ToolCallID]; ok && idx < len(m.blocks) {
+			// Update the running tool block in-place with the streaming content.
+			m.blocks[idx].content = renderStreamingTool(e.ToolCall, e.Content)
+		}
 
 	case SystemMessageEvent:
 		m.blocks = append(m.blocks, newSystemBlock(renderSystemContent(e.Content)))

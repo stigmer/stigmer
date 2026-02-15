@@ -15,6 +15,7 @@ var (
 	systemStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 	phaseStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
 	errorStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Bold(true)
+	dimStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 )
 
 // renderAIContent formats an AI message for display.
@@ -85,6 +86,50 @@ func renderToolResultExpanded(content string, toolCalls []toolrender.ToolCallInf
 		return toolrender.RenderResultWithPreview(content)
 	}
 	return toolrender.RenderResultWithPreview(content) + "\n" + content
+}
+
+// renderToolRunning formats a tool call in running state with a liveness indicator.
+func renderToolRunning(tc toolrender.ToolCallInfo) string {
+	return toolrender.RenderRunning(tc)
+}
+
+// renderStreamingTool formats a tool call that is actively streaming output.
+// Shows the tool header with a running indicator, followed by a gutter-bordered
+// preview of the streaming content with a cursor indicator.
+//
+// Example:
+//
+//	📝 Write: agent-drafter/SKILL.md ⏳
+//	     │ # Agent Drafter
+//	     │ Guide for creating valid Stigmer Agent YAML files...▍
+func renderStreamingTool(tc toolrender.ToolCallInfo, streamContent string) string {
+	header := toolrender.RenderRunning(tc)
+
+	if streamContent == "" {
+		return header
+	}
+
+	// Show at most the last N lines of streaming content to keep the
+	// viewport from being overwhelmed by very long outputs.
+	const maxPreviewLines = 8
+	lines := strings.Split(streamContent, "\n")
+	start := 0
+	if len(lines) > maxPreviewLines {
+		start = len(lines) - maxPreviewLines
+	}
+
+	// Format with gutter border (same visual language as file preview blocks).
+	var gutterLines []string
+	for _, line := range lines[start:] {
+		gutterLines = append(gutterLines, dimStyle.Render("     │ ")+line)
+	}
+
+	// Add streaming cursor to the last line.
+	if len(gutterLines) > 0 {
+		gutterLines[len(gutterLines)-1] += "▍"
+	}
+
+	return header + "\n" + strings.Join(gutterLines, "\n")
 }
 
 // renderSystemContent formats a system message with dimmed styling.

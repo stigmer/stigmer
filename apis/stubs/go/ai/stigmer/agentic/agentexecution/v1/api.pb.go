@@ -715,8 +715,17 @@ type ToolCall struct {
 	//   - SKIP: Tool returns skip message, execution continues
 	//   - REJECT: Execution fails with rejection error
 	ApprovalAction ApprovalAction `protobuf:"varint,15,opt,name=approval_action,json=approvalAction,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ApprovalAction" json:"approval_action,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// True while the tool is actively producing output, false when complete.
+	// Mirrors AgentMessage.is_streaming for consistency.
+	// Enables UI to show live output during long-running tool executions.
+	//
+	// When true, `result` contains partial output accumulated so far.
+	// When false (default), `result` contains the final complete output.
+	// Consumers always read `result` — this flag only signals whether
+	// more content is expected.
+	IsStreaming   bool `protobuf:"varint,16,opt,name=is_streaming,json=isStreaming,proto3" json:"is_streaming,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ToolCall) Reset() {
@@ -852,6 +861,13 @@ func (x *ToolCall) GetApprovalAction() ApprovalAction {
 		return x.ApprovalAction
 	}
 	return ApprovalAction_APPROVAL_ACTION_UNSPECIFIED
+}
+
+func (x *ToolCall) GetIsStreaming() bool {
+	if x != nil {
+		return x.IsStreaming
+	}
+	return false
 }
 
 // Metadata to guide frontend UI component rendering for tool calls.
@@ -2191,7 +2207,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\fis_streaming\x18\x06 \x01(\bR\visStreaming\x12\x1f\n" +
 	"\vtoken_count\x18\a \x01(\x05R\n" +
 	"tokenCount\x124\n" +
-	"\x16generation_duration_ms\x18\b \x01(\x05R\x14generationDurationMs\"\xc7\x05\n" +
+	"\x16generation_duration_ms\x18\b \x01(\x05R\x14generationDurationMs\"\xea\x05\n" +
 	"\bToolCall\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12+\n" +
@@ -2210,7 +2226,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x13approval_decided_at\x18\r \x01(\tR\x11approvalDecidedAt\x12\x1f\n" +
 	"\vapproved_by\x18\x0e \x01(\tR\n" +
 	"approvedBy\x12]\n" +
-	"\x0fapproval_action\x18\x0f \x01(\x0e24.ai.stigmer.agentic.agentexecution.v1.ApprovalActionR\x0eapprovalAction\"\xb9\x01\n" +
+	"\x0fapproval_action\x18\x0f \x01(\x0e24.ai.stigmer.agentic.agentexecution.v1.ApprovalActionR\x0eapprovalAction\x12!\n" +
+	"\fis_streaming\x18\x10 \x01(\bR\visStreaming\"\xb9\x01\n" +
 	"\x11ComponentMetadata\x12%\n" +
 	"\x0ecomponent_type\x18\x01 \x01(\tR\rcomponentType\x12'\n" +
 	"\x0fcomponent_group\x18\x02 \x01(\tR\x0ecomponentGroup\x12\x1f\n" +

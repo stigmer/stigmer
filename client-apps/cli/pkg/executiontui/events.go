@@ -84,6 +84,23 @@ type ToolCompletedEvent struct {
 
 func (ToolCompletedEvent) isEvent() {}
 
+// ToolStreamDeltaEvent carries the full accumulated content of an in-progress
+// streaming tool call. Emitted when a running tool has is_streaming=true and
+// its result content has changed since the last update.
+//
+// The TUI replaces the current running tool block content with this value,
+// mirroring the pattern used by AIStreamDeltaEvent for AI message streaming.
+type ToolStreamDeltaEvent struct {
+	// ToolCallID is the unique identifier for this tool call.
+	ToolCallID string
+	// ToolCall carries the current tool info (name, args, status).
+	ToolCall toolrender.ToolCallInfo
+	// Content is the full accumulated streaming output so far.
+	Content string
+}
+
+func (ToolStreamDeltaEvent) isEvent() {}
+
 // SystemMessageEvent represents a system/informational message.
 // Content is already sanitized by the caller.
 type SystemMessageEvent struct {
