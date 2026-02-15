@@ -10,8 +10,12 @@ from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
     AgentExecution,
     AgentExecutionStatus,
     ApprovalAction,
+    PendingApproval,
 )
-from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase
+from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
+    ExecutionPhase,
+    ToolCallStatus,
+)
 from graphton import SummarizationConfig, create_deep_agent
 from graphton.core import ModelRegistry
 from temporalio import activity
@@ -1162,29 +1166,96 @@ async def _execute_graphton_impl(
         )
         
         # ─────────────────────────────────────────────────────────────────────────────
-        # Step 7.5: Check for Resume from HITL Approval (Phase 3B)
+        # Step 7.5: Check for Resume from HITL Approval (Batch Approval)
         #
-        # If the execution was previously interrupted for approval (WAITING_FOR_APPROVAL),
-        # and a decision has been submitted, we need to resume the graph with that decision.
+        # If the execution was previously interrupted for approval
+        # (WAITING_FOR_APPROVAL) and decisions have been submitted, we resume the
+        # graph with those decisions.
         #
-        # Flow:
-        # 1. Initial run: Tool calls interrupt(), execution pauses at WAITING_FOR_APPROVAL
-        # 2. User submits decision via SubmitApproval RPC
-        # 3. Temporal workflow re-invokes this activity
-        # 4. We detect pending_approval + approval_action and resume with Command(resume=...)
+        # With **Batch Approval**, the LLM may have issued N tool calls that each
+        # required approval.  All N decisions are collected before the Temporal
+        # workflow re-invokes this activity.  We build a dict that maps each
+        # LangGraph interrupt_id to its decision value and pass it as a single
+        #   Command(resume={id_A: decision_A, id_B: decision_B, ...})
+        # so the graph processes every interrupt in one re-execution of the
+        # tools node — avoiding repeated node re-runs and idempotency issues.
+        #
+        # Backward compatibility: if only the singular pending_approval is set
+        # (legacy path — no interrupt_id), we fall back to the original
+        #   Command(resume=single_decision)
+        # which works when there is exactly one pending interrupt.
         # ─────────────────────────────────────────────────────────────────────────────
         
-        resume_decision = None
+        resume_decision: dict[str, Any] | None = None
         is_resume_from_approval = False
         
-        # Check if this is a resume from a pending approval
-        if execution.status.pending_approval.tool_call_id:
+        # Proto enum → action string for interrupt resume values
+        _action_map = {
+            ApprovalAction.APPROVAL_ACTION_APPROVE: "approve",
+            ApprovalAction.APPROVAL_ACTION_SKIP: "skip",
+            ApprovalAction.APPROVAL_ACTION_REJECT: "reject",
+        }
+        
+        # --- Batch path (preferred): pending_approvals with interrupt_ids --------
+        if len(execution.status.pending_approvals) > 0:
+            resume_dict: dict[str, dict[str, str]] = {}
+            
+            for pa in execution.status.pending_approvals:
+                # Look up the tool call's decision
+                approval_action = ApprovalAction.APPROVAL_ACTION_UNSPECIFIED
+                approved_by = ""
+                for tc in execution.status.tool_calls:
+                    if tc.id == pa.tool_call_id:
+                        approval_action = tc.approval_action
+                        approved_by = tc.approved_by
+                        break
+                
+                if approval_action == ApprovalAction.APPROVAL_ACTION_UNSPECIFIED:
+                    # Not all decisions have been submitted — this shouldn't
+                    # happen because the workflow only resumes when all are
+                    # decided, but handle gracefully.
+                    activity_logger.warning(
+                        f"⚠️ pending_approvals entry tool_call_id={pa.tool_call_id} "
+                        f"has no decision yet. Skipping batch resume."
+                    )
+                    resume_dict = {}
+                    break
+                
+                action_str = _action_map.get(approval_action, "unknown")
+                decision_value = {"action": action_str, "approved_by": approved_by}
+                
+                if pa.interrupt_id:
+                    # Batch path: map interrupt_id → decision
+                    resume_dict[pa.interrupt_id] = decision_value
+                else:
+                    # Legacy entry without interrupt_id — fall back to single-
+                    # decision resume below.
+                    activity_logger.warning(
+                        f"⚠️ pending_approvals entry tool_call_id={pa.tool_call_id} "
+                        f"has no interrupt_id. Falling back to single resume."
+                    )
+                    resume_dict = {}
+                    break
+            
+            if resume_dict:
+                is_resume_from_approval = True
+                resume_decision = resume_dict
+                activity_logger.info(
+                    f"🔄 Batch resume from {len(resume_dict)} approval(s) for "
+                    f"execution {execution_id}: "
+                    + ", ".join(
+                        f"interrupt_id={iid} action={d['action']}"
+                        for iid, d in resume_dict.items()
+                    )
+                )
+        
+        # --- Legacy path: singular pending_approval (no interrupt_id) ------------
+        if not is_resume_from_approval and execution.status.pending_approval.tool_call_id:
             pending_tool_call_id = execution.status.pending_approval.tool_call_id
             activity_logger.info(
-                f"Detected pending approval for tool_call_id={pending_tool_call_id}"
+                f"Detected legacy pending approval for tool_call_id={pending_tool_call_id}"
             )
             
-            # Find the tool call with this ID to get the approval decision
             approval_action = ApprovalAction.APPROVAL_ACTION_UNSPECIFIED
             approved_by = ""
             
@@ -1194,32 +1265,28 @@ async def _execute_graphton_impl(
                     approved_by = tool_call.approved_by
                     break
             
-            # If we found an approval decision (not UNSPECIFIED), this is a resume
             if approval_action != ApprovalAction.APPROVAL_ACTION_UNSPECIFIED:
                 is_resume_from_approval = True
+                action_str = _action_map.get(approval_action, "unknown")
                 
-                # Map proto enum to action string for interrupt resume
-                action_map = {
-                    ApprovalAction.APPROVAL_ACTION_APPROVE: "approve",
-                    ApprovalAction.APPROVAL_ACTION_SKIP: "skip",
-                    ApprovalAction.APPROVAL_ACTION_REJECT: "reject",
-                }
-                action_str = action_map.get(approval_action, "unknown")
+                # If interrupt_id is available, use the dict form; otherwise bare value
+                interrupt_id = execution.status.pending_approval.interrupt_id
+                decision_value = {"action": action_str, "approved_by": approved_by}
                 
-                resume_decision = {
-                    "action": action_str,
-                    "approved_by": approved_by,
-                }
+                if interrupt_id:
+                    resume_decision = {interrupt_id: decision_value}
+                else:
+                    resume_decision = decision_value
                 
                 activity_logger.info(
-                    f"🔄 Resuming from approval: tool_call_id={pending_tool_call_id}, "
-                    f"action={action_str}, approved_by={approved_by}"
+                    f"🔄 Resuming from legacy approval: tool_call_id={pending_tool_call_id}, "
+                    f"action={action_str}, approved_by={approved_by}, "
+                    f"interrupt_id={'(set)' if interrupt_id else '(none)'}"
                 )
             else:
-                # Pending approval exists but no decision yet - this shouldn't happen
-                # in normal flow, but handle gracefully
                 activity_logger.warning(
-                    f"⚠️ Pending approval found but no decision set for tool_call_id={pending_tool_call_id}. "
+                    f"⚠️ Pending approval found but no decision set for "
+                    f"tool_call_id={pending_tool_call_id}. "
                     "This may indicate a workflow timing issue. Proceeding with fresh execution."
                 )
         
@@ -1249,14 +1316,30 @@ async def _execute_graphton_impl(
         # Determine graph input based on whether this is a resume or fresh execution
         graph_input: Any  # Command[Any] | dict — depends on resume vs fresh execution
         if is_resume_from_approval and resume_decision is not None:
-            # Resume from approval: use Command(resume=decision) to continue from interrupt
+            # Resume from approval: use Command(resume=decision) to continue from
+            # interrupt(s).  resume_decision is either:
+            #   - dict[str, dict]: {interrupt_id -> decision} for batch / targeted resume
+            #   - dict with "action" key: bare single-decision value (legacy)
             from langgraph.types import Command
             
             graph_input = Command(resume=resume_decision)
-            activity_logger.info(
-                f"🔄 Resuming Graphton agent from approval for execution {execution_id} "
-                f"(decision={resume_decision['action']})"
-            )
+            
+            # Build a human-readable summary for logging
+            if isinstance(resume_decision, dict) and "action" not in resume_decision:
+                # Batch form: {interrupt_id: decision, ...}
+                summary = ", ".join(
+                    f"{iid[:12]}...={d.get('action', '?')}"
+                    for iid, d in resume_decision.items()
+                )
+                activity_logger.info(
+                    f"🔄 Resuming Graphton agent (batch) for execution {execution_id} "
+                    f"({len(resume_decision)} interrupt(s): {summary})"
+                )
+            else:
+                activity_logger.info(
+                    f"🔄 Resuming Graphton agent (legacy) for execution {execution_id} "
+                    f"(decision={resume_decision.get('action', '?')})"
+                )
         else:
             # Fresh execution: use normal input
             graph_input = langgraph_input
@@ -1483,6 +1566,100 @@ async def _execute_graphton_impl(
         # Finalize context info before returning (Phase 3)
         # Copies accumulated context info and summarization events to status proto
         status_builder.finalize_context_info()
+        
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Post-Stream Interrupt Capture (Batch Approval — Multiple Interrupts)
+        #
+        # When the event stream ends because of interrupt() calls, LangGraph has
+        # already checkpointed the graph state with pending interrupts.  We query
+        # the graph state to discover ALL pending interrupts (there may be more
+        # than one when the LLM issued multiple tool calls that each require
+        # approval).
+        #
+        # For every interrupt we build a PendingApproval proto with the
+        # LangGraph-assigned interrupt_id.  This enables the resume logic to
+        # construct Command(resume={id_A: decision_A, ...}) which LangGraph
+        # requires when multiple interrupts coexist.
+        #
+        # The singular pending_approval field is also set (first entry) for
+        # backward compatibility with older CLI versions.
+        # ─────────────────────────────────────────────────────────────────────────────
+        if status_builder.current_status.phase == ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL:
+            try:
+                graph_state = await agent_graph.aget_state(config)
+                
+                if graph_state and graph_state.interrupts:
+                    pending_approvals: list[PendingApproval] = []
+                    matched_tc_ids: set[str] = set()
+                    
+                    for intr in graph_state.interrupts:
+                        intr_value = intr.value if hasattr(intr, "value") else {}
+                        tool_name = intr_value.get("tool_name", "") if isinstance(intr_value, dict) else ""
+                        tool_args = intr_value.get("tool_args", {}) if isinstance(intr_value, dict) else {}
+                        message = intr_value.get("message", "") if isinstance(intr_value, dict) else ""
+                        from_sub_agent = intr_value.get("from_sub_agent", False) if isinstance(intr_value, dict) else False
+                        sub_agent_name = intr_value.get("sub_agent_name", "") if isinstance(intr_value, dict) else ""
+                        
+                        # Match interrupt to a tool call by tool_name + WAITING_APPROVAL
+                        # status. Track already-matched IDs to handle multiple calls to
+                        # the same tool (e.g., two writes to different files).
+                        matched_tool_call_id = ""
+                        for tc in status_builder.current_status.tool_calls:
+                            if (
+                                tc.name == tool_name
+                                and tc.status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
+                                and tc.id not in matched_tc_ids
+                            ):
+                                matched_tool_call_id = tc.id
+                                matched_tc_ids.add(tc.id)
+                                break
+                        
+                        # Create args preview via StatusBuilder's sanitiser
+                        args_preview = status_builder._create_args_preview(tool_args)
+                        
+                        pa = PendingApproval(
+                            tool_call_id=matched_tool_call_id,
+                            tool_name=tool_name,
+                            message=message,
+                            args_preview=args_preview,
+                            requested_at=_utc_timestamp(),
+                            from_sub_agent=from_sub_agent,
+                            sub_agent_name=sub_agent_name,
+                            interrupt_id=intr.id,
+                        )
+                        pending_approvals.append(pa)
+                    
+                    if pending_approvals:
+                        # Populate the repeated field with all pending approvals
+                        del status_builder.current_status.pending_approvals[:]
+                        status_builder.current_status.pending_approvals.extend(pending_approvals)
+                        
+                        # Backward compat: set the singular field to the first entry
+                        status_builder.current_status.pending_approval.CopyFrom(pending_approvals[0])
+                        
+                        activity_logger.info(
+                            f"[INTERRUPT_CAPTURE] execution={execution_id} "
+                            f"captured {len(pending_approvals)} pending interrupt(s): "
+                            + ", ".join(
+                                f"tool={pa.tool_name} interrupt_id={pa.interrupt_id}"
+                                for pa in pending_approvals
+                            )
+                        )
+                else:
+                    activity_logger.debug(
+                        f"[INTERRUPT_CAPTURE] execution={execution_id} "
+                        f"WAITING_FOR_APPROVAL phase but no interrupts in graph state. "
+                        f"Falling back to status_builder's pending_approval."
+                    )
+            except Exception as capture_err:
+                # Non-fatal: if we can't capture interrupt IDs, fall back to the
+                # status_builder's existing pending_approval (which may lack
+                # interrupt_id but will still work for single-interrupt scenarios).
+                activity_logger.warning(
+                    f"[INTERRUPT_CAPTURE] execution={execution_id} "
+                    f"failed to capture interrupt IDs from graph state: {capture_err}. "
+                    f"Falling back to status_builder's pending_approval."
+                )
         
         # Determine final phase based on current state.
         #

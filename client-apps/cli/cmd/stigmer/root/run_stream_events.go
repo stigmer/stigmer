@@ -64,23 +64,43 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 			cfg.events, messages, displayedCount, inStream,
 		)
 
-		// --- Step 2: Tool-call-level approval detection (defense-in-depth) ---
-		if tc := findUnpromptedApproval(execution.Status.ToolCalls, promptedIDs); tc != nil {
-			pa := execution.Status.GetPendingApproval()
-			emitAndWaitApproval(ctx, cfg, tc, pa, promptedIDs)
+		// --- Step 2: Batch approval detection (primary track) ---
+		//
+		// With batch approval, pending_approvals may contain multiple entries
+		// (one per interrupted tool call). We iterate over ALL of them and
+		// prompt the user for each before proceeding to stream.Recv(), because
+		// the backend will not send new updates until every pending approval
+		// has a decision.
+		//
+		// Falls back to the singular pending_approval for backward compat.
+		if pendingApprovals := execution.Status.GetPendingApprovals(); len(pendingApprovals) > 0 {
+			for _, pa := range pendingApprovals {
+				if pa.ToolCallId == "" || promptedIDs[pa.ToolCallId] {
+					continue
+				}
+				tc := findToolCallByID(execution.Status.ToolCalls, pa.ToolCallId)
+				emitAndWaitApproval(ctx, cfg, tc, pa, promptedIDs)
+			}
 			lastPhase = execution.Status.Phase
-		}
+		} else {
+			// --- Legacy: Tool-call-level approval detection (defense-in-depth) ---
+			if tc := findUnpromptedApproval(execution.Status.ToolCalls, promptedIDs); tc != nil {
+				pa := execution.Status.GetPendingApproval()
+				emitAndWaitApproval(ctx, cfg, tc, pa, promptedIDs)
+				lastPhase = execution.Status.Phase
+			}
 
-		// --- Step 3: Phase-level approval detection (primary track) ---
-		if needsAgentApprovalPrompt(
-			execution.Status.Phase,
-			execution.Status.GetPendingApproval(),
-			promptedIDs,
-		) {
-			pa := execution.Status.GetPendingApproval()
-			tc := findToolCallByID(execution.Status.ToolCalls, pa.ToolCallId)
-			emitAndWaitApproval(ctx, cfg, tc, pa, promptedIDs)
-			lastPhase = execution.Status.Phase
+			// --- Legacy: Phase-level approval detection (primary track) ---
+			if needsAgentApprovalPrompt(
+				execution.Status.Phase,
+				execution.Status.GetPendingApproval(),
+				promptedIDs,
+			) {
+				pa := execution.Status.GetPendingApproval()
+				tc := findToolCallByID(execution.Status.ToolCalls, pa.ToolCallId)
+				emitAndWaitApproval(ctx, cfg, tc, pa, promptedIDs)
+				lastPhase = execution.Status.Phase
+			}
 		}
 
 		// --- Step 4: Phase change events ---

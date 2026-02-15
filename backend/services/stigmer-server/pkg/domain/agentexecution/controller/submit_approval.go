@@ -213,28 +213,58 @@ func (s *validateApprovalStep) Execute(ctx *pipeline.RequestContext[*agentexecut
 		)
 	}
 
-	// Validate pending_approval exists
-	if pendingApproval == nil {
+	// Validate tool_call_id against pending approvals.
+	//
+	// With batch approval, pending_approvals (repeated) is the authoritative
+	// source. Fall back to the singular pending_approval for backward
+	// compatibility with executions created before the batch-approval change.
+	pendingApprovals := execution.GetStatus().GetPendingApprovals()
+
+	if len(pendingApprovals) > 0 {
+		// Batch path: tool_call_id must match ANY entry in pending_approvals
+		found := false
+		for _, pa := range pendingApprovals {
+			if pa.GetToolCallId() == requestedToolCallId {
+				found = true
+				break
+			}
+		}
+		if !found {
+			validIDs := make([]string, 0, len(pendingApprovals))
+			for _, pa := range pendingApprovals {
+				validIDs = append(validIDs, pa.GetToolCallId())
+			}
+			log.Debug().
+				Str("execution_id", executionID).
+				Str("requested_tool_call_id", requestedToolCallId).
+				Strs("valid_tool_call_ids", validIDs).
+				Msg("Tool call ID not found in pending_approvals")
+			return grpclib.InvalidArgumentError(
+				"tool_call_id %s not found in pending_approvals for execution %s",
+				requestedToolCallId, executionID,
+			)
+		}
+	} else if pendingApproval != nil {
+		// Legacy path: singular pending_approval
+		expectedToolCallId := pendingApproval.GetToolCallId()
+		if requestedToolCallId != expectedToolCallId {
+			log.Debug().
+				Str("execution_id", executionID).
+				Str("requested_tool_call_id", requestedToolCallId).
+				Str("expected_tool_call_id", expectedToolCallId).
+				Msg("Tool call ID mismatch")
+			return grpclib.InvalidArgumentError(
+				"tool_call_id %s does not match pending approval tool_call_id %s",
+				requestedToolCallId, expectedToolCallId,
+			)
+		}
+	} else {
 		log.Debug().
 			Str("execution_id", executionID).
 			Msg("No pending approval on execution")
 		return grpclib.FailedPreconditionError(
 			"execution %s has no pending approval",
 			executionID,
-		)
-	}
-
-	// Validate tool_call_id matches
-	expectedToolCallId := pendingApproval.GetToolCallId()
-	if requestedToolCallId != expectedToolCallId {
-		log.Debug().
-			Str("execution_id", executionID).
-			Str("requested_tool_call_id", requestedToolCallId).
-			Str("expected_tool_call_id", expectedToolCallId).
-			Msg("Tool call ID mismatch")
-		return grpclib.InvalidArgumentError(
-			"tool_call_id %s does not match pending approval tool_call_id %s",
-			requestedToolCallId, expectedToolCallId,
 		)
 	}
 
