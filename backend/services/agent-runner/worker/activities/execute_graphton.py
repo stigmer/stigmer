@@ -56,6 +56,60 @@ from worker.token_manager import get_api_key
 from worker.tools import create_publish_artifact_tool
 
 
+class SetupTimer:
+    """Lightweight timer for measuring and logging setup phase durations.
+    
+    Tracks cumulative time across all setup phases and logs each phase's
+    duration. Designed for diagnosing slow activity startup, especially on
+    the resume-after-approval path where full setup re-execution is costly.
+    
+    Usage::
+    
+        timer = SetupTimer(logger)
+        timer.start("chain_resolution")
+        # ... do work ...
+        timer.stop()  # logs duration
+        timer.log_total()  # logs cumulative time
+    """
+
+    def __init__(self, logger) -> None:
+        self._logger = logger
+        self._phases: list[tuple[str, float]] = []  # (phase_name, duration_ms)
+        self._current_phase: str | None = None
+        self._phase_start: float = 0.0
+        self._overall_start: float = time.monotonic()
+
+    def start(self, phase_name: str) -> None:
+        """Begin timing a setup phase. Stops the previous phase if still running."""
+        if self._current_phase is not None:
+            self.stop()
+        self._current_phase = phase_name
+        self._phase_start = time.monotonic()
+
+    def stop(self) -> float:
+        """Stop the current phase, log its duration, and return elapsed ms."""
+        if self._current_phase is None:
+            return 0.0
+        elapsed_ms = (time.monotonic() - self._phase_start) * 1000
+        self._phases.append((self._current_phase, elapsed_ms))
+        self._logger.info(
+            f"[SETUP] {self._current_phase} completed in {elapsed_ms:.0f}ms"
+        )
+        self._current_phase = None
+        return elapsed_ms
+
+    def log_total(self) -> None:
+        """Log cumulative setup time and per-phase breakdown."""
+        total_ms = (time.monotonic() - self._overall_start) * 1000
+        breakdown = ", ".join(
+            f"{name}={dur:.0f}ms" for name, dur in self._phases
+        )
+        self._logger.info(
+            f"[SETUP] Total setup completed in {total_ms:.0f}ms — "
+            f"phases: [{breakdown}]"
+        )
+
+
 def heartbeat_during_setup(phase_name: str, details: dict | None = None) -> None:
     """Send heartbeat with setup phase info to prevent timeout during initialization.
     
@@ -382,6 +436,27 @@ async def _execute_graphton_impl(
             f"First attempt (attempt={attempt}): using thread_id={thread_id}"
         )
     
+    # ─────────────────────────────────────────────────────────────────────────────
+    # Resume-Aware Logging
+    #
+    # When re-invoked after approval, emit a prominent log banner so operators
+    # can immediately distinguish fresh executions from resume paths in logs.
+    # ─────────────────────────────────────────────────────────────────────────────
+    is_resume = bool(approval_decisions)
+    if is_resume:
+        activity_logger.info("=" * 80)
+        activity_logger.info(
+            f"🔄 [RESUME] ExecuteGraphton re-invoked after approval for "
+            f"execution={execution_id}, thread_id={thread_id}, "
+            f"decisions={len(approval_decisions)}, attempt={attempt}"
+        )
+        activity_logger.info("=" * 80)
+    
+    # Initialize setup timer for phase-aware duration tracking.
+    # On the resume path this is especially valuable because the full setup
+    # re-execution is the most common source of unexplained latency.
+    setup_timer = SetupTimer(activity_logger)
+    
     # Get API key (for gRPC calls to Stigmer backend)
     api_key = get_api_key()
     if not api_key:
@@ -402,6 +477,7 @@ async def _execute_graphton_impl(
     # state because the activity sends progressive gRPC status updates during
     # execution.
     # ─────────────────────────────────────────────────────────────────────────────
+    setup_timer.start("execution_fetch")
     activity_logger.info(f"Fetching execution {execution_id} from database via gRPC")
     execution = await execution_client.get(execution_id)
     
@@ -436,6 +512,7 @@ async def _execute_graphton_impl(
     
     try:
         # Step 1: Resolve the full chain: execution → session → agent_instance → agent
+        setup_timer.start("chain_resolution")
         activity_logger.info(f"Resolving execution chain for execution: {execution_id}")
         
         # 1a. Get session from execution
@@ -474,6 +551,7 @@ async def _execute_graphton_impl(
         })
         
         # Step 2: Get worker configuration (for sandbox and LLM config)
+        setup_timer.start("config_and_checkpointer")
         from worker.config import Config
         worker_config = Config.load_from_env()
         
@@ -566,6 +644,7 @@ async def _execute_graphton_impl(
             )
         
         # Get sandbox configuration from worker config
+        setup_timer.start("sandbox")
         sandbox_config = worker_config.get_sandbox_config()
         
         activity_logger.info(
@@ -625,6 +704,14 @@ async def _execute_graphton_impl(
         # - Skills are written to bin/skills/{name}/ in the sandbox
         # - Only metadata (name + description + location) injected into prompt
         # - Agent reads SKILL.md on demand when activating a skill
+        #
+        # RESUME FAST PATH: On the resume-after-approval path, skills have
+        # already been written to the sandbox by the previous activity
+        # invocation.  We still fetch the Skill protos (lightweight gRPC)
+        # to generate the system-prompt section, but skip the expensive
+        # artifact download, sandbox write, diagnostic listing, and
+        # post-write verification steps.
+        setup_timer.start("skills")
         skills_prompt_section = ""
         skills = []  # List of Skill protos (populated if skill_refs exist)
         skill_refs = agent.spec.skill_refs  # repeated ApiResourceReference
@@ -641,131 +728,144 @@ async def _execute_graphton_impl(
                 )
                 skills = await skill_client.list_by_refs(list(skill_refs))
                 
-                # Download artifacts for skills that have storage keys
-                artifacts = {}
-                for skill in skills:
-                    if skill.status.artifact_storage_key:
-                        activity_logger.info(
-                            f"Downloading artifact for skill {skill.metadata.name} "
-                            f"(key: {skill.status.artifact_storage_key})"
-                        )
-                        try:
-                            artifact_bytes = await skill_client.get_artifact(
-                                skill.status.artifact_storage_key
-                            )
-                            artifacts[skill.metadata.id] = artifact_bytes
-                            activity_logger.info(
-                                f"Downloaded artifact for {skill.metadata.name}: "
-                                f"{len(artifact_bytes)} bytes"
-                            )
-                        except Exception as e:
-                            activity_logger.warning(
-                                f"Failed to download artifact for {skill.metadata.name}: {e}. "
-                                "Falling back to SKILL.md only."
-                            )
-                            # Continue without artifact - will use SKILL.md only
-                
-                # Write skills to sandbox (both local and cloud modes supported)
-                if worker_config.is_local_mode():
-                    # Local mode - write to local filesystem
-                    local_root = sandbox_config.get('root_dir', '/tmp/stigmer-sandbox')
+                if is_resume:
+                    # ─── Resume fast path ─────────────────────────────────────
+                    # Skills are already in the sandbox.  Compute paths
+                    # deterministically (same logic as SkillWriter.write_skills)
+                    # and generate the prompt section without any I/O.
+                    skill_paths = SkillWriter.compute_skill_paths(skills)
+                    skills_prompt_section = SkillWriter.generate_prompt_section(skills, skill_paths)
                     activity_logger.info(
-                        f"Writing {len(skills)} skills to local filesystem at {local_root}/bin/skills/"
+                        f"[RESUME] Skipped skill write — reusing {len(skills)} skills "
+                        f"already in sandbox: {[s.metadata.name for s in skills]}"
                     )
-                    skill_writer = SkillWriter(local_root=local_root)
-                    skill_paths = skill_writer.write_skills(skills, artifacts=artifacts)
                 else:
-                    # Cloud mode - upload to Daytona sandbox
-                    if sandbox is None:
-                        raise RuntimeError("Sandbox not initialized for cloud mode")
+                    # ─── Fresh execution path ─────────────────────────────────
+                    # Download artifacts for skills that have storage keys
+                    artifacts = {}
+                    for skill in skills:
+                        if skill.status.artifact_storage_key:
+                            activity_logger.info(
+                                f"Downloading artifact for skill {skill.metadata.name} "
+                                f"(key: {skill.status.artifact_storage_key})"
+                            )
+                            try:
+                                artifact_bytes = await skill_client.get_artifact(
+                                    skill.status.artifact_storage_key
+                                )
+                                artifacts[skill.metadata.id] = artifact_bytes
+                                activity_logger.info(
+                                    f"Downloaded artifact for {skill.metadata.name}: "
+                                    f"{len(artifact_bytes)} bytes"
+                                )
+                            except Exception as e:
+                                activity_logger.warning(
+                                    f"Failed to download artifact for {skill.metadata.name}: {e}. "
+                                    "Falling back to SKILL.md only."
+                                )
+                                # Continue without artifact - will use SKILL.md only
+                    
+                    # Write skills to sandbox (both local and cloud modes supported)
+                    if worker_config.is_local_mode():
+                        # Local mode - write to local filesystem
+                        local_root = sandbox_config.get('root_dir', '/tmp/stigmer-sandbox')
+                        activity_logger.info(
+                            f"Writing {len(skills)} skills to local filesystem at {local_root}/bin/skills/"
+                        )
+                        skill_writer = SkillWriter(local_root=local_root)
+                        skill_paths = skill_writer.write_skills(skills, artifacts=artifacts)
+                    else:
+                        # Cloud mode - upload to Daytona sandbox
+                        if sandbox is None:
+                            raise RuntimeError("Sandbox not initialized for cloud mode")
+                        
+                        activity_logger.info(
+                            f"Uploading {len(skills)} skills to Daytona sandbox "
+                            f"(sandbox {'newly created' if is_new_sandbox else 'reused, updating skills'})"
+                        )
+                        skill_writer = SkillWriter(sandbox=sandbox)
+                        skill_paths = skill_writer.write_skills(skills, artifacts=artifacts)
+                    
+                    # Generate prompt section with full SKILL.md content and LOCATION headers
+                    skills_prompt_section = SkillWriter.generate_prompt_section(skills, skill_paths)
                     
                     activity_logger.info(
-                        f"Uploading {len(skills)} skills to Daytona sandbox "
-                        f"(sandbox {'newly created' if is_new_sandbox else 'reused, updating skills'})"
+                        f"Successfully wrote {len(skills)} skills: {[s.metadata.name for s in skills]}"
                     )
-                    skill_writer = SkillWriter(sandbox=sandbox)
-                    skill_paths = skill_writer.write_skills(skills, artifacts=artifacts)
-                
-                # Generate prompt section with full SKILL.md content and LOCATION headers
-                skills_prompt_section = SkillWriter.generate_prompt_section(skills, skill_paths)
-                
-                activity_logger.info(
-                    f"Successfully wrote {len(skills)} skills: {[s.metadata.name for s in skills]}"
-                )
-                
-                # ─── Diagnostic: verify skill files are accessible ───────────
-                # Log workspace root and verify skill paths exist in the
-                # sandbox at the expected location.
-                if not worker_config.is_local_mode() and sandbox is not None:
-                    try:
-                        work_dir = sandbox.get_work_dir()
-                        activity_logger.info(
-                            "[skill-diag] sandbox.get_work_dir() = %r", work_dir,
-                        )
-                    except Exception as diag_exc:
-                        activity_logger.warning(
-                            "[skill-diag] sandbox.get_work_dir() failed: %s", diag_exc,
-                        )
-                        work_dir = None
-
-                    for _sid, spath in skill_paths.items():
-                        # spath is workspace-relative, e.g. "bin/skills/abc…"
-                        # SkillWriter writes to {work_dir}/{spath}
-                        if work_dir:
-                            abs_path = f"{work_dir.rstrip('/')}/{spath}"
-                        else:
-                            abs_path = f"/{spath}"
-                        diag_result = sandbox.process.exec(
-                            f"ls -la {abs_path}/ 2>&1 | head -20", timeout=5,
-                        )
-                        diag_out = diag_result.output if diag_result.output else ""
-                        activity_logger.info(
-                            "[skill-diag] ls %s/  exit=%d  output=%s",
-                            abs_path,
-                            diag_result.exit_code,
-                            diag_out[:300],
-                        )
-
-                # ─── Post-write verification ─────────────────────────────
-                # Create the same backend the agent will use and verify
-                # every skill's SKILL.md is readable.  This catches path
-                # mismatches at setup time rather than at agent runtime.
-                if skill_paths:
-                    from graphton.core.sandbox_factory import create_sandbox_backend
-
-                    if worker_config.is_local_mode():
-                        verify_cfg = sandbox_config.copy()
-                    else:
-                        if sandbox is None:
-                            raise RuntimeError(
-                                "Sandbox not initialized for post-write verification"
-                            )
-                        verify_cfg = {
-                            "type": "daytona",
-                            "sandbox_id": sandbox.id,
-                        }
-
-                    verify_backend = create_sandbox_backend(verify_cfg)
-                    for _vid, vpath in skill_paths.items():
-                        skill_md_path = f"{vpath}/SKILL.md"
+                    
+                    # ─── Diagnostic: verify skill files are accessible ───────────
+                    # Log workspace root and verify skill paths exist in the
+                    # sandbox at the expected location.
+                    if not worker_config.is_local_mode() and sandbox is not None:
                         try:
-                            content = verify_backend.read(skill_md_path)
+                            work_dir = sandbox.get_work_dir()
                             activity_logger.info(
-                                "Skill post-write verification passed: %s (%d bytes)",
-                                skill_md_path,
-                                len(content),
+                                "[skill-diag] sandbox.get_work_dir() = %r", work_dir,
                             )
-                        except Exception as verify_exc:
-                            activity_logger.error(
-                                "CRITICAL: Skill at %s not readable through "
-                                "agent backend: %s",
-                                skill_md_path,
-                                verify_exc,
+                        except Exception as diag_exc:
+                            activity_logger.warning(
+                                "[skill-diag] sandbox.get_work_dir() failed: %s", diag_exc,
                             )
-                            raise RuntimeError(
-                                f"Skill verification failed for {skill_md_path}: "
-                                f"{verify_exc}"
-                            ) from verify_exc
+                            work_dir = None
+
+                        for _sid, spath in skill_paths.items():
+                            # spath is workspace-relative, e.g. "bin/skills/abc…"
+                            # SkillWriter writes to {work_dir}/{spath}
+                            if work_dir:
+                                abs_path = f"{work_dir.rstrip('/')}/{spath}"
+                            else:
+                                abs_path = f"/{spath}"
+                            diag_result = sandbox.process.exec(
+                                f"ls -la {abs_path}/ 2>&1 | head -20", timeout=5,
+                            )
+                            diag_out = diag_result.output if diag_result.output else ""
+                            activity_logger.info(
+                                "[skill-diag] ls %s/  exit=%d  output=%s",
+                                abs_path,
+                                diag_result.exit_code,
+                                diag_out[:300],
+                            )
+
+                    # ─── Post-write verification ─────────────────────────────
+                    # Create the same backend the agent will use and verify
+                    # every skill's SKILL.md is readable.  This catches path
+                    # mismatches at setup time rather than at agent runtime.
+                    if skill_paths:
+                        from graphton.core.sandbox_factory import create_sandbox_backend
+
+                        if worker_config.is_local_mode():
+                            verify_cfg = sandbox_config.copy()
+                        else:
+                            if sandbox is None:
+                                raise RuntimeError(
+                                    "Sandbox not initialized for post-write verification"
+                                )
+                            verify_cfg = {
+                                "type": "daytona",
+                                "sandbox_id": sandbox.id,
+                            }
+
+                        verify_backend = create_sandbox_backend(verify_cfg)
+                        for _vid, vpath in skill_paths.items():
+                            skill_md_path = f"{vpath}/SKILL.md"
+                            try:
+                                content = verify_backend.read(skill_md_path)
+                                activity_logger.info(
+                                    "Skill post-write verification passed: %s (%d bytes)",
+                                    skill_md_path,
+                                    len(content),
+                                )
+                            except Exception as verify_exc:
+                                activity_logger.error(
+                                    "CRITICAL: Skill at %s not readable through "
+                                    "agent backend: %s",
+                                    skill_md_path,
+                                    verify_exc,
+                                )
+                                raise RuntimeError(
+                                    f"Skill verification failed for {skill_md_path}: "
+                                    f"{verify_exc}"
+                                ) from verify_exc
                     
             except RuntimeError as e:
                 # Catch write/upload failures from SkillWriter
@@ -782,6 +882,7 @@ async def _execute_graphton_impl(
         })
         
         # ─────────────────────────────────────────────────────────────────────────────
+        setup_timer.start("attachments")
         # Step 3.5: Inject Attachments into Sandbox
         #
         # Attachments are files provided by the user with the execution request.
@@ -789,35 +890,58 @@ async def _execute_graphton_impl(
         # (default: inputs/{filename}), making them available to the agent.
         #
         # All attachments must have storage_key (pre-uploaded via uploadAttachment RPC).
+        #
+        # RESUME FAST PATH: On the resume-after-approval path, attachments
+        # have already been injected by the previous activity invocation.
+        # We reconstruct the injected_files list from the execution spec
+        # (needed for the system prompt) without re-downloading or
+        # re-uploading anything.
         # ─────────────────────────────────────────────────────────────────────────────
         attachments = list(execution.spec.attachments) if execution.spec.attachments else []
         injected_files: list[dict] = []  # Track injected files for system prompt
         
         if attachments:
-            activity_logger.info(
-                f"Processing {len(attachments)} attachments: "
-                f"{[a.filename for a in attachments]}"
-            )
-            
-            # Create artifact storage for downloading attachments
-            artifact_storage = create_artifact_storage(worker_config.artifact_storage)
-            activity_logger.info(
-                f"Created artifact storage ({worker_config.artifact_storage.storage_type}) "
-                "for attachment downloads"
-            )
-            
-            try:
-                injected_files = await inject_attachments(
-                    sandbox=sandbox,  # None for local mode
-                    attachments=attachments,
-                    storage=artifact_storage,
-                    logger=activity_logger,
-                    local_root=sandbox_config.get('root_dir') if worker_config.is_local_mode() else None,
+            if is_resume:
+                # ─── Resume fast path ─────────────────────────────────────
+                # Attachments are already in the sandbox.  Reconstruct the
+                # metadata list for the system prompt without any I/O.
+                for att in attachments:
+                    mount_path = att.mount_path if att.mount_path else f"inputs/{att.filename}"
+                    injected_files.append({
+                        "filename": att.filename,
+                        "path": mount_path,
+                        "size": att.size_bytes,
+                    })
+                activity_logger.info(
+                    f"[RESUME] Skipped attachment injection — reusing "
+                    f"{len(injected_files)} attachments already in sandbox"
                 )
-                activity_logger.info(f"Successfully injected {len(injected_files)} attachments")
-            except Exception as e:
-                activity_logger.error(f"Failed to inject attachments: {e}")
-                raise ValueError(f"Attachment injection failed: {e}") from e
+            else:
+                # ─── Fresh execution path ─────────────────────────────────
+                activity_logger.info(
+                    f"Processing {len(attachments)} attachments: "
+                    f"{[a.filename for a in attachments]}"
+                )
+                
+                # Create artifact storage for downloading attachments
+                artifact_storage = create_artifact_storage(worker_config.artifact_storage)
+                activity_logger.info(
+                    f"Created artifact storage ({worker_config.artifact_storage.storage_type}) "
+                    "for attachment downloads"
+                )
+                
+                try:
+                    injected_files = await inject_attachments(
+                        sandbox=sandbox,  # None for local mode
+                        attachments=attachments,
+                        storage=artifact_storage,
+                        logger=activity_logger,
+                        local_root=sandbox_config.get('root_dir') if worker_config.is_local_mode() else None,
+                    )
+                    activity_logger.info(f"Successfully injected {len(injected_files)} attachments")
+                except Exception as e:
+                    activity_logger.error(f"Failed to inject attachments: {e}")
+                    raise ValueError(f"Attachment injection failed: {e}") from e
         
         # Heartbeat after attachment injection to prevent timeout during setup
         heartbeat_during_setup("attachments_injected", {
@@ -828,6 +952,7 @@ async def _execute_graphton_impl(
         # Step 4: Get merged environment variables
         # Try ExecutionContext first (new flow with pre-merged/decrypted env vars)
         # Fall back to legacy environment merging if ExecutionContext not found
+        setup_timer.start("environment")
         merged_env_vars = {}
         use_legacy_env_merge = True
         
@@ -920,6 +1045,7 @@ async def _execute_graphton_impl(
         
         # Step 5: Fetch and transform MCP servers (from agent template via mcp_server_usages)
         # MCP servers provide external tools via Model Context Protocol
+        setup_timer.start("mcp_servers")
         mcp_servers_config = {}
         mcp_tools_config = {}
         mcp_servers = []  # Initialize to empty list (populated if usages exist and fetch succeeds)
@@ -1067,6 +1193,7 @@ async def _execute_graphton_impl(
         
         # Step 6: Create Graphton agent at runtime with EXISTING sandbox
         # Note: MCP servers are passed if configured, providing external tool access
+        setup_timer.start("agent_creation")
         activity_logger.info(f"Creating Graphton agent for execution {execution_id}")
         
         # Enhance system prompt with skills section
@@ -1413,6 +1540,12 @@ async def _execute_graphton_impl(
                     )
                 )
         
+        # Log total setup time before entering the streaming phase.
+        # This is the boundary between "setup" and "execution" — any time
+        # spent beyond this point is in the LangGraph streaming loop.
+        setup_timer.stop()
+        setup_timer.log_total()
+        
         # Step 8: Set phase to IN_PROGRESS (status built locally)
         status_builder.current_status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS
         
@@ -1435,6 +1568,18 @@ async def _execute_graphton_impl(
         # Initialize streaming update scheduler
         streaming_config = StreamingConfig.load_from_env()
         update_scheduler = StreamingUpdateScheduler(streaming_config)
+        
+        # gRPC timeout for progressive status updates inside the event loop.
+        # Also used for the pre-stream status update on the resume path.
+        # A hanging gRPC call blocks event processing and stalls the entire
+        # activity.  Default: 10 seconds.
+        _DEFAULT_GRPC_UPDATE_TIMEOUT_SECONDS = 10
+        grpc_update_timeout_seconds = int(
+            os.environ.get(
+                "GRAPHTON_GRPC_UPDATE_TIMEOUT_SECONDS",
+                _DEFAULT_GRPC_UPDATE_TIMEOUT_SECONDS,
+            )
+        )
         
         # Determine graph input based on whether this is a resume or fresh execution
         graph_input: Any  # Command[Any] | dict — depends on resume vs fresh execution
@@ -1472,6 +1617,49 @@ async def _execute_graphton_impl(
                 f"max_interval={streaming_config.max_interval_ms}ms, "
                 f"burst_threshold={streaming_config.burst_threshold})"
             )
+        
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Pre-Stream Status Update (Resume Path)
+        #
+        # On the resume-after-approval path, send an immediate status update
+        # to the database *before* entering the streaming loop.  This gives
+        # the user visible feedback that their approval was received and the
+        # agent is about to continue — eliminating the "black hole" feeling
+        # when the agent takes time to produce its first event after resume.
+        #
+        # The update transitions the phase to IN_PROGRESS and appends a
+        # system message so the UI can render a "Resuming..." indicator.
+        # ─────────────────────────────────────────────────────────────────────────────
+        if is_resume_from_approval:
+            from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
+            from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
+            
+            resume_msg = AgentMessage(
+                type=MessageType.MESSAGE_SYSTEM,
+                content="✅ Approval received — resuming execution.",
+                timestamp=_utc_timestamp(),
+            )
+            status_builder.current_status.messages.append(resume_msg)
+            
+            try:
+                activity_logger.info(
+                    "📤 [RESUME] Sending pre-stream IN_PROGRESS status update"
+                )
+                await asyncio.wait_for(
+                    execution_client.update_status(
+                        execution_id=execution_id,
+                        status=status_builder.current_status,
+                    ),
+                    timeout=grpc_update_timeout_seconds,
+                )
+                activity_logger.info(
+                    "✅ [RESUME] Pre-stream status update sent successfully"
+                )
+            except Exception as pre_update_err:
+                # Non-fatal — the streaming loop will send updates anyway
+                activity_logger.warning(
+                    f"[RESUME] Pre-stream status update failed: {pre_update_err}"
+                )
         
         # ─────────────────────────────────────────────────────────────────────────────
         # Pause/Resume Support (Gap A3)
@@ -1517,99 +1705,146 @@ async def _execute_graphton_impl(
                     # The in-loop heartbeat (when events arrive) provides redundancy.
                     activity_logger.debug(f"Background heartbeat failed: {hb_err}")
         
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Stall Detection Timeout
+        #
+        # Detects when the agent stream produces no events for an extended period.
+        # This is distinct from Temporal's startToCloseTimeout (hard cap on total
+        # activity duration) — this catches the specific case where the LLM hangs,
+        # a tool blocks, or the graph enters an infinite wait state.
+        #
+        # The deadline is **reset on every event**, so a busy agent that is making
+        # progress will never hit this timeout regardless of how long the total
+        # execution takes.
+        #
+        # Default: 300 seconds (5 minutes).  Configurable via env var.
+        # ─────────────────────────────────────────────────────────────────────────────
+        _DEFAULT_STALL_TIMEOUT_SECONDS = 300
+        stall_timeout_seconds = int(
+            os.environ.get("GRAPHTON_STALL_TIMEOUT_SECONDS", _DEFAULT_STALL_TIMEOUT_SECONDS)
+        )
+        
+        activity_logger.info(
+            f"[STALL_GUARD] Stall detection timeout: {stall_timeout_seconds}s "
+            f"(resets on every event), "
+            f"gRPC update timeout: {grpc_update_timeout_seconds}s"
+        )
+        
         heartbeat_task: asyncio.Task[None] | None = None
         try:
             heartbeat_task = asyncio.create_task(_background_heartbeat())
             
-            async for event in agent_graph.astream_events(
-                graph_input,
-                config=config,  # type: ignore[arg-type]  # LangGraph accepts dict config at runtime
-                version="v2",  # Use v2 schema for consistent event structure
-            ):
-                # ─────────────────────────────────────────────────────────────────
-                # Check for pause (activity cancellation) between events
-                # This allows graceful checkpoint save before exiting
-                # ─────────────────────────────────────────────────────────────────
-                if activity.is_cancelled():
-                    activity_logger.info(
-                        f"⏸️ PAUSE: Activity cancelled for execution {execution_id}, "
-                        f"saving checkpoint (thread_id={thread_id})"
+            async with asyncio.timeout(stall_timeout_seconds) as stall_deadline:
+                async for event in agent_graph.astream_events(
+                    graph_input,
+                    config=config,  # type: ignore[arg-type]  # LangGraph accepts dict config at runtime
+                    version="v2",  # Use v2 schema for consistent event structure
+                ):
+                    # Reset stall deadline — the agent is making progress.
+                    stall_deadline.reschedule(
+                        asyncio.get_event_loop().time() + stall_timeout_seconds
                     )
-                    # LangGraph automatically saves checkpoint on iteration
-                    # Raise CancelledError to exit the loop gracefully
-                    raise asyncio.CancelledError("Paused by user")
-                
-                # Process event locally (builds status in memory)
-                await status_builder.process_event(event)  # type: ignore[arg-type]
-                
-                events_processed += 1
-                
-                # Send activity heartbeat to prevent Temporal timeout
-                # Time-based: every 2 seconds (independent of status updates)
-                # 
-                # CRASH RECOVERY: Heartbeat includes thread_id for checkpoint resume
-                # On retry, we extract thread_id from heartbeat_details to resume from
-                # the LangGraph checkpoint instead of restarting from the beginning.
-                # 
-                # PAUSE/RESUME: Heartbeat includes paused flag for resume detection
-                now = time.monotonic()
-                time_since_heartbeat_ms = (now - last_heartbeat_time) * 1000
-                if time_since_heartbeat_ms >= heartbeat_interval_ms:
-                    try:
-                        activity.heartbeat({
-                            "thread_id": thread_id,  # For checkpoint resume on retry/resume
-                            "paused": activity.is_cancelled(),  # For pause detection
-                            "events_processed": events_processed,
-                            "messages": len(status_builder.current_status.messages),
-                            "tool_calls": len(status_builder.current_status.tool_calls),
-                            "phase": status_builder.current_status.phase,
-                        })
-                        last_heartbeat_time = now
-                    except Exception as e:
-                        # Heartbeat failure is not critical - log and continue
-                        activity_logger.debug(f"Heartbeat failed (event {events_processed}): {e}")
-                
-                # Send progressive status update via gRPC using hybrid scheduler
-                # Triggers on: time threshold (500ms), burst (50 events), or keepalive (5s)
-                if update_scheduler.should_send_update(events_processed):
-                    reason = update_scheduler.get_update_reason_str()
-                    time_since_last = update_scheduler.get_time_since_last_update_ms()
-                    events_since_last = update_scheduler.get_events_since_last_update(events_processed)
                     
-                    try:
+                    # ─────────────────────────────────────────────────────────────────
+                    # Check for pause (activity cancellation) between events
+                    # This allows graceful checkpoint save before exiting
+                    # ─────────────────────────────────────────────────────────────────
+                    if activity.is_cancelled():
                         activity_logger.info(
-                            f"[STREAM] execution={execution_id} "
-                            f"update_sent=true "
-                            f"reason={reason} "
-                            f"events_total={events_processed} "
-                            f"events_since_last={events_since_last} "
-                            f"time_since_last_ms={time_since_last:.0f} "
-                            f"messages={len(status_builder.current_status.messages)} "
-                            f"tool_calls={len(status_builder.current_status.tool_calls)}"
+                            f"⏸️ PAUSE: Activity cancelled for execution {execution_id}, "
+                            f"saving checkpoint (thread_id={thread_id})"
                         )
+                        # LangGraph automatically saves checkpoint on iteration
+                        # Raise CancelledError to exit the loop gracefully
+                        raise asyncio.CancelledError("Paused by user")
+                    
+                    # Process event locally (builds status in memory)
+                    await status_builder.process_event(event)  # type: ignore[arg-type]
+                    
+                    events_processed += 1
+                    
+                    # Send activity heartbeat to prevent Temporal timeout
+                    # Time-based: every 2 seconds (independent of status updates)
+                    # 
+                    # CRASH RECOVERY: Heartbeat includes thread_id for checkpoint resume
+                    # On retry, we extract thread_id from heartbeat_details to resume from
+                    # the LangGraph checkpoint instead of restarting from the beginning.
+                    # 
+                    # PAUSE/RESUME: Heartbeat includes paused flag for resume detection
+                    now = time.monotonic()
+                    time_since_heartbeat_ms = (now - last_heartbeat_time) * 1000
+                    if time_since_heartbeat_ms >= heartbeat_interval_ms:
+                        try:
+                            activity.heartbeat({
+                                "thread_id": thread_id,  # For checkpoint resume on retry/resume
+                                "paused": activity.is_cancelled(),  # For pause detection
+                                "events_processed": events_processed,
+                                "messages": len(status_builder.current_status.messages),
+                                "tool_calls": len(status_builder.current_status.tool_calls),
+                                "phase": status_builder.current_status.phase,
+                            })
+                            last_heartbeat_time = now
+                        except Exception as e:
+                            # Heartbeat failure is not critical - log and continue
+                            activity_logger.debug(f"Heartbeat failed (event {events_processed}): {e}")
+                    
+                    # Send progressive status update via gRPC using hybrid scheduler
+                    # Triggers on: time threshold (500ms), burst (50 events), or keepalive (5s)
+                    if update_scheduler.should_send_update(events_processed):
+                        reason = update_scheduler.get_update_reason_str()
+                        time_since_last = update_scheduler.get_time_since_last_update_ms()
+                        events_since_last = update_scheduler.get_events_since_last_update(events_processed)
                         
-                        # Call stigmer-service updateStatus endpoint (merges status)
-                        await execution_client.update_status(
-                            execution_id=execution_id,
-                            status=status_builder.current_status
-                        )
-                        
-                        update_scheduler.mark_update_sent(events_processed)
-                        
-                    except Exception as e:
-                        # Log but don't fail - keep processing events
-                        # Still mark as sent to avoid retry storm on persistent failures
-                        activity_logger.warning(
-                            f"[STREAM] execution={execution_id} "
-                            f"update_sent=false "
-                            f"reason={reason} "
-                            f"error={str(e)}"
-                        )
-                        update_scheduler.mark_update_sent(events_processed)
-                
-                    # Log progress periodically (every 50 events for reduced noise)
-                    if events_processed % 50 == 0:
-                        activity_logger.debug(f"Processed {events_processed} events")
+                        try:
+                            activity_logger.info(
+                                f"[STREAM] execution={execution_id} "
+                                f"update_sent=true "
+                                f"reason={reason} "
+                                f"events_total={events_processed} "
+                                f"events_since_last={events_since_last} "
+                                f"time_since_last_ms={time_since_last:.0f} "
+                                f"messages={len(status_builder.current_status.messages)} "
+                                f"tool_calls={len(status_builder.current_status.tool_calls)}"
+                            )
+                            
+                            # Call stigmer-service updateStatus endpoint (merges status).
+                            # Wrapped in wait_for() to prevent a hanging gRPC call
+                            # from blocking the event processing loop indefinitely.
+                            await asyncio.wait_for(
+                                execution_client.update_status(
+                                    execution_id=execution_id,
+                                    status=status_builder.current_status,
+                                ),
+                                timeout=grpc_update_timeout_seconds,
+                            )
+                            
+                            update_scheduler.mark_update_sent(events_processed)
+                            
+                        except asyncio.TimeoutError:
+                            # gRPC call exceeded the configured timeout — skip this
+                            # update and continue processing events.  The next
+                            # scheduled update will try again.
+                            activity_logger.warning(
+                                f"[STREAM] execution={execution_id} "
+                                f"update_sent=false "
+                                f"reason=grpc_timeout "
+                                f"timeout_seconds={grpc_update_timeout_seconds}"
+                            )
+                            update_scheduler.mark_update_sent(events_processed)
+                        except Exception as e:
+                            # Log but don't fail - keep processing events
+                            # Still mark as sent to avoid retry storm on persistent failures
+                            activity_logger.warning(
+                                f"[STREAM] execution={execution_id} "
+                                f"update_sent=false "
+                                f"reason={reason} "
+                                f"error={str(e)}"
+                            )
+                            update_scheduler.mark_update_sent(events_processed)
+                    
+                        # Log progress periodically (every 50 events for reduced noise)
+                        if events_processed % 50 == 0:
+                            activity_logger.debug(f"Processed {events_processed} events")
         
         except asyncio.CancelledError:
             # ─────────────────────────────────────────────────────────────────────────────
@@ -1666,6 +1901,54 @@ async def _execute_graphton_impl(
             )
             
             # Return paused status to workflow
+            return status_builder.current_status
+        except TimeoutError:
+            # ─────────────────────────────────────────────────────────────────────────────
+            # Stall Detection: No events received within the stall timeout window.
+            #
+            # This means the LLM, a tool execution, or the graph itself has been
+            # unresponsive for longer than stall_timeout_seconds.  We treat this as
+            # a hard failure (not a pause) so the workflow can surface the error to
+            # the user rather than silently retrying.
+            # ─────────────────────────────────────────────────────────────────────────────
+            stall_msg = (
+                f"Agent stream stalled: no events received for "
+                f"{stall_timeout_seconds}s after processing {events_processed} events. "
+                f"The LLM or a tool may be hanging."
+            )
+            activity_logger.error(
+                f"⏱️ [STALL] execution={execution_id} — {stall_msg}"
+            )
+            
+            # Finalize any accumulated data before reporting failure
+            status_builder.finalize_context_info()
+            
+            from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
+            from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
+            
+            stall_error_msg = AgentMessage(
+                type=MessageType.MESSAGE_SYSTEM,
+                content=(
+                    f"⏱️ Execution timed out: the agent produced no output for "
+                    f"{stall_timeout_seconds} seconds. This typically means the LLM "
+                    f"or a tool stopped responding. The execution has been stopped."
+                ),
+                timestamp=_utc_timestamp(),
+            )
+            status_builder.current_status.messages.append(stall_error_msg)
+            status_builder.current_status.phase = ExecutionPhase.EXECUTION_FAILED
+            status_builder.current_status.error = stall_msg
+            
+            # Best-effort status persistence
+            try:
+                activity_logger.info("📤 [STALL] Sending FAILED status update")
+                await execution_client.update_status(
+                    execution_id=execution_id,
+                    status=status_builder.current_status,
+                )
+            except Exception as update_err:
+                activity_logger.warning(f"[STALL] Failed to send status update: {update_err}")
+            
             return status_builder.current_status
         finally:
             # Always cancel the background heartbeat task — whether the stream

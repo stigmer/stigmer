@@ -60,6 +60,30 @@ type ToolResultEvent struct {
 
 func (ToolResultEvent) isEvent() {}
 
+// ToolRunningEvent signals that a tool call has entered RUNNING status.
+// Emitted from tool call state tracking (not message processing) so the TUI
+// can show a running indicator with the tool header while execution is in progress.
+type ToolRunningEvent struct {
+	// ToolCallID is the unique identifier for this tool call.
+	ToolCallID string
+	// ToolCall carries the structured info for rendering (name, args, status).
+	ToolCall toolrender.ToolCallInfo
+}
+
+func (ToolRunningEvent) isEvent() {}
+
+// ToolCompletedEvent signals that a previously-running tool call has reached
+// a terminal status (COMPLETED or FAILED). The TUI replaces the running
+// indicator block with the final expandable result block.
+type ToolCompletedEvent struct {
+	// ToolCallID is the unique identifier for this tool call.
+	ToolCallID string
+	// ToolCall carries the final info including Result, Duration, and Status.
+	ToolCall toolrender.ToolCallInfo
+}
+
+func (ToolCompletedEvent) isEvent() {}
+
 // SystemMessageEvent represents a system/informational message.
 // Content is already sanitized by the caller.
 type SystemMessageEvent struct {
