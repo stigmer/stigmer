@@ -14,6 +14,7 @@ import (
 var (
 	systemStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 	phaseStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
+
 )
 
 // renderAIContent formats an AI message for display.
@@ -125,31 +126,6 @@ func phaseDisplayText(phase, previous string) string {
 	default:
 		return fmt.Sprintf("Phase: %s", phase)
 	}
-}
-
-// renderApprovalPrompt formats the approval request display shown in the viewport.
-func renderApprovalPrompt(toolName, argsPreview, message string) string {
-	var lines []string
-
-	lines = append(lines, lipgloss.NewStyle().Bold(true).Render("⏸  APPROVAL REQUIRED"))
-	lines = append(lines, "")
-
-	if message != "" {
-		lines = append(lines, fmt.Sprintf("   %s", message))
-	}
-	if toolName != "" {
-		lines = append(lines, fmt.Sprintf("   Tool: %s", toolName))
-	}
-	if argsPreview != "" {
-		lines = append(lines, fmt.Sprintf("   Args: %s", argsPreview))
-	}
-
-	lines = append(lines, "")
-	lines = append(lines, lipgloss.NewStyle().Bold(true).Render(
-		"   [a] Approve   [s] Skip   [r] Reject",
-	))
-
-	return strings.Join(lines, "\n")
 }
 
 // renderedBlockText returns the final display text for a single content block,

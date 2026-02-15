@@ -57,7 +57,7 @@ func mapApprovalResponseToDecision(resp executiontui.ApprovalResponse) *approval
 	default:
 		action = approval.ActionSkip // safe default
 	}
-	return &approval.Decision{Action: action}
+	return &approval.Decision{Action: action, Comment: resp.Comment}
 }
 
 // findToolCallByID finds a tool call by its ID in the tool calls slice.
