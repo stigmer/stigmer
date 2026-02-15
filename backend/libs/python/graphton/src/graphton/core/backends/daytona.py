@@ -3,11 +3,21 @@
 This module encapsulates all Daytona-specific logic for creating and configuring
 Daytona sandbox backends, keeping the main factory clean and focused.
 
-It also provides :class:`WorkspaceNormalizingBackend`, a thin wrapper that
-strips the workspace-root prefix from every path argument before delegating
-to the inner backend.  This prevents the *double-prefix* bug where the agent
-passes ``/workspace/bin/skills/...`` and the external ``DaytonaBackend``
-resolves it to ``/workspace/workspace/bin/skills/...``.
+It provides :class:`WorkspaceNormalizingBackend`, a wrapper that translates
+agent-space paths into sandbox-relative paths before delegating to the inner
+backend.  This serves two purposes:
+
+1. **Double-prefix prevention** -- the agent may pass absolute paths like
+   ``/workspace/bin/skills/...`` which the inner ``DaytonaBackend`` would
+   resolve to ``/workspace/workspace/bin/skills/...``.  The normaliser
+   strips the workspace-root prefix to prevent this.
+
+2. **Volume-mount rebasing** -- when a persistent Daytona volume is mounted
+   at a subdirectory of the sandbox home (e.g. ``/home/daytona/workspace``
+   while ``get_work_dir()`` returns ``/home/daytona``), the normaliser
+   computes a *rebase prefix* (``workspace``) and prepends it to every
+   normalised path so the inner backend resolves to the volume mount
+   rather than the sandbox home directory.
 """
 
 from __future__ import annotations
@@ -27,67 +37,140 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 class WorkspaceNormalizingBackend:
-    """Wraps a backend to strip workspace-root prefixes from paths.
+    """Wraps a backend to normalise paths between agent-space and sandbox-space.
 
     The external ``DaytonaBackend`` (from ``deepagents_cli``) resolves every
-    path relative to ``sandbox.get_work_dir()`` (typically ``/workspace``).
-    If the agent constructs an absolute path like
-    ``/workspace/bin/skills/abc/SKILL.md``, the inner backend resolves it to
-    ``/workspace/workspace/bin/skills/abc/SKILL.md`` -- a double-prefix that
-    does not exist.
+    path relative to ``sandbox.get_work_dir()`` (the *sandbox root*).  If the
+    agent constructs an absolute path like ``/workspace/bin/skills/abc/SKILL.md``,
+    the inner backend resolves it to ``/workspace/workspace/bin/skills/abc/SKILL.md``
+    -- a double-prefix that does not exist.
 
     This wrapper normalises paths **before** they reach the inner backend,
     matching the chroot-like semantics already present in
     :class:`~graphton.core.backends.filesystem.FilesystemBackend`.
+
+    **Rebase support** (for volume-mounted workspaces):
+
+    When a persistent Daytona volume is mounted at a subdirectory of the
+    sandbox root (e.g. ``/home/daytona/workspace`` while the sandbox root is
+    ``/home/daytona``), the agent's workspace root differs from the inner
+    backend's root.  In this case the wrapper computes a *rebase prefix* --
+    the relative path from the sandbox root to the workspace root (e.g.
+    ``workspace``) -- and prepends it to every normalised path so the inner
+    backend resolves to the volume mount, not the sandbox home.
+
+    When ``sandbox_root`` is not provided (or equals ``workspace_root``), the
+    rebase prefix is empty and behaviour is identical to the original
+    strip-only normalisation -- fully backward-compatible.
 
     Any method not explicitly overridden is forwarded transparently via
     ``__getattr__``, so the wrapper is fully compatible with
     ``BackendProtocol`` without hard-coding every method signature.
     """
 
-    def __init__(self, inner: Any, workspace_root: str) -> None:  # noqa: ANN401
+    def __init__(
+        self,
+        inner: Any,  # noqa: ANN401
+        workspace_root: str,
+        sandbox_root: str | None = None,
+    ) -> None:
         self._inner = inner
         self._workspace_root = workspace_root.rstrip("/")
+        self._sandbox_root = (sandbox_root or workspace_root).rstrip("/")
+
+        # Compute rebase prefix: the relative path from the sandbox root to
+        # the workspace root.  When the workspace root is a subdirectory of
+        # the sandbox root, paths normalised by stripping the workspace-root
+        # prefix need this prefix prepended so the inner backend (which
+        # resolves relative to sandbox_root) reaches the correct location.
+        #
+        # Example:
+        #   workspace_root = /home/daytona/workspace
+        #   sandbox_root   = /home/daytona
+        #   _rebase_prefix = "workspace"
+        #
+        # When workspace_root == sandbox_root the prefix is empty and
+        # behaviour is identical to the original strip-only normalisation.
+        if (
+            self._workspace_root != self._sandbox_root
+            and self._workspace_root.startswith(self._sandbox_root + "/")
+        ):
+            self._rebase_prefix = self._workspace_root[
+                len(self._sandbox_root) + 1 :
+            ]
+        else:
+            self._rebase_prefix = ""
+
+        if self._rebase_prefix:
+            logger.info(
+                "WorkspaceNormalizingBackend: rebase prefix = '%s' "
+                "(workspace_root='%s', sandbox_root='%s')",
+                self._rebase_prefix,
+                self._workspace_root,
+                self._sandbox_root,
+            )
 
     # -- path helpers -------------------------------------------------------
 
     def _normalize(self, path: str) -> str:
-        """Strip the workspace-root prefix and leading slashes.
+        """Translate an agent-space path into a sandbox-relative path.
 
-        This ensures ALL paths resolve relative to the workspace root,
-        preventing the double-prefix bug where ``/workspace/bin/skills/…``
-        becomes ``/workspace/workspace/bin/skills/…``.
+        1. Strip the *workspace_root* prefix (prevents double-prefix bug).
+        2. Strip leading ``/`` (defense-in-depth).
+        3. Prepend the *rebase prefix* when the workspace root is a
+           subdirectory of the sandbox root, so the inner backend resolves
+           to the volume mount rather than the sandbox home.
 
-        The trailing ``lstrip("/")`` is defense-in-depth: even if the
-        workspace-root prefix was not matched (e.g. the agent passes
-        ``/bin/skills/…`` without the workspace prefix), the leading
-        slash is stripped so the inner backend resolves relative to its
-        workspace root rather than the filesystem root.
+        Examples (workspace_root = ``/home/daytona/workspace``,
+        sandbox_root = ``/home/daytona``, rebase_prefix = ``workspace``):
 
-        Examples (assuming *workspace_root* = ``/workspace``):
+        >>> backend._normalize("/home/daytona/workspace/bin/skills/a/SKILL.md")
+        'workspace/bin/skills/a/SKILL.md'
+        >>> backend._normalize("/home/daytona/workspace")
+        'workspace'
+        >>> backend._normalize("bin/skills/a/SKILL.md")
+        'workspace/bin/skills/a/SKILL.md'
+        >>> backend._normalize("/bin/skills/a/SKILL.md")
+        'workspace/bin/skills/a/SKILL.md'
+
+        When workspace_root == sandbox_root (no rebase), behaviour is
+        identical to the original strip-only normalisation:
 
         >>> backend._normalize("/workspace/bin/skills/a/SKILL.md")
         'bin/skills/a/SKILL.md'
         >>> backend._normalize("/workspace")
         '.'
-        >>> backend._normalize("bin/skills/a/SKILL.md")
-        'bin/skills/a/SKILL.md'
-        >>> backend._normalize("/bin/skills/a/SKILL.md")
-        'bin/skills/a/SKILL.md'
         """
+        # Step 1 & 2: strip workspace-root prefix or leading slashes.
         prefix = self._workspace_root + "/"
         if path.startswith(prefix):
-            stripped = path[len(prefix):]
-            logger.debug(
-                "Normalized path: '%s' -> '%s' (stripped workspace root '%s')",
-                path, stripped, self._workspace_root,
+            relative = path[len(prefix):]
+        elif path == self._workspace_root:
+            relative = ""
+        else:
+            # Defense-in-depth: strip leading "/" so ALL paths resolve
+            # relative to the workspace root, not the filesystem root.
+            relative = path.lstrip("/")
+
+        # Step 3: prepend rebase prefix when workspace root is a
+        # subdirectory of the sandbox root.
+        if self._rebase_prefix:
+            result = (
+                f"{self._rebase_prefix}/{relative}" if relative else self._rebase_prefix
             )
-            return stripped
-        if path == self._workspace_root:
-            return "."
-        # Defense-in-depth: strip leading "/" so ALL paths resolve relative
-        # to the workspace root, not the filesystem root.
-        return path.lstrip("/") or "."
+        else:
+            result = relative or "."
+
+        if result != path:
+            logger.debug(
+                "Normalized path: '%s' -> '%s' "
+                "(workspace_root='%s', sandbox_root='%s')",
+                path,
+                result,
+                self._workspace_root,
+                self._sandbox_root,
+            )
+        return result
 
     # -- file-operation methods (path-normalised) ---------------------------
 
@@ -139,12 +222,22 @@ def create_daytona_backend(config: dict[str, Any]) -> BackendProtocol:
     so that workspace-root-prefixed paths (e.g. ``/workspace/bin/skills/…``)
     are normalised before reaching the inner ``DaytonaBackend``.
 
+    When a ``workspace_root`` is provided in *config* (typically the volume
+    mount path such as ``/home/daytona/workspace``), it is used as the
+    agent-facing workspace root for path normalisation.  The sandbox's own
+    working directory (``sandbox.get_work_dir()``) is passed as
+    *sandbox_root* to :class:`WorkspaceNormalizingBackend`, enabling the
+    rebase logic that translates between the two roots.
+
     Args:
         config: Configuration dictionary with optional keys:
             - api_key: Daytona API key (falls back to ``DAYTONA_API_KEY``
               env var)
             - sandbox_id: Existing sandbox ID to reuse
             - snapshot_id: Snapshot ID to create sandbox from
+            - workspace_root: Agent-facing workspace root (e.g. the
+              volume mount path).  When omitted the sandbox's working
+              directory is used (backward-compatible).
 
     Returns:
         A :class:`WorkspaceNormalizingBackend` wrapping a ``DaytonaBackend``.
@@ -192,21 +285,37 @@ def create_daytona_backend(config: dict[str, Any]) -> BackendProtocol:
     else:
         sandbox = _create_vanilla_sandbox(daytona)
 
-    # Discover workspace root so the normalising wrapper can strip it
+    # Discover sandbox root -- what the inner DaytonaBackend resolves
+    # paths relative to.
     try:
-        workspace_root = sandbox.get_work_dir().rstrip("/")
-        logger.info("Daytona workspace root: %s", workspace_root)
+        sandbox_root = sandbox.get_work_dir().rstrip("/")
+        logger.info("Daytona sandbox root (get_work_dir): %s", sandbox_root)
     except Exception as exc:
-        workspace_root = "/workspace"
+        sandbox_root = "/home/daytona"
         logger.warning(
-            "sandbox.get_work_dir() failed (%s); defaulting workspace root "
-            "to %s for path normalisation",
+            "sandbox.get_work_dir() failed (%s); defaulting sandbox root "
+            "to %s",
             exc,
-            workspace_root,
+            sandbox_root,
         )
 
+    # Determine agent-facing workspace root.  When a volume is mounted the
+    # caller passes workspace_root via config (e.g. "/home/daytona/workspace").
+    # Otherwise fall back to the sandbox root for backward compatibility.
+    configured_workspace_root = config.get("workspace_root")
+    if configured_workspace_root:
+        workspace_root = configured_workspace_root.rstrip("/")
+        logger.info(
+            "Using configured workspace root: %s (sandbox root: %s)",
+            workspace_root,
+            sandbox_root,
+        )
+    else:
+        workspace_root = sandbox_root
+        logger.info("Using sandbox root as workspace root: %s", workspace_root)
+
     inner = DaytonaBackend(sandbox)
-    return WorkspaceNormalizingBackend(inner, workspace_root)
+    return WorkspaceNormalizingBackend(inner, workspace_root, sandbox_root=sandbox_root)
 
 
 def _reuse_existing_sandbox(daytona: Any, sandbox_id: str) -> Any:

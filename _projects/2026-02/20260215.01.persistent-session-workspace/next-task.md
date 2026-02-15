@@ -68,56 +68,64 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-15 18:35
-**Current Task**: T04 (Backend Workspace Root from Volume Mount)
-**Status**: In Progress (T01 ✅, T02 ✅, T03 ✅)
-**Last Session**: 2026-02-15 20:45 — Completed T03 (Sandbox restart/recovery before recreation)
+**Current Task**: T05 (Simplify Resume Fast-Path) or T06 (Testing)
+**Status**: T04 Complete ✅ (T01 ✅, T02 ✅, T04 ✅)
+**Last Session**: 2026-02-15 20:59 — Completed T04 (Workspace root volume mount alignment)
 
-## Session Progress (2026-02-15, Session 2 — Evening)
+## Session Progress (2026-02-15, Late Evening Session)
 
 ### What Was Accomplished
-- ✅ **T03 Completed**: Sandbox restart/recovery before recreation
-- New `_try_revive_daytona_sandbox()` method — state-aware recovery chain handling STARTED, STOPPED, ARCHIVED, ERROR, DESTROYED, and all transitional states
-- Updated `get_or_create_daytona_sandbox()` caller with typed `DaytonaNotFoundError` handling
-- Added `auto_delete_interval=-1` to sandbox creation params
-- Discovered `SandboxState` enum has 16 members (not 4-5 as documented)
-- Zero linter errors, module imports verified
+- ✅ **T04 Completed**: Backend workspace root from volume mount
+- Extracted `DAYTONA_WORKSPACE_MOUNT_PATH` constant in `sandbox_manager.py`
+- Enhanced `WorkspaceNormalizingBackend` with rebase support (`workspace_root` vs `sandbox_root`)
+- Updated `create_daytona_backend()` to read `workspace_root` from config and pass `sandbox_root` to normalizer
+- Added `workspace_root` parameter to `inject_attachments()` with fallback to `get_work_dir()`
+- Added `workspace_root` parameter to `SkillWriter.__init__` and `_resolve_workspace_root()` override
+- Threaded `daytona_workspace_root` through all consumers in `execute_graphton.py`
+- Comprehensive test coverage for rebase logic (11 new tests)
+- Created detailed changelog documenting the implementation
 
 ### Key Decisions Made
-- **One attempt per state, no retry loops**: Simple and safe — volume guarantees file survival
-- **STARTED still gets health check**: Defense-in-depth for stale SDK state
-- **Transitional states fall through**: STARTING, STOPPING, etc. are rare; no complex wait logic
-- **`auto_delete_interval=-1`**: Explicit at creation time even though SDK default is disabled
-- **`DaytonaNotFoundError`**: Typed error instead of bare `Exception` for "sandbox gone" case
+- **Rebase strategy chosen**: When workspace root is a subdirectory of sandbox root, compute rebase prefix and prepend to normalized paths
+- **Single source of truth**: Compute `daytona_workspace_root` once in `execute_graphton.py`, thread to all consumers
+- **Fully backward-compatible**: Every enhancement has fallback behavior preserving exact previous behavior
+- **Module-level constant**: `DAYTONA_WORKSPACE_MOUNT_PATH` is the authoritative mount path definition
 
 ### Files Modified
-- `worker/sandbox_manager.py` (+195 net lines): Recovery chain, typed errors, auto-lifecycle params
-- Changelog: `_changelog/2026-02/2026-02-15-204533-sandbox-restart-recovery-before-recreation.md`
+- `backend/services/agent-runner/worker/sandbox_manager.py` (+21 lines)
+- `backend/libs/python/graphton/src/graphton/core/backends/daytona.py` (+82 net lines)
+- `backend/services/agent-runner/worker/activities/execute_graphton.py` (+67 net lines)
+- `backend/services/agent-runner/worker/activities/graphton/skill_writer.py` (+34 net lines)
+- `backend/libs/python/graphton/tests/core/test_daytona_backend.py` (+114 net lines)
+- Total: +433 additions, -111 deletions across 5 files
 
 ### Committed
-- ✅ `6b654888` — feat(backend/agent-runner): initialize Daytona volume at worker startup (T02)
-- ✅ T03 commit (this session)
+- Not yet committed (ready for commit)
 
 ## Next Steps
 
-1. **T04**: Backend workspace root from volume mount path (depends on T02 ✅, ready to start)
-2. **T05**: Simplify resume fast-path with volume safety checks (depends on T04)
+1. **Commit T04 changes**: Ready to commit with conventional commit message
+2. **T05**: Simplify resume fast-path with volume safety checks (depends on T04 ✅)
 3. **T06**: Testing — comprehensive validation after all implementation complete
+4. **T03**: Sandbox restart/recovery before recreation (independent, can be done in parallel)
 
 ## Context for Resume
 
-- **T01-T03 are complete**: Local session dirs, volume infrastructure, and sandbox recovery are in place
-- **T04 is the next logical step**: Wire the volume mount path (`/home/daytona/workspace`) into the graphton backend as the workspace root, so the agent's file operations target the persistent volume
-- **Key files for T04**:
-  - `backend/libs/python/graphton/src/graphton/core/backends/daytona.py` — workspace root from config
-  - `backend/services/agent-runner/worker/activities/execute_graphton.py` — pass mount path
+- **T02 is complete**: Volume infrastructure is in place, ready to be used by new sandboxes
+- **T04 is complete**: Workspace root alignment ensures all files land on the persistent volume
+- **T03 is independent**: Sandbox restart logic doesn't require volume or workspace root changes
+- **Surprising discovery during T04 planning**: The scope was significantly broader than estimated -- needed to align both read path (agent backend) AND write paths (skill writer, attachment injector)
+- **Rebase strategy**: `WorkspaceNormalizingBackend` now computes a rebase prefix when workspace root is a subdirectory of sandbox root, enabling proper path resolution for volume-mounted workspaces
 - Volume mount path: `/home/daytona/workspace` with subpath `sessions/{session_id}`
 - Volume name configurable via `DAYTONA_VOLUME_NAME` (default: `stigmer-workspaces`)
-- **Surprising discovery in T03**: `SandboxState` has 16 enum members including DESTROYED (not DELETED), plus 10 transitional states like STARTING, STOPPING, ARCHIVING, etc.
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T04" - Start backend workspace root wiring
+- "Commit T04 changes" - Stage and commit the workspace root alignment implementation
+- "Continue with T05" - Start simplifying resume fast-path with volume safety checks
+- "Continue with T03" - Start sandbox restart/recovery (independent)
+- "Continue with T06" - Start comprehensive testing
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
