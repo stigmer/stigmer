@@ -1,26 +1,32 @@
 """Utilities for writing skills to sandbox.
 
-Skill Injection Strategy (from ADR 001):
-- Skills are written to {workspace_root}/bin/skills/{version_hash}/ in the sandbox
-- The SKILL.md content is injected directly into the system prompt
-- The LOCATION header tells the agent where executable files are located
-- This allows agents to access skill implementations without reading files
+Follows the Agent Skills specification (https://agentskills.io/specification)
+progressive disclosure model:
+
+1. **Metadata (startup)** -- skill ``name`` + ``description`` are injected
+   into the system prompt so the agent knows which skills are available.
+2. **Instructions (activation)** -- the agent reads ``SKILL.md`` from the
+   filesystem when it decides to activate a skill.
+3. **Resources (on demand)** -- scripts, references, and assets are loaded
+   by the agent only when required.
 
 Path Convention:
-- Skills live under ``bin/skills/{version_hash}/`` relative to the workspace root.
+- Skills live under ``bin/skills/{name}/`` relative to the workspace root.
 - In Daytona mode the workspace root is queried from the sandbox via
   ``sandbox.get_work_dir()`` (typically ``/workspace``).  All shell commands
   and SDK file operations use the fully-qualified path
-  ``{workspace_root}/bin/skills/{version_hash}/``.
+  ``{workspace_root}/bin/skills/{name}/``.
 - In local mode the workspace root is the ``local_root`` passed to the
   constructor (e.g. ``/tmp/stigmer-sandbox``).
-- Returned paths are always **workspace-relative** (e.g. ``bin/skills/abc…``)
+- Returned paths are always **workspace-relative** (e.g. ``bin/skills/my-skill``)
   so that the agent's sandbox backend resolves them correctly regardless of
   whether it uses chroot-like semantics or the Daytona SDK working directory.
 
 Directory Structure:
-- bin/skills/{version_hash}/SKILL.md - Interface definition
-- bin/skills/{version_hash}/* - Executable implementation files (from artifact ZIP)
+- bin/skills/{name}/SKILL.md - Interface definition (required)
+- bin/skills/{name}/scripts/ - Executable scripts (optional)
+- bin/skills/{name}/references/ - Reference documentation (optional)
+- bin/skills/{name}/assets/ - Static resources (optional)
 """
 
 import io
@@ -38,10 +44,11 @@ _SKILLS_RELATIVE_BASE = "bin/skills"
 
 class SkillWriter:
     """Writes skills to sandbox (Daytona or local filesystem).
-    
-    Following ADR 001: Skill Injection & Sandbox Mounting Strategy:
-    - Skills are mounted at bin/skills/{version_hash}/ within the workspace
-    - SKILL.md content is injected into the system prompt with LOCATION header
+
+    Following the Agent Skills specification:
+    - Skills are written to ``bin/skills/{name}/`` within the workspace
+    - Only skill metadata (name + description + location) is injected into
+      the system prompt; the agent reads SKILL.md on demand
     - Skills directory is read-only to prevent accidental modification
     """
     
@@ -63,34 +70,55 @@ class SkillWriter:
         self.skills_base = self.SKILLS_BASE_DIR
     
     @staticmethod
-    def _resolve_version_hash(skill: Skill) -> str:
-        """Return the version hash for a skill, falling back to a slug-based key."""
-        version_hash = skill.status.version_hash
-        if not version_hash:
-            version_hash = skill.metadata.slug.replace("/", "_")
+    def _resolve_skill_dir_name(skill: Skill) -> str:
+        """Return a human-readable directory name for the skill.
+
+        Uses ``skill.metadata.name`` (the Agent Skills spec ``name`` field,
+        e.g. ``skill-creator``) because it is short, unique within scope, and
+        meaningful to both humans and LLMs.
+
+        Falls back to ``version_hash`` and then ``slug`` when the name is
+        absent (should not happen for well-formed skills, but defensive
+        coding never hurts).
+        """
+        name = skill.metadata.name
+        if name:
+            return name
+
+        # Fallback: version hash (content-addressable but opaque)
+        if skill.status.version_hash:
             logger.warning(
-                "Skill %s has no version_hash, using slug: %s",
-                skill.metadata.name,
-                version_hash,
+                "Skill has no metadata.name; falling back to version_hash: %s",
+                skill.status.version_hash,
             )
-        return version_hash
+            return skill.status.version_hash
+
+        # Last resort: slug with slashes replaced
+        slug_key = skill.metadata.slug.replace("/", "_")
+        logger.warning(
+            "Skill has neither metadata.name nor version_hash; "
+            "falling back to slug: %s",
+            slug_key,
+        )
+        return slug_key
 
     def _get_skill_relative_dir(self, skill: Skill) -> str:
         """Return the **workspace-relative** skill directory.
 
-        Example return value: ``bin/skills/abc123…``  (no leading ``/``).
+        Example return value: ``bin/skills/skill-creator``  (no leading
+        ``/``).
 
         This is the canonical path that will be handed to the agent in the
-        prompt LOCATION header and used for post-write verification through
-        the agent's sandbox backend.
+        prompt and used for post-write verification through the agent's
+        sandbox backend.
         """
-        return f"{_SKILLS_RELATIVE_BASE}/{self._resolve_version_hash(skill)}"
+        return f"{_SKILLS_RELATIVE_BASE}/{self._resolve_skill_dir_name(skill)}"
     
     def write_skills(self, skills: list[Skill], artifacts: dict[str, bytes] | None = None) -> dict[str, str]:
         """Write skills to sandbox.
         
-        Creates ``bin/skills/{version_hash}/`` for each skill (relative to
-        the workspace root), writes ``SKILL.md``, and optionally extracts
+        Creates ``bin/skills/{name}/`` for each skill (relative to the
+        workspace root), writes ``SKILL.md``, and optionally extracts
         artifact ZIP files.
         
         Args:
@@ -142,7 +170,7 @@ class SkillWriter:
             skill_id = skill.metadata.id
             relative_dir = self._get_skill_relative_dir(skill)
             
-            # Absolute path on the host: {local_root}/bin/skills/{version_hash}/
+            # Absolute path on the host: {local_root}/bin/skills/{name}/
             local_skill_dir = os.path.join(self.local_root, relative_dir)  # type: ignore[arg-type]
             
             try:
@@ -381,76 +409,73 @@ class SkillWriter:
     
     @staticmethod
     def generate_prompt_section(skills: list[Skill], skill_paths: dict[str, str]) -> str:
-        """Generate system prompt section with full skill content.
-        
-        Following ADR 001: Skill Injection Strategy
-        - Injects full SKILL.md content into the prompt
-        - Includes LOCATION header for each skill (path to executable files)
-        - Provides clear access instructions so the agent uses paths directly
-          instead of exploring the filesystem
-        
+        """Generate system-prompt section following the Agent Skills spec.
+
+        Implements the *progressive disclosure* model defined at
+        https://agentskills.io/specification:
+
+        1. **Metadata (startup)** -- ``name`` + ``description`` are injected
+           into the system prompt so the agent knows which skills exist and
+           when to use them (~100 tokens per skill).
+        2. **Instructions (activation)** -- the agent reads the full
+           ``SKILL.md`` from the filesystem when it decides to activate a
+           skill.
+        3. **Resources (on demand)** -- scripts, references, and assets are
+           read by the agent only when required.
+
+        The SKILL.md body is **not** injected into the prompt.  This keeps
+        the context window lean and lets the agent load content on demand.
+
         Args:
-            skills: List of Skill proto messages
-            skill_paths: Dictionary mapping skill ID to directory path
-            
+            skills: List of Skill proto messages.
+            skill_paths: Dictionary mapping skill ID to the workspace-relative
+                directory path (e.g. ``{"id": "bin/skills/skill-creator"}``).
+
         Returns:
-            Markdown section to append to system prompt
+            Markdown section to append to the system prompt, or ``""`` when
+            *skills* is empty.
         """
         if not skills:
             return ""
-        
-        # -----------------------------------------------------------------
-        # Preamble: teach the agent how to access skills
-        # -----------------------------------------------------------------
-        prompt = "\n\n## Available Skills\n\n"
-        prompt += (
-            "Skills are pre-installed in your workspace. "
-            "Each skill section below lists its LOCATION (directory path). "
-            "Use that path directly to read files, run scripts, or reference "
-            "resources. Do NOT explore the filesystem to discover skill files; "
-            "the paths below are authoritative.\n\n"
-            "**CRITICAL**: If you cannot read the skill files at the LOCATION "
-            "paths listed below, you MUST stop execution immediately and "
-            "report the error. Do NOT attempt to create, recreate, or "
-            "improvise skill implementations on your own. Missing skill "
-            "files indicate a platform issue that must be resolved before "
-            "execution can proceed.\n"
-        )
-        
-        # -----------------------------------------------------------------
-        # Quick-reference table (concise, at the top for scanability)
-        # -----------------------------------------------------------------
+
         def _dir_for(skill: Skill) -> str:
-            """Return the skill directory from ``skill_paths`` or a fallback."""
+            """Return the skill directory from *skill_paths* or a fallback."""
             return skill_paths.get(
                 skill.metadata.id,
-                f"{_SKILLS_RELATIVE_BASE}/{skill.status.version_hash}",
+                f"{_SKILLS_RELATIVE_BASE}/{skill.metadata.name}",
             )
 
-        if len(skills) == 1:
-            skill = skills[0]
-            skill_dir = _dir_for(skill)
-            prompt += (
-                f"\n**Skill directory**: `{skill_dir}/`\n"
-                f"  - Read a file:  `read {skill_dir}/SKILL.md`\n"
-                f"  - Run a script: `execute python3 {skill_dir}/scripts/<name>.py`\n"
-                f"  - List contents: `ls {skill_dir}/`\n"
-            )
-        else:
-            prompt += "\n| Skill | Directory |\n|---|---|\n"
-            for skill in skills:
-                prompt += f"| {skill.metadata.name} | `{_dir_for(skill)}/` |\n"
-            prompt += "\n"
-        
         # -----------------------------------------------------------------
-        # Per-skill sections: access block + full SKILL.md body
+        # Preamble
+        # -----------------------------------------------------------------
+        lines: list[str] = [
+            "",
+            "",
+            "## Available Skills",
+            "",
+            "The following skills are pre-installed in your workspace.",
+            "To use a skill, read its SKILL.md file at the listed location.",
+            "",
+            "**CRITICAL**: If you cannot read the skill files at the listed "
+            "paths, you MUST stop execution immediately and report the error. "
+            "Do NOT attempt to create, recreate, or improvise skill "
+            "implementations on your own. Missing skill files indicate a "
+            "platform issue that must be resolved before execution can "
+            "proceed.",
+            "",
+        ]
+
+        # -----------------------------------------------------------------
+        # Per-skill metadata blocks (name + description + location)
         # -----------------------------------------------------------------
         for skill in skills:
             skill_dir = _dir_for(skill)
-            
-            prompt += f"\n### SKILL: {skill.metadata.name}\n"
-            prompt += f"LOCATION: `{skill_dir}/`\n\n"
-            prompt += skill.spec.skill_md
-            prompt += "\n"
-        
-        return prompt
+            description = skill.spec.description or "(no description)"
+
+            lines.append(f"### {skill.metadata.name}")
+            lines.append(f"**Description**: {description}")
+            lines.append(f"**Location**: `{skill_dir}/`")
+            lines.append(f"**Activate**: `read {skill_dir}/SKILL.md`")
+            lines.append("")
+
+        return "\n".join(lines)

@@ -87,9 +87,8 @@ FILESYSTEM_CAPABILITY = """
 - Search and discover files across directories
 
 File paths should be workspace-relative (e.g., `inputs/data.txt`,
-`bin/skills/.../SKILL.md`). Do NOT prefix paths with `/workspace/` -- the
-tools handle path resolution automatically. Use `ls` to explore directory
-structure.
+`bin/skills/my-skill/SKILL.md`). Use the paths exactly as shown in the
+Available Skills and Input Files sections.
 """
 
 MCP_TOOLS_CAPABILITY = """

@@ -621,9 +621,10 @@ async def _execute_graphton_impl(
             )
         
         # Step 3: Fetch and write skills (from agent template via references)
-        # Following ADR 001: Skill Injection & Sandbox Mounting Strategy
-        # - Skills are written to /bin/skills/{version_hash}/
-        # - Full SKILL.md content is injected into system prompt with LOCATION header
+        # Following the Agent Skills spec progressive disclosure model:
+        # - Skills are written to bin/skills/{name}/ in the sandbox
+        # - Only metadata (name + description + location) injected into prompt
+        # - Agent reads SKILL.md on demand when activating a skill
         skills_prompt_section = ""
         skills = []  # List of Skill protos (populated if skill_refs exist)
         skill_refs = agent.spec.skill_refs  # repeated ApiResourceReference
