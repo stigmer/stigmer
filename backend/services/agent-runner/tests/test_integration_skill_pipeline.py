@@ -926,3 +926,152 @@ class TestZipFormatEndToEnd:
                 backend.list_files(f"{skill_path}/SKILL.md")
 
             assert "is a file" in str(exc_info.value)
+
+
+class TestToolAliasSkillReads:
+    """Integration tests verifying that platform tool ALIASES can read skills.
+
+    This is the critical regression test for the tool-selection-conflict bug:
+    deepagents creates in-memory ``read_file``/``write_file``/``edit_file``
+    tools, while graphton creates filesystem-backed ``read``/``write``/``edit``
+    tools.  If the LLM calls ``read_file`` (the deepagents name), it misses
+    files on the real filesystem.
+
+    The fix registers graphton aliases with the *same* names
+    (``read_file``, ``write_file``, ``edit_file``) backed by the real
+    filesystem, so both tool names resolve to the same backend.
+
+    These tests verify that:
+    1. ``create_platform_tool_wrappers`` returns aliases with expected names
+    2. The ``read``-named tool can read skill files with all path formats
+    3. The ``read_file``-named alias can read skill files with all path formats
+    """
+
+    @pytest.fixture
+    def skill_and_backend(self):
+        """Write a skill to a temp dir and return (backend, skill_path, expected_content)."""
+        skill = MagicMock()
+        skill.metadata.id = "tool-alias-test-001"
+        skill.metadata.name = "alias-test-skill"
+        skill.metadata.slug = "test-org/alias-skill"
+        skill.spec.skill_md = "# Alias Test Skill\n\nThis skill tests tool alias resolution."
+        skill.status.version_hash = "alias00000000000000000000000000000000000000000000000000000001"
+        skill.status.artifact_storage_key = ""
+
+        tmpdir = tempfile.mkdtemp()
+        writer = SkillWriter(local_root=tmpdir)
+        skill_paths = writer.write_skills([skill])
+        skill_path = skill_paths[skill.metadata.id]
+
+        from graphton.core.backends.filesystem import FilesystemBackend
+        backend = FilesystemBackend(root_dir=tmpdir)
+
+        expected_content = skill.spec.skill_md
+        yield backend, skill_path, expected_content, tmpdir
+
+        # Cleanup
+        import shutil
+        shutil.rmtree(tmpdir, ignore_errors=True)
+
+    def test_platform_tools_include_aliases(self):
+        """create_platform_tool_wrappers must return read_file, write_file, edit_file aliases."""
+        from graphton.core.backends.filesystem import FilesystemBackend
+        from graphton.core.tool_wrappers import create_platform_tool_wrappers
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            backend = FilesystemBackend(root_dir=tmpdir)
+            tools = create_platform_tool_wrappers(backend)
+
+            tool_names = [getattr(t, "name", "?") for t in tools]
+
+            # Original tools
+            assert "read" in tool_names
+            assert "write" in tool_names
+            assert "edit" in tool_names
+            assert "ls" in tool_names
+            assert "glob" in tool_names
+            assert "grep" in tool_names
+            assert "execute" in tool_names
+
+            # Aliases (the fix)
+            assert "read_file" in tool_names, (
+                "read_file alias must be present to override deepagents' in-memory tool"
+            )
+            assert "write_file" in tool_names, (
+                "write_file alias must be present to override deepagents' in-memory tool"
+            )
+            assert "edit_file" in tool_names, (
+                "edit_file alias must be present to override deepagents' in-memory tool"
+            )
+
+            # Total: 7 original + 3 aliases = 10
+            assert len(tools) == 10
+
+    @pytest.mark.asyncio
+    async def test_read_tool_reads_skill_relative_path(self, skill_and_backend):
+        """The 'read' tool must read skill files with relative paths."""
+        from graphton.core.tool_wrappers import create_platform_tool_wrappers
+
+        backend, skill_path, expected_content, _ = skill_and_backend
+        tools = create_platform_tool_wrappers(backend)
+        read_tool = next(t for t in tools if getattr(t, "name", "") == "read")
+
+        result = await read_tool.ainvoke({"path": f"{skill_path}/SKILL.md"})
+        assert "Alias Test Skill" in result
+
+    @pytest.mark.asyncio
+    async def test_read_file_alias_reads_skill_relative_path(self, skill_and_backend):
+        """The 'read_file' alias must read skill files with relative paths."""
+        from graphton.core.tool_wrappers import create_platform_tool_wrappers
+
+        backend, skill_path, expected_content, _ = skill_and_backend
+        tools = create_platform_tool_wrappers(backend)
+        read_file_tool = next(t for t in tools if getattr(t, "name", "") == "read_file")
+
+        result = await read_file_tool.ainvoke({"path": f"{skill_path}/SKILL.md"})
+        assert "Alias Test Skill" in result
+
+    @pytest.mark.asyncio
+    async def test_read_tool_reads_skill_absolute_path(self, skill_and_backend):
+        """The 'read' tool must read skill files with absolute paths (chroot-stripped)."""
+        from graphton.core.tool_wrappers import create_platform_tool_wrappers
+
+        backend, skill_path, _, tmpdir = skill_and_backend
+        tools = create_platform_tool_wrappers(backend)
+        read_tool = next(t for t in tools if getattr(t, "name", "") == "read")
+
+        # Use backend.root_dir (resolved path) to construct absolute paths.
+        # On macOS, /var/folders/... resolves to /private/var/folders/..., so
+        # we must use the resolved root to match what the backend expects.
+        abs_path = f"{backend.root_dir}/{skill_path}/SKILL.md"
+        result = await read_tool.ainvoke({"path": abs_path})
+        assert "Alias Test Skill" in result
+
+    @pytest.mark.asyncio
+    async def test_read_file_alias_reads_skill_absolute_path(self, skill_and_backend):
+        """The 'read_file' alias must read skill files with absolute paths."""
+        from graphton.core.tool_wrappers import create_platform_tool_wrappers
+
+        backend, skill_path, _, tmpdir = skill_and_backend
+        tools = create_platform_tool_wrappers(backend)
+        read_file_tool = next(t for t in tools if getattr(t, "name", "") == "read_file")
+
+        # Use resolved root path (see comment in test above)
+        abs_path = f"{backend.root_dir}/{skill_path}/SKILL.md"
+        result = await read_file_tool.ainvoke({"path": abs_path})
+        assert "Alias Test Skill" in result
+
+    @pytest.mark.asyncio
+    async def test_read_file_alias_reads_skill_with_leading_slash(self, skill_and_backend):
+        """The 'read_file' alias must handle paths with leading slash (chroot-like)."""
+        from graphton.core.tool_wrappers import create_platform_tool_wrappers
+
+        backend, skill_path, _, _ = skill_and_backend
+        tools = create_platform_tool_wrappers(backend)
+        read_file_tool = next(t for t in tools if getattr(t, "name", "") == "read_file")
+
+        # Leading-slash path: /<skill_path>/SKILL.md
+        # FilesystemBackend's chroot behavior should strip the leading /
+        leading_slash_path = f"/{skill_path}/SKILL.md"
+        result = await read_file_tool.ainvoke({"path": leading_slash_path})
+        assert "Alias Test Skill" in result

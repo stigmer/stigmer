@@ -598,6 +598,11 @@ def create_platform_tool_wrappers(
     - edit: Edit a file by replacing text
     - execute: Execute shell commands
     
+    **Aliases** (override deepagents' in-memory tools with filesystem-backed ones):
+    - read_file: Alias for read (overrides deepagents' in-memory read_file)
+    - write_file: Alias for write (overrides deepagents' in-memory write_file)
+    - edit_file: Alias for edit (overrides deepagents' in-memory edit_file)
+    
     When approval_checker is provided, the dangerous tool wrappers check if approval
     is required before executing, using the same interrupt/resume pattern as MCP tools.
     Safe tools may also be configured to require approval via the approval_checker.
@@ -610,7 +615,7 @@ def create_platform_tool_wrappers(
             If None, tools execute without approval check.
         
     Returns:
-        List of 7 @tool decorated functions for platform tools
+        List of 10 @tool decorated functions for platform tools (7 primary + 3 aliases)
         
     Example:
         >>> from graphton.core.sandbox_factory import create_sandbox_backend
@@ -618,9 +623,10 @@ def create_platform_tool_wrappers(
         >>> 
         >>> backend = create_sandbox_backend({"type": "filesystem", "root_dir": "/workspace"})
         >>> tools = create_platform_tool_wrappers(backend, approval_checker=my_checker)
-        >>> # tools contains: read, ls, glob, grep, write, edit, execute
+        >>> # tools contains: read, ls, glob, grep, write, edit, execute,
+        >>> #                  read_file, write_file, edit_file
         >>> len(tools)
-        7
+        10
     
     """
     tools: list[Callable[..., Any]] = []
@@ -653,6 +659,35 @@ def create_platform_tool_wrappers(
     
     # execute: Execute shell commands
     tools.append(_create_execute_tool(backend, approval_checker))
+    
+    # =========================================================================
+    # Aliases matching deepagents tool names (read_file, write_file, edit_file)
+    # =========================================================================
+    #
+    # deepagents 0.4.x internally creates its own FilesystemMiddleware with an
+    # in-memory StateBackend, registering tools named read_file, write_file,
+    # edit_file.  Those in-memory tools do NOT have access to files written to
+    # the real filesystem (e.g. skills written by SkillWriter).
+    #
+    # By registering our own filesystem-backed tools with the SAME names, we
+    # ensure that LangChain's ToolNode resolves to our versions (explicit tools
+    # take precedence over middleware-created tools).  This eliminates the tool
+    # selection conflict regardless of which name the LLM picks.
+    
+    # read_file alias -> same filesystem backend as "read"
+    read_file_alias = _create_read_tool(backend, approval_checker)
+    read_file_alias.name = "read_file"  # type: ignore[attr-defined]
+    tools.append(read_file_alias)
+    
+    # write_file alias -> same filesystem backend as "write"
+    write_file_alias = _create_write_tool(backend, approval_checker)
+    write_file_alias.name = "write_file"  # type: ignore[attr-defined]
+    tools.append(write_file_alias)
+    
+    # edit_file alias -> same filesystem backend as "edit"
+    edit_file_alias = _create_edit_tool(backend, approval_checker)
+    edit_file_alias.name = "edit_file"  # type: ignore[attr-defined]
+    tools.append(edit_file_alias)
     
     tool_names = [getattr(t, 'name', 'unknown') for t in tools]
     logger.info(
@@ -837,9 +872,9 @@ def _create_read_tool(
         
         # Execute the read operation
         try:
-            logger.debug(f"📖 Reading file: {path}")
+            logger.info("GRAPHTON read tool invoked for path: %s", path)
             result = backend.read(path)
-            logger.debug(f"✅ Read file '{path}' ({len(result)} chars)")
+            logger.info("GRAPHTON read tool succeeded for path: %s (%d chars)", path, len(result))
             return result
         except Exception as e:
             logger.error(f"Failed to read file '{path}': {e}")

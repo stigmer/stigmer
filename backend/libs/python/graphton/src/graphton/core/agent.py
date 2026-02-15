@@ -493,9 +493,14 @@ def create_deep_agent(
     # deepagents 0.4.x also creates its own FilesystemMiddleware internally
     # with an in-memory StateBackend. The deepagents filesystem tools have
     # different names (read_file, write_file, edit_file) than graphton's
-    # sandbox tools (read, write, edit), so they coexist without conflict.
-    # For tools with the same name (ls, glob, grep), the explicit tools from
-    # graphton take precedence in langchain's ToolNode resolution.
+    # sandbox tools (read, write, edit).
+    #
+    # IMPORTANT: graphton also registers aliases named read_file, write_file,
+    # edit_file backed by the REAL filesystem (not in-memory). These aliases
+    # ensure that regardless of which tool name the LLM picks (read vs
+    # read_file), the call always goes through the filesystem backend where
+    # skills and other files actually exist. The explicit tools from graphton
+    # take precedence over middleware-created tools in LangChain's ToolNode.
     if sandbox_config:
         from graphton.core.sandbox_factory import create_sandbox_backend
         from graphton.core.tool_wrappers import create_platform_tool_wrappers
