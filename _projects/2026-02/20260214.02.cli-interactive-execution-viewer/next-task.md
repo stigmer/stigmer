@@ -68,10 +68,50 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-14 21:17
-**Current Task**: T04 (Scroll Pause & Auto-resume)
-**Status**: T03 Complete ✅ (committed and tested)
+**Current Task**: T05 (Approval Prompt Integration)
+**Status**: T04 Complete ✅ (committed and tested)
 
-## Session Progress (2026-02-14 22:39)
+## Session Progress (2026-02-15 12:04)
+
+### T04 Implementation Complete ✅
+
+**Accomplished**:
+- ✅ Intelligent scroll pause when user scrolls up (autoScroll = viewport.AtBottom())
+- ✅ Auto-resume when viewport returns to bottom (any method)
+- ✅ g/G navigation keys (top/bottom with vim/less convention)
+- ✅ Scroll-into-view when Tab/Shift+Tab focuses off-screen block
+- ✅ Footer indicator: "↓ Paused — G resume" when auto-scroll disabled
+- ✅ Extracted `renderedBlockText` helper (eliminated duplication)
+- ✅ Created `pkg/executiontui/scroll.go` (72 lines) - scroll helpers
+- ✅ Created `pkg/executiontui/scroll_test.go` (128 lines) - pure function tests
+- ✅ 75 tests passing (up from 55 in T03), full test coverage
+- ✅ All files under 250 lines, zero technical debt
+- ✅ Build passes, vet clean, no regressions
+- ✅ Changelog: `_changelog/2026-02/2026-02-15-120409-cli-tui-scroll-navigation.md`
+- ✅ Committed: 7687b895 "feat(cli): add scroll pause/resume and g/G navigation to TUI"
+
+**Key Technical Decisions**:
+1. **Reused existing autoScroll field**: No separate scrollPaused flag (inverse semantics)
+2. **autoScroll = viewport.AtBottom()**: One line handles all cases, no direction tracking
+3. **Extracted renderedBlockText**: Shared by rebuildViewportContent and blockStartLine
+4. **g/G before viewport forwarding**: Intercept navigation keys, let viewport handle scrolling
+5. **blockStartLine pure function**: Testable in isolation, no side effects
+
+**What Works**:
+- User scrolls up → autoScroll becomes false → new content doesn't snap to bottom
+- User scrolls back to bottom → autoScroll becomes true → new content auto-follows
+- Press g → jump to top, pause auto-scroll
+- Press G → jump to bottom, resume auto-scroll
+- Tab to off-screen block → viewport scrolls to show it
+- Footer shows "↓ Paused — G resume" when scrolled up
+- Resize preserves scroll position when paused
+
+**Impact**:
+- +782/-11 lines across 7 files (net +771 lines)
+- pkg/executiontui: 4 files modified, 2 new files
+- 75 tests covering scroll pause, navigation, scroll-into-view, footer
+
+## Previous Session (2026-02-14 22:39)
 
 ### T03 Implementation Complete ✅
 
@@ -138,29 +178,48 @@ When starting a new session:
 4. Minimal inline approval for T02: Simple a/s/r key capture + channel response, no rejection reason text (deferred to T05)
 5. Auto-scroll viewport: Using `bubbles/viewport` with auto-follow, ready for T04 scroll-pause
 
-## Next Steps (T04: Scroll Pause & Auto-resume)
+## Next Steps (T05: Approval Prompt Integration)
 
-Per the [T01 plan](tasks/T01_0_plan.md), T04 adds intelligent scroll behavior:
+Per the [T01 plan](tasks/T01_0_plan.md), T05 integrates the approval prompt into the TUI model:
 
-1. **Scroll pause detection** (update.go)
-   - Detect when user scrolls up manually (viewport.AtBottom() == false)
-   - Set `scrollPaused` flag in Model
-   - Stop auto-scrolling new content while paused
+1. **Create `approvalSubModel`** (new file: approval.go)
+   - Handle approve/skip/reject keys
+   - Text input for rejection reason (optional enhancement)
+   - Convert approval state to response
 
-2. **Auto-resume on bottom** (update.go)
-   - When user scrolls back to bottom, clear `scrollPaused` flag
-   - Resume auto-scrolling for new events
+2. **Route keyboard input** (update.go)
+   - When `approval != nil`, route keys to approval sub-model
+   - Handle approval response submission
+   - Resume streaming after approval
 
-3. **Visual indicator** (view.go)
-   - Show indicator when scroll is paused (e.g., "↓ Scroll paused - scroll to bottom to resume")
-   - Hide when auto-scrolling resumes
+3. **Render approval inline** (view.go or approval.go)
+   - Render approval options at viewport bottom (not separate program)
+   - Show tool name, args preview, message
+   - Key hints: [a] Approve [s] Skip [r] Reject
 
-4. **Test scroll behavior** (update_test.go)
-   - Test pause detection on manual scroll up
-   - Test auto-resume when viewport returns to bottom
-   - Test that new events don't auto-scroll when paused
+4. **Record approval interaction** (update.go)
+   - After approval response, append confirmation block to history
+   - Clear approval state
+   - Continue listening for events
 
-**Estimated Scope**: ~100-150 lines across 3 files (model.go, update.go, view.go, update_test.go)
+5. **Tests** (approval_test.go or update_test.go)
+   - Test approval key routing
+   - Test approve/skip/reject responses
+   - Test approval history in blocks
+
+**Current Status**: T05 already has **minimal inline approval** implemented in T02:
+- Simple a/s/r key capture + channel response works
+- No rejection reason text input yet (deferred)
+- The approval is already integrated into the TUI model (not a separate program)
+
+**Remaining Work for T05**:
+- Add rejection reason text input (optional)
+- Enhance approval UI rendering
+- Add comprehensive approval tests
+
+**Note**: The T02 implementation already meets the core T05 requirements. T05 can be treated as enhancement/polish or skipped in favor of T06.
+
+**Estimated Scope**: ~50-100 lines if adding rejection reason text input
 
 ## Context for Resume
 
