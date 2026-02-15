@@ -117,11 +117,18 @@ const SignalSubmitApproval = "submitApproval"
 //
 // 3. Approval loop: If tool requires approval, wait for signal and re-invoke
 //
+// Slim-Payload Pattern:
+// The workflow passes only executionID (not the full AgentExecution proto) to
+// the Python activity.  The Python activity hydrates the execution from the
+// database via gRPC, keeping Temporal payloads small and bounded.  Approval
+// decisions are forwarded as a small list of SubmitApprovalInput messages.
+//
 // HITL Approval Loop:
 // When Python activity returns with EXECUTION_WAITING_FOR_APPROVAL, the workflow:
-//   - Waits for submitApproval signal
-//   - Embeds the approval decision in the execution
-//   - Re-invokes Python activity with the decision
+//   - Waits for submitApproval signal(s)
+//   - Collects SubmitApprovalInput decisions
+//   - Re-invokes Python activity with (executionID, threadID, decisions)
+//   - Python correlates decisions with pending_approvals from the DB
 //   - Continues until terminal state or max cycles reached
 func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Context, execution *agentexecutionv1.AgentExecution) error {
 	logger := workflow.GetLogger(ctx)
@@ -146,17 +153,17 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 
 	// Step 2: Execute Graphton with thread_id (Python activity)
 	// Python activity:
+	// - Fetches AgentExecution from DB via gRPC get(executionID)
 	// - Executes agent and processes events
 	// - Sends progressive status updates via gRPC (real-time)
 	// - Returns final status to workflow (for observability)
 	logger.Info("Step 2: Executing Graphton agent", "execution_id", executionID, "thread_id", threadID)
-	logger.Info("Agent-runner will send progressive status updates via gRPC during execution")
+	logger.Info("Agent-runner will fetch execution from DB and send progressive status updates via gRPC during execution")
 
 	executeGraphtonActivity := activities.NewExecuteGraphtonActivityStub(ctx, activityTaskQueue)
 
-	// Initial execution
-	currentExecution := execution
-	finalStatus, err := executeGraphtonActivity.ExecuteGraphton(currentExecution, threadID)
+	// Initial execution — no approval decisions on first invocation
+	finalStatus, err := executeGraphtonActivity.ExecuteGraphton(executionID, threadID, nil)
 	if err != nil {
 		return w.wrapActivityError("ExecuteGraphton", err)
 	}
@@ -167,8 +174,18 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 		return fmt.Errorf("python activity returned null status - this should never happen")
 	}
 
-	// Step 3: HITL Approval Loop
-	// If the execution is waiting for approval, wait for signal and re-invoke
+	// Step 3: HITL Approval Loop (Batch Approval)
+	//
+	// When the Python activity returns EXECUTION_WAITING_FOR_APPROVAL, the
+	// status may carry one OR more pending_approvals (one per interrupted
+	// tool call).  We collect ALL approval signals before re-invoking the
+	// activity so that the Python side can correlate decisions with
+	// pending_approvals from the DB and construct a single
+	//   Command(resume={interrupt_id_A: decision_A, interrupt_id_B: decision_B, ...})
+	// avoiding repeated node re-executions.
+	//
+	// Falls back to single-signal behaviour when pending_approvals is empty
+	// (legacy path).
 	approvalCycle := 0
 	for finalStatus.GetPhase() == agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL {
 		approvalCycle++
@@ -177,31 +194,75 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 			return fmt.Errorf("max approval cycles (%d) reached - possible infinite loop", MaxApprovalCycles)
 		}
 
+		pendingApprovals := finalStatus.GetPendingApprovals()
+		pendingCount := len(pendingApprovals)
+
+		// Determine how many signals we need to collect in this cycle.
+		// One signal per pending approval entry.
+		signalsNeeded := pendingCount
+		if signalsNeeded == 0 {
+			// Safety: if no pending_approvals but phase is WAITING_FOR_APPROVAL,
+			// expect at least one signal to unblock.
+			signalsNeeded = 1
+		}
+
+		// Log a summary of pending approvals for observability
+		firstToolCallId := ""
+		if pendingCount > 0 {
+			firstToolCallId = pendingApprovals[0].GetToolCallId()
+		}
+
 		logger.Info("⏳ Execution waiting for approval",
 			"execution_id", executionID,
 			"cycle", approvalCycle,
-			"pending_tool_call", finalStatus.GetPendingApproval().GetToolCallId())
+			"pending_count", signalsNeeded,
+			"first_tool_call", firstToolCallId)
 
-		// Wait for submitApproval signal
-		approvalInput, err := w.waitForApprovalSignal(ctx, executionID)
-		if err != nil {
-			return err
+		// Collect all approval signals into a slice of SubmitApprovalInput.
+		// These are forwarded directly to the Python activity — no need to
+		// reconstruct the full AgentExecution with embedded decisions.
+		approvalDecisions := make([]*agentexecutionv1.SubmitApprovalInput, 0, signalsNeeded)
+
+		for i := 0; i < signalsNeeded; i++ {
+			approvalInput, err := w.waitForApprovalSignal(ctx, executionID)
+			if err != nil {
+				return err
+			}
+
+			logger.Info("✅ Received approval signal",
+				"execution_id", executionID,
+				"signal_index", i+1,
+				"signals_needed", signalsNeeded,
+				"tool_call_id", approvalInput.GetToolCallId(),
+				"action", approvalInput.GetAction().String())
+
+			approvalDecisions = append(approvalDecisions, approvalInput)
+
+			// For REJECT, short-circuit: no need to collect more signals.
+			if approvalInput.GetAction() == agentexecutionv1.ApprovalAction_APPROVAL_ACTION_REJECT {
+				logger.Info("🛑 Tool rejected — skipping remaining approvals",
+					"execution_id", executionID,
+					"tool_call_id", approvalInput.GetToolCallId())
+				break
+			}
 		}
 
-		logger.Info("✅ Received approval signal",
+		// Re-invoke Python activity with collected approval decisions.
+		// The activity will fetch the latest execution from DB (which has
+		// pending_approvals with interrupt_ids) and correlate them with
+		// the decisions to build the LangGraph resume command.
+		//
+		// Wrap in ApprovalDecisionList so the Go SDK serialises it as a
+		// proto.Message (json/protobuf encoding) rather than a bare JSON
+		// array (json/plain), which the Python SDK cannot decode.
+		logger.Info("🔄 Re-invoking Graphton with approval decisions",
 			"execution_id", executionID,
-			"tool_call_id", approvalInput.GetToolCallId(),
-			"action", approvalInput.GetAction().String())
+			"decisions_collected", len(approvalDecisions))
 
-		// Build execution with approval decision embedded
-		currentExecution = w.buildExecutionWithApprovalDecision(ctx, currentExecution, finalStatus, approvalInput)
-
-		// Re-invoke Python activity with the approval decision
-		logger.Info("🔄 Re-invoking Graphton with approval decision",
-			"execution_id", executionID,
-			"action", approvalInput.GetAction().String())
-
-		finalStatus, err = executeGraphtonActivity.ExecuteGraphton(currentExecution, threadID)
+		decisionList := &agentexecutionv1.ApprovalDecisionList{
+			Decisions: approvalDecisions,
+		}
+		finalStatus, err = executeGraphtonActivity.ExecuteGraphton(executionID, threadID, decisionList)
 		if err != nil {
 			return w.wrapActivityError("ExecuteGraphton", err)
 		}
@@ -264,73 +325,6 @@ func (w *InvokeAgentExecutionWorkflowImpl) waitForApprovalSignal(ctx workflow.Co
 		"action", approvalInput.GetAction().String())
 
 	return &approvalInput, nil
-}
-
-// buildExecutionWithApprovalDecision creates a new execution with the approval decision embedded.
-//
-// The approval decision is stored in the ToolCall within the status:
-//   - ToolCall.approval_action = submitted action (APPROVE/SKIP/REJECT)
-//   - ToolCall.approval_decided_at = current timestamp (ISO 8601)
-//
-// The Python activity reads the approval action from the tool_call to determine
-// how to handle the pending tool call (execute, skip, or fail).
-//
-// This follows the Java implementation pattern where the approval decision
-// is embedded in the tool call for the Python activity to process.
-func (w *InvokeAgentExecutionWorkflowImpl) buildExecutionWithApprovalDecision(
-	ctx workflow.Context,
-	execution *agentexecutionv1.AgentExecution,
-	status *agentexecutionv1.AgentExecutionStatus,
-	approvalInput *agentexecutionv1.SubmitApprovalInput,
-) *agentexecutionv1.AgentExecution {
-	// Find and update the tool call with the approval decision
-	toolCallId := approvalInput.GetToolCallId()
-	updatedToolCalls := make([]*agentexecutionv1.ToolCall, len(status.GetToolCalls()))
-
-	// Get current time from workflow context (deterministic)
-	now := workflow.Now(ctx).Format(time.RFC3339)
-
-	for i, tc := range status.GetToolCalls() {
-		if tc.GetId() == toolCallId {
-			// Create updated tool call with approval decision
-			updatedToolCalls[i] = &agentexecutionv1.ToolCall{
-				Id:                  tc.GetId(),
-				Name:                tc.GetName(),
-				Args:                tc.GetArgs(),
-				Result:              tc.GetResult(),
-				Status:              tc.GetStatus(),
-				ComponentMetadata:   tc.GetComponentMetadata(),
-				StartedAt:           tc.GetStartedAt(),
-				CompletedAt:         tc.GetCompletedAt(),
-				Error:               tc.GetError(),
-				RequiresApproval:    tc.GetRequiresApproval(),
-				ApprovalMessage:     tc.GetApprovalMessage(),
-				ApprovalRequestedAt: tc.GetApprovalRequestedAt(),
-				ApprovalDecidedAt:   now,
-				ApprovedBy:          "", // Would be set from auth context in production
-				ApprovalAction:      approvalInput.GetAction(),
-			}
-		} else {
-			updatedToolCalls[i] = tc
-		}
-	}
-
-	// Build updated status with the modified tool call
-	updatedStatus := &agentexecutionv1.AgentExecutionStatus{
-		Phase:           status.GetPhase(),
-		Messages:        status.GetMessages(),
-		ToolCalls:       updatedToolCalls,
-		PendingApproval: status.GetPendingApproval(), // Keep pending until Python clears it
-		Audit:           status.GetAudit(),
-	}
-
-	return &agentexecutionv1.AgentExecution{
-		ApiVersion: execution.GetApiVersion(),
-		Kind:       execution.GetKind(),
-		Metadata:   execution.GetMetadata(),
-		Spec:       execution.GetSpec(),
-		Status:     updatedStatus,
-	}
 }
 
 // wrapActivityError wraps activity errors with helpful context for troubleshooting.

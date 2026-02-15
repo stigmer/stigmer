@@ -86,6 +86,17 @@ func newToolCallBlock(preview, full string) contentBlock {
 	}
 }
 
+// newRunningToolBlock creates a non-expandable block for a tool that is
+// currently executing. The content is the running indicator header (e.g.,
+// "📝 Write: file.md ⏳"). This block is updated in-place and eventually
+// replaced with an expandable newToolCallBlock when the tool completes.
+func newRunningToolBlock(content string) contentBlock {
+	return contentBlock{
+		blockType: blockToolResult,
+		content:   content,
+	}
+}
+
 // newSystemBlock creates a block for a system message.
 func newSystemBlock(content string) contentBlock {
 	return contentBlock{

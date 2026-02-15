@@ -1,10 +1,21 @@
 package toolrender
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 	"time"
 )
+
+// ansiRe matches ANSI escape sequences (color codes, resets, etc.).
+var ansiRe = regexp.MustCompile(`\x1b\[[0-9;]*m`)
+
+// stripANSI removes all ANSI escape sequences from s, returning the visible
+// text content only. Used in tests to assert on semantic content without
+// coupling to styling details.
+func stripANSI(s string) string {
+	return ansiRe.ReplaceAllString(s, "")
+}
 
 // =============================================================================
 // Render Tests — Known Tool Categories
@@ -937,6 +948,81 @@ func TestStripToolMessageRepr_DoubleQuotedNameMarker(t *testing.T) {
 }
 
 // =============================================================================
+// stripToolMessageRepr — CommandUpdate repr Tests
+// =============================================================================
+
+func TestStripToolMessageRepr_CommandUpdate_SingleQuotedContent(t *testing.T) {
+	input := `CommandUpdate('files': ['/workspace/.gitkeep'], 'messages': [ToolMessage(content='Updated file /workspace/.gitkeep', tool_call_id='toolu_01Fjf')])`
+	got := stripToolMessageRepr(input)
+	if got != "Updated file /workspace/.gitkeep" {
+		t.Errorf("expected extracted ToolMessage content, got %q", got)
+	}
+}
+
+func TestStripToolMessageRepr_CommandUpdate_DoubleQuotedContent(t *testing.T) {
+	input := `CommandUpdate('files': ['/workspace/out.txt'], 'messages': [ToolMessage(content="Successfully wrote 42 characters to 'out.txt'", tool_call_id="toolu_abc")])`
+	got := stripToolMessageRepr(input)
+	if got != "Successfully wrote 42 characters to 'out.txt'" {
+		t.Errorf("expected extracted ToolMessage content, got %q", got)
+	}
+}
+
+func TestStripToolMessageRepr_CommandUpdate_NoToolMessage(t *testing.T) {
+	// CommandUpdate without an extractable ToolMessage — returns the original string.
+	input := `CommandUpdate('files': ['/workspace/out.txt'], 'status': 'ok')`
+	got := stripToolMessageRepr(input)
+	if got != input {
+		t.Errorf("expected original string passthrough, got %q", got)
+	}
+}
+
+func TestStripToolMessageRepr_CommandUpdate_EmptyContent(t *testing.T) {
+	// ToolMessage with empty content — the extracted string is empty.
+	input := `CommandUpdate('messages': [ToolMessage(content='', tool_call_id='toolu_x')])`
+	got := stripToolMessageRepr(input)
+	if got != "" {
+		t.Errorf("expected empty string, got %q", got)
+	}
+}
+
+// =============================================================================
+// extractCommandUpdateContent Tests
+// =============================================================================
+
+func TestExtractCommandUpdateContent_SingleQuoted(t *testing.T) {
+	input := `CommandUpdate('messages': [ToolMessage(content='file created', tool_call_id='id1')])`
+	got := extractCommandUpdateContent(input)
+	if got != "file created" {
+		t.Errorf("expected %q, got %q", "file created", got)
+	}
+}
+
+func TestExtractCommandUpdateContent_DoubleQuoted(t *testing.T) {
+	input := `CommandUpdate('messages': [ToolMessage(content="hello world", tool_call_id="id1")])`
+	got := extractCommandUpdateContent(input)
+	if got != "hello world" {
+		t.Errorf("expected %q, got %q", "hello world", got)
+	}
+}
+
+func TestExtractCommandUpdateContent_NoToolMessage(t *testing.T) {
+	input := `CommandUpdate('files': ['/workspace/out.txt'])`
+	got := extractCommandUpdateContent(input)
+	if got != input {
+		t.Errorf("expected original string, got %q", got)
+	}
+}
+
+func TestExtractCommandUpdateContent_ContentWithEmbeddedQuotes(t *testing.T) {
+	// Double-quoted content that contains single quotes (common in file paths).
+	input := `CommandUpdate('messages': [ToolMessage(content="Wrote to '/tmp/foo.txt'", tool_call_id="id2")])`
+	got := extractCommandUpdateContent(input)
+	if got != "Wrote to '/tmp/foo.txt'" {
+		t.Errorf("expected %q, got %q", "Wrote to '/tmp/foo.txt'", got)
+	}
+}
+
+// =============================================================================
 // unquote Tests
 // =============================================================================
 
@@ -1185,19 +1271,79 @@ func TestRenderExpanded_IncludesMetadataSuffix(t *testing.T) {
 }
 
 // =============================================================================
+// RenderRunning Tests — Running Indicator
+// =============================================================================
+
+func TestRenderRunning_KnownTool(t *testing.T) {
+	result := RenderRunning(ToolCallInfo{
+		Name:   "write",
+		Args:   map[string]interface{}{"path": "outputs/SKILL.md"},
+		Status: "running",
+	})
+
+	assertContains(t, result, "📝")
+	assertContains(t, result, "Write")
+	assertContains(t, result, "outputs/SKILL.md")
+	assertContains(t, result, "⏳")
+}
+
+func TestRenderRunning_UnknownTool(t *testing.T) {
+	result := RenderRunning(ToolCallInfo{
+		Name:   "custom_tool",
+		Args:   map[string]interface{}{"input": "test"},
+		Status: "running",
+	})
+
+	assertContains(t, result, "🔧")
+	assertContains(t, result, "custom_tool")
+	assertContains(t, result, "test")
+	assertContains(t, result, "⏳")
+}
+
+func TestRenderRunning_NoArgs(t *testing.T) {
+	result := RenderRunning(ToolCallInfo{
+		Name:   "shell",
+		Status: "running",
+	})
+
+	assertContains(t, result, "🖥")
+	assertContains(t, result, "Shell")
+	assertContains(t, result, "⏳")
+}
+
+func TestRenderRunning_ShellTool(t *testing.T) {
+	result := RenderRunning(ToolCallInfo{
+		Name:   "execute",
+		Args:   map[string]interface{}{"command": "npm install"},
+		Status: "running",
+	})
+
+	assertContains(t, result, "🖥")
+	assertContains(t, result, "Execute")
+	assertContains(t, result, "npm install")
+	assertContains(t, result, "⏳")
+}
+
+// =============================================================================
 // Test Helpers
 // =============================================================================
 
+// assertContains checks that the visible text of s (with ANSI codes stripped)
+// contains substr. This decouples content assertions from styling details.
 func assertContains(t *testing.T, s, substr string) {
 	t.Helper()
-	if !strings.Contains(s, substr) {
-		t.Errorf("expected %q to contain %q", s, substr)
+	plain := stripANSI(s)
+	if !strings.Contains(plain, substr) {
+		t.Errorf("expected output to contain %q\n  plain: %q", substr, plain)
 	}
 }
 
+// assertNotContains checks that the visible text of s (with ANSI codes
+// stripped) does NOT contain substr.
 func assertNotContains(t *testing.T, s, substr string) {
 	t.Helper()
-	if strings.Contains(s, substr) {
-		t.Errorf("expected %q to NOT contain %q", s, substr)
+	plain := stripANSI(s)
+	if strings.Contains(plain, substr) {
+		t.Errorf("expected output to NOT contain %q\n  plain: %q", substr, plain)
 	}
 }

@@ -12,6 +12,7 @@ import (
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
@@ -53,11 +54,20 @@ func streamAgentExecution(executionID string, prompter approval.Prompter, defaul
 	events := make(chan executiontui.Event, 16)
 	approvalResponses := make(chan executiontui.ApprovalResponse, 1)
 
+	// CancelFn is called by the TUI when the user confirms cancellation.
+	// It invokes the Cancel API; the backend will transition the execution
+	// to CANCELLED and the stream will deliver the phase change.
+	cancelFn := func() error {
+		_, err := execution.Cancel(conn, executionID)
+		return err
+	}
+
 	// Create and configure the TUI model.
 	model := executiontui.New(executiontui.Config{
 		ExecutionID:       executionID,
 		Events:            events,
 		ApprovalResponses: approvalResponses,
+		CancelFn:          cancelFn,
 	})
 
 	// Launch the gRPC stream goroutine that converts proto updates to TUI events.
@@ -84,19 +94,22 @@ func streamAgentExecution(executionID string, prompter approval.Prompter, defaul
 	}
 
 	// The TUI has exited and the terminal is back to inline mode.
-	// The caller (the run command) handles printing the final execution
-	// summary to inline stdout so it appears in terminal history.
-	//
-	// We re-fetch the final execution state to return to the caller.
-	// This is necessary because the TUI events channel carries display data
-	// (strings), not the full proto execution object.
+	// Re-fetch the execution state to get the full proto object for the
+	// summary display and to return to the caller.
 	finalExec, err := fetchFinalExecution(ctx, conn, executionID)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to fetch final execution state")
 	}
 
-	// Print execution summary to inline stdout (visible in terminal history).
-	displayAgentExecutionComplete(finalExec)
+	// Print the appropriate summary to inline stdout.
+	// When the execution reached a terminal phase, show the completion summary.
+	// When the user detached while execution is still running, show a detach
+	// notice with instructions for checking status or cancelling.
+	if result.Done() {
+		displayAgentExecutionComplete(finalExec)
+	} else {
+		displayAgentExecutionDetached(finalExec)
+	}
 
 	return finalExec, nil
 }
@@ -171,13 +184,12 @@ func streamWorkflowExecution(executionID string, prompter approval.Prompter, def
 		}
 
 		// Step 2: Handle approval flow when child agent requires approval.
-		// Workflows surface approvals via PendingApproval field (populated by child agent signal).
-		if needsWorkflowApprovalPrompt(
-			execution.Status.GetPendingApproval(),
-			promptedToolCallIDs,
-		) {
+		// Workflows surface approvals via pending_approvals (populated by child agent signal).
+		for _, pendingApproval := range execution.Status.GetPendingApprovals() {
+			if pendingApproval.ToolCallId == "" || promptedToolCallIDs[pendingApproval.ToolCallId] {
+				continue
+			}
 			sp.Stop()
-			pendingApproval := execution.Status.GetPendingApproval()
 			if err := handleWorkflowApprovalPrompt(ctx, conn, executionID, pendingApproval, prompter, defaultAction); err != nil {
 				return nil, errors.Wrap(err, "workflow approval failed")
 			}

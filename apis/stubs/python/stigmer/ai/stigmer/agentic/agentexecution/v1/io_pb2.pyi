@@ -71,6 +71,12 @@ class SubmitApprovalInput(_message.Message):
     comment: str
     def __init__(self, agent_execution_id: _Optional[str] = ..., tool_call_id: _Optional[str] = ..., action: _Optional[_Union[_api_pb2.ApprovalAction, str]] = ..., comment: _Optional[str] = ...) -> None: ...
 
+class ApprovalDecisionList(_message.Message):
+    __slots__ = ("decisions",)
+    DECISIONS_FIELD_NUMBER: _ClassVar[int]
+    decisions: _containers.RepeatedCompositeFieldContainer[SubmitApprovalInput]
+    def __init__(self, decisions: _Optional[_Iterable[_Union[SubmitApprovalInput, _Mapping]]] = ...) -> None: ...
+
 class CancelAgentExecutionInput(_message.Message):
     __slots__ = ("id", "reason")
     ID_FIELD_NUMBER: _ClassVar[int]

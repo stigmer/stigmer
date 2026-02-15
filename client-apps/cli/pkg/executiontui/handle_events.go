@@ -1,10 +1,37 @@
 package executiontui
 
-import tea "github.com/charmbracelet/bubbletea"
+import (
+	"time"
+
+	tea "github.com/charmbracelet/bubbletea"
+
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
+)
 
 // handleExecutionEvent dispatches a single execution event to the appropriate
 // handler based on its concrete type.
 func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
+	// Every event from the gRPC stream confirms the backend is reachable.
+	m.lastBackendUpdate = time.Now()
+
+	// HeartbeatEvent signals backend liveness but doesn't represent
+	// meaningful execution progress — don't reset the activity tracker
+	// or clear the thinking indicator. Just update lastBackendUpdate
+	// (done above) and continue listening.
+	if _, isHeartbeat := event.(HeartbeatEvent); isHeartbeat {
+		if m.done {
+			return m, nil
+		}
+		return m, listenForEvents(m.cfg.Events)
+	}
+
+	// Reset the activity tracker — a meaningful event arrived, so the
+	// agent is active. Clear the thinking indicator if it was visible;
+	// the header will re-render with the static phase icon on the next
+	// View() call.
+	m.lastEventAt = time.Now()
+	m.thinkingVisible = false
+
 	switch e := event.(type) {
 	case HumanMessageEvent:
 		m.blocks = append(m.blocks, newHumanBlock(renderHumanContent(e.Content)))
@@ -37,6 +64,30 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 		full := renderToolResultExpanded(e.Content, e.ToolCalls)
 		m.blocks = append(m.blocks, newToolCallBlock(preview, full))
 
+	case ToolRunningEvent:
+		block := newRunningToolBlock(renderToolRunning(e.ToolCall))
+		m.blocks = append(m.blocks, block)
+		m.runningTools[e.ToolCallID] = len(m.blocks) - 1
+
+	case ToolCompletedEvent:
+		tc := e.ToolCall
+		preview := renderToolResultPreview("", []toolrender.ToolCallInfo{tc})
+		full := renderToolResultExpanded("", []toolrender.ToolCallInfo{tc})
+		if idx, ok := m.runningTools[e.ToolCallID]; ok && idx < len(m.blocks) {
+			// Replace the running block in-place with the final expandable result.
+			m.blocks[idx] = newToolCallBlock(preview, full)
+			delete(m.runningTools, e.ToolCallID)
+		} else {
+			// Safety fallback: if no running block was tracked, append new block.
+			m.blocks = append(m.blocks, newToolCallBlock(preview, full))
+		}
+
+	case ToolStreamDeltaEvent:
+		if idx, ok := m.runningTools[e.ToolCallID]; ok && idx < len(m.blocks) {
+			// Update the running tool block in-place with the streaming content.
+			m.blocks[idx].content = renderStreamingTool(e.ToolCall, e.Content)
+		}
+
 	case SystemMessageEvent:
 		m.blocks = append(m.blocks, newSystemBlock(renderSystemContent(e.Content)))
 
@@ -62,6 +113,18 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 		m.done = true
 		previousPhase := m.phase
 		m.phase = e.Phase
+
+		// Finalize any tools still tracked as running. When execution
+		// completes (or fails/cancels), these tools will never receive a
+		// ToolCompletedEvent, so we replace their running indicator (⏳)
+		// with a completion mark (✓) to avoid stale visual cues.
+		for _, idx := range m.runningTools {
+			if idx < len(m.blocks) {
+				m.blocks[idx].content = renderToolFinalized(m.blocks[idx].content)
+			}
+		}
+		m.runningTools = make(map[string]int)
+
 		if e.Error != "" {
 			m.exitError = e.Error
 			m.blocks = append(m.blocks, newErrorBlock(
@@ -77,6 +140,15 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 	case StreamErrorEvent:
 		m.done = true
 		m.exitError = e.Err.Error()
+
+		// Finalize running tools (same rationale as DoneEvent above).
+		for _, idx := range m.runningTools {
+			if idx < len(m.blocks) {
+				m.blocks[idx].content = renderToolFinalized(m.blocks[idx].content)
+			}
+		}
+		m.runningTools = make(map[string]int)
+
 		m.blocks = append(m.blocks, newErrorBlock(
 			renderErrorContent("Stream error: "+e.Err.Error()),
 		))
@@ -99,6 +171,15 @@ func (m Model) handleStreamClosed() (tea.Model, tea.Cmd) {
 	if !m.done {
 		m.done = true
 		m.exitError = "execution stream closed unexpectedly"
+
+		// Finalize running tools (same rationale as DoneEvent above).
+		for _, idx := range m.runningTools {
+			if idx < len(m.blocks) {
+				m.blocks[idx].content = renderToolFinalized(m.blocks[idx].content)
+			}
+		}
+		m.runningTools = make(map[string]int)
+
 		m.blocks = append(m.blocks, newErrorBlock(
 			renderErrorContent("Stream closed unexpectedly"),
 		))

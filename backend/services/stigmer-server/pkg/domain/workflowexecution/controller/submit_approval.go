@@ -23,19 +23,19 @@ const (
 //
 // This RPC forwards the approval decision to the child AgentExecution that is
 // waiting for approval. The child is identified by the child_agent_execution_id
-// in status.pending_approval.
+// in the matched entry of status.pending_approvals.
 //
 // ## Behavior
 //
 // When a workflow invokes an agent that requires tool approval, the approval
-// request surfaces at the workflow level via status.pending_approval. Users can
+// request surfaces at the workflow level via status.pending_approvals. Users can
 // submit their decision through this RPC, which forwards it to the child agent.
 //
 // ## Preconditions
 //
-//   - status.pending_approval must be populated
-//   - tool_call_id must match status.pending_approval.tool_call_id
-//   - status.pending_approval.child_agent_execution_id must not be empty
+//   - status.pending_approvals must have at least one entry
+//   - tool_call_id must match an entry in status.pending_approvals
+//   - The matched entry's child_agent_execution_id must not be empty
 //
 // ## State Transitions
 //
@@ -167,42 +167,53 @@ func (s *validateWfApprovalStep) Execute(ctx *pipeline.RequestContext[*workflowe
 
 	executionID := execution.GetMetadata().GetId()
 	requestedToolCallId := input.GetToolCallId()
-	pendingApproval := execution.GetStatus().GetPendingApproval()
+	pendingApprovals := execution.GetStatus().GetPendingApprovals()
 
-	// Validate pending_approval exists
-	if pendingApproval == nil {
+	// Validate pending_approvals has entries
+	if len(pendingApprovals) == 0 {
 		log.Debug().
 			Str("execution_id", executionID).
-			Msg("No pending approval on workflow execution")
+			Msg("No pending approvals on workflow execution")
 		return grpclib.FailedPreconditionError(
-			"workflow execution %s has no pending approval",
+			"workflow execution %s has no pending approvals",
 			executionID,
 		)
 	}
 
-	// Validate tool_call_id matches
-	expectedToolCallId := pendingApproval.GetToolCallId()
-	if requestedToolCallId != expectedToolCallId {
+	// Find the matching entry by tool_call_id
+	var matchedApproval *agentexecutionv1.PendingApproval
+	for _, pa := range pendingApprovals {
+		if pa.GetToolCallId() == requestedToolCallId {
+			matchedApproval = pa
+			break
+		}
+	}
+
+	if matchedApproval == nil {
+		validIDs := make([]string, 0, len(pendingApprovals))
+		for _, pa := range pendingApprovals {
+			validIDs = append(validIDs, pa.GetToolCallId())
+		}
 		log.Debug().
 			Str("execution_id", executionID).
 			Str("requested_tool_call_id", requestedToolCallId).
-			Str("expected_tool_call_id", expectedToolCallId).
-			Msg("Tool call ID mismatch")
+			Strs("valid_tool_call_ids", validIDs).
+			Msg("Tool call ID not found in pending_approvals")
 		return grpclib.InvalidArgumentError(
-			"tool_call_id %s does not match pending approval tool_call_id %s",
-			requestedToolCallId, expectedToolCallId,
+			"tool_call_id %s not found in pending_approvals for workflow execution %s",
+			requestedToolCallId, executionID,
 		)
 	}
 
-	// Validate child_agent_execution_id exists
-	childExecutionId := pendingApproval.GetChildAgentExecutionId()
+	// Validate child_agent_execution_id exists on the matched entry
+	childExecutionId := matchedApproval.GetChildAgentExecutionId()
 	if childExecutionId == "" {
 		log.Debug().
 			Str("execution_id", executionID).
-			Msg("No child_agent_execution_id in pending approval")
+			Msg("No child_agent_execution_id in matched pending approval")
 		return grpclib.FailedPreconditionError(
-			"workflow execution %s has no child agent execution ID - approval must be submitted directly to the agent",
-			executionID,
+			"workflow execution %s has no child agent execution ID for tool_call %s - approval must be submitted directly to the agent",
+			executionID, requestedToolCallId,
 		)
 	}
 
@@ -299,8 +310,16 @@ func (s *buildWfApprovalResponseStep) Execute(ctx *pipeline.RequestContext[*work
 	toolCallId := input.GetToolCallId()
 	action := input.GetAction()
 	comment := input.GetComment()
-	pendingApproval := execution.GetStatus().GetPendingApproval()
-	toolName := pendingApproval.GetToolName()
+	childExecutionId := ctx.Get(ChildExecutionIDKey).(string)
+
+	// Find tool name from the matched pending approval
+	toolName := "unknown"
+	for _, pa := range execution.GetStatus().GetPendingApprovals() {
+		if pa.GetToolCallId() == toolCallId {
+			toolName = pa.GetToolName()
+			break
+		}
+	}
 
 	// Audit log the approval decision
 	log.Info().
@@ -310,7 +329,7 @@ func (s *buildWfApprovalResponseStep) Execute(ctx *pipeline.RequestContext[*work
 		Str("tool_name", toolName).
 		Str("action", action.String()).
 		Str("comment", comment).
-		Str("child_execution_id", pendingApproval.GetChildAgentExecutionId()).
+		Str("child_execution_id", childExecutionId).
 		Msg("AUDIT: Workflow approval decision submitted and forwarded to child agent")
 
 	return nil

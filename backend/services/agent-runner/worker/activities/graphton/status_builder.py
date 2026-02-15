@@ -165,14 +165,17 @@ class StatusBuilder:
         self._sub_agent_primary_model: dict[str, str] = {}
         
         # ─────────────────────────────────────────────────────────────────────────
-        # Approval State Tracking (HITL Phase 2)
+        # Approval State Tracking (HITL — Batch Approval)
         #
-        # Tracks which tool call is currently pending approval.
-        # Only one tool can be pending approval at a time per execution.
+        # Tracks which tool calls are currently pending approval.  When the LLM
+        # issues multiple tool calls that each require approval in a single
+        # response, LangGraph creates one interrupt per tool.  We track ALL of
+        # them so the post-stream interrupt-capture logic can match each
+        # interrupt to its tool call.
         # ─────────────────────────────────────────────────────────────────────────
         
-        # run_id of the tool call currently pending approval (None if not waiting)
-        self._pending_tool_approval: str | None = None
+        # Ordered list of ALL run_ids currently pending approval.
+        self._pending_tool_approvals: list[str] = []
         
         # Saved execution phase to restore after approval decision
         # (preserves IN_PROGRESS state when transitioning to WAITING_FOR_APPROVAL)
@@ -229,6 +232,8 @@ class StatusBuilder:
             self._handle_chat_model_stream_event(event, namespace)
         elif event_type == "on_chat_model_end":
             self._handle_chat_model_end_event(event, namespace)
+        elif event_type == "on_custom_event" and event.get("name") == "tool_progress":
+            self._handle_tool_progress_event(event, namespace)
     
     def _handle_tool_start_event(self, event: dict[str, Any], namespace: str = "") -> None:
         """Handle on_tool_start event - updates local status."""
@@ -374,6 +379,51 @@ class StatusBuilder:
                 sub_agent_name=sub_agent_name,
             )
     
+    def _handle_tool_progress_event(self, event: dict[str, Any], namespace: str = "") -> None:
+        """Handle on_custom_event with name='tool_progress'.
+        
+        Appends a progress chunk to the ToolCall's result field and sets
+        is_streaming=True. This enables live output streaming for tools
+        that support progressive output (e.g., execute/shell stdout).
+        
+        The run_id is read from the event-level field (same as on_tool_start/
+        on_tool_end) — NOT from the data payload. dispatch_custom_event called
+        within a @tool function inherits the tool's run context, so the run_id
+        automatically matches.
+        
+        Expected event structure:
+            {
+                "event": "on_custom_event",
+                "name": "tool_progress",
+                "run_id": str,           # Inherited from tool's run context
+                "data": {"chunk": str},  # Partial output to append
+            }
+        """
+        run_id = event.get("run_id", "")
+        chunk = event.get("data", {}).get("chunk", "")
+        
+        if not run_id or not chunk:
+            return
+        
+        # Find the ToolCall by run_id and update it.
+        # Uses _find_tool_call_by_id which searches both main agent and sub-agents.
+        tool_call = self._find_tool_call_by_id(run_id)
+        if tool_call is None:
+            self.logger.debug(
+                f"[TOOL_PROGRESS] execution={self.execution_id} "
+                f"run_id={run_id} ignored (tool call not found)"
+            )
+            return
+        
+        tool_call.result += chunk
+        tool_call.is_streaming = True
+        
+        self.logger.debug(
+            f"[TOOL_PROGRESS] execution={self.execution_id} "
+            f"run_id={run_id} chunk_len={len(chunk)} "
+            f"total_len={len(tool_call.result)}"
+        )
+    
     def _handle_tool_end_event(self, event: dict[str, Any], namespace: str = "") -> None:
         """Handle on_tool_end event - updates local status with COMPLETED status."""
         tool_name = event.get("name", "")
@@ -415,6 +465,7 @@ class StatusBuilder:
                     tc.result = tool_result_content
                     tc.status = ToolCallStatus.TOOL_CALL_COMPLETED
                     tc.completed_at = _utc_timestamp(now)
+                    tc.is_streaming = False
                     # Update message content for CLI display
                     message.content = self._format_tool_message_content(
                         tool_name, tc.args, tool_result_content
@@ -427,6 +478,7 @@ class StatusBuilder:
                     tool_call.result = tool_result_content
                     tool_call.status = ToolCallStatus.TOOL_CALL_COMPLETED
                     tool_call.completed_at = _utc_timestamp(now)
+                    tool_call.is_streaming = False
                     break
             
             self.logger.debug(
@@ -445,6 +497,7 @@ class StatusBuilder:
                     tc.result = tool_result_content
                     tc.status = ToolCallStatus.TOOL_CALL_COMPLETED
                     tc.completed_at = _utc_timestamp(now)
+                    tc.is_streaming = False
                     # Update message content for CLI display
                     message.content = self._format_tool_message_content(
                         tool_name, tc.args, tool_result_content
@@ -457,6 +510,7 @@ class StatusBuilder:
                     tool_call.result = tool_result_content
                     tool_call.status = ToolCallStatus.TOOL_CALL_COMPLETED
                     tool_call.completed_at = _utc_timestamp(now)
+                    tool_call.is_streaming = False
                     break
             
             self.logger.debug(
@@ -694,9 +748,10 @@ class StatusBuilder:
     def _extract_tool_result_content(self, result: Any) -> str:
         """Extract displayable content string from a tool result.
 
-        Handles the three result shapes that flow through LangGraph astream_events:
+        Handles the four result shapes that flow through LangGraph astream_events:
         - str: Direct string results (most common for simple tools)
         - LangGraph message objects (ToolMessage, AIMessage): Extract .content
+        - LangGraph Command objects: Extract ToolMessage content from .update
         - dict: Extract from 'output'/'content' keys, or JSON-serialize
         """
         if isinstance(result, str):
@@ -709,12 +764,27 @@ class StatusBuilder:
                 return content
             if isinstance(content, list):
                 return self._extract_string_content(content)
+        # Handle LangGraph Command objects (returned after approval resume).
+        # When a tool goes through interrupt()/resume, on_tool_end may emit a
+        # Command object instead of the plain tool return value. The Command's
+        # .update dict contains state channel data; the "messages" channel holds
+        # ToolMessage objects with the human-readable result.
+        # Uses duck typing on .update to stay decoupled from langgraph.types.
+        # Once identified as a Command, we commit to extracting from it — even
+        # if the result is empty — rather than falling through to str(result)
+        # which would produce a useless repr string.
+        if hasattr(result, "update") and isinstance(getattr(result, "update", None), dict):
+            return self._extract_command_content(result.update)
         if isinstance(result, dict):
             if "output" in result:
                 return result.get("output", "")
             if "content" in result:
                 return str(result["content"])
             return json.dumps(result, indent=2)
+        self.logger.warning(
+            f"[TOOL] Unknown result type {type(result).__name__} for tool result "
+            f"extraction, falling back to str(). Preview: {str(result)[:200]}"
+        )
         return str(result)
     
     def _format_tool_message_content(
@@ -791,6 +861,44 @@ class StatusBuilder:
                 text_parts.append(block.get("text", ""))
         return "".join(text_parts)
     
+    def _extract_command_content(self, update: dict[str, Any]) -> str:
+        """Extract displayable content from a LangGraph Command.update dict.
+
+        When a tool goes through the interrupt()/resume approval cycle,
+        LangGraph may wrap the result in a Command object whose .update dict
+        contains state channel mutations. The "messages" channel typically holds
+        ToolMessage objects with the human-readable tool result.
+
+        Extraction strategy:
+        1. Look in update["messages"] for ToolMessage-like objects with .content
+        2. Fall back to JSON-serializing the non-messages portion of the update
+
+        Returns an empty string if no meaningful content can be extracted.
+        """
+        messages = update.get("messages", [])
+        if isinstance(messages, list):
+            for msg in messages:
+                # Duck-type: ToolMessage has .content (str or list)
+                if hasattr(msg, "content"):
+                    content = msg.content
+                    if isinstance(content, str) and content:
+                        return content
+                    if isinstance(content, list):
+                        extracted = self._extract_string_content(content)
+                        if extracted:
+                            return extracted
+
+        # Fallback: serialize the update dict (excluding messages to avoid
+        # dumping ToolMessage repr objects back into the output).
+        fallback = {k: v for k, v in update.items() if k != "messages"}
+        if fallback:
+            try:
+                return json.dumps(fallback, indent=2, default=str)
+            except (TypeError, ValueError):
+                pass
+
+        return ""
+    
     def _update_todos(self, todos_data: list) -> None:
         """Update todos in local status."""
         status_map = {
@@ -843,10 +951,14 @@ class StatusBuilder:
         1. Updates the ToolCall status to WAITING_APPROVAL
         2. Sets approval-related fields on the ToolCall
         3. Populates pending_approval on AgentExecutionStatus for UI
-        4. Updates execution phase to WAITING_FOR_APPROVAL
+        4. Appends to _pending_tool_approvals list
+        5. Updates execution phase to WAITING_FOR_APPROVAL
         
-        Only one tool can be pending approval at a time. Calling this while
-        another tool is pending will log a warning but proceed (overwrites).
+        Multiple tool calls may be pending approval simultaneously when the LLM
+        issues several tool calls in one response that each require approval.
+        Each call to this method appends to the internal list; the post-stream
+        interrupt-capture logic in execute_graphton.py later reconciles these
+        with LangGraph interrupt IDs.
         
         Args:
             run_id: The tool call's run_id (from LangGraph event)
@@ -860,12 +972,6 @@ class StatusBuilder:
             The tool call must already exist in messages[].tool_calls[] or
             tool_calls[]. If not found, this method logs a warning and returns.
         """
-        if self._pending_tool_approval is not None:
-            self.logger.warning(
-                f"[APPROVAL] execution={self.execution_id} "
-                f"overwriting pending approval {self._pending_tool_approval} with {run_id}"
-            )
-        
         now = datetime.utcnow()
         timestamp = _utc_timestamp(now)
         
@@ -887,7 +993,8 @@ class StatusBuilder:
         # Create args preview (sanitized JSON for UI display)
         args_preview = self._create_args_preview(tool_args)
         
-        # Populate pending_approval for UI consumption
+        # Build a PendingApproval proto for this tool (interrupt_id is not yet
+        # known — it will be set post-stream when we query the graph state).
         pending = PendingApproval(
             tool_call_id=run_id,
             tool_name=tool_name,
@@ -897,20 +1004,23 @@ class StatusBuilder:
             from_sub_agent=from_sub_agent,
             sub_agent_name=sub_agent_name,
         )
-        self.current_status.pending_approval.CopyFrom(pending)
         
-        # Save current phase and transition to WAITING_FOR_APPROVAL
-        self._saved_phase_before_approval = self.current_status.phase
+        # Save current phase (only on the FIRST pending approval) and
+        # transition to WAITING_FOR_APPROVAL
+        if self._saved_phase_before_approval is None:
+            self._saved_phase_before_approval = self.current_status.phase
         self.current_status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
         
         # Track pending approval state
-        self._pending_tool_approval = run_id
+        self._pending_tool_approvals.append(run_id)
         
         context_info = f"sub_agent={sub_agent_name}" if from_sub_agent else "main_agent"
+        pending_count = len(self._pending_tool_approvals)
         self.logger.info(
             f"[APPROVAL] execution={self.execution_id} "
             f"tool={tool_name} run_id={run_id} "
-            f"status=WAITING_APPROVAL context={context_info}"
+            f"status=WAITING_APPROVAL context={context_info} "
+            f"pending_count={pending_count}"
         )
     
     def set_tool_approval_decision(
@@ -923,9 +1033,14 @@ class StatusBuilder:
         Record approval decision on a tool call and update state accordingly.
         
         This method processes the user's approval decision:
-        - APPROVE: Marks tool ready to execute, clears pending state
-        - SKIP: Sets tool to SKIPPED, returns skip message to LLM
-        - REJECT: Sets execution to FAILED
+        - APPROVE: Marks tool ready to execute, clears this entry from pending
+        - SKIP: Sets tool to SKIPPED, clears this entry from pending
+        - REJECT: Sets execution to FAILED, clears all pending
+        
+        With batch approval, this method only clears the specific run_id from
+        the pending list. The execution phase remains WAITING_FOR_APPROVAL if
+        other tools still need decisions.  The graph is NOT resumed until ALL
+        pending approvals are resolved (handled by the Temporal workflow).
         
         Args:
             run_id: The tool call's run_id
@@ -937,10 +1052,11 @@ class StatusBuilder:
             execution (e.g., via LangGraph interrupt/resume). This method only
             updates the state to reflect the decision.
         """
-        if self._pending_tool_approval != run_id:
+        if run_id not in self._pending_tool_approvals:
             self.logger.warning(
                 f"[APPROVAL] execution={self.execution_id} "
-                f"approval decision for {run_id} but pending is {self._pending_tool_approval}"
+                f"approval decision for {run_id} but not in pending list "
+                f"{self._pending_tool_approvals}"
             )
         
         now = datetime.utcnow()
@@ -964,37 +1080,39 @@ class StatusBuilder:
         action_name = ApprovalAction.Name(action)
         
         if action == ApprovalAction.APPROVAL_ACTION_APPROVE:
-            # Tool is approved - it will transition to RUNNING when execution resumes
-            # Keep status as WAITING_APPROVAL until actual execution starts
-            # Clear pending state and restore phase
-            self.clear_pending_approval()
+            # Tool is approved — it will transition to RUNNING when execution
+            # resumes. Keep status as WAITING_APPROVAL until actual execution.
+            # Remove this run_id from pending list.
+            self._remove_from_pending(run_id)
             self.logger.info(
                 f"[APPROVAL] execution={self.execution_id} "
-                f"run_id={run_id} decision=APPROVE by={approved_by}"
+                f"run_id={run_id} decision=APPROVE by={approved_by} "
+                f"remaining_pending={len(self._pending_tool_approvals)}"
             )
             
         elif action == ApprovalAction.APPROVAL_ACTION_SKIP:
-            # Tool is skipped - set terminal status and skip message
+            # Tool is skipped — set terminal status and skip message.
             tool_call.status = ToolCallStatus.TOOL_CALL_SKIPPED
             tool_call.result = f"Tool '{tool_call.name}' was skipped by user. Please proceed without this operation."
             tool_call.completed_at = timestamp
             
-            # Clear pending state and restore phase
-            self.clear_pending_approval()
+            # Remove this run_id from pending list.
+            self._remove_from_pending(run_id)
             self.logger.info(
                 f"[APPROVAL] execution={self.execution_id} "
-                f"run_id={run_id} decision=SKIP by={approved_by}"
+                f"run_id={run_id} decision=SKIP by={approved_by} "
+                f"remaining_pending={len(self._pending_tool_approvals)}"
             )
             
         elif action == ApprovalAction.APPROVAL_ACTION_REJECT:
-            # Tool is rejected - fail the execution
+            # Tool is rejected — fail the entire execution.
             tool_call.status = ToolCallStatus.TOOL_CALL_FAILED
             tool_call.error = f"Tool execution rejected by {approved_by}"
             tool_call.completed_at = timestamp
             
-            # Clear pending state but set phase to FAILED (not restore)
-            self._pending_tool_approval = None
-            self.current_status.pending_approval.Clear()
+            # Clear ALL pending state and set phase to FAILED
+            self._pending_tool_approvals.clear()
+            del self.current_status.pending_approvals[:]
             self.current_status.phase = ExecutionPhase.EXECUTION_FAILED
             self.current_status.error = f"Tool '{tool_call.name}' execution rejected by {approved_by}"
             
@@ -1008,16 +1126,29 @@ class StatusBuilder:
                 f"run_id={run_id} unknown action={action_name}"
             )
     
+    def _remove_from_pending(self, run_id: str) -> None:
+        """Remove a single run_id from the pending approvals list.
+        
+        If no more pending approvals remain after removal, clear the overall
+        pending state and restore the execution phase.
+        """
+        if run_id in self._pending_tool_approvals:
+            self._pending_tool_approvals.remove(run_id)
+        
+        if not self._pending_tool_approvals:
+            # All pending approvals have been decided — clear state
+            self.clear_pending_approval()
+    
     def clear_pending_approval(self) -> None:
         """
-        Clear pending approval state and restore execution phase.
+        Clear ALL pending approval state and restore execution phase.
         
-        Called after an approval decision is processed to clean up state.
-        Restores the execution phase to what it was before entering
-        WAITING_FOR_APPROVAL (typically IN_PROGRESS).
+        Called when all approval decisions have been processed (or on reject)
+        to clean up state.  Restores the execution phase to what it was before
+        entering WAITING_FOR_APPROVAL (typically IN_PROGRESS).
         """
-        self._pending_tool_approval = None
-        self.current_status.pending_approval.Clear()
+        self._pending_tool_approvals.clear()
+        del self.current_status.pending_approvals[:]
         
         # Restore phase (default to IN_PROGRESS if not saved)
         if self._saved_phase_before_approval is not None:
@@ -1074,7 +1205,7 @@ class StatusBuilder:
         sub_agent_name: str = "",
     ) -> None:
         """
-        Populate pending_approval field and update execution phase.
+        Populate pending approval tracking and update execution phase.
         
         This is called after the ToolCall has already been created with
         WAITING_APPROVAL status. It handles the execution-level state updates.
@@ -1090,36 +1221,12 @@ class StatusBuilder:
             from_sub_agent: True if this approval bubbles up from a sub-agent
             sub_agent_name: Name of the sub-agent (when from_sub_agent=True)
         """
-        if self._pending_tool_approval is not None:
-            self.logger.warning(
-                f"[APPROVAL] execution={self.execution_id} "
-                f"overwriting pending approval {self._pending_tool_approval} with {run_id}"
-            )
-        
-        now = datetime.utcnow()
-        timestamp = _utc_timestamp(now)
-        
-        # Create args preview (sanitized JSON for UI display)
-        args_preview = self._create_args_preview(tool_args)
-        
-        # Populate pending_approval for UI consumption
-        pending = PendingApproval(
-            tool_call_id=run_id,
-            tool_name=tool_name,
-            message=approval_message,
-            args_preview=args_preview,
-            requested_at=timestamp,
-            from_sub_agent=from_sub_agent,
-            sub_agent_name=sub_agent_name,
-        )
-        self.current_status.pending_approval.CopyFrom(pending)
-        
         # Save current phase and transition to WAITING_FOR_APPROVAL
         self._saved_phase_before_approval = self.current_status.phase
         self.current_status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
         
         # Track pending approval state
-        self._pending_tool_approval = run_id
+        self._pending_tool_approvals.append(run_id)
         
         context_info = f"sub_agent={sub_agent_name}" if from_sub_agent else "main_agent"
         self.logger.info(

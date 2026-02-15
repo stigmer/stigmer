@@ -3,6 +3,7 @@ package executiontui
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/lipgloss"
@@ -52,11 +53,15 @@ func (m Model) View() string {
 }
 
 // renderHeader returns the top status bar showing execution ID and phase.
-// During the "pending" phase, an animated spinner replaces the static icon
-// to signal that the TUI is alive and waiting for the agent to start.
+//
+// The spinner animates in two situations:
+//   - During "pending": signals the TUI is alive while waiting for the agent.
+//   - During "in_progress" when thinkingVisible: signals the agent is alive
+//     but processing (no events for > 2 seconds). This replaces the static
+//     "▶ in_progress" with an animated dot to reassure the user.
 func (m Model) renderHeader() string {
 	var phaseIndicator string
-	if m.phase == "pending" {
+	if m.phase == "pending" || m.thinkingVisible {
 		phaseIndicator = phaseIndicatorStyle.Render(m.spinner.View() + " " + m.phase)
 	} else {
 		phaseIndicator = phaseIndicatorStyle.Render(phaseIcon(m.phase) + " " + m.phase)
@@ -77,31 +82,42 @@ func (m Model) renderHeader() string {
 //
 // The footer adapts to the current interaction state (priority order):
 //  1. Done: execution finished — shows phase result and exit hint
-//  2. Approval active: shows approval action keys
-//  3. Scroll paused: user scrolled away from bottom — shows resume hint
-//  4. Normal: auto-scrolling — shows standard navigation hints
+//  2. Cancel confirm: shows y/n prompt
+//  3. Cancelling: shows cancelling indicator with detach hint
+//  4. Approval active: shows approval action keys
+//  5. Scroll paused: user scrolled away from bottom — shows resume hint
+//  6. Normal: auto-scrolling — shows standard navigation hints
+//
+// When the execution is still running, "quit" is labeled "detach" to make
+// it clear that exiting the TUI does not stop the execution.
 func (m Model) renderFooter() string {
 	var hints string
 	switch {
 	case m.done:
 		hints = "  " + doneFooterText(m.phase) + "  ↑↓ scroll"
 		if m.hasExpandableBlocks() {
-			hints += "  Tab focus  Enter expand"
+			hints += "  Tab/S-Tab focus  Enter expand"
 		}
 		hints += "  q exit"
+	case m.cancelConfirm:
+		hints = "  Cancel execution?  [y] yes  [n] no"
+	case m.cancelling:
+		hints = "  ⏳ Cancelling...  ↑↓ scroll  q detach"
 	case m.approval != nil:
-		hints = "  [a] Approve  [s] Skip  [r] Reject  [q] Quit"
+		hints = "  [a] Approve  [s] Skip  [r] Reject  [q] Detach"
+	case m.isConnectionStale():
+		hints = "  ⚠ Connection may be interrupted  ↑↓ scroll  c cancel  ? help  q detach"
 	case !m.autoScroll:
 		// Scroll paused — user scrolled away from the bottom.
 		if m.hasExpandableBlocks() {
-			hints = "  ↓ Paused — G resume  Tab focus  Enter expand  ? help  q quit"
+			hints = "  ↓ Paused — G resume  Tab/S-Tab focus  Enter expand  c cancel  ? help  q detach"
 		} else {
-			hints = "  ↓ Paused — G resume  ? help  q quit"
+			hints = "  ↓ Paused — G resume  c cancel  ? help  q detach"
 		}
 	case m.hasExpandableBlocks():
-		hints = "  ↑↓ scroll  Tab focus  Enter expand  ? help  q quit"
+		hints = "  ↑↓ scroll  Tab/S-Tab focus  Enter expand  c cancel  ? help  q detach"
 	default:
-		hints = "  ↑↓ scroll  ? help  q quit"
+		hints = "  ↑↓ scroll  c cancel  ? help  q detach"
 	}
 
 	// Pad footer to full width.
@@ -146,6 +162,14 @@ func phaseIcon(phase string) string {
 	default:
 		return "•"
 	}
+}
+
+// isConnectionStale returns true when the backend has not sent any updates
+// (including keepalives) for longer than the connection stale threshold.
+// This indicates a potential network issue or backend failure, as the backend
+// normally sends keepalive updates every 5 seconds.
+func (m Model) isConnectionStale() bool {
+	return m.phase == "in_progress" && time.Since(m.lastBackendUpdate) > connectionStaleThreshold
 }
 
 // newViewport creates a viewport.Model configured for the execution TUI.
