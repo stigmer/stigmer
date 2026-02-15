@@ -138,6 +138,18 @@ type DoneEvent struct {
 
 func (DoneEvent) isEvent() {}
 
+// HeartbeatEvent signals that a gRPC stream update was received from the
+// backend, even if no meaningful content changed (e.g., a keepalive update).
+// The TUI uses this to track backend liveness and distinguish "agent is
+// thinking" from "connection lost."
+//
+// Unlike other events, HeartbeatEvent does NOT reset the activity tracker
+// (lastEventAt) or clear the thinking indicator. It only refreshes the
+// lastBackendUpdate timestamp for connection health monitoring.
+type HeartbeatEvent struct{}
+
+func (HeartbeatEvent) isEvent() {}
+
 // StreamErrorEvent signals that the gRPC stream encountered an error.
 // The TUI displays the error and prepares to exit.
 type StreamErrorEvent struct {

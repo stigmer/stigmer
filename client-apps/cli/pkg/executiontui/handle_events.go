@@ -1,6 +1,8 @@
 package executiontui
 
 import (
+	"time"
+
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
@@ -9,6 +11,27 @@ import (
 // handleExecutionEvent dispatches a single execution event to the appropriate
 // handler based on its concrete type.
 func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
+	// Every event from the gRPC stream confirms the backend is reachable.
+	m.lastBackendUpdate = time.Now()
+
+	// HeartbeatEvent signals backend liveness but doesn't represent
+	// meaningful execution progress — don't reset the activity tracker
+	// or clear the thinking indicator. Just update lastBackendUpdate
+	// (done above) and continue listening.
+	if _, isHeartbeat := event.(HeartbeatEvent); isHeartbeat {
+		if m.done {
+			return m, nil
+		}
+		return m, listenForEvents(m.cfg.Events)
+	}
+
+	// Reset the activity tracker — a meaningful event arrived, so the
+	// agent is active. Clear the thinking indicator if it was visible;
+	// the header will re-render with the static phase icon on the next
+	// View() call.
+	m.lastEventAt = time.Now()
+	m.thinkingVisible = false
+
 	switch e := event.(type) {
 	case HumanMessageEvent:
 		m.blocks = append(m.blocks, newHumanBlock(renderHumanContent(e.Content)))

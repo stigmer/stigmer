@@ -21,6 +21,12 @@ type cancelResultMsg struct {
 	err error
 }
 
+// activityTickMsg is a periodic timer message used to detect idle periods
+// during execution. When no execution events arrive for longer than the
+// idle threshold, the TUI activates the thinking indicator (animated spinner
+// in the header) to signal that the agent is alive and processing.
+type activityTickMsg struct{}
+
 // listenForEvents returns a tea.Cmd that blocks on the events channel and
 // delivers the next Event as an executionEventMsg. When the channel is closed,
 // it returns a streamClosedMsg.

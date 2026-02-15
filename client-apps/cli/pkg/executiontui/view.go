@@ -3,6 +3,7 @@ package executiontui
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/lipgloss"
@@ -52,11 +53,15 @@ func (m Model) View() string {
 }
 
 // renderHeader returns the top status bar showing execution ID and phase.
-// During the "pending" phase, an animated spinner replaces the static icon
-// to signal that the TUI is alive and waiting for the agent to start.
+//
+// The spinner animates in two situations:
+//   - During "pending": signals the TUI is alive while waiting for the agent.
+//   - During "in_progress" when thinkingVisible: signals the agent is alive
+//     but processing (no events for > 2 seconds). This replaces the static
+//     "▶ in_progress" with an animated dot to reassure the user.
 func (m Model) renderHeader() string {
 	var phaseIndicator string
-	if m.phase == "pending" {
+	if m.phase == "pending" || m.thinkingVisible {
 		phaseIndicator = phaseIndicatorStyle.Render(m.spinner.View() + " " + m.phase)
 	} else {
 		phaseIndicator = phaseIndicatorStyle.Render(phaseIcon(m.phase) + " " + m.phase)
@@ -100,6 +105,8 @@ func (m Model) renderFooter() string {
 		hints = "  ⏳ Cancelling...  ↑↓ scroll  q detach"
 	case m.approval != nil:
 		hints = "  [a] Approve  [s] Skip  [r] Reject  [q] Detach"
+	case m.isConnectionStale():
+		hints = "  ⚠ Connection may be interrupted  ↑↓ scroll  c cancel  ? help  q detach"
 	case !m.autoScroll:
 		// Scroll paused — user scrolled away from the bottom.
 		if m.hasExpandableBlocks() {
@@ -155,6 +162,14 @@ func phaseIcon(phase string) string {
 	default:
 		return "•"
 	}
+}
+
+// isConnectionStale returns true when the backend has not sent any updates
+// (including keepalives) for longer than the connection stale threshold.
+// This indicates a potential network issue or backend failure, as the backend
+// normally sends keepalive updates every 5 seconds.
+func (m Model) isConnectionStale() bool {
+	return m.phase == "in_progress" && time.Since(m.lastBackendUpdate) > connectionStaleThreshold
 }
 
 // newViewport creates a viewport.Model configured for the execution TUI.

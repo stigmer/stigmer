@@ -1,6 +1,8 @@
 package executiontui
 
 import (
+	"time"
+
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
@@ -109,9 +111,27 @@ type Model struct {
 	// help panel in place of the viewport content. Toggled by ? key.
 	showHelp bool
 
-	// spinner is the animated spinner displayed in the header during the
-	// "pending" phase. It signals that the TUI is alive while waiting for
-	// the agent to start.
+	// lastEventAt tracks when the last meaningful execution event was received.
+	// Used by the activity tick to detect idle periods and show the thinking
+	// indicator in the header. Initialized to the model creation time so the
+	// first 2 seconds of execution don't trigger a false thinking state.
+	lastEventAt time.Time
+
+	// thinkingVisible is true when the thinking indicator (animated spinner)
+	// should be shown in the header. Set by the activity tick after 2 seconds
+	// of no events during the in_progress phase; cleared when the next event
+	// arrives.
+	thinkingVisible bool
+
+	// lastBackendUpdate tracks when the last gRPC stream update was received
+	// (including keepalive updates with no content changes). Used to
+	// distinguish "agent is thinking" from "connection lost".
+	lastBackendUpdate time.Time
+
+	// spinner is the animated spinner displayed in the header. During the
+	// "pending" phase it signals that the TUI is alive while waiting for
+	// the agent to start. During "in_progress" it reactivates as a thinking
+	// indicator when no events arrive for longer than the idle threshold.
 	spinner spinner.Model
 }
 
@@ -121,6 +141,7 @@ type Model struct {
 func New(cfg Config) Model {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
+	now := time.Now()
 	return Model{
 		cfg:               cfg,
 		autoScroll:        true,
@@ -128,13 +149,16 @@ func New(cfg Config) Model {
 		focusedBlockIndex: -1,
 		runningTools:      make(map[string]int),
 		spinner:           s,
+		lastEventAt:       now,
+		lastBackendUpdate: now,
 	}
 }
 
 // Init implements tea.Model. It returns the initial commands that start
-// listening for execution events and animating the pending-phase spinner.
+// listening for execution events, animating the pending-phase spinner,
+// and the periodic activity tick for idle detection.
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(listenForEvents(m.cfg.Events), m.spinner.Tick)
+	return tea.Batch(listenForEvents(m.cfg.Events), m.spinner.Tick, scheduleActivityTick())
 }
 
 // FinalError returns the error message if the execution stream failed.
