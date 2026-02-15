@@ -77,31 +77,40 @@ func (m Model) renderHeader() string {
 //
 // The footer adapts to the current interaction state (priority order):
 //  1. Done: execution finished — shows phase result and exit hint
-//  2. Approval active: shows approval action keys
-//  3. Scroll paused: user scrolled away from bottom — shows resume hint
-//  4. Normal: auto-scrolling — shows standard navigation hints
+//  2. Cancel confirm: shows y/n prompt
+//  3. Cancelling: shows cancelling indicator with detach hint
+//  4. Approval active: shows approval action keys
+//  5. Scroll paused: user scrolled away from bottom — shows resume hint
+//  6. Normal: auto-scrolling — shows standard navigation hints
+//
+// When the execution is still running, "quit" is labeled "detach" to make
+// it clear that exiting the TUI does not stop the execution.
 func (m Model) renderFooter() string {
 	var hints string
 	switch {
 	case m.done:
 		hints = "  " + doneFooterText(m.phase) + "  ↑↓ scroll"
 		if m.hasExpandableBlocks() {
-			hints += "  Tab focus  Enter expand"
+			hints += "  Tab/S-Tab focus  Enter expand"
 		}
 		hints += "  q exit"
+	case m.cancelConfirm:
+		hints = "  Cancel execution?  [y] yes  [n] no"
+	case m.cancelling:
+		hints = "  ⏳ Cancelling...  ↑↓ scroll  q detach"
 	case m.approval != nil:
-		hints = "  [a] Approve  [s] Skip  [r] Reject  [q] Quit"
+		hints = "  [a] Approve  [s] Skip  [r] Reject  [q] Detach"
 	case !m.autoScroll:
 		// Scroll paused — user scrolled away from the bottom.
 		if m.hasExpandableBlocks() {
-			hints = "  ↓ Paused — G resume  Tab focus  Enter expand  ? help  q quit"
+			hints = "  ↓ Paused — G resume  Tab/S-Tab focus  Enter expand  c cancel  ? help  q detach"
 		} else {
-			hints = "  ↓ Paused — G resume  ? help  q quit"
+			hints = "  ↓ Paused — G resume  c cancel  ? help  q detach"
 		}
 	case m.hasExpandableBlocks():
-		hints = "  ↑↓ scroll  Tab focus  Enter expand  ? help  q quit"
+		hints = "  ↑↓ scroll  Tab/S-Tab focus  Enter expand  c cancel  ? help  q detach"
 	default:
-		hints = "  ↑↓ scroll  ? help  q quit"
+		hints = "  ↑↓ scroll  c cancel  ? help  q detach"
 	}
 
 	// Pad footer to full width.

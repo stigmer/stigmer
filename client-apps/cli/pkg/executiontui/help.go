@@ -70,10 +70,16 @@ func helpSections() []helpSection {
 			},
 		},
 		{
+			title: "Execution Control",
+			bindings: []helpBinding{
+				{"c", "Cancel execution (with confirmation)"},
+			},
+		},
+		{
 			title: "General",
 			bindings: []helpBinding{
 				{"?", "Toggle this help"},
-				{"q / Ctrl+C", "Quit"},
+				{"q / Ctrl+C", "Detach (execution continues in background)"},
 			},
 		},
 	}

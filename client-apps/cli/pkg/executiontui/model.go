@@ -20,6 +20,12 @@ type Config struct {
 	// approval decisions. The gRPC goroutine reads from this channel when
 	// blocked on an approval request.
 	ApprovalResponses chan<- ApprovalResponse
+
+	// CancelFn is called to cancel the execution on the backend.
+	// It is invoked asynchronously from a tea.Cmd when the user confirms
+	// cancellation. The result arrives via the stream as a phase change
+	// to "cancelled". May be nil if cancel is not supported.
+	CancelFn func() error
 }
 
 // streamingState tracks an in-progress streaming AI message.
@@ -82,6 +88,16 @@ type Model struct {
 
 	// exitError holds the error message when the stream fails.
 	exitError string
+
+	// cancelConfirm is true when the TUI is showing the "Cancel execution?
+	// [y] yes [n] no" confirmation in the footer. Set by pressing 'c',
+	// cleared by 'y' (confirm), 'n', or 'esc' (dismiss).
+	cancelConfirm bool
+
+	// cancelling is true after the user confirms cancellation and the cancel
+	// request has been sent to the backend. Cleared when the execution
+	// transitions to a terminal phase (delivered via the stream).
+	cancelling bool
 
 	// showHelp toggles the help overlay. When true, View() renders the
 	// help panel in place of the viewport content. Toggled by ? key.
