@@ -58,7 +58,7 @@ from worker.sandbox_manager import (
 from worker.storage import ArtifactStorage, create_artifact_storage
 from worker.streaming import StreamingConfig, StreamingUpdateScheduler
 from worker.token_manager import get_api_key
-from worker.tools import create_publish_artifact_tool
+from worker.tools import publish_artifact
 
 
 class SetupTimer:
@@ -353,6 +353,156 @@ async def inject_attachments(
     )
     
     return injected_files
+
+
+async def _auto_publish_written_files(
+    tool_calls,
+    sandbox,
+    storage: ArtifactStorage,
+    execution_id: str,
+    status_builder: "StatusBuilder",
+    local_root: str | None,
+    logger,
+) -> int:
+    """Publish workspace files as artifacts based on completed write tool calls.
+
+    This is a post-stream safety net.  When the agent wrote files via the
+    ``write`` or ``write_file`` tools but never called ``publish_artifact``,
+    the user would receive no downloadable output.  This function inspects
+    the completed tool calls, groups written paths by their top-level
+    directory, and publishes each group as a downloadable artifact.
+
+    The function preserves the original folder structure: if all written
+    files share a common parent directory, that directory is published as a
+    single (zipped) artifact.  If files are scattered across unrelated
+    directories, each top-level directory (or individual root-level file)
+    is published separately.
+
+    Args:
+        tool_calls: Iterable of ToolCall protos from the execution status.
+        sandbox: Daytona sandbox instance (None for local mode).
+        storage: ArtifactStorage for uploading artifacts.
+        execution_id: Current execution ID.
+        status_builder: StatusBuilder to track the new artifacts.
+        local_root: Root path for local filesystem mode.
+        logger: Activity logger.
+
+    Returns:
+        Number of artifacts auto-published (0 if no writes found).
+    """
+    WRITE_TOOL_NAMES = {"write", "write_file"}
+
+    # Collect paths from completed write tool calls.
+    written_paths: list[str] = []
+    for tc in tool_calls:
+        if tc.name not in WRITE_TOOL_NAMES:
+            continue
+        if tc.status != ToolCallStatus.TOOL_CALL_COMPLETED:
+            continue
+        # tc.args is a google.protobuf.Struct; access fields as a dict.
+        path = dict(tc.args).get("path", "")
+        if path:
+            written_paths.append(path)
+
+    if not written_paths:
+        logger.debug(
+            f"[AUTO_PUBLISH] execution={execution_id} — "
+            f"no completed write tool calls found, skipping"
+        )
+        return 0
+
+    logger.info(
+        f"[AUTO_PUBLISH] execution={execution_id} — "
+        f"detected {len(written_paths)} written file(s), "
+        f"auto-publishing as artifacts: {written_paths}"
+    )
+
+    # Determine publish groups by finding the common ancestor directory.
+    # If all paths share a common parent (e.g. "my-skill/SKILL.md",
+    # "my-skill/scripts/run.sh" → common parent "my-skill"), publish that
+    # directory as a single artifact.  Otherwise publish each unique
+    # top-level segment separately.
+    from pathlib import PurePosixPath
+
+    # Normalise: strip leading slashes so paths are workspace-relative.
+    normalised = [p.lstrip("/") for p in written_paths]
+
+    # Compute common prefix directory.
+    if len(normalised) == 1:
+        p = PurePosixPath(normalised[0])
+        if len(p.parts) > 1:
+            # Single file inside a subdirectory → publish the parent dir.
+            common_dir = str(p.parts[0])
+        else:
+            # Single file at workspace root → publish the file itself.
+            common_dir = None
+    else:
+        try:
+            import posixpath
+            common = posixpath.commonpath(normalised)
+        except ValueError:
+            common = ""
+        if common and common != ".":
+            common_dir = common
+        else:
+            common_dir = None
+
+    artifacts_published = 0
+
+    if common_dir:
+        # Publish the common directory as a single artifact.
+        artifact_name = PurePosixPath(common_dir).name or common_dir
+        try:
+            artifact = await publish_artifact(
+                sandbox=sandbox,
+                storage=storage,
+                execution_id=execution_id,
+                path=common_dir,
+                name=artifact_name,
+                local_root=local_root,
+            )
+            status_builder.add_artifact(artifact)
+            artifacts_published += 1
+            logger.info(
+                f"[AUTO_PUBLISH] execution={execution_id} — "
+                f"published directory '{common_dir}' as artifact '{artifact_name}'"
+            )
+        except Exception as e:
+            logger.warning(
+                f"[AUTO_PUBLISH] execution={execution_id} — "
+                f"failed to publish directory '{common_dir}': {e}"
+            )
+    else:
+        # No common directory — publish each file individually.
+        for rel_path in normalised:
+            file_name = PurePosixPath(rel_path).name
+            try:
+                artifact = await publish_artifact(
+                    sandbox=sandbox,
+                    storage=storage,
+                    execution_id=execution_id,
+                    path=rel_path,
+                    name=file_name,
+                    local_root=local_root,
+                )
+                status_builder.add_artifact(artifact)
+                artifacts_published += 1
+                logger.info(
+                    f"[AUTO_PUBLISH] execution={execution_id} — "
+                    f"published file '{rel_path}' as artifact '{file_name}'"
+                )
+            except Exception as e:
+                logger.warning(
+                    f"[AUTO_PUBLISH] execution={execution_id} — "
+                    f"failed to publish file '{rel_path}': {e}"
+                )
+
+    logger.info(
+        f"[AUTO_PUBLISH] execution={execution_id} — "
+        f"auto-published {artifacts_published} artifact(s) from "
+        f"{len(written_paths)} written file(s)"
+    )
+    return artifacts_published
 
 
 @activity.defn(name="ExecuteGraphton")
@@ -1534,32 +1684,20 @@ async def _execute_graphton_impl(
                 transformed_subagents = None
         
         # ─────────────────────────────────────────────────────────────────────────────
-        # Step 5.10: Create Built-in Tools (Artifact Lifecycle)
+        # Step 5.10: Create Artifact Storage (for post-stream auto-publish)
         #
-        # Creates the publish_artifact tool that allows agents to make files/directories
-        # available for download by users. This is a core capability for the artifact
-        # lifecycle feature.
+        # Artifact storage is used by the post-stream auto-publish safety net
+        # to upload files written by the agent as downloadable artifacts.
+        # The agent does NOT receive a publish_artifact tool — publishing is
+        # handled structurally by the platform after the stream completes,
+        # based on completed write/write_file tool calls.  This eliminates
+        # dependence on LLM compliance for artifact delivery.
         # ─────────────────────────────────────────────────────────────────────────────
-        builtin_tools = []
-        
-        # Create artifact storage for artifacts (needed by publish_artifact tool)
         artifact_storage = create_artifact_storage(worker_config.artifact_storage)
         activity_logger.info(
             f"Created artifact storage ({worker_config.artifact_storage.storage_type}) "
-            "for artifact publishing"
+            "for post-stream auto-publish"
         )
-        
-        # Create publish_artifact tool with injected dependencies
-        publish_artifact_tool = create_publish_artifact_tool(
-            sandbox=sandbox,  # None for local mode
-            storage=artifact_storage,
-            execution_id=execution_id,
-            status_builder=status_builder,
-            local_root=sandbox_config.get('root_dir') if worker_config.is_local_mode() else None,
-        )
-        builtin_tools.append(publish_artifact_tool)
-        
-        activity_logger.info(f"Created {len(builtin_tools)} built-in tools: [publish_artifact]")
         
         # Create Graphton agent.
         #
@@ -1579,7 +1717,7 @@ async def _execute_graphton_impl(
             system_prompt=enhanced_system_prompt,
             mcp_servers=mcp_servers_config if mcp_servers_config else None,
             mcp_tools=mcp_tools_config if mcp_tools_config else None,
-            tools=builtin_tools if builtin_tools else None,
+            tools=None,
             subagents=transformed_subagents,
             sandbox_config=sandbox_config_for_agent,
             recursion_limit=1000,
@@ -2178,8 +2316,48 @@ async def _execute_graphton_impl(
         if not status_builder._artifacts:
             activity_logger.info(
                 f"[POST_STREAM] execution={execution_id} — No artifacts were published. "
-                f"If the agent wrote files, it may not have called publish_artifact."
+                f"Checking for written files to auto-publish."
             )
+            
+            # ─────────────────────────────────────────────────────────────────
+            # Auto-Publish Safety Net
+            #
+            # When the agent wrote files (write / write_file tool calls) but
+            # did not call publish_artifact, the user receives no downloadable
+            # output.  Rather than depending on LLM compliance with a
+            # multi-step workflow, the platform automatically publishes all
+            # written files as artifacts after the stream completes.
+            #
+            # The safety net only fires when ALL of these conditions hold:
+            #   1. Zero artifacts were published by the agent.
+            #   2. At least one write/write_file tool call completed.
+            #   3. The execution is completing normally (not failed/paused).
+            # ─────────────────────────────────────────────────────────────────
+            current_phase = status_builder.current_status.phase
+            if current_phase not in (
+                ExecutionPhase.EXECUTION_FAILED,
+                ExecutionPhase.EXECUTION_PAUSED,
+                ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+            ):
+                try:
+                    await _auto_publish_written_files(
+                        tool_calls=status_builder.current_status.tool_calls,
+                        sandbox=sandbox,
+                        storage=artifact_storage,
+                        execution_id=execution_id,
+                        status_builder=status_builder,
+                        local_root=(
+                            sandbox_config.get("root_dir")
+                            if worker_config.is_local_mode()
+                            else None
+                        ),
+                        logger=activity_logger,
+                    )
+                except Exception as auto_pub_err:
+                    activity_logger.warning(
+                        f"[AUTO_PUBLISH] execution={execution_id} — "
+                        f"auto-publish failed (non-fatal): {auto_pub_err}"
+                    )
         
         # Finalize context info before returning (Phase 3)
         # Copies accumulated context info and summarization events to status proto

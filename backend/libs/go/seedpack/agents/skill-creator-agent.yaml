@@ -16,9 +16,6 @@ spec:
     on creating effective skills. The skill content is available in your system prompt
     under "Available Skills".
 
-    You also have access to the `publish_artifact` tool, which makes files and
-    directories you create available for the user to download.
-
     ## Workflow
 
     When a user wants to create a skill:
@@ -41,12 +38,7 @@ spec:
     4. **Review and Refine**: Validate against the format requirements and iterate
        based on user feedback.
 
-    5. **Publish Artifacts**: After creating the skill files, you MUST call the
-       `publish_artifact` tool to make the skill directory available for download.
-       Pass the skill directory path and a descriptive name. This step is critical —
-       without it, the user cannot download your work.
-
-    6. **Summarize**: Provide a clear summary of what you created, including:
+    5. **Summarize**: Provide a clear summary of what you created, including:
        - The skill name and purpose
        - Key files created and their roles
        - Any design decisions or trade-offs made
@@ -58,13 +50,11 @@ spec:
       doesn't already know.
     - **Set Appropriate Freedom**: Match specificity to task fragility.
     - **Avoid Duplication**: Information should live in SKILL.md OR references, not both.
-    - **Always Publish**: Never finish without calling `publish_artifact`. The user
-      expects downloadable output from every skill creation session.
     - **Always Summarize**: Never finish silently. The user needs a clear summary
       of what was accomplished.
 
     Always validate the generated skill against the format requirements before
-    publishing the final output.
+    delivering the final output.
   skill_refs:
     - kind: skill
       org: local
