@@ -447,28 +447,36 @@ async def _auto_publish_written_files(
         f"auto-publishing as artifacts: {written_paths}"
     )
 
-    # Determine publish groups by finding the common ancestor directory.
-    # If all paths share a common parent (e.g. "my-skill/SKILL.md",
-    # "my-skill/scripts/run.sh" → common parent "my-skill"), publish that
-    # directory as a single artifact.  Otherwise publish each unique
-    # top-level segment separately.
+    # Determine publish groups by finding common ancestor directories.
+    #
+    # Strategy:
+    #   1. If ALL paths share a single common parent (e.g. "my-skill/SKILL.md",
+    #      "my-skill/scripts/run.sh" → common parent "my-skill"), publish that
+    #      directory as a single artifact.
+    #   2. If paths span multiple unrelated trees (e.g. "agent-drafter/SKILL.md"
+    #      + "outputs/SUMMARY.md"), group by top-level directory segment and
+    #      publish each group as a separate directory artifact.  This preserves
+    #      internal structure (e.g. references/ subdirectories) instead of
+    #      flattening everything into individual files.
+    #   3. Root-level files (no parent directory) are published individually.
+    import posixpath
+    from collections import defaultdict
     from pathlib import PurePosixPath
 
     # Normalise: strip leading slashes so paths are workspace-relative.
     normalised = [p.lstrip("/") for p in written_paths]
 
-    # Compute common prefix directory.
+    # Compute common prefix directory across ALL paths.
     if len(normalised) == 1:
         p = PurePosixPath(normalised[0])
         if len(p.parts) > 1:
             # Single file inside a subdirectory → publish the parent dir.
-            common_dir = str(p.parts[0])
+            common_dir = str(p.parent)
         else:
             # Single file at workspace root → publish the file itself.
             common_dir = None
     else:
         try:
-            import posixpath
             common = posixpath.commonpath(normalised)
         except ValueError:
             common = ""
@@ -480,7 +488,7 @@ async def _auto_publish_written_files(
     artifacts_published = 0
 
     if common_dir:
-        # Publish the common directory as a single artifact.
+        # All paths share a common ancestor — publish as a single artifact.
         artifact_name = PurePosixPath(common_dir).name or common_dir
         try:
             artifact = await publish_artifact(
@@ -503,8 +511,53 @@ async def _auto_publish_written_files(
                 f"failed to publish directory '{common_dir}': {e}"
             )
     else:
-        # No common directory — publish each file individually.
-        for rel_path in normalised:
+        # No single common directory — group by top-level directory and
+        # publish each group as a directory artifact.  This preserves
+        # subdirectory structure within each group (e.g. references/).
+        groups: dict[str, list[str]] = defaultdict(list)
+        root_files: list[str] = []
+
+        for p in normalised:
+            parts = PurePosixPath(p).parts
+            if len(parts) > 1:
+                groups[parts[0]].append(p)
+            else:
+                root_files.append(p)
+
+        # Publish each directory group.  Within each group, find the
+        # deepest common path and publish that directory as one artifact.
+        for _top_dir, paths in groups.items():
+            if len(paths) == 1:
+                group_common = str(PurePosixPath(paths[0]).parent)
+            else:
+                group_common = posixpath.commonpath(paths)
+
+            artifact_name = PurePosixPath(group_common).name or group_common
+            try:
+                artifact = await publish_artifact(
+                    sandbox=sandbox,
+                    storage=storage,
+                    execution_id=execution_id,
+                    path=group_common,
+                    name=artifact_name,
+                    local_root=local_root,
+                )
+                status_builder.add_artifact(artifact)
+                artifacts_published += 1
+                logger.info(
+                    f"[AUTO_PUBLISH] execution={execution_id} — "
+                    f"published directory '{group_common}' "
+                    f"as artifact '{artifact_name}' "
+                    f"({len(paths)} file(s) in group)"
+                )
+            except Exception as e:
+                logger.warning(
+                    f"[AUTO_PUBLISH] execution={execution_id} — "
+                    f"failed to publish directory '{group_common}': {e}"
+                )
+
+        # Publish root-level files individually (no directory to group).
+        for rel_path in root_files:
             file_name = PurePosixPath(rel_path).name
             try:
                 artifact = await publish_artifact(
@@ -519,12 +572,12 @@ async def _auto_publish_written_files(
                 artifacts_published += 1
                 logger.info(
                     f"[AUTO_PUBLISH] execution={execution_id} — "
-                    f"published file '{rel_path}' as artifact '{file_name}'"
+                    f"published root file '{rel_path}' as artifact '{file_name}'"
                 )
             except Exception as e:
                 logger.warning(
                     f"[AUTO_PUBLISH] execution={execution_id} — "
-                    f"failed to publish file '{rel_path}': {e}"
+                    f"failed to publish root file '{rel_path}': {e}"
                 )
 
     logger.info(

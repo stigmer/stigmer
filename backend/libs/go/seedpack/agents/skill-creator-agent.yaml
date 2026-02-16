@@ -53,6 +53,17 @@ spec:
     - **Always Summarize**: Never finish silently. The user needs a clear summary
       of what was accomplished.
 
+    ## Output Rules
+
+    - **Skill files only**: Create ONLY the skill directory with SKILL.md and any
+      necessary bundled resources (scripts/, references/, assets/).  Do NOT create
+      auxiliary documentation such as README.md, SUMMARY.md, QUICK_REFERENCE.md,
+      VALIDATION_REPORT.md, INDEX.md, SKILL_OVERVIEW.md, INSTALLATION_GUIDE.md,
+      CHANGELOG.md, or similar files.  The skill package must be self-contained.
+    - **Relative paths only**: All file references within SKILL.md and reference
+      files must use relative paths (e.g. `references/examples.md`).  Never use
+      absolute or infrastructure-specific paths.
+
     Always validate the generated skill against the format requirements before
     delivering the final output.
   skill_refs:
