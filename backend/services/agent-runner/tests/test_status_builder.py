@@ -4342,3 +4342,260 @@ class TestContextManagementTracking:
         
         # Should not divide by zero
         assert status_builder._context_info.utilization_percent == 0.0
+
+
+# =============================================================================
+# Run-ID Alias Resolution (Resume-After-Approval Fix)
+# =============================================================================
+
+
+class TestRunIdAliasResolution:
+    """Tests for the run-ID alias mechanism that enables tool calls to
+    transition to COMPLETED on the resume-after-approval path.
+
+    When a tool call is interrupted for approval and then resumed, LangGraph
+    generates a new run_id for the resumed execution.  The fingerprint
+    deduplication in _handle_tool_start_event records an alias from the new
+    run_id to the original tool_call.id so that _handle_tool_end_event can
+    find and update the correct ToolCall.
+    """
+
+    @pytest.mark.asyncio
+    async def test_alias_recorded_on_duplicate_fingerprint(self, mock_initial_status):
+        """When a duplicate fingerprint is detected after
+        populate_fingerprints_from_existing_tool_calls, the new run_id is
+        recorded as an alias for the original tool call id."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ToolCall
+        from google.protobuf.struct_pb2 import Struct
+
+        original_run_id = "original-run-001"
+        new_run_id = "resumed-run-002"
+
+        # Simulate a tool call from a previous invocation persisted in DB.
+        args = Struct()
+        args.update({"path": "/bin/skills/agent-drafter/SKILL.md", "content": "..."})
+        existing_tc = ToolCall(
+            id=original_run_id,
+            name="write",
+            args=args,
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+        )
+        mock_initial_status.tool_calls.append(existing_tc)
+
+        builder = StatusBuilder("exec-alias-1", mock_initial_status)
+        builder.populate_fingerprints_from_existing_tool_calls()
+
+        # Simulate LangGraph re-firing on_tool_start with a new run_id.
+        event = {
+            "event": "on_tool_start",
+            "name": "write",
+            "run_id": new_run_id,
+            "data": {"input": {"path": "/bin/skills/agent-drafter/SKILL.md", "content": "..."}},
+        }
+        await builder.process_event(event)
+
+        # The alias should map new_run_id -> original_run_id.
+        assert builder._run_id_aliases.get(new_run_id) == original_run_id
+        # No duplicate tool call should have been created.
+        assert len(mock_initial_status.tool_calls) == 1
+
+    @pytest.mark.asyncio
+    async def test_tool_end_resolves_alias_to_completed(self, mock_initial_status):
+        """on_tool_end with a new (aliased) run_id correctly transitions the
+        original tool call from RUNNING to COMPLETED."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ToolCall, AgentMessage
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
+        from google.protobuf.struct_pb2 import Struct
+
+        original_run_id = "orig-run-100"
+        new_run_id = "new-run-200"
+
+        args = Struct()
+        args.update({"path": "/skill/SKILL.md", "content": "# Skill"})
+
+        # Existing tool call (from previous invocation, reconciled to RUNNING).
+        existing_tc = ToolCall(
+            id=original_run_id,
+            name="write",
+            args=args,
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+        )
+        mock_initial_status.tool_calls.append(existing_tc)
+
+        # Also add a message with the tool call (mirrors real status structure).
+        tool_msg = AgentMessage(type=MessageType.MESSAGE_TOOL)
+        tool_msg.tool_calls.append(ToolCall(
+            id=original_run_id,
+            name="write",
+            args=args,
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+        ))
+        mock_initial_status.messages.append(tool_msg)
+
+        builder = StatusBuilder("exec-alias-2", mock_initial_status)
+        builder.populate_fingerprints_from_existing_tool_calls()
+
+        # Step 1: on_tool_start with new run_id (deduplicated, alias recorded).
+        start_event = {
+            "event": "on_tool_start",
+            "name": "write",
+            "run_id": new_run_id,
+            "data": {"input": {"path": "/skill/SKILL.md", "content": "# Skill"}},
+        }
+        await builder.process_event(start_event)
+
+        # Step 2: on_tool_end with the same new run_id.
+        end_event = {
+            "event": "on_tool_end",
+            "name": "write",
+            "run_id": new_run_id,
+            "data": {"output": "File written successfully"},
+        }
+        await builder.process_event(end_event)
+
+        # The original tool call should now be COMPLETED.
+        assert mock_initial_status.tool_calls[0].status == ToolCallStatus.TOOL_CALL_COMPLETED
+        assert mock_initial_status.tool_calls[0].result == "File written successfully"
+
+        # The message's embedded tool call should also be COMPLETED.
+        assert mock_initial_status.messages[0].tool_calls[0].status == ToolCallStatus.TOOL_CALL_COMPLETED
+
+    @pytest.mark.asyncio
+    async def test_multiple_writes_all_transition_to_completed(self, mock_initial_status):
+        """Multiple write tool calls from previous invocations all transition
+        to COMPLETED when their resumed on_tool_end events carry new run_ids."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ToolCall
+        from google.protobuf.struct_pb2 import Struct
+
+        files = [
+            ("orig-A", "new-A", "/skill/SKILL.md"),
+            ("orig-B", "new-B", "/skill/references/proto.md"),
+            ("orig-C", "new-C", "/skill/references/cli.md"),
+        ]
+
+        for orig_id, _, path in files:
+            args = Struct()
+            args.update({"path": path, "content": f"content of {path}"})
+            tc = ToolCall(
+                id=orig_id, name="write", args=args,
+                status=ToolCallStatus.TOOL_CALL_RUNNING,
+            )
+            mock_initial_status.tool_calls.append(tc)
+
+        builder = StatusBuilder("exec-alias-3", mock_initial_status)
+        builder.populate_fingerprints_from_existing_tool_calls()
+
+        # Simulate the resume cycle for each file.
+        for orig_id, new_id, path in files:
+            # on_tool_start (deduplicated)
+            await builder.process_event({
+                "event": "on_tool_start",
+                "name": "write",
+                "run_id": new_id,
+                "data": {"input": {"path": path, "content": f"content of {path}"}},
+            })
+            # on_tool_end (alias resolved)
+            await builder.process_event({
+                "event": "on_tool_end",
+                "name": "write",
+                "run_id": new_id,
+                "data": {"output": f"written {path}"},
+            })
+
+        # All three should be COMPLETED.
+        for i, (orig_id, _, path) in enumerate(files):
+            tc = mock_initial_status.tool_calls[i]
+            assert tc.id == orig_id
+            assert tc.status == ToolCallStatus.TOOL_CALL_COMPLETED, (
+                f"Tool call {orig_id} for {path} should be COMPLETED but is "
+                f"{ToolCallStatus.Name(tc.status)}"
+            )
+
+    @pytest.mark.asyncio
+    async def test_resolve_run_id_returns_original_when_no_alias(self, status_builder):
+        """_resolve_run_id returns the input unchanged when no alias exists."""
+        assert status_builder._resolve_run_id("some-id") == "some-id"
+
+    @pytest.mark.asyncio
+    async def test_resolve_run_id_returns_alias_when_present(self, status_builder):
+        """_resolve_run_id returns the mapped original id when alias exists."""
+        status_builder._run_id_aliases["new-123"] = "orig-456"
+        assert status_builder._resolve_run_id("new-123") == "orig-456"
+
+    @pytest.mark.asyncio
+    async def test_tool_progress_resolves_alias(self, mock_initial_status):
+        """on_tool_progress with an aliased run_id appends to the correct
+        tool call's result."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ToolCall
+        from google.protobuf.struct_pb2 import Struct
+
+        original_run_id = "orig-progress-1"
+        new_run_id = "new-progress-1"
+
+        args = Struct()
+        args.update({"command": "ls -la"})
+        existing_tc = ToolCall(
+            id=original_run_id,
+            name="execute",
+            args=args,
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+        )
+        mock_initial_status.tool_calls.append(existing_tc)
+
+        builder = StatusBuilder("exec-alias-4", mock_initial_status)
+        builder.populate_fingerprints_from_existing_tool_calls()
+
+        # Simulate on_tool_start dedup (records alias).
+        await builder.process_event({
+            "event": "on_tool_start",
+            "name": "execute",
+            "run_id": new_run_id,
+            "data": {"input": {"command": "ls -la"}},
+        })
+        assert builder._run_id_aliases.get(new_run_id) == original_run_id
+
+        # Simulate on_tool_progress with the new run_id.
+        await builder.process_event({
+            "event": "on_custom_event",
+            "name": "tool_progress",
+            "run_id": new_run_id,
+            "data": {"chunk": "total 42\n"},
+        })
+
+        # The progress chunk should have been appended to the original tool call.
+        assert mock_initial_status.tool_calls[0].result == "total 42\n"
+        assert mock_initial_status.tool_calls[0].is_streaming is True
+
+    @pytest.mark.asyncio
+    async def test_no_alias_when_run_id_matches_existing(self, mock_initial_status):
+        """No alias is recorded when the new run_id happens to match the
+        existing tool call id (edge case: same run_id across invocations)."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ToolCall
+        from google.protobuf.struct_pb2 import Struct
+
+        same_run_id = "same-run-999"
+        args = Struct()
+        args.update({"path": "/file.txt", "content": "data"})
+        tc = ToolCall(
+            id=same_run_id, name="write", args=args,
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+        )
+        mock_initial_status.tool_calls.append(tc)
+
+        builder = StatusBuilder("exec-alias-5", mock_initial_status)
+        builder.populate_fingerprints_from_existing_tool_calls()
+
+        # on_tool_start with the SAME run_id — no alias needed.
+        await builder.process_event({
+            "event": "on_tool_start",
+            "name": "write",
+            "run_id": same_run_id,
+            "data": {"input": {"path": "/file.txt", "content": "data"}},
+        })
+
+        assert same_run_id not in builder._run_id_aliases

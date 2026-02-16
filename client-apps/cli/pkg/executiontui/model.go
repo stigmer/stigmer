@@ -31,10 +31,18 @@ type Config struct {
 }
 
 // streamingState tracks an in-progress streaming AI message.
-// When non-nil on the model, the current last block is being streamed.
+// When non-nil on the model, the block at blockIdx is being streamed.
 type streamingState struct {
 	// content holds the full accumulated text so far.
 	content string
+
+	// blockIdx is the index into m.blocks of the streaming AI block.
+	// This is set when AIStreamStartEvent creates the block and used by
+	// AIStreamDeltaEvent / AIStreamEndEvent to update the correct block.
+	// Without explicit tracking, tool call state events (processed before
+	// message events) can append blocks between start and delta/end,
+	// causing the naive len(m.blocks)-1 approach to target the wrong block.
+	blockIdx int
 }
 
 // approvalState tracks an active approval prompt.
@@ -123,11 +131,6 @@ type Model struct {
 	// arrives.
 	thinkingVisible bool
 
-	// lastBackendUpdate tracks when the last gRPC stream update was received
-	// (including keepalive updates with no content changes). Used to
-	// distinguish "agent is thinking" from "connection lost".
-	lastBackendUpdate time.Time
-
 	// spinner is the animated spinner displayed in the header. During the
 	// "pending" phase it signals that the TUI is alive while waiting for
 	// the agent to start. During "in_progress" it reactivates as a thinking
@@ -141,7 +144,6 @@ type Model struct {
 func New(cfg Config) Model {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
-	now := time.Now()
 	return Model{
 		cfg:               cfg,
 		autoScroll:        true,
@@ -149,8 +151,7 @@ func New(cfg Config) Model {
 		focusedBlockIndex: -1,
 		runningTools:      make(map[string]int),
 		spinner:           s,
-		lastEventAt:       now,
-		lastBackendUpdate: now,
+		lastEventAt:       time.Now(),
 	}
 }
 

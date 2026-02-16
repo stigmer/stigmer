@@ -21,7 +21,7 @@ Configuration:
     
     Local storage:
         LOCAL_ARTIFACT_PATH: Base path for artifacts (default: /var/stigmer/artifacts)
-        LOCAL_ARTIFACT_SERVE_URL: Base URL for serving (default: http://localhost:8080)
+        LOCAL_ARTIFACT_SERVE_URL: Base URL for serving (default: http://localhost:7235)
     
     R2 storage (for agent execution artifacts):
         AGENT_EXECUTION_ARTIFACT_R2_ENDPOINT: R2 endpoint URL
@@ -81,7 +81,7 @@ class ArtifactStorageConfig:
     
     # Local storage configuration
     local_path: str = "/var/stigmer/artifacts"
-    local_serve_url: str = "http://localhost:8080"
+    local_serve_url: str = "http://localhost:7235"
     
     # R2 storage configuration
     r2_endpoint: str | None = None
@@ -116,7 +116,7 @@ class ArtifactStorageConfig:
         
         # Local storage defaults
         local_path = os.getenv("LOCAL_ARTIFACT_PATH", "/var/stigmer/artifacts")
-        local_serve_url = os.getenv("LOCAL_ARTIFACT_SERVE_URL", "http://localhost:8080")
+        local_serve_url = os.getenv("LOCAL_ARTIFACT_SERVE_URL", "http://localhost:7235")
         
         # R2 storage configuration (agent execution artifacts)
         r2_endpoint = os.getenv("AGENT_EXECUTION_ARTIFACT_R2_ENDPOINT")

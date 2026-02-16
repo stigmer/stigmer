@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
@@ -33,8 +34,8 @@ type Client struct {
 	token    string // auth token for cloud mode
 
 	// gRPC service clients
-	agentCommand  agentv1.AgentCommandControllerClient
-	agentQuery    agentv1.AgentQueryControllerClient
+	agentCommand    agentv1.AgentCommandControllerClient
+	agentQuery      agentv1.AgentQueryControllerClient
 	workflowCommand workflowv1.WorkflowCommandControllerClient
 	workflowQuery   workflowv1.WorkflowQueryControllerClient
 }
@@ -125,6 +126,22 @@ func (c *Client) Connect(ctx context.Context) error {
 		// Local mode: Insecure (localhost)
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
+
+	// Transport-level keepalive for connection health detection.
+	//
+	// gRPC uses HTTP/2 PING frames to detect dead connections without any
+	// application-level overhead. This replaces the previous application-level
+	// "connection stale" heuristic that falsely triggered during normal LLM
+	// thinking pauses (no events != broken connection).
+	//
+	// If the server doesn't respond to a PING within the Timeout, the
+	// transport closes the connection and stream.Recv() returns an error —
+	// which the CLI already handles via StreamErrorEvent.
+	opts = append(opts, grpc.WithKeepaliveParams(keepalive.ClientParameters{
+		Time:                30 * time.Second, // Send PING every 30s when stream is idle
+		Timeout:             10 * time.Second, // Wait 10s for PING response
+		PermitWithoutStream: false,            // Only when active streams exist
+	}))
 
 	// IMPORTANT: Use WithBlock() to block until connection is established
 	// This ensures the connection is ready before returning, avoiding race conditions
@@ -256,12 +273,12 @@ func (c *Client) Ping(ctx context.Context) error {
 	if c.conn == nil {
 		return errors.New("not connected - call Connect() first")
 	}
-	
+
 	// Make a lightweight RPC call to verify server is still responsive
 	// We use getByReference with an empty reference - the result doesn't matter
 	ref := &apiresource.ApiResourceReference{}
 	_, err := c.agentQuery.GetByReference(ctx, ref)
-	
+
 	// We expect NotFound or InvalidArgument - that's fine, server is reachable
 	// We only care about Unavailable (server not running) or connection errors
 	if err != nil {
@@ -274,11 +291,11 @@ func (c *Client) Ping(ctx context.Context) error {
 			return errors.Wrapf(err, "failed to connect to %s", c.endpoint)
 		}
 	}
-	
+
 	log.Debug().
 		Str("endpoint", c.endpoint).
 		Str("mode", c.mode()).
 		Msg("Server is responsive")
-	
+
 	return nil
 }

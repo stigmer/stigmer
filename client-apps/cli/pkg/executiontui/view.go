@@ -3,7 +3,6 @@ package executiontui
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/lipgloss"
@@ -105,8 +104,6 @@ func (m Model) renderFooter() string {
 		hints = "  ⏳ Cancelling...  ↑↓ scroll  q detach"
 	case m.approval != nil:
 		hints = "  [a] Approve  [s] Skip  [r] Reject  [q] Detach"
-	case m.isConnectionStale():
-		hints = "  ⚠ Connection may be interrupted  ↑↓ scroll  c cancel  ? help  q detach"
 	case !m.autoScroll:
 		// Scroll paused — user scrolled away from the bottom.
 		if m.hasExpandableBlocks() {
@@ -162,14 +159,6 @@ func phaseIcon(phase string) string {
 	default:
 		return "•"
 	}
-}
-
-// isConnectionStale returns true when the backend has not sent any updates
-// (including keepalives) for longer than the connection stale threshold.
-// This indicates a potential network issue or backend failure, as the backend
-// normally sends keepalive updates every 5 seconds.
-func (m Model) isConnectionStale() bool {
-	return m.phase == "in_progress" && time.Since(m.lastBackendUpdate) > connectionStaleThreshold
 }
 
 // newViewport creates a viewport.Model configured for the execution TUI.

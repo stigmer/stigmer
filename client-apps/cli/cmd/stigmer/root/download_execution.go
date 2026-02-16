@@ -95,14 +95,17 @@ func filterArtifactsByName(artifacts []*agentexecutionv1.ExecutionArtifact, name
 
 // downloadSingleArtifact downloads a single artifact to the output directory.
 func downloadSingleArtifact(executionID string, artifact *agentexecutionv1.ExecutionArtifact, outputDir string, conn *grpc.ClientConn) error {
-	// Get download URL (refresh if needed)
-	downloadURL := artifact.GetDownloadUrl()
-	if downloadURL == "" || isURLExpired(artifact.GetExpiresAt()) {
-		url, _, err := execution.GetArtifactDownloadURL(conn, executionID, artifact.GetStorageKey())
-		if err != nil {
-			return err
+	// Always refresh the download URL via gRPC. The cached URL in the execution
+	// status may use a Docker-internal hostname (host.docker.internal) that is
+	// inappropriate for CLI-side HTTP requests. The server generates a fresh URL
+	// using the host-appropriate base address (e.g., localhost).
+	downloadURL, _, err := execution.GetArtifactDownloadURL(conn, executionID, artifact.GetStorageKey())
+	if err != nil {
+		// Fall back to cached URL if gRPC refresh fails
+		downloadURL = artifact.GetDownloadUrl()
+		if downloadURL == "" {
+			return errors.Wrap(err, "failed to get download URL")
 		}
-		downloadURL = url
 	}
 
 	// Create destination path

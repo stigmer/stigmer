@@ -5,15 +5,28 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
+
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
 )
 
 // --- Test helpers ---
 
-// enterApproval sends an ApprovalNeededEvent and returns the model in approval
-// state. Fails the test if the model does not enter approval mode.
+// enterApproval sets up a tool block via ToolWaitingApprovalEvent, then sends
+// an ApprovalNeededEvent, returning the model in approval state. The tool block
+// is tracked in runningTools so subsequent approval key presses can update it
+// in-place. Fails the test if the model does not enter approval mode.
 func enterApproval(t *testing.T, m Model, toolCallID, toolName string) Model {
 	t.Helper()
-	result, _ := m.Update(executionEventMsg{event: ApprovalNeededEvent{
+	// Step 1: create the tool block (mirrors real gRPC stream flow).
+	tc := toolrender.ToolCallInfo{Name: toolName, Status: "waiting_approval"}
+	result, _ := m.Update(executionEventMsg{event: ToolWaitingApprovalEvent{
+		ToolCallID: toolCallID,
+		ToolCall:   tc,
+	}})
+	m = result.(Model)
+
+	// Step 2: enter approval mode.
+	result, _ = m.Update(executionEventMsg{event: ApprovalNeededEvent{
 		ToolCallID: toolCallID,
 		ToolName:   toolName,
 		Message:    "Requires approval",
@@ -45,25 +58,21 @@ func TestApproval_Approve_ClearsState(t *testing.T) {
 	}
 }
 
-func TestApproval_Approve_AddsConfirmationBlock(t *testing.T) {
+func TestApproval_Approve_UpdatesToolBadge(t *testing.T) {
 	m, _, _ := newTestModel()
 	m = enterApproval(t, m, "tc-1", "shell")
 	blocksBefore := len(m.blocks)
 
 	m, _ = pressApprovalKey(t, m, 'a')
 
-	if len(m.blocks) != blocksBefore+1 {
-		t.Fatalf("blocks = %d, want %d (one confirmation added)", len(m.blocks), blocksBefore+1)
+	// No new blocks should be added — the existing tool block is updated in-place.
+	if len(m.blocks) != blocksBefore {
+		t.Fatalf("blocks = %d, want %d (no new block, tool block updated in-place)", len(m.blocks), blocksBefore)
 	}
-	last := m.blocks[len(m.blocks)-1]
-	if last.blockType != blockSystem {
-		t.Errorf("blockType = %v, want blockSystem", last.blockType)
-	}
-	if !strings.Contains(last.content, "Approved") {
-		t.Errorf("confirmation should contain 'Approved', got %q", last.content)
-	}
-	if !strings.Contains(last.content, "shell") {
-		t.Errorf("confirmation should contain tool name 'shell', got %q", last.content)
+	// Verify the tool block's badge changed to running.
+	idx := m.runningTools["tc-1"]
+	if m.blocks[idx].toolState != "running" {
+		t.Errorf("toolState = %q, want %q", m.blocks[idx].toolState, "running")
 	}
 }
 
@@ -80,18 +89,15 @@ func TestApproval_Skip_ClearsState(t *testing.T) {
 	}
 }
 
-func TestApproval_Skip_AddsConfirmationBlock(t *testing.T) {
+func TestApproval_Skip_UpdatesToolBadge(t *testing.T) {
 	m, _, _ := newTestModel()
 	m = enterApproval(t, m, "tc-2", "write_file")
 
 	m, _ = pressApprovalKey(t, m, 's')
 
-	last := m.blocks[len(m.blocks)-1]
-	if !strings.Contains(last.content, "Skipped") {
-		t.Errorf("confirmation should contain 'Skipped', got %q", last.content)
-	}
-	if !strings.Contains(last.content, "write_file") {
-		t.Errorf("confirmation should contain tool name, got %q", last.content)
+	idx := m.runningTools["tc-2"]
+	if m.blocks[idx].toolState != "skipped" {
+		t.Errorf("toolState = %q, want %q", m.blocks[idx].toolState, "skipped")
 	}
 }
 
@@ -108,18 +114,15 @@ func TestApproval_Reject_ClearsState(t *testing.T) {
 	}
 }
 
-func TestApproval_Reject_AddsConfirmationBlock(t *testing.T) {
+func TestApproval_Reject_UpdatesToolBadge(t *testing.T) {
 	m, _, _ := newTestModel()
 	m = enterApproval(t, m, "tc-3", "delete_file")
 
 	m, _ = pressApprovalKey(t, m, 'r')
 
-	last := m.blocks[len(m.blocks)-1]
-	if !strings.Contains(last.content, "Rejected") {
-		t.Errorf("confirmation should contain 'Rejected', got %q", last.content)
-	}
-	if !strings.Contains(last.content, "delete_file") {
-		t.Errorf("confirmation should contain tool name, got %q", last.content)
+	idx := m.runningTools["tc-3"]
+	if m.blocks[idx].toolState != "failed" {
+		t.Errorf("toolState = %q, want %q", m.blocks[idx].toolState, "failed")
 	}
 }
 
@@ -234,21 +237,14 @@ func TestApproval_Sequential_TwoApprovals(t *testing.T) {
 		t.Fatal("approval should be nil after second approval")
 	}
 
-	// Verify both confirmation blocks exist in order.
-	var confirmations []string
-	for _, b := range m.blocks {
-		if b.blockType == blockSystem && (strings.Contains(b.content, "Approved") || strings.Contains(b.content, "Rejected")) {
-			confirmations = append(confirmations, b.content)
-		}
+	// Verify both tool blocks have the correct badge state.
+	idx1 := m.runningTools["tc-seq-1"]
+	if m.blocks[idx1].toolState != "running" {
+		t.Errorf("first tool state = %q, want %q", m.blocks[idx1].toolState, "running")
 	}
-	if len(confirmations) != 2 {
-		t.Fatalf("expected 2 confirmation blocks, got %d", len(confirmations))
-	}
-	if !strings.Contains(confirmations[0], "Approved") {
-		t.Errorf("first confirmation should be Approved, got %q", confirmations[0])
-	}
-	if !strings.Contains(confirmations[1], "Rejected") {
-		t.Errorf("second confirmation should be Rejected, got %q", confirmations[1])
+	idx2 := m.runningTools["tc-seq-2"]
+	if m.blocks[idx2].toolState != "failed" {
+		t.Errorf("second tool state = %q, want %q", m.blocks[idx2].toolState, "failed")
 	}
 }
 
@@ -295,6 +291,93 @@ func TestRenderApprovalConfirmation_UnknownAction(t *testing.T) {
 	}
 }
 
+// --- Listener correctness ---
+
+// TestApproval_Approve_CmdSendsResponseWithoutExtraListener verifies the fix
+// for a race condition where handleApprovalKey previously issued both sendCmd
+// AND listenForEvents. Since handleExecutionEvent already started a
+// listenForEvents goroutine when it processed the ApprovalNeededEvent, the
+// second listener created a race: two goroutines reading from the same channel,
+// causing non-deterministic "stream closed unexpectedly" errors.
+//
+// The test confirms that the returned command:
+//  1. Sends the approval response to the channel (sendCmd works).
+//  2. Returns nil (a bare sendCmd), not a batchMsg (which tea.Batch produces).
+//  3. Does not consume events from the events channel.
+func TestApproval_Approve_CmdSendsResponseWithoutExtraListener(t *testing.T) {
+	m, events, approvals := newTestModel()
+	m = enterApproval(t, m, "tc-listen", "write")
+
+	// Place a sentinel event in the events channel. If a rogue
+	// listenForEvents were included, it could consume this sentinel.
+	events <- HumanMessageEvent{Content: "sentinel"}
+
+	_, cmd := pressApprovalKey(t, m, 'a')
+
+	if cmd == nil {
+		t.Fatal("expected non-nil cmd from approval key press")
+	}
+
+	// Execute the command directly. sendCmd pushes the response into the
+	// buffered approval channel and returns nil. A tea.Batch wrapping
+	// sendCmd + listenForEvents would return a non-nil batchMsg.
+	msg := cmd()
+	if msg != nil {
+		t.Errorf("cmd() returned %T — expected nil (pure sendCmd, not a batch containing listenForEvents)", msg)
+	}
+
+	// Verify the approval response was delivered.
+	select {
+	case resp := <-approvals:
+		if resp.Action != "approve" {
+			t.Errorf("Action = %q, want %q", resp.Action, "approve")
+		}
+	default:
+		t.Fatal("expected approval response on approval channel")
+	}
+
+	// Verify the sentinel event was NOT consumed by an extra listener.
+	select {
+	case <-events:
+		// Good — sentinel is still there.
+	default:
+		t.Fatal("sentinel event was consumed from events channel — " +
+			"listenForEvents was incorrectly included in the approval command")
+	}
+}
+
+func TestApproval_Skip_CmdReturnsNilMsg(t *testing.T) {
+	m, _, _ := newTestModel()
+	m = enterApproval(t, m, "tc-skip-listen", "shell")
+
+	_, cmd := pressApprovalKey(t, m, 's')
+
+	if cmd == nil {
+		t.Fatal("expected non-nil cmd")
+	}
+	msg := cmd()
+	if msg != nil {
+		t.Errorf("cmd() returned %T, want nil (pure sendCmd)", msg)
+	}
+}
+
+func TestApproval_Reject_CmdReturnsNilMsg(t *testing.T) {
+	m, _, _ := newTestModel()
+	m = enterApproval(t, m, "tc-reject-listen", "shell")
+
+	_, cmd := pressApprovalKey(t, m, 'r')
+
+	if cmd == nil {
+		t.Fatal("expected non-nil cmd")
+	}
+	msg := cmd()
+	if msg != nil {
+		t.Errorf("cmd() returned %T, want nil (pure sendCmd)", msg)
+	}
+}
+
+// --- Rendering ---
+
 func TestRenderApprovalPrompt_MultilineArgs(t *testing.T) {
 	// FormatArgs can produce multi-line output. Each line should be indented.
 	multiLineArgs := "Command: rm -rf /tmp\npath: /tmp"
@@ -304,5 +387,23 @@ func TestRenderApprovalPrompt_MultilineArgs(t *testing.T) {
 	}
 	if !strings.Contains(result, "path: /tmp") {
 		t.Error("should contain second arg line")
+	}
+}
+
+// --- No auto-expand ---
+
+func TestApproval_BlockNotAutoExpanded(t *testing.T) {
+	m, _, _ := newTestModel()
+	m = enterApproval(t, m, "tc-expand", "write_file")
+
+	// The tool block should be COLLAPSED — the header already shows metadata
+	// (tool type, file path, size, line count). The user can manually expand
+	// with Tab + Enter if they want to review content.
+	idx, ok := m.runningTools["tc-expand"]
+	if !ok {
+		t.Fatal("expected tool to be tracked in runningTools")
+	}
+	if m.blocks[idx].expanded {
+		t.Error("tool block should NOT be auto-expanded during approval — collapsed header provides sufficient context")
 	}
 }

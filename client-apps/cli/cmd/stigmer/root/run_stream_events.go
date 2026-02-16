@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
@@ -59,29 +61,26 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 			return
 		}
 
-		// --- Step 0: Backend liveness signal ---
-		//
-		// Every successful stream.Recv() confirms the backend is reachable.
-		// Emit a HeartbeatEvent so the TUI can track connection health and
-		// distinguish "agent is thinking" (heartbeats arriving, no content
-		// changes) from "connection lost" (no heartbeats at all).
-		cfg.events <- executiontui.HeartbeatEvent{}
+		// Trace: log every update received from the Subscribe stream.
+		// This is essential for diagnosing approval flow issues — it reveals
+		// whether the CLI actually receives WAITING_FOR_APPROVAL with
+		// pending_approvals from the backend.
+		log.Debug().
+			Str("execution_id", cfg.executionID).
+			Str("phase", execution.Status.GetPhase().String()).
+			Int("messages", len(execution.Status.GetMessages())).
+			Int("tool_calls", len(execution.Status.GetToolCalls())).
+			Int("pending_approvals", len(execution.Status.GetPendingApprovals())).
+			Msg("[stream] received execution update")
 
 		messages := execution.Status.Messages
 
-		// --- Step 1: Convert new messages to events ---
-		displayedCount, inStream = emitMessageEvents(
-			cfg.events, messages, displayedCount, inStream,
-		)
-
-		// --- Step 1b: Track tool call state transitions ---
+		// --- Step 1: Track tool call state transitions ---
 		//
-		// emitMessageEvents processes messages sequentially and advances a
-		// cursor (displayedCount). Because the backend updates MESSAGE_TOOL
-		// messages in-place when tools complete, the cursor never revisits
-		// them and completions are invisible. This separate pass over the
-		// top-level ToolCalls list detects RUNNING → COMPLETED transitions
-		// and emits dedicated events so the TUI can update running blocks.
+		// This runs BEFORE message processing so the toolCallStates map is
+		// populated. emitMessageEvents uses this map to suppress MESSAGE_TOOL
+		// entries for tool calls that the state tracker already owns — preventing
+		// duplicate blocks in the TUI.
 		toolCallStates, toolCallResults = emitToolCallStateEvents(
 			cfg.events,
 			execution.Status.ToolCalls,
@@ -89,7 +88,26 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 			toolCallResults,
 		)
 
-		// --- Step 2: Approval detection via pending_approvals ---
+		// --- Step 1b: Convert new messages to events ---
+		displayedCount, inStream = emitMessageEvents(
+			cfg.events, messages, displayedCount, inStream, toolCallStates,
+		)
+
+		// --- Step 2: Phase change events ---
+		//
+		// Emitted BEFORE approval processing so the TUI header correctly shows
+		// the phase (e.g., "⏸ waiting_for_approval") while the user decides.
+		// Previously this ran after approval handling, which suppressed the
+		// phase change and left the header stuck on "in_progress".
+		if execution.Status.Phase != lastPhase {
+			cfg.events <- executiontui.PhaseChangeEvent{
+				Phase:    mapPhaseToString(execution.Status.Phase),
+				Previous: mapPhaseToString(lastPhase),
+			}
+			lastPhase = execution.Status.Phase
+		}
+
+		// --- Step 3: Approval detection via pending_approvals ---
 		//
 		// pending_approvals may contain one or more entries (one per interrupted
 		// tool call). We iterate over ALL of them and prompt the user for each
@@ -100,23 +118,25 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 				if pa.ToolCallId == "" || promptedIDs[pa.ToolCallId] {
 					continue
 				}
+
+				log.Debug().
+					Str("execution_id", cfg.executionID).
+					Str("tool_call_id", pa.GetToolCallId()).
+					Str("tool_name", pa.GetToolName()).
+					Msg("[stream] approval detected — emitting ApprovalNeededEvent")
+
 				tc := findToolCallByID(execution.Status.ToolCalls, pa.ToolCallId)
 				emitAndWaitApproval(ctx, cfg, tc, pa, promptedIDs)
 			}
-			lastPhase = execution.Status.Phase
-		}
-
-		// --- Step 4: Phase change events ---
-		if execution.Status.Phase != lastPhase {
-			cfg.events <- executiontui.PhaseChangeEvent{
-				Phase:    mapPhaseToString(execution.Status.Phase),
-				Previous: mapPhaseToString(lastPhase),
-			}
-			lastPhase = execution.Status.Phase
 		}
 
 		// --- Step 5: Terminal check ---
 		if isTerminalAgentPhase(execution.Status.Phase) {
+			log.Debug().
+				Str("execution_id", cfg.executionID).
+				Str("phase", execution.Status.GetPhase().String()).
+				Msg("[stream] terminal phase reached — sending DoneEvent")
+
 			errMsg := ""
 			if execution.Status.Error != "" {
 				errMsg = execution.Status.Error
@@ -133,13 +153,17 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 // emitMessageEvents converts new proto messages to TUI events and sends them
 // over the channel. It returns the updated displayedCount and inStream state.
 //
-// This mirrors the delta-tracking logic from messageStreamRenderer but produces
-// events instead of writing to stdout.
+// trackedTools is the toolCallStates map from emitToolCallStateEvents, which
+// runs first. MESSAGE_TOOL entries whose tool call ID appears in this map are
+// suppressed — the state tracker owns their visual representation via stateful
+// tool blocks, and emitting a duplicate ToolResultEvent would create a second
+// block in the TUI.
 func emitMessageEvents(
 	events chan<- executiontui.Event,
 	messages []*agentexecutionv1.AgentMessage,
 	displayedCount int,
 	inStream bool,
+	trackedTools map[string]string,
 ) (int, bool) {
 	// Phase 1: Handle in-progress streaming AI message.
 	if inStream && displayedCount < len(messages) {
@@ -167,10 +191,12 @@ func emitMessageEvents(
 			return displayedCount, true
 		}
 
-		// Suppress MESSAGE_TOOL messages where the tool call is still RUNNING.
-		// The dedicated ToolRunningEvent from emitToolCallStateEvents handles
-		// their display, avoiding a duplicate header in the TUI.
-		if isRunningToolMessage(msg) {
+		// Suppress MESSAGE_TOOL messages for tool calls owned by the state
+		// tracker. The tracker creates stateful blocks (with lifecycle badges)
+		// for these tools — emitting a ToolResultEvent here would create a
+		// duplicate block. Ownership is determined by identity (tool call ID
+		// in the tracked map), not by status.
+		if isTrackedToolMessage(msg, trackedTools) {
 			displayedCount++
 			continue
 		}
@@ -203,6 +229,12 @@ func emitCompleteMessage(events chan<- executiontui.Event, msg *agentexecutionv1
 		}
 
 	case agentexecutionv1.MessageType_MESSAGE_SYSTEM:
+		// Suppress the "Approval received" system message. The stateful tool
+		// block's badge transition (⏸ → ⏳ → ✓) already communicates the
+		// approval status — the separate text block is visual noise.
+		if isApprovalNoiseMessage(msg.Content) {
+			return
+		}
 		events <- executiontui.SystemMessageEvent{
 			Content: sanitizeSystemContent(msg.Content),
 		}
@@ -249,8 +281,35 @@ func emitToolCallStateEvents(
 			continue
 		}
 
-		if seen && prevStatus == "running" && isTerminalToolStatus(currentStatus) {
-			// Transition from running to a terminal state — emit completed.
+		if !seen && currentStatus == "waiting_approval" {
+			// New tool call that immediately entered WAITING_APPROVAL — show
+			// a visual indicator so the user knows approval is needed.
+			events <- executiontui.ToolWaitingApprovalEvent{
+				ToolCallID: tc.Id,
+				ToolCall:   convertToolCall(tc),
+			}
+			prevStates[tc.Id] = currentStatus
+			continue
+		}
+
+		if !seen && isTerminalToolStatus(currentStatus) {
+			// Tool appeared for the first time already in a terminal state
+			// (e.g., reconnecting to an execution where the tool has already
+			// completed). Emit a ToolCompletedEvent so the TUI creates a
+			// stateful block for it. Without this, the tool's MESSAGE_TOOL
+			// would be suppressed by isTrackedToolMessage (since we add it
+			// to prevStates below) and no block would exist — the tool
+			// would silently vanish.
+			events <- executiontui.ToolCompletedEvent{
+				ToolCallID: tc.Id,
+				ToolCall:   convertToolCall(tc),
+			}
+			prevStates[tc.Id] = currentStatus
+			continue
+		}
+
+		if seen && (prevStatus == "running" || prevStatus == "waiting_approval") && isTerminalToolStatus(currentStatus) {
+			// Transition from running/waiting_approval to a terminal state — emit completed.
 			events <- executiontui.ToolCompletedEvent{
 				ToolCallID: tc.Id,
 				ToolCall:   convertToolCall(tc),
@@ -260,7 +319,7 @@ func emitToolCallStateEvents(
 			continue
 		}
 
-		// Update state even for other transitions (e.g., waiting_approval → running).
+		// Handle state transitions for known tool calls.
 		if currentStatus != prevStatus {
 			if currentStatus == "running" {
 				events <- executiontui.ToolRunningEvent{
@@ -268,6 +327,12 @@ func emitToolCallStateEvents(
 					ToolCall:   convertToolCall(tc),
 				}
 				prevResults[tc.Id] = tc.Result
+			} else if currentStatus == "waiting_approval" {
+				// Tool transitioned to waiting_approval (e.g., from running).
+				events <- executiontui.ToolWaitingApprovalEvent{
+					ToolCallID: tc.Id,
+					ToolCall:   convertToolCall(tc),
+				}
 			}
 			prevStates[tc.Id] = currentStatus
 			continue
@@ -294,17 +359,31 @@ func isTerminalToolStatus(status string) bool {
 	return status == "completed" || status == "failed" || status == "skipped"
 }
 
-// isRunningToolMessage returns true if the message is a MESSAGE_TOOL whose
-// tool call is still in RUNNING status. These messages should be suppressed
-// from emitCompleteMessage because the dedicated ToolRunningEvent from the
-// state tracking pass handles their display.
-func isRunningToolMessage(msg *agentexecutionv1.AgentMessage) bool {
+// isApprovalNoiseMessage returns true for system messages that are redundant
+// in the TUI because the stateful tool block's badge transition already
+// communicates the same information. The backend sends these for other clients
+// (web UI) that may not have badge-based lifecycle indicators.
+func isApprovalNoiseMessage(content string) bool {
+	return strings.Contains(content, "Approval received")
+}
+
+// isTrackedToolMessage returns true if the message is a MESSAGE_TOOL whose
+// tool call is already owned by the state tracker. Ownership is determined by
+// identity: if any embedded tool call ID exists in the trackedTools map, the
+// state tracker has already created a stateful block for it, and the message
+// processor must not create a duplicate.
+//
+// Messages without embedded tool calls (content-only fallback) are never
+// suppressed — they have no ID to match against.
+func isTrackedToolMessage(msg *agentexecutionv1.AgentMessage, trackedTools map[string]string) bool {
 	if msg.Type != agentexecutionv1.MessageType_MESSAGE_TOOL {
 		return false
 	}
 	for _, tc := range msg.ToolCalls {
-		if tc.Status == agentexecutionv1.ToolCallStatus_TOOL_CALL_RUNNING {
-			return true
+		if tc.Id != "" {
+			if _, tracked := trackedTools[tc.Id]; tracked {
+				return true
+			}
 		}
 	}
 	return false
@@ -312,6 +391,11 @@ func isRunningToolMessage(msg *agentexecutionv1.AgentMessage) bool {
 
 // emitAndWaitApproval sends an approval event to the TUI and blocks until
 // the user responds. It then submits the decision to the backend.
+//
+// If the approval submission fails, a StreamErrorEvent is emitted so the TUI
+// can display an actionable error to the user instead of silently continuing
+// with a stream that will never receive new updates (the backend never got
+// the approval, so the execution stays stuck in WAITING_FOR_APPROVAL).
 func emitAndWaitApproval(
 	ctx context.Context,
 	cfg streamToEventsConfig,
@@ -336,7 +420,19 @@ func emitAndWaitApproval(
 
 	// Submit the decision to the backend.
 	decision := mapApprovalResponseToDecision(resp)
-	_, _ = submitAgentApproval(ctx, cfg.conn, cfg.executionID, toolCallID, decision)
+	_, err := submitAgentApproval(ctx, cfg.conn, cfg.executionID, toolCallID, decision)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("execution_id", cfg.executionID).
+			Str("tool_call_id", toolCallID).
+			Str("action", resp.Action).
+			Msg("[stream] failed to submit approval decision")
+
+		cfg.events <- executiontui.StreamErrorEvent{
+			Err: errors.Wrap(err, "failed to submit approval decision"),
+		}
+	}
 }
 
 // extractApprovalInfo extracts approval display info from a ToolCall and/or
