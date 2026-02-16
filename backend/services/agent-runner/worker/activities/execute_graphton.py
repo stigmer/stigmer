@@ -4,6 +4,7 @@ import asyncio
 import contextlib
 import os
 import time
+import traceback
 from pathlib import Path
 from typing import Any
 
@@ -570,7 +571,12 @@ async def execute_graphton(
             execution_id, thread_id, approval_decisions, activity_logger
         )
     except Exception as system_error:
-        activity_logger.error(f"❌ SYSTEM ERROR in ExecuteGraphton for {execution_id}: {system_error}")
+        exc_type = type(system_error).__name__
+        exc_tb = traceback.format_exc()
+        activity_logger.error(
+            f"❌ SYSTEM ERROR in ExecuteGraphton for {execution_id}: "
+            f"[{exc_type}] {system_error}\n{exc_tb}"
+        )
         
         # Create minimal failed status for system errors
         # This handles cases where status_builder was never initialized
@@ -581,7 +587,7 @@ async def execute_graphton(
         
         failed_status = AgentExecutionStatus(
             phase=ExecutionPhase.EXECUTION_FAILED,
-            error=f"System error: {str(system_error)}",
+            error=f"System error: [{exc_type}] {str(system_error)}",
             messages=[
                 AgentMessage(
                     type=MessageType.MESSAGE_SYSTEM,
@@ -590,7 +596,7 @@ async def execute_graphton(
                 ),
                 AgentMessage(
                     type=MessageType.MESSAGE_SYSTEM,
-                    content=f"Error details: {str(system_error)}",
+                    content=f"Error details: [{exc_type}] {str(system_error)}",
                     timestamp=_utc_timestamp(),
                 )
             ]
@@ -2560,11 +2566,20 @@ async def _execute_graphton_impl(
         return status_builder.current_status
     
     except Exception as e:
-        activity_logger.error(f"ExecuteGraphton failed for execution {execution_id}: {e}")
+        # Capture the full exception context for diagnostics.  str(e) alone
+        # is often cryptic (e.g. a bare field name like "size_bytes") —
+        # the exception type and traceback are essential for root-cause analysis.
+        exc_type = type(e).__name__
+        exc_tb = traceback.format_exc()
+        activity_logger.error(
+            f"ExecuteGraphton failed for execution {execution_id}: "
+            f"[{exc_type}] {e}\n{exc_tb}"
+        )
         
-        # Extract clean error message
+        # Build a human-readable error message that includes the exception type
+        # so cryptic bare-string exceptions are at least classifiable.
         error_str = str(e)
-        error_message = f"Execution failed: {error_str}"
+        error_message = f"Execution failed: [{exc_type}] {error_str}"
         
         # Import required types for error message
         from datetime import datetime

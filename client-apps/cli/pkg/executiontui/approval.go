@@ -11,7 +11,16 @@ import (
 //  1. The approval response is sent to the goroutine via the response channel.
 //  2. The approval state is cleared.
 //  3. A confirmation block is appended.
-//  4. The model continues listening for events.
+//
+// IMPORTANT: This handler does NOT issue a new listenForEvents command.
+// The listenForEvents goroutine started by handleExecutionEvent (when it
+// processed the ApprovalNeededEvent) is still alive, blocking on the events
+// channel. After sendCmd delivers the approval response, the gRPC goroutine
+// unblocks and resumes streaming events — the existing listener will receive
+// the next event. Issuing a second listenForEvents here would create two
+// concurrent readers on the same channel, causing a race condition where one
+// reader gets the event and the other gets the channel-close signal, leading
+// to spurious "stream closed unexpectedly" errors.
 func (m Model) handleApprovalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.approval == nil {
 		return m, nil
@@ -53,10 +62,11 @@ func (m Model) handleApprovalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Clear approval state.
 	m.approval = nil
 
-	// Refresh viewport and continue listening.
+	// Refresh viewport. The existing listenForEvents goroutine (from
+	// handleExecutionEvent) will deliver the next event when it arrives.
 	m.refreshViewport()
 
-	return m, tea.Batch(sendCmd, listenForEvents(m.cfg.Events))
+	return m, sendCmd
 }
 
 // sendApprovalResponse returns a tea.Cmd that sends the approval response
