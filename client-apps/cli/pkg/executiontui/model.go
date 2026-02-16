@@ -31,10 +31,18 @@ type Config struct {
 }
 
 // streamingState tracks an in-progress streaming AI message.
-// When non-nil on the model, the current last block is being streamed.
+// When non-nil on the model, the block at blockIdx is being streamed.
 type streamingState struct {
 	// content holds the full accumulated text so far.
 	content string
+
+	// blockIdx is the index into m.blocks of the streaming AI block.
+	// This is set when AIStreamStartEvent creates the block and used by
+	// AIStreamDeltaEvent / AIStreamEndEvent to update the correct block.
+	// Without explicit tracking, tool call state events (processed before
+	// message events) can append blocks between start and delta/end,
+	// causing the naive len(m.blocks)-1 approach to target the wrong block.
+	blockIdx int
 }
 
 // approvalState tracks an active approval prompt.

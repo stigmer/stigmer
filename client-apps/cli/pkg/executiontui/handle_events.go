@@ -26,24 +26,32 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 		m.blocks = append(m.blocks, newAIBlock(renderAIContent(e.Content, e.ToolCalls)))
 
 	case AIStreamStartEvent:
-		m.streaming = &streamingState{content: e.Content}
 		m.blocks = append(m.blocks, newAIBlock(renderStreamingAI(e.Content)))
+		m.streaming = &streamingState{
+			content:  e.Content,
+			blockIdx: len(m.blocks) - 1,
+		}
 
 	case AIStreamDeltaEvent:
 		if m.streaming != nil {
 			m.streaming.content = e.Content
-			// Update the last block in-place with the new streaming content.
-			if len(m.blocks) > 0 {
-				m.blocks[len(m.blocks)-1].content = renderStreamingAI(e.Content)
+			// Update the streaming block in-place with the new content.
+			// Uses the tracked blockIdx rather than len(m.blocks)-1 because
+			// tool call state events can append blocks after the streaming
+			// block was created, making the "last block" a tool block.
+			if m.streaming.blockIdx < len(m.blocks) {
+				m.blocks[m.streaming.blockIdx].content = renderStreamingAI(e.Content)
 			}
 		}
 
 	case AIStreamEndEvent:
-		m.streaming = nil
 		// Replace the streaming block with the finalized content.
-		if len(m.blocks) > 0 {
-			m.blocks[len(m.blocks)-1] = newAIBlock(renderAIContent(e.Content, e.ToolCalls))
+		// Uses the tracked blockIdx for the same reason as AIStreamDeltaEvent:
+		// tool blocks may have been appended after the streaming block.
+		if m.streaming != nil && m.streaming.blockIdx < len(m.blocks) {
+			m.blocks[m.streaming.blockIdx] = newAIBlock(renderAIContent(e.Content, e.ToolCalls))
 		}
+		m.streaming = nil
 
 	case ToolResultEvent:
 		preview := renderToolResultPreview(e.Content, e.ToolCalls)
