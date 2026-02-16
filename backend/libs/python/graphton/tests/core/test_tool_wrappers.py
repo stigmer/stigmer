@@ -593,6 +593,7 @@ class TestApprovalAwareWrapperIntegration:
 
 from graphton.core.tool_wrappers import (
     _check_and_handle_approval,
+    _stream_write_content,
     create_platform_tool_wrappers,
     _create_read_tool,
     _create_write_tool,
@@ -856,6 +857,138 @@ class TestWriteToolWrapper:
         
         mock_interrupt.assert_called_once()
         assert "Successfully wrote" in result
+
+
+class TestStreamWriteContent:
+    """Tests for _stream_write_content progressive streaming helper."""
+
+    @pytest.mark.asyncio
+    async def test_small_file_emits_single_chunk(self):
+        """Files below the streaming threshold are sent as one chunk."""
+        content = "line1\nline2\nline3"
+        chunks = []
+
+        with patch("graphton.core.tool_wrappers.dispatch_custom_event") as mock_dispatch:
+            mock_dispatch.side_effect = lambda name, data: chunks.append(data["chunk"])
+            await _stream_write_content(content)
+
+        assert len(chunks) == 1
+        assert chunks[0] == content
+
+    @pytest.mark.asyncio
+    async def test_large_file_emits_multiple_chunks(self):
+        """Files above the threshold are split into multiple chunks."""
+        lines = [f"line {i}" for i in range(50)]
+        content = "\n".join(lines)
+        chunks = []
+
+        with patch("graphton.core.tool_wrappers.dispatch_custom_event") as mock_dispatch:
+            mock_dispatch.side_effect = lambda name, data: chunks.append(data["chunk"])
+            with patch("asyncio.sleep", new_callable=AsyncMock):
+                await _stream_write_content(content)
+
+        assert len(chunks) > 1
+        # Reconstruct: all chunks concatenated must equal the original.
+        assert "".join(chunks) == content
+
+    @pytest.mark.asyncio
+    async def test_chunks_concatenate_to_original_content(self):
+        """Accumulated chunks must exactly reproduce the original content."""
+        lines = [f"def func_{i}(): pass" for i in range(100)]
+        content = "\n".join(lines)
+        chunks = []
+
+        with patch("graphton.core.tool_wrappers.dispatch_custom_event") as mock_dispatch:
+            mock_dispatch.side_effect = lambda name, data: chunks.append(data["chunk"])
+            with patch("asyncio.sleep", new_callable=AsyncMock):
+                await _stream_write_content(content)
+
+        reconstructed = "".join(chunks)
+        assert reconstructed == content
+
+    @pytest.mark.asyncio
+    async def test_trailing_newline_preserved(self):
+        """Content that ends with a newline must be faithfully reproduced."""
+        lines = [f"line {i}" for i in range(30)]
+        content = "\n".join(lines) + "\n"
+        chunks = []
+
+        with patch("graphton.core.tool_wrappers.dispatch_custom_event") as mock_dispatch:
+            mock_dispatch.side_effect = lambda name, data: chunks.append(data["chunk"])
+            with patch("asyncio.sleep", new_callable=AsyncMock):
+                await _stream_write_content(content)
+
+        reconstructed = "".join(chunks)
+        assert reconstructed == content
+        assert reconstructed.endswith("\n")
+
+    @pytest.mark.asyncio
+    async def test_empty_content_emits_single_chunk(self):
+        """Empty content is emitted as a single (empty) chunk."""
+        chunks = []
+
+        with patch("graphton.core.tool_wrappers.dispatch_custom_event") as mock_dispatch:
+            mock_dispatch.side_effect = lambda name, data: chunks.append(data["chunk"])
+            await _stream_write_content("")
+
+        # Empty string has 1 "line" (the empty string itself), which is
+        # below the threshold, so single-chunk path fires.
+        assert len(chunks) == 1
+
+    @pytest.mark.asyncio
+    async def test_async_sleep_called_between_chunks(self):
+        """asyncio.sleep is called between chunk emissions to yield control."""
+        lines = [f"line {i}" for i in range(50)]
+        content = "\n".join(lines)
+
+        with patch("graphton.core.tool_wrappers.dispatch_custom_event"):
+            with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+                await _stream_write_content(content)
+
+        # Sleep should be called at least once (between first and second chunks),
+        # but NOT after the final chunk.
+        assert mock_sleep.call_count >= 1
+
+    @pytest.mark.asyncio
+    async def test_no_sleep_for_small_files(self):
+        """Files below the threshold should not introduce any async delays."""
+        content = "short\ncontent"
+
+        with patch("graphton.core.tool_wrappers.dispatch_custom_event"):
+            with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+                await _stream_write_content(content)
+
+        mock_sleep.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_all_events_use_tool_progress_name(self):
+        """Every dispatch_custom_event call uses 'tool_progress' as the event name."""
+        lines = [f"line {i}" for i in range(30)]
+        content = "\n".join(lines)
+        event_names = []
+
+        with patch("graphton.core.tool_wrappers.dispatch_custom_event") as mock_dispatch:
+            mock_dispatch.side_effect = lambda name, data: event_names.append(name)
+            with patch("asyncio.sleep", new_callable=AsyncMock):
+                await _stream_write_content(content)
+
+        assert all(name == "tool_progress" for name in event_names)
+
+    @pytest.mark.asyncio
+    async def test_chunk_count_scales_with_target(self):
+        """For very large files the chunk count stays bounded near the target."""
+        lines = [f"line {i}" for i in range(500)]
+        content = "\n".join(lines)
+        chunks = []
+
+        with patch("graphton.core.tool_wrappers.dispatch_custom_event") as mock_dispatch:
+            mock_dispatch.side_effect = lambda name, data: chunks.append(data["chunk"])
+            with patch("asyncio.sleep", new_callable=AsyncMock):
+                await _stream_write_content(content)
+
+        # chunk_size = max(3, 501 // 20) = 25, giving ~20 chunks.
+        # Allow a generous margin for rounding.
+        assert 15 <= len(chunks) <= 30
 
 
 class TestEditToolWrapper:
