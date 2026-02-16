@@ -2,8 +2,11 @@ package server
 
 import (
 	"context"
+	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -459,6 +462,25 @@ func Run() error {
 
 	log.Info().Int("port", cfg.GRPCPort).Msg("Stigmer Server started successfully")
 
+	// Start HTTP file server for local artifact downloads.
+	// This serves artifact files so the CLI (and other clients) can download them
+	// via a simple HTTP GET using the URLs returned by GetArtifactDownloadUrl.
+	if cfg.ArtifactStorage.Type == "local" {
+		artifactDir := filepath.Join(cfg.ArtifactStorage.LocalBasePath, "artifacts")
+		mux := http.NewServeMux()
+		mux.Handle("/", http.FileServer(http.Dir(artifactDir)))
+		addr := fmt.Sprintf("127.0.0.1:%d", cfg.ArtifactHTTPPort)
+		go func() {
+			log.Info().
+				Int("port", cfg.ArtifactHTTPPort).
+				Str("dir", artifactDir).
+				Msg("Starting artifact HTTP file server")
+			if err := http.ListenAndServe(addr, mux); err != nil && err != http.ErrServerClosed {
+				log.Error().Err(err).Msg("Artifact HTTP file server failed")
+			}
+		}()
+	}
+
 	// Wait for interrupt signal
 	<-done
 	log.Info().Msg("Received shutdown signal")
@@ -513,6 +535,7 @@ func loadSupervisorConfig(cfg *config.Config) *supervisor.Config {
 		LogDir:              getEnv("STIGMER_LOG_DIR", ""),
 		TemporalAddr:        getEnv("TEMPORAL_SERVICE_ADDRESS", "localhost:7233"),
 		StigmerServerPort:   cfg.GRPCPort,
+		ArtifactHTTPPort:    cfg.ArtifactHTTPPort,
 		LLMProvider:         getEnv("STIGMER_LLM_PROVIDER", "ollama"),
 		LLMModel:            getEnv("STIGMER_LLM_MODEL", "qwen2.5-coder:14b"),
 		LLMBaseURL:          getEnv("STIGMER_LLM_BASE_URL", "http://localhost:11434"),

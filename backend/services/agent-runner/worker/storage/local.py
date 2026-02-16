@@ -15,7 +15,7 @@ Usage:
     # Upload creates: /var/stigmer/artifacts/outputs/exec-123/result.zip
     storage.upload("outputs/exec-123/result.zip", content)
     
-    # Download URL: http://localhost:8080/artifacts/outputs/exec-123/result.zip
+    # Download URL: http://localhost:7235/outputs/exec-123/result.zip
     url = storage.get_download_url("outputs/exec-123/result.zip")
 """
 
@@ -33,7 +33,7 @@ class LocalArtifactStorage:
     
     Attributes:
         base_path: Root directory for artifact storage
-        serve_url_base: Base URL for serving artifacts (e.g., "http://localhost:8080")
+        serve_url_base: Base URL for serving artifacts (e.g., "http://localhost:7235")
     """
     
     def __init__(self, base_path: str, serve_url_base: str):
@@ -43,7 +43,7 @@ class LocalArtifactStorage:
             base_path: Root directory for artifact storage.
                        Will be created if it doesn't exist.
             serve_url_base: Base URL for serving artifacts.
-                           The full URL will be: {serve_url_base}/artifacts/{key}
+                           The full URL will be: {serve_url_base}/{key}
         """
         self.base_path = Path(base_path)
         self.serve_url_base = serve_url_base.rstrip('/')
@@ -110,11 +110,12 @@ class LocalArtifactStorage:
             expires_in: Ignored for local storage
             
         Returns:
-            Direct download URL: {serve_url_base}/artifacts/{key}
+            Direct download URL: {serve_url_base}/{key}
         """
-        # Local URLs don't expire - they're served directly by stigmer-server
-        # The URL pattern matches stigmer-server's static file serving endpoint
-        return f"{self.serve_url_base}/artifacts/{key}"
+        # Local URLs don't expire - they're served directly by stigmer-server's
+        # HTTP file server. The key already contains the full relative path
+        # (e.g., "artifacts/{execution_id}/{filename}").
+        return f"{self.serve_url_base}/{key}"
     
     def delete(self, key: str) -> None:
         """Delete content from local filesystem.

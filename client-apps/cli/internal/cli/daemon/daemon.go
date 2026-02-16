@@ -608,8 +608,11 @@ After installing Docker, restart Stigmer server.`)
 		// Artifact storage configuration
 		// Agent-runner reads attachments uploaded by stigmer-server
 		// Both must use the same directory (mounted into container as /artifacts)
+		// LOCAL_ARTIFACT_SERVE_URL must include the http:// scheme and point to the
+		// artifact HTTP file server port (DaemonPort+1). No path suffix — the storage
+		// key already contains the full relative path (e.g., "artifacts/{exec_id}/{file}").
 		"-e", "LOCAL_ARTIFACT_PATH=/artifacts",
-		"-e", fmt.Sprintf("LOCAL_ARTIFACT_SERVE_URL=%s/api/v1/artifacts", backendAddr),
+		"-e", fmt.Sprintf("LOCAL_ARTIFACT_SERVE_URL=http://%s:%d", resolveDockerHostAddress("localhost"), DaemonPort+1),
 
 		// Volume mount for workspace
 		"-v", fmt.Sprintf("%s:/workspace", workspaceDir),
