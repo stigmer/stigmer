@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
@@ -59,6 +60,18 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 			return
 		}
 
+		// Trace: log every update received from the Subscribe stream.
+		// This is essential for diagnosing approval flow issues — it reveals
+		// whether the CLI actually receives WAITING_FOR_APPROVAL with
+		// pending_approvals from the backend.
+		log.Debug().
+			Str("execution_id", cfg.executionID).
+			Str("phase", execution.Status.GetPhase().String()).
+			Int("messages", len(execution.Status.GetMessages())).
+			Int("tool_calls", len(execution.Status.GetToolCalls())).
+			Int("pending_approvals", len(execution.Status.GetPendingApprovals())).
+			Msg("[stream] received execution update")
+
 		messages := execution.Status.Messages
 
 		// --- Step 1: Convert new messages to events ---
@@ -92,6 +105,13 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 				if pa.ToolCallId == "" || promptedIDs[pa.ToolCallId] {
 					continue
 				}
+
+				log.Debug().
+					Str("execution_id", cfg.executionID).
+					Str("tool_call_id", pa.GetToolCallId()).
+					Str("tool_name", pa.GetToolName()).
+					Msg("[stream] approval detected — emitting ApprovalNeededEvent")
+
 				tc := findToolCallByID(execution.Status.ToolCalls, pa.ToolCallId)
 				emitAndWaitApproval(ctx, cfg, tc, pa, promptedIDs)
 			}
@@ -109,6 +129,11 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 
 		// --- Step 5: Terminal check ---
 		if isTerminalAgentPhase(execution.Status.Phase) {
+			log.Debug().
+				Str("execution_id", cfg.executionID).
+				Str("phase", execution.Status.GetPhase().String()).
+				Msg("[stream] terminal phase reached — sending DoneEvent")
+
 			errMsg := ""
 			if execution.Status.Error != "" {
 				errMsg = execution.Status.Error
@@ -241,8 +266,19 @@ func emitToolCallStateEvents(
 			continue
 		}
 
-		if seen && prevStatus == "running" && isTerminalToolStatus(currentStatus) {
-			// Transition from running to a terminal state — emit completed.
+		if !seen && currentStatus == "waiting_approval" {
+			// New tool call that immediately entered WAITING_APPROVAL — show
+			// a visual indicator so the user knows approval is needed.
+			events <- executiontui.ToolWaitingApprovalEvent{
+				ToolCallID: tc.Id,
+				ToolCall:   convertToolCall(tc),
+			}
+			prevStates[tc.Id] = currentStatus
+			continue
+		}
+
+		if seen && (prevStatus == "running" || prevStatus == "waiting_approval") && isTerminalToolStatus(currentStatus) {
+			// Transition from running/waiting_approval to a terminal state — emit completed.
 			events <- executiontui.ToolCompletedEvent{
 				ToolCallID: tc.Id,
 				ToolCall:   convertToolCall(tc),
@@ -252,7 +288,7 @@ func emitToolCallStateEvents(
 			continue
 		}
 
-		// Update state even for other transitions (e.g., waiting_approval → running).
+		// Handle state transitions for known tool calls.
 		if currentStatus != prevStatus {
 			if currentStatus == "running" {
 				events <- executiontui.ToolRunningEvent{
@@ -260,6 +296,12 @@ func emitToolCallStateEvents(
 					ToolCall:   convertToolCall(tc),
 				}
 				prevResults[tc.Id] = tc.Result
+			} else if currentStatus == "waiting_approval" {
+				// Tool transitioned to waiting_approval (e.g., from running).
+				events <- executiontui.ToolWaitingApprovalEvent{
+					ToolCallID: tc.Id,
+					ToolCall:   convertToolCall(tc),
+				}
 			}
 			prevStates[tc.Id] = currentStatus
 			continue

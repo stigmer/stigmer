@@ -56,6 +56,15 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 		m.blocks = append(m.blocks, block)
 		m.runningTools[e.ToolCallID] = len(m.blocks) - 1
 
+	case ToolWaitingApprovalEvent:
+		tc := e.ToolCall
+		// Show a "waiting for approval" block. Track it in runningTools so
+		// the subsequent ApprovalNeededEvent or ToolCompletedEvent can
+		// replace it in-place (same lifecycle as ToolRunningEvent blocks).
+		block := newRunningToolBlock(renderToolWaitingApproval(tc), &tc)
+		m.blocks = append(m.blocks, block)
+		m.runningTools[e.ToolCallID] = len(m.blocks) - 1
+
 	case ToolCompletedEvent:
 		tc := e.ToolCall
 		preview := renderToolResultPreview("", []toolrender.ToolCallInfo{tc})

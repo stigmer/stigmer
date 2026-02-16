@@ -84,6 +84,19 @@ type ToolCompletedEvent struct {
 
 func (ToolCompletedEvent) isEvent() {}
 
+// ToolWaitingApprovalEvent signals that a tool call has entered
+// WAITING_APPROVAL status. The TUI shows a visual indicator (e.g., ⏸) so
+// the user knows approval will be needed, even before the full
+// ApprovalNeededEvent arrives with the approval prompt.
+type ToolWaitingApprovalEvent struct {
+	// ToolCallID is the unique identifier for this tool call.
+	ToolCallID string
+	// ToolCall carries the structured info for rendering (name, args, status).
+	ToolCall toolrender.ToolCallInfo
+}
+
+func (ToolWaitingApprovalEvent) isEvent() {}
+
 // ToolStreamDeltaEvent carries the full accumulated content of an in-progress
 // streaming tool call. Emitted when a running tool has is_streaming=true and
 // its result content has changed since the last update.
