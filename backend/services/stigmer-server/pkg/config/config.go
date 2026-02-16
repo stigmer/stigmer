@@ -23,12 +23,20 @@ type Config struct {
 
 	// Artifact storage configuration
 	ArtifactStorage artifactstorage.Config
+
+	// ArtifactHTTPPort is the port for the HTTP file server that serves local
+	// artifact downloads. Only used when ArtifactStorage.Type == "local".
+	// Default: GRPCPort + 1 (7235).
+	ArtifactHTTPPort int
 }
 
 // LoadConfig loads configuration from environment variables
 func LoadConfig() (*Config, error) {
+	grpcPort := getEnvInt("GRPC_PORT", 7234)
+	artifactHTTPPort := getEnvInt("ARTIFACT_HTTP_PORT", grpcPort+1)
+
 	config := &Config{
-		GRPCPort:    getEnvInt("GRPC_PORT", 7234), // Port 7234 (Temporal + 1)
+		GRPCPort:    grpcPort,
 		DBPath:      getEnvString("DB_PATH", defaultDBPath()),
 		StoragePath: getEnvString("STORAGE_PATH", defaultStoragePath()),
 		LogLevel:    getEnvString("LOG_LEVEL", "info"),
@@ -38,11 +46,16 @@ func LoadConfig() (*Config, error) {
 		TemporalHostPort:  getEnvString("TEMPORAL_HOST_PORT", "localhost:7233"),
 		TemporalNamespace: getEnvString("TEMPORAL_NAMESPACE", "default"),
 
+		// Artifact HTTP server port (for local artifact downloads)
+		ArtifactHTTPPort: artifactHTTPPort,
+
 		// Artifact storage configuration
 		ArtifactStorage: artifactstorage.Config{
-			Type:              getEnvString("ARTIFACT_STORAGE_TYPE", "local"), // Default to local
-			LocalBasePath:     getEnvString("ARTIFACT_LOCAL_BASE_PATH", defaultArtifactPath()),
-			LocalServeURL:     getEnvString("ARTIFACT_LOCAL_SERVE_URL", "http://localhost:8080/artifacts"),
+			Type:          getEnvString("ARTIFACT_STORAGE_TYPE", "local"), // Default to local
+			LocalBasePath: getEnvString("ARTIFACT_LOCAL_BASE_PATH", defaultArtifactPath()),
+			// Default serve URL uses the artifact HTTP port — no trailing path segment
+			// because the storage key already contains the full path (e.g. "artifacts/{exec_id}/{file}").
+			LocalServeURL:     getEnvString("ARTIFACT_LOCAL_SERVE_URL", fmt.Sprintf("http://localhost:%d", artifactHTTPPort)),
 			R2Bucket:          getEnvString("R2_BUCKET", ""),
 			R2Endpoint:        getEnvString("R2_ENDPOINT", ""),
 			R2AccessKeyID:     getEnvString("R2_ACCESS_KEY_ID", ""),

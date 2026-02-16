@@ -60,6 +60,7 @@ type Config struct {
 	LogDir              string
 	TemporalAddr        string
 	StigmerServerPort   int
+	ArtifactHTTPPort    int // Port for the artifact HTTP file server (default: StigmerServerPort + 1)
 	LLMProvider         string
 	LLMModel            string
 	LLMBaseURL          string
@@ -292,9 +293,17 @@ func (s *Supervisor) startAgentRunner() error {
 	// Artifact storage configuration
 	// Agent-runner reads attachments uploaded by stigmer-server
 	// Both must use the same directory (mounted into container as /artifacts)
+	// LOCAL_ARTIFACT_SERVE_URL must include the http:// scheme and point to the
+	// artifact HTTP file server port. No path suffix — the storage key already
+	// contains the full relative path (e.g., "artifacts/{exec_id}/{file}").
+	artifactHTTPPort := s.config.ArtifactHTTPPort
+	if artifactHTTPPort == 0 {
+		artifactHTTPPort = s.config.StigmerServerPort + 1
+	}
+	artifactHost := s.resolveDockerHostAddress("localhost")
 	args = append(args,
 		"-e", "LOCAL_ARTIFACT_PATH=/artifacts",
-		"-e", fmt.Sprintf("LOCAL_ARTIFACT_SERVE_URL=%s/api/v1/artifacts", backendAddr),
+		"-e", fmt.Sprintf("LOCAL_ARTIFACT_SERVE_URL=http://%s:%d", artifactHost, artifactHTTPPort),
 	)
 
 	// Add LLM secrets

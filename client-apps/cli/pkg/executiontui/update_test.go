@@ -524,7 +524,7 @@ func TestUpdate_Enter_NoFocus_PassesThrough(t *testing.T) {
 	}
 }
 
-func TestUpdate_FocusKeys_IgnoredDuringApproval(t *testing.T) {
+func TestUpdate_FocusKeys_WorkDuringApproval(t *testing.T) {
 	m := newTestModelWithBlocks()
 
 	// Enter approval state.
@@ -538,12 +538,18 @@ func TestUpdate_FocusKeys_IgnoredDuringApproval(t *testing.T) {
 		t.Fatal("approval should be active")
 	}
 
-	// Tab during approval should NOT change focus (keys route to approval).
+	// Tab during approval should navigate focus — the user can inspect tool
+	// block content before deciding whether to approve.
 	result, _ = model.Update(tea.KeyMsg{Type: tea.KeyTab})
 	model = result.(Model)
 
-	if model.focusedBlockIndex != -1 {
-		t.Errorf("focus = %d, want -1 (Tab should not activate during approval)", model.focusedBlockIndex)
+	if model.focusedBlockIndex == -1 {
+		t.Error("focus should be set after Tab during approval (navigation works during approval)")
+	}
+
+	// Approval should still be active — Tab is a navigation key, not a decision.
+	if model.approval == nil {
+		t.Error("approval should still be active after Tab")
 	}
 }
 
@@ -816,7 +822,7 @@ func TestUpdate_NewContent_WhileAutoScroll_FollowsBottom(t *testing.T) {
 	}
 }
 
-func TestUpdate_gG_IgnoredDuringApproval(t *testing.T) {
+func TestUpdate_gG_WorkDuringApproval(t *testing.T) {
 	m := newTestModelWithManyBlocks()
 
 	// Enter approval state.
@@ -830,14 +836,18 @@ func TestUpdate_gG_IgnoredDuringApproval(t *testing.T) {
 		t.Fatal("approval should be active")
 	}
 
-	// Press g — should be routed to approval handler, not navigation.
+	// Press g — navigates to top of viewport while keeping approval active.
 	result, _ = model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'g'}})
 	model = result.(Model)
 
-	// g is not a valid approval key, so approval should still be active
-	// (approval handler ignores unrecognized keys).
+	// Approval should still be active — g is a navigation key, not a decision.
 	if model.approval == nil {
 		t.Error("approval should still be active — g is not an approval key")
+	}
+
+	// Auto-scroll should be disabled after pressing g (jumped to top).
+	if model.autoScroll {
+		t.Error("autoScroll should be false after pressing g during approval")
 	}
 }
 
@@ -1029,5 +1039,48 @@ func TestFooter_PausedWithExpandable_ShowsFocusHints(t *testing.T) {
 	}
 	if !strings.Contains(footer, "Tab focus") {
 		t.Errorf("footer should show Tab hint when paused with expandable blocks, got %q", footer)
+	}
+}
+
+// =============================================================================
+// Thinking Indicator During Approval Tests
+// =============================================================================
+
+func TestThinkingIndicator_NotShownDuringApproval(t *testing.T) {
+	m, _, _ := newTestModel()
+
+	// Transition to in_progress phase so the thinking indicator would normally activate.
+	result, _ := m.Update(executionEventMsg{event: PhaseChangeEvent{
+		Phase: "in_progress", Previous: "pending",
+	}})
+	model := result.(Model)
+
+	// Enter approval state.
+	result, _ = model.Update(executionEventMsg{event: ToolWaitingApprovalEvent{
+		ToolCallID: "tc-think",
+		ToolCall:   toolrender.ToolCallInfo{Name: "write_file", Status: "waiting_approval"},
+	}})
+	model = result.(Model)
+
+	result, _ = model.Update(executionEventMsg{event: ApprovalNeededEvent{
+		ToolCallID: "tc-think",
+		ToolName:   "write_file",
+	}})
+	model = result.(Model)
+
+	if model.approval == nil {
+		t.Fatal("model should be in approval state")
+	}
+
+	// Force lastEventAt far into the past to simulate idle > 2s.
+	model.lastEventAt = model.lastEventAt.Add(-5 * idleThreshold)
+
+	// Fire the activity tick — this should NOT activate the thinking indicator
+	// because approval is active (the user is the one being waited on).
+	result, _ = model.Update(activityTickMsg{})
+	model = result.(Model)
+
+	if model.thinkingVisible {
+		t.Error("thinkingVisible should be false during approval — the user is being waited on, not the agent")
 	}
 }

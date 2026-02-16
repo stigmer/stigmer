@@ -37,6 +37,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.phase == "pending" || m.thinkingVisible {
 			var cmd tea.Cmd
 			m.spinner, cmd = m.spinner.Update(msg)
+			if m.thinkingVisible {
+				// Refresh the viewport so the spinner frame in the
+				// thinking indicator animates along with the header.
+				m.refreshViewport()
+			}
 			return m, cmd
 		}
 		return m, nil
@@ -55,11 +60,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 //  3. Help toggle (? key — available except during approval/cancel confirm)
 //  4. Help dismiss (esc — only when help is shown)
 //  5. Help blocks all other keys when active
-//  6. Approval keys (when approval is active, captures all input)
+//  6. Approval keys (a/s/r — when approval is active)
 //  7. Cancel key (c — when execution is running)
-//  8. Focus/toggle keys (Tab, Shift+Tab, Enter)
-//  9. Navigation keys (g top, G bottom)
-//  10. Viewport scroll keys (forwarded to bubbles/viewport)
+//  8. Navigation keys (shared: focus, toggle, scroll — see handleNavigationKey)
 func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Always allow quit/detach.
 	switch msg.String() {
@@ -87,7 +90,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// Route to approval handler when active — approval captures all input.
+	// Route to approval handler when active — processes a/s/r for approval
+	// decisions, then falls through to navigation for all other keys so the
+	// user can Tab/Enter to expand tool blocks and scroll the viewport while
+	// deciding whether to approve.
 	if m.approval != nil {
 		return m.handleApprovalKey(msg)
 	}
@@ -98,6 +104,20 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	return m.handleNavigationKey(msg)
+}
+
+// handleNavigationKey processes focus, toggle, and scroll keys. This is the
+// shared handler called from both the normal key path and the approval key
+// path, ensuring that users can always navigate and expand/collapse tool
+// blocks regardless of whether an approval prompt is active.
+//
+// Keys handled:
+//   - Tab / Shift+Tab: cycle focus among expandable blocks
+//   - Enter: toggle expand/collapse on the focused block
+//   - g / G: jump to top / bottom of viewport
+//   - Arrow keys, Page Up/Down, etc.: viewport scroll (forwarded to bubbles/viewport)
+func (m Model) handleNavigationKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Focus and toggle keys for expandable blocks.
 	switch msg.String() {
 	case "tab":
@@ -199,12 +219,6 @@ const activityTickInterval = 1 * time.Second
 // during brief gaps between rapid events).
 const idleThreshold = 2 * time.Second
 
-// connectionStaleThreshold is how long the TUI waits without any backend
-// update (including keepalives) before showing a connection warning.
-// The backend sends keepalive updates every 5 seconds, so 15 seconds
-// means 3 consecutive keepalives were missed.
-const connectionStaleThreshold = 15 * time.Second
-
 // scheduleActivityTick returns a tea.Cmd that delivers an activityTickMsg
 // after the activity tick interval. The tick runs continuously during
 // execution and is used to detect idle periods for the thinking indicator
@@ -217,18 +231,24 @@ func scheduleActivityTick() tea.Cmd {
 
 // handleActivityTick processes the periodic activity tick. When the TUI is
 // in the "in_progress" phase and no execution events have arrived for longer
-// than the idle threshold, it activates the thinking indicator (animated
-// spinner) in the header to signal that the agent is alive and processing.
+// than the idle threshold, it activates the thinking indicator — both in the
+// header (animated spinner) and in the viewport (ephemeral "Thinking..." text)
+// — to signal that the agent is alive and processing.
 func (m Model) handleActivityTick() (tea.Model, tea.Cmd) {
 	// Don't schedule more ticks once execution is done.
 	if m.done {
 		return m, nil
 	}
 
-	// Detect idle: in_progress phase with no recent events.
-	if m.phase == "in_progress" && time.Since(m.lastEventAt) > idleThreshold {
+	// Detect idle: in_progress phase with no recent events and no active
+	// approval prompt. During approval, the user is the one being waited on
+	// — showing a "Thinking..." indicator would be misleading.
+	if m.phase == "in_progress" && m.approval == nil && time.Since(m.lastEventAt) > idleThreshold {
 		if !m.thinkingVisible {
 			m.thinkingVisible = true
+			// Show the viewport indicator immediately rather than
+			// waiting for the first spinner tick to trigger a refresh.
+			m.refreshViewport()
 			// Restart the spinner animation — it was stopped when the
 			// phase transitioned from "pending" to "in_progress".
 			return m, tea.Batch(m.spinner.Tick, scheduleActivityTick())
@@ -258,11 +278,9 @@ func (m Model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 		m.viewport.Height = viewportHeight
 	}
 
-	// Rebuild and set content with current blocks.
-	m.viewport.SetContent(rebuildViewportContent(m.blocks, m.focusedBlockIndex))
-	if m.autoScroll {
-		m.viewport.GotoBottom()
-	}
+	// Rebuild viewport content through the shared path so the thinking
+	// indicator is included when active.
+	m.refreshViewport()
 
 	return m, nil
 }

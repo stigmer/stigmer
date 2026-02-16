@@ -84,6 +84,19 @@ type ToolCompletedEvent struct {
 
 func (ToolCompletedEvent) isEvent() {}
 
+// ToolWaitingApprovalEvent signals that a tool call has entered
+// WAITING_APPROVAL status. The TUI shows a visual indicator (e.g., ⏸) so
+// the user knows approval will be needed, even before the full
+// ApprovalNeededEvent arrives with the approval prompt.
+type ToolWaitingApprovalEvent struct {
+	// ToolCallID is the unique identifier for this tool call.
+	ToolCallID string
+	// ToolCall carries the structured info for rendering (name, args, status).
+	ToolCall toolrender.ToolCallInfo
+}
+
+func (ToolWaitingApprovalEvent) isEvent() {}
+
 // ToolStreamDeltaEvent carries the full accumulated content of an in-progress
 // streaming tool call. Emitted when a running tool has is_streaming=true and
 // its result content has changed since the last update.
@@ -137,18 +150,6 @@ type DoneEvent struct {
 }
 
 func (DoneEvent) isEvent() {}
-
-// HeartbeatEvent signals that a gRPC stream update was received from the
-// backend, even if no meaningful content changed (e.g., a keepalive update).
-// The TUI uses this to track backend liveness and distinguish "agent is
-// thinking" from "connection lost."
-//
-// Unlike other events, HeartbeatEvent does NOT reset the activity tracker
-// (lastEventAt) or clear the thinking indicator. It only refreshes the
-// lastBackendUpdate timestamp for connection health monitoring.
-type HeartbeatEvent struct{}
-
-func (HeartbeatEvent) isEvent() {}
 
 // StreamErrorEvent signals that the gRPC stream encountered an error.
 // The TUI displays the error and prepares to exit.

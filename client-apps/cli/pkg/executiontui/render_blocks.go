@@ -16,6 +16,12 @@ var (
 	phaseStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
 	errorStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Bold(true)
 	dimStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
+
+	// thinkingStyle is used for the ephemeral "Thinking..." indicator that
+	// appears in the viewport when the agent is idle (processing a prompt,
+	// planning next steps). Muted foreground distinguishes it from real
+	// content blocks.
+	thinkingStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("243"))
 )
 
 // renderAIContent formats an AI message for display.
@@ -88,20 +94,17 @@ func renderToolResultExpanded(content string, toolCalls []toolrender.ToolCallInf
 	return toolrender.RenderResultWithPreview(content) + "\n" + content
 }
 
-// renderToolRunning formats a tool call in running state with a liveness indicator.
-func renderToolRunning(tc toolrender.ToolCallInfo) string {
-	return toolrender.RenderRunning(tc)
-}
-
 // renderToolFinalized replaces the running indicator (⏳) with a completion
-// indicator (✓) for tools that were still in-progress when execution finished.
-// This avoids leaving stale "in progress" visual cues in the final display.
+// indicator (✓) for tools that were still in-progress when execution finished
+// and had no stored ToolCallInfo for proper stateful block creation.
+// This is a last-resort fallback — normally finalizeRunningTools creates a
+// proper stateful block.
 func renderToolFinalized(runningContent string) string {
 	return strings.Replace(runningContent, "⏳", "✓", 1)
 }
 
 // renderStreamingTool formats a tool call that is actively streaming output.
-// Shows the tool header with a running indicator, followed by a gutter-bordered
+// Shows the tool header with a running badge, followed by a gutter-bordered
 // preview of the streaming content with a cursor indicator.
 //
 // Example:
@@ -110,7 +113,7 @@ func renderToolFinalized(runningContent string) string {
 //	     │ # Agent Drafter
 //	     │ Guide for creating valid Stigmer Agent YAML files...▍
 func renderStreamingTool(tc toolrender.ToolCallInfo, streamContent string) string {
-	header := toolrender.RenderRunning(tc)
+	header := toolrender.RenderWithBadge(tc, toolrender.StateBadge("running"))
 
 	if streamContent == "" {
 		return header
@@ -137,6 +140,17 @@ func renderStreamingTool(tc toolrender.ToolCallInfo, streamContent string) strin
 	}
 
 	return header + "\n" + strings.Join(gutterLines, "\n")
+}
+
+// renderThinkingIndicator formats the ephemeral "Thinking..." indicator
+// shown in the viewport when the agent is idle during the in_progress phase.
+// spinnerView is the current frame of the animated spinner (e.g., "⠋"),
+// passed in so the indicator animates with the global spinner tick cycle.
+//
+// This is NOT a content block — it is appended by refreshViewport() and
+// disappears automatically when the next execution event arrives.
+func renderThinkingIndicator(spinnerView string) string {
+	return thinkingStyle.Render(spinnerView + " Thinking...")
 }
 
 // renderSystemContent formats a system message with dimmed styling.
@@ -167,7 +181,9 @@ func phaseDisplayText(phase, previous string) string {
 		return "⏳ Execution pending..."
 	case "in_progress":
 		if previous == "waiting_for_approval" {
-			return "▶️  Resumed after approval"
+			// Suppressed: the tool block badge swap (⏸ → ⏳) already signals
+			// the approval was processed and execution resumed.
+			return ""
 		}
 		return "▶️  Execution started"
 	case "completed":

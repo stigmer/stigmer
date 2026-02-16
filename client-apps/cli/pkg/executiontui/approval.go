@@ -5,18 +5,34 @@ import (
 )
 
 // handleApprovalKey processes a key press during an active approval prompt.
-// Valid keys are a (approve), s (skip), r (reject). Other keys are ignored.
 //
-// When a valid key is pressed:
+// Approval-specific keys (a/s/r) trigger the approval decision. All other keys
+// are delegated to handleNavigationKey so the user can Tab/Enter to expand tool
+// blocks and scroll the viewport while inspecting content before deciding.
+//
+// When an approval key is pressed:
 //  1. The approval response is sent to the goroutine via the response channel.
-//  2. The approval state is cleared.
-//  3. A confirmation block is appended.
-//  4. The model continues listening for events.
+//  2. The tool block badge is updated in-place to reflect the decision.
+//  3. The approval state is cleared.
+//
+// No separate confirmation block is created — the tool block's badge is the
+// only visual change: ⏸ → ⏳ (approved, resuming) or ⏭/✗ (skipped/rejected).
+//
+// IMPORTANT: This handler does NOT issue a new listenForEvents command.
+// The listenForEvents goroutine started by handleExecutionEvent (when it
+// processed the ApprovalNeededEvent) is still alive, blocking on the events
+// channel. After sendCmd delivers the approval response, the gRPC goroutine
+// unblocks and resumes streaming events — the existing listener will receive
+// the next event. Issuing a second listenForEvents here would create two
+// concurrent readers on the same channel, causing a race condition where one
+// reader gets the event and the other gets the channel-close signal, leading
+// to spurious "stream closed unexpectedly" errors.
 func (m Model) handleApprovalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if m.approval == nil {
 		return m, nil
 	}
 
+	// Approval decision keys.
 	var action string
 	switch msg.String() {
 	case "a":
@@ -26,8 +42,10 @@ func (m Model) handleApprovalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "r":
 		action = "reject"
 	default:
-		// Ignore unrecognized keys during approval.
-		return m, nil
+		// Not an approval key — delegate to navigation so the user can
+		// Tab/Enter to expand tool blocks and scroll the viewport while
+		// deciding whether to approve.
+		return m.handleNavigationKey(msg)
 	}
 
 	// Send the response to the gRPC goroutine.
@@ -45,18 +63,33 @@ func (m Model) handleApprovalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Update loop from blocking if the channel is not immediately ready.
 	sendCmd := sendApprovalResponse(m.cfg.ApprovalResponses, response)
 
-	// Append a confirmation block showing the action and tool name.
-	m.blocks = append(m.blocks, newSystemBlock(
-		renderApprovalConfirmation(action, m.approval.toolName),
-	))
+	// Update the tool block badge in-place. For "approve", the tool will
+	// resume running (⏳). For "skip" and "reject", the tool reaches a
+	// terminal state immediately (⏭ / ✗).
+	toolCallID := m.approval.toolCallID
+	if idx, ok := m.runningTools[toolCallID]; ok && idx < len(m.blocks) {
+		if tc := m.blocks[idx].toolCall; tc != nil {
+			var newState string
+			switch action {
+			case "approve":
+				newState = "running"
+			case "skip":
+				newState = "skipped"
+			case "reject":
+				newState = "failed"
+			}
+			m.updateToolBadge(toolCallID, *tc, newState)
+		}
+	}
 
 	// Clear approval state.
 	m.approval = nil
 
-	// Refresh viewport and continue listening.
+	// Refresh viewport. The existing listenForEvents goroutine (from
+	// handleExecutionEvent) will deliver the next event when it arrives.
 	m.refreshViewport()
 
-	return m, tea.Batch(sendCmd, listenForEvents(m.cfg.Events))
+	return m, sendCmd
 }
 
 // sendApprovalResponse returns a tea.Cmd that sends the approval response

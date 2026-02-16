@@ -4,6 +4,7 @@ import asyncio
 import contextlib
 import os
 import time
+import traceback
 from pathlib import Path
 from typing import Any
 
@@ -38,6 +39,7 @@ from grpc_client.skill_client import SkillClient
 from worker.activities.graphton.approval_policy import (
     build_approval_config,
     create_approval_checker,
+    resolve_platform_tool_name,
 )
 from worker.activities.graphton.skill_writer import SkillWriter
 from worker.activities.graphton.status_builder import StatusBuilder, _utc_timestamp
@@ -58,7 +60,7 @@ from worker.sandbox_manager import (
 from worker.storage import ArtifactStorage, create_artifact_storage
 from worker.streaming import StreamingConfig, StreamingUpdateScheduler
 from worker.token_manager import get_api_key
-from worker.tools import create_publish_artifact_tool
+from worker.tools import publish_artifact
 
 
 class SetupTimer:
@@ -355,6 +357,237 @@ async def inject_attachments(
     return injected_files
 
 
+async def _auto_publish_written_files(
+    tool_calls,
+    sandbox,
+    storage: ArtifactStorage,
+    execution_id: str,
+    status_builder: "StatusBuilder",
+    local_root: str | None,
+    logger,
+) -> int:
+    """Publish workspace files as artifacts based on completed file-modifying tool calls.
+
+    This is a post-stream safety net.  When the agent created or modified
+    files via ``write``, ``write_file``, ``edit``, or ``edit_file`` tools
+    but no artifacts were published during execution, the user would receive
+    no downloadable output.  This function inspects the completed tool
+    calls, groups affected paths by their top-level directory, and publishes
+    each group as a downloadable artifact.
+
+    The function preserves the original folder structure: if all affected
+    files share a common parent directory, that directory is published as a
+    single (zipped) artifact.  If files are scattered across unrelated
+    directories, each top-level directory (or individual root-level file)
+    is published separately.
+
+    Note: The ``execute`` tool (shell commands) can also create or modify
+    files, but it exposes only a ``command`` string — no ``path`` parameter.
+    Reliably extracting file paths from arbitrary shell commands is not
+    tractable, so ``execute`` is intentionally excluded.  MCP tools are
+    similarly opaque.  If this becomes a gap in practice, a filesystem-diff
+    approach can be introduced later.
+
+    Args:
+        tool_calls: Iterable of ToolCall protos from the execution status.
+        sandbox: Daytona sandbox instance (None for local mode).
+        storage: ArtifactStorage for uploading artifacts.
+        execution_id: Current execution ID.
+        status_builder: StatusBuilder to track the new artifacts.
+        local_root: Root path for local filesystem mode.
+        logger: Activity logger.
+
+    Returns:
+        Number of artifacts auto-published (0 if no file-modifying calls found).
+    """
+    FILE_MODIFYING_TOOL_NAMES = {"write", "write_file", "edit", "edit_file"}
+
+    # Diagnostic: log every file-modifying tool call regardless of status.
+    # This makes it easy to diagnose "where did my files go?" issues by
+    # showing which writes were found and why they were included or skipped.
+    file_modifying_tcs = [tc for tc in tool_calls if tc.name in FILE_MODIFYING_TOOL_NAMES]
+    if file_modifying_tcs:
+        for tc in file_modifying_tcs:
+            status_name = ToolCallStatus.Name(tc.status)
+            path = dict(tc.args).get("path", "<no path>") if tc.args else "<no args>"
+            logger.info(
+                f"[AUTO_PUBLISH] execution={execution_id} — "
+                f"file-modifying tool_call: name={tc.name} "
+                f"status={status_name} path={path} id={tc.id}"
+            )
+    else:
+        logger.debug(
+            f"[AUTO_PUBLISH] execution={execution_id} — "
+            f"no file-modifying tool calls found at all"
+        )
+
+    # Collect paths from completed file-modifying tool calls.
+    written_paths: list[str] = []
+    for tc in tool_calls:
+        if tc.name not in FILE_MODIFYING_TOOL_NAMES:
+            continue
+        if tc.status != ToolCallStatus.TOOL_CALL_COMPLETED:
+            continue
+        # tc.args is a google.protobuf.Struct; access fields as a dict.
+        path = dict(tc.args).get("path", "")
+        if path:
+            written_paths.append(path)
+
+    if not written_paths:
+        logger.info(
+            f"[AUTO_PUBLISH] execution={execution_id} — "
+            f"no completed file-modifying tool calls found, skipping "
+            f"(total file-modifying tool calls: {len(file_modifying_tcs)})"
+        )
+        return 0
+
+    logger.info(
+        f"[AUTO_PUBLISH] execution={execution_id} — "
+        f"detected {len(written_paths)} modified file(s), "
+        f"auto-publishing as artifacts: {written_paths}"
+    )
+
+    # Determine publish groups by finding common ancestor directories.
+    #
+    # Strategy:
+    #   1. If ALL paths share a single common parent (e.g. "my-skill/SKILL.md",
+    #      "my-skill/scripts/run.sh" → common parent "my-skill"), publish that
+    #      directory as a single artifact.
+    #   2. If paths span multiple unrelated trees (e.g. "agent-drafter/SKILL.md"
+    #      + "outputs/SUMMARY.md"), group by top-level directory segment and
+    #      publish each group as a separate directory artifact.  This preserves
+    #      internal structure (e.g. references/ subdirectories) instead of
+    #      flattening everything into individual files.
+    #   3. Root-level files (no parent directory) are published individually.
+    import posixpath
+    from collections import defaultdict
+    from pathlib import PurePosixPath
+
+    # Normalise: strip leading slashes so paths are workspace-relative.
+    normalised = [p.lstrip("/") for p in written_paths]
+
+    # Compute common prefix directory across ALL paths.
+    if len(normalised) == 1:
+        p = PurePosixPath(normalised[0])
+        if len(p.parts) > 1:
+            # Single file inside a subdirectory → publish the parent dir.
+            common_dir = str(p.parent)
+        else:
+            # Single file at workspace root → publish the file itself.
+            common_dir = None
+    else:
+        try:
+            common = posixpath.commonpath(normalised)
+        except ValueError:
+            common = ""
+        if common and common != ".":
+            common_dir = common
+        else:
+            common_dir = None
+
+    artifacts_published = 0
+
+    if common_dir:
+        # All paths share a common ancestor — publish as a single artifact.
+        artifact_name = PurePosixPath(common_dir).name or common_dir
+        try:
+            artifact = await publish_artifact(
+                sandbox=sandbox,
+                storage=storage,
+                execution_id=execution_id,
+                path=common_dir,
+                name=artifact_name,
+                local_root=local_root,
+            )
+            status_builder.add_artifact(artifact)
+            artifacts_published += 1
+            logger.info(
+                f"[AUTO_PUBLISH] execution={execution_id} — "
+                f"published directory '{common_dir}' as artifact '{artifact_name}'"
+            )
+        except Exception as e:
+            logger.warning(
+                f"[AUTO_PUBLISH] execution={execution_id} — "
+                f"failed to publish directory '{common_dir}': {e}"
+            )
+    else:
+        # No single common directory — group by top-level directory and
+        # publish each group as a directory artifact.  This preserves
+        # subdirectory structure within each group (e.g. references/).
+        groups: dict[str, list[str]] = defaultdict(list)
+        root_files: list[str] = []
+
+        for p in normalised:
+            parts = PurePosixPath(p).parts
+            if len(parts) > 1:
+                groups[parts[0]].append(p)
+            else:
+                root_files.append(p)
+
+        # Publish each directory group.  Within each group, find the
+        # deepest common path and publish that directory as one artifact.
+        for _top_dir, paths in groups.items():
+            if len(paths) == 1:
+                group_common = str(PurePosixPath(paths[0]).parent)
+            else:
+                group_common = posixpath.commonpath(paths)
+
+            artifact_name = PurePosixPath(group_common).name or group_common
+            try:
+                artifact = await publish_artifact(
+                    sandbox=sandbox,
+                    storage=storage,
+                    execution_id=execution_id,
+                    path=group_common,
+                    name=artifact_name,
+                    local_root=local_root,
+                )
+                status_builder.add_artifact(artifact)
+                artifacts_published += 1
+                logger.info(
+                    f"[AUTO_PUBLISH] execution={execution_id} — "
+                    f"published directory '{group_common}' "
+                    f"as artifact '{artifact_name}' "
+                    f"({len(paths)} file(s) in group)"
+                )
+            except Exception as e:
+                logger.warning(
+                    f"[AUTO_PUBLISH] execution={execution_id} — "
+                    f"failed to publish directory '{group_common}': {e}"
+                )
+
+        # Publish root-level files individually (no directory to group).
+        for rel_path in root_files:
+            file_name = PurePosixPath(rel_path).name
+            try:
+                artifact = await publish_artifact(
+                    sandbox=sandbox,
+                    storage=storage,
+                    execution_id=execution_id,
+                    path=rel_path,
+                    name=file_name,
+                    local_root=local_root,
+                )
+                status_builder.add_artifact(artifact)
+                artifacts_published += 1
+                logger.info(
+                    f"[AUTO_PUBLISH] execution={execution_id} — "
+                    f"published root file '{rel_path}' as artifact '{file_name}'"
+                )
+            except Exception as e:
+                logger.warning(
+                    f"[AUTO_PUBLISH] execution={execution_id} — "
+                    f"failed to publish root file '{rel_path}': {e}"
+                )
+
+    logger.info(
+        f"[AUTO_PUBLISH] execution={execution_id} — "
+        f"auto-published {artifacts_published} artifact(s) from "
+        f"{len(written_paths)} modified file(s)"
+    )
+    return artifacts_published
+
+
 @activity.defn(name="ExecuteGraphton")
 async def execute_graphton(
     execution_id: str,
@@ -411,7 +644,12 @@ async def execute_graphton(
             execution_id, thread_id, approval_decisions, activity_logger
         )
     except Exception as system_error:
-        activity_logger.error(f"❌ SYSTEM ERROR in ExecuteGraphton for {execution_id}: {system_error}")
+        exc_type = type(system_error).__name__
+        exc_tb = traceback.format_exc()
+        activity_logger.error(
+            f"❌ SYSTEM ERROR in ExecuteGraphton for {execution_id}: "
+            f"[{exc_type}] {system_error}\n{exc_tb}"
+        )
         
         # Create minimal failed status for system errors
         # This handles cases where status_builder was never initialized
@@ -422,7 +660,7 @@ async def execute_graphton(
         
         failed_status = AgentExecutionStatus(
             phase=ExecutionPhase.EXECUTION_FAILED,
-            error=f"System error: {str(system_error)}",
+            error=f"System error: [{exc_type}] {str(system_error)}",
             messages=[
                 AgentMessage(
                     type=MessageType.MESSAGE_SYSTEM,
@@ -431,7 +669,7 @@ async def execute_graphton(
                 ),
                 AgentMessage(
                     type=MessageType.MESSAGE_SYSTEM,
-                    content=f"Error details: {str(system_error)}",
+                    content=f"Error details: [{exc_type}] {str(system_error)}",
                     timestamp=_utc_timestamp(),
                 )
             ]
@@ -1071,7 +1309,7 @@ async def _execute_graphton_impl(
                     injected_files.append({
                         "filename": att.filename,
                         "path": mount_path,
-                        "size": att.size_bytes,
+                        "size": None,  # Not available on resume (content not re-downloaded)
                     })
                 activity_logger.info(
                     "[RESUME] Skipped attachment injection — reusing "
@@ -1379,7 +1617,8 @@ async def _execute_graphton_impl(
                 "Use the `read` tool to access them:\n\n"
             )
             for f in injected_files:
-                input_files_section += f"- `{f['path']}` ({f['size']} bytes)\n"
+                size_info = f" ({f['size']} bytes)" if f.get('size') is not None else ""
+                input_files_section += f"- `{f['path']}`{size_info}\n"
             input_files_section += (
                 "\nThese files are available in your workspace. "
                 "Read them using the `read` tool with the paths shown above."
@@ -1534,32 +1773,21 @@ async def _execute_graphton_impl(
                 transformed_subagents = None
         
         # ─────────────────────────────────────────────────────────────────────────────
-        # Step 5.10: Create Built-in Tools (Artifact Lifecycle)
+        # Step 5.10: Create Artifact Storage (for post-stream auto-publish)
         #
-        # Creates the publish_artifact tool that allows agents to make files/directories
-        # available for download by users. This is a core capability for the artifact
-        # lifecycle feature.
+        # Artifact storage is used by the post-stream auto-publish safety net
+        # to upload files created or modified by the agent as downloadable
+        # artifacts.  The agent does NOT receive a publish_artifact tool —
+        # publishing is handled structurally by the platform after the stream
+        # completes, based on completed file-modifying tool calls (write,
+        # write_file, edit, edit_file).  This eliminates dependence on LLM
+        # compliance for artifact delivery.
         # ─────────────────────────────────────────────────────────────────────────────
-        builtin_tools = []
-        
-        # Create artifact storage for artifacts (needed by publish_artifact tool)
         artifact_storage = create_artifact_storage(worker_config.artifact_storage)
         activity_logger.info(
             f"Created artifact storage ({worker_config.artifact_storage.storage_type}) "
-            "for artifact publishing"
+            "for post-stream auto-publish"
         )
-        
-        # Create publish_artifact tool with injected dependencies
-        publish_artifact_tool = create_publish_artifact_tool(
-            sandbox=sandbox,  # None for local mode
-            storage=artifact_storage,
-            execution_id=execution_id,
-            status_builder=status_builder,
-            local_root=sandbox_config.get('root_dir') if worker_config.is_local_mode() else None,
-        )
-        builtin_tools.append(publish_artifact_tool)
-        
-        activity_logger.info(f"Created {len(builtin_tools)} built-in tools: [publish_artifact]")
         
         # Create Graphton agent.
         #
@@ -1579,7 +1807,7 @@ async def _execute_graphton_impl(
             system_prompt=enhanced_system_prompt,
             mcp_servers=mcp_servers_config if mcp_servers_config else None,
             mcp_tools=mcp_tools_config if mcp_tools_config else None,
-            tools=builtin_tools if builtin_tools else None,
+            tools=None,
             subagents=transformed_subagents,
             sandbox_config=sandbox_config_for_agent,
             recursion_limit=1000,
@@ -1717,6 +1945,76 @@ async def _execute_graphton_impl(
                         for iid, d in resume_dict.items()
                     )
                 )
+        
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Step 7.6: Reconcile Loaded Status for Resume Path
+        #
+        # On resume, the StatusBuilder was initialized with the DB-persisted status
+        # from the *previous* invocation.  That status contains tool calls that were
+        # interrupted for approval with TOOL_CALL_WAITING_APPROVAL status — they
+        # were never updated because the previous invocation ended at the interrupt.
+        #
+        # Without reconciliation, these stale WAITING_APPROVAL entries poison the
+        # post-stream interrupt capture: when the next tool triggers an interrupt,
+        # the capture code matches the interrupt to the stale entry (first hit in
+        # the tool_calls list by tool_name + WAITING_APPROVAL) instead of the new
+        # tool call.  The resulting PendingApproval carries the old tool_call_id,
+        # which the CLI has already prompted for — so the approval prompt is skipped.
+        #
+        # We fix this by:
+        # 1. Updating each approved/skipped/rejected tool call to a non-WAITING
+        #    status so it cannot be matched by the interrupt capture code.
+        # 2. Clearing the stale pending_approvals from the loaded status.
+        # 3. Pre-populating StatusBuilder's fingerprint set from existing tool calls
+        #    to prevent duplicate entries when LangGraph re-fires on_tool_start for
+        #    resumed tools.
+        # ─────────────────────────────────────────────────────────────────────────────
+        if is_resume_from_approval and approval_decisions:
+            # Map approval action enum to the appropriate ToolCallStatus
+            _approval_to_tool_status = {
+                ApprovalAction.APPROVAL_ACTION_APPROVE: ToolCallStatus.TOOL_CALL_RUNNING,
+                ApprovalAction.APPROVAL_ACTION_SKIP: ToolCallStatus.TOOL_CALL_SKIPPED,
+                ApprovalAction.APPROVAL_ACTION_REJECT: ToolCallStatus.TOOL_CALL_FAILED,
+            }
+            
+            # Index decisions by tool_call_id for O(1) lookup
+            decisions_by_tc = {d.tool_call_id: d for d in approval_decisions}
+            
+            reconciled_count = 0
+            for tc in status_builder.current_status.tool_calls:
+                if tc.status != ToolCallStatus.TOOL_CALL_WAITING_APPROVAL:
+                    continue
+                decision = decisions_by_tc.get(tc.id)
+                if decision is None:
+                    continue
+                new_status = _approval_to_tool_status.get(
+                    decision.action, ToolCallStatus.TOOL_CALL_RUNNING
+                )
+                tc.status = new_status
+                tc.approval_action = decision.action
+                tc.approval_decided_at = _utc_timestamp()
+                if decision.comment:
+                    tc.approved_by = decision.comment
+                reconciled_count += 1
+                activity_logger.info(
+                    f"[RESUME_RECONCILE] execution={execution_id} "
+                    f"tool_call={tc.id} name={tc.name} "
+                    f"WAITING_APPROVAL -> {ToolCallStatus.Name(new_status)}"
+                )
+            
+            # Clear stale pending_approvals — they are no longer pending
+            del status_builder.current_status.pending_approvals[:]
+            
+            # Pre-populate fingerprints from existing tool calls to prevent
+            # duplicates when LangGraph re-fires on_tool_start for resumed tools
+            status_builder.populate_fingerprints_from_existing_tool_calls()
+            
+            activity_logger.info(
+                f"[RESUME_RECONCILE] execution={execution_id} "
+                f"reconciled {reconciled_count} tool call(s), "
+                f"cleared pending_approvals, "
+                f"populated {len(status_builder.tool_call_fingerprints)} fingerprint(s)"
+            )
         
         # Log total setup time before entering the streaming phase.
         # This is the boundary between "setup" and "execution" — any time
@@ -2178,8 +2476,53 @@ async def _execute_graphton_impl(
         if not status_builder._artifacts:
             activity_logger.info(
                 f"[POST_STREAM] execution={execution_id} — No artifacts were published. "
-                f"If the agent wrote files, it may not have called publish_artifact."
+                f"Checking for modified files to auto-publish."
             )
+            
+            # ─────────────────────────────────────────────────────────────────
+            # Auto-Publish Safety Net
+            #
+            # When the agent created or modified files via write, write_file,
+            # edit, or edit_file tool calls but no artifacts were published
+            # during execution, the user receives no downloadable output.
+            # Rather than depending on LLM compliance with a multi-step
+            # workflow, the platform automatically publishes all affected
+            # files as artifacts after the stream completes.
+            #
+            # The safety net only fires when ALL of these conditions hold:
+            #   1. Zero artifacts were published during the execution.
+            #   2. At least one file-modifying tool call completed.
+            #   3. The execution is completing normally (not failed/paused).
+            #
+            # Note: The execute tool (shell commands) and MCP tools are
+            # excluded — they lack a path parameter, so affected files
+            # cannot be reliably identified.
+            # ─────────────────────────────────────────────────────────────────
+            current_phase = status_builder.current_status.phase
+            if current_phase not in (
+                ExecutionPhase.EXECUTION_FAILED,
+                ExecutionPhase.EXECUTION_PAUSED,
+                ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+            ):
+                try:
+                    await _auto_publish_written_files(
+                        tool_calls=status_builder.current_status.tool_calls,
+                        sandbox=sandbox,
+                        storage=artifact_storage,
+                        execution_id=execution_id,
+                        status_builder=status_builder,
+                        local_root=(
+                            sandbox_config.get("root_dir")
+                            if worker_config.is_local_mode()
+                            else None
+                        ),
+                        logger=activity_logger,
+                    )
+                except Exception as auto_pub_err:
+                    activity_logger.warning(
+                        f"[AUTO_PUBLISH] execution={execution_id} — "
+                        f"auto-publish failed (non-fatal): {auto_pub_err}"
+                    )
         
         # Finalize context info before returning (Phase 3)
         # Copies accumulated context info and summarization events to status proto
@@ -2218,10 +2561,16 @@ async def _execute_graphton_impl(
                         # Match interrupt to a tool call by tool_name + WAITING_APPROVAL
                         # status. Track already-matched IDs to handle multiple calls to
                         # the same tool (e.g., two writes to different files).
+                        #
+                        # Alias-aware matching: the interrupt payload uses the canonical
+                        # tool name (e.g. "write") while the tool call may have been
+                        # registered under an alias (e.g. "write_file").  Resolve both
+                        # sides to canonical names before comparing.
                         matched_tool_call_id = ""
                         for tc in status_builder.current_status.tool_calls:
+                            tc_canonical = resolve_platform_tool_name(tc.name)
                             if (
-                                tc.name == tool_name
+                                (tc.name == tool_name or tc_canonical == tool_name)
                                 and tc.status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
                                 and tc.id not in matched_tc_ids
                             ):
@@ -2361,11 +2710,20 @@ async def _execute_graphton_impl(
         return status_builder.current_status
     
     except Exception as e:
-        activity_logger.error(f"ExecuteGraphton failed for execution {execution_id}: {e}")
+        # Capture the full exception context for diagnostics.  str(e) alone
+        # is often cryptic (e.g. a bare field name like "size_bytes") —
+        # the exception type and traceback are essential for root-cause analysis.
+        exc_type = type(e).__name__
+        exc_tb = traceback.format_exc()
+        activity_logger.error(
+            f"ExecuteGraphton failed for execution {execution_id}: "
+            f"[{exc_type}] {e}\n{exc_tb}"
+        )
         
-        # Extract clean error message
+        # Build a human-readable error message that includes the exception type
+        # so cryptic bare-string exceptions are at least classifiable.
         error_str = str(e)
-        error_message = f"Execution failed: {error_str}"
+        error_message = f"Execution failed: [{exc_type}] {error_str}"
         
         # Import required types for error message
         from datetime import datetime

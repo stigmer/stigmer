@@ -78,20 +78,50 @@ PLATFORM_TOOL_DEFAULTS: dict[str, dict[str, Any]] = {
     },
 }
 
+# Aliases for platform tools.  deepagents registers tools named read_file,
+# write_file, edit_file — they share the same implementation (and approval
+# policy) as their canonical counterparts read, write, edit.  The aliases
+# must be resolved before looking up PLATFORM_TOOL_DEFAULTS so that both
+# the status_builder (which sees the LangGraph event tool name, e.g.
+# "write_file") and the tool wrapper (which uses the canonical name "write")
+# agree on whether approval is required.
+PLATFORM_TOOL_ALIASES: dict[str, str] = {
+    "read_file": "read",
+    "write_file": "write",
+    "edit_file": "edit",
+}
+
 # Special server name for platform tools (used internally)
 PLATFORM_SERVER_NAME = "__platform__"
+
+
+def resolve_platform_tool_name(tool_name: str) -> str:
+    """Resolve a platform tool alias to its canonical name.
+    
+    For example, "write_file" resolves to "write".
+    Non-alias names are returned unchanged.
+    
+    Args:
+        tool_name: Name of the tool (may be an alias)
+        
+    Returns:
+        Canonical platform tool name
+    """
+    return PLATFORM_TOOL_ALIASES.get(tool_name, tool_name)
 
 
 def is_platform_tool(tool_name: str) -> bool:
     """Check if a tool is a platform tool (sandbox/filesystem tool).
     
+    Resolves aliases first, so both "write" and "write_file" return True.
+    
     Args:
-        tool_name: Name of the tool
+        tool_name: Name of the tool (may be an alias)
         
     Returns:
-        True if the tool is a known platform tool
+        True if the tool is a known platform tool (or an alias of one)
     """
-    return tool_name in PLATFORM_TOOL_DEFAULTS
+    return resolve_platform_tool_name(tool_name) in PLATFORM_TOOL_DEFAULTS
 
 
 def get_platform_tool_names() -> list[str]:
@@ -409,8 +439,12 @@ def resolve_tool_approval(
         )
     
     # Priority 4: Check platform tool defaults (sandbox/filesystem tools)
-    if is_platform_tool(tool_name):
-        platform_config = PLATFORM_TOOL_DEFAULTS[tool_name]
+    # Resolve aliases (e.g. "write_file" -> "write") so that both the
+    # status_builder (which sees the LangGraph event name) and the tool
+    # wrapper (which uses the canonical name) hit the same policy entry.
+    resolved_name = resolve_platform_tool_name(tool_name)
+    if resolved_name in PLATFORM_TOOL_DEFAULTS:
+        platform_config = PLATFORM_TOOL_DEFAULTS[resolved_name]
         requires_approval = platform_config.get("requires_approval", False)
         
         if requires_approval:

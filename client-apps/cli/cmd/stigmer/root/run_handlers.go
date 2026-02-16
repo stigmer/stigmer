@@ -1,11 +1,14 @@
 package root
 
 import (
+	"archive/zip"
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -176,28 +179,30 @@ func downloadArtifacts(exec *agentexecutionv1.AgentExecution, downloadDir string
 }
 
 // downloadArtifact downloads a single artifact.
+//
+// For directory artifacts (kind=DIRECTORY), the server stores the content as a
+// ZIP archive.  This function detects directory artifacts, downloads the ZIP,
+// and extracts it to downloadDir/artifact.Name/ so that internal directory
+// structure (e.g. references/) is preserved on the user's filesystem.
+//
+// For file artifacts, the content is saved directly as downloadDir/artifact.Name.
 func downloadArtifact(executionID string, artifact *agentexecutionv1.ExecutionArtifact, downloadDir string, conn *grpc.ClientConn) error {
-	// Get download URL (refresh if needed)
-	downloadURL := artifact.GetDownloadUrl()
-	if downloadURL == "" || isExpired(artifact.GetExpiresAt()) {
-		url, _, err := execution.GetArtifactDownloadURL(conn, executionID, artifact.GetStorageKey())
-		if err != nil {
-			return err
+	// Always refresh the download URL via gRPC. The cached URL in the execution
+	// status may use a Docker-internal hostname (host.docker.internal) that is
+	// inappropriate for CLI-side HTTP requests. The server generates a fresh URL
+	// using the host-appropriate base address (e.g., localhost).
+	downloadURL, _, err := execution.GetArtifactDownloadURL(conn, executionID, artifact.GetStorageKey())
+	if err != nil {
+		// Fall back to cached URL if gRPC refresh fails
+		downloadURL = artifact.GetDownloadUrl()
+		if downloadURL == "" {
+			return errors.Wrap(err, "failed to get download URL")
 		}
-		downloadURL = url
-	}
-
-	// Create destination path
-	destPath := filepath.Join(downloadDir, artifact.GetName())
-
-	// Ensure parent directory exists (for nested paths)
-	if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
-		return errors.Wrap(err, "failed to create parent directory")
 	}
 
 	cliprint.PrintInfo("  Downloading %s...", artifact.GetName())
 
-	// Download file
+	// Download content
 	resp, err := http.Get(downloadURL)
 	if err != nil {
 		return errors.Wrap(err, "HTTP request failed")
@@ -208,21 +213,103 @@ func downloadArtifact(executionID string, artifact *agentexecutionv1.ExecutionAr
 		return fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
 	}
 
-	// Create destination file
+	// Directory artifacts are stored as ZIP archives.  Extract them to
+	// preserve internal directory structure (e.g. SKILL.md + references/).
+	if artifact.GetKind() == agentexecutionv1.ExecutionArtifactKind_EXECUTION_ARTIFACT_KIND_DIRECTORY {
+		return downloadDirectoryArtifact(resp.Body, artifact.GetName(), downloadDir)
+	}
+
+	return downloadFileArtifact(resp.Body, artifact.GetName(), downloadDir)
+}
+
+// downloadFileArtifact saves a single-file artifact to downloadDir/name.
+func downloadFileArtifact(body io.Reader, name, downloadDir string) error {
+	destPath := filepath.Join(downloadDir, name)
+
+	if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
+		return errors.Wrap(err, "failed to create parent directory")
+	}
+
 	out, err := os.Create(destPath)
 	if err != nil {
 		return errors.Wrap(err, "failed to create file")
 	}
 	defer out.Close()
 
-	// Copy content
-	written, err := io.Copy(out, resp.Body)
+	written, err := io.Copy(out, body)
 	if err != nil {
 		return errors.Wrap(err, "failed to write file")
 	}
 
-	cliprint.PrintSuccess("  Downloaded %s (%s)", artifact.GetName(), formatFileSize(written))
+	cliprint.PrintSuccess("  Downloaded %s (%s)", name, formatFileSize(written))
 	return nil
+}
+
+// downloadDirectoryArtifact extracts a ZIP-archived directory artifact to
+// downloadDir/name/, preserving the internal directory structure.
+func downloadDirectoryArtifact(body io.Reader, name, downloadDir string) error {
+	// Read the entire ZIP into memory so we can use archive/zip.NewReader
+	// (which requires io.ReaderAt + size).  Artifact ZIPs are small (tens of
+	// KB for skill packages) so this is safe.
+	data, err := io.ReadAll(body)
+	if err != nil {
+		return errors.Wrap(err, "failed to read artifact content")
+	}
+
+	reader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		return errors.Wrap(err, "failed to open ZIP archive")
+	}
+
+	destDir := filepath.Join(downloadDir, name)
+	if err := os.MkdirAll(destDir, 0755); err != nil {
+		return errors.Wrap(err, "failed to create artifact directory")
+	}
+
+	var totalBytes int64
+	for _, f := range reader.File {
+		if err := extractZipEntry(f, destDir); err != nil {
+			return errors.Wrapf(err, "failed to extract %s", f.Name)
+		}
+		totalBytes += int64(f.UncompressedSize64)
+	}
+
+	cliprint.PrintSuccess("  Extracted %s/ (%s, %d files)", name, formatFileSize(totalBytes), len(reader.File))
+	return nil
+}
+
+// extractZipEntry extracts a single entry from a ZIP archive into destDir.
+func extractZipEntry(f *zip.File, destDir string) error {
+	// Sanitise the path to prevent zip-slip attacks: the resolved
+	// destination must remain within destDir.
+	destPath := filepath.Join(destDir, f.Name)
+	if !strings.HasPrefix(filepath.Clean(destPath)+string(os.PathSeparator), filepath.Clean(destDir)+string(os.PathSeparator)) {
+		return fmt.Errorf("illegal path in ZIP: %s", f.Name)
+	}
+
+	if f.FileInfo().IsDir() {
+		return os.MkdirAll(destPath, 0755)
+	}
+
+	// Ensure parent directory exists.
+	if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
+		return err
+	}
+
+	rc, err := f.Open()
+	if err != nil {
+		return err
+	}
+	defer rc.Close()
+
+	out, err := os.Create(destPath)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, rc)
+	return err
 }
 
 // isExpired checks if a timestamp has passed.

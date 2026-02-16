@@ -62,10 +62,13 @@ func TestRenderPhaseChange_InProgress(t *testing.T) {
 	}
 }
 
-func TestRenderPhaseChange_ResumedAfterApproval(t *testing.T) {
+func TestRenderPhaseChange_ResumedAfterApproval_Suppressed(t *testing.T) {
+	// The "Resumed after approval" phase change is suppressed because the
+	// tool block badge swap (⏸ → ⏳) already signals the approval was
+	// processed and execution resumed.
 	result := renderPhaseChange("in_progress", "waiting_for_approval")
-	if !strings.Contains(result, "Resumed") {
-		t.Errorf("result = %q, want 'Resumed' text", result)
+	if result != "" {
+		t.Errorf("resumed-after-approval should be suppressed, got %q", result)
 	}
 }
 

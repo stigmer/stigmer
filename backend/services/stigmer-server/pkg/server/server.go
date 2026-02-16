@@ -2,8 +2,11 @@ package server
 
 import (
 	"context"
+	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -30,6 +33,7 @@ import (
 	agentexecutioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/controller"
 	agentexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
 	agentinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentinstance/controller"
+	artifactstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/artifact/storage"
 	environmentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/controller"
 	executioncontextcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/executioncontext/controller"
 	mcpservercontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/controller"
@@ -38,7 +42,6 @@ import (
 	sessioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/session/controller"
 	skillcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/controller"
 	skillstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/storage"
-	artifactstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/artifact/storage"
 	workflowcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/controller"
 	workflowtemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/temporal"
 	workflowexecutioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/controller"
@@ -226,7 +229,6 @@ func Run() error {
 	skillController := skillcontroller.NewSkillController(store, artifactStorage)
 	skillv1.RegisterSkillCommandControllerServer(grpcServer, skillController)
 	skillv1.RegisterSkillQueryControllerServer(grpcServer, skillController)
-
 
 	log.Info().
 		Str("storage_path", cfg.StoragePath).
@@ -459,6 +461,25 @@ func Run() error {
 
 	log.Info().Int("port", cfg.GRPCPort).Msg("Stigmer Server started successfully")
 
+	// Start HTTP file server for local artifact downloads.
+	// This serves artifact files so the CLI (and other clients) can download them
+	// via a simple HTTP GET using the URLs returned by GetArtifactDownloadUrl.
+	if cfg.ArtifactStorage.Type == "local" {
+		artifactDir := filepath.Join(cfg.ArtifactStorage.LocalBasePath, "artifacts")
+		mux := http.NewServeMux()
+		mux.Handle("/", http.FileServer(http.Dir(artifactDir)))
+		addr := fmt.Sprintf("127.0.0.1:%d", cfg.ArtifactHTTPPort)
+		go func() {
+			log.Info().
+				Int("port", cfg.ArtifactHTTPPort).
+				Str("dir", artifactDir).
+				Msg("Starting artifact HTTP file server")
+			if err := http.ListenAndServe(addr, mux); err != nil && err != http.ErrServerClosed {
+				log.Error().Err(err).Msg("Artifact HTTP file server failed")
+			}
+		}()
+	}
+
 	// Wait for interrupt signal
 	<-done
 	log.Info().Msg("Received shutdown signal")
@@ -513,6 +534,7 @@ func loadSupervisorConfig(cfg *config.Config) *supervisor.Config {
 		LogDir:              getEnv("STIGMER_LOG_DIR", ""),
 		TemporalAddr:        getEnv("TEMPORAL_SERVICE_ADDRESS", "localhost:7233"),
 		StigmerServerPort:   cfg.GRPCPort,
+		ArtifactHTTPPort:    cfg.ArtifactHTTPPort,
 		LLMProvider:         getEnv("STIGMER_LLM_PROVIDER", "ollama"),
 		LLMModel:            getEnv("STIGMER_LLM_MODEL", "qwen2.5-coder:14b"),
 		LLMBaseURL:          getEnv("STIGMER_LLM_BASE_URL", "http://localhost:11434"),

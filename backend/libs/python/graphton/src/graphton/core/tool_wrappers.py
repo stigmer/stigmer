@@ -40,6 +40,7 @@ Example:
     >>> # Returns: read, ls, glob, grep, write, edit, execute
 """
 
+import asyncio
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -885,6 +886,68 @@ def _create_read_tool(
     return read  # type: ignore[return-value]
 
 
+# ---------------------------------------------------------------------------
+# Write-tool streaming helpers
+# ---------------------------------------------------------------------------
+
+# Files shorter than this threshold are emitted as a single chunk (no
+# artificial delay). Keeps trivial writes snappy.
+_WRITE_STREAMING_THRESHOLD = 15
+
+# Target number of streaming chunks for larger files. Combined with
+# _WRITE_CHUNK_DELAY_S this controls the total visual streaming duration
+# (~1 second regardless of file size).
+_WRITE_TARGET_CHUNKS = 20
+
+# Seconds to sleep between emitting chunks. This yields control to the
+# asyncio event loop so the StatusBuilder can process each tool_progress
+# event and the StreamingUpdateScheduler can push gRPC updates.
+_WRITE_CHUNK_DELAY_S = 0.05
+
+
+async def _stream_write_content(content: str) -> None:
+    """Emit file content progressively via tool_progress events.
+
+    For small files (< ``_WRITE_STREAMING_THRESHOLD`` lines) the entire
+    content is dispatched as a single chunk — no delay is introduced.
+
+    For larger files the content is split into line-based chunks whose size
+    is adaptive: ``max(3, total_lines // _WRITE_TARGET_CHUNKS)``.  A short
+    ``asyncio.sleep`` between chunks yields to the event loop so intermediate
+    updates reach the TUI and the user sees a live typewriter effect.
+
+    The ``StatusBuilder._handle_tool_progress_event`` handler on the backend
+    appends each chunk to ``tool_call.result`` and sets ``is_streaming=True``.
+    When the tool completes, ``_handle_tool_end_event`` replaces the
+    accumulated content with the final return value and clears the flag.
+    """
+    lines = content.split("\n")
+    total_lines = len(lines)
+
+    if total_lines < _WRITE_STREAMING_THRESHOLD:
+        # Small file — one shot, no delay.
+        dispatch_custom_event("tool_progress", {"chunk": content})
+        return
+
+    chunk_size = max(3, total_lines // _WRITE_TARGET_CHUNKS)
+
+    for i in range(0, total_lines, chunk_size):
+        chunk_lines = lines[i : i + chunk_size]
+        chunk = "\n".join(chunk_lines)
+
+        # After the first chunk, prepend a newline so successive chunks
+        # concatenate cleanly when the StatusBuilder appends them.
+        if i > 0:
+            chunk = "\n" + chunk
+
+        dispatch_custom_event("tool_progress", {"chunk": chunk})
+
+        # Yield between chunks (skip after the final one — nothing to
+        # wait for and it avoids a needless 50ms tail).
+        if i + chunk_size < total_lines:
+            await asyncio.sleep(_WRITE_CHUNK_DELAY_S)
+
+
 def _create_write_tool(
     backend: Any,  # noqa: ANN401
     approval_checker: Callable[[str, dict[str, Any]], ApprovalRequirement] | None = None,
@@ -920,16 +983,14 @@ def _create_write_tool(
         try:
             logger.info(f"📝 Writing file: {path} ({len(content)} chars)")
             
-            # Emit progress event with a content preview so the UI can show
-            # what is being written while the operation is in progress.
-            preview_lines = content.split("\n")[:10]
-            preview = "\n".join(preview_lines)
-            if len(content.split("\n")) > 10:
-                preview += f"\n... ({len(content)} chars total)"
-            dispatch_custom_event(
-                "tool_progress",
-                {"chunk": preview},
-            )
+            # Stream content progressively so the TUI shows a live
+            # typewriter effect while the file is being written. The
+            # streaming pipeline (StatusBuilder -> gRPC -> TUI) already
+            # handles tool_progress events: chunks accumulate in
+            # tool_call.result with is_streaming=True, the scheduler
+            # pushes gRPC updates every ~500ms, and renderStreamingTool()
+            # displays the latest lines with a cursor indicator.
+            await _stream_write_content(content)
             
             backend.write(path, content)
             logger.info(f"✅ Wrote file '{path}'")
