@@ -5,9 +5,12 @@ import (
 )
 
 // handleApprovalKey processes a key press during an active approval prompt.
-// Valid keys are a (approve), s (skip), r (reject). Other keys are ignored.
 //
-// When a valid key is pressed:
+// Approval-specific keys (a/s/r) trigger the approval decision. All other keys
+// are delegated to handleNavigationKey so the user can Tab/Enter to expand tool
+// blocks and scroll the viewport while inspecting content before deciding.
+//
+// When an approval key is pressed:
 //  1. The approval response is sent to the goroutine via the response channel.
 //  2. The tool block badge is updated in-place to reflect the decision.
 //  3. The approval state is cleared.
@@ -29,6 +32,7 @@ func (m Model) handleApprovalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	// Approval decision keys.
 	var action string
 	switch msg.String() {
 	case "a":
@@ -38,8 +42,10 @@ func (m Model) handleApprovalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "r":
 		action = "reject"
 	default:
-		// Ignore unrecognized keys during approval.
-		return m, nil
+		// Not an approval key — delegate to navigation so the user can
+		// Tab/Enter to expand tool blocks and scroll the viewport while
+		// deciding whether to approve.
+		return m.handleNavigationKey(msg)
 	}
 
 	// Send the response to the gRPC goroutine.
