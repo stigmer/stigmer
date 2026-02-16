@@ -364,19 +364,27 @@ async def _auto_publish_written_files(
     local_root: str | None,
     logger,
 ) -> int:
-    """Publish workspace files as artifacts based on completed write tool calls.
+    """Publish workspace files as artifacts based on completed file-modifying tool calls.
 
-    This is a post-stream safety net.  When the agent wrote files via the
-    ``write`` or ``write_file`` tools but never called ``publish_artifact``,
-    the user would receive no downloadable output.  This function inspects
-    the completed tool calls, groups written paths by their top-level
-    directory, and publishes each group as a downloadable artifact.
+    This is a post-stream safety net.  When the agent created or modified
+    files via ``write``, ``write_file``, ``edit``, or ``edit_file`` tools
+    but no artifacts were published during execution, the user would receive
+    no downloadable output.  This function inspects the completed tool
+    calls, groups affected paths by their top-level directory, and publishes
+    each group as a downloadable artifact.
 
-    The function preserves the original folder structure: if all written
+    The function preserves the original folder structure: if all affected
     files share a common parent directory, that directory is published as a
     single (zipped) artifact.  If files are scattered across unrelated
     directories, each top-level directory (or individual root-level file)
     is published separately.
+
+    Note: The ``execute`` tool (shell commands) can also create or modify
+    files, but it exposes only a ``command`` string — no ``path`` parameter.
+    Reliably extracting file paths from arbitrary shell commands is not
+    tractable, so ``execute`` is intentionally excluded.  MCP tools are
+    similarly opaque.  If this becomes a gap in practice, a filesystem-diff
+    approach can be introduced later.
 
     Args:
         tool_calls: Iterable of ToolCall protos from the execution status.
@@ -388,14 +396,14 @@ async def _auto_publish_written_files(
         logger: Activity logger.
 
     Returns:
-        Number of artifacts auto-published (0 if no writes found).
+        Number of artifacts auto-published (0 if no file-modifying calls found).
     """
-    WRITE_TOOL_NAMES = {"write", "write_file"}
+    FILE_MODIFYING_TOOL_NAMES = {"write", "write_file", "edit", "edit_file"}
 
-    # Collect paths from completed write tool calls.
+    # Collect paths from completed file-modifying tool calls.
     written_paths: list[str] = []
     for tc in tool_calls:
-        if tc.name not in WRITE_TOOL_NAMES:
+        if tc.name not in FILE_MODIFYING_TOOL_NAMES:
             continue
         if tc.status != ToolCallStatus.TOOL_CALL_COMPLETED:
             continue
@@ -407,13 +415,13 @@ async def _auto_publish_written_files(
     if not written_paths:
         logger.debug(
             f"[AUTO_PUBLISH] execution={execution_id} — "
-            f"no completed write tool calls found, skipping"
+            f"no completed file-modifying tool calls found, skipping"
         )
         return 0
 
     logger.info(
         f"[AUTO_PUBLISH] execution={execution_id} — "
-        f"detected {len(written_paths)} written file(s), "
+        f"detected {len(written_paths)} modified file(s), "
         f"auto-publishing as artifacts: {written_paths}"
     )
 
@@ -500,7 +508,7 @@ async def _auto_publish_written_files(
     logger.info(
         f"[AUTO_PUBLISH] execution={execution_id} — "
         f"auto-published {artifacts_published} artifact(s) from "
-        f"{len(written_paths)} written file(s)"
+        f"{len(written_paths)} modified file(s)"
     )
     return artifacts_published
 
@@ -1687,11 +1695,12 @@ async def _execute_graphton_impl(
         # Step 5.10: Create Artifact Storage (for post-stream auto-publish)
         #
         # Artifact storage is used by the post-stream auto-publish safety net
-        # to upload files written by the agent as downloadable artifacts.
-        # The agent does NOT receive a publish_artifact tool — publishing is
-        # handled structurally by the platform after the stream completes,
-        # based on completed write/write_file tool calls.  This eliminates
-        # dependence on LLM compliance for artifact delivery.
+        # to upload files created or modified by the agent as downloadable
+        # artifacts.  The agent does NOT receive a publish_artifact tool —
+        # publishing is handled structurally by the platform after the stream
+        # completes, based on completed file-modifying tool calls (write,
+        # write_file, edit, edit_file).  This eliminates dependence on LLM
+        # compliance for artifact delivery.
         # ─────────────────────────────────────────────────────────────────────────────
         artifact_storage = create_artifact_storage(worker_config.artifact_storage)
         activity_logger.info(
@@ -2316,22 +2325,27 @@ async def _execute_graphton_impl(
         if not status_builder._artifacts:
             activity_logger.info(
                 f"[POST_STREAM] execution={execution_id} — No artifacts were published. "
-                f"Checking for written files to auto-publish."
+                f"Checking for modified files to auto-publish."
             )
             
             # ─────────────────────────────────────────────────────────────────
             # Auto-Publish Safety Net
             #
-            # When the agent wrote files (write / write_file tool calls) but
-            # did not call publish_artifact, the user receives no downloadable
-            # output.  Rather than depending on LLM compliance with a
-            # multi-step workflow, the platform automatically publishes all
-            # written files as artifacts after the stream completes.
+            # When the agent created or modified files via write, write_file,
+            # edit, or edit_file tool calls but no artifacts were published
+            # during execution, the user receives no downloadable output.
+            # Rather than depending on LLM compliance with a multi-step
+            # workflow, the platform automatically publishes all affected
+            # files as artifacts after the stream completes.
             #
             # The safety net only fires when ALL of these conditions hold:
-            #   1. Zero artifacts were published by the agent.
-            #   2. At least one write/write_file tool call completed.
+            #   1. Zero artifacts were published during the execution.
+            #   2. At least one file-modifying tool call completed.
             #   3. The execution is completing normally (not failed/paused).
+            #
+            # Note: The execute tool (shell commands) and MCP tools are
+            # excluded — they lack a path parameter, so affected files
+            # cannot be reliably identified.
             # ─────────────────────────────────────────────────────────────────
             current_phase = status_builder.current_status.phase
             if current_phase not in (

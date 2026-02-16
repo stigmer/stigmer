@@ -1,14 +1,17 @@
 """Unit tests for the _auto_publish_written_files safety net.
 
 Tests cover:
-- No-op when no write tool calls exist
-- No-op when write tool calls are not COMPLETED
+- No-op when no file-modifying tool calls exist
+- No-op when file-modifying tool calls are not COMPLETED
 - Single file auto-publish (root-level file)
 - Single file auto-publish (file inside a subdirectory -> publishes parent dir)
 - Multiple files in the same directory -> publishes the common parent directory
 - Multiple files in different directories -> publishes each file individually
 - Graceful handling of publish_artifact failures (logs warning, doesn't crash)
 - Paths with leading slashes are normalised
+- edit / edit_file tool calls trigger auto-publish (same as write)
+- Mixed write + edit tool calls combine paths correctly
+- execute tool calls do NOT trigger auto-publish (intentional exclusion)
 """
 
 import logging
@@ -394,3 +397,165 @@ class TestAutoPublishWrittenFiles:
         call_kwargs = mock_publish.call_args
         assert call_kwargs.kwargs["path"] == "project"
         assert call_kwargs.kwargs["name"] == "project"
+
+    # =========================================================================
+    # edit / edit_file detection
+    # =========================================================================
+
+    @pytest.mark.asyncio
+    async def test_edit_tool_triggers_auto_publish(self):
+        """The edit tool triggers auto-publish for the edited file's path."""
+        tool_calls = [
+            _make_tool_call("edit", path="my-skill/SKILL.md"),
+        ]
+        mock_artifact = _make_artifact("my-skill")
+        status_builder = MagicMock()
+        logger = logging.getLogger("test")
+
+        with patch(
+            "worker.activities.execute_graphton.publish_artifact",
+            new_callable=AsyncMock,
+            return_value=mock_artifact,
+        ) as mock_publish:
+            count = await _auto_publish_written_files(
+                tool_calls=tool_calls,
+                sandbox=None,
+                storage=MagicMock(),
+                execution_id="exec-13",
+                status_builder=status_builder,
+                local_root="/workspace",
+                logger=logger,
+            )
+
+        assert count == 1
+        call_kwargs = mock_publish.call_args
+        assert call_kwargs.kwargs["path"] == "my-skill"
+        assert call_kwargs.kwargs["name"] == "my-skill"
+        status_builder.add_artifact.assert_called_once_with(mock_artifact)
+
+    @pytest.mark.asyncio
+    async def test_edit_file_alias_triggers_auto_publish(self):
+        """The edit_file alias is treated identically to edit."""
+        tool_calls = [
+            _make_tool_call("edit_file", path="config/settings.yaml"),
+        ]
+        mock_artifact = _make_artifact("config")
+        status_builder = MagicMock()
+        logger = logging.getLogger("test")
+
+        with patch(
+            "worker.activities.execute_graphton.publish_artifact",
+            new_callable=AsyncMock,
+            return_value=mock_artifact,
+        ) as mock_publish:
+            count = await _auto_publish_written_files(
+                tool_calls=tool_calls,
+                sandbox=None,
+                storage=MagicMock(),
+                execution_id="exec-14",
+                status_builder=status_builder,
+                local_root="/workspace",
+                logger=logger,
+            )
+
+        assert count == 1
+        call_kwargs = mock_publish.call_args
+        assert call_kwargs.kwargs["path"] == "config"
+        status_builder.add_artifact.assert_called_once_with(mock_artifact)
+
+    @pytest.mark.asyncio
+    async def test_mixed_write_and_edit_combines_paths(self):
+        """Write and edit tool calls are combined into a single publish group."""
+        tool_calls = [
+            _make_tool_call("write", path="project/SKILL.md"),
+            _make_tool_call("edit", path="project/scripts/run.sh"),
+            _make_tool_call("write_file", path="project/README.md"),
+            _make_tool_call("edit_file", path="project/config.yaml"),
+        ]
+        mock_artifact = _make_artifact("project")
+        status_builder = MagicMock()
+        logger = logging.getLogger("test")
+
+        with patch(
+            "worker.activities.execute_graphton.publish_artifact",
+            new_callable=AsyncMock,
+            return_value=mock_artifact,
+        ) as mock_publish:
+            count = await _auto_publish_written_files(
+                tool_calls=tool_calls,
+                sandbox=None,
+                storage=MagicMock(),
+                execution_id="exec-15",
+                status_builder=status_builder,
+                local_root="/workspace",
+                logger=logger,
+            )
+
+        assert count == 1
+        call_kwargs = mock_publish.call_args
+        assert call_kwargs.kwargs["path"] == "project"
+        assert call_kwargs.kwargs["name"] == "project"
+        status_builder.add_artifact.assert_called_once_with(mock_artifact)
+
+    # =========================================================================
+    # execute tool — intentional exclusion
+    # =========================================================================
+
+    @pytest.mark.asyncio
+    async def test_execute_tool_does_not_trigger_auto_publish(self):
+        """The execute tool is intentionally excluded from auto-publish.
+
+        Shell commands can create/modify files, but the execute tool exposes
+        only a ``command`` string — no ``path`` parameter.  Reliably extracting
+        file paths from arbitrary shell commands is not tractable, so execute
+        is excluded by design.
+        """
+        tool_calls = [
+            _make_tool_call("execute", path=""),
+        ]
+        status_builder = MagicMock()
+        logger = logging.getLogger("test")
+
+        count = await _auto_publish_written_files(
+            tool_calls=tool_calls,
+            sandbox=None,
+            storage=MagicMock(),
+            execution_id="exec-16",
+            status_builder=status_builder,
+            local_root="/workspace",
+            logger=logger,
+        )
+        assert count == 0
+        status_builder.add_artifact.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_execute_among_writes_is_ignored(self):
+        """Execute calls mixed with write calls do not affect the result."""
+        tool_calls = [
+            _make_tool_call("write", path="output/result.txt"),
+            _make_tool_call("execute", path=""),
+            _make_tool_call("edit", path="output/notes.md"),
+        ]
+        mock_artifact = _make_artifact("output")
+        status_builder = MagicMock()
+        logger = logging.getLogger("test")
+
+        with patch(
+            "worker.activities.execute_graphton.publish_artifact",
+            new_callable=AsyncMock,
+            return_value=mock_artifact,
+        ) as mock_publish:
+            count = await _auto_publish_written_files(
+                tool_calls=tool_calls,
+                sandbox=None,
+                storage=MagicMock(),
+                execution_id="exec-17",
+                status_builder=status_builder,
+                local_root="/workspace",
+                logger=logger,
+            )
+
+        assert count == 1
+        call_kwargs = mock_publish.call_args
+        assert call_kwargs.kwargs["path"] == "output"
+        status_builder.add_artifact.assert_called_once_with(mock_artifact)
