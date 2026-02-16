@@ -603,11 +603,15 @@ class StatusBuilder:
         # Get the appropriate messages list
         messages_list = sub_agent.messages if sub_agent else self.current_status.messages
         
-        # Find or create AI message in the correct context
+        # Find the currently-streaming AI message (if any) in the correct context.
+        # Only append to a message that is still actively streaming. Once
+        # on_chat_model_end finalizes a message (is_streaming=False), subsequent
+        # LLM turns must create a new AgentMessage so that each turn's text
+        # appears as a distinct message in the conversation history.
         ai_message = None
         for idx in range(len(messages_list) - 1, -1, -1):
             message = messages_list[idx]
-            if message.type == MessageType.MESSAGE_AI:
+            if message.type == MessageType.MESSAGE_AI and message.is_streaming:
                 ai_message = message
                 break
         
@@ -658,11 +662,14 @@ class StatusBuilder:
         context, sub_agent = self._get_execution_context(namespace)
         messages_list = sub_agent.messages if sub_agent else self.current_status.messages
         
-        # Find the most recent AI message to finalize
+        # Find the currently-streaming AI message to finalize.
+        # Prefer the message that is still streaming (the one from the current
+        # turn). This is robust against edge cases where a previous turn's
+        # finalized MESSAGE_AI sits earlier in the list.
         ai_message_index = None
         for idx in range(len(messages_list) - 1, -1, -1):
             message = messages_list[idx]
-            if message.type == MessageType.MESSAGE_AI:
+            if message.type == MessageType.MESSAGE_AI and message.is_streaming:
                 ai_message_index = idx
                 break
         
