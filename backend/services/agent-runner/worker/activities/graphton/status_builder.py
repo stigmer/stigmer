@@ -196,6 +196,28 @@ class StatusBuilder:
         self._summarization_events: list[SummarizationEvent] = []
         
         # ─────────────────────────────────────────────────────────────────────────
+        # Run-ID Alias Map (Resume-After-Approval Fix)
+        #
+        # On the resume path, LangGraph generates fresh run_ids for resumed
+        # tools, but the StatusBuilder already holds the original tool call
+        # (with the original run_id) from the previous invocation.  Fingerprint
+        # deduplication in _handle_tool_start_event correctly prevents a
+        # duplicate ToolCall, but the new run_id is lost — so on_tool_end
+        # cannot find the existing tool call to mark it COMPLETED.
+        #
+        # _run_id_aliases maps {new_run_id -> original_tool_call_id} so that
+        # on_tool_end and on_tool_progress can resolve the alias and update
+        # the correct tool call.
+        #
+        # _fingerprint_to_tool_call_id maps {fingerprint -> tool_call.id} and
+        # is populated by populate_fingerprints_from_existing_tool_calls().
+        # It allows the deduplication check to discover which existing tool
+        # call a duplicate fingerprint belongs to.
+        # ─────────────────────────────────────────────────────────────────────────
+        self._run_id_aliases: dict[str, str] = {}
+        self._fingerprint_to_tool_call_id: dict[str, str] = {}
+        
+        # ─────────────────────────────────────────────────────────────────────────
         # Execution Artifacts Tracking (Artifact Lifecycle)
         #
         # Tracks artifacts published by the agent via the publish_artifact tool.
@@ -246,9 +268,25 @@ class StatusBuilder:
         
         tool_args = self._unwrap_tool_args(tool_args_raw)
         
-        # Check for duplicate
+        # Check for duplicate.
+        # On the resume-after-approval path, LangGraph re-fires on_tool_start
+        # for resumed tools with a NEW run_id.  The fingerprint matches an
+        # existing entry (populated by populate_fingerprints_from_existing_tool_calls),
+        # so we correctly skip creating a duplicate ToolCall.  However, the
+        # subsequent on_tool_end event carries this new run_id and must be able
+        # to find the original ToolCall.  We record a run-ID alias so that
+        # _resolve_run_id() can bridge the gap.
         fingerprint = self._get_tool_fingerprint(tool_name, tool_args)
         if fingerprint in self.tool_call_fingerprints:
+            original_tc_id = self._fingerprint_to_tool_call_id.get(fingerprint)
+            if original_tc_id and run_id != original_tc_id:
+                self._run_id_aliases[run_id] = original_tc_id
+                self.logger.info(
+                    f"[RESUME_ALIAS] execution={self.execution_id} "
+                    f"tool={tool_name} new_run_id={run_id} -> "
+                    f"original_tc_id={original_tc_id} "
+                    f"(fingerprint dedup on resume path)"
+                )
             return
         self.tool_call_fingerprints.add(fingerprint)
         
@@ -405,13 +443,17 @@ class StatusBuilder:
         if not run_id or not chunk:
             return
         
-        # Find the ToolCall by run_id and update it.
+        # Resolve run-ID alias (resume-after-approval path)
+        resolved_id = self._resolve_run_id(run_id)
+        
+        # Find the ToolCall by resolved_id and update it.
         # Uses _find_tool_call_by_id which searches both main agent and sub-agents.
-        tool_call = self._find_tool_call_by_id(run_id)
+        tool_call = self._find_tool_call_by_id(resolved_id)
         if tool_call is None:
             self.logger.debug(
                 f"[TOOL_PROGRESS] execution={self.execution_id} "
-                f"run_id={run_id} ignored (tool call not found)"
+                f"run_id={run_id} resolved_id={resolved_id} "
+                f"ignored (tool call not found)"
             )
             return
         
@@ -420,8 +462,8 @@ class StatusBuilder:
         
         self.logger.debug(
             f"[TOOL_PROGRESS] execution={self.execution_id} "
-            f"run_id={run_id} chunk_len={len(chunk)} "
-            f"total_len={len(tool_call.result)}"
+            f"run_id={run_id} resolved_id={resolved_id} "
+            f"chunk_len={len(chunk)} total_len={len(tool_call.result)}"
         )
     
     def _handle_tool_end_event(self, event: dict[str, Any], namespace: str = "") -> None:
@@ -439,6 +481,17 @@ class StatusBuilder:
         if tool_name == "task":
             self._handle_sub_agent_end(event, run_id)
             return
+        
+        # ─────────────────────────────────────────────────────────────────────
+        # Run-ID Alias Resolution (Resume-After-Approval Fix)
+        #
+        # On the resume path, LangGraph assigns a new run_id to the resumed
+        # tool execution.  The existing ToolCall was created in a previous
+        # invocation with its original run_id.  _handle_tool_start_event
+        # recorded an alias when fingerprint deduplication fired; resolve it
+        # here so we can find and update the correct ToolCall.
+        # ─────────────────────────────────────────────────────────────────────
+        resolved_id = self._resolve_run_id(run_id)
         
         tool_result_content = self._extract_tool_result_content(tool_result_raw)
         now = datetime.utcnow()
@@ -459,7 +512,7 @@ class StatusBuilder:
             for message in sub_agent.messages:
                 if (message.type == MessageType.MESSAGE_TOOL and 
                     len(message.tool_calls) > 0 and 
-                    message.tool_calls[0].id == run_id):
+                    message.tool_calls[0].id == resolved_id):
                     
                     tc = message.tool_calls[0]
                     tc.result = tool_result_content
@@ -474,7 +527,7 @@ class StatusBuilder:
             
             # Update in sub-agent's tool_calls list
             for tool_call in sub_agent.tool_calls:
-                if tool_call.id == run_id:
+                if tool_call.id == resolved_id:
                     tool_call.result = tool_result_content
                     tool_call.status = ToolCallStatus.TOOL_CALL_COMPLETED
                     tool_call.completed_at = _utc_timestamp(now)
@@ -483,15 +536,15 @@ class StatusBuilder:
             
             self.logger.debug(
                 f"[TOOL] execution={self.execution_id} sub_agent={sub_agent.id} "
-                f"tool={tool_name} run_id={run_id} status=COMPLETED "
-                f"duration_ms={duration_ms or 'N/A'}"
+                f"tool={tool_name} run_id={run_id} resolved_id={resolved_id} "
+                f"status=COMPLETED duration_ms={duration_ms or 'N/A'}"
             )
         else:
             # Update in main agent's messages list
             for message in self.current_status.messages:
                 if (message.type == MessageType.MESSAGE_TOOL and 
                     len(message.tool_calls) > 0 and 
-                    message.tool_calls[0].id == run_id):
+                    message.tool_calls[0].id == resolved_id):
                     
                     tc = message.tool_calls[0]
                     tc.result = tool_result_content
@@ -506,7 +559,7 @@ class StatusBuilder:
             
             # Update in main agent's tool_calls list
             for tool_call in self.current_status.tool_calls:
-                if tool_call.id == run_id:
+                if tool_call.id == resolved_id:
                     tool_call.result = tool_result_content
                     tool_call.status = ToolCallStatus.TOOL_CALL_COMPLETED
                     tool_call.completed_at = _utc_timestamp(now)
@@ -515,8 +568,8 @@ class StatusBuilder:
             
             self.logger.debug(
                 f"[TOOL] execution={self.execution_id} "
-                f"tool={tool_name} run_id={run_id} status=COMPLETED "
-                f"duration_ms={duration_ms or 'N/A'}"
+                f"tool={tool_name} run_id={run_id} resolved_id={resolved_id} "
+                f"status=COMPLETED duration_ms={duration_ms or 'N/A'}"
             )
     
     def _handle_chat_model_stream_event(self, event: dict[str, Any], namespace: str = "") -> None:
@@ -732,6 +785,18 @@ class StatusBuilder:
         )
     
     # Helper methods
+    def _resolve_run_id(self, run_id: str) -> str:
+        """Resolve a run_id through the alias map.
+        
+        On the resume-after-approval path, LangGraph generates a new run_id
+        for the resumed tool, but the StatusBuilder already holds the original
+        ToolCall with a different id.  ``_run_id_aliases`` bridges the gap.
+        
+        Returns the original tool call id if an alias exists, otherwise
+        returns the input run_id unchanged.
+        """
+        return self._run_id_aliases.get(run_id, run_id)
+    
     def _unwrap_tool_args(self, args: dict[str, Any]) -> dict[str, Any]:
         """Unwrap LangGraph arg wrappers."""
         if "kwargs" in args and isinstance(args["kwargs"], dict):
@@ -757,6 +822,12 @@ class StatusBuilder:
         Calling this method after initialization fills the set so that the
         deduplication check in ``_handle_tool_start_event`` correctly skips
         already-tracked tool calls.
+        
+        Also populates ``_fingerprint_to_tool_call_id`` so that when the
+        deduplication check fires, we can record a run-ID alias mapping from
+        the new (LangGraph-generated) run_id to the original tool call's id.
+        This enables ``_handle_tool_end_event`` to find and update the correct
+        tool call on the resume path.
         """
         for tc in self.current_status.tool_calls:
             try:
@@ -765,6 +836,10 @@ class StatusBuilder:
                     args_dict = dict(tc.args)
                 fingerprint = self._get_tool_fingerprint(tc.name, args_dict)
                 self.tool_call_fingerprints.add(fingerprint)
+                # Map fingerprint -> tool_call.id so _handle_tool_start_event
+                # can record run-ID aliases when deduplication fires.
+                if tc.id:
+                    self._fingerprint_to_tool_call_id[fingerprint] = tc.id
             except Exception:
                 # Non-fatal: if we can't compute a fingerprint for an existing
                 # tool call (e.g. malformed args), skip it.  The worst case is
