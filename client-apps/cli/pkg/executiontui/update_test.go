@@ -1031,3 +1031,46 @@ func TestFooter_PausedWithExpandable_ShowsFocusHints(t *testing.T) {
 		t.Errorf("footer should show Tab hint when paused with expandable blocks, got %q", footer)
 	}
 }
+
+// =============================================================================
+// Thinking Indicator During Approval Tests
+// =============================================================================
+
+func TestThinkingIndicator_NotShownDuringApproval(t *testing.T) {
+	m, _, _ := newTestModel()
+
+	// Transition to in_progress phase so the thinking indicator would normally activate.
+	result, _ := m.Update(executionEventMsg{event: PhaseChangeEvent{
+		Phase: "in_progress", Previous: "pending",
+	}})
+	model := result.(Model)
+
+	// Enter approval state.
+	result, _ = model.Update(executionEventMsg{event: ToolWaitingApprovalEvent{
+		ToolCallID: "tc-think",
+		ToolCall:   toolrender.ToolCallInfo{Name: "write_file", Status: "waiting_approval"},
+	}})
+	model = result.(Model)
+
+	result, _ = model.Update(executionEventMsg{event: ApprovalNeededEvent{
+		ToolCallID: "tc-think",
+		ToolName:   "write_file",
+	}})
+	model = result.(Model)
+
+	if model.approval == nil {
+		t.Fatal("model should be in approval state")
+	}
+
+	// Force lastEventAt far into the past to simulate idle > 2s.
+	model.lastEventAt = model.lastEventAt.Add(-5 * idleThreshold)
+
+	// Fire the activity tick — this should NOT activate the thinking indicator
+	// because approval is active (the user is the one being waited on).
+	result, _ = model.Update(activityTickMsg{})
+	model = result.(Model)
+
+	if model.thinkingVisible {
+		t.Error("thinkingVisible should be false during approval — the user is being waited on, not the agent")
+	}
+}

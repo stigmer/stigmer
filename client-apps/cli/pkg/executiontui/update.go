@@ -225,8 +225,10 @@ func (m Model) handleActivityTick() (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// Detect idle: in_progress phase with no recent events.
-	if m.phase == "in_progress" && time.Since(m.lastEventAt) > idleThreshold {
+	// Detect idle: in_progress phase with no recent events and no active
+	// approval prompt. During approval, the user is the one being waited on
+	// — showing a "Thinking..." indicator would be misleading.
+	if m.phase == "in_progress" && m.approval == nil && time.Since(m.lastEventAt) > idleThreshold {
 		if !m.thinkingVisible {
 			m.thinkingVisible = true
 			// Show the viewport indicator immediately rather than

@@ -84,13 +84,14 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 			message:     e.Message,
 		}
 		// The tool block already exists from ToolWaitingApprovalEvent (or
-		// ToolRunningEvent). We just ensure it is in "waiting_approval" state
-		// and auto-expand it so the user can review content before deciding.
-		// No separate approval block is created — the footer shows [a]/[s]/[r].
+		// ToolRunningEvent). Ensure it is in "waiting_approval" state so the
+		// badge shows ⏸. The block stays collapsed — the header line shows
+		// the tool type, file path, size, and line count, which is enough
+		// context for the user to decide. They can Tab + Enter to expand
+		// manually if needed. The footer shows [a]/[s]/[r].
 		if idx, ok := m.runningTools[e.ToolCallID]; ok && idx < len(m.blocks) {
 			if tc := m.blocks[idx].toolCall; tc != nil {
 				m.updateToolBadge(e.ToolCallID, *tc, "waiting_approval")
-				m.blocks[m.runningTools[e.ToolCallID]].expanded = true
 			}
 		}
 
@@ -165,17 +166,13 @@ func (m Model) handleStreamClosed() (tea.Model, tea.Cmd) {
 // replaced in-place — preserving the block's position and expand/collapse state.
 // If no block exists, a new one is appended.
 //
-// When the state is "waiting_approval", the block is auto-expanded so the user
-// can review its content before deciding. This is the only "smart" behavior;
-// all other transitions just swap the badge.
+// All transitions simply swap the badge; the expand/collapse state is always
+// preserved from before the update.
 func (m *Model) updateToolBadge(toolCallID string, tc toolrender.ToolCallInfo, state string) {
 	if idx, ok := m.runningTools[toolCallID]; ok && idx < len(m.blocks) {
 		wasExpanded := m.blocks[idx].expanded
 		m.blocks[idx] = newStatefulToolBlock(tc, toolCallID, state)
 		m.blocks[idx].expanded = wasExpanded
-		if state == "waiting_approval" {
-			m.blocks[idx].expanded = true
-		}
 	} else {
 		block := newStatefulToolBlock(tc, toolCallID, state)
 		m.blocks = append(m.blocks, block)

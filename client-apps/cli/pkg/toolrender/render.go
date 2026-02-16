@@ -23,6 +23,12 @@ import (
 // ToolCallInfo holds the primitive fields needed to render a tool call.
 // Callers convert from proto or other sources into this struct.
 type ToolCallInfo struct {
+	// ID is the unique identifier for this tool call. Used by the TUI to
+	// track ownership — the state tracker uses this to determine whether a
+	// tool call's visual block is already managed. Empty for tool calls
+	// created without an ID (e.g., from MESSAGE_TOOL content fallback).
+	ID string
+
 	// Name of the tool (e.g. "shell", "read_file").
 	Name string
 
