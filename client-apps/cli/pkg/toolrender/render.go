@@ -89,6 +89,15 @@ type toolDisplayInfo struct {
 	dangerous bool
 	// preview controls the result preview style. See previewStyle constants.
 	preview previewStyle
+	// contentArgField is the arg field that contains displayable content for
+	// tools where the interesting content lives in the arguments rather than
+	// the result. For write tools this is "contents" (the file content being
+	// written). When set, resolveDisplayContent falls back to this arg if
+	// tc.Result is empty.
+	contentArgField string
+	// contentArgFallbacks are alternative arg names for contentArgField,
+	// tried in order when contentArgField is not found.
+	contentArgFallbacks []string
 }
 
 // toolDisplayMap maps known tool names to their display configuration.
@@ -117,15 +126,17 @@ var toolDisplayMap = map[string]toolDisplayInfo{
 	"glob": {icon: "🔍", label: "Find", primaryField: "pattern", preview: previewDiscovery},
 	"grep": {icon: "🔎", label: "Search", primaryField: "pattern", preview: previewDiscovery},
 
-	// File write operations
-	"write":          {icon: "📝", label: "Write", primaryField: "path"},
-	"write_file":     {icon: "📝", label: "Write", primaryField: "path"},
-	"create_file":    {icon: "📝", label: "Create", primaryField: "path"},
-	"overwrite_file": {icon: "📝", label: "Write", primaryField: "path"},
+	// File write operations — contentArgField extracts the written content from
+	// args for preview/expand, since write tool results are often just confirmations.
+	"write":          {icon: "📝", label: "Write", primaryField: "path", preview: previewFileContent, contentArgField: "contents", contentArgFallbacks: []string{"content", "file_content"}},
+	"write_file":     {icon: "📝", label: "Write", primaryField: "path", preview: previewFileContent, contentArgField: "contents", contentArgFallbacks: []string{"content", "file_content"}},
+	"create_file":    {icon: "📝", label: "Create", primaryField: "path", preview: previewFileContent, contentArgField: "contents", contentArgFallbacks: []string{"content", "file_content"}},
+	"overwrite_file": {icon: "📝", label: "Write", primaryField: "path", preview: previewFileContent, contentArgField: "contents", contentArgFallbacks: []string{"content", "file_content"}},
 
-	// File edit operations
-	"edit":      {icon: "✏️ ", label: "Edit", primaryField: "path"},
-	"edit_file": {icon: "✏️ ", label: "Edit", primaryField: "path"},
+	// File edit operations — contentArgField extracts the replacement text from
+	// args for preview/expand, showing what was written at the edit point.
+	"edit":      {icon: "✏️ ", label: "Edit", primaryField: "path", preview: previewFileContent, contentArgField: "new_text", contentArgFallbacks: []string{"new_string", "replacement", "content"}},
+	"edit_file": {icon: "✏️ ", label: "Edit", primaryField: "path", preview: previewFileContent, contentArgField: "new_text", contentArgFallbacks: []string{"new_string", "replacement", "content"}},
 
 	// File delete operations (dangerous)
 	"delete_file": {icon: "⚠️ ", label: "Delete", primaryField: "path", dangerous: true},
@@ -236,17 +247,23 @@ func RenderResultWithPreview(content string) string {
 	return dimStyle.Render("  ↳ " + preview)
 }
 
-// RenderExpanded returns the tool call header followed by the complete result
-// content with gutter borders. Used by the TUI's expanded state to show all
-// output lines instead of a truncated preview.
+// RenderExpanded returns the tool call header followed by the complete
+// displayable content with gutter borders. Used by the TUI's expanded state
+// to show all output lines instead of a truncated preview.
 //
-// When the result is empty, the output is identical to the header produced by
-// Render (without the preview). For unknown tools, the generic header is used.
+// For most tools the content is tc.Result. For write tools (and others with
+// contentArgField configured), the content falls back to the arg content when
+// tc.Result is empty. See resolveDisplayContent.
+//
+// When no displayable content is available, the output is identical to the
+// header produced by Render (without the preview). For unknown tools, the
+// generic header is used.
 //
 // Examples:
 //
 //	"  📖 Read: main.go (1.5 KB, 33 lines)\n     │ package main\n     │ \n     │ import \"fmt\"\n     │ ..."
 //	"  📂 List: /workspace (97 chars)\n     │ bin\n     │ etc\n     │ home"
+//	"  📝 Write: SKILL.md (3.2 KB, 45 lines)\n     │ # Agent Drafter\n     │ ..."
 func RenderExpanded(tc ToolCallInfo) string {
 	info, known := toolDisplayMap[tc.Name]
 
@@ -257,16 +274,25 @@ func RenderExpanded(tc ToolCallInfo) string {
 		header = renderUnknown(tc)
 	}
 
-	if tc.Result == "" {
+	// Resolve the displayable content — tc.Result for most tools,
+	// falling back to args content for write tools.
+	var content string
+	if known {
+		content = resolveDisplayContent(tc, info)
+	} else {
+		content = tc.Result
+	}
+
+	if content == "" {
 		return header
 	}
 
-	// Extract filename for syntax highlighting. For file-read tools, the
-	// filename comes from the args. For other tools, this returns "" and
-	// highlighting is gracefully skipped.
+	// Extract filename for syntax highlighting. For file-read and write
+	// tools, the filename comes from the args. For other tools, this
+	// returns "" and highlighting is gracefully skipped.
 	filename := extractFilename(tc.Args)
 
-	fullContent := formatFullResultWithGutter(tc.Result, filename)
+	fullContent := formatFullResultWithGutter(content, filename)
 	if fullContent == "" {
 		return header
 	}
