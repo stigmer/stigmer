@@ -38,6 +38,7 @@ from grpc_client.skill_client import SkillClient
 from worker.activities.graphton.approval_policy import (
     build_approval_config,
     create_approval_checker,
+    resolve_platform_tool_name,
 )
 from worker.activities.graphton.skill_writer import SkillWriter
 from worker.activities.graphton.status_builder import StatusBuilder, _utc_timestamp
@@ -2410,10 +2411,16 @@ async def _execute_graphton_impl(
                         # Match interrupt to a tool call by tool_name + WAITING_APPROVAL
                         # status. Track already-matched IDs to handle multiple calls to
                         # the same tool (e.g., two writes to different files).
+                        #
+                        # Alias-aware matching: the interrupt payload uses the canonical
+                        # tool name (e.g. "write") while the tool call may have been
+                        # registered under an alias (e.g. "write_file").  Resolve both
+                        # sides to canonical names before comparing.
                         matched_tool_call_id = ""
                         for tc in status_builder.current_status.tool_calls:
+                            tc_canonical = resolve_platform_tool_name(tc.name)
                             if (
-                                tc.name == tool_name
+                                (tc.name == tool_name or tc_canonical == tool_name)
                                 and tc.status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
                                 and tc.id not in matched_tc_ids
                             ):
