@@ -508,6 +508,13 @@ class SkillWriter:
             "platform issue that must be resolved before execution can "
             "proceed.",
             "",
+            f"**Workspace rule**: The `{_SKILLS_RELATIVE_BASE}/` directory "
+            "is read-only platform infrastructure managed by the Stigmer "
+            "runtime. Do not write, modify, or create files inside it. "
+            "When creating new files, write them relative to the workspace "
+            "root (e.g. `my-output/file.md`, not "
+            f"`{_SKILLS_RELATIVE_BASE}/my-output/file.md`).",
+            "",
         ]
 
         # -----------------------------------------------------------------
