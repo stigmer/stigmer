@@ -1873,6 +1873,76 @@ async def _execute_graphton_impl(
                     )
                 )
         
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Step 7.6: Reconcile Loaded Status for Resume Path
+        #
+        # On resume, the StatusBuilder was initialized with the DB-persisted status
+        # from the *previous* invocation.  That status contains tool calls that were
+        # interrupted for approval with TOOL_CALL_WAITING_APPROVAL status — they
+        # were never updated because the previous invocation ended at the interrupt.
+        #
+        # Without reconciliation, these stale WAITING_APPROVAL entries poison the
+        # post-stream interrupt capture: when the next tool triggers an interrupt,
+        # the capture code matches the interrupt to the stale entry (first hit in
+        # the tool_calls list by tool_name + WAITING_APPROVAL) instead of the new
+        # tool call.  The resulting PendingApproval carries the old tool_call_id,
+        # which the CLI has already prompted for — so the approval prompt is skipped.
+        #
+        # We fix this by:
+        # 1. Updating each approved/skipped/rejected tool call to a non-WAITING
+        #    status so it cannot be matched by the interrupt capture code.
+        # 2. Clearing the stale pending_approvals from the loaded status.
+        # 3. Pre-populating StatusBuilder's fingerprint set from existing tool calls
+        #    to prevent duplicate entries when LangGraph re-fires on_tool_start for
+        #    resumed tools.
+        # ─────────────────────────────────────────────────────────────────────────────
+        if is_resume_from_approval and approval_decisions:
+            # Map approval action enum to the appropriate ToolCallStatus
+            _approval_to_tool_status = {
+                ApprovalAction.APPROVAL_ACTION_APPROVE: ToolCallStatus.TOOL_CALL_RUNNING,
+                ApprovalAction.APPROVAL_ACTION_SKIP: ToolCallStatus.TOOL_CALL_SKIPPED,
+                ApprovalAction.APPROVAL_ACTION_REJECT: ToolCallStatus.TOOL_CALL_FAILED,
+            }
+            
+            # Index decisions by tool_call_id for O(1) lookup
+            decisions_by_tc = {d.tool_call_id: d for d in approval_decisions}
+            
+            reconciled_count = 0
+            for tc in status_builder.current_status.tool_calls:
+                if tc.status != ToolCallStatus.TOOL_CALL_WAITING_APPROVAL:
+                    continue
+                decision = decisions_by_tc.get(tc.id)
+                if decision is None:
+                    continue
+                new_status = _approval_to_tool_status.get(
+                    decision.action, ToolCallStatus.TOOL_CALL_RUNNING
+                )
+                tc.status = new_status
+                tc.approval_action = decision.action
+                tc.approval_decided_at = _utc_timestamp()
+                if decision.comment:
+                    tc.approved_by = decision.comment
+                reconciled_count += 1
+                activity_logger.info(
+                    f"[RESUME_RECONCILE] execution={execution_id} "
+                    f"tool_call={tc.id} name={tc.name} "
+                    f"WAITING_APPROVAL -> {ToolCallStatus.Name(new_status)}"
+                )
+            
+            # Clear stale pending_approvals — they are no longer pending
+            del status_builder.current_status.pending_approvals[:]
+            
+            # Pre-populate fingerprints from existing tool calls to prevent
+            # duplicates when LangGraph re-fires on_tool_start for resumed tools
+            status_builder.populate_fingerprints_from_existing_tool_calls()
+            
+            activity_logger.info(
+                f"[RESUME_RECONCILE] execution={execution_id} "
+                f"reconciled {reconciled_count} tool call(s), "
+                f"cleared pending_approvals, "
+                f"populated {len(status_builder.tool_call_fingerprints)} fingerprint(s)"
+            )
+        
         # Log total setup time before entering the streaming phase.
         # This is the boundary between "setup" and "execution" — any time
         # spent beyond this point is in the LangGraph streaming loop.

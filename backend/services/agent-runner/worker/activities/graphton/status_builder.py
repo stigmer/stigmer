@@ -745,6 +745,44 @@ class StatusBuilder:
         fingerprint_data = f"{tool_name}:{json.dumps(tool_args, sort_keys=True)}"
         return hashlib.sha256(fingerprint_data.encode()).hexdigest()
     
+    def populate_fingerprints_from_existing_tool_calls(self) -> None:
+        """Pre-populate tool_call_fingerprints from tool calls in the loaded status.
+        
+        On the resume-after-approval path, the StatusBuilder is initialized with
+        the DB-persisted status that already contains tool calls from the previous
+        invocation.  LangGraph may re-fire ``on_tool_start`` events for resumed
+        tools, which would create duplicate entries in tool_calls because the
+        fingerprint set starts empty.
+        
+        Calling this method after initialization fills the set so that the
+        deduplication check in ``_handle_tool_start_event`` correctly skips
+        already-tracked tool calls.
+        """
+        for tc in self.current_status.tool_calls:
+            try:
+                args_dict: dict[str, Any] = {}
+                if tc.args:
+                    args_dict = dict(tc.args)
+                fingerprint = self._get_tool_fingerprint(tc.name, args_dict)
+                self.tool_call_fingerprints.add(fingerprint)
+            except Exception:
+                # Non-fatal: if we can't compute a fingerprint for an existing
+                # tool call (e.g. malformed args), skip it.  The worst case is
+                # a duplicate entry, which is cosmetic.
+                pass
+        
+        # Also populate from sub-agent tool calls
+        for sub_agent in self.current_status.sub_agent_executions:
+            for tc in sub_agent.tool_calls:
+                try:
+                    args_dict = {}
+                    if tc.args:
+                        args_dict = dict(tc.args)
+                    fingerprint = self._get_tool_fingerprint(tc.name, args_dict)
+                    self.tool_call_fingerprints.add(fingerprint)
+                except Exception:
+                    pass
+    
     def _extract_tool_result_content(self, result: Any) -> str:
         """Extract displayable content string from a tool result.
 
@@ -1221,8 +1259,14 @@ class StatusBuilder:
             from_sub_agent: True if this approval bubbles up from a sub-agent
             sub_agent_name: Name of the sub-agent (when from_sub_agent=True)
         """
-        # Save current phase and transition to WAITING_FOR_APPROVAL
-        self._saved_phase_before_approval = self.current_status.phase
+        # Save current phase (only on the FIRST pending approval) and
+        # transition to WAITING_FOR_APPROVAL.  When multiple tool calls
+        # require approval in a single LLM response, subsequent calls to
+        # this method must NOT overwrite the saved phase — it should stay
+        # as the pre-approval phase (typically IN_PROGRESS) so that
+        # clear_pending_approval() can restore it correctly.
+        if self._saved_phase_before_approval is None:
+            self._saved_phase_before_approval = self.current_status.phase
         self.current_status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
         
         # Track pending approval state
