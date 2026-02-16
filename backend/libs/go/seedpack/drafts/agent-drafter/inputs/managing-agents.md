@@ -6,19 +6,22 @@ Complete guide to discovering, listing, searching, and managing agent resources 
 
 ```bash
 # List all agents in your organization
-stigmer agent list
+stigmer list agent
 
 # Search for specific agents
-stigmer agent search "code review"
+stigmer search agent "code review"
 
 # Get details about an agent
-stigmer agent get my-agent
+stigmer get agent my-agent
 
 # Apply an agent from YAML
-stigmer agent apply agent.yaml
+stigmer apply -f agent.yaml
+
+# Validate an agent YAML without applying
+stigmer validate -f agent.yaml
 
 # Delete an agent
-stigmer agent delete my-agent
+stigmer delete agent my-agent
 ```
 
 ## Discovering Agents
@@ -28,7 +31,7 @@ stigmer agent delete my-agent
 List agents in your current organization:
 
 ```bash
-stigmer agent list
+stigmer list agent
 ```
 
 **Example output:**
@@ -39,8 +42,8 @@ stigmer/code-reviewer     Reviews code for best practices...            stigmer 
 acme/api-tester          Tests REST APIs and validates responses        acme     private     5 days ago
 local/custom-agent       Custom agent for data processing               local    private     1 week ago
 
-Page 1 of 3 (total: 47)
-Use --page 2 to see more results
+Showing 20 of 47 results
+Use --limit to adjust number of results
 ```
 
 ### List from Specific Organization
@@ -48,39 +51,22 @@ Use --page 2 to see more results
 Scope the list to a specific organization:
 
 ```bash
-stigmer agent list --org acme-corp
+stigmer list agent --org acme-corp
 ```
 
-### List from All Accessible Organizations
+### Limiting Results
 
-See agents from all organizations you have access to:
+Control the number of results returned:
 
 ```bash
-stigmer agent list --all-orgs
+# Show up to 50 results
+stigmer list agent --limit 50
+
+# Show only 10 for a quick overview
+stigmer list agent --limit 10
 ```
 
-This includes:
-- Agents from your organization
-- Public platform agents (from `stigmer` org)
-- Agents from organizations where you have access
-
-### Pagination
-
-Control the number of results and navigate pages:
-
-```bash
-# Show 50 results per page
-stigmer agent list --page-size 50
-
-# View page 2
-stigmer agent list --page 2
-
-# Combine both
-stigmer agent list --page 2 --page-size 50
-```
-
-**Default**: 20 results per page  
-**Maximum**: 100 results per page
+**Default**: 50 results
 
 ## Searching for Agents
 
@@ -89,7 +75,7 @@ stigmer agent list --page 2 --page-size 50
 Search for agents by name, description, or tags:
 
 ```bash
-stigmer agent search "code review"
+stigmer search agent "code review"
 ```
 
 **What gets searched:**
@@ -116,7 +102,7 @@ Page 1 of 1 (total: 5)
 Limit search to a specific organization:
 
 ```bash
-stigmer agent search "kubernetes" --org stigmer
+stigmer search agent "kubernetes" --org stigmer
 ```
 
 ### Exclude Public Agents
@@ -124,18 +110,21 @@ stigmer agent search "kubernetes" --org stigmer
 Search only your own agents (exclude platform/public agents):
 
 ```bash
-stigmer agent search "deploy" --exclude-public
+stigmer search agent "deploy" --exclude-public
 ```
 
 This only returns agents from organizations you're a member of.
 
 ### Search with Pagination
 
-Paginate search results like list:
+Paginate search results:
 
 ```bash
-stigmer agent search "security" --page 2 --page-size 50
+stigmer search agent "security" --page 2 --page-size 50
 ```
+
+**Default**: 20 results per page  
+**Maximum**: 100 results per page
 
 ## Output Formats
 
@@ -146,8 +135,8 @@ All list and search commands support multiple output formats.
 Human-readable table with key information:
 
 ```bash
-stigmer agent list
-stigmer agent search "test"
+stigmer list agent
+stigmer search agent "test"
 ```
 
 Best for: Interactive terminal use
@@ -157,8 +146,8 @@ Best for: Interactive terminal use
 Full resource details as YAML:
 
 ```bash
-stigmer agent list --output yaml
-stigmer agent search "test" --output yaml
+stigmer list agent --output yaml
+stigmer search agent "test" --output yaml
 ```
 
 **Use cases:**
@@ -189,8 +178,8 @@ stigmer agent search "test" --output yaml
 Full resource details as JSON:
 
 ```bash
-stigmer agent list --output json
-stigmer agent search "test" --output json
+stigmer list agent --output json
+stigmer search agent "test" --output json
 ```
 
 **Use cases:**
@@ -223,7 +212,7 @@ stigmer agent search "test" --output json
 Retrieve complete details about a specific agent:
 
 ```bash
-stigmer agent get my-agent
+stigmer get agent my-agent
 ```
 
 ### Reference Formats
@@ -232,18 +221,18 @@ Stigmer supports multiple ways to reference agents:
 
 **By slug (current org):**
 ```bash
-stigmer agent get my-agent
+stigmer get agent my-agent
 ```
 
 **By qualified slug (org/slug):**
 ```bash
-stigmer agent get stigmer/code-reviewer
-stigmer agent get acme-corp/custom-agent
+stigmer get agent stigmer/code-reviewer
+stigmer get agent acme-corp/custom-agent
 ```
 
 **By resource ID:**
 ```bash
-stigmer agent get agt_01abc123xyz
+stigmer get agent agt_01abc123xyz
 ```
 
 ### Get Output Formats
@@ -252,13 +241,13 @@ Same format options as list/search:
 
 ```bash
 # Table (default) - human-readable summary
-stigmer agent get my-agent
+stigmer get agent my-agent
 
 # YAML - full configuration for editing
-stigmer agent get my-agent --output yaml
+stigmer get agent my-agent --output yaml
 
 # JSON - for scripts
-stigmer agent get my-agent --output json
+stigmer get agent my-agent --output json
 ```
 
 ## Applying Agents
@@ -266,16 +255,28 @@ stigmer agent get my-agent --output json
 Create or update agents from YAML configuration files:
 
 ```bash
-stigmer agent apply agent.yaml
+stigmer apply -f agent.yaml
 ```
 
-### Auto-Detection
+### File Mode
 
-If you don't specify a file, the command looks for `agent.yaml` or `AGENT.yaml`:
+Specify a YAML file or directory with the `-f` flag:
 
 ```bash
-cd my-agent-dir
-stigmer agent apply
+# Apply a single file
+stigmer apply -f agent.yaml
+
+# Apply all YAML files in a directory
+stigmer apply -f ./manifests/
+```
+
+### Project Mode
+
+Without the `-f` flag, the command operates in project mode and looks for a `stigmer.yaml` project file:
+
+```bash
+cd my-project-dir
+stigmer apply
 ```
 
 ### Dry Run
@@ -283,7 +284,16 @@ stigmer agent apply
 Validate configuration without applying:
 
 ```bash
-stigmer agent apply agent.yaml --dry-run
+stigmer apply -f agent.yaml --dry-run
+```
+
+### Validation Only
+
+Validate YAML files without applying:
+
+```bash
+stigmer validate -f agent.yaml
+stigmer validate -f ./manifests/
 ```
 
 ### Organization Override
@@ -291,7 +301,7 @@ stigmer agent apply agent.yaml --dry-run
 Apply to a specific organization:
 
 ```bash
-stigmer agent apply agent.yaml --org acme-corp
+stigmer apply -f agent.yaml --org acme-corp
 ```
 
 ### Example Agent YAML
@@ -326,7 +336,7 @@ spec:
 Remove agents that are no longer needed:
 
 ```bash
-stigmer agent delete my-agent
+stigmer delete agent my-agent
 ```
 
 ### Interactive Confirmation
@@ -351,7 +361,73 @@ By default, you'll be asked to confirm:
 For scripts and automation:
 
 ```bash
-stigmer agent delete my-agent --force
+stigmer delete agent my-agent --force
+```
+
+## Running Agents
+
+Execute an agent interactively:
+
+```bash
+stigmer run agent my-agent
+```
+
+### With an Initial Message
+
+Provide a prompt to start the agent:
+
+```bash
+stigmer run agent my-agent --message "Review the latest PR for security issues"
+```
+
+### With Environment Variables
+
+Pass runtime configuration:
+
+```bash
+stigmer run agent my-agent --env API_URL=https://api.example.com
+stigmer run agent my-agent --env-file .env
+```
+
+### With Secrets
+
+Pass sensitive configuration (encrypted):
+
+```bash
+stigmer run agent my-agent --secret API_KEY=sk_live_xxx
+stigmer run agent my-agent --secret-file .env.secret
+```
+
+### With File Attachments
+
+Attach files as input:
+
+```bash
+stigmer run agent data-analyzer --attach ./data.csv --attach ./config.yaml
+```
+
+### Download Artifacts on Completion
+
+Automatically download output artifacts:
+
+```bash
+stigmer run agent report-generator --download ./results
+```
+
+### Detached Mode
+
+Start an execution and return immediately without streaming output:
+
+```bash
+stigmer run agent my-agent --detach
+```
+
+### Auto-Approve Tool Calls
+
+Set a default approval action for tool call prompts:
+
+```bash
+stigmer run agent my-agent --approve-default approve
 ```
 
 ## Common Workflows
@@ -362,10 +438,10 @@ Find public agents provided by the platform:
 
 ```bash
 # List all public agents from stigmer org
-stigmer agent list --org stigmer
+stigmer list agent --org stigmer
 
 # Search platform agents
-stigmer agent search "web search" --org stigmer
+stigmer search agent "web search" --org stigmer
 ```
 
 ### Find Your Team's Agents
@@ -374,22 +450,10 @@ List agents from your organization:
 
 ```bash
 # List from current org
-stigmer agent list
+stigmer list agent
 
 # Search within your org
-stigmer agent search "deploy"
-```
-
-### Browse Across Organizations
-
-See all agents you have access to:
-
-```bash
-# List from all orgs
-stigmer agent list --all-orgs
-
-# Search across all orgs
-stigmer agent search "kubernetes"
+stigmer search agent "deploy"
 ```
 
 ### Find Private Agents Only
@@ -397,7 +461,7 @@ stigmer agent search "kubernetes"
 Exclude public/platform agents:
 
 ```bash
-stigmer agent search "api" --exclude-public
+stigmer search agent "api" --exclude-public
 ```
 
 ### Copy Agent Configuration
@@ -406,13 +470,13 @@ Get agent as YAML for editing:
 
 ```bash
 # Get agent configuration
-stigmer agent get stigmer/code-reviewer --output yaml > my-agent.yaml
+stigmer get agent stigmer/code-reviewer --output yaml > my-agent.yaml
 
 # Edit locally
 vim my-agent.yaml
 
 # Apply as new agent
-stigmer agent apply my-agent.yaml
+stigmer apply -f my-agent.yaml
 ```
 
 ## Agent References
@@ -424,8 +488,8 @@ Stigmer uses the `org/slug` model for referencing agents.
 Most portable and clear:
 
 ```bash
-stigmer agent get stigmer/code-reviewer
-stigmer agent get acme-corp/custom-agent
+stigmer get agent stigmer/code-reviewer
+stigmer get agent acme-corp/custom-agent
 ```
 
 **Benefits:**
@@ -438,7 +502,7 @@ stigmer agent get acme-corp/custom-agent
 When you have an organization context set:
 
 ```bash
-stigmer agent get code-reviewer
+stigmer get agent code-reviewer
 # Resolves to: <current-org>/code-reviewer
 ```
 
@@ -455,8 +519,8 @@ stigmer agent get code-reviewer
 Use IDs for immutable references:
 
 ```bash
-stigmer agent get agt_01abc123xyz
-stigmer agent delete agt_01abc123xyz
+stigmer get agent agt_01abc123xyz
+stigmer delete agent agt_01abc123xyz
 ```
 
 **When to use:**
@@ -470,10 +534,10 @@ stigmer agent delete agt_01abc123xyz
 
 ```bash
 # ✅ Good - portable
-stigmer agent get stigmer/code-reviewer
+stigmer get agent stigmer/code-reviewer
 
 # ⚠️ Avoid - depends on context
-stigmer agent get code-reviewer
+stigmer get agent code-reviewer
 ```
 
 ### 2. Search Before Creating
@@ -481,7 +545,7 @@ stigmer agent get code-reviewer
 Check if an agent already exists:
 
 ```bash
-stigmer agent search "code review"
+stigmer search agent "code review"
 ```
 
 Avoid duplicating existing platform agents.
@@ -498,51 +562,68 @@ metadata:
     - automation
 ```
 
-### 4. List with Smaller Pages for Quick Scanning
+### 4. Validate Before Applying
 
 ```bash
-# Quick overview with 10 results
-stigmer agent list --page-size 10
+# Validate without applying
+stigmer validate -f agent.yaml
+
+# Or use dry-run
+stigmer apply -f agent.yaml --dry-run
 ```
 
 ### 5. Combine Search with Output Formats
 
 ```bash
 # Search and export matching agents as YAML
-stigmer agent search "deploy" --output yaml > deploy-agents.yaml
+stigmer search agent "deploy" --output yaml > deploy-agents.yaml
+```
+
+### 6. Discover Available Resource Types
+
+```bash
+# List all resource types
+stigmer resources
+
+# Show types that support a specific verb
+stigmer resources --verb run
 ```
 
 ## Organization Context
 
-Set a default organization for all commands:
+The `--org` flag overrides the default organization for any command:
 
 ```bash
-# Set organization context
-stigmer context set --org acme-corp
-
-# Now commands use this org by default
-stigmer agent list  # Lists from acme-corp
+stigmer list agent --org acme-corp
+stigmer get agent my-agent --org acme-corp
+stigmer apply -f agent.yaml --org acme-corp
 ```
 
-Check current context:
+Manage your default organization via CLI configuration:
 
 ```bash
-stigmer context
+# View current configuration
+stigmer config list
+
+# Set default organization
+stigmer config set org acme-corp
+
+# Check a specific setting
+stigmer config get org
 ```
 
-Override per-command:
-
-```bash
-stigmer agent list --org other-org
-```
+Organization resolution priority:
+1. `--org` flag (highest priority)
+2. Configuration file setting
+3. Default (`local`)
 
 ## Next Steps
 
-- [Running Agents](running-agents-workflows.md) - Execute agents with `stigmer run`
+- [Running Agents](running-agents-workflows.md) - Execute agents with `stigmer run agent`
 - [Using MCP Servers](../guides/using-mcp-servers.md) - Configure MCP servers for agents
 - [Creating Skills](../guides/creating-and-versioning-skills.md) - Create reusable skills
 - [CLI Configuration](configuration.md) - CLI configuration and context management
 
 ---
 
-**Remember**: Use `stigmer agent list` to browse all agents and `stigmer agent search <query>` to find specific ones. The search looks across names, descriptions, and tags for best matches.
+**Remember**: Use `stigmer list agent` to browse all agents and `stigmer search agent <query>` to find specific ones. The search looks across names, descriptions, and tags for best matches.
