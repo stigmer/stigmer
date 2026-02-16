@@ -8,15 +8,34 @@ import (
 // resolveDisplayContent returns the best available content for rendering a
 // tool call's preview and expanded view.
 //
-// For most tools the content is tc.Result (the tool's output). For tools
-// like write/create where the interesting content lives in the arguments
-// (e.g., the file content being written), it falls back to the arg field
-// specified by info.contentArgField / info.contentArgFallbacks when
-// tc.Result is empty.
+// The resolution strategy depends on info.contentSource:
+//
+//   - contentSourceResult (default): prefer tc.Result, fall back to args
+//     content if result is empty. This is the common case for read, shell,
+//     and discovery tools where the output IS the interesting content.
+//
+//   - contentSourceInput: always prefer args content from contentArgField,
+//     even when tc.Result is populated. Falls back to tc.Result only if args
+//     content is empty. This is used by write and edit tools where the input
+//     (file content being written) is always more useful than the result
+//     (a confirmation message like "Successfully wrote N characters").
 func resolveDisplayContent(tc ToolCallInfo, info toolDisplayInfo) string {
+	// For input-source tools (write/edit), always prefer args content.
+	// This ensures that a completed write tool shows the file content
+	// being written, not the "Successfully wrote N chars" confirmation.
+	if info.contentSource == contentSourceInput && info.contentArgField != "" {
+		content := extractPrimaryArgWithFallbacks(tc.Args, info.contentArgField, info.contentArgFallbacks)
+		if content != "" {
+			return content
+		}
+	}
+
 	if tc.Result != "" {
 		return tc.Result
 	}
+
+	// Fallback: try args content even for result-source tools (pre-completion
+	// state where tc.Result is empty but content may exist in args).
 	if info.contentArgField != "" {
 		return extractPrimaryArgWithFallbacks(tc.Args, info.contentArgField, info.contentArgFallbacks)
 	}
@@ -60,6 +79,49 @@ func renderKnownHeader(tc ToolCallInfo, info toolDisplayInfo) string {
 	return line
 }
 
+// renderPreviewLines generates the content preview lines for a known tool call.
+// Returns the styled preview string (ready to append after a header line), or
+// empty string if no preview is available or the tool's preview style is
+// previewNone.
+//
+// This is the shared building block used by both Render (collapsed without badge)
+// and RenderWithBadge (collapsed with badge) to ensure consistent preview
+// rendering across all code paths.
+func renderPreviewLines(tc ToolCallInfo, info toolDisplayInfo) string {
+	if info.preview == previewNone {
+		return ""
+	}
+
+	content := resolveDisplayContent(tc, info)
+	if content == "" {
+		return ""
+	}
+
+	var preview string
+	switch info.preview {
+	case previewDiscovery:
+		preview = formatResultPreview(content)
+	case previewFirstLine:
+		preview = formatFirstLinePreview(content)
+	case previewFileContent:
+		preview = formatFileContentPreview(content, extractFilename(tc.Args))
+	}
+
+	if preview == "" {
+		return ""
+	}
+
+	switch info.preview {
+	case previewFileContent:
+		// File content preview handles its own styling internally
+		// (dim gutter + syntax-highlighted content), so we return
+		// it directly without an outer dimStyle wrapper.
+		return preview
+	default:
+		return dimStyle.Render("     " + preview)
+	}
+}
+
 // renderKnown formats a tool call with category-specific icon, label, and primary arg.
 //
 // When the tool has a preview style configured and displayable content is available,
@@ -70,7 +132,7 @@ func renderKnownHeader(tc ToolCallInfo, info toolDisplayInfo) string {
 //   - previewFileContent: multi-line gutter-bordered preview with "N more lines"
 //
 // For write tools, displayable content comes from args (the file content being
-// written) when tc.Result is empty. See resolveDisplayContent.
+// written), not from tc.Result. See resolveDisplayContent and contentSource.
 //
 // Examples:
 //
@@ -80,39 +142,17 @@ func renderKnownHeader(tc ToolCallInfo, info toolDisplayInfo) string {
 func renderKnown(tc ToolCallInfo, info toolDisplayInfo) string {
 	line := renderKnownHeader(tc, info)
 
-	// Resolve the displayable content — tc.Result for most tools,
-	// falling back to args content for write tools.
-	content := resolveDisplayContent(tc, info)
-
-	// Append content preview based on the configured preview style.
-	if content != "" {
-		var preview string
-		switch info.preview {
-		case previewDiscovery:
-			preview = formatResultPreview(content)
-		case previewFirstLine:
-			preview = formatFirstLinePreview(content)
-		case previewFileContent:
-			preview = formatFileContentPreview(content, extractFilename(tc.Args))
-		}
-		if preview != "" {
-			switch info.preview {
-			case previewFileContent:
-				// File content preview handles its own styling internally
-				// (dim gutter + syntax-highlighted content), so we append
-				// it directly without an outer dimStyle wrapper.
-				line += "\n" + preview
-			default:
-				line += "\n" + dimStyle.Render("     "+preview)
-			}
-		}
+	if preview := renderPreviewLines(tc, info); preview != "" {
+		line += "\n" + preview
 	}
 
 	return line
 }
 
-// renderUnknown formats an unrecognized tool with a generic icon and name.
-func renderUnknown(tc ToolCallInfo) string {
+// renderUnknownHeader produces the single-line header for an unrecognized tool.
+// Separated from renderUnknown so that RenderWithBadge can append a badge
+// between the header and the preview lines.
+func renderUnknownHeader(tc ToolCallInfo) string {
 	firstVal := extractFirstArg(tc.Args)
 
 	var line string
@@ -125,6 +165,29 @@ func renderUnknown(tc ToolCallInfo) string {
 	suffix := renderSuffix(tc)
 	if suffix != "" {
 		line += " " + dimStyle.Render(suffix)
+	}
+
+	return line
+}
+
+// renderUnknownPreview generates a content preview for an unrecognized tool
+// (MCP tools, custom tools, etc.). Shows up to 3 lines of tc.Result with a
+// gutter border, matching the visual language of known file content tools.
+// Returns empty string if no result content is available.
+func renderUnknownPreview(tc ToolCallInfo) string {
+	if tc.Result == "" {
+		return ""
+	}
+	return formatFileContentPreview(tc.Result, "")
+}
+
+// renderUnknown formats an unrecognized tool with a generic icon, name, and
+// an optional content preview of the result.
+func renderUnknown(tc ToolCallInfo) string {
+	line := renderUnknownHeader(tc)
+
+	if preview := renderUnknownPreview(tc); preview != "" {
+		line += "\n" + preview
 	}
 
 	return line

@@ -60,11 +60,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 //  3. Help toggle (? key — available except during approval/cancel confirm)
 //  4. Help dismiss (esc — only when help is shown)
 //  5. Help blocks all other keys when active
-//  6. Approval keys (when approval is active, captures all input)
+//  6. Approval keys (a/s/r — when approval is active)
 //  7. Cancel key (c — when execution is running)
-//  8. Focus/toggle keys (Tab, Shift+Tab, Enter)
-//  9. Navigation keys (g top, G bottom)
-//  10. Viewport scroll keys (forwarded to bubbles/viewport)
+//  8. Navigation keys (shared: focus, toggle, scroll — see handleNavigationKey)
 func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Always allow quit/detach.
 	switch msg.String() {
@@ -92,7 +90,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// Route to approval handler when active — approval captures all input.
+	// Route to approval handler when active — processes a/s/r for approval
+	// decisions, then falls through to navigation for all other keys so the
+	// user can Tab/Enter to expand tool blocks and scroll the viewport while
+	// deciding whether to approve.
 	if m.approval != nil {
 		return m.handleApprovalKey(msg)
 	}
@@ -103,6 +104,20 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	return m.handleNavigationKey(msg)
+}
+
+// handleNavigationKey processes focus, toggle, and scroll keys. This is the
+// shared handler called from both the normal key path and the approval key
+// path, ensuring that users can always navigate and expand/collapse tool
+// blocks regardless of whether an approval prompt is active.
+//
+// Keys handled:
+//   - Tab / Shift+Tab: cycle focus among expandable blocks
+//   - Enter: toggle expand/collapse on the focused block
+//   - g / G: jump to top / bottom of viewport
+//   - Arrow keys, Page Up/Down, etc.: viewport scroll (forwarded to bubbles/viewport)
+func (m Model) handleNavigationKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Focus and toggle keys for expandable blocks.
 	switch msg.String() {
 	case "tab":
