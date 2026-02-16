@@ -36,7 +36,7 @@ type Config struct {
 
 	// Local filesystem configuration
 	LocalBasePath string // Base directory for local storage
-	LocalServeURL string // Base URL for serving local files (e.g., "http://localhost:8080/artifacts")
+	LocalServeURL string // Base URL for serving local files (e.g., "http://localhost:7235")
 
 	// Cloudflare R2 configuration (S3-compatible)
 	R2Bucket          string
