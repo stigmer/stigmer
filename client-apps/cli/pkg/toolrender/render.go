@@ -208,6 +208,39 @@ func RenderRunning(tc ToolCallInfo) string {
 	return header + " " + dimStyle.Render("⏳")
 }
 
+// RenderWaitingApproval returns a tool call header with a waiting-for-approval
+// indicator. Used by the TUI to display tools that need user approval before
+// they can execute. The pause indicator (⏸) signals that the tool is blocked.
+//
+// Examples:
+//
+//	"  📝 Write: outputs/SKILL.md ⏸ awaiting approval"
+//	"  🖥  Shell: rm -rf /tmp ⏸ awaiting approval"
+//	"  🔧 custom_tool: some_value ⏸ awaiting approval"
+func RenderWaitingApproval(tc ToolCallInfo) string {
+	info, known := toolDisplayMap[tc.Name]
+
+	var header string
+	if known {
+		primaryVal := extractPrimaryArgWithFallbacks(tc.Args, info.primaryField, info.fallbackFields)
+		if primaryVal != "" {
+			styled := styleValue(primaryVal, info.dangerous)
+			header = fmt.Sprintf("  %s %s: %s", info.icon, labelStyle.Render(info.label), styled)
+		} else {
+			header = fmt.Sprintf("  %s %s", info.icon, labelStyle.Render(info.label))
+		}
+	} else {
+		firstVal := extractFirstArg(tc.Args)
+		if firstVal != "" {
+			header = fmt.Sprintf("  🔧 %s: %s", labelStyle.Render(tc.Name), firstVal)
+		} else {
+			header = fmt.Sprintf("  🔧 %s", labelStyle.Render(tc.Name))
+		}
+	}
+
+	return header + " " + dimStyle.Render("⏸ awaiting approval")
+}
+
 // RenderResult returns a compact display of a tool result message.
 //
 // Used for MESSAGE_TOOL messages where we have the result content but not

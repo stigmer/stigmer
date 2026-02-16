@@ -93,6 +93,13 @@ func renderToolRunning(tc toolrender.ToolCallInfo) string {
 	return toolrender.RenderRunning(tc)
 }
 
+// renderToolWaitingApproval formats a tool call that is blocked waiting for
+// user approval. Shows a pause indicator (⏸) before the full approval prompt
+// arrives via ApprovalNeededEvent.
+func renderToolWaitingApproval(tc toolrender.ToolCallInfo) string {
+	return toolrender.RenderWaitingApproval(tc)
+}
+
 // renderToolFinalized replaces the running indicator (⏳) with a completion
 // indicator (✓) for tools that were still in-progress when execution finished.
 // This avoids leaving stale "in progress" visual cues in the final display.

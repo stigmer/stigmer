@@ -7,16 +7,16 @@ todos:
     status: completed
   - id: fix-done-finalization
     content: Fix DoneEvent and StreamErrorEvent finalization to create expandable blocks using stored ToolCallInfo
-    status: in_progress
+    status: completed
   - id: add-content-arg-fields
     content: Add contentArgField/contentArgFallbacks to toolDisplayInfo and configure write tool entries with previewFileContent
-    status: pending
+    status: completed
   - id: resolve-display-content
     content: Add resolveDisplayContent helper and update renderKnown, renderKnownHeader, and RenderExpanded to use it
-    status: pending
+    status: completed
   - id: verify-build
     content: Run go build to verify changes compile and existing tests pass
-    status: pending
+    status: completed
 isProject: false
 ---
 

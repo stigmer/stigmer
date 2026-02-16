@@ -174,6 +174,16 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 		return fmt.Errorf("python activity returned null status - this should never happen")
 	}
 
+	// Diagnostic: log the deserialized activity return value to trace
+	// proto serialization issues between the Python activity and Go workflow.
+	logger.Info("📋 Activity returned status",
+		"execution_id", executionID,
+		"phase", finalStatus.GetPhase().String(),
+		"phase_value", int32(finalStatus.GetPhase()),
+		"pending_approvals", len(finalStatus.GetPendingApprovals()),
+		"messages", len(finalStatus.GetMessages()),
+		"tool_calls", len(finalStatus.GetToolCalls()))
+
 	// Step 3: HITL Approval Loop (Batch Approval)
 	//
 	// When the Python activity returns EXECUTION_WAITING_FOR_APPROVAL, the
@@ -217,6 +227,18 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 			"cycle", approvalCycle,
 			"pending_count", signalsNeeded,
 			"first_tool_call", firstToolCallId)
+
+		// Belt-and-suspenders: persist the WAITING_FOR_APPROVAL status (including
+		// pending_approvals) to the database via local activity before blocking on
+		// the signal. The agent-runner already sent this via gRPC, but there is a
+		// race: the gRPC update might not have been received/broadcast before the
+		// CLI started listening. By persisting again here, the StreamBroker
+		// broadcasts to any active subscriber, guaranteeing the CLI receives it.
+		if err := w.persistFinalStatus(ctx, executionID, finalStatus); err != nil {
+			logger.Warn("⚠️ Failed to persist WAITING_FOR_APPROVAL status before signal wait (non-fatal)",
+				"execution_id", executionID, "error", err.Error())
+			// Non-fatal: the agent-runner's gRPC update may have already persisted.
+		}
 
 		// Collect all approval signals into a slice of SubmitApprovalInput.
 		// These are forwarded directly to the Python activity — no need to
@@ -271,6 +293,16 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 			logger.Error("❌ ExecuteGraphton returned NULL status after approval", "execution_id", executionID)
 			return fmt.Errorf("python activity returned null status after approval - this should never happen")
 		}
+
+		// Diagnostic: log deserialized status after approval re-invocation
+		logger.Info("📋 Activity returned status after approval",
+			"execution_id", executionID,
+			"phase", finalStatus.GetPhase().String(),
+			"phase_value", int32(finalStatus.GetPhase()),
+			"pending_approvals", len(finalStatus.GetPendingApprovals()),
+			"messages", len(finalStatus.GetMessages()),
+			"tool_calls", len(finalStatus.GetToolCalls()),
+			"cycle", approvalCycle)
 	}
 
 	logger.Info("✅ Graphton execution completed - final status received",

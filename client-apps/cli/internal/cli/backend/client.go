@@ -34,8 +34,8 @@ type Client struct {
 	token    string // auth token for cloud mode
 
 	// gRPC service clients
-	agentCommand  agentv1.AgentCommandControllerClient
-	agentQuery    agentv1.AgentQueryControllerClient
+	agentCommand    agentv1.AgentCommandControllerClient
+	agentQuery      agentv1.AgentQueryControllerClient
 	workflowCommand workflowv1.WorkflowCommandControllerClient
 	workflowQuery   workflowv1.WorkflowQueryControllerClient
 }
@@ -273,12 +273,12 @@ func (c *Client) Ping(ctx context.Context) error {
 	if c.conn == nil {
 		return errors.New("not connected - call Connect() first")
 	}
-	
+
 	// Make a lightweight RPC call to verify server is still responsive
 	// We use getByReference with an empty reference - the result doesn't matter
 	ref := &apiresource.ApiResourceReference{}
 	_, err := c.agentQuery.GetByReference(ctx, ref)
-	
+
 	// We expect NotFound or InvalidArgument - that's fine, server is reachable
 	// We only care about Unavailable (server not running) or connection errors
 	if err != nil {
@@ -291,11 +291,11 @@ func (c *Client) Ping(ctx context.Context) error {
 			return errors.Wrapf(err, "failed to connect to %s", c.endpoint)
 		}
 	}
-	
+
 	log.Debug().
 		Str("endpoint", c.endpoint).
 		Str("mode", c.mode()).
 		Msg("Server is responsive")
-	
+
 	return nil
 }
