@@ -51,32 +51,14 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 		m.blocks = append(m.blocks, newToolCallBlock(preview, full))
 
 	case ToolRunningEvent:
-		tc := e.ToolCall
-		block := newRunningToolBlock(renderToolRunning(tc), &tc)
-		m.blocks = append(m.blocks, block)
-		m.runningTools[e.ToolCallID] = len(m.blocks) - 1
+		m.updateToolBadge(e.ToolCallID, e.ToolCall, "running")
 
 	case ToolWaitingApprovalEvent:
-		tc := e.ToolCall
-		// Show a "waiting for approval" block. Track it in runningTools so
-		// the subsequent ApprovalNeededEvent or ToolCompletedEvent can
-		// replace it in-place (same lifecycle as ToolRunningEvent blocks).
-		block := newRunningToolBlock(renderToolWaitingApproval(tc), &tc)
-		m.blocks = append(m.blocks, block)
-		m.runningTools[e.ToolCallID] = len(m.blocks) - 1
+		m.updateToolBadge(e.ToolCallID, e.ToolCall, "waiting_approval")
 
 	case ToolCompletedEvent:
-		tc := e.ToolCall
-		preview := renderToolResultPreview("", []toolrender.ToolCallInfo{tc})
-		full := renderToolResultExpanded("", []toolrender.ToolCallInfo{tc})
-		if idx, ok := m.runningTools[e.ToolCallID]; ok && idx < len(m.blocks) {
-			// Replace the running block in-place with the final expandable result.
-			m.blocks[idx] = newToolCallBlock(preview, full)
-			delete(m.runningTools, e.ToolCallID)
-		} else {
-			// Safety fallback: if no running block was tracked, append new block.
-			m.blocks = append(m.blocks, newToolCallBlock(preview, full))
-		}
+		m.updateToolBadge(e.ToolCallID, e.ToolCall, e.ToolCall.Status)
+		delete(m.runningTools, e.ToolCallID)
 
 	case ToolStreamDeltaEvent:
 		if idx, ok := m.runningTools[e.ToolCallID]; ok && idx < len(m.blocks) {
@@ -101,9 +83,16 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 			argsPreview: e.ArgsPreview,
 			message:     e.Message,
 		}
-		m.blocks = append(m.blocks, newApprovalBlock(
-			renderApprovalPrompt(e.ToolName, e.ArgsPreview, e.Message),
-		))
+		// The tool block already exists from ToolWaitingApprovalEvent (or
+		// ToolRunningEvent). We just ensure it is in "waiting_approval" state
+		// and auto-expand it so the user can review content before deciding.
+		// No separate approval block is created — the footer shows [a]/[s]/[r].
+		if idx, ok := m.runningTools[e.ToolCallID]; ok && idx < len(m.blocks) {
+			if tc := m.blocks[idx].toolCall; tc != nil {
+				m.updateToolBadge(e.ToolCallID, *tc, "waiting_approval")
+				m.blocks[m.runningTools[e.ToolCallID]].expanded = true
+			}
+		}
 
 	case DoneEvent:
 		m.done = true
@@ -171,13 +160,35 @@ func (m Model) handleStreamClosed() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// updateToolBadge updates a tool call block in-place with a new lifecycle state.
+// If a block already exists for this toolCallID (tracked in runningTools), it is
+// replaced in-place — preserving the block's position and expand/collapse state.
+// If no block exists, a new one is appended.
+//
+// When the state is "waiting_approval", the block is auto-expanded so the user
+// can review its content before deciding. This is the only "smart" behavior;
+// all other transitions just swap the badge.
+func (m *Model) updateToolBadge(toolCallID string, tc toolrender.ToolCallInfo, state string) {
+	if idx, ok := m.runningTools[toolCallID]; ok && idx < len(m.blocks) {
+		wasExpanded := m.blocks[idx].expanded
+		m.blocks[idx] = newStatefulToolBlock(tc, toolCallID, state)
+		m.blocks[idx].expanded = wasExpanded
+		if state == "waiting_approval" {
+			m.blocks[idx].expanded = true
+		}
+	} else {
+		block := newStatefulToolBlock(tc, toolCallID, state)
+		m.blocks = append(m.blocks, block)
+		m.runningTools[toolCallID] = len(m.blocks) - 1
+	}
+}
+
 // finalizeRunningTools converts all tracked running tool blocks into their
 // final display state. When a stored ToolCallInfo is available, the block is
-// promoted to a proper expandable block (matching the ToolCompletedEvent
-// path). When no info is stored, the running indicator is replaced with a
-// static completion mark as a fallback.
+// promoted to a completed stateful block. When no info is stored, the running
+// indicator is replaced with a static completion mark as a fallback.
 func (m *Model) finalizeRunningTools() {
-	for _, idx := range m.runningTools {
+	for toolCallID, idx := range m.runningTools {
 		if idx >= len(m.blocks) {
 			continue
 		}
@@ -185,9 +196,9 @@ func (m *Model) finalizeRunningTools() {
 		if b.toolCall != nil {
 			tc := *b.toolCall
 			tc.Status = "completed"
-			preview := renderToolResultPreview("", []toolrender.ToolCallInfo{tc})
-			full := renderToolResultExpanded("", []toolrender.ToolCallInfo{tc})
-			m.blocks[idx] = newToolCallBlock(preview, full)
+			wasExpanded := b.expanded
+			m.blocks[idx] = newStatefulToolBlock(tc, toolCallID, "completed")
+			m.blocks[idx].expanded = wasExpanded
 		} else {
 			m.blocks[idx].content = renderToolFinalized(m.blocks[idx].content)
 		}
