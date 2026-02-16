@@ -389,3 +389,21 @@ func TestRenderApprovalPrompt_MultilineArgs(t *testing.T) {
 		t.Error("should contain second arg line")
 	}
 }
+
+// --- No auto-expand ---
+
+func TestApproval_BlockNotAutoExpanded(t *testing.T) {
+	m, _, _ := newTestModel()
+	m = enterApproval(t, m, "tc-expand", "write_file")
+
+	// The tool block should be COLLAPSED — the header already shows metadata
+	// (tool type, file path, size, line count). The user can manually expand
+	// with Tab + Enter if they want to review content.
+	idx, ok := m.runningTools["tc-expand"]
+	if !ok {
+		t.Fatal("expected tool to be tracked in runningTools")
+	}
+	if m.blocks[idx].expanded {
+		t.Error("tool block should NOT be auto-expanded during approval — collapsed header provides sufficient context")
+	}
+}
