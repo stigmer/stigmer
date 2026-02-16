@@ -1236,7 +1236,7 @@ async def _execute_graphton_impl(
                     injected_files.append({
                         "filename": att.filename,
                         "path": mount_path,
-                        "size": att.size_bytes,
+                        "size": None,  # Not available on resume (content not re-downloaded)
                     })
                 activity_logger.info(
                     "[RESUME] Skipped attachment injection — reusing "
@@ -1544,7 +1544,8 @@ async def _execute_graphton_impl(
                 "Use the `read` tool to access them:\n\n"
             )
             for f in injected_files:
-                input_files_section += f"- `{f['path']}` ({f['size']} bytes)\n"
+                size_info = f" ({f['size']} bytes)" if f.get('size') is not None else ""
+                input_files_section += f"- `{f['path']}`{size_info}\n"
             input_files_section += (
                 "\nThese files are available in your workspace. "
                 "Read them using the `read` tool with the paths shown above."
