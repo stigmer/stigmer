@@ -37,6 +37,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.phase == "pending" || m.thinkingVisible {
 			var cmd tea.Cmd
 			m.spinner, cmd = m.spinner.Update(msg)
+			if m.thinkingVisible {
+				// Refresh the viewport so the spinner frame in the
+				// thinking indicator animates along with the header.
+				m.refreshViewport()
+			}
 			return m, cmd
 		}
 		return m, nil
@@ -211,8 +216,9 @@ func scheduleActivityTick() tea.Cmd {
 
 // handleActivityTick processes the periodic activity tick. When the TUI is
 // in the "in_progress" phase and no execution events have arrived for longer
-// than the idle threshold, it activates the thinking indicator (animated
-// spinner) in the header to signal that the agent is alive and processing.
+// than the idle threshold, it activates the thinking indicator — both in the
+// header (animated spinner) and in the viewport (ephemeral "Thinking..." text)
+// — to signal that the agent is alive and processing.
 func (m Model) handleActivityTick() (tea.Model, tea.Cmd) {
 	// Don't schedule more ticks once execution is done.
 	if m.done {
@@ -223,6 +229,9 @@ func (m Model) handleActivityTick() (tea.Model, tea.Cmd) {
 	if m.phase == "in_progress" && time.Since(m.lastEventAt) > idleThreshold {
 		if !m.thinkingVisible {
 			m.thinkingVisible = true
+			// Show the viewport indicator immediately rather than
+			// waiting for the first spinner tick to trigger a refresh.
+			m.refreshViewport()
 			// Restart the spinner animation — it was stopped when the
 			// phase transitioned from "pending" to "in_progress".
 			return m, tea.Batch(m.spinner.Tick, scheduleActivityTick())
@@ -252,11 +261,9 @@ func (m Model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 		m.viewport.Height = viewportHeight
 	}
 
-	// Rebuild and set content with current blocks.
-	m.viewport.SetContent(rebuildViewportContent(m.blocks, m.focusedBlockIndex))
-	if m.autoScroll {
-		m.viewport.GotoBottom()
-	}
+	// Rebuild viewport content through the shared path so the thinking
+	// indicator is included when active.
+	m.refreshViewport()
 
 	return m, nil
 }

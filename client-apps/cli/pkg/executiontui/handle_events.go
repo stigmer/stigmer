@@ -197,11 +197,24 @@ func (m *Model) finalizeRunningTools() {
 
 // refreshViewport rebuilds the viewport content from blocks and applies
 // auto-scroll if enabled.
+//
+// When the thinking indicator is active (agent idle during in_progress),
+// an ephemeral animated indicator is appended after the last content block.
+// This is purely a rendering concern — no block state is modified.
 func (m *Model) refreshViewport() {
 	if !m.ready {
 		return
 	}
-	m.viewport.SetContent(rebuildViewportContent(m.blocks, m.focusedBlockIndex))
+	content := rebuildViewportContent(m.blocks, m.focusedBlockIndex)
+	if m.thinkingVisible {
+		indicator := renderThinkingIndicator(m.spinner.View())
+		if content != "" {
+			content += "\n\n" + indicator
+		} else {
+			content = indicator
+		}
+	}
+	m.viewport.SetContent(content)
 	if m.autoScroll {
 		m.viewport.GotoBottom()
 	}

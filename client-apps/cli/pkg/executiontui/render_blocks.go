@@ -16,6 +16,12 @@ var (
 	phaseStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
 	errorStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Bold(true)
 	dimStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
+
+	// thinkingStyle is used for the ephemeral "Thinking..." indicator that
+	// appears in the viewport when the agent is idle (processing a prompt,
+	// planning next steps). Muted foreground distinguishes it from real
+	// content blocks.
+	thinkingStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("243"))
 )
 
 // renderAIContent formats an AI message for display.
@@ -144,6 +150,17 @@ func renderStreamingTool(tc toolrender.ToolCallInfo, streamContent string) strin
 	}
 
 	return header + "\n" + strings.Join(gutterLines, "\n")
+}
+
+// renderThinkingIndicator formats the ephemeral "Thinking..." indicator
+// shown in the viewport when the agent is idle during the in_progress phase.
+// spinnerView is the current frame of the animated spinner (e.g., "⠋"),
+// passed in so the indicator animates with the global spinner tick cycle.
+//
+// This is NOT a content block — it is appended by refreshViewport() and
+// disappears automatically when the next execution event arrives.
+func renderThinkingIndicator(spinnerView string) string {
+	return thinkingStyle.Render(spinnerView + " Thinking...")
 }
 
 // renderSystemContent formats a system message with dimmed styling.
