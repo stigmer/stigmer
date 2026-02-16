@@ -402,6 +402,25 @@ async def _auto_publish_written_files(
     """
     FILE_MODIFYING_TOOL_NAMES = {"write", "write_file", "edit", "edit_file"}
 
+    # Diagnostic: log every file-modifying tool call regardless of status.
+    # This makes it easy to diagnose "where did my files go?" issues by
+    # showing which writes were found and why they were included or skipped.
+    file_modifying_tcs = [tc for tc in tool_calls if tc.name in FILE_MODIFYING_TOOL_NAMES]
+    if file_modifying_tcs:
+        for tc in file_modifying_tcs:
+            status_name = ToolCallStatus.Name(tc.status)
+            path = dict(tc.args).get("path", "<no path>") if tc.args else "<no args>"
+            logger.info(
+                f"[AUTO_PUBLISH] execution={execution_id} — "
+                f"file-modifying tool_call: name={tc.name} "
+                f"status={status_name} path={path} id={tc.id}"
+            )
+    else:
+        logger.debug(
+            f"[AUTO_PUBLISH] execution={execution_id} — "
+            f"no file-modifying tool calls found at all"
+        )
+
     # Collect paths from completed file-modifying tool calls.
     written_paths: list[str] = []
     for tc in tool_calls:
@@ -415,9 +434,10 @@ async def _auto_publish_written_files(
             written_paths.append(path)
 
     if not written_paths:
-        logger.debug(
+        logger.info(
             f"[AUTO_PUBLISH] execution={execution_id} — "
-            f"no completed file-modifying tool calls found, skipping"
+            f"no completed file-modifying tool calls found, skipping "
+            f"(total file-modifying tool calls: {len(file_modifying_tcs)})"
         )
         return 0
 
