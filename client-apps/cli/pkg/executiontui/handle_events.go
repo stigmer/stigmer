@@ -125,12 +125,7 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 		m.exitError = e.Err.Error()
 
 		// Finalize running tools (same rationale as DoneEvent above).
-		for _, idx := range m.runningTools {
-			if idx < len(m.blocks) {
-				m.blocks[idx].content = renderToolFinalized(m.blocks[idx].content)
-			}
-		}
-		m.runningTools = make(map[string]int)
+		m.finalizeRunningTools()
 
 		m.blocks = append(m.blocks, newErrorBlock(
 			renderErrorContent("Stream error: "+e.Err.Error()),
@@ -156,12 +151,7 @@ func (m Model) handleStreamClosed() (tea.Model, tea.Cmd) {
 		m.exitError = "execution stream closed unexpectedly"
 
 		// Finalize running tools (same rationale as DoneEvent above).
-		for _, idx := range m.runningTools {
-			if idx < len(m.blocks) {
-				m.blocks[idx].content = renderToolFinalized(m.blocks[idx].content)
-			}
-		}
-		m.runningTools = make(map[string]int)
+		m.finalizeRunningTools()
 
 		m.blocks = append(m.blocks, newErrorBlock(
 			renderErrorContent("Stream closed unexpectedly"),
@@ -170,6 +160,30 @@ func (m Model) handleStreamClosed() (tea.Model, tea.Cmd) {
 	}
 	// Stay open — user presses q to exit.
 	return m, nil
+}
+
+// finalizeRunningTools converts all tracked running tool blocks into their
+// final display state. When a stored ToolCallInfo is available, the block is
+// promoted to a proper expandable block (matching the ToolCompletedEvent
+// path). When no info is stored, the running indicator is replaced with a
+// static completion mark as a fallback.
+func (m *Model) finalizeRunningTools() {
+	for _, idx := range m.runningTools {
+		if idx >= len(m.blocks) {
+			continue
+		}
+		b := m.blocks[idx]
+		if b.toolCall != nil {
+			tc := *b.toolCall
+			tc.Status = "completed"
+			preview := renderToolResultPreview("", []toolrender.ToolCallInfo{tc})
+			full := renderToolResultExpanded("", []toolrender.ToolCallInfo{tc})
+			m.blocks[idx] = newToolCallBlock(preview, full)
+		} else {
+			m.blocks[idx].content = renderToolFinalized(m.blocks[idx].content)
+		}
+	}
+	m.runningTools = make(map[string]int)
 }
 
 // refreshViewport rebuilds the viewport content from blocks and applies
