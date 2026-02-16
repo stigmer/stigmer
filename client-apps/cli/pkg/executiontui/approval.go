@@ -9,8 +9,11 @@ import (
 //
 // When a valid key is pressed:
 //  1. The approval response is sent to the goroutine via the response channel.
-//  2. The approval state is cleared.
-//  3. A confirmation block is appended.
+//  2. The tool block badge is updated in-place to reflect the decision.
+//  3. The approval state is cleared.
+//
+// No separate confirmation block is created — the tool block's badge is the
+// only visual change: ⏸ → ⏳ (approved, resuming) or ⏭/✗ (skipped/rejected).
 //
 // IMPORTANT: This handler does NOT issue a new listenForEvents command.
 // The listenForEvents goroutine started by handleExecutionEvent (when it
@@ -54,10 +57,24 @@ func (m Model) handleApprovalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Update loop from blocking if the channel is not immediately ready.
 	sendCmd := sendApprovalResponse(m.cfg.ApprovalResponses, response)
 
-	// Append a confirmation block showing the action and tool name.
-	m.blocks = append(m.blocks, newSystemBlock(
-		renderApprovalConfirmation(action, m.approval.toolName),
-	))
+	// Update the tool block badge in-place. For "approve", the tool will
+	// resume running (⏳). For "skip" and "reject", the tool reaches a
+	// terminal state immediately (⏭ / ✗).
+	toolCallID := m.approval.toolCallID
+	if idx, ok := m.runningTools[toolCallID]; ok && idx < len(m.blocks) {
+		if tc := m.blocks[idx].toolCall; tc != nil {
+			var newState string
+			switch action {
+			case "approve":
+				newState = "running"
+			case "skip":
+				newState = "skipped"
+			case "reject":
+				newState = "failed"
+			}
+			m.updateToolBadge(toolCallID, *tc, newState)
+		}
+	}
 
 	// Clear approval state.
 	m.approval = nil

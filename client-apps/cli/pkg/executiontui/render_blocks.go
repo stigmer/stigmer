@@ -94,27 +94,17 @@ func renderToolResultExpanded(content string, toolCalls []toolrender.ToolCallInf
 	return toolrender.RenderResultWithPreview(content) + "\n" + content
 }
 
-// renderToolRunning formats a tool call in running state with a liveness indicator.
-func renderToolRunning(tc toolrender.ToolCallInfo) string {
-	return toolrender.RenderRunning(tc)
-}
-
-// renderToolWaitingApproval formats a tool call that is blocked waiting for
-// user approval. Shows a pause indicator (⏸) before the full approval prompt
-// arrives via ApprovalNeededEvent.
-func renderToolWaitingApproval(tc toolrender.ToolCallInfo) string {
-	return toolrender.RenderWaitingApproval(tc)
-}
-
 // renderToolFinalized replaces the running indicator (⏳) with a completion
-// indicator (✓) for tools that were still in-progress when execution finished.
-// This avoids leaving stale "in progress" visual cues in the final display.
+// indicator (✓) for tools that were still in-progress when execution finished
+// and had no stored ToolCallInfo for proper stateful block creation.
+// This is a last-resort fallback — normally finalizeRunningTools creates a
+// proper stateful block.
 func renderToolFinalized(runningContent string) string {
 	return strings.Replace(runningContent, "⏳", "✓", 1)
 }
 
 // renderStreamingTool formats a tool call that is actively streaming output.
-// Shows the tool header with a running indicator, followed by a gutter-bordered
+// Shows the tool header with a running badge, followed by a gutter-bordered
 // preview of the streaming content with a cursor indicator.
 //
 // Example:
@@ -123,7 +113,7 @@ func renderToolFinalized(runningContent string) string {
 //	     │ # Agent Drafter
 //	     │ Guide for creating valid Stigmer Agent YAML files...▍
 func renderStreamingTool(tc toolrender.ToolCallInfo, streamContent string) string {
-	header := toolrender.RenderRunning(tc)
+	header := toolrender.RenderWithBadge(tc, toolrender.StateBadge("running"))
 
 	if streamContent == "" {
 		return header
@@ -191,7 +181,9 @@ func phaseDisplayText(phase, previous string) string {
 		return "⏳ Execution pending..."
 	case "in_progress":
 		if previous == "waiting_for_approval" {
-			return "▶️  Resumed after approval"
+			// Suppressed: the tool block badge swap (⏸ → ⏳) already signals
+			// the approval was processed and execution resumed.
+			return ""
 		}
 		return "▶️  Execution started"
 	case "completed":

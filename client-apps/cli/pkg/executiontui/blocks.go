@@ -49,6 +49,16 @@ type contentBlock struct {
 	// finalization can create a proper expandable block. Nil for
 	// non-tool blocks and for already-expanded tool result blocks.
 	toolCall *toolrender.ToolCallInfo
+
+	// toolCallID tracks which tool call owns this block. Used to look up the
+	// block from runningTools when state transitions arrive (approval events,
+	// completion, etc.). Empty for non-tool blocks.
+	toolCallID string
+
+	// toolState tracks the current lifecycle state of a stateful tool block:
+	// "running", "waiting_approval", "completed", "failed", "skipped".
+	// Used to render the correct status badge. Empty for non-tool blocks.
+	toolState string
 }
 
 // displayContent returns the text that should be shown for this block.
@@ -105,6 +115,31 @@ func newRunningToolBlock(content string, tc *toolrender.ToolCallInfo) contentBlo
 		blockType: blockToolResult,
 		content:   content,
 		toolCall:  tc,
+	}
+}
+
+// newStatefulToolBlock creates a single expandable block for a tool call that
+// persists across the tool's entire lifecycle. Only the status badge changes
+// as the tool transitions through states (running → waiting_approval →
+// completed). The block identity (icon, label, path) and expandable content
+// remain stable.
+//
+// When the tool has displayable content (Result for read tools, Args content
+// for write tools), the block is immediately expandable. Otherwise it starts
+// as a non-expandable header-only block and becomes expandable when content
+// arrives via a later update.
+func newStatefulToolBlock(tc toolrender.ToolCallInfo, toolCallID, state string) contentBlock {
+	preview := toolrender.RenderWithBadge(tc, toolrender.StateBadge(state))
+	full := toolrender.RenderExpandedWithBadge(tc, toolrender.StateBadge(state))
+	hasContent := toolrender.HasDisplayableContent(tc)
+	return contentBlock{
+		blockType:  blockToolResult,
+		expandable: hasContent,
+		preview:    preview,
+		full:       full,
+		toolCall:   &tc,
+		toolCallID: toolCallID,
+		toolState:  state,
 	}
 }
 

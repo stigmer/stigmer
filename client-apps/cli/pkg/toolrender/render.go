@@ -174,9 +174,130 @@ func Render(tc ToolCallInfo) string {
 	return renderKnown(tc, info)
 }
 
+// StateBadge returns the badge string for a given tool lifecycle state.
+// The badge is a small visual indicator appended to the tool header line.
+//
+// States and badges:
+//   - "running":          ⏳
+//   - "waiting_approval": ⏸
+//   - "completed":        ✓
+//   - "failed":           ✗
+//   - "skipped":          ⏭
+//   - anything else:      empty string (no badge)
+func StateBadge(state string) string {
+	switch state {
+	case "running":
+		return "⏳"
+	case "waiting_approval":
+		return "⏸"
+	case "completed":
+		return "✓"
+	case "failed":
+		return "✗"
+	case "skipped":
+		return "⏭"
+	default:
+		return ""
+	}
+}
+
+// HasDisplayableContent reports whether a tool call has content that can be
+// shown in an expanded view. For most tools, content is tc.Result. For write
+// tools (and others with contentArgField configured), content may come from
+// the tool arguments (e.g., the file content being written).
+func HasDisplayableContent(tc ToolCallInfo) bool {
+	info, known := toolDisplayMap[tc.Name]
+	if !known {
+		return tc.Result != ""
+	}
+	return resolveDisplayContent(tc, info) != ""
+}
+
+// RenderWithBadge returns the tool call header with metadata and a status
+// badge appended. This is the collapsed (preview) rendering for a stateful
+// tool block.
+//
+// For tools with displayable content, the header includes metadata (size,
+// lines, duration). The badge is the only element that changes across
+// lifecycle transitions — everything else is stable.
+//
+// Examples:
+//
+//	"  📝 Write: SKILL.md (9.4 KB, 384 lines) ⏳"
+//	"  📝 Write: SKILL.md (9.4 KB, 384 lines) ⏸"
+//	"  📝 Write: SKILL.md (9.4 KB, 384 lines, 4.5s) ✓"
+//	"  🖥  Shell: rm -rf /tmp ⏸"
+//	"  🔧 custom_tool: some_value ⏳"
+func RenderWithBadge(tc ToolCallInfo, badge string) string {
+	info, known := toolDisplayMap[tc.Name]
+
+	var header string
+	if known {
+		header = renderKnownHeader(tc, info)
+	} else {
+		header = renderUnknown(tc)
+	}
+
+	if badge != "" {
+		header += " " + dimStyle.Render(badge)
+	}
+
+	return header
+}
+
+// RenderExpandedWithBadge returns the tool call header with a status badge,
+// followed by the complete displayable content with gutter borders. This is
+// the expanded rendering for a stateful tool block.
+//
+// When no displayable content is available, the output is identical to
+// RenderWithBadge (header + badge only).
+//
+// Examples:
+//
+//	"  📝 Write: SKILL.md (9.4 KB, 384 lines) ⏸\n     │ # Agent Drafter\n     │ ..."
+//	"  📖 Read: main.go (1.5 KB, 33 lines) ✓\n     │ package main\n     │ ..."
+func RenderExpandedWithBadge(tc ToolCallInfo, badge string) string {
+	info, known := toolDisplayMap[tc.Name]
+
+	var header string
+	if known {
+		header = renderKnownHeader(tc, info)
+	} else {
+		header = renderUnknown(tc)
+	}
+
+	if badge != "" {
+		header += " " + dimStyle.Render(badge)
+	}
+
+	// Resolve the displayable content — tc.Result for most tools,
+	// falling back to args content for write tools.
+	var content string
+	if known {
+		content = resolveDisplayContent(tc, info)
+	} else {
+		content = tc.Result
+	}
+
+	if content == "" {
+		return header
+	}
+
+	filename := extractFilename(tc.Args)
+	fullContent := formatFullResultWithGutter(content, filename)
+	if fullContent == "" {
+		return header
+	}
+
+	return header + "\n" + fullContent
+}
+
 // RenderRunning returns a tool call header with a running indicator.
 // Used by the TUI to display tools that are currently executing.
 // The running indicator (⏳) signals liveness to the user.
+//
+// Deprecated: Use RenderWithBadge(tc, StateBadge("running")) instead.
+// Kept for backward compatibility with non-TUI rendering paths.
 //
 // Examples:
 //
@@ -211,6 +332,9 @@ func RenderRunning(tc ToolCallInfo) string {
 // RenderWaitingApproval returns a tool call header with a waiting-for-approval
 // indicator. Used by the TUI to display tools that need user approval before
 // they can execute. The pause indicator (⏸) signals that the tool is blocked.
+//
+// Deprecated: Use RenderWithBadge(tc, StateBadge("waiting_approval")) instead.
+// Kept for backward compatibility with non-TUI rendering paths.
 //
 // Examples:
 //
