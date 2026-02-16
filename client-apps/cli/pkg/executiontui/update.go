@@ -199,12 +199,6 @@ const activityTickInterval = 1 * time.Second
 // during brief gaps between rapid events).
 const idleThreshold = 2 * time.Second
 
-// connectionStaleThreshold is how long the TUI waits without any backend
-// update (including keepalives) before showing a connection warning.
-// The backend sends keepalive updates every 5 seconds, so 15 seconds
-// means 3 consecutive keepalives were missed.
-const connectionStaleThreshold = 15 * time.Second
-
 // scheduleActivityTick returns a tea.Cmd that delivers an activityTickMsg
 // after the activity tick interval. The tick runs continuously during
 // execution and is used to detect idle periods for the thinking indicator
