@@ -295,6 +295,93 @@ func TestRenderApprovalConfirmation_UnknownAction(t *testing.T) {
 	}
 }
 
+// --- Listener correctness ---
+
+// TestApproval_Approve_CmdSendsResponseWithoutExtraListener verifies the fix
+// for a race condition where handleApprovalKey previously issued both sendCmd
+// AND listenForEvents. Since handleExecutionEvent already started a
+// listenForEvents goroutine when it processed the ApprovalNeededEvent, the
+// second listener created a race: two goroutines reading from the same channel,
+// causing non-deterministic "stream closed unexpectedly" errors.
+//
+// The test confirms that the returned command:
+//  1. Sends the approval response to the channel (sendCmd works).
+//  2. Returns nil (a bare sendCmd), not a batchMsg (which tea.Batch produces).
+//  3. Does not consume events from the events channel.
+func TestApproval_Approve_CmdSendsResponseWithoutExtraListener(t *testing.T) {
+	m, events, approvals := newTestModel()
+	m = enterApproval(t, m, "tc-listen", "write")
+
+	// Place a sentinel event in the events channel. If a rogue
+	// listenForEvents were included, it could consume this sentinel.
+	events <- HumanMessageEvent{Content: "sentinel"}
+
+	_, cmd := pressApprovalKey(t, m, 'a')
+
+	if cmd == nil {
+		t.Fatal("expected non-nil cmd from approval key press")
+	}
+
+	// Execute the command directly. sendCmd pushes the response into the
+	// buffered approval channel and returns nil. A tea.Batch wrapping
+	// sendCmd + listenForEvents would return a non-nil batchMsg.
+	msg := cmd()
+	if msg != nil {
+		t.Errorf("cmd() returned %T — expected nil (pure sendCmd, not a batch containing listenForEvents)", msg)
+	}
+
+	// Verify the approval response was delivered.
+	select {
+	case resp := <-approvals:
+		if resp.Action != "approve" {
+			t.Errorf("Action = %q, want %q", resp.Action, "approve")
+		}
+	default:
+		t.Fatal("expected approval response on approval channel")
+	}
+
+	// Verify the sentinel event was NOT consumed by an extra listener.
+	select {
+	case <-events:
+		// Good — sentinel is still there.
+	default:
+		t.Fatal("sentinel event was consumed from events channel — " +
+			"listenForEvents was incorrectly included in the approval command")
+	}
+}
+
+func TestApproval_Skip_CmdReturnsNilMsg(t *testing.T) {
+	m, _, _ := newTestModel()
+	m = enterApproval(t, m, "tc-skip-listen", "shell")
+
+	_, cmd := pressApprovalKey(t, m, 's')
+
+	if cmd == nil {
+		t.Fatal("expected non-nil cmd")
+	}
+	msg := cmd()
+	if msg != nil {
+		t.Errorf("cmd() returned %T, want nil (pure sendCmd)", msg)
+	}
+}
+
+func TestApproval_Reject_CmdReturnsNilMsg(t *testing.T) {
+	m, _, _ := newTestModel()
+	m = enterApproval(t, m, "tc-reject-listen", "shell")
+
+	_, cmd := pressApprovalKey(t, m, 'r')
+
+	if cmd == nil {
+		t.Fatal("expected non-nil cmd")
+	}
+	msg := cmd()
+	if msg != nil {
+		t.Errorf("cmd() returned %T, want nil (pure sendCmd)", msg)
+	}
+}
+
+// --- Rendering ---
+
 func TestRenderApprovalPrompt_MultilineArgs(t *testing.T) {
 	// FormatArgs can produce multi-line output. Each line should be indented.
 	multiLineArgs := "Command: rm -rf /tmp\npath: /tmp"

@@ -346,6 +346,11 @@ func isRunningToolMessage(msg *agentexecutionv1.AgentMessage) bool {
 
 // emitAndWaitApproval sends an approval event to the TUI and blocks until
 // the user responds. It then submits the decision to the backend.
+//
+// If the approval submission fails, a StreamErrorEvent is emitted so the TUI
+// can display an actionable error to the user instead of silently continuing
+// with a stream that will never receive new updates (the backend never got
+// the approval, so the execution stays stuck in WAITING_FOR_APPROVAL).
 func emitAndWaitApproval(
 	ctx context.Context,
 	cfg streamToEventsConfig,
@@ -370,7 +375,19 @@ func emitAndWaitApproval(
 
 	// Submit the decision to the backend.
 	decision := mapApprovalResponseToDecision(resp)
-	_, _ = submitAgentApproval(ctx, cfg.conn, cfg.executionID, toolCallID, decision)
+	_, err := submitAgentApproval(ctx, cfg.conn, cfg.executionID, toolCallID, decision)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("execution_id", cfg.executionID).
+			Str("tool_call_id", toolCallID).
+			Str("action", resp.Action).
+			Msg("[stream] failed to submit approval decision")
+
+		cfg.events <- executiontui.StreamErrorEvent{
+			Err: errors.Wrap(err, "failed to submit approval decision"),
+		}
+	}
 }
 
 // extractApprovalInfo extracts approval display info from a ToolCall and/or
