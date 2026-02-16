@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
@@ -125,6 +126,22 @@ func (c *Client) Connect(ctx context.Context) error {
 		// Local mode: Insecure (localhost)
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
+
+	// Transport-level keepalive for connection health detection.
+	//
+	// gRPC uses HTTP/2 PING frames to detect dead connections without any
+	// application-level overhead. This replaces the previous application-level
+	// "connection stale" heuristic that falsely triggered during normal LLM
+	// thinking pauses (no events != broken connection).
+	//
+	// If the server doesn't respond to a PING within the Timeout, the
+	// transport closes the connection and stream.Recv() returns an error —
+	// which the CLI already handles via StreamErrorEvent.
+	opts = append(opts, grpc.WithKeepaliveParams(keepalive.ClientParameters{
+		Time:                30 * time.Second, // Send PING every 30s when stream is idle
+		Timeout:             10 * time.Second, // Wait 10s for PING response
+		PermitWithoutStream: false,            // Only when active streams exist
+	}))
 
 	// IMPORTANT: Use WithBlock() to block until connection is established
 	// This ensures the connection is ready before returning, avoiding race conditions

@@ -123,11 +123,6 @@ type Model struct {
 	// arrives.
 	thinkingVisible bool
 
-	// lastBackendUpdate tracks when the last gRPC stream update was received
-	// (including keepalive updates with no content changes). Used to
-	// distinguish "agent is thinking" from "connection lost".
-	lastBackendUpdate time.Time
-
 	// spinner is the animated spinner displayed in the header. During the
 	// "pending" phase it signals that the TUI is alive while waiting for
 	// the agent to start. During "in_progress" it reactivates as a thinking
@@ -141,7 +136,6 @@ type Model struct {
 func New(cfg Config) Model {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
-	now := time.Now()
 	return Model{
 		cfg:               cfg,
 		autoScroll:        true,
@@ -149,8 +143,7 @@ func New(cfg Config) Model {
 		focusedBlockIndex: -1,
 		runningTools:      make(map[string]int),
 		spinner:           s,
-		lastEventAt:       now,
-		lastBackendUpdate: now,
+		lastEventAt:       time.Now(),
 	}
 }
 

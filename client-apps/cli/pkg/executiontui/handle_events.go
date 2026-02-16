@@ -11,20 +11,6 @@ import (
 // handleExecutionEvent dispatches a single execution event to the appropriate
 // handler based on its concrete type.
 func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
-	// Every event from the gRPC stream confirms the backend is reachable.
-	m.lastBackendUpdate = time.Now()
-
-	// HeartbeatEvent signals backend liveness but doesn't represent
-	// meaningful execution progress — don't reset the activity tracker
-	// or clear the thinking indicator. Just update lastBackendUpdate
-	// (done above) and continue listening.
-	if _, isHeartbeat := event.(HeartbeatEvent); isHeartbeat {
-		if m.done {
-			return m, nil
-		}
-		return m, listenForEvents(m.cfg.Events)
-	}
-
 	// Reset the activity tracker — a meaningful event arrived, so the
 	// agent is active. Clear the thinking indicator if it was visible;
 	// the header will re-render with the static phase icon on the next
@@ -65,7 +51,8 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 		m.blocks = append(m.blocks, newToolCallBlock(preview, full))
 
 	case ToolRunningEvent:
-		block := newRunningToolBlock(renderToolRunning(e.ToolCall))
+		tc := e.ToolCall
+		block := newRunningToolBlock(renderToolRunning(tc), &tc)
 		m.blocks = append(m.blocks, block)
 		m.runningTools[e.ToolCallID] = len(m.blocks) - 1
 
@@ -116,14 +103,10 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 
 		// Finalize any tools still tracked as running. When execution
 		// completes (or fails/cancels), these tools will never receive a
-		// ToolCompletedEvent, so we replace their running indicator (⏳)
-		// with a completion mark (✓) to avoid stale visual cues.
-		for _, idx := range m.runningTools {
-			if idx < len(m.blocks) {
-				m.blocks[idx].content = renderToolFinalized(m.blocks[idx].content)
-			}
-		}
-		m.runningTools = make(map[string]int)
+		// ToolCompletedEvent. When the stored ToolCallInfo is available,
+		// we create a proper expandable block; otherwise we fall back to
+		// replacing the running indicator (⏳) with a completion mark (✓).
+		m.finalizeRunningTools()
 
 		if e.Error != "" {
 			m.exitError = e.Error

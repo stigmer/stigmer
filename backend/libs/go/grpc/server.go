@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 )
@@ -77,6 +78,25 @@ func NewServer(opts ...ServerOption) *Server {
 		grpc.ChainStreamInterceptor(streamInterceptors...),
 		grpc.MaxRecvMsgSize(10*1024*1024), // 10MB
 		grpc.MaxSendMsgSize(10*1024*1024), // 10MB
+
+		// Transport-level keepalive for connection health.
+		//
+		// Enforcement policy: permit client keepalive PINGs as frequent as
+		// every 5 seconds. Without this, gRPC may reject frequent client
+		// PINGs with a GOAWAY frame.
+		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
+			MinTime:             5 * time.Second, // Allow client PINGs >= 5s apart
+			PermitWithoutStream: false,           // Only when active streams exist
+		}),
+
+		// Server-initiated keepalive: detect dead clients on long-lived
+		// streams (e.g., execution subscribe). If a client disappears
+		// without a clean close, the server detects it within Time+Timeout
+		// and releases the stream resources.
+		grpc.KeepaliveParams(keepalive.ServerParameters{
+			Time:    15 * time.Second, // Send PING every 15s on idle connections
+			Timeout: 5 * time.Second,  // Wait 5s for PING response
+		}),
 	)
 
 	s := &Server{

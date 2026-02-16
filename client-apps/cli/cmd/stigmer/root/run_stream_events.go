@@ -59,14 +59,6 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 			return
 		}
 
-		// --- Step 0: Backend liveness signal ---
-		//
-		// Every successful stream.Recv() confirms the backend is reachable.
-		// Emit a HeartbeatEvent so the TUI can track connection health and
-		// distinguish "agent is thinking" (heartbeats arriving, no content
-		// changes) from "connection lost" (no heartbeats at all).
-		cfg.events <- executiontui.HeartbeatEvent{}
-
 		messages := execution.Status.Messages
 
 		// --- Step 1: Convert new messages to events ---

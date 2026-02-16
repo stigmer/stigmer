@@ -1,5 +1,7 @@
 package executiontui
 
+import "github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
+
 // blockType categorizes content blocks for rendering and interaction.
 type blockType int
 
@@ -42,6 +44,11 @@ type contentBlock struct {
 	// full is the expanded rendering for expandable blocks. This is the
 	// RenderExpanded() output: header line with the complete result content.
 	full string
+
+	// toolCall is stored on running tool blocks so that DoneEvent
+	// finalization can create a proper expandable block. Nil for
+	// non-tool blocks and for already-expanded tool result blocks.
+	toolCall *toolrender.ToolCallInfo
 }
 
 // displayContent returns the text that should be shown for this block.
@@ -90,10 +97,14 @@ func newToolCallBlock(preview, full string) contentBlock {
 // currently executing. The content is the running indicator header (e.g.,
 // "📝 Write: file.md ⏳"). This block is updated in-place and eventually
 // replaced with an expandable newToolCallBlock when the tool completes.
-func newRunningToolBlock(content string) contentBlock {
+//
+// The ToolCallInfo is stored so that DoneEvent finalization can create a
+// proper expandable block if the tool never receives a ToolCompletedEvent.
+func newRunningToolBlock(content string, tc *toolrender.ToolCallInfo) contentBlock {
 	return contentBlock{
 		blockType: blockToolResult,
 		content:   content,
+		toolCall:  tc,
 	}
 }
 
