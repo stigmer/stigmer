@@ -1,7 +1,7 @@
 # Default bump type for releases (can be overridden: make protos-release bump=minor)
 bump ?= patch
 
-.PHONY: help setup build build-backend test clean protos protos-release lint coverage release-local install dev
+.PHONY: help setup setup-hooks build build-backend test clean protos protos-release lint coverage release-local install dev
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -19,7 +19,19 @@ setup: ## Install dependencies and tools
 	@cd sdk/go && go mod download
 	@echo "Installing Agent Runner dependencies..."
 	cd backend/services/agent-runner && poetry install
+	@echo "Installing pre-commit hooks..."
+	@if command -v pre-commit >/dev/null 2>&1; then \
+		pre-commit install; \
+		echo "Pre-commit hooks installed!"; \
+	else \
+		echo "Note: Install pre-commit for git hook support: brew install pre-commit"; \
+	fi
 	@echo "Setup complete!"
+
+setup-hooks: ## Install pre-commit hooks (one-time setup)
+	@echo "Installing pre-commit hooks..."
+	@pre-commit install
+	@echo "Pre-commit hooks installed!"
 
 build: protos ## Build the Stigmer CLI
 	@echo "Building Stigmer CLI..."
@@ -40,7 +52,7 @@ build-backend: protos ## Build all backend services
 	@echo "2/2 Type checking agent-runner (Python)..."
 	@cd backend/services/agent-runner && \
 		poetry install --no-interaction --quiet && \
-		poetry run mypy grpc_client/ worker/ --show-error-codes
+		poetry run mypy grpc_client/ worker/ ../../libs/python/graphton/src/ --show-error-codes
 	@echo "✓ Type checking passed: agent-runner"
 	@echo ""
 	@echo "============================================"
@@ -287,6 +299,9 @@ lint: ## Run linters
 	gofmt -s -w .
 	@echo "Running proto linters..."
 	$(MAKE) -C apis lint
+	@echo "Running Python linters..."
+	@cd backend/libs/python/graphton && poetry run ruff check .
+	@cd backend/services/agent-runner && poetry run ruff check .
 	@echo "Linting complete!"
 
 clean: ## Clean build artifacts
