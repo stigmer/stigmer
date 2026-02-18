@@ -6,6 +6,7 @@ use (
 	./backend/services/stigmer-server
 	./backend/services/workflow-runner
 	./client-apps/cli
+	./mcp-server
 	./sdk/go
 	./test/e2e
 	./tools
