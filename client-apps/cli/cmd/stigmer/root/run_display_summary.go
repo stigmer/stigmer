@@ -338,6 +338,39 @@ func resolveFailureError(execution *agentexecutionv1.AgentExecution) string {
 	return "Execution failed (error details unavailable — check execution logs)"
 }
 
+// displaySessionExitLine prints a single-line summary after the TUI exits
+// for a completed session. Replaces the verbose multi-line panel.
+func displaySessionExitLine(sessionID string, exec *agentexecutionv1.AgentExecution) {
+	phase := exec.GetStatus().GetPhase()
+	duration := parseDuration(exec.GetStatus().GetStartedAt(), exec.GetStatus().GetCompletedAt())
+
+	switch phase {
+	case agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED:
+		if duration > 0 {
+			fmt.Printf("Session %s completed (%s)\n", sessionID, duration.Round(time.Second))
+		} else {
+			fmt.Printf("Session %s completed\n", sessionID)
+		}
+	case agentexecutionv1.ExecutionPhase_EXECUTION_FAILED:
+		errMsg := resolveFailureError(exec)
+		fmt.Printf("Session %s failed: %s\n", sessionID, errMsg)
+	case agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED:
+		fmt.Printf("Session %s cancelled\n", sessionID)
+	case agentexecutionv1.ExecutionPhase_EXECUTION_TERMINATED:
+		fmt.Printf("Session %s terminated\n", sessionID)
+	default:
+		fmt.Printf("Session %s exited (%s)\n", sessionID, mapPhaseToString(phase))
+	}
+	flushStdout()
+}
+
+// displaySessionDetachLine prints a single-line detach notice with
+// a copy-paste-ready re-attach command.
+func displaySessionDetachLine(sessionID string) {
+	fmt.Printf("Detached from %s (still running) — stigmer run %s to re-attach\n", sessionID, sessionID)
+	flushStdout()
+}
+
 // parseDuration calculates elapsed time between two RFC3339 timestamps.
 // Returns zero if either timestamp is empty or unparseable.
 func parseDuration(startedAt, completedAt string) time.Duration {

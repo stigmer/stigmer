@@ -15,6 +15,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/search"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/session"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
 	"google.golang.org/grpc"
 )
@@ -37,6 +38,7 @@ The type can be specified using any alias:
   - projects, project, proj
   - skills, skill
   - executions, execution, exec
+  - sessions, session, ses
 
 Both singular and plural forms are accepted.`,
 		Example: `  # List all agents
@@ -44,6 +46,9 @@ Both singular and plural forms are accepted.`,
 
   # List workflows (singular works too)
   stigmer list workflow
+
+  # List recent sessions
+  stigmer list sessions
 
   # List recent executions
   stigmer list executions
@@ -87,6 +92,12 @@ func isExecutionType(typeArg string) bool {
 	return normalized == "execution" || normalized == "executions" || normalized == "exec"
 }
 
+// isSessionType checks if the type arg refers to sessions.
+func isSessionType(typeArg string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(typeArg))
+	return normalized == "session" || normalized == "sessions" || normalized == "ses"
+}
+
 // executeList lists resources of a given type.
 func executeList(opts listOptions) error {
 	// Special case: Executions don't go through the registry
@@ -95,11 +106,16 @@ func executeList(opts listOptions) error {
 		return executeListExecutions(opts)
 	}
 
+	// Special case: Sessions use their own SessionQueryController.list() RPC
+	if isSessionType(opts.TypeArg) {
+		return executeListSessions(opts)
+	}
+
 	// Step 1: Resolve type from alias
 	reg := types.DefaultRegistry()
 	info, ok := reg.GetByAlias(opts.TypeArg)
 	if !ok {
-		return fmt.Errorf("unknown resource type: %s\n\nAvailable types: agents, workflows, mcpservers, projects, skills, executions", opts.TypeArg)
+		return fmt.Errorf("unknown resource type: %s\n\nAvailable types: agents, workflows, mcpservers, projects, skills, executions, sessions", opts.TypeArg)
 	}
 
 	// Step 2: Check verb support
@@ -304,6 +320,50 @@ func executeListExecutions(opts listOptions) error {
 	if len(result.GetEntries()) == 0 {
 		fmt.Println()
 		cliprint.PrintInfo("Tip: Run an agent to create an execution:")
+		cliprint.PrintInfo("  stigmer run agent <name>")
+		fmt.Println()
+	}
+
+	return nil
+}
+
+// executeListSessions handles listing sessions.
+// Sessions use their own dedicated RPC, not the SearchService.
+func executeListSessions(opts listOptions) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return errors.Wrap(err, "failed to load configuration")
+	}
+
+	if cfg.Backend.Type == config.BackendTypeLocal {
+		dataDir, err := config.GetDataDir()
+		if err != nil {
+			return errors.Wrap(err, "failed to get data directory")
+		}
+		if err := daemon.EnsureRunning(dataDir); err != nil {
+			return errors.Wrap(err, "failed to start daemon")
+		}
+	}
+
+	conn, err := backend.NewConnection()
+	if err != nil {
+		return errors.Wrap(err, "failed to connect to backend")
+	}
+	defer conn.Close()
+
+	result, err := session.List(&session.ListOptions{
+		Conn:     conn,
+		PageSize: opts.Limit,
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to list sessions")
+	}
+
+	session.DisplayListResult(result, opts.OutputFormat)
+
+	if len(result.GetEntries()) == 0 {
+		fmt.Println()
+		cliprint.PrintInfo("Tip: Run an agent to create a session:")
 		cliprint.PrintInfo("  stigmer run agent <name>")
 		fmt.Println()
 	}

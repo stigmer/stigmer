@@ -65,7 +65,13 @@ func (m Model) renderHeader() string {
 	} else {
 		phaseIndicator = phaseIndicatorStyle.Render(phaseIcon(m.phase) + " " + m.phase)
 	}
-	title := fmt.Sprintf("  Execution: %s  %s", m.cfg.ExecutionID, phaseIndicator)
+
+	var title string
+	if m.cfg.SessionID != "" {
+		title = fmt.Sprintf("  Session: %s  %s", m.cfg.SessionID, phaseIndicator)
+	} else {
+		title = fmt.Sprintf("  Execution: %s  %s", m.cfg.ExecutionID, phaseIndicator)
+	}
 
 	// Pad the header to full width for a clean bar appearance.
 	padding := m.width - lipgloss.Width(title)

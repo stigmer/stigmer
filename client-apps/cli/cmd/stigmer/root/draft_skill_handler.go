@@ -74,12 +74,18 @@ func executeDraftSkill(opts draftSkillOptions) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to create execution")
 	}
-	cliprint.PrintInfo("Execution ID: %s", exec.Metadata.Id)
+
+	sessionID := exec.GetSpec().GetSessionId()
+	if sessionID != "" {
+		cliprint.PrintInfo("Session: %s", sessionID)
+	} else {
+		cliprint.PrintInfo("Execution ID: %s", exec.Metadata.Id)
+	}
 	fmt.Println()
 
 	// 6. Stream execution in real-time until completion
 	prompter := approval.NewInteractivePrompter()
-	exec, err = streamAgentExecution(exec.Metadata.Id, prompter, defaultAction, conn)
+	exec, err = streamAgentExecution(sessionID, exec.Metadata.Id, prompter, defaultAction, conn)
 	if err != nil {
 		return errors.Wrap(err, "execution failed")
 	}

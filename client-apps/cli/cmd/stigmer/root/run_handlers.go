@@ -48,19 +48,26 @@ func runAgent(ref, message string, env envfile.EnvMap, attachments []*agentexecu
 		return errors.Wrap(err, "failed to create execution")
 	}
 
-	// Display execution started
-	cliprint.PrintSuccess("Agent execution started: %s", agent.Metadata.Name)
-	cliprint.PrintInfo("  Execution ID: %s", exec.Metadata.Id)
+	// Read session ID from the execution response (auto-created by backend).
+	sessionID := exec.GetSpec().GetSessionId()
+
+	// Display session started
+	if sessionID != "" {
+		cliprint.PrintSuccess("Session started: %s", sessionID)
+	} else {
+		cliprint.PrintSuccess("Agent execution started: %s", agent.Metadata.Name)
+		cliprint.PrintInfo("  Execution ID: %s", exec.Metadata.Id)
+	}
 	fmt.Println()
 
-	// Detach mode: print execution ID and return immediately
+	// Detach mode: print session/execution ID and return immediately
 	if detach {
 		return nil
 	}
 
 	// Stream execution in real-time until completion
 	prompter := approval.NewInteractivePrompter()
-	exec, err = streamAgentExecution(exec.Metadata.Id, prompter, defaultAction, conn)
+	exec, err = streamAgentExecution(sessionID, exec.Metadata.Id, prompter, defaultAction, conn)
 	if err != nil {
 		return errors.Wrap(err, "error streaming execution")
 	}

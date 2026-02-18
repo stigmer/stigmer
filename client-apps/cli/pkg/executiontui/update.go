@@ -271,7 +271,11 @@ func (m Model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 	}
 
 	if !m.ready {
-		m.viewport = newViewport(m.width, viewportHeight)
+		if m.isReplayMode() {
+			m.viewport = m.replayViewportInit(m.width, m.height)
+		} else {
+			m.viewport = newViewport(m.width, viewportHeight)
+		}
 		m.ready = true
 	} else {
 		m.viewport.Width = m.width

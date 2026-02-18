@@ -329,9 +329,9 @@ func TestUpdate_MultipleMessages_CorrectBlockCount(t *testing.T) {
 		model = result.(Model)
 	}
 
-	// 4 content blocks (human, AI, tool, system) + 1 phase block = 5
-	if len(model.blocks) != 5 {
-		t.Errorf("blocks = %d, want 5", len(model.blocks))
+	// 4 content blocks (human, AI, tool, system) — phase changes no longer create blocks
+	if len(model.blocks) != 4 {
+		t.Errorf("blocks = %d, want 4", len(model.blocks))
 	}
 }
 
@@ -364,8 +364,8 @@ func newTestModelWithBlocks() Model {
 	// [2] tool result (expandable)
 	// [3] system (non-expandable)
 	// [4] tool result (expandable)
-	// [5] phase change (non-expandable)
-	// [6] tool result (expandable)
+	// [5] tool result (expandable)
+	// Note: PhaseChangeEvent updates the phase but does not create a block.
 	events := []Event{
 		HumanMessageEvent{Content: "Read files"},
 		AIMessageEvent{Content: "Reading files..."},
@@ -425,15 +425,15 @@ func TestUpdate_Tab_SkipsNonExpandableBlocks(t *testing.T) {
 func TestUpdate_Tab_WrapsAround(t *testing.T) {
 	m := newTestModelWithBlocks()
 
-	// Tab three times to reach the last expandable (index 6).
+	// Tab three times to reach the last expandable (index 5).
 	var model Model = m
 	for i := 0; i < 3; i++ {
 		result, _ := model.Update(tea.KeyMsg{Type: tea.KeyTab})
 		model = result.(Model)
 	}
 
-	if model.focusedBlockIndex != 6 {
-		t.Fatalf("focus = %d, want 6 (third expandable)", model.focusedBlockIndex)
+	if model.focusedBlockIndex != 5 {
+		t.Fatalf("focus = %d, want 5 (third expandable)", model.focusedBlockIndex)
 	}
 
 	// Tab once more — should wrap to the first expandable (index 2).
@@ -452,8 +452,8 @@ func TestUpdate_ShiftTab_FocusesLastExpandableBlock(t *testing.T) {
 	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyShiftTab})
 	model := result.(Model)
 
-	if model.focusedBlockIndex != 6 {
-		t.Errorf("focus = %d, want 6 (last expandable)", model.focusedBlockIndex)
+	if model.focusedBlockIndex != 5 {
+		t.Errorf("focus = %d, want 5 (last expandable)", model.focusedBlockIndex)
 	}
 }
 
