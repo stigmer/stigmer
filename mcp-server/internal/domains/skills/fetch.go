@@ -15,12 +15,7 @@ import (
 // Fetch retrieves a skill by org, slug, and optional version, returning its
 // JSON representation. Pass an empty version string to get the latest version.
 func Fetch(ctx context.Context, serverAddress, org, slug, version string) (string, error) {
-	apiKey, err := auth.GetAPIKey(ctx)
-	if err != nil {
-		return "", fmt.Errorf("skills.Fetch: %w", err)
-	}
-
-	conn, err := stigmergrpc.NewConnection(serverAddress, apiKey)
+	conn, err := stigmergrpc.NewConnection(serverAddress, auth.APIKey(ctx))
 	if err != nil {
 		return "", fmt.Errorf("skills.Fetch: %w", err)
 	}

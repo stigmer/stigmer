@@ -15,12 +15,7 @@ import (
 // Fetch retrieves a workflow by org and slug, returning its JSON
 // representation.
 func Fetch(ctx context.Context, serverAddress, org, slug string) (string, error) {
-	apiKey, err := auth.GetAPIKey(ctx)
-	if err != nil {
-		return "", fmt.Errorf("workflows.Fetch: %w", err)
-	}
-
-	conn, err := stigmergrpc.NewConnection(serverAddress, apiKey)
+	conn, err := stigmergrpc.NewConnection(serverAddress, auth.APIKey(ctx))
 	if err != nil {
 		return "", fmt.Errorf("workflows.Fetch: %w", err)
 	}

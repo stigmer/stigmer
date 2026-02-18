@@ -47,6 +47,28 @@ func TestGetAPIKey_nestedContexts(t *testing.T) {
 	}
 }
 
+func TestAPIKey_returnsKey(t *testing.T) {
+	const key = "sk-test-1234"
+	ctx := WithAPIKey(context.Background(), key)
+
+	if got := APIKey(ctx); got != key {
+		t.Errorf("APIKey = %q, want %q", got, key)
+	}
+}
+
+func TestAPIKey_emptyWhenAbsent(t *testing.T) {
+	if got := APIKey(context.Background()); got != "" {
+		t.Errorf("APIKey = %q, want empty string when no key in context", got)
+	}
+}
+
+func TestAPIKey_emptyWhenSetToEmpty(t *testing.T) {
+	ctx := WithAPIKey(context.Background(), "")
+	if got := APIKey(ctx); got != "" {
+		t.Errorf("APIKey = %q, want empty string", got)
+	}
+}
+
 func TestTokenAuth_GetRequestMetadata(t *testing.T) {
 	ta := NewTokenAuth("my-secret-token")
 

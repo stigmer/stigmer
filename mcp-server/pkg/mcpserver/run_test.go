@@ -37,17 +37,6 @@ func TestRun_invalidConfig(t *testing.T) {
 			wantErr: "invalid STIGMER_MCP_LOG_LEVEL",
 		},
 		{
-			name: "missing API key for stdio",
-			cfg: &Config{
-				StigmerServerAddress: "localhost:9090",
-				Transport:            "stdio",
-				HTTPPort:             "8080",
-				LogFormat:            "text",
-				LogLevel:             "info",
-			},
-			wantErr: "STIGMER_API_KEY is required",
-		},
-		{
 			name: "empty server address",
 			cfg: &Config{
 				Transport:            "http",

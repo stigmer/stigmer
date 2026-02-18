@@ -13,8 +13,13 @@
 //     stores it in the request context before the MCP SDK sees it.
 //
 // Either way, by the time a typed tool handler runs, the API key is available
-// via [GetAPIKey]. The gRPC client layer reads it and turns it into a
-// [grpc.PerRPCCredentials] value that is attached to every outbound gRPC call.
+// via [APIKey] (or the stricter [GetAPIKey]). The gRPC client layer reads it
+// and turns it into a [grpc.PerRPCCredentials] value that is attached to every
+// outbound gRPC call.
+//
+// When the MCP server targets an unauthenticated backend (e.g. the local
+// daemon on localhost:7234), no API key is injected and [APIKey] returns an
+// empty string. The gRPC client layer skips PerRPCCredentials in that case.
 //
 // This design avoids the global-mutex workaround that Planton's MCP server
 // (built on the older community mcp-go SDK) is forced to use, because the
@@ -35,8 +40,17 @@ func WithAPIKey(ctx context.Context, key string) context.Context {
 	return context.WithValue(ctx, contextKey{}, key)
 }
 
+// APIKey returns the API key from the context, or an empty string if none was
+// set. Use this in code paths that work with or without authentication (e.g.
+// domain Fetch functions that may target an unauthenticated local backend).
+func APIKey(ctx context.Context) string {
+	v, _ := ctx.Value(contextKey{}).(string)
+	return v
+}
+
 // GetAPIKey extracts the API key previously stored by [WithAPIKey].
-// It returns an error when the key is absent or empty.
+// It returns an error when the key is absent or empty. Use this in code paths
+// that strictly require authentication (e.g. HTTP auth middleware validation).
 func GetAPIKey(ctx context.Context) (string, error) {
 	v, ok := ctx.Value(contextKey{}).(string)
 	if !ok || v == "" {

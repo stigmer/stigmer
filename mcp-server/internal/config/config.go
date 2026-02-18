@@ -45,10 +45,12 @@ type Config struct {
 	// (e.g. "localhost:9090" or "api.stigmer.ai:443").
 	StigmerServerAddress string
 
-	// APIKey authenticates the MCP server's calls to stigmer-server.
+	// APIKey optionally authenticates the MCP server's calls to stigmer-server.
 	// In STDIO mode this is loaded once from the environment at startup.
 	// In HTTP mode every inbound request carries its own key via the
 	// Authorization header, so this field is only used for STDIO.
+	// When targeting an unauthenticated backend (e.g. the local daemon),
+	// this may be empty.
 	APIKey string
 
 	// Transport selects the communication mode: stdio, http, or both.
@@ -73,7 +75,7 @@ type Config struct {
 // Environment variables:
 //
 //	STIGMER_SERVER_ADDRESS        – gRPC address (default "localhost:9090")
-//	STIGMER_API_KEY               – API key (required when transport is stdio or both)
+//	STIGMER_API_KEY               – API key (optional; required only for authenticated backends)
 //	STIGMER_MCP_TRANSPORT         – "stdio" | "http" | "both" (default "stdio")
 //	STIGMER_MCP_HTTP_PORT         – HTTP listen port (default "8080")
 //	STIGMER_MCP_HTTP_AUTH_ENABLED – "true" | "false" (default "true")
@@ -112,12 +114,6 @@ func (c *Config) Validate() error {
 
 	if c.StigmerServerAddress == "" {
 		return fmt.Errorf("STIGMER_SERVER_ADDRESS must not be empty")
-	}
-
-	// STDIO (or dual) mode needs an API key up front; HTTP mode receives
-	// per-request keys via the Authorization header.
-	if (c.Transport == TransportStdio || c.Transport == TransportBoth) && c.APIKey == "" {
-		return fmt.Errorf("STIGMER_API_KEY is required when transport is %q", c.Transport)
 	}
 
 	switch c.LogFormat {

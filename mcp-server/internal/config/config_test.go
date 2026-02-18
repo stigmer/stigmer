@@ -128,10 +128,14 @@ func TestLoadFromEnv_invalidTransport(t *testing.T) {
 
 func TestLoadFromEnv_missingAPIKeyStdio(t *testing.T) {
 	clearEnv(t)
-	// Transport defaults to stdio; API key is empty.
-	_, err := LoadFromEnv()
-	if err == nil {
-		t.Fatal("expected error when API key is missing in stdio mode, got nil")
+	// Transport defaults to stdio; API key is empty — this is valid because
+	// the local backend does not require authentication.
+	cfg, err := LoadFromEnv()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.APIKey != "" {
+		t.Errorf("APIKey = %q, want empty string", cfg.APIKey)
 	}
 }
 
@@ -139,9 +143,12 @@ func TestLoadFromEnv_missingAPIKeyBoth(t *testing.T) {
 	clearEnv(t)
 	t.Setenv("STIGMER_MCP_TRANSPORT", "both")
 
-	_, err := LoadFromEnv()
-	if err == nil {
-		t.Fatal("expected error when API key is missing in both mode, got nil")
+	cfg, err := LoadFromEnv()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.APIKey != "" {
+		t.Errorf("APIKey = %q, want empty string", cfg.APIKey)
 	}
 }
 

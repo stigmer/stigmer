@@ -70,12 +70,7 @@ func Tool() *mcp.Tool {
 // registration time; the API key is read from the context at call time.
 func Handler(serverAddress string) func(context.Context, *mcp.CallToolRequest, *SearchInput) (*mcp.CallToolResult, any, error) {
 	return func(ctx context.Context, req *mcp.CallToolRequest, input *SearchInput) (*mcp.CallToolResult, any, error) {
-		apiKey, err := auth.GetAPIKey(ctx)
-		if err != nil {
-			return nil, nil, fmt.Errorf("search: %w", err)
-		}
-
-		conn, err := stigmergrpc.NewConnection(serverAddress, apiKey)
+		conn, err := stigmergrpc.NewConnection(serverAddress, auth.APIKey(ctx))
 		if err != nil {
 			return nil, nil, fmt.Errorf("search: %w", err)
 		}

@@ -199,9 +199,12 @@ func TestConfig_toInternal_missingAPIKeyStdio(t *testing.T) {
 		LogLevel:             "info",
 	}
 
-	_, err := cfg.toInternal()
-	if err == nil {
-		t.Fatal("expected error for missing API key in stdio mode, got nil")
+	ic, err := cfg.toInternal()
+	if err != nil {
+		t.Fatalf("unexpected error — empty API key should be valid: %v", err)
+	}
+	if ic.APIKey != "" {
+		t.Errorf("APIKey = %q, want empty string", ic.APIKey)
 	}
 }
 
