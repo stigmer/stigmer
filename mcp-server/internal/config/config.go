@@ -80,7 +80,7 @@ type Config struct {
 //	STIGMER_MCP_LOG_FORMAT        – "text" | "json" (default "text")
 //	STIGMER_MCP_LOG_LEVEL         – "debug" | "info" | "warn" | "error" (default "info")
 func LoadFromEnv() (*Config, error) {
-	logLevel, err := parseLogLevel(envOr("STIGMER_MCP_LOG_LEVEL", "info"))
+	logLevel, err := ParseLogLevel(envOr("STIGMER_MCP_LOG_LEVEL", "info"))
 	if err != nil {
 		return nil, err
 	}
@@ -95,14 +95,14 @@ func LoadFromEnv() (*Config, error) {
 		LogLevel:             logLevel,
 	}
 
-	if err := cfg.validate(); err != nil {
+	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
 	return cfg, nil
 }
 
-// validate checks invariants that should hold before the server starts.
-func (c *Config) validate() error {
+// Validate checks invariants that should hold before the server starts.
+func (c *Config) Validate() error {
 	switch c.Transport {
 	case TransportStdio, TransportHTTP, TransportBoth:
 		// valid
@@ -130,8 +130,8 @@ func (c *Config) validate() error {
 	return nil
 }
 
-// parseLogLevel converts a human-friendly level name to slog.Level.
-func parseLogLevel(s string) (slog.Level, error) {
+// ParseLogLevel converts a human-friendly level name to slog.Level.
+func ParseLogLevel(s string) (slog.Level, error) {
 	switch strings.ToLower(s) {
 	case "debug":
 		return slog.LevelDebug, nil

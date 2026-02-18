@@ -211,7 +211,7 @@ func TestValidate_directCall(t *testing.T) {
 			Transport:            TransportHTTP,
 			StigmerServerAddress: "",
 		}
-		if err := c.validate(); err == nil {
+		if err := c.Validate(); err == nil {
 			t.Error("expected error for empty server address, got nil")
 		}
 	})
@@ -222,7 +222,7 @@ func TestValidate_directCall(t *testing.T) {
 			StigmerServerAddress: "localhost:9090",
 			LogFormat:            LogFormatText,
 		}
-		if err := c.validate(); err != nil {
+		if err := c.Validate(); err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
 	})
