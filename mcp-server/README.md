@@ -28,9 +28,43 @@ Use the `search` tool to discover available resources, then read them by URI.
 
 ## Quick Start
 
+### Running via the Stigmer CLI
+
+If you have the `stigmer` CLI installed, the MCP server is available as a
+built-in command — no separate binary required:
+
+```bash
+# STDIO mode (default)
+stigmer mcp-server
+
+# HTTP mode on a custom port
+stigmer mcp-server --transport http --port 9090
+```
+
+CLI flags override environment variables. Run `stigmer mcp-server --help` for
+the full list.
+
 ### Cursor / Claude Desktop (STDIO)
 
-Add the server to your MCP client configuration:
+Add the server to your MCP client configuration. You can use either the CLI
+or the standalone binary:
+
+```json
+{
+  "mcpServers": {
+    "stigmer": {
+      "command": "stigmer",
+      "args": ["mcp-server"],
+      "env": {
+        "STIGMER_SERVER_ADDRESS": "api.stigmer.ai:443",
+        "STIGMER_API_KEY": "your-api-key"
+      }
+    }
+  }
+}
+```
+
+Or with the standalone binary:
 
 ```json
 {
@@ -54,6 +88,10 @@ export STIGMER_API_KEY="your-api-key"   # not required in HTTP mode
 export STIGMER_MCP_TRANSPORT="http"
 export STIGMER_MCP_HTTP_PORT="8080"
 
+# Via the CLI
+stigmer mcp-server --transport http
+
+# Or via the standalone binary
 ./mcp-server-stigmer
 ```
 
@@ -137,7 +175,9 @@ docker run \
 ## Architecture
 
 ```
-cmd/mcp-server-stigmer/main.go   Entry point: config loading, transport switch
+cmd/mcp-server-stigmer/main.go   Standalone binary entry point
+pkg/mcpserver/config.go          Public API: Config + DefaultConfig()
+pkg/mcpserver/run.go             Public API: Run() — used by CLI and standalone binary
 internal/config/config.go        Environment-based configuration
 internal/auth/credentials.go     gRPC PerRPCCredentials + context-based API key helpers
 internal/grpc/client.go          gRPC connection factory (TLS/insecure)
