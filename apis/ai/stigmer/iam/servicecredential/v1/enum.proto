@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.servicecredential.v1;
+
+// ServiceCredentialLifecycleState represents the operational state of a service credential.
+//
+// Lifecycle transitions:
+//   active -> suspended (temporary disable, reversible)
+//   active -> revoked (permanent disable, irreversible)
+//   suspended -> active (re-enable)
+//   suspended -> revoked (permanent disable)
+//
+// When suspended or revoked, all API requests using this credential are rejected.
+// Platform-managed organizations linked to a revoked credential remain intact
+// but cannot be operated programmatically until a new credential is established.
+enum ServiceCredentialLifecycleState {
+  service_credential_lifecycle_state_unspecified = 0;
+  active = 1;
+  suspended = 2;
+  revoked = 3;
+}

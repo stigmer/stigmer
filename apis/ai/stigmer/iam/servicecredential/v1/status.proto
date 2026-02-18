@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.servicecredential.v1;
+
+import "ai/stigmer/commons/apiresource/status.proto";
+import "ai/stigmer/iam/servicecredential/v1/enum.proto";
+
+// ServiceCredentialStatus represents the system-managed state of a service credential.
+message ServiceCredentialStatus {
+  // Current lifecycle state of the service credential.
+  // Determines whether the credential can be used for API authentication.
+  ServiceCredentialLifecycleState lifecycle_state = 1;
+
+  // Standard audit information tracking creation and modification.
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+}
