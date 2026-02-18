@@ -24,7 +24,8 @@ package main
 
 import (
 	"context"
-	"log"
+	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 	"sync"
@@ -35,12 +36,14 @@ import (
 )
 
 func main() {
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-
 	cfg, err := config.LoadFromEnv()
 	if err != nil {
-		log.Fatalf("configuration error: %v", err)
+		// slog is not yet configured; write to stderr directly.
+		fmt.Fprintf(os.Stderr, "configuration error: %v\n", err)
+		os.Exit(1)
 	}
+
+	initLogger(cfg)
 
 	srv := server.New(cfg)
 
@@ -49,26 +52,28 @@ func main() {
 
 	switch cfg.Transport {
 	case config.TransportStdio:
-		log.Println("transport: stdio")
+		slog.Info("starting MCP server", "transport", "stdio")
 		if err := srv.ServeStdio(ctx); err != nil {
-			log.Fatalf("stdio server: %v", err)
+			slog.Error("stdio server failed", "err", err)
+			os.Exit(1)
 		}
 
 	case config.TransportHTTP:
-		log.Println("transport: http")
-		if err := srv.ServeHTTP(); err != nil {
-			log.Fatalf("http server: %v", err)
+		slog.Info("starting MCP server", "transport", "http")
+		if err := srv.ServeHTTP(ctx); err != nil {
+			slog.Error("http server failed", "err", err)
+			os.Exit(1)
 		}
 
 	case config.TransportBoth:
-		log.Println("transport: both (stdio + http)")
+		slog.Info("starting MCP server", "transport", "both")
 		var wg sync.WaitGroup
 		errs := make(chan error, 2)
 
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if err := srv.ServeHTTP(); err != nil {
+			if err := srv.ServeHTTP(ctx); err != nil {
 				errs <- err
 			}
 		}()
@@ -83,16 +88,34 @@ func main() {
 
 		select {
 		case <-ctx.Done():
-			log.Println("shutdown signal received")
+			slog.Info("shutdown signal received")
 		case err := <-errs:
-			log.Printf("server error: %v", err)
+			slog.Error("server error", "err", err)
 			cancel()
 		}
 		wg.Wait()
 
 	default:
-		log.Fatalf("unknown transport: %q", cfg.Transport)
+		slog.Error("unknown transport", "transport", cfg.Transport)
+		os.Exit(1)
 	}
 
-	log.Println("mcp-server-stigmer stopped")
+	slog.Info("mcp-server-stigmer stopped")
+}
+
+// initLogger configures the process-wide default slog logger.
+// All output goes to stderr so that stdout remains available for
+// the STDIO MCP transport (which uses stdout for protocol messages).
+func initLogger(cfg *config.Config) {
+	opts := &slog.HandlerOptions{Level: cfg.LogLevel}
+
+	var handler slog.Handler
+	switch cfg.LogFormat {
+	case config.LogFormatJSON:
+		handler = slog.NewJSONHandler(os.Stderr, opts)
+	default:
+		handler = slog.NewTextHandler(os.Stderr, opts)
+	}
+
+	slog.SetDefault(slog.New(handler))
 }

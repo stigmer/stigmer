@@ -8,7 +8,7 @@ package server
 
 import (
 	"context"
-	"log"
+	"log/slog"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stigmer/stigmer/mcp-server/internal/auth"
@@ -52,7 +52,7 @@ func registerTools(srv *mcp.Server, serverAddress string) {
 	mcp.AddTool(srv, skills.Tool(), skills.Handler(serverAddress))
 	mcp.AddTool(srv, workflows.Tool(), workflows.Handler(serverAddress))
 
-	log.Printf("Registered %d tools: search, get_agent, get_skill, get_workflow", 4)
+	slog.Info("tools registered", "count", 4, "tools", []string{"search", "get_agent", "get_skill", "get_workflow"})
 }
 
 // ServeStdio runs the MCP server over stdin/stdout until the client

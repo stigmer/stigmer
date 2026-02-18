@@ -45,14 +45,17 @@ func Handler(serverAddress string) func(context.Context, *mcp.CallToolRequest, *
 		}
 		defer conn.Close()
 
+		rpcCtx, cancel := context.WithTimeout(ctx, stigmergrpc.DefaultRPCTimeout)
+		defer cancel()
+
 		client := agentv1.NewAgentQueryControllerClient(conn)
-		agent, err := client.GetByReference(ctx, &apiresource.ApiResourceReference{
+		agent, err := client.GetByReference(rpcCtx, &apiresource.ApiResourceReference{
 			Org:  input.Org,
 			Kind: apiresourcekind.ApiResourceKind_agent,
 			Slug: input.Slug,
 		})
 		if err != nil {
-			return nil, nil, fmt.Errorf("get_agent RPC: %w", err)
+			return nil, nil, domains.RPCError(err, fmt.Sprintf("agent %q in org %q", input.Slug, input.Org))
 		}
 
 		text, err := domains.MarshalJSON(agent)

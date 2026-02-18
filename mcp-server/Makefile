@@ -3,10 +3,11 @@
 BINARY  := mcp-server-stigmer
 CMD     := ./cmd/mcp-server-stigmer
 IMAGE   := ghcr.io/stigmer/mcp-server-stigmer
+VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 
 # Build the server binary into bin/.
 build:
-	go build -o bin/$(BINARY) $(CMD)
+	go build -ldflags="-X github.com/stigmer/stigmer/mcp-server/internal/server.buildVersion=$(VERSION)" -o bin/$(BINARY) $(CMD)
 
 # Run unit tests with race detection.
 test:

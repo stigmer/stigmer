@@ -100,10 +100,17 @@ func Handler(serverAddress string) func(context.Context, *mcp.CallToolRequest, *
 			}
 		}
 
+		rpcCtx, cancel := context.WithTimeout(ctx, stigmergrpc.DefaultRPCTimeout)
+		defer cancel()
+
 		client := searchv1.NewSearchServiceClient(conn)
-		resp, err := client.Search(ctx, grpcReq)
+		resp, err := client.Search(rpcCtx, grpcReq)
 		if err != nil {
-			return nil, nil, fmt.Errorf("search RPC: %w", err)
+			desc := "search results"
+			if input.Org != "" {
+				desc = fmt.Sprintf("search results in org %q", input.Org)
+			}
+			return nil, nil, domains.RPCError(err, desc)
 		}
 
 		text, err := domains.MarshalJSON(resp)

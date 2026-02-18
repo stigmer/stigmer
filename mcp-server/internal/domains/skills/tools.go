@@ -50,15 +50,18 @@ func Handler(serverAddress string) func(context.Context, *mcp.CallToolRequest, *
 		}
 		defer conn.Close()
 
+		rpcCtx, cancel := context.WithTimeout(ctx, stigmergrpc.DefaultRPCTimeout)
+		defer cancel()
+
 		client := skillv1.NewSkillQueryControllerClient(conn)
-		skill, err := client.GetByReference(ctx, &apiresource.ApiResourceReference{
+		skill, err := client.GetByReference(rpcCtx, &apiresource.ApiResourceReference{
 			Org:     input.Org,
 			Kind:    apiresourcekind.ApiResourceKind_skill,
 			Slug:    input.Slug,
 			Version: input.Version,
 		})
 		if err != nil {
-			return nil, nil, fmt.Errorf("get_skill RPC: %w", err)
+			return nil, nil, domains.RPCError(err, fmt.Sprintf("skill %q in org %q", input.Slug, input.Org))
 		}
 
 		text, err := domains.MarshalJSON(skill)
