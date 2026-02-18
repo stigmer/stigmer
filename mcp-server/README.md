@@ -13,6 +13,19 @@ AI-powered development tools such as Cursor, Claude Desktop, and Windsurf.
 | `get_skill` | Retrieve the full definition of a skill by org, slug, and optional version. |
 | `get_workflow` | Retrieve the full definition of a workflow by its org and slug. |
 
+## Resources
+
+The server also exposes resource templates that MCP clients can use to read
+Stigmer resources by URI, without calling a tool:
+
+| URI Template | Description |
+|--------------|-------------|
+| `stigmer://agents/{org}/{slug}` | Full agent definition as JSON |
+| `stigmer://skills/{org}/{slug}` | Full skill definition as JSON (latest version) |
+| `stigmer://workflows/{org}/{slug}` | Full workflow definition as JSON |
+
+Use the `search` tool to discover available resources, then read them by URI.
+
 ## Quick Start
 
 ### Cursor / Claude Desktop (STDIO)
@@ -58,6 +71,36 @@ All settings are read from environment variables:
 | `STIGMER_MCP_TRANSPORT` | `stdio` | Transport mode: `stdio`, `http`, or `both` |
 | `STIGMER_MCP_HTTP_PORT` | `8080` | TCP port for the HTTP transport |
 | `STIGMER_MCP_HTTP_AUTH_ENABLED` | `true` | Require Bearer token on HTTP requests |
+| `STIGMER_MCP_LOG_FORMAT` | `text` | Log output encoding: `text` or `json` |
+| `STIGMER_MCP_LOG_LEVEL` | `info` | Minimum log severity: `debug`, `info`, `warn`, or `error` |
+
+## Logging
+
+All log output is written to **stderr** so that stdout remains available for
+the STDIO transport protocol.
+
+| Format | When to use |
+|--------|-------------|
+| `text` (default) | Local development — human-readable, one line per event |
+| `json` | Production / log aggregation — machine-parseable, one JSON object per line |
+
+In HTTP mode every request is logged with a unique `request_id`, the HTTP
+method, path, response status code, and duration in milliseconds.
+
+gRPC errors returned by stigmer-server are classified into user-friendly
+messages for the MCP client. The original gRPC status code and message are
+logged at WARN level for operator debugging.
+
+## Graceful Shutdown
+
+The server listens for `SIGINT` and `SIGTERM`. On receiving either signal:
+
+- **HTTP mode** — in-flight requests are given a 5-second grace period to
+  complete before the listener is forcefully closed.
+- **STDIO mode** — the server stops when the MCP client disconnects or the
+  signal is received.
+- **Both mode** — both transports shut down concurrently; the process exits
+  once both have drained.
 
 ## Build
 
@@ -68,6 +111,11 @@ make build
 # From the repository root
 cd mcp-server && make build
 ```
+
+`make build` injects the version from `git describe --tags --always --dirty`
+into the binary via `-ldflags`. The MCP server reports this version to clients
+during the `initialize` handshake. Binaries built without ldflags report
+`"dev"`.
 
 ## Docker
 
@@ -96,8 +144,10 @@ internal/grpc/client.go          gRPC connection factory (TLS/insecure)
 internal/server/server.go        MCP server initialization + tool registration
 internal/server/http.go          Streamable HTTP handler with auth middleware
 internal/domains/jsonutil.go     Shared protojson serialization
+internal/domains/rpcerr.go       gRPC error classification → user-friendly messages
+internal/domains/uriutil.go      Resource URI parsing (stigmer://{kind}/{org}/{slug})
 internal/domains/search/         search tool → SearchService.search
-internal/domains/agents/         get_agent tool → AgentQueryController.getByReference
-internal/domains/skills/         get_skill tool → SkillQueryController.getByReference
-internal/domains/workflows/      get_workflow tool → WorkflowQueryController.getByReference
+internal/domains/agents/         get_agent tool + agent resource template
+internal/domains/skills/         get_skill tool + skill resource template
+internal/domains/workflows/      get_workflow tool + workflow resource template
 ```

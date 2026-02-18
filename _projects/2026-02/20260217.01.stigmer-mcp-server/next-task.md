@@ -13,50 +13,54 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current Status
 
-**Last Session**: February 18, 2026 — T04 (Observability & Hardening) — COMPLETE
-**Current Task**: T05 — Ready to pick (see candidates below)
-**Status**: T01 ✅ Complete | T02 ✅ Complete | T03 ✅ Complete | T04 ✅ Complete | T05 Pending
+**Last Session**: February 18, 2026 — T05 (README Update + MCP Resource Templates) — COMPLETE
+**Current Task**: T06 — Ready to pick (see candidates below)
+**Status**: T01 ✅ Complete | T02 ✅ Complete | T03 ✅ Complete | T04 ✅ Complete | T05 ✅ Complete | T06 Pending
 
-## Session Progress (2026-02-18, Session 3)
+## Session Progress (2026-02-18, Session 4)
 
-**T04 — Observability & Hardening (Complete)**
+**T05 — README Update + MCP Resource Templates (Complete)**
 
-58 tests across 9 packages, all passing under `-race` and `go vet`.
+70 tests across 10 packages, all passing under `-race` and `go vet`.
 
 **Changes delivered:**
 
 | Item | Description |
 |---|---|
-| T04.5 | `make build` now injects `buildVersion` via `-ldflags="-X ...buildVersion=$(VERSION)"` from `git describe` |
-| T04.1 | Structured logging via `log/slog`; all 14 `log.*` call sites migrated; all output to stderr; two new env vars: `STIGMER_MCP_LOG_FORMAT` (text/json) and `STIGMER_MCP_LOG_LEVEL` (debug/info/warn/error) |
-| T04.3 | Graceful HTTP shutdown: `ServeHTTP(ctx)` now accepts context; `http.Server.Shutdown` called with 5s grace; `ReadHeaderTimeout: 10s` added for slowloris protection |
-| T04.2 | gRPC error classification: `internal/domains/rpcerr.go` maps 7 gRPC codes to user-friendly messages; raw error logged at WARN for operators |
-| T04.4 | `DefaultRPCTimeout = 30s` constant in `internal/grpc/`; all 4 domain handlers wrap RPC calls with `context.WithTimeout` |
+| T05-A | README fully updated: new env vars (`STIGMER_MCP_LOG_FORMAT`, `STIGMER_MCP_LOG_LEVEL`), Logging section, Graceful Shutdown section, build version injection note, updated Architecture map |
+| T05-B.1 | `internal/domains/uriutil.go`: `ParseResourceURI()` with 10 unit tests |
+| T05-B.2 | Shared `Fetch()` extracted into `fetch.go` per domain; tool handlers slimmed to ~5 lines |
+| T05-B.3 | Resource templates: `stigmer://agents/{org}/{slug}`, `stigmer://skills/{org}/{slug}`, `stigmer://workflows/{org}/{slug}` with 4 integration tests each |
+| T05-B.4 | `registerResources()` wired into `server.go` `New()` alongside `registerTools()` |
 
 **New files:**
-- `mcp-server/internal/domains/rpcerr.go`
-- `mcp-server/internal/domains/rpcerr_test.go`
-- `mcp-server/internal/config/config_test.go` (10 new tests)
+- `mcp-server/internal/domains/uriutil.go` + `uriutil_test.go`
+- `mcp-server/internal/domains/agents/fetch.go` + `resources.go` + `resources_test.go`
+- `mcp-server/internal/domains/skills/fetch.go` + `resources.go` + `resources_test.go`
+- `mcp-server/internal/domains/workflows/fetch.go` + `resources.go` + `resources_test.go`
 
-## Next Steps (T05 Candidates — pick one)
+## Next Steps (T06 Candidates — pick one)
 
-### Option A: README Update (quick win, ~1 hour)
-The README still documents the old `log` behavior and is missing:
-- `STIGMER_MCP_LOG_FORMAT` and `STIGMER_MCP_LOG_LEVEL` env var documentation
-- Updated request log format (structured, with request_id)
-- Graceful shutdown behavior notes
+### Option A: Versioned Skill Resources (quick win, ~1 hour)
 
-### Option B: MCP Resources (planned, ~half day)
-Expose agents, skills, and workflows as URI-addressable MCP Resources:
-- Register `stigmer://agents/{org}/{slug}` etc. via `mcp.AddResource`
-- Enables MCP clients to browse resources without calling tools
-- Already planned in T01 architecture
+The current `stigmer://skills/{org}/{slug}` template always returns the latest version. Add:
+- `stigmer://skills/{org}/{slug}/{version}` resource template
+- Version segment parsed from URI (4-segment path instead of 2)
+- Requires a small extension to `ParseResourceURI` or a new `ParseResourceURIWithVersion` function
 
-### Option C: Write Operations (bigger scope, ~1-2 days)
+### Option B: Write Operations (bigger scope, ~1-2 days)
+
 Add mutation tools:
 - `apply_agent`, `apply_skill`, `apply_workflow` — create/update
 - `delete_agent`, `delete_skill`, `delete_workflow`
-- Requires `CommandController` gRPC stubs to be available
+- Requires `CommandController` gRPC stubs to be available and their test doubles to be mockable
+
+### Option C: CLI Embedding (~half day)
+
+Expose the MCP server as a `stigmer mcp-server start` CLI subcommand:
+- Import `mcp-server/internal/server` directly from the CLI package (same Go module)
+- Same binary handles both CLI and MCP server modes
+- Allows `stigmer mcp-server start` as a discoverable entry point
 
 ## Key Architectural Decisions
 
@@ -72,12 +76,16 @@ Add mutation tools:
 | Logging | `log/slog` to stderr | Stdlib, structured, stderr-only (stdout reserved for STDIO transport) |
 | Error messages | `domains.RPCError(err, resourceDesc)` | Classifies gRPC codes into user-friendly messages; logs raw error |
 | RPC timeout | `DefaultRPCTimeout = 30s` via `context.WithTimeout` | Fails fast on unreachable servers; avoids 2min TCP timeout hangs |
+| Resources | Templates only (no static list resources) | `search` tool handles discovery; static list resources can't paginate or filter |
+| Fetch abstraction | `Fetch()` in `fetch.go` per domain | Single implementation shared by tool and resource handlers |
+| Skill resource version | Latest only for `{org}/{slug}` template | No current use case for pinned-version resource reads |
 
 ## Quick Resume Commands
 
 When starting the next session:
-- "Continue with T05 Option A (README update)" — documentation task
-- "Continue with T05 Option B (MCP Resources)" — feature task
+- "Continue with T06 Option A (versioned skill resources)" — quick feature task
+- "Continue with T06 Option B (write operations)" — larger feature task
+- "Continue with T06 Option C (CLI embedding)" — integration task
 - "Show test coverage" — run `go test -coverprofile` to see numbers
 - "Show project status" — get full overview
 
@@ -85,10 +93,11 @@ When starting the next session:
 
 ```
 _projects/2026-02/20260217.01.stigmer-mcp-server/tasks/T01_0_plan.md  — Architecture decisions
-_projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-18-session-1.md  — T01+T02 session notes
-_projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-18-session-2.md  — T03 session notes
-_projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-18-session-3.md  — T04 session notes
-mcp-server/  — Implementation (15 source files + 11 test files)
+_projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-18-session-1.md  — T01+T02
+_projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-18-session-2.md  — T03
+_projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-18-session-3.md  — T04
+_projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-18-session-4.md  — T05
+mcp-server/  — Implementation (26 source files + 15 test files)
 ```
 
 ---

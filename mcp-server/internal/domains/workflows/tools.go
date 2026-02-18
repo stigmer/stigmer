@@ -4,16 +4,8 @@ package workflows
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-
-	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	"github.com/stigmer/stigmer/mcp-server/internal/auth"
-	"github.com/stigmer/stigmer/mcp-server/internal/domains"
-	stigmergrpc "github.com/stigmer/stigmer/mcp-server/internal/grpc"
 )
 
 // GetWorkflowInput defines the parameters for the "get_workflow" tool.
@@ -32,32 +24,8 @@ func Tool() *mcp.Tool {
 
 // Handler returns the typed tool handler.
 func Handler(serverAddress string) func(context.Context, *mcp.CallToolRequest, *GetWorkflowInput) (*mcp.CallToolResult, any, error) {
-	return func(ctx context.Context, req *mcp.CallToolRequest, input *GetWorkflowInput) (*mcp.CallToolResult, any, error) {
-		apiKey, err := auth.GetAPIKey(ctx)
-		if err != nil {
-			return nil, nil, fmt.Errorf("get_workflow: %w", err)
-		}
-
-		conn, err := stigmergrpc.NewConnection(serverAddress, apiKey)
-		if err != nil {
-			return nil, nil, fmt.Errorf("get_workflow: %w", err)
-		}
-		defer conn.Close()
-
-		rpcCtx, cancel := context.WithTimeout(ctx, stigmergrpc.DefaultRPCTimeout)
-		defer cancel()
-
-		client := workflowv1.NewWorkflowQueryControllerClient(conn)
-		workflow, err := client.GetByReference(rpcCtx, &apiresource.ApiResourceReference{
-			Org:  input.Org,
-			Kind: apiresourcekind.ApiResourceKind_workflow,
-			Slug: input.Slug,
-		})
-		if err != nil {
-			return nil, nil, domains.RPCError(err, fmt.Sprintf("workflow %q in org %q", input.Slug, input.Org))
-		}
-
-		text, err := domains.MarshalJSON(workflow)
+	return func(ctx context.Context, _ *mcp.CallToolRequest, input *GetWorkflowInput) (*mcp.CallToolResult, any, error) {
+		text, err := Fetch(ctx, serverAddress, input.Org, input.Slug)
 		if err != nil {
 			return nil, nil, err
 		}
