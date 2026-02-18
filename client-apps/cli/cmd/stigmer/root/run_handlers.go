@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/envfile"
@@ -36,31 +37,37 @@ func runAgent(ref, message string, env envfile.EnvMap, attachments []*agentexecu
 		return err
 	}
 
-	// Create agent execution
+	// Create session and first execution.
 	if len(attachments) > 0 {
-		cliprint.PrintInfo("Creating agent execution with %d attachment(s)...", len(attachments))
+		cliprint.PrintInfo("Starting session with %d attachment(s)...", len(attachments))
 	} else {
-		cliprint.PrintInfo("Creating agent execution...")
+		cliprint.PrintInfo("Starting session...")
 	}
 
-	exec, err := createAgentExecution(agent.Metadata.Id, orgID, message, env, attachments, "", false, conn)
+	exec, err := createAgentExecution(CreateAgentExecutionInput{
+		AgentID:     agent.Metadata.Id,
+		OrgID:       orgID,
+		Message:     message,
+		RuntimeEnv:  env,
+		Attachments: attachments,
+		Conn:        conn,
+	})
 	if err != nil {
 		return errors.Wrap(err, "failed to create execution")
 	}
 
-	// Read session ID from the execution response (auto-created by backend).
+	// Session ID is auto-created by the backend.
 	sessionID := exec.GetSpec().GetSessionId()
-
-	// Display session started
-	if sessionID != "" {
-		cliprint.PrintSuccess("Session started: %s", sessionID)
-	} else {
-		cliprint.PrintSuccess("Agent execution started: %s", agent.Metadata.Name)
-		cliprint.PrintInfo("  Execution ID: %s", exec.Metadata.Id)
+	if sessionID == "" {
+		log.Warn().
+			Str("execution_id", exec.GetMetadata().GetId()).
+			Msg("backend returned execution without session_id — session display may be degraded")
 	}
+
+	cliprint.PrintSuccess("Session started: %s", sessionID)
 	fmt.Println()
 
-	// Detach mode: print session/execution ID and return immediately
+	// Detach mode: return immediately.
 	if detach {
 		return nil
 	}
