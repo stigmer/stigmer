@@ -11,6 +11,11 @@ import (
 // Config holds the parameters needed to create an execution TUI model.
 // All fields are required unless noted otherwise.
 type Config struct {
+	// SessionID is the session identifier displayed in the header.
+	// When non-empty, the header shows "Session: ses-xxx" instead of
+	// "Execution: exec-xxx".
+	SessionID string
+
 	// ExecutionID is the agent execution identifier displayed in the header.
 	ExecutionID string
 
@@ -158,7 +163,13 @@ func New(cfg Config) Model {
 // Init implements tea.Model. It returns the initial commands that start
 // listening for execution events, animating the pending-phase spinner,
 // and the periodic activity tick for idle detection.
+//
+// In replay mode (no Events channel), no event listener or activity tick
+// is started — the model is already done with all blocks pre-populated.
 func (m Model) Init() tea.Cmd {
+	if m.isReplayMode() {
+		return nil
+	}
 	return tea.Batch(listenForEvents(m.cfg.Events), m.spinner.Tick, scheduleActivityTick())
 }
 

@@ -79,10 +79,6 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 
 	case PhaseChangeEvent:
 		m.phase = e.Phase
-		rendered := renderPhaseChange(e.Phase, e.Previous)
-		if rendered != "" {
-			m.blocks = append(m.blocks, newPhaseBlock(rendered))
-		}
 
 	case ApprovalNeededEvent:
 		m.approval = &approvalState{
@@ -105,7 +101,6 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 
 	case DoneEvent:
 		m.done = true
-		previousPhase := m.phase
 		m.phase = e.Phase
 
 		// Finalize any tools still tracked as running. When execution
@@ -120,11 +115,6 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 			m.blocks = append(m.blocks, newErrorBlock(
 				renderErrorContent(e.Error),
 			))
-		}
-		// Render final phase change if displayable.
-		rendered := renderPhaseChange(e.Phase, previousPhase)
-		if rendered != "" {
-			m.blocks = append(m.blocks, newPhaseBlock(rendered))
 		}
 
 	case StreamErrorEvent:

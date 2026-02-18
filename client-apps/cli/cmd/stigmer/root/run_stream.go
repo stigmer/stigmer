@@ -34,7 +34,7 @@ import (
 //
 // After the TUI exits (execution completes or user quits), a summary is printed
 // to inline stdout so the terminal history shows the final state.
-func streamAgentExecution(executionID string, prompter approval.Prompter, defaultAction approval.Action, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
+func streamAgentExecution(sessionID, executionID string, prompter approval.Prompter, defaultAction approval.Action, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
 	cliprint.PrintSuccess("Streaming agent execution logs")
 	fmt.Println()
 
@@ -64,6 +64,7 @@ func streamAgentExecution(executionID string, prompter approval.Prompter, defaul
 
 	// Create and configure the TUI model.
 	model := executiontui.New(executiontui.Config{
+		SessionID:         sessionID,
 		ExecutionID:       executionID,
 		Events:            events,
 		ApprovalResponses: approvalResponses,
@@ -102,13 +103,20 @@ func streamAgentExecution(executionID string, prompter approval.Prompter, defaul
 	}
 
 	// Print the appropriate summary to inline stdout.
-	// When the execution reached a terminal phase, show the completion summary.
-	// When the user detached while execution is still running, show a detach
-	// notice with instructions for checking status or cancelling.
-	if result.Done() {
-		displayAgentExecutionComplete(finalExec)
+	// When a session ID is available, use the concise single-line format.
+	// Otherwise, fall back to the verbose panel format for backwards compat.
+	if sessionID != "" {
+		if result.Done() {
+			displaySessionExitLine(sessionID, finalExec)
+		} else {
+			displaySessionDetachLine(sessionID)
+		}
 	} else {
-		displayAgentExecutionDetached(finalExec)
+		if result.Done() {
+			displayAgentExecutionComplete(finalExec)
+		} else {
+			displayAgentExecutionDetached(finalExec)
+		}
 	}
 
 	return finalExec, nil
