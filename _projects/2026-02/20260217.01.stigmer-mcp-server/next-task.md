@@ -13,40 +13,46 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current Status
 
-**Last Session**: February 19, 2026 — T06 (CLI Embedding) — COMPLETE
-**Current Task**: T07 — Ready to pick (see candidates below)
-**Status**: T01 ✅ Complete | T02 ✅ Complete | T03 ✅ Complete | T04 ✅ Complete | T05 ✅ Complete | T06 ✅ Complete | T07 Pending
+**Last Session**: February 19, 2026 — T07 (Config Bridging) — COMPLETE
+**Current Task**: T08 — Ready to pick (see candidates below)
+**Status**: T01 ✅ | T02 ✅ | T03 ✅ | T04 ✅ | T05 ✅ | T06 ✅ | T07 ✅ | T08 Pending
 
-## Session Progress (2026-02-19, Session 5)
+## Session Progress (2026-02-19, Session 6)
 
-**T06 — CLI Embedding (Complete)**
+**T07 — Config Bridging (Complete)**
 
-84 tests across 11 packages, all passing under `-race` and `go vet`.
+All 11 MCP server packages passing under `-race`. `go vet` clean on both modules.
 
 **Changes delivered:**
 
 | Item | Description |
 |---|---|
-| T06-A | `mcp-server/pkg/mcpserver/` — new public API package: `Config`, `DefaultConfig()`, `Run()` |
-| T06-B | `mcp-server/cmd/mcp-server-stigmer/main.go` — refactored to thin wrapper (~50 lines, down from ~120) |
-| T06-C | `client-apps/cli/cmd/stigmer/root/mcp_server.go` — Cobra `mcp-server` command with 6 flags |
-| T06-D | `client-apps/cli/cmd/stigmer/root.go` — command registered under root |
-| T06-E | `client-apps/cli/go.mod` — added `replace` directives for all workspace-local modules (pre-existing gap fixed as a byproduct) |
-| T06-F | `mcp-server/README.md` — "Running via CLI" section + dual Cursor `mcp.json` examples + architecture map updated |
-| T06-G | 18 new tests (14 in `pkg/mcpserver/`, 4 in CLI root package) |
-
-**New files:**
-- `mcp-server/pkg/mcpserver/config.go` + `config_test.go`
-- `mcp-server/pkg/mcpserver/run.go` + `run_test.go`
-- `client-apps/cli/cmd/stigmer/root/mcp_server.go` + `mcp_server_test.go`
+| T07-A | `auth.APIKey(ctx) string` — new non-error variant for fetch handlers targeting either auth or no-auth backends |
+| T07-B | `grpc.NewConnection` — conditionally attaches `PerRPCCredentials` only when `apiKey != ""` |
+| T07-C | `config.Validate()` — removed API key requirement for STDIO/BOTH transport |
+| T07-D | 4 fetch call sites (agents, skills, workflows, search) — switched from `GetAPIKey` to `APIKey` |
+| T07-E | `applyCLIConfig()` + `applyCLIConfigDefaults()` in `mcp_server.go` — bridges `~/.stigmer/config.yaml` into MCP config |
+| T07-F | `mcp-server/README.md` — new "Configuration Resolution" section; simplified zero-config mcp.json example |
+| T07-G | ~24 test updates: 3 new auth tests, 1 new grpc test, 7 new CLI config bridging tests, updated 5 existing tests |
 
 **Key design decisions:**
-- Public API surface is minimal: just `Config`, `DefaultConfig()`, `Run()` — callers never import `internal/`
-- `mcp-server/internal/config.Validate()` and `ParseLogLevel()` exported (lowercase → uppercase) to enable clean conversion from public `Config` to internal `Config` without duplicating logic
-- Flags override env vars; unset flags fall through to env-var defaults — consistent with the rest of the CLI
-- `stigmer mcp-server` is a **foreground** command, not a daemon — no start/stop/status subcommands (unlike `stigmer server`)
 
-## Next Steps (T07 Candidates — pick one)
+- Auth is a property of the target, not the tool (matches kubectl, Pulumi, Terraform, MCP spec)
+- Layer 1 (MCP server core) has no knowledge of CLI config — pure optional-auth behavior
+- Layer 2 (CLI command) reads `~/.stigmer/config.yaml` and bridges; standalone binary unaffected
+- `applyCLIConfig` is a pure function for testability; `applyCLIConfigDefaults` is the I/O wrapper
+- Local backend → `localhost:7234` (daemon port); cloud backend → reads endpoint and token
+- Precedence: CLI flags > env vars > `~/.stigmer/config.yaml` > MCP defaults
+
+**User stories now working:**
+
+| Scenario | Before | After |
+|---|---|---|
+| `stigmer mcp-server` with local backend | FAILS: "API key required" | Works: connects to `localhost:7234`, no auth |
+| `stigmer mcp-server` with cloud backend | FAILS: "API key required" | Works: reads token and endpoint from `~/.stigmer/config.yaml` |
+| `mcp-server-stigmer` with env vars | Works | Works (unchanged) |
+
+## Next Steps (T08 Candidates — pick one)
 
 ### Option A: Versioned Skill Resources (quick win, ~1 hour)
 
@@ -62,13 +68,6 @@ Add mutation tools:
 - `delete_agent`, `delete_skill`, `delete_workflow`
 - Requires `CommandController` gRPC stubs and corresponding test doubles
 
-### Option C: Config Bridging (~half day)
-
-Bridge `~/.stigmer/config.yaml` into the MCP server when launched via `stigmer mcp-server`:
-- If `STIGMER_API_KEY` is unset, fall back to `config.Backend.Cloud.Token`
-- If `STIGMER_SERVER_ADDRESS` is unset, fall back to cloud endpoint from config
-- Improves UX for users already authenticated via `stigmer backend`
-
 ## Key Architectural Decisions
 
 | Decision | Choice | Rationale |
@@ -78,6 +77,8 @@ Bridge `~/.stigmer/config.yaml` into the MCP server when launched via `stigmer m
 | Public API | `pkg/mcpserver/` | Minimal surface: Config + DefaultConfig + Run; callers never import internal/ |
 | Auth (STDIO) | Context-injected at server.Run() base ctx | SDK propagates context to all tool handlers — no global state |
 | Auth (HTTP) | Bearer token extracted per-request in middleware | Each user brings their own key |
+| Auth (local) | No auth — `APIKey()` returns empty, gRPC skips PerRPCCredentials | Matches kubectl/Pulumi/Terraform pattern |
+| Config source | CLI: flags > env > config.yaml > defaults | Standard CLI precedence; config.yaml bridges existing login session |
 | List tools | Unified `search` via `SearchService.search` | Domain controllers have no list RPCs; search covers list+discover |
 | Serialization | `protojson` with `UseProtoNames: true` | Clean JSON, RFC 3339 timestamps, no manual struct mapping |
 | Integration tests | Real gRPC server + embedded Unimplemented* mocks | Zero production code changes; validates full handler path |
@@ -86,15 +87,13 @@ Bridge `~/.stigmer/config.yaml` into the MCP server when launched via `stigmer m
 | RPC timeout | `DefaultRPCTimeout = 30s` via `context.WithTimeout` | Fails fast on unreachable servers; avoids 2min TCP timeout hangs |
 | Resources | Templates only (no static list resources) | `search` tool handles discovery; static list resources can't paginate or filter |
 | Fetch abstraction | `Fetch()` in `fetch.go` per domain | Single implementation shared by tool and resource handlers |
-| Skill resource version | Latest only for `{org}/{slug}` template | No current use case for pinned-version resource reads |
 | CLI embed | Foreground command, not daemon | MCP server is stateless; no lifecycle management needed |
 
 ## Quick Resume Commands
 
 When starting the next session:
-- "Continue with T07 Option A (versioned skill resources)" — quick feature task
-- "Continue with T07 Option B (write operations)" — larger feature task
-- "Continue with T07 Option C (config bridging)" — UX improvement
+- "Continue with T08 Option A (versioned skill resources)" — quick feature task
+- "Continue with T08 Option B (write operations)" — larger feature task
 - "Show test coverage" — run `go test -coverprofile` to see numbers
 - "Show project status" — get full overview
 
@@ -102,12 +101,10 @@ When starting the next session:
 
 ```
 _projects/2026-02/20260217.01.stigmer-mcp-server/tasks/T01_0_plan.md  — Architecture decisions
-_projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-18-session-1.md  — T01+T02
-_projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-18-session-2.md  — T03
-_projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-18-session-3.md  — T04
-_projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-18-session-4.md  — T05
+_projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-19-session-6.md  — T07
 _projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-19-session-5.md  — T06
-mcp-server/  — Implementation (28 source files + 17 test files)
+mcp-server/  — Implementation
+client-apps/cli/cmd/stigmer/root/mcp_server.go  — CLI embedding with config bridging
 ```
 
 ---

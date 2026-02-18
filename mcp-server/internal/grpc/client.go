@@ -43,11 +43,12 @@ func NewConnection(endpoint, apiKey string) (*grpc.ClientConn, error) {
 		tc = insecure.NewCredentials()
 	}
 
-	conn, err := grpc.NewClient(
-		endpoint,
-		grpc.WithTransportCredentials(tc),
-		grpc.WithPerRPCCredentials(auth.NewTokenAuth(apiKey)),
-	)
+	opts := []grpc.DialOption{grpc.WithTransportCredentials(tc)}
+	if apiKey != "" {
+		opts = append(opts, grpc.WithPerRPCCredentials(auth.NewTokenAuth(apiKey)))
+	}
+
+	conn, err := grpc.NewClient(endpoint, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("grpc dial %s: %w", endpoint, err)
 	}

@@ -1,11 +1,13 @@
 package root
 
 import (
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/spf13/cobra"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/mcp-server/pkg/mcpserver"
 )
 
@@ -26,12 +28,16 @@ stigmer-server.
 By default the server runs in STDIO mode — the MCP client spawns this process
 and communicates over stdin/stdout. Use --transport http for remote deployments.
 
-Configuration is read from environment variables. CLI flags override the
-corresponding env var when set.
+Configuration precedence: CLI flags > env vars > ~/.stigmer/config.yaml > defaults.
+
+When running via the CLI, the server address and API key are automatically
+resolved from ~/.stigmer/config.yaml if the corresponding environment
+variables are not set. Local backends connect without authentication;
+cloud backends use the stored token.
 
 Environment variables:
-  STIGMER_SERVER_ADDRESS        gRPC address (default "localhost:9090")
-  STIGMER_API_KEY               API key (required for stdio/both)
+  STIGMER_SERVER_ADDRESS        gRPC address (default from CLI config or "localhost:9090")
+  STIGMER_API_KEY               API key (optional; auto-resolved from CLI config for cloud)
   STIGMER_MCP_TRANSPORT         "stdio" | "http" | "both" (default "stdio")
   STIGMER_MCP_HTTP_PORT         HTTP listen port (default "8080")
   STIGMER_MCP_HTTP_AUTH_ENABLED "true" | "false" (default "true")
@@ -55,6 +61,7 @@ Examples:
 				return err
 			}
 
+			applyCLIConfigDefaults(cfg)
 			applyFlagOverrides(cmd, cfg)
 
 			ctx, cancel := signal.NotifyContext(
@@ -74,6 +81,46 @@ Examples:
 	cmd.Flags().String("log-level", "", `minimum log level: debug, info, warn, or error (env: STIGMER_MCP_LOG_LEVEL)`)
 
 	return cmd
+}
+
+// applyCLIConfigDefaults fills MCP config fields from ~/.stigmer/config.yaml
+// when the corresponding environment variables are not set. This bridges the
+// CLI's backend configuration into the MCP server so that users who have
+// already authenticated via "stigmer backend" get a zero-config experience.
+//
+// Precedence: CLI flags > env vars > CLI config > MCP defaults.
+// This function covers the "CLI config" layer; env vars are already applied
+// by DefaultConfig(), and flags are applied afterward by applyFlagOverrides().
+func applyCLIConfigDefaults(cfg *mcpserver.Config) {
+	cliCfg, err := config.Load()
+	if err != nil {
+		slog.Debug("CLI config not available, skipping config bridging", "err", err)
+		return
+	}
+	applyCLIConfig(cfg, cliCfg)
+}
+
+// applyCLIConfig applies settings from a CLI config to the MCP server config.
+// Fields are only set when the corresponding environment variable is unset,
+// preserving the precedence: env vars > CLI config > MCP defaults.
+func applyCLIConfig(cfg *mcpserver.Config, cliCfg *config.Config) {
+	switch cliCfg.Backend.Type {
+	case config.BackendTypeLocal:
+		if os.Getenv("STIGMER_SERVER_ADDRESS") == "" {
+			cfg.StigmerServerAddress = "localhost:7234"
+		}
+
+	case config.BackendTypeCloud:
+		if cliCfg.Backend.Cloud == nil {
+			return
+		}
+		if os.Getenv("STIGMER_SERVER_ADDRESS") == "" && cliCfg.Backend.Cloud.Endpoint != "" {
+			cfg.StigmerServerAddress = cliCfg.Backend.Cloud.Endpoint
+		}
+		if os.Getenv("STIGMER_API_KEY") == "" && cliCfg.Backend.Cloud.Token != "" {
+			cfg.APIKey = cliCfg.Backend.Cloud.Token
+		}
+	}
 }
 
 // applyFlagOverrides sets Config fields from CLI flags that were explicitly

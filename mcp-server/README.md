@@ -46,25 +46,22 @@ the full list.
 
 ### Cursor / Claude Desktop (STDIO)
 
-Add the server to your MCP client configuration. You can use either the CLI
-or the standalone binary:
+Add the server to your MCP client configuration. When using the CLI, it
+auto-resolves connection settings from `~/.stigmer/config.yaml`:
 
 ```json
 {
   "mcpServers": {
     "stigmer": {
       "command": "stigmer",
-      "args": ["mcp-server"],
-      "env": {
-        "STIGMER_SERVER_ADDRESS": "api.stigmer.ai:443",
-        "STIGMER_API_KEY": "your-api-key"
-      }
+      "args": ["mcp-server"]
     }
   }
 }
 ```
 
-Or with the standalone binary:
+If you need to override the auto-resolved settings, or use the standalone
+binary, specify environment variables explicitly:
 
 ```json
 {
@@ -100,12 +97,37 @@ Then configure your MCP client to connect to `http://host:8080` with a
 
 ## Configuration
 
-All settings are read from environment variables:
+### Configuration Resolution (CLI)
+
+When running via `stigmer mcp-server`, configuration is resolved with the
+following precedence (highest wins):
+
+```
+CLI flags  >  environment variables  >  ~/.stigmer/config.yaml  >  defaults
+```
+
+The CLI automatically reads `~/.stigmer/config.yaml` and bridges the active
+backend settings into the MCP server:
+
+- **Local backend** (`backend.type: local`): server address is set to
+  `localhost:7234` (the local daemon). No API key is needed.
+- **Cloud backend** (`backend.type: cloud`): server address and API key are
+  read from `backend.cloud.endpoint` and `backend.cloud.token`.
+
+This means users who have already run `stigmer backend` get a zero-config
+MCP server experience — just run `stigmer mcp-server`.
+
+### Configuration Resolution (Standalone Binary)
+
+The standalone `mcp-server-stigmer` binary reads from environment variables
+only. It does not read `~/.stigmer/config.yaml`.
+
+### Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `STIGMER_SERVER_ADDRESS` | `localhost:9090` | gRPC address of stigmer-server |
-| `STIGMER_API_KEY` | *(required for stdio/both)* | API key for authenticating with stigmer-server |
+| `STIGMER_API_KEY` | *(optional)* | API key for authenticated backends (auto-resolved from CLI config when running via `stigmer mcp-server`) |
 | `STIGMER_MCP_TRANSPORT` | `stdio` | Transport mode: `stdio`, `http`, or `both` |
 | `STIGMER_MCP_HTTP_PORT` | `8080` | TCP port for the HTTP transport |
 | `STIGMER_MCP_HTTP_AUTH_ENABLED` | `true` | Require Bearer token on HTTP requests |

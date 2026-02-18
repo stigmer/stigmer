@@ -28,6 +28,18 @@ func TestNewConnection_tlsEndpoint(t *testing.T) {
 	}
 }
 
+func TestNewConnection_emptyAPIKey(t *testing.T) {
+	conn, err := NewConnection("localhost:9090", "")
+	if err != nil {
+		t.Fatalf("unexpected error for empty API key: %v", err)
+	}
+	defer conn.Close()
+
+	if got := conn.Target(); got != "localhost:9090" {
+		t.Errorf("Target() = %q, want %q", got, "localhost:9090")
+	}
+}
+
 func TestNewConnection_emptyEndpoint(t *testing.T) {
 	// grpc.NewClient accepts empty targets (resolves lazily), so this should
 	// not error. Documenting the behavior rather than asserting a failure.

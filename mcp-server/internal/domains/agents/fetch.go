@@ -16,12 +16,7 @@ import (
 // It handles authentication, gRPC connection lifecycle, timeout, and
 // serialization so that both tool and resource handlers can share this logic.
 func Fetch(ctx context.Context, serverAddress, org, slug string) (string, error) {
-	apiKey, err := auth.GetAPIKey(ctx)
-	if err != nil {
-		return "", fmt.Errorf("agents.Fetch: %w", err)
-	}
-
-	conn, err := stigmergrpc.NewConnection(serverAddress, apiKey)
+	conn, err := stigmergrpc.NewConnection(serverAddress, auth.APIKey(ctx))
 	if err != nil {
 		return "", fmt.Errorf("agents.Fetch: %w", err)
 	}
