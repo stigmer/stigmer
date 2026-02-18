@@ -13,48 +13,43 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current Status
 
-**Last Session**: February 18, 2026 — T01 (Architecture & Design) + T02 (Scaffolding & Core Implementation) — COMPLETE
-**Current Task**: T03 (Testing) — Ready to start
-**Status**: T01 ✅ Complete | T02 ✅ Complete | T03 Pending
+**Last Session**: February 18, 2026 — T03 (Testing) — COMPLETE
+**Current Task**: T04 (Observability & Hardening) — Ready to start
+**Status**: T01 ✅ Complete | T02 ✅ Complete | T03 ✅ Complete | T04 Pending
 
-## Session Progress (2026-02-18)
+## Session Progress (2026-02-18, Session 2)
 
-Two full tasks completed in this session:
+**T03 — Testing (Complete)**
 
-**T01 — Architecture & Design (Complete)**
-- Selected official `modelcontextprotocol/go-sdk` v1.3.0 over the community mcp-go SDK
-- Decided on `mcp-server/` at repository root (not `backend/services/`)
-- Designed 4-tool surface: `search`, `get_agent`, `get_skill`, `get_workflow`
-- Key discovery: Agent/Skill/Workflow query controllers lack `list` RPCs — `SearchService.search` is the correct unified list+search primitive
-- Chose STDIO + Streamable HTTP dual transport
-- Full plan written in `tasks/T01_0_plan.md`
+48 tests across 8 packages, all passing under `-race` and `go vet`.
 
-**T02 — Scaffolding & Core Implementation (Complete)**
-- Full reimplementation done with claude-opus-4.6 (previous run was with Auto model and was reverted)
-- All 15 source files created; `go build`, `go vet`, `gofmt` all pass cleanly
-- Zero dead code, zero technical debt
+**Test files created:**
 
-**Files Created (mcp-server/):**
-- `go.mod` — module `github.com/stigmer/stigmer/mcp-server`, replace directive for local stubs
-- `cmd/mcp-server-stigmer/main.go` — entry point with transport switch + graceful shutdown
-- `internal/config/config.go` — 5 env vars, validation, sensible defaults
-- `internal/auth/credentials.go` — context-based API key propagation + gRPC PerRPCCredentials
-- `internal/grpc/client.go` — connection factory (auto TLS on :443, insecure otherwise)
-- `internal/domains/jsonutil.go` — shared protojson marshaling
-- `internal/domains/search/tools.go` — `search` tool via `SearchService.search`
-- `internal/domains/agents/tools.go` — `get_agent` tool via `AgentQueryController.getByReference`
-- `internal/domains/skills/tools.go` — `get_skill` tool (with version support)
-- `internal/domains/workflows/tools.go` — `get_workflow` tool
-- `internal/server/server.go` — MCP server init + tool registration + STDIO transport
-- `internal/server/http.go` — Streamable HTTP handler + Bearer auth middleware + health endpoint
-- `Makefile` — build / test / docker-build / lint / fmt / clean
-- `Dockerfile` — multi-stage, non-root, health check (build from repo root)
-- `README.md` — setup for Cursor/Claude Desktop, config reference, architecture
+| File | Tests | Coverage |
+|---|---|---|
+| `internal/config/config_test.go` | 12 | `LoadFromEnv`, validation, transport normalization, defaults, auth flag |
+| `internal/auth/credentials_test.go` | 6 | Context round-trip, empty key, nested contexts, `TokenAuth` |
+| `internal/grpc/client_test.go` | 3 | TLS vs insecure selection, empty endpoint behavior |
+| `internal/domains/search/tools_test.go` | 17 | `parseKinds` (8 cases) + handler integration (9 cases) |
+| `internal/domains/agents/tools_test.go` | 4 | Handler integration: success, missing key, NotFound, tool metadata |
+| `internal/domains/skills/tools_test.go` | 5 | Handler integration: success, version forwarding, missing key, NotFound, tool metadata |
+| `internal/domains/workflows/tools_test.go` | 4 | Handler integration: success, missing key, NotFound, tool metadata |
+| `internal/server/http_test.go` | 12 | `extractBearerToken` (7 cases), `healthHandler`, `authMiddleware` (3 cases), `statusWriter` |
+| `internal/testutil/grpctest.go` | — | Shared helper: gRPC server on `localhost:0` with `t.Cleanup` shutdown |
 
-**Files Modified:**
-- `go.work` — added `./mcp-server`
-- `Makefile` (root) — added mcp-server to setup, test (1/8), test-all-go, lint, coverage
-- `.gitignore` — added `mcp-server/mcp-server-stigmer` to prevent stray binary commits
+**Architecture decision during T03:**
+- Integration test strategy: real gRPC server + mock service implementations embedding `Unimplemented*Server` proto structs. Zero production code changes required.
+- `extractText` helpers duplicated per-package (test-only) rather than cross-package test dependencies.
+- `testutil.StartGRPCServer` extracted once because it was identical across all 4 domain test files.
+- T03.7 (root Makefile) was already correct — `mcp-server` was present in all targets.
+
+## Next Steps (T04: Observability & Hardening)
+
+1. **Structured logging** — Replace `log.Printf` calls with a structured logger (`slog`, Go 1.21+); add request-id correlation through the MCP context
+2. **Error classification** — Map gRPC status codes (NotFound, PermissionDenied, etc.) to meaningful MCP error messages rather than raw gRPC errors
+3. **Graceful HTTP shutdown** — `http.ListenAndServe` blocks and ignores context cancellation; wire in `http.Server.Shutdown` on signal
+4. **Connection health** — Add gRPC connectivity check / dial timeout so bad server addresses fail fast instead of hanging
+5. **Build version in Makefile** — Pass `-ldflags` to inject `buildVersion` from `git describe` in local builds (Dockerfile already does this)
 
 ## Key Architectural Decisions
 
@@ -66,28 +61,22 @@ Two full tasks completed in this session:
 | Auth (HTTP) | Bearer token extracted per-request in middleware | Each user brings their own key |
 | List tools | Unified `search` via `SearchService.search` | Domain controllers have no list RPCs; search covers list+discover |
 | Serialization | `protojson` with `UseProtoNames: true` | Clean JSON, RFC 3339 timestamps, no manual struct mapping |
-
-## Next Steps (T03: Testing)
-
-1. Write unit tests for `internal/config` — validation edge cases, missing API key scenarios
-2. Write unit tests for `internal/auth` — context key round-trip, missing key errors
-3. Write unit tests for `internal/domains/search` — kind parsing, invalid kinds, empty kinds
-4. Write integration test scaffolding (mock gRPC server) for tool handlers
-5. Add test coverage to root Makefile `coverage` target
+| Integration tests | Real gRPC server + embedded Unimplemented* mocks | Zero production code changes; validates full handler path |
 
 ## Quick Resume Commands
 
 When starting the next session:
-- "Continue with T03" — start writing tests
-- "Show T02 files" — review what was implemented
+- "Continue with T04" — start observability & hardening
+- "Show test coverage" — run `go test -coverprofile` to see numbers
 - "Show project status" — get full overview
 
 ## Essential Files
 
 ```
 _projects/2026-02/20260217.01.stigmer-mcp-server/tasks/T01_0_plan.md  — Architecture decisions
-_projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-18-session-1.md  — Session notes
-mcp-server/  — Implementation (all 15 source files)
+_projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-18-session-1.md  — T01+T02 session notes
+_projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-18-session-2.md  — T03 session notes
+mcp-server/  — Implementation (15 source files + 9 test files)
 ```
 
 ---

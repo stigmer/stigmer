@@ -1,0 +1,219 @@
+package config
+
+import (
+	"testing"
+)
+
+// clearEnv neutralizes all Stigmer env vars so that the ambient environment
+// (e.g. a developer's shell) cannot leak into test assertions. Every subtest
+// should call this before setting the specific vars it cares about.
+func clearEnv(t *testing.T) {
+	t.Helper()
+	for _, key := range []string{
+		"STIGMER_SERVER_ADDRESS",
+		"STIGMER_API_KEY",
+		"STIGMER_MCP_TRANSPORT",
+		"STIGMER_MCP_HTTP_PORT",
+		"STIGMER_MCP_HTTP_AUTH_ENABLED",
+	} {
+		t.Setenv(key, "")
+	}
+}
+
+func TestLoadFromEnv_defaults(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("STIGMER_API_KEY", "test-key")
+
+	cfg, err := LoadFromEnv()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if cfg.StigmerServerAddress != "localhost:9090" {
+		t.Errorf("StigmerServerAddress = %q, want %q", cfg.StigmerServerAddress, "localhost:9090")
+	}
+	if cfg.Transport != TransportStdio {
+		t.Errorf("Transport = %q, want %q", cfg.Transport, TransportStdio)
+	}
+	if cfg.HTTPPort != "8080" {
+		t.Errorf("HTTPPort = %q, want %q", cfg.HTTPPort, "8080")
+	}
+	if !cfg.HTTPAuthEnabled {
+		t.Error("HTTPAuthEnabled = false, want true")
+	}
+	if cfg.APIKey != "test-key" {
+		t.Errorf("APIKey = %q, want %q", cfg.APIKey, "test-key")
+	}
+}
+
+func TestLoadFromEnv_overrides(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("STIGMER_SERVER_ADDRESS", "api.stigmer.ai:443")
+	t.Setenv("STIGMER_API_KEY", "prod-key")
+	t.Setenv("STIGMER_MCP_TRANSPORT", "http")
+	t.Setenv("STIGMER_MCP_HTTP_PORT", "3000")
+	t.Setenv("STIGMER_MCP_HTTP_AUTH_ENABLED", "false")
+
+	cfg, err := LoadFromEnv()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if cfg.StigmerServerAddress != "api.stigmer.ai:443" {
+		t.Errorf("StigmerServerAddress = %q, want %q", cfg.StigmerServerAddress, "api.stigmer.ai:443")
+	}
+	if cfg.APIKey != "prod-key" {
+		t.Errorf("APIKey = %q, want %q", cfg.APIKey, "prod-key")
+	}
+	if cfg.Transport != TransportHTTP {
+		t.Errorf("Transport = %q, want %q", cfg.Transport, TransportHTTP)
+	}
+	if cfg.HTTPPort != "3000" {
+		t.Errorf("HTTPPort = %q, want %q", cfg.HTTPPort, "3000")
+	}
+	if cfg.HTTPAuthEnabled {
+		t.Error("HTTPAuthEnabled = true, want false")
+	}
+}
+
+func TestLoadFromEnv_transportNormalization(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  Transport
+	}{
+		{"lowercase stdio", "stdio", TransportStdio},
+		{"uppercase STDIO", "STDIO", TransportStdio},
+		{"mixed case Http", "Http", TransportHTTP},
+		{"lowercase both", "both", TransportBoth},
+		{"uppercase BOTH", "BOTH", TransportBoth},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			clearEnv(t)
+			t.Setenv("STIGMER_API_KEY", "test-key")
+			t.Setenv("STIGMER_MCP_TRANSPORT", tt.input)
+
+			cfg, err := LoadFromEnv()
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if cfg.Transport != tt.want {
+				t.Errorf("Transport = %q, want %q", cfg.Transport, tt.want)
+			}
+		})
+	}
+}
+
+func TestLoadFromEnv_invalidTransport(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("STIGMER_API_KEY", "test-key")
+	t.Setenv("STIGMER_MCP_TRANSPORT", "websocket")
+
+	_, err := LoadFromEnv()
+	if err == nil {
+		t.Fatal("expected error for invalid transport, got nil")
+	}
+}
+
+func TestLoadFromEnv_missingAPIKeyStdio(t *testing.T) {
+	clearEnv(t)
+	// Transport defaults to stdio; API key is empty.
+	_, err := LoadFromEnv()
+	if err == nil {
+		t.Fatal("expected error when API key is missing in stdio mode, got nil")
+	}
+}
+
+func TestLoadFromEnv_missingAPIKeyBoth(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("STIGMER_MCP_TRANSPORT", "both")
+
+	_, err := LoadFromEnv()
+	if err == nil {
+		t.Fatal("expected error when API key is missing in both mode, got nil")
+	}
+}
+
+func TestLoadFromEnv_missingAPIKeyHTTP(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("STIGMER_MCP_TRANSPORT", "http")
+
+	cfg, err := LoadFromEnv()
+	if err != nil {
+		t.Fatalf("HTTP mode should not require API key, got error: %v", err)
+	}
+	if cfg.APIKey != "" {
+		t.Errorf("APIKey = %q, want empty string", cfg.APIKey)
+	}
+}
+
+func TestLoadFromEnv_emptyServerAddress(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("STIGMER_SERVER_ADDRESS", "")
+	t.Setenv("STIGMER_MCP_TRANSPORT", "http")
+
+	// envOr returns the fallback "localhost:9090" when the var is empty, so
+	// the only way to trigger the "must not be empty" validation is if
+	// someone bypasses envOr. With the current implementation, setting the
+	// env var to empty uses the fallback, so this should succeed.
+	cfg, err := LoadFromEnv()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.StigmerServerAddress != "localhost:9090" {
+		t.Errorf("StigmerServerAddress = %q, want fallback %q", cfg.StigmerServerAddress, "localhost:9090")
+	}
+}
+
+func TestLoadFromEnv_httpAuthDisabled(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("STIGMER_API_KEY", "test-key")
+	t.Setenv("STIGMER_MCP_HTTP_AUTH_ENABLED", "false")
+
+	cfg, err := LoadFromEnv()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.HTTPAuthEnabled {
+		t.Error("HTTPAuthEnabled = true, want false")
+	}
+}
+
+func TestLoadFromEnv_httpAuthAnyNonTrue(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("STIGMER_API_KEY", "test-key")
+	t.Setenv("STIGMER_MCP_HTTP_AUTH_ENABLED", "yes")
+
+	cfg, err := LoadFromEnv()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// "yes" != "true", so auth should be disabled.
+	if cfg.HTTPAuthEnabled {
+		t.Error("HTTPAuthEnabled = true for value \"yes\", want false (only \"true\" enables)")
+	}
+}
+
+func TestValidate_directCall(t *testing.T) {
+	t.Run("empty server address", func(t *testing.T) {
+		c := &Config{
+			Transport:            TransportHTTP,
+			StigmerServerAddress: "",
+		}
+		if err := c.validate(); err == nil {
+			t.Error("expected error for empty server address, got nil")
+		}
+	})
+
+	t.Run("valid minimal http config", func(t *testing.T) {
+		c := &Config{
+			Transport:            TransportHTTP,
+			StigmerServerAddress: "localhost:9090",
+		}
+		if err := c.validate(); err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+}
