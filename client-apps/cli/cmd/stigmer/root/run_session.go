@@ -70,7 +70,7 @@ func openSession(sessionID string, conn *grpc.ClientConn) error {
 		agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS,
 		agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL,
 		agentexecutionv1.ExecutionPhase_EXECUTION_PAUSED:
-		cliprint.PrintInfo("Re-attaching to running execution...")
+		cliprint.PrintInfo("Re-attaching to session...")
 		fmt.Println()
 		prompter := approval.NewInteractivePrompter()
 		_, err := streamAgentExecution(sessionID, executionID, prompter, approval.Action(0), conn)

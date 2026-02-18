@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
@@ -68,29 +69,39 @@ func executeDraftSkill(opts draftSkillOptions) error {
 		cliprint.PrintInfo("Attached %d file(s) as context", len(attachments))
 	}
 
-	// 5. Create execution
-	cliprint.PrintInfo("Invoking skill-creator-agent...")
-	exec, err := createAgentExecution(agent.Metadata.Id, orgID, opts.Message, nil, attachments, opts.Model, opts.AutoApprove, conn)
+	// 5. Create session and first execution.
+	cliprint.PrintInfo("Starting session...")
+	exec, err := createAgentExecution(CreateAgentExecutionInput{
+		AgentID:        agent.Metadata.Id,
+		OrgID:          orgID,
+		Message:        opts.Message,
+		Attachments:    attachments,
+		Model:          opts.Model,
+		AutoApproveAll: opts.AutoApprove,
+		Conn:           conn,
+	})
 	if err != nil {
 		return errors.Wrap(err, "failed to create execution")
 	}
 
 	sessionID := exec.GetSpec().GetSessionId()
-	if sessionID != "" {
-		cliprint.PrintInfo("Session: %s", sessionID)
-	} else {
-		cliprint.PrintInfo("Execution ID: %s", exec.Metadata.Id)
+	if sessionID == "" {
+		log.Warn().
+			Str("execution_id", exec.GetMetadata().GetId()).
+			Msg("backend returned execution without session_id — session display may be degraded")
 	}
+
+	cliprint.PrintInfo("Session: %s", sessionID)
 	fmt.Println()
 
-	// 6. Stream execution in real-time until completion
+	// 6. Stream execution in real-time until completion.
 	prompter := approval.NewInteractivePrompter()
 	exec, err = streamAgentExecution(sessionID, exec.Metadata.Id, prompter, defaultAction, conn)
 	if err != nil {
 		return errors.Wrap(err, "execution failed")
 	}
 
-	// 7. Download artifacts (draft commands always download)
+	// 7. Download artifacts (draft commands always download).
 	if len(exec.Status.Artifacts) > 0 {
 		if err := downloadArtifacts(exec, opts.OutputDir, conn); err != nil {
 			return errors.Wrap(err, "failed to download skill artifacts")
@@ -98,8 +109,8 @@ func executeDraftSkill(opts draftSkillOptions) error {
 		cliprint.PrintSuccess("Skill saved to: %s", opts.OutputDir)
 	} else {
 		cliprint.PrintWarning("No skill artifacts were generated")
-		cliprint.PrintInfo("The agent may not have published any files. Check execution logs with:")
-		cliprint.PrintInfo("  stigmer get execution %s", exec.Metadata.Id)
+		cliprint.PrintInfo("The agent may not have published any files. Check session logs with:")
+		cliprint.PrintInfo("  stigmer run %s", sessionID)
 	}
 
 	return nil

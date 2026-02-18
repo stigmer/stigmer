@@ -35,7 +35,7 @@ import (
 // After the TUI exits (execution completes or user quits), a summary is printed
 // to inline stdout so the terminal history shows the final state.
 func streamAgentExecution(sessionID, executionID string, prompter approval.Prompter, defaultAction approval.Action, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
-	cliprint.PrintSuccess("Streaming agent execution logs")
+	cliprint.PrintSuccess("Streaming session...")
 	fmt.Println()
 
 	// Create streaming client
