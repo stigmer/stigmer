@@ -182,6 +182,8 @@ const (
 	ApiResourceKind_api_key          ApiResourceKind = 12
 	// IAM - Credential and connection management
 	ApiResourceKind_credential ApiResourceKind = 20
+	// IAM - External platform trust relationships
+	ApiResourceKind_service_credential ApiResourceKind = 21
 	// Tenancy - Platform and organizational resources
 	ApiResourceKind_organization ApiResourceKind = 30
 	ApiResourceKind_platform     ApiResourceKind = 31
@@ -211,6 +213,7 @@ var (
 		11: "identity_account",
 		12: "api_key",
 		20: "credential",
+		21: "service_credential",
 		30: "organization",
 		31: "platform",
 		40: "agent",
@@ -233,6 +236,7 @@ var (
 		"identity_account":          11,
 		"api_key":                   12,
 		"credential":                20,
+		"service_credential":        21,
 		"organization":              30,
 		"platform":                  31,
 		"agent":                     40,
@@ -436,7 +440,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\x0fTIER_CLOUD_ONLY\x10\x02*A\n" +
 	"\x0fPlatformIdValue\x12!\n" +
 	"\x1dplatform_id_value_unspecified\x10\x00\x12\v\n" +
-	"\astigmer\x10\x01*\x9e\v\n" +
+	"\astigmer\x10\x01*\xf6\v\n" +
 	"\x0fApiResourceKind\x12\x1d\n" +
 	"\x19api_resource_kind_unknown\x10\x00\x12[\n" +
 	"\x14api_resource_version\x10\x01\x1aA\xaa\xff+=\b\x01\x10\x01\x1a\x12ApiResourceVersion\"\x14API Resource Version*\x03ver8\x01@\x02J\x04\b\x05\x10\x04\x12?\n" +
@@ -449,7 +453,8 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\n" +
 	"credential\x10\x14\x1a/\xaa\xff++\b\x02\x10\x01\x1a\n" +
 	"Credential\"\n" +
-	"Credential*\x03crd8\x01@\x02J\x04\b\x05\x10\x04\x12C\n" +
+	"Credential*\x03crd8\x01@\x02J\x04\b\x05\x10\x04\x12V\n" +
+	"\x12service_credential\x10\x15\x1a>\xaa\xff+:\b\x02\x10\x01\x1a\x11ServiceCredential\"\x12Service Credential*\x03svc8\x01@\x02J\x04\b\x02\x10\x01\x12C\n" +
 	"\forganization\x10\x1e\x1a1\xaa\xff+-\b\x03\x10\x01\x1a\fOrganization\"\fOrganization*\x03org@\x02J\x04\b\x01\x10\x01\x129\n" +
 	"\bplatform\x10\x1f\x1a+\xaa\xff+'\b\x03\x10\x01\x1a\bPlatform\"\bPlatform*\x03plt8\x01@\x02J\x04\b\x05\x10\x04\x122\n" +
 	"\x05agent\x10(\x1a'\xaa\xff+#\b\x01\x10\x01\x1a\x05Agent\"\x05Agent*\x03agt@\x01J\b\b\x02\x10\x01*\x02\b\x01\x12k\n" +
