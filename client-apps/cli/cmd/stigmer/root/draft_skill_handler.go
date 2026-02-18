@@ -96,7 +96,7 @@ func executeDraftSkill(opts draftSkillOptions) error {
 
 	// 6. Stream execution in real-time until completion.
 	prompter := approval.NewInteractivePrompter()
-	exec, err = streamAgentExecution(sessionID, exec.Metadata.Id, prompter, defaultAction, conn)
+	exec, err = streamAgentExecution(sessionID, exec.Metadata.Id, orgID, prompter, defaultAction, conn)
 	if err != nil {
 		return errors.Wrap(err, "execution failed")
 	}

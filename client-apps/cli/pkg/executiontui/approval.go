@@ -61,7 +61,7 @@ func (m Model) handleApprovalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	// Use a command to send the response asynchronously, preventing the
 	// Update loop from blocking if the channel is not immediately ready.
-	sendCmd := sendApprovalResponse(m.cfg.ApprovalResponses, response)
+	sendCmd := sendApprovalResponse(m.activeApprovals, response)
 
 	// Update the tool block badge in-place. For "approve", the tool will
 	// resume running (⏳). For "skip" and "reject", the tool reaches a

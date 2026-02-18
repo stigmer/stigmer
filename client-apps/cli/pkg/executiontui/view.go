@@ -48,6 +48,11 @@ func (m Model) View() string {
 		content = renderHelp(m.width, m.viewport.Height)
 	}
 
+	if m.hasInputArea() {
+		inputArea := m.renderInputArea()
+		return fmt.Sprintf("%s\n%s\n%s\n%s", header, content, inputArea, footer)
+	}
+
 	return fmt.Sprintf("%s\n%s\n%s", header, content, footer)
 }
 
@@ -86,18 +91,21 @@ func (m Model) renderHeader() string {
 // renderFooter returns the bottom key hints bar.
 //
 // The footer adapts to the current interaction state (priority order):
-//  1. Done: execution finished — shows phase result and exit hint
-//  2. Cancel confirm: shows y/n prompt
-//  3. Cancelling: shows cancelling indicator with detach hint
-//  4. Approval active: shows approval action keys
-//  5. Scroll paused: user scrolled away from bottom — shows resume hint
-//  6. Normal: auto-scrolling — shows standard navigation hints
+//  1. Input active: execution done, input composer focused — Enter/Esc hints
+//  2. Done: execution finished (no follow-up) — shows phase result and exit hint
+//  3. Cancel confirm: shows y/n prompt
+//  4. Cancelling: shows cancelling indicator with detach hint
+//  5. Approval active: shows approval action keys
+//  6. Scroll paused: user scrolled away from bottom — shows resume hint
+//  7. Normal: auto-scrolling — shows standard navigation hints
 //
 // When the execution is still running, "quit" is labeled "detach" to make
 // it clear that exiting the TUI does not stop the execution.
 func (m Model) renderFooter() string {
 	var hints string
 	switch {
+	case m.inputActive:
+		hints = "  " + doneFooterText(m.phase) + "  Enter send  Esc exit"
 	case m.done:
 		hints = "  " + doneFooterText(m.phase) + "  ↑↓ scroll"
 		if m.hasExpandableBlocks() {

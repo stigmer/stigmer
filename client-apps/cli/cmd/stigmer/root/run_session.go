@@ -17,13 +17,13 @@ import (
 // executeRunSession handles the single-arg `stigmer run ses-xxx` path.
 // It connects to the backend and delegates to openSession.
 func executeRunSession(sessionID, orgOverride string) error {
-	conn, _, err := connectToBackend(orgOverride)
+	conn, orgID, err := connectToBackend(orgOverride)
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
 
-	return openSession(sessionID, conn)
+	return openSession(sessionID, orgID, conn)
 }
 
 // openSession re-opens an existing session by its ID.
@@ -31,7 +31,7 @@ func executeRunSession(sessionID, orgOverride string) error {
 // It fetches the session, finds the latest execution, and either:
 //   - Re-attaches to the live stream if the execution is still running
 //   - Opens a read-only replay TUI if the execution has completed
-func openSession(sessionID string, conn *grpc.ClientConn) error {
+func openSession(sessionID, orgID string, conn *grpc.ClientConn) error {
 	ses, err := session.GetFromBackend(conn, sessionID)
 	if err != nil {
 		cliprint.PrintError("Session not found: %s", sessionID)
@@ -73,7 +73,7 @@ func openSession(sessionID string, conn *grpc.ClientConn) error {
 		cliprint.PrintInfo("Re-attaching to session...")
 		fmt.Println()
 		prompter := approval.NewInteractivePrompter()
-		_, err := streamAgentExecution(sessionID, executionID, prompter, approval.Action(0), conn)
+		_, err := streamAgentExecution(sessionID, executionID, orgID, prompter, approval.Action(0), conn)
 		return err
 
 	default:

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/bubbles/spinner"
+	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -33,6 +34,13 @@ type Config struct {
 	// cancellation. The result arrives via the stream as a phase change
 	// to "cancelled". May be nil if cancel is not supported.
 	CancelFn func() error
+
+	// FollowUpFn creates a follow-up execution within the same session.
+	// When set, the TUI enters conversational mode: after an execution
+	// completes, the input composer activates and the user can send
+	// follow-up messages. When nil, the TUI exits on completion
+	// (pre-Phase 2 behavior).
+	FollowUpFn FollowUpFn
 }
 
 // streamingState tracks an in-progress streaming AI message.
@@ -141,6 +149,35 @@ type Model struct {
 	// the agent to start. During "in_progress" it reactivates as a thinking
 	// indicator when no events arrive for longer than the idle threshold.
 	spinner spinner.Model
+
+	// textarea is the input composer shown at the bottom of the TUI.
+	// Active when inputActive is true; otherwise rendered as a dimmed
+	// placeholder. Only used when Config.FollowUpFn is set.
+	textarea textarea.Model
+
+	// inputActive is true when the input composer is focused and the user
+	// can type a follow-up message. Set when an execution reaches a
+	// terminal phase and FollowUpFn is configured. Cleared when the user
+	// submits a follow-up (new execution starts) or presses Esc (exit).
+	inputActive bool
+
+	// activeEvents is the events channel for the current execution.
+	// Initialized from cfg.Events and swapped when a follow-up starts.
+	activeEvents <-chan Event
+
+	// activeApprovals is the approval response channel for the current
+	// execution. Initialized from cfg.ApprovalResponses and swapped
+	// when a follow-up starts.
+	activeApprovals chan<- ApprovalResponse
+
+	// activeCancelFn is the cancel function for the current execution.
+	// Initialized from cfg.CancelFn and swapped when a follow-up starts.
+	activeCancelFn func() error
+
+	// latestExecutionID tracks the most recent execution ID. Updated when
+	// a follow-up execution starts. The caller uses this after the TUI
+	// exits to fetch the final execution state from the correct execution.
+	latestExecutionID string
 }
 
 // New creates a new execution TUI model with the given configuration.
@@ -149,6 +186,14 @@ type Model struct {
 func New(cfg Config) Model {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
+
+	ta := textarea.New()
+	ta.Placeholder = "Type a message, or press Esc to exit"
+	ta.ShowLineNumbers = false
+	ta.SetHeight(1)
+	ta.CharLimit = 4096
+	ta.Blur()
+
 	return Model{
 		cfg:               cfg,
 		autoScroll:        true,
@@ -157,6 +202,11 @@ func New(cfg Config) Model {
 		runningTools:      make(map[string]int),
 		spinner:           s,
 		lastEventAt:       time.Now(),
+		textarea:          ta,
+		activeEvents:      cfg.Events,
+		activeApprovals:   cfg.ApprovalResponses,
+		activeCancelFn:    cfg.CancelFn,
+		latestExecutionID: cfg.ExecutionID,
 	}
 }
 
@@ -170,7 +220,7 @@ func (m Model) Init() tea.Cmd {
 	if m.isReplayMode() {
 		return nil
 	}
-	return tea.Batch(listenForEvents(m.cfg.Events), m.spinner.Tick, scheduleActivityTick())
+	return tea.Batch(listenForEvents(m.activeEvents), m.spinner.Tick, scheduleActivityTick())
 }
 
 // FinalError returns the error message if the execution stream failed.
@@ -182,4 +232,12 @@ func (m Model) FinalError() string {
 // Done returns true if the execution reached a terminal phase.
 func (m Model) Done() bool {
 	return m.done
+}
+
+// LatestExecutionID returns the ID of the most recent execution. When
+// follow-ups have been sent, this is the last follow-up execution's ID
+// rather than the original. The caller uses this to fetch the correct
+// execution state after the TUI exits.
+func (m Model) LatestExecutionID() string {
+	return m.latestExecutionID
 }
