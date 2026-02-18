@@ -1,6 +1,7 @@
 package config
 
 import (
+	"log/slog"
 	"testing"
 )
 
@@ -15,6 +16,8 @@ func clearEnv(t *testing.T) {
 		"STIGMER_MCP_TRANSPORT",
 		"STIGMER_MCP_HTTP_PORT",
 		"STIGMER_MCP_HTTP_AUTH_ENABLED",
+		"STIGMER_MCP_LOG_FORMAT",
+		"STIGMER_MCP_LOG_LEVEL",
 	} {
 		t.Setenv(key, "")
 	}
@@ -43,6 +46,12 @@ func TestLoadFromEnv_defaults(t *testing.T) {
 	}
 	if cfg.APIKey != "test-key" {
 		t.Errorf("APIKey = %q, want %q", cfg.APIKey, "test-key")
+	}
+	if cfg.LogFormat != LogFormatText {
+		t.Errorf("LogFormat = %q, want %q", cfg.LogFormat, LogFormatText)
+	}
+	if cfg.LogLevel != slog.LevelInfo {
+		t.Errorf("LogLevel = %v, want %v", cfg.LogLevel, slog.LevelInfo)
 	}
 }
 
@@ -211,9 +220,91 @@ func TestValidate_directCall(t *testing.T) {
 		c := &Config{
 			Transport:            TransportHTTP,
 			StigmerServerAddress: "localhost:9090",
+			LogFormat:            LogFormatText,
 		}
 		if err := c.validate(); err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
 	})
+}
+
+func TestLoadFromEnv_logFormatJSON(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("STIGMER_API_KEY", "test-key")
+	t.Setenv("STIGMER_MCP_LOG_FORMAT", "json")
+
+	cfg, err := LoadFromEnv()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.LogFormat != LogFormatJSON {
+		t.Errorf("LogFormat = %q, want %q", cfg.LogFormat, LogFormatJSON)
+	}
+}
+
+func TestLoadFromEnv_logFormatNormalization(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("STIGMER_API_KEY", "test-key")
+	t.Setenv("STIGMER_MCP_LOG_FORMAT", "JSON")
+
+	cfg, err := LoadFromEnv()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.LogFormat != LogFormatJSON {
+		t.Errorf("LogFormat = %q, want %q", cfg.LogFormat, LogFormatJSON)
+	}
+}
+
+func TestLoadFromEnv_invalidLogFormat(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("STIGMER_API_KEY", "test-key")
+	t.Setenv("STIGMER_MCP_LOG_FORMAT", "yaml")
+
+	_, err := LoadFromEnv()
+	if err == nil {
+		t.Fatal("expected error for invalid log format, got nil")
+	}
+}
+
+func TestLoadFromEnv_logLevelOverride(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  slog.Level
+	}{
+		{"debug", "debug", slog.LevelDebug},
+		{"info", "info", slog.LevelInfo},
+		{"warn", "warn", slog.LevelWarn},
+		{"error", "error", slog.LevelError},
+		{"uppercase DEBUG", "DEBUG", slog.LevelDebug},
+		{"mixed case Warn", "Warn", slog.LevelWarn},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			clearEnv(t)
+			t.Setenv("STIGMER_API_KEY", "test-key")
+			t.Setenv("STIGMER_MCP_LOG_LEVEL", tt.input)
+
+			cfg, err := LoadFromEnv()
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if cfg.LogLevel != tt.want {
+				t.Errorf("LogLevel = %v, want %v", cfg.LogLevel, tt.want)
+			}
+		})
+	}
+}
+
+func TestLoadFromEnv_invalidLogLevel(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("STIGMER_API_KEY", "test-key")
+	t.Setenv("STIGMER_MCP_LOG_LEVEL", "trace")
+
+	_, err := LoadFromEnv()
+	if err == nil {
+		t.Fatal("expected error for invalid log level, got nil")
+	}
 }

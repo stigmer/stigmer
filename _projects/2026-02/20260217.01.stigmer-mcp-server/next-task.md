@@ -13,43 +13,50 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current Status
 
-**Last Session**: February 18, 2026 — T03 (Testing) — COMPLETE
-**Current Task**: T04 (Observability & Hardening) — Ready to start
-**Status**: T01 ✅ Complete | T02 ✅ Complete | T03 ✅ Complete | T04 Pending
+**Last Session**: February 18, 2026 — T04 (Observability & Hardening) — COMPLETE
+**Current Task**: T05 — Ready to pick (see candidates below)
+**Status**: T01 ✅ Complete | T02 ✅ Complete | T03 ✅ Complete | T04 ✅ Complete | T05 Pending
 
-## Session Progress (2026-02-18, Session 2)
+## Session Progress (2026-02-18, Session 3)
 
-**T03 — Testing (Complete)**
+**T04 — Observability & Hardening (Complete)**
 
-48 tests across 8 packages, all passing under `-race` and `go vet`.
+58 tests across 9 packages, all passing under `-race` and `go vet`.
 
-**Test files created:**
+**Changes delivered:**
 
-| File | Tests | Coverage |
-|---|---|---|
-| `internal/config/config_test.go` | 12 | `LoadFromEnv`, validation, transport normalization, defaults, auth flag |
-| `internal/auth/credentials_test.go` | 6 | Context round-trip, empty key, nested contexts, `TokenAuth` |
-| `internal/grpc/client_test.go` | 3 | TLS vs insecure selection, empty endpoint behavior |
-| `internal/domains/search/tools_test.go` | 17 | `parseKinds` (8 cases) + handler integration (9 cases) |
-| `internal/domains/agents/tools_test.go` | 4 | Handler integration: success, missing key, NotFound, tool metadata |
-| `internal/domains/skills/tools_test.go` | 5 | Handler integration: success, version forwarding, missing key, NotFound, tool metadata |
-| `internal/domains/workflows/tools_test.go` | 4 | Handler integration: success, missing key, NotFound, tool metadata |
-| `internal/server/http_test.go` | 12 | `extractBearerToken` (7 cases), `healthHandler`, `authMiddleware` (3 cases), `statusWriter` |
-| `internal/testutil/grpctest.go` | — | Shared helper: gRPC server on `localhost:0` with `t.Cleanup` shutdown |
+| Item | Description |
+|---|---|
+| T04.5 | `make build` now injects `buildVersion` via `-ldflags="-X ...buildVersion=$(VERSION)"` from `git describe` |
+| T04.1 | Structured logging via `log/slog`; all 14 `log.*` call sites migrated; all output to stderr; two new env vars: `STIGMER_MCP_LOG_FORMAT` (text/json) and `STIGMER_MCP_LOG_LEVEL` (debug/info/warn/error) |
+| T04.3 | Graceful HTTP shutdown: `ServeHTTP(ctx)` now accepts context; `http.Server.Shutdown` called with 5s grace; `ReadHeaderTimeout: 10s` added for slowloris protection |
+| T04.2 | gRPC error classification: `internal/domains/rpcerr.go` maps 7 gRPC codes to user-friendly messages; raw error logged at WARN for operators |
+| T04.4 | `DefaultRPCTimeout = 30s` constant in `internal/grpc/`; all 4 domain handlers wrap RPC calls with `context.WithTimeout` |
 
-**Architecture decision during T03:**
-- Integration test strategy: real gRPC server + mock service implementations embedding `Unimplemented*Server` proto structs. Zero production code changes required.
-- `extractText` helpers duplicated per-package (test-only) rather than cross-package test dependencies.
-- `testutil.StartGRPCServer` extracted once because it was identical across all 4 domain test files.
-- T03.7 (root Makefile) was already correct — `mcp-server` was present in all targets.
+**New files:**
+- `mcp-server/internal/domains/rpcerr.go`
+- `mcp-server/internal/domains/rpcerr_test.go`
+- `mcp-server/internal/config/config_test.go` (10 new tests)
 
-## Next Steps (T04: Observability & Hardening)
+## Next Steps (T05 Candidates — pick one)
 
-1. **Structured logging** — Replace `log.Printf` calls with a structured logger (`slog`, Go 1.21+); add request-id correlation through the MCP context
-2. **Error classification** — Map gRPC status codes (NotFound, PermissionDenied, etc.) to meaningful MCP error messages rather than raw gRPC errors
-3. **Graceful HTTP shutdown** — `http.ListenAndServe` blocks and ignores context cancellation; wire in `http.Server.Shutdown` on signal
-4. **Connection health** — Add gRPC connectivity check / dial timeout so bad server addresses fail fast instead of hanging
-5. **Build version in Makefile** — Pass `-ldflags` to inject `buildVersion` from `git describe` in local builds (Dockerfile already does this)
+### Option A: README Update (quick win, ~1 hour)
+The README still documents the old `log` behavior and is missing:
+- `STIGMER_MCP_LOG_FORMAT` and `STIGMER_MCP_LOG_LEVEL` env var documentation
+- Updated request log format (structured, with request_id)
+- Graceful shutdown behavior notes
+
+### Option B: MCP Resources (planned, ~half day)
+Expose agents, skills, and workflows as URI-addressable MCP Resources:
+- Register `stigmer://agents/{org}/{slug}` etc. via `mcp.AddResource`
+- Enables MCP clients to browse resources without calling tools
+- Already planned in T01 architecture
+
+### Option C: Write Operations (bigger scope, ~1-2 days)
+Add mutation tools:
+- `apply_agent`, `apply_skill`, `apply_workflow` — create/update
+- `delete_agent`, `delete_skill`, `delete_workflow`
+- Requires `CommandController` gRPC stubs to be available
 
 ## Key Architectural Decisions
 
@@ -62,11 +69,15 @@ Drop this file into your conversation to quickly resume work on this project.
 | List tools | Unified `search` via `SearchService.search` | Domain controllers have no list RPCs; search covers list+discover |
 | Serialization | `protojson` with `UseProtoNames: true` | Clean JSON, RFC 3339 timestamps, no manual struct mapping |
 | Integration tests | Real gRPC server + embedded Unimplemented* mocks | Zero production code changes; validates full handler path |
+| Logging | `log/slog` to stderr | Stdlib, structured, stderr-only (stdout reserved for STDIO transport) |
+| Error messages | `domains.RPCError(err, resourceDesc)` | Classifies gRPC codes into user-friendly messages; logs raw error |
+| RPC timeout | `DefaultRPCTimeout = 30s` via `context.WithTimeout` | Fails fast on unreachable servers; avoids 2min TCP timeout hangs |
 
 ## Quick Resume Commands
 
 When starting the next session:
-- "Continue with T04" — start observability & hardening
+- "Continue with T05 Option A (README update)" — documentation task
+- "Continue with T05 Option B (MCP Resources)" — feature task
 - "Show test coverage" — run `go test -coverprofile` to see numbers
 - "Show project status" — get full overview
 
@@ -76,7 +87,8 @@ When starting the next session:
 _projects/2026-02/20260217.01.stigmer-mcp-server/tasks/T01_0_plan.md  — Architecture decisions
 _projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-18-session-1.md  — T01+T02 session notes
 _projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-18-session-2.md  — T03 session notes
-mcp-server/  — Implementation (15 source files + 9 test files)
+_projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-18-session-3.md  — T04 session notes
+mcp-server/  — Implementation (15 source files + 11 test files)
 ```
 
 ---

@@ -11,12 +11,19 @@ package grpc
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/stigmer/stigmer/mcp-server/internal/auth"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 )
+
+// DefaultRPCTimeout is applied to each outbound gRPC call so that a
+// misconfigured or unreachable server address fails fast rather than hanging
+// until the system-level TCP timeout. 30 seconds is generous for both
+// localhost (milliseconds) and remote endpoints (low seconds).
+const DefaultRPCTimeout = 30 * time.Second
 
 // NewConnection dials a gRPC endpoint and returns an authenticated connection.
 //

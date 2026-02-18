@@ -44,14 +44,17 @@ func Handler(serverAddress string) func(context.Context, *mcp.CallToolRequest, *
 		}
 		defer conn.Close()
 
+		rpcCtx, cancel := context.WithTimeout(ctx, stigmergrpc.DefaultRPCTimeout)
+		defer cancel()
+
 		client := workflowv1.NewWorkflowQueryControllerClient(conn)
-		workflow, err := client.GetByReference(ctx, &apiresource.ApiResourceReference{
+		workflow, err := client.GetByReference(rpcCtx, &apiresource.ApiResourceReference{
 			Org:  input.Org,
 			Kind: apiresourcekind.ApiResourceKind_workflow,
 			Slug: input.Slug,
 		})
 		if err != nil {
-			return nil, nil, fmt.Errorf("get_workflow RPC: %w", err)
+			return nil, nil, domains.RPCError(err, fmt.Sprintf("workflow %q in org %q", input.Slug, input.Org))
 		}
 
 		text, err := domains.MarshalJSON(workflow)
