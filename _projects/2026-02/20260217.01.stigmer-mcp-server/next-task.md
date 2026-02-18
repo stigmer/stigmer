@@ -13,60 +13,53 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current Status
 
-**Last Session**: February 19, 2026 — T07 (Config Bridging) — COMPLETE
-**Current Task**: T08 — Ready to pick (see candidates below)
-**Status**: T01 ✅ | T02 ✅ | T03 ✅ | T04 ✅ | T05 ✅ | T06 ✅ | T07 ✅ | T08 Pending
+**Last Session**: February 19, 2026 — T08 (Versioned Skill Resources) — COMPLETE
+**Current Task**: T09 — Ready to pick (see candidates below)
+**Status**: T01 ✅ | T02 ✅ | T03 ✅ | T04 ✅ | T05 ✅ | T06 ✅ | T07 ✅ | T08 ✅ | T09 Pending
 
-## Session Progress (2026-02-19, Session 6)
+## Session Progress (2026-02-19, Session 7)
 
-**T07 — Config Bridging (Complete)**
+**T08 — Versioned Skill Resources (Complete)**
 
-All 11 MCP server packages passing under `-race`. `go vet` clean on both modules.
+All 11 MCP server packages passing under `-race`. `go vet` clean.
 
 **Changes delivered:**
 
 | Item | Description |
 |---|---|
-| T07-A | `auth.APIKey(ctx) string` — new non-error variant for fetch handlers targeting either auth or no-auth backends |
-| T07-B | `grpc.NewConnection` — conditionally attaches `PerRPCCredentials` only when `apiKey != ""` |
-| T07-C | `config.Validate()` — removed API key requirement for STDIO/BOTH transport |
-| T07-D | 4 fetch call sites (agents, skills, workflows, search) — switched from `GetAPIKey` to `APIKey` |
-| T07-E | `applyCLIConfig()` + `applyCLIConfigDefaults()` in `mcp_server.go` — bridges `~/.stigmer/config.yaml` into MCP config |
-| T07-F | `mcp-server/README.md` — new "Configuration Resolution" section; simplified zero-config mcp.json example |
-| T07-G | ~24 test updates: 3 new auth tests, 1 new grpc test, 7 new CLI config bridging tests, updated 5 existing tests |
+| T08-A | `ParseVersionedResourceURI(uri) (org, slug, version, err)` in `uriutil.go` — accepts 2 or 3 path segments; existing `ParseResourceURI` untouched |
+| T08-B | 14 new table-driven tests for `ParseVersionedResourceURI` in `uriutil_test.go` |
+| T08-C | `VersionedTemplate()` + `VersionedResourceHandler()` in `skills/resources.go` — handler passes parsed version to existing `Fetch()` |
+| T08-D | 5 new tests: template metadata, happy path, latest fallback, malformed URI, gRPC NotFound |
+| T08-E | Registered versioned template in `server.go`; updated slog count 3→4 |
+| T08-F | Updated `README.md` Resources table and Architecture section |
 
 **Key design decisions:**
 
-- Auth is a property of the target, not the tool (matches kubectl, Pulumi, Terraform, MCP spec)
-- Layer 1 (MCP server core) has no knowledge of CLI config — pure optional-auth behavior
-- Layer 2 (CLI command) reads `~/.stigmer/config.yaml` and bridges; standalone binary unaffected
-- `applyCLIConfig` is a pure function for testability; `applyCLIConfigDefaults` is the I/O wrapper
-- Local backend → `localhost:7234` (daemon port); cloud backend → reads endpoint and token
-- Precedence: CLI flags > env vars > `~/.stigmer/config.yaml` > MCP defaults
+- Two templates, not one — `stigmer://skills/{org}/{slug}` (latest) and `stigmer://skills/{org}/{slug}/{version}` (specific). Shorter URI stays canonical for the common case; both appear in `ListResourceTemplates`.
+- `ParseVersionedResourceURI` accepts 2 or 3 path segments; `version=""` when 2 segments present (latest fallback). Existing `ParseResourceURI` untouched. New function is positioned to serve agents/workflows when they add versioning.
+- URI anatomy: in `stigmer://skills/acme/slug/stable`, Go's `url.Parse` produces `Host="skills"` (authority) and `Path="/acme/slug/stable"` (3 segments). Kind lives in Host, not path.
+- Zero changes to existing code paths — purely additive.
 
-**User stories now working:**
+## Next Steps (T09 Candidates — pick one)
 
-| Scenario | Before | After |
-|---|---|---|
-| `stigmer mcp-server` with local backend | FAILS: "API key required" | Works: connects to `localhost:7234`, no auth |
-| `stigmer mcp-server` with cloud backend | FAILS: "API key required" | Works: reads token and endpoint from `~/.stigmer/config.yaml` |
-| `mcp-server-stigmer` with env vars | Works | Works (unchanged) |
-
-## Next Steps (T08 Candidates — pick one)
-
-### Option A: Versioned Skill Resources (quick win, ~1 hour)
-
-The current `stigmer://skills/{org}/{slug}` template always returns the latest version. Add:
-- `stigmer://skills/{org}/{slug}/{version}` resource template
-- Version segment parsed from URI (4-segment path instead of 2)
-- Requires a small extension to `ParseResourceURI` or a new helper function
-
-### Option B: Write Operations (bigger scope, ~1-2 days)
+### Option A: Write Operations (bigger scope, ~1-2 days)
 
 Add mutation tools:
 - `apply_agent`, `apply_skill`, `apply_workflow` — create/update
 - `delete_agent`, `delete_skill`, `delete_workflow`
 - Requires `CommandController` gRPC stubs and corresponding test doubles
+
+### Option B: Versioned Resource Templates for Agents and Workflows (~1 hour)
+
+Apply the same `ParseVersionedResourceURI` pattern to agents and workflows:
+- `stigmer://agents/{org}/{slug}/{version}`
+- `stigmer://workflows/{org}/{slug}/{version}`
+- The parser already supports this; only `VersionedTemplate()` + `VersionedResourceHandler()` per domain are needed, plus registration and tests
+
+### Option C: Search Result URIs (~30 min)
+
+Ensure the `search` tool response includes resource URIs that clients can pass directly to resource handlers — bridging the discovery-to-read workflow end-to-end.
 
 ## Key Architectural Decisions
 
@@ -86,14 +79,17 @@ Add mutation tools:
 | Error messages | `domains.RPCError(err, resourceDesc)` | Classifies gRPC codes into user-friendly messages; logs raw error |
 | RPC timeout | `DefaultRPCTimeout = 30s` via `context.WithTimeout` | Fails fast on unreachable servers; avoids 2min TCP timeout hangs |
 | Resources | Templates only (no static list resources) | `search` tool handles discovery; static list resources can't paginate or filter |
+| Versioned resources | Two templates per domain (latest + versioned) | Shorter URI stays canonical; no ambiguity in routing |
+| URI parsing | `ParseResourceURI` (2-seg) + `ParseVersionedResourceURI` (2-or-3-seg) | Existing agents/workflows use strict parser; skills uses flexible one |
 | Fetch abstraction | `Fetch()` in `fetch.go` per domain | Single implementation shared by tool and resource handlers |
 | CLI embed | Foreground command, not daemon | MCP server is stateless; no lifecycle management needed |
 
 ## Quick Resume Commands
 
 When starting the next session:
-- "Continue with T08 Option A (versioned skill resources)" — quick feature task
-- "Continue with T08 Option B (write operations)" — larger feature task
+- "Continue with T09 Option A (write operations)" — mutation tools
+- "Continue with T09 Option B (versioned resources for agents and workflows)" — quick follow-on to T08
+- "Continue with T09 Option C (search result URIs)" — bridge discovery to read
 - "Show test coverage" — run `go test -coverprofile` to see numbers
 - "Show project status" — get full overview
 
@@ -101,9 +97,11 @@ When starting the next session:
 
 ```
 _projects/2026-02/20260217.01.stigmer-mcp-server/tasks/T01_0_plan.md  — Architecture decisions
+_projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-19-session-7.md  — T08
 _projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-19-session-6.md  — T07
-_projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-19-session-5.md  — T06
 mcp-server/  — Implementation
+mcp-server/internal/domains/uriutil.go  — URI parsing (both parsers)
+mcp-server/internal/domains/skills/  — Skills domain (tool + resource handlers)
 client-apps/cli/cmd/stigmer/root/mcp_server.go  — CLI embedding with config bridging
 ```
 

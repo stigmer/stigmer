@@ -39,6 +39,48 @@ func ParseResourceURI(uri string) (org, slug string, err error) {
 	return org, slug, nil
 }
 
+// ParseVersionedResourceURI extracts the org, slug, and optional version
+// segments from a Stigmer resource URI. It accepts two forms:
+//
+//	stigmer://{kind}/{org}/{slug}            → version=""
+//	stigmer://{kind}/{org}/{slug}/{version}  → version="stable", "v1.0", sha256, etc.
+//
+// When the URI contains only two path segments, version is returned as the
+// empty string, which conventionally means "latest". Three segments yield an
+// explicit version. Any other segment count is an error.
+func ParseVersionedResourceURI(uri string) (org, slug, version string, err error) {
+	u, err := url.Parse(uri)
+	if err != nil {
+		return "", "", "", fmt.Errorf("malformed resource URI: %w", err)
+	}
+
+	if u.Scheme != "stigmer" {
+		return "", "", "", fmt.Errorf("unexpected URI scheme %q, expected \"stigmer\"", u.Scheme)
+	}
+
+	segments := splitPathSegments(u.Path)
+	switch len(segments) {
+	case 2:
+		org, slug = segments[0], segments[1]
+	case 3:
+		org, slug, version = segments[0], segments[1], segments[2]
+		if version == "" {
+			return "", "", "", fmt.Errorf("version segment must be non-empty in %q", uri)
+		}
+	default:
+		return "", "", "", fmt.Errorf(
+			"expected URI path with 2 or 3 segments (org/slug[/version]), got %d in %q",
+			len(segments), uri,
+		)
+	}
+
+	if org == "" || slug == "" {
+		return "", "", "", fmt.Errorf("org and slug must be non-empty in %q", uri)
+	}
+
+	return org, slug, version, nil
+}
+
 // splitPathSegments splits a URL path into non-empty segments, stripping
 // leading/trailing slashes.
 func splitPathSegments(path string) []string {

@@ -62,12 +62,14 @@ func registerTools(srv *mcp.Server, serverAddress string) {
 func registerResources(srv *mcp.Server, serverAddress string) {
 	srv.AddResourceTemplate(agents.Template(), agents.ResourceHandler(serverAddress))
 	srv.AddResourceTemplate(skills.Template(), skills.ResourceHandler(serverAddress))
+	srv.AddResourceTemplate(skills.VersionedTemplate(), skills.VersionedResourceHandler(serverAddress))
 	srv.AddResourceTemplate(workflows.Template(), workflows.ResourceHandler(serverAddress))
 
-	slog.Info("resource templates registered", "count", 3,
+	slog.Info("resource templates registered", "count", 4,
 		"templates", []string{
 			"stigmer://agents/{org}/{slug}",
 			"stigmer://skills/{org}/{slug}",
+			"stigmer://skills/{org}/{slug}/{version}",
 			"stigmer://workflows/{org}/{slug}",
 		},
 	)
