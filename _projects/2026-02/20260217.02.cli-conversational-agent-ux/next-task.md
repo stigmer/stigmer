@@ -68,72 +68,70 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-17 17:39
-**Current Task**: Phase 2 — Conversational TUI
-**Status**: Phase 1 Complete — Ready for Phase 2
+**Current Task**: Phase 3 — "Ask User" Protocol
+**Status**: Phase 2 Complete — Ready for Phase 3
 
 ## Session Progress (2026-02-19)
 
 ### Accomplished
 
-- **T01 research and planning complete** — T01_0_plan.md (initial), T01_1_review.md (your feedback), T01_2_revised_plan.md (final design) all in `tasks/`
-- **Phase 1 implemented and committed** — `refactor(cli): make session the sole user-facing concept in agent execution flow` (`726333b1`)
+- **Phase 2 designed and implemented** — `feat(cli): add conversational follow-up to agent execution TUI` (`985a509f`)
+- **Changelog written** — `_changelog/2026-02/2026-02-19-021633-phase2-conversational-tui.md`
 
-### Phase 1 Changes (committed)
+### Phase 2 Changes (committed: `985a509f`)
 
 | File | Change |
 |------|--------|
-| `run_create.go` | `CreateAgentExecutionInput` struct replaces 8-param signature; `SessionID` field ready for Phase 2 follow-ups |
-| `run_handlers.go` | "Starting session..." replaces "Creating agent execution..."; execution ID never shown; defensive `log.Warn()` if session_id missing |
-| `draft_skill_handler.go` | Same session-centric messaging; hint updated to `stigmer run <session-id>` |
-| `run_stream.go` | "Streaming session..." replaces "Streaming agent execution logs" |
-| `run_session.go` | "Re-attaching to session..." replaces "Re-attaching to running execution..." |
+| `executiontui/followup.go` (new) | `FollowUpFn`/`FollowUpResult` types; `handleFollowUpStarted` (channel swap + state reset); `handleFollowUpError` (show error, reactivate input) |
+| `executiontui/input.go` (new) | Two-zone layout rendering; `handleInputKey` (Esc exits, Enter submits); `executeFollowUpCmd` (async `FollowUpFn` invocation) |
+| `executiontui/model.go` | `FollowUpFn` on Config; `textarea`, `inputActive`, `activeEvents/Approvals/CancelFn`, `latestExecutionID` fields; `LatestExecutionID()` accessor |
+| `executiontui/update.go` | `inputActive` gate in `handleKeyPress` (priority 2, above all but Ctrl+C); `handleWindowSize` accounts for `inputAreaHeight`; activity tick stops when `inputActive` |
+| `executiontui/handle_events.go` | `DoneEvent` activates input (all terminal phases) when `FollowUpFn` set; `handleStreamClosed` skips error when `inputActive`; dispatches new message types |
+| `executiontui/view.go` | Two-zone `View()`; `inputActive` footer state |
+| `executiontui/approval.go` | Uses `m.activeApprovals` (not `m.cfg.ApprovalResponses`) |
+| `executiontui/help.go` | "Conversation" help section added |
+| `run_stream.go` | `streamAgentExecution` gains `orgID` param; `buildFollowUpFn` closure; uses `LatestExecutionID()` for final fetch |
+| `run_handlers.go`, `run_session.go`, `draft_skill_handler.go` | Thread `orgID` through to `streamAgentExecution` |
 
-### Key Decisions Made
+### Key Decisions Made This Session
 
-1. **Session storage is server-side only** — backend already has full Session API resource; no local storage needed
-2. **Auto-create sessions for Phase 1** — backend auto-creates sessions when `agent_id` is provided; explicit CLI session creation deferred to Phase 2 (where it's actually needed for follow-ups)
-3. **`CreateAgentExecutionInput` struct** — extensible for Phase 2 without further refactoring; `SessionID` field controls whether a new session or follow-up is created
+1. **`FollowUpFn` callback pattern** (not state enum) — follows `CancelFn` pattern; TUI stays decoupled from gRPC
+2. **`inputActive` flag** (not Streaming/WaitingForInput/UserTyping states) — simpler, more Bubble Tea-idiomatic
+3. **All terminal phases activate input** — failed/cancelled executions activate input too; user can send corrective follow-ups
+4. **Artifact download stays single-execution for MVP** — `draft_skill_handler` downloads from first execution; session-level artifact tracking deferred
+5. **`FollowUpFn` only set when `sessionID != ""`** — conversational mode is gated on having a valid session; detach mode is already safe (never calls `streamAgentExecution`)
 
-## Next Steps — Phase 2: Conversational TUI
+## Next Steps — Phase 3: "Ask User" Protocol
 
-Phase 2 goal: Add input composer (textarea at bottom of TUI) and conversational flow so users can send follow-up messages after the agent completes.
+Phase 3 goal: Enable agents to ask the user questions mid-execution. The agent emits an `ASK_USER` event; the TUI activates the input composer; the user's response is sent back to the backend; the agent continues.
 
-### Phase 2 approach (from T01_2_revised_plan.md)
+### What needs to happen
 
-**Three TUI states to implement:**
-1. `Streaming` — agent outputting; input area dimmed with "Agent is working..."
-2. `WaitingForInput` — agent completed or asked question; input active; cursor blinks
-3. `UserTyping` — user composing; Enter sends; Esc exits
+1. **Backend**: New event type in the execution streaming protocol — `ASK_USER` with question payload
+2. **gRPC**: Decide: bidirectional stream extension OR separate unary `RespondToQuestion` RPC
+3. **`run_stream_events.go`**: Detect `ASK_USER` event from proto; emit a new `AskUserEvent` to TUI
+4. **`executiontui/events.go`**: Add `AskUserEvent` type
+5. **`handle_events.go`**: When `AskUserEvent` arrives, activate input without setting `done`
+6. **`input.go`**: On Enter while agent is paused mid-execution, call a `RespondFn` (similar pattern to `FollowUpFn`) instead of creating a new execution
+7. **Non-interactive mode**: If no response within timeout (or `--non-interactive` flag), signal agent to proceed with best judgment
 
-**What "send follow-up" means (no new backend changes needed):**
-- User sends a message after agent completes → CLI calls `createAgentExecution(CreateAgentExecutionInput{SessionID: ses.ID, Message: followUp})`
-- Backend creates a new execution within the same session
-- TUI subscribes to the new execution stream and continues rendering in the same viewport
+### Open Design Questions for Phase 3
 
-**Open questions to resolve before Phase 2 starts:**
-1. **Bidirectional gRPC vs separate "respond" RPC** — for agent-initiated questions (Phase 3), do we extend the stream or add a unary `RespondToQuestion`? Phase 2 doesn't need this (only follow-ups, not mid-execution questions), but the answer shapes Phase 3.
-2. **Follow-up execution context** — when the user sends a follow-up, how much history carries over? Full conversation thread? Summary? This is controlled by `SessionSpec.thread_id` on the backend — Phase 2 just needs to pass `session_id` and the backend handles context continuity.
-
-### Phase 2 work packages (estimated order)
-
-1. Add `WaitingForInput` / `UserTyping` states to `executiontui.Model`
-2. Add `textarea` component (Bubble Tea `bubbles/textarea`) to TUI bottom zone
-3. Wire up: when `DoneEvent` arrives, transition to `WaitingForInput`
-4. On Enter in `UserTyping`: create new execution in same session via `createAgentExecution(SessionID: ...)`
-5. Subscribe to new execution stream; continue rendering in same viewport
-6. Add "Continue the conversation or press Esc to exit" footer hint
+1. **Bidirectional gRPC vs separate `RespondToQuestion` RPC** — bidirectional is cleaner but more complex; separate RPC is simpler and follows current approval pattern
+2. **Input routing when both approval and ask-user are possible** — need to ensure the two modes don't conflict
+3. **Non-interactive timeout** — what's the right default? Should the CLI send an explicit "user unavailable" or just let the backend time out?
 
 ## Quick Commands
 
 After loading context:
-- "Start Phase 2" — Begin conversational TUI implementation
-- "Review Phase 2 plan" — See full T01_2_revised_plan.md
-- "Show project status" — Overview of progress
+- "Start Phase 3" — Begin "Ask User" protocol design
+- "Review Phase 3 plan" — See T01_2_revised_plan.md Phase 3 section
+- "Show project status" — Overview of all phases
 
-## Open Questions
+## Remaining Open Questions
 
-1. **Bidirectional gRPC vs separate RPC** for Phase 3 "ask user" flow — defer until Phase 2 is done, but good to decide before starting Phase 3
-2. **Session subject line** — When should the CLI set `session.spec.subject`? Could auto-derive from the first message (first 50 chars). Nice-to-have for `stigmer list sessions` display.
+1. **Bidirectional gRPC vs separate RPC** for Phase 3 "ask user" flow — this is the first thing to decide before starting Phase 3
+2. **Session subject line** — When should the CLI set `session.spec.subject`? Auto-derive from first message (first 50 chars) is a nice-to-have for `stigmer list sessions` display
 
 ---
 
