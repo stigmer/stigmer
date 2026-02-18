@@ -8,16 +8,8 @@ package skills
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-
-	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	"github.com/stigmer/stigmer/mcp-server/internal/auth"
-	"github.com/stigmer/stigmer/mcp-server/internal/domains"
-	stigmergrpc "github.com/stigmer/stigmer/mcp-server/internal/grpc"
 )
 
 // GetSkillInput defines the parameters for the "get_skill" tool.
@@ -38,33 +30,8 @@ func Tool() *mcp.Tool {
 
 // Handler returns the typed tool handler.
 func Handler(serverAddress string) func(context.Context, *mcp.CallToolRequest, *GetSkillInput) (*mcp.CallToolResult, any, error) {
-	return func(ctx context.Context, req *mcp.CallToolRequest, input *GetSkillInput) (*mcp.CallToolResult, any, error) {
-		apiKey, err := auth.GetAPIKey(ctx)
-		if err != nil {
-			return nil, nil, fmt.Errorf("get_skill: %w", err)
-		}
-
-		conn, err := stigmergrpc.NewConnection(serverAddress, apiKey)
-		if err != nil {
-			return nil, nil, fmt.Errorf("get_skill: %w", err)
-		}
-		defer conn.Close()
-
-		rpcCtx, cancel := context.WithTimeout(ctx, stigmergrpc.DefaultRPCTimeout)
-		defer cancel()
-
-		client := skillv1.NewSkillQueryControllerClient(conn)
-		skill, err := client.GetByReference(rpcCtx, &apiresource.ApiResourceReference{
-			Org:     input.Org,
-			Kind:    apiresourcekind.ApiResourceKind_skill,
-			Slug:    input.Slug,
-			Version: input.Version,
-		})
-		if err != nil {
-			return nil, nil, domains.RPCError(err, fmt.Sprintf("skill %q in org %q", input.Slug, input.Org))
-		}
-
-		text, err := domains.MarshalJSON(skill)
+	return func(ctx context.Context, _ *mcp.CallToolRequest, input *GetSkillInput) (*mcp.CallToolResult, any, error) {
+		text, err := Fetch(ctx, serverAddress, input.Org, input.Slug, input.Version)
 		if err != nil {
 			return nil, nil, err
 		}

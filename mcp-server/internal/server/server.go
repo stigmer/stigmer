@@ -36,6 +36,7 @@ func New(cfg *config.Config) *Server {
 	)
 
 	registerTools(srv, cfg.StigmerServerAddress)
+	registerResources(srv, cfg.StigmerServerAddress)
 
 	return &Server{
 		mcp:    srv,
@@ -53,6 +54,23 @@ func registerTools(srv *mcp.Server, serverAddress string) {
 	mcp.AddTool(srv, workflows.Tool(), workflows.Handler(serverAddress))
 
 	slog.Info("tools registered", "count", 4, "tools", []string{"search", "get_agent", "get_skill", "get_workflow"})
+}
+
+// registerResources wires up the URI-addressable resource templates. These
+// provide a complementary read path to tools: MCP clients that already know a
+// resource URI can read it directly without calling a tool.
+func registerResources(srv *mcp.Server, serverAddress string) {
+	srv.AddResourceTemplate(agents.Template(), agents.ResourceHandler(serverAddress))
+	srv.AddResourceTemplate(skills.Template(), skills.ResourceHandler(serverAddress))
+	srv.AddResourceTemplate(workflows.Template(), workflows.ResourceHandler(serverAddress))
+
+	slog.Info("resource templates registered", "count", 3,
+		"templates", []string{
+			"stigmer://agents/{org}/{slug}",
+			"stigmer://skills/{org}/{slug}",
+			"stigmer://workflows/{org}/{slug}",
+		},
+	)
 }
 
 // ServeStdio runs the MCP server over stdin/stdout until the client
