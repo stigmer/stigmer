@@ -22,6 +22,7 @@ Stigmer resources by URI, without calling a tool:
 |--------------|-------------|
 | `stigmer://agents/{org}/{slug}` | Full agent definition as JSON |
 | `stigmer://skills/{org}/{slug}` | Full skill definition as JSON (latest version) |
+| `stigmer://skills/{org}/{slug}/{version}` | Full skill definition as JSON at a specific version (tag name or SHA-256 hash) |
 | `stigmer://workflows/{org}/{slug}` | Full workflow definition as JSON |
 
 Use the `search` tool to discover available resources, then read them by URI.
@@ -207,7 +208,7 @@ internal/server/server.go        MCP server initialization + tool registration
 internal/server/http.go          Streamable HTTP handler with auth middleware
 internal/domains/jsonutil.go     Shared protojson serialization
 internal/domains/rpcerr.go       gRPC error classification → user-friendly messages
-internal/domains/uriutil.go      Resource URI parsing (stigmer://{kind}/{org}/{slug})
+internal/domains/uriutil.go      Resource URI parsing (stigmer://{kind}/{org}/{slug}[/{version}])
 internal/domains/search/         search tool → SearchService.search
 internal/domains/agents/         get_agent tool + agent resource template
 internal/domains/skills/         get_skill tool + skill resource template

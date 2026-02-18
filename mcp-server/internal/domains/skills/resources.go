@@ -43,3 +43,40 @@ func ResourceHandler(serverAddress string) mcp.ResourceHandler {
 		}, nil
 	}
 }
+
+// VersionedTemplate returns the MCP resource template for skills at a specific
+// version. The version segment can be a tag name (e.g. "stable", "v1.0") or a
+// SHA-256 content hash.
+func VersionedTemplate() *mcp.ResourceTemplate {
+	return &mcp.ResourceTemplate{
+		URITemplate: "stigmer://skills/{org}/{slug}/{version}",
+		Name:        "stigmer_skill_version",
+		Title:       "Stigmer Skill (versioned)",
+		Description: "Full definition of a Stigmer skill at a specific version, identified by organization, slug, and version (tag name or SHA-256 hash).",
+		MIMEType:    "application/json",
+	}
+}
+
+// VersionedResourceHandler returns a handler that reads a skill resource at a
+// specific version by parsing the org, slug, and version from the request URI.
+func VersionedResourceHandler(serverAddress string) mcp.ResourceHandler {
+	return func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+		org, slug, version, err := domains.ParseVersionedResourceURI(req.Params.URI)
+		if err != nil {
+			return nil, fmt.Errorf("skills versioned resource: %w", err)
+		}
+
+		text, err := Fetch(ctx, serverAddress, org, slug, version)
+		if err != nil {
+			return nil, err
+		}
+
+		return &mcp.ReadResourceResult{
+			Contents: []*mcp.ResourceContents{{
+				URI:      req.Params.URI,
+				MIMEType: "application/json",
+				Text:     text,
+			}},
+		}, nil
+	}
+}
