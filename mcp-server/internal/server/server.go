@@ -49,13 +49,30 @@ func New(cfg *config.Config) *Server {
 // each handler's closure so that tool handlers can create gRPC connections
 // without reaching back into the config layer.
 func registerTools(srv *mcp.Server, serverAddress string) {
+	// Read tools
 	mcp.AddTool(srv, search.Tool(), search.Handler(serverAddress))
 	mcp.AddTool(srv, agents.Tool(), agents.Handler(serverAddress))
 	mcp.AddTool(srv, mcpservers.Tool(), mcpservers.Handler(serverAddress))
 	mcp.AddTool(srv, skills.Tool(), skills.Handler(serverAddress))
 	mcp.AddTool(srv, workflows.Tool(), workflows.Handler(serverAddress))
 
-	slog.Info("tools registered", "count", 5, "tools", []string{"search", "get_agent", "get_mcp_server", "get_skill", "get_workflow"})
+	// Write tools — apply (create or update)
+	mcp.AddTool(srv, agents.ApplyTool(), agents.ApplyHandler(serverAddress))
+	mcp.AddTool(srv, mcpservers.ApplyTool(), mcpservers.ApplyHandler(serverAddress))
+	mcp.AddTool(srv, workflows.ApplyTool(), workflows.ApplyHandler(serverAddress))
+
+	// Write tools — delete
+	mcp.AddTool(srv, agents.DeleteTool(), agents.DeleteHandler(serverAddress))
+	mcp.AddTool(srv, mcpservers.DeleteTool(), mcpservers.DeleteHandler(serverAddress))
+	mcp.AddTool(srv, skills.DeleteTool(), skills.DeleteHandler(serverAddress))
+	mcp.AddTool(srv, workflows.DeleteTool(), workflows.DeleteHandler(serverAddress))
+
+	slog.Info("tools registered", "count", 12, "tools", []string{
+		"search",
+		"get_agent", "get_mcp_server", "get_skill", "get_workflow",
+		"apply_agent", "apply_mcp_server", "apply_workflow",
+		"delete_agent", "delete_mcp_server", "delete_skill", "delete_workflow",
+	})
 }
 
 // registerResources wires up the URI-addressable resource templates. These
