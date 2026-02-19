@@ -29,7 +29,7 @@ import (
 //
 // defaultAction is the --approve-default flag value; when set, non-TTY approvals
 // are auto-resolved without prompting.
-func runAgent(ref, message string, env envfile.EnvMap, attachments []*agentexecutionv1.Attachment, detach bool, downloadDir, orgID string, defaultAction approval.Action, conn *grpc.ClientConn) error {
+func runAgent(ref, message string, env envfile.EnvMap, attachments []*agentexecutionv1.Attachment, detach bool, downloadDir, orgID string, defaultAction approval.Action, verbose bool, conn *grpc.ClientConn) error {
 	// Resolve agent by reference
 	agent, err := resolveAgent(ref, orgID, conn)
 	if err != nil {
@@ -74,7 +74,7 @@ func runAgent(ref, message string, env envfile.EnvMap, attachments []*agentexecu
 
 	// Stream execution in real-time until completion
 	prompter := approval.NewInteractivePrompter()
-	exec, err = streamAgentExecution(sessionID, exec.Metadata.Id, orgID, prompter, defaultAction, conn)
+	exec, err = streamAgentExecution(sessionID, exec.Metadata.Id, orgID, prompter, defaultAction, verbose, conn)
 	if err != nil {
 		return errors.Wrap(err, "error streaming execution")
 	}

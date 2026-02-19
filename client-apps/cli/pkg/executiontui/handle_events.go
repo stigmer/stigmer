@@ -79,6 +79,11 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 
 	case PhaseChangeEvent:
 		m.phase = e.Phase
+		if m.cfg.Verbose {
+			m.blocks = append(m.blocks, newSystemBlock(
+				renderSystemContent("Phase: "+e.Previous+" → "+e.Phase),
+			))
+		}
 
 	case ApprovalNeededEvent:
 		m.approval = &approvalState{
@@ -125,15 +130,25 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 		}
 
 	case StreamErrorEvent:
-		m.done = true
 		m.exitError = e.Err.Error()
-
-		// Finalize running tools (same rationale as DoneEvent above).
 		m.finalizeRunningTools()
 
 		m.blocks = append(m.blocks, newErrorBlock(
 			renderErrorContent("Stream error: "+e.Err.Error()),
 		))
+
+		// In conversational mode, treat stream errors like any other terminal
+		// event: activate input so the user can send a follow-up (which creates
+		// a new execution in the session) or press Esc to exit. The backend may
+		// still be healthy — only the stream broke.
+		//
+		// Without FollowUpFn, fall back to pre-Phase 2 terminal behavior.
+		if m.cfg.FollowUpFn != nil {
+			m.inputActive = true
+			m.textarea.Focus()
+		} else {
+			m.done = true
+		}
 	}
 
 	// Update viewport content and scroll position.
@@ -156,18 +171,24 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 // expected.
 func (m Model) handleStreamClosed() (tea.Model, tea.Cmd) {
 	if !m.done && !m.inputActive {
-		m.done = true
 		m.exitError = "execution stream closed unexpectedly"
-
-		// Finalize running tools (same rationale as DoneEvent above).
 		m.finalizeRunningTools()
 
 		m.blocks = append(m.blocks, newErrorBlock(
 			renderErrorContent("Stream closed unexpectedly"),
 		))
+
+		// Same pattern as StreamErrorEvent: activate input in conversational
+		// mode so the user can recover with a follow-up message.
+		if m.cfg.FollowUpFn != nil {
+			m.inputActive = true
+			m.textarea.Focus()
+		} else {
+			m.done = true
+		}
+
 		m.refreshViewport()
 	}
-	// Stay open — user presses q to exit.
 	return m, nil
 }
 

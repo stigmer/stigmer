@@ -18,6 +18,7 @@ type draftSkillOptions struct {
 	Model          string
 	ApproveDefault string
 	AutoApprove    bool
+	Verbose        bool
 }
 
 // executeDraftSkill handles the draft skill command by invoking the skill-creator-agent.
@@ -96,7 +97,7 @@ func executeDraftSkill(opts draftSkillOptions) error {
 
 	// 6. Stream execution in real-time until completion.
 	prompter := approval.NewInteractivePrompter()
-	exec, err = streamAgentExecution(sessionID, exec.Metadata.Id, orgID, prompter, defaultAction, conn)
+	exec, err = streamAgentExecution(sessionID, exec.Metadata.Id, orgID, prompter, defaultAction, opts.Verbose, conn)
 	if err != nil {
 		return errors.Wrap(err, "execution failed")
 	}
