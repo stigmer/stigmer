@@ -86,16 +86,17 @@ func ParseVersionedResourceURI(uri string) (org, slug, version string, err error
 // stigmer:// URIs. Only kinds that have registered MCP resource templates
 // are included.
 var kindToAuthority = map[string]string{
-	"agent":    "agents",
-	"skill":    "skills",
-	"workflow": "workflows",
+	"agent":      "agents",
+	"mcp_server": "mcp-servers",
+	"skill":      "skills",
+	"workflow":   "workflows",
 }
 
 // BuildResourceURI constructs a stigmer:// resource URI from a kind name, org,
 // and slug. This is the inverse of ParseResourceURI.
 //
-// Returns an empty string when the kind has no registered resource template
-// (e.g. "mcp_server"), or when org/slug are empty.
+// Returns an empty string when the kind has no registered resource template,
+// or when org/slug are empty.
 func BuildResourceURI(kind, org, slug string) string {
 	authority, ok := kindToAuthority[kind]
 	if !ok || org == "" || slug == "" {

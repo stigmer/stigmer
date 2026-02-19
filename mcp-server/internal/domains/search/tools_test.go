@@ -167,7 +167,7 @@ func TestEnrichSearchResponse_mixedKinds(t *testing.T) {
 		"stigmer://agents/acme/code-reviewer",
 		"stigmer://skills/acme/deploy-k8s",
 		"stigmer://workflows/acme/ci-pipeline",
-		"",
+		"stigmer://mcp-servers/acme/my-server",
 	}
 
 	for i, e := range entries {
@@ -176,12 +176,6 @@ func TestEnrichSearchResponse_mixedKinds(t *testing.T) {
 		if uri != wantURIs[i] {
 			t.Errorf("entries[%d].resource_uri = %q, want %q", i, uri, wantURIs[i])
 		}
-	}
-
-	// mcp_server entry must not have resource_uri at all
-	mcpEntry := entries[3].(map[string]any)
-	if _, exists := mcpEntry["resource_uri"]; exists {
-		t.Error("mcp_server entry should not have resource_uri key")
 	}
 }
 

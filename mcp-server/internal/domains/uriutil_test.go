@@ -122,11 +122,11 @@ func TestBuildResourceURI(t *testing.T) {
 			want: "stigmer://workflows/acme/ci-pipeline",
 		},
 		{
-			name: "mcp_server has no resource template",
+			name: "mcp_server",
 			kind: "mcp_server",
 			org:  "acme",
 			slug: "my-server",
-			want: "",
+			want: "stigmer://mcp-servers/acme/my-server",
 		},
 		{
 			name: "unknown kind",
@@ -180,6 +180,20 @@ func TestBuildResourceURI_roundTrip(t *testing.T) {
 	}
 	if slug != "code-reviewer" {
 		t.Errorf("slug = %q, want %q", slug, "code-reviewer")
+	}
+}
+
+func TestBuildResourceURI_roundTrip_mcpServer(t *testing.T) {
+	uri := domains.BuildResourceURI("mcp_server", "acme", "my-server")
+	org, slug, err := domains.ParseResourceURI(uri)
+	if err != nil {
+		t.Fatalf("ParseResourceURI(%q) failed: %v", uri, err)
+	}
+	if org != "acme" {
+		t.Errorf("org = %q, want %q", org, "acme")
+	}
+	if slug != "my-server" {
+		t.Errorf("slug = %q, want %q", slug, "my-server")
 	}
 }
 

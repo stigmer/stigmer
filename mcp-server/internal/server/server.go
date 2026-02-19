@@ -14,6 +14,7 @@ import (
 	"github.com/stigmer/stigmer/mcp-server/internal/auth"
 	"github.com/stigmer/stigmer/mcp-server/internal/config"
 	"github.com/stigmer/stigmer/mcp-server/internal/domains/agents"
+	"github.com/stigmer/stigmer/mcp-server/internal/domains/mcpservers"
 	"github.com/stigmer/stigmer/mcp-server/internal/domains/search"
 	"github.com/stigmer/stigmer/mcp-server/internal/domains/skills"
 	"github.com/stigmer/stigmer/mcp-server/internal/domains/workflows"
@@ -50,10 +51,11 @@ func New(cfg *config.Config) *Server {
 func registerTools(srv *mcp.Server, serverAddress string) {
 	mcp.AddTool(srv, search.Tool(), search.Handler(serverAddress))
 	mcp.AddTool(srv, agents.Tool(), agents.Handler(serverAddress))
+	mcp.AddTool(srv, mcpservers.Tool(), mcpservers.Handler(serverAddress))
 	mcp.AddTool(srv, skills.Tool(), skills.Handler(serverAddress))
 	mcp.AddTool(srv, workflows.Tool(), workflows.Handler(serverAddress))
 
-	slog.Info("tools registered", "count", 4, "tools", []string{"search", "get_agent", "get_skill", "get_workflow"})
+	slog.Info("tools registered", "count", 5, "tools", []string{"search", "get_agent", "get_mcp_server", "get_skill", "get_workflow"})
 }
 
 // registerResources wires up the URI-addressable resource templates. These
@@ -61,13 +63,15 @@ func registerTools(srv *mcp.Server, serverAddress string) {
 // resource URI can read it directly without calling a tool.
 func registerResources(srv *mcp.Server, serverAddress string) {
 	srv.AddResourceTemplate(agents.Template(), agents.ResourceHandler(serverAddress))
+	srv.AddResourceTemplate(mcpservers.Template(), mcpservers.ResourceHandler(serverAddress))
 	srv.AddResourceTemplate(skills.Template(), skills.ResourceHandler(serverAddress))
 	srv.AddResourceTemplate(skills.VersionedTemplate(), skills.VersionedResourceHandler(serverAddress))
 	srv.AddResourceTemplate(workflows.Template(), workflows.ResourceHandler(serverAddress))
 
-	slog.Info("resource templates registered", "count", 4,
+	slog.Info("resource templates registered", "count", 5,
 		"templates", []string{
 			"stigmer://agents/{org}/{slug}",
+			"stigmer://mcp-servers/{org}/{slug}",
 			"stigmer://skills/{org}/{slug}",
 			"stigmer://skills/{org}/{slug}/{version}",
 			"stigmer://workflows/{org}/{slug}",
