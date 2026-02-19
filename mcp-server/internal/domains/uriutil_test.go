@@ -92,6 +92,97 @@ func TestParseResourceURI(t *testing.T) {
 	}
 }
 
+func TestBuildResourceURI(t *testing.T) {
+	tests := []struct {
+		name string
+		kind string
+		org  string
+		slug string
+		want string
+	}{
+		{
+			name: "agent",
+			kind: "agent",
+			org:  "acme",
+			slug: "code-reviewer",
+			want: "stigmer://agents/acme/code-reviewer",
+		},
+		{
+			name: "skill",
+			kind: "skill",
+			org:  "acme",
+			slug: "deploy-k8s",
+			want: "stigmer://skills/acme/deploy-k8s",
+		},
+		{
+			name: "workflow",
+			kind: "workflow",
+			org:  "acme",
+			slug: "ci-pipeline",
+			want: "stigmer://workflows/acme/ci-pipeline",
+		},
+		{
+			name: "mcp_server has no resource template",
+			kind: "mcp_server",
+			org:  "acme",
+			slug: "my-server",
+			want: "",
+		},
+		{
+			name: "unknown kind",
+			kind: "project",
+			org:  "acme",
+			slug: "foo",
+			want: "",
+		},
+		{
+			name: "empty kind",
+			kind: "",
+			org:  "acme",
+			slug: "foo",
+			want: "",
+		},
+		{
+			name: "empty org",
+			kind: "agent",
+			org:  "",
+			slug: "code-reviewer",
+			want: "",
+		},
+		{
+			name: "empty slug",
+			kind: "agent",
+			org:  "acme",
+			slug: "",
+			want: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := domains.BuildResourceURI(tt.kind, tt.org, tt.slug)
+			if got != tt.want {
+				t.Errorf("BuildResourceURI(%q, %q, %q) = %q, want %q",
+					tt.kind, tt.org, tt.slug, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestBuildResourceURI_roundTrip(t *testing.T) {
+	uri := domains.BuildResourceURI("agent", "acme", "code-reviewer")
+	org, slug, err := domains.ParseResourceURI(uri)
+	if err != nil {
+		t.Fatalf("ParseResourceURI(%q) failed: %v", uri, err)
+	}
+	if org != "acme" {
+		t.Errorf("org = %q, want %q", org, "acme")
+	}
+	if slug != "code-reviewer" {
+		t.Errorf("slug = %q, want %q", slug, "code-reviewer")
+	}
+}
+
 func TestParseVersionedResourceURI(t *testing.T) {
 	tests := []struct {
 		name    string

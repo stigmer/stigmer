@@ -81,6 +81,29 @@ func ParseVersionedResourceURI(uri string) (org, slug, version string, err error
 	return org, slug, version, nil
 }
 
+// kindToAuthority maps singular resource kind names (as they appear in the
+// ApiResourceKind proto enum) to the plural authority component used in
+// stigmer:// URIs. Only kinds that have registered MCP resource templates
+// are included.
+var kindToAuthority = map[string]string{
+	"agent":    "agents",
+	"skill":    "skills",
+	"workflow": "workflows",
+}
+
+// BuildResourceURI constructs a stigmer:// resource URI from a kind name, org,
+// and slug. This is the inverse of ParseResourceURI.
+//
+// Returns an empty string when the kind has no registered resource template
+// (e.g. "mcp_server"), or when org/slug are empty.
+func BuildResourceURI(kind, org, slug string) string {
+	authority, ok := kindToAuthority[kind]
+	if !ok || org == "" || slug == "" {
+		return ""
+	}
+	return fmt.Sprintf("stigmer://%s/%s/%s", authority, org, slug)
+}
+
 // splitPathSegments splits a URL path into non-empty segments, stripping
 // leading/trailing slashes.
 func splitPathSegments(path string) []string {

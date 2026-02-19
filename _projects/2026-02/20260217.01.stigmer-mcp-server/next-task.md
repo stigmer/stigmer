@@ -13,13 +13,13 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current Status
 
-**Last Session**: February 19, 2026 — T08 (Versioned Skill Resources) — COMPLETE
-**Current Task**: T09 — Ready to pick (see candidates below)
-**Status**: T01 ✅ | T02 ✅ | T03 ✅ | T04 ✅ | T05 ✅ | T06 ✅ | T07 ✅ | T08 ✅ | T09 Pending
+**Last Session**: February 19, 2026 — T09 (Search Result URIs) — COMPLETE
+**Current Task**: T10 — Ready to pick (see candidates below)
+**Status**: T01 ✅ | T02 ✅ | T03 ✅ | T04 ✅ | T05 ✅ | T06 ✅ | T07 ✅ | T08 ✅ | T09 ✅ | T10 Pending
 
-## Session Progress (2026-02-19, Session 7)
+## Session Progress (2026-02-19, Session 8)
 
-**T08 — Versioned Skill Resources (Complete)**
+**T09 — Search Result URIs (Complete)**
 
 All 11 MCP server packages passing under `-race`. `go vet` clean.
 
@@ -27,21 +27,21 @@ All 11 MCP server packages passing under `-race`. `go vet` clean.
 
 | Item | Description |
 |---|---|
-| T08-A | `ParseVersionedResourceURI(uri) (org, slug, version, err)` in `uriutil.go` — accepts 2 or 3 path segments; existing `ParseResourceURI` untouched |
-| T08-B | 14 new table-driven tests for `ParseVersionedResourceURI` in `uriutil_test.go` |
-| T08-C | `VersionedTemplate()` + `VersionedResourceHandler()` in `skills/resources.go` — handler passes parsed version to existing `Fetch()` |
-| T08-D | 5 new tests: template metadata, happy path, latest fallback, malformed URI, gRPC NotFound |
-| T08-E | Registered versioned template in `server.go`; updated slog count 3→4 |
-| T08-F | Updated `README.md` Resources table and Architecture section |
+| T09-A | `BuildResourceURI(kind, org, slug) string` in `uriutil.go` — inverse of `ParseResourceURI`; maps `agent`/`skill`/`workflow` to plural URI authorities; returns `""` for unsupported kinds |
+| T09-B | 8 table-driven tests + 1 round-trip test for `BuildResourceURI` in `uriutil_test.go` |
+| T09-C | `enrichSearchResponse(resp) (string, error)` in `search/tools.go` — JSON round-trip enrichment injecting `resource_uri` into qualifying entries; short-circuits on empty entry list |
+| T09-D | `Handler` updated to call `enrichSearchResponse`; `encoding/json` import added |
+| T09-E | 2 new unit tests (`mixedKinds`, `emptyEntries`) + updated `TestHandler_success` in `search/tools_test.go` |
+| T09-F | Updated `README.md` — Tools table, Resources section, Architecture line |
 
 **Key design decisions:**
 
-- Two templates, not one — `stigmer://skills/{org}/{slug}` (latest) and `stigmer://skills/{org}/{slug}/{version}` (specific). Shorter URI stays canonical for the common case; both appear in `ListResourceTemplates`.
-- `ParseVersionedResourceURI` accepts 2 or 3 path segments; `version=""` when 2 segments present (latest fallback). Existing `ParseResourceURI` untouched. New function is positioned to serve agents/workflows when they add versioning.
-- URI anatomy: in `stigmer://skills/acme/slug/stable`, Go's `url.Parse` produces `Host="skills"` (authority) and `Path="/acme/slug/stable"` (3 segments). Kind lives in Host, not path.
-- Zero changes to existing code paths — purely additive.
+- Option B (versioned templates for agents/workflows) was skipped: `agent` and `workflow` are `is_versioned: false` in `kind_meta`. Adding versioned URI templates would silently ignore the version — a false API surface. Deferred until versioning is supported in the backend.
+- `resource_uri` enrichment lives in the MCP layer, not the proto. `stigmer://` is an MCP concept; coupling it to the core proto would be a layer violation.
+- `kindToAuthority` map in `uriutil.go` is the single source of truth for which kinds have resource templates. When `mcp_server` gets a template, one map entry wires it up.
+- `mcp_server` entries intentionally omit `resource_uri` — no template is registered for that kind today.
 
-## Next Steps (T09 Candidates — pick one)
+## Next Steps (T10 Candidates — pick one)
 
 ### Option A: Write Operations (bigger scope, ~1-2 days)
 
@@ -50,16 +50,13 @@ Add mutation tools:
 - `delete_agent`, `delete_skill`, `delete_workflow`
 - Requires `CommandController` gRPC stubs and corresponding test doubles
 
-### Option B: Versioned Resource Templates for Agents and Workflows (~1 hour)
+### Option B: MCP Server Resource Template (~1 hour)
 
-Apply the same `ParseVersionedResourceURI` pattern to agents and workflows:
-- `stigmer://agents/{org}/{slug}/{version}`
-- `stigmer://workflows/{org}/{slug}/{version}`
-- The parser already supports this; only `VersionedTemplate()` + `VersionedResourceHandler()` per domain are needed, plus registration and tests
+Add `stigmer://mcp-servers/{org}/{slug}` resource template to complete the suite — all four searchable kinds would then have resource templates. Wire up `kindToAuthority` in `uriutil.go` (one line) and register the template in `server.go`.
 
-### Option C: Search Result URIs (~30 min)
+### Option C: Test Coverage Report (~15 min)
 
-Ensure the `search` tool response includes resource URIs that clients can pass directly to resource handlers — bridging the discovery-to-read workflow end-to-end.
+Run `go test -coverprofile=coverage.out ./mcp-server/...` and review per-package coverage. Identify any meaningful gaps before moving to write operations.
 
 ## Key Architectural Decisions
 
@@ -81,15 +78,17 @@ Ensure the `search` tool response includes resource URIs that clients can pass d
 | Resources | Templates only (no static list resources) | `search` tool handles discovery; static list resources can't paginate or filter |
 | Versioned resources | Two templates per domain (latest + versioned) | Shorter URI stays canonical; no ambiguity in routing |
 | URI parsing | `ParseResourceURI` (2-seg) + `ParseVersionedResourceURI` (2-or-3-seg) | Existing agents/workflows use strict parser; skills uses flexible one |
+| URI building | `BuildResourceURI(kind, org, slug)` in `uriutil.go` | Inverse of Parse; single source of truth for kind→authority mapping |
+| Search enrichment | `enrichSearchResponse` in search handler | `resource_uri` is MCP-specific; enrichment at presentation layer, not proto |
 | Fetch abstraction | `Fetch()` in `fetch.go` per domain | Single implementation shared by tool and resource handlers |
 | CLI embed | Foreground command, not daemon | MCP server is stateless; no lifecycle management needed |
 
 ## Quick Resume Commands
 
 When starting the next session:
-- "Continue with T09 Option A (write operations)" — mutation tools
-- "Continue with T09 Option B (versioned resources for agents and workflows)" — quick follow-on to T08
-- "Continue with T09 Option C (search result URIs)" — bridge discovery to read
+- "Continue with T10 Option A (write operations)" — mutation tools
+- "Continue with T10 Option B (mcp_server resource template)" — quick add to complete the suite
+- "Continue with T10 Option C (test coverage)" — coverage review before write operations
 - "Show test coverage" — run `go test -coverprofile` to see numbers
 - "Show project status" — get full overview
 
@@ -97,11 +96,11 @@ When starting the next session:
 
 ```
 _projects/2026-02/20260217.01.stigmer-mcp-server/tasks/T01_0_plan.md  — Architecture decisions
+_projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-19-session-8.md  — T09
 _projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-19-session-7.md  — T08
-_projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-19-session-6.md  — T07
 mcp-server/  — Implementation
-mcp-server/internal/domains/uriutil.go  — URI parsing (both parsers)
-mcp-server/internal/domains/skills/  — Skills domain (tool + resource handlers)
+mcp-server/internal/domains/uriutil.go  — URI parsing + building
+mcp-server/internal/domains/search/tools.go  — search tool with resource_uri enrichment
 client-apps/cli/cmd/stigmer/root/mcp_server.go  — CLI embedding with config bridging
 ```
 
