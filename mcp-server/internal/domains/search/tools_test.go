@@ -3,6 +3,7 @@ package search
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -389,6 +390,27 @@ func TestHandler_grpcError(t *testing.T) {
 	_, _, err := handler(ctx, nil, &SearchInput{})
 	if err == nil {
 		t.Fatal("expected error when gRPC returns error, got nil")
+	}
+}
+
+func TestHandler_grpcErrorWithOrg(t *testing.T) {
+	mock := &mockSearchService{
+		err: status.Error(codes.NotFound, "no results"),
+	}
+
+	addr := testutil.StartGRPCServer(t, func(s *grpc.Server) {
+		searchv1.RegisterSearchServiceServer(s, mock)
+	})
+
+	ctx := auth.WithAPIKey(context.Background(), "test-key")
+	handler := Handler(addr)
+
+	_, _, err := handler(ctx, nil, &SearchInput{Org: "acme"})
+	if err == nil {
+		t.Fatal("expected error when gRPC returns error with org set, got nil")
+	}
+	if !strings.Contains(err.Error(), "acme") {
+		t.Errorf("error = %q, want it to mention org %q", err.Error(), "acme")
 	}
 }
 
