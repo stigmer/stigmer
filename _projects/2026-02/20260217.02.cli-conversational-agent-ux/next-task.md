@@ -68,70 +68,62 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-17 17:39
-**Current Task**: Phase 3 — "Ask User" Protocol
-**Status**: Phase 2 Complete — Ready for Phase 3
+**Current Task**: —
+**Status**: ✅ Phase 4 Complete — Project Complete
 
-## Session Progress (2026-02-19)
+## Session Progress (2026-02-19, Session 2)
 
 ### Accomplished
 
-- **Phase 2 designed and implemented** — `feat(cli): add conversational follow-up to agent execution TUI` (`985a509f`)
-- **Changelog written** — `_changelog/2026-02/2026-02-19-021633-phase2-conversational-tui.md`
+- **Phase 4 fully implemented** — All three polish items complete
+- **Changelog written** — `_changelog/2026-02/2026-02-19-153200-phase4-cli-polish.md`
+- **Committed** — see commit on `feat/add-mcp-server`
 
-### Phase 2 Changes (committed: `985a509f`)
+### Phase 4 Changes
 
 | File | Change |
 |------|--------|
-| `executiontui/followup.go` (new) | `FollowUpFn`/`FollowUpResult` types; `handleFollowUpStarted` (channel swap + state reset); `handleFollowUpError` (show error, reactivate input) |
-| `executiontui/input.go` (new) | Two-zone layout rendering; `handleInputKey` (Esc exits, Enter submits); `executeFollowUpCmd` (async `FollowUpFn` invocation) |
-| `executiontui/model.go` | `FollowUpFn` on Config; `textarea`, `inputActive`, `activeEvents/Approvals/CancelFn`, `latestExecutionID` fields; `LatestExecutionID()` accessor |
-| `executiontui/update.go` | `inputActive` gate in `handleKeyPress` (priority 2, above all but Ctrl+C); `handleWindowSize` accounts for `inputAreaHeight`; activity tick stops when `inputActive` |
-| `executiontui/handle_events.go` | `DoneEvent` activates input (all terminal phases) when `FollowUpFn` set; `handleStreamClosed` skips error when `inputActive`; dispatches new message types |
-| `executiontui/view.go` | Two-zone `View()`; `inputActive` footer state |
-| `executiontui/approval.go` | Uses `m.activeApprovals` (not `m.cfg.ApprovalResponses`) |
-| `executiontui/help.go` | "Conversation" help section added |
-| `run_stream.go` | `streamAgentExecution` gains `orgID` param; `buildFollowUpFn` closure; uses `LatestExecutionID()` for final fetch |
-| `run_handlers.go`, `run_session.go`, `draft_skill_handler.go` | Thread `orgID` through to `streamAgentExecution` |
+| `executiontui/handle_events.go` | Stream error recovery: `StreamErrorEvent` + `handleStreamClosed` activate input (not `done`) when `FollowUpFn` set; verbose phase transition blocks |
+| `executiontui/model.go` | `Config.Verbose`; `New()` emits execution ID block when verbose; `Init()` checks `activeEvents == nil` |
+| `executiontui/replay.go` | `ResumableConfig` + `NewResumable` (interactive pre-populated TUI); `BuildSessionReplayBlocks`; `Verbose` in `ResumableConfig` |
+| `executiontui/followup.go` | Verbose system block with follow-up execution ID |
+| `run_session.go` | `resumeSession` with full history + `NewResumable`; `verbose` threaded through |
+| `run_stream.go` | `streamAgentExecution` accepts + passes `verbose` |
+| `run_handlers.go` | `runAgent` accepts `verbose` |
+| `run.go` | `--verbose` / `-v` flag; `Verbose` in `runOptions` |
+| `draft_skill.go` | `--verbose` / `-v` flag |
+| `draft_skill_handler.go` | `Verbose` in `draftSkillOptions` |
 
 ### Key Decisions Made This Session
 
-1. **`FollowUpFn` callback pattern** (not state enum) — follows `CancelFn` pattern; TUI stays decoupled from gRPC
-2. **`inputActive` flag** (not Streaming/WaitingForInput/UserTyping states) — simpler, more Bubble Tea-idiomatic
-3. **All terminal phases activate input** — failed/cancelled executions activate input too; user can send corrective follow-ups
-4. **Artifact download stays single-execution for MVP** — `draft_skill_handler` downloads from first execution; session-level artifact tracking deferred
-5. **`FollowUpFn` only set when `sessionID != ""`** — conversational mode is gated on having a valid session; detach mode is already safe (never calls `streamAgentExecution`)
+1. **Dropped Phase 3** — sequential executions sharing a thread ID is sufficient for MVP conversational UX; mid-execution ASK_USER is deferred
+2. **Resumable replay** — completed sessions open with full history + active input, not read-only; matches Claude Code UX
+3. **No execution boundary markers** — conversation hides execution internals by design; `--verbose` is opt-in
+4. **Stream errors recoverable** — broken stream ≠ broken backend; input activation enables recovery via follow-up
 
-## Next Steps — Phase 3: "Ask User" Protocol
+## Project Complete
 
-Phase 3 goal: Enable agents to ask the user questions mid-execution. The agent emits an `ASK_USER` event; the TUI activates the input composer; the user's response is sent back to the backend; the agent continues.
+All planned phases are done:
 
-### What needs to happen
+| Phase | Status | Commit |
+|-------|--------|--------|
+| Phase 1: Session Abstraction | ✅ | `feat(cli): add session abstraction...` |
+| Phase 2: Conversational TUI | ✅ | `985a509f` |
+| Phase 3: Ask User Protocol | 🚫 Dropped (scope creep) | — |
+| Phase 4: Polish & Edge Cases | ✅ | this session |
 
-1. **Backend**: New event type in the execution streaming protocol — `ASK_USER` with question payload
-2. **gRPC**: Decide: bidirectional stream extension OR separate unary `RespondToQuestion` RPC
-3. **`run_stream_events.go`**: Detect `ASK_USER` event from proto; emit a new `AskUserEvent` to TUI
-4. **`executiontui/events.go`**: Add `AskUserEvent` type
-5. **`handle_events.go`**: When `AskUserEvent` arrives, activate input without setting `done`
-6. **`input.go`**: On Enter while agent is paused mid-execution, call a `RespondFn` (similar pattern to `FollowUpFn`) instead of creating a new execution
-7. **Non-interactive mode**: If no response within timeout (or `--non-interactive` flag), signal agent to proceed with best judgment
+## If Resuming This Project
 
-### Open Design Questions for Phase 3
+If this project is reopened, likely candidates:
 
-1. **Bidirectional gRPC vs separate `RespondToQuestion` RPC** — bidirectional is cleaner but more complex; separate RPC is simpler and follows current approval pattern
-2. **Input routing when both approval and ask-user are possible** — need to ensure the two modes don't conflict
-3. **Non-interactive timeout** — what's the right default? Should the CLI send an explicit "user unavailable" or just let the backend time out?
-
-## Quick Commands
-
-After loading context:
-- "Start Phase 3" — Begin "Ask User" protocol design
-- "Review Phase 3 plan" — See T01_2_revised_plan.md Phase 3 section
-- "Show project status" — Overview of all phases
+1. **Phase 3 "Ask User" protocol** — if a user or agent requests mid-execution questions; design decision needed (bidirectional gRPC vs separate RPC)
+2. **Session subject auto-derivation** — auto-populate `session.spec.subject` from first 50 chars of first message for `stigmer list sessions` display
+3. **`stigmer list sessions` command** — new command; natural next step for session management UX
 
 ## Remaining Open Questions
 
-1. **Bidirectional gRPC vs separate RPC** for Phase 3 "ask user" flow — this is the first thing to decide before starting Phase 3
-2. **Session subject line** — When should the CLI set `session.spec.subject`? Auto-derive from first message (first 50 chars) is a nice-to-have for `stigmer list sessions` display
+1. **Bidirectional gRPC vs separate RPC** for future Phase 3 "ask user" flow
+2. **Session subject line** — when/how to auto-derive from first message
 
 ---
 

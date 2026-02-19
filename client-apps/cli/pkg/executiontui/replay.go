@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/bubbles/spinner"
+	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -41,10 +42,71 @@ func NewReplay(cfg ReplayConfig) Model {
 	}
 }
 
+// ResumableConfig holds the parameters for creating a resumable TUI model.
+// A resumable model is pre-populated with blocks from completed executions
+// but allows the user to continue the conversation via FollowUpFn.
+type ResumableConfig struct {
+	SessionID   string
+	ExecutionID string
+	Blocks      []contentBlock
+	FollowUpFn  FollowUpFn
+	LastPhase   string
+	Verbose     bool
+}
+
+// NewResumable creates a TUI model pre-populated with blocks from a
+// completed session. Unlike NewReplay, the model starts with the input
+// composer active — the user can type a follow-up message that creates a
+// new execution in the session. This makes `stigmer run <session-id>`
+// seamlessly resume any session, regardless of whether it's live or done.
+func NewResumable(cfg ResumableConfig) Model {
+	s := spinner.New()
+	s.Spinner = spinner.Dot
+
+	ta := textarea.New()
+	ta.Placeholder = "Type a message, or press Esc to exit"
+	ta.ShowLineNumbers = false
+	ta.SetHeight(1)
+	ta.CharLimit = 4096
+	ta.Focus()
+
+	return Model{
+		cfg: Config{
+			SessionID:   cfg.SessionID,
+			ExecutionID: cfg.ExecutionID,
+			FollowUpFn:  cfg.FollowUpFn,
+			Verbose:     cfg.Verbose,
+		},
+		blocks:            cfg.Blocks,
+		autoScroll:        true,
+		phase:             cfg.LastPhase,
+		focusedBlockIndex: -1,
+		runningTools:      make(map[string]int),
+		spinner:           s,
+		lastEventAt:       time.Now(),
+		textarea:          ta,
+		inputActive:       true,
+		latestExecutionID: cfg.ExecutionID,
+	}
+}
+
 // Init implements tea.Model for replay mode.
 // No event listener or activity tick — just wait for window size.
 func (m Model) replayInit() tea.Cmd {
 	return nil
+}
+
+// BuildSessionReplayBlocks builds a unified block list from multiple
+// executions in a session. Executions must be in chronological order
+// (oldest first). The result is a seamless conversation transcript with
+// no execution boundaries — consistent with the design decision to hide
+// execution internals from the user.
+func BuildSessionReplayBlocks(executions []*agentexecutionv1.AgentExecution) []contentBlock {
+	var blocks []contentBlock
+	for _, exec := range executions {
+		blocks = append(blocks, BuildReplayBlocks(exec)...)
+	}
+	return blocks
 }
 
 // BuildReplayBlocks converts a completed execution's stored state into

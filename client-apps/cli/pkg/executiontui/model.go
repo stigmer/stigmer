@@ -41,6 +41,12 @@ type Config struct {
 	// follow-up messages. When nil, the TUI exits on completion
 	// (pre-Phase 2 behavior).
 	FollowUpFn FollowUpFn
+
+	// Verbose enables execution-level details in the TUI transcript.
+	// When true, phase transitions and execution IDs appear as system
+	// blocks in the viewport — useful for debugging multi-execution
+	// sessions where execution boundaries are normally hidden.
+	Verbose bool
 }
 
 // streamingState tracks an in-progress streaming AI message.
@@ -194,8 +200,16 @@ func New(cfg Config) Model {
 	ta.CharLimit = 4096
 	ta.Blur()
 
+	var blocks []contentBlock
+	if cfg.Verbose {
+		blocks = append(blocks, newSystemBlock(
+			renderSystemContent("Execution: "+cfg.ExecutionID),
+		))
+	}
+
 	return Model{
 		cfg:               cfg,
+		blocks:            blocks,
 		autoScroll:        true,
 		phase:             "pending",
 		focusedBlockIndex: -1,
@@ -214,10 +228,12 @@ func New(cfg Config) Model {
 // listening for execution events, animating the pending-phase spinner,
 // and the periodic activity tick for idle detection.
 //
-// In replay mode (no Events channel), no event listener or activity tick
-// is started — the model is already done with all blocks pre-populated.
+// When there is no events channel (replay or resumable mode), no event
+// listener or activity tick is started. Resumable models start with input
+// active; replay models are fully read-only. In both cases, the model
+// waits for window size and then renders pre-populated blocks.
 func (m Model) Init() tea.Cmd {
-	if m.isReplayMode() {
+	if m.activeEvents == nil {
 		return nil
 	}
 	return tea.Batch(listenForEvents(m.activeEvents), m.spinner.Tick, scheduleActivityTick())

@@ -54,6 +54,12 @@ func (m Model) handleFollowUpStarted(msg followUpStartedMsg) (tea.Model, tea.Cmd
 	m.activeCancelFn = r.CancelFn
 	m.latestExecutionID = r.ExecutionID
 
+	if m.cfg.Verbose {
+		m.blocks = append(m.blocks, newSystemBlock(
+			renderSystemContent("Follow-up execution: "+r.ExecutionID),
+		))
+	}
+
 	// Reset execution-scoped state.
 	m.phase = "pending"
 	m.streaming = nil

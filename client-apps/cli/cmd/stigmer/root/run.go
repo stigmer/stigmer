@@ -27,6 +27,7 @@ func NewRunCommand() *cobra.Command {
 	var attachFlags []string
 	var downloadDir string
 	var approveDefault string
+	var verbose bool
 
 	cmd := &cobra.Command{
 		Use:   "run {<type> <name-or-id> | <session-id>}",
@@ -136,7 +137,7 @@ OTHER OPTIONS:
 		Run: func(cmd *cobra.Command, args []string) {
 			// Single-arg session ID mode
 			if len(args) == 1 {
-				err := executeRunSession(args[0], orgOverride)
+				err := executeRunSession(args[0], orgOverride, verbose)
 				clierr.Handle(err)
 				return
 			}
@@ -153,6 +154,7 @@ OTHER OPTIONS:
 				AttachFlags:     attachFlags,
 				DownloadDir:     downloadDir,
 				ApproveDefault:  approveDefault,
+				Verbose:         verbose,
 			})
 			clierr.Handle(err)
 		},
@@ -190,6 +192,10 @@ OTHER OPTIONS:
 	cmd.Flags().StringVar(&approveDefault, "approve-default", "",
 		"auto-resolve approval prompts in non-interactive mode (approve, skip, reject)")
 
+	// Verbose flag for debugging
+	cmd.Flags().BoolVarP(&verbose, "verbose", "v", false,
+		"show execution IDs and phase transitions in the TUI transcript")
+
 	return cmd
 }
 
@@ -207,6 +213,7 @@ type runOptions struct {
 	AttachFlags     []string
 	DownloadDir     string
 	ApproveDefault  string
+	Verbose         bool
 }
 
 // executeRun validates type and routes to the appropriate run handler.
@@ -262,14 +269,14 @@ func executeRun(opts runOptions) error {
 	}
 
 	// Step 7: Route to appropriate handler
-	return routeRun(info, opts.Reference, opts.Message, runtimeEnv, attachments, opts.Detach, opts.DownloadDir, orgID, defaultAction, conn)
+	return routeRun(info, opts.Reference, opts.Message, runtimeEnv, attachments, opts.Detach, opts.DownloadDir, orgID, defaultAction, opts.Verbose, conn)
 }
 
 // routeRun routes to the appropriate run handler based on kind.
-func routeRun(info *types.TypeInfo, ref, message string, env envfile.EnvMap, attachments []*agentexecutionv1.Attachment, detach bool, downloadDir, orgID string, defaultAction approval.Action, conn *grpc.ClientConn) error {
+func routeRun(info *types.TypeInfo, ref, message string, env envfile.EnvMap, attachments []*agentexecutionv1.Attachment, detach bool, downloadDir, orgID string, defaultAction approval.Action, verbose bool, conn *grpc.ClientConn) error {
 	switch info.ProtoKind {
 	case apiresourcekind.ApiResourceKind_agent:
-		return runAgent(ref, message, env, attachments, detach, downloadDir, orgID, defaultAction, conn)
+		return runAgent(ref, message, env, attachments, detach, downloadDir, orgID, defaultAction, verbose, conn)
 
 	case apiresourcekind.ApiResourceKind_workflow:
 		return runWorkflow(ref, message, env, detach, orgID, defaultAction, conn)
