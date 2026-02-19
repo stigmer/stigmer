@@ -36,14 +36,14 @@ The v2 plan stated "no shadow users — external identity is an audit attribute,
 
 ### Core Principle
 
-**Organization remains the single isolation boundary and the single resource addressing level.** The integration with Planton Cloud is achieved by adding a *management mode* and a *service credential* concept — not a new hierarchy.
+**Organization remains the single isolation boundary and the single resource addressing level.** The integration with Planton Cloud is achieved by adding a *management mode* and an *identity provider* concept — not a new hierarchy.
 
 ### Decision 1: Product Positioning — Hybrid, but Lightweight
 
 Stigmer serves both direct users and embedding platforms. The difference is **how organizations are created and operated**, not what kind of entity they are.
 
 - **Self-managed orgs**: User signs up, creates org, manages it directly via Stigmer UI/CLI/API.
-- **Platform-managed orgs**: Created programmatically by an external platform (Planton Cloud) via a service credential. Operated by the platform on behalf of its users.
+- **Platform-managed orgs**: Created programmatically by an external platform (Planton Cloud) via an identity provider. Operated by the platform on behalf of its users.
 
 Both are Organizations. Same data model. Same isolation. Same resource addressing.
 
@@ -54,14 +54,14 @@ Extend the existing Organization with:
 | Field | Type | Purpose |
 |---|---|---|
 | `management_mode` | enum: `SELF_MANAGED`, `PLATFORM_MANAGED` | How this org is operated |
-| `service_credential_ref` | string (nullable) | Which platform credential manages this org |
+| `identity_provider_ref` | string (nullable) | Which identity provider authenticates requests for this org |
 | `external_org_id` | string (nullable) | Maps to the platform's org identifier |
 
 For self-managed orgs, the new fields are null. For platform-managed orgs, they point to the managing credential and the external identifier.
 
-### Decision 3: ServiceCredential — New First-Class Concept
+### Decision 3: IdentityProvider — New First-Class Concept
 
-A `ServiceCredential` represents an external platform's trust relationship with Stigmer.
+An `IdentityProvider` represents an external platform's trust relationship with Stigmer.
 
 | Field | Purpose |
 |---|---|
@@ -73,7 +73,7 @@ A `ServiceCredential` represents an external platform's trust relationship with 
 | `rate_limit_budget` | Shared rate limit across all orgs managed by this credential |
 | `status` | `ACTIVE`, `SUSPENDED`, `REVOKED` |
 
-**Capability**: A service credential grants its holder the ability to:
+**Capability**: An identity provider grants the registered platform the ability to:
 - Create platform-managed organizations
 - Call Stigmer APIs within those organizations on behalf of its users
 - Pass user identity as a signed JWT assertion
@@ -136,9 +136,9 @@ Planton Cloud signs its **own** short-lived JWTs for Stigmer calls. This is inde
 3. Planton Cloud backend:
    - Knows the user (from their Auth0 session)
    - Mints a short-lived JWT for Stigmer (signed with Planton Cloud's own private key, NOT Auth0's key)
-   - Calls Stigmer API with that JWT + service credential identifier
+   - Calls Stigmer API with that JWT + identity provider identifier
 4. Stigmer:
-   - Reads service credential identifier → finds `ServiceCredential` config
+   - Reads identity provider identifier → finds `IdentityProvider` config
    - Fetches JWKS from the credential's `jwks_uri` (Planton Cloud's endpoint, NOT Auth0's endpoint)
    - Validates JWT signature, `iss`, `aud`, `exp`
    - Extracts `sub` (user) and `org` claims
@@ -147,11 +147,11 @@ Planton Cloud signs its **own** short-lived JWTs for Stigmer calls. This is inde
    - Executes the request
 
 **Stigmer validates:**
-1. Signature via JWKS from the service credential's `jwks_uri`
-2. `iss` matches `allowed_issuers` on the service credential
+1. Signature via JWKS from the identity provider's `jwks_uri`
+2. `iss` matches `allowed_issuers` on the identity provider
 3. `aud` matches `expected_audience`
 4. `exp` is in the future (short TTL, minutes not days)
-5. `org` claim maps to a platform-managed organization owned by this service credential
+5. `org` claim maps to a platform-managed organization linked to this identity provider
 
 **When would we add token exchange (RFC 8693)?** Only if a second embedding platform appears whose auth system cannot sign JWTs directly, forcing Stigmer to operate its own STS. Not before.
 
@@ -185,14 +185,14 @@ Without an `identity_account`, a federated user cannot be authorized to do anyth
 | Value | Meaning |
 |---|---|
 | `DIRECT` | User signed up via Stigmer's Auth0 (existing behavior) |
-| `FEDERATED` | User provisioned via service credential on behalf of external platform |
+| `FEDERATED` | User provisioned via identity provider on behalf of external platform |
 | `MACHINE` | M2M client credentials (replaces the current `isMachineAccount` boolean) |
 
 #### JIT Provisioning Flow
 
 1. Planton Cloud sends request with signed JWT (`sub: pc-user-123`)
-2. Stigmer validates JWT via service credential's JWKS
-3. Stigmer looks up `identity_account` by `idp_id = pc-user-123` AND `provisioned_by = <service_credential_id>`
+2. Stigmer validates JWT via identity provider's JWKS
+3. Stigmer looks up `identity_account` by `idp_id = pc-user-123` AND `provisioned_by = <identity_provider_id>`
 4. If not found → create new `identity_account` with `provisioning_mode = FEDERATED`
 5. If org membership FGA tuple doesn't exist → create `organization:<org>#member@identity_account:<new_id>`
 6. Proceed with normal FGA authorization check
@@ -225,7 +225,7 @@ Planton Cloud → Stigmer, one-way sync:
 
 | Planton Cloud Event | Stigmer Action |
 |---|---|
-| Org created | Create new Organization (`PLATFORM_MANAGED`, linked to service credential) |
+| Org created | Create new Organization (`PLATFORM_MANAGED`, linked to identity provider) |
 | Org renamed / slug changed | Update Organization metadata (internal ID stays stable) |
 | Org suspended | Set org status to suspended; reject new executions, allow in-flight to complete |
 | Org deletion initiated | Soft-delete: suspend + start retention window |
@@ -240,10 +240,10 @@ Planton Cloud → Stigmer, one-way sync:
 ### Decision 8: Billing — Aggregate by Service Credential
 
 - Stigmer bills Planton Cloud as a single customer
-- Usage is aggregated by querying: "all execution usage where `service_credential_ref = planton-cloud`"
+- Usage is aggregated by querying: "all execution usage where `identity_provider_ref = planton-cloud`"
 - Per-org breakdowns available for Planton Cloud to bill its own customers
 
-No new hierarchy or billing entity needed. It's a query filter on the service credential, not a structural change.
+No new hierarchy or billing entity needed. It's a query filter on the identity provider, not a structural change.
 
 ### Decision 9: Security Boundaries
 
@@ -255,7 +255,7 @@ No new hierarchy or billing entity needed. It's a query filter on the service cr
 | Blast radius | If Planton Cloud's signing key is compromised, only platform-managed orgs under that credential are affected. Self-managed orgs and other platforms are untouched. |
 | Key rotation | JWKS endpoint; Stigmer caches and refreshes signing keys on schedule |
 | Replay protection | Short TTL + `jti` claim for deduplication on state-changing operations |
-| Credential revocation | Setting service credential status to `REVOKED` immediately blocks all requests |
+| Provider revocation | Setting identity provider status to `REVOKED` immediately blocks all requests |
 
 ### Decision 10: Organization Slug Naming — No Prefix, Availability-Checked
 
@@ -297,20 +297,21 @@ Platform-managed orgs display standard Stigmer branding. No white-labeling, no c
 
 ## Implementation Phases
 
-### Phase 1: ServiceCredential and Platform-Managed Organizations
+### Phase 1: IdentityProvider and Platform-Managed Organizations
 
 **Scope**: Extend Stigmer's organization model to support platform management.
 
 **Implementation target: `stigmer-cloud` (Java). All of Phase 1 is TIER_CLOUD_ONLY. Protos live in `stigmer/apis/` (shared); controllers/storage/FGA go in `stigmer-cloud`.**
 
-- [x] Add `management_mode`, `service_credential_ref`, `external_org_id` fields to Organization proto — done in `apis/ai/stigmer/tenancy/organization/v1/`
-- [x] Design and implement `ServiceCredential` resource proto — done in `apis/ai/stigmer/iam/servicecredential/v1/`
-- [x] Add `service_credential` to `ApiResourceKind` enum — done in `apis/ai/stigmer/commons/apiresource/apiresourcekind/`
-- [x] Generate Go stubs for new/updated protos — done in `apis/stubs/go/`
-- [ ] **[stigmer-cloud]** Implement ServiceCredential CRUD (controller, Temporal workflow, MongoDB repository, FGA tuple creation)
-- [ ] **[stigmer-cloud]** Extend Organization creation/update to handle `management_mode` + `service_credential_ref` immutability
-- [ ] **[stigmer-cloud]** Validate platform_managed orgs require active `service_credential_ref`; self_managed orgs reject it
-- [ ] **[stigmer-cloud]** Block ServiceCredential deletion when platform-managed orgs reference it
+- [x] Add `management_mode`, `identity_provider_ref`, `external_org_id` fields to Organization proto — done in `apis/ai/stigmer/tenancy/organization/v1/`
+- [x] Design and implement `IdentityProvider` resource proto — done in `apis/ai/stigmer/iam/identityprovider/v1/`
+- [x] Add `identity_provider = 21` to `ApiResourceKind` enum (id_prefix: `idp`) — done in `apis/ai/stigmer/commons/apiresource/apiresourcekind/`
+- [x] Remove orphaned `credential = 20` from `ApiResourceKind` — no proto package existed
+- [x] Generate Go stubs for all new/updated protos — done in `apis/stubs/go/`
+- [ ] **[stigmer-cloud]** Implement IdentityProvider CRUD (controller, Temporal workflow, MongoDB repository, FGA tuple creation)
+- [ ] **[stigmer-cloud]** Extend Organization creation/update to handle `management_mode` + `identity_provider_ref` immutability
+- [ ] **[stigmer-cloud]** Validate platform_managed orgs require active `identity_provider_ref`; self_managed orgs reject it
+- [ ] **[stigmer-cloud]** Block IdentityProvider deletion when platform-managed orgs reference it
 - [ ] **[stigmer-cloud]** Ensure all existing org behavior (agents, skills, workflows, executions) works identically for platform-managed orgs
 
 ### Phase 2: Signed JWT Authentication + Federated Identity Accounts
@@ -318,10 +319,10 @@ Platform-managed orgs display standard Stigmer branding. No white-labeling, no c
 **Scope**: Enable Planton Cloud to authenticate and pass user context, with JIT identity provisioning.
 
 - [ ] Add `provisioning_mode` enum to IdentityAccount (`DIRECT`, `FEDERATED`, `MACHINE`)
-- [ ] Add `provisioned_by` field to IdentityAccount (service credential reference)
+- [ ] Add `provisioned_by` field to IdentityAccount (identity provider reference)
 - [ ] Migrate existing `isMachineAccount` boolean to `provisioning_mode = MACHINE`
 - [ ] Implement JWT assertion validation in Stigmer's auth layer (JWKS fetch, `iss`/`aud`/`exp`/`org` validation)
-- [ ] Wire service credential config to JWT validation (per-credential JWKS URI, allowed issuers)
+- [ ] Wire identity provider config to JWT validation (per-provider JWKS URI, allowed issuers)
 - [ ] Implement JIT provisioning: on validated JWT, look up or create federated `identity_account`
 - [ ] Implement JIT org membership: on first interaction with an org, create FGA membership tuple
 - [ ] Propagate federated identity through execution pipeline (audit trail)
@@ -340,10 +341,10 @@ Platform-managed orgs display standard Stigmer branding. No white-labeling, no c
 
 ### Phase 4: Billing and Usage Attribution
 
-**Scope**: Per-org metering with service-credential-level aggregation.
+**Scope**: Per-org metering with identity-provider-level aggregation.
 
 - [ ] Instrument execution pipeline for per-org usage metrics
-- [ ] Build usage query API (filter by service credential for platform-level rollups)
+- [ ] Build usage query API (filter by identity provider for platform-level rollups)
 - [ ] Design billing integration with Planton Cloud
 
 ---
@@ -352,8 +353,8 @@ Platform-managed orgs display standard Stigmer branding. No white-labeling, no c
 
 ### Stigmer Changes
 
-1. **New fields on Organization**: `management_mode`, `service_credential_ref`, `external_org_id`
-2. **New resource**: `ServiceCredential` (represents a trusted external platform)
+1. **New fields on Organization**: `management_mode`, `identity_provider_ref`, `external_org_id`
+2. **New resource**: `IdentityProvider` (configures trust with an external platform's identity assertions)
 3. **New auth path**: JWT assertion validation alongside existing Stigmer auth
 4. **New identity mode**: `FEDERATED` provisioning for identity accounts (JIT from JWT claims)
 5. **New enum on IdentityAccount**: `provisioning_mode` replacing `isMachineAccount` boolean
@@ -409,7 +410,7 @@ Signed with: Planton Cloud's private key (RSA256 or EC256)
 | Avoided | Why |
 |---|---|
 | Workspace hierarchy | Organization already serves as isolation boundary. Adding workspaces would break resource addressing and fragment the ubiquitous language. |
-| Platform Tenant entity | Billing and rate limiting are achievable by querying on service credential. A structural entity is over-engineering. |
+| Platform Tenant entity | Billing and rate limiting are achievable by querying on identity provider. A structural entity is over-engineering. |
 | Shadow Users via SCIM sync | Proactive user sync adds infrastructure for no benefit. JIT provisioning from JWT claims is simpler and creates users only when needed. |
 | Auth0 Custom Token Exchange (RFC 8693) | Auth0's CTE feature handles this scenario natively (cross-platform token exchange with JIT user creation, Auth0-managed keys). However, it requires Auth0 Enterprise or B2B Pro plan, which neither product currently has. **Upgrade path**: if we move to Enterprise, migrate from custom JWT signing to CTE — this eliminates Planton Cloud's signing key management and Stigmer's custom JWT validation path entirely. Auth0 handles everything. |
 | SCIM | Wrong tool. SCIM is for enterprise directory sync, not platform-to-platform integration. |

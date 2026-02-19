@@ -68,32 +68,41 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-18 13:08
-**Last Session**: 2026-02-19 — Phase 1 proto layer complete
+**Last Session**: 2026-02-19 — Phase 1 proto layer complete, renamed to IdentityProvider
 **Current Task**: T01 Phase 1 proto — Complete. Phase 1 cloud implementation next.
-**Status**: Phase 1 protos done. Next: ServiceCredential + Organization CRUD in `stigmer-cloud`.
+**Status**: Phase 1 protos done. Next: IdentityProvider + Organization CRUD in `stigmer-cloud`.
 
 ## Session Progress (2026-02-19)
 
 ### Completed (stigmer OSS — proto layer)
 - Created `ManagementMode` enum (`management_mode_unspecified`, `self_managed`, `platform_managed`) in `apis/ai/stigmer/tenancy/organization/v1/enum.proto`
-- Extended `OrganizationSpec` with `management_mode`, `service_credential_ref` (`ApiResourceReference`), `external_org_id`
-- Created full `ServiceCredential` proto package at `apis/ai/stigmer/iam/servicecredential/v1/` (api, spec, status, enum, io, command, query)
-- Added `service_credential = 21` to `ApiResourceKind` enum (`TIER_CLOUD_ONLY`, `AUTHORIZATION_SCOPE_TYPE_ORGANIZATION`)
+- Extended `OrganizationSpec` with `management_mode`, `identity_provider_ref` (`ApiResourceReference`), `external_org_id`
+- Created full `IdentityProvider` proto package at `apis/ai/stigmer/iam/identityprovider/v1/` (api, spec, status, enum, io, command, query)
+- Added `identity_provider = 21` to `ApiResourceKind` enum (`TIER_CLOUD_ONLY`, `AUTHORIZATION_SCOPE_TYPE_ORGANIZATION`, id_prefix: `idp`)
+- Removed orphaned `credential = 20` from `ApiResourceKind` (no proto package existed)
 - Generated Go stubs for all new/updated protos
 
+### Naming Decision: ServiceCredential -> IdentityProvider
+The resource was initially named `ServiceCredential` but renamed to `IdentityProvider` after architectural review:
+- The resource stores JWKS URI, allowed issuers, and expected audience — pure identity validation configuration, no secrets
+- "Credential" implies stored secrets; this resource has none
+- "Identity Provider" is the industry-standard term (AWS IAM OIDCProvider, GCP Workload Identity Pool Provider, Okta, Keycloak)
+- Natural pairing with `identity_account` in the IAM group
+- The resource's purpose is to validate identity assertions from external platforms — it IS an identity provider
+
 ### Key Design Decisions Made
-- `service_credential_ref` uses `ApiResourceReference` (org + kind + slug), consistent with `skill_refs`/`mcp_server_ref` in AgentSpec
-- ServiceCredential is **org-scoped** (Planton creates `planton` org, creates `ServiceCredential` inside it)
+- `identity_provider_ref` uses `ApiResourceReference` (org + kind + slug), consistent with `skill_refs`/`mcp_server_ref` in AgentSpec
+- IdentityProvider is **org-scoped** (Planton creates `planton` org, creates `IdentityProvider` inside it)
 - `external_org_id` kept: reverse-lookup key for when Stigmer slug differs from Planton's original slug
-- `ServiceCredentialLifecycleState` enum for status (active / suspended / revoked)
-- All Phase 1 implementation goes in `stigmer-cloud` — Organization and ServiceCredential are `TIER_CLOUD_ONLY`
+- `IdentityProviderLifecycleState` enum for status (active / suspended / revoked)
+- All Phase 1 implementation goes in `stigmer-cloud` — Organization and IdentityProvider are `TIER_CLOUD_ONLY`
 - No Go controllers added to OSS server (correctly excluded)
 
 ## Next Steps
-1. **[stigmer-cloud]** Implement `ServiceCredential` CRUD: Temporal workflow, MongoDB repository, FGA tuple creation, gRPC controller
-2. **[stigmer-cloud]** Extend Organization CRUD: handle `management_mode` + `service_credential_ref` immutability on update
-3. **[stigmer-cloud]** Validation: platform_managed requires active `service_credential_ref`; self_managed rejects it
-4. **[stigmer-cloud]** Guard: block ServiceCredential deletion when orgs reference it
+1. **[stigmer-cloud]** Implement `IdentityProvider` CRUD: Temporal workflow, MongoDB repository, FGA tuple creation, gRPC controller
+2. **[stigmer-cloud]** Extend Organization CRUD: handle `management_mode` + `identity_provider_ref` immutability on update
+3. **[stigmer-cloud]** Validation: platform_managed requires active `identity_provider_ref`; self_managed rejects it
+4. **[stigmer-cloud]** Guard: block IdentityProvider deletion when orgs reference it
 5. Proceed to Phase 2 once Phase 1 cloud implementation is complete
 
 ## Quick Commands

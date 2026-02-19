@@ -19,14 +19,14 @@ message OrganizationSpec {
 
   // How this organization is operated. Immutable after creation.
   // - self_managed (default): Created and operated directly by users via Stigmer UI/CLI/API.
-  // - platform_managed: Created programmatically by an external platform via a ServiceCredential.
+  // - platform_managed: Created programmatically by an external platform via an IdentityProvider.
   ManagementMode management_mode = 3;
 
-  // Reference to the ServiceCredential that manages this organization.
+  // Reference to the IdentityProvider that authenticates requests for this organization.
   // Required when management_mode is platform_managed; must be empty for self_managed.
-  // The referenced ServiceCredential must exist and be active at creation time.
+  // The referenced IdentityProvider must exist and be active at creation time.
   // Immutable after creation.
-  ai.stigmer.commons.apiresource.ApiResourceReference service_credential_ref = 4;
+  ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 4;
 
   // External platform's organization identifier for reverse mapping.
   // Set only for platform_managed organizations. Stores the integrating platform's

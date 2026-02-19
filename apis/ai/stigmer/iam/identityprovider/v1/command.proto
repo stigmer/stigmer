@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.identityprovider.v1;
+
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
+import "ai/stigmer/iam/identityprovider/v1/api.proto";
+
+// IdentityProviderCommandController provides write operations for identity providers.
+service IdentityProviderCommandController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = identity_provider;
+
+  // Create or update an identity provider (Kubernetes-style apply).
+  // If the resource doesn't exist: creates a new identity provider.
+  // If the resource exists: updates the existing identity provider.
+  rpc apply(IdentityProvider) returns (IdentityProvider);
+
+  // Create a new identity provider.
+  // The creator's organization owns the identity provider.
+  rpc create(IdentityProvider) returns (IdentityProvider) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = organization;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.org";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to create identity provider in this organization";
+  }
+
+  // Update an existing identity provider.
+  // Requires can_edit permission on the identity provider.
+  rpc update(IdentityProvider) returns (IdentityProvider) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = identity_provider;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.id";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update identity provider";
+  }
+
+  // Delete an identity provider.
+  // Deletion is blocked if any platform-managed organizations reference this identity provider.
+  rpc delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput) returns (IdentityProvider) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = identity_provider;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_delete;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "resource_id";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to delete identity provider";
+  }
+}
