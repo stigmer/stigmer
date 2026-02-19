@@ -13,56 +13,57 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current Status
 
-**Last Session**: February 19, 2026 — T11-B (Test Coverage Report) — COMPLETE
-**Current Task**: T11-A — Ready to pick
-**Status**: T01 ✅ | T02 ✅ | T03 ✅ | T04 ✅ | T05 ✅ | T06 ✅ | T07 ✅ | T08 ✅ | T09 ✅ | T10 ✅ | T11-B ✅ | T11-A Pending
+**Last Session**: February 19, 2026 — T11-A (Write Operations) — COMPLETE
+**Current Task**: All tasks complete — project DONE
+**Status**: T01 ✅ | T02 ✅ | T03 ✅ | T04 ✅ | T05 ✅ | T06 ✅ | T07 ✅ | T08 ✅ | T09 ✅ | T10 ✅ | T11-B ✅ | T11-A ✅
 
-## Session Progress (2026-02-19, Session 10)
+## Session Progress (2026-02-19, Session 11)
 
-**T11-B — Test Coverage Report (Complete)**
+**T11-A — Write Operations (Complete)**
 
-All 12 MCP server packages passing under `-race`. `go vet` clean.
+All 7 mutation tools implemented and wired. MCP server now exposes 12 tools total.
 
-**Coverage baseline established:**
+**New tools:**
 
-| Package | Coverage |
-|---|---|
-| `internal/auth` | 100.0% |
-| `internal/config` | 100.0% |
-| `internal/domains` | 88.9% |
-| `internal/domains/agents` | 96.2% |
-| `internal/domains/mcpservers` | 96.2% |
-| `internal/domains/search` | 87.7% |
-| `internal/domains/skills` | 97.1% |
-| `internal/domains/workflows` | 96.2% |
-| `internal/grpc` | 90.9% |
-| `internal/server` | 25.7% |
-| `pkg/mcpserver` | 34.5% |
-| **Total** | **72.7%** |
+| Tool | RPC | Pattern |
+|---|---|---|
+| `apply_agent` | `AgentCommandController.Apply(Agent)` | Full resource JSON → apply |
+| `apply_mcp_server` | `McpServerCommandController.Apply(McpServer)` | Full resource JSON → apply |
+| `apply_workflow` | `WorkflowCommandController.Apply(Workflow)` | Full resource JSON → apply |
+| `delete_agent` | `AgentCommandController.Delete(AgentId)` | org+slug → GetByReference → delete |
+| `delete_mcp_server` | `McpServerCommandController.Delete(ApiResourceDeleteInput)` | org+slug → GetByReference → delete |
+| `delete_skill` | `SkillCommandController.Delete(SkillId)` | org+slug → GetByReference → delete |
+| `delete_workflow` | `WorkflowCommandController.Delete(WorkflowId)` | org+slug → GetByReference → delete |
+
+**apply_skill not implemented** — `SkillCommandController.push` requires binary ZIP artifact (`bytes artifact`), which is incompatible with MCP text-based tool arguments. Deferred until backend adds a text-based skill mutation RPC.
 
 **Changes delivered:**
 
 | Item | Description |
 |---|---|
-| T11-B-A | New `jsonutil_test.go` — 3 tests for `MarshalJSON` (valid message, proto-name verification, nil) |
-| T11-B-B | New `TestHandler_grpcErrorWithOrg` in `search/tools_test.go` — covers org-scoped error message branch |
-| T11-B-C | Full gap analysis documented in session checkpoint |
+| T11-A-1 | `UnmarshalJSON` + `UnmarshalOptions` in `domains/jsonutil.go` |
+| T11-A-2 | `agents/apply.go`, `apply_tool.go`, `apply_tool_test.go` |
+| T11-A-3 | `agents/delete.go`, `delete_tool.go`, `delete_tool_test.go` |
+| T11-A-4 | `mcpservers/apply.go`, `apply_tool.go`, `apply_tool_test.go` |
+| T11-A-5 | `mcpservers/delete.go`, `delete_tool.go`, `delete_tool_test.go` |
+| T11-A-6 | `workflows/apply.go`, `apply_tool.go`, `apply_tool_test.go` |
+| T11-A-7 | `workflows/delete.go`, `delete_tool.go`, `delete_tool_test.go` |
+| T11-A-8 | `skills/delete.go`, `delete_tool.go`, `delete_tool_test.go` |
+| T11-A-9 | `server.go` — tool count 5 → 12 |
 
-**Coverage health summary:**
+**Final tool inventory (12 tools):**
+- Read: `search`, `get_agent`, `get_mcp_server`, `get_skill`, `get_workflow`
+- Apply: `apply_agent`, `apply_mcp_server`, `apply_workflow`
+- Delete: `delete_agent`, `delete_mcp_server`, `delete_skill`, `delete_workflow`
 
-- Domain packages (`agents`, `mcpservers`, `skills`, `workflows`): all 96%+ — strong
-- Shared utilities (`rpcerr`, `uriutil`, `jsonutil`): 75-100% — remaining gaps are defensive/unreachable error paths
-- Infrastructure (`server`, `pkg/mcpserver`): 25-35% — orchestration wiring that would require real transports to test; no branching logic
-- No dead code found. No architectural concerns surfaced.
+## Next Steps
 
-## Next Steps (T11-A)
+The MCP server project backlog is **exhausted**. Possible follow-on work:
 
-### Write Operations (~1-2 days)
-
-Add mutation tools for all four domain kinds:
-- `apply_agent`, `apply_skill`, `apply_mcp_server`, `apply_workflow` — create/update
-- `delete_agent`, `delete_skill`, `delete_mcp_server`, `delete_workflow`
-- Requires `CommandController` gRPC stubs and corresponding test doubles per domain
+1. **Integration with Stigmer Cloud** — project `20260218.01.stigmer-planton-cloud-integration`
+2. **Proto-to-MCP codegen exploration** — research at `_projects/2026-02/20260217.01.stigmer-mcp-server/research/20260219.160000.proto-to-mcp-server-codegen/`
+3. **Smoke test against live stigmer-server** — validate apply/delete tools end-to-end against a real running backend
+4. **apply_skill via inline SKILL.md** — if backend adds a text-based skill mutation RPC
 
 ## Key Architectural Decisions
 
@@ -77,6 +78,7 @@ Add mutation tools for all four domain kinds:
 | Config source | CLI: flags > env > config.yaml > defaults | Standard CLI precedence; config.yaml bridges existing login session |
 | List tools | Unified `search` via `SearchService.search` | Domain controllers have no list RPCs; search covers list+discover |
 | Serialization | `protojson` with `UseProtoNames: true` | Clean JSON, RFC 3339 timestamps, no manual struct mapping |
+| Deserialization | `protojson` with `DiscardUnknown: true` | AI clients may produce extra fields; lenient parsing avoids brittle errors |
 | Integration tests | Real gRPC server + embedded Unimplemented* mocks | Zero production code changes; validates full handler path |
 | Logging | `log/slog` to stderr | Stdlib, structured, stderr-only (stdout reserved for STDIO transport) |
 | Error messages | `domains.RPCError(err, resourceDesc)` | Classifies gRPC codes into user-friendly messages; logs raw error |
@@ -87,25 +89,30 @@ Add mutation tools for all four domain kinds:
 | URI building | `BuildResourceURI(kind, org, slug)` in `uriutil.go` | Inverse of Parse; single source of truth for kind→authority mapping |
 | Search enrichment | `enrichSearchResponse` in search handler | `resource_uri` is MCP-specific; enrichment at presentation layer, not proto |
 | Fetch abstraction | `Fetch()` in `fetch.go` per domain | Single implementation shared by tool and resource handlers |
+| Apply input | Full resource JSON string | Decouples tool schema from proto evolution; AI can construct from get_* output |
+| Delete input | org+slug (fetch-then-delete) | Users know resources by slug, not UUID; extra round-trip is negligible |
 | CLI embed | Foreground command, not daemon | MCP server is stateless; no lifecycle management needed |
 
 ## Quick Resume Commands
 
-When starting the next session:
-- "Continue with T11-A (write operations)" — mutation tools for all four kinds
+No active tasks remain. If resuming:
+- "Show project status" — full overview
 - "Show test coverage" — run `go test -coverprofile` to see numbers
-- "Show project status" — get full overview
+- "Start smoke test against live server" — validate end-to-end
 
 ## Essential Files
 
 ```
 _projects/2026-02/20260217.01.stigmer-mcp-server/tasks/T01_0_plan.md  — Architecture decisions
+_projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-19-session-11.md — T11-A (write ops)
 _projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-19-session-10.md — T11-B (coverage report)
-_projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-19-session-9.md  — T10
 mcp-server/  — Implementation
-mcp-server/internal/domains/uriutil.go  — URI parsing + building (kindToAuthority)
-mcp-server/internal/domains/mcpservers/  — MCP server domain (new in T10)
-mcp-server/internal/domains/search/tools.go  — search tool with resource_uri enrichment
+mcp-server/internal/domains/jsonutil.go  — JSON marshal + unmarshal utilities
+mcp-server/internal/domains/agents/  — Agent domain (get, apply, delete)
+mcp-server/internal/domains/mcpservers/  — MCP server domain (get, apply, delete)
+mcp-server/internal/domains/skills/  — Skill domain (get, delete — no apply)
+mcp-server/internal/domains/workflows/  — Workflow domain (get, apply, delete)
+mcp-server/internal/server/server.go  — Tool + resource registration
 client-apps/cli/cmd/stigmer/root/mcp_server.go  — CLI embedding with config bridging
 ```
 
