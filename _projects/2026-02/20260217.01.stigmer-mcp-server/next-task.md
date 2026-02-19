@@ -13,49 +13,56 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current Status
 
-**Last Session**: February 19, 2026 — T10 (MCP Server Resource Template and Tool) — COMPLETE
-**Current Task**: T11 — Ready to pick (see candidates below)
-**Status**: T01 ✅ | T02 ✅ | T03 ✅ | T04 ✅ | T05 ✅ | T06 ✅ | T07 ✅ | T08 ✅ | T09 ✅ | T10 ✅ | T11 Pending
+**Last Session**: February 19, 2026 — T11-B (Test Coverage Report) — COMPLETE
+**Current Task**: T11-A — Ready to pick
+**Status**: T01 ✅ | T02 ✅ | T03 ✅ | T04 ✅ | T05 ✅ | T06 ✅ | T07 ✅ | T08 ✅ | T09 ✅ | T10 ✅ | T11-B ✅ | T11-A Pending
 
-## Session Progress (2026-02-19, Session 9)
+## Session Progress (2026-02-19, Session 10)
 
-**T10 — MCP Server Resource Template and Tool (Complete)**
+**T11-B — Test Coverage Report (Complete)**
 
 All 12 MCP server packages passing under `-race`. `go vet` clean.
+
+**Coverage baseline established:**
+
+| Package | Coverage |
+|---|---|
+| `internal/auth` | 100.0% |
+| `internal/config` | 100.0% |
+| `internal/domains` | 88.9% |
+| `internal/domains/agents` | 96.2% |
+| `internal/domains/mcpservers` | 96.2% |
+| `internal/domains/search` | 87.7% |
+| `internal/domains/skills` | 97.1% |
+| `internal/domains/workflows` | 96.2% |
+| `internal/grpc` | 90.9% |
+| `internal/server` | 25.7% |
+| `pkg/mcpserver` | 34.5% |
+| **Total** | **72.7%** |
 
 **Changes delivered:**
 
 | Item | Description |
 |---|---|
-| T10-A | New `mcp-server/internal/domains/mcpservers/` package — `fetch.go`, `tools.go`, `resources.go` |
-| T10-B | `get_mcp_server` MCP tool (backed by `McpServerQueryController.GetByReference`) |
-| T10-C | `stigmer://mcp-servers/{org}/{slug}` resource template — all four searchable kinds now have templates |
-| T10-D | `kindToAuthority` in `uriutil.go` extended with `"mcp_server": "mcp-servers"` |
-| T10-E | `uriutil_test.go` — updated `mcp_server` case, added round-trip test |
-| T10-F | `search/tools_test.go` — `mcp_server` entries now assert `resource_uri` in `enrichSearchResponse` test |
-| T10-G | `server.go` — tool and template registered; log counts updated to 5/5 |
-| T10-H | `README.md` — intro, tools table, resources table, architecture section updated |
-| T10-I | 10 new tests in `mcpservers/tools_test.go` and `mcpservers/resources_test.go` |
+| T11-B-A | New `jsonutil_test.go` — 3 tests for `MarshalJSON` (valid message, proto-name verification, nil) |
+| T11-B-B | New `TestHandler_grpcErrorWithOrg` in `search/tools_test.go` — covers org-scoped error message branch |
+| T11-B-C | Full gap analysis documented in session checkpoint |
 
-**Key design decisions:**
+**Coverage health summary:**
 
-- `mcp-servers` authority (hyphenated): first hyphenated authority in the URI scheme. Conventional in URIs; maps cleanly from proto `mcp_server` to URI `mcp-servers`.
-- Tool included alongside template: consistency with agents/skills/workflows — every kind with a template also has a `get_*` tool. No cost once `Fetch` exists.
-- No versioned template: `mcp_server` is `is_versioned: false` — mirrors agents/workflows pattern.
-- `kindToAuthority` remains the single source of truth for kind→URI-authority mapping.
+- Domain packages (`agents`, `mcpservers`, `skills`, `workflows`): all 96%+ — strong
+- Shared utilities (`rpcerr`, `uriutil`, `jsonutil`): 75-100% — remaining gaps are defensive/unreachable error paths
+- Infrastructure (`server`, `pkg/mcpserver`): 25-35% — orchestration wiring that would require real transports to test; no branching logic
+- No dead code found. No architectural concerns surfaced.
 
-## Next Steps (T11 Candidates — pick one)
+## Next Steps (T11-A)
 
-### Option A: Write Operations (bigger scope, ~1-2 days)
+### Write Operations (~1-2 days)
 
 Add mutation tools for all four domain kinds:
 - `apply_agent`, `apply_skill`, `apply_mcp_server`, `apply_workflow` — create/update
 - `delete_agent`, `delete_skill`, `delete_mcp_server`, `delete_workflow`
 - Requires `CommandController` gRPC stubs and corresponding test doubles per domain
-
-### Option B: Test Coverage Report (~15 min)
-
-Run `go test -coverprofile=coverage.out ./mcp-server/...` and review per-package coverage. Identify any meaningful gaps before moving to write operations. Recommended first step before Option A.
 
 ## Key Architectural Decisions
 
@@ -85,8 +92,7 @@ Run `go test -coverprofile=coverage.out ./mcp-server/...` and review per-package
 ## Quick Resume Commands
 
 When starting the next session:
-- "Continue with T11 Option A (write operations)" — mutation tools for all four kinds
-- "Continue with T11 Option B (test coverage)" — coverage baseline before write operations
+- "Continue with T11-A (write operations)" — mutation tools for all four kinds
 - "Show test coverage" — run `go test -coverprofile` to see numbers
 - "Show project status" — get full overview
 
@@ -94,8 +100,8 @@ When starting the next session:
 
 ```
 _projects/2026-02/20260217.01.stigmer-mcp-server/tasks/T01_0_plan.md  — Architecture decisions
+_projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-19-session-10.md — T11-B (coverage report)
 _projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-19-session-9.md  — T10
-_projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-19-session-8.md  — T09
 mcp-server/  — Implementation
 mcp-server/internal/domains/uriutil.go  — URI parsing + building (kindToAuthority)
 mcp-server/internal/domains/mcpservers/  — MCP server domain (new in T10)
