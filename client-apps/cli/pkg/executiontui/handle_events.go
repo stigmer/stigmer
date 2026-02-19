@@ -79,9 +79,10 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 
 	case PhaseChangeEvent:
 		m.phase = e.Phase
-		rendered := renderPhaseChange(e.Phase, e.Previous)
-		if rendered != "" {
-			m.blocks = append(m.blocks, newPhaseBlock(rendered))
+		if m.cfg.Verbose {
+			m.blocks = append(m.blocks, newSystemBlock(
+				renderSystemContent("Phase: "+e.Previous+" → "+e.Phase),
+			))
 		}
 
 	case ApprovalNeededEvent:
@@ -104,15 +105,7 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 		}
 
 	case DoneEvent:
-		m.done = true
-		previousPhase := m.phase
 		m.phase = e.Phase
-
-		// Finalize any tools still tracked as running. When execution
-		// completes (or fails/cancels), these tools will never receive a
-		// ToolCompletedEvent. When the stored ToolCallInfo is available,
-		// we create a proper expandable block; otherwise we fall back to
-		// replacing the running indicator (⏳) with a completion mark (✓).
 		m.finalizeRunningTools()
 
 		if e.Error != "" {
@@ -121,51 +114,81 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 				renderErrorContent(e.Error),
 			))
 		}
-		// Render final phase change if displayable.
-		rendered := renderPhaseChange(e.Phase, previousPhase)
-		if rendered != "" {
-			m.blocks = append(m.blocks, newPhaseBlock(rendered))
+
+		// When conversational mode is enabled, activate the input composer
+		// so the user can send a follow-up. This applies to all terminal
+		// phases (completed, failed, cancelled) — the user can recover from
+		// failures by sending corrective instructions.
+		//
+		// When FollowUpFn is nil, fall back to pre-Phase 2 behavior: mark
+		// done so the footer shows "q exit" and the TUI prepares to exit.
+		if m.cfg.FollowUpFn != nil {
+			m.inputActive = true
+			m.textarea.Focus()
+		} else {
+			m.done = true
 		}
 
 	case StreamErrorEvent:
-		m.done = true
 		m.exitError = e.Err.Error()
-
-		// Finalize running tools (same rationale as DoneEvent above).
 		m.finalizeRunningTools()
 
 		m.blocks = append(m.blocks, newErrorBlock(
 			renderErrorContent("Stream error: "+e.Err.Error()),
 		))
+
+		// In conversational mode, treat stream errors like any other terminal
+		// event: activate input so the user can send a follow-up (which creates
+		// a new execution in the session) or press Esc to exit. The backend may
+		// still be healthy — only the stream broke.
+		//
+		// Without FollowUpFn, fall back to pre-Phase 2 terminal behavior.
+		if m.cfg.FollowUpFn != nil {
+			m.inputActive = true
+			m.textarea.Focus()
+		} else {
+			m.done = true
+		}
 	}
 
 	// Update viewport content and scroll position.
 	m.refreshViewport()
 
-	// When done, stay open so the user can browse content at leisure.
-	// The footer shows "q to exit". No more events to listen for.
-	if m.done {
+	// When done or waiting for user input, stay open without listening
+	// for events. The footer shows exit/input hints.
+	if m.done || m.inputActive {
 		return m, nil
 	}
-	return m, listenForEvents(m.cfg.Events)
+	return m, listenForEvents(m.activeEvents)
 }
 
 // handleStreamClosed is called when the events channel is closed.
 // If we haven't received a DoneEvent, treat this as an unexpected close.
+//
+// When inputActive is true, the stream closure is expected — the execution
+// completed normally (via DoneEvent) and the user is composing a follow-up.
+// A follow-up creation in progress also means the old channel closure is
+// expected.
 func (m Model) handleStreamClosed() (tea.Model, tea.Cmd) {
-	if !m.done {
-		m.done = true
+	if !m.done && !m.inputActive {
 		m.exitError = "execution stream closed unexpectedly"
-
-		// Finalize running tools (same rationale as DoneEvent above).
 		m.finalizeRunningTools()
 
 		m.blocks = append(m.blocks, newErrorBlock(
 			renderErrorContent("Stream closed unexpectedly"),
 		))
+
+		// Same pattern as StreamErrorEvent: activate input in conversational
+		// mode so the user can recover with a follow-up message.
+		if m.cfg.FollowUpFn != nil {
+			m.inputActive = true
+			m.textarea.Focus()
+		} else {
+			m.done = true
+		}
+
 		m.refreshViewport()
 	}
-	// Stay open — user presses q to exit.
 	return m, nil
 }
 

@@ -1,0 +1,139 @@
+package root
+
+import (
+	"context"
+	"fmt"
+	"slices"
+
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/pkg/errors"
+	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/session"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
+	"google.golang.org/grpc"
+)
+
+// executeRunSession handles the single-arg `stigmer run ses-xxx` path.
+// It connects to the backend and delegates to openSession.
+func executeRunSession(sessionID, orgOverride string, verbose bool) error {
+	conn, orgID, err := connectToBackend(orgOverride)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	return openSession(sessionID, orgID, verbose, conn)
+}
+
+// openSession re-opens an existing session by its ID.
+//
+// It fetches the session, finds the latest execution, and either:
+//   - Re-attaches to the live stream if the execution is still running
+//   - Opens a resumable TUI with the full conversation history if all
+//     executions have completed, allowing the user to continue
+func openSession(sessionID, orgID string, verbose bool, conn *grpc.ClientConn) error {
+	ses, err := session.GetFromBackend(conn, sessionID)
+	if err != nil {
+		cliprint.PrintError("Session not found: %s", sessionID)
+		return err
+	}
+
+	execList, err := execution.ListBySession(&execution.ListBySessionOptions{
+		Conn:      conn,
+		SessionID: sessionID,
+		PageSize:  execution.MaxPageSize,
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to list session executions")
+	}
+
+	entries := execList.GetEntries()
+	if len(entries) == 0 {
+		cliprint.PrintWarning("Session %s has no executions", sessionID)
+		return nil
+	}
+
+	latestExec := entries[0]
+	phase := latestExec.GetStatus().GetPhase()
+
+	subject := ses.GetSpec().GetSubject()
+	if subject != "" {
+		cliprint.PrintInfo("Session: %s (%s)", sessionID, subject)
+	} else {
+		cliprint.PrintInfo("Session: %s", sessionID)
+	}
+
+	switch phase {
+	case agentexecutionv1.ExecutionPhase_EXECUTION_PENDING,
+		agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS,
+		agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL,
+		agentexecutionv1.ExecutionPhase_EXECUTION_PAUSED:
+		cliprint.PrintInfo("Re-attaching to session...")
+		fmt.Println()
+		executionID := latestExec.GetMetadata().GetId()
+		prompter := approval.NewInteractivePrompter()
+		_, err := streamAgentExecution(sessionID, executionID, orgID, prompter, approval.Action(0), verbose, conn)
+		return err
+
+	default:
+		return resumeSession(sessionID, orgID, entries, verbose, conn)
+	}
+}
+
+// resumeSession opens a completed session with the full conversation history
+// and allows the user to continue. All executions are rendered as a seamless
+// transcript (no execution boundaries visible). The input composer is active
+// so the user can send a follow-up message that creates a new execution.
+func resumeSession(sessionID, orgID string, executions []*agentexecutionv1.AgentExecution, verbose bool, conn *grpc.ClientConn) error {
+	cliprint.PrintInfo("Resuming session...")
+	fmt.Println()
+
+	// The backend returns executions newest-first. Reverse for chronological
+	// block building so the conversation reads top-to-bottom.
+	chronological := make([]*agentexecutionv1.AgentExecution, len(executions))
+	copy(chronological, executions)
+	slices.Reverse(chronological)
+
+	blocks := executiontui.BuildSessionReplayBlocks(chronological)
+	latestExec := executions[0]
+	latestExecID := latestExec.GetMetadata().GetId()
+
+	ctx := context.Background()
+	followUpFn := buildFollowUpFn(ctx, sessionID, orgID, conn)
+
+	model := executiontui.NewResumable(executiontui.ResumableConfig{
+		SessionID:   sessionID,
+		ExecutionID: latestExecID,
+		Blocks:      blocks,
+		FollowUpFn:  followUpFn,
+		LastPhase:   mapPhaseToString(latestExec.GetStatus().GetPhase()),
+		Verbose:     verbose,
+	})
+
+	p := tea.NewProgram(model, tea.WithAltScreen())
+	finalModel, err := p.Run()
+	if err != nil {
+		return errors.Wrap(err, "TUI session failed")
+	}
+
+	result := finalModel.(executiontui.Model)
+
+	// Fetch the final execution state. When the user sent follow-ups,
+	// LatestExecutionID returns the most recent one.
+	finalExecID := result.LatestExecutionID()
+	finalExec, err := fetchFinalExecution(ctx, conn, finalExecID)
+	if err != nil {
+		return errors.Wrap(err, "failed to fetch final execution state")
+	}
+
+	if result.Done() {
+		displaySessionExitLine(sessionID, finalExec)
+	} else {
+		displaySessionDetachLine(sessionID)
+	}
+
+	return nil
+}

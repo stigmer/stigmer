@@ -12,10 +12,31 @@ import (
 	"google.golang.org/grpc"
 )
 
-// createAgentExecution creates a new agent execution.
-// model is optional - if provided, it overrides the server's default model.
-// autoApproveAll when true bypasses all approval policies at the server level.
-func createAgentExecution(agentID string, orgID string, message string, runtimeEnv envfile.EnvMap, attachments []*agentexecutionv1.Attachment, model string, autoApproveAll bool, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
+// CreateAgentExecutionInput holds the parameters for creating an agent execution.
+//
+// Either AgentID or SessionID must be provided:
+//   - AgentID: starts a new session (backend auto-creates it) and runs the first execution.
+//   - SessionID: creates a follow-up execution within an existing session
+//     (the backend infers the agent from the session).
+type CreateAgentExecutionInput struct {
+	AgentID        string
+	SessionID      string
+	OrgID          string
+	Message        string
+	RuntimeEnv     envfile.EnvMap
+	Attachments    []*agentexecutionv1.Attachment
+	Model          string
+	AutoApproveAll bool
+	Conn           *grpc.ClientConn
+}
+
+// createAgentExecution creates a new agent execution within a session.
+//
+// When SessionID is set, the execution is created within that existing session
+// and AgentID is not required (the backend resolves it from the session).
+// When only AgentID is set, the backend auto-creates a new session.
+func createAgentExecution(input CreateAgentExecutionInput) (*agentexecutionv1.AgentExecution, error) {
+	message := input.Message
 	if message == "" {
 		message = "execute"
 	}
@@ -23,17 +44,21 @@ func createAgentExecution(agentID string, orgID string, message string, runtimeE
 	executionName := fmt.Sprintf("execution-%d", time.Now().UnixMicro())
 
 	spec := &agentexecutionv1.AgentExecutionSpec{
-		AgentId:        agentID,
 		Message:        message,
-		RuntimeEnv:     runtimeEnv,
-		Attachments:    attachments,
-		AutoApproveAll: autoApproveAll,
+		RuntimeEnv:     input.RuntimeEnv,
+		Attachments:    input.Attachments,
+		AutoApproveAll: input.AutoApproveAll,
 	}
 
-	// Set execution config with model override if provided
-	if model != "" {
+	if input.SessionID != "" {
+		spec.SessionId = input.SessionID
+	} else {
+		spec.AgentId = input.AgentID
+	}
+
+	if input.Model != "" {
 		spec.ExecutionConfig = &agentexecutionv1.ExecutionConfig{
-			ModelName: model,
+			ModelName: input.Model,
 		}
 	}
 
@@ -42,12 +67,12 @@ func createAgentExecution(agentID string, orgID string, message string, runtimeE
 		Kind:       "AgentExecution",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: executionName,
-			Org:  orgID,
+			Org:  input.OrgID,
 		},
 		Spec: spec,
 	}
 
-	client := agentexecutionv1.NewAgentExecutionCommandControllerClient(conn)
+	client := agentexecutionv1.NewAgentExecutionCommandControllerClient(input.Conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 

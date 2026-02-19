@@ -11,6 +11,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/envfile"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/reference"
 	"google.golang.org/grpc"
 )
 
@@ -26,11 +27,17 @@ func NewRunCommand() *cobra.Command {
 	var attachFlags []string
 	var downloadDir string
 	var approveDefault string
+	var verbose bool
 
 	cmd := &cobra.Command{
-		Use:   "run <type> <name-or-id>",
-		Short: "Execute an agent or workflow",
-		Long: `Execute a resource by type and name or ID.
+		Use:   "run {<type> <name-or-id> | <session-id>}",
+		Short: "Execute an agent or workflow, or re-open a session",
+		Long: `Execute a resource by type and name or ID, or re-open an existing session.
+
+USAGE FORMS:
+
+  stigmer run <type> <name-or-id>     Start a new execution
+  stigmer run <session-id>            Re-open an existing session
 
 The type can be specified using any alias:
   - agent, agt, agents
@@ -40,6 +47,10 @@ The reference can be:
   - Resource ID (e.g., agt_abc123, wfl_xyz789)
   - Slug (e.g., my-agent)
   - Org/slug (e.g., acme-corp/my-agent)
+
+A session ID (ses-xxx) re-opens that session: if the latest execution is
+still running, you re-attach to the live stream; if it has completed, you
+see the transcript in read-only replay mode.
 
 By default, the command streams execution updates in real-time, handles
 approval prompts interactively, and returns when the execution completes.
@@ -68,7 +79,10 @@ OTHER OPTIONS:
   --message, -m:  Initial prompt to send to the agent/workflow
   --detach:       Start execution and return immediately without streaming
   --download DIR: Download artifacts to directory when complete`,
-		Example: `  # Run an agent by name (streams by default)
+		Example: `  # Re-open an existing session
+  stigmer run ses-01abc123xyz456
+
+  # Run an agent by name (streams by default)
   stigmer run agent my-agent
 
   # Run a workflow with a message
@@ -108,8 +122,25 @@ OTHER OPTIONS:
 
   # Override organization
   stigmer run agent my-agent --org acme-corp`,
-		Args: cobra.ExactArgs(2),
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 1 {
+				if !reference.IsSessionID(args[0]) {
+					return fmt.Errorf("single argument must be a session ID (ses-xxx); for agents use: stigmer run agent <name>")
+				}
+				return nil
+			}
+			if len(args) == 2 {
+				return nil
+			}
+			return fmt.Errorf("accepts 1 or 2 args, received %d", len(args))
+		},
 		Run: func(cmd *cobra.Command, args []string) {
+			// Single-arg session ID mode
+			if len(args) == 1 {
+				err := executeRunSession(args[0], orgOverride, verbose)
+				clierr.Handle(err)
+				return
+			}
 			err := executeRun(runOptions{
 				TypeArg:         args[0],
 				Reference:       args[1],
@@ -123,6 +154,7 @@ OTHER OPTIONS:
 				AttachFlags:     attachFlags,
 				DownloadDir:     downloadDir,
 				ApproveDefault:  approveDefault,
+				Verbose:         verbose,
 			})
 			clierr.Handle(err)
 		},
@@ -160,6 +192,10 @@ OTHER OPTIONS:
 	cmd.Flags().StringVar(&approveDefault, "approve-default", "",
 		"auto-resolve approval prompts in non-interactive mode (approve, skip, reject)")
 
+	// Verbose flag for debugging
+	cmd.Flags().BoolVarP(&verbose, "verbose", "v", false,
+		"show execution IDs and phase transitions in the TUI transcript")
+
 	return cmd
 }
 
@@ -177,6 +213,7 @@ type runOptions struct {
 	AttachFlags     []string
 	DownloadDir     string
 	ApproveDefault  string
+	Verbose         bool
 }
 
 // executeRun validates type and routes to the appropriate run handler.
@@ -232,14 +269,14 @@ func executeRun(opts runOptions) error {
 	}
 
 	// Step 7: Route to appropriate handler
-	return routeRun(info, opts.Reference, opts.Message, runtimeEnv, attachments, opts.Detach, opts.DownloadDir, orgID, defaultAction, conn)
+	return routeRun(info, opts.Reference, opts.Message, runtimeEnv, attachments, opts.Detach, opts.DownloadDir, orgID, defaultAction, opts.Verbose, conn)
 }
 
 // routeRun routes to the appropriate run handler based on kind.
-func routeRun(info *types.TypeInfo, ref, message string, env envfile.EnvMap, attachments []*agentexecutionv1.Attachment, detach bool, downloadDir, orgID string, defaultAction approval.Action, conn *grpc.ClientConn) error {
+func routeRun(info *types.TypeInfo, ref, message string, env envfile.EnvMap, attachments []*agentexecutionv1.Attachment, detach bool, downloadDir, orgID string, defaultAction approval.Action, verbose bool, conn *grpc.ClientConn) error {
 	switch info.ProtoKind {
 	case apiresourcekind.ApiResourceKind_agent:
-		return runAgent(ref, message, env, attachments, detach, downloadDir, orgID, defaultAction, conn)
+		return runAgent(ref, message, env, attachments, detach, downloadDir, orgID, defaultAction, verbose, conn)
 
 	case apiresourcekind.ApiResourceKind_workflow:
 		return runWorkflow(ref, message, env, detach, orgID, defaultAction, conn)

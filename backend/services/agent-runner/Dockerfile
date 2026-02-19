@@ -56,8 +56,11 @@ RUN poetry config virtualenvs.in-project true && \
 # restores the correct files. The verification step below will catch any regression.
 RUN .venv/bin/pip install --force-reinstall --no-deps deepagents==0.4.0
 
-# Verify critical dependencies are importable (catches corrupted PyPI packages at build time).
-# This gate prevents a broken image from ever being tagged.
+# Verify deepagents is importable (catches corrupted PyPI packages at build time).
+# This gate is specifically for the deepagents-cli namespace collision (see WORKAROUND above)
+# which is a runtime packaging defect that linters cannot detect.
+# Python syntax errors in first-party code (graphton, worker) are caught earlier by
+# pre-commit hooks (ruff) and make lint -- they do not need Docker build-time verification.
 RUN .venv/bin/python -c "\
 from deepagents.middleware.subagents import SubAgentMiddleware; \
 from deepagents.middleware.filesystem import FilesystemMiddleware; \
