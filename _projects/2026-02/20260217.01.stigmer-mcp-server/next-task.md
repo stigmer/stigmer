@@ -6,57 +6,56 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Project: 20260217.01.stigmer-mcp-server
 
-**Description**: Design and implement an MCP (Model Context Protocol) server for Stigmer that exposes Stigmer resources — agents, skills, workflows — to AI coding assistants and other MCP-compatible clients.
-**Goal**: Create an MCP server that enables AI tools (Cursor, Claude Desktop, etc.) to discover and interact with Stigmer resources, starting with agents, skills, and workflows, with a clear extension path for projects, executions, and build artifacts.
+**Description**: Design and implement an MCP (Model Context Protocol) server for Stigmer that exposes Stigmer resources — agents, skills, MCP servers, and workflows — to AI coding assistants and other MCP-compatible clients.
+**Goal**: Create an MCP server that enables AI tools (Cursor, Claude Desktop, etc.) to discover and interact with Stigmer resources, starting with agents, skills, MCP servers, and workflows, with a clear extension path for projects, executions, and build artifacts.
 **Tech Stack**: Go, official `modelcontextprotocol/go-sdk`, gRPC (Stigmer API), Protocol Buffers
 **Location**: `mcp-server/` at the repository root (not under `backend/services/`)
 
 ## Current Status
 
-**Last Session**: February 19, 2026 — T09 (Search Result URIs) — COMPLETE
-**Current Task**: T10 — Ready to pick (see candidates below)
-**Status**: T01 ✅ | T02 ✅ | T03 ✅ | T04 ✅ | T05 ✅ | T06 ✅ | T07 ✅ | T08 ✅ | T09 ✅ | T10 Pending
+**Last Session**: February 19, 2026 — T10 (MCP Server Resource Template and Tool) — COMPLETE
+**Current Task**: T11 — Ready to pick (see candidates below)
+**Status**: T01 ✅ | T02 ✅ | T03 ✅ | T04 ✅ | T05 ✅ | T06 ✅ | T07 ✅ | T08 ✅ | T09 ✅ | T10 ✅ | T11 Pending
 
-## Session Progress (2026-02-19, Session 8)
+## Session Progress (2026-02-19, Session 9)
 
-**T09 — Search Result URIs (Complete)**
+**T10 — MCP Server Resource Template and Tool (Complete)**
 
-All 11 MCP server packages passing under `-race`. `go vet` clean.
+All 12 MCP server packages passing under `-race`. `go vet` clean.
 
 **Changes delivered:**
 
 | Item | Description |
 |---|---|
-| T09-A | `BuildResourceURI(kind, org, slug) string` in `uriutil.go` — inverse of `ParseResourceURI`; maps `agent`/`skill`/`workflow` to plural URI authorities; returns `""` for unsupported kinds |
-| T09-B | 8 table-driven tests + 1 round-trip test for `BuildResourceURI` in `uriutil_test.go` |
-| T09-C | `enrichSearchResponse(resp) (string, error)` in `search/tools.go` — JSON round-trip enrichment injecting `resource_uri` into qualifying entries; short-circuits on empty entry list |
-| T09-D | `Handler` updated to call `enrichSearchResponse`; `encoding/json` import added |
-| T09-E | 2 new unit tests (`mixedKinds`, `emptyEntries`) + updated `TestHandler_success` in `search/tools_test.go` |
-| T09-F | Updated `README.md` — Tools table, Resources section, Architecture line |
+| T10-A | New `mcp-server/internal/domains/mcpservers/` package — `fetch.go`, `tools.go`, `resources.go` |
+| T10-B | `get_mcp_server` MCP tool (backed by `McpServerQueryController.GetByReference`) |
+| T10-C | `stigmer://mcp-servers/{org}/{slug}` resource template — all four searchable kinds now have templates |
+| T10-D | `kindToAuthority` in `uriutil.go` extended with `"mcp_server": "mcp-servers"` |
+| T10-E | `uriutil_test.go` — updated `mcp_server` case, added round-trip test |
+| T10-F | `search/tools_test.go` — `mcp_server` entries now assert `resource_uri` in `enrichSearchResponse` test |
+| T10-G | `server.go` — tool and template registered; log counts updated to 5/5 |
+| T10-H | `README.md` — intro, tools table, resources table, architecture section updated |
+| T10-I | 10 new tests in `mcpservers/tools_test.go` and `mcpservers/resources_test.go` |
 
 **Key design decisions:**
 
-- Option B (versioned templates for agents/workflows) was skipped: `agent` and `workflow` are `is_versioned: false` in `kind_meta`. Adding versioned URI templates would silently ignore the version — a false API surface. Deferred until versioning is supported in the backend.
-- `resource_uri` enrichment lives in the MCP layer, not the proto. `stigmer://` is an MCP concept; coupling it to the core proto would be a layer violation.
-- `kindToAuthority` map in `uriutil.go` is the single source of truth for which kinds have resource templates. When `mcp_server` gets a template, one map entry wires it up.
-- `mcp_server` entries intentionally omit `resource_uri` — no template is registered for that kind today.
+- `mcp-servers` authority (hyphenated): first hyphenated authority in the URI scheme. Conventional in URIs; maps cleanly from proto `mcp_server` to URI `mcp-servers`.
+- Tool included alongside template: consistency with agents/skills/workflows — every kind with a template also has a `get_*` tool. No cost once `Fetch` exists.
+- No versioned template: `mcp_server` is `is_versioned: false` — mirrors agents/workflows pattern.
+- `kindToAuthority` remains the single source of truth for kind→URI-authority mapping.
 
-## Next Steps (T10 Candidates — pick one)
+## Next Steps (T11 Candidates — pick one)
 
 ### Option A: Write Operations (bigger scope, ~1-2 days)
 
-Add mutation tools:
-- `apply_agent`, `apply_skill`, `apply_workflow` — create/update
-- `delete_agent`, `delete_skill`, `delete_workflow`
-- Requires `CommandController` gRPC stubs and corresponding test doubles
+Add mutation tools for all four domain kinds:
+- `apply_agent`, `apply_skill`, `apply_mcp_server`, `apply_workflow` — create/update
+- `delete_agent`, `delete_skill`, `delete_mcp_server`, `delete_workflow`
+- Requires `CommandController` gRPC stubs and corresponding test doubles per domain
 
-### Option B: MCP Server Resource Template (~1 hour)
+### Option B: Test Coverage Report (~15 min)
 
-Add `stigmer://mcp-servers/{org}/{slug}` resource template to complete the suite — all four searchable kinds would then have resource templates. Wire up `kindToAuthority` in `uriutil.go` (one line) and register the template in `server.go`.
-
-### Option C: Test Coverage Report (~15 min)
-
-Run `go test -coverprofile=coverage.out ./mcp-server/...` and review per-package coverage. Identify any meaningful gaps before moving to write operations.
+Run `go test -coverprofile=coverage.out ./mcp-server/...` and review per-package coverage. Identify any meaningful gaps before moving to write operations. Recommended first step before Option A.
 
 ## Key Architectural Decisions
 
@@ -86,9 +85,8 @@ Run `go test -coverprofile=coverage.out ./mcp-server/...` and review per-package
 ## Quick Resume Commands
 
 When starting the next session:
-- "Continue with T10 Option A (write operations)" — mutation tools
-- "Continue with T10 Option B (mcp_server resource template)" — quick add to complete the suite
-- "Continue with T10 Option C (test coverage)" — coverage review before write operations
+- "Continue with T11 Option A (write operations)" — mutation tools for all four kinds
+- "Continue with T11 Option B (test coverage)" — coverage baseline before write operations
 - "Show test coverage" — run `go test -coverprofile` to see numbers
 - "Show project status" — get full overview
 
@@ -96,10 +94,11 @@ When starting the next session:
 
 ```
 _projects/2026-02/20260217.01.stigmer-mcp-server/tasks/T01_0_plan.md  — Architecture decisions
+_projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-19-session-9.md  — T10
 _projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-19-session-8.md  — T09
-_projects/2026-02/20260217.01.stigmer-mcp-server/checkpoints/2026-02-19-session-7.md  — T08
 mcp-server/  — Implementation
-mcp-server/internal/domains/uriutil.go  — URI parsing + building
+mcp-server/internal/domains/uriutil.go  — URI parsing + building (kindToAuthority)
+mcp-server/internal/domains/mcpservers/  — MCP server domain (new in T10)
 mcp-server/internal/domains/search/tools.go  — search tool with resource_uri enrichment
 client-apps/cli/cmd/stigmer/root/mcp_server.go  — CLI embedding with config bridging
 ```
