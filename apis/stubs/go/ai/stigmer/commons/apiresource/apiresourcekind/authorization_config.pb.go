@@ -44,7 +44,7 @@ const (
 	// FGA tuple: resource#owner@identity_account:<owner_id>
 	AuthorizationScopeType_AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY AuthorizationScopeType = 4
 	// No FGA tuples needed.
-	// Used for: platform (singleton), credential, api_resource_version, execution_context
+	// Used for: platform (singleton), api_resource_version, execution_context
 	AuthorizationScopeType_AUTHORIZATION_SCOPE_TYPE_NONE AuthorizationScopeType = 5
 )
 
