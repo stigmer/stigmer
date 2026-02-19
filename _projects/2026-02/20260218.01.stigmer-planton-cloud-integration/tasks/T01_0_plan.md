@@ -428,3 +428,78 @@ Signed with: Planton Cloud's private key (RSA256 or EC256)
 | 2 | Should platform-managed orgs be visible? | Yes, fully visible. | Same entity type as all orgs. Access control via FGA, not visibility filtering. |
 | 3 | Naming convention for org slugs? | No prefix. First-come-first-served. Availability-checked. | Industry standard (GitHub, Heroku). Prefix creates second-class citizens and leaks integration details. |
 | 4 | Should users see Stigmer branding? | Yes, default Stigmer. No white-label. | White-labeling is scope creep. API responses carry no branding. UI shows Stigmer if directly accessed. |
+
+---
+
+## Session 2 Revision (2026-02-19): Architecture Significantly Simplified
+
+> **Important**: The architecture below supersedes the Phase 2-4 descriptions above. Phase 1 proto work (completed in Session 1) remains valid. The authentication/integration approach has been fundamentally revised based on deep design discussion and external research.
+>
+> Full details: `checkpoints/2026-02-19-session-2.md`
+
+### Summary of Changes
+
+After deep design discussion and external research (ChatGPT Deep Research on SaaS-to-SaaS integration patterns, 10+ case studies), the authentication and integration architecture was significantly revised.
+
+**Before (Session 1)**: Custom RSA key pair → JWKS on GitHub Pages → proxy mints custom JWTs → Stigmer validates against custom JWKS on every API call.
+
+**After (Session 2)**: Planton's Auth0 JWT forwarded as-is → Stigmer token exchange endpoint validates against Auth0's public JWKS → Stigmer issues native token → all API calls use Stigmer token.
+
+### Key Insight: Token Exchange Solves the Audience Problem
+
+The Session 1 concern that "forwarding Auth0 tokens is a confused deputy vulnerability" was resolved by adding a token exchange endpoint. The external JWT (with `aud: api.planton.ai`) only goes to the token exchange endpoint, which is designed to accept external tokens. Stigmer issues its own token with `aud: stigmer-api` for API calls.
+
+### Revised Implementation Phases
+
+#### Phase 1 (Revised): IdentityProvider + Token Exchange (MVP Core)
+
+**Stigmer side (`stigmer-cloud`)**:
+- [ ] Add `userinfo_uri` field to IdentityProvider proto spec
+- [ ] Implement IdentityProvider CRUD (controller, Temporal workflow, MongoDB repo, FGA tuples)
+- [ ] Implement token exchange endpoint (validate external JWT via IdentityProvider JWKS, call UserInfo for profile, JIT provision identity_account with email/name/picture, auto-grant org membership, issue Stigmer-native token)
+- [ ] Extend Organization CRUD for `management_mode` + `identity_provider_ref` immutability
+- [ ] Add `provisioning_mode` enum to IdentityAccount (`DIRECT`, `FEDERATED`, `MACHINE`)
+- [ ] Add `email`, `display_name`, `picture_url` fields to identity_account (updated on every token exchange)
+
+#### Phase 2 (Revised): Proxy SDK + Planton Integration
+
+**Stigmer side**:
+- [ ] Build `stigmer-proxy-sdk` Go library (token exchange client, gRPC forwarding, user/org extraction, interceptor hooks)
+- [ ] Build pre-built Docker image (SDK with zero interceptors for internal-only deployments)
+
+**Planton Cloud side**:
+- [ ] Write proxy program (~20 lines Go: import SDK, add authz interceptor, start server)
+- [ ] Deploy proxy as internal service behind Planton Cloud's API gateway
+- [ ] Integration testing end-to-end
+
+#### Phase 3: Organization Lifecycle Sync (unchanged from above)
+
+#### Phase 4 (Revised): Post-MVP Enhancements
+- [ ] API key support through proxy (custom JWT minting fallback)
+- [ ] Fine-grained role mapping (member/admin/owner from platform claims)
+- [ ] Billing/usage attribution per IdentityProvider
+
+### What Was Eliminated
+
+| Eliminated | Why |
+|---|---|
+| Custom RSA key pair generation | Auth0's JWKS is already public and managed |
+| JWKS publishing on GitHub Pages | IdentityProvider points to Auth0's `.well-known/jwks.json` |
+| Custom JWT minting in proxy | Auth0 JWT forwarded directly to token exchange |
+| Key rotation infrastructure | Auth0 handles key rotation automatically |
+| Auth0 Actions for profile claims | OIDC UserInfo endpoint provides email/name/picture |
+| API key support (MVP) | JWT-only covers web console + CLI; API keys deferred |
+| 8+ proxy env vars | Proxy SDK config, primarily needs `STIGMER_ENDPOINT` |
+
+### Design Decisions (Session 2)
+
+Full list with rationale in `checkpoints/2026-02-19-session-2.md`:
+- DD-01: Token Exchange over Direct JWT Acceptance
+- DD-02: IdentityProvider Points to Auth0's Public JWKS
+- DD-03: Proxy SDK with Interceptor Hooks (Not Config-Only Image)
+- DD-04: Profile Data via OIDC UserInfo Endpoint
+- DD-05: JWT-Only for MVP (API Keys Deferred)
+- DD-06: Auto-Grant Org Membership (Behind Platform's Authz Boundary)
+- DD-07: IdentityProvider Stores UserInfo URI
+- DD-08: Federated Identity Account Must Store Profile Data
+- DD-09: Two Auth Flows (User-Context and System-Level)
