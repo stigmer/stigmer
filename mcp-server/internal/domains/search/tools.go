@@ -11,11 +11,14 @@
 //
 // Results are returned as a JSON object matching the SearchResponse protobuf
 // message, serialized via protojson for clean field names and well-known-type
-// handling (e.g. google.protobuf.Timestamp → RFC 3339 strings).
+// handling (e.g. google.protobuf.Timestamp → RFC 3339 strings). Each result
+// entry is enriched with a resource_uri field that MCP clients can pass
+// directly to resources/read, bridging the discovery-to-read workflow.
 package search
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -108,7 +111,7 @@ func Handler(serverAddress string) func(context.Context, *mcp.CallToolRequest, *
 			return nil, nil, domains.RPCError(err, desc)
 		}
 
-		text, err := domains.MarshalJSON(resp)
+		text, err := enrichSearchResponse(resp)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -116,6 +119,51 @@ func Handler(serverAddress string) func(context.Context, *mcp.CallToolRequest, *
 			Content: []mcp.Content{&mcp.TextContent{Text: text}},
 		}, nil, nil
 	}
+}
+
+// enrichSearchResponse serializes the search response to JSON and injects a
+// resource_uri field into each entry that has a registered MCP resource
+// template. Entries whose kind has no template (e.g. mcp_server) are left
+// without a resource_uri.
+//
+// When the response has no entries, it short-circuits to domains.MarshalJSON
+// to avoid unnecessary round-tripping.
+func enrichSearchResponse(resp *searchv1.SearchResponse) (string, error) {
+	if len(resp.GetEntries()) == 0 {
+		return domains.MarshalJSON(resp)
+	}
+
+	raw, err := domains.MarshalOptions.Marshal(resp)
+	if err != nil {
+		return "", fmt.Errorf("protojson marshal: %w", err)
+	}
+
+	var data map[string]any
+	if err := json.Unmarshal(raw, &data); err != nil {
+		return "", fmt.Errorf("json unmarshal: %w", err)
+	}
+
+	entries, _ := data["entries"].([]any)
+	for i, e := range entries {
+		entry, ok := e.(map[string]any)
+		if !ok {
+			continue
+		}
+		if i >= len(resp.Entries) {
+			break
+		}
+		r := resp.Entries[i]
+		uri := domains.BuildResourceURI(r.Kind.String(), r.Org, r.Slug)
+		if uri != "" {
+			entry["resource_uri"] = uri
+		}
+	}
+
+	out, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		return "", fmt.Errorf("json marshal: %w", err)
+	}
+	return string(out), nil
 }
 
 // knownKinds maps user-friendly kind names to proto enum values.

@@ -110,6 +110,99 @@ func TestTool_metadata(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// enrichSearchResponse unit tests
+// ---------------------------------------------------------------------------
+
+func TestEnrichSearchResponse_mixedKinds(t *testing.T) {
+	resp := &searchv1.SearchResponse{
+		Entries: []*searchv1.SearchResult{
+			{
+				Kind: apiresourcekind.ApiResourceKind_agent,
+				Org:  "acme",
+				Slug: "code-reviewer",
+				Name: "Code Reviewer",
+			},
+			{
+				Kind: apiresourcekind.ApiResourceKind_skill,
+				Org:  "acme",
+				Slug: "deploy-k8s",
+				Name: "Deploy K8s",
+			},
+			{
+				Kind: apiresourcekind.ApiResourceKind_workflow,
+				Org:  "acme",
+				Slug: "ci-pipeline",
+				Name: "CI Pipeline",
+			},
+			{
+				Kind: apiresourcekind.ApiResourceKind_mcp_server,
+				Org:  "acme",
+				Slug: "my-server",
+				Name: "My Server",
+			},
+		},
+		TotalCount: 4,
+		TotalPages: 1,
+	}
+
+	text, err := enrichSearchResponse(resp)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var data map[string]any
+	if err := json.Unmarshal([]byte(text), &data); err != nil {
+		t.Fatalf("response is not valid JSON: %v\ntext: %s", err, text)
+	}
+
+	entries, ok := data["entries"].([]any)
+	if !ok {
+		t.Fatal("entries is not an array")
+	}
+	if len(entries) != 4 {
+		t.Fatalf("len(entries) = %d, want 4", len(entries))
+	}
+
+	wantURIs := []string{
+		"stigmer://agents/acme/code-reviewer",
+		"stigmer://skills/acme/deploy-k8s",
+		"stigmer://workflows/acme/ci-pipeline",
+		"",
+	}
+
+	for i, e := range entries {
+		entry := e.(map[string]any)
+		uri, _ := entry["resource_uri"].(string)
+		if uri != wantURIs[i] {
+			t.Errorf("entries[%d].resource_uri = %q, want %q", i, uri, wantURIs[i])
+		}
+	}
+
+	// mcp_server entry must not have resource_uri at all
+	mcpEntry := entries[3].(map[string]any)
+	if _, exists := mcpEntry["resource_uri"]; exists {
+		t.Error("mcp_server entry should not have resource_uri key")
+	}
+}
+
+func TestEnrichSearchResponse_emptyEntries(t *testing.T) {
+	resp := &searchv1.SearchResponse{
+		TotalCount: 0,
+		TotalPages: 0,
+	}
+
+	text, err := enrichSearchResponse(resp)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var data map[string]any
+	if err := json.Unmarshal([]byte(text), &data); err != nil {
+		t.Fatalf("response is not valid JSON: %v\ntext: %s", err, text)
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Integration tests — mock gRPC server
 // ---------------------------------------------------------------------------
 
@@ -128,7 +221,15 @@ func (m *mockSearchService) Search(_ context.Context, req *searchv1.SearchReques
 func TestHandler_success(t *testing.T) {
 	mock := &mockSearchService{
 		resp: &searchv1.SearchResponse{
-			TotalCount: 2,
+			Entries: []*searchv1.SearchResult{
+				{
+					Kind: apiresourcekind.ApiResourceKind_agent,
+					Org:  "acme",
+					Slug: "code-reviewer",
+					Name: "Code Reviewer",
+				},
+			},
+			TotalCount: 1,
 			TotalPages: 1,
 		},
 	}
@@ -149,7 +250,6 @@ func TestHandler_success(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// Verify the gRPC request was constructed correctly.
 	if mock.gotReq == nil {
 		t.Fatal("mock never received a request")
 	}
@@ -163,11 +263,20 @@ func TestHandler_success(t *testing.T) {
 		t.Errorf("Org = %q, want %q", mock.gotReq.Org, "acme")
 	}
 
-	// Verify the response is valid JSON.
 	text := extractText(t, result)
 	var raw map[string]any
 	if err := json.Unmarshal([]byte(text), &raw); err != nil {
 		t.Fatalf("response is not valid JSON: %v\ntext: %s", err, text)
+	}
+
+	entries, ok := raw["entries"].([]any)
+	if !ok || len(entries) != 1 {
+		t.Fatalf("expected 1 entry, got %v", raw["entries"])
+	}
+	entry := entries[0].(map[string]any)
+	uri, _ := entry["resource_uri"].(string)
+	if uri != "stigmer://agents/acme/code-reviewer" {
+		t.Errorf("resource_uri = %q, want %q", uri, "stigmer://agents/acme/code-reviewer")
 	}
 }
 

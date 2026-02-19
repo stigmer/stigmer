@@ -8,7 +8,7 @@ AI-powered development tools such as Cursor, Claude Desktop, and Windsurf.
 
 | Tool | Description |
 |------|-------------|
-| `search` | Unified search and list across agents, skills, MCP servers, and workflows. Supports full-text search, kind filtering, org scoping, and pagination. |
+| `search` | Unified search and list across agents, skills, MCP servers, and workflows. Supports full-text search, kind filtering, org scoping, and pagination. Each result includes a `resource_uri` that can be passed directly to `resources/read`. |
 | `get_agent` | Retrieve the full definition of an agent by its org and slug. |
 | `get_skill` | Retrieve the full definition of a skill by org, slug, and optional version. |
 | `get_workflow` | Retrieve the full definition of a workflow by its org and slug. |
@@ -25,7 +25,10 @@ Stigmer resources by URI, without calling a tool:
 | `stigmer://skills/{org}/{slug}/{version}` | Full skill definition as JSON at a specific version (tag name or SHA-256 hash) |
 | `stigmer://workflows/{org}/{slug}` | Full workflow definition as JSON |
 
-Use the `search` tool to discover available resources, then read them by URI.
+The `search` tool returns a `resource_uri` field in each result entry (for kinds
+that have a resource template). Use `search` to discover resources, then pass
+the `resource_uri` directly to `resources/read` — no manual URI construction
+needed.
 
 ## Quick Start
 
@@ -208,8 +211,8 @@ internal/server/server.go        MCP server initialization + tool registration
 internal/server/http.go          Streamable HTTP handler with auth middleware
 internal/domains/jsonutil.go     Shared protojson serialization
 internal/domains/rpcerr.go       gRPC error classification → user-friendly messages
-internal/domains/uriutil.go      Resource URI parsing (stigmer://{kind}/{org}/{slug}[/{version}])
-internal/domains/search/         search tool → SearchService.search
+internal/domains/uriutil.go      Resource URI parsing and building (stigmer://{kind}/{org}/{slug}[/{version}])
+internal/domains/search/         search tool → SearchService.search (enriches results with resource_uri)
 internal/domains/agents/         get_agent tool + agent resource template
 internal/domains/skills/         get_skill tool + skill resource template
 internal/domains/workflows/      get_workflow tool + workflow resource template
