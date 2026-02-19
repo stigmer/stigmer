@@ -26,6 +26,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case cancelResultMsg:
 		return m.handleCancelResult(msg)
 
+	case followUpStartedMsg:
+		return m.handleFollowUpStarted(msg)
+
+	case followUpErrorMsg:
+		return m.handleFollowUpError(msg)
+
 	case activityTickMsg:
 		return m.handleActivityTick()
 
@@ -47,27 +53,51 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// Forward unhandled messages to the viewport for scroll handling.
-	var cmd tea.Cmd
-	m.viewport, cmd = m.viewport.Update(msg)
+	// Forward unhandled messages to the appropriate sub-component.
+	// When the input composer is active, the textarea needs tick messages
+	// for cursor blink. The viewport always gets a chance to handle scroll.
+	var cmds []tea.Cmd
+
+	if m.inputActive {
+		var taCmd tea.Cmd
+		m.textarea, taCmd = m.textarea.Update(msg)
+		cmds = append(cmds, taCmd)
+	}
+
+	var vpCmd tea.Cmd
+	m.viewport, vpCmd = m.viewport.Update(msg)
 	m.autoScroll = m.viewport.AtBottom()
-	return m, cmd
+	cmds = append(cmds, vpCmd)
+
+	return m, tea.Batch(cmds...)
 }
 
 // handleKeyPress processes keyboard input. Priority order:
-//  1. Quit/detach keys (always available)
-//  2. Cancel confirmation keys (when cancel confirm is shown)
-//  3. Help toggle (? key — available except during approval/cancel confirm)
-//  4. Help dismiss (esc — only when help is shown)
-//  5. Help blocks all other keys when active
-//  6. Approval keys (a/s/r — when approval is active)
-//  7. Cancel key (c — when execution is running)
-//  8. Navigation keys (shared: focus, toggle, scroll — see handleNavigationKey)
+//  1. Ctrl+C always quits (unchanged regardless of mode)
+//  2. Input active — textarea captures all keys; Enter submits, Esc exits
+//  3. Quit/detach keys (q)
+//  4. Cancel confirmation keys (when cancel confirm is shown)
+//  5. Help toggle (? key — available except during approval/cancel confirm)
+//  6. Help dismiss (esc — only when help is shown)
+//  7. Help blocks all other keys when active
+//  8. Approval keys (a/s/r — when approval is active)
+//  9. Cancel key (c — when execution is running)
+//  10. Navigation keys (shared: focus, toggle, scroll — see handleNavigationKey)
 func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	// Always allow quit/detach.
-	switch msg.String() {
-	case "ctrl+c", "q":
-		m.cancelConfirm = false // dismiss any pending confirmation
+	// Ctrl+C always quits, regardless of input mode.
+	if msg.String() == "ctrl+c" {
+		return m, tea.Quit
+	}
+
+	// When the input composer is active, the textarea captures all keys.
+	// Only Ctrl+C (above) and Esc bypass it.
+	if m.inputActive {
+		return m.handleInputKey(msg)
+	}
+
+	// q quits/detaches (only when input is not active).
+	if msg.String() == "q" {
+		m.cancelConfirm = false
 		return m, tea.Quit
 	}
 
@@ -99,7 +129,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	// Cancel key — available when execution is running and not already cancelling.
-	if msg.String() == "c" && !m.done && !m.cancelling && m.cfg.CancelFn != nil {
+	if msg.String() == "c" && !m.done && !m.cancelling && m.activeCancelFn != nil {
 		m.cancelConfirm = true
 		return m, nil
 	}
@@ -185,7 +215,7 @@ func (m Model) handleCancelConfirmKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 // executeCancelCmd returns a tea.Cmd that calls the CancelFn asynchronously.
 // The result is delivered as a cancelResultMsg.
 func (m Model) executeCancelCmd() tea.Cmd {
-	cancelFn := m.cfg.CancelFn
+	cancelFn := m.activeCancelFn
 	return func() tea.Msg {
 		err := cancelFn()
 		return cancelResultMsg{err: err}
@@ -235,8 +265,10 @@ func scheduleActivityTick() tea.Cmd {
 // header (animated spinner) and in the viewport (ephemeral "Thinking..." text)
 // — to signal that the agent is alive and processing.
 func (m Model) handleActivityTick() (tea.Model, tea.Cmd) {
-	// Don't schedule more ticks once execution is done.
-	if m.done {
+	// Don't schedule more ticks once execution is done or the user is
+	// composing a follow-up. The tick will be restarted when a follow-up
+	// execution begins.
+	if m.done || m.inputActive {
 		return m, nil
 	}
 
@@ -264,14 +296,25 @@ func (m Model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 	m.width = msg.Width
 	m.height = msg.Height
 
-	// Reserve lines for header and footer.
-	viewportHeight := m.height - headerHeight - footerHeight
+	// Reserve lines for header, footer, and (when conversational mode is
+	// enabled) the input composer area.
+	chrome := headerHeight + footerHeight
+	if m.hasInputArea() {
+		chrome += inputAreaHeight
+		m.textarea.SetWidth(m.width)
+	}
+
+	viewportHeight := m.height - chrome
 	if viewportHeight < 1 {
 		viewportHeight = 1
 	}
 
 	if !m.ready {
-		m.viewport = newViewport(m.width, viewportHeight)
+		if m.isReplayMode() {
+			m.viewport = m.replayViewportInit(m.width, m.height)
+		} else {
+			m.viewport = newViewport(m.width, viewportHeight)
+		}
 		m.ready = true
 	} else {
 		m.viewport.Width = m.width

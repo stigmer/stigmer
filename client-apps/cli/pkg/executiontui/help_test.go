@@ -28,7 +28,7 @@ func TestRenderHelp_ContainsKeyBindings(t *testing.T) {
 	bindings := []string{
 		"Tab", "Shift+Tab", "Enter",
 		"Approve", "Skip", "Reject",
-		"Quit",
+		"Detach",
 	}
 	for _, binding := range bindings {
 		if !strings.Contains(result, binding) {

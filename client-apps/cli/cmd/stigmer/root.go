@@ -62,6 +62,9 @@ func init() {
 	// Discoverability command (T05)
 	rootCmd.AddCommand(root.NewResourcesCommand())
 
+	// MCP server (T06)
+	rootCmd.AddCommand(root.NewMCPServerCommand())
+
 	// Shell completion (T08)
 	rootCmd.AddCommand(root.NewCompletionCommand())
 

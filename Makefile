@@ -1,7 +1,7 @@
 # Default bump type for releases (can be overridden: make protos-release bump=minor)
 bump ?= patch
 
-.PHONY: help setup build build-backend test clean protos protos-release lint coverage release-local install dev
+.PHONY: help setup setup-hooks build build-backend test clean protos protos-release lint coverage release-local install dev
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -16,10 +16,23 @@ setup: ## Install dependencies and tools
 	@cd backend/services/stigmer-server && go mod download
 	@cd backend/services/workflow-runner && go mod download
 	@cd client-apps/cli && go mod download
+	@cd mcp-server && go mod download
 	@cd sdk/go && go mod download
 	@echo "Installing Agent Runner dependencies..."
 	cd backend/services/agent-runner && poetry install
+	@echo "Installing pre-commit hooks..."
+	@if command -v pre-commit >/dev/null 2>&1; then \
+		pre-commit install; \
+		echo "Pre-commit hooks installed!"; \
+	else \
+		echo "Note: Install pre-commit for git hook support: brew install pre-commit"; \
+	fi
 	@echo "Setup complete!"
+
+setup-hooks: ## Install pre-commit hooks (one-time setup)
+	@echo "Installing pre-commit hooks..."
+	@pre-commit install
+	@echo "Pre-commit hooks installed!"
 
 build: protos ## Build the Stigmer CLI
 	@echo "Building Stigmer CLI..."
@@ -40,7 +53,7 @@ build-backend: protos ## Build all backend services
 	@echo "2/2 Type checking agent-runner (Python)..."
 	@cd backend/services/agent-runner && \
 		poetry install --no-interaction --quiet && \
-		poetry run mypy grpc_client/ worker/ --show-error-codes
+		poetry run mypy grpc_client/ worker/ ../../libs/python/graphton/src/ --show-error-codes
 	@echo "✓ Type checking passed: agent-runner"
 	@echo ""
 	@echo "============================================"
@@ -54,31 +67,35 @@ test: ## Run unit tests (no infrastructure required, runs in CI)
 	@echo ""
 	@echo "Note: E2E tests are excluded (use 'make test-e2e' to run them)"
 	@echo ""
-	@echo "1/7 Running API Stubs Tests..."
+	@echo "1/8 Running API Stubs Tests..."
 	@echo "--------------------------------------------"
 	cd apis/stubs/go && go test -v -race -timeout 30s ./...
 	@echo ""
-	@echo "2/7 Running Backend Libs Tests..."
+	@echo "2/8 Running Backend Libs Tests..."
 	@echo "--------------------------------------------"
 	cd backend/libs/go && go test -v -race -timeout 30s ./...
 	@echo ""
-	@echo "3/7 Running Stigmer Server Tests..."
+	@echo "3/8 Running Stigmer Server Tests..."
 	@echo "--------------------------------------------"
 	cd backend/services/stigmer-server && go test -v -race -timeout 30s ./...
 	@echo ""
-	@echo "4/7 Running Workflow Runner Tests..."
+	@echo "4/8 Running Workflow Runner Tests..."
 	@echo "--------------------------------------------"
 	cd backend/services/workflow-runner && go test -v -race -timeout 30s ./...
 	@echo ""
-	@echo "5/7 Running CLI Tests..."
+	@echo "5/8 Running CLI Tests..."
 	@echo "--------------------------------------------"
 	cd client-apps/cli && go test -v -race -timeout 30s ./...
 	@echo ""
-	@echo "6/7 Running SDK Go Tests..."
+	@echo "6/8 Running MCP Server Tests..."
+	@echo "--------------------------------------------"
+	cd mcp-server && go test -v -race -timeout 30s ./...
+	@echo ""
+	@echo "7/8 Running SDK Go Tests..."
 	@echo "--------------------------------------------"
 	cd sdk/go && go test -v -race -timeout 30s ./...
 	@echo ""
-	@echo "7/7 Running Agent Runner Tests (Python)..."
+	@echo "8/8 Running Agent Runner Tests (Python)..."
 	@echo "--------------------------------------------"
 	cd backend/services/agent-runner && poetry install --no-interaction --quiet && poetry run pytest
 	@echo ""
@@ -93,6 +110,7 @@ test-all-go: ## Run all Go workspace module tests
 	@cd backend/services/stigmer-server && go test -v -race -timeout 30s ./...
 	@cd backend/services/workflow-runner && go test -v -race -timeout 30s ./...
 	@cd client-apps/cli && go test -v -race -timeout 30s ./...
+	@cd mcp-server && go test -v -race -timeout 30s ./...
 	@cd sdk/go && go test -v -race -timeout 30s ./...
 
 test-sdk: ## Run SDK Go tests only
@@ -132,6 +150,7 @@ coverage: ## Generate test coverage report
 	@cd backend/services/stigmer-server && go test -v -race -coverprofile=../../../coverage/server.txt -covermode=atomic ./...
 	@cd backend/services/workflow-runner && go test -v -race -coverprofile=../../../coverage/workflow-runner.txt -covermode=atomic ./...
 	@cd client-apps/cli && go test -v -race -coverprofile=../../coverage/cli.txt -covermode=atomic ./...
+	@cd mcp-server && go test -v -race -coverprofile=../coverage/mcp-server.txt -covermode=atomic ./...
 	@cd sdk/go && go test -v -race -coverprofile=../../coverage/sdk.txt -covermode=atomic ./...
 	@echo "Coverage reports generated in coverage/ directory"
 
@@ -282,11 +301,15 @@ lint: ## Run linters
 	@cd backend/services/stigmer-server && go vet ./...
 	@cd backend/services/workflow-runner && go vet ./...
 	@cd client-apps/cli && go vet ./...
+	@cd mcp-server && go vet ./...
 	@cd sdk/go && go vet ./...
 	@echo "Running gofmt..."
 	gofmt -s -w .
 	@echo "Running proto linters..."
 	$(MAKE) -C apis lint
+	@echo "Running Python linters..."
+	@cd backend/libs/python/graphton && poetry run ruff check .
+	@cd backend/services/agent-runner && poetry run ruff check .
 	@echo "Linting complete!"
 
 clean: ## Clean build artifacts

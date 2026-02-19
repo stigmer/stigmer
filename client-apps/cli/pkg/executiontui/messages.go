@@ -27,6 +27,20 @@ type cancelResultMsg struct {
 // in the header) to signal that the agent is alive and processing.
 type activityTickMsg struct{}
 
+// followUpStartedMsg is sent when FollowUpFn successfully creates a new
+// execution. It carries the new channels and cancel function that the model
+// uses to stream the follow-up execution.
+type followUpStartedMsg struct {
+	result *FollowUpResult
+}
+
+// followUpErrorMsg is sent when FollowUpFn fails to create a new execution.
+// The TUI shows the error and reactivates the input composer so the user can
+// retry or exit.
+type followUpErrorMsg struct {
+	err error
+}
+
 // listenForEvents returns a tea.Cmd that blocks on the events channel and
 // delivers the next Event as an executionEventMsg. When the channel is closed,
 // it returns a streamClosedMsg.

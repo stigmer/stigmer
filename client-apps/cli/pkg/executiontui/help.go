@@ -76,6 +76,13 @@ func helpSections() []helpSection {
 			},
 		},
 		{
+			title: "Conversation",
+			bindings: []helpBinding{
+				{"Enter", "Send follow-up message (when input is active)"},
+				{"Esc", "Exit session (when input is active)"},
+			},
+		},
+		{
 			title: "General",
 			bindings: []helpBinding{
 				{"?", "Toggle this help"},

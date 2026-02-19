@@ -23,6 +23,11 @@ import (
 // a Bubbletea alt-screen TUI. The TUI provides a scrollable viewport with
 // auto-follow, inline approval handling, and streams AI content incrementally.
 //
+// When sessionID and orgID are provided, the TUI enters conversational mode:
+// after an execution completes, the user can type follow-up messages that
+// create new executions within the same session. The returned execution is
+// the last one that ran (which may be a follow-up, not the original).
+//
 // A background goroutine reads the gRPC stream and converts updates into TUI
 // events sent over a channel. The TUI model receives these events and renders
 // content blocks in a viewport.
@@ -34,8 +39,8 @@ import (
 //
 // After the TUI exits (execution completes or user quits), a summary is printed
 // to inline stdout so the terminal history shows the final state.
-func streamAgentExecution(executionID string, prompter approval.Prompter, defaultAction approval.Action, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
-	cliprint.PrintSuccess("Streaming agent execution logs")
+func streamAgentExecution(sessionID, executionID, orgID string, prompter approval.Prompter, defaultAction approval.Action, verbose bool, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
+	cliprint.PrintSuccess("Streaming session...")
 	fmt.Println()
 
 	// Create streaming client
@@ -62,12 +67,24 @@ func streamAgentExecution(executionID string, prompter approval.Prompter, defaul
 		return err
 	}
 
+	// FollowUpFn enables conversational mode: after an execution completes,
+	// the user can type a follow-up message. This closure creates a new
+	// execution in the same session, subscribes to its stream, and returns
+	// the channels needed for the TUI to render it.
+	var followUpFn executiontui.FollowUpFn
+	if sessionID != "" {
+		followUpFn = buildFollowUpFn(ctx, sessionID, orgID, conn)
+	}
+
 	// Create and configure the TUI model.
 	model := executiontui.New(executiontui.Config{
+		SessionID:         sessionID,
 		ExecutionID:       executionID,
 		Events:            events,
 		ApprovalResponses: approvalResponses,
 		CancelFn:          cancelFn,
+		FollowUpFn:        followUpFn,
+		Verbose:           verbose,
 	})
 
 	// Launch the gRPC stream goroutine that converts proto updates to TUI events.
@@ -94,24 +111,81 @@ func streamAgentExecution(executionID string, prompter approval.Prompter, defaul
 	}
 
 	// The TUI has exited and the terminal is back to inline mode.
-	// Re-fetch the execution state to get the full proto object for the
-	// summary display and to return to the caller.
-	finalExec, err := fetchFinalExecution(ctx, conn, executionID)
+	// Fetch the final execution state. When follow-ups were sent, use the
+	// latest execution ID rather than the original.
+	latestExecID := result.LatestExecutionID()
+	finalExec, err := fetchFinalExecution(ctx, conn, latestExecID)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to fetch final execution state")
 	}
 
 	// Print the appropriate summary to inline stdout.
-	// When the execution reached a terminal phase, show the completion summary.
-	// When the user detached while execution is still running, show a detach
-	// notice with instructions for checking status or cancelling.
-	if result.Done() {
-		displayAgentExecutionComplete(finalExec)
+	// When a session ID is available, use the concise single-line format.
+	// Otherwise, fall back to the verbose panel format for backwards compat.
+	if sessionID != "" {
+		if result.Done() {
+			displaySessionExitLine(sessionID, finalExec)
+		} else {
+			displaySessionDetachLine(sessionID)
+		}
 	} else {
-		displayAgentExecutionDetached(finalExec)
+		if result.Done() {
+			displayAgentExecutionComplete(finalExec)
+		} else {
+			displayAgentExecutionDetached(finalExec)
+		}
 	}
 
 	return finalExec, nil
+}
+
+// buildFollowUpFn creates a FollowUpFn closure that creates follow-up
+// executions within the given session. Each call creates a new execution,
+// subscribes to its gRPC stream, and launches a streamToEvents goroutine.
+func buildFollowUpFn(ctx context.Context, sessionID, orgID string, conn *grpc.ClientConn) executiontui.FollowUpFn {
+	client := agentexecutionv1.NewAgentExecutionQueryControllerClient(conn)
+
+	return func(message string) (*executiontui.FollowUpResult, error) {
+		exec, err := createAgentExecution(CreateAgentExecutionInput{
+			SessionID: sessionID,
+			OrgID:     orgID,
+			Message:   message,
+			Conn:      conn,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		newExecID := exec.GetMetadata().GetId()
+
+		stream, err := client.Subscribe(ctx, &agentexecutionv1.AgentExecutionId{Value: newExecID})
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to subscribe to follow-up execution")
+		}
+
+		events := make(chan executiontui.Event, 16)
+		approvalResponses := make(chan executiontui.ApprovalResponse, 1)
+
+		cancelFn := func() error {
+			_, err := execution.Cancel(conn, newExecID)
+			return err
+		}
+
+		go streamToEvents(ctx, streamToEventsConfig{
+			executionID:       newExecID,
+			stream:            stream,
+			events:            events,
+			approvalResponses: approvalResponses,
+			conn:              conn,
+		})
+
+		return &executiontui.FollowUpResult{
+			ExecutionID:       newExecID,
+			Events:            events,
+			ApprovalResponses: approvalResponses,
+			CancelFn:          cancelFn,
+		}, nil
+	}
 }
 
 // fetchFinalExecution retrieves the current execution state from the backend.

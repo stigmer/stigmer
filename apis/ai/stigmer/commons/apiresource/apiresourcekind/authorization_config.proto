@@ -44,7 +44,7 @@ enum AuthorizationScopeType {
   AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY = 4;
 
   // No FGA tuples needed.
-  // Used for: platform (singleton), credential, api_resource_version, execution_context
+  // Used for: platform (singleton), api_resource_version, execution_context
   AUTHORIZATION_SCOPE_TYPE_NONE = 5;
 }
 

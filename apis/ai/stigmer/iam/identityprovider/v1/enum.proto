@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.identityprovider.v1;
+
+// IdentityProviderLifecycleState represents the operational state of an identity provider.
+//
+// Lifecycle transitions:
+//   active -> suspended (temporary disable, reversible)
+//   active -> revoked (permanent disable, irreversible)
+//   suspended -> active (re-enable)
+//   suspended -> revoked (permanent disable)
+//
+// When suspended or revoked, all API requests authenticated via this identity provider
+// are rejected. Platform-managed organizations linked to a revoked identity provider
+// remain intact but cannot be operated programmatically until a new identity provider
+// is established.
+enum IdentityProviderLifecycleState {
+  identity_provider_lifecycle_state_unspecified = 0;
+  active = 1;
+  suspended = 2;
+  revoked = 3;
+}

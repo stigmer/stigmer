@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package ai.stigmer.tenancy.organization.v1;
 
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/tenancy/organization/v1/enum.proto";
 import "buf/validate/validate.proto";
 
 // OrganizationSpec defines the configuration for an organization.
@@ -14,4 +16,21 @@ message OrganizationSpec {
 
   // public url for the organization logo (optional)
   string logo_url = 2 [(buf.validate.field).string.max_len = 2048];
+
+  // How this organization is operated. Immutable after creation.
+  // - self_managed (default): Created and operated directly by users via Stigmer UI/CLI/API.
+  // - platform_managed: Created programmatically by an external platform via an IdentityProvider.
+  ManagementMode management_mode = 3;
+
+  // Reference to the IdentityProvider that authenticates requests for this organization.
+  // Required when management_mode is platform_managed; must be empty for self_managed.
+  // The referenced IdentityProvider must exist and be active at creation time.
+  // Immutable after creation.
+  ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 4;
+
+  // External platform's organization identifier for reverse mapping.
+  // Set only for platform_managed organizations. Stores the integrating platform's
+  // own org ID so the platform can look up the corresponding Stigmer org even if
+  // the Stigmer slug differs from the platform's original slug due to availability.
+  string external_org_id = 5;
 }

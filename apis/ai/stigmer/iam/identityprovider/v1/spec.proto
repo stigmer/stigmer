@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package ai.stigmer.iam.identityprovider.v1;
+
+import "buf/validate/validate.proto";
+
+// IdentityProviderSpec defines the configuration for an external identity provider.
+//
+// An IdentityProvider represents an external platform's trust relationship with Stigmer.
+// It is owned by an organization (e.g., "planton") and configures how Stigmer validates
+// signed JWT assertions from that platform. The platform uses these assertions to:
+// - Create platform-managed organizations on behalf of its users
+// - Call Stigmer APIs within those organizations
+// - Pass user identity for FGA-based authorization
+//
+// The spec contains only public validation configuration — no secrets are stored.
+// The platform publishes its signing keys at the JWKS endpoint, and Stigmer validates
+// incoming JWTs against these keys, the allowed issuers, and the expected audience.
+//
+// Example YAML:
+//   apiVersion: iam.stigmer.ai/v1
+//   kind: IdentityProvider
+//   metadata:
+//     name: Planton Cloud
+//     slug: planton-cloud
+//     org: planton
+//   spec:
+//     display_name: "Planton Cloud"
+//     jwks_uri: "https://api.planton.ai/.well-known/stigmer-jwks.json"
+//     allowed_issuers: ["planton-cloud"]
+//     expected_audience: "stigmer-api"
+message IdentityProviderSpec {
+  // Human-readable display name for this identity provider.
+  // Used in UI and audit logs to identify the integrating platform.
+  string display_name = 1 [(buf.validate.field).string.max_len = 200];
+
+  // JWKS endpoint for validating signed JWT assertions from this platform.
+  // The platform publishes its public signing keys at this URL.
+  // Stigmer fetches and caches these keys for JWT signature verification.
+  // Not used until Phase 2 (JWT authentication), but defined now as part of the contract.
+  string jwks_uri = 2 [(buf.validate.field).string.max_len = 2048];
+
+  // JWT issuer values that Stigmer will accept from this platform.
+  // Each JWT's `iss` claim must match one of these values.
+  // Typically a single value (e.g., "planton-cloud") but supports multiple
+  // for key rotation or multi-environment scenarios.
+  repeated string allowed_issuers = 3;
+
+  // Expected JWT audience value.
+  // Every JWT from this platform must have this as the `aud` claim.
+  // Prevents tokens intended for other services from being accepted.
+  string expected_audience = 4 [(buf.validate.field).string.max_len = 200];
+
+  // Shared rate limit budget across all organizations managed via this identity provider.
+  // Expressed as requests per minute. 0 means no limit.
+  int32 rate_limit_budget = 5;
+}
