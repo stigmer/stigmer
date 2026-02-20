@@ -47,6 +47,8 @@ type mcpInputField struct {
 	description   string // for doc comment
 	inputTypeName string // non-empty when this field references a nested input type with toProto()
 	oneofGroup    string // non-empty when this field belongs to a proto oneof group
+	enumType      string // fully-qualified proto enum type (e.g., "ai.stigmer.agentic.workflow.v1.WorkflowTaskKind")
+	isStruct      bool   // true when the proto field is google.protobuf.Struct
 }
 
 // mcpGen holds all state for a single MCP code generation run.
@@ -192,6 +194,11 @@ func (m *mcpGen) resolveField(f *FieldSchema) *mcpInputField {
 	case f.Type.Kind == "array" && f.Type.ElementType != nil:
 		field.goType = "[]" + scalarGoType(f.Type.ElementType.Kind)
 
+	// google.protobuf.Struct → map[string]any
+	case f.Type.Kind == "struct":
+		field.goType = "map[string]any"
+		field.isStruct = true
+
 	default:
 		field.goType = scalarGoType(f.Type.Kind)
 	}
@@ -200,6 +207,7 @@ func (m *mcpGen) resolveField(f *FieldSchema) *mcpInputField {
 	field.schemaTag = m.buildJsonSchemaTag(f)
 	field.description = sanitizeDescription(f.Description)
 	field.oneofGroup = f.OneofGroup
+	field.enumType = f.Type.EnumType
 
 	return field
 }
@@ -305,6 +313,8 @@ func (m *mcpGen) buildJsonSchemaTag(f *FieldSchema) string {
 		}
 		desc = strings.TrimSpace(desc)
 		desc = strings.ReplaceAll(desc, ",", "\\,")
+		desc = strings.ReplaceAll(desc, "`", "'")
+		desc = strings.ReplaceAll(desc, `"`, "'")
 		parts = append(parts, "description="+desc)
 	}
 	return strings.Join(parts, ",")
@@ -412,10 +422,14 @@ func (m *mcpGen) genTopLevelToProto(w *bytes.Buffer, it *mcpInputType, resourceN
 	m.addImport("github.com/stigmer/stigmer/mcp-server/internal/convert", "")
 
 	fmt.Fprintf(w, "// ToProto converts the flat MCP input into a fully-formed %s proto message.\n", kind)
-	fmt.Fprintf(w, "func (input *%s) ToProto() *%s.%s {\n", it.name, specAlias, kind)
+	fmt.Fprintf(w, "func (input *%s) ToProto() (*%s.%s, error) {\n", it.name, specAlias, kind)
 	fmt.Fprintf(w, "\tslug := input.Slug\n")
 	fmt.Fprintf(w, "\tif slug == \"\" {\n")
 	fmt.Fprintf(w, "\t\tslug = convert.GenerateSlug(input.Name)\n")
+	fmt.Fprintf(w, "\t}\n\n")
+	fmt.Fprintf(w, "\tspec, err := input.specToProto()\n")
+	fmt.Fprintf(w, "\tif err != nil {\n")
+	fmt.Fprintf(w, "\t\treturn nil, err\n")
 	fmt.Fprintf(w, "\t}\n\n")
 	fmt.Fprintf(w, "\treturn &%s.%s{\n", specAlias, kind)
 	fmt.Fprintf(w, "\t\tApiVersion: %q,\n", apiVersion)
@@ -428,19 +442,19 @@ func (m *mcpGen) genTopLevelToProto(w *bytes.Buffer, it *mcpInputType, resourceN
 	fmt.Fprintf(w, "\t\t\tLabels:     input.Labels,\n")
 	fmt.Fprintf(w, "\t\t\tTags:       input.Tags,\n")
 	fmt.Fprintf(w, "\t\t},\n")
-	fmt.Fprintf(w, "\t\tSpec: input.specToProto(),\n")
-	fmt.Fprintf(w, "\t}\n")
+	fmt.Fprintf(w, "\t\tSpec: spec,\n")
+	fmt.Fprintf(w, "\t}, nil\n")
 	fmt.Fprintf(w, "}\n\n")
 
 	// specToProto helper
-	fmt.Fprintf(w, "func (input *%s) specToProto() *%s.%sSpec {\n", it.name, specAlias, kind)
+	fmt.Fprintf(w, "func (input *%s) specToProto() (*%s.%sSpec, error) {\n", it.name, specAlias, kind)
 	fmt.Fprintf(w, "\tspec := &%s.%sSpec{}\n\n", specAlias, kind)
 
 	for _, f := range it.fields {
 		m.genFieldAssignment(w, f, "input", "spec", it)
 	}
 
-	fmt.Fprintf(w, "\treturn spec\n")
+	fmt.Fprintf(w, "\treturn spec, nil\n")
 	fmt.Fprintf(w, "}\n\n")
 }
 
@@ -455,14 +469,14 @@ func (m *mcpGen) genNestedToProto(w *bytes.Buffer, it *mcpInputType) {
 	m.addImport(pkg, alias)
 	protoName := protoTypeName(it.protoType)
 
-	fmt.Fprintf(w, "func (input *%s) toProto() *%s.%s {\n", it.name, alias, protoName)
+	fmt.Fprintf(w, "func (input *%s) toProto() (*%s.%s, error) {\n", it.name, alias, protoName)
 	fmt.Fprintf(w, "\tresult := &%s.%s{}\n\n", alias, protoName)
 
 	for _, f := range it.fields {
 		m.genFieldAssignment(w, f, "input", "result", it)
 	}
 
-	fmt.Fprintf(w, "\treturn result\n")
+	fmt.Fprintf(w, "\treturn result, nil\n")
 	fmt.Fprintf(w, "}\n\n")
 }
 
@@ -476,7 +490,7 @@ func (m *mcpGen) genRefToProto(w *bytes.Buffer, it *mcpInputType) {
 		enumName = fmt.Sprintf("ApiResourceKind(%d)", it.refKindVal)
 	}
 
-	fmt.Fprintf(w, "func (input *%s) toProto() *apiresource.ApiResourceReference {\n", it.name)
+	fmt.Fprintf(w, "func (input *%s) toProto() (*apiresource.ApiResourceReference, error) {\n", it.name)
 	fmt.Fprintf(w, "\treturn &apiresource.ApiResourceReference{\n")
 	fmt.Fprintf(w, "\t\tOrg:  input.Org,\n")
 	fmt.Fprintf(w, "\t\tSlug: input.Slug,\n")
@@ -484,11 +498,12 @@ func (m *mcpGen) genRefToProto(w *bytes.Buffer, it *mcpInputType) {
 	if versionedKinds[it.refKindVal] {
 		fmt.Fprintf(w, "\t\tVersion: input.Version,\n")
 	}
-	fmt.Fprintf(w, "\t}\n")
+	fmt.Fprintf(w, "\t}, nil\n")
 	fmt.Fprintf(w, "}\n\n")
 }
 
 // genFieldAssignment generates code to assign a single field from input to proto.
+// All nested toProto calls propagate errors.
 func (m *mcpGen) genFieldAssignment(w *bytes.Buffer, f *mcpInputField, src, dst string, parentType *mcpInputType) {
 	goType := f.goType
 	hasToProto := f.inputTypeName != ""
@@ -499,27 +514,65 @@ func (m *mcpGen) genFieldAssignment(w *bytes.Buffer, f *mcpInputField, src, dst 
 		specPkg, specAlias := m.protoImport(parentType.protoType)
 		m.addImport(specPkg, specAlias)
 		fmt.Fprintf(w, "\tif %s.%s != nil {\n", src, f.goName)
-		fmt.Fprintf(w, "\t\t%s.%s = &%s.%s_%s{%s: %s.%s.toProto()}\n",
-			dst, toPascalCase(f.oneofGroup), specAlias, specName, f.goName, f.goName, src, f.goName)
+		fmt.Fprintf(w, "\t\tv, err := %s.%s.toProto()\n", src, f.goName)
+		fmt.Fprintf(w, "\t\tif err != nil {\n")
+		fmt.Fprintf(w, "\t\t\treturn nil, err\n")
+		fmt.Fprintf(w, "\t\t}\n")
+		fmt.Fprintf(w, "\t\t%s.%s = &%s.%s_%s{%s: v}\n",
+			dst, toPascalCase(f.oneofGroup), specAlias, specName, f.goName, f.goName)
 		fmt.Fprintf(w, "\t}\n")
 		return
 	}
 
 	switch {
+	// google.protobuf.Struct field → structpb.NewStruct
+	case f.isStruct:
+		m.addImport("google.golang.org/protobuf/types/known/structpb", "structpb")
+		m.addImport("fmt", "")
+		fmt.Fprintf(w, "\tif len(%s.%s) > 0 {\n", src, f.goName)
+		fmt.Fprintf(w, "\t\tv, err := structpb.NewStruct(%s.%s)\n", src, f.goName)
+		fmt.Fprintf(w, "\t\tif err != nil {\n")
+		fmt.Fprintf(w, "\t\t\treturn nil, fmt.Errorf(\"marshal %s: %%w\", err)\n", f.protoField)
+		fmt.Fprintf(w, "\t\t}\n")
+		fmt.Fprintf(w, "\t\t%s.%s = v\n", dst, f.goName)
+		fmt.Fprintf(w, "\t}\n")
+
+	// Enum field → convert string to proto enum value
+	case f.enumType != "":
+		enumPkg, enumAlias := m.protoImport(f.enumType)
+		m.addImport(enumPkg, enumAlias)
+		enumName := protoTypeName(f.enumType)
+		fmt.Fprintf(w, "\t%s.%s = %s.%s(%s.%s_value[%s.%s])\n",
+			dst, f.goName, enumAlias, enumName, enumAlias, enumName, src, f.goName)
+
 	// Pointer to a nested input → nil-check + toProto
 	case hasToProto && strings.HasPrefix(goType, "*"):
 		fmt.Fprintf(w, "\tif %s.%s != nil {\n", src, f.goName)
-		fmt.Fprintf(w, "\t\t%s.%s = %s.%s.toProto()\n", dst, f.goName, src, f.goName)
+		fmt.Fprintf(w, "\t\tv, err := %s.%s.toProto()\n", src, f.goName)
+		fmt.Fprintf(w, "\t\tif err != nil {\n")
+		fmt.Fprintf(w, "\t\t\treturn nil, err\n")
+		fmt.Fprintf(w, "\t\t}\n")
+		fmt.Fprintf(w, "\t\t%s.%s = v\n", dst, f.goName)
 		fmt.Fprintf(w, "\t}\n")
 
 	// Value struct with toProto (e.g., required reference — McpServerRefInput)
 	case hasToProto && !strings.HasPrefix(goType, "[]") && !strings.HasPrefix(goType, "map["):
-		fmt.Fprintf(w, "\t%s.%s = %s.%s.toProto()\n", dst, f.goName, src, f.goName)
+		fmt.Fprintf(w, "\t{\n")
+		fmt.Fprintf(w, "\t\tv, err := %s.%s.toProto()\n", src, f.goName)
+		fmt.Fprintf(w, "\t\tif err != nil {\n")
+		fmt.Fprintf(w, "\t\t\treturn nil, err\n")
+		fmt.Fprintf(w, "\t\t}\n")
+		fmt.Fprintf(w, "\t\t%s.%s = v\n", dst, f.goName)
+		fmt.Fprintf(w, "\t}\n")
 
 	// Slice of nested inputs → loop + toProto
 	case hasToProto && strings.HasPrefix(goType, "[]"):
 		fmt.Fprintf(w, "\tfor _, item := range %s.%s {\n", src, f.goName)
-		fmt.Fprintf(w, "\t\t%s.%s = append(%s.%s, item.toProto())\n", dst, f.goName, dst, f.goName)
+		fmt.Fprintf(w, "\t\tv, err := item.toProto()\n")
+		fmt.Fprintf(w, "\t\tif err != nil {\n")
+		fmt.Fprintf(w, "\t\t\treturn nil, err\n")
+		fmt.Fprintf(w, "\t\t}\n")
+		fmt.Fprintf(w, "\t\t%s.%s = append(%s.%s, v)\n", dst, f.goName, dst, f.goName)
 		fmt.Fprintf(w, "\t}\n")
 
 	// Map with nested input values → loop + toProto
@@ -534,7 +587,11 @@ func (m *mcpGen) genFieldAssignment(w *bytes.Buffer, f *mcpInputField, src, dst 
 			fmt.Fprintf(w, "\t\t%s.%s = make(map[string]*%s.%s, len(%s.%s))\n",
 				dst, f.goName, protoAlias, protoName, src, f.goName)
 			fmt.Fprintf(w, "\t\tfor k, v := range %s.%s {\n", src, f.goName)
-			fmt.Fprintf(w, "\t\t\t%s.%s[k] = v.toProto()\n", dst, f.goName)
+			fmt.Fprintf(w, "\t\t\tpv, err := v.toProto()\n")
+			fmt.Fprintf(w, "\t\t\tif err != nil {\n")
+			fmt.Fprintf(w, "\t\t\t\treturn nil, err\n")
+			fmt.Fprintf(w, "\t\t\t}\n")
+			fmt.Fprintf(w, "\t\t\t%s.%s[k] = pv\n", dst, f.goName)
 			fmt.Fprintf(w, "\t\t}\n")
 			fmt.Fprintf(w, "\t}\n")
 		}

@@ -18,14 +18,6 @@ var MarshalOptions = protojson.MarshalOptions{
 	EmitUnpopulated: false,
 }
 
-// UnmarshalOptions controls how JSON input from MCP tool calls is deserialized
-// into protobuf messages. DiscardUnknown is true because AI clients may
-// produce fields that don't exist in the current proto schema; rejecting them
-// would make the tool unnecessarily brittle.
-var UnmarshalOptions = protojson.UnmarshalOptions{
-	DiscardUnknown: true,
-}
-
 // MarshalJSON serializes a protobuf message to a human-friendly JSON string
 // suitable for MCP tool output.
 func MarshalJSON(msg proto.Message) (string, error) {
@@ -34,14 +26,4 @@ func MarshalJSON(msg proto.Message) (string, error) {
 		return "", fmt.Errorf("protojson marshal: %w", err)
 	}
 	return string(b), nil
-}
-
-// UnmarshalJSON deserializes a JSON string into a protobuf message.
-// Unknown fields are silently discarded so that AI-generated JSON with extra
-// keys does not cause errors.
-func UnmarshalJSON(data string, msg proto.Message) error {
-	if err := UnmarshalOptions.Unmarshal([]byte(data), msg); err != nil {
-		return fmt.Errorf("protojson unmarshal: %w", err)
-	}
-	return nil
 }

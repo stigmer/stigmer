@@ -9,20 +9,12 @@ import (
 	"google.golang.org/grpc"
 )
 
-// Apply creates or updates a workflow via the
-// WorkflowCommandController.Apply RPC. The resourceJSON parameter must be a
-// valid JSON representation of the Workflow protobuf message. Unknown fields
-// are silently discarded.
-func Apply(ctx context.Context, serverAddress, resourceJSON string) (string, error) {
-	var workflow workflowv1.Workflow
-	if err := domains.UnmarshalJSON(resourceJSON, &workflow); err != nil {
-		return "", fmt.Errorf("invalid workflow JSON: %w", err)
-	}
-
+// Apply creates or updates a workflow via the WorkflowCommandController.Apply RPC.
+func Apply(ctx context.Context, serverAddress string, workflow *workflowv1.Workflow) (string, error) {
 	return domains.WithConnection(ctx, serverAddress,
 		func(ctx context.Context, conn *grpc.ClientConn) (string, error) {
 			client := workflowv1.NewWorkflowCommandControllerClient(conn)
-			result, err := client.Apply(ctx, &workflow)
+			result, err := client.Apply(ctx, workflow)
 			if err != nil {
 				desc := fmt.Sprintf("workflow %q in org %q", workflow.GetMetadata().GetSlug(), workflow.GetMetadata().GetOrg())
 				return "", domains.RPCError(err, desc)

@@ -1,4 +1,4 @@
-.PHONY: build test docker-build tidy vet lint fmt clean
+.PHONY: build test docker-build tidy vet lint fmt clean codegen-mcp
 
 BINARY  := mcp-server-stigmer
 CMD     := ./cmd/mcp-server-stigmer
@@ -40,6 +40,12 @@ lint:
 # Format all Go source files.
 fmt:
 	go fmt ./...
+
+# Regenerate MCP input types for all domains.
+codegen-mcp:
+	go run ../tools/codegen/generator/ --schema-dir=../tools/codegen/schemas/agentic/agent --output-dir=gen/agent --package=agent --target=mcp
+	go run ../tools/codegen/generator/ --schema-dir=../tools/codegen/schemas/agentic/mcpserver --output-dir=gen/mcpserver --package=mcpserver --target=mcp
+	go run ../tools/codegen/generator/ --schema-dir=../tools/codegen/schemas/agentic/workflow --output-dir=gen/workflow --package=workflow --target=mcp
 
 # Remove build artifacts.
 clean:

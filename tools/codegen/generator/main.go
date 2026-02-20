@@ -71,6 +71,7 @@ type TypeSpec struct {
 	ValueType   *TypeSpec `json:"valueType,omitempty"`   // for map
 	ElementType *TypeSpec `json:"elementType,omitempty"` // for array
 	MessageType string    `json:"messageType,omitempty"` // for message
+	EnumType    string    `json:"enumType,omitempty"`    // fully-qualified proto enum type
 }
 
 // Validation describes validation rules for a field

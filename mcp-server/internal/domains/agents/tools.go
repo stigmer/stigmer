@@ -49,7 +49,10 @@ func ApplyTool() *mcp.Tool {
 // The input is converted to a proto via ToProto() before calling the gRPC Apply RPC.
 func ApplyHandler(serverAddress string) func(context.Context, *mcp.CallToolRequest, *geninput.AgentInput) (*mcp.CallToolResult, any, error) {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, input *geninput.AgentInput) (*mcp.CallToolResult, any, error) {
-		agent := input.ToProto()
+		agent, err := input.ToProto()
+		if err != nil {
+			return nil, nil, err
+		}
 		text, err := Apply(ctx, serverAddress, agent)
 		if err != nil {
 			return nil, nil, err
