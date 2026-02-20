@@ -1,7 +1,7 @@
 {
   "name": "IdentityAccountSpec",
   "kind": "IDENTITY_ACCOUNT_SPEC",
-  "description": "identity-account spec",
+  "description": "IdentityAccountSpec defines the configuration for an identity account.\n\n An identity account represents a user or machine principal in Stigmer's\n authorization model. All FGA tuples use identity_account as the principal type.\n\n Accounts are provisioned in one of three ways:\n - direct: User signed up via Stigmer's Auth0 (idp_id is the Auth0 subject ID)\n - federated: JIT-provisioned via an external IdentityProvider during federated auth\n   (idp_id is a compound key: \"federated:{provider_id}:{external_sub}\")\n - machine: M2M client credentials (idp_id ends with \"@clients\")",
   "protoType": "ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec",
   "protoFile": "apis/ai/stigmer/iam/identityaccount/v1/spec.proto",
   "fields": [
@@ -12,7 +12,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "idp id of the identity account.\n this is the id assigned by auth0 to the identity account.",
+      "description": "IDP ID of the identity account.\n\n For direct accounts: the Auth0 subject ID (e.g., \"auth0|abc123\").\n For federated accounts: a compound key ensuring global uniqueness across\n identity providers (e.g., \"federated:idp_01JXY:auth0|user-456\").\n For machine accounts: the Auth0 client ID with \"@clients\" suffix.",
       "required": true,
       "validation": {
         "required": true
@@ -25,7 +25,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "email of the identity account.\n (ignored for create) this value is assigned by backend.\n email is based on the email used to signup to the application.",
+      "description": "Email of the identity account.\n For direct accounts: based on the email used to sign up.\n For federated accounts: fetched from the IdentityProvider's UserInfo endpoint\n during JIT provisioning.\n (ignored for create) this value is assigned by backend.",
       "required": false
     },
     {
@@ -35,7 +35,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "first name of the identity account.",
+      "description": "First name of the identity account.",
       "required": false
     },
     {
@@ -45,7 +45,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "last name of the identity account.",
+      "description": "Last name of the identity account.",
       "required": false
     },
     {
@@ -55,7 +55,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "url of the profile picture for the user on auth0",
+      "description": "URL of the profile picture.\n For direct accounts: from Auth0 profile.\n For federated accounts: from the IdentityProvider's UserInfo endpoint.",
       "required": false
     },
     {
@@ -65,7 +65,28 @@
       "type": {
         "kind": "bool"
       },
-      "description": "indicates if this is a machine account used for inter-service communication.\n machine accounts have idp_id values ending with \"@clients\" suffix.\n (ignored for create) this value is assigned by backend based on idp_id.",
+      "description": "Indicates if this is a machine account used for inter-service communication.\n Machine accounts have idp_id values ending with \"@clients\" suffix.\n (ignored for create) this value is assigned by backend based on idp_id.",
+      "required": false
+    },
+    {
+      "name": "ProvisioningMode",
+      "jsonName": "provisioningMode",
+      "protoField": "provisioning_mode",
+      "type": {
+        "kind": "string"
+      },
+      "description": "How this identity account was provisioned.\n Unspecified for legacy accounts created before this field was introduced.\n (ignored for create) this value is assigned by backend.",
+      "required": false
+    },
+    {
+      "name": "IdentityProviderRef",
+      "jsonName": "identityProviderRef",
+      "protoField": "identity_provider_ref",
+      "type": {
+        "kind": "message",
+        "messageType": "ApiResourceReference"
+      },
+      "description": "Reference to the IdentityProvider that provisioned this account.\n Set only when provisioning_mode is FEDERATED. Identifies which external\n platform's trust relationship created this account during federated auth.\n (ignored for create) this value is assigned by backend.",
       "required": false
     }
   ]

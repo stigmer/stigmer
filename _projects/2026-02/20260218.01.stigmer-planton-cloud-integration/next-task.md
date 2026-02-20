@@ -74,9 +74,35 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-18 13:08
-**Last Session**: 2026-02-20 Session 5 — IdentityProvider proto authorization cleanup (can_create_idp permission, status simplification)
-**Current Task**: Token exchange endpoint — the MVP core of federated authentication.
-**Status**: IdentityProvider proto and CRUD fully done. Token exchange is next.
+**Last Session**: 2026-02-20 Session 6 — Implemented federated auth interceptor extension (full plan), identified domain boundary refactoring needed
+**Current Task**: Federation refactoring — add IdentityAccount create RPC and refactor provisioner to use in-process gRPC (plan: `federation_refactoring_plan_5c29d3ad`)
+**Status**: Federated auth interceptor fully implemented across both repos. Proto changes, auth provider, issuer/JWKS caches, UserInfo client, JIT provisioner, identity resolution — all done. Needs refactoring to respect domain boundaries before merging.
+
+## Session Progress (2026-02-20 Session 6)
+- Implemented all 5 tasks from the Federated Auth Interceptor Extension plan
+- Proto: `IdentityAccountProvisioningMode` enum + `provisioning_mode`/`identity_provider_ref` fields
+- Auth chain: `FederatedJwtAuthenticationProvider` + `IdentityProviderIssuerCache` + `FederatedJwtDecoderCache`
+- Identity: `FederatedIdentityProvisionerImpl` + `UserInfoClient` + compound IDP ID construction
+- Wiring: Extended `GrpcSecurityConfigBase`, `AuthenticationTokenParser`, `RequestCallerIdentityMapper`
+- Decision: No Auth0 creation for federated users, no proxy needed, no auto-grant
+- User identified cross-domain violations in provisioner; created follow-up refactoring plan
+
+## Next Steps
+1. Implement federation refactoring plan (`federation_refactoring_plan_5c29d3ad`)
+2. Add `create` RPC to IdentityAccount proto, implement handler
+3. Create downstream gRPC client for IdentityAccount
+4. Refactor `FederatedIdentityProvisionerImpl` to use in-process gRPC
+5. Consider migrating Auth0 webhook creation to same RPC
+
+## Context for Resume
+- All federation code is implemented but has a known design issue: `FederatedIdentityProvisionerImpl` directly accesses `IdentityAccountRepo` (cross-domain) and `IamPolicyCreationService` (bypasses domain boundary)
+- The fix is to route identity account creation through in-process gRPC (same pattern as `IamPolicyGrpcRepoImpl`, `AgentInstanceGrpcRepoImpl`, etc.)
+- The refactoring plan is saved as a Cursor plan file
+- Changes are uncommitted in both repos
+
+## Quick Resume
+To continue this project, drag this file into chat:
+`@_projects/2026-02/20260218.01.stigmer-planton-cloud-integration/next-task.md`
 
 ## Architecture Summary (Revised — Session 2)
 
@@ -115,11 +141,12 @@ Planton Cloud User → Planton Cloud Backend (existing authz) → Stigmer Proxy 
 |---|-----------|--------|---------|
 | 1 | IdentityProvider proto | ✅ Done (session 3+5) | `userinfo_endpoint` added; authz corrected to `can_create_idp`; status simplified to `ApiResourceAuditStatus` |
 | 2 | IdentityProvider CRUD | ✅ Done (session 4) | Repo, FGA model, auto-controller, 6 handlers (create/update/delete/get/getByRef/apply) |
-| 3 | Token Exchange Endpoint | 🔲 After #2 | Validates external JWT, calls UserInfo, JIT provisions, issues Stigmer token |
-| 4 | Federated JWT Validation | 🔲 After #2 | Auth interceptor extension for IdentityProvider-based validation |
-| 5 | JIT Identity Provisioning | 🔲 Part of #3 | Find/create identity_account, update profile, create FGA membership |
-| 6 | Proxy SDK | 🔲 After #3 | Go library: token exchange client, gRPC forwarding, interceptor hooks |
-| 7 | Pre-built Docker Image | 🔲 After #6 | SDK with zero interceptors for internal-only deployments |
+| 3 | Token Exchange Endpoint | ❌ Eliminated | Direct JWT validation in auth interceptor replaces token exchange (decision: session 6) |
+| 4 | Federated JWT Validation | ✅ Done (session 6) | Auth interceptor extension: `FederatedJwtAuthenticationProvider` + issuer/JWKS caches. Needs domain boundary refactoring. |
+| 5 | JIT Identity Provisioning | ✅ Done (session 6) | `FederatedIdentityProvisionerImpl` + `UserInfoClient` + compound IDP ID. Needs refactoring to use in-process gRPC. |
+| 5a | Federation Refactoring | 🔲 Next | Add IdentityAccount create RPC, downstream gRPC client, refactor provisioner to respect domain boundaries |
+| 6 | Proxy SDK | ❌ Eliminated | Not needed — platforms call Stigmer directly with their own tokens (decision: session 6) |
+| 7 | Pre-built Docker Image | 🔲 Deferred | Revisit after federation refactoring complete |
 
 ### Planton Cloud Side
 
@@ -137,8 +164,9 @@ Planton Cloud User → Planton Cloud Backend (existing authz) → Stigmer Proxy 
 - [x] Fix create RPC authorization: `can_create_idp` permission + FGA model (was incorrectly using `can_edit`)
 - [x] Simplify status: use `ApiResourceAuditStatus` directly, delete wrapper message
 - [x] Implement IdentityProvider CRUD in `stigmer-cloud` (FGA model, repo, auto-controller, 6 handlers)
-- [ ] Implement token exchange endpoint in `stigmer-cloud`
-- [ ] Implement JIT identity provisioning (find/create identity_account, update profile, create FGA membership)
+- [x] Implement federated JWT validation in auth interceptor (replaced token exchange — session 6)
+- [x] Implement JIT identity provisioning (find/create identity_account, UserInfo profile, FGA tuples — session 6)
+- [ ] Refactor federation provisioner to use in-process gRPC for domain boundary compliance
 - [ ] Extend Organization CRUD for `management_mode` + `identity_provider_ref`
 
 ### Phase 2: Proxy SDK + Planton Integration

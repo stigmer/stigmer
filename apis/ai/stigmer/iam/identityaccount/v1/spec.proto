@@ -2,30 +2,60 @@ syntax = "proto3";
 
 package ai.stigmer.iam.identityaccount.v1;
 
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/iam/identityaccount/v1/enum.proto";
 import "buf/validate/validate.proto";
 
-//identity-account spec
+// IdentityAccountSpec defines the configuration for an identity account.
+//
+// An identity account represents a user or machine principal in Stigmer's
+// authorization model. All FGA tuples use identity_account as the principal type.
+//
+// Accounts are provisioned in one of three ways:
+// - direct: User signed up via Stigmer's Auth0 (idp_id is the Auth0 subject ID)
+// - federated: JIT-provisioned via an external IdentityProvider during federated auth
+//   (idp_id is a compound key: "federated:{provider_id}:{external_sub}")
+// - machine: M2M client credentials (idp_id ends with "@clients")
 message IdentityAccountSpec {
-  // idp id of the identity account.
-  // this is the id assigned by auth0 to the identity account.
+  // IDP ID of the identity account.
+  //
+  // For direct accounts: the Auth0 subject ID (e.g., "auth0|abc123").
+  // For federated accounts: a compound key ensuring global uniqueness across
+  // identity providers (e.g., "federated:idp_01JXY:auth0|user-456").
+  // For machine accounts: the Auth0 client ID with "@clients" suffix.
   string idp_id = 1 [(buf.validate.field).required = true];
 
-  // email of the identity account.
+  // Email of the identity account.
+  // For direct accounts: based on the email used to sign up.
+  // For federated accounts: fetched from the IdentityProvider's UserInfo endpoint
+  // during JIT provisioning.
   // (ignored for create) this value is assigned by backend.
-  // email is based on the email used to signup to the application.
   string email = 2;
 
-  // first name of the identity account.
+  // First name of the identity account.
   string first_name = 3;
 
-  // last name of the identity account.
+  // Last name of the identity account.
   string last_name = 4;
 
-  //url of the profile picture for the user on auth0
+  // URL of the profile picture.
+  // For direct accounts: from Auth0 profile.
+  // For federated accounts: from the IdentityProvider's UserInfo endpoint.
   string picture_url = 5;
 
-  // indicates if this is a machine account used for inter-service communication.
-  // machine accounts have idp_id values ending with "@clients" suffix.
+  // Indicates if this is a machine account used for inter-service communication.
+  // Machine accounts have idp_id values ending with "@clients" suffix.
   // (ignored for create) this value is assigned by backend based on idp_id.
   bool is_machine_account = 6;
+
+  // How this identity account was provisioned.
+  // Unspecified for legacy accounts created before this field was introduced.
+  // (ignored for create) this value is assigned by backend.
+  IdentityAccountProvisioningMode provisioning_mode = 7;
+
+  // Reference to the IdentityProvider that provisioned this account.
+  // Set only when provisioning_mode is FEDERATED. Identifies which external
+  // platform's trust relationship created this account during federated auth.
+  // (ignored for create) this value is assigned by backend.
+  ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 8;
 }
