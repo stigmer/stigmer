@@ -20,7 +20,7 @@ service IdentityProviderCommandController {
   // The creator's organization owns the identity provider.
   rpc create(IdentityProvider) returns (IdentityProvider) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = organization;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_create_idp;
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.org";
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to create identity provider in this organization";
   }
