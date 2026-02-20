@@ -9,6 +9,7 @@ package tasks
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -159,10 +160,10 @@ var File_ai_stigmer_agentic_workflow_v1_tasks_fork_proto protoreflect.FileDescri
 
 const file_ai_stigmer_agentic_workflow_v1_tasks_fork_proto_rawDesc = "" +
 	"\n" +
-	"/ai/stigmer/agentic/workflow/v1/tasks/fork.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a)ai/stigmer/agentic/workflow/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"\x82\x01\n" +
+	"/ai/stigmer/agentic/workflow/v1/tasks/fork.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a)ai/stigmer/agentic/workflow/v1/spec.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\"\x8c\x01\n" +
 	"\x0eForkTaskConfig\x12V\n" +
 	"\bbranches\x18\x01 \x03(\v20.ai.stigmer.agentic.workflow.v1.tasks.ForkBranchB\b\xbaH\x05\x92\x01\x02\b\x02R\bbranches\x12\x18\n" +
-	"\acompete\x18\x02 \x01(\bR\acompete\"t\n" +
+	"\acompete\x18\x02 \x01(\bR\acompete:\b\xea\x8b,\x04fork\"t\n" +
 	"\n" +
 	"ForkBranch\x12\x1e\n" +
 	"\x04name\x18\x01 \x01(\tB\n" +

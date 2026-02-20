@@ -1,6 +1,6 @@
 from ai.stigmer.commons.apiresource import metadata_pb2 as _metadata_pb2
+from ai.stigmer.commons.apiresource import status_pb2 as _status_pb2
 from ai.stigmer.iam.identityprovider.v1 import spec_pb2 as _spec_pb2
-from ai.stigmer.iam.identityprovider.v1 import status_pb2 as _status_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
@@ -20,5 +20,5 @@ class IdentityProvider(_message.Message):
     kind: str
     metadata: _metadata_pb2.ApiResourceMetadata
     spec: _spec_pb2.IdentityProviderSpec
-    status: _status_pb2.IdentityProviderStatus
-    def __init__(self, api_version: _Optional[str] = ..., kind: _Optional[str] = ..., metadata: _Optional[_Union[_metadata_pb2.ApiResourceMetadata, _Mapping]] = ..., spec: _Optional[_Union[_spec_pb2.IdentityProviderSpec, _Mapping]] = ..., status: _Optional[_Union[_status_pb2.IdentityProviderStatus, _Mapping]] = ...) -> None: ...
+    status: _status_pb2.ApiResourceAuditStatus
+    def __init__(self, api_version: _Optional[str] = ..., kind: _Optional[str] = ..., metadata: _Optional[_Union[_metadata_pb2.ApiResourceMetadata, _Mapping]] = ..., spec: _Optional[_Union[_spec_pb2.IdentityProviderSpec, _Mapping]] = ..., status: _Optional[_Union[_status_pb2.ApiResourceAuditStatus, _Mapping]] = ...) -> None: ...

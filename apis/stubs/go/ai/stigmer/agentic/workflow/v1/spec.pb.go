@@ -9,6 +9,7 @@ package workflowv1
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
+	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb "google.golang.org/protobuf/types/known/structpb"
@@ -416,7 +417,7 @@ var File_ai_stigmer_agentic_workflow_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflow_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/workflow/v1/spec.proto\x12\x1eai.stigmer.agentic.workflow.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a)ai/stigmer/agentic/workflow/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xa3\x02\n" +
+	")ai/stigmer/agentic/workflow/v1/spec.proto\x12\x1eai.stigmer.agentic.workflow.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a)ai/stigmer/agentic/workflow/v1/enum.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xa3\x02\n" +
 	"\fWorkflowSpec\x12 \n" +
 	"\vdescription\x18\x01 \x01(\tR\vdescription\x12T\n" +
 	"\bdocument\x18\x02 \x01(\v20.ai.stigmer.agentic.workflow.v1.WorkflowDocumentB\x06\xbaH\x03\xc8\x01\x01R\bdocument\x12L\n" +
@@ -427,11 +428,11 @@ const file_ai_stigmer_agentic_workflow_v1_spec_proto_rawDesc = "" +
 	"\tnamespace\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tnamespace\x12\x1a\n" +
 	"\x04name\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04name\x12 \n" +
 	"\aversion\x18\x04 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\aversion\x12 \n" +
-	"\vdescription\x18\x05 \x01(\tR\vdescription\"\xbb\x02\n" +
+	"\vdescription\x18\x05 \x01(\tR\vdescription\"\xc3\x02\n" +
 	"\fWorkflowTask\x12\x1a\n" +
 	"\x04name\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04name\x12L\n" +
-	"\x04kind\x18\x02 \x01(\x0e20.ai.stigmer.agentic.workflow.v1.WorkflowTaskKindB\x06\xbaH\x03\xc8\x01\x01R\x04kind\x12@\n" +
-	"\vtask_config\x18\x03 \x01(\v2\x17.google.protobuf.StructB\x06\xbaH\x03\xc8\x01\x01R\n" +
+	"\x04kind\x18\x02 \x01(\x0e20.ai.stigmer.agentic.workflow.v1.WorkflowTaskKindB\x06\xbaH\x03\xc8\x01\x01R\x04kind\x12H\n" +
+	"\vtask_config\x18\x03 \x01(\v2\x17.google.protobuf.StructB\x0e\xbaH\x03\xc8\x01\x01\xea\x85,\x04kindR\n" +
 	"taskConfig\x12>\n" +
 	"\x06export\x18\x04 \x01(\v2&.ai.stigmer.agentic.workflow.v1.ExportR\x06export\x12?\n" +
 	"\x04flow\x18\x05 \x01(\v2+.ai.stigmer.agentic.workflow.v1.FlowControlR\x04flow\"!\n" +

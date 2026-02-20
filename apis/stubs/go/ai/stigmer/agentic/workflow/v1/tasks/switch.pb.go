@@ -8,6 +8,7 @@ package tasks
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
+	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -153,9 +154,9 @@ var File_ai_stigmer_agentic_workflow_v1_tasks_switch_proto protoreflect.FileDesc
 
 const file_ai_stigmer_agentic_workflow_v1_tasks_switch_proto_rawDesc = "" +
 	"\n" +
-	"1ai/stigmer/agentic/workflow/v1/tasks/switch.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a\x1bbuf/validate/validate.proto\"d\n" +
+	"1ai/stigmer/agentic/workflow/v1/tasks/switch.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\"u\n" +
 	"\x10SwitchTaskConfig\x12P\n" +
-	"\x05cases\x18\x01 \x03(\v20.ai.stigmer.agentic.workflow.v1.tasks.SwitchCaseB\b\xbaH\x05\x92\x01\x02\b\x01R\x05cases\"`\n" +
+	"\x05cases\x18\x01 \x03(\v20.ai.stigmer.agentic.workflow.v1.tasks.SwitchCaseB\b\xbaH\x05\x92\x01\x02\b\x01R\x05cases:\x0f\xea\x8b,\vswitch_case\"`\n" +
 	"\n" +
 	"SwitchCase\x12\x1e\n" +
 	"\x04name\x18\x01 \x01(\tB\n" +

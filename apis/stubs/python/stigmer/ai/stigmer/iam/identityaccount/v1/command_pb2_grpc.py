@@ -17,6 +17,11 @@ class IdentityAccountCommandControllerStub(object):
         Args:
             channel: A grpc.Channel.
         """
+        self.create = channel.unary_unary(
+                '/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/create',
+                request_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
+                _registered_method=True)
         self.update = channel.unary_unary(
                 '/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/update',
                 request_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.SerializeToString,
@@ -37,6 +42,16 @@ class IdentityAccountCommandControllerStub(object):
 class IdentityAccountCommandControllerServicer(object):
     """identity-account command controller
     """
+
+    def create(self, request, context):
+        """create a new identity-account.
+        system-level RPC used by federated JIT provisioning and Auth0 webhook flow.
+        no FGA authorization — called via inProcessChannelAsSystem (machine account).
+        the handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def update(self, request, context):
         """update an existing identity-account
@@ -64,6 +79,11 @@ class IdentityAccountCommandControllerServicer(object):
 
 def add_IdentityAccountCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
+            'create': grpc.unary_unary_rpc_method_handler(
+                    servicer.create,
+                    request_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
+                    response_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.SerializeToString,
+            ),
             'update': grpc.unary_unary_rpc_method_handler(
                     servicer.update,
                     request_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
@@ -90,6 +110,33 @@ def add_IdentityAccountCommandControllerServicer_to_server(servicer, server):
 class IdentityAccountCommandController(object):
     """identity-account command controller
     """
+
+    @staticmethod
+    def create(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/create',
+            ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.SerializeToString,
+            ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
 
     @staticmethod
     def update(request,

@@ -8,6 +8,7 @@ package tasks
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
+	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb "google.golang.org/protobuf/types/known/structpb"
@@ -95,11 +96,11 @@ var File_ai_stigmer_agentic_workflow_v1_tasks_run_proto protoreflect.FileDescrip
 
 const file_ai_stigmer_agentic_workflow_v1_tasks_run_proto_rawDesc = "" +
 	"\n" +
-	".ai/stigmer/agentic/workflow/v1/tasks/run.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"f\n" +
+	".ai/stigmer/agentic/workflow/v1/tasks/run.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"x\n" +
 	"\rRunTaskConfig\x12&\n" +
 	"\bworkflow\x18\x01 \x01(\tB\n" +
 	"\xbaH\a\xc8\x01\x01r\x02\x10\x01R\bworkflow\x12-\n" +
-	"\x05input\x18\x02 \x01(\v2\x17.google.protobuf.StructR\x05inputB\xbb\x02\n" +
+	"\x05input\x18\x02 \x01(\v2\x17.google.protobuf.StructR\x05input:\x10\xea\x8b,\frun_workflowB\xbb\x02\n" +
 	"(com.ai.stigmer.agentic.workflow.v1.tasksB\bRunProtoP\x01ZMgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks\xa2\x02\x06ASAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3"
 
 var (

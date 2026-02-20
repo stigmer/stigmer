@@ -20,6 +20,7 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	IdentityAccountCommandController_Create_FullMethodName                = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/create"
 	IdentityAccountCommandController_Update_FullMethodName                = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/update"
 	IdentityAccountCommandController_Delete_FullMethodName                = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/delete"
 	IdentityAccountCommandController_SimulateSignupWebhook_FullMethodName = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/simulateSignupWebhook"
@@ -31,6 +32,11 @@ const (
 //
 // identity-account command controller
 type IdentityAccountCommandControllerClient interface {
+	// create a new identity-account.
+	// system-level RPC used by federated JIT provisioning and Auth0 webhook flow.
+	// no FGA authorization — called via inProcessChannelAsSystem (machine account).
+	// the handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
+	Create(ctx context.Context, in *IdentityAccount, opts ...grpc.CallOption) (*IdentityAccount, error)
 	// update an existing identity-account
 	Update(ctx context.Context, in *IdentityAccount, opts ...grpc.CallOption) (*IdentityAccount, error)
 	// delete an existing identity-account
@@ -47,6 +53,16 @@ type identityAccountCommandControllerClient struct {
 
 func NewIdentityAccountCommandControllerClient(cc grpc.ClientConnInterface) IdentityAccountCommandControllerClient {
 	return &identityAccountCommandControllerClient{cc}
+}
+
+func (c *identityAccountCommandControllerClient) Create(ctx context.Context, in *IdentityAccount, opts ...grpc.CallOption) (*IdentityAccount, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(IdentityAccount)
+	err := c.cc.Invoke(ctx, IdentityAccountCommandController_Create_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *identityAccountCommandControllerClient) Update(ctx context.Context, in *IdentityAccount, opts ...grpc.CallOption) (*IdentityAccount, error) {
@@ -85,6 +101,11 @@ func (c *identityAccountCommandControllerClient) SimulateSignupWebhook(ctx conte
 //
 // identity-account command controller
 type IdentityAccountCommandControllerServer interface {
+	// create a new identity-account.
+	// system-level RPC used by federated JIT provisioning and Auth0 webhook flow.
+	// no FGA authorization — called via inProcessChannelAsSystem (machine account).
+	// the handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
+	Create(context.Context, *IdentityAccount) (*IdentityAccount, error)
 	// update an existing identity-account
 	Update(context.Context, *IdentityAccount) (*IdentityAccount, error)
 	// delete an existing identity-account
@@ -102,6 +123,9 @@ type IdentityAccountCommandControllerServer interface {
 // pointer dereference when methods are called.
 type UnimplementedIdentityAccountCommandControllerServer struct{}
 
+func (UnimplementedIdentityAccountCommandControllerServer) Create(context.Context, *IdentityAccount) (*IdentityAccount, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
+}
 func (UnimplementedIdentityAccountCommandControllerServer) Update(context.Context, *IdentityAccount) (*IdentityAccount, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
@@ -129,6 +153,24 @@ func RegisterIdentityAccountCommandControllerServer(s grpc.ServiceRegistrar, srv
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&IdentityAccountCommandController_ServiceDesc, srv)
+}
+
+func _IdentityAccountCommandController_Create_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IdentityAccount)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityAccountCommandControllerServer).Create(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityAccountCommandController_Create_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityAccountCommandControllerServer).Create(ctx, req.(*IdentityAccount))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _IdentityAccountCommandController_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -192,6 +234,10 @@ var IdentityAccountCommandController_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController",
 	HandlerType: (*IdentityAccountCommandControllerServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "create",
+			Handler:    _IdentityAccountCommandController_Create_Handler,
+		},
 		{
 			MethodName: "update",
 			Handler:    _IdentityAccountCommandController_Update_Handler,

@@ -32,8 +32,7 @@ message OrganizationId {
 // Used by integrating platforms to find the Stigmer organization mapped to their own org.
 message OrganizationExternalLookup {
   // Reference to the IdentityProvider (org + slug) that manages this organization.
-  ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 1
-      [(buf.validate.field).required = true];
+  ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 1 [(buf.validate.field).required = true];
 
   // The external platform's organization identifier.
   string external_org_id = 2 [(buf.validate.field).string.min_len = 1];

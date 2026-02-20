@@ -8,6 +8,7 @@ package tasks
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
+	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -200,9 +201,10 @@ var File_ai_stigmer_agentic_workflow_v1_tasks_listen_proto protoreflect.FileDesc
 
 const file_ai_stigmer_agentic_workflow_v1_tasks_listen_proto_rawDesc = "" +
 	"\n" +
-	"1ai/stigmer/agentic/workflow/v1/tasks/listen.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a\x1bbuf/validate/validate.proto\"Z\n" +
+	"1ai/stigmer/agentic/workflow/v1/tasks/listen.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\"f\n" +
 	"\x10ListenTaskConfig\x12F\n" +
-	"\x02to\x18\x01 \x01(\v2..ai.stigmer.agentic.workflow.v1.tasks.ListenToB\x06\xbaH\x03\xc8\x01\x01R\x02to\"\x88\x01\n" +
+	"\x02to\x18\x01 \x01(\v2..ai.stigmer.agentic.workflow.v1.tasks.ListenToB\x06\xbaH\x03\xc8\x01\x01R\x02to:\n" +
+	"\xea\x8b,\x06listen\"\x88\x01\n" +
 	"\bListenTo\x12&\n" +
 	"\x04mode\x18\x01 \x01(\tB\x12\xbaH\x0f\xc8\x01\x01r\n" +
 	"R\x03oneR\x03allR\x04mode\x12T\n" +
