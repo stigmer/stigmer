@@ -74,31 +74,26 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-18 13:08
-**Last Session**: 2026-02-20 Session 6 — Implemented federated auth interceptor extension (full plan), identified domain boundary refactoring needed
-**Current Task**: Federation refactoring — add IdentityAccount create RPC and refactor provisioner to use in-process gRPC (plan: `federation_refactoring_plan_5c29d3ad`)
-**Status**: Federated auth interceptor fully implemented across both repos. Proto changes, auth provider, issuer/JWKS caches, UserInfo client, JIT provisioner, identity resolution — all done. Needs refactoring to respect domain boundaries before merging.
+**Last Session**: 2026-02-20 Session 8 — Phase 1 unit test suite (83 tests across 12 files)
+**Current Task**: Phase 1 is fully complete — all implementation and testing done.
+**Status**: Phase 1 implementation (sessions 3–7) and unit tests (session 8) are committed. Ready for Phase 3 (Organization Lifecycle Sync) or post-MVP work.
 
-## Session Progress (2026-02-20 Session 6)
-- Implemented all 5 tasks from the Federated Auth Interceptor Extension plan
-- Proto: `IdentityAccountProvisioningMode` enum + `provisioning_mode`/`identity_provider_ref` fields
-- Auth chain: `FederatedJwtAuthenticationProvider` + `IdentityProviderIssuerCache` + `FederatedJwtDecoderCache`
-- Identity: `FederatedIdentityProvisionerImpl` + `UserInfoClient` + compound IDP ID construction
-- Wiring: Extended `GrpcSecurityConfigBase`, `AuthenticationTokenParser`, `RequestCallerIdentityMapper`
-- Decision: No Auth0 creation for federated users, no proxy needed, no auto-grant
-- User identified cross-domain violations in provisioner; created follow-up refactoring plan
+## Session Progress (2026-02-20 Session 8)
+- Designed and implemented 83 unit tests across 12 test files in `stigmer-cloud`
+- 10 logical modules: org create validation (20), org update immutability (8), org getByExternalOrgId (7), org repo query (3), IdP delete guard (5), IdP getByReference (6), federated JWT auth (6), JIT provisioner (6), UserInfo + caches (15), compound IDP ID (7)
+- Committed: `bcd9cbeb` (stigmer-cloud) on `feat/add-identity-provider-resource`
 
 ## Next Steps
-1. Implement federation refactoring plan (`federation_refactoring_plan_5c29d3ad`)
-2. Add `create` RPC to IdentityAccount proto, implement handler
-3. Create downstream gRPC client for IdentityAccount
-4. Refactor `FederatedIdentityProvisionerImpl` to use in-process gRPC
-5. Consider migrating Auth0 webhook creation to same RPC
+1. Phase 3: Organization Lifecycle Sync (system-level org create/update/suspend/delete via M2M service accounts)
+2. Phase 2 (Proxy SDK) was largely eliminated — platforms call Stigmer directly
+3. Phase 4: Post-MVP enhancements (API keys, fine-grained role mapping, billing attribution)
 
 ## Context for Resume
-- All federation code is implemented but has a known design issue: `FederatedIdentityProvisionerImpl` directly accesses `IdentityAccountRepo` (cross-domain) and `IamPolicyCreationService` (bypasses domain boundary)
-- The fix is to route identity account creation through in-process gRPC (same pattern as `IamPolicyGrpcRepoImpl`, `AgentInstanceGrpcRepoImpl`, etc.)
-- The refactoring plan is saved as a Cursor plan file
-- Changes are uncommitted in both repos
+- Phase 1 is fully complete — all implementation and testing committed
+- **Implementation commits**: `13615713` + `fe43d1ce` (stigmer), `3a7a30d5` + `7754598d` + `235c8d1a` + `f6caf451` + `26211278` (stigmer-cloud)
+- **Test commit**: `bcd9cbeb` (stigmer-cloud)
+- Phase 2 Proxy SDK was eliminated (platforms call Stigmer directly). Phase 3 Organization Lifecycle Sync is the next meaningful integration work.
+- Known limitation: Bazel/JUnit 5 runner incompatibility — tests compile but need to run outside Bazel
 
 ## Quick Resume
 To continue this project, drag this file into chat:
@@ -144,7 +139,7 @@ Planton Cloud User → Planton Cloud Backend (existing authz) → Stigmer Proxy 
 | 3 | Token Exchange Endpoint | ❌ Eliminated | Direct JWT validation in auth interceptor replaces token exchange (decision: session 6) |
 | 4 | Federated JWT Validation | ✅ Done (session 6) | Auth interceptor extension: `FederatedJwtAuthenticationProvider` + issuer/JWKS caches. Needs domain boundary refactoring. |
 | 5 | JIT Identity Provisioning | ✅ Done (session 6) | `FederatedIdentityProvisionerImpl` + `UserInfoClient` + compound IDP ID. Needs refactoring to use in-process gRPC. |
-| 5a | Federation Refactoring | 🔲 Next | Add IdentityAccount create RPC, downstream gRPC client, refactor provisioner to respect domain boundaries |
+| 5a | Federation Refactoring | ✅ Done (session 6+) | IdentityAccount create RPC, downstream gRPC client, provisioner refactored to in-process gRPC |
 | 6 | Proxy SDK | ❌ Eliminated | Not needed — platforms call Stigmer directly with their own tokens (decision: session 6) |
 | 7 | Pre-built Docker Image | 🔲 Deferred | Revisit after federation refactoring complete |
 
@@ -166,8 +161,8 @@ Planton Cloud User → Planton Cloud Backend (existing authz) → Stigmer Proxy 
 - [x] Implement IdentityProvider CRUD in `stigmer-cloud` (FGA model, repo, auto-controller, 6 handlers)
 - [x] Implement federated JWT validation in auth interceptor (replaced token exchange — session 6)
 - [x] Implement JIT identity provisioning (find/create identity_account, UserInfo profile, FGA tuples — session 6)
-- [ ] Refactor federation provisioner to use in-process gRPC for domain boundary compliance
-- [ ] Extend Organization CRUD for `management_mode` + `identity_provider_ref`
+- [x] Refactor federation provisioner to use in-process gRPC for domain boundary compliance
+- [x] Extend Organization CRUD for `management_mode` + `identity_provider_ref` + `external_org_id` + `getByExternalOrgId` query
 
 ### Phase 2: Proxy SDK + Planton Integration
 
