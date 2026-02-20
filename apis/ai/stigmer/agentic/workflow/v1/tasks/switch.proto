@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.workflow.v1.tasks;
 
+import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
 
 // SwitchTaskConfig defines the configuration for SWITCH tasks.
@@ -19,6 +20,8 @@ import "buf/validate/validate.proto";
 //
 // Reference: zigflow-dsl-pattern-catalog.md - Task Type 3
 message SwitchTaskConfig {
+  option (ai.stigmer.commons.apiresource.discriminator_value) = "switch_case";
+
   // List of switch cases (at least one required).
   // Cases are evaluated in order. First matching case executes.
   // If no "when" is specified, the case acts as default.

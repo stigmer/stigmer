@@ -17,6 +17,8 @@ import "buf/validate/validate.proto";
 //
 // Reference: zigflow-dsl-pattern-catalog.md - Task Type 11
 message RaiseTaskConfig {
+  option (ai.stigmer.commons.apiresource.discriminator_value) = "raise_error";
+
   // Error type/name.
   string error = 1 [
     (ai.stigmer.commons.apiresource.is_expression) = true,

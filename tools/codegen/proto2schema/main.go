@@ -43,12 +43,13 @@ type PackageSchema struct {
 }
 
 type TaskConfigSchema struct {
-	Name        string         `json:"name"`
-	Kind        string         `json:"kind,omitempty"`
-	Description string         `json:"description"`
-	ProtoType   string         `json:"protoType"`
-	ProtoFile   string         `json:"protoFile"`
-	Fields      []*FieldSchema `json:"fields"`
+	Name               string         `json:"name"`
+	Kind               string         `json:"kind,omitempty"`
+	Description        string         `json:"description"`
+	ProtoType          string         `json:"protoType"`
+	ProtoFile          string         `json:"protoFile"`
+	DiscriminatorValue string         `json:"discriminatorValue,omitempty"`
+	Fields             []*FieldSchema `json:"fields"`
 }
 
 type TypeSchema struct {
@@ -66,9 +67,10 @@ type FieldSchema struct {
 	Type          TypeSpec    `json:"type"`
 	Description   string      `json:"description"`
 	Required      bool        `json:"required"`
-	IsExpression  bool        `json:"isExpression,omitempty"`
-	ReferenceKind int32       `json:"referenceKind,omitempty"`
-	OneofGroup    string      `json:"oneofGroup,omitempty"`
+	IsExpression    bool        `json:"isExpression,omitempty"`
+	ReferenceKind   int32       `json:"referenceKind,omitempty"`
+	DiscriminatedBy string      `json:"discriminatedBy,omitempty"`
+	OneofGroup      string      `json:"oneofGroup,omitempty"`
 	Validation    *Validation `json:"validation,omitempty"`
 }
 
@@ -565,12 +567,13 @@ func parseTaskConfig(msg *desc.MessageDescriptor, fd *desc.FileDescriptor) (*Tas
 	protoFile := fd.GetName()
 
 	schema := &TaskConfigSchema{
-		Name:        msg.GetName(),
-		Kind:        kind,
-		Description: description,
-		ProtoType:   protoType,
-		ProtoFile:   filepath.Join("apis", protoFile),
-		Fields:      make([]*FieldSchema, 0),
+		Name:               msg.GetName(),
+		Kind:               kind,
+		Description:        description,
+		ProtoType:          protoType,
+		ProtoFile:          filepath.Join("apis", protoFile),
+		DiscriminatorValue: extractDiscriminatorValue(msg),
+		Fields:             make([]*FieldSchema, 0),
 	}
 
 	// Parse fields
@@ -590,15 +593,16 @@ func extractFieldSchema(field *desc.FieldDescriptor) (*FieldSchema, error) {
 	description := extractFieldComments(field)
 
 	fieldSchema := &FieldSchema{
-		Name:          toCamelCase(field.GetName(), true),
-		JsonName:      field.GetJSONName(),
-		ProtoField:    field.GetName(),
-		Type:          extractTypeSpec(field),
-		Description:   description,
-		Required:      false,
-		IsExpression:  extractIsExpression(field),
-		ReferenceKind: extractReferenceKind(field),
-		Validation:    extractValidation(field),
+		Name:            toCamelCase(field.GetName(), true),
+		JsonName:        field.GetJSONName(),
+		ProtoField:      field.GetName(),
+		Type:            extractTypeSpec(field),
+		Description:     description,
+		Required:        false,
+		IsExpression:    extractIsExpression(field),
+		ReferenceKind:   extractReferenceKind(field),
+		DiscriminatedBy: extractDiscriminatedBy(field),
+		Validation:      extractValidation(field),
 	}
 
 	if oo := field.GetOneOf(); oo != nil {
@@ -932,6 +936,65 @@ func extractReferenceKind(field *desc.FieldDescriptor) int32 {
 		}
 	}
 	return 0
+}
+
+const discriminatedByFieldNumber = 90205
+
+// extractDiscriminatedBy extracts the discriminated_by field option value.
+// Returns the sibling discriminator field name, or empty string if not set.
+func extractDiscriminatedBy(field *desc.FieldDescriptor) string {
+	opts := field.GetFieldOptions()
+	if opts == nil {
+		return ""
+	}
+	return extractStringFromUnknownFields(opts.ProtoReflect().GetUnknown(), discriminatedByFieldNumber)
+}
+
+const discriminatorValueFieldNumber = 90301
+
+// extractDiscriminatorValue extracts the discriminator_value message option.
+// Returns the enum string value this message corresponds to, or empty string if not set.
+func extractDiscriminatorValue(msg *desc.MessageDescriptor) string {
+	opts := msg.GetMessageOptions()
+	if opts == nil {
+		return ""
+	}
+	return extractStringFromUnknownFields(opts.ProtoReflect().GetUnknown(), discriminatorValueFieldNumber)
+}
+
+// extractStringFromUnknownFields reads a string extension value from proto unknown fields.
+func extractStringFromUnknownFields(raw []byte, targetFieldNumber protowire.Number) string {
+	for len(raw) > 0 {
+		num, typ, n := protowire.ConsumeTag(raw)
+		if n < 0 {
+			break
+		}
+		raw = raw[n:]
+		switch typ {
+		case protowire.VarintType:
+			_, vn := protowire.ConsumeVarint(raw)
+			if vn < 0 {
+				return ""
+			}
+			raw = raw[vn:]
+		case protowire.Fixed32Type:
+			raw = raw[4:]
+		case protowire.Fixed64Type:
+			raw = raw[8:]
+		case protowire.BytesType:
+			v, bn := protowire.ConsumeBytes(raw)
+			if bn < 0 {
+				return ""
+			}
+			if num == targetFieldNumber {
+				return string(v)
+			}
+			raw = raw[bn:]
+		default:
+			return ""
+		}
+	}
+	return ""
 }
 
 // extractComments extracts documentation from a message descriptor

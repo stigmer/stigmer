@@ -15,8 +15,8 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: February 19, 2026
-**Last Session**: February 20, 2026 (Session 7)
-**Current Task**: T09 DONE — typed workflow task configs
+**Last Session**: February 20, 2026 (Session 8)
+**Current Task**: T10 DONE — Generalize MCP codegen to all domains
 **Status**: ALL TASKS COMPLETE — branch ready for PR
 
 ## Task Overview
@@ -31,48 +31,64 @@ Drop this file into your conversation to quickly resume work on this project.
 | T06 | Agent Apply Rich Schema — SDK-pattern structured input | DONE (committed 12dbcb9c) |
 | T07 | MCP Input Type Codegen — generate input types from protos | DONE (committed 225db0b0) |
 | T08 | Workflow codegen + toProto error propagation + Makefile | DONE (committed 5ca21143) |
-| T09 | Typed workflow task configs — replace `map[string]any` with 13 typed structs | **DONE** |
+| T09 | Typed workflow task configs — replace `map[string]any` with 13 typed structs | DONE (committed 549482ba) |
+| T10 | Generalize MCP codegen to all domains — comprehensive mode + proto custom options | **DONE** |
 
-## T09 Completion Summary (Session 7)
+## T10 Completion Summary (Session 8)
 
-Replaced `WorkflowTaskInput.TaskConfig map[string]any` with 13 strongly-typed per-kind config structs
-generated entirely by the codegen pipeline. AI agents now see the full discriminated union with enum
-constraints on `kind` and per-field descriptions stating which `kind` value each config belongs to.
+Generalized the MCP server codegen from 3 manually-configured resources to 15 auto-discovered
+resources across all 3 domains (agentic, iam, tenancy). A single `make codegen` command now
+generates everything. Discriminated union metadata (workflow task configs) is declared in the
+proto itself via custom options, eliminating all CLI flags.
 
-**What was done:**
-- Enhanced `proto2schema` to generically extract enum values — applies to all domains
-- Added `jsonschema:"enum=..."` tag emission in `generator/mcp.go` — generic, all enum fields
-- Added `--expand-struct=field:discriminator:dir` CLI flag to `generator/main.go`
-- Implemented struct expansion: 13 typed `*XxxTaskConfigInput` pointer fields replace the old `map[string]any`
-- Generated `switch input.Kind` block in `WorkflowTaskInput.ToProto()` for validation + `protojson` serialization
-- Handled edge cases: `uint32`, `google.protobuf.Timestamp`, `oneof + Timestamp`
-- Updated Makefile with `--expand-struct` flag for workflow domain; regenerated all schemas and code
-- Updated all tests (`convert_test.go`, `apply_tool_test.go`) to use typed config structs
+**What was done — 6 phases:**
 
-**Results:** All tests pass (`go test -race ./...` ✅, `go build ./...` ✅)
+### Phase 1: Proto Custom Options
+- Added `discriminated_by` (field option 90205) and `discriminator_value` (message option 90301)
+  to `field_options.proto`
+- Annotated `WorkflowTask.task_config` with `(discriminated_by) = "kind"`
+- Annotated all 13 task config messages with their `discriminator_value`
 
-## T05 Completion Summary (Session 6)
+### Phase 2: proto2schema Enhancement
+- Added `DiscriminatedBy` to `FieldSchema` and `DiscriminatorValue` to `TaskConfigSchema`
+- Implemented `extractDiscriminatedBy()` and `extractDiscriminatorValue()` via protowire
+- Both metadata types extracted and emitted into JSON schemas automatically
 
-Performed final validation of the entire branch. Reviewed all hand-written and generated code, identified and resolved quality gaps.
+### Phase 3+4: Generator Comprehensive Mode + Schema-driven Expand-struct
+- Added `--comprehensive` flag to generator
+- `discoverDomains()` walks schema root, identifies domain/resource pairs
+- `indexSatellites()` loads schemas from non-domain directories (tasks/)
+- `detectExpandStructFromSchema()` auto-configures expand-struct from `discriminatedBy` metadata
+- No CLI flags needed — generator reads everything from schemas
 
-**What was done:**
-- Full code review of all shared abstractions, domain implementations, generated code, and codegen tools
-- Added `internal/convert/convert_test.go` — table-driven tests for `GenerateSlug` (16 cases) and `VisibilityFromString` (9 cases)
-- Added `internal/domains/mcpservers/convert_test.go` — comprehensive ToProto() tests covering minimal input, slug auto-generation, visibility, stdio/http server types (oneof), default enabled tools, tool approval policies, environment spec with secrets, labels/tags, and full integration
-- Added `internal/domains/workflows/convert_test.go` — comprehensive ToProto() tests covering minimal input, slug, visibility, document metadata, tasks with enum kind mapping, export/flow control, empty task config, environment spec, multiple tasks, and full integration
-- Fixed Makefile `vet` target to exclude `gen/` packages (jsonschema-go's `\,` tag convention causes false positives in `go vet`'s structtag checker — generated code is conventionally exempt per `DO NOT EDIT` markers)
-- Decided to keep generated packages self-contained (no shared gen/common/ extraction) — simpler, no cross-package coupling, Makefile regenerates all 3 together
+### Phase 5: Restructured gen/ + Updated Makefile
+- Moved existing gen packages to `gen/agentic/{agent,mcpserver,workflow}`
+- Updated 9 import references in domain handlers and tests
+- Replaced manual multi-line `codegen-mcp` with single comprehensive command
+- Added `codegen-schemas` and top-level `codegen` targets
 
-**Results:** All 17 packages pass `go test -race`, `make vet` clean, `go build ./...` clean.
+### Phase 6: Generated All Resources + Validated
+- 15 resources generated across agentic (10), iam (4), tenancy (1)
+- `project` skipped — composite resource that embeds full resource wrappers (naming collision)
+- `go build ./...` ✅, `go test -race ./...` ✅, `make vet` ✅
+
+**Generated output:**
+```
+mcp-server/gen/
+  agentic/   agent, agentexecution, agentinstance, environment, executioncontext,
+             mcpserver, skill, workflow, workflowexecution, workflowinstance
+  iam/       apikey, iampolicy, identityaccount, identityprovider
+  tenancy/   organization
+```
 
 ## Final Architecture Summary
 
 ```
-proto definitions (apis/)
-    ↓  proto2schema
-JSON schemas (tools/codegen/schemas/)
-    ↓  generator --target=mcp
-Generated input types (mcp-server/gen/<domain>/)
+Proto definitions (with discriminated_by / discriminator_value custom options)
+    ↓  proto2schema --comprehensive
+JSON schemas (with discriminatedBy + discriminatorValue metadata)
+    ↓  generator --comprehensive --target=mcp
+Generated input types (mcp-server/gen/{domain}/{resource}/)
     ↓  ToProto()
 Proto messages → gRPC backend
 
@@ -90,23 +106,26 @@ Shared utilities (mcp-server/internal/convert/):
 ## Essential Files
 
 ```
-tools/codegen/generator/mcp.go                                    — MCP codegen logic (struct, enum, error support)
-tools/codegen/generator/main.go                                   — TypeSpec with EnumType
-tools/codegen/proto2schema/main.go                                — Schema extraction with EnumType
-mcp-server/gen/agent/agent_gen.go                                 — Generated AgentInput (error-returning)
-mcp-server/gen/mcpserver/mcp_server_gen.go                        — Generated McpServerInput (error-returning)
-mcp-server/gen/workflow/workflow_gen.go                            — Generated WorkflowInput
-mcp-server/internal/convert/convert.go                            — Shared utilities (GenerateSlug, VisibilityFromString)
-mcp-server/internal/convert/convert_test.go                       — Convert utility tests
-mcp-server/internal/domains/agents/convert_test.go                — Agent ToProto() tests
-mcp-server/internal/domains/mcpservers/convert_test.go            — McpServer ToProto() tests
-mcp-server/internal/domains/workflows/convert_test.go             — Workflow ToProto() tests
-mcp-server/Makefile                                               — codegen-mcp target, vet excludes gen/
+apis/ai/stigmer/commons/apiresource/field_options.proto              — Custom proto options
+tools/codegen/generator/main.go                                      — Comprehensive mode, schema-driven expand-struct
+tools/codegen/generator/mcp.go                                       — MCP codegen logic
+tools/codegen/proto2schema/main.go                                   — Schema extraction with custom options
+mcp-server/gen/{domain}/{resource}/                                  — 15 generated packages
+mcp-server/Makefile                                                  — codegen / codegen-schemas / codegen-mcp
 ```
+
+## Known Limitation
+
+`project` resource is skipped from MCP codegen because it's a composite/aggregate type that
+embeds full resource wrappers (`Agent`, `Workflow`, `McpServer`, `Skill`). This causes a naming
+collision where both `Agent` and `AgentSpec` map to `AgentInput`. When project-level MCP tools
+are needed, the generator's naming logic can be enhanced, or tools can be hand-written.
 
 ## Quick Commands
 
-- "Run codegen for all domains" — `cd mcp-server && make codegen-mcp`
+- "Run full codegen pipeline" — `cd mcp-server && make codegen`
+- "Run schemas only" — `cd mcp-server && make codegen-schemas`
+- "Run MCP codegen only" — `cd mcp-server && make codegen-mcp`
 - "Run tests" — `cd mcp-server && go test -race ./...`
 - "Run vet (hand-written code)" — `cd mcp-server && make vet`
 

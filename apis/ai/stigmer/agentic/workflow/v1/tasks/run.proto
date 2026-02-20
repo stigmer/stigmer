@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.workflow.v1.tasks;
 
+import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/struct.proto";
 
@@ -18,6 +19,8 @@ import "google/protobuf/struct.proto";
 //
 // Reference: zigflow-dsl-pattern-catalog.md - Task Type 12
 message RunTaskConfig {
+  option (ai.stigmer.commons.apiresource.discriminator_value) = "run_workflow";
+
   // Sub-workflow name/identifier to execute.
   string workflow = 1 [
     (buf.validate.field).required = true,

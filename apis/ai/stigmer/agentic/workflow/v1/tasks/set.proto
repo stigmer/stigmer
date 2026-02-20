@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.workflow.v1.tasks;
 
+import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
 
 // SetTaskConfig defines the configuration for SET tasks.
@@ -17,6 +18,8 @@ import "buf/validate/validate.proto";
 //
 // Reference: zigflow-dsl-pattern-catalog.md - Task Type 1
 message SetTaskConfig {
+  option (ai.stigmer.commons.apiresource.discriminator_value) = "set_vars";
+
   // Variables to set in workflow state.
   // Keys are variable names, values can be literals or expressions.
   // Expressions use ${...} syntax, e.g., "${.a + .b}" or "${now}"

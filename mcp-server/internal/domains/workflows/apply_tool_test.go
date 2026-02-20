@@ -7,7 +7,7 @@ import (
 
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	geninput "github.com/stigmer/stigmer/mcp-server/gen/workflow"
+	geninput "github.com/stigmer/stigmer/mcp-server/gen/agentic/workflow"
 	"github.com/stigmer/stigmer/mcp-server/internal/auth"
 	"github.com/stigmer/stigmer/mcp-server/internal/testutil"
 	"google.golang.org/grpc"

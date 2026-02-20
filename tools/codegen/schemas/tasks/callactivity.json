@@ -4,6 +4,7 @@
   "description": "CallActivityTaskConfig defines the configuration for CALL_ACTIVITY tasks.\n\n CALL_ACTIVITY tasks execute Temporal activities.\n\n YAML Example:\n   - taskName:\n       call: activity\n       with:\n         activity: \"ProcessDataActivity\"\n         input:\n           data: ${ .data }\n\n Reference: zigflow-dsl-pattern-catalog.md - Task Type 10",
   "protoType": "ai.stigmer.agentic.workflow.v1.tasks.CallActivityTaskConfig",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/call_activity.proto",
+  "discriminatorValue": "activity_call",
   "fields": [
     {
       "name": "Activity",
