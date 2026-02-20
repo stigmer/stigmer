@@ -15,9 +15,9 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: February 19, 2026
-**Last Session**: February 20, 2026 (Session 5)
-**Current Task**: T08 DONE — awaiting commit
-**Status**: T08 DONE, T05 READY
+**Last Session**: February 20, 2026 (Session 6)
+**Current Task**: T05 DONE — project complete
+**Status**: ALL TASKS COMPLETE
 
 ## Task Overview
 
@@ -27,41 +27,46 @@ Drop this file into your conversation to quickly resume work on this project.
 | T02 | Implement Core Abstractions + rename files to express responsibility | DONE (committed 78691149) |
 | T03 | Refactor Agents Domain — reference refactoring | DONE |
 | T04 | Refactor Remaining Domains — workflows, mcpservers, skills | DONE |
-| T05 | Final Validation and Close-Out | **READY** |
+| T05 | Final Validation and Close-Out | **DONE** |
 | T06 | Agent Apply Rich Schema — SDK-pattern structured input | DONE (committed 12dbcb9c) |
 | T07 | MCP Input Type Codegen — generate input types from protos | DONE (committed 225db0b0) |
-| T08 | Workflow codegen + toProto error propagation + Makefile | **DONE** |
+| T08 | Workflow codegen + toProto error propagation + Makefile | DONE (committed 5ca21143) |
 
-## T08 Completion Summary (Session 5)
+## T05 Completion Summary (Session 6)
 
-Extended the codegen pipeline with enum, struct, and error-returning `toProto()` support. Generated workflow input types and migrated all three domains to consistent patterns.
+Performed final validation of the entire branch. Reviewed all hand-written and generated code, identified and resolved quality gaps.
 
-**What was built:**
-- Enhanced `proto2schema` to extract `EnumType` (fully-qualified proto enum names)
-- Extended MCP generator with `struct` (→ `map[string]any` via `structpb.NewStruct`) and enum (→ proto enum cast) field support
-- Changed all generated `toProto()` methods to return `(proto, error)` — consistent error propagation across all domains
-- Generated `mcp-server/gen/workflow/workflow_gen.go` with `WorkflowInput`, `WorkflowTaskInput`, etc.
-- Regenerated agent and mcpserver with error-returning signatures
-- Rewrote workflow `Apply` to accept `*workflowv1.Workflow` (no more raw JSON)
-- Added `codegen-mcp` Makefile target
-- Removed dead code: `ApplyFunc`, `CallApply`, `UnmarshalJSON`, `UnmarshalOptions`, `ResourceIdentity` (`input.go` deleted)
+**What was done:**
+- Full code review of all shared abstractions, domain implementations, generated code, and codegen tools
+- Added `internal/convert/convert_test.go` — table-driven tests for `GenerateSlug` (16 cases) and `VisibilityFromString` (9 cases)
+- Added `internal/domains/mcpservers/convert_test.go` — comprehensive ToProto() tests covering minimal input, slug auto-generation, visibility, stdio/http server types (oneof), default enabled tools, tool approval policies, environment spec with secrets, labels/tags, and full integration
+- Added `internal/domains/workflows/convert_test.go` — comprehensive ToProto() tests covering minimal input, slug, visibility, document metadata, tasks with enum kind mapping, export/flow control, empty task config, environment spec, multiple tasks, and full integration
+- Fixed Makefile `vet` target to exclude `gen/` packages (jsonschema-go's `\,` tag convention causes false positives in `go vet`'s structtag checker — generated code is conventionally exempt per `DO NOT EDIT` markers)
+- Decided to keep generated packages self-contained (no shared gen/common/ extraction) — simpler, no cross-package coupling, Makefile regenerates all 3 together
 
-**Results:** All 12+ packages pass `go test -race`.
+**Results:** All 17 packages pass `go test -race`, `make vet` clean, `go build ./...` clean.
 
-Changelog: `_changelog/2026-02/2026-02-20-185549-workflow-codegen-toproto-errors.md`
+## Final Architecture Summary
 
-## What's Next: T05 (Final Validation and Close-Out)
+```
+proto definitions (apis/)
+    ↓  proto2schema
+JSON schemas (tools/codegen/schemas/)
+    ↓  generator --target=mcp
+Generated input types (mcp-server/gen/<domain>/)
+    ↓  ToProto()
+Proto messages → gRPC backend
 
-1. Final review of all changes across the branch
-2. Ensure test coverage is adequate
-3. Close out the project
+Shared abstractions (mcp-server/internal/domains/):
+  conn.go           — gRPC connection + auth metadata
+  marshal.go        — protojson serialization
+  resourcehandler.go — generic MCP resource handler
+  resourceuri.go    — URI template parsing
+  toolresult.go     — MCP tool result construction
 
-## Context for Resume
-
-- All three domains (agent, mcpserver, workflow) now use generated input types with error-returning `ToProto()`
-- The `codegen-mcp` Makefile target regenerates all three in one shot
-- `go vet` has pre-existing warnings from jsonschema-go's escaped-comma tag convention — not a blocker
-- `signal.json` was removed from workflow schema root (it's a task-level type, not a top-level resource)
+Shared utilities (mcp-server/internal/convert/):
+  convert.go        — GenerateSlug, VisibilityFromString
+```
 
 ## Essential Files
 
@@ -71,16 +76,21 @@ tools/codegen/generator/main.go                                   — TypeSpec w
 tools/codegen/proto2schema/main.go                                — Schema extraction with EnumType
 mcp-server/gen/agent/agent_gen.go                                 — Generated AgentInput (error-returning)
 mcp-server/gen/mcpserver/mcp_server_gen.go                        — Generated McpServerInput (error-returning)
-mcp-server/gen/workflow/workflow_gen.go                            — Generated WorkflowInput (NEW)
+mcp-server/gen/workflow/workflow_gen.go                            — Generated WorkflowInput
 mcp-server/internal/convert/convert.go                            — Shared utilities (GenerateSlug, VisibilityFromString)
-mcp-server/Makefile                                               — codegen-mcp target
+mcp-server/internal/convert/convert_test.go                       — Convert utility tests
+mcp-server/internal/domains/agents/convert_test.go                — Agent ToProto() tests
+mcp-server/internal/domains/mcpservers/convert_test.go            — McpServer ToProto() tests
+mcp-server/internal/domains/workflows/convert_test.go             — Workflow ToProto() tests
+mcp-server/Makefile                                               — codegen-mcp target, vet excludes gen/
 ```
 
 ## Quick Commands
 
 - "Run codegen for all domains" — `cd mcp-server && make codegen-mcp`
 - "Run tests" — `cd mcp-server && go test -race ./...`
+- "Run vet (hand-written code)" — `cd mcp-server && make vet`
 
 ---
 
-*To resume: drag this file into chat — `@_projects/2026-02/20260219.01.mcp-server-codegen/next-task.md`*
+*Project complete. Branch `feat/implement-mcp-server-shared-abstractions` is ready for PR.*
