@@ -82,39 +82,3 @@ func TestCallFetch_error(t *testing.T) {
 	}
 }
 
-func TestCallApply_success(t *testing.T) {
-	var gotJSON string
-	applyFn := func(_ context.Context, _ string, resourceJSON string) (string, error) {
-		gotJSON = resourceJSON
-		return `{"applied":true}`, nil
-	}
-
-	result, _, err := CallApply(applyFn, context.Background(), "addr:1234", `{"kind":"Agent"}`)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if gotJSON != `{"kind":"Agent"}` {
-		t.Errorf("resourceJSON = %q, want %q", gotJSON, `{"kind":"Agent"}`)
-	}
-	tc := result.Content[0].(*mcp.TextContent)
-	if tc.Text != `{"applied":true}` {
-		t.Errorf("Text = %q, want %q", tc.Text, `{"applied":true}`)
-	}
-}
-
-func TestCallApply_error(t *testing.T) {
-	applyFn := func(_ context.Context, _, _ string) (string, error) {
-		return "", fmt.Errorf("invalid JSON")
-	}
-
-	result, meta, err := CallApply(applyFn, context.Background(), "addr", `{}`)
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
-	if result != nil {
-		t.Errorf("result = %v, want nil", result)
-	}
-	if meta != nil {
-		t.Errorf("meta = %v, want nil", meta)
-	}
-}

@@ -15,9 +15,9 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: February 19, 2026
-**Last Session**: February 20, 2026 (Session 4)
-**Current Task**: T08 — Generate workflow input types + Makefile integration
-**Status**: T07 DONE, T08 READY TO START
+**Last Session**: February 20, 2026 (Session 5)
+**Current Task**: T08 DONE — awaiting commit
+**Status**: T08 DONE, T05 READY
 
 ## Task Overview
 
@@ -27,69 +27,59 @@ Drop this file into your conversation to quickly resume work on this project.
 | T02 | Implement Core Abstractions + rename files to express responsibility | DONE (committed 78691149) |
 | T03 | Refactor Agents Domain — reference refactoring | DONE |
 | T04 | Refactor Remaining Domains — workflows, mcpservers, skills | DONE |
-| T05 | Final Validation and Close-Out | READY |
+| T05 | Final Validation and Close-Out | **READY** |
 | T06 | Agent Apply Rich Schema — SDK-pattern structured input | DONE (committed 12dbcb9c) |
-| T07 | MCP Input Type Codegen — generate input types from protos | **DONE** |
-| T08 | Workflow codegen + Makefile integration | **NEXT** |
+| T07 | MCP Input Type Codegen — generate input types from protos | DONE (committed 225db0b0) |
+| T08 | Workflow codegen + toProto error propagation + Makefile | **DONE** |
 
-## T07 Completion Summary (Session 4)
+## T08 Completion Summary (Session 5)
 
-Built end-to-end MCP input type codegen pipeline that replaces hand-written boilerplate with generated code.
+Extended the codegen pipeline with enum, struct, and error-returning `toProto()` support. Generated workflow input types and migrated all three domains to consistent patterns.
 
 **What was built:**
-- Enhanced `proto2schema` to extract `reference_kind` (typed as `ApiResourceKind` enum) and `oneof` metadata
-- Added `reference_kind` field option to `field_options.proto`
-- Created `tools/codegen/generator/mcp.go` — MCP-specific code generation logic
-- Generated input types for `agent` and `mcpserver` domains
-- Created `mcp-server/internal/convert/convert.go` — shared utilities (GenerateSlug, VisibilityFromString)
-- Deleted hand-written `agents/input.go` and `agents/convert.go`
-- Updated all handlers and tests to use generated types
+- Enhanced `proto2schema` to extract `EnumType` (fully-qualified proto enum names)
+- Extended MCP generator with `struct` (→ `map[string]any` via `structpb.NewStruct`) and enum (→ proto enum cast) field support
+- Changed all generated `toProto()` methods to return `(proto, error)` — consistent error propagation across all domains
+- Generated `mcp-server/gen/workflow/workflow_gen.go` with `WorkflowInput`, `WorkflowTaskInput`, etc.
+- Regenerated agent and mcpserver with error-returning signatures
+- Rewrote workflow `Apply` to accept `*workflowv1.Workflow` (no more raw JSON)
+- Added `codegen-mcp` Makefile target
+- Removed dead code: `ApplyFunc`, `CallApply`, `UnmarshalJSON`, `UnmarshalOptions`, `ResourceIdentity` (`input.go` deleted)
 
-**Naming conventions refined:**
-- Singular package names: `gen/agent/`, `gen/mcpserver/`
-- Simple struct names: `AgentInput`, `McpServerInput`
-- Simple file names: `agent_gen.go`, `mcp_server_gen.go`
-- Generated code has zero dependency on `internal/domains`
-- Hand-written utilities in `internal/convert/`, not `gen/`
+**Results:** All 12+ packages pass `go test -race`.
 
-**Results:** All tests pass across 12 packages.
+Changelog: `_changelog/2026-02/2026-02-20-185549-workflow-codegen-toproto-errors.md`
 
-Changelog: `_changelog/2026-02/2026-02-20-181518-mcp-server-input-type-codegen.md`
+## What's Next: T05 (Final Validation and Close-Out)
 
-## What T08 Involves
-
-1. **Generate workflow input types**: Handle `google.protobuf.Struct` for `task_config` field (currently opaque)
-2. **Update workflow handler**: Replace raw JSON string input with generated `WorkflowInput`
-3. **Add Makefile target**: `codegen-mcp` target in `mcp-server/Makefile` to regenerate all MCP input types
-4. **Clean up `domains/input.go`**: Once workflows is migrated, `ResourceIdentity` can be removed (only workflows still uses it)
+1. Final review of all changes across the branch
+2. Ensure test coverage is adequate
+3. Close out the project
 
 ## Context for Resume
 
-- Generator handles `reference_kind`, `oneof`, nested messages, maps, arrays, scalar fields
-- `google.protobuf.Struct` (used by `WorkflowSpec.tasks[].task_config`) was explicitly deferred — needs a design decision for how to expose it (raw map? typed per-task-type?)
-- The `identityFieldNames` dedup in the generator prevents collisions when spec fields overlap with identity fields (e.g., McpServerSpec's `tags`)
-- `proto2schema` binary at `tools/proto2schema` was rebuilt but the binary is not committed (it's in `.gitignore`)
+- All three domains (agent, mcpserver, workflow) now use generated input types with error-returning `ToProto()`
+- The `codegen-mcp` Makefile target regenerates all three in one shot
+- `go vet` has pre-existing warnings from jsonschema-go's escaped-comma tag convention — not a blocker
+- `signal.json` was removed from workflow schema root (it's a task-level type, not a top-level resource)
 
 ## Essential Files
 
 ```
-tools/codegen/generator/mcp.go                                    — MCP codegen logic
-tools/codegen/generator/main.go                                   — --target=mcp entry point
-tools/codegen/proto2schema/main.go                                — Schema extraction with referenceKind + oneofGroup
-mcp-server/gen/agent/agent_gen.go                                 — Generated AgentInput
-mcp-server/gen/mcpserver/mcp_server_gen.go                        — Generated McpServerInput
+tools/codegen/generator/mcp.go                                    — MCP codegen logic (struct, enum, error support)
+tools/codegen/generator/main.go                                   — TypeSpec with EnumType
+tools/codegen/proto2schema/main.go                                — Schema extraction with EnumType
+mcp-server/gen/agent/agent_gen.go                                 — Generated AgentInput (error-returning)
+mcp-server/gen/mcpserver/mcp_server_gen.go                        — Generated McpServerInput (error-returning)
+mcp-server/gen/workflow/workflow_gen.go                            — Generated WorkflowInput (NEW)
 mcp-server/internal/convert/convert.go                            — Shared utilities (GenerateSlug, VisibilityFromString)
-apis/ai/stigmer/commons/apiresource/field_options.proto           — reference_kind option definition
-apis/ai/stigmer/agentic/agent/v1/spec.proto                      — Annotated with reference_kind values
-_changelog/2026-02/2026-02-20-181518-mcp-server-input-type-codegen.md — T07 changelog
+mcp-server/Makefile                                               — codegen-mcp target
 ```
 
 ## Quick Commands
 
-- "Start T08" — Generate workflow types, add Makefile target
-- "Regenerate agent types" — `go run ./tools/codegen/generator/ --schema-dir=tools/codegen/schemas/agentic/agent --output-dir=mcp-server/gen/agent --package=agent --target=mcp`
-- "Regenerate mcpserver types" — `go run ./tools/codegen/generator/ --schema-dir=tools/codegen/schemas/agentic/mcpserver --output-dir=mcp-server/gen/mcpserver --package=mcpserver --target=mcp`
-- "Run tests" — `cd mcp-server && go test ./...`
+- "Run codegen for all domains" — `cd mcp-server && make codegen-mcp`
+- "Run tests" — `cd mcp-server && go test -race ./...`
 
 ---
 

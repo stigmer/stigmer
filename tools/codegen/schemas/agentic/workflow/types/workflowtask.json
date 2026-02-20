@@ -22,7 +22,8 @@
       "jsonName": "kind",
       "protoField": "kind",
       "type": {
-        "kind": "string"
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.workflow.v1.WorkflowTaskKind"
       },
       "description": "Task type (determines how to interpret task_config).",
       "required": true,

@@ -3,11 +3,21 @@ package agents
 import (
 	"testing"
 
+	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	geninput "github.com/stigmer/stigmer/mcp-server/gen/agent"
 	"github.com/stigmer/stigmer/mcp-server/internal/convert"
 )
+
+func mustToProto(t *testing.T, input *geninput.AgentInput) *agentv1.Agent {
+	t.Helper()
+	agent, err := input.ToProto()
+	if err != nil {
+		t.Fatalf("ToProto() unexpected error: %v", err)
+	}
+	return agent
+}
 
 func TestToProto_minimal(t *testing.T) {
 	input := &geninput.AgentInput{
@@ -16,7 +26,7 @@ func TestToProto_minimal(t *testing.T) {
 	input.Name = "Code Reviewer"
 	input.Org = "acme"
 
-	agent := input.ToProto()
+	agent := mustToProto(t, input)
 
 	if agent.ApiVersion != "agentic.stigmer.ai/v1" {
 		t.Errorf("ApiVersion = %q, want %q", agent.ApiVersion, "agentic.stigmer.ai/v1")
@@ -53,7 +63,7 @@ func TestToProto_slugProvided(t *testing.T) {
 	input.Slug = "my-custom-slug"
 	input.Org = "acme"
 
-	agent := input.ToProto()
+	agent := mustToProto(t, input)
 
 	if agent.GetMetadata().GetSlug() != "my-custom-slug" {
 		t.Errorf("Slug = %q, want %q (user-provided)", agent.GetMetadata().GetSlug(), "my-custom-slug")
@@ -76,7 +86,7 @@ func TestToProto_slugAutoGeneration(t *testing.T) {
 			input.Name = tt.name
 			input.Org = "x"
 
-			got := input.ToProto().GetMetadata().GetSlug()
+			got := mustToProto(t, input).GetMetadata().GetSlug()
 			if got != tt.wantSlug {
 				t.Errorf("slug for %q = %q, want %q", tt.name, got, tt.wantSlug)
 			}
@@ -90,7 +100,7 @@ func TestToProto_visibilityPublic(t *testing.T) {
 	input.Org = "acme"
 	input.Visibility = "PUBLIC"
 
-	agent := input.ToProto()
+	agent := mustToProto(t, input)
 	if agent.GetMetadata().GetVisibility() != apiresource.ApiResourceVisibility_visibility_public {
 		t.Errorf("Visibility = %v, want visibility_public", agent.GetMetadata().GetVisibility())
 	}
@@ -102,7 +112,7 @@ func TestToProto_visibilityCaseInsensitive(t *testing.T) {
 	input.Org = "acme"
 	input.Visibility = "public"
 
-	agent := input.ToProto()
+	agent := mustToProto(t, input)
 	if agent.GetMetadata().GetVisibility() != apiresource.ApiResourceVisibility_visibility_public {
 		t.Errorf("Visibility = %v, want visibility_public (case insensitive)", agent.GetMetadata().GetVisibility())
 	}
@@ -121,7 +131,7 @@ func TestToProto_mcpServerRefKind(t *testing.T) {
 	input.Name = "Agent"
 	input.Org = "acme"
 
-	agent := input.ToProto()
+	agent := mustToProto(t, input)
 	usages := agent.GetSpec().GetMcpServerUsages()
 	if len(usages) != 1 {
 		t.Fatalf("McpServerUsages length = %d, want 1", len(usages))
@@ -155,7 +165,7 @@ func TestToProto_skillRefKind(t *testing.T) {
 	input.Name = "Agent"
 	input.Org = "acme"
 
-	agent := input.ToProto()
+	agent := mustToProto(t, input)
 	refs := agent.GetSpec().GetSkillRefs()
 	if len(refs) != 2 {
 		t.Fatalf("SkillRefs length = %d, want 2", len(refs))
@@ -194,7 +204,7 @@ func TestToProto_subAgentSkillRefKind(t *testing.T) {
 	input.Name = "Agent"
 	input.Org = "acme"
 
-	agent := input.ToProto()
+	agent := mustToProto(t, input)
 	subs := agent.GetSpec().GetSubAgents()
 	if len(subs) != 1 {
 		t.Fatalf("SubAgents length = %d, want 1", len(subs))
@@ -240,7 +250,7 @@ func TestToProto_toolApprovalOverrides(t *testing.T) {
 	input.Name = "Agent"
 	input.Org = "acme"
 
-	agent := input.ToProto()
+	agent := mustToProto(t, input)
 	overrides := agent.GetSpec().GetMcpServerUsages()[0].GetToolApprovalOverrides()
 	if len(overrides) != 1 {
 		t.Fatalf("ToolApprovalOverrides length = %d, want 1", len(overrides))
@@ -270,7 +280,7 @@ func TestToProto_environment(t *testing.T) {
 	input.Name = "Agent"
 	input.Org = "acme"
 
-	agent := input.ToProto()
+	agent := mustToProto(t, input)
 	env := agent.GetSpec().GetEnvSpec()
 	if env == nil {
 		t.Fatal("EnvSpec is nil")
@@ -303,7 +313,7 @@ func TestToProto_labelsAndTags(t *testing.T) {
 	input.Labels = map[string]string{"team": "platform", "env": "prod"}
 	input.Tags = []string{"ai", "code-review"}
 
-	agent := input.ToProto()
+	agent := mustToProto(t, input)
 	meta := agent.GetMetadata()
 
 	if len(meta.GetLabels()) != 2 {
@@ -355,7 +365,7 @@ func TestToProto_fullInput(t *testing.T) {
 	input.Labels = map[string]string{"team": "engineering"}
 	input.Tags = []string{"code-review", "security"}
 
-	agent := input.ToProto()
+	agent := mustToProto(t, input)
 
 	if agent.ApiVersion != "agentic.stigmer.ai/v1" {
 		t.Errorf("ApiVersion = %q", agent.ApiVersion)

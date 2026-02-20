@@ -78,6 +78,7 @@ type TypeSpec struct {
 	ValueType   *TypeSpec `json:"valueType,omitempty"`   // for map
 	ElementType *TypeSpec `json:"elementType,omitempty"` // for array
 	MessageType string    `json:"messageType,omitempty"` // for message
+	EnumType    string    `json:"enumType,omitempty"`    // fully-qualified proto enum type
 }
 
 type Validation struct {
@@ -671,8 +672,9 @@ func extractScalarTypeSpec(field *desc.FieldDescriptor) TypeSpec {
 			MessageType: msgType.GetName(),
 		}
 	case descriptorpb.FieldDescriptorProto_TYPE_ENUM:
-		// For now, treat enums as strings
-		return TypeSpec{Kind: "string"}
+		enumDesc := field.GetEnumType()
+		fqn := fmt.Sprintf("%s.%s", enumDesc.GetFile().GetPackage(), enumDesc.GetName())
+		return TypeSpec{Kind: "string", EnumType: fqn}
 	default:
 		return TypeSpec{Kind: "string"} // fallback
 	}

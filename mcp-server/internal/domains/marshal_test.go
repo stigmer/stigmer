@@ -63,33 +63,3 @@ func TestMarshalJSON_nilMessage(t *testing.T) {
 	}
 }
 
-func TestUnmarshalJSON_validMessage(t *testing.T) {
-	input := `{"org": "acme", "kind": "agent", "slug": "code-reviewer"}`
-	var ref apiresource.ApiResourceReference
-	if err := domains.UnmarshalJSON(input, &ref); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if ref.Org != "acme" {
-		t.Errorf("Org = %q, want %q", ref.Org, "acme")
-	}
-	if ref.Slug != "code-reviewer" {
-		t.Errorf("Slug = %q, want %q", ref.Slug, "code-reviewer")
-	}
-}
-
-func TestUnmarshalJSON_discardsUnknownFields(t *testing.T) {
-	input := `{"org": "acme", "slug": "code-reviewer", "unknown_field": "ignored"}`
-	var ref apiresource.ApiResourceReference
-	if err := domains.UnmarshalJSON(input, &ref); err != nil {
-		t.Fatalf("expected unknown fields to be discarded, got error: %v", err)
-	}
-	if ref.Org != "acme" {
-		t.Errorf("Org = %q, want %q", ref.Org, "acme")
-	}
-}
-
-func TestUnmarshalJSON_invalidJSON(t *testing.T) {
-	if err := domains.UnmarshalJSON("{not valid json", &apiresource.ApiResourceReference{}); err == nil {
-		t.Fatal("expected error for invalid JSON, got nil")
-	}
-}
