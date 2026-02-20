@@ -16,8 +16,8 @@ Drop this file into your conversation to quickly resume work on this project.
 
 **Created**: February 19, 2026
 **Last Session**: February 20, 2026
-**Current Task**: T03 — Refactor Agents Domain (reference refactoring)
-**Status**: T03 READY TO START
+**Current Task**: T04 — Refactor Remaining Domains (workflows, mcpservers, skills)
+**Status**: T04 READY TO START
 
 ## Task Overview
 
@@ -25,45 +25,33 @@ Drop this file into your conversation to quickly resume work on this project.
 |---|---|---|
 | T01 | Architecture Design — shared abstractions, before/after analysis | DONE |
 | T02 | Implement Core Abstractions + rename files to express responsibility | DONE (committed 78691149) |
-| T03 | Refactor Agents Domain — reference refactoring | **NEXT** |
-| T04 | Refactor Remaining Domains — workflows, mcpservers, skills | Pending |
+| T03 | Refactor Agents Domain — reference refactoring | DONE (committed this session) |
+| T04 | Refactor Remaining Domains — workflows, mcpservers, skills | **NEXT** |
 | T05 | Validate and Clean Up — full test suite, verify identical MCP surface | Pending |
 
-## T02 Completion Summary
+## T03 Completion Summary
 
-Committed `78691149`. Three new abstraction files, all file renames complete:
+Refactored `mcp-server/internal/domains/agents/` to use shared abstractions:
 
-```
-mcp-server/internal/domains/
-  doc.go              -- package documentation
-  conn.go             -- WithConnection (gRPC connection lifecycle)
-  marshal.go          -- MarshalJSON, UnmarshalJSON (was jsonutil.go)
-  rpcerr.go           -- RPCError (gRPC error translation) — unchanged
-  resourceuri.go      -- ParseResourceURI, BuildResourceURI (was uriutil.go)
-  toolresult.go       -- TextResult, CallFetch, CallApply
-  resourcehandler.go  -- NewResourceHandler, NewVersionedResourceHandler, ResourceResult
-```
+- `fetch.go`, `apply.go`, `delete.go` — replaced 7-line gRPC boilerplate with `domains.WithConnection`
+- `resources.go` — replaced 18-line manual handler with `domains.NewResourceHandler`
+- `tools.go` — replaced 5-line `CallToolResult` constructors with `domains.CallFetch`/`domains.CallApply`; absorbed `apply_tool.go` and `delete_tool.go` (both deleted)
+- Net: 282 → 207 source lines (-26%), zero test files changed, all 12 packages pass
 
-16 new tests, all 12 mcp-server packages pass.
+Changelog: `_changelog/2026-02/2026-02-20-151441-mcp-server-agents-domain-refactor.md`
 
-## What T03 Involves
+## What T04 Involves
 
-Refactor `mcp-server/internal/domains/agents/` to use the new abstractions. This is the **reference refactoring** — establishes the pattern for T04.
+Refactor the three remaining domains using the agents domain as the exact reference pattern:
 
-Expected changes per file:
+| Domain | Files to Change | Notes |
+|---|---|---|
+| `workflows/` | fetch, apply, delete, tools (merge), resources | Same pattern as agents |
+| `mcpservers/` | fetch, apply, delete, tools (merge), resources | Same pattern as agents |
+| `skills/` | fetch, delete, tools (merge), resources | No apply; uses `NewVersionedResourceHandler` for versioned resource |
 
-| File | Change |
-|---|---|
-| `fetch.go` | Replace manual gRPC boilerplate with `domains.WithConnection` |
-| `apply.go` | Replace manual gRPC boilerplate with `domains.WithConnection` |
-| `delete.go` | Replace manual gRPC boilerplate with `domains.WithConnection` |
-| `tools.go` | Replace `CallToolResult` construction with `domains.CallFetch` |
-| `apply_tool.go` | Replace `CallToolResult` construction with `domains.CallApply` |
-| `delete_tool.go` | Replace `CallToolResult` construction with `domains.CallFetch` |
-| `resources.go` | Replace manual handler with `domains.NewResourceHandler` |
-
-**Success criteria**: All existing agent tests pass without modification. Same tool names, descriptions, error messages.
-**Expected outcome**: ~278 lines → ~150 lines.
+**Success criteria**: All existing tests pass without modification. Same tool names, descriptions, error messages.
+**Expected outcome**: ~280 lines × 3 domains → ~150 lines × 3 domains (-390 lines net).
 
 ## Key Design Decisions
 
@@ -77,14 +65,18 @@ Expected changes per file:
 ```
 _projects/2026-02/20260219.01.mcp-server-codegen/tasks/T01_1_revised_plan.md  — Architecture (APPROVED)
 _changelog/2026-02/2026-02-20-145752-mcp-server-shared-abstractions.md        — T02 changelog
+_changelog/2026-02/2026-02-20-151441-mcp-server-agents-domain-refactor.md    — T03 changelog
 mcp-server/internal/domains/                                                    — Shared infrastructure
-mcp-server/internal/domains/agents/                                             — Reference domain (T03)
+mcp-server/internal/domains/agents/                                             — Reference domain (DONE)
+mcp-server/internal/domains/workflows/                                          — T04 target
+mcp-server/internal/domains/mcpservers/                                         — T04 target
+mcp-server/internal/domains/skills/                                             — T04 target (versioned)
 mcp-server/internal/server/server.go                                            — Registration (unchanged)
 ```
 
 ## Quick Commands
 
-- "Start T03" — Refactor agents domain to use shared abstractions
+- "Start T04" — Refactor workflows, mcpservers, skills domains
 - "Run tests" — `go test ./mcp-server/... -count=1`
 
 ---
