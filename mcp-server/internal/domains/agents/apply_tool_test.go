@@ -7,6 +7,7 @@ import (
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	geninput "github.com/stigmer/stigmer/mcp-server/gen/agentic/agent"
 	"github.com/stigmer/stigmer/mcp-server/internal/auth"
 	"github.com/stigmer/stigmer/mcp-server/internal/testutil"
 	"google.golang.org/grpc"
@@ -57,14 +58,12 @@ func TestApplyHandler_success(t *testing.T) {
 	ctx := auth.WithAPIKey(context.Background(), "test-key")
 	handler := ApplyHandler(addr)
 
-	input := &ApplyAgentInput{
-		Resource: `{
-			"api_version": "agentic.stigmer.ai/v1",
-			"kind": "Agent",
-			"metadata": {"org": "acme", "slug": "code-reviewer", "name": "Code Reviewer"},
-			"spec": {"instructions": "You are a code reviewer."}
-		}`,
+	input := &geninput.AgentInput{
+		Instructions: "You are a code reviewer.",
 	}
+	input.Name = "Code Reviewer"
+	input.Slug = "code-reviewer"
+	input.Org = "acme"
 
 	result, _, err := handler(ctx, nil, input)
 	if err != nil {
@@ -91,22 +90,15 @@ func TestApplyHandler_success(t *testing.T) {
 	}
 }
 
-func TestApplyHandler_invalidJSON(t *testing.T) {
-	ctx := auth.WithAPIKey(context.Background(), "test-key")
-	handler := ApplyHandler("localhost:0")
-
-	_, _, err := handler(ctx, nil, &ApplyAgentInput{Resource: "{not valid json"})
-	if err == nil {
-		t.Fatal("expected error for invalid JSON, got nil")
-	}
-}
-
 func TestApplyHandler_missingAPIKey(t *testing.T) {
 	handler := ApplyHandler("localhost:0")
 
-	input := &ApplyAgentInput{
-		Resource: `{"api_version": "agentic.stigmer.ai/v1", "kind": "Agent", "metadata": {"org": "acme", "slug": "x"}, "spec": {"instructions": "test instrs"}}`,
+	input := &geninput.AgentInput{
+		Instructions: "test instructions",
 	}
+	input.Name = "Test Agent"
+	input.Org = "acme"
+
 	_, _, err := handler(context.Background(), nil, input)
 	if err == nil {
 		t.Fatal("expected error when API key is missing from context, got nil")
@@ -125,9 +117,13 @@ func TestApplyHandler_grpcPermissionDenied(t *testing.T) {
 	ctx := auth.WithAPIKey(context.Background(), "test-key")
 	handler := ApplyHandler(addr)
 
-	input := &ApplyAgentInput{
-		Resource: `{"api_version": "agentic.stigmer.ai/v1", "kind": "Agent", "metadata": {"org": "acme", "slug": "x"}, "spec": {"instructions": "test instrs"}}`,
+	input := &geninput.AgentInput{
+		Instructions: "test instructions",
 	}
+	input.Name = "Test Agent"
+	input.Slug = "x"
+	input.Org = "acme"
+
 	_, _, err := handler(ctx, nil, input)
 	if err == nil {
 		t.Fatal("expected error for PermissionDenied, got nil")

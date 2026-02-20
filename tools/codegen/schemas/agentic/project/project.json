@@ -10,7 +10,13 @@
       "jsonName": "runtime",
       "protoField": "runtime",
       "type": {
-        "kind": "string"
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.project.v1.ProjectRuntime",
+        "enumValues": [
+          "go",
+          "python",
+          "node"
+        ]
       },
       "description": "SDK runtime for resource synthesis.\n Determines how the entry_point is executed to generate the manifest.\n\n Required - must be a valid enum value (not UNSPECIFIED).",
       "required": true,

@@ -24,6 +24,7 @@ const (
 	OrganizationQueryController_Get_FullMethodName                 = "/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/get"
 	OrganizationQueryController_Find_FullMethodName                = "/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/find"
 	OrganizationQueryController_FindMyOrganizations_FullMethodName = "/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/findMyOrganizations"
+	OrganizationQueryController_GetByExternalOrgId_FullMethodName  = "/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/getByExternalOrgId"
 )
 
 // OrganizationQueryControllerClient is the client API for OrganizationQueryController service.
@@ -43,6 +44,10 @@ type OrganizationQueryControllerClient interface {
 	// Authorization handled in handler via IAM Policy listAuthorizedResourceIds
 	// Returns only organizations the caller has access to
 	FindMyOrganizations(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*Organizations, error)
+	// Look up a platform-managed organization by its external platform coordinates.
+	// Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
+	// Authorization: custom — checks can_view on the referenced IdentityProvider.
+	GetByExternalOrgId(ctx context.Context, in *OrganizationExternalLookup, opts ...grpc.CallOption) (*Organization, error)
 }
 
 type organizationQueryControllerClient struct {
@@ -83,6 +88,16 @@ func (c *organizationQueryControllerClient) FindMyOrganizations(ctx context.Cont
 	return out, nil
 }
 
+func (c *organizationQueryControllerClient) GetByExternalOrgId(ctx context.Context, in *OrganizationExternalLookup, opts ...grpc.CallOption) (*Organization, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Organization)
+	err := c.cc.Invoke(ctx, OrganizationQueryController_GetByExternalOrgId_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // OrganizationQueryControllerServer is the server API for OrganizationQueryController service.
 // All implementations should embed UnimplementedOrganizationQueryControllerServer
 // for forward compatibility.
@@ -100,6 +115,10 @@ type OrganizationQueryControllerServer interface {
 	// Authorization handled in handler via IAM Policy listAuthorizedResourceIds
 	// Returns only organizations the caller has access to
 	FindMyOrganizations(context.Context, *emptypb.Empty) (*Organizations, error)
+	// Look up a platform-managed organization by its external platform coordinates.
+	// Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
+	// Authorization: custom — checks can_view on the referenced IdentityProvider.
+	GetByExternalOrgId(context.Context, *OrganizationExternalLookup) (*Organization, error)
 }
 
 // UnimplementedOrganizationQueryControllerServer should be embedded to have
@@ -117,6 +136,9 @@ func (UnimplementedOrganizationQueryControllerServer) Find(context.Context, *api
 }
 func (UnimplementedOrganizationQueryControllerServer) FindMyOrganizations(context.Context, *emptypb.Empty) (*Organizations, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FindMyOrganizations not implemented")
+}
+func (UnimplementedOrganizationQueryControllerServer) GetByExternalOrgId(context.Context, *OrganizationExternalLookup) (*Organization, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetByExternalOrgId not implemented")
 }
 func (UnimplementedOrganizationQueryControllerServer) testEmbeddedByValue() {}
 
@@ -192,6 +214,24 @@ func _OrganizationQueryController_FindMyOrganizations_Handler(srv interface{}, c
 	return interceptor(ctx, in, info, handler)
 }
 
+func _OrganizationQueryController_GetByExternalOrgId_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrganizationExternalLookup)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OrganizationQueryControllerServer).GetByExternalOrgId(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OrganizationQueryController_GetByExternalOrgId_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OrganizationQueryControllerServer).GetByExternalOrgId(ctx, req.(*OrganizationExternalLookup))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // OrganizationQueryController_ServiceDesc is the grpc.ServiceDesc for OrganizationQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -210,6 +250,10 @@ var OrganizationQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "findMyOrganizations",
 			Handler:    _OrganizationQueryController_FindMyOrganizations_Handler,
+		},
+		{
+			MethodName: "getByExternalOrgId",
+			Handler:    _OrganizationQueryController_GetByExternalOrgId_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

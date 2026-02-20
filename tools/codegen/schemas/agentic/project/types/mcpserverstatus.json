@@ -9,7 +9,12 @@
       "jsonName": "validationState",
       "protoField": "validation_state",
       "type": {
-        "kind": "string"
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.mcpserver.v1.ValidationState",
+        "enumValues": [
+          "VALIDATION_STATE_VALID",
+          "VALIDATION_STATE_INVALID"
+        ]
       },
       "description": "Validation state of the MCP server definition.\n Indicates whether the definition passed structural validation.",
       "required": false

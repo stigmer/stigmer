@@ -1,0 +1,13 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "skill",
+    srcs = ["skill_gen.go"],
+    importpath = "github.com/stigmer/stigmer/mcp-server/gen/agentic/skill",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/skill/v1:skill",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "//mcp-server/internal/convert",
+    ],
+)

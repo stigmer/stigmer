@@ -250,7 +250,7 @@ var File_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto protoreflect.File
 
 const file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDesc = "" +
 	"\n" +
-	"5ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a/ai/stigmer/agentic/agentexecution/v1/spec.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\"\xd7\x02\n" +
+	"5ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a/ai/stigmer/agentic/agentexecution/v1/spec.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\"\xe7\x02\n" +
 	"\x13AgentCallTaskConfig\x12\"\n" +
 	"\x05agent\x18\x01 \x01(\tB\f\xbaH\t\xc8\x01\x01r\x04\x10\x01\x18\x7fR\x05agent\x12\x10\n" +
 	"\x03org\x18\x02 \x01(\tR\x03org\x12(\n" +
@@ -259,7 +259,8 @@ const file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDesc = "" +
 	"\x06config\x18\x05 \x01(\v2:.ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfigR\x06config\x1a6\n" +
 	"\bEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xf3\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01:\x0e\xea\x8b,\n" +
+	"agent_call\"\xf3\x01\n" +
 	"\x14AgentExecutionConfig\x12\x14\n" +
 	"\x05model\x18\x01 \x01(\tR\x05model\x12$\n" +
 	"\atimeout\x18\x02 \x01(\x05B\n" +

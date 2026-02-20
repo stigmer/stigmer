@@ -33,6 +33,11 @@ class OrganizationQueryControllerStub(object):
                 request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2.Organizations.FromString,
                 _registered_method=True)
+        self.getByExternalOrgId = channel.unary_unary(
+                '/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/getByExternalOrgId',
+                request_serializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2.OrganizationExternalLookup.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_api__pb2.Organization.FromString,
+                _registered_method=True)
 
 
 class OrganizationQueryControllerServicer(object):
@@ -65,6 +70,15 @@ class OrganizationQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def getByExternalOrgId(self, request, context):
+        """Look up a platform-managed organization by its external platform coordinates.
+        Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
+        Authorization: custom — checks can_view on the referenced IdentityProvider.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_OrganizationQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -82,6 +96,11 @@ def add_OrganizationQueryControllerServicer_to_server(servicer, server):
                     servicer.findMyOrganizations,
                     request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
                     response_serializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2.Organizations.SerializeToString,
+            ),
+            'getByExternalOrgId': grpc.unary_unary_rpc_method_handler(
+                    servicer.getByExternalOrgId,
+                    request_deserializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2.OrganizationExternalLookup.FromString,
+                    response_serializer=ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_api__pb2.Organization.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -166,6 +185,33 @@ class OrganizationQueryController(object):
             '/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/findMyOrganizations',
             google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2.Organizations.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getByExternalOrgId(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.tenancy.organization.v1.OrganizationQueryController/getByExternalOrgId',
+            ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_io__pb2.OrganizationExternalLookup.SerializeToString,
+            ai_dot_stigmer_dot_tenancy_dot_organization_dot_v1_dot_api__pb2.Organization.FromString,
             options,
             channel_credentials,
             insecure,

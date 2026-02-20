@@ -26,6 +26,7 @@ import (
 	"buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/desc/protoparse"
+	"google.golang.org/protobuf/encoding/protowire"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/descriptorpb"
 )
@@ -42,12 +43,13 @@ type PackageSchema struct {
 }
 
 type TaskConfigSchema struct {
-	Name        string         `json:"name"`
-	Kind        string         `json:"kind,omitempty"`
-	Description string         `json:"description"`
-	ProtoType   string         `json:"protoType"`
-	ProtoFile   string         `json:"protoFile"`
-	Fields      []*FieldSchema `json:"fields"`
+	Name               string         `json:"name"`
+	Kind               string         `json:"kind,omitempty"`
+	Description        string         `json:"description"`
+	ProtoType          string         `json:"protoType"`
+	ProtoFile          string         `json:"protoFile"`
+	DiscriminatorValue string         `json:"discriminatorValue,omitempty"`
+	Fields             []*FieldSchema `json:"fields"`
 }
 
 type TypeSchema struct {
@@ -59,14 +61,17 @@ type TypeSchema struct {
 }
 
 type FieldSchema struct {
-	Name         string      `json:"name"`
-	JsonName     string      `json:"jsonName"`
-	ProtoField   string      `json:"protoField"`
-	Type         TypeSpec    `json:"type"`
-	Description  string      `json:"description"`
-	Required     bool        `json:"required"`
-	IsExpression bool        `json:"isExpression,omitempty"`
-	Validation   *Validation `json:"validation,omitempty"`
+	Name          string      `json:"name"`
+	JsonName      string      `json:"jsonName"`
+	ProtoField    string      `json:"protoField"`
+	Type          TypeSpec    `json:"type"`
+	Description   string      `json:"description"`
+	Required      bool        `json:"required"`
+	IsExpression    bool        `json:"isExpression,omitempty"`
+	ReferenceKind   int32       `json:"referenceKind,omitempty"`
+	DiscriminatedBy string      `json:"discriminatedBy,omitempty"`
+	OneofGroup      string      `json:"oneofGroup,omitempty"`
+	Validation    *Validation `json:"validation,omitempty"`
 }
 
 type TypeSpec struct {
@@ -75,6 +80,8 @@ type TypeSpec struct {
 	ValueType   *TypeSpec `json:"valueType,omitempty"`   // for map
 	ElementType *TypeSpec `json:"elementType,omitempty"` // for array
 	MessageType string    `json:"messageType,omitempty"` // for message
+	EnumType    string    `json:"enumType,omitempty"`    // fully-qualified proto enum type
+	EnumValues  []string  `json:"enumValues,omitempty"`  // valid enum value names (excludes UNSPECIFIED sentinel)
 }
 
 type Validation struct {
@@ -560,12 +567,13 @@ func parseTaskConfig(msg *desc.MessageDescriptor, fd *desc.FileDescriptor) (*Tas
 	protoFile := fd.GetName()
 
 	schema := &TaskConfigSchema{
-		Name:        msg.GetName(),
-		Kind:        kind,
-		Description: description,
-		ProtoType:   protoType,
-		ProtoFile:   filepath.Join("apis", protoFile),
-		Fields:      make([]*FieldSchema, 0),
+		Name:               msg.GetName(),
+		Kind:               kind,
+		Description:        description,
+		ProtoType:          protoType,
+		ProtoFile:          filepath.Join("apis", protoFile),
+		DiscriminatorValue: extractDiscriminatorValue(msg),
+		Fields:             make([]*FieldSchema, 0),
 	}
 
 	// Parse fields
@@ -582,25 +590,25 @@ func parseTaskConfig(msg *desc.MessageDescriptor, fd *desc.FileDescriptor) (*Tas
 
 // extractFieldSchema extracts field schema from a proto field descriptor
 func extractFieldSchema(field *desc.FieldDescriptor) (*FieldSchema, error) {
-	// Extract field description from comments
 	description := extractFieldComments(field)
 
-	// Build field schema
 	fieldSchema := &FieldSchema{
-		Name:         strings.Title(strings.ReplaceAll(field.GetName(), "_", " ")),
-		JsonName:     field.GetJSONName(),
-		ProtoField:   field.GetName(),
-		Type:         extractTypeSpec(field),
-		Description:  description,
-		Required:     false,
-		IsExpression: extractIsExpression(field),
-		Validation:   extractValidation(field),
+		Name:            toCamelCase(field.GetName(), true),
+		JsonName:        field.GetJSONName(),
+		ProtoField:      field.GetName(),
+		Type:            extractTypeSpec(field),
+		Description:     description,
+		Required:        false,
+		IsExpression:    extractIsExpression(field),
+		ReferenceKind:   extractReferenceKind(field),
+		DiscriminatedBy: extractDiscriminatedBy(field),
+		Validation:      extractValidation(field),
 	}
 
-	// Capitalize field name properly
-	fieldSchema.Name = toCamelCase(field.GetName(), true)
+	if oo := field.GetOneOf(); oo != nil {
+		fieldSchema.OneofGroup = oo.GetName()
+	}
 
-	// Check if field is required from buf.validate
 	if fieldSchema.Validation != nil && fieldSchema.Validation.Required {
 		fieldSchema.Required = true
 	}
@@ -645,6 +653,8 @@ func extractScalarTypeSpec(field *desc.FieldDescriptor) TypeSpec {
 		return TypeSpec{Kind: "string"}
 	case descriptorpb.FieldDescriptorProto_TYPE_INT32:
 		return TypeSpec{Kind: "int32"}
+	case descriptorpb.FieldDescriptorProto_TYPE_UINT32:
+		return TypeSpec{Kind: "uint32"}
 	case descriptorpb.FieldDescriptorProto_TYPE_INT64:
 		return TypeSpec{Kind: "int64"}
 	case descriptorpb.FieldDescriptorProto_TYPE_BOOL:
@@ -658,9 +668,11 @@ func extractScalarTypeSpec(field *desc.FieldDescriptor) TypeSpec {
 	case descriptorpb.FieldDescriptorProto_TYPE_MESSAGE:
 		msgType := field.GetMessageType()
 
-		// Special handling for google.protobuf.Struct
-		if msgType.GetFullyQualifiedName() == "google.protobuf.Struct" {
+		switch msgType.GetFullyQualifiedName() {
+		case "google.protobuf.Struct":
 			return TypeSpec{Kind: "struct"}
+		case "google.protobuf.Timestamp":
+			return TypeSpec{Kind: "timestamp"}
 		}
 
 		// Regular message type
@@ -669,8 +681,16 @@ func extractScalarTypeSpec(field *desc.FieldDescriptor) TypeSpec {
 			MessageType: msgType.GetName(),
 		}
 	case descriptorpb.FieldDescriptorProto_TYPE_ENUM:
-		// For now, treat enums as strings
-		return TypeSpec{Kind: "string"}
+		enumDesc := field.GetEnumType()
+		fqn := fmt.Sprintf("%s.%s", enumDesc.GetFile().GetPackage(), enumDesc.GetName())
+		var enumValues []string
+		for _, v := range enumDesc.GetValues() {
+			if v.GetNumber() == 0 {
+				continue
+			}
+			enumValues = append(enumValues, v.GetName())
+		}
+		return TypeSpec{Kind: "string", EnumType: fqn, EnumValues: enumValues}
 	default:
 		return TypeSpec{Kind: "string"} // fallback
 	}
@@ -867,6 +887,114 @@ func extractIsExpression(field *desc.FieldDescriptor) bool {
 	}
 
 	return false
+}
+
+// referenceKindFieldNumber is the proto field number for the reference_kind
+// extension defined in field_options.proto. We read it from unknown fields
+// because the Go proto registry may not have the latest extension registered.
+const referenceKindFieldNumber = 90204
+
+// extractReferenceKind extracts the reference_kind field option value.
+// Returns the ApiResourceKind enum integer (e.g., 43=skill, 44=mcp_server)
+// or 0 if not set.
+func extractReferenceKind(field *desc.FieldDescriptor) int32 {
+	opts := field.GetFieldOptions()
+	if opts == nil {
+		return 0
+	}
+
+	raw := opts.ProtoReflect().GetUnknown()
+	for len(raw) > 0 {
+		num, typ, n := protowire.ConsumeTag(raw)
+		if n < 0 {
+			break
+		}
+		raw = raw[n:]
+
+		switch typ {
+		case protowire.VarintType:
+			v, vn := protowire.ConsumeVarint(raw)
+			if vn < 0 {
+				return 0
+			}
+			if num == referenceKindFieldNumber {
+				return int32(v)
+			}
+			raw = raw[vn:]
+		case protowire.Fixed32Type:
+			raw = raw[4:]
+		case protowire.Fixed64Type:
+			raw = raw[8:]
+		case protowire.BytesType:
+			_, bn := protowire.ConsumeBytes(raw)
+			if bn < 0 {
+				return 0
+			}
+			raw = raw[bn:]
+		default:
+			return 0
+		}
+	}
+	return 0
+}
+
+const discriminatedByFieldNumber = 90205
+
+// extractDiscriminatedBy extracts the discriminated_by field option value.
+// Returns the sibling discriminator field name, or empty string if not set.
+func extractDiscriminatedBy(field *desc.FieldDescriptor) string {
+	opts := field.GetFieldOptions()
+	if opts == nil {
+		return ""
+	}
+	return extractStringFromUnknownFields(opts.ProtoReflect().GetUnknown(), discriminatedByFieldNumber)
+}
+
+const discriminatorValueFieldNumber = 90301
+
+// extractDiscriminatorValue extracts the discriminator_value message option.
+// Returns the enum string value this message corresponds to, or empty string if not set.
+func extractDiscriminatorValue(msg *desc.MessageDescriptor) string {
+	opts := msg.GetMessageOptions()
+	if opts == nil {
+		return ""
+	}
+	return extractStringFromUnknownFields(opts.ProtoReflect().GetUnknown(), discriminatorValueFieldNumber)
+}
+
+// extractStringFromUnknownFields reads a string extension value from proto unknown fields.
+func extractStringFromUnknownFields(raw []byte, targetFieldNumber protowire.Number) string {
+	for len(raw) > 0 {
+		num, typ, n := protowire.ConsumeTag(raw)
+		if n < 0 {
+			break
+		}
+		raw = raw[n:]
+		switch typ {
+		case protowire.VarintType:
+			_, vn := protowire.ConsumeVarint(raw)
+			if vn < 0 {
+				return ""
+			}
+			raw = raw[vn:]
+		case protowire.Fixed32Type:
+			raw = raw[4:]
+		case protowire.Fixed64Type:
+			raw = raw[8:]
+		case protowire.BytesType:
+			v, bn := protowire.ConsumeBytes(raw)
+			if bn < 0 {
+				return ""
+			}
+			if num == targetFieldNumber {
+				return string(v)
+			}
+			raw = raw[bn:]
+		default:
+			return ""
+		}
+	}
+	return ""
 }
 
 // extractComments extracts documentation from a message descriptor

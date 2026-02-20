@@ -4,6 +4,7 @@
   "description": "GrpcCallTaskConfig defines the configuration for GRPC_CALL tasks.\n\n GRPC_CALL tasks make gRPC requests to external services.\n\n YAML Example:\n   - taskName:\n       call: grpc\n       with:\n         service: \"com.example.UserService\"\n         method: \"GetUser\"\n         request:\n           userId: ${ .userId }\n\n Reference: zigflow-dsl-pattern-catalog.md - Task Type 9",
   "protoType": "ai.stigmer.agentic.workflow.v1.tasks.GrpcCallTaskConfig",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/grpc_call.proto",
+  "discriminatorValue": "grpc_call",
   "fields": [
     {
       "name": "Service",

@@ -95,6 +95,20 @@
       },
       "description": "Parent workflow context for events-based approval notification (optional).\n\n When a workflow invokes an agent via CallAgentActivity, this field captures\n the parent workflow's Temporal workflow ID. This enables the agent execution\n workflow to signal the parent when approval is required, eliminating polling.\n\n ## Signal Pattern\n\n 1. Go workflow passes its workflow ID when creating AgentExecution\n 2. Go workflow starts signal listener for \"child_approval_required\"\n 3. When agent enters WAITING_FOR_APPROVAL, Java sends signal to parent\n 4. Go workflow receives signal, updates task status to WAITING_APPROVAL\n\n ## Format\n\n Temporal workflow ID, typically: \"stigmer/workflow-execution/invoke/{execution-id}\"\n Example: \"stigmer/workflow-execution/invoke/wfx-abc123xyz456\"\n\n ## When Empty\n\n - Agent invoked directly (not from workflow) - no parent to notify\n - Older clients that don't support this field - fallback to direct approval\n\n ## Backward Compatibility\n\n This field is optional. Agents invoked without a parent workflow ID will\n continue to work normally - approval is submitted directly via the\n AgentExecution.SubmitApproval RPC.\n\n @since Phase 5.1 (Events-Based Approval Notification)",
       "required": false
+    },
+    {
+      "name": "Attachments",
+      "jsonName": "attachments",
+      "protoField": "attachments",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "Attachment"
+        }
+      },
+      "description": "Files attached to this execution.\n\n Attachments are injected into the sandbox before execution begins.\n The agent can read these files from the specified mount paths.\n\n Use cases:\n - Provide input data files to process\n - Pass configuration files\n - Supply reference documents for analysis\n\n Example CLI usage:\n   stigmer run agent my-agent --attach ./config.yaml -m \"Process this config\"\n\n @since Artifact Lifecycle (Attachments \u0026 Outputs)",
+      "required": false
     }
   ]
 }

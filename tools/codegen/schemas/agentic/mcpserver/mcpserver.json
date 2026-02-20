@@ -47,7 +47,8 @@
         "messageType": "StdioServerConfig"
       },
       "description": "stdio-based server (subprocess with stdin/stdout communication).\n Most common type - used for Node.js, Python, and other CLI-based MCP servers.",
-      "required": false
+      "required": false,
+      "oneofGroup": "server_type"
     },
     {
       "name": "Http",
@@ -58,7 +59,8 @@
         "messageType": "HttpServerConfig"
       },
       "description": "HTTP-based server (HTTP + Server-Sent Events communication).\n Used for remote/managed MCP services accessible over the network.",
-      "required": false
+      "required": false,
+      "oneofGroup": "server_type"
     },
     {
       "name": "DefaultEnabledTools",

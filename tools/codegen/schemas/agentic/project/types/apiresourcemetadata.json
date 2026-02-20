@@ -49,7 +49,12 @@
       "jsonName": "visibility",
       "protoField": "visibility",
       "type": {
-        "kind": "string"
+        "kind": "string",
+        "enumType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+        "enumValues": [
+          "visibility_private",
+          "visibility_public"
+        ]
       },
       "description": "Visibility controls who can access this resource.\n - PRIVATE: Only members of the owning organization can access.\n - PUBLIC: Anyone can access (read). Write access still requires org membership.\n Default: PRIVATE for new resources.",
       "required": false

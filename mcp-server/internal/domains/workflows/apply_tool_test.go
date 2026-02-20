@@ -7,6 +7,7 @@ import (
 
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	geninput "github.com/stigmer/stigmer/mcp-server/gen/agentic/workflow"
 	"github.com/stigmer/stigmer/mcp-server/internal/auth"
 	"github.com/stigmer/stigmer/mcp-server/internal/testutil"
 	"google.golang.org/grpc"
@@ -24,6 +25,32 @@ type mockWorkflowCommandController struct {
 func (m *mockWorkflowCommandController) Apply(_ context.Context, wf *workflowv1.Workflow) (*workflowv1.Workflow, error) {
 	m.gotWorkflow = wf
 	return m.resp, m.err
+}
+
+func newTestInput() *geninput.WorkflowInput {
+	input := &geninput.WorkflowInput{
+		Description: "A CI pipeline workflow",
+		Document: &geninput.WorkflowDocumentInput{
+			Dsl:       "1.0.0",
+			Namespace: "acme",
+			Name:      "ci-pipeline",
+			Version:   "1.0.0",
+		},
+		Tasks: []geninput.WorkflowTaskInput{
+			{
+				Name: "fetch-data",
+				Kind: "http_call",
+				HttpCall: &geninput.HttpCallTaskConfigInput{
+					Method:   "GET",
+					Endpoint: &geninput.HttpEndpointInput{Uri: "https://example.com"},
+				},
+			},
+		},
+	}
+	input.Name = "CI Pipeline"
+	input.Slug = "ci-pipeline"
+	input.Org = "acme"
+	return input
 }
 
 func TestApplyTool_metadata(t *testing.T) {
@@ -57,14 +84,7 @@ func TestApplyHandler_success(t *testing.T) {
 	ctx := auth.WithAPIKey(context.Background(), "test-key")
 	handler := ApplyHandler(addr)
 
-	input := &ApplyWorkflowInput{
-		Resource: `{
-			"api_version": "agentic.stigmer.ai/v1",
-			"kind": "Workflow",
-			"metadata": {"org": "acme", "slug": "ci-pipeline", "name": "CI Pipeline"},
-			"spec": {"description": "A CI pipeline workflow"}
-		}`,
-	}
+	input := newTestInput()
 
 	result, _, err := handler(ctx, nil, input)
 	if err != nil {
@@ -80,6 +100,23 @@ func TestApplyHandler_success(t *testing.T) {
 	if mock.gotWorkflow.GetMetadata().GetSlug() != "ci-pipeline" {
 		t.Errorf("Slug = %q, want %q", mock.gotWorkflow.GetMetadata().GetSlug(), "ci-pipeline")
 	}
+	if mock.gotWorkflow.GetSpec().GetDescription() != "A CI pipeline workflow" {
+		t.Errorf("Description = %q, want %q", mock.gotWorkflow.GetSpec().GetDescription(), "A CI pipeline workflow")
+	}
+	if len(mock.gotWorkflow.GetSpec().GetTasks()) != 1 {
+		t.Fatalf("Tasks length = %d, want 1", len(mock.gotWorkflow.GetSpec().GetTasks()))
+	}
+
+	task := mock.gotWorkflow.GetSpec().GetTasks()[0]
+	if task.GetName() != "fetch-data" {
+		t.Errorf("Task.Name = %q, want %q", task.GetName(), "fetch-data")
+	}
+	if task.GetKind() != workflowv1.WorkflowTaskKind_http_call {
+		t.Errorf("Task.Kind = %v, want http_call", task.GetKind())
+	}
+	if task.GetTaskConfig() == nil {
+		t.Fatal("Task.TaskConfig is nil")
+	}
 
 	text := extractText(t, result)
 	var raw map[string]any
@@ -91,22 +128,10 @@ func TestApplyHandler_success(t *testing.T) {
 	}
 }
 
-func TestApplyHandler_invalidJSON(t *testing.T) {
-	ctx := auth.WithAPIKey(context.Background(), "test-key")
-	handler := ApplyHandler("localhost:0")
-
-	_, _, err := handler(ctx, nil, &ApplyWorkflowInput{Resource: "{not valid"})
-	if err == nil {
-		t.Fatal("expected error for invalid JSON, got nil")
-	}
-}
-
 func TestApplyHandler_missingAPIKey(t *testing.T) {
 	handler := ApplyHandler("localhost:0")
 
-	input := &ApplyWorkflowInput{
-		Resource: `{"api_version": "agentic.stigmer.ai/v1", "kind": "Workflow", "metadata": {"org": "acme", "slug": "x"}}`,
-	}
+	input := newTestInput()
 	_, _, err := handler(context.Background(), nil, input)
 	if err == nil {
 		t.Fatal("expected error when API key is missing from context, got nil")
@@ -125,9 +150,7 @@ func TestApplyHandler_grpcPermissionDenied(t *testing.T) {
 	ctx := auth.WithAPIKey(context.Background(), "test-key")
 	handler := ApplyHandler(addr)
 
-	input := &ApplyWorkflowInput{
-		Resource: `{"api_version": "agentic.stigmer.ai/v1", "kind": "Workflow", "metadata": {"org": "acme", "slug": "x"}}`,
-	}
+	input := newTestInput()
 	_, _, err := handler(ctx, nil, input)
 	if err == nil {
 		t.Fatal("expected error for PermissionDenied, got nil")

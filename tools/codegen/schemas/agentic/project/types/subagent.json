@@ -66,7 +66,8 @@
         }
       },
       "description": "Skill resources for this sub-agent's knowledge.\n Skills provide domain-specific knowledge and capabilities.",
-      "required": false
+      "required": false,
+      "referenceKind": 43
     }
   ]
 }

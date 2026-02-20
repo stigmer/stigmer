@@ -1,0 +1,84 @@
+{
+  "name": "IdentityProviderSpec",
+  "kind": "IDENTITY_PROVIDER_SPEC",
+  "description": "IdentityProviderSpec defines the configuration for an external identity provider.\n\n An IdentityProvider represents an external platform's trust relationship with Stigmer.\n It is owned by an organization (e.g., \"planton\") and configures how Stigmer validates\n tokens from that platform during token exchange. The platform forwards its OIDC\n provider's access tokens to Stigmer's token exchange endpoint, which:\n - Validates the token signature against the configured JWKS\n - Fetches user profile data from the OIDC UserInfo endpoint\n - JIT-provisions a federated identity account with email, name, and picture\n - Issues a Stigmer-native token for subsequent API access\n\n The spec contains only public validation configuration — no secrets are stored.\n For OIDC-based integrators (e.g., Auth0), the jwks_uri and userinfo_endpoint\n point to the OIDC provider's standard endpoints.\n\n Example YAML:\n   apiVersion: iam.stigmer.ai/v1\n   kind: IdentityProvider\n   metadata:\n     name: Planton Cloud\n     slug: planton-cloud\n     org: planton\n   spec:\n     display_name: \"Planton Cloud\"\n     jwks_uri: \"https://planton-prod.us.auth0.com/.well-known/jwks.json\"\n     allowed_issuers: [\"https://planton-prod.us.auth0.com/\"]\n     expected_audience: \"https://api.planton.ai/\"\n     userinfo_endpoint: \"https://planton-prod.us.auth0.com/userinfo\"",
+  "protoType": "ai.stigmer.iam.identityprovider.v1.IdentityProviderSpec",
+  "protoFile": "apis/ai/stigmer/iam/identityprovider/v1/spec.proto",
+  "fields": [
+    {
+      "name": "DisplayName",
+      "jsonName": "displayName",
+      "protoField": "display_name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Human-readable display name for this identity provider.\n Used in UI and audit logs to identify the integrating platform.",
+      "required": false,
+      "validation": {
+        "maxLength": 200
+      }
+    },
+    {
+      "name": "JwksUri",
+      "jsonName": "jwksUri",
+      "protoField": "jwks_uri",
+      "type": {
+        "kind": "string"
+      },
+      "description": "JWKS endpoint URL for validating tokens presented during token exchange.\n For OIDC-based integrators, this points to the provider's standard JWKS endpoint\n (e.g., Auth0's /.well-known/jwks.json). Stigmer fetches and caches signing keys\n from this URL for JWT signature verification.\n\n This is the standard \"jwks_uri\" metadata field defined in\n OpenID Connect Discovery 1.0 (Section 3) and RFC 7517 (JSON Web Key Set).",
+      "required": false,
+      "validation": {
+        "maxLength": 2048
+      }
+    },
+    {
+      "name": "AllowedIssuers",
+      "jsonName": "allowedIssuers",
+      "protoField": "allowed_issuers",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "JWT issuer values that Stigmer will accept from this platform.\n Each JWT's `iss` claim must match one of these values.\n For Auth0-based integrators, this is the Auth0 tenant URL\n (e.g., \"https://planton-prod.us.auth0.com/\").\n Supports multiple values for key rotation or multi-environment scenarios.",
+      "required": false
+    },
+    {
+      "name": "ExpectedAudience",
+      "jsonName": "expectedAudience",
+      "protoField": "expected_audience",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Expected JWT audience value.\n Every JWT from this platform must include this as the `aud` claim.\n For Auth0-based integrators, this is the API identifier configured in Auth0\n (e.g., \"https://api.planton.ai/\").\n Prevents tokens intended for other services from being accepted by Stigmer.",
+      "required": false,
+      "validation": {
+        "maxLength": 200
+      }
+    },
+    {
+      "name": "RateLimitBudget",
+      "jsonName": "rateLimitBudget",
+      "protoField": "rate_limit_budget",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "Shared rate limit budget across all organizations managed via this identity provider.\n Expressed as requests per minute. 0 means no limit.",
+      "required": false
+    },
+    {
+      "name": "UserinfoEndpoint",
+      "jsonName": "userinfoEndpoint",
+      "protoField": "userinfo_endpoint",
+      "type": {
+        "kind": "string"
+      },
+      "description": "OIDC UserInfo endpoint URL for fetching user profile data during token exchange.\n Stigmer calls this endpoint with the platform's access token (as a Bearer token)\n to retrieve the user's email, name, and picture for the federated identity account.\n Profile data is updated on every token exchange to keep it fresh.\n\n This is the standard \"userinfo_endpoint\" metadata field defined in\n OpenID Connect Discovery 1.0 (Section 3). The endpoint itself is specified in\n OpenID Connect Core 1.0 (Section 5.3).\n\n For Auth0-based integrators: https://{tenant}.auth0.com/userinfo",
+      "required": false,
+      "validation": {
+        "maxLength": 2048
+      }
+    }
+  ]
+}

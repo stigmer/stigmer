@@ -22,10 +22,11 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
+from ai.stigmer.commons.apiresource import field_options_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_field__options__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n.ai/stigmer/agentic/workflow/v1/tasks/set.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a\x1b\x62uf/validate/validate.proto\"\xb7\x01\n\rSetTaskConfig\x12h\n\tvariables\x18\x01 \x03(\x0b\x32\x42.ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig.VariablesEntryB\x06\xbaH\x03\xc8\x01\x01R\tvariables\x1a<\n\x0eVariablesEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\x42\xec\x01\n(com.ai.stigmer.agentic.workflow.v1.tasksB\x08SetProtoP\x01\xa2\x02\x06\x41SAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x02\x30\x41i\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n.ai/stigmer/agentic/workflow/v1/tasks/set.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a\x32\x61i/stigmer/commons/apiresource/field_options.proto\x1a\x1b\x62uf/validate/validate.proto\"\xc5\x01\n\rSetTaskConfig\x12h\n\tvariables\x18\x01 \x03(\x0b\x32\x42.ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig.VariablesEntryB\x06\xbaH\x03\xc8\x01\x01R\tvariables\x1a<\n\x0eVariablesEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01:\x0c\xea\x8b,\x08set_varsB\xec\x01\n(com.ai.stigmer.agentic.workflow.v1.tasksB\x08SetProtoP\x01\xa2\x02\x06\x41SAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x02\x30\x41i\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -37,8 +38,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SETTASKCONFIG_VARIABLESENTRY']._serialized_options = b'8\001'
   _globals['_SETTASKCONFIG'].fields_by_name['variables']._loaded_options = None
   _globals['_SETTASKCONFIG'].fields_by_name['variables']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_SETTASKCONFIG']._serialized_start=118
-  _globals['_SETTASKCONFIG']._serialized_end=301
-  _globals['_SETTASKCONFIG_VARIABLESENTRY']._serialized_start=241
-  _globals['_SETTASKCONFIG_VARIABLESENTRY']._serialized_end=301
+  _globals['_SETTASKCONFIG']._loaded_options = None
+  _globals['_SETTASKCONFIG']._serialized_options = b'\352\213,\010set_vars'
+  _globals['_SETTASKCONFIG']._serialized_start=170
+  _globals['_SETTASKCONFIG']._serialized_end=367
+  _globals['_SETTASKCONFIG_VARIABLESENTRY']._serialized_start=293
+  _globals['_SETTASKCONFIG_VARIABLESENTRY']._serialized_end=353
 # @@protoc_insertion_point(module_scope)

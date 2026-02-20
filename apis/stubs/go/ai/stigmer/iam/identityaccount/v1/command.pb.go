@@ -27,8 +27,9 @@ var File_ai_stigmer_iam_identityaccount_v1_command_proto protoreflect.FileDescri
 
 const file_ai_stigmer_iam_identityaccount_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"/ai/stigmer/iam/identityaccount/v1/command.proto\x12!ai.stigmer.iam.identityaccount.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto\x1a+ai/stigmer/iam/identityaccount/v1/api.proto\x1a*ai/stigmer/iam/identityaccount/v1/io.proto\x1a\x1bgoogle/protobuf/empty.proto2\xf4\x03\n" +
-	" IdentityAccountCommandController\x12\xb0\x01\n" +
+	"/ai/stigmer/iam/identityaccount/v1/command.proto\x12!ai.stigmer.iam.identityaccount.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto\x1a+ai/stigmer/iam/identityaccount/v1/api.proto\x1a*ai/stigmer/iam/identityaccount/v1/io.proto\x1a\x1bgoogle/protobuf/empty.proto2\xe6\x04\n" +
+	" IdentityAccountCommandController\x12p\n" +
+	"\x06create\x122.ai.stigmer.iam.identityaccount.v1.IdentityAccount\x1a2.ai.stigmer.iam.identityaccount.v1.IdentityAccount\x12\xb0\x01\n" +
 	"\x06update\x122.ai.stigmer.iam.identityaccount.v1.IdentityAccount\x1a2.ai.stigmer.iam.identityaccount.v1.IdentityAccount\">¸\x18:\b\x04\x10\v\"\vmetadata.id*'unauthorized to update identity account\x12\xac\x01\n" +
 	"\x06delete\x124.ai.stigmer.iam.identityaccount.v1.IdentityAccountId\x1a2.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"8¸\x184\b\x02\x10\v\"\x05value*'unauthorized to delete identity account\x12h\n" +
 	"\x15simulateSignupWebhook\x127.ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail\x1a\x16.google.protobuf.Empty\x1a\x04\xa0\xff+\vB\xbc\x02\n" +
@@ -41,14 +42,16 @@ var file_ai_stigmer_iam_identityaccount_v1_command_proto_goTypes = []any{
 	(*emptypb.Empty)(nil),        // 3: google.protobuf.Empty
 }
 var file_ai_stigmer_iam_identityaccount_v1_command_proto_depIdxs = []int32{
-	0, // 0: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.update:input_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
-	1, // 1: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.delete:input_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccountId
-	2, // 2: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.simulateSignupWebhook:input_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail
-	0, // 3: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.update:output_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
-	0, // 4: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.delete:output_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
-	3, // 5: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.simulateSignupWebhook:output_type -> google.protobuf.Empty
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
+	0, // 0: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.create:input_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
+	0, // 1: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.update:input_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
+	1, // 2: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.delete:input_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccountId
+	2, // 3: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.simulateSignupWebhook:input_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail
+	0, // 4: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.create:output_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
+	0, // 5: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.update:output_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
+	0, // 6: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.delete:output_type -> ai.stigmer.iam.identityaccount.v1.IdentityAccount
+	3, // 7: ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.simulateSignupWebhook:output_type -> google.protobuf.Empty
+	4, // [4:8] is the sub-list for method output_type
+	0, // [0:4] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

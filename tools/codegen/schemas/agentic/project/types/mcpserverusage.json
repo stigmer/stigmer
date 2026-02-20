@@ -14,6 +14,7 @@
       },
       "description": "Reference to the McpServer resource.\n Must reference a resource with kind=mcp_server (44).\n The slug from this reference is how SubAgents identify this server.",
       "required": true,
+      "referenceKind": 44,
       "validation": {
         "required": true
       }
