@@ -12,6 +12,12 @@ import "google/protobuf/empty.proto";
 service IdentityAccountCommandController {
   option (ai.stigmer.commons.apiresource.api_resource_kind) = identity_account;
 
+  // create a new identity-account.
+  // system-level RPC used by federated JIT provisioning and Auth0 webhook flow.
+  // no FGA authorization — called via inProcessChannelAsSystem (machine account).
+  // the handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
+  rpc create(IdentityAccount) returns (IdentityAccount);
+
   // update an existing identity-account
   rpc update(IdentityAccount) returns (IdentityAccount) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = identity_account;
