@@ -74,9 +74,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-18 13:08
-**Last Session**: 2026-02-19 Session 2 — Integration architecture refined via deep design discussion + external research
-**Current Task**: T01 Phase 1 proto done. Architecture significantly revised. Ready for implementation.
-**Status**: Architecture design complete. Ready to implement.
+**Last Session**: 2026-02-20 Session 3 — Added `userinfo_endpoint` to IdentityProvider proto; corrected OIDC naming
+**Current Task**: Phase 1 proto complete. Ready to implement IdentityProvider CRUD in `stigmer-cloud`.
+**Status**: Proto layer done. Implementation work starts in `stigmer-cloud`.
 
 ## Architecture Summary (Revised — Session 2)
 
@@ -113,7 +113,7 @@ Planton Cloud User → Planton Cloud Backend (existing authz) → Stigmer Proxy 
 
 | # | Component | Status | Details |
 |---|-----------|--------|---------|
-| 1 | IdentityProvider proto | ✅ Done (session 1) | Add `userinfo_uri` field |
+| 1 | IdentityProvider proto | ✅ Done (session 3) | `userinfo_endpoint` added (OIDC-standard name); Session 1 docs corrected |
 | 2 | IdentityProvider CRUD | 🔲 Next | Controller, Temporal workflow, MongoDB repo, FGA tuples in `stigmer-cloud` |
 | 3 | Token Exchange Endpoint | 🔲 After #2 | Validates external JWT, calls UserInfo, JIT provisions, issues Stigmer token |
 | 4 | Federated JWT Validation | 🔲 After #2 | Auth interceptor extension for IdentityProvider-based validation |
@@ -132,7 +132,7 @@ Planton Cloud User → Planton Cloud Backend (existing authz) → Stigmer Proxy 
 
 ### Phase 1: IdentityProvider + Token Exchange (MVP Core)
 
-- [ ] Add `userinfo_uri` to IdentityProvider proto
+- [x] Add `userinfo_endpoint` to IdentityProvider proto (corrected from `userinfo_uri` — OIDC Discovery 1.0 standard name)
 - [ ] Implement IdentityProvider CRUD in `stigmer-cloud`
 - [ ] Implement token exchange endpoint in `stigmer-cloud`
 - [ ] Implement JIT identity provisioning (find/create identity_account, update profile, create FGA membership)
