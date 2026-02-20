@@ -15,8 +15,8 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: February 19, 2026
-**Last Session**: February 20, 2026 (Session 8)
-**Current Task**: T10 DONE — Generalize MCP codegen to all domains
+**Last Session**: February 20, 2026 (Session 9)
+**Current Task**: T11 DONE — Composite resource codegen (Project)
 **Status**: ALL TASKS COMPLETE — branch ready for PR
 
 ## Task Overview
@@ -33,6 +33,7 @@ Drop this file into your conversation to quickly resume work on this project.
 | T08 | Workflow codegen + toProto error propagation + Makefile | DONE (committed 5ca21143) |
 | T09 | Typed workflow task configs — replace `map[string]any` with 13 typed structs | DONE (committed 549482ba) |
 | T10 | Generalize MCP codegen to all domains — comprehensive mode + proto custom options | **DONE** |
+| T11 | Composite resource codegen — cross-package imports for Project resource | **DONE** |
 
 ## T10 Completion Summary (Session 8)
 
@@ -68,18 +69,46 @@ proto itself via custom options, eliminating all CLI flags.
 - Added `codegen-schemas` and top-level `codegen` targets
 
 ### Phase 6: Generated All Resources + Validated
-- 15 resources generated across agentic (10), iam (4), tenancy (1)
-- `project` skipped — composite resource that embeds full resource wrappers (naming collision)
+- 16 resources generated across agentic (11), iam (4), tenancy (1)
 - `go build ./...` ✅, `go test -race ./...` ✅, `make vet` ✅
 
 **Generated output:**
 ```
 mcp-server/gen/
   agentic/   agent, agentexecution, agentinstance, environment, executioncontext,
-             mcpserver, skill, workflow, workflowexecution, workflowinstance
+             mcpserver, project, skill, workflow, workflowexecution, workflowinstance
   iam/       apikey, iampolicy, identityaccount, identityprovider
   tenancy/   organization
 ```
+
+## T11 Completion Summary (Session 9)
+
+Enabled MCP codegen for the Project composite resource. Project embeds full resource wrappers
+(`Agent`, `Workflow`, `McpServer`, `Skill`) which previously caused a naming collision where
+both `Agent` and `AgentSpec` mapped to `AgentInput`. Solved via cross-package imports that
+reuse the already-generated input types from sibling packages.
+
+**What was done — 4 changes:**
+
+### Resource Wrapper Detection (`mcp.go`)
+- Added `isResourceWrapper()` — detects the standard API resource envelope pattern
+  (has `api_version`, `kind`, `metadata` with `ApiResourceMetadata`, `spec`)
+- Added `resourceWrapperGenImport()` — derives cross-package import path from proto type
+  namespace (e.g., `ai.stigmer.agentic.agent.v1.Agent` → `mcp-server/gen/agentic/agent`)
+
+### Cross-Package Field Resolution (`mcp.go`)
+- Added `useExportedToProto` flag to `mcpInputField`
+- Added two new cases in `resolveField()` BEFORE general message handling: array-of-wrapper
+  and singular-wrapper, preventing recursive descent into wrapper internals
+- Updated `genFieldAssignment()` to use exported `ToProto()` for cross-package types
+
+### Skip List Removal (`main.go`)
+- Emptied `skipResources` map (removed `"project": true`)
+
+### Generated Output
+- 16 resources now generated (was 15), including `gen/agentic/project/project_gen.go`
+- `ProjectInput` uses `[]agent.AgentInput`, `[]workflow.WorkflowInput`, etc.
+- `go build ./...` ✅, `go test -race ./...` ✅, `make vet` ✅
 
 ## Final Architecture Summary
 
@@ -110,16 +139,17 @@ apis/ai/stigmer/commons/apiresource/field_options.proto              — Custom 
 tools/codegen/generator/main.go                                      — Comprehensive mode, schema-driven expand-struct
 tools/codegen/generator/mcp.go                                       — MCP codegen logic
 tools/codegen/proto2schema/main.go                                   — Schema extraction with custom options
-mcp-server/gen/{domain}/{resource}/                                  — 15 generated packages
+mcp-server/gen/{domain}/{resource}/                                  — 16 generated packages
 mcp-server/Makefile                                                  — codegen / codegen-schemas / codegen-mcp
 ```
 
-## Known Limitation
+## Design Notes
 
-`project` resource is skipped from MCP codegen because it's a composite/aggregate type that
-embeds full resource wrappers (`Agent`, `Workflow`, `McpServer`, `Skill`). This causes a naming
-collision where both `Agent` and `AgentSpec` map to `AgentInput`. When project-level MCP tools
-are needed, the generator's naming logic can be enhanced, or tools can be hand-written.
+**Composite resources** (like `Project`) that embed full resource wrappers are handled via
+cross-package imports. The generator detects the resource-wrapper pattern (`api_version`, `kind`,
+`metadata`, `spec`) and imports the already-generated `*Input` type from the sibling package
+instead of re-generating it inline. This avoids naming collisions and ensures a single source of
+truth for each resource's input type.
 
 ## Quick Commands
 

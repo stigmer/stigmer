@@ -39,18 +39,19 @@ type mcpInputType struct {
 
 // mcpInputField describes one field inside an mcpInputType.
 type mcpInputField struct {
-	goName           string
-	protoField       string
-	goType           string
-	jsonTag          string
-	schemaTag        string
-	description      string // for doc comment
-	inputTypeName    string // non-empty when this field references a nested input type with toProto()
-	oneofGroup       string // non-empty when this field belongs to a proto oneof group
-	enumType         string // fully-qualified proto enum type (e.g., "ai.stigmer.agentic.workflow.v1.WorkflowTaskKind")
-	isStruct         bool // true when the proto field is google.protobuf.Struct
-	isTimestamp      bool // true when the proto field is google.protobuf.Timestamp
-	isExpandedConfig bool // true when this field is a typed config from expand-struct expansion
+	goName             string
+	protoField         string
+	goType             string
+	jsonTag            string
+	schemaTag          string
+	description        string // for doc comment
+	inputTypeName      string // non-empty when this field references a nested input type with toProto()
+	oneofGroup         string // non-empty when this field belongs to a proto oneof group
+	enumType           string // fully-qualified proto enum type (e.g., "ai.stigmer.agentic.workflow.v1.WorkflowTaskKind")
+	isStruct           bool   // true when the proto field is google.protobuf.Struct
+	isTimestamp        bool   // true when the proto field is google.protobuf.Timestamp
+	isExpandedConfig   bool   // true when this field is a typed config from expand-struct expansion
+	useExportedToProto bool   // true when this field references a cross-package input type with exported ToProto()
 }
 
 // mcpGen holds all state for a single MCP code generation run.
@@ -176,6 +177,25 @@ func (m *mcpGen) resolveField(f *FieldSchema) *mcpInputField {
 	}
 
 	switch {
+	// Array of resource wrappers → cross-package import of existing *Input type
+	case f.Type.Kind == "array" && f.Type.ElementType != nil &&
+		f.Type.ElementType.Kind == "message" && m.isResourceWrapper(f.Type.ElementType.MessageType):
+		importPath, pkgName, inputType := m.resourceWrapperGenImport(f.Type.ElementType.MessageType)
+		m.addImport(importPath, "")
+		qualifiedType := pkgName + "." + inputType
+		field.goType = "[]" + qualifiedType
+		field.inputTypeName = qualifiedType
+		field.useExportedToProto = true
+
+	// Singular resource wrapper → cross-package import of existing *Input type
+	case f.Type.Kind == "message" && m.isResourceWrapper(f.Type.MessageType):
+		importPath, pkgName, inputType := m.resourceWrapperGenImport(f.Type.MessageType)
+		m.addImport(importPath, "")
+		qualifiedType := pkgName + "." + inputType
+		field.goType = "*" + qualifiedType
+		field.inputTypeName = qualifiedType
+		field.useExportedToProto = true
+
 	// Array of ApiResourceReference with referenceKind → flattened ref input
 	case f.Type.Kind == "array" && f.Type.ElementType != nil &&
 		f.Type.ElementType.Kind == "message" && f.Type.ElementType.MessageType == "ApiResourceReference" &&
@@ -770,10 +790,14 @@ func (m *mcpGen) genFieldAssignment(w *bytes.Buffer, f *mcpInputField, src, dst 
 		fmt.Fprintf(w, "\t%s.%s = %s.%s(%s.%s_value[%s.%s])\n",
 			dst, f.goName, enumAlias, enumName, enumAlias, enumName, src, f.goName)
 
-	// Pointer to a nested input → nil-check + toProto
+	// Pointer to a nested input → nil-check + toProto/ToProto
 	case hasToProto && strings.HasPrefix(goType, "*"):
+		toProtoCall := "toProto"
+		if f.useExportedToProto {
+			toProtoCall = "ToProto"
+		}
 		fmt.Fprintf(w, "\tif %s.%s != nil {\n", src, f.goName)
-		fmt.Fprintf(w, "\t\tv, err := %s.%s.toProto()\n", src, f.goName)
+		fmt.Fprintf(w, "\t\tv, err := %s.%s.%s()\n", src, f.goName, toProtoCall)
 		fmt.Fprintf(w, "\t\tif err != nil {\n")
 		fmt.Fprintf(w, "\t\t\treturn nil, err\n")
 		fmt.Fprintf(w, "\t\t}\n")
@@ -782,18 +806,26 @@ func (m *mcpGen) genFieldAssignment(w *bytes.Buffer, f *mcpInputField, src, dst 
 
 	// Value struct with toProto (e.g., required reference — McpServerRefInput)
 	case hasToProto && !strings.HasPrefix(goType, "[]") && !strings.HasPrefix(goType, "map["):
+		toProtoCall := "toProto"
+		if f.useExportedToProto {
+			toProtoCall = "ToProto"
+		}
 		fmt.Fprintf(w, "\t{\n")
-		fmt.Fprintf(w, "\t\tv, err := %s.%s.toProto()\n", src, f.goName)
+		fmt.Fprintf(w, "\t\tv, err := %s.%s.%s()\n", src, f.goName, toProtoCall)
 		fmt.Fprintf(w, "\t\tif err != nil {\n")
 		fmt.Fprintf(w, "\t\t\treturn nil, err\n")
 		fmt.Fprintf(w, "\t\t}\n")
 		fmt.Fprintf(w, "\t\t%s.%s = v\n", dst, f.goName)
 		fmt.Fprintf(w, "\t}\n")
 
-	// Slice of nested inputs → loop + toProto
+	// Slice of nested inputs → loop + toProto/ToProto
 	case hasToProto && strings.HasPrefix(goType, "[]"):
+		toProtoCall := "toProto"
+		if f.useExportedToProto {
+			toProtoCall = "ToProto"
+		}
 		fmt.Fprintf(w, "\tfor _, item := range %s.%s {\n", src, f.goName)
-		fmt.Fprintf(w, "\t\tv, err := item.toProto()\n")
+		fmt.Fprintf(w, "\t\tv, err := item.%s()\n", toProtoCall)
 		fmt.Fprintf(w, "\t\tif err != nil {\n")
 		fmt.Fprintf(w, "\t\t\treturn nil, err\n")
 		fmt.Fprintf(w, "\t\t}\n")
@@ -869,6 +901,70 @@ func (m *mcpGen) writeImports(w *bytes.Buffer) {
 // --------------------------------------------------------------------
 // Proto type helpers
 // --------------------------------------------------------------------
+
+// mcpGenModuleBase is the Go module import path prefix for generated MCP
+// input packages. Combined with "{domain}/{resource}" it produces a full
+// import path such as "github.com/stigmer/stigmer/mcp-server/gen/agentic/agent".
+const mcpGenModuleBase = "github.com/stigmer/stigmer/mcp-server/gen"
+
+// isResourceWrapper reports whether messageName refers to a standard API
+// resource envelope (has api_version, kind, metadata with
+// ApiResourceMetadata, and spec fields). These types are generated as
+// standalone packages and should be imported cross-package rather than
+// re-generated inline.
+func (m *mcpGen) isResourceWrapper(messageName string) bool {
+	ts, ok := m.types[messageName]
+	if !ok {
+		return false
+	}
+
+	var hasApiVersion, hasKind, hasMetadata, hasSpec bool
+	for _, f := range ts.Fields {
+		switch f.ProtoField {
+		case "api_version":
+			hasApiVersion = true
+		case "kind":
+			hasKind = true
+		case "metadata":
+			if f.Type.Kind == "message" && f.Type.MessageType == "ApiResourceMetadata" {
+				hasMetadata = true
+			}
+		case "spec":
+			hasSpec = true
+		}
+	}
+	return hasApiVersion && hasKind && hasMetadata && hasSpec
+}
+
+// resourceWrapperGenImport derives the cross-package MCP gen import path,
+// Go package name, and input type name for a resource wrapper message.
+//
+// Example: messageName="Agent"
+//
+//	protoType = "ai.stigmer.agentic.agent.v1.Agent"
+//	→ importPath = "github.com/stigmer/stigmer/mcp-server/gen/agentic/agent"
+//	→ pkgName    = "agent"
+//	→ inputType  = "AgentInput"
+func (m *mcpGen) resourceWrapperGenImport(messageName string) (importPath, pkgName, inputType string) {
+	ts, ok := m.types[messageName]
+	if !ok {
+		return "", "", ""
+	}
+
+	// Proto type format: ai.stigmer.<domain>.<resource>.<version>.<TypeName>
+	parts := strings.Split(ts.ProtoType, ".")
+	if len(parts) < 6 {
+		return "", "", ""
+	}
+
+	domain := parts[2]   // e.g. "agentic"
+	resource := parts[3] // e.g. "agent"
+
+	importPath = mcpGenModuleBase + "/" + domain + "/" + resource
+	pkgName = resource
+	inputType = messageName + "Input"
+	return importPath, pkgName, inputType
+}
 
 // protoImport returns (go import path, package alias) for a fully-qualified proto type.
 func (m *mcpGen) protoImport(protoType string) (string, string) {
