@@ -5,25 +5,24 @@ import (
 
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	"github.com/stigmer/stigmer/mcp-server/internal/domains"
+	geninput "github.com/stigmer/stigmer/mcp-server/gen/agent"
+	"github.com/stigmer/stigmer/mcp-server/internal/convert"
 )
 
 func TestToProto_minimal(t *testing.T) {
-	input := &ApplyAgentInput{
-		ResourceIdentity: domains.ResourceIdentity{
-			Name: "Code Reviewer",
-			Org:  "acme",
-		},
+	input := &geninput.AgentInput{
 		Instructions: "You review code for quality and security.",
 	}
+	input.Name = "Code Reviewer"
+	input.Org = "acme"
 
-	agent := input.toProto()
+	agent := input.ToProto()
 
-	if agent.ApiVersion != agentAPIVersion {
-		t.Errorf("ApiVersion = %q, want %q", agent.ApiVersion, agentAPIVersion)
+	if agent.ApiVersion != "agentic.stigmer.ai/v1" {
+		t.Errorf("ApiVersion = %q, want %q", agent.ApiVersion, "agentic.stigmer.ai/v1")
 	}
-	if agent.Kind != agentKind {
-		t.Errorf("Kind = %q, want %q", agent.Kind, agentKind)
+	if agent.Kind != "Agent" {
+		t.Errorf("Kind = %q, want %q", agent.Kind, "Agent")
 	}
 
 	meta := agent.GetMetadata()
@@ -47,16 +46,14 @@ func TestToProto_minimal(t *testing.T) {
 }
 
 func TestToProto_slugProvided(t *testing.T) {
-	input := &ApplyAgentInput{
-		ResourceIdentity: domains.ResourceIdentity{
-			Name: "Code Reviewer",
-			Slug: "my-custom-slug",
-			Org:  "acme",
-		},
+	input := &geninput.AgentInput{
 		Instructions: "You review code.",
 	}
+	input.Name = "Code Reviewer"
+	input.Slug = "my-custom-slug"
+	input.Org = "acme"
 
-	agent := input.toProto()
+	agent := input.ToProto()
 
 	if agent.GetMetadata().GetSlug() != "my-custom-slug" {
 		t.Errorf("Slug = %q, want %q (user-provided)", agent.GetMetadata().GetSlug(), "my-custom-slug")
@@ -75,11 +72,11 @@ func TestToProto_slugAutoGeneration(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			input := &ApplyAgentInput{
-				ResourceIdentity: domains.ResourceIdentity{Name: tt.name, Org: "x"},
-				Instructions:     "placeholder",
-			}
-			got := input.toProto().GetMetadata().GetSlug()
+			input := &geninput.AgentInput{Instructions: "placeholder"}
+			input.Name = tt.name
+			input.Org = "x"
+
+			got := input.ToProto().GetMetadata().GetSlug()
 			if got != tt.wantSlug {
 				t.Errorf("slug for %q = %q, want %q", tt.name, got, tt.wantSlug)
 			}
@@ -88,50 +85,43 @@ func TestToProto_slugAutoGeneration(t *testing.T) {
 }
 
 func TestToProto_visibilityPublic(t *testing.T) {
-	input := &ApplyAgentInput{
-		ResourceIdentity: domains.ResourceIdentity{
-			Name:       "Public Agent",
-			Org:        "acme",
-			Visibility: "PUBLIC",
-		},
-		Instructions: "placeholder",
-	}
+	input := &geninput.AgentInput{Instructions: "placeholder"}
+	input.Name = "Public Agent"
+	input.Org = "acme"
+	input.Visibility = "PUBLIC"
 
-	agent := input.toProto()
+	agent := input.ToProto()
 	if agent.GetMetadata().GetVisibility() != apiresource.ApiResourceVisibility_visibility_public {
 		t.Errorf("Visibility = %v, want visibility_public", agent.GetMetadata().GetVisibility())
 	}
 }
 
 func TestToProto_visibilityCaseInsensitive(t *testing.T) {
-	input := &ApplyAgentInput{
-		ResourceIdentity: domains.ResourceIdentity{
-			Name:       "Agent",
-			Org:        "acme",
-			Visibility: "public",
-		},
-		Instructions: "placeholder",
-	}
+	input := &geninput.AgentInput{Instructions: "placeholder"}
+	input.Name = "Agent"
+	input.Org = "acme"
+	input.Visibility = "public"
 
-	agent := input.toProto()
+	agent := input.ToProto()
 	if agent.GetMetadata().GetVisibility() != apiresource.ApiResourceVisibility_visibility_public {
 		t.Errorf("Visibility = %v, want visibility_public (case insensitive)", agent.GetMetadata().GetVisibility())
 	}
 }
 
 func TestToProto_mcpServerRefKind(t *testing.T) {
-	input := &ApplyAgentInput{
-		ResourceIdentity: domains.ResourceIdentity{Name: "Agent", Org: "acme"},
-		Instructions:     "placeholder",
-		McpServerUsages: []McpServerUsageInput{
+	input := &geninput.AgentInput{
+		Instructions: "placeholder",
+		McpServerUsages: []geninput.McpServerUsageInput{
 			{
-				McpServerRef: McpServerRefInput{Org: "stigmer", Slug: "github"},
+				McpServerRef: geninput.McpServerRefInput{Org: "stigmer", Slug: "github"},
 				EnabledTools: []string{"search_code", "create_pr"},
 			},
 		},
 	}
+	input.Name = "Agent"
+	input.Org = "acme"
 
-	agent := input.toProto()
+	agent := input.ToProto()
 	usages := agent.GetSpec().GetMcpServerUsages()
 	if len(usages) != 1 {
 		t.Fatalf("McpServerUsages length = %d, want 1", len(usages))
@@ -155,16 +145,17 @@ func TestToProto_mcpServerRefKind(t *testing.T) {
 }
 
 func TestToProto_skillRefKind(t *testing.T) {
-	input := &ApplyAgentInput{
-		ResourceIdentity: domains.ResourceIdentity{Name: "Agent", Org: "acme"},
-		Instructions:     "placeholder",
-		SkillRefs: []SkillRefInput{
+	input := &geninput.AgentInput{
+		Instructions: "placeholder",
+		SkillRefs: []geninput.SkillRefInput{
 			{Org: "stigmer", Slug: "coding-best-practices"},
 			{Org: "stigmer", Slug: "security-guidelines", Version: "v1.0"},
 		},
 	}
+	input.Name = "Agent"
+	input.Org = "acme"
 
-	agent := input.toProto()
+	agent := input.ToProto()
 	refs := agent.GetSpec().GetSkillRefs()
 	if len(refs) != 2 {
 		t.Fatalf("SkillRefs length = %d, want 2", len(refs))
@@ -185,24 +176,25 @@ func TestToProto_skillRefKind(t *testing.T) {
 }
 
 func TestToProto_subAgentSkillRefKind(t *testing.T) {
-	input := &ApplyAgentInput{
-		ResourceIdentity: domains.ResourceIdentity{Name: "Agent", Org: "acme"},
-		Instructions:     "placeholder",
-		SubAgents: []SubAgentInput{
+	input := &geninput.AgentInput{
+		Instructions: "placeholder",
+		SubAgents: []geninput.SubAgentInput{
 			{
 				Name:         "reviewer",
 				Instructions: "Review code changes",
-				SkillRefs: []SkillRefInput{
+				SkillRefs: []geninput.SkillRefInput{
 					{Org: "stigmer", Slug: "code-review"},
 				},
-				McpAccess: []McpAccessInput{
+				McpAccess: []geninput.McpAccessInput{
 					{McpServer: "github", EnabledTools: []string{"search_code"}},
 				},
 			},
 		},
 	}
+	input.Name = "Agent"
+	input.Org = "acme"
 
-	agent := input.toProto()
+	agent := input.ToProto()
 	subs := agent.GetSpec().GetSubAgents()
 	if len(subs) != 1 {
 		t.Fatalf("SubAgents length = %d, want 1", len(subs))
@@ -234,20 +226,21 @@ func TestToProto_subAgentSkillRefKind(t *testing.T) {
 }
 
 func TestToProto_toolApprovalOverrides(t *testing.T) {
-	input := &ApplyAgentInput{
-		ResourceIdentity: domains.ResourceIdentity{Name: "Agent", Org: "acme"},
-		Instructions:     "placeholder",
-		McpServerUsages: []McpServerUsageInput{
+	input := &geninput.AgentInput{
+		Instructions: "placeholder",
+		McpServerUsages: []geninput.McpServerUsageInput{
 			{
-				McpServerRef: McpServerRefInput{Org: "stigmer", Slug: "github"},
-				ToolApprovalOverrides: []ToolApprovalOverrideInput{
+				McpServerRef: geninput.McpServerRefInput{Org: "stigmer", Slug: "github"},
+				ToolApprovalOverrides: []geninput.ToolApprovalOverrideInput{
 					{ToolName: "delete_repo", RequiresApproval: true, Message: "Delete {{args.repo}}"},
 				},
 			},
 		},
 	}
+	input.Name = "Agent"
+	input.Org = "acme"
 
-	agent := input.toProto()
+	agent := input.ToProto()
 	overrides := agent.GetSpec().GetMcpServerUsages()[0].GetToolApprovalOverrides()
 	if len(overrides) != 1 {
 		t.Fatalf("ToolApprovalOverrides length = %d, want 1", len(overrides))
@@ -264,19 +257,20 @@ func TestToProto_toolApprovalOverrides(t *testing.T) {
 }
 
 func TestToProto_environment(t *testing.T) {
-	input := &ApplyAgentInput{
-		ResourceIdentity: domains.ResourceIdentity{Name: "Agent", Org: "acme"},
-		Instructions:     "placeholder",
-		EnvSpec: &EnvironmentInput{
+	input := &geninput.AgentInput{
+		Instructions: "placeholder",
+		EnvSpec: &geninput.EnvironmentInput{
 			Description: "Production credentials",
-			Data: map[string]EnvironmentValue{
+			Data: map[string]*geninput.EnvironmentValue{
 				"AWS_REGION": {Value: "us-west-2", IsSecret: false, Description: "AWS region"},
 				"API_KEY":    {Value: "", IsSecret: true, Description: "API key for external service"},
 			},
 		},
 	}
+	input.Name = "Agent"
+	input.Org = "acme"
 
-	agent := input.toProto()
+	agent := input.ToProto()
 	env := agent.GetSpec().GetEnvSpec()
 	if env == nil {
 		t.Fatal("EnvSpec is nil")
@@ -303,17 +297,13 @@ func TestToProto_environment(t *testing.T) {
 }
 
 func TestToProto_labelsAndTags(t *testing.T) {
-	input := &ApplyAgentInput{
-		ResourceIdentity: domains.ResourceIdentity{
-			Name:   "Agent",
-			Org:    "acme",
-			Labels: map[string]string{"team": "platform", "env": "prod"},
-			Tags:   []string{"ai", "code-review"},
-		},
-		Instructions: "placeholder",
-	}
+	input := &geninput.AgentInput{Instructions: "placeholder"}
+	input.Name = "Agent"
+	input.Org = "acme"
+	input.Labels = map[string]string{"team": "platform", "env": "prod"}
+	input.Tags = []string{"ai", "code-review"}
 
-	agent := input.toProto()
+	agent := input.ToProto()
 	meta := agent.GetMetadata()
 
 	if len(meta.GetLabels()) != 2 {
@@ -329,50 +319,48 @@ func TestToProto_labelsAndTags(t *testing.T) {
 }
 
 func TestToProto_fullInput(t *testing.T) {
-	input := &ApplyAgentInput{
-		ResourceIdentity: domains.ResourceIdentity{
-			Name:       "Engineering Assistant",
-			Slug:       "eng-assistant",
-			Org:        "acme",
-			Visibility: "PUBLIC",
-			Labels:     map[string]string{"team": "engineering"},
-			Tags:       []string{"code-review", "security"},
-		},
+	input := &geninput.AgentInput{
 		Description:  "Helps engineering teams",
 		IconUrl:      "https://example.com/icon.svg",
 		Instructions: "You are an engineering assistant focused on code quality.",
-		McpServerUsages: []McpServerUsageInput{
+		McpServerUsages: []geninput.McpServerUsageInput{
 			{
-				McpServerRef: McpServerRefInput{Org: "stigmer", Slug: "github"},
+				McpServerRef: geninput.McpServerRefInput{Org: "stigmer", Slug: "github"},
 				EnabledTools: []string{"search_code", "create_pr"},
 			},
 		},
-		SkillRefs: []SkillRefInput{
+		SkillRefs: []geninput.SkillRefInput{
 			{Org: "stigmer", Slug: "coding-best-practices", Version: "stable"},
 		},
-		SubAgents: []SubAgentInput{
+		SubAgents: []geninput.SubAgentInput{
 			{
 				Name:         "security-scanner",
 				Description:  "Scans for security issues",
 				Instructions: "Analyze code for vulnerabilities",
-				McpAccess:    []McpAccessInput{{McpServer: "github", EnabledTools: []string{"search_code"}}},
-				SkillRefs:    []SkillRefInput{{Org: "stigmer", Slug: "security-guidelines"}},
+				McpAccess:    []geninput.McpAccessInput{{McpServer: "github", EnabledTools: []string{"search_code"}}},
+				SkillRefs:    []geninput.SkillRefInput{{Org: "stigmer", Slug: "security-guidelines"}},
 			},
 		},
-		EnvSpec: &EnvironmentInput{
+		EnvSpec: &geninput.EnvironmentInput{
 			Description: "Required credentials",
-			Data: map[string]EnvironmentValue{
+			Data: map[string]*geninput.EnvironmentValue{
 				"GITHUB_TOKEN": {IsSecret: true, Description: "GitHub token"},
 			},
 		},
 	}
+	input.Name = "Engineering Assistant"
+	input.Slug = "eng-assistant"
+	input.Org = "acme"
+	input.Visibility = "PUBLIC"
+	input.Labels = map[string]string{"team": "engineering"}
+	input.Tags = []string{"code-review", "security"}
 
-	agent := input.toProto()
+	agent := input.ToProto()
 
-	if agent.ApiVersion != agentAPIVersion {
+	if agent.ApiVersion != "agentic.stigmer.ai/v1" {
 		t.Errorf("ApiVersion = %q", agent.ApiVersion)
 	}
-	if agent.Kind != agentKind {
+	if agent.Kind != "Agent" {
 		t.Errorf("Kind = %q", agent.Kind)
 	}
 	if agent.GetMetadata().GetSlug() != "eng-assistant" {
@@ -419,8 +407,8 @@ func TestGenerateSlug(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := generateSlug(tt.name); got != tt.wantSlug {
-				t.Errorf("generateSlug(%q) = %q, want %q", tt.name, got, tt.wantSlug)
+			if got := convert.GenerateSlug(tt.name); got != tt.wantSlug {
+				t.Errorf("GenerateSlug(%q) = %q, want %q", tt.name, got, tt.wantSlug)
 			}
 		})
 	}

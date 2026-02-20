@@ -10,7 +10,7 @@ import (
 )
 
 // Apply creates or updates an agent via the AgentCommandController.Apply RPC.
-// The agent proto must be fully constructed (use ApplyAgentInput.toProto()).
+// The agent proto must be fully constructed (use AgentInput.ToProto()).
 func Apply(ctx context.Context, serverAddress string, agent *agentv1.Agent) (string, error) {
 	return domains.WithConnection(ctx, serverAddress,
 		func(ctx context.Context, conn *grpc.ClientConn) (string, error) {

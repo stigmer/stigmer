@@ -7,8 +7,8 @@ import (
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	geninput "github.com/stigmer/stigmer/mcp-server/gen/agent"
 	"github.com/stigmer/stigmer/mcp-server/internal/auth"
-	"github.com/stigmer/stigmer/mcp-server/internal/domains"
 	"github.com/stigmer/stigmer/mcp-server/internal/testutil"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -58,14 +58,12 @@ func TestApplyHandler_success(t *testing.T) {
 	ctx := auth.WithAPIKey(context.Background(), "test-key")
 	handler := ApplyHandler(addr)
 
-	input := &ApplyAgentInput{
-		ResourceIdentity: domains.ResourceIdentity{
-			Name: "Code Reviewer",
-			Slug: "code-reviewer",
-			Org:  "acme",
-		},
+	input := &geninput.AgentInput{
 		Instructions: "You are a code reviewer.",
 	}
+	input.Name = "Code Reviewer"
+	input.Slug = "code-reviewer"
+	input.Org = "acme"
 
 	result, _, err := handler(ctx, nil, input)
 	if err != nil {
@@ -95,13 +93,12 @@ func TestApplyHandler_success(t *testing.T) {
 func TestApplyHandler_missingAPIKey(t *testing.T) {
 	handler := ApplyHandler("localhost:0")
 
-	input := &ApplyAgentInput{
-		ResourceIdentity: domains.ResourceIdentity{
-			Name: "Test Agent",
-			Org:  "acme",
-		},
+	input := &geninput.AgentInput{
 		Instructions: "test instructions",
 	}
+	input.Name = "Test Agent"
+	input.Org = "acme"
+
 	_, _, err := handler(context.Background(), nil, input)
 	if err == nil {
 		t.Fatal("expected error when API key is missing from context, got nil")
@@ -120,14 +117,13 @@ func TestApplyHandler_grpcPermissionDenied(t *testing.T) {
 	ctx := auth.WithAPIKey(context.Background(), "test-key")
 	handler := ApplyHandler(addr)
 
-	input := &ApplyAgentInput{
-		ResourceIdentity: domains.ResourceIdentity{
-			Name: "Test Agent",
-			Slug: "x",
-			Org:  "acme",
-		},
+	input := &geninput.AgentInput{
 		Instructions: "test instructions",
 	}
+	input.Name = "Test Agent"
+	input.Slug = "x"
+	input.Org = "acme"
+
 	_, _, err := handler(ctx, nil, input)
 	if err == nil {
 		t.Fatal("expected error for PermissionDenied, got nil")

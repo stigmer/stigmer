@@ -26,6 +26,7 @@ import (
 	"buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/desc/protoparse"
+	"google.golang.org/protobuf/encoding/protowire"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/descriptorpb"
 )
@@ -59,14 +60,16 @@ type TypeSchema struct {
 }
 
 type FieldSchema struct {
-	Name         string      `json:"name"`
-	JsonName     string      `json:"jsonName"`
-	ProtoField   string      `json:"protoField"`
-	Type         TypeSpec    `json:"type"`
-	Description  string      `json:"description"`
-	Required     bool        `json:"required"`
-	IsExpression bool        `json:"isExpression,omitempty"`
-	Validation   *Validation `json:"validation,omitempty"`
+	Name          string      `json:"name"`
+	JsonName      string      `json:"jsonName"`
+	ProtoField    string      `json:"protoField"`
+	Type          TypeSpec    `json:"type"`
+	Description   string      `json:"description"`
+	Required      bool        `json:"required"`
+	IsExpression  bool        `json:"isExpression,omitempty"`
+	ReferenceKind int32       `json:"referenceKind,omitempty"`
+	OneofGroup    string      `json:"oneofGroup,omitempty"`
+	Validation    *Validation `json:"validation,omitempty"`
 }
 
 type TypeSpec struct {
@@ -582,25 +585,24 @@ func parseTaskConfig(msg *desc.MessageDescriptor, fd *desc.FileDescriptor) (*Tas
 
 // extractFieldSchema extracts field schema from a proto field descriptor
 func extractFieldSchema(field *desc.FieldDescriptor) (*FieldSchema, error) {
-	// Extract field description from comments
 	description := extractFieldComments(field)
 
-	// Build field schema
 	fieldSchema := &FieldSchema{
-		Name:         strings.Title(strings.ReplaceAll(field.GetName(), "_", " ")),
-		JsonName:     field.GetJSONName(),
-		ProtoField:   field.GetName(),
-		Type:         extractTypeSpec(field),
-		Description:  description,
-		Required:     false,
-		IsExpression: extractIsExpression(field),
-		Validation:   extractValidation(field),
+		Name:          toCamelCase(field.GetName(), true),
+		JsonName:      field.GetJSONName(),
+		ProtoField:    field.GetName(),
+		Type:          extractTypeSpec(field),
+		Description:   description,
+		Required:      false,
+		IsExpression:  extractIsExpression(field),
+		ReferenceKind: extractReferenceKind(field),
+		Validation:    extractValidation(field),
 	}
 
-	// Capitalize field name properly
-	fieldSchema.Name = toCamelCase(field.GetName(), true)
+	if oo := field.GetOneOf(); oo != nil {
+		fieldSchema.OneofGroup = oo.GetName()
+	}
 
-	// Check if field is required from buf.validate
 	if fieldSchema.Validation != nil && fieldSchema.Validation.Required {
 		fieldSchema.Required = true
 	}
@@ -867,6 +869,55 @@ func extractIsExpression(field *desc.FieldDescriptor) bool {
 	}
 
 	return false
+}
+
+// referenceKindFieldNumber is the proto field number for the reference_kind
+// extension defined in field_options.proto. We read it from unknown fields
+// because the Go proto registry may not have the latest extension registered.
+const referenceKindFieldNumber = 90204
+
+// extractReferenceKind extracts the reference_kind field option value.
+// Returns the ApiResourceKind enum integer (e.g., 43=skill, 44=mcp_server)
+// or 0 if not set.
+func extractReferenceKind(field *desc.FieldDescriptor) int32 {
+	opts := field.GetFieldOptions()
+	if opts == nil {
+		return 0
+	}
+
+	raw := opts.ProtoReflect().GetUnknown()
+	for len(raw) > 0 {
+		num, typ, n := protowire.ConsumeTag(raw)
+		if n < 0 {
+			break
+		}
+		raw = raw[n:]
+
+		switch typ {
+		case protowire.VarintType:
+			v, vn := protowire.ConsumeVarint(raw)
+			if vn < 0 {
+				return 0
+			}
+			if num == referenceKindFieldNumber {
+				return int32(v)
+			}
+			raw = raw[vn:]
+		case protowire.Fixed32Type:
+			raw = raw[4:]
+		case protowire.Fixed64Type:
+			raw = raw[8:]
+		case protowire.BytesType:
+			_, bn := protowire.ConsumeBytes(raw)
+			if bn < 0 {
+				return 0
+			}
+			raw = raw[bn:]
+		default:
+			return 0
+		}
+	}
+	return 0
 }
 
 // extractComments extracts documentation from a message descriptor

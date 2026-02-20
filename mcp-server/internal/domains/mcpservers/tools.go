@@ -5,6 +5,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	geninput "github.com/stigmer/stigmer/mcp-server/gen/mcpserver"
 	"github.com/stigmer/stigmer/mcp-server/internal/domains"
 )
 
@@ -34,23 +35,24 @@ func Handler(serverAddress string) func(context.Context, *mcp.CallToolRequest, *
 
 // --- apply_mcp_server ---
 
-// ApplyMcpServerInput defines the parameters for the "apply_mcp_server" tool.
-type ApplyMcpServerInput struct {
-	Resource string `json:"resource" jsonschema:"required,description=Full MCP server resource as JSON. Must include api_version (agentic.stigmer.ai/v1)\\, kind (McpServer)\\, metadata (org\\, slug\\, name required)\\, and spec with server_type (stdio or http config). Example: {\"api_version\":\"agentic.stigmer.ai/v1\"\\,\"kind\":\"McpServer\"\\,\"metadata\":{\"org\":\"acme\"\\,\"slug\":\"github\"\\,\"name\":\"GitHub\"}\\,\"spec\":{\"description\":\"GitHub MCP server\"\\,\"stdio\":{\"command\":\"npx\"\\,\"args\":[\"-y\"\\,\"@modelcontextprotocol/server-github\"]}}}"`
-}
-
 // ApplyTool returns the MCP tool definition for the apply_mcp_server tool.
 func ApplyTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "apply_mcp_server",
-		Description: "Create or update a Stigmer MCP server definition (idempotent). Provide the full MCP server resource as JSON.",
+		Description: "Create or update a Stigmer MCP server definition (idempotent). Provide identity fields (name, org) and server configuration (stdio/http, tools, env, etc.).",
 	}
 }
 
 // ApplyHandler returns the typed tool handler for apply_mcp_server.
-func ApplyHandler(serverAddress string) func(context.Context, *mcp.CallToolRequest, *ApplyMcpServerInput) (*mcp.CallToolResult, any, error) {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, input *ApplyMcpServerInput) (*mcp.CallToolResult, any, error) {
-		return domains.CallApply(Apply, ctx, serverAddress, input.Resource)
+// The input is converted to a proto via ToProto() before calling the gRPC Apply RPC.
+func ApplyHandler(serverAddress string) func(context.Context, *mcp.CallToolRequest, *geninput.McpServerInput) (*mcp.CallToolResult, any, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, input *geninput.McpServerInput) (*mcp.CallToolResult, any, error) {
+		mcpServer := input.ToProto()
+		text, err := Apply(ctx, serverAddress, mcpServer)
+		if err != nil {
+			return nil, nil, err
+		}
+		return domains.TextResult(text)
 	}
 }
 

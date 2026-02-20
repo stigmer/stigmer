@@ -6,18 +6,18 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Project: 20260219.01.mcp-server-codegen
 
-**Description**: Shared Go abstractions that eliminate mechanical MCP server boilerplate while keeping curated tool surfaces hand-written. Replaces the original YAML manifest + code generator approach with reusable helpers in the existing `domains` package.
-**Goal**: Reduce per-domain boilerplate from ~280 lines to ~150 lines through shared abstractions — no external tooling, no YAML, no code generation.
-**Tech Stack**: Go, modelcontextprotocol/go-sdk, protobuf/protojson
-**Location**: `mcp-server/internal/domains/` in the Stigmer monorepo (no separate repo needed).
+**Description**: Shared Go abstractions that eliminate mechanical MCP server boilerplate, plus a codegen pipeline that generates LLM-friendly input types and ToProto() conversion from proto definitions.
+**Goal**: Reduce per-domain boilerplate through shared abstractions + codegen for MCP input types.
+**Tech Stack**: Go, modelcontextprotocol/go-sdk, protobuf/protojson, stigmer-codegen
+**Location**: `mcp-server/` and `tools/codegen/` in the Stigmer monorepo
 **Branch**: `feat/implement-mcp-server-shared-abstractions`
 
 ## Current Status
 
 **Created**: February 19, 2026
-**Last Session**: February 20, 2026
-**Current Task**: T05 — Final Validation and Close-Out
-**Status**: T05 READY TO START
+**Last Session**: February 20, 2026 (Session 4)
+**Current Task**: T08 — Generate workflow input types + Makefile integration
+**Status**: T07 DONE, T08 READY TO START
 
 ## Task Overview
 
@@ -25,83 +25,71 @@ Drop this file into your conversation to quickly resume work on this project.
 |---|---|---|
 | T01 | Architecture Design — shared abstractions, before/after analysis | DONE |
 | T02 | Implement Core Abstractions + rename files to express responsibility | DONE (committed 78691149) |
-| T03 | Refactor Agents Domain — reference refactoring | DONE (committed this session) |
-| T04 | Refactor Remaining Domains — workflows, mcpservers, skills | DONE (committed this session) |
-| T05 | Final Validation and Close-Out | **NEXT** |
+| T03 | Refactor Agents Domain — reference refactoring | DONE |
+| T04 | Refactor Remaining Domains — workflows, mcpservers, skills | DONE |
+| T05 | Final Validation and Close-Out | READY |
+| T06 | Agent Apply Rich Schema — SDK-pattern structured input | DONE (committed 12dbcb9c) |
+| T07 | MCP Input Type Codegen — generate input types from protos | **DONE** |
+| T08 | Workflow codegen + Makefile integration | **NEXT** |
 
-## T04 Completion Summary
+## T07 Completion Summary (Session 4)
 
-Refactored the three remaining MCP server domains to use shared abstractions:
+Built end-to-end MCP input type codegen pipeline that replaces hand-written boilerplate with generated code.
 
-**workflows/**
-- `fetch.go`, `apply.go`, `delete.go` — replaced 7-line gRPC boilerplate with `domains.WithConnection`
-- `resources.go` — replaced 20-line inline closure with `domains.NewResourceHandler`
-- `tools.go` — absorbed `apply_tool.go` and `delete_tool.go` (both deleted); replaced manual `CallToolResult` construction with `domains.CallFetch`/`domains.CallApply`
+**What was built:**
+- Enhanced `proto2schema` to extract `reference_kind` (typed as `ApiResourceKind` enum) and `oneof` metadata
+- Added `reference_kind` field option to `field_options.proto`
+- Created `tools/codegen/generator/mcp.go` — MCP-specific code generation logic
+- Generated input types for `agent` and `mcpserver` domains
+- Created `mcp-server/internal/convert/convert.go` — shared utilities (GenerateSlug, VisibilityFromString)
+- Deleted hand-written `agents/input.go` and `agents/convert.go`
+- Updated all handlers and tests to use generated types
 
-**mcpservers/**
-- Same pattern as workflows; `ApiResourceDeleteInput` preserved in `delete.go` (deliberate protobuf API difference)
-- `apply_tool.go` and `delete_tool.go` deleted (absorbed into `tools.go`)
+**Naming conventions refined:**
+- Singular package names: `gen/agent/`, `gen/mcpserver/`
+- Simple struct names: `AgentInput`, `McpServerInput`
+- Simple file names: `agent_gen.go`, `mcp_server_gen.go`
+- Generated code has zero dependency on `internal/domains`
+- Hand-written utilities in `internal/convert/`, not `gen/`
 
-**skills/**
-- No apply operation; `Fetch` has versioned signature (`org, slug, version`)
-- `fetch.go`, `delete.go` — `WithConnection` pattern
-- `resources.go` — adapter closure pins `version=""` for `NewResourceHandler`; `NewVersionedResourceHandler(Fetch, ...)` for versioned template
-- `tools.go` — get handler uses `domains.TextResult`; delete handler uses `domains.CallFetch`; absorbed `delete_tool.go` (deleted)
+**Results:** All tests pass across 12 packages.
 
-**Net**: ~684 → ~500 source lines across the three domains (-27%); 5 files deleted; zero test file changes; all 12 packages pass; `go vet` clean
+Changelog: `_changelog/2026-02/2026-02-20-181518-mcp-server-input-type-codegen.md`
 
-Changelog: `_changelog/2026-02/2026-02-20-153626-mcp-server-remaining-domains-refactor.md`
+## What T08 Involves
 
-## What T05 Involves
+1. **Generate workflow input types**: Handle `google.protobuf.Struct` for `task_config` field (currently opaque)
+2. **Update workflow handler**: Replace raw JSON string input with generated `WorkflowInput`
+3. **Add Makefile target**: `codegen-mcp` target in `mcp-server/Makefile` to regenerate all MCP input types
+4. **Clean up `domains/input.go`**: Once workflows is migrated, `ResourceIdentity` can be removed (only workflows still uses it)
 
-T05 is a close-out task — no code changes expected, purely verification and documentation:
+## Context for Resume
 
-1. **Full suite verification**: `go test ./mcp-server/... -count=1 -race` with race detector
-2. **Structural audit**: Confirm all four domains have identical file layouts (`fetch.go`, `apply.go`/N/A, `delete.go`, `resources.go`, `tools.go`)
-3. **Surface audit**: Confirm `server.go` tool/resource registration is unchanged — same tool names, same URIs, same counts
-4. **Boilerplate audit**: Confirm zero `stigmergrpc.NewConnection` or `auth.APIKey` calls remain in any domain `fetch/apply/delete.go`
-5. **Project documentation**: Update T01 architecture doc with actual achieved line counts vs projected
-6. **Create PR**: Branch is ready — open the pull request
-
-## Key Design Decisions
-
-1. **Shared abstractions, not code generation** — reusable Go infrastructure in the `domains` package
-2. **File names express responsibility** — no "helper" or "util" in the codebase
-3. **Curated tool descriptions stay hand-written** — next to the handler, in the domain package
-4. **No behavioral changes in any refactoring step** — tests verify this at each T
-5. **Skills asymmetry handled minimally** — adapter closure for non-versioned handler; `TextResult` for get tool. No new shared helper for a single call site.
-
-## Achieved vs Projected
-
-| Metric | Projected | Achieved |
-|---|---|---|
-| T04 line reduction | -390 lines | -184 lines (-27%) |
-| Combined T02+T03+T04 | ~-400 lines total | ~-400 lines total |
-| Test changes | Zero | Zero |
-| New shared helpers needed | Zero | Zero |
-
-Note: The per-T04-domain projection of -130 lines each was aggressive; actual averages -61 lines/domain. The combined project total still hits the goal.
+- Generator handles `reference_kind`, `oneof`, nested messages, maps, arrays, scalar fields
+- `google.protobuf.Struct` (used by `WorkflowSpec.tasks[].task_config`) was explicitly deferred — needs a design decision for how to expose it (raw map? typed per-task-type?)
+- The `identityFieldNames` dedup in the generator prevents collisions when spec fields overlap with identity fields (e.g., McpServerSpec's `tags`)
+- `proto2schema` binary at `tools/proto2schema` was rebuilt but the binary is not committed (it's in `.gitignore`)
 
 ## Essential Files
 
 ```
-_projects/2026-02/20260219.01.mcp-server-codegen/tasks/T01_1_revised_plan.md  — Architecture (APPROVED)
-_changelog/2026-02/2026-02-20-145752-mcp-server-shared-abstractions.md        — T02 changelog
-_changelog/2026-02/2026-02-20-151441-mcp-server-agents-domain-refactor.md    — T03 changelog
-_changelog/2026-02/2026-02-20-153626-mcp-server-remaining-domains-refactor.md — T04 changelog
-mcp-server/internal/domains/                                                    — Shared infrastructure
-mcp-server/internal/domains/agents/                                             — Reference domain (DONE)
-mcp-server/internal/domains/workflows/                                          — DONE
-mcp-server/internal/domains/mcpservers/                                         — DONE
-mcp-server/internal/domains/skills/                                             — DONE
-mcp-server/internal/server/server.go                                            — Registration (unchanged)
+tools/codegen/generator/mcp.go                                    — MCP codegen logic
+tools/codegen/generator/main.go                                   — --target=mcp entry point
+tools/codegen/proto2schema/main.go                                — Schema extraction with referenceKind + oneofGroup
+mcp-server/gen/agent/agent_gen.go                                 — Generated AgentInput
+mcp-server/gen/mcpserver/mcp_server_gen.go                        — Generated McpServerInput
+mcp-server/internal/convert/convert.go                            — Shared utilities (GenerateSlug, VisibilityFromString)
+apis/ai/stigmer/commons/apiresource/field_options.proto           — reference_kind option definition
+apis/ai/stigmer/agentic/agent/v1/spec.proto                      — Annotated with reference_kind values
+_changelog/2026-02/2026-02-20-181518-mcp-server-input-type-codegen.md — T07 changelog
 ```
 
 ## Quick Commands
 
-- "Start T05" — Final validation pass and create PR
-- "Run tests" — `go test ./mcp-server/... -count=1`
-- "Run with race" — `go test ./mcp-server/... -count=1 -race`
+- "Start T08" — Generate workflow types, add Makefile target
+- "Regenerate agent types" — `go run ./tools/codegen/generator/ --schema-dir=tools/codegen/schemas/agentic/agent --output-dir=mcp-server/gen/agent --package=agent --target=mcp`
+- "Regenerate mcpserver types" — `go run ./tools/codegen/generator/ --schema-dir=tools/codegen/schemas/agentic/mcpserver --output-dir=mcp-server/gen/mcpserver --package=mcpserver --target=mcp`
+- "Run tests" — `cd mcp-server && go test ./...`
 
 ---
 

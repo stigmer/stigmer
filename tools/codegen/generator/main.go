@@ -52,14 +52,16 @@ type TypeSchema struct {
 
 // FieldSchema represents a field in a config or type
 type FieldSchema struct {
-	Name         string      `json:"name"`
-	JsonName     string      `json:"jsonName"`
-	ProtoField   string      `json:"protoField"`
-	Type         TypeSpec    `json:"type"`
-	Description  string      `json:"description"`
-	Required     bool        `json:"required"`
-	IsExpression bool        `json:"isExpression,omitempty"`
-	Validation   *Validation `json:"validation,omitempty"`
+	Name          string      `json:"name"`
+	JsonName      string      `json:"jsonName"`
+	ProtoField    string      `json:"protoField"`
+	Type          TypeSpec    `json:"type"`
+	Description   string      `json:"description"`
+	Required      bool        `json:"required"`
+	IsExpression  bool        `json:"isExpression,omitempty"`
+	ReferenceKind int32       `json:"referenceKind,omitempty"`
+	OneofGroup    string      `json:"oneofGroup,omitempty"`
+	Validation    *Validation `json:"validation,omitempty"`
 }
 
 // TypeSpec describes the type of a field
@@ -1711,28 +1713,36 @@ func main() {
 	outputDir := flag.String("output-dir", "sdk/go/workflow/gen", "Output directory for generated Go code")
 	packageName := flag.String("package", "gen", "Go package name for generated code")
 	fileSuffix := flag.String("file-suffix", "", "Suffix for generated files (e.g., '_task', '_spec', or empty)")
+	target := flag.String("target", "sdk", "Generation target: sdk or mcp")
 	flag.Parse()
 
 	if *schemaDir == "" || *outputDir == "" {
-		fmt.Println("Usage: generator --schema-dir <dir> --output-dir <dir> --package <name>")
+		fmt.Println("Usage: generator --schema-dir <dir> --output-dir <dir> --package <name> [--target sdk|mcp]")
 		os.Exit(1)
 	}
 
 	fmt.Printf("Generating Go code from schemas in %s\n", *schemaDir)
 	fmt.Printf("Output directory: %s\n", *outputDir)
 	fmt.Printf("Package name: %s\n", *packageName)
+	fmt.Printf("Target: %s\n", *target)
 
-	// Create generator
 	gen, err := NewGenerator(*schemaDir, *outputDir, *packageName, *fileSuffix)
 	if err != nil {
 		fmt.Printf("Error creating generator: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Generate code
-	if err := gen.Generate(); err != nil {
-		fmt.Printf("Error generating code: %v\n", err)
-		os.Exit(1)
+	switch *target {
+	case "mcp":
+		if err := gen.GenerateMCP(); err != nil {
+			fmt.Printf("Error generating MCP code: %v\n", err)
+			os.Exit(1)
+		}
+	default:
+		if err := gen.Generate(); err != nil {
+			fmt.Printf("Error generating code: %v\n", err)
+			os.Exit(1)
+		}
 	}
 
 	fmt.Println("\n✅ Code generation complete!")
