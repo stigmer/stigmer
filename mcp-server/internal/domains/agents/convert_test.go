@@ -6,7 +6,7 @@ import (
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	geninput "github.com/stigmer/stigmer/mcp-server/gen/agent"
+	geninput "github.com/stigmer/stigmer/mcp-server/gen/agentic/agent"
 	"github.com/stigmer/stigmer/mcp-server/internal/convert"
 )
 

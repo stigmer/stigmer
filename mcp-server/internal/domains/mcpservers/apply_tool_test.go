@@ -7,7 +7,7 @@ import (
 
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	geninput "github.com/stigmer/stigmer/mcp-server/gen/mcpserver"
+	geninput "github.com/stigmer/stigmer/mcp-server/gen/agentic/mcpserver"
 	"github.com/stigmer/stigmer/mcp-server/internal/auth"
 	"github.com/stigmer/stigmer/mcp-server/internal/testutil"
 	"google.golang.org/grpc"

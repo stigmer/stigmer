@@ -24,6 +24,8 @@ import "google/protobuf/struct.proto";
 //
 // Reference: zigflow-dsl-pattern-catalog.md - Task Type 2
 message HttpCallTaskConfig {
+  option (ai.stigmer.commons.apiresource.discriminator_value) = "http_call";
+
   // HTTP method (GET, POST, PUT, DELETE, PATCH).
   string method = 1 [
     (buf.validate.field).required = true,

@@ -5,7 +5,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	geninput "github.com/stigmer/stigmer/mcp-server/gen/mcpserver"
+	geninput "github.com/stigmer/stigmer/mcp-server/gen/agentic/mcpserver"
 	"github.com/stigmer/stigmer/mcp-server/internal/domains"
 )
 

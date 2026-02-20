@@ -16,4 +16,16 @@ extend google.protobuf.FieldOptions {
   // Declares what kind of resource an ApiResourceReference field points to.
   // Used by codegen to auto-populate the kind enum and flatten reference types.
   ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind reference_kind = 90204;
+  // Marks a google.protobuf.Struct field as a discriminated union.
+  // Value is the name of the sibling field that acts as the kind/discriminator.
+  // Used by codegen to expand the Struct into typed variant fields.
+  optional string discriminated_by = 90205;
+}
+
+// Message-level options for api-resource messages
+extend google.protobuf.MessageOptions {
+  // Marks a message as a typed variant of a discriminated union.
+  // Value is the enum string value this message corresponds to.
+  // Used together with discriminated_by on the parent Struct field.
+  optional string discriminator_value = 90301;
 }

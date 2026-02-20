@@ -4,6 +4,7 @@
   "description": "WaitTaskConfig defines the configuration for WAIT tasks.\n\n WAIT tasks pause workflow execution using Temporal timers.\n Supports both relative durations (\"wait 1 week\") and absolute\n timestamps (\"wait until March 1st 9am\").\n\n YAML Examples:\n\n   Relative duration:\n   - waitForApproval:\n       wait:\n         duration:\n           days: 7\n\n   Absolute timestamp:\n   - waitUntilMarketOpen:\n       wait:\n         until: \"2026-03-02T09:30:00Z\"\n\n Reference: zigflow-dsl-pattern-catalog.md - Task Type 8",
   "protoType": "ai.stigmer.agentic.workflow.v1.tasks.WaitTaskConfig",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/wait.proto",
+  "discriminatorValue": "wait",
   "fields": [
     {
       "name": "Duration",

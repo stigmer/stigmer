@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.workflow.v1.tasks;
 
+import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/struct.proto";
 
@@ -20,6 +21,8 @@ import "google/protobuf/struct.proto";
 //
 // Reference: zigflow-dsl-pattern-catalog.md - Task Type 9
 message GrpcCallTaskConfig {
+  option (ai.stigmer.commons.apiresource.discriminator_value) = "grpc_call";
+
   // Fully qualified service name.
   // Example: "com.example.UserService"
   string service = 1 [

@@ -32,12 +32,13 @@ import (
 
 // TaskConfigSchema represents a workflow task configuration
 type TaskConfigSchema struct {
-	Name        string         `json:"name"`
-	Kind        string         `json:"kind,omitempty"`
-	Description string         `json:"description"`
-	ProtoType   string         `json:"protoType"`
-	ProtoFile   string         `json:"protoFile"`
-	Fields      []*FieldSchema `json:"fields"`
+	Name               string         `json:"name"`
+	Kind               string         `json:"kind,omitempty"`
+	Description        string         `json:"description"`
+	ProtoType          string         `json:"protoType"`
+	ProtoFile          string         `json:"protoFile"`
+	DiscriminatorValue string         `json:"discriminatorValue,omitempty"`
+	Fields             []*FieldSchema `json:"fields"`
 }
 
 // TypeSchema represents a shared type (e.g., HttpEndpoint)
@@ -52,16 +53,17 @@ type TypeSchema struct {
 
 // FieldSchema represents a field in a config or type
 type FieldSchema struct {
-	Name          string      `json:"name"`
-	JsonName      string      `json:"jsonName"`
-	ProtoField    string      `json:"protoField"`
-	Type          TypeSpec    `json:"type"`
-	Description   string      `json:"description"`
-	Required      bool        `json:"required"`
-	IsExpression  bool        `json:"isExpression,omitempty"`
-	ReferenceKind int32       `json:"referenceKind,omitempty"`
-	OneofGroup    string      `json:"oneofGroup,omitempty"`
-	Validation    *Validation `json:"validation,omitempty"`
+	Name            string      `json:"name"`
+	JsonName        string      `json:"jsonName"`
+	ProtoField      string      `json:"protoField"`
+	Type            TypeSpec    `json:"type"`
+	Description     string      `json:"description"`
+	Required        bool        `json:"required"`
+	IsExpression    bool        `json:"isExpression,omitempty"`
+	ReferenceKind   int32       `json:"referenceKind,omitempty"`
+	DiscriminatedBy string      `json:"discriminatedBy,omitempty"`
+	OneofGroup      string      `json:"oneofGroup,omitempty"`
+	Validation      *Validation `json:"validation,omitempty"`
 }
 
 // TypeSpec describes the type of a field
@@ -1838,6 +1840,242 @@ func toSnakeCase(s string) string {
 }
 
 // ============================================================================
+// Comprehensive Mode
+// ============================================================================
+
+// satelliteDir holds schemas from a non-domain directory (e.g., tasks/).
+type satelliteDir struct {
+	path    string
+	schemas []*TaskConfigSchema
+	types   []*TypeSchema
+}
+
+// discoverDomains walks the schema root and returns domain/resource pairs.
+// A domain directory contains subdirectories with {name}.json resource schemas.
+// Non-domain directories (satellites) are returned separately.
+func discoverDomains(schemaDir string) (domains []struct {
+	name      string
+	resources []string
+}, satellites []string, err error) {
+	entries, err := os.ReadDir(schemaDir)
+	if err != nil {
+		return nil, nil, fmt.Errorf("read schema dir: %w", err)
+	}
+
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		dirPath := filepath.Join(schemaDir, entry.Name())
+		subs, err := os.ReadDir(dirPath)
+		if err != nil {
+			continue
+		}
+
+		var resources []string
+		isDomain := false
+		for _, sub := range subs {
+			if !sub.IsDir() {
+				continue
+			}
+			expected := filepath.Join(dirPath, sub.Name(), sub.Name()+".json")
+			if _, err := os.Stat(expected); err == nil {
+				resources = append(resources, sub.Name())
+				isDomain = true
+			}
+		}
+
+		if isDomain {
+			sort.Strings(resources)
+			domains = append(domains, struct {
+				name      string
+				resources []string
+			}{name: entry.Name(), resources: resources})
+		} else {
+			satellites = append(satellites, dirPath)
+		}
+	}
+
+	sort.Slice(domains, func(i, j int) bool { return domains[i].name < domains[j].name })
+	return domains, satellites, nil
+}
+
+// indexSatellites loads schemas from satellite directories.
+func indexSatellites(dirs []string) ([]*satelliteDir, error) {
+	var result []*satelliteDir
+	for _, dir := range dirs {
+		sat := &satelliteDir{path: dir}
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			return nil, fmt.Errorf("read satellite dir %s: %w", dir, err)
+		}
+		for _, entry := range entries {
+			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
+				continue
+			}
+			schema, err := loadTaskConfigSchema(filepath.Join(dir, entry.Name()))
+			if err != nil {
+				continue
+			}
+			sat.schemas = append(sat.schemas, schema)
+		}
+
+		typesDir := filepath.Join(dir, "types")
+		if entries, err := os.ReadDir(typesDir); err == nil {
+			for _, entry := range entries {
+				if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
+					continue
+				}
+				ts, err := loadTypeSchema(filepath.Join(typesDir, entry.Name()))
+				if err != nil {
+					continue
+				}
+				sat.types = append(sat.types, ts)
+			}
+		}
+
+		result = append(result, sat)
+	}
+	return result, nil
+}
+
+// detectExpandStructFromSchema inspects a generator's loaded schemas for
+// the discriminated_by pattern and auto-configures expand-struct from
+// matching satellite schemas.
+func detectExpandStructFromSchema(gen *Generator, satellites []*satelliteDir) {
+	for _, typ := range gen.sharedTypes {
+		var structField, discriminatorField *FieldSchema
+		for _, f := range typ.Fields {
+			if f.DiscriminatedBy != "" {
+				structField = f
+			}
+			if f.Type.Kind == "string" && len(f.Type.EnumValues) > 0 {
+				discriminatorField = f
+			}
+		}
+		if structField == nil || discriminatorField == nil {
+			continue
+		}
+
+		if structField.DiscriminatedBy != discriminatorField.ProtoField {
+			continue
+		}
+
+		enumSet := make(map[string]bool, len(discriminatorField.Type.EnumValues))
+		for _, v := range discriminatorField.Type.EnumValues {
+			enumSet[v] = true
+		}
+
+		for _, sat := range satellites {
+			matchCount := 0
+			for _, s := range sat.schemas {
+				if s.DiscriminatorValue != "" && enumSet[s.DiscriminatorValue] {
+					matchCount++
+				}
+			}
+			if matchCount == 0 {
+				continue
+			}
+
+			esc := &expandStructConfig{
+				structField:        structField.ProtoField,
+				discriminatorField: discriminatorField.ProtoField,
+				configSchemaDir:    sat.path,
+				configs:            sat.schemas,
+				configTypes:        sat.types,
+				kindToEnum:         make(map[string]string),
+			}
+			for _, s := range sat.schemas {
+				if s.DiscriminatorValue != "" {
+					esc.kindToEnum[s.Kind] = s.DiscriminatorValue
+				}
+			}
+			gen.expandStruct = esc
+			fmt.Printf("  Auto-detected expand-struct: %s discriminated by %s (%d variants from %s)\n",
+				structField.ProtoField, discriminatorField.ProtoField,
+				matchCount, filepath.Base(sat.path))
+			return
+		}
+	}
+}
+
+// skipResources lists resources that cannot be generated because they are
+// composite/aggregate types embedding full resource wrappers. The MCP input
+// generator requires Spec-level types; composite types cause naming collisions
+// (e.g., Agent and AgentSpec both map to AgentInput).
+var skipResources = map[string]bool{
+	"project": true,
+}
+
+// runComprehensiveMCP discovers all domain/resource schemas and generates
+// MCP input types for each into domain-scoped output directories.
+func runComprehensiveMCP(schemaDir, outputDir string) error {
+	fmt.Printf("Comprehensive MCP generation from %s\n", schemaDir)
+	fmt.Printf("Output directory: %s\n\n", outputDir)
+
+	domains, satellitePaths, err := discoverDomains(schemaDir)
+	if err != nil {
+		return err
+	}
+
+	satellites, err := indexSatellites(satellitePaths)
+	if err != nil {
+		return err
+	}
+
+	if len(satellites) > 0 {
+		for _, sat := range satellites {
+			fmt.Printf("Indexed satellite: %s (%d schemas)\n", filepath.Base(sat.path), len(sat.schemas))
+		}
+		fmt.Println()
+	}
+
+	var generated, failed int
+
+	for _, domain := range domains {
+		fmt.Printf("=== %s domain (%d resources) ===\n", domain.name, len(domain.resources))
+
+		for _, resource := range domain.resources {
+			if skipResources[resource] {
+				fmt.Printf("\n  %s/%s (skipped: composite resource)\n", domain.name, resource)
+				continue
+			}
+
+			resourceSchemaDir := filepath.Join(schemaDir, domain.name, resource)
+			resourceOutputDir := filepath.Join(outputDir, domain.name, resource)
+
+			fmt.Printf("\n  %s/%s\n", domain.name, resource)
+
+			gen, err := NewGenerator(resourceSchemaDir, resourceOutputDir, resource, "")
+			if err != nil {
+				fmt.Printf("    ERROR loading schemas: %v\n", err)
+				failed++
+				continue
+			}
+
+			detectExpandStructFromSchema(gen, satellites)
+
+			if err := gen.GenerateMCP(); err != nil {
+				fmt.Printf("    ERROR generating: %v\n", err)
+				failed++
+				continue
+			}
+
+			fmt.Printf("    OK → %s\n", resourceOutputDir)
+			generated++
+		}
+
+		fmt.Println()
+	}
+
+	fmt.Printf("Generated: %d resources, Failed: %d\n", generated, failed)
+	if failed > 0 {
+		return fmt.Errorf("%d resource(s) failed generation", failed)
+	}
+	return nil
+}
+
+// ============================================================================
 // Main
 // ============================================================================
 
@@ -1848,7 +2086,27 @@ func main() {
 	fileSuffix := flag.String("file-suffix", "", "Suffix for generated files (e.g., '_task', '_spec', or empty)")
 	target := flag.String("target", "sdk", "Generation target: sdk or mcp")
 	expandStruct := flag.String("expand-struct", "", "Expand a Struct field into typed config fields: struct_field:discriminator_field:config_schema_dir")
+	comprehensive := flag.Bool("comprehensive", false, "Auto-discover all domain/resource schemas and generate for each")
 	flag.Parse()
+
+	if *comprehensive {
+		if *schemaDir == "" || *outputDir == "" {
+			fmt.Println("Usage: generator --comprehensive --schema-dir <dir> --output-dir <dir> --target mcp")
+			os.Exit(1)
+		}
+		switch *target {
+		case "mcp":
+			if err := runComprehensiveMCP(*schemaDir, *outputDir); err != nil {
+				fmt.Printf("Error in comprehensive MCP generation: %v\n", err)
+				os.Exit(1)
+			}
+		default:
+			fmt.Printf("Comprehensive mode is only supported for --target=mcp (got %s)\n", *target)
+			os.Exit(1)
+		}
+		fmt.Println("\n✅ Comprehensive code generation complete!")
+		return
+	}
 
 	if *schemaDir == "" || *outputDir == "" {
 		fmt.Println("Usage: generator --schema-dir <dir> --output-dir <dir> --package <name> [--target sdk|mcp]")

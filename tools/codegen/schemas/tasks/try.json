@@ -4,6 +4,7 @@
   "description": "TryTaskConfig defines the configuration for TRY tasks.\n\n TRY tasks provide try/catch error handling.\n\n YAML Example:\n   - taskName:\n       try:\n         - attemptTask:\n             call: http\n             with:\n               method: POST\n               endpoint:\n                 uri: https://api.example.com/flaky\n       catch:\n         as: error\n         do:\n           - errorHandler:\n               call: http\n               with:\n                 body:\n                   error: ${ .error }\n\n Reference: zigflow-dsl-pattern-catalog.md - Task Type 6",
   "protoType": "ai.stigmer.agentic.workflow.v1.tasks.TryTaskConfig",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/try.proto",
+  "discriminatorValue": "try_catch",
   "fields": [
     {
       "name": "Try",
