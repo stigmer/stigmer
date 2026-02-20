@@ -55,6 +55,7 @@ const (
 	ApiResourceIamPermission_can_create_instance     ApiResourceIamPermission = 20 // Permission to create agent instances (derived from can_execute on parent agent)
 	ApiResourceIamPermission_can_create_skill        ApiResourceIamPermission = 21 // Permission to create skills in an organization
 	ApiResourceIamPermission_can_create_project      ApiResourceIamPermission = 23 // Permission to create projects in an organization
+	ApiResourceIamPermission_can_create_idp          ApiResourceIamPermission = 24 // Permission to create identity providers in an organization
 	// Resource-specific operation permissions
 	ApiResourceIamPermission_can_execute ApiResourceIamPermission = 22 // Permission to execute agent/session operations
 )
@@ -85,6 +86,7 @@ var (
 		20: "can_create_instance",
 		21: "can_create_skill",
 		23: "can_create_project",
+		24: "can_create_idp",
 		22: "can_execute",
 	}
 	ApiResourceIamPermission_value = map[string]int32{
@@ -111,6 +113,7 @@ var (
 		"can_create_instance":     20,
 		"can_create_skill":        21,
 		"can_create_project":      23,
+		"can_create_idp":          24,
 		"can_execute":             22,
 	}
 )
@@ -146,7 +149,7 @@ var File_ai_stigmer_iam_iampolicy_v1_rpcauthorization_iam_permission_proto proto
 
 const file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_iam_permission_proto_rawDesc = "" +
 	"\n" +
-	"Aai/stigmer/iam/iampolicy/v1/rpcauthorization/iam_permission.proto\x12,ai.stigmer.iam.iampolicy.v1.rpcauthorization*\xd7\x03\n" +
+	"Aai/stigmer/iam/iampolicy/v1/rpcauthorization/iam_permission.proto\x12,ai.stigmer.iam.iampolicy.v1.rpcauthorization*\xeb\x03\n" +
 	"\x18ApiResourceIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\n" +
 	"\n" +
@@ -174,7 +177,8 @@ const file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_iam_permission_proto_raw
 	"\x17can_create_execution_in\x10\x13\x12\x17\n" +
 	"\x13can_create_instance\x10\x14\x12\x14\n" +
 	"\x10can_create_skill\x10\x15\x12\x16\n" +
-	"\x12can_create_project\x10\x17\x12\x0f\n" +
+	"\x12can_create_project\x10\x17\x12\x12\n" +
+	"\x0ecan_create_idp\x10\x18\x12\x0f\n" +
 	"\vcan_execute\x10\x16B\xf5\x02\n" +
 	"0com.ai.stigmer.iam.iampolicy.v1.rpcauthorizationB\x12IamPermissionProtoP\x01ZUgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/iampolicy/v1/rpcauthorization\xa2\x02\x06ASIIVR\xaa\x02,Ai.Stigmer.Iam.Iampolicy.V1.Rpcauthorization\xca\x02,Ai\\Stigmer\\Iam\\Iampolicy\\V1\\Rpcauthorization\xe2\x028Ai\\Stigmer\\Iam\\Iampolicy\\V1\\Rpcauthorization\\GPBMetadata\xea\x021Ai::Stigmer::Iam::Iampolicy::V1::Rpcauthorizationb\x06proto3"
 

@@ -8,6 +8,7 @@ package organizationv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
+	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -168,11 +169,67 @@ func (x *OrganizationId) GetValue() string {
 	return ""
 }
 
+// Input for looking up a platform-managed organization by its external platform coordinates.
+// Used by integrating platforms to find the Stigmer organization mapped to their own org.
+type OrganizationExternalLookup struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Reference to the IdentityProvider (org + slug) that manages this organization.
+	IdentityProviderRef *apiresource.ApiResourceReference `protobuf:"bytes,1,opt,name=identity_provider_ref,json=identityProviderRef,proto3" json:"identity_provider_ref,omitempty"`
+	// The external platform's organization identifier.
+	ExternalOrgId string `protobuf:"bytes,2,opt,name=external_org_id,json=externalOrgId,proto3" json:"external_org_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OrganizationExternalLookup) Reset() {
+	*x = OrganizationExternalLookup{}
+	mi := &file_ai_stigmer_tenancy_organization_v1_io_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OrganizationExternalLookup) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OrganizationExternalLookup) ProtoMessage() {}
+
+func (x *OrganizationExternalLookup) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_tenancy_organization_v1_io_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OrganizationExternalLookup.ProtoReflect.Descriptor instead.
+func (*OrganizationExternalLookup) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_tenancy_organization_v1_io_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *OrganizationExternalLookup) GetIdentityProviderRef() *apiresource.ApiResourceReference {
+	if x != nil {
+		return x.IdentityProviderRef
+	}
+	return nil
+}
+
+func (x *OrganizationExternalLookup) GetExternalOrgId() string {
+	if x != nil {
+		return x.ExternalOrgId
+	}
+	return ""
+}
+
 var File_ai_stigmer_tenancy_organization_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_tenancy_organization_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/tenancy/organization/v1/io.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a,ai/stigmer/tenancy/organization/v1/api.proto\x1a\x1bbuf/validate/validate.proto\"[\n" +
+	"+ai/stigmer/tenancy/organization/v1/io.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a,ai/stigmer/tenancy/organization/v1/api.proto\x1a\x1bbuf/validate/validate.proto\"[\n" +
 	"\rOrganizations\x12J\n" +
 	"\aentries\x18\x01 \x03(\v20.ai.stigmer.tenancy.organization.v1.OrganizationR\aentries\"\x7f\n" +
 	"\x10OrganizationList\x12\x1f\n" +
@@ -180,7 +237,10 @@ const file_ai_stigmer_tenancy_organization_v1_io_proto_rawDesc = "" +
 	"totalPages\x12J\n" +
 	"\aentries\x18\x02 \x03(\v20.ai.stigmer.tenancy.organization.v1.OrganizationR\aentries\"1\n" +
 	"\x0eOrganizationId\x12\x1f\n" +
-	"\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05valueB\xba\x02\n" +
+	"\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"\xbf\x01\n" +
+	"\x1aOrganizationExternalLookup\x12p\n" +
+	"\x15identity_provider_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x06\xbaH\x03\xc8\x01\x01R\x13identityProviderRef\x12/\n" +
+	"\x0fexternal_org_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\rexternalOrgIdB\xba\x02\n" +
 	"&com.ai.stigmer.tenancy.organization.v1B\aIoProtoP\x01ZZgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/organization/v1;organizationv1\xa2\x02\x04ASTO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3"
 
 var (
@@ -195,21 +255,24 @@ func file_ai_stigmer_tenancy_organization_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_tenancy_organization_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_tenancy_organization_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_ai_stigmer_tenancy_organization_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ai_stigmer_tenancy_organization_v1_io_proto_goTypes = []any{
-	(*Organizations)(nil),    // 0: ai.stigmer.tenancy.organization.v1.Organizations
-	(*OrganizationList)(nil), // 1: ai.stigmer.tenancy.organization.v1.OrganizationList
-	(*OrganizationId)(nil),   // 2: ai.stigmer.tenancy.organization.v1.OrganizationId
-	(*Organization)(nil),     // 3: ai.stigmer.tenancy.organization.v1.Organization
+	(*Organizations)(nil),                    // 0: ai.stigmer.tenancy.organization.v1.Organizations
+	(*OrganizationList)(nil),                 // 1: ai.stigmer.tenancy.organization.v1.OrganizationList
+	(*OrganizationId)(nil),                   // 2: ai.stigmer.tenancy.organization.v1.OrganizationId
+	(*OrganizationExternalLookup)(nil),       // 3: ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup
+	(*Organization)(nil),                     // 4: ai.stigmer.tenancy.organization.v1.Organization
+	(*apiresource.ApiResourceReference)(nil), // 5: ai.stigmer.commons.apiresource.ApiResourceReference
 }
 var file_ai_stigmer_tenancy_organization_v1_io_proto_depIdxs = []int32{
-	3, // 0: ai.stigmer.tenancy.organization.v1.Organizations.entries:type_name -> ai.stigmer.tenancy.organization.v1.Organization
-	3, // 1: ai.stigmer.tenancy.organization.v1.OrganizationList.entries:type_name -> ai.stigmer.tenancy.organization.v1.Organization
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	4, // 0: ai.stigmer.tenancy.organization.v1.Organizations.entries:type_name -> ai.stigmer.tenancy.organization.v1.Organization
+	4, // 1: ai.stigmer.tenancy.organization.v1.OrganizationList.entries:type_name -> ai.stigmer.tenancy.organization.v1.Organization
+	5, // 2: ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup.identity_provider_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_tenancy_organization_v1_io_proto_init() }
@@ -224,7 +287,7 @@ func file_ai_stigmer_tenancy_organization_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_tenancy_organization_v1_io_proto_rawDesc), len(file_ai_stigmer_tenancy_organization_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -23,12 +23,12 @@ _sym_db = _symbol_database.Default()
 
 
 from ai.stigmer.commons.apiresource import metadata_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_metadata__pb2
+from ai.stigmer.commons.apiresource import status_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_status__pb2
 from ai.stigmer.iam.identityprovider.v1 import spec_pb2 as ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_spec__pb2
-from ai.stigmer.iam.identityprovider.v1 import status_pb2 as ai_dot_stigmer_dot_iam_dot_identityprovider_dot_v1_dot_status__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n,ai/stigmer/iam/identityprovider/v1/api.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a-ai/stigmer/iam/identityprovider/v1/spec.proto\x1a/ai/stigmer/iam/identityprovider/v1/status.proto\x1a\x1b\x62uf/validate/validate.proto\"\xf5\x02\n\x10IdentityProvider\x12\x39\n\x0b\x61pi_version\x18\x01 \x01(\tB\x18\xbaH\x15r\x13\n\x11iam.stigmer.ai/v1R\napiVersion\x12+\n\x04kind\x18\x02 \x01(\tB\x17\xbaH\x14r\x12\n\x10IdentityProviderR\x04kind\x12W\n\x08metadata\x18\x03 \x01(\x0b\x32\x33.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\x08metadata\x12L\n\x04spec\x18\x04 \x01(\x0b\x32\x38.ai.stigmer.iam.identityprovider.v1.IdentityProviderSpecR\x04spec\x12R\n\x06status\x18\x05 \x01(\x0b\x32:.ai.stigmer.iam.identityprovider.v1.IdentityProviderStatusR\x06statusB\xdf\x01\n&com.ai.stigmer.iam.identityprovider.v1B\x08\x41piProtoP\x01\xa2\x02\x04\x41SII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n,ai/stigmer/iam/identityprovider/v1/api.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a-ai/stigmer/iam/identityprovider/v1/spec.proto\x1a\x1b\x62uf/validate/validate.proto\"\xf1\x02\n\x10IdentityProvider\x12\x39\n\x0b\x61pi_version\x18\x01 \x01(\tB\x18\xbaH\x15r\x13\n\x11iam.stigmer.ai/v1R\napiVersion\x12+\n\x04kind\x18\x02 \x01(\tB\x17\xbaH\x14r\x12\n\x10IdentityProviderR\x04kind\x12W\n\x08metadata\x18\x03 \x01(\x0b\x32\x33.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\x08metadata\x12L\n\x04spec\x18\x04 \x01(\x0b\x32\x38.ai.stigmer.iam.identityprovider.v1.IdentityProviderSpecR\x04spec\x12N\n\x06status\x18\x05 \x01(\x0b\x32\x36.ai.stigmer.commons.apiresource.ApiResourceAuditStatusR\x06statusB\xdf\x01\n&com.ai.stigmer.iam.identityprovider.v1B\x08\x41piProtoP\x01\xa2\x02\x04\x41SII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -42,6 +42,6 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_IDENTITYPROVIDER'].fields_by_name['kind']._serialized_options = b'\272H\024r\022\n\020IdentityProvider'
   _globals['_IDENTITYPROVIDER'].fields_by_name['metadata']._loaded_options = None
   _globals['_IDENTITYPROVIDER'].fields_by_name['metadata']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_IDENTITYPROVIDER']._serialized_start=257
-  _globals['_IDENTITYPROVIDER']._serialized_end=630
+  _globals['_IDENTITYPROVIDER']._serialized_start=253
+  _globals['_IDENTITYPROVIDER']._serialized_end=622
 # @@protoc_insertion_point(module_scope)

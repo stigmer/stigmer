@@ -23,11 +23,12 @@ _sym_db = _symbol_database.Default()
 
 
 from ai.stigmer.agentic.environment.v1 import spec_pb2 as ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_spec__pb2
+from ai.stigmer.commons.apiresource import field_options_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_field__options__pb2
 from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&ai/stigmer/agentic/agent/v1/spec.proto\x12\x1b\x61i.stigmer.agentic.agent.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x1b\x62uf/validate/validate.proto\"\xa6\x05\n\tAgentSpec\x12 \n\x0b\x64\x65scription\x18\x01 \x01(\tR\x0b\x64\x65scription\x12\x19\n\x08icon_url\x18\x02 \x01(\tR\x07iconUrl\x12+\n\x0cinstructions\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\nR\x0cinstructions\x12\xdf\x01\n\x11mcp_server_usages\x18\x04 \x03(\x0b\x32+.ai.stigmer.agentic.agent.v1.McpServerUsageB\x85\x01\xbaH\x81\x01\x92\x01~\"|\xba\x01y\n\x16mcp_server_usages.kind\x12?mcp_server_usages must reference resources with kind=mcp_server\x1a\x1ethis.mcp_server_ref.kind == 44R\x0fmcpServerUsages\x12\xb7\x01\n\nskill_refs\x18\x05 \x03(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceBb\xbaH_\x92\x01\\\"Z\xba\x01W\n\x0fskill_refs.kind\x12\x33skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43R\tskillRefs\x12\x44\n\nsub_agents\x18\x06 \x03(\x0b\x32%.ai.stigmer.agentic.agent.v1.SubAgentR\tsubAgents\x12M\n\x08\x65nv_spec\x18\x07 \x01(\x0b\x32\x32.ai.stigmer.agentic.environment.v1.EnvironmentSpecR\x07\x65nvSpec\"\xf6\x02\n\x08SubAgent\x12\x1a\n\x04name\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04name\x12 \n\x0b\x64\x65scription\x18\x02 \x01(\tR\x0b\x64\x65scription\x12+\n\x0cinstructions\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\nR\x0cinstructions\x12\x45\n\nmcp_access\x18\x04 \x03(\x0b\x32&.ai.stigmer.agentic.agent.v1.McpAccessR\tmcpAccess\x12\xb7\x01\n\nskill_refs\x18\x05 \x03(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceBb\xbaH_\x92\x01\\\"Z\xba\x01W\n\x0fskill_refs.kind\x12\x33skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43R\tskillRefs\"\x84\x02\n\x0eMcpServerUsage\x12\x62\n\x0emcp_server_ref\x18\x01 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x06\xbaH\x03\xc8\x01\x01R\x0cmcpServerRef\x12#\n\renabled_tools\x18\x02 \x03(\tR\x0c\x65nabledTools\x12i\n\x17tool_approval_overrides\x18\x03 \x03(\x0b\x32\x31.ai.stigmer.agentic.agent.v1.ToolApprovalOverrideR\x15toolApprovalOverrides\"W\n\tMcpAccess\x12%\n\nmcp_server\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tmcpServer\x12#\n\renabled_tools\x18\x02 \x03(\tR\x0c\x65nabledTools\"\x83\x01\n\x14ToolApprovalOverride\x12$\n\ttool_name\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x08toolName\x12+\n\x11requires_approval\x18\x02 \x01(\x08R\x10requiresApproval\x12\x18\n\x07message\x18\x03 \x01(\tR\x07messageB\xbd\x01\n\x1f\x63om.ai.stigmer.agentic.agent.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02\x1b\x41i.Stigmer.Agentic.Agent.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Agent\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Agent::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&ai/stigmer/agentic/agent/v1/spec.proto\x12\x1b\x61i.stigmer.agentic.agent.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a\x32\x61i/stigmer/commons/apiresource/field_options.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x1b\x62uf/validate/validate.proto\"\xaa\x05\n\tAgentSpec\x12 \n\x0b\x64\x65scription\x18\x01 \x01(\tR\x0b\x64\x65scription\x12\x19\n\x08icon_url\x18\x02 \x01(\tR\x07iconUrl\x12+\n\x0cinstructions\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\nR\x0cinstructions\x12\xdf\x01\n\x11mcp_server_usages\x18\x04 \x03(\x0b\x32+.ai.stigmer.agentic.agent.v1.McpServerUsageB\x85\x01\xbaH\x81\x01\x92\x01~\"|\xba\x01y\n\x16mcp_server_usages.kind\x12?mcp_server_usages must reference resources with kind=mcp_server\x1a\x1ethis.mcp_server_ref.kind == 44R\x0fmcpServerUsages\x12\xbb\x01\n\nskill_refs\x18\x05 \x03(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceBf\xbaH_\x92\x01\\\"Z\xba\x01W\n\x0fskill_refs.kind\x12\x33skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43\xe0\x85,+R\tskillRefs\x12\x44\n\nsub_agents\x18\x06 \x03(\x0b\x32%.ai.stigmer.agentic.agent.v1.SubAgentR\tsubAgents\x12M\n\x08\x65nv_spec\x18\x07 \x01(\x0b\x32\x32.ai.stigmer.agentic.environment.v1.EnvironmentSpecR\x07\x65nvSpec\"\xfa\x02\n\x08SubAgent\x12\x1a\n\x04name\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04name\x12 \n\x0b\x64\x65scription\x18\x02 \x01(\tR\x0b\x64\x65scription\x12+\n\x0cinstructions\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\nR\x0cinstructions\x12\x45\n\nmcp_access\x18\x04 \x03(\x0b\x32&.ai.stigmer.agentic.agent.v1.McpAccessR\tmcpAccess\x12\xbb\x01\n\nskill_refs\x18\x05 \x03(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceBf\xbaH_\x92\x01\\\"Z\xba\x01W\n\x0fskill_refs.kind\x12\x33skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43\xe0\x85,+R\tskillRefs\"\x88\x02\n\x0eMcpServerUsage\x12\x66\n\x0emcp_server_ref\x18\x01 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceB\n\xbaH\x03\xc8\x01\x01\xe0\x85,,R\x0cmcpServerRef\x12#\n\renabled_tools\x18\x02 \x03(\tR\x0c\x65nabledTools\x12i\n\x17tool_approval_overrides\x18\x03 \x03(\x0b\x32\x31.ai.stigmer.agentic.agent.v1.ToolApprovalOverrideR\x15toolApprovalOverrides\"W\n\tMcpAccess\x12%\n\nmcp_server\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tmcpServer\x12#\n\renabled_tools\x18\x02 \x03(\tR\x0c\x65nabledTools\"\x83\x01\n\x14ToolApprovalOverride\x12$\n\ttool_name\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x08toolName\x12+\n\x11requires_approval\x18\x02 \x01(\x08R\x10requiresApproval\x12\x18\n\x07message\x18\x03 \x01(\tR\x07messageB\xbd\x01\n\x1f\x63om.ai.stigmer.agentic.agent.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02\x1b\x41i.Stigmer.Agentic.Agent.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Agent\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Agent::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -40,27 +41,27 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_AGENTSPEC'].fields_by_name['mcp_server_usages']._loaded_options = None
   _globals['_AGENTSPEC'].fields_by_name['mcp_server_usages']._serialized_options = b'\272H\201\001\222\001~\"|\272\001y\n\026mcp_server_usages.kind\022?mcp_server_usages must reference resources with kind=mcp_server\032\036this.mcp_server_ref.kind == 44'
   _globals['_AGENTSPEC'].fields_by_name['skill_refs']._loaded_options = None
-  _globals['_AGENTSPEC'].fields_by_name['skill_refs']._serialized_options = b'\272H_\222\001\\\"Z\272\001W\n\017skill_refs.kind\0223skill_refs must reference resources with kind=skill\032\017this.kind == 43'
+  _globals['_AGENTSPEC'].fields_by_name['skill_refs']._serialized_options = b'\272H_\222\001\\\"Z\272\001W\n\017skill_refs.kind\0223skill_refs must reference resources with kind=skill\032\017this.kind == 43\340\205,+'
   _globals['_SUBAGENT'].fields_by_name['name']._loaded_options = None
   _globals['_SUBAGENT'].fields_by_name['name']._serialized_options = b'\272H\003\310\001\001'
   _globals['_SUBAGENT'].fields_by_name['instructions']._loaded_options = None
   _globals['_SUBAGENT'].fields_by_name['instructions']._serialized_options = b'\272H\004r\002\020\n'
   _globals['_SUBAGENT'].fields_by_name['skill_refs']._loaded_options = None
-  _globals['_SUBAGENT'].fields_by_name['skill_refs']._serialized_options = b'\272H_\222\001\\\"Z\272\001W\n\017skill_refs.kind\0223skill_refs must reference resources with kind=skill\032\017this.kind == 43'
+  _globals['_SUBAGENT'].fields_by_name['skill_refs']._serialized_options = b'\272H_\222\001\\\"Z\272\001W\n\017skill_refs.kind\0223skill_refs must reference resources with kind=skill\032\017this.kind == 43\340\205,+'
   _globals['_MCPSERVERUSAGE'].fields_by_name['mcp_server_ref']._loaded_options = None
-  _globals['_MCPSERVERUSAGE'].fields_by_name['mcp_server_ref']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_MCPSERVERUSAGE'].fields_by_name['mcp_server_ref']._serialized_options = b'\272H\003\310\001\001\340\205,,'
   _globals['_MCPACCESS'].fields_by_name['mcp_server']._loaded_options = None
   _globals['_MCPACCESS'].fields_by_name['mcp_server']._serialized_options = b'\272H\003\310\001\001'
   _globals['_TOOLAPPROVALOVERRIDE'].fields_by_name['tool_name']._loaded_options = None
   _globals['_TOOLAPPROVALOVERRIDE'].fields_by_name['tool_name']._serialized_options = b'\272H\004r\002\020\001'
-  _globals['_AGENTSPEC']._serialized_start=188
-  _globals['_AGENTSPEC']._serialized_end=866
-  _globals['_SUBAGENT']._serialized_start=869
-  _globals['_SUBAGENT']._serialized_end=1243
-  _globals['_MCPSERVERUSAGE']._serialized_start=1246
-  _globals['_MCPSERVERUSAGE']._serialized_end=1506
-  _globals['_MCPACCESS']._serialized_start=1508
-  _globals['_MCPACCESS']._serialized_end=1595
-  _globals['_TOOLAPPROVALOVERRIDE']._serialized_start=1598
-  _globals['_TOOLAPPROVALOVERRIDE']._serialized_end=1729
+  _globals['_AGENTSPEC']._serialized_start=240
+  _globals['_AGENTSPEC']._serialized_end=922
+  _globals['_SUBAGENT']._serialized_start=925
+  _globals['_SUBAGENT']._serialized_end=1303
+  _globals['_MCPSERVERUSAGE']._serialized_start=1306
+  _globals['_MCPSERVERUSAGE']._serialized_end=1570
+  _globals['_MCPACCESS']._serialized_start=1572
+  _globals['_MCPACCESS']._serialized_end=1659
+  _globals['_TOOLAPPROVALOVERRIDE']._serialized_start=1662
+  _globals['_TOOLAPPROVALOVERRIDE']._serialized_end=1793
 # @@protoc_insertion_point(module_scope)
