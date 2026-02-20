@@ -1,4 +1,3 @@
-// Package domains contains shared utilities used by the domain tool packages.
 package domains
 
 import (
