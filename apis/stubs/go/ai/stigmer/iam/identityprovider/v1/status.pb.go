@@ -25,9 +25,6 @@ const (
 // IdentityProviderStatus represents the system-managed state of an identity provider.
 type IdentityProviderStatus struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Current lifecycle state of the identity provider.
-	// Determines whether this provider can be used for JWT authentication.
-	LifecycleState IdentityProviderLifecycleState `protobuf:"varint,1,opt,name=lifecycle_state,json=lifecycleState,proto3,enum=ai.stigmer.iam.identityprovider.v1.IdentityProviderLifecycleState" json:"lifecycle_state,omitempty"`
 	// Standard audit information tracking creation and modification.
 	Audit         *apiresource.ApiResourceAudit `protobuf:"bytes,99,opt,name=audit,proto3" json:"audit,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -64,13 +61,6 @@ func (*IdentityProviderStatus) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_iam_identityprovider_v1_status_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *IdentityProviderStatus) GetLifecycleState() IdentityProviderLifecycleState {
-	if x != nil {
-		return x.LifecycleState
-	}
-	return IdentityProviderLifecycleState_identity_provider_lifecycle_state_unspecified
-}
-
 func (x *IdentityProviderStatus) GetAudit() *apiresource.ApiResourceAudit {
 	if x != nil {
 		return x.Audit
@@ -82,10 +72,9 @@ var File_ai_stigmer_iam_identityprovider_v1_status_proto protoreflect.FileDescri
 
 const file_ai_stigmer_iam_identityprovider_v1_status_proto_rawDesc = "" +
 	"\n" +
-	"/ai/stigmer/iam/identityprovider/v1/status.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a+ai/stigmer/commons/apiresource/status.proto\x1a-ai/stigmer/iam/identityprovider/v1/enum.proto\"\xcd\x01\n" +
-	"\x16IdentityProviderStatus\x12k\n" +
-	"\x0flifecycle_state\x18\x01 \x01(\x0e2B.ai.stigmer.iam.identityprovider.v1.IdentityProviderLifecycleStateR\x0elifecycleState\x12F\n" +
-	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05auditB\xc2\x02\n" +
+	"/ai/stigmer/iam/identityprovider/v1/status.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a+ai/stigmer/commons/apiresource/status.proto\"f\n" +
+	"\x16IdentityProviderStatus\x12F\n" +
+	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05auditJ\x04\b\x01\x10\x02B\xc2\x02\n" +
 	"&com.ai.stigmer.iam.identityprovider.v1B\vStatusProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/identityprovider/v1;identityproviderv1\xa2\x02\x04ASII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3"
 
 var (
@@ -103,17 +92,15 @@ func file_ai_stigmer_iam_identityprovider_v1_status_proto_rawDescGZIP() []byte {
 var file_ai_stigmer_iam_identityprovider_v1_status_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_ai_stigmer_iam_identityprovider_v1_status_proto_goTypes = []any{
 	(*IdentityProviderStatus)(nil),       // 0: ai.stigmer.iam.identityprovider.v1.IdentityProviderStatus
-	(IdentityProviderLifecycleState)(0),  // 1: ai.stigmer.iam.identityprovider.v1.IdentityProviderLifecycleState
-	(*apiresource.ApiResourceAudit)(nil), // 2: ai.stigmer.commons.apiresource.ApiResourceAudit
+	(*apiresource.ApiResourceAudit)(nil), // 1: ai.stigmer.commons.apiresource.ApiResourceAudit
 }
 var file_ai_stigmer_iam_identityprovider_v1_status_proto_depIdxs = []int32{
-	1, // 0: ai.stigmer.iam.identityprovider.v1.IdentityProviderStatus.lifecycle_state:type_name -> ai.stigmer.iam.identityprovider.v1.IdentityProviderLifecycleState
-	2, // 1: ai.stigmer.iam.identityprovider.v1.IdentityProviderStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	1, // 0: ai.stigmer.iam.identityprovider.v1.IdentityProviderStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
+	1, // [1:1] is the sub-list for method output_type
+	1, // [1:1] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_iam_identityprovider_v1_status_proto_init() }
@@ -121,7 +108,6 @@ func file_ai_stigmer_iam_identityprovider_v1_status_proto_init() {
 	if File_ai_stigmer_iam_identityprovider_v1_status_proto != nil {
 		return
 	}
-	file_ai_stigmer_iam_identityprovider_v1_enum_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
