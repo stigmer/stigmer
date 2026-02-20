@@ -74,9 +74,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-18 13:08
-**Last Session**: 2026-02-20 Session 4 — IdentityProvider CRUD fully implemented in `stigmer-cloud`; proto cleanup (removed lifecycle_state)
+**Last Session**: 2026-02-20 Session 5 — IdentityProvider proto authorization cleanup (can_create_idp permission, status simplification)
 **Current Task**: Token exchange endpoint — the MVP core of federated authentication.
-**Status**: IdentityProvider CRUD done. Token exchange is next.
+**Status**: IdentityProvider proto and CRUD fully done. Token exchange is next.
 
 ## Architecture Summary (Revised — Session 2)
 
@@ -113,7 +113,7 @@ Planton Cloud User → Planton Cloud Backend (existing authz) → Stigmer Proxy 
 
 | # | Component | Status | Details |
 |---|-----------|--------|---------|
-| 1 | IdentityProvider proto | ✅ Done (session 3) | `userinfo_endpoint` added (OIDC-standard name); Session 1 docs corrected |
+| 1 | IdentityProvider proto | ✅ Done (session 3+5) | `userinfo_endpoint` added; authz corrected to `can_create_idp`; status simplified to `ApiResourceAuditStatus` |
 | 2 | IdentityProvider CRUD | ✅ Done (session 4) | Repo, FGA model, auto-controller, 6 handlers (create/update/delete/get/getByRef/apply) |
 | 3 | Token Exchange Endpoint | 🔲 After #2 | Validates external JWT, calls UserInfo, JIT provisions, issues Stigmer token |
 | 4 | Federated JWT Validation | 🔲 After #2 | Auth interceptor extension for IdentityProvider-based validation |
@@ -134,6 +134,8 @@ Planton Cloud User → Planton Cloud Backend (existing authz) → Stigmer Proxy 
 
 - [x] Add `userinfo_endpoint` to IdentityProvider proto (corrected from `userinfo_uri` — OIDC Discovery 1.0 standard name)
 - [x] Remove premature `lifecycle_state` enum from IdentityProvider proto (field 1 reserved)
+- [x] Fix create RPC authorization: `can_create_idp` permission + FGA model (was incorrectly using `can_edit`)
+- [x] Simplify status: use `ApiResourceAuditStatus` directly, delete wrapper message
 - [x] Implement IdentityProvider CRUD in `stigmer-cloud` (FGA model, repo, auto-controller, 6 handlers)
 - [ ] Implement token exchange endpoint in `stigmer-cloud`
 - [ ] Implement JIT identity provisioning (find/create identity_account, update profile, create FGA membership)
