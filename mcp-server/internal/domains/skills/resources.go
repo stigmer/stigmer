@@ -2,7 +2,6 @@ package skills
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -23,25 +22,12 @@ func Template() *mcp.ResourceTemplate {
 // ResourceHandler returns a handler that reads a skill resource by parsing
 // the org and slug from the request URI. Returns the latest version.
 func ResourceHandler(serverAddress string) mcp.ResourceHandler {
-	return func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
-		org, slug, err := domains.ParseResourceURI(req.Params.URI)
-		if err != nil {
-			return nil, fmt.Errorf("skills resource: %w", err)
-		}
-
-		text, err := Fetch(ctx, serverAddress, org, slug, "")
-		if err != nil {
-			return nil, err
-		}
-
-		return &mcp.ReadResourceResult{
-			Contents: []*mcp.ResourceContents{{
-				URI:      req.Params.URI,
-				MIMEType: "application/json",
-				Text:     text,
-			}},
-		}, nil
-	}
+	return domains.NewResourceHandler(
+		func(ctx context.Context, addr, org, slug string) (string, error) {
+			return Fetch(ctx, addr, org, slug, "")
+		},
+		serverAddress, "skills",
+	)
 }
 
 // VersionedTemplate returns the MCP resource template for skills at a specific
@@ -60,23 +46,5 @@ func VersionedTemplate() *mcp.ResourceTemplate {
 // VersionedResourceHandler returns a handler that reads a skill resource at a
 // specific version by parsing the org, slug, and version from the request URI.
 func VersionedResourceHandler(serverAddress string) mcp.ResourceHandler {
-	return func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
-		org, slug, version, err := domains.ParseVersionedResourceURI(req.Params.URI)
-		if err != nil {
-			return nil, fmt.Errorf("skills versioned resource: %w", err)
-		}
-
-		text, err := Fetch(ctx, serverAddress, org, slug, version)
-		if err != nil {
-			return nil, err
-		}
-
-		return &mcp.ReadResourceResult{
-			Contents: []*mcp.ResourceContents{{
-				URI:      req.Params.URI,
-				MIMEType: "application/json",
-				Text:     text,
-			}},
-		}, nil
-	}
+	return domains.NewVersionedResourceHandler(Fetch, serverAddress, "skills")
 }

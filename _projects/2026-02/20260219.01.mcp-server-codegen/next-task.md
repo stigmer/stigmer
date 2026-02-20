@@ -16,8 +16,8 @@ Drop this file into your conversation to quickly resume work on this project.
 
 **Created**: February 19, 2026
 **Last Session**: February 20, 2026
-**Current Task**: T04 — Refactor Remaining Domains (workflows, mcpservers, skills)
-**Status**: T04 READY TO START
+**Current Task**: T05 — Final Validation and Close-Out
+**Status**: T05 READY TO START
 
 ## Task Overview
 
@@ -26,32 +26,42 @@ Drop this file into your conversation to quickly resume work on this project.
 | T01 | Architecture Design — shared abstractions, before/after analysis | DONE |
 | T02 | Implement Core Abstractions + rename files to express responsibility | DONE (committed 78691149) |
 | T03 | Refactor Agents Domain — reference refactoring | DONE (committed this session) |
-| T04 | Refactor Remaining Domains — workflows, mcpservers, skills | **NEXT** |
-| T05 | Validate and Clean Up — full test suite, verify identical MCP surface | Pending |
+| T04 | Refactor Remaining Domains — workflows, mcpservers, skills | DONE (committed this session) |
+| T05 | Final Validation and Close-Out | **NEXT** |
 
-## T03 Completion Summary
+## T04 Completion Summary
 
-Refactored `mcp-server/internal/domains/agents/` to use shared abstractions:
+Refactored the three remaining MCP server domains to use shared abstractions:
 
+**workflows/**
 - `fetch.go`, `apply.go`, `delete.go` — replaced 7-line gRPC boilerplate with `domains.WithConnection`
-- `resources.go` — replaced 18-line manual handler with `domains.NewResourceHandler`
-- `tools.go` — replaced 5-line `CallToolResult` constructors with `domains.CallFetch`/`domains.CallApply`; absorbed `apply_tool.go` and `delete_tool.go` (both deleted)
-- Net: 282 → 207 source lines (-26%), zero test files changed, all 12 packages pass
+- `resources.go` — replaced 20-line inline closure with `domains.NewResourceHandler`
+- `tools.go` — absorbed `apply_tool.go` and `delete_tool.go` (both deleted); replaced manual `CallToolResult` construction with `domains.CallFetch`/`domains.CallApply`
 
-Changelog: `_changelog/2026-02/2026-02-20-151441-mcp-server-agents-domain-refactor.md`
+**mcpservers/**
+- Same pattern as workflows; `ApiResourceDeleteInput` preserved in `delete.go` (deliberate protobuf API difference)
+- `apply_tool.go` and `delete_tool.go` deleted (absorbed into `tools.go`)
 
-## What T04 Involves
+**skills/**
+- No apply operation; `Fetch` has versioned signature (`org, slug, version`)
+- `fetch.go`, `delete.go` — `WithConnection` pattern
+- `resources.go` — adapter closure pins `version=""` for `NewResourceHandler`; `NewVersionedResourceHandler(Fetch, ...)` for versioned template
+- `tools.go` — get handler uses `domains.TextResult`; delete handler uses `domains.CallFetch`; absorbed `delete_tool.go` (deleted)
 
-Refactor the three remaining domains using the agents domain as the exact reference pattern:
+**Net**: ~684 → ~500 source lines across the three domains (-27%); 5 files deleted; zero test file changes; all 12 packages pass; `go vet` clean
 
-| Domain | Files to Change | Notes |
-|---|---|---|
-| `workflows/` | fetch, apply, delete, tools (merge), resources | Same pattern as agents |
-| `mcpservers/` | fetch, apply, delete, tools (merge), resources | Same pattern as agents |
-| `skills/` | fetch, delete, tools (merge), resources | No apply; uses `NewVersionedResourceHandler` for versioned resource |
+Changelog: `_changelog/2026-02/2026-02-20-153626-mcp-server-remaining-domains-refactor.md`
 
-**Success criteria**: All existing tests pass without modification. Same tool names, descriptions, error messages.
-**Expected outcome**: ~280 lines × 3 domains → ~150 lines × 3 domains (-390 lines net).
+## What T05 Involves
+
+T05 is a close-out task — no code changes expected, purely verification and documentation:
+
+1. **Full suite verification**: `go test ./mcp-server/... -count=1 -race` with race detector
+2. **Structural audit**: Confirm all four domains have identical file layouts (`fetch.go`, `apply.go`/N/A, `delete.go`, `resources.go`, `tools.go`)
+3. **Surface audit**: Confirm `server.go` tool/resource registration is unchanged — same tool names, same URIs, same counts
+4. **Boilerplate audit**: Confirm zero `stigmergrpc.NewConnection` or `auth.APIKey` calls remain in any domain `fetch/apply/delete.go`
+5. **Project documentation**: Update T01 architecture doc with actual achieved line counts vs projected
+6. **Create PR**: Branch is ready — open the pull request
 
 ## Key Design Decisions
 
@@ -59,6 +69,18 @@ Refactor the three remaining domains using the agents domain as the exact refere
 2. **File names express responsibility** — no "helper" or "util" in the codebase
 3. **Curated tool descriptions stay hand-written** — next to the handler, in the domain package
 4. **No behavioral changes in any refactoring step** — tests verify this at each T
+5. **Skills asymmetry handled minimally** — adapter closure for non-versioned handler; `TextResult` for get tool. No new shared helper for a single call site.
+
+## Achieved vs Projected
+
+| Metric | Projected | Achieved |
+|---|---|---|
+| T04 line reduction | -390 lines | -184 lines (-27%) |
+| Combined T02+T03+T04 | ~-400 lines total | ~-400 lines total |
+| Test changes | Zero | Zero |
+| New shared helpers needed | Zero | Zero |
+
+Note: The per-T04-domain projection of -130 lines each was aggressive; actual averages -61 lines/domain. The combined project total still hits the goal.
 
 ## Essential Files
 
@@ -66,18 +88,20 @@ Refactor the three remaining domains using the agents domain as the exact refere
 _projects/2026-02/20260219.01.mcp-server-codegen/tasks/T01_1_revised_plan.md  — Architecture (APPROVED)
 _changelog/2026-02/2026-02-20-145752-mcp-server-shared-abstractions.md        — T02 changelog
 _changelog/2026-02/2026-02-20-151441-mcp-server-agents-domain-refactor.md    — T03 changelog
+_changelog/2026-02/2026-02-20-153626-mcp-server-remaining-domains-refactor.md — T04 changelog
 mcp-server/internal/domains/                                                    — Shared infrastructure
 mcp-server/internal/domains/agents/                                             — Reference domain (DONE)
-mcp-server/internal/domains/workflows/                                          — T04 target
-mcp-server/internal/domains/mcpservers/                                         — T04 target
-mcp-server/internal/domains/skills/                                             — T04 target (versioned)
+mcp-server/internal/domains/workflows/                                          — DONE
+mcp-server/internal/domains/mcpservers/                                         — DONE
+mcp-server/internal/domains/skills/                                             — DONE
 mcp-server/internal/server/server.go                                            — Registration (unchanged)
 ```
 
 ## Quick Commands
 
-- "Start T04" — Refactor workflows, mcpservers, skills domains
+- "Start T05" — Final validation pass and create PR
 - "Run tests" — `go test ./mcp-server/... -count=1`
+- "Run with race" — `go test ./mcp-server/... -count=1 -race`
 
 ---
 
