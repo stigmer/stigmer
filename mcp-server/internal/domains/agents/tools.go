@@ -7,6 +7,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	geninput "github.com/stigmer/stigmer/mcp-server/gen/agent"
 	"github.com/stigmer/stigmer/mcp-server/internal/domains"
 )
 
@@ -45,10 +46,10 @@ func ApplyTool() *mcp.Tool {
 }
 
 // ApplyHandler returns the typed tool handler for apply_agent.
-// The input is converted to a proto via toProto() before calling the gRPC Apply RPC.
-func ApplyHandler(serverAddress string) func(context.Context, *mcp.CallToolRequest, *ApplyAgentInput) (*mcp.CallToolResult, any, error) {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, input *ApplyAgentInput) (*mcp.CallToolResult, any, error) {
-		agent := input.toProto()
+// The input is converted to a proto via ToProto() before calling the gRPC Apply RPC.
+func ApplyHandler(serverAddress string) func(context.Context, *mcp.CallToolRequest, *geninput.AgentInput) (*mcp.CallToolResult, any, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, input *geninput.AgentInput) (*mcp.CallToolResult, any, error) {
+		agent := input.ToProto()
 		text, err := Apply(ctx, serverAddress, agent)
 		if err != nil {
 			return nil, nil, err

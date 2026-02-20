@@ -3,6 +3,8 @@ syntax = "proto3";
 package ai.stigmer.agentic.agent.v1;
 
 import "ai/stigmer/agentic/environment/v1/spec.proto";
+import "ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto";
+import "ai/stigmer/commons/apiresource/field_options.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "buf/validate/validate.proto";
 
@@ -52,11 +54,14 @@ message AgentSpec {
 
   // Skill resources providing agent knowledge.
   // Skills are injected into the agent's context as additional capabilities.
-  repeated ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [(buf.validate.field).repeated.items.cel = {
-    id: "skill_refs.kind"
-    message: "skill_refs must reference resources with kind=skill"
-    expression: "this.kind == 43"
-  }];
+  repeated ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [
+    (ai.stigmer.commons.apiresource.reference_kind) = skill,
+    (buf.validate.field).repeated.items.cel = {
+      id: "skill_refs.kind"
+      message: "skill_refs must reference resources with kind=skill"
+      expression: "this.kind == 43"
+    }
+  ];
 
   // Sub-agents that can be delegated to.
   // Sub-agents inherit the parent's MCP server usages but can have restricted access.
@@ -111,11 +116,14 @@ message SubAgent {
 
   // Skill resources for this sub-agent's knowledge.
   // Skills provide domain-specific knowledge and capabilities.
-  repeated ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [(buf.validate.field).repeated.items.cel = {
-    id: "skill_refs.kind"
-    message: "skill_refs must reference resources with kind=skill"
-    expression: "this.kind == 43"
-  }];
+  repeated ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [
+    (ai.stigmer.commons.apiresource.reference_kind) = skill,
+    (buf.validate.field).repeated.items.cel = {
+      id: "skill_refs.kind"
+      message: "skill_refs must reference resources with kind=skill"
+      expression: "this.kind == 43"
+    }
+  ];
 }
 
 // McpServerUsage declares that this Agent uses a McpServer resource.
@@ -141,7 +149,10 @@ message McpServerUsage {
   // Reference to the McpServer resource.
   // Must reference a resource with kind=mcp_server (44).
   // The slug from this reference is how SubAgents identify this server.
-  ai.stigmer.commons.apiresource.ApiResourceReference mcp_server_ref = 1 [(buf.validate.field).required = true];
+  ai.stigmer.commons.apiresource.ApiResourceReference mcp_server_ref = 1 [
+    (ai.stigmer.commons.apiresource.reference_kind) = mcp_server,
+    (buf.validate.field).required = true
+  ];
 
   // Tools to enable from this MCP server for this Agent.
   // This defines the maximum tool set - SubAgents can only restrict further.

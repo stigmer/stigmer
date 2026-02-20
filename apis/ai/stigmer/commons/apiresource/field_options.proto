@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.commons.apiresource;
 
+import "ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto";
 import "google/protobuf/descriptor.proto";
 
 // Field-level options for api-resource fields
@@ -12,4 +13,7 @@ extend google.protobuf.FieldOptions {
   bool immutable = 90202;
   // Marks a field as accepting JQ expressions (enables smart type conversion in SDK)
   bool is_expression = 90203;
+  // Declares what kind of resource an ApiResourceReference field points to.
+  // Used by codegen to auto-populate the kind enum and flatten reference types.
+  ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind reference_kind = 90204;
 }
