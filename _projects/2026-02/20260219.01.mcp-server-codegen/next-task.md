@@ -6,58 +6,88 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Project: 20260219.01.mcp-server-codegen
 
-**Description**: A manifest-driven Go code generator that produces curated MCP server tool and resource handlers from a YAML config and Go templates. Targets the official modelcontextprotocol/go-sdk. Designed to be reusable across Stigmer, Planton Cloud, and future products.
-**Goal**: Eliminate hand-written MCP server boilerplate by generating typed tool handlers, resource templates, fetch functions, and server wiring from a declarative YAML manifest — while preserving curated tool surfaces (not exposing every RPC).
-**Tech Stack**: Go, text/template, YAML, modelcontextprotocol/go-sdk, protobuf/protojson
-**Location**: Standalone repo (to be created). Project tracking here in Stigmer monorepo.
-**Blocked by**: T11-A (Stigmer MCP server write operations) — must complete first to know the full read+write pattern.
+**Description**: Shared Go abstractions that eliminate mechanical MCP server boilerplate while keeping curated tool surfaces hand-written. Replaces the original YAML manifest + code generator approach with reusable helpers in the existing `domains` package.
+**Goal**: Reduce per-domain boilerplate from ~280 lines to ~150 lines through shared helpers (`WithConnection`, `TextResult`, `NewResourceHandler`, etc.) — no external tooling, no YAML, no code generation.
+**Tech Stack**: Go, modelcontextprotocol/go-sdk, protobuf/protojson
+**Location**: `mcp-server/internal/domains/` in the Stigmer monorepo (no separate repo needed).
+**Blocked by**: Nothing — can continue immediately.
 
 ## Current Status
 
 **Created**: February 19, 2026
-**Current Task**: T01 — Architecture Design
-**Status**: T01 PENDING REVIEW
+**Revised**: February 20, 2026 (shifted from codegen to shared abstractions)
+**Current Task**: T03 — Refactor Agents Domain (reference refactoring)
+**Status**: T03 READY TO START
 
 ## Task Overview
 
 | Task | Description | Status |
 |---|---|---|
-| T01 | Architecture Design — manifest schema, template structure, design decisions | PENDING REVIEW |
-| T02 | Scaffold Standalone Repo — Go module, CI, Makefile | Pending |
-| T03 | Core Generator — Read Tools (get_* pattern) | Pending |
-| T04 | Core Generator — Write Tools (apply_*, delete_* pattern) | Pending |
-| T05 | Server Wiring Generation — register_gen.go, uriutil_gen.go | Pending |
-| T06 | Validate Against Stigmer — diff generated vs hand-written | Pending |
-| T07 | Planton Cloud Manifest (stretch) | Pending |
+| T01 | Architecture Design — shared abstractions, before/after analysis | DONE |
+| T02 | Implement Core Helpers — `WithConnection`, `TextResult`, `NewResourceHandler` | DONE |
+| T03 | Refactor Agents Domain — reference refactoring | Ready |
+| T04 | Refactor Remaining Domains — workflows, mcpservers, skills | Pending |
+| T05 | Validate and Clean Up — full test suite, verify identical MCP surface | Pending |
 
-## Key Design Decisions (from T01 plan)
+## T02 Completion Summary
 
-1. **Manifest-driven, not proto-driven** — you declare which tools to expose, with curated names/descriptions
-2. **Official go-sdk only** — targets `modelcontextprotocol/go-sdk`, not `mark3labs/mcp-go`
-3. **Search tool stays hand-written** — it's cross-domain and unique
-4. **Versioned resources via flag** — `has_versioned_resource: true` in manifest
-5. **Clean generated code** — indistinguishable from hand-written, easy to eject
+Implemented 3 helper files with 16 tests (all passing):
+
+| File | Exports | Lines |
+|---|---|---|
+| `grpchelper.go` | `WithConnection` | 31 |
+| `toolhelper.go` | `TextResult`, `CallFetch`, `CallApply`, `FetchFunc`, `ApplyFunc` | 43 |
+| `resourcehelper.go` | `NewResourceHandler`, `NewVersionedResourceHandler`, `ResourceResult`, `VersionedFetchFunc` | 55 |
+| `grpchelper_test.go` | 3 tests | 56 |
+| `toolhelper_test.go` | 6 tests | 106 |
+| `resourcehelper_test.go` | 7 tests | 157 |
+
+Full test suite: 12 packages, all passing.
+
+## Key Design Decisions (from T01 revised plan)
+
+1. **Shared abstractions, not code generation** — reusable Go helpers eliminate mechanical boilerplate
+2. **Curated descriptions stay in Go code** — tool names, descriptions, input schemas are hand-written next to the implementation
+3. **No YAML manifest, no separate repo** — helpers live in the existing `domains` package
+4. **No proto annotations** — MCP descriptions are LLM-facing copy, not API docs; proto stays clean
+5. **Stigmer-specific for now** — Planton Cloud uses a different SDK; extract shared library later if patterns converge
+
+## What T03 Involves
+
+Refactor the `agents` domain to use the new helpers:
+
+1. **`fetch.go`**: Replace manual gRPC connection boilerplate with `domains.WithConnection`
+2. **`apply.go`**: Replace manual gRPC connection boilerplate with `domains.WithConnection`
+3. **`delete.go`**: Replace manual gRPC connection boilerplate with `domains.WithConnection`
+4. **`tools.go`**: Replace manual `CallToolResult` construction with `domains.CallFetch`
+5. **`apply_tool.go`**: Replace manual `CallToolResult` construction with `domains.CallApply`
+6. **`delete_tool.go`**: Replace manual `CallToolResult` construction with `domains.CallFetch`
+7. **`resources.go`**: Replace manual resource handler with `domains.NewResourceHandler`
+8. **Verify**: All existing tests pass without modification (same tool names, descriptions, error messages)
+
+Expected outcome: ~278 lines → ~150 lines, with zero behavioral changes.
 
 ## Research Reference
 
 Research report: `_projects/2026-02/20260217.01.stigmer-mcp-server/research/20260219.160000.proto-to-mcp-server-codegen/`
 
-Key finding: Redpanda's `protoc-gen-go-mcp` exists but doesn't fit our needs (wrong SDK, not curated, no resource templates). Our manifest+template approach is the right fit.
-
 ## Essential Files
 
 ```
-_projects/2026-02/20260219.01.mcp-server-codegen/tasks/T01_0_plan.md  — Architecture design (PENDING REVIEW)
-_projects/2026-02/20260217.01.stigmer-mcp-server/next-task.md          — Stigmer MCP server project (T11-A pending)
-mcp-server/                                                             — Existing hand-written code (reference patterns)
-mcp-server/internal/domains/agents/                                     — Reference domain pattern
+_projects/2026-02/20260219.01.mcp-server-codegen/tasks/T01_0_plan.md  — Original architecture design (superseded)
+_projects/2026-02/20260219.01.mcp-server-codegen/tasks/T01_1_revised_plan.md — Revised plan: shared abstractions (APPROVED)
+mcp-server/internal/domains/grpchelper.go                              — WithConnection (T02)
+mcp-server/internal/domains/toolhelper.go                              — TextResult, CallFetch, CallApply (T02)
+mcp-server/internal/domains/resourcehelper.go                          — NewResourceHandler, ResourceResult (T02)
+mcp-server/internal/domains/agents/                                     — Reference domain (will be refactored in T03)
+mcp-server/internal/server/server.go                                    — Registration (unchanged)
 ```
 
 ## Quick Commands
 
-- "Continue with T01 review" — Review the architecture plan
-- "Show manifest schema" — See the proposed YAML format
-- "Compare with existing code" — Validate templates against hand-written domains
+- "Start T03" — Refactor agents domain to use shared helpers
+- "Show before/after" — See concrete code comparison for agents domain
+- "Run tests" — `go test ./mcp-server/... -count=1`
 
 ---
 
