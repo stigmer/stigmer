@@ -8,14 +8,16 @@ import "buf/validate/validate.proto";
 //
 // An IdentityProvider represents an external platform's trust relationship with Stigmer.
 // It is owned by an organization (e.g., "planton") and configures how Stigmer validates
-// signed JWT assertions from that platform. The platform uses these assertions to:
-// - Create platform-managed organizations on behalf of its users
-// - Call Stigmer APIs within those organizations
-// - Pass user identity for FGA-based authorization
+// tokens from that platform during token exchange. The platform forwards its OIDC
+// provider's access tokens to Stigmer's token exchange endpoint, which:
+// - Validates the token signature against the configured JWKS
+// - Fetches user profile data from the OIDC UserInfo endpoint
+// - JIT-provisions a federated identity account with email, name, and picture
+// - Issues a Stigmer-native token for subsequent API access
 //
 // The spec contains only public validation configuration — no secrets are stored.
-// The platform publishes its signing keys at the JWKS endpoint, and Stigmer validates
-// incoming JWTs against these keys, the allowed issuers, and the expected audience.
+// For OIDC-based integrators (e.g., Auth0), the jwks_uri and userinfo_endpoint
+// point to the OIDC provider's standard endpoints.
 //
 // Example YAML:
 //   apiVersion: iam.stigmer.ai/v1
@@ -26,32 +28,51 @@ import "buf/validate/validate.proto";
 //     org: planton
 //   spec:
 //     display_name: "Planton Cloud"
-//     jwks_uri: "https://api.planton.ai/.well-known/stigmer-jwks.json"
-//     allowed_issuers: ["planton-cloud"]
-//     expected_audience: "stigmer-api"
+//     jwks_uri: "https://planton-prod.us.auth0.com/.well-known/jwks.json"
+//     allowed_issuers: ["https://planton-prod.us.auth0.com/"]
+//     expected_audience: "https://api.planton.ai/"
+//     userinfo_endpoint: "https://planton-prod.us.auth0.com/userinfo"
 message IdentityProviderSpec {
   // Human-readable display name for this identity provider.
   // Used in UI and audit logs to identify the integrating platform.
   string display_name = 1 [(buf.validate.field).string.max_len = 200];
 
-  // JWKS endpoint for validating signed JWT assertions from this platform.
-  // The platform publishes its public signing keys at this URL.
-  // Stigmer fetches and caches these keys for JWT signature verification.
-  // Not used until Phase 2 (JWT authentication), but defined now as part of the contract.
+  // JWKS endpoint URL for validating tokens presented during token exchange.
+  // For OIDC-based integrators, this points to the provider's standard JWKS endpoint
+  // (e.g., Auth0's /.well-known/jwks.json). Stigmer fetches and caches signing keys
+  // from this URL for JWT signature verification.
+  //
+  // This is the standard "jwks_uri" metadata field defined in
+  // OpenID Connect Discovery 1.0 (Section 3) and RFC 7517 (JSON Web Key Set).
   string jwks_uri = 2 [(buf.validate.field).string.max_len = 2048];
 
   // JWT issuer values that Stigmer will accept from this platform.
   // Each JWT's `iss` claim must match one of these values.
-  // Typically a single value (e.g., "planton-cloud") but supports multiple
-  // for key rotation or multi-environment scenarios.
+  // For Auth0-based integrators, this is the Auth0 tenant URL
+  // (e.g., "https://planton-prod.us.auth0.com/").
+  // Supports multiple values for key rotation or multi-environment scenarios.
   repeated string allowed_issuers = 3;
 
   // Expected JWT audience value.
-  // Every JWT from this platform must have this as the `aud` claim.
-  // Prevents tokens intended for other services from being accepted.
+  // Every JWT from this platform must include this as the `aud` claim.
+  // For Auth0-based integrators, this is the API identifier configured in Auth0
+  // (e.g., "https://api.planton.ai/").
+  // Prevents tokens intended for other services from being accepted by Stigmer.
   string expected_audience = 4 [(buf.validate.field).string.max_len = 200];
 
   // Shared rate limit budget across all organizations managed via this identity provider.
   // Expressed as requests per minute. 0 means no limit.
   int32 rate_limit_budget = 5;
+
+  // OIDC UserInfo endpoint URL for fetching user profile data during token exchange.
+  // Stigmer calls this endpoint with the platform's access token (as a Bearer token)
+  // to retrieve the user's email, name, and picture for the federated identity account.
+  // Profile data is updated on every token exchange to keep it fresh.
+  //
+  // This is the standard "userinfo_endpoint" metadata field defined in
+  // OpenID Connect Discovery 1.0 (Section 3). The endpoint itself is specified in
+  // OpenID Connect Core 1.0 (Section 5.3).
+  //
+  // For Auth0-based integrators: https://{tenant}.auth0.com/userinfo
+  string userinfo_endpoint = 6 [(buf.validate.field).string.max_len = 2048];
 }
