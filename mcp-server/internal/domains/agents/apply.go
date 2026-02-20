@@ -10,18 +10,12 @@ import (
 )
 
 // Apply creates or updates an agent via the AgentCommandController.Apply RPC.
-// The resourceJSON parameter must be a valid JSON representation of the Agent
-// protobuf message. Unknown fields are silently discarded.
-func Apply(ctx context.Context, serverAddress, resourceJSON string) (string, error) {
-	var agent agentv1.Agent
-	if err := domains.UnmarshalJSON(resourceJSON, &agent); err != nil {
-		return "", fmt.Errorf("invalid agent JSON: %w", err)
-	}
-
+// The agent proto must be fully constructed (use ApplyAgentInput.toProto()).
+func Apply(ctx context.Context, serverAddress string, agent *agentv1.Agent) (string, error) {
 	return domains.WithConnection(ctx, serverAddress,
 		func(ctx context.Context, conn *grpc.ClientConn) (string, error) {
 			client := agentv1.NewAgentCommandControllerClient(conn)
-			result, err := client.Apply(ctx, &agent)
+			result, err := client.Apply(ctx, agent)
 			if err != nil {
 				desc := fmt.Sprintf("agent %q in org %q", agent.GetMetadata().GetSlug(), agent.GetMetadata().GetOrg())
 				return "", domains.RPCError(err, desc)
