@@ -3,13 +3,10 @@ syntax = "proto3";
 package ai.stigmer.iam.identityprovider.v1;
 
 import "ai/stigmer/commons/apiresource/status.proto";
-import "ai/stigmer/iam/identityprovider/v1/enum.proto";
 
 // IdentityProviderStatus represents the system-managed state of an identity provider.
 message IdentityProviderStatus {
-  // Current lifecycle state of the identity provider.
-  // Determines whether this provider can be used for JWT authentication.
-  IdentityProviderLifecycleState lifecycle_state = 1;
+  reserved 1;
 
   // Standard audit information tracking creation and modification.
   ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
