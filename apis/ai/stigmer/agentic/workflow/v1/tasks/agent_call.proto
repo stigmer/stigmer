@@ -35,6 +35,8 @@ import "buf/validate/validate.proto";
 //
 // Reference: design doc at stigmer/_cursor/add-agent-config-to-workflow.md
 message AgentCallTaskConfig {
+  option (ai.stigmer.commons.apiresource.discriminator_value) = "agent_call";
+
   // Agent reference in "org/slug" or "slug" format.
   // - "slug" only: uses the workflow's organization
   // - "org/slug": explicit organization reference

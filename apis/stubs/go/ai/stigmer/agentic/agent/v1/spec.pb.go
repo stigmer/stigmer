@@ -565,32 +565,33 @@ var File_ai_stigmer_agentic_agent_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"&ai/stigmer/agentic/agent/v1/spec.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xa6\x05\n" +
+	"&ai/stigmer/agentic/agent/v1/spec.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xaa\x05\n" +
 	"\tAgentSpec\x12 \n" +
 	"\vdescription\x18\x01 \x01(\tR\vdescription\x12\x19\n" +
 	"\bicon_url\x18\x02 \x01(\tR\aiconUrl\x12+\n" +
 	"\finstructions\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\n" +
 	"R\finstructions\x12\xdf\x01\n" +
 	"\x11mcp_server_usages\x18\x04 \x03(\v2+.ai.stigmer.agentic.agent.v1.McpServerUsageB\x85\x01\xbaH\x81\x01\x92\x01~\"|\xba\x01y\n" +
-	"\x16mcp_server_usages.kind\x12?mcp_server_usages must reference resources with kind=mcp_server\x1a\x1ethis.mcp_server_ref.kind == 44R\x0fmcpServerUsages\x12\xb7\x01\n" +
+	"\x16mcp_server_usages.kind\x12?mcp_server_usages must reference resources with kind=mcp_server\x1a\x1ethis.mcp_server_ref.kind == 44R\x0fmcpServerUsages\x12\xbb\x01\n" +
 	"\n" +
-	"skill_refs\x18\x05 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBb\xbaH_\x92\x01\\\"Z\xba\x01W\n" +
-	"\x0fskill_refs.kind\x123skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43R\tskillRefs\x12D\n" +
+	"skill_refs\x18\x05 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBf\xbaH_\x92\x01\\\"Z\xba\x01W\n" +
+	"\x0fskill_refs.kind\x123skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43\xe0\x85,+R\tskillRefs\x12D\n" +
 	"\n" +
 	"sub_agents\x18\x06 \x03(\v2%.ai.stigmer.agentic.agent.v1.SubAgentR\tsubAgents\x12M\n" +
-	"\benv_spec\x18\a \x01(\v22.ai.stigmer.agentic.environment.v1.EnvironmentSpecR\aenvSpec\"\xf6\x02\n" +
+	"\benv_spec\x18\a \x01(\v22.ai.stigmer.agentic.environment.v1.EnvironmentSpecR\aenvSpec\"\xfa\x02\n" +
 	"\bSubAgent\x12\x1a\n" +
 	"\x04name\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12+\n" +
 	"\finstructions\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\n" +
 	"R\finstructions\x12E\n" +
 	"\n" +
-	"mcp_access\x18\x04 \x03(\v2&.ai.stigmer.agentic.agent.v1.McpAccessR\tmcpAccess\x12\xb7\x01\n" +
+	"mcp_access\x18\x04 \x03(\v2&.ai.stigmer.agentic.agent.v1.McpAccessR\tmcpAccess\x12\xbb\x01\n" +
 	"\n" +
-	"skill_refs\x18\x05 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBb\xbaH_\x92\x01\\\"Z\xba\x01W\n" +
-	"\x0fskill_refs.kind\x123skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43R\tskillRefs\"\x84\x02\n" +
-	"\x0eMcpServerUsage\x12b\n" +
-	"\x0emcp_server_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x06\xbaH\x03\xc8\x01\x01R\fmcpServerRef\x12#\n" +
+	"skill_refs\x18\x05 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBf\xbaH_\x92\x01\\\"Z\xba\x01W\n" +
+	"\x0fskill_refs.kind\x123skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43\xe0\x85,+R\tskillRefs\"\x88\x02\n" +
+	"\x0eMcpServerUsage\x12f\n" +
+	"\x0emcp_server_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\n" +
+	"\xbaH\x03\xc8\x01\x01\xe0\x85,,R\fmcpServerRef\x12#\n" +
 	"\renabled_tools\x18\x02 \x03(\tR\fenabledTools\x12i\n" +
 	"\x17tool_approval_overrides\x18\x03 \x03(\v21.ai.stigmer.agentic.agent.v1.ToolApprovalOverrideR\x15toolApprovalOverrides\"W\n" +
 	"\tMcpAccess\x12%\n" +

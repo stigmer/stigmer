@@ -3,6 +3,7 @@ syntax = "proto3";
 package ai.stigmer.agentic.workflow.v1.tasks;
 
 import "ai/stigmer/agentic/workflow/v1/spec.proto";
+import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
 
 // ForkTaskConfig defines the configuration for FORK tasks.
@@ -28,6 +29,8 @@ import "buf/validate/validate.proto";
 //
 // Reference: zigflow-dsl-pattern-catalog.md - Task Type 5
 message ForkTaskConfig {
+  option (ai.stigmer.commons.apiresource.discriminator_value) = "fork";
+
   // Branches to execute in parallel (at least 2 required).
   repeated ForkBranch branches = 1 [(buf.validate.field).repeated.min_items = 2];
 

@@ -3,6 +3,7 @@ syntax = "proto3";
 package ai.stigmer.agentic.workflow.v1.tasks;
 
 import "ai/stigmer/agentic/workflow/v1/spec.proto";
+import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
 
 // TryTaskConfig defines the configuration for TRY tasks.
@@ -29,6 +30,8 @@ import "buf/validate/validate.proto";
 //
 // Reference: zigflow-dsl-pattern-catalog.md - Task Type 6
 message TryTaskConfig {
+  option (ai.stigmer.commons.apiresource.discriminator_value) = "try_catch";
+
   // Tasks to attempt (at least one required).
   // If any task fails, execution jumps to catch block.
   repeated ai.stigmer.agentic.workflow.v1.WorkflowTask try = 1 [(buf.validate.field).repeated.min_items = 1];

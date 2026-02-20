@@ -25,7 +25,29 @@
       "jsonName": "kind",
       "protoField": "kind",
       "type": {
-        "kind": "string"
+        "kind": "string",
+        "enumType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+        "enumValues": [
+          "api_resource_version",
+          "iam_policy",
+          "identity_account",
+          "api_key",
+          "identity_provider",
+          "organization",
+          "platform",
+          "agent",
+          "agent_execution",
+          "session",
+          "skill",
+          "mcp_server",
+          "agent_instance",
+          "workflow",
+          "workflow_instance",
+          "workflow_execution",
+          "environment",
+          "execution_context",
+          "project"
+        ]
       },
       "description": "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).",
       "required": false

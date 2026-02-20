@@ -1,3 +1,4 @@
+from ai.stigmer.commons.apiresource import io_pb2 as _io_pb2
 from ai.stigmer.tenancy.organization.v1 import api_pb2 as _api_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf.internal import containers as _containers
@@ -27,3 +28,11 @@ class OrganizationId(_message.Message):
     VALUE_FIELD_NUMBER: _ClassVar[int]
     value: str
     def __init__(self, value: _Optional[str] = ...) -> None: ...
+
+class OrganizationExternalLookup(_message.Message):
+    __slots__ = ("identity_provider_ref", "external_org_id")
+    IDENTITY_PROVIDER_REF_FIELD_NUMBER: _ClassVar[int]
+    EXTERNAL_ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    identity_provider_ref: _io_pb2.ApiResourceReference
+    external_org_id: str
+    def __init__(self, identity_provider_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., external_org_id: _Optional[str] = ...) -> None: ...

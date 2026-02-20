@@ -1,0 +1,28 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "server",
+    srcs = [
+        "http.go",
+        "server.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/mcp-server/internal/server",
+    visibility = ["//mcp-server:__subpackages__"],
+    deps = [
+        "//mcp-server/internal/auth",
+        "//mcp-server/internal/config",
+        "//mcp-server/internal/domains/agents",
+        "//mcp-server/internal/domains/mcpservers",
+        "//mcp-server/internal/domains/search",
+        "//mcp-server/internal/domains/skills",
+        "//mcp-server/internal/domains/workflows",
+        "@com_github_modelcontextprotocol_go_sdk//mcp",
+    ],
+)
+
+go_test(
+    name = "server_test",
+    srcs = ["http_test.go"],
+    embed = [":server"],
+    deps = ["//mcp-server/internal/auth"],
+)

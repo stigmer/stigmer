@@ -56,9 +56,8 @@ type IdentityProvider struct {
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// User-provided identity provider configuration (desired state).
 	Spec *IdentityProviderSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
-	// System-managed identity provider state (observed state).
-	// Contains lifecycle state and audit information.
-	Status        *IdentityProviderStatus `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
+	// status
+	Status        *apiresource.ApiResourceAuditStatus `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -121,7 +120,7 @@ func (x *IdentityProvider) GetSpec() *IdentityProviderSpec {
 	return nil
 }
 
-func (x *IdentityProvider) GetStatus() *IdentityProviderStatus {
+func (x *IdentityProvider) GetStatus() *apiresource.ApiResourceAuditStatus {
 	if x != nil {
 		return x.Status
 	}
@@ -132,7 +131,7 @@ var File_ai_stigmer_iam_identityprovider_v1_api_proto protoreflect.FileDescripto
 
 const file_ai_stigmer_iam_identityprovider_v1_api_proto_rawDesc = "" +
 	"\n" +
-	",ai/stigmer/iam/identityprovider/v1/api.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a-ai/stigmer/iam/identityprovider/v1/spec.proto\x1a/ai/stigmer/iam/identityprovider/v1/status.proto\x1a\x1bbuf/validate/validate.proto\"\xf5\x02\n" +
+	",ai/stigmer/iam/identityprovider/v1/api.proto\x12\"ai.stigmer.iam.identityprovider.v1\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a-ai/stigmer/iam/identityprovider/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"\xf1\x02\n" +
 	"\x10IdentityProvider\x129\n" +
 	"\vapi_version\x18\x01 \x01(\tB\x18\xbaH\x15r\x13\n" +
 	"\x11iam.stigmer.ai/v1R\n" +
@@ -140,8 +139,8 @@ const file_ai_stigmer_iam_identityprovider_v1_api_proto_rawDesc = "" +
 	"\x04kind\x18\x02 \x01(\tB\x17\xbaH\x14r\x12\n" +
 	"\x10IdentityProviderR\x04kind\x12W\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12L\n" +
-	"\x04spec\x18\x04 \x01(\v28.ai.stigmer.iam.identityprovider.v1.IdentityProviderSpecR\x04spec\x12R\n" +
-	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.iam.identityprovider.v1.IdentityProviderStatusR\x06statusB\xbf\x02\n" +
+	"\x04spec\x18\x04 \x01(\v28.ai.stigmer.iam.identityprovider.v1.IdentityProviderSpecR\x04spec\x12N\n" +
+	"\x06status\x18\x05 \x01(\v26.ai.stigmer.commons.apiresource.ApiResourceAuditStatusR\x06statusB\xbf\x02\n" +
 	"&com.ai.stigmer.iam.identityprovider.v1B\bApiProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/identityprovider/v1;identityproviderv1\xa2\x02\x04ASII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3"
 
 var (
@@ -158,15 +157,15 @@ func file_ai_stigmer_iam_identityprovider_v1_api_proto_rawDescGZIP() []byte {
 
 var file_ai_stigmer_iam_identityprovider_v1_api_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_ai_stigmer_iam_identityprovider_v1_api_proto_goTypes = []any{
-	(*IdentityProvider)(nil),                // 0: ai.stigmer.iam.identityprovider.v1.IdentityProvider
-	(*apiresource.ApiResourceMetadata)(nil), // 1: ai.stigmer.commons.apiresource.ApiResourceMetadata
-	(*IdentityProviderSpec)(nil),            // 2: ai.stigmer.iam.identityprovider.v1.IdentityProviderSpec
-	(*IdentityProviderStatus)(nil),          // 3: ai.stigmer.iam.identityprovider.v1.IdentityProviderStatus
+	(*IdentityProvider)(nil),                   // 0: ai.stigmer.iam.identityprovider.v1.IdentityProvider
+	(*apiresource.ApiResourceMetadata)(nil),    // 1: ai.stigmer.commons.apiresource.ApiResourceMetadata
+	(*IdentityProviderSpec)(nil),               // 2: ai.stigmer.iam.identityprovider.v1.IdentityProviderSpec
+	(*apiresource.ApiResourceAuditStatus)(nil), // 3: ai.stigmer.commons.apiresource.ApiResourceAuditStatus
 }
 var file_ai_stigmer_iam_identityprovider_v1_api_proto_depIdxs = []int32{
 	1, // 0: ai.stigmer.iam.identityprovider.v1.IdentityProvider.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
 	2, // 1: ai.stigmer.iam.identityprovider.v1.IdentityProvider.spec:type_name -> ai.stigmer.iam.identityprovider.v1.IdentityProviderSpec
-	3, // 2: ai.stigmer.iam.identityprovider.v1.IdentityProvider.status:type_name -> ai.stigmer.iam.identityprovider.v1.IdentityProviderStatus
+	3, // 2: ai.stigmer.iam.identityprovider.v1.IdentityProvider.status:type_name -> ai.stigmer.commons.apiresource.ApiResourceAuditStatus
 	3, // [3:3] is the sub-list for method output_type
 	3, // [3:3] is the sub-list for method input_type
 	3, // [3:3] is the sub-list for extension type_name
@@ -180,7 +179,6 @@ func file_ai_stigmer_iam_identityprovider_v1_api_proto_init() {
 		return
 	}
 	file_ai_stigmer_iam_identityprovider_v1_spec_proto_init()
-	file_ai_stigmer_iam_identityprovider_v1_status_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

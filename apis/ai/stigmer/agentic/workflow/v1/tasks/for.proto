@@ -26,6 +26,8 @@ import "buf/validate/validate.proto";
 //
 // Reference: zigflow-dsl-pattern-catalog.md - Task Type 4
 message ForTaskConfig {
+  option (ai.stigmer.commons.apiresource.discriminator_value) = "for_each";
+
   // Variable name for each item in the iteration.
   // Accessible via ${ $data.item } in expressions.
   string each = 1 [

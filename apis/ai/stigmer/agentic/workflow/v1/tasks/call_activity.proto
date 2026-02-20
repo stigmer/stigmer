@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.workflow.v1.tasks;
 
+import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/struct.proto";
 
@@ -19,6 +20,8 @@ import "google/protobuf/struct.proto";
 //
 // Reference: zigflow-dsl-pattern-catalog.md - Task Type 10
 message CallActivityTaskConfig {
+  option (ai.stigmer.commons.apiresource.discriminator_value) = "activity_call";
+
   // Activity name to execute.
   // Must match registered Temporal activity.
   string activity = 1 [

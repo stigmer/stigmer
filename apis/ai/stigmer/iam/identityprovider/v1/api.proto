@@ -3,8 +3,8 @@ syntax = "proto3";
 package ai.stigmer.iam.identityprovider.v1;
 
 import "ai/stigmer/commons/apiresource/metadata.proto";
+import "ai/stigmer/commons/apiresource/status.proto";
 import "ai/stigmer/iam/identityprovider/v1/spec.proto";
-import "ai/stigmer/iam/identityprovider/v1/status.proto";
 import "buf/validate/validate.proto";
 
 // IdentityProvider represents an external platform's trust relationship with Stigmer.
@@ -42,7 +42,6 @@ message IdentityProvider {
   // User-provided identity provider configuration (desired state).
   IdentityProviderSpec spec = 4;
 
-  // System-managed identity provider state (observed state).
-  // Contains lifecycle state and audit information.
-  IdentityProviderStatus status = 5;
+  //status
+  ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5;
 }

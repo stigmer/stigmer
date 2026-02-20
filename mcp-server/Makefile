@@ -1,4 +1,4 @@
-.PHONY: build test docker-build tidy vet lint fmt clean
+.PHONY: build test docker-build tidy vet lint fmt clean codegen-schemas codegen-mcp codegen
 
 BINARY  := mcp-server-stigmer
 CMD     := ./cmd/mcp-server-stigmer
@@ -24,9 +24,11 @@ docker-build:
 tidy:
 	go mod tidy
 
-# Run go vet on all packages.
+# Run go vet on hand-written packages (generated code in gen/ is excluded
+# because jsonschema-go's escaped-comma tag convention is flagged by go vet's
+# structtag checker as a false positive).
 vet:
-	go vet ./...
+	go vet $$(go list ./... | grep -v '/gen/')
 
 # Run golangci-lint (if available).
 lint:
@@ -40,6 +42,23 @@ lint:
 # Format all Go source files.
 fmt:
 	go fmt ./...
+
+# Stage 1: Generate JSON schemas from all proto files.
+codegen-schemas:
+	cd .. && go run tools/codegen/proto2schema/main.go \
+		--comprehensive --include-dir apis --output-dir tools/codegen/schemas
+
+# Stage 2: Generate MCP input types for all domains.
+# Auto-discovers all {domain}/{resource}/ schema directories and generates
+# domain-scoped Go packages into gen/{domain}/{resource}/.
+# Discriminated unions (e.g., workflow task_config) are auto-detected from
+# proto custom options (discriminated_by / discriminator_value).
+codegen-mcp:
+	go run ../tools/codegen/generator/ \
+		--comprehensive --schema-dir=../tools/codegen/schemas --output-dir=gen --target=mcp
+
+# Full pipeline: schemas + MCP input types.
+codegen: codegen-schemas codegen-mcp
 
 # Remove build artifacts.
 clean:

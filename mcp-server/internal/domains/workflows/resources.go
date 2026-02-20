@@ -1,9 +1,6 @@
 package workflows
 
 import (
-	"context"
-	"fmt"
-
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/stigmer/stigmer/mcp-server/internal/domains"
@@ -23,23 +20,5 @@ func Template() *mcp.ResourceTemplate {
 // ResourceHandler returns a handler that reads a workflow resource by parsing
 // the org and slug from the request URI.
 func ResourceHandler(serverAddress string) mcp.ResourceHandler {
-	return func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
-		org, slug, err := domains.ParseResourceURI(req.Params.URI)
-		if err != nil {
-			return nil, fmt.Errorf("workflows resource: %w", err)
-		}
-
-		text, err := Fetch(ctx, serverAddress, org, slug)
-		if err != nil {
-			return nil, err
-		}
-
-		return &mcp.ReadResourceResult{
-			Contents: []*mcp.ResourceContents{{
-				URI:      req.Params.URI,
-				MIMEType: "application/json",
-				Text:     text,
-			}},
-		}, nil
-	}
+	return domains.NewResourceHandler(Fetch, serverAddress, "workflows")
 }

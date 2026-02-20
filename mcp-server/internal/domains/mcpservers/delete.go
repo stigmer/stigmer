@@ -7,43 +7,37 @@ import (
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	"github.com/stigmer/stigmer/mcp-server/internal/auth"
 	"github.com/stigmer/stigmer/mcp-server/internal/domains"
-	stigmergrpc "github.com/stigmer/stigmer/mcp-server/internal/grpc"
+	"google.golang.org/grpc"
 )
 
 // Delete removes an MCP server identified by org and slug. It first resolves
 // the org/slug pair to a resource ID via GetByReference, then calls the
-// CommandController.Delete RPC with an ApiResourceDeleteInput.
+// CommandController.Delete RPC with an ApiResourceDeleteInput. Both calls
+// share a single gRPC connection.
 func Delete(ctx context.Context, serverAddress, org, slug string) (string, error) {
-	conn, err := stigmergrpc.NewConnection(serverAddress, auth.APIKey(ctx))
-	if err != nil {
-		return "", fmt.Errorf("mcpservers.Delete: %w", err)
-	}
-	defer conn.Close()
+	return domains.WithConnection(ctx, serverAddress,
+		func(ctx context.Context, conn *grpc.ClientConn) (string, error) {
+			desc := fmt.Sprintf("MCP server %q in org %q", slug, org)
 
-	rpcCtx, cancel := context.WithTimeout(ctx, stigmergrpc.DefaultRPCTimeout)
-	defer cancel()
+			queryClient := mcpserverv1.NewMcpServerQueryControllerClient(conn)
+			mcpServer, err := queryClient.GetByReference(ctx, &apiresource.ApiResourceReference{
+				Org:  org,
+				Kind: apiresourcekind.ApiResourceKind_mcp_server,
+				Slug: slug,
+			})
+			if err != nil {
+				return "", domains.RPCError(err, desc)
+			}
 
-	resourceDesc := fmt.Sprintf("MCP server %q in org %q", slug, org)
+			cmdClient := mcpserverv1.NewMcpServerCommandControllerClient(conn)
+			deleted, err := cmdClient.Delete(ctx, &apiresource.ApiResourceDeleteInput{
+				ResourceId: mcpServer.GetMetadata().GetId(),
+			})
+			if err != nil {
+				return "", domains.RPCError(err, desc)
+			}
 
-	queryClient := mcpserverv1.NewMcpServerQueryControllerClient(conn)
-	mcpServer, err := queryClient.GetByReference(rpcCtx, &apiresource.ApiResourceReference{
-		Org:  org,
-		Kind: apiresourcekind.ApiResourceKind_mcp_server,
-		Slug: slug,
-	})
-	if err != nil {
-		return "", domains.RPCError(err, resourceDesc)
-	}
-
-	cmdClient := mcpserverv1.NewMcpServerCommandControllerClient(conn)
-	deleted, err := cmdClient.Delete(rpcCtx, &apiresource.ApiResourceDeleteInput{
-		ResourceId: mcpServer.GetMetadata().GetId(),
-	})
-	if err != nil {
-		return "", domains.RPCError(err, resourceDesc)
-	}
-
-	return domains.MarshalJSON(deleted)
+			return domains.MarshalJSON(deleted)
+		})
 }

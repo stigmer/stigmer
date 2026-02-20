@@ -22,7 +22,23 @@
       "jsonName": "kind",
       "protoField": "kind",
       "type": {
-        "kind": "string"
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.workflow.v1.WorkflowTaskKind",
+        "enumValues": [
+          "set_vars",
+          "http_call",
+          "grpc_call",
+          "activity_call",
+          "switch_case",
+          "for_each",
+          "fork",
+          "try_catch",
+          "listen",
+          "wait",
+          "raise_error",
+          "run_workflow",
+          "agent_call"
+        ]
       },
       "description": "Task type (determines how to interpret task_config).",
       "required": true,
@@ -39,6 +55,7 @@
       },
       "description": "Task-specific configuration (dynamic typed).\n Structure depends on `kind` value.\n\n Backend unmarshals this Struct to the appropriate proto message:\n - set_vars: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig\n - http_call: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig\n - grpc_call: ai.stigmer.agentic.workflow.v1.tasks.GrpcCallTaskConfig\n - switch_case: ai.stigmer.agentic.workflow.v1.tasks.SwitchTaskConfig\n - for_each: ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig\n - fork: ai.stigmer.agentic.workflow.v1.tasks.ForkTaskConfig\n - try_catch: ai.stigmer.agentic.workflow.v1.tasks.TryTaskConfig\n - listen: ai.stigmer.agentic.workflow.v1.tasks.ListenTaskConfig\n - wait: ai.stigmer.agentic.workflow.v1.tasks.WaitTaskConfig\n - activity_call: ai.stigmer.agentic.workflow.v1.tasks.CallActivityTaskConfig\n - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig\n - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig\n - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig\n\n See: apis/ai/stigmer/agentic/workflow/v1/tasks/*.proto for detailed schemas.",
       "required": true,
+      "discriminatedBy": "kind",
       "validation": {
         "required": true
       }

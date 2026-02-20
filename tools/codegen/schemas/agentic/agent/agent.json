@@ -64,7 +64,8 @@
         }
       },
       "description": "Skill resources providing agent knowledge.\n Skills are injected into the agent's context as additional capabilities.",
-      "required": false
+      "required": false,
+      "referenceKind": 43
     },
     {
       "name": "SubAgents",

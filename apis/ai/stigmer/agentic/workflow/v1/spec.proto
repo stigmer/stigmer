@@ -4,6 +4,7 @@ package ai.stigmer.agentic.workflow.v1;
 
 import "ai/stigmer/agentic/environment/v1/spec.proto";
 import "ai/stigmer/agentic/workflow/v1/enum.proto";
+import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/struct.proto";
 
@@ -92,7 +93,10 @@ message WorkflowTask {
   // - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
   //
   // See: apis/ai/stigmer/agentic/workflow/v1/tasks/*.proto for detailed schemas.
-  google.protobuf.Struct task_config = 3 [(buf.validate.field).required = true];
+  google.protobuf.Struct task_config = 3 [
+    (buf.validate.field).required = true,
+    (ai.stigmer.commons.apiresource.discriminated_by) = "kind"
+  ];
 
   // Export configuration (how to save task output to context).
   // Optional - if not set, output is not saved.

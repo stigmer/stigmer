@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.tenancy.organization.v1;
 
+import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/tenancy/organization/v1/api.proto";
 import "buf/validate/validate.proto";
 
@@ -25,4 +26,14 @@ message OrganizationId {
     min_len: 1
     max_len: 64
   }];
+}
+
+// Input for looking up a platform-managed organization by its external platform coordinates.
+// Used by integrating platforms to find the Stigmer organization mapped to their own org.
+message OrganizationExternalLookup {
+  // Reference to the IdentityProvider (org + slug) that manages this organization.
+  ai.stigmer.commons.apiresource.ApiResourceReference identity_provider_ref = 1 [(buf.validate.field).required = true];
+
+  // The external platform's organization identifier.
+  string external_org_id = 2 [(buf.validate.field).string.min_len = 1];
 }

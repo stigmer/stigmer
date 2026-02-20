@@ -1,0 +1,13 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "identityprovider",
+    srcs = ["identity_provider_gen.go"],
+    importpath = "github.com/stigmer/stigmer/mcp-server/gen/iam/identityprovider",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "//apis/stubs/go/ai/stigmer/iam/identityprovider/v1:identityprovider",
+        "//mcp-server/internal/convert",
+    ],
+)
