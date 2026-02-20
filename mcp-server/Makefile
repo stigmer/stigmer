@@ -24,9 +24,11 @@ docker-build:
 tidy:
 	go mod tidy
 
-# Run go vet on all packages.
+# Run go vet on hand-written packages (generated code in gen/ is excluded
+# because jsonschema-go's escaped-comma tag convention is flagged by go vet's
+# structtag checker as a false positive).
 vet:
-	go vet ./...
+	go vet $$(go list ./... | grep -v '/gen/')
 
 # Run golangci-lint (if available).
 lint:
