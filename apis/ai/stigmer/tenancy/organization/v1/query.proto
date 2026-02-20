@@ -35,4 +35,11 @@ service OrganizationQueryController {
   rpc findMyOrganizations(google.protobuf.Empty) returns (Organizations) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
   }
+
+  // Look up a platform-managed organization by its external platform coordinates.
+  // Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
+  // Authorization: custom — checks can_view on the referenced IdentityProvider.
+  rpc getByExternalOrgId(OrganizationExternalLookup) returns (Organization) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
 }
