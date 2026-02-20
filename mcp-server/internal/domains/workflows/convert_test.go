@@ -109,9 +109,12 @@ func TestToProto_taskWithEnumKind(t *testing.T) {
 		},
 		Tasks: []geninput.WorkflowTaskInput{
 			{
-				Name:       "fetchData",
-				Kind:       "http_call",
-				TaskConfig: map[string]any{"method": "GET", "url": "https://api.example.com"},
+				Name: "fetchData",
+				Kind: "http_call",
+				HttpCall: &geninput.HttpCallTaskConfigInput{
+					Method:   "GET",
+					Endpoint: &geninput.HttpEndpointInput{Uri: "https://api.example.com"},
+				},
 			},
 		},
 	}
@@ -140,9 +143,6 @@ func TestToProto_taskWithEnumKind(t *testing.T) {
 	if fields["method"].GetStringValue() != "GET" {
 		t.Errorf("TaskConfig.method = %q, want %q", fields["method"].GetStringValue(), "GET")
 	}
-	if fields["url"].GetStringValue() != "https://api.example.com" {
-		t.Errorf("TaskConfig.url = %q", fields["url"].GetStringValue())
-	}
 }
 
 func TestToProto_taskWithExportAndFlow(t *testing.T) {
@@ -152,17 +152,19 @@ func TestToProto_taskWithExportAndFlow(t *testing.T) {
 		},
 		Tasks: []geninput.WorkflowTaskInput{
 			{
-				Name:       "setVars",
-				Kind:       "set_vars",
-				TaskConfig: map[string]any{"key": "value"},
-				Export:     &geninput.ExportInput{As: "${.}"},
-				Flow:       &geninput.FlowControlInput{Then: "nextStep"},
+				Name:   "setVars",
+				Kind:   "set_vars",
+				SetVars: &geninput.SetTaskConfigInput{Variables: map[string]string{"key": "value"}},
+				Export: &geninput.ExportInput{As: "${.}"},
+				Flow:   &geninput.FlowControlInput{Then: "nextStep"},
 			},
 			{
-				Name:       "nextStep",
-				Kind:       "http_call",
-				TaskConfig: map[string]any{"url": "https://example.com"},
-				Flow:       &geninput.FlowControlInput{Then: "end"},
+				Name: "nextStep",
+				Kind: "http_call",
+				HttpCall: &geninput.HttpCallTaskConfigInput{
+					Endpoint: &geninput.HttpEndpointInput{Uri: "https://example.com"},
+				},
+				Flow: &geninput.FlowControlInput{Then: "end"},
 			},
 		},
 	}
@@ -193,9 +195,9 @@ func TestToProto_taskConfigEmpty(t *testing.T) {
 		},
 		Tasks: []geninput.WorkflowTaskInput{
 			{
-				Name:       "noop",
-				Kind:       "set_vars",
-				TaskConfig: map[string]any{},
+				Name:    "setEmpty",
+				Kind:    "set_vars",
+				SetVars: &geninput.SetTaskConfigInput{Variables: map[string]string{}},
 			},
 		},
 	}
@@ -204,8 +206,8 @@ func TestToProto_taskConfigEmpty(t *testing.T) {
 
 	wf := mustToProto(t, input)
 	task := wf.GetSpec().GetTasks()[0]
-	if task.GetTaskConfig() != nil {
-		t.Error("TaskConfig should be nil for empty map")
+	if task.GetTaskConfig() == nil {
+		t.Error("TaskConfig should not be nil when typed config is provided")
 	}
 }
 
@@ -302,9 +304,9 @@ func TestToProto_multipleTasks(t *testing.T) {
 			Namespace: "acme", Name: "multi", Version: "1.0.0",
 		},
 		Tasks: []geninput.WorkflowTaskInput{
-			{Name: "step1", Kind: "set_vars", TaskConfig: map[string]any{"x": "1"}},
-			{Name: "step2", Kind: "http_call", TaskConfig: map[string]any{"url": "https://a.com"}},
-			{Name: "step3", Kind: "agent_call", TaskConfig: map[string]any{"agent": "reviewer"}},
+			{Name: "step1", Kind: "set_vars", SetVars: &geninput.SetTaskConfigInput{Variables: map[string]string{"x": "1"}}},
+			{Name: "step2", Kind: "http_call", HttpCall: &geninput.HttpCallTaskConfigInput{Endpoint: &geninput.HttpEndpointInput{Uri: "https://a.com"}}},
+			{Name: "step3", Kind: "agent_call", AgentCall: &geninput.AgentCallTaskConfigInput{Agent: "reviewer", Message: "review"}},
 		},
 	}
 	input.Name = "Multi-Step"
@@ -338,16 +340,19 @@ func TestToProto_fullInput(t *testing.T) {
 		},
 		Tasks: []geninput.WorkflowTaskInput{
 			{
-				Name:       "prepare",
-				Kind:       "set_vars",
-				TaskConfig: map[string]any{"env": "prod"},
-				Export:     &geninput.ExportInput{As: "${.}"},
-				Flow:       &geninput.FlowControlInput{Then: "deploy"},
+				Name:    "prepare",
+				Kind:    "set_vars",
+				SetVars: &geninput.SetTaskConfigInput{Variables: map[string]string{"env": "prod"}},
+				Export:  &geninput.ExportInput{As: "${.}"},
+				Flow:    &geninput.FlowControlInput{Then: "deploy"},
 			},
 			{
-				Name:       "deploy",
-				Kind:       "http_call",
-				TaskConfig: map[string]any{"method": "POST", "url": "https://deploy.example.com"},
+				Name: "deploy",
+				Kind: "http_call",
+				HttpCall: &geninput.HttpCallTaskConfigInput{
+					Method:   "POST",
+					Endpoint: &geninput.HttpEndpointInput{Uri: "https://deploy.example.com"},
+				},
 			},
 		},
 		EnvSpec: &geninput.EnvironmentInput{

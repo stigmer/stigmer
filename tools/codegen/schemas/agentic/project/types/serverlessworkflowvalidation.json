@@ -9,7 +9,14 @@
       "jsonName": "state",
       "protoField": "state",
       "type": {
-        "kind": "string"
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.workflow.v1.serverless.ValidationState",
+        "enumValues": [
+          "PENDING",
+          "VALID",
+          "INVALID",
+          "FAILED"
+        ]
       },
       "description": "Current validation state",
       "required": false
@@ -55,8 +62,7 @@
       "jsonName": "validatedAt",
       "protoField": "validated_at",
       "type": {
-        "kind": "message",
-        "messageType": "Timestamp"
+        "kind": "timestamp"
       },
       "description": "When validation was performed\n Null if validation hasn't completed yet",
       "required": false

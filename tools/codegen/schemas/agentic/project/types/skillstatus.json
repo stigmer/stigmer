@@ -43,7 +43,13 @@
       "jsonName": "state",
       "protoField": "state",
       "type": {
-        "kind": "string"
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.skill.v1.SkillState",
+        "enumValues": [
+          "SKILL_STATE_UPLOADING",
+          "SKILL_STATE_READY",
+          "SKILL_STATE_FAILED"
+        ]
       },
       "description": "Current lifecycle state of the skill.",
       "required": false

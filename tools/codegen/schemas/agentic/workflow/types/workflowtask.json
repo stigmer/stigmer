@@ -23,7 +23,22 @@
       "protoField": "kind",
       "type": {
         "kind": "string",
-        "enumType": "ai.stigmer.agentic.workflow.v1.WorkflowTaskKind"
+        "enumType": "ai.stigmer.agentic.workflow.v1.WorkflowTaskKind",
+        "enumValues": [
+          "set_vars",
+          "http_call",
+          "grpc_call",
+          "activity_call",
+          "switch_case",
+          "for_each",
+          "fork",
+          "try_catch",
+          "listen",
+          "wait",
+          "raise_error",
+          "run_workflow",
+          "agent_call"
+        ]
       },
       "description": "Task type (determines how to interpret task_config).",
       "required": true,

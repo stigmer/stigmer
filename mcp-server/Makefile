@@ -47,7 +47,7 @@ fmt:
 codegen-mcp:
 	go run ../tools/codegen/generator/ --schema-dir=../tools/codegen/schemas/agentic/agent --output-dir=gen/agent --package=agent --target=mcp
 	go run ../tools/codegen/generator/ --schema-dir=../tools/codegen/schemas/agentic/mcpserver --output-dir=gen/mcpserver --package=mcpserver --target=mcp
-	go run ../tools/codegen/generator/ --schema-dir=../tools/codegen/schemas/agentic/workflow --output-dir=gen/workflow --package=workflow --target=mcp
+	go run ../tools/codegen/generator/ --schema-dir=../tools/codegen/schemas/agentic/workflow --output-dir=gen/workflow --package=workflow --target=mcp --expand-struct=task_config:kind:../tools/codegen/schemas/tasks
 
 # Remove build artifacts.
 clean:
