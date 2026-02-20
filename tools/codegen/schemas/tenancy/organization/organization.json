@@ -30,6 +30,42 @@
       "validation": {
         "maxLength": 2048
       }
+    },
+    {
+      "name": "ManagementMode",
+      "jsonName": "managementMode",
+      "protoField": "management_mode",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.tenancy.organization.v1.ManagementMode",
+        "enumValues": [
+          "self_managed",
+          "platform_managed"
+        ]
+      },
+      "description": "How this organization is operated. Immutable after creation.\n - self_managed (default): Created and operated directly by users via Stigmer UI/CLI/API.\n - platform_managed: Created programmatically by an external platform via an IdentityProvider.",
+      "required": false
+    },
+    {
+      "name": "IdentityProviderRef",
+      "jsonName": "identityProviderRef",
+      "protoField": "identity_provider_ref",
+      "type": {
+        "kind": "message",
+        "messageType": "ApiResourceReference"
+      },
+      "description": "Reference to the IdentityProvider that authenticates requests for this organization.\n Required when management_mode is platform_managed; must be empty for self_managed.\n The referenced IdentityProvider must exist and be active at creation time.\n Immutable after creation.",
+      "required": false
+    },
+    {
+      "name": "ExternalOrgId",
+      "jsonName": "externalOrgId",
+      "protoField": "external_org_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "External platform's organization identifier for reverse mapping.\n Set only for platform_managed organizations. Stores the integrating platform's\n own org ID so the platform can look up the corresponding Stigmer org even if\n the Stigmer slug differs from the platform's original slug due to availability.",
+      "required": false
     }
   ]
 }

@@ -79,6 +79,7 @@ type TypeSpec struct {
 	ElementType *TypeSpec `json:"elementType,omitempty"` // for array
 	MessageType string    `json:"messageType,omitempty"` // for message
 	EnumType    string    `json:"enumType,omitempty"`    // fully-qualified proto enum type
+	EnumValues  []string  `json:"enumValues,omitempty"`  // valid enum value names (excludes UNSPECIFIED sentinel)
 }
 
 type Validation struct {
@@ -648,6 +649,8 @@ func extractScalarTypeSpec(field *desc.FieldDescriptor) TypeSpec {
 		return TypeSpec{Kind: "string"}
 	case descriptorpb.FieldDescriptorProto_TYPE_INT32:
 		return TypeSpec{Kind: "int32"}
+	case descriptorpb.FieldDescriptorProto_TYPE_UINT32:
+		return TypeSpec{Kind: "uint32"}
 	case descriptorpb.FieldDescriptorProto_TYPE_INT64:
 		return TypeSpec{Kind: "int64"}
 	case descriptorpb.FieldDescriptorProto_TYPE_BOOL:
@@ -661,9 +664,11 @@ func extractScalarTypeSpec(field *desc.FieldDescriptor) TypeSpec {
 	case descriptorpb.FieldDescriptorProto_TYPE_MESSAGE:
 		msgType := field.GetMessageType()
 
-		// Special handling for google.protobuf.Struct
-		if msgType.GetFullyQualifiedName() == "google.protobuf.Struct" {
+		switch msgType.GetFullyQualifiedName() {
+		case "google.protobuf.Struct":
 			return TypeSpec{Kind: "struct"}
+		case "google.protobuf.Timestamp":
+			return TypeSpec{Kind: "timestamp"}
 		}
 
 		// Regular message type
@@ -674,7 +679,14 @@ func extractScalarTypeSpec(field *desc.FieldDescriptor) TypeSpec {
 	case descriptorpb.FieldDescriptorProto_TYPE_ENUM:
 		enumDesc := field.GetEnumType()
 		fqn := fmt.Sprintf("%s.%s", enumDesc.GetFile().GetPackage(), enumDesc.GetName())
-		return TypeSpec{Kind: "string", EnumType: fqn}
+		var enumValues []string
+		for _, v := range enumDesc.GetValues() {
+			if v.GetNumber() == 0 {
+				continue
+			}
+			enumValues = append(enumValues, v.GetName())
+		}
+		return TypeSpec{Kind: "string", EnumType: fqn, EnumValues: enumValues}
 	default:
 		return TypeSpec{Kind: "string"} // fallback
 	}

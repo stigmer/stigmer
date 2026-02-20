@@ -30,8 +30,7 @@
       "jsonName": "expiresAt",
       "protoField": "expires_at",
       "type": {
-        "kind": "message",
-        "messageType": "Timestamp"
+        "kind": "timestamp"
       },
       "description": "absolute expiry time (null if neverExpires = true)",
       "required": false

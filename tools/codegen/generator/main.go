@@ -66,12 +66,13 @@ type FieldSchema struct {
 
 // TypeSpec describes the type of a field
 type TypeSpec struct {
-	Kind        string    `json:"kind"`                  // string, int32, int64, bool, float, double, bytes, map, array, message, struct
+	Kind        string    `json:"kind"`                  // string, int32, uint32, int64, bool, float, double, bytes, map, array, message, struct, timestamp
 	KeyType     *TypeSpec `json:"keyType,omitempty"`     // for map
 	ValueType   *TypeSpec `json:"valueType,omitempty"`   // for map
 	ElementType *TypeSpec `json:"elementType,omitempty"` // for array
 	MessageType string    `json:"messageType,omitempty"` // for message
 	EnumType    string    `json:"enumType,omitempty"`    // fully-qualified proto enum type
+	EnumValues  []string  `json:"enumValues,omitempty"`  // valid enum value names (excludes UNSPECIFIED sentinel)
 }
 
 // Validation describes validation rules for a field
@@ -91,6 +92,18 @@ type Validation struct {
 // Generator
 // ============================================================================
 
+// expandStructConfig describes a struct field that should be expanded into
+// typed discriminated-union fields based on external config schemas.
+// Format: structField:discriminatorField:configSchemaDir
+type expandStructConfig struct {
+	structField        string             // proto field name of the google.protobuf.Struct to expand (e.g., "task_config")
+	discriminatorField string             // proto field name of the kind/discriminator enum (e.g., "kind")
+	configSchemaDir    string             // directory containing config schemas (e.g., "../tools/codegen/schemas/tasks")
+	configs            []*TaskConfigSchema // loaded config schemas
+	configTypes        []*TypeSchema       // loaded nested types from configs
+	kindToEnum         map[string]string   // maps config Kind (e.g., "HTTP_CALL") → enum value (e.g., "http_call")
+}
+
 // Generator generates Go code from JSON schemas
 type Generator struct {
 	schemaDir   string
@@ -102,6 +115,8 @@ type Generator struct {
 	taskConfigs   []*TaskConfigSchema
 	sharedTypes   []*TypeSchema
 	resourceSpecs []*TaskConfigSchema // SDK resource specs (Agent, Skill, etc.) - reuses TaskConfigSchema
+
+	expandStruct *expandStructConfig // optional: expand a Struct field into typed config fields
 }
 
 // NewGenerator creates a new code generator
@@ -518,6 +533,123 @@ func loadTypeSchema(path string) (*TypeSchema, error) {
 	}
 
 	return &schema, nil
+}
+
+// parseExpandStruct parses the --expand-struct flag value and loads config
+// schemas and their types from the specified directory.
+func (g *Generator) parseExpandStruct(value string) error {
+	parts := strings.SplitN(value, ":", 3)
+	if len(parts) != 3 {
+		return fmt.Errorf("expected format struct_field:discriminator_field:config_schema_dir, got %q", value)
+	}
+
+	esc := &expandStructConfig{
+		structField:        parts[0],
+		discriminatorField: parts[1],
+		configSchemaDir:    parts[2],
+	}
+
+	entries, err := os.ReadDir(esc.configSchemaDir)
+	if err != nil {
+		return fmt.Errorf("read config schema dir %s: %w", esc.configSchemaDir, err)
+	}
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
+			continue
+		}
+		schema, err := loadTaskConfigSchema(filepath.Join(esc.configSchemaDir, entry.Name()))
+		if err != nil {
+			return fmt.Errorf("load config schema %s: %w", entry.Name(), err)
+		}
+		esc.configs = append(esc.configs, schema)
+		fmt.Printf("  Loaded expand-struct config: %s (kind=%s)\n", schema.Name, schema.Kind)
+	}
+
+	typesDir := filepath.Join(esc.configSchemaDir, "types")
+	if entries, err := os.ReadDir(typesDir); err == nil {
+		loadedTypes := make(map[string]bool)
+		for _, entry := range entries {
+			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
+				continue
+			}
+			ts, err := loadTypeSchema(filepath.Join(typesDir, entry.Name()))
+			if err != nil {
+				return fmt.Errorf("load config type %s: %w", entry.Name(), err)
+			}
+			if loadedTypes[ts.Name] {
+				continue
+			}
+			loadedTypes[ts.Name] = true
+			esc.configTypes = append(esc.configTypes, ts)
+		}
+	}
+
+	esc.kindToEnum = buildKindToEnumMap(esc.configs, esc.configTypes, esc.discriminatorField)
+
+	g.expandStruct = esc
+	return nil
+}
+
+// buildKindToEnumMap builds a mapping from config schema Kind (e.g., "HTTP_CALL")
+// to the actual proto enum value name (e.g., "http_call") using word-set matching.
+func buildKindToEnumMap(configs []*TaskConfigSchema, types []*TypeSchema, discriminatorField string) map[string]string {
+	var enumValues []string
+	for _, ts := range types {
+		for _, f := range ts.Fields {
+			if f.ProtoField == discriminatorField && len(f.Type.EnumValues) > 0 {
+				enumValues = f.Type.EnumValues
+				break
+			}
+		}
+		if len(enumValues) > 0 {
+			break
+		}
+	}
+
+	result := make(map[string]string, len(configs))
+	for _, cfg := range configs {
+		if ev := matchEnumValue(cfg.Kind, enumValues); ev != "" {
+			result[cfg.Kind] = ev
+			fmt.Printf("    Mapped config %s → enum %s\n", cfg.Kind, ev)
+		}
+	}
+	return result
+}
+
+// matchEnumValue finds the enum value matching a config Kind by word-set comparison.
+// Config Kind words must be a subset of (or equal to) the enum value's words.
+func matchEnumValue(configKind string, enumValues []string) string {
+	configWords := strings.Split(configKind, "_")
+
+	var bestMatch string
+	bestDiff := -1
+
+	for _, ev := range enumValues {
+		evUpper := strings.ToUpper(ev)
+		evWords := strings.Split(evUpper, "_")
+
+		if isWordSubset(configWords, evWords) {
+			diff := len(evWords) - len(configWords)
+			if bestDiff < 0 || diff < bestDiff {
+				bestMatch = ev
+				bestDiff = diff
+			}
+		}
+	}
+	return bestMatch
+}
+
+func isWordSubset(subset, superset []string) bool {
+	set := make(map[string]bool, len(superset))
+	for _, w := range superset {
+		set[w] = true
+	}
+	for _, w := range subset {
+		if !set[w] {
+			return false
+		}
+	}
+	return true
 }
 
 // generateHelpers generates a helpers.go file with utility functions
@@ -1715,6 +1847,7 @@ func main() {
 	packageName := flag.String("package", "gen", "Go package name for generated code")
 	fileSuffix := flag.String("file-suffix", "", "Suffix for generated files (e.g., '_task', '_spec', or empty)")
 	target := flag.String("target", "sdk", "Generation target: sdk or mcp")
+	expandStruct := flag.String("expand-struct", "", "Expand a Struct field into typed config fields: struct_field:discriminator_field:config_schema_dir")
 	flag.Parse()
 
 	if *schemaDir == "" || *outputDir == "" {
@@ -1731,6 +1864,13 @@ func main() {
 	if err != nil {
 		fmt.Printf("Error creating generator: %v\n", err)
 		os.Exit(1)
+	}
+
+	if *expandStruct != "" {
+		if err := gen.parseExpandStruct(*expandStruct); err != nil {
+			fmt.Printf("Error parsing --expand-struct: %v\n", err)
+			os.Exit(1)
+		}
 	}
 
 	switch *target {

@@ -38,9 +38,12 @@ func newTestInput() *geninput.WorkflowInput {
 		},
 		Tasks: []geninput.WorkflowTaskInput{
 			{
-				Name:       "fetch-data",
-				Kind:       "http_call",
-				TaskConfig: map[string]any{"method": "GET", "url": "https://example.com"},
+				Name: "fetch-data",
+				Kind: "http_call",
+				HttpCall: &geninput.HttpCallTaskConfigInput{
+					Method:   "GET",
+					Endpoint: &geninput.HttpEndpointInput{Uri: "https://example.com"},
+				},
 			},
 		},
 	}

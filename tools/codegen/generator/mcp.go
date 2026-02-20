@@ -39,16 +39,18 @@ type mcpInputType struct {
 
 // mcpInputField describes one field inside an mcpInputType.
 type mcpInputField struct {
-	goName        string
-	protoField    string
-	goType        string
-	jsonTag       string
-	schemaTag     string
-	description   string // for doc comment
-	inputTypeName string // non-empty when this field references a nested input type with toProto()
-	oneofGroup    string // non-empty when this field belongs to a proto oneof group
-	enumType      string // fully-qualified proto enum type (e.g., "ai.stigmer.agentic.workflow.v1.WorkflowTaskKind")
-	isStruct      bool   // true when the proto field is google.protobuf.Struct
+	goName           string
+	protoField       string
+	goType           string
+	jsonTag          string
+	schemaTag        string
+	description      string // for doc comment
+	inputTypeName    string // non-empty when this field references a nested input type with toProto()
+	oneofGroup       string // non-empty when this field belongs to a proto oneof group
+	enumType         string // fully-qualified proto enum type (e.g., "ai.stigmer.agentic.workflow.v1.WorkflowTaskKind")
+	isStruct         bool // true when the proto field is google.protobuf.Struct
+	isTimestamp      bool // true when the proto field is google.protobuf.Timestamp
+	isExpandedConfig bool // true when this field is a typed config from expand-struct expansion
 }
 
 // mcpGen holds all state for a single MCP code generation run.
@@ -61,6 +63,8 @@ type mcpGen struct {
 	outputDir   string
 
 	imports map[string]string // path → alias
+
+	expandStruct *expandStructConfig // optional: expand a Struct field into typed config fields
 }
 
 // GenerateMCP generates MCP input types and ToProto conversion code from the
@@ -69,9 +73,26 @@ func (g *Generator) GenerateMCP() error {
 	// When --schema-dir points directly at a resource directory (e.g.,
 	// schemas/agentic/agent/), the loader categorises the spec JSON as a
 	// taskConfig. Promote it so the rest of the method works uniformly.
-	if len(g.resourceSpecs) == 0 && len(g.taskConfigs) == 1 {
-		g.resourceSpecs = g.taskConfigs
-		g.taskConfigs = nil
+	if len(g.resourceSpecs) == 0 && len(g.taskConfigs) > 0 {
+		dirBase := strings.ToLower(filepath.Base(g.schemaDir))
+		var promoted *TaskConfigSchema
+		var remaining []*TaskConfigSchema
+		for _, tc := range g.taskConfigs {
+			nameLower := strings.ToLower(strings.TrimSuffix(tc.Name, "Spec"))
+			if promoted == nil && nameLower == dirBase {
+				promoted = tc
+			} else {
+				remaining = append(remaining, tc)
+			}
+		}
+		if promoted == nil && len(g.taskConfigs) == 1 {
+			promoted = g.taskConfigs[0]
+			remaining = nil
+		}
+		if promoted != nil {
+			g.resourceSpecs = []*TaskConfigSchema{promoted}
+			g.taskConfigs = remaining
+		}
 	}
 
 	if len(g.resourceSpecs) == 0 {
@@ -92,13 +113,22 @@ func (g *Generator) GenerateMCP() error {
 		typesMap[t.Name] = t
 	}
 
+	if g.expandStruct != nil {
+		for _, t := range g.expandStruct.configTypes {
+			if typesMap[t.Name] == nil {
+				typesMap[t.Name] = t
+			}
+		}
+	}
+
 	m := &mcpGen{
-		spec:        spec,
-		types:       typesMap,
-		seenTypes:   make(map[string]bool),
-		packageName: g.packageName,
-		outputDir:   g.outputDir,
-		imports:     make(map[string]string),
+		spec:         spec,
+		types:        typesMap,
+		seenTypes:    make(map[string]bool),
+		packageName:  g.packageName,
+		outputDir:    g.outputDir,
+		imports:      make(map[string]string),
+		expandStruct: g.expandStruct,
 	}
 
 	m.collectInputTypes()
@@ -199,6 +229,11 @@ func (m *mcpGen) resolveField(f *FieldSchema) *mcpInputField {
 		field.goType = "map[string]any"
 		field.isStruct = true
 
+	// google.protobuf.Timestamp → string (ISO 8601)
+	case f.Type.Kind == "timestamp":
+		field.goType = "string"
+		field.isTimestamp = true
+
 	default:
 		field.goType = scalarGoType(f.Type.Kind)
 	}
@@ -276,13 +311,88 @@ func (m *mcpGen) ensureMessageInputType(messageName, inputName string) {
 		return
 	}
 
+	hasExpansion := m.expandStruct != nil && m.typeHasExpandableField(ts)
+
 	it := &mcpInputType{
-		name:        inputName,
-		description: sanitizeDescription(ts.Description),
-		protoType:   ts.ProtoType,
+		name:      inputName,
+		protoType: ts.ProtoType,
+	}
+
+	if hasExpansion {
+		it.description = fmt.Sprintf("A single workflow task. Set kind to the task type and populate exactly one matching config field (e.g. kind='http_call' -> set the http_call field).")
+	} else {
+		it.description = sanitizeDescription(ts.Description)
 	}
 
 	for _, f := range ts.Fields {
+		if hasExpansion && f.ProtoField == m.expandStruct.structField {
+			for _, cfg := range m.expandStruct.configs {
+				it.fields = append(it.fields, m.expandedConfigField(cfg))
+			}
+			continue
+		}
+		if hasExpansion && f.ProtoField == m.expandStruct.discriminatorField {
+			f.Description = "Task type. Set the matching config field (e.g. kind='http_call' -> populate http_call)."
+		}
+		it.fields = append(it.fields, m.resolveField(f))
+	}
+
+	m.inputTypes = append(m.inputTypes, it)
+}
+
+func (m *mcpGen) typeHasExpandableField(ts *TypeSchema) bool {
+	for _, f := range ts.Fields {
+		if f.ProtoField == m.expandStruct.structField && f.Type.Kind == "struct" {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *mcpGen) expandedConfigField(cfg *TaskConfigSchema) *mcpInputField {
+	fieldName := m.expandStruct.kindToEnum[cfg.Kind]
+	if fieldName == "" {
+		fieldName = strings.ToLower(cfg.Kind)
+	}
+	inputName := m.messageInputTypeName(cfg.Name)
+
+	m.ensureConfigInputType(cfg, inputName)
+
+	desc := sanitizeDescription(cfg.Description)
+	shortDesc := fmt.Sprintf("Required when kind='%s'. %s", fieldName, desc)
+
+	schemaTag := fmt.Sprintf("description=%s",
+		strings.ReplaceAll(
+			strings.ReplaceAll(
+				strings.ReplaceAll(shortDesc, ",", "\\,"),
+				"`", "'"),
+			`"`, "'"))
+
+	return &mcpInputField{
+		goName:           toPascalCase(fieldName),
+		protoField:       fieldName,
+		goType:           "*" + inputName,
+		jsonTag:          fieldName + ",omitempty",
+		schemaTag:        schemaTag,
+		description:      shortDesc,
+		inputTypeName:    inputName,
+		isExpandedConfig: true,
+	}
+}
+
+func (m *mcpGen) ensureConfigInputType(cfg *TaskConfigSchema, inputName string) {
+	if m.seenTypes[inputName] {
+		return
+	}
+	m.seenTypes[inputName] = true
+
+	it := &mcpInputType{
+		name:        inputName,
+		description: sanitizeDescription(cfg.Description),
+		protoType:   cfg.ProtoType,
+	}
+
+	for _, f := range cfg.Fields {
 		it.fields = append(it.fields, m.resolveField(f))
 	}
 
@@ -304,6 +414,14 @@ func (m *mcpGen) buildJsonSchemaTag(f *FieldSchema) string {
 	var parts []string
 	if f.Required {
 		parts = append(parts, "required")
+	}
+
+	enumVals := f.Type.EnumValues
+	if len(enumVals) == 0 && f.Validation != nil {
+		enumVals = f.Validation.Enum
+	}
+	if len(enumVals) > 0 {
+		parts = append(parts, "enum="+strings.Join(enumVals, "|"))
 	}
 
 	if f.Description != "" {
@@ -338,6 +456,11 @@ func (m *mcpGen) generateFile() error {
 		m.genStruct(&body, it)
 	}
 
+	// protoToStruct helper (if expand-struct is active)
+	if m.expandStruct != nil {
+		m.genProtoToStructHelper(&body)
+	}
+
 	// ToProto methods
 	m.genTopLevelToProto(&body, m.inputTypes[0], resourceName)
 
@@ -369,6 +492,28 @@ func (m *mcpGen) generateFile() error {
 	}
 	fmt.Printf("  Generated %s\n", outPath)
 	return nil
+}
+
+// genProtoToStructHelper generates the protoToStruct helper function that
+// converts a proto message to structpb.Struct via protojson serialization.
+func (m *mcpGen) genProtoToStructHelper(w *bytes.Buffer) {
+	m.addImport("encoding/json", "")
+	m.addImport("fmt", "")
+	m.addImport("google.golang.org/protobuf/types/known/structpb", "structpb")
+	m.addImport("google.golang.org/protobuf/proto", "")
+	m.addImport("google.golang.org/protobuf/encoding/protojson", "")
+
+	fmt.Fprintf(w, "func protoToStruct(msg proto.Message) (*structpb.Struct, error) {\n")
+	fmt.Fprintf(w, "\tdata, err := protojson.Marshal(msg)\n")
+	fmt.Fprintf(w, "\tif err != nil {\n")
+	fmt.Fprintf(w, "\t\treturn nil, fmt.Errorf(\"protojson marshal: %%w\", err)\n")
+	fmt.Fprintf(w, "\t}\n")
+	fmt.Fprintf(w, "\tvar m map[string]any\n")
+	fmt.Fprintf(w, "\tif err := json.Unmarshal(data, &m); err != nil {\n")
+	fmt.Fprintf(w, "\t\treturn nil, fmt.Errorf(\"json unmarshal: %%w\", err)\n")
+	fmt.Fprintf(w, "\t}\n")
+	fmt.Fprintf(w, "\treturn structpb.NewStruct(m)\n")
+	fmt.Fprintf(w, "}\n\n")
 }
 
 // genStruct writes a single input type struct.
@@ -476,8 +621,52 @@ func (m *mcpGen) genNestedToProto(w *bytes.Buffer, it *mcpInputType) {
 		m.genFieldAssignment(w, f, "input", "result", it)
 	}
 
+	if m.hasExpandedConfigFields(it) {
+		m.genConfigToStructSwitch(w, it)
+	}
+
 	fmt.Fprintf(w, "\treturn result, nil\n")
 	fmt.Fprintf(w, "}\n\n")
+}
+
+func (m *mcpGen) hasExpandedConfigFields(it *mcpInputType) bool {
+	for _, f := range it.fields {
+		if f.isExpandedConfig {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *mcpGen) genConfigToStructSwitch(w *bytes.Buffer, it *mcpInputType) {
+	m.addImport("fmt", "")
+
+	structFieldName := toPascalCase(m.expandStruct.structField)
+
+	fmt.Fprintf(w, "\tswitch input.Kind {\n")
+	for _, f := range it.fields {
+		if !f.isExpandedConfig {
+			continue
+		}
+		fmt.Fprintf(w, "\tcase %q:\n", f.protoField)
+		fmt.Fprintf(w, "\t\tif input.%s == nil {\n", f.goName)
+		fmt.Fprintf(w, "\t\t\treturn nil, fmt.Errorf(\"%s config required when kind=%%q\", input.Kind)\n", f.protoField)
+		fmt.Fprintf(w, "\t\t}\n")
+		fmt.Fprintf(w, "\t\tp, err := input.%s.toProto()\n", f.goName)
+		fmt.Fprintf(w, "\t\tif err != nil {\n")
+		fmt.Fprintf(w, "\t\t\treturn nil, fmt.Errorf(\"convert %s config: %%w\", err)\n", f.protoField)
+		fmt.Fprintf(w, "\t\t}\n")
+		fmt.Fprintf(w, "\t\tv, err := protoToStruct(p)\n")
+		fmt.Fprintf(w, "\t\tif err != nil {\n")
+		fmt.Fprintf(w, "\t\t\treturn nil, fmt.Errorf(\"marshal %s config: %%w\", err)\n", f.protoField)
+		fmt.Fprintf(w, "\t\t}\n")
+		fmt.Fprintf(w, "\t\tresult.%s = v\n", structFieldName)
+	}
+	fmt.Fprintf(w, "\tdefault:\n")
+	fmt.Fprintf(w, "\t\tif input.Kind != \"\" {\n")
+	fmt.Fprintf(w, "\t\t\treturn nil, fmt.Errorf(\"unknown task kind: %%q\", input.Kind)\n")
+	fmt.Fprintf(w, "\t\t}\n")
+	fmt.Fprintf(w, "\t}\n")
 }
 
 // genRefToProto generates a toProto method for a flattened reference input.
@@ -505,8 +694,31 @@ func (m *mcpGen) genRefToProto(w *bytes.Buffer, it *mcpInputType) {
 // genFieldAssignment generates code to assign a single field from input to proto.
 // All nested toProto calls propagate errors.
 func (m *mcpGen) genFieldAssignment(w *bytes.Buffer, f *mcpInputField, src, dst string, parentType *mcpInputType) {
+	if f.isExpandedConfig {
+		return
+	}
+
 	goType := f.goType
 	hasToProto := f.inputTypeName != ""
+
+	// Proto oneof timestamp field → parse ISO 8601 and wrap in oneof
+	if f.oneofGroup != "" && f.isTimestamp {
+		specName := protoTypeName(parentType.protoType)
+		specPkg, specAlias := m.protoImport(parentType.protoType)
+		m.addImport(specPkg, specAlias)
+		m.addImport("google.golang.org/protobuf/types/known/timestamppb", "timestamppb")
+		m.addImport("time", "")
+		m.addImport("fmt", "")
+		fmt.Fprintf(w, "\tif %s.%s != \"\" {\n", src, f.goName)
+		fmt.Fprintf(w, "\t\tt, err := time.Parse(time.RFC3339, %s.%s)\n", src, f.goName)
+		fmt.Fprintf(w, "\t\tif err != nil {\n")
+		fmt.Fprintf(w, "\t\t\treturn nil, fmt.Errorf(\"parse %s: %%w\", err)\n", f.protoField)
+		fmt.Fprintf(w, "\t\t}\n")
+		fmt.Fprintf(w, "\t\t%s.%s = &%s.%s_%s{%s: timestamppb.New(t)}\n",
+			dst, toPascalCase(f.oneofGroup), specAlias, specName, f.goName, f.goName)
+		fmt.Fprintf(w, "\t}\n")
+		return
+	}
 
 	// Proto oneof fields use a wrapper type: SpecName_FieldName{FieldName: value}
 	if f.oneofGroup != "" && hasToProto && strings.HasPrefix(goType, "*") {
@@ -525,6 +737,19 @@ func (m *mcpGen) genFieldAssignment(w *bytes.Buffer, f *mcpInputField, src, dst 
 	}
 
 	switch {
+	// google.protobuf.Timestamp field → parse ISO 8601 string
+	case f.isTimestamp:
+		m.addImport("google.golang.org/protobuf/types/known/timestamppb", "timestamppb")
+		m.addImport("time", "")
+		m.addImport("fmt", "")
+		fmt.Fprintf(w, "\tif %s.%s != \"\" {\n", src, f.goName)
+		fmt.Fprintf(w, "\t\tt, err := time.Parse(time.RFC3339, %s.%s)\n", src, f.goName)
+		fmt.Fprintf(w, "\t\tif err != nil {\n")
+		fmt.Fprintf(w, "\t\t\treturn nil, fmt.Errorf(\"parse %s: %%w\", err)\n", f.protoField)
+		fmt.Fprintf(w, "\t\t}\n")
+		fmt.Fprintf(w, "\t\t%s.%s = timestamppb.New(t)\n", dst, f.goName)
+		fmt.Fprintf(w, "\t}\n")
+
 	// google.protobuf.Struct field → structpb.NewStruct
 	case f.isStruct:
 		m.addImport("google.golang.org/protobuf/types/known/structpb", "structpb")
@@ -689,6 +914,8 @@ func scalarGoType(kind string) string {
 		return "bool"
 	case "int32":
 		return "int32"
+	case "uint32":
+		return "uint32"
 	case "int64":
 		return "int64"
 	case "float":
@@ -705,7 +932,7 @@ func scalarGoType(kind string) string {
 func isScalarSlice(goType string) bool {
 	inner := strings.TrimPrefix(goType, "[]")
 	switch inner {
-	case "string", "bool", "int32", "int64", "float32", "float64", "byte":
+	case "string", "bool", "int32", "uint32", "int64", "float32", "float64", "byte":
 		return true
 	}
 	return false

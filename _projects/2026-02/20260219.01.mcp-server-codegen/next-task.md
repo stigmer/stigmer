@@ -15,9 +15,9 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: February 19, 2026
-**Last Session**: February 20, 2026 (Session 6)
-**Current Task**: T05 DONE — project complete
-**Status**: ALL TASKS COMPLETE
+**Last Session**: February 20, 2026 (Session 7)
+**Current Task**: T09 DONE — typed workflow task configs
+**Status**: ALL TASKS COMPLETE — branch ready for PR
 
 ## Task Overview
 
@@ -27,10 +27,29 @@ Drop this file into your conversation to quickly resume work on this project.
 | T02 | Implement Core Abstractions + rename files to express responsibility | DONE (committed 78691149) |
 | T03 | Refactor Agents Domain — reference refactoring | DONE |
 | T04 | Refactor Remaining Domains — workflows, mcpservers, skills | DONE |
-| T05 | Final Validation and Close-Out | **DONE** |
+| T05 | Final Validation and Close-Out | DONE |
 | T06 | Agent Apply Rich Schema — SDK-pattern structured input | DONE (committed 12dbcb9c) |
 | T07 | MCP Input Type Codegen — generate input types from protos | DONE (committed 225db0b0) |
 | T08 | Workflow codegen + toProto error propagation + Makefile | DONE (committed 5ca21143) |
+| T09 | Typed workflow task configs — replace `map[string]any` with 13 typed structs | **DONE** |
+
+## T09 Completion Summary (Session 7)
+
+Replaced `WorkflowTaskInput.TaskConfig map[string]any` with 13 strongly-typed per-kind config structs
+generated entirely by the codegen pipeline. AI agents now see the full discriminated union with enum
+constraints on `kind` and per-field descriptions stating which `kind` value each config belongs to.
+
+**What was done:**
+- Enhanced `proto2schema` to generically extract enum values — applies to all domains
+- Added `jsonschema:"enum=..."` tag emission in `generator/mcp.go` — generic, all enum fields
+- Added `--expand-struct=field:discriminator:dir` CLI flag to `generator/main.go`
+- Implemented struct expansion: 13 typed `*XxxTaskConfigInput` pointer fields replace the old `map[string]any`
+- Generated `switch input.Kind` block in `WorkflowTaskInput.ToProto()` for validation + `protojson` serialization
+- Handled edge cases: `uint32`, `google.protobuf.Timestamp`, `oneof + Timestamp`
+- Updated Makefile with `--expand-struct` flag for workflow domain; regenerated all schemas and code
+- Updated all tests (`convert_test.go`, `apply_tool_test.go`) to use typed config structs
+
+**Results:** All tests pass (`go test -race ./...` ✅, `go build ./...` ✅)
 
 ## T05 Completion Summary (Session 6)
 

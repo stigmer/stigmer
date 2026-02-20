@@ -73,7 +73,13 @@
       "jsonName": "provisioningMode",
       "protoField": "provisioning_mode",
       "type": {
-        "kind": "string"
+        "kind": "string",
+        "enumType": "ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode",
+        "enumValues": [
+          "direct",
+          "federated",
+          "machine"
+        ]
       },
       "description": "How this identity account was provisioned.\n Unspecified for legacy accounts created before this field was introduced.\n (ignored for create) this value is assigned by backend.",
       "required": false
