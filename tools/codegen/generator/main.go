@@ -1999,13 +1999,10 @@ func detectExpandStructFromSchema(gen *Generator, satellites []*satelliteDir) {
 	}
 }
 
-// skipResources lists resources that cannot be generated because they are
-// composite/aggregate types embedding full resource wrappers. The MCP input
-// generator requires Spec-level types; composite types cause naming collisions
-// (e.g., Agent and AgentSpec both map to AgentInput).
-var skipResources = map[string]bool{
-	"project": true,
-}
+// skipResources lists resources that cannot be generated.
+// Composite resources (like Project) that embed full resource wrappers are now
+// supported via cross-package imports — see isResourceWrapper() in mcp.go.
+var skipResources = map[string]bool{}
 
 // runComprehensiveMCP discovers all domain/resource schemas and generates
 // MCP input types for each into domain-scoped output directories.
