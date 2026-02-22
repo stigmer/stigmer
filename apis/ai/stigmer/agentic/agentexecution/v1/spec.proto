@@ -357,21 +357,22 @@ message Attachment {
   // Example: "config.yaml", "input-data.zip"
   string filename = 1 [(buf.validate.field).string.min_len = 1];
 
-  // Reserved: Previously 'content' (bytes) for inline file content.
-  // Removed to enforce storage-first approach and avoid Temporal payload limits.
-  reserved 2;
-
   // Reference to pre-uploaded file in artifact store (required).
   // Obtained by calling uploadAttachment RPC before creating the execution.
   // Format: "attachments/{ulid}/{filename}"
-  string storage_key = 3 [(buf.validate.field).string.min_len = 1];
+  string storage_key = 2 [(buf.validate.field).string.min_len = 1];
 
   // Path in sandbox where file will be placed.
   // Defaults to "/inputs/{filename}" if not specified.
   // Example: "/workspace/input.yaml", "/inputs/data/"
-  string mount_path = 4;
+  string mount_path = 3;
 
   // MIME type for content negotiation (optional).
   // Example: "application/yaml", "text/plain", "application/zip"
-  string content_type = 5;
+  string content_type = 4;
+
+  // When true, the attachment is a zip archive that should be extracted
+  // at mount_path rather than written as a single file.
+  // Set automatically by the CLI when a directory is attached.
+  bool extract = 5;
 }
