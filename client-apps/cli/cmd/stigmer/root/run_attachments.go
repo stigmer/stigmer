@@ -59,7 +59,7 @@ func (p *AttachmentProcessor) processFile(path string) (*agentexecutionv1.Attach
 	}
 
 	if info.IsDir() {
-		return nil, fmt.Errorf("cannot attach directory: %s (only files are supported)", path)
+		return p.processDirectory(path)
 	}
 
 	filename := filepath.Base(path)
@@ -68,7 +68,44 @@ func (p *AttachmentProcessor) processFile(path string) (*agentexecutionv1.Attach
 	return p.uploadFile(path, filename, contentType, info.Size())
 }
 
-// uploadFile uploads a file and creates an Attachment with storage_key.
+// processDirectory zips a directory and uploads it as a single attachment.
+// The resulting Attachment has extract=true so the agent runner extracts
+// the archive at mount_path instead of writing it as a single file.
+func (p *AttachmentProcessor) processDirectory(path string) (*agentexecutionv1.Attachment, error) {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to resolve directory path")
+	}
+	dirname := filepath.Base(absPath)
+
+	zipBytes, fileCount, originalSize, err := zipDirectory(absPath)
+	if err != nil {
+		return nil, err
+	}
+
+	zipSize := int64(len(zipBytes))
+
+	cliprint.PrintInfo("Zipping directory: %s/ (%d files, %s -> %s compressed)",
+		dirname, fileCount, formatFileSize(originalSize), formatFileSize(zipSize))
+
+	if zipSize > maxAttachmentSize {
+		return nil, fmt.Errorf(
+			"zipped directory too large (%s). Maximum attachment size is %s",
+			formatFileSize(zipSize), formatFileSize(maxAttachmentSize))
+	}
+
+	filename := dirname + ".zip"
+	attachment, err := p.uploadBytes(zipBytes, filename, "application/zip")
+	if err != nil {
+		return nil, err
+	}
+
+	attachment.Extract = true
+	attachment.MountPath = fmt.Sprintf("inputs/%s/", dirname)
+	return attachment, nil
+}
+
+// uploadFile reads a file from disk and uploads it via the UploadAttachment RPC.
 func (p *AttachmentProcessor) uploadFile(path, filename, contentType string, size int64) (*agentexecutionv1.Attachment, error) {
 	content, err := os.ReadFile(path)
 	if err != nil {
@@ -76,7 +113,11 @@ func (p *AttachmentProcessor) uploadFile(path, filename, contentType string, siz
 	}
 
 	cliprint.PrintInfo("Uploading %s (%s)...", filename, formatFileSize(size))
+	return p.uploadBytes(content, filename, contentType)
+}
 
+// uploadBytes uploads raw bytes via the UploadAttachment RPC and returns an Attachment.
+func (p *AttachmentProcessor) uploadBytes(content []byte, filename, contentType string) (*agentexecutionv1.Attachment, error) {
 	client := agentexecutionv1.NewAgentExecutionCommandControllerClient(p.conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()

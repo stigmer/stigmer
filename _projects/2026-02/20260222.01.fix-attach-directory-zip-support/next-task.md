@@ -14,43 +14,43 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: 2026-02-22 — Completed T01 (plan) and T02 (proto change)
-- **Active Task**: T03 (CLI — Directory Zipping & Upload)
+- **Last Session**: 2026-02-22 — Completed T01 (plan), T02 (proto change), and T03 (CLI directory zipping)
+- **Active Task**: T04 (Agent Runner — Zip Extraction)
 
-## Session Progress (2026-02-22)
+## Session Progress (2026-02-22, Session 2)
 
-- Reviewed and approved the T01 feature analysis and design plan
-- Completed T02: Proto change + stub regeneration
-  - Removed `reserved 2` from `Attachment` message, renumbered to clean 1-5 sequence
-  - Added `bool extract = 5` field to `Attachment` proto
-  - Regenerated Go and Python stubs via `make -C apis build`
-  - Updated MCP server's `AttachmentInput` struct and `toProto()` method
-  - Verified compilation across all dependent Bazel targets
+- Completed T03: CLI — Directory Zipping & Upload
+  - Created `run_attachments_zip.go` with `zipDirectory()`, `isHiddenEntry()`, and `maxAttachmentSize` (10MB)
+  - Refactored `uploadFile()` → `uploadBytes()` for direct byte upload without temp files
+  - Added `processDirectory()` orchestration method with size guard and proto annotation
+  - Modified `processFile()` to delegate directories instead of rejecting
+  - Verified with `go build` and `go vet` (both clean)
 - Design decisions confirmed:
-  - Field name: `extract` (not `is_extract` or `should_extract`)
-  - Clean field renumbering (no backward compat needed — proto not in production)
-  - Explicit `extract` flag approach (not content-type inference)
+  - 10MB size limit (matches actual server `MaxRecvMsgSize`, not the 4MB in proto comments)
+  - Symlinks skipped with per-symlink warning (safer than following)
+  - Hidden files = dot-prefix convention (`.git`, `.DS_Store`, `.env`, etc.)
+  - Two-file split: zip logic (107 lines) vs orchestration (197 lines)
 
 ## Next Steps
 
-1. **T03: CLI — Directory Zipping & Upload** (`run_attachments.go`)
-   - New `zipDirectory()` function using `archive/zip`
-   - Modify `processFile()` to handle directories (auto-zip, set `extract: true`)
-   - Add size guard for gRPC ~4MB limit
-   - Skip hidden files (`.git`, `.DS_Store`)
-   - Update CLI output messages for directory zipping
-2. **T04: Agent Runner — Zip Extraction** (`execute_graphton.py`)
+1. **T04: Agent Runner — Zip Extraction** (`execute_graphton.py`)
    - New `extract_zip_attachment()` function
-   - Path traversal protection, zip bomb limits
+   - Path traversal protection (reject entries with `..` or absolute paths)
+   - Zip bomb limits (max file count, max extracted size)
+   - Modify `inject_attachments()` to branch on `attachment.extract`
    - Handle both Daytona sandbox and local modes
-3. **T05: Integration Testing & Validation**
+2. **T05: Integration Testing & Validation**
+   - End-to-end: directory → zip → upload → extract → agent sees files
+   - Test individual file behavior unchanged
+   - Test edge cases (empty dir, large dir, nested dirs)
 
 ## Context for Resume
 
-- The `Attachment` proto now has 5 fields: `filename=1`, `storage_key=2`, `mount_path=3`, `content_type=4`, `extract=5`
-- All existing code paths are unaffected — `extract` defaults to `false`
-- The MCP server's hand-maintained `agent_execution_gen.go` was updated separately from the buf-generated stubs
-- Pre-existing Bazel issue: CLI root target (`//client-apps/cli/cmd/stigmer/root/...`) fails due to missing `com_github_alecthomas_chroma_v2` module — needs `bazel mod tidy` (not related to our changes)
+- The `Attachment` proto has 5 fields: `filename=1`, `storage_key=2`, `mount_path=3`, `content_type=4`, `extract=5`
+- CLI now sets `Extract: true` and `MountPath: "inputs/{dirname}/"` for directory attachments
+- The zip is created in-memory with `Deflate` compression, skipping hidden files and symlinks
+- `uploadBytes()` was extracted from `uploadFile()` — used by both file and directory paths
+- Pre-existing Bazel issue: CLI root target fails due to missing `com_github_alecthomas_chroma_v2` module (not related to our changes)
 - Full task plan is in `tasks/T01_0_plan.md`
 
 ## Essential Files to Review
@@ -99,12 +99,12 @@ When starting a new session:
 3. [ ] Review design decisions in `design-decisions/`
 4. [ ] Check coding guidelines in `coding-guidelines/`
 5. [ ] Review lessons in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with T03: CLI — Directory Zipping & Upload
+6. [ ] Continue with T04: Agent Runner — Zip Extraction
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T03" - Resume the next task
+- "Continue with T04" - Resume the next task
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
