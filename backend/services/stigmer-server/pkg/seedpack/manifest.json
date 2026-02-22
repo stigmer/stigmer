@@ -1,6 +1,6 @@
 {
-  "schema_version": "2",
-  "version": "1.1.0",
+  "schema_version": "3",
+  "version": "1.2.0",
   "created_at": "2026-02-08T00:00:00Z",
   "description": "Stigmer system seedpack - bootstrap resources for offline operation",
   "skills": [
@@ -21,6 +21,12 @@
     {
       "name": "skill-creator-agent",
       "path": "agents/skill-creator-agent.yaml"
+    }
+  ],
+  "mcp_servers": [
+    {
+      "name": "stigmer-mcp-server",
+      "path": "mcp-servers/stigmer-mcp-server.yaml"
     }
   ]
 }

@@ -15,13 +15,13 @@ func TestLoadManifest(t *testing.T) {
 	}
 
 	// Validate schema version
-	if manifest.SchemaVersion != "2" {
-		t.Errorf("Expected schema_version '2', got '%s'", manifest.SchemaVersion)
+	if manifest.SchemaVersion != "3" {
+		t.Errorf("Expected schema_version '3', got '%s'", manifest.SchemaVersion)
 	}
 
 	// Validate version
-	if manifest.Version != "1.1.0" {
-		t.Errorf("Expected version '1.1.0', got '%s'", manifest.Version)
+	if manifest.Version != "1.2.0" {
+		t.Errorf("Expected version '1.2.0', got '%s'", manifest.Version)
 	}
 
 	// Validate skills
@@ -34,8 +34,13 @@ func TestLoadManifest(t *testing.T) {
 		t.Error("Expected at least one system agent in manifest")
 	}
 
-	t.Logf("Manifest: version=%s, skills=%d, agents=%d",
-		manifest.Version, len(manifest.Skills), len(manifest.SystemAgents))
+	// Validate MCP servers
+	if len(manifest.McpServers) == 0 {
+		t.Error("Expected at least one MCP server in manifest")
+	}
+
+	t.Logf("Manifest: version=%s, skills=%d, agents=%d, mcp_servers=%d",
+		manifest.Version, len(manifest.Skills), len(manifest.SystemAgents), len(manifest.McpServers))
 }
 
 func TestLoadManifest_SkillCreatorEntry(t *testing.T) {
@@ -434,6 +439,106 @@ func TestGetAgentByName(t *testing.T) {
 
 	if missing != nil {
 		t.Error("Expected nil for non-existent agent")
+	}
+}
+
+func TestLoadManifest_McpServerEntry(t *testing.T) {
+	manifest, err := LoadManifest()
+	if err != nil {
+		t.Fatalf("LoadManifest() failed: %v", err)
+	}
+
+	var mcpEntry *McpServerEntry
+	for i := range manifest.McpServers {
+		if manifest.McpServers[i].Name == "stigmer-mcp-server" {
+			mcpEntry = &manifest.McpServers[i]
+			break
+		}
+	}
+
+	if mcpEntry == nil {
+		t.Fatal("stigmer-mcp-server not found in manifest")
+	}
+
+	if mcpEntry.Path != "mcp-servers/stigmer-mcp-server.yaml" {
+		t.Errorf("Expected path 'mcp-servers/stigmer-mcp-server.yaml', got '%s'", mcpEntry.Path)
+	}
+
+	t.Logf("stigmer-mcp-server: name=%s, path=%s", mcpEntry.Name, mcpEntry.Path)
+}
+
+func TestLoadMcpServerYAML(t *testing.T) {
+	mcpServer, err := LoadMcpServerYAML("mcp-servers/stigmer-mcp-server.yaml")
+	if err != nil {
+		t.Fatalf("LoadMcpServerYAML() failed: %v", err)
+	}
+
+	if mcpServer == nil {
+		t.Fatal("Expected non-nil MCP server")
+	}
+
+	if mcpServer.ApiVersion != "agentic.stigmer.ai/v1" {
+		t.Errorf("Expected apiVersion 'agentic.stigmer.ai/v1', got '%s'", mcpServer.ApiVersion)
+	}
+
+	if mcpServer.Kind != "McpServer" {
+		t.Errorf("Expected kind 'McpServer', got '%s'", mcpServer.Kind)
+	}
+
+	if mcpServer.Metadata == nil {
+		t.Fatal("Expected non-nil metadata")
+	}
+
+	if mcpServer.Metadata.Name != "stigmer-mcp-server" {
+		t.Errorf("Expected name 'stigmer-mcp-server', got '%s'", mcpServer.Metadata.Name)
+	}
+
+	if mcpServer.Spec == nil {
+		t.Fatal("Expected non-nil spec")
+	}
+
+	if mcpServer.Spec.Description == "" {
+		t.Error("Expected non-empty description")
+	}
+
+	stdio := mcpServer.Spec.GetStdio()
+	if stdio == nil {
+		t.Fatal("Expected stdio server config")
+	}
+
+	if stdio.Command != "stigmer" {
+		t.Errorf("Expected command 'stigmer', got '%s'", stdio.Command)
+	}
+
+	if len(stdio.Args) != 1 || stdio.Args[0] != "mcp-server" {
+		t.Errorf("Expected args ['mcp-server'], got %v", stdio.Args)
+	}
+
+	t.Logf("stigmer-mcp-server: description=%s..., command=%s %v",
+		truncate(mcpServer.Spec.Description, 50), stdio.Command, stdio.Args)
+}
+
+func TestGetMcpServerByName(t *testing.T) {
+	mcpServer, err := GetMcpServerByName("stigmer-mcp-server")
+	if err != nil {
+		t.Fatalf("GetMcpServerByName('stigmer-mcp-server') failed: %v", err)
+	}
+
+	if mcpServer == nil {
+		t.Fatal("Expected to find stigmer-mcp-server")
+	}
+
+	if mcpServer.Name != "stigmer-mcp-server" {
+		t.Errorf("Expected name 'stigmer-mcp-server', got '%s'", mcpServer.Name)
+	}
+
+	missing, err := GetMcpServerByName("non-existent-mcp-server")
+	if err != nil {
+		t.Fatalf("GetMcpServerByName('non-existent-mcp-server') failed: %v", err)
+	}
+
+	if missing != nil {
+		t.Error("Expected nil for non-existent MCP server")
 	}
 }
 

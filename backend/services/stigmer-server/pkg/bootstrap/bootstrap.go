@@ -26,7 +26,7 @@ import (
 	"github.com/rs/zerolog/log"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
-	"github.com/stigmer/stigmer/backend/libs/go/seedpack"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/seedpack"
 	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
 )
 
