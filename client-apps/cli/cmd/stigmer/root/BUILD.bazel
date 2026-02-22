@@ -24,6 +24,7 @@ go_library(
         "run.go",
         "run_approval.go",
         "run_attachments.go",
+        "run_attachments_zip.go",
         "run_create.go",
         "run_display.go",
         "run_display_approval.go",
