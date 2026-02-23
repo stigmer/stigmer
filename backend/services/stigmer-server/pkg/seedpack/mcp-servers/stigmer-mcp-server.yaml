@@ -10,6 +10,7 @@ spec:
     - system
     - built-in
   stdio:
-    command: "stigmer"
+    command: "go"
     args:
-      - "mcp-server"
+      - "run"
+      - "github.com/stigmer/stigmer/mcp-server/cmd/mcp-server-stigmer@latest"

@@ -150,7 +150,7 @@ func TestBootstrapper_Run_Success(t *testing.T) {
 
 	version, err := store.GetBootstrapState(ctx, KeySeedpackVersion)
 	require.NoError(t, err)
-	assert.Equal(t, "1.2.0", version) // Should match seedpack manifest
+	assert.Equal(t, "1.3.0", version) // Should match seedpack manifest
 
 	skillState, err := store.GetBootstrapState(ctx, KeySkillPrefix+"skill-creator")
 	require.NoError(t, err)
