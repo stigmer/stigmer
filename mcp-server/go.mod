@@ -2,12 +2,9 @@ module github.com/stigmer/stigmer/mcp-server
 
 go 1.25.6
 
-// Local development: use API stubs from the monorepo rather than a published module.
-replace github.com/stigmer/stigmer/apis/stubs/go => ../apis/stubs/go
-
 require (
 	github.com/modelcontextprotocol/go-sdk v1.3.0
-	github.com/stigmer/stigmer/apis/stubs/go v0.0.0-00010101000000-000000000000
+	github.com/stigmer/stigmer/apis/stubs/go v0.0.1
 	google.golang.org/grpc v1.79.1
 	google.golang.org/protobuf v1.36.11
 )

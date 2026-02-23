@@ -20,8 +20,8 @@ func TestLoadManifest(t *testing.T) {
 	}
 
 	// Validate version
-	if manifest.Version != "1.2.0" {
-		t.Errorf("Expected version '1.2.0', got '%s'", manifest.Version)
+	if manifest.Version != "1.3.0" {
+		t.Errorf("Expected version '1.3.0', got '%s'", manifest.Version)
 	}
 
 	// Validate skills
@@ -506,12 +506,13 @@ func TestLoadMcpServerYAML(t *testing.T) {
 		t.Fatal("Expected stdio server config")
 	}
 
-	if stdio.Command != "stigmer" {
-		t.Errorf("Expected command 'stigmer', got '%s'", stdio.Command)
+	if stdio.Command != "go" {
+		t.Errorf("Expected command 'go', got '%s'", stdio.Command)
 	}
 
-	if len(stdio.Args) != 1 || stdio.Args[0] != "mcp-server" {
-		t.Errorf("Expected args ['mcp-server'], got %v", stdio.Args)
+	expectedArgs := []string{"run", "github.com/stigmer/stigmer/mcp-server/cmd/mcp-server-stigmer@latest"}
+	if len(stdio.Args) != len(expectedArgs) || stdio.Args[0] != expectedArgs[0] || stdio.Args[1] != expectedArgs[1] {
+		t.Errorf("Expected args %v, got %v", expectedArgs, stdio.Args)
 	}
 
 	t.Logf("stigmer-mcp-server: description=%s..., command=%s %v",
