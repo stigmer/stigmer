@@ -4905,3 +4905,136 @@ class TestNativeThinkingTranslation:
         assert "" not in status_builder._thinking_buffers
         assert "" not in status_builder._thinking_tool_call_ids
         assert "" not in status_builder._thinking_started_at
+
+
+# =============================================================================
+# Tests for run_id-based LLM stream isolation
+# =============================================================================
+
+
+class TestLLMStreamIsolation:
+    """Tests that concurrent LLM streams with different run_ids produce
+    isolated AgentMessages, preventing token interleaving."""
+
+    @staticmethod
+    def _stream_event(token: str, run_id: str = "", namespace: str = ""):
+        chunk = MagicMock()
+        chunk.content = token
+        event: dict[str, Any] = {
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk},
+            "metadata": {},
+        }
+        if run_id:
+            event["run_id"] = run_id
+        if namespace:
+            event["metadata"]["langgraph_checkpoint_ns"] = namespace
+        return event
+
+    @staticmethod
+    def _end_event(run_id: str = "", namespace: str = ""):
+        output = MagicMock()
+        output.usage_metadata = MagicMock()
+        output.usage_metadata.input_tokens = 10
+        output.usage_metadata.output_tokens = 5
+        output.usage_metadata.total_tokens = 15
+        output.response_metadata = {}
+        event: dict[str, Any] = {
+            "event": "on_chat_model_end",
+            "data": {"output": output},
+            "metadata": {},
+        }
+        if run_id:
+            event["run_id"] = run_id
+        if namespace:
+            event["metadata"]["langgraph_checkpoint_ns"] = namespace
+        return event
+
+    @pytest.mark.asyncio
+    async def test_concurrent_streams_produce_separate_messages(self, status_builder):
+        """Two interleaved streams with different run_ids must not mix."""
+        await status_builder.process_event(self._stream_event("Hello", run_id="A"))
+        await status_builder.process_event(self._stream_event("Bonjour", run_id="B"))
+        await status_builder.process_event(self._stream_event(" world", run_id="A"))
+        await status_builder.process_event(self._stream_event(" monde", run_id="B"))
+
+        msgs = status_builder.current_status.messages
+        assert len(msgs) == 2
+        assert msgs[0].content == "Hello world"
+        assert msgs[1].content == "Bonjour monde"
+
+    @pytest.mark.asyncio
+    async def test_same_run_id_appends_to_same_message(self, status_builder):
+        """Multiple tokens from the same run_id accumulate in one message."""
+        for token in ["I", " will", " read", " files"]:
+            await status_builder.process_event(self._stream_event(token, run_id="R1"))
+
+        msgs = status_builder.current_status.messages
+        assert len(msgs) == 1
+        assert msgs[0].content == "I will read files"
+
+    @pytest.mark.asyncio
+    async def test_end_event_finalizes_correct_message_by_run_id(self, status_builder):
+        """on_chat_model_end with run_id finalizes only its own message."""
+        await status_builder.process_event(self._stream_event("First", run_id="A"))
+        await status_builder.process_event(self._stream_event("Second", run_id="B"))
+
+        # Finalize A — B should remain streaming
+        await status_builder.process_event(self._end_event(run_id="A"))
+
+        msgs = status_builder.current_status.messages
+        assert msgs[0].is_streaming is False
+        assert msgs[1].is_streaming is True
+
+    @pytest.mark.asyncio
+    async def test_run_id_map_cleaned_after_finalization(self, status_builder):
+        """run_id entry is removed from the map after on_chat_model_end."""
+        await status_builder.process_event(self._stream_event("Hello", run_id="R1"))
+        assert "R1" in status_builder._llm_run_id_to_message
+
+        await status_builder.process_event(self._end_event(run_id="R1"))
+        assert "R1" not in status_builder._llm_run_id_to_message
+
+    @pytest.mark.asyncio
+    async def test_legacy_no_run_id_uses_backwards_scan(self, status_builder):
+        """Events without run_id fall back to appending to the last
+        streaming AI message (legacy behaviour)."""
+        await status_builder.process_event(self._stream_event("Hello"))
+        await status_builder.process_event(self._stream_event(" World"))
+
+        msgs = status_builder.current_status.messages
+        assert len(msgs) == 1
+        assert msgs[0].content == "Hello World"
+
+    @pytest.mark.asyncio
+    async def test_new_run_id_after_finalization_creates_new_message(self, status_builder):
+        """A new run_id arriving after a previous one is finalized
+        creates a separate message (multi-turn isolation)."""
+        await status_builder.process_event(self._stream_event("Turn 1", run_id="R1"))
+        await status_builder.process_event(self._end_event(run_id="R1"))
+
+        await status_builder.process_event(self._stream_event("Turn 2", run_id="R2"))
+
+        msgs = status_builder.current_status.messages
+        assert len(msgs) == 2
+        assert msgs[0].content == "Turn 1"
+        assert msgs[0].is_streaming is False
+        assert msgs[1].content == "Turn 2"
+        assert msgs[1].is_streaming is True
+
+    @pytest.mark.asyncio
+    async def test_three_concurrent_streams_fully_isolated(self, status_builder):
+        """Stress test: three interleaved streams stay completely separate."""
+        tokens = [
+            ("A", "I'll"), ("B", "Let"), ("C", "Now"),
+            ("A", " read"), ("C", " we"), ("B", " me"),
+            ("A", " files"), ("B", " start"), ("C", " begin"),
+        ]
+        for run_id, token in tokens:
+            await status_builder.process_event(self._stream_event(token, run_id=run_id))
+
+        msgs = status_builder.current_status.messages
+        assert len(msgs) == 3
+        assert msgs[0].content == "I'll read files"
+        assert msgs[1].content == "Let me start"
+        assert msgs[2].content == "Now we begin"
