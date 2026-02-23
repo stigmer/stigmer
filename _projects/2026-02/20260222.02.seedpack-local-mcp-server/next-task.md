@@ -68,8 +68,8 @@ When starting a new session:
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: 2026-02-23 — Completed Phase 2 (Bootstrap Integration) + Phase 3 (Server Wiring)
-- **Active Task**: Phase 4 (Daemon Auto-Start) — not yet started
+- **Last Session**: 2026-02-23 — Made agent-runner a generic STDIO MCP runtime; published Go module; rewrote docs
+- **Active Task**: Post-merge tagging (`mcp-server/v0.1.0`)
 
 ## Session Progress (2026-02-22)
 
@@ -81,7 +81,7 @@ When starting a new session:
 - Added 4 new tests, updated existing assertions — all pass
 - Bootstrap tests also pass with the version bump
 
-## Session Progress (2026-02-23)
+## Session Progress (2026-02-23, Session 2)
 
 - Discovered the downstream mcpserver client was missing an `Apply` method (proto and controller had it, client wrapper did not)
 - Added `Apply` method to downstream mcpserver client following the agent client pattern
@@ -100,14 +100,27 @@ When starting a new session:
 - Added `MockMcpServerClient`, `TestBootstrapper_Run_DegradedMode_McpServerError`, `TestCalculateMcpServerHash`
 - All 9 tests pass, all 3 bazel build targets succeed
 
+## Session Progress (2026-02-23, Session 3)
+
+- Shifted MCP server execution model: baked-in binary -> dynamic subprocess via runtime tools
+- Published `apis/stubs/go` sub-module as `v0.0.1`, removed `replace` directive from `mcp-server/go.mod`
+- Refactored agent-runner Dockerfile: removed Go builder stage for stigmer CLI, added Docker CLI + Go toolchain + uv/uvx
+- Updated seedpack YAML to use `go run github.com/stigmer/stigmer/mcp-server/cmd/mcp-server-stigmer@latest`
+- Bumped seedpack version 1.2.0 -> 1.3.0
+- Rewrote `mcp-server/README.md` with Go install, Docker, per-IDE client configs (modeled after GitHub MCP Server)
+- Updated main `README.md` with MCP Servers section
+- Fixed all test assertions; all tests pass
+- Committed as `83e2419e`
+
 ## Next Steps
 
-1. **Phase 4: Daemon Auto-Start** — Start MCP server subprocess alongside Stigmer server
-   - Start `stigmer mcp-server` as a managed subprocess after server is healthy
-   - PID file tracking, log output, graceful shutdown coordination
-   - Open question: Daemon vs Server supervisor — recommended daemon for STDIO isolation
-   - Open question: Auto-start ALL bootstrapped MCP servers or only the built-in one?
-2. **Phase 5: Tests & Validation** — End-to-end verification
+1. **Post-merge: Tag `mcp-server/v0.1.0`** — After changes land on `main`, tag the merge commit so `go run …@latest` resolves correctly
+   ```bash
+   git tag mcp-server/v0.1.0 <merge-commit-sha>
+   git push origin mcp-server/v0.1.0
+   ```
+2. **Verify remote `go install`** — Confirm the Go module proxy indexes the new version
+3. **Phase 4: Daemon/Agent-Runner MCP subprocess management** — If still needed, implement the actual subprocess lifecycle (start, monitor, restart, shutdown) in the agent-runner
 
 ## Context for Resume
 
@@ -115,16 +128,26 @@ When starting a new session:
 - Phase 1 followed the existing agent pattern: `AgentEntry` -> `McpServerEntry`, `LoadAgentYAML` -> `LoadMcpServerYAML`
 - Phase 2 followed the existing agent pattern: `AgentClient` -> `McpServerClient`, `bootstrapAgent` -> `bootstrapMcpServer`
 - The `parseMcpServerYAML` function mirrors `parseAgentYAML` — not generified, deliberate choice for two resource types
-- The MCP server YAML uses STDIO transport: `command: stigmer`, `args: [mcp-server]`
-- The downstream mcpserver client now has `Apply` (added in Phase 2) alongside existing `Create`, `Update`, `Delete`
+- The MCP server YAML now uses `command: go, args: [run, github.com/stigmer/stigmer/mcp-server/cmd/mcp-server-stigmer@latest]`
+- The downstream mcpserver client has `Apply` (added in Session 2) alongside existing `Create`, `Update`, `Delete`
 - `calculateMcpServerHash` hashes: name, description, transport config (command+args or url), and tags
+- The agent-runner image now has: node/npm/npx, go, docker, uv/uvx — all verified in Dockerfile build
+- `apis/stubs/go` tagged as `v0.0.1` on commit `00f12c70` (main branch)
 - Pre-existing `TestVerifyContentDigest` failure (package_skill.py digest mismatch) — unrelated to this work
-- Phase 2 plan is at `.cursor/plans/phase_2_bootstrap_mcp_1711ecc1.plan.md`
+
+## Blockers
+
+- **`mcp-server/v0.1.0` tag**: Cannot tag until changes are merged to `main`. Until then, `go run …@latest` will resolve to the old version with the `replace` directive (which will fail). This is expected and will self-resolve after merge + tag.
+
+## Quick Resume
+
+To continue this project, drag this file into chat:
+`@_projects/2026-02/20260222.02.seedpack-local-mcp-server/next-task.md`
 
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 4" — Start daemon auto-start integration
+- "Tag mcp-server/v0.1.0" — After merge, tag the module
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 - "Review the T01 plan" — Check the full implementation plan
