@@ -114,6 +114,22 @@ The sandbox is isolated - changes don't affect the host system. Check command ou
 for errors and handle them appropriately.
 """
 
+THINK_CAPABILITY = """
+**Think Tool**: You have a `think` tool for structured reasoning. It does not read
+files or make changes — it simply records your thought so you can reason step-by-step
+before acting. Use it when:
+
+- You have just read files or received tool output and need to analyse the results
+  before deciding what to do next.
+- You are about to perform a complex or multi-step operation and want to plan your
+  approach first.
+- You need to choose between several strategies and want to weigh the trade-offs.
+- You are debugging and need to reason about possible causes before testing a fix.
+
+Do NOT call `think` for every step — only when careful reasoning will meaningfully
+improve the quality of your next action.
+"""
+
 # =============================================================================
 # ERROR RECOVERY STRATEGIES - Conditional per tool type (~150-200 words each)
 # Specific recovery patterns for common failure scenarios
@@ -291,6 +307,9 @@ def enhance_user_instructions(
     
     # File system is always available (core capability)
     capabilities.append(FILESYSTEM_CAPABILITY.strip())
+    
+    # Think tool is always available (auto-injected by graphton)
+    capabilities.append(THINK_CAPABILITY.strip())
     
     # MCP tools - conditional
     if has_mcp_tools:
