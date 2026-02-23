@@ -70,7 +70,7 @@ When starting a new session:
 
 **Created**: 2026-02-23 23:43
 **Current Task**: T01 — Phase 4 (End-to-end Validation)
-**Status**: Ready for validation
+**Status**: Ready for validation — model pipeline fix landed, awaiting e2e test
 
 ## Session Progress (2026-02-23)
 
@@ -116,11 +116,22 @@ When starting a new session:
 - **Pipeline verification**: Traced the complete data flow (StatusBuilder → gRPC → `emitToolCallStateEvents` → `ToolStreamDeltaEvent` → `renderStreamingTool` → last 8 lines with `▍` cursor). No CLI code changes needed beyond the `toolDisplayMap` entry.
 - **Test results**: Agent-runner 182 pass (7 pre-existing failures), CLI toolrender 9 pass, graphton 518 pass
 
+## Session Progress (2026-02-24, Session 4)
+
+- **Connected model configuration pipeline**: Diagnosed and fixed a critical architectural flaw where `execute_graphton.py` was directly instantiating `ChatAnthropic` models, bypassing `parse_model_string()` entirely. This meant `ANTHROPIC_DEFAULTS` (max_tokens=20000) and all thinking configurations were never applied in production.
+- **Root cause of Opus 4.6 echo**: Claude Opus 4.6, a naturally verbose model, was running without any internal thinking channel (adaptive thinking not configured) and without `max_tokens` constraints, causing it to dump all reasoning — including echoing file contents — into response text. Sonnet models, being naturally concise, did not exhibit this even with the same misconfiguration.
+- **Model Registry** (`model_registry.py`): Added `supports_adaptive_thinking: bool = False` to `ModelMetadata`, set `True` for `claude-opus-4.6`. Updated docstrings to clarify mutual exclusivity with `supports_thinking`.
+- **Model Parser** (`models.py`): Added `DEFAULT_THINKING_EFFORT = "medium"`. Added adaptive thinking branch: auto-enables `thinking={"type": "adaptive", "effort": "medium"}` for models with `supports_adaptive_thinking=True`, with same temperature/top_k stripping as manual thinking.
+- **Execute Graphton** (`execute_graphton.py`): Replaced direct `ChatAnthropic`/`ChatOpenAI`/`ChatOllama` instantiation with a `llm_kwargs` dict collecting provider-specific params. `create_deep_agent()` now receives `model=model_name` (string) with `**llm_kwargs`, routing all model creation through `parse_model_string()`. Early `resolve_or_passthrough()` kept for logging/heartbeat only.
+- **Prompt Enhancement** (`prompt_enhancement.py`): Added "Output Discipline" paragraph to `FILESYSTEM_CAPABILITY` as defense-in-depth anti-echo guidance (from earlier in this session).
+- **Tests**: Updated `test_model_registry.py` (3 new tests: `test_opus_4_6_adaptive_thinking`, `test_manual_and_adaptive_mutually_exclusive`, updated `test_defaults_to_false`). Updated `test_models.py` (2 new tests: `test_adaptive_thinking_for_opus_4_6`, `test_adaptive_thinking_strips_temperature`; removed Opus 4.6 from "unsupported" parametrize). Updated `test_prompt_enhancement.py` (1 new test: `test_filesystem_capability_includes_output_discipline`). All 151 tests pass.
+- **Key finding**: The entire Phase 2 native thinking pipeline (StatusBuilder translation, CLI streaming) was built but unused in production because model instances were pre-built, bypassing `parse_model_string()`. This fix activates it for all thinking-capable Anthropic models.
+
 ## Next Steps
 
-1. **Phase 4**: End-to-end validation with `stigmer draft skill --attach` — verify the complete pipeline works in practice
-2. **Investigate**: Write tool streaming pipeline — user noted it's not working, which could indicate a bug in the shared streaming infrastructure
-3. **Future enhancement**: Adaptive thinking support for Opus 4.6 (`type: "adaptive"` with effort parameter)
+1. **Phase 4**: End-to-end validation with `stigmer draft skill --attach` — verify the complete pipeline works with Opus 4.6 (echo resolved, adaptive thinking active, CLI shows thinking stream)
+2. **Investigate**: Write tool streaming pipeline — user noted it's not working, could indicate a shared pipeline bug
+3. **Validate**: Native thinking pipeline now activated for Sonnet 4.5, Sonnet 4.6, Opus 4.5, Opus 4 — verify no regressions
 
 ## Context for Resume
 
@@ -144,7 +155,7 @@ When starting a new session:
 5. **Think tool vs native thinking** — Dual-path: explicit think tool for models without native thinking; Anthropic extended thinking for supported Claude models. Both produce identical `ToolCall` objects in the status pipeline.
 6. **Thinking budget** — Platform default of 10,000 tokens, not user-configurable
 7. **Synthetic think tool translation** — StatusBuilder converts native thinking blocks to standard `ToolCall` protos, reusing entire downstream pipeline
-8. **Opus 4.6 exclusion** — Manual `type: "enabled"` thinking is deprecated for Opus 4.6; deferred to future adaptive thinking support
+8. **Opus 4.6 adaptive thinking** — Opus 4.6 uses `type: "adaptive"` with `effort: "medium"` (implemented in Session 4), distinct from manual `type: "enabled"` used by other models
 
 ## Design Decisions Still Open
 

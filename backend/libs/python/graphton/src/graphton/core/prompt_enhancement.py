@@ -89,6 +89,10 @@ FILESYSTEM_CAPABILITY = """
 File paths should be workspace-relative (e.g., `inputs/data.txt`,
 `bin/skills/my-skill/SKILL.md`). Use the paths exactly as shown in the
 Available Skills and Input Files sections.
+
+**Output Discipline**: When you read files, their contents are captured in tool
+results already present in your context. NEVER echo, reprint, list, or summarize
+file contents in your response text. Proceed directly to analysis and action.
 """
 
 MCP_TOOLS_CAPABILITY = """

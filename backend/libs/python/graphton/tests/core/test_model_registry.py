@@ -844,6 +844,7 @@ class TestSupportsThinking:
             cost_tier=CostTier.ECONOMY,
         )
         assert metadata.supports_thinking is False
+        assert metadata.supports_adaptive_thinking is False
 
     @pytest.mark.parametrize("model_id", [
         "claude-sonnet-4.6",
@@ -859,7 +860,6 @@ class TestSupportsThinking:
         )
 
     @pytest.mark.parametrize("model_id", [
-        "claude-opus-4.6",
         "claude-haiku-4",
         "claude-sonnet-3.5",
         "claude-haiku-3.5",
@@ -870,3 +870,24 @@ class TestSupportsThinking:
         assert metadata.supports_thinking is False, (
             f"{model_id} should have supports_thinking=False"
         )
+        assert metadata.supports_adaptive_thinking is False, (
+            f"{model_id} should have supports_adaptive_thinking=False"
+        )
+
+    def test_opus_4_6_adaptive_thinking(self):
+        """Test that Opus 4.6 uses adaptive thinking (not manual)."""
+        metadata = ModelRegistry.get("claude-opus-4.6")
+        assert metadata.supports_thinking is False, (
+            "Opus 4.6 should NOT use manual thinking"
+        )
+        assert metadata.supports_adaptive_thinking is True, (
+            "Opus 4.6 should use adaptive thinking"
+        )
+
+    def test_manual_and_adaptive_mutually_exclusive(self):
+        """Test that no model has both manual and adaptive thinking enabled."""
+        for model in ModelRegistry.list_by_provider("anthropic"):
+            assert not (model.supports_thinking and model.supports_adaptive_thinking), (
+                f"{model.model_id} has both supports_thinking and "
+                f"supports_adaptive_thinking set to True"
+            )

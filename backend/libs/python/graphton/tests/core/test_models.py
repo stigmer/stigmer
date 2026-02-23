@@ -12,7 +12,11 @@ from unittest.mock import patch
 import pytest
 from langchain_anthropic import ChatAnthropic
 
-from graphton.core.models import DEFAULT_THINKING_BUDGET, parse_model_string
+from graphton.core.models import (
+    DEFAULT_THINKING_BUDGET,
+    DEFAULT_THINKING_EFFORT,
+    parse_model_string,
+)
 
 
 # =============================================================================
@@ -39,7 +43,6 @@ class TestNativeThinkingConfig:
         assert thinking["budget_tokens"] == DEFAULT_THINKING_BUDGET
 
     @pytest.mark.parametrize("model_name", [
-        "claude-opus-4.6",
         "claude-haiku-4",
         "claude-sonnet-3.5",
         "claude-haiku-3.5",
@@ -50,6 +53,22 @@ class TestNativeThinkingConfig:
         assert isinstance(model, ChatAnthropic)
         thinking = getattr(model, "thinking", None)
         assert thinking is None, f"{model_name} should NOT have thinking enabled"
+
+    def test_adaptive_thinking_for_opus_4_6(self):
+        """Test that Opus 4.6 gets adaptive thinking configuration."""
+        model = parse_model_string("claude-opus-4.6")
+        assert isinstance(model, ChatAnthropic)
+        thinking = getattr(model, "thinking", None)
+        assert thinking is not None, "Opus 4.6 should have thinking enabled"
+        assert thinking["type"] == "adaptive"
+        assert thinking["effort"] == DEFAULT_THINKING_EFFORT
+
+    def test_adaptive_thinking_strips_temperature(self):
+        """Test that temperature is stripped when adaptive thinking is auto-enabled."""
+        model = parse_model_string("claude-opus-4.6", temperature=0.7)
+        assert isinstance(model, ChatAnthropic)
+        assert getattr(model, "thinking", None) is not None
+        assert getattr(model, "temperature", None) is None
 
     def test_temperature_removed_when_thinking_enabled(self):
         """Test that temperature is stripped when thinking is auto-enabled."""

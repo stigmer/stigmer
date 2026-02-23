@@ -40,6 +40,11 @@ ANTHROPIC_DEFAULTS = {
 # Claude may use fewer tokens than the budget, especially for simpler tasks.
 DEFAULT_THINKING_BUDGET = 10_000
 
+# Effort level for Anthropic's adaptive extended thinking (Opus 4.6+).
+# Controls how deeply the model reasons before responding.
+# Valid values: "low", "medium", "high".
+DEFAULT_THINKING_EFFORT = "medium"
+
 OLLAMA_DEFAULTS = {
     "base_url": "http://localhost:11434",
     "temperature": 0.0,
@@ -188,6 +193,18 @@ def parse_model_string(
             model_params["thinking"] = {
                 "type": "enabled",
                 "budget_tokens": DEFAULT_THINKING_BUDGET,
+            }
+            if "temperature" in model_params:
+                logger.warning(
+                    "Removing temperature=%s (incompatible with extended thinking)",
+                    model_params["temperature"],
+                )
+                del model_params["temperature"]
+            model_params.pop("top_k", None)
+        elif metadata.supports_adaptive_thinking and "thinking" not in model_params:
+            model_params["thinking"] = {
+                "type": "adaptive",
+                "effort": DEFAULT_THINKING_EFFORT,
             }
             if "temperature" in model_params:
                 logger.warning(

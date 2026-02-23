@@ -1891,19 +1891,17 @@ async def _execute_graphton_impl(
         if injected_files:
             input_files_section = "\n\n## Input Files\n\n"
             input_files_section += (
-                "The following files have been provided as input for this task. "
-                "Use the `read` tool to access them:\n\n"
+                "**IMPORTANT**: After reading input files, proceed directly to the task. "
+                "Do NOT reprint, echo, list, or summarize file contents in your response. "
+                "The tool results are already in your context.\n\n"
+            )
+            input_files_section += (
+                "The following files are available in your workspace. "
+                "Read them using the `read` tool:\n\n"
             )
             for f in injected_files:
                 size_info = f" ({f['size']} bytes)" if f.get('size') is not None else ""
                 input_files_section += f"- `{f['path']}`{size_info}\n"
-            input_files_section += (
-                "\nThese files are available in your workspace. "
-                "Read them using the `read` tool with the paths shown above. "
-                "After reading, do NOT echo, reprint, or summarize the file contents "
-                "in your response. The tool results are already in your context "
-                "— proceed directly to the task."
-            )
             enhanced_system_prompt += input_files_section
             activity_logger.info(
                 f"Enhanced system prompt with {len(injected_files)} input files"
@@ -1937,16 +1935,14 @@ async def _execute_graphton_impl(
             )
         
         # ─────────────────────────────────────────────────────────────────────────────
-        # Resolve model name to API model ID
+        # Resolve model name for logging/diagnostics only.
         #
-        # Platform-friendly names like "claude-sonnet-4.5" are resolved to actual API
-        # model IDs like "claude-sonnet-4-5-20250929". This allows users to use
-        # simpler names while ensuring the correct model ID is sent to the provider.
-        #
-        # The resolve_or_passthrough() method handles unknown models gracefully by
-        # passing them through as-is (useful for custom/unlisted models).
+        # The actual model creation and configuration (ANTHROPIC_DEFAULTS, thinking,
+        # etc.) happens inside create_deep_agent() → parse_model_string().  This
+        # early resolve is kept only so we can log the resolved API model ID and
+        # include it in heartbeats.
         # ─────────────────────────────────────────────────────────────────────────────
-        api_model_id, resolved_metadata = ModelRegistry.resolve_or_passthrough(
+        api_model_id, _resolved_metadata = ModelRegistry.resolve_or_passthrough(
             model_name,
             provider=worker_config.llm.provider,
         )
@@ -1956,31 +1952,17 @@ async def _execute_graphton_impl(
                 f"Resolved model '{model_name}' to API model ID '{api_model_id}'"
             )
         
-        # Create LLM instance with explicit configuration
-        # This ensures base_url is properly set for Ollama connections from Docker
-        llm_model: Any  # ChatOllama | ChatAnthropic | ChatOpenAI | str
+        # Build provider-specific kwargs for model creation.
+        # The model name is passed as a string to create_deep_agent(), which
+        # routes it through parse_model_string() to apply ANTHROPIC_DEFAULTS,
+        # thinking configuration, and all model-registry metadata.
+        llm_kwargs: dict[str, Any] = {}
         if worker_config.llm.provider == "ollama":
-            from langchain_ollama import ChatOllama
-            llm_model = ChatOllama(
-                model=api_model_id,
-                base_url=worker_config.llm.base_url,  # Explicitly pass base_url
-            )
-            activity_logger.info(f"Created ChatOllama with base_url={worker_config.llm.base_url}")
+            llm_kwargs["base_url"] = worker_config.llm.base_url
         elif worker_config.llm.provider == "anthropic":
-            from langchain_anthropic import ChatAnthropic
-            llm_model = ChatAnthropic(  # type: ignore[call-arg]  # pydantic model accepts 'model' at runtime
-                model=api_model_id,
-                api_key=worker_config.llm.api_key,
-            )
+            llm_kwargs["api_key"] = worker_config.llm.api_key
         elif worker_config.llm.provider == "openai":
-            from langchain_openai import ChatOpenAI
-            llm_model = ChatOpenAI(
-                model=api_model_id,
-                api_key=worker_config.llm.api_key,
-            )
-        else:
-            # Fallback: pass resolved model ID as string and let Graphton handle it
-            llm_model = api_model_id
+            llm_kwargs["api_key"] = worker_config.llm.api_key
         
         # Create approval checker for HITL tool approval flow (Phase 3B)
         # The checker evaluates the approval policy chain for each tool invocation
@@ -2084,7 +2066,7 @@ async def _execute_graphton_impl(
         # creates in-memory filesystem tools (read_file, write_file, edit_file)
         # via its FilesystemMiddleware. Both sets coexist in the tool registry.
         agent_graph = create_deep_agent(
-            model=llm_model,
+            model=model_name,
             system_prompt=enhanced_system_prompt,
             mcp_servers=mcp_servers_config if mcp_servers_config else None,
             mcp_tools=mcp_tools_config if mcp_tools_config else None,
@@ -2096,6 +2078,7 @@ async def _execute_graphton_impl(
             approval_checker=approval_checker,
             summarization_config=summarization_config,
             summarization_callback=status_builder,
+            **llm_kwargs,
         )
         
         activity_logger.info(f"Graphton agent created successfully with {'new' if is_new_sandbox else 'reused'} sandbox")

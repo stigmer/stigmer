@@ -78,6 +78,12 @@ class TestCapabilitySections:
         assert "`edit`" in FILESYSTEM_CAPABILITY
         assert "workspace-relative" in FILESYSTEM_CAPABILITY
 
+    def test_filesystem_capability_includes_output_discipline(self):
+        """Test that file system capability includes output discipline guidance."""
+        assert "output discipline" in FILESYSTEM_CAPABILITY.lower()
+        assert "never echo" in FILESYSTEM_CAPABILITY.lower()
+        assert "proceed directly" in FILESYSTEM_CAPABILITY.lower()
+
     def test_mcp_tools_capability_content(self):
         """Test MCP tools capability section content."""
         assert "mcp" in MCP_TOOLS_CAPABILITY.lower()
