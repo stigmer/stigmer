@@ -1899,7 +1899,10 @@ async def _execute_graphton_impl(
                 input_files_section += f"- `{f['path']}`{size_info}\n"
             input_files_section += (
                 "\nThese files are available in your workspace. "
-                "Read them using the `read` tool with the paths shown above."
+                "Read them using the `read` tool with the paths shown above. "
+                "After reading, do NOT echo, reprint, or summarize the file contents "
+                "in your response. The tool results are already in your context "
+                "— proceed directly to the task."
             )
             enhanced_system_prompt += input_files_section
             activity_logger.info(
