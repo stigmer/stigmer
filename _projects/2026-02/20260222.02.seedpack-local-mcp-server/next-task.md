@@ -67,9 +67,9 @@ When starting a new session:
 
 ## Current State
 
-- **Status**: In Progress
-- **Last Session**: 2026-02-23 — Made agent-runner a generic STDIO MCP runtime; published Go module; rewrote docs
-- **Active Task**: Post-merge tagging (`mcp-server/v0.1.0`)
+- **Status**: Complete
+- **Last Session**: 2026-02-23 (Session 4) — Tagged `mcp-server/v0.1.0`, verified Go module proxy, closed out project
+- **Active Task**: None — project complete
 
 ## Session Progress (2026-02-22)
 
@@ -112,15 +112,17 @@ When starting a new session:
 - Fixed all test assertions; all tests pass
 - Committed as `83e2419e`
 
+## Session Progress (2026-02-23, Session 4)
+
+- All changes merged to `main` (PR #43, merge commit `0452a8be`)
+- Tagged `mcp-server/v0.1.0` on merge commit `0452a8be`, pushed to origin
+- Verified Go module proxy resolves `github.com/stigmer/stigmer/mcp-server v0.1.0`
+- Phase 4 (Daemon subprocess management) intentionally skipped — STDIO transport means MCP clients spawn the server on demand, no daemon management needed
+- Project closed out as complete
+
 ## Next Steps
 
-1. **Post-merge: Tag `mcp-server/v0.1.0`** — After changes land on `main`, tag the merge commit so `go run …@latest` resolves correctly
-   ```bash
-   git tag mcp-server/v0.1.0 <merge-commit-sha>
-   git push origin mcp-server/v0.1.0
-   ```
-2. **Verify remote `go install`** — Confirm the Go module proxy indexes the new version
-3. **Phase 4: Daemon/Agent-Runner MCP subprocess management** — If still needed, implement the actual subprocess lifecycle (start, monitor, restart, shutdown) in the agent-runner
+None — project is complete. All phases delivered and merged.
 
 ## Context for Resume
 
@@ -137,7 +139,7 @@ When starting a new session:
 
 ## Blockers
 
-- **`mcp-server/v0.1.0` tag**: Cannot tag until changes are merged to `main`. Until then, `go run …@latest` will resolve to the old version with the `replace` directive (which will fail). This is expected and will self-resolve after merge + tag.
+None — all blockers resolved.
 
 ## Quick Resume
 

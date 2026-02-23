@@ -18,7 +18,6 @@ import "embed"
 // Embedded directories:
 //   - manifest.json: Seedpack metadata and resource registry
 //   - skills/*: Raw skill content (SKILL.md, scripts, references)
-//   - artifacts/*: Pre-built ZIP artifacts for bootstrap (created by vendor_skill.sh)
 //   - agents/*: System agent YAML definitions for bootstrap
 //   - mcp-servers/*: MCP server YAML definitions for bootstrap
 //
@@ -27,7 +26,6 @@ import "embed"
 //
 //go:embed manifest.json
 //go:embed skills/*
-//go:embed artifacts/*
 //go:embed agents/*
 //go:embed mcp-servers/*
 var content embed.FS
