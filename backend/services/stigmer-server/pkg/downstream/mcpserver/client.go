@@ -1,8 +1,8 @@
 // Package mcpserver provides in-process gRPC calls to the McpServer service.
 //
-// This client is used by the reconciliation engine to create, update, and delete
-// MCP server resources during project reconciliation. It follows the same patterns
-// as other downstream clients (agent, workflow) for consistency.
+// This client is used by the reconciliation engine and the seedpack bootstrap
+// process to manage MCP server resources. It follows the same patterns as other
+// downstream clients (agent, workflow) for consistency.
 package mcpserver
 
 import (
@@ -91,6 +91,38 @@ func (c *Client) Update(ctx context.Context, server *mcpserverv1.McpServer) (*mc
 		Msg("Successfully updated MCP server")
 
 	return updated, nil
+}
+
+// Apply creates or updates an MCP server (idempotent operation).
+//
+// This makes an in-process gRPC call to McpServerCommandController.Apply()
+// ensuring all gRPC interceptors run before reaching the handler.
+//
+// Apply is used for both create and update operations:
+//   - If an MCP server with the same name exists, it updates the existing one
+//   - If the MCP server doesn't exist, it creates a new one
+//
+// Use case: Bootstrap applies system MCP servers from seedpack (idempotent on restart).
+func (c *Client) Apply(ctx context.Context, mcpServer *mcpserverv1.McpServer) (*mcpserverv1.McpServer, error) {
+	log.Debug().
+		Str("name", mcpServer.GetMetadata().GetName()).
+		Msg("Applying MCP server via in-process gRPC")
+
+	applied, err := c.cmdClient.Apply(ctx, mcpServer)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("name", mcpServer.GetMetadata().GetName()).
+			Msg("Failed to apply MCP server")
+		return nil, err
+	}
+
+	log.Debug().
+		Str("id", applied.GetMetadata().GetId()).
+		Str("name", applied.GetMetadata().GetName()).
+		Msg("Successfully applied MCP server")
+
+	return applied, nil
 }
 
 // Delete deletes an MCP server by ID.

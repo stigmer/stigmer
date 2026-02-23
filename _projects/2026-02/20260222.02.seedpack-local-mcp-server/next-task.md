@@ -68,8 +68,8 @@ When starting a new session:
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: 2026-02-22 — Completed Phase 1 (Seedpack MCP Server Resource)
-- **Active Task**: Phase 2 (Bootstrap Integration) — not yet started
+- **Last Session**: 2026-02-23 — Completed Phase 2 (Bootstrap Integration) + Phase 3 (Server Wiring)
+- **Active Task**: Phase 4 (Daemon Auto-Start) — not yet started
 
 ## Session Progress (2026-02-22)
 
@@ -81,29 +81,50 @@ When starting a new session:
 - Added 4 new tests, updated existing assertions — all pass
 - Bootstrap tests also pass with the version bump
 
+## Session Progress (2026-02-23)
+
+- Discovered the downstream mcpserver client was missing an `Apply` method (proto and controller had it, client wrapper did not)
+- Added `Apply` method to downstream mcpserver client following the agent client pattern
+- Extended `bootstrap.go` with full MCP server bootstrap support:
+  - Added `McpServerClient` interface
+  - Added `KeyMcpServerPrefix = "mcpserver:"` state key
+  - Added `mcpServerClient` field to `Bootstrapper` struct
+  - Updated `NewBootstrapper` to accept 4th `McpServerClient` parameter
+  - Added `bootstrapMcpServer()` method following `bootstrapAgent` pattern exactly
+  - Added `calculateMcpServerHash()` for content-based change detection
+  - Updated `Run()` with MCP server loop and error tracking
+  - Updated package doc comment
+- Updated `BUILD.bazel` with mcpserver proto dependency
+- Wired `mcpServerClient` into `NewBootstrapper` call in `server.go` (Phase 3 — combined since it was a single-line change)
+- Updated all 7 existing test cases for new constructor signature
+- Added `MockMcpServerClient`, `TestBootstrapper_Run_DegradedMode_McpServerError`, `TestCalculateMcpServerHash`
+- All 9 tests pass, all 3 bazel build targets succeed
+
 ## Next Steps
 
-1. **Phase 2: Bootstrap Integration** — Extend `bootstrap.go` to apply MCP server resources from the seedpack on startup
-   - Add `McpServerClient` interface
-   - Add `bootstrapMcpServer()` method
-   - Update `Bootstrapper` constructor and `Run()` to iterate `manifest.McpServers`
-2. **Phase 3: Server Wiring** — Create in-process MCP server client and pass to bootstrapper
-3. **Phase 4: Daemon Auto-Start** — Start MCP server subprocess alongside Stigmer server
-4. **Phase 5: Tests & Validation**
+1. **Phase 4: Daemon Auto-Start** — Start MCP server subprocess alongside Stigmer server
+   - Start `stigmer mcp-server` as a managed subprocess after server is healthy
+   - PID file tracking, log output, graceful shutdown coordination
+   - Open question: Daemon vs Server supervisor — recommended daemon for STDIO isolation
+   - Open question: Auto-start ALL bootstrapped MCP servers or only the built-in one?
+2. **Phase 5: Tests & Validation** — End-to-end verification
 
 ## Context for Resume
 
-- The seedpack package lives at `backend/services/stigmer-server/pkg/seedpack/` (relocated from `backend/libs/go/seedpack/` in a prior session)
-- Phase 1 followed the existing agent pattern exactly: `AgentEntry` -> `McpServerEntry`, `LoadAgentYAML` -> `LoadMcpServerYAML`
+- The seedpack package lives at `backend/services/stigmer-server/pkg/seedpack/`
+- Phase 1 followed the existing agent pattern: `AgentEntry` -> `McpServerEntry`, `LoadAgentYAML` -> `LoadMcpServerYAML`
+- Phase 2 followed the existing agent pattern: `AgentClient` -> `McpServerClient`, `bootstrapAgent` -> `bootstrapMcpServer`
 - The `parseMcpServerYAML` function mirrors `parseAgentYAML` — not generified, deliberate choice for two resource types
 - The MCP server YAML uses STDIO transport: `command: stigmer`, `args: [mcp-server]`
+- The downstream mcpserver client now has `Apply` (added in Phase 2) alongside existing `Create`, `Update`, `Delete`
+- `calculateMcpServerHash` hashes: name, description, transport config (command+args or url), and tags
 - Pre-existing `TestVerifyContentDigest` failure (package_skill.py digest mismatch) — unrelated to this work
-- Open question from T01 plan: Daemon vs Server supervisor for MCP server process — recommended daemon for STDIO isolation
+- Phase 2 plan is at `.cursor/plans/phase_2_bootstrap_mcp_1711ecc1.plan.md`
 
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 2" — Start bootstrap integration
+- "Continue with Phase 4" — Start daemon auto-start integration
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 - "Review the T01 plan" — Check the full implementation plan
