@@ -1,0 +1,322 @@
+package root
+
+import (
+	"archive/zip"
+	"bytes"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// =============================================================================
+// TestZipDirectory
+// =============================================================================
+
+func TestZipDirectory(t *testing.T) {
+	t.Run("multi-file directory", func(t *testing.T) {
+		dir := t.TempDir()
+		writeFile(t, dir, "a.txt", "alpha")
+		writeFile(t, dir, "b.txt", "beta")
+
+		zipBytes, count, origSize, err := zipDirectory(dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if count != 2 {
+			t.Errorf("file count = %d, want 2", count)
+		}
+		if origSize != int64(len("alpha")+len("beta")) {
+			t.Errorf("original size = %d, want %d", origSize, len("alpha")+len("beta"))
+		}
+
+		entries := readZipEntries(t, zipBytes)
+		if len(entries) != 2 {
+			t.Fatalf("zip has %d entries, want 2", len(entries))
+		}
+		assertZipEntry(t, entries, "a.txt", "alpha")
+		assertZipEntry(t, entries, "b.txt", "beta")
+	})
+
+	t.Run("hidden files skipped", func(t *testing.T) {
+		dir := t.TempDir()
+		writeFile(t, dir, "visible.txt", "yes")
+		writeFile(t, dir, ".hidden", "no")
+		writeFile(t, dir, ".DS_Store", "no")
+
+		_, count, _, err := zipDirectory(dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if count != 1 {
+			t.Errorf("file count = %d, want 1 (hidden files should be skipped)", count)
+		}
+	})
+
+	t.Run("hidden directories skipped entirely", func(t *testing.T) {
+		dir := t.TempDir()
+		writeFile(t, dir, "keep.txt", "yes")
+		gitDir := filepath.Join(dir, ".git", "objects")
+		if err := os.MkdirAll(gitDir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		writeFile(t, filepath.Join(dir, ".git"), "config", "skip-this")
+		writeFile(t, filepath.Join(dir, ".git", "objects"), "pack", "skip-this-too")
+
+		zipBytes, count, _, err := zipDirectory(dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if count != 1 {
+			t.Errorf("file count = %d, want 1", count)
+		}
+		entries := readZipEntries(t, zipBytes)
+		for name := range entries {
+			if strings.Contains(name, ".git") {
+				t.Errorf("zip contains .git entry: %s", name)
+			}
+		}
+	})
+
+	t.Run("nested directories preserve relative paths", func(t *testing.T) {
+		dir := t.TempDir()
+		subDir := filepath.Join(dir, "src", "lib")
+		if err := os.MkdirAll(subDir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		writeFile(t, dir, "README.md", "top-level")
+		writeFile(t, subDir, "util.go", "package lib")
+
+		zipBytes, count, _, err := zipDirectory(dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if count != 2 {
+			t.Errorf("file count = %d, want 2", count)
+		}
+		entries := readZipEntries(t, zipBytes)
+		assertZipEntry(t, entries, "README.md", "top-level")
+		assertZipEntry(t, entries, "src/lib/util.go", "package lib")
+	})
+
+	t.Run("empty directory (all hidden) returns error", func(t *testing.T) {
+		dir := t.TempDir()
+		writeFile(t, dir, ".hidden", "x")
+
+		_, _, _, err := zipDirectory(dir)
+		if err == nil {
+			t.Fatal("expected error for directory with only hidden files")
+		}
+		if !strings.Contains(err.Error(), "no attachable files") {
+			t.Errorf("error = %q, want to contain 'no attachable files'", err.Error())
+		}
+	})
+
+	t.Run("truly empty directory returns error", func(t *testing.T) {
+		dir := t.TempDir()
+
+		_, _, _, err := zipDirectory(dir)
+		if err == nil {
+			t.Fatal("expected error for empty directory")
+		}
+		if !strings.Contains(err.Error(), "no attachable files") {
+			t.Errorf("error = %q, want to contain 'no attachable files'", err.Error())
+		}
+	})
+
+	t.Run("non-existent directory returns error", func(t *testing.T) {
+		_, _, _, err := zipDirectory("/tmp/does-not-exist-" + t.Name())
+		if err == nil {
+			t.Fatal("expected error for non-existent directory")
+		}
+	})
+
+	t.Run("produced zip is valid", func(t *testing.T) {
+		dir := t.TempDir()
+		writeFile(t, dir, "test.txt", "valid-zip-test")
+
+		zipBytes, _, _, err := zipDirectory(dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		r, err := zip.NewReader(bytes.NewReader(zipBytes), int64(len(zipBytes)))
+		if err != nil {
+			t.Fatalf("produced bytes are not a valid zip: %v", err)
+		}
+		if len(r.File) != 1 {
+			t.Errorf("zip has %d files, want 1", len(r.File))
+		}
+	})
+}
+
+// =============================================================================
+// TestIsHiddenEntry
+// =============================================================================
+
+func TestIsHiddenEntry(t *testing.T) {
+	tests := []struct {
+		name   string
+		hidden bool
+	}{
+		{".hidden", true},
+		{".git", true},
+		{".DS_Store", true},
+		{".env", true},
+		{"normal.txt", false},
+		{"file.go", false},
+		{"Makefile", false},
+		{"README", false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := isHiddenEntry(tc.name)
+			if got != tc.hidden {
+				t.Errorf("isHiddenEntry(%q) = %v, want %v", tc.name, got, tc.hidden)
+			}
+		})
+	}
+}
+
+// =============================================================================
+// TestDetectContentType
+// =============================================================================
+
+func TestDetectContentType(t *testing.T) {
+	// Extensions handled by our custom switch fallback (not in Go's
+	// standard mime database). These are the cases we control.
+	t.Run("custom switch cases", func(t *testing.T) {
+		tests := []struct {
+			filename string
+			want     string
+		}{
+			{"config.yaml", "application/x-yaml"},
+			{"config.yml", "application/x-yaml"},
+			{"README.md", "text/markdown"},
+			{"CHANGELOG.markdown", "text/markdown"},
+			{"config.toml", "application/toml"},
+			{"data.parquet", "application/vnd.apache.parquet"},
+			{"data.avro", "application/avro"},
+		}
+
+		for _, tc := range tests {
+			t.Run(tc.filename, func(t *testing.T) {
+				got := detectContentType(tc.filename)
+				if got != tc.want {
+					t.Errorf("detectContentType(%q) = %q, want %q", tc.filename, got, tc.want)
+				}
+			})
+		}
+	})
+
+	t.Run("no extension returns octet-stream", func(t *testing.T) {
+		got := detectContentType("Makefile")
+		if got != "application/octet-stream" {
+			t.Errorf("detectContentType(%q) = %q, want %q", "Makefile", got, "application/octet-stream")
+		}
+	})
+
+	t.Run("truly unknown extension returns octet-stream", func(t *testing.T) {
+		got := detectContentType("data.stigmertest99")
+		if got != "application/octet-stream" {
+			t.Errorf("detectContentType(%q) = %q, want %q", "data.stigmertest99", got, "application/octet-stream")
+		}
+	})
+
+	// Extensions that mime.TypeByExtension may handle (platform-dependent).
+	// We just verify the function returns something non-empty.
+	t.Run("standard extensions return non-empty", func(t *testing.T) {
+		for _, filename := range []string{"data.csv", "data.tsv", "app.log", "schema.sql"} {
+			got := detectContentType(filename)
+			if got == "" {
+				t.Errorf("detectContentType(%q) returned empty string", filename)
+			}
+		}
+	})
+}
+
+// =============================================================================
+// TestFormatFileSize
+// =============================================================================
+
+func TestFormatFileSize(t *testing.T) {
+	tests := []struct {
+		bytes int64
+		want  string
+	}{
+		{0, "0 B"},
+		{1, "1 B"},
+		{512, "512 B"},
+		{1023, "1023 B"},
+		{1024, "1.0 KB"},
+		{1536, "1.5 KB"},
+		{1024 * 1024, "1.0 MB"},
+		{1024*1024 + 512*1024, "1.5 MB"},
+		{1024 * 1024 * 1024, "1.0 GB"},
+		{1024*1024*1024 + 512*1024*1024, "1.5 GB"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.want, func(t *testing.T) {
+			got := formatFileSize(tc.bytes)
+			if got != tc.want {
+				t.Errorf("formatFileSize(%d) = %q, want %q", tc.bytes, got, tc.want)
+			}
+		})
+	}
+}
+
+// =============================================================================
+// Test helpers
+// =============================================================================
+
+func writeFile(t *testing.T, dir, name, content string) {
+	t.Helper()
+	path := filepath.Join(dir, name)
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("failed to write test file %s: %v", path, err)
+	}
+}
+
+func readZipEntries(t *testing.T, zipBytes []byte) map[string]string {
+	t.Helper()
+	r, err := zip.NewReader(bytes.NewReader(zipBytes), int64(len(zipBytes)))
+	if err != nil {
+		t.Fatalf("failed to read zip: %v", err)
+	}
+	entries := make(map[string]string, len(r.File))
+	for _, f := range r.File {
+		rc, err := f.Open()
+		if err != nil {
+			t.Fatalf("failed to open zip entry %s: %v", f.Name, err)
+		}
+		var buf bytes.Buffer
+		if _, err := buf.ReadFrom(rc); err != nil {
+			t.Fatalf("failed to read zip entry %s: %v", f.Name, err)
+		}
+		rc.Close()
+		entries[f.Name] = buf.String()
+	}
+	return entries
+}
+
+func assertZipEntry(t *testing.T, entries map[string]string, name, wantContent string) {
+	t.Helper()
+	content, ok := entries[name]
+	if !ok {
+		t.Errorf("zip missing entry %q; have: %v", name, mapKeys(entries))
+		return
+	}
+	if content != wantContent {
+		t.Errorf("zip entry %q = %q, want %q", name, content, wantContent)
+	}
+}
+
+func mapKeys(m map[string]string) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
+}

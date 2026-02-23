@@ -101,6 +101,7 @@ go_test(
         "mcp_server_test.go",
         "routing_test.go",
         "run_approval_test.go",
+        "run_attachments_test.go",
         "run_display_approval_test.go",
         "run_display_stream_test.go",
         "run_display_summary_test.go",
