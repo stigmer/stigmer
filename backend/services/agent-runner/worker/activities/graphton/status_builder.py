@@ -11,6 +11,7 @@ import json
 import logging
 from datetime import datetime
 from typing import Any
+from uuid import uuid4
 
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
     AgentMessage,
@@ -118,6 +119,17 @@ class StatusBuilder:
         # Key: message index in messages list, Value: start timestamp
         self._message_start_times: dict[int, datetime] = {}
         
+        # ─────────────────────────────────────────────────────────────────────────
+        # LLM Stream Isolation (run_id-based message tracking)
+        #
+        # Maps each LLM invocation's run_id to the AgentMessage it owns.
+        # This prevents token interleaving when multiple LLM streams are
+        # active (e.g., concurrent sub-agents whose namespace routing fell
+        # through to the main agent).  Each run_id always writes to its own
+        # dedicated message — no two LLM invocations can share a message.
+        # ─────────────────────────────────────────────────────────────────────────
+        self._llm_run_id_to_message: dict[str, AgentMessage] = {}
+        
         # Track tool execution timing for duration calculation (Phase 2.2)
         # Key: run_id, Value: start timestamp
         self._tool_start_times: dict[str, datetime] = {}
@@ -140,6 +152,15 @@ class StatusBuilder:
         # Map namespace to sub-agent run_id for event routing
         # Key: namespace string, Value: sub-agent run_id
         self._namespace_to_sub_agent_id: dict[str, str] = {}
+        
+        # Causal namespace registration: when a "task" tool starts, we record
+        # its sub-agent ID here.  The next unregistered multi-segment namespace
+        # (indicating a nested sub-graph) is associated with this sub-agent.
+        # Consumed (set to None) once the first namespace is registered.
+        self._pending_sub_agent_id: str | None = None
+        
+        # Namespaces already warned about (deduplication — log once per namespace)
+        self._warned_namespaces: set[str] = set()
         
         # Track AI message generation timing within sub-agents (separate from main)
         # Key: (sub_agent_id, message_index), Value: start timestamp
@@ -224,6 +245,34 @@ class StatusBuilder:
         # Artifacts are accumulated during execution and added to the final status.
         # ─────────────────────────────────────────────────────────────────────────
         self._artifacts: list[ExecutionArtifact] = []
+        
+        # ─────────────────────────────────────────────────────────────────────────
+        # Native Thinking Translation (Extended Thinking → Synthetic Think Tool)
+        #
+        # When Anthropic models have extended thinking enabled, thinking content
+        # blocks arrive via on_chat_model_stream before the text/tool_use
+        # response.  We accumulate them here and flush a synthetic "think"
+        # ToolCall when the first non-thinking content arrives (or at
+        # on_chat_model_end if no text follows).  This lets the entire
+        # downstream pipeline (gRPC, CLI) treat native thinking identically
+        # to the explicit think tool.
+        #
+        # Keyed by namespace (empty string for main agent).
+        # ─────────────────────────────────────────────────────────────────────────
+        self._thinking_buffers: dict[str, str] = {}
+        self._thinking_started_at: dict[str, datetime] = {}
+        self._thinking_tool_call_ids: dict[str, str] = {}
+        
+        # ─────────────────────────────────────────────────────────────────────────
+        # Early Tool Call Creation (Live Write Streaming UX)
+        #
+        # When the LLM stream produces a tool_use block, we create the ToolCall
+        # immediately — before on_tool_start fires — so the CLI shows the tool
+        # name instead of the "Thinking…" idle indicator.  The queue holds temp
+        # IDs in FIFO order; on_tool_start pops the first match and reconciles
+        # (updating args, registering the real run_id as an alias).
+        # ─────────────────────────────────────────────────────────────────────────
+        self._early_tool_call_queue: list[str] = []
     
     async def process_event(self, event: dict[str, Any]) -> None:
         """
@@ -245,17 +294,29 @@ class StatusBuilder:
         if isinstance(namespace, tuple):
             namespace = ":".join(str(x) for x in namespace)
         
-        # Route by event type
+        # Route by event type.  Each handler is wrapped so a single bad
+        # event never crashes the entire activity stream.
+        handler = None
         if event_type == "on_tool_start":
-            self._handle_tool_start_event(event, namespace)
+            handler = self._handle_tool_start_event
         elif event_type == "on_tool_end":
-            self._handle_tool_end_event(event, namespace)
+            handler = self._handle_tool_end_event
         elif event_type == "on_chat_model_stream":
-            self._handle_chat_model_stream_event(event, namespace)
+            handler = self._handle_chat_model_stream_event
         elif event_type == "on_chat_model_end":
-            self._handle_chat_model_end_event(event, namespace)
+            handler = self._handle_chat_model_end_event
         elif event_type == "on_custom_event" and event.get("name") == "tool_progress":
-            self._handle_tool_progress_event(event, namespace)
+            handler = self._handle_tool_progress_event
+
+        if handler is not None:
+            try:
+                handler(event, namespace)
+            except Exception:
+                self.logger.exception(
+                    f"[EVENT_ERROR] execution={self.execution_id} "
+                    f"event_type={event_type} namespace={namespace or 'main'} "
+                    f"run_id={event.get('run_id', '')}"
+                )
     
     def _handle_tool_start_event(self, event: dict[str, Any], namespace: str = "") -> None:
         """Handle on_tool_start event - updates local status."""
@@ -308,6 +369,18 @@ class StatusBuilder:
         # Try to register namespace for event routing (for sub-agent child events)
         if namespace:
             self._register_sub_agent_namespace(namespace)
+        
+        # ─────────────────────────────────────────────────────────────────────
+        # Early Tool Call Reconciliation (Live Write Streaming UX)
+        #
+        # If _create_early_tool_call already created a ToolCall for this
+        # invocation (from a tool_use stream block), reconcile it: populate
+        # args, register the real run_id alias, and handle approval — then
+        # return without creating a duplicate.
+        # ─────────────────────────────────────────────────────────────────────
+        early_tc = self._reconcile_early_tool_call(tool_name, run_id, tool_args, namespace)
+        if early_tc is not None:
+            return
         
         # Create component metadata
         component_type = infer_component_type(tool_name)
@@ -583,6 +656,86 @@ class StatusBuilder:
         if namespace:
             self._register_sub_agent_namespace(namespace)
         
+        # ─────────────────────────────────────────────────────────────────────
+        # Native Thinking Detection
+        #
+        # When Anthropic extended thinking is active, content blocks arrive as
+        # dicts with type:"thinking" BEFORE the text/tool_use blocks.  We
+        # accumulate thinking content in a per-namespace buffer and skip AI
+        # message creation for these chunks.  When the first non-thinking
+        # content arrives we flush the buffer into a synthetic think ToolCall.
+        #
+        # A single chunk may contain BOTH thinking and text blocks (e.g., at
+        # the boundary between thinking and response output).  We must
+        # process thinking content AND check for co-located text — only
+        # returning early if the chunk is purely thinking content.
+        # ─────────────────────────────────────────────────────────────────────
+        if hasattr(chunk_data, "content") and isinstance(chunk_data.content, list):
+            ns_key = namespace or ""
+            thinking_text = self._extract_thinking_content(chunk_data.content)
+            text_in_same_chunk = self._extract_string_content(chunk_data.content)
+            
+            # Diagnostic: log mixed chunks and empty extractions
+            if thinking_text and text_in_same_chunk:
+                self.logger.info(
+                    f"[STREAM_DIAG] Mixed thinking+text chunk: "
+                    f"execution={self.execution_id} "
+                    f"run_id={event.get('run_id', '')} "
+                    f"namespace={namespace or 'main'} "
+                    f"thinking_len={len(thinking_text)} "
+                    f"text_len={len(text_in_same_chunk)} "
+                    f"text={text_in_same_chunk[:100]!r}"
+                )
+            elif not thinking_text and not text_in_same_chunk:
+                _EXPECTED_NON_TEXT_TYPES = frozenset({
+                    "thinking", "tool_use", "input_json_delta",
+                })
+                block_types = [
+                    self._block_attr(b, "type", type(b).__name__)
+                    for b in chunk_data.content[:5]
+                ]
+                is_expected = (
+                    not block_types
+                    or all(bt in _EXPECTED_NON_TEXT_TYPES for bt in block_types)
+                )
+                log_fn = self.logger.debug if is_expected else self.logger.info
+                log_fn(
+                    f"[STREAM_DIAG] List content with no thinking/text: "
+                    f"execution={self.execution_id} "
+                    f"run_id={event.get('run_id', '')} "
+                    f"namespace={namespace or 'main'} "
+                    f"blocks={len(chunk_data.content)} "
+                    f"block_types={block_types}"
+                )
+            
+            # ── Early Tool Call Creation ─────────────────────────────────────
+            # When a tool_use block appears in the stream, create the ToolCall
+            # right away so the CLI replaces the idle "Thinking…" indicator
+            # with the actual tool name (e.g. "Write: …").
+            _SKIP_EARLY_TOOLS = frozenset(PLANNING_TOOLS) | {"task"}
+            for block in chunk_data.content:
+                if self._block_attr(block, "type") == "tool_use":
+                    t_name = self._block_attr(block, "name")
+                    t_id = self._block_attr(block, "id")
+                    if t_name and t_name not in _SKIP_EARLY_TOOLS:
+                        self._create_early_tool_call(
+                            t_name, t_id, ns_key, namespace,
+                        )
+            
+            if thinking_text:
+                self._thinking_buffers[ns_key] = (
+                    self._thinking_buffers.get(ns_key, "") + thinking_text
+                )
+                if ns_key not in self._thinking_tool_call_ids:
+                    self._start_thinking_stream(ns_key, namespace, self._thinking_buffers[ns_key])
+                else:
+                    self._update_thinking_stream(ns_key)
+                
+                if not text_in_same_chunk:
+                    return
+                # Fall through: chunk has both thinking AND text.
+                # Thinking is accumulated above; text is processed below.
+        
         # Extract token
         token = ""
         if hasattr(chunk_data, "content"):
@@ -595,48 +748,70 @@ class StatusBuilder:
         if not token:
             return
         
-        # ─────────────────────────────────────────────────────────────────────
-        # Namespace-Based Routing (Phase 2.3): Route to correct execution context
-        # ─────────────────────────────────────────────────────────────────────
-        context, sub_agent = self._get_execution_context(namespace)
+        # Flush any accumulated thinking before processing text content.
+        # This ensures the synthetic think ToolCall appears in the status
+        # timeline before the AI message that follows it.
+        ns_key = namespace or ""
+        if self._thinking_buffers.get(ns_key):
+            self._flush_thinking_buffer(ns_key, namespace)
         
-        # Get the appropriate messages list
+        # ─────────────────────────────────────────────────────────────────────
+        # run_id-Based Message Isolation
+        #
+        # Each LLM invocation has a unique run_id. We use it to map tokens
+        # to the correct AgentMessage, preventing interleaving when multiple
+        # LLM streams are active (e.g., concurrent sub-agents whose namespace
+        # routing fell through to the main agent).
+        #
+        # When run_id is absent, we fall back to the legacy backwards-scan
+        # for the last streaming AI message in the resolved context.
+        # ─────────────────────────────────────────────────────────────────────
+        run_id = event.get("run_id", "")
+        context, sub_agent = self._get_execution_context(namespace)
         messages_list = sub_agent.messages if sub_agent else self.current_status.messages
         
-        # Find the currently-streaming AI message (if any) in the correct context.
-        # Only append to a message that is still actively streaming. Once
-        # on_chat_model_end finalizes a message (is_streaming=False), subsequent
-        # LLM turns must create a new AgentMessage so that each turn's text
-        # appears as a distinct message in the conversation history.
-        ai_message = None
-        for idx in range(len(messages_list) - 1, -1, -1):
-            message = messages_list[idx]
-            if message.type == MessageType.MESSAGE_AI and message.is_streaming:
-                ai_message = message
-                break
+        # Fast path: run_id already mapped to a message from an earlier token.
+        if run_id:
+            ai_message = self._llm_run_id_to_message.get(run_id)
+            if ai_message is not None:
+                ai_message.content += token
+                return
         
-        if not ai_message:
-            # Create new AI message and record start time for duration tracking
-            now = datetime.utcnow()
-            ai_message = AgentMessage(
-                type=MessageType.MESSAGE_AI,
-                content=token,
-                timestamp=_utc_timestamp(now),
-                is_streaming=True,  # Mark as actively streaming (finalized in on_chat_model_end)
-            )
-            messages_list.append(ai_message)
-            
-            # Track start time using appropriate key
-            new_message_index = len(messages_list) - 1
-            if sub_agent:
-                # Use tuple key for sub-agent messages
-                self._sub_agent_message_start_times[(sub_agent.id, new_message_index)] = now
-                self.logger.debug(f"Started new AI message in sub_agent={sub_agent.id} at index {new_message_index}")
-            else:
-                self._message_start_times[new_message_index] = now
-                self.logger.debug(f"Started new AI message at index {new_message_index}")
+        if not run_id:
+            # Legacy fallback: no run_id available — find the last streaming
+            # AI message in this context (pre-isolation behaviour).
+            for idx in range(len(messages_list) - 1, -1, -1):
+                message = messages_list[idx]
+                if message.type == MessageType.MESSAGE_AI and message.is_streaming:
+                    message.content += token
+                    return
+        
+        # First token for this run_id (or no existing streaming message in
+        # legacy mode) — create a new AgentMessage.
+        now = datetime.utcnow()
+        ai_message = AgentMessage(
+            type=MessageType.MESSAGE_AI,
+            content=token,
+            timestamp=_utc_timestamp(now),
+            is_streaming=True,
+        )
+        messages_list.append(ai_message)
+        
+        if run_id:
+            # Store the proto-managed reference, not the original.
+            # Protobuf repeated-message append copies the value; the
+            # original is disconnected.  Subsequent token appends must
+            # mutate the proto element so the CLI sees incremental content.
+            self._llm_run_id_to_message[run_id] = messages_list[-1]
+        
+        # Track start time for duration calculation
+        new_message_index = len(messages_list) - 1
+        if sub_agent:
+            self._sub_agent_message_start_times[(sub_agent.id, new_message_index)] = now
+            self.logger.debug(f"Started new AI message in sub_agent={sub_agent.id} at index {new_message_index} run_id={run_id}")
         else:
-            ai_message.content += token
+            self._message_start_times[new_message_index] = now
+            self.logger.debug(f"Started new AI message at index {new_message_index} run_id={run_id}")
     
     def _handle_chat_model_end_event(self, event: dict[str, Any], namespace: str = "") -> None:
         """
@@ -656,26 +831,43 @@ class StatusBuilder:
         if not output_data:
             return
         
+        # Flush any remaining thinking content that wasn't followed by text
+        # (e.g. the model only produced thinking + tool_use, no text block).
+        ns_key = namespace or ""
+        if self._thinking_buffers.get(ns_key):
+            self._flush_thinking_buffer(ns_key, namespace)
+        
         # ─────────────────────────────────────────────────────────────────────
-        # Namespace-Based Routing (Phase 2.3): Find message in correct context
+        # run_id-Based Message Resolution (with backwards-scan fallback)
         # ─────────────────────────────────────────────────────────────────────
+        run_id = event.get("run_id", "")
         context, sub_agent = self._get_execution_context(namespace)
         messages_list = sub_agent.messages if sub_agent else self.current_status.messages
         
-        # Find the currently-streaming AI message to finalize.
-        # Prefer the message that is still streaming (the one from the current
-        # turn). This is robust against edge cases where a previous turn's
-        # finalized MESSAGE_AI sits earlier in the list.
         ai_message_index = None
-        for idx in range(len(messages_list) - 1, -1, -1):
-            message = messages_list[idx]
-            if message.type == MessageType.MESSAGE_AI and message.is_streaming:
-                ai_message_index = idx
-                break
+        
+        # Primary path: resolve via run_id map (matches stream handler)
+        tracked_message = self._llm_run_id_to_message.pop(run_id, None) if run_id else None
+        if tracked_message is not None:
+            for idx in range(len(messages_list) - 1, -1, -1):
+                if messages_list[idx] is tracked_message:
+                    ai_message_index = idx
+                    break
+        
+        # Fallback: backwards scan for last streaming AI message
+        if ai_message_index is None:
+            for idx in range(len(messages_list) - 1, -1, -1):
+                message = messages_list[idx]
+                if message.type == MessageType.MESSAGE_AI and message.is_streaming:
+                    ai_message_index = idx
+                    break
         
         if ai_message_index is None:
             context_desc = f"sub_agent={sub_agent.id}" if sub_agent else "main_agent"
-            self.logger.warning(f"on_chat_model_end received but no AI message found to finalize ({context_desc})")
+            self.logger.warning(
+                f"on_chat_model_end received but no AI message found to finalize "
+                f"({context_desc} run_id={run_id})"
+            )
             return
         
         # Calculate generation duration if we tracked the start time
@@ -740,6 +932,49 @@ class StatusBuilder:
         # Set generation duration if we tracked the start time
         if generation_duration_ms is not None:
             ai_message.generation_duration_ms = generation_duration_ms
+        
+        # ─────────────────────────────────────────────────────────────────────────
+        # Diagnostic: detect text content dropped during streaming
+        #
+        # The output_data contains the FULL final AIMessage with all content
+        # blocks.  Extract the text portion and compare with what the stream
+        # handler accumulated.  A mismatch proves tokens were silently dropped.
+        # ─────────────────────────────────────────────────────────────────────────
+        try:
+            final_text = ""
+            if hasattr(output_data, "content"):
+                oc = output_data.content
+                if isinstance(oc, str):
+                    final_text = oc
+                elif isinstance(oc, list):
+                    final_text = self._extract_string_content(oc)
+            elif isinstance(output_data, dict) and "content" in output_data:
+                oc = output_data["content"]
+                if isinstance(oc, str):
+                    final_text = oc
+                elif isinstance(oc, list):
+                    final_text = self._extract_string_content(oc)
+            
+            streamed_text = ai_message.content
+            if final_text and final_text != streamed_text:
+                self.logger.warning(
+                    f"[CONTENT_DROP] execution={self.execution_id} run_id={run_id} "
+                    f"namespace={namespace or 'main'} "
+                    f"streamed_len={len(streamed_text)} final_len={len(final_text)} "
+                    f"streamed={streamed_text[:200]!r} "
+                    f"final={final_text[:200]!r}"
+                )
+                # Reconcile: overwrite with the authoritative final content
+                # so the CLI shows the complete message even if streaming
+                # was disrupted (e.g. by proto copy semantics).
+                ai_message.content = final_text
+            elif final_text:
+                self.logger.debug(
+                    f"[CONTENT_OK] execution={self.execution_id} run_id={run_id} "
+                    f"len={len(streamed_text)} content={streamed_text[:100]!r}"
+                )
+        except Exception:
+            pass
         
         # ─────────────────────────────────────────────────────────────────────────
         # Update UsageMetrics (Phase 2.4)
@@ -973,13 +1208,307 @@ class StatusBuilder:
         else:
             return call_str
     
+    @staticmethod
+    def _block_attr(block: Any, key: str, default: str = "") -> str:
+        """Read *key* from a content block regardless of whether it is a
+        ``dict`` or an object with attributes (e.g. a LangChain dataclass)."""
+        if isinstance(block, dict):
+            return block.get(key, default)
+        return getattr(block, key, default)
+
     def _extract_string_content(self, content_blocks: list) -> str:
-        """Extract text from multimodal content blocks."""
-        text_parts = []
+        """Extract text from multimodal content blocks.
+
+        Handles both dict blocks (``{"type": "text", "text": "..."}``}) and
+        attribute-based objects (``block.type == "text"``).
+        """
+        text_parts: list[str] = []
         for block in content_blocks:
-            if isinstance(block, dict) and block.get("type") == "text":
-                text_parts.append(block.get("text", ""))
+            if self._block_attr(block, "type") == "text":
+                text_parts.append(self._block_attr(block, "text"))
         return "".join(text_parts)
+
+    def _extract_thinking_content(self, content_blocks: list) -> str:
+        """Extract thinking text from Anthropic extended-thinking content blocks.
+
+        Returns the concatenated thinking text from all blocks with
+        ``type: "thinking"``.  Returns an empty string when no thinking
+        blocks are present (non-Anthropic models, or text/tool_use chunks).
+
+        Handles both dict blocks and attribute-based objects.
+        """
+        parts: list[str] = []
+        for block in content_blocks:
+            if self._block_attr(block, "type") == "thinking":
+                parts.append(self._block_attr(block, "thinking"))
+        return "".join(parts)
+    
+    def _create_early_tool_call(
+        self, tool_name: str, tool_use_id: str, ns_key: str, namespace: str,
+    ) -> None:
+        """Create a ToolCall as soon as a ``tool_use`` block appears in the stream.
+
+        The CLI shows an idle "Thinking…" indicator when no events arrive
+        for ≥ 2 s.  While the LLM generates tool arguments (``input_json_delta``
+        chunks) the status builder has nothing to report, so the CLI falls
+        back to the idle indicator even though the model has already decided
+        to call a tool.
+
+        By creating the ToolCall here — before ``on_tool_start`` fires — the
+        CLI immediately displays the tool name with a running badge.  When
+        ``on_tool_start`` arrives, ``_handle_tool_start_event`` reconciles
+        the early ToolCall (populates args, registers the real run-ID alias)
+        instead of creating a duplicate.
+        """
+        if self._thinking_buffers.get(ns_key):
+            self._flush_thinking_buffer(ns_key, namespace)
+
+        temp_id = f"early-{tool_use_id or uuid4()}"
+
+        now = datetime.utcnow()
+        tool_call = ToolCall(
+            id=temp_id,
+            name=tool_name,
+            result="",
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+            is_streaming=True,
+            component_metadata=ComponentMetadata(
+                component_type=infer_component_type(tool_name),
+                component_group="main-agent-tools",
+            ),
+            started_at=_utc_timestamp(now),
+        )
+
+        tool_message = AgentMessage(
+            type=MessageType.MESSAGE_TOOL,
+            content="",
+            timestamp=_utc_timestamp(now),
+        )
+        tool_message.tool_calls.append(tool_call)
+
+        context, sub_agent = self._get_execution_context(namespace)
+        if sub_agent:
+            sub_agent.tool_calls.append(tool_call)
+            sub_agent.messages.append(tool_message)
+        else:
+            self.current_status.messages.append(tool_message)
+            self.current_status.tool_calls.append(tool_call)
+
+        self._early_tool_call_queue.append(temp_id)
+        self._tool_start_times[temp_id] = now
+
+        self.logger.debug(
+            f"[TOOL_EARLY] execution={self.execution_id} "
+            f"tool={tool_name} temp_id={temp_id} "
+            f"namespace={namespace or 'main'}"
+        )
+
+    def _reconcile_early_tool_call(
+        self,
+        tool_name: str,
+        run_id: str,
+        tool_args: dict[str, Any],
+        namespace: str,
+    ) -> ToolCall | None:
+        """Match an ``on_tool_start`` event to an early-created ToolCall.
+
+        Pops the first queued temp-ID whose ToolCall name matches
+        *tool_name*.  If found, the existing ToolCall is updated in place
+        (args populated, ``is_streaming`` cleared) and the real *run_id*
+        is registered as an alias so that downstream handlers
+        (``on_tool_end``, ``tool_progress``) resolve to the same proto.
+
+        Returns the reconciled ToolCall, or ``None`` if no match exists.
+        """
+        for idx, temp_id in enumerate(self._early_tool_call_queue):
+            existing = self._find_tool_call_by_id(temp_id)
+            if existing is None or existing.name != tool_name:
+                continue
+
+            self._early_tool_call_queue.pop(idx)
+
+            if tool_args:
+                args_struct = Struct()
+                args_struct.update(tool_args)
+                existing.args.CopyFrom(args_struct)
+
+            existing.is_streaming = False
+
+            approval = self._check_tool_approval_requirement(tool_name, tool_args)
+            if approval.requires_approval:
+                existing.status = ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
+                existing.requires_approval = True
+                existing.approval_message = render_approval_message(
+                    template=approval.message,
+                    tool_name=tool_name,
+                    tool_args=tool_args,
+                )
+                existing.approval_requested_at = _utc_timestamp(datetime.utcnow())
+
+            self._run_id_aliases[run_id] = temp_id
+            self._tool_start_times[run_id] = (
+                self._tool_start_times.pop(temp_id, None) or datetime.utcnow()
+            )
+
+            fingerprint = self._get_tool_fingerprint(tool_name, tool_args)
+            self._fingerprint_to_tool_call_id[fingerprint] = temp_id
+
+            self.logger.debug(
+                f"[TOOL_RECONCILE] execution={self.execution_id} "
+                f"tool={tool_name} run_id={run_id} -> temp_id={temp_id} "
+                f"namespace={namespace or 'main'}"
+            )
+
+            if approval.requires_approval:
+                _, sub_agent = self._get_execution_context(namespace)
+                self._populate_pending_approval(
+                    run_id=run_id,
+                    tool_name=tool_name,
+                    tool_args=tool_args,
+                    approval_message=existing.approval_message,
+                    from_sub_agent=sub_agent is not None,
+                    sub_agent_name=sub_agent.name if sub_agent else "",
+                )
+
+            return existing
+
+        return None
+
+    def _start_thinking_stream(self, ns_key: str, namespace: str, initial_text: str) -> None:
+        """Create a RUNNING ToolCall for native thinking and begin streaming.
+
+        Called when the first thinking content block arrives for a namespace.
+        The ToolCall starts with ``is_streaming=True`` and the initial thinking
+        text in ``result``.  Subsequent blocks update ``result`` via
+        ``_update_thinking_stream``, and ``_flush_thinking_buffer`` transitions
+        the ToolCall to COMPLETED when thinking ends.
+
+        During streaming the CLI renders ``result`` via ``renderStreamingTool``
+        (last N lines with a cursor indicator).  After completion the CLI reads
+        ``args.thought`` via ``resolveDisplayContent`` (the ``toolDisplayMap``
+        entry uses ``contentSourceInput``).
+        """
+        now = datetime.utcnow()
+        tc_id = f"think-native-{uuid4()}"
+
+        tool_call = ToolCall(
+            id=tc_id,
+            name="think",
+            args=Struct(),
+            result=initial_text,
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+            is_streaming=True,
+            component_metadata=ComponentMetadata(
+                component_type=infer_component_type("think"),
+                component_group="main-agent-tools",
+            ),
+            started_at=_utc_timestamp(now),
+        )
+
+        _context, sub_agent = self._get_execution_context(namespace)
+        if sub_agent:
+            sub_agent.tool_calls.append(tool_call)
+        else:
+            self.current_status.tool_calls.append(tool_call)
+
+        self._thinking_tool_call_ids[ns_key] = tc_id
+        self._thinking_started_at[ns_key] = now
+
+        self.logger.debug(
+            "[THINK] execution=%s streaming_started id=%s namespace=%s",
+            self.execution_id,
+            tc_id,
+            namespace or "main",
+        )
+
+    def _update_thinking_stream(self, ns_key: str) -> None:
+        """Update the streaming think ToolCall with the latest accumulated content.
+
+        Finds the existing RUNNING ToolCall by its tracked ID and replaces
+        ``result`` with the full accumulated thinking buffer.  The gRPC update
+        scheduler will push this change within ~500ms; the CLI detects the
+        content change via ``tc.IsStreaming && tc.Result != prevResults`` and
+        renders the latest lines.
+        """
+        tc_id = self._thinking_tool_call_ids.get(ns_key)
+        if not tc_id:
+            return
+
+        tool_call = self._find_tool_call_by_id(tc_id)
+        if tool_call is not None:
+            tool_call.result = self._thinking_buffers.get(ns_key, "")
+
+    def _flush_thinking_buffer(self, ns_key: str, namespace: str) -> None:
+        """Finalize the streaming think ToolCall or create a completed one.
+
+        If a streaming ToolCall exists (created by ``_start_thinking_stream``),
+        transitions it from RUNNING to COMPLETED in place: populates
+        ``args.thought`` with the full thinking text, sets ``result`` to
+        ``"ok"``, and clears the streaming flag.
+
+        Falls back to creating a new COMPLETED ToolCall from scratch if no
+        streaming ToolCall exists (defensive — should not happen in normal flow
+        since ``_start_thinking_stream`` is called on the first thinking block).
+        """
+        thinking_text = self._thinking_buffers.pop(ns_key, "")
+        started_at = self._thinking_started_at.pop(ns_key, None)
+        tc_id = self._thinking_tool_call_ids.pop(ns_key, None)
+        if not thinking_text:
+            return
+
+        now = datetime.utcnow()
+
+        args_struct = Struct()
+        args_struct.update({"thought": thinking_text})
+
+        if tc_id:
+            tool_call = self._find_tool_call_by_id(tc_id)
+            if tool_call is not None:
+                tool_call.args.CopyFrom(args_struct)
+                tool_call.result = "ok"
+                tool_call.status = ToolCallStatus.TOOL_CALL_COMPLETED
+                tool_call.is_streaming = False
+                tool_call.completed_at = _utc_timestamp(now)
+
+                self.logger.info(
+                    "[THINK] execution=%s streaming_completed id=%s "
+                    "chars=%d namespace=%s",
+                    self.execution_id,
+                    tc_id,
+                    len(thinking_text),
+                    namespace or "main",
+                )
+                return
+
+        # Defensive fallback: no streaming ToolCall exists.  Create a
+        # completed one from scratch so thinking content is never lost.
+        tool_call = ToolCall(
+            id=f"think-native-{uuid4()}",
+            name="think",
+            args=args_struct,
+            result="ok",
+            status=ToolCallStatus.TOOL_CALL_COMPLETED,
+            component_metadata=ComponentMetadata(
+                component_type=infer_component_type("think"),
+                component_group="main-agent-tools",
+            ),
+            started_at=_utc_timestamp(started_at or now),
+            completed_at=_utc_timestamp(now),
+        )
+
+        _context, sub_agent = self._get_execution_context(namespace)
+        if sub_agent:
+            sub_agent.tool_calls.append(tool_call)
+        else:
+            self.current_status.tool_calls.append(tool_call)
+
+        self.logger.info(
+            "[THINK] execution=%s synthetic_think_tool_call "
+            "chars=%d namespace=%s (fallback)",
+            self.execution_id,
+            len(thinking_text),
+            namespace or "main",
+        )
     
     def _extract_command_content(self, update: dict[str, Any]) -> str:
         """Extract displayable content from a LangGraph Command.update dict.
@@ -1471,18 +2000,42 @@ class StatusBuilder:
             sub_agent = self._active_sub_agents[sub_agent_id]
             return sub_agent, sub_agent
         
-        # Namespace not yet registered - fall back to main agent
+        # Namespace not yet registered — fall back to main agent.
+        # Single-segment namespaces (no "|") are normal main-agent graph
+        # activity (e.g., the tools node).  Only warn for multi-segment
+        # namespaces, which indicate sub-agent events that should have
+        # been routed.  Deduplicate: warn once per unique namespace.
+        if "|" in namespace and namespace not in self._warned_namespaces:
+            self._warned_namespaces.add(namespace)
+            self.logger.warning(
+                f"[NAMESPACE] execution={self.execution_id} "
+                f"namespace={namespace} has no registered sub-agent — "
+                f"falling back to main agent context"
+            )
         return self.current_status, None
     
     def _register_sub_agent_namespace(self, namespace: str) -> None:
         """
         Register namespace -> sub-agent mapping when child event arrives.
         
-        LangGraph namespaces contain the run_id of the sub-agent that spawned them.
-        Format: "node_id:uuid" where uuid matches or contains the task tool run_id.
+        Uses three strategies in priority order:
         
-        This method is called for each event with a non-empty namespace to
-        discover and register the namespace -> sub-agent mapping.
+        1. **Root-prefix matching**: Multi-segment namespaces (containing "|")
+           share a root segment (before the first "|") when they originate
+           from the same sub-agent.  If any already-registered namespace
+           shares the same root, the new namespace inherits the mapping.
+        
+        2. **Substring matching** (legacy): Checks if any active sub-agent's
+           run_id appears in the namespace string.
+        
+        3. **Causal correlation**: When a "task" tool starts a sub-agent,
+           ``_pending_sub_agent_id`` is set.  The first unregistered
+           multi-segment namespace is associated with that pending sub-agent.
+           This handles the common case where LangGraph checkpoint UUIDs
+           differ from the task tool's event run_id.
+        
+        Single-segment namespaces (no "|") are from the main agent's graph
+        nodes and are intentionally not registered.
         
         Args:
             namespace: LangGraph checkpoint namespace string
@@ -1490,15 +2043,57 @@ class StatusBuilder:
         if not namespace or namespace in self._namespace_to_sub_agent_id:
             return
         
-        # Check if this namespace matches any active sub-agent
-        # Namespace format is typically "node_name:run_id" or contains run_id
+        is_multi_segment = "|" in namespace
+        ns_root = namespace.split("|")[0]
+        
+        # Strategy 1: root-prefix matching against already-registered namespaces.
+        # When a sub-agent has been identified via any namespace variant, all
+        # namespaces sharing the same root segment (before the first "|") are
+        # from the same sub-agent graph.
+        if is_multi_segment:
+            for registered_ns, sub_agent_id in self._namespace_to_sub_agent_id.items():
+                if registered_ns.split("|")[0] == ns_root:
+                    self._namespace_to_sub_agent_id[namespace] = sub_agent_id
+                    self.logger.debug(
+                        f"[SUBAGENT] Prefix-matched namespace={namespace} "
+                        f"-> sub_agent={sub_agent_id} "
+                        f"(via root={ns_root})"
+                    )
+                    return
+        
+        # Strategy 2: substring matching (legacy — works when run_id is in namespace)
         for sub_agent_id in self._active_sub_agents:
             if sub_agent_id in namespace:
                 self._namespace_to_sub_agent_id[namespace] = sub_agent_id
-                self.logger.debug(
-                    f"[SUBAGENT] Registered namespace={namespace} -> sub_agent={sub_agent_id}"
+                self.logger.info(
+                    f"[SUBAGENT] Substring-matched namespace={namespace} "
+                    f"-> sub_agent={sub_agent_id}"
                 )
                 return
+        
+        # Strategy 3: causal correlation with pending sub-agent.
+        # Only for multi-segment namespaces — single-segment namespaces are
+        # from the main agent's graph nodes, not from sub-agents.
+        if is_multi_segment and self._pending_sub_agent_id:
+            sub_agent_id = self._pending_sub_agent_id
+            if sub_agent_id in self._active_sub_agents:
+                self._namespace_to_sub_agent_id[namespace] = sub_agent_id
+                self._pending_sub_agent_id = None
+                self.logger.info(
+                    f"[SUBAGENT] Causal registration: namespace={namespace} "
+                    f"-> sub_agent={sub_agent_id}"
+                )
+                return
+        
+        # Diagnostic: log failed registration for multi-segment namespaces only
+        if is_multi_segment:
+            self.logger.info(
+                f"[NS_DIAG] Namespace registration failed: "
+                f"execution={self.execution_id} "
+                f"namespace={namespace} "
+                f"active_sub_agents={list(self._active_sub_agents.keys())} "
+                f"pending={self._pending_sub_agent_id}"
+            )
     
     def _handle_sub_agent_start(self, event: dict[str, Any], tool_args: dict[str, Any], run_id: str) -> None:
         """
@@ -1525,13 +2120,22 @@ class StatusBuilder:
             started_at=_utc_timestamp(now),
         )
         
-        # Track for namespace routing and lifecycle management
-        self._active_sub_agents[run_id] = sub_agent
+        # Append first, then store the proto-managed reference.
+        # Protobuf repeated-message append copies the value; the original
+        # object is disconnected from the proto.  By storing the element
+        # returned by the repeated field we ensure all later mutations
+        # (messages, tool_calls, usage) write to the actual status proto.
         self.current_status.sub_agent_executions.append(sub_agent)
+        self._active_sub_agents[run_id] = self.current_status.sub_agent_executions[-1]
         
-        self.logger.debug(
+        # Mark as pending for causal namespace registration.
+        # The next multi-segment namespace will be associated with this sub-agent.
+        self._pending_sub_agent_id = run_id
+        
+        self.logger.info(
             f"[SUBAGENT] execution={self.execution_id} "
-            f"sub_agent={sub_agent_name} id={run_id} status=IN_PROGRESS"
+            f"sub_agent={sub_agent_name} id={run_id} status=IN_PROGRESS "
+            f"(pending namespace registration)"
         )
     
     def _handle_sub_agent_end(self, event: dict[str, Any], run_id: str) -> None:
@@ -1578,6 +2182,9 @@ class StatusBuilder:
         # Cleanup tracking dictionaries
         if run_id in self._active_sub_agents:
             del self._active_sub_agents[run_id]
+        
+        if self._pending_sub_agent_id == run_id:
+            self._pending_sub_agent_id = None
         
         # Cleanup any namespace mappings pointing to this sub-agent
         namespaces_to_remove = [

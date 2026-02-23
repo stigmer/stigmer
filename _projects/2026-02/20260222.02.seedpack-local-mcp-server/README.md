@@ -4,7 +4,8 @@
 Add a default local MCP server resource to the seedpack that gets bootstrapped and started alongside the Stigmer server when running 'stigmer server'. The MCP server will use STDIO transport and be available by default alongside the existing skill-creator skill and skill-creator-agent.
 
 **Created**: 2026-02-22
-**Status**: Active 🟢
+**Completed**: 2026-02-23
+**Status**: Complete ✅
 
 ## Project Information
 
@@ -57,11 +58,16 @@ See [checkpoints/](checkpoints/) for the most recent project state.
 
 ### Progress Tracking
 - [x] Project initialized
-- [ ] Initial analysis complete
-- [ ] Core implementation
-- [ ] Testing and validation
-- [ ] Documentation finalized
-- [ ] Project completed
+- [x] Initial analysis complete
+- [x] Core implementation (Phases 1-3)
+- [x] Testing and validation
+- [x] Documentation finalized
+- [x] Post-merge tagging (`mcp-server/v0.1.0`)
+- [x] Go module proxy verification
+- [x] Project completed
+
+### Phase 4 (Daemon subprocess management)
+Intentionally skipped — STDIO transport means MCP clients spawn the server on demand; no daemon-side process management is needed.
 
 ## How to Resume Work
 

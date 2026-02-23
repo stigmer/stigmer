@@ -110,6 +110,12 @@ class ModelMetadata:
         supports_tool_use: Whether the model supports function/tool calling
         supports_vision: Whether the model can process images
         supports_streaming: Whether the model supports streaming responses
+        supports_thinking: Whether the model supports Anthropic's manual extended
+            thinking (``type: "enabled"`` with ``budget_tokens``).
+        supports_adaptive_thinking: Whether the model supports Anthropic's
+            adaptive extended thinking (``type: "adaptive"`` with ``effort``).
+            Mutually exclusive with ``supports_thinking``; Opus 4.6 uses
+            adaptive thinking while earlier models use manual thinking.
     
     Example:
         >>> metadata = ModelMetadata(
@@ -118,7 +124,7 @@ class ModelMetadata:
         ...     provider="anthropic",
         ...     display_name="Claude Sonnet 4.5",
         ...     context_window_tokens=200000,
-        ...     max_output_tokens=8192,
+        ...     max_output_tokens=65536,
         ...     summarization_trigger_threshold=180000,
         ...     summarization_target_tokens=160000,
         ...     max_summary_tokens=2000,
@@ -166,6 +172,8 @@ class ModelMetadata:
     supports_tool_use: bool = True
     supports_vision: bool = False
     supports_streaming: bool = True
+    supports_thinking: bool = False
+    supports_adaptive_thinking: bool = False
     
     def get_api_model_id(self) -> str:
         """Get the API model identifier to use when calling the provider.
@@ -250,28 +258,67 @@ class ModelRegistry:
         # =========================================================================
         # ANTHROPIC MODELS
         # =========================================================================
-        "claude-opus-4": ModelMetadata(
-            model_id="claude-opus-4",
+        
+        # --- Generation 4.6 ---
+        "claude-opus-4.6": ModelMetadata(
+            model_id="claude-opus-4.6",
             provider="anthropic",
-            display_name="Claude Opus 4",
+            display_name="Claude Opus 4.6",
             context_window_tokens=200000,
-            max_output_tokens=8192,
+            max_output_tokens=131072,
             summarization_trigger_threshold=180000,
             summarization_target_tokens=160000,
             max_summary_tokens=2000,
             token_counter_method=TokenCounterMethod.ANTHROPIC_NATIVE,
             cost_tier=CostTier.PREMIUM,
-            api_model_id="claude-opus-4-20250514",
-            input_cost_per_1k=15.0,
-            output_cost_per_1k=75.0,
+            api_model_id="claude-opus-4-6",
+            input_cost_per_1k=5.0,
+            output_cost_per_1k=25.0,
             supports_vision=True,
+            supports_adaptive_thinking=True,
+        ),
+        "claude-sonnet-4.6": ModelMetadata(
+            model_id="claude-sonnet-4.6",
+            provider="anthropic",
+            display_name="Claude Sonnet 4.6",
+            context_window_tokens=200000,
+            max_output_tokens=65536,
+            summarization_trigger_threshold=180000,
+            summarization_target_tokens=160000,
+            max_summary_tokens=2000,
+            token_counter_method=TokenCounterMethod.ANTHROPIC_NATIVE,
+            cost_tier=CostTier.STANDARD,
+            api_model_id="claude-sonnet-4-6",
+            input_cost_per_1k=3.0,
+            output_cost_per_1k=15.0,
+            supports_vision=True,
+            supports_thinking=True,
+        ),
+        
+        # --- Generation 4.5 ---
+        "claude-opus-4.5": ModelMetadata(
+            model_id="claude-opus-4.5",
+            provider="anthropic",
+            display_name="Claude Opus 4.5",
+            context_window_tokens=200000,
+            max_output_tokens=65536,
+            summarization_trigger_threshold=180000,
+            summarization_target_tokens=160000,
+            max_summary_tokens=2000,
+            token_counter_method=TokenCounterMethod.ANTHROPIC_NATIVE,
+            cost_tier=CostTier.PREMIUM,
+            api_model_id="claude-opus-4-5-20251101",
+            input_cost_per_1k=5.0,
+            output_cost_per_1k=25.0,
+            supports_vision=True,
+            supports_thinking=True,
         ),
         "claude-sonnet-4.5": ModelMetadata(
             model_id="claude-sonnet-4.5",
             provider="anthropic",
             display_name="Claude Sonnet 4.5",
             context_window_tokens=200000,
-            max_output_tokens=8192,
+            max_output_tokens=65536,
             summarization_trigger_threshold=180000,
             summarization_target_tokens=160000,
             max_summary_tokens=2000,
@@ -281,6 +328,26 @@ class ModelRegistry:
             input_cost_per_1k=3.0,
             output_cost_per_1k=15.0,
             supports_vision=True,
+            supports_thinking=True,
+        ),
+        
+        # --- Generation 4 ---
+        "claude-opus-4": ModelMetadata(
+            model_id="claude-opus-4",
+            provider="anthropic",
+            display_name="Claude Opus 4",
+            context_window_tokens=200000,
+            max_output_tokens=32768,
+            summarization_trigger_threshold=180000,
+            summarization_target_tokens=160000,
+            max_summary_tokens=2000,
+            token_counter_method=TokenCounterMethod.ANTHROPIC_NATIVE,
+            cost_tier=CostTier.PREMIUM,
+            api_model_id="claude-opus-4-20250514",
+            input_cost_per_1k=15.0,
+            output_cost_per_1k=75.0,
+            supports_vision=True,
+            supports_thinking=True,
         ),
         "claude-haiku-4": ModelMetadata(
             model_id="claude-haiku-4",
@@ -298,6 +365,8 @@ class ModelRegistry:
             output_cost_per_1k=5.0,
             supports_vision=True,
         ),
+        
+        # --- Generation 3.5 ---
         "claude-sonnet-3.5": ModelMetadata(
             model_id="claude-sonnet-3.5",
             provider="anthropic",
@@ -834,7 +903,7 @@ class ModelRegistry:
         Example:
             >>> all_models = ModelRegistry.list_all()
             >>> print(f"Total models: {len(all_models)}")
-            Total models: 19
+            Total models: 22
         
         """
         return sorted(
