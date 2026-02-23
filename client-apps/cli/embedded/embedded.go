@@ -27,7 +27,7 @@ func (p Platform) String() string {
 // IsSupported returns true if the platform is supported
 func (p Platform) IsSupported() bool {
 	switch p.String() {
-	case "darwin_arm64", "darwin_amd64", "linux_amd64":
+	case "darwin_arm64", "darwin_amd64", "linux_amd64", "linux_arm64":
 		return true
 	default:
 		return false
