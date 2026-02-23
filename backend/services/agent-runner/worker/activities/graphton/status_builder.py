@@ -828,6 +828,45 @@ class StatusBuilder:
             ai_message.generation_duration_ms = generation_duration_ms
         
         # ─────────────────────────────────────────────────────────────────────────
+        # Diagnostic: detect text content dropped during streaming
+        #
+        # The output_data contains the FULL final AIMessage with all content
+        # blocks.  Extract the text portion and compare with what the stream
+        # handler accumulated.  A mismatch proves tokens were silently dropped.
+        # ─────────────────────────────────────────────────────────────────────────
+        try:
+            final_text = ""
+            if hasattr(output_data, "content"):
+                oc = output_data.content
+                if isinstance(oc, str):
+                    final_text = oc
+                elif isinstance(oc, list):
+                    final_text = self._extract_string_content(oc)
+            elif isinstance(output_data, dict) and "content" in output_data:
+                oc = output_data["content"]
+                if isinstance(oc, str):
+                    final_text = oc
+                elif isinstance(oc, list):
+                    final_text = self._extract_string_content(oc)
+            
+            streamed_text = ai_message.content
+            if final_text and final_text != streamed_text:
+                self.logger.warning(
+                    f"[CONTENT_DROP] execution={self.execution_id} run_id={run_id} "
+                    f"namespace={namespace or 'main'} "
+                    f"streamed_len={len(streamed_text)} final_len={len(final_text)} "
+                    f"streamed={streamed_text[:200]!r} "
+                    f"final={final_text[:200]!r}"
+                )
+            elif final_text:
+                self.logger.debug(
+                    f"[CONTENT_OK] execution={self.execution_id} run_id={run_id} "
+                    f"len={len(streamed_text)} content={streamed_text[:100]!r}"
+                )
+        except Exception:
+            pass
+        
+        # ─────────────────────────────────────────────────────────────────────────
         # Update UsageMetrics (Phase 2.4)
         #
         # Accumulate tokens and call counts, then build and assign UsageMetrics proto.
