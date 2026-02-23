@@ -83,6 +83,8 @@ type AttachmentInput struct {
 	MountPath string `json:"mount_path,omitempty" jsonschema:"description=Path in sandbox where file will be placed. Defaults to '/inputs/{filename}' if not specified. Example: '/workspace/input.yaml'\, '/inputs/data/'"`
 	// MIME type for content negotiation (optional). Example: "application/yaml", "text/plain", "application/zip"
 	ContentType string `json:"content_type,omitempty" jsonschema:"description=MIME type for content negotiation (optional). Example: 'application/yaml'\, 'text/plain'\, 'application/zip'"`
+	// When true, the attachment is a zip archive that should be extracted at mount_path rather than written as a single file.
+	Extract bool `json:"extract,omitempty" jsonschema:"description=When true the attachment is a zip archive that should be extracted at mount_path rather than written as a single file."`
 }
 
 // ToProto converts the flat MCP input into a fully-formed AgentExecution proto message.
@@ -186,5 +188,6 @@ func (input *AttachmentInput) toProto() (*agentexecutionv1.Attachment, error) {
 	result.StorageKey = input.StorageKey
 	result.MountPath = input.MountPath
 	result.ContentType = input.ContentType
+	result.Extract = input.Extract
 	return result, nil
 }

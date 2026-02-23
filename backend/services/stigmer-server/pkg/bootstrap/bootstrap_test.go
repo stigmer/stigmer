@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
@@ -78,6 +79,36 @@ func (m *MockAgentClient) Apply(ctx context.Context, agent *agentv1.Agent) (*age
 	}, nil
 }
 
+// MockMcpServerClient implements McpServerClient for testing.
+type MockMcpServerClient struct {
+	ApplyCalls   []*mcpserverv1.McpServer
+	ApplyError   error
+	ApplyResult  *mcpserverv1.McpServer
+	ApplyResults []*mcpserverv1.McpServer
+	callIndex    int
+}
+
+func (m *MockMcpServerClient) Apply(ctx context.Context, mcpServer *mcpserverv1.McpServer) (*mcpserverv1.McpServer, error) {
+	m.ApplyCalls = append(m.ApplyCalls, mcpServer)
+	if m.ApplyError != nil {
+		return nil, m.ApplyError
+	}
+	if len(m.ApplyResults) > m.callIndex {
+		result := m.ApplyResults[m.callIndex]
+		m.callIndex++
+		return result, nil
+	}
+	if m.ApplyResult != nil {
+		return m.ApplyResult, nil
+	}
+	return &mcpserverv1.McpServer{
+		Metadata: &apiresource.ApiResourceMetadata{
+			Id:   "mcpserver-" + mcpServer.GetMetadata().GetName(),
+			Name: mcpServer.GetMetadata().GetName(),
+		},
+	}, nil
+}
+
 func TestBootstrapper_Run_Success(t *testing.T) {
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "test.sqlite")
@@ -88,8 +119,9 @@ func TestBootstrapper_Run_Success(t *testing.T) {
 
 	skillClient := &MockSkillClient{}
 	agentClient := &MockAgentClient{}
+	mcpServerClient := &MockMcpServerClient{}
 
-	bootstrapper := NewBootstrapper(store, skillClient, agentClient)
+	bootstrapper := NewBootstrapper(store, skillClient, agentClient, mcpServerClient)
 
 	ctx := context.Background()
 	err = bootstrapper.Run(ctx)
@@ -106,6 +138,11 @@ func TestBootstrapper_Run_Success(t *testing.T) {
 	assert.Equal(t, "skill-creator-agent", agentClient.ApplyCalls[0].GetMetadata().GetName())
 	assert.Equal(t, "local", agentClient.ApplyCalls[0].GetMetadata().GetOrg())
 
+	// Verify MCP server was applied (seedpack has stigmer-mcp-server)
+	assert.Len(t, mcpServerClient.ApplyCalls, 1)
+	assert.Equal(t, "stigmer-mcp-server", mcpServerClient.ApplyCalls[0].GetMetadata().GetName())
+	assert.Equal(t, "local", mcpServerClient.ApplyCalls[0].GetMetadata().GetOrg())
+
 	// Verify state was recorded
 	status, err := store.GetBootstrapState(ctx, KeyBootstrapStatus)
 	require.NoError(t, err)
@@ -113,7 +150,7 @@ func TestBootstrapper_Run_Success(t *testing.T) {
 
 	version, err := store.GetBootstrapState(ctx, KeySeedpackVersion)
 	require.NoError(t, err)
-	assert.Equal(t, "1.1.0", version) // Should match seedpack manifest
+	assert.Equal(t, "1.3.0", version) // Should match seedpack manifest
 
 	skillState, err := store.GetBootstrapState(ctx, KeySkillPrefix+"skill-creator")
 	require.NoError(t, err)
@@ -122,6 +159,10 @@ func TestBootstrapper_Run_Success(t *testing.T) {
 	agentState, err := store.GetBootstrapState(ctx, KeyAgentPrefix+"skill-creator-agent")
 	require.NoError(t, err)
 	assert.Contains(t, agentState, KeyAppliedPrefix)
+
+	mcpServerState, err := store.GetBootstrapState(ctx, KeyMcpServerPrefix+"stigmer-mcp-server")
+	require.NoError(t, err)
+	assert.Contains(t, mcpServerState, KeyAppliedPrefix)
 }
 
 func TestBootstrapper_Run_Idempotent(t *testing.T) {
@@ -134,8 +175,9 @@ func TestBootstrapper_Run_Idempotent(t *testing.T) {
 
 	skillClient := &MockSkillClient{}
 	agentClient := &MockAgentClient{}
+	mcpServerClient := &MockMcpServerClient{}
 
-	bootstrapper := NewBootstrapper(store, skillClient, agentClient)
+	bootstrapper := NewBootstrapper(store, skillClient, agentClient, mcpServerClient)
 
 	ctx := context.Background()
 
@@ -144,10 +186,12 @@ func TestBootstrapper_Run_Idempotent(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, skillClient.PushCalls, 1)
 	assert.Len(t, agentClient.ApplyCalls, 1)
+	assert.Len(t, mcpServerClient.ApplyCalls, 1)
 
 	// Run bootstrap again - should skip because already completed
 	skillClient.PushCalls = nil
 	agentClient.ApplyCalls = nil
+	mcpServerClient.ApplyCalls = nil
 
 	err = bootstrapper.Run(ctx)
 	require.NoError(t, err)
@@ -155,6 +199,7 @@ func TestBootstrapper_Run_Idempotent(t *testing.T) {
 	// No new calls should be made
 	assert.Len(t, skillClient.PushCalls, 0)
 	assert.Len(t, agentClient.ApplyCalls, 0)
+	assert.Len(t, mcpServerClient.ApplyCalls, 0)
 }
 
 func TestBootstrapper_Run_SkipIfSameDigest(t *testing.T) {
@@ -176,8 +221,9 @@ func TestBootstrapper_Run_SkipIfSameDigest(t *testing.T) {
 
 	skillClient := &MockSkillClient{}
 	agentClient := &MockAgentClient{}
+	mcpServerClient := &MockMcpServerClient{}
 
-	bootstrapper := NewBootstrapper(store, skillClient, agentClient)
+	bootstrapper := NewBootstrapper(store, skillClient, agentClient, mcpServerClient)
 
 	// Run bootstrap - should run because version is different
 	err = bootstrapper.Run(ctx)
@@ -186,6 +232,7 @@ func TestBootstrapper_Run_SkipIfSameDigest(t *testing.T) {
 	// Calls should be made because version changed
 	assert.Len(t, skillClient.PushCalls, 1)
 	assert.Len(t, agentClient.ApplyCalls, 1)
+	assert.Len(t, mcpServerClient.ApplyCalls, 1)
 }
 
 func TestBootstrapper_Run_DegradedMode_SkillError(t *testing.T) {
@@ -200,8 +247,9 @@ func TestBootstrapper_Run_DegradedMode_SkillError(t *testing.T) {
 		PushError: assert.AnError, // Simulate error
 	}
 	agentClient := &MockAgentClient{}
+	mcpServerClient := &MockMcpServerClient{}
 
-	bootstrapper := NewBootstrapper(store, skillClient, agentClient)
+	bootstrapper := NewBootstrapper(store, skillClient, agentClient, mcpServerClient)
 
 	ctx := context.Background()
 	err = bootstrapper.Run(ctx)
@@ -212,8 +260,9 @@ func TestBootstrapper_Run_DegradedMode_SkillError(t *testing.T) {
 	// Skill push should have been attempted
 	assert.Len(t, skillClient.PushCalls, 1)
 
-	// Agent should still be applied
+	// Agent and MCP server should still be applied
 	assert.Len(t, agentClient.ApplyCalls, 1)
+	assert.Len(t, mcpServerClient.ApplyCalls, 1)
 
 	// Status should be failed
 	status, err := store.GetBootstrapState(ctx, KeyBootstrapStatus)
@@ -233,8 +282,9 @@ func TestBootstrapper_Run_DegradedMode_AgentError(t *testing.T) {
 	agentClient := &MockAgentClient{
 		ApplyError: assert.AnError, // Simulate error
 	}
+	mcpServerClient := &MockMcpServerClient{}
 
-	bootstrapper := NewBootstrapper(store, skillClient, agentClient)
+	bootstrapper := NewBootstrapper(store, skillClient, agentClient, mcpServerClient)
 
 	ctx := context.Background()
 	err = bootstrapper.Run(ctx)
@@ -247,6 +297,44 @@ func TestBootstrapper_Run_DegradedMode_AgentError(t *testing.T) {
 
 	// Agent apply should have been attempted
 	assert.Len(t, agentClient.ApplyCalls, 1)
+
+	// MCP server should still be applied
+	assert.Len(t, mcpServerClient.ApplyCalls, 1)
+
+	// Status should be failed
+	status, err := store.GetBootstrapState(ctx, KeyBootstrapStatus)
+	require.NoError(t, err)
+	assert.Equal(t, StatusFailed, status)
+}
+
+func TestBootstrapper_Run_DegradedMode_McpServerError(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "test.sqlite")
+
+	store, err := sqlite.NewStore(dbPath)
+	require.NoError(t, err)
+	defer store.Close()
+
+	skillClient := &MockSkillClient{}
+	agentClient := &MockAgentClient{}
+	mcpServerClient := &MockMcpServerClient{
+		ApplyError: assert.AnError,
+	}
+
+	bootstrapper := NewBootstrapper(store, skillClient, agentClient, mcpServerClient)
+
+	ctx := context.Background()
+	err = bootstrapper.Run(ctx)
+
+	// Should not return error (degraded mode)
+	require.NoError(t, err)
+
+	// Skill and agent should have succeeded
+	assert.Len(t, skillClient.PushCalls, 1)
+	assert.Len(t, agentClient.ApplyCalls, 1)
+
+	// MCP server apply should have been attempted
+	assert.Len(t, mcpServerClient.ApplyCalls, 1)
 
 	// Status should be failed
 	status, err := store.GetBootstrapState(ctx, KeyBootstrapStatus)
@@ -290,12 +378,61 @@ func TestNewBootstrapper(t *testing.T) {
 
 	skillClient := &MockSkillClient{}
 	agentClient := &MockAgentClient{}
+	mcpServerClient := &MockMcpServerClient{}
 
-	bootstrapper := NewBootstrapper(store, skillClient, agentClient)
+	bootstrapper := NewBootstrapper(store, skillClient, agentClient, mcpServerClient)
 
 	assert.NotNil(t, bootstrapper)
 	assert.Equal(t, store, bootstrapper.store)
 	assert.Equal(t, skillClient, bootstrapper.skillClient)
 	assert.Equal(t, agentClient, bootstrapper.agentClient)
+	assert.Equal(t, mcpServerClient, bootstrapper.mcpServerClient)
 	assert.Equal(t, "local", bootstrapper.org)
+}
+
+func TestCalculateMcpServerHash(t *testing.T) {
+	mcpServer := &mcpserverv1.McpServer{
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: "test-mcp-server",
+		},
+		Spec: &mcpserverv1.McpServerSpec{
+			Description: "A test MCP server",
+			Tags:        []string{"test", "system"},
+			ServerType: &mcpserverv1.McpServerSpec_Stdio{
+				Stdio: &mcpserverv1.StdioServerConfig{
+					Command: "stigmer",
+					Args:    []string{"mcp-server"},
+				},
+			},
+		},
+	}
+
+	hash1 := calculateMcpServerHash(mcpServer)
+	assert.NotEmpty(t, hash1)
+	assert.Contains(t, hash1, "sha256:")
+
+	// Same content should produce same hash
+	hash2 := calculateMcpServerHash(mcpServer)
+	assert.Equal(t, hash1, hash2)
+
+	// Different command should produce different hash
+	mcpServer.Spec.ServerType = &mcpserverv1.McpServerSpec_Stdio{
+		Stdio: &mcpserverv1.StdioServerConfig{
+			Command: "stigmer-v2",
+			Args:    []string{"mcp-server"},
+		},
+	}
+	hash3 := calculateMcpServerHash(mcpServer)
+	assert.NotEqual(t, hash1, hash3)
+
+	// Different description should produce different hash
+	mcpServer.Spec.ServerType = &mcpserverv1.McpServerSpec_Stdio{
+		Stdio: &mcpserverv1.StdioServerConfig{
+			Command: "stigmer",
+			Args:    []string{"mcp-server"},
+		},
+	}
+	mcpServer.Spec.Description = "Changed description"
+	hash4 := calculateMcpServerHash(mcpServer)
+	assert.NotEqual(t, hash1, hash4)
 }

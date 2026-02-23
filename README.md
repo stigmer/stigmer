@@ -356,13 +356,34 @@ stigmer workflow execute pr-review \
 
 ### MCP Servers
 
-Stigmer uses the [Model Context Protocol](https://modelcontextprotocol.io) to give agents capabilities:
+Stigmer uses the [Model Context Protocol](https://modelcontextprotocol.io) to give agents capabilities.
+Agents can use any STDIO MCP server — npm packages (npx), Python packages (uvx), Go modules (go run),
+or Docker images:
 
 - **GitHub**: Repository access, issues, PRs
 - **Filesystem**: Read/write files
 - **Postgres**: Database queries
 - **Slack**: Send messages
 - **Custom**: Build your own
+
+#### Built-in Stigmer MCP Server
+
+Stigmer ships with its own MCP server that exposes all platform resources (agents, skills, workflows,
+MCP servers) to AI-powered development tools. Use it from Cursor, Claude Desktop, VS Code, or Windsurf:
+
+```bash
+# Via CLI (zero-config with local backend)
+stigmer mcp-server
+
+# Via Go install
+go install github.com/stigmer/stigmer/mcp-server/cmd/mcp-server-stigmer@latest
+
+# Via Docker
+docker run -i --rm -e STIGMER_SERVER_ADDRESS -e STIGMER_API_KEY ghcr.io/stigmer/mcp-server-stigmer
+```
+
+See [mcp-server/README.md](mcp-server/README.md) for full installation options, MCP client
+configuration examples, and environment variable reference.
 
 ## Local vs. Cloud
 
