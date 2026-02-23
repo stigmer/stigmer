@@ -1,6 +1,8 @@
 package seedpack
 
 import (
+	"archive/zip"
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"sort"
@@ -15,13 +17,13 @@ func TestLoadManifest(t *testing.T) {
 	}
 
 	// Validate schema version
-	if manifest.SchemaVersion != "3" {
-		t.Errorf("Expected schema_version '3', got '%s'", manifest.SchemaVersion)
+	if manifest.SchemaVersion != "4" {
+		t.Errorf("Expected schema_version '4', got '%s'", manifest.SchemaVersion)
 	}
 
 	// Validate version
-	if manifest.Version != "1.3.0" {
-		t.Errorf("Expected version '1.3.0', got '%s'", manifest.Version)
+	if manifest.Version != "1.4.0" {
+		t.Errorf("Expected version '1.4.0', got '%s'", manifest.Version)
 	}
 
 	// Validate skills
@@ -62,19 +64,8 @@ func TestLoadManifest_SkillCreatorEntry(t *testing.T) {
 		t.Fatal("skill-creator not found in manifest")
 	}
 
-	// Validate skill-creator entry
 	if skillCreator.Path != "skills/skill-creator" {
 		t.Errorf("Expected path 'skills/skill-creator', got '%s'", skillCreator.Path)
-	}
-
-	// Validate artifact path (schema v2)
-	if skillCreator.ArtifactPath != "artifacts/skill-creator.zip" {
-		t.Errorf("Expected artifact_path 'artifacts/skill-creator.zip', got '%s'", skillCreator.ArtifactPath)
-	}
-
-	// Validate artifact digest
-	if !strings.HasPrefix(skillCreator.ArtifactDigest, "sha256:") {
-		t.Errorf("Expected artifact_digest to start with 'sha256:', got '%s'", skillCreator.ArtifactDigest)
 	}
 
 	if !strings.HasPrefix(skillCreator.ContentDigest, "sha256:") {
@@ -89,8 +80,8 @@ func TestLoadManifest_SkillCreatorEntry(t *testing.T) {
 		t.Errorf("Expected source.url 'https://github.com/anthropics/skills', got '%s'", skillCreator.Source.URL)
 	}
 
-	t.Logf("skill-creator: path=%s, artifact=%s, digest=%s...",
-		skillCreator.Path, skillCreator.ArtifactPath, skillCreator.ContentDigest[:30])
+	t.Logf("skill-creator: path=%s, digest=%s...",
+		skillCreator.Path, skillCreator.ContentDigest[:30])
 }
 
 func TestLoadManifest_SkillCreatorAgentEntry(t *testing.T) {
@@ -173,51 +164,46 @@ func TestLoadAgentYAML(t *testing.T) {
 		truncate(agent.Spec.Description, 50), len(agent.Spec.SkillRefs))
 }
 
-func TestLoadSkillArtifact(t *testing.T) {
-	// Load the pre-built ZIP artifact
-	zipData, err := LoadSkillArtifact("artifacts/skill-creator.zip")
+func TestCreateSkillZIP(t *testing.T) {
+	zipData, err := CreateSkillZIP("skills/skill-creator")
 	if err != nil {
-		t.Fatalf("LoadSkillArtifact() failed: %v", err)
+		t.Fatalf("CreateSkillZIP() failed: %v", err)
 	}
 
 	if len(zipData) == 0 {
 		t.Fatal("Expected non-empty ZIP data")
 	}
 
-	// Verify it's a valid ZIP (check magic bytes)
-	// ZIP files start with PK\x03\x04
 	if len(zipData) < 4 || string(zipData[:2]) != "PK" {
 		t.Error("Expected valid ZIP file (PK magic bytes)")
 	}
 
-	// Verify artifact digest matches manifest
-	manifest, err := LoadManifest()
+	expectedFiles, err := ListSkillFiles("skills/skill-creator")
 	if err != nil {
-		t.Fatalf("LoadManifest() failed: %v", err)
+		t.Fatalf("ListSkillFiles() failed: %v", err)
 	}
 
-	skill, err := GetSkillByName("skill-creator")
+	zipReader, err := zip.NewReader(bytes.NewReader(zipData), int64(len(zipData)))
 	if err != nil {
-		t.Fatalf("GetSkillByName() failed: %v", err)
+		t.Fatalf("Failed to open generated ZIP: %v", err)
 	}
 
-	if skill.ArtifactDigest == "" {
-		t.Error("Expected non-empty artifact_digest in manifest")
+	zipFileNames := make(map[string]bool)
+	for _, f := range zipReader.File {
+		zipFileNames[f.Name] = true
 	}
 
-	// Calculate actual digest
-	hash := sha256.Sum256(zipData)
-	actualDigest := "sha256:" + hex.EncodeToString(hash[:])
-
-	if actualDigest != skill.ArtifactDigest {
-		t.Errorf("Artifact digest mismatch:\n  expected: %s\n  actual:   %s",
-			skill.ArtifactDigest, actualDigest)
+	for _, expected := range expectedFiles {
+		if !zipFileNames[expected] {
+			t.Errorf("Missing file in ZIP: %s", expected)
+		}
 	}
 
-	t.Logf("Artifact: %d bytes, digest=%s", len(zipData), actualDigest[:40]+"...")
+	if len(zipReader.File) != len(expectedFiles) {
+		t.Errorf("ZIP has %d files, expected %d", len(zipReader.File), len(expectedFiles))
+	}
 
-	// Suppress unused variable warning
-	_ = manifest
+	t.Logf("CreateSkillZIP: %d bytes, %d files", len(zipData), len(zipReader.File))
 }
 
 func TestLoadSkillContent(t *testing.T) {

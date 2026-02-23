@@ -1,7 +1,9 @@
 package seedpack
 
 import (
+	"archive/zip"
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/fs"
@@ -30,12 +32,10 @@ type Manifest struct {
 
 // SkillEntry describes a skill included in the seedpack.
 type SkillEntry struct {
-	Name           string      `json:"name"`
-	Path           string      `json:"path"`
-	ArtifactPath   string      `json:"artifact_path,omitempty"`   // Pre-built ZIP artifact path
-	ArtifactDigest string      `json:"artifact_digest,omitempty"` // SHA256 of the ZIP artifact
-	ContentDigest  string      `json:"content_digest"`
-	Source         SkillSource `json:"source"`
+	Name          string      `json:"name"`
+	Path          string      `json:"path"`
+	ContentDigest string      `json:"content_digest"`
+	Source        SkillSource `json:"source"`
 }
 
 // SkillSource tracks the origin of a vendored skill.
@@ -231,20 +231,49 @@ func GetMcpServerByName(name string) (*McpServerEntry, error) {
 }
 
 // =============================================================================
-// Bootstrap Artifact Functions
+// Bootstrap Functions
 // =============================================================================
-// These functions support the server bootstrap process by loading pre-built
-// artifacts (ZIP files, agent YAML) that were created during vendoring.
 
-// LoadSkillArtifact loads a pre-built ZIP artifact for a skill.
-// The artifactPath should be relative to the seedpack root (e.g., "artifacts/skill-creator.zip").
+// CreateSkillZIP creates a ZIP archive from the embedded skill directory at runtime.
+// The skillPath should be relative to the seedpack root (e.g., "skills/skill-creator").
 // Returns the raw ZIP bytes ready to be sent to the Push API.
-func LoadSkillArtifact(artifactPath string) ([]byte, error) {
-	data, err := content.ReadFile(artifactPath)
+func CreateSkillZIP(skillPath string) ([]byte, error) {
+	files, err := ListSkillFiles(skillPath)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read skill artifact %s", artifactPath)
+		return nil, errors.Wrapf(err, "failed to list files for %s", skillPath)
 	}
-	return data, nil
+
+	if len(files) == 0 {
+		return nil, fmt.Errorf("no files found in skill directory %s", skillPath)
+	}
+
+	var buf bytes.Buffer
+	w := zip.NewWriter(&buf)
+
+	for _, filePath := range files {
+		data, err := LoadSkillFile(skillPath, filePath)
+		if err != nil {
+			w.Close()
+			return nil, errors.Wrapf(err, "failed to read %s/%s", skillPath, filePath)
+		}
+
+		f, err := w.Create(filePath)
+		if err != nil {
+			w.Close()
+			return nil, errors.Wrapf(err, "failed to create zip entry for %s", filePath)
+		}
+
+		if _, err := f.Write(data); err != nil {
+			w.Close()
+			return nil, errors.Wrapf(err, "failed to write zip entry for %s", filePath)
+		}
+	}
+
+	if err := w.Close(); err != nil {
+		return nil, errors.Wrap(err, "failed to finalize zip archive")
+	}
+
+	return buf.Bytes(), nil
 }
 
 // LoadAgentYAML loads and parses an agent YAML file into a proto message.
