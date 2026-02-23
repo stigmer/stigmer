@@ -119,6 +119,17 @@ class StatusBuilder:
         # Key: message index in messages list, Value: start timestamp
         self._message_start_times: dict[int, datetime] = {}
         
+        # ─────────────────────────────────────────────────────────────────────────
+        # LLM Stream Isolation (run_id-based message tracking)
+        #
+        # Maps each LLM invocation's run_id to the AgentMessage it owns.
+        # This prevents token interleaving when multiple LLM streams are
+        # active (e.g., concurrent sub-agents whose namespace routing fell
+        # through to the main agent).  Each run_id always writes to its own
+        # dedicated message — no two LLM invocations can share a message.
+        # ─────────────────────────────────────────────────────────────────────────
+        self._llm_run_id_to_message: dict[str, AgentMessage] = {}
+        
         # Track tool execution timing for duration calculation (Phase 2.2)
         # Key: run_id, Value: start timestamp
         self._tool_start_times: dict[str, datetime] = {}
@@ -643,47 +654,58 @@ class StatusBuilder:
             self._flush_thinking_buffer(ns_key, namespace)
         
         # ─────────────────────────────────────────────────────────────────────
-        # Namespace-Based Routing (Phase 2.3): Route to correct execution context
+        # run_id-Based Message Isolation
+        #
+        # Each LLM invocation has a unique run_id. We use it to map tokens
+        # to the correct AgentMessage, preventing interleaving when multiple
+        # LLM streams are active (e.g., concurrent sub-agents whose namespace
+        # routing fell through to the main agent).
+        #
+        # When run_id is absent, we fall back to the legacy backwards-scan
+        # for the last streaming AI message in the resolved context.
         # ─────────────────────────────────────────────────────────────────────
+        run_id = event.get("run_id", "")
         context, sub_agent = self._get_execution_context(namespace)
-        
-        # Get the appropriate messages list
         messages_list = sub_agent.messages if sub_agent else self.current_status.messages
         
-        # Find the currently-streaming AI message (if any) in the correct context.
-        # Only append to a message that is still actively streaming. Once
-        # on_chat_model_end finalizes a message (is_streaming=False), subsequent
-        # LLM turns must create a new AgentMessage so that each turn's text
-        # appears as a distinct message in the conversation history.
-        ai_message = None
-        for idx in range(len(messages_list) - 1, -1, -1):
-            message = messages_list[idx]
-            if message.type == MessageType.MESSAGE_AI and message.is_streaming:
-                ai_message = message
-                break
+        # Fast path: run_id already mapped to a message from an earlier token.
+        if run_id:
+            ai_message = self._llm_run_id_to_message.get(run_id)
+            if ai_message is not None:
+                ai_message.content += token
+                return
         
-        if not ai_message:
-            # Create new AI message and record start time for duration tracking
-            now = datetime.utcnow()
-            ai_message = AgentMessage(
-                type=MessageType.MESSAGE_AI,
-                content=token,
-                timestamp=_utc_timestamp(now),
-                is_streaming=True,  # Mark as actively streaming (finalized in on_chat_model_end)
-            )
-            messages_list.append(ai_message)
-            
-            # Track start time using appropriate key
-            new_message_index = len(messages_list) - 1
-            if sub_agent:
-                # Use tuple key for sub-agent messages
-                self._sub_agent_message_start_times[(sub_agent.id, new_message_index)] = now
-                self.logger.debug(f"Started new AI message in sub_agent={sub_agent.id} at index {new_message_index}")
-            else:
-                self._message_start_times[new_message_index] = now
-                self.logger.debug(f"Started new AI message at index {new_message_index}")
+        if not run_id:
+            # Legacy fallback: no run_id available — find the last streaming
+            # AI message in this context (pre-isolation behaviour).
+            for idx in range(len(messages_list) - 1, -1, -1):
+                message = messages_list[idx]
+                if message.type == MessageType.MESSAGE_AI and message.is_streaming:
+                    message.content += token
+                    return
+        
+        # First token for this run_id (or no existing streaming message in
+        # legacy mode) — create a new AgentMessage.
+        now = datetime.utcnow()
+        ai_message = AgentMessage(
+            type=MessageType.MESSAGE_AI,
+            content=token,
+            timestamp=_utc_timestamp(now),
+            is_streaming=True,
+        )
+        messages_list.append(ai_message)
+        
+        if run_id:
+            self._llm_run_id_to_message[run_id] = ai_message
+        
+        # Track start time for duration calculation
+        new_message_index = len(messages_list) - 1
+        if sub_agent:
+            self._sub_agent_message_start_times[(sub_agent.id, new_message_index)] = now
+            self.logger.debug(f"Started new AI message in sub_agent={sub_agent.id} at index {new_message_index} run_id={run_id}")
         else:
-            ai_message.content += token
+            self._message_start_times[new_message_index] = now
+            self.logger.debug(f"Started new AI message at index {new_message_index} run_id={run_id}")
     
     def _handle_chat_model_end_event(self, event: dict[str, Any], namespace: str = "") -> None:
         """
@@ -710,25 +732,36 @@ class StatusBuilder:
             self._flush_thinking_buffer(ns_key, namespace)
         
         # ─────────────────────────────────────────────────────────────────────
-        # Namespace-Based Routing (Phase 2.3): Find message in correct context
+        # run_id-Based Message Resolution (with backwards-scan fallback)
         # ─────────────────────────────────────────────────────────────────────
+        run_id = event.get("run_id", "")
         context, sub_agent = self._get_execution_context(namespace)
         messages_list = sub_agent.messages if sub_agent else self.current_status.messages
         
-        # Find the currently-streaming AI message to finalize.
-        # Prefer the message that is still streaming (the one from the current
-        # turn). This is robust against edge cases where a previous turn's
-        # finalized MESSAGE_AI sits earlier in the list.
         ai_message_index = None
-        for idx in range(len(messages_list) - 1, -1, -1):
-            message = messages_list[idx]
-            if message.type == MessageType.MESSAGE_AI and message.is_streaming:
-                ai_message_index = idx
-                break
+        
+        # Primary path: resolve via run_id map (matches stream handler)
+        tracked_message = self._llm_run_id_to_message.pop(run_id, None) if run_id else None
+        if tracked_message is not None:
+            for idx in range(len(messages_list) - 1, -1, -1):
+                if messages_list[idx] is tracked_message:
+                    ai_message_index = idx
+                    break
+        
+        # Fallback: backwards scan for last streaming AI message
+        if ai_message_index is None:
+            for idx in range(len(messages_list) - 1, -1, -1):
+                message = messages_list[idx]
+                if message.type == MessageType.MESSAGE_AI and message.is_streaming:
+                    ai_message_index = idx
+                    break
         
         if ai_message_index is None:
             context_desc = f"sub_agent={sub_agent.id}" if sub_agent else "main_agent"
-            self.logger.warning(f"on_chat_model_end received but no AI message found to finalize ({context_desc})")
+            self.logger.warning(
+                f"on_chat_model_end received but no AI message found to finalize "
+                f"({context_desc} run_id={run_id})"
+            )
             return
         
         # Calculate generation duration if we tracked the start time
@@ -1673,7 +1706,16 @@ class StatusBuilder:
             sub_agent = self._active_sub_agents[sub_agent_id]
             return sub_agent, sub_agent
         
-        # Namespace not yet registered - fall back to main agent
+        # Namespace not yet registered — fall back to main agent.
+        # This can cause sub-agent events to leak into the main agent's
+        # messages. The run_id-based message isolation in the stream handler
+        # prevents token interleaving, but this fallback is still worth
+        # investigating when it fires frequently.
+        self.logger.warning(
+            f"[NAMESPACE] execution={self.execution_id} "
+            f"namespace={namespace} has no registered sub-agent — "
+            f"falling back to main agent context"
+        )
         return self.current_status, None
     
     def _register_sub_agent_namespace(self, namespace: str) -> None:
