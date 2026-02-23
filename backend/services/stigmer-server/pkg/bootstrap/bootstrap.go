@@ -221,44 +221,33 @@ func (b *Bootstrapper) Run(ctx context.Context) error {
 func (b *Bootstrapper) bootstrapSkill(ctx context.Context, entry *seedpack.SkillEntry) error {
 	log.Info().
 		Str("skill", entry.Name).
-		Str("artifact_path", entry.ArtifactPath).
+		Str("path", entry.Path).
 		Msg("Bootstrapping skill")
 
-	// Check if already applied with same digest
 	stateKey := KeySkillPrefix + entry.Name
 	currentState, err := b.store.GetBootstrapState(ctx, stateKey)
 	if err != nil {
 		log.Warn().Err(err).Str("skill", entry.Name).Msg("Failed to get skill state")
-		// Continue anyway
 	}
 
-	expectedState := KeyAppliedPrefix + entry.ArtifactDigest
+	expectedState := KeyAppliedPrefix + entry.ContentDigest
 	if currentState == expectedState {
 		log.Debug().
 			Str("skill", entry.Name).
-			Str("digest", entry.ArtifactDigest).
-			Msg("Skill already applied with same digest, skipping")
+			Str("digest", entry.ContentDigest).
+			Msg("Skill already applied with same content digest, skipping")
 		return nil
 	}
 
-	// Load pre-built ZIP artifact
-	artifactData, err := seedpack.LoadSkillArtifact(entry.ArtifactPath)
+	zipData, err := seedpack.CreateSkillZIP(entry.Path)
 	if err != nil {
-		return fmt.Errorf("load artifact: %w", err)
+		return fmt.Errorf("create skill zip: %w", err)
 	}
 
-	// Verify artifact digest
-	hash := sha256.Sum256(artifactData)
-	actualDigest := "sha256:" + hex.EncodeToString(hash[:])
-	if actualDigest != entry.ArtifactDigest {
-		return fmt.Errorf("artifact digest mismatch: expected %s, got %s", entry.ArtifactDigest, actualDigest)
-	}
-
-	// Push skill via API
 	req := &skillv1.PushSkillRequest{
 		Org:      b.org,
-		Artifact: artifactData,
-		Tag:      "system", // Tag system skills
+		Artifact: zipData,
+		Tag:      "system",
 	}
 
 	skill, err := b.skillClient.Push(ctx, req)
@@ -266,7 +255,6 @@ func (b *Bootstrapper) bootstrapSkill(ctx context.Context, entry *seedpack.Skill
 		return fmt.Errorf("push skill: %w", err)
 	}
 
-	// Record state
 	if err := b.store.SetBootstrapState(ctx, stateKey, expectedState); err != nil {
 		log.Warn().Err(err).Str("skill", entry.Name).Msg("Failed to record skill state")
 	}

@@ -76,6 +76,9 @@ PLATFORM_TOOL_DEFAULTS: dict[str, dict[str, Any]] = {
         "requires_approval": True,
         "message": "Execute command: {{args.command}}",
     },
+    
+    # Agent-internal tools (no external side effects)
+    "think": {"requires_approval": False},
 }
 
 # Aliases for platform tools.  deepagents registers tools named read_file,

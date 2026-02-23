@@ -89,6 +89,10 @@ FILESYSTEM_CAPABILITY = """
 File paths should be workspace-relative (e.g., `inputs/data.txt`,
 `bin/skills/my-skill/SKILL.md`). Use the paths exactly as shown in the
 Available Skills and Input Files sections.
+
+**Output Discipline**: When you read files, their contents are captured in tool
+results already present in your context. NEVER echo, reprint, list, or summarize
+file contents in your response text. Proceed directly to analysis and action.
 """
 
 MCP_TOOLS_CAPABILITY = """
@@ -112,6 +116,22 @@ shell commands using the `execute` tool. Use this for:
 
 The sandbox is isolated - changes don't affect the host system. Check command output
 for errors and handle them appropriately.
+"""
+
+THINK_CAPABILITY = """
+**Think Tool**: You have a `think` tool for structured reasoning. It does not read
+files or make changes — it simply records your thought so you can reason step-by-step
+before acting. Use it when:
+
+- You have just read files or received tool output and need to analyse the results
+  before deciding what to do next.
+- You are about to perform a complex or multi-step operation and want to plan your
+  approach first.
+- You need to choose between several strategies and want to weigh the trade-offs.
+- You are debugging and need to reason about possible causes before testing a fix.
+
+Do NOT call `think` for every step — only when careful reasoning will meaningfully
+improve the quality of your next action.
 """
 
 # =============================================================================
@@ -219,6 +239,7 @@ def enhance_user_instructions(
     user_instructions: str,
     has_mcp_tools: bool = False,
     has_sandbox: bool = False,
+    has_native_thinking: bool = False,
 ) -> str:
     """Enhance user instructions with resilience guidance and capability awareness.
     
@@ -239,6 +260,10 @@ def enhance_user_instructions(
             adds MCP capability awareness and MCP-specific recovery strategies.
         has_sandbox: Whether the agent has sandbox backend configured. When True,
             adds execute tool awareness and command execution recovery strategies.
+        has_native_thinking: Whether the model has native extended thinking
+            enabled (e.g. Anthropic's ``thinking`` parameter).  When True,
+            the think tool guidance is omitted because the model reasons
+            natively and the explicit think tool is not injected.
     
     Returns:
         Enhanced instructions combining resilience guidance, capabilities,
@@ -291,6 +316,12 @@ def enhance_user_instructions(
     
     # File system is always available (core capability)
     capabilities.append(FILESYSTEM_CAPABILITY.strip())
+    
+    # Think tool guidance — only when the explicit tool is injected (i.e. no
+    # native thinking).  Models with native extended thinking reason
+    # automatically and don't need a tool or prompt instructions for it.
+    if not has_native_thinking:
+        capabilities.append(THINK_CAPABILITY.strip())
     
     # MCP tools - conditional
     if has_mcp_tools:

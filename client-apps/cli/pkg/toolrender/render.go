@@ -175,6 +175,9 @@ var toolDisplayMap = map[string]toolDisplayInfo{
 	// File delete operations (dangerous)
 	"delete_file": {icon: "⚠️ ", label: "Delete", primaryField: "path", dangerous: true},
 	"remove_file": {icon: "⚠️ ", label: "Delete", primaryField: "path", dangerous: true},
+
+	// Agent reasoning — content is the thought from args, not the result ("ok")
+	"think": {icon: "💭", label: "Thinking", preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "thought"},
 }
 
 // Styles for tool call rendering.

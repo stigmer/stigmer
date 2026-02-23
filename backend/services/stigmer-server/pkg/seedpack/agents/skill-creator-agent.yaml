@@ -66,6 +66,17 @@ spec:
 
     Always validate the generated skill against the format requirements before
     delivering the final output.
+  mcp_server_usages:
+    - mcp_server_ref:
+        kind: mcp_server
+        org: local
+        slug: stigmer-mcp-server
+      enabled_tools:
+        - search
+        - get_agent
+        - get_mcp_server
+        - get_skill
+        - get_workflow
   skill_refs:
     - kind: skill
       org: local

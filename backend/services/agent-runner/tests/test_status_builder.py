@@ -18,8 +18,9 @@ from unittest.mock import MagicMock, patch
 from datetime import datetime, timedelta
 
 from worker.activities.graphton.status_builder import StatusBuilder
-from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
+from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType, ToolCallStatus
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
+    AgentMessage,
     UsageMetrics,
     ResolvedExecutionContext,
     ContextInfo,
@@ -4599,3 +4600,441 @@ class TestRunIdAliasResolution:
         })
 
         assert same_run_id not in builder._run_id_aliases
+
+
+# =============================================================================
+# Tests for native thinking block translation
+# =============================================================================
+
+
+class TestNativeThinkingTranslation:
+    """Tests for translating Anthropic extended-thinking blocks into synthetic think ToolCalls."""
+
+    @pytest.mark.asyncio
+    async def test_thinking_blocks_not_added_to_ai_message(self, status_builder):
+        """Test that thinking content blocks create a streaming ToolCall, not an AI message."""
+        chunk = MagicMock()
+        chunk.content = [{"type": "thinking", "thinking": "Let me analyze this..."}]
+
+        event = {
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk},
+            "metadata": {},
+        }
+
+        await status_builder.process_event(event)
+
+        assert len(status_builder.current_status.messages) == 0
+        assert status_builder._thinking_buffers.get("") == "Let me analyze this..."
+
+        # A streaming ToolCall should exist
+        assert len(status_builder.current_status.tool_calls) == 1
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.name == "think"
+        assert tc.status == ToolCallStatus.TOOL_CALL_RUNNING
+        assert tc.is_streaming is True
+        assert tc.result == "Let me analyze this..."
+
+    @pytest.mark.asyncio
+    async def test_thinking_accumulates_across_chunks(self, status_builder):
+        """Test that multiple thinking chunks accumulate in both the buffer and the streaming ToolCall result."""
+        for text in ["Step 1: ", "analyse inputs. ", "Step 2: decide."]:
+            chunk = MagicMock()
+            chunk.content = [{"type": "thinking", "thinking": text}]
+            await status_builder.process_event({
+                "event": "on_chat_model_stream",
+                "data": {"chunk": chunk},
+                "metadata": {},
+            })
+
+        assert status_builder._thinking_buffers[""] == (
+            "Step 1: analyse inputs. Step 2: decide."
+        )
+
+        # The streaming ToolCall's result should match the full accumulated buffer
+        assert len(status_builder.current_status.tool_calls) == 1
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.status == ToolCallStatus.TOOL_CALL_RUNNING
+        assert tc.is_streaming is True
+        assert tc.result == "Step 1: analyse inputs. Step 2: decide."
+
+    @pytest.mark.asyncio
+    async def test_synthetic_tool_call_created_on_text_transition(self, status_builder):
+        """Test that the streaming think ToolCall transitions to COMPLETED when text follows."""
+        # Send thinking chunk — creates RUNNING ToolCall
+        thinking_chunk = MagicMock()
+        thinking_chunk.content = [{"type": "thinking", "thinking": "My reasoning here"}]
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": thinking_chunk},
+            "metadata": {},
+        })
+
+        # Verify streaming state before flush
+        assert len(status_builder.current_status.tool_calls) == 1
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.status == ToolCallStatus.TOOL_CALL_RUNNING
+        assert tc.is_streaming is True
+        assert tc.result == "My reasoning here"
+        streaming_id = tc.id
+
+        # Send text chunk (triggers flush — transitions to COMPLETED)
+        text_chunk = MagicMock()
+        text_chunk.content = "The answer is 42."
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": text_chunk},
+            "metadata": {},
+        })
+
+        # Same ToolCall object, now COMPLETED
+        assert len(status_builder.current_status.tool_calls) == 1
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.id == streaming_id
+        assert tc.name == "think"
+        assert tc.args["thought"] == "My reasoning here"
+        assert tc.result == "ok"
+        assert tc.status == ToolCallStatus.TOOL_CALL_COMPLETED
+        assert tc.is_streaming is False
+        assert tc.id.startswith("think-native-")
+
+        # Text should still create an AI message
+        assert len(status_builder.current_status.messages) == 1
+        assert status_builder.current_status.messages[0].content == "The answer is 42."
+
+    @pytest.mark.asyncio
+    async def test_thinking_buffer_flushed_on_chat_model_end(self, status_builder):
+        """Test that streaming think ToolCall transitions to COMPLETED in on_chat_model_end."""
+        # Send thinking chunk (no text follows) — creates RUNNING ToolCall
+        thinking_chunk = MagicMock()
+        thinking_chunk.content = [{"type": "thinking", "thinking": "Thinking only, no text"}]
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": thinking_chunk},
+            "metadata": {},
+        })
+
+        # Verify streaming state
+        assert len(status_builder.current_status.tool_calls) == 1
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.status == ToolCallStatus.TOOL_CALL_RUNNING
+        assert tc.is_streaming is True
+
+        # Simulate on_chat_model_end
+        output = MagicMock()
+        output.usage_metadata = None
+        output.response_metadata = {}
+        output.content = ""
+
+        # We need a streaming AI message for on_chat_model_end to finalize.
+        status_builder.current_status.messages.append(
+            AgentMessage(
+                type=MessageType.MESSAGE_AI,
+                content="",
+                is_streaming=True,
+            )
+        )
+        status_builder._message_start_times[0] = datetime.utcnow()
+
+        await status_builder.process_event({
+            "event": "on_chat_model_end",
+            "data": {"output": output},
+            "metadata": {},
+        })
+
+        assert len(status_builder.current_status.tool_calls) == 1
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.name == "think"
+        assert tc.args["thought"] == "Thinking only, no text"
+        assert tc.result == "ok"
+        assert tc.status == ToolCallStatus.TOOL_CALL_COMPLETED
+        assert tc.is_streaming is False
+
+    @pytest.mark.asyncio
+    async def test_non_thinking_streams_unchanged(self, status_builder):
+        """Test that regular text streams still work without thinking blocks."""
+        chunk = MagicMock()
+        chunk.content = "Regular text"
+
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk},
+            "metadata": {},
+        })
+
+        assert len(status_builder.current_status.tool_calls) == 0
+        assert len(status_builder.current_status.messages) == 1
+        assert status_builder.current_status.messages[0].content == "Regular text"
+        assert not status_builder._thinking_buffers
+
+    @pytest.mark.asyncio
+    async def test_empty_thinking_block_ignored(self, status_builder):
+        """Test that empty thinking blocks do not produce a streaming ToolCall."""
+        thinking_chunk = MagicMock()
+        thinking_chunk.content = [{"type": "thinking", "thinking": ""}]
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": thinking_chunk},
+            "metadata": {},
+        })
+
+        text_chunk = MagicMock()
+        text_chunk.content = "Response"
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": text_chunk},
+            "metadata": {},
+        })
+
+        assert len(status_builder.current_status.tool_calls) == 0
+
+    @pytest.mark.asyncio
+    async def test_streaming_result_updates_incrementally(self, status_builder):
+        """Test that each thinking block updates the streaming ToolCall's result."""
+        chunks = ["First thought. ", "Second thought. ", "Third thought."]
+
+        for i, text in enumerate(chunks):
+            chunk = MagicMock()
+            chunk.content = [{"type": "thinking", "thinking": text}]
+            await status_builder.process_event({
+                "event": "on_chat_model_stream",
+                "data": {"chunk": chunk},
+                "metadata": {},
+            })
+
+            # Always the same single ToolCall
+            assert len(status_builder.current_status.tool_calls) == 1
+            tc = status_builder.current_status.tool_calls[0]
+            assert tc.status == ToolCallStatus.TOOL_CALL_RUNNING
+            assert tc.is_streaming is True
+            expected = "".join(chunks[: i + 1])
+            assert tc.result == expected
+
+    @pytest.mark.asyncio
+    async def test_streaming_preserves_single_tool_call_identity(self, status_builder):
+        """Test that all thinking blocks update the same ToolCall (no duplicates)."""
+        for text in ["A", "B", "C"]:
+            chunk = MagicMock()
+            chunk.content = [{"type": "thinking", "thinking": text}]
+            await status_builder.process_event({
+                "event": "on_chat_model_stream",
+                "data": {"chunk": chunk},
+                "metadata": {},
+            })
+
+        assert len(status_builder.current_status.tool_calls) == 1
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.id.startswith("think-native-")
+        assert tc.result == "ABC"
+
+    @pytest.mark.asyncio
+    async def test_streaming_to_completed_full_lifecycle(self, status_builder):
+        """Test the full streaming lifecycle: create -> stream -> flush -> completed."""
+        # Phase 1: First thinking block creates RUNNING ToolCall
+        chunk1 = MagicMock()
+        chunk1.content = [{"type": "thinking", "thinking": "Step 1. "}]
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk1},
+            "metadata": {},
+        })
+
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.status == ToolCallStatus.TOOL_CALL_RUNNING
+        assert tc.is_streaming is True
+        assert tc.result == "Step 1. "
+        tc_id = tc.id
+
+        # Phase 2: Second thinking block updates result
+        chunk2 = MagicMock()
+        chunk2.content = [{"type": "thinking", "thinking": "Step 2."}]
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk2},
+            "metadata": {},
+        })
+
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.id == tc_id
+        assert tc.result == "Step 1. Step 2."
+
+        # Phase 3: Text chunk triggers flush -> COMPLETED
+        text_chunk = MagicMock()
+        text_chunk.content = "Done."
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": text_chunk},
+            "metadata": {},
+        })
+
+        assert len(status_builder.current_status.tool_calls) == 1
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.id == tc_id
+        assert tc.status == ToolCallStatus.TOOL_CALL_COMPLETED
+        assert tc.is_streaming is False
+        assert tc.args["thought"] == "Step 1. Step 2."
+        assert tc.result == "ok"
+        assert tc.completed_at != ""
+
+    @pytest.mark.asyncio
+    async def test_streaming_tracking_state_cleaned_on_flush(self, status_builder):
+        """Test that all thinking tracking state is cleaned up after flush."""
+        chunk = MagicMock()
+        chunk.content = [{"type": "thinking", "thinking": "Some thought"}]
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk},
+            "metadata": {},
+        })
+
+        # Tracking state should exist
+        assert "" in status_builder._thinking_buffers
+        assert "" in status_builder._thinking_tool_call_ids
+        assert "" in status_builder._thinking_started_at
+
+        # Flush via text
+        text_chunk = MagicMock()
+        text_chunk.content = "Response"
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": text_chunk},
+            "metadata": {},
+        })
+
+        # All tracking state should be cleared
+        assert "" not in status_builder._thinking_buffers
+        assert "" not in status_builder._thinking_tool_call_ids
+        assert "" not in status_builder._thinking_started_at
+
+
+# =============================================================================
+# Tests for run_id-based LLM stream isolation
+# =============================================================================
+
+
+class TestLLMStreamIsolation:
+    """Tests that concurrent LLM streams with different run_ids produce
+    isolated AgentMessages, preventing token interleaving."""
+
+    @staticmethod
+    def _stream_event(token: str, run_id: str = "", namespace: str = ""):
+        chunk = MagicMock()
+        chunk.content = token
+        event: dict[str, Any] = {
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk},
+            "metadata": {},
+        }
+        if run_id:
+            event["run_id"] = run_id
+        if namespace:
+            event["metadata"]["langgraph_checkpoint_ns"] = namespace
+        return event
+
+    @staticmethod
+    def _end_event(run_id: str = "", namespace: str = ""):
+        output = MagicMock()
+        output.usage_metadata = MagicMock()
+        output.usage_metadata.input_tokens = 10
+        output.usage_metadata.output_tokens = 5
+        output.usage_metadata.total_tokens = 15
+        output.response_metadata = {}
+        event: dict[str, Any] = {
+            "event": "on_chat_model_end",
+            "data": {"output": output},
+            "metadata": {},
+        }
+        if run_id:
+            event["run_id"] = run_id
+        if namespace:
+            event["metadata"]["langgraph_checkpoint_ns"] = namespace
+        return event
+
+    @pytest.mark.asyncio
+    async def test_concurrent_streams_produce_separate_messages(self, status_builder):
+        """Two interleaved streams with different run_ids must not mix."""
+        await status_builder.process_event(self._stream_event("Hello", run_id="A"))
+        await status_builder.process_event(self._stream_event("Bonjour", run_id="B"))
+        await status_builder.process_event(self._stream_event(" world", run_id="A"))
+        await status_builder.process_event(self._stream_event(" monde", run_id="B"))
+
+        msgs = status_builder.current_status.messages
+        assert len(msgs) == 2
+        assert msgs[0].content == "Hello world"
+        assert msgs[1].content == "Bonjour monde"
+
+    @pytest.mark.asyncio
+    async def test_same_run_id_appends_to_same_message(self, status_builder):
+        """Multiple tokens from the same run_id accumulate in one message."""
+        for token in ["I", " will", " read", " files"]:
+            await status_builder.process_event(self._stream_event(token, run_id="R1"))
+
+        msgs = status_builder.current_status.messages
+        assert len(msgs) == 1
+        assert msgs[0].content == "I will read files"
+
+    @pytest.mark.asyncio
+    async def test_end_event_finalizes_correct_message_by_run_id(self, status_builder):
+        """on_chat_model_end with run_id finalizes only its own message."""
+        await status_builder.process_event(self._stream_event("First", run_id="A"))
+        await status_builder.process_event(self._stream_event("Second", run_id="B"))
+
+        # Finalize A — B should remain streaming
+        await status_builder.process_event(self._end_event(run_id="A"))
+
+        msgs = status_builder.current_status.messages
+        assert msgs[0].is_streaming is False
+        assert msgs[1].is_streaming is True
+
+    @pytest.mark.asyncio
+    async def test_run_id_map_cleaned_after_finalization(self, status_builder):
+        """run_id entry is removed from the map after on_chat_model_end."""
+        await status_builder.process_event(self._stream_event("Hello", run_id="R1"))
+        assert "R1" in status_builder._llm_run_id_to_message
+
+        await status_builder.process_event(self._end_event(run_id="R1"))
+        assert "R1" not in status_builder._llm_run_id_to_message
+
+    @pytest.mark.asyncio
+    async def test_legacy_no_run_id_uses_backwards_scan(self, status_builder):
+        """Events without run_id fall back to appending to the last
+        streaming AI message (legacy behaviour)."""
+        await status_builder.process_event(self._stream_event("Hello"))
+        await status_builder.process_event(self._stream_event(" World"))
+
+        msgs = status_builder.current_status.messages
+        assert len(msgs) == 1
+        assert msgs[0].content == "Hello World"
+
+    @pytest.mark.asyncio
+    async def test_new_run_id_after_finalization_creates_new_message(self, status_builder):
+        """A new run_id arriving after a previous one is finalized
+        creates a separate message (multi-turn isolation)."""
+        await status_builder.process_event(self._stream_event("Turn 1", run_id="R1"))
+        await status_builder.process_event(self._end_event(run_id="R1"))
+
+        await status_builder.process_event(self._stream_event("Turn 2", run_id="R2"))
+
+        msgs = status_builder.current_status.messages
+        assert len(msgs) == 2
+        assert msgs[0].content == "Turn 1"
+        assert msgs[0].is_streaming is False
+        assert msgs[1].content == "Turn 2"
+        assert msgs[1].is_streaming is True
+
+    @pytest.mark.asyncio
+    async def test_three_concurrent_streams_fully_isolated(self, status_builder):
+        """Stress test: three interleaved streams stay completely separate."""
+        tokens = [
+            ("A", "I'll"), ("B", "Let"), ("C", "Now"),
+            ("A", " read"), ("C", " we"), ("B", " me"),
+            ("A", " files"), ("B", " start"), ("C", " begin"),
+        ]
+        for run_id, token in tokens:
+            await status_builder.process_event(self._stream_event(token, run_id=run_id))
+
+        msgs = status_builder.current_status.messages
+        assert len(msgs) == 3
+        assert msgs[0].content == "I'll read files"
+        assert msgs[1].content == "Let me start"
+        assert msgs[2].content == "Now we begin"

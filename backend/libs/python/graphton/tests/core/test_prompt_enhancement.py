@@ -15,6 +15,7 @@ from graphton.core.prompt_enhancement import (
     RESILIENCE_PREAMBLE,
     PLANNING_CAPABILITY,
     FILESYSTEM_CAPABILITY,
+    THINK_CAPABILITY,
     MCP_TOOLS_CAPABILITY,
     EXECUTE_CAPABILITY,
     FILE_RECOVERY_STRATEGIES,
@@ -77,11 +78,23 @@ class TestCapabilitySections:
         assert "`edit`" in FILESYSTEM_CAPABILITY
         assert "workspace-relative" in FILESYSTEM_CAPABILITY
 
+    def test_filesystem_capability_includes_output_discipline(self):
+        """Test that file system capability includes output discipline guidance."""
+        assert "output discipline" in FILESYSTEM_CAPABILITY.lower()
+        assert "never echo" in FILESYSTEM_CAPABILITY.lower()
+        assert "proceed directly" in FILESYSTEM_CAPABILITY.lower()
+
     def test_mcp_tools_capability_content(self):
         """Test MCP tools capability section content."""
         assert "mcp" in MCP_TOOLS_CAPABILITY.lower()
         assert "model context protocol" in MCP_TOOLS_CAPABILITY.lower()
         assert "domain-specific" in MCP_TOOLS_CAPABILITY.lower()
+
+    def test_think_capability_content(self):
+        """Test think tool capability section content."""
+        assert "think" in THINK_CAPABILITY.lower()
+        assert "reasoning" in THINK_CAPABILITY.lower() or "reason" in THINK_CAPABILITY.lower()
+        assert "debugging" in THINK_CAPABILITY.lower() or "debug" in THINK_CAPABILITY.lower()
 
     def test_execute_capability_content(self):
         """Test execute tool capability section content."""
@@ -158,6 +171,19 @@ class TestEnhanceUserInstructions:
         """Test that file system capability is always included."""
         enhanced = enhance_user_instructions("You are a test assistant.")
         assert "file system" in enhanced.lower()
+
+    def test_think_capability_included_without_native_thinking(self):
+        """Test that think tool capability is included when native thinking is off."""
+        enhanced = enhance_user_instructions("You are a test assistant.")
+        assert "think tool" in enhanced.lower()
+
+    def test_think_capability_excluded_with_native_thinking(self):
+        """Test that think tool capability is excluded when native thinking is on."""
+        enhanced = enhance_user_instructions(
+            "You are a test assistant.",
+            has_native_thinking=True,
+        )
+        assert "think tool" not in enhanced.lower()
 
     def test_file_recovery_always_included(self):
         """Test that file recovery strategies are always included."""
@@ -258,6 +284,7 @@ class TestEnhanceUserInstructions:
         assert "your capabilities" in enhanced.lower()
         assert "planning system" in enhanced.lower()
         assert "file system" in enhanced.lower()
+        assert "think tool" in enhanced.lower()
         assert "mcp tools" in enhanced.lower()
         assert "execute tool" in enhanced.lower()
         assert "file operation recovery" in enhanced.lower()
