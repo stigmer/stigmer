@@ -9,7 +9,7 @@ Drop this file into your conversation to quickly resume work on this project.
 **Description**: Add a think tool to the agent runner and suppress LLM echoing of file contents after reading, improving agent execution UX and token efficiency.
 **Goal**: Enable structured agent reasoning via a dedicated think tool, suppress unnecessary file content echoing, and provide distinct CLI UX treatment for thinking activity.
 **Tech Stack**: Python (agent-runner, graphton), Go (CLI)
-**Components**: backend/libs/python/graphton (think tool definition + auto-injection + prompt guidance), backend/services/agent-runner (approval policy), client-apps/cli (think tool UX rendering)
+**Components**: backend/libs/python/graphton (think tool definition + auto-injection + prompt guidance + native thinking), backend/services/agent-runner (approval policy, status builder thinking translation), client-apps/cli (think tool UX rendering)
 
 ## Essential Files to Review
 
@@ -27,6 +27,7 @@ Review the current task status and plan:
 
 ### 3. Project Documentation
 - **README**: `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-02/20260223.01.agent-thinking-flow/README.md`
+- **Plan**: `/Users/suresh/scm/github.com/stigmer/stigmer/.cursor/plans/native_extended_thinking_6f16fd09.plan.md`
 
 ## Knowledge Folders to Check
 
@@ -78,7 +79,7 @@ When starting a new session:
 - Added anti-echo instructions to the input files system prompt section
 - Change is scoped to executions with attachments only (`if injected_files:` guard)
 
-## Session Progress (2026-02-24)
+## Session Progress (2026-02-24, Session 1)
 
 - **Phase 2 complete**: Added think tool to graphton library
 - Created `backend/libs/python/graphton/src/graphton/core/think_tool.py` — factory function `create_think_tool()` returning a `@tool`-decorated async no-op tool
@@ -90,20 +91,35 @@ When starting a new session:
 - **Design decision**: Think tool defined in graphton (not agent-runner) as a fundamental agent reasoning capability
 - **Design decision**: Native Anthropic extended thinking is NOT currently enabled; will be investigated as a future phase (complementary to think tool, not a replacement)
 
+## Session Progress (2026-02-24, Session 2)
+
+- **Native Extended Thinking implemented**: Enabled Anthropic's native extended thinking for supported Claude models and added synthetic think tool translation in the status builder
+- **Plan created and synced**: Created `native_extended_thinking_6f16fd09.plan.md`, then updated it to incorporate new Claude models added to the registry in a prior commit
+- **Model Registry** (`model_registry.py`): Added `supports_thinking: bool = False` to `ModelMetadata`. Set `True` for `claude-sonnet-4.6`, `claude-opus-4.5`, `claude-sonnet-4.5`, `claude-opus-4`. Left `False` for `claude-opus-4.6` (needs adaptive thinking), `claude-haiku-4`, `claude-sonnet-3.5`, `claude-haiku-3.5`
+- **Model Parser** (`models.py`): Added `DEFAULT_THINKING_BUDGET = 10_000`. Auto-enables `thinking={"type": "enabled", "budget_tokens": 10000}` for supported models. Strips `temperature` and `top_k` (incompatible with Anthropic thinking API). Respects explicit `thinking` kwarg.
+- **Agent Factory** (`agent.py`): Detects `has_native_thinking` via `isinstance(model_instance, ChatAnthropic)` + attribute check. Gates think tool injection (skipped when native thinking active). Passes `has_native_thinking` to `enhance_user_instructions()`.
+- **Prompt Enhancement** (`prompt_enhancement.py`): Added `has_native_thinking` parameter. `THINK_CAPABILITY` only included when `not has_native_thinking`.
+- **Status Builder** (`status_builder.py`): Added `_thinking_buffers` and `_thinking_started_at` per-namespace tracking. Detects `type: "thinking"` content blocks in `on_chat_model_stream`, accumulates them, flushes as synthetic `ToolCall(name="think")` when text arrives or at `on_chat_model_end`. Added `_extract_thinking_content()` and `_flush_thinking_buffer()` helpers.
+- **Tests**: 36 new tests across 4 files — 9 model registry, 11 model parser (new file), 2 prompt enhancement, 6 status builder. Created `tests/core/test_models.py`. All 184 tests pass (148 graphton + 178 agent-runner with 7 pre-existing failures unrelated to this work).
+- **Key design decision**: `thinking_budget` is a platform default (10,000), not user-configurable. Mirrors Cursor's approach — the platform picks the optimal budget.
+- **Key design decision**: Synthetic think tool translation in StatusBuilder — native thinking blocks are published as standard `ToolCall` objects (name=`"think"`, args=`{thought: ...}`, result=`"ok"`, status=COMPLETED), reusing the entire downstream pipeline.
+- **Key design decision**: `claude-opus-4.6` excluded from manual thinking (`supports_thinking=False`) because Anthropic deprecated `type: "enabled"` for Opus 4.6. It requires `type: "adaptive"` with effort parameter — fundamentally different API shape, deferred to future work. Opus 4.6 agents get the explicit think tool as fallback.
+
 ## Next Steps
 
 1. **Phase 3**: CLI UX rendering for think tool calls — add a dedicated entry to `toolDisplayMap` in `client-apps/cli/pkg/toolrender/render.go`. Design decision pending: Option A (collapsed), B (spinner), C (truncated), or D (hidden). Option A (collapsed) recommended.
 2. **Phase 4**: End-to-end validation with `stigmer draft skill --attach`.
-3. **Future phase**: Investigate and enable Anthropic's native extended thinking (`thinking` parameter on `ChatAnthropic`). Requires investigation into LangChain streaming of thinking blocks, status builder handling, and token economics.
+3. **Future enhancement**: Adaptive thinking support for Opus 4.6 (`type: "adaptive"` with effort parameter).
 
 ## Context for Resume
 
 - The think tool is defined in graphton (`graphton/core/think_tool.py`), not agent-runner. It follows the Anthropic "think tool" pattern — a no-op that accepts a `thought` string and returns `"ok"`.
-- Auto-injected unconditionally in `create_deep_agent()` alongside loop detection and prompt enhancement.
+- Auto-injected conditionally in `create_deep_agent()`: injected when model does NOT have native thinking; skipped when native thinking is active.
 - deepagents passes `tools_list` as `default_tools` to `SubAgentMiddleware`, so sub-agents inherit the think tool unless they specify their own tools.
 - The tool description guides the LLM on when to use it (after reading files, before complex operations, when debugging, when choosing strategies).
-- Prompt enhancement adds a `THINK_CAPABILITY` section to the system prompt (always included, like planning and filesystem).
-- Approval policy explicitly exempts `think` from approval under a new "Agent-internal tools" category.
+- Prompt enhancement adds a `THINK_CAPABILITY` section to the system prompt (only when `has_native_thinking=False`).
+- Approval policy explicitly exempts `think` from approval under "Agent-internal tools" category.
+- For native-thinking models (Sonnet 4.6, Opus 4.5, Sonnet 4.5, Opus 4): thinking happens via Anthropic's API. The StatusBuilder translates thinking content blocks into synthetic `ToolCall` objects identical to explicit think tool calls.
 - CLI currently renders think tool via the "unknown tool" fallback as `🔧 think: <thought snippet>`. Phase 3 will add a dedicated `toolDisplayMap` entry.
 - Platform tools (`read`, `write`, `edit`, `execute`, `ls`, `glob`, `grep`) are created by graphton in `create_deep_agent()` via `create_platform_tool_wrappers()`.
 - CLI tool rendering dispatches via `toolDisplayMap` in `client-apps/cli/pkg/toolrender/render.go`.
@@ -111,10 +127,13 @@ When starting a new session:
 ## Design Decisions Made
 
 1. **Think tool location** — Defined in graphton library (not agent-runner) as a fundamental agent reasoning capability
-2. **Think tool scope** — Available to ALL agents and sub-agents (unconditional auto-injection)
+2. **Think tool scope** — Available conditionally: injected for non-native-thinking models, skipped for native-thinking models
 3. **Approval policy** — Explicit `requires_approval: False` entry in `PLATFORM_TOOL_DEFAULTS`
-4. **System prompt guidance** — Domain-specific usage examples included in prompt enhancement
-5. **Think tool vs native thinking** — Complementary, not competing. Think tool is Phase 2; native Anthropic extended thinking deferred to future phase.
+4. **System prompt guidance** — Domain-specific usage examples included in prompt enhancement (only for non-native-thinking models)
+5. **Think tool vs native thinking** — Dual-path: explicit think tool for models without native thinking; Anthropic extended thinking for supported Claude models. Both produce identical `ToolCall` objects in the status pipeline.
+6. **Thinking budget** — Platform default of 10,000 tokens, not user-configurable
+7. **Synthetic think tool translation** — StatusBuilder converts native thinking blocks to standard `ToolCall` protos, reusing entire downstream pipeline
+8. **Opus 4.6 exclusion** — Manual `type: "enabled"` thinking is deprecated for Opus 4.6; deferred to future adaptive thinking support
 
 ## Design Decisions Still Open
 

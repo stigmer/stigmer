@@ -235,6 +235,7 @@ def enhance_user_instructions(
     user_instructions: str,
     has_mcp_tools: bool = False,
     has_sandbox: bool = False,
+    has_native_thinking: bool = False,
 ) -> str:
     """Enhance user instructions with resilience guidance and capability awareness.
     
@@ -255,6 +256,10 @@ def enhance_user_instructions(
             adds MCP capability awareness and MCP-specific recovery strategies.
         has_sandbox: Whether the agent has sandbox backend configured. When True,
             adds execute tool awareness and command execution recovery strategies.
+        has_native_thinking: Whether the model has native extended thinking
+            enabled (e.g. Anthropic's ``thinking`` parameter).  When True,
+            the think tool guidance is omitted because the model reasons
+            natively and the explicit think tool is not injected.
     
     Returns:
         Enhanced instructions combining resilience guidance, capabilities,
@@ -308,8 +313,11 @@ def enhance_user_instructions(
     # File system is always available (core capability)
     capabilities.append(FILESYSTEM_CAPABILITY.strip())
     
-    # Think tool is always available (auto-injected by graphton)
-    capabilities.append(THINK_CAPABILITY.strip())
+    # Think tool guidance — only when the explicit tool is injected (i.e. no
+    # native thinking).  Models with native extended thinking reason
+    # automatically and don't need a tool or prompt instructions for it.
+    if not has_native_thinking:
+        capabilities.append(THINK_CAPABILITY.strip())
     
     # MCP tools - conditional
     if has_mcp_tools:

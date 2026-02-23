@@ -18,8 +18,9 @@ from unittest.mock import MagicMock, patch
 from datetime import datetime, timedelta
 
 from worker.activities.graphton.status_builder import StatusBuilder
-from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
+from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType, ToolCallStatus
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
+    AgentMessage,
     UsageMetrics,
     ResolvedExecutionContext,
     ContextInfo,
@@ -4599,3 +4600,159 @@ class TestRunIdAliasResolution:
         })
 
         assert same_run_id not in builder._run_id_aliases
+
+
+# =============================================================================
+# Tests for native thinking block translation
+# =============================================================================
+
+
+class TestNativeThinkingTranslation:
+    """Tests for translating Anthropic extended-thinking blocks into synthetic think ToolCalls."""
+
+    @pytest.mark.asyncio
+    async def test_thinking_blocks_not_added_to_ai_message(self, status_builder):
+        """Test that thinking content blocks are accumulated, not appended to AI message."""
+        chunk = MagicMock()
+        chunk.content = [{"type": "thinking", "thinking": "Let me analyze this..."}]
+
+        event = {
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk},
+            "metadata": {},
+        }
+
+        await status_builder.process_event(event)
+
+        assert len(status_builder.current_status.messages) == 0
+        assert status_builder._thinking_buffers.get("") == "Let me analyze this..."
+
+    @pytest.mark.asyncio
+    async def test_thinking_accumulates_across_chunks(self, status_builder):
+        """Test that multiple thinking chunks accumulate in the buffer."""
+        for text in ["Step 1: ", "analyse inputs. ", "Step 2: decide."]:
+            chunk = MagicMock()
+            chunk.content = [{"type": "thinking", "thinking": text}]
+            await status_builder.process_event({
+                "event": "on_chat_model_stream",
+                "data": {"chunk": chunk},
+                "metadata": {},
+            })
+
+        assert status_builder._thinking_buffers[""] == (
+            "Step 1: analyse inputs. Step 2: decide."
+        )
+
+    @pytest.mark.asyncio
+    async def test_synthetic_tool_call_created_on_text_transition(self, status_builder):
+        """Test that a synthetic think ToolCall is created when text content follows thinking."""
+        # Send thinking chunk
+        thinking_chunk = MagicMock()
+        thinking_chunk.content = [{"type": "thinking", "thinking": "My reasoning here"}]
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": thinking_chunk},
+            "metadata": {},
+        })
+
+        # Send text chunk (triggers flush)
+        text_chunk = MagicMock()
+        text_chunk.content = "The answer is 42."
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": text_chunk},
+            "metadata": {},
+        })
+
+        assert len(status_builder.current_status.tool_calls) == 1
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.name == "think"
+        assert tc.args["thought"] == "My reasoning here"
+        assert tc.result == "ok"
+        assert tc.status == ToolCallStatus.TOOL_CALL_COMPLETED
+        assert tc.id.startswith("think-native-")
+
+        # Text should still create an AI message
+        assert len(status_builder.current_status.messages) == 1
+        assert status_builder.current_status.messages[0].content == "The answer is 42."
+
+    @pytest.mark.asyncio
+    async def test_thinking_buffer_flushed_on_chat_model_end(self, status_builder):
+        """Test that remaining thinking buffer is flushed in on_chat_model_end."""
+        # Send thinking chunk (no text follows)
+        thinking_chunk = MagicMock()
+        thinking_chunk.content = [{"type": "thinking", "thinking": "Thinking only, no text"}]
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": thinking_chunk},
+            "metadata": {},
+        })
+
+        # Create a streaming AI message so on_chat_model_end can finalize it
+        text_chunk = MagicMock()
+        text_chunk.content = ""
+        # The thinking buffer is still populated; simulate on_chat_model_end
+        output = MagicMock()
+        output.usage_metadata = None
+        output.response_metadata = {}
+        output.content = ""
+
+        # We need a streaming AI message for on_chat_model_end to finalize.
+        # Create one directly to isolate the flush-on-end behaviour.
+        status_builder.current_status.messages.append(
+            AgentMessage(
+                type=MessageType.MESSAGE_AI,
+                content="",
+                is_streaming=True,
+            )
+        )
+        status_builder._message_start_times[0] = datetime.utcnow()
+
+        await status_builder.process_event({
+            "event": "on_chat_model_end",
+            "data": {"output": output},
+            "metadata": {},
+        })
+
+        assert len(status_builder.current_status.tool_calls) == 1
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.name == "think"
+        assert tc.args["thought"] == "Thinking only, no text"
+
+    @pytest.mark.asyncio
+    async def test_non_thinking_streams_unchanged(self, status_builder):
+        """Test that regular text streams still work without thinking blocks."""
+        chunk = MagicMock()
+        chunk.content = "Regular text"
+
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk},
+            "metadata": {},
+        })
+
+        assert len(status_builder.current_status.tool_calls) == 0
+        assert len(status_builder.current_status.messages) == 1
+        assert status_builder.current_status.messages[0].content == "Regular text"
+        assert not status_builder._thinking_buffers
+
+    @pytest.mark.asyncio
+    async def test_empty_thinking_block_ignored(self, status_builder):
+        """Test that empty thinking blocks do not produce a synthetic ToolCall."""
+        thinking_chunk = MagicMock()
+        thinking_chunk.content = [{"type": "thinking", "thinking": ""}]
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": thinking_chunk},
+            "metadata": {},
+        })
+
+        text_chunk = MagicMock()
+        text_chunk.content = "Response"
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": text_chunk},
+            "metadata": {},
+        })
+
+        assert len(status_builder.current_status.tool_calls) == 0

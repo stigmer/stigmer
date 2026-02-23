@@ -11,6 +11,7 @@ import json
 import logging
 from datetime import datetime
 from typing import Any
+from uuid import uuid4
 
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
     AgentMessage,
@@ -224,6 +225,22 @@ class StatusBuilder:
         # Artifacts are accumulated during execution and added to the final status.
         # ─────────────────────────────────────────────────────────────────────────
         self._artifacts: list[ExecutionArtifact] = []
+        
+        # ─────────────────────────────────────────────────────────────────────────
+        # Native Thinking Translation (Extended Thinking → Synthetic Think Tool)
+        #
+        # When Anthropic models have extended thinking enabled, thinking content
+        # blocks arrive via on_chat_model_stream before the text/tool_use
+        # response.  We accumulate them here and flush a synthetic "think"
+        # ToolCall when the first non-thinking content arrives (or at
+        # on_chat_model_end if no text follows).  This lets the entire
+        # downstream pipeline (gRPC, CLI) treat native thinking identically
+        # to the explicit think tool.
+        #
+        # Keyed by namespace (empty string for main agent).
+        # ─────────────────────────────────────────────────────────────────────────
+        self._thinking_buffers: dict[str, str] = {}
+        self._thinking_started_at: dict[str, datetime] = {}
     
     async def process_event(self, event: dict[str, Any]) -> None:
         """
@@ -583,6 +600,26 @@ class StatusBuilder:
         if namespace:
             self._register_sub_agent_namespace(namespace)
         
+        # ─────────────────────────────────────────────────────────────────────
+        # Native Thinking Detection
+        #
+        # When Anthropic extended thinking is active, content blocks arrive as
+        # dicts with type:"thinking" BEFORE the text/tool_use blocks.  We
+        # accumulate thinking content in a per-namespace buffer and skip AI
+        # message creation for these chunks.  When the first non-thinking
+        # content arrives we flush the buffer into a synthetic think ToolCall.
+        # ─────────────────────────────────────────────────────────────────────
+        if hasattr(chunk_data, "content") and isinstance(chunk_data.content, list):
+            ns_key = namespace or ""
+            thinking_text = self._extract_thinking_content(chunk_data.content)
+            if thinking_text:
+                if ns_key not in self._thinking_started_at:
+                    self._thinking_started_at[ns_key] = datetime.utcnow()
+                self._thinking_buffers[ns_key] = (
+                    self._thinking_buffers.get(ns_key, "") + thinking_text
+                )
+                return
+        
         # Extract token
         token = ""
         if hasattr(chunk_data, "content"):
@@ -594,6 +631,13 @@ class StatusBuilder:
         
         if not token:
             return
+        
+        # Flush any accumulated thinking before processing text content.
+        # This ensures the synthetic think ToolCall appears in the status
+        # timeline before the AI message that follows it.
+        ns_key = namespace or ""
+        if self._thinking_buffers.get(ns_key):
+            self._flush_thinking_buffer(ns_key, namespace)
         
         # ─────────────────────────────────────────────────────────────────────
         # Namespace-Based Routing (Phase 2.3): Route to correct execution context
@@ -655,6 +699,12 @@ class StatusBuilder:
         
         if not output_data:
             return
+        
+        # Flush any remaining thinking content that wasn't followed by text
+        # (e.g. the model only produced thinking + tool_use, no text block).
+        ns_key = namespace or ""
+        if self._thinking_buffers.get(ns_key):
+            self._flush_thinking_buffer(ns_key, namespace)
         
         # ─────────────────────────────────────────────────────────────────────
         # Namespace-Based Routing (Phase 2.3): Find message in correct context
@@ -980,6 +1030,65 @@ class StatusBuilder:
             if isinstance(block, dict) and block.get("type") == "text":
                 text_parts.append(block.get("text", ""))
         return "".join(text_parts)
+    
+    def _extract_thinking_content(self, content_blocks: list) -> str:
+        """Extract thinking text from Anthropic extended-thinking content blocks.
+
+        Returns the concatenated thinking text from all blocks with
+        ``type: "thinking"``.  Returns an empty string when no thinking
+        blocks are present (non-Anthropic models, or text/tool_use chunks).
+        """
+        parts: list[str] = []
+        for block in content_blocks:
+            if isinstance(block, dict) and block.get("type") == "thinking":
+                parts.append(block.get("thinking", ""))
+        return "".join(parts)
+    
+    def _flush_thinking_buffer(self, ns_key: str, namespace: str) -> None:
+        """Convert accumulated native thinking into a synthetic think ToolCall.
+
+        Pops the thinking buffer and start-time for *ns_key*, builds a
+        ``ToolCall`` proto identical to what the explicit think tool would
+        produce, and appends it to the correct tool_calls list (main agent
+        or sub-agent).
+        """
+        thinking_text = self._thinking_buffers.pop(ns_key, "")
+        started_at = self._thinking_started_at.pop(ns_key, None)
+        if not thinking_text:
+            return
+
+        now = datetime.utcnow()
+
+        args_struct = Struct()
+        args_struct.update({"thought": thinking_text})
+
+        tool_call = ToolCall(
+            id=f"think-native-{uuid4()}",
+            name="think",
+            args=args_struct,
+            result="ok",
+            status=ToolCallStatus.TOOL_CALL_COMPLETED,
+            component_metadata=ComponentMetadata(
+                component_type=infer_component_type("think"),
+                component_group="main-agent-tools",
+            ),
+            started_at=_utc_timestamp(started_at or now),
+            completed_at=_utc_timestamp(now),
+        )
+
+        _context, sub_agent = self._get_execution_context(namespace)
+        if sub_agent:
+            sub_agent.tool_calls.append(tool_call)
+        else:
+            self.current_status.tool_calls.append(tool_call)
+
+        self.logger.info(
+            "[THINK] execution=%s synthetic_think_tool_call "
+            "chars=%d namespace=%s",
+            self.execution_id,
+            len(thinking_text),
+            namespace or "main",
+        )
     
     def _extract_command_content(self, update: dict[str, Any]) -> str:
         """Extract displayable content from a LangGraph Command.update dict.

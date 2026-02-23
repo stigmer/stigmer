@@ -18,6 +18,8 @@ from langchain_core.tools import BaseTool
 from langgraph.graph.state import CompiledStateGraph
 from pydantic import ValidationError
 
+from langchain_anthropic import ChatAnthropic
+
 from graphton.core.loop_detection import LoopDetectionMiddleware
 from graphton.core.models import parse_model_string
 from graphton.core.prompt_enhancement import enhance_user_instructions
@@ -351,6 +353,16 @@ def create_deep_agent(
                 stacklevel=2,
             )
     
+    # Detect native extended thinking so we can skip the explicit think tool
+    # and prompt guidance when the model already reasons natively.
+    # Works for both string models (parse_model_string sets thinking for
+    # supported Anthropic models) and pre-built instances (caller configured
+    # thinking themselves).
+    has_native_thinking = (
+        isinstance(model_instance, ChatAnthropic)
+        and getattr(model_instance, "thinking", None) is not None
+    )
+    
     # Default empty sequences if None provided
     tools_list = list(tools or [])
     middleware_list = list(middleware or [])
@@ -480,6 +492,7 @@ def create_deep_agent(
             system_prompt,
             has_mcp_tools=bool(mcp_servers and mcp_tools),
             has_sandbox=bool(sandbox_config),
+            has_native_thinking=has_native_thinking,
         )
     else:
         enhanced_prompt = system_prompt
@@ -520,17 +533,20 @@ def create_deep_agent(
             "enabled" if approval_checker else "disabled",
         )
     
-    # Auto-inject think tool for structured reasoning.
-    #
-    # The think tool is a no-op that lets agents externalise reasoning as
-    # a tool call.  The thought text flows through the normal status
-    # pipeline (ToolCall.args.thought) giving the platform and users
-    # visibility into agent reasoning.  Because tools_list is passed as
-    # default_tools to SubAgentMiddleware by deepagents, the think tool
-    # is available to both the top-level agent and all sub-agents.
-    think_tool = create_think_tool()
-    tools_list.append(think_tool)
-    logger.info("Auto-injected think tool for structured reasoning")
+    # Auto-inject think tool for structured reasoning — only when the model
+    # does NOT have native extended thinking.  When native thinking is active,
+    # reasoning is handled by the Anthropic API itself and the agent-runner's
+    # StatusBuilder translates the resulting thinking blocks into synthetic
+    # think ToolCalls, giving the same downstream visibility without the
+    # extra tool-call round-trip.
+    if not has_native_thinking:
+        think_tool = create_think_tool()
+        tools_list.append(think_tool)
+        logger.info("Auto-injected think tool for structured reasoning")
+    else:
+        logger.info(
+            "Skipping think tool injection — model has native extended thinking"
+        )
 
     # Create the Deep Agent using deepagents library.
     #

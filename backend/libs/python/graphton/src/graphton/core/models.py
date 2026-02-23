@@ -7,6 +7,7 @@ Model name resolution is handled by ModelRegistry, which provides the single sou
 truth for mapping platform-friendly names to actual API model IDs.
 """
 
+import logging
 from typing import Any
 
 from langchain_anthropic import ChatAnthropic
@@ -15,6 +16,8 @@ from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 
 from graphton.core.model_registry import ModelRegistry
+
+logger = logging.getLogger(__name__)
 
 # Short alias mapping for Ollama models (convenience aliases -> model_id in registry)
 # These allow users to omit the size suffix (e.g., "qwen2.5-coder" instead of "qwen2.5-coder:7b")
@@ -30,6 +33,12 @@ _OLLAMA_SHORT_ALIASES = {
 ANTHROPIC_DEFAULTS = {
     "max_tokens": 20000,  # Deep Agents need high token limits for reasoning
 }
+
+# Token budget for Anthropic's native extended thinking.
+# Controls the maximum tokens Claude can spend on internal reasoning before
+# producing a response.  Must be less than max_tokens (20,000 > 10,000 ✓).
+# Claude may use fewer tokens than the budget, especially for simpler tasks.
+DEFAULT_THINKING_BUDGET = 10_000
 
 OLLAMA_DEFAULTS = {
     "base_url": "http://localhost:11434",
@@ -152,7 +161,7 @@ def parse_model_string(
         model_name = _OLLAMA_SHORT_ALIASES.get(model_name, model_name)
     
     # Use ModelRegistry to resolve to API model ID
-    api_model_id, _metadata = ModelRegistry.resolve_or_passthrough(
+    api_model_id, metadata = ModelRegistry.resolve_or_passthrough(
         model_name,
         provider=provider,
     )
@@ -170,6 +179,23 @@ def parse_model_string(
         
         # Merge additional kwargs
         model_params.update(model_kwargs)
+        
+        # Enable native extended thinking for models that support manual mode.
+        # Anthropic's API rejects temperature and top_k when thinking is active,
+        # so we strip those parameters.  If the caller already supplied an
+        # explicit ``thinking`` config via model_kwargs, we respect it.
+        if metadata.supports_thinking and "thinking" not in model_params:
+            model_params["thinking"] = {
+                "type": "enabled",
+                "budget_tokens": DEFAULT_THINKING_BUDGET,
+            }
+            if "temperature" in model_params:
+                logger.warning(
+                    "Removing temperature=%s (incompatible with extended thinking)",
+                    model_params["temperature"],
+                )
+                del model_params["temperature"]
+            model_params.pop("top_k", None)
         
         return ChatAnthropic(
             model=api_model_id,  # type: ignore[call-arg]
