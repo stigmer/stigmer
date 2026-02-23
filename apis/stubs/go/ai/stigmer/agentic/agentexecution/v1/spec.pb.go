@@ -539,14 +539,18 @@ type Attachment struct {
 	// Reference to pre-uploaded file in artifact store (required).
 	// Obtained by calling uploadAttachment RPC before creating the execution.
 	// Format: "attachments/{ulid}/{filename}"
-	StorageKey string `protobuf:"bytes,3,opt,name=storage_key,json=storageKey,proto3" json:"storage_key,omitempty"`
+	StorageKey string `protobuf:"bytes,2,opt,name=storage_key,json=storageKey,proto3" json:"storage_key,omitempty"`
 	// Path in sandbox where file will be placed.
 	// Defaults to "/inputs/{filename}" if not specified.
 	// Example: "/workspace/input.yaml", "/inputs/data/"
-	MountPath string `protobuf:"bytes,4,opt,name=mount_path,json=mountPath,proto3" json:"mount_path,omitempty"`
+	MountPath string `protobuf:"bytes,3,opt,name=mount_path,json=mountPath,proto3" json:"mount_path,omitempty"`
 	// MIME type for content negotiation (optional).
 	// Example: "application/yaml", "text/plain", "application/zip"
-	ContentType   string `protobuf:"bytes,5,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"`
+	ContentType string `protobuf:"bytes,4,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"`
+	// When true, the attachment is a zip archive that should be extracted
+	// at mount_path rather than written as a single file.
+	// Set automatically by the CLI when a directory is attached.
+	Extract       bool `protobuf:"varint,5,opt,name=extract,proto3" json:"extract,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -609,6 +613,13 @@ func (x *Attachment) GetContentType() string {
 	return ""
 }
 
+func (x *Attachment) GetExtract() bool {
+	if x != nil {
+		return x.Extract
+	}
+	return false
+}
+
 var File_ai_stigmer_agentic_agentexecution_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
@@ -636,15 +647,16 @@ const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\x17ContextManagementConfig\x123\n" +
 	"\x15disable_summarization\x18\x01 \x01(\bR\x14disableSummarization\x12A\n" +
 	"\x18custom_trigger_threshold\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x16customTriggerThreshold\x129\n" +
-	"\x14custom_target_tokens\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x12customTargetTokens\"\xa3\x01\n" +
+	"\x14custom_target_tokens\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x12customTargetTokens\"\xb7\x01\n" +
 	"\n" +
 	"Attachment\x12#\n" +
 	"\bfilename\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bfilename\x12(\n" +
-	"\vstorage_key\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
+	"\vstorage_key\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
 	"storageKey\x12\x1d\n" +
 	"\n" +
-	"mount_path\x18\x04 \x01(\tR\tmountPath\x12!\n" +
-	"\fcontent_type\x18\x05 \x01(\tR\vcontentTypeJ\x04\b\x02\x10\x03B\xca\x02\n" +
+	"mount_path\x18\x03 \x01(\tR\tmountPath\x12!\n" +
+	"\fcontent_type\x18\x04 \x01(\tR\vcontentType\x12\x18\n" +
+	"\aextract\x18\x05 \x01(\bR\aextractB\xca\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\tSpecProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (

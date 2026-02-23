@@ -373,7 +373,7 @@ func Run() error {
 	// Bootstrap is idempotent and graceful:
 	// - Skips if already completed with same seedpack version
 	// - Continues in degraded mode if bootstrap fails (logs warnings)
-	bootstrapper := bootstrap.NewBootstrapper(store, skillClient, agentClient)
+	bootstrapper := bootstrap.NewBootstrapper(store, skillClient, agentClient, mcpServerClient)
 	if err := bootstrapper.Run(context.Background()); err != nil {
 		// Bootstrap returns nil on degraded mode - only fails on critical errors
 		log.Fatal().Err(err).Msg("Critical bootstrap failure")

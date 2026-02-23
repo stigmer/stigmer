@@ -1,0 +1,16 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: stigmer-mcp-server
+  labels:
+    stigmer.ai/system: "true"
+spec:
+  description: "Built-in MCP server that exposes Stigmer resources (agents, skills, workflows, MCP servers) to MCP clients via the Model Context Protocol."
+  tags:
+    - system
+    - built-in
+  stdio:
+    command: "go"
+    args:
+      - "run"
+      - "github.com/stigmer/stigmer/mcp-server/cmd/mcp-server-stigmer@latest"

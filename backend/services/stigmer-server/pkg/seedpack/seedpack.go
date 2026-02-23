@@ -11,19 +11,21 @@ import (
 
 	"github.com/pkg/errors"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	"google.golang.org/protobuf/encoding/protojson"
 	"gopkg.in/yaml.v3"
 )
 
 // Manifest represents the seedpack metadata stored in manifest.json.
-// It describes all skills and system agents included in the seedpack.
+// It describes all skills, system agents, and MCP servers included in the seedpack.
 type Manifest struct {
-	SchemaVersion string       `json:"schema_version"`
-	Version       string       `json:"version"`
-	CreatedAt     string       `json:"created_at"`
-	Description   string       `json:"description"`
-	Skills        []SkillEntry `json:"skills"`
-	SystemAgents  []AgentEntry `json:"system_agents"`
+	SchemaVersion string           `json:"schema_version"`
+	Version       string           `json:"version"`
+	CreatedAt     string           `json:"created_at"`
+	Description   string           `json:"description"`
+	Skills        []SkillEntry     `json:"skills"`
+	SystemAgents  []AgentEntry     `json:"system_agents"`
+	McpServers    []McpServerEntry `json:"mcp_servers"`
 }
 
 // SkillEntry describes a skill included in the seedpack.
@@ -48,6 +50,13 @@ type SkillSource struct {
 type AgentEntry struct {
 	Name string `json:"name"`
 	Path string `json:"path"` // Path to YAML file (e.g., "agents/skill-creator-agent.yaml")
+}
+
+// McpServerEntry describes an MCP server defined in the seedpack.
+// MCP servers are stored as YAML files and loaded during bootstrap.
+type McpServerEntry struct {
+	Name string `json:"name"`
+	Path string `json:"path"` // Path to YAML file (e.g., "mcp-servers/stigmer-mcp-server.yaml")
 }
 
 // SkillMetadata represents the YAML frontmatter parsed from SKILL.md.
@@ -204,6 +213,23 @@ func GetAgentByName(name string) (*AgentEntry, error) {
 	return nil, nil
 }
 
+// GetMcpServerByName looks up an MCP server by name in the manifest.
+// Returns nil if the MCP server is not found.
+func GetMcpServerByName(name string) (*McpServerEntry, error) {
+	manifest, err := LoadManifest()
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range manifest.McpServers {
+		if manifest.McpServers[i].Name == name {
+			return &manifest.McpServers[i], nil
+		}
+	}
+
+	return nil, nil
+}
+
 // =============================================================================
 // Bootstrap Artifact Functions
 // =============================================================================
@@ -233,6 +259,18 @@ func LoadAgentYAML(agentPath string) (*agentv1.Agent, error) {
 	return parseAgentYAML(data, agentPath)
 }
 
+// LoadMcpServerYAML loads and parses an MCP server YAML file into a proto message.
+// The mcpServerPath should be relative to the seedpack root (e.g., "mcp-servers/stigmer-mcp-server.yaml").
+// Returns the McpServer proto ready to be sent to the Apply API.
+func LoadMcpServerYAML(mcpServerPath string) (*mcpserverv1.McpServer, error) {
+	data, err := content.ReadFile(mcpServerPath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to read MCP server YAML %s", mcpServerPath)
+	}
+
+	return parseMcpServerYAML(data, mcpServerPath)
+}
+
 // parseAgentYAML parses YAML content into an Agent proto message.
 // This follows the same pattern as the CLI agent loader for consistency.
 func parseAgentYAML(data []byte, sourcePath string) (*agentv1.Agent, error) {
@@ -259,6 +297,30 @@ func parseAgentYAML(data []byte, sourcePath string) (*agentv1.Agent, error) {
 	}
 
 	return agent, nil
+}
+
+// parseMcpServerYAML parses YAML content into an McpServer proto message.
+func parseMcpServerYAML(data []byte, sourcePath string) (*mcpserverv1.McpServer, error) {
+	var intermediate map[string]interface{}
+	if err := yaml.Unmarshal(data, &intermediate); err != nil {
+		return nil, errors.Wrapf(err, "failed to parse YAML from %s", sourcePath)
+	}
+
+	jsonBytes, err := yamlMapToJSON(intermediate)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to convert YAML to JSON from %s", sourcePath)
+	}
+
+	mcpServer := &mcpserverv1.McpServer{}
+	unmarshaler := protojson.UnmarshalOptions{
+		DiscardUnknown: false,
+	}
+
+	if err := unmarshaler.Unmarshal(jsonBytes, mcpServer); err != nil {
+		return nil, errors.Wrapf(err, "failed to parse McpServer proto from %s", sourcePath)
+	}
+
+	return mcpServer, nil
 }
 
 // yamlMapToJSON converts a YAML-parsed map to JSON bytes.
