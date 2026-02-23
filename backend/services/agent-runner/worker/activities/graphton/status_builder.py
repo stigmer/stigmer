@@ -153,6 +153,15 @@ class StatusBuilder:
         # Key: namespace string, Value: sub-agent run_id
         self._namespace_to_sub_agent_id: dict[str, str] = {}
         
+        # Causal namespace registration: when a "task" tool starts, we record
+        # its sub-agent ID here.  The next unregistered multi-segment namespace
+        # (indicating a nested sub-graph) is associated with this sub-agent.
+        # Consumed (set to None) once the first namespace is registered.
+        self._pending_sub_agent_id: str | None = None
+        
+        # Namespaces already warned about (deduplication — log once per namespace)
+        self._warned_namespaces: set[str] = set()
+        
         # Track AI message generation timing within sub-agents (separate from main)
         # Key: (sub_agent_id, message_index), Value: start timestamp
         self._sub_agent_message_start_times: dict[tuple[str, int], datetime] = {}
@@ -620,10 +629,43 @@ class StatusBuilder:
         # accumulate thinking content in a per-namespace buffer and skip AI
         # message creation for these chunks.  When the first non-thinking
         # content arrives we flush the buffer into a synthetic think ToolCall.
+        #
+        # A single chunk may contain BOTH thinking and text blocks (e.g., at
+        # the boundary between thinking and response output).  We must
+        # process thinking content AND check for co-located text — only
+        # returning early if the chunk is purely thinking content.
         # ─────────────────────────────────────────────────────────────────────
         if hasattr(chunk_data, "content") and isinstance(chunk_data.content, list):
             ns_key = namespace or ""
             thinking_text = self._extract_thinking_content(chunk_data.content)
+            text_in_same_chunk = self._extract_string_content(chunk_data.content)
+            
+            # Diagnostic: log mixed chunks and empty extractions
+            if thinking_text and text_in_same_chunk:
+                self.logger.info(
+                    f"[STREAM_DIAG] Mixed thinking+text chunk: "
+                    f"execution={self.execution_id} "
+                    f"run_id={event.get('run_id', '')} "
+                    f"namespace={namespace or 'main'} "
+                    f"thinking_len={len(thinking_text)} "
+                    f"text_len={len(text_in_same_chunk)} "
+                    f"text={text_in_same_chunk[:100]!r}"
+                )
+            elif not thinking_text and not text_in_same_chunk:
+                block_types = [
+                    b.get("type", "unknown") if isinstance(b, dict)
+                    else type(b).__name__
+                    for b in chunk_data.content[:5]
+                ]
+                self.logger.info(
+                    f"[STREAM_DIAG] List content with no thinking/text: "
+                    f"execution={self.execution_id} "
+                    f"run_id={event.get('run_id', '')} "
+                    f"namespace={namespace or 'main'} "
+                    f"blocks={len(chunk_data.content)} "
+                    f"block_types={block_types}"
+                )
+            
             if thinking_text:
                 self._thinking_buffers[ns_key] = (
                     self._thinking_buffers.get(ns_key, "") + thinking_text
@@ -632,7 +674,11 @@ class StatusBuilder:
                     self._start_thinking_stream(ns_key, namespace, self._thinking_buffers[ns_key])
                 else:
                     self._update_thinking_stream(ns_key)
-                return
+                
+                if not text_in_same_chunk:
+                    return
+                # Fall through: chunk has both thinking AND text.
+                # Thinking is accumulated above; text is processed below.
         
         # Extract token
         token = ""
@@ -1746,26 +1792,41 @@ class StatusBuilder:
             return sub_agent, sub_agent
         
         # Namespace not yet registered — fall back to main agent.
-        # This can cause sub-agent events to leak into the main agent's
-        # messages. The run_id-based message isolation in the stream handler
-        # prevents token interleaving, but this fallback is still worth
-        # investigating when it fires frequently.
-        self.logger.warning(
-            f"[NAMESPACE] execution={self.execution_id} "
-            f"namespace={namespace} has no registered sub-agent — "
-            f"falling back to main agent context"
-        )
+        # Single-segment namespaces (no "|") are normal main-agent graph
+        # activity (e.g., the tools node).  Only warn for multi-segment
+        # namespaces, which indicate sub-agent events that should have
+        # been routed.  Deduplicate: warn once per unique namespace.
+        if "|" in namespace and namespace not in self._warned_namespaces:
+            self._warned_namespaces.add(namespace)
+            self.logger.warning(
+                f"[NAMESPACE] execution={self.execution_id} "
+                f"namespace={namespace} has no registered sub-agent — "
+                f"falling back to main agent context"
+            )
         return self.current_status, None
     
     def _register_sub_agent_namespace(self, namespace: str) -> None:
         """
         Register namespace -> sub-agent mapping when child event arrives.
         
-        LangGraph namespaces contain the run_id of the sub-agent that spawned them.
-        Format: "node_id:uuid" where uuid matches or contains the task tool run_id.
+        Uses three strategies in priority order:
         
-        This method is called for each event with a non-empty namespace to
-        discover and register the namespace -> sub-agent mapping.
+        1. **Root-prefix matching**: Multi-segment namespaces (containing "|")
+           share a root segment (before the first "|") when they originate
+           from the same sub-agent.  If any already-registered namespace
+           shares the same root, the new namespace inherits the mapping.
+        
+        2. **Substring matching** (legacy): Checks if any active sub-agent's
+           run_id appears in the namespace string.
+        
+        3. **Causal correlation**: When a "task" tool starts a sub-agent,
+           ``_pending_sub_agent_id`` is set.  The first unregistered
+           multi-segment namespace is associated with that pending sub-agent.
+           This handles the common case where LangGraph checkpoint UUIDs
+           differ from the task tool's event run_id.
+        
+        Single-segment namespaces (no "|") are from the main agent's graph
+        nodes and are intentionally not registered.
         
         Args:
             namespace: LangGraph checkpoint namespace string
@@ -1773,15 +1834,57 @@ class StatusBuilder:
         if not namespace or namespace in self._namespace_to_sub_agent_id:
             return
         
-        # Check if this namespace matches any active sub-agent
-        # Namespace format is typically "node_name:run_id" or contains run_id
+        is_multi_segment = "|" in namespace
+        ns_root = namespace.split("|")[0]
+        
+        # Strategy 1: root-prefix matching against already-registered namespaces.
+        # When a sub-agent has been identified via any namespace variant, all
+        # namespaces sharing the same root segment (before the first "|") are
+        # from the same sub-agent graph.
+        if is_multi_segment:
+            for registered_ns, sub_agent_id in self._namespace_to_sub_agent_id.items():
+                if registered_ns.split("|")[0] == ns_root:
+                    self._namespace_to_sub_agent_id[namespace] = sub_agent_id
+                    self.logger.debug(
+                        f"[SUBAGENT] Prefix-matched namespace={namespace} "
+                        f"-> sub_agent={sub_agent_id} "
+                        f"(via root={ns_root})"
+                    )
+                    return
+        
+        # Strategy 2: substring matching (legacy — works when run_id is in namespace)
         for sub_agent_id in self._active_sub_agents:
             if sub_agent_id in namespace:
                 self._namespace_to_sub_agent_id[namespace] = sub_agent_id
-                self.logger.debug(
-                    f"[SUBAGENT] Registered namespace={namespace} -> sub_agent={sub_agent_id}"
+                self.logger.info(
+                    f"[SUBAGENT] Substring-matched namespace={namespace} "
+                    f"-> sub_agent={sub_agent_id}"
                 )
                 return
+        
+        # Strategy 3: causal correlation with pending sub-agent.
+        # Only for multi-segment namespaces — single-segment namespaces are
+        # from the main agent's graph nodes, not from sub-agents.
+        if is_multi_segment and self._pending_sub_agent_id:
+            sub_agent_id = self._pending_sub_agent_id
+            if sub_agent_id in self._active_sub_agents:
+                self._namespace_to_sub_agent_id[namespace] = sub_agent_id
+                self._pending_sub_agent_id = None
+                self.logger.info(
+                    f"[SUBAGENT] Causal registration: namespace={namespace} "
+                    f"-> sub_agent={sub_agent_id}"
+                )
+                return
+        
+        # Diagnostic: log failed registration for multi-segment namespaces only
+        if is_multi_segment:
+            self.logger.info(
+                f"[NS_DIAG] Namespace registration failed: "
+                f"execution={self.execution_id} "
+                f"namespace={namespace} "
+                f"active_sub_agents={list(self._active_sub_agents.keys())} "
+                f"pending={self._pending_sub_agent_id}"
+            )
     
     def _handle_sub_agent_start(self, event: dict[str, Any], tool_args: dict[str, Any], run_id: str) -> None:
         """
@@ -1812,9 +1915,14 @@ class StatusBuilder:
         self._active_sub_agents[run_id] = sub_agent
         self.current_status.sub_agent_executions.append(sub_agent)
         
-        self.logger.debug(
+        # Mark as pending for causal namespace registration.
+        # The next multi-segment namespace will be associated with this sub-agent.
+        self._pending_sub_agent_id = run_id
+        
+        self.logger.info(
             f"[SUBAGENT] execution={self.execution_id} "
-            f"sub_agent={sub_agent_name} id={run_id} status=IN_PROGRESS"
+            f"sub_agent={sub_agent_name} id={run_id} status=IN_PROGRESS "
+            f"(pending namespace registration)"
         )
     
     def _handle_sub_agent_end(self, event: dict[str, Any], run_id: str) -> None:
@@ -1861,6 +1969,9 @@ class StatusBuilder:
         # Cleanup tracking dictionaries
         if run_id in self._active_sub_agents:
             del self._active_sub_agents[run_id]
+        
+        if self._pending_sub_agent_id == run_id:
+            self._pending_sub_agent_id = None
         
         # Cleanup any namespace mappings pointing to this sub-agent
         namespaces_to_remove = [
