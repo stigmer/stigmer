@@ -69,12 +69,8 @@ def package_skill(skill_path, output_dir=None):
             # Walk through the skill directory
             for file_path in skill_path.rglob('*'):
                 if file_path.is_file():
-                    # Calculate the relative path within the zip.
-                    # Paths must be relative to the skill root directory itself
-                    # (not its parent), so ZIP entries are: SKILL.md, scripts/...,
-                    # references/..., etc.  This matches the format expected by
-                    # the CLI push (artifact/skill.go) and vendor_skill.sh.
-                    arcname = file_path.relative_to(skill_path)
+                    # Calculate the relative path within the zip
+                    arcname = file_path.relative_to(skill_path.parent)
                     zipf.write(file_path, arcname)
                     print(f"  Added: {arcname}")
 

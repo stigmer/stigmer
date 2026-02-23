@@ -17,15 +17,18 @@ import "embed"
 //
 // Embedded directories:
 //   - manifest.json: Seedpack metadata and resource registry
-//   - skills/*: Raw skill content (SKILL.md, scripts, references)
-//   - agents/*: System agent YAML definitions for bootstrap
-//   - mcp-servers/*: MCP server YAML definitions for bootstrap
+//   - skills/: Raw skill content (SKILL.md, scripts, references)
+//   - agents/: System agent YAML definitions for bootstrap
+//   - mcp-servers/: MCP server YAML definitions for bootstrap
+//
+// Directory-level patterns (not globs) are used so that empty subdirectories
+// are silently skipped instead of causing a build failure.
 //
 // Excluded:
 //   - tools/: Build-time scripts, not runtime content
 //
 //go:embed manifest.json
-//go:embed skills/*
-//go:embed agents/*
-//go:embed mcp-servers/*
+//go:embed skills
+//go:embed agents
+//go:embed mcp-servers
 var content embed.FS
