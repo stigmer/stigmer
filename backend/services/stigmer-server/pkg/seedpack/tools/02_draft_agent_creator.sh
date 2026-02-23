@@ -101,7 +101,7 @@ stigmer draft skill \
   --attach "$SKILL_DIR" \
   --attach "$MCPSERVER_DIR" \
   --output "$OUTPUT_DIR" \
-  --model claude-opus-4-6 \
+  --model claude-sonnet-4.6 \
   -m "$MESSAGE"
 
 echo ""

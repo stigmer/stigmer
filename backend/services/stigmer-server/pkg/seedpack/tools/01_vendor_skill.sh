@@ -1,30 +1,25 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# vendor_skill.sh - Vendor skills from the Anthropic skills repository
+# vendor_skill.sh - Vendor skills declared in manifest.json
 # ==============================================================================
 #
-# This script vendors a skill from Anthropic's public skills repository into
-# Stigmer's seedpack directory with full provenance tracking.
+# This script vendors skills from upstream repositories into Stigmer's seedpack
+# directory with full provenance tracking. Skill sources (repo URLs and pinned
+# commits) are read from the sibling manifest.json.
 #
 # Usage:
-#   ./vendor_skill.sh <skill-name> [commit-sha]
-#
-# Arguments:
-#   skill-name   Name of the skill to vendor (e.g., "skill-creator")
-#   commit-sha   Optional: specific commit SHA to pin to (defaults to HEAD)
+#   ./vendor_skill.sh                              # vendor all skills
+#   ./vendor_skill.sh <skill-name>                 # vendor one skill
+#   ./vendor_skill.sh <skill-name> [commit-sha]    # vendor at specific commit
 #
 # Output:
-#   Creates/updates the skill directory under ../skills/<skill-name>/
-#   Generates provenance.json with full origin tracking
+#   Creates/updates skill directories under ../skills/<skill-name>/
+#   Generates provenance.json with full origin tracking per skill
 #
 # Requirements:
 #   - git
 #   - sha256sum (Linux) or shasum (macOS)
 #   - jq (for JSON generation)
-#
-# Example:
-#   ./vendor_skill.sh skill-creator
-#   ./vendor_skill.sh skill-creator abc123def456789...
 #
 # ==============================================================================
 
@@ -34,11 +29,10 @@ set -euo pipefail
 # Configuration
 # ------------------------------------------------------------------------------
 
-readonly UPSTREAM_REPO="https://github.com/anthropics/skills"
-readonly UPSTREAM_REF="main"
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly SEEDPACK_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 readonly SKILLS_DIR="${SEEDPACK_DIR}/skills"
+readonly MANIFEST="${SEEDPACK_DIR}/manifest.json"
 readonly PROVENANCE_SCHEMA_VERSION="1"
 
 
@@ -134,52 +128,46 @@ cleanup() {
 
 vendor_skill() {
     local skill_name="$1"
-    local requested_commit="${2:-}"
+    local repo_url="$2"
+    local requested_commit="${3:-}"
+    local upstream_ref="${4:-main}"
     
     TEMP_DIR=$(mktemp -d)
     trap cleanup EXIT
     
     log_info "Vendoring skill: ${skill_name}"
-    log_info "Upstream repository: ${UPSTREAM_REPO}"
+    log_info "Upstream repository: ${repo_url}"
     
-    # Clone the repository
     log_info "Cloning repository to temporary directory..."
     if [[ -n "$requested_commit" ]]; then
-        # Full clone needed to checkout specific commit
-        git clone --quiet "$UPSTREAM_REPO" "$TEMP_DIR/repo"
+        git clone --quiet "$repo_url" "$TEMP_DIR/repo"
         cd "$TEMP_DIR/repo"
         git checkout --quiet "$requested_commit"
     else
-        # Shallow clone for HEAD is faster
-        git clone --quiet --depth 1 --branch "$UPSTREAM_REF" "$UPSTREAM_REPO" "$TEMP_DIR/repo"
+        git clone --quiet --depth 1 --branch "$upstream_ref" "$repo_url" "$TEMP_DIR/repo"
         cd "$TEMP_DIR/repo"
     fi
     
-    # Capture the actual commit SHA
     local commit_sha
     commit_sha=$(git rev-parse HEAD)
     log_info "Commit SHA: ${commit_sha}"
     
-    # Verify the skill exists in upstream
     local upstream_skill_dir="$TEMP_DIR/repo/skills/${skill_name}"
     if [[ ! -d "$upstream_skill_dir" ]]; then
         log_error "Skill '${skill_name}' not found in upstream repository"
         log_error "Available skills:"
         ls -1 "$TEMP_DIR/repo/skills/" >&2 || true
-        exit 1
+        return 1
     fi
     
-    # Verify SKILL.md exists
     if [[ ! -f "$upstream_skill_dir/SKILL.md" ]]; then
         log_error "SKILL.md not found in skill directory"
-        exit 1
+        return 1
     fi
     
-    # Prepare destination directory
     local dest_dir="${SKILLS_DIR}/${skill_name}"
     log_info "Destination: ${dest_dir}"
     
-    # Remove existing vendored content (but preserve provenance for comparison)
     local old_provenance=""
     if [[ -f "$dest_dir/provenance.json" ]]; then
         old_provenance=$(cat "$dest_dir/provenance.json")
@@ -187,11 +175,9 @@ vendor_skill() {
     rm -rf "$dest_dir"
     mkdir -p "$dest_dir"
     
-    # Copy skill content
     log_info "Copying skill content..."
     cp -r "$upstream_skill_dir"/* "$dest_dir/"
     
-    # Generate per-file digests
     log_info "Calculating file digests..."
     local files_json="["
     local first=true
@@ -209,12 +195,10 @@ vendor_skill() {
     done < <(find "$dest_dir" -type f ! -name "provenance.json" -print0 | sort -z)
     files_json="${files_json}]"
     
-    # Calculate overall content digest
     local content_digest
     content_digest=$(calculate_content_digest "$dest_dir")
     log_info "Content digest: sha256:${content_digest}"
     
-    # Generate provenance.json
     local vendored_at
     vendored_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
     
@@ -222,8 +206,8 @@ vendor_skill() {
     jq -n \
         --arg schema_version "$PROVENANCE_SCHEMA_VERSION" \
         --arg source_type "git" \
-        --arg url "$UPSTREAM_REPO" \
-        --arg ref "$UPSTREAM_REF" \
+        --arg url "$repo_url" \
+        --arg ref "$upstream_ref" \
         --arg commit_sha "$commit_sha" \
         --arg subdir "skills/${skill_name}" \
         --arg vendored_at "$vendored_at" \
@@ -251,12 +235,11 @@ vendor_skill() {
     find "$dest_dir" -type f | sed "s|${dest_dir}/|  |" | sort
     echo ""
     echo "Provenance:"
-    echo "  Repository: ${UPSTREAM_REPO}"
+    echo "  Repository: ${repo_url}"
     echo "  Commit:     ${commit_sha}"
     echo "  Digest:     sha256:${content_digest}"
     echo "  Vendored:   ${vendored_at}"
     
-    # Show diff if re-vendoring
     if [[ -n "$old_provenance" ]]; then
         local old_commit
         local old_digest
@@ -272,6 +255,52 @@ vendor_skill() {
             echo "  New digest:      sha256:${content_digest}"
         fi
     fi
+    
+    # Clean up temp dir between skills
+    rm -rf "$TEMP_DIR"
+    TEMP_DIR=""
+}
+
+# Vendor all skills declared in manifest.json
+vendor_all_from_manifest() {
+    if [[ ! -f "$MANIFEST" ]]; then
+        log_error "Manifest not found: ${MANIFEST}"
+        exit 1
+    fi
+    
+    local skill_count
+    skill_count=$(jq '.skills | length' "$MANIFEST")
+    
+    if [[ "$skill_count" -eq 0 ]]; then
+        log_error "No skills declared in manifest.json"
+        exit 1
+    fi
+    
+    log_info "Found ${skill_count} skill(s) in manifest.json"
+    echo ""
+    
+    local failed=0
+    for i in $(seq 0 $((skill_count - 1))); do
+        local name url commit_sha
+        name=$(jq -r ".skills[$i].name" "$MANIFEST")
+        url=$(jq -r ".skills[$i].source.url" "$MANIFEST")
+        commit_sha=$(jq -r ".skills[$i].source.commit_sha // empty" "$MANIFEST")
+        
+        log_info "--- [$((i + 1))/${skill_count}] ${name} ---"
+        
+        if ! vendor_skill "$name" "$url" "$commit_sha"; then
+            log_error "Failed to vendor '${name}', continuing..."
+            failed=$((failed + 1))
+        fi
+        echo ""
+    done
+    
+    if [[ "$failed" -gt 0 ]]; then
+        log_error "${failed} skill(s) failed to vendor"
+        exit 1
+    fi
+    
+    log_success "All ${skill_count} skill(s) vendored successfully"
 }
 
 # ------------------------------------------------------------------------------
@@ -280,32 +309,58 @@ vendor_skill() {
 
 usage() {
     cat <<EOF
-Usage: $(basename "$0") <skill-name> [commit-sha]
+Usage: $(basename "$0") [skill-name] [commit-sha]
 
-Vendor a skill from the Anthropic skills repository into Stigmer's seedpack.
+Vendor skills from upstream repositories into Stigmer's seedpack.
+
+When run with no arguments, vendors all skills declared in manifest.json.
+When a skill name is given, vendors only that skill using its manifest entry.
 
 Arguments:
-  skill-name   Name of the skill to vendor (e.g., "skill-creator")
-  commit-sha   Optional: specific commit SHA to pin to (defaults to HEAD)
+  skill-name   Optional: name of a single skill to vendor (e.g., "skill-creator")
+  commit-sha   Optional: specific commit SHA to pin to (overrides manifest)
 
 Examples:
-  $(basename "$0") skill-creator
-  $(basename "$0") skill-creator abc123def456789...
+  $(basename "$0")                                    # vendor all skills from manifest
+  $(basename "$0") skill-creator                      # vendor one skill from manifest
+  $(basename "$0") skill-creator abc123def456789...   # vendor at specific commit
 
 EOF
 }
 
 main() {
-    if [[ $# -lt 1 ]]; then
-        usage
-        exit 1
+    check_dependencies
+    
+    if [[ $# -eq 0 ]]; then
+        vendor_all_from_manifest
+        return
     fi
     
     local skill_name="$1"
-    local commit_sha="${2:-}"
+    local commit_override="${2:-}"
     
-    check_dependencies
-    vendor_skill "$skill_name" "$commit_sha"
+    if [[ ! -f "$MANIFEST" ]]; then
+        log_error "Manifest not found: ${MANIFEST}"
+        exit 1
+    fi
+    
+    local url commit_sha
+    url=$(jq -r --arg name "$skill_name" '.skills[] | select(.name == $name) | .source.url // empty' "$MANIFEST")
+    commit_sha=$(jq -r --arg name "$skill_name" '.skills[] | select(.name == $name) | .source.commit_sha // empty' "$MANIFEST")
+    
+    if [[ -z "$url" ]]; then
+        log_error "Skill '${skill_name}' not found in manifest.json"
+        log_error "Available skills:"
+        jq -r '.skills[].name' "$MANIFEST" >&2
+        exit 1
+    fi
+    
+    # CLI commit override takes precedence over manifest
+    if [[ -n "$commit_override" ]]; then
+        commit_sha="$commit_override"
+    fi
+    
+    vendor_skill "$skill_name" "$url" "$commit_sha"
 }
 
 main "$@"
