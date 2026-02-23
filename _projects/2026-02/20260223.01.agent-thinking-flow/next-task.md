@@ -69,8 +69,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-23 23:43
-**Current Task**: T01 — Phase 3 (CLI UX Rendering for Think Tool)
-**Status**: In Progress
+**Current Task**: T01 — Phase 4 (End-to-end Validation)
+**Status**: Ready for validation
 
 ## Session Progress (2026-02-23)
 
@@ -105,11 +105,22 @@ When starting a new session:
 - **Key design decision**: Synthetic think tool translation in StatusBuilder — native thinking blocks are published as standard `ToolCall` objects (name=`"think"`, args=`{thought: ...}`, result=`"ok"`, status=COMPLETED), reusing the entire downstream pipeline.
 - **Key design decision**: `claude-opus-4.6` excluded from manual thinking (`supports_thinking=False`) because Anthropic deprecated `type: "enabled"` for Opus 4.6. It requires `type: "adaptive"` with effort parameter — fundamentally different API shape, deferred to future work. Opus 4.6 agents get the explicit think tool as fallback.
 
+## Session Progress (2026-02-24, Session 3)
+
+- **Phase 3 complete**: CLI UX rendering for think tool + live streaming of native thinking content
+- **CLI rendering** (`render.go`): Added `"think"` to `toolDisplayMap` — `💭 Thinking` with content sourced from `args.thought`, gutter-style preview, expandable
+- **CLI tests** (`render_test.go`): Added 9 tests covering icon, label, thought preview, content source, expanded view, running/completed badges, and displayable content checks
+- **Live streaming** (`status_builder.py`): Changed thinking detection to immediately create a RUNNING ToolCall with `is_streaming=True` on first thinking block. Subsequent blocks update `result` in place. Flush transitions to COMPLETED with `args.thought` populated and `result` set to `"ok"`.
+- **New methods**: `_start_thinking_stream()`, `_update_thinking_stream()`, new tracking dict `_thinking_tool_call_ids`
+- **StatusBuilder tests** (`test_status_builder.py`): Updated 4 existing tests for streaming lifecycle verification; added 4 new tests (incremental updates, identity preservation, full lifecycle, tracking cleanup)
+- **Pipeline verification**: Traced the complete data flow (StatusBuilder → gRPC → `emitToolCallStateEvents` → `ToolStreamDeltaEvent` → `renderStreamingTool` → last 8 lines with `▍` cursor). No CLI code changes needed beyond the `toolDisplayMap` entry.
+- **Test results**: Agent-runner 182 pass (7 pre-existing failures), CLI toolrender 9 pass, graphton 518 pass
+
 ## Next Steps
 
-1. **Phase 3**: CLI UX rendering for think tool calls — add a dedicated entry to `toolDisplayMap` in `client-apps/cli/pkg/toolrender/render.go`. Design decision pending: Option A (collapsed), B (spinner), C (truncated), or D (hidden). Option A (collapsed) recommended.
-2. **Phase 4**: End-to-end validation with `stigmer draft skill --attach`.
-3. **Future enhancement**: Adaptive thinking support for Opus 4.6 (`type: "adaptive"` with effort parameter).
+1. **Phase 4**: End-to-end validation with `stigmer draft skill --attach` — verify the complete pipeline works in practice
+2. **Investigate**: Write tool streaming pipeline — user noted it's not working, which could indicate a bug in the shared streaming infrastructure
+3. **Future enhancement**: Adaptive thinking support for Opus 4.6 (`type: "adaptive"` with effort parameter)
 
 ## Context for Resume
 
@@ -120,7 +131,7 @@ When starting a new session:
 - Prompt enhancement adds a `THINK_CAPABILITY` section to the system prompt (only when `has_native_thinking=False`).
 - Approval policy explicitly exempts `think` from approval under "Agent-internal tools" category.
 - For native-thinking models (Sonnet 4.6, Opus 4.5, Sonnet 4.5, Opus 4): thinking happens via Anthropic's API. The StatusBuilder translates thinking content blocks into synthetic `ToolCall` objects identical to explicit think tool calls.
-- CLI currently renders think tool via the "unknown tool" fallback as `🔧 think: <thought snippet>`. Phase 3 will add a dedicated `toolDisplayMap` entry.
+- CLI renders think tool via dedicated `toolDisplayMap` entry as `💭 Thinking` with thought content in a gutter-style preview. During streaming, `renderStreamingTool` shows the last 8 lines with a `▍` cursor. After completion, the block is collapsed and expandable.
 - Platform tools (`read`, `write`, `edit`, `execute`, `ls`, `glob`, `grep`) are created by graphton in `create_deep_agent()` via `create_platform_tool_wrappers()`.
 - CLI tool rendering dispatches via `toolDisplayMap` in `client-apps/cli/pkg/toolrender/render.go`.
 
@@ -137,7 +148,7 @@ When starting a new session:
 
 ## Design Decisions Still Open
 
-1. **Think tool UX style** — Option A (collapsed) recommended for Phase 3
+1. **Write tool streaming** — User reported it's not working. May indicate a shared pipeline bug that also affects think tool streaming. Needs investigation before Phase 4.
 
 ## Quick Commands
 

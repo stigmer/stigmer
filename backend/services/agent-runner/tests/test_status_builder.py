@@ -4612,7 +4612,7 @@ class TestNativeThinkingTranslation:
 
     @pytest.mark.asyncio
     async def test_thinking_blocks_not_added_to_ai_message(self, status_builder):
-        """Test that thinking content blocks are accumulated, not appended to AI message."""
+        """Test that thinking content blocks create a streaming ToolCall, not an AI message."""
         chunk = MagicMock()
         chunk.content = [{"type": "thinking", "thinking": "Let me analyze this..."}]
 
@@ -4627,9 +4627,17 @@ class TestNativeThinkingTranslation:
         assert len(status_builder.current_status.messages) == 0
         assert status_builder._thinking_buffers.get("") == "Let me analyze this..."
 
+        # A streaming ToolCall should exist
+        assert len(status_builder.current_status.tool_calls) == 1
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.name == "think"
+        assert tc.status == ToolCallStatus.TOOL_CALL_RUNNING
+        assert tc.is_streaming is True
+        assert tc.result == "Let me analyze this..."
+
     @pytest.mark.asyncio
     async def test_thinking_accumulates_across_chunks(self, status_builder):
-        """Test that multiple thinking chunks accumulate in the buffer."""
+        """Test that multiple thinking chunks accumulate in both the buffer and the streaming ToolCall result."""
         for text in ["Step 1: ", "analyse inputs. ", "Step 2: decide."]:
             chunk = MagicMock()
             chunk.content = [{"type": "thinking", "thinking": text}]
@@ -4643,10 +4651,17 @@ class TestNativeThinkingTranslation:
             "Step 1: analyse inputs. Step 2: decide."
         )
 
+        # The streaming ToolCall's result should match the full accumulated buffer
+        assert len(status_builder.current_status.tool_calls) == 1
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.status == ToolCallStatus.TOOL_CALL_RUNNING
+        assert tc.is_streaming is True
+        assert tc.result == "Step 1: analyse inputs. Step 2: decide."
+
     @pytest.mark.asyncio
     async def test_synthetic_tool_call_created_on_text_transition(self, status_builder):
-        """Test that a synthetic think ToolCall is created when text content follows thinking."""
-        # Send thinking chunk
+        """Test that the streaming think ToolCall transitions to COMPLETED when text follows."""
+        # Send thinking chunk — creates RUNNING ToolCall
         thinking_chunk = MagicMock()
         thinking_chunk.content = [{"type": "thinking", "thinking": "My reasoning here"}]
         await status_builder.process_event({
@@ -4655,7 +4670,15 @@ class TestNativeThinkingTranslation:
             "metadata": {},
         })
 
-        # Send text chunk (triggers flush)
+        # Verify streaming state before flush
+        assert len(status_builder.current_status.tool_calls) == 1
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.status == ToolCallStatus.TOOL_CALL_RUNNING
+        assert tc.is_streaming is True
+        assert tc.result == "My reasoning here"
+        streaming_id = tc.id
+
+        # Send text chunk (triggers flush — transitions to COMPLETED)
         text_chunk = MagicMock()
         text_chunk.content = "The answer is 42."
         await status_builder.process_event({
@@ -4664,12 +4687,15 @@ class TestNativeThinkingTranslation:
             "metadata": {},
         })
 
+        # Same ToolCall object, now COMPLETED
         assert len(status_builder.current_status.tool_calls) == 1
         tc = status_builder.current_status.tool_calls[0]
+        assert tc.id == streaming_id
         assert tc.name == "think"
         assert tc.args["thought"] == "My reasoning here"
         assert tc.result == "ok"
         assert tc.status == ToolCallStatus.TOOL_CALL_COMPLETED
+        assert tc.is_streaming is False
         assert tc.id.startswith("think-native-")
 
         # Text should still create an AI message
@@ -4678,8 +4704,8 @@ class TestNativeThinkingTranslation:
 
     @pytest.mark.asyncio
     async def test_thinking_buffer_flushed_on_chat_model_end(self, status_builder):
-        """Test that remaining thinking buffer is flushed in on_chat_model_end."""
-        # Send thinking chunk (no text follows)
+        """Test that streaming think ToolCall transitions to COMPLETED in on_chat_model_end."""
+        # Send thinking chunk (no text follows) — creates RUNNING ToolCall
         thinking_chunk = MagicMock()
         thinking_chunk.content = [{"type": "thinking", "thinking": "Thinking only, no text"}]
         await status_builder.process_event({
@@ -4688,17 +4714,19 @@ class TestNativeThinkingTranslation:
             "metadata": {},
         })
 
-        # Create a streaming AI message so on_chat_model_end can finalize it
-        text_chunk = MagicMock()
-        text_chunk.content = ""
-        # The thinking buffer is still populated; simulate on_chat_model_end
+        # Verify streaming state
+        assert len(status_builder.current_status.tool_calls) == 1
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.status == ToolCallStatus.TOOL_CALL_RUNNING
+        assert tc.is_streaming is True
+
+        # Simulate on_chat_model_end
         output = MagicMock()
         output.usage_metadata = None
         output.response_metadata = {}
         output.content = ""
 
         # We need a streaming AI message for on_chat_model_end to finalize.
-        # Create one directly to isolate the flush-on-end behaviour.
         status_builder.current_status.messages.append(
             AgentMessage(
                 type=MessageType.MESSAGE_AI,
@@ -4718,6 +4746,9 @@ class TestNativeThinkingTranslation:
         tc = status_builder.current_status.tool_calls[0]
         assert tc.name == "think"
         assert tc.args["thought"] == "Thinking only, no text"
+        assert tc.result == "ok"
+        assert tc.status == ToolCallStatus.TOOL_CALL_COMPLETED
+        assert tc.is_streaming is False
 
     @pytest.mark.asyncio
     async def test_non_thinking_streams_unchanged(self, status_builder):
@@ -4738,7 +4769,7 @@ class TestNativeThinkingTranslation:
 
     @pytest.mark.asyncio
     async def test_empty_thinking_block_ignored(self, status_builder):
-        """Test that empty thinking blocks do not produce a synthetic ToolCall."""
+        """Test that empty thinking blocks do not produce a streaming ToolCall."""
         thinking_chunk = MagicMock()
         thinking_chunk.content = [{"type": "thinking", "thinking": ""}]
         await status_builder.process_event({
@@ -4756,3 +4787,121 @@ class TestNativeThinkingTranslation:
         })
 
         assert len(status_builder.current_status.tool_calls) == 0
+
+    @pytest.mark.asyncio
+    async def test_streaming_result_updates_incrementally(self, status_builder):
+        """Test that each thinking block updates the streaming ToolCall's result."""
+        chunks = ["First thought. ", "Second thought. ", "Third thought."]
+
+        for i, text in enumerate(chunks):
+            chunk = MagicMock()
+            chunk.content = [{"type": "thinking", "thinking": text}]
+            await status_builder.process_event({
+                "event": "on_chat_model_stream",
+                "data": {"chunk": chunk},
+                "metadata": {},
+            })
+
+            # Always the same single ToolCall
+            assert len(status_builder.current_status.tool_calls) == 1
+            tc = status_builder.current_status.tool_calls[0]
+            assert tc.status == ToolCallStatus.TOOL_CALL_RUNNING
+            assert tc.is_streaming is True
+            expected = "".join(chunks[: i + 1])
+            assert tc.result == expected
+
+    @pytest.mark.asyncio
+    async def test_streaming_preserves_single_tool_call_identity(self, status_builder):
+        """Test that all thinking blocks update the same ToolCall (no duplicates)."""
+        for text in ["A", "B", "C"]:
+            chunk = MagicMock()
+            chunk.content = [{"type": "thinking", "thinking": text}]
+            await status_builder.process_event({
+                "event": "on_chat_model_stream",
+                "data": {"chunk": chunk},
+                "metadata": {},
+            })
+
+        assert len(status_builder.current_status.tool_calls) == 1
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.id.startswith("think-native-")
+        assert tc.result == "ABC"
+
+    @pytest.mark.asyncio
+    async def test_streaming_to_completed_full_lifecycle(self, status_builder):
+        """Test the full streaming lifecycle: create -> stream -> flush -> completed."""
+        # Phase 1: First thinking block creates RUNNING ToolCall
+        chunk1 = MagicMock()
+        chunk1.content = [{"type": "thinking", "thinking": "Step 1. "}]
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk1},
+            "metadata": {},
+        })
+
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.status == ToolCallStatus.TOOL_CALL_RUNNING
+        assert tc.is_streaming is True
+        assert tc.result == "Step 1. "
+        tc_id = tc.id
+
+        # Phase 2: Second thinking block updates result
+        chunk2 = MagicMock()
+        chunk2.content = [{"type": "thinking", "thinking": "Step 2."}]
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk2},
+            "metadata": {},
+        })
+
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.id == tc_id
+        assert tc.result == "Step 1. Step 2."
+
+        # Phase 3: Text chunk triggers flush -> COMPLETED
+        text_chunk = MagicMock()
+        text_chunk.content = "Done."
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": text_chunk},
+            "metadata": {},
+        })
+
+        assert len(status_builder.current_status.tool_calls) == 1
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.id == tc_id
+        assert tc.status == ToolCallStatus.TOOL_CALL_COMPLETED
+        assert tc.is_streaming is False
+        assert tc.args["thought"] == "Step 1. Step 2."
+        assert tc.result == "ok"
+        assert tc.completed_at != ""
+
+    @pytest.mark.asyncio
+    async def test_streaming_tracking_state_cleaned_on_flush(self, status_builder):
+        """Test that all thinking tracking state is cleaned up after flush."""
+        chunk = MagicMock()
+        chunk.content = [{"type": "thinking", "thinking": "Some thought"}]
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk},
+            "metadata": {},
+        })
+
+        # Tracking state should exist
+        assert "" in status_builder._thinking_buffers
+        assert "" in status_builder._thinking_tool_call_ids
+        assert "" in status_builder._thinking_started_at
+
+        # Flush via text
+        text_chunk = MagicMock()
+        text_chunk.content = "Response"
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": text_chunk},
+            "metadata": {},
+        })
+
+        # All tracking state should be cleared
+        assert "" not in status_builder._thinking_buffers
+        assert "" not in status_builder._thinking_tool_call_ids
+        assert "" not in status_builder._thinking_started_at

@@ -241,6 +241,7 @@ class StatusBuilder:
         # ─────────────────────────────────────────────────────────────────────────
         self._thinking_buffers: dict[str, str] = {}
         self._thinking_started_at: dict[str, datetime] = {}
+        self._thinking_tool_call_ids: dict[str, str] = {}
     
     async def process_event(self, event: dict[str, Any]) -> None:
         """
@@ -613,11 +614,13 @@ class StatusBuilder:
             ns_key = namespace or ""
             thinking_text = self._extract_thinking_content(chunk_data.content)
             if thinking_text:
-                if ns_key not in self._thinking_started_at:
-                    self._thinking_started_at[ns_key] = datetime.utcnow()
                 self._thinking_buffers[ns_key] = (
                     self._thinking_buffers.get(ns_key, "") + thinking_text
                 )
+                if ns_key not in self._thinking_tool_call_ids:
+                    self._start_thinking_stream(ns_key, namespace, self._thinking_buffers[ns_key])
+                else:
+                    self._update_thinking_stream(ns_key)
                 return
         
         # Extract token
@@ -1044,16 +1047,85 @@ class StatusBuilder:
                 parts.append(block.get("thinking", ""))
         return "".join(parts)
     
-    def _flush_thinking_buffer(self, ns_key: str, namespace: str) -> None:
-        """Convert accumulated native thinking into a synthetic think ToolCall.
+    def _start_thinking_stream(self, ns_key: str, namespace: str, initial_text: str) -> None:
+        """Create a RUNNING ToolCall for native thinking and begin streaming.
 
-        Pops the thinking buffer and start-time for *ns_key*, builds a
-        ``ToolCall`` proto identical to what the explicit think tool would
-        produce, and appends it to the correct tool_calls list (main agent
-        or sub-agent).
+        Called when the first thinking content block arrives for a namespace.
+        The ToolCall starts with ``is_streaming=True`` and the initial thinking
+        text in ``result``.  Subsequent blocks update ``result`` via
+        ``_update_thinking_stream``, and ``_flush_thinking_buffer`` transitions
+        the ToolCall to COMPLETED when thinking ends.
+
+        During streaming the CLI renders ``result`` via ``renderStreamingTool``
+        (last N lines with a cursor indicator).  After completion the CLI reads
+        ``args.thought`` via ``resolveDisplayContent`` (the ``toolDisplayMap``
+        entry uses ``contentSourceInput``).
+        """
+        now = datetime.utcnow()
+        tc_id = f"think-native-{uuid4()}"
+
+        tool_call = ToolCall(
+            id=tc_id,
+            name="think",
+            args=Struct(),
+            result=initial_text,
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+            is_streaming=True,
+            component_metadata=ComponentMetadata(
+                component_type=infer_component_type("think"),
+                component_group="main-agent-tools",
+            ),
+            started_at=_utc_timestamp(now),
+        )
+
+        _context, sub_agent = self._get_execution_context(namespace)
+        if sub_agent:
+            sub_agent.tool_calls.append(tool_call)
+        else:
+            self.current_status.tool_calls.append(tool_call)
+
+        self._thinking_tool_call_ids[ns_key] = tc_id
+        self._thinking_started_at[ns_key] = now
+
+        self.logger.debug(
+            "[THINK] execution=%s streaming_started id=%s namespace=%s",
+            self.execution_id,
+            tc_id,
+            namespace or "main",
+        )
+
+    def _update_thinking_stream(self, ns_key: str) -> None:
+        """Update the streaming think ToolCall with the latest accumulated content.
+
+        Finds the existing RUNNING ToolCall by its tracked ID and replaces
+        ``result`` with the full accumulated thinking buffer.  The gRPC update
+        scheduler will push this change within ~500ms; the CLI detects the
+        content change via ``tc.IsStreaming && tc.Result != prevResults`` and
+        renders the latest lines.
+        """
+        tc_id = self._thinking_tool_call_ids.get(ns_key)
+        if not tc_id:
+            return
+
+        tool_call = self._find_tool_call_by_id(tc_id)
+        if tool_call is not None:
+            tool_call.result = self._thinking_buffers.get(ns_key, "")
+
+    def _flush_thinking_buffer(self, ns_key: str, namespace: str) -> None:
+        """Finalize the streaming think ToolCall or create a completed one.
+
+        If a streaming ToolCall exists (created by ``_start_thinking_stream``),
+        transitions it from RUNNING to COMPLETED in place: populates
+        ``args.thought`` with the full thinking text, sets ``result`` to
+        ``"ok"``, and clears the streaming flag.
+
+        Falls back to creating a new COMPLETED ToolCall from scratch if no
+        streaming ToolCall exists (defensive — should not happen in normal flow
+        since ``_start_thinking_stream`` is called on the first thinking block).
         """
         thinking_text = self._thinking_buffers.pop(ns_key, "")
         started_at = self._thinking_started_at.pop(ns_key, None)
+        tc_id = self._thinking_tool_call_ids.pop(ns_key, None)
         if not thinking_text:
             return
 
@@ -1062,6 +1134,27 @@ class StatusBuilder:
         args_struct = Struct()
         args_struct.update({"thought": thinking_text})
 
+        if tc_id:
+            tool_call = self._find_tool_call_by_id(tc_id)
+            if tool_call is not None:
+                tool_call.args.CopyFrom(args_struct)
+                tool_call.result = "ok"
+                tool_call.status = ToolCallStatus.TOOL_CALL_COMPLETED
+                tool_call.is_streaming = False
+                tool_call.completed_at = _utc_timestamp(now)
+
+                self.logger.info(
+                    "[THINK] execution=%s streaming_completed id=%s "
+                    "chars=%d namespace=%s",
+                    self.execution_id,
+                    tc_id,
+                    len(thinking_text),
+                    namespace or "main",
+                )
+                return
+
+        # Defensive fallback: no streaming ToolCall exists.  Create a
+        # completed one from scratch so thinking content is never lost.
         tool_call = ToolCall(
             id=f"think-native-{uuid4()}",
             name="think",
@@ -1084,7 +1177,7 @@ class StatusBuilder:
 
         self.logger.info(
             "[THINK] execution=%s synthetic_think_tool_call "
-            "chars=%d namespace=%s",
+            "chars=%d namespace=%s (fallback)",
             self.execution_id,
             len(thinking_text),
             namespace or "main",

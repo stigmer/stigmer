@@ -277,6 +277,118 @@ func TestRender_PreviewTruncatesLongResults(t *testing.T) {
 }
 
 // =============================================================================
+// Render Tests — Think Tool
+// =============================================================================
+
+func TestRender_ThinkTool(t *testing.T) {
+	result := Render(ToolCallInfo{
+		Name: "think",
+		Args: map[string]interface{}{"thought": "I need to analyze the proto files and understand the service structure."},
+	})
+
+	assertContains(t, result, "💭")
+	assertContains(t, result, "Thinking")
+}
+
+func TestRender_ThinkTool_NoArgs(t *testing.T) {
+	result := Render(ToolCallInfo{
+		Name: "think",
+	})
+
+	assertContains(t, result, "💭")
+	assertContains(t, result, "Thinking")
+}
+
+func TestRender_ThinkTool_ShowsThoughtPreview(t *testing.T) {
+	result := Render(ToolCallInfo{
+		Name: "think",
+		Args: map[string]interface{}{
+			"thought": "First, let me understand the architecture.\nThe agent-runner service handles execution.\nThe graphton library provides the LLM abstraction.\nThe CLI renders the output.",
+		},
+	})
+
+	assertContains(t, result, "💭")
+	assertContains(t, result, "Thinking")
+	assertContains(t, result, "│")
+	assertContains(t, result, "First, let me understand the architecture.")
+	assertContains(t, result, "4 lines")
+}
+
+func TestRender_ThinkTool_ContentSourceIsInput(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "think",
+		Args:   map[string]interface{}{"thought": "my reasoning here"},
+		Result: "ok",
+	}
+	info := toolDisplayMap["think"]
+	content := resolveDisplayContent(tc, info)
+	if content != "my reasoning here" {
+		t.Errorf("expected thought from args, got %q", content)
+	}
+}
+
+func TestRenderExpanded_ThinkTool_ShowsFullThought(t *testing.T) {
+	result := RenderExpanded(ToolCallInfo{
+		Name: "think",
+		Args: map[string]interface{}{
+			"thought": "Step 1: Read the proto files.\nStep 2: Identify the service RPCs.\nStep 3: Generate the SKILL.md.",
+		},
+		Result: "ok",
+	})
+
+	assertContains(t, result, "💭")
+	assertContains(t, result, "Thinking")
+	assertContains(t, result, "│ Step 1: Read the proto files.")
+	assertContains(t, result, "│ Step 2: Identify the service RPCs.")
+	assertContains(t, result, "│ Step 3: Generate the SKILL.md.")
+	assertNotContains(t, result, "more lines")
+}
+
+func TestRenderWithBadge_ThinkTool_RunningState(t *testing.T) {
+	result := RenderWithBadge(ToolCallInfo{
+		Name: "think",
+		Args: map[string]interface{}{"thought": "analyzing the codebase..."},
+	}, StateBadge("running"))
+
+	assertContains(t, result, "💭")
+	assertContains(t, result, "Thinking")
+	assertContains(t, result, "⏳")
+}
+
+func TestRenderWithBadge_ThinkTool_CompletedState(t *testing.T) {
+	result := RenderWithBadge(ToolCallInfo{
+		Name:   "think",
+		Args:   map[string]interface{}{"thought": "The architecture uses a layered approach.\nGraphton is the library layer.\nAgent-runner is the application layer."},
+		Result: "ok",
+	}, StateBadge("completed"))
+
+	assertContains(t, result, "💭")
+	assertContains(t, result, "Thinking")
+	assertContains(t, result, "✓")
+	assertContains(t, result, "│")
+}
+
+func TestHasDisplayableContent_ThinkTool(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "think",
+		Args:   map[string]interface{}{"thought": "some reasoning"},
+		Result: "ok",
+	}
+	if !HasDisplayableContent(tc) {
+		t.Error("expected think tool with thought to have displayable content")
+	}
+}
+
+func TestHasDisplayableContent_ThinkTool_EmptyResult_NoThought(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "think",
+	}
+	if HasDisplayableContent(tc) {
+		t.Error("expected think tool without thought or result to have no displayable content")
+	}
+}
+
+// =============================================================================
 // Render Tests — Unknown Tools
 // =============================================================================
 
