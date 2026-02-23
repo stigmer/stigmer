@@ -192,6 +192,216 @@ def _check_workspace_file_exists(
     return True
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Zip Extraction Safety
+# ─────────────────────────────────────────────────────────────────────────────
+
+_MAX_ZIP_FILES = 1000
+_MAX_ZIP_EXTRACTED_SIZE = 100 * 1024 * 1024  # 100 MB
+
+
+def _validate_zip_for_extraction(
+    zip_data: bytes,
+    attachment_filename: str,
+    logger,
+) -> list[tuple[str, int]]:
+    """Validate a zip archive before extraction and return its file manifest.
+
+    This runs BEFORE any extraction in both Daytona and local modes.
+    User-supplied attachments are untrusted, so we enforce strict safety
+    checks that the platform's internal skill extraction does not need.
+
+    Checks (in order):
+        1. Valid zip format
+        2. Path traversal — reject entries with absolute paths or ``..``
+           components that could escape the target directory
+        3. Zip bomb — reject archives exceeding file count or total
+           uncompressed size limits
+
+    Args:
+        zip_data: Raw bytes of the zip archive.
+        attachment_filename: Original filename (for error messages).
+        logger: Activity logger.
+
+    Returns:
+        Sorted list of ``(relative_path, uncompressed_size)`` tuples
+        (directory entries excluded).
+
+    Raises:
+        ValueError: If the archive is invalid or fails safety checks.
+    """
+    import io
+    import zipfile
+
+    try:
+        zf = zipfile.ZipFile(io.BytesIO(zip_data))
+    except zipfile.BadZipFile as exc:
+        raise ValueError(
+            f"Attachment '{attachment_filename}' is not a valid zip archive: {exc}",
+        ) from exc
+
+    entries: list[tuple[str, int]] = []
+    total_uncompressed: int = 0
+
+    for info in zf.infolist():
+        if info.is_dir():
+            continue
+
+        name = info.filename
+
+        # Path traversal: reject absolute paths
+        if name.startswith("/") or name.startswith("\\"):
+            zf.close()
+            raise ValueError(
+                f"Attachment '{attachment_filename}' contains an absolute "
+                f"path entry and cannot be safely extracted: {name}",
+            )
+
+        # Path traversal: reject .. components
+        normalized = os.path.normpath(name)
+        if normalized.startswith("..") or "/../" in f"/{normalized}/":
+            zf.close()
+            raise ValueError(
+                f"Attachment '{attachment_filename}' contains a path "
+                f"traversal entry and cannot be safely extracted: {name}",
+            )
+
+        entries.append((name, info.file_size))
+        total_uncompressed += info.file_size
+
+    if not entries:
+        zf.close()
+        raise ValueError(
+            f"Attachment '{attachment_filename}' is an empty zip archive",
+        )
+
+    if len(entries) > _MAX_ZIP_FILES:
+        zf.close()
+        raise ValueError(
+            f"Attachment '{attachment_filename}' contains {len(entries)} "
+            f"files (limit: {_MAX_ZIP_FILES})",
+        )
+
+    if total_uncompressed > _MAX_ZIP_EXTRACTED_SIZE:
+        size_mb = total_uncompressed / (1024 * 1024)
+        limit_mb = _MAX_ZIP_EXTRACTED_SIZE / (1024 * 1024)
+        zf.close()
+        raise ValueError(
+            f"Attachment '{attachment_filename}' would extract to "
+            f"{size_mb:.1f} MB (limit: {limit_mb:.0f} MB)",
+        )
+
+    zf.close()
+
+    logger.info(
+        "[attachments] Validated zip '%s': %d files, %.1f KB uncompressed",
+        attachment_filename,
+        len(entries),
+        total_uncompressed / 1024,
+    )
+
+    return sorted(entries, key=lambda e: e[0])
+
+
+def _extract_zip_local(
+    content: bytes,
+    local_root: str | None,
+    mount_dir: str,
+    attachment_filename: str,
+    logger,
+) -> None:
+    """Extract a validated zip archive to the local filesystem.
+
+    Files are written one-by-one (not via ``extractall``) to maintain
+    the safety guarantees established by ``_validate_zip_for_extraction``.
+
+    Args:
+        content: Raw zip bytes (already validated).
+        local_root: Workspace root on the local filesystem.
+        mount_dir: Workspace-relative target directory (no trailing ``/``).
+        attachment_filename: Original filename (for logging).
+        logger: Activity logger.
+
+    Raises:
+        ValueError: If *local_root* is not provided.
+        RuntimeError: If extraction fails.
+    """
+    import io
+    import zipfile
+
+    if not local_root:
+        raise ValueError("local_root required for local filesystem mode")
+
+    target_dir = Path(local_root) / mount_dir
+
+    with zipfile.ZipFile(io.BytesIO(content)) as zf:
+        for info in zf.infolist():
+            if info.is_dir():
+                continue
+            dest = target_dir / info.filename
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            with zf.open(info) as src:
+                dest.write_bytes(src.read())
+
+    logger.info(
+        "Extracted zip '%s' to local filesystem: %s",
+        attachment_filename, target_dir,
+    )
+
+
+def _prepare_daytona_extraction(
+    sandbox,
+    ws_root: str | None,
+    mount_dir: str,
+    content: bytes,
+    attachment_filename: str,
+    file_uploads: list,
+    extract_targets: list[str],
+    FileUpload,  # noqa: N803 — forwarded class reference
+    logger,
+) -> None:
+    """Stage a zip archive for post-batch-upload extraction in Daytona.
+
+    Creates the target directory, queues a ``FileUpload`` for the zip
+    (as ``__attachment__.zip`` inside the target directory), and registers
+    the directory in *extract_targets* for the post-upload unzip step.
+
+    Args:
+        sandbox: Daytona sandbox instance.
+        ws_root: Absolute workspace root inside the sandbox.
+        mount_dir: Workspace-relative target directory (no trailing ``/``).
+        content: Raw zip bytes (already validated).
+        attachment_filename: Original filename (for logging).
+        file_uploads: Mutable list — the ``FileUpload`` is appended here.
+        extract_targets: Mutable list — the absolute target dir is appended.
+        FileUpload: Daytona ``FileUpload`` class.
+        logger: Activity logger.
+
+    Raises:
+        RuntimeError: If the target directory cannot be created.
+    """
+    if FileUpload is None:
+        raise RuntimeError("Daytona FileUpload not available")
+
+    abs_target_dir = f"{ws_root}/{mount_dir}"
+    zip_dest = f"{abs_target_dir}/__attachment__.zip"
+
+    result = sandbox.process.exec(f"mkdir -p {abs_target_dir}", timeout=5)
+    if result.exit_code != 0:
+        raise RuntimeError(
+            f"Failed to create extraction directory {abs_target_dir}: "
+            f"{getattr(result, 'output', getattr(result, 'stderr', ''))}"
+        )
+
+    file_uploads.append(FileUpload(source=content, destination=zip_dest))
+    extract_targets.append(abs_target_dir)
+
+    logger.info(
+        "Staged zip for extraction: %s -> %s",
+        attachment_filename, abs_target_dir,
+    )
+
+
 async def inject_attachments(
     sandbox,
     attachments: list,
@@ -266,6 +476,10 @@ async def inject_attachments(
     
     file_uploads = []  # For Daytona batch upload
     injected_files = []  # Track injected files for return
+    # Daytona-only: directories to extract after batch upload.
+    # Each entry is the absolute sandbox path where __attachment__.zip
+    # was uploaded and needs to be unzipped then removed.
+    extract_targets: list[str] = []
     
     for attachment in attachments:
         if not attachment.storage_key:
@@ -286,72 +500,136 @@ async def inject_attachments(
         else:
             mount_path = f"inputs/{attachment.filename}"
         
-        if sandbox is not None:
-            # Daytona sandbox mode - collect for batch upload.
-            # Use workspace-root-prefixed absolute path so files land
-            # where the agent's backend expects them.
-            daytona_path = f"{ws_root}/{mount_path}"
-            if FileUpload is None:
-                raise RuntimeError("Daytona FileUpload not available")
-            file_uploads.append(FileUpload(source=content, destination=daytona_path))
-            logger.info(
-                "Prepared attachment: %s -> %s", attachment.filename, daytona_path,
+        if attachment.extract:
+            # ─── Zip extraction path ─────────────────────────────────────
+            validated = _validate_zip_for_extraction(
+                content, attachment.filename, logger,
             )
-            injected_files.append({
-                "filename": attachment.filename,
-                "path": mount_path,  # Workspace-relative for agent
-                "size": len(content),
-            })
-        else:
-            # Local filesystem mode - write directly
-            if not local_root:
-                raise ValueError("local_root required for local filesystem mode")
+            mount_dir = mount_path.rstrip("/")
             
-            from pathlib import Path
-            file_path = Path(local_root) / mount_path
-            file_path.parent.mkdir(parents=True, exist_ok=True)
-            file_path.write_bytes(content)
-            
-            # Verify file was written correctly
-            if file_path.exists():
-                actual_size = file_path.stat().st_size
-                logger.info(
-                    "Wrote attachment to local filesystem: %s -> %s "
-                    "(size: %d bytes, expected: %d bytes)",
-                    attachment.filename,
-                    file_path,
-                    actual_size,
-                    len(content),
+            if sandbox is not None:
+                _prepare_daytona_extraction(
+                    sandbox=sandbox,
+                    ws_root=ws_root,
+                    mount_dir=mount_dir,
+                    content=content,
+                    attachment_filename=attachment.filename,
+                    file_uploads=file_uploads,
+                    extract_targets=extract_targets,
+                    FileUpload=FileUpload,
+                    logger=logger,
                 )
-                if actual_size != len(content):
-                    logger.warning(
-                        "Size mismatch for %s: wrote %d bytes but file is %d bytes",
-                        attachment.filename,
-                        len(content),
-                        actual_size,
-                    )
             else:
-                logger.error(
-                    "Failed to write attachment: %s does not exist after write",
-                    file_path,
+                _extract_zip_local(
+                    content=content,
+                    local_root=local_root,
+                    mount_dir=mount_dir,
+                    attachment_filename=attachment.filename,
+                    logger=logger,
                 )
-                raise ValueError(f"Failed to write attachment {attachment.filename}")
             
-            injected_files.append({
-                "filename": attachment.filename,
-                "path": mount_path,  # Workspace-relative for agent
-                "size": len(content),
-            })
+            for rel_path, file_size in validated:
+                injected_files.append({
+                    "filename": rel_path.rsplit("/", 1)[-1],
+                    "path": f"{mount_dir}/{rel_path}",
+                    "size": file_size,
+                })
+        else:
+            # ─── Single file path (existing behavior) ────────────────────
+            if sandbox is not None:
+                daytona_path = f"{ws_root}/{mount_path}"
+                if FileUpload is None:
+                    raise RuntimeError("Daytona FileUpload not available")
+                file_uploads.append(
+                    FileUpload(source=content, destination=daytona_path),
+                )
+                logger.info(
+                    "Prepared attachment: %s -> %s",
+                    attachment.filename, daytona_path,
+                )
+                injected_files.append({
+                    "filename": attachment.filename,
+                    "path": mount_path,
+                    "size": len(content),
+                })
+            else:
+                if not local_root:
+                    raise ValueError(
+                        "local_root required for local filesystem mode",
+                    )
+                
+                file_path = Path(local_root) / mount_path
+                file_path.parent.mkdir(parents=True, exist_ok=True)
+                file_path.write_bytes(content)
+                
+                if file_path.exists():
+                    actual_size = file_path.stat().st_size
+                    logger.info(
+                        "Wrote attachment to local filesystem: %s -> %s "
+                        "(size: %d bytes, expected: %d bytes)",
+                        attachment.filename,
+                        file_path,
+                        actual_size,
+                        len(content),
+                    )
+                    if actual_size != len(content):
+                        logger.warning(
+                            "Size mismatch for %s: wrote %d bytes but "
+                            "file is %d bytes",
+                            attachment.filename,
+                            len(content),
+                            actual_size,
+                        )
+                else:
+                    logger.error(
+                        "Failed to write attachment: %s does not exist "
+                        "after write",
+                        file_path,
+                    )
+                    raise ValueError(
+                        f"Failed to write attachment {attachment.filename}",
+                    )
+                
+                injected_files.append({
+                    "filename": attachment.filename,
+                    "path": mount_path,
+                    "size": len(content),
+                })
     
-    # Batch upload to Daytona sandbox
+    # Batch upload to Daytona sandbox (includes both regular files and
+    # zip archives staged for extraction).
     if sandbox is not None and file_uploads:
         sandbox.fs.upload_files(file_uploads)
-        logger.info("Uploaded %d attachments to sandbox", len(file_uploads))
+        logger.info("Uploaded %d files to sandbox", len(file_uploads))
+    
+    # Post-upload extraction for zip attachments (Daytona only).
+    # The zip has been batch-uploaded as __attachment__.zip inside each
+    # target directory; now we unzip and remove the archive.
+    for abs_target_dir in extract_targets:
+        extract_cmd = (
+            f"cd {abs_target_dir} && "
+            f"unzip -o __attachment__.zip && "
+            f"rm __attachment__.zip"
+        )
+        result = sandbox.process.exec(extract_cmd, timeout=30)
+        if result.exit_code != 0:
+            raise RuntimeError(
+                f"Failed to extract attachment in {abs_target_dir}: "
+                f"{getattr(result, 'output', getattr(result, 'stderr', ''))}"
+            )
+        logger.info(
+            "Extracted zip attachment in sandbox: %s", abs_target_dir,
+        )
     
     # Log summary of all injected files
     logger.info(
         "Attachment injection complete. Files available to agent:\n"
-        + "\n".join(f"  - {f['path']} ({f['size']} bytes)" for f in injected_files)
+        + "\n".join(
+            f"  - {f['path']} ({f['size']} bytes)"
+            if f.get("size") is not None
+            else f"  - {f['path']}"
+            for f in injected_files
+        ),
     )
     
     return injected_files
