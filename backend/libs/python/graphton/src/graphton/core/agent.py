@@ -21,6 +21,7 @@ from pydantic import ValidationError
 from graphton.core.loop_detection import LoopDetectionMiddleware
 from graphton.core.models import parse_model_string
 from graphton.core.prompt_enhancement import enhance_user_instructions
+from graphton.core.think_tool import create_think_tool
 
 if TYPE_CHECKING:
     from langgraph.checkpoint.base import BaseCheckpointSaver
@@ -519,6 +520,18 @@ def create_deep_agent(
             "enabled" if approval_checker else "disabled",
         )
     
+    # Auto-inject think tool for structured reasoning.
+    #
+    # The think tool is a no-op that lets agents externalise reasoning as
+    # a tool call.  The thought text flows through the normal status
+    # pipeline (ToolCall.args.thought) giving the platform and users
+    # visibility into agent reasoning.  Because tools_list is passed as
+    # default_tools to SubAgentMiddleware by deepagents, the think tool
+    # is available to both the top-level agent and all sub-agents.
+    think_tool = create_think_tool()
+    tools_list.append(think_tool)
+    logger.info("Auto-injected think tool for structured reasoning")
+
     # Create the Deep Agent using deepagents library.
     #
     # deepagents 0.4.x internally creates SubAgentMiddleware (with a
