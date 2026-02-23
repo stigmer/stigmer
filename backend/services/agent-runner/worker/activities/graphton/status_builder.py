@@ -262,6 +262,17 @@ class StatusBuilder:
         self._thinking_buffers: dict[str, str] = {}
         self._thinking_started_at: dict[str, datetime] = {}
         self._thinking_tool_call_ids: dict[str, str] = {}
+        
+        # ─────────────────────────────────────────────────────────────────────────
+        # Early Tool Call Creation (Live Write Streaming UX)
+        #
+        # When the LLM stream produces a tool_use block, we create the ToolCall
+        # immediately — before on_tool_start fires — so the CLI shows the tool
+        # name instead of the "Thinking…" idle indicator.  The queue holds temp
+        # IDs in FIFO order; on_tool_start pops the first match and reconciles
+        # (updating args, registering the real run_id as an alias).
+        # ─────────────────────────────────────────────────────────────────────────
+        self._early_tool_call_queue: list[str] = []
     
     async def process_event(self, event: dict[str, Any]) -> None:
         """
@@ -283,17 +294,29 @@ class StatusBuilder:
         if isinstance(namespace, tuple):
             namespace = ":".join(str(x) for x in namespace)
         
-        # Route by event type
+        # Route by event type.  Each handler is wrapped so a single bad
+        # event never crashes the entire activity stream.
+        handler = None
         if event_type == "on_tool_start":
-            self._handle_tool_start_event(event, namespace)
+            handler = self._handle_tool_start_event
         elif event_type == "on_tool_end":
-            self._handle_tool_end_event(event, namespace)
+            handler = self._handle_tool_end_event
         elif event_type == "on_chat_model_stream":
-            self._handle_chat_model_stream_event(event, namespace)
+            handler = self._handle_chat_model_stream_event
         elif event_type == "on_chat_model_end":
-            self._handle_chat_model_end_event(event, namespace)
+            handler = self._handle_chat_model_end_event
         elif event_type == "on_custom_event" and event.get("name") == "tool_progress":
-            self._handle_tool_progress_event(event, namespace)
+            handler = self._handle_tool_progress_event
+
+        if handler is not None:
+            try:
+                handler(event, namespace)
+            except Exception:
+                self.logger.exception(
+                    f"[EVENT_ERROR] execution={self.execution_id} "
+                    f"event_type={event_type} namespace={namespace or 'main'} "
+                    f"run_id={event.get('run_id', '')}"
+                )
     
     def _handle_tool_start_event(self, event: dict[str, Any], namespace: str = "") -> None:
         """Handle on_tool_start event - updates local status."""
@@ -346,6 +369,18 @@ class StatusBuilder:
         # Try to register namespace for event routing (for sub-agent child events)
         if namespace:
             self._register_sub_agent_namespace(namespace)
+        
+        # ─────────────────────────────────────────────────────────────────────
+        # Early Tool Call Reconciliation (Live Write Streaming UX)
+        #
+        # If _create_early_tool_call already created a ToolCall for this
+        # invocation (from a tool_use stream block), reconcile it: populate
+        # args, register the real run_id alias, and handle approval — then
+        # return without creating a duplicate.
+        # ─────────────────────────────────────────────────────────────────────
+        early_tc = self._reconcile_early_tool_call(tool_name, run_id, tool_args, namespace)
+        if early_tc is not None:
+            return
         
         # Create component metadata
         component_type = infer_component_type(tool_name)
@@ -652,12 +687,19 @@ class StatusBuilder:
                     f"text={text_in_same_chunk[:100]!r}"
                 )
             elif not thinking_text and not text_in_same_chunk:
+                _EXPECTED_NON_TEXT_TYPES = frozenset({
+                    "thinking", "tool_use", "input_json_delta",
+                })
                 block_types = [
-                    b.get("type", "unknown") if isinstance(b, dict)
-                    else type(b).__name__
+                    self._block_attr(b, "type", type(b).__name__)
                     for b in chunk_data.content[:5]
                 ]
-                self.logger.info(
+                is_expected = (
+                    not block_types
+                    or all(bt in _EXPECTED_NON_TEXT_TYPES for bt in block_types)
+                )
+                log_fn = self.logger.debug if is_expected else self.logger.info
+                log_fn(
                     f"[STREAM_DIAG] List content with no thinking/text: "
                     f"execution={self.execution_id} "
                     f"run_id={event.get('run_id', '')} "
@@ -665,6 +707,20 @@ class StatusBuilder:
                     f"blocks={len(chunk_data.content)} "
                     f"block_types={block_types}"
                 )
+            
+            # ── Early Tool Call Creation ─────────────────────────────────────
+            # When a tool_use block appears in the stream, create the ToolCall
+            # right away so the CLI replaces the idle "Thinking…" indicator
+            # with the actual tool name (e.g. "Write: …").
+            _SKIP_EARLY_TOOLS = frozenset(PLANNING_TOOLS) | {"task"}
+            for block in chunk_data.content:
+                if self._block_attr(block, "type") == "tool_use":
+                    t_name = self._block_attr(block, "name")
+                    t_id = self._block_attr(block, "id")
+                    if t_name and t_name not in _SKIP_EARLY_TOOLS:
+                        self._create_early_tool_call(
+                            t_name, t_id, ns_key, namespace,
+                        )
             
             if thinking_text:
                 self._thinking_buffers[ns_key] = (
@@ -742,7 +798,11 @@ class StatusBuilder:
         messages_list.append(ai_message)
         
         if run_id:
-            self._llm_run_id_to_message[run_id] = ai_message
+            # Store the proto-managed reference, not the original.
+            # Protobuf repeated-message append copies the value; the
+            # original is disconnected.  Subsequent token appends must
+            # mutate the proto element so the CLI sees incremental content.
+            self._llm_run_id_to_message[run_id] = messages_list[-1]
         
         # Track start time for duration calculation
         new_message_index = len(messages_list) - 1
@@ -904,6 +964,10 @@ class StatusBuilder:
                     f"streamed={streamed_text[:200]!r} "
                     f"final={final_text[:200]!r}"
                 )
+                # Reconcile: overwrite with the authoritative final content
+                # so the CLI shows the complete message even if streaming
+                # was disrupted (e.g. by proto copy semantics).
+                ai_message.content = final_text
             elif final_text:
                 self.logger.debug(
                     f"[CONTENT_OK] execution={self.execution_id} run_id={run_id} "
@@ -1144,27 +1208,172 @@ class StatusBuilder:
         else:
             return call_str
     
+    @staticmethod
+    def _block_attr(block: Any, key: str, default: str = "") -> str:
+        """Read *key* from a content block regardless of whether it is a
+        ``dict`` or an object with attributes (e.g. a LangChain dataclass)."""
+        if isinstance(block, dict):
+            return block.get(key, default)
+        return getattr(block, key, default)
+
     def _extract_string_content(self, content_blocks: list) -> str:
-        """Extract text from multimodal content blocks."""
-        text_parts = []
+        """Extract text from multimodal content blocks.
+
+        Handles both dict blocks (``{"type": "text", "text": "..."}``}) and
+        attribute-based objects (``block.type == "text"``).
+        """
+        text_parts: list[str] = []
         for block in content_blocks:
-            if isinstance(block, dict) and block.get("type") == "text":
-                text_parts.append(block.get("text", ""))
+            if self._block_attr(block, "type") == "text":
+                text_parts.append(self._block_attr(block, "text"))
         return "".join(text_parts)
-    
+
     def _extract_thinking_content(self, content_blocks: list) -> str:
         """Extract thinking text from Anthropic extended-thinking content blocks.
 
         Returns the concatenated thinking text from all blocks with
         ``type: "thinking"``.  Returns an empty string when no thinking
         blocks are present (non-Anthropic models, or text/tool_use chunks).
+
+        Handles both dict blocks and attribute-based objects.
         """
         parts: list[str] = []
         for block in content_blocks:
-            if isinstance(block, dict) and block.get("type") == "thinking":
-                parts.append(block.get("thinking", ""))
+            if self._block_attr(block, "type") == "thinking":
+                parts.append(self._block_attr(block, "thinking"))
         return "".join(parts)
     
+    def _create_early_tool_call(
+        self, tool_name: str, tool_use_id: str, ns_key: str, namespace: str,
+    ) -> None:
+        """Create a ToolCall as soon as a ``tool_use`` block appears in the stream.
+
+        The CLI shows an idle "Thinking…" indicator when no events arrive
+        for ≥ 2 s.  While the LLM generates tool arguments (``input_json_delta``
+        chunks) the status builder has nothing to report, so the CLI falls
+        back to the idle indicator even though the model has already decided
+        to call a tool.
+
+        By creating the ToolCall here — before ``on_tool_start`` fires — the
+        CLI immediately displays the tool name with a running badge.  When
+        ``on_tool_start`` arrives, ``_handle_tool_start_event`` reconciles
+        the early ToolCall (populates args, registers the real run-ID alias)
+        instead of creating a duplicate.
+        """
+        if self._thinking_buffers.get(ns_key):
+            self._flush_thinking_buffer(ns_key, namespace)
+
+        temp_id = f"early-{tool_use_id or uuid4()}"
+
+        now = datetime.utcnow()
+        tool_call = ToolCall(
+            id=temp_id,
+            name=tool_name,
+            result="",
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+            is_streaming=True,
+            component_metadata=ComponentMetadata(
+                component_type=infer_component_type(tool_name),
+                component_group="main-agent-tools",
+            ),
+            started_at=_utc_timestamp(now),
+        )
+
+        tool_message = AgentMessage(
+            type=MessageType.MESSAGE_TOOL,
+            content="",
+            timestamp=_utc_timestamp(now),
+        )
+        tool_message.tool_calls.append(tool_call)
+
+        context, sub_agent = self._get_execution_context(namespace)
+        if sub_agent:
+            sub_agent.tool_calls.append(tool_call)
+            sub_agent.messages.append(tool_message)
+        else:
+            self.current_status.messages.append(tool_message)
+            self.current_status.tool_calls.append(tool_call)
+
+        self._early_tool_call_queue.append(temp_id)
+        self._tool_start_times[temp_id] = now
+
+        self.logger.debug(
+            f"[TOOL_EARLY] execution={self.execution_id} "
+            f"tool={tool_name} temp_id={temp_id} "
+            f"namespace={namespace or 'main'}"
+        )
+
+    def _reconcile_early_tool_call(
+        self,
+        tool_name: str,
+        run_id: str,
+        tool_args: dict[str, Any],
+        namespace: str,
+    ) -> ToolCall | None:
+        """Match an ``on_tool_start`` event to an early-created ToolCall.
+
+        Pops the first queued temp-ID whose ToolCall name matches
+        *tool_name*.  If found, the existing ToolCall is updated in place
+        (args populated, ``is_streaming`` cleared) and the real *run_id*
+        is registered as an alias so that downstream handlers
+        (``on_tool_end``, ``tool_progress``) resolve to the same proto.
+
+        Returns the reconciled ToolCall, or ``None`` if no match exists.
+        """
+        for idx, temp_id in enumerate(self._early_tool_call_queue):
+            existing = self._find_tool_call_by_id(temp_id)
+            if existing is None or existing.name != tool_name:
+                continue
+
+            self._early_tool_call_queue.pop(idx)
+
+            if tool_args:
+                args_struct = Struct()
+                args_struct.update(tool_args)
+                existing.args.CopyFrom(args_struct)
+
+            existing.is_streaming = False
+
+            approval = self._check_tool_approval_requirement(tool_name, tool_args)
+            if approval.requires_approval:
+                existing.status = ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
+                existing.requires_approval = True
+                existing.approval_message = render_approval_message(
+                    template=approval.message,
+                    tool_name=tool_name,
+                    tool_args=tool_args,
+                )
+                existing.approval_requested_at = _utc_timestamp(datetime.utcnow())
+
+            self._run_id_aliases[run_id] = temp_id
+            self._tool_start_times[run_id] = (
+                self._tool_start_times.pop(temp_id, None) or datetime.utcnow()
+            )
+
+            fingerprint = self._get_tool_fingerprint(tool_name, tool_args)
+            self._fingerprint_to_tool_call_id[fingerprint] = temp_id
+
+            self.logger.debug(
+                f"[TOOL_RECONCILE] execution={self.execution_id} "
+                f"tool={tool_name} run_id={run_id} -> temp_id={temp_id} "
+                f"namespace={namespace or 'main'}"
+            )
+
+            if approval.requires_approval:
+                _, sub_agent = self._get_execution_context(namespace)
+                self._populate_pending_approval(
+                    run_id=run_id,
+                    tool_name=tool_name,
+                    tool_args=tool_args,
+                    approval_message=existing.approval_message,
+                    from_sub_agent=sub_agent is not None,
+                    sub_agent_name=sub_agent.name if sub_agent else "",
+                )
+
+            return existing
+
+        return None
+
     def _start_thinking_stream(self, ns_key: str, namespace: str, initial_text: str) -> None:
         """Create a RUNNING ToolCall for native thinking and begin streaming.
 
@@ -1911,9 +2120,13 @@ class StatusBuilder:
             started_at=_utc_timestamp(now),
         )
         
-        # Track for namespace routing and lifecycle management
-        self._active_sub_agents[run_id] = sub_agent
+        # Append first, then store the proto-managed reference.
+        # Protobuf repeated-message append copies the value; the original
+        # object is disconnected from the proto.  By storing the element
+        # returned by the repeated field we ensure all later mutations
+        # (messages, tool_calls, usage) write to the actual status proto.
         self.current_status.sub_agent_executions.append(sub_agent)
+        self._active_sub_agents[run_id] = self.current_status.sub_agent_executions[-1]
         
         # Mark as pending for causal namespace registration.
         # The next multi-segment namespace will be associated with this sub-agent.
