@@ -819,3 +819,54 @@ class TestModuleExports:
         assert ModelMetadata is not None
         assert ModelRegistry is not None
         assert TokenCounterMethod is not None
+
+
+# =============================================================================
+# TestSupportsThinking - Tests for supports_thinking capability flag
+# =============================================================================
+
+
+class TestSupportsThinking:
+    """Tests for the supports_thinking field on ModelMetadata."""
+
+    def test_defaults_to_false(self):
+        """Test that supports_thinking defaults to False on ModelMetadata."""
+        metadata = ModelMetadata(
+            model_id="test-model",
+            provider="anthropic",
+            display_name="Test",
+            context_window_tokens=8192,
+            max_output_tokens=4096,
+            summarization_trigger_threshold=7000,
+            summarization_target_tokens=6000,
+            max_summary_tokens=500,
+            token_counter_method=TokenCounterMethod.APPROXIMATE,
+            cost_tier=CostTier.ECONOMY,
+        )
+        assert metadata.supports_thinking is False
+
+    @pytest.mark.parametrize("model_id", [
+        "claude-sonnet-4.6",
+        "claude-opus-4.5",
+        "claude-sonnet-4.5",
+        "claude-opus-4",
+    ])
+    def test_thinking_enabled_models(self, model_id):
+        """Test that supported models have supports_thinking=True."""
+        metadata = ModelRegistry.get(model_id)
+        assert metadata.supports_thinking is True, (
+            f"{model_id} should have supports_thinking=True"
+        )
+
+    @pytest.mark.parametrize("model_id", [
+        "claude-opus-4.6",
+        "claude-haiku-4",
+        "claude-sonnet-3.5",
+        "claude-haiku-3.5",
+    ])
+    def test_thinking_disabled_models(self, model_id):
+        """Test that unsupported models have supports_thinking=False."""
+        metadata = ModelRegistry.get(model_id)
+        assert metadata.supports_thinking is False, (
+            f"{model_id} should have supports_thinking=False"
+        )

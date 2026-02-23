@@ -110,6 +110,10 @@ class ModelMetadata:
         supports_tool_use: Whether the model supports function/tool calling
         supports_vision: Whether the model can process images
         supports_streaming: Whether the model supports streaming responses
+        supports_thinking: Whether the model supports Anthropic's manual extended
+            thinking (``type: "enabled"`` with ``budget_tokens``).  Models that
+            only support adaptive thinking (e.g. Opus 4.6) should leave this
+            False; adaptive thinking requires a different API shape.
     
     Example:
         >>> metadata = ModelMetadata(
@@ -166,6 +170,7 @@ class ModelMetadata:
     supports_tool_use: bool = True
     supports_vision: bool = False
     supports_streaming: bool = True
+    supports_thinking: bool = False
     
     def get_api_model_id(self) -> str:
         """Get the API model identifier to use when calling the provider.
@@ -283,6 +288,7 @@ class ModelRegistry:
             input_cost_per_1k=3.0,
             output_cost_per_1k=15.0,
             supports_vision=True,
+            supports_thinking=True,
         ),
         
         # --- Generation 4.5 ---
@@ -301,6 +307,7 @@ class ModelRegistry:
             input_cost_per_1k=5.0,
             output_cost_per_1k=25.0,
             supports_vision=True,
+            supports_thinking=True,
         ),
         "claude-sonnet-4.5": ModelMetadata(
             model_id="claude-sonnet-4.5",
@@ -317,6 +324,7 @@ class ModelRegistry:
             input_cost_per_1k=3.0,
             output_cost_per_1k=15.0,
             supports_vision=True,
+            supports_thinking=True,
         ),
         
         # --- Generation 4 ---
@@ -335,6 +343,7 @@ class ModelRegistry:
             input_cost_per_1k=15.0,
             output_cost_per_1k=75.0,
             supports_vision=True,
+            supports_thinking=True,
         ),
         "claude-haiku-4": ModelMetadata(
             model_id="claude-haiku-4",

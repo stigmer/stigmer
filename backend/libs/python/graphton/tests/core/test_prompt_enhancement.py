@@ -166,10 +166,18 @@ class TestEnhanceUserInstructions:
         enhanced = enhance_user_instructions("You are a test assistant.")
         assert "file system" in enhanced.lower()
 
-    def test_think_capability_always_included(self):
-        """Test that think tool capability is always included."""
+    def test_think_capability_included_without_native_thinking(self):
+        """Test that think tool capability is included when native thinking is off."""
         enhanced = enhance_user_instructions("You are a test assistant.")
         assert "think tool" in enhanced.lower()
+
+    def test_think_capability_excluded_with_native_thinking(self):
+        """Test that think tool capability is excluded when native thinking is on."""
+        enhanced = enhance_user_instructions(
+            "You are a test assistant.",
+            has_native_thinking=True,
+        )
+        assert "think tool" not in enhanced.lower()
 
     def test_file_recovery_always_included(self):
         """Test that file recovery strategies are always included."""
