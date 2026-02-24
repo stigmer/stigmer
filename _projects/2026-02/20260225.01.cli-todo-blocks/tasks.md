@@ -101,33 +101,46 @@ Add timestamps and notes to track your progress.
 
 ## Task 5: Wire todo handling in snapshot bridge (run_stream_snapshot.go)
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-02-25 00:30
+**Completed**: 2026-02-25 01:31
 
 ### Subtasks
-- [ ] [Add specific steps as you work]
+- [x] Add `convertProtoTodos(status.GetTodos())` call in `emitSnapshotEvents` after sub-agents, before DoneEvent
+- [x] Add `len(todos) > 0` guard for zero-cost skip on executions without todos
+- [x] Add `TestEmitSnapshotEvents_EmitsTodoUpdateEvent` — verifies emission with correct items and status mappings
+- [x] Add `TestEmitSnapshotEvents_NoTodoEvent_WhenNoTodos` — verifies suppression for todo-free executions
+- [x] Add `TestEmitSnapshotEvents_TodoEventBeforeDoneEvent` — verifies ordering invariant
+- [x] Build compiles cleanly, all tests pass
 
 ### Notes
-- [Add notes about this task here]
+- Reuses `convertProtoTodos` from Task 3 — no new conversion logic needed
+- No fingerprint diffing — snapshot has final state only, emitted once per execution
+- Placement mirrors streaming path's Step 1d position
+- Multi-execution sessions: in-place update gives "latest state wins" — acceptable for replay
+- 2 files changed, 117 lines added
+- Committed as `7a3d40e0` on `fix/cli-agent-execution-ux`
 
 ## Task 6: Verify build compiles
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-02-25 00:30
+**Completed**: 2026-02-25 01:31
 
 ### Subtasks
-- [ ] [Add specific steps as you work]
+- [x] `go build ./client-apps/cli/cmd/stigmer/root/...` passes
+- [x] All snapshot tests pass (including 3 new todo tests)
+- [x] 2 pre-existing failures unrelated to todo changes (`TestDisplayPendingApproval_WithArgsPreview`, `TestAllVerbs`)
 
 ### Notes
-- [Add notes about this task here]
+- Build verified as part of Task 5 implementation — no separate step needed
 
 
 ## Project Completion Checklist
 
 When all tasks are done:
-- [ ] All tasks marked ✅ DONE
-- [ ] Final testing completed
-- [ ] Documentation updated (if applicable)
+- [x] All tasks marked ✅ DONE
+- [x] Final testing completed
 - [ ] Code reviewed/validated
 - [ ] Ready for use/deployment
 
