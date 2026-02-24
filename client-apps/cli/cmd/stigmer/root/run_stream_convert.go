@@ -73,3 +73,39 @@ func findToolCallByID(
 	}
 	return nil
 }
+
+// mapTodoStatus converts a proto TodoStatus enum to the string representation
+// used by the TUI domain types. UNSPECIFIED maps to "pending" as a safe
+// fallback — the renderer shows an open circle, which is the least misleading
+// state for an unknown item.
+func mapTodoStatus(status agentexecutionv1.TodoStatus) string {
+	switch status {
+	case agentexecutionv1.TodoStatus_TODO_PENDING:
+		return "pending"
+	case agentexecutionv1.TodoStatus_TODO_IN_PROGRESS:
+		return "in_progress"
+	case agentexecutionv1.TodoStatus_TODO_COMPLETED:
+		return "completed"
+	case agentexecutionv1.TodoStatus_TODO_CANCELLED:
+		return "cancelled"
+	default:
+		return "pending"
+	}
+}
+
+// convertProtoTodos converts a proto todo map to a slice of TUI domain
+// TodoItems. Returns nil for empty or nil maps.
+func convertProtoTodos(todos map[string]*agentexecutionv1.TodoItem) []executiontui.TodoItem {
+	if len(todos) == 0 {
+		return nil
+	}
+	result := make([]executiontui.TodoItem, 0, len(todos))
+	for _, item := range todos {
+		result = append(result, executiontui.TodoItem{
+			ID:      item.GetId(),
+			Content: item.GetContent(),
+			Status:  mapTodoStatus(item.GetStatus()),
+		})
+	}
+	return result
+}
