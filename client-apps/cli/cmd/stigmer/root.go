@@ -15,11 +15,11 @@ var (
 
 var rootCmd = &cobra.Command{
 	Use:   "stigmer",
-	Short: "Stigmer - Workflow as Code",
+	Short: "Stigmer - Agentic Automation Platform",
 	Long: `Stigmer is an open-source agentic automation platform.
 
-Build AI agents and workflows with zero infrastructure.
-Run locally with BadgerDB or scale to production with Stigmer Cloud.`,
+Build, run, and orchestrate AI agents with zero infrastructure.
+Run locally or scale to production with Stigmer Cloud.`,
 	SilenceErrors: true,
 	SilenceUsage:  true,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
@@ -36,41 +36,51 @@ Run locally with BadgerDB or scale to production with Stigmer Cloud.`,
 }
 
 func init() {
-	// Add global debug flag
 	rootCmd.PersistentFlags().BoolVarP(&debugMode, "debug", "d", false, "enable debug mode with detailed logs")
 
-	// Add subcommands
-	rootCmd.AddCommand(root.NewCommand())
-	rootCmd.AddCommand(root.NewServerCommand())
-	rootCmd.AddCommand(root.NewBackendCommand())
-	rootCmd.AddCommand(root.NewConfigCommand())
+	rootCmd.AddGroup(
+		&cobra.Group{ID: "core", Title: "Core Commands:"},
+		&cobra.Group{ID: "resource", Title: "Resource Management:"},
+		&cobra.Group{ID: "artifact", Title: "Artifact Commands:"},
+		&cobra.Group{ID: "server", Title: "Server Commands:"},
+		&cobra.Group{ID: "config", Title: "Configuration:"},
+	)
 
-	// Unified verb-first commands (T03 + T04)
-	rootCmd.AddCommand(root.NewApplyCommand())
-	rootCmd.AddCommand(root.NewValidateCommand())
-	rootCmd.AddCommand(root.NewGetCommand())
-	rootCmd.AddCommand(root.NewListCommand())
-	rootCmd.AddCommand(root.NewDeleteCommand())
-	rootCmd.AddCommand(root.NewRunCommand())
-	rootCmd.AddCommand(root.NewSearchCommand())
-	rootCmd.AddCommand(root.NewPushCommand())
-	rootCmd.AddCommand(root.NewDownloadCommand())
+	// Core Commands
+	rootCmd.AddCommand(withGroup(root.NewCommand(), "core"))
+	rootCmd.AddCommand(withGroup(root.NewRunCommand(), "core"))
 
-	// AI-assisted resource creation
-	rootCmd.AddCommand(root.NewDraftCommand())
+	// Resource Management
+	rootCmd.AddCommand(withGroup(root.NewApplyCommand(), "resource"))
+	rootCmd.AddCommand(withGroup(root.NewGetCommand(), "resource"))
+	rootCmd.AddCommand(withGroup(root.NewListCommand(), "resource"))
+	rootCmd.AddCommand(withGroup(root.NewDeleteCommand(), "resource"))
+	rootCmd.AddCommand(withGroup(root.NewValidateCommand(), "resource"))
+	rootCmd.AddCommand(withGroup(root.NewSearchCommand(), "resource"))
+	rootCmd.AddCommand(withGroup(root.NewDraftCommand(), "resource"))
 
-	// Discoverability command (T05)
-	rootCmd.AddCommand(root.NewResourcesCommand())
+	// Artifact Commands
+	rootCmd.AddCommand(withGroup(root.NewPushCommand(), "artifact"))
+	rootCmd.AddCommand(withGroup(root.NewDownloadCommand(), "artifact"))
 
-	// MCP server (T06)
-	rootCmd.AddCommand(root.NewMCPServerCommand())
+	// Server Commands
+	rootCmd.AddCommand(withGroup(root.NewServerCommand(), "server"))
+	rootCmd.AddCommand(withGroup(root.NewMCPServerCommand(), "server"))
 
-	// Shell completion (T08)
-	rootCmd.AddCommand(root.NewCompletionCommand())
+	// Configuration
+	rootCmd.AddCommand(withGroup(root.NewBackendCommand(), "config"))
+	rootCmd.AddCommand(withGroup(root.NewConfigCommand(), "config"))
+	rootCmd.AddCommand(withGroup(root.NewResourcesCommand(), "config"))
+	rootCmd.AddCommand(withGroup(root.NewCompletionCommand(), "config"))
 
-	// Add hidden internal commands (used by daemon for BusyBox pattern)
+	// Hidden internal commands (no group needed)
 	rootCmd.AddCommand(root.NewInternalServerCommand())
 	rootCmd.AddCommand(root.NewInternalWorkflowRunnerCommand())
+}
+
+func withGroup(cmd *cobra.Command, groupID string) *cobra.Command {
+	cmd.GroupID = groupID
+	return cmd
 }
 
 // Execute runs the root command
