@@ -71,7 +71,13 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 	case ToolStreamDeltaEvent:
 		if idx, ok := m.runningTools[e.ToolCallID]; ok && idx < len(m.blocks) {
 			// Update the running tool block in-place with the streaming content.
+			// Force non-expandable so displayContent() uses the content field
+			// directly. Expandable blocks ignore content and return preview/full
+			// instead, which would hide in-flight streaming updates. The block
+			// reverts to expandable when the tool transitions to a terminal
+			// state via ToolCompletedEvent → updateToolBadge.
 			m.blocks[idx].content = renderStreamingTool(e.ToolCall, e.Content)
+			m.blocks[idx].expandable = false
 		}
 
 	case SystemMessageEvent:

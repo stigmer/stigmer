@@ -5038,3 +5038,189 @@ class TestLLMStreamIsolation:
         assert msgs[0].content == "I'll read files"
         assert msgs[1].content == "Let me start"
         assert msgs[2].content == "Now we begin"
+
+
+# =============================================================================
+# Tests for tool input streaming (input_json_delta → early ToolCall result)
+# =============================================================================
+
+
+class TestToolInputStreaming:
+    """Tests for streaming tool input content via input_json_delta blocks."""
+
+    def _tool_use_chunk(self, name: str, tool_id: str = "toolu_123"):
+        """Build a stream event containing a tool_use block."""
+        chunk = MagicMock()
+        chunk.content = [{"type": "tool_use", "name": name, "id": tool_id}]
+        return {
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk},
+            "metadata": {},
+        }
+
+    def _input_delta_chunk(self, partial_json: str):
+        """Build a stream event containing an input_json_delta block."""
+        chunk = MagicMock()
+        chunk.content = [{"type": "input_json_delta", "partial_json": partial_json}]
+        return {
+            "event": "on_chat_model_stream",
+            "data": {"chunk": chunk},
+            "metadata": {},
+        }
+
+    @pytest.mark.asyncio
+    async def test_write_tool_streams_content_into_result(self, status_builder):
+        """Accumulating input_json_delta fragments for a write tool should
+        extract the 'contents' field and stream it into tool_call.result."""
+        await status_builder.process_event(self._tool_use_chunk("write"))
+        assert len(status_builder.current_status.tool_calls) == 1
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.name == "write"
+        assert tc.result == ""
+        assert tc.is_streaming is True
+
+        await status_builder.process_event(
+            self._input_delta_chunk('{"path": "file.py", "contents": "def hello():\\n')
+        )
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.result == "def hello():\n"
+        assert tc.is_streaming is True
+
+    @pytest.mark.asyncio
+    async def test_incremental_delta_accumulation(self, status_builder):
+        """Multiple input_json_delta fragments should accumulate and the
+        extracted content should grow with each fragment."""
+        await status_builder.process_event(self._tool_use_chunk("write"))
+
+        await status_builder.process_event(self._input_delta_chunk('{"pa'))
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.result == ""
+
+        await status_builder.process_event(
+            self._input_delta_chunk('th": "f.py", "contents": "line1\\n')
+        )
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.result == "line1\n"
+
+        await status_builder.process_event(self._input_delta_chunk("line2"))
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.result == "line1\nline2"
+
+    @pytest.mark.asyncio
+    async def test_edit_tool_extracts_new_text(self, status_builder):
+        """Edit tools should extract from the 'new_text' field."""
+        await status_builder.process_event(self._tool_use_chunk("edit"))
+
+        await status_builder.process_event(
+            self._input_delta_chunk('{"path": "main.go", "new_text": "package main\\n')
+        )
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.result == "package main\n"
+
+    @pytest.mark.asyncio
+    async def test_unknown_tool_stays_empty(self, status_builder):
+        """Tools not in _TOOL_CONTENT_FIELDS should not stream any result."""
+        await status_builder.process_event(self._tool_use_chunk("read_file"))
+
+        await status_builder.process_event(
+            self._input_delta_chunk('{"path": "/tmp/test.txt"}')
+        )
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.result == ""
+
+    @pytest.mark.asyncio
+    async def test_reconcile_clears_result(self, status_builder):
+        """When on_tool_start fires, the early ToolCall's result should be
+        cleared and args populated from the complete data."""
+        await status_builder.process_event(self._tool_use_chunk("write"))
+        await status_builder.process_event(
+            self._input_delta_chunk('{"path": "f.py", "contents": "hello"}')
+        )
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.result == "hello"
+
+        tool_start_event = {
+            "event": "on_tool_start",
+            "name": "write",
+            "run_id": "run-abc",
+            "data": {"input": {"path": "f.py", "contents": "hello"}},
+            "metadata": {},
+        }
+        await status_builder.process_event(tool_start_event)
+
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.result == ""
+        assert tc.is_streaming is False
+        assert tc.args["path"] == "f.py"
+        assert tc.args["contents"] == "hello"
+
+    @pytest.mark.asyncio
+    async def test_trailing_escape_dropped(self, status_builder):
+        """A trailing backslash at a fragment boundary should be silently
+        dropped rather than producing garbled output."""
+        await status_builder.process_event(self._tool_use_chunk("write"))
+        await status_builder.process_event(
+            self._input_delta_chunk('{"path": "f.py", "contents": "abc\\')
+        )
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.result == "abc"
+
+    @pytest.mark.asyncio
+    async def test_unicode_escape_in_content(self, status_builder):
+        """Unicode escapes (\\uXXXX) in the content should be decoded."""
+        await status_builder.process_event(self._tool_use_chunk("write"))
+        await status_builder.process_event(
+            self._input_delta_chunk('{"path": "f.py", "contents": "caf\\u00e9"}')
+        )
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.result == "café"
+
+
+class TestPartialJsonHelpers:
+    """Unit tests for the module-level JSON extraction helpers."""
+
+    def test_find_field_with_space(self):
+        from worker.activities.graphton.status_builder import _find_json_string_value_start
+        s = '{"contents": "hello"}'
+        idx = _find_json_string_value_start(s, "contents")
+        assert idx >= 0
+        assert s[idx:idx+5] == "hello"
+
+    def test_find_field_without_space(self):
+        from worker.activities.graphton.status_builder import _find_json_string_value_start
+        s = '{"contents":"hello"}'
+        idx = _find_json_string_value_start(s, "contents")
+        assert idx >= 0
+        assert s[idx:idx+5] == "hello"
+
+    def test_find_field_not_present(self):
+        from worker.activities.graphton.status_builder import _find_json_string_value_start
+        assert _find_json_string_value_start('{"path": "f.py"}', "contents") == -1
+
+    def test_find_field_incomplete_value(self):
+        from worker.activities.graphton.status_builder import _find_json_string_value_start
+        assert _find_json_string_value_start('{"contents": ', "contents") == -1
+
+    def test_unescape_basic(self):
+        from worker.activities.graphton.status_builder import _json_unescape_partial
+        assert _json_unescape_partial('hello\\nworld') == "hello\nworld"
+
+    def test_unescape_stops_at_quote(self):
+        from worker.activities.graphton.status_builder import _json_unescape_partial
+        assert _json_unescape_partial('hello", "other') == "hello"
+
+    def test_unescape_trailing_backslash(self):
+        from worker.activities.graphton.status_builder import _json_unescape_partial
+        assert _json_unescape_partial('abc\\') == "abc"
+
+    def test_unescape_tab_and_escaped_quote(self):
+        from worker.activities.graphton.status_builder import _json_unescape_partial
+        assert _json_unescape_partial('a\\tb\\"c') == 'a\tb"c'
+
+    def test_unescape_unicode(self):
+        from worker.activities.graphton.status_builder import _json_unescape_partial
+        assert _json_unescape_partial("caf\\u00e9") == "café"
+
+    def test_unescape_incomplete_unicode(self):
+        from worker.activities.graphton.status_builder import _json_unescape_partial
+        assert _json_unescape_partial("caf\\u00") == "caf"
