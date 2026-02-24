@@ -45,6 +45,7 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 		toolCallStates   = make(map[string]string)            // toolCallID -> last known status string
 		toolCallResults  = make(map[string]string)            // toolCallID -> last known result content (for streaming delta detection)
 		subAgentTrackers = make(map[string]*subAgentTracker)  // subAgentID -> per-sub-agent state
+		prevTodos        = make(map[string]todoFingerprint)  // todoID -> {content, status} for change detection
 	)
 
 	for {
@@ -102,6 +103,15 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 		// visual indent under the parent "task" tool block.
 		if subs := execution.Status.GetSubAgentExecutions(); len(subs) > 0 {
 			subAgentTrackers = emitSubAgentEvents(cfg.events, subs, subAgentTrackers)
+		}
+
+		// --- Step 1d: Todo list changes ---
+		//
+		// Detect changes in the execution's todo map and emit a TodoUpdateEvent
+		// when items are added, removed, or updated. The guard avoids calling
+		// into the diff function for executions that never use todos.
+		if todos := execution.Status.GetTodos(); len(todos) > 0 || len(prevTodos) > 0 {
+			prevTodos = emitTodoEvents(cfg.events, todos, prevTodos)
 		}
 
 		// --- Step 2: Phase change events ---
@@ -395,6 +405,69 @@ func isTrackedToolMessage(msg *agentexecutionv1.AgentMessage, trackedTools map[s
 			if _, tracked := trackedTools[tc.Id]; tracked {
 				return true
 			}
+		}
+	}
+	return false
+}
+
+// todoFingerprint captures the comparable state of a single todo item for
+// change detection between stream updates. When any field changes, a
+// TodoUpdateEvent is emitted with the full snapshot.
+type todoFingerprint struct {
+	content string
+	status  string
+}
+
+// emitTodoEvents compares the current proto todo map against the previous
+// fingerprint snapshot and emits a TodoUpdateEvent if anything changed.
+// Returns the new fingerprint map for tracking across stream iterations.
+//
+// The function follows the same diff-and-emit pattern as emitToolCallStateEvents:
+// build a lightweight snapshot, compare, emit on change.
+func emitTodoEvents(
+	events chan<- executiontui.Event,
+	protoTodos map[string]*agentexecutionv1.TodoItem,
+	prev map[string]todoFingerprint,
+) map[string]todoFingerprint {
+	current := buildTodoFingerprints(protoTodos)
+	if !todoFingerprintsChanged(prev, current) {
+		return prev
+	}
+
+	log.Debug().
+		Int("todo_count", len(protoTodos)).
+		Msg("[stream] todo change detected — emitting TodoUpdateEvent")
+
+	events <- executiontui.TodoUpdateEvent{
+		Todos: convertProtoTodos(protoTodos),
+	}
+	return current
+}
+
+// buildTodoFingerprints creates a fingerprint map from the proto todo map.
+// Each entry captures the content and status as domain strings, enabling
+// cheap structural comparison via Go's == operator on the comparable struct.
+func buildTodoFingerprints(todos map[string]*agentexecutionv1.TodoItem) map[string]todoFingerprint {
+	fp := make(map[string]todoFingerprint, len(todos))
+	for id, item := range todos {
+		fp[id] = todoFingerprint{
+			content: item.GetContent(),
+			status:  mapTodoStatus(item.GetStatus()),
+		}
+	}
+	return fp
+}
+
+// todoFingerprintsChanged returns true if the two fingerprint maps differ
+// in length or in any key's value. This detects additions, removals, status
+// changes, and content edits.
+func todoFingerprintsChanged(prev, current map[string]todoFingerprint) bool {
+	if len(prev) != len(current) {
+		return true
+	}
+	for k, v := range current {
+		if prev[k] != v {
+			return true
 		}
 	}
 	return false
