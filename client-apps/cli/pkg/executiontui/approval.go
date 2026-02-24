@@ -78,7 +78,7 @@ func (m Model) handleApprovalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			case "reject":
 				newState = "failed"
 			}
-			m.updateToolBadge(toolCallID, *tc, newState)
+			m.updateToolBadge(toolCallID, *tc, newState, m.blocks[idx].subAgentID)
 		}
 	}
 

@@ -23,7 +23,9 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 		m.blocks = append(m.blocks, newHumanBlock(renderHumanContent(e.Content)))
 
 	case AIMessageEvent:
-		m.blocks = append(m.blocks, newAIBlock(renderAIContent(e.Content, e.ToolCalls)))
+		b := newAIBlock(renderAIContent(e.Content, e.ToolCalls))
+		b.subAgentID = e.SubAgentID
+		m.blocks = append(m.blocks, b)
 
 	case AIStreamStartEvent:
 		m.blocks = append(m.blocks, newAIBlock(renderStreamingAI(e.Content)))
@@ -59,13 +61,13 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 		m.blocks = append(m.blocks, newToolCallBlock(preview, full))
 
 	case ToolRunningEvent:
-		m.updateToolBadge(e.ToolCallID, e.ToolCall, "running")
+		m.updateToolBadge(e.ToolCallID, e.ToolCall, "running", e.SubAgentID)
 
 	case ToolWaitingApprovalEvent:
-		m.updateToolBadge(e.ToolCallID, e.ToolCall, "waiting_approval")
+		m.updateToolBadge(e.ToolCallID, e.ToolCall, "waiting_approval", e.SubAgentID)
 
 	case ToolCompletedEvent:
-		m.updateToolBadge(e.ToolCallID, e.ToolCall, e.ToolCall.Status)
+		m.updateToolBadge(e.ToolCallID, e.ToolCall, e.ToolCall.Status, e.SubAgentID)
 		delete(m.runningTools, e.ToolCallID)
 
 	case ToolStreamDeltaEvent:
@@ -78,6 +80,7 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 			// state via ToolCompletedEvent → updateToolBadge.
 			m.blocks[idx].content = renderStreamingTool(e.ToolCall, e.Content)
 			m.blocks[idx].expandable = false
+			m.blocks[idx].subAgentID = e.SubAgentID
 		}
 
 	case SystemMessageEvent:
@@ -106,7 +109,7 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 		// manually if needed. The footer shows [a]/[s]/[r].
 		if idx, ok := m.runningTools[e.ToolCallID]; ok && idx < len(m.blocks) {
 			if tc := m.blocks[idx].toolCall; tc != nil {
-				m.updateToolBadge(e.ToolCallID, *tc, "waiting_approval")
+				m.updateToolBadge(e.ToolCallID, *tc, "waiting_approval", m.blocks[idx].subAgentID)
 			}
 		}
 
@@ -204,14 +207,17 @@ func (m Model) handleStreamClosed() (tea.Model, tea.Cmd) {
 // If no block exists, a new one is appended.
 //
 // All transitions simply swap the badge; the expand/collapse state is always
-// preserved from before the update.
-func (m *Model) updateToolBadge(toolCallID string, tc toolrender.ToolCallInfo, state string) {
+// preserved from before the update. The subAgentID is propagated to the block
+// so sub-agent tool calls render with the visual indent.
+func (m *Model) updateToolBadge(toolCallID string, tc toolrender.ToolCallInfo, state, subAgentID string) {
 	if idx, ok := m.runningTools[toolCallID]; ok && idx < len(m.blocks) {
 		wasExpanded := m.blocks[idx].expanded
 		m.blocks[idx] = newStatefulToolBlock(tc, toolCallID, state)
 		m.blocks[idx].expanded = wasExpanded
+		m.blocks[idx].subAgentID = subAgentID
 	} else {
 		block := newStatefulToolBlock(tc, toolCallID, state)
+		block.subAgentID = subAgentID
 		m.blocks = append(m.blocks, block)
 		m.runningTools[toolCallID] = len(m.blocks) - 1
 	}
@@ -231,8 +237,10 @@ func (m *Model) finalizeRunningTools() {
 			tc := *b.toolCall
 			tc.Status = "completed"
 			wasExpanded := b.expanded
+			savedSubAgentID := b.subAgentID
 			m.blocks[idx] = newStatefulToolBlock(tc, toolCallID, "completed")
 			m.blocks[idx].expanded = wasExpanded
+			m.blocks[idx].subAgentID = savedSubAgentID
 		} else {
 			m.blocks[idx].content = renderToolFinalized(m.blocks[idx].content)
 		}

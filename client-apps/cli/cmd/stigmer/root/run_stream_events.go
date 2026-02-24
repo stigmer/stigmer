@@ -38,12 +38,13 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 	defer close(cfg.events)
 
 	var (
-		displayedCount  int
-		inStream        bool
-		lastPhase       agentexecutionv1.ExecutionPhase
-		promptedIDs     = make(map[string]bool)
-		toolCallStates  = make(map[string]string) // toolCallID -> last known status string
-		toolCallResults = make(map[string]string) // toolCallID -> last known result content (for streaming delta detection)
+		displayedCount   int
+		inStream         bool
+		lastPhase        agentexecutionv1.ExecutionPhase
+		promptedIDs      = make(map[string]bool)
+		toolCallStates   = make(map[string]string)            // toolCallID -> last known status string
+		toolCallResults  = make(map[string]string)            // toolCallID -> last known result content (for streaming delta detection)
+		subAgentTrackers = make(map[string]*subAgentTracker)  // subAgentID -> per-sub-agent state
 	)
 
 	for {
@@ -70,6 +71,7 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 			Str("phase", execution.Status.GetPhase().String()).
 			Int("messages", len(execution.Status.GetMessages())).
 			Int("tool_calls", len(execution.Status.GetToolCalls())).
+			Int("sub_agents", len(execution.Status.GetSubAgentExecutions())).
 			Int("pending_approvals", len(execution.Status.GetPendingApprovals())).
 			Msg("[stream] received execution update")
 
@@ -92,6 +94,15 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 		displayedCount, inStream = emitMessageEvents(
 			cfg.events, messages, displayedCount, inStream, toolCallStates,
 		)
+
+		// --- Step 1c: Sub-agent activity ---
+		//
+		// Process sub-agent executions for nested tool calls and messages.
+		// Events emitted here carry SubAgentID so the TUI renders them with
+		// visual indent under the parent "task" tool block.
+		if subs := execution.Status.GetSubAgentExecutions(); len(subs) > 0 {
+			subAgentTrackers = emitSubAgentEvents(cfg.events, subs, subAgentTrackers)
+		}
 
 		// --- Step 2: Phase change events ---
 		//

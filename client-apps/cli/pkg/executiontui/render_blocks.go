@@ -218,7 +218,30 @@ func renderedBlockText(b contentBlock, blockIdx, focusedIdx int) string {
 	if b.expandable {
 		text = decorateExpandableBlock(text, b.expanded, blockIdx == focusedIdx)
 	}
+	if b.subAgentID != "" {
+		text = indentSubAgentBlock(text)
+	}
 	return text
+}
+
+// subAgentIndent is the visual prefix for the first line of a sub-agent block.
+// Subsequent lines are indented to align with the content after the prefix.
+const subAgentIndent = "  ↳ "
+
+// subAgentContinuation is the indent for continuation lines within a sub-agent
+// block. It aligns with the content portion of subAgentIndent (4 characters).
+const subAgentContinuation = "    "
+
+// indentSubAgentBlock visually nests a block under its parent task tool block.
+// The first line gets a "  ↳ " prefix; subsequent lines are aligned with
+// matching whitespace.
+func indentSubAgentBlock(text string) string {
+	lines := strings.Split(text, "\n")
+	lines[0] = subAgentIndent + lines[0]
+	for i := 1; i < len(lines); i++ {
+		lines[i] = subAgentContinuation + lines[i]
+	}
+	return strings.Join(lines, "\n")
 }
 
 // rebuildViewportContent concatenates all blocks into a single string for the
