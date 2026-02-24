@@ -12,6 +12,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/session"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"google.golang.org/grpc"
 )
@@ -97,7 +98,7 @@ func resumeSession(sessionID, orgID string, executions []*agentexecutionv1.Agent
 	copy(chronological, executions)
 	slices.Reverse(chronological)
 
-	blocks := executiontui.BuildSessionReplayBlocks(chronological)
+	blocks := executiontui.BuildSessionReplayBlocks(chronological, display.GetTerminalWidth())
 	latestExec := executions[0]
 	latestExecID := latestExec.GetMetadata().GetId()
 

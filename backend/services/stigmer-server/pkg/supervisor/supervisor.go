@@ -58,6 +58,7 @@ type Supervisor struct {
 type Config struct {
 	DataDir             string
 	LogDir              string
+	LogLevel            string // Log level propagated to all child components (default: INFO)
 	TemporalAddr        string
 	StigmerServerPort   int
 	ArtifactHTTPPort    int // Port for the artifact HTTP file server (default: StigmerServerPort + 1)
@@ -173,7 +174,7 @@ func (s *Supervisor) startWorkflowRunner() error {
 		fmt.Sprintf("STIGMER_BACKEND_ENDPOINT=localhost:%d", s.config.StigmerServerPort),
 		"STIGMER_API_KEY=dummy-local-key",
 		"STIGMER_SERVICE_USE_TLS=false",
-		"LOG_LEVEL=DEBUG",
+		fmt.Sprintf("LOG_LEVEL=%s", s.config.LogLevel),
 		"ENV=local",
 	)
 
@@ -283,7 +284,7 @@ func (s *Supervisor) startAgentRunner() error {
 		"-e", "TASK_QUEUE=agent_execution_runner",
 		"-e", "SANDBOX_TYPE=filesystem",
 		"-e", "WORKSPACE_ROOT=/workspace",
-		"-e", "LOG_LEVEL=DEBUG",
+		"-e", fmt.Sprintf("LOG_LEVEL=%s", s.config.LogLevel),
 		"-e", fmt.Sprintf("STIGMER_LLM_PROVIDER=%s", s.config.LLMProvider),
 		"-e", fmt.Sprintf("STIGMER_LLM_MODEL=%s", s.config.LLMModel),
 		"-e", fmt.Sprintf("STIGMER_LLM_BASE_URL=%s", llmBaseURL),

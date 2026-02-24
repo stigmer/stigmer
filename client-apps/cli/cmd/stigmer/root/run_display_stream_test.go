@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/charmbracelet/x/ansi"
+
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 )
 
@@ -506,4 +508,94 @@ func assertDisplayedCount(t *testing.T, r *messageStreamRenderer, want int) {
 	if r.displayedCount != want {
 		t.Errorf("displayedCount = %d, want %d", r.displayedCount, want)
 	}
+}
+
+// =============================================================================
+// Markdown Rendering Tests (Complete Messages)
+// =============================================================================
+
+func TestRenderer_CompleteAI_MarkdownHeader(t *testing.T) {
+	var buf bytes.Buffer
+	r := newMessageStreamRenderer(&buf)
+
+	content := "# Analysis Results\n\nThe code looks good."
+	msgs := []*agentexecutionv1.AgentMessage{
+		makeMessage(agentexecutionv1.MessageType_MESSAGE_AI, content, false),
+	}
+
+	rendered, streaming := r.render(msgs)
+	assertFlags(t, rendered, true, streaming, false)
+
+	output := buf.String()
+	plain := ansi.Strip(output)
+
+	if !strings.Contains(plain, "Agent:") {
+		t.Error("should contain agent prefix")
+	}
+	if !strings.Contains(plain, "Analysis Results") {
+		t.Errorf("should contain header text, got: %q", plain)
+	}
+	if strings.Contains(plain, "# ") {
+		t.Error("raw markdown header prefix should not appear in rendered output")
+	}
+	assertDisplayedCount(t, r, 1)
+}
+
+func TestRenderer_CompleteAI_MarkdownBold(t *testing.T) {
+	var buf bytes.Buffer
+	r := newMessageStreamRenderer(&buf)
+
+	content := "Found **3 issues** in the codebase."
+	msgs := []*agentexecutionv1.AgentMessage{
+		makeMessage(agentexecutionv1.MessageType_MESSAGE_AI, content, false),
+	}
+
+	rendered, streaming := r.render(msgs)
+	assertFlags(t, rendered, true, streaming, false)
+
+	plain := ansi.Strip(buf.String())
+	if !strings.Contains(plain, "3 issues") {
+		t.Errorf("should contain bold text content, got: %q", plain)
+	}
+	if strings.Contains(plain, "**") {
+		t.Error("raw bold markers should not appear in rendered output")
+	}
+}
+
+func TestRenderer_CompleteAI_PlainTextKeepsInlinePrefix(t *testing.T) {
+	var buf bytes.Buffer
+	r := newMessageStreamRenderer(&buf)
+
+	msgs := []*agentexecutionv1.AgentMessage{
+		makeMessage(agentexecutionv1.MessageType_MESSAGE_AI, "Sure, I can help.", false),
+	}
+
+	r.render(msgs)
+
+	output := buf.String()
+	if !strings.Contains(output, "🤖 Agent: Sure, I can help.") {
+		t.Errorf("plain text should use inline prefix, got: %q", output)
+	}
+}
+
+func TestRenderer_LateSubscription_MarkdownRendered(t *testing.T) {
+	var buf bytes.Buffer
+	r := newMessageStreamRenderer(&buf)
+
+	msgs := []*agentexecutionv1.AgentMessage{
+		makeMessage(agentexecutionv1.MessageType_MESSAGE_HUMAN, "analyze this", false),
+		makeMessage(agentexecutionv1.MessageType_MESSAGE_AI, "## Summary\n\n- Issue 1\n- Issue 2", false),
+	}
+
+	rendered, streaming := r.render(msgs)
+	assertFlags(t, rendered, true, streaming, false)
+
+	plain := ansi.Strip(buf.String())
+	if !strings.Contains(plain, "Summary") {
+		t.Errorf("should contain header text, got: %q", plain)
+	}
+	if !strings.Contains(plain, "Issue 1") {
+		t.Errorf("should contain list items, got: %q", plain)
+	}
+	assertDisplayedCount(t, r, 2)
 }

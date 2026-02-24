@@ -178,6 +178,11 @@ var toolDisplayMap = map[string]toolDisplayInfo{
 
 	// Agent reasoning — content is the thought from args, not the result ("ok")
 	"think": {icon: "💭", label: "Thinking", preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "thought"},
+
+	// Sub-agent delegation — the "task" tool spawns an isolated sub-agent.
+	// primaryField is "description" (the short label); "prompt" is the full
+	// instruction but too long for the header.
+	"task": {icon: "🔀", label: "Task", primaryField: "description", fallbackFields: []string{"prompt"}},
 }
 
 // Styles for tool call rendering.

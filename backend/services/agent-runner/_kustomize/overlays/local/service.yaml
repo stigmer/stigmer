@@ -10,7 +10,7 @@ spec:
           ENV:
             value: local
           LOG_LEVEL:
-            value: DEBUG
+            value: INFO
           # Temporal Configuration (using external endpoints for local development)
           TEMPORAL_SERVICE_ADDRESS:
             value: localhost:7233
