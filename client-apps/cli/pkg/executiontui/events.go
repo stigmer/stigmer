@@ -170,6 +170,32 @@ type StreamErrorEvent struct {
 
 func (StreamErrorEvent) isEvent() {}
 
+// TodoItem represents a single todo/planning item from the agent's task list.
+// This is the domain type used within the TUI — the bridge layer converts
+// proto TodoItem messages into this type.
+type TodoItem struct {
+	// ID is the unique identifier for this todo item.
+	ID string
+
+	// Content is the task description.
+	Content string
+
+	// Status is the current state: "pending", "in_progress", "completed",
+	// or "cancelled". Matches the string-based status pattern used by
+	// tool call lifecycle tracking.
+	Status string
+}
+
+// TodoUpdateEvent carries the full current todo list. Emitted when the
+// bridge layer detects any change in the execution's todos map. The TUI
+// replaces the todo block content entirely with the new state — no
+// per-item diffing is needed on the TUI side.
+type TodoUpdateEvent struct {
+	Todos []TodoItem
+}
+
+func (TodoUpdateEvent) isEvent() {}
+
 // ApprovalResponse carries the user's approval decision back to the gRPC
 // goroutine. Action is one of "approve", "skip", "reject". Comment is an
 // optional reason (currently unused; reserved for future rejection reasons).
