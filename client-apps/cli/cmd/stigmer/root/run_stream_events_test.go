@@ -136,7 +136,7 @@ func TestEmitToolCallStateEvents_FirstTimeTerminal_EmitsCompleted(t *testing.T) 
 		},
 	}
 
-	newStates, _ := emitToolCallStateEvents(events, toolCalls, prevStates, prevResults)
+	newStates, _ := emitToolCallStateEvents(events, toolCalls, prevStates, prevResults, "")
 
 	// Should have emitted exactly one event.
 	select {
@@ -178,7 +178,7 @@ func TestEmitToolCallStateEvents_FirstTimeTerminalFailed_EmitsCompleted(t *testi
 		},
 	}
 
-	emitToolCallStateEvents(events, toolCalls, prevStates, prevResults)
+	emitToolCallStateEvents(events, toolCalls, prevStates, prevResults, "")
 
 	select {
 	case evt := <-events:
@@ -207,7 +207,7 @@ func TestEmitToolCallStateEvents_FirstTimeRunning_EmitsRunning(t *testing.T) {
 		},
 	}
 
-	emitToolCallStateEvents(events, toolCalls, prevStates, prevResults)
+	emitToolCallStateEvents(events, toolCalls, prevStates, prevResults, "")
 
 	select {
 	case evt := <-events:

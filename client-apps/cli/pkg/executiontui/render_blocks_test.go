@@ -475,3 +475,75 @@ func TestNewTodoBlock_DisplayContent(t *testing.T) {
 		t.Errorf("collapsed displayContent() = %q, want preview", got)
 	}
 }
+
+// =============================================================================
+// hasMultipleSubAgents Tests
+// =============================================================================
+
+func TestHasMultipleSubAgents_NoSubAgents(t *testing.T) {
+	blocks := []contentBlock{
+		{content: "top-level block"},
+		{content: "another top-level"},
+	}
+	if hasMultipleSubAgents(blocks) {
+		t.Error("expected false when no blocks have subAgentID")
+	}
+}
+
+func TestHasMultipleSubAgents_SingleSubAgent(t *testing.T) {
+	blocks := []contentBlock{
+		{content: "top-level"},
+		{content: "sub-agent block", subAgentID: "sa-1"},
+		{content: "another from same", subAgentID: "sa-1"},
+	}
+	if hasMultipleSubAgents(blocks) {
+		t.Error("expected false when all sub-agent blocks share the same ID")
+	}
+}
+
+func TestHasMultipleSubAgents_MultipleSubAgents(t *testing.T) {
+	blocks := []contentBlock{
+		{content: "from sa-1", subAgentID: "sa-1"},
+		{content: "from sa-2", subAgentID: "sa-2"},
+	}
+	if !hasMultipleSubAgents(blocks) {
+		t.Error("expected true when blocks have 2+ distinct sub-agent IDs")
+	}
+}
+
+func TestHasMultipleSubAgents_EmptyBlocks(t *testing.T) {
+	if hasMultipleSubAgents(nil) {
+		t.Error("expected false for nil blocks")
+	}
+	if hasMultipleSubAgents([]contentBlock{}) {
+		t.Error("expected false for empty blocks")
+	}
+}
+
+// =============================================================================
+// renderedBlockText nesting suppression Tests
+// =============================================================================
+
+func TestRenderedBlockText_SingleSubAgent_NoIndent(t *testing.T) {
+	b := contentBlock{content: "tool output", subAgentID: "sa-1"}
+	text := renderedBlockText(b, 0, -1, false)
+	if strings.Contains(text, "↳") {
+		t.Error("expected no ↳ indent when nestSubAgents=false")
+	}
+}
+
+func TestRenderedBlockText_MultipleSubAgents_HasIndent(t *testing.T) {
+	b := contentBlock{content: "tool output", subAgentID: "sa-1"}
+	text := renderedBlockText(b, 0, -1, true)
+	if !strings.Contains(text, "↳") {
+		t.Error("expected ↳ indent when nestSubAgents=true")
+	}
+}
+
+func TestRenderedBlockText_TopLevel_NeverIndented(t *testing.T) {
+	b := contentBlock{content: "top-level block"}
+	text := renderedBlockText(b, 0, -1, true)
+	if strings.Contains(text, "↳") {
+		t.Error("top-level block should never get ↳ indent")
+	}
+}

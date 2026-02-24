@@ -306,11 +306,16 @@ func phaseDisplayText(phase, previous string) string {
 // including expand/collapse decorations for expandable blocks. Returns an empty
 // string for blocks that should be skipped (empty content).
 //
+// nestSubAgents controls whether blocks with a non-empty subAgentID receive
+// the visual indent prefix. When false (single sub-agent scenario), the indent
+// is suppressed because the sub-agent distinction is an implementation detail
+// that adds visual noise without conveying useful information to the user.
+//
 // This function is the single source of truth for how a block renders in the
 // viewport. Both rebuildViewportContent (for the full viewport string) and
 // blockStartLine (for scroll-into-view line computation) use it to ensure
 // consistent layout.
-func renderedBlockText(b contentBlock, blockIdx, focusedIdx int) string {
+func renderedBlockText(b contentBlock, blockIdx, focusedIdx int, nestSubAgents bool) string {
 	text := b.displayContent()
 	if text == "" {
 		return ""
@@ -318,10 +323,31 @@ func renderedBlockText(b contentBlock, blockIdx, focusedIdx int) string {
 	if b.expandable {
 		text = decorateExpandableBlock(text, b.expanded, blockIdx == focusedIdx)
 	}
-	if b.subAgentID != "" {
+	if nestSubAgents && b.subAgentID != "" {
 		text = indentSubAgentBlock(text)
 	}
 	return text
+}
+
+// hasMultipleSubAgents returns true when blocks contain entries from 2+ distinct
+// sub-agents. When only one sub-agent exists, the ↳ nesting prefix is suppressed
+// because the sub-agent distinction is an implementation detail that leaks
+// internal architecture to the user without adding value.
+func hasMultipleSubAgents(blocks []contentBlock) bool {
+	var first string
+	for _, b := range blocks {
+		if b.subAgentID == "" {
+			continue
+		}
+		if first == "" {
+			first = b.subAgentID
+			continue
+		}
+		if b.subAgentID != first {
+			return true
+		}
+	}
+	return false
 }
 
 // subAgentIndent is the visual prefix for the first line of a sub-agent block.
@@ -352,6 +378,10 @@ func indentSubAgentBlock(text string) string {
 //   - ▼ suffix when expanded (can be collapsed)
 //   - ▸ prefix when the block has keyboard focus
 //
+// Sub-agent blocks receive the ↳ indent prefix only when multiple distinct
+// sub-agents are present. Single-agent executions suppress the indent because
+// the sub-agent distinction is an implementation detail.
+//
 // focusedIndex is the index into blocks of the currently focused expandable
 // block, or -1 when no block is focused.
 func rebuildViewportContent(blocks []contentBlock, focusedIndex int) string {
@@ -359,9 +389,10 @@ func rebuildViewportContent(blocks []contentBlock, focusedIndex int) string {
 		return ""
 	}
 
+	nest := hasMultipleSubAgents(blocks)
 	var parts []string
 	for i, b := range blocks {
-		text := renderedBlockText(b, i, focusedIndex)
+		text := renderedBlockText(b, i, focusedIndex, nest)
 		if text == "" {
 			continue
 		}

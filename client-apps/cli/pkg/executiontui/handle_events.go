@@ -28,10 +28,13 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 		m.blocks = append(m.blocks, b)
 
 	case AIStreamStartEvent:
-		m.blocks = append(m.blocks, newAIBlock(renderStreamingAI(e.Content)))
+		b := newAIBlock(renderStreamingAI(e.Content))
+		b.subAgentID = e.SubAgentID
+		m.blocks = append(m.blocks, b)
 		m.streaming = &streamingState{
-			content:  e.Content,
-			blockIdx: len(m.blocks) - 1,
+			content:    e.Content,
+			blockIdx:   len(m.blocks) - 1,
+			subAgentID: e.SubAgentID,
 		}
 
 	case AIStreamDeltaEvent:
@@ -51,7 +54,9 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 		// Uses the tracked blockIdx for the same reason as AIStreamDeltaEvent:
 		// tool blocks may have been appended after the streaming block.
 		if m.streaming != nil && m.streaming.blockIdx < len(m.blocks) {
-			m.blocks[m.streaming.blockIdx] = newAIBlock(renderAIContent(e.Content, e.ToolCalls, m.width))
+			b := newAIBlock(renderAIContent(e.Content, e.ToolCalls, m.width))
+			b.subAgentID = e.SubAgentID
+			m.blocks[m.streaming.blockIdx] = b
 		}
 		m.streaming = nil
 
