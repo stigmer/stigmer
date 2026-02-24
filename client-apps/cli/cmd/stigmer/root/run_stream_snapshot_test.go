@@ -401,3 +401,217 @@ func TestSnapshotToEvents_DoneEvent_CarriesPhaseAndError(t *testing.T) {
 	}
 	t.Fatal("expected a DoneEvent with phase and error info")
 }
+
+// =============================================================================
+// Timeline interleaving: thinking blocks placed chronologically
+// =============================================================================
+
+func TestEmitSnapshotEvents_ThinkingBlockBeforeAIMessage(t *testing.T) {
+	// Simulates the real scenario: thinking arrives before the AI response,
+	// appears only in tool_calls[] (not in messages[]), and should be
+	// interleaved before the AI message based on its started_at timestamp.
+	exec := makeExecution(
+		agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
+		[]*agentexecutionv1.AgentMessage{
+			{Type: agentexecutionv1.MessageType_MESSAGE_HUMAN, Content: "Create a skill", Timestamp: "2026-02-24T10:00:00Z"},
+			{Type: agentexecutionv1.MessageType_MESSAGE_AI, Content: "I'll create the skill for you.", Timestamp: "2026-02-24T10:00:05Z"},
+			{
+				Type:      agentexecutionv1.MessageType_MESSAGE_TOOL,
+				Timestamp: "2026-02-24T10:00:06Z",
+				ToolCalls: []*agentexecutionv1.ToolCall{
+					{Id: "tc-read-1", Name: "read_file", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED},
+				},
+			},
+			{
+				Type:      agentexecutionv1.MessageType_MESSAGE_TOOL,
+				Timestamp: "2026-02-24T10:00:08Z",
+				ToolCalls: []*agentexecutionv1.ToolCall{
+					{Id: "tc-write-1", Name: "write_file", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED},
+				},
+			},
+		},
+		[]*agentexecutionv1.ToolCall{
+			{
+				Id:          "think-native-abc",
+				Name:        "think",
+				Status:      agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED,
+				Result:      "ok",
+				StartedAt:   "2026-02-24T10:00:01Z",
+				CompletedAt: "2026-02-24T10:00:04Z",
+			},
+			{
+				Id:          "tc-read-1",
+				Name:        "read_file",
+				Status:      agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED,
+				Result:      "file contents",
+				StartedAt:   "2026-02-24T10:00:06Z",
+				CompletedAt: "2026-02-24T10:00:07Z",
+			},
+			{
+				Id:          "tc-write-1",
+				Name:        "write_file",
+				Status:      agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED,
+				Result:      "ok",
+				StartedAt:   "2026-02-24T10:00:08Z",
+				CompletedAt: "2026-02-24T10:00:09Z",
+			},
+		},
+	)
+
+	events := make(chan executiontui.Event, 64)
+	emitSnapshotEvents(exec, events, false)
+	close(events)
+
+	evts := drainEvents(events)
+
+	// Expected chronological order:
+	//   Human → Think(completed) → AI → Read(completed) → Write(completed)
+	//
+	// The thinking block (started_at=10:00:01) should appear BEFORE the
+	// AI message (timestamp=10:00:05). Tool calls from MESSAGE_TOOL entries
+	// appear as ToolCompletedEvent (not ToolResultEvent).
+	expectedTypes := []string{
+		"HumanMessageEvent",
+		"ToolCompletedEvent", // think — interleaved before AI by timestamp
+		"AIMessageEvent",
+		"ToolCompletedEvent", // read_file — from MESSAGE_TOOL
+		"ToolCompletedEvent", // write_file — from MESSAGE_TOOL
+	}
+
+	var actualTypes []string
+	var toolNames []string
+	for _, evt := range evts {
+		switch e := evt.(type) {
+		case executiontui.HumanMessageEvent:
+			actualTypes = append(actualTypes, "HumanMessageEvent")
+		case executiontui.AIMessageEvent:
+			actualTypes = append(actualTypes, "AIMessageEvent")
+		case executiontui.ToolCompletedEvent:
+			actualTypes = append(actualTypes, "ToolCompletedEvent")
+			toolNames = append(toolNames, e.ToolCall.Name)
+		case executiontui.ToolRunningEvent:
+			actualTypes = append(actualTypes, "ToolRunningEvent")
+		case executiontui.ToolResultEvent:
+			actualTypes = append(actualTypes, "ToolResultEvent")
+		case executiontui.DoneEvent:
+			// Not expected (emitDone=false)
+			actualTypes = append(actualTypes, "DoneEvent")
+		}
+	}
+
+	if len(actualTypes) != len(expectedTypes) {
+		t.Fatalf("expected %d events %v, got %d events %v", len(expectedTypes), expectedTypes, len(actualTypes), actualTypes)
+	}
+	for i := range expectedTypes {
+		if actualTypes[i] != expectedTypes[i] {
+			t.Errorf("event[%d]: expected %s, got %s (full: %v)", i, expectedTypes[i], actualTypes[i], actualTypes)
+		}
+	}
+
+	// Verify tool call order: think → read_file → write_file
+	expectedToolNames := []string{"think", "read_file", "write_file"}
+	if len(toolNames) != len(expectedToolNames) {
+		t.Fatalf("expected %d tool events, got %d: %v", len(expectedToolNames), len(toolNames), toolNames)
+	}
+	for i := range expectedToolNames {
+		if toolNames[i] != expectedToolNames[i] {
+			t.Errorf("tool[%d]: expected %q, got %q (full: %v)", i, expectedToolNames[i], toolNames[i], toolNames)
+		}
+	}
+}
+
+func TestEmitSnapshotEvents_NoDuplicateToolBlocks(t *testing.T) {
+	// Verifies that tool calls appearing in both messages[] (as MESSAGE_TOOL)
+	// and tool_calls[] are emitted exactly once — not duplicated as both a
+	// ToolResultEvent and a ToolCompletedEvent.
+	exec := makeExecution(
+		agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
+		[]*agentexecutionv1.AgentMessage{
+			{Type: agentexecutionv1.MessageType_MESSAGE_HUMAN, Content: "Read main.go", Timestamp: "2026-02-24T10:00:00Z"},
+			{Type: agentexecutionv1.MessageType_MESSAGE_AI, Content: "Sure.", Timestamp: "2026-02-24T10:00:02Z"},
+			{
+				Type:      agentexecutionv1.MessageType_MESSAGE_TOOL,
+				Timestamp: "2026-02-24T10:00:03Z",
+				ToolCalls: []*agentexecutionv1.ToolCall{
+					{Id: "tc-1", Name: "read_file", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED},
+				},
+			},
+			{Type: agentexecutionv1.MessageType_MESSAGE_AI, Content: "Here it is.", Timestamp: "2026-02-24T10:00:05Z"},
+		},
+		[]*agentexecutionv1.ToolCall{
+			{
+				Id:          "tc-1",
+				Name:        "read_file",
+				Status:      agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED,
+				Result:      "package main",
+				StartedAt:   "2026-02-24T10:00:03Z",
+				CompletedAt: "2026-02-24T10:00:04Z",
+			},
+		},
+	)
+
+	events := make(chan executiontui.Event, 64)
+	emitSnapshotEvents(exec, events, false)
+	close(events)
+
+	evts := drainEvents(events)
+
+	var toolCompletedCount, toolResultCount int
+	for _, evt := range evts {
+		switch evt.(type) {
+		case executiontui.ToolCompletedEvent:
+			toolCompletedCount++
+		case executiontui.ToolResultEvent:
+			toolResultCount++
+		}
+	}
+
+	if toolCompletedCount != 1 {
+		t.Errorf("expected exactly 1 ToolCompletedEvent, got %d", toolCompletedCount)
+	}
+	if toolResultCount != 0 {
+		t.Errorf("expected 0 ToolResultEvent (should be promoted to ToolCompletedEvent), got %d", toolResultCount)
+	}
+}
+
+func TestEmitSnapshotEvents_AIMessageTextOnly(t *testing.T) {
+	// Verifies that AI messages emit text content only, without inline
+	// tool call references. Tool calls appear as separate stateful blocks.
+	exec := makeExecution(
+		agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
+		[]*agentexecutionv1.AgentMessage{
+			{
+				Type:    agentexecutionv1.MessageType_MESSAGE_AI,
+				Content: "I'll read that file.",
+				ToolCalls: []*agentexecutionv1.ToolCall{
+					{Id: "tc-1", Name: "read_file"},
+				},
+			},
+		},
+		[]*agentexecutionv1.ToolCall{
+			{
+				Id:     "tc-1",
+				Name:   "read_file",
+				Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED,
+				Result: "package main",
+			},
+		},
+	)
+
+	events := make(chan executiontui.Event, 64)
+	emitSnapshotEvents(exec, events, false)
+	close(events)
+
+	evts := drainEvents(events)
+
+	for _, evt := range evts {
+		if ai, ok := evt.(executiontui.AIMessageEvent); ok {
+			if len(ai.ToolCalls) > 0 {
+				t.Errorf("AI message should not include inline tool calls in snapshot mode; got %d tool calls", len(ai.ToolCalls))
+			}
+			if ai.Content != "I'll read that file." {
+				t.Errorf("AI message content mismatch: got %q", ai.Content)
+			}
+		}
+	}
+}
