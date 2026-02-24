@@ -54,6 +54,13 @@ def enrich_error_message(tool_name: str, error: str) -> str:
         hints.append("Use ls to verify the directory structure")
         hints.append("Create the directory first if it doesn't exist")
     
+    # Text replacement failure (edit tool)
+    if "text to replace not found" in error_lower:
+        hints.append("Re-read the file with the read tool to see its current contents")
+        hints.append("The file content may have changed since you last read it - use the actual text from read output")
+        hints.append("Check for whitespace differences (tabs vs spaces, trailing newlines, indentation)")
+        hints.append("If the exact text cannot be matched, use write to replace the entire file contents instead")
+    
     # Edit/write specific errors
     if "edit" in tool_lower or "write" in tool_lower:
         hints.append("Try reading the target first to understand its current state")
