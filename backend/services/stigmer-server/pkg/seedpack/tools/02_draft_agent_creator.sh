@@ -49,7 +49,8 @@ fi
 # Configuration
 # ---------------------------------------------------------------------------
 
-readonly OUTPUT_DIR="${SEEDPACK_DIR}/skills/agent-creator"
+readonly SKILL_NAME="agent-creator"
+readonly SKILLS_DIR="${SEEDPACK_DIR}/skills"
 
 readonly AGENT_DIR="${REPO_ROOT}/apis/ai/stigmer/agentic/agent"
 readonly SKILL_DIR="${REPO_ROOT}/apis/ai/stigmer/agentic/skill"
@@ -63,16 +64,17 @@ for dir in "$AGENT_DIR" "$SKILL_DIR" "$MCPSERVER_DIR"; do
     fi
 done
 
-# Prepare output directory
-rm -rf "$OUTPUT_DIR"
-mkdir -p "$OUTPUT_DIR"
+# Clean only the target skill directory, preserving siblings (e.g. skill-creator).
+# The CLI creates a subdirectory named after the artifact inside --output, so we
+# point --output at skills/ and let the CLI produce skills/agent-creator/.
+rm -rf "${SKILLS_DIR}/${SKILL_NAME}"
 
 echo "=== Agent-Creator Skill Generation ==="
 echo "Model:   claude-opus-4-6"
 echo "Inputs:  ${AGENT_DIR} (protos + docs)"
 echo "         ${SKILL_DIR} (protos)"
 echo "         ${MCPSERVER_DIR} (protos)"
-echo "Output:  ${OUTPUT_DIR}"
+echo "Output:  ${SKILLS_DIR}/${SKILL_NAME}/"
 echo ""
 
 # ---------------------------------------------------------------------------
@@ -100,15 +102,17 @@ stigmer draft skill \
   --attach "$AGENT_DIR" \
   --attach "$SKILL_DIR" \
   --attach "$MCPSERVER_DIR" \
-  --output "$OUTPUT_DIR" \
+  --output "$SKILLS_DIR" \
   --model claude-sonnet-4.6 \
   -m "$MESSAGE"
 
+readonly GENERATED_DIR="${SKILLS_DIR}/${SKILL_NAME}"
+
 echo ""
 echo "=== Generation Complete ==="
-echo "Output saved to: ${OUTPUT_DIR}"
+echo "Output saved to: ${GENERATED_DIR}"
 echo ""
 echo "Next steps:"
-echo "  1. Review the generated SKILL.md in ${OUTPUT_DIR}"
-echo "  2. Validate: python ${SEEDPACK_DIR}/skills/skill-creator/scripts/quick_validate.py ${OUTPUT_DIR}"
-echo "  3. Package: python ${SEEDPACK_DIR}/skills/skill-creator/scripts/package_skill.py ${OUTPUT_DIR}"
+echo "  1. Review the generated SKILL.md in ${GENERATED_DIR}"
+echo "  2. Validate: python ${SKILLS_DIR}/skill-creator/scripts/quick_validate.py ${GENERATED_DIR}"
+echo "  3. Package: python ${SKILLS_DIR}/skill-creator/scripts/package_skill.py ${GENERATED_DIR}"
