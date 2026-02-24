@@ -9,7 +9,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 // ListBySession lists all executions in a specific session
@@ -109,7 +109,7 @@ func (s *queryExecutionsBySessionStep) Execute(ctx *pipeline.RequestContext[*age
 	executions := make([]*agentexecutionv1.AgentExecution, 0)
 	for _, d := range data {
 		execution := &agentexecutionv1.AgentExecution{}
-		if err := protojson.Unmarshal(d, execution); err != nil {
+		if err := proto.Unmarshal(d, execution); err != nil {
 			log.Warn().
 				Err(err).
 				Msg("Failed to unmarshal execution, skipping")
