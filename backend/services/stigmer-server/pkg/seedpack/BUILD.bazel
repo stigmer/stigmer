@@ -6,11 +6,8 @@ go_library(
         "embed.go",
         "seedpack.go",
     ],
-    embedsrcs = [
-        "manifest.json",
-    ] + glob([
+    embedsrcs = glob([
         "skills/**",
-        "artifacts/**",
         "agents/**",
         "mcp-servers/**",
     ]),

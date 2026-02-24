@@ -8,10 +8,10 @@
 //   - Idempotent: Safe to run multiple times (uses content digests for change detection)
 //   - Offline-first: All resources are embedded in the binary, no network required
 //   - Graceful degradation: Server starts even if bootstrap fails (logs warnings)
-//   - Versioned: Tracks seedpack version to detect upgrades
+//   - Content-addressed: Tracks a content hash over all embedded resources to detect changes
 //
 // Bootstrap state is persisted in SQLite via the bootstrap_state table:
-//   - "seedpack_version": Current seedpack version applied
+//   - "seedpack_content_hash": Content hash of the entire seedpack
 //   - "bootstrap_status": Overall status (pending, in_progress, completed, failed)
 //   - "skill:<name>": Per-skill state with artifact digest
 //   - "agent:<name>": Per-agent state with content hash
@@ -42,7 +42,7 @@ const (
 
 // State key constants for bootstrap_state table
 const (
-	KeySeedpackVersion = "seedpack_version"
+	KeySeedpackContentHash = "seedpack_content_hash"
 	KeyBootstrapStatus = "bootstrap_status"
 	KeySkillPrefix     = "skill:"
 	KeyAgentPrefix     = "agent:"
@@ -94,8 +94,8 @@ func NewBootstrapper(store *sqlite.Store, skillClient SkillClient, agentClient A
 // server startup. In degraded mode, it logs warnings and returns nil.
 //
 // The bootstrap process:
-// 1. Loads the seedpack manifest
-// 2. Checks if bootstrap is needed (version comparison)
+// 1. Discovers resources from the embedded seedpack filesystem
+// 2. Checks if bootstrap is needed (content hash comparison)
 // 3. Applies skills via Push API
 // 4. Applies agents via Apply API
 // 5. Applies MCP servers via Apply API
@@ -103,55 +103,48 @@ func NewBootstrapper(store *sqlite.Store, skillClient SkillClient, agentClient A
 func (b *Bootstrapper) Run(ctx context.Context) error {
 	log.Info().Msg("Starting seedpack bootstrap")
 
-	// Mark bootstrap as in progress
 	if err := b.store.SetBootstrapState(ctx, KeyBootstrapStatus, StatusInProgress); err != nil {
 		log.Warn().Err(err).Msg("Failed to set bootstrap status to in_progress")
-		// Continue anyway - state tracking is not critical for bootstrap
 	}
 
-	// Load manifest
-	manifest, err := seedpack.LoadManifest()
+	manifest, err := seedpack.DiscoverManifest()
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to load seedpack manifest")
-		b.markFailed(ctx, "failed to load manifest: "+err.Error())
-		return nil // Degraded mode - don't fail server startup
+		log.Error().Err(err).Msg("Failed to discover seedpack resources")
+		b.markFailed(ctx, "failed to discover seedpack: "+err.Error())
+		return nil
 	}
 
 	log.Info().
-		Str("version", manifest.Version).
+		Str("content_hash", manifest.ContentHash).
 		Int("skills", len(manifest.Skills)).
 		Int("agents", len(manifest.SystemAgents)).
 		Int("mcp_servers", len(manifest.McpServers)).
-		Msg("Loaded seedpack manifest")
+		Msg("Discovered seedpack resources")
 
-	// Check if bootstrap is needed
-	currentVersion, err := b.store.GetBootstrapState(ctx, KeySeedpackVersion)
+	storedHash, err := b.store.GetBootstrapState(ctx, KeySeedpackContentHash)
 	if err != nil {
-		log.Warn().Err(err).Msg("Failed to get current seedpack version")
-		// Continue - assume bootstrap is needed
+		log.Warn().Err(err).Msg("Failed to get stored seedpack content hash")
 	}
 
-	if currentVersion == manifest.Version {
-		// Check if bootstrap was actually completed
+	if storedHash == manifest.ContentHash {
 		status, _ := b.store.GetBootstrapState(ctx, KeyBootstrapStatus)
 		if status == StatusCompleted {
 			log.Info().
-				Str("version", manifest.Version).
-				Msg("Seedpack already bootstrapped, skipping")
+				Str("content_hash", manifest.ContentHash).
+				Msg("Seedpack unchanged, skipping bootstrap")
 			return nil
 		}
 		log.Info().
-			Str("version", manifest.Version).
+			Str("content_hash", manifest.ContentHash).
 			Str("status", status).
-			Msg("Seedpack version matches but bootstrap incomplete, re-running")
-	} else if currentVersion != "" {
+			Msg("Seedpack hash matches but bootstrap incomplete, re-running")
+	} else if storedHash != "" {
 		log.Info().
-			Str("current", currentVersion).
-			Str("new", manifest.Version).
-			Msg("Seedpack version upgrade detected")
+			Str("previous", storedHash).
+			Str("current", manifest.ContentHash).
+			Msg("Seedpack content changed, re-bootstrapping")
 	}
 
-	// Bootstrap skills
 	skillErrors := 0
 	for _, skillEntry := range manifest.Skills {
 		if err := b.bootstrapSkill(ctx, &skillEntry); err != nil {
@@ -163,7 +156,6 @@ func (b *Bootstrapper) Run(ctx context.Context) error {
 		}
 	}
 
-	// Bootstrap agents
 	agentErrors := 0
 	for _, agentEntry := range manifest.SystemAgents {
 		if err := b.bootstrapAgent(ctx, &agentEntry); err != nil {
@@ -175,7 +167,6 @@ func (b *Bootstrapper) Run(ctx context.Context) error {
 		}
 	}
 
-	// Bootstrap MCP servers
 	mcpServerErrors := 0
 	for _, mcpServerEntry := range manifest.McpServers {
 		if err := b.bootstrapMcpServer(ctx, &mcpServerEntry); err != nil {
@@ -187,7 +178,6 @@ func (b *Bootstrapper) Run(ctx context.Context) error {
 		}
 	}
 
-	// Update final status
 	if skillErrors > 0 || agentErrors > 0 || mcpServerErrors > 0 {
 		log.Warn().
 			Int("skill_errors", skillErrors).
@@ -196,19 +186,18 @@ func (b *Bootstrapper) Run(ctx context.Context) error {
 			Msg("Bootstrap completed with errors (degraded mode)")
 		b.markFailed(ctx, fmt.Sprintf("partial failure: %d skill errors, %d agent errors, %d mcp server errors",
 			skillErrors, agentErrors, mcpServerErrors))
-		return nil // Degraded mode
+		return nil
 	}
 
-	// Mark successful
-	if err := b.store.SetBootstrapState(ctx, KeySeedpackVersion, manifest.Version); err != nil {
-		log.Warn().Err(err).Msg("Failed to set seedpack version")
+	if err := b.store.SetBootstrapState(ctx, KeySeedpackContentHash, manifest.ContentHash); err != nil {
+		log.Warn().Err(err).Msg("Failed to store seedpack content hash")
 	}
 	if err := b.store.SetBootstrapState(ctx, KeyBootstrapStatus, StatusCompleted); err != nil {
 		log.Warn().Err(err).Msg("Failed to set bootstrap status to completed")
 	}
 
 	log.Info().
-		Str("version", manifest.Version).
+		Str("content_hash", manifest.ContentHash).
 		Int("skills", len(manifest.Skills)).
 		Int("agents", len(manifest.SystemAgents)).
 		Int("mcp_servers", len(manifest.McpServers)).

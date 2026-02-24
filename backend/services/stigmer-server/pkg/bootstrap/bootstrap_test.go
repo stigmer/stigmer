@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"context"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
@@ -127,11 +128,13 @@ func TestBootstrapper_Run_Success(t *testing.T) {
 	err = bootstrapper.Run(ctx)
 	require.NoError(t, err)
 
-	// Verify skill was pushed (seedpack has skill-creator)
-	assert.Len(t, skillClient.PushCalls, 1)
-	assert.Equal(t, "local", skillClient.PushCalls[0].GetOrg())
-	assert.NotEmpty(t, skillClient.PushCalls[0].GetArtifact())
-	assert.Equal(t, "system", skillClient.PushCalls[0].GetTag())
+	// Verify skills were pushed (seedpack has skill-creator and agent-creator)
+	assert.Len(t, skillClient.PushCalls, 2)
+	for _, call := range skillClient.PushCalls {
+		assert.Equal(t, "local", call.GetOrg())
+		assert.NotEmpty(t, call.GetArtifact())
+		assert.Equal(t, "system", call.GetTag())
+	}
 
 	// Verify agent was applied (seedpack has skill-creator-agent)
 	assert.Len(t, agentClient.ApplyCalls, 1)
@@ -148,9 +151,9 @@ func TestBootstrapper_Run_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, StatusCompleted, status)
 
-	version, err := store.GetBootstrapState(ctx, KeySeedpackVersion)
+	contentHash, err := store.GetBootstrapState(ctx, KeySeedpackContentHash)
 	require.NoError(t, err)
-	assert.Equal(t, "1.3.0", version) // Should match seedpack manifest
+	assert.True(t, strings.HasPrefix(contentHash, "sha256:"), "content hash should start with sha256:")
 
 	skillState, err := store.GetBootstrapState(ctx, KeySkillPrefix+"skill-creator")
 	require.NoError(t, err)
@@ -184,7 +187,7 @@ func TestBootstrapper_Run_Idempotent(t *testing.T) {
 	// Run bootstrap first time
 	err = bootstrapper.Run(ctx)
 	require.NoError(t, err)
-	assert.Len(t, skillClient.PushCalls, 1)
+	assert.Len(t, skillClient.PushCalls, 2)
 	assert.Len(t, agentClient.ApplyCalls, 1)
 	assert.Len(t, mcpServerClient.ApplyCalls, 1)
 
@@ -212,9 +215,8 @@ func TestBootstrapper_Run_SkipIfSameDigest(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Pre-set state to simulate previous successful apply with same digest
-	// We need to get the actual digest from the seedpack
-	err = store.SetBootstrapState(ctx, KeySeedpackVersion, "1.0.0") // Different version
+	// Pre-set state with a different content hash to force re-bootstrap
+	err = store.SetBootstrapState(ctx, KeySeedpackContentHash, "sha256:old_hash")
 	require.NoError(t, err)
 	err = store.SetBootstrapState(ctx, KeyBootstrapStatus, StatusPending) // Not completed
 	require.NoError(t, err)
@@ -225,12 +227,12 @@ func TestBootstrapper_Run_SkipIfSameDigest(t *testing.T) {
 
 	bootstrapper := NewBootstrapper(store, skillClient, agentClient, mcpServerClient)
 
-	// Run bootstrap - should run because version is different
+	// Run bootstrap - should run because content hash is different
 	err = bootstrapper.Run(ctx)
 	require.NoError(t, err)
 
-	// Calls should be made because version changed
-	assert.Len(t, skillClient.PushCalls, 1)
+	// Calls should be made because content hash changed
+	assert.Len(t, skillClient.PushCalls, 2)
 	assert.Len(t, agentClient.ApplyCalls, 1)
 	assert.Len(t, mcpServerClient.ApplyCalls, 1)
 }
@@ -257,8 +259,8 @@ func TestBootstrapper_Run_DegradedMode_SkillError(t *testing.T) {
 	// Should not return error (degraded mode)
 	require.NoError(t, err)
 
-	// Skill push should have been attempted
-	assert.Len(t, skillClient.PushCalls, 1)
+	// Skill push should have been attempted for both skills
+	assert.Len(t, skillClient.PushCalls, 2)
 
 	// Agent and MCP server should still be applied
 	assert.Len(t, agentClient.ApplyCalls, 1)
@@ -292,8 +294,8 @@ func TestBootstrapper_Run_DegradedMode_AgentError(t *testing.T) {
 	// Should not return error (degraded mode)
 	require.NoError(t, err)
 
-	// Skill should have been pushed
-	assert.Len(t, skillClient.PushCalls, 1)
+	// Both skills should have been pushed
+	assert.Len(t, skillClient.PushCalls, 2)
 
 	// Agent apply should have been attempted
 	assert.Len(t, agentClient.ApplyCalls, 1)
@@ -329,8 +331,8 @@ func TestBootstrapper_Run_DegradedMode_McpServerError(t *testing.T) {
 	// Should not return error (degraded mode)
 	require.NoError(t, err)
 
-	// Skill and agent should have succeeded
-	assert.Len(t, skillClient.PushCalls, 1)
+	// Skills and agent should have succeeded
+	assert.Len(t, skillClient.PushCalls, 2)
 	assert.Len(t, agentClient.ApplyCalls, 1)
 
 	// MCP server apply should have been attempted
