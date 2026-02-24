@@ -49,6 +49,8 @@ from typing import TYPE_CHECKING, Any
 from langchain_core.callbacks import dispatch_custom_event
 from langchain_core.tools import tool
 
+from graphton.core.error_hints import enrich_error_message
+
 if TYPE_CHECKING:
     pass  # For future type imports
 
@@ -879,8 +881,8 @@ def _create_read_tool(
             logger.info("GRAPHTON read tool succeeded for path: %s (%d chars)", path, len(result))
             return result
         except Exception as e:
-            logger.error(f"Failed to read file '{path}': {e}")
-            raise RuntimeError(f"Failed to read file '{path}': {e}") from e
+            logger.warning(f"⚠️  read tool failed for '{path}': {e}")
+            return enrich_error_message("read", str(e))
     
     read.name = "read"  # type: ignore[attr-defined]
     return read  # type: ignore[return-value]
@@ -996,8 +998,8 @@ def _create_write_tool(
             logger.info(f"✅ Wrote file '{path}'")
             return f"Successfully wrote {len(content)} characters to '{path}'"
         except Exception as e:
-            logger.error(f"Failed to write file '{path}': {e}")
-            raise RuntimeError(f"Failed to write file '{path}': {e}") from e
+            logger.warning(f"⚠️  write tool failed for '{path}': {e}")
+            return enrich_error_message("write", str(e))
     
     write.name = "write"  # type: ignore[attr-defined]
     return write  # type: ignore[return-value]
@@ -1063,8 +1065,8 @@ def _create_execute_tool(
             
             return f"Exit code: {result.exit_code}\n{output}"
         except Exception as e:
-            logger.error(f"Failed to execute command: {e}")
-            raise RuntimeError(f"Failed to execute command: {e}") from e
+            logger.warning(f"⚠️  execute tool failed: {e}")
+            return enrich_error_message("execute", str(e))
     
     execute.name = "execute"  # type: ignore[attr-defined]
     return execute  # type: ignore[return-value]
@@ -1124,8 +1126,8 @@ def _create_edit_tool(
             # Verify old_text exists
             if old_text not in content:
                 error_msg = f"Text to replace not found in '{path}'"
-                logger.error(f"❌ {error_msg}")
-                raise ValueError(error_msg)
+                logger.warning(f"⚠️  {error_msg}")
+                return enrich_error_message("edit", error_msg)
             
             # Replace first occurrence only
             new_content = content.replace(old_text, new_text, 1)
@@ -1138,11 +1140,9 @@ def _create_edit_tool(
                 f"Successfully edited '{path}': "
                 f"replaced {len(old_text)} chars with {len(new_text)} chars"
             )
-        except ValueError:
-            raise  # Re-raise ValueError as-is
         except Exception as e:
-            logger.error(f"Failed to edit file '{path}': {e}")
-            raise RuntimeError(f"Failed to edit file '{path}': {e}") from e
+            logger.warning(f"⚠️  edit tool failed for '{path}': {e}")
+            return enrich_error_message("edit", str(e))
     
     edit.name = "edit"  # type: ignore[attr-defined]
     return edit  # type: ignore[return-value]
@@ -1182,8 +1182,8 @@ def _create_ls_tool(
             logger.debug(f"✅ Listed {len(files)} items in '{path}'")
             return "\n".join(files)
         except Exception as e:
-            logger.error(f"Failed to list directory '{path}': {e}")
-            raise RuntimeError(f"Failed to list directory '{path}': {e}") from e
+            logger.warning(f"⚠️  ls tool failed for '{path}': {e}")
+            return enrich_error_message("ls", str(e))
     
     ls.name = "ls"  # type: ignore[attr-defined]
     return ls  # type: ignore[return-value]
@@ -1262,8 +1262,8 @@ def _create_glob_tool(
             logger.debug(f"✅ Found {len(matches)} files matching '{pattern}'")
             return "\n".join(sorted(matches))
         except Exception as e:
-            logger.error(f"Failed to glob '{pattern}': {e}")
-            raise RuntimeError(f"Failed to glob '{pattern}': {e}") from e
+            logger.warning(f"⚠️  glob tool failed for pattern '{pattern}': {e}")
+            return enrich_error_message("glob", str(e))
     
     glob.name = "glob"  # type: ignore[attr-defined]
     return glob  # type: ignore[return-value]
@@ -1373,8 +1373,8 @@ def _create_grep_tool(
             
             return f"{summary}\n\n" + "\n".join(results)
         except Exception as e:
-            logger.error(f"Failed to grep '{pattern}': {e}")
-            raise RuntimeError(f"Failed to grep '{pattern}': {e}") from e
+            logger.warning(f"⚠️  grep tool failed for pattern '{pattern}': {e}")
+            return enrich_error_message("grep", str(e))
     
     grep.name = "grep"  # type: ignore[attr-defined]
     return grep  # type: ignore[return-value]
