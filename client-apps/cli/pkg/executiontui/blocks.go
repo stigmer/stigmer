@@ -59,6 +59,11 @@ type contentBlock struct {
 	// "running", "waiting_approval", "completed", "failed", "skipped".
 	// Used to render the correct status badge. Empty for non-tool blocks.
 	toolState string
+
+	// subAgentID is set when this block originates from a sub-agent execution.
+	// Non-empty values cause the renderer to indent the block with a "↳ "
+	// prefix, visually nesting it under the parent "task" tool block.
+	subAgentID string
 }
 
 // displayContent returns the text that should be shown for this block.
