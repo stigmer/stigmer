@@ -2530,8 +2530,16 @@ async def _execute_graphton_impl(
                     
                     # Send progressive status update via gRPC using hybrid scheduler
                     # Triggers on: time threshold (500ms), burst (50 events), or keepalive (5s)
-                    if update_scheduler.should_send_update(events_processed):
-                        reason = update_scheduler.get_update_reason_str()
+                    #
+                    # force_next_update: set by StatusBuilder when a new ToolCall
+                    # is created (early tool call or thinking stream).  Bypasses
+                    # the scheduler so the CLI sees the tool name immediately
+                    # instead of waiting up to 30s for the next event-driven check.
+                    force_update = status_builder.force_next_update
+                    if force_update:
+                        status_builder.force_next_update = False
+                    if force_update or update_scheduler.should_send_update(events_processed):
+                        reason = "force_tool_update" if force_update else update_scheduler.get_update_reason_str()
                         time_since_last = update_scheduler.get_time_since_last_update_ms()
                         events_since_last = update_scheduler.get_events_since_last_update(events_processed)
                         

@@ -51,6 +51,37 @@ OLLAMA_DEFAULTS = {
 }
 
 
+class _EagerToolStreamingChatAnthropic(ChatAnthropic):  # type: ignore[override]
+    """ChatAnthropic subclass that enables fine-grained tool streaming.
+
+    Anthropic's API buffers tool-argument tokens for JSON validation by default,
+    which delays ``input_json_delta`` events by 15–30 s for large tool inputs
+    (e.g. file bodies in write tools).  Setting ``eager_input_streaming: true``
+    on each tool definition disables this buffering so argument tokens stream
+    in real-time — matching the behavior of thinking tokens.
+
+    This subclass injects the flag at the API payload level because
+    langchain-anthropic (as of 1.3.3) does not expose it through
+    ``bind_tools()`` or ``_ANTHROPIC_EXTRA_FIELDS``.  Once upstream support
+    lands, this subclass can be removed and replaced with plain ChatAnthropic.
+
+    See: https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/fine-grained-tool-streaming
+    """
+
+    def _get_request_payload(
+        self,
+        input_: Any,
+        *,
+        stop: list[str] | None = None,
+        **kwargs: Any,
+    ) -> dict:
+        payload = super()._get_request_payload(input_, stop=stop, **kwargs)
+        for tool in payload.get("tools", ()):
+            if isinstance(tool, dict) and "input_schema" in tool:
+                tool["eager_input_streaming"] = True
+        return payload
+
+
 def _infer_provider(model_name: str) -> str:
     """Infer the LLM provider from the model name.
     
@@ -214,7 +245,7 @@ def parse_model_string(
                 del model_params["temperature"]
             model_params.pop("top_k", None)
         
-        return ChatAnthropic(
+        return _EagerToolStreamingChatAnthropic(
             model=api_model_id,  # type: ignore[call-arg]
             **model_params,
         )
