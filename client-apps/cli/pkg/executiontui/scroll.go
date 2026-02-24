@@ -15,7 +15,7 @@ func (m *Model) scrollFocusedBlockIntoView() {
 	}
 
 	startLine := blockStartLine(m.blocks, m.focusedBlockIndex, m.focusedBlockIndex)
-	blockLines := blockLineCount(m.blocks[m.focusedBlockIndex], m.focusedBlockIndex, m.focusedBlockIndex)
+	blockLines := blockLineCount(m.blocks, m.focusedBlockIndex, m.focusedBlockIndex)
 
 	viewTop := m.viewport.YOffset
 	viewBottom := viewTop + m.viewport.Height
@@ -43,13 +43,14 @@ func (m *Model) scrollFocusedBlockIntoView() {
 // targetIdx must be a valid index into blocks. If targetIdx is 0 or the first
 // non-empty block, the start line is 0.
 func blockStartLine(blocks []contentBlock, focusedIdx, targetIdx int) int {
+	nest := hasMultipleSubAgents(blocks)
 	line := 0
 	for i, b := range blocks {
 		if i == targetIdx {
 			return line
 		}
 
-		text := renderedBlockText(b, i, focusedIdx)
+		text := renderedBlockText(b, i, focusedIdx, nest)
 		if text == "" {
 			continue
 		}
@@ -63,8 +64,9 @@ func blockStartLine(blocks []contentBlock, focusedIdx, targetIdx int) int {
 
 // blockLineCount returns the number of rendered lines for a single block,
 // including its decorations. Returns 0 if the block renders as empty.
-func blockLineCount(b contentBlock, blockIdx, focusedIdx int) int {
-	text := renderedBlockText(b, blockIdx, focusedIdx)
+func blockLineCount(blocks []contentBlock, blockIdx, focusedIdx int) int {
+	nest := hasMultipleSubAgents(blocks)
+	text := renderedBlockText(blocks[blockIdx], blockIdx, focusedIdx, nest)
 	if text == "" {
 		return 0
 	}

@@ -24,6 +24,9 @@ func (AIMessageEvent) isEvent() {}
 // Content holds the initial text available at the start of streaming.
 type AIStreamStartEvent struct {
 	Content string
+	// SubAgentID is non-empty when this streaming message originates from a
+	// sub-agent. The TUI applies the same visual nesting as AIMessageEvent.
+	SubAgentID string
 }
 
 func (AIStreamStartEvent) isEvent() {}
@@ -33,6 +36,10 @@ func (AIStreamStartEvent) isEvent() {}
 // with this value — Bubbletea's diff engine handles efficient terminal updates.
 type AIStreamDeltaEvent struct {
 	Content string
+	// SubAgentID is non-empty when this streaming message originates from a
+	// sub-agent. Carried for consistency; the TUI uses the blockIdx from
+	// streamingState rather than re-deriving it from the event.
+	SubAgentID string
 }
 
 func (AIStreamDeltaEvent) isEvent() {}
@@ -43,6 +50,9 @@ func (AIStreamDeltaEvent) isEvent() {}
 type AIStreamEndEvent struct {
 	Content   string
 	ToolCalls []toolrender.ToolCallInfo
+	// SubAgentID is non-empty when this streaming message originates from a
+	// sub-agent. The TUI applies the same visual nesting as AIMessageEvent.
+	SubAgentID string
 }
 
 func (AIStreamEndEvent) isEvent() {}

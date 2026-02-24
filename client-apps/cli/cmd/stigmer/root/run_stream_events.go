@@ -89,6 +89,7 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 			execution.Status.ToolCalls,
 			toolCallStates,
 			toolCallResults,
+			"",
 		)
 
 		// --- Step 1b: Convert new messages to events ---
@@ -272,6 +273,11 @@ func emitCompleteMessage(events chan<- executiontui.Event, msg *agentexecutionv1
 // transitions. It also detects streaming content changes on running tools
 // and emits ToolStreamDeltaEvent when the result content changes.
 //
+// subAgentID scopes the emitted events: when non-empty, the TUI renders
+// the resulting blocks with sub-agent visual nesting. Pass "" for top-level
+// tool calls. This function serves both top-level and sub-agent tool call
+// tracking — eliminating the duplicated emitSubAgentToolCallEvents.
+//
 // Returns the updated state and result maps.
 //
 // This is a separate tracking pass from emitMessageEvents — it operates on the
@@ -282,6 +288,7 @@ func emitToolCallStateEvents(
 	toolCalls []*agentexecutionv1.ToolCall,
 	prevStates map[string]string,
 	prevResults map[string]string,
+	subAgentID string,
 ) (map[string]string, map[string]string) {
 	for _, tc := range toolCalls {
 		if tc.Id == "" {
@@ -292,10 +299,10 @@ func emitToolCallStateEvents(
 		prevStatus, seen := prevStates[tc.Id]
 
 		if !seen && currentStatus == "running" {
-			// New tool call in RUNNING state — emit running event.
 			events <- executiontui.ToolRunningEvent{
 				ToolCallID: tc.Id,
 				ToolCall:   convertToolCall(tc),
+				SubAgentID: subAgentID,
 			}
 			prevStates[tc.Id] = currentStatus
 			prevResults[tc.Id] = tc.Result
@@ -303,11 +310,10 @@ func emitToolCallStateEvents(
 		}
 
 		if !seen && currentStatus == "waiting_approval" {
-			// New tool call that immediately entered WAITING_APPROVAL — show
-			// a visual indicator so the user knows approval is needed.
 			events <- executiontui.ToolWaitingApprovalEvent{
 				ToolCallID: tc.Id,
 				ToolCall:   convertToolCall(tc),
+				SubAgentID: subAgentID,
 			}
 			prevStates[tc.Id] = currentStatus
 			continue
@@ -324,35 +330,36 @@ func emitToolCallStateEvents(
 			events <- executiontui.ToolCompletedEvent{
 				ToolCallID: tc.Id,
 				ToolCall:   convertToolCall(tc),
+				SubAgentID: subAgentID,
 			}
 			prevStates[tc.Id] = currentStatus
 			continue
 		}
 
 		if seen && (prevStatus == "running" || prevStatus == "waiting_approval") && isTerminalToolStatus(currentStatus) {
-			// Transition from running/waiting_approval to a terminal state — emit completed.
 			events <- executiontui.ToolCompletedEvent{
 				ToolCallID: tc.Id,
 				ToolCall:   convertToolCall(tc),
+				SubAgentID: subAgentID,
 			}
 			prevStates[tc.Id] = currentStatus
 			delete(prevResults, tc.Id)
 			continue
 		}
 
-		// Handle state transitions for known tool calls.
 		if currentStatus != prevStatus {
 			if currentStatus == "running" {
 				events <- executiontui.ToolRunningEvent{
 					ToolCallID: tc.Id,
 					ToolCall:   convertToolCall(tc),
+					SubAgentID: subAgentID,
 				}
 				prevResults[tc.Id] = tc.Result
 			} else if currentStatus == "waiting_approval" {
-				// Tool transitioned to waiting_approval (e.g., from running).
 				events <- executiontui.ToolWaitingApprovalEvent{
 					ToolCallID: tc.Id,
 					ToolCall:   convertToolCall(tc),
+					SubAgentID: subAgentID,
 				}
 			}
 			prevStates[tc.Id] = currentStatus
@@ -366,6 +373,7 @@ func emitToolCallStateEvents(
 				ToolCallID: tc.Id,
 				ToolCall:   convertToolCall(tc),
 				Content:    tc.Result,
+				SubAgentID: subAgentID,
 			}
 			prevResults[tc.Id] = tc.Result
 		}
