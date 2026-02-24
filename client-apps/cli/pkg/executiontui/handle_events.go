@@ -158,6 +158,18 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 		} else {
 			m.done = true
 		}
+
+	case TodoUpdateEvent:
+		preview := renderTodoPreview(e.Todos)
+		full := renderTodoExpanded(e.Todos)
+		if m.todoBlockIdx >= 0 && m.todoBlockIdx < len(m.blocks) {
+			wasExpanded := m.blocks[m.todoBlockIdx].expanded
+			m.blocks[m.todoBlockIdx] = newTodoBlock(preview, full)
+			m.blocks[m.todoBlockIdx].expanded = wasExpanded
+		} else {
+			m.blocks = append(m.blocks, newTodoBlock(preview, full))
+			m.todoBlockIdx = len(m.blocks) - 1
+		}
 	}
 
 	// Update viewport content and scroll position.

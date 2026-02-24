@@ -1084,3 +1084,111 @@ func TestThinkingIndicator_NotShownDuringApproval(t *testing.T) {
 		t.Error("thinkingVisible should be false during approval — the user is being waited on, not the agent")
 	}
 }
+
+// =============================================================================
+// TodoUpdateEvent Tests
+// =============================================================================
+
+func TestUpdate_TodoUpdateEvent_CreatesBlock(t *testing.T) {
+	m, _, _ := newTestModel()
+
+	event := TodoUpdateEvent{
+		Todos: []TodoItem{
+			{ID: "1", Content: "Set up database", Status: "in_progress"},
+			{ID: "2", Content: "Write tests", Status: "pending"},
+		},
+	}
+	result, _ := m.Update(executionEventMsg{event: event})
+	model := result.(Model)
+
+	if len(model.blocks) != 1 {
+		t.Fatalf("blocks = %d, want 1", len(model.blocks))
+	}
+	b := model.blocks[0]
+	if b.blockType != blockTodo {
+		t.Errorf("blockType = %v, want blockTodo", b.blockType)
+	}
+	if !b.expandable {
+		t.Error("todo block should be expandable")
+	}
+	if !b.expanded {
+		t.Error("todo block should start expanded")
+	}
+	if model.todoBlockIdx != 0 {
+		t.Errorf("todoBlockIdx = %d, want 0", model.todoBlockIdx)
+	}
+}
+
+func TestUpdate_TodoUpdateEvent_UpdatesInPlace(t *testing.T) {
+	m, _, _ := newTestModel()
+
+	first := TodoUpdateEvent{
+		Todos: []TodoItem{
+			{ID: "1", Content: "Set up database", Status: "pending"},
+		},
+	}
+	result, _ := m.Update(executionEventMsg{event: first})
+	model := result.(Model)
+
+	// Insert another block after the todo to verify in-place update
+	// doesn't append a second todo block.
+	result, _ = model.Update(executionEventMsg{event: SystemMessageEvent{Content: "info"}})
+	model = result.(Model)
+
+	if len(model.blocks) != 2 {
+		t.Fatalf("blocks = %d, want 2 (todo + system)", len(model.blocks))
+	}
+
+	second := TodoUpdateEvent{
+		Todos: []TodoItem{
+			{ID: "1", Content: "Set up database", Status: "completed"},
+			{ID: "2", Content: "Write tests", Status: "in_progress"},
+		},
+	}
+	result, _ = model.Update(executionEventMsg{event: second})
+	model = result.(Model)
+
+	if len(model.blocks) != 2 {
+		t.Fatalf("blocks = %d, want 2 (todo replaced in-place, not appended)", len(model.blocks))
+	}
+	if model.todoBlockIdx != 0 {
+		t.Errorf("todoBlockIdx = %d, want 0", model.todoBlockIdx)
+	}
+	if model.blocks[0].blockType != blockTodo {
+		t.Errorf("block[0] type = %v, want blockTodo", model.blocks[0].blockType)
+	}
+	if !strings.Contains(model.blocks[0].preview, "1/2") {
+		t.Errorf("updated preview should reflect new counts, got %q", model.blocks[0].preview)
+	}
+}
+
+func TestUpdate_TodoUpdateEvent_PreservesExpandCollapseState(t *testing.T) {
+	m, _, _ := newTestModel()
+
+	first := TodoUpdateEvent{
+		Todos: []TodoItem{
+			{ID: "1", Content: "Set up database", Status: "pending"},
+		},
+	}
+	result, _ := m.Update(executionEventMsg{event: first})
+	model := result.(Model)
+
+	if !model.blocks[0].expanded {
+		t.Fatal("todo block should start expanded")
+	}
+
+	// Simulate user collapsing the block.
+	model.blocks[0].expanded = false
+
+	second := TodoUpdateEvent{
+		Todos: []TodoItem{
+			{ID: "1", Content: "Set up database", Status: "completed"},
+		},
+	}
+	result, _ = model.Update(executionEventMsg{event: second})
+	model = result.(Model)
+
+	if model.blocks[0].expanded {
+		t.Error("todo block should remain collapsed after in-place update — user preference must be preserved")
+	}
+}

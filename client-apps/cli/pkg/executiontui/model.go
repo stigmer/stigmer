@@ -105,6 +105,12 @@ type Model struct {
 	// the final expandable result and removed from this map.
 	runningTools map[string]int
 
+	// todoBlockIdx is the index into blocks of the current execution's todo
+	// block. -1 means no todo block exists yet. Set on the first
+	// TodoUpdateEvent; updated in-place on subsequent events. Reset to -1
+	// when a follow-up execution starts.
+	todoBlockIdx int
+
 	// approval holds state for an active approval prompt.
 	// nil when no approval is pending.
 	approval *approvalState
@@ -214,6 +220,7 @@ func New(cfg Config) Model {
 		phase:             "pending",
 		focusedBlockIndex: -1,
 		runningTools:      make(map[string]int),
+		todoBlockIdx:      -1,
 		spinner:           s,
 		lastEventAt:       time.Now(),
 		textarea:          ta,
