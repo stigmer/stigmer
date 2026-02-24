@@ -13,6 +13,7 @@ const (
 	blockPhaseChange                  // Execution phase transition
 	blockApproval                     // Approval request display
 	blockError                        // Error message (stream failure, execution error)
+	blockTodo                         // Agent todo/planning items
 )
 
 // contentBlock represents one renderable unit in the execution output.
@@ -179,5 +180,19 @@ func newErrorBlock(content string) contentBlock {
 	return contentBlock{
 		blockType: blockError,
 		content:   content,
+	}
+}
+
+// newTodoBlock creates an expandable block for the agent's todo/planning items.
+// preview is the collapsed summary (e.g., "📋 Tasks (2/5 done)") and full is the
+// expanded rendering with all items listed. The block starts expanded so users
+// can see task progress immediately during execution.
+func newTodoBlock(preview, full string) contentBlock {
+	return contentBlock{
+		blockType:  blockTodo,
+		expandable: true,
+		expanded:   true,
+		preview:    preview,
+		full:       full,
 	}
 }

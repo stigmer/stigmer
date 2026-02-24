@@ -246,3 +246,232 @@ func TestRebuildViewportContent_ExpandableBlock_UsesDisplayContent(t *testing.T)
 		t.Error("expanded block should NOT show preview content")
 	}
 }
+
+// =============================================================================
+// Todo Block Tests
+// =============================================================================
+
+func TestTodoStatusIcon(t *testing.T) {
+	tests := []struct {
+		status string
+		want   string
+	}{
+		{"in_progress", "●"},
+		{"pending", "○"},
+		{"completed", "✓"},
+		{"cancelled", "─"},
+		{"unknown_status", "?"},
+		{"", "?"},
+	}
+	for _, tt := range tests {
+		got := todoStatusIcon(tt.status)
+		if got != tt.want {
+			t.Errorf("todoStatusIcon(%q) = %q, want %q", tt.status, got, tt.want)
+		}
+	}
+}
+
+func TestSortTodosForDisplay(t *testing.T) {
+	todos := []TodoItem{
+		{ID: "1", Content: "first pending", Status: "pending"},
+		{ID: "2", Content: "completed task", Status: "completed"},
+		{ID: "3", Content: "active task", Status: "in_progress"},
+		{ID: "4", Content: "second pending", Status: "pending"},
+		{ID: "5", Content: "cancelled task", Status: "cancelled"},
+	}
+
+	sorted := sortTodosForDisplay(todos)
+
+	// Verify order: in_progress, pending, pending, completed, cancelled.
+	expectedIDs := []string{"3", "1", "4", "2", "5"}
+	for i, want := range expectedIDs {
+		if sorted[i].ID != want {
+			t.Errorf("sorted[%d].ID = %q, want %q", i, sorted[i].ID, want)
+		}
+	}
+
+	// Verify original slice is not mutated.
+	if todos[0].ID != "1" {
+		t.Error("sortTodosForDisplay should not mutate the input slice")
+	}
+}
+
+func TestSortTodosForDisplay_StableWithinGroup(t *testing.T) {
+	todos := []TodoItem{
+		{ID: "a", Content: "first", Status: "pending"},
+		{ID: "b", Content: "second", Status: "pending"},
+		{ID: "c", Content: "third", Status: "pending"},
+	}
+
+	sorted := sortTodosForDisplay(todos)
+
+	for i, want := range []string{"a", "b", "c"} {
+		if sorted[i].ID != want {
+			t.Errorf("sorted[%d].ID = %q, want %q (stable order within group)", i, sorted[i].ID, want)
+		}
+	}
+}
+
+func TestRenderTodoPreview(t *testing.T) {
+	todos := []TodoItem{
+		{ID: "1", Content: "task A", Status: "completed"},
+		{ID: "2", Content: "task B", Status: "in_progress"},
+		{ID: "3", Content: "task C", Status: "pending"},
+		{ID: "4", Content: "task D", Status: "completed"},
+		{ID: "5", Content: "task E", Status: "pending"},
+	}
+
+	got := renderTodoPreview(todos)
+	want := "📋 Tasks (2/5 done)"
+	if got != want {
+		t.Errorf("renderTodoPreview() = %q, want %q", got, want)
+	}
+}
+
+func TestRenderTodoPreview_AllCompleted(t *testing.T) {
+	todos := []TodoItem{
+		{ID: "1", Content: "done", Status: "completed"},
+		{ID: "2", Content: "also done", Status: "completed"},
+	}
+
+	got := renderTodoPreview(todos)
+	want := "📋 Tasks (2/2 done)"
+	if got != want {
+		t.Errorf("renderTodoPreview() = %q, want %q", got, want)
+	}
+}
+
+func TestRenderTodoPreview_NoneCompleted(t *testing.T) {
+	todos := []TodoItem{
+		{ID: "1", Content: "not done", Status: "pending"},
+	}
+
+	got := renderTodoPreview(todos)
+	want := "📋 Tasks (0/1 done)"
+	if got != want {
+		t.Errorf("renderTodoPreview() = %q, want %q", got, want)
+	}
+}
+
+func TestRenderTodoExpanded_EmptyList(t *testing.T) {
+	got := renderTodoExpanded(nil)
+	want := "📋 Tasks (0/0 done)"
+	if got != want {
+		t.Errorf("renderTodoExpanded(nil) = %q, want %q", got, want)
+	}
+}
+
+func TestRenderTodoExpanded(t *testing.T) {
+	todos := []TodoItem{
+		{ID: "1", Content: "pending task", Status: "pending"},
+		{ID: "2", Content: "active task", Status: "in_progress"},
+		{ID: "3", Content: "done task", Status: "completed"},
+	}
+
+	got := renderTodoExpanded(todos)
+	plain := ansi.Strip(got)
+
+	// Header present.
+	if !strings.Contains(plain, "Tasks (1/3 done)") {
+		t.Errorf("expanded view should contain header, got %q", plain)
+	}
+
+	// All items present.
+	if !strings.Contains(plain, "● active task") {
+		t.Error("expanded view should contain in_progress item with ● icon")
+	}
+	if !strings.Contains(plain, "○ pending task") {
+		t.Error("expanded view should contain pending item with ○ icon")
+	}
+	if !strings.Contains(plain, "✓ done task") {
+		t.Error("expanded view should contain completed item with ✓ icon")
+	}
+
+	// Verify sort order: in_progress appears before pending in the output.
+	activeIdx := strings.Index(plain, "● active task")
+	pendingIdx := strings.Index(plain, "○ pending task")
+	completedIdx := strings.Index(plain, "✓ done task")
+	if activeIdx > pendingIdx {
+		t.Error("in_progress item should appear before pending item")
+	}
+	if pendingIdx > completedIdx {
+		t.Error("pending item should appear before completed item")
+	}
+
+	// Gutter borders present.
+	if !strings.Contains(plain, "│") {
+		t.Error("expanded view should contain gutter borders")
+	}
+}
+
+func TestRenderTodoExpanded_DimmedCompleted(t *testing.T) {
+	todos := []TodoItem{
+		{ID: "1", Content: "active task", Status: "in_progress"},
+		{ID: "2", Content: "done task", Status: "completed"},
+	}
+
+	got := renderTodoExpanded(todos)
+
+	// The raw output (with ANSI) should contain the content text.
+	// Completed items have dimmed content, so the raw string will have
+	// ANSI escape sequences around "done task" but not around "active task".
+	plain := ansi.Strip(got)
+	if !strings.Contains(plain, "active task") {
+		t.Error("active task content should be present")
+	}
+	if !strings.Contains(plain, "done task") {
+		t.Error("done task content should be present even when dimmed")
+	}
+
+	// The active task line should NOT have dim styling on its content.
+	// Find the line containing "active task" in the raw output.
+	for _, line := range strings.Split(got, "\n") {
+		plainLine := ansi.Strip(line)
+		if strings.Contains(plainLine, "● active task") {
+			// The content portion "active task" should appear without
+			// ANSI wrapping (i.e., stripping ANSI from just the content
+			// portion should match the raw content portion).
+			contentStart := strings.Index(line, "● active task")
+			if contentStart == -1 {
+				// Content has ANSI codes interspersed — that means it's styled,
+				// which it should NOT be for in_progress items.
+				t.Error("in_progress item content should not be dimmed")
+			}
+		}
+	}
+}
+
+func TestNewTodoBlock_StartsExpanded(t *testing.T) {
+	b := newTodoBlock("preview", "full content")
+
+	if !b.expandable {
+		t.Error("todo block should be expandable")
+	}
+	if !b.expanded {
+		t.Error("todo block should start expanded")
+	}
+	if b.blockType != blockTodo {
+		t.Errorf("blockType = %d, want blockTodo", b.blockType)
+	}
+	if b.preview != "preview" {
+		t.Errorf("preview = %q, want %q", b.preview, "preview")
+	}
+	if b.full != "full content" {
+		t.Errorf("full = %q, want %q", b.full, "full content")
+	}
+}
+
+func TestNewTodoBlock_DisplayContent(t *testing.T) {
+	b := newTodoBlock("summary", "summary\n     │ ● task")
+
+	// Expanded by default — displayContent should return full.
+	if got := b.displayContent(); got != "summary\n     │ ● task" {
+		t.Errorf("expanded displayContent() = %q, want full content", got)
+	}
+
+	// After collapsing, displayContent should return preview.
+	b.expanded = false
+	if got := b.displayContent(); got != "summary" {
+		t.Errorf("collapsed displayContent() = %q, want preview", got)
+	}
+}
