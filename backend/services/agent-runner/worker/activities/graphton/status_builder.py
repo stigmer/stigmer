@@ -373,6 +373,14 @@ class StatusBuilder:
         # ─────────────────────────────────────────────────────────────────────
         self._tool_input_active_tc: dict[str, str] = {}
         self._tool_input_buffers: dict[str, str] = {}
+
+        # When True, the main event loop should send a gRPC status update
+        # immediately after process_event() returns, bypassing the scheduler's
+        # time/burst thresholds.  Set by _create_early_tool_call and
+        # _start_thinking_stream so the CLI sees new tool calls without
+        # waiting for the next scheduled update (which may be 500ms–30s away
+        # if no further LangGraph events arrive).
+        self.force_next_update: bool = False
     
     async def process_event(self, event: dict[str, Any]) -> None:
         """
@@ -814,23 +822,35 @@ class StatusBuilder:
             # with the actual tool name (e.g. "Write: …").
             _SKIP_EARLY_TOOLS = frozenset(PLANNING_TOOLS) | {"task"}
             for block in chunk_data.content:
-                if self._block_attr(block, "type") == "tool_use":
-                    t_name = self._block_attr(block, "name")
-                    t_id = self._block_attr(block, "id")
-                    if t_name and t_name not in _SKIP_EARLY_TOOLS:
-                        self._create_early_tool_call(
-                            t_name, t_id, ns_key, namespace,
-                        )
+                try:
+                    if self._block_attr(block, "type") == "tool_use":
+                        t_name = self._block_attr(block, "name")
+                        t_id = self._block_attr(block, "id")
+                        if t_name and t_name not in _SKIP_EARLY_TOOLS:
+                            self._create_early_tool_call(
+                                t_name, t_id, ns_key, namespace,
+                            )
+                except Exception:
+                    self.logger.exception(
+                        f"[TOOL_EARLY_ERROR] execution={self.execution_id} "
+                        f"block={block!r:.200} namespace={namespace or 'main'}"
+                    )
             
             # ── Tool Input Streaming ─────────────────────────────────────────
             # Accumulate input_json_delta fragments and extract displayable
             # content into the early ToolCall's result field so the CLI can
             # render it progressively (same mechanism as thinking streaming).
             for block in chunk_data.content:
-                if self._block_attr(block, "type") == "input_json_delta":
-                    partial = self._block_attr(block, "partial_json")
-                    if partial:
-                        self._accumulate_tool_input(ns_key, partial)
+                try:
+                    if self._block_attr(block, "type") == "input_json_delta":
+                        partial = self._block_attr(block, "partial_json")
+                        if partial:
+                            self._accumulate_tool_input(ns_key, partial)
+                except Exception:
+                    self.logger.exception(
+                        f"[TOOL_INPUT_ERROR] execution={self.execution_id} "
+                        f"namespace={namespace or 'main'}"
+                    )
             
             if thinking_text:
                 self._thinking_buffers[ns_key] = (
@@ -1410,6 +1430,8 @@ class StatusBuilder:
         self._tool_input_active_tc[ns_key] = temp_id
         self._tool_input_buffers[temp_id] = ""
 
+        self.force_next_update = True
+
         self.logger.debug(
             f"[TOOL_EARLY] execution={self.execution_id} "
             f"tool={tool_name} temp_id={temp_id} "
@@ -1529,6 +1551,8 @@ class StatusBuilder:
 
         self._thinking_tool_call_ids[ns_key] = tc_id
         self._thinking_started_at[ns_key] = now
+
+        self.force_next_update = True
 
         self.logger.debug(
             "[THINK] execution=%s streaming_started id=%s namespace=%s",
