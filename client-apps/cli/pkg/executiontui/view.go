@@ -72,7 +72,11 @@ func (m Model) renderHeader() string {
 	}
 
 	var title string
-	if m.cfg.SessionID != "" {
+	if m.inputActive {
+		// In conversational mode the session header stands alone — the phase
+		// of the last execution is irrelevant when the user is composing.
+		title = fmt.Sprintf("  Session: %s", m.cfg.SessionID)
+	} else if m.cfg.SessionID != "" {
 		title = fmt.Sprintf("  Session: %s  %s", m.cfg.SessionID, phaseIndicator)
 	} else {
 		title = fmt.Sprintf("  Execution: %s  %s", m.cfg.ExecutionID, phaseIndicator)
@@ -105,7 +109,7 @@ func (m Model) renderFooter() string {
 	var hints string
 	switch {
 	case m.inputActive:
-		hints = "  " + doneFooterText(m.phase) + "  Enter send  Esc exit"
+		hints = "  Enter send  Esc exit"
 	case m.done:
 		hints = "  " + doneFooterText(m.phase) + "  ↑↓ scroll"
 		if m.hasExpandableBlocks() {
