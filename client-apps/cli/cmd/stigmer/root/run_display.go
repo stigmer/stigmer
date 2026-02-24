@@ -9,6 +9,8 @@ import (
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/mdrender"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
 )
 
@@ -89,11 +91,12 @@ func displayHumanMessage(msg *agentexecutionv1.AgentMessage) {
 	flushStdout()
 }
 
-// displayAIMessage renders an agent response. If the AI message initiated tool
+// displayAIMessage renders an agent response. Content containing markdown is
+// rendered to ANSI-styled terminal text. If the AI message initiated tool
 // calls, each is rendered below the text using structured category-aware display.
 func displayAIMessage(msg *agentexecutionv1.AgentMessage) {
 	if msg.Content != "" {
-		fmt.Printf("🤖 Agent: %s\n\n", msg.Content)
+		fmt.Printf("%s\n\n", formatNonTUIAIText(msg.Content))
 	}
 
 	if len(msg.ToolCalls) > 0 {
@@ -101,6 +104,17 @@ func displayAIMessage(msg *agentexecutionv1.AgentMessage) {
 	} else if msg.Content != "" {
 		flushStdout()
 	}
+}
+
+// formatNonTUIAIText renders the text portion of an AI message for the non-TUI
+// display path. Markdown content is rendered with ANSI styling using the current
+// terminal width. Plain text uses the compact inline prefix.
+func formatNonTUIAIText(content string) string {
+	if !mdrender.HasMarkdown(content) {
+		return fmt.Sprintf("🤖 Agent: %s", content)
+	}
+	rendered := mdrender.Render(content, display.GetTerminalWidth())
+	return fmt.Sprintf("🤖 Agent:\n%s", rendered)
 }
 
 // displayToolMessage renders a tool result as a concise summary line.
