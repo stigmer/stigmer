@@ -13,6 +13,9 @@ type Event interface {
 type AIMessageEvent struct {
 	Content   string
 	ToolCalls []toolrender.ToolCallInfo
+	// SubAgentID is non-empty when this message originates from a sub-agent.
+	// The TUI renders sub-agent blocks with a visual indent prefix.
+	SubAgentID string
 }
 
 func (AIMessageEvent) isEvent() {}
@@ -68,6 +71,8 @@ type ToolRunningEvent struct {
 	ToolCallID string
 	// ToolCall carries the structured info for rendering (name, args, status).
 	ToolCall toolrender.ToolCallInfo
+	// SubAgentID is non-empty when this tool call originates from a sub-agent.
+	SubAgentID string
 }
 
 func (ToolRunningEvent) isEvent() {}
@@ -80,6 +85,8 @@ type ToolCompletedEvent struct {
 	ToolCallID string
 	// ToolCall carries the final info including Result, Duration, and Status.
 	ToolCall toolrender.ToolCallInfo
+	// SubAgentID is non-empty when this tool call originates from a sub-agent.
+	SubAgentID string
 }
 
 func (ToolCompletedEvent) isEvent() {}
@@ -93,6 +100,8 @@ type ToolWaitingApprovalEvent struct {
 	ToolCallID string
 	// ToolCall carries the structured info for rendering (name, args, status).
 	ToolCall toolrender.ToolCallInfo
+	// SubAgentID is non-empty when this tool call originates from a sub-agent.
+	SubAgentID string
 }
 
 func (ToolWaitingApprovalEvent) isEvent() {}
@@ -110,6 +119,8 @@ type ToolStreamDeltaEvent struct {
 	ToolCall toolrender.ToolCallInfo
 	// Content is the full accumulated streaming output so far.
 	Content string
+	// SubAgentID is non-empty when this tool call originates from a sub-agent.
+	SubAgentID string
 }
 
 func (ToolStreamDeltaEvent) isEvent() {}
