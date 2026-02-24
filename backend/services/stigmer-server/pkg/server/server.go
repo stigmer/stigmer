@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -532,6 +533,7 @@ func loadSupervisorConfig(cfg *config.Config) *supervisor.Config {
 	return &supervisor.Config{
 		DataDir:             getEnv("STIGMER_DATA_DIR", ""),
 		LogDir:              getEnv("STIGMER_LOG_DIR", ""),
+		LogLevel:            strings.ToUpper(cfg.LogLevel),
 		TemporalAddr:        getEnv("TEMPORAL_SERVICE_ADDRESS", "localhost:7233"),
 		StigmerServerPort:   cfg.GRPCPort,
 		ArtifactHTTPPort:    cfg.ArtifactHTTPPort,
