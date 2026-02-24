@@ -47,7 +47,6 @@ func init() {
 	)
 
 	// Core Commands
-	rootCmd.AddCommand(withGroup(root.NewCommand(), "core"))
 	rootCmd.AddCommand(withGroup(root.NewRunCommand(), "core"))
 
 	// Resource Management
