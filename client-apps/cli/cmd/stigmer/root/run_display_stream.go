@@ -143,7 +143,7 @@ func (r *messageStreamRenderer) writeCompleteMessage(msg *agentexecutionv1.Agent
 		r.flush()
 	case agentexecutionv1.MessageType_MESSAGE_AI:
 		if msg.Content != "" {
-			fmt.Fprintf(r.w, "🤖 Agent: %s\n\n", msg.Content)
+			fmt.Fprintf(r.w, "%s\n\n", formatNonTUIAIText(msg.Content))
 		}
 		if len(msg.ToolCalls) > 0 {
 			r.writeToolCalls(msg.ToolCalls)

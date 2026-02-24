@@ -6,6 +6,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/mdrender"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
 )
 
@@ -24,13 +25,15 @@ var (
 	thinkingStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("243"))
 )
 
-// renderAIContent formats an AI message for display.
-// When the message has both text and tool calls, they are joined with a blank line.
-func renderAIContent(content string, toolCalls []toolrender.ToolCallInfo) string {
+// renderAIContent formats an AI message for display. Content containing
+// markdown syntax (headers, bold, code blocks, lists) is rendered to
+// ANSI-styled terminal text via glamour. Plain text keeps the compact
+// inline prefix. width controls word wrapping for the markdown renderer.
+func renderAIContent(content string, toolCalls []toolrender.ToolCallInfo, width int) string {
 	var parts []string
 
 	if content != "" {
-		parts = append(parts, fmt.Sprintf("🤖 Agent: %s", content))
+		parts = append(parts, formatAIText(content, width))
 	}
 
 	if len(toolCalls) > 0 {
@@ -38,11 +41,22 @@ func renderAIContent(content string, toolCalls []toolrender.ToolCallInfo) string
 			parts = append(parts, toolrender.Render(tc))
 		}
 	} else if content == "" {
-		// AI invoked tools without text — show activity indicator.
 		parts = append(parts, systemStyle.Render("🤖 Agent is invoking tools..."))
 	}
 
 	return strings.Join(parts, "\n")
+}
+
+// formatAIText renders the text portion of an AI message. When the content
+// contains markdown syntax, it is rendered to styled ANSI text and displayed
+// below the prefix on a separate line. Plain text uses the compact inline
+// format ("🤖 Agent: text").
+func formatAIText(content string, width int) string {
+	if !mdrender.HasMarkdown(content) {
+		return fmt.Sprintf("🤖 Agent: %s", content)
+	}
+	rendered := mdrender.Render(content, width)
+	return fmt.Sprintf("🤖 Agent:\n%s", rendered)
 }
 
 // renderStreamingAI formats a streaming AI message with a cursor indicator.

@@ -100,18 +100,20 @@ func (m Model) replayInit() tea.Cmd {
 // executions in a session. Executions must be in chronological order
 // (oldest first). The result is a seamless conversation transcript with
 // no execution boundaries — consistent with the design decision to hide
-// execution internals from the user.
-func BuildSessionReplayBlocks(executions []*agentexecutionv1.AgentExecution) []contentBlock {
+// execution internals from the user. width controls word wrapping for
+// markdown-rendered AI messages (pass 0 for no wrapping).
+func BuildSessionReplayBlocks(executions []*agentexecutionv1.AgentExecution, width int) []contentBlock {
 	var blocks []contentBlock
 	for _, exec := range executions {
-		blocks = append(blocks, BuildReplayBlocks(exec)...)
+		blocks = append(blocks, BuildReplayBlocks(exec, width)...)
 	}
 	return blocks
 }
 
 // BuildReplayBlocks converts a completed execution's stored state into
-// the same block types that the live TUI produces.
-func BuildReplayBlocks(exec *agentexecutionv1.AgentExecution) []contentBlock {
+// the same block types that the live TUI produces. width controls word
+// wrapping for markdown-rendered AI messages (pass 0 for no wrapping).
+func BuildReplayBlocks(exec *agentexecutionv1.AgentExecution, width int) []contentBlock {
 	var blocks []contentBlock
 
 	for _, msg := range exec.GetStatus().GetMessages() {
@@ -123,7 +125,7 @@ func BuildReplayBlocks(exec *agentexecutionv1.AgentExecution) []contentBlock {
 
 		case agentexecutionv1.MessageType_MESSAGE_AI:
 			tcInfos := replayConvertToolCalls(msg.GetToolCalls())
-			rendered := renderAIContent(msg.GetContent(), tcInfos)
+			rendered := renderAIContent(msg.GetContent(), tcInfos, width)
 			if rendered != "" {
 				blocks = append(blocks, newAIBlock(rendered))
 			}
