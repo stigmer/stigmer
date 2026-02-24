@@ -574,6 +574,116 @@ func TestEmitSnapshotEvents_NoDuplicateToolBlocks(t *testing.T) {
 	}
 }
 
+// =============================================================================
+// Todo events: snapshot bridge emits TodoUpdateEvent from stored state
+// =============================================================================
+
+func TestEmitSnapshotEvents_EmitsTodoUpdateEvent(t *testing.T) {
+	exec := makeExecution(
+		agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
+		[]*agentexecutionv1.AgentMessage{
+			{Type: agentexecutionv1.MessageType_MESSAGE_HUMAN, Content: "Build a CLI"},
+			{Type: agentexecutionv1.MessageType_MESSAGE_AI, Content: "I'll create the project structure."},
+		},
+		nil,
+	)
+	exec.Status.Todos = map[string]*agentexecutionv1.TodoItem{
+		"t1": {Id: "t1", Content: "Create main.go", Status: agentexecutionv1.TodoStatus_TODO_COMPLETED},
+		"t2": {Id: "t2", Content: "Add tests", Status: agentexecutionv1.TodoStatus_TODO_IN_PROGRESS},
+	}
+
+	events := make(chan executiontui.Event, 64)
+	emitSnapshotEvents(exec, events, true)
+	close(events)
+
+	evts := drainEvents(events)
+
+	var todoEvt *executiontui.TodoUpdateEvent
+	for _, evt := range evts {
+		if te, ok := evt.(executiontui.TodoUpdateEvent); ok {
+			todoEvt = &te
+		}
+	}
+
+	if todoEvt == nil {
+		t.Fatal("expected TodoUpdateEvent for execution with todos")
+	}
+	if len(todoEvt.Todos) != 2 {
+		t.Fatalf("expected 2 todo items, got %d", len(todoEvt.Todos))
+	}
+
+	byID := make(map[string]executiontui.TodoItem)
+	for _, item := range todoEvt.Todos {
+		byID[item.ID] = item
+	}
+	if item, ok := byID["t1"]; !ok || item.Status != "completed" {
+		t.Errorf("t1: expected status=completed, got %+v", byID["t1"])
+	}
+	if item, ok := byID["t2"]; !ok || item.Status != "in_progress" {
+		t.Errorf("t2: expected status=in_progress, got %+v", byID["t2"])
+	}
+}
+
+func TestEmitSnapshotEvents_NoTodoEvent_WhenNoTodos(t *testing.T) {
+	exec := makeExecution(
+		agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
+		[]*agentexecutionv1.AgentMessage{
+			{Type: agentexecutionv1.MessageType_MESSAGE_HUMAN, Content: "Hello"},
+			{Type: agentexecutionv1.MessageType_MESSAGE_AI, Content: "Hi there."},
+		},
+		nil,
+	)
+
+	events := make(chan executiontui.Event, 64)
+	emitSnapshotEvents(exec, events, true)
+	close(events)
+
+	for evt := range events {
+		if _, ok := evt.(executiontui.TodoUpdateEvent); ok {
+			t.Fatal("TodoUpdateEvent should NOT be emitted when execution has no todos")
+		}
+	}
+}
+
+func TestEmitSnapshotEvents_TodoEventBeforeDoneEvent(t *testing.T) {
+	exec := makeExecution(
+		agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
+		[]*agentexecutionv1.AgentMessage{
+			{Type: agentexecutionv1.MessageType_MESSAGE_HUMAN, Content: "Plan the work"},
+		},
+		nil,
+	)
+	exec.Status.Todos = map[string]*agentexecutionv1.TodoItem{
+		"t1": {Id: "t1", Content: "Step 1", Status: agentexecutionv1.TodoStatus_TODO_PENDING},
+	}
+
+	events := make(chan executiontui.Event, 64)
+	emitSnapshotEvents(exec, events, true)
+	close(events)
+
+	evts := drainEvents(events)
+
+	todoIdx, doneIdx := -1, -1
+	for i, evt := range evts {
+		switch evt.(type) {
+		case executiontui.TodoUpdateEvent:
+			todoIdx = i
+		case executiontui.DoneEvent:
+			doneIdx = i
+		}
+	}
+
+	if todoIdx == -1 {
+		t.Fatal("expected TodoUpdateEvent")
+	}
+	if doneIdx == -1 {
+		t.Fatal("expected DoneEvent")
+	}
+	if todoIdx >= doneIdx {
+		t.Errorf("TodoUpdateEvent (index %d) should appear before DoneEvent (index %d)", todoIdx, doneIdx)
+	}
+}
+
 func TestEmitSnapshotEvents_AIMessageTextOnly(t *testing.T) {
 	// Verifies that AI messages emit text content only, without inline
 	// tool call references. Tool calls appear as separate stateful blocks.

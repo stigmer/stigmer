@@ -122,6 +122,13 @@ func emitSnapshotEvents(exec *agentexecutionv1.AgentExecution, events chan<- exe
 		emitSubAgentEvents(events, subs, make(map[string]*subAgentTracker))
 	}
 
+	// Emit the todo block from stored state. The streaming path tracks
+	// incremental changes via fingerprint diffing; the snapshot path has
+	// only the final state, so a single event with the full list suffices.
+	if todos := convertProtoTodos(status.GetTodos()); len(todos) > 0 {
+		events <- executiontui.TodoUpdateEvent{Todos: todos}
+	}
+
 	if emitDone {
 		events <- executiontui.DoneEvent{
 			Phase: mapPhaseToString(status.GetPhase()),
