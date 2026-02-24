@@ -1,6 +1,8 @@
 package root
 
 import (
+	"sort"
+
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 )
@@ -8,12 +10,8 @@ import (
 // snapshotToEvents converts stored executions into TUI events and sends them
 // over the events channel. This is the historical-data counterpart to
 // streamToEvents: instead of reading from a gRPC stream, it walks stored
-// messages chronologically and emits tool events inline — producing the same
-// interleaved conversation flow that the live TUI renders.
-//
-// Noise suppression, lifecycle badges, and duplicate filtering all apply
-// automatically because the same building blocks are used (emitCompleteMessage,
-// isTrackedToolMessage, convertToolCall, etc.).
+// messages and tool calls chronologically — producing the same interleaved
+// conversation flow that the live TUI renders.
 //
 // Executions must be in chronological order (oldest first). For intermediate
 // executions (all except the last), the DoneEvent is skipped so the TUI
@@ -33,16 +31,26 @@ func snapshotToEvents(executions []*agentexecutionv1.AgentExecution, events chan
 }
 
 // emitSnapshotEvents converts a single stored execution's final state into
-// TUI events by walking the message array in chronological order.
+// TUI events by building a chronological timeline from two data sources:
 //
-// For each AI message that references tool calls, stateful tool block events
-// (ToolCompletedEvent, ToolRunningEvent, etc.) are emitted immediately after
-// the AI message — matching the natural interleaving that the live gRPC path
-// produces. Subsequent MESSAGE_TOOL entries for those tool calls are
-// suppressed via isTrackedToolMessage, preventing duplicate blocks.
+//  1. status.Messages[] — the ordered message array (HUMAN, AI, TOOL, SYSTEM)
+//  2. status.ToolCalls[] — the top-level tool call array (includes thinking
+//     blocks and other tool calls not represented in messages)
 //
-// Tool calls in the top-level ToolCalls array that aren't referenced by any
-// AI message are emitted after all messages (orphaned tools edge case).
+// The function merges these sources by timestamp to produce the correct
+// interleaved output:
+//
+//   - MESSAGE_TOOL entries are promoted to proper stateful tool block events
+//     (ToolCompletedEvent with lifecycle badges), using the full tool call
+//     data from the top-level ToolCalls array. This matches the expandable,
+//     badge-decorated blocks that the live streaming path produces via
+//     emitToolCallStateEvents.
+//   - Tool calls that exist only in ToolCalls[] (e.g., native thinking blocks)
+//     are interleaved at their correct chronological position based on the
+//     started_at timestamp.
+//   - AI messages emit text content only — their associated tool calls appear
+//     as separate stateful blocks that follow immediately in the message
+//     timeline (via the MESSAGE_TOOL entries).
 //
 // When emitDone is true, a DoneEvent is sent after all content events,
 // signaling the TUI that this is the final execution in the sequence.
@@ -58,45 +66,54 @@ func emitSnapshotEvents(exec *agentexecutionv1.AgentExecution, events chan<- exe
 		}
 	}
 
-	// Track which tool calls have been emitted as stateful blocks.
-	// Uses map[string]string (ID → status) for compatibility with
-	// isTrackedToolMessage which expects this signature.
-	emittedToolStates := make(map[string]string)
+	// Identify tool call IDs already represented in the message timeline
+	// as MESSAGE_TOOL entries. These don't need separate interleaving.
+	messageToolIDs := collectMessageToolIDs(status.GetMessages())
 
-	// Walk messages in chronological order, emitting events that match
-	// the natural conversation flow: Human → AI → ToolBlocks → AI → ...
-	for _, msg := range status.GetMessages() {
-		// Suppress MESSAGE_TOOL for tool calls already emitted as stateful
-		// blocks. This is the same suppression that the live path applies
-		// via isTrackedToolMessage.
-		if isTrackedToolMessage(msg, emittedToolStates) {
-			continue
+	// Non-message tool calls: entries in tool_calls[] with no corresponding
+	// MESSAGE_TOOL in messages[]. Typically native thinking blocks which the
+	// backend adds to tool_calls[] but not to messages[]. Sort by started_at
+	// so they can be interleaved at the correct chronological position.
+	nonMsgToolCalls := collectNonMessageToolCalls(status.GetToolCalls(), messageToolIDs)
+	sort.Slice(nonMsgToolCalls, func(i, j int) bool {
+		a, b := nonMsgToolCalls[i].GetStartedAt(), nonMsgToolCalls[j].GetStartedAt()
+		if a == "" {
+			return false // empty timestamps sort to end
 		}
+		if b == "" {
+			return true
+		}
+		return a < b
+	})
 
-		// emitCompleteMessage handles type dispatch and noise filtering
-		// (approval message suppression, system content sanitization).
-		emitCompleteMessage(events, msg)
+	emittedIDs := make(map[string]bool)
+	nmCursor := 0
 
-		// After emitting an AI message, emit stateful tool block events for
-		// each tool call it references. This places tool blocks immediately
-		// after the AI message that initiated them — matching live ordering.
-		if msg.Type == agentexecutionv1.MessageType_MESSAGE_AI {
-			emitReferencedToolEvents(events, msg.ToolCalls, toolCallByID, emittedToolStates)
+	// Walk messages chronologically, interleaving non-message tool calls
+	// (thinking blocks) at their correct timestamp position.
+	for _, msg := range status.GetMessages() {
+		nmCursor = emitInterleaved(events, nonMsgToolCalls, nmCursor, msg.GetTimestamp(), emittedIDs)
+
+		switch msg.Type {
+		case agentexecutionv1.MessageType_MESSAGE_TOOL:
+			emitToolMessageAsStateful(events, msg, toolCallByID, emittedIDs)
+
+		case agentexecutionv1.MessageType_MESSAGE_AI:
+			events <- executiontui.AIMessageEvent{Content: msg.Content}
+
+		default:
+			emitCompleteMessage(events, msg)
 		}
 	}
 
-	// Emit events for tool calls not referenced by any AI message.
-	// This handles edge cases where the top-level ToolCalls array contains
-	// entries without corresponding AI message references.
-	for _, tc := range status.GetToolCalls() {
-		if tc.Id == "" {
-			continue
+	// Emit remaining non-message tool calls (started after all messages,
+	// or had no timestamp).
+	for ; nmCursor < len(nonMsgToolCalls); nmCursor++ {
+		tc := nonMsgToolCalls[nmCursor]
+		if !emittedIDs[tc.GetId()] {
+			emitToolEventByStatus(events, tc)
+			emittedIDs[tc.GetId()] = true
 		}
-		if _, emitted := emittedToolStates[tc.Id]; emitted {
-			continue
-		}
-		emitToolEventByStatus(events, tc)
-		emittedToolStates[tc.Id] = mapToolCallStatus(tc.Status)
 	}
 
 	// Sub-agent events carry SubAgentID for visual nesting under the parent
@@ -113,35 +130,105 @@ func emitSnapshotEvents(exec *agentexecutionv1.AgentExecution, events chan<- exe
 	}
 }
 
-// emitReferencedToolEvents emits stateful tool block events for tool calls
-// referenced by an AI message. Each tool call is looked up in the top-level
-// ToolCalls array for its final status and result.
-//
-// This places tool blocks immediately after the AI message that initiated
-// them, preserving the chronological interleaving that the live TUI produces.
-func emitReferencedToolEvents(
+// emitInterleaved emits non-message tool calls whose started_at timestamp
+// falls at or before the given message timestamp. Returns the updated cursor
+// position. Tool calls without a started_at are deferred to the end.
+func emitInterleaved(
 	events chan<- executiontui.Event,
-	aiToolCalls []*agentexecutionv1.ToolCall,
-	toolCallByID map[string]*agentexecutionv1.ToolCall,
-	emittedStates map[string]string,
-) {
-	for _, tc := range aiToolCalls {
-		if tc.Id == "" {
-			continue
+	toolCalls []*agentexecutionv1.ToolCall,
+	cursor int,
+	msgTimestamp string,
+	emittedIDs map[string]bool,
+) int {
+	for cursor < len(toolCalls) {
+		tc := toolCalls[cursor]
+		tcTime := tc.GetStartedAt()
+		if tcTime == "" {
+			break // no timestamp — defer to end
 		}
-		if _, already := emittedStates[tc.Id]; already {
+		if msgTimestamp == "" || tcTime > msgTimestamp {
+			break
+		}
+		if !emittedIDs[tc.GetId()] {
+			emitToolEventByStatus(events, tc)
+			emittedIDs[tc.GetId()] = true
+		}
+		cursor++
+	}
+	return cursor
+}
+
+// emitToolMessageAsStateful converts a MESSAGE_TOOL message into a proper
+// stateful tool block event (ToolCompletedEvent, ToolWaitingApprovalEvent, or
+// ToolRunningEvent) using the full tool call data from the top-level
+// ToolCalls array.
+//
+// This produces the same expandable, badge-decorated blocks that the live
+// streaming path creates via emitToolCallStateEvents — unlike ToolResultEvent
+// which renders in a simpler format without lifecycle badges.
+//
+// Falls back to emitCompleteMessage if the message carries no tool call
+// references (content-only fallback messages).
+func emitToolMessageAsStateful(
+	events chan<- executiontui.Event,
+	msg *agentexecutionv1.AgentMessage,
+	toolCallByID map[string]*agentexecutionv1.ToolCall,
+	emittedIDs map[string]bool,
+) {
+	if len(msg.ToolCalls) == 0 {
+		emitCompleteMessage(events, msg)
+		return
+	}
+
+	for _, tcRef := range msg.ToolCalls {
+		if tcRef.Id == "" || emittedIDs[tcRef.Id] {
 			continue
 		}
 
-		// Prefer the top-level ToolCall which has final status and result.
-		fullTC := toolCallByID[tc.Id]
+		fullTC := toolCallByID[tcRef.Id]
 		if fullTC == nil {
-			fullTC = tc
+			fullTC = tcRef
 		}
 
 		emitToolEventByStatus(events, fullTC)
-		emittedStates[fullTC.Id] = mapToolCallStatus(fullTC.Status)
+		emittedIDs[fullTC.Id] = true
 	}
+}
+
+// collectMessageToolIDs returns the set of tool call IDs referenced by
+// MESSAGE_TOOL entries in the messages array. Used to distinguish tool calls
+// that are already represented in the message timeline from those that need
+// separate interleaving (e.g., thinking blocks).
+func collectMessageToolIDs(messages []*agentexecutionv1.AgentMessage) map[string]bool {
+	ids := make(map[string]bool)
+	for _, msg := range messages {
+		if msg.Type != agentexecutionv1.MessageType_MESSAGE_TOOL {
+			continue
+		}
+		for _, tc := range msg.ToolCalls {
+			if tc.Id != "" {
+				ids[tc.Id] = true
+			}
+		}
+	}
+	return ids
+}
+
+// collectNonMessageToolCalls returns tool calls from the top-level array that
+// have no corresponding MESSAGE_TOOL entry in the messages array. These are
+// typically native thinking blocks (name="think") which the backend adds to
+// tool_calls[] but not to messages[].
+func collectNonMessageToolCalls(
+	toolCalls []*agentexecutionv1.ToolCall,
+	messageToolIDs map[string]bool,
+) []*agentexecutionv1.ToolCall {
+	var result []*agentexecutionv1.ToolCall
+	for _, tc := range toolCalls {
+		if tc.Id != "" && !messageToolIDs[tc.Id] {
+			result = append(result, tc)
+		}
+	}
+	return result
 }
 
 // emitToolEventByStatus emits the appropriate tool event based on the tool
