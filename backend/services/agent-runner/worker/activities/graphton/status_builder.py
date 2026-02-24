@@ -51,6 +51,90 @@ PLANNING_TOOLS = {
     'write_todos',
 }
 
+# Maps tool names to the arg field(s) that contain the bulk displayable content
+# (ordered by priority).  Used by the input-streaming extractor to pull clean
+# content from the accumulating partial JSON and pipe it into tool_call.result.
+# Tools not listed here either generate tiny args (< 1 s) or have no meaningful
+# content to stream — they are left with an empty result during the early phase.
+_TOOL_CONTENT_FIELDS: dict[str, list[str]] = {
+    "write":          ["contents", "content", "file_content"],
+    "write_file":     ["contents", "content", "file_content"],
+    "create_file":    ["contents", "content", "file_content"],
+    "overwrite_file": ["contents", "content", "file_content"],
+    "edit":           ["new_text", "new_string", "replacement", "content"],
+    "edit_file":      ["new_text", "new_string", "replacement", "content"],
+    "think":          ["thought"],
+}
+
+# JSON escape → Python character mapping (single-char sequences).
+_JSON_ESCAPES: dict[str, str] = {
+    "n": "\n", "t": "\t", "r": "\r",
+    '"': '"', "\\": "\\", "/": "/",
+    "b": "\b", "f": "\f",
+}
+
+
+def _find_json_string_value_start(partial_json: str, field_name: str) -> int:
+    """Return the index of the first content character of a JSON string value.
+
+    Searches *partial_json* for ``"<field_name>"`` followed by ``:`` and ``"``,
+    skipping optional whitespace.  Returns the index immediately after the
+    opening quote, or ``-1`` if the pattern has not yet appeared.
+
+    Robust against missing whitespace (``"key":"val"``) and extra whitespace
+    (``"key" :  "val"``).
+    """
+    marker = f'"{field_name}"'
+    pos = partial_json.find(marker)
+    if pos < 0:
+        return -1
+    after_key = pos + len(marker)
+    colon_pos = partial_json.find(":", after_key)
+    if colon_pos < 0:
+        return -1
+    quote_pos = partial_json.find('"', colon_pos + 1)
+    if quote_pos < 0:
+        return -1
+    return quote_pos + 1
+
+
+def _json_unescape_partial(s: str) -> str:
+    """Unescape a partial JSON string value.
+
+    Converts standard JSON escape sequences (``\\n``, ``\\t``, ``\\"``, etc.)
+    to their Python equivalents.  Processing stops at the closing ``"`` (end of
+    JSON string) or at the end of the input (string is still being generated).
+
+    A trailing backslash with no following character is silently dropped to
+    avoid showing a garbled escape that is not yet complete.
+    """
+    out: list[str] = []
+    i = 0
+    n = len(s)
+    while i < n:
+        ch = s[i]
+        if ch == "\\":
+            if i + 1 >= n:
+                break  # incomplete escape at boundary — drop it
+            nxt = s[i + 1]
+            if nxt == "u":
+                if i + 5 < n:
+                    try:
+                        out.append(chr(int(s[i + 2 : i + 6], 16)))
+                        i += 6
+                        continue
+                    except ValueError:
+                        pass
+                break  # incomplete \\uXXXX — wait for more data
+            out.append(_JSON_ESCAPES.get(nxt, nxt))
+            i += 2
+        elif ch == '"':
+            break  # end of JSON string value
+        else:
+            out.append(ch)
+            i += 1
+    return "".join(out)
+
 
 def _utc_timestamp(dt: datetime | None = None) -> str:
     """Return a UTC datetime as an RFC 3339 timestamp string.
@@ -273,6 +357,22 @@ class StatusBuilder:
         # (updating args, registering the real run_id as an alias).
         # ─────────────────────────────────────────────────────────────────────────
         self._early_tool_call_queue: list[str] = []
+        
+        # ─────────────────────────────────────────────────────────────────────
+        # Tool Input Streaming (Live Argument Generation)
+        #
+        # While the LLM generates tool arguments, Anthropic emits
+        # input_json_delta blocks whose partial_json fragments concatenate
+        # into the full args JSON.  We accumulate them per early ToolCall and
+        # extract displayable content (e.g. the file body for write tools)
+        # into tool_call.result so the CLI streams it progressively.
+        #
+        # _tool_input_active_tc: namespace key → temp_id of the early ToolCall
+        #     currently receiving input_json_delta blocks.
+        # _tool_input_buffers: temp_id → accumulated partial JSON string.
+        # ─────────────────────────────────────────────────────────────────────
+        self._tool_input_active_tc: dict[str, str] = {}
+        self._tool_input_buffers: dict[str, str] = {}
     
     async def process_event(self, event: dict[str, Any]) -> None:
         """
@@ -721,6 +821,16 @@ class StatusBuilder:
                         self._create_early_tool_call(
                             t_name, t_id, ns_key, namespace,
                         )
+            
+            # ── Tool Input Streaming ─────────────────────────────────────────
+            # Accumulate input_json_delta fragments and extract displayable
+            # content into the early ToolCall's result field so the CLI can
+            # render it progressively (same mechanism as thinking streaming).
+            for block in chunk_data.content:
+                if self._block_attr(block, "type") == "input_json_delta":
+                    partial = self._block_attr(block, "partial_json")
+                    if partial:
+                        self._accumulate_tool_input(ns_key, partial)
             
             if thinking_text:
                 self._thinking_buffers[ns_key] = (
@@ -1297,6 +1407,9 @@ class StatusBuilder:
         self._early_tool_call_queue.append(temp_id)
         self._tool_start_times[temp_id] = now
 
+        self._tool_input_active_tc[ns_key] = temp_id
+        self._tool_input_buffers[temp_id] = ""
+
         self.logger.debug(
             f"[TOOL_EARLY] execution={self.execution_id} "
             f"tool={tool_name} temp_id={temp_id} "
@@ -1326,6 +1439,9 @@ class StatusBuilder:
                 continue
 
             self._early_tool_call_queue.pop(idx)
+            self._flush_tool_input_buffer(temp_id)
+
+            existing.result = ""
 
             if tool_args:
                 args_struct = Struct()
@@ -1437,6 +1553,77 @@ class StatusBuilder:
         tool_call = self._find_tool_call_by_id(tc_id)
         if tool_call is not None:
             tool_call.result = self._thinking_buffers.get(ns_key, "")
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Tool Input Streaming Helpers
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _accumulate_tool_input(self, ns_key: str, partial_json: str) -> None:
+        """Accumulate an ``input_json_delta`` fragment and update the early ToolCall.
+
+        Appends *partial_json* to the buffer for the early ToolCall currently
+        active in this namespace.  If the accumulated JSON already contains the
+        tool's content field (e.g. ``"contents": "…``), the extracted value is
+        written to ``tool_call.result`` so the CLI can stream it progressively.
+
+        Follows the same pattern as ``_update_thinking_stream``: mutate
+        ``tool_call.result`` in place; the gRPC scheduler pushes the change
+        within ~500 ms and the CLI detects it via
+        ``tc.IsStreaming && tc.Result != prevResults``.
+        """
+        temp_id = self._tool_input_active_tc.get(ns_key)
+        if not temp_id:
+            return
+
+        buf = self._tool_input_buffers.get(temp_id)
+        if buf is None:
+            return
+
+        self._tool_input_buffers[temp_id] = buf + partial_json
+
+        tool_call = self._find_tool_call_by_id(temp_id)
+        if tool_call is None:
+            return
+
+        content = self._extract_content_from_partial_json(
+            tool_call.name, self._tool_input_buffers[temp_id],
+        )
+        if content:
+            tool_call.result = content
+
+    @staticmethod
+    def _extract_content_from_partial_json(
+        tool_name: str, partial_json: str,
+    ) -> str:
+        """Extract the displayable content value from an in-progress args JSON.
+
+        For tools listed in ``_TOOL_CONTENT_FIELDS`` (write, edit, think) the
+        method locates the content field's opening quote and JSON-unescapes
+        everything that has arrived so far.  Trailing incomplete escape
+        sequences are silently dropped to avoid garbled output.
+
+        Returns an empty string when the content field has not yet appeared in
+        the accumulated JSON (e.g. the LLM is still generating the ``path``
+        argument).
+        """
+        fields = _TOOL_CONTENT_FIELDS.get(tool_name)
+        if not fields:
+            return ""
+
+        for field in fields:
+            start = _find_json_string_value_start(partial_json, field)
+            if start >= 0:
+                return _json_unescape_partial(partial_json[start:])
+
+        return ""
+
+    def _flush_tool_input_buffer(self, temp_id: str) -> None:
+        """Clean up input-streaming state for a reconciled early ToolCall."""
+        self._tool_input_buffers.pop(temp_id, None)
+        for ns_key, tid in list(self._tool_input_active_tc.items()):
+            if tid == temp_id:
+                del self._tool_input_active_tc[ns_key]
+                break
 
     def _flush_thinking_buffer(self, ns_key: str, namespace: str) -> None:
         """Finalize the streaming think ToolCall or create a completed one.
