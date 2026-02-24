@@ -80,14 +80,24 @@ Add timestamps and notes to track your progress.
 
 ## Task 4: Handle TodoUpdateEvent in handle_events.go
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-02-25 00:30
+**Completed**: 2026-02-25 01:15
 
 ### Subtasks
-- [ ] [Add specific steps as you work]
+- [x] Add `todoBlockIdx int` field to Model struct with sentinel `-1`
+- [x] Initialize `todoBlockIdx` to `-1` in `New()`
+- [x] Reset `todoBlockIdx` to `-1` in `handleFollowUpStarted` (follow-up execution boundary)
+- [x] Add `case TodoUpdateEvent` to `handleExecutionEvent` switch
+- [x] Implement first-event append + subsequent in-place update with expand/collapse preservation
+- [x] Add 3 tests: creates block, updates in-place, preserves expand/collapse state
+- [x] Build and all tests pass
 
 ### Notes
-- [Add notes about this task here]
+- Used plain `int` field (not map) — only one todo block per execution, simpler than `runningTools` pattern
+- Mirrors `updateToolBadge` pattern: bounds-check-and-update vs. append-and-track
+- `wasExpanded` capture preserves user's collapse preference across in-place updates
+- 4 files changed: model.go (+7), followup.go (+1), handle_events.go (+12), update_test.go (+108)
 
 ## Task 5: Wire todo handling in snapshot bridge (run_stream_snapshot.go)
 

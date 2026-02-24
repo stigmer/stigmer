@@ -2,12 +2,16 @@
 
 ## Current State
 - **Status**: in-progress
-- **Last Session**: 2026-02-25 — Completed Tasks 2 and 3 (block rendering + stream bridge diffing)
-- **Active Task**: Task 4 — Handle TodoUpdateEvent in handle_events.go
+- **Last Session**: 2026-02-25 — Completed Task 4 (handle TodoUpdateEvent in TUI)
+- **Active Task**: Task 5 — Wire todo handling in snapshot bridge for session resume
+
+## Session Progress (2026-02-25, Session 3)
+- Completed Task 4: Added `todoBlockIdx int` field to Model, `case TodoUpdateEvent` to event dispatcher, follow-up reset in `handleFollowUpStarted`. First event appends block and tracks index; subsequent events update in-place preserving user's expand/collapse state. 3 tests. Uncommitted — ready for commit.
+- Design decisions: plain `int` sentinel (not map) since there's exactly one todo block per execution; mirrors `updateToolBadge` pattern for bounds-check-and-update vs. append-and-track
 
 ## Session Progress (2026-02-25, Session 2)
 - Completed Task 2: Added `blockTodo` type, `newTodoBlock()` constructor, rendering functions (`todoStatusIcon`, `sortTodosForDisplay`, `renderTodoPreview`, `renderTodoExpanded`), and tests. Committed as `80f81724`.
-- Completed Task 3: Added todo change detection in stream bridge — `mapTodoStatus`, `convertProtoTodos`, fingerprint-based diffing (`todoFingerprint` struct, `emitTodoEvents`, `buildTodoFingerprints`, `todoFingerprintsChanged`), wired as Step 1d in `streamToEvents`. 9 tests. Uncommitted — ready for commit.
+- Completed Task 3: Added todo change detection in stream bridge — `mapTodoStatus`, `convertProtoTodos`, fingerprint-based diffing (`todoFingerprint` struct, `emitTodoEvents`, `buildTodoFingerprints`, `todoFingerprintsChanged`), wired as Step 1d in `streamToEvents`. 9 tests. Committed as `3590bef4`.
 - Design decisions: fingerprint-based change detection using comparable struct (not string concatenation), guard condition for zero-cost skip on executions without todos
 
 ## Session Progress (2026-02-25, Session 1)
@@ -17,9 +21,8 @@
 - Decision: full-snapshot events (not per-item deltas), timestamps omitted from domain type
 
 ## Next Steps
-1. **Task 4**: Handle `TodoUpdateEvent` in `handle_events.go` — create/update the todo block in-place. Needs `todoBlockIdx int` field on Model to track the block's position for in-place updates (similar to `runningTools` map for tool blocks).
-2. **Task 5**: Wire todo handling in `run_stream_snapshot.go` for session resume — emit `TodoUpdateEvent` from stored execution snapshot so resumed sessions show the todo block.
-3. **Task 6**: Full build verification
+1. **Task 5**: Wire todo handling in `run_stream_snapshot.go` for session resume — emit `TodoUpdateEvent` from stored execution snapshot so resumed sessions show the todo block. Use `convertProtoTodos` (already exists from Task 3) on `status.GetTodos()`.
+2. **Task 6**: Full build verification
 
 ## Context for Resume
 - Branch: `fix/cli-agent-execution-ux`
@@ -29,6 +32,7 @@
 - Key design: full-snapshot replacement pattern, domain type separation, ordering is renderer's concern
 - Stream bridge: `emitTodoEvents` in `run_stream_events.go` handles diff detection. Conversion functions (`mapTodoStatus`, `convertProtoTodos`) in `run_stream_convert.go`.
 - Block rendering: `newTodoBlock` in `blocks.go`, `renderTodoPreview`/`renderTodoExpanded` in `render_blocks.go`. Block starts expanded.
+- Event handling: `case TodoUpdateEvent` in `handle_events.go`. Tracks block position via `todoBlockIdx int` on Model (sentinel `-1`). Reset in `handleFollowUpStarted`.
 
 ## Blockers
 - None
