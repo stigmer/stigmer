@@ -2,6 +2,7 @@ package executiontui
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -176,6 +177,91 @@ func renderSystemContent(content string) string {
 // Visually distinct from system messages to draw immediate attention.
 func renderErrorContent(content string) string {
 	return errorStyle.Render("❌ " + content)
+}
+
+// todoGutter is the visual gutter prefix for each todo item line in the
+// expanded view. Matches the gutter used by renderStreamingTool and
+// toolrender's file preview blocks for visual consistency.
+const todoGutter = "     │ "
+
+// todoStatusIcon returns a compact Unicode indicator for a todo item's status.
+func todoStatusIcon(status string) string {
+	switch status {
+	case "in_progress":
+		return "●"
+	case "pending":
+		return "○"
+	case "completed":
+		return "✓"
+	case "cancelled":
+		return "─"
+	default:
+		return "?"
+	}
+}
+
+// todoStatusWeight returns the sort priority for a todo status. Lower values
+// sort first so in-progress items appear at the top and completed/cancelled
+// items sink to the bottom.
+func todoStatusWeight(status string) int {
+	switch status {
+	case "in_progress":
+		return 0
+	case "pending":
+		return 1
+	case "completed":
+		return 2
+	case "cancelled":
+		return 3
+	default:
+		return 4
+	}
+}
+
+// sortTodosForDisplay returns a copy of todos sorted by status group
+// (in_progress, pending, completed, cancelled). The sort is stable so
+// items within the same status group preserve their original order.
+func sortTodosForDisplay(todos []TodoItem) []TodoItem {
+	sorted := make([]TodoItem, len(todos))
+	copy(sorted, todos)
+	sort.SliceStable(sorted, func(i, j int) bool {
+		return todoStatusWeight(sorted[i].Status) < todoStatusWeight(sorted[j].Status)
+	})
+	return sorted
+}
+
+// renderTodoPreview formats the collapsed single-line summary for a todo block.
+// Shows the total count and how many are completed (e.g., "📋 Tasks (2/5 done)").
+func renderTodoPreview(todos []TodoItem) string {
+	completed := 0
+	for _, t := range todos {
+		if t.Status == "completed" {
+			completed++
+		}
+	}
+	return fmt.Sprintf("📋 Tasks (%d/%d done)", completed, len(todos))
+}
+
+// renderTodoExpanded formats the full expanded view for a todo block. The
+// summary header is followed by each item on its own gutter-bordered line,
+// sorted by status group. Completed and cancelled item text is dimmed.
+func renderTodoExpanded(todos []TodoItem) string {
+	header := renderTodoPreview(todos)
+	if len(todos) == 0 {
+		return header
+	}
+	sorted := sortTodosForDisplay(todos)
+	var lines []string
+	for _, item := range sorted {
+		icon := todoStatusIcon(item.Status)
+		gutter := dimStyle.Render(todoGutter)
+		content := item.Content
+		if item.Status == "completed" || item.Status == "cancelled" {
+			content = dimStyle.Render(content)
+		}
+		lines = append(lines, gutter+icon+" "+content)
+	}
+	return header + "\n" + strings.Join(lines, "\n")
 }
 
 // renderPhaseChange formats a phase change notification.
