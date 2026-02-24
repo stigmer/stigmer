@@ -12,7 +12,6 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/session"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"google.golang.org/grpc"
 )
@@ -85,33 +84,41 @@ func openSession(sessionID, orgID string, verbose bool, conn *grpc.ClientConn) e
 }
 
 // resumeSession opens a completed session with the full conversation history
-// and allows the user to continue. All executions are rendered as a seamless
-// transcript (no execution boundaries visible). The input composer is active
-// so the user can send a follow-up message that creates a new execution.
+// and allows the user to continue. Stored executions are converted into the
+// same event stream that the live TUI processes (via snapshotToEvents), so
+// noise suppression, lifecycle badges, and duplicate filtering all apply
+// automatically. The input composer activates after all historical events
+// are processed, letting the user send a follow-up message.
 func resumeSession(sessionID, orgID string, executions []*agentexecutionv1.AgentExecution, verbose bool, conn *grpc.ClientConn) error {
 	cliprint.PrintInfo("Resuming session...")
 	fmt.Println()
 
 	// The backend returns executions newest-first. Reverse for chronological
-	// block building so the conversation reads top-to-bottom.
+	// event emission so the conversation reads top-to-bottom.
 	chronological := make([]*agentexecutionv1.AgentExecution, len(executions))
 	copy(chronological, executions)
 	slices.Reverse(chronological)
 
-	blocks := executiontui.BuildSessionReplayBlocks(chronological, display.GetTerminalWidth())
 	latestExec := executions[0]
 	latestExecID := latestExec.GetMetadata().GetId()
 
 	ctx := context.Background()
 	followUpFn := buildFollowUpFn(ctx, sessionID, orgID, conn)
 
-	model := executiontui.NewResumable(executiontui.ResumableConfig{
-		SessionID:   sessionID,
-		ExecutionID: latestExecID,
-		Blocks:      blocks,
-		FollowUpFn:  followUpFn,
-		LastPhase:   mapPhaseToString(latestExec.GetStatus().GetPhase()),
-		Verbose:     verbose,
+	// Convert stored executions into events through the same pipeline that
+	// the live gRPC stream uses. The TUI processes these events identically
+	// to a live execution — single rendering path, zero parity drift.
+	events := make(chan executiontui.Event, 256)
+	approvalResponses := make(chan executiontui.ApprovalResponse, 1)
+	go snapshotToEvents(chronological, events)
+
+	model := executiontui.New(executiontui.Config{
+		SessionID:         sessionID,
+		ExecutionID:       latestExecID,
+		Events:            events,
+		ApprovalResponses: approvalResponses,
+		FollowUpFn:        followUpFn,
+		Verbose:           verbose,
 	})
 
 	p := tea.NewProgram(model, tea.WithAltScreen())
