@@ -4,11 +4,14 @@ import (
 	"archive/zip"
 	"bufio"
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/fs"
 	"path"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -18,45 +21,34 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Manifest represents the seedpack metadata stored in manifest.json.
-// It describes all skills, system agents, and MCP servers included in the seedpack.
+// Manifest describes all skills, system agents, and MCP servers discovered in
+// the embedded seedpack. Built dynamically by walking the embedded filesystem
+// rather than parsed from a static file.
 type Manifest struct {
-	SchemaVersion string           `json:"schema_version"`
-	Version       string           `json:"version"`
-	CreatedAt     string           `json:"created_at"`
-	Description   string           `json:"description"`
-	Skills        []SkillEntry     `json:"skills"`
-	SystemAgents  []AgentEntry     `json:"system_agents"`
-	McpServers    []McpServerEntry `json:"mcp_servers"`
+	ContentHash  string
+	Skills       []SkillEntry
+	SystemAgents []AgentEntry
+	McpServers   []McpServerEntry
 }
 
-// SkillEntry describes a skill included in the seedpack.
+// SkillEntry describes a skill discovered in the seedpack.
+// ContentDigest is computed by hashing all files in the skill directory.
 type SkillEntry struct {
-	Name          string      `json:"name"`
-	Path          string      `json:"path"`
-	ContentDigest string      `json:"content_digest"`
-	Source        SkillSource `json:"source"`
+	Name          string
+	Path          string
+	ContentDigest string
 }
 
-// SkillSource tracks the origin of a vendored skill.
-type SkillSource struct {
-	Type      string `json:"type"`
-	URL       string `json:"url,omitempty"`
-	CommitSHA string `json:"commit_sha,omitempty"`
-}
-
-// AgentEntry describes a system agent defined in the seedpack.
-// Agents are stored as YAML files and loaded during bootstrap.
+// AgentEntry describes a system agent discovered in the seedpack.
 type AgentEntry struct {
-	Name string `json:"name"`
-	Path string `json:"path"` // Path to YAML file (e.g., "agents/skill-creator-agent.yaml")
+	Name string
+	Path string
 }
 
-// McpServerEntry describes an MCP server defined in the seedpack.
-// MCP servers are stored as YAML files and loaded during bootstrap.
+// McpServerEntry describes an MCP server discovered in the seedpack.
 type McpServerEntry struct {
-	Name string `json:"name"`
-	Path string `json:"path"` // Path to YAML file (e.g., "mcp-servers/stigmer-mcp-server.yaml")
+	Name string
+	Path string
 }
 
 // SkillMetadata represents the YAML frontmatter parsed from SKILL.md.
@@ -89,19 +81,230 @@ type Provenance struct {
 // skillNamePattern validates kebab-case skill names.
 var skillNamePattern = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
 
-// LoadManifest reads and parses the embedded manifest.json.
-func LoadManifest() (*Manifest, error) {
-	data, err := content.ReadFile("manifest.json")
+// DiscoverManifest builds a Manifest by walking the embedded filesystem.
+//
+// Resources are discovered by convention:
+//   - skills/{name}/SKILL.md    -> SkillEntry (name from directory name)
+//   - agents/{name}.yaml        -> AgentEntry (name from metadata.name in YAML)
+//   - mcp-servers/{name}.yaml   -> McpServerEntry (name from metadata.name in YAML)
+//
+// A content hash is computed over all discovered resource files for change detection.
+// Any file change (add, modify, remove) produces a different hash.
+func DiscoverManifest() (*Manifest, error) {
+	skills, err := discoverSkills()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to read embedded manifest.json")
+		return nil, errors.Wrap(err, "discover skills")
 	}
 
-	var m Manifest
-	if err := json.Unmarshal(data, &m); err != nil {
-		return nil, errors.Wrap(err, "failed to parse manifest.json")
+	agents, err := discoverAgents()
+	if err != nil {
+		return nil, errors.Wrap(err, "discover agents")
 	}
 
-	return &m, nil
+	mcpServers, err := discoverMcpServers()
+	if err != nil {
+		return nil, errors.Wrap(err, "discover MCP servers")
+	}
+
+	contentHash, err := computeSeedpackHash()
+	if err != nil {
+		return nil, errors.Wrap(err, "compute seedpack hash")
+	}
+
+	return &Manifest{
+		ContentHash:  contentHash,
+		Skills:       skills,
+		SystemAgents: agents,
+		McpServers:   mcpServers,
+	}, nil
+}
+
+// discoverSkills walks skills/ for subdirectories containing SKILL.md.
+func discoverSkills() ([]SkillEntry, error) {
+	entries, err := content.ReadDir("skills")
+	if err != nil {
+		return nil, errors.Wrap(err, "read skills directory")
+	}
+
+	var skills []SkillEntry
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+
+		skillPath := path.Join("skills", entry.Name())
+
+		if _, err := content.ReadFile(path.Join(skillPath, "SKILL.md")); err != nil {
+			continue
+		}
+
+		digest, err := computeSkillDigest(skillPath)
+		if err != nil {
+			return nil, errors.Wrapf(err, "compute digest for skill %s", entry.Name())
+		}
+
+		skills = append(skills, SkillEntry{
+			Name:          entry.Name(),
+			Path:          skillPath,
+			ContentDigest: digest,
+		})
+	}
+
+	sort.Slice(skills, func(i, j int) bool {
+		return skills[i].Name < skills[j].Name
+	})
+
+	return skills, nil
+}
+
+// discoverAgents walks agents/ for YAML files and extracts metadata.name.
+func discoverAgents() ([]AgentEntry, error) {
+	entries, err := content.ReadDir("agents")
+	if err != nil {
+		return nil, errors.Wrap(err, "read agents directory")
+	}
+
+	var agents []AgentEntry
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".yaml") {
+			continue
+		}
+
+		agentPath := path.Join("agents", entry.Name())
+		data, err := content.ReadFile(agentPath)
+		if err != nil {
+			return nil, errors.Wrapf(err, "read %s", agentPath)
+		}
+
+		name, err := extractYAMLMetadataName(data)
+		if err != nil {
+			return nil, errors.Wrapf(err, "extract name from %s", agentPath)
+		}
+
+		agents = append(agents, AgentEntry{
+			Name: name,
+			Path: agentPath,
+		})
+	}
+
+	sort.Slice(agents, func(i, j int) bool {
+		return agents[i].Name < agents[j].Name
+	})
+
+	return agents, nil
+}
+
+// discoverMcpServers walks mcp-servers/ for YAML files and extracts metadata.name.
+func discoverMcpServers() ([]McpServerEntry, error) {
+	entries, err := content.ReadDir("mcp-servers")
+	if err != nil {
+		return nil, errors.Wrap(err, "read mcp-servers directory")
+	}
+
+	var mcpServers []McpServerEntry
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".yaml") {
+			continue
+		}
+
+		mcpPath := path.Join("mcp-servers", entry.Name())
+		data, err := content.ReadFile(mcpPath)
+		if err != nil {
+			return nil, errors.Wrapf(err, "read %s", mcpPath)
+		}
+
+		name, err := extractYAMLMetadataName(data)
+		if err != nil {
+			return nil, errors.Wrapf(err, "extract name from %s", mcpPath)
+		}
+
+		mcpServers = append(mcpServers, McpServerEntry{
+			Name: name,
+			Path: mcpPath,
+		})
+	}
+
+	sort.Slice(mcpServers, func(i, j int) bool {
+		return mcpServers[i].Name < mcpServers[j].Name
+	})
+
+	return mcpServers, nil
+}
+
+// =============================================================================
+// Content Hashing
+// =============================================================================
+
+// computeSkillDigest hashes all files in a skill directory to produce a
+// deterministic content digest. Files are walked in lexical order (guaranteed
+// by fs.WalkDir) and each file's relative path and content contribute to the hash.
+func computeSkillDigest(skillPath string) (string, error) {
+	h := sha256.New()
+
+	err := fs.WalkDir(content, skillPath, func(p string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return err
+		}
+		data, readErr := content.ReadFile(p)
+		if readErr != nil {
+			return readErr
+		}
+		relPath := strings.TrimPrefix(p, skillPath+"/")
+		h.Write([]byte(relPath))
+		h.Write([]byte{0})
+		h.Write(data)
+		return nil
+	})
+	if err != nil {
+		return "", errors.Wrapf(err, "walk skill directory %s", skillPath)
+	}
+
+	return "sha256:" + hex.EncodeToString(h.Sum(nil)), nil
+}
+
+// computeSeedpackHash computes a single deterministic hash over all embedded
+// resource files. Walks skills/, agents/, and mcp-servers/ in lexical order.
+// Used as the seedpack "version" for overall change detection during bootstrap.
+func computeSeedpackHash() (string, error) {
+	h := sha256.New()
+
+	for _, dir := range []string{"skills", "agents", "mcp-servers"} {
+		err := fs.WalkDir(content, dir, func(p string, d fs.DirEntry, err error) error {
+			if err != nil || d.IsDir() {
+				return err
+			}
+			data, readErr := content.ReadFile(p)
+			if readErr != nil {
+				return readErr
+			}
+			h.Write([]byte(p))
+			h.Write([]byte{0})
+			h.Write(data)
+			return nil
+		})
+		if err != nil {
+			return "", errors.Wrapf(err, "walk %s", dir)
+		}
+	}
+
+	return "sha256:" + hex.EncodeToString(h.Sum(nil))[:16], nil
+}
+
+// extractYAMLMetadataName does a lightweight YAML parse to extract just the
+// metadata.name field, without requiring the full proto schema.
+func extractYAMLMetadataName(data []byte) (string, error) {
+	var doc struct {
+		Metadata struct {
+			Name string `yaml:"name"`
+		} `yaml:"metadata"`
+	}
+	if err := yaml.Unmarshal(data, &doc); err != nil {
+		return "", errors.Wrap(err, "parse YAML")
+	}
+	if doc.Metadata.Name == "" {
+		return "", fmt.Errorf("missing metadata.name")
+	}
+	return doc.Metadata.Name, nil
 }
 
 // LoadSkillContent reads the full SKILL.md content for a skill.
@@ -179,10 +382,10 @@ func LoadSkillFile(skillPath, filePath string) ([]byte, error) {
 	return data, nil
 }
 
-// GetSkillByName looks up a skill by name in the manifest.
+// GetSkillByName looks up a skill by name in the discovered manifest.
 // Returns nil if the skill is not found.
 func GetSkillByName(name string) (*SkillEntry, error) {
-	manifest, err := LoadManifest()
+	manifest, err := DiscoverManifest()
 	if err != nil {
 		return nil, err
 	}
@@ -196,10 +399,10 @@ func GetSkillByName(name string) (*SkillEntry, error) {
 	return nil, nil
 }
 
-// GetAgentByName looks up a system agent by name in the manifest.
+// GetAgentByName looks up a system agent by name in the discovered manifest.
 // Returns nil if the agent is not found.
 func GetAgentByName(name string) (*AgentEntry, error) {
-	manifest, err := LoadManifest()
+	manifest, err := DiscoverManifest()
 	if err != nil {
 		return nil, err
 	}
@@ -213,10 +416,10 @@ func GetAgentByName(name string) (*AgentEntry, error) {
 	return nil, nil
 }
 
-// GetMcpServerByName looks up an MCP server by name in the manifest.
+// GetMcpServerByName looks up an MCP server by name in the discovered manifest.
 // Returns nil if the MCP server is not found.
 func GetMcpServerByName(name string) (*McpServerEntry, error) {
-	manifest, err := LoadManifest()
+	manifest, err := DiscoverManifest()
 	if err != nil {
 		return nil, err
 	}

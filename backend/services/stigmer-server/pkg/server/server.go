@@ -372,7 +372,8 @@ func Run() error {
 	// when the server is ready to serve requests.
 	//
 	// Bootstrap is idempotent and graceful:
-	// - Skips if already completed with same seedpack version
+	// - Auto-discovers resources from embedded filesystem (no manifest needed)
+	// - Skips if content hash unchanged since last successful bootstrap
 	// - Continues in degraded mode if bootstrap fails (logs warnings)
 	bootstrapper := bootstrap.NewBootstrapper(store, skillClient, agentClient, mcpServerClient)
 	if err := bootstrapper.Run(context.Background()); err != nil {
