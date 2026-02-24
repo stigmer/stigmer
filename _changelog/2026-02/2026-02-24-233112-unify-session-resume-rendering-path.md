@@ -22,7 +22,9 @@ Two independent rendering paths existed for the same execution data:
 
 ## Solution
 
-Convert stored execution snapshots into the same event stream that the live TUI consumes. A new `snapshotToEvents` goroutine writes events to a channel using the exact same emission functions (`emitToolCallStateEvents`, `emitMessageEvents`, `emitSubAgentEvents`) that `streamToEvents` uses. The TUI processes these events through `executiontui.New()` — the single, canonical rendering path.
+Convert stored execution snapshots into the same event stream that the live TUI consumes. A new `snapshotToEvents` goroutine walks the message array chronologically, emitting tool block events inline after the AI messages that reference them — preserving the natural conversation interleaving that the live path produces. The TUI processes these events through `executiontui.New()` — the single, canonical rendering path.
+
+The same building blocks power both paths: `emitCompleteMessage` handles message dispatch and noise filtering, `isTrackedToolMessage` suppresses duplicate `MESSAGE_TOOL` entries, and `convertToolCall` / `mapToolCallStatus` handle proto conversion. No new filtering or rendering logic was needed.
 
 For multi-execution sessions (original + follow-ups), intermediate executions skip the `DoneEvent` so the TUI sees a continuous conversation. Only the final execution emits `DoneEvent`, activating the input composer for further follow-ups.
 
@@ -30,10 +32,12 @@ For multi-execution sessions (original + follow-ups), intermediate executions sk
 
 ### New: `run_stream_snapshot.go`
 
-Two functions:
+Three public functions plus a helper:
 
 - `snapshotToEvents(executions, events)` — goroutine iterating chronological executions, calling `emitSnapshotEvents` for each, then closing the channel.
-- `emitSnapshotEvents(exec, events, emitDone)` — converts a single execution's final state into events by diffing from empty state. All tool calls appear as "new" to the diff logic, which correctly routes completed tools to `ToolCompletedEvent`.
+- `emitSnapshotEvents(exec, events, emitDone)` — walks the execution's messages chronologically, emitting tool block events inline after AI messages that reference them (via `emitReferencedToolEvents`). This preserves the natural conversation interleaving: Human → AI → ToolCompleted → AI — matching the order the live gRPC path produces.
+- `emitReferencedToolEvents(events, aiToolCalls, toolCallByID, emittedStates)` — emits stateful tool block events for tool calls referenced by an AI message, looking up final status from the top-level ToolCalls array.
+- `emitToolEventByStatus(events, tc)` — dispatches a single tool call to the appropriate event type based on its status.
 
 ### Modified: `run_session.go`
 
@@ -47,9 +51,10 @@ Removed in its entirety: `NewReplay`, `NewResumable`, `BuildReplayBlocks`, `Buil
 
 Removed the `isReplayMode()` branch from `handleWindowSize` — viewport initialization now always uses `newViewport()`.
 
-### Tests: `run_stream_snapshot_test.go` (9 tests)
+### Tests: `run_stream_snapshot_test.go` (10 tests)
 
 - Event emission for messages, tool calls, and `DoneEvent`
+- Chronological ordering: verifies event sequence matches live path (Human → AI → ToolCompleted → AI)
 - `DoneEvent` suppression for intermediate executions
 - Approval noise message filtering
 - Non-noise system message preservation
@@ -61,7 +66,7 @@ Removed the `isReplayMode()` branch from `handleWindowSize` — viewport initial
 ## Benefits
 
 - **Zero rendering drift**: Any improvement to the live event path (new event types, smarter filtering, better badges) automatically applies to resumed sessions
-- **260 lines deleted, ~75 lines added**: Net reduction of ~185 lines while adding new test coverage
+- **260 lines deleted, ~170 lines added**: Net addition of production code is modest while removing the entire replay path and adding comprehensive test coverage
 - **Single constructor**: `executiontui.New()` is the only TUI entry point — `NewReplay` and `NewResumable` are gone
 - **Zero risk to live path**: The event emission functions were not modified; only their callers changed
 
