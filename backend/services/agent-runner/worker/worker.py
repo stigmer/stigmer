@@ -107,6 +107,7 @@ class AgentRunner:
         from worker.activities.cleanup_sandbox import cleanup_sandbox
         from worker.activities.ensure_thread import ensure_thread
         from worker.activities.execute_graphton import execute_graphton
+        from worker.activities.generate_session_subject import generate_session_subject
         
         # Log execution mode
         mode = "LOCAL" if self.config.is_local_mode() else "CLOUD"
@@ -144,6 +145,7 @@ class AgentRunner:
                 execute_graphton,
                 ensure_thread,
                 cleanup_sandbox,
+                generate_session_subject,
             ],
             max_concurrent_activities=self.config.max_concurrency,
         )
@@ -152,7 +154,7 @@ class AgentRunner:
             f"✅ [POLYGLOT] Registered Python activities on task queue: '{self.config.task_queue}'"
         )
         self.logger.info(
-            "✅ [POLYGLOT] Activities: ExecuteGraphton, EnsureThread, CleanupSandbox"
+            "✅ [POLYGLOT] Activities: ExecuteGraphton, EnsureThread, CleanupSandbox, GenerateSessionSubject"
         )
         self.logger.info(
             f"✅ [POLYGLOT] Max concurrency: {self.config.max_concurrency}"
