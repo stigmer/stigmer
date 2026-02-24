@@ -109,7 +109,7 @@ func (m Model) renderFooter() string {
 	var hints string
 	switch {
 	case m.inputActive:
-		hints = "  Enter send  Esc exit"
+		hints = "  ↑↓ scroll  Enter send  Esc exit"
 	case m.done:
 		hints = "  " + doneFooterText(m.phase) + "  ↑↓ scroll"
 		if m.hasExpandableBlocks() {

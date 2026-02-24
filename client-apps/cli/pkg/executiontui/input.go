@@ -73,6 +73,15 @@ func (m Model) handleInputKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// arrives as a followUpStartedMsg or followUpErrorMsg.
 		return m, m.executeFollowUpCmd(message)
 
+	case tea.KeyUp, tea.KeyDown, tea.KeyPgUp, tea.KeyPgDown:
+		// The textarea is single-line so arrow/page keys are useless
+		// there. Forward them to the viewport so the user can scroll
+		// the transcript while composing a follow-up.
+		var cmd tea.Cmd
+		m.viewport, cmd = m.viewport.Update(msg)
+		m.autoScroll = m.viewport.AtBottom()
+		return m, cmd
+
 	default:
 		var cmd tea.Cmd
 		m.textarea, cmd = m.textarea.Update(msg)
