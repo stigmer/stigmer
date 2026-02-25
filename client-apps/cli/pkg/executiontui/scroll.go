@@ -59,7 +59,7 @@ func blockStartLine(blocks []contentBlock, focusedIdx, targetIdx int) int {
 		if needsSubAgentSeparator(blocks, i) {
 			sep := renderSubAgentSeparator(b.subAgentName)
 			line += strings.Count(sep, "\n") + 1 // separator lines
-			line++                                // blank line after separator
+			line++                               // blank line after separator
 		}
 
 		// Lines in this block + 1 separator blank line before the next block.
