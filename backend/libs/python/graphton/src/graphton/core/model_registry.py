@@ -242,13 +242,13 @@ class ModelRegistry:
         >>> # Get the recommended summarization model
         >>> summarizer = ModelRegistry.get_summarization_model("claude-opus-4")
         >>> print(summarizer)
-        claude-haiku-4
+        claude-haiku-4.5
     
     """
     
     # Mapping from provider to default economy-tier summarization model
     _DEFAULT_SUMMARIZATION_MODELS: ClassVar[dict[str, str | None]] = {
-        "anthropic": "claude-haiku-4",
+        "anthropic": "claude-haiku-4.5",
         "openai": "gpt-4o-mini",
         "ollama": None,  # Use same model - local models have no cost
     }
@@ -349,18 +349,18 @@ class ModelRegistry:
             supports_vision=True,
             supports_thinking=True,
         ),
-        "claude-haiku-4": ModelMetadata(
-            model_id="claude-haiku-4",
+        "claude-haiku-4.5": ModelMetadata(
+            model_id="claude-haiku-4.5",
             provider="anthropic",
-            display_name="Claude Haiku 4",
+            display_name="Claude Haiku 4.5",
             context_window_tokens=200000,
-            max_output_tokens=8192,
+            max_output_tokens=64000,
             summarization_trigger_threshold=180000,
             summarization_target_tokens=160000,
             max_summary_tokens=2000,
             token_counter_method=TokenCounterMethod.ANTHROPIC_NATIVE,
             cost_tier=CostTier.ECONOMY,
-            api_model_id="claude-haiku-4-20250313",
+            api_model_id="claude-haiku-4-5-20251001",
             input_cost_per_1k=1.0,
             output_cost_per_1k=5.0,
             supports_vision=True,
@@ -815,7 +815,7 @@ class ModelRegistry:
         
         Summarization should use a cost-effective model to minimize expenses.
         This method selects an economy-tier model from the same provider:
-        - Anthropic models → claude-haiku-4
+        - Anthropic models → claude-haiku-4.5
         - OpenAI models → gpt-4o-mini
         - Ollama models → same model (local, no cost)
         
@@ -828,7 +828,7 @@ class ModelRegistry:
         Example:
             >>> summarizer = ModelRegistry.get_summarization_model("claude-opus-4")
             >>> print(summarizer)
-            claude-haiku-4
+            claude-haiku-4.5
             >>> 
             >>> summarizer = ModelRegistry.get_summarization_model("gpt-4")
             >>> print(summarizer)
@@ -880,7 +880,7 @@ class ModelRegistry:
             >>> for m in anthropic_models:
             ...     print(f"{m.model_id}: {m.cost_tier.value}")
             claude-haiku-3.5: economy
-            claude-haiku-4: economy
+            claude-haiku-4.5: economy
             claude-opus-4: premium
             claude-sonnet-3.5: standard
             claude-sonnet-4.5: standard
@@ -958,7 +958,7 @@ class ModelRegistry:
             >>> for m in economy:
             ...     print(f"{m.model_id} ({m.provider})")
             claude-haiku-3.5 (anthropic)
-            claude-haiku-4 (anthropic)
+            claude-haiku-4.5 (anthropic)
             ...
         
         """

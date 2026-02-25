@@ -259,7 +259,7 @@ func TestFormatUnsupportedVerbError_SuggestsAlternative(t *testing.T) {
 // TestVerbFromString validates verb parsing from strings.
 func TestVerbFromString(t *testing.T) {
 	validVerbs := []string{
-		"apply", "validate", "get", "list", "delete", "run", "push", "search",
+		"apply", "validate", "get", "list", "delete", "run", "push", "search", "download",
 	}
 
 	for _, verbStr := range validVerbs {
@@ -291,7 +291,7 @@ func TestVerbFromString(t *testing.T) {
 // TestAllVerbs validates that AllVerbs returns all expected verbs.
 func TestAllVerbs(t *testing.T) {
 	verbs := types.AllVerbs()
-	expectedCount := 8 // apply, validate, get, list, delete, run, push, search
+	expectedCount := 9 // apply, validate, get, list, delete, run, push, search, download
 
 	if len(verbs) != expectedCount {
 		t.Errorf("AllVerbs() returned %d verbs, want %d", len(verbs), expectedCount)
@@ -305,6 +305,7 @@ func TestAllVerbs(t *testing.T) {
 	expected := []types.Verb{
 		types.VerbApply, types.VerbValidate, types.VerbGet, types.VerbList,
 		types.VerbDelete, types.VerbRun, types.VerbPush, types.VerbSearch,
+		types.VerbDownload,
 	}
 
 	for _, v := range expected {

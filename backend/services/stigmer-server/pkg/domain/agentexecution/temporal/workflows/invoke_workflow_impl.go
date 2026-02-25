@@ -151,6 +151,24 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 
 	logger.Info("✅ Thread ensured", "thread_id", threadID)
 
+	// Step 1.5: Generate session subject (fire-and-forget, non-blocking)
+	//
+	// Runs in parallel with the main agent execution — uses an economy-tier LLM
+	// to replace the "Auto-created session" sentinel with a concise, human-readable
+	// title derived from the user's first message and agent context.
+	//
+	// Modelled on the Java workflow's Async.procedure() pattern. Failures are
+	// logged and swallowed; a missing subject is cosmetic and must never block
+	// or affect the outcome of the main execution.
+	workflow.Go(ctx, func(ctx workflow.Context) {
+		subjectActivity := activities.NewGenerateSessionSubjectActivityStub(ctx, activityTaskQueue)
+		if err := subjectActivity.GenerateSessionSubject(executionID); err != nil {
+			logger.Warn("⚠️ Session subject generation failed (non-critical)",
+				"execution_id", executionID,
+				"error", err.Error())
+		}
+	})
+
 	// Step 2: Execute Graphton with thread_id (Python activity)
 	// Python activity:
 	// - Fetches AgentExecution from DB via gRPC get(executionID)

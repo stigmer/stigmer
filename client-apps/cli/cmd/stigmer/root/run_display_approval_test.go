@@ -89,7 +89,6 @@ func TestDisplayPendingApproval_WithArgsPreview(t *testing.T) {
 	argsJSON := `{"path": "/etc/hosts", "content": "127.0.0.1 localhost"}`
 	pa := &agentexecutionv1.PendingApproval{
 		ToolName:    "write_file",
-		Message:     "Write file",
 		ArgsPreview: argsJSON,
 	}
 
@@ -345,7 +344,6 @@ func TestBuildApprovalContent_AllSections(t *testing.T) {
 	pa := &agentexecutionv1.PendingApproval{
 		ToolName:     "delete_file",
 		Message:      "Delete staging file",
-		ArgsPreview:  `{"path": "/tmp/staging"}`,
 		FromSubAgent: true,
 		SubAgentName: "cleanup-agent",
 		RequestedAt:  time.Now().Add(-10 * time.Second).Format(time.RFC3339),
@@ -353,7 +351,8 @@ func TestBuildApprovalContent_AllSections(t *testing.T) {
 
 	content := buildApprovalContent(pa)
 
-	// All sections should be present
+	// All simultaneously-visible sections should be present
+	// (Message and Arguments are mutually exclusive; Message takes priority)
 	if !strings.Contains(content, "delete_file") {
 		t.Error("expected tool name in content")
 	}
@@ -362,9 +361,6 @@ func TestBuildApprovalContent_AllSections(t *testing.T) {
 	}
 	if !strings.Contains(content, "Delete staging file") {
 		t.Error("expected message in content")
-	}
-	if !strings.Contains(content, "Arguments:") {
-		t.Error("expected Arguments section in content")
 	}
 	if !strings.Contains(content, "Waiting for:") {
 		t.Error("expected waiting duration in content")

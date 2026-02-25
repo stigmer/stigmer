@@ -1,7 +1,7 @@
 apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
-  name: skill-creator-agent
+  name: skill-creator
   labels:
     stigmer.ai/system: "true"
 spec:

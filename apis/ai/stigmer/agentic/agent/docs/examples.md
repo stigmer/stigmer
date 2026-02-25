@@ -1,0 +1,255 @@
+# Agent YAML Examples
+
+Complete examples from minimal to full-featured. All examples use valid field values and can be applied directly.
+
+## Minimal Agent
+
+The simplest possible agent — just metadata, description, and instructions.
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: simple-assistant
+  org: local
+spec:
+  description: "A simple conversational assistant"
+  instructions: |
+    You are a helpful assistant that answers questions clearly and concisely.
+```
+
+## Agent with Skills
+
+An agent that uses skill references for specialized knowledge.
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: code-reviewer
+  org: local
+  tags:
+    - code-review
+    - security
+spec:
+  description: "Reviews code for best practices and security issues"
+  instructions: |
+    You are a code review assistant. Review code for:
+    - Code quality and best practices
+    - Security vulnerabilities
+    - Performance issues
+    - Proper error handling
+  skill_refs:
+    - org: local
+      kind: skill
+      slug: code-analysis
+    - org: local
+      kind: skill
+      slug: company-style-guide
+```
+
+## Agent with MCP Servers
+
+An agent that uses external tools via MCP server integration.
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: github-assistant
+  org: local
+  labels:
+    team: engineering
+spec:
+  description: "Assists with GitHub operations and code management"
+  instructions: |
+    You help developers with GitHub tasks including searching code,
+    creating pull requests, and managing issues.
+  mcp_server_usages:
+    - mcp_server_ref:
+        org: local
+        kind: mcp_server
+        slug: github
+      enabled_tools:
+        - search_code
+        - create_pr
+        - get_file
+        - create_issue
+```
+
+## Agent with Sub-Agents
+
+A parent agent that delegates to specialized sub-agents with restricted MCP access.
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: engineering-manager
+  org: local
+spec:
+  description: "Coordinates engineering tasks with specialized sub-agents"
+  instructions: |
+    You coordinate engineering work. Delegate to sub-agents based on the task:
+    - Code reviews go to the code-reviewer sub-agent
+    - PR creation goes to the pr-creator sub-agent
+  mcp_server_usages:
+    - mcp_server_ref:
+        org: local
+        kind: mcp_server
+        slug: github
+      enabled_tools:
+        - search_code
+        - create_pr
+        - get_file
+        - create_issue
+  sub_agents:
+    - name: code-reviewer
+      description: "Reviews code changes for quality and security"
+      instructions: |
+        You review code for quality, security, and best practices.
+        Provide specific, actionable feedback.
+      mcp_access:
+        - mcp_server: github
+          enabled_tools:
+            - search_code
+            - get_file
+    - name: pr-creator
+      description: "Creates well-formatted pull requests"
+      instructions: |
+        You create pull requests with clear titles and descriptions.
+        Always summarize the changes and their purpose.
+      mcp_access:
+        - mcp_server: github
+          enabled_tools:
+            - create_pr
+            - get_file
+```
+
+## Full-Featured Agent (Local Mode)
+
+An agent using all available features — MCP servers with approval overrides, skills, sub-agents, and environment variables.
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: deployment-assistant
+  org: local
+  labels:
+    team: devops
+    environment: production
+  tags:
+    - deployment
+    - automation
+    - cicd
+spec:
+  description: "Automates deployment workflows with approval controls"
+  icon_url: "https://example.com/icons/deploy.svg"
+  instructions: |
+    You are a deployment automation assistant. You help teams deploy
+    applications safely.
+
+    Your responsibilities:
+    - Review deployment configurations
+    - Execute deployment workflows
+    - Monitor deployment health
+    - Rollback on failures
+
+    Always verify deployment targets before executing changes.
+  mcp_server_usages:
+    - mcp_server_ref:
+        org: local
+        kind: mcp_server
+        slug: github
+      enabled_tools:
+        - search_code
+        - get_file
+        - create_pr
+    - mcp_server_ref:
+        org: local
+        kind: mcp_server
+        slug: kubernetes
+      enabled_tools:
+        - deploy_app
+        - rollback_deployment
+        - get_pod_status
+      tool_approval_overrides:
+        - tool_name: deploy_app
+          requires_approval: true
+          message: "Deploy {{args.app_name}} to {{args.environment}}"
+        - tool_name: rollback_deployment
+          requires_approval: false
+  skill_refs:
+    - org: local
+      kind: skill
+      slug: kubernetes-best-practices
+    - org: local
+      kind: skill
+      slug: company-deployment-procedures
+  env_spec:
+    data:
+      KUBERNETES_CLUSTER:
+        description: "Target Kubernetes cluster URL"
+        is_secret: false
+      SLACK_WEBHOOK:
+        description: "Slack webhook for deployment notifications"
+        is_secret: true
+  sub_agents:
+    - name: health-checker
+      description: "Monitors deployment health after rollout"
+      instructions: |
+        You monitor deployments after rollout. Check pod status, logs,
+        and health endpoints. Report any issues immediately.
+      mcp_access:
+        - mcp_server: kubernetes
+          enabled_tools:
+            - get_pod_status
+```
+
+## Cloud Mode — Public Agent
+
+An agent published to the marketplace from a named organization with public visibility.
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: web-search-assistant
+  org: acme-corp
+  visibility: visibility_public
+  labels:
+    category: productivity
+  tags:
+    - web-search
+    - research
+spec:
+  description: "Searches the web and summarizes results for research tasks"
+  icon_url: "https://acme-corp.example.com/icons/search.svg"
+  instructions: |
+    You are a research assistant. When users ask questions:
+    1. Search the web for relevant information
+    2. Synthesize findings into a clear, cited summary
+    3. Highlight areas of uncertainty or conflicting information
+
+    Always cite your sources with URLs.
+  mcp_server_usages:
+    - mcp_server_ref:
+        org: acme-corp
+        kind: mcp_server
+        slug: web-search
+      enabled_tools:
+        - search
+        - fetch_page
+  skill_refs:
+    - org: acme-corp
+      kind: skill
+      slug: research-methodology
+      version: stable
+```
+
+Key differences from local mode:
+- `metadata.org` is a real organization name (`acme-corp`), not `local`
+- `metadata.visibility` is `visibility_public` for marketplace publishing
+- Resource references use the same org (`acme-corp`) or can reference public resources from other orgs
+- Skill version is pinned to `stable` for production reliability

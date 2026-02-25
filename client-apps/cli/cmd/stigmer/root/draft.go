@@ -14,8 +14,9 @@ func NewDraftCommand() *cobra.Command {
 The draft command invokes specialized system agents to help you create
 well-structured configuration files for various Stigmer resources.
 
-Currently supported resource types:
-  - skill: Create SKILL.md files using the skill-creator-agent
+Supported resource types:
+  - skill: Create SKILL.md files using the skill-creator agent
+  - agent: Create Agent YAML files using the agent-creator agent
 
 Each draft command:
   - Invokes the appropriate system agent
@@ -24,13 +25,16 @@ Each draft command:
 		Example: `  # Create a new skill
   stigmer draft skill -m "Create a skill for validating Kubernetes manifests"
 
-  # Create a skill with context files
+  # Create an agent
+  stigmer draft agent -m "Create an agent that reviews pull requests"
+
+  # Provide context files
   stigmer draft skill --attach ./example-skill.md -m "Create similar for Terraform"`,
 	}
 
-	// Add subcommands for each resource type
 	cmd.AddCommand(NewDraftSkillCommand())
-	// Future: NewDraftAgentCommand(), NewDraftWorkflowCommand(), NewDraftMcpServerCommand()
+	cmd.AddCommand(NewDraftAgentCommand())
+	// Future: NewDraftWorkflowCommand(), NewDraftMcpServerCommand()
 
 	return cmd
 }

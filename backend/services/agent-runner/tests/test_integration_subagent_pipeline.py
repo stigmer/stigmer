@@ -163,9 +163,9 @@ Run `./review.sh <path>` to analyze code.
             
             # Patch MCP tool creation to avoid actual MCP connections
             with patch(
-                "worker.activities.graphton.subagent_transformer.McpToolsLoader"
+                "graphton.core.middleware.McpToolsLoader"
             ) as mock_loader, patch(
-                "worker.activities.graphton.subagent_transformer.create_tool_wrapper"
+                "graphton.core.tool_wrappers.create_tool_wrapper"
             ) as mock_create_wrapper:
                 # Configure mocks
                 mock_middleware = MagicMock()
@@ -201,8 +201,8 @@ Run `./review.sh <path>` to analyze code.
                 # Verify system_prompt includes original instructions
                 assert "expert code reviewer" in subagent_dict["system_prompt"]
                 
-                # Verify skill content was injected into system_prompt
-                assert "Code Review Best Practices" in subagent_dict["system_prompt"]
+                # Verify skill reference was injected into system_prompt
+                assert "code-review-best-practices" in subagent_dict["system_prompt"]
                 
                 # Verify tools were created
                 assert "tools" in subagent_dict
@@ -235,9 +235,9 @@ Run `./review.sh <path>` to analyze code.
             skill_client.get_artifact = AsyncMock(return_value=b"")
             
             with patch(
-                "worker.activities.graphton.subagent_transformer.McpToolsLoader"
+                "graphton.core.middleware.McpToolsLoader"
             ) as mock_loader, patch(
-                "worker.activities.graphton.subagent_transformer.create_tool_wrapper"
+                "graphton.core.tool_wrappers.create_tool_wrapper"
             ) as mock_create_wrapper:
                 mock_middleware = MagicMock()
                 mock_middleware._deferred_loading = False
@@ -292,9 +292,9 @@ Run `./review.sh <path>` to analyze code.
         skill_client.list_by_refs = AsyncMock(return_value=[])
         
         with patch(
-            "worker.activities.graphton.subagent_transformer.McpToolsLoader"
+            "graphton.core.middleware.McpToolsLoader"
         ) as mock_loader, patch(
-            "worker.activities.graphton.subagent_transformer.create_tool_wrapper"
+            "graphton.core.tool_wrappers.create_tool_wrapper"
         ) as mock_create_wrapper:
             mock_middleware = MagicMock()
             mock_middleware._deferred_loading = False
@@ -345,9 +345,9 @@ Run `./review.sh <path>` to analyze code.
         skill_client.list_by_refs = AsyncMock(return_value=[])
         
         with patch(
-            "worker.activities.graphton.subagent_transformer.McpToolsLoader"
+            "graphton.core.middleware.McpToolsLoader"
         ) as mock_loader, patch(
-            "worker.activities.graphton.subagent_transformer.create_tool_wrapper"
+            "graphton.core.tool_wrappers.create_tool_wrapper"
         ) as mock_create_wrapper:
             mock_middleware = MagicMock()
             mock_middleware._deferred_loading = False
@@ -452,7 +452,7 @@ class TestErrorRecovery:
         
         # Make MCP loader fail
         with patch(
-            "worker.activities.graphton.subagent_transformer.McpToolsLoader"
+            "graphton.core.middleware.McpToolsLoader"
         ) as mock_loader:
             mock_loader.side_effect = RuntimeError("MCP connection refused")
             

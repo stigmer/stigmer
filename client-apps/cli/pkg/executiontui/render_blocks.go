@@ -306,16 +306,11 @@ func phaseDisplayText(phase, previous string) string {
 // including expand/collapse decorations for expandable blocks. Returns an empty
 // string for blocks that should be skipped (empty content).
 //
-// nestSubAgents controls whether blocks with a non-empty subAgentID receive
-// the visual indent prefix. When false (single sub-agent scenario), the indent
-// is suppressed because the sub-agent distinction is an implementation detail
-// that adds visual noise without conveying useful information to the user.
-//
 // This function is the single source of truth for how a block renders in the
 // viewport. Both rebuildViewportContent (for the full viewport string) and
 // blockStartLine (for scroll-into-view line computation) use it to ensure
 // consistent layout.
-func renderedBlockText(b contentBlock, blockIdx, focusedIdx int, nestSubAgents bool) string {
+func renderedBlockText(b contentBlock, blockIdx, focusedIdx int) string {
 	text := b.displayContent()
 	if text == "" {
 		return ""
@@ -323,51 +318,38 @@ func renderedBlockText(b contentBlock, blockIdx, focusedIdx int, nestSubAgents b
 	if b.expandable {
 		text = decorateExpandableBlock(text, b.expanded, blockIdx == focusedIdx)
 	}
-	if nestSubAgents && b.subAgentID != "" {
-		text = indentSubAgentBlock(text)
-	}
 	return text
 }
 
-// hasMultipleSubAgents returns true when blocks contain entries from 2+ distinct
-// sub-agents. When only one sub-agent exists, the ↳ nesting prefix is suppressed
-// because the sub-agent distinction is an implementation detail that leaks
-// internal architecture to the user without adding value.
-func hasMultipleSubAgents(blocks []contentBlock) bool {
-	var first string
-	for _, b := range blocks {
-		if b.subAgentID == "" {
-			continue
-		}
-		if first == "" {
-			first = b.subAgentID
-			continue
-		}
-		if b.subAgentID != first {
-			return true
-		}
+// renderSubAgentSeparator returns a dim horizontal separator line labeled with
+// the sub-agent name. Inserted by rebuildViewportContent when the active agent
+// context changes, so the user can see which sub-agent owns a group of blocks
+// without per-block prefixes.
+func renderSubAgentSeparator(name string) string {
+	if name == "" {
+		name = "sub-agent"
 	}
-	return false
+	return dimStyle.Render("── " + name + " ──")
 }
 
-// subAgentIndent is the visual prefix for the first line of a sub-agent block.
-// Subsequent lines are indented to align with the content after the prefix.
-const subAgentIndent = "  ↳ "
-
-// subAgentContinuation is the indent for continuation lines within a sub-agent
-// block. It aligns with the content portion of subAgentIndent (4 characters).
-const subAgentContinuation = "    "
-
-// indentSubAgentBlock visually nests a block under its parent task tool block.
-// The first line gets a "  ↳ " prefix; subsequent lines are aligned with
-// matching whitespace.
-func indentSubAgentBlock(text string) string {
-	lines := strings.Split(text, "\n")
-	lines[0] = subAgentIndent + lines[0]
-	for i := 1; i < len(lines); i++ {
-		lines[i] = subAgentContinuation + lines[i]
+// needsSubAgentSeparator reports whether a context separator should be inserted
+// before the block at index idx. A separator is needed when the block originates
+// from a sub-agent AND the previous rendered block belongs to a different agent
+// (main agent or a different sub-agent).
+func needsSubAgentSeparator(blocks []contentBlock, idx int) bool {
+	cur := blocks[idx]
+	if cur.subAgentID == "" {
+		return false
 	}
-	return strings.Join(lines, "\n")
+	for j := idx - 1; j >= 0; j-- {
+		if blocks[j].displayContent() == "" {
+			continue
+		}
+		return blocks[j].subAgentID != cur.subAgentID
+	}
+	// First rendered block in the list — show separator to introduce the
+	// sub-agent context.
+	return true
 }
 
 // rebuildViewportContent concatenates all blocks into a single string for the
@@ -378,9 +360,10 @@ func indentSubAgentBlock(text string) string {
 //   - ▼ suffix when expanded (can be collapsed)
 //   - ▸ prefix when the block has keyboard focus
 //
-// Sub-agent blocks receive the ↳ indent prefix only when multiple distinct
-// sub-agents are present. Single-agent executions suppress the indent because
-// the sub-agent distinction is an implementation detail.
+// When the active agent context changes (a block's subAgentID differs from
+// the previous block's), a dim separator line is inserted to label the new
+// sub-agent (e.g., "── researcher ──"). Separators only appear when entering
+// a sub-agent context, not when returning to the main agent.
 //
 // focusedIndex is the index into blocks of the currently focused expandable
 // block, or -1 when no block is focused.
@@ -389,12 +372,14 @@ func rebuildViewportContent(blocks []contentBlock, focusedIndex int) string {
 		return ""
 	}
 
-	nest := hasMultipleSubAgents(blocks)
 	var parts []string
 	for i, b := range blocks {
-		text := renderedBlockText(b, i, focusedIndex, nest)
+		text := renderedBlockText(b, i, focusedIndex)
 		if text == "" {
 			continue
+		}
+		if needsSubAgentSeparator(blocks, i) {
+			parts = append(parts, renderSubAgentSeparator(b.subAgentName))
 		}
 		parts = append(parts, text)
 	}

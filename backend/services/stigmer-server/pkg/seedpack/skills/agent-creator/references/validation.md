@@ -1,456 +1,266 @@
-# Agent YAML Validation Reference
-
-Complete validation checklist and common-pitfall catalogue for
-`agentic.stigmer.ai/v1` Agent resources.
+# Validation Checklist and Common Pitfalls
 
 ## Table of Contents
-
-1. [Pre-flight Checklist](#1-pre-flight-checklist)
-2. [Top-Level Field Validation](#2-top-level-field-validation)
-3. [Metadata Validation](#3-metadata-validation)
-4. [Spec Validation](#4-spec-validation)
-5. [MCP Server Usage Validation](#5-mcp-server-usage-validation)
-6. [Skill Ref Validation](#6-skill-ref-validation)
-7. [Sub-Agent Validation](#7-sub-agent-validation)
-8. [Environment Spec Validation](#8-environment-spec-validation)
-9. [Common Pitfalls (with fixes)](#9-common-pitfalls-with-fixes)
-10. [CLI Validation Commands](#10-cli-validation-commands)
+1. [Pre-Apply Checklist](#pre-apply-checklist)
+2. [Common Pitfalls](#common-pitfalls)
 
 ---
 
-## 1. Pre-flight Checklist
+## Pre-Apply Checklist
 
-Before presenting any Agent YAML, confirm every item below:
+Work through every applicable section before finalizing the YAML.
 
-- [ ] `apiVersion` is exactly `agentic.stigmer.ai/v1` (no trailing slash, correct casing)
-- [ ] `kind` is exactly `Agent` (capital A, no other text)
-- [ ] `metadata.name` is present and non-empty
-- [ ] `spec.description` is present and explains what the agent does
-- [ ] `spec.instructions` is ≥ 10 characters and provides meaningful behavioral guidance
-- [ ] All `mcp_server_usages` slugs were verified via Stigmer MCP tools (`search` or `get_mcp_server`)
-- [ ] All `skill_refs` slugs were verified via Stigmer MCP tools (`search` or `get_skill`)
-- [ ] All `mcp_server_ref` entries have `kind: mcp_server`
-- [ ] All `skill_refs` entries have `kind: skill`
-- [ ] No duplicate slugs exist within `mcp_server_usages`
-- [ ] No duplicate names exist within `sub_agents`
-- [ ] Every sub-agent `mcp_access[].mcp_server` references a slug present in the parent's `mcp_server_usages`
-- [ ] Every sub-agent `enabled_tools` list is a subset of the parent's `enabled_tools` for that server
-- [ ] Every sub-agent `instructions` is ≥ 10 characters
-- [ ] All slugs (metadata and resource refs) follow the slug format (lowercase, hyphens, starts with letter, ≤63 chars)
-- [ ] YAML is syntactically valid (correct indentation, no duplicate keys, proper quoting)
-- [ ] `status` field is absent (system-managed — never authored)
+### Required Fields
 
----
+- [ ] `apiVersion` is exactly `agentic.stigmer.ai/v1`
+- [ ] `kind` is exactly `Agent`
+- [ ] `metadata.name` is present
+- [ ] `spec.instructions` is present and **at least 10 characters** (enforced by proto validation)
+- [ ] `spec.description` is present and clearly describes the agent's purpose
 
-## 2. Top-Level Field Validation
+### Organization and Visibility
 
-### `apiVersion`
+- [ ] `metadata.org` is set — `local` for local mode; real org slug for cloud mode
+- [ ] `metadata.visibility` is intentional — omit for private (default); `visibility_public` only for marketplace
 
-Proto constraint: `string.const = 'agentic.stigmer.ai/v1'`
+### Resource References (skill_refs and mcp_server_usages)
 
-| Value | Valid? | Reason |
-|---|---|---|
-| `agentic.stigmer.ai/v1` | ✓ | Exact match |
-| `agentic.stigmer.ai/v2` | ✗ | Wrong version |
-| `Agentic.stigmer.ai/v1` | ✗ | Wrong casing |
-| `agentic.stigmer.ai/v1/` | ✗ | Trailing slash |
+- [ ] `kind` in all references uses lowercase strings (`skill`, `mcp_server`) — **never integers** (`43`, `44`)
+- [ ] All `org` values are lowercase alphanumeric + hyphens, start with a letter, 1–63 chars
+- [ ] All `slug` values are lowercase alphanumeric + hyphens, start with a letter, 1–63 chars
+- [ ] **Every referenced MCP server was verified to exist** using `get_mcp_server` before writing
+- [ ] **Every referenced skill was verified to exist** using `get_skill` before writing
 
-### `kind`
+### MCP Server Usages
 
-Proto constraint: `string.const = 'Agent'`
+- [ ] Each MCP server `slug` appears **exactly once** in `mcp_server_usages` (no duplicates)
+- [ ] All tool names in `enabled_tools` exactly match tools reported by the MCP server
+- [ ] All tool names in `tool_approval_overrides` exactly match MCP server tool names (case-sensitive)
 
-| Value | Valid? |
-|---|---|
-| `Agent` | ✓ |
-| `agent` | ✗ |
-| `AGENT` | ✗ |
-| `McpServer` | ✗ |
+### Sub-Agents
+
+- [ ] All sub-agent `name` values are unique within `sub_agents`
+- [ ] Every sub-agent `instructions` is at least 10 characters
+- [ ] Every `mcp_access[*].mcp_server` value matches a `slug` from the parent's `mcp_server_usages`
+- [ ] Every sub-agent `enabled_tools` is a **subset** of the parent's `enabled_tools` for that MCP server
+
+### YAML Syntax
+
+- [ ] Multi-line `instructions` use `|` block scalar style
+- [ ] All YAML is syntactically valid (no unclosed strings, missing colons, etc.)
+- [ ] No tabs used for indentation (YAML requires spaces)
 
 ---
 
-## 3. Metadata Validation
+## Common Pitfalls
 
-### `metadata.name`
-- Required. Must be non-empty.
-- Human-readable — no format restrictions.
+### ❌ Using integers for `kind` in references
 
-### `metadata.slug`
-- Optional (auto-generated from name if omitted).
-- Pattern: `^[a-z][a-z0-9-]*$`, max 63 characters.
-- Must start with a lowercase letter.
-- Only lowercase letters, digits, and hyphens.
-
-| Value | Valid? | Reason |
-|---|---|---|
-| `my-agent` | ✓ | |
-| `agent123` | ✓ | |
-| `a` | ✓ | Single char allowed |
-| `My-Agent` | ✗ | Uppercase |
-| `my_agent` | ✗ | Underscore |
-| `123-agent` | ✗ | Starts with digit |
-| `-agent` | ✗ | Starts with hyphen |
-| `agent-` | ✗ | Trailing hyphen |
-| 64+ characters | ✗ | Exceeds 63-char limit |
-
----
-
-## 4. Spec Validation
-
-### `spec.description`
-- No proto constraint but strongly required by convention.
-- Should be 1–2 sentences, clearly describing what the agent does.
-- Used in the UI, marketplace, and sub-agent delegation decisions.
-
-### `spec.instructions`
-- Proto constraint: `string.min_len = 10`
-- A 10-character minimum is enforced. Strive for meaningful guidance.
-
-| Value | Valid? |
-|---|---|
-| `You are a helpful assistant that answers questions clearly.` | ✓ |
-| `Assistant` | ✗ (9 chars) |
-| `"Helper"` | ✗ (6 chars) |
-
----
-
-## 5. MCP Server Usage Validation
-
-### `mcp_server_ref.kind`
-
-Proto constraint: `this.mcp_server_ref.kind == 44` (i.e., the `kind` field string value must be `mcp_server`).
-
-| Value | Valid? |
-|---|---|
-| `kind: mcp_server` | ✓ |
-| `kind: McpServer` | ✗ |
-| `kind: skill` | ✗ |
-| `kind: 44` | ✗ (use string, not number) |
-
-### Slug uniqueness within `mcp_server_usages`
-
-Each `mcp_server_ref.slug` must be unique within the list.
+The proto enum uses integers internally (`skill = 43`, `mcp_server = 44`). YAML always uses the lowercase string name.
 
 ```yaml
-# ✗ INVALID — duplicate slug
+# Wrong
+- org: local
+  kind: 43
+  slug: my-skill
+
+# Correct
+- org: local
+  kind: skill
+  slug: my-skill
+```
+
+---
+
+### ❌ Using wrong capitalization in `kind`
+
+```yaml
+# Wrong
+kind: Skill
+kind: MCP_SERVER
+kind: McpServer
+
+# Correct
+kind: skill
+kind: mcp_server
+```
+
+---
+
+### ❌ Instructions too short
+
+The `instructions` field has a **10-character minimum** enforced at validation time. Truncated or placeholder instructions will be rejected.
+
+```yaml
+# Wrong — only 6 characters
+instructions: "Helper"
+
+# Correct
+instructions: "You are a helpful assistant that answers questions clearly."
+```
+
+---
+
+### ❌ Guessing resource slugs without verifying
+
+Never write a `slug` without first confirming the resource exists on the platform. Agents with unresolvable references fail at runtime.
+
+```yaml
+# Wrong — assumed github exists without checking
 mcp_server_usages:
   - mcp_server_ref:
       org: local
       kind: mcp_server
-      slug: github
-  - mcp_server_ref:
-      org: local
-      kind: mcp_server
-      slug: github   # duplicate!
+      slug: github   # did you verify this?
+```
 
-# ✓ VALID
+**Fix:** Call `get_mcp_server(org="local", slug="github")` before writing this reference. If it doesn't exist, ask the user rather than inventing a reference.
+
+---
+
+### ❌ Duplicate MCP server slugs in one agent
+
+Each MCP server may appear **at most once** in `mcp_server_usages`. Combine tools into a single entry.
+
+```yaml
+# Wrong — github appears twice
 mcp_server_usages:
-  - mcp_server_ref:
-      org: local
-      kind: mcp_server
-      slug: github
-  - mcp_server_ref:
-      org: local
-      kind: mcp_server
-      slug: kubernetes
-```
+  - mcp_server_ref: { org: local, kind: mcp_server, slug: github }
+    enabled_tools: [search_code]
+  - mcp_server_ref: { org: local, kind: mcp_server, slug: github }
+    enabled_tools: [create_pr]
 
-### `enabled_tools`
-
-- Tool names are **case-sensitive** and must exactly match what the MCP server reports via `tools/list`.
-- Always verify tool names by calling `get_mcp_server` before authoring.
-- Empty list = use `McpServer.default_enabled_tools` (or all tools if not set by the McpServer).
-
-### `tool_approval_overrides[].tool_name`
-
-- Proto constraint: `min_len: 1`
-- Invalid tool names are silently ignored at runtime (forward-compatibility).
-- Best practice: verify tool names via `get_mcp_server` to catch typos early.
-
----
-
-## 6. Skill Ref Validation
-
-### `skill_refs[].kind`
-
-Proto constraint: `this.kind == 43` (string value must be `skill`).
-
-| Value | Valid? |
-|---|---|
-| `kind: skill` | ✓ |
-| `kind: Skill` | ✗ |
-| `kind: SKILL` | ✗ |
-| `kind: 43` | ✗ (use string) |
-
-### All required fields
-
-Every `skill_refs` entry must have all three of:
-
-```yaml
-# ✓ VALID
-skill_refs:
-  - org: local
-    kind: skill
-    slug: code-review-guide
-
-# ✗ INVALID — missing kind and slug
-skill_refs:
-  - org: local
-```
-
-### `version` field (optional)
-
-```yaml
-# Pin to a tag:
-- org: local
-  kind: skill
-  slug: my-skill
-  version: stable
-
-# Pin to content hash (immutable):
-- org: local
-  kind: skill
-  slug: my-skill
-  version: sha256:abc123...
-
-# Latest (omit version):
-- org: local
-  kind: skill
-  slug: my-skill
+# Correct — single entry, all tools combined
+mcp_server_usages:
+  - mcp_server_ref: { org: local, kind: mcp_server, slug: github }
+    enabled_tools: [search_code, create_pr]
 ```
 
 ---
 
-## 7. Sub-Agent Validation
+### ❌ Sub-agent tools exceeding parent's tools
 
-### Unique names
-
-Sub-agent `name` must be unique within the `sub_agents` list.
+Sub-agent tools must be a **strict subset** of what the parent has enabled. A sub-agent cannot grant itself tools the parent doesn't have.
 
 ```yaml
-# ✗ INVALID — duplicate name
+# Wrong — parent has [search_code, get_file] but sub-agent adds delete_repo
 sub_agents:
   - name: reviewer
-    instructions: "Review code quality."
-  - name: reviewer    # duplicate!
-    instructions: "Review security issues."
-```
+    mcp_access:
+      - mcp_server: github
+        enabled_tools: [search_code, delete_repo]   # delete_repo NOT in parent
 
-### `instructions` minimum length
-
-Each sub-agent's `instructions` must be ≥ 10 characters (same proto constraint as the parent).
-
-### `mcp_access[].mcp_server` must reference parent slug
-
-```yaml
-spec:
-  mcp_server_usages:
-    - mcp_server_ref:
-        org: local
-        kind: mcp_server
-        slug: github
-
-  sub_agents:
-    - name: helper
-      instructions: "You help with code tasks."
-      mcp_access:
-        - mcp_server: github     # ✓ matches parent slug
-          enabled_tools: [search_code]
-
-        - mcp_server: slack      # ✗ slack not in parent's mcp_server_usages
-```
-
-### `enabled_tools` must be a subset of parent's tools
-
-```yaml
-spec:
-  mcp_server_usages:
-    - mcp_server_ref:
-        org: local
-        kind: mcp_server
-        slug: github
-      enabled_tools:
-        - search_code
-        - get_file
-        - create_pr
-
-  sub_agents:
-    - name: reader
-      instructions: "Read-only code access."
-      mcp_access:
-        - mcp_server: github
-          enabled_tools:
-            - search_code   # ✓ in parent's list
-            - get_file      # ✓ in parent's list
-            - delete_repo   # ✗ NOT in parent's list — invalid
-```
-
-### Sub-agent `skill_refs` are independent
-
-Sub-agents may reference any skill, regardless of what the parent agent references.
-
-```yaml
+# Correct — only tools the parent already enables
 sub_agents:
-  - name: specialist
-    instructions: "Domain specialist."
-    skill_refs:
-      - org: local
-        kind: skill
-        slug: any-skill-slug    # ✓ fully independent from parent
+  - name: reviewer
+    mcp_access:
+      - mcp_server: github
+        enabled_tools: [search_code, get_file]
 ```
 
 ---
 
-## 8. Environment Spec Validation
+### ❌ Sub-agent referencing an MCP server the parent doesn't declare
 
-- Variable names are arbitrary strings (uppercase by strong convention).
-- `is_secret: true` causes the value to be encrypted at rest and redacted in logs.
-- Leave `value` empty in the spec — actual values are provided via `AgentInstance`.
+The `mcp_server` field in `mcp_access` must match a slug from the parent's `mcp_server_usages`. There is no way to grant a sub-agent access to a server the parent hasn't declared.
 
 ```yaml
-# ✓ VALID
-env_spec:
-  data:
-    GITHUB_TOKEN:
-      description: "GitHub PAT with repo scope"
-      is_secret: true
-    API_BASE_URL:
-      description: "Base URL for the internal API"
-      is_secret: false
+# Wrong — parent has no slack in mcp_server_usages
+sub_agents:
+  - name: notifier
+    mcp_access:
+      - mcp_server: slack   # parent never declared this
+
+# Correct — only reference servers the parent declares
+sub_agents:
+  - name: notifier
+    mcp_access:
+      - mcp_server: github   # parent has this in mcp_server_usages
 ```
 
 ---
 
-## 9. Common Pitfalls (with fixes)
+### ❌ Typos in tool_approval_overrides tool names (silent failure)
 
-### Uppercase or underscores in slugs
+A typo in `tool_name` causes the override to be **silently ignored** — no error, no warning. The approval policy simply doesn't apply. This is a security-relevant failure mode.
 
 ```yaml
-# ✗
-metadata:
-  slug: Code_Reviewer
+# Dangerous — typo means delete_repository has NO approval requirement
+tool_approval_overrides:
+  - tool_name: delet_repository   # missing 'e' — silently ignored
+    requires_approval: true
 
-# ✓
-metadata:
-  slug: code-reviewer
+# Correct — exact match
+tool_approval_overrides:
+  - tool_name: delete_repository
+    requires_approval: true
 ```
 
-### Wrong casing on kind values in references
+**Always verify tool names** by calling `get_mcp_server` and checking the server's tool list before writing overrides.
+
+---
+
+### ❌ Wrong slug format
+
+Slugs must match `^[a-z][a-z0-9-]*$` — lowercase, hyphens only, starts with a letter.
 
 ```yaml
-# ✗
-skill_refs:
-  - kind: Skill
+# Wrong
+slug: Code_Reviewer    # uppercase + underscores
+slug: codeReviewer     # camelCase
+slug: 2nd-reviewer     # starts with digit
 
-# ✓
-skill_refs:
-  - kind: skill
+# Correct
+slug: code-reviewer
+slug: second-reviewer
 ```
 
-### Instructions too short
+---
+
+### ❌ Setting status in YAML
+
+`status` is system-managed and must never appear in user-authored YAML. The server will reject or ignore it.
 
 ```yaml
-# ✗ (8 chars)
-spec:
-  instructions: "Helper."
+# Wrong
+status:
+  default_instance_id: "abc123"
 
-# ✓
-spec:
-  instructions: "You are a helpful assistant that answers user questions."
+# Correct — omit status entirely
 ```
 
-### Duplicate MCP server slugs
+---
+
+### ❌ Missing required fields in ApiResourceReference
+
+Every reference needs all three of `org`, `kind`, and `slug`.
 
 ```yaml
-# ✗
-mcp_server_usages:
-  - mcp_server_ref: {org: local, kind: mcp_server, slug: github}
-  - mcp_server_ref: {org: local, kind: mcp_server, slug: github}
-
-# ✓
-mcp_server_usages:
-  - mcp_server_ref: {org: local, kind: mcp_server, slug: github}
-  - mcp_server_ref: {org: local, kind: mcp_server, slug: linear}
-```
-
-### Sub-agent exceeds parent tool scope
-
-```yaml
-# Parent enables: [search_code, get_file]
-# ✗ Sub-agent tries to use delete_repo (not in parent's list)
-mcp_access:
-  - mcp_server: github
-    enabled_tools: [search_code, delete_repo]
-
-# ✓
-mcp_access:
-  - mcp_server: github
-    enabled_tools: [search_code, get_file]
-```
-
-### Sub-agent references unknown MCP server
-
-```yaml
-# Parent has github; sub-agent references slack
-# ✗
-mcp_access:
-  - mcp_server: slack
-
-# ✓ — add slack to parent first, or remove from sub-agent
-```
-
-### Missing required fields in resource references
-
-```yaml
-# ✗
+# Wrong — missing kind and slug
 skill_refs:
   - org: local
-  - slug: my-skill
 
-# ✓
+# Correct
 skill_refs:
   - org: local
     kind: skill
     slug: my-skill
 ```
 
-### Inventing resource slugs without querying
-
-```yaml
-# ✗ — assumes github MCP server exists; never verified
-mcp_server_usages:
-  - mcp_server_ref:
-      org: local
-      kind: mcp_server
-      slug: github
-
-# ✓ — first call: get_mcp_server(org: "local", slug: "github")
-#      confirm it exists and check its tool list, then write the YAML
-```
-
-### Setting status field
-
-```yaml
-# ✗ — status is system-managed
-status:
-  default_instance_id: "abc123"
-
-# ✓ — omit status entirely
-```
-
 ---
 
-## 10. CLI Validation Commands
+### ❌ Omitting metadata.org in cloud mode
 
-```bash
-# Validate YAML syntax and schema without creating or updating
-stigmer agent apply agent.yaml --dry-run
+In cloud mode, `metadata.org` is required. In local mode it defaults to `local`.
 
-# List existing agents (to check for name/slug conflicts)
-stigmer agent list
+```yaml
+# Wrong for cloud mode
+metadata:
+  name: my-agent
+  # org missing
 
-# Inspect an existing agent as YAML
-stigmer agent get <slug> --output yaml
-
-# Search for agents by keyword
-stigmer agent search "code review"
+# Correct for cloud mode
+metadata:
+  name: my-agent
+  org: acme-corp
 ```

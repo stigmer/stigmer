@@ -2245,7 +2245,7 @@ class StatusBuilder:
         """
         Register namespace -> sub-agent mapping when child event arrives.
         
-        Uses three strategies in priority order:
+        Uses four strategies in priority order:
         
         1. **Root-prefix matching**: Multi-segment namespaces (containing "|")
            share a root segment (before the first "|") when they originate
@@ -2260,6 +2260,12 @@ class StatusBuilder:
            multi-segment namespace is associated with that pending sub-agent.
            This handles the common case where LangGraph checkpoint UUIDs
            differ from the task tool's event run_id.
+        
+        4. **Sole-active-agent fallback**: When exactly one sub-agent is
+           active, all multi-segment namespaces must originate from it
+           (there is no other candidate).  This covers the common case
+           where a sub-agent's internal graph nodes produce events with
+           namespace roots that differ from the initially registered one.
         
         Single-segment namespaces (no "|") are from the main agent's graph
         nodes and are intentionally not registered.
@@ -2312,9 +2318,25 @@ class StatusBuilder:
                 )
                 return
         
-        # Diagnostic: log failed registration for multi-segment namespaces only
-        if is_multi_segment:
-            self.logger.info(
+        # Strategy 4: sole-active-agent fallback.
+        # When exactly one sub-agent is active, all multi-segment namespaces
+        # must originate from it -- there is no other candidate.
+        if is_multi_segment and len(self._active_sub_agents) == 1:
+            sub_agent_id = next(iter(self._active_sub_agents))
+            self._namespace_to_sub_agent_id[namespace] = sub_agent_id
+            self.logger.debug(
+                f"[SUBAGENT] Sole-active fallback: namespace={namespace} "
+                f"-> sub_agent={sub_agent_id}"
+            )
+            return
+        
+        # Diagnostic: warn about unresolvable multi-segment namespaces.
+        # At this point multiple sub-agents are active and we cannot
+        # determine which one owns this namespace.  Deduplicate so we
+        # only warn once per unique namespace.
+        if is_multi_segment and namespace not in self._warned_namespaces:
+            self._warned_namespaces.add(namespace)
+            self.logger.warning(
                 f"[NS_DIAG] Namespace registration failed: "
                 f"execution={self.execution_id} "
                 f"namespace={namespace} "
