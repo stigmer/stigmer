@@ -75,11 +75,11 @@ func openSession(sessionID, orgID string, verbose bool, conn *grpc.ClientConn) e
 		fmt.Println()
 		executionID := latestExec.GetMetadata().GetId()
 		prompter := approval.NewInteractivePrompter()
-		_, err := streamAgentExecution(sessionID, executionID, orgID, prompter, approval.Action(0), verbose, conn)
+		_, err := streamAgentExecution(sessionID, subject, executionID, orgID, prompter, approval.Action(0), verbose, conn)
 		return err
 
 	default:
-		return resumeSession(sessionID, orgID, entries, verbose, conn)
+		return resumeSession(sessionID, subject, orgID, entries, verbose, conn)
 	}
 }
 
@@ -89,7 +89,7 @@ func openSession(sessionID, orgID string, verbose bool, conn *grpc.ClientConn) e
 // noise suppression, lifecycle badges, and duplicate filtering all apply
 // automatically. The input composer activates after all historical events
 // are processed, letting the user send a follow-up message.
-func resumeSession(sessionID, orgID string, executions []*agentexecutionv1.AgentExecution, verbose bool, conn *grpc.ClientConn) error {
+func resumeSession(sessionID, sessionSubject, orgID string, executions []*agentexecutionv1.AgentExecution, verbose bool, conn *grpc.ClientConn) error {
 	cliprint.PrintInfo("Resuming session...")
 	fmt.Println()
 
@@ -114,6 +114,7 @@ func resumeSession(sessionID, orgID string, executions []*agentexecutionv1.Agent
 
 	model := executiontui.New(executiontui.Config{
 		SessionID:         sessionID,
+		SessionSubject:    sessionSubject,
 		ExecutionID:       latestExecID,
 		Events:            events,
 		ApprovalResponses: approvalResponses,

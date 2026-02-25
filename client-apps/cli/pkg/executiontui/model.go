@@ -13,9 +13,15 @@ import (
 // All fields are required unless noted otherwise.
 type Config struct {
 	// SessionID is the session identifier displayed in the header.
-	// When non-empty, the header shows "Session: ses-xxx" instead of
-	// "Execution: exec-xxx".
+	// When non-empty, the header shows "Session: <subject>" instead of
+	// "Execution: exec-xxx". Falls back to displaying the raw ID when
+	// SessionSubject is empty.
 	SessionID string
+
+	// SessionSubject is the human-readable subject line for the session.
+	// When non-empty, the header displays this instead of the raw
+	// SessionID for a friendlier experience.
+	SessionSubject string
 
 	// ExecutionID is the agent execution identifier displayed in the header.
 	ExecutionID string

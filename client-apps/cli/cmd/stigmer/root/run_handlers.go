@@ -74,7 +74,7 @@ func runAgent(ref, message string, env envfile.EnvMap, attachments []*agentexecu
 
 	// Stream execution in real-time until completion
 	prompter := approval.NewInteractivePrompter()
-	exec, err = streamAgentExecution(sessionID, exec.Metadata.Id, orgID, prompter, defaultAction, verbose, conn)
+	exec, err = streamAgentExecution(sessionID, "", exec.Metadata.Id, orgID, prompter, defaultAction, verbose, conn)
 	if err != nil {
 		return errors.Wrap(err, "error streaming execution")
 	}
