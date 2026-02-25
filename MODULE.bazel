@@ -48,6 +48,7 @@ use_repo(
     "com_github_jhump_protoreflect",
     "com_github_joho_godotenv",
     "com_github_masterminds_semver_v3",
+    "com_github_modelcontextprotocol_go_sdk",  # keep: Required for MCP server discovery in CLI
     "com_github_mrsimonemms_golang_helpers",
     "com_github_mrsimonemms_temporal_codec_server_packages_golang",
     "com_github_oklog_ulid_v2",
