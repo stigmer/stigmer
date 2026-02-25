@@ -15,7 +15,7 @@
 #   - ANTHROPIC_API_KEY set in environment
 #
 # Usage:
-#   ./draft_agent_creator.sh
+#   ./02_draft-agent-creator-skill.sh
 #
 # Output:
 #   Generated skill saved to ../skills/agent-creator/
