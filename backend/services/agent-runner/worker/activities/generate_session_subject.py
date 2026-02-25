@@ -167,7 +167,14 @@ async def _generate_title(
         HumanMessage(content=user_prompt),
     ])
 
-    subject = response.content.strip().strip('"').strip("'")
+    content = response.content
+    if not isinstance(content, str):
+        content = (
+            "".join(str(part) for part in content)
+            if isinstance(content, list)
+            else str(content)
+        )
+    subject = content.strip().strip('"').strip("'")
 
     if subject and len(subject) > _MAX_SUBJECT_LENGTH:
         subject = subject[: _MAX_SUBJECT_LENGTH - 3] + "..."
