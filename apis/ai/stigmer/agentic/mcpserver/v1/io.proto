@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.mcpserver.v1;
 
+import "ai/stigmer/agentic/mcpserver/v1/status.proto";
 import "buf/validate/validate.proto";
 
 // McpServerId wraps an MCP server resource identifier.
@@ -12,4 +13,22 @@ message McpServerId {
   // Format: "mcp-" followed by a unique identifier.
   // Example: "mcp-abc123xyz"
   string value = 1 [(buf.validate.field).required = true];
+}
+
+// UpdateDiscoveredCapabilitiesInput is the request for the updateDiscoveredCapabilities RPC.
+//
+// Used by:
+// - CLI: after `stigmer discover mcp-server <name>` connects locally, queries tools/resources,
+//   and pushes the results to stigmer-server.
+// - Agent-runner: future runtime cache refresh.
+//
+// The caller must first resolve the MCP server's system ID (e.g., via getByReference)
+// before calling this RPC.
+message UpdateDiscoveredCapabilitiesInput {
+  // System-generated ID of the MCP server to update.
+  // Obtained from McpServer.metadata.id (e.g., via getByReference).
+  string mcp_server_id = 1 [(buf.validate.field).required = true];
+
+  // Discovered tools and resource templates to store.
+  DiscoveredCapabilities discovered_capabilities = 2 [(buf.validate.field).required = true];
 }

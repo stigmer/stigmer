@@ -3,6 +3,7 @@
 import grpc
 
 from ai.stigmer.agentic.mcpserver.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_api__pb2
+from ai.stigmer.agentic.mcpserver.v1 import io_pb2 as ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2
 from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 
 
@@ -43,6 +44,11 @@ class McpServerCommandControllerStub(object):
         self.delete = channel.unary_unary(
                 '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/delete',
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceDeleteInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_api__pb2.McpServer.FromString,
+                _registered_method=True)
+        self.updateDiscoveredCapabilities = channel.unary_unary(
+                '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/updateDiscoveredCapabilities',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.UpdateDiscoveredCapabilitiesInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_api__pb2.McpServer.FromString,
                 _registered_method=True)
 
@@ -137,6 +143,26 @@ class McpServerCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def updateDiscoveredCapabilities(self, request, context):
+        """Update the discovered capabilities (tools and resource templates) for an MCP server.
+
+        This is a targeted status update — it only modifies status.discovered_capabilities,
+        leaving spec, validation state, and other status fields untouched.
+
+        Typical flow:
+        1. CLI calls getByReference(org/slug) to fetch the McpServer and its ID
+        2. CLI connects to the MCP server locally and queries tools/resources
+        3. CLI calls this RPC with the ID and discovered capabilities
+
+        Input: UpdateDiscoveredCapabilitiesInput with mcp_server_id and discovered_capabilities.
+        Returns: The updated McpServer with the new discovered capabilities.
+
+        Authorization: Requires can_edit permission on the mcp_server resource.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_McpServerCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -158,6 +184,11 @@ def add_McpServerCommandControllerServicer_to_server(servicer, server):
             'delete': grpc.unary_unary_rpc_method_handler(
                     servicer.delete,
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceDeleteInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_api__pb2.McpServer.SerializeToString,
+            ),
+            'updateDiscoveredCapabilities': grpc.unary_unary_rpc_method_handler(
+                    servicer.updateDiscoveredCapabilities,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.UpdateDiscoveredCapabilitiesInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_api__pb2.McpServer.SerializeToString,
             ),
     }
@@ -278,6 +309,33 @@ class McpServerCommandController(object):
             target,
             '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/delete',
             ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceDeleteInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_api__pb2.McpServer.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def updateDiscoveredCapabilities(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/updateDiscoveredCapabilities',
+            ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.UpdateDiscoveredCapabilitiesInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_api__pb2.McpServer.FromString,
             options,
             channel_credentials,
