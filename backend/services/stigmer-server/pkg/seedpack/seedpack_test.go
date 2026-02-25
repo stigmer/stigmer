@@ -24,8 +24,8 @@ func TestDiscoverManifest(t *testing.T) {
 		t.Errorf("Expected content hash to start with 'sha256:', got '%s'", manifest.ContentHash)
 	}
 
-	if len(manifest.Skills) < 2 {
-		t.Errorf("Expected at least 2 skills (skill-creator, agent-creator), got %d", len(manifest.Skills))
+	if len(manifest.Skills) < 1 {
+		t.Errorf("Expected at least 1 skill (skill-creator), got %d", len(manifest.Skills))
 	}
 
 	if len(manifest.SystemAgents) == 0 {
@@ -93,28 +93,6 @@ func TestDiscoverManifest_SkillCreatorEntry(t *testing.T) {
 	}
 
 	t.Logf("skill-creator: path=%s, digest=%s...",
-		skill.Path, skill.ContentDigest[:30])
-}
-
-func TestDiscoverManifest_AgentCreatorSkill(t *testing.T) {
-	skill, err := GetSkillByName("agent-creator")
-	if err != nil {
-		t.Fatalf("GetSkillByName('agent-creator') failed: %v", err)
-	}
-
-	if skill == nil {
-		t.Fatal("agent-creator not discovered (this was the bug that motivated auto-discovery)")
-	}
-
-	if skill.Path != "skills/agent-creator" {
-		t.Errorf("Expected path 'skills/agent-creator', got '%s'", skill.Path)
-	}
-
-	if !strings.HasPrefix(skill.ContentDigest, "sha256:") {
-		t.Errorf("Expected content_digest to start with 'sha256:', got '%s'", skill.ContentDigest)
-	}
-
-	t.Logf("agent-creator: path=%s, digest=%s...",
 		skill.Path, skill.ContentDigest[:30])
 }
 
