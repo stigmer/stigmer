@@ -473,6 +473,7 @@ func TestWorkflowInstanceController_GetByReference(t *testing.T) {
 
 		// Get by slug
 		ref := &apiresource.ApiResourceReference{
+			Org:  "test-org",
 			Slug: created.Metadata.Slug,
 		}
 		retrieved, err := controllers.workflowInstance.GetByReference(contextWithWorkflowInstanceKind(), ref)

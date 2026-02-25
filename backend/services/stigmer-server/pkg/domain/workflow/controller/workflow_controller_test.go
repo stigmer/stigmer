@@ -315,6 +315,7 @@ func TestWorkflowController_GetByReference(t *testing.T) {
 
 		// Get by reference using slug
 		ref := &apiresource.ApiResourceReference{
+			Org:  "test-org",
 			Slug: created.Metadata.Slug,
 		}
 

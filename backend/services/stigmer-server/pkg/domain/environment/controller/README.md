@@ -98,14 +98,6 @@ All files are well under the 100-line ideal threshold.
 
 Unlike Agent controller (which has `CreateDefaultInstanceStep` and `UpdateAgentStatusStep`), Environment has no domain-specific business logic beyond standard CRUD operations. All steps are generic and reusable.
 
-### Owner Scope Validation
-
-Environment resources enforce owner scope restrictions via proto validation:
-- ✅ Allowed: `organization` or `identity_account` scope
-- ❌ Forbidden: `platform` scope (enforced by buf.validate CEL rule)
-
-This validation happens automatically in the ValidateProtoStep.
-
 ### No Dependencies on Other Services
 
 Environment controller only depends on BadgerDB store - no downstream clients needed (unlike Agent which depends on AgentInstance client).

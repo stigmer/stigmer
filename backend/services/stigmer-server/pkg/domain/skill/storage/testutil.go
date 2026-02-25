@@ -3,7 +3,9 @@ package storage
 import (
 	"archive/zip"
 	"bytes"
+	"compress/flate"
 	"fmt"
+	"io"
 	"math/rand"
 	"strings"
 )
@@ -248,6 +250,11 @@ func CreateLargeUncompressedZip() []byte {
 	buf := new(bytes.Buffer)
 	w := zip.NewWriter(buf)
 
+	// Use fastest DEFLATE level to keep creation time under the test timeout.
+	w.RegisterCompressor(zip.Deflate, func(out io.Writer) (io.WriteCloser, error) {
+		return flate.NewWriter(out, flate.BestSpeed)
+	})
+
 	// Create SKILL.md
 	skillMd, err := w.Create("SKILL.md")
 	if err != nil {
@@ -257,23 +264,22 @@ func CreateLargeUncompressedZip() []byte {
 		panic(fmt.Sprintf("failed to write SKILL.md: %v", err))
 	}
 
-	// Create multiple files whose content compresses moderately (target ~10:1)
-	// so that per-file ratio stays under maxCompressionRatio (100:1) while
-	// total compressed ZIP stays under maxZipSize (100MB). Total uncompressed
-	// must exceed maxUncompressedSize (500MB).
+	// Create files that compress well but stay under maxCompressionRatio (100:1)
+	// per file, while total compressed ZIP stays under maxZipSize (100MB).
+	// Total uncompressed must exceed maxUncompressedSize (500MB).
 	//
-	// Each 1KB block has 100 bytes of PRNG-generated data (incompressible
-	// to DEFLATE) and 924 bytes of zeros (highly compressible). This yields
-	// roughly 8-12:1 deflate ratio, well under the 100:1 limit.
-	fileCount := 50
-	fileSizeEach := 11 * 1024 * 1024 // 11MB each = 550MB total
+	// Each 1KB block has 15 bytes of PRNG data and 1009 bytes of zeros,
+	// yielding ~60:1 DEFLATE ratio (well under the 100:1 limit). The high
+	// compressibility keeps DEFLATE fast even under the race detector.
+	fileCount := 6
+	fileSizeEach := 85 * 1024 * 1024 // 85MB each = 510MB total
 
 	const chunkSize = 1024 * 1024
 	rng := rand.New(rand.NewSource(42))
 	chunk := make([]byte, chunkSize)
 	for k := range chunk {
 		blockPos := k % 1024
-		if blockPos < 100 {
+		if blockPos < 15 {
 			chunk[k] = byte(rng.Intn(256))
 		} else {
 			chunk[k] = 0
