@@ -7,9 +7,7 @@ import (
 
 const (
 	// System agent for skill creation (from seedpack bootstrap).
-	// Bootstrap creates system agents in "local" org for single-tenant local mode.
-	skillCreatorAgentName = "skill-creator-agent"
-	skillCreatorAgentOrg  = "local"
+	skillCreatorAgentName = "skill-creator"
 )
 
 // NewDraftSkillCommand creates the draft skill subcommand.
@@ -25,9 +23,9 @@ func NewDraftSkillCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "skill",
 		Short: "Create a skill with AI assistance",
-		Long: `Draft a new skill using the skill-creator-agent.
+		Long: `Draft a new skill using the skill-creator system agent.
 
-The skill-creator-agent uses Anthropic's SKILL.md format guidelines to help
+The skill-creator agent uses Anthropic's SKILL.md format guidelines to help
 you create well-structured skills that extend agent capabilities.
 
 You can provide context files (examples, requirements, references) via --attach

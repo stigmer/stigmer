@@ -10,8 +10,8 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 )
 
-// draftSkillOptions contains options for the draft skill command.
-type draftSkillOptions struct {
+// draftAgentOptions contains options for the draft agent command.
+type draftAgentOptions struct {
 	Message        string
 	AttachFlags    []string
 	OutputDir      string
@@ -21,15 +21,15 @@ type draftSkillOptions struct {
 	Verbose        bool
 }
 
-// executeDraftSkill handles the draft skill command by invoking the skill-creator agent.
+// executeDraftAgent handles the draft agent command by invoking the agent-creator agent.
 //
 // This is a convenience wrapper that:
-// 1. Resolves the skill-creator agent from the active org (created by bootstrap)
+// 1. Resolves the agent-creator agent from the active org (created by bootstrap)
 // 2. Processes any attached files as context for the agent
 // 3. Creates an agent execution with the user's message
 // 4. Streams execution in real-time (handling approvals inline)
-// 5. Downloads the generated skill artifacts on completion
-func executeDraftSkill(opts draftSkillOptions) error {
+// 5. Downloads the generated agent YAML on completion
+func executeDraftAgent(opts draftAgentOptions) error {
 	// 1. Parse --approve-default flag (if set)
 	var defaultAction approval.Action
 	if opts.ApproveDefault != "" {
@@ -47,12 +47,12 @@ func executeDraftSkill(opts draftSkillOptions) error {
 	}
 	defer conn.Close()
 
-	// 3. Resolve skill-creator agent (system agent created by bootstrap).
-	agentRef := orgID + "/" + skillCreatorAgentName
+	// 3. Resolve agent-creator agent (system agent created by bootstrap).
+	agentRef := orgID + "/" + agentCreatorAgentName
 	agent, err := resolveAgent(agentRef, orgID, conn)
 	if err != nil {
-		displaySkillCreatorNotFoundError()
-		return errors.Wrap(err, "skill-creator agent not found")
+		displayAgentCreatorNotFoundError()
+		return errors.Wrap(err, "agent-creator agent not found")
 	}
 
 	cliprint.PrintInfo("Using system agent: %s", agent.Metadata.Name)
@@ -103,11 +103,11 @@ func executeDraftSkill(opts draftSkillOptions) error {
 	// 7. Download artifacts (draft commands always download).
 	if len(exec.Status.Artifacts) > 0 {
 		if err := downloadArtifacts(exec, opts.OutputDir, conn); err != nil {
-			return errors.Wrap(err, "failed to download skill artifacts")
+			return errors.Wrap(err, "failed to download agent artifacts")
 		}
-		cliprint.PrintSuccess("Skill saved to: %s", opts.OutputDir)
+		cliprint.PrintSuccess("Agent YAML saved to: %s", opts.OutputDir)
 	} else {
-		cliprint.PrintWarning("No skill artifacts were generated")
+		cliprint.PrintWarning("No agent artifacts were generated")
 		cliprint.PrintInfo("The agent may not have published any files. Check session logs with:")
 		cliprint.PrintInfo("  stigmer run %s", sessionID)
 	}
@@ -115,9 +115,9 @@ func executeDraftSkill(opts draftSkillOptions) error {
 	return nil
 }
 
-// displaySkillCreatorNotFoundError shows a helpful error when the skill-creator agent is missing.
-func displaySkillCreatorNotFoundError() {
-	cliprint.PrintError("skill-creator agent not found")
+// displayAgentCreatorNotFoundError shows a helpful error when the agent-creator agent is missing.
+func displayAgentCreatorNotFoundError() {
+	cliprint.PrintError("agent-creator agent not found")
 	cliprint.PrintInfo("")
 	cliprint.PrintInfo("This system agent is created during server bootstrap.")
 	cliprint.PrintInfo("Ensure the server has completed bootstrap successfully.")

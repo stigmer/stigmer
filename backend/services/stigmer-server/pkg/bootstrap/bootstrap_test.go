@@ -136,11 +136,11 @@ func TestBootstrapper_Run_Success(t *testing.T) {
 		assert.Equal(t, "system", call.GetTag())
 	}
 
-	// Verify agents were applied (seedpack has agent-creator-agent and skill-creator-agent, sorted alphabetically)
+	// Verify agents were applied (seedpack has agent-creator and skill-creator, sorted alphabetically)
 	assert.Len(t, agentClient.ApplyCalls, 2)
-	assert.Equal(t, "agent-creator-agent", agentClient.ApplyCalls[0].GetMetadata().GetName())
+	assert.Equal(t, "agent-creator", agentClient.ApplyCalls[0].GetMetadata().GetName())
 	assert.Equal(t, "local", agentClient.ApplyCalls[0].GetMetadata().GetOrg())
-	assert.Equal(t, "skill-creator-agent", agentClient.ApplyCalls[1].GetMetadata().GetName())
+	assert.Equal(t, "skill-creator", agentClient.ApplyCalls[1].GetMetadata().GetName())
 	assert.Equal(t, "local", agentClient.ApplyCalls[1].GetMetadata().GetOrg())
 
 	// Verify MCP server was applied (seedpack has stigmer-mcp-server)
@@ -161,13 +161,13 @@ func TestBootstrapper_Run_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, skillState, KeyAppliedPrefix)
 
-	agentCreatorState, err := store.GetBootstrapState(ctx, KeyAgentPrefix+"agent-creator-agent")
+	agentCreatorState, err := store.GetBootstrapState(ctx, KeyAgentPrefix+"agent-creator")
 	require.NoError(t, err)
 	assert.Contains(t, agentCreatorState, KeyAppliedPrefix)
 
-	agentState, err := store.GetBootstrapState(ctx, KeyAgentPrefix+"skill-creator-agent")
+	skillCreatorAgentState, err := store.GetBootstrapState(ctx, KeyAgentPrefix+"skill-creator")
 	require.NoError(t, err)
-	assert.Contains(t, agentState, KeyAppliedPrefix)
+	assert.Contains(t, skillCreatorAgentState, KeyAppliedPrefix)
 
 	mcpServerState, err := store.GetBootstrapState(ctx, KeyMcpServerPrefix+"stigmer-mcp-server")
 	require.NoError(t, err)
