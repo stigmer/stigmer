@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/pkg/errors"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
+	"github.com/stigmer/stigmer/backend/libs/go/mcpdiscovery"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -18,6 +18,11 @@ type DiscoverOptions struct {
 	Ref     string
 	Timeout time.Duration
 	DryRun  bool
+
+	// EnvOverrides supplies KEY=VALUE pairs merged on top of os.Environ()
+	// for stdio transports. Used to inject resolved credentials (e.g.
+	// STIGMER_SERVER_ADDRESS) that aren't set in the current shell.
+	EnvOverrides []string
 }
 
 // DiscoverResult holds the outcome of a discovery run.
@@ -41,7 +46,7 @@ func Discover(ctx context.Context, opts *DiscoverOptions) (*DiscoverResult, erro
 		return nil, err
 	}
 
-	capabilities, err := discoverCapabilities(ctx, server)
+	capabilities, err := discoverCapabilities(ctx, server, opts.EnvOverrides)
 	if err != nil {
 		return nil, err
 	}
@@ -62,65 +67,36 @@ func Discover(ctx context.Context, opts *DiscoverOptions) (*DiscoverResult, erro
 	return result, nil
 }
 
-// discoverCapabilities spawns/connects to the MCP server and lists its tools
-// and resource templates.
-func discoverCapabilities(ctx context.Context, server *mcpserverv1.McpServer) (*mcpserverv1.DiscoveredCapabilities, error) {
-	transport, err := createTransport(server.Spec)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create MCP transport")
+// DiscoverServer connects to an already-fetched MCP server, discovers its
+// capabilities, and pushes the results. This is used by the bootstrap
+// auto-discovery flow which already has the McpServer proto in hand.
+func DiscoverServer(ctx context.Context, conn grpc.ClientConnInterface, server *mcpserverv1.McpServer, envOverrides []string, timeout time.Duration) error {
+	if timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, timeout)
+		defer cancel()
 	}
 
-	client := mcp.NewClient(
-		&mcp.Implementation{Name: "stigmer-cli", Version: "1.0.0"},
-		nil,
-	)
-
-	session, err := client.Connect(ctx, transport, nil)
+	capabilities, err := discoverCapabilities(ctx, server, envOverrides)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to connect to MCP server '%s'", server.Metadata.Name)
-	}
-	defer session.Close()
-
-	tools, err := listAllTools(ctx, session)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to list tools")
+		return err
 	}
 
-	templates, err := listAllResourceTemplates(ctx, session)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to list resource templates")
-	}
-
-	return &mcpserverv1.DiscoveredCapabilities{
-		Tools:             convertTools(tools),
-		ResourceTemplates: convertResourceTemplates(templates),
-		LastDiscoveredAt:  timestamppb.Now(),
-		DiscoveredBy:      mcpserverv1.DiscoverySource_cli,
-	}, nil
+	_, err = pushCapabilities(ctx, conn, server.Metadata.Id, capabilities)
+	return err
 }
 
-// listAllTools collects all tools across paginated responses.
-func listAllTools(ctx context.Context, session *mcp.ClientSession) ([]*mcp.Tool, error) {
-	var all []*mcp.Tool
-	for tool, err := range session.Tools(ctx, nil) {
-		if err != nil {
-			return nil, err
-		}
-		all = append(all, tool)
+// discoverCapabilities delegates to the shared mcpdiscovery library.
+func discoverCapabilities(ctx context.Context, server *mcpserverv1.McpServer, envOverrides []string) (*mcpserverv1.DiscoveredCapabilities, error) {
+	caps, err := mcpdiscovery.Discover(ctx, server.Spec, envOverrides, mcpserverv1.DiscoverySource_cli)
+	if err != nil {
+		return nil, errors.Wrapf(err, "discovery failed for MCP server '%s'", server.Metadata.Name)
 	}
-	return all, nil
-}
 
-// listAllResourceTemplates collects all resource templates across paginated responses.
-func listAllResourceTemplates(ctx context.Context, session *mcp.ClientSession) ([]*mcp.ResourceTemplate, error) {
-	var all []*mcp.ResourceTemplate
-	for tmpl, err := range session.ResourceTemplates(ctx, nil) {
-		if err != nil {
-			return nil, err
-		}
-		all = append(all, tmpl)
-	}
-	return all, nil
+	// Stamp with current time (shared library already does this, but
+	// normalise to the caller's clock just in case).
+	caps.LastDiscoveredAt = timestamppb.Now()
+	return caps, nil
 }
 
 // pushCapabilities sends the discovered capabilities to stigmer-server.
