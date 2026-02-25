@@ -223,6 +223,67 @@ func TestEmitSubAgentMessageEvents_EmptyAIMessage_Skipped(t *testing.T) {
 }
 
 // =============================================================================
+// emitSubAgentEvents -- SubAgentStartedEvent Tests
+// =============================================================================
+
+func TestEmitSubAgentEvents_EmitsSubAgentStartedEvent(t *testing.T) {
+	events := make(chan executiontui.Event, 16)
+	trackers := make(map[string]*subAgentTracker)
+
+	subAgents := []*agentexecutionv1.SubAgentExecution{
+		{Id: "sa-1", Name: "researcher"},
+	}
+
+	emitSubAgentEvents(events, subAgents, trackers)
+
+	evt := <-events
+	started, ok := evt.(executiontui.SubAgentStartedEvent)
+	if !ok {
+		t.Fatalf("expected SubAgentStartedEvent, got %T", evt)
+	}
+	if started.ID != "sa-1" {
+		t.Errorf("ID = %q, want %q", started.ID, "sa-1")
+	}
+	if started.Name != "researcher" {
+		t.Errorf("Name = %q, want %q", started.Name, "researcher")
+	}
+}
+
+func TestEmitSubAgentEvents_NoStartedEventOnSubsequentCalls(t *testing.T) {
+	events := make(chan executiontui.Event, 16)
+	trackers := make(map[string]*subAgentTracker)
+
+	subAgents := []*agentexecutionv1.SubAgentExecution{
+		{Id: "sa-1", Name: "researcher"},
+	}
+
+	// First call — emits SubAgentStartedEvent.
+	trackers = emitSubAgentEvents(events, subAgents, trackers)
+
+	// Drain the started event.
+	<-events
+
+	// Drain any remaining buffered events from the first call.
+	for len(events) > 0 {
+		<-events
+	}
+
+	// Second call with the same sub-agent — should NOT emit another started event.
+	emitSubAgentEvents(events, subAgents, trackers)
+
+	for {
+		select {
+		case evt := <-events:
+			if _, ok := evt.(executiontui.SubAgentStartedEvent); ok {
+				t.Fatal("should not emit SubAgentStartedEvent on subsequent calls for known sub-agent")
+			}
+		default:
+			return
+		}
+	}
+}
+
+// =============================================================================
 // emitToolCallStateEvents with subAgentID Tests
 // =============================================================================
 

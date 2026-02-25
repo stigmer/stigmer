@@ -206,6 +206,20 @@ type TodoUpdateEvent struct {
 
 func (TodoUpdateEvent) isEvent() {}
 
+// SubAgentStartedEvent signals that a new sub-agent execution has been
+// detected in the stream. Emitted once per sub-agent when the bridge layer
+// first encounters it, before any tool/message events from that sub-agent.
+// The TUI stores the name in a lookup map so it can render context separator
+// lines when the active agent changes.
+type SubAgentStartedEvent struct {
+	// ID is the unique identifier for this sub-agent execution.
+	ID string
+	// Name is the human-readable sub-agent type (e.g., "researcher", "code_editor").
+	Name string
+}
+
+func (SubAgentStartedEvent) isEvent() {}
+
 // ApprovalResponse carries the user's approval decision back to the gRPC
 // goroutine. Action is one of "approve", "skip", "reject". Comment is an
 // optional reason (currently unused; reserved for future rejection reasons).
