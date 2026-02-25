@@ -14,8 +14,8 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: 2026-02-25 — Completed Phase 1 + Phase 3 (RPC handlers in Go and Java)
-- **Active Task**: Phase 4 next (CLI discovery command)
+- **Last Session**: 2026-02-25 — Completed Phase 4 (CLI discovery command)
+- **Active Task**: Phase 5 next (Bootstrap integration)
 
 ## Session Progress (2026-02-25)
 
@@ -48,6 +48,25 @@ Drop this file into your conversation to quickly resume work on this project.
 
 Original plan was static tool lists in seedpack YAML. Decision changed: tools will be discovered dynamically via CLI command (`stigmer discover mcp-server`), not hardcoded. Seedpack YAML stays lean (transport config only). Bootstrap wiring will call CLI discovery after MCP servers are applied.
 
+### Phase 4: CLI Discovery Command — COMPLETE
+
+**New command**: `stigmer discover mcp-server <ref> [--org <org>] [--timeout 30s] [--dry-run]`
+
+**Files created (5 new files in `internal/cli/mcpserver/`):**
+- `discover_transport.go` — Transport factory: stdio (`CommandTransport` with env passthrough) and HTTP (`StreamableClientTransport` with header injection)
+- `discover_convert.go` — Type conversion: `mcp.Tool` → `DiscoveredTool`, `mcp.ResourceTemplate` → `DiscoveredResourceTemplate`, including `InputSchema` (any → structpb.Struct)
+- `discover.go` — Orchestration: fetch server → create transport → connect MCP client → iterate tools/templates with pagination → convert → push via `updateDiscoveredCapabilities` RPC
+- `discover_display.go` — Terminal output: server name, transport type, tools list, resource templates list, push confirmation
+- `discover.go` (cmd) — Thin Cobra command in `cmd/stigmer/root/` with `--org`, `--timeout`, `--dry-run` flags
+
+**Wiring:**
+- `root.go` — Registered `NewDiscoverCommand()` in "resource" group
+- `MODULE.bazel` — Added `com_github_modelcontextprotocol_go_sdk` to `use_repo`
+- `cli/go.mod` — Promoted MCP SDK from indirect to direct dependency
+- BUILD.bazel files updated for both packages
+
+**Verification**: `go build ./...`, `go vet`, and `bazel build` all pass.
+
 ### Design Decisions Made
 
 1. **`discovered_capabilities` lives in `McpServerStatus`** — Status tracks structural validation + discovered capabilities.
@@ -62,17 +81,15 @@ Original plan was static tool lists in seedpack YAML. Decision changed: tools wi
 
 6. **Custom pipeline steps for Go handler** — `UpdateDiscoveredCapabilitiesInput` doesn't fit standard `LoadTargetStep` (uses `mcp_server_id` not `value`), so custom load/persist steps were needed.
 
+7. **`discover` as a top-level verb** — Follows the existing `verb type name` CLI pattern (like `get`, `list`). Parent command with `mcp-server` subcommand for extensibility.
+
+8. **Both stdio and HTTP transport** — Stdio uses `CommandTransport` (inherits env vars for credential safety). HTTP uses `StreamableClientTransport` with custom RoundTripper for header injection.
+
+9. **Iterator-based pagination** — Uses `session.Tools()` and `session.ResourceTemplates()` iterators from the MCP SDK for automatic pagination handling.
+
 ## Next Steps
 
-### Phase 4: CLI Discovery Command
-
-1. Add `stigmer discover mcp-server <org/name>` command
-2. Use Go MCP SDK (`v1.3.0`, already indirect dep in `cli/go.mod`) to connect via stdio
-3. Call `tools/list` and `resources/templates/list` on the MCP server
-4. Convert MCP SDK types to proto types (`DiscoveredTool`, `DiscoveredResourceTemplate`)
-5. Push results via `updateDiscoveredCapabilities` RPC
-
-### Phase 5: Bootstrap Integration (after CLI)
+### Phase 5: Bootstrap Integration
 
 1. After bootstrap applies MCP servers from seedpack, run discovery via CLI
 2. For each MCP server with stdio config, spawn process, discover, update capabilities
@@ -84,7 +101,8 @@ Original plan was static tool lists in seedpack YAML. Decision changed: tools wi
 - Go RPC handler is fully implemented and compiles — ready to receive calls from CLI
 - Java RPC handler is fully implemented with FGA authorization — ready for cloud deployment
 - Go downstream client has `UpdateDiscoveredCapabilities` method — ready for bootstrap wiring
-- Go MCP SDK (`github.com/modelcontextprotocol/go-sdk v1.3.0`) is already an indirect dependency in `cli/go.mod`
+- CLI `discover` command is fully implemented with stdio + HTTP support, pagination, dry-run, and timeout
+- MCP SDK (`v1.3.0`) is now a direct dependency of the CLI module
 - The seedpack YAML for `stigmer-mcp-server` stays as-is (just transport config, no static tool list)
 
 ## Essential Files
@@ -102,9 +120,16 @@ Original plan was static tool lists in seedpack YAML. Decision changed: tools wi
 - `backend/services/stigmer-service/.../McpServerUpdateDiscoveredCapabilitiesHandler.java` — handler with FGA
 - `backend/services/stigmer-service/.../McpServerGrpcAutoController.java` — auto-controller reference
 
-### Key reference files for next phases
+### CLI discover command (Phase 4 output)
+- `client-apps/cli/cmd/stigmer/root/discover.go` — Cobra command definition
+- `client-apps/cli/internal/cli/mcpserver/discover.go` — orchestration
+- `client-apps/cli/internal/cli/mcpserver/discover_transport.go` — transport factory
+- `client-apps/cli/internal/cli/mcpserver/discover_convert.go` — type conversion
+- `client-apps/cli/internal/cli/mcpserver/discover_display.go` — terminal display
+
+### Key reference files for next phase
+- `client-apps/cli/internal/cli/bootstrap/` — Bootstrap flow that applies seedpack resources
 - `mcp-server/internal/server/server.go` — the 12 tools and 5 resource templates to discover
-- `client-apps/cli/cmd/stigmer/root/` — CLI command directory
 
 ### Project documentation
 - `_projects/2026-02/20260225.02.mcp-tool-discovery/tasks/T01_0_plan.md` — Full implementation plan
@@ -112,7 +137,7 @@ Original plan was static tool lists in seedpack YAML. Decision changed: tools wi
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 4" — Start CLI discovery command implementation
+- "Continue with Phase 5" — Start bootstrap integration
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 

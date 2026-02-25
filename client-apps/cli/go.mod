@@ -26,6 +26,7 @@ require (
 	github.com/charmbracelet/x/ansi v0.8.0
 	github.com/fatih/color v1.18.0
 	github.com/go-git/go-git/v5 v5.16.4
+	github.com/modelcontextprotocol/go-sdk v1.3.0
 	github.com/pkg/errors v0.9.1
 	github.com/rivo/uniseg v0.4.7
 	github.com/rs/zerolog v1.34.0
@@ -122,7 +123,6 @@ require (
 	github.com/mattn/go-localereader v0.0.1 // indirect
 	github.com/mattn/go-runewidth v0.0.19 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.27 // indirect
-	github.com/modelcontextprotocol/go-sdk v1.3.0 // indirect
 	github.com/mrsimonemms/golang-helpers v0.4.1 // indirect
 	github.com/mrsimonemms/temporal-codec-server/packages/golang v0.0.0-20250917111850-1e5f24c60fac // indirect
 	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
