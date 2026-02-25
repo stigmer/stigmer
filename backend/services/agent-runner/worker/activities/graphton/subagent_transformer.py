@@ -336,6 +336,24 @@ async def _transform_single_subagent(
                 log.error(f"Failed to create MCP tools for sub-agent '{name}': {e}")
                 # Continue without MCP tools - graceful degradation
     
+    # Append response rules so sub-agents don't echo raw file contents.
+    # The sub-agent's final message becomes the parent's tool result — if it
+    # dumps file contents verbatim, it wastes tokens on both sides (sub-agent
+    # output + parent input) and the parent already has direct file access.
+    system_prompt += (
+        "\n\n## Response rules\n\n"
+        "- After using the read tool, NEVER reprint, echo, list, or "
+        "summarize file contents in your response. Tool results are "
+        "already in your context. Proceed directly to the task.\n"
+        "- Your response is returned to the parent agent as a task "
+        "result. Return concise findings and actionable results — not "
+        "raw file contents. The parent agent has direct access to the "
+        "same files.\n"
+        "- Do not begin responses with phrases like "
+        '"Below is the complete content", '
+        '"Here are the contents of the files", or similar.\n'
+    )
+
     # Build the subagent dict in graphton format
     subagent_dict: dict[str, Any] = {
         "name": name,
