@@ -57,6 +57,7 @@ func main() {
 	defer cancel()
 
 	if err := mcpserver.Run(ctx, cfg); err != nil {
+		fmt.Fprintf(os.Stderr, "fatal: %v\n", err)
 		os.Exit(1)
 	}
 }
