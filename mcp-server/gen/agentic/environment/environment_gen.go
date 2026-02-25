@@ -14,32 +14,32 @@ import (
 //	Created before AgentInstance or WorkflowInstance, referenced during instance creation.
 type EnvironmentInput struct {
 	// Human-readable name of the resource.
-	Name string `json:"name" jsonschema:"required,description=Human-readable name of the resource."`
+	Name string `json:"name" jsonschema:"Human-readable name of the resource."`
 	// URL-friendly identifier (lowercase alphanumeric with hyphens). Auto-generated from name if omitted.
-	Slug string `json:"slug,omitempty" jsonschema:"description=URL-friendly identifier (lowercase alphanumeric with hyphens). Auto-generated from name if omitted."`
+	Slug string `json:"slug,omitempty" jsonschema:"URL-friendly identifier (lowercase alphanumeric with hyphens). Auto-generated from name if omitted."`
 	// Organization that owns this resource (e.g. acme).
-	Org string `json:"org" jsonschema:"required,description=Organization that owns this resource (e.g. acme)."`
+	Org string `json:"org" jsonschema:"Organization that owns this resource (e.g. acme)."`
 	// Resource visibility: PRIVATE (default) or PUBLIC.
-	Visibility string `json:"visibility,omitempty" jsonschema:"description=Resource visibility: PRIVATE (default) or PUBLIC."`
+	Visibility string `json:"visibility,omitempty" jsonschema:"Resource visibility: PRIVATE (default) or PUBLIC."`
 	// Key-value labels for organization and filtering.
-	Labels map[string]string `json:"labels,omitempty" jsonschema:"description=Key-value labels for organization and filtering."`
+	Labels map[string]string `json:"labels,omitempty" jsonschema:"Key-value labels for organization and filtering."`
 	// Tags for categorization and discovery.
-	Tags []string `json:"tags,omitempty" jsonschema:"description=Tags for categorization and discovery."`
+	Tags []string `json:"tags,omitempty" jsonschema:"Tags for categorization and discovery."`
 
 	// Human-readable description of this environment. Example: "Production AWS credentials for deployment"
-	Description string `json:"description,omitempty" jsonschema:"description=Human-readable description of this environment. Example: 'Production AWS credentials for deployment'"`
+	Description string `json:"description,omitempty" jsonschema:"Human-readable description of this environment. Example: 'Production AWS credentials for deployment'"`
 	// Key-value pairs containing both configuration and secrets. Each value includes a flag indicating whether it's a secret. Example: {"AWS_REGION": {value: "us-west-2", is_secret: false}, "AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
-	Data map[string]*EnvironmentValue `json:"data,omitempty" jsonschema:"description=Key-value pairs containing both configuration and secrets. Each value includes a flag indicating whether it's a secret. Example: {'AWS_REGION': {value: 'us-west-2'\, is_secret: false}\, 'AWS_ACCESS_KEY_ID': {value: 'AKIA...'\, is_secret: true}}"`
+	Data map[string]*EnvironmentValue `json:"data,omitempty" jsonschema:"Key-value pairs containing both configuration and secrets. Each value includes a flag indicating whether it's a secret. Example: {'AWS_REGION': {value: 'us-west-2', is_secret: false}, 'AWS_ACCESS_KEY_ID': {value: 'AKIA...', is_secret: true}}"`
 }
 
 // EnvironmentValue represents a single configuration or secret value.
 type EnvironmentValue struct {
 	// The actual value. - If is_secret=true: This value is encrypted at rest and redacted in logs - If is_secret=false: This value is stored as plaintext Note: Value can be empty when defining environment variables in specs. Actual values are typically provided at runtime during execution.
-	Value string `json:"value,omitempty" jsonschema:"description=The actual value. - If is_secret=true: This value is encrypted at rest and redacted in logs - If is_secret=false: This value is stored as plaintext Note: Value can be empty when defining environment variables in specs. Actual values are typically provided at runtime during execution."`
+	Value string `json:"value,omitempty" jsonschema:"The actual value. - If is_secret=true: This value is encrypted at rest and redacted in logs - If is_secret=false: This value is stored as plaintext Note: Value can be empty when defining environment variables in specs. Actual values are typically provided at runtime during execution."`
 	// Whether this value should be treated as a secret. When true: - Value is encrypted at rest - Value is redacted in logs - Value requires special permissions to read When false: - Value is stored as plaintext - Value is visible in audit logs
-	IsSecret bool `json:"is_secret,omitempty" jsonschema:"description=Whether this value should be treated as a secret. When true: - Value is encrypted at rest - Value is redacted in logs - Value requires special permissions to read When false: - Value is stored as plaintext - Value is visible in audit logs"`
+	IsSecret bool `json:"is_secret,omitempty" jsonschema:"Whether this value should be treated as a secret. When true: - Value is encrypted at rest - Value is redacted in logs - Value requires special permissions to read When false: - Value is stored as plaintext - Value is visible in audit logs"`
 	// Optional description for documentation. Example: "AWS access key for S3 bucket access"
-	Description string `json:"description,omitempty" jsonschema:"description=Optional description for documentation. Example: 'AWS access key for S3 bucket access'"`
+	Description string `json:"description,omitempty" jsonschema:"Optional description for documentation. Example: 'AWS access key for S3 bucket access'"`
 }
 
 // ToProto converts the flat MCP input into a fully-formed Environment proto message.

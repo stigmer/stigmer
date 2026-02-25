@@ -524,6 +524,10 @@ class Config:
             )
         
         if self.mode == "local":
+            if self.sandbox_root_dir is None:
+                raise RuntimeError(
+                    "sandbox_root_dir must be configured in local mode"
+                )
             root_dir = self.sandbox_root_dir
             if session_id:
                 root_dir = str(Path(self.sandbox_root_dir) / "sessions" / session_id)

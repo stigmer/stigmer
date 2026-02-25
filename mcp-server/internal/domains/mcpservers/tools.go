@@ -13,8 +13,8 @@ import (
 
 // GetMcpServerInput defines the parameters for the "get_mcp_server" tool.
 type GetMcpServerInput struct {
-	Org  string `json:"org"  jsonschema:"required,description=Organization slug that owns the MCP server (e.g. acme)."`
-	Slug string `json:"slug" jsonschema:"required,description=MCP server slug — the unique identifier within the org (e.g. my-server)."`
+	Org  string `json:"org"  jsonschema:"Organization slug that owns the MCP server (e.g. acme)."`
+	Slug string `json:"slug" jsonschema:"MCP server slug — the unique identifier within the org (e.g. my-server)."`
 }
 
 // Tool returns the MCP tool definition for registration.
@@ -63,8 +63,8 @@ func ApplyHandler(serverAddress string) func(context.Context, *mcp.CallToolReque
 
 // DeleteMcpServerInput defines the parameters for the "delete_mcp_server" tool.
 type DeleteMcpServerInput struct {
-	Org  string `json:"org"  jsonschema:"required,description=Organization slug that owns the MCP server (e.g. acme)."`
-	Slug string `json:"slug" jsonschema:"required,description=MCP server slug — the unique identifier within the org (e.g. github)."`
+	Org  string `json:"org"  jsonschema:"Organization slug that owns the MCP server (e.g. acme)."`
+	Slug string `json:"slug" jsonschema:"MCP server slug — the unique identifier within the org (e.g. github)."`
 }
 
 // DeleteTool returns the MCP tool definition for the delete_mcp_server tool.

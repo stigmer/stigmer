@@ -1484,8 +1484,8 @@ class StatusBuilder:
                 existing.approval_requested_at = _utc_timestamp(datetime.utcnow())
 
             self._run_id_aliases[run_id] = temp_id
-            self._tool_start_times[run_id] = (
-                self._tool_start_times.pop(temp_id, None) or datetime.utcnow()
+            self._tool_start_times[run_id] = self._tool_start_times.pop(
+                temp_id, datetime.utcnow()
             )
 
             fingerprint = self._get_tool_fingerprint(tool_name, tool_args)

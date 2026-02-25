@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
@@ -44,6 +45,10 @@ func createStdioTransport(cfg *mcpserverv1.StdioServerConfig, envOverrides []str
 		return nil, fmt.Errorf("stdio transport requires a command")
 	}
 
+	if goEnv := goRunEnvOverrides(cfg); len(goEnv) > 0 {
+		envOverrides = append(envOverrides, goEnv...)
+	}
+
 	cmd := exec.Command(cfg.Command, cfg.Args...)
 	cmd.Env = mergeEnv(os.Environ(), envOverrides)
 	cmd.Stderr = os.Stderr
@@ -53,6 +58,48 @@ func createStdioTransport(cfg *mcpserverv1.StdioServerConfig, envOverrides []str
 	}
 
 	return &mcp.CommandTransport{Command: cmd}, nil
+}
+
+// goRunEnvOverrides returns Go-toolchain environment overrides needed when the
+// stdio command is "go run <module>@<version>". Specifically, it sets
+// GONOSUMDB for the module's domain so that newly tagged versions are usable
+// immediately, without waiting for sum.golang.org to index the tag.
+//
+// This is safe because the MCP server binary being run is specified by the
+// platform operator (seedpack YAML or user config), not by untrusted input.
+func goRunEnvOverrides(cfg *mcpserverv1.StdioServerConfig) []string {
+	if cfg.Command != "go" {
+		return nil
+	}
+	if len(cfg.Args) < 2 || cfg.Args[0] != "run" {
+		return nil
+	}
+
+	pkg := cfg.Args[1]
+	if i := strings.IndexByte(pkg, '@'); i > 0 {
+		pkg = pkg[:i]
+	}
+
+	prefix := modulePrefix(pkg)
+	if prefix == "" {
+		return nil
+	}
+
+	return []string{
+		fmt.Sprintf("GONOSUMDB=%s", prefix),
+		fmt.Sprintf("GONOSUMCHECK=%s", prefix),
+	}
+}
+
+// modulePrefix extracts a "host/org/repo/*" prefix from a Go package path.
+// For "github.com/stigmer/stigmer/mcp-server/cmd/..." it returns
+// "github.com/stigmer/stigmer/*".
+func modulePrefix(pkg string) string {
+	parts := strings.SplitN(pkg, "/", 4)
+	if len(parts) < 3 {
+		return ""
+	}
+	return parts[0] + "/" + parts[1] + "/" + parts[2] + "/*"
 }
 
 // createHTTPTransport builds a StreamableClientTransport for HTTP-based MCP

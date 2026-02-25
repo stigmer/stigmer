@@ -18,9 +18,9 @@ import (
 
 // GetSkillInput defines the parameters for the "get_skill" tool.
 type GetSkillInput struct {
-	Org     string `json:"org"              jsonschema:"required,description=Organization slug that owns the skill."`
-	Slug    string `json:"slug"             jsonschema:"required,description=Skill slug — unique identifier within the org."`
-	Version string `json:"version,omitempty" jsonschema:"description=Version to retrieve: tag name (e.g. stable) or SHA-256 hash. Omit for latest."`
+	Org     string `json:"org"              jsonschema:"Organization slug that owns the skill."`
+	Slug    string `json:"slug"             jsonschema:"Skill slug — unique identifier within the org."`
+	Version string `json:"version,omitempty" jsonschema:"Version to retrieve: tag name (e.g. stable) or SHA-256 hash. Omit for latest."`
 }
 
 // Tool returns the MCP tool definition for registration.
@@ -48,8 +48,8 @@ func Handler(serverAddress string) func(context.Context, *mcp.CallToolRequest, *
 
 // DeleteSkillInput defines the parameters for the "delete_skill" tool.
 type DeleteSkillInput struct {
-	Org  string `json:"org"  jsonschema:"required,description=Organization slug that owns the skill (e.g. stigmer)."`
-	Slug string `json:"slug" jsonschema:"required,description=Skill slug — the unique identifier within the org (e.g. code-review-best-practices). Deletes the skill and all its versions."`
+	Org  string `json:"org"  jsonschema:"Organization slug that owns the skill (e.g. stigmer)."`
+	Slug string `json:"slug" jsonschema:"Skill slug — the unique identifier within the org (e.g. code-review-best-practices). Deletes the skill and all its versions."`
 }
 
 // DeleteTool returns the MCP tool definition for the delete_skill tool.
