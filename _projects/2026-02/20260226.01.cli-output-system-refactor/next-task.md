@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-26 02:27
-**Current Task**: Phase 2 (Fix Critical Bug - Delete Confirmation)
-**Status**: In Progress - Phase 1 Complete
+**Current Task**: Phase 3 (Migrate All Commands)
+**Status**: In Progress - Phase 1 and Phase 2 Complete
 
 ## Session Progress (2026-02-26)
 
@@ -85,14 +85,29 @@ When starting a new session:
 - **BUILD.bazel** (34 lines): Bazel targets following repo conventions
 - 38 tests passing, zero linter errors, `go build` and `go vet` clean
 
+### Completed: Phase 2 - Fix Critical Delete Confirmation Bug
+
+- Fixed the critical bug where `stigmer delete` proceeded without confirmation
+- Introduced `deleteContext` struct to bundle handler dependencies (ref, orgID, force, confirmer, conn)
+- Refactored `routeDelete` and all 5 resource handler signatures from flat parameters to `*deleteContext`
+- Wired `clioutput.Confirmer.Confirm()` into all 6 delete paths:
+  - `deleteAgent`, `deleteWorkflow`, `deleteMcpServer`, `deleteProject`, `deleteSkill` via `deleteContext`
+  - `executeCancelExecution` via inline `NewInteractiveConfirmer`
+- Removed `cliprint.PrintInfo("Use --force to skip this confirmation")` hints (documented in `--help` already)
+- Non-TTY stdin now safely aborts (InteractiveConfirmer returns false when piped)
+- `go build`, `go vet`, all tests passing, zero new linter errors
+
 ### Key Design Decisions
 
 1. **`[]*Section` not `[]Section`**: Prevents dangling pointer bugs when slice grows on subsequent `AddSection()` calls
 2. **`InteractiveConfirmer` takes `*os.File`**: Required for `term.IsTerminal()` to check TTY status
 3. **Non-terminal stdin defaults to deny**: Safety-first - piped input aborts destructive ops, requires `--force`
 4. **Deferred Phase 1.2 and 1.3**: `Displayable` interface and `--output` flag moved to their respective phases to avoid speculative abstractions
+5. **Keep `DisplayDeleteConfirmation` as-is for Phase 2**: No migration to `CommandResult` yet -- avoids mixed output systems within a single command flow. Full migration in Phase 3.
+6. **`deleteContext` struct over parameter explosion**: Bundles 5 handler dependencies into one unexported struct, extensible for Phase 3 (`renderer` field)
+7. **Abort returns `nil` not error**: User choosing "N" at prompt is not a failure -- their intent was honored
 
-### Files Created
+### Files Created (Phase 1)
 
 ```
 client-apps/cli/pkg/clioutput/
@@ -110,35 +125,51 @@ client-apps/cli/pkg/clioutput/
 └── result_test.go
 ```
 
+### Files Modified (Phase 2)
+
+```
+client-apps/cli/cmd/stigmer/root/delete.go    (+99, -48)
+client-apps/cli/cmd/stigmer/root/BUILD.bazel   (+1)
+```
+
 ## Next Steps
 
-1. **Phase 2: Fix Critical Bug - Delete Confirmation** (Small effort)
-   - Replace fake `DisplayDeleteConfirmation()` with real `Confirmer.Confirm()` in `delete.go`
-   - Apply to all delete handlers: agent, workflow, mcpserver, project, skill, execution cancel
-   - This is the first integration of `clioutput` with existing code
-
-2. **Phase 3: Migrate All Commands** (Large effort)
+1. **Phase 3: Migrate All Commands** (Large effort)
    - Every command returns `CommandResult` and uses the renderer
    - No direct `fmt.Print` or `cliprint` calls
+   - Migrate `DisplayDeleteConfirmation` and `DisplayDeleteResult` to `CommandResult`
+   - Add `renderer` to `deleteContext` struct
 
-3. **Phase 4: Consolidate Display Files** (Medium effort)
+2. **Phase 4: Consolidate Display Files** (Medium effort)
    - Design `Displayable` interface based on actual migration patterns from Phase 3
    - Eliminate 8 duplicate `display.go` files
+
+3. **Phase 5: Cleanup & Polish** (Small effort)
+   - Remove deprecated `cliprint` functions
+   - Wire up `--output` flag end-to-end
+   - Final icon/vocabulary audit
+
+## Pre-Existing Concerns
+
+- **`delete.go` is 401 lines** (above 250-line guideline). When Phase 3 migrates displays to `CommandResult`, consider splitting into `delete.go` (command definition + orchestration) and `delete_handlers.go` (per-resource handlers).
 
 ## Context for Resume
 
 - The `clioutput` package is in `pkg/` (not `internal/`) - zero Stigmer-specific code, reusable
 - Renderers take both `stdout` and `stderr` writers: human writes to stderr, JSON data to stdout
-- The existing `cliprint` package remains untouched - migration happens in later phases
-- Plan file: `.cursor/plans/phase_1_clioutput_package_6a41844c.plan.md`
+- The existing `cliprint` package remains untouched - migration happens in Phase 3
+- `cliprint` is still imported in `delete.go` because `executeCancelExecution` uses it for inline display
+- Plan files: `.cursor/plans/phase_1_clioutput_package_6a41844c.plan.md`, `.cursor/plans/phase_2_delete_confirmation_bf3b2d04.plan.md`
 - Task plan: `_projects/2026-02/20260226.01.cli-output-system-refactor/tasks/T01_0_plan.md`
+- Branch: `feat/cli-output-system-foundation`
 
 ## Quick Commands
 
 After loading context:
-- "Start Phase 2" - Begin delete confirmation fix
+- "Start Phase 3" - Begin migrating all commands to CommandResult
 - "Show project status" - Get overview of progress
 - "Review Phase 1 code" - Check `client-apps/cli/pkg/clioutput/`
+- "Review Phase 2 code" - Check `client-apps/cli/cmd/stigmer/root/delete.go`
 - "Review guidelines" - Check established patterns
 
 ---
