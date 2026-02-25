@@ -118,26 +118,42 @@ func TestDiscoverManifest_AgentCreatorSkill(t *testing.T) {
 		skill.Path, skill.ContentDigest[:30])
 }
 
-func TestDiscoverManifest_AgentEntry(t *testing.T) {
-	agent, err := GetAgentByName("skill-creator-agent")
+func TestDiscoverManifest_SkillCreatorAgent(t *testing.T) {
+	agent, err := GetAgentByName("skill-creator")
 	if err != nil {
-		t.Fatalf("GetAgentByName('skill-creator-agent') failed: %v", err)
+		t.Fatalf("GetAgentByName('skill-creator') failed: %v", err)
 	}
 
 	if agent == nil {
-		t.Fatal("skill-creator-agent not discovered")
+		t.Fatal("skill-creator agent not discovered")
 	}
 
-	if agent.Path != "agents/skill-creator-agent.yaml" {
-		t.Errorf("Expected path 'agents/skill-creator-agent.yaml', got '%s'", agent.Path)
+	if agent.Path != "agents/skill-creator.yaml" {
+		t.Errorf("Expected path 'agents/skill-creator.yaml', got '%s'", agent.Path)
 	}
 
-	t.Logf("skill-creator-agent: name=%s, path=%s", agent.Name, agent.Path)
+	t.Logf("skill-creator: name=%s, path=%s", agent.Name, agent.Path)
 }
 
-func TestLoadAgentYAML(t *testing.T) {
-	// Load agent from YAML file
-	agent, err := LoadAgentYAML("agents/skill-creator-agent.yaml")
+func TestDiscoverManifest_AgentCreatorAgent(t *testing.T) {
+	agent, err := GetAgentByName("agent-creator")
+	if err != nil {
+		t.Fatalf("GetAgentByName('agent-creator') failed: %v", err)
+	}
+
+	if agent == nil {
+		t.Fatal("agent-creator agent not discovered")
+	}
+
+	if agent.Path != "agents/agent-creator.yaml" {
+		t.Errorf("Expected path 'agents/agent-creator.yaml', got '%s'", agent.Path)
+	}
+
+	t.Logf("agent-creator: name=%s, path=%s", agent.Name, agent.Path)
+}
+
+func TestLoadAgentYAML_SkillCreator(t *testing.T) {
+	agent, err := LoadAgentYAML("agents/skill-creator.yaml")
 	if err != nil {
 		t.Fatalf("LoadAgentYAML() failed: %v", err)
 	}
@@ -146,16 +162,14 @@ func TestLoadAgentYAML(t *testing.T) {
 		t.Fatal("Expected non-nil agent")
 	}
 
-	// Validate metadata
 	if agent.Metadata == nil {
 		t.Fatal("Expected non-nil metadata")
 	}
 
-	if agent.Metadata.Name != "skill-creator-agent" {
-		t.Errorf("Expected name 'skill-creator-agent', got '%s'", agent.Metadata.Name)
+	if agent.Metadata.Name != "skill-creator" {
+		t.Errorf("Expected name 'skill-creator', got '%s'", agent.Metadata.Name)
 	}
 
-	// Validate spec
 	if agent.Spec == nil {
 		t.Fatal("Expected non-nil spec")
 	}
@@ -172,7 +186,6 @@ func TestLoadAgentYAML(t *testing.T) {
 		t.Error("Expected at least one skill_ref")
 	}
 
-	// Verify skill-creator is referenced
 	found := false
 	for _, ref := range agent.Spec.SkillRefs {
 		if ref.Slug == "skill-creator" {
@@ -184,7 +197,56 @@ func TestLoadAgentYAML(t *testing.T) {
 		t.Error("Expected skill-creator in skill_refs")
 	}
 
-	t.Logf("skill-creator-agent: description=%s..., skill_refs=%d",
+	t.Logf("skill-creator: description=%s..., skill_refs=%d",
+		truncate(agent.Spec.Description, 50), len(agent.Spec.SkillRefs))
+}
+
+func TestLoadAgentYAML_AgentCreator(t *testing.T) {
+	agent, err := LoadAgentYAML("agents/agent-creator.yaml")
+	if err != nil {
+		t.Fatalf("LoadAgentYAML() failed: %v", err)
+	}
+
+	if agent == nil {
+		t.Fatal("Expected non-nil agent")
+	}
+
+	if agent.Metadata == nil {
+		t.Fatal("Expected non-nil metadata")
+	}
+
+	if agent.Metadata.Name != "agent-creator" {
+		t.Errorf("Expected name 'agent-creator', got '%s'", agent.Metadata.Name)
+	}
+
+	if agent.Spec == nil {
+		t.Fatal("Expected non-nil spec")
+	}
+
+	if agent.Spec.Description == "" {
+		t.Error("Expected non-empty description")
+	}
+
+	if agent.Spec.Instructions == "" {
+		t.Error("Expected non-empty instructions")
+	}
+
+	if len(agent.Spec.SkillRefs) == 0 {
+		t.Error("Expected at least one skill_ref")
+	}
+
+	found := false
+	for _, ref := range agent.Spec.SkillRefs {
+		if ref.Slug == "agent-creator" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("Expected agent-creator in skill_refs")
+	}
+
+	t.Logf("agent-creator: description=%s..., skill_refs=%d",
 		truncate(agent.Spec.Description, 50), len(agent.Spec.SkillRefs))
 }
 
@@ -427,18 +489,32 @@ func TestGetSkillByName(t *testing.T) {
 }
 
 func TestGetAgentByName(t *testing.T) {
-	// Test existing agent
-	agent, err := GetAgentByName("skill-creator-agent")
+	// Test existing agent (skill-creator)
+	agent, err := GetAgentByName("skill-creator")
 	if err != nil {
-		t.Fatalf("GetAgentByName('skill-creator-agent') failed: %v", err)
+		t.Fatalf("GetAgentByName('skill-creator') failed: %v", err)
 	}
 
 	if agent == nil {
-		t.Fatal("Expected to find skill-creator-agent")
+		t.Fatal("Expected to find skill-creator")
 	}
 
-	if agent.Name != "skill-creator-agent" {
-		t.Errorf("Expected name 'skill-creator-agent', got '%s'", agent.Name)
+	if agent.Name != "skill-creator" {
+		t.Errorf("Expected name 'skill-creator', got '%s'", agent.Name)
+	}
+
+	// Test existing agent (agent-creator)
+	agent2, err := GetAgentByName("agent-creator")
+	if err != nil {
+		t.Fatalf("GetAgentByName('agent-creator') failed: %v", err)
+	}
+
+	if agent2 == nil {
+		t.Fatal("Expected to find agent-creator")
+	}
+
+	if agent2.Name != "agent-creator" {
+		t.Errorf("Expected name 'agent-creator', got '%s'", agent2.Name)
 	}
 
 	// Test non-existing agent
@@ -577,7 +653,7 @@ func TestLoadMcpServerYAML(t *testing.T) {
 		t.Errorf("Expected command 'go', got '%s'", stdio.Command)
 	}
 
-	expectedArgs := []string{"run", "github.com/stigmer/stigmer/mcp-server/cmd/mcp-server-stigmer@v0.0.17"}
+	expectedArgs := []string{"run", "github.com/stigmer/stigmer/mcp-server/cmd/mcp-server-stigmer@v0.0.18"}
 	if len(stdio.Args) != len(expectedArgs) {
 		t.Errorf("Expected %d args, got %d: %v", len(expectedArgs), len(stdio.Args), stdio.Args)
 	} else {
