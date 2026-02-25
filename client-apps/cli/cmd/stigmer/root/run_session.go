@@ -59,7 +59,7 @@ func openSession(sessionID, orgID string, verbose bool, conn *grpc.ClientConn) e
 	latestExec := entries[0]
 	phase := latestExec.GetStatus().GetPhase()
 
-	subject := ses.GetSpec().GetSubject()
+	subject := session.ResolvedSubject(ses.GetSpec().GetSubject())
 	if subject != "" {
 		cliprint.PrintInfo("Session: %s (%s)", sessionID, subject)
 	} else {
@@ -112,6 +112,19 @@ func resumeSession(sessionID, sessionSubject, orgID string, executions []*agente
 	approvalResponses := make(chan executiontui.ApprovalResponse, 1)
 	go snapshotToEvents(chronological, events)
 
+	// When the session subject is not yet known, provide a fetch function so
+	// the TUI can update the header in-place once the backend generates a title.
+	var subjectFetchFn func() string
+	if sessionSubject == "" {
+		subjectFetchFn = func() string {
+			ses, err := session.GetFromBackend(conn, sessionID)
+			if err != nil {
+				return ""
+			}
+			return session.ResolvedSubject(ses.GetSpec().GetSubject())
+		}
+	}
+
 	model := executiontui.New(executiontui.Config{
 		SessionID:         sessionID,
 		SessionSubject:    sessionSubject,
@@ -119,6 +132,7 @@ func resumeSession(sessionID, sessionSubject, orgID string, executions []*agente
 		Events:            events,
 		ApprovalResponses: approvalResponses,
 		FollowUpFn:        followUpFn,
+		SubjectFetchFn:    subjectFetchFn,
 		Verbose:           verbose,
 	})
 

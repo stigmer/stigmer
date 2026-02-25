@@ -35,6 +35,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case activityTickMsg:
 		return m.handleActivityTick()
 
+	case subjectFetchedMsg:
+		return m.handleSubjectFetched(msg)
+
 	case spinner.TickMsg:
 		// Animate the spinner during the pending phase and when the
 		// thinking indicator is visible (idle during in_progress).
@@ -321,5 +324,30 @@ func (m Model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 	// indicator is included when active.
 	m.refreshViewport()
 
+	return m, nil
+}
+
+// handleSubjectFetched processes the result of a background session-subject
+// poll. When a real subject arrives it is written into the config so
+// renderHeader() picks it up on the next frame — no viewport refresh needed
+// because Bubbletea re-renders the full view on every state change.
+//
+// When the result is empty the backend has not yet replaced the sentinel;
+// the handler schedules the next retry if attempts remain and the execution
+// is still running. All retries are silently dropped once the execution
+// reaches a terminal phase.
+func (m Model) handleSubjectFetched(msg subjectFetchedMsg) (tea.Model, tea.Cmd) {
+	if msg.subject != "" {
+		m.cfg.SessionSubject = msg.subject
+		return m, nil
+	}
+	if m.done || m.cfg.SubjectFetchFn == nil {
+		return m, nil
+	}
+	if m.subjectFetchAttempt < len(subjectFetchBackoff) {
+		delay := subjectFetchBackoff[m.subjectFetchAttempt]
+		m.subjectFetchAttempt++
+		return m, scheduleSubjectFetch(delay, m.cfg.SubjectFetchFn)
+	}
 	return m, nil
 }

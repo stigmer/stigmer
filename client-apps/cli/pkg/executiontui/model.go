@@ -48,6 +48,17 @@ type Config struct {
 	// (pre-Phase 2 behavior).
 	FollowUpFn FollowUpFn
 
+	// SubjectFetchFn, when set, is called on a bounded backoff schedule to
+	// retrieve the current session subject from the backend. It returns an
+	// empty string while the subject has not yet been generated, and the
+	// resolved subject once available. The TUI updates the header in-place
+	// on the first non-empty result. Errors should be swallowed by the
+	// caller — return "" to trigger the next retry attempt.
+	//
+	// Only scheduled when the TUI starts without a known subject (i.e.,
+	// SessionSubject == ""). No-op for sessions that already have a title.
+	SubjectFetchFn func() string
+
 	// Verbose enables execution-level details in the TUI transcript.
 	// When true, phase transitions and execution IDs appear as system
 	// blocks in the viewport — useful for debugging multi-execution
@@ -204,6 +215,10 @@ type Model struct {
 	// a follow-up execution starts. The caller uses this after the TUI
 	// exits to fetch the final execution state from the correct execution.
 	latestExecutionID string
+
+	// subjectFetchAttempt counts completed background polls for the session
+	// subject. Used to advance through subjectFetchBackoff and cap retries.
+	subjectFetchAttempt int
 }
 
 // New creates a new execution TUI model with the given configuration.
@@ -253,11 +268,19 @@ func New(cfg Config) Model {
 // listener or activity tick is started. Resumable models start with input
 // active; replay models are fully read-only. In both cases, the model
 // waits for window size and then renders pre-populated blocks.
+//
+// When SubjectFetchFn is set and no subject is known yet, a background poll
+// is also scheduled. It fires after 3 s and retries with backoff up to three
+// times total, updating the header in-place on the first successful result.
 func (m Model) Init() tea.Cmd {
 	if m.activeEvents == nil {
 		return nil
 	}
-	return tea.Batch(listenForEvents(m.activeEvents), m.spinner.Tick, scheduleActivityTick())
+	cmds := []tea.Cmd{listenForEvents(m.activeEvents), m.spinner.Tick, scheduleActivityTick()}
+	if m.cfg.SubjectFetchFn != nil && m.cfg.SessionSubject == "" {
+		cmds = append(cmds, scheduleSubjectFetch(3*time.Second, m.cfg.SubjectFetchFn))
+	}
+	return tea.Batch(cmds...)
 }
 
 // FinalError returns the error message if the execution stream failed.

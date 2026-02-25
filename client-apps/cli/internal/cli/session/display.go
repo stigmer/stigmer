@@ -35,8 +35,8 @@ func displaySessionTable(session *sessionv1.Session) {
 
 	cliprint.PrintInfo("Spec:")
 	cliprint.PrintInfo("  Agent Instance: %s", session.GetSpec().GetAgentInstanceId())
-	if session.GetSpec().GetSubject() != "" {
-		cliprint.PrintInfo("  Subject:        %s", session.GetSpec().GetSubject())
+	if subject := ResolvedSubject(session.GetSpec().GetSubject()); subject != "" {
+		cliprint.PrintInfo("  Subject:        %s", subject)
 	}
 	fmt.Println()
 
@@ -122,7 +122,12 @@ func displayListTable(list *sessionv1.SessionList) {
 	for _, ses := range entries {
 		id := ses.GetMetadata().GetId()
 		agent := truncateString(ses.GetSpec().GetAgentInstanceId(), 26)
-		subject := truncateString(ses.GetSpec().GetSubject(), 30)
+		subject := ResolvedSubject(ses.GetSpec().GetSubject())
+		if subject == "" {
+			subject = "-"
+		} else {
+			subject = truncateString(subject, 30)
+		}
 		created := "-"
 		if audit := ses.GetStatus().GetAudit().GetSpecAudit(); audit != nil && audit.GetCreatedAt() != nil {
 			created = audit.GetCreatedAt().AsTime().Local().Format("2006-01-02 15:04:05")
