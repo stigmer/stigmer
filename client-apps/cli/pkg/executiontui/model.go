@@ -130,6 +130,12 @@ type Model struct {
 	// the final expandable result and removed from this map.
 	runningTools map[string]int
 
+	// subAgentNames maps sub-agent execution IDs to their human-readable
+	// names (e.g., "researcher", "code_editor"). Populated by
+	// SubAgentStartedEvent and used to label context separator lines in the
+	// viewport when the active agent changes.
+	subAgentNames map[string]string
+
 	// todoBlockIdx is the index into blocks of the current execution's todo
 	// block. -1 means no todo block exists yet. Set on the first
 	// TodoUpdateEvent; updated in-place on subsequent events. Reset to -1
@@ -249,6 +255,7 @@ func New(cfg Config) Model {
 		phase:             "pending",
 		focusedBlockIndex: -1,
 		runningTools:      make(map[string]int),
+		subAgentNames:     make(map[string]string),
 		todoBlockIdx:      -1,
 		spinner:           s,
 		lastEventAt:       time.Now(),

@@ -22,14 +22,19 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 	case HumanMessageEvent:
 		m.blocks = append(m.blocks, newHumanBlock(renderHumanContent(e.Content)))
 
+	case SubAgentStartedEvent:
+		m.subAgentNames[e.ID] = e.Name
+
 	case AIMessageEvent:
 		b := newAIBlock(renderAIContent(e.Content, e.ToolCalls, m.width))
 		b.subAgentID = e.SubAgentID
+		b.subAgentName = m.subAgentNames[e.SubAgentID]
 		m.blocks = append(m.blocks, b)
 
 	case AIStreamStartEvent:
 		b := newAIBlock(renderStreamingAI(e.Content))
 		b.subAgentID = e.SubAgentID
+		b.subAgentName = m.subAgentNames[e.SubAgentID]
 		m.blocks = append(m.blocks, b)
 		m.streaming = &streamingState{
 			content:    e.Content,
@@ -56,6 +61,7 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 		if m.streaming != nil && m.streaming.blockIdx < len(m.blocks) {
 			b := newAIBlock(renderAIContent(e.Content, e.ToolCalls, m.width))
 			b.subAgentID = e.SubAgentID
+			b.subAgentName = m.subAgentNames[e.SubAgentID]
 			m.blocks[m.streaming.blockIdx] = b
 		}
 		m.streaming = nil
@@ -86,6 +92,7 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 			m.blocks[idx].content = renderStreamingTool(e.ToolCall, e.Content)
 			m.blocks[idx].expandable = false
 			m.blocks[idx].subAgentID = e.SubAgentID
+			m.blocks[idx].subAgentName = m.subAgentNames[e.SubAgentID]
 		}
 
 	case SystemMessageEvent:
@@ -224,17 +231,20 @@ func (m Model) handleStreamClosed() (tea.Model, tea.Cmd) {
 // If no block exists, a new one is appended.
 //
 // All transitions simply swap the badge; the expand/collapse state is always
-// preserved from before the update. The subAgentID is propagated to the block
-// so sub-agent tool calls render with the visual indent.
+// preserved from before the update. The subAgentID and subAgentName are
+// propagated to the block so context separators render correctly.
 func (m *Model) updateToolBadge(toolCallID string, tc toolrender.ToolCallInfo, state, subAgentID string) {
+	name := m.subAgentNames[subAgentID]
 	if idx, ok := m.runningTools[toolCallID]; ok && idx < len(m.blocks) {
 		wasExpanded := m.blocks[idx].expanded
 		m.blocks[idx] = newStatefulToolBlock(tc, toolCallID, state)
 		m.blocks[idx].expanded = wasExpanded
 		m.blocks[idx].subAgentID = subAgentID
+		m.blocks[idx].subAgentName = name
 	} else {
 		block := newStatefulToolBlock(tc, toolCallID, state)
 		block.subAgentID = subAgentID
+		block.subAgentName = name
 		m.blocks = append(m.blocks, block)
 		m.runningTools[toolCallID] = len(m.blocks) - 1
 	}
@@ -255,9 +265,11 @@ func (m *Model) finalizeRunningTools() {
 			tc.Status = "completed"
 			wasExpanded := b.expanded
 			savedSubAgentID := b.subAgentID
+			savedSubAgentName := b.subAgentName
 			m.blocks[idx] = newStatefulToolBlock(tc, toolCallID, "completed")
 			m.blocks[idx].expanded = wasExpanded
 			m.blocks[idx].subAgentID = savedSubAgentID
+			m.blocks[idx].subAgentName = savedSubAgentName
 		} else {
 			m.blocks[idx].content = renderToolFinalized(m.blocks[idx].content)
 		}

@@ -42,6 +42,11 @@ func emitSubAgentEvents(
 			}
 			trackers[sa.Id] = tracker
 
+			events <- executiontui.SubAgentStartedEvent{
+				ID:   sa.Id,
+				Name: sa.Name,
+			}
+
 			log.Debug().
 				Str("sub_agent_id", sa.Id).
 				Str("name", sa.Name).

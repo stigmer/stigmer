@@ -62,9 +62,16 @@ type contentBlock struct {
 	toolState string
 
 	// subAgentID is set when this block originates from a sub-agent execution.
-	// Non-empty values cause the renderer to indent the block with a "↳ "
-	// prefix, visually nesting it under the parent "task" tool block.
+	// Used by the renderer to detect context switches between agents and
+	// insert visual separator lines (e.g., "── researcher ──") when the
+	// active agent changes.
 	subAgentID string
+
+	// subAgentName is the human-readable name for the sub-agent (e.g.,
+	// "researcher", "code_editor"). Populated from the Model's subAgentNames
+	// map when the block is created. Used by the renderer to label context
+	// separator lines.
+	subAgentName string
 }
 
 // displayContent returns the text that should be shown for this block.

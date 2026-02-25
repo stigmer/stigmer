@@ -37,22 +37,29 @@ func (m *Model) scrollFocusedBlockIntoView() {
 // viewport content. Line numbers are 0-based. Blocks are separated by blank
 // lines (\n\n produces one separator line between consecutive blocks).
 //
-// This function uses renderedBlockText to determine each block's rendered text,
-// ensuring consistency with rebuildViewportContent which uses the same helper.
+// This function mirrors the layout logic of rebuildViewportContent, including
+// context separator lines inserted before sub-agent blocks when the active
+// agent changes.
 //
 // targetIdx must be a valid index into blocks. If targetIdx is 0 or the first
 // non-empty block, the start line is 0.
 func blockStartLine(blocks []contentBlock, focusedIdx, targetIdx int) int {
-	nest := hasMultipleSubAgents(blocks)
 	line := 0
 	for i, b := range blocks {
 		if i == targetIdx {
 			return line
 		}
 
-		text := renderedBlockText(b, i, focusedIdx, nest)
+		text := renderedBlockText(b, i, focusedIdx)
 		if text == "" {
 			continue
+		}
+
+		// Account for a context separator line before this block.
+		if needsSubAgentSeparator(blocks, i) {
+			sep := renderSubAgentSeparator(b.subAgentName)
+			line += strings.Count(sep, "\n") + 1 // separator lines
+			line++                                // blank line after separator
 		}
 
 		// Lines in this block + 1 separator blank line before the next block.
@@ -64,9 +71,9 @@ func blockStartLine(blocks []contentBlock, focusedIdx, targetIdx int) int {
 
 // blockLineCount returns the number of rendered lines for a single block,
 // including its decorations. Returns 0 if the block renders as empty.
+// Context separators are between blocks, not within, so they are not counted.
 func blockLineCount(blocks []contentBlock, blockIdx, focusedIdx int) int {
-	nest := hasMultipleSubAgents(blocks)
-	text := renderedBlockText(blocks[blockIdx], blockIdx, focusedIdx, nest)
+	text := renderedBlockText(blocks[blockIdx], blockIdx, focusedIdx)
 	if text == "" {
 		return 0
 	}

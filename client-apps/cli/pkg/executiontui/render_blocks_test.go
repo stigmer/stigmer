@@ -477,73 +477,115 @@ func TestNewTodoBlock_DisplayContent(t *testing.T) {
 }
 
 // =============================================================================
-// hasMultipleSubAgents Tests
+// Sub-Agent Context Separator Tests
 // =============================================================================
 
-func TestHasMultipleSubAgents_NoSubAgents(t *testing.T) {
-	blocks := []contentBlock{
-		{content: "top-level block"},
-		{content: "another top-level"},
+func TestRenderSubAgentSeparator(t *testing.T) {
+	got := renderSubAgentSeparator("researcher")
+	plain := ansi.Strip(got)
+	if !strings.Contains(plain, "researcher") {
+		t.Errorf("separator should contain sub-agent name, got %q", plain)
 	}
-	if hasMultipleSubAgents(blocks) {
-		t.Error("expected false when no blocks have subAgentID")
-	}
-}
-
-func TestHasMultipleSubAgents_SingleSubAgent(t *testing.T) {
-	blocks := []contentBlock{
-		{content: "top-level"},
-		{content: "sub-agent block", subAgentID: "sa-1"},
-		{content: "another from same", subAgentID: "sa-1"},
-	}
-	if hasMultipleSubAgents(blocks) {
-		t.Error("expected false when all sub-agent blocks share the same ID")
+	if !strings.Contains(plain, "──") {
+		t.Errorf("separator should contain horizontal line characters, got %q", plain)
 	}
 }
 
-func TestHasMultipleSubAgents_MultipleSubAgents(t *testing.T) {
+func TestRenderSubAgentSeparator_EmptyName(t *testing.T) {
+	got := renderSubAgentSeparator("")
+	plain := ansi.Strip(got)
+	if !strings.Contains(plain, "sub-agent") {
+		t.Errorf("separator with empty name should fall back to 'sub-agent', got %q", plain)
+	}
+}
+
+func TestNeedsSubAgentSeparator_MainAgentOnly(t *testing.T) {
+	blocks := []contentBlock{
+		{content: "block1"},
+		{content: "block2"},
+	}
+	for i := range blocks {
+		if needsSubAgentSeparator(blocks, i) {
+			t.Errorf("main-agent block at index %d should not need a separator", i)
+		}
+	}
+}
+
+func TestNeedsSubAgentSeparator_EnteringSubAgent(t *testing.T) {
+	blocks := []contentBlock{
+		{content: "main block"},
+		{content: "sub block", subAgentID: "sa-1", subAgentName: "researcher"},
+	}
+	if needsSubAgentSeparator(blocks, 0) {
+		t.Error("main-agent block should not need separator")
+	}
+	if !needsSubAgentSeparator(blocks, 1) {
+		t.Error("first sub-agent block after main should need separator")
+	}
+}
+
+func TestNeedsSubAgentSeparator_SameSubAgent(t *testing.T) {
+	blocks := []contentBlock{
+		{content: "sub block 1", subAgentID: "sa-1"},
+		{content: "sub block 2", subAgentID: "sa-1"},
+	}
+	if !needsSubAgentSeparator(blocks, 0) {
+		t.Error("first sub-agent block in the list should need separator")
+	}
+	if needsSubAgentSeparator(blocks, 1) {
+		t.Error("consecutive block from same sub-agent should not need separator")
+	}
+}
+
+func TestNeedsSubAgentSeparator_DifferentSubAgents(t *testing.T) {
 	blocks := []contentBlock{
 		{content: "from sa-1", subAgentID: "sa-1"},
 		{content: "from sa-2", subAgentID: "sa-2"},
 	}
-	if !hasMultipleSubAgents(blocks) {
-		t.Error("expected true when blocks have 2+ distinct sub-agent IDs")
+	if !needsSubAgentSeparator(blocks, 1) {
+		t.Error("block from different sub-agent should need separator")
 	}
 }
 
-func TestHasMultipleSubAgents_EmptyBlocks(t *testing.T) {
-	if hasMultipleSubAgents(nil) {
-		t.Error("expected false for nil blocks")
+func TestRebuildViewportContent_SubAgentSeparator(t *testing.T) {
+	blocks := []contentBlock{
+		{content: "main block"},
+		{content: "sub block", subAgentID: "sa-1", subAgentName: "researcher"},
 	}
-	if hasMultipleSubAgents([]contentBlock{}) {
-		t.Error("expected false for empty blocks")
+	result := rebuildViewportContent(blocks, -1)
+	plain := ansi.Strip(result)
+	if !strings.Contains(plain, "researcher") {
+		t.Errorf("viewport should contain sub-agent separator with name, got %q", plain)
 	}
-}
-
-// =============================================================================
-// renderedBlockText nesting suppression Tests
-// =============================================================================
-
-func TestRenderedBlockText_SingleSubAgent_NoIndent(t *testing.T) {
-	b := contentBlock{content: "tool output", subAgentID: "sa-1"}
-	text := renderedBlockText(b, 0, -1, false)
-	if strings.Contains(text, "↳") {
-		t.Error("expected no ↳ indent when nestSubAgents=false")
+	if !strings.Contains(plain, "main block") || !strings.Contains(plain, "sub block") {
+		t.Error("viewport should contain both block contents")
 	}
 }
 
-func TestRenderedBlockText_MultipleSubAgents_HasIndent(t *testing.T) {
-	b := contentBlock{content: "tool output", subAgentID: "sa-1"}
-	text := renderedBlockText(b, 0, -1, true)
-	if !strings.Contains(text, "↳") {
-		t.Error("expected ↳ indent when nestSubAgents=true")
+func TestRebuildViewportContent_NoSeparator_MainAgent(t *testing.T) {
+	blocks := []contentBlock{
+		{content: "block1"},
+		{content: "block2"},
+		{content: "block3"},
+	}
+	result := rebuildViewportContent(blocks, -1)
+	plain := ansi.Strip(result)
+	if strings.Contains(plain, "──") {
+		t.Error("main-agent-only blocks should not have any separators")
 	}
 }
 
-func TestRenderedBlockText_TopLevel_NeverIndented(t *testing.T) {
-	b := contentBlock{content: "top-level block"}
-	text := renderedBlockText(b, 0, -1, true)
-	if strings.Contains(text, "↳") {
-		t.Error("top-level block should never get ↳ indent")
+func TestRebuildViewportContent_NoSeparator_SameSubAgent(t *testing.T) {
+	blocks := []contentBlock{
+		{content: "sub block 1", subAgentID: "sa-1", subAgentName: "researcher"},
+		{content: "sub block 2", subAgentID: "sa-1", subAgentName: "researcher"},
+	}
+	result := rebuildViewportContent(blocks, -1)
+	plain := ansi.Strip(result)
+	// Should have exactly one separator (before the first sub-agent block),
+	// not two.
+	if strings.Count(plain, "researcher") != 1 {
+		t.Errorf("expected exactly 1 separator for consecutive same-sub-agent blocks, got %d occurrences of 'researcher'",
+			strings.Count(plain, "researcher"))
 	}
 }
