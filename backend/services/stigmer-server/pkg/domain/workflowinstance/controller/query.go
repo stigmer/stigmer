@@ -5,13 +5,13 @@ import (
 	"fmt"
 
 	"github.com/rs/zerolog/log"
+	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
+	apiresourcecommons "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
-	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
-	apiresourcecommons "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -38,7 +38,7 @@ func (c *WorkflowInstanceController) Get(ctx context.Context, workflowInstanceId
 // buildGetPipeline constructs the pipeline for get-by-id operations
 func (c *WorkflowInstanceController) buildGetPipeline() *pipeline.Pipeline[*workflowinstancev1.WorkflowInstanceId] {
 	return pipeline.NewPipeline[*workflowinstancev1.WorkflowInstanceId]("workflow-instance-get").
-		AddStep(steps.NewValidateProtoStep[*workflowinstancev1.WorkflowInstanceId]()).                                       // 1. Validate input
+		AddStep(steps.NewValidateProtoStep[*workflowinstancev1.WorkflowInstanceId]()).                                           // 1. Validate input
 		AddStep(steps.NewLoadTargetStep[*workflowinstancev1.WorkflowInstanceId, *workflowinstancev1.WorkflowInstance](c.store)). // 2. Load by ID
 		Build()
 }
@@ -61,7 +61,7 @@ func (c *WorkflowInstanceController) GetByReference(ctx context.Context, ref *ap
 // buildGetByReferencePipeline constructs the pipeline for get-by-reference operations
 func (c *WorkflowInstanceController) buildGetByReferencePipeline() *pipeline.Pipeline[*apiresourcecommons.ApiResourceReference] {
 	return pipeline.NewPipeline[*apiresourcecommons.ApiResourceReference]("workflow-instance-get-by-reference").
-		AddStep(steps.NewValidateProtoStep[*apiresourcecommons.ApiResourceReference]()).                  // 1. Validate input
+		AddStep(steps.NewValidateProtoStep[*apiresourcecommons.ApiResourceReference]()).      // 1. Validate input
 		AddStep(steps.NewLoadByReferenceStep[*workflowinstancev1.WorkflowInstance](c.store)). // 2. Load by slug
 		Build()
 }
@@ -104,7 +104,7 @@ func (c *WorkflowInstanceController) GetByWorkflow(ctx context.Context, request 
 func (c *WorkflowInstanceController) buildGetByWorkflowPipeline() *pipeline.Pipeline[*workflowinstancev1.GetWorkflowInstancesByWorkflowRequest] {
 	return pipeline.NewPipeline[*workflowinstancev1.GetWorkflowInstancesByWorkflowRequest]("workflow-instance-get-by-workflow").
 		AddStep(steps.NewValidateProtoStep[*workflowinstancev1.GetWorkflowInstancesByWorkflowRequest]()). // 1. Validate input
-		AddStep(newLoadByWorkflowStep(c.store)).                                                            // 2. Load from repo filtered by workflow_id
+		AddStep(newLoadByWorkflowStep(c.store)).                                                          // 2. Load from repo filtered by workflow_id
 		Build()
 }
 

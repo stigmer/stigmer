@@ -7,11 +7,11 @@ Tests cover:
 - Error handling (loading failures, missing tools)
 """
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 import asyncio
 import logging
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 
 # =============================================================================
 # TestMcpToolsLoaderInit - Tests for initialization
@@ -100,7 +100,7 @@ class TestMcpToolsLoaderInit:
         self, sample_servers_config, sample_tool_filter
     ):
         """Test that loading failure raises RuntimeError."""
-        with patch('graphton.core.middleware.load_mcp_tools', new_callable=AsyncMock) as mock_load, \
+        with patch('graphton.core.middleware.load_mcp_tools', new_callable=AsyncMock), \
              patch('graphton.core.middleware.asyncio') as mock_asyncio:
             
             mock_loop = MagicMock()

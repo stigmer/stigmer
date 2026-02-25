@@ -21,9 +21,9 @@ import (
 	"slices"
 	"time"
 
-	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
 	swUtil "github.com/serverlessworkflow/sdk-go/v3/impl/utils"
 	"github.com/serverlessworkflow/sdk-go/v3/model"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"
@@ -367,7 +367,7 @@ func (t *ListenTaskBuilder) validateEventFilter(event *model.EventFilter) error 
 	if event.With == nil {
 		return nil
 	}
-	
+
 	if event.With.ID == "" {
 		return fmt.Errorf("listen task id is not set")
 	}

@@ -13,14 +13,13 @@ These tests ensure accurate token counting across all supported providers.
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 
 from graphton.core.model_registry import TokenCounterMethod
 from graphton.core.token_counter import TokenCounter, TokenCountingError
-
 
 # =============================================================================
 # Tiktoken CL100K Encoding Tests (GPT-4, GPT-3.5)

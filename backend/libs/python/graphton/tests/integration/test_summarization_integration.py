@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import os
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
@@ -27,7 +27,6 @@ from graphton.core.summarization_middleware import (
     ContextSummarizationMiddleware,
 )
 from graphton.core.token_counter import TokenCounter
-
 
 # Marker for tests requiring LLM API keys
 requires_llm = pytest.mark.skipif(
@@ -147,7 +146,7 @@ class TestSummarizationMiddlewareLifecycle:
             'graphton.core.summarization_middleware.serialize_running_summary'
         ) as mock_serialize:
             mock_serialize.return_value = {"summary": "Test summary"}
-            result = await middleware.aafter_agent(state, mock_runtime)
+            await middleware.aafter_agent(state, mock_runtime)
             
             assert RUNNING_SUMMARY_STATE_KEY in state
             mock_serialize.assert_called_once()

@@ -25,7 +25,6 @@ func TestPush_CreateNew_Success(t *testing.T) {
 	artifact := storage.CreateTestZip(skillContent)
 
 	req := &skillv1.PushSkillRequest{
-		Name:     "My Calculator",
 		Artifact: artifact,
 		Tag:      "v1.0",
 		Org:      "test-org",
@@ -76,7 +75,6 @@ func TestPush_CreateNew_GeneratesSlug(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			artifact := storage.CreateTestZip("# " + tc.name)
 			req := &skillv1.PushSkillRequest{
-				Name:     tc.name,
 				Artifact: artifact,
 			}
 
@@ -96,7 +94,6 @@ func TestPush_CreateNew_SetsAuditFields(t *testing.T) {
 	before := time.Now().Unix()
 	artifact := storage.CreateTestZip("# Test Skill")
 	req := &skillv1.PushSkillRequest{
-		Name:     "Test Skill",
 		Artifact: artifact,
 	}
 
@@ -135,7 +132,6 @@ This skill sends emails via SMTP.
 `
 	artifact := storage.CreateTestZip(expectedContent)
 	req := &skillv1.PushSkillRequest{
-		Name:     "Email Sender",
 		Artifact: artifact,
 	}
 
@@ -152,7 +148,6 @@ func TestPush_CreateNew_StoresArtifact(t *testing.T) {
 
 	artifact := storage.CreateTestZip("# Test Skill")
 	req := &skillv1.PushSkillRequest{
-		Name:     "Test Skill",
 		Artifact: artifact,
 	}
 
@@ -181,7 +176,6 @@ func TestPush_CreateNew_SetsVersionHash(t *testing.T) {
 	expectedHash := storage.CalculateHash(artifact)
 
 	req := &skillv1.PushSkillRequest{
-		Name:     "Test Skill",
 		Artifact: artifact,
 	}
 
@@ -198,7 +192,6 @@ func TestPush_CreateNew_ArchivesVersion(t *testing.T) {
 
 	artifact := storage.CreateTestZip("# Test Skill v1")
 	req := &skillv1.PushSkillRequest{
-		Name:     "Test Skill",
 		Artifact: artifact,
 		Tag:      "v1.0",
 	}
@@ -230,7 +223,6 @@ func TestPush_Update_PreservesId(t *testing.T) {
 	// Create initial skill
 	artifact1 := storage.CreateTestZip("# Calculator v1")
 	req1 := &skillv1.PushSkillRequest{
-		Name:     "Calculator",
 		Artifact: artifact1,
 		Tag:      "v1.0",
 	}
@@ -241,7 +233,6 @@ func TestPush_Update_PreservesId(t *testing.T) {
 	// Update with new content (same name/slug)
 	artifact2 := storage.CreateTestZip("# Calculator v2")
 	req2 := &skillv1.PushSkillRequest{
-		Name:     "Calculator",
 		Artifact: artifact2,
 		Tag:      "v2.0",
 	}
@@ -261,7 +252,6 @@ func TestPush_Update_PreservesCreatedAt(t *testing.T) {
 	// Create initial skill
 	artifact1 := storage.CreateTestZip("# Web Search v1")
 	req1 := &skillv1.PushSkillRequest{
-		Name:     "Web Search",
 		Artifact: artifact1,
 	}
 	result1, err := controller.Push(contextWithSkillKind(), req1)
@@ -274,7 +264,6 @@ func TestPush_Update_PreservesCreatedAt(t *testing.T) {
 	// Update the skill
 	artifact2 := storage.CreateTestZip("# Web Search v2")
 	req2 := &skillv1.PushSkillRequest{
-		Name:     "Web Search",
 		Artifact: artifact2,
 	}
 	result2, err := controller.Push(contextWithSkillKind(), req2)
@@ -293,7 +282,6 @@ func TestPush_Update_UpdatesTimestamp(t *testing.T) {
 	// Create initial skill
 	artifact1 := storage.CreateTestZip("# API Client v1")
 	req1 := &skillv1.PushSkillRequest{
-		Name:     "API Client",
 		Artifact: artifact1,
 	}
 	result1, err := controller.Push(contextWithSkillKind(), req1)
@@ -306,7 +294,6 @@ func TestPush_Update_UpdatesTimestamp(t *testing.T) {
 	// Update the skill
 	artifact2 := storage.CreateTestZip("# API Client v2")
 	req2 := &skillv1.PushSkillRequest{
-		Name:     "API Client",
 		Artifact: artifact2,
 	}
 	result2, err := controller.Push(contextWithSkillKind(), req2)
@@ -326,7 +313,6 @@ func TestPush_Update_NewArtifact(t *testing.T) {
 	// Create initial skill
 	artifact1 := storage.CreateTestZip("# Email Tool v1")
 	req1 := &skillv1.PushSkillRequest{
-		Name:     "Email Tool",
 		Artifact: artifact1,
 	}
 	result1, err := controller.Push(contextWithSkillKind(), req1)
@@ -336,7 +322,6 @@ func TestPush_Update_NewArtifact(t *testing.T) {
 	// Update with different content
 	artifact2 := storage.CreateTestZip("# Email Tool v2 - Updated")
 	req2 := &skillv1.PushSkillRequest{
-		Name:     "Email Tool",
 		Artifact: artifact2,
 	}
 	result2, err := controller.Push(contextWithSkillKind(), req2)
@@ -365,7 +350,6 @@ func TestPush_Update_NewVersionHash(t *testing.T) {
 	// Create initial skill
 	artifact1 := storage.CreateTestZip("# File Manager v1")
 	req1 := &skillv1.PushSkillRequest{
-		Name:     "File Manager",
 		Artifact: artifact1,
 	}
 	result1, err := controller.Push(contextWithSkillKind(), req1)
@@ -375,7 +359,6 @@ func TestPush_Update_NewVersionHash(t *testing.T) {
 	// Update with new content
 	artifact2 := storage.CreateTestZip("# File Manager v2")
 	req2 := &skillv1.PushSkillRequest{
-		Name:     "File Manager",
 		Artifact: artifact2,
 	}
 	result2, err := controller.Push(contextWithSkillKind(), req2)
@@ -399,7 +382,6 @@ func TestPush_Update_ArchivesNewVersion(t *testing.T) {
 	// Create initial version
 	artifact1 := storage.CreateTestZip("# Database Client v1")
 	req1 := &skillv1.PushSkillRequest{
-		Name:     "Database Client",
 		Artifact: artifact1,
 		Tag:      "v1.0",
 	}
@@ -409,7 +391,6 @@ func TestPush_Update_ArchivesNewVersion(t *testing.T) {
 	// Update to v2
 	artifact2 := storage.CreateTestZip("# Database Client v2")
 	req2 := &skillv1.PushSkillRequest{
-		Name:     "Database Client",
 		Artifact: artifact2,
 		Tag:      "v2.0",
 	}
@@ -430,7 +411,6 @@ func TestPush_Deduplication_SameContent(t *testing.T) {
 
 	// Push first time
 	req1 := &skillv1.PushSkillRequest{
-		Name:     "First Skill",
 		Artifact: artifact,
 	}
 	result1, err := controller.Push(contextWithSkillKind(), req1)
@@ -438,7 +418,6 @@ func TestPush_Deduplication_SameContent(t *testing.T) {
 
 	// Push again with same content, different skill name
 	req2 := &skillv1.PushSkillRequest{
-		Name:     "Second Skill",
 		Artifact: artifact,
 	}
 	result2, err := controller.Push(contextWithSkillKind(), req2)
@@ -462,7 +441,6 @@ func TestPush_Deduplication_DifferentSkills(t *testing.T) {
 
 	// Create first skill
 	req1 := &skillv1.PushSkillRequest{
-		Name:     "Basic Calculator",
 		Artifact: artifact,
 		Org:      "org-a",
 	}
@@ -471,7 +449,6 @@ func TestPush_Deduplication_DifferentSkills(t *testing.T) {
 
 	// Create second skill with same artifact
 	req2 := &skillv1.PushSkillRequest{
-		Name:     "Simple Calculator",
 		Artifact: artifact,
 		Org:      "org-b",
 	}
@@ -499,7 +476,6 @@ func TestPush_Deduplication_StorageKeyReused(t *testing.T) {
 	// Push multiple times
 	for i := 0; i < 3; i++ {
 		req := &skillv1.PushSkillRequest{
-			Name:     fmt.Sprintf("Skill %d", i),
 			Artifact: artifact,
 		}
 		result, err := controller.Push(contextWithSkillKind(), req)
@@ -523,7 +499,6 @@ func TestPush_EmptyName(t *testing.T) {
 
 	artifact := storage.CreateTestZip("# Test Skill")
 	req := &skillv1.PushSkillRequest{
-		Name:     "",
 		Artifact: artifact,
 	}
 
@@ -541,7 +516,6 @@ func TestPush_EmptyArtifact(t *testing.T) {
 	defer store.Close()
 
 	req := &skillv1.PushSkillRequest{
-		Name:     "Test Skill",
 		Artifact: []byte{},
 	}
 
@@ -559,7 +533,6 @@ func TestPush_InvalidZip(t *testing.T) {
 	defer store.Close()
 
 	req := &skillv1.PushSkillRequest{
-		Name:     "Test Skill",
 		Artifact: []byte("This is not a ZIP file, just plain text"),
 	}
 
@@ -579,7 +552,6 @@ func TestPush_NoSkillMd(t *testing.T) {
 
 	artifact := storage.CreateZipWithoutSkillMd()
 	req := &skillv1.PushSkillRequest{
-		Name:     "Test Skill",
 		Artifact: artifact,
 	}
 
@@ -607,7 +579,6 @@ func TestPush_InvalidName(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			artifact := storage.CreateTestZip("# Test")
 			req := &skillv1.PushSkillRequest{
-				Name:     name,
 				Artifact: artifact,
 			}
 
@@ -628,7 +599,6 @@ func TestPush_OrgScoped(t *testing.T) {
 
 	artifact := storage.CreateTestZip("# Org Skill")
 	req := &skillv1.PushSkillRequest{
-		Name:     "Org Skill",
 		Artifact: artifact,
 		Org:      "my-organization",
 	}
@@ -638,14 +608,13 @@ func TestPush_OrgScoped(t *testing.T) {
 	assert.Equal(t, "my-organization", result.Metadata.Org)
 }
 
-// TestPush_OrgScoped verifies that Push works with org-scoped skills.
-func TestPush_OrgScoped(t *testing.T) {
+// TestPush_OrgScopedDifferentOrg verifies that Push works with a different org value.
+func TestPush_OrgScopedDifferentOrg(t *testing.T) {
 	controller, store := setupTestController(t)
 	defer store.Close()
 
 	artifact := storage.CreateTestZip("# Org Skill")
 	req := &skillv1.PushSkillRequest{
-		Name:     "Org Skill",
 		Artifact: artifact,
 		Org:      "test-org",
 	}

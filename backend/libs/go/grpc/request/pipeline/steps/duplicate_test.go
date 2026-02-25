@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 )
 
 func TestCheckDuplicateStep_NoDuplicate(t *testing.T) {
@@ -69,7 +69,6 @@ func TestCheckDuplicateStep_DuplicateExists(t *testing.T) {
 		t.Errorf("Expected duplicate error, got success")
 	}
 }
-
 
 func TestCheckDuplicateStep_EmptySlug(t *testing.T) {
 	store := setupTestStore(t)

@@ -21,9 +21,10 @@ import (
 // 4. Convert back to map[string]interface{} for protobuf serialization
 //
 // Example:
-//   Input config:  {"url": "${baseURL}/users"}
-//   Context vars:  {"baseURL": "https://api.example.com"}
-//   Output config: {"url": "https://api.example.com/users"}
+//
+//	Input config:  {"url": "${baseURL}/users"}
+//	Context vars:  {"baseURL": "https://api.example.com"}
+//	Output config: {"url": "https://api.example.com/users"}
 //
 // Note: This function does NOT resolve JQ expressions like ${ $context.apiURL }.
 // Those are runtime expressions that should be evaluated by the workflow runner.
@@ -37,7 +38,7 @@ func InterpolateVariables(taskConfig interface{}, contextVars map[string]interfa
 
 	// 2. Perform variable replacement
 	jsonString := string(jsonBytes)
-	
+
 	// Create a map of values to replace
 	// We need to extract actual values from Ref interfaces
 	values := make(map[string]interface{}, len(contextVars))
@@ -46,7 +47,7 @@ func InterpolateVariables(taskConfig interface{}, contextVars map[string]interfa
 		type valueExtractor interface {
 			ToValue() interface{}
 		}
-		
+
 		if ref, ok := refInterface.(valueExtractor); ok {
 			values[name] = ref.ToValue()
 		} else {
@@ -54,7 +55,7 @@ func InterpolateVariables(taskConfig interface{}, contextVars map[string]interfa
 			values[name] = refInterface
 		}
 	}
-	
+
 	// Replace each variable placeholder with its actual value
 	// We need to be careful about JSON encoding - strings need quotes, numbers don't
 	jsonString, err = replaceVariablePlaceholders(jsonString, values)
@@ -85,73 +86,73 @@ func InterpolateVariables(taskConfig interface{}, contextVars map[string]interfa
 func replaceVariablePlaceholders(jsonString string, values map[string]interface{}) (string, error) {
 	// Track any missing variables for error reporting
 	var missingVars []string
-	
+
 	// Step 1: Replace complete value placeholders: "${var}" (quoted, nothing else)
 	// This preserves the type (numbers, bools, objects, arrays)
 	completeValueRegex := regexp.MustCompile(`"\$\{([a-zA-Z_][a-zA-Z0-9_]*)\}"`)
 	result := completeValueRegex.ReplaceAllStringFunc(jsonString, func(match string) string {
 		// Extract variable name: "${var}" → var
 		varName := match[3 : len(match)-2] // Remove "${ and }"
-		
+
 		// Look up value
 		value, exists := values[varName]
 		if !exists {
 			missingVars = append(missingVars, varName)
 			return match
 		}
-		
+
 		// Convert to JSON (preserves type)
 		valueJSON, err := json.Marshal(value)
 		if err != nil {
 			missingVars = append(missingVars, fmt.Sprintf("%s (marshal error: %v)", varName, err))
 			return match
 		}
-		
+
 		// Return JSON value as-is (e.g., 3, true, {"key": "value"}, "string value")
 		return string(valueJSON)
 	})
-	
+
 	// Step 2: Replace partial string placeholders: ${var} (not complete value)
 	// This unwraps string quotes to blend into the surrounding string
 	partialValueRegex := regexp.MustCompile(`\$\{([a-zA-Z_][a-zA-Z0-9_]*)\}`)
 	result = partialValueRegex.ReplaceAllStringFunc(result, func(match string) string {
 		// Extract variable name: ${var} → var
 		varName := match[2 : len(match)-1] // Remove ${ and }
-		
+
 		// Look up value
 		value, exists := values[varName]
 		if !exists {
 			missingVars = append(missingVars, varName)
 			return match
 		}
-		
+
 		// Convert to JSON
 		valueJSON, err := json.Marshal(value)
 		if err != nil {
 			missingVars = append(missingVars, fmt.Sprintf("%s (marshal error: %v)", varName, err))
 			return match
 		}
-		
+
 		// For strings, unwrap the JSON quotes so they blend into surrounding string
 		// For non-strings, this shouldn't happen (already handled by complete value regex)
 		valueStr := string(valueJSON)
 		if _, ok := value.(string); ok {
 			valueStr = strings.Trim(valueStr, `"`)
 		}
-		
+
 		return valueStr
 	})
-	
+
 	// Report errors if any variables were missing
 	if len(missingVars) > 0 {
 		return "", fmt.Errorf("missing or invalid context variables: %s", strings.Join(missingVars, ", "))
 	}
-	
+
 	return result, nil
 }
 
 // shouldInterpolate determines if a task configuration should have variable interpolation applied.
-// 
+//
 // Some task kinds may have special handling or may not need interpolation.
 // For now, we apply interpolation to all task kinds.
 //

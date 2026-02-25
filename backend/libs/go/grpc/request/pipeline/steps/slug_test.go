@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 )
 
 func TestResolveSlugStep_Execute(t *testing.T) {
@@ -99,29 +99,29 @@ func TestResolveSlugStep_Execute(t *testing.T) {
 				},
 			}
 
-		// Create step
-		step := NewResolveSlugStep[*agentv1.Agent]()
+			// Create step
+			step := NewResolveSlugStep[*agentv1.Agent]()
 
-		// Create context
-		ctx := pipeline.NewRequestContext(context.Background(), agent)
-		ctx.SetNewState(agent)
+			// Create context
+			ctx := pipeline.NewRequestContext(context.Background(), agent)
+			ctx.SetNewState(agent)
 
-		// Execute
-		err := step.Execute(ctx)
+			// Execute
+			err := step.Execute(ctx)
 
-		// Verify
-		if tt.shouldSucceed {
-			if err != nil {
-				t.Errorf("Expected success, got error: %v", err)
+			// Verify
+			if tt.shouldSucceed {
+				if err != nil {
+					t.Errorf("Expected success, got error: %v", err)
+				}
+				if agent.Metadata.Slug != tt.expectedSlug {
+					t.Errorf("Expected slug=%q, got %q", tt.expectedSlug, agent.Metadata.Slug)
+				}
+			} else {
+				if err == nil {
+					t.Errorf("Expected error, got success")
+				}
 			}
-			if agent.Metadata.Slug != tt.expectedSlug {
-				t.Errorf("Expected slug=%q, got %q", tt.expectedSlug, agent.Metadata.Slug)
-			}
-		} else {
-			if err == nil {
-				t.Errorf("Expected error, got success")
-			}
-		}
 		})
 	}
 }

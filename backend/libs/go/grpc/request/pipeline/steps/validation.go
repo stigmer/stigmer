@@ -34,7 +34,7 @@ func (s *ValidateProtoStep[T]) Name() string {
 // Execute validates the input message against its proto validation rules.
 func (s *ValidateProtoStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 	if err := s.validator.Validate(ctx.Input()); err != nil {
-		return grpclib.InvalidArgumentError(err.Error())
+		return grpclib.InvalidArgumentError("%v", err)
 	}
 	return nil
 }

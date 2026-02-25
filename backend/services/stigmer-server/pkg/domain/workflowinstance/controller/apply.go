@@ -55,8 +55,8 @@ func (c *WorkflowInstanceController) Apply(ctx context.Context, instance *workfl
 // It does NOT perform the actual create/update - that's delegated.
 func (c *WorkflowInstanceController) buildApplyPipeline() *pipeline.Pipeline[*workflowinstancev1.WorkflowInstance] {
 	return pipeline.NewPipeline[*workflowinstancev1.WorkflowInstance]("workflow-instance-apply").
-		AddStep(steps.NewValidateProtoStep[*workflowinstancev1.WorkflowInstance]()).        // 1. Validate input
-		AddStep(steps.NewResolveSlugStep[*workflowinstancev1.WorkflowInstance]()).          // 2. Resolve slug
+		AddStep(steps.NewValidateProtoStep[*workflowinstancev1.WorkflowInstance]()).       // 1. Validate input
+		AddStep(steps.NewResolveSlugStep[*workflowinstancev1.WorkflowInstance]()).         // 2. Resolve slug
 		AddStep(steps.NewLoadForApplyStep[*workflowinstancev1.WorkflowInstance](c.store)). // 3. Check existence
 		Build()
 }

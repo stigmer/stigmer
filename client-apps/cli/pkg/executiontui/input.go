@@ -125,4 +125,3 @@ func (m Model) executeFollowUpCmd(message string) tea.Cmd {
 		return followUpStartedMsg{result: result}
 	}
 }
-

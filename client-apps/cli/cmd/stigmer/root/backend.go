@@ -38,9 +38,9 @@ func newBackendStatusCommand() *cobra.Command {
 
 func newBackendSetCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "set <local|cloud>",
-		Short: "Set backend type",
-		Args:  cobra.ExactArgs(1),
+		Use:       "set <local|cloud>",
+		Short:     "Set backend type",
+		Args:      cobra.ExactArgs(1),
 		ValidArgs: []string{"local", "cloud"},
 		Run: func(cmd *cobra.Command, args []string) {
 			handleBackendSet(args[0])
@@ -59,7 +59,7 @@ func handleBackendStatus() {
 	fmt.Println("Backend Configuration:")
 	fmt.Println("─────────────────────────────────────")
 	cliprint.Info("  Type: %s", cfg.Backend.Type)
-	
+
 	if cfg.Backend.Type == config.BackendTypeLocal {
 		if cfg.Backend.Local != nil {
 			cliprint.Info("  Endpoint: %s", cfg.Backend.Local.Endpoint)
@@ -94,7 +94,7 @@ func handleBackendSet(backendType string) {
 				// DataDir not needed - always hardcoded to ~/.stigmer/data
 			}
 		}
-		
+
 		if err := config.Save(cfg); err != nil {
 			cliprint.Error("Failed to save configuration")
 			clierr.Handle(err)
@@ -114,7 +114,7 @@ func handleBackendSet(backendType string) {
 				Endpoint: "api.stigmer.ai:443",
 			}
 		}
-		
+
 		if err := config.Save(cfg); err != nil {
 			cliprint.Error("Failed to save configuration")
 			clierr.Handle(err)

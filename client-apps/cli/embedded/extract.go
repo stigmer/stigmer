@@ -20,18 +20,18 @@ import (
 // This function is kept for backward compatibility and graceful migration.
 func EnsureBinariesExtracted(dataDir string) error {
 	binDir := filepath.Join(dataDir, "bin")
-	
+
 	// Check if extraction is needed
 	needsExtraction, err := needsExtraction(binDir)
 	if err != nil {
 		return errors.Wrap(err, "failed to check extraction status")
 	}
-	
+
 	if !needsExtraction {
 		log.Debug().Msg("Binaries already extracted, skipping extraction")
 		return nil
 	}
-	
+
 	// Log version information if doing fresh extraction
 	currentVersion := GetBuildVersion()
 	if extractedVersion, _ := readVersionFile(binDir); extractedVersion != "" {
@@ -44,33 +44,33 @@ func EnsureBinariesExtracted(dataDir string) error {
 			Str("version", currentVersion).
 			Msg("First run detected - agent-runner will be pulled from Docker registry")
 	}
-	
+
 	// Clean slate: remove old binaries if they exist
 	if err := os.RemoveAll(binDir); err != nil && !os.IsNotExist(err) {
 		return errors.Wrap(err, "failed to remove old binaries")
 	}
-	
+
 	// Create bin directory
 	if err := os.MkdirAll(binDir, 0755); err != nil {
 		return errors.Wrap(err, "failed to create bin directory")
 	}
-	
+
 	// Extract agent-runner (will be nil for all platforms now - Docker-based)
 	log.Debug().Msg("Checking for embedded agent-runner (Docker-based architecture)...")
 	if err := extractAgentRunner(binDir); err != nil {
 		return errors.Wrap(err, "failed to extract agent-runner")
 	}
-	
+
 	// Write version marker
 	if err := writeVersionFile(binDir, currentVersion); err != nil {
 		return errors.Wrap(err, "failed to write version file")
 	}
-	
+
 	log.Info().
 		Str("version", currentVersion).
 		Str("location", binDir).
 		Msg("Binary extraction check complete - using Docker-based agent-runner")
-	
+
 	return nil
 }
 
@@ -82,14 +82,14 @@ func extractAgentRunner(binDir string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// If data is nil, it means the binary is not embedded (Docker-based architecture for all platforms)
 	// Skip extraction gracefully - the daemon will pull the Docker image on first use
 	if data == nil || len(data) == 0 {
 		log.Debug().Msg("Agent-runner not embedded (Docker-based), will be pulled from ghcr.io on daemon start")
 		return nil
 	}
-	
+
 	destPath := filepath.Join(binDir, "agent-runner")
 	return extractBinary(destPath, data)
 }
@@ -100,17 +100,17 @@ func extractBinary(destPath string, data []byte) error {
 	if err := os.WriteFile(destPath, data, 0755); err != nil {
 		return errors.Wrapf(err, "failed to write binary to %s", destPath)
 	}
-	
+
 	// Ensure executable permissions
 	if err := os.Chmod(destPath, 0755); err != nil {
 		return errors.Wrapf(err, "failed to set executable permissions on %s", destPath)
 	}
-	
+
 	log.Debug().
 		Str("path", destPath).
 		Int("size_bytes", len(data)).
 		Msg("Extracted binary")
-	
+
 	return nil
 }
 
@@ -120,17 +120,17 @@ func extractTarball(destDir string, data []byte) error {
 	if err := os.MkdirAll(destDir, 0755); err != nil {
 		return errors.Wrapf(err, "failed to create directory %s", destDir)
 	}
-	
+
 	// Create gzip reader
 	gzipReader, err := gzip.NewReader(io.NopCloser(io.Reader(newBytesReader(data))))
 	if err != nil {
 		return errors.Wrap(err, "failed to create gzip reader")
 	}
 	defer gzipReader.Close()
-	
+
 	// Create tar reader
 	tarReader := tar.NewReader(gzipReader)
-	
+
 	// Extract all files
 	fileCount := 0
 	for {
@@ -141,49 +141,49 @@ func extractTarball(destDir string, data []byte) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to read tar header")
 		}
-		
+
 		// Construct destination path
 		targetPath := filepath.Join(destDir, header.Name)
-		
+
 		// Ensure target path is within destDir (prevent path traversal)
 		if !filepath.HasPrefix(targetPath, filepath.Clean(destDir)+string(os.PathSeparator)) {
 			return fmt.Errorf("invalid file path in tarball: %s", header.Name)
 		}
-		
+
 		switch header.Typeflag {
 		case tar.TypeDir:
 			// Create directory
 			if err := os.MkdirAll(targetPath, os.FileMode(header.Mode)); err != nil {
 				return errors.Wrapf(err, "failed to create directory %s", targetPath)
 			}
-			
+
 		case tar.TypeReg:
 			// Create parent directory if needed
 			if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
 				return errors.Wrapf(err, "failed to create parent directory for %s", targetPath)
 			}
-			
+
 			// Create file
 			outFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(header.Mode))
 			if err != nil {
 				return errors.Wrapf(err, "failed to create file %s", targetPath)
 			}
-			
+
 			// Copy file contents
 			if _, err := io.Copy(outFile, tarReader); err != nil {
 				outFile.Close()
 				return errors.Wrapf(err, "failed to write file %s", targetPath)
 			}
-			
+
 			outFile.Close()
 			fileCount++
-			
+
 		case tar.TypeSymlink:
 			// Create symlink
 			if err := os.Symlink(header.Linkname, targetPath); err != nil {
 				return errors.Wrapf(err, "failed to create symlink %s -> %s", targetPath, header.Linkname)
 			}
-			
+
 		default:
 			log.Warn().
 				Str("name", header.Name).
@@ -191,13 +191,13 @@ func extractTarball(destDir string, data []byte) error {
 				Msg("Skipping unsupported tar entry type")
 		}
 	}
-	
+
 	log.Debug().
 		Str("path", destDir).
 		Int("file_count", fileCount).
 		Int("size_bytes", len(data)).
 		Msg("Extracted tarball")
-	
+
 	return nil
 }
 

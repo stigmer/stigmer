@@ -263,7 +263,9 @@ func TestProtoToYAML_GrpcCallTask(t *testing.T) {
 func TestProtoToYAML_WaitTask(t *testing.T) {
 	// Create typed proto
 	waitConfig := &tasksv1.WaitTaskConfig{
-		Seconds: 5,
+		WaitType: &tasksv1.WaitTaskConfig_Duration{
+			Duration: &tasksv1.Duration{Seconds: 5},
+		},
 	}
 
 	taskConfig, err := validation.MarshalTaskConfig(waitConfig)
@@ -353,7 +355,9 @@ func TestProtoToYAML_ComplexWorkflow(t *testing.T) {
 		TimeoutSeconds: 30,
 	}
 	waitConfig := &tasksv1.WaitTaskConfig{
-		Seconds: 2,
+		WaitType: &tasksv1.WaitTaskConfig_Duration{
+			Duration: &tasksv1.Duration{Seconds: 2},
+		},
 	}
 
 	// Marshal all configs

@@ -11,21 +11,20 @@ Tests cover:
 - ResolvedExecutionContext population (Phase 2.5)
 """
 
+from datetime import datetime, timedelta
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
-from unittest.mock import MagicMock, patch
-from datetime import datetime, timedelta
-
-from worker.activities.graphton.status_builder import StatusBuilder
-from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType, ToolCallStatus
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
     AgentMessage,
-    UsageMetrics,
-    ResolvedExecutionContext,
     ContextInfo,
+    ResolvedExecutionContext,
+    UsageMetrics,
 )
+from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType, ToolCallStatus
 
+from worker.activities.graphton.status_builder import StatusBuilder
 
 # =============================================================================
 # Fixtures
@@ -750,7 +749,7 @@ class TestToolCallStatus:
     @pytest.mark.asyncio
     async def test_tool_status_in_messages_list(self, status_builder):
         """Test that tool status is correctly set in messages[].tool_calls."""
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus, MessageType
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType, ToolCallStatus
         
         run_id = "tool-run-msg"
         
@@ -1017,7 +1016,7 @@ class _FakeCommand:
         self.resume = resume
 
 
-class TestExtractToolResultContent_Command:
+class TestExtractToolResultContentCommand:
     """Tests for the LangGraph Command branch of _extract_tool_result_content().
 
     When tools go through the interrupt()/resume approval cycle, the
@@ -1443,7 +1442,6 @@ class TestSubAgentInternals:
     @pytest.mark.asyncio
     async def test_multiple_sub_agents_isolated(self, status_builder):
         """Test that multiple sub-agents have isolated tool_calls and messages."""
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SubAgentStatus
         
         # Start first sub-agent
         await status_builder.process_event({
@@ -2599,8 +2597,8 @@ class TestPlatformToolApprovalDefaults:
     def test_platform_tool_read_no_approval_required(self):
         """Test that 'read' platform tool does not require approval by default."""
         from worker.activities.graphton.approval_policy import (
-            resolve_tool_approval,
             PLATFORM_SERVER_NAME,
+            resolve_tool_approval,
         )
         
         result = resolve_tool_approval(
@@ -2618,8 +2616,8 @@ class TestPlatformToolApprovalDefaults:
     def test_platform_tool_write_requires_approval(self):
         """Test that 'write' platform tool requires approval by default."""
         from worker.activities.graphton.approval_policy import (
-            resolve_tool_approval,
             PLATFORM_SERVER_NAME,
+            resolve_tool_approval,
         )
         
         result = resolve_tool_approval(
@@ -2638,8 +2636,8 @@ class TestPlatformToolApprovalDefaults:
     def test_platform_tool_execute_requires_approval(self):
         """Test that 'execute' platform tool requires approval by default."""
         from worker.activities.graphton.approval_policy import (
-            resolve_tool_approval,
             PLATFORM_SERVER_NAME,
+            resolve_tool_approval,
         )
         
         result = resolve_tool_approval(
@@ -2835,12 +2833,8 @@ class TestToolWaitingApproval:
     @pytest.fixture
     def status_builder_with_approval(self, mock_initial_status):
         """Create StatusBuilder with a tool call already added."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
-            ToolCall, PendingApproval
-        )
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
-            ToolCallStatus, ExecutionPhase
-        )
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ToolCall
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase, ToolCallStatus
         
         mock_initial_status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS
         
@@ -2955,12 +2949,8 @@ class TestToolApprovalDecision:
     @pytest.fixture
     def status_builder_waiting_approval(self, mock_initial_status):
         """Create StatusBuilder with a tool in WAITING_APPROVAL state."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
-            ToolCall, PendingApproval
-        )
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
-            ToolCallStatus, ExecutionPhase
-        )
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval, ToolCall
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase, ToolCallStatus
         
         mock_initial_status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS
         
@@ -3127,12 +3117,8 @@ class TestPhase54ApprovalClearing:
     @pytest.fixture
     def status_builder_with_pending_approval(self, mock_initial_status):
         """Create StatusBuilder with full pending_approvals state."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
-            ToolCall, PendingApproval
-        )
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
-            ToolCallStatus, ExecutionPhase
-        )
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval, ToolCall
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase, ToolCallStatus
         
         mock_initial_status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS
         
@@ -3263,8 +3249,9 @@ class TestToolStartApprovalIntegration:
     @pytest.fixture
     def status_builder_with_approval_config(self, mock_initial_status):
         """Create StatusBuilder with approval config."""
-        from worker.activities.graphton.approval_policy import ApprovalConfig
         from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase
+
+        from worker.activities.graphton.approval_policy import ApprovalConfig
         
         mock_initial_status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS
         
@@ -3289,7 +3276,7 @@ class TestToolStartApprovalIntegration:
     @pytest.mark.asyncio
     async def test_tool_start_creates_waiting_approval_when_required(self, status_builder_with_approval_config):
         """Test that tool requiring approval gets WAITING_APPROVAL status."""
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus, ExecutionPhase
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase, ToolCallStatus
         
         event = {
             "event": "on_tool_start",
@@ -3315,7 +3302,7 @@ class TestToolStartApprovalIntegration:
     @pytest.mark.asyncio
     async def test_tool_start_proceeds_to_running_when_no_approval_required(self, status_builder_with_approval_config):
         """Test that tool not requiring approval gets RUNNING status."""
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus, ExecutionPhase
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase, ToolCallStatus
         
         event = {
             "event": "on_tool_start",
@@ -3338,8 +3325,9 @@ class TestToolStartApprovalIntegration:
     @pytest.mark.asyncio
     async def test_tool_start_skips_approval_when_auto_approve_all(self, mock_initial_status):
         """Test that auto_approve_all bypasses approval requirements."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase, ToolCallStatus
+
         from worker.activities.graphton.approval_policy import ApprovalConfig
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus, ExecutionPhase
         
         mock_initial_status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS
         
@@ -3995,8 +3983,8 @@ class TestResumeFromApprovalDetection:
         """Test that pending_approvals with decision triggers resume."""
         from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
             AgentExecutionStatus,
-            PendingApproval,
             ApprovalAction,
+            PendingApproval,
         )
         
         # Create execution with pending approvals and decision
@@ -4030,8 +4018,8 @@ class TestResumeFromApprovalDetection:
         """Test that pending_approvals without decision logs warning."""
         from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
             AgentExecutionStatus,
-            PendingApproval,
             ApprovalAction,
+            PendingApproval,
         )
         
         # Create execution with pending approvals but NO decision
@@ -4366,8 +4354,8 @@ class TestRunIdAliasResolution:
         """When a duplicate fingerprint is detected after
         populate_fingerprints_from_existing_tool_calls, the new run_id is
         recorded as an alias for the original tool call id."""
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
         from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ToolCall
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
         from google.protobuf.struct_pb2 import Struct
 
         original_run_id = "original-run-001"
@@ -4405,9 +4393,8 @@ class TestRunIdAliasResolution:
     async def test_tool_end_resolves_alias_to_completed(self, mock_initial_status):
         """on_tool_end with a new (aliased) run_id correctly transitions the
         original tool call from RUNNING to COMPLETED."""
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ToolCall, AgentMessage
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage, ToolCall
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType, ToolCallStatus
         from google.protobuf.struct_pb2 import Struct
 
         original_run_id = "orig-run-100"
@@ -4467,8 +4454,8 @@ class TestRunIdAliasResolution:
     async def test_multiple_writes_all_transition_to_completed(self, mock_initial_status):
         """Multiple write tool calls from previous invocations all transition
         to COMPLETED when their resumed on_tool_end events carry new run_ids."""
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
         from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ToolCall
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
         from google.protobuf.struct_pb2 import Struct
 
         files = [
@@ -4530,8 +4517,8 @@ class TestRunIdAliasResolution:
     async def test_tool_progress_resolves_alias(self, mock_initial_status):
         """on_tool_progress with an aliased run_id appends to the correct
         tool call's result."""
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
         from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ToolCall
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
         from google.protobuf.struct_pb2 import Struct
 
         original_run_id = "orig-progress-1"
@@ -4575,8 +4562,8 @@ class TestRunIdAliasResolution:
     async def test_no_alias_when_run_id_matches_existing(self, mock_initial_status):
         """No alias is recorded when the new run_id happens to match the
         existing tool call id (edge case: same run_id across invocations)."""
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
         from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ToolCall
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
         from google.protobuf.struct_pb2 import Struct
 
         same_run_id = "same-run-999"

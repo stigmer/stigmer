@@ -47,7 +47,7 @@ import (
 //	        "is_secret": false,
 //	    },
 //	}
-//	
+//
 //	result, _ := ResolvePlaceholders(
 //	    "Bearer ${.secrets.OPENAI_KEY} in ${.env_vars.ENVIRONMENT}",
 //	    runtimeEnv,
@@ -143,7 +143,7 @@ func ResolvePlaceholders(s string, runtimeEnv map[string]any) (string, error) {
 //	    },
 //	    "region": "${.env_vars.AWS_REGION}",
 //	}
-//	
+//
 //	resolved, _ := ResolveObject(taskConfig, runtimeEnv)
 //	// resolved["endpoint"]["headers"]["Authorization"] = "sk-12345"
 //	// resolved["region"] = "us-east-1"
@@ -201,7 +201,7 @@ func ResolveObject(obj interface{}, runtimeEnv map[string]any) (interface{}, err
 //	    "status": "success",
 //	    "response": "Bearer sk-12345 authenticated", // ❌ Contains secret!
 //	}
-//	
+//
 //	warnings := SanitizeOutput(output, runtimeEnv)
 //	// warnings: ["Output contains secret value for OPENAI_KEY"]
 func SanitizeOutput(output interface{}, runtimeEnv map[string]any) []string {

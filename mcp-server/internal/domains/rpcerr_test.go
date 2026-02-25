@@ -13,10 +13,10 @@ func TestRPCError_gRPCCodes(t *testing.T) {
 	const desc = `agent "reviewer" in org "acme"`
 
 	tests := []struct {
-		name     string
-		code     codes.Code
-		grpcMsg  string
-		wantSub  string // substring that must appear in the returned error
+		name    string
+		code    codes.Code
+		grpcMsg string
+		wantSub string // substring that must appear in the returned error
 	}{
 		{
 			name:    "NotFound",

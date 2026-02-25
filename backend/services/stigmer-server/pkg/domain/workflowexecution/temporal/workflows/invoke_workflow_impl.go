@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/activities"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/activities"
 	"go.temporal.io/sdk/converter"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
@@ -19,9 +19,9 @@ import (
 //
 // The workflow:
 // 1. Executes Zigflow workflow (Go activity)
-//    - During execution, workflow-runner sends progressive status updates via gRPC
-//    - Updates are processed by WorkflowExecutionUpdateHandler (custom status merge logic)
-//    - Final status is returned to workflow for observability
+//   - During execution, workflow-runner sends progressive status updates via gRPC
+//   - Updates are processed by WorkflowExecutionUpdateHandler (custom status merge logic)
+//   - Final status is returned to workflow for observability
 //
 // Status Update Strategy:
 // - Real-time updates: gRPC calls from Go activity to stigmer-server
@@ -64,11 +64,11 @@ func (w *InvokeWorkflowExecutionWorkflowImpl) Run(ctx workflow.Context, executio
 //
 // Orchestrates:
 // 1. Go activity: Execute workflow (on "runner" queue)
-//    - Queries Stigmer for WorkflowExecution → WorkflowInstance → Workflow
-//    - Converts WorkflowSpec proto → YAML (Phase 2 converter)
-//    - Executes via Zigflow engine
-//    - Sends progressive status updates via gRPC
-//    - Returns final status for Temporal observability
+//   - Queries Stigmer for WorkflowExecution → WorkflowInstance → Workflow
+//   - Converts WorkflowSpec proto → YAML (Phase 2 converter)
+//   - Executes via Zigflow engine
+//   - Sends progressive status updates via gRPC
+//   - Returns final status for Temporal observability
 func (w *InvokeWorkflowExecutionWorkflowImpl) executeWorkflowFlow(ctx workflow.Context, execution *workflowexecutionv1.WorkflowExecution) error {
 	logger := workflow.GetLogger(ctx)
 

@@ -54,7 +54,7 @@ func GetKindEnum(msg proto.Message) (apiresourcekind.ApiResourceKind, error) {
 func GetKindMeta(kind apiresourcekind.ApiResourceKind) (*apiresourcekind.ApiResourceKindMeta, error) {
 	// Get the enum descriptor
 	enumDesc := kind.Descriptor()
-	
+
 	// Get the value descriptor for the specific enum value
 	valueDesc := enumDesc.Values().ByNumber(protoreflect.EnumNumber(kind))
 	if valueDesc == nil {

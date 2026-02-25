@@ -16,18 +16,18 @@ Test Categories:
 5. Utility Function Tests - URI masking
 """
 
-import pytest
 from contextlib import asynccontextmanager
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
-from worker.config import CheckpointerConfig
+import pytest
+
 from worker.checkpointer.factory import (
     CheckpointerCreationError,
-    create_checkpointer,
     _create_memory_checkpointer,
     _mask_mongodb_uri,
+    create_checkpointer,
 )
-
+from worker.config import CheckpointerConfig
 
 # =============================================================================
 # Fixtures

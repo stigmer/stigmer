@@ -29,22 +29,22 @@ func TrimColorizedString(s string, maxWidth int) string {
 	// First, let's handle the ANSI codes properly
 	result := strings.Builder{}
 	result.Grow(len(s))
-	
+
 	width := 0
 	inANSI := false
-	
+
 	graphemes := uniseg.NewGraphemes(s)
 	for graphemes.Next() {
 		runes := graphemes.Runes()
 		str := string(runes)
-		
+
 		// Check if this is an ANSI escape sequence
 		if strings.HasPrefix(str, "\x1b[") {
 			inANSI = true
 			result.WriteString(str)
 			continue
 		}
-		
+
 		if inANSI {
 			result.WriteString(str)
 			if strings.HasSuffix(str, "m") {
@@ -52,17 +52,17 @@ func TrimColorizedString(s string, maxWidth int) string {
 			}
 			continue
 		}
-		
+
 		// Check if adding this grapheme would exceed maxWidth
 		graphemeWidth := graphemes.Width()
 		if width+graphemeWidth > maxWidth {
 			break
 		}
-		
+
 		result.WriteString(str)
 		width += graphemeWidth
 	}
-	
+
 	return result.String()
 }
 
@@ -71,7 +71,7 @@ func TrimColorizedString(s string, maxWidth int) string {
 func stripANSI(s string) string {
 	result := strings.Builder{}
 	result.Grow(len(s))
-	
+
 	inEscape := false
 	for i := 0; i < len(s); i++ {
 		if s[i] == '\x1b' && i+1 < len(s) && s[i+1] == '[' {
@@ -79,17 +79,17 @@ func stripANSI(s string) string {
 			i++ // Skip '['
 			continue
 		}
-		
+
 		if inEscape {
 			if s[i] == 'm' {
 				inEscape = false
 			}
 			continue
 		}
-		
+
 		result.WriteByte(s[i])
 	}
-	
+
 	return result.String()
 }
 
@@ -100,7 +100,7 @@ func PadRight(s string, targetWidth int) string {
 	if currentWidth >= targetWidth {
 		return s
 	}
-	
+
 	padding := strings.Repeat(" ", targetWidth-currentWidth)
 	return s + padding
 }

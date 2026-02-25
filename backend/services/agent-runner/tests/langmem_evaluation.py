@@ -31,26 +31,26 @@ Environment Variables:
 
 import os
 import time
-import pytest
 from dataclasses import dataclass, field
 from statistics import mean, stdev
-from typing import Any, Optional
-from unittest.mock import MagicMock, patch
+from typing import Any
+from unittest.mock import MagicMock
 
+import pytest
 from langchain_core.messages import (
-    HumanMessage,
     AIMessage,
+    AnyMessage,
+    HumanMessage,
     SystemMessage,
     ToolMessage,
-    AnyMessage,
 )
 
 # Fixtures import
 from .fixtures import (
-    ConversationFactory,
     CRITICAL_FACTS,
-    create_database_conversation,
+    ConversationFactory,
     create_api_integration_conversation,
+    create_database_conversation,
     create_infrastructure_conversation,
     create_tool_heavy_conversation,
 )
@@ -300,9 +300,9 @@ class EvaluationReport:
     go/no-go recommendation based on all criteria.
     """
     quality_results: list[QualityResult] = field(default_factory=list)
-    latency_result: Optional[LatencyResult] = None
-    multi_cycle_result: Optional[MultiCycleResult] = None
-    tool_handling_result: Optional[ToolHandlingResult] = None
+    latency_result: LatencyResult | None = None
+    multi_cycle_result: MultiCycleResult | None = None
+    tool_handling_result: ToolHandlingResult | None = None
     
     @property
     def quality_passed(self) -> bool:
@@ -795,7 +795,7 @@ class TestMultiCycleSummarization:
     def test_four_cycle_stability(self):
         """Running summary should remain stable over 4 cycles."""
         try:
-            from langmem.short_term import summarize_messages, RunningSummary
+            from langmem.short_term import summarize_messages
         except ImportError:
             pytest.skip("langmem not installed")
         
@@ -977,7 +977,7 @@ class TestModelRegistryIntegration:
     def test_model_registry_selects_economy_summarization_model(self):
         """Model Registry should select economy-tier model for summarization."""
         try:
-            from graphton.core import ModelRegistry, CostTier
+            from graphton.core import CostTier, ModelRegistry
         except ImportError:
             pytest.skip("graphton not installed")
         
@@ -1106,8 +1106,8 @@ def test_full_evaluation_suite():
     comprehensive report with GO/NO-GO recommendation.
     """
     try:
-        from langmem.short_term import summarize_messages
-        from graphton.core import ModelRegistry
+        from graphton.core import ModelRegistry  # noqa: F401
+        from langmem.short_term import summarize_messages  # noqa: F401
     except ImportError:
         pytest.skip("Required packages not installed")
     

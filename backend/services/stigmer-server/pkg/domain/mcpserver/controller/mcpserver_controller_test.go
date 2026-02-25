@@ -76,41 +76,6 @@ func createTestMcpServerWithHttp(name string) *mcpserverv1.McpServer {
 	}
 }
 
-// createTestMcpServerWithDocker creates a valid McpServer proto with Docker config.
-func createTestMcpServerWithDocker(name string) *mcpserverv1.McpServer {
-	return &mcpserverv1.McpServer{
-		ApiVersion: "agentic.stigmer.ai/v1",
-		Kind:       "McpServer",
-		Metadata: &apiresource.ApiResourceMetadata{
-			Name: name,
-			Org:  "test-org",
-		},
-		Spec: &mcpserverv1.McpServerSpec{
-			Description: "Docker-based MCP server",
-			ServerType: &mcpserverv1.McpServerSpec_Docker{
-				Docker: &mcpserverv1.DockerServerConfig{
-					Image: "ghcr.io/example/mcp-server:latest",
-					Args:  []string{"--verbose"},
-					Volumes: []*mcpserverv1.VolumeMount{
-						{
-							HostPath:      "/data",
-							ContainerPath: "/app/data",
-							ReadOnly:      false,
-						},
-					},
-					Ports: []*mcpserverv1.PortMapping{
-						{
-							HostPort:      8080,
-							ContainerPort: 80,
-							Protocol:      "tcp",
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
 func TestMcpServerController_Create(t *testing.T) {
 	controller, store := setupTestController(t)
 	defer store.Close()
@@ -199,45 +164,6 @@ func TestMcpServerController_Create(t *testing.T) {
 		}
 	})
 
-	t.Run("successful creation with docker config", func(t *testing.T) {
-		mcpServer := createTestMcpServerWithDocker("Docker MCP Server")
-
-		created, err := controller.Create(contextWithMcpServerKind(), mcpServer)
-		if err != nil {
-			t.Fatalf("Create failed: %v", err)
-		}
-
-		if created.Metadata.Id == "" {
-			t.Error("Expected ID to be set")
-		}
-
-		if created.Metadata.Slug != "docker-mcp-server" {
-			t.Errorf("Expected slug 'docker-mcp-server', got '%s'", created.Metadata.Slug)
-		}
-
-		// Verify docker config is preserved
-		dockerConfig := created.Spec.GetDocker()
-		if dockerConfig == nil {
-			t.Error("Expected docker config to be set")
-		}
-
-		if dockerConfig.Image != "ghcr.io/example/mcp-server:latest" {
-			t.Errorf("Expected image 'ghcr.io/example/mcp-server:latest', got '%s'", dockerConfig.Image)
-		}
-
-		if len(dockerConfig.Volumes) != 1 {
-			t.Errorf("Expected 1 volume mount, got %d", len(dockerConfig.Volumes))
-		}
-
-		if len(dockerConfig.Ports) != 1 {
-			t.Errorf("Expected 1 port mapping, got %d", len(dockerConfig.Ports))
-		}
-
-		if dockerConfig.Ports[0].HostPort != 8080 {
-			t.Errorf("Expected host port 8080, got %d", dockerConfig.Ports[0].HostPort)
-		}
-	})
-
 	t.Run("validation error - missing metadata", func(t *testing.T) {
 		mcpServer := &mcpserverv1.McpServer{
 			ApiVersion: "agentic.stigmer.ai/v1",
@@ -320,30 +246,6 @@ func TestMcpServerController_Create(t *testing.T) {
 		_, err := controller.Create(contextWithMcpServerKind(), mcpServer)
 		if err == nil {
 			t.Error("Expected error for empty stdio command")
-		}
-	})
-
-	t.Run("validation error - docker missing image", func(t *testing.T) {
-		mcpServer := &mcpserverv1.McpServer{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "McpServer",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name: "Invalid Docker Server",
-				Org:  "test-org",
-			},
-			Spec: &mcpserverv1.McpServerSpec{
-				Description: "Test description",
-				ServerType: &mcpserverv1.McpServerSpec_Docker{
-					Docker: &mcpserverv1.DockerServerConfig{
-						Image: "", // Empty image - should fail
-					},
-				},
-			},
-		}
-
-		_, err := controller.Create(contextWithMcpServerKind(), mcpServer)
-		if err == nil {
-			t.Error("Expected error for empty docker image")
 		}
 	})
 

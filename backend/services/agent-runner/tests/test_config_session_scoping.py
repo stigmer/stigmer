@@ -4,13 +4,11 @@ Covers T01 changes: the ``session_id`` parameter that scopes local-mode
 workspace roots to ``{SANDBOX_ROOT_DIR}/sessions/{session_id}/``.
 """
 
-import os
 from pathlib import Path
 
 import pytest
 
 from worker.config import CheckpointerConfig, Config, ExecutionMode, LLMConfig
-
 
 # ---------------------------------------------------------------------------
 # Helpers

@@ -6,12 +6,9 @@ sandbox.
 """
 
 import logging
-
-import pytest
 from unittest.mock import MagicMock
 
 from worker.activities.execute_graphton import _check_workspace_file_exists
-
 
 # ---------------------------------------------------------------------------
 # Helpers

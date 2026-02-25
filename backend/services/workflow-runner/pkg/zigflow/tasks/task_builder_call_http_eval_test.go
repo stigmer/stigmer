@@ -20,8 +20,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
 	"github.com/serverlessworkflow/sdk-go/v3/model"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -29,11 +29,11 @@ import (
 // TestEvaluateEndpoint tests the evaluateEndpoint function with various endpoint types
 func TestEvaluateEndpoint(t *testing.T) {
 	tests := []struct {
-		name           string
-		setupEndpoint  func() *model.Endpoint
-		stateData      map[string]interface{}
-		expectedURI    string
-		expectError    bool
+		name          string
+		setupEndpoint func() *model.Endpoint
+		stateData     map[string]interface{}
+		expectedURI   string
+		expectError   bool
 	}{
 		{
 			name: "RuntimeExpression in EndpointConfig - simple variable from context",
@@ -214,8 +214,8 @@ func TestEvaluateHTTPTaskExpressions(t *testing.T) {
 				}
 			},
 			stateData: map[string]interface{}{
-				"searchTerm":  "golang",
-				"maxResults":  10,
+				"searchTerm": "golang",
+				"maxResults": 10,
 			},
 			validate: func(t *testing.T, task *model.CallHTTP) {
 				assert.Equal(t, "golang", task.With.Query["q"])
@@ -292,14 +292,14 @@ func TestEvaluateHTTPTaskExpressions(t *testing.T) {
 			validate: func(t *testing.T, task *model.CallHTTP) {
 				// Validate endpoint
 				assert.Equal(t, "https://notifications.example.com/notifications", task.With.Endpoint.String())
-				
+
 				// Validate headers
 				assert.Equal(t, "Bearer token-xyz", task.With.Headers["Authorization"])
 				assert.Equal(t, "application/json", task.With.Headers["Content-Type"])
-				
+
 				// Validate query
 				assert.Equal(t, "high", task.With.Query["priority"])
-				
+
 				// Validate body
 				var body map[string]interface{}
 				err := json.Unmarshal(task.With.Body, &body)
@@ -458,7 +458,7 @@ func TestEvaluateHTTPTaskExpressions_ErrorCases(t *testing.T) {
 						Method:   "GET",
 						Endpoint: model.NewEndpoint("https://api.example.com"),
 						Headers: map[string]string{
-							"Authorization": "${ $context.token + }",  // Invalid syntax
+							"Authorization": "${ $context.token + }", // Invalid syntax
 						},
 					},
 				}

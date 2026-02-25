@@ -1,9 +1,10 @@
 """Shared pytest fixtures for agent-runner tests."""
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock
-import zipfile
 import io
+import zipfile
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 
 @pytest.fixture

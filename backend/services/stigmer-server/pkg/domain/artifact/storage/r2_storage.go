@@ -15,9 +15,9 @@ import (
 
 // R2Storage implements ArtifactStorage using Cloudflare R2 (S3-compatible).
 type R2Storage struct {
-	client       *s3.Client
+	client        *s3.Client
 	presignClient *s3.PresignClient
-	bucket       string
+	bucket        string
 }
 
 // NewR2Storage creates Cloudflare R2-backed artifact storage.
@@ -70,9 +70,9 @@ func NewR2Storage(ctx context.Context, cfg Config) (*R2Storage, error) {
 	presignClient := s3.NewPresignClient(client)
 
 	return &R2Storage{
-		client:       client,
+		client:        client,
 		presignClient: presignClient,
-		bucket:       cfg.R2Bucket,
+		bucket:        cfg.R2Bucket,
 	}, nil
 }
 
@@ -189,17 +189,17 @@ func isNotFoundError(err error) bool {
 		return false
 	}
 	// AWS SDK v2 error checking
-	return err.Error() == "NotFound" || 
-		   err.Error() == "NoSuchKey" ||
-		   contains(err.Error(), "404") ||
-		   contains(err.Error(), "not found")
+	return err.Error() == "NotFound" ||
+		err.Error() == "NoSuchKey" ||
+		contains(err.Error(), "404") ||
+		contains(err.Error(), "not found")
 }
 
 // contains is a simple helper to check if a string contains a substring.
 func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || 
-		(len(s) > len(substr) && (s[:len(substr)] == substr || s[len(s)-len(substr):] == substr || 
-		findSubstring(s, substr))))
+	return len(s) >= len(substr) && (s == substr ||
+		(len(s) > len(substr) && (s[:len(substr)] == substr || s[len(s)-len(substr):] == substr ||
+			findSubstring(s, substr))))
 }
 
 func findSubstring(s, substr string) bool {

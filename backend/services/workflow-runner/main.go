@@ -21,11 +21,11 @@ import (
 	"os"
 	"runtime/debug"
 
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/env"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/worker"
 	workerConfig "github.com/stigmer/stigmer/backend/services/workflow-runner/worker/config"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
 func main() {

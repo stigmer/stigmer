@@ -26,7 +26,6 @@ go_test(
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
         "//apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks",
-        "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//backend/services/workflow-runner/pkg/validation",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",

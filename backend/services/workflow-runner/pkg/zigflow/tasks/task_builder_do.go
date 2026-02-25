@@ -19,13 +19,13 @@ package tasks
 import (
 	"fmt"
 
+	"github.com/rs/zerolog/log"
+	swUtil "github.com/serverlessworkflow/sdk-go/v3/impl/utils"
+	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/claimcheck"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/types"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow/metadata"
-	"github.com/rs/zerolog/log"
-	swUtil "github.com/serverlessworkflow/sdk-go/v3/impl/utils"
-	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"
@@ -475,7 +475,7 @@ func (t *DoTaskBuilder) runTask(ctx workflow.Context, task workflowFunc, input a
 	if claimcheck.IsEnabled() {
 		logger.Debug("Claim Check enabled - checking state data size after step",
 			"task", task.Name)
-		
+
 		if err := t.maybeOffloadStateData(ctx, state); err != nil {
 			logger.Warn("Failed to offload state data after step, continuing",
 				"task", task.Name,
@@ -537,7 +537,7 @@ func (t *DoTaskBuilder) shouldSkip(taskID string, task workflowFunc, state *util
 // This prevents large data between steps from exceeding Temporal's activity input limits
 func (t *DoTaskBuilder) maybeOffloadStateData(ctx workflow.Context, state *utils.State) error {
 	logger := workflow.GetLogger(ctx)
-	
+
 	mgr := claimcheck.GetGlobalManager()
 	if mgr == nil {
 		logger.Debug("Claim check manager not available")

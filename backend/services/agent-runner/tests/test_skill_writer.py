@@ -1,14 +1,15 @@
 """Unit tests for SkillWriter class."""
 
-import pytest
-from unittest.mock import MagicMock, patch
+import io
 import os
 import stat
 import tempfile
 import zipfile
-import io
+from unittest.mock import MagicMock
 
+import pytest
 from graphton.core.backends.filesystem import FilesystemBackend
+
 from worker.activities.graphton.skill_writer import SkillWriter
 
 
@@ -45,12 +46,9 @@ class TestSkillWriterExtractArtifactLocal:
             # Assert - scripts are executable
             sh_path = os.path.join(tmpdir, "run.sh")
             py_path = os.path.join(tmpdir, "main.py")
-            json_path = os.path.join(tmpdir, "config.json")
             
             sh_mode = os.stat(sh_path).st_mode
             py_mode = os.stat(py_path).st_mode
-            json_mode = os.stat(json_path).st_mode
-            
             # Shell script should be executable
             assert sh_mode & stat.S_IXUSR, "run.sh should be executable"
             assert sh_mode & stat.S_IXGRP, "run.sh should be group executable"
@@ -100,7 +98,7 @@ class TestSkillWriterExtractArtifactLocal:
         
         # Create empty ZIP
         buffer = io.BytesIO()
-        with zipfile.ZipFile(buffer, 'w') as zf:
+        with zipfile.ZipFile(buffer, 'w'):
             pass  # Empty ZIP
         empty_zip = buffer.getvalue()
         
@@ -322,7 +320,7 @@ class TestSkillWriterDaytona:
         writer = SkillWriter(sandbox=mock_sandbox)
         
         # Act
-        result = writer.write_skills([mock_skill])
+        writer.write_skills([mock_skill])
         
         # Assert - mkdir was called for base and skill directories
         mkdir_calls = [
@@ -361,7 +359,7 @@ class TestSkillWriterDaytona:
         artifacts = {mock_skill.metadata.id: sample_artifact_zip}
         
         # Act
-        result = writer.write_skills([mock_skill], artifacts=artifacts)
+        writer.write_skills([mock_skill], artifacts=artifacts)
         
         # Assert - unzip command was called with workspace-prefixed path
         exec_calls = [str(call) for call in mock_sandbox.process.exec.call_args_list]

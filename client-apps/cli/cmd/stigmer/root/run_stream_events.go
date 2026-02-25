@@ -42,9 +42,9 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 		inStream         bool
 		lastPhase        agentexecutionv1.ExecutionPhase
 		promptedIDs      = make(map[string]bool)
-		toolCallStates   = make(map[string]string)            // toolCallID -> last known status string
-		toolCallResults  = make(map[string]string)            // toolCallID -> last known result content (for streaming delta detection)
-		subAgentTrackers = make(map[string]*subAgentTracker)  // subAgentID -> per-sub-agent state
+		toolCallStates   = make(map[string]string)           // toolCallID -> last known status string
+		toolCallResults  = make(map[string]string)           // toolCallID -> last known result content (for streaming delta detection)
+		subAgentTrackers = make(map[string]*subAgentTracker) // subAgentID -> per-sub-agent state
 		prevTodos        = make(map[string]todoFingerprint)  // todoID -> {content, status} for change detection
 	)
 

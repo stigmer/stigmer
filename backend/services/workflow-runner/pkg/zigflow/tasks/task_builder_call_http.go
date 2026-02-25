@@ -20,8 +20,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
 	"github.com/serverlessworkflow/sdk-go/v3/model"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"
 )
@@ -140,24 +140,24 @@ func evaluateEndpoint(endpoint *model.Endpoint, state *utils.State) error {
 	// Check if endpoint has a RuntimeExpression in EndpointConfig
 	if endpoint.EndpointConfig != nil && endpoint.EndpointConfig.RuntimeExpression != nil {
 		expr := endpoint.EndpointConfig.RuntimeExpression.String()
-		
+
 		// Evaluate the expression
 		result, err := utils.EvaluateString(expr, nil, state)
 		if err != nil {
 			return err
 		}
-		
+
 		// Check if result is nil
 		if result == nil {
 			return fmt.Errorf("expression evaluation returned nil for: %s", expr)
 		}
-		
+
 		// Convert result to string
 		resultStr, ok := result.(string)
 		if !ok {
 			return fmt.Errorf("expression evaluation returned non-string type %T for: %s", result, expr)
 		}
-		
+
 		// Replace endpoint with evaluated static URI
 		// This avoids unmarshaling issues by using SDK's constructor
 		*endpoint = *model.NewEndpoint(resultStr)
@@ -173,18 +173,18 @@ func evaluateEndpoint(endpoint *model.Endpoint, state *utils.State) error {
 			if err != nil {
 				return err
 			}
-			
+
 			// Check if result is nil
 			if result == nil {
 				return fmt.Errorf("expression evaluation returned nil for: %s", uri)
 			}
-			
+
 			// Convert result to string
 			resultStr, ok := result.(string)
 			if !ok {
 				return fmt.Errorf("expression evaluation returned non-string type %T for: %s", result, uri)
 			}
-			
+
 			// Replace with evaluated static URI
 			*endpoint = *model.NewEndpoint(resultStr)
 			return nil

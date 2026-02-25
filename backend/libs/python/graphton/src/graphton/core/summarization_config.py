@@ -79,7 +79,7 @@ class SummarizationConfig:
     target_tokens: int
     max_summary_tokens: int
     summarization_model: str
-    token_counter_method: "TokenCounterMethod"
+    token_counter_method: TokenCounterMethod
     
     @classmethod
     def for_model(
