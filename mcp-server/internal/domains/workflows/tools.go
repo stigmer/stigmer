@@ -16,8 +16,8 @@ import (
 
 // GetWorkflowInput defines the parameters for the "get_workflow" tool.
 type GetWorkflowInput struct {
-	Org  string `json:"org"  jsonschema:"required,description=Organization slug that owns the workflow."`
-	Slug string `json:"slug" jsonschema:"required,description=Workflow slug — unique identifier within the org."`
+	Org  string `json:"org"  jsonschema:"Organization slug that owns the workflow."`
+	Slug string `json:"slug" jsonschema:"Workflow slug — unique identifier within the org."`
 }
 
 // Tool returns the MCP tool definition for registration.
@@ -66,8 +66,8 @@ func ApplyHandler(serverAddress string) func(context.Context, *mcp.CallToolReque
 
 // DeleteWorkflowInput defines the parameters for the "delete_workflow" tool.
 type DeleteWorkflowInput struct {
-	Org  string `json:"org"  jsonschema:"required,description=Organization slug that owns the workflow."`
-	Slug string `json:"slug" jsonschema:"required,description=Workflow slug — unique identifier within the org."`
+	Org  string `json:"org"  jsonschema:"Organization slug that owns the workflow."`
+	Slug string `json:"slug" jsonschema:"Workflow slug — unique identifier within the org."`
 }
 
 // DeleteTool returns the MCP tool definition for the delete_workflow tool.

@@ -39,24 +39,24 @@ type SearchInput struct {
 	// Kinds restricts results to specific resource types.
 	// Valid values: "agent", "skill", "mcp_server", "workflow".
 	// Empty means search across all searchable kinds (discover mode).
-	Kinds []string `json:"kinds,omitempty" jsonschema:"description=Resource kinds to search. Valid: agent, skill, mcp_server, workflow. Empty searches all."`
+	Kinds []string `json:"kinds,omitempty" jsonschema:"Resource kinds to search. Valid: agent, skill, mcp_server, workflow. Empty searches all."`
 
 	// Query is a free-text search string. Empty returns all accessible
 	// resources (list mode).
-	Query string `json:"query,omitempty" jsonschema:"description=Full-text search query. Empty lists all accessible resources."`
+	Query string `json:"query,omitempty" jsonschema:"Full-text search query. Empty lists all accessible resources."`
 
 	// Org scopes results to a single organization. Empty searches across
 	// all organizations the caller has access to.
-	Org string `json:"org,omitempty" jsonschema:"description=Organization slug to scope the search. Empty searches all accessible orgs."`
+	Org string `json:"org,omitempty" jsonschema:"Organization slug to scope the search. Empty searches all accessible orgs."`
 
 	// ExcludePublic, when true, hides platform-provided public resources.
-	ExcludePublic bool `json:"exclude_public,omitempty" jsonschema:"description=Exclude public/platform resources from results."`
+	ExcludePublic bool `json:"exclude_public,omitempty" jsonschema:"Exclude public/platform resources from results."`
 
 	// PageSize controls how many results per page (default 20, max 100).
-	PageSize int32 `json:"page_size,omitempty" jsonschema:"description=Results per page (default 20, max 100)."`
+	PageSize int32 `json:"page_size,omitempty" jsonschema:"Results per page (default 20, max 100)."`
 
 	// PageNum selects which page to return (1-indexed, default 1).
-	PageNum int32 `json:"page_num,omitempty" jsonschema:"description=Page number (1-indexed, default 1)."`
+	PageNum int32 `json:"page_num,omitempty" jsonschema:"Page number (1-indexed, default 1)."`
 }
 
 // Tool returns the MCP tool definition for registration with the server.

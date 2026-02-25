@@ -217,7 +217,9 @@ protos-release: ## Release protos to Buf and create Git tag (usage: make protos-
 	\
 	echo "Creating release tag: $$NEW_TAG"; \
 	git tag -a "$$NEW_TAG" -m "Release $$NEW_TAG"; \
-	git push origin "$$NEW_TAG"; \
+	echo "Creating MCP server sub-module tag: mcp-server/$$NEW_TAG"; \
+	git tag -a "mcp-server/$$NEW_TAG" -m "Release mcp-server $$NEW_TAG"; \
+	git push origin "$$NEW_TAG" "mcp-server/$$NEW_TAG"; \
 	echo ""
 	@echo "============================================"
 	@echo "✓ Proto Release Complete!"
@@ -226,7 +228,8 @@ protos-release: ## Release protos to Buf and create Git tag (usage: make protos-
 	@echo "Summary:"
 	@echo "  • Protos: Published to buf.build/stigmer/stigmer"
 	@LATEST_TAG=$$(git tag -l "v*" | sort -V | tail -n1); \
-	echo "  • Git Tag: $$LATEST_TAG"
+	echo "  • Git Tag: $$LATEST_TAG"; \
+	echo "  • MCP Server Tag: mcp-server/$$LATEST_TAG"
 	@echo ""
 
 release: ## Create and push release tag (usage: make release [bump=patch|minor|major])
@@ -281,15 +284,18 @@ release: ## Create and push release tag (usage: make release [bump=patch|minor|m
 	\
 	echo "Creating release tag: $$NEW_TAG"; \
 	git tag -a "$$NEW_TAG" -m "Release $$NEW_TAG"; \
-	git push origin "$$NEW_TAG"; \
+	echo "Creating MCP server sub-module tag: mcp-server/$$NEW_TAG"; \
+	git tag -a "mcp-server/$$NEW_TAG" -m "Release mcp-server $$NEW_TAG"; \
+	git push origin "$$NEW_TAG" "mcp-server/$$NEW_TAG"; \
 	echo ""
 	@echo "============================================"
-	@echo "✓ Release Tag Created!"
+	@echo "✓ Release Tags Created!"
 	@echo "============================================"
 	@echo ""
 	@echo "Summary:"
 	@LATEST_TAG=$$(git tag -l "v*" | sort -V | tail -n1); \
-	echo "  • Git Tag: $$LATEST_TAG pushed to origin"
+	echo "  • Git Tag: $$LATEST_TAG pushed to origin"; \
+	echo "  • MCP Server Tag: mcp-server/$$LATEST_TAG pushed to origin"
 	@echo "  • GitHub Actions will now build and publish release"
 	@echo "  • Release URL: https://github.com/stigmer/stigmer/releases/tag/$$LATEST_TAG"
 	@echo ""
