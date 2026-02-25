@@ -18,7 +18,7 @@ import (
 // Config without importing internal packages.
 type Config struct {
 	// StigmerServerAddress is the gRPC dial target for stigmer-server
-	// (e.g. "localhost:9090" or "api.stigmer.ai:443").
+	// (e.g. "localhost:7234" or "api.stigmer.ai:443").
 	StigmerServerAddress string
 
 	// APIKey authenticates calls to stigmer-server. Required when Transport
@@ -48,7 +48,7 @@ type Config struct {
 //
 // Environment variables (see internal/config for the full list):
 //
-//	STIGMER_SERVER_ADDRESS        – gRPC address (default "localhost:9090")
+//	STIGMER_SERVER_ADDRESS        – gRPC address (default "localhost:7234")
 //	STIGMER_API_KEY               – API key (required for stdio/both)
 //	STIGMER_MCP_TRANSPORT         – "stdio" | "http" | "both" (default "stdio")
 //	STIGMER_MCP_HTTP_PORT         – HTTP listen port (default "8080")

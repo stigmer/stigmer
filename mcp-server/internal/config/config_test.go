@@ -32,8 +32,8 @@ func TestLoadFromEnv_defaults(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if cfg.StigmerServerAddress != "localhost:9090" {
-		t.Errorf("StigmerServerAddress = %q, want %q", cfg.StigmerServerAddress, "localhost:9090")
+	if cfg.StigmerServerAddress != "localhost:7234" {
+		t.Errorf("StigmerServerAddress = %q, want %q", cfg.StigmerServerAddress, "localhost:7234")
 	}
 	if cfg.Transport != TransportStdio {
 		t.Errorf("Transport = %q, want %q", cfg.Transport, TransportStdio)
@@ -170,7 +170,7 @@ func TestLoadFromEnv_emptyServerAddress(t *testing.T) {
 	t.Setenv("STIGMER_SERVER_ADDRESS", "")
 	t.Setenv("STIGMER_MCP_TRANSPORT", "http")
 
-	// envOr returns the fallback "localhost:9090" when the var is empty, so
+	// envOr returns the fallback "localhost:7234" when the var is empty, so
 	// the only way to trigger the "must not be empty" validation is if
 	// someone bypasses envOr. With the current implementation, setting the
 	// env var to empty uses the fallback, so this should succeed.
@@ -178,8 +178,8 @@ func TestLoadFromEnv_emptyServerAddress(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if cfg.StigmerServerAddress != "localhost:9090" {
-		t.Errorf("StigmerServerAddress = %q, want fallback %q", cfg.StigmerServerAddress, "localhost:9090")
+	if cfg.StigmerServerAddress != "localhost:7234" {
+		t.Errorf("StigmerServerAddress = %q, want fallback %q", cfg.StigmerServerAddress, "localhost:7234")
 	}
 }
 
@@ -226,7 +226,7 @@ func TestValidate_directCall(t *testing.T) {
 	t.Run("valid minimal http config", func(t *testing.T) {
 		c := &Config{
 			Transport:            TransportHTTP,
-			StigmerServerAddress: "localhost:9090",
+			StigmerServerAddress: "localhost:7234",
 			LogFormat:            LogFormatText,
 		}
 		if err := c.Validate(); err != nil {

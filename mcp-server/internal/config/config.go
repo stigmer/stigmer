@@ -42,7 +42,7 @@ const (
 // Config holds all runtime configuration.
 type Config struct {
 	// StigmerServerAddress is the gRPC dial target for stigmer-server
-	// (e.g. "localhost:9090" or "api.stigmer.ai:443").
+	// (e.g. "localhost:7234" or "api.stigmer.ai:443").
 	StigmerServerAddress string
 
 	// APIKey optionally authenticates the MCP server's calls to stigmer-server.
@@ -74,7 +74,7 @@ type Config struct {
 //
 // Environment variables:
 //
-//	STIGMER_SERVER_ADDRESS        – gRPC address (default "localhost:9090")
+//	STIGMER_SERVER_ADDRESS        – gRPC address (default "localhost:7234")
 //	STIGMER_API_KEY               – API key (optional; required only for authenticated backends)
 //	STIGMER_MCP_TRANSPORT         – "stdio" | "http" | "both" (default "stdio")
 //	STIGMER_MCP_HTTP_PORT         – HTTP listen port (default "8080")
@@ -88,7 +88,7 @@ func LoadFromEnv() (*Config, error) {
 	}
 
 	cfg := &Config{
-		StigmerServerAddress: envOr("STIGMER_SERVER_ADDRESS", "localhost:9090"),
+		StigmerServerAddress: envOr("STIGMER_SERVER_ADDRESS", "localhost:7234"),
 		APIKey:               os.Getenv("STIGMER_API_KEY"),
 		Transport:            Transport(strings.ToLower(envOr("STIGMER_MCP_TRANSPORT", "stdio"))),
 		HTTPPort:             envOr("STIGMER_MCP_HTTP_PORT", "8080"),
