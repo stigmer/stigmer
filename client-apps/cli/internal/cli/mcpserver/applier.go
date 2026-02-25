@@ -120,24 +120,3 @@ func displayMcpServerSummary(mcpServer *mcpserverv1.McpServer) {
 	fmt.Println()
 }
 
-// DisplayApplyResult displays the result of an apply operation
-func DisplayApplyResult(result *ApplyResult) {
-	fmt.Println()
-	if result.Created {
-		cliprint.PrintSuccess("MCP server created successfully")
-	} else {
-		cliprint.PrintSuccess("MCP server updated successfully")
-	}
-
-	fmt.Println()
-	cliprint.PrintInfo("Resource Details:")
-	cliprint.PrintInfo("  ID:   %s", result.McpServer.Metadata.Id)
-	cliprint.PrintInfo("  Name: %s", result.McpServer.Metadata.Name)
-	cliprint.PrintInfo("  Slug: %s", result.McpServer.Metadata.Slug)
-
-	fmt.Println()
-	cliprint.PrintInfo("Next steps:")
-	cliprint.PrintInfo("  - View details:  stigmer mcpserver get %s", result.McpServer.Metadata.Slug)
-	cliprint.PrintInfo("  - Delete:        stigmer mcpserver delete %s", result.McpServer.Metadata.Slug)
-	fmt.Println()
-}

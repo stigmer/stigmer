@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-26 02:27
-**Current Task**: Phase 3.3 or Design Decision (see Next Steps)
-**Status**: In Progress - Phase 1, Phase 2, Phase 3.1, and Phase 3.2 Complete
+**Current Task**: Design Decision or Phase 4 (see Next Steps)
+**Status**: In Progress - Phase 1, Phase 2, Phase 3.1, Phase 3.2, and Phase 3.3 Complete
 
 ## Session Progress (2026-02-26)
 
@@ -200,6 +200,42 @@ Modified:
   client-apps/cli/cmd/stigmer/root/BUILD.bazel         (+4 srcs)
 ```
 
+### Completed: Phase 3.3 - Migrate Apply Commands to CommandResult
+
+- Migrated apply command output (both project mode and file mode) to CommandResult + Renderer
+- Split `apply.go` (484 lines) + `apply_file.go` (282 lines) into 4 focused files:
+  - `apply.go` (156 lines): Command definition, options, resolveApplyOrganization, runtime helpers
+  - `apply_project.go` (250 lines): executeProjectApply, 5 CommandResult builder functions
+  - `apply_file.go` (181 lines): fileApplyContext struct, executeFileApply, file scanning/detection
+  - `apply_file_handlers.go` (221 lines): Per-resource handlers with 6 CommandResult builders
+- Introduced `fileApplyContext` struct (following `deleteContext` pattern) to bundle handler dependencies
+- Multi-step output: CommandResult for structured results, `fmt.Fprintf(os.Stderr, ...)` for ephemeral progress
+- Replaced `display.ApplyResultTable.RenderDryRun()` with CommandResult items (eliminates emoji violations)
+- Removed 7 dead display functions from 5 internal packages
+- Removed associated tests for deleted functions
+- Zero `cliprint` imports in apply_project.go, apply_file.go, apply_file_handlers.go
+- `go build`, `go vet`, all tests passing
+
+### Files Created/Modified (Phase 3.3)
+
+```
+Created:
+  client-apps/cli/cmd/stigmer/root/apply_project.go       (250 lines, new)
+  client-apps/cli/cmd/stigmer/root/apply_file_handlers.go  (221 lines, new)
+
+Modified:
+  client-apps/cli/cmd/stigmer/root/apply.go            (484→156 lines)
+  client-apps/cli/cmd/stigmer/root/apply_file.go       (282→181 lines)
+  client-apps/cli/cmd/stigmer/root/BUILD.bazel         (+2 srcs)
+  client-apps/cli/internal/cli/agent/display.go        (-33 lines, removed DisplayApplyResult, DisplayAgentPreview)
+  client-apps/cli/internal/cli/agent/display_test.go   (-135 lines, removed tests for deleted functions)
+  client-apps/cli/internal/cli/workflow/display.go     (-33 lines, removed DisplayApplyResult, DisplayWorkflowPreview)
+  client-apps/cli/internal/cli/workflow/display_test.go (-109 lines, removed tests for deleted functions)
+  client-apps/cli/internal/cli/mcpserver/applier.go    (-21 lines, removed DisplayApplyResult)
+  client-apps/cli/internal/cli/mcpserver/display.go    (-18 lines, removed DisplayMcpServerPreview)
+  client-apps/cli/internal/cli/apply/skill_verify.go   (-41 lines, removed DisplayMissingSkillsGuidance + unused imports)
+```
+
 ## Next Steps
 
 1. **Design Decision: get/list output format coexistence** (Required before Phase 3.3+)
@@ -226,19 +262,19 @@ Modified:
 - Renderers take both `stdout` and `stderr` writers: human writes to stderr, JSON data to stdout
 - The existing `cliprint` package remains untouched except where migrated code no longer imports it
 - **Section-builder pattern**: Functions like `addLLMSections(result, cfg)` are the reusable building blocks. They take `*clioutput.CommandResult` and append sections. Introduced in Phase 3.2 for dual-use (standalone + embedded).
-- `cliprint` is NOT imported by: backend.go, config.go, config_values.go, server_status.go, server_health.go, delete.go, delete_handlers.go, delete_cancel.go
+- `cliprint` is NOT imported by: backend.go, config.go, config_values.go, server_status.go, server_health.go, delete.go, delete_handlers.go, delete_cancel.go, apply_project.go, apply_file.go, apply_file_handlers.go
 - `cliprint` IS still imported by: server.go (handleServerStart/ProgressDisplay), server_llm.go (handleLLMPull/ProgressDisplay), server_logs.go (streaming), and many other non-migrated files
 - `execution.FormatPhase()` was exported for cross-package use (previously `formatPhase`)
 - server_logs.go at 441 lines exceeds 250-line limit but is pre-existing and out of scope
-- Plan files: `.cursor/plans/phase_1_clioutput_package_6a41844c.plan.md`, `.cursor/plans/phase_2_delete_confirmation_bf3b2d04.plan.md`, `.cursor/plans/phase_3.1_delete_migration_38b0d475.plan.md`, `.cursor/plans/phase_3.2_migration_6d35663b.plan.md`
+- Plan files: `.cursor/plans/phase_1_clioutput_package_6a41844c.plan.md`, `.cursor/plans/phase_2_delete_confirmation_bf3b2d04.plan.md`, `.cursor/plans/phase_3.1_delete_migration_38b0d475.plan.md`, `.cursor/plans/phase_3.2_migration_6d35663b.plan.md`, `.cursor/plans/phase_3.3_apply_migration_6623d225.plan.md`
 - Task plan: `_projects/2026-02/20260226.01.cli-output-system-refactor/tasks/T01_0_plan.md`
 - Branch: `feat/cli-output-system-foundation`
 
 ## Quick Commands
 
 After loading context:
-- "Resolve the get/list format question" - Design decision needed before Phase 3.3
-- "Start Phase 3.3" - Migrate apply commands
+- "Resolve the get/list format question" - Design decision needed before Phase 4
+- "Start Phase 4" - Consolidate display files, design Displayable interface
 - "Show project status" - Get overview of progress
 - "Review Phase 3.2 code" - Check server_status.go, server_llm.go, backend.go, config.go
 - "Review guidelines" - Check established patterns

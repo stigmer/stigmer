@@ -12,39 +12,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// DisplayWorkflowPreview displays a preview of the Workflow configuration.
-// Used for dry-run mode to show what would be applied.
-func DisplayWorkflowPreview(workflow *workflowv1.Workflow) {
-	fmt.Println()
-	cliprint.PrintInfo("Workflow Preview:")
-	displayWorkflowSummary(workflow)
-	fmt.Println()
-}
-
-// DisplayApplyResult displays the result of an apply operation.
-// Shows success message with resource details and next steps.
-func DisplayApplyResult(result *ApplyResult) {
-	fmt.Println()
-	if result.Created {
-		cliprint.PrintSuccess("Workflow created successfully")
-	} else {
-		cliprint.PrintSuccess("Workflow updated successfully")
-	}
-
-	fmt.Println()
-	cliprint.PrintInfo("Resource Details:")
-	cliprint.PrintInfo("  ID:   %s", result.Workflow.Metadata.Id)
-	cliprint.PrintInfo("  Name: %s", result.Workflow.Metadata.Name)
-	cliprint.PrintInfo("  Slug: %s", result.Workflow.Metadata.Slug)
-
-	fmt.Println()
-	cliprint.PrintInfo("Next steps:")
-	cliprint.PrintInfo("  - View details:  stigmer workflow get %s", result.Workflow.Metadata.Slug)
-	cliprint.PrintInfo("  - Run workflow:  stigmer workflow run %s", result.Workflow.Metadata.Slug)
-	cliprint.PrintInfo("  - Delete:        stigmer workflow delete %s", result.Workflow.Metadata.Slug)
-	fmt.Println()
-}
-
 // displayWorkflowSummary displays a summary of Workflow configuration fields.
 // Internal helper for consistent formatting across display functions.
 func displayWorkflowSummary(workflow *workflowv1.Workflow) {
