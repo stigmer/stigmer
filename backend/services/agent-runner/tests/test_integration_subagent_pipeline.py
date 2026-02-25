@@ -14,14 +14,14 @@ Test Categories:
 - Error Recovery: Graceful degradation when components fail
 """
 
-import pytest
-import tempfile
-import os
 import logging
+import tempfile
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from worker.activities.graphton.subagent_transformer import transform_sub_agents
+import pytest
+
 from worker.activities.graphton.skill_writer import SkillWriter
+from worker.activities.graphton.subagent_transformer import transform_sub_agents
 
 
 class TestFullPipelineIntegration:
@@ -304,7 +304,7 @@ Run `./review.sh <path>` to analyze code.
             mock_tool = MagicMock()
             mock_create_wrapper.return_value = mock_tool
             
-            result = await transform_sub_agents(
+            await transform_sub_agents(
                 sub_agents=[sub_agent],
                 parent_mcp_servers=parent_mcp_config["servers"],
                 parent_mcp_tools=parent_mcp_config["tools"],
@@ -357,7 +357,7 @@ Run `./review.sh <path>` to analyze code.
             mock_tool = MagicMock()
             mock_create_wrapper.return_value = mock_tool
             
-            result = await transform_sub_agents(
+            await transform_sub_agents(
                 sub_agents=[sub_agent],
                 parent_mcp_servers=parent_mcp_config["servers"],
                 parent_mcp_tools=parent_mcp_config["tools"],

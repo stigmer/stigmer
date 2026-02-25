@@ -27,12 +27,13 @@ import (
 //   - err: Error if command failed
 //
 // Example:
-//   output, err := RunCLI("apply", "--config", "testdata/examples/01-basic-agent/Stigmer.yaml")
+//
+//	output, err := RunCLI("apply", "--config", "testdata/examples/01-basic-agent/Stigmer.yaml")
 func RunCLI(args ...string) (string, error) {
 	// TODO: Implement true in-process execution
 	// Currently blocked by cobra command state not resetting between calls
 	// For now, we'll document this limitation and use it for simpler commands
-	
+
 	// For apply command specifically, we need subprocess execution
 	// because the Go SDK execution environment needs isolation
 	return RunCLISubprocess(args...)

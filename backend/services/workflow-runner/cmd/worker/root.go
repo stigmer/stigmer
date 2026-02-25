@@ -24,15 +24,15 @@ import (
 	gh "github.com/mrsimonemms/golang-helpers"
 	"github.com/mrsimonemms/golang-helpers/temporal"
 	"github.com/mrsimonemms/temporal-codec-server/packages/golang/algorithms/aes"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/telemetry"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/worker"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/worker/config"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/converter"
 	sdkworker "go.temporal.io/sdk/worker"
@@ -267,7 +267,7 @@ func Execute() {
 // Exported for use by the runner package (BusyBox pattern)
 func RunTemporalWorkerMode() error {
 	log.Info().Msg("Starting in Temporal-only mode")
-	
+
 	// Load configuration from environment variables
 	cfg, err := config.LoadFromEnv()
 	if err != nil {

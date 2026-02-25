@@ -7,10 +7,10 @@ Tests cover:
 - Error handling (connection failures, no matching tools)
 """
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 import logging
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 
 # =============================================================================
 # TestLoadMcpTools - Tests for load_mcp_tools() function

@@ -106,19 +106,19 @@ func readLogFile(logFile, component string, tailLines int) ([]LogLine, error) {
 // readDockerLogs reads logs from a Docker container and returns parsed log lines
 func readDockerLogs(containerName, component string, tailLines int) ([]LogLine, error) {
 	args := []string{"logs"}
-	
+
 	if tailLines > 0 {
 		args = append(args, "--tail", strconv.Itoa(tailLines))
 	}
-	
+
 	args = append(args, containerName)
-	
+
 	cmd := exec.Command("docker", args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("failed to read Docker logs: %w", err)
 	}
-	
+
 	// Parse output lines
 	var lines []LogLine
 	scanner := bufio.NewScanner(strings.NewReader(string(output)))
@@ -127,11 +127,11 @@ func readDockerLogs(containerName, component string, tailLines int) ([]LogLine, 
 		logLine := ParseLogLine(line, component)
 		lines = append(lines, logLine)
 	}
-	
+
 	if err := scanner.Err(); err != nil {
 		return nil, err
 	}
-	
+
 	return lines, nil
 }
 

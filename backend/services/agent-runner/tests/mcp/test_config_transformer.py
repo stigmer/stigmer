@@ -9,16 +9,16 @@ Tests cover:
 - Multi-server transformation
 """
 
-import pytest
 from unittest.mock import MagicMock
 
-from worker.mcp.config_transformer import (
-    resolve_placeholders,
-    transform_mcp_config,
-    transform_all_mcp_configs,
-    McpConfigResult,
-)
+import pytest
 
+from worker.mcp.config_transformer import (
+    McpConfigResult,
+    resolve_placeholders,
+    transform_all_mcp_configs,
+    transform_mcp_config,
+)
 
 # =============================================================================
 # Fixtures

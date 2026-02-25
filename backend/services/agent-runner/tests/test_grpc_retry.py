@@ -21,7 +21,6 @@ Test Categories:
 6. Edge Cases - Single attempt, zero delay, mixed errors
 """
 
-import asyncio
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -29,15 +28,14 @@ import grpc
 import pytest
 
 from worker.resilience.grpc_retry import (
-    GrpcNonRetryableError,
-    GrpcRetryExhaustedError,
-    GrpcRetryExecutor,
     NON_RETRYABLE_STATUS_CODES,
     RETRYABLE_STATUS_CODES,
+    GrpcNonRetryableError,
+    GrpcRetryExecutor,
+    GrpcRetryExhaustedError,
     RetryConfig,
     is_retryable_status_code,
 )
-
 
 # =============================================================================
 # Fixtures

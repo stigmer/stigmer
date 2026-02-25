@@ -6,9 +6,9 @@ package e2e
 // Agent test constants - matches SDK example 01_basic_agent.go
 const (
 	// Agent names from SDK example (source of truth)
-	BasicAgentName = "code-reviewer"     // Basic agent with required fields only
-	FullAgentName  = "code-reviewer-pro" // Full agent with optional fields
-	InvalidAgentName = "Invalid Name!"   // Invalid agent name (validation error example)
+	BasicAgentName   = "code-reviewer"     // Basic agent with required fields only
+	FullAgentName    = "code-reviewer-pro" // Full agent with optional fields
+	InvalidAgentName = "Invalid Name!"     // Invalid agent name (validation error example)
 
 	// Test fixture paths
 	BasicAgentTestDataDir = "testdata/examples/01-basic-agent"

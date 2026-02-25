@@ -1,7 +1,7 @@
 # Default bump type for releases (can be overridden: make protos-release bump=minor)
 bump ?= patch
 
-.PHONY: help setup setup-hooks build build-backend test clean protos protos-release lint coverage release-local install dev
+.PHONY: help setup setup-hooks build build-backend test clean protos protos-release lint typecheck check coverage release-local install dev
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -46,18 +46,13 @@ build-backend: protos ## Build all backend services
 	@echo "Note: stigmer-server and workflow-runner are now part of the CLI (BusyBox pattern)"
 	@echo "      Use 'stigmer internal-server' and 'stigmer internal-workflow-runner' instead"
 	@echo ""
-	@echo "1/2 Building workflow-runner gRPC server..."
+	@echo "1/1 Building workflow-runner gRPC server..."
+	@mkdir -p bin
 	go build -o bin/workflow-runner-grpc ./backend/services/workflow-runner/cmd/grpc-server
 	@echo "✓ Built: bin/workflow-runner-grpc"
 	@echo ""
-	@echo "2/2 Type checking agent-runner (Python)..."
-	@cd backend/services/agent-runner && \
-		poetry install --no-interaction --quiet && \
-		poetry run mypy grpc_client/ worker/ ../../libs/python/graphton/src/ --show-error-codes
-	@echo "✓ Type checking passed: agent-runner"
-	@echo ""
 	@echo "============================================"
-	@echo "✓ All backend services processed!"
+	@echo "✓ All backend services built!"
 	@echo "============================================"
 
 test: ## Run unit tests (no infrastructure required, runs in CI)
@@ -300,8 +295,12 @@ release: ## Create and push release tag (usage: make release [bump=patch|minor|m
 	@echo "  • Release URL: https://github.com/stigmer/stigmer/releases/tag/$$LATEST_TAG"
 	@echo ""
 
-lint: ## Run linters
-	@echo "Running Go linters on all modules..."
+lint: ## Run linters (go vet, ruff, proto)
+	@echo "============================================"
+	@echo "Running Linters"
+	@echo "============================================"
+	@echo ""
+	@echo "Go: running go vet on all modules..."
 	@cd apis/stubs/go && go vet ./...
 	@cd backend/libs/go && go vet ./...
 	@cd backend/services/stigmer-server && go vet ./...
@@ -309,14 +308,41 @@ lint: ## Run linters
 	@cd client-apps/cli && go vet ./...
 	@cd mcp-server && go vet ./...
 	@cd sdk/go && go vet ./...
-	@echo "Running gofmt..."
-	gofmt -s -w .
-	@echo "Running proto linters..."
-	$(MAKE) -C apis lint
-	@echo "Running Python linters..."
+	@echo "✓ go vet passed"
+	@echo ""
+	@echo "Go: running gofmt..."
+	@gofmt -s -w .
+	@echo "✓ gofmt passed"
+	@echo ""
+	@echo "Proto: running buf lint..."
+	@$(MAKE) -C apis lint
+	@echo "✓ proto lint passed"
+	@echo ""
+	@echo "Python: running ruff..."
 	@cd backend/libs/python/graphton && poetry run ruff check .
 	@cd backend/services/agent-runner && poetry run ruff check .
-	@echo "Linting complete!"
+	@echo "✓ ruff passed"
+	@echo ""
+	@echo "============================================"
+	@echo "✓ All linters passed!"
+	@echo "============================================"
+
+typecheck: ## Run type checkers (mypy for Python)
+	@echo "============================================"
+	@echo "Running Type Checks"
+	@echo "============================================"
+	@echo ""
+	@echo "Python: running mypy on agent-runner..."
+	@cd backend/services/agent-runner && \
+		poetry install --no-interaction --quiet && \
+		poetry run mypy grpc_client/ worker/ --show-error-codes
+	@echo "✓ mypy passed"
+	@echo ""
+	@echo "============================================"
+	@echo "✓ All type checks passed!"
+	@echo "============================================"
+
+check: lint typecheck build test ## Run all checks locally (mirrors CI)
 
 clean: ## Clean build artifacts
 	@echo "Cleaning build artifacts..."

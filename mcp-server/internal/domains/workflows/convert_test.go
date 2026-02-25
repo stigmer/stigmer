@@ -152,11 +152,11 @@ func TestToProto_taskWithExportAndFlow(t *testing.T) {
 		},
 		Tasks: []geninput.WorkflowTaskInput{
 			{
-				Name:   "setVars",
-				Kind:   "set_vars",
+				Name:    "setVars",
+				Kind:    "set_vars",
 				SetVars: &geninput.SetTaskConfigInput{Variables: map[string]string{"key": "value"}},
-				Export: &geninput.ExportInput{As: "${.}"},
-				Flow:   &geninput.FlowControlInput{Then: "nextStep"},
+				Export:  &geninput.ExportInput{As: "${.}"},
+				Flow:    &geninput.FlowControlInput{Then: "nextStep"},
 			},
 			{
 				Name: "nextStep",

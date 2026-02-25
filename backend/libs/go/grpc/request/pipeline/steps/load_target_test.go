@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -45,11 +45,11 @@ func TestLoadTargetStep(t *testing.T) {
 
 		// Verify
 		assert.NoError(t, err)
-		
+
 		// Check that target was loaded into context
 		loaded := reqCtx.Get(TargetResourceKey)
 		require.NotNil(t, loaded)
-		
+
 		agent, ok := loaded.(*agentv1.Agent)
 		require.True(t, ok)
 		assert.Equal(t, "test-agent-id", agent.Metadata.Id)

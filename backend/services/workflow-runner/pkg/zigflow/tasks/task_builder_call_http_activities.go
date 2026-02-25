@@ -54,14 +54,14 @@ func (c *CallHTTPActivities) CallHTTPActivity(ctx context.Context, task *model.C
 	// Resolution happens here (in activity) where it won't be recorded in history.
 	if runtimeEnv != nil && len(runtimeEnv) > 0 {
 		logger.Debug("Resolving runtime placeholders in HTTP task", "env_count", len(runtimeEnv))
-		
+
 		// Resolve placeholders in the entire task structure
 		resolvedInterface, err := ResolveObject(task, runtimeEnv)
 		if err != nil {
 			logger.Error("Failed to resolve runtime placeholders", "error", err)
 			return nil, fmt.Errorf("failed to resolve runtime placeholders: %w", err)
 		}
-		
+
 		// Convert back to CallHTTP type
 		var ok bool
 		task, ok = resolvedInterface.(*model.CallHTTP)
@@ -69,7 +69,7 @@ func (c *CallHTTPActivities) CallHTTPActivity(ctx context.Context, task *model.C
 			logger.Error("Type assertion failed after runtime resolution")
 			return nil, fmt.Errorf("type assertion failed after runtime resolution")
 		}
-		
+
 		logger.Debug("Runtime placeholders resolved successfully")
 	}
 
@@ -156,7 +156,7 @@ func (c *CallHTTPActivities) CallHTTPActivity(ctx context.Context, task *model.C
 	}
 
 	output := c.parseOutput(task.With.Output, httpResponse, bodyRes)
-	
+
 	// **SECURITY**: Sanitize output to detect accidental secret leakage
 	// This is a defensive measure - ideally secrets should never appear in outputs,
 	// but this provides a safety net by logging warnings if secret values are found.
@@ -166,7 +166,7 @@ func (c *CallHTTPActivities) CallHTTPActivity(ctx context.Context, task *model.C
 			logger.Warn("Potential secret leakage detected in HTTP response", "warning", warning)
 		}
 	}
-	
+
 	return output, err
 }
 
@@ -223,7 +223,6 @@ func (c *CallHTTPActivities) callHTTPAction(ctx context.Context, task *model.Cal
 
 	return resp, method, url, reqHeaders, err
 }
-
 
 func (c *CallHTTPActivities) parseOutput(outputType string, httpResp HTTPResponse, raw []byte) any {
 	var output any

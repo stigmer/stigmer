@@ -3,12 +3,32 @@ package storage
 import (
 	"archive/zip"
 	"bytes"
+	"compress/flate"
 	"fmt"
+	"io"
+	"math/rand"
 	"strings"
 )
 
+// ValidSkillContent builds a valid SKILL.md string with proper YAML frontmatter.
+// Use this when the test expects the push/extract pipeline to succeed.
+//
+// Parameters:
+//   - name: kebab-case skill identifier (e.g. "calculator", "web-scraper")
+//   - body: markdown body that follows the frontmatter (may be empty)
+//
+// Example:
+//
+//	content := ValidSkillContent("calculator", "# Calculator\n\nA basic calculator.")
+//	// produces: "---\nname: calculator\n---\n# Calculator\n\nA basic calculator."
+func ValidSkillContent(name, body string) string {
+	return fmt.Sprintf("---\nname: %s\n---\n%s", name, body)
+}
+
 // CreateTestZip creates a valid ZIP file with SKILL.md containing the specified content.
-// This is the primary helper for creating test artifacts in a valid format.
+// The content is placed into SKILL.md verbatim -- callers are responsible for including
+// valid frontmatter when the test expects extraction to succeed. Use ValidSkillContent
+// to build content with proper frontmatter.
 func CreateTestZip(skillMdContent string) []byte {
 	return CreateTestZipWithFiles(map[string][]byte{
 		"SKILL.md": []byte(skillMdContent),
@@ -94,6 +114,9 @@ func CreateZipBomb(ratio int) []byte {
 // CreateOversizedZip creates a ZIP file exceeding the specified size in bytes.
 // This tests the maxZipSize validation (100MB limit).
 //
+// Files are stored without compression (zip.Store) so that the on-disk ZIP
+// size equals the content size, reliably exceeding the compressed-size limit.
+//
 // Example:
 //
 //	oversized := CreateOversizedZip(101 * 1024 * 1024) // 101 MB
@@ -101,7 +124,7 @@ func CreateOversizedZip(size int) []byte {
 	buf := new(bytes.Buffer)
 	w := zip.NewWriter(buf)
 
-	// Create SKILL.md
+	// Create SKILL.md (compressed is fine since it's tiny)
 	skillMd, err := w.Create("SKILL.md")
 	if err != nil {
 		panic(fmt.Sprintf("failed to create SKILL.md in oversized ZIP: %v", err))
@@ -110,16 +133,18 @@ func CreateOversizedZip(size int) []byte {
 		panic(fmt.Sprintf("failed to write SKILL.md: %v", err))
 	}
 
-	// Create a large file to exceed the size limit
-	// We need to account for ZIP overhead, so we make it slightly larger
-	largeFile, err := w.Create("large.bin")
+	// Store the large file WITHOUT compression so ZIP size ≈ content size.
+	header := &zip.FileHeader{Name: "large.bin", Method: zip.Store}
+	largeFile, err := w.CreateHeader(header)
 	if err != nil {
 		panic(fmt.Sprintf("failed to create large file: %v", err))
 	}
 
-	// Write in chunks to avoid allocating huge memory at once
-	chunkSize := 1024 * 1024 // 1MB chunks
-	chunk := bytes.Repeat([]byte("X"), chunkSize)
+	chunkSize := 1024 * 1024 // 1MB
+	chunk := make([]byte, chunkSize)
+	for k := range chunk {
+		chunk[k] = byte(k % 256)
+	}
 	remaining := size
 
 	for remaining > 0 {
@@ -196,11 +221,18 @@ func CreateZipWithEmptySkillMd() []byte {
 
 // CreateZipWithOversizedSkillMd creates a ZIP where SKILL.md exceeds 1MB.
 // This tests the maxSkillMdSize validation.
+//
+// The content uses PRNG-generated printable characters so DEFLATE compression
+// cannot reduce the per-file ratio below the 100:1 safety threshold.
 func CreateZipWithOversizedSkillMd() []byte {
-	// Create SKILL.md content > 1MB
 	size := 1*1024*1024 + 1000 // 1MB + 1000 bytes
-	content := "# Oversized SKILL.md\n" + strings.Repeat("A", size)
-	return CreateTestZip(content)
+	rng := rand.New(rand.NewSource(99))
+	var sb strings.Builder
+	sb.WriteString("# Oversized SKILL.md\n")
+	for i := 0; i < size; i++ {
+		sb.WriteByte(byte(32 + rng.Intn(95))) // random printable ASCII
+	}
+	return CreateTestZip(sb.String())
 }
 
 // CreateZipWithInvalidFilename creates a ZIP with a filename containing control characters.
@@ -218,6 +250,11 @@ func CreateLargeUncompressedZip() []byte {
 	buf := new(bytes.Buffer)
 	w := zip.NewWriter(buf)
 
+	// Use fastest DEFLATE level to keep creation time under the test timeout.
+	w.RegisterCompressor(zip.Deflate, func(out io.Writer) (io.WriteCloser, error) {
+		return flate.NewWriter(out, flate.BestSpeed)
+	})
+
 	// Create SKILL.md
 	skillMd, err := w.Create("SKILL.md")
 	if err != nil {
@@ -227,10 +264,27 @@ func CreateLargeUncompressedZip() []byte {
 		panic(fmt.Sprintf("failed to write SKILL.md: %v", err))
 	}
 
-	// Create multiple files with random-like content (doesn't compress well)
-	// to avoid triggering compression ratio checks
-	fileCount := 50
-	fileSizeEach := 11 * 1024 * 1024 // 11MB each = 550MB total
+	// Create files that compress well but stay under maxCompressionRatio (100:1)
+	// per file, while total compressed ZIP stays under maxZipSize (100MB).
+	// Total uncompressed must exceed maxUncompressedSize (500MB).
+	//
+	// Each 1KB block has 15 bytes of PRNG data and 1009 bytes of zeros,
+	// yielding ~60:1 DEFLATE ratio (well under the 100:1 limit). The high
+	// compressibility keeps DEFLATE fast even under the race detector.
+	fileCount := 6
+	fileSizeEach := 85 * 1024 * 1024 // 85MB each = 510MB total
+
+	const chunkSize = 1024 * 1024
+	rng := rand.New(rand.NewSource(42))
+	chunk := make([]byte, chunkSize)
+	for k := range chunk {
+		blockPos := k % 1024
+		if blockPos < 15 {
+			chunk[k] = byte(rng.Intn(256))
+		} else {
+			chunk[k] = 0
+		}
+	}
 
 	for i := 0; i < fileCount; i++ {
 		filename := fmt.Sprintf("data_%d.bin", i)
@@ -239,13 +293,16 @@ func CreateLargeUncompressedZip() []byte {
 			panic(fmt.Sprintf("failed to create file %s: %v", filename, err))
 		}
 
-		// Write pseudo-random content (varying bytes don't compress well)
-		// This ensures we hit uncompressed size limit without compression ratio issues
-		for j := 0; j < fileSizeEach; j++ {
-			b := byte(j % 256)
-			if _, err := f.Write([]byte{b}); err != nil {
+		remaining := fileSizeEach
+		for remaining > 0 {
+			toWrite := chunkSize
+			if remaining < chunkSize {
+				toWrite = remaining
+			}
+			if _, err := f.Write(chunk[:toWrite]); err != nil {
 				panic(fmt.Sprintf("failed to write to %s: %v", filename, err))
 			}
+			remaining -= toWrite
 		}
 	}
 

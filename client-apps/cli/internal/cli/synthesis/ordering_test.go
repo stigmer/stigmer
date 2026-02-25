@@ -11,9 +11,9 @@ import (
 )
 
 // Test helper functions
-func createTestSkill(slug string) *skillv1.Skill {
-	return &skillv1.Skill{
-		Metadata: &apiresource.ApiResourceMetadata{Slug: slug},
+func createTestSkill(slug string) *skillv1.SkillSynth {
+	return &skillv1.SkillSynth{
+		Source: &skillv1.SkillSynth_Local{Local: &skillv1.LocalDir{Path: slug}},
 	}
 }
 
@@ -41,9 +41,9 @@ func createTestWorkflow(name string) *workflowv1.Workflow {
 // TestTopologicalSort_NoDependen cies tests sorting when there are no dependencies.
 func TestTopologicalSort_NoDependencies(t *testing.T) {
 	result := &Result{
-		Skills: []*skillv1.Skill{
-			{Metadata: &apiresource.ApiResourceMetadata{Slug: "skill1"}},
-			{Metadata: &apiresource.ApiResourceMetadata{Slug: "skill2"}},
+		SkillSynths: []*skillv1.SkillSynth{
+			{Source: &skillv1.SkillSynth_Local{Local: &skillv1.LocalDir{Path: "skill1"}}},
+			{Source: &skillv1.SkillSynth_Local{Local: &skillv1.LocalDir{Path: "skill2"}}},
 		},
 		Agents: []*agentv1.Agent{
 			{Metadata: &apiresource.ApiResourceMetadata{Slug: "agent1"}},
@@ -67,7 +67,7 @@ func TestTopologicalSort_NoDependencies(t *testing.T) {
 		ids[res.ID] = true
 	}
 
-	expectedIDs := []string{"skill:skill1", "skill:skill2", "agent:agent1"}
+	expectedIDs := []string{"skill_synth:skill1", "skill_synth:skill2", "agent:agent1"}
 	for _, expectedID := range expectedIDs {
 		if !ids[expectedID] {
 			t.Errorf("Expected resource %s not found in ordered list", expectedID)
@@ -79,8 +79,8 @@ func TestTopologicalSort_NoDependencies(t *testing.T) {
 func TestTopologicalSort_LinearChain(t *testing.T) {
 	// skill1 → agent1 → workflow1
 	result := &Result{
-		Skills: []*skillv1.Skill{
-			{Metadata: &apiresource.ApiResourceMetadata{Slug: "skill1"}},
+		SkillSynths: []*skillv1.SkillSynth{
+			{Source: &skillv1.SkillSynth_Local{Local: &skillv1.LocalDir{Path: "skill1"}}},
 		},
 		Agents: []*agentv1.Agent{
 			{Metadata: &apiresource.ApiResourceMetadata{Slug: "agent1"}},
@@ -94,7 +94,7 @@ func TestTopologicalSort_LinearChain(t *testing.T) {
 			},
 		},
 		Dependencies: map[string][]string{
-			"agent:agent1":       {"skill:skill1"},
+			"agent:agent1":       {"skill_synth:skill1"},
 			"workflow:workflow1": {"agent:agent1"},
 		},
 	}
@@ -109,7 +109,7 @@ func TestTopologicalSort_LinearChain(t *testing.T) {
 	}
 
 	// Verify order: skill1 → agent1 → workflow1
-	if ordered[0].ID != "skill:skill1" {
+	if ordered[0].ID != "skill_synth:skill1" {
 		t.Errorf("Expected skill:skill1 first, got %s", ordered[0].ID)
 	}
 	if ordered[1].ID != "agent:agent1" {
@@ -124,16 +124,16 @@ func TestTopologicalSort_LinearChain(t *testing.T) {
 func TestTopologicalSort_MultipleSkills(t *testing.T) {
 	// skill1, skill2 → agent1
 	result := &Result{
-		Skills: []*skillv1.Skill{
-			{Metadata: &apiresource.ApiResourceMetadata{Slug: "skill1"}},
-			{Metadata: &apiresource.ApiResourceMetadata{Slug: "skill2"}},
+		SkillSynths: []*skillv1.SkillSynth{
+			{Source: &skillv1.SkillSynth_Local{Local: &skillv1.LocalDir{Path: "skill1"}}},
+			{Source: &skillv1.SkillSynth_Local{Local: &skillv1.LocalDir{Path: "skill2"}}},
 		},
 		Agents: []*agentv1.Agent{
 			{Metadata: &apiresource.ApiResourceMetadata{Slug: "agent1"}},
 		},
 		Workflows: []*workflowv1.Workflow{},
 		Dependencies: map[string][]string{
-			"agent:agent1": {"skill:skill1", "skill:skill2"},
+			"agent:agent1": {"skill_synth:skill1", "skill_synth:skill2"},
 		},
 	}
 
@@ -155,9 +155,9 @@ func TestTopologicalSort_MultipleSkills(t *testing.T) {
 		switch res.ID {
 		case "agent:agent1":
 			agentIndex = i
-		case "skill:skill1":
+		case "skill_synth:skill1":
 			skill1Index = i
-		case "skill:skill2":
+		case "skill_synth:skill2":
 			skill2Index = i
 		}
 	}
@@ -175,8 +175,8 @@ func TestTopologicalSort_MultipleSkills(t *testing.T) {
 func TestTopologicalSort_DiamondDependency(t *testing.T) {
 	// skill1 → agent1, agent2 → workflow1
 	result := &Result{
-		Skills: []*skillv1.Skill{
-			{Metadata: &apiresource.ApiResourceMetadata{Slug: "skill1"}},
+		SkillSynths: []*skillv1.SkillSynth{
+			{Source: &skillv1.SkillSynth_Local{Local: &skillv1.LocalDir{Path: "skill1"}}},
 		},
 		Agents: []*agentv1.Agent{
 			{Metadata: &apiresource.ApiResourceMetadata{Slug: "agent1"}},
@@ -191,8 +191,8 @@ func TestTopologicalSort_DiamondDependency(t *testing.T) {
 			},
 		},
 		Dependencies: map[string][]string{
-			"agent:agent1":       {"skill:skill1"},
-			"agent:agent2":       {"skill:skill1"},
+			"agent:agent1":       {"skill_synth:skill1"},
+			"agent:agent2":       {"skill_synth:skill1"},
 			"workflow:workflow1": {"agent:agent1", "agent:agent2"},
 		},
 	}
@@ -214,7 +214,7 @@ func TestTopologicalSort_DiamondDependency(t *testing.T) {
 
 	for i, res := range ordered {
 		switch res.ID {
-		case "skill:skill1":
+		case "skill_synth:skill1":
 			skillIndex = i
 		case "agent:agent1":
 			agent1Index = i
@@ -238,7 +238,7 @@ func TestTopologicalSort_DiamondDependency(t *testing.T) {
 func TestTopologicalSort_CircularDependency(t *testing.T) {
 	// agent1 → agent2 → agent1 (circular!)
 	result := &Result{
-		Skills: []*skillv1.Skill{},
+		SkillSynths: []*skillv1.SkillSynth{},
 		Agents: []*agentv1.Agent{
 			{Metadata: &apiresource.ApiResourceMetadata{Slug: "agent1"}},
 			{Metadata: &apiresource.ApiResourceMetadata{Slug: "agent2"}},
@@ -263,15 +263,15 @@ func TestTopologicalSort_CircularDependency(t *testing.T) {
 // TestValidateDependencies_ValidDeps tests validation with valid dependencies.
 func TestValidateDependencies_ValidDeps(t *testing.T) {
 	result := &Result{
-		Skills: []*skillv1.Skill{
-			{Metadata: &apiresource.ApiResourceMetadata{Slug: "skill1"}},
+		SkillSynths: []*skillv1.SkillSynth{
+			{Source: &skillv1.SkillSynth_Local{Local: &skillv1.LocalDir{Path: "skill1"}}},
 		},
 		Agents: []*agentv1.Agent{
 			{Metadata: &apiresource.ApiResourceMetadata{Slug: "agent1"}},
 		},
 		Workflows: []*workflowv1.Workflow{},
 		Dependencies: map[string][]string{
-			"agent:agent1": {"skill:skill1"},
+			"agent:agent1": {"skill_synth:skill1"},
 		},
 	}
 
@@ -284,13 +284,13 @@ func TestValidateDependencies_ValidDeps(t *testing.T) {
 // TestValidateDependencies_InvalidDep tests validation with non-existent dependency.
 func TestValidateDependencies_InvalidDep(t *testing.T) {
 	result := &Result{
-		Skills: []*skillv1.Skill{},
+		SkillSynths: []*skillv1.SkillSynth{},
 		Agents: []*agentv1.Agent{
 			{Metadata: &apiresource.ApiResourceMetadata{Slug: "agent1"}},
 		},
 		Workflows: []*workflowv1.Workflow{},
 		Dependencies: map[string][]string{
-			"agent:agent1": {"skill:nonexistent"},
+			"agent:agent1": {"skill_synth:nonexistent"},
 		},
 	}
 
@@ -303,7 +303,7 @@ func TestValidateDependencies_InvalidDep(t *testing.T) {
 // TestValidateDependencies_ExternalRef tests that external references are allowed.
 func TestValidateDependencies_ExternalRef(t *testing.T) {
 	result := &Result{
-		Skills: []*skillv1.Skill{},
+		SkillSynths: []*skillv1.SkillSynth{},
 		Agents: []*agentv1.Agent{
 			{Metadata: &apiresource.ApiResourceMetadata{Slug: "agent1"}},
 		},
@@ -322,15 +322,15 @@ func TestValidateDependencies_ExternalRef(t *testing.T) {
 // TestGetDependencyGraph tests the human-readable graph output.
 func TestGetDependencyGraph(t *testing.T) {
 	result := &Result{
-		Skills: []*skillv1.Skill{
-			{Metadata: &apiresource.ApiResourceMetadata{Slug: "skill1"}},
+		SkillSynths: []*skillv1.SkillSynth{
+			{Source: &skillv1.SkillSynth_Local{Local: &skillv1.LocalDir{Path: "skill1"}}},
 		},
 		Agents: []*agentv1.Agent{
 			{Metadata: &apiresource.ApiResourceMetadata{Slug: "agent1"}},
 		},
 		Workflows: []*workflowv1.Workflow{},
 		Dependencies: map[string][]string{
-			"agent:agent1": {"skill:skill1"},
+			"agent:agent1": {"skill_synth:skill1"},
 		},
 	}
 
@@ -348,7 +348,7 @@ func TestGetDependencyGraph(t *testing.T) {
 // TestGetDependencyGraph_Empty tests graph output with no dependencies.
 func TestGetDependencyGraph_Empty(t *testing.T) {
 	result := &Result{
-		Skills:       []*skillv1.Skill{},
+		SkillSynths:  []*skillv1.SkillSynth{},
 		Agents:       []*agentv1.Agent{},
 		Workflows:    []*workflowv1.Workflow{},
 		Dependencies: map[string][]string{},
@@ -368,7 +368,7 @@ func TestIsExternalReference(t *testing.T) {
 	}{
 		{"skill:external:platform-security", true},
 		{"agent:external:some-agent", true},
-		{"skill:inline-skill", false},
+		{"skill_synth:inline-skill", false},
 		{"agent:my-agent", false},
 		{"workflow:my-workflow", false},
 		{"", false},
@@ -390,7 +390,7 @@ func TestGetResourcesByDepth_NoDependencies(t *testing.T) {
 	agent1 := createTestAgent("agent1")
 
 	result := &Result{
-		Skills:       []*skillv1.Skill{skill1, skill2},
+		SkillSynths:  []*skillv1.SkillSynth{skill1, skill2},
 		Agents:       []*agentv1.Agent{agent1},
 		Dependencies: map[string][]string{},
 	}
@@ -418,11 +418,11 @@ func TestGetResourcesByDepth_LinearChain(t *testing.T) {
 	workflow := createTestWorkflow("pr-review")
 
 	result := &Result{
-		Skills:    []*skillv1.Skill{skill},
-		Agents:    []*agentv1.Agent{agent},
-		Workflows: []*workflowv1.Workflow{workflow},
+		SkillSynths: []*skillv1.SkillSynth{skill},
+		Agents:      []*agentv1.Agent{agent},
+		Workflows:   []*workflowv1.Workflow{workflow},
 		Dependencies: map[string][]string{
-			"agent:reviewer":     {"skill:coding"},
+			"agent:reviewer":     {"skill_synth:coding"},
 			"workflow:pr-review": {"agent:reviewer"},
 		},
 	}
@@ -441,7 +441,7 @@ func TestGetResourcesByDepth_LinearChain(t *testing.T) {
 	if len(groups[0]) != 1 {
 		t.Errorf("expected 1 resource at depth 0, got %d", len(groups[0]))
 	}
-	if groups[0][0].ID != "skill:coding" {
+	if groups[0][0].ID != "skill_synth:coding" {
 		t.Errorf("expected skill:coding at depth 0, got %s", groups[0][0].ID)
 	}
 
@@ -477,12 +477,12 @@ func TestGetResourcesByDepth_ParallelBranches(t *testing.T) {
 	workflow := createTestWorkflow("pr-review")
 
 	result := &Result{
-		Skills:    []*skillv1.Skill{skill1, skill2},
-		Agents:    []*agentv1.Agent{agent1, agent2},
-		Workflows: []*workflowv1.Workflow{workflow},
+		SkillSynths: []*skillv1.SkillSynth{skill1, skill2},
+		Agents:      []*agentv1.Agent{agent1, agent2},
+		Workflows:   []*workflowv1.Workflow{workflow},
 		Dependencies: map[string][]string{
-			"agent:code-reviewer": {"skill:coding"},
-			"agent:sec-reviewer":  {"skill:security"},
+			"agent:code-reviewer": {"skill_synth:coding"},
+			"agent:sec-reviewer":  {"skill_synth:security"},
 			"workflow:pr-review":  {"agent:code-reviewer", "agent:sec-reviewer"},
 		},
 	}
@@ -527,12 +527,12 @@ func TestGetResourcesByDepth_DiamondDependency(t *testing.T) {
 	workflow := createTestWorkflow("pr-review")
 
 	result := &Result{
-		Skills:    []*skillv1.Skill{skill},
-		Agents:    []*agentv1.Agent{agent1, agent2},
-		Workflows: []*workflowv1.Workflow{workflow},
+		SkillSynths: []*skillv1.SkillSynth{skill},
+		Agents:      []*agentv1.Agent{agent1, agent2},
+		Workflows:   []*workflowv1.Workflow{workflow},
 		Dependencies: map[string][]string{
-			"agent:reviewer1":    {"skill:shared"},
-			"agent:reviewer2":    {"skill:shared"},
+			"agent:reviewer1":    {"skill_synth:shared"},
+			"agent:reviewer2":    {"skill_synth:shared"},
 			"workflow:pr-review": {"agent:reviewer1", "agent:reviewer2"},
 		},
 	}
@@ -581,13 +581,13 @@ func TestGetResourcesByDepth_ComplexGraph(t *testing.T) {
 	w2 := createTestWorkflow("workflow2")
 
 	result := &Result{
-		Skills:    []*skillv1.Skill{s1, s2, s3},
-		Agents:    []*agentv1.Agent{a1, a2, a3},
-		Workflows: []*workflowv1.Workflow{w1, w2},
+		SkillSynths: []*skillv1.SkillSynth{s1, s2, s3},
+		Agents:      []*agentv1.Agent{a1, a2, a3},
+		Workflows:   []*workflowv1.Workflow{w1, w2},
 		Dependencies: map[string][]string{
-			"agent:agent1":       {"skill:skill1"},
-			"agent:agent2":       {"skill:skill1", "skill:skill2"},
-			"agent:agent3":       {"skill:skill3"},
+			"agent:agent1":       {"skill_synth:skill1"},
+			"agent:agent2":       {"skill_synth:skill1", "skill_synth:skill2"},
+			"agent:agent3":       {"skill_synth:skill3"},
 			"workflow:workflow1": {"agent:agent1", "agent:agent3"},
 			"workflow:workflow2": {"agent:agent2"},
 		},
@@ -626,11 +626,11 @@ func TestGetResourcesByDepth_WithExternalReferences(t *testing.T) {
 	workflow := createTestWorkflow("pr-review")
 
 	result := &Result{
-		Skills:    []*skillv1.Skill{skill},
-		Agents:    []*agentv1.Agent{agent},
-		Workflows: []*workflowv1.Workflow{workflow},
+		SkillSynths: []*skillv1.SkillSynth{skill},
+		Agents:      []*agentv1.Agent{agent},
+		Workflows:   []*workflowv1.Workflow{workflow},
 		Dependencies: map[string][]string{
-			"agent:reviewer":     {"skill:internal", "skill:external:platform-skill"},
+			"agent:reviewer":     {"skill_synth:internal", "skill:external:platform-skill"},
 			"workflow:pr-review": {"agent:reviewer", "agent:external:platform-agent"},
 		},
 	}
@@ -664,7 +664,7 @@ func TestGetResourcesByDepth_WithExternalReferences(t *testing.T) {
 
 func TestGetResourcesByDepth_Empty(t *testing.T) {
 	result := &Result{
-		Skills:       []*skillv1.Skill{},
+		SkillSynths:  []*skillv1.SkillSynth{},
 		Agents:       []*agentv1.Agent{},
 		Workflows:    []*workflowv1.Workflow{},
 		Dependencies: map[string][]string{},
@@ -685,7 +685,7 @@ func TestGetResourcesByDepth_Empty(t *testing.T) {
 
 func TestGetDependencyGraphMermaid_Empty(t *testing.T) {
 	result := &Result{
-		Skills:       []*skillv1.Skill{},
+		SkillSynths:  []*skillv1.SkillSynth{},
 		Agents:       []*agentv1.Agent{},
 		Workflows:    []*workflowv1.Workflow{},
 		Dependencies: map[string][]string{},
@@ -708,11 +708,11 @@ func TestGetDependencyGraphMermaid_SimpleChain(t *testing.T) {
 	workflow := createTestWorkflow("pr-review")
 
 	result := &Result{
-		Skills:    []*skillv1.Skill{skill},
-		Agents:    []*agentv1.Agent{agent},
-		Workflows: []*workflowv1.Workflow{workflow},
+		SkillSynths: []*skillv1.SkillSynth{skill},
+		Agents:      []*agentv1.Agent{agent},
+		Workflows:   []*workflowv1.Workflow{workflow},
 		Dependencies: map[string][]string{
-			"agent:reviewer":     {"skill:coding"},
+			"agent:reviewer":     {"skill_synth:coding"},
 			"workflow:pr-review": {"agent:reviewer"},
 		},
 	}
@@ -729,7 +729,7 @@ func TestGetDependencyGraphMermaid_SimpleChain(t *testing.T) {
 	}
 
 	// Should contain all resources
-	if !containsString(mermaid, "skill:coding") {
+	if !containsString(mermaid, "skill_synth:coding") {
 		t.Error("expected skill:coding in diagram")
 	}
 	if !containsString(mermaid, "agent:reviewer") {
@@ -745,8 +745,8 @@ func TestGetDependencyGraphMermaid_SimpleChain(t *testing.T) {
 	}
 
 	// Should contain styling
-	if !containsString(mermaid, "classDef skill") {
-		t.Error("expected skill styling")
+	if !containsString(mermaid, "classDef skill_synth") {
+		t.Error("expected skill_synth styling")
 	}
 	if !containsString(mermaid, "classDef agent") {
 		t.Error("expected agent styling")
@@ -764,12 +764,12 @@ func TestGetDependencyGraphMermaid_ParallelBranches(t *testing.T) {
 	workflow := createTestWorkflow("pr-review")
 
 	result := &Result{
-		Skills:    []*skillv1.Skill{skill1, skill2},
-		Agents:    []*agentv1.Agent{agent1, agent2},
-		Workflows: []*workflowv1.Workflow{workflow},
+		SkillSynths: []*skillv1.SkillSynth{skill1, skill2},
+		Agents:      []*agentv1.Agent{agent1, agent2},
+		Workflows:   []*workflowv1.Workflow{workflow},
 		Dependencies: map[string][]string{
-			"agent:code-reviewer": {"skill:coding"},
-			"agent:sec-reviewer":  {"skill:security"},
+			"agent:code-reviewer": {"skill_synth:coding"},
+			"agent:sec-reviewer":  {"skill_synth:security"},
 			"workflow:pr-review":  {"agent:code-reviewer", "agent:sec-reviewer"},
 		},
 	}
@@ -777,10 +777,10 @@ func TestGetDependencyGraphMermaid_ParallelBranches(t *testing.T) {
 	mermaid := result.GetDependencyGraphMermaid()
 
 	// Should contain all resources
-	if !containsString(mermaid, "skill:coding") {
+	if !containsString(mermaid, "skill_synth:coding") {
 		t.Error("expected skill:coding in diagram")
 	}
-	if !containsString(mermaid, "skill:security") {
+	if !containsString(mermaid, "skill_synth:security") {
 		t.Error("expected skill:security in diagram")
 	}
 	if !containsString(mermaid, "agent:code-reviewer") {
@@ -796,7 +796,7 @@ func TestGetDependencyGraphMermaid_ParallelBranches(t *testing.T) {
 
 func TestGetDependencyGraphDot_Empty(t *testing.T) {
 	result := &Result{
-		Skills:       []*skillv1.Skill{},
+		SkillSynths:  []*skillv1.SkillSynth{},
 		Agents:       []*agentv1.Agent{},
 		Workflows:    []*workflowv1.Workflow{},
 		Dependencies: map[string][]string{},
@@ -824,11 +824,11 @@ func TestGetDependencyGraphDot_SimpleChain(t *testing.T) {
 	workflow := createTestWorkflow("pr-review")
 
 	result := &Result{
-		Skills:    []*skillv1.Skill{skill},
-		Agents:    []*agentv1.Agent{agent},
-		Workflows: []*workflowv1.Workflow{workflow},
+		SkillSynths: []*skillv1.SkillSynth{skill},
+		Agents:      []*agentv1.Agent{agent},
+		Workflows:   []*workflowv1.Workflow{workflow},
 		Dependencies: map[string][]string{
-			"agent:reviewer":     {"skill:coding"},
+			"agent:reviewer":     {"skill_synth:coding"},
 			"workflow:pr-review": {"agent:reviewer"},
 		},
 	}
@@ -845,7 +845,7 @@ func TestGetDependencyGraphDot_SimpleChain(t *testing.T) {
 	}
 
 	// Should contain all resources
-	if !containsString(dot, "\"skill:coding\"") {
+	if !containsString(dot, "\"skill_synth:coding\"") {
 		t.Error("expected skill:coding in diagram")
 	}
 	if !containsString(dot, "\"agent:reviewer\"") {
@@ -879,12 +879,12 @@ func TestGetDependencyGraphDot_ParallelBranches(t *testing.T) {
 	workflow := createTestWorkflow("pr-review")
 
 	result := &Result{
-		Skills:    []*skillv1.Skill{skill1, skill2},
-		Agents:    []*agentv1.Agent{agent1, agent2},
-		Workflows: []*workflowv1.Workflow{workflow},
+		SkillSynths: []*skillv1.SkillSynth{skill1, skill2},
+		Agents:      []*agentv1.Agent{agent1, agent2},
+		Workflows:   []*workflowv1.Workflow{workflow},
 		Dependencies: map[string][]string{
-			"agent:code-reviewer": {"skill:coding"},
-			"agent:sec-reviewer":  {"skill:security"},
+			"agent:code-reviewer": {"skill_synth:coding"},
+			"agent:sec-reviewer":  {"skill_synth:security"},
 			"workflow:pr-review":  {"agent:code-reviewer", "agent:sec-reviewer"},
 		},
 	}
@@ -892,10 +892,10 @@ func TestGetDependencyGraphDot_ParallelBranches(t *testing.T) {
 	dot := result.GetDependencyGraphDot()
 
 	// Should contain all resources
-	if !containsString(dot, "\"skill:coding\"") {
+	if !containsString(dot, "\"skill_synth:coding\"") {
 		t.Error("expected skill:coding in diagram")
 	}
-	if !containsString(dot, "\"skill:security\"") {
+	if !containsString(dot, "\"skill_synth:security\"") {
 		t.Error("expected skill:security in diagram")
 	}
 	if !containsString(dot, "\"agent:code-reviewer\"") {
@@ -914,7 +914,7 @@ func TestSanitizeMermaidID(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{"skill:coding", "skill_coding"},
+		{"skill_synth:coding", "skill_synth_coding"},
 		{"agent:code-reviewer", "agent_code_reviewer"},
 		{"workflow:pr-review", "workflow_pr_review"},
 		{"test-name", "test_name"},
@@ -934,7 +934,7 @@ func TestGetResourceType(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{"skill:coding", "skill"},
+		{"skill_synth:coding", "skill_synth"},
 		{"mcp_server:github", "mcp_server"},
 		{"agent:reviewer", "agent"},
 		{"workflow:pr-review", "workflow"},
@@ -956,7 +956,7 @@ func TestGetNodeStyle(t *testing.T) {
 		expectedShape string
 		expectedColor string
 	}{
-		{"skill:coding", "box", "#e1f5e1"},
+		{"skill_synth:coding", "box", "#e1f5e1"},
 		{"mcp_server:github", "diamond", "#f3e5f5"},
 		{"agent:reviewer", "ellipse", "#e3f2fd"},
 		{"workflow:pr-review", "hexagon", "#fff3e0"},
@@ -1020,10 +1020,10 @@ func TestMcpServerCount(t *testing.T) {
 // TestTotalResources_WithMcpServers tests total resource count includes MCP servers.
 func TestTotalResources_WithMcpServers(t *testing.T) {
 	result := &Result{
-		Skills:     []*skillv1.Skill{createTestSkill("s1")},
-		McpServers: []*mcpserverv1.McpServer{createTestMcpServer("m1"), createTestMcpServer("m2")},
-		Agents:     []*agentv1.Agent{createTestAgent("a1")},
-		Workflows:  []*workflowv1.Workflow{createTestWorkflow("w1")},
+		SkillSynths: []*skillv1.SkillSynth{createTestSkill("s1")},
+		McpServers:  []*mcpserverv1.McpServer{createTestMcpServer("m1"), createTestMcpServer("m2")},
+		Agents:      []*agentv1.Agent{createTestAgent("a1")},
+		Workflows:   []*workflowv1.Workflow{createTestWorkflow("w1")},
 	}
 
 	expected := 5 // 1 skill + 2 mcp servers + 1 agent + 1 workflow
@@ -1065,12 +1065,12 @@ func TestTopologicalSort_WithMcpServer(t *testing.T) {
 func TestTopologicalSort_MixedDependencies(t *testing.T) {
 	// skill:coding, mcp_server:github → agent:reviewer → workflow:pr-review
 	result := &Result{
-		Skills:     []*skillv1.Skill{createTestSkill("coding")},
-		McpServers: []*mcpserverv1.McpServer{createTestMcpServer("github")},
-		Agents:     []*agentv1.Agent{createTestAgent("reviewer")},
-		Workflows:  []*workflowv1.Workflow{createTestWorkflow("pr-review")},
+		SkillSynths: []*skillv1.SkillSynth{createTestSkill("coding")},
+		McpServers:  []*mcpserverv1.McpServer{createTestMcpServer("github")},
+		Agents:      []*agentv1.Agent{createTestAgent("reviewer")},
+		Workflows:   []*workflowv1.Workflow{createTestWorkflow("pr-review")},
 		Dependencies: map[string][]string{
-			"agent:reviewer":     {"skill:coding", "mcp_server:github"},
+			"agent:reviewer":     {"skill_synth:coding", "mcp_server:github"},
 			"workflow:pr-review": {"agent:reviewer"},
 		},
 	}
@@ -1092,7 +1092,7 @@ func TestTopologicalSort_MixedDependencies(t *testing.T) {
 
 	for i, res := range ordered {
 		switch res.ID {
-		case "skill:coding":
+		case "skill_synth:coding":
 			skillIdx = i
 		case "mcp_server:github":
 			mcpIdx = i
@@ -1150,12 +1150,12 @@ func TestValidateDependencies_MissingMcpServer(t *testing.T) {
 func TestGetResourcesByDepth_WithMcpServer(t *testing.T) {
 	// skill, mcp_server (depth 0) → agent (depth 1) → workflow (depth 2)
 	result := &Result{
-		Skills:     []*skillv1.Skill{createTestSkill("coding")},
-		McpServers: []*mcpserverv1.McpServer{createTestMcpServer("github")},
-		Agents:     []*agentv1.Agent{createTestAgent("reviewer")},
-		Workflows:  []*workflowv1.Workflow{createTestWorkflow("pr-review")},
+		SkillSynths: []*skillv1.SkillSynth{createTestSkill("coding")},
+		McpServers:  []*mcpserverv1.McpServer{createTestMcpServer("github")},
+		Agents:      []*agentv1.Agent{createTestAgent("reviewer")},
+		Workflows:   []*workflowv1.Workflow{createTestWorkflow("pr-review")},
 		Dependencies: map[string][]string{
-			"agent:reviewer":     {"skill:coding", "mcp_server:github"},
+			"agent:reviewer":     {"skill_synth:coding", "mcp_server:github"},
 			"workflow:pr-review": {"agent:reviewer"},
 		},
 	}
@@ -1188,11 +1188,11 @@ func TestGetResourcesByDepth_WithMcpServer(t *testing.T) {
 // TestGetDependencyGraphMermaid_WithMcpServer tests Mermaid diagram includes MCP servers.
 func TestGetDependencyGraphMermaid_WithMcpServer(t *testing.T) {
 	result := &Result{
-		Skills:     []*skillv1.Skill{createTestSkill("coding")},
-		McpServers: []*mcpserverv1.McpServer{createTestMcpServer("github")},
-		Agents:     []*agentv1.Agent{createTestAgent("reviewer")},
+		SkillSynths: []*skillv1.SkillSynth{createTestSkill("coding")},
+		McpServers:  []*mcpserverv1.McpServer{createTestMcpServer("github")},
+		Agents:      []*agentv1.Agent{createTestAgent("reviewer")},
 		Dependencies: map[string][]string{
-			"agent:reviewer": {"skill:coding", "mcp_server:github"},
+			"agent:reviewer": {"skill_synth:coding", "mcp_server:github"},
 		},
 	}
 
@@ -1209,7 +1209,7 @@ func TestGetDependencyGraphMermaid_WithMcpServer(t *testing.T) {
 	}
 
 	// Should contain all resource types
-	if !containsString(mermaid, "skill:coding") {
+	if !containsString(mermaid, "skill_synth:coding") {
 		t.Error("expected skill:coding in Mermaid diagram")
 	}
 	if !containsString(mermaid, "agent:reviewer") {

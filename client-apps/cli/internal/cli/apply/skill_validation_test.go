@@ -184,11 +184,10 @@ func TestExtractExternalSkillRefs_FromAgentSkillRefs(t *testing.T) {
 func TestExtractExternalSkillRefs_ExcludesInlineSkills(t *testing.T) {
 	t.Run("excludes skills defined inline in synthesis result", func(t *testing.T) {
 		result := &synthesis.Result{
-			Skills: []*skillv1.Skill{
+			SkillSynths: []*skillv1.SkillSynth{
 				{
-					Metadata: &apiresource.ApiResourceMetadata{
-						Name: "inline-skill",
-						Slug: "inline-skill",
+					Source: &skillv1.SkillSynth_Local{
+						Local: &skillv1.LocalDir{Path: "inline-skill"},
 					},
 				},
 			},
@@ -197,8 +196,8 @@ func TestExtractExternalSkillRefs_ExcludesInlineSkills(t *testing.T) {
 					Metadata: &apiresource.ApiResourceMetadata{Name: "reviewer"},
 					Spec: &agentv1.AgentSpec{
 						SkillRefs: []*apiresource.ApiResourceReference{
-							{Slug: "inline-skill"},   // Should be excluded
-							{Slug: "external-skill"}, // Should be included
+							{Slug: "inline-skill"},
+							{Slug: "external-skill"},
 						},
 					},
 				},
@@ -213,11 +212,10 @@ func TestExtractExternalSkillRefs_ExcludesInlineSkills(t *testing.T) {
 
 	t.Run("excludes skills from dependencies map if defined inline", func(t *testing.T) {
 		result := &synthesis.Result{
-			Skills: []*skillv1.Skill{
+			SkillSynths: []*skillv1.SkillSynth{
 				{
-					Metadata: &apiresource.ApiResourceMetadata{
-						Name: "inline-skill",
-						Slug: "inline-skill",
+					Source: &skillv1.SkillSynth_Local{
+						Local: &skillv1.LocalDir{Path: "inline-skill"},
 					},
 				},
 			},
@@ -234,10 +232,10 @@ func TestExtractExternalSkillRefs_ExcludesInlineSkills(t *testing.T) {
 
 	t.Run("uses name as slug fallback for inline skill matching", func(t *testing.T) {
 		result := &synthesis.Result{
-			Skills: []*skillv1.Skill{
+			SkillSynths: []*skillv1.SkillSynth{
 				{
-					Metadata: &apiresource.ApiResourceMetadata{
-						Name: "MyInlineSkill", // Will be lowercased
+					Source: &skillv1.SkillSynth_Local{
+						Local: &skillv1.LocalDir{Path: "MyInlineSkill"},
 					},
 				},
 			},
@@ -267,11 +265,10 @@ func TestExtractExternalSkillRefs_ExcludesInlineSkills(t *testing.T) {
 
 func TestExtractExternalSkillRefs_CombinesSources(t *testing.T) {
 	result := &synthesis.Result{
-		Skills: []*skillv1.Skill{
+		SkillSynths: []*skillv1.SkillSynth{
 			{
-				Metadata: &apiresource.ApiResourceMetadata{
-					Name: "inline-skill",
-					Slug: "inline-skill",
+				Source: &skillv1.SkillSynth_Local{
+					Local: &skillv1.LocalDir{Path: "inline-skill"},
 				},
 			},
 		},
@@ -406,11 +403,10 @@ func TestExtractExternalSkillRefs_DataPipelineScenario(t *testing.T) {
 	// - Two agents referencing different skills
 
 	result := &synthesis.Result{
-		Skills: []*skillv1.Skill{
+		SkillSynths: []*skillv1.SkillSynth{
 			{
-				Metadata: &apiresource.ApiResourceMetadata{
-					Name: "data-validation",
-					Slug: "data-validation",
+				Source: &skillv1.SkillSynth_Local{
+					Local: &skillv1.LocalDir{Path: "data-validation"},
 				},
 			},
 		},

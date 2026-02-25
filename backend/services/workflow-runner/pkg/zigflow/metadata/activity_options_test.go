@@ -20,9 +20,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow/metadata"
-	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/stretchr/testify/assert"
 	"go.temporal.io/sdk/temporal"
 )

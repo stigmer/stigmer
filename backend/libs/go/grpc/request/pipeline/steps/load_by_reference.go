@@ -3,13 +3,13 @@ package steps
 import (
 	"fmt"
 
+	apiresourcepb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/backend/libs/go/apiresource"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
-	apiresourcepb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -78,11 +78,11 @@ func (s *LoadByReferenceStep[T]) Execute(ctx *pipeline.RequestContext[*apiresour
 
 	// Verify kind matches the reference kind (if provided)
 	if ref.Kind.Number() != 0 && ref.Kind != kind {
-		return grpclib.InvalidArgumentError(fmt.Sprintf(
+		return grpclib.InvalidArgumentError(
 			"kind mismatch: expected %s, got %s",
 			kind.String(),
 			ref.Kind.String(),
-		))
+		)
 	}
 
 	// Find resource by slug

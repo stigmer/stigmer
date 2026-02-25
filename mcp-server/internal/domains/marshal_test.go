@@ -62,4 +62,3 @@ func TestMarshalJSON_nilMessage(t *testing.T) {
 		t.Errorf("MarshalJSON(nil) = %q, want %q", got, "{}")
 	}
 }
-

@@ -18,7 +18,6 @@ from graphton.core.models import (
     parse_model_string,
 )
 
-
 # =============================================================================
 # TestNativeThinkingConfig - Tests for extended thinking in parse_model_string
 # =============================================================================

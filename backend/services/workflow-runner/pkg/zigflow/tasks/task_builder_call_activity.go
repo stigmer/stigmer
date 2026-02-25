@@ -20,11 +20,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
-	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow/models"
 	"github.com/rs/zerolog/log"
 	swUtil "github.com/serverlessworkflow/sdk-go/v3/impl/utils"
 	"github.com/serverlessworkflow/sdk-go/v3/model"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow/models"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"

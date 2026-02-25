@@ -18,41 +18,40 @@ import (
 // GetResourceID Tests
 // =============================================================================
 
-func TestGetResourceID_Skill(t *testing.T) {
+func TestGetResourceID_SkillSynth(t *testing.T) {
 	tests := []struct {
-		name     string
-		skill    *skillv1.Skill
-		expected string
+		name       string
+		skillSynth *skillv1.SkillSynth
+		expected   string
 	}{
 		{
-			name: "skill with slug",
-			skill: &skillv1.Skill{
-				Metadata: &apiresource.ApiResourceMetadata{Slug: "code-analysis"},
-			},
-			expected: "skill:code-analysis",
-		},
-		{
-			name: "skill with name fallback",
-			skill: &skillv1.Skill{
-				Metadata: &apiresource.ApiResourceMetadata{Name: "CodeAnalysis"},
-			},
-			expected: "skill:codeanalysis",
-		},
-		{
-			name: "skill with both slug and name prefers slug",
-			skill: &skillv1.Skill{
-				Metadata: &apiresource.ApiResourceMetadata{
-					Slug: "preferred-slug",
-					Name: "IgnoredName",
+			name: "skill synth with local path",
+			skillSynth: &skillv1.SkillSynth{
+				Source: &skillv1.SkillSynth_Local{
+					Local: &skillv1.LocalDir{Path: "code-analysis"},
 				},
 			},
-			expected: "skill:preferred-slug",
+			expected: "skill_synth:code-analysis",
+		},
+		{
+			name: "skill synth with git url",
+			skillSynth: &skillv1.SkillSynth{
+				Source: &skillv1.SkillSynth_Git{
+					Git: &skillv1.Git{Url: "https://github.com/org/repo"},
+				},
+			},
+			expected: "skill_synth:https://github.com/org/repo",
+		},
+		{
+			name:       "skill synth with no source",
+			skillSynth: &skillv1.SkillSynth{},
+			expected:   "skill_synth:unknown",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := GetResourceID(tt.skill)
+			result := GetResourceID(tt.skillSynth)
 			if result != tt.expected {
 				t.Errorf("GetResourceID() = %s, want %s", result, tt.expected)
 			}
@@ -194,16 +193,17 @@ func TestReadFromDirectory_EmptyDirectory(t *testing.T) {
 	}
 }
 
-func TestReadFromDirectory_WithSkill(t *testing.T) {
+func TestReadFromDirectory_WithSkillSynth(t *testing.T) {
 	tempDir := t.TempDir()
 
-	// Create a skill proto file
-	skill := &skillv1.Skill{
-		Metadata: &apiresource.ApiResourceMetadata{Slug: "test-skill"},
+	skillSynth := &skillv1.SkillSynth{
+		Source: &skillv1.SkillSynth_Local{
+			Local: &skillv1.LocalDir{Path: "test-skill"},
+		},
 	}
-	data, err := proto.Marshal(skill)
+	data, err := proto.Marshal(skillSynth)
 	if err != nil {
-		t.Fatalf("failed to marshal skill: %v", err)
+		t.Fatalf("failed to marshal skill synth: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(tempDir, "skill-0.pb"), data, 0644); err != nil {
 		t.Fatalf("failed to write skill file: %v", err)
@@ -214,11 +214,11 @@ func TestReadFromDirectory_WithSkill(t *testing.T) {
 		t.Fatalf("ReadFromDirectory failed: %v", err)
 	}
 
-	if len(result.Skills) != 1 {
-		t.Errorf("expected 1 skill, got %d", len(result.Skills))
+	if len(result.SkillSynths) != 1 {
+		t.Errorf("expected 1 skill synth, got %d", len(result.SkillSynths))
 	}
-	if result.Skills[0].GetMetadata().GetSlug() != "test-skill" {
-		t.Errorf("unexpected skill slug: %s", result.Skills[0].GetMetadata().GetSlug())
+	if result.SkillSynths[0].GetLocal().GetPath() != "test-skill" {
+		t.Errorf("unexpected skill synth path: %s", result.SkillSynths[0].GetLocal().GetPath())
 	}
 }
 
@@ -281,13 +281,14 @@ func TestReadFromDirectory_WithAgent(t *testing.T) {
 func TestReadFromDirectory_WithDependencies(t *testing.T) {
 	tempDir := t.TempDir()
 
-	// Create a skill proto file
-	skill := &skillv1.Skill{
-		Metadata: &apiresource.ApiResourceMetadata{Slug: "test-skill"},
+	skillSynth := &skillv1.SkillSynth{
+		Source: &skillv1.SkillSynth_Local{
+			Local: &skillv1.LocalDir{Path: "test-skill"},
+		},
 	}
-	data, err := proto.Marshal(skill)
+	data, err := proto.Marshal(skillSynth)
 	if err != nil {
-		t.Fatalf("failed to marshal skill: %v", err)
+		t.Fatalf("failed to marshal skill synth: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(tempDir, "skill-0.pb"), data, 0644); err != nil {
 		t.Fatalf("failed to write skill file: %v", err)
@@ -295,7 +296,7 @@ func TestReadFromDirectory_WithDependencies(t *testing.T) {
 
 	// Create dependencies.json
 	deps := map[string][]string{
-		"agent:test-agent": {"skill:test-skill"},
+		"agent:test-agent": {"skill_synth:test-skill"},
 	}
 	depsData, err := json.Marshal(deps)
 	if err != nil {
@@ -321,9 +322,11 @@ func TestReadFromDirectory_WithDependencies(t *testing.T) {
 func TestReadFromDirectory_WithAllResourceTypes(t *testing.T) {
 	tempDir := t.TempDir()
 
-	// Create skill
-	skill := &skillv1.Skill{Metadata: &apiresource.ApiResourceMetadata{Slug: "s1"}}
-	skillData, _ := proto.Marshal(skill)
+	// Create skill synth
+	skillSynth := &skillv1.SkillSynth{
+		Source: &skillv1.SkillSynth_Local{Local: &skillv1.LocalDir{Path: "s1"}},
+	}
+	skillData, _ := proto.Marshal(skillSynth)
 	os.WriteFile(filepath.Join(tempDir, "skill-0.pb"), skillData, 0644)
 
 	// Create MCP server
@@ -350,8 +353,8 @@ func TestReadFromDirectory_WithAllResourceTypes(t *testing.T) {
 		t.Fatalf("ReadFromDirectory failed: %v", err)
 	}
 
-	if result.SkillCount() != 1 {
-		t.Errorf("expected 1 skill, got %d", result.SkillCount())
+	if result.SkillSynthCount() != 1 {
+		t.Errorf("expected 1 skill synth, got %d", result.SkillSynthCount())
 	}
 	if result.McpServerCount() != 1 {
 		t.Errorf("expected 1 MCP server, got %d", result.McpServerCount())
@@ -390,9 +393,11 @@ func TestReadFromDirectory_MultipleOfSameType(t *testing.T) {
 func TestReadFromDirectory_MissingDependenciesFile(t *testing.T) {
 	tempDir := t.TempDir()
 
-	// Create only a skill (no dependencies.json)
-	skill := &skillv1.Skill{Metadata: &apiresource.ApiResourceMetadata{Slug: "test"}}
-	data, _ := proto.Marshal(skill)
+	// Create only a skill synth (no dependencies.json)
+	skillSynth := &skillv1.SkillSynth{
+		Source: &skillv1.SkillSynth_Local{Local: &skillv1.LocalDir{Path: "test"}},
+	}
+	data, _ := proto.Marshal(skillSynth)
 	os.WriteFile(filepath.Join(tempDir, "skill-0.pb"), data, 0644)
 
 	result, err := ReadFromDirectory(tempDir)
@@ -426,9 +431,11 @@ func TestReadFromDirectory_InvalidProtoFile(t *testing.T) {
 func TestReadFromDirectory_InvalidDependenciesJson(t *testing.T) {
 	tempDir := t.TempDir()
 
-	// Create a skill
-	skill := &skillv1.Skill{Metadata: &apiresource.ApiResourceMetadata{Slug: "test"}}
-	data, _ := proto.Marshal(skill)
+	// Create a skill synth
+	skillSynth := &skillv1.SkillSynth{
+		Source: &skillv1.SkillSynth_Local{Local: &skillv1.LocalDir{Path: "test"}},
+	}
+	data, _ := proto.Marshal(skillSynth)
 	os.WriteFile(filepath.Join(tempDir, "skill-0.pb"), data, 0644)
 
 	// Create invalid dependencies.json

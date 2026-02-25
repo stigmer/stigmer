@@ -19,8 +19,8 @@ package tasks
 import (
 	"fmt"
 
-	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
 	"github.com/serverlessworkflow/sdk-go/v3/model"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"
 )
@@ -80,9 +80,9 @@ func (t *SwitchTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 
 				// Check if this is a task reference (inline task in do:) or a child workflow
 				targetTask := then.Value
-				
+
 				logger.Info("Switch matched condition", "task", t.GetTaskName(), "condition", name, "target", targetTask)
-				
+
 				// Set the task base's Then directive for flow control if we're in a Do task context
 				// (indicated by having a doc reference). This allows the Do builder to handle flow control.
 				// Otherwise, execute as a child workflow directly (for standalone switch tasks).
@@ -98,7 +98,7 @@ func (t *SwitchTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 						}
 					}
 				}
-				
+
 				// Execute as child workflow (for standalone switch tasks or fallback)
 				logger.Info("Executing switch target as child workflow", "target", targetTask)
 				var res any

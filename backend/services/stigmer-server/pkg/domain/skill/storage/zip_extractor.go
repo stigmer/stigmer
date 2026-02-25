@@ -114,8 +114,12 @@ func validateZipContent(reader *zip.Reader) error {
 			}
 		}
 
-		// Track total uncompressed size
+		// Track total uncompressed size (fail fast once limit exceeded)
 		totalUncompressedSize += file.UncompressedSize64
+		if totalUncompressedSize > maxUncompressedSize {
+			return fmt.Errorf("total uncompressed size too large: %d bytes (max: %d)",
+				totalUncompressedSize, maxUncompressedSize)
+		}
 
 		// Check compression ratio per file (prevent ZIP bombs)
 		if file.CompressedSize64 > 0 {
@@ -125,12 +129,6 @@ func validateZipContent(reader *zip.Reader) error {
 					file.Name, ratio, maxCompressionRatio)
 			}
 		}
-	}
-
-	// Check total uncompressed size
-	if totalUncompressedSize > maxUncompressedSize {
-		return fmt.Errorf("total uncompressed size too large: %d bytes (max: %d)",
-			totalUncompressedSize, maxUncompressedSize)
 	}
 
 	// Ensure SKILL.md exists

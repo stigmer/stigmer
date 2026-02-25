@@ -1,0 +1,204 @@
+# =============================================================================
+# CI — Continuous Integration
+# =============================================================================
+# Runs lint, type-check, build, and test on every pull request and push to main.
+# This is the PR gate — code that fails these checks cannot be merged.
+#
+# Local equivalent: make check
+# =============================================================================
+
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Lint and type-check Python (agent-runner + graphton)
+  # ---------------------------------------------------------------------------
+  lint-python:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate proto stubs
+        run: make protos
+
+      - name: Install agent-runner dependencies
+        working-directory: backend/services/agent-runner
+        run: poetry install --no-interaction
+
+      - name: Ruff — agent-runner
+        working-directory: backend/services/agent-runner
+        run: poetry run ruff check .
+
+      - name: Ruff — graphton
+        working-directory: backend/libs/python/graphton
+        run: poetry run ruff check .
+
+      - name: MyPy — agent-runner + graphton
+        working-directory: backend/services/agent-runner
+        run: poetry run mypy grpc_client/ worker/ ../../libs/python/graphton/src/ --show-error-codes
+
+  # ---------------------------------------------------------------------------
+  # Lint Go code (go vet on all workspace modules)
+  # ---------------------------------------------------------------------------
+  lint-go:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate proto stubs
+        run: make protos
+
+      - name: go vet — all modules
+        run: |
+          cd apis/stubs/go && go vet ./... && cd ../../..
+          cd backend/libs/go && go vet ./... && cd ../../..
+          cd backend/services/stigmer-server && go vet ./... && cd ../../..
+          cd backend/services/workflow-runner && go vet ./... && cd ../../..
+          cd client-apps/cli && go vet ./... && cd ../..
+          cd mcp-server && go vet ./... && cd ..
+          cd sdk/go && go vet ./... && cd ../..
+
+      - name: gofmt check
+        run: |
+          DIFF=$(gofmt -s -l .)
+          if [ -n "$DIFF" ]; then
+            echo "The following files are not formatted:"
+            echo "$DIFF"
+            exit 1
+          fi
+
+  # ---------------------------------------------------------------------------
+  # Build all binaries
+  # ---------------------------------------------------------------------------
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate proto stubs
+        run: make protos
+
+      - name: Build CLI
+        run: |
+          mkdir -p bin
+          cd client-apps/cli && go build -o ../../bin/stigmer .
+
+      - name: Build workflow-runner gRPC server
+        run: |
+          go build -o bin/workflow-runner-grpc ./backend/services/workflow-runner/cmd/grpc-server
+
+  # ---------------------------------------------------------------------------
+  # Test — Go modules
+  # ---------------------------------------------------------------------------
+  test-go:
+    needs: [lint-go, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate proto stubs
+        run: make protos
+
+      - name: Test all Go modules
+        run: |
+          cd apis/stubs/go && go test -race -timeout 30s ./... && cd ../../..
+          cd backend/libs/go && go test -race -timeout 30s ./... && cd ../../..
+          cd backend/services/stigmer-server && go test -race -timeout 30s ./... && cd ../../..
+          cd backend/services/workflow-runner && go test -race -timeout 30s ./... && cd ../../..
+          cd client-apps/cli && go test -race -timeout 30s ./... && cd ../..
+          cd mcp-server && go test -race -timeout 30s ./... && cd ..
+          cd sdk/go && go test -race -timeout 30s ./... && cd ../..
+
+  # ---------------------------------------------------------------------------
+  # Test — Python (agent-runner)
+  # ---------------------------------------------------------------------------
+  test-python:
+    needs: [lint-python]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate proto stubs
+        run: make protos
+
+      - name: Install dependencies
+        working-directory: backend/services/agent-runner
+        run: poetry install --no-interaction
+
+      - name: Run pytest
+        working-directory: backend/services/agent-runner
+        run: poetry run pytest

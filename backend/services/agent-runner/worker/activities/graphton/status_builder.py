@@ -795,7 +795,7 @@ class StatusBuilder:
                     f"text={text_in_same_chunk[:100]!r}"
                 )
             elif not thinking_text and not text_in_same_chunk:
-                _EXPECTED_NON_TEXT_TYPES = frozenset({
+                expected_non_text_types = frozenset({
                     "thinking", "tool_use", "input_json_delta",
                 })
                 block_types = [
@@ -804,7 +804,7 @@ class StatusBuilder:
                 ]
                 is_expected = (
                     not block_types
-                    or all(bt in _EXPECTED_NON_TEXT_TYPES for bt in block_types)
+                    or all(bt in expected_non_text_types for bt in block_types)
                 )
                 log_fn = self.logger.debug if is_expected else self.logger.info
                 log_fn(
@@ -820,13 +820,13 @@ class StatusBuilder:
             # When a tool_use block appears in the stream, create the ToolCall
             # right away so the CLI replaces the idle "Thinking…" indicator
             # with the actual tool name (e.g. "Write: …").
-            _SKIP_EARLY_TOOLS = frozenset(PLANNING_TOOLS) | {"task"}
+            skip_early_tools = frozenset(PLANNING_TOOLS) | {"task"}
             for block in chunk_data.content:
                 try:
                     if self._block_attr(block, "type") == "tool_use":
                         t_name = self._block_attr(block, "name")
                         t_id = self._block_attr(block, "id")
-                        if t_name and t_name not in _SKIP_EARLY_TOOLS:
+                        if t_name and t_name not in skip_early_tools:
                             self._create_early_tool_call(
                                 t_name, t_id, ns_key, namespace,
                             )
@@ -1871,7 +1871,7 @@ class StatusBuilder:
         
         # Build a PendingApproval proto for this tool (interrupt_id is not yet
         # known — it will be set post-stream when we query the graph state).
-        pending = PendingApproval(
+        _pending = PendingApproval(  # noqa: F841
             tool_call_id=run_id,
             tool_name=tool_name,
             message=approval_message,

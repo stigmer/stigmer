@@ -61,17 +61,17 @@ type TypeSchema struct {
 }
 
 type FieldSchema struct {
-	Name          string      `json:"name"`
-	JsonName      string      `json:"jsonName"`
-	ProtoField    string      `json:"protoField"`
-	Type          TypeSpec    `json:"type"`
-	Description   string      `json:"description"`
-	Required      bool        `json:"required"`
+	Name            string      `json:"name"`
+	JsonName        string      `json:"jsonName"`
+	ProtoField      string      `json:"protoField"`
+	Type            TypeSpec    `json:"type"`
+	Description     string      `json:"description"`
+	Required        bool        `json:"required"`
 	IsExpression    bool        `json:"isExpression,omitempty"`
 	ReferenceKind   int32       `json:"referenceKind,omitempty"`
 	DiscriminatedBy string      `json:"discriminatedBy,omitempty"`
 	OneofGroup      string      `json:"oneofGroup,omitempty"`
-	Validation    *Validation `json:"validation,omitempty"`
+	Validation      *Validation `json:"validation,omitempty"`
 }
 
 type TypeSpec struct {

@@ -3,8 +3,8 @@ package agentexecution
 import (
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
-	artifactstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/artifact/storage"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
+	artifactstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/artifact/storage"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/session"
@@ -21,7 +21,7 @@ type AgentExecutionController struct {
 	sessionClient       *session.Client
 	workflowCreator     *temporal.InvokeAgentExecutionWorkflowCreator
 	streamBroker        *StreamBroker
-	temporalClient      temporalclient.Client          // Temporal client for lifecycle operations
+	temporalClient      temporalclient.Client           // Temporal client for lifecycle operations
 	artifactStorage     artifactstorage.ArtifactStorage // Artifact storage for attachments and outputs
 }
 

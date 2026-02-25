@@ -15,7 +15,6 @@ import pytest
 
 from graphton.core.config import AgentConfig
 
-
 # =============================================================================
 # TestRecursionLimitValidator - Config validator behavior
 # =============================================================================

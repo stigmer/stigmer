@@ -2,109 +2,222 @@
 
 **Build AI agents and workflows with zero infrastructure.**
 
-Stigmer is an open-source agentic automation platform that runs locally with SQLite database or scales to production with Stigmer Cloud. Define agents and workflows in code, execute them anywhere.
-
-## Why Stigmer?
-
-Most AI agent frameworks force you to choose: either run locally with limited features, or commit to a cloud platform from day one. Stigmer gives you both.
-
-**Local Mode**: Run agents and workflows on your laptop with a SQLite database. No servers, no auth, no complexity. Perfect for development, personal projects, and small teams.
-
-**Cloud Mode**: When you're ready, `stigmer login` switches to Stigmer Cloud for multi-user collaboration, secrets management, and production scale—without changing your code.
-
-Same CLI. Same SDK. Same workflow definitions. Your choice of backend.
-
-## Prerequisites
-
-### Optional: Ollama (Recommended for Local Development)
-
-For the best local experience with zero API costs, install Ollama:
-
-```bash
-# macOS
-brew install ollama
-
-# Start Ollama
-ollama serve
-
-# Pull the default model
-ollama pull qwen2.5-coder:7b
-```
-
-**With Ollama**: Zero-config, free, works offline  
-**Without Ollama**: You'll be prompted for an Anthropic API key (cloud LLM)
+Stigmer is an open-source agentic automation platform. Run it locally with SQLite and Ollama for development, or connect to Stigmer Cloud for production. Same CLI, same SDK, same resource definitions — your choice of backend.
 
 ## Quick Start
 
-### 1. Install Stigmer
-
-**Homebrew (macOS/Linux) - Recommended:**
+### 1. Install
 
 ```bash
+# Homebrew (macOS/Linux)
 brew install stigmer/tap/stigmer
-```
 
-This installs both `stigmer` CLI and `stigmer-server` binaries.
-
-**From Source:**
-
-```bash
-# Clone and build
+# Or from source
 git clone https://github.com/stigmer/stigmer.git
-cd stigmer
+cd stigmer && make release-local
 
-# Build and install both CLI and server
-make release-local
-```
-
-**Shell Script (Alternative):**
-
-```bash
+# Or via shell script
 curl -fsSL https://raw.githubusercontent.com/stigmer/stigmer/main/scripts/install.sh | bash
 ```
 
-### 2. Start Local Mode
+This installs a single self-contained `stigmer` binary that embeds all required components.
+
+### 2. (Optional) Install Ollama for Free Local LLM
+
+```bash
+brew install ollama
+ollama serve
+ollama pull qwen2.5-coder:7b
+```
+
+Without Ollama, you'll need an Anthropic API key instead.
+
+### 3. Start the Server
 
 ```bash
 stigmer server
 ```
 
-**That's it!** This single command:
-- ✅ Downloads and starts Temporal automatically
-- ✅ Uses Ollama (local LLM - no API keys!)
-- ✅ Starts the daemon with zero configuration
-- ✅ Ready for agent execution
+On first run, this auto-downloads Temporal, starts all services, and is ready on `localhost:50051`. No configuration required.
 
-**First run output:**
-```
-✓ Using Ollama (no API key required)
-✓ Starting managed Temporal server...
-✓ Temporal started on localhost:7233
-✓ Starting stigmer-server...
-✓ Starting agent-runner...
-✓ Ready! Stigmer is running on localhost:50051
-```
-
-### Managing Local Mode
+### 4. Deploy and Run an Agent
 
 ```bash
-# Check status
-stigmer server status
+# Deploy from a YAML file
+stigmer apply -f agent.yaml
 
-# Stop daemon
-stigmer server stop
-
-# Restart
-stigmer server start
+# Execute
+stigmer run support-bot "How do I reset my password?"
 ```
 
-### Configuration (Optional)
+### Managing the Server
 
-**Default**: Uses Ollama with `qwen2.5-coder:7b` (free, local)
+```bash
+stigmer server status   # check if running
+stigmer server stop     # stop all services
+stigmer server          # start again
+```
 
-**Switch to Anthropic** (paid, cloud):
+## Core Concepts
 
-Edit `~/.stigmer/config.yaml`:
+### Agents
+
+An agent has instructions, optional MCP servers for tool access, and optional model configuration.
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: support-bot
+spec:
+  instructions: |
+    You are a helpful customer support agent.
+    Answer questions politely and accurately.
+    Check GitHub issues for known problems.
+  mcpServers:
+    - github
+    - filesystem
+```
+
+```bash
+stigmer apply -f agent.yaml
+stigmer run support-bot "What's the status of issue #42?"
+```
+
+### Workflows
+
+Multi-step automations that chain HTTP calls, agent calls, variable assignments, conditionals, and loops. Workflows follow the [CNCF Serverless Workflow](https://serverlessworkflow.io/) DSL.
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Workflow
+metadata:
+  name: hello-world
+spec:
+  description: A minimal workflow
+  document:
+    dsl: "1.0.0"
+    namespace: examples
+    name: hello-world
+    version: "1.0.0"
+  tasks:
+    - name: set-greeting
+      kind: set_vars
+      task_config:
+        variables:
+          greeting: "Hello, World!"
+          timestamp: "${now()}"
+      export:
+        as: "${.}"
+```
+
+Tasks support `kind: set_vars`, `kind: http_call`, `kind: agent_call`, `kind: wait`, and control flow via `flow.then`. See [examples/workflows/](examples/workflows/) for more complex patterns including multi-agent orchestration and conditional branching.
+
+```bash
+stigmer apply -f workflow.yaml
+stigmer run hello-world
+```
+
+### Skills
+
+Versioned knowledge artifacts (instructions + reference material) that agents can use. A skill is a directory with a `SKILL.md` file containing YAML frontmatter:
+
+```
+my-skill/
+  SKILL.md          # Required: interface definition with YAML frontmatter
+  tool.sh           # Optional: tool implementation
+  README.md         # Optional: documentation
+```
+
+```bash
+stigmer push                          # push skill from current directory
+stigmer draft skill --name my-skill   # scaffold a new skill
+```
+
+### MCP Servers
+
+Stigmer uses the [Model Context Protocol](https://modelcontextprotocol.io) to give agents tool access. Agents can use any STDIO-based MCP server — npm packages (npx), Python packages (uvx), Go modules (go run), or Docker images.
+
+Stigmer also ships its own MCP server that exposes platform resources to AI-powered IDEs:
+
+```bash
+stigmer mcp-server
+```
+
+See [mcp-server/README.md](mcp-server/README.md) for IDE configuration (Cursor, Claude Desktop, VS Code, Windsurf).
+
+## Go SDK
+
+Define agents and workflows programmatically using a Pulumi-aligned struct args API.
+
+```go
+package main
+
+import (
+    "fmt"
+    "log"
+
+    "github.com/stigmer/stigmer/sdk/go/agent"
+    "github.com/stigmer/stigmer/sdk/go/stigmer"
+)
+
+func main() {
+    err := stigmer.Run(func(ctx *stigmer.Context) error {
+        a, err := agent.New(ctx, "code-reviewer", &agent.AgentArgs{
+            Instructions: "Review code for best practices and security issues",
+        })
+        if err != nil {
+            return err
+        }
+        fmt.Printf("Created agent: %s\n", a.Name)
+        return nil
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+}
+```
+
+See [sdk/go/README.md](sdk/go/README.md) for the full SDK reference, workflow builders, and more examples in [sdk/go/examples/](sdk/go/examples/).
+
+## CLI Reference
+
+| Command | Description |
+|---------|-------------|
+| `stigmer run <name> [prompt]` | Execute an agent or workflow |
+| `stigmer apply -f <file>` | Create or update resources from YAML |
+| `stigmer get <kind> <name>` | Get a resource |
+| `stigmer list <kind>` | List resources |
+| `stigmer delete <kind> <name>` | Delete a resource |
+| `stigmer search <query>` | Full-text search across resources |
+| `stigmer draft <kind>` | Scaffold a new resource |
+| `stigmer push` | Push a skill artifact |
+| `stigmer download <kind> <name>` | Download a resource artifact |
+| `stigmer validate -f <file>` | Validate a resource definition |
+| `stigmer server` | Start/stop/status for local server |
+| `stigmer mcp-server` | Start the Stigmer MCP server |
+| `stigmer backend` | Switch between local and cloud backends |
+| `stigmer config` | Manage CLI configuration |
+
+## Local vs Cloud
+
+| | Local Mode (Open Source) | Cloud Mode (Stigmer Cloud) |
+|---|---|---|
+| **Start with** | `stigmer server` | `stigmer backend set cloud` |
+| **Storage** | SQLite (`~/.stigmer/stigmer.db`) | Distributed (managed) |
+| **Orchestration** | Temporal (auto-managed) | Temporal (managed) |
+| **Users** | Single implicit user | Organizations, teams, IAM |
+| **LLM** | Ollama (default) or Anthropic | Configurable |
+| **Best for** | Development, personal projects, air-gapped environments | Team collaboration, production, governance |
+
+Resource definitions are portable across both modes. The CLI talks to the same gRPC service interfaces regardless of backend.
+
+### LLM Configuration
+
+The default local setup uses Ollama with `qwen2.5-coder:7b` (free, offline).
+
+To use Anthropic instead, edit `~/.stigmer/config.yaml`:
+
 ```yaml
 backend:
   local:
@@ -113,649 +226,135 @@ backend:
       model: claude-sonnet-4.5
 ```
 
-Or use environment variables:
+Or set environment variables:
+
 ```bash
 export STIGMER_LLM_PROVIDER=anthropic
 export ANTHROPIC_API_KEY=sk-ant-...
-stigmer server start
+stigmer server
 ```
-
-**See the full documentation** for advanced configuration options.
 
 ## Architecture
 
-Stigmer uses an **Open Core** model with a clean separation between local and cloud backends:
+Stigmer is a single binary (BusyBox pattern) that embeds all required services:
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     Stigmer CLI                              │
-│              (cmd/stigmer - Open Source)                     │
-└──────────────────────┬──────────────────────────────────────┘
-                       │ In-process gRPC
-                       ↓
-┌─────────────────────────────────────────────────────────────┐
-│                  stigmer-server (Go)                         │
-│              (backend/services/stigmer-server)               │
-│                                                              │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │ Agent API    │  │ Workflow API │  │ Skill API    │      │
-│  │ Controller   │  │ Controller   │  │ Controller   │      │
-│  └──────────────┘  └──────────────┘  └──────────────┘      │
-│         │                  │                  │              │
-│         └──────────────────┴──────────────────┘              │
-│                       │                                      │
-│                       ↓                                      │
-│         ┌──────────────────────────────┐                    │
-│         │   SQLite Storage Layer       │                    │
-│         │  (libs/go/store/sqlite)      │                    │
-│         │                              │                    │
-│         │  Single-file database:       │                    │
-│         │  - ACID transactions         │                    │
-│         │  - Full-text search (FTS5)   │                    │
-│         │  - Standard SQL queries      │                    │
-│         └──────────────────────────────┘                    │
-└─────────────────────────────────────────────────────────────┘
-                       │
-                       ↓
-         ┌──────────────────────────────┐
-         │   Temporal Orchestration     │
-         └──────────────────────────────┘
-                   ↙         ↘
-          ┌──────────┐   ┌──────────────┐
-          │  agent-  │   │  workflow-   │
-          │  runner  │   │  runner      │
-          │ (Python) │   │    (Go)      │
-          └──────────┘   └──────────────┘
-```
-
-### Components
-
-**stigmer CLI** - Command-line interface for managing agents and workflows
-- Backend abstraction (local daemon vs cloud)
-- Daemon lifecycle management
-- Agent and workflow CRUD operations
-- **Location**: `client-apps/cli/` - [See CLI README](client-apps/cli/README.md)
-
-**stigmer-server** - Go gRPC API server with SQLite storage
-- Relational storage with standard SQL queries
-- In-process gRPC (no network overhead for local usage)
-- Protobuf validation
-- **Location**: `backend/services/stigmer-server/`
-
-**agent-runner** - Python Temporal worker for Graphton agent execution
-- Real-time status updates via gRPC
-- Session-based sandbox management
-- Skills integration
-- **Location**: `backend/services/agent-runner/`
-
-**workflow-runner** - Go Temporal worker for CNCF Serverless Workflows
-- Claim Check pattern for large payloads
-- Continue-As-New for unbounded workflows
-- gRPC command controller
-- **Location**: `backend/services/workflow-runner/`
-
-### Local Development Stack
-
-For full local development with agent execution:
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Layer 1: User Interface                                    │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │         stigmer CLI (Go)                              │  │
-│  │  Commands: agent create/list/execute, workflow, etc. │  │
-│  └──────────────────┬───────────────────────────────────┘  │
-└────────────────────│──────────────────────────────────────┘
+┌──────────────────────────────────────────────────────┐
+│                  stigmer CLI (Go)                     │
+│              (client-apps/cli/)                       │
+└────────────────────┬─────────────────────────────────┘
                      │ gRPC (localhost:50051)
-┌────────────────────▼──────────────────────────────────────┐
-│  Layer 2: API Server (stigmer-server - Go)                │
-│  ┌──────────────────────────────────────────────────────┐ │
-│  │  Controllers: Agent, Workflow, Session, etc.         │ │
-│  │  Storage: SQLite (~/.stigmer/stigmer.db)             │ │
-│  └──────────────────┬───────────────────────────────────┘ │
-└────────────────────│──────────────────────────────────────┘
+┌────────────────────▼─────────────────────────────────┐
+│            stigmer-server (Go)                        │
+│        (backend/services/stigmer-server/)             │
+│                                                       │
+│  Controllers: Agent, Workflow, Skill, MCP Server      │
+│  Storage: SQLite via modernc.org/sqlite (pure Go)     │
+└────────────────────┬─────────────────────────────────┘
                      │ Temporal Client
-┌────────────────────▼──────────────────────────────────────┐
-│  Layer 3: Temporal (Docker)                               │
-│  ┌──────────────────────────────────────────────────────┐ │
-│  │  Workflow Orchestration                              │ │
-│  │  Task Queues: agent_execution_stigmer (Go)           │ │
-│  │              agent_execution_runner (Python)         │ │
-│  └──────────────────┬───────────────────────────────────┘ │
-└────────────────────│──────────────────────────────────────┘
-                     │ Task Queue Polling
-┌────────────────────▼──────────────────────────────────────┐
-│  Layer 4: Agent Runner (Python)                           │
-│  ┌──────────────────────────────────────────────────────┐ │
-│  │  Temporal Activities: ExecuteGraphton, etc.          │ │
-│  │  AI Provider: Anthropic Claude (via API key)         │ │
-│  │  Sandbox: Filesystem-based workspace                 │ │
-│  └──────────────────────────────────────────────────────┘ │
-└───────────────────────────────────────────────────────────┘
+┌────────────────────▼─────────────────────────────────┐
+│            Temporal (auto-managed)                     │
+└───────────┬───────────────────────┬──────────────────┘
+┌───────────▼──────────┐  ┌────────▼──────────────────┐
+│  agent-runner        │  │  workflow-runner           │
+│  (Python)            │  │  (Go)                      │
+│  Graphton agent      │  │  CNCF Serverless Workflow  │
+│  execution           │  │  execution                 │
+└──────────────────────┘  └───────────────────────────┘
 ```
 
-**Zero-config setup**:
-```bash
-stigmer server
-# That's it! Temporal auto-starts, Ollama used by default
-```
-
-**With Anthropic (paid)**:
-```bash
-export STIGMER_LLM_PROVIDER=anthropic
-export ANTHROPIC_API_KEY=sk-ant-...
-stigmer server
-```
-
-### Storage Strategy
-
-Stigmer uses **SQLite** with the pure Go modernc.org/sqlite driver.
-
-**Why SQLite?**
-- ✅ Industry standard embedded database (powers Chrome, Firefox, iOS apps)
-- ✅ Universal tooling: sqlite3 CLI, DataGrip, DB Browser for SQLite
-- ✅ Standard SQL: developers already know the query language
-- ✅ Inspectable: `sqlite3 ~/.stigmer/stigmer.db` works immediately
-- ✅ Pure Go driver: no CGO dependencies, builds work everywhere
-- ✅ ACID transactions: correctness guarantees for agent state
-- ✅ Built-in FTS5: full-text search without external dependencies
-- ✅ Single-file database: simple backups and portability
-
-**Schema Design**:
-```sql
-CREATE TABLE resources (
-    kind TEXT NOT NULL,
-    id TEXT NOT NULL,
-    data BLOB NOT NULL,  -- Protobuf-serialized resource
-    PRIMARY KEY (kind, id)
-);
-CREATE INDEX idx_kind ON resources(kind);
-```
-
-**Benefits**:
-- Fast listing by kind: `SELECT * FROM resources WHERE kind = 'agent'`
-- Developer-friendly: inspect data with any SQLite client
-- Zero schema migrations when adding new resource types
-- Full-text search on agent descriptions with FTS5 virtual tables
-
-### Open Source vs Cloud
-
-**Open Source** (Apache 2.0):
-- CLI and execution engine (`cmd/stigmer/`)
-- stigmer-server (Go gRPC API server)
-- agent-runner (Python Temporal worker)
-- workflow-runner (Go Temporal worker)
-- Go and Python SDKs
-- SQLite storage layer
-- **Repository**: `github.com/stigmer/stigmer`
-
-**Proprietary** (Stigmer Cloud):
-- Multi-tenant SaaS platform
-- stigmer-service (Java Spring Boot with MongoDB)
-- Organizations and IAM (Auth0 + FGA)
-- Web console (React + TanStack)
-- Advanced governance and audit
-- **Repository**: `github.com/leftbin/stigmer-cloud` (private)
-
-## Core Concepts
-
-### Agents
-
-AI agents with instructions, tools (via MCP servers), and conversation memory.
-
-```yaml
-# agent.yaml
-apiVersion: agentic.stigmer.ai/v1
-kind: Agent
-metadata:
-  name: github-analyst
-spec:
-  instructions: |
-    Analyze GitHub repositories for code quality issues.
-  mcpServers:
-    - github
-    - filesystem
-```
-
-Deploy and execute:
-
-```bash
-stigmer apply -f agent.yaml
-stigmer agent execute github-analyst "Analyze myorg/myrepo"
-```
-
-### Workflows
-
-Multi-step automations with conditional logic, loops, and agent tasks.
-
-```yaml
-# workflow.yaml
-apiVersion: agentic.stigmer.ai/v1
-kind: Workflow
-metadata:
-  name: pr-review
-spec:
-  tasks:
-    - name: fetch-pr
-      agent: github-analyst
-      inputs:
-        pr_url: "${workflow.inputs.pr_url}"
-    
-    - name: review-code
-      agent: code-reviewer
-      inputs:
-        code: "${tasks.fetch-pr.output}"
-```
-
-Execute:
-
-```bash
-stigmer workflow execute pr-review \
-  --input pr_url=https://github.com/myorg/myrepo/pull/123
-```
-
-### MCP Servers
-
-Stigmer uses the [Model Context Protocol](https://modelcontextprotocol.io) to give agents capabilities.
-Agents can use any STDIO MCP server — npm packages (npx), Python packages (uvx), Go modules (go run),
-or Docker images:
-
-- **GitHub**: Repository access, issues, PRs
-- **Filesystem**: Read/write files
-- **Postgres**: Database queries
-- **Slack**: Send messages
-- **Custom**: Build your own
-
-#### Built-in Stigmer MCP Server
-
-Stigmer ships with its own MCP server that exposes all platform resources (agents, skills, workflows,
-MCP servers) to AI-powered development tools. Use it from Cursor, Claude Desktop, VS Code, or Windsurf:
-
-```bash
-# Via CLI (zero-config with local backend)
-stigmer mcp-server
-
-# Via Go install
-go install github.com/stigmer/stigmer/mcp-server/cmd/mcp-server-stigmer@latest
-
-# Via Docker
-docker run -i --rm -e STIGMER_SERVER_ADDRESS -e STIGMER_API_KEY ghcr.io/stigmer/mcp-server-stigmer
-```
-
-See [mcp-server/README.md](mcp-server/README.md) for full installation options, MCP client
-configuration examples, and environment variable reference.
-
-## Local vs. Cloud
-
-### Local Mode (Open Source)
-
-**Perfect for**:
-- Development and testing
-- Personal projects
-- Small teams sharing a machine
-- Air-gapped environments
-
-**How it works**:
-- Local daemon runs on `localhost:50051` (started with `stigmer server`)
-- SQLite database in `~/.stigmer/stigmer.db` (single-file, portable)
-- CLI and Agent Runner both connect to daemon via gRPC
-- Single implicit user (`local-user`)
-- Uses Ollama by default (no API keys needed)
-- Auto-manages Temporal for workflow orchestration
-
-**What runs in local mode:**
-- **stigmer-server** (Go): gRPC API server with SQLite storage
-- **agent-runner** (Python): Temporal worker for executing AI agents
-- **Temporal** (managed): Workflow orchestration (auto-downloaded and started)
-
-**Start using**:
-```bash
-# Single command to start everything
-stigmer server
-
-# Now you can create and execute agents
-stigmer agent create --name my-agent --instructions "..."
-stigmer agent execute my-agent "Your prompt here"
-```
-
-### Cloud Mode (Stigmer Cloud)
-
-**Perfect for**:
-- Team collaboration
-- Production workloads
-- Enterprise governance
-- Multi-region deployment
-
-**How it works**:
-- Multi-tenant SaaS platform
-- Organizations, teams, and users
-- Web console for management
-- IAM policies and audit logs
-
-**Start using**:
-```bash
-stigmer login
-```
-
-**Switching is seamless**: Your agent and workflow definitions work in both modes. Both implementations use the same gRPC service interfaces.
-
-## SDK Usage
-
-### Go SDK
-
-```go
-package main
-
-import (
-    "github.com/stigmer/stigmer/sdk/go/workflow"
-)
-
-func main() {
-    wf := workflow.New("data-pipeline")
-    
-    wf.Task("extract", func(ctx workflow.TaskContext) error {
-        // Extract data
-        return ctx.SetOutput("data", extractedData)
-    })
-    
-    wf.Task("transform", func(ctx workflow.TaskContext) error {
-        data := ctx.GetInput("data")
-        // Transform data
-        return ctx.SetOutput("transformed", result)
-    })
-    
-    wf.Execute()
-}
-```
-
-### Python SDK
-
-```python
-from stigmer import workflow
-
-@workflow.task
-def extract_data(ctx):
-    # Extract data
-    ctx.set_output("data", extracted_data)
-
-@workflow.task
-def transform_data(ctx):
-    data = ctx.get_input("data")
-    # Transform data
-    ctx.set_output("transformed", result)
-
-workflow.run("data-pipeline")
-```
-
-## gRPC Service Architecture
-
-Stigmer uses gRPC service interfaces as the contract between CLI and backends:
-
-```protobuf
-// Each resource defines its own gRPC services
-service AgentCommandController {
-  rpc create(Agent) returns (Agent);
-  rpc update(Agent) returns (Agent);
-  rpc delete(AgentId) returns (Agent);
-}
-
-service AgentQueryController {
-  rpc get(AgentId) returns (Agent);
-  rpc list(ListRequest) returns (ListResponse);
-}
-```
-
-**Local Mode**: Implements these gRPC services with SQLite (in-process, no network).  
-**Cloud Mode**: Implements these gRPC services over network with distributed storage.
-
-This guarantees:
-- ✅ Same features in both modes
-- ✅ Zero code changes when switching backends
-- ✅ Compiler enforces interface compatibility
-- ✅ No drift between implementations
-
-## Troubleshooting
-
-### Daemon won't start
-
-**Check if already running:**
-```bash
-stigmer server status
-```
-
-**Kill existing processes:**
-```bash
-ps aux | grep stigmer
-killall stigmer-server stigmer
-```
-
-**Check logs:**
-```bash
-cat ~/.stigmer/logs/daemon.log
-```
-
-### Agent execution fails
-
-**Verify Temporal is running:**
-```bash
-docker ps | grep temporal
-# If not running:
-docker start temporal
-```
-
-**Check Temporal connection:**
-```bash
-# stigmer-server should log Temporal connection on startup
-cat ~/.stigmer/logs/daemon.log | grep -i temporal
-```
-
-**Connect to custom Temporal server:**
-```bash
-# If Temporal is running on a different host/port
-stigmer server start --temporal-host=192.168.1.5:7233
-
-# Or set environment variable
-export TEMPORAL_HOST=192.168.1.5:7233
-stigmer server start
-```
-
-**Without Temporal:** Agent execution will fail. You can still create/list agents, but execution requires Temporal.
-
-### Missing Anthropic API key
-
-**Set via environment variable:**
-```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-stigmer local restart
-```
-
-**Set via flag:**
-```bash
-stigmer server start --anthropic-api-key=sk-ant-...
-```
-
-**Update keychain (macOS):**
-```bash
-# Open Keychain Access app
-# Search for "ANTHROPIC_API_KEY" and update
-stigmer server start
-```
-
-### Database locked errors
-
-If you see "database is locked":
-
-```bash
-# Stop the daemon first
-stigmer server stop
-
-# Wait a moment for cleanup
-sleep 2
-
-# Restart
-stigmer server start
-```
-
-### Reset everything
-
-**⚠️ This deletes all local data:**
-
-```bash
-stigmer server stop
-rm -rf ~/.stigmer
-stigmer init
-```
-
-## Documentation
-
-- 📚 [Complete Documentation](docs/README.md) - Full documentation index
-- [Getting Started](docs/getting-started/) - Detailed guides
-- [Architecture](docs/architecture/) - How Stigmer works
-  - [Temporal Integration](docs/architecture/temporal-integration.md) - Workflow orchestration design
-  - [Packaging Flow](docs/architecture/packaging-flow.md) - How Stigmer is packaged and distributed
-  - [Request Pipeline Context Design](docs/architecture/request-pipeline-context-design.md) - Multi-context vs single-context architectural analysis
-- [Guides](docs/guides/) - How-to guides
-  - [Distribution Guide](docs/guides/distribution.md) - Complete packaging and distribution guide
-- [API Reference](docs/api/) - gRPC service interfaces and SDK docs
-- [Examples](examples/) - Sample agents and workflows
+**Components:**
+
+- **stigmer CLI** — User-facing command-line interface with backend abstraction (local daemon vs cloud). Location: `client-apps/cli/`
+- **stigmer-server** — Go gRPC API server with SQLite storage, protobuf validation, and full-text search (FTS5). Location: `backend/services/stigmer-server/`
+- **agent-runner** — Python Temporal worker for AI agent execution via the Graphton framework. Location: `backend/services/agent-runner/`
+- **workflow-runner** — Go Temporal worker for CNCF Serverless Workflow execution with Claim Check and Continue-As-New patterns. Location: `backend/services/workflow-runner/`
+- **Go SDK** — Pulumi-aligned SDK for defining agents and workflows programmatically. Location: `sdk/go/`
+- **MCP Server** — Stateless MCP gateway bridging AI IDEs to stigmer-server via gRPC. Location: `mcp-server/`
+- **Proto APIs** — gRPC service definitions that serve as the contract between CLI and backends. Location: `apis/`
 
 ## Development
 
+### Prerequisites
+
+- Go 1.25 or later
+- Python 3.11+ with [Poetry](https://python-poetry.org/) (for agent-runner)
+- Git, Make
+
 ### Building from Source
 
-**Prerequisites:**
-- Go 1.21 or later
-- Git
-- Make
-
-**Build the CLI:**
-
 ```bash
-# Clone the repository
 git clone https://github.com/stigmer/stigmer.git
 cd stigmer
 
-# Build the CLI
-cd client-apps/cli
+# Install all dependencies
+make setup
+
+# Build the CLI (outputs bin/stigmer)
 make build
 
-# Binary will be in: client-apps/cli/bin/stigmer
-```
-
-**Build stigmer-server (optional, if modifying the API server):**
-
-```bash
-cd backend/services/stigmer-server
-go build -o stigmer-server cmd/server/main.go
-```
-
-**Build agent-runner (optional, if modifying agent execution):**
-
-```bash
-cd backend/services/agent-runner
-
-# Install dependencies
-poetry install
-
-# Run type checking
-make build
-```
-
-**Run tests:**
-
-```bash
-# CLI tests
-cd client-apps/cli
+# Run tests
 make test
-
-# stigmer-server tests
-cd backend/services/stigmer-server
-go test ./...
 ```
 
 ### Proto Generation
 
-Stigmer uses Protocol Buffers to define its gRPC API contracts. All proto files are located in the `apis/` directory.
-
 ```bash
-# Navigate to apis directory
 cd apis
-
-# Generate all stubs (Go + Python)
-make build
-
-# Or generate specific language stubs
-make go-stubs
-make python-stubs
-
-# Lint and format proto files
-make lint
-make fmt
-
-# Clean generated stubs
-make clean
+make build         # generate Go + Python stubs
+make lint          # lint proto files
+make fmt           # format proto files
 ```
 
-Generated stubs are placed in `apis/stubs/` and are excluded from version control:
-- Go stubs: `apis/stubs/go/`
-- Python stubs: `apis/stubs/python/stigmer/`
+Generated stubs go to `apis/stubs/` (excluded from version control). See [apis/README.md](apis/README.md) for details.
 
-See [apis/README.md](apis/README.md) for more details on the proto structure and build process.
-
-### Creating Releases
-
-Stigmer supports separate release processes for protos and CLI/binaries:
-
-**Release CLI and binaries:**
+### Releases
 
 ```bash
-# Create and push a release tag (triggers GitHub Actions)
-make release [bump=patch|minor|major]
-
-# Example: Create v0.2.0 release
-make release bump=minor
+make release bump=patch   # create a release tag (triggers GoReleaser via GitHub Actions)
+make protos-release       # publish protos to Buf separately
 ```
 
-This creates a git tag and pushes it to GitHub, which triggers GoReleaser to:
-- Build both `stigmer` and `stigmer-server` binaries for all platforms
-- Create GitHub releases with archives
-- Update Homebrew tap automatically
+See [Distribution Guide](docs/guides/distribution.md) for the full packaging and release process.
 
-**Release protos separately:**
+## Troubleshooting
+
+**Server won't start:**
 
 ```bash
-# Publish protos to Buf and create a tag
-make protos-release [bump=patch|minor|major]
+stigmer server status              # check if already running
+stigmer server stop && sleep 2 && stigmer server   # restart cleanly
 ```
 
-See [Distribution Guide](docs/guides/distribution.md) for complete packaging and distribution documentation.
+**Check logs:**
+
+```bash
+stigmer server logs
+```
+
+**Reset all local data:**
+
+```bash
+stigmer server stop
+rm -rf ~/.stigmer
+stigmer server       # recreates everything on first run
+```
+
+## Documentation
+
+- [Full Documentation Index](docs/README.md)
+- [Local Mode Guide](docs/getting-started/local-mode.md)
+- [Architecture](docs/architecture/) — [Temporal Integration](docs/architecture/temporal-integration.md), [Open Core Model](docs/architecture/open-core-model.md), [Packaging Flow](docs/architecture/packaging-flow.md)
+- [Guides](docs/guides/) — [Environment Variables](docs/guides/environment-variables.md), [Using MCP Servers](docs/guides/using-mcp-servers.md), [Uploading Skills](docs/guides/uploading-skills.md)
+- [Examples](examples/) — Sample agents, workflows, and skills
 
 ## Contributing
 
-We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+We welcome contributions. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-**Areas we need help**:
-- Additional MCP server integrations
-- SDK improvements (new languages welcome)
-- Documentation and examples
-- Bug reports and feature requests
-
-## Community
-
-- **Discord**: [Join our community](https://discord.gg/stigmer)
-- **GitHub Issues**: [Report bugs or request features](https://github.com/stigmer/stigmer/issues)
-- **Documentation**: [Read the docs](https://docs.stigmer.ai)
+- [GitHub Issues](https://github.com/stigmer/stigmer/issues) — Bug reports and feature requests
+- [Discord](https://discord.gg/stigmer) — Community chat
 
 ## License
 
-Stigmer is licensed under the **Apache License 2.0**.
-
-See [LICENSE](LICENSE) for details.
-
-## Commercial Support
-
-For enterprise support, SLA guarantees, and custom integrations, contact us at [enterprise@stigmer.ai](mailto:enterprise@stigmer.ai).
-
----
-
-**Built with ❤️ by the Stigmer team.**
+Apache License 2.0. See [LICENSE](LICENSE).

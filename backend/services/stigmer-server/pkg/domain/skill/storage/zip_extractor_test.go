@@ -11,19 +11,20 @@ import (
 // TestExtractSkillMd_Success verifies that a valid ZIP with SKILL.md
 // extracts correctly and returns the content.
 func TestExtractSkillMd_Success(t *testing.T) {
-	skillContent := "# Calculator Skill\n\nThis skill performs calculations."
+	skillContent := ValidSkillContent("calculator", "# Calculator Skill\n\nThis skill performs calculations.")
 	zipData := CreateTestZip(skillContent)
 
 	result, err := ExtractSkillMd(zipData)
 	require.NoError(t, err)
 	assert.Equal(t, skillContent, result.Content)
+	assert.Equal(t, "calculator", result.Name)
 	assert.Len(t, result.Hash, 64, "hash should be 64-character SHA256")
 }
 
 // TestExtractSkillMd_ReturnsHash verifies that ExtractSkillMd returns
 // the correct SHA256 hash of the ZIP content.
 func TestExtractSkillMd_ReturnsHash(t *testing.T) {
-	skillContent := "# Test Skill"
+	skillContent := ValidSkillContent("test-skill", "# Test Skill")
 	zipData := CreateTestZip(skillContent)
 
 	result, err := ExtractSkillMd(zipData)
@@ -37,7 +38,7 @@ func TestExtractSkillMd_ReturnsHash(t *testing.T) {
 // TestExtractSkillMd_MultipleFiles verifies that extraction works correctly
 // when the ZIP contains multiple files in addition to SKILL.md.
 func TestExtractSkillMd_MultipleFiles(t *testing.T) {
-	skillContent := "# Multi-file Skill"
+	skillContent := ValidSkillContent("multi-file-skill", "# Multi-file Skill")
 	zipData := CreateTestZipWithFiles(map[string][]byte{
 		"SKILL.md":  []byte(skillContent),
 		"script.sh": []byte("#!/bin/bash\necho 'hello'"),
@@ -48,13 +49,14 @@ func TestExtractSkillMd_MultipleFiles(t *testing.T) {
 	result, err := ExtractSkillMd(zipData)
 	require.NoError(t, err)
 	assert.Equal(t, skillContent, result.Content)
+	assert.Equal(t, "multi-file-skill", result.Name)
 }
 
 // TestExtractSkillMd_PreservesContent verifies that SKILL.md content is
 // extracted exactly as-is, preserving whitespace, newlines, and encoding.
 func TestExtractSkillMd_PreservesContent(t *testing.T) {
-	// Content with various whitespace and special characters
-	skillContent := `# Skill With Special Content
+	// Body with various whitespace and special characters
+	body := `# Skill With Special Content
 
 This has:
 - Multiple lines
@@ -64,11 +66,13 @@ This has:
 - Trailing newline
 
 `
+	skillContent := ValidSkillContent("special-content", body)
 	zipData := CreateTestZip(skillContent)
 
 	result, err := ExtractSkillMd(zipData)
 	require.NoError(t, err)
 	assert.Equal(t, skillContent, result.Content, "content should be preserved exactly")
+	assert.Equal(t, "special-content", result.Name)
 }
 
 // TestExtractSkillMd_ZipBomb_HighRatio verifies that ZIPs with compression

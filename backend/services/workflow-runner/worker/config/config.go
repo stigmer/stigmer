@@ -29,7 +29,7 @@ import (
 type Config struct {
 	TemporalServiceAddress string
 	TemporalNamespace      string
-	
+
 	// Three-Queue Architecture:
 	// - OrchestrationTaskQueue: For ExecuteWorkflowActivity (workflow execution orchestration)
 	//   This queue handles Go activities called by Java workflows (polyglot pattern)
@@ -39,15 +39,15 @@ type Config struct {
 	OrchestrationTaskQueue string // Default: "workflow_execution_runner"
 	ExecutionTaskQueue     string // Default: "zigflow_execution"
 	ValidationTaskQueue    string // Default: "workflow_validation_runner"
-	
-	MaxConcurrency         int
+
+	MaxConcurrency int
 
 	// Claim Check Pattern configuration
-	ClaimCheckEnabled          bool
-	ClaimCheckThresholdBytes   int64
+	ClaimCheckEnabled            bool
+	ClaimCheckThresholdBytes     int64
 	ClaimCheckCompressionEnabled bool
-	ClaimCheckTTLDays          int
-	
+	ClaimCheckTTLDays            int
+
 	// Cloudflare R2 configuration
 	R2Bucket          string
 	R2Endpoint        string
@@ -74,13 +74,13 @@ func LoadFromEnv() (*Config, error) {
 		ExecutionTaskQueue:     getEnvOrDefault("TEMPORAL_ZIGFLOW_EXECUTION_TASK_QUEUE", "zigflow_execution"),
 		ValidationTaskQueue:    getEnvOrDefault("TEMPORAL_WORKFLOW_VALIDATION_RUNNER_TASK_QUEUE", "workflow_validation_runner"),
 		MaxConcurrency:         getEnvAsIntOrDefault("TEMPORAL_MAX_CONCURRENCY", 10),
-		
+
 		// Claim Check configuration
 		ClaimCheckEnabled:            getEnvAsBoolOrDefault("CLAIMCHECK_ENABLED", false),
 		ClaimCheckThresholdBytes:     getEnvAsInt64OrDefault("CLAIMCHECK_THRESHOLD_BYTES", 51200), // 50KB default
 		ClaimCheckCompressionEnabled: getEnvAsBoolOrDefault("CLAIMCHECK_COMPRESSION_ENABLED", true),
 		ClaimCheckTTLDays:            getEnvAsIntOrDefault("CLAIMCHECK_TTL_DAYS", 30),
-		
+
 		// Cloudflare R2 configuration
 		R2Bucket:          getEnvOrDefault("R2_BUCKET", ""),
 		R2Endpoint:        getEnvOrDefault("R2_ENDPOINT", ""),
@@ -105,7 +105,7 @@ func LoadFromEnv() (*Config, error) {
 	if cfg.ValidationTaskQueue == "" {
 		return nil, errors.New("TEMPORAL_WORKFLOW_VALIDATION_RUNNER_TASK_QUEUE cannot be empty")
 	}
-	
+
 	// Validate Claim Check configuration if enabled
 	if cfg.ClaimCheckEnabled {
 		if cfg.R2Bucket == "" {

@@ -22,7 +22,7 @@ func (s *E2ESuite) TestApplyWorkflowCount() {
 	s.Equal(BasicWorkflowName, result.Workflow.Metadata.Name,
 		"Workflow name should match SDK example")
 
-	s.T().Logf("✓ Found workflow: %s (ID: %s)", 
+	s.T().Logf("✓ Found workflow: %s (ID: %s)",
 		result.Workflow.Metadata.Name, result.Workflow.Metadata.Id)
 	s.T().Logf("✅ Workflow count test passed: Exactly 1 workflow deployed (verified via API by slug)")
 }

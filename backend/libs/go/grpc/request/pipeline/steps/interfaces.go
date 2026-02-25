@@ -21,18 +21,18 @@ func getStatusField(msg proto.Message) protoreflect.Message {
 	if msg == nil {
 		return nil
 	}
-	
+
 	msgReflect := msg.ProtoReflect()
 	statusField := msgReflect.Descriptor().Fields().ByName("status")
 	if statusField == nil {
 		return nil
 	}
-	
+
 	// Check if status field is set (not nil)
 	if !msgReflect.Has(statusField) {
 		return nil
 	}
-	
+
 	return msgReflect.Get(statusField).Message()
 }
 
@@ -42,20 +42,20 @@ func getOrCreateStatusField(msg proto.Message) protoreflect.Message {
 	if msg == nil {
 		return nil
 	}
-	
+
 	msgReflect := msg.ProtoReflect()
 	statusField := msgReflect.Descriptor().Fields().ByName("status")
 	if statusField == nil {
 		return nil
 	}
-	
+
 	// If status is not set, create and set it
 	if !msgReflect.Has(statusField) {
 		// Create a new status message of the appropriate type
 		newStatus := msgReflect.NewField(statusField)
 		msgReflect.Set(statusField, newStatus)
 	}
-	
+
 	return msgReflect.Get(statusField).Message()
 }
 
@@ -64,7 +64,7 @@ func hasStatusField(msg proto.Message) bool {
 	if msg == nil {
 		return false
 	}
-	
+
 	msgReflect := msg.ProtoReflect()
 	statusField := msgReflect.Descriptor().Fields().ByName("status")
 	return statusField != nil

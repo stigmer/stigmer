@@ -43,11 +43,11 @@ const (
 // State key constants for bootstrap_state table
 const (
 	KeySeedpackContentHash = "seedpack_content_hash"
-	KeyBootstrapStatus = "bootstrap_status"
-	KeySkillPrefix     = "skill:"
-	KeyAgentPrefix     = "agent:"
-	KeyMcpServerPrefix = "mcpserver:"
-	KeyAppliedPrefix   = "applied:"
+	KeyBootstrapStatus     = "bootstrap_status"
+	KeySkillPrefix         = "skill:"
+	KeyAgentPrefix         = "agent:"
+	KeyMcpServerPrefix     = "mcpserver:"
+	KeyAppliedPrefix       = "applied:"
 )
 
 // SkillClient defines the interface for pushing skills.
@@ -70,9 +70,9 @@ type McpServerClient interface {
 
 // Bootstrapper handles seedpack bootstrap operations.
 type Bootstrapper struct {
-	store          *sqlite.Store
-	skillClient    SkillClient
-	agentClient    AgentClient
+	store           *sqlite.Store
+	skillClient     SkillClient
+	agentClient     AgentClient
 	mcpServerClient McpServerClient
 	// org is the organization to bootstrap resources into (system org)
 	org string
@@ -81,11 +81,11 @@ type Bootstrapper struct {
 // NewBootstrapper creates a new bootstrapper with the given dependencies.
 func NewBootstrapper(store *sqlite.Store, skillClient SkillClient, agentClient AgentClient, mcpServerClient McpServerClient) *Bootstrapper {
 	return &Bootstrapper{
-		store:          store,
-		skillClient:    skillClient,
-		agentClient:    agentClient,
+		store:           store,
+		skillClient:     skillClient,
+		agentClient:     agentClient,
 		mcpServerClient: mcpServerClient,
-		org:            "local", // Local organization for bootstrapped resources (single-tenant local mode)
+		org:             "local", // Local organization for bootstrapped resources (single-tenant local mode)
 	}
 }
 

@@ -12,7 +12,6 @@ production-ready before integration with agent execution.
 
 from __future__ import annotations
 
-import uuid
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -32,7 +31,6 @@ from graphton.core.model_registry import (
 )
 from graphton.core.summarization_config import SummarizationConfig
 from graphton.core.token_counter import TokenCounter
-
 
 # =============================================================================
 # SummarizationConfig Tests
@@ -616,8 +614,8 @@ class TestSummarizationMiddlewareCallback:
     
     def test_middleware_accepts_callback(self):
         """Middleware can be initialized with a callback."""
-        from graphton.core.summarization_middleware import SummarizationMiddleware
         from graphton.core.summarization_callback import SummarizationEventData
+        from graphton.core.summarization_middleware import SummarizationMiddleware
         
         callback_events = []
         

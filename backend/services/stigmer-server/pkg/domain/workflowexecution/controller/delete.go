@@ -3,11 +3,11 @@ package workflowexecution
 import (
 	"context"
 
+	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
-	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 )
 
 // Delete deletes a workflow execution by ID using the pipeline pattern.
@@ -52,9 +52,9 @@ func (c *WorkflowExecutionController) Delete(ctx context.Context, id *apiresourc
 // - DeleteResourceStep: Generic delete by ID
 func (c *WorkflowExecutionController) buildDeletePipeline() *pipeline.Pipeline[*apiresource.ApiResourceId] {
 	return pipeline.NewPipeline[*apiresource.ApiResourceId]("workflowexecution-delete").
-		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceId]()).                                                      // 1. Validate field constraints
-		AddStep(steps.NewExtractResourceIdStep[*apiresource.ApiResourceId]()).                                                  // 2. Extract ID from wrapper
+		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceId]()).                                                        // 1. Validate field constraints
+		AddStep(steps.NewExtractResourceIdStep[*apiresource.ApiResourceId]()).                                                    // 2. Extract ID from wrapper
 		AddStep(steps.NewLoadExistingForDeleteStep[*apiresource.ApiResourceId, *workflowexecutionv1.WorkflowExecution](c.store)). // 3. Load execution
-		AddStep(steps.NewDeleteResourceStep[*apiresource.ApiResourceId](c.store)).                                              // 4. Delete from database
+		AddStep(steps.NewDeleteResourceStep[*apiresource.ApiResourceId](c.store)).                                                // 4. Delete from database
 		Build()
 }

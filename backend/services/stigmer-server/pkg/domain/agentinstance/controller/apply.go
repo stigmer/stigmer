@@ -64,8 +64,8 @@ func (c *AgentInstanceController) Apply(ctx context.Context, instance *agentinst
 // It does NOT perform the actual create/update - that's delegated.
 func (c *AgentInstanceController) buildApplyPipeline() *pipeline.Pipeline[*agentinstancev1.AgentInstance] {
 	return pipeline.NewPipeline[*agentinstancev1.AgentInstance]("agent-instance-apply").
-		AddStep(steps.NewValidateProtoStep[*agentinstancev1.AgentInstance]()).             // 1. Validate input
-		AddStep(steps.NewResolveSlugStep[*agentinstancev1.AgentInstance]()).               // 2. Resolve slug
-		AddStep(steps.NewLoadForApplyStep[*agentinstancev1.AgentInstance](c.store)).       // 3. Check existence
+		AddStep(steps.NewValidateProtoStep[*agentinstancev1.AgentInstance]()).       // 1. Validate input
+		AddStep(steps.NewResolveSlugStep[*agentinstancev1.AgentInstance]()).         // 2. Resolve slug
+		AddStep(steps.NewLoadForApplyStep[*agentinstancev1.AgentInstance](c.store)). // 3. Check existence
 		Build()
 }

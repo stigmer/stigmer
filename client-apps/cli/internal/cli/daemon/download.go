@@ -26,7 +26,7 @@ func downloadServerBinary(version string) (string, error) {
 	// Determine platform
 	goos := runtime.GOOS
 	goarch := runtime.GOARCH
-	
+
 	// Normalize architecture names to match GoReleaser
 	arch := goarch
 	switch goarch {
@@ -37,7 +37,7 @@ func downloadServerBinary(version string) (string, error) {
 	case "386":
 		arch = "i386"
 	}
-	
+
 	// Normalize OS name
 	osName := goos
 	switch goos {
@@ -54,9 +54,9 @@ func downloadServerBinary(version string) (string, error) {
 	if goos == "windows" {
 		filename = fmt.Sprintf("stigmer_%s_%s_%s.zip", version, osName, arch)
 	}
-	
+
 	url := fmt.Sprintf("%s/%s/releases/download/%s/%s", githubBaseURL, githubRepo, version, filename)
-	
+
 	log.Debug().Str("url", url).Msg("Downloading from GitHub")
 
 	// Create temp directory
@@ -77,7 +77,7 @@ func downloadServerBinary(version string) (string, error) {
 	if goos == "windows" {
 		extractedPath += ".exe"
 	}
-	
+
 	if err := extractServerBinary(archivePath, extractedPath, goos); err != nil {
 		return "", errors.Wrap(err, "failed to extract binary")
 	}

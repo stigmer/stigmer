@@ -81,4 +81,3 @@ func TestCallFetch_error(t *testing.T) {
 		t.Errorf("meta = %v, want nil", meta)
 	}
 }
-

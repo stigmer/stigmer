@@ -8,11 +8,11 @@ import (
 
 // ClaimCheckRef represents a reference to externally stored payload
 type ClaimCheckRef struct {
-	Type       string `json:"_type"`       // Always "claim_check_ref"
-	Key        string `json:"key"`         // Storage key (UUID)
-	SizeBytes  int64  `json:"size_bytes"`  // Original payload size
-	Compressed bool   `json:"compressed"`  // Was payload compressed?
-	StoredAt   string `json:"stored_at"`   // ISO 8601 timestamp
+	Type       string `json:"_type"`      // Always "claim_check_ref"
+	Key        string `json:"key"`        // Storage key (UUID)
+	SizeBytes  int64  `json:"size_bytes"` // Original payload size
+	Compressed bool   `json:"compressed"` // Was payload compressed?
+	StoredAt   string `json:"stored_at"`  // ISO 8601 timestamp
 }
 
 // IsClaimCheckRef checks if interface{} is a claim check reference

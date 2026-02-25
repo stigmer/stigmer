@@ -41,10 +41,10 @@ func (c *WorkflowExecutionController) buildUpdatePipeline() *pipeline.Pipeline[*
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*workflowexecutionv1.WorkflowExecution]("workflowexecution-update").
-		AddStep(steps.NewValidateProtoStep[*workflowexecutionv1.WorkflowExecution]()).            // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*workflowexecutionv1.WorkflowExecution]()).              // 2. Resolve slug
-		AddStep(steps.NewLoadExistingStep[*workflowexecutionv1.WorkflowExecution](c.store)).     // 3. Load existing execution
-		AddStep(steps.NewBuildUpdateStateStep[*workflowexecutionv1.WorkflowExecution]()).        // 4. Build updated state
-		AddStep(steps.NewPersistStep[*workflowexecutionv1.WorkflowExecution](c.store)).          // 5. Persist execution
+		AddStep(steps.NewValidateProtoStep[*workflowexecutionv1.WorkflowExecution]()).       // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*workflowexecutionv1.WorkflowExecution]()).         // 2. Resolve slug
+		AddStep(steps.NewLoadExistingStep[*workflowexecutionv1.WorkflowExecution](c.store)). // 3. Load existing execution
+		AddStep(steps.NewBuildUpdateStateStep[*workflowexecutionv1.WorkflowExecution]()).    // 4. Build updated state
+		AddStep(steps.NewPersistStep[*workflowexecutionv1.WorkflowExecution](c.store)).      // 5. Persist execution
 		Build()
 }

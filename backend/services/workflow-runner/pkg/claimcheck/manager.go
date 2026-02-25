@@ -91,7 +91,7 @@ func (m *Manager) MaybeOffload(ctx workflow.Context, payload []byte) (interface{
 		},
 	}
 	activityCtx := workflow.WithActivityOptions(ctx, activityOptions)
-	
+
 	var ref ClaimCheckRef
 	err := workflow.ExecuteActivity(activityCtx, m.OffloadActivity, payload).Get(activityCtx, &ref)
 	if err != nil {
@@ -135,7 +135,7 @@ func (m *Manager) MaybeRetrieve(ctx workflow.Context, input interface{}) ([]byte
 		},
 	}
 	activityCtx := workflow.WithActivityOptions(ctx, activityOptions)
-	
+
 	var payload []byte
 	err = workflow.ExecuteActivity(activityCtx, m.RetrieveActivity, ref).Get(activityCtx, &payload)
 	if err != nil {
@@ -217,7 +217,7 @@ func (m *Manager) RetrieveActivity(ctx context.Context, ref ClaimCheckRef) ([]by
 // This enables claim check between workflow steps, not just at the end
 func (m *Manager) MaybeOffloadStateData(ctx workflow.Context, stateData map[string]any) (map[string]any, error) {
 	logger := workflow.GetLogger(ctx)
-	
+
 	// Nothing to offload
 	if stateData == nil {
 		return stateData, nil
@@ -296,7 +296,7 @@ func (m *Manager) MaybeOffloadStateData(ctx workflow.Context, stateData map[stri
 // This auto-materializes offloaded data when needed by activities
 func (m *Manager) MaybeRetrieveStateData(ctx workflow.Context, stateData map[string]any) (map[string]any, error) {
 	logger := workflow.GetLogger(ctx)
-	
+
 	// Nothing to retrieve
 	if stateData == nil {
 		return stateData, nil
@@ -338,7 +338,7 @@ func (m *Manager) MaybeRetrieveStateData(ctx workflow.Context, stateData map[str
 			} else {
 				result[key] = unmarshaled
 			}
-			
+
 			modified = true
 		} else {
 			result[key] = value

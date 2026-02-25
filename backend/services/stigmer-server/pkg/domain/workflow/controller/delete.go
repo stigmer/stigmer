@@ -3,10 +3,10 @@ package workflow
 import (
 	"context"
 
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
-	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 )
 
 // Delete deletes a workflow by ID using the pipeline pattern
@@ -38,9 +38,9 @@ func (c *WorkflowController) Delete(ctx context.Context, workflowId *workflowv1.
 // buildDeletePipeline constructs the pipeline for delete operations
 func (c *WorkflowController) buildDeletePipeline() *pipeline.Pipeline[*workflowv1.WorkflowId] {
 	return pipeline.NewPipeline[*workflowv1.WorkflowId]("workflow-delete").
-		AddStep(steps.NewValidateProtoStep[*workflowv1.WorkflowId]()).                                 // 1. Validate field constraints
-		AddStep(steps.NewExtractResourceIdStep[*workflowv1.WorkflowId]()).                             // 2. Extract ID from wrapper
+		AddStep(steps.NewValidateProtoStep[*workflowv1.WorkflowId]()).                                      // 1. Validate field constraints
+		AddStep(steps.NewExtractResourceIdStep[*workflowv1.WorkflowId]()).                                  // 2. Extract ID from wrapper
 		AddStep(steps.NewLoadExistingForDeleteStep[*workflowv1.WorkflowId, *workflowv1.Workflow](c.store)). // 3. Load workflow
-		AddStep(steps.NewDeleteResourceStep[*workflowv1.WorkflowId](c.store)).                         // 4. Delete from database
+		AddStep(steps.NewDeleteResourceStep[*workflowv1.WorkflowId](c.store)).                              // 4. Delete from database
 		Build()
 }

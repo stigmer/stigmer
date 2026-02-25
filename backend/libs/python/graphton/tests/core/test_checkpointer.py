@@ -7,11 +7,9 @@ Tests cover:
 - Config validation with checkpointer
 """
 
-import pytest
 from unittest.mock import MagicMock, patch
 
 from graphton.core.config import AgentConfig
-
 
 # =============================================================================
 # TestCheckpointerConfig - Tests for AgentConfig checkpointer validation

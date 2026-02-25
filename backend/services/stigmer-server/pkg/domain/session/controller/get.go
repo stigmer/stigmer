@@ -3,9 +3,9 @@ package session
 import (
 	"context"
 
+	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
-	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 )
 
 // Get retrieves a session by ID using the pipeline framework
@@ -48,7 +48,7 @@ func (c *SessionController) buildGetPipeline() *pipeline.Pipeline[*sessionv1.Ses
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*sessionv1.SessionId]("session-get").
-		AddStep(steps.NewValidateProtoStep[*sessionv1.SessionId]()).                        // 1. Validate input
+		AddStep(steps.NewValidateProtoStep[*sessionv1.SessionId]()).                         // 1. Validate input
 		AddStep(steps.NewLoadTargetStep[*sessionv1.SessionId, *sessionv1.Session](c.store)). // 2. Load by ID
 		Build()
 }

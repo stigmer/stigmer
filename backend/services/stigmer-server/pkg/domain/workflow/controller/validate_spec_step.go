@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/rs/zerolog/log"
-	serverlessv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/serverless"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	serverlessv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/serverless"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/temporal"
 )
@@ -18,9 +18,9 @@ const (
 // validateWorkflowSpecStep validates WorkflowSpec using Temporal workflow validation.
 //
 // This step performs Layer 2 of workflow validation:
-// 1. Layer 1: Proto Validation - Already handled by ValidateProtoStep (buf validate rules)
-// 2. Layer 2: Comprehensive Validation - Deep validation via Temporal workflow
-//    (executes ValidateWorkflow activity in workflow-runner using Zigflow parser)
+//  1. Layer 1: Proto Validation - Already handled by ValidateProtoStep (buf validate rules)
+//  2. Layer 2: Comprehensive Validation - Deep validation via Temporal workflow
+//     (executes ValidateWorkflow activity in workflow-runner using Zigflow parser)
 //
 // The step should be added to the request pipeline AFTER ValidateProtoStep:
 //
