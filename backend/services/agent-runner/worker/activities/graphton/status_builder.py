@@ -1760,31 +1760,47 @@ class StatusBuilder:
         return ""
     
     def _update_todos(self, todos_data: list) -> None:
-        """Update todos in local status."""
+        """Replace the todo snapshot in the local execution status.
+
+        ``TodoListMiddleware`` (LangChain) performs full-snapshot replacement:
+        each ``write_todos`` call carries the *complete* current todo list, not
+        a delta.  We therefore clear existing todos before applying the new set.
+
+        LangChain's ``Todo`` TypedDict has ``{content, status}`` but no ``id``
+        field.  When ``id`` is absent we generate a stable, position-based key
+        (``todo-0``, ``todo-1``, ...) so the proto ``map<string, TodoItem>``
+        contract is satisfied and downstream consumers (CLI fingerprint diffing,
+        Go status storage) work unchanged.
+        """
         status_map = {
             "pending": TodoStatus.TODO_PENDING,
             "in_progress": TodoStatus.TODO_IN_PROGRESS,
             "completed": TodoStatus.TODO_COMPLETED,
             "cancelled": TodoStatus.TODO_CANCELLED,
         }
-        
-        for todo_dict in todos_data:
-            todo_id = todo_dict.get("id", "")
-            if not todo_id:
-                continue
-            
+
+        self.current_status.todos.clear()
+
+        now = _utc_timestamp()
+        for idx, todo_dict in enumerate(todos_data):
+            todo_id = todo_dict.get("id") or f"todo-{idx}"
+
             status_str = todo_dict.get("status", "pending").lower()
             status_enum = status_map.get(status_str, TodoStatus.TODO_PENDING)
-            
+
             todo_item = TodoItem(
                 id=todo_id,
                 content=todo_dict.get("content", ""),
                 status=status_enum,
-                created_at=todo_dict.get("created_at", _utc_timestamp()),
-                updated_at=_utc_timestamp(),
+                created_at=todo_dict.get("created_at", now),
+                updated_at=now,
             )
-            
+
             self.current_status.todos[todo_id].CopyFrom(todo_item)
+
+        self.logger.info(
+            "Updated todos: %d item(s) in snapshot", len(todos_data),
+        )
     
     # ─────────────────────────────────────────────────────────────────────────────
     # Approval State Management (HITL Phase 2)

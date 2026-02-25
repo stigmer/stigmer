@@ -1,0 +1,175 @@
+"""Temporal activity for generating meaningful session subjects using LLM.
+
+Auto-creates concise conversation titles (like ChatGPT/Claude) by analyzing
+the user's first message and agent context. Runs fire-and-forget alongside
+main agent execution — failures are logged but never propagate.
+"""
+
+import logging
+
+from graphton.core import ModelRegistry
+from graphton.core.models import parse_model_string
+from langchain_core.messages import HumanMessage, SystemMessage
+from temporalio import activity
+
+from grpc_client.agent_client import AgentClient
+from grpc_client.agent_execution_client import AgentExecutionClient
+from grpc_client.session_client import SessionClient
+from worker.config import Config
+from worker.token_manager import get_api_key
+
+_AUTO_CREATED_SUBJECT = "Auto-created session"
+_MAX_SUBJECT_LENGTH = 50
+
+_SYSTEM_PROMPT = """\
+You are a session title generator. Given a user's message and agent context, \
+produce a concise conversation title.
+
+Rules:
+- 3 to 7 words, maximum 50 characters
+- Capture the user's core intent or topic
+- Be specific (e.g. "PostgreSQL Multi-AZ Setup" not "Database Help")
+- No filler words ("help with", "question about", "I need")
+- No quotes, no punctuation at the end
+- Output ONLY the title, nothing else"""
+
+activity_logger = logging.getLogger(__name__)
+
+
+@activity.defn(name="GenerateSessionSubject")
+async def generate_session_subject(execution_id: str) -> None:
+    """Generate and update session subject from the user's first message.
+
+    Follows the slim-payload pattern: receives only ``execution_id`` and
+    hydrates the full execution, session, and agent via gRPC.
+
+    Uses an economy-tier LLM (e.g. claude-haiku-4, gpt-4o-mini, or the
+    configured local model) to keep costs negligible.
+
+    Args:
+        execution_id: The agent execution ID to derive context from.
+    """
+    activity_logger.info(
+        "GenerateSessionSubject started for execution: %s", execution_id
+    )
+
+    try:
+        await _generate_and_update_subject(execution_id)
+    except Exception:
+        activity_logger.exception(
+            "Failed to generate session subject for execution %s", execution_id
+        )
+
+
+async def _generate_and_update_subject(execution_id: str) -> None:
+    """Core implementation, separated for clean exception boundary."""
+    api_key = get_api_key()
+    if not api_key:
+        activity_logger.warning(
+            "API key not available, skipping subject generation"
+        )
+        return
+
+    # Step 1: Hydrate execution
+    execution_client = AgentExecutionClient(api_key)
+    execution = await execution_client.get(execution_id)
+
+    session_id = execution.spec.session_id
+    agent_id = execution.spec.agent_id
+    user_message = execution.spec.message
+
+    if not session_id:
+        activity_logger.info(
+            "No session_id on execution, skipping subject generation"
+        )
+        return
+
+    if not user_message:
+        activity_logger.info(
+            "No user message on execution, skipping subject generation"
+        )
+        return
+
+    # Step 2: Check if subject still has the auto-created sentinel value
+    session_client = SessionClient(api_key)
+    session = await session_client.get(session_id)
+
+    if session.spec.subject != _AUTO_CREATED_SUBJECT:
+        activity_logger.info(
+            "Session subject is '%s' (not auto-created), skipping generation",
+            session.spec.subject,
+        )
+        return
+
+    # Step 3: Fetch agent metadata for prompt context
+    agent_client = AgentClient(api_key)
+    agent = await agent_client.get(agent_id)
+    agent_name = agent.metadata.name
+    agent_description = agent.spec.description or ""
+
+    # Step 4: Generate title with economy-tier model
+    generated_subject = await _generate_title(
+        user_message, agent_name, agent_description
+    )
+
+    if not generated_subject:
+        activity_logger.warning("LLM returned empty subject, skipping update")
+        return
+
+    # Step 5: Update session
+    session.spec.subject = generated_subject
+    await session_client.update(session)
+
+    activity_logger.info(
+        "Updated session %s subject to '%s'", session_id, generated_subject
+    )
+
+
+async def _generate_title(
+    user_message: str,
+    agent_name: str,
+    agent_description: str,
+) -> str | None:
+    """Use an economy-tier LLM to generate a concise session title.
+
+    Selects the cheapest model available for the configured provider
+    via ``ModelRegistry.get_summarization_model()``, keeping costs
+    negligible even at high session volume.
+
+    Returns:
+        The generated title (stripped and truncated), or None on failure.
+    """
+    worker_config = Config.load_from_env()
+    economy_model = ModelRegistry.get_summarization_model(
+        worker_config.llm.model_name
+    )
+
+    llm_kwargs: dict = {}
+    if worker_config.llm.provider == "ollama":
+        llm_kwargs["base_url"] = worker_config.llm.base_url
+    elif worker_config.llm.provider in ("anthropic", "openai"):
+        llm_kwargs["api_key"] = worker_config.llm.api_key
+
+    model = parse_model_string(
+        economy_model,
+        max_tokens=100,
+        temperature=0.7,
+        **llm_kwargs,
+    )
+
+    user_prompt = f'User\'s first message:\n"{user_message}"\n\nAgent: {agent_name}\n'
+    if agent_description:
+        user_prompt += f"Agent purpose: {agent_description}\n"
+    user_prompt += "\nGenerate the title:"
+
+    response = await model.ainvoke([
+        SystemMessage(content=_SYSTEM_PROMPT),
+        HumanMessage(content=user_prompt),
+    ])
+
+    subject = response.content.strip().strip('"').strip("'")
+
+    if subject and len(subject) > _MAX_SUBJECT_LENGTH:
+        subject = subject[: _MAX_SUBJECT_LENGTH - 3] + "..."
+
+    return subject or None

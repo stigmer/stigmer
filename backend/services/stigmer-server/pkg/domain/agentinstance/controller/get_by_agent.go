@@ -9,7 +9,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 // GetByAgent retrieves all agent instances for a specific agent.
@@ -96,7 +96,7 @@ func (s *loadByAgentStep) Execute(ctx *pipeline.RequestContext[*agentinstancev1.
 	var instances []*agentinstancev1.AgentInstance
 	for _, data := range resources {
 		instance := &agentinstancev1.AgentInstance{}
-		if err := protojson.Unmarshal(data, instance); err != nil {
+		if err := proto.Unmarshal(data, instance); err != nil {
 			continue
 		}
 

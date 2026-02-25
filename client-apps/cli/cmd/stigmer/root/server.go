@@ -10,12 +10,14 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/bootstrap"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/llm"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpserver"
 )
 
 // NewServerCommand creates the server command for daemon management
@@ -228,6 +230,11 @@ func handleServerStart(cmd *cobra.Command) {
 	progress.CompletePhase(cliprint.PhaseDeploying)
 	progress.Stop()
 
+	// Run MCP server capability discovery after daemon is ready.
+	// This discovers tools and resource templates from bootstrapped MCP
+	// servers (e.g., stigmer-mcp-server) so agents know what's available.
+	runBootstrapDiscovery(cfg)
+
 	// Show success message
 	cliprint.PrintSuccess("Ready! Stigmer server is running")
 	running, pid := daemon.GetStatus(dataDir)
@@ -238,6 +245,38 @@ func handleServerStart(cmd *cobra.Command) {
 		cliprint.PrintInfo("")
 		cliprint.PrintInfo("Web UI:")
 		cliprint.PrintInfo("  Temporal:  http://localhost:8233")
+	}
+}
+
+// runBootstrapDiscovery discovers capabilities for all bootstrapped MCP
+// servers. This runs synchronously after the daemon starts so that tool
+// metadata is immediately available. Failures are logged but do not prevent
+// the server from reporting success.
+func runBootstrapDiscovery(cfg *config.Config) {
+	conn, err := backend.NewConnection()
+	if err != nil {
+		cliprint.PrintWarning("Skipping MCP discovery: %v", err)
+		return
+	}
+	defer conn.Close()
+
+	orgID := "local"
+	if cfg.Backend.Type == config.BackendTypeCloud && cfg.Backend.Cloud != nil && cfg.Backend.Cloud.OrgID != "" {
+		orgID = cfg.Backend.Cloud.OrgID
+	}
+
+	result := mcpserver.DiscoverAll(context.Background(), &mcpserver.DiscoverAllOptions{
+		Conn:    conn,
+		Cfg:     cfg,
+		OrgID:   orgID,
+		Timeout: 30 * time.Second,
+	})
+
+	if result.Succeeded > 0 {
+		cliprint.PrintSuccess("Discovered capabilities for %d MCP server(s)", result.Succeeded)
+	}
+	if result.Attempted > result.Succeeded {
+		cliprint.PrintWarning("Discovery failed for %d MCP server(s)", result.Attempted-result.Succeeded)
 	}
 }
 

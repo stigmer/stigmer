@@ -136,7 +136,7 @@ func TestEmitToolCallStateEvents_FirstTimeTerminal_EmitsCompleted(t *testing.T) 
 		},
 	}
 
-	newStates, _ := emitToolCallStateEvents(events, toolCalls, prevStates, prevResults)
+	newStates, _ := emitToolCallStateEvents(events, toolCalls, prevStates, prevResults, "")
 
 	// Should have emitted exactly one event.
 	select {
@@ -178,7 +178,7 @@ func TestEmitToolCallStateEvents_FirstTimeTerminalFailed_EmitsCompleted(t *testi
 		},
 	}
 
-	emitToolCallStateEvents(events, toolCalls, prevStates, prevResults)
+	emitToolCallStateEvents(events, toolCalls, prevStates, prevResults, "")
 
 	select {
 	case evt := <-events:
@@ -207,7 +207,7 @@ func TestEmitToolCallStateEvents_FirstTimeRunning_EmitsRunning(t *testing.T) {
 		},
 	}
 
-	emitToolCallStateEvents(events, toolCalls, prevStates, prevResults)
+	emitToolCallStateEvents(events, toolCalls, prevStates, prevResults, "")
 
 	select {
 	case evt := <-events:
@@ -217,5 +217,251 @@ func TestEmitToolCallStateEvents_FirstTimeRunning_EmitsRunning(t *testing.T) {
 		}
 	default:
 		t.Fatal("expected a ToolRunningEvent to be emitted")
+	}
+}
+
+// =============================================================================
+// mapTodoStatus Tests
+// =============================================================================
+
+func TestMapTodoStatus_AllValues(t *testing.T) {
+	tests := []struct {
+		input agentexecutionv1.TodoStatus
+		want  string
+	}{
+		{agentexecutionv1.TodoStatus_TODO_PENDING, "pending"},
+		{agentexecutionv1.TodoStatus_TODO_IN_PROGRESS, "in_progress"},
+		{agentexecutionv1.TodoStatus_TODO_COMPLETED, "completed"},
+		{agentexecutionv1.TodoStatus_TODO_CANCELLED, "cancelled"},
+		{agentexecutionv1.TodoStatus_TODO_STATUS_UNSPECIFIED, "pending"},
+	}
+	for _, tt := range tests {
+		got := mapTodoStatus(tt.input)
+		if got != tt.want {
+			t.Errorf("mapTodoStatus(%v) = %q, want %q", tt.input, got, tt.want)
+		}
+	}
+}
+
+// =============================================================================
+// convertProtoTodos Tests
+// =============================================================================
+
+func TestConvertProtoTodos_ConvertsMapToSlice(t *testing.T) {
+	protoTodos := map[string]*agentexecutionv1.TodoItem{
+		"t1": {Id: "t1", Content: "Setup repo", Status: agentexecutionv1.TodoStatus_TODO_COMPLETED},
+		"t2": {Id: "t2", Content: "Write tests", Status: agentexecutionv1.TodoStatus_TODO_PENDING},
+	}
+
+	result := convertProtoTodos(protoTodos)
+
+	if len(result) != 2 {
+		t.Fatalf("expected 2 items, got %d", len(result))
+	}
+
+	byID := make(map[string]executiontui.TodoItem)
+	for _, item := range result {
+		byID[item.ID] = item
+	}
+
+	if item, ok := byID["t1"]; !ok {
+		t.Error("expected item t1 in result")
+	} else {
+		if item.Content != "Setup repo" {
+			t.Errorf("t1 content = %q, want %q", item.Content, "Setup repo")
+		}
+		if item.Status != "completed" {
+			t.Errorf("t1 status = %q, want %q", item.Status, "completed")
+		}
+	}
+
+	if item, ok := byID["t2"]; !ok {
+		t.Error("expected item t2 in result")
+	} else {
+		if item.Status != "pending" {
+			t.Errorf("t2 status = %q, want %q", item.Status, "pending")
+		}
+	}
+}
+
+func TestConvertProtoTodos_EmptyMap(t *testing.T) {
+	if result := convertProtoTodos(nil); result != nil {
+		t.Errorf("expected nil for nil map, got %v", result)
+	}
+	if result := convertProtoTodos(map[string]*agentexecutionv1.TodoItem{}); result != nil {
+		t.Errorf("expected nil for empty map, got %v", result)
+	}
+}
+
+// =============================================================================
+// emitTodoEvents Tests
+// =============================================================================
+
+func TestEmitTodoEvents_EmitsOnFirstTodo(t *testing.T) {
+	events := make(chan executiontui.Event, 16)
+	prev := make(map[string]todoFingerprint)
+
+	protoTodos := map[string]*agentexecutionv1.TodoItem{
+		"t1": {Id: "t1", Content: "Implement login", Status: agentexecutionv1.TodoStatus_TODO_IN_PROGRESS},
+	}
+
+	newPrev := emitTodoEvents(events, protoTodos, prev)
+
+	select {
+	case evt := <-events:
+		todoEvt, ok := evt.(executiontui.TodoUpdateEvent)
+		if !ok {
+			t.Fatalf("expected TodoUpdateEvent, got %T", evt)
+		}
+		if len(todoEvt.Todos) != 1 {
+			t.Fatalf("expected 1 todo, got %d", len(todoEvt.Todos))
+		}
+		if todoEvt.Todos[0].Status != "in_progress" {
+			t.Errorf("status = %q, want %q", todoEvt.Todos[0].Status, "in_progress")
+		}
+	default:
+		t.Fatal("expected a TodoUpdateEvent to be emitted")
+	}
+
+	if len(newPrev) != 1 {
+		t.Errorf("expected 1 fingerprint in new snapshot, got %d", len(newPrev))
+	}
+}
+
+func TestEmitTodoEvents_SuppressesOnNoChange(t *testing.T) {
+	events := make(chan executiontui.Event, 16)
+	prev := map[string]todoFingerprint{
+		"t1": {content: "Implement login", status: "in_progress"},
+	}
+
+	protoTodos := map[string]*agentexecutionv1.TodoItem{
+		"t1": {Id: "t1", Content: "Implement login", Status: agentexecutionv1.TodoStatus_TODO_IN_PROGRESS},
+	}
+
+	newPrev := emitTodoEvents(events, protoTodos, prev)
+
+	select {
+	case evt := <-events:
+		t.Fatalf("expected no event, got %T", evt)
+	default:
+		// correct — no event emitted
+	}
+
+	if len(newPrev) != 1 {
+		t.Errorf("expected snapshot unchanged with 1 entry, got %d", len(newPrev))
+	}
+}
+
+func TestEmitTodoEvents_DetectsStatusChange(t *testing.T) {
+	events := make(chan executiontui.Event, 16)
+	prev := map[string]todoFingerprint{
+		"t1": {content: "Implement login", status: "in_progress"},
+	}
+
+	protoTodos := map[string]*agentexecutionv1.TodoItem{
+		"t1": {Id: "t1", Content: "Implement login", Status: agentexecutionv1.TodoStatus_TODO_COMPLETED},
+	}
+
+	emitTodoEvents(events, protoTodos, prev)
+
+	select {
+	case evt := <-events:
+		todoEvt, ok := evt.(executiontui.TodoUpdateEvent)
+		if !ok {
+			t.Fatalf("expected TodoUpdateEvent, got %T", evt)
+		}
+		if todoEvt.Todos[0].Status != "completed" {
+			t.Errorf("status = %q, want %q", todoEvt.Todos[0].Status, "completed")
+		}
+	default:
+		t.Fatal("expected TodoUpdateEvent for status change")
+	}
+}
+
+func TestEmitTodoEvents_DetectsContentChange(t *testing.T) {
+	events := make(chan executiontui.Event, 16)
+	prev := map[string]todoFingerprint{
+		"t1": {content: "Implement login", status: "in_progress"},
+	}
+
+	protoTodos := map[string]*agentexecutionv1.TodoItem{
+		"t1": {Id: "t1", Content: "Implement login endpoint", Status: agentexecutionv1.TodoStatus_TODO_IN_PROGRESS},
+	}
+
+	emitTodoEvents(events, protoTodos, prev)
+
+	select {
+	case evt := <-events:
+		todoEvt, ok := evt.(executiontui.TodoUpdateEvent)
+		if !ok {
+			t.Fatalf("expected TodoUpdateEvent, got %T", evt)
+		}
+		if todoEvt.Todos[0].Content != "Implement login endpoint" {
+			t.Errorf("content = %q, want %q", todoEvt.Todos[0].Content, "Implement login endpoint")
+		}
+	default:
+		t.Fatal("expected TodoUpdateEvent for content change")
+	}
+}
+
+func TestEmitTodoEvents_DetectsItemRemoved(t *testing.T) {
+	events := make(chan executiontui.Event, 16)
+	prev := map[string]todoFingerprint{
+		"t1": {content: "Task A", status: "completed"},
+		"t2": {content: "Task B", status: "pending"},
+	}
+
+	protoTodos := map[string]*agentexecutionv1.TodoItem{
+		"t1": {Id: "t1", Content: "Task A", Status: agentexecutionv1.TodoStatus_TODO_COMPLETED},
+	}
+
+	newPrev := emitTodoEvents(events, protoTodos, prev)
+
+	select {
+	case evt := <-events:
+		todoEvt, ok := evt.(executiontui.TodoUpdateEvent)
+		if !ok {
+			t.Fatalf("expected TodoUpdateEvent, got %T", evt)
+		}
+		if len(todoEvt.Todos) != 1 {
+			t.Errorf("expected 1 todo after removal, got %d", len(todoEvt.Todos))
+		}
+	default:
+		t.Fatal("expected TodoUpdateEvent when item removed")
+	}
+
+	if len(newPrev) != 1 {
+		t.Errorf("expected 1 fingerprint after removal, got %d", len(newPrev))
+	}
+}
+
+func TestEmitTodoEvents_EmitsOnChange(t *testing.T) {
+	events := make(chan executiontui.Event, 16)
+	prev := map[string]todoFingerprint{
+		"t1": {content: "Task A", status: "pending"},
+	}
+
+	protoTodos := map[string]*agentexecutionv1.TodoItem{
+		"t1": {Id: "t1", Content: "Task A", Status: agentexecutionv1.TodoStatus_TODO_PENDING},
+		"t2": {Id: "t2", Content: "Task B", Status: agentexecutionv1.TodoStatus_TODO_PENDING},
+	}
+
+	newPrev := emitTodoEvents(events, protoTodos, prev)
+
+	select {
+	case evt := <-events:
+		todoEvt, ok := evt.(executiontui.TodoUpdateEvent)
+		if !ok {
+			t.Fatalf("expected TodoUpdateEvent, got %T", evt)
+		}
+		if len(todoEvt.Todos) != 2 {
+			t.Errorf("expected 2 todos, got %d", len(todoEvt.Todos))
+		}
+	default:
+		t.Fatal("expected TodoUpdateEvent when item added")
+	}
+
+	if len(newPrev) != 2 {
+		t.Errorf("expected 2 fingerprints, got %d", len(newPrev))
 	}
 }

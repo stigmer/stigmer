@@ -10,7 +10,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 // Context key for list results
@@ -91,7 +91,7 @@ func (s *listAllSessionsStep) Execute(ctx *pipeline.RequestContext[*sessionv1.Li
 	sessions := make([]*sessionv1.Session, 0, len(data))
 	for _, d := range data {
 		session := &sessionv1.Session{}
-		if err := protojson.Unmarshal(d, session); err != nil {
+		if err := proto.Unmarshal(d, session); err != nil {
 			log.Warn().
 				Err(err).
 				Msg("Failed to unmarshal session, skipping")

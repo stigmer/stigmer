@@ -12,6 +12,6 @@ go_library(
         "//backend/libs/go/grpc/request/pipeline",
         "//backend/libs/go/store",
         "@com_github_rs_zerolog//log",
-        "@org_golang_google_protobuf//encoding/protojson",
+        "@org_golang_google_protobuf//proto",
     ],
 )

@@ -49,6 +49,16 @@
       },
       "description": "MIME type for content negotiation (optional).\n Example: \"application/yaml\", \"text/plain\", \"application/zip\"",
       "required": false
+    },
+    {
+      "name": "Extract",
+      "jsonName": "extract",
+      "protoField": "extract",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "When true, the attachment is a zip archive that should be extracted\n at mount_path rather than written as a single file.\n Set automatically by the CLI when a directory is attached.",
+      "required": false
     }
   ]
 }

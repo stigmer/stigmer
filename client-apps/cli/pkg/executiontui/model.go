@@ -51,6 +51,9 @@ type Config struct {
 
 // streamingState tracks an in-progress streaming AI message.
 // When non-nil on the model, the block at blockIdx is being streamed.
+// This is shared between top-level and sub-agent streaming — they never
+// overlap because the top-level agent is blocked on the "task" tool while
+// the sub-agent generates.
 type streamingState struct {
 	// content holds the full accumulated text so far.
 	content string
@@ -62,6 +65,11 @@ type streamingState struct {
 	// message events) can append blocks between start and delta/end,
 	// causing the naive len(m.blocks)-1 approach to target the wrong block.
 	blockIdx int
+
+	// subAgentID is the sub-agent scope for this streaming message. Empty
+	// for top-level agent streaming. Propagated to the block so the
+	// renderer applies the correct visual nesting.
+	subAgentID string
 }
 
 // approvalState tracks an active approval prompt.
@@ -104,6 +112,12 @@ type Model struct {
 	// When a ToolCompletedEvent arrives, the block is replaced in-place with
 	// the final expandable result and removed from this map.
 	runningTools map[string]int
+
+	// todoBlockIdx is the index into blocks of the current execution's todo
+	// block. -1 means no todo block exists yet. Set on the first
+	// TodoUpdateEvent; updated in-place on subsequent events. Reset to -1
+	// when a follow-up execution starts.
+	todoBlockIdx int
 
 	// approval holds state for an active approval prompt.
 	// nil when no approval is pending.
@@ -214,6 +228,7 @@ func New(cfg Config) Model {
 		phase:             "pending",
 		focusedBlockIndex: -1,
 		runningTools:      make(map[string]int),
+		todoBlockIdx:      -1,
 		spinner:           s,
 		lastEventAt:       time.Now(),
 		textarea:          ta,

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# vendor_skill.sh - Vendor skills declared in manifest.json
+# vendor_skill.sh - Vendor skills declared in vendor-sources.json
 # ==============================================================================
 #
 # This script vendors skills from upstream repositories into Stigmer's seedpack
 # directory with full provenance tracking. Skill sources (repo URLs and pinned
-# commits) are read from the sibling manifest.json.
+# commits) are read from the co-located vendor-sources.json.
 #
 # Usage:
 #   ./vendor_skill.sh                              # vendor all skills
@@ -32,7 +32,7 @@ set -euo pipefail
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly SEEDPACK_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 readonly SKILLS_DIR="${SEEDPACK_DIR}/skills"
-readonly MANIFEST="${SEEDPACK_DIR}/manifest.json"
+readonly VENDOR_SOURCES="${SCRIPT_DIR}/vendor-sources.json"
 readonly PROVENANCE_SCHEMA_VERSION="1"
 
 
@@ -261,30 +261,30 @@ vendor_skill() {
     TEMP_DIR=""
 }
 
-# Vendor all skills declared in manifest.json
-vendor_all_from_manifest() {
-    if [[ ! -f "$MANIFEST" ]]; then
-        log_error "Manifest not found: ${MANIFEST}"
+# Vendor all skills declared in vendor-sources.json
+vendor_all_from_sources() {
+    if [[ ! -f "$VENDOR_SOURCES" ]]; then
+        log_error "Vendor sources not found: ${VENDOR_SOURCES}"
         exit 1
     fi
     
     local skill_count
-    skill_count=$(jq '.skills | length' "$MANIFEST")
+    skill_count=$(jq '.skills | length' "$VENDOR_SOURCES")
     
     if [[ "$skill_count" -eq 0 ]]; then
-        log_error "No skills declared in manifest.json"
+        log_error "No skills declared in vendor-sources.json"
         exit 1
     fi
     
-    log_info "Found ${skill_count} skill(s) in manifest.json"
+    log_info "Found ${skill_count} skill(s) in vendor-sources.json"
     echo ""
     
     local failed=0
     for i in $(seq 0 $((skill_count - 1))); do
         local name url commit_sha
-        name=$(jq -r ".skills[$i].name" "$MANIFEST")
-        url=$(jq -r ".skills[$i].source.url" "$MANIFEST")
-        commit_sha=$(jq -r ".skills[$i].source.commit_sha // empty" "$MANIFEST")
+        name=$(jq -r ".skills[$i].name" "$VENDOR_SOURCES")
+        url=$(jq -r ".skills[$i].source.url" "$VENDOR_SOURCES")
+        commit_sha=$(jq -r ".skills[$i].source.commit_sha // empty" "$VENDOR_SOURCES")
         
         log_info "--- [$((i + 1))/${skill_count}] ${name} ---"
         
@@ -313,16 +313,16 @@ Usage: $(basename "$0") [skill-name] [commit-sha]
 
 Vendor skills from upstream repositories into Stigmer's seedpack.
 
-When run with no arguments, vendors all skills declared in manifest.json.
-When a skill name is given, vendors only that skill using its manifest entry.
+When run with no arguments, vendors all skills declared in vendor-sources.json.
+When a skill name is given, vendors only that skill using its vendor-sources entry.
 
 Arguments:
   skill-name   Optional: name of a single skill to vendor (e.g., "skill-creator")
-  commit-sha   Optional: specific commit SHA to pin to (overrides manifest)
+  commit-sha   Optional: specific commit SHA to pin to (overrides vendor-sources)
 
 Examples:
-  $(basename "$0")                                    # vendor all skills from manifest
-  $(basename "$0") skill-creator                      # vendor one skill from manifest
+  $(basename "$0")                                    # vendor all skills
+  $(basename "$0") skill-creator                      # vendor one skill
   $(basename "$0") skill-creator abc123def456789...   # vendor at specific commit
 
 EOF
@@ -332,26 +332,26 @@ main() {
     check_dependencies
     
     if [[ $# -eq 0 ]]; then
-        vendor_all_from_manifest
+        vendor_all_from_sources
         return
     fi
     
     local skill_name="$1"
     local commit_override="${2:-}"
     
-    if [[ ! -f "$MANIFEST" ]]; then
-        log_error "Manifest not found: ${MANIFEST}"
+    if [[ ! -f "$VENDOR_SOURCES" ]]; then
+        log_error "Vendor sources not found: ${VENDOR_SOURCES}"
         exit 1
     fi
     
     local url commit_sha
-    url=$(jq -r --arg name "$skill_name" '.skills[] | select(.name == $name) | .source.url // empty' "$MANIFEST")
-    commit_sha=$(jq -r --arg name "$skill_name" '.skills[] | select(.name == $name) | .source.commit_sha // empty' "$MANIFEST")
+    url=$(jq -r --arg name "$skill_name" '.skills[] | select(.name == $name) | .source.url // empty' "$VENDOR_SOURCES")
+    commit_sha=$(jq -r --arg name "$skill_name" '.skills[] | select(.name == $name) | .source.commit_sha // empty' "$VENDOR_SOURCES")
     
     if [[ -z "$url" ]]; then
-        log_error "Skill '${skill_name}' not found in manifest.json"
+        log_error "Skill '${skill_name}' not found in vendor-sources.json"
         log_error "Available skills:"
-        jq -r '.skills[].name' "$MANIFEST" >&2
+        jq -r '.skills[].name' "$VENDOR_SOURCES" >&2
         exit 1
     fi
     

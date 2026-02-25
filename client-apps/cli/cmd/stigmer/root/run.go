@@ -50,7 +50,7 @@ The reference can be:
 
 A session ID (ses-xxx) re-opens that session: if the latest execution is
 still running, you re-attach to the live stream; if it has completed, you
-see the transcript in read-only replay mode.
+see the full conversation and can send follow-up messages to continue.
 
 By default, the command streams execution updates in real-time, handles
 approval prompts interactively, and returns when the execution completes.

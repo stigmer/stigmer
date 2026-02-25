@@ -91,37 +91,37 @@ func TestBlockStartLine_ThirdBlock(t *testing.T) {
 // =============================================================================
 
 func TestBlockLineCount_SingleLine(t *testing.T) {
-	b := contentBlock{content: "one line"}
-	got := blockLineCount(b, 0, -1)
+	blocks := []contentBlock{{content: "one line"}}
+	got := blockLineCount(blocks, 0, -1)
 	if got != 1 {
 		t.Errorf("blockLineCount = %d, want 1", got)
 	}
 }
 
 func TestBlockLineCount_MultiLine(t *testing.T) {
-	b := contentBlock{content: "line 1\nline 2\nline 3"}
-	got := blockLineCount(b, 0, -1)
+	blocks := []contentBlock{{content: "line 1\nline 2\nline 3"}}
+	got := blockLineCount(blocks, 0, -1)
 	if got != 3 {
 		t.Errorf("blockLineCount = %d, want 3", got)
 	}
 }
 
 func TestBlockLineCount_EmptyBlock(t *testing.T) {
-	b := contentBlock{content: ""}
-	got := blockLineCount(b, 0, -1)
+	blocks := []contentBlock{{content: ""}}
+	got := blockLineCount(blocks, 0, -1)
 	if got != 0 {
 		t.Errorf("blockLineCount = %d, want 0", got)
 	}
 }
 
 func TestBlockLineCount_ExpandableBlock(t *testing.T) {
-	b := contentBlock{
+	blocks := []contentBlock{{
 		preview:    "header\n     │ line 1",
 		full:       "full",
 		expandable: true,
-	}
+	}}
 	// Collapsed, unfocused: "  header ▶\n     │ line 1" = 2 lines.
-	got := blockLineCount(b, 0, -1)
+	got := blockLineCount(blocks, 0, -1)
 	if got != 2 {
 		t.Errorf("blockLineCount = %d, want 2", got)
 	}

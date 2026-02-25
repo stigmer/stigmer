@@ -1,0 +1,62 @@
+{
+  "name": "DiscoveredCapabilities",
+  "description": "DiscoveredCapabilities holds the tools and resource templates reported by an\n MCP server. This is a point-in-time snapshot — the server's actual capabilities\n may change if tools are added or removed.\n\n Populated by:\n - Seedpack bootstrap (built-in servers with known, stable tool sets)\n - CLI discovery (`stigmer discover mcp-server \u003cname\u003e`)\n - Agent-runner runtime cache (future)",
+  "protoType": "ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities",
+  "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/status.proto",
+  "fields": [
+    {
+      "name": "Tools",
+      "jsonName": "tools",
+      "protoField": "tools",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "DiscoveredTool"
+        }
+      },
+      "description": "Tools reported by the MCP server via tools/list.",
+      "required": false
+    },
+    {
+      "name": "ResourceTemplates",
+      "jsonName": "resourceTemplates",
+      "protoField": "resource_templates",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "DiscoveredResourceTemplate"
+        }
+      },
+      "description": "Resource templates reported by the MCP server via resources/templates/list.",
+      "required": false
+    },
+    {
+      "name": "LastDiscoveredAt",
+      "jsonName": "lastDiscoveredAt",
+      "protoField": "last_discovered_at",
+      "type": {
+        "kind": "timestamp"
+      },
+      "description": "When this snapshot was captured.",
+      "required": false
+    },
+    {
+      "name": "DiscoveredBy",
+      "jsonName": "discoveredBy",
+      "protoField": "discovered_by",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.mcpserver.v1.DiscoverySource",
+        "enumValues": [
+          "seedpack",
+          "cli",
+          "agent_runner"
+        ]
+      },
+      "description": "How this snapshot was produced.",
+      "required": false
+    }
+  ]
+}
