@@ -64,8 +64,8 @@ func TestDefaultConfig_defaults(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if cfg.StigmerServerAddress != "localhost:9090" {
-		t.Errorf("StigmerServerAddress = %q, want default %q", cfg.StigmerServerAddress, "localhost:9090")
+	if cfg.StigmerServerAddress != "localhost:7234" {
+		t.Errorf("StigmerServerAddress = %q, want default %q", cfg.StigmerServerAddress, "localhost:7234")
 	}
 	if cfg.Transport != "stdio" {
 		t.Errorf("Transport = %q, want default %q", cfg.Transport, "stdio")
@@ -137,7 +137,7 @@ func TestConfig_toInternal_roundTrip(t *testing.T) {
 
 func TestConfig_toInternal_caseInsensitive(t *testing.T) {
 	cfg := &Config{
-		StigmerServerAddress: "localhost:9090",
+		StigmerServerAddress: "localhost:7234",
 		APIKey:               "key",
 		Transport:            "STDIO",
 		HTTPPort:             "8080",
@@ -160,7 +160,7 @@ func TestConfig_toInternal_caseInsensitive(t *testing.T) {
 
 func TestConfig_toInternal_invalidTransport(t *testing.T) {
 	cfg := &Config{
-		StigmerServerAddress: "localhost:9090",
+		StigmerServerAddress: "localhost:7234",
 		APIKey:               "key",
 		Transport:            "grpc",
 		HTTPPort:             "8080",
@@ -176,7 +176,7 @@ func TestConfig_toInternal_invalidTransport(t *testing.T) {
 
 func TestConfig_toInternal_invalidLogLevel(t *testing.T) {
 	cfg := &Config{
-		StigmerServerAddress: "localhost:9090",
+		StigmerServerAddress: "localhost:7234",
 		APIKey:               "key",
 		Transport:            "stdio",
 		HTTPPort:             "8080",
@@ -192,7 +192,7 @@ func TestConfig_toInternal_invalidLogLevel(t *testing.T) {
 
 func TestConfig_toInternal_missingAPIKeyStdio(t *testing.T) {
 	cfg := &Config{
-		StigmerServerAddress: "localhost:9090",
+		StigmerServerAddress: "localhost:7234",
 		Transport:            "stdio",
 		HTTPPort:             "8080",
 		LogFormat:            "text",
@@ -210,7 +210,7 @@ func TestConfig_toInternal_missingAPIKeyStdio(t *testing.T) {
 
 func TestConfig_toInternal_httpNoAPIKeyOK(t *testing.T) {
 	cfg := &Config{
-		StigmerServerAddress: "localhost:9090",
+		StigmerServerAddress: "localhost:7234",
 		Transport:            "http",
 		HTTPPort:             "8080",
 		LogFormat:            "text",
@@ -238,7 +238,7 @@ func TestLogLevelString(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &Config{
-				StigmerServerAddress: "localhost:9090",
+				StigmerServerAddress: "localhost:7234",
 				APIKey:               "key",
 				Transport:            "stdio",
 				HTTPPort:             "8080",
