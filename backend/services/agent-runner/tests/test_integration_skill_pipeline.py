@@ -14,13 +14,14 @@ Test Categories:
 - Error Recovery: Graceful degradation when artifacts unavailable
 """
 
-import pytest
-import tempfile
-import os
-import zipfile
 import io
+import os
 import stat
-from unittest.mock import AsyncMock, MagicMock, patch
+import tempfile
+import zipfile
+from unittest.mock import MagicMock
+
+import pytest
 
 # Import components under test
 from worker.activities.graphton.skill_writer import SkillWriter
@@ -157,7 +158,7 @@ features:
             # Verify SKILL.md extracted from ZIP
             skill_md_path = f"{local_skill_dir}/SKILL.md"
             assert os.path.isfile(skill_md_path)
-            with open(skill_md_path, 'r') as f:
+            with open(skill_md_path) as f:
                 content = f.read()
                 assert "Integration Test Skill" in content
             
@@ -220,7 +221,7 @@ features:
             local_skill_dir = os.path.join(tmpdir, expected_path)
             skill_md_path = f"{local_skill_dir}/SKILL.md"
             assert os.path.isfile(skill_md_path)
-            with open(skill_md_path, 'r') as f:
+            with open(skill_md_path) as f:
                 content = f.read()
                 assert "Metadata Only Skill" in content
                 assert "no artifact ZIP" in content
@@ -478,7 +479,7 @@ class TestErrorRecoveryIntegration:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create empty but valid ZIP
             buffer = io.BytesIO()
-            with zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+            with zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED):
                 pass  # Empty ZIP
             empty_zip = buffer.getvalue()
             
@@ -522,7 +523,7 @@ class TestErrorRecoveryIntegration:
             # SKILL.md should exist from spec (not from artifact)
             skill_md_path = os.path.join(tmpdir, skill_paths[skill.metadata.id], "SKILL.md")
             assert os.path.isfile(skill_md_path)
-            with open(skill_md_path, 'r') as f:
+            with open(skill_md_path) as f:
                 assert "Fallback Skill Content" in f.read()
 
 

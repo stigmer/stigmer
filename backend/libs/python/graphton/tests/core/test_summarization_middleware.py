@@ -13,15 +13,14 @@ These tests ensure robust error handling and correct behavior across all scenari
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage
 
 from graphton.core.model_registry import TokenCounterMethod
 from graphton.core.summarization_config import SummarizationConfig
 from graphton.core.summarization_middleware import ContextSummarizationMiddleware
-
 
 # =============================================================================
 # Fixtures

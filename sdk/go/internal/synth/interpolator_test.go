@@ -39,7 +39,7 @@ func TestInterpolateVariables_StringValues(t *testing.T) {
 func TestInterpolateVariables_IntegerValues(t *testing.T) {
 	// Setup
 	taskConfig := map[string]interface{}{
-		"max_retries":    "${retries}",
+		"max_retries":     "${retries}",
 		"timeout_seconds": 30,
 	}
 
@@ -129,7 +129,7 @@ func TestInterpolateVariables_NestedObjects(t *testing.T) {
 	// Setup
 	taskConfig := map[string]interface{}{
 		"endpoint": map[string]interface{}{
-			"uri": "${baseURL}/users",
+			"uri":     "${baseURL}/users",
 			"timeout": 30,
 		},
 		"headers": map[string]interface{}{
@@ -147,11 +147,11 @@ func TestInterpolateVariables_NestedObjects(t *testing.T) {
 
 	// Assert
 	require.NoError(t, err)
-	
+
 	endpoint, ok := result["endpoint"].(map[string]interface{})
 	require.True(t, ok, "endpoint should be a map")
 	assert.Equal(t, "https://api.example.com/users", endpoint["uri"])
-	
+
 	headers, ok := result["headers"].(map[string]interface{})
 	require.True(t, ok, "headers should be a map")
 	assert.Equal(t, "Bearer secret-key-123", headers["Authorization"])
@@ -321,7 +321,7 @@ func TestReplaceVariablePlaceholders_ValidCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := replaceVariablePlaceholders(tt.input, tt.values)
-			
+
 			if tt.shouldErr {
 				assert.Error(t, err)
 			} else {

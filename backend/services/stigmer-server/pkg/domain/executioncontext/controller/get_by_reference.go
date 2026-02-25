@@ -3,10 +3,10 @@ package executioncontext
 import (
 	"context"
 
-	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
-	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 )
 
 // GetByReference retrieves an execution context by ApiResourceReference (slug-based lookup).
@@ -51,7 +51,7 @@ func (c *ExecutionContextController) buildGetByReferencePipeline() *pipeline.Pip
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*apiresource.ApiResourceReference]("execution-context-get-by-reference").
-		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceReference]()).  // 1. Validate input
+		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceReference]()).             // 1. Validate input
 		AddStep(steps.NewLoadByReferenceStep[*executioncontextv1.ExecutionContext](c.store)). // 2. Load by reference
 		Build()
 }

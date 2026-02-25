@@ -3,10 +3,10 @@ package workflowinstance
 import (
 	"context"
 
+	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
-	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
 )
 
 // Delete deletes a workflow instance by ID using the pipeline pattern
@@ -32,9 +32,9 @@ func (c *WorkflowInstanceController) Delete(ctx context.Context, workflowInstanc
 // buildDeletePipeline constructs the pipeline for delete operations
 func (c *WorkflowInstanceController) buildDeletePipeline() *pipeline.Pipeline[*workflowinstancev1.WorkflowInstanceId] {
 	return pipeline.NewPipeline[*workflowinstancev1.WorkflowInstanceId]("workflow-instance-delete").
-		AddStep(steps.NewValidateProtoStep[*workflowinstancev1.WorkflowInstanceId]()).                                        // 1. Validate field constraints
-		AddStep(steps.NewExtractResourceIdStep[*workflowinstancev1.WorkflowInstanceId]()).                                    // 2. Extract ID from wrapper
+		AddStep(steps.NewValidateProtoStep[*workflowinstancev1.WorkflowInstanceId]()).                                                      // 1. Validate field constraints
+		AddStep(steps.NewExtractResourceIdStep[*workflowinstancev1.WorkflowInstanceId]()).                                                  // 2. Extract ID from wrapper
 		AddStep(steps.NewLoadExistingForDeleteStep[*workflowinstancev1.WorkflowInstanceId, *workflowinstancev1.WorkflowInstance](c.store)). // 3. Load workflow instance
-		AddStep(steps.NewDeleteResourceStep[*workflowinstancev1.WorkflowInstanceId](c.store)).                                // 4. Delete from database
+		AddStep(steps.NewDeleteResourceStep[*workflowinstancev1.WorkflowInstanceId](c.store)).                                              // 4. Delete from database
 		Build()
 }

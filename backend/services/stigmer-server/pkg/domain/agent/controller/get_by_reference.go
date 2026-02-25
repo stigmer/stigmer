@@ -3,10 +3,10 @@ package agent
 import (
 	"context"
 
-	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
-	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 )
 
 // GetByReference retrieves an agent by ApiResourceReference (slug-based lookup) using the pipeline framework
@@ -53,7 +53,7 @@ func (c *AgentController) buildGetByReferencePipeline() *pipeline.Pipeline[*apir
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*apiresource.ApiResourceReference]("agent-get-by-reference").
-		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceReference]()).  // 1. Validate input
-		AddStep(steps.NewLoadByReferenceStep[*agentv1.Agent](c.store)). // 2. Load by slug
+		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceReference]()). // 1. Validate input
+		AddStep(steps.NewLoadByReferenceStep[*agentv1.Agent](c.store)).           // 2. Load by slug
 		Build()
 }

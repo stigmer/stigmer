@@ -9,11 +9,11 @@ Tests that the normalising wrapper correctly:
 
 from __future__ import annotations
 
-import pytest
 from unittest.mock import MagicMock
 
-from graphton.core.backends.daytona import WorkspaceNormalizingBackend
+import pytest
 
+from graphton.core.backends.daytona import WorkspaceNormalizingBackend
 
 # ---------------------------------------------------------------------------
 # Fixtures

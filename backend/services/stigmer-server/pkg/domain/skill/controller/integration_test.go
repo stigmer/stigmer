@@ -25,7 +25,6 @@ func TestIntegration_PushThenGet(t *testing.T) {
 	artifact := storage.CreateTestZip(skillContent)
 
 	pushReq := &skillv1.PushSkillRequest{
-		Name:     "Integration Test",
 		Artifact: artifact,
 		Tag:      "v1.0",
 		Org:      "test-org",
@@ -60,7 +59,6 @@ func TestIntegration_PushThenGetByReference(t *testing.T) {
 	artifact := storage.CreateTestZip(skillContent)
 
 	pushReq := &skillv1.PushSkillRequest{
-		Name:     "Reference Test",
 		Artifact: artifact,
 	}
 	pushed, err := controller.Push(contextWithSkillKind(), pushReq)
@@ -90,7 +88,6 @@ func TestIntegration_PushThenGetArtifact(t *testing.T) {
 	artifact := storage.CreateTestZip(skillContent)
 
 	pushReq := &skillv1.PushSkillRequest{
-		Name:     "Artifact Test",
 		Artifact: artifact,
 	}
 	pushed, err := controller.Push(contextWithSkillKind(), pushReq)
@@ -116,7 +113,6 @@ func TestIntegration_VersionResolution_Latest(t *testing.T) {
 	// Push v1
 	artifact1 := storage.CreateTestZip("# Calculator v1")
 	req1 := &skillv1.PushSkillRequest{
-		Name:     "Calculator",
 		Artifact: artifact1,
 		Tag:      "v1.0",
 	}
@@ -126,7 +122,6 @@ func TestIntegration_VersionResolution_Latest(t *testing.T) {
 	// Push v2 (update)
 	artifact2 := storage.CreateTestZip("# Calculator v2 - Improved")
 	req2 := &skillv1.PushSkillRequest{
-		Name:     "Calculator",
 		Artifact: artifact2,
 		Tag:      "v2.0",
 	}
@@ -155,7 +150,6 @@ func TestIntegration_VersionResolution_Tag(t *testing.T) {
 	// Push with "stable" tag
 	artifact := storage.CreateTestZip("# Stable Calculator")
 	pushReq := &skillv1.PushSkillRequest{
-		Name:     "Stable Calculator",
 		Artifact: artifact,
 		Tag:      "stable",
 	}
@@ -184,7 +178,6 @@ func TestIntegration_VersionResolution_Hash(t *testing.T) {
 	// Push a skill
 	artifact := storage.CreateTestZip("# Hash Test Skill")
 	pushReq := &skillv1.PushSkillRequest{
-		Name:     "Hash Test",
 		Artifact: artifact,
 	}
 	pushed, err := controller.Push(contextWithSkillKind(), pushReq)
@@ -224,7 +217,6 @@ func TestIntegration_VersionHistory(t *testing.T) {
 	for _, v := range versions {
 		artifact := storage.CreateTestZip(v.content)
 		pushReq := &skillv1.PushSkillRequest{
-			Name:     "Multi Version",
 			Artifact: artifact,
 			Tag:      v.tag,
 		}
@@ -267,7 +259,6 @@ func TestIntegration_UpdatePreservesAccess(t *testing.T) {
 	// Push initial version
 	artifact1 := storage.CreateTestZip("# Original Version")
 	pushReq1 := &skillv1.PushSkillRequest{
-		Name:     "Update Test",
 		Artifact: artifact1,
 		Tag:      "v1",
 	}
@@ -278,7 +269,6 @@ func TestIntegration_UpdatePreservesAccess(t *testing.T) {
 	// Update to new version
 	artifact2 := storage.CreateTestZip("# Updated Version")
 	pushReq2 := &skillv1.PushSkillRequest{
-		Name:     "Update Test",
 		Artifact: artifact2,
 		Tag:      "v2",
 	}
@@ -318,7 +308,6 @@ func TestIntegration_DeleteCleansArtifacts(t *testing.T) {
 	// Push a skill
 	artifact := storage.CreateTestZip("# Delete Test Skill")
 	pushReq := &skillv1.PushSkillRequest{
-		Name:     "Delete Test",
 		Artifact: artifact,
 	}
 	pushed, err := controller.Push(contextWithSkillKind(), pushReq)
@@ -355,7 +344,6 @@ func TestIntegration_ConcurrentPush(t *testing.T) {
 
 			artifact := storage.CreateTestZip("# Concurrent Skill " + string(rune('A'+idx)))
 			req := &skillv1.PushSkillRequest{
-				Name:     "Concurrent Skill " + string(rune('A'+idx)),
 				Artifact: artifact,
 			}
 
@@ -395,7 +383,6 @@ func TestIntegration_ConcurrentGet(t *testing.T) {
 	// Create a skill to read
 	artifact := storage.CreateTestZip("# Concurrent Read Test")
 	pushReq := &skillv1.PushSkillRequest{
-		Name:     "Concurrent Read",
 		Artifact: artifact,
 	}
 	pushed, err := controller.Push(contextWithSkillKind(), pushReq)

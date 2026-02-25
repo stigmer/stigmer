@@ -7,15 +7,25 @@ Tests cover:
 - Backward compatibility with non-approval wrappers
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from graphton.core.tool_wrappers import (
     ApprovalRequirement,
     ToolExecutionRejectedError,
+    _check_and_handle_approval,
+    _create_edit_tool,
+    _create_execute_tool,
+    _create_glob_tool,
+    _create_grep_tool,
+    _create_ls_tool,
+    _create_read_tool,
+    _create_write_tool,
+    _stream_write_content,
     create_approval_aware_tool_wrapper,
+    create_platform_tool_wrappers,
 )
-
 
 # =============================================================================
 # TestApprovalRequirement - Tests for ApprovalRequirement dataclass
@@ -590,19 +600,6 @@ class TestApprovalAwareWrapperIntegration:
 # =============================================================================
 # Platform Tool Wrapper Tests (Phase 5.6 Fixes)
 # =============================================================================
-
-from graphton.core.tool_wrappers import (
-    _check_and_handle_approval,
-    _stream_write_content,
-    create_platform_tool_wrappers,
-    _create_read_tool,
-    _create_write_tool,
-    _create_edit_tool,
-    _create_execute_tool,
-    _create_ls_tool,
-    _create_glob_tool,
-    _create_grep_tool,
-)
 
 
 class TestCheckAndHandleApproval:

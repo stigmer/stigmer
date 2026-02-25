@@ -1,8 +1,9 @@
 """Unit tests for SkillClient.get_artifact() method."""
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
+
 import grpc
+import pytest
 
 
 class TestSkillClientGetArtifact:
@@ -118,7 +119,7 @@ class TestSkillClientGetArtifact:
         
         with patch('grpc_client.skill_client.logger') as mock_logger:
             # Act
-            result = await skill_client_with_mock_stub.get_artifact(storage_key)
+            await skill_client_with_mock_stub.get_artifact(storage_key)
             
             # Assert - verify logging calls
             assert mock_logger.info.call_count >= 1

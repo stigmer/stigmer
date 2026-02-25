@@ -9,10 +9,10 @@ Tests cover:
 - Error handling (NOT_FOUND, other gRPC errors)
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-import grpc
 
+import grpc
+import pytest
 
 # =============================================================================
 # TestMcpServerClientGet - Tests for get() method

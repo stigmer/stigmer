@@ -19,9 +19,9 @@ package tasks
 import (
 	"fmt"
 
-	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
 	"github.com/rs/zerolog/log"
 	"github.com/serverlessworkflow/sdk-go/v3/model"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"
 )
@@ -45,7 +45,7 @@ func NewTryTaskBuilder(
 type TryTaskBuilder struct {
 	builder[*model.TryTask]
 
-	tryChildWorkflowFunc  TemporalWorkflowFunc
+	tryChildWorkflowFunc   TemporalWorkflowFunc
 	catchChildWorkflowFunc TemporalWorkflowFunc
 }
 
@@ -110,7 +110,7 @@ func (t *TryTaskBuilder) exec() (TemporalWorkflowFunc, error) {
 			res, err := t.tryChildWorkflowFunc(ctx, state.Input, state)
 			if err != nil {
 				logger.Warn("Try workflow failed, executing catch workflow", "task", t.GetTaskName(), "error", err)
-				
+
 				// The try workflow has failed - let's run the catch workflow
 				if t.catchChildWorkflowFunc != nil {
 					res, err := t.catchChildWorkflowFunc(ctx, state.Input, state)
@@ -120,7 +120,7 @@ func (t *TryTaskBuilder) exec() (TemporalWorkflowFunc, error) {
 					}
 					return res, nil
 				}
-				
+
 				// No catch workflow defined, return the error
 				return nil, err
 			}

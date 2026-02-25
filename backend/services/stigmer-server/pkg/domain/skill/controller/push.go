@@ -162,7 +162,7 @@ func (s *ResolveSlugForPushStep) Execute(ctx *pipeline.RequestContext[*skillv1.P
 	// Generate slug from extracted name using common library
 	slug := steps.GenerateSlug(extractResult.Name)
 	if slug == "" {
-		return grpclib.InvalidArgumentError(fmt.Sprintf("invalid skill name: %s", extractResult.Name))
+		return grpclib.InvalidArgumentError("invalid skill name: %s", extractResult.Name)
 	}
 
 	skill.Metadata.Slug = slug
@@ -291,7 +291,7 @@ func (s *ExtractAndHashArtifactStep) Execute(ctx *pipeline.RequestContext[*skill
 	// Extract SKILL.md and calculate hash (safely with all security checks)
 	extractResult, err := storage.ExtractSkillMd(req.Artifact)
 	if err != nil {
-		return grpclib.InvalidArgumentError(fmt.Sprintf("failed to extract SKILL.md: %v", err))
+		return grpclib.InvalidArgumentError("failed to extract SKILL.md: %v", err)
 	}
 
 	// Store extract result in context for later steps

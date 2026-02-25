@@ -289,28 +289,28 @@ func tailDockerLogs(containerName, component string, linesChan chan<- LogLine) e
 // tailDockerLogsOnce runs docker logs -f once and streams until it exits
 func tailDockerLogsOnce(containerName, component string, linesChan chan<- LogLine) error {
 	ctx := context.Background()
-	
+
 	// Use docker logs -f to follow container logs
 	cmd := exec.CommandContext(ctx, "docker", "logs", "-f", "--tail", "0", containerName)
-	
+
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return fmt.Errorf("failed to create stdout pipe: %w", err)
 	}
-	
+
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		return fmt.Errorf("failed to create stderr pipe: %w", err)
 	}
-	
+
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("failed to start docker logs: %w", err)
 	}
-	
+
 	// Read from both stdout and stderr
 	var wg sync.WaitGroup
 	wg.Add(2)
-	
+
 	// Read stdout
 	go func() {
 		defer wg.Done()
@@ -321,7 +321,7 @@ func tailDockerLogsOnce(containerName, component string, linesChan chan<- LogLin
 			linesChan <- logLine
 		}
 	}()
-	
+
 	// Read stderr
 	go func() {
 		defer wg.Done()
@@ -332,10 +332,10 @@ func tailDockerLogsOnce(containerName, component string, linesChan chan<- LogLin
 			linesChan <- logLine
 		}
 	}()
-	
+
 	// Wait for readers to finish
 	wg.Wait()
-	
+
 	// Wait for command to exit
 	return cmd.Wait()
 }

@@ -31,7 +31,7 @@ from __future__ import annotations
 
 import logging
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from langchain_core.messages import BaseMessage
@@ -125,13 +125,13 @@ class TokenCounter:
         
         """
         # Import here to avoid circular dependency
-        from graphton.core.model_registry import TokenCounterMethod as TCM
+        from graphton.core.model_registry import TokenCounterMethod
         
         if not messages:
             return 0
         
         # Validate method parameter
-        if not isinstance(method, TCM):
+        if not isinstance(method, TokenCounterMethod):
             logger.warning(
                 "Invalid token counter method type '%s' (expected TokenCounterMethod), "
                 "falling back to APPROXIMATE",
@@ -140,11 +140,11 @@ class TokenCounter:
             return cls._count_approximate(messages)
         
         try:
-            if method == TCM.TIKTOKEN_CL100K:
+            if method == TokenCounterMethod.TIKTOKEN_CL100K:
                 return cls._count_tiktoken(messages, "cl100k_base")
-            elif method == TCM.TIKTOKEN_O200K:
+            elif method == TokenCounterMethod.TIKTOKEN_O200K:
                 return cls._count_tiktoken(messages, "o200k_base")
-            elif method == TCM.ANTHROPIC_NATIVE:
+            elif method == TokenCounterMethod.ANTHROPIC_NATIVE:
                 return cls._count_anthropic(messages)
             else:
                 # APPROXIMATE or unknown method
@@ -196,13 +196,13 @@ class TokenCounter:
         
         """
         # Import here to avoid circular dependency
-        from graphton.core.model_registry import TokenCounterMethod as TCM
+        from graphton.core.model_registry import TokenCounterMethod
         
         if not text:
             return 0
         
         # Validate method parameter
-        if not isinstance(method, TCM):
+        if not isinstance(method, TokenCounterMethod):
             logger.warning(
                 "Invalid token counter method type '%s' (expected TokenCounterMethod), "
                 "falling back to APPROXIMATE",
@@ -211,11 +211,11 @@ class TokenCounter:
             return len(text) // _CHARS_PER_TOKEN
         
         try:
-            if method == TCM.TIKTOKEN_CL100K:
+            if method == TokenCounterMethod.TIKTOKEN_CL100K:
                 return cls._count_text_tiktoken(text, "cl100k_base")
-            elif method == TCM.TIKTOKEN_O200K:
+            elif method == TokenCounterMethod.TIKTOKEN_O200K:
                 return cls._count_text_tiktoken(text, "o200k_base")
-            elif method == TCM.ANTHROPIC_NATIVE:
+            elif method == TokenCounterMethod.ANTHROPIC_NATIVE:
                 return cls._count_text_anthropic(text)
             else:
                 return len(text) // _CHARS_PER_TOKEN

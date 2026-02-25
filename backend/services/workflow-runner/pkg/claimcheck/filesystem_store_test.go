@@ -22,11 +22,11 @@ func TestFilesystemStore_New(t *testing.T) {
 	t.Run("creates directory if missing", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		newDir := filepath.Join(tmpDir, "new", "nested", "dir")
-		
+
 		store, err := claimcheck.NewFilesystemStore(newDir)
 		require.NoError(t, err)
 		require.NotNil(t, store)
-		
+
 		// Verify directory was created
 		info, err := os.Stat(newDir)
 		require.NoError(t, err)
@@ -86,7 +86,7 @@ func TestFilesystemStore_Get_Nonexistent(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	
+
 	// Try to get non-existent key
 	_, err = store.Get(ctx, "nonexistent-key")
 	assert.Error(t, err)

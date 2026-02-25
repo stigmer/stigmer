@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
 	"github.com/serverlessworkflow/sdk-go/v3/model"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
 	"go.temporal.io/api/enums/v1"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/worker"

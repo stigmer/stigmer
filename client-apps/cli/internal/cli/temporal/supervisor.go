@@ -10,27 +10,27 @@ import (
 const (
 	// DefaultHealthCheckInterval is how often to check Temporal health
 	DefaultHealthCheckInterval = 5 * time.Second
-	
+
 	// RestartBackoffDelay is the delay before attempting restart after failure
 	RestartBackoffDelay = 1 * time.Second
 )
 
 // Supervisor monitors Temporal health and automatically restarts on failure
 type Supervisor struct {
-	manager           *Manager
-	ctx               context.Context
-	cancel            context.CancelFunc
+	manager             *Manager
+	ctx                 context.Context
+	cancel              context.CancelFunc
 	healthCheckInterval time.Duration
 }
 
 // NewSupervisor creates a new Temporal supervisor
 func NewSupervisor(manager *Manager) *Supervisor {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	return &Supervisor{
-		manager:           manager,
-		ctx:               ctx,
-		cancel:            cancel,
+		manager:             manager,
+		ctx:                 ctx,
+		cancel:              cancel,
 		healthCheckInterval: DefaultHealthCheckInterval,
 	}
 }
@@ -42,7 +42,7 @@ func (s *Supervisor) Start() {
 	log.Info().
 		Dur("interval", s.healthCheckInterval).
 		Msg("Starting Temporal supervisor")
-	
+
 	go s.run()
 }
 
@@ -56,13 +56,13 @@ func (s *Supervisor) Stop() {
 func (s *Supervisor) run() {
 	ticker := time.NewTicker(s.healthCheckInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-s.ctx.Done():
 			log.Debug().Msg("Supervisor context cancelled, stopping")
 			return
-			
+
 		case <-ticker.C:
 			s.checkHealthAndRestart()
 		}
@@ -76,13 +76,13 @@ func (s *Supervisor) checkHealthAndRestart() {
 		log.Debug().Msg("Temporal health check passed")
 		return
 	}
-	
+
 	// Temporal is not running or unhealthy - attempt restart
 	log.Warn().Msg("Temporal health check failed - process not running or unhealthy")
-	
+
 	// Small backoff before restart attempt
 	time.Sleep(RestartBackoffDelay)
-	
+
 	// Check context before attempting restart (supervisor may have been stopped)
 	select {
 	case <-s.ctx.Done():
@@ -90,9 +90,9 @@ func (s *Supervisor) checkHealthAndRestart() {
 		return
 	default:
 	}
-	
+
 	log.Info().Msg("Attempting to restart Temporal...")
-	
+
 	// Use the idempotent Start() method which handles:
 	// - Cleanup of stale processes
 	// - Reusing healthy instances
@@ -103,6 +103,6 @@ func (s *Supervisor) checkHealthAndRestart() {
 			Msg("Failed to restart Temporal - will retry on next health check")
 		return
 	}
-	
+
 	log.Info().Msg("Temporal restarted successfully")
 }

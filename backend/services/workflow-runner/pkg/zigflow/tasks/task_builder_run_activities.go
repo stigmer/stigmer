@@ -48,20 +48,20 @@ func (r *RunActivities) CallScriptActivity(ctx context.Context, task *model.RunT
 	// at execution time, not stored in Temporal history.
 	if runtimeEnv != nil && len(runtimeEnv) > 0 {
 		logger.Debug("Resolving runtime placeholders in script task", "env_count", len(runtimeEnv))
-		
+
 		resolvedInterface, err := ResolveObject(task, runtimeEnv)
 		if err != nil {
 			logger.Error("Failed to resolve runtime placeholders", "error", err)
 			return nil, fmt.Errorf("failed to resolve runtime placeholders: %w", err)
 		}
-		
+
 		var ok bool
 		task, ok = resolvedInterface.(*model.RunTask)
 		if !ok {
 			logger.Error("Type assertion failed after runtime resolution")
 			return nil, fmt.Errorf("type assertion failed after runtime resolution")
 		}
-		
+
 		logger.Debug("Runtime placeholders resolved successfully")
 	}
 
@@ -106,11 +106,11 @@ func (r *RunActivities) CallScriptActivity(ctx context.Context, task *model.RunT
 		task.Run.Script.Environment,
 		dir,
 	)
-	
+
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// **SECURITY**: Sanitize output for potential secret leakage
 	if runtimeEnv != nil && len(runtimeEnv) > 0 {
 		warnings := SanitizeOutput(result, runtimeEnv)
@@ -118,7 +118,7 @@ func (r *RunActivities) CallScriptActivity(ctx context.Context, task *model.RunT
 			logger.Warn("Potential secret leakage detected in script output", "warning", warning)
 		}
 	}
-	
+
 	return result, nil
 }
 
@@ -131,20 +131,20 @@ func (r *RunActivities) CallShellActivity(ctx context.Context, task *model.RunTa
 	// are resolved at execution time, not stored in Temporal history.
 	if runtimeEnv != nil && len(runtimeEnv) > 0 {
 		logger.Debug("Resolving runtime placeholders in shell task", "env_count", len(runtimeEnv))
-		
+
 		resolvedInterface, err := ResolveObject(task, runtimeEnv)
 		if err != nil {
 			logger.Error("Failed to resolve runtime placeholders", "error", err)
 			return nil, fmt.Errorf("failed to resolve runtime placeholders: %w", err)
 		}
-		
+
 		var ok bool
 		task, ok = resolvedInterface.(*model.RunTask)
 		if !ok {
 			logger.Error("Type assertion failed after runtime resolution")
 			return nil, fmt.Errorf("type assertion failed after runtime resolution")
 		}
-		
+
 		logger.Debug("Runtime placeholders resolved successfully")
 	}
 
@@ -155,11 +155,11 @@ func (r *RunActivities) CallShellActivity(ctx context.Context, task *model.RunTa
 		task.Run.Shell.Environment,
 		"",
 	)
-	
+
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// **SECURITY**: Sanitize output for potential secret leakage
 	if runtimeEnv != nil && len(runtimeEnv) > 0 {
 		warnings := SanitizeOutput(result, runtimeEnv)
@@ -167,7 +167,7 @@ func (r *RunActivities) CallShellActivity(ctx context.Context, task *model.RunTa
 			logger.Warn("Potential secret leakage detected in shell output", "warning", warning)
 		}
 	}
-	
+
 	return result, nil
 }
 

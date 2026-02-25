@@ -186,7 +186,7 @@ func createTestWorkflow(t *testing.T, controllers *testControllers, name string,
 			Tasks: []*workflowv1.WorkflowTask{
 				{
 					Name:       "test-task",
-					Kind:       apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_SET,
+					Kind:       workflowv1.WorkflowTaskKind_set_vars,
 					TaskConfig: taskConfig,
 				},
 			},

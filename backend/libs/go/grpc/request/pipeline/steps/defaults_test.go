@@ -5,11 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
-	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 )
 
 // Helper function to create a context with api_resource_kind injected
@@ -72,13 +72,13 @@ func TestBuildNewStateStep_Execute(t *testing.T) {
 	}
 
 	auditMsg := statusMsg.Get(auditField).Message()
-	
+
 	// Check spec_audit
 	specAuditField := auditMsg.Descriptor().Fields().ByName("spec_audit")
 	if !auditMsg.Has(specAuditField) {
 		t.Errorf("Expected spec_audit to be set")
 	}
-	
+
 	// Check status_audit
 	statusAuditField := auditMsg.Descriptor().Fields().ByName("status_audit")
 	if !auditMsg.Has(statusAuditField) {

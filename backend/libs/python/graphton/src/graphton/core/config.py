@@ -13,7 +13,7 @@ from langchain_core.tools import BaseTool
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 if TYPE_CHECKING:
-    from langgraph.checkpoint.base import BaseCheckpointSaver
+    pass
 
 
 class AgentConfig(BaseModel):

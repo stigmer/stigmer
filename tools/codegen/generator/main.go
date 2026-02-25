@@ -98,9 +98,9 @@ type Validation struct {
 // typed discriminated-union fields based on external config schemas.
 // Format: structField:discriminatorField:configSchemaDir
 type expandStructConfig struct {
-	structField        string             // proto field name of the google.protobuf.Struct to expand (e.g., "task_config")
-	discriminatorField string             // proto field name of the kind/discriminator enum (e.g., "kind")
-	configSchemaDir    string             // directory containing config schemas (e.g., "../tools/codegen/schemas/tasks")
+	structField        string              // proto field name of the google.protobuf.Struct to expand (e.g., "task_config")
+	discriminatorField string              // proto field name of the kind/discriminator enum (e.g., "kind")
+	configSchemaDir    string              // directory containing config schemas (e.g., "../tools/codegen/schemas/tasks")
 	configs            []*TaskConfigSchema // loaded config schemas
 	configTypes        []*TypeSchema       // loaded nested types from configs
 	kindToEnum         map[string]string   // maps config Kind (e.g., "HTTP_CALL") → enum value (e.g., "http_call")

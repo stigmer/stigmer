@@ -9,18 +9,17 @@ Tests cover:
 - Edge cases and boundary conditions
 """
 
-import pytest
 import logging
 
+import pytest
+
 from worker.mcp.placeholder_resolver import (
-    PlaceholderResolver,
+    PLACEHOLDER_PATTERN,
     PlaceholderResolutionError,
-    PlaceholderResolutionResult,
+    PlaceholderResolver,
     resolve_placeholders,
     resolve_placeholders_strict,
-    PLACEHOLDER_PATTERN,
 )
-
 
 # =============================================================================
 # Fixtures

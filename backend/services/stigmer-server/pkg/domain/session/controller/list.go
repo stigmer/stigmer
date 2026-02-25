@@ -4,12 +4,12 @@ import (
 	"context"
 
 	"github.com/rs/zerolog/log"
+	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
-	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -50,7 +50,7 @@ func (c *SessionController) buildListPipeline() *pipeline.Pipeline[*sessionv1.Li
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*sessionv1.ListSessionsRequest]("session-list").
 		AddStep(steps.NewValidateProtoStep[*sessionv1.ListSessionsRequest]()). // 1. Validate input
-		AddStep(newListAllSessionsStep(c.store)).                               // 2. List all sessions
+		AddStep(newListAllSessionsStep(c.store)).                              // 2. List all sessions
 		Build()
 }
 

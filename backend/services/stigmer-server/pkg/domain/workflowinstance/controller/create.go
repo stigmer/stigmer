@@ -165,8 +165,8 @@ func (s *validateSameOrgBusinessRuleStep) Execute(ctx *pipeline.RequestContext[*
 			Str("instance_org", targetOrgID).
 			Msg("Business rule violation: Cannot create instance of workflow in different org")
 		return grpclib.InvalidArgumentError(
-			fmt.Sprintf("Cannot create instance of workflow in a different organization. "+
-				"Workflow belongs to org '%s', instance target is org '%s'.", workflowOrgID, targetOrgID))
+			"Cannot create instance of workflow in a different organization. "+
+				"Workflow belongs to org '%s', instance target is org '%s'.", workflowOrgID, targetOrgID)
 	}
 
 	log.Debug().Msg("Same-org validation passed")

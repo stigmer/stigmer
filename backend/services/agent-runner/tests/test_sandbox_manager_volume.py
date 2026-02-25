@@ -5,11 +5,12 @@ changes to sandbox_manager.py.  All tests are mock-based — no real Daytona
 calls.
 """
 
-import pytest
 from unittest.mock import MagicMock, patch
 
+import pytest
 from daytona import SandboxState
 
+from worker.config import ExecutionMode
 from worker.sandbox_manager import (
     DAYTONA_WORKSPACE_MOUNT_PATH,
     SandboxManager,
@@ -17,8 +18,6 @@ from worker.sandbox_manager import (
     initialize_daytona_volume,
     set_daytona_volume_id,
 )
-from worker.config import ExecutionMode
-
 
 # ---------------------------------------------------------------------------
 # Helpers

@@ -13,8 +13,9 @@ Tests cover:
 - ModelRegistry.get_economy_models() filtering
 """
 
-import pytest
 from dataclasses import FrozenInstanceError
+
+import pytest
 
 from graphton.core.model_registry import (
     CostTier,
@@ -22,7 +23,6 @@ from graphton.core.model_registry import (
     ModelRegistry,
     TokenCounterMethod,
 )
-
 
 # =============================================================================
 # TestCostTierEnum - Tests for CostTier enumeration

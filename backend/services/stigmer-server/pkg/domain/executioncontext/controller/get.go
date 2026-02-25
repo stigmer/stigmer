@@ -3,9 +3,9 @@ package executioncontext
 import (
 	"context"
 
+	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
-	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 )
 
 // Get retrieves an execution context by ID using the pipeline framework
@@ -53,7 +53,7 @@ func (c *ExecutionContextController) buildGetPipeline() *pipeline.Pipeline[*exec
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*executioncontextv1.ExecutionContextId]("execution-context-get").
-		AddStep(steps.NewValidateProtoStep[*executioncontextv1.ExecutionContextId]()).                                    // 1. Validate input
+		AddStep(steps.NewValidateProtoStep[*executioncontextv1.ExecutionContextId]()).                                           // 1. Validate input
 		AddStep(steps.NewLoadTargetStep[*executioncontextv1.ExecutionContextId, *executioncontextv1.ExecutionContext](c.store)). // 2. Load by ID
 		Build()
 }

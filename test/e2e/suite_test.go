@@ -20,14 +20,14 @@ type E2ESuite struct {
 // Checks that required infrastructure is running
 func (s *E2ESuite) SetupSuite() {
 	s.T().Log("Checking E2E test prerequisites...")
-	
+
 	// Copy SDK examples to testdata before running tests
 	s.T().Log("Copying SDK examples to testdata...")
 	if err := CopyAllSDKExamples(); err != nil {
 		s.T().Fatalf("Failed to copy SDK examples: %v", err)
 	}
 	s.T().Log("✓ SDK examples copied successfully")
-	
+
 	// Check that stigmer server is running
 	if err := checkStigmerServer(); err != nil {
 		s.T().Fatalf(`Stigmer server is not running or not accessible.
@@ -44,7 +44,7 @@ Setup:
 Error: %v`, err)
 	}
 	s.T().Log("✓ Stigmer server detected at localhost:7234")
-	
+
 	// Check Temporal (gRPC server on port 7233)
 	if err := checkTemporal(); err != nil {
 		s.T().Fatalf(`Temporal is not running or not accessible.
@@ -60,7 +60,7 @@ Setup:
 Error: %v`, err)
 	}
 	s.T().Log("✓ Temporal detected at localhost:7233")
-	
+
 	// Check Ollama
 	if err := checkOllama(); err != nil {
 		s.T().Fatalf(`Ollama is not running or not accessible.
@@ -78,9 +78,9 @@ To verify Ollama is running:
 Error: %v`, err)
 	}
 	s.T().Log("✓ Ollama detected at localhost:11434")
-	
+
 	s.T().Log("All prerequisites met, starting E2E tests...")
-	
+
 	// Create harness that connects to existing server
 	s.Harness = ConnectToRunningServer(s.T())
 	s.T().Logf("Connected to stigmer server on port %d", s.Harness.ServerPort)

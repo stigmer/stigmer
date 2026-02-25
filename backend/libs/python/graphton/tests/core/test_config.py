@@ -6,11 +6,11 @@ Tests cover:
 - Integration with existing validators
 """
 
-import pytest
 import warnings
 
-from graphton.core.config import AgentConfig
+import pytest
 
+from graphton.core.config import AgentConfig
 
 # =============================================================================
 # TestLoopHistorySizeValidation - Tests for loop_history_size validation

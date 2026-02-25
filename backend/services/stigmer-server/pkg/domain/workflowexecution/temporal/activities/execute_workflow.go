@@ -19,6 +19,7 @@ import (
 //   - GetWorkflowExecution by execution_id
 //   - GetWorkflowInstance from execution.spec.workflow_instance_id
 //   - GetWorkflow from instance.spec.workflow_id
+//
 // - Converts WorkflowSpec proto → YAML (Phase 2 converter)
 // - Executes via Zigflow engine
 // - Sends progressive status updates via gRPC callbacks

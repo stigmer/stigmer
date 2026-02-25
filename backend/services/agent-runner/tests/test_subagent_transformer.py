@@ -12,17 +12,17 @@ Tests cover:
 - Graceful error handling
 """
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 import logging
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from worker.activities.graphton.subagent_transformer import (
-    transform_sub_agents,
     _build_usage_slug_map,
     _collect_all_skill_refs,
     _filter_mcp_for_subagent,
+    transform_sub_agents,
 )
-
 
 # =============================================================================
 # Fixtures

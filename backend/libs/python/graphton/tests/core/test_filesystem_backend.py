@@ -6,13 +6,11 @@ filesystem.
 """
 
 import os
-import tempfile
 from pathlib import Path
 
 import pytest
 
 from graphton.core.backends.filesystem import FilesystemBackend
-
 
 # =============================================================================
 # Fixtures

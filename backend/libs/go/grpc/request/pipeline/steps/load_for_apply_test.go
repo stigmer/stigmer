@@ -3,10 +3,10 @@ package steps
 import (
 	"testing"
 
-	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	commonspb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 )
 
 // TestLoadForApplyStep_ResourceExists tests the happy path where resource exists
@@ -14,7 +14,7 @@ func TestLoadForApplyStep_ResourceExists(t *testing.T) {
 	// Setup
 	store := setupTestStore(t)
 	defer store.Close()
-	
+
 	ctx := contextWithKind(apiresourcekind.ApiResourceKind_agent)
 
 	// Create existing resource in store
@@ -61,11 +61,11 @@ func TestLoadForApplyStep_ResourceExists(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected success, got error: %v", err)
 	}
-	
+
 	if reqCtx.Get(ExistsInDatabaseKey) != true {
 		t.Errorf("Expected exists flag to be true")
 	}
-	
+
 	if reqCtx.Get(ShouldCreateKey) != false {
 		t.Errorf("Expected shouldCreate to be false (UPDATE)")
 	}
@@ -75,7 +75,7 @@ func TestLoadForApplyStep_ResourceExists(t *testing.T) {
 	if existingFromCtx == nil {
 		t.Fatalf("Expected existing resource in context")
 	}
-	
+
 	if existingFromCtx.(*agentv1.Agent).GetMetadata().GetId() != "existing-id-123" {
 		t.Errorf("Expected existing ID to be 'existing-id-123'")
 	}
@@ -91,7 +91,7 @@ func TestLoadForApplyStep_ResourceDoesNotExist(t *testing.T) {
 	// Setup
 	store := setupTestStore(t)
 	defer store.Close()
-	
+
 	ctx := contextWithKind(apiresourcekind.ApiResourceKind_agent)
 
 	// Create input (no existing resource)
@@ -119,11 +119,11 @@ func TestLoadForApplyStep_ResourceDoesNotExist(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected success, got error: %v", err)
 	}
-	
+
 	if reqCtx.Get(ExistsInDatabaseKey) != false {
 		t.Errorf("Expected exists flag to be false")
 	}
-	
+
 	if reqCtx.Get(ShouldCreateKey) != true {
 		t.Errorf("Expected shouldCreate to be true (CREATE)")
 	}
@@ -140,7 +140,7 @@ func TestLoadForApplyStep_NoSlug(t *testing.T) {
 	// Setup
 	store := setupTestStore(t)
 	defer store.Close()
-	
+
 	ctx := contextWithKind(apiresourcekind.ApiResourceKind_agent)
 
 	// Create input without slug
@@ -168,11 +168,11 @@ func TestLoadForApplyStep_NoSlug(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected success, got error: %v", err)
 	}
-	
+
 	if reqCtx.Get(ExistsInDatabaseKey) != false {
 		t.Errorf("Expected exists flag to be false")
 	}
-	
+
 	if reqCtx.Get(ShouldCreateKey) != true {
 		t.Errorf("Expected shouldCreate to be true (CREATE)")
 	}
@@ -183,7 +183,7 @@ func TestLoadForApplyStep_NoMetadata(t *testing.T) {
 	// Setup
 	store := setupTestStore(t)
 	defer store.Close()
-	
+
 	ctx := contextWithKind(apiresourcekind.ApiResourceKind_agent)
 
 	// Create input without metadata (edge case)
@@ -208,11 +208,11 @@ func TestLoadForApplyStep_NoMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected success, got error: %v", err)
 	}
-	
+
 	if reqCtx.Get(ExistsInDatabaseKey) != false {
 		t.Errorf("Expected exists flag to be false")
 	}
-	
+
 	if reqCtx.Get(ShouldCreateKey) != true {
 		t.Errorf("Expected shouldCreate to be true (CREATE)")
 	}
@@ -223,7 +223,7 @@ func TestLoadForApplyStep_IntegrationWithPipeline(t *testing.T) {
 	// Setup
 	store := setupTestStore(t)
 	defer store.Close()
-	
+
 	ctx := contextWithKind(apiresourcekind.ApiResourceKind_agent)
 
 	// Create existing resource
@@ -268,11 +268,11 @@ func TestLoadForApplyStep_IntegrationWithPipeline(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected success, got error: %v", err)
 	}
-	
+
 	if reqCtx.Get(ShouldCreateKey) != false {
 		t.Errorf("Expected shouldCreate=false (UPDATE)")
 	}
-	
+
 	if input.GetMetadata().GetId() != "existing-id" {
 		t.Errorf("Expected ID to be 'existing-id', got %q", input.GetMetadata().GetId())
 	}

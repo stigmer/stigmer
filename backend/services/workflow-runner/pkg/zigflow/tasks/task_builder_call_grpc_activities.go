@@ -52,14 +52,14 @@ func (c *CallGRPCActivities) CallGRPCActivity(
 	// Resolution happens here (in activity) where it won't be recorded in history.
 	if runtimeEnv != nil && len(runtimeEnv) > 0 {
 		logger.Debug("Resolving runtime placeholders in gRPC task", "env_count", len(runtimeEnv))
-		
+
 		// Resolve placeholders in the entire task structure
 		resolvedInterface, err := ResolveObject(task, runtimeEnv)
 		if err != nil {
 			logger.Error("Failed to resolve runtime placeholders", "error", err)
 			return nil, fmt.Errorf("failed to resolve runtime placeholders: %w", err)
 		}
-		
+
 		// Convert back to CallGRPC type
 		var ok bool
 		task, ok = resolvedInterface.(*model.CallGRPC)
@@ -67,7 +67,7 @@ func (c *CallGRPCActivities) CallGRPCActivity(
 			logger.Error("Type assertion failed after runtime resolution")
 			return nil, fmt.Errorf("type assertion failed after runtime resolution")
 		}
-		
+
 		logger.Debug("Runtime placeholders resolved successfully")
 	}
 
@@ -138,7 +138,7 @@ func (c *CallGRPCActivities) CallGRPCActivity(
 	var output map[string]any
 	if err := json.Unmarshal(resp.Bytes(), &output); err != nil {
 		logger.Warn("Cannot convert gRPC response to JSON - returning as string")
-		
+
 		// **SECURITY**: Sanitize string output for secret leakage
 		stringOutput := resp.String()
 		if runtimeEnv != nil && len(runtimeEnv) > 0 {
@@ -147,7 +147,7 @@ func (c *CallGRPCActivities) CallGRPCActivity(
 				logger.Warn("Potential secret leakage detected in gRPC response", "warning", warning)
 			}
 		}
-		
+
 		return stringOutput, err
 	}
 

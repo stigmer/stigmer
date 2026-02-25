@@ -33,7 +33,7 @@ const EnsureThreadActivityName = "EnsureThread"
 func NewEnsureThreadActivityStub(ctx workflow.Context, taskQueue string) EnsureThreadActivity {
 	// Create activity options with explicit task queue routing to Python worker
 	options := workflow.ActivityOptions{
-		TaskQueue:              taskQueue, // Route to Python worker (from memo)
+		TaskQueue:              taskQueue,        // Route to Python worker (from memo)
 		StartToCloseTimeout:    30 * time.Second, // Fast operation
 		ScheduleToStartTimeout: 1 * time.Minute,  // Max wait for worker to pick up task
 		RetryPolicy: &temporal.RetryPolicy{
@@ -44,7 +44,7 @@ func NewEnsureThreadActivityStub(ctx workflow.Context, taskQueue string) EnsureT
 	}
 
 	ctx = workflow.WithActivityOptions(ctx, options)
-	
+
 	return &ensureThreadActivityStub{ctx: ctx}
 }
 

@@ -55,8 +55,8 @@ func (c *WorkflowController) Apply(ctx context.Context, workflow *workflowv1.Wor
 // It does NOT perform the actual create/update - that's delegated.
 func (c *WorkflowController) buildApplyPipeline() *pipeline.Pipeline[*workflowv1.Workflow] {
 	return pipeline.NewPipeline[*workflowv1.Workflow]("workflow-apply").
-		AddStep(steps.NewValidateProtoStep[*workflowv1.Workflow]()).        // 1. Validate input
-		AddStep(steps.NewResolveSlugStep[*workflowv1.Workflow]()).          // 2. Resolve slug
-		AddStep(steps.NewLoadForApplyStep[*workflowv1.Workflow](c.store)).  // 3. Check existence
+		AddStep(steps.NewValidateProtoStep[*workflowv1.Workflow]()).       // 1. Validate input
+		AddStep(steps.NewResolveSlugStep[*workflowv1.Workflow]()).         // 2. Resolve slug
+		AddStep(steps.NewLoadForApplyStep[*workflowv1.Workflow](c.store)). // 3. Check existence
 		Build()
 }

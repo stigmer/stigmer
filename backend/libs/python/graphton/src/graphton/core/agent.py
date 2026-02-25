@@ -8,17 +8,14 @@ import logging
 from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any
 
-logger = logging.getLogger(__name__)
-
 from deepagents import (  # type: ignore[import-untyped]
     create_deep_agent as deepagents_create_deep_agent,
 )
+from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.tools import BaseTool
 from langgraph.graph.state import CompiledStateGraph
 from pydantic import ValidationError
-
-from langchain_anthropic import ChatAnthropic
 
 from graphton.core.loop_detection import LoopDetectionMiddleware
 from graphton.core.models import parse_model_string
@@ -30,6 +27,8 @@ if TYPE_CHECKING:
 
     from graphton.core.summarization_callback import SummarizationCallback
     from graphton.core.summarization_config import SummarizationConfig
+
+logger = logging.getLogger(__name__)
 
 
 def create_deep_agent(

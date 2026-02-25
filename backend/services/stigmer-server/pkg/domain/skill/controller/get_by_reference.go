@@ -63,6 +63,6 @@ func (c *SkillController) GetByReference(ctx context.Context, ref *apiresource.A
 func (c *SkillController) buildGetByReferencePipeline() *pipeline.Pipeline[*apiresource.ApiResourceReference] {
 	return pipeline.NewPipeline[*apiresource.ApiResourceReference]("skill-get-by-reference").
 		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceReference]()). // 1. Validate input
-		AddStep(c.newLoadSkillByReferenceStep()).                                  // 2. Load by slug with version resolution
+		AddStep(c.newLoadSkillByReferenceStep()).                                 // 2. Load by slug with version resolution
 		Build()
 }

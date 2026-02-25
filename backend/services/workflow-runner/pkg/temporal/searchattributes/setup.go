@@ -148,16 +148,16 @@ func isAlreadyExistsError(err error) bool {
 	}
 	// Temporal returns specific error messages for duplicate attributes
 	errMsg := err.Error()
-	return contains(errMsg, "already exists") || 
-		   contains(errMsg, "already registered") ||
-		   contains(errMsg, "AlreadyExists")
+	return contains(errMsg, "already exists") ||
+		contains(errMsg, "already registered") ||
+		contains(errMsg, "AlreadyExists")
 }
 
 // contains checks if a string contains a substring (case-sensitive)
 func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && 
-		(s[:len(substr)] == substr || s[len(s)-len(substr):] == substr || 
-		 hasSubstring(s, substr)))
+	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) &&
+		(s[:len(substr)] == substr || s[len(s)-len(substr):] == substr ||
+			hasSubstring(s, substr)))
 }
 
 func hasSubstring(s, substr string) bool {
@@ -198,8 +198,8 @@ func ValidateSearchAttributesSetup(ctx context.Context, temporalClient client.Cl
 	for _, required := range RequiredSearchAttributes {
 		if existingType, exists := existingAttrs[required.Name]; exists {
 			if existingType != required.Type {
-				typeMismatchAttrs = append(typeMismatchAttrs, 
-					fmt.Sprintf("%s (expected %s, got %s)", 
+				typeMismatchAttrs = append(typeMismatchAttrs,
+					fmt.Sprintf("%s (expected %s, got %s)",
 						required.Name, required.Type.String(), existingType.String()))
 			}
 		} else {

@@ -19,9 +19,9 @@ package zigflow_test
 import (
 	"testing"
 
+	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow/tasks"
-	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

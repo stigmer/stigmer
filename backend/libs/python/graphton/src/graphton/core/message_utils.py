@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from langchain_core.messages import (
@@ -303,7 +303,7 @@ def serialize_running_summary(running_summary: RunningSummary | Any | None) -> d
         'last_summarized_message_id': getattr(
             running_summary, 'last_summarized_message_id', None
         ),
-        'serialized_at': datetime.now(timezone.utc).isoformat(),
+        'serialized_at': datetime.now(UTC).isoformat(),
     }
 
 

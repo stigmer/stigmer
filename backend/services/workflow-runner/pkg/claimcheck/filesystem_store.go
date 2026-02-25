@@ -46,7 +46,7 @@ func (f *FilesystemStore) Put(ctx context.Context, data []byte) (string, error) 
 // Get retrieves data from filesystem by key
 func (f *FilesystemStore) Get(ctx context.Context, key string) ([]byte, error) {
 	filePath := filepath.Join(f.basePath, key)
-	
+
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("filesystem get failed: %w", err)
@@ -58,7 +58,7 @@ func (f *FilesystemStore) Get(ctx context.Context, key string) ([]byte, error) {
 // Delete removes file from filesystem
 func (f *FilesystemStore) Delete(ctx context.Context, key string) error {
 	filePath := filepath.Join(f.basePath, key)
-	
+
 	err := os.Remove(filePath)
 	if err != nil {
 		// Ignore "not found" errors - already deleted

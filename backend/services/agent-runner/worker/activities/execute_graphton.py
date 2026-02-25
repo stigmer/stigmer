@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Any, cast
 
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
-    AgentExecution,
     AgentExecutionStatus,
     ApprovalAction,
     PendingApproval,
@@ -679,12 +678,12 @@ async def _auto_publish_written_files(
     Returns:
         Number of artifacts auto-published (0 if no file-modifying calls found).
     """
-    FILE_MODIFYING_TOOL_NAMES = {"write", "write_file", "edit", "edit_file"}
+    file_modifying_tool_names = {"write", "write_file", "edit", "edit_file"}
 
     # Diagnostic: log every file-modifying tool call regardless of status.
     # This makes it easy to diagnose "where did my files go?" issues by
     # showing which writes were found and why they were included or skipped.
-    file_modifying_tcs = [tc for tc in tool_calls if tc.name in FILE_MODIFYING_TOOL_NAMES]
+    file_modifying_tcs = [tc for tc in tool_calls if tc.name in file_modifying_tool_names]
     if file_modifying_tcs:
         for tc in file_modifying_tcs:
             status_name = ToolCallStatus.Name(tc.status)
@@ -703,7 +702,7 @@ async def _auto_publish_written_files(
     # Collect paths from completed file-modifying tool calls.
     written_paths: list[str] = []
     for tc in tool_calls:
-        if tc.name not in FILE_MODIFYING_TOOL_NAMES:
+        if tc.name not in file_modifying_tool_names:
             continue
         if tc.status != ToolCallStatus.TOOL_CALL_COMPLETED:
             continue
@@ -930,7 +929,6 @@ async def execute_graphton(
         
         # Create minimal failed status for system errors
         # This handles cases where status_builder was never initialized
-        from datetime import datetime
 
         from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
         from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
@@ -2312,11 +2310,11 @@ async def _execute_graphton_impl(
         # Also used for the pre-stream status update on the resume path.
         # A hanging gRPC call blocks event processing and stalls the entire
         # activity.  Default: 10 seconds.
-        _DEFAULT_GRPC_UPDATE_TIMEOUT_SECONDS = 10
+        default_grpc_update_timeout = 10
         grpc_update_timeout_seconds = int(
             os.environ.get(
                 "GRAPHTON_GRPC_UPDATE_TIMEOUT_SECONDS",
-                _DEFAULT_GRPC_UPDATE_TIMEOUT_SECONDS,
+                default_grpc_update_timeout,
             )
         )
         
@@ -2458,9 +2456,9 @@ async def _execute_graphton_impl(
         #
         # Default: 300 seconds (5 minutes).  Configurable via env var.
         # ─────────────────────────────────────────────────────────────────────────────
-        _DEFAULT_STALL_TIMEOUT_SECONDS = 300
+        default_stall_timeout = 300
         stall_timeout_seconds = int(
-            os.environ.get("GRAPHTON_STALL_TIMEOUT_SECONDS", _DEFAULT_STALL_TIMEOUT_SECONDS)
+            os.environ.get("GRAPHTON_STALL_TIMEOUT_SECONDS", default_stall_timeout)
         )
         
         activity_logger.info(
@@ -2567,7 +2565,7 @@ async def _execute_graphton_impl(
                             
                             update_scheduler.mark_update_sent(events_processed)
                             
-                        except asyncio.TimeoutError:
+                        except TimeoutError:
                             # gRPC call exceeded the configured timeout — skip this
                             # update and continue processing events.  The next
                             # scheduled update will try again.
@@ -2619,7 +2617,6 @@ async def _execute_graphton_impl(
             status_builder.current_status.phase = ExecutionPhase.EXECUTION_PAUSED
             
             # Add message indicating pause
-            from datetime import datetime
 
             from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
             from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
@@ -2999,7 +2996,6 @@ async def _execute_graphton_impl(
         error_message = f"Execution failed: [{exc_type}] {error_str}"
         
         # Import required types for error message
-        from datetime import datetime
 
         from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
         from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType

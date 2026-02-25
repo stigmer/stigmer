@@ -72,11 +72,11 @@ type TemporalConfig struct {
 
 // ExecutionConfig represents agent execution configuration
 type ExecutionConfig struct {
-	Mode          string `yaml:"mode"`                      // "local", "sandbox", or "auto" (default: local)
-	SandboxImage  string `yaml:"sandbox_image,omitempty"`  // Docker image for sandbox mode
-	AutoPull      bool   `yaml:"auto_pull"`                // Auto-pull sandbox image if missing (default: true)
-	Cleanup       bool   `yaml:"cleanup"`                  // Cleanup containers after execution (default: true)
-	TTL           int    `yaml:"ttl,omitempty"`            // Container reuse TTL in seconds (default: 3600)
+	Mode         string `yaml:"mode"`                    // "local", "sandbox", or "auto" (default: local)
+	SandboxImage string `yaml:"sandbox_image,omitempty"` // Docker image for sandbox mode
+	AutoPull     bool   `yaml:"auto_pull"`               // Auto-pull sandbox image if missing (default: true)
+	Cleanup      bool   `yaml:"cleanup"`                 // Cleanup containers after execution (default: true)
+	TTL          int    `yaml:"ttl,omitempty"`           // Container reuse TTL in seconds (default: 3600)
 }
 
 // CloudBackendConfig represents cloud backend configuration

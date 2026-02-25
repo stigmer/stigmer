@@ -3,11 +3,11 @@ package executioncontext
 import (
 	"context"
 
+	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
-	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 )
 
 // Delete deletes an execution context by ID using the pipeline pattern.
@@ -57,8 +57,8 @@ func (c *ExecutionContextController) Delete(ctx context.Context, deleteInput *ap
 // has ResourceId field (not Value), so we manually extract it in Delete method
 func (c *ExecutionContextController) buildDeletePipeline() *pipeline.Pipeline[*apiresource.ApiResourceDeleteInput] {
 	return pipeline.NewPipeline[*apiresource.ApiResourceDeleteInput]("execution-context-delete").
-		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceDeleteInput]()).                                                // 1. Validate field constraints
+		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceDeleteInput]()).                                                      // 1. Validate field constraints
 		AddStep(steps.NewLoadExistingForDeleteStep[*apiresource.ApiResourceDeleteInput, *executioncontextv1.ExecutionContext](c.store)). // 2. Load execution context
-		AddStep(steps.NewDeleteResourceStep[*apiresource.ApiResourceDeleteInput](c.store)).                                        // 3. Delete from database
+		AddStep(steps.NewDeleteResourceStep[*apiresource.ApiResourceDeleteInput](c.store)).                                              // 3. Delete from database
 		Build()
 }

@@ -1,7 +1,8 @@
 """Shared pytest fixtures for Graphton tests."""
 
+from unittest.mock import MagicMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock
 
 
 @pytest.fixture
