@@ -41,7 +41,7 @@ const GenerateSessionSubjectActivityName = "GenerateSessionSubject"
 // a single attempt with a 60 s deadline, matching the Java workflow's policy.
 func NewGenerateSessionSubjectActivityStub(ctx workflow.Context, taskQueue string) GenerateSessionSubjectActivity {
 	options := workflow.ActivityOptions{
-		TaskQueue:              taskQueue,       // Route to Python worker (from memo)
+		TaskQueue:              taskQueue, // Route to Python worker (from memo)
 		StartToCloseTimeout:    60 * time.Second,
 		ScheduleToStartTimeout: 30 * time.Second,
 		RetryPolicy: &temporal.RetryPolicy{
