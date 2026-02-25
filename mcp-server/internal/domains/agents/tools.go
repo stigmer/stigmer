@@ -15,8 +15,8 @@ import (
 
 // GetAgentInput defines the parameters for the "get_agent" tool.
 type GetAgentInput struct {
-	Org  string `json:"org"  jsonschema:"required,description=Organization slug that owns the agent (e.g. stigmer)."`
-	Slug string `json:"slug" jsonschema:"required,description=Agent slug — the unique identifier within the org (e.g. code-reviewer)."`
+	Org  string `json:"org"  jsonschema:"Organization slug that owns the agent (e.g. stigmer)."`
+	Slug string `json:"slug" jsonschema:"Agent slug — the unique identifier within the org (e.g. code-reviewer)."`
 }
 
 // Tool returns the MCP tool definition for registration.
@@ -65,8 +65,8 @@ func ApplyHandler(serverAddress string) func(context.Context, *mcp.CallToolReque
 
 // DeleteAgentInput defines the parameters for the "delete_agent" tool.
 type DeleteAgentInput struct {
-	Org  string `json:"org"  jsonschema:"required,description=Organization slug that owns the agent (e.g. stigmer)."`
-	Slug string `json:"slug" jsonschema:"required,description=Agent slug — the unique identifier within the org (e.g. code-reviewer)."`
+	Org  string `json:"org"  jsonschema:"Organization slug that owns the agent (e.g. stigmer)."`
+	Slug string `json:"slug" jsonschema:"Agent slug — the unique identifier within the org (e.g. code-reviewer)."`
 }
 
 // DeleteTool returns the MCP tool definition for the delete_agent tool.

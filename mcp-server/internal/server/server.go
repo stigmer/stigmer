@@ -59,7 +59,10 @@ func registerTools(srv *mcp.Server, serverAddress string) {
 	// Write tools — apply (create or update)
 	mcp.AddTool(srv, agents.ApplyTool(), agents.ApplyHandler(serverAddress))
 	mcp.AddTool(srv, mcpservers.ApplyTool(), mcpservers.ApplyHandler(serverAddress))
-	mcp.AddTool(srv, workflows.ApplyTool(), workflows.ApplyHandler(serverAddress))
+	// TODO: apply_workflow is temporarily disabled due to a recursive type
+	// cycle in WorkflowTaskInput that jsonschema-go v0.4.2 cannot handle.
+	// See: https://github.com/stigmer/stigmer/issues/TBD
+	// mcp.AddTool(srv, workflows.ApplyTool(), workflows.ApplyHandler(serverAddress))
 
 	// Write tools — delete
 	mcp.AddTool(srv, agents.DeleteTool(), agents.DeleteHandler(serverAddress))
@@ -67,10 +70,10 @@ func registerTools(srv *mcp.Server, serverAddress string) {
 	mcp.AddTool(srv, skills.DeleteTool(), skills.DeleteHandler(serverAddress))
 	mcp.AddTool(srv, workflows.DeleteTool(), workflows.DeleteHandler(serverAddress))
 
-	slog.Info("tools registered", "count", 12, "tools", []string{
+	slog.Info("tools registered", "count", 11, "tools", []string{
 		"search",
 		"get_agent", "get_mcp_server", "get_skill", "get_workflow",
-		"apply_agent", "apply_mcp_server", "apply_workflow",
+		"apply_agent", "apply_mcp_server",
 		"delete_agent", "delete_mcp_server", "delete_skill", "delete_workflow",
 	})
 }

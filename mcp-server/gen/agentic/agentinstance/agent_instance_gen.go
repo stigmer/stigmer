@@ -15,36 +15,36 @@ import (
 //	This is the "Instance" layer - stateful configuration with secrets.
 type AgentInstanceInput struct {
 	// Human-readable name of the resource.
-	Name string `json:"name" jsonschema:"required,description=Human-readable name of the resource."`
+	Name string `json:"name" jsonschema:"Human-readable name of the resource."`
 	// URL-friendly identifier (lowercase alphanumeric with hyphens). Auto-generated from name if omitted.
-	Slug string `json:"slug,omitempty" jsonschema:"description=URL-friendly identifier (lowercase alphanumeric with hyphens). Auto-generated from name if omitted."`
+	Slug string `json:"slug,omitempty" jsonschema:"URL-friendly identifier (lowercase alphanumeric with hyphens). Auto-generated from name if omitted."`
 	// Organization that owns this resource (e.g. acme).
-	Org string `json:"org" jsonschema:"required,description=Organization that owns this resource (e.g. acme)."`
+	Org string `json:"org" jsonschema:"Organization that owns this resource (e.g. acme)."`
 	// Resource visibility: PRIVATE (default) or PUBLIC.
-	Visibility string `json:"visibility,omitempty" jsonschema:"description=Resource visibility: PRIVATE (default) or PUBLIC."`
+	Visibility string `json:"visibility,omitempty" jsonschema:"Resource visibility: PRIVATE (default) or PUBLIC."`
 	// Key-value labels for organization and filtering.
-	Labels map[string]string `json:"labels,omitempty" jsonschema:"description=Key-value labels for organization and filtering."`
+	Labels map[string]string `json:"labels,omitempty" jsonschema:"Key-value labels for organization and filtering."`
 	// Tags for categorization and discovery.
-	Tags []string `json:"tags,omitempty" jsonschema:"description=Tags for categorization and discovery."`
+	Tags []string `json:"tags,omitempty" jsonschema:"Tags for categorization and discovery."`
 
 	// Reference to the Agent template this instance deploys.
-	AgentId string `json:"agent_id,omitempty" jsonschema:"description=Reference to the Agent template this instance deploys."`
+	AgentId string `json:"agent_id,omitempty" jsonschema:"Reference to the Agent template this instance deploys."`
 	// Human-readable description for this instance. Example: "Production GitHub bot for main repo"
-	Description string `json:"description,omitempty" jsonschema:"description=Human-readable description for this instance. Example: 'Production GitHub bot for main repo'"`
+	Description string `json:"description,omitempty" jsonschema:"Human-readable description for this instance. Example: 'Production GitHub bot for main repo'"`
 	// References to Environment resources (can be multiple). Environments are merged in order: later environments override earlier ones. Example: [base-env, aws-prod-env, github-team-env] This allows layering of configurations (base → specific overrides).
-	EnvironmentRefs []ApiResourceReferenceInput `json:"environment_refs,omitempty" jsonschema:"description=References to Environment resources (can be multiple). Environments are merged in order: later environments override earlier ones. Example: [base-env\, aws-prod-env\, github-team-env] This allows layering of configurations (base → specific overrides)."`
+	EnvironmentRefs []ApiResourceReferenceInput `json:"environment_refs,omitempty" jsonschema:"References to Environment resources (can be multiple). Environments are merged in order: later environments override earlier ones. Example: [base-env, aws-prod-env, github-team-env] This allows layering of configurations (base → specific overrides)."`
 }
 
 // Generic reference to any API resource by org and slug. Used across resources to reference other resources (e.g., Environment, Agent, Skill). Canonical format: "org/slug" (e.g., "stigmer/web-search", "acme/my-agent").
 type ApiResourceReferenceInput struct {
 	// Organization that owns the referenced resource. Required. Format: lowercase alphanumeric with hyphens, must start with a letter (e.g., "stigmer", "acme-corp"). Length: 1-63 characters.
-	Org string `json:"org" jsonschema:"required,description=Organization that owns the referenced resource. Required. Format: lowercase alphanumeric with hyphens\, must start with a letter (e.g.\, 'stigmer'\, 'acme-corp'). Length: 1-63 characters."`
+	Org string `json:"org" jsonschema:"Organization that owns the referenced resource. Required. Format: lowercase alphanumeric with hyphens, must start with a letter (e.g., 'stigmer', 'acme-corp'). Length: 1-63 characters."`
 	// Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).
-	Kind string `json:"kind,omitempty" jsonschema:"enum=api_resource_version|iam_policy|identity_account|api_key|identity_provider|organization|platform|agent|agent_execution|session|skill|mcp_server|agent_instance|workflow|workflow_instance|workflow_execution|environment|execution_context|project,description=Kind of the referenced resource (e.g.\, SKILL\, AGENT\, MCP_SERVER)."`
+	Kind string `json:"kind,omitempty" jsonschema:"Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER)."`
 	// Resource slug (user-friendly identifier, unique within org). Format: lowercase alphanumeric with hyphens, must start with a letter (e.g., "web-search", "code-reviewer"). Length: 1-63 characters.
-	Slug string `json:"slug" jsonschema:"required,description=Resource slug (user-friendly identifier\, unique within org). Format: lowercase alphanumeric with hyphens\, must start with a letter (e.g.\, 'web-search'\, 'code-reviewer'). Length: 1-63 characters."`
+	Slug string `json:"slug" jsonschema:"Resource slug (user-friendly identifier, unique within org). Format: lowercase alphanumeric with hyphens, must start with a letter (e.g., 'web-search', 'code-reviewer'). Length: 1-63 characters."`
 	// Version of the resource (optional, only applicable to versioned resources like Skills). Supports three formats: 1. Empty/unset → Resolves to "latest" (most recent version) 2. Tag name → Resolves to version with this tag (e.g., "stable", "v1.0") 3. Exact hash → Immutable reference to specific version (e.g., "abc123...") Default behavior: Empty means "latest" (current version). This field is ignored for non-versioned resources. Examples: - version: "" → Use latest version - version: "latest" → Use latest version (explicit) - version: "stable" → Use version tagged as "stable" - version: "v1.0" → Use version tagged as "v1.0" - version: "abc123..." → Use exact version with this hash (immutable)
-	Version string `json:"version,omitempty" jsonschema:"description=Version of the resource (optional\, only applicable to versioned resources like Skills). Supports three formats: 1. Empty/unset → Resolves to 'latest' (most recent version) 2. Tag name → Resolves to version with this tag (e.g.\, 'stable'\, 'v1.0') 3. Exact hash → Immutable reference to specific version (e.g.\, 'abc123...') Default behavior: Empty means 'latest' (current version). This field is ignored for non-versioned resources. Examples: - version: '' → Use latest version - version: 'latest' → Use latest version (explicit) - version: 'stable' → Use version tagged as 'stable' - version: 'v1.0' → Use version tagged as 'v1.0' - version: 'abc123...' → Use exact version with this hash (immutable)"`
+	Version string `json:"version,omitempty" jsonschema:"Version of the resource (optional, only applicable to versioned resources like Skills). Supports three formats: 1. Empty/unset → Resolves to 'latest' (most recent version) 2. Tag name → Resolves to version with this tag (e.g., 'stable', 'v1.0') 3. Exact hash → Immutable reference to specific version (e.g., 'abc123...') Default behavior: Empty means 'latest' (current version). This field is ignored for non-versioned resources. Examples: - version: '' → Use latest version - version: 'latest' → Use latest version (explicit) - version: 'stable' → Use version tagged as 'stable' - version: 'v1.0' → Use version tagged as 'v1.0' - version: 'abc123...' → Use exact version with this hash (immutable)"`
 }
 
 // ToProto converts the flat MCP input into a fully-formed AgentInstance proto message.
