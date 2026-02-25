@@ -80,6 +80,7 @@ go_library(
         "//client-apps/cli/internal/cli/synthesis",
         "//client-apps/cli/internal/cli/types",
         "//client-apps/cli/internal/cli/workflow",
+        "//client-apps/cli/pkg/clioutput",
         "//client-apps/cli/pkg/approval",
         "//client-apps/cli/pkg/display",
         "//client-apps/cli/pkg/executiontui",

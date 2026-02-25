@@ -2,6 +2,7 @@ package root
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -19,6 +20,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/skill"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/workflow"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/reference"
 	"google.golang.org/grpc"
 )
@@ -85,6 +87,16 @@ type deleteOptions struct {
 	Force       bool
 }
 
+// deleteContext bundles the resolved dependencies that every resource delete
+// handler needs. Created once in executeDelete and threaded through routeDelete.
+type deleteContext struct {
+	ref       string
+	orgID     string
+	force     bool
+	confirmer clioutput.Confirmer
+	conn      *grpc.ClientConn
+}
+
 // isDeleteExecutionType checks if the type arg refers to executions.
 func isDeleteExecutionType(typeArg string) bool {
 	normalized := strings.ToLower(strings.TrimSpace(typeArg))
@@ -139,26 +151,33 @@ func executeDelete(opts deleteOptions) error {
 	defer conn.Close()
 
 	// Step 4: Route to appropriate handler
-	return routeDelete(info, opts.Reference, orgID, opts.Force, conn)
+	dctx := &deleteContext{
+		ref:       opts.Reference,
+		orgID:     orgID,
+		force:     opts.Force,
+		confirmer: clioutput.NewConfirmer(opts.Force, os.Stderr),
+		conn:      conn,
+	}
+	return routeDelete(info, dctx)
 }
 
 // routeDelete routes to the appropriate delete handler based on kind.
-func routeDelete(info *types.TypeInfo, ref, orgID string, force bool, conn *grpc.ClientConn) error {
+func routeDelete(info *types.TypeInfo, dctx *deleteContext) error {
 	switch info.ProtoKind {
 	case apiresourcekind.ApiResourceKind_agent:
-		return deleteAgent(ref, orgID, force, conn)
+		return deleteAgent(dctx)
 
 	case apiresourcekind.ApiResourceKind_workflow:
-		return deleteWorkflow(ref, orgID, force, conn)
+		return deleteWorkflow(dctx)
 
 	case apiresourcekind.ApiResourceKind_mcp_server:
-		return deleteMcpServer(ref, orgID, force, conn)
+		return deleteMcpServer(dctx)
 
 	case apiresourcekind.ApiResourceKind_project:
-		return deleteProject(ref, orgID, force, conn)
+		return deleteProject(dctx)
 
 	case apiresourcekind.ApiResourceKind_skill:
-		return deleteSkill(ref, orgID, force, conn)
+		return deleteSkill(dctx)
 
 	default:
 		return fmt.Errorf("delete not implemented for %s", info.DisplayName)
@@ -166,22 +185,27 @@ func routeDelete(info *types.TypeInfo, ref, orgID string, force bool, conn *grpc
 }
 
 // deleteAgent deletes an agent.
-func deleteAgent(ref, orgID string, force bool, conn *grpc.ClientConn) error {
-	// Get the agent first to show confirmation and resolve the ID
-	agentRes, err := agent.GetFromBackend(conn, orgID, ref)
+func deleteAgent(dctx *deleteContext) error {
+	agentRes, err := agent.GetFromBackend(dctx.conn, dctx.orgID, dctx.ref)
 	if err != nil {
 		return err
 	}
 
-	if !force {
+	if !dctx.force {
 		agent.DisplayDeleteConfirmation(agentRes)
-		cliprint.PrintInfo("Use --force to skip this confirmation")
-		fmt.Println()
+		confirmed, err := dctx.confirmer.Confirm("Proceed with deletion? [y/N]")
+		if err != nil {
+			return errors.Wrap(err, "failed to read confirmation")
+		}
+		if !confirmed {
+			fmt.Fprintln(os.Stderr, "Aborted.")
+			return nil
+		}
 	}
 
 	result, err := agent.Delete(&agent.DeleteOptions{
 		AgentID: agentRes.Metadata.Id,
-		Conn:    conn,
+		Conn:    dctx.conn,
 	})
 	if err != nil {
 		return err
@@ -192,22 +216,27 @@ func deleteAgent(ref, orgID string, force bool, conn *grpc.ClientConn) error {
 }
 
 // deleteWorkflow deletes a workflow.
-func deleteWorkflow(ref, orgID string, force bool, conn *grpc.ClientConn) error {
-	// Get the workflow first to show confirmation and resolve the ID
-	workflowRes, err := workflow.GetFromBackend(conn, orgID, ref)
+func deleteWorkflow(dctx *deleteContext) error {
+	workflowRes, err := workflow.GetFromBackend(dctx.conn, dctx.orgID, dctx.ref)
 	if err != nil {
 		return err
 	}
 
-	if !force {
+	if !dctx.force {
 		workflow.DisplayDeleteConfirmation(workflowRes)
-		cliprint.PrintInfo("Use --force to skip this confirmation")
-		fmt.Println()
+		confirmed, err := dctx.confirmer.Confirm("Proceed with deletion? [y/N]")
+		if err != nil {
+			return errors.Wrap(err, "failed to read confirmation")
+		}
+		if !confirmed {
+			fmt.Fprintln(os.Stderr, "Aborted.")
+			return nil
+		}
 	}
 
 	result, err := workflow.Delete(&workflow.DeleteOptions{
 		WorkflowID: workflowRes.Metadata.Id,
-		Conn:       conn,
+		Conn:       dctx.conn,
 	})
 	if err != nil {
 		return err
@@ -218,23 +247,28 @@ func deleteWorkflow(ref, orgID string, force bool, conn *grpc.ClientConn) error 
 }
 
 // deleteMcpServer deletes an MCP server.
-func deleteMcpServer(ref, orgID string, force bool, conn *grpc.ClientConn) error {
-	// Get the mcp server first to show confirmation
-	mcpRes, err := mcpserver.GetFromBackend(conn, orgID, ref)
+func deleteMcpServer(dctx *deleteContext) error {
+	mcpRes, err := mcpserver.GetFromBackend(dctx.conn, dctx.orgID, dctx.ref)
 	if err != nil {
 		return err
 	}
 
-	if !force {
+	if !dctx.force {
 		mcpserver.DisplayDeleteConfirmation(mcpRes)
-		cliprint.PrintInfo("Use --force to skip this confirmation")
-		fmt.Println()
+		confirmed, err := dctx.confirmer.Confirm("Proceed with deletion? [y/N]")
+		if err != nil {
+			return errors.Wrap(err, "failed to read confirmation")
+		}
+		if !confirmed {
+			fmt.Fprintln(os.Stderr, "Aborted.")
+			return nil
+		}
 	}
 
 	result, err := mcpserver.Delete(&mcpserver.DeleteOptions{
-		Reference: ref,
-		OrgID:     orgID,
-		Conn:      conn,
+		Reference: dctx.ref,
+		OrgID:     dctx.orgID,
+		Conn:      dctx.conn,
 	})
 	if err != nil {
 		return err
@@ -245,22 +279,27 @@ func deleteMcpServer(ref, orgID string, force bool, conn *grpc.ClientConn) error
 }
 
 // deleteProject deletes a project.
-func deleteProject(ref, orgID string, force bool, conn *grpc.ClientConn) error {
-	// Get the project first to show confirmation and resolve the ID
-	projectRes, err := project.GetFromBackend(conn, orgID, ref)
+func deleteProject(dctx *deleteContext) error {
+	projectRes, err := project.GetFromBackend(dctx.conn, dctx.orgID, dctx.ref)
 	if err != nil {
 		return err
 	}
 
-	if !force {
+	if !dctx.force {
 		project.DisplayDeleteConfirmation(projectRes)
-		cliprint.PrintInfo("Use --force to skip this confirmation")
-		fmt.Println()
+		confirmed, err := dctx.confirmer.Confirm("Proceed with deletion? [y/N]")
+		if err != nil {
+			return errors.Wrap(err, "failed to read confirmation")
+		}
+		if !confirmed {
+			fmt.Fprintln(os.Stderr, "Aborted.")
+			return nil
+		}
 	}
 
 	result, err := project.Delete(&project.DeleteOptions{
 		ProjectID: projectRes.Metadata.Id,
-		Conn:      conn,
+		Conn:      dctx.conn,
 	})
 	if err != nil {
 		return err
@@ -271,22 +310,27 @@ func deleteProject(ref, orgID string, force bool, conn *grpc.ClientConn) error {
 }
 
 // deleteSkill deletes a skill.
-func deleteSkill(ref, orgID string, force bool, conn *grpc.ClientConn) error {
-	// Get the skill first to show confirmation and resolve the ID
-	skillRes, err := skill.GetFromBackend(conn, orgID, ref)
+func deleteSkill(dctx *deleteContext) error {
+	skillRes, err := skill.GetFromBackend(dctx.conn, dctx.orgID, dctx.ref)
 	if err != nil {
 		return err
 	}
 
-	if !force {
+	if !dctx.force {
 		skill.DisplayDeleteConfirmation(skillRes)
-		cliprint.PrintInfo("Use --force to skip this confirmation")
-		fmt.Println()
+		confirmed, err := dctx.confirmer.Confirm("Proceed with deletion? [y/N]")
+		if err != nil {
+			return errors.Wrap(err, "failed to read confirmation")
+		}
+		if !confirmed {
+			fmt.Fprintln(os.Stderr, "Aborted.")
+			return nil
+		}
 	}
 
 	result, err := skill.Delete(&skill.DeleteOptions{
 		SkillID: skillRes.Metadata.Id,
-		Conn:    conn,
+		Conn:    dctx.conn,
 	})
 	if err != nil {
 		return err
@@ -332,8 +376,16 @@ func executeCancelExecution(opts deleteOptions) error {
 		cliprint.PrintWarning("You are about to cancel execution: %s", opts.Reference)
 		cliprint.PrintInfo("This will gracefully stop the running agent.")
 		fmt.Println()
-		cliprint.PrintInfo("Use --force to skip this confirmation")
-		fmt.Println()
+
+		confirmer := clioutput.NewInteractiveConfirmer(os.Stderr)
+		confirmed, err := confirmer.Confirm("Proceed with cancellation? [y/N]")
+		if err != nil {
+			return errors.Wrap(err, "failed to read confirmation")
+		}
+		if !confirmed {
+			fmt.Fprintln(os.Stderr, "Aborted.")
+			return nil
+		}
 	}
 
 	// Cancel execution using dedicated package
