@@ -19,13 +19,13 @@ import (
 const (
 	// DefaultTemporalVersion is the default Temporal CLI version
 	DefaultTemporalVersion = "1.5.1"
-	
+
 	// DefaultTemporalPort is the default port for Temporal dev server
 	DefaultTemporalPort = 7233
-	
+
 	// TemporalPIDFileName is the name of the PID file for Temporal
 	TemporalPIDFileName = "temporal.pid"
-	
+
 	// TemporalLockFileName is the name of the lock file for Temporal
 	TemporalLockFileName = "temporal.lock"
 )
@@ -51,12 +51,12 @@ func NewManager(stigmerDataDir string, version string, port int) *Manager {
 	if port == 0 {
 		port = DefaultTemporalPort
 	}
-	
+
 	binDir := filepath.Join(stigmerDataDir, "..", "bin")
 	logsDir := filepath.Join(stigmerDataDir, "..", "logs")
 	temporalDataDir := filepath.Join(stigmerDataDir, "..", "temporal-data")
 	stigmerDir := filepath.Join(stigmerDataDir, "..")
-	
+
 	return &Manager{
 		binPath:  filepath.Join(binDir, "temporal"),
 		dataDir:  temporalDataDir,
@@ -75,14 +75,14 @@ func (m *Manager) EnsureInstalled() error {
 		log.Debug().Str("path", m.binPath).Msg("Temporal CLI already installed")
 		return nil
 	}
-	
+
 	log.Info().Str("version", m.version).Msg("Downloading Temporal CLI")
-	
+
 	// Download the binary
 	if err := m.downloadBinary(); err != nil {
 		return errors.Wrap(err, "failed to download Temporal CLI")
 	}
-	
+
 	log.Info().Str("path", m.binPath).Msg("Temporal CLI installed successfully")
 	return nil
 }
@@ -99,10 +99,10 @@ func (m *Manager) Start() error {
 			Msg("Temporal is already running (lock file held) - reusing existing instance")
 		return nil
 	}
-	
+
 	// Cleanup any stale processes before checking if running
 	m.cleanupStaleProcesses()
-	
+
 	// Check if already running and healthy (backup check)
 	if m.IsRunning() {
 		log.Info().
@@ -111,28 +111,28 @@ func (m *Manager) Start() error {
 			Msg("Temporal is already running and healthy - reusing existing instance")
 		return nil
 	}
-	
+
 	// Ensure binary is installed
 	if err := m.EnsureInstalled(); err != nil {
 		return err
 	}
-	
+
 	// Acquire lock before starting Temporal
 	if err := m.acquireLock(); err != nil {
 		return err
 	}
-	
+
 	// Ensure data directory exists
 	if err := os.MkdirAll(m.dataDir, 0755); err != nil {
 		return errors.Wrap(err, "failed to create Temporal data directory")
 	}
-	
+
 	// Ensure log directory exists
 	logDir := filepath.Dir(m.logFile)
 	if err := os.MkdirAll(logDir, 0755); err != nil {
 		return errors.Wrap(err, "failed to create log directory")
 	}
-	
+
 	// Prepare command
 	dbPath := filepath.Join(m.dataDir, "temporal.db")
 	cmd := exec.Command(m.binPath, "server", "start-dev",
@@ -140,26 +140,26 @@ func (m *Manager) Start() error {
 		"--db-filename", dbPath,
 		"--ui-port", "8233", // Web UI port
 	)
-	
+
 	// Redirect output to log file
 	logFile, err := os.OpenFile(m.logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		return errors.Wrap(err, "failed to create log file")
 	}
 	defer logFile.Close()
-	
+
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
-	
+
 	// Set up process group so we can kill all child processes
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	
+
 	// Start process
 	if err := cmd.Start(); err != nil {
 		m.releaseLock()
 		return errors.Wrap(err, "failed to start Temporal process")
 	}
-	
+
 	// Write PID file with enhanced format (PID, command name, timestamp)
 	// Note: PID file is kept for debugging, but lock file is the source of truth
 	if err := m.writePIDFile(cmd.Process.Pid, "temporal"); err != nil {
@@ -168,12 +168,12 @@ func (m *Manager) Start() error {
 		m.releaseLock()
 		return errors.Wrap(err, "failed to write Temporal PID file")
 	}
-	
+
 	log.Info().
 		Int("pid", cmd.Process.Pid).
 		Int("port", m.port).
 		Msg("Temporal dev server started")
-	
+
 	// Wait for Temporal to be ready
 	if err := m.waitForReady(10 * time.Second); err != nil {
 		_ = cmd.Process.Kill()
@@ -181,7 +181,7 @@ func (m *Manager) Start() error {
 		m.releaseLock()
 		return errors.Wrap(err, "Temporal failed to start")
 	}
-	
+
 	log.Info().
 		Str("address", m.GetAddress()).
 		Str("ui_url", "http://localhost:8233").
@@ -200,16 +200,16 @@ func (m *Manager) Stop() error {
 		}
 		return errors.Wrap(err, "Temporal is not running")
 	}
-	
+
 	// Send SIGTERM to entire process group for graceful shutdown
 	// Negative PID sends signal to process group
 	if err := syscall.Kill(-pid, syscall.SIGTERM); err != nil {
 		m.releaseLock()
 		return errors.Wrap(err, "failed to send SIGTERM to Temporal process group")
 	}
-	
+
 	log.Info().Int("pid", pid).Msg("Sent SIGTERM to Temporal process group")
-	
+
 	// Wait for process to exit (up to 10 seconds)
 	for i := 0; i < 20; i++ {
 		if !m.IsRunning() {
@@ -221,7 +221,7 @@ func (m *Manager) Stop() error {
 		}
 		time.Sleep(500 * time.Millisecond)
 	}
-	
+
 	// Force kill entire process group if still running
 	log.Warn().Msg("Temporal did not stop gracefully, force killing process group")
 	if err := syscall.Kill(-pid, syscall.SIGKILL); err != nil {
@@ -235,7 +235,7 @@ func (m *Manager) Stop() error {
 		m.releaseLock()
 		return errors.Wrap(err, "failed to kill Temporal process group")
 	}
-	
+
 	// Remove PID file and release lock
 	_ = os.Remove(m.pidFile)
 	m.releaseLock()
@@ -248,40 +248,40 @@ func (m *Manager) IsRunning() bool {
 	if !m.isLocked() {
 		return false
 	}
-	
+
 	// Layer 2: Check if PID file exists and read PID
 	pid, err := m.getPID()
 	if err != nil {
 		log.Debug().Msg("Lock file held but PID file missing")
 		return false
 	}
-	
+
 	// Layer 3: Check if process exists and is alive
 	process, err := os.FindProcess(pid)
 	if err != nil {
 		log.Debug().Int("pid", pid).Msg("Lock file held but process not found")
 		return false
 	}
-	
+
 	// Send signal 0 to check if process is alive
 	err = process.Signal(syscall.Signal(0))
 	if err != nil {
 		log.Debug().Int("pid", pid).Msg("Lock file held but process not alive")
 		return false
 	}
-	
+
 	// Layer 4: Verify process is actually Temporal (not PID reuse)
 	if !m.isActuallyTemporal(pid) {
 		log.Debug().Int("pid", pid).Msg("Process exists but is not Temporal")
 		return false
 	}
-	
+
 	// Layer 5: Check if Temporal port is listening
 	if !m.isPortInUse() {
 		log.Debug().Int("pid", pid).Msg("Process is Temporal but port not listening")
 		return false
 	}
-	
+
 	// All checks passed - Temporal is genuinely running
 	return true
 }
@@ -295,11 +295,11 @@ func (m *Manager) GetAddress() string {
 func (m *Manager) writePIDFile(pid int, cmdName string) error {
 	timestamp := time.Now().Unix()
 	content := fmt.Sprintf("%d\n%s\n%d\n", pid, cmdName, timestamp)
-	
+
 	if err := os.WriteFile(m.pidFile, []byte(content), 0644); err != nil {
 		return errors.Wrap(err, "failed to write PID file")
 	}
-	
+
 	return nil
 }
 
@@ -310,18 +310,18 @@ func (m *Manager) getPID() (int, error) {
 		return 0, errors.Wrap(err, "failed to open PID file")
 	}
 	defer file.Close()
-	
+
 	scanner := bufio.NewScanner(file)
 	if !scanner.Scan() {
 		return 0, errors.New("PID file is empty")
 	}
-	
+
 	pidStr := strings.TrimSpace(scanner.Text())
 	pid, err := strconv.Atoi(pidStr)
 	if err != nil {
 		return 0, errors.Wrap(err, "invalid PID in PID file")
 	}
-	
+
 	return pid, nil
 }
 
@@ -334,9 +334,9 @@ func (m *Manager) isActuallyTemporal(pid int) bool {
 		log.Debug().Err(err).Int("pid", pid).Msg("Failed to get process command")
 		return false
 	}
-	
+
 	cmdName := strings.TrimSpace(string(output))
-	
+
 	// Check if command contains "temporal"
 	if !strings.Contains(strings.ToLower(cmdName), "temporal") {
 		log.Debug().
@@ -345,25 +345,25 @@ func (m *Manager) isActuallyTemporal(pid int) bool {
 			Msg("Process is not Temporal (command name mismatch)")
 		return false
 	}
-	
+
 	// Additional check: verify executable path if possible
 	cmd = exec.Command("ps", "-p", strconv.Itoa(pid), "-o", "command=")
 	output, err = cmd.Output()
 	if err == nil {
 		fullCmd := strings.TrimSpace(string(output))
 		// Check if it's our specific temporal binary or contains temporal server
-		if strings.Contains(fullCmd, m.binPath) || 
-		   (strings.Contains(fullCmd, "temporal") && strings.Contains(fullCmd, "server")) {
+		if strings.Contains(fullCmd, m.binPath) ||
+			(strings.Contains(fullCmd, "temporal") && strings.Contains(fullCmd, "server")) {
 			return true
 		}
-		
+
 		log.Debug().
 			Int("pid", pid).
 			Str("command", fullCmd).
 			Msg("Process command doesn't match expected Temporal binary")
 		return false
 	}
-	
+
 	// If we got here, basic check passed (command name contains "temporal")
 	return true
 }
@@ -381,7 +381,7 @@ func (m *Manager) isPortInUse() bool {
 // waitForReady polls Temporal until it's accepting connections
 func (m *Manager) waitForReady(timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
-	
+
 	for time.Now().Before(deadline) {
 		conn, err := net.DialTimeout("tcp", m.GetAddress(), 100*time.Millisecond)
 		if err == nil {
@@ -390,7 +390,7 @@ func (m *Manager) waitForReady(timeout time.Duration) error {
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
-	
+
 	return errors.New("Temporal failed to start within timeout")
 }
 
@@ -402,7 +402,7 @@ func (m *Manager) cleanupStaleProcesses() {
 		// No PID file or invalid - nothing to cleanup
 		return
 	}
-	
+
 	// Check if process exists and is alive
 	process, err := os.FindProcess(pid)
 	if err != nil {
@@ -411,7 +411,7 @@ func (m *Manager) cleanupStaleProcesses() {
 		_ = os.Remove(m.pidFile)
 		return
 	}
-	
+
 	// Send signal 0 to check if process is alive
 	err = process.Signal(syscall.Signal(0))
 	if err != nil {
@@ -420,7 +420,7 @@ func (m *Manager) cleanupStaleProcesses() {
 		_ = os.Remove(m.pidFile)
 		return
 	}
-	
+
 	// Process exists and is alive - use enhanced validation
 	// Check 1: Is it actually Temporal? (handles PID reuse)
 	if !m.isActuallyTemporal(pid) {
@@ -428,21 +428,21 @@ func (m *Manager) cleanupStaleProcesses() {
 		_ = os.Remove(m.pidFile)
 		return
 	}
-	
+
 	// Check 2: Is the Temporal port in use?
 	if !m.isPortInUse() {
 		log.Warn().Int("pid", pid).Msg("Temporal process exists but port not listening - killing stale process")
-		
+
 		// Force kill the process group
 		if err := syscall.Kill(-pid, syscall.SIGKILL); err != nil {
 			log.Debug().Err(err).Msg("Failed to kill stale process (may be permission issue)")
 		}
-		
+
 		// Remove stale PID file
 		_ = os.Remove(m.pidFile)
 		return
 	}
-	
+
 	// All checks passed - it's a valid running Temporal instance
 	log.Debug().Int("pid", pid).Msg("Found valid running Temporal instance")
 }
@@ -455,7 +455,7 @@ func (m *Manager) acquireLock() error {
 	if err != nil {
 		return errors.Wrap(err, "failed to open lock file")
 	}
-	
+
 	// Try to acquire exclusive non-blocking lock
 	err = syscall.Flock(int(fd.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
 	if err != nil {
@@ -465,10 +465,10 @@ func (m *Manager) acquireLock() error {
 		}
 		return errors.Wrap(err, "failed to acquire lock")
 	}
-	
+
 	// Lock acquired successfully - store file descriptor
 	m.lockFd = fd
-	
+
 	log.Debug().Str("lock_file", m.lockFile).Msg("Acquired lock file")
 	return nil
 }
@@ -479,12 +479,12 @@ func (m *Manager) releaseLock() {
 	if m.lockFd == nil {
 		return
 	}
-	
+
 	// Unlock and close (both happen automatically, but being explicit)
 	_ = syscall.Flock(int(m.lockFd.Fd()), syscall.LOCK_UN)
 	_ = m.lockFd.Close()
 	m.lockFd = nil
-	
+
 	log.Debug().Str("lock_file", m.lockFile).Msg("Released lock file")
 }
 
@@ -498,14 +498,14 @@ func (m *Manager) isLocked() bool {
 		return false
 	}
 	defer fd.Close()
-	
+
 	// Try to acquire non-blocking lock
 	err = syscall.Flock(int(fd.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
 	if err != nil {
 		// Lock failed - someone else holds it
 		return true
 	}
-	
+
 	// Lock succeeded - release it and return false
 	_ = syscall.Flock(int(fd.Fd()), syscall.LOCK_UN)
 	return false
@@ -517,7 +517,7 @@ func (m *Manager) StartSupervisor() {
 		log.Warn().Msg("Supervisor already running")
 		return
 	}
-	
+
 	m.supervisor = NewSupervisor(m)
 	m.supervisor.Start()
 }
@@ -527,7 +527,7 @@ func (m *Manager) StopSupervisor() {
 	if m.supervisor == nil {
 		return
 	}
-	
+
 	m.supervisor.Stop()
 	m.supervisor = nil
 }

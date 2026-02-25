@@ -22,9 +22,9 @@ const (
 // StigmerServerManager manages the full stigmer server stack for E2E tests
 // This includes: stigmer-server, Temporal, workflow-runner, and agent-runner
 type StigmerServerManager struct {
-	DataDir        string
-	WeStartedIt    bool // Track if we started the server (for cleanup)
-	t              *testing.T
+	DataDir     string
+	WeStartedIt bool // Track if we started the server (for cleanup)
+	t           *testing.T
 }
 
 // EnsureStigmerServerRunning checks if stigmer server is running, and starts it if not
@@ -47,47 +47,47 @@ func EnsureStigmerServerRunning(t *testing.T) (*StigmerServerManager, error) {
 	if isServerRunning() {
 		t.Log("✓ Stigmer server is already running")
 		manager.WeStartedIt = false
-		
+
 		// Verify Temporal is accessible
 		if WaitForPort(7233, 2*time.Second) {
 			t.Log("✓ Temporal is accessible at localhost:7233")
 		} else {
 			t.Log("⚠️  Temporal not detected (tests requiring workflows may fail)")
 		}
-		
+
 		return manager, nil
 	}
 
 	// Server not running - start it
 	t.Log("Stigmer server not running, starting it automatically...")
-	
+
 	if err := startServer(); err != nil {
 		return nil, fmt.Errorf("failed to start stigmer server: %w", err)
 	}
 
 	manager.WeStartedIt = true
 	t.Log("✓ Stigmer server started successfully")
-	
+
 	// Wait for components to be ready
 	t.Log("Waiting for services to become ready...")
-	
+
 	// Wait for stigmer-server (gRPC port 7234)
 	if !WaitForPort(DaemonPort, 15*time.Second) {
 		return nil, fmt.Errorf("stigmer-server failed to become ready on port %d", DaemonPort)
 	}
 	t.Logf("✓ Stigmer server ready on port %d", DaemonPort)
-	
+
 	// Wait for Temporal (port 7233)
 	if !WaitForPort(7233, 15*time.Second) {
 		t.Log("⚠️  Temporal not detected (tests requiring workflows may fail)")
 	} else {
 		t.Log("✓ Temporal ready at localhost:7233")
 	}
-	
+
 	// Give agent-runner a moment to start
 	time.Sleep(3 * time.Second)
 	t.Log("✓ Agent runner startup time elapsed")
-	
+
 	return manager, nil
 }
 
@@ -125,24 +125,24 @@ func (m *StigmerServerManager) IsTemporalReady() bool {
 // GetStatus returns diagnostic information about the server components
 func (m *StigmerServerManager) GetStatus() map[string]bool {
 	status := make(map[string]bool)
-	
+
 	// Check stigmer-server
 	status["stigmer-server"] = isServerRunning()
-	
+
 	// Check Temporal
 	status["temporal"] = WaitForPort(7233, 1*time.Second)
-	
+
 	// Check workflow-runner and agent-runner (via stigmer server status command)
 	statusOutput := getServerStatus()
-	
+
 	// Look for "Workflow Runner:" followed by "Running"
-	status["workflow-runner"] = strings.Contains(statusOutput, "Workflow Runner:") && 
+	status["workflow-runner"] = strings.Contains(statusOutput, "Workflow Runner:") &&
 		strings.Contains(statusOutput, "Running")
-	
+
 	// Look for "Agent Runner" followed by "Running"
-	status["agent-runner"] = strings.Contains(statusOutput, "Agent Runner") && 
+	status["agent-runner"] = strings.Contains(statusOutput, "Agent Runner") &&
 		strings.Contains(statusOutput, "Running")
-	
+
 	return status
 }
 
@@ -154,13 +154,13 @@ func (m *StigmerServerManager) GetLogPath() string {
 // PrintLogs prints recent logs from a component (useful for debugging)
 func (m *StigmerServerManager) PrintLogs(component string, lines int) {
 	logFile := filepath.Join(m.DataDir, "logs", fmt.Sprintf("%s.log", component))
-	
+
 	data, err := os.ReadFile(logFile)
 	if err != nil {
 		m.t.Logf("Failed to read %s logs: %v", component, err)
 		return
 	}
-	
+
 	// Print last N lines (simple tail implementation)
 	logLines := []byte{}
 	lineCount := 0
@@ -173,11 +173,11 @@ func (m *StigmerServerManager) PrintLogs(component string, lines int) {
 			}
 		}
 	}
-	
+
 	if lineCount <= lines {
 		logLines = data
 	}
-	
+
 	m.t.Logf("=== Last %d lines of %s.log ===\n%s", lines, component, string(logLines))
 }
 
@@ -193,11 +193,11 @@ func startServer() error {
 	cmd := exec.Command("stigmer", "server", "start")
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
-	
+
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to start server: %w (stderr: %s)", err, stderr.String())
 	}
-	
+
 	return nil
 }
 
@@ -206,11 +206,11 @@ func stopServer() error {
 	cmd := exec.Command("stigmer", "server", "stop")
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
-	
+
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to stop server: %w (stderr: %s)", err, stderr.String())
 	}
-	
+
 	return nil
 }
 

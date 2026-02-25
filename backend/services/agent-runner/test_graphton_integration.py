@@ -5,20 +5,19 @@ Tests that agent-runner can import and use Graphton.
 """
 
 import sys
-from pathlib import Path
+
 
 def test_graphton_imports():
     """Test that all Graphton imports work."""
     print("Testing Graphton imports...")
     
     # Main API (as used by agent-runner)
-    from graphton import create_deep_agent, AgentConfig
-    
     # Template utilities
-    from graphton import extract_template_vars, has_templates, substitute_templates
-    
     # Middleware
-    from graphton import McpToolsLoader
+    from graphton import (
+        AgentConfig,
+        create_deep_agent,
+    )
     
     print("✅ All Graphton imports successful")
     print(f"   - create_deep_agent: {create_deep_agent.__name__}")
@@ -40,7 +39,7 @@ def test_agent_config():
     assert config.system_prompt == "You are a helpful assistant."
     assert config.recursion_limit == 100
     
-    print(f"✅ AgentConfig created successfully")
+    print("✅ AgentConfig created successfully")
     print(f"   - Model: {config.model}")
     print(f"   - System prompt: {config.system_prompt[:40]}...")
     print(f"   - Recursion limit: {config.recursion_limit}")
@@ -49,11 +48,11 @@ def test_template_utilities():
     """Test template utility functions."""
     print("\nTesting template utilities...")
     
-    from graphton import has_templates, extract_template_vars, substitute_templates
+    from graphton import extract_template_vars, has_templates, substitute_templates
     
     # Test has_templates
-    assert has_templates("API_KEY={{token}}") == True
-    assert has_templates("no templates here") == False
+    assert has_templates("API_KEY={{token}}")
+    assert not has_templates("no templates here")
     
     # Test extract_template_vars
     vars = extract_template_vars({"auth": "Bearer {{token}}", "user": "{{user_id}}"})
@@ -64,17 +63,18 @@ def test_template_utilities():
     result = substitute_templates("Hello {{name}}", {"name": "World"})
     assert result == "Hello World"
     
-    print(f"✅ Template utilities working correctly")
-    print(f"   - has_templates: ✓")
-    print(f"   - extract_template_vars: ✓")
-    print(f"   - substitute_templates: ✓")
+    print("✅ Template utilities working correctly")
+    print("   - has_templates: ✓")
+    print("   - extract_template_vars: ✓")
+    print("   - substitute_templates: ✓")
 
 def test_sandbox_config():
     """Test sandbox configuration in AgentConfig."""
     print("\nTesting sandbox configuration...")
     
-    from graphton import AgentConfig
     import tempfile
+
+    from graphton import AgentConfig
     
     with tempfile.TemporaryDirectory() as tmpdir:
         config = AgentConfig(
@@ -89,7 +89,7 @@ def test_sandbox_config():
         assert config.sandbox_config["type"] == "filesystem"
         assert config.sandbox_config["root_dir"] == tmpdir
         
-        print(f"✅ Sandbox config created successfully")
+        print("✅ Sandbox config created successfully")
         print(f"   - Sandbox type: {config.sandbox_config['type']}")
         print(f"   - Root dir: {config.sandbox_config['root_dir']}")
 

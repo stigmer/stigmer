@@ -21,7 +21,6 @@ import (
 
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
-	apiresourcev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/validation"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -42,13 +41,13 @@ import (
 func TestE2E_TypedProtoToYAML_AllTaskTypes(t *testing.T) {
 	testCases := []struct {
 		name       string
-		taskKind   apiresourcev1.WorkflowTaskKind
+		taskKind   workflowv1.WorkflowTaskKind
 		typedProto proto.Message
 		expectYAML []string // Strings that should appear in YAML
 	}{
 		{
 			name:     "SET task",
-			taskKind: apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_SET,
+			taskKind: workflowv1.WorkflowTaskKind_set_vars,
 			typedProto: &tasksv1.SetTaskConfig{
 				Variables: map[string]string{
 					"key": "value",
@@ -59,7 +58,7 @@ func TestE2E_TypedProtoToYAML_AllTaskTypes(t *testing.T) {
 		},
 		{
 			name:     "HTTP_CALL task",
-			taskKind: apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_HTTP_CALL,
+			taskKind: workflowv1.WorkflowTaskKind_http_call,
 			typedProto: &tasksv1.HttpCallTaskConfig{
 				Method: "GET",
 				Endpoint: &tasksv1.HttpEndpoint{
@@ -71,7 +70,7 @@ func TestE2E_TypedProtoToYAML_AllTaskTypes(t *testing.T) {
 		},
 		{
 			name:     "GRPC_CALL task",
-			taskKind: apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_GRPC_CALL,
+			taskKind: workflowv1.WorkflowTaskKind_grpc_call,
 			typedProto: &tasksv1.GrpcCallTaskConfig{
 				Service: "UserService",
 				Method:  "GetUser",
@@ -80,7 +79,7 @@ func TestE2E_TypedProtoToYAML_AllTaskTypes(t *testing.T) {
 		},
 		{
 			name:     "SWITCH task",
-			taskKind: apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_SWITCH,
+			taskKind: workflowv1.WorkflowTaskKind_switch_case,
 			typedProto: &tasksv1.SwitchTaskConfig{
 				Cases: []*tasksv1.SwitchCase{
 					{
@@ -96,7 +95,7 @@ func TestE2E_TypedProtoToYAML_AllTaskTypes(t *testing.T) {
 		// They require recursive conversion which is beyond the scope of this refactoring
 		{
 			name:     "WAIT task",
-			taskKind: apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_WAIT,
+			taskKind: workflowv1.WorkflowTaskKind_wait,
 			typedProto: &tasksv1.WaitTaskConfig{
 				WaitType: &tasksv1.WaitTaskConfig_Duration{
 					Duration: &tasksv1.Duration{
@@ -108,7 +107,7 @@ func TestE2E_TypedProtoToYAML_AllTaskTypes(t *testing.T) {
 		},
 		{
 			name:     "RAISE task",
-			taskKind: apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_RAISE,
+			taskKind: workflowv1.WorkflowTaskKind_raise_error,
 			typedProto: &tasksv1.RaiseTaskConfig{
 				Error:   "ValidationError",
 				Message: "Invalid data",
@@ -117,7 +116,7 @@ func TestE2E_TypedProtoToYAML_AllTaskTypes(t *testing.T) {
 		},
 		{
 			name:     "RUN task",
-			taskKind: apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_RUN,
+			taskKind: workflowv1.WorkflowTaskKind_run_workflow,
 			typedProto: &tasksv1.RunTaskConfig{
 				Workflow: "child-workflow",
 			},
@@ -185,7 +184,7 @@ func TestE2E_RoundTrip(t *testing.T) {
 
 	// Step 2: Unmarshal back to typed proto
 	recovered, err := validation.UnmarshalTaskConfig(
-		apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_HTTP_CALL,
+		workflowv1.WorkflowTaskKind_http_call,
 		structConfig,
 	)
 	require.NoError(t, err)
@@ -205,7 +204,7 @@ func TestE2E_RoundTrip(t *testing.T) {
 		Tasks: []*workflowv1.WorkflowTask{
 			{
 				Name:       "httpTask",
-				Kind:       apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_HTTP_CALL,
+				Kind:       workflowv1.WorkflowTaskKind_http_call,
 				TaskConfig: structConfig,
 			},
 		},
@@ -248,7 +247,7 @@ func TestE2E_ValidationIntegration_InvalidConfig(t *testing.T) {
 		Tasks: []*workflowv1.WorkflowTask{
 			{
 				Name:       "invalidTask",
-				Kind:       apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_HTTP_CALL,
+				Kind:       workflowv1.WorkflowTaskKind_http_call,
 				TaskConfig: taskConfig,
 			},
 		},
@@ -279,7 +278,7 @@ func TestE2E_ValidationIntegration_ValidConfig(t *testing.T) {
 
 	// Validate (should pass)
 	_, err = validation.UnmarshalTaskConfig(
-		apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_HTTP_CALL,
+		workflowv1.WorkflowTaskKind_http_call,
 		taskConfig,
 	)
 	require.NoError(t, err, "Valid config should pass validation")
@@ -295,7 +294,7 @@ func TestE2E_ValidationIntegration_ValidConfig(t *testing.T) {
 		Tasks: []*workflowv1.WorkflowTask{
 			{
 				Name:       "validTask",
-				Kind:       apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_HTTP_CALL,
+				Kind:       workflowv1.WorkflowTaskKind_http_call,
 				TaskConfig: taskConfig,
 			},
 		},
@@ -333,7 +332,7 @@ func TestE2E_EmptyOptionalFields(t *testing.T) {
 		Tasks: []*workflowv1.WorkflowTask{
 			{
 				Name:       "minimalTask",
-				Kind:       apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_HTTP_CALL,
+				Kind:       workflowv1.WorkflowTaskKind_http_call,
 				TaskConfig: taskConfig,
 			},
 		},
@@ -366,7 +365,7 @@ func TestE2E_NilTaskConfig(t *testing.T) {
 		Tasks: []*workflowv1.WorkflowTask{
 			{
 				Name:       "nilConfigTask",
-				Kind:       apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_SET,
+				Kind:       workflowv1.WorkflowTaskKind_set_vars,
 				TaskConfig: nil, // Nil config
 			},
 		},
@@ -414,7 +413,7 @@ func TestE2E_ComplexNestedStructures(t *testing.T) {
 		Tasks: []*workflowv1.WorkflowTask{
 			{
 				Name:       "routeByStatus",
-				Kind:       apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_SWITCH,
+				Kind:       workflowv1.WorkflowTaskKind_switch_case,
 				TaskConfig: taskConfig,
 			},
 		},
@@ -464,7 +463,7 @@ func TestE2E_BodyAsStruct(t *testing.T) {
 		Tasks: []*workflowv1.WorkflowTask{
 			{
 				Name:       "createUser",
-				Kind:       apiresourcev1.WorkflowTaskKind_WORKFLOW_TASK_KIND_HTTP_CALL,
+				Kind:       workflowv1.WorkflowTaskKind_http_call,
 				TaskConfig: taskConfig,
 			},
 		},

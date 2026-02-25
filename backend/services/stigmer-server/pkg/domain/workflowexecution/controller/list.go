@@ -3,9 +3,9 @@ package workflowexecution
 import (
 	"context"
 
-	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"google.golang.org/protobuf/proto"
 )
 

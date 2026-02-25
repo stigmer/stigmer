@@ -173,8 +173,8 @@ func (s *SecretService) Decrypt(encrypted string) (string, error) {
 		return "", fmt.Errorf("%w: invalid base64 encoding", ErrInvalidCiphertext)
 	}
 
-	// Validate minimum length (nonce + at least 1 byte + tag)
-	minLen := GCMNonceSize + 1 + s.gcm.Overhead()
+	// Validate minimum length (nonce + tag; GCM supports empty plaintext)
+	minLen := GCMNonceSize + s.gcm.Overhead()
 	if len(ciphertext) < minLen {
 		return "", fmt.Errorf("%w: ciphertext too short", ErrInvalidCiphertext)
 	}

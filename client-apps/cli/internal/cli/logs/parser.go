@@ -40,7 +40,7 @@ func ParseLogLine(line, component string) LogLine {
 		matches := pattern.FindStringSubmatch(line)
 		if len(matches) > 1 {
 			timestampStr := matches[1]
-			
+
 			// Try to parse with different formats
 			for _, format := range timestampFormats {
 				if t, err := time.Parse(format, timestampStr); err == nil {

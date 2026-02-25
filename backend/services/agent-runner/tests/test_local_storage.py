@@ -3,7 +3,6 @@
 Verifies correct URL construction, upload/download, and cleanup behaviour.
 """
 
-import tempfile
 from pathlib import Path
 
 import pytest

@@ -56,9 +56,9 @@ import (
 // - TEMPORAL_AGENT_EXECUTION_STIGMER_TASK_QUEUE (Go workflows, default: agent_execution_stigmer)
 // - TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE (Python activities, default: agent_execution_runner)
 type WorkerConfig struct {
-	config                     *Config
-	store                      store.Store
-	updateStatusActivityImpl   *activities.UpdateExecutionStatusActivityImpl
+	config                   *Config
+	store                    store.Store
+	updateStatusActivityImpl *activities.UpdateExecutionStatusActivityImpl
 }
 
 // NewWorkerConfig creates a new WorkerConfig.
@@ -68,9 +68,9 @@ func NewWorkerConfig(
 	streamBroker activities.StreamBroker,
 ) *WorkerConfig {
 	return &WorkerConfig{
-		config:                     config,
-		store:                      store,
-		updateStatusActivityImpl:   activities.NewUpdateExecutionStatusActivityImpl(store, streamBroker),
+		config:                   config,
+		store:                    store,
+		updateStatusActivityImpl: activities.NewUpdateExecutionStatusActivityImpl(store, streamBroker),
 	}
 }
 

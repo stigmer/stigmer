@@ -250,9 +250,6 @@ def create_daytona_backend(config: dict[str, Any]) -> BackendProtocol:
     # Import Daytona dependencies only when needed
     try:
         from daytona import Daytona, DaytonaConfig  # type: ignore[import-not-found]
-        from daytona.common.daytona import (  # type: ignore[import-not-found]
-            CreateSandboxFromSnapshotParams,
-        )
         from deepagents_cli.integrations.daytona import (  # type: ignore[import-not-found]
             DaytonaBackend,
         )

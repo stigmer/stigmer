@@ -11,18 +11,17 @@ Tests cover:
 import pytest
 
 from graphton.core.prompt_enhancement import (
-    enhance_user_instructions,
-    RESILIENCE_PREAMBLE,
-    PLANNING_CAPABILITY,
-    FILESYSTEM_CAPABILITY,
-    THINK_CAPABILITY,
-    MCP_TOOLS_CAPABILITY,
     EXECUTE_CAPABILITY,
-    FILE_RECOVERY_STRATEGIES,
-    MCP_RECOVERY_STRATEGIES,
     EXECUTION_RECOVERY_STRATEGIES,
+    FILE_RECOVERY_STRATEGIES,
+    FILESYSTEM_CAPABILITY,
+    MCP_RECOVERY_STRATEGIES,
+    MCP_TOOLS_CAPABILITY,
+    PLANNING_CAPABILITY,
+    RESILIENCE_PREAMBLE,
+    THINK_CAPABILITY,
+    enhance_user_instructions,
 )
-
 
 # =============================================================================
 # TestResiliencePreamble - Tests for resilience preamble content

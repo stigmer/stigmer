@@ -2,10 +2,14 @@ package mcpserver
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
+	"strings"
 	"sync"
+	"syscall"
 
 	"github.com/stigmer/stigmer/mcp-server/internal/config"
 	"github.com/stigmer/stigmer/mcp-server/internal/server"
@@ -44,8 +48,13 @@ func Run(ctx context.Context, cfg *Config) error {
 		return fmt.Errorf("unknown transport %q", ic.Transport)
 	}
 
+	if serveErr != nil && !isNormalShutdown(serveErr) {
+		slog.Error("mcp-server-stigmer stopped", "error", serveErr)
+		return serveErr
+	}
+
 	slog.Info("mcp-server-stigmer stopped")
-	return serveErr
+	return nil
 }
 
 // serveBoth runs STDIO and HTTP concurrently. The first transport error
@@ -82,6 +91,31 @@ func serveBoth(ctx context.Context, srv *server.Server) error {
 
 	wg.Wait()
 	return firstErr
+}
+
+// isNormalShutdown reports whether err represents a clean client disconnect
+// rather than a genuine failure. When an MCP client (e.g. the discovery
+// process) connects, queries tools/resources, and then closes the session,
+// the server sees EOF or a broken pipe on stdin. This is expected and should
+// not cause a non-zero exit code.
+func isNormalShutdown(err error) bool {
+	if errors.Is(err, context.Canceled) ||
+		errors.Is(err, context.DeadlineExceeded) ||
+		errors.Is(err, io.EOF) ||
+		errors.Is(err, io.ErrUnexpectedEOF) ||
+		errors.Is(err, io.ErrClosedPipe) ||
+		errors.Is(err, syscall.EPIPE) {
+		return true
+	}
+
+	// Some MCP SDK and JSON-RPC errors surface EOF as a string rather than
+	// a wrapped sentinel. Catch those as a safety net.
+	msg := err.Error()
+	if strings.Contains(msg, "EOF") || strings.Contains(msg, "broken pipe") {
+		return true
+	}
+
+	return false
 }
 
 // initLogger configures the process-wide default slog logger.

@@ -68,25 +68,25 @@ func ApplyBasicWorkflowDryRun(t *testing.T, serverPort int) string {
 
 // VerifyWorkflowBasicProperties verifies core workflow properties from SDK example
 func VerifyWorkflowBasicProperties(t *testing.T, workflow *workflowv1.Workflow) {
-	require.Equal(t, BasicWorkflowName, workflow.Metadata.Name, 
+	require.Equal(t, BasicWorkflowName, workflow.Metadata.Name,
 		"Workflow name should match SDK example")
-	require.Equal(t, BasicWorkflowNamespace, workflow.Spec.Document.Namespace, 
+	require.Equal(t, BasicWorkflowNamespace, workflow.Spec.Document.Namespace,
 		"Workflow namespace should match SDK example")
-	require.Equal(t, BasicWorkflowVersion, workflow.Spec.Document.Version, 
+	require.Equal(t, BasicWorkflowVersion, workflow.Spec.Document.Version,
 		"Workflow version should match SDK example")
-	require.Equal(t, LocalOrg, workflow.Metadata.Org, 
+	require.Equal(t, LocalOrg, workflow.Metadata.Org,
 		"Workflow org should be 'local' in local backend mode")
-	require.NotEmpty(t, workflow.Spec.Description, 
+	require.NotEmpty(t, workflow.Spec.Description,
 		"Workflow should have description from SDK example")
 
-	t.Logf("✓ Basic properties verified: name=%s, namespace=%s, version=%s", 
+	t.Logf("✓ Basic properties verified: name=%s, namespace=%s, version=%s",
 		workflow.Metadata.Name, workflow.Spec.Document.Namespace, workflow.Spec.Document.Version)
 }
 
 // VerifyWorkflowTasks verifies workflow tasks from SDK example
 func VerifyWorkflowTasks(t *testing.T, workflow *workflowv1.Workflow) {
 	require.NotNil(t, workflow.Spec.Tasks, "Workflow should have tasks")
-	require.Len(t, workflow.Spec.Tasks, BasicWorkflowTaskCount, 
+	require.Len(t, workflow.Spec.Tasks, BasicWorkflowTaskCount,
 		"Workflow should have exactly 2 tasks from SDK example")
 
 	// Build task map for verification
@@ -111,7 +111,7 @@ func VerifyWorkflowTasks(t *testing.T, workflow *workflowv1.Workflow) {
 func VerifyWorkflowEnvironmentVariables(t *testing.T, workflow *workflowv1.Workflow) {
 	require.NotNil(t, workflow.Spec.EnvSpec, "Workflow should have environment spec")
 	require.NotNil(t, workflow.Spec.EnvSpec.Data, "Workflow should have environment data")
-	require.Len(t, workflow.Spec.EnvSpec.Data, BasicWorkflowEnvVarCount, 
+	require.Len(t, workflow.Spec.EnvSpec.Data, BasicWorkflowEnvVarCount,
 		"Workflow should have 1 environment variable from SDK example")
 
 	envVar, exists := workflow.Spec.EnvSpec.Data[BasicWorkflowEnvVarName]
@@ -120,14 +120,14 @@ func VerifyWorkflowEnvironmentVariables(t *testing.T, workflow *workflowv1.Workf
 	require.True(t, envVar.IsSecret, "API_TOKEN should be marked as secret in SDK example")
 	require.NotEmpty(t, envVar.Description, "Environment variable should have description")
 
-	t.Logf("✓ Environment variable verified: %s (secret: %v)", 
+	t.Logf("✓ Environment variable verified: %s (secret: %v)",
 		BasicWorkflowEnvVarName, envVar.IsSecret)
 }
 
 // VerifyWorkflowDefaultInstance verifies default workflow instance was auto-created
 func VerifyWorkflowDefaultInstance(t *testing.T, serverPort int, workflow *workflowv1.Workflow) {
 	require.NotNil(t, workflow.Status, "Workflow should have status")
-	require.NotEmpty(t, workflow.Status.DefaultInstanceId, 
+	require.NotEmpty(t, workflow.Status.DefaultInstanceId,
 		"Workflow should have default_instance_id")
 
 	defaultInstanceID := workflow.Status.DefaultInstanceId
@@ -137,9 +137,9 @@ func VerifyWorkflowDefaultInstance(t *testing.T, serverPort int, workflow *workf
 	workflowInstance, err := GetWorkflowInstanceViaAPI(serverPort, defaultInstanceID)
 	require.NoError(t, err, "Should be able to query default workflow instance")
 	require.NotNil(t, workflowInstance, "Default workflow instance should exist")
-	require.Equal(t, workflow.Metadata.Id, workflowInstance.Spec.WorkflowId, 
+	require.Equal(t, workflow.Metadata.Id, workflowInstance.Spec.WorkflowId,
 		"Instance should reference workflow")
-	require.Contains(t, workflowInstance.Metadata.Name, "-default", 
+	require.Contains(t, workflowInstance.Metadata.Name, "-default",
 		"Default instance should have '-default' suffix")
 
 	t.Logf("✓ Default workflow instance verified: %s", workflowInstance.Metadata.Id)
@@ -147,9 +147,9 @@ func VerifyWorkflowDefaultInstance(t *testing.T, serverPort int, workflow *workf
 
 // VerifyApplyOutputSuccess verifies apply command output contains success indicators
 func VerifyApplyOutputSuccess(t *testing.T, output string) {
-	require.Contains(t, output, "Deployment successful", 
+	require.Contains(t, output, "Deployment successful",
 		"Output should contain deployment success message")
-	require.Contains(t, output, BasicWorkflowName, 
+	require.Contains(t, output, BasicWorkflowName,
 		"Output should mention the workflow name from SDK example")
 
 	t.Logf("✓ Apply output verified: deployment successful")
@@ -157,17 +157,17 @@ func VerifyApplyOutputSuccess(t *testing.T, output string) {
 
 // VerifyDryRunOutput verifies dry-run output format and content
 func VerifyDryRunOutput(t *testing.T, output string) {
-	require.Contains(t, output, "Dry run successful", 
+	require.Contains(t, output, "Dry run successful",
 		"Output should indicate dry run completion")
-	require.Contains(t, output, "TYPE", 
+	require.Contains(t, output, "TYPE",
 		"Dry-run output should contain table header: TYPE")
-	require.Contains(t, output, "NAME", 
+	require.Contains(t, output, "NAME",
 		"Dry-run output should contain table header: NAME")
-	require.Contains(t, output, "ACTION", 
+	require.Contains(t, output, "ACTION",
 		"Dry-run output should contain table header: ACTION")
-	require.Contains(t, output, "Workflow", 
+	require.Contains(t, output, "Workflow",
 		"Dry-run output should contain resource type: Workflow")
-	require.Contains(t, output, "Create", 
+	require.Contains(t, output, "Create",
 		"Dry-run output should show Create action")
 
 	t.Logf("✓ Dry-run output verified: table format correct")

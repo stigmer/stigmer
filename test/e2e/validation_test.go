@@ -187,7 +187,7 @@ func (v *ExecutionValidator) ValidateHasSentenceStructure() ValidationResult {
 
 	// Check for sentence-ending punctuation
 	hasPunctuation := strings.ContainsAny(lastMsg, ".!?")
-	
+
 	// Check for capital letters (start of sentences)
 	hasCapitals := hasUpperCase(lastMsg)
 

@@ -16,17 +16,16 @@ Design Principles:
 - Conversations simulate real-world complexity with context switches
 """
 
-from typing import Any
+import uuid
 from dataclasses import dataclass, field
+
 from langchain_core.messages import (
-    HumanMessage,
     AIMessage,
+    AnyMessage,
+    HumanMessage,
     SystemMessage,
     ToolMessage,
-    AnyMessage,
 )
-import uuid
-
 
 # =============================================================================
 # Critical Facts Registry

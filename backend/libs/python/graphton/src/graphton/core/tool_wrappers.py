@@ -1059,7 +1059,7 @@ def _create_execute_tool(
             output = "\n".join(output_parts) if output_parts else "(no output)"
             
             if result.exit_code == 0:
-                logger.info(f"✅ Command completed successfully")
+                logger.info("✅ Command completed successfully")
             else:
                 logger.warning(f"⚠️  Command exited with code {result.exit_code}")
             

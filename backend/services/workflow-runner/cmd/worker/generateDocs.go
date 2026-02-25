@@ -22,10 +22,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
 )
 
 // generateDocsCmd represents the generateDocs command

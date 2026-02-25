@@ -3,9 +3,9 @@ package workflowexecution
 import (
 	"context"
 
+	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
-	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 )
 
 // Get retrieves a workflow execution by ID using the pipeline framework
@@ -48,7 +48,7 @@ func (c *WorkflowExecutionController) buildGetPipeline() *pipeline.Pipeline[*wor
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*workflowexecutionv1.WorkflowExecutionId]("workflowexecution-get").
-		AddStep(steps.NewValidateProtoStep[*workflowexecutionv1.WorkflowExecutionId]()).                              // 1. Validate input
+		AddStep(steps.NewValidateProtoStep[*workflowexecutionv1.WorkflowExecutionId]()).                                             // 1. Validate input
 		AddStep(steps.NewLoadTargetStep[*workflowexecutionv1.WorkflowExecutionId, *workflowexecutionv1.WorkflowExecution](c.store)). // 2. Load by ID
 		Build()
 }

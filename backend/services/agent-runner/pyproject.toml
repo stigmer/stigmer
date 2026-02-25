@@ -80,6 +80,11 @@ follow_imports = "normal"
 # proto fields, enabling MyPy to catch field-name typos and type mismatches
 # at development time rather than at runtime.
 
+# Graphton is checked by its own mypy config; suppress when imported transitively.
+[[tool.mypy.overrides]]
+module = "graphton.*"
+ignore_errors = true
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"

@@ -7,6 +7,7 @@ package mcpdiscovery
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -26,9 +27,14 @@ import (
 // os.Environ() replaces the inherited value. This mechanism lets callers
 // inject credentials (e.g. STIGMER_SERVER_ADDRESS) that aren't set in the
 // current process environment.
-func CreateTransport(spec *mcpserverv1.McpServerSpec, envOverrides []string) (mcp.Transport, error) {
+//
+// stderr receives the subprocess's stderr output (stdio transports only).
+// Pass nil to discard stderr. Callers typically use a *bytes.Buffer so they
+// can include the subprocess output in error messages without cluttering the
+// user's terminal.
+func CreateTransport(spec *mcpserverv1.McpServerSpec, envOverrides []string, stderr io.Writer) (mcp.Transport, error) {
 	if stdio := spec.GetStdio(); stdio != nil {
-		return createStdioTransport(stdio, envOverrides)
+		return createStdioTransport(stdio, envOverrides, stderr)
 	}
 	if httpCfg := spec.GetHttp(); httpCfg != nil {
 		return createHTTPTransport(httpCfg)
@@ -40,7 +46,7 @@ func CreateTransport(spec *mcpserverv1.McpServerSpec, envOverrides []string) (mc
 // process. The subprocess inherits os.Environ() merged with envOverrides so
 // that credentials configured in the caller's environment or resolved at
 // runtime are available without ever leaving the local machine.
-func createStdioTransport(cfg *mcpserverv1.StdioServerConfig, envOverrides []string) (*mcp.CommandTransport, error) {
+func createStdioTransport(cfg *mcpserverv1.StdioServerConfig, envOverrides []string, stderr io.Writer) (*mcp.CommandTransport, error) {
 	if cfg.Command == "" {
 		return nil, fmt.Errorf("stdio transport requires a command")
 	}
@@ -51,7 +57,12 @@ func createStdioTransport(cfg *mcpserverv1.StdioServerConfig, envOverrides []str
 
 	cmd := exec.Command(cfg.Command, cfg.Args...)
 	cmd.Env = mergeEnv(os.Environ(), envOverrides)
-	cmd.Stderr = os.Stderr
+
+	if stderr != nil {
+		cmd.Stderr = stderr
+	} else {
+		cmd.Stderr = io.Discard
+	}
 
 	if cfg.WorkingDir != "" {
 		cmd.Dir = cfg.WorkingDir

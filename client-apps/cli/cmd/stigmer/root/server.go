@@ -230,9 +230,9 @@ func handleServerStart(cmd *cobra.Command) {
 	progress.CompletePhase(cliprint.PhaseDeploying)
 	progress.Stop()
 
-	// Run MCP server capability discovery after daemon is ready.
-	// This discovers tools and resource templates from bootstrapped MCP
-	// servers (e.g., stigmer-mcp-server) so agents know what's available.
+	// Discover capabilities (tools, resource templates) for bootstrapped
+	// MCP servers so agents know what's available immediately.
+	cliprint.PrintInfo("Discovering MCP server capabilities...")
 	runBootstrapDiscovery(cfg)
 
 	// Show success message

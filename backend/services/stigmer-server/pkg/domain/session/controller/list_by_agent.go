@@ -3,10 +3,10 @@ package session
 import (
 	"context"
 
+	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	sessionsteps "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/session/controller/steps"
-	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 )
 
 // ListByAgent retrieves all sessions for a specific agent using the pipeline framework
@@ -46,6 +46,6 @@ func (c *SessionController) buildListByAgentPipeline() *pipeline.Pipeline[*sessi
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*sessionv1.ListSessionsByAgentRequest]("session-list-by-agent").
 		AddStep(steps.NewValidateProtoStep[*sessionv1.ListSessionsByAgentRequest]()). // 1. Validate input
-		AddStep(sessionsteps.NewFilterByAgentInstanceStep(c.store)).                   // 2. Filter by agent_instance_id
+		AddStep(sessionsteps.NewFilterByAgentInstanceStep(c.store)).                  // 2. Filter by agent_instance_id
 		Build()
 }

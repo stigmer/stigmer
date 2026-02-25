@@ -19,7 +19,6 @@ package activities_test
 import (
 	"testing"
 
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/worker/activities"
 	"github.com/stretchr/testify/assert"
@@ -41,7 +40,7 @@ func TestGenerateYAMLActivity_Success(t *testing.T) {
 		Tasks: []*workflowv1.WorkflowTask{
 			{
 				Name: "greet",
-				Kind: apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_SET,
+				Kind: workflowv1.WorkflowTaskKind_set_vars,
 				TaskConfig: &structpb.Struct{
 					Fields: map[string]*structpb.Value{
 						"variables": structpb.NewStructValue(&structpb.Struct{
@@ -114,7 +113,7 @@ func TestGenerateYAMLActivity_InvalidSpec(t *testing.T) {
 		Tasks: []*workflowv1.WorkflowTask{
 			{
 				Name: "task1",
-				Kind: apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_SET,
+				Kind: workflowv1.WorkflowTaskKind_set_vars,
 			},
 		},
 	}

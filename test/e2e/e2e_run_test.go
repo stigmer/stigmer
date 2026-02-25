@@ -26,7 +26,7 @@ func (s *E2ESuite) TestRunWithInvalidAgent() {
 
 	s.T().Logf("✓ Error handling works correctly (graceful error message)")
 	s.T().Logf("Error output:\n%s", output)
-	
+
 	// If there was an error, that's okay too (both behaviors are acceptable)
 	if err != nil {
 		s.T().Logf("Note: Command exited with error code (also valid behavior)")

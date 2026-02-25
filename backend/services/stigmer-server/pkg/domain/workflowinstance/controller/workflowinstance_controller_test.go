@@ -186,7 +186,7 @@ func createTestWorkflow(t *testing.T, controllers *testControllers, name string,
 			Tasks: []*workflowv1.WorkflowTask{
 				{
 					Name:       "test-task",
-					Kind:       apiresource.WorkflowTaskKind_WORKFLOW_TASK_KIND_SET,
+					Kind:       workflowv1.WorkflowTaskKind_set_vars,
 					TaskConfig: taskConfig,
 				},
 			},
@@ -473,6 +473,7 @@ func TestWorkflowInstanceController_GetByReference(t *testing.T) {
 
 		// Get by slug
 		ref := &apiresource.ApiResourceReference{
+			Org:  "test-org",
 			Slug: created.Metadata.Slug,
 		}
 		retrieved, err := controllers.workflowInstance.GetByReference(contextWithWorkflowInstanceKind(), ref)

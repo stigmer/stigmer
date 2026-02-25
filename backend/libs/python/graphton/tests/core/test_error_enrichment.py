@@ -7,10 +7,8 @@ Tests cover:
 - Tool-specific hints
 """
 
-import pytest
 
 from graphton.core.error_hints import enrich_error_message
-
 
 # =============================================================================
 # TestFileNotFoundErrors - Tests for file not found error patterns

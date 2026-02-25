@@ -5,10 +5,13 @@ import logging
 import signal
 import sys
 from pathlib import Path
+
 from dotenv import load_dotenv
-from worker.worker import AgentRunner
+
 from worker.config import Config
 from worker.logging_config import setup_logging
+from worker.worker import AgentRunner
+
 
 # Load .env file for local development (optional - fails silently in production)
 # This follows the same pattern as stigmer-service (Spring Boot's optional .env loading).

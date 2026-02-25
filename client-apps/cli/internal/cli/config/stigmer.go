@@ -59,11 +59,11 @@ func LoadStigmerConfig(path string) (*StigmerConfig, error) {
 
 	// Check if file exists
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return nil, fmt.Errorf("Stigmer.yaml not found in current directory\n\n"+
-			"This is not a Stigmer project directory.\n\n"+
-			"To initialize a new Stigmer project:\n"+
-			"  stigmer new\n\n"+
-			"Or, if you have a Stigmer.yaml in another directory:\n"+
+		return nil, fmt.Errorf("Stigmer.yaml not found in current directory\n\n" +
+			"This is not a Stigmer project directory.\n\n" +
+			"To initialize a new Stigmer project:\n" +
+			"  stigmer new\n\n" +
+			"Or, if you have a Stigmer.yaml in another directory:\n" +
 			"  stigmer apply --config /path/to/Stigmer.yaml")
 	}
 

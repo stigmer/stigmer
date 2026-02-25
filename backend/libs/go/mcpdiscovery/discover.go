@@ -1,7 +1,10 @@
 package mcpdiscovery
 
 import (
+	"bytes"
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/pkg/errors"
@@ -24,7 +27,8 @@ func Discover(
 	envOverrides []string,
 	source mcpserverv1.DiscoverySource,
 ) (*mcpserverv1.DiscoveredCapabilities, error) {
-	transport, err := CreateTransport(spec, envOverrides)
+	var stderrBuf bytes.Buffer
+	transport, err := CreateTransport(spec, envOverrides, &stderrBuf)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create MCP transport")
 	}
@@ -36,18 +40,18 @@ func Discover(
 
 	session, err := client.Connect(ctx, transport, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to connect to MCP server")
+		return nil, withStderr(errors.Wrap(err, "failed to connect to MCP server"), &stderrBuf)
 	}
 	defer session.Close()
 
 	tools, err := listAllTools(ctx, session)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to list tools")
+		return nil, withStderr(errors.Wrap(err, "failed to list tools"), &stderrBuf)
 	}
 
 	templates, err := listAllResourceTemplates(ctx, session)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to list resource templates")
+		return nil, withStderr(errors.Wrap(err, "failed to list resource templates"), &stderrBuf)
 	}
 
 	return &mcpserverv1.DiscoveredCapabilities{
@@ -56,6 +60,18 @@ func Discover(
 		LastDiscoveredAt:  timestamppb.Now(),
 		DiscoveredBy:      source,
 	}, nil
+}
+
+// withStderr appends captured subprocess stderr to an error message when
+// stderr contains useful output. This gives callers diagnostic context
+// (e.g. Go toolchain errors, config failures) without ever printing raw
+// subprocess output to the user's terminal.
+func withStderr(err error, buf *bytes.Buffer) error {
+	output := strings.TrimSpace(buf.String())
+	if output == "" {
+		return err
+	}
+	return fmt.Errorf("%w\nsubprocess stderr:\n%s", err, output)
 }
 
 // listAllTools collects all tools across paginated responses.

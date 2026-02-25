@@ -9,6 +9,7 @@ import (
 	apiresourcev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -67,8 +68,8 @@ func (a *UpdateWorkflowExecutionStatusActivityImpl) UpdateExecutionStatus(
 		Str("current_phase", existing.GetStatus().GetPhase().String()).
 		Msg("Loaded workflow execution")
 
-	// Build updated execution with merged status
-	updated := *existing
+	// Build updated execution with merged status (proto.Clone avoids copying the embedded mutex)
+	updated := proto.Clone(existing).(*workflowexecutionv1.WorkflowExecution)
 	if updated.Status == nil {
 		updated.Status = &workflowexecutionv1.WorkflowExecutionStatus{}
 	}
@@ -127,7 +128,7 @@ func (a *UpdateWorkflowExecutionStatusActivityImpl) UpdateExecutionStatus(
 		Msg("Built updated workflow execution")
 
 	// Persist to database
-	if err := a.store.SaveResource(ctx, apiresourcekind.ApiResourceKind_workflow_execution, executionID, &updated); err != nil {
+	if err := a.store.SaveResource(ctx, apiresourcekind.ApiResourceKind_workflow_execution, executionID, updated); err != nil {
 		log.Error().
 			Err(err).
 			Str("execution_id", executionID).
@@ -144,7 +145,7 @@ func (a *UpdateWorkflowExecutionStatusActivityImpl) UpdateExecutionStatus(
 	// Broadcast to active subscribers (ADR 011: real-time streaming)
 	// This ensures that errors from workflow failures are immediately visible to users
 	if a.streamBroker != nil {
-		a.streamBroker.Broadcast(&updated)
+		a.streamBroker.Broadcast(updated)
 		log.Debug().
 			Str("execution_id", executionID).
 			Msg("Broadcasted status update to subscribers")

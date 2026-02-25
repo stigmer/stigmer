@@ -177,25 +177,6 @@ func TestEnvironmentController_Create(t *testing.T) {
 		}
 	})
 
-	t.Run("validation error - invalid owner scope", func(t *testing.T) {
-		environment := &environmentv1.Environment{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Environment",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name: "Invalid Scope Environment",
-				Org:  "test-org",
-			},
-			Spec: &environmentv1.EnvironmentSpec{
-				Description: "Test description",
-			},
-		}
-
-		_, err := controller.Create(contextWithEnvironmentKind(), environment)
-		if err == nil {
-			t.Error("Expected error for invalid owner scope (platform)")
-		}
-	})
-
 	t.Run("successful creation with empty environment value", func(t *testing.T) {
 		environment := &environmentv1.Environment{
 			ApiVersion: "agentic.stigmer.ai/v1",

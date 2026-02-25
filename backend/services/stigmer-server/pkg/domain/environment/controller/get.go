@@ -3,10 +3,10 @@ package environment
 import (
 	"context"
 
-	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
-	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 )
 
 // Get retrieves an environment by ID using the pipeline framework
@@ -49,7 +49,7 @@ func (c *EnvironmentController) buildGetPipeline() *pipeline.Pipeline[*apiresour
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*apiresource.ApiResourceId]("environment-get").
-		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceId]()).                            // 1. Validate input
+		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceId]()).                                 // 1. Validate input
 		AddStep(steps.NewLoadTargetStep[*apiresource.ApiResourceId, *environmentv1.Environment](c.store)). // 2. Load by ID
 		Build()
 }

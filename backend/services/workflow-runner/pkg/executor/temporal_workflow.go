@@ -20,12 +20,12 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/claimcheck"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/types"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow/tasks"
-	"github.com/serverlessworkflow/sdk-go/v3/model"
 	"go.temporal.io/sdk/log"
 	"go.temporal.io/sdk/workflow"
 )
@@ -58,7 +58,7 @@ func ExecuteServerlessWorkflow(ctx workflow.Context, input *types.TemporalWorkfl
 		"execution_id", input.WorkflowExecutionID,
 		"workflow_name", workflowName,
 		"workflow_namespace", workflowNamespace)
-	
+
 	// Set WorkflowExecutionID as a search attribute so activities can access it
 	// This enables the progress reporting interceptor to extract the execution ID
 	// from activity context without needing to modify activity signatures.
@@ -70,7 +70,7 @@ func ExecuteServerlessWorkflow(ctx workflow.Context, input *types.TemporalWorkfl
 	} else {
 		logger.Debug("WorkflowExecutionID stored in search attributes", "execution_id", input.WorkflowExecutionID)
 	}
-	
+
 	// Note: Progress reporting is now handled by the Activity Interceptor
 	// which reports progress for each Zigflow activity execution automatically.
 	// This keeps the Temporal UI clean (only user tasks visible) while still
@@ -127,7 +127,7 @@ func ExecuteServerlessWorkflow(ctx workflow.Context, input *types.TemporalWorkfl
 	}
 	// Add org ID as a special env var (prefixed with __ to avoid conflicts with user-defined env vars)
 	envVars["__stigmer_org_id"] = input.OrgId
-	
+
 	// Set state.Env so activities can access runtime environment (including org ID)
 	state.Env = envVars
 

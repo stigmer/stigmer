@@ -19,10 +19,10 @@ package zigflow
 import (
 	"fmt"
 
-	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow/metadata"
-	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow/tasks"
 	"github.com/rs/zerolog/log"
 	"github.com/serverlessworkflow/sdk-go/v3/model"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow/metadata"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow/tasks"
 	"go.temporal.io/sdk/worker"
 )
 

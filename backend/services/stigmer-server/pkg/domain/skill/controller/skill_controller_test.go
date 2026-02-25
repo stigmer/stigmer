@@ -40,12 +40,13 @@ func setupTestController(t *testing.T) (*SkillController, store.Store) {
 }
 
 // createTestSkill creates a test skill in the store
-func createTestSkill(t *testing.T, store store.Store, id, slug, tag, hash string) *skillv1.Skill {
+func createTestSkill(t *testing.T, store store.Store, id, org, slug, tag, hash string) *skillv1.Skill {
 	skill := &skillv1.Skill{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Skill",
 		Metadata: &apiresourcepb.ApiResourceMetadata{
 			Id:   id,
+			Org:  org,
 			Slug: slug,
 			Name: slug,
 		},
@@ -69,12 +70,13 @@ func createTestSkill(t *testing.T, store store.Store, id, slug, tag, hash string
 }
 
 // createTestAuditRecord creates a test audit record in the store using the new SaveAudit method
-func createTestAuditRecord(t *testing.T, s store.Store, skillID, tag, hash string) *skillv1.Skill {
+func createTestAuditRecord(t *testing.T, s store.Store, skillID, org, tag, hash string) *skillv1.Skill {
 	skill := &skillv1.Skill{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Skill",
 		Metadata: &apiresourcepb.ApiResourceMetadata{
 			Id:   skillID, // Parent skill ID
+			Org:  org,
 			Slug: "test-skill",
 			Name: "Test Skill",
 		},
@@ -146,10 +148,11 @@ func TestSkillController_GetByReference(t *testing.T) {
 
 	// Create test skill in main collection
 	// Hash must be exactly 64 lowercase hex characters (SHA256)
-	mainSkill := createTestSkill(t, store, "skill-123", "calculator", "stable", "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890")
+	mainSkill := createTestSkill(t, store, "skill-123", "test-org", "calculator", "stable", "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890")
 
 	t.Run("get by slug without version (latest)", func(t *testing.T) {
 		ref := &apiresourcepb.ApiResourceReference{
+			Org:  "test-org",
 			Slug: "calculator",
 			Kind: apiresourcekind.ApiResourceKind_skill,
 		}
@@ -166,6 +169,7 @@ func TestSkillController_GetByReference(t *testing.T) {
 
 	t.Run("get by slug with explicit latest version", func(t *testing.T) {
 		ref := &apiresourcepb.ApiResourceReference{
+			Org:     "test-org",
 			Slug:    "calculator",
 			Kind:    apiresourcekind.ApiResourceKind_skill,
 			Version: "latest",
@@ -183,6 +187,7 @@ func TestSkillController_GetByReference(t *testing.T) {
 
 	t.Run("get by slug with matching tag", func(t *testing.T) {
 		ref := &apiresourcepb.ApiResourceReference{
+			Org:     "test-org",
 			Slug:    "calculator",
 			Kind:    apiresourcekind.ApiResourceKind_skill,
 			Version: "stable",
@@ -200,6 +205,7 @@ func TestSkillController_GetByReference(t *testing.T) {
 
 	t.Run("get by slug with matching hash", func(t *testing.T) {
 		ref := &apiresourcepb.ApiResourceReference{
+			Org:     "test-org",
 			Slug:    "calculator",
 			Kind:    apiresourcekind.ApiResourceKind_skill,
 			Version: "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
@@ -217,6 +223,7 @@ func TestSkillController_GetByReference(t *testing.T) {
 
 	t.Run("get non-existent slug", func(t *testing.T) {
 		ref := &apiresourcepb.ApiResourceReference{
+			Org:  "test-org",
 			Slug: "non-existent",
 			Kind: apiresourcekind.ApiResourceKind_skill,
 		}
@@ -229,6 +236,7 @@ func TestSkillController_GetByReference(t *testing.T) {
 
 	t.Run("get with non-existent version", func(t *testing.T) {
 		ref := &apiresourcepb.ApiResourceReference{
+			Org:     "test-org",
 			Slug:    "calculator",
 			Kind:    apiresourcekind.ApiResourceKind_skill,
 			Version: "nonexistent-tag",
@@ -247,15 +255,16 @@ func TestSkillController_GetByReference_AuditVersions(t *testing.T) {
 
 	// Create main skill with tag "v3"
 	// Hash must be exactly 64 lowercase hex characters (SHA256)
-	_ = createTestSkill(t, store, "skill-456", "web-search", "v3", "3333333333333333333333333333333333333333333333333333333333333333")
+	_ = createTestSkill(t, store, "skill-456", "test-org", "web-search", "v3", "3333333333333333333333333333333333333333333333333333333333333333")
 
 	// Create audit records for older versions using the new SaveAudit method
 	// The audit records are stored in the dedicated resource_audit table
-	createTestAuditRecord(t, store, "skill-456", "v1", "1111111111111111111111111111111111111111111111111111111111111111")
-	createTestAuditRecord(t, store, "skill-456", "v2", "2222222222222222222222222222222222222222222222222222222222222222")
+	createTestAuditRecord(t, store, "skill-456", "test-org", "v1", "1111111111111111111111111111111111111111111111111111111111111111")
+	createTestAuditRecord(t, store, "skill-456", "test-org", "v2", "2222222222222222222222222222222222222222222222222222222222222222")
 
 	t.Run("get current version (v3)", func(t *testing.T) {
 		ref := &apiresourcepb.ApiResourceReference{
+			Org:     "test-org",
 			Slug:    "web-search",
 			Kind:    apiresourcekind.ApiResourceKind_skill,
 			Version: "v3",
@@ -273,6 +282,7 @@ func TestSkillController_GetByReference_AuditVersions(t *testing.T) {
 
 	t.Run("get older version (v1) from audit", func(t *testing.T) {
 		ref := &apiresourcepb.ApiResourceReference{
+			Org:     "test-org",
 			Slug:    "web-search",
 			Kind:    apiresourcekind.ApiResourceKind_skill,
 			Version: "v1",
@@ -290,6 +300,7 @@ func TestSkillController_GetByReference_AuditVersions(t *testing.T) {
 
 	t.Run("get version by hash from audit", func(t *testing.T) {
 		ref := &apiresourcepb.ApiResourceReference{
+			Org:     "test-org",
 			Slug:    "web-search",
 			Kind:    apiresourcekind.ApiResourceKind_skill,
 			Version: "2222222222222222222222222222222222222222222222222222222222222222",

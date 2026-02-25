@@ -11,7 +11,7 @@ import (
 const (
 	// DefaultTermWidth is the fallback width when terminal size cannot be detected
 	DefaultTermWidth = 120
-	
+
 	// MinTermWidth is the minimum terminal width we'll work with
 	MinTermWidth = 80
 )
@@ -25,12 +25,12 @@ func GetTerminalWidth() int {
 		// Fallback to default if detection fails
 		return DefaultTermWidth
 	}
-	
+
 	// Ensure we don't go below minimum
 	if width < MinTermWidth {
 		return MinTermWidth
 	}
-	
+
 	return width
 }
 

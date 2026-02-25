@@ -23,14 +23,14 @@ import (
 //	import "github.com/stigmer/stigmer/sdk/go/stigmer"
 //	import "github.com/stigmer/stigmer/sdk/go/agent"
 //	import "github.com/stigmer/stigmer/sdk/go/skill"
-//	
+//
 //	func main() {
 //	    stigmer.Run(func(ctx *stigmer.Context) error {
 //	        skill.New(
 //	            skill.WithName("code-analysis"),
 //	            skill.WithMarkdown("# Code analysis guide..."),
 //	        )
-//	        
+//
 //	        agent.New(ctx,
 //	            agent.WithName("code-reviewer"),
 //	            agent.WithInstructions("Review code"),
