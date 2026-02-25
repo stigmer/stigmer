@@ -28,6 +28,7 @@ HTTP transport (Streamable HTTP):
 from __future__ import annotations
 
 import logging
+import os
 from dataclasses import dataclass
 from typing import Any
 
@@ -46,6 +47,54 @@ logger = logging.getLogger(__name__)
 
 # Module-level resolver instance (lenient mode for backward compatibility)
 _resolver = PlaceholderResolver(strict=False)
+
+# Platform infrastructure env vars that the agent-runner auto-injects into MCP
+# server subprocesses when declared in the server's env_spec but absent from
+# the user-provided merged environment. These are deployment-topology concerns
+# (where is the platform?) not user credentials.
+#
+# STIGMER_API_KEY is intentionally excluded: it is a user credential that must
+# flow through the ExecutionContext / Environment merge chain.
+_PLATFORM_INJECTABLE_ENV_VARS = frozenset({"STIGMER_SERVER_ADDRESS"})
+
+
+def _inject_platform_env(
+    spec: McpServerSpec,
+    env_vars: dict[str, str],
+) -> dict[str, str]:
+    """Return env_vars augmented with platform infrastructure env vars.
+
+    For each variable in _PLATFORM_INJECTABLE_ENV_VARS that is:
+      1. declared in the server's env_spec, AND
+      2. not already present in env_vars (user-provided takes precedence), AND
+      3. available in the agent-runner's own process environment
+
+    ...inject it so the MCP server subprocess can reach the platform without
+    requiring the user to manually provide deployment-internal addresses.
+
+    Returns a new dict; the input is not mutated.
+    """
+    if not spec.env_spec or not spec.env_spec.data:
+        return env_vars
+
+    declared_keys = set(spec.env_spec.data)
+    injectable = declared_keys & _PLATFORM_INJECTABLE_ENV_VARS
+
+    if not injectable:
+        return env_vars
+
+    result = dict(env_vars)
+    for key in injectable:
+        if key in result:
+            continue
+        value = os.environ.get(key)
+        if value:
+            result[key] = value
+            logger.info(
+                f"Auto-injected platform env var '{key}' from agent-runner environment"
+            )
+
+    return result
 
 
 @dataclass
@@ -299,11 +348,12 @@ def transform_all_mcp_configs(
             continue
         
         try:
+            server_env = _inject_platform_env(server.spec, env_vars)
             enabled_tools = tools_by_slug.get(slug)
             config, tools = transform_mcp_config(
                 server_slug=slug,
                 spec=server.spec,
-                env_vars=env_vars,
+                env_vars=server_env,
                 enabled_tools=enabled_tools,
             )
             result_servers[slug] = config
