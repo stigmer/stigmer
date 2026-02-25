@@ -22,7 +22,7 @@
 #   - ANTHROPIC_API_KEY set in environment
 #
 # Usage:
-#   ./03_draft_skill_creator.sh
+#   ./03_draft-skill-creator-agent.sh
 #
 # Output:
 #   Generated agent YAML saved directly to agents/skill-creator.yaml.
