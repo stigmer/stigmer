@@ -104,51 +104,6 @@ func TestDisplayApplyResult_Updated_NoPanic(t *testing.T) {
 }
 
 // =============================================================================
-// DisplayDeleteResult Tests - No Panic Verification
-// =============================================================================
-
-func TestDisplayDeleteResult_NoPanic(t *testing.T) {
-	result := &DeleteResult{
-		Workflow: &workflowv1.Workflow{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Workflow",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Id:   testWorkflowID,
-				Name: testWorkflowName,
-				Slug: testWorkflowSlug,
-			},
-		},
-	}
-
-	// Should not panic
-	assert.NotPanics(t, func() {
-		DisplayDeleteResult(result)
-	})
-}
-
-// =============================================================================
-// DisplayDeleteConfirmation Tests - No Panic Verification
-// =============================================================================
-
-func TestDisplayDeleteConfirmation_NoPanic(t *testing.T) {
-	workflow := &workflowv1.Workflow{
-		ApiVersion: "agentic.stigmer.ai/v1",
-		Kind:       "Workflow",
-		Metadata: &apiresource.ApiResourceMetadata{
-			Id:   testWorkflowID,
-			Name: testWorkflowName,
-			Slug: testWorkflowSlug,
-			Org:  testOrgID,
-		},
-	}
-
-	// Should not panic
-	assert.NotPanics(t, func() {
-		DisplayDeleteConfirmation(workflow)
-	})
-}
-
-// =============================================================================
 // DisplayWorkflowPreview Tests - No Panic Verification
 // =============================================================================
 

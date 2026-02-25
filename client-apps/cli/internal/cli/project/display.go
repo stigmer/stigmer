@@ -236,31 +236,3 @@ func displayProjectGetTable(project *projectv1.Project) {
 	fmt.Println()
 }
 
-// DisplayDeleteResult displays the result of a delete operation.
-// Shows success message confirming the project was deleted.
-func DisplayDeleteResult(result *DeleteResult) {
-	fmt.Println()
-	cliprint.PrintSuccess("Project deleted successfully")
-	fmt.Println()
-
-	cliprint.PrintInfo("Deleted Resource:")
-	cliprint.PrintInfo("  ID:   %s", result.Project.Metadata.Id)
-	cliprint.PrintInfo("  Name: %s", result.Project.Metadata.Name)
-	cliprint.PrintInfo("  Slug: %s", result.Project.Metadata.Slug)
-	fmt.Println()
-}
-
-// DisplayDeleteConfirmation displays the project details before deletion.
-// Used to show the user what will be deleted for confirmation.
-func DisplayDeleteConfirmation(project *projectv1.Project) {
-	fmt.Println()
-	cliprint.PrintWarning("You are about to delete the following project:")
-	fmt.Println()
-	cliprint.PrintInfo("  ID:   %s", project.Metadata.Id)
-	cliprint.PrintInfo("  Name: %s", project.Metadata.Name)
-	cliprint.PrintInfo("  Slug: %s", project.Metadata.Slug)
-	cliprint.PrintInfo("  Org:  %s", project.Metadata.Org)
-	fmt.Println()
-	cliprint.PrintWarning("This action cannot be undone.")
-	fmt.Println()
-}

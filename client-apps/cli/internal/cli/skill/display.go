@@ -115,39 +115,6 @@ func displaySkillJSON(skill *skillv1.Skill) {
 	fmt.Println(string(jsonBytes))
 }
 
-// DisplayDeleteConfirmation displays the skill details before deletion.
-// Used to show the user what will be deleted for confirmation.
-func DisplayDeleteConfirmation(skill *skillv1.Skill) {
-	fmt.Println()
-	cliprint.PrintWarning("You are about to delete the following skill:")
-	fmt.Println()
-	cliprint.PrintInfo("  ID:   %s", skill.Metadata.Id)
-	cliprint.PrintInfo("  Name: %s", skill.Metadata.Name)
-	cliprint.PrintInfo("  Slug: %s", skill.Metadata.Slug)
-	cliprint.PrintInfo("  Org:  %s", skill.Metadata.Org)
-	if skill.Spec != nil && skill.Spec.Tag != "" {
-		cliprint.PrintInfo("  Tag:  %s", skill.Spec.Tag)
-	}
-	fmt.Println()
-	cliprint.PrintWarning("This will delete the skill and all its versions.")
-	cliprint.PrintWarning("This action cannot be undone.")
-	fmt.Println()
-}
-
-// DisplayDeleteResult displays the result of a delete operation.
-// Shows success message confirming the skill was deleted.
-func DisplayDeleteResult(result *DeleteResult) {
-	fmt.Println()
-	cliprint.PrintSuccess("Skill deleted successfully")
-	fmt.Println()
-
-	cliprint.PrintInfo("Deleted Resource:")
-	cliprint.PrintInfo("  ID:   %s", result.Skill.Metadata.Id)
-	cliprint.PrintInfo("  Name: %s", result.Skill.Metadata.Name)
-	cliprint.PrintInfo("  Slug: %s", result.Skill.Metadata.Slug)
-	fmt.Println()
-}
-
 // truncateString truncates a string to maxLen characters, adding "..." if truncated.
 func truncateString(s string, maxLen int) string {
 	if len(s) <= maxLen {
