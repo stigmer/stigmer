@@ -39,7 +39,7 @@ import (
 //
 // After the TUI exits (execution completes or user quits), a summary is printed
 // to inline stdout so the terminal history shows the final state.
-func streamAgentExecution(sessionID, executionID, orgID string, prompter approval.Prompter, defaultAction approval.Action, verbose bool, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
+func streamAgentExecution(sessionID, sessionSubject, executionID, orgID string, prompter approval.Prompter, defaultAction approval.Action, verbose bool, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
 	cliprint.PrintSuccess("Streaming session...")
 	fmt.Println()
 
@@ -79,6 +79,7 @@ func streamAgentExecution(sessionID, executionID, orgID string, prompter approva
 	// Create and configure the TUI model.
 	model := executiontui.New(executiontui.Config{
 		SessionID:         sessionID,
+		SessionSubject:    sessionSubject,
 		ExecutionID:       executionID,
 		Events:            events,
 		ApprovalResponses: approvalResponses,
