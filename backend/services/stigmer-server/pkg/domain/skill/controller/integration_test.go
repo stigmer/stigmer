@@ -1,7 +1,6 @@
 package skill
 
 import (
-	"context"
 	"sync"
 	"testing"
 	"time"
@@ -21,7 +20,7 @@ func TestIntegration_PushThenGet(t *testing.T) {
 	defer store.Close()
 
 	// Push a skill
-	skillContent := "# Integration Test Skill\n\nThis is a test."
+	skillContent := storage.ValidSkillContent("integration-test", "# Integration Test Skill\n\nThis is a test.")
 	artifact := storage.CreateTestZip(skillContent)
 
 	pushReq := &skillv1.PushSkillRequest{
@@ -55,17 +54,19 @@ func TestIntegration_PushThenGetByReference(t *testing.T) {
 	defer store.Close()
 
 	// Push a skill
-	skillContent := "# Reference Test Skill"
+	skillContent := storage.ValidSkillContent("reference-test", "# Reference Test Skill")
 	artifact := storage.CreateTestZip(skillContent)
 
 	pushReq := &skillv1.PushSkillRequest{
 		Artifact: artifact,
+		Org:      "test-org",
 	}
 	pushed, err := controller.Push(contextWithSkillKind(), pushReq)
 	require.NoError(t, err)
 
 	// GetByReference using slug
 	ref := &apiresourcepb.ApiResourceReference{
+		Org:  "test-org",
 		Slug: pushed.Metadata.Slug,
 		Kind: apiresourcekind.ApiResourceKind_skill,
 	}
@@ -84,11 +85,12 @@ func TestIntegration_PushThenGetArtifact(t *testing.T) {
 	defer store.Close()
 
 	// Push a skill
-	skillContent := "# Artifact Test Skill"
+	skillContent := storage.ValidSkillContent("artifact-test", "# Artifact Test Skill")
 	artifact := storage.CreateTestZip(skillContent)
 
 	pushReq := &skillv1.PushSkillRequest{
 		Artifact: artifact,
+		Org:      "test-org",
 	}
 	pushed, err := controller.Push(contextWithSkillKind(), pushReq)
 	require.NoError(t, err)
@@ -111,25 +113,30 @@ func TestIntegration_VersionResolution_Latest(t *testing.T) {
 	defer store.Close()
 
 	// Push v1
-	artifact1 := storage.CreateTestZip("# Calculator v1")
+	content1 := storage.ValidSkillContent("calculator", "# Calculator v1")
+	artifact1 := storage.CreateTestZip(content1)
 	req1 := &skillv1.PushSkillRequest{
 		Artifact: artifact1,
 		Tag:      "v1.0",
+		Org:      "test-org",
 	}
 	_, err := controller.Push(contextWithSkillKind(), req1)
 	require.NoError(t, err)
 
 	// Push v2 (update)
-	artifact2 := storage.CreateTestZip("# Calculator v2 - Improved")
+	content2 := storage.ValidSkillContent("calculator", "# Calculator v2 - Improved")
+	artifact2 := storage.CreateTestZip(content2)
 	req2 := &skillv1.PushSkillRequest{
 		Artifact: artifact2,
 		Tag:      "v2.0",
+		Org:      "test-org",
 	}
 	pushed2, err := controller.Push(contextWithSkillKind(), req2)
 	require.NoError(t, err)
 
 	// GetByReference with "latest" should return v2
 	ref := &apiresourcepb.ApiResourceReference{
+		Org:     "test-org",
 		Slug:    "calculator",
 		Kind:    apiresourcekind.ApiResourceKind_skill,
 		Version: "latest",
@@ -138,7 +145,7 @@ func TestIntegration_VersionResolution_Latest(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, pushed2.Spec.Tag, retrieved.Spec.Tag)
-	assert.Equal(t, "# Calculator v2 - Improved", retrieved.Spec.SkillMd)
+	assert.Equal(t, content2, retrieved.Spec.SkillMd)
 }
 
 // TestIntegration_VersionResolution_Tag verifies that GetByReference
@@ -148,16 +155,19 @@ func TestIntegration_VersionResolution_Tag(t *testing.T) {
 	defer store.Close()
 
 	// Push with "stable" tag
-	artifact := storage.CreateTestZip("# Stable Calculator")
+	content := storage.ValidSkillContent("stable-calculator", "# Stable Calculator")
+	artifact := storage.CreateTestZip(content)
 	pushReq := &skillv1.PushSkillRequest{
 		Artifact: artifact,
 		Tag:      "stable",
+		Org:      "test-org",
 	}
 	pushed, err := controller.Push(contextWithSkillKind(), pushReq)
 	require.NoError(t, err)
 
 	// GetByReference with version="stable"
 	ref := &apiresourcepb.ApiResourceReference{
+		Org:     "test-org",
 		Slug:    "stable-calculator",
 		Kind:    apiresourcekind.ApiResourceKind_skill,
 		Version: "stable",
@@ -176,15 +186,18 @@ func TestIntegration_VersionResolution_Hash(t *testing.T) {
 	defer store.Close()
 
 	// Push a skill
-	artifact := storage.CreateTestZip("# Hash Test Skill")
+	content := storage.ValidSkillContent("hash-test", "# Hash Test Skill")
+	artifact := storage.CreateTestZip(content)
 	pushReq := &skillv1.PushSkillRequest{
 		Artifact: artifact,
+		Org:      "test-org",
 	}
 	pushed, err := controller.Push(contextWithSkillKind(), pushReq)
 	require.NoError(t, err)
 
 	// GetByReference with exact hash
 	ref := &apiresourcepb.ApiResourceReference{
+		Org:     "test-org",
 		Slug:    "hash-test",
 		Kind:    apiresourcekind.ApiResourceKind_skill,
 		Version: pushed.Status.VersionHash,
@@ -203,8 +216,8 @@ func TestIntegration_VersionHistory(t *testing.T) {
 	defer store.Close()
 
 	versions := []struct {
-		content string
-		tag     string
+		body string
+		tag  string
 	}{
 		{"# Version 1.0", "v1.0"},
 		{"# Version 2.0", "v2.0"},
@@ -213,12 +226,14 @@ func TestIntegration_VersionHistory(t *testing.T) {
 
 	var pushedVersions []*skillv1.Skill
 
-	// Push multiple versions
+	// Push multiple versions (same frontmatter name → updates same skill)
 	for _, v := range versions {
-		artifact := storage.CreateTestZip(v.content)
+		content := storage.ValidSkillContent("multi-version", v.body)
+		artifact := storage.CreateTestZip(content)
 		pushReq := &skillv1.PushSkillRequest{
 			Artifact: artifact,
 			Tag:      v.tag,
+			Org:      "test-org",
 		}
 		pushed, err := controller.Push(contextWithSkillKind(), pushReq)
 		require.NoError(t, err)
@@ -230,6 +245,7 @@ func TestIntegration_VersionHistory(t *testing.T) {
 
 	// Verify latest returns the last version
 	latestRef := &apiresourcepb.ApiResourceReference{
+		Org:     "test-org",
 		Slug:    "multi-version",
 		Kind:    apiresourcekind.ApiResourceKind_skill,
 		Version: "latest",
@@ -241,6 +257,7 @@ func TestIntegration_VersionHistory(t *testing.T) {
 	// Verify each version can be retrieved by hash (at least the current one)
 	lastVersion := pushedVersions[len(pushedVersions)-1]
 	hashRef := &apiresourcepb.ApiResourceReference{
+		Org:     "test-org",
 		Slug:    "multi-version",
 		Kind:    apiresourcekind.ApiResourceKind_skill,
 		Version: lastVersion.Status.VersionHash,
@@ -257,20 +274,24 @@ func TestIntegration_UpdatePreservesAccess(t *testing.T) {
 	defer store.Close()
 
 	// Push initial version
-	artifact1 := storage.CreateTestZip("# Original Version")
+	content1 := storage.ValidSkillContent("update-test", "# Original Version")
+	artifact1 := storage.CreateTestZip(content1)
 	pushReq1 := &skillv1.PushSkillRequest{
 		Artifact: artifact1,
 		Tag:      "v1",
+		Org:      "test-org",
 	}
 	pushed1, err := controller.Push(contextWithSkillKind(), pushReq1)
 	require.NoError(t, err)
 	skillId := pushed1.Metadata.Id
 
 	// Update to new version
-	artifact2 := storage.CreateTestZip("# Updated Version")
+	content2 := storage.ValidSkillContent("update-test", "# Updated Version")
+	artifact2 := storage.CreateTestZip(content2)
 	pushReq2 := &skillv1.PushSkillRequest{
 		Artifact: artifact2,
 		Tag:      "v2",
+		Org:      "test-org",
 	}
 	pushed2, err := controller.Push(contextWithSkillKind(), pushReq2)
 	require.NoError(t, err)
@@ -285,6 +306,7 @@ func TestIntegration_UpdatePreservesAccess(t *testing.T) {
 
 	// Verify GetByReference by slug returns latest
 	bySlug, err := controller.GetByReference(contextWithSkillKind(), &apiresourcepb.ApiResourceReference{
+		Org:  "test-org",
 		Slug: "update-test",
 		Kind: apiresourcekind.ApiResourceKind_skill,
 	})
@@ -306,9 +328,11 @@ func TestIntegration_DeleteCleansArtifacts(t *testing.T) {
 	defer store.Close()
 
 	// Push a skill
-	artifact := storage.CreateTestZip("# Delete Test Skill")
+	content := storage.ValidSkillContent("delete-test", "# Delete Test Skill")
+	artifact := storage.CreateTestZip(content)
 	pushReq := &skillv1.PushSkillRequest{
 		Artifact: artifact,
+		Org:      "test-org",
 	}
 	pushed, err := controller.Push(contextWithSkillKind(), pushReq)
 	require.NoError(t, err)
@@ -336,15 +360,18 @@ func TestIntegration_ConcurrentPush(t *testing.T) {
 	var wg sync.WaitGroup
 	errors := make(chan error, numGoroutines)
 
-	// Push different skills concurrently
+	// Push different skills concurrently (each with unique frontmatter name)
 	for i := 0; i < numGoroutines; i++ {
 		wg.Add(1)
 		go func(idx int) {
 			defer wg.Done()
 
-			artifact := storage.CreateTestZip("# Concurrent Skill " + string(rune('A'+idx)))
+			name := "concurrent-skill-" + string(rune('a'+idx))
+			content := storage.ValidSkillContent(name, "# Concurrent Skill "+string(rune('A'+idx)))
+			artifact := storage.CreateTestZip(content)
 			req := &skillv1.PushSkillRequest{
 				Artifact: artifact,
+				Org:      "test-org",
 			}
 
 			_, err := controller.Push(contextWithSkillKind(), req)
@@ -366,6 +393,7 @@ func TestIntegration_ConcurrentPush(t *testing.T) {
 	for i := 0; i < numGoroutines; i++ {
 		slug := "concurrent-skill-" + string(rune('a'+i))
 		ref := &apiresourcepb.ApiResourceReference{
+			Org:  "test-org",
 			Slug: slug,
 			Kind: apiresourcekind.ApiResourceKind_skill,
 		}
@@ -381,9 +409,11 @@ func TestIntegration_ConcurrentGet(t *testing.T) {
 	defer store.Close()
 
 	// Create a skill to read
-	artifact := storage.CreateTestZip("# Concurrent Read Test")
+	content := storage.ValidSkillContent("concurrent-read-test", "# Concurrent Read Test")
+	artifact := storage.CreateTestZip(content)
 	pushReq := &skillv1.PushSkillRequest{
 		Artifact: artifact,
+		Org:      "test-org",
 	}
 	pushed, err := controller.Push(contextWithSkillKind(), pushReq)
 	require.NoError(t, err)
@@ -399,12 +429,7 @@ func TestIntegration_ConcurrentGet(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			// Use a fresh context for each goroutine
-			ctx := context.WithValue(context.Background(),
-				contextKey("api_resource_kind"),
-				apiresourcekind.ApiResourceKind_skill)
-
-			retrieved, err := controller.Get(ctx, &skillv1.SkillId{Value: pushed.Metadata.Id})
+			retrieved, err := controller.Get(contextWithSkillKind(), &skillv1.SkillId{Value: pushed.Metadata.Id})
 			if err != nil {
 				errors <- err
 			} else {
@@ -428,6 +453,3 @@ func TestIntegration_ConcurrentGet(t *testing.T) {
 		assert.Equal(t, pushed.Spec.SkillMd, result.Spec.SkillMd)
 	}
 }
-
-// contextKey is a type for context keys to avoid collisions
-type contextKey string
