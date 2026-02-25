@@ -6,7 +6,7 @@ import os
 import time
 import traceback
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
     AgentExecution,
@@ -24,6 +24,7 @@ from ai.stigmer.agentic.agentexecution.v1.io_pb2 import (
 )
 from graphton import SummarizationConfig, create_deep_agent
 from graphton.core import ModelRegistry
+from langchain_core.runnables import RunnableConfig
 from temporalio import activity
 
 from grpc_client.agent_client import AgentClient
@@ -474,7 +475,7 @@ async def inject_attachments(
                 )
                 ws_root = "/home/daytona"
     
-    file_uploads = []  # For Daytona batch upload
+    file_uploads: list[Any] = []
     injected_files = []  # Track injected files for return
     # Daytona-only: directories to extract after batch upload.
     # Each entry is the absolute sandbox path where __attachment__.zip
@@ -746,12 +747,10 @@ async def _auto_publish_written_files(
 
     # Compute common prefix directory across ALL paths.
     if len(normalised) == 1:
-        p = PurePosixPath(normalised[0])
-        if len(p.parts) > 1:
-            # Single file inside a subdirectory → publish the parent dir.
-            common_dir = str(p.parent)
+        sole_path = PurePosixPath(normalised[0])
+        if len(sole_path.parts) > 1:
+            common_dir = str(sole_path.parent)
         else:
-            # Single file at workspace root → publish the file itself.
             common_dir = None
     else:
         try:
@@ -913,7 +912,7 @@ async def execute_graphton(
             approval_decisions_wrapper.decisions
         )
     else:
-        approval_decisions: list[SubmitApprovalInput] = []
+        approval_decisions = []
     
     # Top-level error handler for system errors (e.g., activity not registered, connection failures)
     # This catches errors that occur before the main try block or during initialization
@@ -1919,9 +1918,9 @@ async def _execute_graphton_impl(
             if sandbox is None:
                 raise RuntimeError("Sandbox not initialized for cloud mode")
             
-            sandbox_config_for_agent: dict[str, Any] = {
+            sandbox_config_for_agent = {
                 "type": "daytona",
-                "sandbox_id": sandbox.id,  # Reuse existing sandbox with skills
+                "sandbox_id": sandbox.id,
             }
             # When a persistent volume is mounted, tell the backend factory
             # to use the volume mount path as the agent's workspace root.
@@ -2816,10 +2815,12 @@ async def _execute_graphton_impl(
         # ─────────────────────────────────────────────────────────────────────────────
         if status_builder.current_status.phase == ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL:
             try:
-                graph_state = await agent_graph.aget_state(config)
+                graph_state = await agent_graph.aget_state(
+                    cast(RunnableConfig, config)
+                )
                 
                 if graph_state and graph_state.interrupts:
-                    pending_approvals: list[PendingApproval] = []
+                    pending_approvals = []
                     matched_tc_ids: set[str] = set()
                     
                     for intr in graph_state.interrupts:
