@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-26 02:27
-**Current Task**: Phase 3.2 (Resolve get/list format tension, then migrate server/backend/config commands)
-**Status**: In Progress - Phase 1, Phase 2, and Phase 3.1 Complete
+**Current Task**: Phase 3.3 or Design Decision (see Next Steps)
+**Status**: In Progress - Phase 1, Phase 2, Phase 3.1, and Phase 3.2 Complete
 
 ## Session Progress (2026-02-26)
 
@@ -107,6 +107,22 @@ When starting a new session:
 - Zero `cliprint` imports in any delete file
 - `go build`, `go vet`, all tests passing
 
+### Completed: Phase 3.2 - Migrate Server/Backend/Config to CommandResult
+
+- Migrated server, backend, and config command output to CommandResult + Renderer
+- Split `server.go` (896 lines) into 5 focused files:
+  - `server.go` (224 lines): Command defs, handleServerStart (stays on cliprint/ProgressDisplay), handleServerStop
+  - `server_status.go` (207 lines): handleServerStatus orchestrating section-builders
+  - `server_health.go` (140 lines): Pure utility functions (isProcessAlive, formatDuration, etc.)
+  - `server_llm.go` (250 lines): LLM commands, addLLMSections section-builder, handleLLMPull (stays on cliprint)
+  - `server_logs.go` (441 lines): Unchanged, log streaming
+- Split `config.go` (328 lines) into 2 files:
+  - `config.go` (195 lines): Command defs + handlers
+  - `config_values.go` (141 lines): Pure getConfigValue/setConfigValue logic
+- Migrated `backend.go` (133 lines): Full migration, zero cliprint
+- Introduced **section-builder pattern**: `addLLMSections()`, `addComponentSection()`, `addAgentRunnerSection()`, `addBootstrapSection()` — composable functions that append sections to any `*CommandResult`
+- Excluded handleServerStart/handleLLMPull (ProgressDisplay paradigm), handleConfigGet/Path (raw value for piping), server_logs.go (log streaming)
+
 ### Key Design Decisions
 
 1. **`[]*Section` not `[]Section`**: Prevents dangling pointer bugs when slice grows on subsequent `AddSection()` calls
@@ -117,6 +133,10 @@ When starting a new session:
 6. **Abort returns `nil` not error**: User choosing "N" at prompt is not a failure -- their intent was honored
 7. **Hardcoded `FormatHuman` for delete**: Delete has no `--output` flag. No speculative abstraction until Phase 5.
 8. **`--output table/yaml/json` vs `clioutput.OutputFormat`**: These are two different concerns (data serialization vs CLI chrome). Scoped Phase 3.1 to delete-only. Requires design decision before migrating get/list.
+9. **Section-builder pattern**: Functions like `addLLMSections(result, cfg)` append to existing results rather than printing. Enables dual-use: standalone commands and embedded dashboards.
+10. **Raw value output for config get/path**: `fmt.Println(value)` is correct for piping — wrapping in CommandResult would break `stigmer config get llm.provider | xargs ...`
+11. **ProgressDisplay excluded from CommandResult migration**: BubbleTea interactive spinners are a different paradigm; they need their own migration strategy.
+12. **Health symbols in values**: Per-field color differentiation replaced by semantic symbols embedded in field values (`"Running ✓"`, `"Unhealthy ✗"`).
 
 ### Files Created (Phase 1)
 
@@ -164,48 +184,63 @@ Modified:
   client-apps/cli/internal/cli/execution/display.go      (-14, +3: removed DisplayCancelResult, exported FormatPhase)
 ```
 
+### Files Created/Modified (Phase 3.2)
+
+```
+Created:
+  client-apps/cli/cmd/stigmer/root/config_values.go   (141 lines, new)
+  client-apps/cli/cmd/stigmer/root/server_health.go    (140 lines, new)
+  client-apps/cli/cmd/stigmer/root/server_llm.go       (250 lines, new)
+  client-apps/cli/cmd/stigmer/root/server_status.go    (207 lines, new)
+
+Modified:
+  client-apps/cli/cmd/stigmer/root/backend.go          (134→133 lines, full migration)
+  client-apps/cli/cmd/stigmer/root/config.go           (328→195 lines, partial migration)
+  client-apps/cli/cmd/stigmer/root/server.go           (896→224 lines, split + partial migration)
+  client-apps/cli/cmd/stigmer/root/BUILD.bazel         (+4 srcs)
+```
+
 ## Next Steps
 
-1. **Design Decision: get/list output format coexistence** (Required before Phase 3.2)
+1. **Design Decision: get/list output format coexistence** (Required before Phase 3.3+)
    - `--output table/yaml/json` on get/list = data serialization format
    - `clioutput.OutputFormat` = CLI chrome format (human/json/quiet)
    - Need to decide how these coexist before migrating get/list commands
 
-2. **Phase 3.2: Migrate server/backend/config commands** (Medium effort)
-   - `handleBackendStatus()`, `handleServerStatus()`, `handleConfigList/Set/Get()`
-   - These have no `--output` conflict (no existing format flag)
-
-3. **Phase 3.3: Migrate apply commands** (Medium effort)
+2. **Phase 3.3: Migrate apply commands** (Medium effort)
    - Has mid-stream progress updates that need special handling
 
-4. **Phase 4: Consolidate Display Files** (Medium effort)
+3. **Phase 4: Consolidate Display Files** (Medium effort)
    - Design `Displayable` interface based on actual migration patterns from Phase 3
    - Eliminate 8 duplicate `display.go` files
 
-5. **Phase 5: Cleanup & Polish** (Small effort)
+4. **Phase 5: Cleanup & Polish** (Small effort)
    - Remove deprecated `cliprint` functions
    - Wire up `--output` flag end-to-end
    - Final icon/vocabulary audit
+   - Address ProgressDisplay migration (handleServerStart, handleLLMPull)
 
 ## Context for Resume
 
 - The `clioutput` package is in `pkg/` (not `internal/`) - zero Stigmer-specific code, reusable
 - Renderers take both `stdout` and `stderr` writers: human writes to stderr, JSON data to stdout
-- The existing `cliprint` package remains untouched except where delete code no longer imports it
-- `cliprint` is NOT imported by any delete file anymore (Phase 3.1 cleaned this up)
-- Delete handlers now use `clioutput.Warning()`/`clioutput.Success()` + `dctx.renderer.Render()` exclusively
+- The existing `cliprint` package remains untouched except where migrated code no longer imports it
+- **Section-builder pattern**: Functions like `addLLMSections(result, cfg)` are the reusable building blocks. They take `*clioutput.CommandResult` and append sections. Introduced in Phase 3.2 for dual-use (standalone + embedded).
+- `cliprint` is NOT imported by: backend.go, config.go, config_values.go, server_status.go, server_health.go, delete.go, delete_handlers.go, delete_cancel.go
+- `cliprint` IS still imported by: server.go (handleServerStart/ProgressDisplay), server_llm.go (handleLLMPull/ProgressDisplay), server_logs.go (streaming), and many other non-migrated files
 - `execution.FormatPhase()` was exported for cross-package use (previously `formatPhase`)
-- Plan files: `.cursor/plans/phase_1_clioutput_package_6a41844c.plan.md`, `.cursor/plans/phase_2_delete_confirmation_bf3b2d04.plan.md`, `.cursor/plans/phase_3.1_delete_migration_38b0d475.plan.md`
+- server_logs.go at 441 lines exceeds 250-line limit but is pre-existing and out of scope
+- Plan files: `.cursor/plans/phase_1_clioutput_package_6a41844c.plan.md`, `.cursor/plans/phase_2_delete_confirmation_bf3b2d04.plan.md`, `.cursor/plans/phase_3.1_delete_migration_38b0d475.plan.md`, `.cursor/plans/phase_3.2_migration_6d35663b.plan.md`
 - Task plan: `_projects/2026-02/20260226.01.cli-output-system-refactor/tasks/T01_0_plan.md`
 - Branch: `feat/cli-output-system-foundation`
 
 ## Quick Commands
 
 After loading context:
-- "Resolve the get/list format question" - Design decision needed before Phase 3.2
-- "Start Phase 3.2" - Migrate server/backend/config commands
+- "Resolve the get/list format question" - Design decision needed before Phase 3.3
+- "Start Phase 3.3" - Migrate apply commands
 - "Show project status" - Get overview of progress
-- "Review Phase 3.1 code" - Check `delete.go`, `delete_handlers.go`, `delete_cancel.go`
+- "Review Phase 3.2 code" - Check server_status.go, server_llm.go, backend.go, config.go
 - "Review guidelines" - Check established patterns
 
 ---
