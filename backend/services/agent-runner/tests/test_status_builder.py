@@ -1674,6 +1674,167 @@ class TestSubAgentInternals:
 
 
 # =============================================================================
+# Tests for Namespace Registration Strategies (Strategy 4 + diagnostics)
+# =============================================================================
+
+
+class TestNamespaceRegistrationStrategies:
+    """Tests for _register_sub_agent_namespace Strategy 4 and diagnostic logging.
+
+    Strategy 4 (sole-active-agent fallback) resolves the case where a single
+    sub-agent produces events from multiple distinct namespace roots.  When
+    exactly one sub-agent is active, all multi-segment namespaces are mapped
+    to it without ambiguity.
+    """
+
+    @pytest.mark.asyncio
+    async def test_sole_active_agent_fallback_registers_different_root(self, status_builder):
+        """Strategy 4 maps a different-root namespace to the sole active sub-agent."""
+        run_id = "sa-sole-001"
+
+        # Start sub-agent (sets _pending_sub_agent_id)
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": run_id,
+            "data": {"input": {"subagent_type": "editor", "input": "edit file"}},
+            "metadata": {}
+        })
+
+        # First multi-segment namespace — consumed by causal correlation (Strategy 3)
+        first_ns = "root-alpha:aaa|child-1"
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "read_file",
+            "run_id": "tool-causal",
+            "data": {"input": {"path": "/tmp/a.py"}},
+            "metadata": {"langgraph_checkpoint_ns": first_ns}
+        })
+        assert first_ns in status_builder._namespace_to_sub_agent_id
+        assert status_builder._pending_sub_agent_id is None  # consumed
+
+        # Second namespace with a DIFFERENT root — Strategy 4 should handle it
+        second_ns = "root-beta:bbb|child-2"
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "write_file",
+            "run_id": "tool-fallback",
+            "data": {"input": {"path": "/tmp/b.py", "content": "x"}},
+            "metadata": {"langgraph_checkpoint_ns": second_ns}
+        })
+
+        assert second_ns in status_builder._namespace_to_sub_agent_id
+        assert status_builder._namespace_to_sub_agent_id[second_ns] == run_id
+
+    @pytest.mark.asyncio
+    async def test_sole_active_agent_routes_events_to_sub_agent(self, status_builder):
+        """Events matched by Strategy 4 route to the sub-agent context, not main."""
+        run_id = "sa-route-001"
+
+        # Start sub-agent
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": run_id,
+            "data": {"input": {"subagent_type": "coder", "input": "code"}},
+            "metadata": {}
+        })
+
+        # Consume causal correlation via first multi-segment namespace
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "echo",
+            "run_id": "consume-causal",
+            "data": {"input": {"text": "hi"}},
+            "metadata": {"langgraph_checkpoint_ns": "root-one:x|node-a"}
+        })
+
+        # Different-root namespace — Strategy 4 fallback
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "list_files",
+            "run_id": "routed-tool",
+            "data": {"input": {"dir": "/tmp"}},
+            "metadata": {"langgraph_checkpoint_ns": "root-two:y|node-b"}
+        })
+
+        # Tool call should be in sub-agent, not main
+        assert len(status_builder.current_status.tool_calls) == 0
+        sub_agent = status_builder.current_status.sub_agent_executions[0]
+        tool_names = [tc.name for tc in sub_agent.tool_calls]
+        assert "list_files" in tool_names
+
+    @pytest.mark.asyncio
+    async def test_fallback_does_not_apply_with_multiple_sub_agents(self, status_builder):
+        """Strategy 4 must NOT apply when 2+ sub-agents are active."""
+        # Start first sub-agent
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": "sa-multi-1",
+            "data": {"input": {"subagent_type": "a", "input": "x"}},
+            "metadata": {}
+        })
+        # Start second sub-agent (overwrites _pending_sub_agent_id)
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": "sa-multi-2",
+            "data": {"input": {"subagent_type": "b", "input": "y"}},
+            "metadata": {}
+        })
+
+        # Consume _pending_sub_agent_id via a first multi-segment namespace
+        status_builder._register_sub_agent_namespace("consume-root:ccc|node-c")
+        assert status_builder._pending_sub_agent_id is None
+
+        assert len(status_builder._active_sub_agents) == 2
+
+        # Ambiguous namespace — cannot be resolved with 2 active sub-agents
+        ambiguous_ns = "unknown-root:zzz|node-x"
+        status_builder._register_sub_agent_namespace(ambiguous_ns)
+
+        assert ambiguous_ns not in status_builder._namespace_to_sub_agent_id
+
+    @pytest.mark.asyncio
+    async def test_diagnostic_warning_deduplicated(self, status_builder):
+        """[NS_DIAG] warning is added to _warned_namespaces once, preventing log flood."""
+        # Start two sub-agents to bypass Strategy 4
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": "sa-dedup-1",
+            "data": {"input": {"subagent_type": "a", "input": "x"}},
+            "metadata": {}
+        })
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": "sa-dedup-2",
+            "data": {"input": {"subagent_type": "b", "input": "y"}},
+            "metadata": {}
+        })
+
+        # Consume pending
+        status_builder._register_sub_agent_namespace("consume:root|node")
+        assert status_builder._pending_sub_agent_id is None
+
+        ns = "dedup-root:qqq|child"
+
+        # First attempt — enters _warned_namespaces
+        status_builder._register_sub_agent_namespace(ns)
+        assert ns in status_builder._warned_namespaces
+        assert ns not in status_builder._namespace_to_sub_agent_id
+
+        # Subsequent attempts — no additional warning (set is idempotent)
+        status_builder._register_sub_agent_namespace(ns)
+        status_builder._register_sub_agent_namespace(ns)
+
+        # Still not registered, but _warned_namespaces only has it once
+        assert ns not in status_builder._namespace_to_sub_agent_id
+
+
+# =============================================================================
 # Tests for UsageMetrics (Phase 2.4)
 # =============================================================================
 
