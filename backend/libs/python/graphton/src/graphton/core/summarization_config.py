@@ -68,7 +68,7 @@ class SummarizationConfig:
         ...     trigger_threshold=180000,
         ...     target_tokens=160000,
         ...     max_summary_tokens=2000,
-        ...     summarization_model="claude-haiku-4",
+        ...     summarization_model="claude-haiku-4.5",
         ...     token_counter_method=TokenCounterMethod.ANTHROPIC_NATIVE,
         ... )
     
@@ -114,7 +114,7 @@ class SummarizationConfig:
             >>> # Standard usage - all defaults from registry
             >>> config = SummarizationConfig.for_model("claude-opus-4")
             >>> print(config.summarization_model)
-            claude-haiku-4
+            claude-haiku-4.5
             >>> 
             >>> # With overrides
             >>> config = SummarizationConfig.for_model(

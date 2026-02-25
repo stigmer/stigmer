@@ -469,7 +469,7 @@ class ContextSummarizationMiddleware(AgentMiddleware):
         """Create an Anthropic ChatAnthropic model instance.
         
         Args:
-            model_id: The Anthropic model identifier (e.g., 'claude-haiku-4').
+            model_id: The Anthropic model identifier (e.g., 'claude-haiku-4.5').
         
         Returns:
             A ChatAnthropic instance configured for summarization.
