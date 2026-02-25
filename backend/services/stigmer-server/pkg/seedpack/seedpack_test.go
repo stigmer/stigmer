@@ -577,7 +577,7 @@ func TestLoadMcpServerYAML(t *testing.T) {
 		t.Errorf("Expected command 'go', got '%s'", stdio.Command)
 	}
 
-	expectedArgs := []string{"run", "github.com/stigmer/stigmer/mcp-server/cmd/mcp-server-stigmer@v0.0.14"}
+	expectedArgs := []string{"run", "github.com/stigmer/stigmer/mcp-server/cmd/mcp-server-stigmer@v0.0.17"}
 	if len(stdio.Args) != len(expectedArgs) {
 		t.Errorf("Expected %d args, got %d: %v", len(expectedArgs), len(stdio.Args), stdio.Args)
 	} else {

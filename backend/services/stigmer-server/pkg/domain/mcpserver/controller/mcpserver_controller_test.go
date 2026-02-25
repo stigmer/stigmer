@@ -334,6 +334,7 @@ func TestMcpServerController_GetByReference(t *testing.T) {
 
 		// Get by reference (slug)
 		ref := &apiresource.ApiResourceReference{
+			Org:  "test-org",
 			Slug: created.Metadata.Slug,
 			Kind: apiresourcekind.ApiResourceKind_mcp_server,
 		}
