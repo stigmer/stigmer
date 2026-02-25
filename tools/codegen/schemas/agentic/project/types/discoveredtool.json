@@ -1,0 +1,38 @@
+{
+  "name": "DiscoveredTool",
+  "description": "DiscoveredTool describes a single tool reported by an MCP server.\n\n Maps directly to the MCP protocol's Tool type from tools/list:\n   - name: unique tool identifier within the server\n   - description: human-readable explanation of what the tool does\n   - input_schema: JSON Schema describing the tool's expected input",
+  "protoType": "ai.stigmer.agentic.mcpserver.v1.DiscoveredTool",
+  "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/status.proto",
+  "fields": [
+    {
+      "name": "Name",
+      "jsonName": "name",
+      "protoField": "name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Unique tool name within the MCP server (case-sensitive).\n Example: \"search\", \"get_agent\", \"apply_mcp_server\"",
+      "required": false
+    },
+    {
+      "name": "Description",
+      "jsonName": "description",
+      "protoField": "description",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Human-readable description of the tool's purpose.",
+      "required": false
+    },
+    {
+      "name": "InputSchema",
+      "jsonName": "inputSchema",
+      "protoField": "input_schema",
+      "type": {
+        "kind": "struct"
+      },
+      "description": "JSON Schema describing the tool's input parameters.\n Stored as a Struct for natural representation in YAML/JSON and to allow\n inspection without string parsing. This is the raw schema from the MCP\n server's tools/list response.",
+      "required": false
+    }
+  ]
+}

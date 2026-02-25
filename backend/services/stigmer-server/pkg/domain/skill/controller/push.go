@@ -455,18 +455,23 @@ func (s *PopulateSkillFieldsStep) Execute(ctx *pipeline.RequestContext[*skillv1.
 	skill.Spec.Name = extractResult.Name
 	skill.Spec.Description = extractResult.Description
 
-	// 3. Set git provenance metadata for traceability (if available)
+	// 3. Default visibility to private when unspecified (per proto contract)
+	if skill.Metadata.Visibility == apiresourcepb.ApiResourceVisibility_api_resource_visibility_unspecified {
+		skill.Metadata.Visibility = apiresourcepb.ApiResourceVisibility_visibility_private
+	}
+
+	// 4. Set git provenance metadata for traceability (if available)
 	// This is optional - absent when pushed from a non-git directory
 	if req.GitProvenance != nil {
 		skill.Status.GitProvenance = req.GitProvenance
 	}
 
-	// 4. Populate status with artifact metadata
+	// 5. Populate status with artifact metadata
 	skill.Status.VersionHash = extractResult.Hash
 	skill.Status.ArtifactStorageKey = storageKey
 	skill.Status.State = skillv1.SkillState_SKILL_STATE_READY
 
-	// 5. Set audit fields using common library helpers
+	// 6. Set audit fields using common library helpers
 	if shouldCreate {
 		// Creating new skill - use common helper to set audit fields
 		if err := steps.SetAuditFieldsForCreate(skill); err != nil {

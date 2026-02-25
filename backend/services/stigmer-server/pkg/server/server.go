@@ -381,6 +381,16 @@ func Run() error {
 		log.Fatal().Err(err).Msg("Critical bootstrap failure")
 	}
 
+	// Rebuild the search index after bootstrap so newly pushed resources
+	// (skills, agents, MCP servers) are immediately discoverable via list/search.
+	// The search index (FTS5) is separate from the resources table and must be
+	// explicitly rebuilt; SaveResource alone does not update it.
+	if indexed, err := searchQueryStore.RebuildIndex(context.Background()); err != nil {
+		log.Warn().Err(err).Msg("Failed to rebuild search index after bootstrap")
+	} else {
+		log.Info().Int("indexed", indexed).Msg("Search index rebuilt after bootstrap")
+	}
+
 	// Create the reconciliation execution engine
 	downstreamClients := &reconcile.DownstreamClients{
 		AgentClient:     agentClient,
