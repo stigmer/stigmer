@@ -1912,6 +1912,20 @@ async def _execute_graphton_impl(
             "The user did not ask you to display file contents.\n"
         )
 
+        enhanced_system_prompt += (
+            "\n\n## Sub-agent delegation rules\n\n"
+            "- **Read files directly.** When you need the contents of a file, "
+            "use the `read` tool yourself. Do not delegate file reading to "
+            "sub-agents via the `task` tool. You need raw file contents in "
+            "your own context to reason about them accurately.\n"
+            "- Sub-agents are for **multi-step, independent tasks** that "
+            "produce a deliverable (analysis, synthesis, generated content). "
+            "They are not for fetching data that you will process yourself.\n"
+            "- When delegating to a sub-agent, specify the analysis or "
+            "deliverable you need — not \"read these files and give me the "
+            "contents.\"\n"
+        )
+
         # Configure sandbox for Graphton agent
         if worker_config.is_local_mode():
             # Local mode - pass filesystem config directly
