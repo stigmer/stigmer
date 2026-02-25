@@ -182,7 +182,11 @@ func TestExtractExternalSkillRefs_FromAgentSkillRefs(t *testing.T) {
 // =============================================================================
 
 func TestExtractExternalSkillRefs_ExcludesInlineSkills(t *testing.T) {
-	t.Run("excludes skills defined inline in synthesis result", func(t *testing.T) {
+	// SkillSynth no longer carries slug information, so inline skill exclusion
+	// is deferred to SKILL.md processing. All skill refs are treated as
+	// potentially external at extraction time.
+
+	t.Run("includes all skill refs even when SkillSynths are present", func(t *testing.T) {
 		result := &synthesis.Result{
 			SkillSynths: []*skillv1.SkillSynth{
 				{
@@ -206,11 +210,16 @@ func TestExtractExternalSkillRefs_ExcludesInlineSkills(t *testing.T) {
 
 		refs := ExtractExternalSkillRefs(result)
 
-		require.Len(t, refs, 1)
-		assert.Equal(t, "external-skill", refs[0].Slug)
+		require.Len(t, refs, 2)
+		refMap := make(map[string]ExternalSkillRef)
+		for _, r := range refs {
+			refMap[r.Slug] = r
+		}
+		assert.Contains(t, refMap, "inline-skill")
+		assert.Contains(t, refMap, "external-skill")
 	})
 
-	t.Run("excludes skills from dependencies map if defined inline", func(t *testing.T) {
+	t.Run("includes all deps even when SkillSynths match", func(t *testing.T) {
 		result := &synthesis.Result{
 			SkillSynths: []*skillv1.SkillSynth{
 				{
@@ -226,11 +235,16 @@ func TestExtractExternalSkillRefs_ExcludesInlineSkills(t *testing.T) {
 
 		refs := ExtractExternalSkillRefs(result)
 
-		require.Len(t, refs, 1)
-		assert.Equal(t, "external-skill", refs[0].Slug)
+		require.Len(t, refs, 2)
+		refMap := make(map[string]ExternalSkillRef)
+		for _, r := range refs {
+			refMap[r.Slug] = r
+		}
+		assert.Contains(t, refMap, "inline-skill")
+		assert.Contains(t, refMap, "external-skill")
 	})
 
-	t.Run("uses name as slug fallback for inline skill matching", func(t *testing.T) {
+	t.Run("does not filter by SkillSynth name matching", func(t *testing.T) {
 		result := &synthesis.Result{
 			SkillSynths: []*skillv1.SkillSynth{
 				{
@@ -244,8 +258,8 @@ func TestExtractExternalSkillRefs_ExcludesInlineSkills(t *testing.T) {
 					Metadata: &apiresource.ApiResourceMetadata{Name: "reviewer"},
 					Spec: &agentv1.AgentSpec{
 						SkillRefs: []*apiresource.ApiResourceReference{
-							{Slug: "myinlineskill"}, // Should be excluded (matches lowercased name)
-							{Slug: "other-skill"},   // Should be included
+							{Slug: "myinlineskill"},
+							{Slug: "other-skill"},
 						},
 					},
 				},
@@ -254,8 +268,13 @@ func TestExtractExternalSkillRefs_ExcludesInlineSkills(t *testing.T) {
 
 		refs := ExtractExternalSkillRefs(result)
 
-		require.Len(t, refs, 1)
-		assert.Equal(t, "other-skill", refs[0].Slug)
+		require.Len(t, refs, 2)
+		refMap := make(map[string]ExternalSkillRef)
+		for _, r := range refs {
+			refMap[r.Slug] = r
+		}
+		assert.Contains(t, refMap, "myinlineskill")
+		assert.Contains(t, refMap, "other-skill")
 	})
 }
 
@@ -434,14 +453,20 @@ func TestExtractExternalSkillRefs_DataPipelineScenario(t *testing.T) {
 
 	refs := ExtractExternalSkillRefs(result)
 
-	// Should have 2 external skills (deduplicated)
-	require.Len(t, refs, 2)
+	// SkillSynth no longer carries slug info, so data-validation is NOT excluded.
+	// All 3 skill refs are treated as potentially external.
+	require.Len(t, refs, 3)
 
 	// Build map for easier assertion
 	refMap := make(map[string]ExternalSkillRef)
 	for _, r := range refs {
 		refMap[r.String()] = r
 	}
+
+	// Verify data-validation is now included (no longer excluded as inline)
+	dataValidation := refMap["data-validation"]
+	assert.Equal(t, "data-validation", dataValidation.Slug)
+	assert.Len(t, dataValidation.ReferencedBy, 1)
 
 	// Verify platform/security is referenced by both agents
 	platformSecurity := refMap["platform/security"]

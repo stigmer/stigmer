@@ -40,8 +40,8 @@ func TestLoopBody_DefaultVariable(t *testing.T) {
 		t.Errorf("Expected task name 'processItem', got %s", task.Name)
 	}
 
-	if task.Kind != string(TaskKindSet) {
-		t.Errorf("Expected task kind 'SET', got %s", task.Kind)
+	if task.Kind != TaskKindSet.String() {
+		t.Errorf("Expected task kind '%s', got %s", TaskKindSet.String(), task.Kind)
 	}
 
 	// Verify field references use correct syntax
@@ -223,15 +223,15 @@ func TestLoopBody_MultipleTasks(t *testing.T) {
 	}
 
 	// Verify each task was converted correctly
-	if tasks[0].Name != "task1" || tasks[0].Kind != string(TaskKindSet) {
+	if tasks[0].Name != "task1" || tasks[0].Kind != TaskKindSet.String() {
 		t.Error("Task 1 not converted correctly")
 	}
 
-	if tasks[1].Name != "task2" || tasks[1].Kind != string(TaskKindWait) {
+	if tasks[1].Name != "task2" || tasks[1].Kind != TaskKindWait.String() {
 		t.Error("Task 2 not converted correctly")
 	}
 
-	if tasks[2].Name != "task3" || tasks[2].Kind != string(TaskKindSet) {
+	if tasks[2].Name != "task3" || tasks[2].Kind != TaskKindSet.String() {
 		t.Error("Task 3 not converted correctly")
 	}
 }
@@ -274,7 +274,7 @@ func TestLoopBody_WithComplexTaskTypes(t *testing.T) {
 
 	// Verify HTTP task
 	httpTask := tasks[0]
-	if httpTask.Kind != string(TaskKindHttpCall) {
+	if httpTask.Kind != TaskKindHttpCall.String() {
 		t.Error("Expected HTTP_CALL task kind")
 	}
 
@@ -672,8 +672,8 @@ func TestForTaskIntegration(t *testing.T) {
 		t.Errorf("Expected task name 'processItem', got %q", task.Name)
 	}
 
-	if task.Kind != string(TaskKindHttpCall) {
-		t.Errorf("Expected task kind 'HTTP_CALL', got %q", task.Kind)
+	if task.Kind != TaskKindHttpCall.String() {
+		t.Errorf("Expected task kind '%s', got %q", TaskKindHttpCall.String(), task.Kind)
 	}
 
 	// Verify loop variable references in task body
@@ -929,7 +929,7 @@ func TestLoopBody_LargeTaskList(t *testing.T) {
 		t.Errorf("First task name incorrect: %s", tasks[0].Name)
 	}
 
-	if tasks[99].Kind != string(TaskKindSet) {
+	if tasks[99].Kind != TaskKindSet.String() {
 		t.Error("Last task kind incorrect")
 	}
 }

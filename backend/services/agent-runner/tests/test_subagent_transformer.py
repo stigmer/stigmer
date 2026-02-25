@@ -525,8 +525,8 @@ class TestTransformSubAgents:
         mock_skill_client.list_by_refs.assert_called()
 
     @pytest.mark.asyncio
-    @patch("worker.activities.graphton.subagent_transformer.McpToolsLoader")
-    @patch("worker.activities.graphton.subagent_transformer.create_tool_wrapper")
+    @patch("graphton.core.middleware.McpToolsLoader")
+    @patch("graphton.core.tool_wrappers.create_tool_wrapper")
     async def test_subagent_with_mcp_gets_tool_wrappers(
         self,
         mock_create_tool_wrapper,
@@ -579,7 +579,7 @@ class TestTransformSubAgents:
         """Test graceful handling when MCP tool creation fails."""
         # Patch McpToolsLoader to raise an error
         with patch(
-            "worker.activities.graphton.subagent_transformer.McpToolsLoader"
+            "graphton.core.middleware.McpToolsLoader"
         ) as mock_loader:
             mock_loader.side_effect = RuntimeError("MCP connection failed")
             

@@ -258,7 +258,7 @@ func normalizeValueForProto(v interface{}) interface{} {
 func taskToMap(task *Task) (map[string]interface{}, error) {
 	m := map[string]interface{}{
 		"name": task.Name,
-		"kind": string(task.Kind),
+		"kind": task.Kind.String(),
 	}
 
 	// Convert config if present
@@ -436,10 +436,14 @@ func agentCallTaskConfigToMap(c *AgentCallTaskConfig) map[string]interface{} {
 }
 
 // waitTaskConfigToMap converts WaitTaskConfig to map.
+// The proto WaitTaskConfig uses a oneof wait_type with a nested Duration message,
+// so we must produce {"duration": {"seconds": N}} rather than a flat {"seconds": N}.
 func waitTaskConfigToMap(c *WaitTaskConfig) map[string]interface{} {
 	m := make(map[string]interface{})
 	if c.Seconds > 0 {
-		m["seconds"] = c.Seconds
+		m["duration"] = map[string]interface{}{
+			"seconds": c.Seconds,
+		}
 	}
 	return m
 }

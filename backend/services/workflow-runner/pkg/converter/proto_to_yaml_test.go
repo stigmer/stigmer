@@ -292,7 +292,7 @@ func TestProtoToYAML_WaitTask(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Contains(t, yaml, "pause:")
-	assert.Contains(t, yaml, "wait: 5")
+	assert.Contains(t, yaml, "seconds: 5")
 }
 
 func TestProtoToYAML_SwitchTask(t *testing.T) {
