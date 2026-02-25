@@ -577,13 +577,33 @@ func TestLoadMcpServerYAML(t *testing.T) {
 		t.Errorf("Expected command 'go', got '%s'", stdio.Command)
 	}
 
-	expectedArgs := []string{"run", "github.com/stigmer/stigmer/mcp-server/cmd/mcp-server-stigmer@latest"}
-	if len(stdio.Args) != len(expectedArgs) || stdio.Args[0] != expectedArgs[0] || stdio.Args[1] != expectedArgs[1] {
-		t.Errorf("Expected args %v, got %v", expectedArgs, stdio.Args)
+	expectedArgs := []string{"run", "github.com/stigmer/stigmer/mcp-server/cmd/mcp-server-stigmer@v0.0.14"}
+	if len(stdio.Args) != len(expectedArgs) {
+		t.Errorf("Expected %d args, got %d: %v", len(expectedArgs), len(stdio.Args), stdio.Args)
+	} else {
+		for i, arg := range expectedArgs {
+			if stdio.Args[i] != arg {
+				t.Errorf("Expected args[%d]=%q, got %q", i, arg, stdio.Args[i])
+			}
+		}
 	}
 
-	t.Logf("stigmer-mcp-server: description=%s..., command=%s %v",
-		truncate(mcpServer.Spec.Description, 50), stdio.Command, stdio.Args)
+	envSpec := mcpServer.Spec.GetEnvSpec()
+	if envSpec == nil {
+		t.Fatal("Expected non-nil env_spec")
+	}
+	if _, ok := envSpec.Data["STIGMER_SERVER_ADDRESS"]; !ok {
+		t.Error("Expected STIGMER_SERVER_ADDRESS in env_spec")
+	}
+	if _, ok := envSpec.Data["STIGMER_API_KEY"]; !ok {
+		t.Error("Expected STIGMER_API_KEY in env_spec")
+	}
+	if apiKey, ok := envSpec.Data["STIGMER_API_KEY"]; ok && !apiKey.IsSecret {
+		t.Error("Expected STIGMER_API_KEY to be marked as secret")
+	}
+
+	t.Logf("stigmer-mcp-server: description=%s..., command=%s %v, env_spec_keys=%d",
+		truncate(mcpServer.Spec.Description, 50), stdio.Command, stdio.Args, len(envSpec.Data))
 }
 
 func TestGetMcpServerByName(t *testing.T) {

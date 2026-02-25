@@ -5,16 +5,14 @@
 // Claude Desktop, Windsurf, etc.) search, list, and inspect agents, skills,
 // and workflows stored in stigmer-server.
 //
-// # Transports
+// # Usage
 //
-// The server supports two communication modes selected via the
-// STIGMER_MCP_TRANSPORT environment variable:
+//	mcp-server-stigmer stdio       Start in stdio mode (stdin/stdout JSON-RPC)
+//	mcp-server-stigmer http        Start in HTTP mode (Streamable HTTP)
+//	mcp-server-stigmer both        Start both transports simultaneously
 //
-//   - "stdio" (default): The MCP client spawns this binary as a child process
-//     and communicates over stdin/stdout. Ideal for local development.
-//   - "http": The server listens on a TCP port and serves Streamable HTTP.
-//     Ideal for shared or remote deployments.
-//   - "both": Runs STDIO and HTTP simultaneously in separate goroutines.
+// When no subcommand is given, the transport is read from the
+// STIGMER_MCP_TRANSPORT environment variable (default: "stdio").
 //
 // # Configuration
 //
@@ -32,11 +30,27 @@ import (
 	"github.com/stigmer/stigmer/mcp-server/pkg/mcpserver"
 )
 
+var validTransports = map[string]bool{
+	"stdio": true,
+	"http":  true,
+	"both":  true,
+}
+
 func main() {
 	cfg, err := mcpserver.DefaultConfig()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "configuration error: %v\n", err)
 		os.Exit(1)
+	}
+
+	// Positional subcommand overrides the env-var-based transport.
+	if len(os.Args) > 1 {
+		sub := os.Args[1]
+		if !validTransports[sub] {
+			fmt.Fprintf(os.Stderr, "unknown subcommand %q (expected stdio, http, or both)\n", sub)
+			os.Exit(1)
+		}
+		cfg.Transport = sub
 	}
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

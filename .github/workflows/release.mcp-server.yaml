@@ -1,0 +1,258 @@
+name: release.mcp-server
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Create a release after successful build'
+        required: false
+        type: boolean
+        default: false
+      version:
+        description: 'Version number (e.g., 1.0.0) - only needed if creating release'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  determine-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      should_release: ${{ steps.version.outputs.should_release }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            VERSION="${{ github.ref_name }}"
+            SHOULD_RELEASE="true"
+            echo "Triggered by tag: $VERSION"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ -n "${{ github.event.inputs.version }}" ]; then
+              VERSION="v${{ github.event.inputs.version }}"
+              SHOULD_RELEASE="${{ github.event.inputs.create_release }}"
+            else
+              VERSION="test-$(git rev-parse --short HEAD)"
+              SHOULD_RELEASE="false"
+            fi
+          else
+            VERSION="test-$(git rev-parse --short HEAD)"
+            SHOULD_RELEASE="false"
+          fi
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "should_release=$SHOULD_RELEASE" >> $GITHUB_OUTPUT
+          echo "Building mcp-server-stigmer version: $VERSION (release: $SHOULD_RELEASE)"
+
+  build-darwin-arm64:
+    needs: determine-version
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Build MCP server
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          cd mcp-server
+          CGO_ENABLED=0 go build \
+            -ldflags="-s -w -X github.com/stigmer/stigmer/mcp-server/internal/server.buildVersion=$VERSION" \
+            -o ../bin/mcp-server-stigmer \
+            ./cmd/mcp-server-stigmer
+
+      - name: Verify binary
+        run: |
+          file bin/mcp-server-stigmer
+          ls -lh bin/mcp-server-stigmer
+
+      - name: Package binary
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          cd bin
+          tar -czf mcp-server-stigmer-$VERSION-darwin-arm64.tar.gz mcp-server-stigmer
+          shasum -a 256 mcp-server-stigmer-$VERSION-darwin-arm64.tar.gz > mcp-server-stigmer-$VERSION-darwin-arm64.tar.gz.sha256
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp-server-stigmer-darwin-arm64
+          path: bin/*
+
+  build-darwin-amd64:
+    needs: determine-version
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Build MCP server (cross-compile to Intel)
+        env:
+          GOARCH: amd64
+          GOOS: darwin
+          CGO_ENABLED: '0'
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          cd mcp-server
+          go build \
+            -ldflags="-s -w -X github.com/stigmer/stigmer/mcp-server/internal/server.buildVersion=$VERSION" \
+            -o ../bin/mcp-server-stigmer \
+            ./cmd/mcp-server-stigmer
+
+      - name: Verify binary
+        run: |
+          file bin/mcp-server-stigmer
+          ls -lh bin/mcp-server-stigmer
+
+      - name: Package binary
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          cd bin
+          tar -czf mcp-server-stigmer-$VERSION-darwin-amd64.tar.gz mcp-server-stigmer
+          shasum -a 256 mcp-server-stigmer-$VERSION-darwin-amd64.tar.gz > mcp-server-stigmer-$VERSION-darwin-amd64.tar.gz.sha256
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp-server-stigmer-darwin-amd64
+          path: bin/*
+
+  build-linux-amd64:
+    needs: determine-version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Build MCP server
+        env:
+          CGO_ENABLED: '0'
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          cd mcp-server
+          go build \
+            -ldflags="-s -w -X github.com/stigmer/stigmer/mcp-server/internal/server.buildVersion=$VERSION" \
+            -o ../bin/mcp-server-stigmer \
+            ./cmd/mcp-server-stigmer
+
+      - name: Verify binary
+        run: |
+          file bin/mcp-server-stigmer
+          ls -lh bin/mcp-server-stigmer
+
+      - name: Package binary
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          cd bin
+          tar -czf mcp-server-stigmer-$VERSION-linux-amd64.tar.gz mcp-server-stigmer
+          sha256sum mcp-server-stigmer-$VERSION-linux-amd64.tar.gz > mcp-server-stigmer-$VERSION-linux-amd64.tar.gz.sha256
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp-server-stigmer-linux-amd64
+          path: bin/*
+
+  build-docker-image:
+    needs: determine-version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --file mcp-server/Dockerfile \
+            --tag ghcr.io/stigmer/mcp-server-stigmer:$VERSION \
+            --tag ghcr.io/stigmer/mcp-server-stigmer:latest \
+            --push \
+            .
+
+          echo "Docker image built and pushed:"
+          echo "  - ghcr.io/stigmer/mcp-server-stigmer:$VERSION"
+          echo "  - ghcr.io/stigmer/mcp-server-stigmer:latest"
+
+  release:
+    needs: [determine-version, build-darwin-arm64, build-darwin-amd64, build-linux-amd64, build-docker-image]
+    runs-on: ubuntu-latest
+    if: needs.determine-version.outputs.should_release == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Display structure of downloaded files
+        run: ls -R artifacts
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+          find artifacts -name "mcp-server-stigmer-*.tar.gz" -exec cp {} release-assets/ \;
+          find artifacts -name "mcp-server-stigmer-*.sha256" -exec cp {} release-assets/ \;
+          ls -lh release-assets/
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.determine-version.outputs.version }}
+          files: release-assets/*
