@@ -9,13 +9,13 @@ Drop this file into your conversation to quickly resume work on this project.
 **Description**: Add MCP server tool/resource discovery to Stigmer. CLI uses the Go MCP SDK to connect locally and discover tools/resources, then pushes results to stigmer-server via a new updateDiscoveredCapabilities RPC. Dynamic discovery replaces static seedpack tool lists.
 **Goal**: Enable Stigmer to store and expose the list of tools/resources available on each configured MCP server, so agents can make informed decisions about which MCP servers to use.
 **Tech Stack**: Protobuf, Go (CLI, stigmer-server, mcp-server codegen), Java (stigmer-cloud), buf generate
-**Components**: APIs (proto definitions), stigmer-server (RPC handler), stigmer-cloud (RPC handler with FGA), CLI (discover command), mcp-server (codegen)
+**Components**: APIs (proto definitions), stigmer-server (RPC handler), stigmer-cloud (RPC handler with FGA), CLI (discover command, bootstrap discovery), mcp-server (codegen), shared library (mcpdiscovery)
 
 ## Current State
 
-- **Status**: In Progress
-- **Last Session**: 2026-02-25 — Completed Phase 4 (CLI discovery command)
-- **Active Task**: Phase 5 next (Bootstrap integration)
+- **Status**: In Progress — Phase 5 Complete, ready for end-to-end testing
+- **Last Session**: 2026-02-25 — Completed Phase 5 (Bootstrap discovery integration)
+- **Active Task**: End-to-end testing and iteration
 
 ## Session Progress (2026-02-25)
 
@@ -53,59 +53,90 @@ Original plan was static tool lists in seedpack YAML. Decision changed: tools wi
 **New command**: `stigmer discover mcp-server <ref> [--org <org>] [--timeout 30s] [--dry-run]`
 
 **Files created (5 new files in `internal/cli/mcpserver/`):**
-- `discover_transport.go` — Transport factory: stdio (`CommandTransport` with env passthrough) and HTTP (`StreamableClientTransport` with header injection)
-- `discover_convert.go` — Type conversion: `mcp.Tool` → `DiscoveredTool`, `mcp.ResourceTemplate` → `DiscoveredResourceTemplate`, including `InputSchema` (any → structpb.Struct)
-- `discover.go` — Orchestration: fetch server → create transport → connect MCP client → iterate tools/templates with pagination → convert → push via `updateDiscoveredCapabilities` RPC
-- `discover_display.go` — Terminal output: server name, transport type, tools list, resource templates list, push confirmation
-- `discover.go` (cmd) — Thin Cobra command in `cmd/stigmer/root/` with `--org`, `--timeout`, `--dry-run` flags
+- `discover_transport.go` → moved to shared library in Phase 5
+- `discover_convert.go` → moved to shared library in Phase 5
+- `discover.go` — Orchestration: fetch server → delegate to shared library → push via RPC
+- `discover_display.go` — Terminal output (unchanged)
+- `discover.go` (cmd) — Thin Cobra command in `cmd/stigmer/root/`
 
-**Wiring:**
-- `root.go` — Registered `NewDiscoverCommand()` in "resource" group
-- `MODULE.bazel` — Added `com_github_modelcontextprotocol_go_sdk` to `use_repo`
-- `cli/go.mod` — Promoted MCP SDK from indirect to direct dependency
-- BUILD.bazel files updated for both packages
+### Phase 5: Bootstrap Discovery Integration — COMPLETE
 
-**Verification**: `go build ./...`, `go vet`, and `bazel build` all pass.
+**Shared library** (`backend/libs/go/mcpdiscovery/`) — 3 new files:
+- `transport.go` — Transport factory with `CreateTransport(spec, envOverrides)`. Accepts env override slices merged on top of `os.Environ()` via `mergeEnv`.
+- `convert.go` — `ConvertTools` and `ConvertResourceTemplates` map MCP SDK types to proto types.
+- `discover.go` — `Discover(ctx, spec, envOverrides, source)` creates transport, connects MCP client, lists tools/templates with pagination, converts, returns `DiscoveredCapabilities`.
+
+**Credential resolution** (`client-apps/cli/internal/cli/mcpserver/env_resolver.go`):
+- `ResolveEnvForDiscovery(server, cfg)` reads env_spec, checks os.Environ() first, resolves from CLI config.
+- `STIGMER_SERVER_ADDRESS` — `localhost:7234` for local, cloud endpoint for cloud.
+- `STIGMER_API_KEY` — empty for local, stored token for cloud.
+- Extensible: add a case to `resolveKnownVar` for future MCP servers (GitHub, AWS, etc.).
+
+**Auto-discovery** (`client-apps/cli/internal/cli/mcpserver/discover_all.go`):
+- `DiscoverAll(ctx, opts)` uses search API to list MCP servers, fetches each, filters to stdio-only, resolves env, discovers, pushes. Best-effort per server.
+
+**Bootstrap wiring** (`client-apps/cli/cmd/stigmer/root/server.go`):
+- `runBootstrapDiscovery(cfg)` called synchronously after daemon starts, before "Ready!" message.
+
+**CLI refactoring:**
+- `discover.go` delegates to `mcpdiscovery.Discover()` from shared library.
+- Added `DiscoverServer()` for bootstrap flow (takes pre-fetched McpServer proto).
+- Deleted `discover_transport.go` and `discover_convert.go` (moved to shared lib).
+
+**Verification**: `go build ./...`, `go vet`, and `bazel build` all pass for both modules.
 
 ### Design Decisions Made
 
 1. **`discovered_capabilities` lives in `McpServerStatus`** — Status tracks structural validation + discovered capabilities.
-
 2. **`DiscoverySource` as an enum, not string** — Values: `seedpack`, `cli`, `agent_runner`.
-
 3. **`input_schema` as `google.protobuf.Struct`, not `string`** — Canonical proto representation for arbitrary JSON.
-
 4. **`DiscoveredResourceTemplate` (not `DiscoveredResource`)** — Matches MCP spec's URI template distinction.
-
-5. **Dynamic discovery over static seedpack** — Tools/resources come from the MCP server itself via CLI discovery, not from hardcoded YAML. Single source of truth, auto-updates when tools change.
-
-6. **Custom pipeline steps for Go handler** — `UpdateDiscoveredCapabilitiesInput` doesn't fit standard `LoadTargetStep` (uses `mcp_server_id` not `value`), so custom load/persist steps were needed.
-
-7. **`discover` as a top-level verb** — Follows the existing `verb type name` CLI pattern (like `get`, `list`). Parent command with `mcp-server` subcommand for extensibility.
-
-8. **Both stdio and HTTP transport** — Stdio uses `CommandTransport` (inherits env vars for credential safety). HTTP uses `StreamableClientTransport` with custom RoundTripper for header injection.
-
-9. **Iterator-based pagination** — Uses `session.Tools()` and `session.ResourceTemplates()` iterators from the MCP SDK for automatic pagination handling.
+5. **Dynamic discovery over static seedpack** — Tools/resources come from the MCP server itself via CLI discovery, not from hardcoded YAML.
+6. **Custom pipeline steps for Go handler** — `UpdateDiscoveredCapabilitiesInput` uses `mcp_server_id` not `value`.
+7. **`discover` as a top-level verb** — Follows existing `verb type name` CLI pattern.
+8. **Both stdio and HTTP transport** — Stdio uses `CommandTransport`, HTTP uses `StreamableClientTransport`.
+9. **Iterator-based pagination** — Uses MCP SDK iterators for automatic pagination.
+10. **CLI-side discovery, not server-side** — Server stays lean, no MCP SDK dependency. All process spawning and credential resolution in the CLI.
+11. **Synchronous discovery** — Blocks `stigmer server` startup until discovery completes; capabilities available immediately.
+12. **Shared library in `backend/libs/go/mcpdiscovery/`** — Core MCP protocol logic reusable by both CLI and (potentially) server in the future.
+13. **Env resolver with priority: shell > CLI config > skip** — User's env vars always win; CLI config fills gaps.
 
 ## Next Steps
 
-### Phase 5: Bootstrap Integration
+### End-to-End Testing
 
-1. After bootstrap applies MCP servers from seedpack, run discovery via CLI
-2. For each MCP server with stdio config, spawn process, discover, update capabilities
-3. Best-effort: log warnings on failure, don't block startup
+1. Run `stigmer server` and verify discovery triggers automatically after bootstrap
+2. Verify `stigmer discover mcp-server stigmer-mcp-server` works as a standalone command
+3. Check that 12 tools and 5 resource templates are discovered and stored
+4. Verify `get mcp-server` shows the discovered capabilities in status
+
+### Future Work
+
+- Add GitHub MCP server to seedpack with `GITHUB_TOKEN` resolver (reads from `~/.config/gh/hosts.yml`)
+- Add AWS MCP server with credential resolver (reads from `~/.aws/credentials`)
+- Expose discovered capabilities in agent config UI so users can see available tools
 
 ## Context for Resume
 
-- Proto foundation is solid and all codegen is complete across Go, Java, Python, TypeScript, Dart stubs
-- Go RPC handler is fully implemented and compiles — ready to receive calls from CLI
-- Java RPC handler is fully implemented with FGA authorization — ready for cloud deployment
-- Go downstream client has `UpdateDiscoveredCapabilities` method — ready for bootstrap wiring
-- CLI `discover` command is fully implemented with stdio + HTTP support, pagination, dry-run, and timeout
-- MCP SDK (`v1.3.0`) is now a direct dependency of the CLI module
-- The seedpack YAML for `stigmer-mcp-server` stays as-is (just transport config, no static tool list)
+- All 5 phases are implemented and compile cleanly
+- Proto foundation, RPC handlers (Go + Java), CLI command, and bootstrap integration are complete
+- The shared library `backend/libs/go/mcpdiscovery/` contains the reusable MCP discovery core
+- The env resolver pattern is ready for extension (add cases for `GITHUB_TOKEN`, `AWS_*`, etc.)
+- MCP SDK (`v1.3.0`) is a dependency of both `client-apps/cli` and `backend/libs/go` modules
+- Pre-existing Bazel issue with `com_github_charmbracelet_glamour` in `mdrender/BUILD.bazel` (not ours)
 
 ## Essential Files
+
+### Shared library (Phase 5 output)
+- `backend/libs/go/mcpdiscovery/discover.go` — Core discovery logic
+- `backend/libs/go/mcpdiscovery/transport.go` — Transport factory with env merge
+- `backend/libs/go/mcpdiscovery/convert.go` — MCP SDK → proto type conversion
+
+### CLI bootstrap discovery (Phase 5 output)
+- `client-apps/cli/internal/cli/mcpserver/env_resolver.go` — Credential resolution
+- `client-apps/cli/internal/cli/mcpserver/discover_all.go` — DiscoverAll for bootstrap
+- `client-apps/cli/internal/cli/mcpserver/discover.go` — Refactored orchestration
+- `client-apps/cli/cmd/stigmer/root/server.go` — Bootstrap wiring (runBootstrapDiscovery)
 
 ### Proto files (Phase 1 output)
 - `apis/ai/stigmer/agentic/mcpserver/v1/status.proto` — DiscoveredCapabilities, DiscoveredTool, DiscoveredResourceTemplate, DiscoverySource
@@ -113,23 +144,16 @@ Original plan was static tool lists in seedpack YAML. Decision changed: tools wi
 - `apis/ai/stigmer/agentic/mcpserver/v1/command.proto` — updateDiscoveredCapabilities RPC
 
 ### Go RPC handler (Phase 3 output)
-- `backend/services/stigmer-server/pkg/domain/mcpserver/controller/update_discovered_capabilities.go` — custom pipeline handler
-- `backend/services/stigmer-server/pkg/downstream/mcpserver/client.go` — downstream client with UpdateDiscoveredCapabilities
+- `backend/services/stigmer-server/pkg/domain/mcpserver/controller/update_discovered_capabilities.go`
+- `backend/services/stigmer-server/pkg/downstream/mcpserver/client.go`
 
 ### Java RPC handler (Phase 3 output)
-- `backend/services/stigmer-service/.../McpServerUpdateDiscoveredCapabilitiesHandler.java` — handler with FGA
-- `backend/services/stigmer-service/.../McpServerGrpcAutoController.java` — auto-controller reference
+- `backend/services/stigmer-service/.../McpServerUpdateDiscoveredCapabilitiesHandler.java`
+- `backend/services/stigmer-service/.../McpServerGrpcAutoController.java`
 
 ### CLI discover command (Phase 4 output)
 - `client-apps/cli/cmd/stigmer/root/discover.go` — Cobra command definition
-- `client-apps/cli/internal/cli/mcpserver/discover.go` — orchestration
-- `client-apps/cli/internal/cli/mcpserver/discover_transport.go` — transport factory
-- `client-apps/cli/internal/cli/mcpserver/discover_convert.go` — type conversion
-- `client-apps/cli/internal/cli/mcpserver/discover_display.go` — terminal display
-
-### Key reference files for next phase
-- `client-apps/cli/internal/cli/bootstrap/` — Bootstrap flow that applies seedpack resources
-- `mcp-server/internal/server/server.go` — the 12 tools and 5 resource templates to discover
+- `client-apps/cli/internal/cli/mcpserver/discover_display.go` — Terminal display
 
 ### Project documentation
 - `_projects/2026-02/20260225.02.mcp-tool-discovery/tasks/T01_0_plan.md` — Full implementation plan
@@ -137,9 +161,9 @@ Original plan was static tool lists in seedpack YAML. Decision changed: tools wi
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 5" — Start bootstrap integration
+- "Run end-to-end test" — Test the full discovery flow
+- "Add GitHub MCP server" — Next credential resolver to implement
 - "Show project status" — Get overview of progress
-- "Create checkpoint" — Save current progress
 
 ---
 

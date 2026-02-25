@@ -1,4 +1,4 @@
-package mcpserver
+package mcpdiscovery
 
 import (
 	"encoding/json"
@@ -10,8 +10,8 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-// convertTools maps MCP SDK Tool types to proto DiscoveredTool messages.
-func convertTools(tools []*mcp.Tool) []*mcpserverv1.DiscoveredTool {
+// ConvertTools maps MCP SDK Tool types to proto DiscoveredTool messages.
+func ConvertTools(tools []*mcp.Tool) []*mcpserverv1.DiscoveredTool {
 	result := make([]*mcpserverv1.DiscoveredTool, 0, len(tools))
 	for _, t := range tools {
 		dt := &mcpserverv1.DiscoveredTool{
@@ -28,8 +28,9 @@ func convertTools(tools []*mcp.Tool) []*mcpserverv1.DiscoveredTool {
 	return result
 }
 
-// convertResourceTemplates maps MCP SDK ResourceTemplate types to proto DiscoveredResourceTemplate messages.
-func convertResourceTemplates(templates []*mcp.ResourceTemplate) []*mcpserverv1.DiscoveredResourceTemplate {
+// ConvertResourceTemplates maps MCP SDK ResourceTemplate types to proto
+// DiscoveredResourceTemplate messages.
+func ConvertResourceTemplates(templates []*mcp.ResourceTemplate) []*mcpserverv1.DiscoveredResourceTemplate {
 	result := make([]*mcpserverv1.DiscoveredResourceTemplate, 0, len(templates))
 	for _, t := range templates {
 		result = append(result, &mcpserverv1.DiscoveredResourceTemplate{
@@ -42,11 +43,12 @@ func convertResourceTemplates(templates []*mcp.ResourceTemplate) []*mcpserverv1.
 	return result
 }
 
-// convertInputSchema converts an MCP tool's InputSchema (any) to a protobuf Struct.
+// convertInputSchema converts an MCP tool's InputSchema (any) to a protobuf
+// Struct.
 //
-// The MCP SDK deserializes JSON Schema from the server into a map[string]any.
-// We need to convert that into a google.protobuf.Struct for storage.
-// If the schema is nil, we return nil (valid -- some tools have no parameters).
+// The MCP SDK deserialises JSON Schema from the server into a map[string]any.
+// We convert that into a google.protobuf.Struct for storage.
+// A nil schema is valid — some tools have no parameters.
 func convertInputSchema(schema any) (*structpb.Struct, error) {
 	if schema == nil {
 		return nil, nil
@@ -57,8 +59,6 @@ func convertInputSchema(schema any) (*structpb.Struct, error) {
 		return structpb.NewStruct(v)
 
 	default:
-		// The SDK may return other types if the server sends unexpected JSON.
-		// Round-trip through JSON to normalize to map[string]any.
 		raw, err := json.Marshal(v)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal input schema: %w", err)
