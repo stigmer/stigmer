@@ -13,6 +13,7 @@ import (
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/session"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
@@ -76,6 +77,20 @@ func streamAgentExecution(sessionID, sessionSubject, executionID, orgID string, 
 		followUpFn = buildFollowUpFn(ctx, sessionID, orgID, conn)
 	}
 
+	// When the session subject is not yet known (new session or subject
+	// generation still pending), provide a fetch function so the TUI can
+	// update the header in-place once the backend generates a real title.
+	var subjectFetchFn func() string
+	if sessionID != "" && sessionSubject == "" {
+		subjectFetchFn = func() string {
+			ses, err := session.GetFromBackend(conn, sessionID)
+			if err != nil {
+				return ""
+			}
+			return session.ResolvedSubject(ses.GetSpec().GetSubject())
+		}
+	}
+
 	// Create and configure the TUI model.
 	model := executiontui.New(executiontui.Config{
 		SessionID:         sessionID,
@@ -85,6 +100,7 @@ func streamAgentExecution(sessionID, sessionSubject, executionID, orgID string, 
 		ApprovalResponses: approvalResponses,
 		CancelFn:          cancelFn,
 		FollowUpFn:        followUpFn,
+		SubjectFetchFn:    subjectFetchFn,
 		Verbose:           verbose,
 	})
 
