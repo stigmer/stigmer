@@ -52,7 +52,7 @@ func displayExecutionTable(exec *agentexecutionv1.AgentExecution) {
 	// Status section
 	status := exec.GetStatus()
 	cliprint.PrintInfo("Status:")
-	cliprint.PrintInfo("  Phase:    %s", formatPhase(status.GetPhase()))
+	cliprint.PrintInfo("  Phase:    %s", FormatPhase(status.GetPhase()))
 
 	if status.GetStartedAt() != "" {
 		cliprint.PrintInfo("  Started:  %s", formatTimestamp(status.GetStartedAt()))
@@ -179,7 +179,7 @@ func displayListTable(list *agentexecutionv1.AgentExecutionList) {
 	for _, exec := range entries {
 		id := exec.GetMetadata().GetId()
 		agentID := truncateString(exec.GetSpec().GetAgentId(), 26)
-		status := formatPhase(exec.GetStatus().GetPhase())
+		status := FormatPhase(exec.GetStatus().GetPhase())
 		started := formatTimestamp(exec.GetStatus().GetStartedAt())
 		duration := "-"
 		if exec.GetStatus().GetCompletedAt() != "" {
@@ -240,24 +240,6 @@ func displayListJSON(list *agentexecutionv1.AgentExecutionList) {
 	fmt.Println(string(jsonBytes))
 }
 
-// DisplayCancelResult displays the result of a cancel operation.
-func DisplayCancelResult(result *CancelResult) {
-	fmt.Println()
-	if result.WasAlreadyCancelled {
-		cliprint.PrintWarning("Execution was already in terminal state")
-	} else {
-		cliprint.PrintSuccess("Execution cancelled successfully")
-	}
-	fmt.Println()
-
-	cliprint.PrintInfo("Execution:")
-	cliprint.PrintInfo("  ID:     %s", result.Execution.GetMetadata().GetId())
-	cliprint.PrintInfo("  Status: %s", formatPhase(result.Execution.GetStatus().GetPhase()))
-	fmt.Println()
-}
-
-// Helper functions
-
 // truncateString truncates a string to maxLen characters, adding "..." if truncated.
 func truncateString(s string, maxLen int) string {
 	if len(s) <= maxLen {
@@ -269,8 +251,8 @@ func truncateString(s string, maxLen int) string {
 	return s[:maxLen-3] + "..."
 }
 
-// formatPhase formats an execution phase for display.
-func formatPhase(phase agentexecutionv1.ExecutionPhase) string {
+// FormatPhase formats an execution phase for display.
+func FormatPhase(phase agentexecutionv1.ExecutionPhase) string {
 	switch phase {
 	case agentexecutionv1.ExecutionPhase_EXECUTION_PENDING:
 		return "pending"

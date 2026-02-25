@@ -9,6 +9,8 @@ go_library(
         "completion.go",
         "config.go",
         "delete.go",
+        "delete_cancel.go",
+        "delete_handlers.go",
         "discover.go",
         "download.go",
         "download_execution.go",

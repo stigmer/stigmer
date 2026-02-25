@@ -36,35 +36,6 @@ func DisplayApplyResult(result *ApplyResult) {
 	fmt.Println()
 }
 
-// DisplayDeleteResult displays the result of a delete operation.
-// Shows success message confirming the agent was deleted.
-func DisplayDeleteResult(result *DeleteResult) {
-	fmt.Println()
-	cliprint.PrintSuccess("Agent deleted successfully")
-	fmt.Println()
-
-	cliprint.PrintInfo("Deleted Resource:")
-	cliprint.PrintInfo("  ID:   %s", result.Agent.Metadata.Id)
-	cliprint.PrintInfo("  Name: %s", result.Agent.Metadata.Name)
-	cliprint.PrintInfo("  Slug: %s", result.Agent.Metadata.Slug)
-	fmt.Println()
-}
-
-// DisplayDeleteConfirmation displays the agent details before deletion.
-// Used to show the user what will be deleted for confirmation.
-func DisplayDeleteConfirmation(agent *agentv1.Agent) {
-	fmt.Println()
-	cliprint.PrintWarning("You are about to delete the following agent:")
-	fmt.Println()
-	cliprint.PrintInfo("  ID:   %s", agent.Metadata.Id)
-	cliprint.PrintInfo("  Name: %s", agent.Metadata.Name)
-	cliprint.PrintInfo("  Slug: %s", agent.Metadata.Slug)
-	cliprint.PrintInfo("  Org:  %s", agent.Metadata.Org)
-	fmt.Println()
-	cliprint.PrintWarning("This action cannot be undone.")
-	fmt.Println()
-}
-
 // DisplayAgentPreview displays a preview of the Agent configuration.
 // Used for dry-run mode to show what would be applied.
 func DisplayAgentPreview(agent *agentv1.Agent) {

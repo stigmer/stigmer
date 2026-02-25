@@ -45,35 +45,6 @@ func DisplayApplyResult(result *ApplyResult) {
 	fmt.Println()
 }
 
-// DisplayDeleteResult displays the result of a delete operation.
-// Shows success message confirming the workflow was deleted.
-func DisplayDeleteResult(result *DeleteResult) {
-	fmt.Println()
-	cliprint.PrintSuccess("Workflow deleted successfully")
-	fmt.Println()
-
-	cliprint.PrintInfo("Deleted Resource:")
-	cliprint.PrintInfo("  ID:   %s", result.Workflow.Metadata.Id)
-	cliprint.PrintInfo("  Name: %s", result.Workflow.Metadata.Name)
-	cliprint.PrintInfo("  Slug: %s", result.Workflow.Metadata.Slug)
-	fmt.Println()
-}
-
-// DisplayDeleteConfirmation displays the workflow details before deletion.
-// Used to show the user what will be deleted for confirmation.
-func DisplayDeleteConfirmation(workflow *workflowv1.Workflow) {
-	fmt.Println()
-	cliprint.PrintWarning("You are about to delete the following workflow:")
-	fmt.Println()
-	cliprint.PrintInfo("  ID:   %s", workflow.Metadata.Id)
-	cliprint.PrintInfo("  Name: %s", workflow.Metadata.Name)
-	cliprint.PrintInfo("  Slug: %s", workflow.Metadata.Slug)
-	cliprint.PrintInfo("  Org:  %s", workflow.Metadata.Org)
-	fmt.Println()
-	cliprint.PrintWarning("This action cannot be undone.")
-	fmt.Println()
-}
-
 // displayWorkflowSummary displays a summary of Workflow configuration fields.
 // Internal helper for consistent formatting across display functions.
 func displayWorkflowSummary(workflow *workflowv1.Workflow) {

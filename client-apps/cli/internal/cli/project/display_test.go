@@ -202,32 +202,6 @@ func TestDisplayGetResult_JSONFormat_NoPanic(t *testing.T) {
 }
 
 // =============================================================================
-// DisplayDeleteResult Tests - No Panic Verification
-// =============================================================================
-
-func TestDisplayDeleteResult_NoPanic(t *testing.T) {
-	result := &DeleteResult{
-		Project: createTestProjectWithID(),
-	}
-
-	assert.NotPanics(t, func() {
-		DisplayDeleteResult(result)
-	})
-}
-
-// =============================================================================
-// DisplayDeleteConfirmation Tests - No Panic Verification
-// =============================================================================
-
-func TestDisplayDeleteConfirmation_NoPanic(t *testing.T) {
-	project := createTestProjectWithID()
-
-	assert.NotPanics(t, func() {
-		DisplayDeleteConfirmation(project)
-	})
-}
-
-// =============================================================================
 // DisplayProjectPreview Tests - No Panic Verification
 // =============================================================================
 

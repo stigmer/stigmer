@@ -104,51 +104,6 @@ func TestDisplayApplyResult_Updated_NoPanic(t *testing.T) {
 }
 
 // =============================================================================
-// DisplayDeleteResult Tests - No Panic Verification
-// =============================================================================
-
-func TestDisplayDeleteResult_NoPanic(t *testing.T) {
-	result := &DeleteResult{
-		Agent: &agentv1.Agent{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Agent",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Id:   testAgentID,
-				Name: testAgentName,
-				Slug: testAgentSlug,
-			},
-		},
-	}
-
-	// Should not panic
-	assert.NotPanics(t, func() {
-		DisplayDeleteResult(result)
-	})
-}
-
-// =============================================================================
-// DisplayDeleteConfirmation Tests - No Panic Verification
-// =============================================================================
-
-func TestDisplayDeleteConfirmation_NoPanic(t *testing.T) {
-	agent := &agentv1.Agent{
-		ApiVersion: "agentic.stigmer.ai/v1",
-		Kind:       "Agent",
-		Metadata: &apiresource.ApiResourceMetadata{
-			Id:   testAgentID,
-			Name: testAgentName,
-			Slug: testAgentSlug,
-			Org:  testOrgID,
-		},
-	}
-
-	// Should not panic
-	assert.NotPanics(t, func() {
-		DisplayDeleteConfirmation(agent)
-	})
-}
-
-// =============================================================================
 // DisplayAgentPreview Tests - No Panic Verification
 // =============================================================================
 

@@ -115,33 +115,6 @@ func displayServerType(mcpServer *mcpserverv1.McpServer) {
 	}
 }
 
-// DisplayDeleteResult displays the result of a delete operation.
-func DisplayDeleteResult(result *DeleteResult) {
-	fmt.Println()
-	cliprint.PrintSuccess("MCP server deleted successfully")
-	fmt.Println()
-
-	cliprint.PrintInfo("Deleted Resource:")
-	cliprint.PrintInfo("  ID:   %s", result.McpServer.Metadata.Id)
-	cliprint.PrintInfo("  Name: %s", result.McpServer.Metadata.Name)
-	cliprint.PrintInfo("  Slug: %s", result.McpServer.Metadata.Slug)
-	fmt.Println()
-}
-
-// DisplayDeleteConfirmation displays the MCP server details before deletion.
-func DisplayDeleteConfirmation(mcpServer *mcpserverv1.McpServer) {
-	fmt.Println()
-	cliprint.PrintWarning("You are about to delete the following MCP server:")
-	fmt.Println()
-	cliprint.PrintInfo("  ID:   %s", mcpServer.Metadata.Id)
-	cliprint.PrintInfo("  Name: %s", mcpServer.Metadata.Name)
-	cliprint.PrintInfo("  Slug: %s", mcpServer.Metadata.Slug)
-	cliprint.PrintInfo("  Org:  %s", mcpServer.Metadata.Org)
-	fmt.Println()
-	cliprint.PrintWarning("This action cannot be undone.")
-	fmt.Println()
-}
-
 // DisplayMcpServerPreview displays a preview of the MCP server configuration.
 func DisplayMcpServerPreview(mcpServer *mcpserverv1.McpServer) {
 	fmt.Println()
