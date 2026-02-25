@@ -47,7 +47,7 @@ class SummarizationEventData:
         compression_ratio: Ratio of tokens reduced (0.0 to 1.0).
             Example: 0.6 means 60% reduction.
         duration_ms: Time taken to perform summarization in milliseconds.
-        summarization_model: Model used for summarization (e.g., "claude-haiku-4").
+        summarization_model: Model used for summarization (e.g., "claude-haiku-4.5").
         messages_before: Number of messages before summarization.
         messages_after: Number of messages after summarization.
 
@@ -57,7 +57,7 @@ class SummarizationEventData:
         ...     tokens_after=60000,
         ...     compression_ratio=0.6,
         ...     duration_ms=2500,
-        ...     summarization_model="claude-haiku-4",
+        ...     summarization_model="claude-haiku-4.5",
         ...     messages_before=45,
         ...     messages_after=8,
         ... )
