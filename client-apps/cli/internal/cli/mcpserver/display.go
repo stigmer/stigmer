@@ -115,21 +115,3 @@ func displayServerType(mcpServer *mcpserverv1.McpServer) {
 	}
 }
 
-// DisplayMcpServerPreview displays a preview of the MCP server configuration.
-func DisplayMcpServerPreview(mcpServer *mcpserverv1.McpServer) {
-	fmt.Println()
-	cliprint.PrintInfo("MCP Server Preview:")
-	cliprint.PrintInfo("  Name:        %s", mcpServer.Metadata.Name)
-
-	if mcpServer.Spec.Description != "" {
-		cliprint.PrintInfo("  Description: %s", mcpServer.Spec.Description)
-	}
-
-	displayServerType(mcpServer)
-
-	if len(mcpServer.Spec.Tags) > 0 {
-		cliprint.PrintInfo("  Tags:        %v", mcpServer.Spec.Tags)
-	}
-
-	fmt.Println()
-}

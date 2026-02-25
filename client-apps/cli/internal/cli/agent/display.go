@@ -12,39 +12,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// DisplayApplyResult displays the result of an apply operation.
-// Shows success message with resource details and next steps.
-func DisplayApplyResult(result *ApplyResult) {
-	fmt.Println()
-	if result.Created {
-		cliprint.PrintSuccess("Agent created successfully")
-	} else {
-		cliprint.PrintSuccess("Agent updated successfully")
-	}
-
-	fmt.Println()
-	cliprint.PrintInfo("Resource Details:")
-	cliprint.PrintInfo("  ID:   %s", result.Agent.Metadata.Id)
-	cliprint.PrintInfo("  Name: %s", result.Agent.Metadata.Name)
-	cliprint.PrintInfo("  Slug: %s", result.Agent.Metadata.Slug)
-
-	fmt.Println()
-	cliprint.PrintInfo("Next steps:")
-	cliprint.PrintInfo("  - View details:  stigmer agent get %s", result.Agent.Metadata.Slug)
-	cliprint.PrintInfo("  - Run agent:     stigmer agent run %s", result.Agent.Metadata.Slug)
-	cliprint.PrintInfo("  - Delete:        stigmer agent delete %s", result.Agent.Metadata.Slug)
-	fmt.Println()
-}
-
-// DisplayAgentPreview displays a preview of the Agent configuration.
-// Used for dry-run mode to show what would be applied.
-func DisplayAgentPreview(agent *agentv1.Agent) {
-	fmt.Println()
-	cliprint.PrintInfo("Agent Preview:")
-	displayAgentSummary(agent)
-	fmt.Println()
-}
-
 // displayAgentSummary displays a summary of Agent configuration fields.
 // Internal helper for consistent formatting across display functions.
 func displayAgentSummary(agent *agentv1.Agent) {

@@ -5,6 +5,8 @@ go_library(
     srcs = [
         "apply.go",
         "apply_file.go",
+        "apply_file_handlers.go",
+        "apply_project.go",
         "backend.go",
         "completion.go",
         "config.go",
