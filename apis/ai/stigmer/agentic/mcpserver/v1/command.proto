@@ -3,6 +3,7 @@ syntax = "proto3";
 package ai.stigmer.agentic.mcpserver.v1;
 
 import "ai/stigmer/agentic/mcpserver/v1/api.proto";
+import "ai/stigmer/agentic/mcpserver/v1/io.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
 import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
@@ -90,5 +91,26 @@ service McpServerCommandController {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_delete;
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "resource_id";
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to delete mcp server";
+  }
+
+  // Update the discovered capabilities (tools and resource templates) for an MCP server.
+  //
+  // This is a targeted status update — it only modifies status.discovered_capabilities,
+  // leaving spec, validation state, and other status fields untouched.
+  //
+  // Typical flow:
+  // 1. CLI calls getByReference(org/slug) to fetch the McpServer and its ID
+  // 2. CLI connects to the MCP server locally and queries tools/resources
+  // 3. CLI calls this RPC with the ID and discovered capabilities
+  //
+  // Input: UpdateDiscoveredCapabilitiesInput with mcp_server_id and discovered_capabilities.
+  // Returns: The updated McpServer with the new discovered capabilities.
+  //
+  // Authorization: Requires can_edit permission on the mcp_server resource.
+  rpc updateDiscoveredCapabilities(UpdateDiscoveredCapabilitiesInput) returns (McpServer) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = mcp_server;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "mcp_server_id";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update mcp server capabilities";
   }
 }

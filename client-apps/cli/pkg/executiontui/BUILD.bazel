@@ -16,7 +16,6 @@ go_library(
         "model.go",
         "render_approval.go",
         "render_blocks.go",
-        "replay.go",
         "scroll.go",
         "update.go",
         "view.go",
@@ -24,7 +23,7 @@ go_library(
     importpath = "github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui",
     visibility = ["//visibility:public"],
     deps = [
-        "//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution",
+        "//client-apps/cli/pkg/mdrender",
         "//client-apps/cli/pkg/toolrender",
         "@com_github_charmbracelet_bubbles//spinner",
         "@com_github_charmbracelet_bubbles//textarea",
@@ -47,5 +46,6 @@ go_test(
     deps = [
         "//client-apps/cli/pkg/toolrender",
         "@com_github_charmbracelet_bubbletea//:bubbletea",
+        "@com_github_charmbracelet_x_ansi//:ansi",
     ],
 )

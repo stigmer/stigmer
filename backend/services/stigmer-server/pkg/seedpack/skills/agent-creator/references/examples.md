@@ -1,19 +1,23 @@
 # Agent YAML Examples
 
-Five annotated examples covering the full range of Agent configurations.
+Annotated examples ranging from minimal to fully-featured.
+All examples conform to the `agentic.stigmer.ai/v1` API.
 
 ## Table of Contents
-1. [Minimal agent](#1-minimal-agent)
-2. [Agent with skills](#2-agent-with-skills)
-3. [Agent with MCP servers and tool approvals](#3-agent-with-mcp-servers-and-tool-approvals)
-4. [Agent with sub-agents](#4-agent-with-sub-agents)
-5. [Full-featured production agent](#5-full-featured-production-agent)
+
+1. [Minimal Agent](#1-minimal-agent)
+2. [Agent with Skills](#2-agent-with-skills)
+3. [Agent with MCP Servers](#3-agent-with-mcp-servers)
+4. [Agent with Tool Approval Controls](#4-agent-with-tool-approval-controls)
+5. [Agent with Sub-Agents](#5-agent-with-sub-agents)
+6. [Agent with Environment Variables](#6-agent-with-environment-variables)
+7. [Full-Featured Agent](#7-full-featured-agent)
 
 ---
 
 ## 1. Minimal Agent
 
-The simplest valid Agent — only required fields.
+The smallest valid Agent YAML. Only the absolutely required fields.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -21,42 +25,40 @@ kind: Agent
 metadata:
   name: simple-assistant
 spec:
-  description: "A helpful conversational assistant for answering questions."
+  description: "A general-purpose conversational assistant."
   instructions: |
     You are a helpful assistant. Answer questions clearly and concisely.
-    When you are unsure, say so and suggest where the user might find more information.
+    When uncertain, say so rather than guessing.
 ```
 
 **Notes:**
-- `metadata.slug` is auto-generated as `simple-assistant`.
-- No MCP servers, skills, or sub-agents needed.
-- `instructions` comfortably exceeds the 10-character minimum.
+- `metadata.slug` is auto-generated from the name → `simple-assistant`
+- No MCP servers, skills, sub-agents, or env vars needed
+- `instructions` is well over the 10-character minimum
 
 ---
 
 ## 2. Agent with Skills
 
-An agent that draws on platform-verified skill references.
+Skills inject specialised knowledge into the agent's context at runtime.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
-  name: Code Reviewer
+  name: code-reviewer
   tags:
     - code-review
     - security
 spec:
-  description: "Reviews code changes for quality, security vulnerabilities, and best practices."
+  description: "Reviews code for best practices, security vulnerabilities, and style."
   instructions: |
-    You are a senior code reviewer. When presented with code, you analyze it for:
-    - Security vulnerabilities (injection, auth flaws, data exposure)
-    - Performance anti-patterns
-    - Code readability and maintainability
-    - Adherence to company style guides
-
+    You are a senior code reviewer. When given code or a pull request:
+    1. Identify security vulnerabilities
+    2. Flag performance issues
+    3. Check for proper error handling
+    4. Suggest style improvements aligned with team standards
     Provide specific, actionable feedback with line references where possible.
-    Prioritize issues by severity: critical, major, minor.
   skill_refs:
     - org: local
       kind: skill
@@ -64,19 +66,19 @@ spec:
     - org: local
       kind: skill
       slug: company-style-guide
-      version: stable        # pin to the "stable" tag
+      version: stable          # pin to the 'stable' tag
 ```
 
 **Notes:**
-- `kind: skill` — always lowercase.
-- `version: stable` pins to a named tag; omitting it resolves to the latest version.
-- Skill slugs were discovered via `search` / `get_skill` before writing.
+- `version: stable` pins to a mutable tag (update the tag to roll out new skill versions)
+- Omit `version` to always resolve to latest
+- Both skills were verified with `get_skill` before authoring
 
 ---
 
-## 3. Agent with MCP Servers and Tool Approvals
+## 3. Agent with MCP Servers
 
-An agent that integrates external systems with fine-grained approval controls.
+Grants the agent access to external tools via MCP.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -87,64 +89,15 @@ metadata:
     team: engineering
   tags:
     - github
-    - automation
+    - code-management
 spec:
-  description: "Assists with GitHub operations including code search, PR creation, and issue management."
+  description: "Assists engineers with GitHub tasks: searching code, creating PRs, and managing issues."
   instructions: |
-    You are a GitHub automation assistant. Help developers with:
-    - Searching and reading code across repositories
-    - Creating and reviewing pull requests
-    - Managing issues and labels
-    - Checking CI/CD pipeline status
-
+    You help developers with GitHub operations. You can:
+    - Search the codebase for relevant files or patterns
+    - Create well-formatted pull requests with clear descriptions
+    - File and update GitHub issues
     Always confirm the target repository before making changes.
-    Never push directly to the main branch.
-  mcp_server_usages:
-    - mcp_server_ref:
-        org: local
-        kind: mcp_server
-        slug: github                 # verified via get_mcp_server(org:"local", slug:"github")
-      enabled_tools:
-        - search_code
-        - get_file_contents
-        - create_pull_request
-        - create_issue
-        - list_issues
-      tool_approval_overrides:
-        - tool_name: create_pull_request
-          requires_approval: true
-          message: "Create PR in {{args.repo}}: {{args.title}}"
-        - tool_name: create_issue
-          requires_approval: false    # trust this agent for issue creation
-```
-
-**Notes:**
-- Each slug in `mcp_server_usages` must be **unique** — only one entry per MCP server.
-- `kind: mcp_server` — always lowercase.
-- `tool_name` values must **exactly match** tool names the MCP server exposes.
-- `enabled_tools` restricts which tools this agent can invoke; empty = all default tools.
-- `tool_approval_overrides` customizes approval per-agent, overriding McpServer defaults.
-
----
-
-## 4. Agent with Sub-Agents
-
-A coordinator agent that delegates to specialized sub-agents.
-
-```yaml
-apiVersion: agentic.stigmer.ai/v1
-kind: Agent
-metadata:
-  name: engineering-coordinator
-spec:
-  description: "Coordinates engineering tasks by delegating to specialized code-review and PR-creation sub-agents."
-  instructions: |
-    You coordinate engineering work. Analyze incoming requests and delegate:
-    - Code quality concerns → code-reviewer sub-agent
-    - Creating or updating pull requests → pr-creator sub-agent
-    - General GitHub lookups → handle directly
-
-    Synthesize sub-agent results into a coherent response for the user.
   mcp_server_usages:
     - mcp_server_ref:
         org: local
@@ -152,84 +105,207 @@ spec:
         slug: github
       enabled_tools:
         - search_code
-        - get_file_contents
-        - create_pull_request
-        - list_pull_requests
-
-  sub_agents:
-    - name: code-reviewer
-      description: "Performs deep code review for quality and security issues."
-      instructions: |
-        You are a focused code reviewer. Read the specified files and return
-        a structured review covering security issues, logic errors, and
-        style violations. Be specific and cite line numbers where possible.
-      mcp_access:
-        - mcp_server: github               # must match slug in parent's mcp_server_usages
-          enabled_tools:
-            - search_code                  # subset of parent's enabled_tools
-            - get_file_contents
-      skill_refs:
-        - org: local
-          kind: skill
-          slug: code-review-best-practices  # sub-agent skills are independent of parent
-
-    - name: pr-creator
-      description: "Creates well-structured pull requests with clear descriptions."
-      instructions: |
-        You create pull requests. Given a summary of changes, produce a PR with:
-        - A concise, imperative title (≤72 chars)
-        - A description covering what changed and why
-        - Links to relevant issues
-        Always verify the base branch before creating the PR.
-      mcp_access:
-        - mcp_server: github
-          enabled_tools:
-            - create_pull_request          # only needs this one tool
-            - get_file_contents
+        - get_file
+        - create_pr
+        - create_issue
+        - list_issues
 ```
 
 **Notes:**
-- `sub_agents[].mcp_access[].mcp_server` must match a slug from `mcp_server_usages`.
-- Sub-agent `enabled_tools` is a **subset** of the parent's enabled tools for that server.
-  (`pr-creator` only gets `create_pull_request` + `get_file_contents`, not `search_code`.)
-- Sub-agent `skill_refs` are independent — they can reference any platform skill.
-- Sub-agent names (`code-reviewer`, `pr-creator`) must be unique within `sub_agents`.
+- `enabled_tools` was populated by inspecting `get_mcp_server(org: "local", slug: "github")`
+- Omitting `enabled_tools` would use the McpServer's `default_enabled_tools`
+- Tool names are case-sensitive and must match the MCP server's `tools/list` exactly
 
 ---
 
-## 5. Full-Featured Production Agent
+## 4. Agent with Tool Approval Controls
 
-All features combined: MCP servers, tool approvals, skills, sub-agents, env vars, labels, tags.
+Customize which tools require human-in-the-loop approval.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
-  name: deployment-assistant
+  name: database-operator
+spec:
+  description: "Manages database operations with approval gates on destructive actions."
+  instructions: |
+    You assist database administrators with routine operations.
+    Always read before you write. Require explicit confirmation for schema changes.
+    Never execute DROP or DELETE without running a SELECT with the same WHERE clause first.
+  mcp_server_usages:
+    - mcp_server_ref:
+        org: local
+        kind: mcp_server
+        slug: postgres
+      enabled_tools:
+        - execute_query
+        - list_tables
+        - describe_table
+        - execute_sql
+        - drop_table
+      tool_approval_overrides:
+        # Add approval for queries (not set by McpServer default)
+        - tool_name: execute_sql
+          requires_approval: true
+          message: "Execute SQL: {{args.query}}"
+
+        # Require approval for DROP even if it's in the MCP default
+        - tool_name: drop_table
+          requires_approval: true
+          message: "DROP TABLE {{args.table_name}} — this is irreversible"
+
+        # Trusted read operation — disable any McpServer-level approval
+        - tool_name: execute_query
+          requires_approval: false
+```
+
+**Notes:**
+- Approval chain: McpServer defaults → these overrides → `AgentExecution.auto_approve_all`
+- `{{args.field}}` placeholders are resolved at runtime from the actual tool arguments
+- `requires_approval: false` overrides even a McpServer-level approval default
+
+---
+
+## 5. Agent with Sub-Agents
+
+Delegate specialised tasks to focused sub-agents.
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: engineering-manager
+spec:
+  description: "Coordinates engineering tasks by delegating to specialised sub-agents for code review and PR creation."
+  instructions: |
+    You are an engineering coordinator. Analyse incoming requests and delegate:
+    - Code quality reviews → code-reviewer sub-agent
+    - Pull request creation → pr-creator sub-agent
+    - Anything requiring both → sequence them in order
+    Synthesise sub-agent outputs into a single coherent response.
+  mcp_server_usages:
+    - mcp_server_ref:
+        org: local
+        kind: mcp_server
+        slug: github
+      enabled_tools:
+        - search_code
+        - get_file
+        - create_pr
+        - list_prs
+
+  sub_agents:
+    - name: code-reviewer
+      description: "Reviews code for quality, security, and best practices."
+      instructions: |
+        You are a senior code reviewer. Examine the provided code or diff for:
+        - Security vulnerabilities
+        - Performance anti-patterns
+        - Unhandled errors and edge cases
+        Provide line-level feedback where applicable.
+      mcp_access:
+        - mcp_server: github          # must match parent's slug
+          enabled_tools:              # subset of parent's [search_code, get_file, create_pr, list_prs]
+            - search_code
+            - get_file
+      skill_refs:
+        - org: local
+          kind: skill
+          slug: code-review-best-practices
+
+    - name: pr-creator
+      description: "Creates pull requests with clear titles, descriptions, and change summaries."
+      instructions: |
+        You create GitHub pull requests. Always include:
+        - A descriptive title (max 72 chars)
+        - A summary of what changed and why
+        - A testing notes section
+        Reference any related issues using GitHub's closing keywords.
+      mcp_access:
+        - mcp_server: github
+          enabled_tools:
+            - create_pr
+            - get_file
+            - list_prs
+```
+
+**Notes:**
+- Sub-agent `mcp_server` values (`github`) must match slugs in the parent's `mcp_server_usages`
+- Sub-agent `enabled_tools` must be subsets of the parent's `[search_code, get_file, create_pr, list_prs]`
+- Sub-agent names (`code-reviewer`, `pr-creator`) are unique — this is validated
+- Sub-agent `skill_refs` are independent — `pr-creator` has no skills, which is fine
+
+---
+
+## 6. Agent with Environment Variables
+
+Declare required runtime configuration. Values are injected via `AgentInstance`.
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: slack-notifier
+spec:
+  description: "Sends structured Slack notifications for deployment and incident events."
+  instructions: |
+    You send Slack notifications for system events. Format messages clearly:
+    - Deployments: include app name, environment, version, and deployer
+    - Incidents: include severity, affected service, and status
+    - Always mention the relevant on-call channel for P1/P2 incidents
+    Use the SLACK_DEFAULT_CHANNEL env var as the fallback channel.
+  env_spec:
+    data:
+      SLACK_WEBHOOK_URL:
+        description: "Incoming webhook URL for posting messages"
+        is_secret: true
+      SLACK_DEFAULT_CHANNEL:
+        description: "Default channel slug (e.g., #deployments)"
+        is_secret: false
+      SLACK_BOT_TOKEN:
+        description: "Bot token for Slack API calls requiring auth"
+        is_secret: true
+```
+
+**Notes:**
+- `is_secret: true` encrypts at rest and redacts in logs
+- `value` is intentionally omitted — populated at runtime by the `AgentInstance`'s environment
+- Variable names are uppercase by convention (no enforced format)
+
+---
+
+## 7. Full-Featured Agent
+
+Combines all features: MCP servers with approval controls, skills, sub-agents, and env vars.
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: deployment-platform
   labels:
-    team: devops
+    team: platform
     environment: production
   tags:
     - deployment
     - kubernetes
     - automation
+    - cicd
 spec:
-  description: "Automates production deployment workflows with safe approval gates and health monitoring."
-  icon_url: "https://example.com/icons/deploy.svg"
+  description: "Automates production deployments on Kubernetes with approval gates and rollback capability."
+  icon_url: "https://example.com/icons/rocket.svg"
   instructions: |
-    You are a deployment automation assistant for production environments.
+    You are a production deployment assistant. Your responsibilities:
+    - Review deployment configurations before applying
+    - Execute deployments to Kubernetes with appropriate approval gates
+    - Monitor rollout health and trigger rollbacks on failure
+    - Notify the engineering team via Slack for all deployments and incidents
 
-    Responsibilities:
-    - Review deployment configurations for correctness and safety
-    - Execute deployments after user approval
-    - Monitor deployment health post-rollout
-    - Initiate rollbacks automatically on health check failure
-
-    Rules:
-    - Always confirm the target environment (staging vs production) before proceeding.
-    - Never skip approval gates for production deployments.
-    - If a health check fails within 5 minutes of deployment, trigger rollback immediately.
-    - Log all actions to the audit channel.
+    Guiding principles:
+    - Always verify target namespace and cluster before deploying
+    - Prefer rollback over troubleshooting for P1 production incidents
+    - Never deploy to production without a corresponding PR in GitHub
 
   mcp_server_usages:
     - mcp_server_ref:
@@ -238,23 +314,37 @@ spec:
         slug: github
       enabled_tools:
         - search_code
-        - get_file_contents
-        - create_pull_request
+        - get_file
+        - create_pr
+        - get_pr
+
     - mcp_server_ref:
         org: local
         kind: mcp_server
         slug: kubernetes
       enabled_tools:
-        - deploy_application
+        - deploy_app
         - rollback_deployment
         - get_pod_status
-        - get_deployment_logs
+        - list_deployments
+        - scale_deployment
       tool_approval_overrides:
-        - tool_name: deploy_application
+        - tool_name: deploy_app
           requires_approval: true
-          message: "Deploy {{args.app_name}} v{{args.version}} → {{args.environment}}"
+          message: "Deploy {{args.app_name}} v{{args.version}} to {{args.environment}}"
         - tool_name: rollback_deployment
-          requires_approval: false    # allow automated rollback without manual gate
+          requires_approval: false    # Trust this agent to rollback without pause
+        - tool_name: scale_deployment
+          requires_approval: true
+          message: "Scale {{args.deployment}} to {{args.replicas}} replicas in {{args.namespace}}"
+
+    - mcp_server_ref:
+        org: local
+        kind: mcp_server
+        slug: slack
+      enabled_tools:
+        - post_message
+        - post_thread_reply
 
   skill_refs:
     - org: local
@@ -273,28 +363,42 @@ spec:
       KUBERNETES_TOKEN:
         description: "Service account token for Kubernetes API access"
         is_secret: true
-      SLACK_AUDIT_WEBHOOK:
-        description: "Slack webhook URL for deployment audit notifications"
-        is_secret: true
+      SLACK_NOTIFICATION_CHANNEL:
+        description: "Slack channel for deployment notifications (e.g., #deployments)"
+        is_secret: false
 
   sub_agents:
     - name: health-monitor
-      description: "Monitors deployment health after rollout and triggers rollback if needed."
+      description: "Monitors deployment health post-rollout and reports status."
       instructions: |
-        You monitor Kubernetes deployments after rollout. Poll pod status every 30 seconds
-        for 5 minutes. If any pod enters CrashLoopBackOff or the ready count drops below
-        the desired count, report UNHEALTHY immediately so the parent can trigger rollback.
-        Report HEALTHY only after 5 consecutive clean polls.
+        You monitor Kubernetes deployments after rollout. Check:
+        - Pod readiness and restart counts
+        - Deployment rollout status
+        Report any anomalies immediately with recommended actions.
       mcp_access:
         - mcp_server: kubernetes
           enabled_tools:
-            - get_pod_status           # read-only subset; cannot deploy or rollback
-            - get_deployment_logs
+            - get_pod_status
+            - list_deployments
+
+    - name: incident-reporter
+      description: "Posts structured incident reports to Slack during deployment failures."
+      instructions: |
+        You post incident reports to Slack during deployment failures.
+        Format: severity, affected service, current status, next action.
+        Always use threading to keep incident updates in one place.
+      mcp_access:
+        - mcp_server: slack
+          enabled_tools:
+            - post_message
+            - post_thread_reply
 ```
 
 **Notes:**
-- Two distinct MCP servers (`github`, `kubernetes`) each with unique slugs.
-- `kubernetes` tools include a `requires_approval: false` override (automated rollback).
-- `env_spec` documents secrets — actual values injected via AgentInstance at runtime.
-- `health-monitor` sub-agent gets a read-only subset of the `kubernetes` tools.
-- `status` is completely absent — it is system-managed and must never be authored.
+- Three MCP servers: `github`, `kubernetes`, `slack` — all unique slugs ✓
+- Kubernetes `rollback_deployment` has `requires_approval: false` to allow fast automated rollbacks
+- `health-monitor` only needs read-only k8s tools → proper subset of parent's kubernetes tools ✓
+- `incident-reporter` only needs Slack tools → proper subset of parent's Slack tools ✓
+- Sub-agent names are unique ✓
+- Both skills were verified with `get_skill` before authoring
+- `version: stable` on the runbook skill pins to a controlled release

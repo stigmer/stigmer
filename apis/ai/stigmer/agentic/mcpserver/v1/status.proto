@@ -3,18 +3,24 @@ syntax = "proto3";
 package ai.stigmer.agentic.mcpserver.v1;
 
 import "ai/stigmer/commons/apiresource/status.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
 
 // McpServerStatus represents the system-managed state of an MCP server definition.
-// This status tracks the validity of the definition itself, NOT runtime health.
 //
-// IMPORTANT: Tool discovery and health checks happen at RUNTIME (in agent-runner),
-// not here. This is because:
-// 1. Tool discovery requires valid credentials (e.g., GITHUB_TOKEN)
-// 2. The MCP server must be running to query its tools
-// 3. Credentials come from AgentInstance's environment, not the McpServer definition
+// This status tracks two concerns:
 //
-// This status only tracks whether the McpServer definition is structurally valid
-// and can be used by agents.
+// 1. Structural validation — whether the definition is valid and can be used by agents.
+//
+// 2. Discovered capabilities — the tools and resource templates the MCP server
+//    actually provides. Populated by one of three mechanisms:
+//      a. Static seedpack bootstrap (for built-in servers like stigmer-mcp-server)
+//      b. CLI discovery: `stigmer discover mcp-server <name>` connects locally,
+//         queries the running server, and pushes results via updateDiscoveredCapabilities
+//      c. Agent-runner runtime cache (future)
+//
+//    CLI discovery runs on the developer's machine, so credentials (e.g., GITHUB_TOKEN)
+//    never leave the local environment. The server only receives tool/resource metadata.
 message McpServerStatus {
   // Validation state of the MCP server definition.
   // Indicates whether the definition passed structural validation.
@@ -29,25 +35,122 @@ message McpServerStatus {
   // - "docker.image is required"
   string validation_message = 2;
 
+  // Tools and resource templates discovered from the MCP server.
+  // Optional — absent until discovery has been performed (or seeded from seedpack).
+  DiscoveredCapabilities discovered_capabilities = 3;
+
   // Standard audit information tracking creation and modification.
   // Field 99 follows Stigmer convention for audit placement in status messages.
   ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
 }
 
 // ValidationState represents the structural validity of an MCP server definition.
-// This is NOT runtime health - it only indicates whether the definition is valid.
+// This is NOT runtime health — it only indicates whether the definition is valid.
 enum ValidationState {
   // Default/unspecified state.
   // Used when validation has not yet been performed.
-  VALIDATION_STATE_UNSPECIFIED = 0;
+  validation_state_unspecified = 0;
 
   // The MCP server definition is structurally valid.
   // All required fields are present and have valid values.
   // The definition can be referenced by agents.
-  VALIDATION_STATE_VALID = 1;
+  valid = 1;
 
   // The MCP server definition is invalid.
   // Check validation_message for details on what's wrong.
   // The definition should be corrected before use.
-  VALIDATION_STATE_INVALID = 2;
+  invalid = 2;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Discovered Capabilities
+//
+// Metadata about the tools and resource templates an MCP server provides.
+// This is a snapshot captured at a point in time, not a live view.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// DiscoveredCapabilities holds the tools and resource templates reported by an
+// MCP server. This is a point-in-time snapshot — the server's actual capabilities
+// may change if tools are added or removed.
+//
+// Populated by:
+// - Seedpack bootstrap (built-in servers with known, stable tool sets)
+// - CLI discovery (`stigmer discover mcp-server <name>`)
+// - Agent-runner runtime cache (future)
+message DiscoveredCapabilities {
+  // Tools reported by the MCP server via tools/list.
+  repeated DiscoveredTool tools = 1;
+
+  // Resource templates reported by the MCP server via resources/templates/list.
+  repeated DiscoveredResourceTemplate resource_templates = 2;
+
+  // When this snapshot was captured.
+  google.protobuf.Timestamp last_discovered_at = 3;
+
+  // How this snapshot was produced.
+  DiscoverySource discovered_by = 4;
+}
+
+// DiscoveredTool describes a single tool reported by an MCP server.
+//
+// Maps directly to the MCP protocol's Tool type from tools/list:
+//   - name: unique tool identifier within the server
+//   - description: human-readable explanation of what the tool does
+//   - input_schema: JSON Schema describing the tool's expected input
+message DiscoveredTool {
+  // Unique tool name within the MCP server (case-sensitive).
+  // Example: "search", "get_agent", "apply_mcp_server"
+  string name = 1;
+
+  // Human-readable description of the tool's purpose.
+  string description = 2;
+
+  // JSON Schema describing the tool's input parameters.
+  // Stored as a Struct for natural representation in YAML/JSON and to allow
+  // inspection without string parsing. This is the raw schema from the MCP
+  // server's tools/list response.
+  google.protobuf.Struct input_schema = 3;
+}
+
+// DiscoveredResourceTemplate describes a parameterized resource template
+// reported by an MCP server via resources/templates/list.
+//
+// Resource templates use URI templates (RFC 6570) with placeholders that
+// clients fill in to access specific resources.
+//
+// Example:
+//   uri_template: "stigmer://agents/{org}/{slug}"
+//   name: "stigmer_agent"
+//   description: "Full definition of a Stigmer agent"
+//   mime_type: "application/json"
+message DiscoveredResourceTemplate {
+  // URI template with placeholders (RFC 6570).
+  // Example: "stigmer://agents/{org}/{slug}"
+  string uri_template = 1;
+
+  // Identifier for this resource template.
+  string name = 2;
+
+  // Human-readable description of the resource.
+  string description = 3;
+
+  // MIME type of the resource content.
+  // Example: "application/json"
+  string mime_type = 4;
+}
+
+// DiscoverySource identifies how discovered capabilities were obtained.
+enum DiscoverySource {
+  // Default/unspecified.
+  discovery_source_unspecified = 0;
+
+  // Statically defined in the seedpack (built-in servers with known tool sets).
+  seedpack = 1;
+
+  // Discovered by the CLI via `stigmer discover mcp-server <name>`.
+  // The CLI connects to the MCP server locally and pushes results to the server.
+  cli = 2;
+
+  // Discovered by the agent-runner at runtime (future).
+  agent_runner = 3;
 }

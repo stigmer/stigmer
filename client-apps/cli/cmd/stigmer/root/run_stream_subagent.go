@@ -13,6 +13,7 @@ import (
 // invocation and its data arrays grow independently of the top-level status.
 type subAgentTracker struct {
 	displayedMsgCount int
+	inStream          bool
 	toolCallStates    map[string]string
 	toolCallResults   map[string]string
 }
@@ -47,135 +48,70 @@ func emitSubAgentEvents(
 				Msg("[stream] new sub-agent execution detected")
 		}
 
-		tracker.toolCallStates, tracker.toolCallResults = emitSubAgentToolCallEvents(
-			events, sa.Id, sa.ToolCalls, tracker.toolCallStates, tracker.toolCallResults,
+		tracker.toolCallStates, tracker.toolCallResults = emitToolCallStateEvents(
+			events, sa.ToolCalls, tracker.toolCallStates, tracker.toolCallResults, sa.Id,
 		)
 
-		tracker.displayedMsgCount = emitSubAgentMessageEvents(
-			events, sa.Id, sa.Messages, tracker.displayedMsgCount,
+		tracker.displayedMsgCount, tracker.inStream = emitSubAgentMessageEvents(
+			events, sa.Id, sa.Messages, tracker.displayedMsgCount, tracker.inStream,
 		)
 	}
 
 	return trackers
 }
 
-// emitSubAgentToolCallEvents diffs a sub-agent's tool call statuses against
-// the last-known state and emits events with SubAgentID set. The diff logic
-// mirrors emitToolCallStateEvents exactly — only the event construction
-// differs (SubAgentID is populated).
-//
-// Returns the updated state and result maps.
-func emitSubAgentToolCallEvents(
-	events chan<- executiontui.Event,
-	subAgentID string,
-	toolCalls []*agentexecutionv1.ToolCall,
-	prevStates map[string]string,
-	prevResults map[string]string,
-) (map[string]string, map[string]string) {
-	for _, tc := range toolCalls {
-		if tc.Id == "" {
-			continue
-		}
-
-		currentStatus := mapToolCallStatus(tc.Status)
-		prevStatus, seen := prevStates[tc.Id]
-
-		if !seen && currentStatus == "running" {
-			events <- executiontui.ToolRunningEvent{
-				ToolCallID: tc.Id,
-				ToolCall:   convertToolCall(tc),
-				SubAgentID: subAgentID,
-			}
-			prevStates[tc.Id] = currentStatus
-			prevResults[tc.Id] = tc.Result
-			continue
-		}
-
-		if !seen && currentStatus == "waiting_approval" {
-			events <- executiontui.ToolWaitingApprovalEvent{
-				ToolCallID: tc.Id,
-				ToolCall:   convertToolCall(tc),
-				SubAgentID: subAgentID,
-			}
-			prevStates[tc.Id] = currentStatus
-			continue
-		}
-
-		if !seen && isTerminalToolStatus(currentStatus) {
-			events <- executiontui.ToolCompletedEvent{
-				ToolCallID: tc.Id,
-				ToolCall:   convertToolCall(tc),
-				SubAgentID: subAgentID,
-			}
-			prevStates[tc.Id] = currentStatus
-			continue
-		}
-
-		if seen && (prevStatus == "running" || prevStatus == "waiting_approval") && isTerminalToolStatus(currentStatus) {
-			events <- executiontui.ToolCompletedEvent{
-				ToolCallID: tc.Id,
-				ToolCall:   convertToolCall(tc),
-				SubAgentID: subAgentID,
-			}
-			prevStates[tc.Id] = currentStatus
-			delete(prevResults, tc.Id)
-			continue
-		}
-
-		if currentStatus != prevStatus {
-			if currentStatus == "running" {
-				events <- executiontui.ToolRunningEvent{
-					ToolCallID: tc.Id,
-					ToolCall:   convertToolCall(tc),
-					SubAgentID: subAgentID,
-				}
-				prevResults[tc.Id] = tc.Result
-			} else if currentStatus == "waiting_approval" {
-				events <- executiontui.ToolWaitingApprovalEvent{
-					ToolCallID: tc.Id,
-					ToolCall:   convertToolCall(tc),
-					SubAgentID: subAgentID,
-				}
-			}
-			prevStates[tc.Id] = currentStatus
-			continue
-		}
-
-		if currentStatus == "running" && tc.IsStreaming && tc.Result != prevResults[tc.Id] {
-			events <- executiontui.ToolStreamDeltaEvent{
-				ToolCallID: tc.Id,
-				ToolCall:   convertToolCall(tc),
-				Content:    tc.Result,
-				SubAgentID: subAgentID,
-			}
-			prevResults[tc.Id] = tc.Result
-		}
-	}
-
-	return prevStates, prevResults
-}
-
 // emitSubAgentMessageEvents processes new messages from a sub-agent and emits
-// TUI events with SubAgentID set. Returns the updated displayed count.
+// TUI events with SubAgentID set. Returns the updated displayed count and
+// streaming state.
 //
-// Only AI messages with text content are emitted — sub-agent tool results are
-// handled by emitSubAgentToolCallEvents (stateful tool blocks), and human /
-// system messages are not relevant for sub-agent display. Tool call lists from
-// AI messages are omitted to avoid duplication with the stateful tool blocks.
+// AI messages are streamed incrementally via AIStreamStart/Delta/End events,
+// mirroring the top-level emitMessageEvents pattern. This ensures the TUI
+// shows sub-agent AI responses as they generate rather than waiting for the
+// full message to finalize — which previously caused a dead zone where no
+// events flowed and the TUI showed "Thinking..." indefinitely.
 //
-// Streaming messages are deferred: the cursor does not advance past a message
-// with IsStreaming=true, so it will be emitted once finalized.
+// Sub-agent tool results are handled by emitToolCallStateEvents (stateful
+// tool blocks), so MESSAGE_TOOL entries are skipped. Human and system messages
+// are not relevant for sub-agent display. Tool call lists on AI messages are
+// omitted to avoid duplication with the stateful tool blocks.
 func emitSubAgentMessageEvents(
 	events chan<- executiontui.Event,
 	subAgentID string,
 	messages []*agentexecutionv1.AgentMessage,
 	displayedCount int,
-) int {
+	inStream bool,
+) (int, bool) {
+	// Phase 1: Handle in-progress streaming AI message.
+	if inStream && displayedCount < len(messages) {
+		msg := messages[displayedCount]
+		if msg.IsStreaming {
+			events <- executiontui.AIStreamDeltaEvent{
+				Content:    msg.Content,
+				SubAgentID: subAgentID,
+			}
+			return displayedCount, true
+		}
+		// Streaming ended — finalize. Tool calls are omitted for sub-agents
+		// because the stateful tool blocks handle them independently.
+		events <- executiontui.AIStreamEndEvent{
+			Content:    msg.Content,
+			SubAgentID: subAgentID,
+		}
+		displayedCount++
+		inStream = false
+	}
+
+	// Phase 2: Process complete messages and detect new streaming.
 	for displayedCount < len(messages) {
 		msg := messages[displayedCount]
 
-		if msg.IsStreaming {
-			return displayedCount
+		// New streaming AI message — begin incremental display.
+		if msg.IsStreaming && msg.Type == agentexecutionv1.MessageType_MESSAGE_AI {
+			events <- executiontui.AIStreamStartEvent{
+				Content:    msg.Content,
+				SubAgentID: subAgentID,
+			}
+			return displayedCount, true
 		}
 
 		if msg.Type == agentexecutionv1.MessageType_MESSAGE_AI && msg.Content != "" {
@@ -188,5 +124,5 @@ func emitSubAgentMessageEvents(
 		displayedCount++
 	}
 
-	return displayedCount
+	return displayedCount, false
 }

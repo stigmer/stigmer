@@ -1,20 +1,38 @@
 # Stigmer MCP Server
 
-A [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server that
-exposes Stigmer platform resources — agents, skills, MCP servers, and
-workflows — to AI-powered development tools such as Cursor, Claude Desktop,
-Windsurf, and VS Code.
+A stateless [MCP](https://modelcontextprotocol.io) gateway that connects
+AI-powered IDEs to [Stigmer](https://github.com/stigmer/stigmer). It translates
+MCP tool calls and resource reads into gRPC requests against a running
+`stigmer-server`, letting Cursor, Claude Desktop, VS Code, and Windsurf search,
+inspect, and manage agents, skills, workflows, and MCP server definitions
+without leaving the editor.
 
-### Use Cases
+```
+AI IDE (Cursor / Claude Desktop / VS Code / Windsurf)
+     ↕  MCP protocol (stdio or Streamable HTTP)
+mcp-server-stigmer
+     ↕  gRPC (TLS on :443, plaintext otherwise)
+stigmer-server
+```
 
-- **Resource Discovery**: Search, browse, and inspect agents, skills, workflows,
-  and MCP servers across your Stigmer organization.
-- **Agent Management**: Create, update, and manage agents and their
-  configurations directly from your IDE.
-- **Workflow Automation**: Define and apply workflows through natural language
-  interactions with your AI assistant.
-- **Skill Library**: Browse available skills, inspect versions, and attach them
-  to agents.
+This server does not store state. It is a protocol bridge: every tool call opens
+a short-lived gRPC connection, performs the RPC, and returns the result. It can
+serve both STDIO and HTTP transports concurrently from a single process.
+
+---
+
+## Key Concepts
+
+| Term | Definition |
+|------|------------|
+| **org** | Organization slug — the tenant-level namespace that owns a resource (e.g. `acme`). |
+| **slug** | URL-safe unique identifier for a resource within an org (e.g. `code-reviewer`). |
+| **agent** | An AI agent definition: model, instructions, skills, and MCP servers it can use. |
+| **skill** | A versioned knowledge artifact (instructions + reference material). Read-only via MCP — see [Why no apply_skill?](#why-no-apply_skill). |
+| **workflow** | An orchestration definition: tasks, branching, environment, and execution rules. |
+| **MCP server** | A registered external tool server definition that agents can connect to. |
+| **apply** | Idempotent create-or-update. Same semantics as `kubectl apply` — if the resource exists it is updated, otherwise it is created. |
+| **`stigmer://` URI** | Resource identifier in the form `stigmer://{kind}/{org}/{slug}[/{version}]`. The `search` tool returns these in each result so clients can call `resources/read` directly. |
 
 ---
 
@@ -22,23 +40,28 @@ Windsurf, and VS Code.
 
 ### Prerequisites
 
-1. A running Stigmer server (local via `stigmer server` or Stigmer Cloud)
-2. A compatible MCP host (Cursor, Claude Desktop, VS Code, Windsurf, etc.)
+1. A running `stigmer-server` — local via `stigmer server` or
+   [Stigmer Cloud](https://stigmer.ai)
+2. A compatible MCP host (Cursor, Claude Desktop, VS Code, Windsurf, or any
+   MCP-compliant client)
 
-### Install with Go
+### Stigmer CLI (recommended)
 
-If you have Go 1.25+ installed:
+No separate binary needed. If you already have the CLI installed:
+
+```bash
+stigmer mcp-server
+```
+
+Connection settings are auto-resolved from `~/.stigmer/config.yaml`.
+
+### Go Install
 
 ```bash
 go install github.com/stigmer/stigmer/mcp-server/cmd/mcp-server-stigmer@latest
 ```
 
-Then configure your MCP client to use the installed binary (see
-[MCP Client Configuration](#mcp-client-configuration) below).
-
-### Install with Docker
-
-The Docker image is available at `ghcr.io/stigmer/mcp-server-stigmer`:
+### Docker
 
 ```bash
 docker run -i --rm \
@@ -47,17 +70,10 @@ docker run -i --rm \
   ghcr.io/stigmer/mcp-server-stigmer
 ```
 
-### Via the Stigmer CLI
-
-If you have the `stigmer` CLI installed, the MCP server is available as a
-built-in command — no separate binary or Docker required:
-
-```bash
-stigmer mcp-server
-```
-
-The CLI auto-resolves connection settings from `~/.stigmer/config.yaml`, so
-users who have already run `stigmer backend` get a zero-config experience.
+> **Docker networking:** `localhost` inside a container refers to the
+> container's own loopback, not the host machine. To reach a `stigmer-server`
+> running on the host, use `host.docker.internal` on Docker Desktop
+> (macOS / Windows) or add `--network host` on Linux.
 
 ### Build from Source
 
@@ -72,11 +88,10 @@ make build
 
 ## MCP Client Configuration
 
-### Cursor
+All MCP clients use the same JSON structure. The differences are the config file
+location and the top-level key.
 
-Add to your Cursor MCP settings (`.cursor/mcp.json` or global settings):
-
-**Using Go install:**
+### Using the standalone binary or Go install
 
 ```json
 {
@@ -92,29 +107,7 @@ Add to your Cursor MCP settings (`.cursor/mcp.json` or global settings):
 }
 ```
 
-**Using Docker:**
-
-```json
-{
-  "mcpServers": {
-    "stigmer": {
-      "command": "docker",
-      "args": [
-        "run", "-i", "--rm",
-        "-e", "STIGMER_SERVER_ADDRESS",
-        "-e", "STIGMER_API_KEY",
-        "ghcr.io/stigmer/mcp-server-stigmer"
-      ],
-      "env": {
-        "STIGMER_SERVER_ADDRESS": "localhost:7234",
-        "STIGMER_API_KEY": "your-api-key"
-      }
-    }
-  }
-}
-```
-
-**Using the Stigmer CLI (zero-config with local backend):**
+### Using the Stigmer CLI
 
 ```json
 {
@@ -127,25 +120,10 @@ Add to your Cursor MCP settings (`.cursor/mcp.json` or global settings):
 }
 ```
 
-### Claude Desktop / Claude Code
+No `env` block is needed — the CLI reads `~/.stigmer/config.yaml`
+automatically.
 
-Add to your Claude Desktop config (`claude_desktop_config.json`):
-
-```json
-{
-  "mcpServers": {
-    "stigmer": {
-      "command": "mcp-server-stigmer",
-      "env": {
-        "STIGMER_SERVER_ADDRESS": "localhost:7234",
-        "STIGMER_API_KEY": "your-api-key"
-      }
-    }
-  }
-}
-```
-
-Or with Docker:
+### Using Docker
 
 ```json
 {
@@ -169,133 +147,244 @@ Or with Docker:
 
 ### VS Code / GitHub Copilot
 
-Add to `.vscode/mcp.json` in your workspace or to your user settings:
+VS Code uses `"servers"` instead of `"mcpServers"` as the top-level key:
 
 ```json
 {
   "servers": {
     "stigmer": {
-      "command": "mcp-server-stigmer",
-      "env": {
-        "STIGMER_SERVER_ADDRESS": "localhost:7234",
-        "STIGMER_API_KEY": "your-api-key"
-      }
+      "command": "stigmer",
+      "args": ["mcp-server"]
     }
   }
 }
 ```
 
-### Windsurf
+### Where to put the config
 
-Add to your Windsurf MCP configuration:
-
-```json
-{
-  "mcpServers": {
-    "stigmer": {
-      "command": "mcp-server-stigmer",
-      "env": {
-        "STIGMER_SERVER_ADDRESS": "localhost:7234",
-        "STIGMER_API_KEY": "your-api-key"
-      }
-    }
-  }
-}
-```
-
-> **Note:** When using Docker, the `-e VAR_NAME` (without `=value`) syntax
-> tells Docker to forward the variable from its own environment into the
-> container. The MCP host sets the variables in `env`, the Docker CLI inherits
-> them, and `-e` forwards them into the container. This is the same pattern
-> used by the [GitHub MCP Server](https://github.com/github/github-mcp-server).
+| Client | Config file | Top-level key |
+|--------|-------------|---------------|
+| Cursor | `.cursor/mcp.json` (workspace) or global settings | `mcpServers` |
+| Claude Desktop / Claude Code | `claude_desktop_config.json` | `mcpServers` |
+| VS Code / GitHub Copilot | `.vscode/mcp.json` (workspace) or user settings | `servers` |
+| Windsurf | Windsurf MCP settings | `mcpServers` |
 
 ---
 
-## Configuration
-
-### Configuration Resolution (CLI)
-
-When running via `stigmer mcp-server`, configuration is resolved with the
-following precedence (highest wins):
-
-```
-CLI flags  >  environment variables  >  ~/.stigmer/config.yaml  >  defaults
-```
-
-The CLI automatically reads `~/.stigmer/config.yaml` and bridges the active
-backend settings into the MCP server:
-
-- **Local backend** (`backend.type: local`): server address is set to
-  `localhost:7234` (the local daemon). No API key is needed.
-- **Cloud backend** (`backend.type: cloud`): server address and API key are
-  read from `backend.cloud.endpoint` and `backend.cloud.token`.
-
-### Configuration Resolution (Standalone / Docker)
-
-The standalone binary and Docker image read from environment variables only.
-They do not read `~/.stigmer/config.yaml`.
-
-### Environment Variables
+## Configuration Reference
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `STIGMER_SERVER_ADDRESS` | `localhost:9090` | gRPC address of stigmer-server |
-| `STIGMER_API_KEY` | *(optional)* | API key for authenticated backends. Auto-resolved from CLI config when running via `stigmer mcp-server`. Required for Stigmer Cloud. |
-| `STIGMER_MCP_TRANSPORT` | `stdio` | Transport mode: `stdio`, `http`, or `both` |
-| `STIGMER_MCP_HTTP_PORT` | `8080` | TCP port for the HTTP transport |
-| `STIGMER_MCP_HTTP_AUTH_ENABLED` | `true` | Require Bearer token on HTTP requests |
-| `STIGMER_MCP_LOG_FORMAT` | `text` | Log output encoding: `text` or `json` |
-| `STIGMER_MCP_LOG_LEVEL` | `info` | Minimum log severity: `debug`, `info`, `warn`, or `error` |
+| `STIGMER_SERVER_ADDRESS` | `localhost:7234` | gRPC dial target for `stigmer-server`. |
+| `STIGMER_API_KEY` | *(none)* | API key for authenticated backends. Auto-resolved when running via `stigmer mcp-server`. Required for Stigmer Cloud. Optional for unauthenticated local backends. |
+| `STIGMER_MCP_TRANSPORT` | `stdio` | Transport mode: `stdio`, `http`, or `both`. |
+| `STIGMER_MCP_HTTP_PORT` | `8080` | TCP port for the HTTP transport. |
+| `STIGMER_MCP_HTTP_AUTH_ENABLED` | `true` | Require `Authorization: Bearer <token>` on HTTP requests. |
+| `STIGMER_MCP_LOG_FORMAT` | `text` | Log encoding: `text` or `json`. Logs are written to stderr. |
+| `STIGMER_MCP_LOG_LEVEL` | `info` | Minimum log severity: `debug`, `info`, `warn`, or `error`. |
+
+When running via `stigmer mcp-server`, the CLI resolves settings from
+`~/.stigmer/config.yaml` before falling back to environment variables. The
+standalone binary and Docker image use environment variables only.
+
+**TLS:** Connections to endpoints on port `443` automatically use TLS with the
+system root CA pool. All other ports use plaintext. There is no separate TLS
+configuration flag.
 
 ---
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `search` | Unified search and list across agents, skills, MCP servers, and workflows. Supports full-text search, kind filtering, org scoping, and pagination. Each result includes a `resource_uri` that can be passed directly to `resources/read`. |
-| `get_agent` | Retrieve the full definition of an agent by its org and slug. |
-| `get_mcp_server` | Retrieve the full definition of an MCP server by its org and slug. |
-| `get_skill` | Retrieve the full definition of a skill by org, slug, and optional version. |
-| `get_workflow` | Retrieve the full definition of a workflow by its org and slug. |
-| `apply_agent` | Create or update an agent definition. |
-| `apply_mcp_server` | Create or update an MCP server definition. |
-| `apply_workflow` | Create or update a workflow definition. |
-| `delete_agent` | Delete an agent by its org and slug. |
-| `delete_mcp_server` | Delete an MCP server by its org and slug. |
-| `delete_skill` | Delete a skill by its org and slug. |
-| `delete_workflow` | Delete a workflow by its org and slug. |
+### search
+
+Unified search and discovery across all Stigmer resource kinds.
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `query` | no | Free-text search string. Omit to list all accessible resources. |
+| `kinds` | no | Filter by resource type. Valid values: `agent`, `skill`, `mcp_server`, `workflow`. Omit to search all kinds. |
+| `org` | no | Scope results to a single organization slug. Omit to search across all accessible orgs. |
+| `exclude_public` | no | When `true`, hides platform-provided public resources from results. Default `false`. |
+| `page_size` | no | Results per page (default 20, max 100). |
+| `page_num` | no | Page number, 1-indexed (default 1). |
+
+**Usage patterns:**
+
+```jsonc
+// List all agents in an org
+{"kinds": ["agent"], "org": "acme"}
+
+// Full-text search across everything
+{"query": "kubernetes"}
+
+// Filtered search with pagination
+{"kinds": ["agent", "skill"], "query": "security", "org": "acme", "page_size": 10}
+```
+
+Each result includes a `resource_uri` field (e.g.
+`stigmer://agents/acme/code-reviewer`) that can be passed directly to
+`resources/read`.
+
+### get_agent
+
+Retrieve the full definition of an agent.
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `org` | **yes** | Organization slug (e.g. `stigmer`). |
+| `slug` | **yes** | Agent slug (e.g. `code-reviewer`). |
+
+### get_skill
+
+Retrieve the full definition of a skill, optionally at a specific version.
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `org` | **yes** | Organization slug. |
+| `slug` | **yes** | Skill slug. |
+| `version` | no | Tag name (e.g. `stable`, `v1.0`) or SHA-256 content hash. Omit for the latest version. |
+
+### get_workflow
+
+Retrieve the full definition of a workflow.
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `org` | **yes** | Organization slug. |
+| `slug` | **yes** | Workflow slug. |
+
+### get_mcp_server
+
+Retrieve the full definition of an MCP server.
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `org` | **yes** | Organization slug. |
+| `slug` | **yes** | MCP server slug. |
+
+### apply_agent
+
+Create or update an agent definition (idempotent).
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| *(structured)* | **yes** | Full agent specification — identity fields (name, org) and configuration (instructions, skills, MCP servers, etc.). The input schema is auto-generated from the Agent protobuf definition. |
+
+### apply_workflow
+
+Create or update a workflow definition (idempotent).
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| *(structured)* | **yes** | Full workflow specification — identity fields (name, org) and configuration (document, tasks, env, etc.). The input schema is auto-generated from the Workflow protobuf definition. |
+
+### apply_mcp_server
+
+Create or update an MCP server definition (idempotent).
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| *(structured)* | **yes** | Full MCP server specification — identity fields (name, org) and configuration (stdio/http, tools, env, etc.). The input schema is auto-generated from the McpServer protobuf definition. |
+
+### delete_agent
+
+Delete an agent by org and slug. Returns the deleted agent definition.
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `org` | **yes** | Organization slug. |
+| `slug` | **yes** | Agent slug. |
+
+### delete_skill
+
+Delete a skill and **all its versions** by org and slug. Returns the deleted
+skill definition.
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `org` | **yes** | Organization slug. |
+| `slug` | **yes** | Skill slug. |
+
+### delete_workflow
+
+Delete a workflow by org and slug. Returns the deleted workflow definition.
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `org` | **yes** | Organization slug. |
+| `slug` | **yes** | Workflow slug. |
+
+### delete_mcp_server
+
+Delete an MCP server definition by org and slug. Returns the deleted definition.
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `org` | **yes** | Organization slug. |
+| `slug` | **yes** | MCP server slug. |
+
+### Why no apply_skill?
+
+Skills are versioned knowledge artifacts. Each version is content-addressed
+(SHA-256) and can be tagged (e.g. `stable`, `v1.0`). This versioning model
+requires the `stigmer skill push` CLI command, which handles content hashing,
+diffing, and tag management. The MCP server exposes skills as **read-only**
+resources — you can search, fetch, and delete them, but creation and updates go
+through the CLI.
+
+### Error handling
+
+All tools translate gRPC errors into user-friendly messages:
+
+| gRPC Status | Tool Error Message |
+|-------------|-------------------|
+| `NotFound` | `{resource} not found. Verify the org and slug are correct.` |
+| `PermissionDenied` | `Permission denied for {resource}. Check your API key permissions.` |
+| `Unauthenticated` | `Authentication failed. Check your API key.` |
+| `Unavailable` | `Stigmer server is unavailable. Ensure it is running and reachable.` |
+| `DeadlineExceeded` | `Request timed out contacting stigmer-server.` |
+| `InvalidArgument` | The server's validation message is returned directly. |
+
+---
 
 ## Resources
 
-The server exposes resource templates that MCP clients can use to read
-Stigmer resources by URI, without calling a tool:
+MCP clients can read Stigmer resources directly by URI via `resources/read`.
 
-| URI Template | Description |
-|--------------|-------------|
-| `stigmer://agents/{org}/{slug}` | Full agent definition as JSON |
-| `stigmer://mcp-servers/{org}/{slug}` | Full MCP server definition as JSON |
-| `stigmer://skills/{org}/{slug}` | Full skill definition as JSON (latest version) |
-| `stigmer://skills/{org}/{slug}/{version}` | Full skill definition as JSON at a specific version (tag name or SHA-256 hash) |
-| `stigmer://workflows/{org}/{slug}` | Full workflow definition as JSON |
+| URI Template | Description | MIME Type |
+|--------------|-------------|-----------|
+| `stigmer://agents/{org}/{slug}` | Agent definition | `application/json` |
+| `stigmer://mcp-servers/{org}/{slug}` | MCP server definition | `application/json` |
+| `stigmer://skills/{org}/{slug}` | Skill definition (latest version) | `application/json` |
+| `stigmer://skills/{org}/{slug}/{version}` | Skill definition at a specific version | `application/json` |
+| `stigmer://workflows/{org}/{slug}` | Workflow definition | `application/json` |
 
-The `search` tool returns a `resource_uri` field in each result entry (for kinds
-that have a resource template). Use `search` to discover resources, then pass
-the `resource_uri` directly to `resources/read` — no manual URI construction
-needed.
+The `search` tool returns a `resource_uri` in each result that can be passed
+directly to `resources/read` — no manual URI construction is needed.
+
+**URI structure:** `stigmer://{kind-plural}/{org}/{slug}[/{version}]`
+
+The kind-to-path mapping is:
+
+| Kind (singular) | URI Authority (plural) |
+|-----------------|----------------------|
+| `agent` | `agents` |
+| `mcp_server` | `mcp-servers` |
+| `skill` | `skills` |
+| `workflow` | `workflows` |
 
 ---
 
 ## HTTP Mode
 
-For shared or remote deployments, run the server in HTTP mode:
+For shared or remote deployments, set the transport to `http`. This runs the
+MCP Streamable HTTP transport — not a REST API.
 
 ```bash
-export STIGMER_SERVER_ADDRESS="api.stigmer.ai:443"
-export STIGMER_API_KEY="your-api-key"
-export STIGMER_MCP_TRANSPORT="http"
-
-mcp-server-stigmer
+STIGMER_MCP_TRANSPORT=http \
+STIGMER_SERVER_ADDRESS=api.stigmer.ai:443 \
+STIGMER_API_KEY=your-api-key \
+  mcp-server-stigmer
 ```
 
 Or with Docker:
@@ -309,95 +398,84 @@ docker run --rm \
   ghcr.io/stigmer/mcp-server-stigmer
 ```
 
-Then configure your MCP client to connect to `http://host:8080` with an
-`Authorization: Bearer <token>` header.
+Connect your MCP client to `http://host:8080` with an
+`Authorization: Bearer <token>` header, where `<token>` is a valid Stigmer API
+key. Each HTTP request carries its own API key, so multiple users can share a
+single server instance.
+
+**Auth:** HTTP auth is enabled by default. Set
+`STIGMER_MCP_HTTP_AUTH_ENABLED=false` only for trusted internal networks where
+all callers are already authenticated at the network level.
+
+**Dual transport:** Set `STIGMER_MCP_TRANSPORT=both` to serve STDIO and HTTP
+simultaneously from a single process. This is useful in development when you
+want local IDE access (STDIO) and remote access (HTTP) at the same time.
+
+**TLS:** The HTTP transport does not terminate TLS natively. For production
+deployments, place a TLS-terminating reverse proxy (e.g. nginx, Envoy, or a
+cloud load balancer) in front of the MCP server.
 
 ---
 
-## Logging
+## Development
 
-All log output is written to **stderr** so that stdout remains available for
-the STDIO transport protocol.
-
-| Format | When to use |
-|--------|-------------|
-| `text` (default) | Local development — human-readable, one line per event |
-| `json` | Production / log aggregation — machine-parseable, one JSON object per line |
-
-In HTTP mode every request is logged with a unique `request_id`, the HTTP
-method, path, response status code, and duration in milliseconds.
-
-gRPC errors returned by stigmer-server are classified into user-friendly
-messages for the MCP client. The original gRPC status code and message are
-logged at WARN level for operator debugging.
-
-## Graceful Shutdown
-
-The server listens for `SIGINT` and `SIGTERM`. On receiving either signal:
-
-- **HTTP mode** — in-flight requests are given a 5-second grace period to
-  complete before the listener is forcefully closed.
-- **STDIO mode** — the server stops when the MCP client disconnects or the
-  signal is received.
-- **Both mode** — both transports shut down concurrently; the process exits
-  once both have drained.
-
----
-
-## Docker
-
-### Building the Image
+### Build and test
 
 ```bash
-docker build -f mcp-server/Dockerfile -t mcp-server-stigmer .
+make build          # Build binary to bin/mcp-server-stigmer
+make test           # Run tests with race detection
+make lint           # Run golangci-lint (falls back to go vet)
+make fmt            # Format all Go source files
+make vet            # Run go vet (excludes gen/)
+make tidy           # Run go mod tidy
 ```
 
-### Running
+### Code generation
 
-**STDIO mode** (for MCP clients like Cursor, Claude Desktop):
+MCP input types (the structs that define each tool's JSON Schema) are
+**auto-generated** from protobuf definitions via a two-stage pipeline:
 
 ```bash
-docker run -i --rm \
-  -e STIGMER_SERVER_ADDRESS=localhost:7234 \
-  -e STIGMER_API_KEY=your-api-key \
-  ghcr.io/stigmer/mcp-server-stigmer
+make codegen-schemas   # Stage 1: Proto → JSON schemas
+make codegen-mcp       # Stage 2: JSON schemas → Go input types in gen/
+make codegen           # Both stages
 ```
 
-**HTTP mode** (for remote/shared deployments):
+The `gen/` directory is entirely machine-generated. **Never edit files in `gen/`
+by hand** — they will be overwritten on the next `make codegen` run.
+
+> `go vet` excludes `gen/` because the `jsonschema-go` tag convention used in
+> generated structs triggers false positives in the struct-tag checker.
+
+### Domain package structure
+
+Each resource domain (`agents`, `skills`, `workflows`, `mcpservers`) follows
+the same file layout under `internal/domains/`:
+
+| File | Purpose |
+|------|---------|
+| `tools.go` | MCP tool definitions and handlers |
+| `resources.go` | MCP resource template and handler |
+| `fetch.go` | Shared fetch logic (used by both tools and resources) |
+| `apply.go` | Create-or-update logic |
+| `delete.go` | Delete logic |
+
+To add a new domain: create a package following this pattern, then register its
+tools and resources in
+[`internal/server/server.go`](internal/server/server.go).
+
+### Docker
+
+The Docker build must be invoked from the repository root (the build context
+needs `apis/stubs/go` for the Go module replace directive):
 
 ```bash
-docker run --rm \
-  -e STIGMER_SERVER_ADDRESS=api.stigmer.ai:443 \
-  -e STIGMER_API_KEY=your-api-key \
-  -e STIGMER_MCP_TRANSPORT=http \
-  -p 8080:8080 \
-  ghcr.io/stigmer/mcp-server-stigmer
+cd <repo-root>
+docker build -f mcp-server/Dockerfile -t ghcr.io/stigmer/mcp-server-stigmer:latest .
 ```
 
 ---
-
-## Architecture
-
-```
-cmd/mcp-server-stigmer/main.go   Standalone binary entry point
-pkg/mcpserver/config.go          Public API: Config + DefaultConfig()
-pkg/mcpserver/run.go             Public API: Run() — used by CLI and standalone binary
-internal/config/config.go        Environment-based configuration
-internal/auth/credentials.go     gRPC PerRPCCredentials + context-based API key helpers
-internal/grpc/client.go          gRPC connection factory (TLS/insecure)
-internal/server/server.go        MCP server initialization + tool registration
-internal/server/http.go          Streamable HTTP handler with auth middleware
-internal/domains/jsonutil.go     Shared protojson serialization
-internal/domains/rpcerr.go       gRPC error classification → user-friendly messages
-internal/domains/uriutil.go      Resource URI parsing and building
-internal/domains/search/         search tool → SearchService.search
-internal/domains/agents/         get_agent, apply_agent, delete_agent tools + resource template
-internal/domains/mcpservers/     get_mcp_server, apply_mcp_server, delete_mcp_server tools + resource template
-internal/domains/skills/         get_skill, delete_skill tools + resource template
-internal/domains/workflows/      get_workflow, apply_workflow, delete_workflow tools + resource template
-```
 
 ## License
 
-This project is part of the [Stigmer](https://github.com/stigmer/stigmer)
-platform and is available under the same license.
+Apache License 2.0. See [LICENSE](../LICENSE).

@@ -20,10 +20,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	McpServerCommandController_Apply_FullMethodName  = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/apply"
-	McpServerCommandController_Create_FullMethodName = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/create"
-	McpServerCommandController_Update_FullMethodName = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/update"
-	McpServerCommandController_Delete_FullMethodName = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/delete"
+	McpServerCommandController_Apply_FullMethodName                        = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/apply"
+	McpServerCommandController_Create_FullMethodName                       = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/create"
+	McpServerCommandController_Update_FullMethodName                       = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/update"
+	McpServerCommandController_Delete_FullMethodName                       = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/delete"
+	McpServerCommandController_UpdateDiscoveredCapabilities_FullMethodName = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/updateDiscoveredCapabilities"
 )
 
 // McpServerCommandControllerClient is the client API for McpServerCommandController service.
@@ -98,6 +99,21 @@ type McpServerCommandControllerClient interface {
 	// - Organization: Org admins or resource owner
 	// - Identity Account: The owner
 	Delete(ctx context.Context, in *apiresource.ApiResourceDeleteInput, opts ...grpc.CallOption) (*McpServer, error)
+	// Update the discovered capabilities (tools and resource templates) for an MCP server.
+	//
+	// This is a targeted status update — it only modifies status.discovered_capabilities,
+	// leaving spec, validation state, and other status fields untouched.
+	//
+	// Typical flow:
+	// 1. CLI calls getByReference(org/slug) to fetch the McpServer and its ID
+	// 2. CLI connects to the MCP server locally and queries tools/resources
+	// 3. CLI calls this RPC with the ID and discovered capabilities
+	//
+	// Input: UpdateDiscoveredCapabilitiesInput with mcp_server_id and discovered_capabilities.
+	// Returns: The updated McpServer with the new discovered capabilities.
+	//
+	// Authorization: Requires can_edit permission on the mcp_server resource.
+	UpdateDiscoveredCapabilities(ctx context.Context, in *UpdateDiscoveredCapabilitiesInput, opts ...grpc.CallOption) (*McpServer, error)
 }
 
 type mcpServerCommandControllerClient struct {
@@ -142,6 +158,16 @@ func (c *mcpServerCommandControllerClient) Delete(ctx context.Context, in *apire
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(McpServer)
 	err := c.cc.Invoke(ctx, McpServerCommandController_Delete_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mcpServerCommandControllerClient) UpdateDiscoveredCapabilities(ctx context.Context, in *UpdateDiscoveredCapabilitiesInput, opts ...grpc.CallOption) (*McpServer, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(McpServer)
+	err := c.cc.Invoke(ctx, McpServerCommandController_UpdateDiscoveredCapabilities_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -220,6 +246,21 @@ type McpServerCommandControllerServer interface {
 	// - Organization: Org admins or resource owner
 	// - Identity Account: The owner
 	Delete(context.Context, *apiresource.ApiResourceDeleteInput) (*McpServer, error)
+	// Update the discovered capabilities (tools and resource templates) for an MCP server.
+	//
+	// This is a targeted status update — it only modifies status.discovered_capabilities,
+	// leaving spec, validation state, and other status fields untouched.
+	//
+	// Typical flow:
+	// 1. CLI calls getByReference(org/slug) to fetch the McpServer and its ID
+	// 2. CLI connects to the MCP server locally and queries tools/resources
+	// 3. CLI calls this RPC with the ID and discovered capabilities
+	//
+	// Input: UpdateDiscoveredCapabilitiesInput with mcp_server_id and discovered_capabilities.
+	// Returns: The updated McpServer with the new discovered capabilities.
+	//
+	// Authorization: Requires can_edit permission on the mcp_server resource.
+	UpdateDiscoveredCapabilities(context.Context, *UpdateDiscoveredCapabilitiesInput) (*McpServer, error)
 }
 
 // UnimplementedMcpServerCommandControllerServer should be embedded to have
@@ -240,6 +281,9 @@ func (UnimplementedMcpServerCommandControllerServer) Update(context.Context, *Mc
 }
 func (UnimplementedMcpServerCommandControllerServer) Delete(context.Context, *apiresource.ApiResourceDeleteInput) (*McpServer, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+}
+func (UnimplementedMcpServerCommandControllerServer) UpdateDiscoveredCapabilities(context.Context, *UpdateDiscoveredCapabilitiesInput) (*McpServer, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateDiscoveredCapabilities not implemented")
 }
 func (UnimplementedMcpServerCommandControllerServer) testEmbeddedByValue() {}
 
@@ -333,6 +377,24 @@ func _McpServerCommandController_Delete_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _McpServerCommandController_UpdateDiscoveredCapabilities_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateDiscoveredCapabilitiesInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpServerCommandControllerServer).UpdateDiscoveredCapabilities(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpServerCommandController_UpdateDiscoveredCapabilities_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpServerCommandControllerServer).UpdateDiscoveredCapabilities(ctx, req.(*UpdateDiscoveredCapabilitiesInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // McpServerCommandController_ServiceDesc is the grpc.ServiceDesc for McpServerCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -355,6 +417,10 @@ var McpServerCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "delete",
 			Handler:    _McpServerCommandController_Delete_Handler,
+		},
+		{
+			MethodName: "updateDiscoveredCapabilities",
+			Handler:    _McpServerCommandController_UpdateDiscoveredCapabilities_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

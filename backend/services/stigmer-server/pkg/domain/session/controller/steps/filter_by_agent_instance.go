@@ -7,7 +7,7 @@ import (
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
-	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 // filterByAgentInstanceStep loads all sessions and filters by agent_instance_id
@@ -63,7 +63,7 @@ func (s *filterByAgentInstanceStep) Execute(ctx *pipeline.RequestContext[*sessio
 	var filteredSessions []*sessionv1.Session
 	for _, d := range data {
 		session := &sessionv1.Session{}
-		if err := protojson.Unmarshal(d, session); err != nil {
+		if err := proto.Unmarshal(d, session); err != nil {
 			log.Warn().
 				Err(err).
 				Msg("Failed to unmarshal session, skipping")

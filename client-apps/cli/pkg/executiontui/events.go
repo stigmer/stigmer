@@ -24,6 +24,9 @@ func (AIMessageEvent) isEvent() {}
 // Content holds the initial text available at the start of streaming.
 type AIStreamStartEvent struct {
 	Content string
+	// SubAgentID is non-empty when this streaming message originates from a
+	// sub-agent. The TUI applies the same visual nesting as AIMessageEvent.
+	SubAgentID string
 }
 
 func (AIStreamStartEvent) isEvent() {}
@@ -33,6 +36,10 @@ func (AIStreamStartEvent) isEvent() {}
 // with this value — Bubbletea's diff engine handles efficient terminal updates.
 type AIStreamDeltaEvent struct {
 	Content string
+	// SubAgentID is non-empty when this streaming message originates from a
+	// sub-agent. Carried for consistency; the TUI uses the blockIdx from
+	// streamingState rather than re-deriving it from the event.
+	SubAgentID string
 }
 
 func (AIStreamDeltaEvent) isEvent() {}
@@ -43,6 +50,9 @@ func (AIStreamDeltaEvent) isEvent() {}
 type AIStreamEndEvent struct {
 	Content   string
 	ToolCalls []toolrender.ToolCallInfo
+	// SubAgentID is non-empty when this streaming message originates from a
+	// sub-agent. The TUI applies the same visual nesting as AIMessageEvent.
+	SubAgentID string
 }
 
 func (AIStreamEndEvent) isEvent() {}
@@ -169,6 +179,32 @@ type StreamErrorEvent struct {
 }
 
 func (StreamErrorEvent) isEvent() {}
+
+// TodoItem represents a single todo/planning item from the agent's task list.
+// This is the domain type used within the TUI — the bridge layer converts
+// proto TodoItem messages into this type.
+type TodoItem struct {
+	// ID is the unique identifier for this todo item.
+	ID string
+
+	// Content is the task description.
+	Content string
+
+	// Status is the current state: "pending", "in_progress", "completed",
+	// or "cancelled". Matches the string-based status pattern used by
+	// tool call lifecycle tracking.
+	Status string
+}
+
+// TodoUpdateEvent carries the full current todo list. Emitted when the
+// bridge layer detects any change in the execution's todos map. The TUI
+// replaces the todo block content entirely with the new state — no
+// per-item diffing is needed on the TUI side.
+type TodoUpdateEvent struct {
+	Todos []TodoItem
+}
+
+func (TodoUpdateEvent) isEvent() {}
 
 // ApprovalResponse carries the user's approval decision back to the gRPC
 // goroutine. Action is one of "approve", "skip", "reject". Comment is an

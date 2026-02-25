@@ -24,7 +24,7 @@ go_library(
         "//backend/libs/go/store",
         "//backend/services/stigmer-server/pkg/domain/session/controller/steps",
         "@com_github_rs_zerolog//log",
-        "@org_golang_google_protobuf//encoding/protojson",
+        "@org_golang_google_protobuf//proto",
     ],
 )
 

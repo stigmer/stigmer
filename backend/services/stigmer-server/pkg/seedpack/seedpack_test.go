@@ -10,105 +10,129 @@ import (
 	"testing"
 )
 
-func TestLoadManifest(t *testing.T) {
-	manifest, err := LoadManifest()
+func TestDiscoverManifest(t *testing.T) {
+	manifest, err := DiscoverManifest()
 	if err != nil {
-		t.Fatalf("LoadManifest() failed: %v", err)
+		t.Fatalf("DiscoverManifest() failed: %v", err)
 	}
 
-	// Validate schema version
-	if manifest.SchemaVersion != "4" {
-		t.Errorf("Expected schema_version '4', got '%s'", manifest.SchemaVersion)
+	if manifest.ContentHash == "" {
+		t.Error("Expected non-empty content hash")
 	}
 
-	// Validate version
-	if manifest.Version != "1.4.0" {
-		t.Errorf("Expected version '1.4.0', got '%s'", manifest.Version)
+	if !strings.HasPrefix(manifest.ContentHash, "sha256:") {
+		t.Errorf("Expected content hash to start with 'sha256:', got '%s'", manifest.ContentHash)
 	}
 
-	// Validate skills
-	if len(manifest.Skills) == 0 {
-		t.Error("Expected at least one skill in manifest")
+	if len(manifest.Skills) < 2 {
+		t.Errorf("Expected at least 2 skills (skill-creator, agent-creator), got %d", len(manifest.Skills))
 	}
 
-	// Validate system agents
 	if len(manifest.SystemAgents) == 0 {
-		t.Error("Expected at least one system agent in manifest")
+		t.Error("Expected at least one system agent")
 	}
 
-	// Validate MCP servers
 	if len(manifest.McpServers) == 0 {
-		t.Error("Expected at least one MCP server in manifest")
+		t.Error("Expected at least one MCP server")
 	}
 
-	t.Logf("Manifest: version=%s, skills=%d, agents=%d, mcp_servers=%d",
-		manifest.Version, len(manifest.Skills), len(manifest.SystemAgents), len(manifest.McpServers))
+	skillNames := make([]string, len(manifest.Skills))
+	for i, s := range manifest.Skills {
+		skillNames[i] = s.Name
+	}
+	t.Logf("Discovered: content_hash=%s, skills=%v, agents=%d, mcp_servers=%d",
+		manifest.ContentHash, skillNames, len(manifest.SystemAgents), len(manifest.McpServers))
 }
 
-func TestLoadManifest_SkillCreatorEntry(t *testing.T) {
-	manifest, err := LoadManifest()
+func TestDiscoverManifest_ContentHashDeterministic(t *testing.T) {
+	m1, err := DiscoverManifest()
 	if err != nil {
-		t.Fatalf("LoadManifest() failed: %v", err)
+		t.Fatalf("first DiscoverManifest() failed: %v", err)
 	}
 
-	// Find skill-creator entry
-	var skillCreator *SkillEntry
-	for i := range manifest.Skills {
-		if manifest.Skills[i].Name == "skill-creator" {
-			skillCreator = &manifest.Skills[i]
-			break
+	m2, err := DiscoverManifest()
+	if err != nil {
+		t.Fatalf("second DiscoverManifest() failed: %v", err)
+	}
+
+	if m1.ContentHash != m2.ContentHash {
+		t.Errorf("Content hash is not deterministic: %s != %s", m1.ContentHash, m2.ContentHash)
+	}
+}
+
+func TestDiscoverManifest_SkillsSorted(t *testing.T) {
+	manifest, err := DiscoverManifest()
+	if err != nil {
+		t.Fatalf("DiscoverManifest() failed: %v", err)
+	}
+
+	for i := 1; i < len(manifest.Skills); i++ {
+		if manifest.Skills[i].Name < manifest.Skills[i-1].Name {
+			t.Errorf("Skills not sorted: %s comes after %s",
+				manifest.Skills[i].Name, manifest.Skills[i-1].Name)
 		}
 	}
+}
 
-	if skillCreator == nil {
-		t.Fatal("skill-creator not found in manifest")
+func TestDiscoverManifest_SkillCreatorEntry(t *testing.T) {
+	skill, err := GetSkillByName("skill-creator")
+	if err != nil {
+		t.Fatalf("GetSkillByName('skill-creator') failed: %v", err)
 	}
 
-	if skillCreator.Path != "skills/skill-creator" {
-		t.Errorf("Expected path 'skills/skill-creator', got '%s'", skillCreator.Path)
+	if skill == nil {
+		t.Fatal("skill-creator not discovered")
 	}
 
-	if !strings.HasPrefix(skillCreator.ContentDigest, "sha256:") {
-		t.Errorf("Expected content_digest to start with 'sha256:', got '%s'", skillCreator.ContentDigest)
+	if skill.Path != "skills/skill-creator" {
+		t.Errorf("Expected path 'skills/skill-creator', got '%s'", skill.Path)
 	}
 
-	if skillCreator.Source.Type != "git" {
-		t.Errorf("Expected source.type 'git', got '%s'", skillCreator.Source.Type)
-	}
-
-	if skillCreator.Source.URL != "https://github.com/anthropics/skills" {
-		t.Errorf("Expected source.url 'https://github.com/anthropics/skills', got '%s'", skillCreator.Source.URL)
+	if !strings.HasPrefix(skill.ContentDigest, "sha256:") {
+		t.Errorf("Expected content_digest to start with 'sha256:', got '%s'", skill.ContentDigest)
 	}
 
 	t.Logf("skill-creator: path=%s, digest=%s...",
-		skillCreator.Path, skillCreator.ContentDigest[:30])
+		skill.Path, skill.ContentDigest[:30])
 }
 
-func TestLoadManifest_SkillCreatorAgentEntry(t *testing.T) {
-	manifest, err := LoadManifest()
+func TestDiscoverManifest_AgentCreatorSkill(t *testing.T) {
+	skill, err := GetSkillByName("agent-creator")
 	if err != nil {
-		t.Fatalf("LoadManifest() failed: %v", err)
+		t.Fatalf("GetSkillByName('agent-creator') failed: %v", err)
 	}
 
-	// Find skill-creator-agent entry
-	var agentEntry *AgentEntry
-	for i := range manifest.SystemAgents {
-		if manifest.SystemAgents[i].Name == "skill-creator-agent" {
-			agentEntry = &manifest.SystemAgents[i]
-			break
-		}
+	if skill == nil {
+		t.Fatal("agent-creator not discovered (this was the bug that motivated auto-discovery)")
 	}
 
-	if agentEntry == nil {
-		t.Fatal("skill-creator-agent not found in manifest")
+	if skill.Path != "skills/agent-creator" {
+		t.Errorf("Expected path 'skills/agent-creator', got '%s'", skill.Path)
 	}
 
-	// Validate agent entry has correct path (schema v2)
-	if agentEntry.Path != "agents/skill-creator-agent.yaml" {
-		t.Errorf("Expected path 'agents/skill-creator-agent.yaml', got '%s'", agentEntry.Path)
+	if !strings.HasPrefix(skill.ContentDigest, "sha256:") {
+		t.Errorf("Expected content_digest to start with 'sha256:', got '%s'", skill.ContentDigest)
 	}
 
-	t.Logf("skill-creator-agent: name=%s, path=%s", agentEntry.Name, agentEntry.Path)
+	t.Logf("agent-creator: path=%s, digest=%s...",
+		skill.Path, skill.ContentDigest[:30])
+}
+
+func TestDiscoverManifest_AgentEntry(t *testing.T) {
+	agent, err := GetAgentByName("skill-creator-agent")
+	if err != nil {
+		t.Fatalf("GetAgentByName('skill-creator-agent') failed: %v", err)
+	}
+
+	if agent == nil {
+		t.Fatal("skill-creator-agent not discovered")
+	}
+
+	if agent.Path != "agents/skill-creator-agent.yaml" {
+		t.Errorf("Expected path 'agents/skill-creator-agent.yaml', got '%s'", agent.Path)
+	}
+
+	t.Logf("skill-creator-agent: name=%s, path=%s", agent.Name, agent.Path)
 }
 
 func TestLoadAgentYAML(t *testing.T) {
@@ -428,29 +452,86 @@ func TestGetAgentByName(t *testing.T) {
 	}
 }
 
-func TestLoadManifest_McpServerEntry(t *testing.T) {
-	manifest, err := LoadManifest()
+func TestDiscoverManifest_McpServerEntry(t *testing.T) {
+	mcpServer, err := GetMcpServerByName("stigmer-mcp-server")
 	if err != nil {
-		t.Fatalf("LoadManifest() failed: %v", err)
+		t.Fatalf("GetMcpServerByName('stigmer-mcp-server') failed: %v", err)
 	}
 
-	var mcpEntry *McpServerEntry
-	for i := range manifest.McpServers {
-		if manifest.McpServers[i].Name == "stigmer-mcp-server" {
-			mcpEntry = &manifest.McpServers[i]
-			break
-		}
+	if mcpServer == nil {
+		t.Fatal("stigmer-mcp-server not discovered")
 	}
 
-	if mcpEntry == nil {
-		t.Fatal("stigmer-mcp-server not found in manifest")
+	if mcpServer.Path != "mcp-servers/stigmer-mcp-server.yaml" {
+		t.Errorf("Expected path 'mcp-servers/stigmer-mcp-server.yaml', got '%s'", mcpServer.Path)
 	}
 
-	if mcpEntry.Path != "mcp-servers/stigmer-mcp-server.yaml" {
-		t.Errorf("Expected path 'mcp-servers/stigmer-mcp-server.yaml', got '%s'", mcpEntry.Path)
+	t.Logf("stigmer-mcp-server: name=%s, path=%s", mcpServer.Name, mcpServer.Path)
+}
+
+func TestComputeSkillDigest(t *testing.T) {
+	digest, err := computeSkillDigest("skills/skill-creator")
+	if err != nil {
+		t.Fatalf("computeSkillDigest() failed: %v", err)
 	}
 
-	t.Logf("stigmer-mcp-server: name=%s, path=%s", mcpEntry.Name, mcpEntry.Path)
+	if !strings.HasPrefix(digest, "sha256:") {
+		t.Errorf("Expected digest to start with 'sha256:', got '%s'", digest)
+	}
+
+	digest2, err := computeSkillDigest("skills/skill-creator")
+	if err != nil {
+		t.Fatalf("second computeSkillDigest() failed: %v", err)
+	}
+
+	if digest != digest2 {
+		t.Errorf("Digest is not deterministic: %s != %s", digest, digest2)
+	}
+
+	t.Logf("skill-creator digest: %s", digest)
+}
+
+func TestExtractYAMLMetadataName(t *testing.T) {
+	tests := []struct {
+		name     string
+		yaml     string
+		wantName string
+		wantErr  bool
+	}{
+		{
+			name:     "valid agent YAML",
+			yaml:     "apiVersion: v1\nkind: Agent\nmetadata:\n  name: test-agent\nspec:\n  description: test\n",
+			wantName: "test-agent",
+		},
+		{
+			name:    "missing metadata",
+			yaml:    "apiVersion: v1\nkind: Agent\nspec:\n  description: test\n",
+			wantErr: true,
+		},
+		{
+			name:    "empty name",
+			yaml:    "metadata:\n  name: \"\"\n",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			name, err := extractYAMLMetadataName([]byte(tt.yaml))
+			if tt.wantErr {
+				if err == nil {
+					t.Error("Expected error, got nil")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("extractYAMLMetadataName() failed: %v", err)
+			}
+			if name != tt.wantName {
+				t.Errorf("Expected name '%s', got '%s'", tt.wantName, name)
+			}
+		})
+	}
 }
 
 func TestLoadMcpServerYAML(t *testing.T) {
@@ -496,13 +577,33 @@ func TestLoadMcpServerYAML(t *testing.T) {
 		t.Errorf("Expected command 'go', got '%s'", stdio.Command)
 	}
 
-	expectedArgs := []string{"run", "github.com/stigmer/stigmer/mcp-server/cmd/mcp-server-stigmer@latest"}
-	if len(stdio.Args) != len(expectedArgs) || stdio.Args[0] != expectedArgs[0] || stdio.Args[1] != expectedArgs[1] {
-		t.Errorf("Expected args %v, got %v", expectedArgs, stdio.Args)
+	expectedArgs := []string{"run", "github.com/stigmer/stigmer/mcp-server/cmd/mcp-server-stigmer@v0.0.14"}
+	if len(stdio.Args) != len(expectedArgs) {
+		t.Errorf("Expected %d args, got %d: %v", len(expectedArgs), len(stdio.Args), stdio.Args)
+	} else {
+		for i, arg := range expectedArgs {
+			if stdio.Args[i] != arg {
+				t.Errorf("Expected args[%d]=%q, got %q", i, arg, stdio.Args[i])
+			}
+		}
 	}
 
-	t.Logf("stigmer-mcp-server: description=%s..., command=%s %v",
-		truncate(mcpServer.Spec.Description, 50), stdio.Command, stdio.Args)
+	envSpec := mcpServer.Spec.GetEnvSpec()
+	if envSpec == nil {
+		t.Fatal("Expected non-nil env_spec")
+	}
+	if _, ok := envSpec.Data["STIGMER_SERVER_ADDRESS"]; !ok {
+		t.Error("Expected STIGMER_SERVER_ADDRESS in env_spec")
+	}
+	if _, ok := envSpec.Data["STIGMER_API_KEY"]; !ok {
+		t.Error("Expected STIGMER_API_KEY in env_spec")
+	}
+	if apiKey, ok := envSpec.Data["STIGMER_API_KEY"]; ok && !apiKey.IsSecret {
+		t.Error("Expected STIGMER_API_KEY to be marked as secret")
+	}
+
+	t.Logf("stigmer-mcp-server: description=%s..., command=%s %v, env_spec_keys=%d",
+		truncate(mcpServer.Spec.Description, 50), stdio.Command, stdio.Args, len(envSpec.Data))
 }
 
 func TestGetMcpServerByName(t *testing.T) {

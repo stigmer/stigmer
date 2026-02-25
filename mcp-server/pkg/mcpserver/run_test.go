@@ -15,7 +15,7 @@ func TestRun_invalidConfig(t *testing.T) {
 		{
 			name: "bad transport",
 			cfg: &Config{
-				StigmerServerAddress: "localhost:9090",
+				StigmerServerAddress: "localhost:7234",
 				APIKey:               "key",
 				Transport:            "websocket",
 				HTTPPort:             "8080",
@@ -27,7 +27,7 @@ func TestRun_invalidConfig(t *testing.T) {
 		{
 			name: "bad log level",
 			cfg: &Config{
-				StigmerServerAddress: "localhost:9090",
+				StigmerServerAddress: "localhost:7234",
 				APIKey:               "key",
 				Transport:            "stdio",
 				HTTPPort:             "8080",

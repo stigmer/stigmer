@@ -7,27 +7,27 @@
 //   - Supply-chain security (pinned content with provenance tracking)
 //   - Reproducible deployments (content digest verification)
 //
+// Resources are discovered by convention at runtime (no manifest file):
+//   - skills/{name}/SKILL.md    -> skill to bootstrap
+//   - agents/{name}.yaml        -> system agent to bootstrap
+//   - mcp-servers/{name}.yaml   -> MCP server to bootstrap
+//
 // Architecture follows K3s packaged components pattern: bundled content applied on
 // startup with integrity controls.
 package seedpack
 
 import "embed"
 
-// content embeds the seedpack files at build time.
+// content embeds the seedpack resource directories at build time.
 //
 // Embedded directories:
-//   - manifest.json: Seedpack metadata and resource registry
 //   - skills/: Raw skill content (SKILL.md, scripts, references)
 //   - agents/: System agent YAML definitions for bootstrap
 //   - mcp-servers/: MCP server YAML definitions for bootstrap
 //
-// Directory-level patterns (not globs) are used so that empty subdirectories
-// are silently skipped instead of causing a build failure.
-//
 // Excluded:
 //   - tools/: Build-time scripts, not runtime content
 //
-//go:embed manifest.json
 //go:embed skills
 //go:embed agents
 //go:embed mcp-servers

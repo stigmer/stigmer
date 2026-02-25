@@ -47,7 +47,9 @@ func (m Model) renderInputArea() string {
 // handleInputKey processes keyboard input when the input composer is active.
 // The textarea captures all printable keys. Special keys:
 //   - Esc: exit the session (sets done, quits)
-//   - Enter: submit the message as a follow-up (if non-empty)
+//   - Tab / Shift+Tab: navigate expandable tool call blocks
+//   - Enter: toggle focused tool block (when textarea is empty), or submit follow-up
+//   - Arrow / Page keys: scroll the viewport
 //   - All other keys: forwarded to the textarea component
 func (m Model) handleInputKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.Type {
@@ -56,7 +58,29 @@ func (m Model) handleInputKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.done = true
 		return m, tea.Quit
 
+	case tea.KeyTab:
+		m.focusNextExpandable()
+		m.refreshViewport()
+		m.scrollFocusedBlockIntoView()
+		m.autoScroll = m.viewport.AtBottom()
+		return m, nil
+
+	case tea.KeyShiftTab:
+		m.focusPrevExpandable()
+		m.refreshViewport()
+		m.scrollFocusedBlockIntoView()
+		m.autoScroll = m.viewport.AtBottom()
+		return m, nil
+
 	case tea.KeyEnter:
+		// When the textarea is empty and a tool block is focused,
+		// toggle its expand/collapse state instead of submitting.
+		if strings.TrimSpace(m.textarea.Value()) == "" && m.focusedBlockIndex >= 0 {
+			m.toggleFocusedBlock()
+			m.refreshViewport()
+			return m, nil
+		}
+
 		message := strings.TrimSpace(m.textarea.Value())
 		if message == "" {
 			return m, nil
@@ -72,6 +96,15 @@ func (m Model) handleInputKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// Create the follow-up execution asynchronously. The result
 		// arrives as a followUpStartedMsg or followUpErrorMsg.
 		return m, m.executeFollowUpCmd(message)
+
+	case tea.KeyUp, tea.KeyDown, tea.KeyPgUp, tea.KeyPgDown:
+		// The textarea is single-line so arrow/page keys are useless
+		// there. Forward them to the viewport so the user can scroll
+		// the transcript while composing a follow-up.
+		var cmd tea.Cmd
+		m.viewport, cmd = m.viewport.Update(msg)
+		m.autoScroll = m.viewport.AtBottom()
+		return m, cmd
 
 	default:
 		var cmd tea.Cmd

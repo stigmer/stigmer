@@ -1,0 +1,48 @@
+{
+  "name": "DiscoveredResourceTemplate",
+  "description": "DiscoveredResourceTemplate describes a parameterized resource template\n reported by an MCP server via resources/templates/list.\n\n Resource templates use URI templates (RFC 6570) with placeholders that\n clients fill in to access specific resources.\n\n Example:\n   uri_template: \"stigmer://agents/{org}/{slug}\"\n   name: \"stigmer_agent\"\n   description: \"Full definition of a Stigmer agent\"\n   mime_type: \"application/json\"",
+  "protoType": "ai.stigmer.agentic.mcpserver.v1.DiscoveredResourceTemplate",
+  "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/status.proto",
+  "fields": [
+    {
+      "name": "UriTemplate",
+      "jsonName": "uriTemplate",
+      "protoField": "uri_template",
+      "type": {
+        "kind": "string"
+      },
+      "description": "URI template with placeholders (RFC 6570).\n Example: \"stigmer://agents/{org}/{slug}\"",
+      "required": false
+    },
+    {
+      "name": "Name",
+      "jsonName": "name",
+      "protoField": "name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Identifier for this resource template.",
+      "required": false
+    },
+    {
+      "name": "Description",
+      "jsonName": "description",
+      "protoField": "description",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Human-readable description of the resource.",
+      "required": false
+    },
+    {
+      "name": "MimeType",
+      "jsonName": "mimeType",
+      "protoField": "mime_type",
+      "type": {
+        "kind": "string"
+      },
+      "description": "MIME type of the resource content.\n Example: \"application/json\"",
+      "required": false
+    }
+  ]
+}
