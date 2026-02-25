@@ -13,6 +13,8 @@ go_library(
         "download.go",
         "download_execution.go",
         "draft.go",
+        "draft_agent.go",
+        "draft_agent_handler.go",
         "draft_skill.go",
         "draft_skill_handler.go",
         "get.go",

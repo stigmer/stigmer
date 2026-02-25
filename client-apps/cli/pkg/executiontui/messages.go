@@ -1,6 +1,33 @@
 package executiontui
 
-import tea "github.com/charmbracelet/bubbletea"
+import (
+	"time"
+
+	tea "github.com/charmbracelet/bubbletea"
+)
+
+// subjectFetchBackoff is the series of delays used between successive
+// background polls for the session subject. The first poll is scheduled
+// immediately at TUI init (after 3 s); these delays govern retries.
+// Three total attempts means the TUI gives up after ~18 s of polling
+// without silently hammering the backend.
+var subjectFetchBackoff = []time.Duration{5 * time.Second, 10 * time.Second}
+
+// subjectFetchedMsg carries the result of a background session-subject poll.
+// An empty Subject means the backend has not yet replaced the sentinel with
+// a real title; the TUI will schedule the next retry if attempts remain.
+type subjectFetchedMsg struct {
+	subject string
+}
+
+// scheduleSubjectFetch returns a tea.Cmd that waits delay then calls fn and
+// wraps the result in a subjectFetchedMsg.
+func scheduleSubjectFetch(delay time.Duration, fn func() string) tea.Cmd {
+	return func() tea.Msg {
+		time.Sleep(delay)
+		return subjectFetchedMsg{subject: fn()}
+	}
+}
 
 // executionEventMsg wraps an Event received from the gRPC stream goroutine.
 // The channel listener returns this as a tea.Msg so the model's Update method

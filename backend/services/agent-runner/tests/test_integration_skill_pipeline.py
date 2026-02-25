@@ -408,42 +408,41 @@ class TestVersionResolutionIntegration:
     def test_different_versions_have_different_paths(
         self, skill_latest, skill_tagged_stable, skill_pinned_hash
     ):
-        """Different versions should result in different directories."""
+        """Different versions with same name share a directory (name-based paths)."""
         with tempfile.TemporaryDirectory() as tmpdir:
             skills = [skill_latest, skill_tagged_stable, skill_pinned_hash]
             
             writer = SkillWriter(local_root=tmpdir)
             skill_paths = writer.write_skills(skills)
             
-            # Each version should have unique path based on version_hash
-            paths = list(skill_paths.values())
-            assert len(set(paths)) == 3, "Each version should have unique path"
-            
-            # Verify paths use version_hash (local mode, no leading /)
-            assert skill_paths[skill_latest.metadata.id] == f"bin/skills/{skill_latest.status.version_hash}"
-            assert skill_paths[skill_tagged_stable.metadata.id] == f"bin/skills/{skill_tagged_stable.status.version_hash}"
-            assert skill_paths[skill_pinned_hash.metadata.id] == f"bin/skills/{skill_pinned_hash.status.version_hash}"
+            # All three skills share the same metadata.name ("versioned-skill"),
+            # so they map to the same name-based directory.
+            expected_path = f"bin/skills/{skill_latest.metadata.name}"
+            assert skill_paths[skill_latest.metadata.id] == expected_path
+            assert skill_paths[skill_tagged_stable.metadata.id] == expected_path
+            assert skill_paths[skill_pinned_hash.metadata.id] == expected_path
 
-    def test_same_hash_reuses_directory(self):
-        """Skills with same version_hash should use same directory (deduplication)."""
+    def test_same_name_reuses_directory(self):
+        """Skills with same metadata.name should use same directory (name-based dedup)."""
         skill1 = MagicMock()
         skill1.metadata.id = "skill-a"
-        skill1.metadata.name = "skill-a"
+        skill1.metadata.name = "shared-skill"
         skill1.spec.skill_md = "# Skill A"
-        skill1.status.version_hash = "shared123456789012345678901234567890123456789012345678901234ab"
+        skill1.status.version_hash = "hash_a_123456789012345678901234567890123456789012345678901234"
         
         skill2 = MagicMock()
         skill2.metadata.id = "skill-b"
-        skill2.metadata.name = "skill-b"
-        skill2.spec.skill_md = "# Skill B (same hash)"
-        skill2.status.version_hash = "shared123456789012345678901234567890123456789012345678901234ab"  # Same hash
+        skill2.metadata.name = "shared-skill"
+        skill2.spec.skill_md = "# Skill B (same name)"
+        skill2.status.version_hash = "hash_b_123456789012345678901234567890123456789012345678901234"
         
         with tempfile.TemporaryDirectory() as tmpdir:
             writer = SkillWriter(local_root=tmpdir)
             skill_paths = writer.write_skills([skill1, skill2])
             
-            # Both skills should have same path (based on hash)
+            # Both skills share the same name-based path
             assert skill_paths[skill1.metadata.id] == skill_paths[skill2.metadata.id]
+            assert skill_paths[skill1.metadata.id] == "bin/skills/shared-skill"
 
 
 class TestErrorRecoveryIntegration:
@@ -552,7 +551,7 @@ class TestPromptGenerationIntegration:
         assert "pre-installed in your workspace" in prompt
 
     def test_prompt_handles_missing_skill_path_gracefully(self):
-        """Skill not in paths dict should use fallback path."""
+        """Skill not in paths dict should use fallback path from metadata.name."""
         skill = MagicMock()
         skill.metadata.id = "orphan-skill"
         skill.metadata.name = "orphan"
@@ -562,14 +561,15 @@ class TestPromptGenerationIntegration:
         # Don't include skill in paths (missing entry)
         prompt = SkillWriter.generate_prompt_section([skill], {})
         
-        # Should use fallback path from version_hash
-        assert f"/bin/skills/{skill.status.version_hash}" in prompt
+        # Should use fallback path from metadata.name
+        assert "bin/skills/orphan" in prompt
 
-    def test_prompt_preserves_skill_md_formatting(self):
-        """SKILL.md content should preserve markdown formatting."""
+    def test_prompt_does_not_inline_skill_md_content(self):
+        """Prompt follows progressive disclosure — SKILL.md body is NOT inlined."""
         skill = MagicMock()
         skill.metadata.id = "format-test"
         skill.metadata.name = "formatted-skill"
+        skill.spec.description = "A skill for formatting tests."
         skill.spec.skill_md = """# Formatted Skill
 
 ## Code Example
@@ -591,14 +591,17 @@ def hello():
         
         prompt = SkillWriter.generate_prompt_section(
             [skill],
-            {skill.metadata.id: f"/bin/skills/{skill.status.version_hash}"}
+            {skill.metadata.id: f"bin/skills/{skill.metadata.name}"}
         )
         
-        # All formatting should be preserved
-        assert "```python" in prompt
-        assert "def hello():" in prompt
-        assert "- Item 1" in prompt
-        assert "| Col1 | Col2 |" in prompt
+        # Metadata should be present
+        assert "formatted-skill" in prompt
+        assert "bin/skills/formatted-skill" in prompt
+        
+        # SKILL.md body must NOT be inlined (progressive disclosure)
+        assert "```python" not in prompt
+        assert "def hello():" not in prompt
+        assert "| Col1 | Col2 |" not in prompt
 
 
 class TestPathResolution:

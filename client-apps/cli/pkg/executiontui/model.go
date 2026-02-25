@@ -13,9 +13,15 @@ import (
 // All fields are required unless noted otherwise.
 type Config struct {
 	// SessionID is the session identifier displayed in the header.
-	// When non-empty, the header shows "Session: ses-xxx" instead of
-	// "Execution: exec-xxx".
+	// When non-empty, the header shows "Session: <subject>" instead of
+	// "Execution: exec-xxx". Falls back to displaying the raw ID when
+	// SessionSubject is empty.
 	SessionID string
+
+	// SessionSubject is the human-readable subject line for the session.
+	// When non-empty, the header displays this instead of the raw
+	// SessionID for a friendlier experience.
+	SessionSubject string
 
 	// ExecutionID is the agent execution identifier displayed in the header.
 	ExecutionID string
@@ -41,6 +47,17 @@ type Config struct {
 	// follow-up messages. When nil, the TUI exits on completion
 	// (pre-Phase 2 behavior).
 	FollowUpFn FollowUpFn
+
+	// SubjectFetchFn, when set, is called on a bounded backoff schedule to
+	// retrieve the current session subject from the backend. It returns an
+	// empty string while the subject has not yet been generated, and the
+	// resolved subject once available. The TUI updates the header in-place
+	// on the first non-empty result. Errors should be swallowed by the
+	// caller — return "" to trigger the next retry attempt.
+	//
+	// Only scheduled when the TUI starts without a known subject (i.e.,
+	// SessionSubject == ""). No-op for sessions that already have a title.
+	SubjectFetchFn func() string
 
 	// Verbose enables execution-level details in the TUI transcript.
 	// When true, phase transitions and execution IDs appear as system
@@ -112,6 +129,12 @@ type Model struct {
 	// When a ToolCompletedEvent arrives, the block is replaced in-place with
 	// the final expandable result and removed from this map.
 	runningTools map[string]int
+
+	// subAgentNames maps sub-agent execution IDs to their human-readable
+	// names (e.g., "researcher", "code_editor"). Populated by
+	// SubAgentStartedEvent and used to label context separator lines in the
+	// viewport when the active agent changes.
+	subAgentNames map[string]string
 
 	// todoBlockIdx is the index into blocks of the current execution's todo
 	// block. -1 means no todo block exists yet. Set on the first
@@ -198,6 +221,10 @@ type Model struct {
 	// a follow-up execution starts. The caller uses this after the TUI
 	// exits to fetch the final execution state from the correct execution.
 	latestExecutionID string
+
+	// subjectFetchAttempt counts completed background polls for the session
+	// subject. Used to advance through subjectFetchBackoff and cap retries.
+	subjectFetchAttempt int
 }
 
 // New creates a new execution TUI model with the given configuration.
@@ -228,6 +255,7 @@ func New(cfg Config) Model {
 		phase:             "pending",
 		focusedBlockIndex: -1,
 		runningTools:      make(map[string]int),
+		subAgentNames:     make(map[string]string),
 		todoBlockIdx:      -1,
 		spinner:           s,
 		lastEventAt:       time.Now(),
@@ -247,11 +275,19 @@ func New(cfg Config) Model {
 // listener or activity tick is started. Resumable models start with input
 // active; replay models are fully read-only. In both cases, the model
 // waits for window size and then renders pre-populated blocks.
+//
+// When SubjectFetchFn is set and no subject is known yet, a background poll
+// is also scheduled. It fires after 3 s and retries with backoff up to three
+// times total, updating the header in-place on the first successful result.
 func (m Model) Init() tea.Cmd {
 	if m.activeEvents == nil {
 		return nil
 	}
-	return tea.Batch(listenForEvents(m.activeEvents), m.spinner.Tick, scheduleActivityTick())
+	cmds := []tea.Cmd{listenForEvents(m.activeEvents), m.spinner.Tick, scheduleActivityTick()}
+	if m.cfg.SubjectFetchFn != nil && m.cfg.SessionSubject == "" {
+		cmds = append(cmds, scheduleSubjectFetch(3*time.Second, m.cfg.SubjectFetchFn))
+	}
+	return tea.Batch(cmds...)
 }
 
 // FinalError returns the error message if the execution stream failed.

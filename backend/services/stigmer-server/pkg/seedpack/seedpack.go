@@ -480,7 +480,7 @@ func CreateSkillZIP(skillPath string) ([]byte, error) {
 }
 
 // LoadAgentYAML loads and parses an agent YAML file into a proto message.
-// The agentPath should be relative to the seedpack root (e.g., "agents/skill-creator-agent.yaml").
+// The agentPath should be relative to the seedpack root (e.g., "agents/skill-creator.yaml").
 // Returns the Agent proto ready to be sent to the Apply API.
 func LoadAgentYAML(agentPath string) (*agentv1.Agent, error) {
 	data, err := content.ReadFile(agentPath)

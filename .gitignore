@@ -82,6 +82,7 @@ tmp/
 *.o
 *.a
 *.out
+.agent-runner-image-built
 
 # Go service binaries (prevent accidental commits of built binaries in service dirs)
 backend/services/*/stigmer-server

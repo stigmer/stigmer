@@ -71,13 +71,16 @@ func (m Model) renderHeader() string {
 		phaseIndicator = phaseIndicatorStyle.Render(phaseIcon(m.phase) + " " + m.phase)
 	}
 
+	sessionLabel := m.cfg.SessionID
+	if m.cfg.SessionSubject != "" {
+		sessionLabel = m.cfg.SessionSubject
+	}
+
 	var title string
 	if m.inputActive {
-		// In conversational mode the session header stands alone — the phase
-		// of the last execution is irrelevant when the user is composing.
-		title = fmt.Sprintf("  Session: %s", m.cfg.SessionID)
+		title = fmt.Sprintf("  Session: %s", sessionLabel)
 	} else if m.cfg.SessionID != "" {
-		title = fmt.Sprintf("  Session: %s  %s", m.cfg.SessionID, phaseIndicator)
+		title = fmt.Sprintf("  Session: %s  %s", sessionLabel, phaseIndicator)
 	} else {
 		title = fmt.Sprintf("  Execution: %s  %s", m.cfg.ExecutionID, phaseIndicator)
 	}

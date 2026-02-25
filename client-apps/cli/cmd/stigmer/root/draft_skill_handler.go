@@ -21,10 +21,10 @@ type draftSkillOptions struct {
 	Verbose        bool
 }
 
-// executeDraftSkill handles the draft skill command by invoking the skill-creator-agent.
+// executeDraftSkill handles the draft skill command by invoking the skill-creator agent.
 //
 // This is a convenience wrapper that:
-// 1. Resolves the skill-creator-agent from the local org (created by bootstrap)
+// 1. Resolves the skill-creator agent from the active org (created by bootstrap)
 // 2. Processes any attached files as context for the agent
 // 3. Creates an agent execution with the user's message
 // 4. Streams execution in real-time (handling approvals inline)
@@ -47,14 +47,12 @@ func executeDraftSkill(opts draftSkillOptions) error {
 	}
 	defer conn.Close()
 
-	// 3. Resolve skill-creator-agent (system agent in "local" org)
-	// Bootstrap creates system agents in the "local" organization for single-tenant local mode.
-	// We use the agent name directly with the local org.
-	agentRef := skillCreatorAgentOrg + "/" + skillCreatorAgentName
-	agent, err := resolveAgent(agentRef, skillCreatorAgentOrg, conn)
+	// 3. Resolve skill-creator agent (system agent created by bootstrap).
+	agentRef := orgID + "/" + skillCreatorAgentName
+	agent, err := resolveAgent(agentRef, orgID, conn)
 	if err != nil {
 		displaySkillCreatorNotFoundError()
-		return errors.Wrap(err, "skill-creator-agent not found")
+		return errors.Wrap(err, "skill-creator agent not found")
 	}
 
 	cliprint.PrintInfo("Using system agent: %s", agent.Metadata.Name)
@@ -97,7 +95,7 @@ func executeDraftSkill(opts draftSkillOptions) error {
 
 	// 6. Stream execution in real-time until completion.
 	prompter := approval.NewInteractivePrompter()
-	exec, err = streamAgentExecution(sessionID, exec.Metadata.Id, orgID, prompter, defaultAction, opts.Verbose, conn)
+	exec, err = streamAgentExecution(sessionID, "", exec.Metadata.Id, orgID, prompter, defaultAction, opts.Verbose, conn)
 	if err != nil {
 		return errors.Wrap(err, "execution failed")
 	}
@@ -117,9 +115,9 @@ func executeDraftSkill(opts draftSkillOptions) error {
 	return nil
 }
 
-// displaySkillCreatorNotFoundError shows a helpful error when the skill-creator-agent is missing.
+// displaySkillCreatorNotFoundError shows a helpful error when the skill-creator agent is missing.
 func displaySkillCreatorNotFoundError() {
-	cliprint.PrintError("skill-creator-agent not found")
+	cliprint.PrintError("skill-creator agent not found")
 	cliprint.PrintInfo("")
 	cliprint.PrintInfo("This system agent is created during server bootstrap.")
 	cliprint.PrintInfo("Ensure the server has completed bootstrap successfully.")

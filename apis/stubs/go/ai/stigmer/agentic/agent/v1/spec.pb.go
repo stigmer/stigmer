@@ -39,12 +39,13 @@ const (
 //	  instructions: "You are an engineering assistant..."
 //	  mcp_server_usages:
 //	    - mcp_server_ref:
-//	        scope: platform
+//	        org: local
+//	        kind: mcp_server
 //	        slug: github
 //	      enabled_tools: [search_code, create_pr]
 //	  skill_refs:
-//	    - scope: platform
-//	      kind: 43
+//	    - org: local
+//	      kind: skill
 //	      slug: code-review-best-practices
 type AgentSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -172,8 +173,8 @@ func (x *AgentSpec) GetEnvSpec() *v1.EnvironmentSpec {
 //	      - mcp_server: github
 //	        enabled_tools: [search_code, get_file]
 //	    skill_refs:
-//	      - scope: platform
-//	        kind: 43
+//	      - org: local
+//	        kind: skill
 //	        slug: code-review-best-practices
 type SubAgent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -276,15 +277,16 @@ func (x *SubAgent) GetSkillRefs() []*apiresource.ApiResourceReference {
 //
 //	mcp_server_usages:
 //	  - mcp_server_ref:
-//	      scope: platform
+//	      org: local
+//	      kind: mcp_server
 //	      slug: github
 //	    enabled_tools: [search_code, get_file, create_pr]
 //	    tool_approval_overrides:
 //	      - tool_name: delete_repository
 //	        requires_approval: false  # Trust this agent
 //	  - mcp_server_ref:
-//	      scope: organization
 //	      org: acme-corp
+//	      kind: mcp_server
 //	      slug: internal-tools
 type McpServerUsage struct {
 	state protoimpl.MessageState `protogen:"open.v1"`

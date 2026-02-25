@@ -299,10 +299,9 @@ func TestLoad_InvalidYAML(t *testing.T) {
 
 	config, err := Load()
 
-	// Should return default config on parse error
-	require.NoError(t, err)
-	require.NotNil(t, config)
-	assert.Equal(t, BackendTypeLocal, config.Backend.Type)
+	require.Error(t, err)
+	assert.Nil(t, config)
+	assert.Contains(t, err.Error(), "failed to unmarshal config YAML")
 }
 
 func TestSave_CreatesDirectoryIfMissing(t *testing.T) {

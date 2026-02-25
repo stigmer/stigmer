@@ -6,6 +6,7 @@ go_library(
         "complete_external_activity.go",
         "ensure_thread.go",
         "execute_graphton.go",
+        "generate_session_subject.go",
         "update_status.go",
         "update_status_impl.go",
     ],
