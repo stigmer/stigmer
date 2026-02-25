@@ -1,12 +1,12 @@
 package root
 
 import (
-	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
 )
 
 // NewBackendCommand creates the backend command
@@ -49,38 +49,42 @@ func newBackendSetCommand() *cobra.Command {
 }
 
 func handleBackendStatus() {
+	renderer := clioutput.NewRenderer(clioutput.FormatHuman, os.Stdout, os.Stderr)
+
 	cfg, err := config.Load()
 	if err != nil {
-		cliprint.Error("Failed to load configuration")
 		clierr.Handle(err)
 		return
 	}
 
-	fmt.Println("Backend Configuration:")
-	fmt.Println("─────────────────────────────────────")
-	cliprint.Info("  Type: %s", cfg.Backend.Type)
+	result := clioutput.Success("Backend configuration")
+	sec := result.AddSection("").
+		Field("Type", string(cfg.Backend.Type))
 
 	if cfg.Backend.Type == config.BackendTypeLocal {
 		if cfg.Backend.Local != nil {
-			cliprint.Info("  Endpoint: %s", cfg.Backend.Local.Endpoint)
-			cliprint.Info("  Data Dir: %s", cfg.Backend.Local.DataDir)
+			sec.Field("Endpoint", cfg.Backend.Local.Endpoint).
+				Field("Data Dir", cfg.Backend.Local.DataDir)
 		}
 	} else if cfg.Backend.Type == config.BackendTypeCloud {
 		if cfg.Backend.Cloud != nil {
-			cliprint.Info("  Endpoint: %s", cfg.Backend.Cloud.Endpoint)
+			sec.Field("Endpoint", cfg.Backend.Cloud.Endpoint)
 			if cfg.Backend.Cloud.Token != "" {
-				cliprint.Info("  Auth: ✓ Logged in")
+				sec.Field("Auth", "Logged in ✓")
 			} else {
-				cliprint.Warning("  Auth: ✗ Not logged in")
+				sec.Field("Auth", "Not logged in ✗")
 			}
 		}
 	}
+
+	renderer.Render(result)
 }
 
 func handleBackendSet(backendType string) {
+	renderer := clioutput.NewRenderer(clioutput.FormatHuman, os.Stdout, os.Stderr)
+
 	cfg, err := config.Load()
 	if err != nil {
-		cliprint.Error("Failed to load configuration")
 		clierr.Handle(err)
 		return
 	}
@@ -89,23 +93,19 @@ func handleBackendSet(backendType string) {
 	case "local":
 		cfg.Backend.Type = config.BackendTypeLocal
 		if cfg.Backend.Local == nil {
-			cfg.Backend.Local = &config.LocalBackendConfig{
-				// Endpoint not needed - always hardcoded to localhost:7234
-				// DataDir not needed - always hardcoded to ~/.stigmer/data
-			}
+			cfg.Backend.Local = &config.LocalBackendConfig{}
 		}
 
 		if err := config.Save(cfg); err != nil {
-			cliprint.Error("Failed to save configuration")
 			clierr.Handle(err)
 			return
 		}
 
-		cliprint.Success("Backend set to local")
-		cliprint.Info("")
-		cliprint.Info("Make sure the server is running:")
-		cliprint.Info("  stigmer server status")
-		cliprint.Info("  stigmer server")
+		result := clioutput.Success("Backend set to local")
+		result.Hint("Make sure the server is running:")
+		result.Hint("  stigmer server status")
+		result.Hint("  stigmer server")
+		renderer.Render(result)
 
 	case "cloud":
 		cfg.Backend.Type = config.BackendTypeCloud
@@ -116,18 +116,18 @@ func handleBackendSet(backendType string) {
 		}
 
 		if err := config.Save(cfg); err != nil {
-			cliprint.Error("Failed to save configuration")
 			clierr.Handle(err)
 			return
 		}
 
-		cliprint.Success("Backend set to cloud")
-		cliprint.Info("")
-		cliprint.Info("Please authenticate:")
-		cliprint.Info("  stigmer login")
+		result := clioutput.Success("Backend set to cloud")
+		result.Hint("Please authenticate:")
+		result.Hint("  stigmer login")
+		renderer.Render(result)
 
 	default:
-		cliprint.Error("Invalid backend type: %s", backendType)
-		cliprint.Info("Valid types: local, cloud")
+		result := clioutput.Error("Invalid backend type: %s", backendType)
+		result.Hint("Valid types: local, cloud")
+		renderer.Render(result)
 	}
 }
