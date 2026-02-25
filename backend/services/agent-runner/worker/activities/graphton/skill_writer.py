@@ -500,6 +500,8 @@ class SkillWriter:
             "",
             "The following skills are pre-installed in your workspace.",
             "To use a skill, read its SKILL.md file at the listed location.",
+            "After reading skill files, do not reprint their contents "
+            "-- use them to guide your actions.",
             "",
             "**CRITICAL**: If you cannot read the skill files at the listed "
             "paths, you MUST stop execution immediately and report the error. "
