@@ -7,8 +7,8 @@
 # the vendored skill-creator skill. This is a dogfooding exercise: we use the
 # agent-creator agent (our own system agent) to create another system agent.
 #
-# The output goes to a review directory. The operator must review the generated
-# YAML and manually copy it into the seedpack agents/ directory.
+# The output goes directly to the seedpack agents/ directory, overwriting the
+# existing skill-creator.yaml. Use `git diff` to review changes.
 #
 # Inputs:
 #   - Agent proto schemas + agent-resource-guide.md (for Agent YAML structure)
@@ -25,8 +25,7 @@
 #   ./03_draft_skill_creator.sh
 #
 # Output:
-#   Generated agent YAML saved to a review directory under the seedpack tools/
-#   directory. The operator must review before promoting to agents/.
+#   Generated agent YAML saved directly to agents/skill-creator.yaml.
 #
 # ==============================================================================
 
@@ -60,7 +59,7 @@ readonly AGENT_DIR="${REPO_ROOT}/apis/ai/stigmer/agentic/agent"
 readonly SKILL_DIR="${REPO_ROOT}/apis/ai/stigmer/agentic/skill"
 readonly SKILL_CREATOR_SKILL="${SEEDPACK_DIR}/skills/skill-creator"
 readonly AGENT_CREATOR_YAML="${SEEDPACK_DIR}/agents/agent-creator.yaml"
-readonly REVIEW_DIR="${SCRIPT_DIR}/_review/skill-creator"
+readonly OUTPUT_DIR="${SEEDPACK_DIR}/agents"
 
 # Verify input paths exist
 for dir in "$AGENT_DIR" "$SKILL_DIR" "$SKILL_CREATOR_SKILL"; do
@@ -75,24 +74,20 @@ if [ ! -f "$AGENT_CREATOR_YAML" ]; then
     exit 1
 fi
 
-# Prepare review directory
-rm -rf "$REVIEW_DIR"
-mkdir -p "$REVIEW_DIR"
-
 echo "=== Skill-Creator Agent Generation ==="
 echo "Model:   claude-sonnet-4.6"
 echo "Inputs:  ${AGENT_DIR} (Agent protos + docs)"
 echo "         ${SKILL_DIR} (Skill protos)"
 echo "         ${SKILL_CREATOR_SKILL} (skill-creator skill)"
 echo "         ${AGENT_CREATOR_YAML} (sibling agent example)"
-echo "Output:  ${REVIEW_DIR}/"
+echo "Output:  ${OUTPUT_DIR}/skill-creator.yaml"
 echo ""
 
 # ---------------------------------------------------------------------------
 # Draft the agent
 # ---------------------------------------------------------------------------
 
-MESSAGE=$(cat <<'EOF'
+read -r -d '' MESSAGE <<'EOMSG' || true
 Create a skill-creator agent that helps users create well-structured SKILL.md
 packages following the Agent Skills format.
 
@@ -126,27 +121,21 @@ Output rules the instructions must enforce:
 - Create ONLY the skill directory with SKILL.md and necessary bundled resources
 - Do NOT create auxiliary documentation (README.md, SUMMARY.md, etc.)
 - Use relative paths only within skill files
-EOF
-)
+EOMSG
 
 stigmer draft agent \
   --attach "$AGENT_DIR" \
   --attach "$SKILL_DIR" \
   --attach "$SKILL_CREATOR_SKILL" \
   --attach "$AGENT_CREATOR_YAML" \
-  --output "$REVIEW_DIR" \
+  --output "$OUTPUT_DIR" \
   --model claude-sonnet-4.6 \
   -m "$MESSAGE"
 
 echo ""
 echo "=== Generation Complete ==="
-echo "Output saved to: ${REVIEW_DIR}"
+echo "Output saved to: ${OUTPUT_DIR}/skill-creator.yaml"
 echo ""
 echo "Next steps:"
-echo "  1. Review the generated YAML in ${REVIEW_DIR}"
-echo "  2. Compare with the current agent:"
-echo "       diff ${SEEDPACK_DIR}/agents/skill-creator.yaml ${REVIEW_DIR}/*.yaml"
-echo "  3. If satisfied, copy to the seedpack:"
-echo "       cp ${REVIEW_DIR}/*.yaml ${SEEDPACK_DIR}/agents/skill-creator.yaml"
-echo "  4. Run tests to verify:"
-echo "       go test ./backend/services/stigmer-server/pkg/seedpack/ -v"
+echo "  1. Review changes:  git diff ${SEEDPACK_DIR}/agents/skill-creator.yaml"
+echo "  2. Run tests:       go test ./backend/services/stigmer-server/pkg/seedpack/ -v"

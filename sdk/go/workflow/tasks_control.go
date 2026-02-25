@@ -140,25 +140,21 @@ func LoopBody(fn func(LoopVar) []*Task) []*types.WorkflowTask {
 			panic(err)
 		}
 
-		// Convert map to types.WorkflowTask
 		wfTask := &types.WorkflowTask{
 			Name: task.Name,
-			Kind: string(task.Kind),
+			Kind: task.Kind.String(),
 		}
 
-		// Extract task config from the map
 		if config, ok := taskMap["config"].(map[string]interface{}); ok {
 			wfTask.TaskConfig = config
 		}
 
-		// Extract export if present
 		if exportMap, ok := taskMap["export"].(map[string]interface{}); ok {
 			if asVal, ok := exportMap["as"].(string); ok {
 				wfTask.Export = &types.Export{As: asVal}
 			}
 		}
 
-		// Extract flow control if present
 		if thenVal, ok := taskMap["then"].(string); ok {
 			wfTask.Flow = &types.FlowControl{Then: thenVal}
 		}
@@ -529,7 +525,7 @@ func TryBody(tasks ...*Task) []*types.WorkflowTask {
 
 		wfTask := &types.WorkflowTask{
 			Name:       task.Name,
-			Kind:       string(task.Kind),
+			Kind:       task.Kind.String(),
 			TaskConfig: taskMap["config"].(map[string]interface{}),
 		}
 

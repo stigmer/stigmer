@@ -48,6 +48,7 @@ def mock_initial_status():
     # Real ContextInfo proto for Phase 3 context management
     # MagicMock doesn't support CopyFrom(), so we use a real proto
     status.context_info = ContextInfo()
+    status.pending_approvals = []
     return status
 
 
@@ -2503,8 +2504,8 @@ class TestApprovalPolicyResolution:
         from worker.activities.graphton.approval_policy import resolve_tool_approval
         
         result = resolve_tool_approval(
-            tool_name="read_file",  # No policy for this tool
-            mcp_server_name="filesystem",
+            tool_name="list_issues",  # Non-platform tool with no policy
+            mcp_server_name="github",
             auto_approve_all=False,
             tool_approval_overrides=[],
             default_tool_approvals=[],
@@ -2740,11 +2741,16 @@ class TestPlatformToolApprovalDefaults:
         assert is_platform_tool("ls") is True
         assert is_platform_tool("glob") is True
         assert is_platform_tool("grep") is True
+        assert is_platform_tool("think") is True
+        
+        # Aliases resolve to platform tools
+        assert is_platform_tool("read_file") is True
+        assert is_platform_tool("write_file") is True
+        assert is_platform_tool("edit_file") is True
         
         # Non-platform tools
         assert is_platform_tool("delete_repository") is False
         assert is_platform_tool("send_email") is False
-        assert is_platform_tool("read_file") is False  # Different from "read"
     
     def test_get_platform_tool_names_helper(self):
         """Test get_platform_tool_names() helper function."""
@@ -2759,7 +2765,8 @@ class TestPlatformToolApprovalDefaults:
         assert "ls" in names
         assert "glob" in names
         assert "grep" in names
-        assert len(names) == 7
+        assert "think" in names
+        assert len(names) == 8
 
 
 # =============================================================================

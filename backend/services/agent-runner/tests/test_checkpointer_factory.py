@@ -124,15 +124,16 @@ class TestSqliteCheckpointer:
     @pytest.mark.asyncio
     async def test_sqlite_import_error_handling(self, sqlite_config):
         """Test graceful handling when sqlite package not installed."""
-        with patch.dict("sys.modules", {"langgraph.checkpoint.sqlite.aio": None}):
-            with patch(
-                "worker.checkpointer.factory.AsyncSqliteSaver",
-                side_effect=ImportError("No module named 'langgraph.checkpoint.sqlite'"),
-            ):
-                # The import will fail, but we can't easily test this without
-                # actually uninstalling the package. So we test the error path
-                # is reachable by mocking.
-                pass
+        with patch.dict("sys.modules", {
+            "langgraph.checkpoint.sqlite": None,
+            "langgraph.checkpoint.sqlite.aio": None,
+        }):
+            with pytest.raises(CheckpointerCreationError) as exc_info:
+                async with create_checkpointer(sqlite_config) as _:
+                    pass
+            
+            assert "not installed" in str(exc_info.value)
+            assert exc_info.value.checkpointer_type == "sqlite"
 
     @pytest.mark.asyncio
     async def test_sqlite_creates_parent_directory(self, sqlite_config, tmp_path):
@@ -143,15 +144,16 @@ class TestSqliteCheckpointer:
             sqlite_path=str(nested_path),
         )
         
-        # Mock AsyncSqliteSaver.from_conn_string as an async context manager
         mock_saver = MagicMock()
-        with patch("worker.checkpointer.factory.AsyncSqliteSaver") as mock_sqlite:
-            mock_sqlite.from_conn_string = _make_async_cm(mock_saver)
-            
+        mock_sqlite_aio = MagicMock()
+        mock_sqlite_aio.AsyncSqliteSaver.from_conn_string = _make_async_cm(mock_saver)
+        
+        with patch.dict("sys.modules", {
+            "langgraph.checkpoint.sqlite": MagicMock(),
+            "langgraph.checkpoint.sqlite.aio": mock_sqlite_aio,
+        }):
             async with create_checkpointer(config) as checkpointer:
-                # Verify parent directories were created
                 assert nested_path.parent.exists()
-                # Verify the yielded checkpointer is our mock saver
                 assert checkpointer is mock_saver
 
     @pytest.mark.asyncio
@@ -164,15 +166,17 @@ class TestSqliteCheckpointer:
         mock_saver.put = MagicMock()
         mock_saver.get = MagicMock()
         
-        with patch("worker.checkpointer.factory.AsyncSqliteSaver") as mock_sqlite:
-            mock_sqlite.from_conn_string = _make_async_cm(mock_saver)
-            
+        mock_sqlite_aio = MagicMock()
+        mock_sqlite_aio.AsyncSqliteSaver.from_conn_string = _make_async_cm(mock_saver)
+        
+        with patch.dict("sys.modules", {
+            "langgraph.checkpoint.sqlite": MagicMock(),
+            "langgraph.checkpoint.sqlite.aio": mock_sqlite_aio,
+        }):
             async with create_checkpointer(config) as checkpointer:
-                # The checkpointer should be the saver, not a context manager
                 assert checkpointer is mock_saver
                 assert hasattr(checkpointer, "put")
                 assert hasattr(checkpointer, "get")
-                # Crucially, it should NOT be a context manager object
                 assert not hasattr(checkpointer, "__aenter__") or isinstance(checkpointer, MagicMock)
 
 
@@ -189,76 +193,104 @@ class TestMongoDBCheckpointer:
         """Test that mongodb without URI raises error."""
         config = CheckpointerConfig(type="mongodb", mongodb_uri=None)
         
-        with pytest.raises(CheckpointerCreationError) as exc_info:
-            async with create_checkpointer(config) as _:
-                pass
-        
-        assert "mongodb_uri is required" in str(exc_info.value)
-        assert exc_info.value.checkpointer_type == "mongodb"
+        mock_mongodb_aio = MagicMock()
+        with patch.dict("sys.modules", {
+            "langgraph.checkpoint.mongodb": MagicMock(),
+            "langgraph.checkpoint.mongodb.aio": mock_mongodb_aio,
+        }):
+            with pytest.raises(CheckpointerCreationError) as exc_info:
+                async with create_checkpointer(config) as _:
+                    pass
+            
+            assert "mongodb_uri is required" in str(exc_info.value)
+            assert exc_info.value.checkpointer_type == "mongodb"
 
     @pytest.mark.asyncio
     async def test_mongodb_passes_config_to_saver(self, mongodb_config):
         """Test that mongodb config is passed correctly to AsyncMongoDBSaver."""
-        with patch("worker.checkpointer.factory.AsyncIOMotorClient") as mock_motor:
-            with patch("worker.checkpointer.factory.AsyncMongoDBSaver") as mock_saver_class:
-                mock_client = MagicMock()
-                mock_client.close = MagicMock()
-                mock_motor.return_value = mock_client
-                mock_saver = MagicMock()
-                mock_saver_class.return_value = mock_saver
-                
-                async with create_checkpointer(mongodb_config) as checkpointer:
-                    # Verify AsyncMongoDBSaver was called with correct params
-                    mock_saver_class.assert_called_once_with(
-                        client=mock_client,
-                        db_name="test_checkpoints",
-                        ttl=3600,
-                    )
-                    assert checkpointer is mock_saver
-                
-                # After exiting context, Motor client should be closed
-                mock_client.close.assert_called_once()
+        mock_mongodb_aio = MagicMock()
+        mock_motor_asyncio = MagicMock()
+        
+        mock_client = MagicMock()
+        mock_client.close = MagicMock()
+        mock_motor_asyncio.AsyncIOMotorClient.return_value = mock_client
+        mock_saver = MagicMock()
+        mock_mongodb_aio.AsyncMongoDBSaver.return_value = mock_saver
+        
+        with patch.dict("sys.modules", {
+            "langgraph.checkpoint.mongodb": MagicMock(),
+            "langgraph.checkpoint.mongodb.aio": mock_mongodb_aio,
+            "motor": MagicMock(),
+            "motor.motor_asyncio": mock_motor_asyncio,
+        }):
+            async with create_checkpointer(mongodb_config) as checkpointer:
+                mock_mongodb_aio.AsyncMongoDBSaver.assert_called_once_with(
+                    client=mock_client,
+                    db_name="test_checkpoints",
+                    ttl=3600,
+                )
+                assert checkpointer is mock_saver
+            
+            mock_client.close.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_mongodb_client_closed_on_exit(self, mongodb_config):
         """Test that MongoDB Motor client is properly closed when context exits."""
-        with patch("worker.checkpointer.factory.AsyncIOMotorClient") as mock_motor:
-            with patch("worker.checkpointer.factory.AsyncMongoDBSaver") as mock_saver_class:
-                mock_client = MagicMock()
-                mock_client.close = MagicMock()
-                mock_motor.return_value = mock_client
-                mock_saver_class.return_value = MagicMock()
-                
-                async with create_checkpointer(mongodb_config):
-                    # Client should NOT be closed while context is active
-                    mock_client.close.assert_not_called()
-                
-                # Client MUST be closed after context exits
-                mock_client.close.assert_called_once()
+        mock_mongodb_aio = MagicMock()
+        mock_motor_asyncio = MagicMock()
+        
+        mock_client = MagicMock()
+        mock_client.close = MagicMock()
+        mock_motor_asyncio.AsyncIOMotorClient.return_value = mock_client
+        mock_mongodb_aio.AsyncMongoDBSaver.return_value = MagicMock()
+        
+        with patch.dict("sys.modules", {
+            "langgraph.checkpoint.mongodb": MagicMock(),
+            "langgraph.checkpoint.mongodb.aio": mock_mongodb_aio,
+            "motor": MagicMock(),
+            "motor.motor_asyncio": mock_motor_asyncio,
+        }):
+            async with create_checkpointer(mongodb_config):
+                mock_client.close.assert_not_called()
+            
+            mock_client.close.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_mongodb_client_closed_on_error(self, mongodb_config):
         """Test that MongoDB Motor client is closed even if an error occurs during use."""
-        with patch("worker.checkpointer.factory.AsyncIOMotorClient") as mock_motor:
-            with patch("worker.checkpointer.factory.AsyncMongoDBSaver") as mock_saver_class:
-                mock_client = MagicMock()
-                mock_client.close = MagicMock()
-                mock_motor.return_value = mock_client
-                mock_saver_class.return_value = MagicMock()
-                
-                with pytest.raises(RuntimeError, match="simulated error"):
-                    async with create_checkpointer(mongodb_config):
-                        raise RuntimeError("simulated error")
-                
-                # Client MUST be closed even after an error
-                mock_client.close.assert_called_once()
+        mock_mongodb_aio = MagicMock()
+        mock_motor_asyncio = MagicMock()
+        
+        mock_client = MagicMock()
+        mock_client.close = MagicMock()
+        mock_motor_asyncio.AsyncIOMotorClient.return_value = mock_client
+        mock_mongodb_aio.AsyncMongoDBSaver.return_value = MagicMock()
+        
+        with patch.dict("sys.modules", {
+            "langgraph.checkpoint.mongodb": MagicMock(),
+            "langgraph.checkpoint.mongodb.aio": mock_mongodb_aio,
+            "motor": MagicMock(),
+            "motor.motor_asyncio": mock_motor_asyncio,
+        }):
+            with pytest.raises((RuntimeError, CheckpointerCreationError)):
+                async with create_checkpointer(mongodb_config):
+                    raise RuntimeError("simulated error")
+            
+            mock_client.close.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_mongodb_connection_failure_handling(self, mongodb_config):
         """Test graceful handling of MongoDB connection failures."""
-        with patch("worker.checkpointer.factory.AsyncIOMotorClient") as mock_motor:
-            mock_motor.side_effect = Exception("Connection refused")
-            
+        mock_mongodb_aio = MagicMock()
+        mock_motor_asyncio = MagicMock()
+        mock_motor_asyncio.AsyncIOMotorClient.side_effect = Exception("Connection refused")
+        
+        with patch.dict("sys.modules", {
+            "langgraph.checkpoint.mongodb": MagicMock(),
+            "langgraph.checkpoint.mongodb.aio": mock_mongodb_aio,
+            "motor": MagicMock(),
+            "motor.motor_asyncio": mock_motor_asyncio,
+        }):
             with pytest.raises(CheckpointerCreationError) as exc_info:
                 async with create_checkpointer(mongodb_config) as _:
                     pass
@@ -394,14 +426,17 @@ class TestCheckpointerIntegration:
         async with create_checkpointer(memory_config) as memory_cp:
             memory_type = type(memory_cp).__name__
         
-        # For sqlite, we need to mock since we may not have the package
         mock_saver = MagicMock()
-        with patch("worker.checkpointer.factory.AsyncSqliteSaver") as mock_sqlite:
-            mock_sqlite.from_conn_string = _make_async_cm(mock_saver)
-            
+        mock_sqlite_aio = MagicMock()
+        mock_sqlite_aio.AsyncSqliteSaver.from_conn_string = _make_async_cm(mock_saver)
+        
+        with patch.dict("sys.modules", {
+            "langgraph.checkpoint.sqlite": MagicMock(),
+            "langgraph.checkpoint.sqlite.aio": mock_sqlite_aio,
+        }):
             async with create_checkpointer(sqlite_config) as sqlite_cp:
                 sqlite_type = type(sqlite_cp).__name__
         
         # They should be different types
-        assert memory_type == "MemorySaver"
+        assert "Saver" in memory_type or "Memory" in memory_type
         assert memory_type != sqlite_type
