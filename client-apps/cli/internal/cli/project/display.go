@@ -6,23 +6,14 @@ import (
 	"strings"
 
 	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/project/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
-	"google.golang.org/protobuf/encoding/protojson"
-	"gopkg.in/yaml.v3"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
 )
 
 // DisplayProjectInfo displays a project in the specified format.
 // Supported formats: "table" (default), "yaml", "json".
 func DisplayProjectInfo(project *projectv1.Project, format string) {
-	switch format {
-	case "yaml":
-		displayProjectYAML(project)
-	case "json":
-		displayProjectJSON(project)
-	default: // table
-		displayProjectTable(project)
-	}
+	display.DisplayProto(project, format, func() { displayProjectTable(project) })
 }
 
 // displayProjectTable displays the project in human-readable table format.
@@ -97,49 +88,6 @@ func displayResourceCounts(project *projectv1.Project) {
 	}
 }
 
-// displayProjectYAML displays the project as YAML.
-func displayProjectYAML(project *projectv1.Project) {
-	marshaler := protojson.MarshalOptions{
-		Indent:          "  ",
-		UseProtoNames:   true,
-		EmitUnpopulated: false,
-	}
-	jsonBytes, err := marshaler.Marshal(project)
-	if err != nil {
-		clierr.Handle(fmt.Errorf("failed to marshal project to JSON: %w", err))
-		return
-	}
-
-	// Convert JSON to YAML via generic map
-	var jsonMap map[string]interface{}
-	if err := yaml.Unmarshal(jsonBytes, &jsonMap); err != nil {
-		clierr.Handle(fmt.Errorf("failed to parse JSON: %w", err))
-		return
-	}
-
-	yamlBytes, err := yaml.Marshal(jsonMap)
-	if err != nil {
-		clierr.Handle(fmt.Errorf("failed to marshal to YAML: %w", err))
-		return
-	}
-	fmt.Print(string(yamlBytes))
-}
-
-// displayProjectJSON displays the project as JSON.
-func displayProjectJSON(project *projectv1.Project) {
-	marshaler := protojson.MarshalOptions{
-		Indent:          "  ",
-		UseProtoNames:   true,
-		EmitUnpopulated: false,
-	}
-	jsonBytes, err := marshaler.Marshal(project)
-	if err != nil {
-		clierr.Handle(fmt.Errorf("failed to marshal project to JSON: %w", err))
-		return
-	}
-	fmt.Println(string(jsonBytes))
-}
-
 // DisplayProjectPreview displays a preview of the Project configuration.
 // Used for dry-run mode to show what would be applied.
 func DisplayProjectPreview(project *projectv1.Project) {
@@ -204,14 +152,7 @@ func truncateString(s string, maxLen int) string {
 // This is the entry point for the 'stigmer project get' command output.
 // Supported formats: "table" (default), "yaml", "json".
 func DisplayGetResult(project *projectv1.Project, format string) {
-	switch format {
-	case "yaml":
-		displayProjectYAML(project)
-	case "json":
-		displayProjectJSON(project)
-	default: // table
-		displayProjectGetTable(project)
-	}
+	display.DisplayProto(project, format, func() { displayProjectGetTable(project) })
 }
 
 // displayProjectGetTable displays the project in detailed table format for get command.

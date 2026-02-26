@@ -11,12 +11,10 @@ go_library(
     visibility = ["//client-apps/cli:__subpackages__"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/session/v1:session",
-        "//client-apps/cli/internal/cli/clierr",
         "//client-apps/cli/internal/cli/cliprint",
+        "//client-apps/cli/pkg/display",
         "//client-apps/cli/pkg/reference",
         "@com_github_pkg_errors//:errors",
-        "@in_gopkg_yaml_v3//:yaml_v3",
         "@org_golang_google_grpc//:grpc",
-        "@org_golang_google_protobuf//encoding/protojson",
     ],
 )

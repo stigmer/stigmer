@@ -5,23 +5,14 @@ import (
 	"fmt"
 
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
-	"google.golang.org/protobuf/encoding/protojson"
-	"gopkg.in/yaml.v3"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
 )
 
 // DisplayGetResult displays a skill in the specified format.
 // Supported formats: "table" (default), "yaml", "json".
 func DisplayGetResult(skill *skillv1.Skill, format string) {
-	switch format {
-	case "yaml":
-		displaySkillYAML(skill)
-	case "json":
-		displaySkillJSON(skill)
-	default: // table
-		displaySkillTable(skill)
-	}
+	display.DisplayProto(skill, format, func() { displaySkillTable(skill) })
 }
 
 // displaySkillTable displays the skill in human-readable table format.
@@ -70,49 +61,6 @@ func displaySkillTable(skill *skillv1.Skill) {
 		}
 		fmt.Println()
 	}
-}
-
-// displaySkillYAML displays the skill as YAML.
-func displaySkillYAML(skill *skillv1.Skill) {
-	marshaler := protojson.MarshalOptions{
-		Indent:          "  ",
-		UseProtoNames:   true,
-		EmitUnpopulated: false,
-	}
-	jsonBytes, err := marshaler.Marshal(skill)
-	if err != nil {
-		clierr.Handle(fmt.Errorf("failed to marshal skill to JSON: %w", err))
-		return
-	}
-
-	// Convert JSON to YAML via generic map
-	var jsonMap map[string]interface{}
-	if err := yaml.Unmarshal(jsonBytes, &jsonMap); err != nil {
-		clierr.Handle(fmt.Errorf("failed to parse JSON: %w", err))
-		return
-	}
-
-	yamlBytes, err := yaml.Marshal(jsonMap)
-	if err != nil {
-		clierr.Handle(fmt.Errorf("failed to marshal to YAML: %w", err))
-		return
-	}
-	fmt.Print(string(yamlBytes))
-}
-
-// displaySkillJSON displays the skill as JSON.
-func displaySkillJSON(skill *skillv1.Skill) {
-	marshaler := protojson.MarshalOptions{
-		Indent:          "  ",
-		UseProtoNames:   true,
-		EmitUnpopulated: false,
-	}
-	jsonBytes, err := marshaler.Marshal(skill)
-	if err != nil {
-		clierr.Handle(fmt.Errorf("failed to marshal skill to JSON: %w", err))
-		return
-	}
-	fmt.Println(string(jsonBytes))
 }
 
 // truncateString truncates a string to maxLen characters, adding "..." if truncated.

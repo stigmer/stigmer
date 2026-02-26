@@ -16,12 +16,10 @@ go_library(
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//client-apps/cli/internal/cli/artifact",
-        "//client-apps/cli/internal/cli/clierr",
         "//client-apps/cli/internal/cli/cliprint",
+        "//client-apps/cli/pkg/display",
         "//client-apps/cli/pkg/reference",
         "@com_github_pkg_errors//:errors",
-        "@in_gopkg_yaml_v3//:yaml_v3",
         "@org_golang_google_grpc//:grpc",
-        "@org_golang_google_protobuf//encoding/protojson",
     ],
 )

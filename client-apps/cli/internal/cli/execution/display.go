@@ -6,23 +6,14 @@ import (
 	"time"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
-	"google.golang.org/protobuf/encoding/protojson"
-	"gopkg.in/yaml.v3"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
 )
 
 // DisplayGetResult displays an execution in the specified format.
 // Supported formats: "table" (default), "yaml", "json".
 func DisplayGetResult(exec *agentexecutionv1.AgentExecution, format string) {
-	switch format {
-	case "yaml":
-		displayExecutionYAML(exec)
-	case "json":
-		displayExecutionJSON(exec)
-	default: // table
-		displayExecutionTable(exec)
-	}
+	display.DisplayProto(exec, format, func() { displayExecutionTable(exec) })
 }
 
 // displayExecutionTable displays the execution in human-readable table format.
@@ -105,49 +96,6 @@ func displayExecutionTable(exec *agentexecutionv1.AgentExecution) {
 	fmt.Println()
 }
 
-// displayExecutionYAML displays the execution as YAML.
-func displayExecutionYAML(exec *agentexecutionv1.AgentExecution) {
-	marshaler := protojson.MarshalOptions{
-		Indent:          "  ",
-		UseProtoNames:   true,
-		EmitUnpopulated: false,
-	}
-	jsonBytes, err := marshaler.Marshal(exec)
-	if err != nil {
-		clierr.Handle(fmt.Errorf("failed to marshal execution to JSON: %w", err))
-		return
-	}
-
-	// Convert JSON to YAML via generic map
-	var jsonMap map[string]interface{}
-	if err := yaml.Unmarshal(jsonBytes, &jsonMap); err != nil {
-		clierr.Handle(fmt.Errorf("failed to parse JSON: %w", err))
-		return
-	}
-
-	yamlBytes, err := yaml.Marshal(jsonMap)
-	if err != nil {
-		clierr.Handle(fmt.Errorf("failed to marshal to YAML: %w", err))
-		return
-	}
-	fmt.Print(string(yamlBytes))
-}
-
-// displayExecutionJSON displays the execution as JSON.
-func displayExecutionJSON(exec *agentexecutionv1.AgentExecution) {
-	marshaler := protojson.MarshalOptions{
-		Indent:          "  ",
-		UseProtoNames:   true,
-		EmitUnpopulated: false,
-	}
-	jsonBytes, err := marshaler.Marshal(exec)
-	if err != nil {
-		clierr.Handle(fmt.Errorf("failed to marshal execution to JSON: %w", err))
-		return
-	}
-	fmt.Println(string(jsonBytes))
-}
-
 // DisplayListResult displays a list of executions.
 func DisplayListResult(list *agentexecutionv1.AgentExecutionList, format string) {
 	entries := list.GetEntries()
@@ -158,14 +106,7 @@ func DisplayListResult(list *agentexecutionv1.AgentExecutionList, format string)
 		return
 	}
 
-	switch format {
-	case "yaml":
-		displayListYAML(list)
-	case "json":
-		displayListJSON(list)
-	default: // table
-		displayListTable(list)
-	}
+	display.DisplayProto(list, format, func() { displayListTable(list) })
 }
 
 // displayListTable displays executions in table format.
@@ -196,48 +137,6 @@ func displayListTable(list *agentexecutionv1.AgentExecutionList) {
 	if totalPages > 1 {
 		cliprint.PrintInfo("Page 1 of %d", totalPages)
 	}
-}
-
-// displayListYAML displays the list as YAML.
-func displayListYAML(list *agentexecutionv1.AgentExecutionList) {
-	marshaler := protojson.MarshalOptions{
-		Indent:          "  ",
-		UseProtoNames:   true,
-		EmitUnpopulated: false,
-	}
-	jsonBytes, err := marshaler.Marshal(list)
-	if err != nil {
-		clierr.Handle(fmt.Errorf("failed to marshal list to JSON: %w", err))
-		return
-	}
-
-	var jsonMap map[string]interface{}
-	if err := yaml.Unmarshal(jsonBytes, &jsonMap); err != nil {
-		clierr.Handle(fmt.Errorf("failed to parse JSON: %w", err))
-		return
-	}
-
-	yamlBytes, err := yaml.Marshal(jsonMap)
-	if err != nil {
-		clierr.Handle(fmt.Errorf("failed to marshal to YAML: %w", err))
-		return
-	}
-	fmt.Print(string(yamlBytes))
-}
-
-// displayListJSON displays the list as JSON.
-func displayListJSON(list *agentexecutionv1.AgentExecutionList) {
-	marshaler := protojson.MarshalOptions{
-		Indent:          "  ",
-		UseProtoNames:   true,
-		EmitUnpopulated: false,
-	}
-	jsonBytes, err := marshaler.Marshal(list)
-	if err != nil {
-		clierr.Handle(fmt.Errorf("failed to marshal list to JSON: %w", err))
-		return
-	}
-	fmt.Println(string(jsonBytes))
 }
 
 // truncateString truncates a string to maxLen characters, adding "..." if truncated.

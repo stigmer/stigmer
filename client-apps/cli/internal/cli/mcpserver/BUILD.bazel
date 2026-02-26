@@ -24,6 +24,7 @@ go_library(
         "//backend/libs/go/mcpdiscovery",
         "//client-apps/cli/internal/cli/cliprint",
         "//client-apps/cli/internal/cli/config",
+        "//client-apps/cli/pkg/display",
         "//client-apps/cli/pkg/reference",
         "@com_github_pkg_errors//:errors",
         "@com_github_rs_zerolog//log",

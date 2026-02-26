@@ -6,62 +6,12 @@ import (
 
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
-	"google.golang.org/protobuf/encoding/protojson"
-	"gopkg.in/yaml.v3"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
 )
 
 // DisplayGetResult displays an MCP server in the specified format.
 func DisplayGetResult(mcpServer *mcpserverv1.McpServer, format string) {
-	switch format {
-	case "yaml":
-		displayAsYAML(mcpServer)
-	case "json":
-		displayAsJSON(mcpServer)
-	default:
-		displayAsTable(mcpServer)
-	}
-}
-
-// displayAsYAML outputs the MCP server as YAML.
-func displayAsYAML(mcpServer *mcpserverv1.McpServer) {
-	marshaler := protojson.MarshalOptions{
-		Indent:          "  ",
-		UseProtoNames:   true,
-		EmitUnpopulated: false,
-	}
-	jsonBytes, err := marshaler.Marshal(mcpServer)
-	if err != nil {
-		cliprint.PrintError("failed to marshal to JSON: %v", err)
-		return
-	}
-
-	var jsonMap map[string]interface{}
-	if err := yaml.Unmarshal(jsonBytes, &jsonMap); err != nil {
-		cliprint.PrintError("failed to parse JSON: %v", err)
-		return
-	}
-
-	yamlBytes, err := yaml.Marshal(jsonMap)
-	if err != nil {
-		cliprint.PrintError("failed to marshal to YAML: %v", err)
-		return
-	}
-	fmt.Print(string(yamlBytes))
-}
-
-// displayAsJSON outputs the MCP server as JSON.
-func displayAsJSON(mcpServer *mcpserverv1.McpServer) {
-	marshaler := protojson.MarshalOptions{
-		Indent:          "  ",
-		UseProtoNames:   true,
-		EmitUnpopulated: false,
-	}
-	jsonBytes, err := marshaler.Marshal(mcpServer)
-	if err != nil {
-		cliprint.PrintError("failed to marshal to JSON: %v", err)
-		return
-	}
-	fmt.Println(string(jsonBytes))
+	display.DisplayProto(mcpServer, format, func() { displayAsTable(mcpServer) })
 }
 
 // displayAsTable outputs the MCP server in human-readable table format.
