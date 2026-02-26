@@ -477,6 +477,18 @@ def create_deep_agent(
         tools_list.extend(mcp_tool_wrappers)
         # MCP middleware must run first to load tools before agent uses them
         middleware_list.insert(0, mcp_middleware)
+        
+        # Create resource tools for MCP resource discovery and reading.
+        # Always registered when MCP servers are configured (no filtering --
+        # all resources are accessible as read-only reference data).
+        from graphton.core.resource_tools import create_resource_tools
+        
+        resource_tools = create_resource_tools(servers=mcp_servers)
+        tools_list.extend(resource_tools)
+        logger.info(
+            "Created %d MCP resource tool(s) for resource discovery and reading",
+            len(resource_tools),
+        )
     
     elif mcp_servers or mcp_tools:
         # One provided but not the other - error
