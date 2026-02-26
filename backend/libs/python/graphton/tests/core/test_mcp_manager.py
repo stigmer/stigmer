@@ -5,12 +5,15 @@ Tests cover:
 - Input validation (empty servers, empty filter)
 - Tool filtering logic
 - Error handling (connection failures, no matching tools)
+- list_mcp_resources() function
+- read_mcp_resource() function
 """
 
 import logging
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from mcp.types import BlobResourceContents, TextResourceContents
 
 # =============================================================================
 # TestLoadMcpTools - Tests for load_mcp_tools() function
@@ -222,3 +225,333 @@ class TestLoadMcpTools:
         assert any("retrieved" in msg.lower() for msg in log_messages)
         # Should log about loaded tools
         assert any("loaded" in msg.lower() for msg in log_messages)
+
+
+# =============================================================================
+# TestListMcpResources - Tests for list_mcp_resources() function
+# =============================================================================
+
+
+def _make_mock_session(resources=None, templates=None):
+    """Create a mock MCP ClientSession with resource listing support.
+
+    Args:
+        resources: List of mock Resource objects for list_resources().
+        templates: List of mock ResourceTemplate objects for list_resource_templates().
+
+    Returns:
+        A mock session and an async context manager that yields it.
+    """
+    session = AsyncMock()
+
+    resources_result = MagicMock()
+    resources_result.resources = resources or []
+    session.list_resources = AsyncMock(return_value=resources_result)
+
+    templates_result = MagicMock()
+    templates_result.resourceTemplates = templates or []
+    session.list_resource_templates = AsyncMock(return_value=templates_result)
+
+    ctx = AsyncMock()
+    ctx.__aenter__ = AsyncMock(return_value=session)
+    ctx.__aexit__ = AsyncMock(return_value=False)
+
+    return session, ctx
+
+
+def _make_mock_resource(uri, name, description="", mime_type=""):
+    """Create a mock MCP Resource object."""
+    r = MagicMock()
+    r.uri = uri
+    r.name = name
+    r.description = description
+    r.mimeType = mime_type
+    return r
+
+
+def _make_mock_template(uri_template, name, description="", mime_type=""):
+    """Create a mock MCP ResourceTemplate object."""
+    t = MagicMock()
+    t.uriTemplate = uri_template
+    t.name = name
+    t.description = description
+    t.mimeType = mime_type
+    return t
+
+
+class TestListMcpResources:
+    """Tests for list_mcp_resources() function."""
+
+    @pytest.mark.asyncio
+    async def test_list_resources_with_resources_and_templates(self, sample_servers_config):
+        """Test listing servers that have both resources and templates."""
+        resource = _make_mock_resource(
+            uri="planton://cloud-resource-kinds",
+            name="cloud-resource-kinds",
+            description="Available cloud resource kinds",
+            mime_type="application/json",
+        )
+        template = _make_mock_template(
+            uri_template="cloud-resource-schema://{kind}",
+            name="cloud-resource-schema",
+            description="JSON schema for a cloud resource kind",
+            mime_type="application/json",
+        )
+        _, ctx = _make_mock_session(resources=[resource], templates=[template])
+
+        with patch("graphton.core.mcp_manager.MultiServerMCPClient") as mock_class:
+            client = MagicMock()
+            mock_class.return_value = client
+            client.session = MagicMock(return_value=ctx)
+
+            from graphton.core.mcp_manager import list_mcp_resources
+
+            result = await list_mcp_resources(sample_servers_config)
+
+        assert len(result) > 0
+        server_data = next(iter(result.values()))
+
+        assert len(server_data["resources"]) == 1
+        assert server_data["resources"][0]["uri"] == "planton://cloud-resource-kinds"
+        assert server_data["resources"][0]["name"] == "cloud-resource-kinds"
+
+        assert len(server_data["resource_templates"]) == 1
+        assert server_data["resource_templates"][0]["uri_template"] == "cloud-resource-schema://{kind}"
+        assert server_data["resource_templates"][0]["name"] == "cloud-resource-schema"
+
+    @pytest.mark.asyncio
+    async def test_list_resources_empty_servers_raises(self):
+        """Test that empty servers dict raises ValueError."""
+        from graphton.core.mcp_manager import list_mcp_resources
+
+        with pytest.raises(ValueError, match="servers cannot be empty"):
+            await list_mcp_resources({})
+
+    @pytest.mark.asyncio
+    async def test_list_resources_no_resources_returns_empty(self, sample_servers_config):
+        """Test that servers without resources produce an empty result."""
+        _, ctx = _make_mock_session(resources=[], templates=[])
+
+        with patch("graphton.core.mcp_manager.MultiServerMCPClient") as mock_class:
+            client = MagicMock()
+            mock_class.return_value = client
+            client.session = MagicMock(return_value=ctx)
+
+            from graphton.core.mcp_manager import list_mcp_resources
+
+            result = await list_mcp_resources(sample_servers_config)
+
+        assert result == {}
+
+    @pytest.mark.asyncio
+    async def test_list_resources_connection_failure_skips_server(self, sample_servers_config):
+        """Test that connection failure is handled gracefully."""
+        ctx = AsyncMock()
+        ctx.__aenter__ = AsyncMock(side_effect=ConnectionError("refused"))
+        ctx.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("graphton.core.mcp_manager.MultiServerMCPClient") as mock_class:
+            client = MagicMock()
+            mock_class.return_value = client
+            client.session = MagicMock(return_value=ctx)
+
+            from graphton.core.mcp_manager import list_mcp_resources
+
+            result = await list_mcp_resources(sample_servers_config)
+
+        assert result == {}
+
+    @pytest.mark.asyncio
+    async def test_list_resources_partial_failure_continues(self, sample_servers_config):
+        """Test that failure listing templates doesn't prevent listing resources."""
+        resource = _make_mock_resource("test://data", "test-data", "Test resource")
+
+        session = AsyncMock()
+
+        resources_result = MagicMock()
+        resources_result.resources = [resource]
+        session.list_resources = AsyncMock(return_value=resources_result)
+
+        session.list_resource_templates = AsyncMock(
+            side_effect=Exception("not supported")
+        )
+
+        ctx = AsyncMock()
+        ctx.__aenter__ = AsyncMock(return_value=session)
+        ctx.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("graphton.core.mcp_manager.MultiServerMCPClient") as mock_class:
+            client = MagicMock()
+            mock_class.return_value = client
+            client.session = MagicMock(return_value=ctx)
+
+            from graphton.core.mcp_manager import list_mcp_resources
+
+            result = await list_mcp_resources(sample_servers_config)
+
+        assert len(result) > 0
+        server_data = next(iter(result.values()))
+        assert len(server_data["resources"]) == 1
+        assert server_data["resource_templates"] == []
+
+    @pytest.mark.asyncio
+    async def test_list_resources_templates_only(self, sample_servers_config):
+        """Test server that only has resource templates (no static resources)."""
+        template = _make_mock_template(
+            "schema://{id}", "schema", "A schema template", "application/json",
+        )
+        _, ctx = _make_mock_session(resources=[], templates=[template])
+
+        with patch("graphton.core.mcp_manager.MultiServerMCPClient") as mock_class:
+            client = MagicMock()
+            mock_class.return_value = client
+            client.session = MagicMock(return_value=ctx)
+
+            from graphton.core.mcp_manager import list_mcp_resources
+
+            result = await list_mcp_resources(sample_servers_config)
+
+        assert len(result) > 0
+        server_data = next(iter(result.values()))
+        assert server_data["resources"] == []
+        assert len(server_data["resource_templates"]) == 1
+
+
+# =============================================================================
+# TestReadMcpResource - Tests for read_mcp_resource() function
+# =============================================================================
+
+
+class TestReadMcpResource:
+    """Tests for read_mcp_resource() function."""
+
+    @pytest.mark.asyncio
+    async def test_read_text_resource(self, sample_servers_config):
+        """Test reading a text resource."""
+        text_content = MagicMock(spec=TextResourceContents)
+        text_content.uri = "test://data"
+        text_content.mimeType = "application/json"
+        text_content.text = '{"kind": "AwsAlb"}'
+
+        read_result = MagicMock()
+        read_result.contents = [text_content]
+
+        session = AsyncMock()
+        session.read_resource = AsyncMock(return_value=read_result)
+
+        ctx = AsyncMock()
+        ctx.__aenter__ = AsyncMock(return_value=session)
+        ctx.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("graphton.core.mcp_manager.MultiServerMCPClient") as mock_class:
+            client = MagicMock()
+            mock_class.return_value = client
+            client.session = MagicMock(return_value=ctx)
+
+            from graphton.core.mcp_manager import read_mcp_resource
+
+            result = await read_mcp_resource(sample_servers_config, "github", "test://data")
+
+        assert len(result) == 1
+        assert result[0]["text"] == '{"kind": "AwsAlb"}'
+        assert result[0]["mime_type"] == "application/json"
+        assert "blob" not in result[0]
+
+    @pytest.mark.asyncio
+    async def test_read_binary_resource(self, sample_servers_config):
+        """Test reading a binary resource."""
+        blob_content = MagicMock(spec=BlobResourceContents)
+        blob_content.uri = "test://binary"
+        blob_content.mimeType = "application/octet-stream"
+        blob_content.blob = "SGVsbG8="
+
+        read_result = MagicMock()
+        read_result.contents = [blob_content]
+
+        session = AsyncMock()
+        session.read_resource = AsyncMock(return_value=read_result)
+
+        ctx = AsyncMock()
+        ctx.__aenter__ = AsyncMock(return_value=session)
+        ctx.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("graphton.core.mcp_manager.MultiServerMCPClient") as mock_class:
+            client = MagicMock()
+            mock_class.return_value = client
+            client.session = MagicMock(return_value=ctx)
+
+            from graphton.core.mcp_manager import read_mcp_resource
+
+            result = await read_mcp_resource(sample_servers_config, "github", "test://binary")
+
+        assert len(result) == 1
+        assert result[0]["blob"] == "SGVsbG8="
+        assert result[0]["mime_type"] == "application/octet-stream"
+        assert "text" not in result[0]
+
+    @pytest.mark.asyncio
+    async def test_read_resource_invalid_server_raises(self, sample_servers_config):
+        """Test that reading from an unknown server raises ValueError."""
+        from graphton.core.mcp_manager import read_mcp_resource
+
+        with pytest.raises(ValueError, match="not found"):
+            await read_mcp_resource(
+                sample_servers_config, "nonexistent-server", "test://data"
+            )
+
+    @pytest.mark.asyncio
+    async def test_read_resource_connection_failure_raises(self, sample_servers_config):
+        """Test that connection failure raises RuntimeError."""
+        ctx = AsyncMock()
+        ctx.__aenter__ = AsyncMock(side_effect=ConnectionError("refused"))
+        ctx.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("graphton.core.mcp_manager.MultiServerMCPClient") as mock_class:
+            client = MagicMock()
+            mock_class.return_value = client
+            client.session = MagicMock(return_value=ctx)
+
+            from graphton.core.mcp_manager import read_mcp_resource
+
+            with pytest.raises(RuntimeError, match="Failed to read"):
+                await read_mcp_resource(
+                    sample_servers_config, "github", "test://data"
+                )
+
+    @pytest.mark.asyncio
+    async def test_read_resource_multiple_contents(self, sample_servers_config):
+        """Test reading a resource that returns multiple content items."""
+        text1 = MagicMock(spec=TextResourceContents)
+        text1.uri = "test://multi"
+        text1.mimeType = "text/plain"
+        text1.text = "part 1"
+
+        text2 = MagicMock(spec=TextResourceContents)
+        text2.uri = "test://multi"
+        text2.mimeType = "text/plain"
+        text2.text = "part 2"
+
+        read_result = MagicMock()
+        read_result.contents = [text1, text2]
+
+        session = AsyncMock()
+        session.read_resource = AsyncMock(return_value=read_result)
+
+        ctx = AsyncMock()
+        ctx.__aenter__ = AsyncMock(return_value=session)
+        ctx.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("graphton.core.mcp_manager.MultiServerMCPClient") as mock_class:
+            client = MagicMock()
+            mock_class.return_value = client
+            client.session = MagicMock(return_value=ctx)
+
+            from graphton.core.mcp_manager import read_mcp_resource
+
+            result = await read_mcp_resource(
+                sample_servers_config, "github", "test://multi"
+            )
+
+        assert len(result) == 2
+        assert result[0]["text"] == "part 1"
+        assert result[1]["text"] == "part 2"

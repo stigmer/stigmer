@@ -13,13 +13,10 @@ go_library(
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//apis/stubs/go/ai/stigmer/commons/rpc",
         "//apis/stubs/go/ai/stigmer/search/v1:search",
-        "//client-apps/cli/internal/cli/cliprint",
         "//client-apps/cli/pkg/display",
         "@com_github_fatih_color//:color",
         "@com_github_pkg_errors//:errors",
-        "@in_gopkg_yaml_v3//:yaml_v3",
         "@org_golang_google_grpc//:grpc",
-        "@org_golang_google_protobuf//encoding/protojson",
     ],
 )
 

@@ -11,7 +11,7 @@ import (
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/reference"
 	"google.golang.org/grpc"
@@ -22,7 +22,7 @@ func connectToBackend(orgOverride string) (*grpc.ClientConn, string, error) {
 	// Load backend configuration
 	cfg, err := config.Load()
 	if err != nil {
-		cliprint.PrintError("Failed to load configuration: %s", err)
+		climsg.Error("Failed to load configuration: %s", err)
 		return nil, "", err
 	}
 
@@ -36,7 +36,7 @@ func connectToBackend(orgOverride string) (*grpc.ClientConn, string, error) {
 	// Connect to backend
 	conn, err := backend.NewConnection()
 	if err != nil {
-		cliprint.PrintError("Failed to connect to backend: %s", err)
+		climsg.Error("Failed to connect to backend: %s", err)
 		return nil, "", err
 	}
 
@@ -59,13 +59,13 @@ func resolveOrgID(orgOverride string, cfg *config.Config) string {
 
 // printOrgNotSetError displays the organization not set error message
 func printOrgNotSetError() {
-	cliprint.PrintError("Organization not set")
-	cliprint.PrintInfo("")
-	cliprint.PrintInfo("Set organization with:")
-	cliprint.PrintInfo("  stigmer context set --org <org-id>")
-	cliprint.PrintInfo("")
-	cliprint.PrintInfo("Or use --org flag:")
-	cliprint.PrintInfo("  stigmer run --org <org-id>")
+	climsg.Error("Organization not set")
+	climsg.Info("")
+	climsg.Info("Set organization with:")
+	climsg.Info("  stigmer context set --org <org-id>")
+	climsg.Info("")
+	climsg.Info("Or use --org flag:")
+	climsg.Info("  stigmer run --org <org-id>")
 	fmt.Println()
 }
 

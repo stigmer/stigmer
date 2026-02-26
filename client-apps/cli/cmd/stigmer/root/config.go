@@ -2,13 +2,12 @@ package root
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
+	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
 )
 
 // NewConfigCommand creates the config command for managing CLI configuration
@@ -53,7 +52,9 @@ Examples:
 }
 
 func newConfigSetCommand() *cobra.Command {
-	return &cobra.Command{
+	var jsonOutput, quietOutput bool
+
+	cmd := &cobra.Command{
 		Use:   "set <key> <value>",
 		Short: "Set a configuration value",
 		Long: `Set a configuration value in ~/.stigmer/config.yaml
@@ -66,20 +67,28 @@ Examples:
 		Run: func(cmd *cobra.Command, args []string) {
 			key := args[0]
 			value := args[1]
-			handleConfigSet(key, value)
+			handleConfigSet(key, value, resolveResultFormat(jsonOutput, quietOutput))
 		},
 	}
+
+	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
+	return cmd
 }
 
 func newConfigListCommand() *cobra.Command {
-	return &cobra.Command{
+	var jsonOutput, quietOutput bool
+
+	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List all configuration values",
 		Long:  `List all configuration values from ~/.stigmer/config.yaml`,
 		Run: func(cmd *cobra.Command, args []string) {
-			handleConfigList()
+			handleConfigList(resolveResultFormat(jsonOutput, quietOutput))
 		},
 	}
+
+	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
+	return cmd
 }
 
 func newConfigPathCommand() *cobra.Command {
@@ -94,234 +103,103 @@ func newConfigPathCommand() *cobra.Command {
 }
 
 func handleConfigGet(key string) {
+	renderer := clioutput.NewRenderer(clioutput.FormatHuman, os.Stdout, os.Stderr)
+
 	cfg, err := config.Load()
 	if err != nil {
-		cliprint.PrintError("Failed to load configuration")
 		clierr.Handle(err)
 		return
 	}
 
 	value, err := getConfigValue(cfg, key)
 	if err != nil {
-		cliprint.PrintError("Configuration key not found: %s", key)
-		cliprint.PrintInfo("Use 'stigmer config list' to see available keys")
+		result := clioutput.Error("Configuration key not found: %s", key)
+		result.Hint("Use 'stigmer config list' to see available keys")
+		renderer.Render(result)
 		return
 	}
 
 	fmt.Println(value)
 }
 
-func handleConfigSet(key, value string) {
+func handleConfigSet(key, value string, format clioutput.OutputFormat) {
+	renderer := clioutput.NewRenderer(format, os.Stdout, os.Stderr)
+
 	cfg, err := config.Load()
 	if err != nil {
-		cliprint.PrintError("Failed to load configuration")
 		clierr.Handle(err)
 		return
 	}
 
 	if err := setConfigValue(cfg, key, value); err != nil {
-		cliprint.PrintError("Failed to set configuration: %v", err)
-		cliprint.PrintInfo("Use 'stigmer config list' to see available keys")
+		result := clioutput.Error("Failed to set configuration: %v", err)
+		result.Hint("Use 'stigmer config list' to see available keys")
+		renderer.Render(result)
 		return
 	}
 
 	if err := config.Save(cfg); err != nil {
-		cliprint.PrintError("Failed to save configuration")
 		clierr.Handle(err)
 		return
 	}
 
-	cliprint.PrintSuccess("Configuration updated: %s = %s", key, value)
 	configPath, _ := config.GetConfigPath()
-	cliprint.PrintInfo("Saved to: %s", configPath)
+	result := clioutput.Success("Configuration updated: %s = %s", key, value)
+	result.Hintf("Saved to: %s", configPath)
+	renderer.Render(result)
 }
 
-func handleConfigList() {
+func handleConfigList(format clioutput.OutputFormat) {
+	renderer := clioutput.NewRenderer(format, os.Stdout, os.Stderr)
+
 	cfg, err := config.Load()
 	if err != nil {
-		cliprint.PrintError("Failed to load configuration")
 		clierr.Handle(err)
 		return
 	}
 
 	configPath, _ := config.GetConfigPath()
-	fmt.Printf("Configuration from %s:\n\n", configPath)
 
-	// Backend type
-	fmt.Printf("backend.type = %s\n", cfg.Backend.Type)
+	result := clioutput.Success("Configuration from %s", configPath)
+	result.AddSection("Backend").
+		Field("backend.type", string(cfg.Backend.Type))
 
-	// Local backend config
 	if cfg.Backend.Local != nil {
 		local := cfg.Backend.Local
 
-		// LLM config
 		if local.LLM != nil {
-			fmt.Printf("llm.provider = %s\n", local.LLM.Provider)
-			fmt.Printf("llm.model = %s\n", local.LLM.Model)
-			fmt.Printf("llm.base_url = %s\n", local.LLM.BaseURL)
+			result.AddSection("LLM").
+				Field("llm.provider", local.LLM.Provider).
+				Field("llm.model", local.LLM.Model).
+				Field("llm.base_url", local.LLM.BaseURL)
 		}
 
-		// Temporal config
 		if local.Temporal != nil {
-			fmt.Printf("temporal.managed = %v\n", local.Temporal.Managed)
+			result.AddSection("Temporal").
+				Fieldf("temporal.managed", "%v", local.Temporal.Managed)
 		}
 
-		// Execution config
 		if local.Execution != nil {
-			fmt.Printf("execution.mode = %s\n", local.Execution.Mode)
-			fmt.Printf("execution.sandbox_image = %s\n", local.Execution.SandboxImage)
-			fmt.Printf("execution.auto_pull = %v\n", local.Execution.AutoPull)
-			fmt.Printf("execution.cleanup = %v\n", local.Execution.Cleanup)
-			fmt.Printf("execution.ttl = %d\n", local.Execution.TTL)
+			result.AddSection("Execution").
+				Field("execution.mode", local.Execution.Mode).
+				Field("execution.sandbox_image", local.Execution.SandboxImage).
+				Fieldf("execution.auto_pull", "%v", local.Execution.AutoPull).
+				Fieldf("execution.cleanup", "%v", local.Execution.Cleanup).
+				Fieldf("execution.ttl", "%d", local.Execution.TTL)
 		}
 	}
 
-	fmt.Println()
-	cliprint.PrintInfo("Edit directly: %s", configPath)
-	cliprint.PrintInfo("Or use: stigmer config set <key> <value>")
+	result.Hintf("Edit directly: %s", configPath)
+	result.Hint("Or use: stigmer config set <key> <value>")
+	renderer.Render(result)
 }
 
 func handleConfigPath() {
 	configPath, err := config.GetConfigPath()
 	if err != nil {
-		cliprint.PrintError("Failed to get configuration path")
 		clierr.Handle(err)
 		return
 	}
 
 	fmt.Println(configPath)
-}
-
-// getConfigValue gets a value from the config by dot-notation key
-func getConfigValue(cfg *config.Config, key string) (string, error) {
-	parts := strings.Split(key, ".")
-
-	switch {
-	case key == "backend.type":
-		return string(cfg.Backend.Type), nil
-
-	case len(parts) >= 2 && parts[0] == "llm" && cfg.Backend.Local != nil && cfg.Backend.Local.LLM != nil:
-		llm := cfg.Backend.Local.LLM
-		switch parts[1] {
-		case "provider":
-			return llm.Provider, nil
-		case "model":
-			return llm.Model, nil
-		case "base_url":
-			return llm.BaseURL, nil
-		}
-
-	case len(parts) >= 2 && parts[0] == "temporal" && cfg.Backend.Local != nil && cfg.Backend.Local.Temporal != nil:
-		temporal := cfg.Backend.Local.Temporal
-		switch parts[1] {
-		case "managed":
-			return strconv.FormatBool(temporal.Managed), nil
-		}
-
-	case len(parts) >= 2 && parts[0] == "execution" && cfg.Backend.Local != nil && cfg.Backend.Local.Execution != nil:
-		execution := cfg.Backend.Local.Execution
-		switch parts[1] {
-		case "mode":
-			return execution.Mode, nil
-		case "sandbox_image":
-			return execution.SandboxImage, nil
-		case "auto_pull":
-			return strconv.FormatBool(execution.AutoPull), nil
-		case "cleanup":
-			return strconv.FormatBool(execution.Cleanup), nil
-		case "ttl":
-			return strconv.Itoa(execution.TTL), nil
-		}
-	}
-
-	return "", fmt.Errorf("unknown configuration key: %s", key)
-}
-
-// setConfigValue sets a value in the config by dot-notation key
-func setConfigValue(cfg *config.Config, key, value string) error {
-	parts := strings.Split(key, ".")
-
-	// Ensure local backend config exists
-	if cfg.Backend.Local == nil {
-		cfg.Backend.Local = &config.LocalBackendConfig{}
-	}
-
-	switch {
-	case key == "backend.type":
-		cfg.Backend.Type = config.BackendType(value)
-		return nil
-
-	case len(parts) >= 2 && parts[0] == "llm":
-		if cfg.Backend.Local.LLM == nil {
-			cfg.Backend.Local.LLM = &config.LLMConfig{}
-		}
-		llm := cfg.Backend.Local.LLM
-		switch parts[1] {
-		case "provider":
-			llm.Provider = value
-			return nil
-		case "model":
-			llm.Model = value
-			return nil
-		case "base_url":
-			llm.BaseURL = value
-			return nil
-		}
-
-	case len(parts) >= 2 && parts[0] == "temporal":
-		if cfg.Backend.Local.Temporal == nil {
-			cfg.Backend.Local.Temporal = &config.TemporalConfig{}
-		}
-		temporal := cfg.Backend.Local.Temporal
-		switch parts[1] {
-		case "managed":
-			boolValue, err := strconv.ParseBool(value)
-			if err != nil {
-				return fmt.Errorf("invalid boolean value for %s: %s", key, value)
-			}
-			temporal.Managed = boolValue
-			return nil
-		}
-
-	case len(parts) >= 2 && parts[0] == "execution":
-		if cfg.Backend.Local.Execution == nil {
-			cfg.Backend.Local.Execution = &config.ExecutionConfig{}
-		}
-		execution := cfg.Backend.Local.Execution
-		switch parts[1] {
-		case "mode":
-			// Validate mode
-			if value != "local" && value != "sandbox" && value != "auto" {
-				return fmt.Errorf("invalid execution mode: %s (must be: local, sandbox, or auto)", value)
-			}
-			execution.Mode = value
-			return nil
-		case "sandbox_image":
-			execution.SandboxImage = value
-			return nil
-		case "auto_pull":
-			boolValue, err := strconv.ParseBool(value)
-			if err != nil {
-				return fmt.Errorf("invalid boolean value for %s: %s", key, value)
-			}
-			execution.AutoPull = boolValue
-			return nil
-		case "cleanup":
-			boolValue, err := strconv.ParseBool(value)
-			if err != nil {
-				return fmt.Errorf("invalid boolean value for %s: %s", key, value)
-			}
-			execution.Cleanup = boolValue
-			return nil
-		case "ttl":
-			intValue, err := strconv.Atoi(value)
-			if err != nil {
-				return fmt.Errorf("invalid integer value for %s: %s", key, value)
-			}
-			execution.TTL = intValue
-			return nil
-		}
-	}
-
-	return fmt.Errorf("unknown configuration key: %s", key)
 }

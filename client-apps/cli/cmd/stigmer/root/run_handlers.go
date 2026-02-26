@@ -14,7 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/envfile"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
@@ -39,9 +39,9 @@ func runAgent(ref, message string, env envfile.EnvMap, attachments []*agentexecu
 
 	// Create session and first execution.
 	if len(attachments) > 0 {
-		cliprint.PrintInfo("Starting session with %d attachment(s)...", len(attachments))
+		climsg.Info("Starting session with %d attachment(s)...", len(attachments))
 	} else {
-		cliprint.PrintInfo("Starting session...")
+		climsg.Info("Starting session...")
 	}
 
 	exec, err := createAgentExecution(CreateAgentExecutionInput{
@@ -64,7 +64,7 @@ func runAgent(ref, message string, env envfile.EnvMap, attachments []*agentexecu
 			Msg("backend returned execution without session_id — session display may be degraded")
 	}
 
-	cliprint.PrintSuccess("Session started: %s", sessionID)
+	climsg.Success("Session started: %s", sessionID)
 	fmt.Println()
 
 	// Detach mode: return immediately.
@@ -96,7 +96,7 @@ func runAgent(ref, message string, env envfile.EnvMap, attachments []*agentexecu
 // which streams updates in real-time and handles approvals inline. This polling path
 // does NOT handle approvals and will hang if the execution requires user approval.
 func waitForExecution(executionID string, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
-	cliprint.PrintInfo("Waiting for execution to complete...")
+	climsg.Info("Waiting for execution to complete...")
 
 	pollInterval := 2 * time.Second
 	maxPollInterval := 10 * time.Second
@@ -145,25 +145,25 @@ func displayExecutionResult(exec *agentexecutionv1.AgentExecution) {
 
 	switch phase {
 	case agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED:
-		cliprint.PrintSuccess("Execution completed successfully")
+		climsg.Success("Execution completed successfully")
 	case agentexecutionv1.ExecutionPhase_EXECUTION_FAILED:
-		cliprint.PrintError("Execution failed")
+		climsg.Error("Execution failed")
 		if exec.GetStatus().GetError() != "" {
-			cliprint.PrintError("  Error: %s", exec.GetStatus().GetError())
+			climsg.Error("  Error: %s", exec.GetStatus().GetError())
 		}
 	case agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED:
-		cliprint.PrintWarning("Execution was cancelled")
+		climsg.Warning("Execution was cancelled")
 	case agentexecutionv1.ExecutionPhase_EXECUTION_TERMINATED:
-		cliprint.PrintWarning("Execution was terminated")
+		climsg.Warning("Execution was terminated")
 	}
 
 	// Show artifact summary
 	artifacts := exec.GetStatus().GetArtifacts()
 	if len(artifacts) > 0 {
 		fmt.Println()
-		cliprint.PrintInfo("Artifacts produced: %d", len(artifacts))
+		climsg.Info("Artifacts produced: %d", len(artifacts))
 		for _, a := range artifacts {
-			cliprint.PrintInfo("  - %s (%s)", a.GetName(), formatFileSize(a.GetSizeBytes()))
+			climsg.Info("  - %s (%s)", a.GetName(), formatFileSize(a.GetSizeBytes()))
 		}
 	}
 
@@ -178,7 +178,7 @@ func downloadArtifacts(exec *agentexecutionv1.AgentExecution, downloadDir string
 	}
 
 	artifacts := exec.GetStatus().GetArtifacts()
-	cliprint.PrintInfo("Downloading %d artifact(s) to %s...", len(artifacts), downloadDir)
+	climsg.Info("Downloading %d artifact(s) to %s...", len(artifacts), downloadDir)
 	fmt.Println()
 
 	for _, artifact := range artifacts {
@@ -187,7 +187,7 @@ func downloadArtifacts(exec *agentexecutionv1.AgentExecution, downloadDir string
 		}
 	}
 
-	cliprint.PrintSuccess("All artifacts downloaded")
+	climsg.Success("All artifacts downloaded")
 	fmt.Println()
 	return nil
 }
@@ -214,7 +214,7 @@ func downloadArtifact(executionID string, artifact *agentexecutionv1.ExecutionAr
 		}
 	}
 
-	cliprint.PrintInfo("  Downloading %s...", artifact.GetName())
+	climsg.Info("  Downloading %s...", artifact.GetName())
 
 	// Download content
 	resp, err := http.Get(downloadURL)
@@ -255,7 +255,7 @@ func downloadFileArtifact(body io.Reader, name, downloadDir string) error {
 		return errors.Wrap(err, "failed to write file")
 	}
 
-	cliprint.PrintSuccess("  Downloaded %s (%s)", name, formatFileSize(written))
+	climsg.Success("  Downloaded %s (%s)", name, formatFileSize(written))
 	return nil
 }
 
@@ -288,7 +288,7 @@ func downloadDirectoryArtifact(body io.Reader, name, downloadDir string) error {
 		totalBytes += int64(f.UncompressedSize64)
 	}
 
-	cliprint.PrintSuccess("  Extracted %s/ (%s, %d files)", name, formatFileSize(totalBytes), len(reader.File))
+	climsg.Success("  Extracted %s/ (%s, %d files)", name, formatFileSize(totalBytes), len(reader.File))
 	return nil
 }
 
@@ -355,15 +355,15 @@ func runWorkflow(ref, message string, env envfile.EnvMap, detach bool, orgID str
 	}
 
 	// Create workflow execution
-	cliprint.PrintInfo("Creating workflow execution...")
+	climsg.Info("Creating workflow execution...")
 	wfExec, err := createWorkflowExecution(workflow.Metadata.Id, orgID, message, env, conn)
 	if err != nil {
 		return errors.Wrap(err, "failed to create execution")
 	}
 
 	// Display execution started
-	cliprint.PrintSuccess("Workflow execution started: %s", workflow.Metadata.Name)
-	cliprint.PrintInfo("  Execution ID: %s", wfExec.Metadata.Id)
+	climsg.Success("Workflow execution started: %s", workflow.Metadata.Name)
+	climsg.Info("  Execution ID: %s", wfExec.Metadata.Id)
 	fmt.Println()
 
 	// Detach mode: print execution ID and return immediately
@@ -382,22 +382,22 @@ func runWorkflow(ref, message string, env envfile.EnvMap, detach bool, orgID str
 
 // displayAgentNotFoundError shows a helpful error message when agent is not found.
 func displayAgentNotFoundError(ref string) {
-	cliprint.PrintError("Agent not found: %s", ref)
-	cliprint.PrintInfo("")
-	cliprint.PrintInfo("Possible reasons:")
-	cliprint.PrintInfo("  - Agent doesn't exist in organization")
-	cliprint.PrintInfo("  - Agent hasn't been deployed yet (run: stigmer apply -f agent.yaml)")
-	cliprint.PrintInfo("  - Wrong organization context (use --org to override)")
+	climsg.Error("Agent not found: %s", ref)
+	climsg.Info("")
+	climsg.Info("Possible reasons:")
+	climsg.Info("  - Agent doesn't exist in organization")
+	climsg.Info("  - Agent hasn't been deployed yet (run: stigmer apply -f agent.yaml)")
+	climsg.Info("  - Wrong organization context (use --org to override)")
 	fmt.Println()
 }
 
 // displayWorkflowNotFoundError shows a helpful error message when workflow is not found.
 func displayWorkflowNotFoundError(ref string) {
-	cliprint.PrintError("Workflow not found: %s", ref)
-	cliprint.PrintInfo("")
-	cliprint.PrintInfo("Possible reasons:")
-	cliprint.PrintInfo("  - Workflow doesn't exist in organization")
-	cliprint.PrintInfo("  - Workflow hasn't been deployed yet (run: stigmer apply -f workflow.yaml)")
-	cliprint.PrintInfo("  - Wrong organization context (use --org to override)")
+	climsg.Error("Workflow not found: %s", ref)
+	climsg.Info("")
+	climsg.Info("Possible reasons:")
+	climsg.Info("  - Workflow doesn't exist in organization")
+	climsg.Info("  - Workflow hasn't been deployed yet (run: stigmer apply -f workflow.yaml)")
+	climsg.Info("  - Wrong organization context (use --org to override)")
 	fmt.Println()
 }

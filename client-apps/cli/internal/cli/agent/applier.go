@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"google.golang.org/grpc"
 )
 
@@ -58,7 +58,7 @@ func Apply(opts *ApplyOptions) (*ApplyResult, error) {
 	// Dry run - just validate and return
 	if opts.DryRun {
 		if !opts.Quiet {
-			cliprint.PrintInfo("Dry run mode - configuration is valid")
+			climsg.Info("Dry run mode - configuration is valid")
 			displayAgentSummary(opts.Agent)
 		}
 		return &ApplyResult{
@@ -73,9 +73,9 @@ func Apply(opts *ApplyOptions) (*ApplyResult, error) {
 
 	if !opts.Quiet {
 		if isCreate {
-			cliprint.PrintInfo("Creating agent: %s", opts.Agent.Metadata.Name)
+			climsg.Info("Creating agent: %s", opts.Agent.Metadata.Name)
 		} else {
-			cliprint.PrintInfo("Updating agent: %s", opts.Agent.Metadata.Name)
+			climsg.Info("Updating agent: %s", opts.Agent.Metadata.Name)
 		}
 	}
 

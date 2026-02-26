@@ -10,7 +10,7 @@ go_library(
     visibility = ["//client-apps/cli:__subpackages__"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/skill/v1:skill",
-        "//client-apps/cli/internal/cli/cliprint",
+        "//client-apps/cli/pkg/climsg",
         "//client-apps/cli/pkg/ignore",
         "@com_github_pkg_errors//:errors",
         "@in_gopkg_yaml_v3//:yaml_v3",

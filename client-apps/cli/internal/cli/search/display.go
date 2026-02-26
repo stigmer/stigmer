@@ -4,16 +4,14 @@ package search
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/fatih/color"
-	"google.golang.org/protobuf/encoding/protojson"
-	"gopkg.in/yaml.v3"
 
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	searchv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/search/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
 )
 
@@ -51,25 +49,15 @@ func DisplayResults(results *Result, opts *DisplayOptions) {
 		opts.MaxDescLen = DefaultDescriptionMaxLen
 	}
 
-	switch opts.Format {
-	case "yaml":
-		displayResultsYAML(results)
-	case "json":
-		displayResultsJSON(results)
-	default:
+	display.DisplayProtoSlice(results.Entries, opts.Format, func() {
 		displayResultsTable(results, opts)
-	}
+	})
 }
 
 // DisplayEmptyResults shows a helpful message when no results found.
+// Delegates to the shared display.DisplayEmptyResults utility.
 func DisplayEmptyResults(resourceName string, query string) {
-	fmt.Println()
-	if query != "" {
-		cliprint.PrintInfo("No %s found matching '%s'", resourceName, query)
-	} else {
-		cliprint.PrintInfo("No %s found", resourceName)
-	}
-	fmt.Println()
+	display.DisplayEmptyResults(resourceName, query)
 }
 
 // DisplayPaginationInfo shows current page and total pages.
@@ -97,18 +85,18 @@ func displayResultsTable(results *Result, opts *DisplayOptions) {
 	headerColor := color.New(color.FgCyan, color.Bold).SprintFunc()
 	dimColor := color.New(color.Faint).SprintFunc()
 
-	// Build headers based on options
-	headers := buildTableHeaders(opts)
+	tbl := display.NewTable(
+		buildTableHeaders(opts),
+		display.WithHeaderColor(headerColor),
+		display.WithAdaptive(),
+	)
 
-	// Build rows
-	rows := make([][]string, len(results.Entries))
-	for i, entry := range results.Entries {
-		rows[i] = buildTableRow(entry, opts, dimColor)
+	for _, entry := range results.Entries {
+		tbl.AddRow(buildTableRow(entry, opts, dimColor)...)
 	}
 
-	// Render table
 	fmt.Println()
-	renderTable(headers, rows, headerColor)
+	tbl.Render(os.Stdout)
 }
 
 // buildTableHeaders builds table headers based on display options.
@@ -187,113 +175,5 @@ func formatRelativeTime(t time.Time) string {
 	return display.FormatRelativeTime(seconds)
 }
 
-// renderTable renders a simple table with aligned columns.
-func renderTable(headers []string, rows [][]string, headerColor func(...interface{}) string) {
-	if len(rows) == 0 {
-		return
-	}
 
-	// Calculate column widths
-	widths := make([]int, len(headers))
-	for i, h := range headers {
-		widths[i] = display.MeasureColorizedString(h)
-	}
 
-	for _, row := range rows {
-		for i, cell := range row {
-			if i < len(widths) {
-				cellWidth := display.MeasureColorizedString(cell)
-				if cellWidth > widths[i] {
-					widths[i] = cellWidth
-				}
-			}
-		}
-	}
-
-	const columnGap = 3
-
-	// Render header
-	headerParts := make([]string, len(headers))
-	for i, h := range headers {
-		headerParts[i] = display.PadRight(headerColor(h), widths[i])
-	}
-	fmt.Println(strings.Join(headerParts, strings.Repeat(" ", columnGap)))
-
-	// Render separator
-	sepParts := make([]string, len(headers))
-	for i, w := range widths {
-		sepParts[i] = strings.Repeat("-", w)
-	}
-	fmt.Println(strings.Join(sepParts, strings.Repeat(" ", columnGap)))
-
-	// Render rows
-	for _, row := range rows {
-		rowParts := make([]string, len(row))
-		for i, cell := range row {
-			if i < len(widths) {
-				rowParts[i] = display.PadRight(cell, widths[i])
-			}
-		}
-		fmt.Println(strings.Join(rowParts, strings.Repeat(" ", columnGap)))
-	}
-}
-
-// displayResultsYAML renders results as YAML.
-func displayResultsYAML(results *Result) {
-	marshaler := protojson.MarshalOptions{
-		Indent:          "  ",
-		UseProtoNames:   true,
-		EmitUnpopulated: false,
-	}
-
-	// Convert each entry to YAML
-	entries := make([]map[string]interface{}, len(results.Entries))
-	for i, entry := range results.Entries {
-		jsonBytes, err := marshaler.Marshal(entry)
-		if err != nil {
-			cliprint.PrintError("failed to marshal result: %v", err)
-			continue
-		}
-
-		var m map[string]interface{}
-		if err := yaml.Unmarshal(jsonBytes, &m); err != nil {
-			cliprint.PrintError("failed to parse result: %v", err)
-			continue
-		}
-		entries[i] = m
-	}
-
-	yamlBytes, err := yaml.Marshal(entries)
-	if err != nil {
-		cliprint.PrintError("failed to marshal to YAML: %v", err)
-		return
-	}
-
-	fmt.Print(string(yamlBytes))
-}
-
-// displayResultsJSON renders results as JSON.
-func displayResultsJSON(results *Result) {
-	marshaler := protojson.MarshalOptions{
-		Indent:          "  ",
-		UseProtoNames:   true,
-		EmitUnpopulated: false,
-	}
-
-	// Build a JSON array manually since we need individual marshaling
-	fmt.Println("[")
-	for i, entry := range results.Entries {
-		jsonBytes, err := marshaler.Marshal(entry)
-		if err != nil {
-			cliprint.PrintError("failed to marshal result: %v", err)
-			continue
-		}
-
-		if i < len(results.Entries)-1 {
-			fmt.Printf("  %s,\n", string(jsonBytes))
-		} else {
-			fmt.Printf("  %s\n", string(jsonBytes))
-		}
-	}
-	fmt.Println("]")
-}
