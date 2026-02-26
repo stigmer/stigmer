@@ -69,7 +69,7 @@ When starting a new session:
 
 **Created**: 2026-02-26 02:27
 **Current Task**: None - Project Complete
-**Status**: Complete - All phases delivered (Phase 1, Phase 2, Phase 3.1, Phase 3.2, Phase 3.3, DD01, Phase 4, Phase 5, Item 5, Item 7, cliprint Sunset)
+**Status**: Complete - All phases delivered (Phase 1, Phase 2, Phase 3.1, Phase 3.2, Phase 3.3, DD01, Phase 4, Phase 5, Item 5, Item 7, cliprint Sunset, Item 4)
 
 ## Session Progress (2026-02-26)
 
@@ -416,7 +416,7 @@ Modified:
 
 All phases and follow-on items complete. Remaining deferred items for future projects:
 - ~~**Item 3**: `cliprint` package sunset~~ **COMPLETED** — `cliprint.go` deleted, all 27 importers migrated to `climsg` or plain `fmt`, `cliprint` package now only contains `progress.go`
-- **Item 4**: Get/list table rendering modernization — standardize column widths, truncation, empty-state across 7 resource tables
+- ~~**Item 4**: Get/list table rendering modernization~~ **COMPLETED** — shared `display.Table` type with dynamic widths, ANSI-aware measurement, adaptive terminal-width shrinking. All 4 table implementations consolidated. 6 byte-based `truncateString()` copies replaced with Unicode-aware `display.TruncateWithEllipsis()`. `DisplayEmptyResults` moved to `pkg/display/`.
 - **Item 6**: Integration tests for `--json`/`--quiet` — e2e tests for 10 commands verifying parseable JSON output
 - ProgressDisplay migration (handleServerStart, handleLLMPull) — BubbleTea paradigm, works correctly, no user-facing issue
 - TUI icon vocabulary consistency (executiontui, toolrender) — separate domain from CLI output

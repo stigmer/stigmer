@@ -13,6 +13,7 @@ go_library(
         "//apis/stubs/go/ai/stigmer/agentic/session/v1:session",
         "//client-apps/cli/pkg/display",
         "//client-apps/cli/pkg/reference",
+        "@com_github_fatih_color//:color",
         "@com_github_pkg_errors//:errors",
         "@org_golang_google_grpc//:grpc",
     ],
