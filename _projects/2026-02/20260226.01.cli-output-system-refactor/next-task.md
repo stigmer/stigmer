@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-26 02:27
-**Current Task**: Phase 4 - Consolidate Display Files (see Next Steps)
-**Status**: In Progress - Phase 1, Phase 2, Phase 3.1, Phase 3.2, Phase 3.3, and DD01 Complete
+**Current Task**: Phase 5 - Cleanup & Polish (see Next Steps)
+**Status**: In Progress - Phase 1, Phase 2, Phase 3.1, Phase 3.2, Phase 3.3, DD01, and Phase 4 Complete
 
 ## Session Progress (2026-02-26)
 
@@ -248,25 +248,62 @@ Modified:
   client-apps/cli/internal/cli/apply/skill_verify.go   (-41 lines, removed DisplayMissingSkillsGuidance + unused imports)
 ```
 
+### Completed: Phase 4 - Consolidate Display File Boilerplate
+
+- Extracted duplicated proto YAML/JSON marshaling from 7 display.go files into `pkg/display/proto.go`
+- Created two-layer API:
+  - Layer 1: `RenderProtoYAML(w, msg) error` / `RenderProtoJSON(w, msg) error` — pure, testable, `io.Writer`-based
+  - Layer 2: `DisplayProto(msg, format, tableFunc)` — convenience dispatcher, handles errors to stderr
+- Package-level `protoMarshalOptions` encodes marshaling config exactly once
+- Removed 16 per-resource YAML/JSON functions and 9 format-dispatch switch blocks
+- Unified error handling: stderr print (not `os.Exit(1)`) for unreachable marshal errors
+- Cleaned up stale `clierr`, `protojson`, `yaml.v3` deps from 5 packages
+- 8 unit tests for proto rendering utilities
+- `search/display.go` excluded (array iteration pattern, not single-proto marshaling)
+- Net: -282 lines (492 removed, 210 added across 17 files)
+- `go build`, `go vet`, all tests passing
+
+### Files Created/Modified (Phase 4)
+
+```
+Created:
+  client-apps/cli/pkg/display/proto.go       (74 lines, new)
+  client-apps/cli/pkg/display/proto_test.go   (102 lines, new)
+
+Modified:
+  client-apps/cli/pkg/display/BUILD.bazel              (+proto.go, +protojson/yaml/proto deps)
+  client-apps/cli/internal/cli/agent/display.go        (173→120 lines, -53)
+  client-apps/cli/internal/cli/agent/BUILD.bazel       (-clierr, +display)
+  client-apps/cli/internal/cli/workflow/display.go     (165→112 lines, -53)
+  client-apps/cli/internal/cli/workflow/BUILD.bazel    (-clierr, +display)
+  client-apps/cli/internal/cli/skill/display.go        (127→82 lines, -45)
+  client-apps/cli/internal/cli/skill/BUILD.bazel       (-clierr/-protojson/-yaml, +display)
+  client-apps/cli/internal/cli/project/display.go      (238→189 lines, -49)
+  client-apps/cli/internal/cli/project/BUILD.bazel     (-clierr, +display)
+  client-apps/cli/internal/cli/mcpserver/display.go    (117→72 lines, -45)
+  client-apps/cli/internal/cli/mcpserver/BUILD.bazel   (+display)
+  client-apps/cli/internal/cli/session/display.go      (194→100 lines, -94)
+  client-apps/cli/internal/cli/session/BUILD.bazel     (-clierr/-protojson/-yaml, +display)
+  client-apps/cli/internal/cli/execution/display.go    (358→260 lines, -98)
+  client-apps/cli/internal/cli/execution/BUILD.bazel   (-clierr/-protojson/-yaml, +display)
+```
+
+### Key Design Decisions (Phase 4)
+
+14. **Two-layer API**: `RenderProtoYAML`/`RenderProtoJSON` return errors for testability; `DisplayProto` wraps them with fire-and-forget semantics to preserve existing `DisplayGetResult` void signatures.
+15. **Package-level `protoMarshalOptions`**: Single definition of `protojson.MarshalOptions` shared by both functions. Changing a default (e.g., `EmitUnpopulated`) now requires one edit.
+16. **Error handling unified to stderr print**: Changed 6 files from `clierr.Handle()` (`os.Exit(1)`) to `fmt.Fprintf(os.Stderr)` for marshal errors. The error path is unreachable with valid protos from gRPC, but `os.Exit(1)` from a display function was disproportionate.
+17. **`search/display.go` excluded**: Its YAML/JSON rendering iterates individual entries into arrays — fundamentally different from single-proto marshaling. Not forced into `DisplayProto`.
+
 ## Next Steps
 
 1. ~~**Design Decision: get/list output format coexistence**~~ **RESOLVED (DD01)**
-   - Decision: Two separate, non-overlapping output systems by design
-   - System 1: `clioutput.CommandResult` + `Renderer` for mutating commands
-   - System 2: `--output table/yaml/json` for read commands (get/list/search)
-   - They do not coexist on the same command. No merge needed.
-   - See: `design-decisions/DD01-output-format-architecture.md`
 
 2. ~~**Phase 3.3: Migrate apply commands**~~ **COMPLETED**
 
-3. **Phase 4: Consolidate Display File Boilerplate** (Medium effort) **<-- NEXT**
-   - Extract generic `RenderProtoYAML` / `RenderProtoJSON` into `pkg/display/`
-   - Create format dispatcher `DisplayProto(msg, format, tableFunc)` to eliminate repeated switch blocks
-   - Each resource's `DisplayGetResult` collapses from ~40 lines to ~5 lines
-   - Per-resource table rendering stays resource-specific (no `Displayable` interface)
-   - DD01 explicitly cancels the `Displayable` interface approach from the original T01 plan
+3. ~~**Phase 4: Consolidate Display File Boilerplate**~~ **COMPLETED**
 
-4. **Phase 5: Cleanup & Polish** (Small effort)
+4. **Phase 5: Cleanup & Polish** (Small effort) **<-- NEXT**
    - Remove deprecated `cliprint` functions
    - Wire up `--output` flag end-to-end (CommandResult rendering format, if needed)
    - Final icon/vocabulary audit
@@ -280,10 +317,11 @@ Modified:
 - **Section-builder pattern**: Functions like `addLLMSections(result, cfg)` are the reusable building blocks. They take `*clioutput.CommandResult` and append sections. Introduced in Phase 3.2 for dual-use (standalone + embedded).
 - **DD01 (Output Format Architecture)**: Two separate output systems. `clioutput.CommandResult` for mutating commands. `--output table/yaml/json` for read commands. They do not coexist. Phase 4 consolidates boilerplate in System 2 only.
 - `cliprint` is NOT imported by: backend.go, config.go, config_values.go, server_status.go, server_health.go, delete.go, delete_handlers.go, delete_cancel.go, apply_project.go, apply_file.go, apply_file_handlers.go
-- `cliprint` IS still imported by: server.go (handleServerStart/ProgressDisplay), server_llm.go (handleLLMPull/ProgressDisplay), server_logs.go (streaming), and the 8 display.go files (get/list table rendering)
+- `cliprint` IS still imported by: server.go (handleServerStart/ProgressDisplay), server_llm.go (handleLLMPull/ProgressDisplay), server_logs.go (streaming), and the 7 display.go files (get/list table rendering only — YAML/JSON handled by `pkg/display`)
 - `execution.FormatPhase()` was exported for cross-package use (previously `formatPhase`)
 - server_logs.go at 441 lines exceeds 250-line limit but is pre-existing and out of scope
-- Plan files: `.cursor/plans/phase_1_clioutput_package_6a41844c.plan.md`, `.cursor/plans/phase_2_delete_confirmation_bf3b2d04.plan.md`, `.cursor/plans/phase_3.1_delete_migration_38b0d475.plan.md`, `.cursor/plans/phase_3.2_migration_6d35663b.plan.md`, `.cursor/plans/phase_3.3_apply_migration_6623d225.plan.md`, `.cursor/plans/output_format_design_decision_3ad75a6f.plan.md`
+- **`pkg/display/proto.go`**: Shared proto rendering utilities. `DisplayProto(msg, format, tableFunc)` is the primary call used by all 7 resource display files. `RenderProtoYAML`/`RenderProtoJSON` are the testable layer underneath.
+- Plan files: `.cursor/plans/phase_1_clioutput_package_6a41844c.plan.md`, `.cursor/plans/phase_2_delete_confirmation_bf3b2d04.plan.md`, `.cursor/plans/phase_3.1_delete_migration_38b0d475.plan.md`, `.cursor/plans/phase_3.2_migration_6d35663b.plan.md`, `.cursor/plans/phase_3.3_apply_migration_6623d225.plan.md`, `.cursor/plans/output_format_design_decision_3ad75a6f.plan.md`, `.cursor/plans/phase_4_display_consolidation_615913b2.plan.md`
 - Design decisions: `_projects/.../design-decisions/DD01-output-format-architecture.md`
 - Task plan: `_projects/2026-02/20260226.01.cli-output-system-refactor/tasks/T01_0_plan.md`
 - Branch: `feat/cli-output-system-foundation`
@@ -291,10 +329,10 @@ Modified:
 ## Quick Commands
 
 After loading context:
-- "Start Phase 4" - Consolidate display file boilerplate (generic proto YAML/JSON, format dispatcher)
+- "Start Phase 5" - Cleanup & polish (remove deprecated cliprint, icon audit, ProgressDisplay migration)
 - "Show project status" - Get overview of progress
 - "Review DD01" - Read the output format architecture decision
-- "Review Phase 3.2 code" - Check server_status.go, server_llm.go, backend.go, config.go
+- "Review Phase 4 code" - Check pkg/display/proto.go and migrated display.go files
 - "Review guidelines" - Check established patterns
 
 ---
