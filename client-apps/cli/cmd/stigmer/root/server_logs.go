@@ -1,15 +1,9 @@
 package root
 
 import (
-	"bufio"
 	"fmt"
-	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strconv"
-	"syscall"
-	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
@@ -210,7 +204,7 @@ func getComponentConfigs(dataDir, logDir string) []logs.ComponentConfig {
 	return components
 }
 
-// getComponentConfigsWithStreamPreferences returns component configs with smart stream preferences
+// getComponentConfigsWithStreamPreferences returns component configs with smart stream preferences.
 // stigmer-server: prefers stderr (zerolog defaults to stderr)
 // workflow-runner: prefers stdout (Go's log package defaults to stdout)
 // agent-runner: reads from Docker (both streams)
@@ -247,195 +241,4 @@ func getComponentConfigsWithStreamPreferences(dataDir, logDir string, useSmartDe
 	}
 
 	return components
-}
-
-// streamLogs streams a log file in real-time (like kubectl logs -f)
-// First shows existing logs (last n lines if specified, or all if n=0), then streams new ones.
-// Handles file replacement (e.g., server restart) by detecting inode changes.
-func streamLogs(logFile string, tailLines int) error {
-	file, err := os.Open(logFile)
-	if err != nil {
-		return fmt.Errorf("failed to open log file: %w", err)
-	}
-	defer func() { file.Close() }()
-
-	if tailLines == 0 {
-		cliprint.PrintInfo("Streaming logs from: %s (showing all existing logs)", logFile)
-	} else {
-		cliprint.PrintInfo("Streaming logs from: %s (showing last %d lines)", logFile, tailLines)
-	}
-	cliprint.PrintInfo("Press Ctrl+C to stop")
-	fmt.Println()
-
-	scanner := bufio.NewScanner(file)
-	if tailLines == 0 {
-		for scanner.Scan() {
-			fmt.Println(scanner.Text())
-		}
-	} else {
-		lines := make([]string, 0, tailLines)
-		for scanner.Scan() {
-			line := scanner.Text()
-			if len(lines) < tailLines {
-				lines = append(lines, line)
-			} else {
-				lines = append(lines[1:], line)
-			}
-		}
-		for _, line := range lines {
-			fmt.Println(line)
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("error reading existing logs: %w", err)
-	}
-
-	// Position at the end for tailing
-	if _, err := file.Seek(0, io.SeekEnd); err != nil {
-		return fmt.Errorf("failed to seek to end: %w", err)
-	}
-
-	stat, err := file.Stat()
-	if err != nil {
-		return fmt.Errorf("failed to stat file: %w", err)
-	}
-	currentInode := getInode(stat)
-
-	reader := bufio.NewReader(file)
-
-	for {
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			if err == io.EOF {
-				time.Sleep(100 * time.Millisecond)
-
-				// Check if the file was replaced (e.g., server restart creates a new file)
-				pathStat, statErr := os.Stat(logFile)
-				if statErr != nil {
-					// File deleted; wait for it to reappear
-					time.Sleep(500 * time.Millisecond)
-					continue
-				}
-
-				newInode := getInode(pathStat)
-				if newInode != currentInode {
-					// File was replaced — reopen and read from the beginning
-					file.Close()
-					file, err = os.Open(logFile)
-					if err != nil {
-						time.Sleep(500 * time.Millisecond)
-						continue
-					}
-					stat, _ := file.Stat()
-					currentInode = getInode(stat)
-					reader = bufio.NewReader(file)
-					continue
-				}
-
-				// Check if file was truncated
-				currentPos, _ := file.Seek(0, io.SeekCurrent)
-				if pathStat.Size() < currentPos {
-					file.Seek(0, io.SeekStart)
-					reader = bufio.NewReader(file)
-				}
-				continue
-			}
-			return fmt.Errorf("error reading log file: %w", err)
-		}
-
-		fmt.Print(line)
-	}
-}
-
-// getInode extracts the inode number from os.FileInfo to detect file replacement
-func getInode(info os.FileInfo) uint64 {
-	if stat, ok := info.Sys().(*syscall.Stat_t); ok {
-		return stat.Ino
-	}
-	return 0
-}
-
-// showLastNLines shows the last N lines of a file (like tail -n N)
-func showLastNLines(logFile string, n int) error {
-	// Open file
-	file, err := os.Open(logFile)
-	if err != nil {
-		return fmt.Errorf("failed to open log file: %w", err)
-	}
-	defer file.Close()
-
-	// Show file header
-	cliprint.PrintInfo("Showing last %d lines from: %s", n, logFile)
-	fmt.Println()
-
-	// Read all lines into a circular buffer
-	lines := make([]string, 0, n)
-	scanner := bufio.NewScanner(file)
-
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		if len(lines) < n {
-			lines = append(lines, line)
-		} else {
-			// Circular buffer: shift and append
-			lines = append(lines[1:], line)
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("error reading log file: %w", err)
-	}
-
-	// Print collected lines
-	for _, line := range lines {
-		fmt.Println(line)
-	}
-
-	return nil
-}
-
-// streamDockerLogs streams logs from a Docker container.
-// When follow is true, it automatically reconnects if the container stops/restarts.
-func streamDockerLogs(containerName string, follow bool, tailLines int) error {
-	cliprint.PrintInfo("Streaming logs from Docker container: %s", containerName)
-	if follow {
-		cliprint.PrintInfo("Press Ctrl+C to stop")
-	}
-	fmt.Println()
-
-	if !follow {
-		return runDockerLogs(containerName, false, tailLines)
-	}
-
-	// First invocation uses the requested tail lines
-	tailArg := tailLines
-	for {
-		err := runDockerLogs(containerName, true, tailArg)
-		if err == nil {
-			// docker logs -f exited cleanly (container stopped); wait and retry
-		}
-		// After reconnecting, only show new logs (tail 0) to avoid duplicates
-		tailArg = 0
-		time.Sleep(500 * time.Millisecond)
-	}
-}
-
-func runDockerLogs(containerName string, follow bool, tailLines int) error {
-	args := []string{"logs"}
-	if follow {
-		args = append(args, "-f")
-	}
-	if tailLines > 0 {
-		args = append(args, "--tail", strconv.Itoa(tailLines))
-	} else if follow {
-		args = append(args, "--tail", "0")
-	}
-	args = append(args, containerName)
-
-	cmd := exec.Command("docker", args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
 }
