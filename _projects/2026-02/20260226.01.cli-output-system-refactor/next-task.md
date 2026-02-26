@@ -69,9 +69,21 @@ When starting a new session:
 
 **Created**: 2026-02-26 02:27
 **Current Task**: None - Project Complete
-**Status**: Complete - All phases delivered (Phase 1, Phase 2, Phase 3.1, Phase 3.2, Phase 3.3, DD01, Phase 4, Phase 5, Item 5, Item 7)
+**Status**: Complete - All phases delivered (Phase 1, Phase 2, Phase 3.1, Phase 3.2, Phase 3.3, DD01, Phase 4, Phase 5, Item 5, Item 7, cliprint Sunset)
 
 ## Session Progress (2026-02-26)
+
+### Completed: cliprint Sunset Migration (Deferred Item 1)
+
+- **Created `climsg` package** (`client-apps/cli/pkg/climsg/`) — a dedicated ephemeral messaging layer writing to stderr with colored icon-prefixed output, dual-layer API (struct `Writer` + package-level convenience functions following Go `slog` pattern)
+- **Migrated all 27 `cliprint.Print*` call sites** across 8 `display.go` files, 19 `cmd/stigmer/root/` files, and related internal packages
+- **Display files**: Replaced decorative `cliprint.PrintInfo` (cyan) with plain `fmt.Printf` to stdout — color in display tables deferred to future table-rendering modernization
+- **Command files**: Replaced `cliprint.Print{Info,Error,Warning,Success}` with `climsg.{Info,Error,Warning,Success}` — all status/progress messages now route through stderr
+- **Deleted `cliprint.go`** — the legacy file is gone; `cliprint` package now only contains `progress.go` (BubbleTea-based `ProgressDisplay`)
+- **Fixed test infrastructure** — added `climsg.ReplaceOutput()` to safely redirect stderr writer in tests; updated `captureColorOutput` helper in `run_approval_test.go`
+- **Updated 20 BUILD.bazel files** — added `climsg` deps, removed `cliprint` deps where no longer needed
+- **51 files changed**, net -59 lines (removed more than added)
+- **All tests pass** — full `go build`, `go vet`, `go test ./...` green across entire CLI module
 
 ### Completed: Phase 1 - Core `clioutput` Package Foundation
 
@@ -403,7 +415,7 @@ Modified:
 6. ~~**Item 7: Consolidate search/display.go YAML/JSON**~~ **COMPLETED**
 
 All phases and follow-on items complete. Remaining deferred items for future projects:
-- **Item 3**: `cliprint` package sunset — migrate remaining 10 importers, then delete or shrink `cliprint`
+- ~~**Item 3**: `cliprint` package sunset~~ **COMPLETED** — `cliprint.go` deleted, all 27 importers migrated to `climsg` or plain `fmt`, `cliprint` package now only contains `progress.go`
 - **Item 4**: Get/list table rendering modernization — standardize column widths, truncation, empty-state across 7 resource tables
 - **Item 6**: Integration tests for `--json`/`--quiet` — e2e tests for 10 commands verifying parseable JSON output
 - ProgressDisplay migration (handleServerStart, handleLLMPull) — BubbleTea paradigm, works correctly, no user-facing issue

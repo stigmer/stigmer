@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 )
 
@@ -55,7 +55,7 @@ func executeDraftSkill(opts draftSkillOptions) error {
 		return errors.Wrap(err, "skill-creator agent not found")
 	}
 
-	cliprint.PrintInfo("Using system agent: %s", agent.Metadata.Name)
+	climsg.Info("Using system agent: %s", agent.Metadata.Name)
 
 	// 4. Process attachments (reuse existing AttachmentProcessor)
 	var attachments []*agentexecutionv1.Attachment
@@ -65,11 +65,11 @@ func executeDraftSkill(opts draftSkillOptions) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to process attachments")
 		}
-		cliprint.PrintInfo("Attached %d file(s) as context", len(attachments))
+		climsg.Info("Attached %d file(s) as context", len(attachments))
 	}
 
 	// 5. Create session and first execution.
-	cliprint.PrintInfo("Starting session...")
+	climsg.Info("Starting session...")
 	exec, err := createAgentExecution(CreateAgentExecutionInput{
 		AgentID:        agent.Metadata.Id,
 		OrgID:          orgID,
@@ -90,7 +90,7 @@ func executeDraftSkill(opts draftSkillOptions) error {
 			Msg("backend returned execution without session_id — session display may be degraded")
 	}
 
-	cliprint.PrintInfo("Session: %s", sessionID)
+	climsg.Info("Session: %s", sessionID)
 	fmt.Println()
 
 	// 6. Stream execution in real-time until completion.
@@ -105,11 +105,11 @@ func executeDraftSkill(opts draftSkillOptions) error {
 		if err := downloadArtifacts(exec, opts.OutputDir, conn); err != nil {
 			return errors.Wrap(err, "failed to download skill artifacts")
 		}
-		cliprint.PrintSuccess("Skill saved to: %s", opts.OutputDir)
+		climsg.Success("Skill saved to: %s", opts.OutputDir)
 	} else {
-		cliprint.PrintWarning("No skill artifacts were generated")
-		cliprint.PrintInfo("The agent may not have published any files. Check session logs with:")
-		cliprint.PrintInfo("  stigmer run %s", sessionID)
+		climsg.Warning("No skill artifacts were generated")
+		climsg.Info("The agent may not have published any files. Check session logs with:")
+		climsg.Info("  stigmer run %s", sessionID)
 	}
 
 	return nil
@@ -117,12 +117,12 @@ func executeDraftSkill(opts draftSkillOptions) error {
 
 // displaySkillCreatorNotFoundError shows a helpful error when the skill-creator agent is missing.
 func displaySkillCreatorNotFoundError() {
-	cliprint.PrintError("skill-creator agent not found")
-	cliprint.PrintInfo("")
-	cliprint.PrintInfo("This system agent is created during server bootstrap.")
-	cliprint.PrintInfo("Ensure the server has completed bootstrap successfully.")
-	cliprint.PrintInfo("")
-	cliprint.PrintInfo("Check bootstrap status with:")
-	cliprint.PrintInfo("  Check server logs for 'Seedpack bootstrap completed successfully'")
+	climsg.Error("skill-creator agent not found")
+	climsg.Info("")
+	climsg.Info("This system agent is created during server bootstrap.")
+	climsg.Info("Ensure the server has completed bootstrap successfully.")
+	climsg.Info("")
+	climsg.Info("Check bootstrap status with:")
+	climsg.Info("  Check server logs for 'Seedpack bootstrap completed successfully'")
 	fmt.Println()
 }

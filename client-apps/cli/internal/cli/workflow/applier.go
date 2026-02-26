@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"google.golang.org/grpc"
 )
 
@@ -58,7 +58,7 @@ func Apply(opts *ApplyOptions) (*ApplyResult, error) {
 	// Dry run - just validate and return
 	if opts.DryRun {
 		if !opts.Quiet {
-			cliprint.PrintInfo("Dry run mode - configuration is valid")
+			climsg.Info("Dry run mode - configuration is valid")
 			displayWorkflowSummary(opts.Workflow)
 		}
 		return &ApplyResult{
@@ -73,9 +73,9 @@ func Apply(opts *ApplyOptions) (*ApplyResult, error) {
 
 	if !opts.Quiet {
 		if isCreate {
-			cliprint.PrintInfo("Creating workflow: %s", opts.Workflow.Metadata.Name)
+			climsg.Info("Creating workflow: %s", opts.Workflow.Metadata.Name)
 		} else {
-			cliprint.PrintInfo("Updating workflow: %s", opts.Workflow.Metadata.Name)
+			climsg.Info("Updating workflow: %s", opts.Workflow.Metadata.Name)
 		}
 	}
 

@@ -14,6 +14,7 @@ go_library(
     deps = [
         "//client-apps/cli/embedded",
         "//client-apps/cli/internal/cli/cliprint",
+        "//client-apps/cli/pkg/climsg",
         "//client-apps/cli/internal/cli/config",
         "//client-apps/cli/internal/cli/health",
         "//client-apps/cli/internal/cli/llm",

@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/search"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
 )
@@ -13,21 +12,21 @@ import (
 // displayWorkflowSummary displays a summary of Workflow configuration fields.
 // Internal helper for consistent formatting across display functions.
 func displayWorkflowSummary(workflow *workflowv1.Workflow) {
-	cliprint.PrintInfo("  Name:         %s", workflow.Metadata.Name)
+	fmt.Printf("  Name:         %s\n", workflow.Metadata.Name)
 
 	if workflow.Spec != nil {
 		if workflow.Spec.Description != "" {
-			cliprint.PrintInfo("  Description:  %s", truncateString(workflow.Spec.Description, 80))
+			fmt.Printf("  Description:  %s\n", truncateString(workflow.Spec.Description, 80))
 		}
 
 		taskCount := len(workflow.Spec.Tasks)
 		if taskCount > 0 {
-			cliprint.PrintInfo("  Tasks:        %d", taskCount)
+			fmt.Printf("  Tasks:        %d\n", taskCount)
 		}
 
 		if workflow.Spec.Document != nil {
 			if workflow.Spec.Document.Version != "" {
-				cliprint.PrintInfo("  Version:      %s", workflow.Spec.Document.Version)
+				fmt.Printf("  Version:      %s\n", workflow.Spec.Document.Version)
 			}
 		}
 	}
@@ -53,17 +52,17 @@ func DisplayGetResult(workflow *workflowv1.Workflow, format string) {
 // displayWorkflowTable displays the workflow in human-readable table format.
 func displayWorkflowTable(workflow *workflowv1.Workflow) {
 	fmt.Println()
-	cliprint.PrintInfo("Workflow: %s", workflow.Metadata.Name)
+	fmt.Printf("Workflow: %s\n", workflow.Metadata.Name)
 	fmt.Println()
 
-	cliprint.PrintInfo("Metadata:")
-	cliprint.PrintInfo("  ID:          %s", workflow.Metadata.Id)
-	cliprint.PrintInfo("  Name:        %s", workflow.Metadata.Name)
-	cliprint.PrintInfo("  Slug:        %s", workflow.Metadata.Slug)
-	cliprint.PrintInfo("  Org:         %s", workflow.Metadata.Org)
+	fmt.Printf("Metadata:\n")
+	fmt.Printf("  ID:          %s\n", workflow.Metadata.Id)
+	fmt.Printf("  Name:        %s\n", workflow.Metadata.Name)
+	fmt.Printf("  Slug:        %s\n", workflow.Metadata.Slug)
+	fmt.Printf("  Org:         %s\n", workflow.Metadata.Org)
 	fmt.Println()
 
-	cliprint.PrintInfo("Spec:")
+	fmt.Printf("Spec:\n")
 	displayWorkflowSummary(workflow)
 	fmt.Println()
 }
@@ -98,7 +97,7 @@ func DisplaySearchResult(results *search.Result, query string, format string, pa
 	// For search results, show a header indicating what was searched
 	if format == "table" || format == "" {
 		fmt.Println()
-		cliprint.PrintInfo("Found %d workflows matching '%s'", results.TotalCount, query)
+		fmt.Printf("Found %d workflows matching '%s'\n", results.TotalCount, query)
 	}
 
 	search.DisplayResults(results, &search.DisplayOptions{

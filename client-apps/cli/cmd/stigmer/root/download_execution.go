@@ -10,7 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
 	"google.golang.org/grpc"
 )
@@ -26,8 +26,8 @@ func downloadExecutionArtifacts(executionID string, opts downloadOptions, conn *
 	// Step 2: Check execution status
 	phase := exec.GetStatus().GetPhase()
 	if !isCompletedPhase(phase) {
-		cliprint.PrintWarning("Execution is still %s", formatPhaseForDownload(phase))
-		cliprint.PrintInfo("Artifacts may not be complete until execution finishes.")
+		climsg.Warning("Execution is still %s", formatPhaseForDownload(phase))
+		climsg.Info("Artifacts may not be complete until execution finishes.")
 		fmt.Println()
 	}
 
@@ -35,10 +35,10 @@ func downloadExecutionArtifacts(executionID string, opts downloadOptions, conn *
 	artifacts := exec.GetStatus().GetArtifacts()
 	if len(artifacts) == 0 {
 		fmt.Println()
-		cliprint.PrintInfo("No artifacts found for execution: %s", executionID)
+		climsg.Info("No artifacts found for execution: %s", executionID)
 		fmt.Println()
-		cliprint.PrintInfo("Tip: Artifacts are files created by the agent during execution.")
-		cliprint.PrintInfo("Not all agents produce artifacts.")
+		climsg.Info("Tip: Artifacts are files created by the agent during execution.")
+		climsg.Info("Not all agents produce artifacts.")
 		fmt.Println()
 		return nil
 	}
@@ -58,13 +58,13 @@ func downloadExecutionArtifacts(executionID string, opts downloadOptions, conn *
 
 	// Step 6: Download each artifact
 	fmt.Println()
-	cliprint.PrintInfo("Downloading %d artifact(s) to %s...", len(artifacts), opts.OutputDir)
+	climsg.Info("Downloading %d artifact(s) to %s...", len(artifacts), opts.OutputDir)
 	fmt.Println()
 
 	var downloadedCount int
 	for _, artifact := range artifacts {
 		if err := downloadSingleArtifact(executionID, artifact, opts.OutputDir, conn); err != nil {
-			cliprint.PrintError("Failed to download %s: %v", artifact.GetName(), err)
+			climsg.Error("Failed to download %s: %v", artifact.GetName(), err)
 			continue
 		}
 		downloadedCount++
@@ -73,9 +73,9 @@ func downloadExecutionArtifacts(executionID string, opts downloadOptions, conn *
 	// Step 7: Summary
 	fmt.Println()
 	if downloadedCount == len(artifacts) {
-		cliprint.PrintSuccess("Downloaded %d artifact(s) successfully", downloadedCount)
+		climsg.Success("Downloaded %d artifact(s) successfully", downloadedCount)
 	} else {
-		cliprint.PrintWarning("Downloaded %d of %d artifacts", downloadedCount, len(artifacts))
+		climsg.Warning("Downloaded %d of %d artifacts", downloadedCount, len(artifacts))
 	}
 	fmt.Println()
 
@@ -116,7 +116,7 @@ func downloadSingleArtifact(executionID string, artifact *agentexecutionv1.Execu
 		return errors.Wrap(err, "failed to create parent directory")
 	}
 
-	cliprint.PrintInfo("  Downloading %s (%s)...", artifact.GetName(), formatBytesForDownload(artifact.GetSizeBytes()))
+	climsg.Info("  Downloading %s (%s)...", artifact.GetName(), formatBytesForDownload(artifact.GetSizeBytes()))
 
 	// Download file
 	resp, err := http.Get(downloadURL)
@@ -142,7 +142,7 @@ func downloadSingleArtifact(executionID string, artifact *agentexecutionv1.Execu
 		return errors.Wrap(err, "failed to write file")
 	}
 
-	cliprint.PrintSuccess("  Downloaded %s (%s)", artifact.GetName(), formatBytesForDownload(written))
+	climsg.Success("  Downloaded %s (%s)", artifact.GetName(), formatBytesForDownload(written))
 	return nil
 }
 

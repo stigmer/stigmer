@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
 )
 
@@ -15,29 +14,29 @@ func DisplayGetResult(session *sessionv1.Session, format string) {
 
 func displaySessionTable(session *sessionv1.Session) {
 	fmt.Println()
-	cliprint.PrintInfo("Session: %s", session.GetMetadata().GetId())
+	fmt.Printf("Session: %s\n", session.GetMetadata().GetId())
 	fmt.Println()
 
-	cliprint.PrintInfo("Metadata:")
-	cliprint.PrintInfo("  ID:      %s", session.GetMetadata().GetId())
-	cliprint.PrintInfo("  Name:    %s", session.GetMetadata().GetName())
-	cliprint.PrintInfo("  Org:     %s", session.GetMetadata().GetOrg())
+	fmt.Printf("Metadata:\n")
+	fmt.Printf("  ID:      %s\n", session.GetMetadata().GetId())
+	fmt.Printf("  Name:    %s\n", session.GetMetadata().GetName())
+	fmt.Printf("  Org:     %s\n", session.GetMetadata().GetOrg())
 	fmt.Println()
 
-	cliprint.PrintInfo("Spec:")
-	cliprint.PrintInfo("  Agent Instance: %s", session.GetSpec().GetAgentInstanceId())
+	fmt.Printf("Spec:\n")
+	fmt.Printf("  Agent Instance: %s\n", session.GetSpec().GetAgentInstanceId())
 	if subject := ResolvedSubject(session.GetSpec().GetSubject()); subject != "" {
-		cliprint.PrintInfo("  Subject:        %s", subject)
+		fmt.Printf("  Subject:        %s\n", subject)
 	}
 	fmt.Println()
 
 	if audit := session.GetStatus().GetAudit().GetSpecAudit(); audit != nil {
-		cliprint.PrintInfo("Audit:")
+		fmt.Printf("Audit:\n")
 		if audit.GetCreatedAt() != nil {
-			cliprint.PrintInfo("  Created:  %s", audit.GetCreatedAt().AsTime().Local().Format("2006-01-02 15:04:05"))
+			fmt.Printf("  Created:  %s\n", audit.GetCreatedAt().AsTime().Local().Format("2006-01-02 15:04:05"))
 		}
 		if audit.GetUpdatedAt() != nil {
-			cliprint.PrintInfo("  Updated:  %s", audit.GetUpdatedAt().AsTime().Local().Format("2006-01-02 15:04:05"))
+			fmt.Printf("  Updated:  %s\n", audit.GetUpdatedAt().AsTime().Local().Format("2006-01-02 15:04:05"))
 		}
 	}
 	fmt.Println()
@@ -48,7 +47,7 @@ func DisplayListResult(list *sessionv1.SessionList, format string) {
 	entries := list.GetEntries()
 	if len(entries) == 0 {
 		fmt.Println()
-		cliprint.PrintInfo("No sessions found.")
+		fmt.Printf("No sessions found.\n")
 		fmt.Println()
 		return
 	}
@@ -83,7 +82,7 @@ func displayListTable(list *sessionv1.SessionList) {
 	fmt.Println()
 	totalPages := list.GetTotalPages()
 	if totalPages > 1 {
-		cliprint.PrintInfo("Page 1 of %d", totalPages)
+		fmt.Printf("Page 1 of %d\n", totalPages)
 	}
 }
 

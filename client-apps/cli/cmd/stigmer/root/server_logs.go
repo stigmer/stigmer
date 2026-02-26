@@ -7,10 +7,10 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/logs"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 )
 
 func newServerLogsCommand() *cobra.Command {
@@ -36,7 +36,7 @@ Use --all to view logs from all components in a single interleaved stream (defau
 		Run: func(cmd *cobra.Command, args []string) {
 			dataDir, err := config.GetDataDir()
 			if err != nil {
-				cliprint.PrintError("Failed to determine data directory")
+				climsg.Error("Failed to determine data directory")
 				clierr.Handle(err)
 				return
 			}
@@ -73,22 +73,22 @@ Use --all to view logs from all components in a single interleaved stream (defau
 				}
 
 				if follow {
-					cliprint.PrintInfo("Streaming logs from all components (%s, interleaved by timestamp)", streamType)
-					cliprint.PrintInfo("Press Ctrl+C to stop")
+					climsg.Info("Streaming logs from all components (%s, interleaved by timestamp)", streamType)
+					climsg.Info("Press Ctrl+C to stop")
 					fmt.Println()
 
 					if err := logs.StreamAllLogsWithPreferences(components, lines); err != nil {
-						cliprint.PrintError("Failed to stream logs")
+						climsg.Error("Failed to stream logs")
 						clierr.Handle(err)
 						return
 					}
 				} else {
-					cliprint.PrintInfo("Showing last %d lines from all components (%s, interleaved by timestamp)", lines, streamType)
+					climsg.Info("Showing last %d lines from all components (%s, interleaved by timestamp)", lines, streamType)
 					fmt.Println()
 
 					mergedLines, err := logs.MergeLogFilesWithPreferences(components, lines)
 					if err != nil {
-						cliprint.PrintError("Failed to read logs")
+						climsg.Error("Failed to read logs")
 						clierr.Handle(err)
 						return
 					}
@@ -100,15 +100,15 @@ Use --all to view logs from all components in a single interleaved stream (defau
 			// Original single-component logic
 			// Validate component
 			if component != "stigmer-server" && component != "agent-runner" && component != "workflow-runner" {
-				cliprint.PrintError("Invalid component: %s (must be 'stigmer-server', 'agent-runner', or 'workflow-runner')", component)
+				climsg.Error("Invalid component: %s (must be 'stigmer-server', 'agent-runner', or 'workflow-runner')", component)
 				return
 			}
 
 			// Special handling for agent-runner: check if running in Docker
 			if component == "agent-runner" && daemon.IsAgentRunnerDocker(dataDir) {
-				cliprint.PrintInfo("Agent-runner is running in Docker, streaming from container")
+				climsg.Info("Agent-runner is running in Docker, streaming from container")
 				if err := streamDockerLogs(daemon.AgentRunnerContainerName, follow, lines); err != nil {
-					cliprint.PrintError("Failed to stream Docker logs")
+					climsg.Error("Failed to stream Docker logs")
 					clierr.Handle(err)
 					return
 				}
@@ -141,21 +141,21 @@ Use --all to view logs from all components in a single interleaved stream (defau
 
 			// Check if log file exists
 			if _, err := os.Stat(logFile); os.IsNotExist(err) {
-				cliprint.PrintWarning("Log file does not exist: %s", logFile)
-				cliprint.PrintInfo("Server might not have been started yet.")
+				climsg.Warning("Log file does not exist: %s", logFile)
+				climsg.Info("Server might not have been started yet.")
 				return
 			}
 
 			// Stream or show logs
 			if follow {
 				if err := streamLogs(logFile, lines); err != nil {
-					cliprint.PrintError("Failed to stream logs")
+					climsg.Error("Failed to stream logs")
 					clierr.Handle(err)
 					return
 				}
 			} else {
 				if err := showLastNLines(logFile, lines); err != nil {
-					cliprint.PrintError("Failed to read logs")
+					climsg.Error("Failed to read logs")
 					clierr.Handle(err)
 					return
 				}

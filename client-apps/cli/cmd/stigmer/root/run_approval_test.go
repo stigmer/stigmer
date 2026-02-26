@@ -9,36 +9,33 @@ import (
 	"github.com/fatih/color"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 )
 
-// captureColorOutput captures output from color.Printf and fmt.Println during test execution.
-// This is needed because cliprint uses fatih/color which writes to color.Output.
+// captureColorOutput captures output from color.Printf, fmt.Println, and climsg
+// during test execution. Redirects stdout, color.Output, and climsg to a pipe.
 func captureColorOutput(t *testing.T, f func()) string {
 	t.Helper()
 
-	// Save original outputs
 	oldStdout := os.Stdout
 	oldColorOutput := color.Output
 
-	// Create pipe
 	r, w, err := os.Pipe()
 	if err != nil {
 		t.Fatalf("failed to create pipe: %v", err)
 	}
 
-	// Replace both os.Stdout and color.Output
 	os.Stdout = w
 	color.Output = w
+	restoreClimsg := climsg.ReplaceOutput(w)
 
-	// Execute the function
 	f()
 
-	// Restore and close
 	w.Close()
 	os.Stdout = oldStdout
 	color.Output = oldColorOutput
+	restoreClimsg()
 
-	// Read captured output
 	var buf bytes.Buffer
 	if _, err := buf.ReadFrom(r); err != nil {
 		t.Fatalf("failed to read captured output: %v", err)

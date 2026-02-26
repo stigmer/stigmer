@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/artifact"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"google.golang.org/grpc"
 )
 
@@ -31,13 +31,13 @@ type RemotePushOptions struct {
 // PushRemote pushes a skill artifact from a remote git repository.
 // It clones the repository, validates SKILL.md exists, and pushes to the registry.
 func PushRemote(opts RemotePushOptions) (*artifact.SkillArtifactResult, error) {
-	cliprint.PrintInfo("Pushing skill from remote git repository")
-	cliprint.PrintInfo("  URL: %s", opts.GitURL)
+	climsg.Info("Pushing skill from remote git repository")
+	climsg.Info("  URL: %s", opts.GitURL)
 	if opts.GitRef != "" {
-		cliprint.PrintInfo("  Ref: %s", opts.GitRef)
+		climsg.Info("  Ref: %s", opts.GitRef)
 	}
 	if opts.GitSubdir != "" {
-		cliprint.PrintInfo("  Subdir: %s", opts.GitSubdir)
+		climsg.Info("  Subdir: %s", opts.GitSubdir)
 	}
 	fmt.Println()
 
@@ -52,37 +52,37 @@ func PushRemote(opts RemotePushOptions) (*artifact.SkillArtifactResult, error) {
 
 // displayRemoteDryRun shows what would happen without actually pushing.
 func displayRemoteDryRun(opts RemotePushOptions) (*artifact.SkillArtifactResult, error) {
-	cliprint.PrintInfo("Dry run mode - would push skill with:")
+	climsg.Info("Dry run mode - would push skill with:")
 	fmt.Println()
-	cliprint.PrintInfo("Git Source:")
-	cliprint.PrintInfo("  URL:    %s", opts.GitURL)
+	climsg.Info("Git Source:")
+	climsg.Info("  URL:    %s", opts.GitURL)
 	if opts.GitRef != "" {
-		cliprint.PrintInfo("  Ref:    %s", opts.GitRef)
+		climsg.Info("  Ref:    %s", opts.GitRef)
 	}
 	if opts.GitSubdir != "" {
-		cliprint.PrintInfo("  Subdir: %s", opts.GitSubdir)
+		climsg.Info("  Subdir: %s", opts.GitSubdir)
 	}
-	cliprint.PrintInfo("  Tag:    %s", opts.Tag)
+	climsg.Info("  Tag:    %s", opts.Tag)
 	fmt.Println()
 
-	cliprint.PrintInfo("Ignore Configuration:")
+	climsg.Info("Ignore Configuration:")
 	if opts.NoGitignore {
-		cliprint.PrintInfo("  Gitignore: disabled")
+		climsg.Info("  Gitignore: disabled")
 	} else {
-		cliprint.PrintInfo("  Gitignore: enabled (will respect .gitignore in repo)")
+		climsg.Info("  Gitignore: enabled (will respect .gitignore in repo)")
 	}
-	cliprint.PrintInfo("  Security defaults: enabled")
-	cliprint.PrintInfo("  Stigmerignore: will load if present")
+	climsg.Info("  Security defaults: enabled")
+	climsg.Info("  Stigmerignore: will load if present")
 	if len(opts.IgnorePatterns) > 0 {
-		cliprint.PrintInfo("  Extra ignore: %v", opts.IgnorePatterns)
+		climsg.Info("  Extra ignore: %v", opts.IgnorePatterns)
 	}
 	if len(opts.IncludePatterns) > 0 {
-		cliprint.PrintInfo("  Force include: %v", opts.IncludePatterns)
+		climsg.Info("  Force include: %v", opts.IncludePatterns)
 	}
 	fmt.Println()
 
-	cliprint.PrintInfo("Note: Full analysis requires cloning the repository.")
-	cliprint.PrintInfo("Run without --dry-run to push the skill artifact.")
+	climsg.Info("Note: Full analysis requires cloning the repository.")
+	climsg.Info("Run without --dry-run to push the skill artifact.")
 	return nil, nil
 }
 
@@ -142,7 +142,7 @@ func cloneAndPush(opts RemotePushOptions) (*artifact.SkillArtifactResult, error)
 
 // cloneRepository clones a git repository with optional ref checkout.
 func cloneRepository(gitURL, gitRef, destDir string) error {
-	cliprint.PrintInfo("Cloning repository...")
+	climsg.Info("Cloning repository...")
 
 	// Try shallow clone first (faster for tags/branches)
 	cloneArgs := []string{"clone", "--depth", "1"}
@@ -161,14 +161,14 @@ func cloneRepository(gitURL, gitRef, destDir string) error {
 		return fmt.Errorf("failed to clone repository: %w\n%s", err, string(cloneOutput))
 	}
 
-	cliprint.PrintSuccess("✓ Repository cloned")
+	climsg.Success("✓ Repository cloned")
 	return nil
 }
 
 // cloneWithCheckout performs a full clone and checks out a specific ref.
 // Used when shallow clone with --branch fails (e.g., for commit SHAs).
 func cloneWithCheckout(gitURL, gitRef, destDir string, originalOutput []byte) error {
-	cliprint.PrintInfo("Branch not found, trying commit checkout...")
+	climsg.Info("Branch not found, trying commit checkout...")
 
 	// Full clone without depth limit for commit SHA
 	cloneCmd := exec.Command("git", "clone", gitURL, destDir)
@@ -183,6 +183,6 @@ func cloneWithCheckout(gitURL, gitRef, destDir string, originalOutput []byte) er
 		return fmt.Errorf("failed to checkout ref '%s': %w", gitRef, err)
 	}
 
-	cliprint.PrintSuccess("✓ Repository cloned")
+	climsg.Success("✓ Repository cloned")
 	return nil
 }

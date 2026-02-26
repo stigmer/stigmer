@@ -10,7 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"google.golang.org/grpc"
 )
 
@@ -85,7 +85,7 @@ func (p *AttachmentProcessor) processDirectory(path string) (*agentexecutionv1.A
 
 	zipSize := int64(len(zipBytes))
 
-	cliprint.PrintInfo("Zipping directory: %s/ (%d files, %s -> %s compressed)",
+	climsg.Info("Zipping directory: %s/ (%d files, %s -> %s compressed)",
 		dirname, fileCount, formatFileSize(originalSize), formatFileSize(zipSize))
 
 	if zipSize > maxAttachmentSize {
@@ -112,7 +112,7 @@ func (p *AttachmentProcessor) uploadFile(path, filename, contentType string, siz
 		return nil, errors.Wrap(err, "failed to read file")
 	}
 
-	cliprint.PrintInfo("Uploading %s (%s)...", filename, formatFileSize(size))
+	climsg.Info("Uploading %s (%s)...", filename, formatFileSize(size))
 	return p.uploadBytes(content, filename, contentType)
 }
 
@@ -131,7 +131,7 @@ func (p *AttachmentProcessor) uploadBytes(content []byte, filename, contentType 
 		return nil, errors.Wrap(err, "failed to upload attachment")
 	}
 
-	cliprint.PrintSuccess("Uploaded %s", filename)
+	climsg.Success("Uploaded %s", filename)
 
 	return &agentexecutionv1.Attachment{
 		Filename:    filename,

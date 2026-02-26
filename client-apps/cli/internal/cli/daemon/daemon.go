@@ -17,6 +17,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/embedded"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/llm"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/temporal"
 	"google.golang.org/grpc"
@@ -267,9 +268,9 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 	// Show LLM provider message (only if not already shown by caller)
 	if opts.Progress != nil && opts.Secrets == nil {
 		if llmProvider == "ollama" {
-			cliprint.PrintSuccess("Using local LLM (no API key required)")
+			climsg.Success("Using local LLM (no API key required)")
 		} else {
-			cliprint.PrintInfo("Using %s with model %s", llmProvider, llmModel)
+			climsg.Info("Using %s with model %s", llmProvider, llmModel)
 		}
 	}
 
@@ -1078,8 +1079,8 @@ func EnsureRunning(dataDir string) error {
 	}
 
 	// Not running - start it with nice UX
-	cliprint.PrintInfo("🚀 Starting local backend daemon...")
-	cliprint.PrintInfo("   This may take a moment on first run")
+	climsg.Info("🚀 Starting local backend daemon...")
+	climsg.Info("   This may take a moment on first run")
 	fmt.Println()
 
 	// Create progress display for nice output
@@ -1092,7 +1093,7 @@ func EnsureRunning(dataDir string) error {
 		return errors.Wrap(err, "failed to start daemon")
 	}
 
-	cliprint.PrintSuccess("✓ Daemon started successfully")
+	climsg.Success("✓ Daemon started successfully")
 	fmt.Println()
 
 	// No need to wait here - the gRPC client connection with WithBlock()

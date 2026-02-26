@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"google.golang.org/grpc"
 )
 
@@ -57,7 +57,7 @@ func Apply(opts *ApplyOptions) (*ApplyResult, error) {
 	// Dry run - just validate and return
 	if opts.DryRun {
 		if !opts.Quiet {
-			cliprint.PrintInfo("Dry run mode - configuration is valid")
+			climsg.Info("Dry run mode - configuration is valid")
 			displayMcpServerSummary(opts.McpServer)
 		}
 		return &ApplyResult{
@@ -72,9 +72,9 @@ func Apply(opts *ApplyOptions) (*ApplyResult, error) {
 
 	if !opts.Quiet {
 		if isCreate {
-			cliprint.PrintInfo("Creating MCP server: %s", opts.McpServer.Metadata.Name)
+			climsg.Info("Creating MCP server: %s", opts.McpServer.Metadata.Name)
 		} else {
-			cliprint.PrintInfo("Updating MCP server: %s", opts.McpServer.Metadata.Name)
+			climsg.Info("Updating MCP server: %s", opts.McpServer.Metadata.Name)
 		}
 	}
 
@@ -94,27 +94,27 @@ func Apply(opts *ApplyOptions) (*ApplyResult, error) {
 // displayMcpServerSummary displays a summary of the MCP server configuration
 func displayMcpServerSummary(mcpServer *mcpserverv1.McpServer) {
 	fmt.Println()
-	cliprint.PrintInfo("MCP Server Configuration:")
-	cliprint.PrintInfo("  Name:        %s", mcpServer.Metadata.Name)
+	climsg.Info("MCP Server Configuration:")
+	climsg.Info("  Name:        %s", mcpServer.Metadata.Name)
 
 	if mcpServer.Spec.Description != "" {
-		cliprint.PrintInfo("  Description: %s", mcpServer.Spec.Description)
+		climsg.Info("  Description: %s", mcpServer.Spec.Description)
 	}
 
 	// Display server type
 	if stdio := mcpServer.Spec.GetStdio(); stdio != nil {
-		cliprint.PrintInfo("  Type:        stdio")
-		cliprint.PrintInfo("  Command:     %s", stdio.Command)
+		climsg.Info("  Type:        stdio")
+		climsg.Info("  Command:     %s", stdio.Command)
 		if len(stdio.Args) > 0 {
-			cliprint.PrintInfo("  Args:        %v", stdio.Args)
+			climsg.Info("  Args:        %v", stdio.Args)
 		}
 	} else if http := mcpServer.Spec.GetHttp(); http != nil {
-		cliprint.PrintInfo("  Type:        http")
-		cliprint.PrintInfo("  URL:         %s", http.Url)
+		climsg.Info("  Type:        http")
+		climsg.Info("  URL:         %s", http.Url)
 	}
 
 	if len(mcpServer.Spec.Tags) > 0 {
-		cliprint.PrintInfo("  Tags:        %v", mcpServer.Spec.Tags)
+		climsg.Info("  Tags:        %v", mcpServer.Spec.Tags)
 	}
 
 	fmt.Println()

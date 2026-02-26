@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 )
 
 // streamLogs streams a log file in real-time (like kubectl logs -f).
@@ -24,11 +24,11 @@ func streamLogs(logFile string, tailLines int) error {
 	defer func() { file.Close() }()
 
 	if tailLines == 0 {
-		cliprint.PrintInfo("Streaming logs from: %s (showing all existing logs)", logFile)
+		climsg.Info("Streaming logs from: %s (showing all existing logs)", logFile)
 	} else {
-		cliprint.PrintInfo("Streaming logs from: %s (showing last %d lines)", logFile, tailLines)
+		climsg.Info("Streaming logs from: %s (showing last %d lines)", logFile, tailLines)
 	}
-	cliprint.PrintInfo("Press Ctrl+C to stop")
+	climsg.Info("Press Ctrl+C to stop")
 	fmt.Println()
 
 	scanner := bufio.NewScanner(file)
@@ -128,7 +128,7 @@ func showLastNLines(logFile string, n int) error {
 	}
 	defer file.Close()
 
-	cliprint.PrintInfo("Showing last %d lines from: %s", n, logFile)
+	climsg.Info("Showing last %d lines from: %s", n, logFile)
 	fmt.Println()
 
 	lines := make([]string, 0, n)
@@ -158,9 +158,9 @@ func showLastNLines(logFile string, n int) error {
 // streamDockerLogs streams logs from a Docker container.
 // When follow is true, it automatically reconnects if the container stops/restarts.
 func streamDockerLogs(containerName string, follow bool, tailLines int) error {
-	cliprint.PrintInfo("Streaming logs from Docker container: %s", containerName)
+	climsg.Info("Streaming logs from Docker container: %s", containerName)
 	if follow {
-		cliprint.PrintInfo("Press Ctrl+C to stop")
+		climsg.Info("Press Ctrl+C to stop")
 	}
 	fmt.Println()
 

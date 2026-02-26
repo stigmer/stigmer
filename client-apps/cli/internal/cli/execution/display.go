@@ -6,7 +6,6 @@ import (
 	"time"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
 )
 
@@ -19,50 +18,47 @@ func DisplayGetResult(exec *agentexecutionv1.AgentExecution, format string) {
 // displayExecutionTable displays the execution in human-readable table format.
 func displayExecutionTable(exec *agentexecutionv1.AgentExecution) {
 	fmt.Println()
-	cliprint.PrintInfo("Execution: %s", exec.GetMetadata().GetId())
+	fmt.Printf("Execution: %s\n", exec.GetMetadata().GetId())
 	fmt.Println()
 
-	// Metadata section
-	cliprint.PrintInfo("Metadata:")
-	cliprint.PrintInfo("  ID:      %s", exec.GetMetadata().GetId())
-	cliprint.PrintInfo("  Name:    %s", exec.GetMetadata().GetName())
-	cliprint.PrintInfo("  Org:     %s", exec.GetMetadata().GetOrg())
+	fmt.Printf("Metadata:\n")
+	fmt.Printf("  ID:      %s\n", exec.GetMetadata().GetId())
+	fmt.Printf("  Name:    %s\n", exec.GetMetadata().GetName())
+	fmt.Printf("  Org:     %s\n", exec.GetMetadata().GetOrg())
 	fmt.Println()
 
-	// Spec section
-	cliprint.PrintInfo("Spec:")
-	cliprint.PrintInfo("  Agent ID:   %s", exec.GetSpec().GetAgentId())
+	fmt.Printf("Spec:\n")
+	fmt.Printf("  Agent ID:   %s\n", exec.GetSpec().GetAgentId())
 	if exec.GetSpec().GetSessionId() != "" {
-		cliprint.PrintInfo("  Session ID: %s", exec.GetSpec().GetSessionId())
+		fmt.Printf("  Session ID: %s\n", exec.GetSpec().GetSessionId())
 	}
 	if exec.GetSpec().GetMessage() != "" {
-		cliprint.PrintInfo("  Message:    %s", truncateString(exec.GetSpec().GetMessage(), 60))
+		fmt.Printf("  Message:    %s\n", truncateString(exec.GetSpec().GetMessage(), 60))
 	}
 	fmt.Println()
 
-	// Status section
 	status := exec.GetStatus()
-	cliprint.PrintInfo("Status:")
-	cliprint.PrintInfo("  Phase:    %s", FormatPhase(status.GetPhase()))
+	fmt.Printf("Status:\n")
+	fmt.Printf("  Phase:    %s\n", FormatPhase(status.GetPhase()))
 
 	if status.GetStartedAt() != "" {
-		cliprint.PrintInfo("  Started:  %s", formatTimestamp(status.GetStartedAt()))
+		fmt.Printf("  Started:  %s\n", formatTimestamp(status.GetStartedAt()))
 	}
 	if status.GetCompletedAt() != "" {
-		cliprint.PrintInfo("  Completed: %s", formatTimestamp(status.GetCompletedAt()))
-		cliprint.PrintInfo("  Duration:  %s", calculateDuration(status.GetStartedAt(), status.GetCompletedAt()))
+		fmt.Printf("  Completed: %s\n", formatTimestamp(status.GetCompletedAt()))
+		fmt.Printf("  Duration:  %s\n", calculateDuration(status.GetStartedAt(), status.GetCompletedAt()))
 	}
 
 	if status.GetError() != "" {
 		fmt.Println()
-		cliprint.PrintError("Error: %s", status.GetError())
+		fmt.Printf("Error: %s\n", status.GetError())
 	}
 
 	// Artifacts section
 	artifacts := status.GetArtifacts()
 	if len(artifacts) > 0 {
 		fmt.Println()
-		cliprint.PrintInfo("Artifacts:")
+		fmt.Printf("Artifacts:\n")
 		fmt.Println()
 		fmt.Printf("  %-30s  %-10s  %-10s  %s\n", "NAME", "SIZE", "KIND", "CREATED")
 		fmt.Printf("  %-30s  %-10s  %-10s  %s\n", "----", "----", "----", "-------")
@@ -80,7 +76,7 @@ func displayExecutionTable(exec *agentexecutionv1.AgentExecution) {
 	messages := status.GetMessages()
 	if len(messages) > 0 {
 		fmt.Println()
-		cliprint.PrintInfo("Recent Messages: (%d total)", len(messages))
+		fmt.Printf("Recent Messages: (%d total)\n", len(messages))
 		// Show last 3 messages
 		start := len(messages) - 3
 		if start < 0 {
@@ -101,7 +97,7 @@ func DisplayListResult(list *agentexecutionv1.AgentExecutionList, format string)
 	entries := list.GetEntries()
 	if len(entries) == 0 {
 		fmt.Println()
-		cliprint.PrintInfo("No executions found.")
+		fmt.Printf("No executions found.\n")
 		fmt.Println()
 		return
 	}
@@ -135,7 +131,7 @@ func displayListTable(list *agentexecutionv1.AgentExecutionList) {
 	fmt.Println()
 	totalPages := list.GetTotalPages()
 	if totalPages > 1 {
-		cliprint.PrintInfo("Page 1 of %d", totalPages)
+		fmt.Printf("Page 1 of %d\n", totalPages)
 	}
 }
 

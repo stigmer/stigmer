@@ -13,6 +13,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpserver"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 )
 
 // NewServerCommand creates the server command for daemon management
@@ -81,41 +82,41 @@ func newServerStatusCommand() *cobra.Command {
 // handleServerStart uses cliprint.ProgressDisplay (BubbleTea) -- excluded from clioutput migration.
 func handleServerStart(cmd *cobra.Command) {
 	if !config.IsInitialized() {
-		cliprint.PrintInfo("First-time setup: Initializing Stigmer...")
+		climsg.Info("First-time setup: Initializing Stigmer...")
 
 		cfg := config.GetDefault()
 		if err := config.Save(cfg); err != nil {
-			cliprint.PrintError("Failed to create configuration")
+			climsg.Error("Failed to create configuration")
 			clierr.Handle(err)
 			return
 		}
 
 		configPath, _ := config.GetConfigPath()
-		cliprint.PrintSuccess("Created configuration at %s", configPath)
+		climsg.Success("Created configuration at %s", configPath)
 	}
 
 	dataDir, err := config.GetDataDir()
 	if err != nil {
-		cliprint.PrintError("Failed to determine data directory")
+		climsg.Error("Failed to determine data directory")
 		clierr.Handle(err)
 		return
 	}
 
 	if daemon.IsRunning(dataDir) {
-		cliprint.PrintInfo("Server is already running, restarting...")
+		climsg.Info("Server is already running, restarting...")
 		if err := daemon.Stop(dataDir); err != nil {
-			cliprint.PrintWarning("Failed to stop existing server: %v", err)
-			cliprint.PrintInfo("Will attempt to start anyway (cleanup will handle orphans)")
+			climsg.Warning("Failed to stop existing server: %v", err)
+			climsg.Info("Will attempt to start anyway (cleanup will handle orphans)")
 		}
 
 		time.Sleep(1 * time.Second)
 	}
 
-	cliprint.PrintInfo("Starting Stigmer server...")
+	climsg.Info("Starting Stigmer server...")
 
 	cfg, err := config.Load()
 	if err != nil {
-		cliprint.PrintWarning("Failed to load config, using defaults")
+		climsg.Warning("Failed to load config, using defaults")
 		cfg = config.GetDefault()
 	}
 
@@ -123,14 +124,14 @@ func handleServerStart(cmd *cobra.Command) {
 	llmModel := cfg.Backend.Local.ResolveLLMModel()
 
 	if llmProvider == "ollama" {
-		cliprint.PrintSuccess("Using local LLM (no API key required)")
+		climsg.Success("Using local LLM (no API key required)")
 	} else {
-		cliprint.PrintInfo("Using %s with model %s", llmProvider, llmModel)
+		climsg.Info("Using %s with model %s", llmProvider, llmModel)
 	}
 
 	secrets, err := daemon.GatherRequiredSecrets(llmProvider)
 	if err != nil {
-		cliprint.PrintError("Failed to gather required credentials")
+		climsg.Error("Failed to gather required credentials")
 		clierr.Handle(err)
 		return
 	}
@@ -155,7 +156,7 @@ func handleServerStart(cmd *cobra.Command) {
 		Secrets:         secrets,
 	}); err != nil {
 		progress.Stop()
-		cliprint.PrintError("Failed to start server")
+		climsg.Error("Failed to start server")
 		clierr.Handle(err)
 		return
 	}
@@ -163,18 +164,18 @@ func handleServerStart(cmd *cobra.Command) {
 	progress.CompletePhase(cliprint.PhaseDeploying)
 	progress.Stop()
 
-	cliprint.PrintInfo("Discovering MCP server capabilities...")
+	climsg.Info("Discovering MCP server capabilities...")
 	runBootstrapDiscovery(cfg)
 
-	cliprint.PrintSuccess("Ready! Stigmer server is running")
+	climsg.Success("Ready! Stigmer server is running")
 	running, pid := daemon.GetStatus(dataDir)
 	if running {
-		cliprint.PrintInfo("  PID:  %d", pid)
-		cliprint.PrintInfo("  Port: %d", daemon.DaemonPort)
-		cliprint.PrintInfo("  Data: %s", dataDir)
-		cliprint.PrintInfo("")
-		cliprint.PrintInfo("Web UI:")
-		cliprint.PrintInfo("  Temporal:  http://localhost:8233")
+		climsg.Info("  PID:  %d", pid)
+		climsg.Info("  Port: %d", daemon.DaemonPort)
+		climsg.Info("  Data: %s", dataDir)
+		climsg.Info("")
+		climsg.Info("Web UI:")
+		climsg.Info("  Temporal:  http://localhost:8233")
 	}
 }
 
@@ -184,7 +185,7 @@ func handleServerStart(cmd *cobra.Command) {
 func runBootstrapDiscovery(cfg *config.Config) {
 	conn, err := backend.NewConnection()
 	if err != nil {
-		cliprint.PrintWarning("Skipping MCP discovery: %v", err)
+		climsg.Warning("Skipping MCP discovery: %v", err)
 		return
 	}
 	defer conn.Close()
@@ -202,10 +203,10 @@ func runBootstrapDiscovery(cfg *config.Config) {
 	})
 
 	if result.Succeeded > 0 {
-		cliprint.PrintSuccess("Discovered capabilities for %d MCP server(s)", result.Succeeded)
+		climsg.Success("Discovered capabilities for %d MCP server(s)", result.Succeeded)
 	}
 	if result.Attempted > result.Succeeded {
-		cliprint.PrintWarning("Discovery failed for %d MCP server(s)", result.Attempted-result.Succeeded)
+		climsg.Warning("Discovery failed for %d MCP server(s)", result.Attempted-result.Succeeded)
 	}
 }
 
