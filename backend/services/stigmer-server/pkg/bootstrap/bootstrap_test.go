@@ -128,8 +128,8 @@ func TestBootstrapper_Run_Success(t *testing.T) {
 	err = bootstrapper.Run(ctx)
 	require.NoError(t, err)
 
-	// Verify skills were pushed (seedpack has skill-creator)
-	assert.Len(t, skillClient.PushCalls, 1)
+	// Verify skills were pushed (seedpack has agent-creator, mcp-server-creator, skill-creator)
+	assert.Len(t, skillClient.PushCalls, 3)
 	for _, call := range skillClient.PushCalls {
 		assert.Equal(t, "local", call.GetOrg())
 		assert.NotEmpty(t, call.GetArtifact())
@@ -193,7 +193,7 @@ func TestBootstrapper_Run_Idempotent(t *testing.T) {
 	// Run bootstrap first time
 	err = bootstrapper.Run(ctx)
 	require.NoError(t, err)
-	assert.Len(t, skillClient.PushCalls, 1)
+	assert.Len(t, skillClient.PushCalls, 3)
 	assert.Len(t, agentClient.ApplyCalls, 2)
 	assert.Len(t, mcpServerClient.ApplyCalls, 1)
 
@@ -238,7 +238,7 @@ func TestBootstrapper_Run_SkipIfSameDigest(t *testing.T) {
 	require.NoError(t, err)
 
 	// Calls should be made because content hash changed
-	assert.Len(t, skillClient.PushCalls, 1)
+	assert.Len(t, skillClient.PushCalls, 3)
 	assert.Len(t, agentClient.ApplyCalls, 2)
 	assert.Len(t, mcpServerClient.ApplyCalls, 1)
 }
@@ -265,8 +265,8 @@ func TestBootstrapper_Run_DegradedMode_SkillError(t *testing.T) {
 	// Should not return error (degraded mode)
 	require.NoError(t, err)
 
-	// Skill push should have been attempted
-	assert.Len(t, skillClient.PushCalls, 1)
+	// Skill push should have been attempted (3 skills, all fail)
+	assert.Len(t, skillClient.PushCalls, 3)
 
 	// Agent and MCP server should still be applied
 	assert.Len(t, agentClient.ApplyCalls, 2)
@@ -300,8 +300,8 @@ func TestBootstrapper_Run_DegradedMode_AgentError(t *testing.T) {
 	// Should not return error (degraded mode)
 	require.NoError(t, err)
 
-	// Skill should have been pushed
-	assert.Len(t, skillClient.PushCalls, 1)
+	// Skills should have been pushed
+	assert.Len(t, skillClient.PushCalls, 3)
 
 	// Agent apply should have been attempted
 	assert.Len(t, agentClient.ApplyCalls, 2)
@@ -337,8 +337,8 @@ func TestBootstrapper_Run_DegradedMode_McpServerError(t *testing.T) {
 	// Should not return error (degraded mode)
 	require.NoError(t, err)
 
-	// Skill and agents should have succeeded
-	assert.Len(t, skillClient.PushCalls, 1)
+	// Skills and agents should have succeeded
+	assert.Len(t, skillClient.PushCalls, 3)
 	assert.Len(t, agentClient.ApplyCalls, 2)
 
 	// MCP server apply should have been attempted

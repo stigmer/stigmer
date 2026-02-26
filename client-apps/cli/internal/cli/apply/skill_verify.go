@@ -74,4 +74,3 @@ func checkSkillExists(client skillv1.SkillQueryControllerClient, org, slug strin
 	// Other errors are unexpected
 	return false, err
 }
-

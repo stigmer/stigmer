@@ -12,20 +12,47 @@ func TestEscapeFTS5Query(t *testing.T) {
 		input    string
 		expected string
 	}{
+		// Basic cases
 		{"empty query", "", ""},
-		{"single word", "kubernetes", "kubernetes*"},
-		{"multiple words", "kubernetes deployment", "kubernetes deployment"},
-		{"whitespace trimmed", "  hello  ", "hello*"},
-		{"complex query with AND", "foo AND bar", "foo AND bar"},
-		{"complex query with OR", "foo OR bar", "foo OR bar"},
-		{"query with special char quote", `foo"bar`, `foo"bar`},
+		{"single word", "kubernetes", `"kubernetes"*`},
+		{"multiple words", "kubernetes deployment", `"kubernetes" "deployment"`},
+		{"whitespace trimmed", "  hello  ", `"hello"*`},
+
+		// FTS5 operators are neutralized (treated as literal words)
+		{"AND treated as literal", "foo AND bar", `"foo" "AND" "bar"`},
+		{"OR treated as literal", "foo OR bar", `"foo" "OR" "bar"`},
+		{"NOT treated as literal", "foo NOT bar", `"foo" "NOT" "bar"`},
+		{"NEAR treated as literal", "foo NEAR bar", `"foo" "NEAR" "bar"`},
+
+		// Column-filter syntax neutralized (the original crash scenario)
+		{"colon in single token", "server:skill-creator", `"server:skill-creator"*`},
+		{"colon with simple term", "name:kubernetes", `"name:kubernetes"*`},
+		{"colon in multi-word query", "find server:something here", `"find" "server:something" "here"`},
+
+		// Dash (FTS5 NOT operator) neutralized
+		{"dash in token", "mcp-server", `"mcp-server"*`},
+		{"leading dash", "-excluded", `"-excluded"*`},
+		{"dash in multi-word", "mcp-server deployment", `"mcp-server" "deployment"`},
+
+		// Other special characters neutralized
+		{"asterisk in token", "kube*", `"kube*"*`},
+		{"parentheses", "NEAR(a b)", `"NEAR(a" "b)"`},
+		{"brackets", "test[0]", `"test[0]"*`},
+		{"caret", "^boost", `"^boost"*`},
+
+		// Embedded double quotes are stripped before quoting
+		{"embedded quotes stripped", `foo"bar`, `"foobar"*`},
+		{"only quotes", `"""`, ""},
+
+		// Multi-word with mixed specials
+		{"mixed specials multi-word", `server:x mcp-server kube*`, `"server:x" "mcp-server" "kube*"`},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			result := escapeFTS5Query(tc.input)
 			if result != tc.expected {
-				t.Errorf("expected '%s', got '%s'", tc.expected, result)
+				t.Errorf("expected %q, got %q", tc.expected, result)
 			}
 		})
 	}
