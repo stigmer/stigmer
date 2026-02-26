@@ -69,7 +69,7 @@ When starting a new session:
 
 **Created**: 2026-02-26 02:27
 **Current Task**: None - Project Complete
-**Status**: Complete - All phases delivered (Phase 1, Phase 2, Phase 3.1, Phase 3.2, Phase 3.3, DD01, Phase 4, Phase 5)
+**Status**: Complete - All phases delivered (Phase 1, Phase 2, Phase 3.1, Phase 3.2, Phase 3.3, DD01, Phase 4, Phase 5, Item 5, Item 7)
 
 ## Session Progress (2026-02-26)
 
@@ -337,6 +337,57 @@ Modified:
 16. **Error handling unified to stderr print**: Changed 6 files from `clierr.Handle()` (`os.Exit(1)`) to `fmt.Fprintf(os.Stderr)` for marshal errors. The error path is unreachable with valid protos from gRPC, but `os.Exit(1)` from a display function was disproportionate.
 17. **`search/display.go` excluded**: Its YAML/JSON rendering iterates individual entries into arrays — fundamentally different from single-proto marshaling. Not forced into `DisplayProto`.
 
+### Completed: Item 5 - Split `server_logs.go` (442 -> 2 files)
+
+- Pure mechanical split, zero logic changes
+- **`server_logs.go`** (244 lines): Command definition (`newServerLogsCommand`), component config helpers (`getComponentConfigs`, `getComponentConfigsWithStreamPreferences`)
+- **`server_logs_stream.go`** (200 lines): File-based log streaming (`streamLogs`, `getInode`, `showLastNLines`), Docker log streaming (`streamDockerLogs`, `runDockerLogs`)
+- Both files under 250-line guideline
+- Updated BUILD.bazel with new source file
+- `go build`, `go vet` clean
+
+### Files Created/Modified (Item 5)
+
+```
+Created:
+  client-apps/cli/cmd/stigmer/root/server_logs_stream.go  (200 lines, new)
+
+Modified:
+  client-apps/cli/cmd/stigmer/root/server_logs.go         (442→244 lines)
+  client-apps/cli/cmd/stigmer/root/BUILD.bazel             (+1 src)
+```
+
+### Completed: Item 7 - Consolidate `search/display.go` YAML/JSON Rendering
+
+- Added 3 generic functions to `pkg/display/proto.go` — the array counterpart of the existing single-message API:
+  - `RenderProtoSliceJSON[T proto.Message](w, items)` — uses `encoding/json.MarshalIndent` over `[]json.RawMessage` for correct nested indentation
+  - `RenderProtoSliceYAML[T proto.Message](w, items)` — round-trips through JSON for proto field naming, then marshals as YAML array
+  - `DisplayProtoSlice[T proto.Message](items, format, tableFunc)` — convenience dispatcher matching `DisplayProto` pattern
+- Refactored `search/display.go` from manual format switch + hand-built JSON arrays to single `display.DisplayProtoSlice()` call
+- Removed `displayResultsYAML` (32 lines) and `displayResultsJSON` (24 lines)
+- Removed direct `protojson` and `yaml.v3` imports from search package
+- Fixed broken JSON array indentation (old manual builder only indented first line of each entry)
+- 8 new unit tests in `proto_test.go` (slice JSON, slice YAML, empty slices, dispatcher behavior)
+- `search/display.go` reduced from 300 to 233 lines (under 250)
+- `go build`, `go vet`, all tests passing across all affected packages
+
+### Files Created/Modified (Item 7)
+
+```
+Modified:
+  client-apps/cli/pkg/display/proto.go            (75→143 lines, +68: 3 generic slice functions)
+  client-apps/cli/pkg/display/proto_test.go        (103→201 lines, +98: 8 new tests)
+  client-apps/cli/internal/cli/search/display.go   (300→233 lines, -67: removed YAML/JSON functions)
+  client-apps/cli/internal/cli/search/BUILD.bazel  (-2 deps: protojson, yaml.v3)
+```
+
+### Key Design Decisions (Items 5 + 7)
+
+23. **2-file split for server_logs**: Command+config (244 lines) and streaming (200 lines). Config helpers stay with command because they're only called from the Run function. 3-file split was considered but config at ~70 lines would have been too thin.
+24. **Generic slice functions over manual conversion**: `RenderProtoSliceJSON[T proto.Message]` avoids forcing callers to convert `[]*ConcreteType` to `[]proto.Message`. Precedent: `readProtoFiles[T]` in `synthesis/reader.go`.
+25. **`json.MarshalIndent` over manual array building**: The old `fmt.Println("[")` approach produced broken indentation (only first line of each entry indented). Using `[]json.RawMessage` + `json.MarshalIndent` produces correct nested JSON. Behavioral change is an improvement.
+26. **Batch error vs per-entry continue**: Old code used `continue` on per-entry marshal errors. New shared functions return error for the whole batch. Proto marshaling of valid gRPC responses is unreachable (per Phase 4 DD#16), so batch failure is simpler and correct.
+
 ## Next Steps
 
 1. ~~**Design Decision: get/list output format coexistence**~~ **RESOLVED (DD01)**
@@ -347,7 +398,14 @@ Modified:
 
 4. ~~**Phase 5: Cleanup & Polish**~~ **COMPLETED**
 
-All phases complete. Deferred items for future projects:
+5. ~~**Item 5: Split server_logs.go**~~ **COMPLETED**
+
+6. ~~**Item 7: Consolidate search/display.go YAML/JSON**~~ **COMPLETED**
+
+All phases and follow-on items complete. Remaining deferred items for future projects:
+- **Item 3**: `cliprint` package sunset — migrate remaining 10 importers, then delete or shrink `cliprint`
+- **Item 4**: Get/list table rendering modernization — standardize column widths, truncation, empty-state across 7 resource tables
+- **Item 6**: Integration tests for `--json`/`--quiet` — e2e tests for 10 commands verifying parseable JSON output
 - ProgressDisplay migration (handleServerStart, handleLLMPull) — BubbleTea paradigm, works correctly, no user-facing issue
 - TUI icon vocabulary consistency (executiontui, toolrender) — separate domain from CLI output
 
@@ -359,10 +417,11 @@ All phases complete. Deferred items for future projects:
 - **Section-builder pattern**: Functions like `addLLMSections(result, cfg)` are the reusable building blocks. They take `*clioutput.CommandResult` and append sections. Introduced in Phase 3.2 for dual-use (standalone + embedded).
 - **DD01 (Output Format Architecture)**: Two separate output systems. `clioutput.CommandResult` for mutating commands. `--output table/yaml/json` for read commands. They do not coexist. Phase 4 consolidates boilerplate in System 2 only.
 - `cliprint` is NOT imported by: backend.go, config.go, config_values.go, server_status.go, server_health.go, delete.go, delete_handlers.go, delete_cancel.go, apply_project.go, apply_file.go, apply_file_handlers.go
-- `cliprint` IS still imported by: server.go (handleServerStart/ProgressDisplay), server_llm.go (handleLLMPull/ProgressDisplay), server_logs.go (streaming), and the 7 display.go files (get/list table rendering only — YAML/JSON handled by `pkg/display`)
+- `cliprint` IS still imported by: server.go (handleServerStart/ProgressDisplay), server_llm.go (handleLLMPull/ProgressDisplay), server_logs.go + server_logs_stream.go (streaming), and the 7 display.go files (get/list table rendering only — YAML/JSON handled by `pkg/display`)
+- `search/display.go` no longer imports `protojson` or `yaml.v3` — YAML/JSON rendering delegated to `display.DisplayProtoSlice`
 - `execution.FormatPhase()` was exported for cross-package use (previously `formatPhase`)
 - server_logs.go at 441 lines exceeds 250-line limit but is pre-existing and out of scope
-- **`pkg/display/proto.go`**: Shared proto rendering utilities. `DisplayProto(msg, format, tableFunc)` is the primary call used by all 7 resource display files. `RenderProtoYAML`/`RenderProtoJSON` are the testable layer underneath.
+- **`pkg/display/proto.go`**: Shared proto rendering utilities. `DisplayProto(msg, format, tableFunc)` for single messages (used by 7 resource display files). `DisplayProtoSlice[T](items, format, tableFunc)` for arrays (used by search). `RenderProtoYAML`/`RenderProtoJSON`/`RenderProtoSliceYAML`/`RenderProtoSliceJSON` are the testable layer underneath.
 - Plan files: `.cursor/plans/phase_1_clioutput_package_6a41844c.plan.md`, `.cursor/plans/phase_2_delete_confirmation_bf3b2d04.plan.md`, `.cursor/plans/phase_3.1_delete_migration_38b0d475.plan.md`, `.cursor/plans/phase_3.2_migration_6d35663b.plan.md`, `.cursor/plans/phase_3.3_apply_migration_6623d225.plan.md`, `.cursor/plans/output_format_design_decision_3ad75a6f.plan.md`, `.cursor/plans/phase_4_display_consolidation_615913b2.plan.md`
 - Design decisions: `_projects/.../design-decisions/DD01-output-format-architecture.md`
 - Task plan: `_projects/2026-02/20260226.01.cli-output-system-refactor/tasks/T01_0_plan.md`

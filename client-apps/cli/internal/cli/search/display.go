@@ -8,8 +8,6 @@ import (
 	"time"
 
 	"github.com/fatih/color"
-	"google.golang.org/protobuf/encoding/protojson"
-	"gopkg.in/yaml.v3"
 
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	searchv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/search/v1"
@@ -51,14 +49,9 @@ func DisplayResults(results *Result, opts *DisplayOptions) {
 		opts.MaxDescLen = DefaultDescriptionMaxLen
 	}
 
-	switch opts.Format {
-	case "yaml":
-		displayResultsYAML(results)
-	case "json":
-		displayResultsJSON(results)
-	default:
+	display.DisplayProtoSlice(results.Entries, opts.Format, func() {
 		displayResultsTable(results, opts)
-	}
+	})
 }
 
 // DisplayEmptyResults shows a helpful message when no results found.
@@ -238,62 +231,3 @@ func renderTable(headers []string, rows [][]string, headerColor func(...interfac
 	}
 }
 
-// displayResultsYAML renders results as YAML.
-func displayResultsYAML(results *Result) {
-	marshaler := protojson.MarshalOptions{
-		Indent:          "  ",
-		UseProtoNames:   true,
-		EmitUnpopulated: false,
-	}
-
-	// Convert each entry to YAML
-	entries := make([]map[string]interface{}, len(results.Entries))
-	for i, entry := range results.Entries {
-		jsonBytes, err := marshaler.Marshal(entry)
-		if err != nil {
-			cliprint.PrintError("failed to marshal result: %v", err)
-			continue
-		}
-
-		var m map[string]interface{}
-		if err := yaml.Unmarshal(jsonBytes, &m); err != nil {
-			cliprint.PrintError("failed to parse result: %v", err)
-			continue
-		}
-		entries[i] = m
-	}
-
-	yamlBytes, err := yaml.Marshal(entries)
-	if err != nil {
-		cliprint.PrintError("failed to marshal to YAML: %v", err)
-		return
-	}
-
-	fmt.Print(string(yamlBytes))
-}
-
-// displayResultsJSON renders results as JSON.
-func displayResultsJSON(results *Result) {
-	marshaler := protojson.MarshalOptions{
-		Indent:          "  ",
-		UseProtoNames:   true,
-		EmitUnpopulated: false,
-	}
-
-	// Build a JSON array manually since we need individual marshaling
-	fmt.Println("[")
-	for i, entry := range results.Entries {
-		jsonBytes, err := marshaler.Marshal(entry)
-		if err != nil {
-			cliprint.PrintError("failed to marshal result: %v", err)
-			continue
-		}
-
-		if i < len(results.Entries)-1 {
-			fmt.Printf("  %s,\n", string(jsonBytes))
-		} else {
-			fmt.Printf("  %s\n", string(jsonBytes))
-		}
-	}
-	fmt.Println("]")
-}
