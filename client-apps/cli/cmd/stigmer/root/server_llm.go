@@ -51,7 +51,9 @@ func newServerLLMListCommand() *cobra.Command {
 }
 
 func newServerLLMPullCommand() *cobra.Command {
-	return &cobra.Command{
+	var jsonOutput, quietOutput bool
+
+	cmd := &cobra.Command{
 		Use:   "pull MODEL",
 		Short: "Pull a new model",
 		Long: `Pull a new model from the LLM provider.
@@ -61,9 +63,12 @@ Examples:
   stigmer server llm pull deepseek-coder:6.7b`,
 		Args: cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			handleLLMPull(args[0])
+			handleLLMPull(args[0], resolveResultFormat(jsonOutput, quietOutput))
 		},
 	}
+
+	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
+	return cmd
 }
 
 func newServerLLMStatusCommand() *cobra.Command {
@@ -208,8 +213,9 @@ func handleLLMList(format clioutput.OutputFormat) {
 	renderer.Render(result)
 }
 
-// handleLLMPull pulls a new model (uses cliprint.ProgressDisplay -- excluded from clioutput migration)
-func handleLLMPull(model string) {
+func handleLLMPull(model string, format clioutput.OutputFormat) {
+	renderer := clioutput.NewRenderer(format, os.Stdout, os.Stderr)
+
 	cfg, err := config.Load()
 	if err != nil {
 		climsg.Error("Failed to load configuration")
@@ -220,26 +226,32 @@ func handleLLMPull(model string) {
 	provider := cfg.Backend.Local.ResolveLLMProvider()
 
 	if provider != "ollama" {
-		climsg.Warning("Local model management is only available for local LLM provider")
-		climsg.Info("Current provider: %s", provider)
+		result := clioutput.Warning("Local model management is only available for local LLM provider")
+		result.Hintf("Current provider: %s", provider)
+		renderer.Render(result)
 		return
 	}
 
 	if !llm.IsRunning() {
-		climsg.Warning("Local LLM server is not running")
-		climsg.Info("")
-		climsg.Info("Start the server first:")
-		climsg.Info("  stigmer server")
+		result := clioutput.Warning("Local LLM server is not running")
+		result.Hint("Start the server first:")
+		result.Hint("  stigmer server")
+		renderer.Render(result)
 		return
 	}
 
-	climsg.Info("Pulling model %s...", model)
-	climsg.Info("This may take several minutes depending on model size")
-	fmt.Fprintln(os.Stderr)
+	if format == clioutput.FormatHuman {
+		climsg.Info("Pulling model %s...", model)
+		climsg.Info("This may take several minutes depending on model size")
+		fmt.Fprintln(os.Stderr)
+	}
 
-	progress := cliprint.NewProgressDisplay()
-	progress.Start()
-	progress.SetPhase(cliprint.PhaseInstalling, fmt.Sprintf("Downloading %s...", model))
+	var progress *cliprint.ProgressDisplay
+	if format == clioutput.FormatHuman {
+		progress = cliprint.NewProgressDisplay()
+		progress.Start()
+		progress.SetPhase(cliprint.PhaseInstalling, fmt.Sprintf("Downloading %s...", model))
+	}
 
 	opts := &llm.SetupOptions{
 		Progress: progress,
@@ -247,15 +259,19 @@ func handleLLMPull(model string) {
 	}
 
 	if err := llm.PullModel(context.Background(), model, "", opts); err != nil {
-		progress.Stop()
+		if progress != nil {
+			progress.Stop()
+		}
 		climsg.Error("Failed to pull model")
 		clierr.Handle(err)
 		return
 	}
 
-	progress.Stop()
-	climsg.Success("Model %s is ready", model)
-	fmt.Fprintln(os.Stderr)
-	climsg.Info("To use this model, update your configuration:")
-	climsg.Info("  stigmer config set llm.model %s", model)
+	if progress != nil {
+		progress.Stop()
+	}
+
+	result := clioutput.Success("Model %s is ready", model)
+	result.Hintf("To use this model: stigmer config set llm.model %s", model)
+	renderer.Render(result)
 }

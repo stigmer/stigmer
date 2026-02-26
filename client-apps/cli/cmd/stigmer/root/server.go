@@ -18,6 +18,8 @@ import (
 
 // NewServerCommand creates the server command for daemon management
 func NewServerCommand() *cobra.Command {
+	var jsonOutput, quietOutput bool
+
 	cmd := &cobra.Command{
 		Use:   "server",
 		Short: "Start Stigmer server",
@@ -31,7 +33,7 @@ This command starts the Stigmer server with zero configuration:
 
 Just run 'stigmer server' and start building!`,
 		Run: func(cmd *cobra.Command, args []string) {
-			handleServerStart(cmd)
+			handleServerStart(cmd, resolveResultFormat(jsonOutput, quietOutput))
 		},
 	}
 
@@ -40,6 +42,7 @@ Just run 'stigmer server' and start building!`,
 	cmd.Flags().Bool("sandbox-auto-pull", true, "Auto-pull sandbox image if missing")
 	cmd.Flags().Bool("sandbox-cleanup", true, "Cleanup sandbox containers after execution")
 	cmd.Flags().Int("sandbox-ttl", 3600, "Sandbox container reuse TTL in seconds")
+	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
 
 	cmd.AddCommand(newServerStopCommand())
 	cmd.AddCommand(newServerStatusCommand())
@@ -79,8 +82,7 @@ func newServerStatusCommand() *cobra.Command {
 	return cmd
 }
 
-// handleServerStart uses cliprint.ProgressDisplay (BubbleTea) -- excluded from clioutput migration.
-func handleServerStart(cmd *cobra.Command) {
+func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 	if !config.IsInitialized() {
 		climsg.Info("First-time setup: Initializing Stigmer...")
 
@@ -136,9 +138,12 @@ func handleServerStart(cmd *cobra.Command) {
 		return
 	}
 
-	progress := cliprint.NewProgressDisplay()
-	progress.Start()
-	progress.SetPhase(cliprint.PhaseStarting, "Preparing environment")
+	var progress *cliprint.ProgressDisplay
+	if format == clioutput.FormatHuman {
+		progress = cliprint.NewProgressDisplay()
+		progress.Start()
+		progress.SetPhase(cliprint.PhaseStarting, "Preparing environment")
+	}
 
 	executionMode, _ := cmd.Flags().GetString("execution-mode")
 	sandboxImage, _ := cmd.Flags().GetString("sandbox-image")
@@ -155,28 +160,47 @@ func handleServerStart(cmd *cobra.Command) {
 		SandboxTTL:      sandboxTTL,
 		Secrets:         secrets,
 	}); err != nil {
-		progress.Stop()
+		if progress != nil {
+			progress.Stop()
+		}
 		climsg.Error("Failed to start server")
 		clierr.Handle(err)
 		return
 	}
 
-	progress.CompletePhase(cliprint.PhaseDeploying)
-	progress.Stop()
+	if progress != nil {
+		progress.CompletePhase(cliprint.PhaseDeploying)
+		progress.Stop()
+	}
 
 	climsg.Info("Discovering MCP server capabilities...")
 	runBootstrapDiscovery(cfg)
 
-	climsg.Success("Ready! Stigmer server is running")
 	running, pid := daemon.GetStatus(dataDir)
-	if running {
-		climsg.Info("  PID:  %d", pid)
-		climsg.Info("  Port: %d", daemon.DaemonPort)
-		climsg.Info("  Data: %s", dataDir)
-		climsg.Info("")
-		climsg.Info("Web UI:")
-		climsg.Info("  Temporal:  http://localhost:8233")
+
+	if format == clioutput.FormatHuman {
+		climsg.Success("Ready! Stigmer server is running")
+		if running {
+			climsg.Info("  PID:  %d", pid)
+			climsg.Info("  Port: %d", daemon.DaemonPort)
+			climsg.Info("  Data: %s", dataDir)
+			climsg.Info("")
+			climsg.Info("Web UI:")
+			climsg.Info("  Temporal:  http://localhost:8233")
+		}
+		return
 	}
+
+	renderer := clioutput.NewRenderer(format, os.Stdout, os.Stderr)
+	result := clioutput.Success("Stigmer server is running")
+	if running {
+		result.AddSection("Server Details").
+			Fieldf("PID", "%d", pid).
+			Fieldf("Port", "%d", daemon.DaemonPort).
+			Field("Data", dataDir)
+	}
+	result.Hint("Web UI: http://localhost:8233")
+	renderer.Render(result)
 }
 
 // runBootstrapDiscovery discovers capabilities for all bootstrapped MCP
