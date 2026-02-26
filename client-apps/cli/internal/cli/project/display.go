@@ -160,4 +160,3 @@ func displayProjectGetTable(project *projectv1.Project) {
 	displayResourceCounts(project)
 	fmt.Println()
 }
-

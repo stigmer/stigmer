@@ -63,4 +63,3 @@ func displayServerType(mcpServer *mcpserverv1.McpServer) {
 		}
 	}
 }
-

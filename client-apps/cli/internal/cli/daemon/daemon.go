@@ -17,9 +17,9 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/embedded"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/llm"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/temporal"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

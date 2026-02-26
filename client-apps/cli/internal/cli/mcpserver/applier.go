@@ -119,4 +119,3 @@ func displayMcpServerSummary(mcpServer *mcpserverv1.McpServer) {
 
 	fmt.Println()
 }
-

@@ -174,6 +174,3 @@ func formatRelativeTime(t time.Time) string {
 	seconds := int64(time.Since(t).Seconds())
 	return display.FormatRelativeTime(seconds)
 }
-
-
-
