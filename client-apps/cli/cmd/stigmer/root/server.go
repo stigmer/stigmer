@@ -49,23 +49,33 @@ Just run 'stigmer server' and start building!`,
 }
 
 func newServerStopCommand() *cobra.Command {
-	return &cobra.Command{
+	var jsonOutput, quietOutput bool
+
+	cmd := &cobra.Command{
 		Use:   "stop",
 		Short: "Stop the Stigmer server",
 		Run: func(cmd *cobra.Command, args []string) {
-			handleServerStop()
+			handleServerStop(resolveResultFormat(jsonOutput, quietOutput))
 		},
 	}
+
+	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
+	return cmd
 }
 
 func newServerStatusCommand() *cobra.Command {
-	return &cobra.Command{
+	var jsonOutput, quietOutput bool
+
+	cmd := &cobra.Command{
 		Use:   "status",
 		Short: "Show server status",
 		Run: func(cmd *cobra.Command, args []string) {
-			handleServerStatus()
+			handleServerStatus(resolveResultFormat(jsonOutput, quietOutput))
 		},
 	}
+
+	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
+	return cmd
 }
 
 // handleServerStart uses cliprint.ProgressDisplay (BubbleTea) -- excluded from clioutput migration.
@@ -199,8 +209,8 @@ func runBootstrapDiscovery(cfg *config.Config) {
 	}
 }
 
-func handleServerStop() {
-	renderer := clioutput.NewRenderer(clioutput.FormatHuman, os.Stdout, os.Stderr)
+func handleServerStop(format clioutput.OutputFormat) {
+	renderer := clioutput.NewRenderer(format, os.Stdout, os.Stderr)
 
 	dataDir, err := config.GetDataDir()
 	if err != nil {

@@ -11,8 +11,8 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
 )
 
-func handleServerStatus() {
-	renderer := clioutput.NewRenderer(clioutput.FormatHuman, os.Stdout, os.Stderr)
+func handleServerStatus(format clioutput.OutputFormat) {
+	renderer := clioutput.NewRenderer(format, os.Stdout, os.Stderr)
 
 	dataDir, err := config.GetDataDir()
 	if err != nil {

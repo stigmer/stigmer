@@ -35,13 +35,18 @@ This command allows you to:
 }
 
 func newServerLLMListCommand() *cobra.Command {
-	return &cobra.Command{
+	var jsonOutput, quietOutput bool
+
+	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List available models",
 		Run: func(cmd *cobra.Command, args []string) {
-			handleLLMList()
+			handleLLMList(resolveResultFormat(jsonOutput, quietOutput))
 		},
 	}
+
+	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
+	return cmd
 }
 
 func newServerLLMPullCommand() *cobra.Command {
@@ -61,18 +66,23 @@ Examples:
 }
 
 func newServerLLMStatusCommand() *cobra.Command {
-	return &cobra.Command{
+	var jsonOutput, quietOutput bool
+
+	cmd := &cobra.Command{
 		Use:   "status",
 		Short: "Show LLM provider status",
 		Run: func(cmd *cobra.Command, args []string) {
-			handleLLMStatus()
+			handleLLMStatus(resolveResultFormat(jsonOutput, quietOutput))
 		},
 	}
+
+	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
+	return cmd
 }
 
 // handleLLMStatus shows LLM configuration as a standalone command result.
-func handleLLMStatus() {
-	renderer := clioutput.NewRenderer(clioutput.FormatHuman, os.Stdout, os.Stderr)
+func handleLLMStatus(format clioutput.OutputFormat) {
+	renderer := clioutput.NewRenderer(format, os.Stdout, os.Stderr)
 
 	cfg, err := config.Load()
 	if err != nil {
@@ -139,8 +149,8 @@ func addLLMSections(result *clioutput.CommandResult, cfg *config.Config) {
 	}
 }
 
-func handleLLMList() {
-	renderer := clioutput.NewRenderer(clioutput.FormatHuman, os.Stdout, os.Stderr)
+func handleLLMList(format clioutput.OutputFormat) {
+	renderer := clioutput.NewRenderer(format, os.Stdout, os.Stderr)
 
 	cfg, err := config.Load()
 	if err != nil {
@@ -201,7 +211,7 @@ func handleLLMList() {
 func handleLLMPull(model string) {
 	cfg, err := config.Load()
 	if err != nil {
-		cliprint.Error("Failed to load configuration")
+		cliprint.PrintError("Failed to load configuration")
 		clierr.Handle(err)
 		return
 	}
@@ -209,21 +219,21 @@ func handleLLMPull(model string) {
 	provider := cfg.Backend.Local.ResolveLLMProvider()
 
 	if provider != "ollama" {
-		cliprint.Warning("Local model management is only available for local LLM provider")
-		cliprint.Info("Current provider: %s", provider)
+		cliprint.PrintWarning("Local model management is only available for local LLM provider")
+		cliprint.PrintInfo("Current provider: %s", provider)
 		return
 	}
 
 	if !llm.IsRunning() {
-		cliprint.Warning("Local LLM server is not running")
-		cliprint.Info("")
-		cliprint.Info("Start the server first:")
-		cliprint.Info("  stigmer server")
+		cliprint.PrintWarning("Local LLM server is not running")
+		cliprint.PrintInfo("")
+		cliprint.PrintInfo("Start the server first:")
+		cliprint.PrintInfo("  stigmer server")
 		return
 	}
 
-	cliprint.Info("Pulling model %s...", model)
-	cliprint.Info("This may take several minutes depending on model size")
+	cliprint.PrintInfo("Pulling model %s...", model)
+	cliprint.PrintInfo("This may take several minutes depending on model size")
 	fmt.Println("")
 
 	progress := cliprint.NewProgressDisplay()
@@ -237,14 +247,14 @@ func handleLLMPull(model string) {
 
 	if err := llm.PullModel(context.Background(), model, "", opts); err != nil {
 		progress.Stop()
-		cliprint.Error("Failed to pull model")
+		cliprint.PrintError("Failed to pull model")
 		clierr.Handle(err)
 		return
 	}
 
 	progress.Stop()
-	cliprint.Success("Model %s is ready", model)
+	cliprint.PrintSuccess("Model %s is ready", model)
 	fmt.Println("")
-	cliprint.Info("To use this model, update your configuration:")
-	cliprint.Info("  stigmer config set llm.model %s", model)
+	cliprint.PrintInfo("To use this model, update your configuration:")
+	cliprint.PrintInfo("  stigmer config set llm.model %s", model)
 }

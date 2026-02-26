@@ -20,6 +20,7 @@ import (
 func NewDeleteCommand() *cobra.Command {
 	var force bool
 	var orgOverride string
+	var jsonOutput, quietOutput bool
 
 	cmd := &cobra.Command{
 		Use:   "delete <type> <name-or-id>",
@@ -55,10 +56,11 @@ For executions, this gracefully cancels the running agent.`,
 		Args: cobra.ExactArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := executeDelete(deleteOptions{
-				TypeArg:     args[0],
-				Reference:   args[1],
-				OrgOverride: orgOverride,
-				Force:       force,
+				TypeArg:      args[0],
+				Reference:    args[1],
+				OrgOverride:  orgOverride,
+				Force:        force,
+				OutputFormat: resolveResultFormat(jsonOutput, quietOutput),
 			})
 			clierr.Handle(err)
 		},
@@ -66,15 +68,17 @@ For executions, this gracefully cancels the running agent.`,
 
 	cmd.Flags().BoolVarP(&force, "force", "f", false, "skip confirmation prompt")
 	cmd.Flags().StringVar(&orgOverride, "org", "", "organization ID override")
+	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
 
 	return cmd
 }
 
 type deleteOptions struct {
-	TypeArg     string
-	Reference   string
-	OrgOverride string
-	Force       bool
+	TypeArg      string
+	Reference    string
+	OrgOverride  string
+	Force        bool
+	OutputFormat clioutput.OutputFormat
 }
 
 // deleteContext bundles the resolved dependencies that every resource delete
@@ -134,7 +138,7 @@ func executeDelete(opts deleteOptions) error {
 		orgID:     orgID,
 		force:     opts.Force,
 		confirmer: clioutput.NewConfirmer(opts.Force, os.Stderr),
-		renderer:  clioutput.NewRenderer(clioutput.FormatHuman, os.Stdout, os.Stderr),
+		renderer:  clioutput.NewRenderer(opts.OutputFormat, os.Stdout, os.Stderr),
 		conn:      conn,
 	}
 	return routeDelete(info, dctx)

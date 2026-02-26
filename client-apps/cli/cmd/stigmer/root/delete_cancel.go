@@ -47,7 +47,7 @@ func executeCancelExecution(opts deleteOptions) error {
 	}
 	defer conn.Close()
 
-	renderer := clioutput.NewRenderer(clioutput.FormatHuman, os.Stdout, os.Stderr)
+	renderer := clioutput.NewRenderer(opts.OutputFormat, os.Stdout, os.Stderr)
 
 	if !opts.Force {
 		warn := clioutput.Warning("You are about to cancel execution: %s", opts.Reference)

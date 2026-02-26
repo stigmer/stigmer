@@ -26,6 +26,7 @@ go_library(
         "internal.go",
         "list.go",
         "mcp_server.go",
+        "output_flags.go",
         "push.go",
         "resources.go",
         "run.go",

@@ -1,13 +1,16 @@
 package root
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/project/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
 )
 
 // NewApplyCommand creates the apply command for deploying resources.
@@ -20,6 +23,7 @@ func NewApplyCommand() *cobra.Command {
 	var orgOverride string
 	var pruneEnabled bool
 	var filePath string
+	var jsonOutput, quietOutput bool
 
 	cmd := &cobra.Command{
 		Use:   "apply",
@@ -57,12 +61,14 @@ PROJECT MODE supports:
   stigmer apply --prune=false`,
 		Run: func(cmd *cobra.Command, args []string) {
 			var err error
+			format := resolveResultFormat(jsonOutput, quietOutput)
 
 			if filePath != "" {
 				err = executeFileApply(fileApplyOptions{
-					FilePath:    filePath,
-					OrgOverride: orgOverride,
-					DryRun:      dryRun,
+					FilePath:     filePath,
+					OrgOverride:  orgOverride,
+					DryRun:       dryRun,
+					OutputFormat: format,
 				})
 			} else {
 				err = executeProjectApply(projectApplyOptions{
@@ -70,6 +76,7 @@ PROJECT MODE supports:
 					OrgOverride:  orgOverride,
 					DryRun:       dryRun,
 					PruneEnabled: pruneEnabled,
+					OutputFormat: format,
 				})
 			}
 
@@ -82,6 +89,7 @@ PROJECT MODE supports:
 	cmd.Flags().BoolVar(&pruneEnabled, "prune", true, "delete orphaned resources (project mode)")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "validate without applying")
 	cmd.Flags().StringVar(&orgOverride, "org", "", "organization ID override")
+	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
 
 	return cmd
 }
@@ -91,24 +99,25 @@ type projectApplyOptions struct {
 	OrgOverride  string
 	DryRun       bool
 	PruneEnabled bool
+	OutputFormat clioutput.OutputFormat
 }
 
 // resolveApplyOrganization determines the organization ID for deployment.
-// Uses cliprint for informational progress (kept as-is -- shared pattern).
+// Progress messages go to stderr to keep stdout clean for structured output.
 func resolveApplyOrganization(cfg *config.Config, proj *projectv1.Project, override string) (string, error) {
 	if override != "" {
-		cliprint.PrintInfo("Using organization from flag: %s", override)
+		fmt.Fprintf(os.Stderr, "Using organization from flag: %s\n", override)
 		return override, nil
 	}
 
 	if proj.Metadata != nil && proj.Metadata.Org != "" {
-		cliprint.PrintInfo("Using organization from stigmer.yaml: %s", proj.Metadata.Org)
+		fmt.Fprintf(os.Stderr, "Using organization from stigmer.yaml: %s\n", proj.Metadata.Org)
 		return proj.Metadata.Org, nil
 	}
 
 	if cfg.Backend.Type == config.BackendTypeCloud {
 		if cfg.Backend.Cloud != nil && cfg.Backend.Cloud.OrgID != "" {
-			cliprint.PrintInfo("Using organization from context: %s", cfg.Backend.Cloud.OrgID)
+			fmt.Fprintf(os.Stderr, "Using organization from context: %s\n", cfg.Backend.Cloud.OrgID)
 			return cfg.Backend.Cloud.OrgID, nil
 		}
 		return "", errors.New("organization not set for cloud mode\n\n" +
@@ -118,7 +127,7 @@ func resolveApplyOrganization(cfg *config.Config, proj *projectv1.Project, overr
 			"  3. Set context: stigmer context set --org <org-id>")
 	}
 
-	cliprint.PrintInfo("Using local backend (organization: local)")
+	fmt.Fprintf(os.Stderr, "Using local backend (organization: local)\n")
 	return "local", nil
 }
 

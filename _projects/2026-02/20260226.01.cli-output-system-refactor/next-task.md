@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-26 02:27
-**Current Task**: Phase 5 - Cleanup & Polish (see Next Steps)
-**Status**: In Progress - Phase 1, Phase 2, Phase 3.1, Phase 3.2, Phase 3.3, DD01, and Phase 4 Complete
+**Current Task**: None - Project Complete
+**Status**: Complete - All phases delivered (Phase 1, Phase 2, Phase 3.1, Phase 3.2, Phase 3.3, DD01, Phase 4, Phase 5)
 
 ## Session Progress (2026-02-26)
 
@@ -288,6 +288,48 @@ Modified:
   client-apps/cli/internal/cli/execution/BUILD.bazel   (-clierr/-protojson/-yaml, +display)
 ```
 
+### Completed: Phase 5 - Cleanup & Polish
+
+- Cleaned up cliprint dead code: unexported 15 dead exports, removed 4 deprecated functions, deleted `RunWithProgress`
+- Replaced 10 deprecated function calls in server_llm.go (`cliprint.Success` → `cliprint.PrintSuccess`, etc.)
+- Fixed icon vocabulary: `✗✗` → `✗` in `getHealthSymbol` for "failed" state
+- Created `output_flags.go` with `addResultFormatFlags` / `resolveResultFormat` helpers
+- Wired `--json` and `--quiet` flags to 10 mutating commands (delete, apply, server stop/status, llm status/list, backend status/set, config set/list)
+- Fixed stdout corruption risk: migrated `resolveApplyOrganization` from `cliprint.PrintInfo` (stdout) to `fmt.Fprintf(os.Stderr, ...)`
+- Deferred ProgressDisplay migration (BubbleTea paradigm) to separate project per agreement
+- `go build`, `go vet`, all tests passing
+
+### Files Created/Modified (Phase 5)
+
+```
+Created:
+  client-apps/cli/cmd/stigmer/root/output_flags.go    (27 lines, new)
+
+Modified:
+  client-apps/cli/internal/cli/cliprint/cliprint.go    (63→42 lines, -21)
+  client-apps/cli/internal/cli/cliprint/progress.go    (315→254 lines, -61)
+  client-apps/cli/cmd/stigmer/root/server_llm.go       (deprecated calls replaced, flag wiring)
+  client-apps/cli/cmd/stigmer/root/server_health.go    (✗✗ → ✗)
+  client-apps/cli/cmd/stigmer/root/apply.go            (cliprint→stderr, OutputFormat field)
+  client-apps/cli/cmd/stigmer/root/apply_project.go    (FormatHuman → opts.OutputFormat)
+  client-apps/cli/cmd/stigmer/root/apply_file.go       (OutputFormat field + wiring)
+  client-apps/cli/cmd/stigmer/root/delete.go           (OutputFormat field + flag wiring)
+  client-apps/cli/cmd/stigmer/root/delete_cancel.go    (FormatHuman → opts.OutputFormat)
+  client-apps/cli/cmd/stigmer/root/server.go           (stop/status flag wiring)
+  client-apps/cli/cmd/stigmer/root/server_status.go    (format parameter)
+  client-apps/cli/cmd/stigmer/root/backend.go          (status/set flag wiring)
+  client-apps/cli/cmd/stigmer/root/config.go           (set/list flag wiring)
+  client-apps/cli/cmd/stigmer/root/BUILD.bazel         (+1 src: output_flags.go)
+```
+
+### Key Design Decisions (Phase 5)
+
+18. **`--json` / `--quiet` flag naming**: Avoids `--output` to prevent confusion with `--output table/yaml/json` on get/list commands (System 2 per DD01). `--json` has no short flag; `--quiet` uses `-q`.
+19. **Mutual exclusivity via cobra**: `cmd.MarkFlagsMutuallyExclusive("json", "quiet")` — built-in, no custom validation.
+20. **stdout corruption fix as prerequisite**: `cliprint.PrintInfo` writes to stdout (via `color.Printf`). Must migrate to stderr before `--json` can work. This pattern affects only `resolveApplyOrganization`; all other apply progress was already on stderr.
+21. **Config get/path excluded from --json/--quiet**: Raw value piping preserved per design decision #10.
+22. **ProgressDisplay excluded from Phase 5**: Deferred to separate project per collaborative decision. BubbleTea paradigm works correctly; migration has no immediate user value.
+
 ### Key Design Decisions (Phase 4)
 
 14. **Two-layer API**: `RenderProtoYAML`/`RenderProtoJSON` return errors for testability; `DisplayProto` wraps them with fire-and-forget semantics to preserve existing `DisplayGetResult` void signatures.
@@ -303,11 +345,11 @@ Modified:
 
 3. ~~**Phase 4: Consolidate Display File Boilerplate**~~ **COMPLETED**
 
-4. **Phase 5: Cleanup & Polish** (Small effort) **<-- NEXT**
-   - Remove deprecated `cliprint` functions
-   - Wire up `--output` flag end-to-end (CommandResult rendering format, if needed)
-   - Final icon/vocabulary audit
-   - Address ProgressDisplay migration (handleServerStart, handleLLMPull)
+4. ~~**Phase 5: Cleanup & Polish**~~ **COMPLETED**
+
+All phases complete. Deferred items for future projects:
+- ProgressDisplay migration (handleServerStart, handleLLMPull) — BubbleTea paradigm, works correctly, no user-facing issue
+- TUI icon vocabulary consistency (executiontui, toolrender) — separate domain from CLI output
 
 ## Context for Resume
 

@@ -27,29 +27,39 @@ Cloud:  Uses Stigmer Cloud API`,
 }
 
 func newBackendStatusCommand() *cobra.Command {
-	return &cobra.Command{
+	var jsonOutput, quietOutput bool
+
+	cmd := &cobra.Command{
 		Use:   "status",
 		Short: "Show current backend",
 		Run: func(cmd *cobra.Command, args []string) {
-			handleBackendStatus()
+			handleBackendStatus(resolveResultFormat(jsonOutput, quietOutput))
 		},
 	}
+
+	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
+	return cmd
 }
 
 func newBackendSetCommand() *cobra.Command {
-	return &cobra.Command{
+	var jsonOutput, quietOutput bool
+
+	cmd := &cobra.Command{
 		Use:       "set <local|cloud>",
 		Short:     "Set backend type",
 		Args:      cobra.ExactArgs(1),
 		ValidArgs: []string{"local", "cloud"},
 		Run: func(cmd *cobra.Command, args []string) {
-			handleBackendSet(args[0])
+			handleBackendSet(args[0], resolveResultFormat(jsonOutput, quietOutput))
 		},
 	}
+
+	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
+	return cmd
 }
 
-func handleBackendStatus() {
-	renderer := clioutput.NewRenderer(clioutput.FormatHuman, os.Stdout, os.Stderr)
+func handleBackendStatus(format clioutput.OutputFormat) {
+	renderer := clioutput.NewRenderer(format, os.Stdout, os.Stderr)
 
 	cfg, err := config.Load()
 	if err != nil {
@@ -80,8 +90,8 @@ func handleBackendStatus() {
 	renderer.Render(result)
 }
 
-func handleBackendSet(backendType string) {
-	renderer := clioutput.NewRenderer(clioutput.FormatHuman, os.Stdout, os.Stderr)
+func handleBackendSet(backendType string, format clioutput.OutputFormat) {
+	renderer := clioutput.NewRenderer(format, os.Stdout, os.Stderr)
 
 	cfg, err := config.Load()
 	if err != nil {
