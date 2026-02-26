@@ -1081,7 +1081,7 @@ func EnsureRunning(dataDir string) error {
 	// Not running - start it with nice UX
 	climsg.Info("🚀 Starting local backend daemon...")
 	climsg.Info("   This may take a moment on first run")
-	fmt.Println()
+	fmt.Fprintln(os.Stderr)
 
 	// Create progress display for nice output
 	progress := cliprint.NewProgressDisplay()
@@ -1094,7 +1094,7 @@ func EnsureRunning(dataDir string) error {
 	}
 
 	climsg.Success("✓ Daemon started successfully")
-	fmt.Println()
+	fmt.Fprintln(os.Stderr)
 
 	// No need to wait here - the gRPC client connection with WithBlock()
 	// will automatically wait until the server is ready when commands try to connect

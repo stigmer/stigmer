@@ -2,6 +2,7 @@ package cliprint
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -239,7 +240,7 @@ func NewProgressDisplay() *ProgressDisplay {
 	state := NewProgressState()
 	model := newProgressModel(state)
 
-	program := tea.NewProgram(model)
+	program := tea.NewProgram(model, tea.WithOutput(os.Stderr))
 
 	return &ProgressDisplay{
 		state:   state,
