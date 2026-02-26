@@ -75,8 +75,10 @@ func TestFlagRegistration_AllCommandsHaveJsonAndQuietFlags(t *testing.T) {
 		{"config list", newConfigListCommand()},
 		{"backend status", newBackendStatusCommand()},
 		{"backend set", newBackendSetCommand()},
+		{"server", NewServerCommand()},
 		{"server stop", newServerStopCommand()},
 		{"server status", newServerStatusCommand()},
+		{"server llm pull", newServerLLMPullCommand()},
 		{"server llm list", newServerLLMListCommand()},
 		{"server llm status", newServerLLMStatusCommand()},
 	}
@@ -219,6 +221,13 @@ func TestJSONOutput_WarningPaths(t *testing.T) {
 			wantStatus:     "warning",
 			wantMsgContain: "local LLM provider",
 		},
+		{
+			name:           "llm pull non-ollama provider",
+			config:         localAnthropicConfig(),
+			handler:        func() { handleLLMPull("test-model", clioutput.FormatJSON) },
+			wantStatus:     "warning",
+			wantMsgContain: "local LLM provider",
+		},
 	}
 
 	for _, tt := range tests {
@@ -257,6 +266,7 @@ func TestQuietOutput_StdoutIsEmpty(t *testing.T) {
 		{"server stop not running", localAnthropicConfig(), func() { handleServerStop(clioutput.FormatQuiet) }},
 		{"server status not running", localAnthropicConfig(), func() { handleServerStatus(clioutput.FormatQuiet) }},
 		{"llm list non-ollama", localAnthropicConfig(), func() { handleLLMList(clioutput.FormatQuiet) }},
+		{"llm pull non-ollama", localAnthropicConfig(), func() { handleLLMPull("test-model", clioutput.FormatQuiet) }},
 	}
 
 	for _, tt := range tests {
