@@ -6,8 +6,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 )
 
 // draftAgentOptions contains options for the draft agent command.

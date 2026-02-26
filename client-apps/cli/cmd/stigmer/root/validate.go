@@ -11,11 +11,11 @@ import (
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/agent"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpserver"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/project"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/workflow"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 )
 
 // NewValidateCommand creates the unified validate command.
