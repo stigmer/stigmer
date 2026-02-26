@@ -230,7 +230,7 @@ func (s *SQLiteSignalDedupeStore) Claim(
 	_, err := s.db.ExecContext(ctx, `
 		INSERT INTO signal_dedupe (id, org, idempotency_key, execution_id, signal_name, status, created_at, expires_at)
 		VALUES (?, ?, ?, ?, ?, 'CLAIMED', ?, ?)
-	`, id, org, idempotencyKey, executionID, signalName, now.Format(time.RFC3339), expiresAt.Format(time.RFC3339))
+	`, id, org, idempotencyKey, executionID, signalName, now.Format(time.RFC3339Nano), expiresAt.Format(time.RFC3339Nano))
 
 	if err == nil {
 		// Successfully claimed
@@ -275,7 +275,7 @@ func (s *SQLiteSignalDedupeStore) MarkDelivered(ctx context.Context, org, idempo
 		UPDATE signal_dedupe
 		SET status = 'DELIVERED', delivered_at = ?
 		WHERE id = ? AND status = 'CLAIMED'
-	`, now.Format(time.RFC3339), id)
+	`, now.Format(time.RFC3339Nano), id)
 	if err != nil {
 		return fmt.Errorf("mark delivered: %w", err)
 	}
@@ -330,10 +330,10 @@ func (s *SQLiteSignalDedupeStore) loadRecord(ctx context.Context, id string) (*S
 	}
 
 	// Parse timestamps
-	record.CreatedAt, _ = time.Parse(time.RFC3339, createdAtStr)
-	record.ExpiresAt, _ = time.Parse(time.RFC3339, expiresAtStr)
+	record.CreatedAt, _ = time.Parse(time.RFC3339Nano, createdAtStr)
+	record.ExpiresAt, _ = time.Parse(time.RFC3339Nano, expiresAtStr)
 	if deliveredAtStr.Valid {
-		record.DeliveredAt, _ = time.Parse(time.RFC3339, deliveredAtStr.String)
+		record.DeliveredAt, _ = time.Parse(time.RFC3339Nano, deliveredAtStr.String)
 	}
 
 	return &record, nil
@@ -341,7 +341,7 @@ func (s *SQLiteSignalDedupeStore) loadRecord(ctx context.Context, id string) (*S
 
 // cleanupExpired removes expired records to allow key reuse.
 func (s *SQLiteSignalDedupeStore) cleanupExpired(ctx context.Context) error {
-	now := time.Now().UTC().Format(time.RFC3339)
+	now := time.Now().UTC().Format(time.RFC3339Nano)
 
 	result, err := s.db.ExecContext(ctx, `
 		DELETE FROM signal_dedupe WHERE expires_at < ?
