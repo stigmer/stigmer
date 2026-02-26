@@ -2,6 +2,7 @@ package cliprint
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -15,39 +16,38 @@ import (
 type ProgressPhase string
 
 const (
-	PhaseDiscovering  ProgressPhase = "discovering"
-	PhaseValidating   ProgressPhase = "validating"
-	PhaseConnecting   ProgressPhase = "connecting"
+	phaseDiscovering  ProgressPhase = "discovering"
+	phaseValidating   ProgressPhase = "validating"
+	phaseConnecting   ProgressPhase = "connecting"
 	PhaseDeploying    ProgressPhase = "deploying"
-	PhaseExecuting    ProgressPhase = "executing"
+	phaseExecuting    ProgressPhase = "executing"
 	PhaseInitializing ProgressPhase = "initializing"
 	PhaseInstalling   ProgressPhase = "installing"
-	PhaseDeleting     ProgressPhase = "deleting"
-	PhaseCompleted    ProgressPhase = "completed"
+	phaseDeleting     ProgressPhase = "deleting"
+	phaseCompleted    ProgressPhase = "completed"
 	PhaseStarting     ProgressPhase = "starting"
 )
 
-// PhaseStatus represents the completion status of a phase
-type PhaseStatus int
+type phaseStatus int
 
 const (
-	StatusPending PhaseStatus = iota
-	StatusActive
-	StatusComplete
+	statusPending phaseStatus = iota
+	statusActive
+	statusComplete
 )
 
 // ProgressState holds the current state of all phases
 type ProgressState struct {
 	mu     sync.RWMutex
-	phases map[ProgressPhase]PhaseStatus
+	phases map[ProgressPhase]phaseStatus
 	active ProgressPhase
-	detail string // Additional detail for active phase
+	detail string
 }
 
 // NewProgressState creates a new progress state
 func NewProgressState() *ProgressState {
 	return &ProgressState{
-		phases: make(map[ProgressPhase]PhaseStatus),
+		phases: make(map[ProgressPhase]phaseStatus),
 	}
 }
 
@@ -56,13 +56,12 @@ func (p *ProgressState) SetPhase(phase ProgressPhase, detail string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	// Mark previous phase as complete
 	if p.active != "" && p.active != phase {
-		p.phases[p.active] = StatusComplete
+		p.phases[p.active] = statusComplete
 	}
 
 	p.active = phase
-	p.phases[phase] = StatusActive
+	p.phases[phase] = statusActive
 	p.detail = detail
 }
 
@@ -70,16 +69,14 @@ func (p *ProgressState) SetPhase(phase ProgressPhase, detail string) {
 func (p *ProgressState) CompletePhase(phase ProgressPhase) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	p.phases[phase] = StatusComplete
+	p.phases[phase] = statusComplete
 }
 
-// GetSnapshot returns a read-only snapshot of current state
-func (p *ProgressState) GetSnapshot() (ProgressPhase, string, map[ProgressPhase]PhaseStatus) {
+func (p *ProgressState) getSnapshot() (ProgressPhase, string, map[ProgressPhase]phaseStatus) {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
-	// Copy the phases map
-	phasesCopy := make(map[ProgressPhase]PhaseStatus)
+	phasesCopy := make(map[ProgressPhase]phaseStatus)
 	for k, v := range p.phases {
 		phasesCopy[k] = v
 	}
@@ -87,33 +84,29 @@ func (p *ProgressState) GetSnapshot() (ProgressPhase, string, map[ProgressPhase]
 	return p.active, p.detail, phasesCopy
 }
 
-// ProgressModel is the bubbletea model for rendering progress
-type ProgressModel struct {
+type progressModel struct {
 	state   *ProgressState
 	spinner spinner.Model
 	done    bool
 }
 
-// NewProgressModel creates a new progress model
-func NewProgressModel(state *ProgressState) ProgressModel {
+func newProgressModel(state *ProgressState) progressModel {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
-	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("12")) // Blue
+	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
 
-	return ProgressModel{
+	return progressModel{
 		state:   state,
 		spinner: s,
 		done:    false,
 	}
 }
 
-// Init initializes the model
-func (m ProgressModel) Init() tea.Cmd {
+func (m progressModel) Init() tea.Cmd {
 	return m.spinner.Tick
 }
 
-// Update handles messages
-func (m ProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m progressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if msg.String() == "ctrl+c" {
@@ -133,46 +126,43 @@ func (m ProgressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// View renders the current state
-func (m ProgressModel) View() string {
-	_, detail, phases := m.state.GetSnapshot()
+func (m progressModel) View() string {
+	_, detail, phases := m.state.getSnapshot()
 
-	// When done, render final state without spinner and exit
 	if m.done {
 		return m.renderFinalState(phases)
 	}
 
 	var lines []string
 
-	// Define phase display order and labels
 	phaseOrder := []struct {
 		phase ProgressPhase
 		label string
 	}{
-		{PhaseDiscovering, "Discovering resources"},
-		{PhaseValidating, "Validating configuration"},
-		{PhaseConnecting, "Connecting to backend"},
+		{phaseDiscovering, "Discovering resources"},
+		{phaseValidating, "Validating configuration"},
+		{phaseConnecting, "Connecting to backend"},
 		{PhaseDeploying, "Deploying"},
-		{PhaseExecuting, "Starting execution"},
+		{phaseExecuting, "Starting execution"},
 		{PhaseInitializing, "Initializing"},
 		{PhaseInstalling, "Installing dependencies"},
-		{PhaseDeleting, "Deleting resources"},
+		{phaseDeleting, "Deleting resources"},
 		{PhaseStarting, "Starting services"},
 	}
 
 	for _, p := range phaseOrder {
 		status, exists := phases[p.phase]
 		if !exists {
-			continue // Skip phases that haven't started
+			continue
 		}
 
 		var line string
 		switch status {
-		case StatusComplete:
+		case statusComplete:
 			line = fmt.Sprintf("   %s %s: done",
 				lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Render("✓"),
 				lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Render(p.label))
-		case StatusActive:
+		case statusActive:
 			detailStr := ""
 			if detail != "" {
 				detailStr = fmt.Sprintf(": %s", detail)
@@ -195,24 +185,21 @@ func (m ProgressModel) View() string {
 	return "\n" + strings.Join(lines, "\n") + "\n"
 }
 
-// renderFinalState renders the completed phases without spinner
-// This is called when the progress display is stopping to show final state
-func (m ProgressModel) renderFinalState(phases map[ProgressPhase]PhaseStatus) string {
+func (m progressModel) renderFinalState(phases map[ProgressPhase]phaseStatus) string {
 	var lines []string
 
-	// Define phase display order and labels
 	phaseOrder := []struct {
 		phase ProgressPhase
 		label string
 	}{
-		{PhaseDiscovering, "Discovering resources"},
-		{PhaseValidating, "Validating configuration"},
-		{PhaseConnecting, "Connecting to backend"},
+		{phaseDiscovering, "Discovering resources"},
+		{phaseValidating, "Validating configuration"},
+		{phaseConnecting, "Connecting to backend"},
 		{PhaseDeploying, "Deploying"},
-		{PhaseExecuting, "Starting execution"},
+		{phaseExecuting, "Starting execution"},
 		{PhaseInitializing, "Initializing"},
 		{PhaseInstalling, "Installing dependencies"},
-		{PhaseDeleting, "Deleting resources"},
+		{phaseDeleting, "Deleting resources"},
 		{PhaseStarting, "Starting services"},
 	}
 
@@ -223,8 +210,7 @@ func (m ProgressModel) renderFinalState(phases map[ProgressPhase]PhaseStatus) st
 		}
 
 		var line string
-		// Show all phases as complete in final state (even if they were active)
-		if status == StatusComplete || status == StatusActive {
+		if status == statusComplete || status == statusActive {
 			line = fmt.Sprintf("   %s %s: done",
 				lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Render("✓"),
 				lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Render(p.label))
@@ -252,9 +238,9 @@ type ProgressDisplay struct {
 // NewProgressDisplay creates a new progress display
 func NewProgressDisplay() *ProgressDisplay {
 	state := NewProgressState()
-	model := NewProgressModel(state)
+	model := newProgressModel(state)
 
-	program := tea.NewProgram(model)
+	program := tea.NewProgram(model, tea.WithOutput(os.Stderr))
 
 	return &ProgressDisplay{
 		state:   state,
@@ -272,7 +258,6 @@ func (d *ProgressDisplay) Start() {
 		close(d.done)
 	}()
 
-	// Give it a moment to render
 	time.Sleep(50 * time.Millisecond)
 }
 
@@ -290,25 +275,4 @@ func (d *ProgressDisplay) CompletePhase(phase ProgressPhase) {
 func (d *ProgressDisplay) Stop() {
 	d.program.Send("done")
 	<-d.done
-}
-
-// RunWithProgress executes a function with progress tracking
-func RunWithProgress(phases []struct {
-	Phase  ProgressPhase
-	Label  string
-	Action func() error
-}) error {
-	display := NewProgressDisplay()
-	display.Start()
-	defer display.Stop()
-
-	for _, p := range phases {
-		display.SetPhase(p.Phase, "")
-		if err := p.Action(); err != nil {
-			return err
-		}
-		display.CompletePhase(p.Phase)
-	}
-
-	return nil
 }

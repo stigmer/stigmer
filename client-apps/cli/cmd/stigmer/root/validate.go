@@ -11,7 +11,7 @@ import (
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/agent"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpserver"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/project"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
@@ -86,7 +86,7 @@ func executeValidate(opts validateOptions) error {
 	}
 
 	fmt.Println()
-	cliprint.PrintSuccess("Validation complete: %d resource(s) valid", validCount)
+	climsg.Success("Validation complete: %d resource(s) valid", validCount)
 	fmt.Println()
 	return nil
 }
@@ -147,7 +147,7 @@ func validateFile(filePath string) (int, error) {
 			return 0, err
 		}
 
-		cliprint.PrintSuccess("%s: %s is valid", filePath, info.DisplayName)
+		climsg.Success("%s: %s is valid", filePath, info.DisplayName)
 		validCount++
 	}
 

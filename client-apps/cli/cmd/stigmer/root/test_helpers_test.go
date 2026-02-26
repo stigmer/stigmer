@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -30,4 +31,20 @@ func captureStdout(t *testing.T, f func()) string {
 	}
 
 	return buf.String()
+}
+
+// setupTestHome creates a temporary $HOME with a .stigmer/config.yaml containing
+// the given content. Uses t.Setenv (auto-restores) and t.TempDir (auto-cleans).
+func setupTestHome(t *testing.T, configContent string) {
+	t.Helper()
+
+	tmpHome := t.TempDir()
+	configDir := filepath.Join(tmpHome, ".stigmer")
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		t.Fatalf("failed to create config dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte(configContent), 0644); err != nil {
+		t.Fatalf("failed to write config file: %v", err)
+	}
+	t.Setenv("HOME", tmpHome)
 }

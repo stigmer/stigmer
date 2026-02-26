@@ -14,7 +14,7 @@ import (
 
 	"github.com/pkg/errors"
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/ignore"
 	"google.golang.org/grpc"
 )
@@ -153,7 +153,7 @@ func PushSkill(opts *SkillArtifactOptions) (*SkillArtifactResult, error) {
 	}
 	skillName := metadata.Name
 	if !opts.Quiet {
-		cliprint.PrintInfo("Skill name: %s (from SKILL.md)", skillName)
+		climsg.Info("Skill name: %s (from SKILL.md)", skillName)
 	}
 
 	// Step 3: Create zip artifact with intelligent filtering
@@ -163,9 +163,9 @@ func PushSkill(opts *SkillArtifactOptions) (*SkillArtifactResult, error) {
 	}
 
 	if !opts.Quiet {
-		cliprint.PrintInfo("Creating skill artifact...")
+		climsg.Info("Creating skill artifact...")
 		if ignoreOpts.Verbose {
-			cliprint.PrintInfo("Filtering files with ignore patterns...")
+			climsg.Info("Filtering files with ignore patterns...")
 		}
 	}
 
@@ -176,10 +176,10 @@ func PushSkill(opts *SkillArtifactOptions) (*SkillArtifactResult, error) {
 	}
 
 	if !opts.Quiet {
-		cliprint.PrintSuccess("Artifact created (%s)", formatBytes(stats.TotalSize))
-		cliprint.PrintInfo("  Files: %d included, %d ignored", stats.FilesIncluded, stats.FilesIgnored)
+		climsg.Success("Artifact created (%s)", formatBytes(stats.TotalSize))
+		climsg.Info("  Files: %d included, %d ignored", stats.FilesIncluded, stats.FilesIgnored)
 		if stats.DirsSkipped > 0 {
-			cliprint.PrintInfo("  Skipped: %d directories", stats.DirsSkipped)
+			climsg.Info("  Skipped: %d directories", stats.DirsSkipped)
 		}
 	}
 
@@ -189,7 +189,7 @@ func PushSkill(opts *SkillArtifactOptions) (*SkillArtifactResult, error) {
 	hashHex := fmt.Sprintf("%x", hash)
 
 	if !opts.Quiet {
-		cliprint.PrintInfo("Version hash: %s", hashHex[:16]+"...") // Show first 16 chars
+		climsg.Info("Version hash: %s", hashHex[:16]+"...") // Show first 16 chars
 	}
 
 	// Step 5: Collect git provenance (auto-detect from local git repo)
@@ -197,7 +197,7 @@ func PushSkill(opts *SkillArtifactOptions) (*SkillArtifactResult, error) {
 
 	// Step 6: Upload to backend
 	if !opts.Quiet {
-		cliprint.PrintInfo("Uploading skill artifact...")
+		climsg.Info("Uploading skill artifact...")
 	}
 
 	// Default tag to "latest" if not provided
@@ -218,10 +218,10 @@ func PushSkill(opts *SkillArtifactOptions) (*SkillArtifactResult, error) {
 	}
 
 	if !opts.Quiet {
-		cliprint.PrintSuccess("✓ Skill artifact uploaded successfully")
-		cliprint.PrintInfo("  Version hash: %s", response.Status.VersionHash)
+		climsg.Success("✓ Skill artifact uploaded successfully")
+		climsg.Info("  Version hash: %s", response.Status.VersionHash)
 		if response.Spec.Tag != "" {
-			cliprint.PrintInfo("  Tag: %s", response.Spec.Tag)
+			climsg.Info("  Tag: %s", response.Spec.Tag)
 		}
 	}
 
@@ -254,7 +254,7 @@ func PushSkillFromGit(opts *SkillFromGitOptions) (*SkillArtifactResult, error) {
 	}
 	skillName := metadata.Name
 	if !opts.Quiet {
-		cliprint.PrintInfo("Skill name: %s (from SKILL.md)", skillName)
+		climsg.Info("Skill name: %s (from SKILL.md)", skillName)
 	}
 
 	// Step 3: Create zip artifact with intelligent filtering
@@ -264,9 +264,9 @@ func PushSkillFromGit(opts *SkillFromGitOptions) (*SkillArtifactResult, error) {
 	}
 
 	if !opts.Quiet {
-		cliprint.PrintInfo("Creating skill artifact...")
+		climsg.Info("Creating skill artifact...")
 		if ignoreOpts.Verbose {
-			cliprint.PrintInfo("Filtering files with ignore patterns...")
+			climsg.Info("Filtering files with ignore patterns...")
 		}
 	}
 
@@ -277,10 +277,10 @@ func PushSkillFromGit(opts *SkillFromGitOptions) (*SkillArtifactResult, error) {
 	}
 
 	if !opts.Quiet {
-		cliprint.PrintSuccess("Artifact created (%s)", formatBytes(stats.TotalSize))
-		cliprint.PrintInfo("  Files: %d included, %d ignored", stats.FilesIncluded, stats.FilesIgnored)
+		climsg.Success("Artifact created (%s)", formatBytes(stats.TotalSize))
+		climsg.Info("  Files: %d included, %d ignored", stats.FilesIncluded, stats.FilesIgnored)
 		if stats.DirsSkipped > 0 {
-			cliprint.PrintInfo("  Skipped: %d directories", stats.DirsSkipped)
+			climsg.Info("  Skipped: %d directories", stats.DirsSkipped)
 		}
 	}
 
@@ -290,7 +290,7 @@ func PushSkillFromGit(opts *SkillFromGitOptions) (*SkillArtifactResult, error) {
 	hashHex := fmt.Sprintf("%x", hash)
 
 	if !opts.Quiet {
-		cliprint.PrintInfo("Version hash: %s", hashHex[:16]+"...")
+		climsg.Info("Version hash: %s", hashHex[:16]+"...")
 	}
 
 	// Step 5: Create GitProvenance for source tracking
@@ -308,20 +308,20 @@ func PushSkillFromGit(opts *SkillFromGitOptions) (*SkillArtifactResult, error) {
 	}
 
 	if !opts.Quiet {
-		cliprint.PrintInfo("Source: git repository")
-		cliprint.PrintInfo("  URL: %s", opts.GitURL)
+		climsg.Info("Source: git repository")
+		climsg.Info("  URL: %s", opts.GitURL)
 		if opts.GitRef != "" {
-			cliprint.PrintInfo("  Ref: %s", opts.GitRef)
+			climsg.Info("  Ref: %s", opts.GitRef)
 		}
-		cliprint.PrintInfo("  Commit: %s", commit[:min(12, len(commit))])
+		climsg.Info("  Commit: %s", commit[:min(12, len(commit))])
 		if opts.GitSubdir != "" {
-			cliprint.PrintInfo("  Subdir: %s", opts.GitSubdir)
+			climsg.Info("  Subdir: %s", opts.GitSubdir)
 		}
 	}
 
 	// Step 6: Upload to backend
 	if !opts.Quiet {
-		cliprint.PrintInfo("Uploading skill artifact...")
+		climsg.Info("Uploading skill artifact...")
 	}
 
 	// Default tag to "latest" if not provided
@@ -342,10 +342,10 @@ func PushSkillFromGit(opts *SkillFromGitOptions) (*SkillArtifactResult, error) {
 	}
 
 	if !opts.Quiet {
-		cliprint.PrintSuccess("✓ Skill artifact uploaded successfully")
-		cliprint.PrintInfo("  Version hash: %s", response.Status.VersionHash)
+		climsg.Success("✓ Skill artifact uploaded successfully")
+		climsg.Info("  Version hash: %s", response.Status.VersionHash)
 		if response.Spec.Tag != "" {
-			cliprint.PrintInfo("  Tag: %s", response.Spec.Tag)
+			climsg.Info("  Tag: %s", response.Spec.Tag)
 		}
 	}
 
@@ -412,7 +412,7 @@ func createSkillZip(sourceDir string, zipWriter io.Writer, opts IgnoreOptions) (
 					stats.IgnoredBySource[result.Source]++
 				}
 				if opts.Verbose {
-					cliprint.PrintInfo("  SKIP DIR  %s/ (%s)", relPath, result.Reason)
+					climsg.Info("  SKIP DIR  %s/ (%s)", relPath, result.Reason)
 				}
 				return filepath.SkipDir // Skip entire directory tree for performance
 			}
@@ -427,13 +427,13 @@ func createSkillZip(sourceDir string, zipWriter io.Writer, opts IgnoreOptions) (
 				stats.IgnoredBySource[result.Source]++
 			}
 			if opts.Verbose {
-				cliprint.PrintInfo("  IGNORE    %s (%s)", relPath, result.Reason)
+				climsg.Info("  IGNORE    %s (%s)", relPath, result.Reason)
 			}
 			return nil // Skip this file
 		}
 
 		if opts.Verbose {
-			cliprint.PrintInfo("  INCLUDE   %s", relPath)
+			climsg.Info("  INCLUDE   %s", relPath)
 		}
 
 		// Create zip entry with forward slashes (ZIP standard)
@@ -604,7 +604,7 @@ func collectGitProvenance(directory string, quiet bool) *skillv1.GitProvenance {
 	if err != nil {
 		// Not a git repo, no provenance to track
 		if !quiet {
-			cliprint.PrintInfo("Source: local directory (not a git repository)")
+			climsg.Info("Source: local directory (not a git repository)")
 		}
 		return nil
 	}
@@ -617,7 +617,7 @@ func collectGitProvenance(directory string, quiet bool) *skillv1.GitProvenance {
 	} else {
 		// No remote URL means we can't provide meaningful provenance
 		if !quiet {
-			cliprint.PrintInfo("Source: local git repository (no remote)")
+			climsg.Info("Source: local git repository (no remote)")
 		}
 		return nil
 	}
@@ -642,16 +642,16 @@ func collectGitProvenance(directory string, quiet bool) *skillv1.GitProvenance {
 	}
 
 	if !quiet {
-		cliprint.PrintInfo("Source: git repository")
-		cliprint.PrintInfo("  Remote: %s", provenance.RemoteUrl)
+		climsg.Info("Source: git repository")
+		climsg.Info("  Remote: %s", provenance.RemoteUrl)
 		if provenance.Ref != "" {
-			cliprint.PrintInfo("  Branch: %s", provenance.Ref)
+			climsg.Info("  Branch: %s", provenance.Ref)
 		}
 		if provenance.Commit != "" {
-			cliprint.PrintInfo("  Commit: %s", provenance.Commit[:min(12, len(provenance.Commit))])
+			climsg.Info("  Commit: %s", provenance.Commit[:min(12, len(provenance.Commit))])
 		}
 		if provenance.Subdir != "" {
-			cliprint.PrintInfo("  Subdir: %s", provenance.Subdir)
+			climsg.Info("  Subdir: %s", provenance.Subdir)
 		}
 	}
 

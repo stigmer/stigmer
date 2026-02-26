@@ -10,7 +10,7 @@ import (
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
@@ -227,8 +227,8 @@ func listMcpServers(orgID, format string, limit int32, conn *grpc.ClientConn) er
 	if err != nil {
 		// Fall back to not implemented if search doesn't support mcp_server
 		fmt.Println()
-		cliprint.PrintWarning("MCP server list not yet fully implemented")
-		cliprint.PrintInfo("Use 'stigmer get mcpserver <name>' to retrieve specific servers")
+		climsg.Warning("MCP server list not yet fully implemented")
+		climsg.Info("Use 'stigmer get mcpserver <name>' to retrieve specific servers")
 		fmt.Println()
 		return nil
 	}
@@ -319,8 +319,8 @@ func executeListExecutions(opts listOptions) error {
 	// Show helpful hint if empty
 	if len(result.GetEntries()) == 0 {
 		fmt.Println()
-		cliprint.PrintInfo("Tip: Run an agent to create an execution:")
-		cliprint.PrintInfo("  stigmer run agent <name>")
+		climsg.Info("Tip: Run an agent to create an execution:")
+		climsg.Info("  stigmer run agent <name>")
 		fmt.Println()
 	}
 
@@ -363,8 +363,8 @@ func executeListSessions(opts listOptions) error {
 
 	if len(result.GetEntries()) == 0 {
 		fmt.Println()
-		cliprint.PrintInfo("Tip: Run an agent to create a session:")
-		cliprint.PrintInfo("  stigmer run agent <name>")
+		climsg.Info("Tip: Run an agent to create a session:")
+		climsg.Info("  stigmer run agent <name>")
 		fmt.Println()
 	}
 

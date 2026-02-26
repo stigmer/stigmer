@@ -8,7 +8,7 @@ import (
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/skill"
@@ -187,7 +187,7 @@ func pushSkill(opts pushOptions) error {
 	}
 
 	// Step 4: Connect to backend
-	cliprint.PrintInfo("Connecting to backend...")
+	climsg.Info("Connecting to backend...")
 
 	conn, err := backend.NewConnection()
 	if err != nil {
@@ -195,7 +195,7 @@ func pushSkill(opts pushOptions) error {
 	}
 	defer conn.Close()
 
-	cliprint.PrintSuccess("✓ Connected to backend")
+	climsg.Success("✓ Connected to backend")
 	fmt.Println()
 
 	// Step 5: Execute push based on mode

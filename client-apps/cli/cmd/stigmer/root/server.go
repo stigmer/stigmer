@@ -2,26 +2,24 @@ package root
 
 import (
 	"context"
-	"fmt"
 	"os"
-	"os/exec"
-	"strings"
-	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/bootstrap"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/llm"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpserver"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 )
 
 // NewServerCommand creates the server command for daemon management
 func NewServerCommand() *cobra.Command {
+	var jsonOutput, quietOutput bool
+
 	cmd := &cobra.Command{
 		Use:   "server",
 		Short: "Start Stigmer server",
@@ -35,17 +33,16 @@ This command starts the Stigmer server with zero configuration:
 
 Just run 'stigmer server' and start building!`,
 		Run: func(cmd *cobra.Command, args []string) {
-			// Default action: start the server
-			handleServerStart(cmd)
+			handleServerStart(cmd, resolveResultFormat(jsonOutput, quietOutput))
 		},
 	}
 
-	// Add execution mode flags (cascades: CLI flag > env var > config file > default)
 	cmd.Flags().String("execution-mode", "", "Agent execution mode: local, sandbox, or auto (default: local)")
 	cmd.Flags().String("sandbox-image", "", "Docker image for sandbox mode (default: ghcr.io/stigmer/agent-sandbox-basic:latest)")
 	cmd.Flags().Bool("sandbox-auto-pull", true, "Auto-pull sandbox image if missing")
 	cmd.Flags().Bool("sandbox-cleanup", true, "Cleanup sandbox containers after execution")
 	cmd.Flags().Int("sandbox-ttl", 3600, "Sandbox container reuse TTL in seconds")
+	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
 
 	cmd.AddCommand(newServerStopCommand())
 	cmd.AddCommand(newServerStatusCommand())
@@ -56,161 +53,104 @@ Just run 'stigmer server' and start building!`,
 }
 
 func newServerStopCommand() *cobra.Command {
-	return &cobra.Command{
+	var jsonOutput, quietOutput bool
+
+	cmd := &cobra.Command{
 		Use:   "stop",
 		Short: "Stop the Stigmer server",
 		Run: func(cmd *cobra.Command, args []string) {
-			handleServerStop()
+			handleServerStop(resolveResultFormat(jsonOutput, quietOutput))
 		},
 	}
-}
 
-func newServerStatusCommand() *cobra.Command {
-	return &cobra.Command{
-		Use:   "status",
-		Short: "Show server status",
-		Run: func(cmd *cobra.Command, args []string) {
-			handleServerStatus()
-		},
-	}
-}
-
-func newServerLLMCommand() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "llm",
-		Short: "Manage local LLM models",
-		Long: `Manage local LLM models and configuration.
-		
-This command allows you to:
-- List available models
-- Pull new models
-- Switch between models
-- Check LLM provider status`,
-	}
-
-	cmd.AddCommand(newServerLLMListCommand())
-	cmd.AddCommand(newServerLLMPullCommand())
-	cmd.AddCommand(newServerLLMStatusCommand())
-
+	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
 	return cmd
 }
 
-func newServerLLMListCommand() *cobra.Command {
-	return &cobra.Command{
-		Use:   "list",
-		Short: "List available models",
-		Run: func(cmd *cobra.Command, args []string) {
-			handleLLMList()
-		},
-	}
-}
+func newServerStatusCommand() *cobra.Command {
+	var jsonOutput, quietOutput bool
 
-func newServerLLMPullCommand() *cobra.Command {
-	return &cobra.Command{
-		Use:   "pull MODEL",
-		Short: "Pull a new model",
-		Long: `Pull a new model from the LLM provider.
-
-Examples:
-  stigmer server llm pull codellama:7b
-  stigmer server llm pull deepseek-coder:6.7b`,
-		Args: cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			handleLLMPull(args[0])
-		},
-	}
-}
-
-func newServerLLMStatusCommand() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "status",
-		Short: "Show LLM provider status",
+		Short: "Show server status",
 		Run: func(cmd *cobra.Command, args []string) {
-			showLLMStatus()
+			handleServerStatus(resolveResultFormat(jsonOutput, quietOutput))
 		},
 	}
+
+	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
+	return cmd
 }
 
-func handleServerStart(cmd *cobra.Command) {
-	// Auto-initialize config if needed
+func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 	if !config.IsInitialized() {
-		cliprint.PrintInfo("First-time setup: Initializing Stigmer...")
+		climsg.Info("First-time setup: Initializing Stigmer...")
 
-		// Create default config
 		cfg := config.GetDefault()
 		if err := config.Save(cfg); err != nil {
-			cliprint.PrintError("Failed to create configuration")
+			climsg.Error("Failed to create configuration")
 			clierr.Handle(err)
 			return
 		}
 
 		configPath, _ := config.GetConfigPath()
-		cliprint.PrintSuccess("Created configuration at %s", configPath)
+		climsg.Success("Created configuration at %s", configPath)
 	}
 
 	dataDir, err := config.GetDataDir()
 	if err != nil {
-		cliprint.PrintError("Failed to determine data directory")
+		climsg.Error("Failed to determine data directory")
 		clierr.Handle(err)
 		return
 	}
 
-	// If already running, stop it first (makes 'start' idempotent)
-	// This eliminates the need for a separate 'restart' command
 	if daemon.IsRunning(dataDir) {
-		cliprint.PrintInfo("Server is already running, restarting...")
+		climsg.Info("Server is already running, restarting...")
 		if err := daemon.Stop(dataDir); err != nil {
-			cliprint.PrintWarning("Failed to stop existing server: %v", err)
-			cliprint.PrintInfo("Will attempt to start anyway (cleanup will handle orphans)")
+			climsg.Warning("Failed to stop existing server: %v", err)
+			climsg.Info("Will attempt to start anyway (cleanup will handle orphans)")
 		}
 
-		// Brief pause to let processes fully terminate
 		time.Sleep(1 * time.Second)
 	}
 
-	cliprint.PrintInfo("Starting Stigmer server...")
+	climsg.Info("Starting Stigmer server...")
 
-	// Load config early to check for required secrets BEFORE starting progress display
-	// This prevents terminal conflicts between BubbleTea and password prompts
 	cfg, err := config.Load()
 	if err != nil {
-		cliprint.PrintWarning("Failed to load config, using defaults")
+		climsg.Warning("Failed to load config, using defaults")
 		cfg = config.GetDefault()
 	}
 
-	// Resolve LLM provider and check if we need to prompt for API keys
 	llmProvider := cfg.Backend.Local.ResolveLLMProvider()
 	llmModel := cfg.Backend.Local.ResolveLLMModel()
 
-	// Show what LLM we're using
 	if llmProvider == "ollama" {
-		cliprint.PrintSuccess("Using local LLM (no API key required)")
+		climsg.Success("Using local LLM (no API key required)")
 	} else {
-		cliprint.PrintInfo("Using %s with model %s", llmProvider, llmModel)
+		climsg.Info("Using %s with model %s", llmProvider, llmModel)
 	}
 
-	// Gather secrets BEFORE starting progress display to avoid terminal conflicts
-	// BubbleTea takes control of the terminal, which breaks term.ReadPassword()
 	secrets, err := daemon.GatherRequiredSecrets(llmProvider)
 	if err != nil {
-		cliprint.PrintError("Failed to gather required credentials")
+		climsg.Error("Failed to gather required credentials")
 		clierr.Handle(err)
 		return
 	}
 
-	// Create progress display (now safe since we're done prompting)
-	progress := cliprint.NewProgressDisplay()
-	progress.Start()
-	progress.SetPhase(cliprint.PhaseStarting, "Preparing environment")
+	var progress *cliprint.ProgressDisplay
+	if format == clioutput.FormatHuman {
+		progress = cliprint.NewProgressDisplay()
+		progress.Start()
+		progress.SetPhase(cliprint.PhaseStarting, "Preparing environment")
+	}
 
-	// Parse CLI flags for execution configuration
 	executionMode, _ := cmd.Flags().GetString("execution-mode")
 	sandboxImage, _ := cmd.Flags().GetString("sandbox-image")
 	sandboxAutoPull, _ := cmd.Flags().GetBool("sandbox-auto-pull")
 	sandboxCleanup, _ := cmd.Flags().GetBool("sandbox-cleanup")
 	sandboxTTL, _ := cmd.Flags().GetInt("sandbox-ttl")
 
-	// Start daemon with progress tracking, execution options, and pre-gathered secrets
 	if err := daemon.StartWithOptions(dataDir, daemon.StartOptions{
 		Progress:        progress,
 		ExecutionMode:   executionMode,
@@ -220,42 +160,56 @@ func handleServerStart(cmd *cobra.Command) {
 		SandboxTTL:      sandboxTTL,
 		Secrets:         secrets,
 	}); err != nil {
-		progress.Stop()
-		cliprint.PrintError("Failed to start server")
+		if progress != nil {
+			progress.Stop()
+		}
+		climsg.Error("Failed to start server")
 		clierr.Handle(err)
 		return
 	}
 
-	// Mark as complete
-	progress.CompletePhase(cliprint.PhaseDeploying)
-	progress.Stop()
+	if progress != nil {
+		progress.CompletePhase(cliprint.PhaseDeploying)
+		progress.Stop()
+	}
 
-	// Discover capabilities (tools, resource templates) for bootstrapped
-	// MCP servers so agents know what's available immediately.
-	cliprint.PrintInfo("Discovering MCP server capabilities...")
+	climsg.Info("Discovering MCP server capabilities...")
 	runBootstrapDiscovery(cfg)
 
-	// Show success message
-	cliprint.PrintSuccess("Ready! Stigmer server is running")
 	running, pid := daemon.GetStatus(dataDir)
-	if running {
-		cliprint.PrintInfo("  PID:  %d", pid)
-		cliprint.PrintInfo("  Port: %d", daemon.DaemonPort)
-		cliprint.PrintInfo("  Data: %s", dataDir)
-		cliprint.PrintInfo("")
-		cliprint.PrintInfo("Web UI:")
-		cliprint.PrintInfo("  Temporal:  http://localhost:8233")
+
+	if format == clioutput.FormatHuman {
+		climsg.Success("Ready! Stigmer server is running")
+		if running {
+			climsg.Info("  PID:  %d", pid)
+			climsg.Info("  Port: %d", daemon.DaemonPort)
+			climsg.Info("  Data: %s", dataDir)
+			climsg.Info("")
+			climsg.Info("Web UI:")
+			climsg.Info("  Temporal:  http://localhost:8233")
+		}
+		return
 	}
+
+	renderer := clioutput.NewRenderer(format, os.Stdout, os.Stderr)
+	result := clioutput.Success("Stigmer server is running")
+	if running {
+		result.AddSection("Server Details").
+			Fieldf("PID", "%d", pid).
+			Fieldf("Port", "%d", daemon.DaemonPort).
+			Field("Data", dataDir)
+	}
+	result.Hint("Web UI: http://localhost:8233")
+	renderer.Render(result)
 }
 
 // runBootstrapDiscovery discovers capabilities for all bootstrapped MCP
-// servers. This runs synchronously after the daemon starts so that tool
-// metadata is immediately available. Failures are logged but do not prevent
-// the server from reporting success.
+// servers. Runs synchronously after daemon start so tool metadata is
+// immediately available. Failures are logged but do not block success.
 func runBootstrapDiscovery(cfg *config.Config) {
 	conn, err := backend.NewConnection()
 	if err != nil {
-		cliprint.PrintWarning("Skipping MCP discovery: %v", err)
+		climsg.Warning("Skipping MCP discovery: %v", err)
 		return
 	}
 	defer conn.Close()
@@ -273,623 +227,33 @@ func runBootstrapDiscovery(cfg *config.Config) {
 	})
 
 	if result.Succeeded > 0 {
-		cliprint.PrintSuccess("Discovered capabilities for %d MCP server(s)", result.Succeeded)
+		climsg.Success("Discovered capabilities for %d MCP server(s)", result.Succeeded)
 	}
 	if result.Attempted > result.Succeeded {
-		cliprint.PrintWarning("Discovery failed for %d MCP server(s)", result.Attempted-result.Succeeded)
+		climsg.Warning("Discovery failed for %d MCP server(s)", result.Attempted-result.Succeeded)
 	}
 }
 
-func handleServerStop() {
+func handleServerStop(format clioutput.OutputFormat) {
+	renderer := clioutput.NewRenderer(format, os.Stdout, os.Stderr)
+
 	dataDir, err := config.GetDataDir()
 	if err != nil {
-		cliprint.Error("Failed to determine data directory")
 		clierr.Handle(err)
 		return
 	}
 
-	// Check if running
 	if !daemon.IsRunning(dataDir) {
-		cliprint.Info("Server is not running")
+		result := clioutput.Warning("Server is not running")
+		renderer.Render(result)
 		return
 	}
 
-	cliprint.Info("Stopping server...")
 	if err := daemon.Stop(dataDir); err != nil {
-		cliprint.Error("Failed to stop server")
 		clierr.Handle(err)
 		return
 	}
 
-	cliprint.Success("Server stopped successfully")
-}
-
-func handleServerStatus() {
-	dataDir, err := config.GetDataDir()
-	if err != nil {
-		cliprint.Error("Failed to determine data directory")
-		clierr.Handle(err)
-		return
-	}
-
-	running, pid := daemon.GetStatus(dataDir)
-
-	fmt.Println("Stigmer Server Status:")
-	fmt.Println("─────────────────────────────────────")
-	if running {
-		// Get health summary if monitoring is active
-		healthSummary := daemon.GetHealthSummary()
-
-		// If health summary is empty (health monitor not accessible from this process),
-		// create basic status based on process existence
-		if len(healthSummary) == 0 {
-			healthSummary = createBasicHealthStatus(dataDir, pid)
-		}
-
-		// Stigmer Server
-		showComponentStatus("Stigmer Server", healthSummary["stigmer-server"], pid)
-
-		// Workflow Runner
-		if wfPID, err := daemon.GetWorkflowRunnerPID(dataDir); err == nil {
-			showComponentStatus("Workflow Runner", healthSummary["workflow-runner"], wfPID)
-		}
-
-		// Agent Runner - always show status using unified detection
-		agentStatus := daemon.GetAgentRunnerStatus(dataDir)
-		showAgentRunnerStatusEnhanced(healthSummary["agent-runner"], agentStatus)
-
-		cliprint.Info("")
-		cliprint.Info("Server Details:")
-		cliprint.Info("  Port:   %d", daemon.DaemonPort)
-		cliprint.Info("  Data:   %s", dataDir)
-
-		// Show bootstrap status
-		showBootstrapStatus()
-
-		cliprint.Info("")
-
-		// Show LLM status
-		showLLMStatus()
-
-		cliprint.Info("")
-		cliprint.Info("Web UI:")
-		cliprint.Info("  Temporal:  http://localhost:8233")
-
-		// Show health monitoring status
-		if len(healthSummary) > 0 {
-			cliprint.Info("")
-			cliprint.Info("Health Monitoring: ✓ Active")
-		}
-	} else {
-		cliprint.Warning("  Status: ✗ Stopped")
-		cliprint.Info("")
-		cliprint.Info("To start:")
-		cliprint.Info("  stigmer server")
-	}
-}
-
-// isProcessAlive checks if a process with given PID is actually running
-func isProcessAlive(pid int) bool {
-	process, err := os.FindProcess(pid)
-	if err != nil {
-		return false
-	}
-
-	// Send signal 0 (null signal) to check if process exists
-	// This doesn't actually send a signal, just checks if we CAN send one
-	err = process.Signal(syscall.Signal(0))
-	return err == nil
-}
-
-// isDockerContainerRunning checks if a Docker container is actually running
-func isDockerContainerRunning(containerID string) bool {
-	cmd := exec.Command("docker", "inspect", "-f", "{{.State.Running}}", containerID)
-	output, err := cmd.Output()
-	if err != nil {
-		return false
-	}
-
-	return strings.TrimSpace(string(output)) == "true"
-}
-
-// createBasicHealthStatus creates a basic health status map when health monitor isn't accessible
-// This happens when the status command runs in a separate process from the daemon
-func createBasicHealthStatus(dataDir string, stigmerPID int) map[string]daemon.ComponentHealth {
-	healthMap := make(map[string]daemon.ComponentHealth)
-
-	// Stigmer Server - running if we got here (verified by daemon.GetStatus)
-	healthMap["stigmer-server"] = daemon.ComponentHealth{
-		State: daemon.ComponentState("running"),
-	}
-
-	// Workflow Runner - check if PID file exists AND process is actually alive
-	if wfPID, err := daemon.GetWorkflowRunnerPID(dataDir); err == nil {
-		// CRITICAL: Actually verify the process is alive, not just that PID file exists
-		if isProcessAlive(wfPID) {
-			healthMap["workflow-runner"] = daemon.ComponentHealth{
-				State: daemon.ComponentState("running"),
-			}
-		} else {
-			// Process is dead but PID file exists (stale)
-			healthMap["workflow-runner"] = daemon.ComponentHealth{
-				State: daemon.ComponentState("unhealthy"),
-			}
-		}
-	}
-
-	// Agent Runner - use unified detection with fallback to docker ps
-	agentStatus := daemon.GetAgentRunnerStatus(dataDir)
-	if agentStatus.Found {
-		health := daemon.ComponentHealth{}
-
-		// Determine state based on container status
-		if agentStatus.Restarting || agentStatus.InCrashLoop {
-			health.State = daemon.ComponentState("unhealthy")
-			if agentStatus.LastError != "" {
-				health.LastError = fmt.Errorf("%s", agentStatus.LastError)
-			} else {
-				health.LastError = fmt.Errorf("container in crash loop (%d restarts)", agentStatus.RestartCount)
-			}
-		} else if agentStatus.Running {
-			health.State = daemon.ComponentState("running")
-		} else {
-			health.State = daemon.ComponentState("stopped")
-			if agentStatus.ExitCode != 0 {
-				health.LastError = fmt.Errorf("exited with code %d", agentStatus.ExitCode)
-			}
-		}
-
-		// Store restart count (Docker's count, not internal)
-		health.RestartCount = agentStatus.RestartCount
-
-		healthMap["agent-runner"] = health
-	} else {
-		// Container not found at all
-		healthMap["agent-runner"] = daemon.ComponentHealth{
-			State: daemon.ComponentState("stopped"),
-		}
-	}
-
-	return healthMap
-}
-
-// showComponentStatus displays status for a process-based component
-func showComponentStatus(name string, health daemon.ComponentHealth, pid int) {
-	fmt.Printf("\n%s:\n", name)
-
-	// Determine health symbol
-	healthSymbol := getHealthSymbol(health.State)
-
-	cliprint.Info("  Status:   %s %s", getStateDisplay(health.State), healthSymbol)
-	cliprint.Info("  PID:      %d", pid)
-
-	// Show uptime if running
-	if !health.StartTime.IsZero() {
-		uptime := time.Since(health.StartTime)
-		cliprint.Info("  Uptime:   %s", formatDuration(uptime))
-	}
-
-	// Show restart count if any restarts occurred
-	if health.RestartCount > 0 {
-		cliprint.Warning("  Restarts: %d", health.RestartCount)
-		if !health.LastRestart.IsZero() {
-			cliprint.Info("  Last Restart: %s ago", formatDuration(time.Since(health.LastRestart)))
-		}
-	} else {
-		cliprint.Info("  Restarts: 0")
-	}
-
-	// Show last error if unhealthy
-	if health.State == "unhealthy" && health.LastError != nil {
-		cliprint.Warning("  Last Error: %v", health.LastError)
-	}
-}
-
-// showAgentRunnerStatus displays status for Docker-based agent-runner
-func showAgentRunnerStatus(health daemon.ComponentHealth, containerID string) {
-	fmt.Printf("\nAgent Runner (Docker):\n")
-
-	healthSymbol := getHealthSymbol(health.State)
-
-	cliprint.Info("  Status:   %s %s", getStateDisplay(health.State), healthSymbol)
-
-	if len(containerID) > 12 {
-		cliprint.Info("  Container: %s", containerID[:12])
-	} else {
-		cliprint.Info("  Container: %s", containerID)
-	}
-
-	if !health.StartTime.IsZero() {
-		uptime := time.Since(health.StartTime)
-		cliprint.Info("  Uptime:   %s", formatDuration(uptime))
-	}
-
-	if health.RestartCount > 0 {
-		cliprint.Warning("  Restarts: %d", health.RestartCount)
-	} else {
-		cliprint.Info("  Restarts: 0")
-	}
-
-	if health.State == "unhealthy" && health.LastError != nil {
-		cliprint.Warning("  Last Error: %v", health.LastError)
-	}
-}
-
-// showAgentRunnerStatusEnhanced displays enhanced status for agent-runner with actionable messages
-func showAgentRunnerStatusEnhanced(health daemon.ComponentHealth, agentStatus *daemon.AgentRunnerStatus) {
-	fmt.Printf("\nAgent Runner (Docker):\n")
-
-	// If not found at all, show helpful message
-	if !agentStatus.Found {
-		cliprint.Warning("  Status:   Not Running ○")
-		cliprint.Info("  Container: not found")
-		cliprint.Info("")
-		cliprint.Info("  Agent-runner container is not running.")
-		cliprint.Info("  Try restarting: stigmer server restart")
-		return
-	}
-
-	// Determine state to display - prefer agent status details over health summary
-	var displayState daemon.ComponentState
-	var displaySymbol string
-
-	if agentStatus.InCrashLoop || agentStatus.Restarting {
-		displayState = "unhealthy"
-		displaySymbol = "✗"
-	} else if agentStatus.Running {
-		displayState = "running"
-		displaySymbol = "✓"
-	} else {
-		displayState = "stopped"
-		displaySymbol = "○"
-	}
-
-	// Use health summary state if available and more specific
-	if health.State != "" {
-		displayState = health.State
-		displaySymbol = getHealthSymbol(health.State)
-	}
-
-	// Show status with crash loop indicator
-	if agentStatus.InCrashLoop {
-		cliprint.Warning("  Status:   %s (crash loop) %s", getStateDisplay(displayState), displaySymbol)
-	} else if agentStatus.Restarting {
-		cliprint.Warning("  Status:   %s (restarting) %s", getStateDisplay(displayState), displaySymbol)
-	} else {
-		if displayState == "running" {
-			cliprint.Info("  Status:   %s %s", getStateDisplay(displayState), displaySymbol)
-		} else {
-			cliprint.Warning("  Status:   %s %s", getStateDisplay(displayState), displaySymbol)
-		}
-	}
-
-	// Show container ID
-	containerID := agentStatus.ContainerID
-	if len(containerID) > 12 {
-		cliprint.Info("  Container: %s", containerID[:12])
-	} else if containerID != "" {
-		cliprint.Info("  Container: %s", containerID)
-	}
-
-	// Show uptime from health summary if available
-	if !health.StartTime.IsZero() {
-		uptime := time.Since(health.StartTime)
-		cliprint.Info("  Uptime:   %s", formatDuration(uptime))
-	}
-
-	// Show restart count - use Docker's count if available
-	restartCount := agentStatus.RestartCount
-	if health.RestartCount > 0 && health.RestartCount > restartCount {
-		restartCount = health.RestartCount
-	}
-
-	if restartCount > 0 {
-		if agentStatus.InCrashLoop {
-			cliprint.Warning("  Restarts: %d (crash loop detected)", restartCount)
-		} else {
-			cliprint.Warning("  Restarts: %d", restartCount)
-		}
-	} else {
-		cliprint.Info("  Restarts: 0")
-	}
-
-	// Show exit code if non-zero and not running
-	if !agentStatus.Running && agentStatus.ExitCode != 0 {
-		cliprint.Warning("  Exit Code: %d", agentStatus.ExitCode)
-	}
-
-	// Show last error - prefer agent status error, fall back to health error
-	lastError := agentStatus.LastError
-	if lastError == "" && health.LastError != nil {
-		lastError = health.LastError.Error()
-	}
-
-	if lastError != "" && (displayState == "unhealthy" || displayState == "stopped" || !agentStatus.Running) {
-		cliprint.Warning("  Last Error: %s", lastError)
-	}
-
-	// Show actionable help when unhealthy
-	if displayState == "unhealthy" || displayState == "stopped" || agentStatus.InCrashLoop || !agentStatus.Running {
-		cliprint.Info("")
-		cliprint.Info("  View logs: stigmer server logs --component agent-runner")
-		cliprint.Info("        or:  docker logs %s", daemon.AgentRunnerContainerName)
-	}
-}
-
-// getStateDisplay returns a user-friendly display string for component state
-func getStateDisplay(state daemon.ComponentState) string {
-	switch state {
-	case "running":
-		return "Running"
-	case "starting":
-		return "Starting"
-	case "unhealthy":
-		return "Unhealthy"
-	case "restarting":
-		return "Restarting"
-	case "stopped":
-		return "Stopped"
-	case "failed":
-		return "Failed"
-	default:
-		return string(state)
-	}
-}
-
-// getHealthSymbol returns a visual indicator for health state
-func getHealthSymbol(state daemon.ComponentState) string {
-	switch state {
-	case "running":
-		return "✓"
-	case "starting":
-		return "↻"
-	case "unhealthy":
-		return "✗"
-	case "restarting":
-		return "↻"
-	case "stopped":
-		return "○"
-	case "failed":
-		return "✗✗"
-	default:
-		return "?"
-	}
-}
-
-// formatDuration formats a duration in a human-readable way
-func formatDuration(d time.Duration) string {
-	if d < time.Minute {
-		return fmt.Sprintf("%ds", int(d.Seconds()))
-	} else if d < time.Hour {
-		minutes := int(d.Minutes())
-		seconds := int(d.Seconds()) % 60
-		return fmt.Sprintf("%dm %ds", minutes, seconds)
-	} else if d < 24*time.Hour {
-		hours := int(d.Hours())
-		minutes := int(d.Minutes()) % 60
-		return fmt.Sprintf("%dh %dm", hours, minutes)
-	} else {
-		days := int(d.Hours()) / 24
-		hours := int(d.Hours()) % 24
-		return fmt.Sprintf("%dd %dh", days, hours)
-	}
-}
-
-// showBootstrapStatus displays the bootstrap/seedpack status
-func showBootstrapStatus() {
-	fmt.Println("\nBootstrap:")
-
-	status, err := bootstrap.GetBootstrapStatus()
-	if err != nil {
-		cliprint.Warning("  Status:   Unable to read (%v)", err)
-		return
-	}
-
-	// Display status with symbol
-	statusDisplay := bootstrap.GetStatusDisplay(status.Status)
-	statusSymbol := bootstrap.GetStatusSymbol(status.Status)
-
-	if status.Status == bootstrap.StatusCompleted {
-		cliprint.Info("  Status:   %s %s", statusDisplay, statusSymbol)
-	} else if status.Status == bootstrap.StatusFailed {
-		cliprint.Warning("  Status:   %s %s", statusDisplay, statusSymbol)
-	} else {
-		cliprint.Info("  Status:   %s %s", statusDisplay, statusSymbol)
-	}
-
-	// Display version if available
-	if status.Version != "" {
-		cliprint.Info("  Version:  %s", status.Version)
-	}
-
-	// Display skills count and names
-	skillNames := bootstrap.FormatResourceNames(status.Skills)
-	cliprint.Info("  Skills:   %d applied (%s)", len(status.Skills), skillNames)
-
-	// Display agents count and names
-	agentNames := bootstrap.FormatResourceNames(status.Agents)
-	cliprint.Info("  Agents:   %d applied (%s)", len(status.Agents), agentNames)
-}
-
-// showLLMStatus displays the current LLM configuration and status
-func showLLMStatus() {
-	// Load config to show provider
-	cfg, err := config.Load()
-	if err != nil {
-		cliprint.Warning("  LLM:    Unable to load configuration")
-		return
-	}
-
-	provider := cfg.Backend.Local.ResolveLLMProvider()
-	model := cfg.Backend.Local.ResolveLLMModel()
-
-	cliprint.Info("LLM Configuration:")
-
-	switch provider {
-	case "ollama":
-		// Check local LLM status
-		running, pid, models, err := llm.GetStatus()
-		if err != nil {
-			cliprint.Warning("  Provider: Local (Error: %v)", err)
-			return
-		}
-
-		if running {
-			cliprint.Info("  Provider: Local ✓ Running")
-			if pid > 0 {
-				cliprint.Info("  PID:      %d", pid)
-			}
-			cliprint.Info("  Model:    %s", model)
-
-			if len(models) > 0 {
-				cliprint.Info("  Available: %s", strings.Join(models, ", "))
-			}
-		} else {
-			cliprint.Warning("  Provider: Local ✗ Not Running")
-			cliprint.Info("  Model:    %s (will be downloaded on first use)", model)
-		}
-
-	case "anthropic":
-		cliprint.Info("  Provider: Anthropic (Cloud)")
-		cliprint.Info("  Model:    %s", model)
-
-		// Check if API key is configured
-		if apiKey := cfg.Backend.Local.ResolveLLMAPIKey(); apiKey != "" {
-			cliprint.Info("  API Key:  Configured ✓")
-		} else {
-			cliprint.Warning("  API Key:  Not configured")
-		}
-
-	case "openai":
-		cliprint.Info("  Provider: OpenAI (Cloud)")
-		cliprint.Info("  Model:    %s", model)
-
-		// Check if API key is configured
-		if apiKey := cfg.Backend.Local.ResolveLLMAPIKey(); apiKey != "" {
-			cliprint.Info("  API Key:  Configured ✓")
-		} else {
-			cliprint.Warning("  API Key:  Not configured")
-		}
-
-	default:
-		cliprint.Warning("  Provider: Unknown (%s)", provider)
-	}
-}
-
-// handleLLMList lists available local models
-func handleLLMList() {
-	// Load config to check provider
-	cfg, err := config.Load()
-	if err != nil {
-		cliprint.Error("Failed to load configuration")
-		clierr.Handle(err)
-		return
-	}
-
-	provider := cfg.Backend.Local.ResolveLLMProvider()
-
-	if provider != "ollama" {
-		cliprint.Warning("Local model management is only available for local LLM provider")
-		cliprint.Info("Current provider: %s", provider)
-		cliprint.Info("")
-		cliprint.Info("To use local models, update your configuration:")
-		cliprint.Info("  stigmer config set llm.provider ollama")
-		return
-	}
-
-	// Check if local LLM is running
-	if !llm.IsRunning() {
-		cliprint.Warning("Local LLM server is not running")
-		cliprint.Info("")
-		cliprint.Info("Start the server first:")
-		cliprint.Info("  stigmer server")
-		return
-	}
-
-	// List models
-	models, err := llm.ListModels(context.Background())
-	if err != nil {
-		cliprint.Error("Failed to list models")
-		clierr.Handle(err)
-		return
-	}
-
-	if len(models) == 0 {
-		cliprint.Info("No models installed")
-		cliprint.Info("")
-		cliprint.Info("To pull a model:")
-		cliprint.Info("  stigmer server llm pull qwen2.5-coder:7b")
-		return
-	}
-
-	fmt.Println("Available Models:")
-	fmt.Println("─────────────────────────────────────")
-	for _, model := range models {
-		// Highlight current model
-		currentModel := cfg.Backend.Local.ResolveLLMModel()
-		if model == currentModel {
-			cliprint.Success("  %s (current)", model)
-		} else {
-			cliprint.Info("  %s", model)
-		}
-	}
-	fmt.Println("")
-	cliprint.Info("To pull a new model:")
-	cliprint.Info("  stigmer server llm pull <model-name>")
-}
-
-// handleLLMPull pulls a new model
-func handleLLMPull(model string) {
-	// Load config to check provider
-	cfg, err := config.Load()
-	if err != nil {
-		cliprint.Error("Failed to load configuration")
-		clierr.Handle(err)
-		return
-	}
-
-	provider := cfg.Backend.Local.ResolveLLMProvider()
-
-	if provider != "ollama" {
-		cliprint.Warning("Local model management is only available for local LLM provider")
-		cliprint.Info("Current provider: %s", provider)
-		return
-	}
-
-	// Check if local LLM is running
-	if !llm.IsRunning() {
-		cliprint.Warning("Local LLM server is not running")
-		cliprint.Info("")
-		cliprint.Info("Start the server first:")
-		cliprint.Info("  stigmer server")
-		return
-	}
-
-	cliprint.Info("Pulling model %s...", model)
-	cliprint.Info("This may take several minutes depending on model size")
-	fmt.Println("")
-
-	// Pull model with progress
-	progress := cliprint.NewProgressDisplay()
-	progress.Start()
-	progress.SetPhase(cliprint.PhaseInstalling, fmt.Sprintf("Downloading %s...", model))
-
-	opts := &llm.SetupOptions{
-		Progress: progress,
-		Model:    model,
-	}
-
-	// Empty binaryPath means auto-detect from system PATH or local installation
-	if err := llm.PullModel(context.Background(), model, "", opts); err != nil {
-		progress.Stop()
-		cliprint.Error("Failed to pull model")
-		clierr.Handle(err)
-		return
-	}
-
-	progress.Stop()
-	cliprint.Success("Model %s is ready", model)
-	fmt.Println("")
-	cliprint.Info("To use this model, update your configuration:")
-	cliprint.Info("  stigmer config set llm.model %s", model)
+	result := clioutput.Success("Server stopped successfully")
+	renderer.Render(result)
 }

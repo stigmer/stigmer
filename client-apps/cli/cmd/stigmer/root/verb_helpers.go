@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
 )
@@ -46,14 +46,14 @@ func displayResourceTypes(verb types.Verb) {
 	supportedTypes := reg.TypesForVerb(verb)
 
 	if len(supportedTypes) == 0 {
-		cliprint.PrintInfo("No resource types support '%s'", verb)
+		climsg.Info("No resource types support '%s'", verb)
 		return
 	}
 
-	cliprint.PrintInfo("Resource types supporting '%s':", verb)
+	climsg.Info("Resource types supporting '%s':", verb)
 	for _, kind := range supportedTypes {
 		if info := reg.GetByProtoKind(kind); info != nil {
-			cliprint.PrintInfo("  - %s (%s)", info.Singular, info.DisplayName)
+			climsg.Info("  - %s (%s)", info.Singular, info.DisplayName)
 		}
 	}
 }
@@ -64,17 +64,17 @@ func resolveOrganization(cfg *config.Config, orgOverride string) (string, error)
 	switch cfg.Backend.Type {
 	case config.BackendTypeLocal:
 		orgID := "local"
-		cliprint.PrintInfo("Using local backend (organization: %s)", orgID)
+		climsg.Info("Using local backend (organization: %s)", orgID)
 		return orgID, nil
 
 	case config.BackendTypeCloud:
 		if orgOverride != "" {
-			cliprint.PrintInfo("Using organization from flag: %s", orgOverride)
+			climsg.Info("Using organization from flag: %s", orgOverride)
 			return orgOverride, nil
 		}
 
 		if cfg.Backend.Cloud != nil && cfg.Backend.Cloud.OrgID != "" {
-			cliprint.PrintInfo("Using organization from context: %s", cfg.Backend.Cloud.OrgID)
+			climsg.Info("Using organization from context: %s", cfg.Backend.Cloud.OrgID)
 			return cfg.Backend.Cloud.OrgID, nil
 		}
 

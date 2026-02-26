@@ -3,81 +3,71 @@ package execution
 
 import (
 	"fmt"
+	"os"
 	"time"
 
+	"github.com/fatih/color"
+
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
-	"google.golang.org/protobuf/encoding/protojson"
-	"gopkg.in/yaml.v3"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
 )
 
 // DisplayGetResult displays an execution in the specified format.
 // Supported formats: "table" (default), "yaml", "json".
 func DisplayGetResult(exec *agentexecutionv1.AgentExecution, format string) {
-	switch format {
-	case "yaml":
-		displayExecutionYAML(exec)
-	case "json":
-		displayExecutionJSON(exec)
-	default: // table
-		displayExecutionTable(exec)
-	}
+	display.DisplayProto(exec, format, func() { displayExecutionTable(exec) })
 }
 
 // displayExecutionTable displays the execution in human-readable table format.
 func displayExecutionTable(exec *agentexecutionv1.AgentExecution) {
 	fmt.Println()
-	cliprint.PrintInfo("Execution: %s", exec.GetMetadata().GetId())
+	fmt.Printf("Execution: %s\n", exec.GetMetadata().GetId())
 	fmt.Println()
 
-	// Metadata section
-	cliprint.PrintInfo("Metadata:")
-	cliprint.PrintInfo("  ID:      %s", exec.GetMetadata().GetId())
-	cliprint.PrintInfo("  Name:    %s", exec.GetMetadata().GetName())
-	cliprint.PrintInfo("  Org:     %s", exec.GetMetadata().GetOrg())
+	fmt.Printf("Metadata:\n")
+	fmt.Printf("  ID:      %s\n", exec.GetMetadata().GetId())
+	fmt.Printf("  Name:    %s\n", exec.GetMetadata().GetName())
+	fmt.Printf("  Org:     %s\n", exec.GetMetadata().GetOrg())
 	fmt.Println()
 
-	// Spec section
-	cliprint.PrintInfo("Spec:")
-	cliprint.PrintInfo("  Agent ID:   %s", exec.GetSpec().GetAgentId())
+	fmt.Printf("Spec:\n")
+	fmt.Printf("  Agent ID:   %s\n", exec.GetSpec().GetAgentId())
 	if exec.GetSpec().GetSessionId() != "" {
-		cliprint.PrintInfo("  Session ID: %s", exec.GetSpec().GetSessionId())
+		fmt.Printf("  Session ID: %s\n", exec.GetSpec().GetSessionId())
 	}
 	if exec.GetSpec().GetMessage() != "" {
-		cliprint.PrintInfo("  Message:    %s", truncateString(exec.GetSpec().GetMessage(), 60))
+		fmt.Printf("  Message:    %s\n", display.TruncateWithEllipsis(exec.GetSpec().GetMessage(), 60))
 	}
 	fmt.Println()
 
-	// Status section
 	status := exec.GetStatus()
-	cliprint.PrintInfo("Status:")
-	cliprint.PrintInfo("  Phase:    %s", formatPhase(status.GetPhase()))
+	fmt.Printf("Status:\n")
+	fmt.Printf("  Phase:    %s\n", FormatPhase(status.GetPhase()))
 
 	if status.GetStartedAt() != "" {
-		cliprint.PrintInfo("  Started:  %s", formatTimestamp(status.GetStartedAt()))
+		fmt.Printf("  Started:  %s\n", formatTimestamp(status.GetStartedAt()))
 	}
 	if status.GetCompletedAt() != "" {
-		cliprint.PrintInfo("  Completed: %s", formatTimestamp(status.GetCompletedAt()))
-		cliprint.PrintInfo("  Duration:  %s", calculateDuration(status.GetStartedAt(), status.GetCompletedAt()))
+		fmt.Printf("  Completed: %s\n", formatTimestamp(status.GetCompletedAt()))
+		fmt.Printf("  Duration:  %s\n", calculateDuration(status.GetStartedAt(), status.GetCompletedAt()))
 	}
 
 	if status.GetError() != "" {
 		fmt.Println()
-		cliprint.PrintError("Error: %s", status.GetError())
+		fmt.Printf("Error: %s\n", status.GetError())
 	}
 
 	// Artifacts section
 	artifacts := status.GetArtifacts()
 	if len(artifacts) > 0 {
 		fmt.Println()
-		cliprint.PrintInfo("Artifacts:")
+		fmt.Printf("Artifacts:\n")
 		fmt.Println()
 		fmt.Printf("  %-30s  %-10s  %-10s  %s\n", "NAME", "SIZE", "KIND", "CREATED")
 		fmt.Printf("  %-30s  %-10s  %-10s  %s\n", "----", "----", "----", "-------")
 		for _, artifact := range artifacts {
 			fmt.Printf("  %-30s  %-10s  %-10s  %s\n",
-				truncateString(artifact.GetName(), 30),
+				display.TruncateWithEllipsis(artifact.GetName(), 30),
 				formatBytes(artifact.GetSizeBytes()),
 				formatArtifactKind(artifact.GetKind()),
 				formatTimestamp(artifact.GetCreatedAt()),
@@ -89,7 +79,7 @@ func displayExecutionTable(exec *agentexecutionv1.AgentExecution) {
 	messages := status.GetMessages()
 	if len(messages) > 0 {
 		fmt.Println()
-		cliprint.PrintInfo("Recent Messages: (%d total)", len(messages))
+		fmt.Printf("Recent Messages: (%d total)\n", len(messages))
 		// Show last 3 messages
 		start := len(messages) - 3
 		if start < 0 {
@@ -97,7 +87,7 @@ func displayExecutionTable(exec *agentexecutionv1.AgentExecution) {
 		}
 		for _, msg := range messages[start:] {
 			msgType := formatMessageType(msg.GetType())
-			content := truncateString(msg.GetContent(), 80)
+			content := display.TruncateWithEllipsis(msg.GetContent(), 80)
 			fmt.Printf("  [%s] %s\n", msgType, content)
 		}
 	}
@@ -105,82 +95,29 @@ func displayExecutionTable(exec *agentexecutionv1.AgentExecution) {
 	fmt.Println()
 }
 
-// displayExecutionYAML displays the execution as YAML.
-func displayExecutionYAML(exec *agentexecutionv1.AgentExecution) {
-	marshaler := protojson.MarshalOptions{
-		Indent:          "  ",
-		UseProtoNames:   true,
-		EmitUnpopulated: false,
-	}
-	jsonBytes, err := marshaler.Marshal(exec)
-	if err != nil {
-		clierr.Handle(fmt.Errorf("failed to marshal execution to JSON: %w", err))
-		return
-	}
-
-	// Convert JSON to YAML via generic map
-	var jsonMap map[string]interface{}
-	if err := yaml.Unmarshal(jsonBytes, &jsonMap); err != nil {
-		clierr.Handle(fmt.Errorf("failed to parse JSON: %w", err))
-		return
-	}
-
-	yamlBytes, err := yaml.Marshal(jsonMap)
-	if err != nil {
-		clierr.Handle(fmt.Errorf("failed to marshal to YAML: %w", err))
-		return
-	}
-	fmt.Print(string(yamlBytes))
-}
-
-// displayExecutionJSON displays the execution as JSON.
-func displayExecutionJSON(exec *agentexecutionv1.AgentExecution) {
-	marshaler := protojson.MarshalOptions{
-		Indent:          "  ",
-		UseProtoNames:   true,
-		EmitUnpopulated: false,
-	}
-	jsonBytes, err := marshaler.Marshal(exec)
-	if err != nil {
-		clierr.Handle(fmt.Errorf("failed to marshal execution to JSON: %w", err))
-		return
-	}
-	fmt.Println(string(jsonBytes))
-}
-
 // DisplayListResult displays a list of executions.
 func DisplayListResult(list *agentexecutionv1.AgentExecutionList, format string) {
 	entries := list.GetEntries()
 	if len(entries) == 0 {
-		fmt.Println()
-		cliprint.PrintInfo("No executions found.")
-		fmt.Println()
+		display.DisplayEmptyResults("executions", "")
 		return
 	}
 
-	switch format {
-	case "yaml":
-		displayListYAML(list)
-	case "json":
-		displayListJSON(list)
-	default: // table
-		displayListTable(list)
-	}
+	display.DisplayProto(list, format, func() { displayListTable(list) })
 }
 
 // displayListTable displays executions in table format.
 func displayListTable(list *agentexecutionv1.AgentExecutionList) {
 	entries := list.GetEntries()
+	headerColor := color.New(color.FgCyan, color.Bold).SprintFunc()
 
-	fmt.Println()
-	fmt.Printf("%-26s  %-26s  %-15s  %-20s  %s\n", "ID", "AGENT", "STATUS", "STARTED", "DURATION")
-	fmt.Printf("%-26s  %-26s  %-15s  %-20s  %s\n", "--", "-----", "------", "-------", "--------")
+	tbl := display.NewTable(
+		[]string{"ID", "AGENT", "STATUS", "STARTED", "DURATION"},
+		display.WithHeaderColor(headerColor),
+		display.WithAdaptive(),
+	)
 
 	for _, exec := range entries {
-		id := exec.GetMetadata().GetId()
-		agentID := truncateString(exec.GetSpec().GetAgentId(), 26)
-		status := formatPhase(exec.GetStatus().GetPhase())
-		started := formatTimestamp(exec.GetStatus().GetStartedAt())
 		duration := "-"
 		if exec.GetStatus().GetCompletedAt() != "" {
 			duration = calculateDuration(exec.GetStatus().GetStartedAt(), exec.GetStatus().GetCompletedAt())
@@ -188,89 +125,26 @@ func displayListTable(list *agentexecutionv1.AgentExecutionList) {
 			duration = calculateDuration(exec.GetStatus().GetStartedAt(), time.Now().Format(time.RFC3339))
 		}
 
-		fmt.Printf("%-26s  %-26s  %-15s  %-20s  %s\n", id, agentID, status, started, duration)
+		tbl.AddRow(
+			exec.GetMetadata().GetId(),
+			exec.GetSpec().GetAgentId(),
+			FormatPhase(exec.GetStatus().GetPhase()),
+			formatTimestamp(exec.GetStatus().GetStartedAt()),
+			duration,
+		)
 	}
 
 	fmt.Println()
+	tbl.Render(os.Stdout)
+
 	totalPages := list.GetTotalPages()
 	if totalPages > 1 {
-		cliprint.PrintInfo("Page 1 of %d", totalPages)
+		fmt.Printf("Page 1 of %d\n", totalPages)
 	}
 }
 
-// displayListYAML displays the list as YAML.
-func displayListYAML(list *agentexecutionv1.AgentExecutionList) {
-	marshaler := protojson.MarshalOptions{
-		Indent:          "  ",
-		UseProtoNames:   true,
-		EmitUnpopulated: false,
-	}
-	jsonBytes, err := marshaler.Marshal(list)
-	if err != nil {
-		clierr.Handle(fmt.Errorf("failed to marshal list to JSON: %w", err))
-		return
-	}
-
-	var jsonMap map[string]interface{}
-	if err := yaml.Unmarshal(jsonBytes, &jsonMap); err != nil {
-		clierr.Handle(fmt.Errorf("failed to parse JSON: %w", err))
-		return
-	}
-
-	yamlBytes, err := yaml.Marshal(jsonMap)
-	if err != nil {
-		clierr.Handle(fmt.Errorf("failed to marshal to YAML: %w", err))
-		return
-	}
-	fmt.Print(string(yamlBytes))
-}
-
-// displayListJSON displays the list as JSON.
-func displayListJSON(list *agentexecutionv1.AgentExecutionList) {
-	marshaler := protojson.MarshalOptions{
-		Indent:          "  ",
-		UseProtoNames:   true,
-		EmitUnpopulated: false,
-	}
-	jsonBytes, err := marshaler.Marshal(list)
-	if err != nil {
-		clierr.Handle(fmt.Errorf("failed to marshal list to JSON: %w", err))
-		return
-	}
-	fmt.Println(string(jsonBytes))
-}
-
-// DisplayCancelResult displays the result of a cancel operation.
-func DisplayCancelResult(result *CancelResult) {
-	fmt.Println()
-	if result.WasAlreadyCancelled {
-		cliprint.PrintWarning("Execution was already in terminal state")
-	} else {
-		cliprint.PrintSuccess("Execution cancelled successfully")
-	}
-	fmt.Println()
-
-	cliprint.PrintInfo("Execution:")
-	cliprint.PrintInfo("  ID:     %s", result.Execution.GetMetadata().GetId())
-	cliprint.PrintInfo("  Status: %s", formatPhase(result.Execution.GetStatus().GetPhase()))
-	fmt.Println()
-}
-
-// Helper functions
-
-// truncateString truncates a string to maxLen characters, adding "..." if truncated.
-func truncateString(s string, maxLen int) string {
-	if len(s) <= maxLen {
-		return s
-	}
-	if maxLen <= 3 {
-		return "..."
-	}
-	return s[:maxLen-3] + "..."
-}
-
-// formatPhase formats an execution phase for display.
-func formatPhase(phase agentexecutionv1.ExecutionPhase) string {
+// FormatPhase formats an execution phase for display.
+func FormatPhase(phase agentexecutionv1.ExecutionPhase) string {
 	switch phase {
 	case agentexecutionv1.ExecutionPhase_EXECUTION_PENDING:
 		return "pending"
