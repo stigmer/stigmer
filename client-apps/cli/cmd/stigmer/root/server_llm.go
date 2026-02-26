@@ -235,7 +235,7 @@ func handleLLMPull(model string) {
 
 	climsg.Info("Pulling model %s...", model)
 	climsg.Info("This may take several minutes depending on model size")
-	fmt.Println("")
+	fmt.Fprintln(os.Stderr)
 
 	progress := cliprint.NewProgressDisplay()
 	progress.Start()
@@ -255,7 +255,7 @@ func handleLLMPull(model string) {
 
 	progress.Stop()
 	climsg.Success("Model %s is ready", model)
-	fmt.Println("")
+	fmt.Fprintln(os.Stderr)
 	climsg.Info("To use this model, update your configuration:")
 	climsg.Info("  stigmer config set llm.model %s", model)
 }
