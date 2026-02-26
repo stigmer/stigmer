@@ -68,49 +68,46 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-02-26 21:15
-**Current Task**: T01 Steps 3-4 (next)
-**Status**: In Progress — Steps 1-2 complete, Steps 3-6 remaining
+**Current Task**: T01 — All steps complete
+**Status**: Complete — All 6 steps done, all tests passing
 
 ## Session Progress (2026-02-26)
 
-### Completed: Steps 1-2 — Redirect Ephemeral Output to stderr
+### Session 1: Steps 1-2 — Redirect Ephemeral Output to stderr
 
 - **Step 1**: Added `tea.WithOutput(os.Stderr)` to `NewProgressDisplay()` in `cliprint/progress.go`. Single-point fix that redirects all BubbleTea spinner output to stderr across all three call sites (`handleServerStart`, `handleLLMPull`, `EnsureRunning`).
 - **Step 2**: Replaced 4 bare `fmt.Println` calls that leaked decorative blank lines to stdout:
   - `server_llm.go` lines 238, 258: `fmt.Println("")` → `fmt.Fprintln(os.Stderr)`
   - `daemon.go` lines 1084, 1097: `fmt.Println()` → `fmt.Fprintln(os.Stderr)`
-- **Verification**: `go build ./client-apps/cli/...` and `go vet ./client-apps/cli/...` both pass clean.
-- **No surprises**: All changes matched the plan exactly. No import or BUILD.bazel complications.
+- **Commit**: `73dd437d refactor(cli): redirect ProgressDisplay and bare fmt.Println to stderr`
 
-### Files Modified (Steps 1-2)
+### Session 2: Steps 3-4, 6 — Output Format Flag Wiring + Tests
+
+- **Step 3**: Added `--json`/`--quiet` flags to `server start` (`server.go`). Conditional ProgressDisplay (nil in non-human modes leveraging existing nil guards in `daemon.StartWithOptions`). Format-aware final output: human mode preserves climsg, JSON/quiet mode builds CommandResult with PID/port/data.
+- **Step 4**: Added `--json`/`--quiet` flags to `server llm pull` (`server_llm.go`). Warning paths (non-ollama, not running) migrated from bare climsg to CommandResult+Renderer (consistent with `handleLLMList`). Pre-operation climsg conditional on human mode. Final success uses CommandResult for all modes.
+- **Step 5**: Resolved by Steps 1-2 (no code change needed for `EnsureRunning`).
+- **Step 6**: Added 4 integration tests to `output_format_test.go`: 2 flag wiring tests (server, server llm pull), 1 JSON warning path test, 1 quiet stdout-empty test. All 30 test cases pass.
+- **Design Decision**: climsg stays format-agnostic (always writes to stderr). `--json`/`--quiet` control Command Result formatting only, not operational progress. This follows bounded context separation and Unix conventions.
+- **Commit**: `6c1ed6e9 feat(cli): add --json/--quiet flags to server start and server llm pull`
+
+### Files Modified (All Steps)
 
 ```
-client-apps/cli/internal/cli/cliprint/progress.go   (+1 import, 1 line changed)
-client-apps/cli/cmd/stigmer/root/server_llm.go      (2 lines changed)
-client-apps/cli/internal/cli/daemon/daemon.go        (2 lines changed)
+client-apps/cli/internal/cli/cliprint/progress.go     (Step 1: tea.WithOutput(os.Stderr))
+client-apps/cli/cmd/stigmer/root/server.go             (Steps 1,3: flag wiring, conditional progress, format-aware output)
+client-apps/cli/cmd/stigmer/root/server_llm.go         (Steps 2,4: flag wiring, warning migration, conditional progress)
+client-apps/cli/internal/cli/daemon/daemon.go          (Step 2: fmt.Println → fmt.Fprintln(os.Stderr))
+client-apps/cli/cmd/stigmer/root/output_format_test.go (Step 6: 4 new test cases)
 ```
 
-## Next Steps
+## Project Completion Summary
 
-1. **Step 3**: Add `--json`/`--quiet` flags to `server start` command (`server.go`)
-2. **Step 4**: Add `--json`/`--quiet` flags to `server llm pull` command (`server_llm.go`)
-3. **Step 5**: Resolved by Steps 1-2 (no code change needed for `EnsureRunning`)
-4. **Step 6**: Integration tests — flag wiring tests for the 2 new commands in `output_format_test.go`
+All 12 mutating CLI commands now have `--json`/`--quiet` support. The output system follows three bounded contexts:
+- **ProgressDisplay**: format-aware (skip in non-human modes)
+- **climsg**: format-agnostic (always stderr)
+- **CommandResult**: format-aware (JSON/quiet/human rendering)
 
-## Context for Resume
-
-- Steps 1-2 are the "correctness foundation" — they ensure all ephemeral output stays off stdout. Steps 3-4 build on top by adding structured output support.
-- `climsg` already writes to stderr (confirmed). No changes needed there.
-- `server.go` has no bare `fmt.Print*` calls — it only needed the `NewProgressDisplay` fix (inherited from Step 1).
-- The existing `if opts.Progress != nil` guards in `daemon.StartWithOptions` and `llm.SetupOptions` mean passing `nil` in JSON/quiet mode cleanly suppresses all phase updates with zero downstream changes.
-
-## Quick Commands
-
-After loading context:
-- "Continue with Steps 3-4" - Add --json/--quiet flags to server start and server llm pull
-- "Show project status" - Get overview of progress
-- "Create checkpoint" - Save current progress
-- "Review guidelines" - Check established patterns
+No changes were needed to: `daemon.go` (beyond Step 2 stderr fix), `progress.go` (beyond Step 1 stderr fix), `clioutput/`, `climsg/`, `output_flags.go`, or any BUILD.bazel files.
 
 ## Quick Resume
 

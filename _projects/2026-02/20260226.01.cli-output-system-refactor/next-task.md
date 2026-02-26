@@ -69,9 +69,39 @@ When starting a new session:
 
 **Created**: 2026-02-26 02:27
 **Current Task**: None - Project Complete
-**Status**: Complete - All phases delivered (Phase 1, Phase 2, Phase 3.1, Phase 3.2, Phase 3.3, DD01, Phase 4, Phase 5, Item 5, Item 7, cliprint Sunset, Item 4)
+**Status**: Complete - All phases delivered (Phase 1, Phase 2, Phase 3.1, Phase 3.2, Phase 3.3, DD01, Phase 4, Phase 5, Item 5, Item 7, cliprint Sunset, Item 4, Item 6)
 
 ## Session Progress (2026-02-26)
+
+### Completed: Item 6 - Output Format Integration Tests
+
+- **24 tests** across 4 test functions in new `output_format_test.go` (270 lines)
+- **Flag registration tests**: All 10 mutating commands verified to have `--json` (no shorthand) and `--quiet`/`-q` (default false)
+- **`resolveResultFormat` unit tests**: 3 cases mapping flag combinations to `OutputFormat` constants
+- **JSON output tests**: 8 handlers tested — 5 success paths (`config list/set`, `backend status/set`, `llm status`) and 3 warning paths (`server stop/status`, `llm list`) — all produce valid, parseable JSON
+- **Quiet output tests**: 8 handlers tested — all produce zero stdout in quiet mode
+- **Test helper**: `setupTestHome(t, configContent)` added to `test_helpers_test.go` — creates isolated `$HOME` with `.stigmer/config.yaml` using `t.Setenv`/`t.TempDir`
+- **Testability tiers**: Config-only commands fully tested (success paths), daemon-dependent commands tested via "not running" paths, gRPC-dependent commands (`delete`, `apply`) covered by flag wiring only
+- **BUILD.bazel**: Added test file + 4 deps (testify assert/require, cobra, clioutput)
+- **All tests pass**: `go build`, `go vet`, `go test` green
+
+### Files Created/Modified (Item 6)
+
+```
+Created:
+  client-apps/cli/cmd/stigmer/root/output_format_test.go  (270 lines, new)
+
+Modified:
+  client-apps/cli/cmd/stigmer/root/test_helpers_test.go    (+17 lines: setupTestHome helper)
+  client-apps/cli/cmd/stigmer/root/BUILD.bazel             (+1 src, +4 deps)
+```
+
+### Key Design Decisions (Item 6)
+
+27. **Handler-level over cobra-level tests**: Call handler functions directly with `FormatJSON`/`FormatQuiet` rather than executing cobra commands. Avoids gRPC/daemon side effects while testing the real rendering pipeline.
+28. **$HOME override for config isolation**: Follows existing pattern from `config_test.go`. Uses `t.Setenv("HOME", tmpDir)` which auto-restores, making tests hermetic.
+29. **Anthropic config for LLM tests**: Uses `provider: anthropic` in test config to exercise LLM status handlers without requiring Ollama running. Tests the cloud-provider code path which is fully deterministic.
+30. **Pragmatic testability scoping**: Divided 10 commands into three tiers (fully testable, partially testable via "not running" paths, flag-wiring only). Avoided building speculative gRPC mock infrastructure.
 
 ### Completed: cliprint Sunset Migration (Deferred Item 1)
 
@@ -417,7 +447,7 @@ Modified:
 All phases and follow-on items complete. Remaining deferred items for future projects:
 - ~~**Item 3**: `cliprint` package sunset~~ **COMPLETED** — `cliprint.go` deleted, all 27 importers migrated to `climsg` or plain `fmt`, `cliprint` package now only contains `progress.go`
 - ~~**Item 4**: Get/list table rendering modernization~~ **COMPLETED** — shared `display.Table` type with dynamic widths, ANSI-aware measurement, adaptive terminal-width shrinking. All 4 table implementations consolidated. 6 byte-based `truncateString()` copies replaced with Unicode-aware `display.TruncateWithEllipsis()`. `DisplayEmptyResults` moved to `pkg/display/`.
-- **Item 6**: Integration tests for `--json`/`--quiet` — e2e tests for 10 commands verifying parseable JSON output
+- ~~**Item 6**: Integration tests for `--json`/`--quiet`~~ **COMPLETED** — 24 tests: flag wiring for all 10 commands, JSON output for 8 handlers, quiet stdout-is-empty for 8 handlers. `setupTestHome` helper established.
 - ProgressDisplay migration (handleServerStart, handleLLMPull) — BubbleTea paradigm, works correctly, no user-facing issue
 - TUI icon vocabulary consistency (executiontui, toolrender) — separate domain from CLI output
 
