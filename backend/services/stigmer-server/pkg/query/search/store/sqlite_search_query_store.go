@@ -423,36 +423,43 @@ func (s *SQLiteSearchQueryStore) indexKind(ctx context.Context, kind apiresource
 	return count, nil
 }
 
-// escapeFTS5Query escapes special characters in a FTS5 query.
-// FTS5 uses special syntax for operators (AND, OR, NOT, NEAR, etc.)
-// and special characters (*, ", -, ^, etc.)
+// escapeFTS5Query sanitizes a query string for safe use in FTS5 MATCH
+// expressions.
+//
+// Every whitespace-delimited token is individually double-quoted so that FTS5
+// treats it as a literal phrase fragment rather than operator syntax. This
+// prevents column-filter references (e.g. "server:term"), NOT/NEAR operators,
+// and other FTS5 metacharacters from being interpreted. The porter unicode61
+// tokenizer still applies inside quotes, so stemming and Unicode normalization
+// work as expected.
+//
+// Single-token queries get a trailing '*' for prefix matching (valid on quoted
+// terms in FTS5). Multi-token queries use implicit AND (all terms must match).
 func escapeFTS5Query(query string) string {
-	// For simple queries, wrap in double quotes to treat as phrase
-	// This escapes all special characters
 	query = strings.TrimSpace(query)
 	if query == "" {
 		return query
 	}
 
-	// If the query doesn't contain special FTS5 syntax, wrap in quotes
-	// to treat as a simple text search
-	if !strings.ContainsAny(query, `"*-^:(){}[]`) &&
-		!strings.Contains(query, " AND ") &&
-		!strings.Contains(query, " OR ") &&
-		!strings.Contains(query, " NOT ") &&
-		!strings.Contains(query, " NEAR ") {
-		// Split into words and search for each
-		words := strings.Fields(query)
-		if len(words) == 1 {
-			// Single word - append * for prefix matching
-			return query + "*"
+	words := strings.Fields(query)
+	quoted := make([]string, 0, len(words))
+	for _, w := range words {
+		clean := strings.ReplaceAll(w, `"`, "")
+		if clean == "" {
+			continue
 		}
-		// Multiple words - search for all of them
-		return strings.Join(words, " ")
+		quoted = append(quoted, `"`+clean+`"`)
 	}
 
-	// Complex query - let FTS5 parse it directly
-	return query
+	if len(quoted) == 0 {
+		return ""
+	}
+
+	if len(quoted) == 1 {
+		return quoted[0] + "*"
+	}
+
+	return strings.Join(quoted, " ")
 }
 
 // parseKind parses a kind string into an ApiResourceKind.
