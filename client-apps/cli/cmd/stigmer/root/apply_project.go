@@ -17,7 +17,7 @@ import (
 )
 
 func executeProjectApply(opts projectApplyOptions) error {
-	renderer := clioutput.NewRenderer(clioutput.FormatHuman, os.Stdout, os.Stderr)
+	renderer := clioutput.NewRenderer(opts.OutputFormat, os.Stdout, os.Stderr)
 
 	detectResult, err := project.DetectTrack(&project.DetectOptions{StartDir: opts.ConfigDir})
 	if err != nil {

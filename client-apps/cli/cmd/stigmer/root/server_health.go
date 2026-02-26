@@ -115,7 +115,7 @@ func getHealthSymbol(state daemon.ComponentState) string {
 	case "stopped":
 		return "○"
 	case "failed":
-		return "✗✗"
+		return "✗"
 	default:
 		return "?"
 	}

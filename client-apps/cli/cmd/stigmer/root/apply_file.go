@@ -18,9 +18,10 @@ import (
 )
 
 type fileApplyOptions struct {
-	FilePath    string
-	OrgOverride string
-	DryRun      bool
+	FilePath     string
+	OrgOverride  string
+	DryRun       bool
+	OutputFormat clioutput.OutputFormat
 }
 
 // fileApplyContext bundles dependencies for per-resource apply handlers.
@@ -32,7 +33,7 @@ type fileApplyContext struct {
 }
 
 func executeFileApply(opts fileApplyOptions) error {
-	renderer := clioutput.NewRenderer(clioutput.FormatHuman, os.Stdout, os.Stderr)
+	renderer := clioutput.NewRenderer(opts.OutputFormat, os.Stdout, os.Stderr)
 
 	files, err := resolveApplyFiles(opts.FilePath)
 	if err != nil {

@@ -52,7 +52,9 @@ Examples:
 }
 
 func newConfigSetCommand() *cobra.Command {
-	return &cobra.Command{
+	var jsonOutput, quietOutput bool
+
+	cmd := &cobra.Command{
 		Use:   "set <key> <value>",
 		Short: "Set a configuration value",
 		Long: `Set a configuration value in ~/.stigmer/config.yaml
@@ -65,20 +67,28 @@ Examples:
 		Run: func(cmd *cobra.Command, args []string) {
 			key := args[0]
 			value := args[1]
-			handleConfigSet(key, value)
+			handleConfigSet(key, value, resolveResultFormat(jsonOutput, quietOutput))
 		},
 	}
+
+	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
+	return cmd
 }
 
 func newConfigListCommand() *cobra.Command {
-	return &cobra.Command{
+	var jsonOutput, quietOutput bool
+
+	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List all configuration values",
 		Long:  `List all configuration values from ~/.stigmer/config.yaml`,
 		Run: func(cmd *cobra.Command, args []string) {
-			handleConfigList()
+			handleConfigList(resolveResultFormat(jsonOutput, quietOutput))
 		},
 	}
+
+	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
+	return cmd
 }
 
 func newConfigPathCommand() *cobra.Command {
@@ -112,8 +122,8 @@ func handleConfigGet(key string) {
 	fmt.Println(value)
 }
 
-func handleConfigSet(key, value string) {
-	renderer := clioutput.NewRenderer(clioutput.FormatHuman, os.Stdout, os.Stderr)
+func handleConfigSet(key, value string, format clioutput.OutputFormat) {
+	renderer := clioutput.NewRenderer(format, os.Stdout, os.Stderr)
 
 	cfg, err := config.Load()
 	if err != nil {
@@ -139,8 +149,8 @@ func handleConfigSet(key, value string) {
 	renderer.Render(result)
 }
 
-func handleConfigList() {
-	renderer := clioutput.NewRenderer(clioutput.FormatHuman, os.Stdout, os.Stderr)
+func handleConfigList(format clioutput.OutputFormat) {
+	renderer := clioutput.NewRenderer(format, os.Stdout, os.Stderr)
 
 	cfg, err := config.Load()
 	if err != nil {
