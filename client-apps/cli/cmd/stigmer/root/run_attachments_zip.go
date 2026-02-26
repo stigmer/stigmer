@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 )
 
 // maxAttachmentSize is the maximum allowed size for an attachment upload.
@@ -41,7 +41,7 @@ func zipDirectory(dirPath string) ([]byte, int, int64, error) {
 		}
 
 		if d.Type()&fs.ModeSymlink != 0 {
-			cliprint.PrintWarning("Skipping symlink: %s", path)
+			climsg.Warning("Skipping symlink: %s", path)
 			return nil
 		}
 

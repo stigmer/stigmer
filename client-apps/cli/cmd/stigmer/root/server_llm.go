@@ -12,6 +12,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/llm"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 )
 
 func newServerLLMCommand() *cobra.Command {
@@ -211,7 +212,7 @@ func handleLLMList(format clioutput.OutputFormat) {
 func handleLLMPull(model string) {
 	cfg, err := config.Load()
 	if err != nil {
-		cliprint.PrintError("Failed to load configuration")
+		climsg.Error("Failed to load configuration")
 		clierr.Handle(err)
 		return
 	}
@@ -219,21 +220,21 @@ func handleLLMPull(model string) {
 	provider := cfg.Backend.Local.ResolveLLMProvider()
 
 	if provider != "ollama" {
-		cliprint.PrintWarning("Local model management is only available for local LLM provider")
-		cliprint.PrintInfo("Current provider: %s", provider)
+		climsg.Warning("Local model management is only available for local LLM provider")
+		climsg.Info("Current provider: %s", provider)
 		return
 	}
 
 	if !llm.IsRunning() {
-		cliprint.PrintWarning("Local LLM server is not running")
-		cliprint.PrintInfo("")
-		cliprint.PrintInfo("Start the server first:")
-		cliprint.PrintInfo("  stigmer server")
+		climsg.Warning("Local LLM server is not running")
+		climsg.Info("")
+		climsg.Info("Start the server first:")
+		climsg.Info("  stigmer server")
 		return
 	}
 
-	cliprint.PrintInfo("Pulling model %s...", model)
-	cliprint.PrintInfo("This may take several minutes depending on model size")
+	climsg.Info("Pulling model %s...", model)
+	climsg.Info("This may take several minutes depending on model size")
 	fmt.Println("")
 
 	progress := cliprint.NewProgressDisplay()
@@ -247,14 +248,14 @@ func handleLLMPull(model string) {
 
 	if err := llm.PullModel(context.Background(), model, "", opts); err != nil {
 		progress.Stop()
-		cliprint.PrintError("Failed to pull model")
+		climsg.Error("Failed to pull model")
 		clierr.Handle(err)
 		return
 	}
 
 	progress.Stop()
-	cliprint.PrintSuccess("Model %s is ready", model)
+	climsg.Success("Model %s is ready", model)
 	fmt.Println("")
-	cliprint.PrintInfo("To use this model, update your configuration:")
-	cliprint.PrintInfo("  stigmer config set llm.model %s", model)
+	climsg.Info("To use this model, update your configuration:")
+	climsg.Info("  stigmer config set llm.model %s", model)
 }

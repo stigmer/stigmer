@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
 )
 
@@ -18,45 +17,45 @@ func DisplayGetResult(skill *skillv1.Skill, format string) {
 // displaySkillTable displays the skill in human-readable table format.
 func displaySkillTable(skill *skillv1.Skill) {
 	fmt.Println()
-	cliprint.PrintInfo("Skill: %s", skill.Metadata.Name)
+	fmt.Printf("Skill: %s\n", skill.Metadata.Name)
 	fmt.Println()
 
-	cliprint.PrintInfo("Metadata:")
-	cliprint.PrintInfo("  ID:          %s", skill.Metadata.Id)
-	cliprint.PrintInfo("  Name:        %s", skill.Metadata.Name)
-	cliprint.PrintInfo("  Slug:        %s", skill.Metadata.Slug)
-	cliprint.PrintInfo("  Org:         %s", skill.Metadata.Org)
+	fmt.Printf("Metadata:\n")
+	fmt.Printf("  ID:          %s\n", skill.Metadata.Id)
+	fmt.Printf("  Name:        %s\n", skill.Metadata.Name)
+	fmt.Printf("  Slug:        %s\n", skill.Metadata.Slug)
+	fmt.Printf("  Org:         %s\n", skill.Metadata.Org)
 	fmt.Println()
 
 	if skill.Spec != nil {
-		cliprint.PrintInfo("Spec:")
+		fmt.Printf("Spec:\n")
 		if skill.Spec.Name != "" {
-			cliprint.PrintInfo("  Name:        %s", skill.Spec.Name)
+			fmt.Printf("  Name:        %s\n", skill.Spec.Name)
 		}
 		if skill.Spec.Tag != "" {
-			cliprint.PrintInfo("  Tag:         %s", skill.Spec.Tag)
+			fmt.Printf("  Tag:         %s\n", skill.Spec.Tag)
 		}
 		if skill.Spec.Description != "" {
-			cliprint.PrintInfo("  Description: %s", truncateString(skill.Spec.Description, 80))
+			fmt.Printf("  Description: %s\n", truncateString(skill.Spec.Description, 80))
 		}
 		fmt.Println()
 	}
 
 	if skill.Status != nil {
-		cliprint.PrintInfo("Status:")
+		fmt.Printf("Status:\n")
 		if skill.Status.VersionHash != "" {
-			cliprint.PrintInfo("  Version:     %s", truncateString(skill.Status.VersionHash, 16))
+			fmt.Printf("  Version:     %s\n", truncateString(skill.Status.VersionHash, 16))
 		}
 		if skill.Status.State != skillv1.SkillState_SKILL_STATE_UNSPECIFIED {
-			cliprint.PrintInfo("  State:       %s", skill.Status.State.String())
+			fmt.Printf("  State:       %s\n", skill.Status.State.String())
 		}
 		if skill.Status.GitProvenance != nil {
 			prov := skill.Status.GitProvenance
 			if prov.RemoteUrl != "" {
-				cliprint.PrintInfo("  Git Remote:  %s", prov.RemoteUrl)
+				fmt.Printf("  Git Remote:  %s\n", prov.RemoteUrl)
 			}
 			if prov.Commit != "" {
-				cliprint.PrintInfo("  Git Commit:  %s", truncateString(prov.Commit, 12))
+				fmt.Printf("  Git Commit:  %s\n", truncateString(prov.Commit, 12))
 			}
 		}
 		fmt.Println()

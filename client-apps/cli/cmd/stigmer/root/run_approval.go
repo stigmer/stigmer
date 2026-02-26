@@ -7,7 +7,7 @@ import (
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"google.golang.org/grpc"
 )
@@ -115,13 +115,13 @@ func submitWorkflowApproval(
 func displayApprovalSubmitted(action approval.Action) {
 	switch action {
 	case approval.ActionApprove:
-		cliprint.PrintSuccess("Tool execution approved")
+		climsg.Success("Tool execution approved")
 	case approval.ActionSkip:
-		cliprint.PrintWarning("Tool execution skipped")
+		climsg.Warning("Tool execution skipped")
 	case approval.ActionReject:
-		cliprint.PrintError("Tool execution rejected")
+		climsg.Error("Tool execution rejected")
 	default:
-		cliprint.PrintInfo("Approval submitted")
+		climsg.Info("Approval submitted")
 	}
 	fmt.Println()
 }

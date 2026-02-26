@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/artifact"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"google.golang.org/grpc"
 )
 
@@ -31,7 +31,7 @@ func Push(opts PushOptions) (*artifact.SkillArtifactResult, error) {
 		return nil, fmt.Errorf("SKILL.md not found in %s\n\nA skill directory must contain a SKILL.md file defining the skill interface", opts.Directory)
 	}
 
-	cliprint.PrintInfo("Pushing skill from: %s", opts.Directory)
+	climsg.Info("Pushing skill from: %s", opts.Directory)
 	fmt.Println()
 
 	// Step 2: Dry run mode - analyze and show what would happen
@@ -64,7 +64,7 @@ func Push(opts PushOptions) (*artifact.SkillArtifactResult, error) {
 
 // executeDryRun performs dry run analysis and displays what would happen.
 func executeDryRun(opts PushOptions) (*artifact.SkillArtifactResult, error) {
-	cliprint.PrintInfo("Dry run mode - analyzing directory...")
+	climsg.Info("Dry run mode - analyzing directory...")
 	fmt.Println()
 
 	ignoreOpts := artifact.IgnoreOptions{
@@ -80,34 +80,34 @@ func executeDryRun(opts PushOptions) (*artifact.SkillArtifactResult, error) {
 	}
 
 	// Show configuration
-	cliprint.PrintInfo("Configuration:")
-	cliprint.PrintInfo("  Directory: %s", opts.Directory)
-	cliprint.PrintInfo("  Tag:       %s", opts.Tag)
+	climsg.Info("Configuration:")
+	climsg.Info("  Directory: %s", opts.Directory)
+	climsg.Info("  Tag:       %s", opts.Tag)
 	if opts.NoGitignore {
-		cliprint.PrintInfo("  Gitignore: disabled")
+		climsg.Info("  Gitignore: disabled")
 	}
 	if len(opts.IgnorePatterns) > 0 {
-		cliprint.PrintInfo("  Extra ignore: %v", opts.IgnorePatterns)
+		climsg.Info("  Extra ignore: %v", opts.IgnorePatterns)
 	}
 	if len(opts.IncludePatterns) > 0 {
-		cliprint.PrintInfo("  Force include: %v", opts.IncludePatterns)
+		climsg.Info("  Force include: %v", opts.IncludePatterns)
 	}
 	fmt.Println()
 
 	// Show pattern sources
 	if len(analysis.PatternSources) > 0 {
-		cliprint.PrintInfo("Pattern sources:")
+		climsg.Info("Pattern sources:")
 		for _, src := range analysis.PatternSources {
-			cliprint.PrintInfo("  - %s", src)
+			climsg.Info("  - %s", src)
 		}
 		fmt.Println()
 	}
 
 	// Show summary
-	cliprint.PrintSuccess("Would create artifact:")
-	cliprint.PrintInfo("  Files: %d included, %d ignored", analysis.Stats.FilesIncluded, analysis.Stats.FilesIgnored)
-	cliprint.PrintInfo("  Directories skipped: %d", analysis.Stats.DirsSkipped)
-	cliprint.PrintInfo("  Estimated size: %s", formatBytes(analysis.Stats.TotalSize))
+	climsg.Success("Would create artifact:")
+	climsg.Info("  Files: %d included, %d ignored", analysis.Stats.FilesIncluded, analysis.Stats.FilesIgnored)
+	climsg.Info("  Directories skipped: %d", analysis.Stats.DirsSkipped)
+	climsg.Info("  Estimated size: %s", formatBytes(analysis.Stats.TotalSize))
 	fmt.Println()
 
 	// Show samples if verbose or if there are ignored items
@@ -120,18 +120,18 @@ func executeDryRun(opts PushOptions) (*artifact.SkillArtifactResult, error) {
 func displayDryRunSamples(verbose bool, analysis *artifact.DryRunAnalysis) {
 	if verbose || len(analysis.SampleIgnored) > 0 {
 		if len(analysis.SampleIgnored) > 0 {
-			cliprint.PrintInfo("Sample ignored (up to 10):")
+			climsg.Info("Sample ignored (up to 10):")
 			for _, item := range analysis.SampleIgnored {
-				cliprint.PrintInfo("  - %s", item)
+				climsg.Info("  - %s", item)
 			}
 			fmt.Println()
 		}
 	}
 
 	if verbose && len(analysis.SampleIncluded) > 0 {
-		cliprint.PrintInfo("Sample included (up to 10):")
+		climsg.Info("Sample included (up to 10):")
 		for _, item := range analysis.SampleIncluded {
-			cliprint.PrintInfo("  + %s", item)
+			climsg.Info("  + %s", item)
 		}
 		fmt.Println()
 	}
@@ -140,19 +140,19 @@ func displayDryRunSamples(verbose bool, analysis *artifact.DryRunAnalysis) {
 // DisplayPushResult displays the result of a successful skill push.
 func DisplayPushResult(result *artifact.SkillArtifactResult) {
 	fmt.Println()
-	cliprint.PrintSuccess("Skill pushed successfully!")
+	climsg.Success("Skill pushed successfully!")
 	fmt.Println()
-	cliprint.PrintInfo("Skill Details:")
-	cliprint.PrintInfo("  Name:         %s", result.SkillName)
-	cliprint.PrintInfo("  Version Hash: %s", result.VersionHash)
+	climsg.Info("Skill Details:")
+	climsg.Info("  Name:         %s", result.SkillName)
+	climsg.Info("  Version Hash: %s", result.VersionHash)
 	if result.Tag != "" {
-		cliprint.PrintInfo("  Tag:          %s", result.Tag)
+		climsg.Info("  Tag:          %s", result.Tag)
 	}
-	cliprint.PrintInfo("  Size:         %s", formatBytes(result.ArtifactSize))
+	climsg.Info("  Size:         %s", formatBytes(result.ArtifactSize))
 	fmt.Println()
-	cliprint.PrintInfo("Next steps:")
-	cliprint.PrintInfo("  - Reference this skill in your agent code")
-	cliprint.PrintInfo("  - Update and re-push: edit files and run 'stigmer push skill' again")
+	climsg.Info("Next steps:")
+	climsg.Info("  - Reference this skill in your agent code")
+	climsg.Info("  - Update and re-push: edit files and run 'stigmer push skill' again")
 	fmt.Println()
 }
 

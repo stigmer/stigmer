@@ -17,7 +17,7 @@ go_library(
         "//apis/stubs/go/ai/stigmer/agentic/project/v1:project",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
-        "//client-apps/cli/internal/cli/cliprint",
+        "//client-apps/cli/pkg/climsg",
         "//client-apps/cli/pkg/display",
         "//client-apps/cli/pkg/reference",
         "@build_buf_go_protovalidate//:protovalidate",

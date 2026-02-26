@@ -8,7 +8,7 @@ import (
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/mdrender"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
@@ -32,21 +32,21 @@ func flushStdout() {
 func displayAgentPhaseChange(phase, previousPhase agentexecutionv1.ExecutionPhase) {
 	switch phase {
 	case agentexecutionv1.ExecutionPhase_EXECUTION_PENDING:
-		cliprint.PrintInfo("⏳ Execution pending...")
+		climsg.Info("⏳ Execution pending...")
 	case agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS:
 		if previousPhase == agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL {
 			// Returning from an approval pause — show "resumed" instead of
 			// the misleading "started" which implies a fresh execution.
-			cliprint.PrintSuccess("▶️  Resumed after approval")
+			climsg.Success("▶️  Resumed after approval")
 		} else {
-			cliprint.PrintSuccess("▶️  Execution started")
+			climsg.Success("▶️  Execution started")
 		}
 	case agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED:
-		cliprint.PrintSuccess("✅ Execution completed")
+		climsg.Success("✅ Execution completed")
 	case agentexecutionv1.ExecutionPhase_EXECUTION_FAILED:
-		cliprint.PrintError("❌ Execution failed")
+		climsg.Error("❌ Execution failed")
 	case agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED:
-		cliprint.PrintWarning("⚠️  Execution cancelled")
+		climsg.Warning("⚠️  Execution cancelled")
 	case agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL:
 		// Suppressed: The approval panel ("APPROVAL REQUIRED" box) and the
 		// interactive prompt are the user-facing signal for this state.
@@ -137,15 +137,15 @@ func displaySystemMessage(msg *agentexecutionv1.AgentMessage) {
 func displayWorkflowPhaseChange(phase workflowexecutionv1.ExecutionPhase) {
 	switch phase {
 	case workflowexecutionv1.ExecutionPhase_EXECUTION_PENDING:
-		cliprint.PrintInfo("⏳ Execution pending...")
+		climsg.Info("⏳ Execution pending...")
 	case workflowexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS:
-		cliprint.PrintSuccess("▶️  Execution started")
+		climsg.Success("▶️  Execution started")
 	case workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED:
-		cliprint.PrintSuccess("✅ Execution completed")
+		climsg.Success("✅ Execution completed")
 	case workflowexecutionv1.ExecutionPhase_EXECUTION_FAILED:
-		cliprint.PrintError("❌ Execution failed")
+		climsg.Error("❌ Execution failed")
 	case workflowexecutionv1.ExecutionPhase_EXECUTION_CANCELLED:
-		cliprint.PrintWarning("⚠️  Execution cancelled")
+		climsg.Warning("⚠️  Execution cancelled")
 	}
 	fmt.Println()
 	flushStdout()

@@ -11,7 +11,7 @@ import (
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/session"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
@@ -41,7 +41,7 @@ import (
 // After the TUI exits (execution completes or user quits), a summary is printed
 // to inline stdout so the terminal history shows the final state.
 func streamAgentExecution(sessionID, sessionSubject, executionID, orgID string, prompter approval.Prompter, defaultAction approval.Action, verbose bool, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
-	cliprint.PrintSuccess("Streaming session...")
+	climsg.Success("Streaming session...")
 	fmt.Println()
 
 	// Create streaming client
@@ -228,7 +228,7 @@ func fetchFinalExecution(ctx context.Context, conn *grpc.ClientConn, executionID
 // defaultAction is the --approve-default flag value; when set, non-TTY approvals
 // are auto-resolved without prompting.
 func streamWorkflowExecution(executionID string, prompter approval.Prompter, defaultAction approval.Action, conn *grpc.ClientConn) (*workflowexecutionv1.WorkflowExecution, error) {
-	cliprint.PrintSuccess("Streaming workflow execution logs")
+	climsg.Success("Streaming workflow execution logs")
 	fmt.Println()
 
 	// Create streaming client

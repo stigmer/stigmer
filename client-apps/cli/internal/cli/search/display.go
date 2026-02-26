@@ -11,7 +11,6 @@ import (
 
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	searchv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/search/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
 )
 
@@ -58,9 +57,9 @@ func DisplayResults(results *Result, opts *DisplayOptions) {
 func DisplayEmptyResults(resourceName string, query string) {
 	fmt.Println()
 	if query != "" {
-		cliprint.PrintInfo("No %s found matching '%s'", resourceName, query)
+		fmt.Printf("No %s found matching '%s'\n", resourceName, query)
 	} else {
-		cliprint.PrintInfo("No %s found", resourceName)
+		fmt.Printf("No %s found\n", resourceName)
 	}
 	fmt.Println()
 }

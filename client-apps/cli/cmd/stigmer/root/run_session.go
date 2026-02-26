@@ -8,7 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/pkg/errors"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/session"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
@@ -37,7 +37,7 @@ func executeRunSession(sessionID, orgOverride string, verbose bool) error {
 func openSession(sessionID, orgID string, verbose bool, conn *grpc.ClientConn) error {
 	ses, err := session.GetFromBackend(conn, sessionID)
 	if err != nil {
-		cliprint.PrintError("Session not found: %s", sessionID)
+		climsg.Error("Session not found: %s", sessionID)
 		return err
 	}
 
@@ -52,7 +52,7 @@ func openSession(sessionID, orgID string, verbose bool, conn *grpc.ClientConn) e
 
 	entries := execList.GetEntries()
 	if len(entries) == 0 {
-		cliprint.PrintWarning("Session %s has no executions", sessionID)
+		climsg.Warning("Session %s has no executions", sessionID)
 		return nil
 	}
 
@@ -61,9 +61,9 @@ func openSession(sessionID, orgID string, verbose bool, conn *grpc.ClientConn) e
 
 	subject := session.ResolvedSubject(ses.GetSpec().GetSubject())
 	if subject != "" {
-		cliprint.PrintInfo("Session: %s (%s)", sessionID, subject)
+		climsg.Info("Session: %s (%s)", sessionID, subject)
 	} else {
-		cliprint.PrintInfo("Session: %s", sessionID)
+		climsg.Info("Session: %s", sessionID)
 	}
 
 	switch phase {
@@ -71,7 +71,7 @@ func openSession(sessionID, orgID string, verbose bool, conn *grpc.ClientConn) e
 		agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS,
 		agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL,
 		agentexecutionv1.ExecutionPhase_EXECUTION_PAUSED:
-		cliprint.PrintInfo("Re-attaching to session...")
+		climsg.Info("Re-attaching to session...")
 		fmt.Println()
 		executionID := latestExec.GetMetadata().GetId()
 		prompter := approval.NewInteractivePrompter()
@@ -90,7 +90,7 @@ func openSession(sessionID, orgID string, verbose bool, conn *grpc.ClientConn) e
 // automatically. The input composer activates after all historical events
 // are processed, letting the user send a follow-up message.
 func resumeSession(sessionID, sessionSubject, orgID string, executions []*agentexecutionv1.AgentExecution, verbose bool, conn *grpc.ClientConn) error {
-	cliprint.PrintInfo("Resuming session...")
+	climsg.Info("Resuming session...")
 	fmt.Println()
 
 	// The backend returns executions newest-first. Reverse for chronological

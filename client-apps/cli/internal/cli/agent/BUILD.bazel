@@ -18,7 +18,7 @@ go_library(
         "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
-        "//client-apps/cli/internal/cli/cliprint",
+        "//client-apps/cli/pkg/climsg",
         "//client-apps/cli/internal/cli/search",
         "//client-apps/cli/pkg/display",
         "//client-apps/cli/internal/cli/synthesis",
