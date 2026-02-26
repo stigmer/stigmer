@@ -20,7 +20,7 @@ func displayAgentSummary(agent *agentv1.Agent) {
 		}
 
 		if agent.Spec.Instructions != "" {
-			fmt.Printf("  Instructions: %s\n", truncateString(agent.Spec.Instructions, 80))
+			fmt.Printf("  Instructions: %s\n", display.TruncateWithEllipsis(agent.Spec.Instructions, 80))
 		}
 
 		mcpCount := len(agent.Spec.McpServerUsages)
@@ -38,17 +38,6 @@ func displayAgentSummary(agent *agentv1.Agent) {
 			fmt.Printf("  Sub-agents:   %d\n", subAgentCount)
 		}
 	}
-}
-
-// truncateString truncates a string to maxLen characters, adding "..." if truncated.
-func truncateString(s string, maxLen int) string {
-	if len(s) <= maxLen {
-		return s
-	}
-	if maxLen <= 3 {
-		return "..."
-	}
-	return s[:maxLen-3] + "..."
 }
 
 // DisplayGetResult displays an agent in the specified format.

@@ -4,6 +4,7 @@ package search
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -54,14 +55,9 @@ func DisplayResults(results *Result, opts *DisplayOptions) {
 }
 
 // DisplayEmptyResults shows a helpful message when no results found.
+// Delegates to the shared display.DisplayEmptyResults utility.
 func DisplayEmptyResults(resourceName string, query string) {
-	fmt.Println()
-	if query != "" {
-		fmt.Printf("No %s found matching '%s'\n", resourceName, query)
-	} else {
-		fmt.Printf("No %s found\n", resourceName)
-	}
-	fmt.Println()
+	display.DisplayEmptyResults(resourceName, query)
 }
 
 // DisplayPaginationInfo shows current page and total pages.
@@ -89,18 +85,18 @@ func displayResultsTable(results *Result, opts *DisplayOptions) {
 	headerColor := color.New(color.FgCyan, color.Bold).SprintFunc()
 	dimColor := color.New(color.Faint).SprintFunc()
 
-	// Build headers based on options
-	headers := buildTableHeaders(opts)
+	tbl := display.NewTable(
+		buildTableHeaders(opts),
+		display.WithHeaderColor(headerColor),
+		display.WithAdaptive(),
+	)
 
-	// Build rows
-	rows := make([][]string, len(results.Entries))
-	for i, entry := range results.Entries {
-		rows[i] = buildTableRow(entry, opts, dimColor)
+	for _, entry := range results.Entries {
+		tbl.AddRow(buildTableRow(entry, opts, dimColor)...)
 	}
 
-	// Render table
 	fmt.Println()
-	renderTable(headers, rows, headerColor)
+	tbl.Render(os.Stdout)
 }
 
 // buildTableHeaders builds table headers based on display options.
@@ -179,54 +175,5 @@ func formatRelativeTime(t time.Time) string {
 	return display.FormatRelativeTime(seconds)
 }
 
-// renderTable renders a simple table with aligned columns.
-func renderTable(headers []string, rows [][]string, headerColor func(...interface{}) string) {
-	if len(rows) == 0 {
-		return
-	}
 
-	// Calculate column widths
-	widths := make([]int, len(headers))
-	for i, h := range headers {
-		widths[i] = display.MeasureColorizedString(h)
-	}
-
-	for _, row := range rows {
-		for i, cell := range row {
-			if i < len(widths) {
-				cellWidth := display.MeasureColorizedString(cell)
-				if cellWidth > widths[i] {
-					widths[i] = cellWidth
-				}
-			}
-		}
-	}
-
-	const columnGap = 3
-
-	// Render header
-	headerParts := make([]string, len(headers))
-	for i, h := range headers {
-		headerParts[i] = display.PadRight(headerColor(h), widths[i])
-	}
-	fmt.Println(strings.Join(headerParts, strings.Repeat(" ", columnGap)))
-
-	// Render separator
-	sepParts := make([]string, len(headers))
-	for i, w := range widths {
-		sepParts[i] = strings.Repeat("-", w)
-	}
-	fmt.Println(strings.Join(sepParts, strings.Repeat(" ", columnGap)))
-
-	// Render rows
-	for _, row := range rows {
-		rowParts := make([]string, len(row))
-		for i, cell := range row {
-			if i < len(widths) {
-				rowParts[i] = display.PadRight(cell, widths[i])
-			}
-		}
-		fmt.Println(strings.Join(rowParts, strings.Repeat(" ", columnGap)))
-	}
-}
 

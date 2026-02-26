@@ -52,7 +52,7 @@ func displayProjectSummary(project *projectv1.Project) {
 	}
 
 	if project.Spec.Description != "" {
-		fmt.Printf("  Description: %s\n", truncateString(project.Spec.Description, 60))
+		fmt.Printf("  Description: %s\n", display.TruncateWithEllipsis(project.Spec.Description, 60))
 	}
 }
 
@@ -131,17 +131,6 @@ func getDefaultEntryPoint(runtime projectv1.ProjectRuntime) string {
 	default:
 		return ""
 	}
-}
-
-// truncateString truncates a string to maxLen characters, adding "..." if truncated.
-func truncateString(s string, maxLen int) string {
-	if len(s) <= maxLen {
-		return s
-	}
-	if maxLen <= 3 {
-		return "..."
-	}
-	return s[:maxLen-3] + "..."
 }
 
 // DisplayGetResult displays a project in the specified format.

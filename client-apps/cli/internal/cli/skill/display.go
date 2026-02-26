@@ -36,7 +36,7 @@ func displaySkillTable(skill *skillv1.Skill) {
 			fmt.Printf("  Tag:         %s\n", skill.Spec.Tag)
 		}
 		if skill.Spec.Description != "" {
-			fmt.Printf("  Description: %s\n", truncateString(skill.Spec.Description, 80))
+			fmt.Printf("  Description: %s\n", display.TruncateWithEllipsis(skill.Spec.Description, 80))
 		}
 		fmt.Println()
 	}
@@ -44,7 +44,7 @@ func displaySkillTable(skill *skillv1.Skill) {
 	if skill.Status != nil {
 		fmt.Printf("Status:\n")
 		if skill.Status.VersionHash != "" {
-			fmt.Printf("  Version:     %s\n", truncateString(skill.Status.VersionHash, 16))
+			fmt.Printf("  Version:     %s\n", display.TruncateWithEllipsis(skill.Status.VersionHash, 16))
 		}
 		if skill.Status.State != skillv1.SkillState_SKILL_STATE_UNSPECIFIED {
 			fmt.Printf("  State:       %s\n", skill.Status.State.String())
@@ -55,20 +55,10 @@ func displaySkillTable(skill *skillv1.Skill) {
 				fmt.Printf("  Git Remote:  %s\n", prov.RemoteUrl)
 			}
 			if prov.Commit != "" {
-				fmt.Printf("  Git Commit:  %s\n", truncateString(prov.Commit, 12))
+				fmt.Printf("  Git Commit:  %s\n", display.TruncateWithEllipsis(prov.Commit, 12))
 			}
 		}
 		fmt.Println()
 	}
 }
 
-// truncateString truncates a string to maxLen characters, adding "..." if truncated.
-func truncateString(s string, maxLen int) string {
-	if len(s) <= maxLen {
-		return s
-	}
-	if maxLen <= 3 {
-		return "..."
-	}
-	return s[:maxLen-3] + "..."
-}

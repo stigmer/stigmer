@@ -4,7 +4,7 @@ package display
 
 import (
 	"fmt"
-	"strings"
+	"os"
 
 	"github.com/fatih/color"
 )
@@ -79,19 +79,18 @@ func (t *ApplyResultTable) Render() {
 		return
 	}
 
-	// Color definitions
 	successColor := color.New(color.FgGreen).SprintFunc()
 	errorColor := color.New(color.FgRed).SprintFunc()
 	dimColor := color.New(color.Faint).SprintFunc()
 	headerColor := color.New(color.FgCyan, color.Bold).SprintFunc()
 
-	// Define column headers
-	headers := []string{"TYPE", "NAME", "STATUS", "ID"}
+	tbl := NewTable(
+		[]string{"TYPE", "NAME", "STATUS", "ID"},
+		WithHeaderColor(headerColor),
+		WithAdaptive(),
+	)
 
-	// Build rows data
-	rows := make([][]string, len(t.Resources))
-	for i, resource := range t.Resources {
-		// Format status with color and emoji
+	for _, resource := range t.Resources {
 		var statusStr string
 		switch resource.Status {
 		case ApplyStatusCreated:
@@ -104,124 +103,19 @@ func (t *ApplyResultTable) Render() {
 			statusStr = string(resource.Status)
 		}
 
-		rows[i] = []string{
+		tbl.AddRow(
 			string(resource.Type),
 			resource.Name,
 			statusStr,
-			dimColor(resource.ID), // Don't truncate yet, let adaptive layout handle it
-		}
+			dimColor(resource.ID),
+		)
 	}
 
-	// Render table with adaptive width
 	fmt.Println()
-	renderAdaptiveTable(headers, rows, headerColor)
+	tbl.Render(os.Stdout)
 	fmt.Println()
 
-	// Print summary
 	t.printSummary()
-}
-
-// renderAdaptiveTable renders a table that adapts to terminal width.
-// It calculates optimal column widths and truncates only when necessary.
-// Inspired by Pulumi's sophisticated table rendering.
-func renderAdaptiveTable(headers []string, rows [][]string, headerColor func(...interface{}) string) {
-	if len(rows) == 0 {
-		return
-	}
-
-	// Get terminal width
-	termWidth := GetTerminalWidth()
-
-	// Calculate maximum width needed for each column
-	maxWidths := make([]int, len(headers))
-
-	// Measure headers
-	for i, header := range headers {
-		maxWidths[i] = MeasureColorizedString(header)
-	}
-
-	// Measure all rows
-	for _, row := range rows {
-		for i, cell := range row {
-			if i < len(maxWidths) {
-				cellWidth := MeasureColorizedString(cell)
-				maxWidths[i] = max(maxWidths[i], cellWidth)
-			}
-		}
-	}
-
-	// Calculate total width needed (columns + padding)
-	const columnGap = 3 // 3 spaces between columns
-	totalNeeded := 0
-	for _, w := range maxWidths {
-		totalNeeded += w
-	}
-	totalNeeded += (len(maxWidths) - 1) * columnGap // gaps between columns
-
-	// If table is too wide, intelligently shrink columns
-	if totalNeeded > termWidth {
-		// The ID column (last) is most truncatable
-		// Calculate how much we need to shrink
-		shrinkAmount := totalNeeded - termWidth
-
-		// Try to shrink ID column first (it's usually the longest)
-		idColIdx := len(maxWidths) - 1
-		if maxWidths[idColIdx] > 30 { // Only shrink if ID is long enough
-			shrinkID := min(shrinkAmount, maxWidths[idColIdx]-30)
-			maxWidths[idColIdx] -= shrinkID
-			shrinkAmount -= shrinkID
-		}
-
-		// If still too wide, shrink all columns proportionally
-		if shrinkAmount > 0 {
-			for i := range maxWidths {
-				minWidth := 10 // Minimum useful width
-				if maxWidths[i] > minWidth {
-					shrink := min(shrinkAmount/(len(maxWidths)-i), maxWidths[i]-minWidth)
-					maxWidths[i] -= shrink
-					shrinkAmount -= shrink
-				}
-			}
-		}
-	}
-
-	// Render header
-	headerParts := make([]string, len(headers))
-	for i, header := range headers {
-		headerParts[i] = PadRight(headerColor(header), maxWidths[i])
-	}
-	fmt.Println(strings.Join(headerParts, strings.Repeat(" ", columnGap)))
-
-	// Render separator line
-	separatorParts := make([]string, len(headers))
-	for i, width := range maxWidths {
-		separatorParts[i] = strings.Repeat("─", width)
-	}
-	fmt.Println(strings.Join(separatorParts, strings.Repeat(" ", columnGap)))
-
-	// Render rows
-	for _, row := range rows {
-		rowParts := make([]string, len(row))
-		for i, cell := range row {
-			if i < len(maxWidths) {
-				// Trim cell to max width if needed (preserving colors)
-				cellWidth := MeasureColorizedString(cell)
-				if cellWidth > maxWidths[i] {
-					cell = TrimColorizedString(cell, maxWidths[i]-3) + "..."
-				}
-				rowParts[i] = PadRight(cell, maxWidths[i])
-			}
-		}
-		fmt.Println(strings.Join(rowParts, strings.Repeat(" ", columnGap)))
-	}
-}
-
-// min returns the minimum of two integers
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
 
 // printSummary prints a summary of the apply operation
@@ -264,26 +158,21 @@ func (t *ApplyResultTable) RenderDryRun() {
 
 	headerColor := color.New(color.FgCyan, color.Bold).SprintFunc()
 
-	// Define headers for dry run (no ID column)
-	headers := []string{"TYPE", "NAME", "ACTION"}
+	tbl := NewTable(
+		[]string{"TYPE", "NAME", "ACTION"},
+		WithHeaderColor(headerColor),
+		WithAdaptive(),
+	)
 
-	// Build rows
-	rows := make([][]string, len(t.Resources))
-	for i, resource := range t.Resources {
+	for _, resource := range t.Resources {
 		action := "Create"
 		if resource.Status == ApplyStatusUpdated {
 			action = "Update"
 		}
-
-		rows[i] = []string{
-			string(resource.Type),
-			resource.Name,
-			action,
-		}
+		tbl.AddRow(string(resource.Type), resource.Name, action)
 	}
 
-	// Render table
-	renderAdaptiveTable(headers, rows, headerColor)
+	tbl.Render(os.Stdout)
 	fmt.Println()
 
 	successColor := color.New(color.FgGreen, color.Bold)

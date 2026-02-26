@@ -3,7 +3,10 @@ package execution
 
 import (
 	"fmt"
+	"os"
 	"time"
+
+	"github.com/fatih/color"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
@@ -33,7 +36,7 @@ func displayExecutionTable(exec *agentexecutionv1.AgentExecution) {
 		fmt.Printf("  Session ID: %s\n", exec.GetSpec().GetSessionId())
 	}
 	if exec.GetSpec().GetMessage() != "" {
-		fmt.Printf("  Message:    %s\n", truncateString(exec.GetSpec().GetMessage(), 60))
+		fmt.Printf("  Message:    %s\n", display.TruncateWithEllipsis(exec.GetSpec().GetMessage(), 60))
 	}
 	fmt.Println()
 
@@ -64,7 +67,7 @@ func displayExecutionTable(exec *agentexecutionv1.AgentExecution) {
 		fmt.Printf("  %-30s  %-10s  %-10s  %s\n", "----", "----", "----", "-------")
 		for _, artifact := range artifacts {
 			fmt.Printf("  %-30s  %-10s  %-10s  %s\n",
-				truncateString(artifact.GetName(), 30),
+				display.TruncateWithEllipsis(artifact.GetName(), 30),
 				formatBytes(artifact.GetSizeBytes()),
 				formatArtifactKind(artifact.GetKind()),
 				formatTimestamp(artifact.GetCreatedAt()),
@@ -84,7 +87,7 @@ func displayExecutionTable(exec *agentexecutionv1.AgentExecution) {
 		}
 		for _, msg := range messages[start:] {
 			msgType := formatMessageType(msg.GetType())
-			content := truncateString(msg.GetContent(), 80)
+			content := display.TruncateWithEllipsis(msg.GetContent(), 80)
 			fmt.Printf("  [%s] %s\n", msgType, content)
 		}
 	}
@@ -96,9 +99,7 @@ func displayExecutionTable(exec *agentexecutionv1.AgentExecution) {
 func DisplayListResult(list *agentexecutionv1.AgentExecutionList, format string) {
 	entries := list.GetEntries()
 	if len(entries) == 0 {
-		fmt.Println()
-		fmt.Printf("No executions found.\n")
-		fmt.Println()
+		display.DisplayEmptyResults("executions", "")
 		return
 	}
 
@@ -108,16 +109,15 @@ func DisplayListResult(list *agentexecutionv1.AgentExecutionList, format string)
 // displayListTable displays executions in table format.
 func displayListTable(list *agentexecutionv1.AgentExecutionList) {
 	entries := list.GetEntries()
+	headerColor := color.New(color.FgCyan, color.Bold).SprintFunc()
 
-	fmt.Println()
-	fmt.Printf("%-26s  %-26s  %-15s  %-20s  %s\n", "ID", "AGENT", "STATUS", "STARTED", "DURATION")
-	fmt.Printf("%-26s  %-26s  %-15s  %-20s  %s\n", "--", "-----", "------", "-------", "--------")
+	tbl := display.NewTable(
+		[]string{"ID", "AGENT", "STATUS", "STARTED", "DURATION"},
+		display.WithHeaderColor(headerColor),
+		display.WithAdaptive(),
+	)
 
 	for _, exec := range entries {
-		id := exec.GetMetadata().GetId()
-		agentID := truncateString(exec.GetSpec().GetAgentId(), 26)
-		status := FormatPhase(exec.GetStatus().GetPhase())
-		started := formatTimestamp(exec.GetStatus().GetStartedAt())
 		duration := "-"
 		if exec.GetStatus().GetCompletedAt() != "" {
 			duration = calculateDuration(exec.GetStatus().GetStartedAt(), exec.GetStatus().GetCompletedAt())
@@ -125,25 +125,22 @@ func displayListTable(list *agentexecutionv1.AgentExecutionList) {
 			duration = calculateDuration(exec.GetStatus().GetStartedAt(), time.Now().Format(time.RFC3339))
 		}
 
-		fmt.Printf("%-26s  %-26s  %-15s  %-20s  %s\n", id, agentID, status, started, duration)
+		tbl.AddRow(
+			exec.GetMetadata().GetId(),
+			exec.GetSpec().GetAgentId(),
+			FormatPhase(exec.GetStatus().GetPhase()),
+			formatTimestamp(exec.GetStatus().GetStartedAt()),
+			duration,
+		)
 	}
 
 	fmt.Println()
+	tbl.Render(os.Stdout)
+
 	totalPages := list.GetTotalPages()
 	if totalPages > 1 {
 		fmt.Printf("Page 1 of %d\n", totalPages)
 	}
-}
-
-// truncateString truncates a string to maxLen characters, adding "..." if truncated.
-func truncateString(s string, maxLen int) string {
-	if len(s) <= maxLen {
-		return s
-	}
-	if maxLen <= 3 {
-		return "..."
-	}
-	return s[:maxLen-3] + "..."
 }
 
 // FormatPhase formats an execution phase for display.

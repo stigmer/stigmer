@@ -2,6 +2,9 @@ package session
 
 import (
 	"fmt"
+	"os"
+
+	"github.com/fatih/color"
 
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
@@ -46,9 +49,7 @@ func displaySessionTable(session *sessionv1.Session) {
 func DisplayListResult(list *sessionv1.SessionList, format string) {
 	entries := list.GetEntries()
 	if len(entries) == 0 {
-		fmt.Println()
-		fmt.Printf("No sessions found.\n")
-		fmt.Println()
+		display.DisplayEmptyResults("sessions", "")
 		return
 	}
 
@@ -57,41 +58,37 @@ func DisplayListResult(list *sessionv1.SessionList, format string) {
 
 func displayListTable(list *sessionv1.SessionList) {
 	entries := list.GetEntries()
+	headerColor := color.New(color.FgCyan, color.Bold).SprintFunc()
 
-	fmt.Println()
-	fmt.Printf("%-26s  %-26s  %-30s  %s\n", "SESSION ID", "AGENT", "SUBJECT", "CREATED")
-	fmt.Printf("%-26s  %-26s  %-30s  %s\n", "----------", "-----", "-------", "-------")
+	tbl := display.NewTable(
+		[]string{"SESSION ID", "AGENT", "SUBJECT", "CREATED"},
+		display.WithHeaderColor(headerColor),
+		display.WithAdaptive(),
+	)
 
 	for _, ses := range entries {
-		id := ses.GetMetadata().GetId()
-		agent := truncateString(ses.GetSpec().GetAgentInstanceId(), 26)
 		subject := ResolvedSubject(ses.GetSpec().GetSubject())
 		if subject == "" {
 			subject = "-"
-		} else {
-			subject = truncateString(subject, 30)
 		}
 		created := "-"
 		if audit := ses.GetStatus().GetAudit().GetSpecAudit(); audit != nil && audit.GetCreatedAt() != nil {
 			created = audit.GetCreatedAt().AsTime().Local().Format("2006-01-02 15:04:05")
 		}
 
-		fmt.Printf("%-26s  %-26s  %-30s  %s\n", id, agent, subject, created)
+		tbl.AddRow(
+			ses.GetMetadata().GetId(),
+			ses.GetSpec().GetAgentInstanceId(),
+			subject,
+			created,
+		)
 	}
 
 	fmt.Println()
+	tbl.Render(os.Stdout)
+
 	totalPages := list.GetTotalPages()
 	if totalPages > 1 {
 		fmt.Printf("Page 1 of %d\n", totalPages)
 	}
-}
-
-func truncateString(s string, maxLen int) string {
-	if len(s) <= maxLen {
-		return s
-	}
-	if maxLen <= 3 {
-		return "..."
-	}
-	return s[:maxLen-3] + "..."
 }

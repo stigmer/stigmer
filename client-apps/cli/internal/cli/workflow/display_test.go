@@ -9,57 +9,6 @@ import (
 )
 
 // =============================================================================
-// truncateString Tests
-// =============================================================================
-
-func TestTruncateString_ShortString(t *testing.T) {
-	result := truncateString("hello", 10)
-	assert.Equal(t, "hello", result)
-}
-
-func TestTruncateString_ExactLength(t *testing.T) {
-	result := truncateString("hello", 5)
-	assert.Equal(t, "hello", result)
-}
-
-func TestTruncateString_LongString(t *testing.T) {
-	result := truncateString("hello world", 8)
-	assert.Equal(t, "hello...", result)
-}
-
-func TestTruncateString_VeryShortMaxLen(t *testing.T) {
-	// When maxLen <= 3, just return "..."
-	result := truncateString("hello", 3)
-	assert.Equal(t, "...", result)
-
-	result = truncateString("hello", 2)
-	assert.Equal(t, "...", result)
-
-	result = truncateString("hello", 1)
-	assert.Equal(t, "...", result)
-}
-
-func TestTruncateString_EmptyString(t *testing.T) {
-	result := truncateString("", 10)
-	assert.Equal(t, "", result)
-}
-
-func TestTruncateString_ZeroMaxLen(t *testing.T) {
-	result := truncateString("hello", 0)
-	assert.Equal(t, "...", result)
-}
-
-func TestTruncateString_ExactTruncationBoundary(t *testing.T) {
-	// String of length 6, maxLen of 6 - should not truncate
-	result := truncateString("abcdef", 6)
-	assert.Equal(t, "abcdef", result)
-
-	// String of length 7, maxLen of 6 - should truncate
-	result = truncateString("abcdefg", 6)
-	assert.Equal(t, "abc...", result)
-}
-
-// =============================================================================
 // DisplayGetResult Tests - No Panic Verification
 // =============================================================================
 

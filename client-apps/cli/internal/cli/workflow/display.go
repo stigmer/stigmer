@@ -16,7 +16,7 @@ func displayWorkflowSummary(workflow *workflowv1.Workflow) {
 
 	if workflow.Spec != nil {
 		if workflow.Spec.Description != "" {
-			fmt.Printf("  Description:  %s\n", truncateString(workflow.Spec.Description, 80))
+			fmt.Printf("  Description:  %s\n", display.TruncateWithEllipsis(workflow.Spec.Description, 80))
 		}
 
 		taskCount := len(workflow.Spec.Tasks)
@@ -30,17 +30,6 @@ func displayWorkflowSummary(workflow *workflowv1.Workflow) {
 			}
 		}
 	}
-}
-
-// truncateString truncates a string to maxLen characters, adding "..." if truncated.
-func truncateString(s string, maxLen int) string {
-	if len(s) <= maxLen {
-		return s
-	}
-	if maxLen <= 3 {
-		return "..."
-	}
-	return s[:maxLen-3] + "..."
 }
 
 // DisplayGetResult displays a workflow in the specified format.

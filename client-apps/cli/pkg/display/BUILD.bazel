@@ -6,6 +6,7 @@ go_library(
         "colors.go",
         "proto.go",
         "table.go",
+        "tablerender.go",
         "terminal.go",
         "truncate.go",
     ],
@@ -25,6 +26,7 @@ go_test(
     name = "display_test",
     srcs = [
         "proto_test.go",
+        "tablerender_test.go",
         "truncate_test.go",
     ],
     embed = [":display"],
