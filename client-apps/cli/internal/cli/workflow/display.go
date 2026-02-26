@@ -5,11 +5,9 @@ import (
 	"fmt"
 
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/search"
-	"google.golang.org/protobuf/encoding/protojson"
-	"gopkg.in/yaml.v3"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
 )
 
 // displayWorkflowSummary displays a summary of Workflow configuration fields.
@@ -49,14 +47,7 @@ func truncateString(s string, maxLen int) string {
 // DisplayGetResult displays a workflow in the specified format.
 // Supported formats: "table" (default), "yaml", "json".
 func DisplayGetResult(workflow *workflowv1.Workflow, format string) {
-	switch format {
-	case "yaml":
-		displayWorkflowYAML(workflow)
-	case "json":
-		displayWorkflowJSON(workflow)
-	default: // table
-		displayWorkflowTable(workflow)
-	}
+	display.DisplayProto(workflow, format, func() { displayWorkflowTable(workflow) })
 }
 
 // displayWorkflowTable displays the workflow in human-readable table format.
@@ -75,49 +66,6 @@ func displayWorkflowTable(workflow *workflowv1.Workflow) {
 	cliprint.PrintInfo("Spec:")
 	displayWorkflowSummary(workflow)
 	fmt.Println()
-}
-
-// displayWorkflowYAML displays the workflow as YAML.
-func displayWorkflowYAML(workflow *workflowv1.Workflow) {
-	marshaler := protojson.MarshalOptions{
-		Indent:          "  ",
-		UseProtoNames:   true,
-		EmitUnpopulated: false,
-	}
-	jsonBytes, err := marshaler.Marshal(workflow)
-	if err != nil {
-		clierr.Handle(fmt.Errorf("failed to marshal workflow to JSON: %w", err))
-		return
-	}
-
-	// Convert JSON to YAML via generic map
-	var jsonMap map[string]interface{}
-	if err := yaml.Unmarshal(jsonBytes, &jsonMap); err != nil {
-		clierr.Handle(fmt.Errorf("failed to parse JSON: %w", err))
-		return
-	}
-
-	yamlBytes, err := yaml.Marshal(jsonMap)
-	if err != nil {
-		clierr.Handle(fmt.Errorf("failed to marshal to YAML: %w", err))
-		return
-	}
-	fmt.Print(string(yamlBytes))
-}
-
-// displayWorkflowJSON displays the workflow as JSON.
-func displayWorkflowJSON(workflow *workflowv1.Workflow) {
-	marshaler := protojson.MarshalOptions{
-		Indent:          "  ",
-		UseProtoNames:   true,
-		EmitUnpopulated: false,
-	}
-	jsonBytes, err := marshaler.Marshal(workflow)
-	if err != nil {
-		clierr.Handle(fmt.Errorf("failed to marshal workflow to JSON: %w", err))
-		return
-	}
-	fmt.Println(string(jsonBytes))
 }
 
 // DisplayListResult displays a list of workflows from search results.

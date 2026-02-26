@@ -4,22 +4,13 @@ import (
 	"fmt"
 
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
-	"google.golang.org/protobuf/encoding/protojson"
-	"gopkg.in/yaml.v3"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
 )
 
 // DisplayGetResult displays a session in the specified format.
 func DisplayGetResult(session *sessionv1.Session, format string) {
-	switch format {
-	case "yaml":
-		displaySessionYAML(session)
-	case "json":
-		displaySessionJSON(session)
-	default:
-		displaySessionTable(session)
-	}
+	display.DisplayProto(session, format, func() { displaySessionTable(session) })
 }
 
 func displaySessionTable(session *sessionv1.Session) {
@@ -52,46 +43,6 @@ func displaySessionTable(session *sessionv1.Session) {
 	fmt.Println()
 }
 
-func displaySessionYAML(session *sessionv1.Session) {
-	marshaler := protojson.MarshalOptions{
-		Indent:          "  ",
-		UseProtoNames:   true,
-		EmitUnpopulated: false,
-	}
-	jsonBytes, err := marshaler.Marshal(session)
-	if err != nil {
-		clierr.Handle(fmt.Errorf("failed to marshal session to JSON: %w", err))
-		return
-	}
-
-	var jsonMap map[string]interface{}
-	if err := yaml.Unmarshal(jsonBytes, &jsonMap); err != nil {
-		clierr.Handle(fmt.Errorf("failed to parse JSON: %w", err))
-		return
-	}
-
-	yamlBytes, err := yaml.Marshal(jsonMap)
-	if err != nil {
-		clierr.Handle(fmt.Errorf("failed to marshal to YAML: %w", err))
-		return
-	}
-	fmt.Print(string(yamlBytes))
-}
-
-func displaySessionJSON(session *sessionv1.Session) {
-	marshaler := protojson.MarshalOptions{
-		Indent:          "  ",
-		UseProtoNames:   true,
-		EmitUnpopulated: false,
-	}
-	jsonBytes, err := marshaler.Marshal(session)
-	if err != nil {
-		clierr.Handle(fmt.Errorf("failed to marshal session to JSON: %w", err))
-		return
-	}
-	fmt.Println(string(jsonBytes))
-}
-
 // DisplayListResult displays a list of sessions.
 func DisplayListResult(list *sessionv1.SessionList, format string) {
 	entries := list.GetEntries()
@@ -102,14 +53,7 @@ func DisplayListResult(list *sessionv1.SessionList, format string) {
 		return
 	}
 
-	switch format {
-	case "yaml":
-		displayListYAML(list)
-	case "json":
-		displayListJSON(list)
-	default:
-		displayListTable(list)
-	}
+	display.DisplayProto(list, format, func() { displayListTable(list) })
 }
 
 func displayListTable(list *sessionv1.SessionList) {
@@ -141,46 +85,6 @@ func displayListTable(list *sessionv1.SessionList) {
 	if totalPages > 1 {
 		cliprint.PrintInfo("Page 1 of %d", totalPages)
 	}
-}
-
-func displayListYAML(list *sessionv1.SessionList) {
-	marshaler := protojson.MarshalOptions{
-		Indent:          "  ",
-		UseProtoNames:   true,
-		EmitUnpopulated: false,
-	}
-	jsonBytes, err := marshaler.Marshal(list)
-	if err != nil {
-		clierr.Handle(fmt.Errorf("failed to marshal list to JSON: %w", err))
-		return
-	}
-
-	var jsonMap map[string]interface{}
-	if err := yaml.Unmarshal(jsonBytes, &jsonMap); err != nil {
-		clierr.Handle(fmt.Errorf("failed to parse JSON: %w", err))
-		return
-	}
-
-	yamlBytes, err := yaml.Marshal(jsonMap)
-	if err != nil {
-		clierr.Handle(fmt.Errorf("failed to marshal to YAML: %w", err))
-		return
-	}
-	fmt.Print(string(yamlBytes))
-}
-
-func displayListJSON(list *sessionv1.SessionList) {
-	marshaler := protojson.MarshalOptions{
-		Indent:          "  ",
-		UseProtoNames:   true,
-		EmitUnpopulated: false,
-	}
-	jsonBytes, err := marshaler.Marshal(list)
-	if err != nil {
-		clierr.Handle(fmt.Errorf("failed to marshal list to JSON: %w", err))
-		return
-	}
-	fmt.Println(string(jsonBytes))
 }
 
 func truncateString(s string, maxLen int) string {

@@ -5,11 +5,9 @@ import (
 	"fmt"
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/search"
-	"google.golang.org/protobuf/encoding/protojson"
-	"gopkg.in/yaml.v3"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
 )
 
 // displayAgentSummary displays a summary of Agent configuration fields.
@@ -57,14 +55,7 @@ func truncateString(s string, maxLen int) string {
 // DisplayGetResult displays an agent in the specified format.
 // Supported formats: "table" (default), "yaml", "json".
 func DisplayGetResult(agent *agentv1.Agent, format string) {
-	switch format {
-	case "yaml":
-		displayAgentYAML(agent)
-	case "json":
-		displayAgentJSON(agent)
-	default: // table
-		displayAgentTable(agent)
-	}
+	display.DisplayProto(agent, format, func() { displayAgentTable(agent) })
 }
 
 // displayAgentTable displays the agent in human-readable table format.
@@ -83,49 +74,6 @@ func displayAgentTable(agent *agentv1.Agent) {
 	cliprint.PrintInfo("Spec:")
 	displayAgentSummary(agent)
 	fmt.Println()
-}
-
-// displayAgentYAML displays the agent as YAML.
-func displayAgentYAML(agent *agentv1.Agent) {
-	marshaler := protojson.MarshalOptions{
-		Indent:          "  ",
-		UseProtoNames:   true,
-		EmitUnpopulated: false,
-	}
-	jsonBytes, err := marshaler.Marshal(agent)
-	if err != nil {
-		clierr.Handle(fmt.Errorf("failed to marshal agent to JSON: %w", err))
-		return
-	}
-
-	// Convert JSON to YAML via generic map
-	var jsonMap map[string]interface{}
-	if err := yaml.Unmarshal(jsonBytes, &jsonMap); err != nil {
-		clierr.Handle(fmt.Errorf("failed to parse JSON: %w", err))
-		return
-	}
-
-	yamlBytes, err := yaml.Marshal(jsonMap)
-	if err != nil {
-		clierr.Handle(fmt.Errorf("failed to marshal to YAML: %w", err))
-		return
-	}
-	fmt.Print(string(yamlBytes))
-}
-
-// displayAgentJSON displays the agent as JSON.
-func displayAgentJSON(agent *agentv1.Agent) {
-	marshaler := protojson.MarshalOptions{
-		Indent:          "  ",
-		UseProtoNames:   true,
-		EmitUnpopulated: false,
-	}
-	jsonBytes, err := marshaler.Marshal(agent)
-	if err != nil {
-		clierr.Handle(fmt.Errorf("failed to marshal agent to JSON: %w", err))
-		return
-	}
-	fmt.Println(string(jsonBytes))
 }
 
 // DisplayListResult displays a list of agents from search results.
