@@ -11,8 +11,8 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/llm"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
 )
 
 func newServerLLMCommand() *cobra.Command {

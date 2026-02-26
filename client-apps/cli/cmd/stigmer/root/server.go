@@ -12,8 +12,8 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpserver"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
 )
 
 // NewServerCommand creates the server command for daemon management

@@ -10,8 +10,8 @@ import (
 
 	"github.com/pkg/errors"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"google.golang.org/grpc"
 )
 

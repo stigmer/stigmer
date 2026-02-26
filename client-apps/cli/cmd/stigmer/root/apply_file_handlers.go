@@ -59,10 +59,10 @@ func applyWorkflow(item applyItem, fctx *fileApplyContext) error {
 
 	result, err := workflow.Apply(&workflow.ApplyOptions{
 		Workflow: loadResult.Workflow,
-		OrgID:   fctx.orgID,
-		Conn:    fctx.conn,
-		Quiet:   false,
-		DryRun:  false,
+		OrgID:    fctx.orgID,
+		Conn:     fctx.conn,
+		Quiet:    false,
+		DryRun:   false,
 	})
 	if err != nil {
 		return err

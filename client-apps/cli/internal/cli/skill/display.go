@@ -61,4 +61,3 @@ func displaySkillTable(skill *skillv1.Skill) {
 		fmt.Println()
 	}
 }
-
