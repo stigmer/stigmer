@@ -550,7 +550,21 @@ type Attachment struct {
 	// When true, the attachment is a zip archive that should be extracted
 	// at mount_path rather than written as a single file.
 	// Set automatically by the CLI when a directory is attached.
-	Extract       bool `protobuf:"varint,5,opt,name=extract,proto3" json:"extract,omitempty"`
+	Extract bool `protobuf:"varint,5,opt,name=extract,proto3" json:"extract,omitempty"`
+	// Absolute filesystem path to the original file on the CLI host (optional).
+	//
+	// When set and the runner is in local mode, the file is read directly
+	// from this path instead of downloading from artifact storage via
+	// storage_key.  This eliminates the storage round-trip for local
+	// executions.
+	//
+	// Ignored when the runner is not in local mode (cloud runners use
+	// storage_key exclusively).
+	//
+	// The CLI sets this unconditionally to the resolved absolute path of
+	// the attached file.  storage_key remains required -- the upload still
+	// happens for execution history and replay support.
+	LocalPath     string `protobuf:"bytes,6,opt,name=local_path,json=localPath,proto3" json:"local_path,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -620,6 +634,13 @@ func (x *Attachment) GetExtract() bool {
 	return false
 }
 
+func (x *Attachment) GetLocalPath() string {
+	if x != nil {
+		return x.LocalPath
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_agentexecution_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
@@ -647,7 +668,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\x17ContextManagementConfig\x123\n" +
 	"\x15disable_summarization\x18\x01 \x01(\bR\x14disableSummarization\x12A\n" +
 	"\x18custom_trigger_threshold\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x16customTriggerThreshold\x129\n" +
-	"\x14custom_target_tokens\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x12customTargetTokens\"\xb7\x01\n" +
+	"\x14custom_target_tokens\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x12customTargetTokens\"\xd6\x01\n" +
 	"\n" +
 	"Attachment\x12#\n" +
 	"\bfilename\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bfilename\x12(\n" +
@@ -656,7 +677,9 @@ const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\n" +
 	"mount_path\x18\x03 \x01(\tR\tmountPath\x12!\n" +
 	"\fcontent_type\x18\x04 \x01(\tR\vcontentType\x12\x18\n" +
-	"\aextract\x18\x05 \x01(\bR\aextractB\xca\x02\n" +
+	"\aextract\x18\x05 \x01(\bR\aextract\x12\x1d\n" +
+	"\n" +
+	"local_path\x18\x06 \x01(\tR\tlocalPathB\xca\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\tSpecProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (

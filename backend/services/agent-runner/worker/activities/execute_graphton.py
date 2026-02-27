@@ -257,6 +257,7 @@ async def inject_attachments(
     attachments: list,
     storage: ArtifactStorage,
     logger,
+    allow_local_path: bool = False,
 ) -> list[dict]:
     """Inject attachments into the workspace via ``WorkspaceBackend``.
 
@@ -269,15 +270,22 @@ async def inject_attachments(
             ``storage_key``).
         storage: ArtifactStorage for downloading content.
         logger: Activity logger.
+        allow_local_path: When ``True``, attachments that carry a
+            ``local_path`` will be read directly from the local
+            filesystem instead of downloading from artifact storage.
+            Falls back to storage download if the local file is missing.
+            Callers should pass ``worker_config.is_local_mode()``.
 
     Returns:
         List of dicts: ``[{"filename": str, "path": str, "size": int}]``.
 
     Raises:
-        ValueError: If any attachment is missing ``storage_key``.
+        ValueError: If any attachment is missing both ``local_path``
+            (when allowed) and ``storage_key``.
     """
     import io
     import zipfile
+    from pathlib import Path
 
     if not attachments:
         return []
@@ -288,20 +296,38 @@ async def inject_attachments(
     injected_files: list[dict] = []
 
     for attachment in attachments:
-        if not attachment.storage_key:
-            raise ValueError(
-                f"Attachment missing storage_key: {attachment.filename}"
-            )
+        content: bytes | None = None
 
-        logger.debug(
-            "Downloading %s from storage key: %s",
-            attachment.filename,
-            attachment.storage_key,
-        )
-        content = storage.download(attachment.storage_key)
-        logger.debug(
-            "Downloaded %d bytes for %s", len(content), attachment.filename,
-        )
+        if allow_local_path and getattr(attachment, "local_path", ""):
+            local_file = Path(attachment.local_path)
+            if local_file.is_file():
+                content = local_file.read_bytes()
+                logger.debug(
+                    "Read %d bytes from local path: %s",
+                    len(content), attachment.local_path,
+                )
+            else:
+                logger.warning(
+                    "local_path '%s' not found, falling back to "
+                    "storage download",
+                    attachment.local_path,
+                )
+
+        if content is None:
+            if not attachment.storage_key:
+                raise ValueError(
+                    f"Attachment missing storage_key: {attachment.filename}"
+                )
+            logger.debug(
+                "Downloading %s from storage key: %s",
+                attachment.filename,
+                attachment.storage_key,
+            )
+            content = storage.download(attachment.storage_key)
+            logger.debug(
+                "Downloaded %d bytes for %s",
+                len(content), attachment.filename,
+            )
 
         if attachment.mount_path:
             mount_path = attachment.mount_path.lstrip("/")
@@ -1497,6 +1523,7 @@ async def _execute_graphton_impl(
                         attachments=attachments,
                         storage=artifact_storage,
                         logger=activity_logger,
+                        allow_local_path=worker_config.is_local_mode(),
                     )
                     activity_logger.info(f"Successfully injected {len(injected_files)} attachments")
                 except Exception as e:
