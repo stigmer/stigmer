@@ -6,6 +6,12 @@ chroot-like semantics identical to graphton's ``FilesystemBackend``:
 absolute paths are treated as relative to ``root_dir`` so that
 sandbox-internal paths (``/bin/skills``, ``/inputs/data.csv``) resolve
 correctly in local mode.
+
+Virtual platform mount (AD-01 v3):
+    When ``platform_dir`` is provided, paths under ``.stigmer/`` are
+    resolved against the platform directory instead of the workspace root.
+    Both scopes use ``Path.resolve()`` with containment checks — no
+    security relaxation.
 """
 
 from __future__ import annotations
@@ -17,6 +23,10 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from worker.workspace.backend import ExecuteResult
+from worker.workspace.platform_mount import (
+    STIGMER_PLATFORM_DIR_ENV,
+    classify_platform_path,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,20 +37,38 @@ class LocalWorkspaceBackend:
     Invariants enforced at construction:
         - ``root_dir`` is non-empty, resolved to an absolute path, and
           created (``mkdir -p``) if it does not exist.
+        - When ``platform_dir`` is provided it is also resolved and
+          created.  Paths under ``.stigmer/`` route there instead of
+          ``root_dir``.
     """
 
-    def __init__(self, root_dir: str | Path) -> None:
+    def __init__(
+        self,
+        root_dir: str | Path,
+        *,
+        platform_dir: str | Path | None = None,
+    ) -> None:
         if not root_dir:
             raise ValueError("root_dir must be a non-empty path")
 
         self._root = Path(root_dir).resolve()
         self._root.mkdir(parents=True, exist_ok=True)
 
+        if platform_dir is not None:
+            self._platform_root: Path | None = Path(platform_dir).resolve()
+            self._platform_root.mkdir(parents=True, exist_ok=True)
+        else:
+            self._platform_root = None
+
     # -- Protocol properties --------------------------------------------------
 
     @property
     def root_dir(self) -> str:
         return str(self._root)
+
+    @property
+    def platform_dir(self) -> str | None:
+        return str(self._platform_root) if self._platform_root else None
 
     # -- File operations ------------------------------------------------------
 
@@ -80,6 +108,8 @@ class LocalWorkspaceBackend:
         work_dir = self._root if cwd is None else self._resolve(cwd)
 
         env = {**os.environ, "PYTHONUNBUFFERED": "1"}
+        if self._platform_root is not None:
+            env[STIGMER_PLATFORM_DIR_ENV] = str(self._platform_root)
         try:
             result = subprocess.run(
                 command,
@@ -123,7 +153,11 @@ class LocalWorkspaceBackend:
         sandbox-internal references like ``/bin/skills`` map to
         ``{root_dir}/bin/skills``.
 
-        Raises ``ValueError`` if the resolved path escapes the root.
+        When ``platform_dir`` is set, paths under ``.stigmer/`` are
+        resolved against the platform directory with an independent
+        containment check.
+
+        Raises ``ValueError`` if the resolved path escapes its root.
         """
         root_str = str(self._root)
 
@@ -134,6 +168,12 @@ class LocalWorkspaceBackend:
         elif rel_path == root_str:
             rel_path = ""
 
+        # Virtual platform mount: route .stigmer/* to platform_dir.
+        if self._platform_root is not None:
+            is_platform, remainder = classify_platform_path(rel_path)
+            if is_platform:
+                return self._resolve_platform(remainder)
+
         clean = rel_path.lstrip("/")
         resolved = (self._root / clean).resolve()
 
@@ -141,5 +181,18 @@ class LocalWorkspaceBackend:
             raise ValueError(
                 f"Path '{rel_path}' resolves outside workspace root "
                 f"'{self._root}'"
+            )
+        return resolved
+
+    def _resolve_platform(self, remainder: str) -> Path:
+        """Resolve *remainder* within ``platform_dir`` with containment check."""
+        assert self._platform_root is not None
+        platform_str = str(self._platform_root)
+
+        resolved = (self._platform_root / remainder).resolve()
+        if not str(resolved).startswith(platform_str):
+            raise ValueError(
+                f"Path '.stigmer/{remainder}' resolves outside platform root "
+                f"'{self._platform_root}'"
             )
         return resolved

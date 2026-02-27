@@ -74,6 +74,10 @@ class _GitBackend:
     def root_dir(self) -> str:
         return self._inner.root_dir
 
+    @property
+    def platform_dir(self) -> str | None:
+        return self._inner.platform_dir
+
     def write_file(self, rel_path, content):
         return self._inner.write_file(rel_path, content)
 
@@ -439,8 +443,7 @@ class TestGitExcludes:
         git_source.provision(source, backend, {})
 
         exclude_content = (tmp_path / ".git" / "info" / "exclude").read_text()
-        assert ".stigmer-inputs" in exclude_content
-        assert "bin/skills" in exclude_content
+        assert ".stigmer" in exclude_content
 
     def test_excludes_written_for_existing_repo(self, tmp_path):
         (tmp_path / ".git" / "info").mkdir(parents=True)
@@ -454,13 +457,12 @@ class TestGitExcludes:
         git_source.provision(source, backend, {})
 
         exclude_content = (tmp_path / ".git" / "info" / "exclude").read_text()
-        assert ".stigmer-inputs" in exclude_content
-        assert "bin/skills" in exclude_content
+        assert ".stigmer" in exclude_content
 
     def test_excludes_idempotent_no_duplicates(self, tmp_path):
         git_info = tmp_path / ".git" / "info"
         git_info.mkdir(parents=True)
-        (git_info / "exclude").write_text(".stigmer-inputs\nbin/skills\n")
+        (git_info / "exclude").write_text(".stigmer\n")
 
         source = _MockGitRepoSource(url="https://github.com/org/repo.git")
         backend = _GitBackend(tmp_path, responses={
@@ -472,8 +474,7 @@ class TestGitExcludes:
         git_source.provision(source, backend, {})
 
         exclude_content = (git_info / "exclude").read_text()
-        assert exclude_content.count(".stigmer-inputs") == 1
-        assert exclude_content.count("bin/skills") == 1
+        assert exclude_content.count(".stigmer") == 1
 
     def test_excludes_appended_to_existing_content(self, tmp_path):
         git_info = tmp_path / ".git" / "info"
@@ -491,8 +492,7 @@ class TestGitExcludes:
 
         exclude_content = (git_info / "exclude").read_text()
         assert "*.pyc" in exclude_content
-        assert ".stigmer-inputs" in exclude_content
-        assert "bin/skills" in exclude_content
+        assert ".stigmer" in exclude_content
 
 
 # ---------------------------------------------------------------------------

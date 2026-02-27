@@ -42,36 +42,36 @@ class TestExtractZipInMemory:
 
     def test_extract_basic_zip(self, sample_artifact_zip):
         files = SkillWriter._extract_zip_in_memory(
-            sample_artifact_zip, "bin/skills/test-skill", "test-skill",
+            sample_artifact_zip, ".stigmer/skills/test-skill", "test-skill",
         )
         paths = [p for p, _ in files]
-        assert "bin/skills/test-skill/SKILL.md" in paths
-        assert "bin/skills/test-skill/run.sh" in paths
-        assert "bin/skills/test-skill/main.py" in paths
-        assert "bin/skills/test-skill/config.json" in paths
+        assert ".stigmer/skills/test-skill/SKILL.md" in paths
+        assert ".stigmer/skills/test-skill/run.sh" in paths
+        assert ".stigmer/skills/test-skill/main.py" in paths
+        assert ".stigmer/skills/test-skill/config.json" in paths
 
     def test_extract_nested_zip(self, sample_artifact_zip_nested):
         files = SkillWriter._extract_zip_in_memory(
-            sample_artifact_zip_nested, "bin/skills/nested", "nested",
+            sample_artifact_zip_nested, ".stigmer/skills/nested", "nested",
         )
         paths = [p for p, _ in files]
-        assert "bin/skills/nested/SKILL.md" in paths
-        assert "bin/skills/nested/src/main.py" in paths
-        assert "bin/skills/nested/scripts/run.sh" in paths
-        assert "bin/skills/nested/data/config.yaml" in paths
+        assert ".stigmer/skills/nested/SKILL.md" in paths
+        assert ".stigmer/skills/nested/src/main.py" in paths
+        assert ".stigmer/skills/nested/scripts/run.sh" in paths
+        assert ".stigmer/skills/nested/data/config.yaml" in paths
 
     def test_extract_invalid_zip_raises(self):
         with pytest.raises(RuntimeError, match="Invalid ZIP"):
             SkillWriter._extract_zip_in_memory(
-                b"not a zip", "bin/skills/bad", "bad",
+                b"not a zip", ".stigmer/skills/bad", "bad",
             )
 
     def test_extract_preserves_content(self, sample_artifact_zip):
         files = SkillWriter._extract_zip_in_memory(
-            sample_artifact_zip, "bin/skills/s", "s",
+            sample_artifact_zip, ".stigmer/skills/s", "s",
         )
         content_map = dict(files)
-        assert b"Test Skill" in content_map["bin/skills/s/SKILL.md"]
+        assert b"Test Skill" in content_map[".stigmer/skills/s/SKILL.md"]
 
 
 # ---------------------------------------------------------------------------
@@ -91,7 +91,7 @@ class TestWriteSkillsLocal:
 
             assert mock_skill.metadata.id in result
             path = result[mock_skill.metadata.id]
-            assert path == f"bin/skills/{mock_skill.metadata.name}"
+            assert path == f".stigmer/skills/{mock_skill.metadata.name}"
             assert not path.startswith("/")
 
             md_path = os.path.join(tmpdir, path, "SKILL.md")
@@ -125,7 +125,7 @@ class TestWriteSkillsLocal:
             result = writer.write_skills([mock_skill_no_hash])
 
             path = result[mock_skill_no_hash.metadata.id]
-            assert path == f"bin/skills/{mock_skill_no_hash.metadata.name}"
+            assert path == f".stigmer/skills/{mock_skill_no_hash.metadata.name}"
             assert os.path.isdir(os.path.join(tmpdir, path))
 
     def test_write_multiple_skills(self, mock_skill, mock_skill_no_hash):
@@ -161,7 +161,7 @@ class TestWriteSkillsMockBackend:
         mkdir_calls = [
             str(c) for c in backend.mkdir.call_args_list
         ]
-        assert any("bin/skills" in c for c in mkdir_calls)
+        assert any(".stigmer/skills" in c for c in mkdir_calls)
         assert any(mock_skill.metadata.name in c for c in mkdir_calls)
 
     def test_returns_relative_paths(self, mock_skill):
@@ -172,7 +172,7 @@ class TestWriteSkillsMockBackend:
 
         path = result[mock_skill.metadata.id]
         assert not path.startswith("/")
-        assert path == f"bin/skills/{mock_skill.metadata.name}"
+        assert path == f".stigmer/skills/{mock_skill.metadata.name}"
 
     def test_calls_write_files(self, mock_skill):
         backend = _make_mock_backend()
@@ -184,7 +184,7 @@ class TestWriteSkillsMockBackend:
         files_arg = backend.write_files.call_args[0][0]
         assert len(files_arg) == 1
         rel_path, content = files_arg[0]
-        assert rel_path == f"bin/skills/{mock_skill.metadata.name}/SKILL.md"
+        assert rel_path == f".stigmer/skills/{mock_skill.metadata.name}/SKILL.md"
         assert content == mock_skill.spec.skill_md.encode("utf-8")
 
     def test_write_failure_raises_runtime_error(self, mock_skill):
@@ -229,22 +229,22 @@ class TestGeneratePromptSection:
 
     def test_single_skill(self, mock_skill):
         skill_paths = {
-            mock_skill.metadata.id: f"bin/skills/{mock_skill.metadata.name}",
+            mock_skill.metadata.id: f".stigmer/skills/{mock_skill.metadata.name}",
         }
         result = SkillWriter.generate_prompt_section([mock_skill], skill_paths)
 
         assert "## Available Skills" in result
         assert f"### {mock_skill.metadata.name}" in result
         assert f"**Description**: {mock_skill.spec.description}" in result
-        assert f"**Location**: `bin/skills/{mock_skill.metadata.name}/`" in result
-        assert f"**Activate**: `read bin/skills/{mock_skill.metadata.name}/SKILL.md`" in result
+        assert f"**Location**: `.stigmer/skills/{mock_skill.metadata.name}/`" in result
+        assert f"**Activate**: `read .stigmer/skills/{mock_skill.metadata.name}/SKILL.md`" in result
         assert "MUST stop execution immediately" in result
         assert mock_skill.spec.skill_md not in result
 
     def test_multiple_skills(self, mock_skill, mock_skill_no_hash):
         skill_paths = {
-            mock_skill.metadata.id: f"bin/skills/{mock_skill.metadata.name}",
-            mock_skill_no_hash.metadata.id: f"bin/skills/{mock_skill_no_hash.metadata.name}",
+            mock_skill.metadata.id: f".stigmer/skills/{mock_skill.metadata.name}",
+            mock_skill_no_hash.metadata.id: f".stigmer/skills/{mock_skill_no_hash.metadata.name}",
         }
         result = SkillWriter.generate_prompt_section(
             [mock_skill, mock_skill_no_hash], skill_paths,
@@ -256,11 +256,11 @@ class TestGeneratePromptSection:
 
     def test_fallback_path_when_missing(self, mock_skill):
         result = SkillWriter.generate_prompt_section([mock_skill], {})
-        assert f"**Location**: `bin/skills/{mock_skill.metadata.name}/`" in result
+        assert f"**Location**: `.stigmer/skills/{mock_skill.metadata.name}/`" in result
 
     def test_progressive_disclosure_format(self, mock_skill):
         skill_paths = {
-            mock_skill.metadata.id: f"bin/skills/{mock_skill.metadata.name}",
+            mock_skill.metadata.id: f".stigmer/skills/{mock_skill.metadata.name}",
         }
         result = SkillWriter.generate_prompt_section([mock_skill], skill_paths)
         lines = result.split("\n")
@@ -286,7 +286,7 @@ class TestSkillDirNaming:
         backend = _make_mock_backend()
         writer = SkillWriter(backend=backend)
         result = writer._get_skill_relative_dir(mock_skill)
-        assert result == f"bin/skills/{mock_skill.metadata.name}"
+        assert result == f".stigmer/skills/{mock_skill.metadata.name}"
         assert not result.startswith("/")
 
     def test_name_preferred_over_hash(self, mock_skill):
@@ -300,7 +300,7 @@ class TestSkillDirNaming:
         backend = _make_mock_backend()
         writer = SkillWriter(backend=backend)
         result = writer._get_skill_relative_dir(mock_skill_no_name)
-        assert result == f"bin/skills/{mock_skill_no_name.status.version_hash}"
+        assert result == f".stigmer/skills/{mock_skill_no_name.status.version_hash}"
 
     def test_full_fallback_chain(self):
         skill = MagicMock()
@@ -331,7 +331,7 @@ class TestWriteThenPrompt:
 
             prompt = SkillWriter.generate_prompt_section([mock_skill], skill_paths)
 
-            expected = f"**Location**: `bin/skills/{mock_skill.metadata.name}/`"
+            expected = f"**Location**: `.stigmer/skills/{mock_skill.metadata.name}/`"
             assert expected in prompt
 
     def test_mock_backend_location_is_relative(self, mock_skill):
@@ -341,7 +341,7 @@ class TestWriteThenPrompt:
 
         prompt = SkillWriter.generate_prompt_section([mock_skill], skill_paths)
 
-        expected = f"**Location**: `bin/skills/{mock_skill.metadata.name}/`"
+        expected = f"**Location**: `.stigmer/skills/{mock_skill.metadata.name}/`"
         assert expected in prompt
 
 

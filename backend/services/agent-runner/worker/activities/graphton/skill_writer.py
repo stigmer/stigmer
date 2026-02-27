@@ -11,16 +11,19 @@ progressive disclosure model:
    by the agent only when required.
 
 Path Convention:
-- Skills live under ``bin/skills/{name}/`` relative to the workspace root.
-- Returned paths are always **workspace-relative** (e.g. ``bin/skills/my-skill``)
+- Skills live under ``.stigmer/skills/{name}/`` relative to the workspace root.
+- When the virtual platform mount (AD-01 v3) is active, the backend routes
+  ``.stigmer/*`` to an external platform directory — skills physically live
+  outside the workspace, but the agent sees them at ``.stigmer/skills/``.
+- Returned paths are always **workspace-relative** (e.g. ``.stigmer/skills/my-skill``)
   so that the agent's sandbox backend resolves them correctly regardless of
   whether it uses chroot-like semantics or the Daytona SDK working directory.
 
 Directory Structure:
-- bin/skills/{name}/SKILL.md - Interface definition (required)
-- bin/skills/{name}/scripts/ - Executable scripts (optional)
-- bin/skills/{name}/references/ - Reference documentation (optional)
-- bin/skills/{name}/assets/ - Static resources (optional)
+- .stigmer/skills/{name}/SKILL.md - Interface definition (required)
+- .stigmer/skills/{name}/scripts/ - Executable scripts (optional)
+- .stigmer/skills/{name}/references/ - Reference documentation (optional)
+- .stigmer/skills/{name}/assets/ - Static resources (optional)
 """
 
 from __future__ import annotations
@@ -37,7 +40,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_SKILLS_RELATIVE_BASE = "bin/skills"
+_SKILLS_RELATIVE_BASE = ".stigmer/skills"
 
 _SCRIPT_EXTENSIONS = frozenset((".sh", ".py", ".js", ".ts", ".rb", ".pl"))
 
@@ -46,13 +49,13 @@ class SkillWriter:
     """Writes skills to a workspace via :class:`WorkspaceBackend`.
 
     Following the Agent Skills specification:
-    - Skills are written to ``bin/skills/{name}/`` within the workspace
+    - Skills are written to ``.stigmer/skills/{name}/`` within the workspace
     - Only skill metadata (name + description + location) is injected into
       the system prompt; the agent reads SKILL.md on demand
     - Skills directory is read-only to prevent accidental modification
     """
 
-    SKILLS_BASE_DIR = "/bin/skills"
+    SKILLS_BASE_DIR = "/.stigmer/skills"
 
     def __init__(self, *, backend: WorkspaceBackend) -> None:
         self._backend = backend
@@ -232,7 +235,7 @@ class SkillWriter:
 
     def _make_scripts_executable(self, relative_dir: str) -> None:
         """``chmod +x`` script files within a skill directory."""
-        extensions = " ".join(
+        extensions = " -o ".join(
             f"-name '*{ext}'" for ext in sorted(_SCRIPT_EXTENSIONS)
         )
         cmd = (
@@ -302,7 +305,9 @@ class SkillWriter:
             "runtime. Do not write, modify, or create files inside it. "
             "When creating new files, write them relative to the workspace "
             "root (e.g. `my-output/file.md`, not "
-            f"`{_SKILLS_RELATIVE_BASE}/my-output/file.md`).",
+            f"`{_SKILLS_RELATIVE_BASE}/my-output/file.md`). "
+            "For shell execution of skill scripts, use "
+            "`$STIGMER_PLATFORM_DIR/skills/{name}/scripts/…`.",
             "",
         ]
 
