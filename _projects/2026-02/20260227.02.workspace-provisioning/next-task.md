@@ -14,31 +14,55 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: 2026-02-27 -- Phase 1 (Proto Changes) completed
-- **Active Task**: Phase 0 (Targeted Refactor) is the next phase to tackle
+- **Last Session**: 2026-02-27 — Phase 0 (WorkspaceBackend Extraction) completed
+- **Active Task**: Phase 2 (Workspace Provisioner Module) is the next phase to tackle
 - **Branch**: `feat/workspace-provisioning`
+- **Completed Phases**: Phase 1 (Proto Changes), Phase 0 (Targeted Refactor)
 
-## Session Progress (2026-02-27)
+## Session Progress (2026-02-27, Session 2)
 
-### Phase 1: Proto Changes -- COMPLETED
+### Phase 0: WorkspaceBackend Extraction — COMPLETED
+
+Extracted a deployment-agnostic `WorkspaceBackend` protocol from `execute_graphton.py`, eliminating all `is_local_mode()` conditionals for workspace operations. This was the "Complete" scope (~4 days), fully refactoring `SkillWriter` and `inject_attachments` internals.
+
+**New files created (4):**
+- `worker/workspace/backend.py` — `WorkspaceBackend` protocol + `ExecuteResult` dataclass
+- `worker/workspace/local.py` — `LocalWorkspaceBackend` (pathlib + subprocess)
+- `worker/workspace/daytona.py` — `DaytonaWorkspaceBackend` (Daytona SDK)
+- `worker/workspace/__init__.py` — `initialize_workspace()` factory + public re-exports
+
+**Major refactors (2):**
+- `worker/activities/graphton/skill_writer.py` — merged dual-mode `_write_skills_local()`/`_write_skills_daytona()` into unified `write_skills()` via `WorkspaceBackend`
+- `worker/activities/execute_graphton.py` — replaced ~8 `is_local_mode()` checks with backend usage, deleted `_check_workspace_file_exists()` helper
+
+**Test updates (8 files):**
+- Rewrote `test_skill_writer.py` (36+ tests → 30 focused tests)
+- Rewrote `test_inject_attachments.py` (34 tests → 24 focused tests)
+- Rewrote `test_workspace_integrity_check.py` to test `WorkspaceBackend.file_exists()`
+- New `tests/workspace/test_local_backend.py` — unit tests for LocalWorkspaceBackend
+- New `tests/workspace/test_daytona_backend.py` — unit tests for DaytonaWorkspaceBackend
+- Updated `test_integration_skill_pipeline.py`, `test_integration_subagent_pipeline.py`, `test_subagent_transformer.py`
+
+**Net diff**: 682 insertions, 1,874 deletions (−1,192 net lines removed)
+
+### Key Design Decisions Made (Phase 0)
+
+1. **`WorkspaceBackend` as a `Protocol` (structural typing)** — no forced inheritance; both `LocalWorkspaceBackend` and `DaytonaWorkspaceBackend` satisfy the protocol via duck-typing
+2. **`execute()` method on the protocol** — added proactively for Phase 2's git clone needs, also used immediately for diagnostic listing and skill chmod
+3. **`write_files()` batch method** — critical for Daytona cloud performance (batches `sandbox.fs.upload_files`)
+4. **In-memory ZIP extraction** — unified across both backends; eliminates complex remote unzip commands
+5. **`initialize_workspace()` factory** — centralizes mode-decision logic in one place; returns `(backend, sandbox, is_new_sandbox)` tuple
+6. **Path traversal protection** — implemented in `LocalWorkspaceBackend._resolve()` with `resolve().relative_to()` guard
+7. **Daytona `process.exec()` output mapping** — SDK returns combined `.output`, mapped to `ExecuteResult(stdout=output, stderr="")`
+
+## Previous Session Progress (2026-02-27, Session 1)
+
+### Phase 1: Proto Changes — COMPLETED
 
 - Created `apis/ai/stigmer/agentic/session/v1/workspace.proto` with `WorkspaceSource` and `GitRepoSource` messages
-- Modified `apis/ai/stigmer/agentic/session/v1/spec.proto` -- added `workspace_source` field (position 6) to `SessionSpec`
+- Modified `apis/ai/stigmer/agentic/session/v1/spec.proto` — added `workspace_source` field (position 6) to `SessionSpec`
 - Generated Go and Python stubs via `make go-stubs` and `make python-stubs`
-- Gazelle auto-generated BUILD.bazel with `workspace.pb.go` included
-
-### Key Design Decisions Made (Phase 1)
-
-1. **`optional int32` over `google.protobuf.Int32Value`** for `depth` field -- codebase has zero wrapper type usage; modern proto3 `optional` provides identical presence semantics without new dependency
-2. **Separate `branch` + `commit` over single `ref`** -- workspace provisioning needs both "which branch" and "which exact commit" as distinct concepts (diverges from skill/v1 Git message intentionally)
-3. **CEL expression for HTTPS validation** -- follows established codebase pattern
-4. **`oneof source` required on `WorkspaceSource`** -- empty `WorkspaceSource{}` is an invalid state; "no workspace" = absent field on `SessionSpec`
-
-### Validation Results
-
-- `buf lint` -- clean
-- `buf breaking` -- clean (purely additive)
-- `bazel build //apis/stubs/go/ai/stigmer/agentic/session/v1:session` -- compiles successfully
+- Validated with `buf lint`, `buf breaking`, and `bazel build`
 
 ## Next Steps
 
@@ -47,42 +71,51 @@ Per the dependency graph:
 ```
 Phase 0 ──┐
            ├── Phase 2 ── Phase 3 ──┬── Phase 4
-Phase 1 ──┘ (DONE)                  └── Phase 5
+Phase 1 ──┘ (both DONE)             └── Phase 5
 ```
 
-1. **Phase 0: Targeted Refactor** (next) -- Extract `WorkspaceBackend` protocol interface from `execute_graphton.py`. This creates clean extension points for the provisioner to plug into. Medium risk, ~2 days.
-2. **Phase 2: Workspace Provisioner Module** -- Depends on Phase 0 + Phase 1 (done). Implements `WorkspaceProvisioner`, git source, empty source, local path support.
-3. **Phase 3-5**: Follow from Phase 2/3 per dependency graph.
+1. **Phase 2: Workspace Provisioner Module** (next) — Depends on Phase 0 + Phase 1 (both done). Implements `WorkspaceProvisioner`, git source, empty source, local path support. Plugs into the `WorkspaceBackend` interface.
+2. **Phase 3: Integration Wire-Up** — Wire provisioner into `execute_graphton.py`, update session handling.
+3. **Phase 4-5**: Follow from Phase 3 per dependency graph.
 
 ## Context for Resume
 
-- The proto files are on branch `feat/workspace-provisioning`
-- Phase 0 requires deep familiarity with `backend/services/agent-runner/worker/activities/execute_graphton.py` (2800+ lines, 8+ `is_local_mode()` checks)
-- Phase 0 targets ~3-4 mode checks for extraction, not all 8+ (targeted, not a rewrite)
-- The full plan with all phases is at `_projects/2026-02/20260227.02.workspace-provisioning/tasks/T01_0_plan.md`
-- Design decisions are at `_projects/2026-02/20260227.02.workspace-provisioning/design-decisions/`
+- All Phase 0 work is on branch `feat/workspace-provisioning`
+- The `WorkspaceBackend` protocol is the foundation that Phase 2's provisioner will use
+- `initialize_workspace()` factory currently handles sandbox creation + backend instantiation; Phase 2 will extend this with workspace source provisioning (git clone, etc.)
+- `execute_graphton.py` is now ~2,100 lines (down from ~2,700) — much cleaner
+- `SkillWriter` and `inject_attachments` are now fully deployment-agnostic
+- No `is_local_mode()` calls remain for workspace file operations
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-02/20260227.02.workspace-provisioning/checkpoints/
+_projects/2026-02/20260227.02.workspace-provisioning/checkpoints/
 ```
 
-### 2. Current Task
+### 2. Full Project Plan
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-02/20260227.02.workspace-provisioning/tasks/T01_0_plan.md
+_projects/2026-02/20260227.02.workspace-provisioning/tasks/T01_0_plan.md
 ```
 
 ### 3. Design Decisions
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-02/20260227.02.workspace-provisioning/design-decisions/
+_projects/2026-02/20260227.02.workspace-provisioning/design-decisions/
 ```
 
-### 4. Proto Files (Phase 1 output)
+### 4. Phase 0 Output (WorkspaceBackend)
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/apis/ai/stigmer/agentic/session/v1/workspace.proto
-/Users/suresh/scm/github.com/stigmer/stigmer/apis/ai/stigmer/agentic/session/v1/spec.proto
+backend/services/agent-runner/worker/workspace/backend.py    — Protocol + ExecuteResult
+backend/services/agent-runner/worker/workspace/local.py      — Local implementation
+backend/services/agent-runner/worker/workspace/daytona.py    — Cloud implementation
+backend/services/agent-runner/worker/workspace/__init__.py   — Factory + exports
+```
+
+### 5. Proto Files (Phase 1 Output)
+```
+apis/ai/stigmer/agentic/session/v1/workspace.proto
+apis/ai/stigmer/agentic/session/v1/spec.proto
 ```
 
 ## Resume Checklist
@@ -90,17 +123,17 @@ Phase 1 ──┘ (DONE)                  └── Phase 5
 When starting a new session:
 
 1. [ ] Read the latest checkpoint from `checkpoints/`
-2. [ ] Review `tasks/T01_0_plan.md` for Phase 0 details (next phase)
-3. [ ] Check design decisions in `design-decisions/`
-4. [ ] Familiarize with `backend/services/agent-runner/worker/activities/execute_graphton.py`
-5. [ ] Continue with Phase 0 implementation
+2. [ ] Review `tasks/T01_0_plan.md` for full project plan
+3. [ ] Skim `worker/workspace/backend.py` to recall the protocol shape
+4. [ ] Review Phase 2 requirements in the plan
+5. [ ] Continue with Phase 2 implementation
 
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 0" - Start the targeted refactor
-- "Show project status" - Get overview of progress
-- "Create checkpoint" - Save current progress
+- "Continue with Phase 2" — Start the workspace provisioner module
+- "Show project status" — Get overview of progress
+- "Create checkpoint" — Save current progress
 
 ---
 

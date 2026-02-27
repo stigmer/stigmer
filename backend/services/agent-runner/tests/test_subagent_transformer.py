@@ -420,7 +420,7 @@ class TestTransformSubAgents:
             parent_mcp_usages=[],
             skill_client=mock_skill_client,
             skill_writer_class=mock_skill_writer_class,
-            skill_writer_kwargs={"local_root": "/tmp"},
+            skill_writer_kwargs={"backend": MagicMock()},
             activity_logger=logging.getLogger("test"),
         )
         
@@ -441,7 +441,7 @@ class TestTransformSubAgents:
             parent_mcp_usages=[],
             skill_client=mock_skill_client,
             skill_writer_class=mock_skill_writer_class,
-            skill_writer_kwargs={"local_root": "/tmp"},
+            skill_writer_kwargs={"backend": MagicMock()},
             activity_logger=logging.getLogger("test"),
         )
         
@@ -476,7 +476,7 @@ class TestTransformSubAgents:
             parent_mcp_usages=[],
             skill_client=mock_skill_client,
             skill_writer_class=mock_skill_writer_class,
-            skill_writer_kwargs={"local_root": "/tmp"},
+            skill_writer_kwargs={"backend": MagicMock()},
             activity_logger=logging.getLogger("test"),
         )
         
@@ -514,7 +514,7 @@ class TestTransformSubAgents:
             parent_mcp_usages=[],
             skill_client=mock_skill_client,
             skill_writer_class=mock_skill_writer_class,
-            skill_writer_kwargs={"local_root": "/tmp"},
+            skill_writer_kwargs={"backend": MagicMock()},
             activity_logger=logging.getLogger("test"),
         )
         
@@ -555,7 +555,7 @@ class TestTransformSubAgents:
             parent_mcp_usages=parent_mcp_usages,
             skill_client=mock_skill_client,
             skill_writer_class=mock_skill_writer_class,
-            skill_writer_kwargs={"local_root": "/tmp"},
+            skill_writer_kwargs={"backend": MagicMock()},
             activity_logger=logging.getLogger("test"),
         )
         
@@ -590,7 +590,7 @@ class TestTransformSubAgents:
                 parent_mcp_usages=parent_mcp_usages,
                 skill_client=mock_skill_client,
                 skill_writer_class=mock_skill_writer_class,
-                skill_writer_kwargs={"local_root": "/tmp"},
+                skill_writer_kwargs={"backend": MagicMock()},
                 activity_logger=logging.getLogger("test"),
             )
             
@@ -620,7 +620,7 @@ class TestTransformSubAgents:
             parent_mcp_usages=[],
             skill_client=mock_skill_client,
             skill_writer_class=mock_skill_writer_class,
-            skill_writer_kwargs={"local_root": "/tmp"},
+            skill_writer_kwargs={"backend": MagicMock()},
             activity_logger=logging.getLogger("test"),
         )
         
@@ -656,7 +656,7 @@ class TestEdgeCases:
             parent_mcp_usages=[],
             skill_client=mock_skill_client,
             skill_writer_class=mock_skill_writer_class,
-            skill_writer_kwargs={"local_root": "/tmp"},
+            skill_writer_kwargs={"backend": MagicMock()},
             activity_logger=logging.getLogger("test"),
         )
         
@@ -693,7 +693,7 @@ class TestEdgeCases:
             parent_mcp_usages=parent_mcp_usages,
             skill_client=mock_skill_client,
             skill_writer_class=mock_skill_writer_class,
-            skill_writer_kwargs={"local_root": "/tmp"},
+            skill_writer_kwargs={"backend": MagicMock()},
             activity_logger=logging.getLogger("test"),
         )
         

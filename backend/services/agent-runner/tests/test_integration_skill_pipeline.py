@@ -25,6 +25,7 @@ import pytest
 
 # Import components under test
 from worker.activities.graphton.skill_writer import SkillWriter
+from worker.workspace.local import LocalWorkspaceBackend
 
 
 class TestFullPipelineIntegration:
@@ -143,7 +144,7 @@ features:
             artifacts = {skill.metadata.id: complex_artifact_zip}
             
             # Execute pipeline
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             skill_paths = writer.write_skills([skill], artifacts=artifacts)
             
             # Verify skill path returned (local mode returns sandbox-relative, no leading /)
@@ -209,7 +210,7 @@ features:
             skill = skill_without_artifact
             
             # Execute without artifacts
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             skill_paths = writer.write_skills([skill], artifacts=None)
             
             # Verify skill path returned (local mode, no leading /)
@@ -234,7 +235,7 @@ features:
             skills = [skill_with_artifact, skill_without_artifact]
             artifacts = {skill_with_artifact.metadata.id: complex_artifact_zip}
             
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             skill_paths = writer.write_skills(skills, artifacts=artifacts)
             
             # Both skills should have paths
@@ -330,7 +331,7 @@ Tests compliance with the Agent Skills specification.
     def test_skills_written_to_bin_skills_directory(self, sample_skill):
         """Skills must be written to bin/skills/{name}/."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             skill_paths = writer.write_skills([sample_skill])
 
             expected_path = f"bin/skills/{sample_skill.metadata.name}"
@@ -412,7 +413,7 @@ class TestVersionResolutionIntegration:
         with tempfile.TemporaryDirectory() as tmpdir:
             skills = [skill_latest, skill_tagged_stable, skill_pinned_hash]
             
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             skill_paths = writer.write_skills(skills)
             
             # All three skills share the same metadata.name ("versioned-skill"),
@@ -437,7 +438,7 @@ class TestVersionResolutionIntegration:
         skill2.status.version_hash = "hash_b_123456789012345678901234567890123456789012345678901234"
         
         with tempfile.TemporaryDirectory() as tmpdir:
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             skill_paths = writer.write_skills([skill1, skill2])
             
             # Both skills share the same name-based path
@@ -466,7 +467,7 @@ class TestErrorRecoveryIntegration:
             invalid_zip = b"this is not a valid zip file"
             artifacts = {valid_skill.metadata.id: invalid_zip}
             
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             
             with pytest.raises(RuntimeError) as exc_info:
                 writer.write_skills([valid_skill], artifacts=artifacts)
@@ -484,7 +485,7 @@ class TestErrorRecoveryIntegration:
             
             artifacts = {valid_skill.metadata.id: empty_zip}
             
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             skill_paths = writer.write_skills([valid_skill], artifacts=artifacts)
             
             # Should complete without error
@@ -513,7 +514,7 @@ class TestErrorRecoveryIntegration:
         
         with tempfile.TemporaryDirectory() as tmpdir:
             # Don't provide artifact (simulating download failure)
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             skill_paths = writer.write_skills([skill], artifacts=None)
             
             # Should succeed with SKILL.md fallback
@@ -796,7 +797,7 @@ class TestZipFormatEndToEnd:
         from graphton.core.backends.filesystem import FilesystemBackend
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             artifacts = {mock_skill.metadata.id: self._create_flat_zip()}
             skill_paths = writer.write_skills([mock_skill], artifacts=artifacts)
 
@@ -817,7 +818,7 @@ class TestZipFormatEndToEnd:
         from graphton.core.backends.filesystem import FilesystemBackend
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             artifacts = {mock_skill.metadata.id: self._create_dot_prefix_zip()}
             skill_paths = writer.write_skills([mock_skill], artifacts=artifacts)
 
@@ -840,7 +841,7 @@ class TestZipFormatEndToEnd:
         from graphton.core.backends.filesystem import FilesystemBackend
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             artifacts = {mock_skill.metadata.id: self._create_nested_zip("my-skill")}
             skill_paths = writer.write_skills([mock_skill], artifacts=artifacts)
 
@@ -859,7 +860,7 @@ class TestZipFormatEndToEnd:
     def test_flat_zip_scripts_are_executable(self, mock_skill):
         """Scripts in flat ZIP must be executable after extraction."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             artifacts = {mock_skill.metadata.id: self._create_flat_zip()}
             writer.write_skills([mock_skill], artifacts=artifacts)
 
@@ -881,7 +882,7 @@ class TestZipFormatEndToEnd:
         from graphton.core.backends.filesystem import FilesystemBackend
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             artifacts = {mock_skill.metadata.id: self._create_flat_zip()}
             skill_paths = writer.write_skills([mock_skill], artifacts=artifacts)
 
@@ -902,7 +903,7 @@ class TestZipFormatEndToEnd:
         from graphton.core.backends.filesystem import FilesystemBackend
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             artifacts = {mock_skill.metadata.id: self._create_flat_zip()}
             skill_paths = writer.write_skills([mock_skill], artifacts=artifacts)
 
@@ -919,7 +920,7 @@ class TestZipFormatEndToEnd:
         from graphton.core.backends.filesystem import FilesystemBackend
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             artifacts = {mock_skill.metadata.id: self._create_flat_zip()}
             skill_paths = writer.write_skills([mock_skill], artifacts=artifacts)
 

@@ -22,6 +22,7 @@ import pytest
 
 from worker.activities.graphton.skill_writer import SkillWriter
 from worker.activities.graphton.subagent_transformer import transform_sub_agents
+from worker.workspace.local import LocalWorkspaceBackend
 
 
 class TestFullPipelineIntegration:
@@ -159,7 +160,7 @@ Run `./review.sh <path>` to analyze code.
             skill_client.get_artifact = AsyncMock(return_value=b"")
             
             # Use real SkillWriter for integration testing
-            skill_writer_kwargs = {"local_root": tmpdir}
+            skill_writer_kwargs = {"backend": LocalWorkspaceBackend(root_dir=tmpdir)}
             
             # Patch MCP tool creation to avoid actual MCP connections
             with patch(
@@ -254,7 +255,7 @@ Run `./review.sh <path>` to analyze code.
                     parent_mcp_usages=parent_mcp_config["usages"],
                     skill_client=skill_client,
                     skill_writer_class=SkillWriter,
-                    skill_writer_kwargs={"local_root": tmpdir},
+                    skill_writer_kwargs={"backend": LocalWorkspaceBackend(root_dir=tmpdir)},
                     activity_logger=logging.getLogger("test"),
                 )
                 
@@ -311,7 +312,7 @@ Run `./review.sh <path>` to analyze code.
                 parent_mcp_usages=parent_mcp_config["usages"],
                 skill_client=skill_client,
                 skill_writer_class=SkillWriter,
-                skill_writer_kwargs={"local_root": "/tmp"},
+                skill_writer_kwargs={"backend": MagicMock()},
                 activity_logger=logging.getLogger("test"),
             )
             
@@ -364,7 +365,7 @@ Run `./review.sh <path>` to analyze code.
                 parent_mcp_usages=parent_mcp_config["usages"],
                 skill_client=skill_client,
                 skill_writer_class=SkillWriter,
-                skill_writer_kwargs={"local_root": "/tmp"},
+                skill_writer_kwargs={"backend": MagicMock()},
                 activity_logger=logging.getLogger("test"),
             )
             
@@ -408,7 +409,7 @@ Run `./review.sh <path>` to analyze code.
                 parent_mcp_usages=[],
                 skill_client=skill_client,
                 skill_writer_class=SkillWriter,
-                skill_writer_kwargs={"local_root": tmpdir},
+                skill_writer_kwargs={"backend": LocalWorkspaceBackend(root_dir=tmpdir)},
                 activity_logger=logging.getLogger("test"),
             )
             
@@ -463,7 +464,7 @@ class TestErrorRecovery:
                 parent_mcp_usages=[parent_usage],
                 skill_client=skill_client,
                 skill_writer_class=SkillWriter,
-                skill_writer_kwargs={"local_root": "/tmp"},
+                skill_writer_kwargs={"backend": MagicMock()},
                 activity_logger=logging.getLogger("test"),
             )
             
@@ -500,7 +501,7 @@ class TestErrorRecovery:
             parent_mcp_usages=[],
             skill_client=skill_client,
             skill_writer_class=SkillWriter,
-            skill_writer_kwargs={"local_root": "/tmp"},
+            skill_writer_kwargs={"backend": MagicMock()},
             activity_logger=logging.getLogger("test"),
         )
         
@@ -541,7 +542,7 @@ class TestErrorRecovery:
             parent_mcp_usages=[],
             skill_client=skill_client,
             skill_writer_class=SkillWriter,
-            skill_writer_kwargs={"local_root": "/tmp"},
+            skill_writer_kwargs={"backend": MagicMock()},
             activity_logger=logging.getLogger("test"),
         )
         
@@ -573,7 +574,7 @@ class TestGraphtonCompatibility:
             parent_mcp_usages=[],
             skill_client=skill_client,
             skill_writer_class=SkillWriter,
-            skill_writer_kwargs={"local_root": "/tmp"},
+            skill_writer_kwargs={"backend": MagicMock()},
             activity_logger=logging.getLogger("test"),
         )
         
