@@ -73,6 +73,7 @@ stigmer server status   # check if running
 stigmer server stop     # stop all services
 stigmer server          # start again
 stigmer server setup    # reconfigure LLM provider
+stigmer server reset    # stop and remove all data (keeps config)
 ```
 
 ## Core Concepts
@@ -211,7 +212,7 @@ See [sdk/go/README.md](sdk/go/README.md) for the full SDK reference, workflow bu
 | `stigmer push` | Push a skill artifact |
 | `stigmer download <kind> <name>` | Download a resource artifact |
 | `stigmer validate -f <file>` | Validate a resource definition |
-| `stigmer server` | Start/stop/status/setup for local server |
+| `stigmer server` | Start/stop/status/setup/reset for local server |
 | `stigmer mcp-server` | Start the Stigmer MCP server |
 | `stigmer backend` | Switch between local and cloud backends |
 | `stigmer config` | Manage CLI configuration |
@@ -381,9 +382,14 @@ stigmer server logs
 **Reset all local data:**
 
 ```bash
-stigmer server stop
-rm -rf ~/.stigmer
-stigmer server       # recreates everything on first run
+stigmer server reset    # stops services, removes data, keeps config
+stigmer server          # recreates everything on first run
+```
+
+To also remove configuration (API keys, LLM preferences):
+
+```bash
+stigmer server reset --include-config
 ```
 
 ## Documentation
