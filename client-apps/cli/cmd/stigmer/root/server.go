@@ -2,6 +2,7 @@ package root
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpserver"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/setup"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
 )
@@ -25,13 +27,13 @@ func NewServerCommand() *cobra.Command {
 		Short: "Start Stigmer server",
 		Long: `Start the Stigmer server in local mode.
 
-This command starts the Stigmer server with zero configuration:
+This command starts the Stigmer server:
   - Auto-downloads and starts Temporal
-  - Uses Ollama (local LLM, no API keys)
-  - Starts stigmer-server on localhost:50051
+  - On first run, prompts to choose an LLM provider (Anthropic, OpenAI, or Ollama)
+  - Starts stigmer-server on localhost:7234
   - Starts agent-runner for AI agent execution
 
-Just run 'stigmer server' and start building!`,
+Run 'stigmer server setup' to reconfigure the LLM provider at any time.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			handleServerStart(cmd, resolveResultFormat(jsonOutput, quietOutput))
 		},
@@ -44,6 +46,7 @@ Just run 'stigmer server' and start building!`,
 	cmd.Flags().Int("sandbox-ttl", 3600, "Sandbox container reuse TTL in seconds")
 	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
 
+	cmd.AddCommand(newServerSetupCommand())
 	cmd.AddCommand(newServerStopCommand())
 	cmd.AddCommand(newServerStatusCommand())
 	cmd.AddCommand(newServerLogsCommand())
@@ -84,17 +87,22 @@ func newServerStatusCommand() *cobra.Command {
 
 func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 	if !config.IsInitialized() {
-		climsg.Info("First-time setup: Initializing Stigmer...")
-
 		cfg := config.GetDefault()
+
+		if err := setup.RunWizard(cfg); err != nil {
+			climsg.Error("Setup failed: %v", err)
+			clierr.Handle(err)
+			return
+		}
+
 		if err := config.Save(cfg); err != nil {
-			climsg.Error("Failed to create configuration")
+			climsg.Error("Failed to save configuration")
 			clierr.Handle(err)
 			return
 		}
 
 		configPath, _ := config.GetConfigPath()
-		climsg.Success("Created configuration at %s", configPath)
+		climsg.Success("Configuration saved to %s", configPath)
 	}
 
 	dataDir, err := config.GetDataDir()
@@ -125,13 +133,17 @@ func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 	llmProvider := cfg.Backend.Local.ResolveLLMProvider()
 	llmModel := cfg.Backend.Local.ResolveLLMModel()
 
-	if llmProvider == "ollama" {
-		climsg.Success("Using local LLM (no API key required)")
-	} else {
+	switch llmProvider {
+	case "ollama":
+		climsg.Success("Using Ollama (local LLM, no API key required)")
+	case "anthropic", "openai":
 		climsg.Info("Using %s with model %s", llmProvider, llmModel)
+	case "":
+		climsg.Warning("No LLM provider configured. Agents will not execute.")
+		climsg.Warning("Run 'stigmer server setup' to configure an LLM provider.")
 	}
 
-	secrets, err := daemon.GatherRequiredSecrets(llmProvider)
+	secrets, err := daemon.GatherRequiredSecrets(llmProvider, cfg.Backend.Local)
 	if err != nil {
 		climsg.Error("Failed to gather required credentials")
 		clierr.Handle(err)
@@ -231,6 +243,53 @@ func runBootstrapDiscovery(cfg *config.Config) {
 	}
 	if result.Attempted > result.Succeeded {
 		climsg.Warning("Discovery failed for %d MCP server(s)", result.Attempted-result.Succeeded)
+	}
+}
+
+func newServerSetupCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "setup",
+		Short: "Configure LLM provider",
+		Long: `Run the interactive setup wizard to configure your LLM provider.
+
+This re-runs the same wizard shown on first startup. Use it to switch
+between Anthropic, OpenAI, Ollama, or to add an API key after skipping
+initial setup.
+
+After changing the provider, restart the server to apply:
+  stigmer server stop && stigmer server`,
+		Run: func(cmd *cobra.Command, args []string) {
+			handleServerSetup()
+		},
+	}
+}
+
+func handleServerSetup() {
+	cfg, err := config.Load()
+	if err != nil {
+		cfg = config.GetDefault()
+	}
+
+	if err := setup.RunWizard(cfg); err != nil {
+		climsg.Error("Setup failed: %v", err)
+		clierr.Handle(err)
+		return
+	}
+
+	if err := config.Save(cfg); err != nil {
+		climsg.Error("Failed to save configuration")
+		clierr.Handle(err)
+		return
+	}
+
+	configPath, _ := config.GetConfigPath()
+	climsg.Success("Configuration saved to %s", configPath)
+
+	dataDir, _ := config.GetDataDir()
+	if dataDir != "" && daemon.IsRunning(dataDir) {
+		fmt.Fprintln(os.Stderr)
+		climsg.Info("Server is running. Restart to apply changes:")
+		climsg.Info("  stigmer server stop && stigmer server")
 	}
 }
 

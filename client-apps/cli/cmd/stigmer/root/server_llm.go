@@ -150,6 +150,11 @@ func addLLMSections(result *clioutput.CommandResult, cfg *config.Config) {
 			sec.Field("API Key", "Not configured ✗")
 		}
 
+	case "":
+		sec.Field("Provider", "Not configured")
+		sec.Field("Status", "Agents will not execute")
+		sec.Field("Setup", "Run 'stigmer server setup' to configure")
+
 	default:
 		sec.Fieldf("Provider", "Unknown (%s)", provider)
 	}

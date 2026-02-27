@@ -29,7 +29,6 @@ type SetupOptions struct {
 	Progress *cliprint.ProgressDisplay // Optional progress display
 	Model    string                    // Model to pull (default: qwen2.5-coder:7b)
 	Provider string                    // Provider: ollama, anthropic, openai
-	Force    bool                      // Force reinstall even if exists
 }
 
 // Setup ensures local LLM is installed, running, and has the required model
@@ -72,12 +71,14 @@ func Setup(ctx context.Context, cfg *config.LocalBackendConfig, opts *SetupOptio
 	if IsRunning() {
 		log.Info().Str("binary", binaryPath).Msg("Local LLM server is already running")
 	} else {
-		// If binary was not found, try to download it
 		if binaryPath == "" {
-			binaryPath, err = EnsureBinary(ctx, opts)
-			if err != nil {
-				return errors.Wrap(err, "failed to ensure LLM binary - please install Ollama manually: https://ollama.ai/download")
-			}
+			return fmt.Errorf("Ollama is not installed\n\n" +
+				"  Install Ollama:\n" +
+				"    brew install ollama\n\n" +
+				"  Then start it:\n" +
+				"    ollama serve\n\n" +
+				"  Or switch to a cloud provider:\n" +
+				"    stigmer server setup")
 		}
 
 		// Step 3: Start LLM server
@@ -150,36 +151,6 @@ func IsRunning() bool {
 	return resp.StatusCode == http.StatusOK
 }
 
-// EnsureBinary ensures LLM binary exists at ~/.stigmer/bin/ollama
-// Downloads if missing or Force is true
-func EnsureBinary(ctx context.Context, opts *SetupOptions) (string, error) {
-	stigmerDir, err := getStigmerDir()
-	if err != nil {
-		return "", err
-	}
-
-	binaryPath := filepath.Join(stigmerDir, "bin", "ollama")
-	if runtime.GOOS == "windows" {
-		binaryPath += ".exe"
-	}
-
-	// Check if binary exists and Force is false
-	if !opts.Force && fileExists(binaryPath) {
-		log.Info().Str("path", binaryPath).Msg("LLM binary already exists")
-		return binaryPath, nil
-	}
-
-	// Download binary
-	if opts.Progress != nil {
-		opts.Progress.SetPhase(cliprint.PhaseInstalling, "Downloading local LLM")
-	}
-
-	if err := downloadBinary(ctx, binaryPath, opts); err != nil {
-		return "", errors.Wrap(err, "failed to download LLM binary")
-	}
-
-	return binaryPath, nil
-}
 
 // StartServer starts the LLM server in the background
 func StartServer(ctx context.Context, binaryPath string, opts *SetupOptions) error {
