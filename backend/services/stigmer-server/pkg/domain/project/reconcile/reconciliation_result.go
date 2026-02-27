@@ -3,146 +3,91 @@ package reconcile
 import (
 	"slices"
 
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/project/v1"
 )
 
-// emptyResult is a singleton empty ReconciliationResult for reuse.
 var emptyResult = &ReconciliationResult{
-	created: []*projectv1.ResourceChangeRecord{},
-	updated: []*projectv1.ResourceChangeRecord{},
-	deleted: []*projectv1.ResourceChangeRecord{},
+	added:   []*apiresource.ApiResourceReference{},
+	removed: []*apiresource.ApiResourceReference{},
 	errors:  []ReconciliationError{},
 }
 
-// ReconciliationResult captures the outcome of a reconciliation execution.
+// ReconciliationResult captures the outcome of a membership reconciliation.
 //
-// ReconciliationResult tracks which resources were successfully created, updated,
-// or deleted, along with any errors that occurred during execution. It supports
-// partial success - some resources may succeed while others fail.
+// In the reference-based model, reconciliation compares two membership lists
+// (previous vs current) and optionally deletes orphaned resources. The result
+// tracks which members were added (new to the project), which were removed
+// (orphans that were pruned), and any errors during orphan deletion.
 //
 // This is an immutable value object:
 //   - All fields are unexported
-//   - Construction is only through factory functions or Builder
+//   - Construction is only through factory functions or ResultBuilder
 //   - Getters return defensive copies
-//   - There are no setters
-//
-// Use ResultBuilder for incremental construction during execution.
-//
-// Example:
-//
-//	// Success case - all changes applied
-//	result := NewSuccessResult(created, updated, deleted)
-//
-//	// Partial success - some failed
-//	result := NewPartialResult(created, updated, deleted, errors)
-//
-//	// Convert to proto for API response
-//	summary := result.ToProtoSummary()
 type ReconciliationResult struct {
-	created []*projectv1.ResourceChangeRecord
-	updated []*projectv1.ResourceChangeRecord
-	deleted []*projectv1.ResourceChangeRecord
+	added   []*apiresource.ApiResourceReference
+	removed []*apiresource.ApiResourceReference
 	errors  []ReconciliationError
 }
 
-// NewSuccessResult creates a ReconciliationResult for a fully successful execution.
-//
-// Use this when all changes were applied without errors.
-func NewSuccessResult(
-	created, updated, deleted []*projectv1.ResourceChangeRecord,
-) *ReconciliationResult {
-	return &ReconciliationResult{
-		created: cloneRecordSlice(created),
-		updated: cloneRecordSlice(updated),
-		deleted: cloneRecordSlice(deleted),
-		errors:  []ReconciliationError{},
-	}
-}
-
-// NewPartialResult creates a ReconciliationResult for partial success.
-//
-// Use this when some changes were applied but others failed.
-// The errors slice should contain details about each failure.
-func NewPartialResult(
-	created, updated, deleted []*projectv1.ResourceChangeRecord,
+// NewResult creates a ReconciliationResult with added and removed members.
+func NewResult(
+	added, removed []*apiresource.ApiResourceReference,
 	errors []ReconciliationError,
 ) *ReconciliationResult {
 	return &ReconciliationResult{
-		created: cloneRecordSlice(created),
-		updated: cloneRecordSlice(updated),
-		deleted: cloneRecordSlice(deleted),
-		errors:  cloneErrorSlice(errors),
-	}
-}
-
-// NewFailureResult creates a ReconciliationResult when execution completely failed.
-//
-// Use this when no changes could be applied at all.
-func NewFailureResult(errors []ReconciliationError) *ReconciliationResult {
-	return &ReconciliationResult{
-		created: []*projectv1.ResourceChangeRecord{},
-		updated: []*projectv1.ResourceChangeRecord{},
-		deleted: []*projectv1.ResourceChangeRecord{},
+		added:   cloneRefSlice(added),
+		removed: cloneRefSlice(removed),
 		errors:  cloneErrorSlice(errors),
 	}
 }
 
 // EmptyResult returns a singleton empty ReconciliationResult.
 //
-// This represents a successful execution with no changes (desired state
-// already matches actual state).
+// Represents a reconciliation with no membership changes (previous == current).
 func EmptyResult() *ReconciliationResult {
 	return emptyResult
 }
 
-// Created returns a defensive copy of the created resource records.
-func (r *ReconciliationResult) Created() []*projectv1.ResourceChangeRecord {
-	return slices.Clone(r.created)
+// Added returns a defensive copy of the newly added member references.
+//
+// These are references in the current membership list that were not in the
+// previous list — resources newly associated with the project.
+func (r *ReconciliationResult) Added() []*apiresource.ApiResourceReference {
+	return slices.Clone(r.added)
 }
 
-// Updated returns a defensive copy of the updated resource records.
-func (r *ReconciliationResult) Updated() []*projectv1.ResourceChangeRecord {
-	return slices.Clone(r.updated)
+// Removed returns a defensive copy of the removed (orphaned) member references.
+//
+// These are references that were in the previous membership list but not in
+// the current list, and were successfully deleted during orphan pruning.
+func (r *ReconciliationResult) Removed() []*apiresource.ApiResourceReference {
+	return slices.Clone(r.removed)
 }
 
-// Deleted returns a defensive copy of the deleted resource records.
-func (r *ReconciliationResult) Deleted() []*projectv1.ResourceChangeRecord {
-	return slices.Clone(r.deleted)
-}
-
-// Errors returns a defensive copy of the errors that occurred.
+// Errors returns a defensive copy of errors that occurred during reconciliation.
 func (r *ReconciliationResult) Errors() []ReconciliationError {
 	return slices.Clone(r.errors)
 }
 
-// IsSuccess returns true if no errors occurred during execution.
+// IsSuccess returns true if no errors occurred during reconciliation.
 func (r *ReconciliationResult) IsSuccess() bool {
 	return len(r.errors) == 0
 }
 
-// HasErrors returns true if any errors occurred during execution.
+// HasErrors returns true if any errors occurred during reconciliation.
 func (r *ReconciliationResult) HasErrors() bool {
 	return len(r.errors) > 0
 }
 
-// TotalChanges returns the total number of successful changes.
-func (r *ReconciliationResult) TotalChanges() int {
-	return len(r.created) + len(r.updated) + len(r.deleted)
+// AddedCount returns the number of members added to the project.
+func (r *ReconciliationResult) AddedCount() int {
+	return len(r.added)
 }
 
-// CreatedCount returns the number of resources created.
-func (r *ReconciliationResult) CreatedCount() int {
-	return len(r.created)
-}
-
-// UpdatedCount returns the number of resources updated.
-func (r *ReconciliationResult) UpdatedCount() int {
-	return len(r.updated)
-}
-
-// DeletedCount returns the number of resources deleted.
-func (r *ReconciliationResult) DeletedCount() int {
-	return len(r.deleted)
+// RemovedCount returns the number of orphaned members that were pruned.
+func (r *ReconciliationResult) RemovedCount() int {
+	return len(r.removed)
 }
 
 // ErrorCount returns the number of errors that occurred.
@@ -152,65 +97,46 @@ func (r *ReconciliationResult) ErrorCount() int {
 
 // ToProtoSummary converts the result to a ReconciliationSummary proto message.
 //
-// This is used to populate the Apply() response with reconciliation details.
+// Field mapping:
+//   - added  -> created  (new members added to the project)
+//   - (none) -> updated  (not applicable in reference model; always empty)
+//   - removed -> deleted (orphans that were pruned)
 func (r *ReconciliationResult) ToProtoSummary() *projectv1.ReconciliationSummary {
 	return &projectv1.ReconciliationSummary{
-		Created: slices.Clone(r.created),
-		Updated: slices.Clone(r.updated),
-		Deleted: slices.Clone(r.deleted),
+		Created: slices.Clone(r.added),
+		Updated: nil,
+		Deleted: slices.Clone(r.removed),
 	}
 }
 
 // ResultBuilder provides incremental construction of ReconciliationResult.
 //
-// ResultBuilder is used during reconciliation execution to accumulate
-// successes and failures as each resource is processed.
-//
-// Example:
-//
-//	builder := NewResultBuilder()
-//	for _, change := range plan.AllChanges() {
-//	    record, err := execute(change)
-//	    if err != nil {
-//	        builder.AddError(NewReconciliationErrorWithCause(
-//	            change.Key().String(), "execution failed", err))
-//	    } else {
-//	        builder.AddSuccess(change.ChangeType(), record)
-//	    }
-//	}
-//	result := builder.Build()
+// Used during reconciliation execution to accumulate results as each
+// orphan is processed.
 type ResultBuilder struct {
-	created []*projectv1.ResourceChangeRecord
-	updated []*projectv1.ResourceChangeRecord
-	deleted []*projectv1.ResourceChangeRecord
+	added   []*apiresource.ApiResourceReference
+	removed []*apiresource.ApiResourceReference
 	errors  []ReconciliationError
 }
 
-// NewResultBuilder creates a new ResultBuilder for incremental result construction.
+// NewResultBuilder creates a new ResultBuilder for incremental construction.
 func NewResultBuilder() *ResultBuilder {
 	return &ResultBuilder{
-		created: []*projectv1.ResourceChangeRecord{},
-		updated: []*projectv1.ResourceChangeRecord{},
-		deleted: []*projectv1.ResourceChangeRecord{},
+		added:   []*apiresource.ApiResourceReference{},
+		removed: []*apiresource.ApiResourceReference{},
 		errors:  []ReconciliationError{},
 	}
 }
 
-// AddCreated records a successfully created resource.
-func (b *ResultBuilder) AddCreated(record *projectv1.ResourceChangeRecord) *ResultBuilder {
-	b.created = append(b.created, record)
+// AddAdded records a member newly added to the project.
+func (b *ResultBuilder) AddAdded(ref *apiresource.ApiResourceReference) *ResultBuilder {
+	b.added = append(b.added, ref)
 	return b
 }
 
-// AddUpdated records a successfully updated resource.
-func (b *ResultBuilder) AddUpdated(record *projectv1.ResourceChangeRecord) *ResultBuilder {
-	b.updated = append(b.updated, record)
-	return b
-}
-
-// AddDeleted records a successfully deleted resource.
-func (b *ResultBuilder) AddDeleted(record *projectv1.ResourceChangeRecord) *ResultBuilder {
-	b.deleted = append(b.deleted, record)
+// AddRemoved records an orphan member that was successfully deleted.
+func (b *ResultBuilder) AddRemoved(ref *apiresource.ApiResourceReference) *ResultBuilder {
+	b.removed = append(b.removed, ref)
 	return b
 }
 
@@ -221,23 +147,17 @@ func (b *ResultBuilder) AddError(err ReconciliationError) *ResultBuilder {
 }
 
 // Build creates an immutable ReconciliationResult from the accumulated data.
-//
-// The builder can be reused after Build() is called, but it's recommended
-// to create a new builder for each reconciliation.
 func (b *ResultBuilder) Build() *ReconciliationResult {
 	return &ReconciliationResult{
-		created: cloneRecordSlice(b.created),
-		updated: cloneRecordSlice(b.updated),
-		deleted: cloneRecordSlice(b.deleted),
+		added:   cloneRefSlice(b.added),
+		removed: cloneRefSlice(b.removed),
 		errors:  cloneErrorSlice(b.errors),
 	}
 }
 
-// Helper functions for defensive copying
-
-func cloneRecordSlice(s []*projectv1.ResourceChangeRecord) []*projectv1.ResourceChangeRecord {
+func cloneRefSlice(s []*apiresource.ApiResourceReference) []*apiresource.ApiResourceReference {
 	if s == nil {
-		return []*projectv1.ResourceChangeRecord{}
+		return []*apiresource.ApiResourceReference{}
 	}
 	return slices.Clone(s)
 }
