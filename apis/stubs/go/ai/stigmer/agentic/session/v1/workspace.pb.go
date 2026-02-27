@@ -30,14 +30,12 @@ const (
 //
 // When workspace_source is absent on SessionSpec, the session uses an empty
 // workspace (existing default behavior, no provisioning step).
-//
-// Local-path workspaces are a runner-level concern and do not appear in
-// the wire protocol (see AD-09).
 type WorkspaceSource struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Source:
 	//
 	//	*WorkspaceSource_GitRepo
+	//	*WorkspaceSource_LocalPath
 	Source        isWorkspaceSource_Source `protobuf_oneof:"source"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -89,6 +87,15 @@ func (x *WorkspaceSource) GetGitRepo() *GitRepoSource {
 	return nil
 }
 
+func (x *WorkspaceSource) GetLocalPath() *LocalPathSource {
+	if x != nil {
+		if x, ok := x.Source.(*WorkspaceSource_LocalPath); ok {
+			return x.LocalPath
+		}
+	}
+	return nil
+}
+
 type isWorkspaceSource_Source interface {
 	isWorkspaceSource_Source()
 }
@@ -97,7 +104,71 @@ type WorkspaceSource_GitRepo struct {
 	GitRepo *GitRepoSource `protobuf:"bytes,1,opt,name=git_repo,json=gitRepo,proto3,oneof"`
 }
 
+type WorkspaceSource_LocalPath struct {
+	LocalPath *LocalPathSource `protobuf:"bytes,2,opt,name=local_path,json=localPath,proto3,oneof"`
+}
+
 func (*WorkspaceSource_GitRepo) isWorkspaceSource_Source() {}
+
+func (*WorkspaceSource_LocalPath) isWorkspaceSource_Source() {}
+
+// LocalPathSource uses an existing directory on the host filesystem as the
+// workspace. The agent operates directly on the user's files -- changes are
+// immediate and persistent.
+//
+// Deployment constraint: only valid when the agent-runner is in local mode.
+// Cloud runners reject this at provisioning time with a clear error, the same
+// way GitRepoSource rejects SSH URLs at validation time. This is a normal
+// deployment-specific constraint, not a schema limitation.
+//
+// No copy or clone is made. The path is used directly as the workspace root.
+type LocalPathSource struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Absolute path to an existing directory on the host filesystem (required).
+	// The runner validates that the path exists and is a directory at
+	// provisioning time.
+	// Example: "/home/user/projects/my-app", "/Users/dev/src/acme-api"
+	Path          string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LocalPathSource) Reset() {
+	*x = LocalPathSource{}
+	mi := &file_ai_stigmer_agentic_session_v1_workspace_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LocalPathSource) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LocalPathSource) ProtoMessage() {}
+
+func (x *LocalPathSource) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_session_v1_workspace_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LocalPathSource.ProtoReflect.Descriptor instead.
+func (*LocalPathSource) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_session_v1_workspace_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *LocalPathSource) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
 
 // GitRepoSource provisions a workspace by cloning a git repository.
 //
@@ -140,7 +211,7 @@ type GitRepoSource struct {
 
 func (x *GitRepoSource) Reset() {
 	*x = GitRepoSource{}
-	mi := &file_ai_stigmer_agentic_session_v1_workspace_proto_msgTypes[1]
+	mi := &file_ai_stigmer_agentic_session_v1_workspace_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -152,7 +223,7 @@ func (x *GitRepoSource) String() string {
 func (*GitRepoSource) ProtoMessage() {}
 
 func (x *GitRepoSource) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_session_v1_workspace_proto_msgTypes[1]
+	mi := &file_ai_stigmer_agentic_session_v1_workspace_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -165,7 +236,7 @@ func (x *GitRepoSource) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GitRepoSource.ProtoReflect.Descriptor instead.
 func (*GitRepoSource) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_session_v1_workspace_proto_rawDescGZIP(), []int{1}
+	return file_ai_stigmer_agentic_session_v1_workspace_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *GitRepoSource) GetUrl() string {
@@ -200,10 +271,14 @@ var File_ai_stigmer_agentic_session_v1_workspace_proto protoreflect.FileDescript
 
 const file_ai_stigmer_agentic_session_v1_workspace_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/agentic/session/v1/workspace.proto\x12\x1dai.stigmer.agentic.session.v1\x1a\x1bbuf/validate/validate.proto\"m\n" +
+	"-ai/stigmer/agentic/session/v1/workspace.proto\x12\x1dai.stigmer.agentic.session.v1\x1a\x1bbuf/validate/validate.proto\"\xbe\x01\n" +
 	"\x0fWorkspaceSource\x12I\n" +
-	"\bgit_repo\x18\x01 \x01(\v2,.ai.stigmer.agentic.session.v1.GitRepoSourceH\x00R\agitRepoB\x0f\n" +
-	"\x06source\x12\x05\xbaH\x02\b\x01\"\x9a\x02\n" +
+	"\bgit_repo\x18\x01 \x01(\v2,.ai.stigmer.agentic.session.v1.GitRepoSourceH\x00R\agitRepo\x12O\n" +
+	"\n" +
+	"local_path\x18\x02 \x01(\v2..ai.stigmer.agentic.session.v1.LocalPathSourceH\x00R\tlocalPathB\x0f\n" +
+	"\x06source\x12\x05\xbaH\x02\b\x01\".\n" +
+	"\x0fLocalPathSource\x12\x1b\n" +
+	"\x04path\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04path\"\x9a\x02\n" +
 	"\rGitRepoSource\x12\xaa\x01\n" +
 	"\x03url\x18\x01 \x01(\tB\x97\x01\xbaH\x93\x01\xba\x01\x8c\x01\n" +
 	"\x19git_repo_source.url.https\x12Rurl must use HTTPS (e.g. https://github.com/org/repo). SSH URLs are not supported.\x1a\x1bthis.startsWith('https://')\xc8\x01\x01R\x03url\x12\x16\n" +
@@ -225,18 +300,20 @@ func file_ai_stigmer_agentic_session_v1_workspace_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_session_v1_workspace_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_session_v1_workspace_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_ai_stigmer_agentic_session_v1_workspace_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_ai_stigmer_agentic_session_v1_workspace_proto_goTypes = []any{
 	(*WorkspaceSource)(nil), // 0: ai.stigmer.agentic.session.v1.WorkspaceSource
-	(*GitRepoSource)(nil),   // 1: ai.stigmer.agentic.session.v1.GitRepoSource
+	(*LocalPathSource)(nil), // 1: ai.stigmer.agentic.session.v1.LocalPathSource
+	(*GitRepoSource)(nil),   // 2: ai.stigmer.agentic.session.v1.GitRepoSource
 }
 var file_ai_stigmer_agentic_session_v1_workspace_proto_depIdxs = []int32{
-	1, // 0: ai.stigmer.agentic.session.v1.WorkspaceSource.git_repo:type_name -> ai.stigmer.agentic.session.v1.GitRepoSource
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	2, // 0: ai.stigmer.agentic.session.v1.WorkspaceSource.git_repo:type_name -> ai.stigmer.agentic.session.v1.GitRepoSource
+	1, // 1: ai.stigmer.agentic.session.v1.WorkspaceSource.local_path:type_name -> ai.stigmer.agentic.session.v1.LocalPathSource
+	2, // [2:2] is the sub-list for method output_type
+	2, // [2:2] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_session_v1_workspace_proto_init() }
@@ -246,15 +323,16 @@ func file_ai_stigmer_agentic_session_v1_workspace_proto_init() {
 	}
 	file_ai_stigmer_agentic_session_v1_workspace_proto_msgTypes[0].OneofWrappers = []any{
 		(*WorkspaceSource_GitRepo)(nil),
+		(*WorkspaceSource_LocalPath)(nil),
 	}
-	file_ai_stigmer_agentic_session_v1_workspace_proto_msgTypes[1].OneofWrappers = []any{}
+	file_ai_stigmer_agentic_session_v1_workspace_proto_msgTypes[2].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_session_v1_workspace_proto_rawDesc), len(file_ai_stigmer_agentic_session_v1_workspace_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
