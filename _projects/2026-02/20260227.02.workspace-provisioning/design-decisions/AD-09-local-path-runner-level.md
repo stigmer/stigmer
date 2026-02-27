@@ -1,63 +1,84 @@
-# AD-09: Local Path Is a Runner-Level Concern, Not a Proto-Level Type
+# AD-09: Local Path Is a Proto-Level Workspace Source with Deployment Validation
 
 **Date**: 2026-02-27
-**Revised**: 2026-02-28 (post architectural review)
-**Status**: Accepted (Revised)
+**Revised**: 2026-02-28 (v3 — restored to proto after multi-invocation analysis)
+**Status**: Accepted (Revised v3)
 **Context**: Workspace provisioning architecture discussion
 
-## Original Decision
+## Decision History
 
-`LocalPathSource` was a `oneof` variant in the `WorkspaceSource` proto message alongside `GitRepoSource`.
+| Version | Decision | Date |
+|---------|----------|------|
+| v1 | `LocalPathSource` as `oneof` variant in proto | 2026-02-27 |
+| v2 | Removed from proto. Runner-level config only. | 2026-02-28 |
+| v3 | **Restored to proto as `oneof` variant.** Deployment validation at runtime. | 2026-02-28 |
 
-## Revised Decision
+## Current Decision (v3)
 
-`local_path` does NOT appear in the proto schema. It is a runner-level configuration detail handled entirely within the agent-runner process.
+`LocalPathSource` is a `oneof` variant in `WorkspaceSource`, alongside `GitRepoSource`. Cloud runners reject it at provisioning time with a clear error. This is a normal deployment-specific validation constraint, analogous to `GitRepoSource` rejecting SSH URLs via CEL validation.
 
-## Rationale
-
-`local_path` is ONLY valid in local mode -- it is physically impossible to provision in cloud mode (the cloud sandbox cannot access a path on the user's local machine). Putting it in the proto schema creates several problems:
-
-1. **Schema advertises an impossible capability**: Any client reading the proto sees `LocalPathSource` and assumes it's a valid option. In cloud mode, it will always fail at runtime. This violates the principle that invalid states should be unrepresentable.
-
-2. **Validation is deployment-dependent**: The same proto message is valid or invalid depending on which deployment mode the server is running in. Proto validation should be context-free.
-
-3. **Proto pollution**: The wire protocol carries a type that only works for one deployment mode. Other clients (web UI, API consumers) would need to know about deployment modes to present the right options -- leaking infrastructure concerns into the API contract.
-
-## Implementation
-
-In local mode, the runner detects a `local_workspace_path` configuration:
-- Via runner config environment variable: `STIGMER_LOCAL_WORKSPACE_PATH=/path/to/project`
-- Or via CLI flag (future): `stigmer run agent my-agent --workspace /path/to/project`
-
-The provisioner handles this as a special case:
-```python
-# In WorkspaceProvisioner.provision():
-if runner_config.local_workspace_path:
-    if not runner_config.is_local_mode():
-        raise ConfigurationError(
-            "local_workspace_path is only valid in local mode"
-        )
-    return ProvisionResult(
-        root_dir=runner_config.local_workspace_path,
-        consumed_keys=[],
-        workspace_description="User's project directory",
-        source_type="local_path",
-        git_metadata=None,
-    )
-```
-
-The proto `WorkspaceSource` only carries universally-valid concepts:
 ```protobuf
 message WorkspaceSource {
   oneof source {
+    option (buf.validate.oneof).required = true;
     GitRepoSource git_repo = 1;
+    LocalPathSource local_path = 2;
   }
 }
+
+message LocalPathSource {
+  string path = 1 [(buf.validate.field).string.min_len = 1];
+}
+```
+
+## Why v2 Was Wrong
+
+The v2 approach placed `local_path` in runner-level config (environment variable or CLI flag), making it a single static value for the entire runner process. This breaks in real-world scenarios:
+
+1. **Multiple CLI invocations**: User runs `stigmer run` from `/project-a` in one terminal and `/project-b` in another. Both hit the same runner. A single config can't handle two different paths.
+
+2. **Mixed workspace sources**: Session A wants `local_path=/my-project`, Session B wants `git_repo=https://github.com/acme/other`. Per-session source selection requires the proto.
+
+3. **Daemon runner architecture**: A long-lived runner serving multiple clients cannot have its workspace path fixed at startup.
+
+4. **Valid domain states became inexpressible**: The per-session workspace path — a legitimate domain concept — had no way to be communicated from client to runner.
+
+## Why v3 Is Correct
+
+The v2 rationale was: "invalid states should be unrepresentable." This principle was applied too broadly. There are two distinct categories:
+
+- **Schema constraint**: The message structure itself prevents invalid combinations (e.g., `oneof` prevents selecting two sources simultaneously). These belong in the proto.
+
+- **Deployment validation**: A structurally valid message is rejected by a specific deployment mode (e.g., cloud can't access local paths, `GitRepoSource` rejects SSH URLs). These belong in runtime validation.
+
+`LocalPathSource` on a cloud runner is the same category as an SSH URL in `GitRepoSource` — a valid proto message rejected by deployment-specific validation. The proto already uses this pattern.
+
+## Implementation
+
+The provisioner validates deployment mode at provisioning time:
+
+```python
+# In WorkspaceProvisioner.provision():
+if workspace_source.HasField("local_path"):
+    if not is_local_mode:
+        raise WorkspaceProvisionError(
+            "LocalPathSource is only supported in local mode. "
+            "Use git_repo for cloud deployments."
+        )
+    path = workspace_source.local_path.path
+    # validate exists, is directory, is absolute
+    return ProvisionResult(
+        root_dir=path,
+        consumed_keys=[],
+        source_type="local_path",
+        ...
+    )
 ```
 
 ## Consequences
 
-- Proto schema only contains deployment-agnostic workspace sources
-- `local_path` support is entirely within the runner process (no network, no proto, no API)
-- Clients (web UI, API consumers) never see `local_path` as an option
-- The runner config handles validation (reject in cloud mode) at startup, not at request time
+- Each session specifies its own workspace source (local path, git repo, or empty)
+- Multiple concurrent CLI invocations with different local paths work correctly
+- Cloud runners reject `local_path` with a clear error at provisioning time
+- The proto is self-documenting about all supported workspace sources
+- Clients (web UI, API consumers) can conditionally show/hide `local_path` based on deployment context

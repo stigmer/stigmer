@@ -7,10 +7,18 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class WorkspaceSource(_message.Message):
-    __slots__ = ("git_repo",)
+    __slots__ = ("git_repo", "local_path")
     GIT_REPO_FIELD_NUMBER: _ClassVar[int]
+    LOCAL_PATH_FIELD_NUMBER: _ClassVar[int]
     git_repo: GitRepoSource
-    def __init__(self, git_repo: _Optional[_Union[GitRepoSource, _Mapping]] = ...) -> None: ...
+    local_path: LocalPathSource
+    def __init__(self, git_repo: _Optional[_Union[GitRepoSource, _Mapping]] = ..., local_path: _Optional[_Union[LocalPathSource, _Mapping]] = ...) -> None: ...
+
+class LocalPathSource(_message.Message):
+    __slots__ = ("path",)
+    PATH_FIELD_NUMBER: _ClassVar[int]
+    path: str
+    def __init__(self, path: _Optional[str] = ...) -> None: ...
 
 class GitRepoSource(_message.Message):
     __slots__ = ("url", "branch", "commit", "depth")

@@ -1,7 +1,7 @@
 # Task T01: Workspace Provisioning Architecture & Implementation
 
 **Created**: 2026-02-27 22:30
-**Revised**: 2026-02-28 (post architectural review)
+**Revised**: 2026-02-28 (post architectural review, AD-09 v3 revision)
 **Status**: Planning (Revised)
 
 ## Context
@@ -20,7 +20,7 @@ This is a revised plan incorporating feedback from the Principal Software Archit
 Key changes from the original plan:
 
 1. **Phase 0 added**: Targeted refactor of `execute_graphton.py` to create clean extension points BEFORE adding workspace provisioning.
-2. **`LocalPathSource` removed from proto**: Local path is a runner-level concern, not a wire-protocol concept. It lives in runner config, not in the schema.
+2. **`LocalPathSource` restored to proto (v3 revision)**: After architectural review of multi-CLI-invocation scenarios, `LocalPathSource` is a proper `oneof` variant in `WorkspaceSource`. Deployment-mode validation (cloud rejects it) happens at runtime, not at the schema level. See revised AD-09.
 3. **Proto3 default-value bugs fixed**: `depth` uses wrapper type, `auto_pr` deferred (see point 5).
 4. **Workspace provisioning state added**: `SessionStatus` gets a `workspace_state` field.
 5. **Auto-PR deferred to separate project**: Output delivery for MVP uses existing artifact mechanism + git diff/patch artifact. Auto-PR is a fast-follow.
@@ -90,15 +90,23 @@ PAT-based authentication. `GITHUB_TOKEN` in Environment or runtime_env. Token in
 ### AD-08: Provisioning Code Lives in Agent-Runner (Structurally Isolated)
 New module `worker/workspace/` with clear interface. Can be extracted to a separate service later but lives in agent-runner for MVP.
 
-### AD-09: Local Path Is a Runner-Level Concern, Not a Proto-Level Type (REVISED)
+### AD-09: Local Path Is a Proto-Level Workspace Source with Deployment Validation (REVISED v3)
 
-**Original decision**: `LocalPathSource` was a `oneof` variant in the `WorkspaceSource` proto message.
+**Decision history**:
+- **v1**: `LocalPathSource` was a `oneof` variant in `WorkspaceSource`.
+- **v2**: `local_path` removed from proto. Runner-level config only.
+- **v3 (current)**: `LocalPathSource` restored as a `oneof` variant. Deployment validation at runtime.
 
-**Revised decision**: `local_path` does NOT appear in the proto schema. It is a runner-level configuration detail.
+**Why v2 was wrong**: The runner-level config approach assumed one CLI invocation per runner instance (single static `local_workspace_path`). This breaks when:
+- Multiple CLI invocations target different project directories concurrently.
+- A shared daemon runner handles sessions with different workspace paths.
+- The same runner processes a mix of `git_repo` and `local_path` sessions.
 
-**Rationale**: `local_path` is ONLY valid in local mode -- it is physically impossible to provision in cloud. Putting it in the proto schema advertises a capability that only works in one deployment mode. This violates the principle that invalid states should be unrepresentable.
+A single static runner config cannot express per-session workspace paths. Valid local-mode domain states became inexpressible.
 
-**Implementation**: In local mode, the runner detects a `local_path` configuration (via runner config or CLI flag) and provisions the workspace by setting `root_dir` to that path directly. The proto `WorkspaceSource` only carries universally-valid concepts: `git_repo` and `empty`.
+**Why v3 is correct**: The "invalid states should be unrepresentable" principle was applied too aggressively in v2. `LocalPathSource` sent to a cloud runner is the same category as an SSH URL sent to `GitRepoSource` -- a valid message rejected by deployment-specific validation at runtime. The proto already uses this pattern (CEL rule on `GitRepoSource.url` requiring `https://`).
+
+**Implementation**: `WorkspaceSource.local_path` is a `oneof` variant alongside `git_repo`. Each session specifies its own workspace source. Cloud runners reject `local_path` at provisioning time: `"LocalPathSource is only supported in local mode. Use git_repo for cloud deployments."` Local runners validate the path exists and is a directory.
 
 ### AD-10: Cloud Output for Git Workspaces Uses Existing Artifact Mechanism (NEW)
 
@@ -171,40 +179,38 @@ class WorkspaceBackend(Protocol):
 syntax = "proto3";
 package ai.stigmer.agentic.session.v1;
 
-import "google/protobuf/wrappers.proto";
+import "buf/validate/validate.proto";
 
 // WorkspaceSource defines where the agent's workspace content comes from.
 // When not set on a SessionSpec, the workspace is empty (existing default behavior).
-//
-// Local path workspace is handled at the runner level, not the proto level,
-// because it is only valid in local deployment mode (see AD-09).
 message WorkspaceSource {
   oneof source {
+    option (buf.validate.oneof).required = true;
     GitRepoSource git_repo = 1;
+    LocalPathSource local_path = 2;
   }
+}
+
+// LocalPathSource uses an existing host directory as the workspace.
+// Only valid in local mode. Cloud runners reject at provisioning time.
+message LocalPathSource {
+  string path = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 // GitRepoSource provisions a workspace by cloning a git repository.
 // HTTPS-only for MVP. Authentication via GITHUB_TOKEN in merged environment.
 message GitRepoSource {
-  // HTTPS clone URL (required).
-  // Example: "https://github.com/acme/my-app.git"
-  // SSH URLs are not supported in MVP.
-  string url = 1;
-
-  // Branch to clone (optional).
-  // When empty, the repository's default branch is used.
+  string url = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).cel = {
+      id: "git_repo_source.url.https"
+      message: "url must use HTTPS. SSH URLs are not supported."
+      expression: "this.startsWith('https://')"
+    }
+  ];
   string branch = 2;
-
-  // Specific commit SHA to checkout after clone (optional).
-  // When set, the workspace is checked out to this exact commit (detached HEAD).
   string commit = 3;
-
-  // Shallow clone depth (optional).
-  // When null/absent, defaults to depth=1 (shallow clone).
-  // Set to 0 for full clone with complete history.
-  // Using wrapper type to distinguish "not set" (default shallow) from "set to 0" (full clone).
-  google.protobuf.Int32Value depth = 4;
+  optional int32 depth = 4 [(buf.validate.field).int32.gte = 0];
 }
 ```
 
@@ -227,13 +233,17 @@ message SessionSpec {
 - `git_repo.url` must be HTTPS (reject SSH URLs with clear error message)
 - `git_repo.url` must parse as a valid URL
 - `git_repo.depth` if set, must be >= 0
+- `local_path.path` must be non-empty
+- When `WorkspaceSource` is present, exactly one source must be set (`oneof required`)
 
 **Tests**: Proto validation tests.
 - Verify `WorkspaceSource` with `git_repo` passes validation
-- Verify empty `WorkspaceSource` (no source set) passes validation
+- Verify `WorkspaceSource` with `local_path` passes validation
+- Verify empty `WorkspaceSource` (no source set) is rejected (`oneof required`)
 - Verify `git_repo` with SSH URL is rejected
+- Verify `local_path` with empty path is rejected
 
-**Risk**: Low (additive, backward-compatible). `WorkspaceSource` is optional.
+**Risk**: Low (additive, backward-compatible). `WorkspaceSource` is optional on `SessionSpec`.
 
 ---
 
@@ -244,9 +254,11 @@ message SessionSpec {
 **New files**:
 - `backend/services/agent-runner/worker/workspace/provisioner.py`
 - `backend/services/agent-runner/worker/workspace/sources/git.py`
+- `backend/services/agent-runner/worker/workspace/sources/local_path.py`
 - `backend/services/agent-runner/worker/workspace/sources/empty.py`
 - `backend/services/agent-runner/tests/workspace/test_provisioner.py`
 - `backend/services/agent-runner/tests/workspace/test_git_source.py`
+- `backend/services/agent-runner/tests/workspace/test_local_path_source.py`
 
 **Key interface**:
 ```python
@@ -274,12 +286,17 @@ class WorkspaceProvisioner:
         backend: WorkspaceBackend,
         merged_env: dict[str, EnvironmentValue],
         session_id: str,
+        is_local_mode: bool,
     ) -> ProvisionResult:
-        """Provisions workspace. Returns root_dir and consumed credential keys.
+        """Provisions workspace based on WorkspaceSource from session proto.
 
-        Logs consumed keys explicitly for debugging:
-            "Key 'GITHUB_TOKEN' consumed by workspace provisioning (git clone).
-             This key will not be forwarded to the agent runtime environment."
+        Dispatches on workspace_source.source:
+          - git_repo  -> clone repo (works in both local and cloud)
+          - local_path -> validate path, use directly (local mode only)
+          - None/absent -> empty workspace (existing behavior)
+
+        Raises WorkspaceProvisionError if local_path is used in cloud mode.
+        Logs consumed keys explicitly for debugging.
         """
 ```
 
@@ -299,12 +316,14 @@ class WorkspaceProvisioner:
 - Return empty consumed keys
 - No `GitMetadata`
 
-**Local path support** (runner-level, not proto-level):
-- When runner config has `local_workspace_path` set (local mode only):
+**Local path support** (proto-level, per-session):
+- When `WorkspaceSource.local_path` is set:
+  - Verify runner is in local mode; raise `WorkspaceProvisionError` in cloud mode:
+    `"LocalPathSource is only supported in local mode. Use git_repo for cloud deployments."`
   - Validate path exists and is a directory
   - Return the path directly as `root_dir` (no copy)
   - Return empty consumed keys
-- When runner is in cloud mode and `local_workspace_path` is set: raise `ConfigurationError`
+  - Return `source_type="local_path"` (for system prompt differentiation)
 
 **Tests**:
 - Git clone with PAT token (mocked git subprocess)
@@ -315,9 +334,10 @@ class WorkspaceProvisioner:
 - Credential stripping: `GITHUB_TOKEN` in consumed_keys
 - Clone failure handling (auth error, network error, repo not found)
 - `GitMetadata` does NOT contain the token
-- Local path: valid directory succeeds
-- Local path: nonexistent directory fails
-- Local path: cloud mode rejection
+- Local path (`WorkspaceSource.local_path`): valid directory succeeds
+- Local path: nonexistent directory fails with `WorkspaceProvisionError`
+- Local path: cloud mode rejection with clear error message
+- Local path: relative path rejected (must be absolute)
 
 **Risk**: Medium (new code). Mitigated by clear interface contract and mocked tests.
 
@@ -545,6 +565,7 @@ Phase 1 ──┘                         └── Phase 5
 ## Backward Compatibility
 
 - `WorkspaceSource` is optional on `SessionSpec`. When absent, existing behavior (empty workspace) is preserved.
+- `LocalPathSource` is a new `oneof` variant -- additive, no existing messages affected.
 - `Attachment.local_path` is optional. When absent, existing `storage_key` flow is used.
 - No breaking changes to any existing RPC or message format.
 - Feature flag (`STIGMER_WORKSPACE_PROVISIONING_ENABLED`) allows gradual rollout.
@@ -571,7 +592,7 @@ Phase 1 ──┘                         └── Phase 5
 - Shallow file tree in system prompt (optimization)
 - CLI `--workspace` flag (CLI changes deferred to separate project)
 - Monorepo subdirectory support (`GitRepoSource.path`)
-- `LocalPathSource` in proto (if there's a use case for non-local-mode local paths)
+- `LocalPathSource` path validation beyond exists-and-is-directory (e.g., permissions, symlink resolution)
 
 ## Notes
 

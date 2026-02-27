@@ -14,55 +14,43 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: 2026-02-27 — Phase 0 (WorkspaceBackend Extraction) completed
+- **Last Session**: 2026-02-27 — AD-09 v3 revision (LocalPathSource restored to proto)
 - **Active Task**: Phase 2 (Workspace Provisioner Module) is the next phase to tackle
 - **Branch**: `feat/workspace-provisioning`
-- **Completed Phases**: Phase 1 (Proto Changes), Phase 0 (Targeted Refactor)
+- **Completed Phases**: Phase 0 (Targeted Refactor), Phase 1 (Proto Changes, revised with AD-09 v3)
 
-## Session Progress (2026-02-27, Session 2)
+## Session Progress (2026-02-27, Session 3)
+
+### AD-09 v3 Revision: LocalPathSource Restored to Proto — COMPLETED
+
+Architectural review identified a fundamental flaw in the v2 decision (runner-level config for local paths). The single-static-config approach breaks for multiple concurrent CLI invocations with different project directories. `LocalPathSource` was restored as a proper `oneof` variant in `WorkspaceSource`.
+
+**Key insight**: The "invalid states should be unrepresentable" principle was applied too aggressively. `LocalPathSource` on a cloud runner is the same category as an SSH URL in `GitRepoSource` — a valid proto message rejected by deployment-specific validation at runtime. The proto already uses this pattern.
+
+**Changes made:**
+- `workspace.proto` — Added `LocalPathSource` message and `local_path` oneof variant
+- Go and Python stubs regenerated
+- `T01_0_plan.md` — Rewrote AD-09, updated Phase 1 proto section, Phase 2 provisioner section, Phase 2 tests, backward compatibility, out-of-scope
+- `AD-09-local-path-runner-level.md` — Full v3 rewrite with decision history
+
+**Phase 0 review**: No changes needed. WorkspaceBackend, LocalWorkspaceBackend, DaytonaWorkspaceBackend, and initialize_workspace are all workspace-source-agnostic. Clean foundation for Phase 2.
+
+**Validation**: `buf lint` clean, `buf breaking` clean (additive, backward-compatible).
+
+## Previous Session Progress (2026-02-27, Session 2)
 
 ### Phase 0: WorkspaceBackend Extraction — COMPLETED
 
-Extracted a deployment-agnostic `WorkspaceBackend` protocol from `execute_graphton.py`, eliminating all `is_local_mode()` conditionals for workspace operations. This was the "Complete" scope (~4 days), fully refactoring `SkillWriter` and `inject_attachments` internals.
+Extracted a deployment-agnostic `WorkspaceBackend` protocol from `execute_graphton.py`, eliminating all `is_local_mode()` conditionals for workspace operations.
 
-**New files created (4):**
-- `worker/workspace/backend.py` — `WorkspaceBackend` protocol + `ExecuteResult` dataclass
-- `worker/workspace/local.py` — `LocalWorkspaceBackend` (pathlib + subprocess)
-- `worker/workspace/daytona.py` — `DaytonaWorkspaceBackend` (Daytona SDK)
-- `worker/workspace/__init__.py` — `initialize_workspace()` factory + public re-exports
-
-**Major refactors (2):**
-- `worker/activities/graphton/skill_writer.py` — merged dual-mode `_write_skills_local()`/`_write_skills_daytona()` into unified `write_skills()` via `WorkspaceBackend`
-- `worker/activities/execute_graphton.py` — replaced ~8 `is_local_mode()` checks with backend usage, deleted `_check_workspace_file_exists()` helper
-
-**Test updates (8 files):**
-- Rewrote `test_skill_writer.py` (36+ tests → 30 focused tests)
-- Rewrote `test_inject_attachments.py` (34 tests → 24 focused tests)
-- Rewrote `test_workspace_integrity_check.py` to test `WorkspaceBackend.file_exists()`
-- New `tests/workspace/test_local_backend.py` — unit tests for LocalWorkspaceBackend
-- New `tests/workspace/test_daytona_backend.py` — unit tests for DaytonaWorkspaceBackend
-- Updated `test_integration_skill_pipeline.py`, `test_integration_subagent_pipeline.py`, `test_subagent_transformer.py`
-
-**Net diff**: 682 insertions, 1,874 deletions (−1,192 net lines removed)
-
-### Key Design Decisions Made (Phase 0)
-
-1. **`WorkspaceBackend` as a `Protocol` (structural typing)** — no forced inheritance; both `LocalWorkspaceBackend` and `DaytonaWorkspaceBackend` satisfy the protocol via duck-typing
-2. **`execute()` method on the protocol** — added proactively for Phase 2's git clone needs, also used immediately for diagnostic listing and skill chmod
-3. **`write_files()` batch method** — critical for Daytona cloud performance (batches `sandbox.fs.upload_files`)
-4. **In-memory ZIP extraction** — unified across both backends; eliminates complex remote unzip commands
-5. **`initialize_workspace()` factory** — centralizes mode-decision logic in one place; returns `(backend, sandbox, is_new_sandbox)` tuple
-6. **Path traversal protection** — implemented in `LocalWorkspaceBackend._resolve()` with `resolve().relative_to()` guard
-7. **Daytona `process.exec()` output mapping** — SDK returns combined `.output`, mapped to `ExecuteResult(stdout=output, stderr="")`
+**Net diff**: 682 insertions, 1,874 deletions (-1,192 net lines removed)
 
 ## Previous Session Progress (2026-02-27, Session 1)
 
 ### Phase 1: Proto Changes — COMPLETED
 
-- Created `apis/ai/stigmer/agentic/session/v1/workspace.proto` with `WorkspaceSource` and `GitRepoSource` messages
-- Modified `apis/ai/stigmer/agentic/session/v1/spec.proto` — added `workspace_source` field (position 6) to `SessionSpec`
-- Generated Go and Python stubs via `make go-stubs` and `make python-stubs`
-- Validated with `buf lint`, `buf breaking`, and `bazel build`
+- Created `workspace.proto` with `WorkspaceSource`, `GitRepoSource` messages
+- Modified `spec.proto` — added `workspace_source` field to `SessionSpec`
 
 ## Next Steps
 
@@ -74,59 +62,53 @@ Phase 0 ──┐
 Phase 1 ──┘ (both DONE)             └── Phase 5
 ```
 
-1. **Phase 2: Workspace Provisioner Module** (next) — Depends on Phase 0 + Phase 1 (both done). Implements `WorkspaceProvisioner`, git source, empty source, local path support. Plugs into the `WorkspaceBackend` interface.
-2. **Phase 3: Integration Wire-Up** — Wire provisioner into `execute_graphton.py`, update session handling.
+1. **Phase 2: Workspace Provisioner Module** (next) — Implements `WorkspaceProvisioner`, git source, local path source, empty source. Reads `WorkspaceSource` from session proto. Plugs into `WorkspaceBackend` interface.
+2. **Phase 3: Integration Wire-Up** — Wire provisioner into `execute_graphton.py`, update session handling, workspace state.
 3. **Phase 4-5**: Follow from Phase 3 per dependency graph.
 
 ## Context for Resume
 
-- All Phase 0 work is on branch `feat/workspace-provisioning`
+- All work is on branch `feat/workspace-provisioning`
+- `LocalPathSource` is now in the proto — the provisioner reads `workspace_source.local_path.path` per-session, NOT from runner config
 - The `WorkspaceBackend` protocol is the foundation that Phase 2's provisioner will use
-- `initialize_workspace()` factory currently handles sandbox creation + backend instantiation; Phase 2 will extend this with workspace source provisioning (git clone, etc.)
-- `execute_graphton.py` is now ~2,100 lines (down from ~2,700) — much cleaner
-- `SkillWriter` and `inject_attachments` are now fully deployment-agnostic
-- No `is_local_mode()` calls remain for workspace file operations
+- `initialize_workspace()` factory creates the backend; Phase 2's provisioner sits on top for workspace source dispatching
+- Cloud runners reject `LocalPathSource` at provisioning time (deployment validation)
 
 ## Essential Files to Review
 
-### 1. Latest Checkpoint
-```
-_projects/2026-02/20260227.02.workspace-provisioning/checkpoints/
-```
-
-### 2. Full Project Plan
+### 1. Full Project Plan (revised)
 ```
 _projects/2026-02/20260227.02.workspace-provisioning/tasks/T01_0_plan.md
 ```
 
-### 3. Design Decisions
+### 2. Design Decisions
 ```
-_projects/2026-02/20260227.02.workspace-provisioning/design-decisions/
+_projects/2026-02/20260227.02.workspace-provisioning/design-decisions/AD-09-local-path-runner-level.md
+```
+
+### 3. Proto Files (Phase 1 Output, revised)
+```
+apis/ai/stigmer/agentic/session/v1/workspace.proto
+apis/ai/stigmer/agentic/session/v1/spec.proto
 ```
 
 ### 4. Phase 0 Output (WorkspaceBackend)
 ```
-backend/services/agent-runner/worker/workspace/backend.py    — Protocol + ExecuteResult
-backend/services/agent-runner/worker/workspace/local.py      — Local implementation
-backend/services/agent-runner/worker/workspace/daytona.py    — Cloud implementation
-backend/services/agent-runner/worker/workspace/__init__.py   — Factory + exports
-```
-
-### 5. Proto Files (Phase 1 Output)
-```
-apis/ai/stigmer/agentic/session/v1/workspace.proto
-apis/ai/stigmer/agentic/session/v1/spec.proto
+backend/services/agent-runner/worker/workspace/backend.py
+backend/services/agent-runner/worker/workspace/local.py
+backend/services/agent-runner/worker/workspace/daytona.py
+backend/services/agent-runner/worker/workspace/__init__.py
 ```
 
 ## Resume Checklist
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/`
-2. [ ] Review `tasks/T01_0_plan.md` for full project plan
+1. [ ] Read this file for current state
+2. [ ] Review `tasks/T01_0_plan.md` Phase 2 section
 3. [ ] Skim `worker/workspace/backend.py` to recall the protocol shape
-4. [ ] Review Phase 2 requirements in the plan
-5. [ ] Continue with Phase 2 implementation
+4. [ ] Review `workspace.proto` to see `LocalPathSource` + `GitRepoSource`
+5. [ ] Start Phase 2 implementation
 
 ## Quick Commands
 

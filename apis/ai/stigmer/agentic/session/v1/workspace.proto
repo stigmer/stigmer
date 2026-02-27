@@ -12,14 +12,30 @@ import "buf/validate/validate.proto";
 //
 // When workspace_source is absent on SessionSpec, the session uses an empty
 // workspace (existing default behavior, no provisioning step).
-//
-// Local-path workspaces are a runner-level concern and do not appear in
-// the wire protocol (see AD-09).
 message WorkspaceSource {
   oneof source {
     option (buf.validate.oneof).required = true;
     GitRepoSource git_repo = 1;
+    LocalPathSource local_path = 2;
   }
+}
+
+// LocalPathSource uses an existing directory on the host filesystem as the
+// workspace. The agent operates directly on the user's files -- changes are
+// immediate and persistent.
+//
+// Deployment constraint: only valid when the agent-runner is in local mode.
+// Cloud runners reject this at provisioning time with a clear error, the same
+// way GitRepoSource rejects SSH URLs at validation time. This is a normal
+// deployment-specific constraint, not a schema limitation.
+//
+// No copy or clone is made. The path is used directly as the workspace root.
+message LocalPathSource {
+  // Absolute path to an existing directory on the host filesystem (required).
+  // The runner validates that the path exists and is a directory at
+  // provisioning time.
+  // Example: "/home/user/projects/my-app", "/Users/dev/src/acme-api"
+  string path = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 // GitRepoSource provisions a workspace by cloning a git repository.
