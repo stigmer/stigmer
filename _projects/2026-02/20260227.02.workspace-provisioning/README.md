@@ -100,3 +100,9 @@ Only task logs (T##_1_feedback.md, T##_2_execution.md) can be updated without pe
 ## Notes
 
 _Add any additional notes, links, or context here as the project evolves._
+
+## Sub-Projects
+
+| Sub-Project | Path | Status | Description |
+|-------------|------|--------|-------------|
+| platform-file-isolation | [20260228.01.sp.platform-file-isolation](../20260228.01.sp.platform-file-isolation/) | Active | Design and implement a session-root architecture where platform files (skills, inputs) are physically isolated outside the workspace root directory, with a managed symlink bridge for agent access. This ensures no workspace source type (git_repo, local_path, empty) has platform files polluting the user's project. |

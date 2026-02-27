@@ -583,6 +583,20 @@ async def _auto_publish_written_files(
     return artifacts_published
 
 
+def build_workspace_prompt_section(
+    provision_result: ProvisionResult | None,
+) -> str:
+    """Build the ``## Workspace`` system prompt section.
+
+    Returns the section string (with leading newlines for concatenation)
+    when *provision_result* carries a workspace description, or an empty
+    string otherwise.  Callers can unconditionally append the result.
+    """
+    if not provision_result or not provision_result.workspace_description:
+        return ""
+    return "\n\n## Workspace\n\n" + provision_result.workspace_description
+
+
 def _generate_git_diff_artifact(
     workspace_backend: WorkspaceBackend,
     provision_result: ProvisionResult,
@@ -1648,8 +1662,14 @@ async def _execute_graphton_impl(
         setup_timer.start("agent_creation")
         activity_logger.info(f"Creating Graphton agent for execution {execution_id}")
         
-        # Enhance system prompt with skills section
+        # Enhance system prompt with workspace context, skills, input files
         enhanced_system_prompt = instructions
+
+        workspace_section = build_workspace_prompt_section(provision_result)
+        if workspace_section:
+            enhanced_system_prompt += workspace_section
+            activity_logger.info("Enhanced system prompt with workspace context")
+
         if skills_prompt_section:
             enhanced_system_prompt += skills_prompt_section
             activity_logger.info("Enhanced system prompt with skills metadata")

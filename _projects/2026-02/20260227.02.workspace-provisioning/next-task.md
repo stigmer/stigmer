@@ -14,10 +14,10 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: 2026-02-28 — Phase 3 complete (Integration Wire-Up), architectural decision on Phase 4
-- **Active Task**: Phase 4 (Platform-File Isolation) is the next phase to tackle
+- **Last Session**: 2026-02-28 — Phase 5 complete (Workspace Awareness in System Prompt)
+- **Active Task**: Phase 6 (Local-Mode Input File Optimization) is the next phase to tackle
 - **Branch**: `feat/workspace-provisioning`
-- **Completed Phases**: Phase 0 (Targeted Refactor), Phase 1 (Proto Changes, AD-09 v3), Phase 2 (Workspace Provisioner Module), Phase 3 (Integration Wire-Up)
+- **Completed Phases**: Phase 0 (Targeted Refactor), Phase 1 (Proto Changes, AD-09 v3), Phase 2 (Workspace Provisioner Module), Phase 3 (Integration Wire-Up), Phase 4 (Platform-File Isolation, sub-project), Phase 5 (Workspace Awareness in System Prompt)
 
 ## Session Progress (2026-02-28, Session 5)
 
@@ -58,32 +58,42 @@ During review, the user identified that `local_path` workspaces have a platform-
 
 The previous Phase 4 (Workspace Awareness in System Prompt) and Phase 5 (Local-Mode Input File Optimization) are renumbered to Phase 5 and Phase 6 respectively.
 
+## Session Progress (2026-02-28, Session 7)
+
+### Phase 5: Workspace Awareness in System Prompt — COMPLETED
+
+Injected a `## Workspace` section into the agent system prompt when workspace provisioning is active. Agents now know whether they're in a cloned git repo, the user's local project, or an empty workspace.
+
+**Changes:**
+1. **`build_workspace_prompt_section()`** in `execute_graphton.py` — Pure function that takes `ProvisionResult | None` and returns the section string or empty string. Follows the same extraction pattern as `inject_attachments`.
+2. **Prompt assembly ordering** — `instructions → Workspace → Skills → Input Files → Response Rules → Delegation Rules`. WHERE you work before HOW you work before WHAT data you have.
+3. **Path reference fix** in `prompt_enhancement.py` — Updated stale `FILESYSTEM_CAPABILITY` examples from `bin/skills/` and `inputs/` to `.stigmer/skills/` and `.stigmer/inputs/` (Phase 4 miss).
+4. **16 new tests** in `test_workspace_prompt_section.py` — All source types, None handling, section ordering.
+
+**Architectural decision:** Workspace section built in `execute_graphton.py` (session-specific state), NOT in graphton's `prompt_enhancement.py` (generic agent capabilities). Follows the same pattern as skills and input files.
+
 ## Next Steps
 
 Per the updated dependency graph:
 
 ```
 Phase 0 ──┐
-           ├── Phase 2 ── Phase 3 ──┬── Phase 4 (NEW) ── Phase 5
-Phase 1 ──┘  (all DONE)             │
+           ├── Phase 2 ── Phase 3 ──┬── Phase 4 ── Phase 5
+Phase 1 ──┘  (all DONE)             │   (DONE)     (DONE)
                                      └── Phase 6
 ```
 
-1. **Phase 4: Platform-File Isolation** (next) — Design and implement a solution where platform files (`bin/skills/`, `.stigmer-inputs/`) are stored outside the workspace root directory, so no source type (git_repo, local_path, empty) has platform files polluting the workspace. This is the core filesystem architecture and must be right. See `tasks/T04_platform_file_isolation.md` for the problem statement and design considerations.
-2. **Phase 5: Workspace Awareness in System Prompt** — Inject `## Workspace` section using `ProvisionResult.workspace_description` and `GitMetadata`.
-3. **Phase 6: Local-Mode Input File Optimization** — `Attachment.local_path` field for symlink/copy bypass.
+1. **Phase 6: Local-Mode Input File Optimization** (next) — `Attachment.local_path` field for symlink/copy bypass. When running in local mode with `local_path` set, skip storage download and instead symlink/copy the file directly.
+2. **Push + PR** — The branch has 9 commits (Phases 0-5) that haven't been pushed yet. Consider opening a PR for review.
 
 ## Context for Resume
 
-- All work is on branch `feat/workspace-provisioning`
-- **Phase 3 is done** — provisioner is fully wired into execution flow behind feature flag
+- All work is on branch `feat/workspace-provisioning` (9 commits ahead of main, not pushed)
+- **Phases 0-5 are complete** — the full workspace provisioning pipeline is functional
 - The feature flag `STIGMER_WORKSPACE_PROVISIONING_ENABLED` gates the entire provisioning path
-- `_setup_git_excludes()` in `git.py` only runs for `git_repo` sources — this is correct for now
-- **Phase 4 is the critical next step** — platform files must not pollute any workspace type
-- The `.stigmer-inputs/` path change (sub-task 3.5) is already applied globally, but the underlying problem of WHERE those files physically live remains
-- Skills are written by `skill_writer.py` to `bin/skills/` in the workspace — Phase 4 needs to change this
-- `_generate_git_diff_artifact()` excludes platform dirs via pathspec — this exclusion pattern will need updating once platform files move out of the workspace root
-- The provisioner itself is clean and doesn't need changes for Phase 4 — the change is in how `execute_graphton.py` places skills and inputs
+- Phase 6 is the remaining phase — local-mode input file optimization (low risk, additive)
+- The virtual platform mount (Phase 4) ensures zero-pollution for all workspace source types
+- Agents now receive workspace context in their system prompt (Phase 5)
 
 ## Essential Files to Review
 
@@ -155,3 +165,9 @@ After loading context:
 ---
 
 *This file provides direct paths to all project resources for quick context loading.*
+
+## Sub-Projects
+
+Active sub-projects spawned from this project:
+
+- `~/scm/github.com/stigmer/stigmer/_projects/2026-02/20260228.01.sp.platform-file-isolation/next-task.md` - Design and implement a session-root architecture where platform files (skills, inputs) are physically isolated outside the workspace root directory, with a managed symlink bridge for agent access. This ensures no workspace source type (git_repo, local_path, empty) has platform files polluting the user's project.
