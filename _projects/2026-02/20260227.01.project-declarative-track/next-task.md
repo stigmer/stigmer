@@ -14,69 +14,59 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-02-27 18:17
-**Current Task**: T01 — Phases 1, 2, and 3 complete, ready for Phase 4
+**Current Task**: T01 — Phases 1–4 complete, ready for Phase 5
 **Status**: In Progress
 
-## Session Progress (2026-02-27, Session 3)
+## Session Progress (2026-02-27, Session 4)
 
-### Completed: T01 Phase 3 — CLI Declarative Track
+### Completed: T01 Phase 4 — Adapt SDK Track
 
-Implemented the full declarative apply flow and fixed all compilation breakage caused by the Phase 1 proto redesign (removal of `ProjectRuntime` enum and embedded resource fields).
+Re-enabled the SDK apply track (`executeProjectApply`) by replacing the deleted `ProjectRuntime` proto enum with a local `Runtime` value object, adapting the synthesis engine, and implementing the full orchestration flow: synthesis → push skills → apply resources → collect references → apply project.
 
-#### New File Created
-- `apply_declarative.go` — Core declarative flow: scan project directory for YAML resources (excluding stigmer.yaml), detect resource kinds, apply each individually via its own RPC, collect `ApiResourceReference`s, set them as `Project.Spec.Members`, call `project.Apply()` for server-side reconciliation, and render a structured summary result with member counts and reconciliation details.
+#### New Files Created
+- `client-apps/cli/internal/cli/apply/runtime.go` — Local `Runtime` string type (`RuntimeGo`, `RuntimePython`, `RuntimeNode`) with `InferRuntime` constructor that derives runtime from entry-point file extension. Replaces the deleted `projectv1.ProjectRuntime` proto enum.
+- `client-apps/cli/cmd/stigmer/root/apply_project_result.go` — `executeSDKDryRun` for dry-run previews and `buildSDKResult` for structured output. Extracted from `apply_project.go` to stay within line-count guidelines.
 
-#### Refactored (8 production files)
-- `detect.go` — Added `TrackDeclarative` constant; updated `DetectTrack` to differentiate declarative (no entry_point) from SDK (entry_point set)
-- `apply.go` — Three-way routing: `TrackAtomic` (no stigmer.yaml), `TrackDeclarative` (new), `TrackProject` (SDK). Removed dead functions referencing `ProjectRuntime`.
-- `apply_project.go` — Replaced with Phase 4 error stub: SDK track returns actionable error directing users to declarative mode
-- `apply_file.go` — `applyResourceItem` now returns `(*ApiResourceReference, error)` for reference collection
-- `apply_file_handlers.go` — Added `buildResourceReference` helper; `applyAgent/Workflow/McpServer` now return `*ApiResourceReference`
-- `display.go` — Rewrote for reference model: shows "Mode: SDK" or "Mode: declarative", displays member counts by `ApiResourceKind`
-- `validator.go` — Replaced `validateRuntimeEntryPoint` (referenced deleted enum) with `validateEntryPointExtension` (validates recognized SDK file extensions)
-- `applier.go` — Updated doc comments for reference-based reconciliation model
+#### Modified Files (4 production, 1 test, 2 build)
+- `apply_project.go` — Replaced Phase 3 error stub with full SDK orchestration: `InferRuntime` → `Synthesize` → `establishBackendConnection` → `pushAndApplyResources` (skills via `Push`/`PushRemote`, agents/workflows/MCP servers via `Apply`) → collect `ApiResourceReference`s → `project.Apply()` → render summary
+- `synthesize.go` — Updated `SynthesizeOptions.Runtime`, `getRuntimeCommand`, `prepareRuntime`, `formatExecutionError` from proto enum to local `Runtime` type
+- `synthesize_test.go` — Rewrote `TestRuntimeFromProtoEnum` into `TestInferRuntime_SupportedExtensions`, `TestInferRuntime_UnrecognizedExtension`, `TestInferRuntime_NoExtension`, `TestGetRuntimeCommand_AllRuntimes`; updated all other tests to use local `Runtime` constants
+- `artifact/skill.go` — Added `Slug` field to `SkillArtifactResult`; populated from backend `Push` RPC response `Skill.Metadata.Slug` (needed for `ApiResourceReference` construction)
+- `apply/BUILD.bazel` — Added `runtime.go` to srcs, removed `projectv1` dependency
+- `root/BUILD.bazel` — Added `apply_project_result.go` to srcs, added `skill/v1` and `artifact` dependencies
 
-#### Tests Updated (5 files)
-- `detect_test.go` — New fixtures for declarative/SDK modes, removed runtime-based tests
-- `display_test.go` — Full rewrite: uses `ApiResourceReference` members instead of embedded resources
-- `validator_test.go` — Full rewrite: extension-based validation instead of runtime-entrypoint cross-validation
-- `loader_test.go` — Removed `runtime` from all YAML fixtures, added `TestLoad_LegacyRuntimeFieldRejected`
-- `applier_test.go` — Removed `Runtime` field from test fixtures
-
-#### Build Configuration
-- `BUILD.bazel` (root) — Added `apply_declarative.go` to `srcs`
+#### Key Decisions Made
+1. `Runtime` is a local value object (not proto enum) — keeps domain pure, prevents invalid states via `InferRuntime` constructor
+2. Skills use `Push`/`PushRemote` (not `Apply`) — skill slug is obtained from the backend response rather than computed locally
+3. Relative skill paths from SDK synthesis are resolved against the project directory
+4. Extracted `apply_project_result.go` to keep `apply_project.go` within ~280 lines (consistent with `apply_declarative.go` at ~300)
 
 #### Verification
-- `go build ./cmd/stigmer/` — CLI binary compiles
-- `go test ./internal/cli/project/...` — All tests pass
-- `go test ./cmd/stigmer/root/...` — All tests pass
-
-### Known Remaining Issue
-- `internal/cli/apply/synthesize.go` + `synthesize_test.go` — SDK synthesis engine references deleted `ProjectRuntime` enum. This code is dead (not imported by the CLI binary since SDK track was stubbed) and will be reworked in Phase 4.
+- `go build ./internal/cli/apply/...` — compiles
+- `go build ./cmd/stigmer/root/...` — compiles
+- `go build ./cmd/stigmer/` — full CLI binary compiles
+- `go test ./internal/cli/apply/...` — all tests pass
+- `go test ./cmd/stigmer/root/...` — all tests pass
+- `go test ./internal/cli/project/...` — all tests pass
 
 ### Previous Sessions
+- **Session 3**: T01 Phase 3 — CLI declarative track implementation
 - **Session 2**: T01 Phase 2 — Backend reconciliation simplification (committed as `404296eb`)
 - **Session 1**: T01 Phase 1 — Proto API redesign (committed as `c2e69995`)
 
-### Key Decisions Made
-1. `scanResourceFiles` scans top-level directory only (files next to stigmer.yaml) — keeps mental model simple
-2. `detectResourceItems` silently skips `Project` kind documents — avoids re-applying stigmer.yaml as a resource
-3. SDK track returns explicit error in Phase 3 rather than attempting partial adaptation
-4. `validateEntryPointExtension` replaces runtime-entrypoint cross-validation — runtime is now inferred from extension
-5. Dry-run mode reuses the same per-resource handlers, just skips backend connectivity
-
 ## Next Steps
 
-1. **Phase 4: Adapt SDK Track** — Define local `Runtime` type in `apply` package to replace proto enum, update `synthesize.go` to use it, reconnect `executeProjectApply` to individual-resource-then-reference flow.
-2. **Phase 5: Testing** — Unit and integration tests for all three tracks.
+1. **Phase 5: Testing** — Unit and integration tests for all three tracks (atomic, declarative, SDK)
+2. **End-to-end verification** — Manual or automated test of the full `stigmer apply` flow across all modes
+3. **Commit and PR** — Phases 3 and 4 changes are uncommitted and need to be committed
 
 ## Context for Resume
 
-- Phases 1, 2, and 3 are fully complete — protos redesigned, backend reconciliation simplified, CLI declarative track implemented
-- The only dead code remaining is `internal/cli/apply/synthesize.go` (SDK synthesis) which references the deleted `ProjectRuntime` enum — Phase 4 will define a local `Runtime` string type to replace it
-- The CLI binary compiles and all tests in the affected packages pass
+- Phases 1–4 are fully complete. The entire `stigmer apply` command now supports all three tracks: atomic (single file), declarative (directory scanning), and SDK (entry_point synthesis)
+- Uncommitted changes span 6 modified files and 2 new files across the `apply` and `root` packages, plus plan files
+- The `Slug` field added to `SkillArtifactResult` was discovered as necessary during implementation — skills return their slug from the backend `Push` RPC, and this is the only reliable source for constructing `ApiResourceReference` for skills
 - Bazel builds are blocked by a pre-existing `com_github_alecthomas_chroma_v2` dependency resolution issue (unrelated to our changes)
-- The `resolveApplyOrganization` function in `apply.go` handles org from: flag override → stigmer.yaml metadata → CLI context → local fallback
+- The `.cursor/plans/phase_4_sdk_track_6263bc88.plan.md` file contains the detailed plan that was followed
 
 ## Essential Files to Review
 
@@ -124,12 +114,13 @@ When starting a new session:
 3. [ ] Review design decisions in `design-decisions/`
 4. [ ] Check coding guidelines in `coding-guidelines/`
 5. [ ] Review lessons in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with Phase 4 (Adapt SDK Track)
+6. [ ] Continue with Phase 5 (Testing)
 
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 4" - Start SDK track adaptation
+- "Continue with Phase 5" - Start testing phase
+- "Commit phases 3 and 4" - Commit the uncommitted work
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 
