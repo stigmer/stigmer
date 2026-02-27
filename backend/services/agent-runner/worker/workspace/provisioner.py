@@ -143,7 +143,7 @@ class WorkspaceProvisioner:
     def __init__(self, *, log: logging.Logger | None = None) -> None:
         self._log = log or logger
 
-    async def provision(
+    def provision(
         self,
         workspace_source: object | None,
         backend: WorkspaceBackend,
@@ -151,6 +151,9 @@ class WorkspaceProvisioner:
         is_local_mode: bool,
     ) -> ProvisionResult:
         """Provision workspace content.
+
+        All underlying operations (``backend.execute()``, path checks)
+        are synchronous, so this method is deliberately **not** async.
 
         Args:
             workspace_source: ``WorkspaceSource`` proto message from the

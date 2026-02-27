@@ -1,5 +1,13 @@
 """Git workspace source — clones a repository via HTTPS into the workspace.
 
+Idempotent provisioning:
+    On subsequent executions within the same session, the workspace
+    already contains the cloned repository.  The provisioner detects
+    this by checking for ``.git`` and returns metadata from the
+    existing repo without re-cloning.  If the workspace is non-empty
+    but lacks ``.git`` (e.g. a crash during a previous clone), the
+    contents are cleaned and a fresh clone is performed.
+
 Authentication (AD-07, GitHub-only for MVP):
     If ``GITHUB_TOKEN`` is present in the merged environment **and** the
     clone URL points to ``github.com``, the token is injected into the
@@ -14,12 +22,17 @@ Security:
       message or ``WorkspaceProvisionError``.
     - ``GITHUB_TOKEN`` is reported in ``consumed_keys`` so the caller
       can strip it from the agent's runtime environment (AD-05).
+
+Git excludes:
+    After provisioning (fresh clone or detected existing repo),
+    platform directories (``.stigmer-inputs``, ``bin/skills``) are
+    added to ``.git/info/exclude`` so they do not appear in
+    ``git diff`` or ``git status``.
 """
 
 from __future__ import annotations
 
 import logging
-import os
 import re
 from urllib.parse import urlparse
 
@@ -37,6 +50,9 @@ _SOURCE = SourceType.GIT_REPO
 _TOKEN_KEY = "GITHUB_TOKEN"
 _CLONE_TIMEOUT = 300  # 5 minutes — large repos need headroom
 _POST_CLONE_TIMEOUT = 30
+_CLEANUP_TIMEOUT = 60
+
+_PLATFORM_EXCLUDES = (".stigmer-inputs", "bin/skills")
 
 
 # ---------------------------------------------------------------------------
@@ -49,7 +65,12 @@ def provision(
     backend: WorkspaceBackend,
     merged_env: dict[str, str],
 ) -> ProvisionResult:
-    """Clone a git repository into the workspace.
+    """Clone a git repository into the workspace, or reuse an existing clone.
+
+    Idempotent: if ``.git`` already exists in the workspace, metadata is
+    read from the existing repo and no clone is performed.  If the
+    workspace is non-empty but has no ``.git`` (partial/corrupted state),
+    the contents are cleaned and a fresh clone is done.
 
     Args:
         source: ``GitRepoSource`` proto message (duck-typed).
@@ -70,7 +91,12 @@ def provision(
 
     token = merged_env.get(_TOKEN_KEY)
 
-    _verify_target_empty(backend)
+    existing = _detect_existing_repo(backend, url, token)
+    if existing is not None:
+        _setup_git_excludes(backend)
+        return existing
+
+    _recover_non_empty_workspace(backend)
 
     auth_url = _build_auth_url(url, token)
 
@@ -96,6 +122,8 @@ def provision(
             _TOKEN_KEY,
         )
 
+    _setup_git_excludes(backend)
+
     return ProvisionResult(
         root_dir=backend.root_dir,
         source_type=_SOURCE,
@@ -110,24 +138,74 @@ def provision(
 
 
 # ---------------------------------------------------------------------------
-# Pre-clone validation
+# Idempotent provisioning: detect existing repo / recover corrupted state
 # ---------------------------------------------------------------------------
 
 
-def _verify_target_empty(backend: WorkspaceBackend) -> None:
-    """Fail fast if the workspace root already has content.
+def _detect_existing_repo(
+    backend: WorkspaceBackend,
+    url: str,
+    token: str | None,
+) -> ProvisionResult | None:
+    """Return a ``ProvisionResult`` if the workspace already contains a repo.
 
-    ``git clone`` into a non-empty directory fails with an opaque
-    error.  We detect this early and provide a clear message.
+    Checks for ``.git`` in the workspace root.  When found, reads branch
+    and HEAD from the existing clone — no network operations, no auth.
+
+    Returns ``None`` if the workspace is empty or has no ``.git``.
+    """
+    result = backend.execute("test -d .git && echo yes || echo no", timeout=5)
+    if result.exit_code != 0 or result.stdout.strip() != "yes":
+        return None
+
+    logger.info(
+        "Workspace already provisioned (git repo detected), reusing: "
+        "root_dir=%s",
+        backend.root_dir,
+    )
+
+    resolved_branch = _resolve_branch(backend, token=None)
+    head_sha = _resolve_head(backend, token=None)
+
+    consumed_keys: tuple[str, ...] = (_TOKEN_KEY,) if token else ()
+
+    return ProvisionResult(
+        root_dir=backend.root_dir,
+        source_type=_SOURCE,
+        consumed_keys=consumed_keys,
+        workspace_description=_build_description(url, resolved_branch, head_sha),
+        git_metadata=GitMetadata(
+            repo_url=url,
+            branch=resolved_branch,
+            base_commit=head_sha,
+        ),
+    )
+
+
+def _recover_non_empty_workspace(backend: WorkspaceBackend) -> None:
+    """Clean a non-empty workspace that has no ``.git`` directory.
+
+    This handles the case where a previous provisioning attempt crashed
+    mid-clone, leaving partial content without a valid git repository.
+    An empty workspace (the normal case) is left untouched.
     """
     result = backend.execute("ls -A", timeout=5)
-    if result.exit_code == 0 and result.stdout.strip():
+    if result.exit_code != 0 or not result.stdout.strip():
+        return
+
+    logger.warning(
+        "Workspace contains partial state (no .git), "
+        "cleaning up before re-provisioning: root_dir=%s",
+        backend.root_dir,
+    )
+    cleanup = backend.execute(
+        "rm -rf * .[!.]* 2>/dev/null; true",
+        timeout=_CLEANUP_TIMEOUT,
+    )
+    if cleanup.exit_code != 0:
         raise WorkspaceProvisionError(
             _SOURCE,
-            "Target workspace directory is not empty.  "
-            "This may indicate the workspace was already provisioned "
-            "or a previous provisioning attempt left partial state.  "
-            f"root_dir={backend.root_dir}",
+            f"Failed to clean corrupted workspace: {cleanup.stderr.strip()}",
         )
 
 
@@ -288,6 +366,43 @@ def _resolve_head(backend: WorkspaceBackend, token: str | None) -> str:
         context="resolve HEAD",
     )
     return result.stdout.strip()
+
+
+# ---------------------------------------------------------------------------
+# Git excludes for platform directories
+# ---------------------------------------------------------------------------
+
+
+def _setup_git_excludes(backend: WorkspaceBackend) -> None:
+    """Add platform directories to ``.git/info/exclude``.
+
+    Uses the local exclude file (not ``.gitignore``) so that tracked
+    project files are never modified.  Entries are appended only if not
+    already present, making the function idempotent across executions.
+    """
+    excludes_path = ".git/info/exclude"
+
+    existing = ""
+    try:
+        existing = backend.read_file(excludes_path).decode("utf-8")
+    except FileNotFoundError:
+        pass
+
+    existing_lines = set(existing.splitlines())
+    needed = [e for e in _PLATFORM_EXCLUDES if e not in existing_lines]
+    if not needed:
+        return
+
+    separator = "" if existing.endswith("\n") or not existing else "\n"
+    new_content = existing + separator + "\n".join(needed) + "\n"
+
+    backend.mkdir(".git/info")
+    backend.write_file(excludes_path, new_content.encode("utf-8"))
+
+    logger.info(
+        "Added platform excludes to .git/info/exclude: %s",
+        ", ".join(needed),
+    )
 
 
 # ---------------------------------------------------------------------------

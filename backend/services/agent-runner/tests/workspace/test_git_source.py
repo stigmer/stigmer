@@ -51,6 +51,9 @@ class _GitBackend:
         self.commands: list[str] = []
 
         self._responses: dict[str, ExecuteResult] = {
+            "test -d .git && echo yes || echo no": ExecuteResult(
+                exit_code=0, stdout="no\n", stderr="",
+            ),
             "ls -A": ExecuteResult(exit_code=0, stdout="", stderr=""),
             "git clone": clone_response
             or ExecuteResult(exit_code=0, stdout="", stderr=""),
@@ -339,6 +342,160 @@ class TestResult:
 
 
 # ---------------------------------------------------------------------------
+# Idempotent provisioning
+# ---------------------------------------------------------------------------
+
+
+class TestIdempotentProvisioning:
+    """Subsequent executions reuse existing clone instead of re-cloning."""
+
+    def test_existing_repo_returns_metadata_without_cloning(self, tmp_path):
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _GitBackend(tmp_path, responses={
+            "test -d .git && echo yes || echo no": ExecuteResult(
+                exit_code=0, stdout="yes\n", stderr="",
+            ),
+        })
+
+        result = git_source.provision(source, backend, {})
+
+        assert result.source_type is SourceType.GIT_REPO
+        assert result.git_metadata is not None
+        assert result.git_metadata.repo_url == "https://github.com/org/repo.git"
+        assert result.git_metadata.branch == "main"
+        assert not any("git clone" in c for c in backend.commands)
+
+    def test_existing_repo_reports_consumed_keys_when_token_present(self, tmp_path):
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _GitBackend(tmp_path, responses={
+            "test -d .git && echo yes || echo no": ExecuteResult(
+                exit_code=0, stdout="yes\n", stderr="",
+            ),
+        })
+
+        result = git_source.provision(source, backend, {"GITHUB_TOKEN": "tok"})
+
+        assert "GITHUB_TOKEN" in result.consumed_keys
+
+    def test_existing_repo_empty_consumed_keys_when_no_token(self, tmp_path):
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _GitBackend(tmp_path, responses={
+            "test -d .git && echo yes || echo no": ExecuteResult(
+                exit_code=0, stdout="yes\n", stderr="",
+            ),
+        })
+
+        result = git_source.provision(source, backend, {})
+
+        assert result.consumed_keys == ()
+
+    def test_corrupted_workspace_cleaned_and_recloned(self, tmp_path):
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _GitBackend(tmp_path, responses={
+            "test -d .git && echo yes || echo no": ExecuteResult(
+                exit_code=0, stdout="no\n", stderr="",
+            ),
+            "ls -A": ExecuteResult(
+                exit_code=0, stdout="partial-data\n", stderr="",
+            ),
+            "rm -rf": ExecuteResult(exit_code=0, stdout="", stderr=""),
+        })
+
+        result = git_source.provision(source, backend, {})
+
+        assert result.source_type is SourceType.GIT_REPO
+        assert any("rm -rf" in c for c in backend.commands)
+        assert any("git clone" in c for c in backend.commands)
+
+    def test_empty_workspace_proceeds_to_clone(self, tmp_path):
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _GitBackend(tmp_path, responses={
+            "test -d .git && echo yes || echo no": ExecuteResult(
+                exit_code=0, stdout="no\n", stderr="",
+            ),
+            "ls -A": ExecuteResult(exit_code=0, stdout="", stderr=""),
+        })
+
+        result = git_source.provision(source, backend, {})
+
+        assert result.source_type is SourceType.GIT_REPO
+        assert any("git clone" in c for c in backend.commands)
+        assert not any("rm -rf" in c for c in backend.commands)
+
+
+# ---------------------------------------------------------------------------
+# Git excludes
+# ---------------------------------------------------------------------------
+
+
+class TestGitExcludes:
+    """Platform directories added to .git/info/exclude."""
+
+    def test_excludes_written_after_fresh_clone(self, tmp_path):
+        (tmp_path / ".git" / "info").mkdir(parents=True)
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _GitBackend(tmp_path)
+
+        git_source.provision(source, backend, {})
+
+        exclude_content = (tmp_path / ".git" / "info" / "exclude").read_text()
+        assert ".stigmer-inputs" in exclude_content
+        assert "bin/skills" in exclude_content
+
+    def test_excludes_written_for_existing_repo(self, tmp_path):
+        (tmp_path / ".git" / "info").mkdir(parents=True)
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _GitBackend(tmp_path, responses={
+            "test -d .git && echo yes || echo no": ExecuteResult(
+                exit_code=0, stdout="yes\n", stderr="",
+            ),
+        })
+
+        git_source.provision(source, backend, {})
+
+        exclude_content = (tmp_path / ".git" / "info" / "exclude").read_text()
+        assert ".stigmer-inputs" in exclude_content
+        assert "bin/skills" in exclude_content
+
+    def test_excludes_idempotent_no_duplicates(self, tmp_path):
+        git_info = tmp_path / ".git" / "info"
+        git_info.mkdir(parents=True)
+        (git_info / "exclude").write_text(".stigmer-inputs\nbin/skills\n")
+
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _GitBackend(tmp_path, responses={
+            "test -d .git && echo yes || echo no": ExecuteResult(
+                exit_code=0, stdout="yes\n", stderr="",
+            ),
+        })
+
+        git_source.provision(source, backend, {})
+
+        exclude_content = (git_info / "exclude").read_text()
+        assert exclude_content.count(".stigmer-inputs") == 1
+        assert exclude_content.count("bin/skills") == 1
+
+    def test_excludes_appended_to_existing_content(self, tmp_path):
+        git_info = tmp_path / ".git" / "info"
+        git_info.mkdir(parents=True)
+        (git_info / "exclude").write_text("# git default excludes\n*.pyc\n")
+
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _GitBackend(tmp_path, responses={
+            "test -d .git && echo yes || echo no": ExecuteResult(
+                exit_code=0, stdout="yes\n", stderr="",
+            ),
+        })
+
+        git_source.provision(source, backend, {})
+
+        exclude_content = (git_info / "exclude").read_text()
+        assert "*.pyc" in exclude_content
+        assert ".stigmer-inputs" in exclude_content
+        assert "bin/skills" in exclude_content
+
+
+# ---------------------------------------------------------------------------
 # Error handling
 # ---------------------------------------------------------------------------
 
@@ -406,13 +563,24 @@ class TestErrors:
         with pytest.raises(WorkspaceProvisionError, match="network"):
             git_source.provision(source, backend, {})
 
-    def test_non_empty_target_directory(self, tmp_path):
-        (tmp_path / "existing-file.txt").write_text("content")
+    def test_non_empty_no_git_recovers_and_clones(self, tmp_path):
+        """Non-empty workspace without .git is cleaned and re-provisioned."""
+        (tmp_path / "partial-file.txt").write_text("leftover from crash")
         source = _MockGitRepoSource(url="https://github.com/org/repo.git")
-        backend = LocalWorkspaceBackend(root_dir=tmp_path)
+        backend = _GitBackend(tmp_path, responses={
+            "test -d .git && echo yes || echo no": ExecuteResult(
+                exit_code=0, stdout="no\n", stderr="",
+            ),
+            "ls -A": ExecuteResult(
+                exit_code=0, stdout="partial-file.txt\n", stderr="",
+            ),
+            "rm -rf": ExecuteResult(exit_code=0, stdout="", stderr=""),
+        })
 
-        with pytest.raises(WorkspaceProvisionError, match="not empty"):
-            git_source.provision(source, backend, {})
+        result = git_source.provision(source, backend, {})
+
+        assert result.source_type is SourceType.GIT_REPO
+        assert any("rm -rf" in c for c in backend.commands)
 
     def test_generic_failure(self, tmp_path):
         source = _MockGitRepoSource(url="https://github.com/org/repo.git")

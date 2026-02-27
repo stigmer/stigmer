@@ -2,6 +2,7 @@
 
 import asyncio
 import contextlib
+import logging
 import os
 import time
 import traceback
@@ -52,7 +53,15 @@ from worker.resilience import (
     RetryConfig,
 )
 from worker.sandbox_manager import SandboxManager, get_daytona_volume_id
-from worker.workspace import WorkspaceBackend, initialize_workspace
+from worker.workspace import (
+    LocalWorkspaceBackend,
+    ProvisionResult,
+    SourceType,
+    WorkspaceBackend,
+    WorkspaceProvisionError,
+    WorkspaceProvisioner,
+    initialize_workspace,
+)
 from worker.storage import ArtifactStorage, create_artifact_storage
 from worker.streaming import StreamingConfig, StreamingUpdateScheduler
 from worker.token_manager import get_api_key
@@ -297,7 +306,7 @@ async def inject_attachments(
         if attachment.mount_path:
             mount_path = attachment.mount_path.lstrip("/")
         else:
-            mount_path = f"inputs/{attachment.filename}"
+            mount_path = f".stigmer-inputs/{attachment.filename}"
 
         if attachment.extract:
             validated = _validate_zip_for_extraction(
@@ -572,6 +581,92 @@ async def _auto_publish_written_files(
         f"{len(written_paths)} modified file(s)"
     )
     return artifacts_published
+
+
+def _generate_git_diff_artifact(
+    workspace_backend: WorkspaceBackend,
+    provision_result: ProvisionResult,
+    execution_id: str,
+    storage: ArtifactStorage,
+    status_builder: "StatusBuilder",
+    logger_: logging.Logger,
+) -> bool:
+    """Generate a ``.patch`` artifact from ``git diff`` for git-backed workspaces.
+
+    The diff excludes platform directories (``.stigmer-inputs``,
+    ``bin/skills``) via pathspec so the patch reflects only the
+    agent's meaningful code changes.
+
+    Returns ``True`` if an artifact was generated, ``False`` otherwise.
+    This function is intentionally non-fatal: failures are logged but
+    never propagate.
+    """
+    from datetime import UTC, datetime, timedelta
+
+    from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ExecutionArtifact
+    from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionArtifactKind
+
+    if provision_result.source_type != SourceType.GIT_REPO:
+        return False
+
+    try:
+        result = workspace_backend.execute(
+            "git diff -- ':!.stigmer-inputs' ':!bin/skills'",
+            timeout=30,
+        )
+    except Exception as exc:
+        logger_.warning("[GIT_DIFF] git diff command failed: %s", exc)
+        return False
+
+    if result.exit_code != 0:
+        logger_.info(
+            "[GIT_DIFF] git diff exited with %d: %s",
+            result.exit_code,
+            result.stderr.strip()[:200],
+        )
+        return False
+
+    diff_text = result.stdout.strip()
+    if not diff_text:
+        logger_.info("[GIT_DIFF] No changes detected in workspace")
+        return False
+
+    patch_bytes = diff_text.encode("utf-8")
+    filename = f"{execution_id}.patch"
+    storage_key = f"artifacts/{execution_id}/{filename}"
+
+    try:
+        storage.upload(storage_key, patch_bytes, "text/x-diff")
+        download_url = storage.get_download_url(storage_key, 7 * 24 * 3600)
+
+        now = datetime.now(UTC)
+        expires_at = now + timedelta(seconds=7 * 24 * 3600)
+
+        artifact = ExecutionArtifact(
+            name=filename,
+            sandbox_path=filename,
+            kind=ExecutionArtifactKind.EXECUTION_ARTIFACT_KIND_FILE,
+            size_bytes=len(patch_bytes),
+            storage_key=storage_key,
+            download_url=download_url,
+            created_at=now.isoformat(),
+            expires_at=expires_at.isoformat(),
+        )
+        status_builder.add_artifact(artifact)
+
+        logger_.info(
+            "[GIT_DIFF] Published patch artifact: %s (%d bytes)",
+            storage_key,
+            len(patch_bytes),
+        )
+        return True
+
+    except Exception as exc:
+        logger_.warning(
+            "[GIT_DIFF] Failed to upload patch artifact (non-fatal): %s",
+            exc,
+        )
+        return False
 
 
 @activity.defn(name="ExecuteGraphton")
@@ -974,6 +1069,152 @@ async def _execute_graphton_impl(
         )
         
         # ─────────────────────────────────────────────────────────────────────────────
+        # Step 2.8: Merge environment variables (moved up from Step 4)
+        #
+        # Environment merge now happens before workspace provisioning because
+        # the provisioner needs credentials from the merged env (e.g.
+        # GITHUB_TOKEN for git clone).  Nothing between the old Step 4
+        # location and here depends on merged_env_vars, so the reorder is safe.
+        # ─────────────────────────────────────────────────────────────────────────────
+        setup_timer.start("environment")
+        merged_env_vars: dict[str, str] = {}
+        use_legacy_env_merge = True
+        
+        try:
+            execution_context_client = ExecutionContextClient(api_key)
+            exec_ctx = await execution_context_client.try_get_by_execution_id(execution_id)
+            
+            if exec_ctx and exec_ctx.spec.data:
+                activity_logger.info(
+                    f"Using merged environment from ExecutionContext: "
+                    f"context_id={exec_ctx.metadata.id}, env_count={len(exec_ctx.spec.data)}"
+                )
+                for key, exec_value in exec_ctx.spec.data.items():
+                    merged_env_vars[key] = exec_value.value
+                use_legacy_env_merge = False
+                activity_logger.info(f"ExecutionContext environment: {len(merged_env_vars)} total vars")
+            else:
+                activity_logger.debug(
+                    f"No ExecutionContext found for execution {execution_id} - "
+                    "using legacy environment merge"
+                )
+        except Exception as e:
+            activity_logger.warning(
+                f"Failed to get ExecutionContext, falling back to legacy merge: {e}"
+            )
+        
+        if use_legacy_env_merge:
+            environment_refs = agent_instance.spec.environment_refs
+            if environment_refs:
+                activity_logger.info(
+                    f"[Legacy] Merging {len(environment_refs)} environments: "
+                    f"{[ref.slug for ref in environment_refs]}"
+                )
+                try:
+                    environment_client = EnvironmentClient(api_key)
+                    environments = await environment_client.list_by_refs(list(environment_refs))
+                    
+                    if agent.spec.env_spec and agent.spec.env_spec.data:
+                        for key, env_value in agent.spec.env_spec.data.items():
+                            merged_env_vars[key] = env_value.value
+                        activity_logger.info(f"[Legacy] Base env vars from agent: {len(agent.spec.env_spec.data)}")
+                    
+                    for idx, env in enumerate(environments):
+                        if env.spec.data:
+                            for key, env_value in env.spec.data.items():
+                                merged_env_vars[key] = env_value.value
+                            activity_logger.info(
+                                f"[Legacy] Merged env {idx+1}/{len(environments)} ({env.metadata.name}): "
+                                f"{len(env.spec.data)} vars"
+                            )
+                    
+                    if execution.spec.runtime_env:
+                        runtime_vars = {
+                            key: value.value
+                            for key, value in execution.spec.runtime_env.items()
+                        }
+                        merged_env_vars.update(runtime_vars)
+                        activity_logger.info(f"[Legacy] Applied runtime env overrides: {len(runtime_vars)} vars")
+                    
+                    activity_logger.info(f"[Legacy] Final merged environment: {len(merged_env_vars)} total vars")
+                except Exception as e:
+                    activity_logger.error(f"[Legacy] Failed to merge environments: {e}")
+                    merged_env_vars = {}
+        
+        heartbeat_during_setup("environment_merged", {
+            "env_var_count": len(merged_env_vars),
+            "used_legacy_merge": use_legacy_env_merge,
+        })
+        
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Step 2.9: Workspace provisioning (Phase 3)
+        #
+        # When STIGMER_WORKSPACE_PROVISIONING_ENABLED is set and the session
+        # has a workspace_source, the provisioner clones a git repo, validates
+        # a local path, or returns an empty workspace result.  The provisioner
+        # is idempotent: if the workspace was already provisioned (e.g. by a
+        # previous execution in this session), it detects the existing state
+        # and returns metadata without re-cloning.
+        #
+        # Credential stripping (AD-05): keys consumed by provisioning
+        # (e.g. GITHUB_TOKEN) are removed from merged_env_vars so they
+        # do not leak into MCP config placeholders or status reporting.
+        # ─────────────────────────────────────────────────────────────────────────────
+        provision_result: ProvisionResult | None = None
+        
+        _provisioning_enabled = os.environ.get(
+            "STIGMER_WORKSPACE_PROVISIONING_ENABLED", "",
+        ).lower() in ("1", "true", "yes")
+        
+        if _provisioning_enabled and session.spec.HasField("workspace_source"):
+            setup_timer.start("workspace_provisioning")
+            try:
+                provisioner = WorkspaceProvisioner(log=activity_logger)
+                provision_result = provisioner.provision(
+                    workspace_source=session.spec.workspace_source,
+                    backend=workspace_backend,
+                    merged_env=merged_env_vars,
+                    is_local_mode=worker_config.is_local_mode(),
+                )
+                
+                if provision_result.root_dir != workspace_backend.root_dir:
+                    activity_logger.info(
+                        "Workspace root changed by provisioning: %s -> %s",
+                        workspace_backend.root_dir,
+                        provision_result.root_dir,
+                    )
+                    workspace_backend = LocalWorkspaceBackend(
+                        root_dir=provision_result.root_dir,
+                    )
+                
+                if provision_result.consumed_keys:
+                    stripped = []
+                    for key in provision_result.consumed_keys:
+                        if key in merged_env_vars:
+                            del merged_env_vars[key]
+                            stripped.append(key)
+                    if stripped:
+                        activity_logger.info(
+                            "Stripped %d provisioning key(s) from agent environment: %s",
+                            len(stripped),
+                            ", ".join(stripped),
+                        )
+                
+            except WorkspaceProvisionError as prov_err:
+                activity_logger.error(
+                    "Workspace provisioning failed: %s", prov_err,
+                )
+                raise ValueError(
+                    f"Workspace provisioning failed: {prov_err}"
+                ) from prov_err
+            
+            heartbeat_during_setup("workspace_provisioned", {
+                "source_type": provision_result.source_type.value,
+                "root_dir": provision_result.root_dir,
+                "consumed_keys": list(provision_result.consumed_keys),
+            })
+        
+        # ─────────────────────────────────────────────────────────────────────────────
         # Workspace integrity flag (resume fast-path safety net)
         #
         # When resuming after approval, the fast-path skips skill/attachment
@@ -1196,7 +1437,7 @@ async def _execute_graphton_impl(
                 # Attachments are already in the sandbox.  Reconstruct the
                 # metadata list for the system prompt without any I/O.
                 for att in attachments:
-                    mount_path = att.mount_path if att.mount_path else f"inputs/{att.filename}"
+                    mount_path = att.mount_path if att.mount_path else f".stigmer-inputs/{att.filename}"
                     injected_files.append({
                         "filename": att.filename,
                         "path": mount_path,
@@ -1243,100 +1484,6 @@ async def _execute_graphton_impl(
         heartbeat_during_setup("attachments_injected", {
             "attachment_count": len(attachments),
             "injected_count": len(injected_files),
-        })
-        
-        # Step 4: Get merged environment variables
-        # Try ExecutionContext first (new flow with pre-merged/decrypted env vars)
-        # Fall back to legacy environment merging if ExecutionContext not found
-        setup_timer.start("environment")
-        merged_env_vars = {}
-        use_legacy_env_merge = True
-        
-        try:
-            # Try to get pre-merged environment from ExecutionContext
-            execution_context_client = ExecutionContextClient(api_key)
-            exec_ctx = await execution_context_client.try_get_by_execution_id(execution_id)
-            
-            if exec_ctx and exec_ctx.spec.data:
-                # Use pre-merged and pre-decrypted environment from ExecutionContext
-                activity_logger.info(
-                    f"Using merged environment from ExecutionContext: "
-                    f"context_id={exec_ctx.metadata.id}, env_count={len(exec_ctx.spec.data)}"
-                )
-                
-                # Extract values from ExecutionValue objects
-                for key, exec_value in exec_ctx.spec.data.items():
-                    merged_env_vars[key] = exec_value.value
-                
-                use_legacy_env_merge = False
-                activity_logger.info(f"ExecutionContext environment: {len(merged_env_vars)} total vars")
-            else:
-                activity_logger.debug(
-                    f"No ExecutionContext found for execution {execution_id} - "
-                    "using legacy environment merge"
-                )
-        except Exception as e:
-            activity_logger.warning(
-                f"Failed to get ExecutionContext, falling back to legacy merge: {e}"
-            )
-        
-        # Legacy environment merge (backward compatibility)
-        if use_legacy_env_merge:
-            environment_refs = agent_instance.spec.environment_refs
-            
-            if environment_refs:
-                activity_logger.info(
-                    f"[Legacy] Merging {len(environment_refs)} environments: "
-                    f"{[ref.slug for ref in environment_refs]}"
-                )
-                
-                try:
-                    # Create environment client
-                    environment_client = EnvironmentClient(api_key)
-                    
-                    # Fetch environments (preserves order for proper merging)
-                    environments = await environment_client.list_by_refs(list(environment_refs))
-                    
-                    # Merge environments in order (later overrides earlier)
-                    # Start with agent's base env_spec if it exists
-                    if agent.spec.env_spec and agent.spec.env_spec.data:
-                        # Extract values from EnvironmentValue objects
-                        for key, env_value in agent.spec.env_spec.data.items():
-                            merged_env_vars[key] = env_value.value
-                        activity_logger.info(f"[Legacy] Base env vars from agent: {len(agent.spec.env_spec.data)}")
-                    
-                    # Layer each environment (order matters!)
-                    for idx, env in enumerate(environments):
-                        if env.spec.data:
-                            # Extract values from EnvironmentValue objects
-                            for key, env_value in env.spec.data.items():
-                                merged_env_vars[key] = env_value.value
-                            activity_logger.info(
-                                f"[Legacy] Merged env {idx+1}/{len(environments)} ({env.metadata.name}): "
-                                f"{len(env.spec.data)} vars"
-                            )
-                    
-                    # Runtime env vars from execution have highest priority
-                    if execution.spec.runtime_env:
-                        # Convert ExecutionValue to string values
-                        runtime_vars = {
-                            key: value.value 
-                            for key, value in execution.spec.runtime_env.items()
-                        }
-                        merged_env_vars.update(runtime_vars)
-                        activity_logger.info(f"[Legacy] Applied runtime env overrides: {len(runtime_vars)} vars")
-                    
-                    activity_logger.info(f"[Legacy] Final merged environment: {len(merged_env_vars)} total vars")
-                    
-                except Exception as e:
-                    activity_logger.error(f"[Legacy] Failed to merge environments: {e}")
-                    # Continue without environments rather than failing execution
-                    merged_env_vars = {}
-        
-        # Heartbeat after environment merge to prevent timeout during setup
-        heartbeat_during_setup("environment_merged", {
-            "env_var_count": len(merged_env_vars),
-            "used_legacy_merge": use_legacy_env_merge,
         })
         
         # Step 5: Fetch and transform MCP servers (from agent template via mcp_server_usages)
@@ -1498,14 +1645,16 @@ async def _execute_graphton_impl(
             enhanced_system_prompt += skills_prompt_section
             activity_logger.info("Enhanced system prompt with skills metadata")
         
-        # Add input files section to system prompt if attachments were injected
         if injected_files:
             input_files_section = "\n\n## Input Files\n\n"
             input_files_section += (
-                "The following files have been provided as context for your task. "
+                "The following files have been provided as read-only reference "
+                "material for your task. They live under `.stigmer-inputs/` and "
+                "are NOT part of the project source tree.\n\n"
                 "Read them using the `read` tool when you need their contents. "
                 "Do NOT echo, reprint, or summarize file contents in your response "
-                "-- they are reference material, not output.\n\n"
+                "-- they are reference material, not output. "
+                "Do NOT modify or delete these files.\n\n"
             )
             for f in injected_files:
                 size_info = f" ({f['size']} bytes)" if f.get('size') is not None else ""
@@ -2392,6 +2541,16 @@ async def _execute_graphton_impl(
                 ExecutionPhase.EXECUTION_PAUSED,
                 ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
             ):
+                if provision_result is not None:
+                    _generate_git_diff_artifact(
+                        workspace_backend=workspace_backend,
+                        provision_result=provision_result,
+                        execution_id=execution_id,
+                        storage=artifact_storage,
+                        status_builder=status_builder,
+                        logger_=activity_logger,
+                    )
+                
                 try:
                     await _auto_publish_written_files(
                         tool_calls=status_builder.current_status.tool_calls,
