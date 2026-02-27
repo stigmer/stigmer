@@ -8,24 +8,38 @@ import (
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/agent"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpserver"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/workflow"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
 )
 
-func applyAgent(item applyItem, fctx *fileApplyContext) error {
+// buildResourceReference creates an ApiResourceReference from resource metadata and kind.
+func buildResourceReference(
+	metadata *apiresource.ApiResourceMetadata,
+	kind apiresourcekind.ApiResourceKind,
+) *apiresource.ApiResourceReference {
+	return &apiresource.ApiResourceReference{
+		Org:  metadata.Org,
+		Kind: kind,
+		Slug: metadata.Slug,
+	}
+}
+
+func applyAgent(item applyItem, fctx *fileApplyContext) (*apiresource.ApiResourceReference, error) {
 	loadResult, err := agent.LoadFromBytes(item.rawContent)
 	if err != nil {
-		return errors.Wrap(err, "failed to load agent")
+		return nil, errors.Wrap(err, "failed to load agent")
 	}
 	if err := agent.Validate(loadResult.Agent); err != nil {
-		return errors.Wrap(err, "agent validation failed")
+		return nil, errors.Wrap(err, "agent validation failed")
 	}
 
 	if fctx.dryRun {
 		fctx.renderer.Render(buildAgentDryRunResult(loadResult.Agent))
-		return nil
+		return nil, nil
 	}
 
 	result, err := agent.Apply(&agent.ApplyOptions{
@@ -36,25 +50,25 @@ func applyAgent(item applyItem, fctx *fileApplyContext) error {
 		DryRun: false,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	fctx.renderer.Render(buildAgentApplyResult(result))
-	return nil
+	return buildResourceReference(result.Agent.Metadata, apiresourcekind.ApiResourceKind_agent), nil
 }
 
-func applyWorkflow(item applyItem, fctx *fileApplyContext) error {
+func applyWorkflow(item applyItem, fctx *fileApplyContext) (*apiresource.ApiResourceReference, error) {
 	loadResult, err := workflow.LoadFromBytes(item.rawContent)
 	if err != nil {
-		return errors.Wrap(err, "failed to load workflow")
+		return nil, errors.Wrap(err, "failed to load workflow")
 	}
 	if err := workflow.Validate(loadResult.Workflow); err != nil {
-		return errors.Wrap(err, "workflow validation failed")
+		return nil, errors.Wrap(err, "workflow validation failed")
 	}
 
 	if fctx.dryRun {
 		fctx.renderer.Render(buildWorkflowDryRunResult(loadResult.Workflow))
-		return nil
+		return nil, nil
 	}
 
 	result, err := workflow.Apply(&workflow.ApplyOptions{
@@ -65,22 +79,22 @@ func applyWorkflow(item applyItem, fctx *fileApplyContext) error {
 		DryRun:   false,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	fctx.renderer.Render(buildWorkflowApplyResult(result))
-	return nil
+	return buildResourceReference(result.Workflow.Metadata, apiresourcekind.ApiResourceKind_workflow), nil
 }
 
-func applyMcpServer(item applyItem, fctx *fileApplyContext) error {
+func applyMcpServer(item applyItem, fctx *fileApplyContext) (*apiresource.ApiResourceReference, error) {
 	loadResult, err := mcpserver.LoadFromBytes(item.rawContent)
 	if err != nil {
-		return errors.Wrap(err, "failed to load MCP server")
+		return nil, errors.Wrap(err, "failed to load MCP server")
 	}
 
 	if fctx.dryRun {
 		fctx.renderer.Render(buildMcpServerDryRunResult(loadResult.McpServer))
-		return nil
+		return nil, nil
 	}
 
 	result, err := mcpserver.Apply(&mcpserver.ApplyOptions{
@@ -91,11 +105,11 @@ func applyMcpServer(item applyItem, fctx *fileApplyContext) error {
 		DryRun:    false,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	fctx.renderer.Render(buildMcpServerApplyResult(result))
-	return nil
+	return buildResourceReference(result.McpServer.Metadata, apiresourcekind.ApiResourceKind_mcp_server), nil
 }
 
 func buildAgentApplyResult(result *agent.ApplyResult) *clioutput.CommandResult {

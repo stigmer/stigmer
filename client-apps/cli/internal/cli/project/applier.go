@@ -40,13 +40,12 @@ type ApplyResult struct {
 // Apply applies a Project configuration to the backend.
 // It uses the Apply RPC which handles both create and update (idempotent).
 //
-// The Project.Spec should contain all embedded resources (agents, workflows,
-// skills, mcp_servers). The backend will:
+// The Project.Spec.Members should contain references to resources that have
+// already been applied individually by the CLI. The backend will:
 // 1. Create/update the Project entity
-// 2. Derive the dependency graph via proto reflection
-// 3. Reconcile embedded resources in dependency order
-// 4. Optionally prune orphaned resources
-// 5. Return the Project with ReconciliationSummary populated
+// 2. Compare previous members with current members (set difference)
+// 3. Optionally prune orphaned resources (members removed since last apply)
+// 4. Return the Project with ReconciliationSummary populated
 func Apply(opts *ApplyOptions) (*ApplyResult, error) {
 	if err := validateApplyOptions(opts); err != nil {
 		return nil, err

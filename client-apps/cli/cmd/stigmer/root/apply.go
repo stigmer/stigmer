@@ -10,13 +10,15 @@ import (
 	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/project/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/project"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
 )
 
 // NewApplyCommand creates the apply command for deploying resources.
-// Supports two modes:
+// Supports three modes:
 //   - File mode (-f flag): Apply resources from YAML files with auto-detection
-//   - Project mode (default): SDK synthesis from stigmer.yaml project
+//   - Declarative mode: stigmer.yaml without entry_point, scans for YAML resources
+//   - SDK mode: stigmer.yaml with entry_point, runs SDK synthesis
 func NewApplyCommand() *cobra.Command {
 	var dryRun bool
 	var configDir string
@@ -30,35 +32,35 @@ func NewApplyCommand() *cobra.Command {
 		Short: "Apply resources from files or project",
 		Long: `Apply resources to the Stigmer backend.
 
-TWO MODES:
+MODES:
 
-1. FILE MODE (with -f flag):
-   Apply resources from YAML files. Kind is auto-detected from the file.
-   Supports single files, directories, and multi-document YAML.
+  File mode (with -f):     Apply individual YAML resource files
+  Declarative mode:        Detect stigmer.yaml, scan for resources, apply with project tracking
+  SDK mode:                Run SDK entry point for programmatic resource synthesis
 
-2. PROJECT MODE (without -f flag):
-   Detects stigmer.yaml, runs SDK synthesis, and deploys all resources.
-   The backend performs reconciliation (create, update, delete orphans).
+Without -f, the CLI looks for stigmer.yaml in the current directory (or --config path).
+If entry_point is set in stigmer.yaml, SDK mode is used. Otherwise, declarative mode
+scans the directory for YAML resource files and applies each individually.
 
 FILE MODE supports:
   - Agent, Workflow, McpServer resources
   - Directory paths (applies all .yaml/.yml files)
   - Multi-document YAML (--- separated)
 
-PROJECT MODE supports:
-  - Go:     go run <entry_point>
-  - Python: python <entry_point>
-  - Node:   npx ts-node <entry_point> (for .ts) or node <entry_point>`,
+DECLARATIVE MODE supports:
+  - All file mode resource kinds in a project directory
+  - Automatic resource discovery and membership tracking
+  - Orphan pruning with --prune flag`,
 		Example: `  # File mode - apply from YAML file
   stigmer apply -f agent.yaml
   stigmer apply -f workflow.yaml --dry-run
   stigmer apply -f ./manifests/  # directory
 
-  # Project mode - deploy from stigmer.yaml project
-  stigmer apply
+  # Declarative mode - deploy from stigmer.yaml project directory
+  stigmer apply                       # scans cwd for resources
   stigmer apply --config /path/to/project/
   stigmer apply --dry-run
-  stigmer apply --prune=false`,
+  stigmer apply --prune=false         # skip orphan deletion`,
 		Run: func(cmd *cobra.Command, args []string) {
 			var err error
 			format := resolveResultFormat(jsonOutput, quietOutput)
@@ -71,13 +73,36 @@ PROJECT MODE supports:
 					OutputFormat: format,
 				})
 			} else {
-				err = executeProjectApply(projectApplyOptions{
-					ConfigDir:    configDir,
-					OrgOverride:  orgOverride,
-					DryRun:       dryRun,
-					PruneEnabled: pruneEnabled,
-					OutputFormat: format,
+				renderer := clioutput.NewRenderer(format, os.Stdout, os.Stderr)
+
+				detectResult, detectErr := project.DetectTrack(&project.DetectOptions{
+					StartDir: configDir,
 				})
+				if detectErr != nil {
+					clierr.Handle(errors.Wrap(detectErr, "track detection failed"))
+					return
+				}
+
+				switch detectResult.Track {
+				case project.TrackAtomic:
+					renderer.Render(buildAtomicTrackResult())
+				case project.TrackDeclarative:
+					err = executeDeclarativeApply(detectResult, projectApplyOptions{
+						ConfigDir:    configDir,
+						OrgOverride:  orgOverride,
+						DryRun:       dryRun,
+						PruneEnabled: pruneEnabled,
+						OutputFormat: format,
+					})
+				case project.TrackProject:
+					err = executeProjectApply(detectResult, projectApplyOptions{
+						ConfigDir:    configDir,
+						OrgOverride:  orgOverride,
+						DryRun:       dryRun,
+						PruneEnabled: pruneEnabled,
+						OutputFormat: format,
+					})
+				}
 			}
 
 			clierr.Handle(err)
@@ -131,35 +156,15 @@ func resolveApplyOrganization(cfg *config.Config, proj *projectv1.Project, overr
 	return "local", nil
 }
 
-func getEntryPoint(proj *projectv1.Project) string {
-	if proj.Spec != nil && proj.Spec.EntryPoint != "" {
-		return proj.Spec.EntryPoint
-	}
-	return getDefaultEntryPointForApply(proj.Spec.Runtime)
-}
-
-func runtimeToStringForApply(runtime projectv1.ProjectRuntime) string {
-	switch runtime {
-	case projectv1.ProjectRuntime_go:
-		return "go"
-	case projectv1.ProjectRuntime_python:
-		return "python"
-	case projectv1.ProjectRuntime_node:
-		return "node"
-	default:
-		return "unknown"
-	}
-}
-
-func getDefaultEntryPointForApply(runtime projectv1.ProjectRuntime) string {
-	switch runtime {
-	case projectv1.ProjectRuntime_go:
-		return "main.go"
-	case projectv1.ProjectRuntime_python:
-		return "main.py"
-	case projectv1.ProjectRuntime_node:
-		return "index.ts"
-	default:
-		return ""
-	}
+func buildAtomicTrackResult() *clioutput.CommandResult {
+	result := clioutput.Warning("No stigmer.yaml found in current directory or parents")
+	result.AddSection("").
+		Item("The 'stigmer apply' command requires a project with stigmer.yaml").
+		Item("This enables resource discovery and project-based reconciliation")
+	result.AddSection("For single-resource deployment, use file mode").
+		Item("stigmer apply -f agent.yaml").
+		Item("stigmer apply -f workflow.yaml").
+		Item("stigmer apply -f mcpserver.yaml")
+	result.Hint("To create a new project: create stigmer.yaml with your project name, add YAML resource files, run 'stigmer apply'")
+	return result
 }

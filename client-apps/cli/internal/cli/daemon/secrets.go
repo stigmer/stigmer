@@ -7,6 +7,9 @@ import (
 	"syscall"
 
 	"golang.org/x/term"
+
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 )
 
 // PromptForSecret prompts the user to enter a secret value with masked input.
@@ -14,13 +17,11 @@ import (
 func PromptForSecret(prompt string) (string, error) {
 	fmt.Fprintf(os.Stderr, "%s: ", prompt)
 
-	// Read password with masked input
 	bytePassword, err := term.ReadPassword(int(syscall.Stdin))
 	if err != nil {
 		return "", err
 	}
 
-	// Print newline after masked input
 	fmt.Fprintln(os.Stderr)
 
 	secret := strings.TrimSpace(string(bytePassword))
@@ -36,12 +37,10 @@ func PromptForSecret(prompt string) (string, error) {
 // prompt: the user-facing prompt text
 // Returns the secret value and whether it was newly prompted (true) or from env (false).
 func GetOrPromptSecret(envVar string, prompt string) (string, bool, error) {
-	// Check if already set in environment
 	if value := os.Getenv(envVar); value != "" {
 		return value, false, nil
 	}
 
-	// Prompt user for the secret
 	secret, err := PromptForSecret(prompt)
 	if err != nil {
 		return "", false, err
@@ -50,50 +49,63 @@ func GetOrPromptSecret(envVar string, prompt string) (string, bool, error) {
 	return secret, true, nil
 }
 
-// GatherRequiredSecrets prompts for provider-specific secrets based on LLM provider.
+// GatherRequiredSecrets resolves provider-specific secrets from environment
+// variables, config file, or interactive prompt (in that priority order).
 // Returns a map of environment variable names to secret values.
-func GatherRequiredSecrets(llmProvider string) (map[string]string, error) {
+func GatherRequiredSecrets(llmProvider string, localCfg *config.LocalBackendConfig) (map[string]string, error) {
 	secrets := make(map[string]string)
 
 	switch llmProvider {
 	case "ollama":
-		// No secrets needed for Ollama!
-		fmt.Fprintf(os.Stderr, "✓ Using Ollama (no API key required)\n")
 		return secrets, nil
 
 	case "anthropic":
-		// Check if already in environment
-		if apiKey := os.Getenv("ANTHROPIC_API_KEY"); apiKey != "" {
-			fmt.Fprintf(os.Stderr, "✓ Using ANTHROPIC_API_KEY from environment\n")
+		apiKey := resolveAPIKey(localCfg, "ANTHROPIC_API_KEY")
+		if apiKey != "" {
+			secrets["ANTHROPIC_API_KEY"] = apiKey
 			return secrets, nil
 		}
 
-		// Prompt for API key
-		apiKey, err := PromptForSecret("Enter Anthropic API key")
+		prompted, err := PromptForSecret("Enter Anthropic API key")
 		if err != nil {
 			return nil, fmt.Errorf("failed to get Anthropic API key: %w", err)
 		}
-		secrets["ANTHROPIC_API_KEY"] = apiKey
-		fmt.Fprintf(os.Stderr, "✓ Anthropic API key configured\n")
+		secrets["ANTHROPIC_API_KEY"] = prompted
+		climsg.Success("Anthropic API key configured")
 
 	case "openai":
-		// Check if already in environment
-		if apiKey := os.Getenv("OPENAI_API_KEY"); apiKey != "" {
-			fmt.Fprintf(os.Stderr, "✓ Using OPENAI_API_KEY from environment\n")
+		apiKey := resolveAPIKey(localCfg, "OPENAI_API_KEY")
+		if apiKey != "" {
+			secrets["OPENAI_API_KEY"] = apiKey
 			return secrets, nil
 		}
 
-		// Prompt for API key
-		apiKey, err := PromptForSecret("Enter OpenAI API key")
+		prompted, err := PromptForSecret("Enter OpenAI API key")
 		if err != nil {
 			return nil, fmt.Errorf("failed to get OpenAI API key: %w", err)
 		}
-		secrets["OPENAI_API_KEY"] = apiKey
-		fmt.Fprintf(os.Stderr, "✓ OpenAI API key configured\n")
+		secrets["OPENAI_API_KEY"] = prompted
+		climsg.Success("OpenAI API key configured")
+
+	case "":
+		climsg.Warning("No LLM provider configured. Agents will not execute.")
+		climsg.Warning("Run 'stigmer server setup' to configure an LLM provider.")
+		return secrets, nil
 
 	default:
 		return nil, fmt.Errorf("unsupported LLM provider: %s (supported: ollama, anthropic, openai)", llmProvider)
 	}
 
 	return secrets, nil
+}
+
+// resolveAPIKey checks environment variable first, then config file.
+func resolveAPIKey(localCfg *config.LocalBackendConfig, envVar string) string {
+	if val := os.Getenv(envVar); val != "" {
+		return val
+	}
+	if localCfg != nil && localCfg.LLM != nil && localCfg.LLM.APIKey != "" {
+		return localCfg.LLM.APIKey
+	}
+	return ""
 }

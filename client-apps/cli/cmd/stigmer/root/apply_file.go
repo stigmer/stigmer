@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
@@ -92,7 +93,7 @@ func executeFileApply(opts fileApplyOptions) error {
 	}
 
 	for _, item := range applyItems {
-		if err := applyResourceItem(item, fctx); err != nil {
+		if _, err := applyResourceItem(item, fctx); err != nil {
 			return err
 		}
 	}
@@ -166,7 +167,9 @@ func detectApplyItems(filePath string) ([]applyItem, error) {
 	return items, nil
 }
 
-func applyResourceItem(item applyItem, fctx *fileApplyContext) error {
+// applyResourceItem applies a single resource item and returns a reference to the
+// applied resource. Returns (nil, nil) for dry-run mode.
+func applyResourceItem(item applyItem, fctx *fileApplyContext) (*apiresource.ApiResourceReference, error) {
 	fmt.Fprintf(os.Stderr, "Applying %s from %s...\n", item.typeInfo.DisplayName, item.filePath)
 
 	switch item.typeInfo.ProtoKind {
@@ -177,6 +180,6 @@ func applyResourceItem(item applyItem, fctx *fileApplyContext) error {
 	case apiresourcekind.ApiResourceKind_mcp_server:
 		return applyMcpServer(item, fctx)
 	default:
-		return fmt.Errorf("apply not implemented for %s", item.typeInfo.DisplayName)
+		return nil, fmt.Errorf("apply not implemented for %s", item.typeInfo.DisplayName)
 	}
 }

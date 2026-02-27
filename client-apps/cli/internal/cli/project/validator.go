@@ -19,13 +19,22 @@ var reservedNames = []string{
 	"test",    // reserved for testing
 }
 
+// supportedEntryPointExtensions lists the file extensions recognized by the SDK track.
+// The CLI infers the runtime from the extension:
+//
+//	.go        → Go SDK    (go run <entry_point>)
+//	.py        → Python SDK (python <entry_point>)
+//	.ts, .mts  → Node SDK   (npx ts-node <entry_point>)
+//	.js, .mjs  → Node SDK   (node <entry_point>)
+var supportedEntryPointExtensions = []string{".go", ".py", ".ts", ".js", ".mts", ".mjs"}
+
 // Validate performs cross-field business logic validation on a Project.
 //
-// Schema validation (apiVersion, kind, metadata, spec, runtime) is handled
-// by protovalidate in Load(). This function validates relationships between
+// Schema validation (apiVersion, kind, metadata, spec) is handled by
+// protovalidate in Load(). This function validates relationships between
 // fields that cannot be expressed in proto validation rules:
 //
-//   - Runtime and entry_point extension must be consistent
+//   - Entry point extension must be a recognized SDK language
 //   - Project name must not be a reserved name
 //   - Entry point must be a safe relative path
 //
@@ -35,7 +44,7 @@ func Validate(project *projectv1.Project) error {
 		return nil // Schema validation handles required fields
 	}
 
-	if err := validateRuntimeEntryPoint(project); err != nil {
+	if err := validateEntryPointExtension(project); err != nil {
 		return err
 	}
 
@@ -50,45 +59,27 @@ func Validate(project *projectv1.Project) error {
 	return nil
 }
 
-// validateRuntimeEntryPoint ensures the entry_point extension matches the runtime.
-// Empty entry_point is valid - defaults are applied at apply-time.
-func validateRuntimeEntryPoint(project *projectv1.Project) error {
+// validateEntryPointExtension ensures entry_point (when set) has a recognized
+// SDK file extension. Empty entry_point is valid — it indicates declarative mode.
+func validateEntryPointExtension(project *projectv1.Project) error {
 	entryPoint := project.Spec.GetEntryPoint()
 	if entryPoint == "" {
-		return nil // Empty is valid, defaults applied at apply-time
+		return nil
 	}
 
-	runtime := project.Spec.GetRuntime()
-	validExts := getValidExtensions(runtime)
-
 	ext := strings.ToLower(filepath.Ext(entryPoint))
-	for _, validExt := range validExts {
-		if ext == validExt {
+	for _, supported := range supportedEntryPointExtensions {
+		if ext == supported {
 			return nil
 		}
 	}
 
-	runtimeName := strings.ToLower(runtime.String())
 	return fmt.Errorf(
-		"entry point %q has invalid extension for %s runtime\n\n"+
-			"Expected extensions: %s\n"+
-			"Either change the entry_point or the runtime setting.",
-		entryPoint, runtimeName, strings.Join(validExts, ", "),
+		"entry point %q has unrecognized extension %q\n\n"+
+			"Supported extensions: %s\n"+
+			"The CLI infers the SDK runtime from the file extension.",
+		entryPoint, ext, strings.Join(supportedEntryPointExtensions, ", "),
 	)
-}
-
-// getValidExtensions returns the valid file extensions for a given runtime.
-func getValidExtensions(runtime projectv1.ProjectRuntime) []string {
-	switch runtime {
-	case projectv1.ProjectRuntime_go:
-		return []string{".go"}
-	case projectv1.ProjectRuntime_python:
-		return []string{".py"}
-	case projectv1.ProjectRuntime_node:
-		return []string{".js", ".ts", ".mjs", ".mts"}
-	default:
-		return nil
-	}
 }
 
 // validateReservedNames ensures the project name is not a reserved name.
@@ -132,7 +123,6 @@ func validateEntryPointPath(project *projectv1.Project) error {
 		return nil // Empty is valid
 	}
 
-	// Check for absolute path
 	if filepath.IsAbs(entryPoint) {
 		return fmt.Errorf(
 			"entry point %q must be a relative path\n\n"+
@@ -141,7 +131,6 @@ func validateEntryPointPath(project *projectv1.Project) error {
 		)
 	}
 
-	// Check for directory traversal
 	if containsDirectoryTraversal(entryPoint) {
 		return fmt.Errorf(
 			"entry point %q contains directory traversal (..)\n\n"+
@@ -155,7 +144,6 @@ func validateEntryPointPath(project *projectv1.Project) error {
 
 // containsDirectoryTraversal checks if the path contains ".." components.
 func containsDirectoryTraversal(path string) bool {
-	// Clean the path and check for ".." in components
 	parts := strings.Split(filepath.ToSlash(path), "/")
 	for _, part := range parts {
 		if part == ".." {

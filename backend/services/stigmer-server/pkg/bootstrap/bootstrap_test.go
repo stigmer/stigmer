@@ -136,12 +136,14 @@ func TestBootstrapper_Run_Success(t *testing.T) {
 		assert.Equal(t, "system", call.GetTag())
 	}
 
-	// Verify agents were applied (seedpack has agent-creator and skill-creator, sorted alphabetically)
-	assert.Len(t, agentClient.ApplyCalls, 2)
+	// Verify agents were applied (seedpack has agent-creator, mcp-server-creator, skill-creator, sorted alphabetically)
+	assert.Len(t, agentClient.ApplyCalls, 3)
 	assert.Equal(t, "agent-creator", agentClient.ApplyCalls[0].GetMetadata().GetName())
 	assert.Equal(t, "local", agentClient.ApplyCalls[0].GetMetadata().GetOrg())
-	assert.Equal(t, "skill-creator", agentClient.ApplyCalls[1].GetMetadata().GetName())
+	assert.Equal(t, "mcp-server-creator", agentClient.ApplyCalls[1].GetMetadata().GetName())
 	assert.Equal(t, "local", agentClient.ApplyCalls[1].GetMetadata().GetOrg())
+	assert.Equal(t, "skill-creator", agentClient.ApplyCalls[2].GetMetadata().GetName())
+	assert.Equal(t, "local", agentClient.ApplyCalls[2].GetMetadata().GetOrg())
 
 	// Verify MCP server was applied (seedpack has stigmer-mcp-server)
 	assert.Len(t, mcpServerClient.ApplyCalls, 1)
@@ -164,6 +166,10 @@ func TestBootstrapper_Run_Success(t *testing.T) {
 	agentCreatorState, err := store.GetBootstrapState(ctx, KeyAgentPrefix+"agent-creator")
 	require.NoError(t, err)
 	assert.Contains(t, agentCreatorState, KeyAppliedPrefix)
+
+	mcpServerCreatorAgentState, err := store.GetBootstrapState(ctx, KeyAgentPrefix+"mcp-server-creator")
+	require.NoError(t, err)
+	assert.Contains(t, mcpServerCreatorAgentState, KeyAppliedPrefix)
 
 	skillCreatorAgentState, err := store.GetBootstrapState(ctx, KeyAgentPrefix+"skill-creator")
 	require.NoError(t, err)
@@ -194,7 +200,7 @@ func TestBootstrapper_Run_Idempotent(t *testing.T) {
 	err = bootstrapper.Run(ctx)
 	require.NoError(t, err)
 	assert.Len(t, skillClient.PushCalls, 3)
-	assert.Len(t, agentClient.ApplyCalls, 2)
+	assert.Len(t, agentClient.ApplyCalls, 3)
 	assert.Len(t, mcpServerClient.ApplyCalls, 1)
 
 	// Run bootstrap again - should skip because already completed
@@ -239,7 +245,7 @@ func TestBootstrapper_Run_SkipIfSameDigest(t *testing.T) {
 
 	// Calls should be made because content hash changed
 	assert.Len(t, skillClient.PushCalls, 3)
-	assert.Len(t, agentClient.ApplyCalls, 2)
+	assert.Len(t, agentClient.ApplyCalls, 3)
 	assert.Len(t, mcpServerClient.ApplyCalls, 1)
 }
 
@@ -269,7 +275,7 @@ func TestBootstrapper_Run_DegradedMode_SkillError(t *testing.T) {
 	assert.Len(t, skillClient.PushCalls, 3)
 
 	// Agent and MCP server should still be applied
-	assert.Len(t, agentClient.ApplyCalls, 2)
+	assert.Len(t, agentClient.ApplyCalls, 3)
 	assert.Len(t, mcpServerClient.ApplyCalls, 1)
 
 	// Status should be failed
@@ -304,7 +310,7 @@ func TestBootstrapper_Run_DegradedMode_AgentError(t *testing.T) {
 	assert.Len(t, skillClient.PushCalls, 3)
 
 	// Agent apply should have been attempted
-	assert.Len(t, agentClient.ApplyCalls, 2)
+	assert.Len(t, agentClient.ApplyCalls, 3)
 
 	// MCP server should still be applied
 	assert.Len(t, mcpServerClient.ApplyCalls, 1)
@@ -339,7 +345,7 @@ func TestBootstrapper_Run_DegradedMode_McpServerError(t *testing.T) {
 
 	// Skills and agents should have succeeded
 	assert.Len(t, skillClient.PushCalls, 3)
-	assert.Len(t, agentClient.ApplyCalls, 2)
+	assert.Len(t, agentClient.ApplyCalls, 3)
 
 	// MCP server apply should have been attempted
 	assert.Len(t, mcpServerClient.ApplyCalls, 1)

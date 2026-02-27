@@ -1,4 +1,4 @@
-from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2 as _api_resource_kind_pb2
+from ai.stigmer.commons.apiresource import io_pb2 as _io_pb2
 from ai.stigmer.commons.apiresource import status_pb2 as _status_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
@@ -13,20 +13,10 @@ class ReconciliationSummary(_message.Message):
     CREATED_FIELD_NUMBER: _ClassVar[int]
     UPDATED_FIELD_NUMBER: _ClassVar[int]
     DELETED_FIELD_NUMBER: _ClassVar[int]
-    created: _containers.RepeatedCompositeFieldContainer[ResourceChangeRecord]
-    updated: _containers.RepeatedCompositeFieldContainer[ResourceChangeRecord]
-    deleted: _containers.RepeatedCompositeFieldContainer[ResourceChangeRecord]
-    def __init__(self, created: _Optional[_Iterable[_Union[ResourceChangeRecord, _Mapping]]] = ..., updated: _Optional[_Iterable[_Union[ResourceChangeRecord, _Mapping]]] = ..., deleted: _Optional[_Iterable[_Union[ResourceChangeRecord, _Mapping]]] = ...) -> None: ...
-
-class ResourceChangeRecord(_message.Message):
-    __slots__ = ("kind", "slug", "resource_id")
-    KIND_FIELD_NUMBER: _ClassVar[int]
-    SLUG_FIELD_NUMBER: _ClassVar[int]
-    RESOURCE_ID_FIELD_NUMBER: _ClassVar[int]
-    kind: _api_resource_kind_pb2.ApiResourceKind
-    slug: str
-    resource_id: str
-    def __init__(self, kind: _Optional[_Union[_api_resource_kind_pb2.ApiResourceKind, str]] = ..., slug: _Optional[str] = ..., resource_id: _Optional[str] = ...) -> None: ...
+    created: _containers.RepeatedCompositeFieldContainer[_io_pb2.ApiResourceReference]
+    updated: _containers.RepeatedCompositeFieldContainer[_io_pb2.ApiResourceReference]
+    deleted: _containers.RepeatedCompositeFieldContainer[_io_pb2.ApiResourceReference]
+    def __init__(self, created: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., updated: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., deleted: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ...) -> None: ...
 
 class ProjectStatus(_message.Message):
     __slots__ = ("last_reconciliation", "audit")

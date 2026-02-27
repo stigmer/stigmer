@@ -12,7 +12,7 @@ import (
 //
 // Pipeline Steps:
 //  1. ValidateProto - Validates proto field constraints using buf.validate
-//     (api_version, kind, metadata required, spec.runtime required)
+//     (api_version, kind, metadata required)
 //  2. ResolveSlug - Generates URL-safe slug from metadata.name
 //  3. CheckDuplicate - Verifies no duplicate exists by slug within org
 //  4. BuildNewState - Generates ID (prj-{ulid}), clears status, sets audit fields
