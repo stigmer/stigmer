@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/project/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -36,26 +35,26 @@ func createStigmerYAML(t *testing.T, dir, content string) string {
 	return path
 }
 
-// minimalValidStigmerYAML returns a minimal valid stigmer.yaml content.
-func minimalValidStigmerYAML() string {
+// declarativeStigmerYAML returns a minimal valid stigmer.yaml for declarative track
+// (no entry_point).
+func declarativeStigmerYAML() string {
 	return `apiVersion: agentic.stigmer.ai/v1
 kind: Project
 metadata:
   name: test-project
 spec:
-  runtime: go
+  description: A test project
 `
 }
 
-// fullValidStigmerYAML returns a complete stigmer.yaml with all fields.
-func fullValidStigmerYAML() string {
+// sdkStigmerYAML returns a stigmer.yaml for SDK track (with entry_point).
+func sdkStigmerYAML() string {
 	return `apiVersion: agentic.stigmer.ai/v1
 kind: Project
 metadata:
   name: my-awesome-project
   org: acme-corp
 spec:
-  runtime: python
   entry_point: main.py
   description: A comprehensive project for testing
 `
@@ -70,7 +69,7 @@ kind: Project
 metadata:
   name: test
 spec:
-  runtime: go
+  description: test
 `
 	case "wrong-kind":
 		return `apiVersion: agentic.stigmer.ai/v1
@@ -78,15 +77,7 @@ kind: WrongKind
 metadata:
   name: test
 spec:
-  runtime: go
-`
-	case "missing-runtime":
-		return `apiVersion: agentic.stigmer.ai/v1
-kind: Project
-metadata:
-  name: test
-spec:
-  description: no runtime
+  description: test
 `
 	case "malformed-yaml":
 		return `apiVersion: agentic.stigmer.ai/v1
@@ -105,34 +96,28 @@ metadata:
 // =============================================================================
 
 func TestDetectTrack_DefaultsToCurrentDirectory(t *testing.T) {
-	// Create a temp dir with stigmer.yaml and change to it
 	dir := t.TempDir()
-	createStigmerYAML(t, dir, minimalValidStigmerYAML())
+	createStigmerYAML(t, dir, declarativeStigmerYAML())
 
-	// Resolve symlinks (macOS /var -> /private/var)
 	resolvedDir, err := filepath.EvalSymlinks(dir)
 	require.NoError(t, err)
 
-	// Save current dir and change to test dir
 	originalDir, err := os.Getwd()
 	require.NoError(t, err)
 	defer func() { _ = os.Chdir(originalDir) }()
 	err = os.Chdir(dir)
 	require.NoError(t, err)
 
-	// Detect with nil options should use cwd
 	result, err := DetectTrack(nil)
 	require.NoError(t, err)
-	assert.Equal(t, TrackProject, result.Track)
+	assert.Equal(t, TrackDeclarative, result.Track)
 	assert.Equal(t, filepath.Join(resolvedDir, ConfigFileName), result.ConfigPath)
 }
 
 func TestDetectTrack_DefaultMaxDepth(t *testing.T) {
-	// Create a deeply nested structure (deeper than default max depth)
 	baseDir := t.TempDir()
-	deepDir := createNestedDirs(t, baseDir, 15) // 15 levels deep
+	deepDir := createNestedDirs(t, baseDir, 15)
 
-	// No stigmer.yaml anywhere - should return Atomic without error
 	result, err := DetectTrack(&DetectOptions{StartDir: deepDir})
 	require.NoError(t, err)
 	assert.Equal(t, TrackAtomic, result.Track)
@@ -140,7 +125,7 @@ func TestDetectTrack_DefaultMaxDepth(t *testing.T) {
 
 func TestDetectTrack_EmptyOptionsUsesDefaults(t *testing.T) {
 	dir := t.TempDir()
-	createStigmerYAML(t, dir, minimalValidStigmerYAML())
+	createStigmerYAML(t, dir, declarativeStigmerYAML())
 
 	originalDir, err := os.Getwd()
 	require.NoError(t, err)
@@ -148,10 +133,9 @@ func TestDetectTrack_EmptyOptionsUsesDefaults(t *testing.T) {
 	err = os.Chdir(dir)
 	require.NoError(t, err)
 
-	// Empty options should behave like nil options
 	result, err := DetectTrack(&DetectOptions{})
 	require.NoError(t, err)
-	assert.Equal(t, TrackProject, result.Track)
+	assert.Equal(t, TrackDeclarative, result.Track)
 }
 
 // =============================================================================
@@ -160,77 +144,70 @@ func TestDetectTrack_EmptyOptionsUsesDefaults(t *testing.T) {
 
 func TestDetectTrack_FindsConfigInCurrentDir(t *testing.T) {
 	dir := t.TempDir()
-	configPath := createStigmerYAML(t, dir, minimalValidStigmerYAML())
+	configPath := createStigmerYAML(t, dir, declarativeStigmerYAML())
 
 	result, err := DetectTrack(&DetectOptions{StartDir: dir})
 	require.NoError(t, err)
-	assert.Equal(t, TrackProject, result.Track)
+	assert.Equal(t, TrackDeclarative, result.Track)
 	assert.Equal(t, configPath, result.ConfigPath)
 	assert.Equal(t, dir, result.ConfigDir)
 }
 
 func TestDetectTrack_FindsConfigInParentDir(t *testing.T) {
 	baseDir := t.TempDir()
-	configPath := createStigmerYAML(t, baseDir, minimalValidStigmerYAML())
+	configPath := createStigmerYAML(t, baseDir, declarativeStigmerYAML())
 
-	// Create a subdirectory to start from
 	subDir := filepath.Join(baseDir, "subdir")
 	err := os.MkdirAll(subDir, 0755)
 	require.NoError(t, err)
 
 	result, err := DetectTrack(&DetectOptions{StartDir: subDir})
 	require.NoError(t, err)
-	assert.Equal(t, TrackProject, result.Track)
+	assert.Equal(t, TrackDeclarative, result.Track)
 	assert.Equal(t, configPath, result.ConfigPath)
 	assert.Equal(t, baseDir, result.ConfigDir)
 }
 
 func TestDetectTrack_FindsConfigMultipleLevelsUp(t *testing.T) {
 	baseDir := t.TempDir()
-	configPath := createStigmerYAML(t, baseDir, minimalValidStigmerYAML())
+	configPath := createStigmerYAML(t, baseDir, declarativeStigmerYAML())
 
-	// Create 5-level deep subdirectory
 	deepDir := createNestedDirs(t, baseDir, 5)
 
 	result, err := DetectTrack(&DetectOptions{StartDir: deepDir})
 	require.NoError(t, err)
-	assert.Equal(t, TrackProject, result.Track)
+	assert.Equal(t, TrackDeclarative, result.Track)
 	assert.Equal(t, configPath, result.ConfigPath)
 	assert.Equal(t, baseDir, result.ConfigDir)
 }
 
 func TestDetectTrack_RespectsMaxDepthLimit(t *testing.T) {
 	baseDir := t.TempDir()
-	createStigmerYAML(t, baseDir, minimalValidStigmerYAML())
+	createStigmerYAML(t, baseDir, declarativeStigmerYAML())
 
-	// Create subdirectory 3 levels deep
 	deepDir := createNestedDirs(t, baseDir, 3)
 
-	// With MaxDepth=2, should not find config 3 levels up
 	result, err := DetectTrack(&DetectOptions{StartDir: deepDir, MaxDepth: 2})
 	require.NoError(t, err)
 	assert.Equal(t, TrackAtomic, result.Track)
 
-	// With MaxDepth=4, should find it
 	result, err = DetectTrack(&DetectOptions{StartDir: deepDir, MaxDepth: 4})
 	require.NoError(t, err)
-	assert.Equal(t, TrackProject, result.Track)
+	assert.Equal(t, TrackDeclarative, result.Track)
 }
 
 func TestDetectTrack_FindsClosestConfig(t *testing.T) {
 	baseDir := t.TempDir()
-	createStigmerYAML(t, baseDir, fullValidStigmerYAML()) // "my-awesome-project"
+	createStigmerYAML(t, baseDir, sdkStigmerYAML())
 
-	// Create subdirectory with its own stigmer.yaml
 	subDir := filepath.Join(baseDir, "nested-project")
 	err := os.MkdirAll(subDir, 0755)
 	require.NoError(t, err)
-	closerConfig := createStigmerYAML(t, subDir, minimalValidStigmerYAML()) // "test-project"
+	closerConfig := createStigmerYAML(t, subDir, declarativeStigmerYAML())
 
-	// Start from subDir - should find the closer config
 	result, err := DetectTrack(&DetectOptions{StartDir: subDir})
 	require.NoError(t, err)
-	assert.Equal(t, TrackProject, result.Track)
+	assert.Equal(t, TrackDeclarative, result.Track)
 	assert.Equal(t, closerConfig, result.ConfigPath)
 	assert.Equal(t, "test-project", result.Project.Metadata.Name)
 }
@@ -252,12 +229,10 @@ func TestDetectTrack_ReturnsAtomicWhenNoConfig(t *testing.T) {
 
 func TestDetectTrack_ReturnsAtomicWhenMaxDepthExceeded(t *testing.T) {
 	baseDir := t.TempDir()
-	createStigmerYAML(t, baseDir, minimalValidStigmerYAML())
+	createStigmerYAML(t, baseDir, declarativeStigmerYAML())
 
-	// Create deep subdirectory
 	deepDir := createNestedDirs(t, baseDir, 5)
 
-	// MaxDepth=1 means only check start dir
 	result, err := DetectTrack(&DetectOptions{StartDir: deepDir, MaxDepth: 1})
 	require.NoError(t, err)
 	assert.Equal(t, TrackAtomic, result.Track)
@@ -276,25 +251,28 @@ func TestDetectTrack_AtomicResultHasEmptyFields(t *testing.T) {
 }
 
 // =============================================================================
-// Project Track Tests
+// Declarative Track Tests
 // =============================================================================
 
-func TestDetectTrack_ProjectTrackWithValidConfig(t *testing.T) {
+func TestDetectTrack_DeclarativeWhenNoEntryPoint(t *testing.T) {
 	dir := t.TempDir()
-	configPath := createStigmerYAML(t, dir, minimalValidStigmerYAML())
+	configPath := createStigmerYAML(t, dir, declarativeStigmerYAML())
 
 	result, err := DetectTrack(&DetectOptions{StartDir: dir})
 	require.NoError(t, err)
 
-	assert.Equal(t, TrackProject, result.Track)
+	assert.Equal(t, TrackDeclarative, result.Track)
 	assert.Equal(t, configPath, result.ConfigPath)
 	assert.Equal(t, dir, result.ConfigDir)
 	assert.NotNil(t, result.Project)
+	assert.Equal(t, "test-project", result.Project.Metadata.Name)
+	assert.Equal(t, "", result.Project.Spec.EntryPoint)
+	assert.Equal(t, "A test project", result.Project.Spec.Description)
 }
 
-func TestDetectTrack_ConfigPathIsAbsolute(t *testing.T) {
+func TestDetectTrack_DeclarativeConfigPathIsAbsolute(t *testing.T) {
 	dir := t.TempDir()
-	createStigmerYAML(t, dir, minimalValidStigmerYAML())
+	createStigmerYAML(t, dir, declarativeStigmerYAML())
 
 	result, err := DetectTrack(&DetectOptions{StartDir: dir})
 	require.NoError(t, err)
@@ -303,9 +281,30 @@ func TestDetectTrack_ConfigPathIsAbsolute(t *testing.T) {
 	assert.True(t, filepath.IsAbs(result.ConfigDir), "ConfigDir should be absolute")
 }
 
+// =============================================================================
+// SDK (Project) Track Tests
+// =============================================================================
+
+func TestDetectTrack_ProjectWhenEntryPointSet(t *testing.T) {
+	dir := t.TempDir()
+	configPath := createStigmerYAML(t, dir, sdkStigmerYAML())
+
+	result, err := DetectTrack(&DetectOptions{StartDir: dir})
+	require.NoError(t, err)
+
+	assert.Equal(t, TrackProject, result.Track)
+	assert.Equal(t, configPath, result.ConfigPath)
+	assert.Equal(t, dir, result.ConfigDir)
+	assert.NotNil(t, result.Project)
+	assert.Equal(t, "my-awesome-project", result.Project.Metadata.Name)
+	assert.Equal(t, "acme-corp", result.Project.Metadata.Org)
+	assert.Equal(t, "main.py", result.Project.Spec.EntryPoint)
+	assert.Equal(t, "A comprehensive project for testing", result.Project.Spec.Description)
+}
+
 func TestDetectTrack_ProjectIsPopulated(t *testing.T) {
 	dir := t.TempDir()
-	createStigmerYAML(t, dir, fullValidStigmerYAML())
+	createStigmerYAML(t, dir, sdkStigmerYAML())
 
 	result, err := DetectTrack(&DetectOptions{StartDir: dir})
 	require.NoError(t, err)
@@ -315,20 +314,19 @@ func TestDetectTrack_ProjectIsPopulated(t *testing.T) {
 	assert.Equal(t, "Project", result.Project.Kind)
 	assert.Equal(t, "my-awesome-project", result.Project.Metadata.Name)
 	assert.Equal(t, "acme-corp", result.Project.Metadata.Org)
-	assert.Equal(t, projectv1.ProjectRuntime_python, result.Project.Spec.Runtime)
 	assert.Equal(t, "main.py", result.Project.Spec.EntryPoint)
 	assert.Equal(t, "A comprehensive project for testing", result.Project.Spec.Description)
 }
 
-func TestDetectTrack_AllRuntimes(t *testing.T) {
+func TestDetectTrack_EntryPointVariants(t *testing.T) {
 	tests := []struct {
-		name     string
-		runtime  string
-		expected projectv1.ProjectRuntime
+		name       string
+		entryPoint string
 	}{
-		{"go", "go", projectv1.ProjectRuntime_go},
-		{"python", "python", projectv1.ProjectRuntime_python},
-		{"node", "node", projectv1.ProjectRuntime_node},
+		{"go", "main.go"},
+		{"python", "main.py"},
+		{"typescript", "index.ts"},
+		{"javascript", "index.js"},
 	}
 
 	for _, tt := range tests {
@@ -339,12 +337,14 @@ kind: Project
 metadata:
   name: test
 spec:
-  runtime: ` + tt.runtime
+  entry_point: ` + tt.entryPoint + `
+  description: test`
 			createStigmerYAML(t, dir, content)
 
 			result, err := DetectTrack(&DetectOptions{StartDir: dir})
 			require.NoError(t, err)
-			assert.Equal(t, tt.expected, result.Project.Spec.Runtime)
+			assert.Equal(t, TrackProject, result.Track)
+			assert.Equal(t, tt.entryPoint, result.Project.Spec.EntryPoint)
 		})
 	}
 }
@@ -366,15 +366,6 @@ func TestDetectTrack_InvalidApiVersionReturnsError(t *testing.T) {
 func TestDetectTrack_InvalidKindReturnsError(t *testing.T) {
 	dir := t.TempDir()
 	createStigmerYAML(t, dir, invalidStigmerYAML("wrong-kind"))
-
-	_, err := DetectTrack(&DetectOptions{StartDir: dir})
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid project configuration")
-}
-
-func TestDetectTrack_MissingRuntimeReturnsError(t *testing.T) {
-	dir := t.TempDir()
-	createStigmerYAML(t, dir, invalidStigmerYAML("missing-runtime"))
 
 	_, err := DetectTrack(&DetectOptions{StartDir: dir})
 	require.Error(t, err)
@@ -416,8 +407,6 @@ func TestDetectTrack_ErrorIncludesFilePath(t *testing.T) {
 func TestDetectTrack_IgnoresCaseSensitive(t *testing.T) {
 	dir := t.TempDir()
 
-	// Detect if filesystem is case-sensitive by creating two files with
-	// different cases and checking if they're different.
 	testFile1 := filepath.Join(dir, "TESTCASE")
 	testFile2 := filepath.Join(dir, "testcase")
 	err := os.WriteFile(testFile1, []byte("1"), 0644)
@@ -432,13 +421,11 @@ func TestDetectTrack_IgnoresCaseSensitive(t *testing.T) {
 		t.Skip("Skipping case-sensitivity test on case-insensitive filesystem (e.g., macOS)")
 	}
 
-	// Clean up test files
 	_ = os.Remove(testFile1)
 	_ = os.Remove(testFile2)
 
-	// Create STIGMER.yaml (wrong case) - should be ignored on case-sensitive fs
 	wrongCasePath := filepath.Join(dir, "STIGMER.yaml")
-	err = os.WriteFile(wrongCasePath, []byte(minimalValidStigmerYAML()), 0644)
+	err = os.WriteFile(wrongCasePath, []byte(declarativeStigmerYAML()), 0644)
 	require.NoError(t, err)
 
 	result, err := DetectTrack(&DetectOptions{StartDir: dir})
@@ -449,7 +436,6 @@ func TestDetectTrack_IgnoresCaseSensitive(t *testing.T) {
 func TestDetectTrack_IgnoresDirectory(t *testing.T) {
 	dir := t.TempDir()
 
-	// Create a directory named stigmer.yaml (should be ignored)
 	dirPath := filepath.Join(dir, ConfigFileName)
 	err := os.MkdirAll(dirPath, 0755)
 	require.NoError(t, err)
@@ -478,9 +464,8 @@ func TestDetectTrack_StartDirIsFile(t *testing.T) {
 
 func TestDetectTrack_RelativeStartDir(t *testing.T) {
 	dir := t.TempDir()
-	createStigmerYAML(t, dir, minimalValidStigmerYAML())
+	createStigmerYAML(t, dir, declarativeStigmerYAML())
 
-	// Change to parent and use relative path
 	originalDir, err := os.Getwd()
 	require.NoError(t, err)
 	defer func() { _ = os.Chdir(originalDir) }()
@@ -492,67 +477,75 @@ func TestDetectTrack_RelativeStartDir(t *testing.T) {
 	relPath := filepath.Base(dir)
 	result, err := DetectTrack(&DetectOptions{StartDir: relPath})
 	require.NoError(t, err)
-	assert.Equal(t, TrackProject, result.Track)
+	assert.Equal(t, TrackDeclarative, result.Track)
 	assert.True(t, filepath.IsAbs(result.ConfigPath), "ConfigPath should be absolute even with relative StartDir")
 }
 
 func TestDetectTrack_MaxDepthOne(t *testing.T) {
 	dir := t.TempDir()
-	createStigmerYAML(t, dir, minimalValidStigmerYAML())
+	createStigmerYAML(t, dir, declarativeStigmerYAML())
 
-	// Create subdirectory
 	subDir := filepath.Join(dir, "sub")
 	err := os.MkdirAll(subDir, 0755)
 	require.NoError(t, err)
 
-	// MaxDepth=1 should only check start dir
 	result, err := DetectTrack(&DetectOptions{StartDir: subDir, MaxDepth: 1})
 	require.NoError(t, err)
 	assert.Equal(t, TrackAtomic, result.Track)
 
-	// MaxDepth=2 should find it in parent
 	result, err = DetectTrack(&DetectOptions{StartDir: subDir, MaxDepth: 2})
 	require.NoError(t, err)
-	assert.Equal(t, TrackProject, result.Track)
+	assert.Equal(t, TrackDeclarative, result.Track)
 }
 
 // =============================================================================
 // Integration Tests
 // =============================================================================
 
-func TestDetectTrack_FullProjectFlow(t *testing.T) {
-	// Create a realistic project structure
+func TestDetectTrack_FullDeclarativeFlow(t *testing.T) {
 	projectRoot := t.TempDir()
-	createStigmerYAML(t, projectRoot, fullValidStigmerYAML())
+	createStigmerYAML(t, projectRoot, declarativeStigmerYAML())
 
-	// Create typical project subdirectories
+	srcDir := filepath.Join(projectRoot, "agents")
+	err := os.MkdirAll(srcDir, 0755)
+	require.NoError(t, err)
+
+	result, err := DetectTrack(&DetectOptions{StartDir: srcDir})
+	require.NoError(t, err)
+
+	assert.Equal(t, TrackDeclarative, result.Track)
+	assert.Equal(t, filepath.Join(projectRoot, ConfigFileName), result.ConfigPath)
+	assert.Equal(t, projectRoot, result.ConfigDir)
+	require.NotNil(t, result.Project)
+	assert.Equal(t, "test-project", result.Project.Metadata.Name)
+	assert.Equal(t, "", result.Project.Spec.EntryPoint)
+}
+
+func TestDetectTrack_FullSDKFlow(t *testing.T) {
+	projectRoot := t.TempDir()
+	createStigmerYAML(t, projectRoot, sdkStigmerYAML())
+
 	srcDir := filepath.Join(projectRoot, "src", "agents")
 	err := os.MkdirAll(srcDir, 0755)
 	require.NoError(t, err)
 
-	// Detect from deep inside src/agents
 	result, err := DetectTrack(&DetectOptions{StartDir: srcDir})
 	require.NoError(t, err)
 
-	// Verify full result
 	assert.Equal(t, TrackProject, result.Track)
 	assert.Equal(t, filepath.Join(projectRoot, ConfigFileName), result.ConfigPath)
 	assert.Equal(t, projectRoot, result.ConfigDir)
 	require.NotNil(t, result.Project)
 	assert.Equal(t, "my-awesome-project", result.Project.Metadata.Name)
-	assert.Equal(t, projectv1.ProjectRuntime_python, result.Project.Spec.Runtime)
 }
 
 func TestDetectTrack_AtomicFlowForSingleResource(t *testing.T) {
-	// Simulate a user with a single agent.yaml, no project
 	userDir := t.TempDir()
 
-	// Create agent.yaml but no stigmer.yaml
 	agentPath := filepath.Join(userDir, "agent.yaml")
 	err := os.WriteFile(agentPath, []byte("apiVersion: ...\nkind: Agent"), 0644)
 	require.NoError(t, err)
 
-	// Detection should return Atomic
 	result, err := DetectTrack(&DetectOptions{StartDir: userDir})
 	require.NoError(t, err)
 	assert.Equal(t, TrackAtomic, result.Track)
@@ -566,6 +559,7 @@ func TestDetectTrack_AtomicFlowForSingleResource(t *testing.T) {
 
 func TestTrack_String(t *testing.T) {
 	assert.Equal(t, "atomic", TrackAtomic.String())
+	assert.Equal(t, "declarative", TrackDeclarative.String())
 	assert.Equal(t, "project", TrackProject.String())
 }
 
@@ -574,10 +568,8 @@ func TestTrack_String(t *testing.T) {
 // =============================================================================
 
 func TestIsFilesystemRoot(t *testing.T) {
-	// Unix root
 	assert.True(t, isFilesystemRoot("/"))
 
-	// Non-root paths
 	assert.False(t, isFilesystemRoot("/home"))
 	assert.False(t, isFilesystemRoot("/home/user"))
 	assert.False(t, isFilesystemRoot("/tmp/test"))

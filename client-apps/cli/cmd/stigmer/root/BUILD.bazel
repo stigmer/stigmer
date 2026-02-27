@@ -4,6 +4,7 @@ go_library(
     name = "root",
     srcs = [
         "apply.go",
+        "apply_declarative.go",
         "apply_file.go",
         "apply_file_handlers.go",
         "apply_project.go",
