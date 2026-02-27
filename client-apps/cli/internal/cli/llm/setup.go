@@ -151,7 +151,6 @@ func IsRunning() bool {
 	return resp.StatusCode == http.StatusOK
 }
 
-
 // StartServer starts the LLM server in the background
 func StartServer(ctx context.Context, binaryPath string, opts *SetupOptions) error {
 	if opts.Progress != nil {

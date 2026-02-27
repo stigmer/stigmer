@@ -15,7 +15,6 @@ go_library(
         "//apis/stubs/go/ai/stigmer/agentic/skill/v1:skill",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
-        "//client-apps/cli/internal/cli/cliprint",
         "//client-apps/cli/internal/cli/synthesis",
         "@com_github_pkg_errors//:errors",
         "@org_golang_google_grpc//:grpc",
