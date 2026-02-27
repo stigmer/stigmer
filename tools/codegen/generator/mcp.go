@@ -383,9 +383,7 @@ func (m *mcpGen) expandedConfigField(cfg *TaskConfigSchema) *mcpInputField {
 
 	schemaTag := fmt.Sprintf("description=%s",
 		strings.ReplaceAll(
-			strings.ReplaceAll(
-				strings.ReplaceAll(shortDesc, ",", "\\,"),
-				"`", "'"),
+			strings.ReplaceAll(shortDesc, "`", "'"),
 			`"`, "'"))
 
 	return &mcpInputField{
@@ -450,7 +448,6 @@ func (m *mcpGen) buildJsonSchemaTag(f *FieldSchema) string {
 			desc = strings.ReplaceAll(desc, "  ", " ")
 		}
 		desc = strings.TrimSpace(desc)
-		desc = strings.ReplaceAll(desc, ",", "\\,")
 		desc = strings.ReplaceAll(desc, "`", "'")
 		desc = strings.ReplaceAll(desc, `"`, "'")
 		parts = append(parts, "description="+desc)

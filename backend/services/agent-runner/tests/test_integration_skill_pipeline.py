@@ -25,6 +25,7 @@ import pytest
 
 # Import components under test
 from worker.activities.graphton.skill_writer import SkillWriter
+from worker.workspace.local import LocalWorkspaceBackend
 
 
 class TestFullPipelineIntegration:
@@ -143,12 +144,12 @@ features:
             artifacts = {skill.metadata.id: complex_artifact_zip}
             
             # Execute pipeline
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             skill_paths = writer.write_skills([skill], artifacts=artifacts)
             
             # Verify skill path returned (local mode returns sandbox-relative, no leading /)
             assert skill.metadata.id in skill_paths
-            expected_path = f"bin/skills/{skill.metadata.name}"
+            expected_path = f".stigmer/skills/{skill.metadata.name}"
             assert skill_paths[skill.metadata.id] == expected_path
             
             # Verify files extracted to correct location
@@ -209,12 +210,12 @@ features:
             skill = skill_without_artifact
             
             # Execute without artifacts
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             skill_paths = writer.write_skills([skill], artifacts=None)
             
             # Verify skill path returned (local mode, no leading /)
             assert skill.metadata.id in skill_paths
-            expected_path = f"bin/skills/{skill.metadata.name}"
+            expected_path = f".stigmer/skills/{skill.metadata.name}"
             assert skill_paths[skill.metadata.id] == expected_path
             
             # Verify SKILL.md written from spec (not from ZIP)
@@ -234,7 +235,7 @@ features:
             skills = [skill_with_artifact, skill_without_artifact]
             artifacts = {skill_with_artifact.metadata.id: complex_artifact_zip}
             
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             skill_paths = writer.write_skills(skills, artifacts=artifacts)
             
             # Both skills should have paths
@@ -286,18 +287,18 @@ Tests compliance with the Agent Skills specification.
     def test_prompt_includes_location(self, sample_skill):
         """Prompt must contain the Location for the skill directory."""
         skill_paths = {
-            sample_skill.metadata.id: f"bin/skills/{sample_skill.metadata.name}"
+            sample_skill.metadata.id: f".stigmer/skills/{sample_skill.metadata.name}"
         }
 
         prompt = SkillWriter.generate_prompt_section([sample_skill], skill_paths)
 
-        expected = f"**Location**: `bin/skills/{sample_skill.metadata.name}/`"
+        expected = f"**Location**: `.stigmer/skills/{sample_skill.metadata.name}/`"
         assert expected in prompt, f"Prompt must contain '{expected}'"
 
     def test_prompt_does_not_include_skill_md_body(self, sample_skill):
         """Prompt must NOT contain full SKILL.md body (progressive disclosure)."""
         skill_paths = {
-            sample_skill.metadata.id: f"bin/skills/{sample_skill.metadata.name}"
+            sample_skill.metadata.id: f".stigmer/skills/{sample_skill.metadata.name}"
         }
 
         prompt = SkillWriter.generate_prompt_section([sample_skill], skill_paths)
@@ -309,7 +310,7 @@ Tests compliance with the Agent Skills specification.
     def test_prompt_includes_description(self, sample_skill):
         """Prompt must include the skill description."""
         skill_paths = {
-            sample_skill.metadata.id: f"bin/skills/{sample_skill.metadata.name}"
+            sample_skill.metadata.id: f".stigmer/skills/{sample_skill.metadata.name}"
         }
 
         prompt = SkillWriter.generate_prompt_section([sample_skill], skill_paths)
@@ -319,21 +320,21 @@ Tests compliance with the Agent Skills specification.
     def test_prompt_includes_activate_instruction(self, sample_skill):
         """Prompt must tell the agent how to activate the skill."""
         skill_paths = {
-            sample_skill.metadata.id: f"bin/skills/{sample_skill.metadata.name}"
+            sample_skill.metadata.id: f".stigmer/skills/{sample_skill.metadata.name}"
         }
 
         prompt = SkillWriter.generate_prompt_section([sample_skill], skill_paths)
 
-        expected = f"**Activate**: `read bin/skills/{sample_skill.metadata.name}/SKILL.md`"
+        expected = f"**Activate**: `read .stigmer/skills/{sample_skill.metadata.name}/SKILL.md`"
         assert expected in prompt
 
     def test_skills_written_to_bin_skills_directory(self, sample_skill):
-        """Skills must be written to bin/skills/{name}/."""
+        """Skills must be written to .stigmer/skills/{name}/."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             skill_paths = writer.write_skills([sample_skill])
 
-            expected_path = f"bin/skills/{sample_skill.metadata.name}"
+            expected_path = f".stigmer/skills/{sample_skill.metadata.name}"
             assert skill_paths[sample_skill.metadata.id] == expected_path
 
             local_path = os.path.join(tmpdir, expected_path)
@@ -352,13 +353,13 @@ Tests compliance with the Agent Skills specification.
             skill.spec.skill_md = f"# Skill {i} Content"
             skill.status.version_hash = f"hash{i}"
             skills.append(skill)
-            skill_paths[skill.metadata.id] = f"bin/skills/skill-{i}"
+            skill_paths[skill.metadata.id] = f".stigmer/skills/skill-{i}"
 
         prompt = SkillWriter.generate_prompt_section(skills, skill_paths)
 
         for i in range(3):
             assert f"### skill-{i}" in prompt
-            assert f"**Location**: `bin/skills/skill-{i}/`" in prompt
+            assert f"**Location**: `.stigmer/skills/skill-{i}/`" in prompt
             # Body content must NOT be injected
             assert f"# Skill {i} Content" not in prompt
 
@@ -412,12 +413,12 @@ class TestVersionResolutionIntegration:
         with tempfile.TemporaryDirectory() as tmpdir:
             skills = [skill_latest, skill_tagged_stable, skill_pinned_hash]
             
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             skill_paths = writer.write_skills(skills)
             
             # All three skills share the same metadata.name ("versioned-skill"),
             # so they map to the same name-based directory.
-            expected_path = f"bin/skills/{skill_latest.metadata.name}"
+            expected_path = f".stigmer/skills/{skill_latest.metadata.name}"
             assert skill_paths[skill_latest.metadata.id] == expected_path
             assert skill_paths[skill_tagged_stable.metadata.id] == expected_path
             assert skill_paths[skill_pinned_hash.metadata.id] == expected_path
@@ -437,12 +438,12 @@ class TestVersionResolutionIntegration:
         skill2.status.version_hash = "hash_b_123456789012345678901234567890123456789012345678901234"
         
         with tempfile.TemporaryDirectory() as tmpdir:
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             skill_paths = writer.write_skills([skill1, skill2])
             
             # Both skills share the same name-based path
             assert skill_paths[skill1.metadata.id] == skill_paths[skill2.metadata.id]
-            assert skill_paths[skill1.metadata.id] == "bin/skills/shared-skill"
+            assert skill_paths[skill1.metadata.id] == ".stigmer/skills/shared-skill"
 
 
 class TestErrorRecoveryIntegration:
@@ -466,12 +467,12 @@ class TestErrorRecoveryIntegration:
             invalid_zip = b"this is not a valid zip file"
             artifacts = {valid_skill.metadata.id: invalid_zip}
             
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             
             with pytest.raises(RuntimeError) as exc_info:
                 writer.write_skills([valid_skill], artifacts=artifacts)
             
-            assert "Invalid ZIP file" in str(exc_info.value)
+            assert "Invalid ZIP artifact" in str(exc_info.value)
 
     def test_empty_zip_handles_gracefully(self, valid_skill):
         """Empty ZIP file should extract without error."""
@@ -484,20 +485,16 @@ class TestErrorRecoveryIntegration:
             
             artifacts = {valid_skill.metadata.id: empty_zip}
             
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             skill_paths = writer.write_skills([valid_skill], artifacts=artifacts)
             
             # Should complete without error
             assert valid_skill.metadata.id in skill_paths
 
-    def test_no_sandbox_or_local_root_raises_error(self, valid_skill):
-        """SkillWriter without sandbox or local_root should raise error."""
-        writer = SkillWriter()  # Neither sandbox nor local_root
-        
-        with pytest.raises(RuntimeError) as exc_info:
-            writer.write_skills([valid_skill])
-        
-        assert "No sandbox or local_root configured" in str(exc_info.value)
+    def test_no_backend_raises_type_error(self, valid_skill):
+        """SkillWriter without backend should raise TypeError."""
+        with pytest.raises(TypeError):
+            SkillWriter()  # Missing required 'backend' argument
 
     def test_artifact_download_failure_allows_fallback(self):
         """
@@ -513,7 +510,7 @@ class TestErrorRecoveryIntegration:
         
         with tempfile.TemporaryDirectory() as tmpdir:
             # Don't provide artifact (simulating download failure)
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             skill_paths = writer.write_skills([skill], artifacts=None)
             
             # Should succeed with SKILL.md fallback
@@ -544,7 +541,7 @@ class TestPromptGenerationIntegration:
         
         prompt = SkillWriter.generate_prompt_section(
             [skill], 
-            {skill.metadata.id: f"/bin/skills/{skill.status.version_hash}"}
+            {skill.metadata.id: f"/.stigmer/skills/{skill.status.version_hash}"}
         )
         
         assert "## Available Skills" in prompt
@@ -562,7 +559,7 @@ class TestPromptGenerationIntegration:
         prompt = SkillWriter.generate_prompt_section([skill], {})
         
         # Should use fallback path from metadata.name
-        assert "bin/skills/orphan" in prompt
+        assert ".stigmer/skills/orphan" in prompt
 
     def test_prompt_does_not_inline_skill_md_content(self):
         """Prompt follows progressive disclosure — SKILL.md body is NOT inlined."""
@@ -591,12 +588,12 @@ def hello():
         
         prompt = SkillWriter.generate_prompt_section(
             [skill],
-            {skill.metadata.id: f"bin/skills/{skill.metadata.name}"}
+            {skill.metadata.id: f".stigmer/skills/{skill.metadata.name}"}
         )
         
         # Metadata should be present
         assert "formatted-skill" in prompt
-        assert "bin/skills/formatted-skill" in prompt
+        assert ".stigmer/skills/formatted-skill" in prompt
         
         # SKILL.md body must NOT be inlined (progressive disclosure)
         assert "```python" not in prompt
@@ -619,10 +616,10 @@ class TestPathResolution:
         skill.metadata.slug = "org/my-skill"
         skill.status.version_hash = "abc12345678901234567890123456789012345678901234567890123456789a"
 
-        writer = SkillWriter(local_root="/tmp")
+        writer = SkillWriter(backend=MagicMock())
         path = writer._get_skill_relative_dir(skill)
 
-        assert path == "bin/skills/my-skill"
+        assert path == ".stigmer/skills/my-skill"
         assert not path.startswith("/"), "Path should be workspace-relative"
 
     def test_skill_without_name_falls_back_to_hash(self):
@@ -632,10 +629,10 @@ class TestPathResolution:
         skill.metadata.slug = "test-org/unnamed"
         skill.status.version_hash = "fff999aaa111"
 
-        writer = SkillWriter(local_root="/tmp")
+        writer = SkillWriter(backend=MagicMock())
         path = writer._get_skill_relative_dir(skill)
 
-        assert path == "bin/skills/fff999aaa111"
+        assert path == ".stigmer/skills/fff999aaa111"
 
     def test_skill_without_name_or_hash_falls_back_to_slug(self):
         """Skill without name or hash should fall back to slugified slug."""
@@ -644,15 +641,14 @@ class TestPathResolution:
         skill.metadata.slug = "test-org/my-skill"
         skill.status.version_hash = ""
 
-        writer = SkillWriter(local_root="/tmp")
+        writer = SkillWriter(backend=MagicMock())
         path = writer._get_skill_relative_dir(skill)
 
-        assert path == "bin/skills/test-org_my-skill"
+        assert path == ".stigmer/skills/test-org_my-skill"
 
     def test_skill_dir_base_path_is_bin_skills(self):
         """Skills base dir constant is kept for backward compatibility."""
-        writer = SkillWriter(local_root="/tmp")
-        assert writer.skills_base == "/bin/skills"
+        assert SkillWriter.SKILLS_BASE_DIR == "/.stigmer/skills"
 
 
 class TestZipFormatEndToEnd:
@@ -796,7 +792,7 @@ class TestZipFormatEndToEnd:
         from graphton.core.backends.filesystem import FilesystemBackend
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             artifacts = {mock_skill.metadata.id: self._create_flat_zip()}
             skill_paths = writer.write_skills([mock_skill], artifacts=artifacts)
 
@@ -817,7 +813,7 @@ class TestZipFormatEndToEnd:
         from graphton.core.backends.filesystem import FilesystemBackend
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             artifacts = {mock_skill.metadata.id: self._create_dot_prefix_zip()}
             skill_paths = writer.write_skills([mock_skill], artifacts=artifacts)
 
@@ -840,7 +836,7 @@ class TestZipFormatEndToEnd:
         from graphton.core.backends.filesystem import FilesystemBackend
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             artifacts = {mock_skill.metadata.id: self._create_nested_zip("my-skill")}
             skill_paths = writer.write_skills([mock_skill], artifacts=artifacts)
 
@@ -859,13 +855,13 @@ class TestZipFormatEndToEnd:
     def test_flat_zip_scripts_are_executable(self, mock_skill):
         """Scripts in flat ZIP must be executable after extraction."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             artifacts = {mock_skill.metadata.id: self._create_flat_zip()}
             writer.write_skills([mock_skill], artifacts=artifacts)
 
             skill_dir = os.path.join(
                 tmpdir,
-                "bin",
+                ".stigmer",
                 "skills",
                 mock_skill.metadata.name,
             )
@@ -881,7 +877,7 @@ class TestZipFormatEndToEnd:
         from graphton.core.backends.filesystem import FilesystemBackend
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             artifacts = {mock_skill.metadata.id: self._create_flat_zip()}
             skill_paths = writer.write_skills([mock_skill], artifacts=artifacts)
 
@@ -902,7 +898,7 @@ class TestZipFormatEndToEnd:
         from graphton.core.backends.filesystem import FilesystemBackend
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             artifacts = {mock_skill.metadata.id: self._create_flat_zip()}
             skill_paths = writer.write_skills([mock_skill], artifacts=artifacts)
 
@@ -919,7 +915,7 @@ class TestZipFormatEndToEnd:
         from graphton.core.backends.filesystem import FilesystemBackend
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            writer = SkillWriter(local_root=tmpdir)
+            writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             artifacts = {mock_skill.metadata.id: self._create_flat_zip()}
             skill_paths = writer.write_skills([mock_skill], artifacts=artifacts)
 
@@ -963,7 +959,7 @@ class TestToolAliasSkillReads:
         skill.status.artifact_storage_key = ""
 
         tmpdir = tempfile.mkdtemp()
-        writer = SkillWriter(local_root=tmpdir)
+        writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
         skill_paths = writer.write_skills([skill])
         skill_path = skill_paths[skill.metadata.id]
 

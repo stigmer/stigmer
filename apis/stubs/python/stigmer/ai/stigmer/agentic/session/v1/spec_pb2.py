@@ -22,10 +22,11 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
+from ai.stigmer.agentic.session.v1 import workspace_pb2 as ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_workspace__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/agentic/session/v1/spec.proto\x12\x1d\x61i.stigmer.agentic.session.v1\x1a\x1b\x62uf/validate/validate.proto\"\xaa\x02\n\x0bSessionSpec\x12\x32\n\x11\x61gent_instance_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0f\x61gentInstanceId\x12\x18\n\x07subject\x18\x02 \x01(\tR\x07subject\x12\x1b\n\tthread_id\x18\x03 \x01(\tR\x08threadId\x12\x1d\n\nsandbox_id\x18\x04 \x01(\tR\tsandboxId\x12T\n\x08metadata\x18\x05 \x03(\x0b\x32\x38.ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntryR\x08metadata\x1a;\n\rMetadataEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\x42\xc7\x01\n!com.ai.stigmer.agentic.session.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1d\x41i.Stigmer.Agentic.Session.V1\xca\x02\x1d\x41i\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/agentic/session/v1/spec.proto\x12\x1d\x61i.stigmer.agentic.session.v1\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a\x1b\x62uf/validate/validate.proto\"\x85\x03\n\x0bSessionSpec\x12\x32\n\x11\x61gent_instance_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0f\x61gentInstanceId\x12\x18\n\x07subject\x18\x02 \x01(\tR\x07subject\x12\x1b\n\tthread_id\x18\x03 \x01(\tR\x08threadId\x12\x1d\n\nsandbox_id\x18\x04 \x01(\tR\tsandboxId\x12T\n\x08metadata\x18\x05 \x03(\x0b\x32\x38.ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntryR\x08metadata\x12Y\n\x10workspace_source\x18\x06 \x01(\x0b\x32..ai.stigmer.agentic.session.v1.WorkspaceSourceR\x0fworkspaceSource\x1a;\n\rMetadataEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\x42\xc7\x01\n!com.ai.stigmer.agentic.session.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1d\x41i.Stigmer.Agentic.Session.V1\xca\x02\x1d\x41i\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -37,8 +38,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SESSIONSPEC_METADATAENTRY']._serialized_options = b'8\001'
   _globals['_SESSIONSPEC'].fields_by_name['agent_instance_id']._loaded_options = None
   _globals['_SESSIONSPEC'].fields_by_name['agent_instance_id']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_SESSIONSPEC']._serialized_start=105
-  _globals['_SESSIONSPEC']._serialized_end=403
-  _globals['_SESSIONSPEC_METADATAENTRY']._serialized_start=344
-  _globals['_SESSIONSPEC_METADATAENTRY']._serialized_end=403
+  _globals['_SESSIONSPEC']._serialized_start=152
+  _globals['_SESSIONSPEC']._serialized_end=541
+  _globals['_SESSIONSPEC_METADATAENTRY']._serialized_start=482
+  _globals['_SESSIONSPEC_METADATAENTRY']._serialized_end=541
 # @@protoc_insertion_point(module_scope)

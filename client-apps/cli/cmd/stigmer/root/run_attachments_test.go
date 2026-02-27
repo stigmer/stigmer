@@ -3,10 +3,15 @@ package root
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 // =============================================================================
@@ -319,4 +324,95 @@ func mapKeys(m map[string]string) []string {
 		keys = append(keys, k)
 	}
 	return keys
+}
+
+// =============================================================================
+// TestUploadFile_SetsLocalPath
+// =============================================================================
+
+func TestUploadFile_SetsLocalPath(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, dir, "config.yaml", "key: value")
+	filePath := filepath.Join(dir, "config.yaml")
+
+	conn := &fakeUploadConn{storageKey: "attachments/abc/config.yaml"}
+	proc := NewAttachmentProcessor(conn)
+
+	att, err := proc.uploadFile(filePath, "config.yaml", "application/x-yaml", 10)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	absPath, _ := filepath.Abs(filePath)
+	if att.LocalPath != absPath {
+		t.Errorf("LocalPath = %q, want %q", att.LocalPath, absPath)
+	}
+	if att.StorageKey != "attachments/abc/config.yaml" {
+		t.Errorf("StorageKey = %q, want %q", att.StorageKey, "attachments/abc/config.yaml")
+	}
+}
+
+func TestUploadFile_LocalPathIsAbsolute(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, dir, "data.csv", "a,b,c")
+
+	conn := &fakeUploadConn{storageKey: "attachments/xyz/data.csv"}
+	proc := NewAttachmentProcessor(conn)
+
+	att, err := proc.uploadFile(filepath.Join(dir, "data.csv"), "data.csv", "text/csv", 5)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !filepath.IsAbs(att.LocalPath) {
+		t.Errorf("LocalPath %q is not absolute", att.LocalPath)
+	}
+}
+
+// =============================================================================
+// TestProcessDirectory_SetsLocalPath
+// =============================================================================
+
+func TestProcessDirectory_SetsLocalPath(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, dir, "file.txt", "content")
+
+	conn := &fakeUploadConn{storageKey: "attachments/def/dir.zip"}
+	proc := NewAttachmentProcessor(conn)
+
+	att, err := proc.processDirectory(dir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	absDir, _ := filepath.Abs(dir)
+	if att.LocalPath != absDir {
+		t.Errorf("LocalPath = %q, want %q", att.LocalPath, absDir)
+	}
+	if !att.Extract {
+		t.Error("Extract should be true for directory attachments")
+	}
+}
+
+// =============================================================================
+// fakeUploadConn — mock gRPC connection for UploadAttachment
+// =============================================================================
+
+type fakeUploadConn struct {
+	storageKey string
+}
+
+func (c *fakeUploadConn) Invoke(_ context.Context, method string, args, reply interface{}, _ ...grpc.CallOption) error {
+	if resp, ok := reply.(proto.Message); ok {
+		// Use protobuf reflection to set storage_key on the response.
+		fd := resp.ProtoReflect().Descriptor().Fields().ByName("storage_key")
+		if fd != nil {
+			resp.ProtoReflect().Set(fd, protoreflect.ValueOfString(c.storageKey))
+		}
+	}
+	return nil
+}
+
+func (c *fakeUploadConn) NewStream(_ context.Context, _ *grpc.StreamDesc, _ string, _ ...grpc.CallOption) (grpc.ClientStream, error) {
+	return nil, nil
 }

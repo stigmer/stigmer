@@ -375,4 +375,19 @@ message Attachment {
   // at mount_path rather than written as a single file.
   // Set automatically by the CLI when a directory is attached.
   bool extract = 5;
+
+  // Absolute filesystem path to the original file on the CLI host (optional).
+  //
+  // When set and the runner is in local mode, the file is read directly
+  // from this path instead of downloading from artifact storage via
+  // storage_key.  This eliminates the storage round-trip for local
+  // executions.
+  //
+  // Ignored when the runner is not in local mode (cloud runners use
+  // storage_key exclusively).
+  //
+  // The CLI sets this unconditionally to the resolved absolute path of
+  // the attached file.  storage_key remains required -- the upload still
+  // happens for execution history and replay support.
+  string local_path = 6;
 }

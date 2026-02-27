@@ -279,4 +279,3 @@ func applySynthesizedResources(
 
 	return refs, nil
 }
-
