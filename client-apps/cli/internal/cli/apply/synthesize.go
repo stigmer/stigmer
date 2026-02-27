@@ -21,7 +21,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/project/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/synthesis"
 )
 
@@ -31,7 +30,7 @@ type SynthesizeOptions struct {
 	ProjectDir string
 
 	// Runtime specifies which language runtime to use (go, python, node).
-	Runtime projectv1.ProjectRuntime
+	Runtime Runtime
 
 	// EntryPoint is the SDK entry point file (e.g., main.go, main.py, index.ts).
 	EntryPoint string
@@ -93,7 +92,7 @@ func Synthesize(opts *SynthesizeOptions) (*SynthesizeResult, error) {
 	}
 
 	// Validate runtime
-	if opts.Runtime == projectv1.ProjectRuntime_project_runtime_unspecified {
+	if opts.Runtime == "" {
 		return nil, errors.New("runtime is required (go, python, or node)")
 	}
 
@@ -142,20 +141,18 @@ func Synthesize(opts *SynthesizeOptions) (*SynthesizeResult, error) {
 }
 
 // getRuntimeCommand returns the command arguments for executing the SDK entry point.
-func getRuntimeCommand(runtime projectv1.ProjectRuntime, entryPoint string) ([]string, error) {
+func getRuntimeCommand(runtime Runtime, entryPoint string) ([]string, error) {
 	switch runtime {
-	case projectv1.ProjectRuntime_go:
+	case RuntimeGo:
 		return []string{"go", "run", entryPoint}, nil
 
-	case projectv1.ProjectRuntime_python:
-		// Use python3 if available, fallback to python
+	case RuntimePython:
 		if _, err := exec.LookPath("python3"); err == nil {
 			return []string{"python3", entryPoint}, nil
 		}
 		return []string{"python", entryPoint}, nil
 
-	case projectv1.ProjectRuntime_node:
-		// TypeScript files use ts-node, JavaScript files use node directly
+	case RuntimeNode:
 		ext := filepath.Ext(entryPoint)
 		if ext == ".ts" || ext == ".tsx" || ext == ".mts" {
 			return []string{"npx", "ts-node", entryPoint}, nil
@@ -168,13 +165,13 @@ func getRuntimeCommand(runtime projectv1.ProjectRuntime, entryPoint string) ([]s
 }
 
 // prepareRuntime runs runtime-specific preparation steps before SDK execution.
-func prepareRuntime(runtime projectv1.ProjectRuntime, projectDir string) error {
+func prepareRuntime(runtime Runtime, projectDir string) error {
 	switch runtime {
-	case projectv1.ProjectRuntime_go:
+	case RuntimeGo:
 		return prepareGoRuntime(projectDir)
-	case projectv1.ProjectRuntime_python:
+	case RuntimePython:
 		return preparePythonRuntime(projectDir)
-	case projectv1.ProjectRuntime_node:
+	case RuntimeNode:
 		return prepareNodeRuntime(projectDir)
 	default:
 		return nil
@@ -253,19 +250,18 @@ func prepareNodeRuntime(projectDir string) error {
 }
 
 // formatExecutionError creates a helpful error message based on runtime and error output.
-func formatExecutionError(runtime projectv1.ProjectRuntime, stderr string, execErr error) string {
-	// Truncate stderr if too long
+func formatExecutionError(runtime Runtime, stderr string, execErr error) string {
 	if len(stderr) > 800 {
 		stderr = stderr[:800] + "\n... (truncated)"
 	}
 
 	var guidance string
 	switch runtime {
-	case projectv1.ProjectRuntime_go:
+	case RuntimeGo:
 		guidance = "Check for compile errors above. Run 'go build' to see full error output."
-	case projectv1.ProjectRuntime_python:
+	case RuntimePython:
 		guidance = "If you see import errors, run 'pip install -r requirements.txt' in a virtual environment."
-	case projectv1.ProjectRuntime_node:
+	case RuntimeNode:
 		guidance = "If you see module errors, run 'npm install' to install dependencies."
 	}
 
