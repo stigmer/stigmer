@@ -86,8 +86,8 @@ FILESYSTEM_CAPABILITY = """
 - Maintain state between operations
 - Search and discover files across directories
 
-File paths should be workspace-relative (e.g., `inputs/data.txt`,
-`bin/skills/my-skill/SKILL.md`). Use the paths exactly as shown in the
+File paths should be workspace-relative (e.g., `.stigmer/inputs/data.txt`,
+`.stigmer/skills/my-skill/SKILL.md`). Use the paths exactly as shown in the
 Available Skills and Input Files sections.
 
 **Output Discipline**: When you read files, their contents are captured in tool
