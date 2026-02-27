@@ -31,8 +31,8 @@ from worker.workspace.provisioner import (
     GitMetadata,
     ProvisionResult,
     SourceType,
-    WorkspaceProvisionError,
     WorkspaceProvisioner,
+    WorkspaceProvisionError,
 )
 
 logger = logging.getLogger(__name__)
@@ -133,7 +133,7 @@ async def initialize_workspace(
         else:
             log.info("Local mode — workspace root: %s", root_dir)
 
-        backend = LocalWorkspaceBackend(
+        backend: WorkspaceBackend = LocalWorkspaceBackend(
             root_dir=root_dir,
             platform_dir=platform_dir,
         )

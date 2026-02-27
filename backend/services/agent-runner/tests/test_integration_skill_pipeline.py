@@ -472,7 +472,7 @@ class TestErrorRecoveryIntegration:
             with pytest.raises(RuntimeError) as exc_info:
                 writer.write_skills([valid_skill], artifacts=artifacts)
             
-            assert "Invalid ZIP file" in str(exc_info.value)
+            assert "Invalid ZIP artifact" in str(exc_info.value)
 
     def test_empty_zip_handles_gracefully(self, valid_skill):
         """Empty ZIP file should extract without error."""
@@ -491,14 +491,10 @@ class TestErrorRecoveryIntegration:
             # Should complete without error
             assert valid_skill.metadata.id in skill_paths
 
-    def test_no_sandbox_or_local_root_raises_error(self, valid_skill):
-        """SkillWriter without sandbox or local_root should raise error."""
-        writer = SkillWriter()  # Neither sandbox nor local_root
-        
-        with pytest.raises(RuntimeError) as exc_info:
-            writer.write_skills([valid_skill])
-        
-        assert "No sandbox or local_root configured" in str(exc_info.value)
+    def test_no_backend_raises_type_error(self, valid_skill):
+        """SkillWriter without backend should raise TypeError."""
+        with pytest.raises(TypeError):
+            SkillWriter()  # Missing required 'backend' argument
 
     def test_artifact_download_failure_allows_fallback(self):
         """
@@ -620,7 +616,7 @@ class TestPathResolution:
         skill.metadata.slug = "org/my-skill"
         skill.status.version_hash = "abc12345678901234567890123456789012345678901234567890123456789a"
 
-        writer = SkillWriter(local_root="/tmp")
+        writer = SkillWriter(backend=MagicMock())
         path = writer._get_skill_relative_dir(skill)
 
         assert path == ".stigmer/skills/my-skill"
@@ -633,7 +629,7 @@ class TestPathResolution:
         skill.metadata.slug = "test-org/unnamed"
         skill.status.version_hash = "fff999aaa111"
 
-        writer = SkillWriter(local_root="/tmp")
+        writer = SkillWriter(backend=MagicMock())
         path = writer._get_skill_relative_dir(skill)
 
         assert path == ".stigmer/skills/fff999aaa111"
@@ -645,15 +641,14 @@ class TestPathResolution:
         skill.metadata.slug = "test-org/my-skill"
         skill.status.version_hash = ""
 
-        writer = SkillWriter(local_root="/tmp")
+        writer = SkillWriter(backend=MagicMock())
         path = writer._get_skill_relative_dir(skill)
 
         assert path == ".stigmer/skills/test-org_my-skill"
 
     def test_skill_dir_base_path_is_bin_skills(self):
         """Skills base dir constant is kept for backward compatibility."""
-        writer = SkillWriter(local_root="/tmp")
-        assert writer.skills_base == "/.stigmer/skills"
+        assert SkillWriter.SKILLS_BASE_DIR == "/.stigmer/skills"
 
 
 class TestZipFormatEndToEnd:
@@ -964,7 +959,7 @@ class TestToolAliasSkillReads:
         skill.status.artifact_storage_key = ""
 
         tmpdir = tempfile.mkdtemp()
-        writer = SkillWriter(local_root=tmpdir)
+        writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
         skill_paths = writer.write_skills([skill])
         skill_path = skill_paths[skill.metadata.id]
 

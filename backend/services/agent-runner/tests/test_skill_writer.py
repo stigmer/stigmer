@@ -11,14 +11,13 @@ Tests are organized around the public API surface:
 
 import os
 import tempfile
+from unittest.mock import MagicMock
 
 import pytest
 from graphton.core.backends.filesystem import FilesystemBackend
-from unittest.mock import MagicMock
 
 from worker.activities.graphton.skill_writer import SkillWriter
 from worker.workspace.local import LocalWorkspaceBackend
-
 
 # ---------------------------------------------------------------------------
 # Helpers

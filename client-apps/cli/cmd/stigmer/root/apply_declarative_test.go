@@ -324,4 +324,3 @@ func TestBuildDryRunSummary_HasHint(t *testing.T) {
 	assert.True(t, len(cr.Hints) > 0)
 	assert.Contains(t, cr.Hints[0], "dry-run")
 }
-

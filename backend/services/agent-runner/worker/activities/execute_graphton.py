@@ -53,19 +53,19 @@ from worker.resilience import (
     RetryConfig,
 )
 from worker.sandbox_manager import SandboxManager, get_daytona_volume_id
+from worker.storage import ArtifactStorage, create_artifact_storage
+from worker.streaming import StreamingConfig, StreamingUpdateScheduler
+from worker.token_manager import get_api_key
+from worker.tools import publish_artifact
 from worker.workspace import (
     LocalWorkspaceBackend,
     ProvisionResult,
     SourceType,
     WorkspaceBackend,
-    WorkspaceProvisionError,
     WorkspaceProvisioner,
+    WorkspaceProvisionError,
     initialize_workspace,
 )
-from worker.storage import ArtifactStorage, create_artifact_storage
-from worker.streaming import StreamingConfig, StreamingUpdateScheduler
-from worker.token_manager import get_api_key
-from worker.tools import publish_artifact
 
 
 class SetupTimer:
@@ -298,7 +298,7 @@ async def inject_attachments(
     for attachment in attachments:
         content: bytes | None = None
 
-        if allow_local_path and getattr(attachment, "local_path", ""):
+        if allow_local_path and getattr(attachment, "local_path", ""):  # type: ignore[arg-type]
             local_file = Path(attachment.local_path)
             if local_file.is_file():
                 content = local_file.read_bytes()
