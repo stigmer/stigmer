@@ -1,0 +1,240 @@
+---
+description: Action rule to bootstrap a sub-project linked to a parent project. Creates a project under _projects/YYYY-MM/ with an "sp." marker in the name, bidirectional file-based linking to the parent, and inherited context from the parent's knowledge folders.
+globs:
+alwaysApply: false
+---
+
+# Rule: Start Sub-Project (action)
+
+Purpose: When invoked, bootstrap a sub-project that is linked to an existing parent project. The sub-project lives under `_projects/YYYY-MM/` (same month-based organization as regular projects) and is distinguished by an `sp.` marker in its name. It inherits knowledge from the parent and links back to it through file contents.
+
+This is an action rule. Execute sub-project setup non-interactively after gathering requirements through a short interview.
+
+Usage: Invoke explicitly as `@start-stigmer-oss-sub-project` or when user expresses intent to create a sub-project from an existing parent project.
+
+References: `@README.md`, `_projects/tools/projects/bootstrap_sub_project.py`, `@start-stigmer-oss-new-project`
+
+## Naming Convention
+
+Sub-projects use the same date, month folder, and sequence numbering as regular projects, with an `sp.` marker:
+
+```
+_projects/YYYY-MM/YYYYMMDD.NN.sp.sub-project-name/
+```
+
+- `YYYY-MM` -- month folder (same as regular projects)
+- `YYYYMMDD` -- creation date
+- `NN` -- auto-incrementing sequence number (shared with regular projects created the same day)
+- `sp.` -- marker distinguishing this as a sub-project
+- `sub-project-name` -- kebab-case name
+
+Example: `_projects/2026-02/20260213.01.sp.oracle-cloud-provider/`
+
+## Prerequisite: Identifying the Parent
+
+The rule must know which parent project this sub-project belongs to.
+
+**Expected invocation pattern:**
+
+1. User loads parent's `next-task.md` into conversation, AI reads parent context
+2. User says `@start-stigmer-oss-sub-project` -- AI already knows the parent from the loaded context
+3. **Alternatively**: User explicitly provides the parent name (e.g., `20260212.01.openmcf-cloud-provider-expansion`)
+
+**AI behavior:**
+
+- First check if a parent project's `next-task.md` has been loaded in this conversation
+- If yes, use that project as the parent (confirm with user)
+- If no, ask the user for the parent project name/path
+- The parent must exist under `_projects/` -- verify before proceeding
+
+## Interview Questions (lighter than start-stigmer-oss-new-project)
+
+Since the parent provides tech stack, project type, and components, only a short interview is needed:
+
+### Required
+1. **Sub-project name**: "What would you like to name this sub-project? (kebab-case, e.g., 'oracle-cloud-provider')"
+2. **Description**: "In 1-2 sentences, what is this sub-project about?"
+3. **Goal**: "What is the specific goal of this sub-project?"
+
+### Optional
+4. **Parent task reference**: "Which parent task spawned this sub-project? (e.g., 'T01')" -- defaults to "N/A" if not provided
+5. **Additional context**: "Any specific context for this sub-project not already in the parent?" -- defaults to empty
+
+Everything else (tech stack, project type, affected components) is inherited from the parent's README.md by the bootstrap script.
+
+## Bootstrap Process (deterministic execution)
+
+After gathering information, execute the bootstrap script:
+
+```bash
+# Set up variables from interview
+PARENT_PATH="<absolute-path-to-parent-project-directory>"
+NAME="<from-interview>"
+DESCRIPTION="<from-interview>"
+GOAL="<from-interview>"
+PARENT_TASK="<from-interview-or-N/A>"
+ADDITIONAL_CONTEXT="<from-interview-or-empty>"
+
+# Ensure we're in the repo root
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+cd "$repo_root"
+
+# Run bootstrap script
+python3 _projects/tools/projects/bootstrap_sub_project.py \
+  --parent-path "$PARENT_PATH" \
+  --name "$NAME" \
+  --description "$DESCRIPTION" \
+  --goal "$GOAL" \
+  --parent-task "$PARENT_TASK" \
+  --additional-context "$ADDITIONAL_CONTEXT"
+```
+
+## What the Script Does
+
+1. Creates `_projects/YYYY-MM/YYYYMMDD.NN.sp.name/` with full framework folder structure
+2. Generates `README.md` with Parent Project section at the top, inheriting tech stack, type, and components from parent
+3. Generates `next-task.md` with Rules of Engagement and Parent Project section pointing to parent's knowledge folders
+4. Generates `tasks/T01_0_plan.md` with initial task plan
+5. Appends sub-project entry to parent's `README.md` (creates Sub-Projects section if absent)
+6. Appends sub-project entry to parent's `next-task.md` (creates Sub-Projects section if absent)
+
+## Initial Task Planning
+
+After bootstrapping, the AI should:
+
+1. Analyze the sub-project's goal in the context of the parent project
+2. Write a focused T01_0_plan.md for the sub-project's first task
+3. Present the plan for review
+
+## Task Plan Review Process
+
+Same as the parent framework:
+
+1. **Stop and Request Review**: Present the plan to the developer
+2. **Wait for Developer Feedback** - Do not proceed to execution
+3. **Capture Review**: Create `T01_1_review.md` with feedback
+4. **Create Revised Plan**: Create `T01_2_revised_plan.md` incorporating feedback
+5. **Wait for Approval**: Only after explicit approval, create `T01_3_execution.md` and begin
+
+**DO NOT proceed with execution until the developer explicitly approves the plan**
+
+## Handoff to Developer
+
+Present the developer with:
+
+1. Confirmation that the sub-project has been set up at `_projects/YYYY-MM/YYYYMMDD.NN.sp.name/`
+2. Confirmation that the parent project has been updated with the sub-project link
+3. Summary of what was created
+4. The initial task plan for review
+5. **Key instruction**: "To resume this sub-project in ANY future session, simply drag `_projects/YYYY-MM/YYYYMMDD.NN.sp.name/next-task.md` into the chat"
+6. **Note**: "The sub-project's next-task.md includes links to the parent's knowledge folders, so context is inherited automatically"
+
+## Project Structure Created
+
+```
+_projects/
+└── YYYY-MM/                                    # Month folder (same as regular projects)
+    └── YYYYMMDD.NN.sp.sub-project-name/        # Date + sequence + sp. marker
+        ├── README.md                            # Has Parent Project section at top
+        ├── next-task.md                         # Has parent links + inherited knowledge folder paths
+        ├── tasks/
+        │   ├── T01_0_plan.md                    # Initial task plan (PENDING REVIEW)
+        │   ├── T01_1_review.md                  # Developer feedback (created after review)
+        │   ├── T01_2_revised_plan.md            # Revised plan (created after review)
+        │   └── T01_3_execution.md               # Execution details (created after approval)
+        ├── checkpoints/
+        ├── design-decisions/
+        ├── coding-guidelines/
+        ├── wrong-assumptions/
+        └── dont-dos/
+```
+
+## next-task.md Template (CRITICAL)
+
+The `next-task.md` file MUST start with the Rules of Engagement section and include the Parent Project section. This ensures the AI checks parent knowledge folders when resuming.
+
+**Template structure:**
+
+```markdown
+# Next Task: YYYYMMDD.NN.sp.sub-project-name
+
+## RULES OF ENGAGEMENT - READ FIRST
+
+**When this file is loaded in a new conversation, the AI MUST:**
+
+1. **DO NOT AUTO-EXECUTE** - Never start implementing without explicit user approval
+2. **GATHER CONTEXT SILENTLY** - Read all project files without outputting
+3. **PRESENT STATUS SUMMARY** - Show what's done, what's pending, agreed next steps
+4. **SHOW OPTIONS** - List recommended and alternative actions
+5. **WAIT FOR DIRECTION** - Do NOT proceed until user explicitly confirms
+
+### Required Status Summary Format
+
+When resuming this sub-project, present:
+
+- **Parent Project**: [parent name]
+- **Overall Objective**: [1-2 sentences]
+- **What's Been Completed**: [Key milestones]
+- **What's Pending**: [Remaining work]
+- **Agreed Focus for This Session**: [From previous session]
+- **Options**: A (Recommended), B, C...
+
+WAIT for user to say "proceed", "go", or choose an option.
+
+---
+
+## Parent Project
+
+**Parent**: [parent project name]
+**Parent Next Task**: `[parent portable path]/next-task.md`
+**Spawned From Task**: [parent task ref]
+
+### Inherited Knowledge (CHECK THESE FIRST)
+
+When resuming this sub-project, also review the parent's knowledge folders
+for decisions, guidelines, and lessons that apply across all sub-projects:
+
+- Parent Design Decisions: `[parent portable path]/design-decisions/`
+- Parent Coding Guidelines: `[parent portable path]/coding-guidelines/`
+- Parent Wrong Assumptions: `[parent portable path]/wrong-assumptions/`
+- Parent Don't Dos: `[parent portable path]/dont-dos/`
+
+---
+
+## Quick Resume Instructions
+
+Drop this file into your conversation to quickly resume work on this sub-project.
+
+## Sub-Project: [full name]
+
+[... rest of project-specific content ...]
+```
+
+## Error Handling
+
+- If parent project path does not exist: Error with message asking user to verify the parent
+- If sub-project name already exists: Ask for a different name
+- If bootstrap script fails: Show error and provide manual setup instructions
+- If parent README.md or next-task.md cannot be updated: Warn but still create the sub-project
+
+## Key Differences from start-stigmer-oss-new-project
+
+| Aspect | start-stigmer-oss-new-project | start-stigmer-oss-sub-project |
+|--------|-------------------------------|-------------------------------|
+| Location | `_projects/YYYY-MM/YYYYMMDD.NN.name/` | `_projects/YYYY-MM/YYYYMMDD.NN.sp.name/` |
+| Naming | `YYYYMMDD.NN.name` | `YYYYMMDD.NN.sp.name` |
+| Context | Standalone | Inherits parent's knowledge folders |
+| Interview | Full (12 questions) | Lighter (3 required, 2 optional) |
+| Parent tracking | N/A | Updates parent's README + next-task.md |
+| Prerequisite | None | Parent project must be identified |
+| Script | `bootstrap_project.py` | `bootstrap_sub_project.py` |
+
+## Notes
+
+- Sub-projects and regular projects share the same daily sequence counter within a month folder
+- The `sp.` marker makes sub-projects visually distinguishable in directory listings
+- Parent-child relationship is file-based, not directory-based (flat organization preserved within month)
+- Sub-projects have their own knowledge folders AND inherit from the parent
+- This rule depends on `_projects/tools/projects/bootstrap_sub_project.py` being present
+
+@README.md
