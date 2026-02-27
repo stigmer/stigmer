@@ -89,11 +89,11 @@ def create_sandbox_backend(config: dict[str, Any]) -> BackendProtocol:
         )
     
     if backend_type == "filesystem":
-        # Use local enhanced FilesystemBackend with execute() support
         from graphton.core.backends import FilesystemBackend
-        
+
         root_dir = config.get("root_dir", ".")
-        return FilesystemBackend(root_dir=root_dir)
+        platform_dir = config.get("platform_dir")
+        return FilesystemBackend(root_dir=root_dir, platform_dir=platform_dir)
     
     elif backend_type == "daytona":
         # Delegate to specialized Daytona backend module

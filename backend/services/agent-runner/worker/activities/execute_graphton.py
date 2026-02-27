@@ -2,10 +2,10 @@
 
 import asyncio
 import contextlib
+import logging
 import os
 import time
 import traceback
-from pathlib import Path
 from typing import Any, cast
 
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
@@ -52,15 +52,20 @@ from worker.resilience import (
     GrpcRetryExhaustedError,
     RetryConfig,
 )
-from worker.sandbox_manager import (
-    DAYTONA_WORKSPACE_MOUNT_PATH,
-    SandboxManager,
-    get_daytona_volume_id,
-)
+from worker.sandbox_manager import SandboxManager, get_daytona_volume_id
 from worker.storage import ArtifactStorage, create_artifact_storage
 from worker.streaming import StreamingConfig, StreamingUpdateScheduler
 from worker.token_manager import get_api_key
 from worker.tools import publish_artifact
+from worker.workspace import (
+    LocalWorkspaceBackend,
+    ProvisionResult,
+    SourceType,
+    WorkspaceBackend,
+    WorkspaceProvisioner,
+    WorkspaceProvisionError,
+    initialize_workspace,
+)
 
 
 class SetupTimer:
@@ -133,63 +138,6 @@ def heartbeat_during_setup(phase_name: str, details: dict | None = None) -> None
         "setup_phase": phase_name,
         "details": details or {},
     })
-
-
-def _check_workspace_file_exists(
-    sandbox,
-    local_root: str | None,
-    workspace_root: str | None,
-    path: str,
-    logger,
-) -> bool:
-    """Check whether a workspace-relative file exists in the sandbox.
-
-    Used as a lightweight sentinel check on the resume fast-path to verify
-    that the persistent volume is mounted and prior files are intact.
-    Returns ``True`` when the file is confirmed present, ``False`` on any
-    error or absence.
-
-    Cloud mode:
-        Runs ``test -f <absolute_path>`` inside the sandbox via
-        ``sandbox.process.exec`` — the same mechanism used for sandbox
-        health checks.
-
-    Local mode:
-        Uses ``Path.exists()`` on the local filesystem.
-
-    If neither *sandbox* nor *local_root* is available, returns ``True``
-    (vacuously — there is nothing to check against).
-    """
-    if local_root:
-        full_path = Path(local_root) / path
-        exists = full_path.exists()
-        if not exists:
-            logger.warning(
-                "[workspace-check] Sentinel file missing on local filesystem: %s",
-                full_path,
-            )
-        return exists
-
-    if sandbox is not None:
-        abs_path = f"{workspace_root.rstrip('/')}/{path}" if workspace_root else f"/{path}"
-        try:
-            result = sandbox.process.exec(f"test -f {abs_path}", timeout=5)
-            if result.exit_code != 0:
-                logger.warning(
-                    "[workspace-check] Sentinel file missing in sandbox: %s "
-                    "(exit_code=%d)",
-                    abs_path,
-                    result.exit_code,
-                )
-            return result.exit_code == 0
-        except Exception as exc:
-            logger.warning(
-                "[workspace-check] File existence check failed: %s", exc,
-            )
-            return False
-
-    # Neither sandbox nor local_root — nothing to check against.
-    return True
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -303,231 +251,102 @@ def _validate_zip_for_extraction(
     return sorted(entries, key=lambda e: e[0])
 
 
-def _extract_zip_local(
-    content: bytes,
-    local_root: str | None,
-    mount_dir: str,
-    attachment_filename: str,
-    logger,
-) -> None:
-    """Extract a validated zip archive to the local filesystem.
-
-    Files are written one-by-one (not via ``extractall``) to maintain
-    the safety guarantees established by ``_validate_zip_for_extraction``.
-
-    Args:
-        content: Raw zip bytes (already validated).
-        local_root: Workspace root on the local filesystem.
-        mount_dir: Workspace-relative target directory (no trailing ``/``).
-        attachment_filename: Original filename (for logging).
-        logger: Activity logger.
-
-    Raises:
-        ValueError: If *local_root* is not provided.
-        RuntimeError: If extraction fails.
-    """
-    import io
-    import zipfile
-
-    if not local_root:
-        raise ValueError("local_root required for local filesystem mode")
-
-    target_dir = Path(local_root) / mount_dir
-
-    with zipfile.ZipFile(io.BytesIO(content)) as zf:
-        for info in zf.infolist():
-            if info.is_dir():
-                continue
-            dest = target_dir / info.filename
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            with zf.open(info) as src:
-                dest.write_bytes(src.read())
-
-    logger.info(
-        "Extracted zip '%s' to local filesystem: %s",
-        attachment_filename, target_dir,
-    )
-
-
-def _prepare_daytona_extraction(
-    sandbox,
-    ws_root: str | None,
-    mount_dir: str,
-    content: bytes,
-    attachment_filename: str,
-    file_uploads: list,
-    extract_targets: list[str],
-    FileUpload,  # noqa: N803 — forwarded class reference
-    logger,
-) -> None:
-    """Stage a zip archive for post-batch-upload extraction in Daytona.
-
-    Creates the target directory, queues a ``FileUpload`` for the zip
-    (as ``__attachment__.zip`` inside the target directory), and registers
-    the directory in *extract_targets* for the post-upload unzip step.
-
-    Args:
-        sandbox: Daytona sandbox instance.
-        ws_root: Absolute workspace root inside the sandbox.
-        mount_dir: Workspace-relative target directory (no trailing ``/``).
-        content: Raw zip bytes (already validated).
-        attachment_filename: Original filename (for logging).
-        file_uploads: Mutable list — the ``FileUpload`` is appended here.
-        extract_targets: Mutable list — the absolute target dir is appended.
-        FileUpload: Daytona ``FileUpload`` class.
-        logger: Activity logger.
-
-    Raises:
-        RuntimeError: If the target directory cannot be created.
-    """
-    if FileUpload is None:
-        raise RuntimeError("Daytona FileUpload not available")
-
-    abs_target_dir = f"{ws_root}/{mount_dir}"
-    zip_dest = f"{abs_target_dir}/__attachment__.zip"
-
-    result = sandbox.process.exec(f"mkdir -p {abs_target_dir}", timeout=5)
-    if result.exit_code != 0:
-        raise RuntimeError(
-            f"Failed to create extraction directory {abs_target_dir}: "
-            f"{getattr(result, 'output', getattr(result, 'stderr', ''))}"
-        )
-
-    file_uploads.append(FileUpload(source=content, destination=zip_dest))
-    extract_targets.append(abs_target_dir)
-
-    logger.info(
-        "Staged zip for extraction: %s -> %s",
-        attachment_filename, abs_target_dir,
-    )
-
-
 async def inject_attachments(
-    sandbox,
+    *,
+    backend: WorkspaceBackend,
     attachments: list,
     storage: ArtifactStorage,
     logger,
-    local_root: str | None = None,
-    workspace_root: str | None = None,
+    allow_local_path: bool = False,
 ) -> list[dict]:
-    """Inject attachments into sandbox at their mount_path.
-    
-    All attachments must have a storage_key. The content is downloaded from
-    artifact storage and injected into the sandbox. Supports both local
-    filesystem and Daytona sandbox modes.
-    
-    Path convention (aligned with SkillWriter):
-    - Workspace-relative paths like ``inputs/data.txt`` are used for
-      both the upload destination and the agent-facing prompt.
-    - In Daytona mode the workspace root is prepended to create the
-      absolute sandbox path for ``FileUpload``.
-    - In local mode the ``local_root`` is the workspace root.
-    
+    """Inject attachments into the workspace via ``WorkspaceBackend``.
+
+    All file operations go through the backend — no branching on
+    deployment mode.
+
     Args:
-        sandbox: Daytona sandbox instance (None for local mode)
-        attachments: List of Attachment proto messages (all must have storage_key)
-        storage: ArtifactStorage for downloading attachments (required)
-        logger: Activity logger for debugging
-        local_root: Root path for local filesystem mode (when sandbox is None)
-        workspace_root: Explicit workspace root for Daytona mode (e.g. the
-            volume mount path).  When provided, used directly instead of
-            calling ``sandbox.get_work_dir()``.  When *None*, falls back to
-            ``sandbox.get_work_dir()`` discovery (backward-compatible).
-        
+        backend: Workspace backend for file operations.
+        attachments: List of Attachment proto messages (all must have
+            ``storage_key``).
+        storage: ArtifactStorage for downloading content.
+        logger: Activity logger.
+        allow_local_path: When ``True``, attachments that carry a
+            ``local_path`` will be read directly from the local
+            filesystem instead of downloading from artifact storage.
+            Falls back to storage download if the local file is missing.
+            Callers should pass ``worker_config.is_local_mode()``.
+
     Returns:
-        List of dicts with injected file info: [{"filename": str, "path": str, "size": int}]
-        
+        List of dicts: ``[{"filename": str, "path": str, "size": int}]``.
+
     Raises:
-        ValueError: If any attachment is missing storage_key
+        ValueError: If any attachment is missing both ``local_path``
+            (when allowed) and ``storage_key``.
     """
+    import io
+    import zipfile
+    from pathlib import Path
+
     if not attachments:
         return []
-    
-    logger.info("Injecting %d attachments into sandbox", len(attachments))
-    
-    # Import FileUpload for Daytona sandbox uploads
-    try:
-        from daytona import FileUpload
-    except ImportError:
-        FileUpload = None  # noqa: N806 — class reference, PascalCase is correct
-    
-    # Resolve workspace root for Daytona mode so upload destinations
-    # match what the agent's backend will resolve when reading.
-    ws_root: str | None = None
-    if sandbox is not None:
-        if workspace_root:
-            ws_root = workspace_root.rstrip("/")
-            logger.info(
-                "[attachments] Using configured workspace root: %s", ws_root,
-            )
-        else:
-            try:
-                ws_root = sandbox.get_work_dir().rstrip("/")
-                logger.info(
-                    "[attachments] Daytona workspace root: %s", ws_root,
-                )
-            except Exception as exc:
-                logger.warning(
-                    "[attachments] sandbox.get_work_dir() failed (%s); "
-                    "falling back to /home/daytona",
-                    exc,
-                )
-                ws_root = "/home/daytona"
-    
-    file_uploads: list[Any] = []
-    injected_files = []  # Track injected files for return
-    # Daytona-only: directories to extract after batch upload.
-    # Each entry is the absolute sandbox path where __attachment__.zip
-    # was uploaded and needs to be unzipped then removed.
-    extract_targets: list[str] = []
-    
+
+    logger.info("Injecting %d attachments into workspace", len(attachments))
+
+    all_files: list[tuple[str, bytes]] = []
+    injected_files: list[dict] = []
+
     for attachment in attachments:
-        if not attachment.storage_key:
-            raise ValueError(f"Attachment missing storage_key: {attachment.filename}")
-        
-        logger.debug(
-            "Downloading %s from storage key: %s",
-            attachment.filename,
-            attachment.storage_key,
-        )
-        content = storage.download(attachment.storage_key)
-        logger.debug("Downloaded %d bytes for %s", len(content), attachment.filename)
-        
-        # Determine mount path - workspace-relative (no leading /)
-        # Default: inputs/{filename}
+        content: bytes | None = None
+
+        if allow_local_path and getattr(attachment, "local_path", ""):  # type: ignore[arg-type]
+            local_file = Path(attachment.local_path)
+            if local_file.is_file():
+                content = local_file.read_bytes()
+                logger.debug(
+                    "Read %d bytes from local path: %s",
+                    len(content), attachment.local_path,
+                )
+            else:
+                logger.warning(
+                    "local_path '%s' not found, falling back to "
+                    "storage download",
+                    attachment.local_path,
+                )
+
+        if content is None:
+            if not attachment.storage_key:
+                raise ValueError(
+                    f"Attachment missing storage_key: {attachment.filename}"
+                )
+            logger.debug(
+                "Downloading %s from storage key: %s",
+                attachment.filename,
+                attachment.storage_key,
+            )
+            content = storage.download(attachment.storage_key)
+            logger.debug(
+                "Downloaded %d bytes for %s",
+                len(content), attachment.filename,
+            )
+
         if attachment.mount_path:
             mount_path = attachment.mount_path.lstrip("/")
         else:
-            mount_path = f"inputs/{attachment.filename}"
-        
+            mount_path = f".stigmer/inputs/{attachment.filename}"
+
         if attachment.extract:
-            # ─── Zip extraction path ─────────────────────────────────────
             validated = _validate_zip_for_extraction(
                 content, attachment.filename, logger,
             )
             mount_dir = mount_path.rstrip("/")
-            
-            if sandbox is not None:
-                _prepare_daytona_extraction(
-                    sandbox=sandbox,
-                    ws_root=ws_root,
-                    mount_dir=mount_dir,
-                    content=content,
-                    attachment_filename=attachment.filename,
-                    file_uploads=file_uploads,
-                    extract_targets=extract_targets,
-                    FileUpload=FileUpload,
-                    logger=logger,
-                )
-            else:
-                _extract_zip_local(
-                    content=content,
-                    local_root=local_root,
-                    mount_dir=mount_dir,
-                    attachment_filename=attachment.filename,
-                    logger=logger,
-                )
-            
+
+            with zipfile.ZipFile(io.BytesIO(content)) as zf:
+                for info in zf.infolist():
+                    if info.is_dir():
+                        continue
+                    rel_path = f"{mount_dir}/{info.filename}"
+                    all_files.append((rel_path, zf.read(info)))
+
             for rel_path, file_size in validated:
                 injected_files.append({
                     "filename": rel_path.rsplit("/", 1)[-1],
@@ -535,93 +354,19 @@ async def inject_attachments(
                     "size": file_size,
                 })
         else:
-            # ─── Single file path (existing behavior) ────────────────────
-            if sandbox is not None:
-                daytona_path = f"{ws_root}/{mount_path}"
-                if FileUpload is None:
-                    raise RuntimeError("Daytona FileUpload not available")
-                file_uploads.append(
-                    FileUpload(source=content, destination=daytona_path),
-                )
-                logger.info(
-                    "Prepared attachment: %s -> %s",
-                    attachment.filename, daytona_path,
-                )
-                injected_files.append({
-                    "filename": attachment.filename,
-                    "path": mount_path,
-                    "size": len(content),
-                })
-            else:
-                if not local_root:
-                    raise ValueError(
-                        "local_root required for local filesystem mode",
-                    )
-                
-                file_path = Path(local_root) / mount_path
-                file_path.parent.mkdir(parents=True, exist_ok=True)
-                file_path.write_bytes(content)
-                
-                if file_path.exists():
-                    actual_size = file_path.stat().st_size
-                    logger.info(
-                        "Wrote attachment to local filesystem: %s -> %s "
-                        "(size: %d bytes, expected: %d bytes)",
-                        attachment.filename,
-                        file_path,
-                        actual_size,
-                        len(content),
-                    )
-                    if actual_size != len(content):
-                        logger.warning(
-                            "Size mismatch for %s: wrote %d bytes but "
-                            "file is %d bytes",
-                            attachment.filename,
-                            len(content),
-                            actual_size,
-                        )
-                else:
-                    logger.error(
-                        "Failed to write attachment: %s does not exist "
-                        "after write",
-                        file_path,
-                    )
-                    raise ValueError(
-                        f"Failed to write attachment {attachment.filename}",
-                    )
-                
-                injected_files.append({
-                    "filename": attachment.filename,
-                    "path": mount_path,
-                    "size": len(content),
-                })
-    
-    # Batch upload to Daytona sandbox (includes both regular files and
-    # zip archives staged for extraction).
-    if sandbox is not None and file_uploads:
-        sandbox.fs.upload_files(file_uploads)
-        logger.info("Uploaded %d files to sandbox", len(file_uploads))
-    
-    # Post-upload extraction for zip attachments (Daytona only).
-    # The zip has been batch-uploaded as __attachment__.zip inside each
-    # target directory; now we unzip and remove the archive.
-    for abs_target_dir in extract_targets:
-        extract_cmd = (
-            f"cd {abs_target_dir} && "
-            f"unzip -o __attachment__.zip && "
-            f"rm __attachment__.zip"
-        )
-        result = sandbox.process.exec(extract_cmd, timeout=30)
-        if result.exit_code != 0:
-            raise RuntimeError(
-                f"Failed to extract attachment in {abs_target_dir}: "
-                f"{getattr(result, 'output', getattr(result, 'stderr', ''))}"
-            )
+            all_files.append((mount_path, content))
+            injected_files.append({
+                "filename": attachment.filename,
+                "path": mount_path,
+                "size": len(content),
+            })
+
+    if all_files:
+        backend.write_files(all_files)
         logger.info(
-            "Extracted zip attachment in sandbox: %s", abs_target_dir,
+            "Wrote %d file(s) to workspace", len(all_files),
         )
-    
-    # Log summary of all injected files
+
     logger.info(
         "Attachment injection complete. Files available to agent:\n"
         + "\n".join(
@@ -631,7 +376,7 @@ async def inject_attachments(
             for f in injected_files
         ),
     )
-    
+
     return injected_files
 
 
@@ -862,6 +607,112 @@ async def _auto_publish_written_files(
         f"{len(written_paths)} modified file(s)"
     )
     return artifacts_published
+
+
+def build_workspace_prompt_section(
+    provision_result: ProvisionResult | None,
+) -> str:
+    """Build the ``## Workspace`` system prompt section.
+
+    Returns the section string (with leading newlines for concatenation)
+    when *provision_result* carries a workspace description, or an empty
+    string otherwise.  Callers can unconditionally append the result.
+    """
+    if not provision_result or not provision_result.workspace_description:
+        return ""
+    return "\n\n## Workspace\n\n" + provision_result.workspace_description
+
+
+def _generate_git_diff_artifact(
+    workspace_backend: WorkspaceBackend,
+    provision_result: ProvisionResult,
+    execution_id: str,
+    storage: ArtifactStorage,
+    status_builder: "StatusBuilder",
+    logger_: logging.Logger,
+) -> bool:
+    """Generate a ``.patch`` artifact from ``git diff`` for git-backed workspaces.
+
+    When the virtual platform mount is active (``platform_dir`` set),
+    platform files don't exist in the workspace tree, so no pathspec
+    exclusions are needed.  When it is not active (backward compat),
+    the old exclusions for ``.stigmer`` are applied.
+
+    Returns ``True`` if an artifact was generated, ``False`` otherwise.
+    This function is intentionally non-fatal: failures are logged but
+    never propagate.
+    """
+    from datetime import UTC, datetime, timedelta
+
+    from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ExecutionArtifact
+    from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionArtifactKind
+
+    if provision_result.source_type != SourceType.GIT_REPO:
+        return False
+
+    if workspace_backend.platform_dir:
+        diff_cmd = "git diff"
+    else:
+        diff_cmd = "git diff -- ':!.stigmer' ':!.stigmer-inputs' ':!bin/skills'"
+
+    try:
+        result = workspace_backend.execute(
+            diff_cmd,
+            timeout=30,
+        )
+    except Exception as exc:
+        logger_.warning("[GIT_DIFF] git diff command failed: %s", exc)
+        return False
+
+    if result.exit_code != 0:
+        logger_.info(
+            "[GIT_DIFF] git diff exited with %d: %s",
+            result.exit_code,
+            result.stderr.strip()[:200],
+        )
+        return False
+
+    diff_text = result.stdout.strip()
+    if not diff_text:
+        logger_.info("[GIT_DIFF] No changes detected in workspace")
+        return False
+
+    patch_bytes = diff_text.encode("utf-8")
+    filename = f"{execution_id}.patch"
+    storage_key = f"artifacts/{execution_id}/{filename}"
+
+    try:
+        storage.upload(storage_key, patch_bytes, "text/x-diff")
+        download_url = storage.get_download_url(storage_key, 7 * 24 * 3600)
+
+        now = datetime.now(UTC)
+        expires_at = now + timedelta(seconds=7 * 24 * 3600)
+
+        artifact = ExecutionArtifact(
+            name=filename,
+            sandbox_path=filename,
+            kind=ExecutionArtifactKind.EXECUTION_ARTIFACT_KIND_FILE,
+            size_bytes=len(patch_bytes),
+            storage_key=storage_key,
+            download_url=download_url,
+            created_at=now.isoformat(),
+            expires_at=expires_at.isoformat(),
+        )
+        status_builder.add_artifact(artifact)
+
+        logger_.info(
+            "[GIT_DIFF] Published patch artifact: %s (%d bytes)",
+            storage_key,
+            len(patch_bytes),
+        )
+        return True
+
+    except Exception as exc:
+        logger_.warning(
+            "[GIT_DIFF] Failed to upload patch artifact (non-fatal): %s",
+            exc,
+        )
+        return False
 
 
 @activity.defn(name="ExecuteGraphton")
@@ -1236,75 +1087,181 @@ async def _execute_graphton_impl(
             f"Sandbox mode: {worker_config.mode} - using {sandbox_config.get('type')} backend"
         )
         
-        # Initialize sandbox manager based on mode
-        # Note: In local mode (filesystem), SandboxManager is not used
-        # The sandbox_config is passed directly to Graphton
+        # Initialize sandbox manager (cloud mode only).
         sandbox_manager = None
         if worker_config.mode != "local":
-            # Cloud mode - use Daytona SandboxManager
             api_key = os.environ.get("DAYTONA_API_KEY")
             if not api_key:
                 raise ValueError("DAYTONA_API_KEY environment variable required for cloud mode")
-            
             sandbox_manager = SandboxManager(
                 daytona_api_key=api_key,
                 volume_id=get_daytona_volume_id(),
             )
-            
             if snapshot_id := sandbox_config.get("snapshot_id"):
                 activity_logger.info(f"Using Daytona snapshot: {snapshot_id}")
-        
-        # Get session_id from execution (if exists)
+
         resolved_session_id: str | None = execution.spec.session_id if execution.spec.session_id else None
+
+        # Create the workspace backend — single point where local-vs-cloud
+        # decision is made.  All subsequent code uses workspace_backend for
+        # file operations and never branches on deployment mode.
+        workspace_init = await initialize_workspace(
+            worker_config=worker_config,
+            sandbox_config=sandbox_config,
+            sandbox_manager=sandbox_manager,
+            session_id=resolved_session_id,
+            session_client=session_client,
+            activity_logger=activity_logger,
+        )
+        workspace_backend = workspace_init.backend
+        sandbox = workspace_init.sandbox
+        is_new_sandbox = workspace_init.is_new_sandbox
         
-        # Handle sandbox based on mode
-        sandbox = None
-        is_new_sandbox = False
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Step 2.8: Merge environment variables (moved up from Step 4)
+        #
+        # Environment merge now happens before workspace provisioning because
+        # the provisioner needs credentials from the merged env (e.g.
+        # GITHUB_TOKEN for git clone).  Nothing between the old Step 4
+        # location and here depends on merged_env_vars, so the reorder is safe.
+        # ─────────────────────────────────────────────────────────────────────────────
+        setup_timer.start("environment")
+        merged_env_vars: dict[str, str] = {}
+        use_legacy_env_merge = True
         
-        if worker_config.is_local_mode():
-            # Local mode - no sandbox management needed
-            # Graphton will create filesystem backend from config
-            activity_logger.info(
-                f"Local mode - using filesystem backend at {sandbox_config.get('root_dir')}"
-            )
-        else:
-            # Cloud mode - get or create Daytona sandbox (reuse if session exists)
-            activity_logger.info(
-                f"{'Checking for existing sandbox in session' if resolved_session_id else 'Creating ephemeral sandbox'}"
-            )
+        try:
+            execution_context_client = ExecutionContextClient(api_key)
+            exec_ctx = await execution_context_client.try_get_by_execution_id(execution_id)
             
-            if sandbox_manager is None:
-                raise RuntimeError("Sandbox manager not initialized for cloud mode")
-            
-            sandbox, is_new_sandbox = await sandbox_manager.get_or_create_daytona_sandbox(
-                sandbox_config=sandbox_config,
-                session_id=resolved_session_id,
-                session_client=session_client,
-            )
-            
-            activity_logger.info(
-                f"Sandbox {'created' if is_new_sandbox else 'reused'}: {sandbox.id} "
-                f"for execution {execution_id}"
-            )
-        
-        # Compute the authoritative workspace root for Daytona mode.
-        # When a persistent volume is mounted (volume_id + session_id),
-        # the workspace root is the volume mount path.  All consumers
-        # (SkillWriter, inject_attachments, sandbox_config_for_agent,
-        # diagnostics) use this value instead of independently calling
-        # sandbox.get_work_dir().
-        daytona_workspace_root: str | None = None
-        if not worker_config.is_local_mode() and sandbox is not None:
-            volume_id = get_daytona_volume_id()
-            if volume_id and resolved_session_id:
-                daytona_workspace_root = DAYTONA_WORKSPACE_MOUNT_PATH
+            if exec_ctx and exec_ctx.spec.data:
                 activity_logger.info(
-                    "Volume-backed workspace: workspace_root=%s "
-                    "(volume_id=%s, session_id=%s)",
-                    daytona_workspace_root,
-                    volume_id,
-                    resolved_session_id,
+                    f"Using merged environment from ExecutionContext: "
+                    f"context_id={exec_ctx.metadata.id}, env_count={len(exec_ctx.spec.data)}"
                 )
+                for key, exec_value in exec_ctx.spec.data.items():
+                    merged_env_vars[key] = exec_value.value
+                use_legacy_env_merge = False
+                activity_logger.info(f"ExecutionContext environment: {len(merged_env_vars)} total vars")
+            else:
+                activity_logger.debug(
+                    f"No ExecutionContext found for execution {execution_id} - "
+                    "using legacy environment merge"
+                )
+        except Exception as e:
+            activity_logger.warning(
+                f"Failed to get ExecutionContext, falling back to legacy merge: {e}"
+            )
+        
+        if use_legacy_env_merge:
+            environment_refs = agent_instance.spec.environment_refs
+            if environment_refs:
+                activity_logger.info(
+                    f"[Legacy] Merging {len(environment_refs)} environments: "
+                    f"{[ref.slug for ref in environment_refs]}"
+                )
+                try:
+                    environment_client = EnvironmentClient(api_key)
+                    environments = await environment_client.list_by_refs(list(environment_refs))
+                    
+                    if agent.spec.env_spec and agent.spec.env_spec.data:
+                        for key, env_value in agent.spec.env_spec.data.items():
+                            merged_env_vars[key] = env_value.value
+                        activity_logger.info(f"[Legacy] Base env vars from agent: {len(agent.spec.env_spec.data)}")
+                    
+                    for idx, env in enumerate(environments):
+                        if env.spec.data:
+                            for key, env_value in env.spec.data.items():
+                                merged_env_vars[key] = env_value.value
+                            activity_logger.info(
+                                f"[Legacy] Merged env {idx+1}/{len(environments)} ({env.metadata.name}): "
+                                f"{len(env.spec.data)} vars"
+                            )
+                    
+                    if execution.spec.runtime_env:
+                        runtime_vars = {
+                            key: value.value
+                            for key, value in execution.spec.runtime_env.items()
+                        }
+                        merged_env_vars.update(runtime_vars)
+                        activity_logger.info(f"[Legacy] Applied runtime env overrides: {len(runtime_vars)} vars")
+                    
+                    activity_logger.info(f"[Legacy] Final merged environment: {len(merged_env_vars)} total vars")
+                except Exception as e:
+                    activity_logger.error(f"[Legacy] Failed to merge environments: {e}")
+                    merged_env_vars = {}
+        
+        heartbeat_during_setup("environment_merged", {
+            "env_var_count": len(merged_env_vars),
+            "used_legacy_merge": use_legacy_env_merge,
+        })
+        
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Step 2.9: Workspace provisioning (Phase 3)
+        #
+        # When STIGMER_WORKSPACE_PROVISIONING_ENABLED is set and the session
+        # has a workspace_source, the provisioner clones a git repo, validates
+        # a local path, or returns an empty workspace result.  The provisioner
+        # is idempotent: if the workspace was already provisioned (e.g. by a
+        # previous execution in this session), it detects the existing state
+        # and returns metadata without re-cloning.
+        #
+        # Credential stripping (AD-05): keys consumed by provisioning
+        # (e.g. GITHUB_TOKEN) are removed from merged_env_vars so they
+        # do not leak into MCP config placeholders or status reporting.
+        # ─────────────────────────────────────────────────────────────────────────────
+        provision_result: ProvisionResult | None = None
+        
+        _provisioning_enabled = os.environ.get(
+            "STIGMER_WORKSPACE_PROVISIONING_ENABLED", "",
+        ).lower() in ("1", "true", "yes")
+        
+        if _provisioning_enabled and session.spec.HasField("workspace_source"):
+            setup_timer.start("workspace_provisioning")
+            try:
+                provisioner = WorkspaceProvisioner(log=activity_logger)
+                provision_result = provisioner.provision(
+                    workspace_source=session.spec.workspace_source,
+                    backend=workspace_backend,
+                    merged_env=merged_env_vars,
+                    is_local_mode=worker_config.is_local_mode(),
+                )
+                
+                if provision_result.root_dir != workspace_backend.root_dir:
+                    activity_logger.info(
+                        "Workspace root changed by provisioning: %s -> %s",
+                        workspace_backend.root_dir,
+                        provision_result.root_dir,
+                    )
+                    workspace_backend = LocalWorkspaceBackend(
+                        root_dir=provision_result.root_dir,
+                    )
+                
+                if provision_result.consumed_keys:
+                    stripped = []
+                    for key in provision_result.consumed_keys:
+                        if key in merged_env_vars:
+                            del merged_env_vars[key]
+                            stripped.append(key)
+                    if stripped:
+                        activity_logger.info(
+                            "Stripped %d provisioning key(s) from agent environment: %s",
+                            len(stripped),
+                            ", ".join(stripped),
+                        )
+                
+            except WorkspaceProvisionError as prov_err:
+                activity_logger.error(
+                    "Workspace provisioning failed: %s", prov_err,
+                )
+                raise ValueError(
+                    f"Workspace provisioning failed: {prov_err}"
+                ) from prov_err
+            
+            heartbeat_during_setup("workspace_provisioned", {
+                "source_type": provision_result.source_type.value,
+                "root_dir": provision_result.root_dir,
+                "consumed_keys": list(provision_result.consumed_keys),
+            })
         
         # ─────────────────────────────────────────────────────────────────────────────
         # Workspace integrity flag (resume fast-path safety net)
@@ -1324,7 +1281,7 @@ async def _execute_graphton_impl(
 
         # Step 3: Fetch and write skills (from agent template via references)
         # Following the Agent Skills spec progressive disclosure model:
-        # - Skills are written to bin/skills/{name}/ in the sandbox
+        # - Skills are written to .stigmer/skills/{name}/ in the sandbox
         # - Only metadata (name + description + location) injected into prompt
         # - Agent reads SKILL.md on demand when activating a skill
         #
@@ -1362,17 +1319,12 @@ async def _execute_graphton_impl(
                     sentinel_paths = SkillWriter.compute_skill_paths(skills)
                     first_skill_dir = next(iter(sentinel_paths.values()))
                     sentinel = f"{first_skill_dir}/SKILL.md"
-                    workspace_files_intact = _check_workspace_file_exists(
-                        sandbox=sandbox,
-                        local_root=(
-                            sandbox_config.get("root_dir")
-                            if worker_config.is_local_mode()
-                            else None
-                        ),
-                        workspace_root=daytona_workspace_root,
-                        path=sentinel,
-                        logger=activity_logger,
-                    )
+                    workspace_files_intact = workspace_backend.file_exists(sentinel)
+                    if not workspace_files_intact:
+                        activity_logger.warning(
+                            "[workspace-check] Sentinel file missing: %s",
+                            sentinel,
+                        )
                     if workspace_files_intact:
                         activity_logger.info(
                             "[RESUME] Workspace integrity verified "
@@ -1432,29 +1384,13 @@ async def _execute_graphton_impl(
                                 )
                                 # Continue without artifact - will use SKILL.md only
                     
-                    # Write skills to sandbox (both local and cloud modes supported)
-                    if worker_config.is_local_mode():
-                        # Local mode - write to local filesystem
-                        local_root = sandbox_config.get('root_dir', '/tmp/stigmer-sandbox')
-                        activity_logger.info(
-                            f"Writing {len(skills)} skills to local filesystem at {local_root}/bin/skills/"
-                        )
-                        skill_writer = SkillWriter(local_root=local_root)
-                        skill_paths = skill_writer.write_skills(skills, artifacts=artifacts)
-                    else:
-                        # Cloud mode - upload to Daytona sandbox
-                        if sandbox is None:
-                            raise RuntimeError("Sandbox not initialized for cloud mode")
-                        
-                        activity_logger.info(
-                            f"Uploading {len(skills)} skills to Daytona sandbox "
-                            f"(sandbox {'newly created' if is_new_sandbox else 'reused, updating skills'})"
-                        )
-                        skill_writer = SkillWriter(
-                            sandbox=sandbox,
-                            workspace_root=daytona_workspace_root,
-                        )
-                        skill_paths = skill_writer.write_skills(skills, artifacts=artifacts)
+                    activity_logger.info(
+                        "Writing %d skills to workspace at %s/.stigmer/skills/",
+                        len(skills),
+                        workspace_backend.root_dir,
+                    )
+                    skill_writer = SkillWriter(backend=workspace_backend)
+                    skill_paths = skill_writer.write_skills(skills, artifacts=artifacts)
                     
                     # Generate prompt section with full SKILL.md content and LOCATION headers
                     skills_prompt_section = SkillWriter.generate_prompt_section(skills, skill_paths)
@@ -1464,40 +1400,21 @@ async def _execute_graphton_impl(
                     )
                     
                     # ─── Diagnostic: verify skill files are accessible ───────────
-                    # Log workspace root and verify skill paths exist in the
-                    # sandbox at the expected location.
-                    if not worker_config.is_local_mode() and sandbox is not None:
-                        # Use the authoritative workspace root (volume mount
-                        # path when present), falling back to get_work_dir().
-                        diag_ws_root: str | None = daytona_workspace_root
-                        if not diag_ws_root:
-                            try:
-                                diag_ws_root = sandbox.get_work_dir()
-                            except Exception as diag_exc:
-                                activity_logger.warning(
-                                    "[skill-diag] sandbox.get_work_dir() failed: %s",
-                                    diag_exc,
-                                )
+                    if sandbox is not None:
                         activity_logger.info(
-                            "[skill-diag] workspace_root = %r", diag_ws_root,
+                            "[skill-diag] workspace_root = %r",
+                            workspace_backend.root_dir,
                         )
-
                         for _sid, spath in skill_paths.items():
-                            # spath is workspace-relative, e.g. "bin/skills/abc…"
-                            # SkillWriter writes to {workspace_root}/{spath}
-                            if diag_ws_root:
-                                abs_path = f"{diag_ws_root.rstrip('/')}/{spath}"
-                            else:
-                                abs_path = f"/{spath}"
-                            diag_result = sandbox.process.exec(
-                                f"ls -la {abs_path}/ 2>&1 | head -20", timeout=5,
+                            diag_result = workspace_backend.execute(
+                                f"ls -la {spath}/ 2>&1 | head -20",
+                                timeout=5,
                             )
-                            diag_out = diag_result.output if diag_result.output else ""
                             activity_logger.info(
                                 "[skill-diag] ls %s/  exit=%d  output=%s",
-                                abs_path,
+                                spath,
                                 diag_result.exit_code,
-                                diag_out[:300],
+                                diag_result.stdout[:300],
                             )
 
                     # ─── Post-write verification ─────────────────────────────
@@ -1505,25 +1422,14 @@ async def _execute_graphton_impl(
                     # every skill's SKILL.md is readable.  This catches path
                     # mismatches at setup time rather than at agent runtime.
                     if skill_paths:
-                        from graphton.core.sandbox_factory import create_sandbox_backend
-
-                        if worker_config.is_local_mode():
-                            verify_cfg = sandbox_config.copy()
-                        else:
-                            if sandbox is None:
-                                raise RuntimeError(
-                                    "Sandbox not initialized for post-write verification"
-                                )
-                            verify_cfg = {
-                                "type": "daytona",
-                                "sandbox_id": sandbox.id,
-                            }
-
-                        verify_backend = create_sandbox_backend(verify_cfg)
                         for _vid, vpath in skill_paths.items():
                             skill_md_path = f"{vpath}/SKILL.md"
                             try:
-                                content = verify_backend.read(skill_md_path)
+                                if not workspace_backend.file_exists(skill_md_path):
+                                    raise FileNotFoundError(
+                                        f"SKILL.md not found at {skill_md_path}"
+                                    )
+                                content = workspace_backend.read_file(skill_md_path)
                                 activity_logger.info(
                                     "Skill post-write verification passed: %s (%d bytes)",
                                     skill_md_path,
@@ -1532,7 +1438,7 @@ async def _execute_graphton_impl(
                             except Exception as verify_exc:
                                 activity_logger.error(
                                     "CRITICAL: Skill at %s not readable through "
-                                    "agent backend: %s",
+                                    "workspace backend: %s",
                                     skill_md_path,
                                     verify_exc,
                                 )
@@ -1580,7 +1486,7 @@ async def _execute_graphton_impl(
                 # Attachments are already in the sandbox.  Reconstruct the
                 # metadata list for the system prompt without any I/O.
                 for att in attachments:
-                    mount_path = att.mount_path if att.mount_path else f"inputs/{att.filename}"
+                    mount_path = att.mount_path if att.mount_path else f".stigmer/inputs/{att.filename}"
                     injected_files.append({
                         "filename": att.filename,
                         "path": mount_path,
@@ -1613,12 +1519,11 @@ async def _execute_graphton_impl(
                 
                 try:
                     injected_files = await inject_attachments(
-                        sandbox=sandbox,  # None for local mode
+                        backend=workspace_backend,
                         attachments=attachments,
                         storage=artifact_storage,
                         logger=activity_logger,
-                        local_root=sandbox_config.get('root_dir') if worker_config.is_local_mode() else None,
-                        workspace_root=daytona_workspace_root,
+                        allow_local_path=worker_config.is_local_mode(),
                     )
                     activity_logger.info(f"Successfully injected {len(injected_files)} attachments")
                 except Exception as e:
@@ -1629,100 +1534,6 @@ async def _execute_graphton_impl(
         heartbeat_during_setup("attachments_injected", {
             "attachment_count": len(attachments),
             "injected_count": len(injected_files),
-        })
-        
-        # Step 4: Get merged environment variables
-        # Try ExecutionContext first (new flow with pre-merged/decrypted env vars)
-        # Fall back to legacy environment merging if ExecutionContext not found
-        setup_timer.start("environment")
-        merged_env_vars = {}
-        use_legacy_env_merge = True
-        
-        try:
-            # Try to get pre-merged environment from ExecutionContext
-            execution_context_client = ExecutionContextClient(api_key)
-            exec_ctx = await execution_context_client.try_get_by_execution_id(execution_id)
-            
-            if exec_ctx and exec_ctx.spec.data:
-                # Use pre-merged and pre-decrypted environment from ExecutionContext
-                activity_logger.info(
-                    f"Using merged environment from ExecutionContext: "
-                    f"context_id={exec_ctx.metadata.id}, env_count={len(exec_ctx.spec.data)}"
-                )
-                
-                # Extract values from ExecutionValue objects
-                for key, exec_value in exec_ctx.spec.data.items():
-                    merged_env_vars[key] = exec_value.value
-                
-                use_legacy_env_merge = False
-                activity_logger.info(f"ExecutionContext environment: {len(merged_env_vars)} total vars")
-            else:
-                activity_logger.debug(
-                    f"No ExecutionContext found for execution {execution_id} - "
-                    "using legacy environment merge"
-                )
-        except Exception as e:
-            activity_logger.warning(
-                f"Failed to get ExecutionContext, falling back to legacy merge: {e}"
-            )
-        
-        # Legacy environment merge (backward compatibility)
-        if use_legacy_env_merge:
-            environment_refs = agent_instance.spec.environment_refs
-            
-            if environment_refs:
-                activity_logger.info(
-                    f"[Legacy] Merging {len(environment_refs)} environments: "
-                    f"{[ref.slug for ref in environment_refs]}"
-                )
-                
-                try:
-                    # Create environment client
-                    environment_client = EnvironmentClient(api_key)
-                    
-                    # Fetch environments (preserves order for proper merging)
-                    environments = await environment_client.list_by_refs(list(environment_refs))
-                    
-                    # Merge environments in order (later overrides earlier)
-                    # Start with agent's base env_spec if it exists
-                    if agent.spec.env_spec and agent.spec.env_spec.data:
-                        # Extract values from EnvironmentValue objects
-                        for key, env_value in agent.spec.env_spec.data.items():
-                            merged_env_vars[key] = env_value.value
-                        activity_logger.info(f"[Legacy] Base env vars from agent: {len(agent.spec.env_spec.data)}")
-                    
-                    # Layer each environment (order matters!)
-                    for idx, env in enumerate(environments):
-                        if env.spec.data:
-                            # Extract values from EnvironmentValue objects
-                            for key, env_value in env.spec.data.items():
-                                merged_env_vars[key] = env_value.value
-                            activity_logger.info(
-                                f"[Legacy] Merged env {idx+1}/{len(environments)} ({env.metadata.name}): "
-                                f"{len(env.spec.data)} vars"
-                            )
-                    
-                    # Runtime env vars from execution have highest priority
-                    if execution.spec.runtime_env:
-                        # Convert ExecutionValue to string values
-                        runtime_vars = {
-                            key: value.value 
-                            for key, value in execution.spec.runtime_env.items()
-                        }
-                        merged_env_vars.update(runtime_vars)
-                        activity_logger.info(f"[Legacy] Applied runtime env overrides: {len(runtime_vars)} vars")
-                    
-                    activity_logger.info(f"[Legacy] Final merged environment: {len(merged_env_vars)} total vars")
-                    
-                except Exception as e:
-                    activity_logger.error(f"[Legacy] Failed to merge environments: {e}")
-                    # Continue without environments rather than failing execution
-                    merged_env_vars = {}
-        
-        # Heartbeat after environment merge to prevent timeout during setup
-        heartbeat_during_setup("environment_merged", {
-            "env_var_count": len(merged_env_vars),
-            "used_legacy_merge": use_legacy_env_merge,
         })
         
         # Step 5: Fetch and transform MCP servers (from agent template via mcp_server_usages)
@@ -1878,20 +1689,28 @@ async def _execute_graphton_impl(
         setup_timer.start("agent_creation")
         activity_logger.info(f"Creating Graphton agent for execution {execution_id}")
         
-        # Enhance system prompt with skills section
+        # Enhance system prompt with workspace context, skills, input files
         enhanced_system_prompt = instructions
+
+        workspace_section = build_workspace_prompt_section(provision_result)
+        if workspace_section:
+            enhanced_system_prompt += workspace_section
+            activity_logger.info("Enhanced system prompt with workspace context")
+
         if skills_prompt_section:
             enhanced_system_prompt += skills_prompt_section
             activity_logger.info("Enhanced system prompt with skills metadata")
         
-        # Add input files section to system prompt if attachments were injected
         if injected_files:
             input_files_section = "\n\n## Input Files\n\n"
             input_files_section += (
-                "The following files have been provided as context for your task. "
+                "The following files have been provided as read-only reference "
+                "material for your task. They live under `.stigmer/inputs/` and "
+                "are NOT part of the project source tree.\n\n"
                 "Read them using the `read` tool when you need their contents. "
                 "Do NOT echo, reprint, or summarize file contents in your response "
-                "-- they are reference material, not output.\n\n"
+                "-- they are reference material, not output. "
+                "Do NOT modify or delete these files.\n\n"
             )
             for f in injected_files:
                 size_info = f" ({f['size']} bytes)" if f.get('size') is not None else ""
@@ -1926,31 +1745,29 @@ async def _execute_graphton_impl(
             "contents.\"\n"
         )
 
-        # Configure sandbox for Graphton agent
-        if worker_config.is_local_mode():
-            # Local mode - pass filesystem config directly
-            sandbox_config_for_agent = sandbox_config.copy()
-            activity_logger.info(
-                f"Configuring agent for local mode with filesystem backend at {sandbox_config.get('root_dir')}"
-            )
-        else:
-            # Cloud mode - pass Daytona config with sandbox_id to reuse existing sandbox
-            if sandbox is None:
-                raise RuntimeError("Sandbox not initialized for cloud mode")
-            
-            sandbox_config_for_agent = {
+        # Configure sandbox for Graphton agent.
+        # Derive the config from workspace_backend + sandbox rather than
+        # branching on mode.
+        if sandbox is not None:
+            sandbox_config_for_agent: dict[str, Any] = {
                 "type": "daytona",
                 "sandbox_id": sandbox.id,
+                "workspace_root": workspace_backend.root_dir,
             }
-            # When a persistent volume is mounted, tell the backend factory
-            # to use the volume mount path as the agent's workspace root.
-            if daytona_workspace_root:
-                sandbox_config_for_agent["workspace_root"] = daytona_workspace_root
             activity_logger.info(
                 "Configuring agent to use existing sandbox %s "
                 "(workspace_root=%s)",
                 sandbox.id,
-                daytona_workspace_root or "<sandbox default>",
+                workspace_backend.root_dir,
+            )
+        else:
+            sandbox_config_for_agent = sandbox_config.copy()
+            if workspace_init.platform_dir:
+                sandbox_config_for_agent["platform_dir"] = workspace_init.platform_dir
+            activity_logger.info(
+                "Configuring agent for local mode (root=%s, platform_dir=%s)",
+                workspace_backend.root_dir,
+                workspace_init.platform_dir,
             )
         
         # ─────────────────────────────────────────────────────────────────────────────
@@ -2016,17 +1833,6 @@ async def _execute_graphton_impl(
             )
             
             try:
-                # Build skill writer kwargs based on mode
-                if worker_config.is_local_mode():
-                    skill_writer_kwargs = {
-                        "local_root": sandbox_config.get('root_dir', '/tmp/stigmer-sandbox')
-                    }
-                else:
-                    if sandbox is None:
-                        raise RuntimeError("Sandbox not initialized for cloud mode")
-                    skill_writer_kwargs = {"sandbox": sandbox}
-                
-                # Transform subagents with MCP filtering and skill resolution
                 transformed_subagents = await transform_sub_agents(
                     sub_agents=list(agent.spec.sub_agents),
                     parent_mcp_servers=mcp_servers_config or {},
@@ -2034,7 +1840,7 @@ async def _execute_graphton_impl(
                     parent_mcp_usages=list(agent.spec.mcp_server_usages) if agent.spec.mcp_server_usages else [],
                     skill_client=skill_client,
                     skill_writer_class=SkillWriter,
-                    skill_writer_kwargs=skill_writer_kwargs,
+                    skill_writer_kwargs={"backend": workspace_backend},
                     approval_checker=approval_checker,
                     activity_logger=activity_logger,
                 )
@@ -2794,6 +2600,16 @@ async def _execute_graphton_impl(
                 ExecutionPhase.EXECUTION_PAUSED,
                 ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
             ):
+                if provision_result is not None:
+                    _generate_git_diff_artifact(
+                        workspace_backend=workspace_backend,
+                        provision_result=provision_result,
+                        execution_id=execution_id,
+                        storage=artifact_storage,
+                        status_builder=status_builder,
+                        logger_=activity_logger,
+                    )
+                
                 try:
                     await _auto_publish_written_files(
                         tool_calls=status_builder.current_status.tool_calls,
@@ -2802,8 +2618,8 @@ async def _execute_graphton_impl(
                         execution_id=execution_id,
                         status_builder=status_builder,
                         local_root=(
-                            sandbox_config.get("root_dir")
-                            if worker_config.is_local_mode()
+                            workspace_backend.root_dir
+                            if sandbox is None
                             else None
                         ),
                         logger=activity_logger,

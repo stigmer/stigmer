@@ -1,0 +1,87 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.session.v1;
+
+import "buf/validate/validate.proto";
+
+// WorkspaceSource defines where the agent's workspace content comes from.
+//
+// This is a session-level concept: the workspace is provisioned once on the
+// first execution and reused by subsequent executions in the same session.
+// Changing the workspace source requires creating a new session.
+//
+// When workspace_source is absent on SessionSpec, the session uses an empty
+// workspace (existing default behavior, no provisioning step).
+message WorkspaceSource {
+  oneof source {
+    option (buf.validate.oneof).required = true;
+    GitRepoSource git_repo = 1;
+    LocalPathSource local_path = 2;
+  }
+}
+
+// LocalPathSource uses an existing directory on the host filesystem as the
+// workspace. The agent operates directly on the user's files -- changes are
+// immediate and persistent.
+//
+// Deployment constraint: only valid when the agent-runner is in local mode.
+// Cloud runners reject this at provisioning time with a clear error, the same
+// way GitRepoSource rejects SSH URLs at validation time. This is a normal
+// deployment-specific constraint, not a schema limitation.
+//
+// No copy or clone is made. The path is used directly as the workspace root.
+message LocalPathSource {
+  // Absolute path to an existing directory on the host filesystem (required).
+  // The runner validates that the path exists and is a directory at
+  // provisioning time.
+  // Example: "/home/user/projects/my-app", "/Users/dev/src/acme-api"
+  string path = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// GitRepoSource provisions a workspace by cloning a git repository.
+//
+// Authentication: The provisioner resolves GITHUB_TOKEN from the merged
+// environment (Agent defaults < Environment < ExecutionContext.runtime_env)
+// and injects it into the clone URL. The token is consumed by provisioning
+// and stripped before forwarding to the agent runtime (see AD-05).
+//
+// HTTPS only for MVP. SSH key authentication is a future enhancement.
+message GitRepoSource {
+  // HTTPS clone URL (required).
+  // Must use the https:// scheme. SSH URLs (git@...) are not supported.
+  // Example: "https://github.com/acme/my-app.git"
+  string url = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).cel = {
+      id: "git_repo_source.url.https"
+      message: "url must use HTTPS (e.g. https://github.com/org/repo). SSH URLs are not supported."
+      expression: "this.startsWith('https://')"
+    }
+  ];
+
+  // Branch to clone (optional).
+  // When empty, the repository's default branch is used.
+  // Example: "main", "develop", "feature/workspace-support"
+  string branch = 2;
+
+  // Commit SHA to checkout after cloning (optional).
+  // When set, the workspace is checked out at this exact commit (detached HEAD).
+  // When both branch and commit are set, the branch is cloned first, then
+  // the commit is checked out -- this allows shallow clones of a specific
+  // commit on a known branch.
+  // When only commit is set (no branch), a full clone is required to
+  // locate the commit.
+  string commit = 3;
+
+  // Clone depth (optional).
+  //
+  // Presence semantics:
+  //   - Absent (not set): shallow clone with depth 1 (fast default).
+  //   - 0: full clone with complete history.
+  //   - N > 0: shallow clone with depth N.
+  //
+  // Uses proto3 optional to distinguish "not set" from "set to 0."
+  optional int32 depth = 4 [
+    (buf.validate.field).int32.gte = 0
+  ];
+}

@@ -102,18 +102,30 @@ func (p *AttachmentProcessor) processDirectory(path string) (*agentexecutionv1.A
 
 	attachment.Extract = true
 	attachment.MountPath = fmt.Sprintf("inputs/%s/", dirname)
+	attachment.LocalPath = absPath
 	return attachment, nil
 }
 
 // uploadFile reads a file from disk and uploads it via the UploadAttachment RPC.
 func (p *AttachmentProcessor) uploadFile(path, filename, contentType string, size int64) (*agentexecutionv1.Attachment, error) {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to resolve absolute path")
+	}
+
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read file")
 	}
 
 	climsg.Info("Uploading %s (%s)...", filename, formatFileSize(size))
-	return p.uploadBytes(content, filename, contentType)
+
+	attachment, err := p.uploadBytes(content, filename, contentType)
+	if err != nil {
+		return nil, err
+	}
+	attachment.LocalPath = absPath
+	return attachment, nil
 }
 
 // uploadBytes uploads raw bytes via the UploadAttachment RPC and returns an Attachment.

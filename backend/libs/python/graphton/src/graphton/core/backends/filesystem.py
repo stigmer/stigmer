@@ -1,7 +1,14 @@
 """Filesystem backend with shell execution support.
 
-This module provides an enhanced FilesystemBackend that supports both file operations
-and shell command execution for local agent runtime (ENV=local mode).
+This module provides an enhanced FilesystemBackend that supports both file
+operations and shell command execution for local agent runtime (ENV=local mode).
+
+Virtual platform mount (AD-01 v3):
+    When ``platform_dir`` is provided, paths under ``.stigmer/`` are resolved
+    against the platform directory instead of the workspace root.  The
+    ``list_files(".")`` call merges a virtual ``.stigmer`` entry into the
+    workspace root listing.  Shell commands receive the platform path via
+    the ``$STIGMER_PLATFORM_DIR`` environment variable.
 """
 
 from __future__ import annotations
@@ -13,13 +20,19 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from graphton.core.backends.platform_mount import (
+    PLATFORM_DIR_NAME,
+    STIGMER_PLATFORM_DIR_ENV,
+    classify_platform_path,
+)
+
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class ExecutionResult:
     """Result of a shell command execution.
-    
+
     Attributes:
         exit_code: Command exit code (0 for success)
         stdout: Standard output from the command
@@ -32,78 +45,105 @@ class ExecutionResult:
 
 class FilesystemBackend:
     """Enhanced filesystem backend with shell execution support.
-    
+
     This backend provides both file operations and shell command execution
     for local agent runtime. It executes commands directly on the host machine
     in a specified workspace directory.
-    
+
     All paths are resolved relative to root_dir using chroot-like semantics:
     absolute paths (e.g. ``/bin/skills``) are treated as relative to root_dir,
     not as host filesystem paths. This ensures that sandbox-internal paths
     (used by skills, attachments, etc.) resolve correctly in local mode.
-    
+
+    When ``platform_dir`` is set, paths under ``.stigmer/`` are routed to
+    the platform directory with an independent containment check.
+
     Attributes:
         root_dir: Root directory for file operations and command execution
     """
-    
-    def __init__(self, root_dir: str | Path = ".") -> None:
+
+    def __init__(
+        self,
+        root_dir: str | Path = ".",
+        *,
+        platform_dir: str | Path | None = None,
+    ) -> None:
         """Initialize filesystem backend.
-        
+
         Args:
             root_dir: Root directory for operations (defaults to current directory)
+            platform_dir: External directory for platform files (``.stigmer/``).
+                When set, ``.stigmer/*`` paths resolve here instead of root_dir.
         """
         self.root_dir = Path(root_dir).resolve()
-        
-        # Create workspace directory if it doesn't exist
         self.root_dir.mkdir(parents=True, exist_ok=True)
-    
+
+        if platform_dir is not None:
+            self._platform_root: Path | None = Path(platform_dir).resolve()
+            self._platform_root.mkdir(parents=True, exist_ok=True)
+        else:
+            self._platform_root = None
+
+    # -- Path resolution -------------------------------------------------------
+
     def _resolve_sandbox_path(self, path: str) -> Path:
         """Resolve a path relative to the sandbox root (chroot-like).
-        
+
         Absolute paths are treated as relative to root_dir so that
         sandbox-internal paths like ``/bin/skills`` resolve to
         ``{root_dir}/bin/skills`` instead of the host filesystem.
-        
+
+        When ``platform_dir`` is set, ``.stigmer/*`` paths are resolved
+        against the platform directory with a separate containment check.
+
         Args:
             path: Path to resolve. May be relative or absolute.
                   Absolute paths have their leading ``/`` stripped.
-        
+
         Returns:
-            Resolved Path within the sandbox root.
-        
+            Resolved Path within the appropriate root.
+
         Raises:
-            ValueError: If the resolved path escapes the sandbox root
+            ValueError: If the resolved path escapes its root
                 (e.g. via ``../../`` traversal).
-        
-        Examples:
-            >>> backend = FilesystemBackend(root_dir="/workspace")
-            >>> backend._resolve_sandbox_path("/bin/skills")
-            PosixPath('/workspace/bin/skills')
-            >>> backend._resolve_sandbox_path("inputs/data.txt")
-            PosixPath('/workspace/inputs/data.txt')
         """
-        # If the path already starts with root_dir, strip the prefix so we
-        # don't get a double-prefix (e.g. /workspace/workspace/...).  The
-        # agent may construct absolute paths like "/workspace/bin/skills/..."
-        # when root_dir is "/workspace" (from `pwd` output or tool context).
         root_str = str(self.root_dir)
         if path.startswith(root_str + "/"):
             path = path[len(root_str):]
         elif path == root_str:
             path = ""
 
-        # Strip leading "/" so pathlib treats it as relative to root_dir
+        # Virtual platform mount: route .stigmer/* to platform_dir.
+        if self._platform_root is not None:
+            is_platform, remainder = classify_platform_path(path)
+            if is_platform:
+                return self._resolve_platform(remainder)
+
         clean = path.lstrip("/")
         resolved = (self.root_dir / clean).resolve()
-        
-        # Prevent traversal outside the sandbox root
+
         if not str(resolved).startswith(str(self.root_dir)):
             raise ValueError(
                 f"Path '{path}' resolves outside sandbox root '{self.root_dir}'"
             )
-        
+
         return resolved
-    
+
+    def _resolve_platform(self, remainder: str) -> Path:
+        """Resolve *remainder* within ``platform_dir`` with containment check."""
+        assert self._platform_root is not None
+        platform_str = str(self._platform_root)
+
+        resolved = (self._platform_root / remainder).resolve()
+        if not str(resolved).startswith(platform_str):
+            raise ValueError(
+                f"Path '.stigmer/{remainder}' resolves outside platform root "
+                f"'{self._platform_root}'"
+            )
+        return resolved
+
+    # -- Shell execution -------------------------------------------------------
+
     def execute(
         self,
         command: str,
@@ -111,45 +151,25 @@ class FilesystemBackend:
         **kwargs: Any,  # noqa: ANN401
     ) -> ExecutionResult:
         """Execute shell command on the host machine.
-        
+
         Commands are executed in the workspace directory (self.root_dir) with
-        environment variables inherited from the current process. This allows
-        API keys and other secrets to be passed through the environment.
-        
+        environment variables inherited from the current process.  When
+        ``platform_dir`` is configured, ``$STIGMER_PLATFORM_DIR`` is set so
+        shell commands can access platform files.
+
         Args:
             command: Shell command to execute
             timeout: Command timeout in seconds (defaults to 120)
             **kwargs: Additional arguments (reserved for future use)
-        
+
         Returns:
             ExecutionResult with exit code, stdout, and stderr
-        
-        Raises:
-            No exceptions are raised - all errors are captured in ExecutionResult
-        
-        Examples:
-            >>> backend = FilesystemBackend(root_dir="/workspace")
-            >>> result = backend.execute("echo 'Hello World'")
-            >>> print(result.stdout)
-            Hello World
-            >>> print(result.exit_code)
-            0
-            
-            >>> result = backend.execute("pip install requests")
-            >>> if result.exit_code != 0:
-            ...     print(f"Installation failed: {result.stderr}")
-        
-        Security Notes:
-            - Commands run with the same permissions as the parent process
-            - Commands can access the entire host filesystem
-            - Use only in trusted local development environments
-            - For production, use sandboxed backends like Daytona
         """
         try:
-            # Prepare environment: inherit current process env and ensure unbuffered output
             env = {**os.environ, "PYTHONUNBUFFERED": "1"}
-            
-            # Execute command in workspace directory
+            if self._platform_root is not None:
+                env[STIGMER_PLATFORM_DIR_ENV] = str(self._platform_root)
+
             result = subprocess.run(
                 command,
                 shell=True,
@@ -159,77 +179,58 @@ class FilesystemBackend:
                 timeout=timeout,
                 env=env,
             )
-            
+
             return ExecutionResult(
                 exit_code=result.returncode,
                 stdout=result.stdout,
                 stderr=result.stderr,
             )
-        
+
         except subprocess.TimeoutExpired as e:
-            # Command exceeded timeout
             stdout = e.stdout.decode("utf-8") if e.stdout else ""
             stderr = e.stderr.decode("utf-8") if e.stderr else ""
             error_msg = f"Command timed out after {timeout} seconds"
-            
+
             return ExecutionResult(
-                exit_code=124,  # Standard timeout exit code
+                exit_code=124,
                 stdout=stdout,
                 stderr=f"{stderr}\n{error_msg}" if stderr else error_msg,
             )
-        
+
         except Exception as e:
-            # Catch all other errors (permission denied, invalid command, etc.)
             return ExecutionResult(
                 exit_code=1,
                 stdout="",
                 stderr=f"Command execution failed: {type(e).__name__}: {e}",
             )
-    
-    # File operation methods (compatible with deepagents.backends.FilesystemBackend)
-    
+
+    # -- File operations -------------------------------------------------------
+
     def read(self, path: str) -> str:
-        """Read file contents (deepagents compatible interface).
-        
-        Args:
-            path: Path to the file (relative or absolute within sandbox)
-        
-        Returns:
-            File contents as string
-        """
+        """Read file contents (deepagents compatible interface)."""
         return self.read_file(path)
-    
+
     def read_file(self, path: str) -> str:
         """Read file contents.
-        
-        Args:
-            path: Path to the file (relative or absolute within sandbox)
-        
-        Returns:
-            File contents as string
-        
+
         Raises:
             ValueError: If path escapes sandbox root
             FileNotFoundError: If file does not exist (with diagnostic details)
             IsADirectoryError: If path points to a directory
         """
         file_path = self._resolve_sandbox_path(path)
-        
+
         if not file_path.exists():
-            # Build a diagnostic message to help debug path mismatches
             diag = f"File not found: '{path}' (resolved to '{file_path}')"
-            
-            # Check if the parent directory exists and list its contents
             parent = file_path.parent
             if parent.exists():
                 siblings = sorted(item.name for item in parent.iterdir())
                 diag += f". Parent directory '{parent.name}/' contains: {siblings}"
             else:
                 diag += f". Parent directory '{parent}' also does not exist"
-            
             logger.warning(diag)
             raise FileNotFoundError(diag)
-        
+
         if file_path.is_dir():
             contents = sorted(item.name for item in file_path.iterdir())
             msg = (
@@ -238,55 +239,43 @@ class FilesystemBackend:
             )
             logger.warning(msg)
             raise IsADirectoryError(msg)
-        
+
         return file_path.read_text()
-    
+
     def write(self, path: str, content: str) -> None:
-        """Write content to file (deepagents compatible interface).
-        
-        Args:
-            path: Path to the file (relative or absolute within sandbox)
-            content: Content to write
-        """
+        """Write content to file (deepagents compatible interface)."""
         self.write_file(path, content)
-    
+
     def write_file(self, path: str, content: str) -> None:
         """Write content to file.
-        
-        Args:
-            path: Path to the file (relative or absolute within sandbox)
-            content: Content to write
-        
+
         Raises:
             ValueError: If path escapes sandbox root
         """
         file_path = self._resolve_sandbox_path(path)
         file_path.parent.mkdir(parents=True, exist_ok=True)
         file_path.write_text(content)
-    
+
     def list_files(self, path: str = ".") -> list[str]:
         """List files in directory.
-        
-        Args:
-            path: Path to the directory (relative or absolute within sandbox,
-                  defaults to root)
-        
-        Returns:
-            List of file/directory names
-        
+
+        When ``platform_dir`` is set and *path* resolves to the workspace
+        root, a virtual ``.stigmer`` entry is merged into the listing so
+        the agent discovers the platform namespace.
+
         Raises:
             ValueError: If path escapes sandbox root
             NotADirectoryError: If path points to a file instead of a directory
         """
         dir_path = self._resolve_sandbox_path(path)
-        
+
         if not dir_path.exists():
             logger.debug(
                 "list_files: path '%s' does not exist (resolved to '%s')",
                 path, dir_path,
             )
             return []
-        
+
         if not dir_path.is_dir():
             msg = (
                 f"Path '{path}' is a file, not a directory "
@@ -294,5 +283,15 @@ class FilesystemBackend:
             )
             logger.warning(msg)
             raise NotADirectoryError(msg)
-        
-        return [item.name for item in dir_path.iterdir()]
+
+        entries = [item.name for item in dir_path.iterdir()]
+
+        # Inject virtual .stigmer entry at the workspace root level.
+        if (
+            self._platform_root is not None
+            and dir_path == self.root_dir
+            and PLATFORM_DIR_NAME not in entries
+        ):
+            entries.append(PLATFORM_DIR_NAME)
+
+        return entries
