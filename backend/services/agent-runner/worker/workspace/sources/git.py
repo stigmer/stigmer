@@ -52,7 +52,7 @@ _CLONE_TIMEOUT = 300  # 5 minutes — large repos need headroom
 _POST_CLONE_TIMEOUT = 30
 _CLEANUP_TIMEOUT = 60
 
-_PLATFORM_EXCLUDES = (".stigmer-inputs", "bin/skills")
+_PLATFORM_EXCLUDES = (".stigmer",)
 
 
 # ---------------------------------------------------------------------------
@@ -376,10 +376,21 @@ def _resolve_head(backend: WorkspaceBackend, token: str | None) -> str:
 def _setup_git_excludes(backend: WorkspaceBackend) -> None:
     """Add platform directories to ``.git/info/exclude``.
 
+    When the virtual platform mount is active (``backend.platform_dir``
+    is set), platform files don't exist in the workspace tree at all,
+    so no git excludes are needed.
+
     Uses the local exclude file (not ``.gitignore``) so that tracked
     project files are never modified.  Entries are appended only if not
     already present, making the function idempotent across executions.
     """
+    if backend.platform_dir:
+        logger.info(
+            "Skipping git excludes — virtual platform mount is active "
+            "(platform_dir=%s)",
+            backend.platform_dir,
+        )
+        return
     excludes_path = ".git/info/exclude"
 
     existing = ""

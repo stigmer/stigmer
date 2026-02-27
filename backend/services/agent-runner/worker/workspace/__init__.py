@@ -6,6 +6,7 @@ Public API — backend layer:
     LocalWorkspaceBackend   Adapter backed by the local filesystem.
     DaytonaWorkspaceBackend Adapter backed by a Daytona sandbox.
     initialize_workspace    Factory that creates the right backend.
+    WorkspaceInitResult     Structured result from ``initialize_workspace()``.
 
 Public API — provisioning layer (Phase 2):
     WorkspaceProvisioner    Dispatches on ``WorkspaceSource`` to populate a
@@ -19,6 +20,8 @@ Public API — provisioning layer (Phase 2):
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from worker.workspace.backend import ExecuteResult, WorkspaceBackend
@@ -34,6 +37,10 @@ from worker.workspace.provisioner import (
 
 logger = logging.getLogger(__name__)
 
+_STIGMER_LOCAL_STATE_DIR = ".stigmer"
+_SESSIONS_SUBDIR = "sessions"
+_PLATFORM_SUBDIR = "platform"
+
 __all__ = [
     "DaytonaWorkspaceBackend",
     "ExecuteResult",
@@ -42,10 +49,46 @@ __all__ = [
     "ProvisionResult",
     "SourceType",
     "WorkspaceBackend",
+    "WorkspaceInitResult",
     "WorkspaceProvisionError",
     "WorkspaceProvisioner",
     "initialize_workspace",
 ]
+
+
+@dataclass(frozen=True)
+class WorkspaceInitResult:
+    """Structured result from :func:`initialize_workspace`.
+
+    Replaces the previous positional tuple return to provide named,
+    self-documenting fields that are safe to extend in future phases.
+
+    Attributes:
+        backend:        The constructed ``WorkspaceBackend``.
+        sandbox:        Raw Daytona ``Sandbox`` object in cloud mode,
+                        ``None`` in local mode.
+        is_new_sandbox: Whether the sandbox was freshly created.
+        platform_dir:   Absolute path to the platform directory where
+                        ``.stigmer/`` files physically live, or ``None``
+                        when the virtual mount is not active.
+    """
+
+    backend: WorkspaceBackend
+    sandbox: Any | None
+    is_new_sandbox: bool
+    platform_dir: str | None = None
+
+
+def _compute_local_platform_dir(session_id: str | None) -> Path | None:
+    """Compute the local platform directory for a session.
+
+    Returns ``None`` when there is no session_id (backward compat with
+    ephemeral usage), otherwise ``~/.stigmer/sessions/{session_id}/platform/``.
+    """
+    if not session_id:
+        return None
+    home = Path.home()
+    return home / _STIGMER_LOCAL_STATE_DIR / _SESSIONS_SUBDIR / session_id / _PLATFORM_SUBDIR
 
 
 async def initialize_workspace(
@@ -56,7 +99,7 @@ async def initialize_workspace(
     session_id: str | None,
     session_client: Any,
     activity_logger: logging.Logger | None = None,
-) -> tuple[WorkspaceBackend, Any | None, bool]:
+) -> WorkspaceInitResult:
     """Create the appropriate ``WorkspaceBackend`` for the current mode.
 
     This is the **single point** where the local-vs-cloud decision is
@@ -64,11 +107,8 @@ async def initialize_workspace(
     branches on deployment mode.
 
     Returns:
-        A three-tuple of ``(backend, sandbox_or_none, is_new_sandbox)``.
-
-        *sandbox_or_none* is the raw Daytona ``Sandbox`` object in cloud
-        mode (needed for agent configuration via ``sandbox.id``,
-        auto-publish, and lifecycle cleanup) or ``None`` in local mode.
+        A :class:`WorkspaceInitResult` with the backend, optional sandbox,
+        and the platform directory path (when the virtual mount is active).
     """
     from worker.sandbox_manager import (
         DAYTONA_WORKSPACE_MOUNT_PATH,
@@ -83,9 +123,26 @@ async def initialize_workspace(
             raise ValueError(
                 "sandbox_config['root_dir'] is required in local mode"
             )
-        log.info("Local mode — workspace root: %s", root_dir)
-        backend = LocalWorkspaceBackend(root_dir=root_dir)
-        return backend, None, False
+
+        platform_dir = _compute_local_platform_dir(session_id)
+        if platform_dir is not None:
+            log.info(
+                "Local mode — workspace root: %s, platform_dir: %s",
+                root_dir, platform_dir,
+            )
+        else:
+            log.info("Local mode — workspace root: %s", root_dir)
+
+        backend = LocalWorkspaceBackend(
+            root_dir=root_dir,
+            platform_dir=platform_dir,
+        )
+        return WorkspaceInitResult(
+            backend=backend,
+            sandbox=None,
+            is_new_sandbox=False,
+            platform_dir=str(platform_dir) if platform_dir else None,
+        )
 
     # -- Cloud mode -----------------------------------------------------------
 
@@ -142,4 +199,10 @@ async def initialize_workspace(
     backend = DaytonaWorkspaceBackend(
         sandbox=sandbox, workspace_root=workspace_root,
     )
-    return backend, sandbox, is_new_sandbox
+    # Cloud-mode platform_dir deferred to Phase B.
+    return WorkspaceInitResult(
+        backend=backend,
+        sandbox=sandbox,
+        is_new_sandbox=is_new_sandbox,
+        platform_dir=None,
+    )

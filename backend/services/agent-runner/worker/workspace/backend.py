@@ -21,6 +21,13 @@ Two layers of backend abstraction exist in the platform:
 WorkspaceBackend is used *before* the agent starts — for provisioning
 workspaces, writing skills, and injecting attachments.  BackendProtocol is
 used *during* agent execution for tool-driven file I/O.
+
+Virtual platform mount (AD-01 v3):
+    When ``platform_dir`` is set, paths under ``.stigmer/`` are routed to
+    an external platform directory instead of the workspace root.  This
+    isolates platform files (skills, inputs) from the user's project
+    without modifying the workspace filesystem.  See
+    ``worker.workspace.platform_mount`` for the path classifier.
 """
 
 from __future__ import annotations
@@ -68,6 +75,16 @@ class WorkspaceBackend(Protocol):
     def root_dir(self) -> str:
         """Absolute path to the workspace root directory."""
         ...
+
+    @property
+    def platform_dir(self) -> str | None:
+        """Absolute path to the platform directory, or ``None``.
+
+        When set, paths under ``.stigmer/`` are resolved against this
+        directory instead of ``root_dir``.  Shell commands receive the
+        path via the ``$STIGMER_PLATFORM_DIR`` environment variable.
+        """
+        return None
 
     def write_file(self, rel_path: str, content: bytes) -> None:
         """Write *content* to a file, creating parent directories as needed.

@@ -133,3 +133,140 @@ class TestPathSafety:
         backend = LocalWorkspaceBackend(root_dir=tmp_path)
         backend.write_file("/bin/test.txt", b"data")
         assert (tmp_path / "bin" / "test.txt").read_bytes() == b"data"
+
+
+# =============================================================================
+# Virtual platform mount (AD-01 v3)
+# =============================================================================
+
+
+class TestPlatformMountConstruction:
+    """Construction with platform_dir."""
+
+    def test_creates_platform_dir(self, tmp_path):
+        pdir = tmp_path / "platform"
+        backend = LocalWorkspaceBackend(root_dir=tmp_path / "ws", platform_dir=pdir)
+        assert pdir.is_dir()
+        assert backend.platform_dir == str(pdir.resolve())
+
+    def test_no_platform_dir_returns_none(self, tmp_path):
+        backend = LocalWorkspaceBackend(root_dir=tmp_path)
+        assert backend.platform_dir is None
+
+    def test_satisfies_protocol_with_platform_dir(self, tmp_path):
+        backend = LocalWorkspaceBackend(
+            root_dir=tmp_path / "ws",
+            platform_dir=tmp_path / "platform",
+        )
+        assert isinstance(backend, WorkspaceBackend)
+
+
+class TestPlatformMountFileOperations:
+    """File operations routed through the virtual .stigmer/ mount."""
+
+    @pytest.fixture()
+    def backend(self, tmp_path):
+        ws = tmp_path / "workspace"
+        pdir = tmp_path / "platform"
+        return LocalWorkspaceBackend(root_dir=ws, platform_dir=pdir)
+
+    @pytest.fixture()
+    def platform_path(self, tmp_path):
+        return tmp_path / "platform"
+
+    @pytest.fixture()
+    def workspace_path(self, tmp_path):
+        return tmp_path / "workspace"
+
+    def test_write_to_stigmer_lands_in_platform_dir(
+        self, backend, platform_path,
+    ):
+        backend.write_file(".stigmer/skills/my-skill/SKILL.md", b"# Skill")
+        assert (platform_path / "skills" / "my-skill" / "SKILL.md").read_bytes() == b"# Skill"
+
+    def test_read_from_stigmer_reads_platform_dir(
+        self, backend, platform_path,
+    ):
+        (platform_path / "skills").mkdir(parents=True)
+        (platform_path / "skills" / "SKILL.md").write_bytes(b"content")
+        assert backend.read_file(".stigmer/skills/SKILL.md") == b"content"
+
+    def test_file_exists_in_stigmer(self, backend, platform_path):
+        (platform_path / "inputs").mkdir(parents=True)
+        (platform_path / "inputs" / "data.pdf").write_bytes(b"pdf")
+        assert backend.file_exists(".stigmer/inputs/data.pdf") is True
+        assert backend.file_exists(".stigmer/inputs/missing.pdf") is False
+
+    def test_mkdir_in_stigmer(self, backend, platform_path):
+        backend.mkdir(".stigmer/skills/new-skill/scripts")
+        assert (platform_path / "skills" / "new-skill" / "scripts").is_dir()
+
+    def test_regular_paths_still_resolve_to_workspace(
+        self, backend, workspace_path,
+    ):
+        backend.write_file("src/main.py", b"print('hello')")
+        assert (workspace_path / "src" / "main.py").read_bytes() == b"print('hello')"
+
+    def test_workspace_has_no_stigmer_dir(
+        self, backend, workspace_path, platform_path,
+    ):
+        """Writing to .stigmer/ must NOT create a .stigmer dir in workspace."""
+        backend.write_file(".stigmer/skills/a/SKILL.md", b"data")
+        assert not (workspace_path / ".stigmer").exists()
+        assert (platform_path / "skills" / "a" / "SKILL.md").exists()
+
+    def test_absolute_stigmer_path(self, backend, platform_path):
+        backend.write_file("/.stigmer/inputs/file.txt", b"abs")
+        assert (platform_path / "inputs" / "file.txt").read_bytes() == b"abs"
+
+    def test_bare_stigmer_resolves_to_platform_root(self, backend, platform_path):
+        assert backend.file_exists(".stigmer") is True
+
+
+class TestPlatformMountTraversalSafety:
+    """Containment checks for the platform scope."""
+
+    @pytest.fixture()
+    def backend(self, tmp_path):
+        return LocalWorkspaceBackend(
+            root_dir=tmp_path / "workspace",
+            platform_dir=tmp_path / "platform",
+        )
+
+    def test_escape_from_platform_blocked(self, backend):
+        with pytest.raises(ValueError, match="outside platform root"):
+            backend.write_file(".stigmer/../../etc/passwd", b"evil")
+
+    def test_workspace_traversal_still_blocked(self, backend):
+        with pytest.raises(ValueError, match="outside workspace root"):
+            backend.write_file("../../etc/passwd", b"evil")
+
+
+class TestPlatformMountExecuteEnvVar:
+    """$STIGMER_PLATFORM_DIR environment variable injection."""
+
+    def test_env_var_set_when_platform_dir_configured(self, tmp_path):
+        pdir = tmp_path / "platform"
+        backend = LocalWorkspaceBackend(
+            root_dir=tmp_path / "ws", platform_dir=pdir,
+        )
+        result = backend.execute("echo $STIGMER_PLATFORM_DIR")
+        assert result.exit_code == 0
+        assert result.stdout.strip() == str(pdir.resolve())
+
+    def test_env_var_absent_when_no_platform_dir(self, tmp_path):
+        backend = LocalWorkspaceBackend(root_dir=tmp_path)
+        result = backend.execute(
+            "echo ${STIGMER_PLATFORM_DIR:-UNSET}",
+        )
+        assert result.exit_code == 0
+        assert result.stdout.strip() == "UNSET"
+
+
+class TestPlatformMountBackwardCompat:
+    """Without platform_dir, behavior is identical to before."""
+
+    def test_stigmer_path_resolves_under_workspace(self, tmp_path):
+        backend = LocalWorkspaceBackend(root_dir=tmp_path)
+        backend.write_file(".stigmer/skills/a/SKILL.md", b"data")
+        assert (tmp_path / ".stigmer" / "skills" / "a" / "SKILL.md").read_bytes() == b"data"

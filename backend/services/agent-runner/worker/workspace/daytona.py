@@ -52,6 +52,11 @@ class DaytonaWorkspaceBackend:
     def root_dir(self) -> str:
         return self._workspace_root
 
+    @property
+    def platform_dir(self) -> str | None:
+        # Cloud-mode virtual mount deferred to Phase B.
+        return None
+
     # -- File operations ------------------------------------------------------
 
     def write_file(self, rel_path: str, content: bytes) -> None:

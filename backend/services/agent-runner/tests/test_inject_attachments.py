@@ -231,9 +231,9 @@ class TestInjectAttachmentsLocal:
 
         assert len(result) == 1
         assert result[0]["filename"] == "config.yaml"
-        assert result[0]["path"] == "inputs/config.yaml"
+        assert result[0]["path"] == ".stigmer/inputs/config.yaml"
         assert result[0]["size"] == len(content)
-        assert (tmp_path / "inputs" / "config.yaml").read_bytes() == content
+        assert (tmp_path / ".stigmer" / "inputs" / "config.yaml").read_bytes() == content
 
     @pytest.mark.asyncio
     async def test_custom_mount_path(self, tmp_path: Path):
@@ -339,7 +339,7 @@ class TestInjectAttachmentsLocal:
         filenames = {r["filename"] for r in result}
         assert "standalone.txt" in filenames
         assert "nested.txt" in filenames
-        assert (tmp_path / "inputs" / "standalone.txt").read_bytes() == regular_content
+        assert (tmp_path / ".stigmer" / "inputs" / "standalone.txt").read_bytes() == regular_content
         assert (tmp_path / "inputs" / "archive" / "nested.txt").read_text() == "extracted"
 
     @pytest.mark.asyncio
@@ -386,13 +386,13 @@ class TestInjectAttachmentsMockBackend:
         )
 
         assert len(result) == 1
-        assert result[0]["path"] == "inputs/input.txt"
+        assert result[0]["path"] == ".stigmer/inputs/input.txt"
         assert result[0]["size"] == len(content)
 
         backend.write_files.assert_called_once()
         files_written = backend.write_files.call_args[0][0]
         assert len(files_written) == 1
-        assert files_written[0] == ("inputs/input.txt", content)
+        assert files_written[0] == (".stigmer/inputs/input.txt", content)
 
     @pytest.mark.asyncio
     async def test_zip_extract_writes_extracted_files(self):

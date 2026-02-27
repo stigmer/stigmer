@@ -306,7 +306,7 @@ async def inject_attachments(
         if attachment.mount_path:
             mount_path = attachment.mount_path.lstrip("/")
         else:
-            mount_path = f".stigmer-inputs/{attachment.filename}"
+            mount_path = f".stigmer/inputs/{attachment.filename}"
 
         if attachment.extract:
             validated = _validate_zip_for_extraction(
@@ -593,9 +593,10 @@ def _generate_git_diff_artifact(
 ) -> bool:
     """Generate a ``.patch`` artifact from ``git diff`` for git-backed workspaces.
 
-    The diff excludes platform directories (``.stigmer-inputs``,
-    ``bin/skills``) via pathspec so the patch reflects only the
-    agent's meaningful code changes.
+    When the virtual platform mount is active (``platform_dir`` set),
+    platform files don't exist in the workspace tree, so no pathspec
+    exclusions are needed.  When it is not active (backward compat),
+    the old exclusions for ``.stigmer`` are applied.
 
     Returns ``True`` if an artifact was generated, ``False`` otherwise.
     This function is intentionally non-fatal: failures are logged but
@@ -609,9 +610,14 @@ def _generate_git_diff_artifact(
     if provision_result.source_type != SourceType.GIT_REPO:
         return False
 
+    if workspace_backend.platform_dir:
+        diff_cmd = "git diff"
+    else:
+        diff_cmd = "git diff -- ':!.stigmer' ':!.stigmer-inputs' ':!bin/skills'"
+
     try:
         result = workspace_backend.execute(
-            "git diff -- ':!.stigmer-inputs' ':!bin/skills'",
+            diff_cmd,
             timeout=30,
         )
     except Exception as exc:
@@ -1059,7 +1065,7 @@ async def _execute_graphton_impl(
         # Create the workspace backend — single point where local-vs-cloud
         # decision is made.  All subsequent code uses workspace_backend for
         # file operations and never branches on deployment mode.
-        workspace_backend, sandbox, is_new_sandbox = await initialize_workspace(
+        workspace_init = await initialize_workspace(
             worker_config=worker_config,
             sandbox_config=sandbox_config,
             sandbox_manager=sandbox_manager,
@@ -1067,6 +1073,9 @@ async def _execute_graphton_impl(
             session_client=session_client,
             activity_logger=activity_logger,
         )
+        workspace_backend = workspace_init.backend
+        sandbox = workspace_init.sandbox
+        is_new_sandbox = workspace_init.is_new_sandbox
         
         # ─────────────────────────────────────────────────────────────────────────────
         # Step 2.8: Merge environment variables (moved up from Step 4)
@@ -1232,7 +1241,7 @@ async def _execute_graphton_impl(
 
         # Step 3: Fetch and write skills (from agent template via references)
         # Following the Agent Skills spec progressive disclosure model:
-        # - Skills are written to bin/skills/{name}/ in the sandbox
+        # - Skills are written to .stigmer/skills/{name}/ in the sandbox
         # - Only metadata (name + description + location) injected into prompt
         # - Agent reads SKILL.md on demand when activating a skill
         #
@@ -1336,7 +1345,7 @@ async def _execute_graphton_impl(
                                 # Continue without artifact - will use SKILL.md only
                     
                     activity_logger.info(
-                        "Writing %d skills to workspace at %s/bin/skills/",
+                        "Writing %d skills to workspace at %s/.stigmer/skills/",
                         len(skills),
                         workspace_backend.root_dir,
                     )
@@ -1437,7 +1446,7 @@ async def _execute_graphton_impl(
                 # Attachments are already in the sandbox.  Reconstruct the
                 # metadata list for the system prompt without any I/O.
                 for att in attachments:
-                    mount_path = att.mount_path if att.mount_path else f".stigmer-inputs/{att.filename}"
+                    mount_path = att.mount_path if att.mount_path else f".stigmer/inputs/{att.filename}"
                     injected_files.append({
                         "filename": att.filename,
                         "path": mount_path,
@@ -1649,7 +1658,7 @@ async def _execute_graphton_impl(
             input_files_section = "\n\n## Input Files\n\n"
             input_files_section += (
                 "The following files have been provided as read-only reference "
-                "material for your task. They live under `.stigmer-inputs/` and "
+                "material for your task. They live under `.stigmer/inputs/` and "
                 "are NOT part of the project source tree.\n\n"
                 "Read them using the `read` tool when you need their contents. "
                 "Do NOT echo, reprint, or summarize file contents in your response "
@@ -1706,9 +1715,12 @@ async def _execute_graphton_impl(
             )
         else:
             sandbox_config_for_agent = sandbox_config.copy()
+            if workspace_init.platform_dir:
+                sandbox_config_for_agent["platform_dir"] = workspace_init.platform_dir
             activity_logger.info(
-                "Configuring agent for local mode (root=%s)",
+                "Configuring agent for local mode (root=%s, platform_dir=%s)",
                 workspace_backend.root_dir,
+                workspace_init.platform_dir,
             )
         
         # ─────────────────────────────────────────────────────────────────────────────

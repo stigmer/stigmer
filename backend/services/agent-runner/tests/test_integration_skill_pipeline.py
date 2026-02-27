@@ -149,7 +149,7 @@ features:
             
             # Verify skill path returned (local mode returns sandbox-relative, no leading /)
             assert skill.metadata.id in skill_paths
-            expected_path = f"bin/skills/{skill.metadata.name}"
+            expected_path = f".stigmer/skills/{skill.metadata.name}"
             assert skill_paths[skill.metadata.id] == expected_path
             
             # Verify files extracted to correct location
@@ -215,7 +215,7 @@ features:
             
             # Verify skill path returned (local mode, no leading /)
             assert skill.metadata.id in skill_paths
-            expected_path = f"bin/skills/{skill.metadata.name}"
+            expected_path = f".stigmer/skills/{skill.metadata.name}"
             assert skill_paths[skill.metadata.id] == expected_path
             
             # Verify SKILL.md written from spec (not from ZIP)
@@ -287,18 +287,18 @@ Tests compliance with the Agent Skills specification.
     def test_prompt_includes_location(self, sample_skill):
         """Prompt must contain the Location for the skill directory."""
         skill_paths = {
-            sample_skill.metadata.id: f"bin/skills/{sample_skill.metadata.name}"
+            sample_skill.metadata.id: f".stigmer/skills/{sample_skill.metadata.name}"
         }
 
         prompt = SkillWriter.generate_prompt_section([sample_skill], skill_paths)
 
-        expected = f"**Location**: `bin/skills/{sample_skill.metadata.name}/`"
+        expected = f"**Location**: `.stigmer/skills/{sample_skill.metadata.name}/`"
         assert expected in prompt, f"Prompt must contain '{expected}'"
 
     def test_prompt_does_not_include_skill_md_body(self, sample_skill):
         """Prompt must NOT contain full SKILL.md body (progressive disclosure)."""
         skill_paths = {
-            sample_skill.metadata.id: f"bin/skills/{sample_skill.metadata.name}"
+            sample_skill.metadata.id: f".stigmer/skills/{sample_skill.metadata.name}"
         }
 
         prompt = SkillWriter.generate_prompt_section([sample_skill], skill_paths)
@@ -310,7 +310,7 @@ Tests compliance with the Agent Skills specification.
     def test_prompt_includes_description(self, sample_skill):
         """Prompt must include the skill description."""
         skill_paths = {
-            sample_skill.metadata.id: f"bin/skills/{sample_skill.metadata.name}"
+            sample_skill.metadata.id: f".stigmer/skills/{sample_skill.metadata.name}"
         }
 
         prompt = SkillWriter.generate_prompt_section([sample_skill], skill_paths)
@@ -320,21 +320,21 @@ Tests compliance with the Agent Skills specification.
     def test_prompt_includes_activate_instruction(self, sample_skill):
         """Prompt must tell the agent how to activate the skill."""
         skill_paths = {
-            sample_skill.metadata.id: f"bin/skills/{sample_skill.metadata.name}"
+            sample_skill.metadata.id: f".stigmer/skills/{sample_skill.metadata.name}"
         }
 
         prompt = SkillWriter.generate_prompt_section([sample_skill], skill_paths)
 
-        expected = f"**Activate**: `read bin/skills/{sample_skill.metadata.name}/SKILL.md`"
+        expected = f"**Activate**: `read .stigmer/skills/{sample_skill.metadata.name}/SKILL.md`"
         assert expected in prompt
 
     def test_skills_written_to_bin_skills_directory(self, sample_skill):
-        """Skills must be written to bin/skills/{name}/."""
+        """Skills must be written to .stigmer/skills/{name}/."""
         with tempfile.TemporaryDirectory() as tmpdir:
             writer = SkillWriter(backend=LocalWorkspaceBackend(root_dir=tmpdir))
             skill_paths = writer.write_skills([sample_skill])
 
-            expected_path = f"bin/skills/{sample_skill.metadata.name}"
+            expected_path = f".stigmer/skills/{sample_skill.metadata.name}"
             assert skill_paths[sample_skill.metadata.id] == expected_path
 
             local_path = os.path.join(tmpdir, expected_path)
@@ -353,13 +353,13 @@ Tests compliance with the Agent Skills specification.
             skill.spec.skill_md = f"# Skill {i} Content"
             skill.status.version_hash = f"hash{i}"
             skills.append(skill)
-            skill_paths[skill.metadata.id] = f"bin/skills/skill-{i}"
+            skill_paths[skill.metadata.id] = f".stigmer/skills/skill-{i}"
 
         prompt = SkillWriter.generate_prompt_section(skills, skill_paths)
 
         for i in range(3):
             assert f"### skill-{i}" in prompt
-            assert f"**Location**: `bin/skills/skill-{i}/`" in prompt
+            assert f"**Location**: `.stigmer/skills/skill-{i}/`" in prompt
             # Body content must NOT be injected
             assert f"# Skill {i} Content" not in prompt
 
@@ -418,7 +418,7 @@ class TestVersionResolutionIntegration:
             
             # All three skills share the same metadata.name ("versioned-skill"),
             # so they map to the same name-based directory.
-            expected_path = f"bin/skills/{skill_latest.metadata.name}"
+            expected_path = f".stigmer/skills/{skill_latest.metadata.name}"
             assert skill_paths[skill_latest.metadata.id] == expected_path
             assert skill_paths[skill_tagged_stable.metadata.id] == expected_path
             assert skill_paths[skill_pinned_hash.metadata.id] == expected_path
@@ -443,7 +443,7 @@ class TestVersionResolutionIntegration:
             
             # Both skills share the same name-based path
             assert skill_paths[skill1.metadata.id] == skill_paths[skill2.metadata.id]
-            assert skill_paths[skill1.metadata.id] == "bin/skills/shared-skill"
+            assert skill_paths[skill1.metadata.id] == ".stigmer/skills/shared-skill"
 
 
 class TestErrorRecoveryIntegration:
@@ -545,7 +545,7 @@ class TestPromptGenerationIntegration:
         
         prompt = SkillWriter.generate_prompt_section(
             [skill], 
-            {skill.metadata.id: f"/bin/skills/{skill.status.version_hash}"}
+            {skill.metadata.id: f"/.stigmer/skills/{skill.status.version_hash}"}
         )
         
         assert "## Available Skills" in prompt
@@ -563,7 +563,7 @@ class TestPromptGenerationIntegration:
         prompt = SkillWriter.generate_prompt_section([skill], {})
         
         # Should use fallback path from metadata.name
-        assert "bin/skills/orphan" in prompt
+        assert ".stigmer/skills/orphan" in prompt
 
     def test_prompt_does_not_inline_skill_md_content(self):
         """Prompt follows progressive disclosure — SKILL.md body is NOT inlined."""
@@ -592,12 +592,12 @@ def hello():
         
         prompt = SkillWriter.generate_prompt_section(
             [skill],
-            {skill.metadata.id: f"bin/skills/{skill.metadata.name}"}
+            {skill.metadata.id: f".stigmer/skills/{skill.metadata.name}"}
         )
         
         # Metadata should be present
         assert "formatted-skill" in prompt
-        assert "bin/skills/formatted-skill" in prompt
+        assert ".stigmer/skills/formatted-skill" in prompt
         
         # SKILL.md body must NOT be inlined (progressive disclosure)
         assert "```python" not in prompt
@@ -623,7 +623,7 @@ class TestPathResolution:
         writer = SkillWriter(local_root="/tmp")
         path = writer._get_skill_relative_dir(skill)
 
-        assert path == "bin/skills/my-skill"
+        assert path == ".stigmer/skills/my-skill"
         assert not path.startswith("/"), "Path should be workspace-relative"
 
     def test_skill_without_name_falls_back_to_hash(self):
@@ -636,7 +636,7 @@ class TestPathResolution:
         writer = SkillWriter(local_root="/tmp")
         path = writer._get_skill_relative_dir(skill)
 
-        assert path == "bin/skills/fff999aaa111"
+        assert path == ".stigmer/skills/fff999aaa111"
 
     def test_skill_without_name_or_hash_falls_back_to_slug(self):
         """Skill without name or hash should fall back to slugified slug."""
@@ -648,12 +648,12 @@ class TestPathResolution:
         writer = SkillWriter(local_root="/tmp")
         path = writer._get_skill_relative_dir(skill)
 
-        assert path == "bin/skills/test-org_my-skill"
+        assert path == ".stigmer/skills/test-org_my-skill"
 
     def test_skill_dir_base_path_is_bin_skills(self):
         """Skills base dir constant is kept for backward compatibility."""
         writer = SkillWriter(local_root="/tmp")
-        assert writer.skills_base == "/bin/skills"
+        assert writer.skills_base == "/.stigmer/skills"
 
 
 class TestZipFormatEndToEnd:
@@ -866,7 +866,7 @@ class TestZipFormatEndToEnd:
 
             skill_dir = os.path.join(
                 tmpdir,
-                "bin",
+                ".stigmer",
                 "skills",
                 mock_skill.metadata.name,
             )
