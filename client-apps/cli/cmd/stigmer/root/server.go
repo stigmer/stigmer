@@ -51,6 +51,7 @@ Run 'stigmer server setup' to reconfigure the LLM provider at any time.`,
 	cmd.AddCommand(newServerStatusCommand())
 	cmd.AddCommand(newServerLogsCommand())
 	cmd.AddCommand(newServerLLMCommand())
+	cmd.AddCommand(newServerResetCommand())
 
 	return cmd
 }
