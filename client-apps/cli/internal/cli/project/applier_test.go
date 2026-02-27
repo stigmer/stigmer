@@ -97,7 +97,6 @@ func TestApply_DryRun_ReturnsWithoutRPC(t *testing.T) {
 			Name: "test-project",
 		},
 		Spec: &projectv1.ProjectSpec{
-			Runtime:    projectv1.ProjectRuntime_go,
 			EntryPoint: "main.go",
 		},
 	}
@@ -126,7 +125,6 @@ func TestApply_DryRun_PreservesProject(t *testing.T) {
 			Org:  "test-org",
 		},
 		Spec: &projectv1.ProjectSpec{
-			Runtime:     projectv1.ProjectRuntime_python,
 			EntryPoint:  "main.py",
 			Description: "Test project description",
 		},
@@ -147,7 +145,6 @@ func TestApply_DryRun_PreservesProject(t *testing.T) {
 	// Verify all fields preserved
 	assert.Equal(t, "test-project", result.Project.Metadata.Name)
 	assert.Equal(t, "test-org", result.Project.Metadata.Org)
-	assert.Equal(t, projectv1.ProjectRuntime_python, result.Project.Spec.Runtime)
 	assert.Equal(t, "main.py", result.Project.Spec.EntryPoint)
 	assert.Equal(t, "Test project description", result.Project.Spec.Description)
 }

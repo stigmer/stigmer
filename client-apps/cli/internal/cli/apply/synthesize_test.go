@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/project/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -25,7 +24,7 @@ func TestSynthesize_NilOptions(t *testing.T) {
 func TestSynthesize_EmptyProjectDir(t *testing.T) {
 	opts := &SynthesizeOptions{
 		ProjectDir: "",
-		Runtime:    projectv1.ProjectRuntime_go,
+		Runtime:    RuntimeGo,
 		EntryPoint: "main.go",
 	}
 
@@ -39,7 +38,7 @@ func TestSynthesize_EmptyProjectDir(t *testing.T) {
 func TestSynthesize_NonExistentProjectDir(t *testing.T) {
 	opts := &SynthesizeOptions{
 		ProjectDir: "/nonexistent/path/that/does/not/exist",
-		Runtime:    projectv1.ProjectRuntime_go,
+		Runtime:    RuntimeGo,
 		EntryPoint: "main.go",
 	}
 
@@ -56,7 +55,7 @@ func TestSynthesize_EmptyEntryPoint(t *testing.T) {
 
 	opts := &SynthesizeOptions{
 		ProjectDir: tempDir,
-		Runtime:    projectv1.ProjectRuntime_go,
+		Runtime:    RuntimeGo,
 		EntryPoint: "",
 	}
 
@@ -73,7 +72,7 @@ func TestSynthesize_NonExistentEntryPoint(t *testing.T) {
 
 	opts := &SynthesizeOptions{
 		ProjectDir: tempDir,
-		Runtime:    projectv1.ProjectRuntime_go,
+		Runtime:    RuntimeGo,
 		EntryPoint: "nonexistent.go",
 	}
 
@@ -93,7 +92,7 @@ func TestSynthesize_UnspecifiedRuntime(t *testing.T) {
 
 	opts := &SynthesizeOptions{
 		ProjectDir: tempDir,
-		Runtime:    projectv1.ProjectRuntime_project_runtime_unspecified,
+		Runtime:    "",
 		EntryPoint: "main.go",
 	}
 
@@ -109,21 +108,21 @@ func TestSynthesize_UnspecifiedRuntime(t *testing.T) {
 // =============================================================================
 
 func TestGetRuntimeCommand_Go(t *testing.T) {
-	cmd, err := getRuntimeCommand(projectv1.ProjectRuntime_go, "main.go")
+	cmd, err := getRuntimeCommand(RuntimeGo, "main.go")
 
 	require.NoError(t, err)
 	assert.Equal(t, []string{"go", "run", "main.go"}, cmd)
 }
 
 func TestGetRuntimeCommand_Go_CustomEntryPoint(t *testing.T) {
-	cmd, err := getRuntimeCommand(projectv1.ProjectRuntime_go, "cmd/server/main.go")
+	cmd, err := getRuntimeCommand(RuntimeGo, "cmd/server/main.go")
 
 	require.NoError(t, err)
 	assert.Equal(t, []string{"go", "run", "cmd/server/main.go"}, cmd)
 }
 
 func TestGetRuntimeCommand_Python(t *testing.T) {
-	cmd, err := getRuntimeCommand(projectv1.ProjectRuntime_python, "main.py")
+	cmd, err := getRuntimeCommand(RuntimePython, "main.py")
 
 	require.NoError(t, err)
 	// Should be either python or python3
@@ -132,36 +131,35 @@ func TestGetRuntimeCommand_Python(t *testing.T) {
 }
 
 func TestGetRuntimeCommand_Node_TypeScript(t *testing.T) {
-	cmd, err := getRuntimeCommand(projectv1.ProjectRuntime_node, "index.ts")
+	cmd, err := getRuntimeCommand(RuntimeNode, "index.ts")
 
 	require.NoError(t, err)
 	assert.Equal(t, []string{"npx", "ts-node", "index.ts"}, cmd)
 }
 
 func TestGetRuntimeCommand_Node_TypeScriptMts(t *testing.T) {
-	cmd, err := getRuntimeCommand(projectv1.ProjectRuntime_node, "main.mts")
+	cmd, err := getRuntimeCommand(RuntimeNode, "main.mts")
 
 	require.NoError(t, err)
 	assert.Equal(t, []string{"npx", "ts-node", "main.mts"}, cmd)
 }
 
 func TestGetRuntimeCommand_Node_JavaScript(t *testing.T) {
-	cmd, err := getRuntimeCommand(projectv1.ProjectRuntime_node, "index.js")
+	cmd, err := getRuntimeCommand(RuntimeNode, "index.js")
 
 	require.NoError(t, err)
 	assert.Equal(t, []string{"node", "index.js"}, cmd)
 }
 
 func TestGetRuntimeCommand_Node_Mjs(t *testing.T) {
-	cmd, err := getRuntimeCommand(projectv1.ProjectRuntime_node, "index.mjs")
+	cmd, err := getRuntimeCommand(RuntimeNode, "index.mjs")
 
 	require.NoError(t, err)
 	assert.Equal(t, []string{"node", "index.mjs"}, cmd)
 }
 
 func TestGetRuntimeCommand_UnsupportedRuntime(t *testing.T) {
-	// Use an invalid runtime value
-	cmd, err := getRuntimeCommand(projectv1.ProjectRuntime(999), "main.go")
+	cmd, err := getRuntimeCommand(Runtime("ruby"), "main.rb")
 
 	assert.Nil(t, cmd)
 	assert.Error(t, err)
@@ -277,7 +275,7 @@ func TestPrepareNodeRuntime_ValidNodeProject(t *testing.T) {
 
 func TestFormatExecutionError_Go(t *testing.T) {
 	stderr := "main.go:5:2: undefined: foo"
-	err := formatExecutionError(projectv1.ProjectRuntime_go, stderr, nil)
+	err := formatExecutionError(RuntimeGo, stderr, nil)
 
 	assert.Contains(t, err, "SDK synthesis failed")
 	assert.Contains(t, err, "undefined: foo")
@@ -286,7 +284,7 @@ func TestFormatExecutionError_Go(t *testing.T) {
 
 func TestFormatExecutionError_Python(t *testing.T) {
 	stderr := "ModuleNotFoundError: No module named 'stigmer'"
-	err := formatExecutionError(projectv1.ProjectRuntime_python, stderr, nil)
+	err := formatExecutionError(RuntimePython, stderr, nil)
 
 	assert.Contains(t, err, "SDK synthesis failed")
 	assert.Contains(t, err, "ModuleNotFoundError")
@@ -295,7 +293,7 @@ func TestFormatExecutionError_Python(t *testing.T) {
 
 func TestFormatExecutionError_Node(t *testing.T) {
 	stderr := "Error: Cannot find module '@stigmer/sdk'"
-	err := formatExecutionError(projectv1.ProjectRuntime_node, stderr, nil)
+	err := formatExecutionError(RuntimeNode, stderr, nil)
 
 	assert.Contains(t, err, "SDK synthesis failed")
 	assert.Contains(t, err, "Cannot find module")
@@ -309,7 +307,7 @@ func TestFormatExecutionError_TruncatesLongStderr(t *testing.T) {
 		longStderr += "This is a very long error message. "
 	}
 
-	err := formatExecutionError(projectv1.ProjectRuntime_go, longStderr, nil)
+	err := formatExecutionError(RuntimeGo, longStderr, nil)
 
 	assert.Contains(t, err, "... (truncated)")
 	// Should be roughly 800 chars plus truncation notice
@@ -318,7 +316,7 @@ func TestFormatExecutionError_TruncatesLongStderr(t *testing.T) {
 
 func TestFormatExecutionError_EmptyStderr_UsesExecError(t *testing.T) {
 	execErr := &os.PathError{Op: "exec", Path: "go", Err: os.ErrNotExist}
-	err := formatExecutionError(projectv1.ProjectRuntime_go, "", execErr)
+	err := formatExecutionError(RuntimeGo, "", execErr)
 
 	assert.Contains(t, err, "SDK synthesis failed")
 	assert.Contains(t, err, "go") // From the exec error
@@ -331,7 +329,7 @@ func TestFormatExecutionError_EmptyStderr_UsesExecError(t *testing.T) {
 func TestSynthesizeOptions_DefaultQuiet(t *testing.T) {
 	opts := &SynthesizeOptions{
 		ProjectDir: "/tmp",
-		Runtime:    projectv1.ProjectRuntime_go,
+		Runtime:    RuntimeGo,
 		EntryPoint: "main.go",
 	}
 
@@ -341,13 +339,13 @@ func TestSynthesizeOptions_DefaultQuiet(t *testing.T) {
 func TestSynthesizeOptions_AllFieldsSet(t *testing.T) {
 	opts := &SynthesizeOptions{
 		ProjectDir: "/projects/my-app",
-		Runtime:    projectv1.ProjectRuntime_python,
+		Runtime:    RuntimePython,
 		EntryPoint: "main.py",
 		Quiet:      true,
 	}
 
 	assert.Equal(t, "/projects/my-app", opts.ProjectDir)
-	assert.Equal(t, projectv1.ProjectRuntime_python, opts.Runtime)
+	assert.Equal(t, RuntimePython, opts.Runtime)
 	assert.Equal(t, "main.py", opts.EntryPoint)
 	assert.True(t, opts.Quiet)
 }
@@ -392,7 +390,7 @@ func main() {
 
 	opts := &SynthesizeOptions{
 		ProjectDir: tempDir,
-		Runtime:    projectv1.ProjectRuntime_go,
+		Runtime:    RuntimeGo,
 		EntryPoint: "main.go",
 	}
 
@@ -410,31 +408,65 @@ func main() {
 // This is tested implicitly through the output directory creation above
 
 // =============================================================================
-// Runtime Detection Tests
+// InferRuntime Tests
 // =============================================================================
 
-func TestRuntimeFromProtoEnum(t *testing.T) {
+func TestInferRuntime_SupportedExtensions(t *testing.T) {
+	tests := []struct {
+		entryPoint string
+		want       Runtime
+	}{
+		{"main.go", RuntimeGo},
+		{"main.py", RuntimePython},
+		{"index.ts", RuntimeNode},
+		{"index.js", RuntimeNode},
+		{"main.mts", RuntimeNode},
+		{"main.mjs", RuntimeNode},
+		{"src/cmd/main.go", RuntimeGo},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.entryPoint, func(t *testing.T) {
+			got, err := InferRuntime(tt.entryPoint)
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestInferRuntime_UnrecognizedExtension(t *testing.T) {
+	_, err := InferRuntime("main.rb")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "cannot infer runtime")
+	assert.Contains(t, err.Error(), ".rb")
+}
+
+func TestInferRuntime_NoExtension(t *testing.T) {
+	_, err := InferRuntime("Makefile")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "cannot infer runtime")
+}
+
+func TestGetRuntimeCommand_AllRuntimes(t *testing.T) {
 	tests := []struct {
 		name    string
-		runtime projectv1.ProjectRuntime
+		runtime Runtime
 		isValid bool
 	}{
-		{"Go runtime", projectv1.ProjectRuntime_go, true},
-		{"Python runtime", projectv1.ProjectRuntime_python, true},
-		{"Node runtime", projectv1.ProjectRuntime_node, true},
-		{"Unspecified", projectv1.ProjectRuntime_project_runtime_unspecified, false},
+		{"Go runtime", RuntimeGo, true},
+		{"Python runtime", RuntimePython, true},
+		{"Node runtime", RuntimeNode, true},
+		{"Empty runtime", "", false},
+		{"Unknown runtime", Runtime("ruby"), false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			cmd, err := getRuntimeCommand(tt.runtime, "main")
 			if tt.isValid {
-				cmd, err := getRuntimeCommand(tt.runtime, "main")
 				assert.NoError(t, err)
 				assert.NotEmpty(t, cmd)
 			} else {
-				// Unspecified should still return a command (handled elsewhere)
-				cmd, err := getRuntimeCommand(tt.runtime, "main")
-				// Unspecified maps to 0 which is handled as unsupported
 				assert.Error(t, err)
 				assert.Nil(t, cmd)
 			}

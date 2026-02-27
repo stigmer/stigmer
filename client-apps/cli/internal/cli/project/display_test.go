@@ -3,10 +3,9 @@ package project
 import (
 	"testing"
 
-	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/project/v1"
-	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,60 +20,6 @@ const (
 	testProjectSlug = "test-project"
 	testDescription = "Test project description"
 )
-
-// =============================================================================
-// runtimeToString Tests
-// =============================================================================
-
-func TestRuntimeToString_Go(t *testing.T) {
-	result := runtimeToString(projectv1.ProjectRuntime_go)
-	assert.Equal(t, "go", result)
-}
-
-func TestRuntimeToString_Python(t *testing.T) {
-	result := runtimeToString(projectv1.ProjectRuntime_python)
-	assert.Equal(t, "python", result)
-}
-
-func TestRuntimeToString_Node(t *testing.T) {
-	result := runtimeToString(projectv1.ProjectRuntime_node)
-	assert.Equal(t, "node", result)
-}
-
-func TestRuntimeToString_Unspecified(t *testing.T) {
-	result := runtimeToString(projectv1.ProjectRuntime_project_runtime_unspecified)
-	assert.Equal(t, "unknown", result)
-}
-
-func TestRuntimeToString_UnknownValue(t *testing.T) {
-	// Using an arbitrary large value that doesn't map to any enum
-	result := runtimeToString(projectv1.ProjectRuntime(999))
-	assert.Equal(t, "unknown", result)
-}
-
-// =============================================================================
-// getDefaultEntryPoint Tests
-// =============================================================================
-
-func TestGetDefaultEntryPoint_Go(t *testing.T) {
-	result := getDefaultEntryPoint(projectv1.ProjectRuntime_go)
-	assert.Equal(t, "main.go", result)
-}
-
-func TestGetDefaultEntryPoint_Python(t *testing.T) {
-	result := getDefaultEntryPoint(projectv1.ProjectRuntime_python)
-	assert.Equal(t, "main.py", result)
-}
-
-func TestGetDefaultEntryPoint_Node(t *testing.T) {
-	result := getDefaultEntryPoint(projectv1.ProjectRuntime_node)
-	assert.Equal(t, "index.ts", result)
-}
-
-func TestGetDefaultEntryPoint_Unspecified(t *testing.T) {
-	result := getDefaultEntryPoint(projectv1.ProjectRuntime_project_runtime_unspecified)
-	assert.Equal(t, "", result)
-}
 
 // =============================================================================
 // DisplayProjectInfo Tests - No Panic Verification
@@ -107,7 +52,6 @@ func TestDisplayProjectInfo_JSONFormat_NoPanic(t *testing.T) {
 func TestDisplayProjectInfo_DefaultFormat_NoPanic(t *testing.T) {
 	project := createTestProject()
 
-	// Empty format should default to table
 	assert.NotPanics(t, func() {
 		DisplayProjectInfo(project, "")
 	})
@@ -116,7 +60,6 @@ func TestDisplayProjectInfo_DefaultFormat_NoPanic(t *testing.T) {
 func TestDisplayProjectInfo_UnknownFormat_NoPanic(t *testing.T) {
 	project := createTestProject()
 
-	// Unknown format should default to table
 	assert.NotPanics(t, func() {
 		DisplayProjectInfo(project, "unknown")
 	})
@@ -189,6 +132,14 @@ func TestDisplayValidationSuccess_NoPanic(t *testing.T) {
 	})
 }
 
+func TestDisplayValidationSuccess_DeclarativeMode_NoPanic(t *testing.T) {
+	project := createDeclarativeTestProject()
+
+	assert.NotPanics(t, func() {
+		DisplayValidationSuccess(project, "stigmer.yaml")
+	})
+}
+
 // =============================================================================
 // displayProjectSummary Tests - No Panic Verification
 // =============================================================================
@@ -223,30 +174,20 @@ func TestDisplayProjectSummary_EmptySpec_NoPanic(t *testing.T) {
 	})
 }
 
-func TestDisplayProjectSummary_AllRuntimes_NoPanic(t *testing.T) {
-	runtimes := []projectv1.ProjectRuntime{
-		projectv1.ProjectRuntime_go,
-		projectv1.ProjectRuntime_python,
-		projectv1.ProjectRuntime_node,
-		projectv1.ProjectRuntime_project_runtime_unspecified,
-	}
+func TestDisplayProjectSummary_SDKMode_NoPanic(t *testing.T) {
+	project := createTestProject()
 
-	for _, runtime := range runtimes {
-		project := &projectv1.Project{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Project",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name: testProjectName,
-			},
-			Spec: &projectv1.ProjectSpec{
-				Runtime: runtime,
-			},
-		}
+	assert.NotPanics(t, func() {
+		displayProjectSummary(project)
+	})
+}
 
-		assert.NotPanics(t, func() {
-			displayProjectSummary(project)
-		})
-	}
+func TestDisplayProjectSummary_DeclarativeMode_NoPanic(t *testing.T) {
+	project := createDeclarativeTestProject()
+
+	assert.NotPanics(t, func() {
+		displayProjectSummary(project)
+	})
 }
 
 func TestDisplayProjectSummary_LongDescription_NoPanic(t *testing.T) {
@@ -260,7 +201,6 @@ func TestDisplayProjectSummary_LongDescription_NoPanic(t *testing.T) {
 			Name: testProjectName,
 		},
 		Spec: &projectv1.ProjectSpec{
-			Runtime:     projectv1.ProjectRuntime_go,
 			Description: longDescription,
 		},
 	}
@@ -271,10 +211,10 @@ func TestDisplayProjectSummary_LongDescription_NoPanic(t *testing.T) {
 }
 
 // =============================================================================
-// displayResourceCounts Tests - No Panic Verification
+// displayMemberCounts Tests - No Panic Verification
 // =============================================================================
 
-func TestDisplayResourceCounts_NilSpec_NoPanic(t *testing.T) {
+func TestDisplayMemberCounts_NilSpec_NoPanic(t *testing.T) {
 	project := &projectv1.Project{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Project",
@@ -285,28 +225,26 @@ func TestDisplayResourceCounts_NilSpec_NoPanic(t *testing.T) {
 	}
 
 	assert.NotPanics(t, func() {
-		displayResourceCounts(project)
+		displayMemberCounts(project)
 	})
 }
 
-func TestDisplayResourceCounts_EmptyResources_NoPanic(t *testing.T) {
+func TestDisplayMemberCounts_EmptyMembers_NoPanic(t *testing.T) {
 	project := &projectv1.Project{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: testProjectName,
 		},
-		Spec: &projectv1.ProjectSpec{
-			Runtime: projectv1.ProjectRuntime_go,
-		},
+		Spec: &projectv1.ProjectSpec{},
 	}
 
 	assert.NotPanics(t, func() {
-		displayResourceCounts(project)
+		displayMemberCounts(project)
 	})
 }
 
-func TestDisplayResourceCounts_WithAgents_NoPanic(t *testing.T) {
+func TestDisplayMemberCounts_WithAgents_NoPanic(t *testing.T) {
 	project := &projectv1.Project{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Project",
@@ -314,20 +252,19 @@ func TestDisplayResourceCounts_WithAgents_NoPanic(t *testing.T) {
 			Name: testProjectName,
 		},
 		Spec: &projectv1.ProjectSpec{
-			Runtime: projectv1.ProjectRuntime_go,
-			Agents: []*agentv1.Agent{
-				{Metadata: &apiresource.ApiResourceMetadata{Name: "agent1"}},
-				{Metadata: &apiresource.ApiResourceMetadata{Name: "agent2"}},
+			Members: []*apiresource.ApiResourceReference{
+				{Org: "test-org", Kind: apiresourcekind.ApiResourceKind_agent, Slug: "agent-1"},
+				{Org: "test-org", Kind: apiresourcekind.ApiResourceKind_agent, Slug: "agent-2"},
 			},
 		},
 	}
 
 	assert.NotPanics(t, func() {
-		displayResourceCounts(project)
+		displayMemberCounts(project)
 	})
 }
 
-func TestDisplayResourceCounts_WithWorkflows_NoPanic(t *testing.T) {
+func TestDisplayMemberCounts_WithWorkflows_NoPanic(t *testing.T) {
 	project := &projectv1.Project{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Project",
@@ -335,23 +272,22 @@ func TestDisplayResourceCounts_WithWorkflows_NoPanic(t *testing.T) {
 			Name: testProjectName,
 		},
 		Spec: &projectv1.ProjectSpec{
-			Runtime: projectv1.ProjectRuntime_go,
-			Workflows: []*workflowv1.Workflow{
-				{Metadata: &apiresource.ApiResourceMetadata{Name: "workflow1"}},
+			Members: []*apiresource.ApiResourceReference{
+				{Org: "test-org", Kind: apiresourcekind.ApiResourceKind_workflow, Slug: "wf-1"},
 			},
 		},
 	}
 
 	assert.NotPanics(t, func() {
-		displayResourceCounts(project)
+		displayMemberCounts(project)
 	})
 }
 
-func TestDisplayResourceCounts_AllResources_NoPanic(t *testing.T) {
-	project := createTestProjectWithResources()
+func TestDisplayMemberCounts_AllResourceKinds_NoPanic(t *testing.T) {
+	project := createTestProjectWithMembers()
 
 	assert.NotPanics(t, func() {
-		displayResourceCounts(project)
+		displayMemberCounts(project)
 	})
 }
 
@@ -359,6 +295,7 @@ func TestDisplayResourceCounts_AllResources_NoPanic(t *testing.T) {
 // Helper Functions
 // =============================================================================
 
+// createTestProject creates an SDK-mode project (with entry_point).
 func createTestProject() *projectv1.Project {
 	return &projectv1.Project{
 		ApiVersion: "agentic.stigmer.ai/v1",
@@ -367,8 +304,21 @@ func createTestProject() *projectv1.Project {
 			Name: testProjectName,
 		},
 		Spec: &projectv1.ProjectSpec{
-			Runtime:     projectv1.ProjectRuntime_go,
 			EntryPoint:  "main.go",
+			Description: testDescription,
+		},
+	}
+}
+
+// createDeclarativeTestProject creates a declarative-mode project (no entry_point).
+func createDeclarativeTestProject() *projectv1.Project {
+	return &projectv1.Project{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "Project",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: testProjectName,
+		},
+		Spec: &projectv1.ProjectSpec{
 			Description: testDescription,
 		},
 	}
@@ -382,14 +332,13 @@ func createTestProjectWithID() *projectv1.Project {
 	return project
 }
 
-func createTestProjectWithResources() *projectv1.Project {
+func createTestProjectWithMembers() *projectv1.Project {
 	project := createTestProjectWithID()
-	project.Spec.Agents = []*agentv1.Agent{
-		{Metadata: &apiresource.ApiResourceMetadata{Name: "agent1"}},
-		{Metadata: &apiresource.ApiResourceMetadata{Name: "agent2"}},
-	}
-	project.Spec.Workflows = []*workflowv1.Workflow{
-		{Metadata: &apiresource.ApiResourceMetadata{Name: "workflow1"}},
+	project.Spec.Members = []*apiresource.ApiResourceReference{
+		{Org: testOrgID, Kind: apiresourcekind.ApiResourceKind_agent, Slug: "agent-1"},
+		{Org: testOrgID, Kind: apiresourcekind.ApiResourceKind_agent, Slug: "agent-2"},
+		{Org: testOrgID, Kind: apiresourcekind.ApiResourceKind_workflow, Slug: "wf-1"},
+		{Org: testOrgID, Kind: apiresourcekind.ApiResourceKind_mcp_server, Slug: "mcp-1"},
 	}
 	return project
 }

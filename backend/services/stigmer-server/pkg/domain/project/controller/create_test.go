@@ -6,6 +6,7 @@ import (
 
 	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/project/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 // ============================================================================
@@ -23,7 +24,6 @@ func TestCreate_SuccessfulCreation(t *testing.T) {
 		t.Fatalf("Create failed: %v", err)
 	}
 
-	// Verify basic fields preserved
 	if created.ApiVersion != "agentic.stigmer.ai/v1" {
 		t.Errorf("Expected ApiVersion 'agentic.stigmer.ai/v1', got '%s'", created.ApiVersion)
 	}
@@ -49,17 +49,14 @@ func TestCreate_GeneratesValidID(t *testing.T) {
 		t.Fatalf("Create failed: %v", err)
 	}
 
-	// Verify ID is generated
 	if created.Metadata.Id == "" {
 		t.Error("Expected ID to be generated, got empty string")
 	}
 
-	// Verify ID format: prj-{ulid}
 	if !strings.HasPrefix(created.Metadata.Id, "prj-") {
 		t.Errorf("Expected ID to start with 'prj-', got '%s'", created.Metadata.Id)
 	}
 
-	// ULID is 26 characters, plus "prj-" prefix = 30 characters
 	if len(created.Metadata.Id) != 30 {
 		t.Errorf("Expected ID length 30 (prj- + 26 char ULID), got %d", len(created.Metadata.Id))
 	}
@@ -74,21 +71,9 @@ func TestCreate_GeneratesSlugFromName(t *testing.T) {
 		projectName  string
 		expectedSlug string
 	}{
-		{
-			name:         "simple name",
-			projectName:  "My Project",
-			expectedSlug: "my-project",
-		},
-		{
-			name:         "name with special characters",
-			projectName:  "Project #1 (Test)",
-			expectedSlug: "project-1-test",
-		},
-		{
-			name:         "already lowercase",
-			projectName:  "simple-project",
-			expectedSlug: "simple-project",
-		},
+		{"simple name", "My Project", "my-project"},
+		{"name with special characters", "Project #1 (Test)", "project-1-test"},
+		{"already lowercase", "simple-project", "simple-project"},
 	}
 
 	for _, tt := range tests {
@@ -115,23 +100,16 @@ func TestCreate_RejectsDuplicateSlug(t *testing.T) {
 	controller, store := setupTestController(t)
 	defer store.Close()
 
-	// Create first project
 	project1 := createTestProject("Duplicate Test")
 	_, err := controller.Create(contextWithProjectKind(), project1)
 	if err != nil {
 		t.Fatalf("First create failed: %v", err)
 	}
 
-	// Attempt to create second project with same name (same slug)
 	project2 := createTestProject("Duplicate Test")
 	_, err = controller.Create(contextWithProjectKind(), project2)
 	if err == nil {
 		t.Error("Expected duplicate creation to fail, but it succeeded")
-	}
-
-	// Verify error message mentions duplicate
-	if !strings.Contains(err.Error(), "already exists") && !strings.Contains(err.Error(), "duplicate") {
-		t.Logf("Error message: %v", err)
 	}
 }
 
@@ -139,21 +117,18 @@ func TestCreate_AllowsDifferentSlugs(t *testing.T) {
 	controller, store := setupTestController(t)
 	defer store.Close()
 
-	// Create first project
 	project1 := createTestProject("First Project")
 	created1, err := controller.Create(contextWithProjectKind(), project1)
 	if err != nil {
 		t.Fatalf("First create failed: %v", err)
 	}
 
-	// Create second project with different name
 	project2 := createTestProject("Second Project")
 	created2, err := controller.Create(contextWithProjectKind(), project2)
 	if err != nil {
 		t.Fatalf("Second create failed: %v", err)
 	}
 
-	// Verify both have different IDs and slugs
 	if created1.Metadata.Id == created2.Metadata.Id {
 		t.Error("Expected different IDs for different projects")
 	}
@@ -173,9 +148,7 @@ func TestCreate_RejectsMissingMetadata(t *testing.T) {
 	project := &projectv1.Project{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Project",
-		// Metadata is nil
 		Spec: &projectv1.ProjectSpec{
-			Runtime:    projectv1.ProjectRuntime_go,
 			EntryPoint: "main.go",
 		},
 	}
@@ -194,11 +167,9 @@ func TestCreate_RejectsMissingName(t *testing.T) {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
-			// Name is empty
 			Org: "test-org",
 		},
 		Spec: &projectv1.ProjectSpec{
-			Runtime:    projectv1.ProjectRuntime_go,
 			EntryPoint: "main.go",
 		},
 	}
@@ -214,14 +185,13 @@ func TestCreate_RejectsInvalidApiVersion(t *testing.T) {
 	defer store.Close()
 
 	project := &projectv1.Project{
-		ApiVersion: "invalid/v1", // Should be "agentic.stigmer.ai/v1"
+		ApiVersion: "invalid/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: "Invalid API Version",
 			Org:  "test-org",
 		},
 		Spec: &projectv1.ProjectSpec{
-			Runtime:    projectv1.ProjectRuntime_go,
 			EntryPoint: "main.go",
 		},
 	}
@@ -238,13 +208,12 @@ func TestCreate_RejectsInvalidKind(t *testing.T) {
 
 	project := &projectv1.Project{
 		ApiVersion: "agentic.stigmer.ai/v1",
-		Kind:       "InvalidKind", // Should be "Project"
+		Kind:       "InvalidKind",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: "Invalid Kind",
 			Org:  "test-org",
 		},
 		Spec: &projectv1.ProjectSpec{
-			Runtime:    projectv1.ProjectRuntime_go,
 			EntryPoint: "main.go",
 		},
 	}
@@ -266,7 +235,6 @@ func TestCreate_RejectsMissingSpec(t *testing.T) {
 			Name: "Missing Spec",
 			Org:  "test-org",
 		},
-		// Spec is nil
 	}
 
 	_, err := controller.Create(contextWithProjectKind(), project)
@@ -275,72 +243,30 @@ func TestCreate_RejectsMissingSpec(t *testing.T) {
 	}
 }
 
-func TestCreate_RejectsMissingRuntime(t *testing.T) {
+// ============================================================================
+// Members Tests
+// ============================================================================
+
+func TestCreate_WithMembers(t *testing.T) {
 	controller, store := setupTestController(t)
 	defer store.Close()
 
-	project := &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
-		Kind:       "Project",
-		Metadata: &apiresource.ApiResourceMetadata{
-			Name: "Missing Runtime",
-			Org:  "test-org",
-		},
-		Spec: &projectv1.ProjectSpec{
-			// Runtime is UNSPECIFIED (0)
-			EntryPoint: "main.go",
-		},
-	}
-
-	_, err := controller.Create(contextWithProjectKind(), project)
-	if err == nil {
-		t.Error("Expected error for missing/unspecified runtime")
-	}
-}
-
-// ============================================================================
-// Embedded Resources Tests
-// ============================================================================
-
-func TestCreate_WithEmbeddedAgents(t *testing.T) {
-	controller, store := setupTestController(t)
-	defer store.Close()
-
-	project := createTestProjectWithAgents("Agent Project")
+	project := createTestProjectWithMembers("Member Project")
 
 	created, err := controller.Create(contextWithProjectKind(), project)
 	if err != nil {
 		t.Fatalf("Create failed: %v", err)
 	}
 
-	// Verify embedded agents are preserved
-	if len(created.Spec.Agents) != 1 {
-		t.Fatalf("Expected 1 embedded agent, got %d", len(created.Spec.Agents))
+	if len(created.Spec.Members) != 2 {
+		t.Fatalf("Expected 2 members, got %d", len(created.Spec.Members))
 	}
 
-	if created.Spec.Agents[0].Metadata.Name != "test-agent" {
-		t.Errorf("Expected agent name 'test-agent', got '%s'", created.Spec.Agents[0].Metadata.Name)
+	if created.Spec.Members[0].GetSlug() != "test-agent" {
+		t.Errorf("Expected first member slug 'test-agent', got '%s'", created.Spec.Members[0].GetSlug())
 	}
-}
-
-func TestCreate_WithEmbeddedWorkflows(t *testing.T) {
-	controller, store := setupTestController(t)
-	defer store.Close()
-
-	project := createTestProjectWithWorkflows("Workflow Project")
-
-	created, err := controller.Create(contextWithProjectKind(), project)
-	if err != nil {
-		t.Fatalf("Create failed: %v", err)
-	}
-
-	// Verify embedded workflows are preserved
-	if len(created.Spec.Workflows) != 1 {
-		t.Fatalf("Expected 1 embedded workflow, got %d", len(created.Spec.Workflows))
-	}
-
-	if created.Spec.Workflows[0].Metadata.Name != "test-workflow" {
-		t.Errorf("Expected workflow name 'test-workflow', got '%s'", created.Spec.Workflows[0].Metadata.Name)
+	if created.Spec.Members[0].GetKind() != apiresourcekind.ApiResourceKind_agent {
+		t.Errorf("Expected first member kind 'agent', got '%v'", created.Spec.Members[0].GetKind())
 	}
 }
 
@@ -359,18 +285,14 @@ func TestCreate_SetsAuditFields(t *testing.T) {
 		t.Fatalf("Create failed: %v", err)
 	}
 
-	// Verify status exists with audit
 	if created.Status == nil {
 		t.Fatal("Expected status to be set")
 	}
-
 	if created.Status.Audit == nil {
 		t.Fatal("Expected audit to be set in status")
 	}
 
 	audit := created.Status.Audit
-
-	// Verify spec_audit
 	if audit.SpecAudit == nil {
 		t.Error("Expected spec_audit to be set")
 	} else {
@@ -402,9 +324,8 @@ func TestCreate_PreservesSpecFields(t *testing.T) {
 			Org:  "test-org",
 		},
 		Spec: &projectv1.ProjectSpec{
-			Runtime:     projectv1.ProjectRuntime_python,
 			EntryPoint:  "app.py",
-			Description: "A Python project with full spec",
+			Description: "A project with full spec",
 		},
 	}
 
@@ -413,13 +334,10 @@ func TestCreate_PreservesSpecFields(t *testing.T) {
 		t.Fatalf("Create failed: %v", err)
 	}
 
-	if created.Spec.Runtime != projectv1.ProjectRuntime_python {
-		t.Errorf("Expected runtime 'python', got '%v'", created.Spec.Runtime)
-	}
 	if created.Spec.EntryPoint != "app.py" {
 		t.Errorf("Expected entry_point 'app.py', got '%s'", created.Spec.EntryPoint)
 	}
-	if created.Spec.Description != "A Python project with full spec" {
+	if created.Spec.Description != "A project with full spec" {
 		t.Errorf("Expected description to be preserved, got '%s'", created.Spec.Description)
 	}
 }

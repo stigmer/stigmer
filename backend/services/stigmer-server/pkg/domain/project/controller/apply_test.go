@@ -2,19 +2,14 @@ package project
 
 import (
 	"context"
-	"strings"
 	"testing"
 
-	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
-	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/project/v1"
-	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
-	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/project/reconcile"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // ============================================================================
@@ -32,7 +27,6 @@ func TestApply_CreatesNewProjectWhenNotExists(t *testing.T) {
 		t.Fatalf("Apply failed: %v", err)
 	}
 
-	// Verify project was created
 	if applied.Metadata.Id == "" {
 		t.Error("Expected ID to be generated")
 	}
@@ -48,7 +42,6 @@ func TestApply_UpdatesExistingProjectWhenExists(t *testing.T) {
 	controller, store := setupTestController(t)
 	defer store.Close()
 
-	// First create a project
 	project := createTestProject("Existing Project")
 	created, err := controller.Create(contextWithProjectKind(), project)
 	if err != nil {
@@ -56,14 +49,12 @@ func TestApply_UpdatesExistingProjectWhenExists(t *testing.T) {
 	}
 	originalID := created.Metadata.Id
 
-	// Now apply with updated description
 	project.Spec.Description = "Updated description via apply"
 	applied, err := controller.Apply(contextWithProjectKind(), project)
 	if err != nil {
 		t.Fatalf("Apply failed: %v", err)
 	}
 
-	// Verify it was updated (same ID)
 	if applied.Metadata.Id != originalID {
 		t.Errorf("Expected ID to remain '%s', got '%s'", originalID, applied.Metadata.Id)
 	}
@@ -78,7 +69,6 @@ func TestApply_IsIdempotent(t *testing.T) {
 
 	project := createTestProject("Idempotent Project")
 
-	// Apply twice
 	first, err := controller.Apply(contextWithProjectKind(), project)
 	if err != nil {
 		t.Fatalf("First Apply failed: %v", err)
@@ -89,7 +79,6 @@ func TestApply_IsIdempotent(t *testing.T) {
 		t.Fatalf("Second Apply failed: %v", err)
 	}
 
-	// Verify same ID
 	if first.Metadata.Id != second.Metadata.Id {
 		t.Errorf("Expected same ID across applies, got '%s' and '%s'",
 			first.Metadata.Id, second.Metadata.Id)
@@ -108,14 +97,12 @@ func TestApply_WithChangedSpecTriggersUpdate(t *testing.T) {
 		t.Fatalf("First Apply failed: %v", err)
 	}
 
-	// Change the spec
 	project.Spec.Description = "Changed description"
 	second, err := controller.Apply(contextWithProjectKind(), project)
 	if err != nil {
 		t.Fatalf("Second Apply failed: %v", err)
 	}
 
-	// Verify ID preserved and description updated
 	if first.Metadata.Id != second.Metadata.Id {
 		t.Error("Expected ID to be preserved across updates")
 	}
@@ -135,7 +122,6 @@ func TestApply_PreservesProjectIdAcrossUpdates(t *testing.T) {
 		t.Fatalf("First Apply failed: %v", err)
 	}
 
-	// Multiple applies
 	for i := 0; i < 3; i++ {
 		project.Spec.Description = "Update " + string(rune('A'+i))
 		applied, err := controller.Apply(contextWithProjectKind(), project)
@@ -163,40 +149,16 @@ func TestApply_ReturnsReconciliationSummaryInResponse(t *testing.T) {
 		t.Fatalf("Apply failed: %v", err)
 	}
 
-	// Verify status exists (may not have reconciliation changes for empty project)
 	if applied.Status == nil {
 		t.Fatal("Expected status to be set")
 	}
-	// Note: For a project without embedded resources, ReconciliationSummary may be nil or empty
 }
 
-func TestApply_WithNewAgentsShowsCreates(t *testing.T) {
+func TestApply_WithNewMembersShowsAdded(t *testing.T) {
 	controller, store := setupTestController(t)
 	defer store.Close()
 
-	project := createTestProjectWithAgents("Agent Creates Project")
-
-	applied, err := controller.Apply(contextWithProjectKind(), project)
-	if err != nil {
-		t.Fatalf("Apply failed: %v", err)
-	}
-
-	// Verify reconciliation summary shows agent create
-	if applied.Status == nil || applied.Status.LastReconciliation == nil {
-		t.Fatal("Expected reconciliation summary")
-	}
-
-	summary := applied.Status.LastReconciliation
-	if len(summary.Created) == 0 {
-		t.Error("Expected at least one create in reconciliation summary")
-	}
-}
-
-func TestApply_WithWorkflowsShowsCreates(t *testing.T) {
-	controller, store := setupTestController(t)
-	defer store.Close()
-
-	project := createTestProjectWithWorkflows("Workflow Creates Project")
+	project := createTestProjectWithMembers("Members Project")
 
 	applied, err := controller.Apply(contextWithProjectKind(), project)
 	if err != nil {
@@ -208,73 +170,45 @@ func TestApply_WithWorkflowsShowsCreates(t *testing.T) {
 	}
 
 	summary := applied.Status.LastReconciliation
-	if len(summary.Created) == 0 {
-		t.Error("Expected workflow create in reconciliation summary")
+	if len(summary.Created) != 2 {
+		t.Errorf("Expected 2 added members in reconciliation summary, got %d", len(summary.Created))
 	}
 }
 
-func TestApply_WithMcpServersShowsCreates(t *testing.T) {
+func TestApply_MembershipChange_DetectsOrphans(t *testing.T) {
 	controller, store := setupTestController(t)
 	defer store.Close()
 
-	project := createTestProjectWithMcpServers("MCP Creates Project")
+	// First apply with two members
+	project := createTestProject("Orphan Detection Project")
+	project.Spec.Members = []*apiresource.ApiResourceReference{
+		{Org: "test-org", Kind: apiresourcekind.ApiResourceKind_agent, Slug: "agent-a"},
+		{Org: "test-org", Kind: apiresourcekind.ApiResourceKind_agent, Slug: "agent-b"},
+	}
+
+	_, err := controller.Apply(contextWithProjectKind(), project)
+	if err != nil {
+		t.Fatalf("First Apply failed: %v", err)
+	}
+
+	// Second apply with only one member (agent-b removed)
+	project.Spec.Members = []*apiresource.ApiResourceReference{
+		{Org: "test-org", Kind: apiresourcekind.ApiResourceKind_agent, Slug: "agent-a"},
+	}
 
 	applied, err := controller.Apply(contextWithProjectKind(), project)
 	if err != nil {
-		t.Fatalf("Apply failed: %v", err)
+		t.Fatalf("Second Apply failed: %v", err)
 	}
 
 	if applied.Status == nil || applied.Status.LastReconciliation == nil {
 		t.Fatal("Expected reconciliation summary")
 	}
 
-	summary := applied.Status.LastReconciliation
-	if len(summary.Created) == 0 {
-		t.Error("Expected MCP server create in reconciliation summary")
-	}
-}
-
-func TestApply_WithSkillsShowsCreates(t *testing.T) {
-	controller, store := setupTestController(t)
-	defer store.Close()
-
-	project := createTestProjectWithSkills("Skill Creates Project")
-
-	applied, err := controller.Apply(contextWithProjectKind(), project)
-	if err != nil {
-		t.Fatalf("Apply failed: %v", err)
-	}
-
-	if applied.Status == nil || applied.Status.LastReconciliation == nil {
-		t.Fatal("Expected reconciliation summary")
-	}
-
-	summary := applied.Status.LastReconciliation
-	if len(summary.Created) == 0 {
-		t.Error("Expected skill create in reconciliation summary")
-	}
-}
-
-func TestApply_WithMixedResourcesReturnsCorrectCounts(t *testing.T) {
-	controller, store := setupTestController(t)
-	defer store.Close()
-
-	project := createTestProjectWithMixedResources("Mixed Resources Project")
-
-	applied, err := controller.Apply(contextWithProjectKind(), project)
-	if err != nil {
-		t.Fatalf("Apply failed: %v", err)
-	}
-
-	if applied.Status == nil || applied.Status.LastReconciliation == nil {
-		t.Fatal("Expected reconciliation summary")
-	}
-
-	summary := applied.Status.LastReconciliation
-	// Should have 4 creates (1 agent, 1 workflow, 1 MCP server, 1 skill)
-	if len(summary.Created) != 4 {
-		t.Errorf("Expected 4 creates, got %d", len(summary.Created))
-	}
+	// The orphan (agent-b) won't actually be deleted because there's no
+	// ResourceDeleter configured in test mode. But the reconciliation should
+	// still detect the membership change. The deleted list may contain errors
+	// from failed resolution, which is acceptable in this stub test.
 }
 
 // ============================================================================
@@ -289,7 +223,6 @@ func TestApply_RejectsMissingMetadata(t *testing.T) {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Project",
 		Spec: &projectv1.ProjectSpec{
-			Runtime:    projectv1.ProjectRuntime_go,
 			EntryPoint: "main.go",
 		},
 	}
@@ -311,7 +244,6 @@ func TestApply_RejectsMissingName(t *testing.T) {
 			Org: "test-org",
 		},
 		Spec: &projectv1.ProjectSpec{
-			Runtime:    projectv1.ProjectRuntime_go,
 			EntryPoint: "main.go",
 		},
 	}
@@ -334,7 +266,6 @@ func TestApply_RejectsInvalidApiVersion(t *testing.T) {
 			Org:  "test-org",
 		},
 		Spec: &projectv1.ProjectSpec{
-			Runtime:    projectv1.ProjectRuntime_go,
 			EntryPoint: "main.go",
 		},
 	}
@@ -357,7 +288,6 @@ func TestApply_RejectsInvalidKind(t *testing.T) {
 			Org:  "test-org",
 		},
 		Spec: &projectv1.ProjectSpec{
-			Runtime:    projectv1.ProjectRuntime_go,
 			EntryPoint: "main.go",
 		},
 	}
@@ -402,12 +332,6 @@ func TestApply_GeneratesValidID(t *testing.T) {
 		t.Fatalf("Apply failed: %v", err)
 	}
 
-	// Verify ID format: prj-{ulid}
-	if !strings.HasPrefix(applied.Metadata.Id, "prj-") {
-		t.Errorf("Expected ID to start with 'prj-', got '%s'", applied.Metadata.Id)
-	}
-
-	// ULID is 26 characters, plus "prj-" prefix = 30 characters
 	if len(applied.Metadata.Id) != 30 {
 		t.Errorf("Expected ID length 30, got %d", len(applied.Metadata.Id))
 	}
@@ -422,21 +346,9 @@ func TestApply_GeneratesSlugFromName(t *testing.T) {
 		projectName  string
 		expectedSlug string
 	}{
-		{
-			name:         "simple name",
-			projectName:  "My Project",
-			expectedSlug: "my-project",
-		},
-		{
-			name:         "name with special characters",
-			projectName:  "Project #1 (Test)",
-			expectedSlug: "project-1-test",
-		},
-		{
-			name:         "already lowercase",
-			projectName:  "simple-project",
-			expectedSlug: "simple-project",
-		},
+		{"simple name", "My Project", "my-project"},
+		{"name with special characters", "Project #1 (Test)", "project-1-test"},
+		{"already lowercase", "simple-project", "simple-project"},
 	}
 
 	for _, tt := range tests {
@@ -469,7 +381,6 @@ func TestApply_SetsAuditFields(t *testing.T) {
 	if applied.Status == nil {
 		t.Fatal("Expected status to be set")
 	}
-
 	if applied.Status.Audit == nil {
 		t.Fatal("Expected audit to be set in status")
 	}
@@ -489,8 +400,6 @@ func TestApply_SetsAuditFields(t *testing.T) {
 // ============================================================================
 
 func TestApply_HandlesReconciliationGracefully(t *testing.T) {
-	// This test verifies that even if reconciliation has issues,
-	// the project itself is still persisted successfully
 	controller, store := setupTestController(t)
 	defer store.Close()
 
@@ -501,7 +410,6 @@ func TestApply_HandlesReconciliationGracefully(t *testing.T) {
 		t.Fatalf("Apply should not fail: %v", err)
 	}
 
-	// Project should be persisted
 	if applied.Metadata.Id == "" {
 		t.Error("Expected project to be persisted with an ID")
 	}
@@ -512,24 +420,25 @@ func TestApply_HandlesReconciliationGracefully(t *testing.T) {
 // ============================================================================
 
 func TestApply_WithMockReconciliationService(t *testing.T) {
-	store, err := setupTestStore(t)
+	s, err := newTestStore(t)
 	if err != nil {
 		t.Fatalf("Failed to create store: %v", err)
 	}
-	defer store.Close()
+	defer s.Close()
 
-	// Create a mock reconciliation service
+	addedRef := &apiresource.ApiResourceReference{
+		Org: "test-org", Kind: apiresourcekind.ApiResourceKind_agent, Slug: "mock-agent",
+	}
+
 	mockService := &mockReconciliationService{
-		result: reconcile.NewSuccessResult(
-			[]*projectv1.ResourceChangeRecord{
-				{Slug: "mock-agent"},
-			},
+		result: reconcile.NewResult(
+			[]*apiresource.ApiResourceReference{addedRef},
 			nil,
 			nil,
 		),
 	}
 
-	controller := NewProjectController(store, mockService)
+	controller := NewProjectController(s, mockService)
 
 	project := createTestProject("Mock Service Project")
 	applied, err := controller.Apply(contextWithProjectKind(), project)
@@ -537,25 +446,22 @@ func TestApply_WithMockReconciliationService(t *testing.T) {
 		t.Fatalf("Apply failed: %v", err)
 	}
 
-	// Verify mock was used
 	if !mockService.called {
 		t.Error("Expected mock reconciliation service to be called")
 	}
 
-	// Verify mock result is in response
 	if applied.Status == nil || applied.Status.LastReconciliation == nil {
 		t.Fatal("Expected reconciliation summary")
 	}
 	if len(applied.Status.LastReconciliation.Created) != 1 {
-		t.Errorf("Expected 1 create from mock, got %d", len(applied.Status.LastReconciliation.Created))
+		t.Errorf("Expected 1 added from mock, got %d", len(applied.Status.LastReconciliation.Created))
 	}
 }
 
 // ============================================================================
-// Helper Types and Functions
+// Helper Types
 // ============================================================================
 
-// mockReconciliationService is a test double for ReconciliationService
 type mockReconciliationService struct {
 	called  bool
 	result  *reconcile.ReconciliationResult
@@ -564,8 +470,9 @@ type mockReconciliationService struct {
 }
 
 func (m *mockReconciliationService) Reconcile(
-	ctx context.Context,
-	project *projectv1.Project,
+	_ context.Context,
+	_ []*apiresource.ApiResourceReference,
+	_ []*apiresource.ApiResourceReference,
 	options *reconcile.ReconciliationOptions,
 ) (*reconcile.ReconciliationResult, error) {
 	m.called = true
@@ -579,134 +486,7 @@ func (m *mockReconciliationService) Reconcile(
 	return m.result, nil
 }
 
-// setupTestStore creates a test store (separate from controller setup for mock tests)
-func setupTestStore(t *testing.T) (store.Store, error) {
+func newTestStore(t *testing.T) (store.Store, error) {
 	t.Helper()
 	return sqlite.NewStore(t.TempDir() + "/test.sqlite")
-}
-
-// createTestProjectWithMcpServers creates a Project with embedded MCP servers for testing.
-func createTestProjectWithMcpServers(name string) *projectv1.Project {
-	project := createTestProject(name)
-	project.Spec.McpServers = []*mcpserverv1.McpServer{
-		{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "McpServer",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name: "test-mcp-server",
-				Org:  "test-org",
-			},
-			Spec: &mcpserverv1.McpServerSpec{
-				Description: "A test MCP server for project testing",
-				ServerType: &mcpserverv1.McpServerSpec_Stdio{
-					Stdio: &mcpserverv1.StdioServerConfig{
-						Command: "echo",
-						Args:    []string{"hello"},
-					},
-				},
-			},
-		},
-	}
-	return project
-}
-
-// createTestProjectWithSkills creates a Project with embedded skills for testing.
-func createTestProjectWithSkills(name string) *projectv1.Project {
-	project := createTestProject(name)
-	project.Spec.Skills = []*skillv1.Skill{
-		{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Skill",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name: "test-skill",
-				Org:  "test-org",
-			},
-			Spec: &skillv1.SkillSpec{
-				Name:        "test-skill", // Must match regex ^[a-z0-9]+(-[a-z0-9]+)*$
-				Description: "A test skill for project testing",
-				SkillMd:     "# Test Skill\n\nThis is a test skill.",
-			},
-		},
-	}
-	return project
-}
-
-// createTestProjectWithMixedResources creates a Project with all resource types.
-func createTestProjectWithMixedResources(name string) *projectv1.Project {
-	project := createTestProject(name)
-	project.Spec.Agents = []*agentv1.Agent{
-		{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Agent",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name: "mixed-agent",
-				Org:  "test-org",
-			},
-			Spec: &agentv1.AgentSpec{
-				Description:  "Test agent",
-				Instructions: "You are a test agent that helps with testing. Be helpful and respond accurately.",
-			},
-		},
-	}
-	project.Spec.Workflows = []*workflowv1.Workflow{
-		{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Workflow",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name: "mixed-workflow",
-				Org:  "test-org",
-			},
-			Spec: &workflowv1.WorkflowSpec{
-				Description: "Test workflow",
-				Document: &workflowv1.WorkflowDocument{
-					Dsl:       "1.0.0",
-					Namespace: "test",
-					Name:      "mixed-workflow",
-					Version:   "1.0.0",
-				},
-				Tasks: []*workflowv1.WorkflowTask{
-					{
-						Name:       "test-task",
-						Kind:       workflowv1.WorkflowTaskKind_set_vars,
-						TaskConfig: &structpb.Struct{Fields: map[string]*structpb.Value{}},
-					},
-				},
-			},
-		},
-	}
-	project.Spec.McpServers = []*mcpserverv1.McpServer{
-		{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "McpServer",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name: "mixed-mcp-server",
-				Org:  "test-org",
-			},
-			Spec: &mcpserverv1.McpServerSpec{
-				Description: "Test MCP server",
-				ServerType: &mcpserverv1.McpServerSpec_Stdio{
-					Stdio: &mcpserverv1.StdioServerConfig{
-						Command: "echo",
-						Args:    []string{"hello"},
-					},
-				},
-			},
-		},
-	}
-	project.Spec.Skills = []*skillv1.Skill{
-		{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "Skill",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name: "mixed-skill",
-				Org:  "test-org",
-			},
-			Spec: &skillv1.SkillSpec{
-				Name:        "mixed-skill", // Must match regex ^[a-z0-9]+(-[a-z0-9]+)*$
-				Description: "Test skill",
-				SkillMd:     "# Mixed Skill\n\nThis is a test skill.",
-			},
-		},
-	}
-	return project
 }

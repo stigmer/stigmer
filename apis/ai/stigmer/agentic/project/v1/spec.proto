@@ -2,114 +2,63 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.project.v1;
 
-import "ai/stigmer/agentic/agent/v1/api.proto";
-import "ai/stigmer/agentic/mcpserver/v1/api.proto";
-import "ai/stigmer/agentic/project/v1/enum.proto";
-import "ai/stigmer/agentic/skill/v1/api.proto";
-import "ai/stigmer/agentic/workflow/v1/api.proto";
-import "buf/validate/validate.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
 
-// ProjectSpec defines the configuration for a Stigmer project.
-// Projects use SDK synthesis - all resources are defined in code.
+// ProjectSpec defines the desired state for a Stigmer project.
 //
-// The SDK:
-// 1. Reads the entry_point file
-// 2. Executes it to generate a resource manifest
-// 3. Writes manifest for CLI to apply
+// A project is a lightweight membership tracker that groups related resources
+// (agents, workflows, MCP servers, skills) under a single unit of management.
+// It supports two tracks:
 //
-// Note: No YAML glob patterns. Use Atomic Track (`stigmer <resource> apply`)
-// for individual YAML files. Project Track is SDK-only.
+// Declarative Track (entry_point absent):
+//   The CLI scans the project directory for YAML resource files, applies each
+//   individually, and sends the resulting references as members. No SDK needed.
 //
-// The Project is an aggregate root that contains all managed resources.
-// On apply, the backend reconciles resources to match this specification:
-// - Resources in spec are created or updated
-// - Resources removed from spec are deleted (orphan pruning)
-// - Resource dependencies are resolved in order (MCP Servers → Agents → Workflows)
+// SDK Track (entry_point set):
+//   The CLI executes the entry_point file to synthesize resources, applies each
+//   individually, and sends the resulting references as members. The runtime is
+//   inferred from the entry_point file extension:
+//     .go  → Go SDK    (go run <entry_point>)
+//     .py  → Python SDK (python <entry_point>)
+//     .ts  → Node SDK   (npx ts-node <entry_point>)
+//     .js  → Node SDK   (node <entry_point>)
+//
+// In both tracks, individual resources are applied first via their own RPCs
+// (e.g., AgentCommandController.Apply). The project receives only references
+// to the already-applied resources. Orphan pruning is a set-difference:
+// resources in the previous members list but absent from the current list
+// are candidates for deletion.
 message ProjectSpec {
-  // ===========================================================================
-  // SDK Configuration
-  // ===========================================================================
-
-  // SDK runtime for resource synthesis.
-  // Determines how the entry_point is executed to generate the manifest.
-  //
-  // Required - must be a valid enum value (not UNSPECIFIED).
-  ProjectRuntime runtime = 1 [
-    (buf.validate.field).required = true,
-    (buf.validate.field).enum = {
-      defined_only: true
-      not_in: [0]
-    }
-  ];
-
   // Entry point file for SDK synthesis.
-  // This file is executed to generate the resource manifest.
   //
-  // Optional - defaults based on runtime:
-  // - go: main.go
-  // - python: main.py
-  // - node: index.ts
+  // When set, the CLI infers the SDK runtime from the file extension and
+  // executes it to generate the resource manifest. When absent, the project
+  // uses the declarative track (CLI scans for YAML resource files).
   //
-  // Cross-field validation (runtime + entry_point extension consistency)
-  // is handled by the CLI validator.
-  string entry_point = 2;
+  // Examples:
+  //   entry_point: "main.go"   → Go SDK
+  //   entry_point: "main.py"   → Python SDK
+  //   entry_point: "index.ts"  → Node SDK
+  //   (absent)                 → Declarative track
+  string entry_point = 1;
 
   // Human-readable description of the project.
-  string description = 3;
+  string description = 2;
 
-  // ===========================================================================
-  // Managed Resources
-  // These are the resources that will be reconciled on apply.
-  // The backend creates/updates/deletes resources to match this list.
-  // ===========================================================================
-
-  // Agents managed by this project.
+  // References to resources managed by this project.
   //
-  // Each Agent must have unique metadata.name within the project.
-  // Agents may reference MCP Servers (via mcp_server_usages) and Skills
-  // (via skill_refs) - these dependencies are resolved during reconciliation.
+  // This field is populated by the CLI after applying individual resources
+  // and sent to the server via ProjectCommandController.Apply(). The server
+  // stores it and uses it for orphan pruning on subsequent applies:
   //
-  // On apply:
-  // - Agents present here are created or updated
-  // - Agents removed from this list are deleted (orphan pruning)
-  // - Agent IDs are assigned by the backend and populated in the response
-  repeated ai.stigmer.agentic.agent.v1.Agent agents = 10;
-
-  // Workflows managed by this project.
+  //   orphans = previous_members − current_members
   //
-  // Each Workflow must have unique metadata.name within the project.
-  // Workflows define multi-step orchestrations using the Zigflow DSL.
+  // Each reference identifies a resource by org, kind, and slug. The CLI
+  // constructs these references from the Apply responses of individual
+  // resources (e.g., after AgentCommandController.Apply returns, the CLI
+  // adds an ApiResourceReference with kind=agent and the agent's slug).
   //
-  // On apply:
-  // - Workflows present here are created or updated
-  // - Workflows removed from this list are deleted (orphan pruning)
-  // - Workflow IDs are assigned by the backend and populated in the response
-  repeated ai.stigmer.agentic.workflow.v1.Workflow workflows = 11;
-
-  // MCP Servers managed by this project.
-  //
-  // Each McpServer must have unique metadata.name within the project.
-  // MCP Servers are processed first during reconciliation since Agents
-  // may depend on them via mcp_server_usages.
-  //
-  // On apply:
-  // - MCP Servers present here are created or updated
-  // - MCP Servers removed from this list are deleted (orphan pruning)
-  // - Server IDs are assigned by the backend and populated in the response
-  repeated ai.stigmer.agentic.mcpserver.v1.McpServer mcp_servers = 12;
-
-  // Skills managed by this project.
-  //
-  // Each Skill must have unique metadata.name within the project.
-  // Skills are special: they require code to be pushed separately before
-  // project apply. The CLI handles this flow:
-  // 1. CLI pushes skill code → SkillCommandController.Push() → returns Skill with ID
-  // 2. CLI adds returned Skill to project.spec.skills
-  // 3. CLI calls ProjectCommandController.Apply()
-  // 4. Backend validates skill references exist
-  //
-  // On apply:
-  // - Skills present here are validated (code must already be pushed)
-  // - Skills removed from this list are deleted (orphan pruning)
-  repeated ai.stigmer.agentic.skill.v1.Skill skills = 13;
+  // This field is NOT written by users in stigmer.yaml — it is derived
+  // from the directory scan (declarative) or SDK synthesis (SDK track).
+  repeated ai.stigmer.commons.apiresource.ApiResourceReference members = 3;
 }

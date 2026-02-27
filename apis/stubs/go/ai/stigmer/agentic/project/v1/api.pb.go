@@ -23,16 +23,38 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Project represents the aggregate root for resource lifecycle management.
-// It enables SDK synthesis with automatic reconciliation and orphan cleanup.
+// Project is a lightweight membership tracker that groups related resources
+// under a single unit of management with automatic orphan pruning.
 //
-// The Project Track workflow:
-// 1. SDK code defines resources (agents, workflows, skills, MCP servers)
-// 2. Running entry_point generates a resource manifest
-// 3. `stigmer apply` reconciles manifest with backend
-// 4. Resources removed from manifest are automatically deleted (pruning)
+// Two tracks are supported:
 //
-// Example YAML (stigmer.yaml):
+// Declarative Track (no entry_point):
+//
+//	Place YAML resource files alongside stigmer.yaml. The CLI scans the
+//	directory, applies each resource individually, and updates the project
+//	membership. Resources removed from the directory are pruned.
+//
+// SDK Track (entry_point set):
+//
+//	The CLI executes the entry_point to synthesize resources, applies each
+//	individually, and updates the project membership. The runtime is inferred
+//	from the entry_point file extension (.go, .py, .ts, .js).
+//
+// In both tracks, the project stores only references (org/kind/slug) to its
+// members — never full resource objects. Orphan pruning is a set-difference
+// between previous and current members.
+//
+// Example YAML — Declarative (stigmer.yaml):
+//
+//	apiVersion: agentic.stigmer.ai/v1
+//	kind: Project
+//	metadata:
+//	  name: my-agent-fleet
+//	  org: acme-corp
+//	spec:
+//	  description: Production agent fleet
+//
+// Example YAML — SDK (stigmer.yaml):
 //
 //	apiVersion: agentic.stigmer.ai/v1
 //	kind: Project
@@ -40,8 +62,8 @@ const (
 //	  name: my-super-app
 //	  org: acme-corp
 //	spec:
-//	  runtime: go
 //	  entry_point: main.go
+//	  description: Go SDK project
 type Project struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.
@@ -50,10 +72,11 @@ type Project struct {
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
 	// Standard resource metadata including name, org, labels, and tags.
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	// Project-specific configuration.
+	// Project configuration: entry_point (optional), description, and members.
+	// See ProjectSpec for details on declarative vs SDK tracks.
 	Spec *ProjectSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
-	// System-managed status containing reconciliation state and audit info.
-	// The status.last_reconciliation field contains reconciliation results from Apply.
+	// System-managed status containing reconciliation results and audit info.
+	// Populated by the server in Apply responses — not set by clients.
 	Status        *ProjectStatus `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

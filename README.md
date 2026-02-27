@@ -2,7 +2,7 @@
 
 **Build AI agents and workflows with zero infrastructure.**
 
-Stigmer is an open-source agentic automation platform. Run it locally with SQLite and Ollama for development, or connect to Stigmer Cloud for production. Same CLI, same SDK, same resource definitions — your choice of backend.
+Stigmer is an open-source agentic automation platform. Run it locally with SQLite for development, or connect to Stigmer Cloud for production. Bring your own LLM — Anthropic, OpenAI, or Ollama. Same CLI, same SDK, same resource definitions — your choice of backend.
 
 ## Quick Start
 
@@ -22,7 +22,23 @@ curl -fsSL https://raw.githubusercontent.com/stigmer/stigmer/main/scripts/instal
 
 This installs a single self-contained `stigmer` binary that embeds all required components.
 
-### 2. (Optional) Install Ollama for Free Local LLM
+### 2. Configure LLM Provider
+
+Stigmer agents need an LLM to generate responses. You can pre-configure one before starting the server, or let the interactive setup guide you on first run.
+
+**Option A: Anthropic (recommended for best quality)**
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+```
+
+**Option B: OpenAI**
+
+```bash
+export OPENAI_API_KEY=sk-...
+```
+
+**Option C: Ollama (free, local, offline)**
 
 ```bash
 brew install ollama
@@ -30,7 +46,7 @@ ollama serve
 ollama pull qwen2.5-coder:7b
 ```
 
-Without Ollama, you'll need an Anthropic API key instead.
+If you skip this step, `stigmer server` will prompt you to choose a provider interactively.
 
 ### 3. Start the Server
 
@@ -38,7 +54,7 @@ Without Ollama, you'll need an Anthropic API key instead.
 stigmer server
 ```
 
-On first run, this auto-downloads Temporal, starts all services, and is ready on `localhost:50051`. No configuration required.
+On first run, this prompts you to choose an LLM provider, auto-downloads Temporal, starts all services, and is ready on `localhost:7234`.
 
 ### 4. Deploy and Run an Agent
 
@@ -56,6 +72,8 @@ stigmer run support-bot "How do I reset my password?"
 stigmer server status   # check if running
 stigmer server stop     # stop all services
 stigmer server          # start again
+stigmer server setup    # reconfigure LLM provider
+stigmer server reset    # stop and remove all data (keeps config)
 ```
 
 ## Core Concepts
@@ -194,7 +212,7 @@ See [sdk/go/README.md](sdk/go/README.md) for the full SDK reference, workflow bu
 | `stigmer push` | Push a skill artifact |
 | `stigmer download <kind> <name>` | Download a resource artifact |
 | `stigmer validate -f <file>` | Validate a resource definition |
-| `stigmer server` | Start/stop/status for local server |
+| `stigmer server` | Start/stop/status/setup/reset for local server |
 | `stigmer mcp-server` | Start the Stigmer MCP server |
 | `stigmer backend` | Switch between local and cloud backends |
 | `stigmer config` | Manage CLI configuration |
@@ -207,16 +225,24 @@ See [sdk/go/README.md](sdk/go/README.md) for the full SDK reference, workflow bu
 | **Storage** | SQLite (`~/.stigmer/stigmer.db`) | Distributed (managed) |
 | **Orchestration** | Temporal (auto-managed) | Temporal (managed) |
 | **Users** | Single implicit user | Organizations, teams, IAM |
-| **LLM** | Ollama (default) or Anthropic | Configurable |
+| **LLM** | Anthropic, OpenAI, or Ollama (user's choice) | Configurable |
 | **Best for** | Development, personal projects, air-gapped environments | Team collaboration, production, governance |
 
 Resource definitions are portable across both modes. The CLI talks to the same gRPC service interfaces regardless of backend.
 
 ### LLM Configuration
 
-The default local setup uses Ollama with `qwen2.5-coder:7b` (free, offline).
+On first run, `stigmer server` guides you through an interactive setup to choose your LLM provider. The chosen provider and API key are saved to `~/.stigmer/config.yaml`.
 
-To use Anthropic instead, edit `~/.stigmer/config.yaml`:
+**Supported providers:**
+
+| Provider | Model (default) | Requires |
+|----------|----------------|----------|
+| Anthropic | `claude-sonnet-4.5` | `ANTHROPIC_API_KEY` env var or API key in config |
+| OpenAI | `gpt-4` | `OPENAI_API_KEY` env var or API key in config |
+| Ollama | `qwen2.5-coder:7b` | Ollama installed and running locally |
+
+**Config file example** (`~/.stigmer/config.yaml`):
 
 ```yaml
 backend:
@@ -226,12 +252,33 @@ backend:
       model: claude-sonnet-4.5
 ```
 
-Or set environment variables:
+**Environment variables** (take precedence over config file):
 
 ```bash
 export STIGMER_LLM_PROVIDER=anthropic
 export ANTHROPIC_API_KEY=sk-ant-...
-stigmer server
+```
+
+### Changing Your LLM Provider
+
+Re-run the interactive setup:
+
+```bash
+stigmer server setup
+```
+
+Or set the provider directly:
+
+```bash
+stigmer config set llm.provider anthropic    # switch to Anthropic
+stigmer config set llm.provider openai       # switch to OpenAI
+stigmer config set llm.provider ollama       # switch to Ollama
+```
+
+After changing the provider, restart the server:
+
+```bash
+stigmer server stop && stigmer server
 ```
 
 ## Architecture
@@ -243,7 +290,7 @@ Stigmer is a single binary (BusyBox pattern) that embeds all required services:
 │                  stigmer CLI (Go)                     │
 │              (client-apps/cli/)                       │
 └────────────────────┬─────────────────────────────────┘
-                     │ gRPC (localhost:50051)
+                     │ gRPC (localhost:7234)
 ┌────────────────────▼─────────────────────────────────┐
 │            stigmer-server (Go)                        │
 │        (backend/services/stigmer-server/)             │
@@ -335,9 +382,14 @@ stigmer server logs
 **Reset all local data:**
 
 ```bash
-stigmer server stop
-rm -rf ~/.stigmer
-stigmer server       # recreates everything on first run
+stigmer server reset    # stops services, removes data, keeps config
+stigmer server          # recreates everything on first run
+```
+
+To also remove configuration (API keys, LLM preferences):
+
+```bash
+stigmer server reset --include-config
 ```
 
 ## Documentation

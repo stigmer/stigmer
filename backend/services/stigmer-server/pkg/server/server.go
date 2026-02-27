@@ -391,21 +391,20 @@ func Run() error {
 		log.Info().Int("indexed", indexed).Msg("Search index rebuilt after bootstrap")
 	}
 
-	// Create the reconciliation execution engine
+	// Create the reconciliation resource deleter for orphan pruning
 	downstreamClients := &reconcile.DownstreamClients{
 		AgentClient:     agentClient,
 		WorkflowClient:  workflowClient,
 		McpServerClient: mcpServerClient,
 		SkillClient:     skillClient,
 	}
-	resourceController := reconcile.NewResourceControllerAdapter(downstreamClients)
-	executionEngine := reconcile.NewExecutionEngine(resourceController)
-	reconciliationService := reconcile.NewReconciliationService(store, executionEngine)
+	resourceDeleter := reconcile.NewResourceDeleterAdapter(downstreamClients)
+	reconciliationService := reconcile.NewReconciliationService(store, resourceDeleter)
 
 	// Inject ReconciliationService into ProjectController
 	projectController.SetReconciliationService(reconciliationService)
 
-	log.Info().Msg("Created reconciliation ExecutionEngine and injected into ProjectController")
+	log.Info().Msg("Created reconciliation ResourceDeleter and injected into ProjectController")
 
 	// Now inject dependencies into controllers that need them
 	// Note: Controllers are already registered, we're just updating their internal state
