@@ -1,11 +1,19 @@
-"""Workspace backend abstraction for agent-runner.
+"""Workspace backend abstraction and provisioning for agent-runner.
 
-Public API:
-    WorkspaceBackend    -- Protocol for workspace file + process operations.
-    ExecuteResult       -- Return type for ``WorkspaceBackend.execute()``.
-    LocalWorkspaceBackend  -- Adapter backed by the local filesystem.
-    DaytonaWorkspaceBackend -- Adapter backed by a Daytona sandbox.
-    initialize_workspace   -- Factory that creates the right backend.
+Public API — backend layer:
+    WorkspaceBackend        Protocol for workspace file + process operations.
+    ExecuteResult           Return type for ``WorkspaceBackend.execute()``.
+    LocalWorkspaceBackend   Adapter backed by the local filesystem.
+    DaytonaWorkspaceBackend Adapter backed by a Daytona sandbox.
+    initialize_workspace    Factory that creates the right backend.
+
+Public API — provisioning layer (Phase 2):
+    WorkspaceProvisioner    Dispatches on ``WorkspaceSource`` to populate a
+                            workspace (git clone, local path, or empty).
+    ProvisionResult         Immutable result of provisioning.
+    GitMetadata             Metadata captured after a git clone.
+    SourceType              Enum of workspace source variants.
+    WorkspaceProvisionError Domain exception for provisioning failures.
 """
 
 from __future__ import annotations
@@ -16,14 +24,26 @@ from typing import Any
 from worker.workspace.backend import ExecuteResult, WorkspaceBackend
 from worker.workspace.daytona import DaytonaWorkspaceBackend
 from worker.workspace.local import LocalWorkspaceBackend
+from worker.workspace.provisioner import (
+    GitMetadata,
+    ProvisionResult,
+    SourceType,
+    WorkspaceProvisionError,
+    WorkspaceProvisioner,
+)
 
 logger = logging.getLogger(__name__)
 
 __all__ = [
     "DaytonaWorkspaceBackend",
     "ExecuteResult",
+    "GitMetadata",
     "LocalWorkspaceBackend",
+    "ProvisionResult",
+    "SourceType",
     "WorkspaceBackend",
+    "WorkspaceProvisionError",
+    "WorkspaceProvisioner",
     "initialize_workspace",
 ]
 
