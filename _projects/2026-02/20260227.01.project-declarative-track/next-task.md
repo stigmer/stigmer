@@ -14,59 +14,54 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-02-27 18:17
-**Current Task**: T01 — Phases 1–4 complete, ready for Phase 5
-**Status**: In Progress
+**Current Task**: T01 — Phases 1–5 complete
+**Status**: Complete (pending end-to-end verification and PR)
 
-## Session Progress (2026-02-27, Session 4)
+## Session Progress (2026-02-27, Session 5)
 
-### Completed: T01 Phase 4 — Adapt SDK Track
+### Completed: T01 Phase 5 — Unit Tests for Apply Command
 
-Re-enabled the SDK apply track (`executeProjectApply`) by replacing the deleted `ProjectRuntime` proto enum with a local `Runtime` value object, adapting the synthesis engine, and implementing the full orchestration flow: synthesis → push skills → apply resources → collect references → apply project.
+Added comprehensive unit tests for all untested pure functions in `cmd/stigmer/root/` introduced in Phases 3 and 4. The package went from zero apply-related test coverage to 68 new tests across 6 test files.
 
-#### New Files Created
-- `client-apps/cli/internal/cli/apply/runtime.go` — Local `Runtime` string type (`RuntimeGo`, `RuntimePython`, `RuntimeNode`) with `InferRuntime` constructor that derives runtime from entry-point file extension. Replaces the deleted `projectv1.ProjectRuntime` proto enum.
-- `client-apps/cli/cmd/stigmer/root/apply_project_result.go` — `executeSDKDryRun` for dry-run previews and `buildSDKResult` for structured output. Extracted from `apply_project.go` to stay within line-count guidelines.
+#### New Test Files Created (6 files)
+- `apply_test_helpers_test.go` — Shared test data builders: `newTestProject`, `newTestProjectApplyResult`, `newTestMembers`, `newTestAgentApplyResult`, `newTestWorkflowApplyResult`, `newTestMcpServerApplyResult`, `writeResourceYAML`
+- `apply_file_handlers_test.go` (22 tests) — Tests for `buildResourceReference`, `truncateForDisplay`, and all 6 per-resource result builders (agent/workflow/mcpserver, apply+dryrun variants)
+- `apply_declarative_test.go` (30 tests) — Tests for `scanResourceFiles` (YAML scanning, stigmer.yaml exclusion, subdirectory skipping), `detectResourceItems` (kind detection, Project skipping, unknown kind errors), `countMembersByKind`, and declarative result builders
+- `apply_org_test.go` (12 tests) — Tests for `resolveApplyOrganization` priority chain (flag > yaml > cloud config > local default, error on missing cloud org), `buildAtomicTrackResult`
+- `apply_file_test.go` (12 tests) — Tests for `resolveApplyFiles` (file/directory/recursive/non-existent), `detectApplyItems` (kind detection, multi-document YAML)
+- `apply_project_result_test.go` (12 tests) — Tests for `buildSDKResult` (created/updated, Mode=SDK, skill-first ordering, reconciliation), `executeSDKDryRun` (rendering, entry-point warning)
 
-#### Modified Files (4 production, 1 test, 2 build)
-- `apply_project.go` — Replaced Phase 3 error stub with full SDK orchestration: `InferRuntime` → `Synthesize` → `establishBackendConnection` → `pushAndApplyResources` (skills via `Push`/`PushRemote`, agents/workflows/MCP servers via `Apply`) → collect `ApiResourceReference`s → `project.Apply()` → render summary
-- `synthesize.go` — Updated `SynthesizeOptions.Runtime`, `getRuntimeCommand`, `prepareRuntime`, `formatExecutionError` from proto enum to local `Runtime` type
-- `synthesize_test.go` — Rewrote `TestRuntimeFromProtoEnum` into `TestInferRuntime_SupportedExtensions`, `TestInferRuntime_UnrecognizedExtension`, `TestInferRuntime_NoExtension`, `TestGetRuntimeCommand_AllRuntimes`; updated all other tests to use local `Runtime` constants
-- `artifact/skill.go` — Added `Slug` field to `SkillArtifactResult`; populated from backend `Push` RPC response `Skill.Metadata.Slug` (needed for `ApiResourceReference` construction)
-- `apply/BUILD.bazel` — Added `runtime.go` to srcs, removed `projectv1` dependency
-- `root/BUILD.bazel` — Added `apply_project_result.go` to srcs, added `skill/v1` and `artifact` dependencies
+#### Modified Files (1 build)
+- `root/BUILD.bazel` — Added 6 new test srcs and 8 new test deps
 
-#### Key Decisions Made
-1. `Runtime` is a local value object (not proto enum) — keeps domain pure, prevents invalid states via `InferRuntime` constructor
-2. Skills use `Push`/`PushRemote` (not `Apply`) — skill slug is obtained from the backend response rather than computed locally
-3. Relative skill paths from SDK synthesis are resolved against the project directory
-4. Extracted `apply_project_result.go` to keep `apply_project.go` within ~280 lines (consistent with `apply_declarative.go` at ~300)
+#### Test Helpers Pattern
+Created a dedicated `apply_test_helpers_test.go` with reusable builders to avoid proto construction duplication. Also added `requireSectionField` and `findSectionField` assertion helpers for inspecting `CommandResult` sections without brittle string matching.
 
 #### Verification
-- `go build ./internal/cli/apply/...` — compiles
-- `go build ./cmd/stigmer/root/...` — compiles
+- `go test ./cmd/stigmer/root/...` — 296 total tests pass (68 new)
+- `go test ./internal/cli/apply/...` — all existing tests pass
+- `go test ./internal/cli/project/...` — all existing tests pass
 - `go build ./cmd/stigmer/` — full CLI binary compiles
-- `go test ./internal/cli/apply/...` — all tests pass
-- `go test ./cmd/stigmer/root/...` — all tests pass
-- `go test ./internal/cli/project/...` — all tests pass
+- `go vet ./cmd/stigmer/root/...` — clean
 
 ### Previous Sessions
-- **Session 3**: T01 Phase 3 — CLI declarative track implementation
+- **Session 4**: T01 Phase 4 — Adapt SDK track (committed as `b5c48b55`)
+- **Session 3**: T01 Phase 3 — CLI declarative track (committed as `2523ba93`)
 - **Session 2**: T01 Phase 2 — Backend reconciliation simplification (committed as `404296eb`)
 - **Session 1**: T01 Phase 1 — Proto API redesign (committed as `c2e69995`)
 
 ## Next Steps
 
-1. **Phase 5: Testing** — Unit and integration tests for all three tracks (atomic, declarative, SDK)
-2. **End-to-end verification** — Manual or automated test of the full `stigmer apply` flow across all modes
-3. **Commit and PR** — Phases 3 and 4 changes are uncommitted and need to be committed
+1. **End-to-end verification** — Manual test of the full `stigmer apply` flow across all three modes (atomic, declarative, SDK) against a running backend
+2. **Commit Phase 5 and PR** — Commit the test changes, then create a PR covering the entire T01 task
+3. **T02: Documentation** — Update README and docs to reflect the new declarative workflow as the primary getting-started path
 
 ## Context for Resume
 
-- Phases 1–4 are fully complete. The entire `stigmer apply` command now supports all three tracks: atomic (single file), declarative (directory scanning), and SDK (entry_point synthesis)
-- Uncommitted changes span 6 modified files and 2 new files across the `apply` and `root` packages, plus plan files
-- The `Slug` field added to `SkillArtifactResult` was discovered as necessary during implementation — skills return their slug from the backend `Push` RPC, and this is the only reliable source for constructing `ApiResourceReference` for skills
+- All 5 phases of T01 are complete. The `stigmer apply` command supports all three tracks (atomic, declarative, SDK) with unit test coverage for the pure function layer
+- The orchestration functions (`executeDeclarativeApply`, `executeProjectApply`, `executeFileApply`) remain untested at the unit level because they hard-code side effects (`config.Load()`, `backend.NewConnection()`, `daemon.EnsureRunning()`). Testing them would require dependency injection refactoring — a separate effort
 - Bazel builds are blocked by a pre-existing `com_github_alecthomas_chroma_v2` dependency resolution issue (unrelated to our changes)
-- The `.cursor/plans/phase_4_sdk_track_6263bc88.plan.md` file contains the detailed plan that was followed
+- `go test` and `go build` are the verified build/test commands
 
 ## Essential Files to Review
 
@@ -114,15 +109,15 @@ When starting a new session:
 3. [ ] Review design decisions in `design-decisions/`
 4. [ ] Check coding guidelines in `coding-guidelines/`
 5. [ ] Review lessons in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with Phase 5 (Testing)
+6. [ ] Continue with end-to-end verification or T02
 
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 5" - Start testing phase
-- "Commit phases 3 and 4" - Commit the uncommitted work
+- "Run e2e verification" - Test all three apply tracks against running backend
+- "Create PR for T01" - Create a pull request for the complete task
+- "Start T02" - Begin documentation updates
 - "Show project status" - Get overview of progress
-- "Create checkpoint" - Save current progress
 
 ---
 
