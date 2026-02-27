@@ -248,7 +248,7 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		Str("llm_base_url", llmBaseURL).
 		Msg("Resolved LLM configuration")
 
-	// Setup local LLM if using ollama (auto-download, start server, pull model)
+	// Setup local LLM if using Ollama (detect binary, start server, check model)
 	if llmProvider == "ollama" {
 		if opts.Progress != nil {
 			opts.Progress.SetPhase(cliprint.PhaseInitializing, "Setting up local LLM")
@@ -261,17 +261,14 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		}
 
 		if err := llm.Setup(context.Background(), cfg.Backend.Local, llmOpts); err != nil {
-			return errors.Wrap(err, "failed to setup local LLM")
+			log.Warn().Err(err).Msg("Ollama setup failed, continuing without local LLM")
+			climsg.Warning("Ollama setup failed: %v", err)
+			climsg.Warning("Agents will not execute until Ollama is available.")
+			climsg.Warning("  Install: brew install ollama && ollama serve && ollama pull qwen2.5-coder:7b")
+			climsg.Warning("  Or switch provider: stigmer server setup")
 		}
-	}
-
-	// Show LLM provider message (only if not already shown by caller)
-	if opts.Progress != nil && opts.Secrets == nil {
-		if llmProvider == "ollama" {
-			climsg.Success("Using local LLM (no API key required)")
-		} else {
-			climsg.Info("Using %s with model %s", llmProvider, llmModel)
-		}
+	} else if llmProvider == "" {
+		log.Info().Msg("No LLM provider configured, skipping LLM setup")
 	}
 
 	// Use pre-gathered secrets if provided, otherwise gather them now
@@ -285,7 +282,7 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 			opts.Progress.SetPhase(cliprint.PhaseInitializing, "Gathering credentials")
 		}
 		var err error
-		secrets, err = GatherRequiredSecrets(llmProvider)
+		secrets, err = GatherRequiredSecrets(llmProvider, cfg.Backend.Local)
 		if err != nil {
 			return errors.Wrap(err, "failed to gather required secrets")
 		}

@@ -157,22 +157,16 @@ func Save(cfg *Config) error {
 //
 // Default is local backend with daemon on localhost:7234 (hardcoded, not configurable)
 // Data stored at ~/.stigmer/data (hardcoded, not configurable)
-// with Ollama LLM and managed Temporal runtime (zero-config)
+// No LLM provider is pre-selected -- the interactive setup wizard (stigmer server
+// on first run, or stigmer server setup) handles provider selection.
 func GetDefault() *Config {
 	return &Config{
 		Backend: BackendConfig{
 			Type: BackendTypeLocal,
 			Local: &LocalBackendConfig{
-				// Endpoint not set - always hardcoded to localhost:7234 in code
-				// DataDir not set - always hardcoded to ~/.stigmer/data in code
-				LLM: &LLMConfig{
-					Provider: "ollama",
-					Model:    "qwen2.5-coder:7b",
-					BaseURL:  "http://localhost:11434",
-				},
+				// LLM not set - chosen interactively on first run via setup wizard
 				Temporal: &TemporalConfig{
 					Managed: true,
-					// Version and Port not set - always hardcoded to tested defaults
 				},
 				Execution: &ExecutionConfig{
 					Mode:     "local",
@@ -228,37 +222,32 @@ func fileExists(path string) bool {
 }
 
 // ResolveLLMProvider resolves the LLM provider with cascading config
-// Priority: env var > config file > default
+// Priority: env var > config file
+// Returns "" if no provider is configured (user skipped setup or hasn't run wizard yet)
 func (c *LocalBackendConfig) ResolveLLMProvider() string {
-	// 1. Check environment variable
 	if provider := os.Getenv("STIGMER_LLM_PROVIDER"); provider != "" {
 		return provider
 	}
 
-	// 2. Check config file
 	if c.LLM != nil && c.LLM.Provider != "" {
 		return c.LLM.Provider
 	}
 
-	// 3. Default
-	return "ollama"
+	return ""
 }
 
 // ResolveLLMModel resolves the LLM model with cascading config
+// Returns "" if no provider is configured
 func (c *LocalBackendConfig) ResolveLLMModel() string {
-	// 1. Check environment variable
 	if model := os.Getenv("STIGMER_LLM_MODEL"); model != "" {
 		return model
 	}
 
-	// 2. Check config file
 	if c.LLM != nil && c.LLM.Model != "" {
 		return c.LLM.Model
 	}
 
-	// 3. Provider-specific defaults
-	provider := c.ResolveLLMProvider()
-	switch provider {
+	switch c.ResolveLLMProvider() {
 	case "ollama":
 		return "qwen2.5-coder:7b"
 	case "anthropic":
@@ -266,25 +255,22 @@ func (c *LocalBackendConfig) ResolveLLMModel() string {
 	case "openai":
 		return "gpt-4"
 	default:
-		return "qwen2.5-coder:7b"
+		return ""
 	}
 }
 
 // ResolveLLMBaseURL resolves the LLM base URL with cascading config
+// Returns "" if no provider is configured
 func (c *LocalBackendConfig) ResolveLLMBaseURL() string {
-	// 1. Check environment variable
 	if baseURL := os.Getenv("STIGMER_LLM_BASE_URL"); baseURL != "" {
 		return baseURL
 	}
 
-	// 2. Check config file
 	if c.LLM != nil && c.LLM.BaseURL != "" {
 		return c.LLM.BaseURL
 	}
 
-	// 3. Provider-specific defaults
-	provider := c.ResolveLLMProvider()
-	switch provider {
+	switch c.ResolveLLMProvider() {
 	case "ollama":
 		return "http://localhost:11434"
 	case "anthropic":
@@ -292,7 +278,7 @@ func (c *LocalBackendConfig) ResolveLLMBaseURL() string {
 	case "openai":
 		return "https://api.openai.com/v1"
 	default:
-		return "http://localhost:11434"
+		return ""
 	}
 }
 

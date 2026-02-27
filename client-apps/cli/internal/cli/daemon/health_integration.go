@@ -12,6 +12,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
+	cliconfig "github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/health"
 )
 
@@ -444,8 +445,14 @@ func restartAgentRunner(dataDir string) error {
 		return errors.Wrap(err, "failed to load startup configuration")
 	}
 
-	// Gather required secrets (needed for agent-runner)
-	secrets, err := GatherRequiredSecrets(config.LLMProvider)
+	// Load full CLI config for API key resolution
+	cliCfg, cliErr := cliconfig.Load()
+	var localCfg *cliconfig.LocalBackendConfig
+	if cliErr == nil && cliCfg.Backend.Local != nil {
+		localCfg = cliCfg.Backend.Local
+	}
+
+	secrets, err := GatherRequiredSecrets(config.LLMProvider, localCfg)
 	if err != nil {
 		return errors.Wrap(err, "failed to gather required secrets")
 	}
