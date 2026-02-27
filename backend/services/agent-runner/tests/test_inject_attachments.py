@@ -53,6 +53,7 @@ def _make_attachment(
     mount_path: str = "",
     content_type: str = "application/zip",
     extract: bool = False,
+    local_path: str = "",
 ) -> MagicMock:
     """Create a mock Attachment proto."""
     att = MagicMock()
@@ -61,6 +62,7 @@ def _make_attachment(
     att.mount_path = mount_path
     att.content_type = content_type
     att.extract = extract
+    att.local_path = local_path
     return att
 
 
@@ -438,3 +440,170 @@ class TestInjectAttachmentsMockBackend:
                 storage=storage,
                 logger=_logger,
             )
+
+
+# =============================================================================
+# TestInjectAttachments — local_path fast path
+# =============================================================================
+
+
+class TestInjectAttachmentsLocalPath:
+    """Test the allow_local_path optimisation in inject_attachments."""
+
+    @pytest.mark.asyncio
+    async def test_local_path_reads_from_disk(self, tmp_path: Path):
+        """When allow_local_path=True and the file exists, storage is skipped."""
+        source_file = tmp_path / "source" / "config.yaml"
+        source_file.parent.mkdir()
+        source_file.write_bytes(b"local-content")
+
+        att = _make_attachment(
+            filename="config.yaml",
+            local_path=str(source_file),
+        )
+        storage = MagicMock()
+
+        workspace = tmp_path / "workspace"
+        workspace.mkdir()
+        backend = LocalWorkspaceBackend(root_dir=workspace)
+
+        result = await inject_attachments(
+            backend=backend,
+            attachments=[att],
+            storage=storage,
+            logger=_logger,
+            allow_local_path=True,
+        )
+
+        assert len(result) == 1
+        assert result[0]["filename"] == "config.yaml"
+        assert result[0]["size"] == len(b"local-content")
+        written = (workspace / ".stigmer" / "inputs" / "config.yaml")
+        assert written.read_bytes() == b"local-content"
+        storage.download.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_local_path_missing_falls_back_to_storage(self, tmp_path: Path):
+        """If local_path points to a non-existent file, falls back to storage."""
+        att = _make_attachment(
+            filename="missing.txt",
+            local_path="/no/such/file.txt",
+        )
+        storage = MagicMock()
+        storage.download.return_value = b"from-storage"
+
+        workspace = tmp_path / "workspace"
+        workspace.mkdir()
+        backend = LocalWorkspaceBackend(root_dir=workspace)
+
+        result = await inject_attachments(
+            backend=backend,
+            attachments=[att],
+            storage=storage,
+            logger=_logger,
+            allow_local_path=True,
+        )
+
+        assert len(result) == 1
+        assert result[0]["size"] == len(b"from-storage")
+        storage.download.assert_called_once_with(att.storage_key)
+
+    @pytest.mark.asyncio
+    async def test_allow_local_path_false_ignores_local_path(self, tmp_path: Path):
+        """When allow_local_path=False (cloud mode), local_path is not used."""
+        source_file = tmp_path / "source" / "data.csv"
+        source_file.parent.mkdir()
+        source_file.write_bytes(b"local-data")
+
+        att = _make_attachment(
+            filename="data.csv",
+            local_path=str(source_file),
+        )
+        storage = MagicMock()
+        storage.download.return_value = b"storage-data"
+
+        workspace = tmp_path / "workspace"
+        workspace.mkdir()
+        backend = LocalWorkspaceBackend(root_dir=workspace)
+
+        result = await inject_attachments(
+            backend=backend,
+            attachments=[att],
+            storage=storage,
+            logger=_logger,
+            allow_local_path=False,
+        )
+
+        assert result[0]["size"] == len(b"storage-data")
+        storage.download.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_no_local_path_uses_storage(self):
+        """Backward compat: attachments without local_path use storage."""
+        att = _make_attachment(filename="old.txt", local_path="")
+        storage = MagicMock()
+        storage.download.return_value = b"from-storage"
+
+        backend = _make_mock_backend()
+        result = await inject_attachments(
+            backend=backend,
+            attachments=[att],
+            storage=storage,
+            logger=_logger,
+            allow_local_path=True,
+        )
+
+        assert len(result) == 1
+        storage.download.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_local_path_with_zip_extraction(self, tmp_path: Path):
+        """local_path works for zip archives with extract=True."""
+        zip_bytes = _make_zip({"main.py": "print(1)", "lib/util.py": "pass"})
+        source_zip = tmp_path / "source" / "project.zip"
+        source_zip.parent.mkdir()
+        source_zip.write_bytes(zip_bytes)
+
+        att = _make_attachment(
+            filename="project.zip",
+            local_path=str(source_zip),
+            mount_path="inputs/project/",
+            extract=True,
+        )
+        storage = MagicMock()
+
+        workspace = tmp_path / "workspace"
+        workspace.mkdir()
+        backend = LocalWorkspaceBackend(root_dir=workspace)
+
+        result = await inject_attachments(
+            backend=backend,
+            attachments=[att],
+            storage=storage,
+            logger=_logger,
+            allow_local_path=True,
+        )
+
+        assert len(result) == 2
+        paths = {r["path"] for r in result}
+        assert "inputs/project/main.py" in paths
+        assert "inputs/project/lib/util.py" in paths
+        assert (workspace / "inputs" / "project" / "main.py").read_text() == "print(1)"
+        storage.download.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_default_allow_local_path_is_false(self):
+        """The default for allow_local_path preserves existing behaviour."""
+        att = _make_attachment(filename="f.txt")
+        storage = MagicMock()
+        storage.download.return_value = b"ok"
+
+        backend = _make_mock_backend()
+        await inject_attachments(
+            backend=backend,
+            attachments=[att],
+            storage=storage,
+            logger=_logger,
+        )
+
+        storage.download.assert_called_once()
