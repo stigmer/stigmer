@@ -22,11 +22,11 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
-from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_apiresourcekind_dot_api__resource__kind__pb2
+from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 from ai.stigmer.commons.apiresource import status_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_status__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n*ai/stigmer/agentic/project/v1/status.proto\x12\x1d\x61i.stigmer.agentic.project.v1\x1a\x46\x61i/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto\x1a+ai/stigmer/commons/apiresource/status.proto\"\x84\x02\n\x15ReconciliationSummary\x12M\n\x07\x63reated\x18\x01 \x03(\x0b\x32\x33.ai.stigmer.agentic.project.v1.ResourceChangeRecordR\x07\x63reated\x12M\n\x07updated\x18\x02 \x03(\x0b\x32\x33.ai.stigmer.agentic.project.v1.ResourceChangeRecordR\x07updated\x12M\n\x07\x64\x65leted\x18\x03 \x03(\x0b\x32\x33.ai.stigmer.agentic.project.v1.ResourceChangeRecordR\x07\x64\x65leted\"\xa0\x01\n\x14ResourceChangeRecord\x12S\n\x04kind\x18\x01 \x01(\x0e\x32?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindR\x04kind\x12\x12\n\x04slug\x18\x02 \x01(\tR\x04slug\x12\x1f\n\x0bresource_id\x18\x03 \x01(\tR\nresourceId\"\xbe\x01\n\rProjectStatus\x12\x65\n\x13last_reconciliation\x18\x01 \x01(\x0b\x32\x34.ai.stigmer.agentic.project.v1.ReconciliationSummaryR\x12lastReconciliation\x12\x46\n\x05\x61udit\x18\x63 \x01(\x0b\x32\x30.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05\x61uditB\xc9\x01\n!com.ai.stigmer.agentic.project.v1B\x0bStatusProtoP\x01\xa2\x02\x04\x41SAP\xaa\x02\x1d\x41i.Stigmer.Agentic.Project.V1\xca\x02\x1d\x41i\\Stigmer\\Agentic\\Project\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Project\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Project::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n*ai/stigmer/agentic/project/v1/status.proto\x12\x1d\x61i.stigmer.agentic.project.v1\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a+ai/stigmer/commons/apiresource/status.proto\"\x87\x02\n\x15ReconciliationSummary\x12N\n\x07\x63reated\x18\x01 \x03(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceR\x07\x63reated\x12N\n\x07updated\x18\x02 \x03(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceR\x07updated\x12N\n\x07\x64\x65leted\x18\x03 \x03(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceR\x07\x64\x65leted\"\xbe\x01\n\rProjectStatus\x12\x65\n\x13last_reconciliation\x18\x01 \x01(\x0b\x32\x34.ai.stigmer.agentic.project.v1.ReconciliationSummaryR\x12lastReconciliation\x12\x46\n\x05\x61udit\x18\x63 \x01(\x0b\x32\x30.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05\x61uditB\xc9\x01\n!com.ai.stigmer.agentic.project.v1B\x0bStatusProtoP\x01\xa2\x02\x04\x41SAP\xaa\x02\x1d\x41i.Stigmer.Agentic.Project.V1\xca\x02\x1d\x41i\\Stigmer\\Agentic\\Project\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Project\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Project::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -34,10 +34,8 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'ai.stigmer.agentic.project.
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n!com.ai.stigmer.agentic.project.v1B\013StatusProtoP\001\242\002\004ASAP\252\002\035Ai.Stigmer.Agentic.Project.V1\312\002\035Ai\\Stigmer\\Agentic\\Project\\V1\342\002)Ai\\Stigmer\\Agentic\\Project\\V1\\GPBMetadata\352\002!Ai::Stigmer::Agentic::Project::V1'
-  _globals['_RECONCILIATIONSUMMARY']._serialized_start=195
-  _globals['_RECONCILIATIONSUMMARY']._serialized_end=455
-  _globals['_RESOURCECHANGERECORD']._serialized_start=458
-  _globals['_RESOURCECHANGERECORD']._serialized_end=618
-  _globals['_PROJECTSTATUS']._serialized_start=621
-  _globals['_PROJECTSTATUS']._serialized_end=811
+  _globals['_RECONCILIATIONSUMMARY']._serialized_start=164
+  _globals['_RECONCILIATIONSUMMARY']._serialized_end=427
+  _globals['_PROJECTSTATUS']._serialized_start=430
+  _globals['_PROJECTSTATUS']._serialized_end=620
 # @@protoc_insertion_point(module_scope)

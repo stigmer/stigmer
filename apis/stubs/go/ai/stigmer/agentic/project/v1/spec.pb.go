@@ -7,11 +7,7 @@
 package projectv1
 
 import (
-	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
-	v12 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
-	v13 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
-	v11 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -26,88 +22,65 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// ProjectSpec defines the configuration for a Stigmer project.
-// Projects use SDK synthesis - all resources are defined in code.
+// ProjectSpec defines the desired state for a Stigmer project.
 //
-// The SDK:
-// 1. Reads the entry_point file
-// 2. Executes it to generate a resource manifest
-// 3. Writes manifest for CLI to apply
+// A project is a lightweight membership tracker that groups related resources
+// (agents, workflows, MCP servers, skills) under a single unit of management.
+// It supports two tracks:
 //
-// Note: No YAML glob patterns. Use Atomic Track (`stigmer <resource> apply`)
-// for individual YAML files. Project Track is SDK-only.
+// Declarative Track (entry_point absent):
 //
-// The Project is an aggregate root that contains all managed resources.
-// On apply, the backend reconciles resources to match this specification:
-// - Resources in spec are created or updated
-// - Resources removed from spec are deleted (orphan pruning)
-// - Resource dependencies are resolved in order (MCP Servers → Agents → Workflows)
+//	The CLI scans the project directory for YAML resource files, applies each
+//	individually, and sends the resulting references as members. No SDK needed.
+//
+// SDK Track (entry_point set):
+//
+//	The CLI executes the entry_point file to synthesize resources, applies each
+//	individually, and sends the resulting references as members. The runtime is
+//	inferred from the entry_point file extension:
+//	  .go  → Go SDK    (go run <entry_point>)
+//	  .py  → Python SDK (python <entry_point>)
+//	  .ts  → Node SDK   (npx ts-node <entry_point>)
+//	  .js  → Node SDK   (node <entry_point>)
+//
+// In both tracks, individual resources are applied first via their own RPCs
+// (e.g., AgentCommandController.Apply). The project receives only references
+// to the already-applied resources. Orphan pruning is a set-difference:
+// resources in the previous members list but absent from the current list
+// are candidates for deletion.
 type ProjectSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// SDK runtime for resource synthesis.
-	// Determines how the entry_point is executed to generate the manifest.
-	//
-	// Required - must be a valid enum value (not UNSPECIFIED).
-	Runtime ProjectRuntime `protobuf:"varint,1,opt,name=runtime,proto3,enum=ai.stigmer.agentic.project.v1.ProjectRuntime" json:"runtime,omitempty"`
 	// Entry point file for SDK synthesis.
-	// This file is executed to generate the resource manifest.
 	//
-	// Optional - defaults based on runtime:
-	// - go: main.go
-	// - python: main.py
-	// - node: index.ts
+	// When set, the CLI infers the SDK runtime from the file extension and
+	// executes it to generate the resource manifest. When absent, the project
+	// uses the declarative track (CLI scans for YAML resource files).
 	//
-	// Cross-field validation (runtime + entry_point extension consistency)
-	// is handled by the CLI validator.
-	EntryPoint string `protobuf:"bytes,2,opt,name=entry_point,json=entryPoint,proto3" json:"entry_point,omitempty"`
+	// Examples:
+	//
+	//	entry_point: "main.go"   → Go SDK
+	//	entry_point: "main.py"   → Python SDK
+	//	entry_point: "index.ts"  → Node SDK
+	//	(absent)                 → Declarative track
+	EntryPoint string `protobuf:"bytes,1,opt,name=entry_point,json=entryPoint,proto3" json:"entry_point,omitempty"`
 	// Human-readable description of the project.
-	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
-	// Agents managed by this project.
+	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	// References to resources managed by this project.
 	//
-	// Each Agent must have unique metadata.name within the project.
-	// Agents may reference MCP Servers (via mcp_server_usages) and Skills
-	// (via skill_refs) - these dependencies are resolved during reconciliation.
+	// This field is populated by the CLI after applying individual resources
+	// and sent to the server via ProjectCommandController.Apply(). The server
+	// stores it and uses it for orphan pruning on subsequent applies:
 	//
-	// On apply:
-	// - Agents present here are created or updated
-	// - Agents removed from this list are deleted (orphan pruning)
-	// - Agent IDs are assigned by the backend and populated in the response
-	Agents []*v1.Agent `protobuf:"bytes,10,rep,name=agents,proto3" json:"agents,omitempty"`
-	// Workflows managed by this project.
+	//	orphans = previous_members − current_members
 	//
-	// Each Workflow must have unique metadata.name within the project.
-	// Workflows define multi-step orchestrations using the Zigflow DSL.
+	// Each reference identifies a resource by org, kind, and slug. The CLI
+	// constructs these references from the Apply responses of individual
+	// resources (e.g., after AgentCommandController.Apply returns, the CLI
+	// adds an ApiResourceReference with kind=agent and the agent's slug).
 	//
-	// On apply:
-	// - Workflows present here are created or updated
-	// - Workflows removed from this list are deleted (orphan pruning)
-	// - Workflow IDs are assigned by the backend and populated in the response
-	Workflows []*v11.Workflow `protobuf:"bytes,11,rep,name=workflows,proto3" json:"workflows,omitempty"`
-	// MCP Servers managed by this project.
-	//
-	// Each McpServer must have unique metadata.name within the project.
-	// MCP Servers are processed first during reconciliation since Agents
-	// may depend on them via mcp_server_usages.
-	//
-	// On apply:
-	// - MCP Servers present here are created or updated
-	// - MCP Servers removed from this list are deleted (orphan pruning)
-	// - Server IDs are assigned by the backend and populated in the response
-	McpServers []*v12.McpServer `protobuf:"bytes,12,rep,name=mcp_servers,json=mcpServers,proto3" json:"mcp_servers,omitempty"`
-	// Skills managed by this project.
-	//
-	// Each Skill must have unique metadata.name within the project.
-	// Skills are special: they require code to be pushed separately before
-	// project apply. The CLI handles this flow:
-	// 1. CLI pushes skill code → SkillCommandController.Push() → returns Skill with ID
-	// 2. CLI adds returned Skill to project.spec.skills
-	// 3. CLI calls ProjectCommandController.Apply()
-	// 4. Backend validates skill references exist
-	//
-	// On apply:
-	// - Skills present here are validated (code must already be pushed)
-	// - Skills removed from this list are deleted (orphan pruning)
-	Skills        []*v13.Skill `protobuf:"bytes,13,rep,name=skills,proto3" json:"skills,omitempty"`
+	// This field is NOT written by users in stigmer.yaml — it is derived
+	// from the directory scan (declarative) or SDK synthesis (SDK track).
+	Members       []*apiresource.ApiResourceReference `protobuf:"bytes,3,rep,name=members,proto3" json:"members,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -142,13 +115,6 @@ func (*ProjectSpec) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_project_v1_spec_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *ProjectSpec) GetRuntime() ProjectRuntime {
-	if x != nil {
-		return x.Runtime
-	}
-	return ProjectRuntime_project_runtime_unspecified
-}
-
 func (x *ProjectSpec) GetEntryPoint() string {
 	if x != nil {
 		return x.EntryPoint
@@ -163,30 +129,9 @@ func (x *ProjectSpec) GetDescription() string {
 	return ""
 }
 
-func (x *ProjectSpec) GetAgents() []*v1.Agent {
+func (x *ProjectSpec) GetMembers() []*apiresource.ApiResourceReference {
 	if x != nil {
-		return x.Agents
-	}
-	return nil
-}
-
-func (x *ProjectSpec) GetWorkflows() []*v11.Workflow {
-	if x != nil {
-		return x.Workflows
-	}
-	return nil
-}
-
-func (x *ProjectSpec) GetMcpServers() []*v12.McpServer {
-	if x != nil {
-		return x.McpServers
-	}
-	return nil
-}
-
-func (x *ProjectSpec) GetSkills() []*v13.Skill {
-	if x != nil {
-		return x.Skills
+		return x.Members
 	}
 	return nil
 }
@@ -195,19 +140,12 @@ var File_ai_stigmer_agentic_project_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_project_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/project/v1/spec.proto\x12\x1dai.stigmer.agentic.project.v1\x1a%ai/stigmer/agentic/agent/v1/api.proto\x1a)ai/stigmer/agentic/mcpserver/v1/api.proto\x1a(ai/stigmer/agentic/project/v1/enum.proto\x1a%ai/stigmer/agentic/skill/v1/api.proto\x1a(ai/stigmer/agentic/workflow/v1/api.proto\x1a\x1bbuf/validate/validate.proto\"\xb5\x03\n" +
-	"\vProjectSpec\x12V\n" +
-	"\aruntime\x18\x01 \x01(\x0e2-.ai.stigmer.agentic.project.v1.ProjectRuntimeB\r\xbaH\n" +
-	"\xc8\x01\x01\x82\x01\x04\x10\x01 \x00R\aruntime\x12\x1f\n" +
-	"\ventry_point\x18\x02 \x01(\tR\n" +
+	"(ai/stigmer/agentic/project/v1/spec.proto\x12\x1dai.stigmer.agentic.project.v1\x1a'ai/stigmer/commons/apiresource/io.proto\"\xa0\x01\n" +
+	"\vProjectSpec\x12\x1f\n" +
+	"\ventry_point\x18\x01 \x01(\tR\n" +
 	"entryPoint\x12 \n" +
-	"\vdescription\x18\x03 \x01(\tR\vdescription\x12:\n" +
-	"\x06agents\x18\n" +
-	" \x03(\v2\".ai.stigmer.agentic.agent.v1.AgentR\x06agents\x12F\n" +
-	"\tworkflows\x18\v \x03(\v2(.ai.stigmer.agentic.workflow.v1.WorkflowR\tworkflows\x12K\n" +
-	"\vmcp_servers\x18\f \x03(\v2*.ai.stigmer.agentic.mcpserver.v1.McpServerR\n" +
-	"mcpServers\x12:\n" +
-	"\x06skills\x18\r \x03(\v2\".ai.stigmer.agentic.skill.v1.SkillR\x06skillsB\x99\x02\n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12N\n" +
+	"\amembers\x18\x03 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceR\amembersB\x99\x02\n" +
 	"!com.ai.stigmer.agentic.project.v1B\tSpecProtoP\x01ZPgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/project/v1;projectv1\xa2\x02\x04ASAP\xaa\x02\x1dAi.Stigmer.Agentic.Project.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Project\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Project\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Project::V1b\x06proto3"
 
 var (
@@ -224,24 +162,16 @@ func file_ai_stigmer_agentic_project_v1_spec_proto_rawDescGZIP() []byte {
 
 var file_ai_stigmer_agentic_project_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_ai_stigmer_agentic_project_v1_spec_proto_goTypes = []any{
-	(*ProjectSpec)(nil),   // 0: ai.stigmer.agentic.project.v1.ProjectSpec
-	(ProjectRuntime)(0),   // 1: ai.stigmer.agentic.project.v1.ProjectRuntime
-	(*v1.Agent)(nil),      // 2: ai.stigmer.agentic.agent.v1.Agent
-	(*v11.Workflow)(nil),  // 3: ai.stigmer.agentic.workflow.v1.Workflow
-	(*v12.McpServer)(nil), // 4: ai.stigmer.agentic.mcpserver.v1.McpServer
-	(*v13.Skill)(nil),     // 5: ai.stigmer.agentic.skill.v1.Skill
+	(*ProjectSpec)(nil),                      // 0: ai.stigmer.agentic.project.v1.ProjectSpec
+	(*apiresource.ApiResourceReference)(nil), // 1: ai.stigmer.commons.apiresource.ApiResourceReference
 }
 var file_ai_stigmer_agentic_project_v1_spec_proto_depIdxs = []int32{
-	1, // 0: ai.stigmer.agentic.project.v1.ProjectSpec.runtime:type_name -> ai.stigmer.agentic.project.v1.ProjectRuntime
-	2, // 1: ai.stigmer.agentic.project.v1.ProjectSpec.agents:type_name -> ai.stigmer.agentic.agent.v1.Agent
-	3, // 2: ai.stigmer.agentic.project.v1.ProjectSpec.workflows:type_name -> ai.stigmer.agentic.workflow.v1.Workflow
-	4, // 3: ai.stigmer.agentic.project.v1.ProjectSpec.mcp_servers:type_name -> ai.stigmer.agentic.mcpserver.v1.McpServer
-	5, // 4: ai.stigmer.agentic.project.v1.ProjectSpec.skills:type_name -> ai.stigmer.agentic.skill.v1.Skill
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	1, // 0: ai.stigmer.agentic.project.v1.ProjectSpec.members:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	1, // [1:1] is the sub-list for method output_type
+	1, // [1:1] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_project_v1_spec_proto_init() }
@@ -249,7 +179,6 @@ func file_ai_stigmer_agentic_project_v1_spec_proto_init() {
 	if File_ai_stigmer_agentic_project_v1_spec_proto != nil {
 		return
 	}
-	file_ai_stigmer_agentic_project_v1_enum_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

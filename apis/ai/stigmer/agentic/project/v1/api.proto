@@ -7,24 +7,45 @@ import "ai/stigmer/agentic/project/v1/status.proto";
 import "ai/stigmer/commons/apiresource/metadata.proto";
 import "buf/validate/validate.proto";
 
-// Project represents the aggregate root for resource lifecycle management.
-// It enables SDK synthesis with automatic reconciliation and orphan cleanup.
+// Project is a lightweight membership tracker that groups related resources
+// under a single unit of management with automatic orphan pruning.
 //
-// The Project Track workflow:
-// 1. SDK code defines resources (agents, workflows, skills, MCP servers)
-// 2. Running entry_point generates a resource manifest
-// 3. `stigmer apply` reconciles manifest with backend
-// 4. Resources removed from manifest are automatically deleted (pruning)
+// Two tracks are supported:
 //
-// Example YAML (stigmer.yaml):
+// Declarative Track (no entry_point):
+//   Place YAML resource files alongside stigmer.yaml. The CLI scans the
+//   directory, applies each resource individually, and updates the project
+//   membership. Resources removed from the directory are pruned.
+//
+// SDK Track (entry_point set):
+//   The CLI executes the entry_point to synthesize resources, applies each
+//   individually, and updates the project membership. The runtime is inferred
+//   from the entry_point file extension (.go, .py, .ts, .js).
+//
+// In both tracks, the project stores only references (org/kind/slug) to its
+// members — never full resource objects. Orphan pruning is a set-difference
+// between previous and current members.
+//
+// Example YAML — Declarative (stigmer.yaml):
+//
+//   apiVersion: agentic.stigmer.ai/v1
+//   kind: Project
+//   metadata:
+//     name: my-agent-fleet
+//     org: acme-corp
+//   spec:
+//     description: Production agent fleet
+//
+// Example YAML — SDK (stigmer.yaml):
+//
 //   apiVersion: agentic.stigmer.ai/v1
 //   kind: Project
 //   metadata:
 //     name: my-super-app
 //     org: acme-corp
 //   spec:
-//     runtime: go
 //     entry_point: main.go
+//     description: Go SDK project
 message Project {
   // API version for this resource type.
   string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
@@ -35,10 +56,11 @@ message Project {
   // Standard resource metadata including name, org, labels, and tags.
   ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
 
-  // Project-specific configuration.
+  // Project configuration: entry_point (optional), description, and members.
+  // See ProjectSpec for details on declarative vs SDK tracks.
   ProjectSpec spec = 4 [(buf.validate.field).required = true];
 
-  // System-managed status containing reconciliation state and audit info.
-  // The status.last_reconciliation field contains reconciliation results from Apply.
+  // System-managed status containing reconciliation results and audit info.
+  // Populated by the server in Apply responses — not set by clients.
   ProjectStatus status = 5;
 }
