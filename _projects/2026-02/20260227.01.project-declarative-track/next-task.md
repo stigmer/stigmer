@@ -14,61 +14,69 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-02-27 18:17
-**Current Task**: T01 — Phase 1 and Phase 2 complete, ready for Phase 3
+**Current Task**: T01 — Phases 1, 2, and 3 complete, ready for Phase 4
 **Status**: In Progress
 
-## Session Progress (2026-02-27, Session 2)
+## Session Progress (2026-02-27, Session 3)
 
-### Completed: T01 Phase 2 — Backend Reconciliation Simplification
+### Completed: T01 Phase 3 — CLI Declarative Track
 
-Replaced the entire ~10,000 LOC reconciliation engine (designed for server-side resource lifecycle with embedded objects, dependency graphs, topological sort) with a ~300 LOC reference-based reconciliation that does set-difference on `ApiResourceReference` members and orphan pruning.
+Implemented the full declarative apply flow and fixed all compilation breakage caused by the Phase 1 proto redesign (removal of `ProjectRuntime` enum and embedded resource fields).
 
-#### Deleted (11 production + 11 test files + README.md)
-- `desired_state`, `actual_state`, `diff`, `dependency_graph`, `dependency_discoverer`, `graph_builder`, `execution_order`, `resource_change`, `reconciliation_plan`, `change_type`, `resource_key` — all with their `_test.go` counterparts
+#### New File Created
+- `apply_declarative.go` — Core declarative flow: scan project directory for YAML resources (excluding stigmer.yaml), detect resource kinds, apply each individually via its own RPC, collect `ApiResourceReference`s, set them as `Project.Spec.Members`, call `project.Apply()` for server-side reconciliation, and render a structured summary result with member counts and reconciliation details.
 
-#### Rewritten (4 core files)
-- `reconciliation_service.go` — `Reconcile(ctx, previousMembers, currentMembers, options)` takes two flat reference lists
-- `reconciliation_result.go` — Uses `*ApiResourceReference` for added/removed, with `ToProtoSummary()` mapping
-- `execution_engine.go` — Stripped to `ResourceDeleter` interface + `ResourceDeleterAdapter`
-- `service.go` — Set-difference + orphan deletion via `ResourceDeleter` + reference resolution via `store.FindByField`
+#### Refactored (8 production files)
+- `detect.go` — Added `TrackDeclarative` constant; updated `DetectTrack` to differentiate declarative (no entry_point) from SDK (entry_point set)
+- `apply.go` — Three-way routing: `TrackAtomic` (no stigmer.yaml), `TrackDeclarative` (new), `TrackProject` (SDK). Removed dead functions referencing `ProjectRuntime`.
+- `apply_project.go` — Replaced with Phase 4 error stub: SDK track returns actionable error directing users to declarative mode
+- `apply_file.go` — `applyResourceItem` now returns `(*ApiResourceReference, error)` for reference collection
+- `apply_file_handlers.go` — Added `buildResourceReference` helper; `applyAgent/Workflow/McpServer` now return `*ApiResourceReference`
+- `display.go` — Rewrote for reference model: shows "Mode: SDK" or "Mode: declarative", displays member counts by `ApiResourceKind`
+- `validator.go` — Replaced `validateRuntimeEntryPoint` (referenced deleted enum) with `validateEntryPointExtension` (validates recognized SDK file extensions)
+- `applier.go` — Updated doc comments for reference-based reconciliation model
 
-#### Updated (controller + server)
-- `apply.go` — Captures previous members before Create/Update, passes both lists to `Reconcile()`
-- `project_controller.go` — Updated docs, simplified constructor
-- `server.go` — Swapped `ExecutionEngine` for `ResourceDeleterAdapter`
+#### Tests Updated (5 files)
+- `detect_test.go` — New fixtures for declarative/SDK modes, removed runtime-based tests
+- `display_test.go` — Full rewrite: uses `ApiResourceReference` members instead of embedded resources
+- `validator_test.go` — Full rewrite: extension-based validation instead of runtime-entrypoint cross-validation
+- `loader_test.go` — Removed `runtime` from all YAML fixtures, added `TestLoad_LegacyRuntimeFieldRejected`
+- `applier_test.go` — Removed `Runtime` field from test fixtures
 
-#### Tests (all rewritten)
-- `service_test.go` — 15 tests: set-difference, dry-run, orphan deletion, partial failure, stub mode
-- `execution_engine_test.go` — Tests for `ResourceDeleterAdapter` routing
-- `reconciliation_result_test.go` — Tests for `NewResult`, `EmptyResult`, `ResultBuilder`, `ToProtoSummary`
-- Controller tests (7 files) — Removed all `Agents`/`Workflows`/`McpServers`/`Skills`/`Runtime` references, replaced with `Members`
+#### Build Configuration
+- `BUILD.bazel` (root) — Added `apply_declarative.go` to `srcs`
 
 #### Verification
-- `bazel build //backend/services/stigmer-server/...` — 66 targets build
-- `bazel test //backend/services/stigmer-server/...` — 21 test targets pass
+- `go build ./cmd/stigmer/` — CLI binary compiles
+- `go test ./internal/cli/project/...` — All tests pass
+- `go test ./cmd/stigmer/root/...` — All tests pass
 
-### Previous Session: T01 Phase 1 — Proto API Changes
-- Redesigned `ProjectSpec` to reference-based membership model
-- Committed as `c2e69995`
+### Known Remaining Issue
+- `internal/cli/apply/synthesize.go` + `synthesize_test.go` — SDK synthesis engine references deleted `ProjectRuntime` enum. This code is dead (not imported by the CLI binary since SDK track was stubbed) and will be reworked in Phase 4.
+
+### Previous Sessions
+- **Session 2**: T01 Phase 2 — Backend reconciliation simplification (committed as `404296eb`)
+- **Session 1**: T01 Phase 1 — Proto API redesign (committed as `c2e69995`)
 
 ### Key Decisions Made
-1. `ResourceDeleter` is the only execution interface — no Create/Update on server side
-2. Reference resolution via `store.FindByField` for orphan deletion (kind + slug -> resource ID)
-3. Stub mode (nil deleter) marks orphans as removed without actually deleting — used by default in tests
-4. Partial failure semantics: continue deleting other orphans if one fails, accumulate errors
+1. `scanResourceFiles` scans top-level directory only (files next to stigmer.yaml) — keeps mental model simple
+2. `detectResourceItems` silently skips `Project` kind documents — avoids re-applying stigmer.yaml as a resource
+3. SDK track returns explicit error in Phase 3 rather than attempting partial adaptation
+4. `validateEntryPointExtension` replaces runtime-entrypoint cross-validation — runtime is now inferred from extension
+5. Dry-run mode reuses the same per-resource handlers, just skips backend connectivity
 
 ## Next Steps
 
-1. **Phase 3: CLI Declarative Track** — Add `TrackDeclarative` to track detection, implement directory scanning + individual resource apply + member collection flow.
-2. **Phase 4: Adapt SDK Track** — Update `executeProjectApply` to apply resources individually then send references.
-3. **Phase 5: Testing** — Unit and integration tests for all three tracks.
+1. **Phase 4: Adapt SDK Track** — Define local `Runtime` type in `apply` package to replace proto enum, update `synthesize.go` to use it, reconnect `executeProjectApply` to individual-resource-then-reference flow.
+2. **Phase 5: Testing** — Unit and integration tests for all three tracks.
 
 ## Context for Resume
 
-- Phases 1 and 2 are fully complete — protos redesigned, backend reconciliation simplified
-- The CLI `apply_project.go` still assigns synthesized resources to the old `proj.Spec.Agents` etc. fields — these no longer exist in the proto. This will be fixed in Phase 3/4.
-- The backend is fully functional: apply a project with `spec.members` and it will track membership, compute added/orphaned, and optionally delete orphans
-- `DownstreamClients` and client interfaces (`AgentClient`, `WorkflowClient`, etc.) are unchanged — they're shared with bootstrap
+- Phases 1, 2, and 3 are fully complete — protos redesigned, backend reconciliation simplified, CLI declarative track implemented
+- The only dead code remaining is `internal/cli/apply/synthesize.go` (SDK synthesis) which references the deleted `ProjectRuntime` enum — Phase 4 will define a local `Runtime` string type to replace it
+- The CLI binary compiles and all tests in the affected packages pass
+- Bazel builds are blocked by a pre-existing `com_github_alecthomas_chroma_v2` dependency resolution issue (unrelated to our changes)
+- The `resolveApplyOrganization` function in `apply.go` handles org from: flag override → stigmer.yaml metadata → CLI context → local fallback
 
 ## Essential Files to Review
 
@@ -116,12 +124,12 @@ When starting a new session:
 3. [ ] Review design decisions in `design-decisions/`
 4. [ ] Check coding guidelines in `coding-guidelines/`
 5. [ ] Review lessons in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with Phase 3 (CLI Declarative Track)
+6. [ ] Continue with Phase 4 (Adapt SDK Track)
 
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 3" - Start CLI declarative track implementation
+- "Continue with Phase 4" - Start SDK track adaptation
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/project/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
 )
 
@@ -31,7 +32,7 @@ func displayProjectTable(project *projectv1.Project) {
 	fmt.Printf("Spec:\n")
 	displayProjectSummary(project)
 
-	displayResourceCounts(project)
+	displayMemberCounts(project)
 	fmt.Println()
 }
 
@@ -40,15 +41,11 @@ func displayProjectSummary(project *projectv1.Project) {
 		return
 	}
 
-	runtime := runtimeToString(project.Spec.Runtime)
-	fmt.Printf("  Runtime:     %s\n", runtime)
-
-	entryPoint := project.Spec.EntryPoint
-	if entryPoint == "" {
-		entryPoint = getDefaultEntryPoint(project.Spec.Runtime)
-		fmt.Printf("  Entry Point: %s (default)\n", entryPoint)
+	if project.Spec.EntryPoint != "" {
+		fmt.Printf("  Entry Point: %s\n", project.Spec.EntryPoint)
+		fmt.Printf("  Mode:        SDK\n")
 	} else {
-		fmt.Printf("  Entry Point: %s\n", entryPoint)
+		fmt.Printf("  Mode:        declarative\n")
 	}
 
 	if project.Spec.Description != "" {
@@ -56,30 +53,37 @@ func displayProjectSummary(project *projectv1.Project) {
 	}
 }
 
-// displayResourceCounts displays the resource counts derived from spec.
-// Counts are computed from the spec fields, not stored separately.
-func displayResourceCounts(project *projectv1.Project) {
+// displayMemberCounts displays the member counts grouped by resource kind.
+func displayMemberCounts(project *projectv1.Project) {
 	if project.Spec == nil {
 		return
 	}
 
+	counts := make(map[apiresourcekind.ApiResourceKind]int)
+	for _, m := range project.Spec.Members {
+		counts[m.Kind]++
+	}
+
+	if len(counts) == 0 {
+		return
+	}
+
 	var parts []string
-	if len(project.Spec.Agents) > 0 {
-		parts = append(parts, fmt.Sprintf("%d agents", len(project.Spec.Agents)))
+	kindOrder := []apiresourcekind.ApiResourceKind{
+		apiresourcekind.ApiResourceKind_agent,
+		apiresourcekind.ApiResourceKind_workflow,
+		apiresourcekind.ApiResourceKind_mcp_server,
+		apiresourcekind.ApiResourceKind_skill,
 	}
-	if len(project.Spec.Workflows) > 0 {
-		parts = append(parts, fmt.Sprintf("%d workflows", len(project.Spec.Workflows)))
-	}
-	if len(project.Spec.Skills) > 0 {
-		parts = append(parts, fmt.Sprintf("%d skills", len(project.Spec.Skills)))
-	}
-	if len(project.Spec.McpServers) > 0 {
-		parts = append(parts, fmt.Sprintf("%d mcp servers", len(project.Spec.McpServers)))
+	for _, kind := range kindOrder {
+		if c, ok := counts[kind]; ok {
+			parts = append(parts, fmt.Sprintf("%d %s(s)", c, kind.String()))
+		}
 	}
 
 	if len(parts) > 0 {
 		fmt.Println()
-		fmt.Printf("Resources:\n")
+		fmt.Printf("Members:\n")
 		fmt.Printf("  %s\n", strings.Join(parts, ", "))
 	}
 }
@@ -101,36 +105,12 @@ func DisplayValidationSuccess(project *projectv1.Project, sourcePath string) {
 	fmt.Println()
 	fmt.Printf("  File:    %s\n", sourcePath)
 	fmt.Printf("  Name:    %s\n", project.Metadata.Name)
-	fmt.Printf("  Runtime: %s\n", runtimeToString(project.Spec.Runtime))
+	if project.Spec != nil && project.Spec.EntryPoint != "" {
+		fmt.Printf("  Mode:    SDK (entry_point: %s)\n", project.Spec.EntryPoint)
+	} else {
+		fmt.Printf("  Mode:    declarative\n")
+	}
 	fmt.Println()
-}
-
-// runtimeToString converts a ProjectRuntime enum to a lowercase display string.
-func runtimeToString(runtime projectv1.ProjectRuntime) string {
-	switch runtime {
-	case projectv1.ProjectRuntime_go:
-		return "go"
-	case projectv1.ProjectRuntime_python:
-		return "python"
-	case projectv1.ProjectRuntime_node:
-		return "node"
-	default:
-		return "unknown"
-	}
-}
-
-// getDefaultEntryPoint returns the default entry point for a given runtime.
-func getDefaultEntryPoint(runtime projectv1.ProjectRuntime) string {
-	switch runtime {
-	case projectv1.ProjectRuntime_go:
-		return "main.go"
-	case projectv1.ProjectRuntime_python:
-		return "main.py"
-	case projectv1.ProjectRuntime_node:
-		return "index.ts"
-	default:
-		return ""
-	}
 }
 
 // DisplayGetResult displays a project in the specified format.
@@ -141,7 +121,6 @@ func DisplayGetResult(project *projectv1.Project, format string) {
 }
 
 // displayProjectGetTable displays the project in detailed table format for get command.
-// This differs from displayProjectTable by showing more backend-specific fields.
 func displayProjectGetTable(project *projectv1.Project) {
 	fmt.Println()
 	fmt.Printf("Project: %s\n", project.Metadata.Name)
@@ -157,6 +136,6 @@ func displayProjectGetTable(project *projectv1.Project) {
 	fmt.Printf("Spec:\n")
 	displayProjectSummary(project)
 
-	displayResourceCounts(project)
+	displayMemberCounts(project)
 	fmt.Println()
 }

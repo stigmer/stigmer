@@ -35,12 +35,18 @@ type Track string
 const (
 	// TrackAtomic indicates no stigmer.yaml was found.
 	// In this mode, resources are applied directly without project context.
-	// Example: stigmer agent apply agent.yaml
+	// Example: stigmer apply -f agent.yaml
 	TrackAtomic Track = "atomic"
 
-	// TrackProject indicates a valid stigmer.yaml was found.
-	// In this mode, SDK synthesis is used with project-based reconciliation.
-	// Example: stigmer apply (runs SDK, applies all resources as a unit)
+	// TrackDeclarative indicates a stigmer.yaml was found without an entry_point.
+	// In this mode, the CLI scans the project directory for YAML resource files,
+	// applies each individually, and tracks project membership for reconciliation.
+	// Example: stigmer apply (scans directory, applies resources, updates project)
+	TrackDeclarative Track = "declarative"
+
+	// TrackProject indicates a stigmer.yaml was found with an entry_point set.
+	// In this mode, SDK synthesis executes the entry point to generate resources.
+	// Example: stigmer apply (runs SDK entry point, synthesizes resources)
 	TrackProject Track = "project"
 )
 
@@ -94,11 +100,12 @@ type DetectResult struct {
 //  1. Start from StartDir (or cwd if empty)
 //  2. Check if stigmer.yaml exists in current directory
 //  3. If found, load and validate it
-//  4. If valid, return TrackProject with the loaded Project
-//  5. If invalid, return an error (not a silent fallback to Atomic)
-//  6. If not found, walk up to parent directory
-//  7. Repeat until filesystem root or MaxDepth is reached
-//  8. If no stigmer.yaml found, return TrackAtomic
+//  4. If valid and entry_point is set, return TrackProject (SDK)
+//  5. If valid and entry_point is empty, return TrackDeclarative
+//  6. If invalid, return an error (not a silent fallback to Atomic)
+//  7. If not found, walk up to parent directory
+//  8. Repeat until filesystem root or MaxDepth is reached
+//  9. If no stigmer.yaml found, return TrackAtomic
 //
 // Error philosophy:
 //   - No stigmer.yaml found → TrackAtomic (expected for single-resource workflows)
@@ -131,8 +138,13 @@ func DetectTrack(opts *DetectOptions) (*DetectResult, error) {
 			configPath)
 	}
 
+	track := TrackDeclarative
+	if loadResult.Project.Spec != nil && loadResult.Project.Spec.EntryPoint != "" {
+		track = TrackProject
+	}
+
 	return &DetectResult{
-		Track:      TrackProject,
+		Track:      track,
 		ConfigPath: configPath,
 		ConfigDir:  filepath.Dir(configPath),
 		Project:    loadResult.Project,
