@@ -80,6 +80,8 @@ def _make_git_backend(tmp_path) -> LocalWorkspaceBackend:
     original_execute = backend.execute
 
     def _patched_execute(command, *, cwd=None, timeout=30):
+        if "test -d .git" in command:
+            return ExecuteResult(exit_code=0, stdout="no\n", stderr="")
         if command.startswith("ls -A"):
             return ExecuteResult(exit_code=0, stdout="", stderr="")
         if command.startswith("git clone"):
@@ -106,23 +108,21 @@ def _make_git_backend(tmp_path) -> LocalWorkspaceBackend:
 class TestDispatchEmpty:
     """None or unset workspace_source dispatches to empty source."""
 
-    @pytest.mark.asyncio
-    async def test_none_source(self, tmp_path):
+    def test_none_source(self, tmp_path):
         backend = LocalWorkspaceBackend(root_dir=tmp_path)
         provisioner = WorkspaceProvisioner()
-        result = await provisioner.provision(None, backend, {}, is_local_mode=True)
+        result = provisioner.provision(None, backend, {}, is_local_mode=True)
 
         assert result.source_type is SourceType.EMPTY
         assert result.root_dir == backend.root_dir
         assert result.consumed_keys == ()
         assert result.git_metadata is None
 
-    @pytest.mark.asyncio
-    async def test_source_with_no_variant_set(self, tmp_path):
+    def test_source_with_no_variant_set(self, tmp_path):
         source = _MockWorkspaceSource()  # neither git_repo nor local_path
         backend = LocalWorkspaceBackend(root_dir=tmp_path)
         provisioner = WorkspaceProvisioner()
-        result = await provisioner.provision(source, backend, {}, is_local_mode=True)
+        result = provisioner.provision(source, backend, {}, is_local_mode=True)
 
         assert result.source_type is SourceType.EMPTY
 
@@ -130,14 +130,13 @@ class TestDispatchEmpty:
 class TestDispatchGitRepo:
     """workspace_source.git_repo dispatches to git source."""
 
-    @pytest.mark.asyncio
-    async def test_git_repo_dispatched(self, tmp_path):
+    def test_git_repo_dispatched(self, tmp_path):
         git = _MockGitRepoSource(url="https://github.com/acme/repo.git")
         source = _MockWorkspaceSource(git_repo=git)
         backend = _make_git_backend(tmp_path)
         provisioner = WorkspaceProvisioner()
 
-        result = await provisioner.provision(
+        result = provisioner.provision(
             source, backend, {"GITHUB_TOKEN": "ghp_test123"}, is_local_mode=True
         )
 
@@ -150,29 +149,27 @@ class TestDispatchGitRepo:
 class TestDispatchLocalPath:
     """workspace_source.local_path dispatches to local_path source."""
 
-    @pytest.mark.asyncio
-    async def test_local_path_dispatched(self, tmp_path):
+    def test_local_path_dispatched(self, tmp_path):
         local = _MockLocalPathSource(path=str(tmp_path))
         source = _MockWorkspaceSource(local_path=local)
         backend = LocalWorkspaceBackend(root_dir=tmp_path / "unused")
         provisioner = WorkspaceProvisioner()
 
-        result = await provisioner.provision(
+        result = provisioner.provision(
             source, backend, {}, is_local_mode=True
         )
 
         assert result.source_type is SourceType.LOCAL_PATH
         assert result.root_dir == str(tmp_path)
 
-    @pytest.mark.asyncio
-    async def test_local_path_cloud_rejected(self, tmp_path):
+    def test_local_path_cloud_rejected(self, tmp_path):
         local = _MockLocalPathSource(path=str(tmp_path))
         source = _MockWorkspaceSource(local_path=local)
         backend = LocalWorkspaceBackend(root_dir=tmp_path / "unused")
         provisioner = WorkspaceProvisioner()
 
         with pytest.raises(WorkspaceProvisionError, match="local mode"):
-            await provisioner.provision(
+            provisioner.provision(
                 source, backend, {}, is_local_mode=False
             )
 
@@ -185,8 +182,7 @@ class TestDispatchLocalPath:
 class TestPrefixStripping:
     """Reserved WORKSPACE_PROVISION_-prefixed keys are always consumed."""
 
-    @pytest.mark.asyncio
-    async def test_prefix_keys_added_to_consumed(self, tmp_path):
+    def test_prefix_keys_added_to_consumed(self, tmp_path):
         backend = LocalWorkspaceBackend(root_dir=tmp_path)
         provisioner = WorkspaceProvisioner()
 
@@ -195,14 +191,13 @@ class TestPrefixStripping:
             "WORKSPACE_PROVISION_SECRET": "val2",
             "REGULAR_KEY": "val3",
         }
-        result = await provisioner.provision(None, backend, env, is_local_mode=True)
+        result = provisioner.provision(None, backend, env, is_local_mode=True)
 
         assert "WORKSPACE_PROVISION_CUSTOM" in result.consumed_keys
         assert "WORKSPACE_PROVISION_SECRET" in result.consumed_keys
         assert "REGULAR_KEY" not in result.consumed_keys
 
-    @pytest.mark.asyncio
-    async def test_prefix_keys_merged_with_source_keys(self, tmp_path):
+    def test_prefix_keys_merged_with_source_keys(self, tmp_path):
         git = _MockGitRepoSource(url="https://github.com/acme/repo.git")
         source = _MockWorkspaceSource(git_repo=git)
         backend = _make_git_backend(tmp_path)
@@ -212,19 +207,18 @@ class TestPrefixStripping:
             "GITHUB_TOKEN": "ghp_test",
             "WORKSPACE_PROVISION_EXTRA": "x",
         }
-        result = await provisioner.provision(
+        result = provisioner.provision(
             source, backend, env, is_local_mode=True
         )
 
         assert "GITHUB_TOKEN" in result.consumed_keys
         assert "WORKSPACE_PROVISION_EXTRA" in result.consumed_keys
 
-    @pytest.mark.asyncio
-    async def test_no_prefix_keys_means_no_extra_consumed(self, tmp_path):
+    def test_no_prefix_keys_means_no_extra_consumed(self, tmp_path):
         backend = LocalWorkspaceBackend(root_dir=tmp_path)
         provisioner = WorkspaceProvisioner()
 
-        result = await provisioner.provision(
+        result = provisioner.provision(
             None, backend, {"SOME_KEY": "v"}, is_local_mode=True
         )
 
