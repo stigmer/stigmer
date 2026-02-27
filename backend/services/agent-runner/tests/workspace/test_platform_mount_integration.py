@@ -7,15 +7,12 @@ runtime sees the correct paths, and the workspace directory remains clean.
 
 from __future__ import annotations
 
-import os
 import stat
-from pathlib import Path
-from unittest.mock import MagicMock
 
 import pytest
-
 from graphton.core.backends.filesystem import FilesystemBackend
 from graphton.core.sandbox_factory import create_sandbox_backend
+
 from worker.workspace.local import LocalWorkspaceBackend
 from worker.workspace.platform_mount import (
     PLATFORM_DIR_NAME,
@@ -23,7 +20,6 @@ from worker.workspace.platform_mount import (
     STIGMER_PLATFORM_DIR_ENV,
     classify_platform_path,
 )
-
 
 # =============================================================================
 # classify_platform_path — unit-level exhaustive coverage

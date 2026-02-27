@@ -8,8 +8,6 @@ tests use mocked sandbox.
 
 from unittest.mock import MagicMock
 
-import pytest
-
 from worker.workspace.local import LocalWorkspaceBackend
 
 

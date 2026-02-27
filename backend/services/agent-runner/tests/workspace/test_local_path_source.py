@@ -7,7 +7,6 @@ import pytest
 from worker.workspace.provisioner import SourceType, WorkspaceProvisionError
 from worker.workspace.sources import local_path as local_path_source
 
-
 # ---------------------------------------------------------------------------
 # Mock proto
 # ---------------------------------------------------------------------------

@@ -5,13 +5,12 @@ These tests verify the adapter's correct translation of protocol calls
 to Daytona SDK calls.
 """
 
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock
 
 import pytest
 
 from worker.workspace.backend import ExecuteResult, WorkspaceBackend
 from worker.workspace.daytona import DaytonaWorkspaceBackend
-
 
 # ---------------------------------------------------------------------------
 # Helpers

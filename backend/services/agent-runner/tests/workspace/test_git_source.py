@@ -12,7 +12,6 @@ from worker.workspace.provisioner import (
 )
 from worker.workspace.sources import git as git_source
 
-
 # ---------------------------------------------------------------------------
 # Mock proto + backend helpers
 # ---------------------------------------------------------------------------

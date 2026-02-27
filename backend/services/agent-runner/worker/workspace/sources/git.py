@@ -83,11 +83,11 @@ def provision(
     Raises:
         WorkspaceProvisionError: Clone failure, auth error, bad branch, etc.
     """
-    url: str = source.url  # type: ignore[union-attr]
-    branch: str = source.branch  # type: ignore[union-attr]
-    commit: str = source.commit  # type: ignore[union-attr]
-    has_depth = source.HasField("depth")  # type: ignore[union-attr]
-    depth: int = source.depth if has_depth else -1  # type: ignore[union-attr]
+    url: str = source.url  # type: ignore[attr-defined]
+    branch: str = source.branch  # type: ignore[attr-defined]
+    commit: str = source.commit  # type: ignore[attr-defined]
+    has_depth = source.HasField("depth")  # type: ignore[attr-defined]
+    depth: int = source.depth if has_depth else -1  # type: ignore[attr-defined]
 
     token = merged_env.get(_TOKEN_KEY)
 

@@ -221,24 +221,24 @@ class WorkspaceProvisioner:
             self._log.info("No workspace source configured — using empty workspace")
             return empty_source.provision(backend)
 
-        if workspace_source.HasField("git_repo"):  # type: ignore[union-attr]
+        if workspace_source.HasField("git_repo"):  # type: ignore[attr-defined]
             self._log.info(
                 "Provisioning git workspace: url=%s",
-                workspace_source.git_repo.url,  # type: ignore[union-attr]
+                workspace_source.git_repo.url,  # type: ignore[attr-defined]
             )
             return git_source.provision(
-                workspace_source.git_repo,  # type: ignore[union-attr]
+                workspace_source.git_repo,  # type: ignore[attr-defined]
                 backend,
                 merged_env,
             )
 
-        if workspace_source.HasField("local_path"):  # type: ignore[union-attr]
+        if workspace_source.HasField("local_path"):  # type: ignore[attr-defined]
             self._log.info(
                 "Provisioning local-path workspace: path=%s",
-                workspace_source.local_path.path,  # type: ignore[union-attr]
+                workspace_source.local_path.path,  # type: ignore[attr-defined]
             )
             return local_path_source.provision(
-                workspace_source.local_path,  # type: ignore[union-attr]
+                workspace_source.local_path,  # type: ignore[attr-defined]
                 is_local_mode=is_local_mode,
             )
 

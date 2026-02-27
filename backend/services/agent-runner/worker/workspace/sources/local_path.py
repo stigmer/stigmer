@@ -38,7 +38,7 @@ def provision(
         WorkspaceProvisionError: If the runner is not in local mode,
             the path is relative, does not exist, or is not a directory.
     """
-    path: str = source.path  # type: ignore[union-attr]
+    path: str = source.path  # type: ignore[attr-defined]
 
     if not is_local_mode:
         raise WorkspaceProvisionError(

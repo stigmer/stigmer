@@ -3,20 +3,18 @@
 from __future__ import annotations
 
 from dataclasses import FrozenInstanceError
-from unittest.mock import MagicMock
 
 import pytest
 
-from worker.workspace.backend import ExecuteResult, WorkspaceBackend
+from worker.workspace.backend import ExecuteResult
 from worker.workspace.local import LocalWorkspaceBackend
 from worker.workspace.provisioner import (
     GitMetadata,
     ProvisionResult,
     SourceType,
-    WorkspaceProvisionError,
     WorkspaceProvisioner,
+    WorkspaceProvisionError,
 )
-
 
 # ---------------------------------------------------------------------------
 # Lightweight proto mocks — duck-typed to match HasField / attribute access
