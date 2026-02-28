@@ -4,6 +4,9 @@ Complete documentation index for the Stigmer open-source project.
 
 ## Quick Navigation
 
+### Product Concepts
+- [What is an Agent?](product/what-is-agent.md) - Positioning, the problem it solves, architecture, and how to get started
+
 ### Getting Started
 - [Local Mode](getting-started/local-mode.md) - Running Stigmer locally for development
 
