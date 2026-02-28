@@ -507,11 +507,11 @@ jobs:
 
             def caveats
               <<~EOS
-                Configure an LLM provider before starting the server:
+                stigmer server will auto-detect API keys from your environment.
 
-                  Option 1 — Anthropic (recommended):  export ANTHROPIC_API_KEY=sk-ant-...
-                  Option 2 — OpenAI:                    export OPENAI_API_KEY=sk-...
-                  Option 3 — Ollama (free, local):      brew install ollama && ollama serve
+                  Option 1 (recommended):       export ANTHROPIC_API_KEY=sk-ant-...
+                  Option 2:                      export OPENAI_API_KEY=sk-...
+                  Option 3 (local, lower quality): brew install ollama && ollama serve
 
                 Then run:  stigmer server
               EOS

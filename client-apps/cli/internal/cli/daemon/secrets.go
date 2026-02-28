@@ -88,8 +88,6 @@ func GatherRequiredSecrets(llmProvider string, localCfg *config.LocalBackendConf
 		climsg.Success("OpenAI API key configured")
 
 	case "":
-		climsg.Warning("No LLM provider configured. Agents will not execute.")
-		climsg.Warning("Run 'stigmer server setup' to configure an LLM provider.")
 		return secrets, nil
 
 	default:
