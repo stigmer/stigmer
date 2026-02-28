@@ -176,8 +176,30 @@ func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 		return
 	}
 
+	// Wait for the gRPC server to accept connections before proceeding.
+	// StartWithOptions spawns the server process and returns immediately;
+	// the gRPC listener is the last component to start (after SQLite,
+	// controllers, Temporal workers, search index, and supervisor), so a
+	// successful connection here guarantees full readiness.
 	if progress != nil {
-		progress.CompletePhase(cliprint.PhaseDeploying)
+		progress.SetPhase(cliprint.PhaseReady, "Waiting for services")
+	}
+
+	readyCtx, readyCancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer readyCancel()
+
+	endpoint := fmt.Sprintf("localhost:%d", daemon.DaemonPort)
+	if err := daemon.WaitForReady(readyCtx, endpoint); err != nil {
+		if progress != nil {
+			progress.Stop()
+		}
+		climsg.Error("Server failed to become ready: %v", err)
+		clierr.Handle(err)
+		return
+	}
+
+	if progress != nil {
+		progress.CompletePhase(cliprint.PhaseReady)
 		progress.Stop()
 	}
 
