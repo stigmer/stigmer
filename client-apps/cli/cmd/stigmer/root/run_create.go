@@ -20,15 +20,16 @@ import (
 //   - SessionID: creates a follow-up execution within an existing session
 //     (the backend infers the agent from the session).
 type CreateAgentExecutionInput struct {
-	AgentID        string
-	SessionID      string
-	OrgID          string
-	Message        string
-	RuntimeEnv     envfile.EnvMap
-	Attachments    []*agentexecutionv1.Attachment
-	Model          string
-	AutoApproveAll bool
-	Conn           *grpc.ClientConn
+	AgentID           string
+	SessionID         string
+	OrgID             string
+	Message           string
+	RuntimeEnv        envfile.EnvMap
+	Attachments       []*agentexecutionv1.Attachment
+	WorkspaceFileRefs []string
+	Model             string
+	AutoApproveAll    bool
+	Conn              *grpc.ClientConn
 }
 
 // createAgentExecution creates a new agent execution within a session.
@@ -45,10 +46,11 @@ func createAgentExecution(input CreateAgentExecutionInput) (*agentexecutionv1.Ag
 	executionName := fmt.Sprintf("execution-%d", time.Now().UnixMicro())
 
 	spec := &agentexecutionv1.AgentExecutionSpec{
-		Message:        message,
-		RuntimeEnv:     input.RuntimeEnv,
-		Attachments:    input.Attachments,
-		AutoApproveAll: input.AutoApproveAll,
+		Message:           message,
+		RuntimeEnv:        input.RuntimeEnv,
+		Attachments:       input.Attachments,
+		WorkspaceFileRefs: input.WorkspaceFileRefs,
+		AutoApproveAll:    input.AutoApproveAll,
 	}
 
 	if input.SessionID != "" {

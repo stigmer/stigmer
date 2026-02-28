@@ -623,6 +623,47 @@ def build_workspace_prompt_section(
     return "\n\n## Workspace\n\n" + provision_result.workspace_description
 
 
+def build_referenced_files_prompt_section(
+    workspace_file_refs: list[str],
+    workspace_root: str,
+) -> str:
+    """Build the ``## Referenced Files`` system prompt section.
+
+    When the user attaches files that are inside the workspace, the CLI
+    records them as workspace-relative paths instead of uploading them.
+    This function builds a system prompt section telling the agent to
+    read those files directly from the workspace.
+
+    Args:
+        workspace_file_refs: Workspace-relative file paths.
+        workspace_root: Absolute path to the workspace root (used to
+            stat files for size info).
+
+    Returns:
+        The section string (with leading newlines) or empty string if
+        no refs are provided.
+    """
+    if not workspace_file_refs:
+        return ""
+
+    section = (
+        "\n\n## Referenced Files\n\n"
+        "The user has highlighted the following workspace files for your "
+        "attention. Read them directly at their workspace-relative paths "
+        "using the `read` tool.\n\n"
+    )
+
+    for ref_path in workspace_file_refs:
+        full_path = os.path.join(workspace_root, ref_path)
+        try:
+            size = os.path.getsize(full_path)
+            section += f"- `{ref_path}` ({size} bytes)\n"
+        except OSError:
+            section += f"- `{ref_path}`\n"
+
+    return section
+
+
 def _generate_git_diff_artifact(
     workspace_backend: WorkspaceBackend,
     provision_result: ProvisionResult,
@@ -1700,7 +1741,21 @@ async def _execute_graphton_impl(
         if skills_prompt_section:
             enhanced_system_prompt += skills_prompt_section
             activity_logger.info("Enhanced system prompt with skills metadata")
-        
+
+        workspace_file_refs = list(
+            execution.spec.workspace_file_refs
+        ) if execution.spec.workspace_file_refs else []
+        if workspace_file_refs:
+            ref_section = build_referenced_files_prompt_section(
+                workspace_file_refs, workspace_backend.root_dir,
+            )
+            if ref_section:
+                enhanced_system_prompt += ref_section
+                activity_logger.info(
+                    "Enhanced system prompt with %d workspace file ref(s)",
+                    len(workspace_file_refs),
+                )
+
         if injected_files:
             input_files_section = "\n\n## Input Files\n\n"
             input_files_section += (

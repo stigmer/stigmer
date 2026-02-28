@@ -34,7 +34,7 @@ import (
 //
 // defaultAction is the --approve-default flag value; when set, non-TTY approvals
 // are auto-resolved without prompting.
-func runAgent(ref, message string, env envfile.EnvMap, attachments []*agentexecutionv1.Attachment, workspaceSource *sessionv1.WorkspaceSource, detach bool, downloadDir, orgID string, defaultAction approval.Action, verbose bool, conn *grpc.ClientConn) error {
+func runAgent(ref, message string, env envfile.EnvMap, attachResult *AttachmentResult, workspaceSource *sessionv1.WorkspaceSource, detach bool, downloadDir, orgID string, defaultAction approval.Action, verbose bool, conn *grpc.ClientConn) error {
 	// Resolve agent by reference
 	agent, err := resolveAgent(ref, orgID, conn)
 	if err != nil {
@@ -43,12 +43,13 @@ func runAgent(ref, message string, env envfile.EnvMap, attachments []*agentexecu
 	}
 
 	input := CreateAgentExecutionInput{
-		AgentID:     agent.Metadata.Id,
-		OrgID:       orgID,
-		Message:     message,
-		RuntimeEnv:  env,
-		Attachments: attachments,
-		Conn:        conn,
+		AgentID:           agent.Metadata.Id,
+		OrgID:             orgID,
+		Message:           message,
+		RuntimeEnv:        env,
+		Attachments:       attachResult.Attachments,
+		WorkspaceFileRefs: attachResult.WorkspaceFileRefs,
+		Conn:              conn,
 	}
 
 	// When a workspace is requested, create the session explicitly so
@@ -71,8 +72,9 @@ func runAgent(ref, message string, env envfile.EnvMap, attachments []*agentexecu
 		input.AgentID = ""
 	}
 
-	if len(attachments) > 0 {
-		climsg.Info("Starting execution with %d attachment(s)...", len(attachments))
+	totalInputFiles := len(attachResult.Attachments) + len(attachResult.WorkspaceFileRefs)
+	if totalInputFiles > 0 {
+		climsg.Info("Starting execution with %d input file(s)...", totalInputFiles)
 	} else if workspaceSource == nil {
 		climsg.Info("Starting session...")
 	}

@@ -213,9 +213,31 @@ type AgentExecutionSpec struct {
 	//	stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
 	//
 	// @since Artifact Lifecycle (Attachments & Outputs)
-	Attachments   []*Attachment `protobuf:"bytes,9,rep,name=attachments,proto3" json:"attachments,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Attachments []*Attachment `protobuf:"bytes,9,rep,name=attachments,proto3" json:"attachments,omitempty"`
+	// Workspace-relative file paths the user wants the agent to focus on.
+	//
+	// When users attach files that already exist inside the session's workspace,
+	// the CLI skips the upload/injection flow and records the workspace-relative
+	// path here instead. The agent accesses these files directly via the
+	// workspace filesystem -- no upload, no copy, no injection.
+	//
+	// This separates the "attention" signal ("look at this file") from the
+	// "transport" mechanism (upload + inject) that regular attachments use.
+	//
+	// Valid only when the session has a workspace_source with a local path.
+	// For git workspaces or sessions without a workspace, all files go through
+	// the regular attachment flow.
+	//
+	// Example CLI usage:
+	//
+	//	stigmer run agent reviewer --workspace . --attach ./src/config.yaml -m "Review"
+	//	# CLI detects src/config.yaml is inside workspace -> workspace_file_ref
+	//	# No upload, no injection; agent reads directly from src/config.yaml
+	//
+	// @since Workspace-Aware File Referencing
+	WorkspaceFileRefs []string `protobuf:"bytes,10,rep,name=workspace_file_refs,json=workspaceFileRefs,proto3" json:"workspace_file_refs,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *AgentExecutionSpec) Reset() {
@@ -307,6 +329,13 @@ func (x *AgentExecutionSpec) GetParentWorkflowId() string {
 func (x *AgentExecutionSpec) GetAttachments() []*Attachment {
 	if x != nil {
 		return x.Attachments
+	}
+	return nil
+}
+
+func (x *AgentExecutionSpec) GetWorkspaceFileRefs() []string {
+	if x != nil {
+		return x.WorkspaceFileRefs
 	}
 	return nil
 }
@@ -645,7 +674,7 @@ var File_ai_stigmer_agentic_agentexecution_v1_spec_proto protoreflect.FileDescri
 
 const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"/ai/stigmer/agentic/agentexecution/v1/spec.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"\x88\x05\n" +
+	"/ai/stigmer/agentic/agentexecution/v1/spec.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"\xb8\x05\n" +
 	"\x12AgentExecutionSpec\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x19\n" +
@@ -657,7 +686,9 @@ const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\x0ecallback_token\x18\x06 \x01(\fR\rcallbackToken\x12(\n" +
 	"\x10auto_approve_all\x18\a \x01(\bR\x0eautoApproveAll\x12,\n" +
 	"\x12parent_workflow_id\x18\b \x01(\tR\x10parentWorkflowId\x12R\n" +
-	"\vattachments\x18\t \x03(\v20.ai.stigmer.agentic.agentexecution.v1.AttachmentR\vattachments\x1au\n" +
+	"\vattachments\x18\t \x03(\v20.ai.stigmer.agentic.agentexecution.v1.AttachmentR\vattachments\x12.\n" +
+	"\x13workspace_file_refs\x18\n" +
+	" \x03(\tR\x11workspaceFileRefs\x1au\n" +
 	"\x0fRuntimeEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12L\n" +
 	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01\"\x9e\x01\n" +
