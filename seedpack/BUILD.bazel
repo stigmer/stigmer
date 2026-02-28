@@ -6,19 +6,17 @@ go_library(
         "embed.go",
         "seedpack.go",
     ],
-    embedsrcs = glob([
+    embedsrcs = [
+        "stigmer.yaml",
+    ] + glob([
         "skills/**",
         "agents/**",
         "mcp-servers/**",
     ]),
-    importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/seedpack",
+    importpath = "github.com/stigmer/stigmer/seedpack",
     visibility = ["//visibility:public"],
     deps = [
-        "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
-        "//apis/stubs/go/ai/stigmer/agentic/mcpserver/v1:mcpserver",
         "@com_github_pkg_errors//:errors",
-        "@in_gopkg_yaml_v3//:yaml_v3",
-        "@org_golang_google_protobuf//encoding/protojson",
     ],
 )
 

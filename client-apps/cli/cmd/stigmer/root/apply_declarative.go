@@ -7,13 +7,16 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"google.golang.org/grpc"
 
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/artifact"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/project"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/skill"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
@@ -21,36 +24,46 @@ import (
 
 // executeDeclarativeApply implements the declarative track:
 //
-//  1. Scan the project directory for YAML resource files (excluding stigmer.yaml)
-//  2. Detect resource kinds in each file
-//  3. Apply each resource individually via its own RPC
-//  4. Collect ApiResourceReferences from successful applies
-//  5. Set collected references as Project.Spec.Members
-//  6. Apply the project to register membership for reconciliation
-//  7. Render the summary result
+//  1. Scan the project directory for YAML resource files and skill directories
+//  2. Detect resource kinds in each YAML file
+//  3. Push skill directories first (agents may reference these skills)
+//  4. Apply each YAML resource individually via its own RPC
+//  5. Collect ApiResourceReferences from all pushed/applied resources
+//  6. Set collected references as Project.Spec.Members
+//  7. Apply the project to register membership for reconciliation
+//  8. Render the summary result
 func executeDeclarativeApply(detectResult *project.DetectResult, opts projectApplyOptions) error {
 	renderer := clioutput.NewRenderer(opts.OutputFormat, os.Stdout, os.Stderr)
 
 	climsg.Info("Declarative mode: found %s", detectResult.ConfigPath)
 
-	// Phase 1: Scan directory for resource files
+	// Phase 1: Scan directory for resource files and skill directories
 	resourceFiles, err := scanResourceFiles(detectResult.ConfigDir)
 	if err != nil {
 		return errors.Wrap(err, "failed to scan project directory")
 	}
 
-	if len(resourceFiles) == 0 {
+	skillDirs, err := scanSkillDirectories(detectResult.ConfigDir)
+	if err != nil {
+		return errors.Wrap(err, "failed to scan for skill directories")
+	}
+
+	if len(resourceFiles) == 0 && len(skillDirs) == 0 {
 		renderer.Render(buildNoResourcesResult(detectResult.ConfigDir))
 		return nil
 	}
 
 	// Phase 2: Detect resource kinds in all files
-	items, err := detectResourceItems(resourceFiles)
-	if err != nil {
-		return err
+	var items []applyItem
+	if len(resourceFiles) > 0 {
+		items, err = detectResourceItems(resourceFiles)
+		if err != nil {
+			return err
+		}
 	}
 
-	climsg.Info("Found %d resource(s) in %d file(s)", len(items), len(resourceFiles))
+	climsg.Info("Found %d resource(s) in %d file(s), %d skill(s)",
+		len(items), len(resourceFiles), len(skillDirs))
 
 	// Phase 3: Dry-run renders previews without backend interaction
 	if opts.DryRun {
@@ -86,7 +99,19 @@ func executeDeclarativeApply(detectResult *project.DetectResult, opts projectApp
 	defer conn.Close()
 	climsg.Info("Connected to backend")
 
-	// Phase 5: Apply each resource and collect references
+	// Phase 5a: Push skill directories first (agents may reference these skills)
+	var members []*apiresource.ApiResourceReference
+	for _, skillDir := range skillDirs {
+		ref, err := pushSkillDirectory(skillDir, conn, orgID)
+		if err != nil {
+			return errors.Wrapf(err, "failed to push skill from %s", skillDir)
+		}
+		if ref != nil {
+			members = append(members, ref)
+		}
+	}
+
+	// Phase 5b: Apply each YAML resource and collect references
 	fctx := &fileApplyContext{
 		conn:     conn,
 		orgID:    orgID,
@@ -94,7 +119,6 @@ func executeDeclarativeApply(detectResult *project.DetectResult, opts projectApp
 		renderer: renderer,
 	}
 
-	var members []*apiresource.ApiResourceReference
 	for _, item := range items {
 		ref, err := applyResourceItem(item, fctx)
 		if err != nil {
@@ -125,11 +149,17 @@ func executeDeclarativeApply(detectResult *project.DetectResult, opts projectApp
 	return nil
 }
 
-// scanResourceFiles finds all YAML files in the project directory,
-// excluding stigmer.yaml (the project marker file).
+// scanResourceFiles finds all YAML files in the project directory and its
+// immediate subdirectories, excluding stigmer.yaml and skill directories.
 //
-// Only scans the top-level directory — subdirectories are not traversed.
-// This keeps the mental model simple: "files next to stigmer.yaml are resources."
+// Scans the top-level directory and one level of subdirectories. This supports
+// both flat project layouts (agent.yaml next to stigmer.yaml) and organized
+// layouts (agents/my-agent.yaml, mcp-servers/github.yaml).
+//
+// Skill directories are excluded at both levels:
+//   - Immediate skill dirs (my-skill/SKILL.md) are skipped entirely
+//   - Skill grouping dirs (skills/) that contain nested skill dirs are skipped
+//     for YAML scanning since they're handled by scanSkillDirectories
 func scanResourceFiles(projectDir string) ([]string, error) {
 	entries, err := os.ReadDir(projectDir)
 	if err != nil {
@@ -139,6 +169,18 @@ func scanResourceFiles(projectDir string) ([]string, error) {
 	var files []string
 	for _, entry := range entries {
 		if entry.IsDir() {
+			subDir := filepath.Join(projectDir, entry.Name())
+			if isSkillDirectory(subDir) {
+				continue
+			}
+			if containsSkillDirectories(subDir) {
+				continue
+			}
+			subFiles, err := collectYAMLFiles(subDir)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to read subdirectory %s", subDir)
+			}
+			files = append(files, subFiles...)
 			continue
 		}
 
@@ -156,6 +198,127 @@ func scanResourceFiles(projectDir string) ([]string, error) {
 	}
 
 	return files, nil
+}
+
+// containsSkillDirectories returns true if any immediate child of dir is a
+// skill directory (contains SKILL.md). Used to identify grouping directories
+// like skills/ that should be excluded from YAML scanning.
+func containsSkillDirectories(dir string) bool {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return false
+	}
+	for _, entry := range entries {
+		if entry.IsDir() && isSkillDirectory(filepath.Join(dir, entry.Name())) {
+			return true
+		}
+	}
+	return false
+}
+
+// collectYAMLFiles returns all YAML files directly within a directory (non-recursive).
+func collectYAMLFiles(dir string) ([]string, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	var files []string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		ext := strings.ToLower(filepath.Ext(entry.Name()))
+		if ext == ".yaml" || ext == ".yml" {
+			files = append(files, filepath.Join(dir, entry.Name()))
+		}
+	}
+	return files, nil
+}
+
+// scanSkillDirectories finds subdirectories that contain a SKILL.md file.
+//
+// Supports two layouts:
+//   - Flat:     projectDir/my-skill/SKILL.md        (immediate child)
+//   - Organized: projectDir/skills/my-skill/SKILL.md (grandchild under a grouping dir)
+//
+// For each immediate subdirectory: if it contains SKILL.md, it's a skill dir.
+// If not, its own children are checked (one level deeper). This supports
+// organizing skills under a parent directory like skills/ without requiring
+// deep recursive scanning.
+func scanSkillDirectories(projectDir string) ([]string, error) {
+	entries, err := os.ReadDir(projectDir)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to read directory %s", projectDir)
+	}
+
+	var skillDirs []string
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		subDir := filepath.Join(projectDir, entry.Name())
+		if isSkillDirectory(subDir) {
+			skillDirs = append(skillDirs, subDir)
+			continue
+		}
+
+		// Check grandchildren: supports skills/ grouping directory
+		nested, err := scanNestedSkillDirectories(subDir)
+		if err != nil {
+			return nil, err
+		}
+		skillDirs = append(skillDirs, nested...)
+	}
+
+	return skillDirs, nil
+}
+
+// scanNestedSkillDirectories checks immediate children of dir for SKILL.md.
+// This is the "one level deeper" scan for organized project layouts.
+func scanNestedSkillDirectories(dir string) ([]string, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to read directory %s", dir)
+	}
+
+	var skillDirs []string
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		subDir := filepath.Join(dir, entry.Name())
+		if isSkillDirectory(subDir) {
+			skillDirs = append(skillDirs, subDir)
+		}
+	}
+	return skillDirs, nil
+}
+
+// isSkillDirectory returns true if the directory contains a SKILL.md file.
+func isSkillDirectory(dir string) bool {
+	return artifact.HasSkillFile(dir)
+}
+
+// pushSkillDirectory pushes a skill directory and returns an ApiResourceReference.
+func pushSkillDirectory(dir string, conn *grpc.ClientConn, orgID string) (*apiresource.ApiResourceReference, error) {
+	climsg.Info("Pushing skill from %s...", filepath.Base(dir))
+
+	result, err := skill.Push(skill.PushOptions{
+		Directory: dir,
+		OrgID:     orgID,
+		Tag:       "latest",
+		Conn:      conn,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &apiresource.ApiResourceReference{
+		Org:  orgID,
+		Kind: apiresourcekind.ApiResourceKind_skill,
+		Slug: result.Slug,
+	}, nil
 }
 
 // detectResourceItems detects the resource kind in each file and builds
@@ -223,8 +386,8 @@ func buildNoResourcesResult(projectDir string) *clioutput.CommandResult {
 	result := clioutput.Warning("No resource files found in project directory")
 	result.AddSection("").
 		Fieldf("Directory", "%s", projectDir).
-		Item("Add YAML resource files (Agent, Workflow, McpServer) next to stigmer.yaml")
-	result.Hint("Example: create agent.yaml with kind: Agent, then run 'stigmer apply'")
+		Item("Add YAML resource files (Agent, Workflow, McpServer) or skill directories (with SKILL.md) next to stigmer.yaml")
+	result.Hint("Example: create agent.yaml with kind: Agent, or a skill directory with SKILL.md, then run 'stigmer apply'")
 	return result
 }
 

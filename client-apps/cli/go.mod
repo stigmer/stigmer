@@ -16,6 +16,8 @@ replace github.com/stigmer/stigmer/backend/services/workflow-runner => ../../bac
 
 replace github.com/stigmer/stigmer/mcp-server => ../../mcp-server
 
+replace github.com/stigmer/stigmer/seedpack => ../../seedpack
+
 require (
 	buf.build/go/protovalidate v1.1.0
 	github.com/alecthomas/chroma/v2 v2.23.1
@@ -36,6 +38,7 @@ require (
 	github.com/stigmer/stigmer/backend/services/stigmer-server v0.0.0-00010101000000-000000000000
 	github.com/stigmer/stigmer/backend/services/workflow-runner v0.0.0-00010101000000-000000000000
 	github.com/stigmer/stigmer/mcp-server v0.0.0-00010101000000-000000000000
+	github.com/stigmer/stigmer/seedpack v0.0.0-00010101000000-000000000000
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/term v0.39.0
 	google.golang.org/grpc v1.79.1

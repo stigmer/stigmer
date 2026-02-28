@@ -20,6 +20,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/llm"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/temporal"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
+	"github.com/stigmer/stigmer/seedpack"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -46,6 +47,14 @@ const (
 
 	// AgentRunnerDockerImage is the Docker image name and tag
 	AgentRunnerDockerImage = "stigmer-agent-runner:local"
+
+	// seedpackBootstrapFlagFile stores the content hash of the last-bootstrapped seedpack.
+	// When the hash matches the embedded seedpack's hash, bootstrap is skipped.
+	seedpackBootstrapFlagFile = ".seedpack-bootstrapped"
+
+	// seedpackSkipEnvVar prevents recursive bootstrap when the seedpack apply subprocess
+	// calls EnsureRunning, which would try to bootstrap again.
+	seedpackSkipEnvVar = "STIGMER_SKIP_SEEDPACK_BOOTSTRAP"
 )
 
 // StartOptions provides options for starting the daemon
@@ -1061,18 +1070,22 @@ func IsRunning(dataDir string) bool {
 	return true
 }
 
-// EnsureRunning ensures the daemon is running, starting it if necessary
+// EnsureRunning ensures the daemon is running, starting it if necessary.
 //
-// This is the magic function that makes the CLI "just work" - similar to how
+// This is the magic function that makes the CLI "just work" — similar to how
 // Docker auto-starts the daemon or Minikube starts the cluster.
 //
 // If the daemon is already running, this returns immediately.
 // If not, it starts the daemon with user-friendly progress messages.
+//
+// After the daemon is confirmed running, it applies the embedded seedpack
+// (system agents, skills, MCP servers) if needed. The seedpack is applied
+// via a `stigmer apply` subprocess — the same code path used for user projects.
 func EnsureRunning(dataDir string) error {
 	// Already running? We're done!
 	if IsRunning(dataDir) {
 		log.Debug().Msg("Daemon is already running")
-		return nil
+		return ensureSeedpackBootstrapped(dataDir)
 	}
 
 	// Not running - start it with nice UX
@@ -1093,10 +1106,80 @@ func EnsureRunning(dataDir string) error {
 	climsg.Success("✓ Daemon started successfully")
 	fmt.Fprintln(os.Stderr)
 
-	// No need to wait here - the gRPC client connection with WithBlock()
-	// will automatically wait until the server is ready when commands try to connect
-	// This is cleaner than polling and works reliably
+	// Apply embedded seedpack if needed (system agents, skills, MCP servers)
+	return ensureSeedpackBootstrapped(dataDir)
+}
 
+// ensureSeedpackBootstrapped applies the embedded seedpack content if the
+// current binary's seedpack differs from the last-applied version.
+//
+// This function:
+//  1. Checks the STIGMER_SKIP_SEEDPACK_BOOTSTRAP env var to prevent recursion
+//     (the apply subprocess also calls EnsureRunning)
+//  2. Compares the embedded seedpack's content hash with the stored flag file
+//  3. If they differ: extracts the seedpack to a temp dir, spawns `stigmer apply`,
+//     and writes the new hash to the flag file
+//
+// The subprocess approach means system resources are applied through the exact
+// same code path as user resources — no duplication.
+func ensureSeedpackBootstrapped(dataDir string) error {
+	if os.Getenv(seedpackSkipEnvVar) == "1" {
+		log.Debug().Msg("Seedpack bootstrap skipped (recursion guard)")
+		return nil
+	}
+
+	currentHash, err := seedpack.ContentHash()
+	if err != nil {
+		return errors.Wrap(err, "failed to compute seedpack content hash")
+	}
+
+	flagPath := filepath.Join(dataDir, seedpackBootstrapFlagFile)
+	storedHash, err := os.ReadFile(flagPath)
+	if err == nil && strings.TrimSpace(string(storedHash)) == currentHash {
+		log.Debug().Str("hash", currentHash).Msg("Seedpack already bootstrapped (hash matches)")
+		return nil
+	}
+
+	log.Info().
+		Str("current_hash", currentHash).
+		Str("stored_hash", strings.TrimSpace(string(storedHash))).
+		Msg("Seedpack bootstrap required (hash mismatch or first run)")
+
+	climsg.Info("Applying system resources (seedpack)...")
+
+	tmpDir, err := os.MkdirTemp("", "stigmer-seedpack-*")
+	if err != nil {
+		return errors.Wrap(err, "failed to create temp directory for seedpack")
+	}
+	defer os.RemoveAll(tmpDir)
+
+	if err := seedpack.ExtractToDir(tmpDir); err != nil {
+		return errors.Wrap(err, "failed to extract seedpack")
+	}
+
+	cliBin, err := os.Executable()
+	if err != nil {
+		return errors.Wrap(err, "failed to get CLI executable path")
+	}
+
+	cmd := exec.Command(cliBin, "apply", "--config", tmpDir)
+	cmd.Env = append(os.Environ(), seedpackSkipEnvVar+"=1")
+	cmd.Stdout = os.Stderr
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return errors.Wrap(err, "failed to apply seedpack")
+	}
+
+	if err := os.MkdirAll(dataDir, 0755); err != nil {
+		return errors.Wrap(err, "failed to ensure data directory exists")
+	}
+
+	if err := os.WriteFile(flagPath, []byte(currentHash), 0644); err != nil {
+		log.Warn().Err(err).Msg("Failed to write seedpack bootstrap flag file")
+	}
+
+	climsg.Success("✓ System resources applied successfully")
 	return nil
 }
 
