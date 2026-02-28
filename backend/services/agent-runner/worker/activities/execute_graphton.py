@@ -634,10 +634,15 @@ def build_referenced_files_prompt_section(
     This function builds a system prompt section telling the agent to
     read those files directly from the workspace.
 
+    Each path is annotated as either a file (with size) or a directory so
+    the agent knows to use ``read`` for files and ``ls`` for directories
+    without wasting a turn on an ``IsADirectoryError``.
+
     Args:
-        workspace_file_refs: Workspace-relative file paths.
+        workspace_file_refs: Workspace-relative paths (files or
+            directories).
         workspace_root: Absolute path to the workspace root (used to
-            stat files for size info).
+            stat entries for type and size info).
 
     Returns:
         The section string (with leading newlines) or empty string if
@@ -648,16 +653,19 @@ def build_referenced_files_prompt_section(
 
     section = (
         "\n\n## Referenced Files\n\n"
-        "The user has highlighted the following workspace files for your "
-        "attention. Read them directly at their workspace-relative paths "
-        "using the `read` tool.\n\n"
+        "The user has highlighted the following workspace paths for your "
+        "attention. Use `read` for files and `ls` for directories.\n\n"
     )
 
     for ref_path in workspace_file_refs:
         full_path = os.path.join(workspace_root, ref_path)
         try:
-            size = os.path.getsize(full_path)
-            section += f"- `{ref_path}` ({size} bytes)\n"
+            stat = os.stat(full_path)
+            if os.path.isdir(full_path):
+                section += f"- `{ref_path}/` (directory)\n"
+            else:
+                size = stat.st_size
+                section += f"- `{ref_path}` ({size} bytes)\n"
         except OSError:
             section += f"- `{ref_path}`\n"
 
@@ -1867,13 +1875,14 @@ async def _execute_graphton_impl(
         #
         # Transforms proto SubAgent definitions from AgentSpec.sub_agents to graphton
         # format. Each subagent gets:
+        # - Platform tools (read, write, ls, glob, grep, execute) from the sandbox
         # - Filtered MCP access based on McpAccess grants (subset of parent's tools)
         # - Resolved skills injected into system_prompt
-        # - Tool wrappers for allowed MCP tools
         #
         # Permission model:
+        # - Every subagent receives the full platform tool set from the sandbox
         # - SubAgent can only access MCP servers explicitly listed in mcp_access
-        # - SubAgent tools = intersection of parent's enabled tools and subagent's request
+        # - SubAgent MCP tools = intersection of parent's enabled tools and subagent's request
         # - SubAgent skills are independent (can reference any Skill resource)
         # ─────────────────────────────────────────────────────────────────────────────
         
@@ -1894,6 +1903,7 @@ async def _execute_graphton_impl(
                     skill_client=skill_client,
                     skill_writer_class=SkillWriter,
                     skill_writer_kwargs={"backend": workspace_backend},
+                    sandbox_config=sandbox_config_for_agent,
                     approval_checker=approval_checker,
                     activity_logger=activity_logger,
                 )
@@ -1901,7 +1911,7 @@ async def _execute_graphton_impl(
                 if transformed_subagents:
                     activity_logger.info(
                         f"Successfully transformed {len(transformed_subagents)} sub-agent(s) "
-                        f"with MCP tools and skills"
+                        f"with platform tools, MCP tools, and skills"
                     )
                 else:
                     activity_logger.warning(
