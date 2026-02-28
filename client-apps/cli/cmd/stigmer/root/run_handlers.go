@@ -12,109 +12,12 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
-	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/envfile"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"google.golang.org/grpc"
 )
-
-// runAgent executes an agent.
-//
-// By default, it streams execution updates in real-time until the execution
-// reaches a terminal state. If detach is true, it creates the execution and
-// returns immediately without streaming.
-//
-// When workspaceSource is non-nil, the CLI creates a Session explicitly with
-// the workspace configuration before creating the execution. Without a
-// workspace, the backend auto-creates the session (existing behavior).
-//
-// defaultAction is the --approve-default flag value; when set, non-TTY approvals
-// are auto-resolved without prompting.
-func runAgent(ref, message string, env envfile.EnvMap, attachResult *AttachmentResult, workspaceSource *sessionv1.WorkspaceSource, detach bool, downloadDir, orgID string, defaultAction approval.Action, verbose bool, conn *grpc.ClientConn) error {
-	// Resolve agent by reference
-	agent, err := resolveAgent(ref, orgID, conn)
-	if err != nil {
-		displayAgentNotFoundError(ref)
-		return err
-	}
-
-	input := CreateAgentExecutionInput{
-		AgentID:           agent.Metadata.Id,
-		OrgID:             orgID,
-		Message:           message,
-		RuntimeEnv:        env,
-		Attachments:       attachResult.Attachments,
-		WorkspaceFileRefs: attachResult.WorkspaceFileRefs,
-		Conn:              conn,
-	}
-
-	// When a workspace is requested, create the session explicitly so
-	// workspace_source is set on the SessionSpec. The execution then
-	// references the pre-created session instead of relying on the
-	// backend's auto-create flow (which has no workspace passthrough).
-	if workspaceSource != nil {
-		instanceID := agent.GetStatus().GetDefaultInstanceId()
-		if instanceID == "" {
-			return errors.New("agent has no default instance — cannot create workspace session")
-		}
-
-		climsg.Info("Creating workspace session...")
-		session, err := createSessionForAgent(instanceID, orgID, workspaceSource, conn)
-		if err != nil {
-			return errors.Wrap(err, "failed to create workspace session")
-		}
-
-		input.SessionID = session.GetMetadata().GetId()
-		input.AgentID = ""
-	}
-
-	totalInputFiles := len(attachResult.Attachments) + len(attachResult.WorkspaceFileRefs)
-	if totalInputFiles > 0 {
-		climsg.Info("Starting execution with %d input file(s)...", totalInputFiles)
-	} else if workspaceSource == nil {
-		climsg.Info("Starting session...")
-	}
-
-	exec, err := createAgentExecution(input)
-	if err != nil {
-		return errors.Wrap(err, "failed to create execution")
-	}
-
-	sessionID := exec.GetSpec().GetSessionId()
-	if sessionID == "" {
-		log.Warn().
-			Str("execution_id", exec.GetMetadata().GetId()).
-			Msg("backend returned execution without session_id — session display may be degraded")
-	}
-
-	climsg.Success("Session started: %s", sessionID)
-	fmt.Println()
-
-	// Detach mode: return immediately.
-	if detach {
-		return nil
-	}
-
-	// Stream execution in real-time until completion
-	prompter := approval.NewInteractivePrompter()
-	exec, err = streamAgentExecution(sessionID, "", exec.Metadata.Id, orgID, prompter, defaultAction, verbose, conn)
-	if err != nil {
-		return errors.Wrap(err, "error streaming execution")
-	}
-
-	// Download artifacts if requested
-	if downloadDir != "" && len(exec.Status.Artifacts) > 0 {
-		if err := downloadArtifacts(exec, downloadDir, conn); err != nil {
-			return errors.Wrap(err, "failed to download artifacts")
-		}
-	}
-
-	return nil
-}
 
 // waitForExecution polls until execution reaches a terminal state.
 //
@@ -365,42 +268,30 @@ func isExpired(expiresAt string) bool {
 	return time.Now().After(t)
 }
 
-// runWorkflow executes a workflow.
-//
-// By default, it streams execution updates in real-time until the execution
-// reaches a terminal state. If detach is true, it creates the execution and
-// returns immediately without streaming.
-//
-// defaultAction is the --approve-default flag value; when set, non-TTY approvals
-// are auto-resolved without prompting.
-func runWorkflow(ref, message string, env envfile.EnvMap, detach bool, orgID string, defaultAction approval.Action, conn *grpc.ClientConn) error {
-	// Resolve workflow by reference
-	workflow, err := resolveWorkflow(ref, orgID, conn)
+// runWorkflow executes a workflow using the prepared execution context.
+func runWorkflow(ref string, prep *preparedAgentExec) error {
+	workflow, err := resolveWorkflow(ref, prep.OrgID, prep.Conn)
 	if err != nil {
 		displayWorkflowNotFoundError(ref)
 		return err
 	}
 
-	// Create workflow execution
 	climsg.Info("Creating workflow execution...")
-	wfExec, err := createWorkflowExecution(workflow.Metadata.Id, orgID, message, env, conn)
+	wfExec, err := createWorkflowExecution(workflow.Metadata.Id, prep.OrgID, prep.Message, prep.RuntimeEnv, prep.Conn)
 	if err != nil {
 		return errors.Wrap(err, "failed to create execution")
 	}
 
-	// Display execution started
 	climsg.Success("Workflow execution started: %s", workflow.Metadata.Name)
 	climsg.Info("  Execution ID: %s", wfExec.Metadata.Id)
 	fmt.Println()
 
-	// Detach mode: print execution ID and return immediately
-	if detach {
+	if prep.Detach {
 		return nil
 	}
 
-	// Stream execution in real-time until completion
 	prompter := approval.NewInteractivePrompter()
-	if _, err := streamWorkflowExecution(wfExec.Metadata.Id, prompter, defaultAction, conn); err != nil {
+	if _, err := streamWorkflowExecution(wfExec.Metadata.Id, prompter, prep.DefaultAction, prep.Conn); err != nil {
 		return errors.Wrap(err, "error streaming workflow execution")
 	}
 

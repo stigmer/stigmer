@@ -3,7 +3,6 @@ package root
 import (
 	"fmt"
 
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
@@ -13,9 +12,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/envfile"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpserver"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/reference"
-	"google.golang.org/grpc"
 )
 
 // localWorkspaceRoot extracts the absolute path from a local-path workspace source.
@@ -33,20 +30,7 @@ func localWorkspaceRoot(ws *sessionv1.WorkspaceSource) string {
 
 // NewRunCommand creates the unified run command for executing agents and workflows.
 func NewRunCommand() *cobra.Command {
-	var message string
-	var envFlags []string
-	var envFileFlags []string
-	var secretFlags []string
-	var secretFileFlags []string
-	var orgOverride string
-	var detach bool
-	var attachFlags []string
-	var downloadDir string
-	var approveDefault string
-	var verbose bool
-	var workspaceFlag string
-	var branchFlag string
-	var commitFlag string
+	var opts runOptions
 
 	cmd := &cobra.Command{
 		Use:   "run {<type> <name-or-id> | <session-id>}",
@@ -171,174 +155,54 @@ OTHER OPTIONS:
 			return fmt.Errorf("accepts 1 or 2 args, received %d", len(args))
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			// Single-arg session ID mode
 			if len(args) == 1 {
-				err := executeRunSession(args[0], orgOverride, verbose)
+				err := executeRunSession(args[0], opts.OrgOverride, opts.Verbose)
 				clierr.Handle(err)
 				return
 			}
-			err := executeRun(runOptions{
-				TypeArg:         args[0],
-				Reference:       args[1],
-				Message:         message,
-				EnvFlags:        envFlags,
-				EnvFileFlags:    envFileFlags,
-				SecretFlags:     secretFlags,
-				SecretFileFlags: secretFileFlags,
-				Detach:          detach,
-				OrgOverride:     orgOverride,
-				AttachFlags:     attachFlags,
-				DownloadDir:     downloadDir,
-				ApproveDefault:  approveDefault,
-				Verbose:         verbose,
-				WorkspaceFlag:   workspaceFlag,
-				BranchFlag:      branchFlag,
-				CommitFlag:      commitFlag,
-			})
-			clierr.Handle(err)
+			opts.TypeArg = args[0]
+			opts.Reference = args[1]
+			clierr.Handle(executeRun(opts))
 		},
 	}
 
-	// Message flag
-	cmd.Flags().StringVarP(&message, "message", "m", "", "initial message/prompt for execution")
+	registerAgentExecFlags(cmd, &opts.agentExecFlags)
 
-	// Environment variable flags (non-secrets)
-	cmd.Flags().StringArrayVar(&envFlags, "env", []string{},
-		"runtime environment variable (KEY=VALUE, can be repeated)")
-	cmd.Flags().StringArrayVar(&envFileFlags, "env-file", []string{},
-		"load environment from file (can be repeated, later files override earlier)")
-
-	// Secret flags (encrypted)
-	cmd.Flags().StringArrayVar(&secretFlags, "secret", []string{},
-		"secret environment variable (KEY=VALUE, can be repeated, encrypted)")
-	cmd.Flags().StringArrayVar(&secretFileFlags, "secret-file", []string{},
-		"load secrets from file (can be repeated, all values encrypted)")
-
-	// Execution flags
-	cmd.Flags().BoolVar(&detach, "detach", false,
-		"start execution and return immediately without streaming")
-	cmd.Flags().StringVar(&orgOverride, "org", "", "organization ID (overrides context)")
-
-	// Attachment flags
-	cmd.Flags().StringArrayVar(&attachFlags, "attach", []string{},
-		"file to attach as input (can be repeated)")
-
-	// Download flag
-	cmd.Flags().StringVar(&downloadDir, "download", "",
+	cmd.Flags().StringVar(&opts.DownloadDir, "download", "",
 		"download artifacts to directory when complete")
-
-	// Approval flag for non-interactive (CI/CD) usage
-	cmd.Flags().StringVar(&approveDefault, "approve-default", "",
-		"auto-resolve approval prompts in non-interactive mode (approve, skip, reject)")
-
-	// Verbose flag for debugging
-	cmd.Flags().BoolVarP(&verbose, "verbose", "v", false,
-		"show execution IDs and phase transitions in the TUI transcript")
-
-	// Workspace flags (agents only)
-	cmd.Flags().StringVar(&workspaceFlag, "workspace", "",
-		"workspace source: HTTPS git URL or local filesystem path")
-	cmd.Flags().StringVar(&branchFlag, "branch", "",
-		"git branch to clone (only valid with git --workspace URL)")
-	cmd.Flags().StringVar(&commitFlag, "commit", "",
-		"git commit SHA to checkout (only valid with git --workspace URL)")
 
 	return cmd
 }
 
-// runOptions contains options for the run command.
+// runOptions contains the run-command-specific options plus the shared
+// agent execution flags.
 type runOptions struct {
-	TypeArg         string
-	Reference       string
-	Message         string
-	EnvFlags        []string
-	EnvFileFlags    []string
-	SecretFlags     []string
-	SecretFileFlags []string
-	Detach          bool
-	OrgOverride     string
-	AttachFlags     []string
-	DownloadDir     string
-	ApproveDefault  string
-	Verbose         bool
-	WorkspaceFlag   string
-	BranchFlag      string
-	CommitFlag      string
+	agentExecFlags
+	TypeArg     string
+	Reference   string
+	DownloadDir string
 }
 
-// executeRun validates type and routes to the appropriate run handler.
+// executeRun validates the resource type and delegates to the shared
+// preparation + execution layers.
 func executeRun(opts runOptions) error {
-	// Step 1: Resolve type from alias
 	reg := types.DefaultRegistry()
 	info, ok := reg.GetByAlias(opts.TypeArg)
 	if !ok {
 		return fmt.Errorf("unknown resource type: %s\n\nAvailable types: agent, workflow", opts.TypeArg)
 	}
 
-	// Step 2: Check verb support
 	if !info.SupportsVerb(types.VerbRun) {
 		return formatUnsupportedVerbError(info, types.VerbRun)
 	}
 
-	// Step 3: Parse --approve-default flag (if set)
-	var defaultAction approval.Action
-	if opts.ApproveDefault != "" {
-		var err error
-		defaultAction, err = approval.ParseAction(opts.ApproveDefault)
-		if err != nil {
-			return errors.Wrap(err, "invalid --approve-default value")
-		}
-	}
-
-	// Step 4: Parse workspace source from flags
-	workspaceSource, err := parseWorkspaceSource(opts.WorkspaceFlag, opts.BranchFlag, opts.CommitFlag)
-	if err != nil {
-		return errors.Wrap(err, "invalid workspace configuration")
-	}
-
-	// Step 5: Load and merge user-provided environment variables
-	runtimeEnv, err := envfile.LoadAndMergeWithSecrets(
-		opts.EnvFileFlags,
-		opts.SecretFileFlags,
-		opts.EnvFlags,
-		opts.SecretFlags,
-	)
-	if err != nil {
-		return errors.Wrap(err, "failed to load environment")
-	}
-
-	// Step 5.5: Auto-resolve well-known credentials from local stores
-	// (gh auth token, Planton CLI credentials, Stigmer CLI config).
-	// Merged as the lowest priority — user-provided flags and env files
-	// always take precedence.
-	autoEnv, err := resolveAndMergeAutoEnv(runtimeEnv)
-	if err != nil {
-		log.Warn().Err(err).Msg("skipping auto-env resolution (config load failed)")
-	} else {
-		runtimeEnv = autoEnv
-	}
-
-	// Step 6: Connect to backend
-	conn, orgID, err := connectToBackend(opts.OrgOverride)
+	prep, err := prepareAgentExec(opts.agentExecFlags)
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer prep.Conn.Close()
 
-	// Step 7: Process attachments (workspace-aware)
-	var attachResult AttachmentResult
-	if len(opts.AttachFlags) > 0 {
-		processor := NewAttachmentProcessor(conn)
-		localRoot := localWorkspaceRoot(workspaceSource)
-		res, err := processor.ProcessFiles(opts.AttachFlags, localRoot)
-		if err != nil {
-			return errors.Wrap(err, "failed to process attachments")
-		}
-		attachResult = *res
-	}
-
-	// Step 8: Route to appropriate handler
-	return routeRun(info, opts.Reference, opts.Message, runtimeEnv, &attachResult, workspaceSource, opts.Detach, opts.DownloadDir, orgID, defaultAction, opts.Verbose, conn)
+	return routeRun(info, opts.Reference, opts.DownloadDir, prep)
 }
 
 // resolveAndMergeAutoEnv loads the CLI config, resolves well-known
@@ -364,17 +228,35 @@ func resolveAndMergeAutoEnv(userEnv envfile.EnvMap) (envfile.EnvMap, error) {
 	return envfile.MergeEnvSources(autoEnv, userEnv), nil
 }
 
-// routeRun routes to the appropriate run handler based on kind.
-func routeRun(info *types.TypeInfo, ref, message string, env envfile.EnvMap, attachResult *AttachmentResult, workspaceSource *sessionv1.WorkspaceSource, detach bool, downloadDir, orgID string, defaultAction approval.Action, verbose bool, conn *grpc.ClientConn) error {
+// routeRun routes to the appropriate handler based on resource kind.
+func routeRun(info *types.TypeInfo, ref, downloadDir string, prep *preparedAgentExec) error {
 	switch info.ProtoKind {
 	case apiresourcekind.ApiResourceKind_agent:
-		return runAgent(ref, message, env, attachResult, workspaceSource, detach, downloadDir, orgID, defaultAction, verbose, conn)
+		agent, err := resolveAgent(ref, prep.OrgID, prep.Conn)
+		if err != nil {
+			displayAgentNotFoundError(ref)
+			return err
+		}
+
+		return executeResolvedAgent(resolvedAgentExecInput{
+			Agent:           agent,
+			Message:         prep.Message,
+			RuntimeEnv:      prep.RuntimeEnv,
+			AttachResult:    &prep.AttachResult,
+			WorkspaceSource: prep.WorkspaceSource,
+			Detach:          prep.Detach,
+			DownloadDir:     downloadDir,
+			OrgID:           prep.OrgID,
+			DefaultAction:   prep.DefaultAction,
+			Verbose:         prep.Verbose,
+			Conn:            prep.Conn,
+		})
 
 	case apiresourcekind.ApiResourceKind_workflow:
-		if workspaceSource != nil {
+		if prep.WorkspaceSource != nil {
 			return fmt.Errorf("--workspace is not supported for workflows (workspace is an agent-level concept)")
 		}
-		return runWorkflow(ref, message, env, detach, orgID, defaultAction, conn)
+		return runWorkflow(ref, prep)
 
 	default:
 		return fmt.Errorf("run not implemented for %s", info.DisplayName)

@@ -5,20 +5,14 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 )
 
-const (
-	// System agent for agent creation (from seedpack bootstrap).
-	agentCreatorAgentName = "agent-creator"
-)
+var agentCreatorConfig = draftConfig{
+	AgentName:    "agent-creator",
+	ResourceType: "Agent",
+}
 
 // NewDraftAgentCommand creates the draft agent subcommand.
 func NewDraftAgentCommand() *cobra.Command {
-	var message string
-	var attachFlags []string
-	var outputDir string
-	var model string
-	var approveDefault string
-	var autoApprove bool
-	var verbose bool
+	var opts draftOptions
 
 	cmd := &cobra.Command{
 		Use:   "agent",
@@ -50,43 +44,19 @@ interactively. The generated agent YAML will be saved to the output directory
   stigmer draft agent -m "Create a code review agent" --output ./agents/
 
   # Use a specific model
-  stigmer draft agent -m "Create an agent for X" --model claude-sonnet-4-20250514`,
+  stigmer draft agent -m "Create an agent for X" --model claude-sonnet-4-20250514
+
+  # Run with a workspace (agent can inspect your code)
+  stigmer draft agent --workspace . -m "Create an agent based on this project"
+
+  # Override organization
+  stigmer draft agent -m "Create an agent for X" --org acme-corp`,
 		Run: func(cmd *cobra.Command, args []string) {
-			err := executeDraftAgent(draftAgentOptions{
-				Message:        message,
-				AttachFlags:    attachFlags,
-				OutputDir:      outputDir,
-				Model:          model,
-				ApproveDefault: approveDefault,
-				AutoApprove:    autoApprove,
-				Verbose:        verbose,
-			})
-			clierr.Handle(err)
+			clierr.Handle(executeDraft(agentCreatorConfig, opts))
 		},
 	}
 
-	cmd.Flags().StringVarP(&message, "message", "m", "",
-		"description of the agent you want to create (required)")
-
-	cmd.Flags().StringArrayVar(&attachFlags, "attach", []string{},
-		"file or directory to attach as context (can be repeated)")
-
-	cmd.Flags().StringVarP(&outputDir, "output", "o", ".",
-		"directory to save the generated agent YAML")
-
-	cmd.Flags().StringVar(&model, "model", "",
-		"LLM model to use (e.g., claude-sonnet-4-20250514)")
-
-	cmd.MarkFlagRequired("message")
-
-	cmd.Flags().StringVar(&approveDefault, "approve-default", "",
-		"auto-resolve approval prompts in non-interactive mode (approve, skip, reject)")
-
-	cmd.Flags().BoolVar(&autoApprove, "auto-approve", false,
-		"automatically approve all tool executions without prompting (bypasses approval policies)")
-
-	cmd.Flags().BoolVarP(&verbose, "verbose", "v", false,
-		"show execution IDs and phase transitions in the TUI transcript")
+	registerDraftFlags(cmd, &opts, agentCreatorConfig.ResourceType)
 
 	return cmd
 }

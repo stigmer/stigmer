@@ -5,20 +5,14 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 )
 
-const (
-	// System agent for skill creation (from seedpack bootstrap).
-	skillCreatorAgentName = "skill-creator"
-)
+var skillCreatorConfig = draftConfig{
+	AgentName:    "skill-creator",
+	ResourceType: "Skill",
+}
 
 // NewDraftSkillCommand creates the draft skill subcommand.
 func NewDraftSkillCommand() *cobra.Command {
-	var message string
-	var attachFlags []string
-	var outputDir string
-	var model string
-	var approveDefault string
-	var autoApprove bool
-	var verbose bool
+	var opts draftOptions
 
 	cmd := &cobra.Command{
 		Use:   "skill",
@@ -52,51 +46,19 @@ interactively. The generated skill will be saved to the output directory
   stigmer draft skill -m "Create a YAML validator skill" --output ./skills/yaml-validator/
 
   # Use a specific model
-  stigmer draft skill -m "Create a skill for X" --model claude-sonnet-4-20250514`,
+  stigmer draft skill -m "Create a skill for X" --model claude-sonnet-4-20250514
+
+  # Run with a workspace (agent can inspect your code)
+  stigmer draft skill --workspace . -m "Create a skill based on this project"
+
+  # Run with environment variables for MCP servers
+  stigmer draft skill -m "Create a skill for X" --env GITHUB_TOKEN=ghp_xxx`,
 		Run: func(cmd *cobra.Command, args []string) {
-			err := executeDraftSkill(draftSkillOptions{
-				Message:        message,
-				AttachFlags:    attachFlags,
-				OutputDir:      outputDir,
-				Model:          model,
-				ApproveDefault: approveDefault,
-				AutoApprove:    autoApprove,
-				Verbose:        verbose,
-			})
-			clierr.Handle(err)
+			clierr.Handle(executeDraft(skillCreatorConfig, opts))
 		},
 	}
 
-	// Message flag (required)
-	cmd.Flags().StringVarP(&message, "message", "m", "",
-		"description of the skill you want to create (required)")
-
-	// Attachment flags for context files
-	cmd.Flags().StringArrayVar(&attachFlags, "attach", []string{},
-		"file or directory to attach as context (can be repeated)")
-
-	// Output directory
-	cmd.Flags().StringVarP(&outputDir, "output", "o", ".",
-		"directory to save the generated skill")
-
-	// Model flag for specifying LLM model
-	cmd.Flags().StringVar(&model, "model", "",
-		"LLM model to use (e.g., claude-sonnet-4-20250514)")
-
-	// Mark message as required
-	cmd.MarkFlagRequired("message")
-
-	// Approval flag for non-interactive (CI/CD) usage
-	cmd.Flags().StringVar(&approveDefault, "approve-default", "",
-		"auto-resolve approval prompts in non-interactive mode (approve, skip, reject)")
-
-	// Auto-approve flag to skip all approval prompts
-	cmd.Flags().BoolVar(&autoApprove, "auto-approve", false,
-		"automatically approve all tool executions without prompting (bypasses approval policies)")
-
-	// Verbose flag for debugging
-	cmd.Flags().BoolVarP(&verbose, "verbose", "v", false,
-		"show execution IDs and phase transitions in the TUI transcript")
+	registerDraftFlags(cmd, &opts, skillCreatorConfig.ResourceType)
 
 	return cmd
 }
