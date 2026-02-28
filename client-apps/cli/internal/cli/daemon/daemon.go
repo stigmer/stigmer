@@ -59,13 +59,14 @@ const (
 
 // StartOptions provides options for starting the daemon
 type StartOptions struct {
-	Progress        *cliprint.ProgressDisplay // Optional progress display for UI
-	ExecutionMode   string                    // Agent execution mode (local, sandbox, auto) - overrides config
-	SandboxImage    string                    // Docker image for sandbox mode - overrides config
-	SandboxAutoPull bool                      // Auto-pull sandbox image if missing - overrides config
-	SandboxCleanup  bool                      // Cleanup sandbox containers after execution - overrides config
-	SandboxTTL      int                       // Sandbox container reuse TTL in seconds - overrides config
-	Secrets         map[string]string         // Pre-gathered secrets (to avoid prompting during progress display)
+	Progress         *cliprint.ProgressDisplay // Optional progress display for UI
+	ExecutionMode    string                    // Agent execution mode (local, sandbox, auto) - overrides config
+	SandboxImage     string                    // Docker image for sandbox mode - overrides config
+	SandboxAutoPull  bool                      // Auto-pull sandbox image if missing - overrides config
+	SandboxCleanup   bool                      // Cleanup sandbox containers after execution - overrides config
+	SandboxTTL       int                       // Sandbox container reuse TTL in seconds - overrides config
+	Secrets          map[string]string         // Pre-gathered secrets (to avoid prompting during progress display)
+	OnLLMSetupFailed func(err error)           // Called when LLM setup fails; caller handles display after progress stops
 }
 
 // dockerAvailable checks if Docker is installed and running
@@ -271,22 +272,9 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 
 		if err := llm.Setup(context.Background(), cfg.Backend.Local, llmOpts); err != nil {
 			log.Warn().Err(err).Msg("Ollama setup failed, continuing without local LLM")
-			climsg.Warning("Ollama setup failed: %v", err)
-			climsg.Warning("Agents will not execute until an LLM provider is available.")
-			fmt.Fprintln(os.Stderr)
-			fmt.Fprintln(os.Stderr, "  Configure an LLM provider:")
-			fmt.Fprintln(os.Stderr)
-			fmt.Fprintln(os.Stderr, "    Option 1 — Anthropic (recommended):")
-			fmt.Fprintln(os.Stderr, "      export ANTHROPIC_API_KEY=sk-ant-...")
-			fmt.Fprintln(os.Stderr, "      stigmer server setup")
-			fmt.Fprintln(os.Stderr)
-			fmt.Fprintln(os.Stderr, "    Option 2 — OpenAI:")
-			fmt.Fprintln(os.Stderr, "      export OPENAI_API_KEY=sk-...")
-			fmt.Fprintln(os.Stderr, "      stigmer server setup")
-			fmt.Fprintln(os.Stderr)
-			fmt.Fprintln(os.Stderr, "    Option 3 — Ollama (free, local, offline):")
-			fmt.Fprintln(os.Stderr, "      brew install ollama && ollama serve && ollama pull qwen2.5-coder:7b")
-			fmt.Fprintln(os.Stderr)
+			if opts.OnLLMSetupFailed != nil {
+				opts.OnLLMSetupFailed(err)
+			}
 		}
 	} else if llmProvider == "" {
 		log.Info().Msg("No LLM provider configured, skipping LLM setup")
