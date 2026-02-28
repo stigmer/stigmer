@@ -279,6 +279,9 @@ func TestFormatFileSize(t *testing.T) {
 func writeFile(t *testing.T, dir, name, content string) {
 	t.Helper()
 	path := filepath.Join(dir, name)
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatalf("failed to create parent dir for %s: %v", path, err)
+	}
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 		t.Fatalf("failed to write test file %s: %v", path, err)
 	}
@@ -415,4 +418,223 @@ func (c *fakeUploadConn) Invoke(_ context.Context, method string, args, reply in
 
 func (c *fakeUploadConn) NewStream(_ context.Context, _ *grpc.StreamDesc, _ string, _ ...grpc.CallOption) (grpc.ClientStream, error) {
 	return nil, nil
+}
+
+// =============================================================================
+// TestWorkspaceRelativePath
+// =============================================================================
+
+func TestWorkspaceRelativePath(t *testing.T) {
+	t.Run("file inside workspace", func(t *testing.T) {
+		dir := t.TempDir()
+		writeFile(t, dir, "src/config.yaml", "key: value")
+
+		rel, inside, err := workspaceRelativePath(filepath.Join(dir, "src", "config.yaml"), dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !inside {
+			t.Fatal("expected file to be inside workspace")
+		}
+		if rel != "src/config.yaml" {
+			t.Errorf("rel = %q, want %q", rel, "src/config.yaml")
+		}
+	})
+
+	t.Run("file at workspace root", func(t *testing.T) {
+		dir := t.TempDir()
+		writeFile(t, dir, "README.md", "hello")
+
+		rel, inside, err := workspaceRelativePath(filepath.Join(dir, "README.md"), dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !inside {
+			t.Fatal("expected file to be inside workspace")
+		}
+		if rel != "README.md" {
+			t.Errorf("rel = %q, want %q", rel, "README.md")
+		}
+	})
+
+	t.Run("file outside workspace", func(t *testing.T) {
+		workspace := t.TempDir()
+		outside := t.TempDir()
+		writeFile(t, outside, "external.csv", "a,b,c")
+
+		_, inside, err := workspaceRelativePath(filepath.Join(outside, "external.csv"), workspace)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if inside {
+			t.Fatal("expected file to be outside workspace")
+		}
+	})
+
+	t.Run("nested subdirectory", func(t *testing.T) {
+		dir := t.TempDir()
+		subDir := filepath.Join(dir, "a", "b", "c")
+		if err := os.MkdirAll(subDir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		writeFile(t, subDir, "deep.txt", "deep")
+
+		rel, inside, err := workspaceRelativePath(filepath.Join(subDir, "deep.txt"), dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !inside {
+			t.Fatal("expected file to be inside workspace")
+		}
+		if rel != "a/b/c/deep.txt" {
+			t.Errorf("rel = %q, want %q", rel, "a/b/c/deep.txt")
+		}
+	})
+
+	t.Run("path with dot-dot that stays inside", func(t *testing.T) {
+		dir := t.TempDir()
+		writeFile(t, dir, "file.txt", "content")
+		pathWithDotDot := filepath.Join(dir, "sub", "..", "file.txt")
+
+		rel, inside, err := workspaceRelativePath(pathWithDotDot, dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !inside {
+			t.Fatal("expected normalized path to be inside workspace")
+		}
+		if rel != "file.txt" {
+			t.Errorf("rel = %q, want %q", rel, "file.txt")
+		}
+	})
+
+	t.Run("path with dot-dot that escapes", func(t *testing.T) {
+		dir := t.TempDir()
+		escapePath := filepath.Join(dir, "..", "escape.txt")
+
+		_, inside, _ := workspaceRelativePath(escapePath, dir)
+		if inside {
+			t.Fatal("expected path traversal to be detected as outside workspace")
+		}
+	})
+
+	t.Run("returns forward slashes", func(t *testing.T) {
+		dir := t.TempDir()
+		subDir := filepath.Join(dir, "src", "lib")
+		if err := os.MkdirAll(subDir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		writeFile(t, subDir, "util.go", "package lib")
+
+		rel, inside, err := workspaceRelativePath(filepath.Join(subDir, "util.go"), dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !inside {
+			t.Fatal("expected file to be inside workspace")
+		}
+		if strings.Contains(rel, "\\") {
+			t.Errorf("rel = %q, expected forward slashes only", rel)
+		}
+	})
+}
+
+// =============================================================================
+// TestProcessFiles_WorkspaceAware
+// =============================================================================
+
+func TestProcessFiles_WorkspaceAware(t *testing.T) {
+	t.Run("no workspace — all files uploaded", func(t *testing.T) {
+		dir := t.TempDir()
+		writeFile(t, dir, "a.txt", "alpha")
+		writeFile(t, dir, "b.txt", "beta")
+
+		conn := &fakeUploadConn{storageKey: "attachments/test/file.txt"}
+		proc := NewAttachmentProcessor(conn)
+
+		result, err := proc.ProcessFiles([]string{
+			filepath.Join(dir, "a.txt"),
+			filepath.Join(dir, "b.txt"),
+		}, "")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(result.Attachments) != 2 {
+			t.Errorf("Attachments = %d, want 2", len(result.Attachments))
+		}
+		if len(result.WorkspaceFileRefs) != 0 {
+			t.Errorf("WorkspaceFileRefs = %d, want 0", len(result.WorkspaceFileRefs))
+		}
+	})
+
+	t.Run("all files inside workspace — all become refs", func(t *testing.T) {
+		dir := t.TempDir()
+		writeFile(t, dir, "src/config.yaml", "key: value")
+		writeFile(t, dir, "README.md", "hello")
+
+		conn := &fakeUploadConn{storageKey: "attachments/test/file.txt"}
+		proc := NewAttachmentProcessor(conn)
+
+		result, err := proc.ProcessFiles([]string{
+			filepath.Join(dir, "src", "config.yaml"),
+			filepath.Join(dir, "README.md"),
+		}, dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(result.Attachments) != 0 {
+			t.Errorf("Attachments = %d, want 0 (all inside workspace)", len(result.Attachments))
+		}
+		if len(result.WorkspaceFileRefs) != 2 {
+			t.Errorf("WorkspaceFileRefs = %d, want 2", len(result.WorkspaceFileRefs))
+		}
+
+		wantRefs := map[string]bool{"src/config.yaml": true, "README.md": true}
+		for _, ref := range result.WorkspaceFileRefs {
+			if !wantRefs[ref] {
+				t.Errorf("unexpected workspace ref: %q", ref)
+			}
+		}
+	})
+
+	t.Run("mixed — split between refs and uploads", func(t *testing.T) {
+		workspace := t.TempDir()
+		external := t.TempDir()
+		writeFile(t, workspace, "schema.sql", "CREATE TABLE t")
+		writeFile(t, external, "data.csv", "a,b,c")
+
+		conn := &fakeUploadConn{storageKey: "attachments/test/data.csv"}
+		proc := NewAttachmentProcessor(conn)
+
+		result, err := proc.ProcessFiles([]string{
+			filepath.Join(workspace, "schema.sql"),
+			filepath.Join(external, "data.csv"),
+		}, workspace)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(result.WorkspaceFileRefs) != 1 {
+			t.Fatalf("WorkspaceFileRefs = %d, want 1", len(result.WorkspaceFileRefs))
+		}
+		if result.WorkspaceFileRefs[0] != "schema.sql" {
+			t.Errorf("WorkspaceFileRefs[0] = %q, want %q", result.WorkspaceFileRefs[0], "schema.sql")
+		}
+		if len(result.Attachments) != 1 {
+			t.Fatalf("Attachments = %d, want 1", len(result.Attachments))
+		}
+	})
+
+	t.Run("empty paths returns empty result", func(t *testing.T) {
+		conn := &fakeUploadConn{}
+		proc := NewAttachmentProcessor(conn)
+
+		result, err := proc.ProcessFiles([]string{}, "/some/workspace")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(result.Attachments) != 0 || len(result.WorkspaceFileRefs) != 0 {
+			t.Errorf("expected empty result, got %d attachments and %d refs",
+				len(result.Attachments), len(result.WorkspaceFileRefs))
+		}
+	})
 }

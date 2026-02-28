@@ -6,6 +6,7 @@ import (
 	"time"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/envfile"
@@ -19,15 +20,16 @@ import (
 //   - SessionID: creates a follow-up execution within an existing session
 //     (the backend infers the agent from the session).
 type CreateAgentExecutionInput struct {
-	AgentID        string
-	SessionID      string
-	OrgID          string
-	Message        string
-	RuntimeEnv     envfile.EnvMap
-	Attachments    []*agentexecutionv1.Attachment
-	Model          string
-	AutoApproveAll bool
-	Conn           *grpc.ClientConn
+	AgentID           string
+	SessionID         string
+	OrgID             string
+	Message           string
+	RuntimeEnv        envfile.EnvMap
+	Attachments       []*agentexecutionv1.Attachment
+	WorkspaceFileRefs []string
+	Model             string
+	AutoApproveAll    bool
+	Conn              *grpc.ClientConn
 }
 
 // createAgentExecution creates a new agent execution within a session.
@@ -44,10 +46,11 @@ func createAgentExecution(input CreateAgentExecutionInput) (*agentexecutionv1.Ag
 	executionName := fmt.Sprintf("execution-%d", time.Now().UnixMicro())
 
 	spec := &agentexecutionv1.AgentExecutionSpec{
-		Message:        message,
-		RuntimeEnv:     input.RuntimeEnv,
-		Attachments:    input.Attachments,
-		AutoApproveAll: input.AutoApproveAll,
+		Message:           message,
+		RuntimeEnv:        input.RuntimeEnv,
+		Attachments:       input.Attachments,
+		WorkspaceFileRefs: input.WorkspaceFileRefs,
+		AutoApproveAll:    input.AutoApproveAll,
 	}
 
 	if input.SessionID != "" {
@@ -79,6 +82,40 @@ func createAgentExecution(input CreateAgentExecutionInput) (*agentexecutionv1.Ag
 	result, err := client.Create(ctx, execution)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create execution: %w", err)
+	}
+
+	return result, nil
+}
+
+// createSessionForAgent creates a new session with a workspace source.
+//
+// This is used when the CLI needs explicit control over session creation
+// (e.g., to set workspace_source), bypassing the backend's auto-create flow
+// which has no workspace passthrough. The session subject uses the same
+// sentinel as the backend auto-create, so the LLM-generated title activity
+// will replace it asynchronously.
+func createSessionForAgent(agentInstanceID, orgID string, workspaceSource *sessionv1.WorkspaceSource, conn *grpc.ClientConn) (*sessionv1.Session, error) {
+	client := sessionv1.NewSessionCommandControllerClient(conn)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	session := &sessionv1.Session{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "Session",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: fmt.Sprintf("session-%d", time.Now().UnixMilli()),
+			Org:  orgID,
+		},
+		Spec: &sessionv1.SessionSpec{
+			AgentInstanceId: agentInstanceID,
+			Subject:         "Auto-created session",
+			WorkspaceSource: workspaceSource,
+		},
+	}
+
+	result, err := client.Create(ctx, session)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create session: %w", err)
 	}
 
 	return result, nil

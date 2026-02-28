@@ -8,10 +8,7 @@ go_library(
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/project/v1:project",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
-        "//mcp-server/gen/agentic/agent",
-        "//mcp-server/gen/agentic/mcpserver",
-        "//mcp-server/gen/agentic/skill",
-        "//mcp-server/gen/agentic/workflow",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//mcp-server/internal/convert",
         "@org_golang_google_protobuf//encoding/protojson",
         "@org_golang_google_protobuf//proto",

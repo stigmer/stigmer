@@ -5,7 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/envfile"
@@ -14,6 +14,19 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/reference"
 	"google.golang.org/grpc"
 )
+
+// localWorkspaceRoot extracts the absolute path from a local-path workspace source.
+// Returns empty string for nil, git, or non-local workspace sources.
+func localWorkspaceRoot(ws *sessionv1.WorkspaceSource) string {
+	if ws == nil {
+		return ""
+	}
+	lp := ws.GetLocalPath()
+	if lp == nil {
+		return ""
+	}
+	return lp.GetPath()
+}
 
 // NewRunCommand creates the unified run command for executing agents and workflows.
 func NewRunCommand() *cobra.Command {
@@ -28,6 +41,9 @@ func NewRunCommand() *cobra.Command {
 	var downloadDir string
 	var approveDefault string
 	var verbose bool
+	var workspaceFlag string
+	var branchFlag string
+	var commitFlag string
 
 	cmd := &cobra.Command{
 		Use:   "run {<type> <name-or-id> | <session-id>}",
@@ -73,6 +89,13 @@ INPUT FILES:
   --attach PATH           Attach a file as input (can be repeated)
                           Files < 4MB: embedded inline
                           Files >= 4MB: uploaded to artifact store
+
+WORKSPACE:
+
+  --workspace URL|PATH    Workspace source for the agent (agents only)
+                          HTTPS git URL or local filesystem path
+  --branch NAME           Git branch to clone (default: repo default branch)
+  --commit SHA            Git commit to checkout after cloning
 
 OTHER OPTIONS:
 
@@ -120,6 +143,16 @@ OTHER OPTIONS:
   # Stream execution and download artifacts when complete
   stigmer run agent report-generator --attach ./data.csv --download ./results
 
+  # Run with a git workspace (agent clones and operates on the repo)
+  stigmer run agent code-reviewer --workspace https://github.com/acme/app -m "Review this repo"
+
+  # Run with a specific branch
+  stigmer run agent code-reviewer --workspace https://github.com/acme/app --branch feature/auth
+
+  # Run with a local workspace (agent operates directly on your files)
+  stigmer run agent code-reviewer --workspace . -m "Review my project"
+  stigmer run agent refactorer --workspace ~/projects/my-app -m "Refactor the auth module"
+
   # Override organization
   stigmer run agent my-agent --org acme-corp`,
 		Args: func(cmd *cobra.Command, args []string) error {
@@ -155,6 +188,9 @@ OTHER OPTIONS:
 				DownloadDir:     downloadDir,
 				ApproveDefault:  approveDefault,
 				Verbose:         verbose,
+				WorkspaceFlag:   workspaceFlag,
+				BranchFlag:      branchFlag,
+				CommitFlag:      commitFlag,
 			})
 			clierr.Handle(err)
 		},
@@ -196,6 +232,14 @@ OTHER OPTIONS:
 	cmd.Flags().BoolVarP(&verbose, "verbose", "v", false,
 		"show execution IDs and phase transitions in the TUI transcript")
 
+	// Workspace flags (agents only)
+	cmd.Flags().StringVar(&workspaceFlag, "workspace", "",
+		"workspace source: HTTPS git URL or local filesystem path")
+	cmd.Flags().StringVar(&branchFlag, "branch", "",
+		"git branch to clone (only valid with git --workspace URL)")
+	cmd.Flags().StringVar(&commitFlag, "commit", "",
+		"git commit SHA to checkout (only valid with git --workspace URL)")
+
 	return cmd
 }
 
@@ -214,6 +258,9 @@ type runOptions struct {
 	DownloadDir     string
 	ApproveDefault  string
 	Verbose         bool
+	WorkspaceFlag   string
+	BranchFlag      string
+	CommitFlag      string
 }
 
 // executeRun validates type and routes to the appropriate run handler.
@@ -240,7 +287,13 @@ func executeRun(opts runOptions) error {
 		}
 	}
 
-	// Step 4: Load and merge environment variables
+	// Step 4: Parse workspace source from flags
+	workspaceSource, err := parseWorkspaceSource(opts.WorkspaceFlag, opts.BranchFlag, opts.CommitFlag)
+	if err != nil {
+		return errors.Wrap(err, "invalid workspace configuration")
+	}
+
+	// Step 5: Load and merge environment variables
 	runtimeEnv, err := envfile.LoadAndMergeWithSecrets(
 		opts.EnvFileFlags,
 		opts.SecretFileFlags,
@@ -251,34 +304,39 @@ func executeRun(opts runOptions) error {
 		return errors.Wrap(err, "failed to load environment")
 	}
 
-	// Step 5: Connect to backend
+	// Step 6: Connect to backend
 	conn, orgID, err := connectToBackend(opts.OrgOverride)
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
 
-	// Step 6: Process attachments
-	var attachments []*agentexecutionv1.Attachment
+	// Step 7: Process attachments (workspace-aware)
+	var attachResult AttachmentResult
 	if len(opts.AttachFlags) > 0 {
 		processor := NewAttachmentProcessor(conn)
-		attachments, err = processor.ProcessFiles(opts.AttachFlags)
+		localRoot := localWorkspaceRoot(workspaceSource)
+		res, err := processor.ProcessFiles(opts.AttachFlags, localRoot)
 		if err != nil {
 			return errors.Wrap(err, "failed to process attachments")
 		}
+		attachResult = *res
 	}
 
-	// Step 7: Route to appropriate handler
-	return routeRun(info, opts.Reference, opts.Message, runtimeEnv, attachments, opts.Detach, opts.DownloadDir, orgID, defaultAction, opts.Verbose, conn)
+	// Step 8: Route to appropriate handler
+	return routeRun(info, opts.Reference, opts.Message, runtimeEnv, &attachResult, workspaceSource, opts.Detach, opts.DownloadDir, orgID, defaultAction, opts.Verbose, conn)
 }
 
 // routeRun routes to the appropriate run handler based on kind.
-func routeRun(info *types.TypeInfo, ref, message string, env envfile.EnvMap, attachments []*agentexecutionv1.Attachment, detach bool, downloadDir, orgID string, defaultAction approval.Action, verbose bool, conn *grpc.ClientConn) error {
+func routeRun(info *types.TypeInfo, ref, message string, env envfile.EnvMap, attachResult *AttachmentResult, workspaceSource *sessionv1.WorkspaceSource, detach bool, downloadDir, orgID string, defaultAction approval.Action, verbose bool, conn *grpc.ClientConn) error {
 	switch info.ProtoKind {
 	case apiresourcekind.ApiResourceKind_agent:
-		return runAgent(ref, message, env, attachments, detach, downloadDir, orgID, defaultAction, verbose, conn)
+		return runAgent(ref, message, env, attachResult, workspaceSource, detach, downloadDir, orgID, defaultAction, verbose, conn)
 
 	case apiresourcekind.ApiResourceKind_workflow:
+		if workspaceSource != nil {
+			return fmt.Errorf("--workspace is not supported for workflows (workspace is an agent-level concept)")
+		}
 		return runWorkflow(ref, message, env, detach, orgID, defaultAction, conn)
 
 	default:

@@ -63,17 +63,44 @@ func TestScanResourceFiles_SkipsNonYAMLFiles(t *testing.T) {
 	assert.Len(t, files, 1)
 }
 
-func TestScanResourceFiles_SkipsSubdirectories(t *testing.T) {
+func TestScanResourceFiles_ScansImmediateSubdirectories(t *testing.T) {
 	dir := t.TempDir()
 	writeResourceYAML(t, dir, "agent.yaml", "Agent", "my-agent")
 
-	subDir := filepath.Join(dir, "nested")
+	subDir := filepath.Join(dir, "agents")
 	require.NoError(t, os.MkdirAll(subDir, 0755))
-	writeResourceYAML(t, subDir, "hidden-agent.yaml", "Agent", "hidden")
+	writeResourceYAML(t, subDir, "sub-agent.yaml", "Agent", "sub-agent")
 
 	files, err := scanResourceFiles(dir)
 	require.NoError(t, err)
-	assert.Len(t, files, 1, "subdirectories should not be traversed")
+	assert.Len(t, files, 2, "should include YAML from immediate subdirectories")
+}
+
+func TestScanResourceFiles_ExcludesSkillDirectories(t *testing.T) {
+	dir := t.TempDir()
+	writeResourceYAML(t, dir, "agent.yaml", "Agent", "my-agent")
+
+	skillDir := filepath.Join(dir, "my-skill")
+	require.NoError(t, os.MkdirAll(skillDir, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte("# Skill"), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(skillDir, "data.yaml"), []byte("some: data"), 0644))
+
+	files, err := scanResourceFiles(dir)
+	require.NoError(t, err)
+	assert.Len(t, files, 1, "skill directories (with SKILL.md) should be excluded from YAML scanning")
+}
+
+func TestScanResourceFiles_SubdirYAMLsHaveAbsolutePaths(t *testing.T) {
+	dir := t.TempDir()
+	subDir := filepath.Join(dir, "mcp-servers")
+	require.NoError(t, os.MkdirAll(subDir, 0755))
+	writeResourceYAML(t, subDir, "github.yaml", "McpServer", "github")
+
+	files, err := scanResourceFiles(dir)
+	require.NoError(t, err)
+	require.Len(t, files, 1)
+	assert.True(t, filepath.IsAbs(files[0]))
+	assert.Equal(t, filepath.Join(subDir, "github.yaml"), files[0])
 }
 
 func TestScanResourceFiles_EmptyDirectory(t *testing.T) {
@@ -98,6 +125,132 @@ func TestScanResourceFiles_ReturnsAbsolutePaths(t *testing.T) {
 	require.Len(t, files, 1)
 	assert.True(t, filepath.IsAbs(files[0]))
 	assert.Equal(t, filepath.Join(dir, "agent.yaml"), files[0])
+}
+
+// =============================================================================
+// scanSkillDirectories
+// =============================================================================
+
+func TestScanSkillDirectories_FindsSkillDirs(t *testing.T) {
+	dir := t.TempDir()
+
+	skillDir := filepath.Join(dir, "my-skill")
+	require.NoError(t, os.MkdirAll(skillDir, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte("# My Skill"), 0644))
+
+	dirs, err := scanSkillDirectories(dir)
+	require.NoError(t, err)
+	assert.Len(t, dirs, 1)
+	assert.Equal(t, skillDir, dirs[0])
+}
+
+func TestScanSkillDirectories_IgnoresNonSkillDirs(t *testing.T) {
+	dir := t.TempDir()
+
+	agentsDir := filepath.Join(dir, "agents")
+	require.NoError(t, os.MkdirAll(agentsDir, 0755))
+	writeResourceYAML(t, agentsDir, "my-agent.yaml", "Agent", "my-agent")
+
+	dirs, err := scanSkillDirectories(dir)
+	require.NoError(t, err)
+	assert.Empty(t, dirs)
+}
+
+func TestScanSkillDirectories_MultipleSkills(t *testing.T) {
+	dir := t.TempDir()
+
+	for _, name := range []string{"skill-a", "skill-b", "skill-c"} {
+		skillDir := filepath.Join(dir, name)
+		require.NoError(t, os.MkdirAll(skillDir, 0755))
+		require.NoError(t, os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte("# "+name), 0644))
+	}
+
+	dirs, err := scanSkillDirectories(dir)
+	require.NoError(t, err)
+	assert.Len(t, dirs, 3)
+}
+
+func TestScanSkillDirectories_IgnoresFiles(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "SKILL.md"), []byte("# top-level"), 0644))
+
+	dirs, err := scanSkillDirectories(dir)
+	require.NoError(t, err)
+	assert.Empty(t, dirs, "top-level SKILL.md is not a skill directory")
+}
+
+func TestScanSkillDirectories_EmptyDirectory(t *testing.T) {
+	dir := t.TempDir()
+
+	dirs, err := scanSkillDirectories(dir)
+	require.NoError(t, err)
+	assert.Empty(t, dirs)
+}
+
+// =============================================================================
+// scanSkillDirectories — nested layout (skills/{name}/SKILL.md)
+// =============================================================================
+
+func TestScanSkillDirectories_NestedSkillsUnderGroupingDir(t *testing.T) {
+	dir := t.TempDir()
+
+	skillsDir := filepath.Join(dir, "skills")
+	for _, name := range []string{"agent-creator", "mcp-server-creator", "skill-creator"} {
+		skillDir := filepath.Join(skillsDir, name)
+		require.NoError(t, os.MkdirAll(skillDir, 0755))
+		require.NoError(t, os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte("# "+name), 0644))
+	}
+
+	dirs, err := scanSkillDirectories(dir)
+	require.NoError(t, err)
+	assert.Len(t, dirs, 3, "should discover skills nested under skills/ grouping directory")
+}
+
+func TestScanSkillDirectories_MixedFlatAndNested(t *testing.T) {
+	dir := t.TempDir()
+
+	flatSkill := filepath.Join(dir, "my-skill")
+	require.NoError(t, os.MkdirAll(flatSkill, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(flatSkill, "SKILL.md"), []byte("# flat"), 0644))
+
+	skillsDir := filepath.Join(dir, "skills")
+	nestedSkill := filepath.Join(skillsDir, "nested-skill")
+	require.NoError(t, os.MkdirAll(nestedSkill, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(nestedSkill, "SKILL.md"), []byte("# nested"), 0644))
+
+	dirs, err := scanSkillDirectories(dir)
+	require.NoError(t, err)
+	assert.Len(t, dirs, 2, "should find both flat and nested skills")
+}
+
+func TestScanSkillDirectories_NestedNonSkillDirsIgnored(t *testing.T) {
+	dir := t.TempDir()
+
+	groupDir := filepath.Join(dir, "stuff")
+	subDir := filepath.Join(groupDir, "not-a-skill")
+	require.NoError(t, os.MkdirAll(subDir, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(subDir, "README.md"), []byte("# Readme"), 0644))
+
+	dirs, err := scanSkillDirectories(dir)
+	require.NoError(t, err)
+	assert.Empty(t, dirs, "dirs without SKILL.md should not be treated as skills even when nested")
+}
+
+func TestScanResourceFiles_ExcludesNestedSkillGroupingDir(t *testing.T) {
+	dir := t.TempDir()
+
+	writeResourceYAML(t, dir, "agent.yaml", "Agent", "my-agent")
+
+	skillsDir := filepath.Join(dir, "skills")
+	nestedSkill := filepath.Join(skillsDir, "my-skill")
+	require.NoError(t, os.MkdirAll(nestedSkill, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(nestedSkill, "SKILL.md"), []byte("# skill"), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(skillsDir, "extra.yaml"), []byte("some: data"), 0644))
+
+	files, err := scanResourceFiles(dir)
+	require.NoError(t, err)
+	assert.Len(t, files, 1, "skills/ grouping directory should be excluded from YAML scanning")
+	assert.Contains(t, files[0], "agent.yaml")
 }
 
 // =============================================================================

@@ -28,7 +28,6 @@ import (
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
-	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/bootstrap"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config"
 	agentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agent/controller"
 	agentexecutioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/controller"
@@ -365,30 +364,16 @@ func Run() error {
 	log.Info().Msg("Created in-process gRPC clients for Agent, AgentInstance, Session, Workflow, WorkflowInstance, McpServer, and Skill")
 
 	// ============================================================================
-	// Run seedpack bootstrap (before network server starts)
+	// Rebuild search index at startup
 	// ============================================================================
-	// Bootstrap runs after in-process clients are ready but before accepting
-	// external connections. This ensures system skills and agents are available
-	// when the server is ready to serve requests.
-	//
-	// Bootstrap is idempotent and graceful:
-	// - Auto-discovers resources from embedded filesystem (no manifest needed)
-	// - Skips if content hash unchanged since last successful bootstrap
-	// - Continues in degraded mode if bootstrap fails (logs warnings)
-	bootstrapper := bootstrap.NewBootstrapper(store, skillClient, agentClient, mcpServerClient)
-	if err := bootstrapper.Run(context.Background()); err != nil {
-		// Bootstrap returns nil on degraded mode - only fails on critical errors
-		log.Fatal().Err(err).Msg("Critical bootstrap failure")
-	}
-
-	// Rebuild the search index after bootstrap so newly pushed resources
-	// (skills, agents, MCP servers) are immediately discoverable via list/search.
-	// The search index (FTS5) is separate from the resources table and must be
-	// explicitly rebuilt; SaveResource alone does not update it.
+	// FTS5 search index is separate from the resources table and must be
+	// explicitly rebuilt. This ensures all resources (including those applied
+	// by CLI-driven seedpack bootstrap) are immediately discoverable via
+	// list/search after the server accepts connections.
 	if indexed, err := searchQueryStore.RebuildIndex(context.Background()); err != nil {
-		log.Warn().Err(err).Msg("Failed to rebuild search index after bootstrap")
+		log.Warn().Err(err).Msg("Failed to rebuild search index at startup")
 	} else {
-		log.Info().Int("indexed", indexed).Msg("Search index rebuilt after bootstrap")
+		log.Info().Int("indexed", indexed).Msg("Search index rebuilt at startup")
 	}
 
 	// Create the reconciliation resource deleter for orphan pruning
