@@ -86,7 +86,12 @@ echo ""
 # Draft the skill
 # ---------------------------------------------------------------------------
 
-MESSAGE=$(cat <<'EOF'
+# Write the prompt to a temp file to avoid bash 3.2's $() + heredoc parsing
+# bug, which breaks on apostrophes inside a heredoc body.
+readonly _MSG_FILE="$(mktemp)"
+trap 'rm -f "${_MSG_FILE}"' EXIT
+
+cat > "${_MSG_FILE}" <<'EOF'
 Create an agent-creator skill that empowers AI assistants to produce valid,
 production-quality Stigmer Agent YAML files conforming to the
 agentic.stigmer.ai/v1 API.
@@ -115,9 +120,9 @@ The generated SKILL.md MUST instruct agents using this skill to:
    exists on the platform. The Stigmer MCP server is connected at runtime; use
    it to discover real slugs. Never guess or hallucinate resource references.
 
-2. ASK BEFORE ASSUMING: If the user's intent is unclear, or if a required skill
+2. ASK BEFORE ASSUMING: If the stated intent is unclear, or if a required skill
    or MCP server does not exist on the platform, the agent MUST pause and ask
-   the user before proceeding. Never silently fill in placeholders.
+   before proceeding. Never silently fill in placeholders.
 
 3. VALIDATE BEFORE PRESENTING: Before showing the final YAML, the agent must
    verify all validation rules derived from the proto schemas: naming
@@ -129,7 +134,6 @@ This is a foundational skill for a world-class platform. Write the SKILL.md so
 that any AI assistant using it can create flawless Agent YAMLs on the first
 attempt.
 EOF
-)
 
 stigmer draft skill \
   --workspace "$REPO_ROOT" \
@@ -139,7 +143,7 @@ stigmer draft skill \
   --attach "$WHAT_IS_AGENT_DOC" \
   --output "$SKILLS_DIR" \
   --model claude-sonnet-4.6 \
-  -m "$MESSAGE"
+  -m "$(cat "${_MSG_FILE}")"
 
 readonly GENERATED_DIR="${SKILLS_DIR}/${SKILL_NAME}"
 
