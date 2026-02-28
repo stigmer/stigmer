@@ -108,6 +108,14 @@ throughout the task:
     rely on prose documentation alone -- derive your understanding from the
     protos and verify against the attached what-is-agent.md doc.
 
+  - The workspace contains docs/product/what-is-*.md documents that explain
+    each Stigmer concept in depth. Start with the attached what-is-agent.md
+    for the Agent resource itself, then browse the directory for related
+    concepts as needed (e.g. what-is-mcp-server.md, what-is-skill.md,
+    what-is-session.md, what-is-workspace.md, what-is-agent-execution.md,
+    what-is-agent-instance.md, and others). Use these to build a deep
+    understanding of the domain before writing the skill.
+
   - Do NOT read, reference, or be influenced by any content already present in
     seedpack/skills/agent-creator/. You are regenerating this skill from scratch.
     Ignore whatever exists there.
