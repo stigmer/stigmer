@@ -4,11 +4,14 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/envfile"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpserver"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/reference"
@@ -293,7 +296,7 @@ func executeRun(opts runOptions) error {
 		return errors.Wrap(err, "invalid workspace configuration")
 	}
 
-	// Step 5: Load and merge environment variables
+	// Step 5: Load and merge user-provided environment variables
 	runtimeEnv, err := envfile.LoadAndMergeWithSecrets(
 		opts.EnvFileFlags,
 		opts.SecretFileFlags,
@@ -302,6 +305,17 @@ func executeRun(opts runOptions) error {
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed to load environment")
+	}
+
+	// Step 5.5: Auto-resolve well-known credentials from local stores
+	// (gh auth token, Planton CLI credentials, Stigmer CLI config).
+	// Merged as the lowest priority — user-provided flags and env files
+	// always take precedence.
+	autoEnv, err := resolveAndMergeAutoEnv(runtimeEnv)
+	if err != nil {
+		log.Warn().Err(err).Msg("skipping auto-env resolution (config load failed)")
+	} else {
+		runtimeEnv = autoEnv
 	}
 
 	// Step 6: Connect to backend
@@ -325,6 +339,29 @@ func executeRun(opts runOptions) error {
 
 	// Step 8: Route to appropriate handler
 	return routeRun(info, opts.Reference, opts.Message, runtimeEnv, &attachResult, workspaceSource, opts.Detach, opts.DownloadDir, orgID, defaultAction, opts.Verbose, conn)
+}
+
+// resolveAndMergeAutoEnv loads the CLI config, resolves well-known
+// credentials, and merges them with the user-provided env. Auto-resolved
+// values are the lowest priority: user-provided values always win.
+func resolveAndMergeAutoEnv(userEnv envfile.EnvMap) (envfile.EnvMap, error) {
+	cfg, err := config.Load()
+	if err != nil {
+		return nil, err
+	}
+
+	autoEnv := mcpserver.ResolveWellKnownEnv(cfg)
+	if len(autoEnv) == 0 {
+		return userEnv, nil
+	}
+
+	var names []string
+	for name := range autoEnv {
+		names = append(names, name)
+	}
+	log.Debug().Strs("vars", names).Msg("auto-resolved credentials for MCP servers")
+
+	return envfile.MergeEnvSources(autoEnv, userEnv), nil
 }
 
 // routeRun routes to the appropriate run handler based on kind.
