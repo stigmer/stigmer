@@ -32,13 +32,13 @@ func TestParseWorkspaceSource_CommitWithoutWorkspace(t *testing.T) {
 
 func TestParseWorkspaceSource_GitURL(t *testing.T) {
 	tests := []struct {
-		name           string
-		workspace      string
-		branch         string
-		commit         string
-		wantURL        string
-		wantBranch     string
-		wantCommit     string
+		name       string
+		workspace  string
+		branch     string
+		commit     string
+		wantURL    string
+		wantBranch string
+		wantCommit string
 	}{
 		{
 			name:      "https url only",

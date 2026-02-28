@@ -10,8 +10,6 @@ Tests cover:
 
 from __future__ import annotations
 
-import os
-
 from worker.activities.execute_graphton import (
     build_referenced_files_prompt_section,
     build_workspace_prompt_section,
@@ -294,8 +292,8 @@ class TestBuildReferencedFilesPromptSection:
         assert "`missing.txt`" in section
         # Only the existing file should show size
         lines = section.strip().split("\n")
-        exists_line = [l for l in lines if "exists.txt" in l][0]
-        missing_line = [l for l in lines if "missing.txt" in l][0]
+        exists_line = [line for line in lines if "exists.txt" in line][0]
+        missing_line = [line for line in lines if "missing.txt" in line][0]
         assert "bytes" in exists_line
         assert "bytes" not in missing_line
 
