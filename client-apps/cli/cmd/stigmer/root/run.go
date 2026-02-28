@@ -5,7 +5,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
@@ -15,6 +14,19 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/reference"
 	"google.golang.org/grpc"
 )
+
+// localWorkspaceRoot extracts the absolute path from a local-path workspace source.
+// Returns empty string for nil, git, or non-local workspace sources.
+func localWorkspaceRoot(ws *sessionv1.WorkspaceSource) string {
+	if ws == nil {
+		return ""
+	}
+	lp := ws.GetLocalPath()
+	if lp == nil {
+		return ""
+	}
+	return lp.GetPath()
+}
 
 // NewRunCommand creates the unified run command for executing agents and workflows.
 func NewRunCommand() *cobra.Command {
@@ -299,25 +311,27 @@ func executeRun(opts runOptions) error {
 	}
 	defer conn.Close()
 
-	// Step 7: Process attachments
-	var attachments []*agentexecutionv1.Attachment
+	// Step 7: Process attachments (workspace-aware)
+	var attachResult AttachmentResult
 	if len(opts.AttachFlags) > 0 {
 		processor := NewAttachmentProcessor(conn)
-		attachments, err = processor.ProcessFiles(opts.AttachFlags)
+		localRoot := localWorkspaceRoot(workspaceSource)
+		res, err := processor.ProcessFiles(opts.AttachFlags, localRoot)
 		if err != nil {
 			return errors.Wrap(err, "failed to process attachments")
 		}
+		attachResult = *res
 	}
 
 	// Step 8: Route to appropriate handler
-	return routeRun(info, opts.Reference, opts.Message, runtimeEnv, attachments, workspaceSource, opts.Detach, opts.DownloadDir, orgID, defaultAction, opts.Verbose, conn)
+	return routeRun(info, opts.Reference, opts.Message, runtimeEnv, &attachResult, workspaceSource, opts.Detach, opts.DownloadDir, orgID, defaultAction, opts.Verbose, conn)
 }
 
 // routeRun routes to the appropriate run handler based on kind.
-func routeRun(info *types.TypeInfo, ref, message string, env envfile.EnvMap, attachments []*agentexecutionv1.Attachment, workspaceSource *sessionv1.WorkspaceSource, detach bool, downloadDir, orgID string, defaultAction approval.Action, verbose bool, conn *grpc.ClientConn) error {
+func routeRun(info *types.TypeInfo, ref, message string, env envfile.EnvMap, attachResult *AttachmentResult, workspaceSource *sessionv1.WorkspaceSource, detach bool, downloadDir, orgID string, defaultAction approval.Action, verbose bool, conn *grpc.ClientConn) error {
 	switch info.ProtoKind {
 	case apiresourcekind.ApiResourceKind_agent:
-		return runAgent(ref, message, env, attachments, workspaceSource, detach, downloadDir, orgID, defaultAction, verbose, conn)
+		return runAgent(ref, message, env, attachResult, workspaceSource, detach, downloadDir, orgID, defaultAction, verbose, conn)
 
 	case apiresourcekind.ApiResourceKind_workflow:
 		if workspaceSource != nil {
