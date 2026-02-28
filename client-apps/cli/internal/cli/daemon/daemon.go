@@ -782,21 +782,20 @@ func cleanupOrphanedProcesses(dataDir string) {
 		_ = os.Remove(containerIDFile)
 	}
 
-	// Also check for orphaned Temporal (if managed)
+	// Also check for orphaned Temporal (if managed).
+	// We do NOT gate on IsRunning() here because the lock file may have been
+	// released when the parent CLI exited, making the orphan invisible to
+	// lock-based checks. CleanupStaleProcesses handles both PID-file and
+	// port-based detection.
 	cfg, err := config.Load()
 	if err == nil && (cfg.Backend.Local.Temporal == nil || cfg.Backend.Local.Temporal.Managed) {
-		// Load config, use defaults if it fails
 		temporalManager := temporal.NewManager(
 			dataDir,
 			cfg.Backend.Local.ResolveTemporalVersion(),
 			cfg.Backend.Local.ResolveTemporalPort(),
 		)
 
-		if temporalManager.IsRunning() {
-			orphansFound = true
-			log.Warn().Msg("Found orphaned Temporal server from previous run, stopping")
-			_ = temporalManager.Stop()
-		}
+		temporalManager.CleanupStaleProcesses()
 	}
 
 	if orphansFound {
@@ -884,35 +883,35 @@ func Stop(dataDir string) error {
 
 // stopManagedTemporal stops managed Temporal if it's running
 func stopManagedTemporal(dataDir string) {
-	// Load config, use defaults if it fails
 	cfg, err := config.Load()
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to load config, using defaults for Temporal stop")
 		cfg = config.GetDefault()
 	}
 
-	// Skip if explicitly configured as external Temporal
 	if cfg.Backend.Local.Temporal != nil && !cfg.Backend.Local.Temporal.Managed {
-		return // Using external Temporal, don't stop it
+		return
 	}
 
-	// Create manager with config (or defaults)
 	tm := temporal.NewManager(
 		dataDir,
 		cfg.Backend.Local.ResolveTemporalVersion(),
 		cfg.Backend.Local.ResolveTemporalPort(),
 	)
 
-	if !tm.IsRunning() {
-		return // Not running
-	}
-
+	// Try PID-based stop first (does not depend on lock state).
+	// Then run stale-process cleanup which handles the port-based fallback
+	// for cases where the PID file is missing but the process is alive.
 	log.Info().Msg("Stopping managed Temporal...")
 	if err := tm.Stop(); err != nil {
-		log.Error().Err(err).Msg("Failed to stop Temporal")
+		log.Debug().Err(err).Msg("PID-based Temporal stop failed (may not be running or PID file missing)")
 	} else {
 		log.Info().Msg("Temporal stopped successfully")
+		return
 	}
+
+	// Fallback: clean up any orphaned Temporal process that lost its PID file.
+	tm.CleanupStaleProcesses()
 }
 
 // stopWorkflowRunner stops the workflow-runner subprocess

@@ -101,7 +101,7 @@ func (m *Manager) Start() error {
 	}
 
 	// Cleanup any stale processes before checking if running
-	m.cleanupStaleProcesses()
+	m.CleanupStaleProcesses()
 
 	// Check if already running and healthy (backup check)
 	if m.IsRunning() {
@@ -394,57 +394,111 @@ func (m *Manager) waitForReady(timeout time.Duration) error {
 	return errors.New("Temporal failed to start within timeout")
 }
 
-// cleanupStaleProcesses removes stale PID files and kills orphaned processes
-func (m *Manager) cleanupStaleProcesses() {
-	// Try to read PID file
+// CleanupStaleProcesses removes stale PID files and kills orphaned processes.
+// Handles two scenarios:
+//  1. PID file exists but process is dead or not Temporal -> remove PID file.
+//  2. PID file is missing but port is occupied -> find and kill the orphan via lsof.
+func (m *Manager) CleanupStaleProcesses() {
+	// Scenario 1: PID file exists
 	pid, err := m.getPID()
-	if err != nil {
-		// No PID file or invalid - nothing to cleanup
+	if err == nil {
+		m.cleanupByPID(pid)
 		return
 	}
 
-	// Check if process exists and is alive
+	// Scenario 2: No PID file -- check if something is using our port anyway.
+	// This covers the case where `stigmer server reset` removed the PID file
+	// without killing the Temporal process.
+	m.cleanupByPort()
+}
+
+// cleanupByPID handles the case where a PID file exists.
+func (m *Manager) cleanupByPID(pid int) {
 	process, err := os.FindProcess(pid)
 	if err != nil {
-		// Process doesn't exist - remove stale PID file
 		log.Debug().Int("pid", pid).Msg("Removing stale PID file (process not found)")
 		_ = os.Remove(m.pidFile)
 		return
 	}
 
-	// Send signal 0 to check if process is alive
-	err = process.Signal(syscall.Signal(0))
-	if err != nil {
-		// Process is not alive - remove stale PID file
+	if err := process.Signal(syscall.Signal(0)); err != nil {
 		log.Debug().Int("pid", pid).Msg("Removing stale PID file (process not alive)")
 		_ = os.Remove(m.pidFile)
 		return
 	}
 
-	// Process exists and is alive - use enhanced validation
-	// Check 1: Is it actually Temporal? (handles PID reuse)
 	if !m.isActuallyTemporal(pid) {
 		log.Warn().Int("pid", pid).Msg("Process exists but is not Temporal (PID reuse detected) - removing stale PID file")
 		_ = os.Remove(m.pidFile)
 		return
 	}
 
-	// Check 2: Is the Temporal port in use?
 	if !m.isPortInUse() {
 		log.Warn().Int("pid", pid).Msg("Temporal process exists but port not listening - killing stale process")
-
-		// Force kill the process group
-		if err := syscall.Kill(-pid, syscall.SIGKILL); err != nil {
-			log.Debug().Err(err).Msg("Failed to kill stale process (may be permission issue)")
-		}
-
-		// Remove stale PID file
+		_ = syscall.Kill(-pid, syscall.SIGKILL)
 		_ = os.Remove(m.pidFile)
 		return
 	}
 
-	// All checks passed - it's a valid running Temporal instance
 	log.Debug().Int("pid", pid).Msg("Found valid running Temporal instance")
+}
+
+// cleanupByPort finds and kills whatever process is occupying the managed
+// Temporal port when no PID file is available. Uses lsof to resolve the PID.
+func (m *Manager) cleanupByPort() {
+	if !m.isPortInUse() {
+		return
+	}
+
+	log.Warn().Int("port", m.port).Msg("Temporal port occupied but no PID file -- attempting port-based cleanup")
+
+	pid := m.findPIDOnPort()
+	if pid == 0 {
+		log.Warn().Int("port", m.port).Msg("Could not determine PID holding Temporal port")
+		return
+	}
+
+	if !m.isActuallyTemporal(pid) {
+		log.Warn().Int("pid", pid).Int("port", m.port).
+			Msg("Process on Temporal port is not Temporal -- skipping kill to avoid collateral damage")
+		return
+	}
+
+	log.Warn().Int("pid", pid).Int("port", m.port).Msg("Killing orphaned Temporal process found via port")
+	_ = syscall.Kill(-pid, syscall.SIGTERM)
+	time.Sleep(500 * time.Millisecond)
+
+	if m.isPortInUse() {
+		log.Warn().Int("pid", pid).Msg("Temporal did not exit after SIGTERM, sending SIGKILL")
+		_ = syscall.Kill(-pid, syscall.SIGKILL)
+		time.Sleep(500 * time.Millisecond)
+	}
+}
+
+// findPIDOnPort returns the PID of the process listening on the Temporal port,
+// or 0 if it cannot be determined.
+func (m *Manager) findPIDOnPort() int {
+	cmd := exec.Command("lsof", "-ti", fmt.Sprintf("tcp:%d", m.port), "-sTCP:LISTEN")
+	output, err := cmd.Output()
+	if err != nil {
+		return 0
+	}
+
+	pidStr := strings.TrimSpace(string(output))
+	if pidStr == "" {
+		return 0
+	}
+
+	// lsof may return multiple PIDs (one per line); take the first.
+	if idx := strings.IndexByte(pidStr, '\n'); idx > 0 {
+		pidStr = pidStr[:idx]
+	}
+
+	pid, err := strconv.Atoi(pidStr)
+	if err != nil {
+		return 0
+	}
+	return pid
 }
 
 // acquireLock attempts to acquire an exclusive lock on the lock file
