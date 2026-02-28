@@ -124,11 +124,7 @@ func resolveKnownVar(name string, cfg *config.Config) (string, bool) {
 		return resolveStigmerServerAddress(cfg), true
 
 	case "STIGMER_API_KEY":
-		val := resolveStigmerAPIKey(cfg)
-		if val == "" {
-			return "", false
-		}
-		return val, true
+		return resolveStigmerAPIKey(cfg)
 
 	case "GITHUB_TOKEN":
 		return resolveGithubToken()
@@ -161,22 +157,25 @@ func resolveStigmerServerAddress(cfg *config.Config) string {
 }
 
 // resolveStigmerAPIKey returns the API key / auth token for the configured
-// backend. Local backends don't require authentication, so an empty string
-// is returned. For cloud backends, the stored token from 'stigmer login' is
-// used.
-func resolveStigmerAPIKey(cfg *config.Config) string {
+// backend and whether the resolution succeeded.
+//
+// Local backends don't require authentication, so ("", true) is returned --
+// the empty value is intentional, not a failure to resolve. For cloud
+// backends, the stored token from 'stigmer login' is used; ("", false)
+// indicates the user has not authenticated yet.
+func resolveStigmerAPIKey(cfg *config.Config) (string, bool) {
 	switch cfg.Backend.Type {
 	case config.BackendTypeLocal:
-		return ""
+		return "", true
 
 	case config.BackendTypeCloud:
-		if cfg.Backend.Cloud != nil {
-			return cfg.Backend.Cloud.Token
+		if cfg.Backend.Cloud != nil && cfg.Backend.Cloud.Token != "" {
+			return cfg.Backend.Cloud.Token, true
 		}
-		return ""
+		return "", false
 
 	default:
-		return ""
+		return "", true
 	}
 }
 

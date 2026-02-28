@@ -184,6 +184,14 @@ func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 	// LLM status messaging: only announce after validation is complete.
 	displayLLMStatus(llmProvider, llmModel, cfg.Backend.Local, llmSetupErr)
 
+	// Apply seedpack (system agents, skills, MCP servers) before discovery.
+	// This ensures system resources exist before we attempt to discover their
+	// capabilities. EnsureRunning() also calls this as a safety net, but
+	// stigmer server is the canonical place for first-run bootstrap.
+	if err := daemon.EnsureSeedpackBootstrapped(dataDir); err != nil {
+		climsg.Warning("Failed to apply system resources: %v", err)
+	}
+
 	climsg.Info("Discovering MCP server capabilities...")
 	runBootstrapDiscovery(cfg)
 
