@@ -14,6 +14,7 @@ const (
 	blockApproval                     // Approval request display
 	blockError                        // Error message (stream failure, execution error)
 	blockTodo                         // Agent todo/planning items
+	blockSubAgent                     // Sub-agent delegation header
 )
 
 // contentBlock represents one renderable unit in the execution output.
@@ -68,7 +69,7 @@ type contentBlock struct {
 	subAgentID string
 
 	// subAgentName is the human-readable name for the sub-agent (e.g.,
-	// "researcher", "code_editor"). Populated from the Model's subAgentNames
+	// "researcher", "code_editor"). Populated from the Model's subAgentMeta
 	// map when the block is created. Used by the renderer to label context
 	// separator lines.
 	subAgentName string
@@ -199,6 +200,24 @@ func newTodoBlock(preview, full string) contentBlock {
 		blockType:  blockTodo,
 		expandable: true,
 		expanded:   true,
+		preview:    preview,
+		full:       full,
+	}
+}
+
+// newSubAgentBlock creates an expandable header block for a sub-agent
+// delegation. Collapsed view shows the sub-agent type and a short task
+// description; expanded view adds the full prompt in a gutter-bordered
+// section. The block starts collapsed by default.
+//
+// When input is empty (no task prompt available), the block is not
+// expandable — only the header line is shown.
+func newSubAgentBlock(name, description, input string) contentBlock {
+	preview := renderSubAgentHeader(name, description, input)
+	full := renderSubAgentHeaderExpanded(name, description, input)
+	return contentBlock{
+		blockType:  blockSubAgent,
+		expandable: input != "",
 		preview:    preview,
 		full:       full,
 	}

@@ -209,13 +209,20 @@ func (TodoUpdateEvent) isEvent() {}
 // SubAgentStartedEvent signals that a new sub-agent execution has been
 // detected in the stream. Emitted once per sub-agent when the bridge layer
 // first encounters it, before any tool/message events from that sub-agent.
-// The TUI stores the name in a lookup map so it can render context separator
-// lines when the active agent changes.
+// The TUI creates an expandable header block that shows the sub-agent type,
+// a short task description, and (on expand) the full prompt.
 type SubAgentStartedEvent struct {
 	// ID is the unique identifier for this sub-agent execution.
 	ID string
 	// Name is the human-readable sub-agent type (e.g., "researcher", "code_editor").
 	Name string
+	// Input is the full task prompt given to the sub-agent. Shown in the
+	// expanded view of the sub-agent header block.
+	Input string
+	// Description is a concise (3-5 word) summary of the task, extracted
+	// from the task tool's "description" arg via SubAgentExecution.metadata.
+	// Shown in the collapsed header; falls back to truncated Input when empty.
+	Description string
 }
 
 func (SubAgentStartedEvent) isEvent() {}
