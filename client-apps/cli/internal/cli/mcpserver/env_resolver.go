@@ -91,6 +91,10 @@ func ResolveEnvForDiscovery(server *mcpserverv1.McpServer, cfg *config.Config) *
 // so that user-provided --env/--secret flags and env files take precedence.
 //
 // Variables already present in os.Environ() are skipped (shell env wins).
+// Variables that resolve to an empty value are also skipped — the backend
+// enforces a non-empty constraint on every runtime_env entry, so adding a
+// key with an empty value would fail proto validation (e.g. STIGMER_API_KEY
+// is intentionally empty on local backends, which don't require auth).
 // Credential values are marked with IsSecret: true so the backend encrypts
 // them at rest and redacts them in logs.
 func ResolveWellKnownEnv(cfg *config.Config) envfile.EnvMap {
@@ -99,11 +103,13 @@ func ResolveWellKnownEnv(cfg *config.Config) envfile.EnvMap {
 		if os.Getenv(name) != "" {
 			continue
 		}
-		if val, ok := resolveKnownVar(name, cfg); ok {
-			result[name] = &executioncontextv1.ExecutionValue{
-				Value:    val,
-				IsSecret: isSecretVar(name),
-			}
+		val, ok := resolveKnownVar(name, cfg)
+		if !ok || val == "" {
+			continue
+		}
+		result[name] = &executioncontextv1.ExecutionValue{
+			Value:    val,
+			IsSecret: isSecretVar(name),
 		}
 	}
 	return result
