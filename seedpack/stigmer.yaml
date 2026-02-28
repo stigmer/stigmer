@@ -1,0 +1,9 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: Project
+metadata:
+  name: stigmer-seedpack
+spec:
+  description: >
+    Default skills, agents, and MCP servers bootstrapped with every Stigmer server.
+    This project serves as both the server's bootstrap content and a reference
+    example for creating your own Stigmer projects.

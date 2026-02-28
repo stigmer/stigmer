@@ -27,7 +27,7 @@ set -euo pipefail
 
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly SEEDPACK_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-readonly REPO_ROOT="$(cd "${SEEDPACK_DIR}/../../../../.." && pwd)"
+readonly REPO_ROOT="$(cd "${SEEDPACK_DIR}/.." && pwd)"
 
 # ---------------------------------------------------------------------------
 # Dependency checks

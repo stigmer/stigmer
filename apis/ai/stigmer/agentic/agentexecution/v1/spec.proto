@@ -219,6 +219,34 @@ message AgentExecutionSpec {
   //
   // @since Artifact Lifecycle (Attachments & Outputs)
   repeated Attachment attachments = 9;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Workspace File References (Workspace-Aware Attachments)
+  //
+  // Lightweight attention signals for files already in the workspace.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Workspace-relative file paths the user wants the agent to focus on.
+  //
+  // When users attach files that already exist inside the session's workspace,
+  // the CLI skips the upload/injection flow and records the workspace-relative
+  // path here instead. The agent accesses these files directly via the
+  // workspace filesystem -- no upload, no copy, no injection.
+  //
+  // This separates the "attention" signal ("look at this file") from the
+  // "transport" mechanism (upload + inject) that regular attachments use.
+  //
+  // Valid only when the session has a workspace_source with a local path.
+  // For git workspaces or sessions without a workspace, all files go through
+  // the regular attachment flow.
+  //
+  // Example CLI usage:
+  //   stigmer run agent reviewer --workspace . --attach ./src/config.yaml -m "Review"
+  //   # CLI detects src/config.yaml is inside workspace -> workspace_file_ref
+  //   # No upload, no injection; agent reads directly from src/config.yaml
+  //
+  // @since Workspace-Aware File Referencing
+  repeated string workspace_file_refs = 10;
 }
 
 // Configuration that can be applied at execution time.

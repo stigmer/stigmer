@@ -26,7 +26,6 @@ go_library(
         "//backend/libs/go/grpc/interceptors/apiresource",
         "//backend/libs/go/store",
         "//backend/libs/go/store/sqlite",
-        "//backend/services/stigmer-server/pkg/bootstrap",
         "//backend/services/stigmer-server/pkg/config",
         "//backend/services/stigmer-server/pkg/domain/agent/controller",
         "//backend/services/stigmer-server/pkg/domain/agentexecution/controller",

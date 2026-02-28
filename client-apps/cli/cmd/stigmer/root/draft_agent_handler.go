@@ -61,10 +61,11 @@ func executeDraftAgent(opts draftAgentOptions) error {
 	var attachments []*agentexecutionv1.Attachment
 	if len(opts.AttachFlags) > 0 {
 		processor := NewAttachmentProcessor(conn)
-		attachments, err = processor.ProcessFiles(opts.AttachFlags)
+		attachResult, err := processor.ProcessFiles(opts.AttachFlags, "")
 		if err != nil {
 			return errors.Wrap(err, "failed to process attachments")
 		}
+		attachments = attachResult.Attachments
 		climsg.Info("Attached %d file(s) as context", len(attachments))
 	}
 

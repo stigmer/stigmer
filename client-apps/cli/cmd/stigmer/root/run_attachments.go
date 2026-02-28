@@ -6,6 +6,7 @@ import (
 	"mime"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -13,6 +14,16 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"google.golang.org/grpc"
 )
+
+// AttachmentResult holds the split results from processing --attach paths.
+//
+// When a workspace root is provided, files inside the workspace are recorded as
+// workspace-relative references (no upload, no injection). Files outside the
+// workspace go through the normal upload flow and become Attachment protos.
+type AttachmentResult struct {
+	Attachments       []*agentexecutionv1.Attachment
+	WorkspaceFileRefs []string
+}
 
 // AttachmentProcessor handles file attachments for the run command.
 // All files are uploaded via the uploadAttachment RPC and referenced by storage_key.
@@ -27,25 +38,83 @@ func NewAttachmentProcessor(conn grpc.ClientConnInterface) *AttachmentProcessor 
 	return &AttachmentProcessor{conn: conn}
 }
 
-// ProcessFiles converts file paths to Attachment protos.
-// Each file is uploaded via the uploadAttachment RPC and an Attachment with
-// storage_key is returned.
-func (p *AttachmentProcessor) ProcessFiles(paths []string) ([]*agentexecutionv1.Attachment, error) {
+// ProcessFiles converts file paths to Attachment protos or workspace file references.
+//
+// When workspaceRoot is non-empty (local workspace), each path is checked for
+// containment inside the workspace:
+//   - Inside workspace: recorded as a workspace-relative path in WorkspaceFileRefs.
+//     No upload, no injection -- the agent reads directly from the workspace.
+//   - Outside workspace: uploaded via the normal attachment flow.
+//
+// When workspaceRoot is empty, all files go through the upload flow (existing behavior).
+func (p *AttachmentProcessor) ProcessFiles(paths []string, workspaceRoot string) (*AttachmentResult, error) {
 	if len(paths) == 0 {
-		return nil, nil
+		return &AttachmentResult{}, nil
 	}
 
-	attachments := make([]*agentexecutionv1.Attachment, 0, len(paths))
+	result := &AttachmentResult{
+		Attachments:       make([]*agentexecutionv1.Attachment, 0, len(paths)),
+		WorkspaceFileRefs: make([]string, 0),
+	}
 
 	for _, path := range paths {
+		if workspaceRoot != "" {
+			relPath, inside, err := workspaceRelativePath(path, workspaceRoot)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to check workspace containment for '%s'", path)
+			}
+			if inside {
+				climsg.Info("Referencing workspace file: %s", relPath)
+				result.WorkspaceFileRefs = append(result.WorkspaceFileRefs, relPath)
+				continue
+			}
+		}
+
 		attachment, err := p.processFile(path)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to process attachment '%s'", path)
 		}
-		attachments = append(attachments, attachment)
+		result.Attachments = append(result.Attachments, attachment)
 	}
 
-	return attachments, nil
+	return result, nil
+}
+
+// workspaceRelativePath checks whether filePath is inside workspaceRoot.
+// Returns the workspace-relative path and true if contained, or ("", false) if not.
+//
+// Both paths are resolved through EvalSymlinks to prevent symlink escapes,
+// then normalized with filepath.Clean before the containment check.
+func workspaceRelativePath(filePath, workspaceRoot string) (string, bool, error) {
+	absFile, err := filepath.Abs(filePath)
+	if err != nil {
+		return "", false, errors.Wrap(err, "failed to resolve absolute path")
+	}
+
+	evalFile, err := filepath.EvalSymlinks(absFile)
+	if err != nil {
+		return "", false, errors.Wrap(err, "failed to evaluate symlinks")
+	}
+
+	evalRoot, err := filepath.EvalSymlinks(workspaceRoot)
+	if err != nil {
+		return "", false, errors.Wrap(err, "failed to evaluate workspace symlinks")
+	}
+
+	cleanFile := filepath.Clean(evalFile)
+	cleanRoot := filepath.Clean(evalRoot)
+
+	rootPrefix := cleanRoot + string(filepath.Separator)
+	if !strings.HasPrefix(cleanFile, rootPrefix) && cleanFile != cleanRoot {
+		return "", false, nil
+	}
+
+	rel, err := filepath.Rel(cleanRoot, cleanFile)
+	if err != nil {
+		return "", false, nil
+	}
+
+	return filepath.ToSlash(rel), true, nil
 }
 
 // processFile validates a file and uploads it, returning an Attachment proto.
