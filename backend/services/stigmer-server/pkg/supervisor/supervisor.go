@@ -320,6 +320,14 @@ func (s *Supervisor) startAgentRunner() error {
 		"-v", fmt.Sprintf("%s:/logs", s.config.LogDir),
 	)
 
+	// Mount the user's home directory so LocalPathSource workspaces are
+	// accessible inside the container with identical host paths.
+	if homeDir, err := os.UserHomeDir(); err != nil {
+		log.Warn().Err(err).Msg("Cannot resolve home directory; LocalPathSource workspaces may not work")
+	} else {
+		args = append(args, "-v", fmt.Sprintf("%s:%s", homeDir, homeDir))
+	}
+
 	// Use embedded or external image
 	imageName := "ghcr.io/stigmer/agent-runner:latest"
 	args = append(args, imageName)

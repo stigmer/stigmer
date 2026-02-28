@@ -629,7 +629,17 @@ After installing Docker, restart Stigmer server.`)
 
 		// Volume mount for Docker socket (needed for sandbox mode)
 		"-v", "/var/run/docker.sock:/var/run/docker.sock",
+	)
 
+	// Mount the user's home directory so LocalPathSource workspaces are
+	// accessible inside the container with identical host paths.
+	if homeDir, err := os.UserHomeDir(); err != nil {
+		log.Warn().Err(err).Msg("Cannot resolve home directory; LocalPathSource workspaces may not work")
+	} else {
+		args = append(args, "-v", fmt.Sprintf("%s:%s", homeDir, homeDir))
+	}
+
+	args = append(args,
 		// Log driver for better log access
 		"--log-driver", "json-file",
 		"--log-opt", "max-size=10m",
