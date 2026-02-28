@@ -158,6 +158,8 @@ func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 		progress.SetPhase(cliprint.PhaseStarting, "Preparing environment")
 	}
 
+	var llmSetupErr error
+
 	executionMode, _ := cmd.Flags().GetString("execution-mode")
 	sandboxImage, _ := cmd.Flags().GetString("sandbox-image")
 	sandboxAutoPull, _ := cmd.Flags().GetBool("sandbox-auto-pull")
@@ -172,6 +174,9 @@ func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 		SandboxCleanup:  sandboxCleanup,
 		SandboxTTL:      sandboxTTL,
 		Secrets:         secrets,
+		OnLLMSetupFailed: func(err error) {
+			llmSetupErr = err
+		},
 	}); err != nil {
 		if progress != nil {
 			progress.Stop()
@@ -184,6 +189,12 @@ func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 	if progress != nil {
 		progress.CompletePhase(cliprint.PhaseDeploying)
 		progress.Stop()
+	}
+
+	if llmSetupErr != nil {
+		climsg.Warning("LLM setup failed: %v", llmSetupErr)
+		climsg.Warning("Agents will not execute until an LLM provider is available.")
+		climsg.Info("Run 'stigmer server setup' to configure a different LLM provider.")
 	}
 
 	climsg.Info("Discovering MCP server capabilities...")
