@@ -23,18 +23,23 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 		m.blocks = append(m.blocks, newHumanBlock(renderHumanContent(e.Content)))
 
 	case SubAgentStartedEvent:
-		m.subAgentNames[e.ID] = e.Name
+		info := subAgentInfo{Name: e.Name, Input: e.Input, Description: e.Description}
+		m.subAgentMeta[e.ID] = info
+		b := newSubAgentBlock(e.Name, e.Description, e.Input)
+		b.subAgentID = e.ID
+		b.subAgentName = e.Name
+		m.blocks = append(m.blocks, b)
 
 	case AIMessageEvent:
 		b := newAIBlock(renderAIContent(e.Content, e.ToolCalls, m.width))
 		b.subAgentID = e.SubAgentID
-		b.subAgentName = m.subAgentNames[e.SubAgentID]
+		b.subAgentName = m.subAgentMeta[e.SubAgentID].Name
 		m.blocks = append(m.blocks, b)
 
 	case AIStreamStartEvent:
 		b := newAIBlock(renderStreamingAI(e.Content))
 		b.subAgentID = e.SubAgentID
-		b.subAgentName = m.subAgentNames[e.SubAgentID]
+		b.subAgentName = m.subAgentMeta[e.SubAgentID].Name
 		m.blocks = append(m.blocks, b)
 		m.streaming = &streamingState{
 			content:    e.Content,
@@ -61,7 +66,7 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 		if m.streaming != nil && m.streaming.blockIdx < len(m.blocks) {
 			b := newAIBlock(renderAIContent(e.Content, e.ToolCalls, m.width))
 			b.subAgentID = e.SubAgentID
-			b.subAgentName = m.subAgentNames[e.SubAgentID]
+			b.subAgentName = m.subAgentMeta[e.SubAgentID].Name
 			m.blocks[m.streaming.blockIdx] = b
 		}
 		m.streaming = nil
@@ -92,7 +97,7 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 			m.blocks[idx].content = renderStreamingTool(e.ToolCall, e.Content)
 			m.blocks[idx].expandable = false
 			m.blocks[idx].subAgentID = e.SubAgentID
-			m.blocks[idx].subAgentName = m.subAgentNames[e.SubAgentID]
+			m.blocks[idx].subAgentName = m.subAgentMeta[e.SubAgentID].Name
 		}
 
 	case SystemMessageEvent:
@@ -234,7 +239,7 @@ func (m Model) handleStreamClosed() (tea.Model, tea.Cmd) {
 // preserved from before the update. The subAgentID and subAgentName are
 // propagated to the block so context separators render correctly.
 func (m *Model) updateToolBadge(toolCallID string, tc toolrender.ToolCallInfo, state, subAgentID string) {
-	name := m.subAgentNames[subAgentID]
+	name := m.subAgentMeta[subAgentID].Name
 	if idx, ok := m.runningTools[toolCallID]; ok && idx < len(m.blocks) {
 		wasExpanded := m.blocks[idx].expanded
 		m.blocks[idx] = newStatefulToolBlock(tc, toolCallID, state)

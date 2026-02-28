@@ -2359,6 +2359,11 @@ class StatusBuilder:
         # Extract sub-agent metadata from tool args
         sub_agent_name = tool_args.get("subagent_type", "") or tool_args.get("agent_type", "") or "unknown"
         sub_agent_input = tool_args.get("input", "") or tool_args.get("task", "") or tool_args.get("prompt", "")
+        sub_agent_description = tool_args.get("description", "")
+        
+        metadata = Struct()
+        if sub_agent_description:
+            metadata.update({"description": sub_agent_description})
         
         now = datetime.utcnow()
         sub_agent = SubAgentExecution(
@@ -2367,6 +2372,7 @@ class StatusBuilder:
             input=sub_agent_input,
             status=SubAgentStatus.SUB_AGENT_IN_PROGRESS,  # Skip PENDING - already executing
             started_at=_utc_timestamp(now),
+            metadata=metadata if metadata.fields else None,
         )
         
         # Append first, then store the proto-managed reference.
