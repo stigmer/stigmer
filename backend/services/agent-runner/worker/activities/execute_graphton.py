@@ -1271,6 +1271,7 @@ async def _execute_graphton_impl(
                     )
                     workspace_backend = LocalWorkspaceBackend(
                         root_dir=provision_result.root_dir,
+                        platform_dir=workspace_init.platform_dir,
                     )
                 
                 if provision_result.consumed_keys:
@@ -1813,6 +1814,7 @@ async def _execute_graphton_impl(
             )
         else:
             sandbox_config_for_agent = sandbox_config.copy()
+            sandbox_config_for_agent["root_dir"] = workspace_backend.root_dir
             if workspace_init.platform_dir:
                 sandbox_config_for_agent["platform_dir"] = workspace_init.platform_dir
             activity_logger.info(
