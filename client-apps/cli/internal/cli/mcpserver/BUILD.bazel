@@ -39,12 +39,15 @@ go_test(
     name = "mcpserver_test",
     srcs = [
         "applier_test.go",
+        "env_resolver_test.go",
         "loader_test.go",
     ],
     embed = [":mcpserver"],
     deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/environment/v1:environment",
         "//apis/stubs/go/ai/stigmer/agentic/mcpserver/v1:mcpserver",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "//client-apps/cli/internal/cli/config",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
         "@org_golang_google_grpc//:grpc",

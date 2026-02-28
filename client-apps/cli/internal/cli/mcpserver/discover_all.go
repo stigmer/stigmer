@@ -2,6 +2,8 @@ package mcpserver
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -27,6 +29,9 @@ type DiscoverAllResult struct {
 	Attempted int
 	Succeeded int
 	Skipped   int
+	// SkipMessages contains user-facing hints for servers whose discovery
+	// was skipped due to missing credentials.
+	SkipMessages []string
 }
 
 // DiscoverAll lists all MCP servers accessible to the caller, then discovers
@@ -58,11 +63,22 @@ func DiscoverAll(ctx context.Context, opts *DiscoverAllOptions) *DiscoverAllResu
 			continue
 		}
 
+		envResult := ResolveEnvForDiscovery(server, opts.Cfg)
+
+		if len(envResult.Unresolved) > 0 {
+			msg := FormatDiscoverySkipMessage(server.Metadata.GetName(), envResult.Unresolved)
+			result.SkipMessages = append(result.SkipMessages, msg)
+			result.Skipped++
+			log.Debug().
+				Str("mcp_server", server.Metadata.GetName()).
+				Strs("unresolved", envResult.Unresolved).
+				Msg("Skipping discovery: required env vars not available")
+			continue
+		}
+
 		result.Attempted++
 
-		envOverrides := ResolveEnvForDiscovery(server, opts.Cfg)
-
-		if err := DiscoverServer(ctx, opts.Conn, server, envOverrides, opts.Timeout); err != nil {
+		if err := DiscoverServer(ctx, opts.Conn, server, envResult.Overrides, opts.Timeout); err != nil {
 			log.Warn().
 				Err(err).
 				Str("mcp_server", server.Metadata.GetName()).
@@ -77,6 +93,57 @@ func DiscoverAll(ctx context.Context, opts *DiscoverAllOptions) *DiscoverAllResu
 	}
 
 	return result
+}
+
+// FormatDiscoverySkipMessage builds a user-facing message explaining that
+// discovery was skipped for a server because required environment variables
+// could not be resolved. The message includes a copy-paste stigmer discover
+// command so the user can run discovery manually with the correct env vars.
+func FormatDiscoverySkipMessage(serverName string, unresolved []string) string {
+	envPrefix := strings.Join(unresolved, "=<value> ") + "=<value>"
+	return fmt.Sprintf(
+		"Discovery skipped for %s: %s not available\n  To discover manually:\n    %s stigmer discover mcp-server %s",
+		serverName,
+		strings.Join(unresolved, ", "),
+		envPrefix,
+		serverName,
+	)
+}
+
+// DiscoverOne runs discovery for a single MCP server. This is the post-apply
+// entry point: after an MCP server is registered via stigmer apply, we
+// immediately attempt to discover its capabilities so they are available
+// without requiring a daemon restart.
+//
+// Returns nil if discovery succeeds or if the server is skipped (non-stdio,
+// unresolvable env vars). The skipMessage return value is non-empty when
+// discovery was skipped due to missing credentials.
+func DiscoverOne(ctx context.Context, opts *DiscoverOneOptions) (skipMessage string, err error) {
+	server := opts.Server
+
+	if server.Spec.GetStdio() == nil {
+		return "", nil
+	}
+
+	envResult := ResolveEnvForDiscovery(server, opts.Cfg)
+
+	if len(envResult.Unresolved) > 0 {
+		return FormatDiscoverySkipMessage(server.Metadata.GetName(), envResult.Unresolved), nil
+	}
+
+	if err := DiscoverServer(ctx, opts.Conn, server, envResult.Overrides, opts.Timeout); err != nil {
+		return "", err
+	}
+
+	return "", nil
+}
+
+// DiscoverOneOptions configures a single-server post-apply discovery.
+type DiscoverOneOptions struct {
+	Conn    grpc.ClientConnInterface
+	Cfg     *config.Config
+	Server  *mcpserverv1.McpServer
+	Timeout time.Duration
 }
 
 // listMcpServers fetches all MCP servers for the given org. Since there is no
