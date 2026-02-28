@@ -108,6 +108,7 @@ func applyMcpServer(item applyItem, fctx *fileApplyContext) (*apiresource.ApiRes
 		return nil, err
 	}
 
+	fctx.appliedMcpServers = append(fctx.appliedMcpServers, result.McpServer)
 	fctx.renderer.Render(buildMcpServerApplyResult(result))
 	return buildResourceReference(result.McpServer.Metadata, apiresourcekind.ApiResourceKind_mcp_server), nil
 }

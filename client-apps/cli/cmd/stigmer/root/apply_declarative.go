@@ -117,6 +117,7 @@ func executeDeclarativeApply(detectResult *project.DetectResult, opts projectApp
 		orgID:    orgID,
 		dryRun:   false,
 		renderer: renderer,
+		cfg:      cfg,
 	}
 
 	for _, item := range items {
@@ -128,6 +129,9 @@ func executeDeclarativeApply(detectResult *project.DetectResult, opts projectApp
 			members = append(members, ref)
 		}
 	}
+
+	// Phase 5c: Discover capabilities for any applied MCP servers
+	discoverAppliedMcpServers(fctx)
 
 	// Phase 6: Apply project with collected member references
 	detectResult.Project.Spec.Members = members

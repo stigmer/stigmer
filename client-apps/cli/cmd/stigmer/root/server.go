@@ -245,6 +245,9 @@ func runBootstrapDiscovery(cfg *config.Config) {
 	if result.Attempted > result.Succeeded {
 		climsg.Warning("Discovery failed for %d MCP server(s)", result.Attempted-result.Succeeded)
 	}
+	for _, msg := range result.SkipMessages {
+		climsg.Warning("%s", msg)
+	}
 }
 
 func newServerSetupCommand() *cobra.Command {
