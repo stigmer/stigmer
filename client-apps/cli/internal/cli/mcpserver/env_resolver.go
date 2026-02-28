@@ -10,10 +10,31 @@ import (
 	"strings"
 	"time"
 
+	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/envfile"
 	"gopkg.in/yaml.v3"
 )
+
+// wellKnownVars lists the environment variable names that can be resolved
+// from local credential stores without user-provided flags. This is the
+// single source of truth for both ResolveEnvForDiscovery and
+// ResolveWellKnownEnv.
+var wellKnownVars = []string{
+	"STIGMER_SERVER_ADDRESS",
+	"STIGMER_API_KEY",
+	"GITHUB_TOKEN",
+	"PLANTON_API_KEY",
+}
+
+// secretVars is the set of well-known variables that contain credentials
+// and must be marked as secrets (encrypted at rest, redacted in logs).
+var secretVars = map[string]bool{
+	"STIGMER_API_KEY": true,
+	"GITHUB_TOKEN":    true,
+	"PLANTON_API_KEY": true,
+}
 
 // EnvResolutionResult contains the outcome of resolving environment variables
 // for an MCP server. Overrides are KEY=VALUE pairs for variables that were
@@ -58,6 +79,40 @@ func ResolveEnvForDiscovery(server *mcpserverv1.McpServer, cfg *config.Config) *
 	}
 
 	return result
+}
+
+// ResolveWellKnownEnv resolves all well-known environment variables from
+// local credential stores and CLI configuration, returning them as an
+// envfile.EnvMap suitable for merging into runtime_env.
+//
+// Unlike ResolveEnvForDiscovery (which is scoped to a single MCP server's
+// env_spec), this function resolves every well-known variable unconditionally.
+// The caller is expected to merge the result as the LOWEST priority source
+// so that user-provided --env/--secret flags and env files take precedence.
+//
+// Variables already present in os.Environ() are skipped (shell env wins).
+// Credential values are marked with IsSecret: true so the backend encrypts
+// them at rest and redacts them in logs.
+func ResolveWellKnownEnv(cfg *config.Config) envfile.EnvMap {
+	result := make(envfile.EnvMap)
+	for _, name := range wellKnownVars {
+		if os.Getenv(name) != "" {
+			continue
+		}
+		if val, ok := resolveKnownVar(name, cfg); ok {
+			result[name] = &executioncontextv1.ExecutionValue{
+				Value:    val,
+				IsSecret: isSecretVar(name),
+			}
+		}
+	}
+	return result
+}
+
+// isSecretVar reports whether a well-known variable contains a credential
+// that should be treated as a secret.
+func isSecretVar(name string) bool {
+	return secretVars[name]
 }
 
 // resolveKnownVar attempts to resolve a single environment variable from

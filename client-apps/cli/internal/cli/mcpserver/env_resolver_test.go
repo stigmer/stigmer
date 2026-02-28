@@ -240,6 +240,113 @@ func TestResolveGithubToken_FallsBackGracefully(t *testing.T) {
 	assert.Empty(t, token)
 }
 
+// --- ResolveWellKnownEnv tests ---
+
+func TestResolveWellKnownEnv_StigmerVars(t *testing.T) {
+	cfg := &config.Config{
+		Backend: config.BackendConfig{
+			Type: config.BackendTypeCloud,
+			Cloud: &config.CloudBackendConfig{
+				Endpoint: "api.stigmer.ai:443",
+				Token:    "test-api-key",
+			},
+		},
+	}
+
+	result := ResolveWellKnownEnv(cfg)
+
+	require.NotNil(t, result)
+
+	addr, ok := result["STIGMER_SERVER_ADDRESS"]
+	require.True(t, ok, "should resolve STIGMER_SERVER_ADDRESS")
+	assert.Equal(t, "api.stigmer.ai:443", addr.Value)
+	assert.False(t, addr.IsSecret, "server address is not a secret")
+
+	key, ok := result["STIGMER_API_KEY"]
+	require.True(t, ok, "should resolve STIGMER_API_KEY")
+	assert.Equal(t, "test-api-key", key.Value)
+	assert.True(t, key.IsSecret, "API key is a secret")
+}
+
+func TestResolveWellKnownEnv_SkipsVarsInShellEnv(t *testing.T) {
+	t.Setenv("STIGMER_SERVER_ADDRESS", "user-provided:9999")
+
+	cfg := &config.Config{
+		Backend: config.BackendConfig{Type: config.BackendTypeLocal},
+	}
+
+	result := ResolveWellKnownEnv(cfg)
+
+	_, ok := result["STIGMER_SERVER_ADDRESS"]
+	assert.False(t, ok, "should not override when shell env is set")
+}
+
+func TestResolveWellKnownEnv_EmptyWhenNothingResolvable(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
+	t.Setenv("HOME", t.TempDir())
+
+	cfg := &config.Config{
+		Backend: config.BackendConfig{Type: config.BackendTypeLocal},
+	}
+
+	result := ResolveWellKnownEnv(cfg)
+
+	require.NotNil(t, result, "should return empty map, not nil")
+	_, hasGithub := result["GITHUB_TOKEN"]
+	assert.False(t, hasGithub, "gh not on PATH, should not resolve")
+	_, hasPlanton := result["PLANTON_API_KEY"]
+	assert.False(t, hasPlanton, "no planton credentials, should not resolve")
+	_, hasStigmerAddr := result["STIGMER_SERVER_ADDRESS"]
+	assert.True(t, hasStigmerAddr, "local backend always resolves server address")
+}
+
+func TestResolveWellKnownEnv_PlantonAPIKey(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	credDir := filepath.Join(home, ".planton", "credentials", "production")
+	require.NoError(t, os.MkdirAll(credDir, 0700))
+
+	tokenData, _ := json.Marshal(map[string]string{
+		"access_token": "planton-token-for-run",
+	})
+	require.NoError(t, os.WriteFile(filepath.Join(credDir, "token.json"), tokenData, 0600))
+
+	cfg := &config.Config{
+		Backend: config.BackendConfig{Type: config.BackendTypeLocal},
+	}
+
+	result := ResolveWellKnownEnv(cfg)
+
+	val, ok := result["PLANTON_API_KEY"]
+	require.True(t, ok, "should resolve PLANTON_API_KEY")
+	assert.Equal(t, "planton-token-for-run", val.Value)
+	assert.True(t, val.IsSecret, "PLANTON_API_KEY is a secret")
+}
+
+func TestResolveWellKnownEnv_LocalBackendNoAPIKey(t *testing.T) {
+	cfg := &config.Config{
+		Backend: config.BackendConfig{Type: config.BackendTypeLocal},
+	}
+
+	result := ResolveWellKnownEnv(cfg)
+
+	_, ok := result["STIGMER_API_KEY"]
+	assert.False(t, ok, "local backend has no API key to resolve")
+}
+
+// --- isSecretVar tests ---
+
+func TestIsSecretVar(t *testing.T) {
+	assert.True(t, isSecretVar("GITHUB_TOKEN"))
+	assert.True(t, isSecretVar("PLANTON_API_KEY"))
+	assert.True(t, isSecretVar("STIGMER_API_KEY"))
+	assert.False(t, isSecretVar("STIGMER_SERVER_ADDRESS"))
+	assert.False(t, isSecretVar("UNKNOWN_VAR"))
+}
+
+// --- FormatDiscoverySkipMessage tests ---
+
 func TestFormatDiscoverySkipMessage_SingleVar(t *testing.T) {
 	msg := FormatDiscoverySkipMessage("github-mcp-server", []string{"GITHUB_TOKEN"})
 
