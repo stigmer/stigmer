@@ -20,6 +20,7 @@ go_library(
         "//client-apps/cli/internal/cli/llm",
         "//client-apps/cli/internal/cli/temporal",
         "//client-apps/cli/pkg/climsg",
+        "//seedpack",
         "@com_github_pkg_errors//:errors",
         "@com_github_rs_zerolog//log",
         "@org_golang_google_grpc//:grpc",
