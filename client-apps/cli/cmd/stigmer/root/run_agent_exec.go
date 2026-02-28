@@ -1,0 +1,271 @@
+package root
+
+import (
+	"fmt"
+
+	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
+	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/envfile"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
+	"google.golang.org/grpc"
+)
+
+// ---------------------------------------------------------------------------
+// Layer 1: Shared flag struct + registration
+// ---------------------------------------------------------------------------
+
+// agentExecFlags contains CLI flags common to any command that executes an
+// agent. Both runOptions and draftOptions embed this struct so that flag
+// definitions and preparation logic exist in exactly one place.
+type agentExecFlags struct {
+	Message         string
+	AttachFlags     []string
+	ApproveDefault  string
+	Verbose         bool
+	Detach          bool
+	OrgOverride     string
+	WorkspaceFlag   string
+	BranchFlag      string
+	CommitFlag      string
+	EnvFlags        []string
+	EnvFileFlags    []string
+	SecretFlags     []string
+	SecretFileFlags []string
+}
+
+// registerAgentExecFlags registers the flags shared by every agent-execution
+// command (run, draft skill, draft agent, ...). Each caller may add its own
+// command-specific flags after calling this function.
+func registerAgentExecFlags(cmd *cobra.Command, f *agentExecFlags) {
+	cmd.Flags().StringVarP(&f.Message, "message", "m", "",
+		"initial message/prompt for execution")
+
+	cmd.Flags().StringArrayVar(&f.AttachFlags, "attach", []string{},
+		"file or directory to attach as input (can be repeated)")
+
+	cmd.Flags().StringVar(&f.ApproveDefault, "approve-default", "",
+		"auto-resolve approval prompts in non-interactive mode (approve, skip, reject)")
+
+	cmd.Flags().BoolVarP(&f.Verbose, "verbose", "v", false,
+		"show execution IDs and phase transitions in the TUI transcript")
+
+	cmd.Flags().BoolVar(&f.Detach, "detach", false,
+		"start execution and return immediately without streaming")
+
+	cmd.Flags().StringVar(&f.OrgOverride, "org", "",
+		"organization ID (overrides context)")
+
+	cmd.Flags().StringVar(&f.WorkspaceFlag, "workspace", "",
+		"workspace source: HTTPS git URL or local filesystem path")
+
+	cmd.Flags().StringVar(&f.BranchFlag, "branch", "",
+		"git branch to clone (only valid with git --workspace URL)")
+
+	cmd.Flags().StringVar(&f.CommitFlag, "commit", "",
+		"git commit SHA to checkout (only valid with git --workspace URL)")
+
+	cmd.Flags().StringArrayVar(&f.EnvFlags, "env", []string{},
+		"runtime environment variable (KEY=VALUE, can be repeated)")
+
+	cmd.Flags().StringArrayVar(&f.EnvFileFlags, "env-file", []string{},
+		"load environment from file (can be repeated, later files override earlier)")
+
+	cmd.Flags().StringArrayVar(&f.SecretFlags, "secret", []string{},
+		"secret environment variable (KEY=VALUE, can be repeated, encrypted)")
+
+	cmd.Flags().StringArrayVar(&f.SecretFileFlags, "secret-file", []string{},
+		"load secrets from file (can be repeated, all values encrypted)")
+}
+
+// ---------------------------------------------------------------------------
+// Layer 2: Shared preparation
+// ---------------------------------------------------------------------------
+
+// preparedAgentExec holds the validated, resolved inputs that are ready for
+// agent execution. The caller is responsible for closing Conn when done.
+//
+// Fields fall into two categories:
+//   - Processed values derived from raw flags (DefaultAction, WorkspaceSource,
+//     RuntimeEnv, AttachResult) — the raw flag is consumed and not stored.
+//   - Pass-through values copied verbatim from agentExecFlags (Message,
+//     Detach, Verbose) — needed by downstream consumers without transformation.
+type preparedAgentExec struct {
+	DefaultAction   approval.Action
+	WorkspaceSource *sessionv1.WorkspaceSource
+	RuntimeEnv      envfile.EnvMap
+	Conn            *grpc.ClientConn
+	OrgID           string
+	AttachResult    AttachmentResult
+
+	Message string
+	Detach  bool
+	Verbose bool
+}
+
+// prepareAgentExec validates the common flags, resolves environment variables,
+// connects to the backend, and processes attachments. The returned struct
+// contains everything needed to execute an agent (once the agent is resolved).
+//
+// The caller MUST defer prep.Conn.Close() on success.
+func prepareAgentExec(flags agentExecFlags) (*preparedAgentExec, error) {
+	var defaultAction approval.Action
+	if flags.ApproveDefault != "" {
+		var err error
+		defaultAction, err = approval.ParseAction(flags.ApproveDefault)
+		if err != nil {
+			return nil, errors.Wrap(err, "invalid --approve-default value")
+		}
+	}
+
+	workspaceSource, err := parseWorkspaceSource(flags.WorkspaceFlag, flags.BranchFlag, flags.CommitFlag)
+	if err != nil {
+		return nil, errors.Wrap(err, "invalid workspace configuration")
+	}
+
+	runtimeEnv, err := envfile.LoadAndMergeWithSecrets(
+		flags.EnvFileFlags,
+		flags.SecretFileFlags,
+		flags.EnvFlags,
+		flags.SecretFlags,
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to load environment")
+	}
+
+	autoEnv, err := resolveAndMergeAutoEnv(runtimeEnv)
+	if err != nil {
+		log.Warn().Err(err).Msg("skipping auto-env resolution (config load failed)")
+	} else {
+		runtimeEnv = autoEnv
+	}
+
+	conn, orgID, err := connectToBackend(flags.OrgOverride)
+	if err != nil {
+		return nil, err
+	}
+
+	var attachResult AttachmentResult
+	if len(flags.AttachFlags) > 0 {
+		processor := NewAttachmentProcessor(conn)
+		localRoot := localWorkspaceRoot(workspaceSource)
+		res, err := processor.ProcessFiles(flags.AttachFlags, localRoot)
+		if err != nil {
+			conn.Close()
+			return nil, errors.Wrap(err, "failed to process attachments")
+		}
+		attachResult = *res
+	}
+
+	return &preparedAgentExec{
+		DefaultAction:   defaultAction,
+		WorkspaceSource: workspaceSource,
+		RuntimeEnv:      runtimeEnv,
+		Conn:            conn,
+		OrgID:           orgID,
+		AttachResult:    attachResult,
+		Message:         flags.Message,
+		Detach:          flags.Detach,
+		Verbose:         flags.Verbose,
+	}, nil
+}
+
+// ---------------------------------------------------------------------------
+// Layer 3: Shared agent execution
+// ---------------------------------------------------------------------------
+
+// resolvedAgentExecInput holds everything needed to create and stream an
+// agent execution once the agent has been resolved. This is the common
+// execution path shared by `stigmer run agent` and `stigmer draft`.
+type resolvedAgentExecInput struct {
+	Agent           *agentv1.Agent
+	Message         string
+	RuntimeEnv      envfile.EnvMap
+	AttachResult    *AttachmentResult
+	WorkspaceSource *sessionv1.WorkspaceSource
+	Model           string
+	AutoApproveAll  bool
+	Detach          bool
+	DownloadDir     string // empty = skip artifact download
+	OrgID           string
+	DefaultAction   approval.Action
+	Verbose         bool
+	Conn            *grpc.ClientConn
+}
+
+// executeResolvedAgent creates a session (if workspace is configured), creates
+// the agent execution, streams it in the alt-screen TUI, and optionally
+// downloads artifacts. This is the single source of truth for the "run a
+// resolved agent" flow used by both `run` and `draft`.
+func executeResolvedAgent(input resolvedAgentExecInput) error {
+	execInput := CreateAgentExecutionInput{
+		AgentID:           input.Agent.Metadata.Id,
+		OrgID:             input.OrgID,
+		Message:           input.Message,
+		RuntimeEnv:        input.RuntimeEnv,
+		Attachments:       input.AttachResult.Attachments,
+		WorkspaceFileRefs: input.AttachResult.WorkspaceFileRefs,
+		Model:             input.Model,
+		AutoApproveAll:    input.AutoApproveAll,
+		Conn:              input.Conn,
+	}
+
+	if input.WorkspaceSource != nil {
+		instanceID := input.Agent.GetStatus().GetDefaultInstanceId()
+		if instanceID == "" {
+			return errors.New("agent has no default instance — cannot create workspace session")
+		}
+
+		climsg.Info("Creating workspace session...")
+		session, err := createSessionForAgent(instanceID, input.OrgID, input.WorkspaceSource, input.Conn)
+		if err != nil {
+			return errors.Wrap(err, "failed to create workspace session")
+		}
+
+		execInput.SessionID = session.GetMetadata().GetId()
+		execInput.AgentID = ""
+	}
+
+	totalInputFiles := len(input.AttachResult.Attachments) + len(input.AttachResult.WorkspaceFileRefs)
+	if totalInputFiles > 0 {
+		climsg.Info("Starting execution with %d input file(s)...", totalInputFiles)
+	} else if input.WorkspaceSource == nil {
+		climsg.Info("Starting session...")
+	}
+
+	exec, err := createAgentExecution(execInput)
+	if err != nil {
+		return errors.Wrap(err, "failed to create execution")
+	}
+
+	sessionID := exec.GetSpec().GetSessionId()
+	if sessionID == "" {
+		log.Warn().
+			Str("execution_id", exec.GetMetadata().GetId()).
+			Msg("backend returned execution without session_id — session display may be degraded")
+	}
+
+	climsg.Success("Session started: %s", sessionID)
+	fmt.Println()
+
+	if input.Detach {
+		return nil
+	}
+
+	prompter := approval.NewInteractivePrompter()
+	exec, err = streamAgentExecution(sessionID, "", exec.Metadata.Id, input.OrgID, prompter, input.DefaultAction, input.Verbose, input.Conn)
+	if err != nil {
+		return errors.Wrap(err, "error streaming execution")
+	}
+
+	if input.DownloadDir != "" && len(exec.Status.Artifacts) > 0 {
+		if err := downloadArtifacts(exec, input.DownloadDir, input.Conn); err != nil {
+			return errors.Wrap(err, "failed to download artifacts")
+		}
+	}
+
+	return nil
+}
