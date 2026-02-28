@@ -20,8 +20,16 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 )
 
-// RunWizard runs the interactive LLM provider setup wizard.
-// It modifies cfg.Backend.Local.LLM based on user selection.
+// RunWizard runs the LLM provider setup wizard.
+//
+// On first invocation it auto-detects API keys in the environment (Anthropic
+// first, then OpenAI) and configures the provider without prompting. If no
+// keys are found, it falls through to an interactive menu.
+//
+// When invoked via 'stigmer server setup' (reconfiguration), it always shows
+// the interactive menu so the user can switch providers.
+//
+// It modifies cfg.Backend.Local.LLM based on the result.
 // All other configuration (Temporal, Execution, etc.) is preserved.
 func RunWizard(cfg *config.Config) error {
 	if cfg.Backend.Local == nil {
@@ -31,11 +39,65 @@ func RunWizard(cfg *config.Config) error {
 	fmt.Fprintln(os.Stderr)
 	climsg.Info("Welcome to Stigmer! Let's configure your environment.")
 	fmt.Fprintln(os.Stderr)
+
+	// Auto-detect: if a cloud API key is already in the environment,
+	// configure it automatically. The user can always reconfigure later
+	// with 'stigmer server setup'.
+	if autoConfigured := tryAutoDetect(cfg); autoConfigured {
+		return nil
+	}
+
+	return runInteractiveMenu(cfg)
+}
+
+// RunWizardInteractive always shows the interactive menu regardless of
+// environment state. Used by 'stigmer server setup' where the user
+// explicitly wants to reconfigure.
+func RunWizardInteractive(cfg *config.Config) error {
+	if cfg.Backend.Local == nil {
+		cfg.Backend.Local = &config.LocalBackendConfig{}
+	}
+
+	fmt.Fprintln(os.Stderr)
+	climsg.Info("Welcome to Stigmer! Let's configure your environment.")
+	fmt.Fprintln(os.Stderr)
+
+	return runInteractiveMenu(cfg)
+}
+
+// tryAutoDetect checks the environment for LLM API keys and auto-configures
+// the first one found (Anthropic > OpenAI). Returns true if a provider was
+// auto-configured.
+func tryAutoDetect(cfg *config.Config) bool {
+	detected := config.DetectProviderFromAPIKeys()
+
+	switch detected {
+	case "anthropic":
+		climsg.Success("Detected ANTHROPIC_API_KEY in your environment")
+		setLLMConfig(cfg, "anthropic", "claude-sonnet-4.5", "", "")
+		climsg.Success("Configured Anthropic (model: claude-sonnet-4.5)")
+		fmt.Fprintln(os.Stderr)
+		climsg.Info("To use a different provider, run: stigmer server setup")
+		return true
+
+	case "openai":
+		climsg.Success("Detected OPENAI_API_KEY in your environment")
+		setLLMConfig(cfg, "openai", "gpt-4", "", "")
+		climsg.Success("Configured OpenAI (model: gpt-4)")
+		fmt.Fprintln(os.Stderr)
+		climsg.Info("To use a different provider, run: stigmer server setup")
+		return true
+	}
+
+	return false
+}
+
+func runInteractiveMenu(cfg *config.Config) error {
 	fmt.Fprintln(os.Stderr, "Choose your LLM provider (required for agent execution):")
 	fmt.Fprintln(os.Stderr)
 	fmt.Fprintln(os.Stderr, "  [1] Anthropic  — Cloud API, best quality (requires API key)")
 	fmt.Fprintln(os.Stderr, "  [2] OpenAI     — Cloud API (requires API key)")
-	fmt.Fprintln(os.Stderr, "  [3] Ollama     — Free, local, offline (requires separate install)")
+	fmt.Fprintln(os.Stderr, "  [3] Ollama     — Free, local, offline (lower quality output)")
 	fmt.Fprintln(os.Stderr, "  [4] Skip       — Configure later (agents won't execute)")
 	fmt.Fprintln(os.Stderr)
 
