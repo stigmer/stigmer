@@ -6,6 +6,7 @@ import (
 	"time"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/envfile"
@@ -79,6 +80,40 @@ func createAgentExecution(input CreateAgentExecutionInput) (*agentexecutionv1.Ag
 	result, err := client.Create(ctx, execution)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create execution: %w", err)
+	}
+
+	return result, nil
+}
+
+// createSessionForAgent creates a new session with a workspace source.
+//
+// This is used when the CLI needs explicit control over session creation
+// (e.g., to set workspace_source), bypassing the backend's auto-create flow
+// which has no workspace passthrough. The session subject uses the same
+// sentinel as the backend auto-create, so the LLM-generated title activity
+// will replace it asynchronously.
+func createSessionForAgent(agentInstanceID, orgID string, workspaceSource *sessionv1.WorkspaceSource, conn *grpc.ClientConn) (*sessionv1.Session, error) {
+	client := sessionv1.NewSessionCommandControllerClient(conn)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	session := &sessionv1.Session{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "Session",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: fmt.Sprintf("session-%d", time.Now().UnixMilli()),
+			Org:  orgID,
+		},
+		Spec: &sessionv1.SessionSpec{
+			AgentInstanceId: agentInstanceID,
+			Subject:         "Auto-created session",
+			WorkspaceSource: workspaceSource,
+		},
+	}
+
+	result, err := client.Create(ctx, session)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create session: %w", err)
 	}
 
 	return result, nil

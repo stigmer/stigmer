@@ -14,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/envfile"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
@@ -27,9 +28,13 @@ import (
 // reaches a terminal state. If detach is true, it creates the execution and
 // returns immediately without streaming.
 //
+// When workspaceSource is non-nil, the CLI creates a Session explicitly with
+// the workspace configuration before creating the execution. Without a
+// workspace, the backend auto-creates the session (existing behavior).
+//
 // defaultAction is the --approve-default flag value; when set, non-TTY approvals
 // are auto-resolved without prompting.
-func runAgent(ref, message string, env envfile.EnvMap, attachments []*agentexecutionv1.Attachment, detach bool, downloadDir, orgID string, defaultAction approval.Action, verbose bool, conn *grpc.ClientConn) error {
+func runAgent(ref, message string, env envfile.EnvMap, attachments []*agentexecutionv1.Attachment, workspaceSource *sessionv1.WorkspaceSource, detach bool, downloadDir, orgID string, defaultAction approval.Action, verbose bool, conn *grpc.ClientConn) error {
 	// Resolve agent by reference
 	agent, err := resolveAgent(ref, orgID, conn)
 	if err != nil {
@@ -37,26 +42,46 @@ func runAgent(ref, message string, env envfile.EnvMap, attachments []*agentexecu
 		return err
 	}
 
-	// Create session and first execution.
-	if len(attachments) > 0 {
-		climsg.Info("Starting session with %d attachment(s)...", len(attachments))
-	} else {
-		climsg.Info("Starting session...")
-	}
-
-	exec, err := createAgentExecution(CreateAgentExecutionInput{
+	input := CreateAgentExecutionInput{
 		AgentID:     agent.Metadata.Id,
 		OrgID:       orgID,
 		Message:     message,
 		RuntimeEnv:  env,
 		Attachments: attachments,
 		Conn:        conn,
-	})
+	}
+
+	// When a workspace is requested, create the session explicitly so
+	// workspace_source is set on the SessionSpec. The execution then
+	// references the pre-created session instead of relying on the
+	// backend's auto-create flow (which has no workspace passthrough).
+	if workspaceSource != nil {
+		instanceID := agent.GetStatus().GetDefaultInstanceId()
+		if instanceID == "" {
+			return errors.New("agent has no default instance — cannot create workspace session")
+		}
+
+		climsg.Info("Creating workspace session...")
+		session, err := createSessionForAgent(instanceID, orgID, workspaceSource, conn)
+		if err != nil {
+			return errors.Wrap(err, "failed to create workspace session")
+		}
+
+		input.SessionID = session.GetMetadata().GetId()
+		input.AgentID = ""
+	}
+
+	if len(attachments) > 0 {
+		climsg.Info("Starting execution with %d attachment(s)...", len(attachments))
+	} else if workspaceSource == nil {
+		climsg.Info("Starting session...")
+	}
+
+	exec, err := createAgentExecution(input)
 	if err != nil {
 		return errors.Wrap(err, "failed to create execution")
 	}
 
-	// Session ID is auto-created by the backend.
 	sessionID := exec.GetSpec().GetSessionId()
 	if sessionID == "" {
 		log.Warn().
