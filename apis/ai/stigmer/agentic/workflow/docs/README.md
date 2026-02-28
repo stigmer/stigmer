@@ -77,3 +77,7 @@ Use the Stigmer MCP server (`slug: stigmer-mcp-server`) to discover existing wor
 | `get_workflow` | Get a specific workflow by org and slug |
 
 Always query before referencing a workflow from a workflow instance. A reference to a nonexistent workflow fails at execution time.
+
+## Related Documentation
+
+- [WorkflowExecution Documentation](../../workflowexecution/docs/README.md) — how to trigger, monitor, and control workflow runs
