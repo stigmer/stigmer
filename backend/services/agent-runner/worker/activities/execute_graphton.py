@@ -1239,8 +1239,8 @@ async def _execute_graphton_impl(
         # ─────────────────────────────────────────────────────────────────────────────
         # Step 2.9: Workspace provisioning (Phase 3)
         #
-        # When STIGMER_WORKSPACE_PROVISIONING_ENABLED is set and the session
-        # has a workspace_source, the provisioner clones a git repo, validates
+        # When the session has a workspace_source, the provisioner clones a
+        # git repo, validates
         # a local path, or returns an empty workspace result.  The provisioner
         # is idempotent: if the workspace was already provisioned (e.g. by a
         # previous execution in this session), it detects the existing state
@@ -1252,11 +1252,7 @@ async def _execute_graphton_impl(
         # ─────────────────────────────────────────────────────────────────────────────
         provision_result: ProvisionResult | None = None
         
-        _provisioning_enabled = os.environ.get(
-            "STIGMER_WORKSPACE_PROVISIONING_ENABLED", "",
-        ).lower() in ("1", "true", "yes")
-        
-        if _provisioning_enabled and session.spec.HasField("workspace_source"):
+        if session.spec.HasField("workspace_source"):
             setup_timer.start("workspace_provisioning")
             try:
                 provisioner = WorkspaceProvisioner(log=activity_logger)
