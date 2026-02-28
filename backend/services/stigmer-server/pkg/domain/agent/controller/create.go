@@ -13,6 +13,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/extractor"
 )
 
 // Context keys for inter-step communication
@@ -58,8 +59,9 @@ func (c *AgentController) buildCreatePipeline() *pipeline.Pipeline[*agentv1.Agen
 		AddStep(steps.NewCheckDuplicateStep[*agentv1.Agent](c.store)). // 3. Check duplicate
 		AddStep(steps.NewBuildNewStateStep[*agentv1.Agent]()).         // 4. Build new state
 		AddStep(steps.NewPersistStep[*agentv1.Agent](c.store)).        // 5. Persist agent
-		AddStep(newCreateDefaultInstanceStep(c.agentInstanceClient)).  // 6. Create default instance
-		AddStep(newUpdateAgentStatusWithDefaultInstanceStep(c.store)). // 7. Update status
+		AddStep(newCreateDefaultInstanceStep(c.agentInstanceClient)).                              // 6. Create default instance
+		AddStep(newUpdateAgentStatusWithDefaultInstanceStep(c.store)).                              // 7. Update status
+		AddStep(steps.NewIndexSearchStep[*agentv1.Agent](c.store, &extractor.AgentExtractor{})). // 8. Update search index
 		Build()
 }
 

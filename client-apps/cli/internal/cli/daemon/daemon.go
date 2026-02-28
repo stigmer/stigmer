@@ -1085,7 +1085,7 @@ func EnsureRunning(dataDir string) error {
 	// Already running? We're done!
 	if IsRunning(dataDir) {
 		log.Debug().Msg("Daemon is already running")
-		return ensureSeedpackBootstrapped(dataDir)
+		return EnsureSeedpackBootstrapped(dataDir)
 	}
 
 	// Not running - start it with nice UX
@@ -1107,10 +1107,10 @@ func EnsureRunning(dataDir string) error {
 	fmt.Fprintln(os.Stderr)
 
 	// Apply embedded seedpack if needed (system agents, skills, MCP servers)
-	return ensureSeedpackBootstrapped(dataDir)
+	return EnsureSeedpackBootstrapped(dataDir)
 }
 
-// ensureSeedpackBootstrapped applies the embedded seedpack content if the
+// EnsureSeedpackBootstrapped applies the embedded seedpack content if the
 // current binary's seedpack differs from the last-applied version.
 //
 // This function:
@@ -1122,7 +1122,7 @@ func EnsureRunning(dataDir string) error {
 //
 // The subprocess approach means system resources are applied through the exact
 // same code path as user resources — no duplication.
-func ensureSeedpackBootstrapped(dataDir string) error {
+func EnsureSeedpackBootstrapped(dataDir string) error {
 	if os.Getenv(seedpackSkipEnvVar) == "1" {
 		log.Debug().Msg("Seedpack bootstrap skipped (recursion guard)")
 		return nil

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/rs/zerolog/log"
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 	apiresourcepb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
@@ -13,6 +14,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/storage"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/extractor"
 )
 
 // Context keys for push operation
@@ -91,8 +93,9 @@ func (c *SkillController) buildPushPipeline() *pipeline.Pipeline[*skillv1.PushSk
 		AddStep(c.newGenerateIDIfNeededStep()).                           // 6. Generate ID if creating
 		AddStep(c.newCheckAndStoreArtifactStep()).                        // 7. Store artifact
 		AddStep(c.newPopulateSkillFieldsStep()).                          // 8. Populate fields
-		AddStep(c.newArchiveCurrentSkillStep()).                          // 9. Archive NEW skill
-		AddStep(c.newStoreSkillStep()).                                   // 10. Persist to DB
+		AddStep(c.newArchiveCurrentSkillStep()). // 9. Archive NEW skill
+		AddStep(c.newStoreSkillStep()).          // 10. Persist to DB
+		AddStep(c.newIndexSkillSearchStep()).    // 11. Update search index
 		Build()
 }
 
@@ -525,6 +528,42 @@ func (s *StoreSkillStep) Execute(ctx *pipeline.RequestContext[*skillv1.PushSkill
 	// Save skill to BadgerDB
 	if err := s.store.SaveResource(ctx.Context(), apiresourcekind.ApiResourceKind_skill, skill.Metadata.Id, skill); err != nil {
 		return grpclib.InternalError(err, "failed to save skill")
+	}
+
+	return nil
+}
+
+// indexSkillSearchStep updates the FTS5 search index after a skill push.
+//
+// This is a custom step because the push pipeline's type parameter is
+// PushSkillRequest, not Skill. The skill is read from the SkillKey context
+// key instead of from ctx.NewState().
+type indexSkillSearchStep struct {
+	store store.Store
+}
+
+func (c *SkillController) newIndexSkillSearchStep() *indexSkillSearchStep {
+	return &indexSkillSearchStep{store: c.store}
+}
+
+func (s *indexSkillSearchStep) Name() string {
+	return "IndexSkillSearch"
+}
+
+func (s *indexSkillSearchStep) Execute(ctx *pipeline.RequestContext[*skillv1.PushSkillRequest]) error {
+	skill := ctx.Get(SkillKey).(*skillv1.Skill)
+
+	ext := &extractor.SkillExtractor{}
+	entry := ext.GetSearchIndexEntry(skill)
+	if entry == nil {
+		log.Warn().Str("id", skill.Metadata.Id).Msg("IndexSkillSearch: extractor returned nil entry, skipping")
+		return nil
+	}
+
+	if err := s.store.UpsertSearchIndex(ctx.Context(), apiresourcekind.ApiResourceKind_skill, skill.Metadata.Id, entry); err != nil {
+		log.Warn().Err(err).
+			Str("id", skill.Metadata.Id).
+			Msg("IndexSkillSearch: failed to update search index (best-effort)")
 	}
 
 	return nil
