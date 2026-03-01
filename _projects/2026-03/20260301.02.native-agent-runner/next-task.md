@@ -89,7 +89,7 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-01
-**Current Task**: T01.5 (Log Integration for Native Mode)
+**Current Task**: T01.6 (End-to-End Validation)
 **Status**: READY TO START
 
 ### Completed
@@ -97,22 +97,17 @@ When starting a new session:
 - **T01.1**: Runtime filesystem layout designed and documented (DD-01)
 - **T01.2**: Go package for Python runtime management implemented (`internal/cli/pythonrt/`)
 - **T01.4**: Rewrite `startAgentRunner()` — Native Process Mode (daemon-only; supervisor out of scope)
+- **T01.5**: Log Integration for Native Mode — verified and hardened
 
-### T01.4 Summary
-- Extended `pythonrt.Config` with `AppSourceFS` for embedding Python application source
-- Created `embedded/agentrunner/` package with build-tagged dev/embed source resolution
-- Added `AgentRunnerConfig` with mode resolution (env > config > auto) to `config.go`
-- Split `startAgentRunner()` into `startAgentRunnerNative()` / `startAgentRunnerDocker()` with mode dispatch in `StartWithOptions()`
-- Refactored `stopAgentRunner()` to handle PID-based (native) and Docker-based stopping
-- Added `AgentRunnerMode` to `StartupConfig` for crash recovery
-- Updated `health_integration.go` for mode-aware health checks and restarts
-- Added `STIGMER_SKIP_AGENT_RUNNER` env var guard to `supervisor.go` to prevent dual-start
-- Documented dual lifecycle concern in `wrong-assumptions/WA01_dual_lifecycle_management.md`
-- Amended DD-01 with `app/` directory (DD-01-A)
-- Unit tests for mode resolution, env var construction, copyFS
+### T01.5 Summary
+- **Finding**: Log routing was already wired up during T01.4 — `agent_runner_native.go` writes to `agent-runner.log`, `server_logs.go` already branches on `IsAgentRunnerDocker()`
+- **Fix**: Rewrote `IsAgentRunnerDocker()` to eliminate Docker exec on every logs call. Old implementation shelled out to `docker ps` as fallback (contradicting the no-Docker goal). New implementation uses `startup-config.json` `AgentRunnerMode` as authoritative source, falls back to PID-first marker heuristic (consistent with `health_integration.go`), never execs Docker
+- **Dead code identified**: `getComponentConfigs()` and `StreamAllLogs()` are defined but never called — the active path uses `getComponentConfigsWithStreamPreferences()` and `StreamAllLogsWithPreferences()` exclusively
+- **Tests**: 10 unit tests for `IsAgentRunnerDocker` covering startup config authority, marker file heuristics, stale file override, and edge cases
+- **Verified**: All active `server_logs.go` code paths traced and confirmed correct for native mode
 
 ### Next Up
-- **T01.5**: Log Integration for Native Mode — verify `stigmer server logs` works with file-based agent-runner logs
+- **T01.6**: End-to-End Validation — test complete flow on macOS arm64
 
 ### Key Design Decisions
 - **DD-01**: `design-decisions/DD01_runtime_filesystem_layout.md` — Runtime lives at `~/.stigmer/runtimes/agent-runner/<cli-version>/<platform>/` with self-contained python/, venv/, wheels/, app/, and manifest.json
@@ -133,14 +128,16 @@ When starting a new session:
   - **WORKSPACE_ROOT vs SANDBOX_ROOT_DIR bug**: Fixed — native mode passes `SANDBOX_ROOT_DIR` directly.
 
 ### Context for Resume
-- **T01.5 is next** — verify that `stigmer server logs --component agent-runner` works for native mode (should work already since file-based logging uses existing patterns)
+- **T01.6 is next** — end-to-end validation of the full native agent-runner flow on macOS arm64
+- `IsAgentRunnerDocker()` now reads `startup-config.json` as authoritative source — zero Docker dependency in log mode detection
+- Dead code: `getComponentConfigs()` and `StreamAllLogs()` in the logs pipeline are unused (tracked for future cleanup)
 - supervisor.go has a minimal 3-line guard (`STIGMER_SKIP_AGENT_RUNNER`); full native support in supervisor deferred to Phase 3 dual lifecycle investigation
 - `embedded/agentrunner/` package provides Python source as `fs.FS` — dev mode uses repo tree, production requires running `sync.sh` before build with `-tags embed_agentrunner`
 
 ## Quick Commands
 
 After loading context:
-- "Start T01.5" — Verify log integration for native agent-runner mode
+- "Start T01.6" — End-to-end validation on macOS arm64
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 - "Review guidelines" — Check established patterns
