@@ -90,17 +90,19 @@ When starting a new session:
 
 **Created**: 2026-03-01
 **Current Task**: T01.6 (End-to-End Validation)
-**Status**: READY TO START
+**Status**: IN PROGRESS — dependency installation wired up, health reporting fixed, ready for validation
 
 ### Completed
 - **T01.0**: Phase 1 plan reviewed and approved
 - **T01.1**: Runtime filesystem layout designed and documented (DD-01)
 - **T01.2**: Go package for Python runtime management implemented (`internal/cli/pythonrt/`)
+- **T01.3 (partial)**: Dependency installation pipeline — `requirements.txt` generated from poetry.lock, wired into `pythonrt.Manager` via `SetDeps()`, path deps (graphton, stigmer-stubs) installed via `PostInstallCmds`
 - **T01.4**: Rewrite `startAgentRunner()` — Native Process Mode (daemon-only; supervisor out of scope)
 - **T01.5**: Log Integration for Native Mode — verified and hardened
 - **WA-01 Resolution**: Dual lifecycle management consolidated — single daemon as lifecycle owner (DD-02)
 - **Pipeline Fix**: CI pipeline and Makefile aligned with native agent-runner (release-blocking bug fixed)
 - **Dev Source Detection Fix**: `make release-local` now injects agent-runner source path via `-ldflags` so the binary works when installed outside the repo tree
+- **Bootstrap Fix**: Fixed missing dependency installation, startup health reporting, rapid-crash detection, and stale code cleanup
 
 ### WA-01 Resolution Summary (2026-03-01)
 - **Problem**: Two independent systems (CLI daemon + stigmer-server supervisor) both managed agent-runner and workflow-runner with conflicting state files, competing health monitors, and no health monitoring for native agent-runner
@@ -119,7 +121,8 @@ When starting a new session:
 - **Design Decision**: Documented as DD-02
 
 ### Next Up
-- **T01.6**: End-to-End Validation — test complete flow on macOS arm64
+- **T01.6**: End-to-End Validation — run `make release-local && stigmer server` and verify agent-runner starts with all dependencies installed. The stale runtime at `~/.stigmer/runtimes/agent-runner/dev/` has been cleared so a fresh bootstrap will trigger.
+- **T01.3 (remaining)**: Per-platform wheelhouse build for offline/air-gapped installs (future — network pip works for now)
 
 ### Key Design Decisions
 - **DD-01**: `design-decisions/DD01_runtime_filesystem_layout.md` — Runtime lives at `~/.stigmer/runtimes/agent-runner/<cli-version>/<platform>/` with self-contained python/, venv/, wheels/, app/, and manifest.json
@@ -161,6 +164,39 @@ When starting a new session:
 - CI pipeline now runs `sync.sh` + `-tags embed_agentrunner` on all 3 platforms
 - `make release-local` is Docker-free with ldflags; `make build-release` does a production-like build with embedding
 - `sync.sh` graphton path fixed to `backend/libs/python/graphton`
+
+## Session Progress (2026-03-02, Session 5)
+
+### What Was Accomplished
+- **Root cause identified**: `bootstrapAgentRunnerRuntime()` created `pythonrt.Manager` without setting `DepsSource`, so the venv was created but no Python packages were installed. Agent-runner crashed on `from dotenv import load_dotenv`.
+- **requirements.txt generated**: 131 pinned PyPI dependencies from `poetry show --only main`, committed alongside `pyproject.toml`. Makefile target `update-agent-runner-deps` added for regeneration.
+- **Bootstrap reordered**: `pythonrt.Manager.bootstrap()` now extracts app source BEFORE venv setup so `requirements.txt` and path deps are on disk when pip runs.
+- **Dependency installation wired up**: `bootstrapAgentRunnerRuntime()` now calls `mgr.SetDeps()` with `app/requirements.txt` and `PostInstallCmds` for graphton and stigmer-stubs.
+- **Dev-mode path deps fixed**: Added `PreInstallFn` callback to `pythonrt.Config` and `DevRepoRoot()` to `agentrunner` package so dev builds copy graphton and stigmer-stubs into the app directory before pip runs.
+- **sync.sh graphton path fixed**: Was copying non-existent `$GRAPHTON/graphton`, now correctly copies `$GRAPHTON/src/graphton` (matches `packages = [{include = "graphton", from = "src"}]` in pyproject.toml).
+- **Startup health reporting added**: `handleServerStart()` now reads `health-state.json` after `WaitForReady` and warns about failed/stopped components instead of silently reporting "Ready!".
+- **Rapid-crash detection**: Health monitor now detects components that crash within 5 seconds of starting and marks them as `"failed"` immediately instead of retrying 5 times over ~50s.
+- **Dead code removed**: Unused `startAgentRunnerNative()`, `buildNativeAgentRunnerEnv()`, `tailBytes()`, entire `health/` package (6 files, ~1,350 lines), Docker-era comments in `embedded/extract.go`.
+
+### Files Changed (17 files, +195 / -1,670 lines)
+- `backend/services/agent-runner/requirements.txt` (NEW)
+- `client-apps/cli/embedded/agentrunner/sync.sh` (requirements.txt copy + graphton path fix)
+- `client-apps/cli/embedded/agentrunner/agentrunner.go` (DevRepoRoot)
+- `client-apps/cli/embedded/agentrunner/agentrunner_dev.go` (devRepoRoot impl)
+- `client-apps/cli/embedded/agentrunner/agentrunner_embed.go` (devRepoRoot no-op)
+- `client-apps/cli/internal/cli/pythonrt/manager.go` (reorder + SetDeps + PreInstallFn)
+- `client-apps/cli/internal/cli/daemon/agent_runner_native.go` (SetDeps, PreInstallFn, dead code removal)
+- `client-apps/cli/internal/cli/daemon/daemon_process.go` (rapid-crash detection)
+- `client-apps/cli/cmd/stigmer/root/server.go` (reportDegradedComponents)
+- `client-apps/cli/embedded/extract.go` (Docker comment cleanup)
+- `Makefile` (update-agent-runner-deps target)
+- Deleted: `agent_runner_native_test.go`, `health/` package (6 files)
+
+### Context for Resume
+- Stale runtime at `~/.stigmer/runtimes/agent-runner/dev/` has been cleared — next `stigmer server` will trigger a fresh bootstrap with full dependency installation
+- First bootstrap will take 2-5 minutes (pip install from PyPI) — subsequent starts are instant
+- `pathspec` was manually added to requirements.txt because graphton needs it at runtime but poetry categorized it as dev-only (also required by mypy)
+- `--no-deps` is used for path dep PostInstallCmds because their transitive deps are already in requirements.txt
 
 ## Quick Commands
 

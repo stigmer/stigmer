@@ -203,6 +203,11 @@ func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 		progress.Stop()
 	}
 
+	// Check if any non-critical components failed during startup.
+	// The daemon writes health-state.json after starting all components;
+	// by this point (gRPC is ready), the health state has been written.
+	reportDegradedComponents(dataDir)
+
 	// LLM status messaging: only announce after validation is complete.
 	displayLLMStatus(llmProvider, llmModel, cfg.Backend.Local, llmSetupErr)
 
@@ -311,6 +316,26 @@ func runBootstrapDiscovery(cfg *config.Config) {
 	}
 	for _, msg := range result.SkipMessages {
 		climsg.Warning("%s", msg)
+	}
+}
+
+// reportDegradedComponents reads the daemon's health state and warns about
+// any components that failed or stopped during startup.
+func reportDegradedComponents(dataDir string) {
+	hs := daemon.LoadHealthState(dataDir)
+	if hs == nil {
+		return
+	}
+
+	for name, cs := range hs.Components {
+		if cs.State != "failed" && cs.State != "stopped" {
+			continue
+		}
+		climsg.Warning("Component %s is %s", name, cs.State)
+		if cs.LastError != "" {
+			climsg.Warning("  Error: %s", cs.LastError)
+		}
+		climsg.Info("  View logs: stigmer server logs --component %s", name)
 	}
 }
 

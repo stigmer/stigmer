@@ -2,11 +2,8 @@ package daemon
 
 import (
 	"context"
-	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"syscall"
 	"time"
 
 	"github.com/pkg/errors"
@@ -35,10 +32,19 @@ func bootstrapAgentRunnerRuntime() (pythonBin string, appDir string, err error) 
 		BaseDir:     filepath.Join(configDir, "runtimes", "agent-runner"),
 		CLIVersion:  embedded.GetBuildVersion(),
 		AppSourceFS: sourceFS,
+		PreInstallFn: buildPreInstallFn(),
 	})
 	if err != nil {
 		return "", "", errors.Wrap(err, "failed to create Python runtime manager")
 	}
+
+	mgr.SetDeps(
+		filepath.Join(mgr.AppDir(), "requirements.txt"),
+		[][]string{
+			{"pip", "install", "--no-deps", filepath.Join(mgr.AppDir(), "libs", "graphton")},
+			{"pip", "install", "--no-deps", filepath.Join(mgr.AppDir(), "libs", "stigmer-stubs")},
+		},
+	)
 
 	log.Info().
 		Str("runtime_dir", mgr.RuntimeDir()).
@@ -54,181 +60,69 @@ func bootstrapAgentRunnerRuntime() (pythonBin string, appDir string, err error) 
 	return mgr.PythonBin(), mgr.AppDir(), nil
 }
 
-// startAgentRunnerNative starts the agent-runner as a native OS process
-// backed by a hermetic CPython runtime managed by pythonrt.
-func startAgentRunnerNative(
-	dataDir string,
-	logDir string,
-	llmProvider string,
-	llmModel string,
-	llmBaseURL string,
-	temporalAddr string,
-	secrets map[string]string,
-	executionMode string,
-	sandboxImage string,
-	sandboxAutoPull bool,
-	sandboxCleanup bool,
-	sandboxTTL int,
-) error {
-	sourceFS := agentrunner.SourceFS()
-	if sourceFS == nil {
-		return errors.New("agent-runner Python source is not available (not embedded and not found in repo tree)")
+// buildPreInstallFn returns a hook that copies monorepo path dependencies
+// (graphton, stigmer-stubs) into the app directory before pip runs.
+//
+// In embed (production) builds, sync.sh already places these under libs/
+// inside the embedded source, so the hook is a no-op. In dev builds, the
+// source FS is only the agent-runner directory; the path deps live elsewhere
+// in the repo and must be copied explicitly.
+func buildPreInstallFn() func(appDir string) error {
+	repoRoot := agentrunner.DevRepoRoot()
+	if repoRoot == "" {
+		return nil
 	}
-
-	configDir, err := cliconfig.GetConfigDir()
-	if err != nil {
-		return errors.Wrap(err, "failed to resolve config directory")
+	return func(appDir string) error {
+		pathDeps := []struct {
+			src    string
+			target string
+		}{
+			{
+				src:    filepath.Join(repoRoot, "backend", "libs", "python", "graphton"),
+				target: filepath.Join(appDir, "libs", "graphton"),
+			},
+			{
+				src:    filepath.Join(repoRoot, "apis", "stubs", "python", "stigmer"),
+				target: filepath.Join(appDir, "libs", "stigmer-stubs"),
+			},
+		}
+		for _, dep := range pathDeps {
+			if _, err := os.Stat(dep.src); err != nil {
+				log.Warn().Str("src", dep.src).Msg("Path dependency not found, skipping")
+				continue
+			}
+			log.Info().Str("src", dep.src).Str("target", dep.target).Msg("Copying path dependency")
+			if err := copyDir(dep.src, dep.target); err != nil {
+				return errors.Wrapf(err, "failed to copy path dependency from %s", dep.src)
+			}
+		}
+		return nil
 	}
+}
 
-	mgr, err := pythonrt.NewManager(pythonrt.Config{
-		BaseDir:     filepath.Join(configDir, "runtimes", "agent-runner"),
-		CLIVersion:  embedded.GetBuildVersion(),
-		AppSourceFS: sourceFS,
+// copyDir recursively copies a directory tree from src to dst, skipping
+// hidden directories (.venv, .git, etc.) and __pycache__.
+func copyDir(src, dst string) error {
+	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		if info.IsDir() && rel != "." && (rel[0] == '.' || info.Name() == "__pycache__") {
+			return filepath.SkipDir
+		}
+		target := filepath.Join(dst, rel)
+		if info.IsDir() {
+			return os.MkdirAll(target, 0755)
+		}
+		if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+			return err
+		}
+		return copyFile(path, target)
 	})
-	if err != nil {
-		return errors.Wrap(err, "failed to create Python runtime manager")
-	}
-
-	log.Info().
-		Str("runtime_dir", mgr.RuntimeDir()).
-		Msg("Bootstrapping Python runtime for agent-runner")
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-	defer cancel()
-
-	if err := mgr.EnsureReady(ctx); err != nil {
-		return errors.Wrap(err, "failed to bootstrap Python runtime")
-	}
-
-	workspaceDir := filepath.Join(dataDir, "workspace")
-	if err := os.MkdirAll(workspaceDir, 0755); err != nil {
-		return errors.Wrap(err, "failed to create workspace directory")
-	}
-
-	artifactsDir := filepath.Join(dataDir, "artifacts")
-	if err := os.MkdirAll(artifactsDir, 0755); err != nil {
-		return errors.Wrap(err, "failed to create artifacts directory")
-	}
-
-	env := buildNativeAgentRunnerEnv(
-		dataDir, temporalAddr, llmProvider, llmModel, llmBaseURL,
-		executionMode, sandboxImage, sandboxAutoPull, sandboxCleanup, sandboxTTL,
-		secrets,
-	)
-
-	mainPy := filepath.Join(mgr.AppDir(), "main.py")
-	if _, err := os.Stat(mainPy); err != nil {
-		return errors.Wrapf(err, "agent-runner entry point not found at %s", mainPy)
-	}
-
-	cmd := exec.Command(mgr.PythonBin(), mainPy)
-	cmd.Dir = mgr.AppDir()
-	cmd.Env = env
-
-	logFile := filepath.Join(logDir, "agent-runner.log")
-	logOutput, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-	if err != nil {
-		return errors.Wrap(err, "failed to create agent-runner log file")
-	}
-	defer logOutput.Close()
-
-	cmd.Stdout = logOutput
-	cmd.Stderr = logOutput
-
-	if err := cmd.Start(); err != nil {
-		return errors.Wrap(err, "failed to start agent-runner process")
-	}
-
-	pidFile := filepath.Join(dataDir, AgentRunnerPIDFileName)
-	if err := os.WriteFile(pidFile, []byte(fmt.Sprintf("%d", cmd.Process.Pid)), 0644); err != nil {
-		_ = cmd.Process.Kill()
-		return errors.Wrap(err, "failed to write agent-runner PID file")
-	}
-
-	log.Info().
-		Int("pid", cmd.Process.Pid).
-		Str("python", mgr.PythonBin()).
-		Str("app_dir", mgr.AppDir()).
-		Msg("Agent-runner started as native process")
-
-	time.Sleep(2 * time.Second)
-
-	if err := cmd.Process.Signal(syscall.Signal(0)); err != nil {
-		logContent, _ := os.ReadFile(logFile)
-		lastLines := tailBytes(logContent, 2000)
-		return errors.Errorf(
-			"agent-runner crashed immediately after startup (PID %d)\nLast log output:\n%s",
-			cmd.Process.Pid, lastLines,
-		)
-	}
-
-	log.Info().
-		Int("pid", cmd.Process.Pid).
-		Msg("Agent-runner native process health check passed")
-
-	return nil
 }
 
-// buildNativeAgentRunnerEnv constructs the environment for agent-runner.
-// Uses real host paths and localhost addresses.
-func buildNativeAgentRunnerEnv(
-	dataDir string,
-	temporalAddr string,
-	llmProvider string,
-	llmModel string,
-	llmBaseURL string,
-	executionMode string,
-	sandboxImage string,
-	sandboxAutoPull bool,
-	sandboxCleanup bool,
-	sandboxTTL int,
-	secrets map[string]string,
-) []string {
-	workspaceDir := filepath.Join(dataDir, "workspace")
-	artifactsDir := filepath.Join(dataDir, "artifacts")
 
-	env := os.Environ()
-	env = append(env,
-		"MODE=local",
-		fmt.Sprintf("STIGMER_BACKEND_ENDPOINT=localhost:%d", DaemonPort),
-		fmt.Sprintf("TEMPORAL_SERVICE_ADDRESS=%s", temporalAddr),
-		"TEMPORAL_NAMESPACE=default",
-		"TASK_QUEUE=agent_execution_runner",
-		"SANDBOX_TYPE=filesystem",
-
-		// Native mode: use the real host path.
-		// The Python agent-runner reads SANDBOX_ROOT_DIR (not WORKSPACE_ROOT).
-		fmt.Sprintf("SANDBOX_ROOT_DIR=%s", workspaceDir),
-
-		"LOG_LEVEL=DEBUG",
-
-		fmt.Sprintf("STIGMER_LLM_PROVIDER=%s", llmProvider),
-		fmt.Sprintf("STIGMER_LLM_MODEL=%s", llmModel),
-		fmt.Sprintf("STIGMER_LLM_BASE_URL=%s", llmBaseURL),
-		fmt.Sprintf("OLLAMA_BASE_URL=%s", llmBaseURL),
-
-		fmt.Sprintf("STIGMER_EXECUTION_MODE=%s", executionMode),
-		fmt.Sprintf("STIGMER_SANDBOX_IMAGE=%s", sandboxImage),
-		fmt.Sprintf("STIGMER_SANDBOX_AUTO_PULL=%t", sandboxAutoPull),
-		fmt.Sprintf("STIGMER_SANDBOX_CLEANUP=%t", sandboxCleanup),
-		fmt.Sprintf("STIGMER_SANDBOX_TTL=%d", sandboxTTL),
-
-		fmt.Sprintf("LOCAL_ARTIFACT_PATH=%s", artifactsDir),
-		fmt.Sprintf("LOCAL_ARTIFACT_SERVE_URL=http://localhost:%d", DaemonPort+1),
-	)
-
-	for key, value := range secrets {
-		env = append(env, fmt.Sprintf("%s=%s", key, value))
-	}
-
-	return env
-}
-
-// tailBytes returns the last n bytes of b as a string. If b is shorter
-// than n, it returns all of b.
-func tailBytes(b []byte, n int) string {
-	if len(b) <= n {
-		return string(b)
-	}
-	return "..." + string(b[len(b)-n:])
-}
