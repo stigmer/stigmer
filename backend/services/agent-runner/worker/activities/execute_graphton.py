@@ -1218,6 +1218,7 @@ async def _execute_graphton_impl(
         # ─────────────────────────────────────────────────────────────────────────────
         setup_timer.start("environment")
         merged_env_vars: dict[str, str] = {}
+        secret_keys: set[str] = set()
         use_legacy_env_merge = True
         
         try:
@@ -1231,6 +1232,8 @@ async def _execute_graphton_impl(
                 )
                 for key, exec_value in exec_ctx.spec.data.items():
                     merged_env_vars[key] = exec_value.value
+                    if exec_value.is_secret:
+                        secret_keys.add(key)
                 use_legacy_env_merge = False
                 activity_logger.info(f"ExecutionContext environment: {len(merged_env_vars)} total vars")
             else:
@@ -1257,23 +1260,26 @@ async def _execute_graphton_impl(
                     if agent.spec.env_spec and agent.spec.env_spec.data:
                         for key, env_value in agent.spec.env_spec.data.items():
                             merged_env_vars[key] = env_value.value
+                            if env_value.is_secret:
+                                secret_keys.add(key)
                         activity_logger.info(f"[Legacy] Base env vars from agent: {len(agent.spec.env_spec.data)}")
                     
                     for idx, env in enumerate(environments):
                         if env.spec.data:
                             for key, env_value in env.spec.data.items():
                                 merged_env_vars[key] = env_value.value
+                                if env_value.is_secret:
+                                    secret_keys.add(key)
                             activity_logger.info(
                                 f"[Legacy] Merged env {idx+1}/{len(environments)} ({env.metadata.name}): "
                                 f"{len(env.spec.data)} vars"
                             )
                     
                     if execution.spec.runtime_env:
-                        runtime_vars = {
-                            key: value.value
-                            for key, value in execution.spec.runtime_env.items()
-                        }
-                        merged_env_vars.update(runtime_vars)
+                        for key, value in execution.spec.runtime_env.items():
+                            merged_env_vars[key] = value.value
+                            if value.is_secret:
+                                secret_keys.add(key)
                         activity_logger.info(f"[Legacy] Applied runtime env overrides: {len(runtime_vars)} vars")
                     
                     activity_logger.info(f"[Legacy] Final merged environment: {len(merged_env_vars)} total vars")
@@ -1717,7 +1723,7 @@ async def _execute_graphton_impl(
         
         # Initialize status builder with approval config
         status_builder = StatusBuilder(execution_id, execution.status, approval_config)
-        status_builder.set_display_env_vars(merged_env_vars)
+        status_builder.set_display_env_vars(merged_env_vars, secret_keys)
         
         # ─────────────────────────────────────────────────────────────────────────────
         # Step 5.7: Build ResolvedExecutionContext (Phase 2.5)
@@ -2819,7 +2825,7 @@ async def _execute_graphton_impl(
                         
                         display_message = humanize_platform_refs(message)
                         display_message = resolve_display_env_vars(
-                            display_message, merged_env_vars,
+                            display_message, merged_env_vars, secret_keys,
                         )
 
                         pa = PendingApproval(
