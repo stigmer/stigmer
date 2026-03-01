@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from graphton.core.backends.gitignore_filter import GitIgnoreFilter
 from graphton.core.backends.platform_mount import (
     PLATFORM_DIR_NAME,
     STIGMER_PLATFORM_DIR_ENV,
@@ -92,6 +93,36 @@ class FilesystemBackend:
             self._platform_root.mkdir(parents=True, exist_ok=True)
         else:
             self._platform_root = None
+
+        self._gitignore: GitIgnoreFilter | None = GitIgnoreFilter.from_file(
+            self.root_dir / ".gitignore",
+        )
+
+    # -- Entry filtering -------------------------------------------------------
+
+    def _should_include(
+        self,
+        parent_dir: Path,
+        name: str,
+        *,
+        is_dir: bool,
+    ) -> bool:
+        """Decide whether a directory entry should be visible to agent tools.
+
+        Consolidates the three filtering layers (hidden, skip-dir, gitignore)
+        into a single predicate so that ``list_files`` and
+        ``_format_directory_listing`` share one source of truth.
+        """
+        if name.startswith(".") or name in self._SKIP_DIR_NAMES:
+            return False
+        if self._gitignore is not None:
+            try:
+                rel_path = str(parent_dir.relative_to(self.root_dir) / name)
+            except ValueError:
+                return True
+            if self._gitignore.is_ignored(rel_path, is_dir=is_dir):
+                return False
+        return True
 
     # -- Path resolution -------------------------------------------------------
 
@@ -284,14 +315,14 @@ class FilesystemBackend:
 
         for child in children:
             name = child.name
-            if name.startswith(".") or name in self._SKIP_DIR_NAMES:
+            child_is_dir = child.is_dir()
+            if not self._should_include(dir_path, name, is_dir=child_is_dir):
                 continue
             try:
-                if child.is_dir():
+                if child_is_dir:
                     item_count = sum(
                         1 for c in child.iterdir()
-                        if not c.name.startswith(".")
-                        and c.name not in self._SKIP_DIR_NAMES
+                        if self._should_include(child, c.name, is_dir=c.is_dir())
                     )
                     label = "item" if item_count == 1 else "items"
                     dirs.append(f"  {name}/  ({item_count} {label})")
@@ -373,8 +404,7 @@ class FilesystemBackend:
 
         entries = [
             item.name for item in dir_path.iterdir()
-            if not item.name.startswith(".")
-            and item.name not in self._SKIP_DIR_NAMES
+            if self._should_include(dir_path, item.name, is_dir=item.is_dir())
         ]
 
         # Inject virtual .stigmer entry at the workspace root level.

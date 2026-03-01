@@ -29,7 +29,11 @@ from typing import Any
 
 from deepagents.backends.protocol import BackendProtocol  # type: ignore[import-untyped]
 
+from graphton.core.backends.gitignore_filter import GitIgnoreFilter
+
 logger = logging.getLogger(__name__)
+
+_UNSET = object()
 
 
 # ---------------------------------------------------------------------------
@@ -101,6 +105,8 @@ class WorkspaceNormalizingBackend:
         else:
             self._rebase_prefix = ""
 
+        self._gitignore: GitIgnoreFilter | None | object = _UNSET
+
         if self._rebase_prefix:
             logger.info(
                 "WorkspaceNormalizingBackend: rebase prefix = '%s' "
@@ -109,6 +115,38 @@ class WorkspaceNormalizingBackend:
                 self._workspace_root,
                 self._sandbox_root,
             )
+
+    # -- gitignore helpers --------------------------------------------------
+
+    def _get_gitignore(self) -> GitIgnoreFilter | None:
+        """Return the cached gitignore filter, loading lazily on first call.
+
+        Lazy because the Daytona sandbox may not have a provisioned
+        workspace at construction time — ``create_daytona_backend()``
+        runs before ``provisioner.provision()``.  By the first
+        ``list_files()`` call the workspace is fully provisioned.
+        """
+        if self._gitignore is _UNSET:
+            try:
+                content = self._inner.read(self._normalize(".gitignore"))
+                self._gitignore = GitIgnoreFilter.from_content(content)
+            except Exception:
+                self._gitignore = None
+        return self._gitignore  # type: ignore[return-value]
+
+    def _workspace_relative(self, path: str) -> str:
+        """Extract the workspace-relative portion of *path*.
+
+        Used to build correct relative paths for gitignore matching
+        *before* the rebase/normalisation step transforms them into
+        sandbox-space coordinates.
+        """
+        prefix = self._workspace_root + "/"
+        if path.startswith(prefix):
+            return path[len(prefix):]
+        if path == self._workspace_root:
+            return "."
+        return path.lstrip("/") or "."
 
     # -- path helpers -------------------------------------------------------
 
@@ -191,8 +229,19 @@ class WorkspaceNormalizingBackend:
         return self._inner.write_file(self._normalize(path), content)
 
     def list_files(self, path: str = ".") -> list[str]:
-        """List directory contents with path normalisation."""
-        return self._inner.list_files(self._normalize(path))
+        """List directory contents with path normalisation and gitignore filtering."""
+        entries = self._inner.list_files(self._normalize(path))
+        gitignore = self._get_gitignore()
+        if gitignore is None:
+            return entries
+        ws_rel = self._workspace_relative(path)
+        return [
+            name for name in entries
+            if not gitignore.is_ignored(
+                f"{ws_rel}/{name}" if ws_rel not in (".", "") else name,
+                is_dir=None,
+            )
+        ]
 
     def is_directory(self, path: str) -> bool:
         """Check whether path is a directory, with path normalisation."""

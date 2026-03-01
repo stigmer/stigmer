@@ -22,6 +22,7 @@ import os
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from graphton.core.backends.gitignore_filter import GitIgnoreFilter
     from worker.workspace.backend import WorkspaceBackend
 
 logger = logging.getLogger(__name__)
@@ -73,6 +74,7 @@ def build_directory_tree(
     skip_dirs: frozenset[str] = TREE_SKIP_DIRS,
     max_depth: int = TREE_DEFAULT_MAX_DEPTH,
     max_entries: int = TREE_DEFAULT_MAX_ENTRIES,
+    gitignore_filter: GitIgnoreFilter | None = None,
 ) -> tuple[list[str], int]:
     """Recursively collect a file-tree manifest for a local directory.
 
@@ -83,6 +85,9 @@ def build_directory_tree(
     Each line is a markdown list item: ``    - `rel/path/` `` for
     directories or ``    - `rel/path` (size)`` for files.  Directories
     are listed before files at each level, both sorted alphabetically.
+
+    When *gitignore_filter* is provided, entries matching ``.gitignore``
+    patterns are excluded in addition to the hardcoded *skip_dirs* set.
     """
     lines: list[str] = []
     total = 0
@@ -105,7 +110,15 @@ def build_directory_tree(
             full = os.path.join(dir_path, name)
             rel = f"{rel_prefix}{name}" if rel_prefix else name
             try:
-                if os.path.isdir(full):
+                is_dir = os.path.isdir(full)
+            except OSError:
+                is_dir = False
+            if gitignore_filter is not None and gitignore_filter.is_ignored(
+                rel, is_dir=is_dir,
+            ):
+                continue
+            try:
+                if is_dir:
                     child_dirs.append((full, rel, name))
                 else:
                     child_files.append((rel, name, os.path.getsize(full)))
@@ -161,11 +174,13 @@ def _parse_find_output(
     stdout: str,
     *,
     max_entries: int,
+    gitignore_filter: GitIgnoreFilter | None = None,
 ) -> tuple[list[str], int]:
     """Parse GNU ``find -printf`` output into formatted tree lines.
 
     Entries are sorted into DFS dirs-first order (matching the local
-    walker) and capped at *max_entries*.
+    walker) and capped at *max_entries*.  When *gitignore_filter* is
+    provided, matching entries are excluded before sorting.
     """
     dirs: list[str] = []
     files: list[tuple[str, int | None]] = []
@@ -177,10 +192,18 @@ def _parse_find_output(
         if len(parts) >= 2 and parts[0] == "D":
             path = parts[1]
             if path:
+                if gitignore_filter is not None and gitignore_filter.is_ignored(
+                    path, is_dir=True,
+                ):
+                    continue
                 dirs.append(path)
         elif len(parts) >= 3 and parts[0] == "F":
             path = parts[2]
             if path:
+                if gitignore_filter is not None and gitignore_filter.is_ignored(
+                    path, is_dir=False,
+                ):
+                    continue
                 try:
                     size = int(parts[1])
                 except ValueError:
@@ -247,6 +270,7 @@ def _build_directory_tree_via_find(
     skip_dirs: frozenset[str] = TREE_SKIP_DIRS,
     max_depth: int = _WORKSPACE_TREE_MAX_DEPTH,
     max_entries: int = _WORKSPACE_TREE_MAX_ENTRIES,
+    gitignore_filter: GitIgnoreFilter | None = None,
 ) -> tuple[list[str], int] | None:
     """Walk a remote workspace directory tree using ``backend.execute()``.
 
@@ -272,7 +296,9 @@ def _build_directory_tree_via_find(
     if not result.stdout.strip():
         return [], 0
 
-    return _parse_find_output(result.stdout, max_entries=max_entries)
+    return _parse_find_output(
+        result.stdout, max_entries=max_entries, gitignore_filter=gitignore_filter,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -287,6 +313,7 @@ def build_workspace_file_tree(
     is_local_mode: bool,
     max_depth: int = _WORKSPACE_TREE_MAX_DEPTH,
     max_entries: int = _WORKSPACE_TREE_MAX_ENTRIES,
+    gitignore_filter: GitIgnoreFilter | None = None,
 ) -> str | None:
     """Generate a formatted workspace file-tree section for the system prompt.
 
@@ -296,6 +323,9 @@ def build_workspace_file_tree(
       on *root_dir*.  Fast and produces rich metadata (file sizes).
     - **Remote mode (Daytona):** Uses ``backend.execute("find ...")``
       with GNU ``find -printf`` to walk the tree inside the sandbox.
+
+    When *gitignore_filter* is provided, entries matching ``.gitignore``
+    patterns are excluded from the tree.
 
     Returns a prompt-ready string starting with ``### Project Structure``
     (including header, tree lines, and truncation notice), or ``None`` if
@@ -307,12 +337,14 @@ def build_workspace_file_tree(
             "",
             max_depth=max_depth,
             max_entries=max_entries,
+            gitignore_filter=gitignore_filter,
         )
     else:
         result = _build_directory_tree_via_find(
             backend,
             max_depth=max_depth,
             max_entries=max_entries,
+            gitignore_filter=gitignore_filter,
         )
         if result is None:
             return None
