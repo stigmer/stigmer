@@ -100,14 +100,54 @@ func (m *Manager) IsReady() bool {
 
 // EnsureReady guarantees a valid Python runtime exists. When the runtime is
 // already bootstrapped for the current CLI version this is a fast no-op.
+//
+// In dev mode (CLIVersion == "dev"), the app source and path dependencies
+// are always refreshed so that code changes in the repo tree are picked up
+// without requiring a manual `rm -rf ~/.stigmer/runtimes/agent-runner/`.
 func (m *Manager) EnsureReady(ctx context.Context) error {
 	if m.IsReady() {
+		if m.config.CLIVersion == "dev" {
+			return m.refreshDevSource(ctx)
+		}
 		log.Debug().
 			Str("runtime_dir", m.RuntimeDir()).
 			Msg("Python runtime already bootstrapped")
 		return nil
 	}
 	return m.bootstrap(ctx)
+}
+
+// refreshDevSource re-extracts the application source and reinstalls path
+// dependencies (graphton, stigmer-stubs) into the existing venv. This is
+// the dev-mode counterpart to a full bootstrap: it skips the expensive
+// Python download and pip-install-from-PyPI steps, touching only the
+// local source that developers actively change.
+func (m *Manager) refreshDevSource(ctx context.Context) error {
+	if m.config.AppSourceFS == nil {
+		return nil
+	}
+
+	log.Debug().
+		Str("app_dir", m.AppDir()).
+		Msg("Dev mode: refreshing application source and path dependencies")
+
+	if err := os.RemoveAll(m.AppDir()); err != nil {
+		return errors.Wrap(err, "failed to remove stale app source")
+	}
+	if err := m.extractAppSource(); err != nil {
+		return err
+	}
+	if m.config.PreInstallFn != nil {
+		if err := m.config.PreInstallFn(m.AppDir()); err != nil {
+			return errors.Wrap(err, "pre-install hook failed during dev refresh")
+		}
+	}
+	if len(m.config.PostInstallCmds) > 0 {
+		if err := runPostInstallCmds(ctx, m.venvDir(), m.config.PostInstallCmds); err != nil {
+			return errors.Wrap(err, "failed to reinstall path dependencies during dev refresh")
+		}
+	}
+	return nil
 }
 
 // AppDir returns the path to the extracted application source directory.
