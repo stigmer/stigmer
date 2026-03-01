@@ -128,7 +128,11 @@ func (m Model) renderFooter() string {
 	case m.cancelling:
 		hints = "  ⏳ Cancelling...  ↑↓ scroll  q detach"
 	case m.approval != nil:
-		hints = "  [a] Approve  [s] Skip  [r] Reject  [q] Detach"
+		if m.approval.toolName != "" {
+			hints = fmt.Sprintf("  [a] Approve (%s)  [s] Skip  [r] Reject  [q] Detach", m.approval.toolName)
+		} else {
+			hints = "  [a] Approve  [s] Skip  [r] Reject  [q] Detach"
+		}
 	case !m.autoScroll:
 		// Scroll paused — user scrolled away from the bottom.
 		if m.hasExpandableBlocks() {

@@ -153,12 +153,20 @@ type PhaseChangeEvent struct {
 func (PhaseChangeEvent) isEvent() {}
 
 // ApprovalNeededEvent signals that a tool call requires user approval.
-// The TUI enters approval mode and captures the user's decision.
+// The TUI enters approval mode, renders a contextual approval block in the
+// viewport, and captures the user's decision via the footer action keys.
 type ApprovalNeededEvent struct {
 	ToolCallID  string
 	ToolName    string
 	ArgsPreview string
 	Message     string
+	// FromSubAgent is true when the approval originates from a sub-agent's
+	// tool call rather than the main agent. Enables the TUI to display
+	// sub-agent context in the approval block (e.g., "Sub-agent: researcher").
+	FromSubAgent bool
+	// SubAgentName is the human-readable sub-agent type (e.g., "general-purpose").
+	// Only meaningful when FromSubAgent is true.
+	SubAgentName string
 }
 
 func (ApprovalNeededEvent) isEvent() {}

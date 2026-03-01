@@ -121,15 +121,28 @@ func TestRenderPhaseChange_WaitingForApproval_Suppressed(t *testing.T) {
 }
 
 func TestRenderApprovalPrompt(t *testing.T) {
-	result := renderApprovalPrompt("shell", `{"command":"ls"}`, "Execute command")
+	result := renderApprovalPrompt("shell", `{"command":"ls"}`, "Execute command", false, "")
 	if !strings.Contains(result, "APPROVAL REQUIRED") {
 		t.Error("should contain APPROVAL REQUIRED")
 	}
 	if !strings.Contains(result, "shell") {
 		t.Error("should contain tool name")
 	}
-	if !strings.Contains(result, "[a] Approve") {
-		t.Error("should contain key hints")
+}
+
+func TestRenderApprovalPrompt_SubAgent(t *testing.T) {
+	result := renderApprovalPrompt("Write", "path: README.md", "Write file to disk", true, "general-purpose")
+	if !strings.Contains(result, "APPROVAL REQUIRED") {
+		t.Error("should contain APPROVAL REQUIRED")
+	}
+	if !strings.Contains(result, "general-purpose") {
+		t.Error("should contain sub-agent name")
+	}
+	if !strings.Contains(result, "sub-agent") {
+		t.Error("should contain sub-agent label")
+	}
+	if !strings.Contains(result, "Write") {
+		t.Error("should contain tool name")
 	}
 }
 

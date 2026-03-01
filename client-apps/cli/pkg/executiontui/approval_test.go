@@ -379,9 +379,8 @@ func TestApproval_Reject_CmdReturnsNilMsg(t *testing.T) {
 // --- Rendering ---
 
 func TestRenderApprovalPrompt_MultilineArgs(t *testing.T) {
-	// FormatArgs can produce multi-line output. Each line should be indented.
 	multiLineArgs := "Command: rm -rf /tmp\npath: /tmp"
-	result := renderApprovalPrompt("shell", multiLineArgs, "Execute command")
+	result := renderApprovalPrompt("shell", multiLineArgs, "Execute command", false, "")
 	if !strings.Contains(result, "Command: rm -rf /tmp") {
 		t.Error("should contain first arg line")
 	}
@@ -405,5 +404,122 @@ func TestApproval_BlockNotAutoExpanded(t *testing.T) {
 	}
 	if m.blocks[idx].expanded {
 		t.Error("tool block should NOT be auto-expanded during approval — collapsed header provides sufficient context")
+	}
+}
+
+// --- Approval context block ---
+
+func TestApproval_CreatesContextBlock(t *testing.T) {
+	m, _, _ := newTestModel()
+	blocksBefore := len(m.blocks)
+	m = enterApproval(t, m, "tc-ctx", "Write")
+
+	// ToolWaitingApprovalEvent adds a tool block; ApprovalNeededEvent adds
+	// the approval context block.
+	wantBlocks := blocksBefore + 2
+	if len(m.blocks) != wantBlocks {
+		t.Fatalf("blocks = %d, want %d (tool block + approval context block)", len(m.blocks), wantBlocks)
+	}
+	if m.approvalBlockIdx != len(m.blocks)-1 {
+		t.Errorf("approvalBlockIdx = %d, want %d", m.approvalBlockIdx, len(m.blocks)-1)
+	}
+	last := m.blocks[m.approvalBlockIdx]
+	if last.blockType != blockApproval {
+		t.Errorf("last block type = %d, want blockApproval", last.blockType)
+	}
+	if !strings.Contains(last.content, "APPROVAL REQUIRED") {
+		t.Error("approval block should contain 'APPROVAL REQUIRED'")
+	}
+}
+
+func TestApproval_Approve_ReplacesContextBlockWithConfirmation(t *testing.T) {
+	m, _, _ := newTestModel()
+	m = enterApproval(t, m, "tc-replace", "shell")
+	approvalIdx := m.approvalBlockIdx
+
+	m, _ = pressApprovalKey(t, m, 'a')
+
+	if m.approvalBlockIdx != -1 {
+		t.Errorf("approvalBlockIdx = %d, want -1 after decision", m.approvalBlockIdx)
+	}
+	if approvalIdx >= len(m.blocks) {
+		t.Fatal("approval block index out of range")
+	}
+	replaced := m.blocks[approvalIdx]
+	if !strings.Contains(replaced.content, "Approved") {
+		t.Errorf("replaced block should contain 'Approved', got %q", replaced.content)
+	}
+}
+
+func TestApproval_Skip_ReplacesContextBlockWithConfirmation(t *testing.T) {
+	m, _, _ := newTestModel()
+	m = enterApproval(t, m, "tc-skip-ctx", "write_file")
+	approvalIdx := m.approvalBlockIdx
+
+	m, _ = pressApprovalKey(t, m, 's')
+
+	replaced := m.blocks[approvalIdx]
+	if !strings.Contains(replaced.content, "Skipped") {
+		t.Errorf("replaced block should contain 'Skipped', got %q", replaced.content)
+	}
+}
+
+func TestApproval_Reject_ReplacesContextBlockWithConfirmation(t *testing.T) {
+	m, _, _ := newTestModel()
+	m = enterApproval(t, m, "tc-reject-ctx", "delete_file")
+	approvalIdx := m.approvalBlockIdx
+
+	m, _ = pressApprovalKey(t, m, 'r')
+
+	replaced := m.blocks[approvalIdx]
+	if !strings.Contains(replaced.content, "Rejected") {
+		t.Errorf("replaced block should contain 'Rejected', got %q", replaced.content)
+	}
+}
+
+// --- Sub-agent context in approval ---
+
+func TestApproval_SubAgentContext_ShownInBlock(t *testing.T) {
+	m, _, _ := newTestModel()
+	tc := toolrender.ToolCallInfo{Name: "Write", Status: "waiting_approval"}
+	result, _ := m.Update(executionEventMsg{event: ToolWaitingApprovalEvent{
+		ToolCallID: "tc-sa",
+		ToolCall:   tc,
+	}})
+	m = result.(Model)
+
+	result, _ = m.Update(executionEventMsg{event: ApprovalNeededEvent{
+		ToolCallID:   "tc-sa",
+		ToolName:     "Write",
+		Message:      "Write file to disk",
+		FromSubAgent: true,
+		SubAgentName: "general-purpose",
+	}})
+	m = result.(Model)
+
+	if m.approvalBlockIdx < 0 || m.approvalBlockIdx >= len(m.blocks) {
+		t.Fatal("approval block should exist")
+	}
+	block := m.blocks[m.approvalBlockIdx]
+	if !strings.Contains(block.content, "general-purpose") {
+		t.Error("approval block should contain sub-agent name")
+	}
+	if !strings.Contains(block.content, "sub-agent") {
+		t.Error("approval block should contain sub-agent label")
+	}
+}
+
+// --- Footer shows tool name ---
+
+func TestApproval_Footer_ShowsToolName(t *testing.T) {
+	m, _, _ := newTestModel()
+	m = enterApproval(t, m, "tc-footer", "Write")
+
+	footer := m.renderFooter()
+	if !strings.Contains(footer, "Write") {
+		t.Errorf("footer should contain tool name, got %q", footer)
+	}
+	if !strings.Contains(footer, "[a] Approve") {
+		t.Errorf("footer should contain approval key hints, got %q", footer)
 	}
 }

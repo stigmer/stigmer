@@ -60,15 +60,25 @@ func mapApprovalResponseToDecision(resp executiontui.ApprovalResponse) *approval
 	return &approval.Decision{Action: action, Comment: resp.Comment}
 }
 
-// findToolCallByID finds a tool call by its ID in the tool calls slice.
-// Returns nil if not found.
+// findToolCallByID finds a tool call by its ID, searching top-level tool calls
+// first, then falling back to sub-agent tool calls. This ensures sub-agent
+// tools (which live in SubAgentExecution.ToolCalls, not the top-level list)
+// are found when processing approval events.
 func findToolCallByID(
 	toolCalls []*agentexecutionv1.ToolCall,
+	subAgents []*agentexecutionv1.SubAgentExecution,
 	id string,
 ) *agentexecutionv1.ToolCall {
 	for _, tc := range toolCalls {
 		if tc.Id == id {
 			return tc
+		}
+	}
+	for _, sa := range subAgents {
+		for _, tc := range sa.ToolCalls {
+			if tc.Id == id {
+				return tc
+			}
 		}
 	}
 	return nil
