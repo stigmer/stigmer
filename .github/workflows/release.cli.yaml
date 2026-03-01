@@ -63,7 +63,7 @@ jobs:
           echo "Building version: $VERSION (release: $SHOULD_RELEASE)"
 
   # Lint and type-check agent-runner (Python)
-  # Gates the Docker build to prevent shipping broken code.
+  # Gates the CLI build to prevent shipping broken code.
   lint-and-typecheck-agent-runner:
     needs: determine-version
     runs-on: ubuntu-latest
@@ -101,56 +101,9 @@ jobs:
         working-directory: backend/services/agent-runner
         run: poetry run ruff check grpc_client/ worker/
 
-  # Build Docker image for agent-runner (multi-arch)
-  build-agent-runner-image:
-    needs: [determine-version, lint-and-typecheck-agent-runner]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up Buf
-        uses: bufbuild/buf-setup-action@v1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Generate proto stubs
-        run: make protos
-
-      - name: Build and push Docker image
-        env:
-          VERSION: ${{ needs.determine-version.outputs.version }}
-        run: |
-          cd backend/services/agent-runner
-          
-          # Build multi-arch image and push to registry
-          docker buildx build \
-            --platform linux/amd64,linux/arm64 \
-            --file Dockerfile \
-            --tag ghcr.io/stigmer/agent-runner:$VERSION \
-            --tag ghcr.io/stigmer/agent-runner:latest \
-            --push \
-            ../../..
-          
-          echo "✓ Docker image built and pushed:"
-          echo "  - ghcr.io/stigmer/agent-runner:$VERSION"
-          echo "  - ghcr.io/stigmer/agent-runner:latest"
-
   # Build for macOS Apple Silicon
   build-darwin-arm64:
-    needs: determine-version
+    needs: [determine-version, lint-and-typecheck-agent-runner]
     runs-on: macos-latest  # macOS 14 (M1)
     steps:
       - name: Checkout
@@ -171,12 +124,18 @@ jobs:
       - name: Generate proto stubs
         run: make protos
 
-      - name: Build CLI (BusyBox pattern - no embedded agent-runner)
+      - name: Sync agent-runner source for embedding
+        run: |
+          cd client-apps/cli/embedded/agentrunner
+          chmod +x sync.sh
+          ./sync.sh
+
+      - name: Build CLI
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
           cd client-apps/cli
-          go build -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=$VERSION" -o ../../bin/stigmer .
+          go build -tags embed_agentrunner -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=$VERSION" -o ../../bin/stigmer .
 
       - name: Verify binary
         env:
@@ -200,10 +159,9 @@ jobs:
           name: stigmer-darwin-arm64
           path: bin/*
 
-  # Build CLI for Intel Mac
-  # Note: Agent-runner will be pulled from Docker registry on first run
+  # Build CLI for Intel Mac (cross-compiled from ARM runner)
   build-darwin-amd64:
-    needs: determine-version
+    needs: [determine-version, lint-and-typecheck-agent-runner]
     runs-on: macos-latest  # ARM Mac (cross-compile Go CLI to Intel)
     steps:
       - name: Checkout
@@ -224,6 +182,12 @@ jobs:
       - name: Generate proto stubs
         run: make protos
 
+      - name: Sync agent-runner source for embedding
+        run: |
+          cd client-apps/cli/embedded/agentrunner
+          chmod +x sync.sh
+          ./sync.sh
+
       - name: Build CLI (cross-compile to Intel)
         env:
           GOARCH: amd64
@@ -231,7 +195,7 @@ jobs:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
           cd client-apps/cli
-          go build -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=$VERSION" -o ../../bin/stigmer .
+          go build -tags embed_agentrunner -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=$VERSION" -o ../../bin/stigmer .
 
       - name: Verify binary
         env:
@@ -239,9 +203,7 @@ jobs:
         run: |
           file bin/stigmer
           ls -lh bin/stigmer
-          # Skip running binary since it's cross-compiled for Intel
           echo "Version: $VERSION (Intel binary, cannot run on ARM Mac)"
-          echo "Note: Agent-runner Docker image will be pulled from ghcr.io on first daemon start"
 
       - name: Package CLI
         env:
@@ -259,7 +221,7 @@ jobs:
 
   # Build for Linux
   build-linux-amd64:
-    needs: determine-version
+    needs: [determine-version, lint-and-typecheck-agent-runner]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -280,12 +242,18 @@ jobs:
       - name: Generate proto stubs
         run: make protos
 
-      - name: Build CLI (BusyBox pattern - no embedded agent-runner)
+      - name: Sync agent-runner source for embedding
+        run: |
+          cd client-apps/cli/embedded/agentrunner
+          chmod +x sync.sh
+          ./sync.sh
+
+      - name: Build CLI
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
           cd client-apps/cli
-          go build -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=$VERSION" -o ../../bin/stigmer .
+          go build -tags embed_agentrunner -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=$VERSION" -o ../../bin/stigmer .
 
       - name: Verify binary
         env:
@@ -311,7 +279,7 @@ jobs:
 
   # Create GitHub Release (only if requested)
   release:
-    needs: [determine-version, build-agent-runner-image, build-darwin-arm64, build-darwin-amd64, build-linux-amd64]
+    needs: [determine-version, build-darwin-arm64, build-darwin-amd64, build-linux-amd64]
     runs-on: ubuntu-latest
     if: needs.determine-version.outputs.should_release == 'true'
     steps:
@@ -393,14 +361,9 @@ jobs:
           sudo mv stigmer /usr/local/bin/
           \`\`\`
 
-          ## Requirements
-
-          - Docker (for agent-runner)
-          - Agent-runner Docker image will be automatically pulled from ghcr.io/stigmer/agent-runner:$VERSION on first run
-
           ## What's New
 
-          First release with Docker-based agent-runner architecture.
+          Agent-runner runs as a native process — no Docker required.
           EOF
           )
           else
@@ -416,11 +379,6 @@ jobs:
 
           ### Manual Installation
           Download the appropriate binary for your platform from the assets below.
-
-          ## Requirements
-
-          - Docker (for agent-runner)
-          - Agent-runner Docker image: ghcr.io/stigmer/agent-runner:$VERSION
 
           ## Changes
 

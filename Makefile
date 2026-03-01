@@ -11,7 +11,6 @@ GO_MODULES := \
 	sdk/go
 
 AGENT_RUNNER_DIR := backend/services/agent-runner
-AGENT_RUNNER_SENTINEL := .agent-runner-image-built
 
 .DEFAULT_GOAL := help
 
@@ -80,30 +79,8 @@ check: lint build test ## Run full CI gate locally
 
 # ─── Local Dev ────────────────────────────────
 
-.PHONY: release-local
-release-local: ## Build + install CLI; rebuilds agent-runner image only when needed
-	@NEEDS_BUILD=false; \
-	if ! docker image inspect stigmer-agent-runner:local >/dev/null 2>&1; then \
-		NEEDS_BUILD=true; \
-	elif [ ! -f $(AGENT_RUNNER_SENTINEL) ]; then \
-		NEEDS_BUILD=true; \
-	elif [ -n "$$(find $(AGENT_RUNNER_DIR) -newer $(AGENT_RUNNER_SENTINEL) -type f 2>/dev/null | head -1)" ]; then \
-		NEEDS_BUILD=true; \
-	fi; \
-	if [ "$$NEEDS_BUILD" = "true" ]; then \
-		echo "agent-runner: rebuilding docker image..."; \
-		if docker ps -a --format '{{.Names}}' | grep -q '^stigmer-agent-runner$$'; then \
-			docker stop stigmer-agent-runner 2>/dev/null || true; \
-			docker rm stigmer-agent-runner 2>/dev/null || true; \
-		fi; \
-		cd $(AGENT_RUNNER_DIR) && docker build -f Dockerfile \
-			-t stigmer-agent-runner:local \
-			-t ghcr.io/stigmer/agent-runner:latest ../../..; \
-		touch $(AGENT_RUNNER_SENTINEL); \
-		echo "agent-runner: image ready"; \
-	else \
-		echo "agent-runner: image up to date"; \
-	fi
+.PHONY: release-local build-release
+release-local: ## Build + install CLI for local development
 	@rm -f $(HOME)/bin/stigmer /usr/local/bin/stigmer bin/stigmer 2>/dev/null || true
 	@mkdir -p bin $(HOME)/bin
 	@cd client-apps/cli && go build -o ../../bin/stigmer .
@@ -119,6 +96,12 @@ release-local: ## Build + install CLI; rebuilds agent-runner image only when nee
 	@echo ""
 	@echo "Then run:  stigmer server"
 	@echo ""
+
+build-release: ## Build CLI with embedded agent-runner (production-like)
+	@cd client-apps/cli/embedded/agentrunner && chmod +x sync.sh && ./sync.sh
+	@mkdir -p bin
+	cd client-apps/cli && go build -tags embed_agentrunner -o ../../bin/stigmer .
+	@echo "built: bin/stigmer (with embedded agent-runner)"
 
 # ─── Release ──────────────────────────────────
 
@@ -167,5 +150,5 @@ sandbox-clean: ## Remove all sandbox images
 clean: ## Remove all build artifacts
 	rm -rf bin/ coverage/ coverage.txt coverage.html
 	rm -rf backend/services/workflow-runner/bin/
-	rm -f $(AGENT_RUNNER_SENTINEL)
+	rm -rf client-apps/cli/embedded/agentrunner/source/
 	$(MAKE) -C apis clean

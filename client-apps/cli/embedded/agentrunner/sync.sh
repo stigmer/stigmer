@@ -15,7 +15,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
 SOURCE_DIR="$SCRIPT_DIR/source"
 AGENT_RUNNER="$REPO_ROOT/backend/services/agent-runner"
-GRAPHTON="$REPO_ROOT/libs/python/graphton"
+GRAPHTON="$REPO_ROOT/backend/libs/python/graphton"
 STUBS="$REPO_ROOT/apis/stubs/python/stigmer"
 
 rm -rf "$SOURCE_DIR"
