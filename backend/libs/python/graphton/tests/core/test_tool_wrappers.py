@@ -14,6 +14,7 @@ import pytest
 from graphton.core.tool_wrappers import (
     ApprovalRequirement,
     ToolExecutionRejectedError,
+    _apply_line_range,
     _check_and_handle_approval,
     _create_edit_tool,
     _create_execute_tool,
@@ -775,6 +776,61 @@ class TestCreatePlatformToolWrappers:
         assert len(tools) == 7
 
 
+class TestApplyLineRange:
+    """Tests for the _apply_line_range helper."""
+
+    SAMPLE = "line1\nline2\nline3\nline4\nline5\n"
+
+    def test_no_slicing_when_defaults(self):
+        assert _apply_line_range(self.SAMPLE, offset=0, limit=0) == self.SAMPLE
+
+    def test_negative_values_treated_as_defaults(self):
+        assert _apply_line_range(self.SAMPLE, offset=-3, limit=-1) == self.SAMPLE
+
+    def test_offset_only(self):
+        result = _apply_line_range(self.SAMPLE, offset=3, limit=0)
+        assert result.startswith("[Lines 3-5 of 5 total]")
+        assert "line3\n" in result
+        assert "line1" not in result
+
+    def test_limit_only(self):
+        result = _apply_line_range(self.SAMPLE, offset=0, limit=2)
+        assert result.startswith("[Lines 1-2 of 5 total]")
+        assert "line1\n" in result
+        assert "line2\n" in result
+        assert "line3" not in result
+
+    def test_offset_and_limit(self):
+        result = _apply_line_range(self.SAMPLE, offset=2, limit=2)
+        assert result.startswith("[Lines 2-3 of 5 total]")
+        assert "line2\n" in result
+        assert "line3\n" in result
+        assert "line1" not in result
+        assert "line4" not in result
+
+    def test_offset_beyond_file(self):
+        result = _apply_line_range(self.SAMPLE, offset=100, limit=0)
+        assert "5 lines" in result
+        assert "offset 100" in result
+        assert "beyond end of file" in result
+
+    def test_limit_exceeds_remaining(self):
+        result = _apply_line_range(self.SAMPLE, offset=4, limit=50)
+        assert "[Lines 4-5 of 5 total]" in result
+        assert "line4\n" in result
+        assert "line5\n" in result
+
+    def test_single_line_file(self):
+        result = _apply_line_range("only line", offset=1, limit=1)
+        assert "[Lines 1-1 of 1 total]" in result
+        assert "only line" in result
+
+    def test_empty_content(self):
+        result = _apply_line_range("", offset=1, limit=5)
+        assert "0 lines" in result
+        assert "beyond end of file" in result
+
+
 class TestReadToolWrapper:
     """Tests for _create_read_tool wrapper."""
 
@@ -789,7 +845,7 @@ class TestReadToolWrapper:
         """Test that read tool reads file correctly."""
         tool = _create_read_tool(mock_backend)
         result = await tool.ainvoke({"path": "test.txt"})
-        
+
         assert result == "Hello, world!"
         mock_backend.read.assert_called_once_with("test.txt")
 
@@ -798,10 +854,10 @@ class TestReadToolWrapper:
         """Test that read tool checks approval."""
         def checker(name: str, args: dict) -> ApprovalRequirement:
             return ApprovalRequirement(requires_approval=False)
-        
+
         tool = _create_read_tool(mock_backend, approval_checker=checker)
         result = await tool.ainvoke({"path": "test.txt"})
-        
+
         assert result == "Hello, world!"
 
     @pytest.mark.asyncio
@@ -809,15 +865,40 @@ class TestReadToolWrapper:
         """Test that read returns skip message when skipped."""
         def checker(name: str, args: dict) -> ApprovalRequirement:
             return ApprovalRequirement(requires_approval=True, message="Confirm read?")
-        
+
         tool = _create_read_tool(mock_backend, approval_checker=checker)
-        
+
         with patch("langgraph.types.interrupt") as mock_interrupt:
             mock_interrupt.return_value = {"action": "skip"}
             result = await tool.ainvoke({"path": "test.txt"})
-        
+
         assert "skipped" in result.lower()
         mock_backend.read.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_read_with_offset_and_limit(self):
+        """Test that read tool applies offset/limit to file content."""
+        backend = MagicMock()
+        backend.read.return_value = "a\nb\nc\nd\ne\n"
+
+        tool = _create_read_tool(backend)
+        result = await tool.ainvoke({"path": "f.txt", "offset": 2, "limit": 2})
+
+        assert "[Lines 2-3 of 5 total]" in result
+        assert "b\n" in result
+        assert "c\n" in result
+        assert "a\n" not in result
+
+    @pytest.mark.asyncio
+    async def test_read_defaults_return_full_content(self):
+        """Test that default offset=0, limit=0 returns unmodified content."""
+        backend = MagicMock()
+        backend.read.return_value = "full content"
+
+        tool = _create_read_tool(backend)
+        result = await tool.ainvoke({"path": "f.txt"})
+
+        assert result == "full content"
 
 
 class TestWriteToolWrapper:

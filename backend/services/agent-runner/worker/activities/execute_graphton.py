@@ -623,8 +623,14 @@ def build_workspace_prompt_section(
     return "\n\n## Workspace\n\n" + provision_result.workspace_description
 
 
+# Directories excluded from the system-prompt directory tree.  Hidden entries
+# (names starting with ".") are filtered separately in _build_directory_tree().
+#
+# NOTE: graphton's FilesystemBackend._SKIP_DIR_NAMES (filesystem.py) mirrors
+# this set for tool-level traversals (ls, glob, grep).  Keep them aligned.
 _TREE_SKIP_DIRS: frozenset[str] = frozenset({
     ".git", "__pycache__", "node_modules", ".stigmer",
+    "venv", "dist", "target", "vendor", "coverage", "bower_components",
 })
 _TREE_MAX_DEPTH: int = 3
 _TREE_MAX_ENTRIES: int = 200
