@@ -52,16 +52,6 @@ type LocalBackendConfig struct {
 	LLM         *LLMConfig         `yaml:"llm,omitempty"`          // LLM configuration
 	Temporal    *TemporalConfig    `yaml:"temporal,omitempty"`     // Temporal configuration
 	Execution   *ExecutionConfig   `yaml:"execution,omitempty"`    // Agent execution configuration
-	AgentRunner *AgentRunnerConfig `yaml:"agent_runner,omitempty"` // Agent-runner runtime mode
-}
-
-// AgentRunnerConfig controls how the agent-runner process is started.
-type AgentRunnerConfig struct {
-	// Mode determines the agent-runner execution strategy:
-	//   "native" — run as a native OS process via hermetic CPython runtime
-	//   "docker" — run inside a Docker container (legacy)
-	//   "auto"   — try native first, fall back to Docker (default)
-	Mode string `yaml:"mode,omitempty"`
 }
 
 // LLMConfig represents LLM provider configuration
@@ -497,33 +487,3 @@ func (c *LocalBackendConfig) ResolveSandboxTTL() int {
 	return 3600
 }
 
-// Agent-runner mode constants.
-const (
-	AgentRunnerModeNative = "native"
-	AgentRunnerModeDocker = "docker"
-	AgentRunnerModeAuto   = "auto"
-)
-
-// ResolveAgentRunnerMode resolves the agent-runner execution mode.
-//
-// Priority:
-//  1. STIGMER_AGENT_RUNNER_MODE env var (explicit override)
-//  2. Config file backend.local.agent_runner.mode
-//  3. Default: "auto" (try native, fall back to Docker)
-func (c *LocalBackendConfig) ResolveAgentRunnerMode() string {
-	if mode := os.Getenv("STIGMER_AGENT_RUNNER_MODE"); mode != "" {
-		switch mode {
-		case AgentRunnerModeNative, AgentRunnerModeDocker, AgentRunnerModeAuto:
-			return mode
-		}
-	}
-
-	if c.AgentRunner != nil && c.AgentRunner.Mode != "" {
-		switch c.AgentRunner.Mode {
-		case AgentRunnerModeNative, AgentRunnerModeDocker, AgentRunnerModeAuto:
-			return c.AgentRunner.Mode
-		}
-	}
-
-	return AgentRunnerModeAuto
-}

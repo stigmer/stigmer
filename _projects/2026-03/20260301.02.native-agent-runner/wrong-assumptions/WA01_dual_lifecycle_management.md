@@ -2,7 +2,7 @@
 
 **Date**: 2026-03-01
 **Discovered during**: T01.4 planning
-**Status**: Open — needs architectural investigation
+**Status**: Resolved — consolidated to single daemon lifecycle owner (DD-02)
 **Severity**: Architectural concern — potential double-starts and conflicting state
 
 ## Discovery

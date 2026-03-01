@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
-	"strconv"
 	"syscall"
 	"time"
 
@@ -155,46 +153,3 @@ func showLastNLines(logFile string, n int) error {
 	return nil
 }
 
-// streamDockerLogs streams logs from a Docker container.
-// When follow is true, it automatically reconnects if the container stops/restarts.
-func streamDockerLogs(containerName string, follow bool, tailLines int) error {
-	climsg.Info("Streaming logs from Docker container: %s", containerName)
-	if follow {
-		climsg.Info("Press Ctrl+C to stop")
-	}
-	fmt.Println()
-
-	if !follow {
-		return runDockerLogs(containerName, false, tailLines)
-	}
-
-	// First invocation uses the requested tail lines
-	tailArg := tailLines
-	for {
-		err := runDockerLogs(containerName, true, tailArg)
-		if err == nil {
-			// docker logs -f exited cleanly (container stopped); wait and retry
-		}
-		// After reconnecting, only show new logs (tail 0) to avoid duplicates
-		tailArg = 0
-		time.Sleep(500 * time.Millisecond)
-	}
-}
-
-func runDockerLogs(containerName string, follow bool, tailLines int) error {
-	args := []string{"logs"}
-	if follow {
-		args = append(args, "-f")
-	}
-	if tailLines > 0 {
-		args = append(args, "--tail", strconv.Itoa(tailLines))
-	} else if follow {
-		args = append(args, "--tail", "0")
-	}
-	args = append(args, containerName)
-
-	cmd := exec.Command("docker", args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
-}

@@ -17,6 +17,43 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/pythonrt"
 )
 
+// bootstrapAgentRunnerRuntime prepares the Python runtime for agent-runner.
+// Returns the path to the Python binary and the app directory.
+// This runs in the foreground CLI so the user sees bootstrap progress.
+func bootstrapAgentRunnerRuntime() (pythonBin string, appDir string, err error) {
+	sourceFS := agentrunner.SourceFS()
+	if sourceFS == nil {
+		return "", "", errors.New("agent-runner Python source is not available (not embedded and not found in repo tree)")
+	}
+
+	configDir, err := cliconfig.GetConfigDir()
+	if err != nil {
+		return "", "", errors.Wrap(err, "failed to resolve config directory")
+	}
+
+	mgr, err := pythonrt.NewManager(pythonrt.Config{
+		BaseDir:     filepath.Join(configDir, "runtimes", "agent-runner"),
+		CLIVersion:  embedded.GetBuildVersion(),
+		AppSourceFS: sourceFS,
+	})
+	if err != nil {
+		return "", "", errors.Wrap(err, "failed to create Python runtime manager")
+	}
+
+	log.Info().
+		Str("runtime_dir", mgr.RuntimeDir()).
+		Msg("Bootstrapping Python runtime for agent-runner")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+
+	if err := mgr.EnsureReady(ctx); err != nil {
+		return "", "", errors.Wrap(err, "failed to bootstrap Python runtime")
+	}
+
+	return mgr.PythonBin(), mgr.AppDir(), nil
+}
+
 // startAgentRunnerNative starts the agent-runner as a native OS process
 // backed by a hermetic CPython runtime managed by pythonrt.
 func startAgentRunnerNative(
@@ -132,9 +169,8 @@ func startAgentRunnerNative(
 	return nil
 }
 
-// buildNativeAgentRunnerEnv constructs the environment for native agent-runner.
-// Unlike Docker mode, native mode uses real host paths (no mount indirection)
-// and localhost addresses (no host.docker.internal resolution).
+// buildNativeAgentRunnerEnv constructs the environment for agent-runner.
+// Uses real host paths and localhost addresses.
 func buildNativeAgentRunnerEnv(
 	dataDir string,
 	temporalAddr string,
@@ -186,24 +222,6 @@ func buildNativeAgentRunnerEnv(
 	}
 
 	return env
-}
-
-// probeNativeAgentRunnerViability checks whether the native agent-runner can
-// be bootstrapped on the current platform. Used in "auto" mode to decide
-// between native and Docker before starting the server. This is intentionally
-// lightweight — it creates a Manager and checks platform support, but does not
-// download anything or start a process.
-func probeNativeAgentRunnerViability(_ *cliconfig.Config) bool {
-	configDir, err := cliconfig.GetConfigDir()
-	if err != nil {
-		log.Debug().Err(err).Msg("Cannot resolve config dir for native viability check")
-		return false
-	}
-	_, err = pythonrt.NewManager(pythonrt.Config{
-		BaseDir:    filepath.Join(configDir, "runtimes", "agent-runner"),
-		CLIVersion: embedded.GetBuildVersion(),
-	})
-	return err == nil
 }
 
 // tailBytes returns the last n bytes of b as a string. If b is shorter

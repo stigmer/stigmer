@@ -10,38 +10,25 @@ import (
 
 const startupConfigFileName = "startup-config.json"
 
-// StartupConfig stores configuration needed to restart daemon components
+// StartupConfig stores configuration needed to restart daemon components.
 type StartupConfig struct {
 	DataDir      string `json:"data_dir"`
 	LogDir       string `json:"log_dir"`
 	TemporalAddr string `json:"temporal_addr"`
 
-	// LLM configuration
 	LLMProvider string `json:"llm_provider"`
 	LLMModel    string `json:"llm_model"`
 	LLMBaseURL  string `json:"llm_base_url"`
 
-	// Execution configuration
 	ExecutionMode   string `json:"execution_mode"`
 	SandboxImage    string `json:"sandbox_image"`
 	SandboxAutoPull bool   `json:"sandbox_auto_pull"`
 	SandboxCleanup  bool   `json:"sandbox_cleanup"`
 	SandboxTTL      int    `json:"sandbox_ttl"`
 
-	// Component PIDs
-	StigmerServerPID  int `json:"stigmer_server_pid"`
-	WorkflowRunnerPID int `json:"workflow_runner_pid"`
-	AgentRunnerPID    int `json:"agent_runner_pid,omitempty"`
-
-	// Docker container ID (for Docker mode)
-	AgentRunnerContainerID string `json:"agent_runner_container_id,omitempty"`
-
-	// AgentRunnerMode records which mode agent-runner was started in ("native" or "docker").
-	// Used by health monitoring and restart logic to recover after crashes.
-	AgentRunnerMode string `json:"agent_runner_mode,omitempty"`
+	StigmerServerPID int `json:"stigmer_server_pid"`
 }
 
-// saveStartupConfig persists startup configuration to disk
 func saveStartupConfig(config *StartupConfig) error {
 	configPath := filepath.Join(config.DataDir, startupConfigFileName)
 
@@ -57,7 +44,6 @@ func saveStartupConfig(config *StartupConfig) error {
 	return nil
 }
 
-// loadStartupConfig loads startup configuration from disk
 func loadStartupConfig(dataDir string) (*StartupConfig, error) {
 	configPath := filepath.Join(dataDir, startupConfigFileName)
 
@@ -74,7 +60,6 @@ func loadStartupConfig(dataDir string) (*StartupConfig, error) {
 	return &config, nil
 }
 
-// removeStartupConfig removes the startup configuration file
 func removeStartupConfig(dataDir string) {
 	configPath := filepath.Join(dataDir, startupConfigFileName)
 	_ = os.Remove(configPath)

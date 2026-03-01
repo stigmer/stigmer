@@ -9,7 +9,7 @@ Drop this file into your conversation to quickly resume work on this project.
 **Description**: Migrate agent-runner from Docker container to native OS process using a hermetic CPython runtime bundle (python-build-standalone + wheelhouse/venv) managed by the Go CLI. Eliminates Docker Desktop as a prerequisite, removes the alarming home-directory mount warning, and brings agent-runner to parity with stigmer-server and workflow-runner as a simple daemon process.
 **Goal**: Eliminate Docker dependency for agent-runner so all three daemon components (stigmer-server, workflow-runner, agent-runner) run as native OS processes started and managed by the Go CLI, with no Docker Desktop required for the core product.
 **Tech Stack**: Go (CLI/daemon management), Python 3.11 (agent-runner), python-build-standalone (hermetic CPython), wheel packaging, CI/CD (per-platform wheelhouse builds)
-**Components**: client-apps/cli/internal/cli/daemon/ (daemon lifecycle), client-apps/cli/embedded/ (binary extraction), backend/services/agent-runner/ (Python service), backend/services/stigmer-server/pkg/supervisor/ (health monitoring), build pipeline (wheelhouse + runtime artifacts)
+**Components**: client-apps/cli/internal/cli/daemon/ (daemon lifecycle + health monitoring), client-apps/cli/embedded/ (binary extraction), backend/services/agent-runner/ (Python service), build pipeline (wheelhouse + runtime artifacts)
 
 ## Research Foundation
 
@@ -98,13 +98,23 @@ When starting a new session:
 - **T01.2**: Go package for Python runtime management implemented (`internal/cli/pythonrt/`)
 - **T01.4**: Rewrite `startAgentRunner()` — Native Process Mode (daemon-only; supervisor out of scope)
 - **T01.5**: Log Integration for Native Mode — verified and hardened
+- **WA-01 Resolution**: Dual lifecycle management consolidated — single daemon as lifecycle owner (DD-02)
 
-### T01.5 Summary
-- **Finding**: Log routing was already wired up during T01.4 — `agent_runner_native.go` writes to `agent-runner.log`, `server_logs.go` already branches on `IsAgentRunnerDocker()`
-- **Fix**: Rewrote `IsAgentRunnerDocker()` to eliminate Docker exec on every logs call. Old implementation shelled out to `docker ps` as fallback (contradicting the no-Docker goal). New implementation uses `startup-config.json` `AgentRunnerMode` as authoritative source, falls back to PID-first marker heuristic (consistent with `health_integration.go`), never execs Docker
-- **Dead code identified**: `getComponentConfigs()` and `StreamAllLogs()` are defined but never called — the active path uses `getComponentConfigsWithStreamPreferences()` and `StreamAllLogsWithPreferences()` exclusively
-- **Tests**: 10 unit tests for `IsAgentRunnerDocker` covering startup config authority, marker file heuristics, stale file override, and edge cases
-- **Verified**: All active `server_logs.go` code paths traced and confirmed correct for native mode
+### WA-01 Resolution Summary (2026-03-01)
+- **Problem**: Two independent systems (CLI daemon + stigmer-server supervisor) both managed agent-runner and workflow-runner with conflicting state files, competing health monitors, and no health monitoring for native agent-runner
+- **Solution**: Created `stigmer internal-daemon` — a long-lived background process that is the single lifecycle owner for all components
+- **Scope**: 25 files changed, ~3,400 lines removed, ~350 lines added
+- **Key changes**:
+  - Created `daemon_process.go` — long-lived daemon with health monitoring loop (5s interval), auto-restart, `health-state.json` output
+  - Deleted `backend/services/stigmer-server/pkg/supervisor/` entirely (~580 lines)
+  - Deleted `health_integration.go` (~520 lines of dead code)
+  - Removed all Docker agent-runner code from daemon, logs, health, config, and reset packages
+  - Removed `ResolveAgentRunnerMode`, mode constants, `AgentRunnerConfig` from config package
+  - Removed `DockerContainerHealthCheck`, `AgentRunnerHealthCheck` from health package
+  - Rewrote `server status` to read `health-state.json`, `server logs` to use file-only streaming
+  - Refactored `StartWithOptions` to bootstrap Python runtime in foreground, spawn daemon via env vars
+  - stigmer-server is now a pure backend service (no child process management)
+- **Design Decision**: Documented as DD-02
 
 ### Next Up
 - **T01.6**: End-to-End Validation — test complete flow on macOS arm64
@@ -112,7 +122,8 @@ When starting a new session:
 ### Key Design Decisions
 - **DD-01**: `design-decisions/DD01_runtime_filesystem_layout.md` — Runtime lives at `~/.stigmer/runtimes/agent-runner/<cli-version>/<platform>/` with self-contained python/, venv/, wheels/, app/, and manifest.json
 - **DD-01-A**: `app/` directory added for Python source code extraction
-- **WA-01**: `wrong-assumptions/WA01_dual_lifecycle_management.md` — Dual lifecycle management concern (daemon.go vs supervisor.go)
+- **DD-02**: `design-decisions/DD02_single_daemon_lifecycle_owner.md` — Single long-lived daemon process as exclusive lifecycle owner for all components; supervisor removed
+- **WA-01**: `wrong-assumptions/WA01_dual_lifecycle_management.md` — Resolved via DD-02
 
 ## Session Progress (2026-03-01)
 
@@ -129,10 +140,13 @@ When starting a new session:
 
 ### Context for Resume
 - **T01.6 is next** — end-to-end validation of the full native agent-runner flow on macOS arm64
-- `IsAgentRunnerDocker()` now reads `startup-config.json` as authoritative source — zero Docker dependency in log mode detection
-- Dead code: `getComponentConfigs()` and `StreamAllLogs()` in the logs pipeline are unused (tracked for future cleanup)
-- supervisor.go has a minimal 3-line guard (`STIGMER_SKIP_AGENT_RUNNER`); full native support in supervisor deferred to Phase 3 dual lifecycle investigation
+- The daemon is now a long-lived background process (`stigmer internal-daemon`); it starts, monitors, and restarts all components
+- `daemon.pid` now contains the daemon's own PID (not stigmer-server's); `stigmer-server.pid` is a separate file
+- `health-state.json` in the data dir provides real-time component status for `stigmer server status`
+- supervisor.go is deleted — stigmer-server is a pure backend service
+- All Docker agent-runner code is removed — agent-runner is always native
 - `embedded/agentrunner/` package provides Python source as `fs.FS` — dev mode uses repo tree, production requires running `sync.sh` before build with `-tags embed_agentrunner`
+- Some Docker-referencing comments remain in `embedded/` package files — these are informational and don't affect compilation
 
 ## Quick Commands
 
