@@ -107,6 +107,9 @@ class WorkspaceNormalizingBackend:
 
         self._gitignore: GitIgnoreFilter | None | object = _UNSET
 
+        self._dir_cache: dict[str, list[str]] = {}
+        self._path_type_cache: dict[str, bool] = {}
+
         if self._rebase_prefix:
             logger.info(
                 "WorkspaceNormalizingBackend: rebase prefix = '%s' "
@@ -115,6 +118,23 @@ class WorkspaceNormalizingBackend:
                 self._workspace_root,
                 self._sandbox_root,
             )
+
+    # -- cache management ---------------------------------------------------
+
+    def _invalidate_cache(self) -> None:
+        """Clear directory listing and path type caches.
+
+        Called before any filesystem mutation (write, execute) to ensure
+        subsequent reads see fresh data.
+        """
+        if self._dir_cache or self._path_type_cache:
+            logger.debug(
+                "Cache invalidated (%d dir entries, %d type entries)",
+                len(self._dir_cache),
+                len(self._path_type_cache),
+            )
+        self._dir_cache.clear()
+        self._path_type_cache.clear()
 
     # -- gitignore helpers --------------------------------------------------
 
@@ -222,33 +242,57 @@ class WorkspaceNormalizingBackend:
 
     def write(self, path: str, content: str) -> None:
         """Write content to file with path normalisation."""
+        self._invalidate_cache()
         return self._inner.write(self._normalize(path), content)
 
     def write_file(self, path: str, content: str) -> None:
         """Write content to file with path normalisation (alias)."""
+        self._invalidate_cache()
         return self._inner.write_file(self._normalize(path), content)
 
     def list_files(self, path: str = ".") -> list[str]:
-        """List directory contents with path normalisation and gitignore filtering."""
-        entries = self._inner.list_files(self._normalize(path))
+        """List directory contents with path normalisation and gitignore filtering.
+
+        Results are cached per-instance; ``write()``, ``write_file()``,
+        and ``execute()`` invalidate the cache.
+        """
+        norm_path = self._normalize(path)
+        cached = self._dir_cache.get(norm_path)
+        if cached is not None:
+            return list(cached)
+
+        entries = self._inner.list_files(norm_path)
         gitignore = self._get_gitignore()
-        if gitignore is None:
-            return entries
-        ws_rel = self._workspace_relative(path)
-        return [
-            name for name in entries
-            if not gitignore.is_ignored(
-                f"{ws_rel}/{name}" if ws_rel not in (".", "") else name,
-                is_dir=None,
-            )
-        ]
+        if gitignore is not None:
+            ws_rel = self._workspace_relative(path)
+            entries = [
+                name for name in entries
+                if not gitignore.is_ignored(
+                    f"{ws_rel}/{name}" if ws_rel not in (".", "") else name,
+                    is_dir=None,
+                )
+            ]
+
+        self._dir_cache[norm_path] = entries
+        return list(entries)
 
     def is_directory(self, path: str) -> bool:
-        """Check whether path is a directory, with path normalisation."""
-        return self._inner.is_directory(self._normalize(path))
+        """Check whether path is a directory, with path normalisation.
+
+        Results are cached per-instance; ``write()``, ``write_file()``,
+        and ``execute()`` invalidate the cache.
+        """
+        norm_path = self._normalize(path)
+        cached = self._path_type_cache.get(norm_path)
+        if cached is not None:
+            return cached
+        result = self._inner.is_directory(norm_path)
+        self._path_type_cache[norm_path] = result
+        return result
 
     def execute(self, command: str, **kwargs: Any) -> Any:  # noqa: ANN401
         """Execute shell command -- no path normalisation needed."""
+        self._invalidate_cache()
         return self._inner.execute(command, **kwargs)
 
     # -- transparent delegation for everything else -------------------------
