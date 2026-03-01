@@ -224,6 +224,85 @@ class TestPrefixStripping:
 
 
 # ---------------------------------------------------------------------------
+# File-tree enrichment
+# ---------------------------------------------------------------------------
+
+
+class TestFileTreeEnrichment:
+    """Provisioner generates a file-tree manifest after dispatch."""
+
+    def test_local_path_gets_tree(self, tmp_path):
+        (tmp_path / "src").mkdir()
+        (tmp_path / "src" / "main.py").write_text("print('hello')")
+        (tmp_path / "README.md").write_text("# My Project")
+
+        local = _MockLocalPathSource(path=str(tmp_path))
+        source = _MockWorkspaceSource(local_path=local)
+        backend = LocalWorkspaceBackend(root_dir=tmp_path / "unused")
+        provisioner = WorkspaceProvisioner()
+
+        result = provisioner.provision(source, backend, {}, is_local_mode=True)
+
+        assert result.file_tree is not None
+        assert "### Project Structure" in result.file_tree
+        assert "src/" in result.file_tree
+        assert "README.md" in result.file_tree
+
+    def test_empty_workspace_skips_tree(self, tmp_path):
+        backend = LocalWorkspaceBackend(root_dir=tmp_path)
+        provisioner = WorkspaceProvisioner()
+
+        result = provisioner.provision(None, backend, {}, is_local_mode=True)
+
+        assert result.source_type is SourceType.EMPTY
+        assert result.file_tree is None
+
+    def test_git_workspace_with_files_gets_tree(self, tmp_path):
+        (tmp_path / "app.py").write_text("import flask")
+
+        git = _MockGitRepoSource(url="https://github.com/acme/repo.git")
+        source = _MockWorkspaceSource(git_repo=git)
+        backend = _make_git_backend(tmp_path)
+        provisioner = WorkspaceProvisioner()
+
+        result = provisioner.provision(
+            source, backend, {}, is_local_mode=True
+        )
+
+        assert result.file_tree is not None
+        assert "app.py" in result.file_tree
+
+    def test_empty_git_workspace_returns_none_tree(self, tmp_path):
+        git = _MockGitRepoSource(url="https://github.com/acme/repo.git")
+        source = _MockWorkspaceSource(git_repo=git)
+        backend = _make_git_backend(tmp_path)
+        provisioner = WorkspaceProvisioner()
+
+        result = provisioner.provision(
+            source, backend, {}, is_local_mode=True
+        )
+
+        assert result.file_tree is None
+
+    def test_file_tree_survives_consumed_keys_rebuild(self, tmp_path):
+        """When WORKSPACE_PROVISION_ keys expand consumed_keys via
+        dataclasses.replace(), file_tree must not be lost."""
+        (tmp_path / "data.csv").write_text("a,b,c")
+
+        local = _MockLocalPathSource(path=str(tmp_path))
+        source = _MockWorkspaceSource(local_path=local)
+        backend = LocalWorkspaceBackend(root_dir=tmp_path / "unused")
+        provisioner = WorkspaceProvisioner()
+
+        env = {"WORKSPACE_PROVISION_SECRET": "val"}
+        result = provisioner.provision(source, backend, env, is_local_mode=True)
+
+        assert "WORKSPACE_PROVISION_SECRET" in result.consumed_keys
+        assert result.file_tree is not None
+        assert "data.csv" in result.file_tree
+
+
+# ---------------------------------------------------------------------------
 # Domain type immutability
 # ---------------------------------------------------------------------------
 

@@ -142,6 +142,48 @@ class TestBuildWorkspacePromptSection:
                 f"Section from {factory.__name__} must start with \\n\\n"
             )
 
+    # -- file_tree injection ------------------------------------------------
+
+    def test_tree_appended_when_present(self):
+        result = ProvisionResult(
+            root_dir="/workspace",
+            source_type=SourceType.GIT_REPO,
+            consumed_keys=(),
+            workspace_description="Workspace description.",
+            file_tree="### Project Structure\n\n    - `src/`\n\n1 entry.",
+        )
+        section = build_workspace_prompt_section(result)
+        assert "### Project Structure" in section
+        assert "`src/`" in section
+
+    def test_tree_absent_when_none(self):
+        section = build_workspace_prompt_section(_git_provision())
+        assert "### Project Structure" not in section
+
+    def test_tree_follows_description(self):
+        result = ProvisionResult(
+            root_dir="/workspace",
+            source_type=SourceType.GIT_REPO,
+            consumed_keys=(),
+            workspace_description="Description text.",
+            file_tree="### Project Structure\n\n    - `a.txt`\n\n1 entry.",
+        )
+        section = build_workspace_prompt_section(result)
+        desc_pos = section.find("Description text.")
+        tree_pos = section.find("### Project Structure")
+        assert desc_pos < tree_pos, "Description must precede tree"
+
+    def test_section_header_present_with_tree(self):
+        result = ProvisionResult(
+            root_dir="/workspace",
+            source_type=SourceType.LOCAL_PATH,
+            consumed_keys=(),
+            workspace_description="Local workspace.",
+            file_tree="### Project Structure\n\n    - `a.py`\n\n1 entry.",
+        )
+        section = build_workspace_prompt_section(result)
+        assert section.startswith("\n\n## Workspace\n\n")
+
 
 # =============================================================================
 # TestPromptAssemblyOrdering — section ordering within the enhanced prompt
@@ -224,6 +266,25 @@ class TestPromptAssemblyOrdering:
         instr_pos = prompt.find(instructions)
         ws_pos = prompt.find("## Workspace")
         assert instr_pos < ws_pos, "Instructions must precede workspace"
+
+    def test_tree_inside_workspace_before_skills(self):
+        result = ProvisionResult(
+            root_dir="/workspace",
+            source_type=SourceType.GIT_REPO,
+            consumed_keys=(),
+            workspace_description="Workspace description.",
+            file_tree="### Project Structure\n\n    - `src/`\n\n1 entry.",
+        )
+        prompt = self._assemble(
+            provision_result=result,
+            skills_prompt_section="\n\n## Available Skills\n\n- skill-a",
+        )
+        ws_pos = prompt.find("## Workspace")
+        tree_pos = prompt.find("### Project Structure")
+        sk_pos = prompt.find("## Available Skills")
+        assert ws_pos < tree_pos < sk_pos, (
+            "Tree must be inside Workspace and before Skills"
+        )
 
 
 # =============================================================================
