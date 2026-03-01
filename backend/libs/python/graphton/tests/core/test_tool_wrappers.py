@@ -1133,7 +1133,7 @@ class TestGlobToolWrapper:
     @pytest.fixture
     def mock_backend(self):
         backend = MagicMock()
-        # Simulate a simple directory structure
+        _dirs = {".", "subdir"}
         def list_files_side_effect(path):
             if path == ".":
                 return ["file1.py", "file2.txt", "subdir"]
@@ -1141,6 +1141,7 @@ class TestGlobToolWrapper:
                 return ["nested.py"]
             return []
         backend.list_files.side_effect = list_files_side_effect
+        backend.is_directory.side_effect = lambda p: p in _dirs
         return backend
 
     @pytest.mark.asyncio
@@ -1166,6 +1167,7 @@ class TestGrepToolWrapper:
     @pytest.fixture
     def mock_backend(self):
         backend = MagicMock()
+        _dirs = {"."}
         
         def list_files_side_effect(path):
             if path == ".":
@@ -1181,6 +1183,7 @@ class TestGrepToolWrapper:
         
         backend.list_files.side_effect = list_files_side_effect
         backend.read.side_effect = read_side_effect
+        backend.is_directory.side_effect = lambda p: p in _dirs
         return backend
 
     @pytest.mark.asyncio

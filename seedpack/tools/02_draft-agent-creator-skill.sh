@@ -6,13 +6,17 @@
 # Uses `stigmer draft skill` to generate a skill that teaches AI assistants
 # to create valid Stigmer Agent YAML files.
 #
-# Inputs are the canonical proto directories (agent, skill, mcpserver) plus
-# the agent-resource-guide.md documentation -- no copies, no duplicates.
+# The stigmer repository is provided as the workspace so the agent can freely
+# explore _changelog/, apis/, and docs/ during generation. Key inputs are also
+# explicitly attached as spotlight context:
+#   - apis/ai/stigmer/agentic/agent    (proto schemas + docs — primary source of truth)
+#   - apis/ai/stigmer/agentic/skill    (proto schemas)
+#   - apis/ai/stigmer/agentic/mcpserver (proto schemas)
+#   - docs/product/what-is-agent.md    (authoritative conceptual doc)
 #
 # Prerequisites:
 #   - stigmer CLI built and available in PATH
 #   - stigmer server running with an LLM provider configured
-#   - ANTHROPIC_API_KEY set in environment
 #
 # Usage:
 #   ./02_draft-agent-creator-skill.sh
@@ -39,12 +43,6 @@ if ! command -v stigmer &> /dev/null; then
     exit 1
 fi
 
-if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
-    echo "ERROR: ANTHROPIC_API_KEY environment variable is not set"
-    echo "Set it with: export ANTHROPIC_API_KEY=<your-api-key>"
-    exit 1
-fi
-
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
@@ -55,8 +53,9 @@ readonly SKILLS_DIR="${SEEDPACK_DIR}/skills"
 readonly AGENT_DIR="${REPO_ROOT}/apis/ai/stigmer/agentic/agent"
 readonly SKILL_DIR="${REPO_ROOT}/apis/ai/stigmer/agentic/skill"
 readonly MCPSERVER_DIR="${REPO_ROOT}/apis/ai/stigmer/agentic/mcpserver"
+readonly WHAT_IS_AGENT_DOC="${REPO_ROOT}/docs/product/what-is-agent.md"
 
-# Verify input directories exist
+# Verify spotlight input directories and files exist
 for dir in "$AGENT_DIR" "$SKILL_DIR" "$MCPSERVER_DIR"; do
     if [ ! -d "$dir" ]; then
         echo "ERROR: Directory not found: $dir"
@@ -64,47 +63,95 @@ for dir in "$AGENT_DIR" "$SKILL_DIR" "$MCPSERVER_DIR"; do
     fi
 done
 
+if [ ! -f "$WHAT_IS_AGENT_DOC" ]; then
+    echo "ERROR: File not found: $WHAT_IS_AGENT_DOC"
+    exit 1
+fi
+
 # Clean only the target skill directory, preserving siblings (e.g. skill-creator).
 # The CLI creates a subdirectory named after the artifact inside --output, so we
 # point --output at skills/ and let the CLI produce skills/agent-creator/.
 rm -rf "${SKILLS_DIR}/${SKILL_NAME}"
 
 echo "=== Agent-Creator Skill Generation ==="
-echo "Model:   claude-opus-4-6"
-echo "Inputs:  ${AGENT_DIR} (protos + docs)"
-echo "         ${SKILL_DIR} (protos)"
-echo "         ${MCPSERVER_DIR} (protos)"
-echo "Output:  ${SKILLS_DIR}/${SKILL_NAME}/"
+echo "Workspace: ${REPO_ROOT}"
+echo "Inputs:    ${AGENT_DIR} (protos + docs)"
+echo "           ${SKILL_DIR} (protos)"
+echo "           ${MCPSERVER_DIR} (protos)"
+echo "           ${WHAT_IS_AGENT_DOC}"
+echo "Output:    ${SKILLS_DIR}/${SKILL_NAME}/"
 echo ""
 
 # ---------------------------------------------------------------------------
 # Draft the skill
 # ---------------------------------------------------------------------------
 
-MESSAGE=$(cat <<'EOF'
-Create an agent-creator skill that empowers AI assistants to create valid, production-quality Stigmer Agent YAML files conforming to the agentic.stigmer.ai/v1 API.
+# Write the prompt to a temp file to avoid bash 3.2's $() + heredoc parsing
+# bug, which breaks on apostrophes inside a heredoc body.
+readonly _MSG_FILE="$(mktemp)"
+trap 'rm -f "${_MSG_FILE}"' EXIT
 
-The attached directories contain the canonical protobuf schemas for Agent, Skill, and McpServer resources, plus a comprehensive agent-resource-guide.md that explains the Agent resource from the perspective of someone creating agents.
+cat > "${_MSG_FILE}" <<'EOF'
+Create an agent-creator skill that empowers AI assistants to produce valid,
+production-quality Stigmer Agent YAML files conforming to the
+agentic.stigmer.ai/v1 API.
 
-Critical behaviors the generated skill MUST instruct agents to follow:
+You are operating inside the stigmer repository. Use this workspace access
+throughout the task:
 
-1. QUERY AVAILABLE RESOURCES: Before suggesting mcp_server_usages or skill_refs, the agent MUST query available MCP servers and skills using the Stigmer MCP server tools (search, get_mcp_server, get_skill). Never guess or hallucinate resource references -- use real data from the platform.
+  - Explore _changelog/ to understand how the Agent, Skill, and MCP server
+    resources have evolved. Focus on recent entries (2026-02 and 2026-03) that
+    touch agent authoring, workspace support, or MCP server integration.
 
-2. ASK QUESTIONS: If the user's intent is unclear, or if a skill or MCP server seems required but doesn't exist on the platform, the agent MUST pause and ask the user before proceeding. Never silently assume.
+  - Treat the attached proto schemas (Agent, Skill, McpServer) as the canonical
+    source of truth for every field, validation rule, and enum value. Do not
+    rely on prose documentation alone -- derive your understanding from the
+    protos and verify against the attached what-is-agent.md doc.
 
-3. VALIDATE THOROUGHLY: The agent must verify all validation rules (naming conventions, minimum instruction length, sub-agent tool subsets, unique MCP slugs) before presenting the final YAML.
+  - The workspace contains docs/product/what-is-*.md documents that explain
+    each Stigmer concept in depth. Start with the attached what-is-agent.md
+    for the Agent resource itself, then browse the directory for related
+    concepts as needed (e.g. what-is-mcp-server.md, what-is-skill.md,
+    what-is-session.md, what-is-workspace.md, what-is-agent-execution.md,
+    what-is-agent-instance.md, and others). Use these to build a deep
+    understanding of the domain before writing the skill.
 
-This is a foundational skill for a world-class platform. The output must be precise, comprehensive, and production-ready. Write the SKILL.md so that any AI assistant using it can create flawless Agent YAMLs on the first attempt.
+  - Do NOT read, reference, or be influenced by any content already present in
+    seedpack/skills/agent-creator/. You are regenerating this skill from scratch.
+    Ignore whatever exists there.
+
+The generated SKILL.md MUST instruct agents using this skill to:
+
+1. DISCOVER AVAILABLE RESOURCES: Before writing any mcp_server_usages or
+   skill_refs, the agent MUST use the Stigmer MCP server tools -- specifically
+   the search, get_mcp_server, and get_skill tools -- to query what actually
+   exists on the platform. The Stigmer MCP server is connected at runtime; use
+   it to discover real slugs. Never guess or hallucinate resource references.
+
+2. ASK BEFORE ASSUMING: If the stated intent is unclear, or if a required skill
+   or MCP server does not exist on the platform, the agent MUST pause and ask
+   before proceeding. Never silently fill in placeholders.
+
+3. VALIDATE BEFORE PRESENTING: Before showing the final YAML, the agent must
+   verify all validation rules derived from the proto schemas: naming
+   conventions, minimum instruction length, sub-agent tool subsets (sub-agents
+   may only use tools the parent explicitly grants), unique MCP server slugs
+   within a single agent, and correct enum string values.
+
+This is a foundational skill for a world-class platform. Write the SKILL.md so
+that any AI assistant using it can create flawless Agent YAMLs on the first
+attempt.
 EOF
-)
 
 stigmer draft skill \
+  --workspace "$REPO_ROOT" \
   --attach "$AGENT_DIR" \
   --attach "$SKILL_DIR" \
   --attach "$MCPSERVER_DIR" \
+  --attach "$WHAT_IS_AGENT_DOC" \
   --output "$SKILLS_DIR" \
   --model claude-sonnet-4.6 \
-  -m "$MESSAGE"
+  -m "$(cat "${_MSG_FILE}")"
 
 readonly GENERATED_DIR="${SKILLS_DIR}/${SKILL_NAME}"
 

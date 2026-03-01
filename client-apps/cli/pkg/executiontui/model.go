@@ -89,6 +89,17 @@ type streamingState struct {
 	subAgentID string
 }
 
+// subAgentInfo holds metadata about a sub-agent execution. Stored in the
+// model's subAgentMeta map, keyed by sub-agent ID.
+type subAgentInfo struct {
+	// Name is the sub-agent type (e.g., "generalPurpose", "explore").
+	Name string
+	// Input is the full task prompt given to the sub-agent.
+	Input string
+	// Description is a concise (3-5 word) summary of the delegated task.
+	Description string
+}
+
 // approvalState tracks an active approval prompt.
 // When non-nil on the model, the TUI routes keyboard input to approval handling.
 type approvalState struct {
@@ -130,11 +141,11 @@ type Model struct {
 	// the final expandable result and removed from this map.
 	runningTools map[string]int
 
-	// subAgentNames maps sub-agent execution IDs to their human-readable
-	// names (e.g., "researcher", "code_editor"). Populated by
-	// SubAgentStartedEvent and used to label context separator lines in the
-	// viewport when the active agent changes.
-	subAgentNames map[string]string
+	// subAgentMeta maps sub-agent execution IDs to their metadata (name,
+	// input prompt, short description). Populated by SubAgentStartedEvent
+	// and used to label context separator lines and render sub-agent header
+	// blocks in the viewport.
+	subAgentMeta map[string]subAgentInfo
 
 	// todoBlockIdx is the index into blocks of the current execution's todo
 	// block. -1 means no todo block exists yet. Set on the first
@@ -145,6 +156,12 @@ type Model struct {
 	// approval holds state for an active approval prompt.
 	// nil when no approval is pending.
 	approval *approvalState
+
+	// approvalBlockIdx is the index into blocks of the current approval
+	// context block. -1 means no approval block exists. Set when an
+	// ApprovalNeededEvent creates the block; cleared when the user responds
+	// (the block is replaced with a compact confirmation line).
+	approvalBlockIdx int
 
 	// width and height are the terminal dimensions from the last WindowSizeMsg.
 	width  int
@@ -255,8 +272,9 @@ func New(cfg Config) Model {
 		phase:             "pending",
 		focusedBlockIndex: -1,
 		runningTools:      make(map[string]int),
-		subAgentNames:     make(map[string]string),
+		subAgentMeta:      make(map[string]subAgentInfo),
 		todoBlockIdx:      -1,
+		approvalBlockIdx:  -1,
 		spinner:           s,
 		lastEventAt:       time.Now(),
 		textarea:          ta,

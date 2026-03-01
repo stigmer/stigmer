@@ -338,9 +338,9 @@ func Run() error {
 	// ============================================================================
 
 	if err := temporalManager.StartWorkers(temporalClient); err != nil {
-		log.Fatal().
+		log.Warn().
 			Err(err).
-			Msg("Failed to start Temporal workers")
+			Msg("Failed to start Temporal workers - health monitor will retry")
 	}
 
 	// Create in-process gRPC connection

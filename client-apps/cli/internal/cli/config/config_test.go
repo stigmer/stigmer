@@ -348,3 +348,145 @@ func TestLoad_HandlesMinimalConfig(t *testing.T) {
 	require.NotNil(t, config)
 	assert.Equal(t, BackendTypeLocal, config.Backend.Type)
 }
+
+// =============================================================================
+// DetectProviderFromAPIKeys Tests
+// =============================================================================
+
+func clearLLMEnvVars(t *testing.T) {
+	t.Helper()
+	for _, key := range []string{
+		"STIGMER_LLM_PROVIDER",
+		"ANTHROPIC_API_KEY",
+		"OPENAI_API_KEY",
+	} {
+		original := os.Getenv(key)
+		os.Unsetenv(key)
+		t.Cleanup(func() {
+			if original != "" {
+				os.Setenv(key, original)
+			}
+		})
+	}
+}
+
+func TestDetectProviderFromAPIKeys_Anthropic(t *testing.T) {
+	clearLLMEnvVars(t)
+	os.Setenv("ANTHROPIC_API_KEY", "sk-ant-test")
+
+	assert.Equal(t, "anthropic", DetectProviderFromAPIKeys())
+}
+
+func TestDetectProviderFromAPIKeys_OpenAI(t *testing.T) {
+	clearLLMEnvVars(t)
+	os.Setenv("OPENAI_API_KEY", "sk-test")
+
+	assert.Equal(t, "openai", DetectProviderFromAPIKeys())
+}
+
+func TestDetectProviderFromAPIKeys_BothSet_AnthropicWins(t *testing.T) {
+	clearLLMEnvVars(t)
+	os.Setenv("ANTHROPIC_API_KEY", "sk-ant-test")
+	os.Setenv("OPENAI_API_KEY", "sk-test")
+
+	assert.Equal(t, "anthropic", DetectProviderFromAPIKeys())
+}
+
+func TestDetectProviderFromAPIKeys_NeitherSet(t *testing.T) {
+	clearLLMEnvVars(t)
+
+	assert.Equal(t, "", DetectProviderFromAPIKeys())
+}
+
+// =============================================================================
+// ResolveLLMProvider Cascading Fallback Tests
+// =============================================================================
+
+func TestResolveLLMProvider_ExplicitEnvVarWins(t *testing.T) {
+	clearLLMEnvVars(t)
+	os.Setenv("STIGMER_LLM_PROVIDER", "openai")
+	os.Setenv("ANTHROPIC_API_KEY", "sk-ant-test")
+
+	cfg := &LocalBackendConfig{
+		LLM: &LLMConfig{Provider: "ollama"},
+	}
+
+	assert.Equal(t, "openai", cfg.ResolveLLMProvider())
+}
+
+func TestResolveLLMProvider_ConfigFileBeatsAutoDetect(t *testing.T) {
+	clearLLMEnvVars(t)
+	os.Setenv("ANTHROPIC_API_KEY", "sk-ant-test")
+
+	cfg := &LocalBackendConfig{
+		LLM: &LLMConfig{Provider: "ollama"},
+	}
+
+	assert.Equal(t, "ollama", cfg.ResolveLLMProvider())
+}
+
+func TestResolveLLMProvider_AutoDetectFallback(t *testing.T) {
+	clearLLMEnvVars(t)
+	os.Setenv("ANTHROPIC_API_KEY", "sk-ant-test")
+
+	cfg := &LocalBackendConfig{}
+
+	assert.Equal(t, "anthropic", cfg.ResolveLLMProvider())
+}
+
+func TestResolveLLMProvider_EmptyWhenNothingAvailable(t *testing.T) {
+	clearLLMEnvVars(t)
+
+	cfg := &LocalBackendConfig{}
+
+	assert.Equal(t, "", cfg.ResolveLLMProvider())
+}
+
+// =============================================================================
+// ResolveLLMProviderSource Tests
+// =============================================================================
+
+func TestResolveLLMProviderSource_EnvOverride(t *testing.T) {
+	clearLLMEnvVars(t)
+	os.Setenv("STIGMER_LLM_PROVIDER", "anthropic")
+
+	cfg := &LocalBackendConfig{}
+
+	assert.Equal(t, ProviderSourceEnvOverride, cfg.ResolveLLMProviderSource())
+}
+
+func TestResolveLLMProviderSource_ConfigFile(t *testing.T) {
+	clearLLMEnvVars(t)
+
+	cfg := &LocalBackendConfig{
+		LLM: &LLMConfig{Provider: "anthropic"},
+	}
+
+	assert.Equal(t, ProviderSourceConfigFile, cfg.ResolveLLMProviderSource())
+}
+
+func TestResolveLLMProviderSource_AnthropicKey(t *testing.T) {
+	clearLLMEnvVars(t)
+	os.Setenv("ANTHROPIC_API_KEY", "sk-ant-test")
+
+	cfg := &LocalBackendConfig{}
+
+	assert.Equal(t, ProviderSourceAnthropicKey, cfg.ResolveLLMProviderSource())
+}
+
+func TestResolveLLMProviderSource_OpenAIKey(t *testing.T) {
+	clearLLMEnvVars(t)
+	os.Setenv("OPENAI_API_KEY", "sk-test")
+
+	cfg := &LocalBackendConfig{}
+
+	assert.Equal(t, ProviderSourceOpenAIKey, cfg.ResolveLLMProviderSource())
+}
+
+func TestResolveLLMProviderSource_None(t *testing.T) {
+	clearLLMEnvVars(t)
+
+	cfg := &LocalBackendConfig{}
+
+	assert.Equal(t, ProviderSourceNone, cfg.ResolveLLMProviderSource())
+}

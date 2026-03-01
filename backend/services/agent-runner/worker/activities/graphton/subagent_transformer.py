@@ -2,11 +2,16 @@
 
 This module transforms proto SubAgent definitions to graphton's subagent format,
 including:
+- Platform tool propagation (filesystem + execution tools from the parent sandbox)
 - MCP access restriction (filtering parent's MCP servers based on McpAccess grants)
 - Skill resolution and injection into system prompts
 - Tool wrapper creation for each subagent
 
 Design Decisions:
+- Every subagent receives the full set of platform tools (read, write, ls, glob,
+  grep, execute) from the parent's sandbox config.  Without these, subagents fall
+  back to deepagents' in-memory file primitives and lose shell execution, making
+  skill scripts (e.g. init_skill.py) unusable.
 - Each subagent gets its own McpToolsLoader with filtered MCP config
 - Skills are fetched in batch to minimize gRPC calls
 - Invalid configurations are logged as warnings and skipped (fail gracefully)
@@ -37,6 +42,7 @@ async def transform_sub_agents(
     skill_client: Any,  # SkillClient instance
     skill_writer_class: Any,  # SkillWriter class (typed as Any to avoid circular import)
     skill_writer_kwargs: dict[str, Any],  # kwargs for SkillWriter constructor
+    sandbox_config: dict[str, Any] | None = None,
     approval_checker: Callable[[str, dict[str, Any]], Any] | None = None,
     activity_logger: logging.Logger | None = None,
 ) -> list[dict[str, Any]] | None:
@@ -46,7 +52,8 @@ async def transform_sub_agents(
     graphton's create_deep_agent(subagents=...) parameter. Each subagent dict
     includes:
     - name, description, system_prompt (from proto)
-    - tools: MCP tool wrappers filtered based on McpAccess grants
+    - tools: platform tools (filesystem + execute) plus MCP tool wrappers
+      filtered based on McpAccess grants
     
     Args:
         sub_agents: List of SubAgent proto messages from AgentSpec.sub_agents
@@ -58,6 +65,10 @@ async def transform_sub_agents(
         skill_client: SkillClient instance for fetching skills
         skill_writer_class: SkillWriter class for generating prompt sections
         skill_writer_kwargs: Keyword arguments for SkillWriter constructor
+        sandbox_config: Sandbox configuration dict for the agent (same config
+            used by the parent agent).  When provided, every subagent receives
+            platform tools (read, write, ls, glob, grep, execute) backed by
+            this sandbox.
         approval_checker: Optional approval checker for HITL tool approval flow
         activity_logger: Logger for activity-level messages
         
@@ -74,6 +85,7 @@ async def transform_sub_agents(
         ...     skill_client=skill_client,
         ...     skill_writer_class=SkillWriter,
         ...     skill_writer_kwargs={"local_root": "/tmp/sandbox"},
+        ...     sandbox_config=sandbox_config_for_agent,
         ...     approval_checker=approval_checker,
         ...     activity_logger=logger,
         ... )
@@ -108,6 +120,27 @@ async def transform_sub_agents(
             log.error(f"Failed to fetch skills for subagents: {e}")
             # Continue without skills - graceful degradation
     
+    # Create platform tools once and share across all subagents.
+    # These give every subagent filesystem access (read, write, ls, glob,
+    # grep) and shell execution — matching the general-purpose subagent
+    # that deepagents auto-creates from the parent's tool list.
+    platform_tools: list[BaseTool] = []
+    if sandbox_config:
+        try:
+            from graphton.core.sandbox_factory import create_sandbox_backend
+            from graphton.core.tool_wrappers import create_platform_tool_wrappers
+
+            sandbox_backend = create_sandbox_backend(sandbox_config)
+            platform_tools = create_platform_tool_wrappers(
+                backend=sandbox_backend,
+                approval_checker=approval_checker,
+            )
+            log.info(
+                f"Created {len(platform_tools)} platform tool(s) for sub-agents"
+            )
+        except Exception as e:
+            log.error(f"Failed to create platform tools for sub-agents: {e}")
+
     # Transform each subagent
     transformed_subagents = []
     
@@ -121,6 +154,7 @@ async def transform_sub_agents(
                 skills_by_id=skills_by_id,
                 skill_paths=skill_paths,
                 skill_writer_class=skill_writer_class,
+                platform_tools=platform_tools,
                 approval_checker=approval_checker,
                 log=log,
             )
@@ -258,6 +292,7 @@ async def _transform_single_subagent(
     skills_by_id: dict[str, Any],
     skill_paths: dict[str, str],
     skill_writer_class: Any,  # SkillWriter class (typed as Any to avoid circular import)
+    platform_tools: list[BaseTool],
     approval_checker: Callable[[str, dict[str, Any]], Any] | None,
     log: logging.Logger,
 ) -> dict[str, Any] | None:
@@ -271,6 +306,8 @@ async def _transform_single_subagent(
         skills_by_id: Pre-fetched skills by ID
         skill_paths: Skill paths in sandbox
         skill_writer_class: SkillWriter class for prompt generation
+        platform_tools: Platform tools (filesystem + execute) to include
+            in every subagent's tool set.
         approval_checker: Optional approval checker for HITL
         log: Logger instance
         
@@ -308,9 +345,12 @@ async def _transform_single_subagent(
                 f"{[s.metadata.name for s in subagent_skills]}"
             )
     
-    # Filter and create MCP tools for this subagent
-    tools = []
-    
+    # Build the combined tool set: platform tools first, then MCP tools.
+    # Platform tools are always included so that every subagent has
+    # filesystem access and shell execution.  MCP tools are added on top
+    # based on the subagent's McpAccess grants.
+    tools: list[BaseTool] = list(platform_tools)
+
     if sub_agent.mcp_access:
         filtered_servers, filtered_tools = _filter_mcp_for_subagent(
             mcp_access_list=list(sub_agent.mcp_access),
@@ -322,19 +362,19 @@ async def _transform_single_subagent(
         
         if filtered_servers and filtered_tools:
             try:
-                tools = await _create_subagent_mcp_tools(
+                mcp_tools = await _create_subagent_mcp_tools(
                     mcp_servers=filtered_servers,
                     mcp_tools=filtered_tools,
                     approval_checker=approval_checker,
                     log=log,
                 )
+                tools.extend(mcp_tools)
                 log.debug(
-                    f"Sub-agent '{name}' has {len(tools)} MCP tool(s) from "
+                    f"Sub-agent '{name}' has {len(mcp_tools)} MCP tool(s) from "
                     f"{len(filtered_servers)} server(s)"
                 )
             except Exception as e:
                 log.error(f"Failed to create MCP tools for sub-agent '{name}': {e}")
-                # Continue without MCP tools - graceful degradation
     
     # Append response rules so sub-agents don't echo raw file contents.
     # The sub-agent's final message becomes the parent's tool result — if it
@@ -354,16 +394,16 @@ async def _transform_single_subagent(
         '"Here are the contents of the files", or similar.\n'
     )
 
-    # Build the subagent dict in graphton format
+    # Build the subagent dict in graphton format.
+    # Always set ``tools`` so deepagents uses this explicit list rather
+    # than falling back to the parent's tools (which would duplicate
+    # platform tools while losing the MCP filtering).
     subagent_dict: dict[str, Any] = {
         "name": name,
         "description": description,
         "system_prompt": system_prompt,
+        "tools": tools,
     }
-    
-    # Only add tools if we have any
-    if tools:
-        subagent_dict["tools"] = tools
     
     return subagent_dict
 

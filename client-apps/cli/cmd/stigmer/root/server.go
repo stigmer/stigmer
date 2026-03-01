@@ -134,16 +134,6 @@ func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 	llmProvider := cfg.Backend.Local.ResolveLLMProvider()
 	llmModel := cfg.Backend.Local.ResolveLLMModel()
 
-	switch llmProvider {
-	case "ollama":
-		climsg.Success("Using Ollama (local LLM, no API key required)")
-	case "anthropic", "openai":
-		climsg.Info("Using %s with model %s", llmProvider, llmModel)
-	case "":
-		climsg.Warning("No LLM provider configured. Agents will not execute.")
-		climsg.Warning("Run 'stigmer server setup' to configure an LLM provider.")
-	}
-
 	secrets, err := daemon.GatherRequiredSecrets(llmProvider, cfg.Backend.Local)
 	if err != nil {
 		climsg.Error("Failed to gather required credentials")
@@ -157,6 +147,8 @@ func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 		progress.Start()
 		progress.SetPhase(cliprint.PhaseStarting, "Preparing environment")
 	}
+
+	var llmSetupErr error
 
 	executionMode, _ := cmd.Flags().GetString("execution-mode")
 	sandboxImage, _ := cmd.Flags().GetString("sandbox-image")
@@ -172,6 +164,9 @@ func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 		SandboxCleanup:  sandboxCleanup,
 		SandboxTTL:      sandboxTTL,
 		Secrets:         secrets,
+		OnLLMSetupFailed: func(err error) {
+			llmSetupErr = err
+		},
 	}); err != nil {
 		if progress != nil {
 			progress.Stop()
@@ -181,9 +176,42 @@ func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 		return
 	}
 
+	// Wait for the gRPC server to accept connections before proceeding.
+	// StartWithOptions spawns the server process and returns immediately;
+	// the gRPC listener is the last component to start (after SQLite,
+	// controllers, Temporal workers, search index, and supervisor), so a
+	// successful connection here guarantees full readiness.
 	if progress != nil {
-		progress.CompletePhase(cliprint.PhaseDeploying)
+		progress.SetPhase(cliprint.PhaseReady, "Waiting for services")
+	}
+
+	readyCtx, readyCancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer readyCancel()
+
+	endpoint := fmt.Sprintf("localhost:%d", daemon.DaemonPort)
+	if err := daemon.WaitForReady(readyCtx, endpoint); err != nil {
+		if progress != nil {
+			progress.Stop()
+		}
+		climsg.Error("Server failed to become ready: %v", err)
+		clierr.Handle(err)
+		return
+	}
+
+	if progress != nil {
+		progress.CompletePhase(cliprint.PhaseReady)
 		progress.Stop()
+	}
+
+	// LLM status messaging: only announce after validation is complete.
+	displayLLMStatus(llmProvider, llmModel, cfg.Backend.Local, llmSetupErr)
+
+	// Apply seedpack (system agents, skills, MCP servers) before discovery.
+	// This ensures system resources exist before we attempt to discover their
+	// capabilities. EnsureRunning() also calls this as a safety net, but
+	// stigmer server is the canonical place for first-run bootstrap.
+	if err := daemon.EnsureSeedpackBootstrapped(dataDir); err != nil {
+		climsg.Warning("Failed to apply system resources: %v", err)
 	}
 
 	climsg.Info("Discovering MCP server capabilities...")
@@ -216,6 +244,42 @@ func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 	renderer.Render(result)
 }
 
+// displayLLMStatus shows the validated LLM provider status after daemon startup.
+// This is called AFTER the daemon has started and LLM setup has been attempted,
+// ensuring we only announce what actually works (validate-then-announce pattern).
+func displayLLMStatus(provider, model string, localCfg *config.LocalBackendConfig, setupErr error) {
+	if provider == "" {
+		climsg.Warning("No LLM provider configured. Agents will not execute.")
+		climsg.Info("Set ANTHROPIC_API_KEY or OPENAI_API_KEY in your environment, then restart.")
+		climsg.Info("Or run 'stigmer server setup' to configure interactively.")
+		return
+	}
+
+	if setupErr != nil {
+		climsg.Warning("LLM provider '%s' is not available: %v", provider, setupErr)
+		climsg.Warning("Agents will not execute until an LLM provider is available.")
+
+		if alt := config.DetectProviderFromAPIKeys(); alt != "" && alt != provider {
+			envVar := "ANTHROPIC_API_KEY"
+			if alt == "openai" {
+				envVar = "OPENAI_API_KEY"
+			}
+			climsg.Info("Detected %s in your environment.", envVar)
+			climsg.Info("Run 'stigmer server setup' to switch to %s.", alt)
+		} else {
+			climsg.Info("Run 'stigmer server setup' to configure a different LLM provider.")
+		}
+		return
+	}
+
+	source := localCfg.ResolveLLMProviderSource()
+	if source != "" && source != config.ProviderSourceConfigFile {
+		climsg.Success("Using %s with model %s (from %s)", provider, model, source)
+	} else {
+		climsg.Success("Using %s with model %s", provider, model)
+	}
+}
+
 // runBootstrapDiscovery discovers capabilities for all bootstrapped MCP
 // servers. Runs synchronously after daemon start so tool metadata is
 // immediately available. Failures are logged but do not block success.
@@ -245,6 +309,9 @@ func runBootstrapDiscovery(cfg *config.Config) {
 	if result.Attempted > result.Succeeded {
 		climsg.Warning("Discovery failed for %d MCP server(s)", result.Attempted-result.Succeeded)
 	}
+	for _, msg := range result.SkipMessages {
+		climsg.Warning("%s", msg)
+	}
 }
 
 func newServerSetupCommand() *cobra.Command {
@@ -271,7 +338,7 @@ func handleServerSetup() {
 		cfg = config.GetDefault()
 	}
 
-	if err := setup.RunWizard(cfg); err != nil {
+	if err := setup.RunWizardInteractive(cfg); err != nil {
 		climsg.Error("Setup failed: %v", err)
 		clierr.Handle(err)
 		return

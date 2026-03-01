@@ -54,6 +54,7 @@ func (c *AgentController) buildDeletePipeline() *pipeline.Pipeline[*agentv1.Agen
 		AddStep(steps.NewValidateProtoStep[*agentv1.AgentId]()).                                // 1. Validate field constraints
 		AddStep(steps.NewExtractResourceIdStep[*agentv1.AgentId]()).                            // 2. Extract ID from wrapper
 		AddStep(steps.NewLoadExistingForDeleteStep[*agentv1.AgentId, *agentv1.Agent](c.store)). // 3. Load agent
-		AddStep(steps.NewDeleteResourceStep[*agentv1.AgentId](c.store)).                        // 4. Delete from database
+		AddStep(steps.NewDeleteResourceStep[*agentv1.AgentId](c.store)).      // 4. Delete from database
+		AddStep(steps.NewDeleteSearchIndexStep[*agentv1.AgentId](c.store)). // 5. Remove from search index
 		Build()
 }

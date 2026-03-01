@@ -1,20 +1,25 @@
 package root
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 
+	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpserver"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
 )
 
@@ -31,6 +36,11 @@ type fileApplyContext struct {
 	orgID    string
 	dryRun   bool
 	renderer clioutput.Renderer
+	cfg      *config.Config
+
+	// appliedMcpServers collects MCP server protos that were successfully
+	// applied, so post-apply discovery can be triggered for each one.
+	appliedMcpServers []*mcpserverv1.McpServer
 }
 
 func executeFileApply(opts fileApplyOptions) error {
@@ -71,6 +81,7 @@ func executeFileApply(opts fileApplyOptions) error {
 		if err != nil {
 			return err
 		}
+		fctx.cfg = cfg
 
 		if cfg.Backend.Type == config.BackendTypeLocal {
 			dataDir, err := config.GetDataDir()
@@ -96,6 +107,10 @@ func executeFileApply(opts fileApplyOptions) error {
 		if _, err := applyResourceItem(item, fctx); err != nil {
 			return err
 		}
+	}
+
+	if !opts.DryRun {
+		discoverAppliedMcpServers(fctx)
 	}
 
 	return nil
@@ -181,5 +196,37 @@ func applyResourceItem(item applyItem, fctx *fileApplyContext) (*apiresource.Api
 		return applyMcpServer(item, fctx)
 	default:
 		return nil, fmt.Errorf("apply not implemented for %s", item.typeInfo.DisplayName)
+	}
+}
+
+// discoverAppliedMcpServers triggers best-effort capability discovery for MCP
+// servers that were successfully applied in this session. This makes tools
+// available immediately without requiring a daemon restart.
+func discoverAppliedMcpServers(fctx *fileApplyContext) {
+	if len(fctx.appliedMcpServers) == 0 || fctx.cfg == nil {
+		return
+	}
+
+	climsg.Info("Discovering capabilities for %d applied MCP server(s)...", len(fctx.appliedMcpServers))
+
+	for _, server := range fctx.appliedMcpServers {
+		skipMsg, err := mcpserver.DiscoverOne(context.Background(), &mcpserver.DiscoverOneOptions{
+			Conn:    fctx.conn,
+			Cfg:     fctx.cfg,
+			Server:  server,
+			Timeout: 30 * time.Second,
+		})
+
+		name := server.Metadata.GetName()
+
+		if skipMsg != "" {
+			climsg.Warning("%s", skipMsg)
+			continue
+		}
+		if err != nil {
+			climsg.Warning("Discovery failed for %s: %v", name, err)
+			continue
+		}
+		climsg.Success("Discovered capabilities for %s", name)
 	}
 }

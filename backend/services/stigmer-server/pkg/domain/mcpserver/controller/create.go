@@ -6,6 +6,7 @@ import (
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/extractor"
 )
 
 // Create creates a new MCP server resource using the pipeline framework.
@@ -51,6 +52,7 @@ func (c *McpServerController) buildCreatePipeline() *pipeline.Pipeline[*mcpserve
 		AddStep(steps.NewResolveSlugStep[*mcpserverv1.McpServer]()).           // 2. Resolve slug
 		AddStep(steps.NewCheckDuplicateStep[*mcpserverv1.McpServer](c.store)). // 3. Check duplicate
 		AddStep(steps.NewBuildNewStateStep[*mcpserverv1.McpServer]()).         // 4. Build new state
-		AddStep(steps.NewPersistStep[*mcpserverv1.McpServer](c.store)).        // 5. Persist MCP server
+		AddStep(steps.NewPersistStep[*mcpserverv1.McpServer](c.store)).                           // 5. Persist MCP server
+		AddStep(steps.NewIndexSearchStep[*mcpserverv1.McpServer](c.store, &extractor.McpServerExtractor{})). // 6. Update search index
 		Build()
 }

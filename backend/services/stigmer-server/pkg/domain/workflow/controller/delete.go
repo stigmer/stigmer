@@ -41,6 +41,7 @@ func (c *WorkflowController) buildDeletePipeline() *pipeline.Pipeline[*workflowv
 		AddStep(steps.NewValidateProtoStep[*workflowv1.WorkflowId]()).                                      // 1. Validate field constraints
 		AddStep(steps.NewExtractResourceIdStep[*workflowv1.WorkflowId]()).                                  // 2. Extract ID from wrapper
 		AddStep(steps.NewLoadExistingForDeleteStep[*workflowv1.WorkflowId, *workflowv1.Workflow](c.store)). // 3. Load workflow
-		AddStep(steps.NewDeleteResourceStep[*workflowv1.WorkflowId](c.store)).                              // 4. Delete from database
+		AddStep(steps.NewDeleteResourceStep[*workflowv1.WorkflowId](c.store)).      // 4. Delete from database
+		AddStep(steps.NewDeleteSearchIndexStep[*workflowv1.WorkflowId](c.store)). // 5. Remove from search index
 		Build()
 }

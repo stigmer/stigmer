@@ -29,6 +29,15 @@ from graphton.core.backends.platform_mount import (
 logger = logging.getLogger(__name__)
 
 
+def _human_readable_size(size_bytes: int) -> str:
+    """Format a byte count as a compact human-readable string."""
+    if size_bytes < 1024:
+        return f"{size_bytes} bytes"
+    if size_bytes < 1024 * 1024:
+        return f"{size_bytes / 1024:.1f} KB"
+    return f"{size_bytes / (1024 * 1024):.1f} MB"
+
+
 @dataclass
 class ExecutionResult:
     """Result of a shell command execution.
@@ -211,12 +220,15 @@ class FilesystemBackend:
         return self.read_file(path)
 
     def read_file(self, path: str) -> str:
-        """Read file contents.
+        """Read file contents, or a structured listing for directories.
+
+        When *path* points to a regular file the full text content is returned.
+        When *path* points to a directory a human-readable listing is returned
+        so the agent receives useful structural information instead of an error.
 
         Raises:
             ValueError: If path escapes sandbox root
             FileNotFoundError: If file does not exist (with diagnostic details)
-            IsADirectoryError: If path points to a directory
         """
         file_path = self._resolve_sandbox_path(path)
 
@@ -232,15 +244,66 @@ class FilesystemBackend:
             raise FileNotFoundError(diag)
 
         if file_path.is_dir():
-            contents = sorted(item.name for item in file_path.iterdir())
-            msg = (
-                f"Path '{path}' is a directory, not a file. "
-                f"Contents: {contents}. Use list_files() to list directories."
-            )
-            logger.warning(msg)
-            raise IsADirectoryError(msg)
+            return self._format_directory_listing(file_path, path)
 
         return file_path.read_text()
+
+    # -- Directory listing helpers ---------------------------------------------
+
+    _SKIP_DIR_NAMES: frozenset[str] = frozenset({
+        ".git", "__pycache__", "node_modules", ".stigmer",
+    })
+    _MAX_LISTING_ENTRIES: int = 100
+
+    def _format_directory_listing(
+        self,
+        dir_path: Path,
+        display_path: str,
+    ) -> str:
+        """Build a structured listing when ``read`` is called on a directory.
+
+        Directories are sorted before files.  Hidden entries (names starting
+        with ``.``) and well-known noise directories are omitted.  Output is
+        capped at ``_MAX_LISTING_ENTRIES`` entries with a truncation notice.
+        """
+        try:
+            children = sorted(dir_path.iterdir(), key=lambda p: p.name)
+        except OSError as exc:
+            return f"[Directory: {display_path}]\n\n  (unable to list: {exc})"
+
+        dirs: list[str] = []
+        files: list[str] = []
+
+        for child in children:
+            name = child.name
+            if name.startswith(".") or name in self._SKIP_DIR_NAMES:
+                continue
+            try:
+                if child.is_dir():
+                    item_count = sum(
+                        1 for c in child.iterdir()
+                        if not c.name.startswith(".")
+                        and c.name not in self._SKIP_DIR_NAMES
+                    )
+                    label = "item" if item_count == 1 else "items"
+                    dirs.append(f"  {name}/  ({item_count} {label})")
+                else:
+                    size = child.stat().st_size
+                    files.append(f"  {name}  ({_human_readable_size(size)})")
+            except OSError:
+                files.append(f"  {name}")
+
+        lines = dirs + files
+        truncated = len(lines) > self._MAX_LISTING_ENTRIES
+        if truncated:
+            lines = lines[:self._MAX_LISTING_ENTRIES]
+
+        header = f"[Directory: {display_path}]"
+        body = "\n".join(lines) if lines else "  (empty)"
+        result = f"{header}\n\n{body}"
+        if truncated:
+            result += f"\n\n  ... truncated (showing {self._MAX_LISTING_ENTRIES} of {len(dirs) + len(files)} entries)"
+        return result
 
     def write(self, path: str, content: str) -> None:
         """Write content to file (deepagents compatible interface)."""
@@ -256,8 +319,25 @@ class FilesystemBackend:
         file_path.parent.mkdir(parents=True, exist_ok=True)
         file_path.write_text(content)
 
+    def is_directory(self, path: str) -> bool:
+        """Check whether *path* points to a directory inside the sandbox.
+
+        Returns ``False`` for files, non-existent paths, or paths that
+        escape the sandbox root.  Never raises.
+        """
+        try:
+            resolved = self._resolve_sandbox_path(path)
+            return resolved.is_dir()
+        except (ValueError, OSError):
+            return False
+
     def list_files(self, path: str = ".") -> list[str]:
         """List files in directory.
+
+        Hidden entries (names starting with ``"."``) and well-known noise
+        directories (``.git``, ``__pycache__``, ``node_modules``) are
+        excluded so that recursive tool traversals never descend into
+        infrastructure directories.
 
         When ``platform_dir`` is set and *path* resolves to the workspace
         root, a virtual ``.stigmer`` entry is merged into the listing so
@@ -281,10 +361,14 @@ class FilesystemBackend:
                 f"Path '{path}' is a file, not a directory "
                 f"(resolved to '{dir_path}'). Use read() to read files."
             )
-            logger.warning(msg)
+            logger.debug(msg)
             raise NotADirectoryError(msg)
 
-        entries = [item.name for item in dir_path.iterdir()]
+        entries = [
+            item.name for item in dir_path.iterdir()
+            if not item.name.startswith(".")
+            and item.name not in self._SKIP_DIR_NAMES
+        ]
 
         # Inject virtual .stigmer entry at the workspace root level.
         if (

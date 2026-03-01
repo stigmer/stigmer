@@ -11,6 +11,8 @@ Tests cover:
 from __future__ import annotations
 
 from worker.activities.execute_graphton import (
+    _build_directory_tree,
+    _human_size,
     build_referenced_files_prompt_section,
     build_workspace_prompt_section,
 )
@@ -296,6 +298,130 @@ class TestBuildReferencedFilesPromptSection:
         missing_line = [line for line in lines if "missing.txt" in line][0]
         assert "bytes" in exists_line
         assert "bytes" not in missing_line
+
+
+# =============================================================================
+# TestDirectoryTreeExpansion
+# =============================================================================
+
+
+class TestDirectoryTreeExpansion:
+    """Tests for directory tree expansion in the Referenced Files section."""
+
+    @staticmethod
+    def _make_tree(tmp_path):
+        """Build a representative directory tree and return its root.
+
+        Layout::
+
+            project/
+            ├── src/
+            │   ├── main.py       (30 bytes)
+            │   └── utils.py      (15 bytes)
+            ├── docs/
+            │   └── guide.md      (10 bytes)
+            ├── .git/
+            │   └── config
+            ├── __pycache__/
+            │   └── cached.pyc
+            └── README.md         (20 bytes)
+        """
+        base = tmp_path / "project"
+        (base / "src").mkdir(parents=True)
+        (base / "src" / "main.py").write_text("x" * 30)
+        (base / "src" / "utils.py").write_text("x" * 15)
+        (base / "docs").mkdir()
+        (base / "docs" / "guide.md").write_text("x" * 10)
+        (base / ".git").mkdir()
+        (base / ".git" / "config").write_text("hidden")
+        (base / "__pycache__").mkdir()
+        (base / "__pycache__" / "cached.pyc").write_text("bytecode")
+        (base / "README.md").write_text("x" * 20)
+        return base
+
+    def test_directory_ref_shows_tree(self, tmp_path):
+        self._make_tree(tmp_path)
+        section = build_referenced_files_prompt_section(
+            ["project"], str(tmp_path),
+        )
+        assert "project/" in section
+        assert "directory" in section
+        assert "src/" in section
+        assert "docs/" in section
+        assert "README.md" in section
+
+    def test_directory_ref_shows_nested_files(self, tmp_path):
+        self._make_tree(tmp_path)
+        section = build_referenced_files_prompt_section(
+            ["project"], str(tmp_path),
+        )
+        assert "project/src/main.py" in section
+        assert "project/docs/guide.md" in section
+
+    def test_directory_ref_shows_file_sizes(self, tmp_path):
+        self._make_tree(tmp_path)
+        section = build_referenced_files_prompt_section(
+            ["project"], str(tmp_path),
+        )
+        assert "30 bytes" in section
+        assert "20 bytes" in section
+
+    def test_directory_ref_skips_hidden(self, tmp_path):
+        self._make_tree(tmp_path)
+        section = build_referenced_files_prompt_section(
+            ["project"], str(tmp_path),
+        )
+        assert ".git" not in section
+        assert "__pycache__" not in section
+
+    def test_directory_ref_total_entry_count(self, tmp_path):
+        self._make_tree(tmp_path)
+        section = build_referenced_files_prompt_section(
+            ["project"], str(tmp_path),
+        )
+        assert "6 entries" in section
+
+    def test_directory_ref_respects_max_depth(self, tmp_path):
+        base = tmp_path / "deep"
+        deep = base / "a" / "b" / "c" / "d" / "e"
+        deep.mkdir(parents=True)
+        (deep / "leaf.txt").write_text("deep")
+
+        lines, total = _build_directory_tree(str(base), "deep/", max_depth=2)
+        paths = " ".join(lines)
+        assert "deep/a/" in paths
+        assert "deep/a/b/" in paths
+        assert "leaf.txt" not in paths
+
+    def test_directory_ref_truncates_large_trees(self, tmp_path):
+        base = tmp_path / "big"
+        base.mkdir()
+        for i in range(50):
+            (base / f"file_{i:03d}.txt").write_text("x")
+
+        lines, total = _build_directory_tree(str(base), "big/", max_entries=10)
+        assert len(lines) == 10
+        assert total == 50
+
+    def test_mixed_file_and_directory_refs(self, tmp_path):
+        self._make_tree(tmp_path)
+        (tmp_path / "standalone.txt").write_text("solo")
+
+        section = build_referenced_files_prompt_section(
+            ["standalone.txt", "project"], str(tmp_path),
+        )
+        assert "`standalone.txt`" in section
+        assert "project/" in section
+        assert "project/src/main.py" in section
+
+    def test_human_size_bytes(self):
+        assert _human_size(500) == "500 bytes"
+
+    def test_human_size_kilobytes(self):
+        assert _human_size(2048) == "2.0 KB"
+
+    def test_human_size_megabytes(self):
+        assert _human_size(5 * 1024 * 1024) == "5.0 MB"
 
 
 # =============================================================================
