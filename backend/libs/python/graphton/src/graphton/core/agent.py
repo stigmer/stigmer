@@ -547,11 +547,24 @@ def create_deep_agent(
         
         deepagents_backend = DeepAgentsBackendAdapter(sandbox_backend)
         
+        from deepagents.backends.protocol import (  # type: ignore[import-untyped]
+            SandboxBackendProtocol as _SandboxProto,
+        )
+        
+        if not isinstance(deepagents_backend, _SandboxProto):
+            raise TypeError(
+                f"DeepAgentsBackendAdapter ({type(deepagents_backend).__mro__}) "
+                f"does not satisfy SandboxBackendProtocol. "
+                f"FilesystemMiddleware will strip the execute tool."
+            )
+        
         logger.info(
             "Created %d platform tool wrapper(s) for sandbox "
-            "(approval_checker=%s, deepagents_backend=adapter)",
+            "(approval_checker=%s, deepagents_backend=%s, "
+            "protocol_compliant=True)",
             len(platform_tools),
             "enabled" if approval_checker else "disabled",
+            type(deepagents_backend).__name__,
         )
     
     # Auto-inject think tool for structured reasoning — only when the model

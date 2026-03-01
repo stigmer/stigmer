@@ -27,7 +27,6 @@ import logging
 import os
 import re
 import uuid
-from datetime import datetime, timezone
 from typing import Any
 
 from deepagents.backends.protocol import (  # type: ignore[import-untyped]
@@ -44,8 +43,14 @@ from deepagents.backends.protocol import (  # type: ignore[import-untyped]
 logger = logging.getLogger(__name__)
 
 
-class DeepAgentsBackendAdapter:
+class DeepAgentsBackendAdapter(SandboxBackendProtocol):
     """Adapts a graphton backend to deepagents' ``SandboxBackendProtocol``.
+
+    Explicit inheritance from ``SandboxBackendProtocol`` guarantees that
+    ``isinstance(adapter, SandboxBackendProtocol)`` is always ``True``
+    via normal MRO — no reliance on ``@runtime_checkable`` structural
+    subtyping, which is fragile across Python versions (CPython changed
+    the check semantics in 3.12 via ``inspect.getmembers_static``).
 
     The adapter delegates file and execution operations to the inner
     backend, translating between graphton's interface (``list_files``,
@@ -344,25 +349,3 @@ class DeepAgentsBackendAdapter:
                     FileDownloadResponse(path=file_path, error="permission_denied")
                 )
         return responses
-
-
-def _verify_protocol_compliance() -> None:
-    """Development-time assertion that the adapter satisfies the protocol.
-
-    Called at module load to fail fast if the adapter drifts out of sync
-    with ``SandboxBackendProtocol``.  This is a structural check only —
-    it does not instantiate the adapter.
-    """
-    required_methods = [
-        "ls_info", "read", "grep_raw", "glob_info",
-        "write", "edit", "upload_files", "download_files",
-        "execute", "id",
-    ]
-    for method in required_methods:
-        if not hasattr(DeepAgentsBackendAdapter, method):
-            raise AssertionError(
-                f"DeepAgentsBackendAdapter missing required method/property: {method}"
-            )
-
-
-_verify_protocol_compliance()

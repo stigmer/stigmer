@@ -1,17 +1,23 @@
 """Tests for DeepAgentsBackendAdapter.
 
 Verifies that the adapter:
-1. Satisfies deepagents' SandboxBackendProtocol (isinstance check)
+1. Satisfies deepagents' SandboxBackendProtocol (isinstance + MRO inheritance)
 2. Correctly delegates operations to the inner backend
 3. Converts return types between graphton and deepagents formats
+4. Preserves the execute tool through FilesystemMiddleware (integration)
 """
 
 from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
+from langchain.agents.middleware.types import ModelRequest, ModelResponse
+from langchain_core.messages import AIMessage
+from langchain_core.tools import tool
 
 from deepagents.backends.protocol import (  # type: ignore[import-untyped]
     BackendProtocol,
@@ -21,6 +27,7 @@ from deepagents.backends.protocol import (  # type: ignore[import-untyped]
     WriteResult,
 )
 from deepagents.middleware.filesystem import (  # type: ignore[import-untyped]
+    EXECUTION_SYSTEM_PROMPT,
     FilesystemMiddleware,
     _supports_execution,
 )
@@ -58,6 +65,9 @@ class TestProtocolCompliance:
     FilesystemMiddleware uses ``_supports_execution()`` to decide whether
     to strip the execute tool.  If this check fails, the entire fix is
     broken.
+
+    The adapter explicitly inherits from ``SandboxBackendProtocol``
+    (not duck typing), so ``isinstance`` is guaranteed via MRO.
     """
 
     def test_isinstance_sandbox_backend_protocol(
@@ -69,6 +79,16 @@ class TestProtocolCompliance:
         self, adapter: DeepAgentsBackendAdapter
     ) -> None:
         assert isinstance(adapter, BackendProtocol)
+
+    def test_mro_includes_sandbox_backend_protocol(self) -> None:
+        """Explicit inheritance puts SandboxBackendProtocol in the MRO.
+
+        This is stronger than isinstance (which also works via structural
+        subtyping for @runtime_checkable protocols).  MRO membership
+        proves the adapter truly inherits from the protocol, not just
+        that it happens to have the right method names.
+        """
+        assert SandboxBackendProtocol in DeepAgentsBackendAdapter.__mro__
 
     def test_supports_execution_returns_true(
         self, adapter: DeepAgentsBackendAdapter
@@ -282,3 +302,162 @@ class TestId:
 
         adapter = DeepAgentsBackendAdapter(FakeBackend())
         assert adapter.id == "custom-id-123"
+
+
+# =============================================================================
+# Middleware integration — the execute tool must survive awrap_model_call
+# =============================================================================
+
+
+@tool
+def _dummy_execute(command: str) -> str:
+    """Execute a shell command (test stub)."""
+    return "ok"
+
+
+_dummy_execute.name = "execute"  # type: ignore[attr-defined]
+
+
+@tool
+def _dummy_read(file_path: str) -> str:
+    """Read a file (test stub)."""
+    return "content"
+
+
+class TestMiddlewareIntegration:
+    """Verify that the execute tool is NOT stripped by FilesystemMiddleware.
+
+    This is the end-to-end test for the original bug: deepagents'
+    ``FilesystemMiddleware.wrap_model_call`` checks
+    ``_supports_execution(backend)`` and removes all tools named
+    ``"execute"`` when the check returns ``False``.
+
+    With the adapter backed by a real ``FilesystemBackend``, the check
+    must return ``True`` and the execute tool must remain in
+    ``request.tools`` after middleware processing.
+    """
+
+    def test_execute_tool_preserved_after_wrap_model_call(
+        self, adapter: DeepAgentsBackendAdapter
+    ) -> None:
+        """The execute tool must survive FilesystemMiddleware filtering."""
+        middleware = FilesystemMiddleware(backend=adapter)
+
+        captured: list[ModelRequest] = []
+
+        def capturing_handler(req: ModelRequest) -> ModelResponse:
+            captured.append(req)
+            return ModelResponse(result=[AIMessage(content="done")])
+
+        request = ModelRequest(
+            model=MagicMock(),
+            messages=[],
+            tools=[_dummy_execute, _dummy_read],
+        )
+
+        middleware.wrap_model_call(request, capturing_handler)
+
+        assert len(captured) == 1
+        forwarded = captured[0]
+        tool_names = [
+            t.name if hasattr(t, "name") else t.get("name")
+            for t in forwarded.tools
+        ]
+        assert "execute" in tool_names, (
+            f"execute tool was stripped by FilesystemMiddleware. "
+            f"Remaining tools: {tool_names}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_execute_tool_preserved_after_awrap_model_call(
+        self, adapter: DeepAgentsBackendAdapter
+    ) -> None:
+        """The async path must also preserve the execute tool."""
+        middleware = FilesystemMiddleware(backend=adapter)
+
+        captured: list[ModelRequest] = []
+
+        async def capturing_handler(req: ModelRequest) -> ModelResponse:
+            captured.append(req)
+            return ModelResponse(result=[AIMessage(content="done")])
+
+        request = ModelRequest(
+            model=MagicMock(),
+            messages=[],
+            tools=[_dummy_execute, _dummy_read],
+        )
+
+        await middleware.awrap_model_call(request, capturing_handler)
+
+        assert len(captured) == 1
+        forwarded = captured[0]
+        tool_names = [
+            t.name if hasattr(t, "name") else t.get("name")
+            for t in forwarded.tools
+        ]
+        assert "execute" in tool_names, (
+            f"execute tool was stripped by async FilesystemMiddleware. "
+            f"Remaining tools: {tool_names}"
+        )
+
+    def test_execution_system_prompt_appended(
+        self, adapter: DeepAgentsBackendAdapter
+    ) -> None:
+        """When execute is present and supported, the execution system
+        prompt must be appended to the request's system prompt."""
+        middleware = FilesystemMiddleware(backend=adapter)
+
+        captured: list[ModelRequest] = []
+
+        def capturing_handler(req: ModelRequest) -> ModelResponse:
+            captured.append(req)
+            return ModelResponse(result=[AIMessage(content="done")])
+
+        request = ModelRequest(
+            model=MagicMock(),
+            messages=[],
+            tools=[_dummy_execute],
+            system_prompt="Base prompt.",
+        )
+
+        middleware.wrap_model_call(request, capturing_handler)
+
+        assert len(captured) == 1
+        system = captured[0].system_prompt or ""
+        assert "execute" in system.lower(), (
+            "Execution system prompt was not appended despite backend "
+            "supporting execution."
+        )
+
+    def test_execute_stripped_without_adapter(self) -> None:
+        """Baseline: without the adapter, the middleware MUST strip execute.
+
+        This confirms the middleware's filtering logic is active and that
+        our other tests are meaningful (not vacuously passing).
+        """
+        middleware = FilesystemMiddleware(backend=None)
+
+        captured: list[ModelRequest] = []
+
+        def capturing_handler(req: ModelRequest) -> ModelResponse:
+            captured.append(req)
+            return ModelResponse(result=[AIMessage(content="done")])
+
+        request = ModelRequest(
+            model=MagicMock(),
+            messages=[],
+            tools=[_dummy_execute, _dummy_read],
+        )
+
+        middleware.wrap_model_call(request, capturing_handler)
+
+        assert len(captured) == 1
+        forwarded = captured[0]
+        tool_names = [
+            t.name if hasattr(t, "name") else t.get("name")
+            for t in forwarded.tools
+        ]
+        assert "execute" not in tool_names, (
+            "execute tool should be stripped when backend=None "
+            "(StateBackend does not implement SandboxBackendProtocol)"
+        )
