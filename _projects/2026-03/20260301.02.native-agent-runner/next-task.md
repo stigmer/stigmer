@@ -89,15 +89,16 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-01
-**Current Task**: T01.2 (Go CLI — Python Runtime Manager)
+**Current Task**: T01.4 (Rewrite startAgentRunner — Native Process Mode)
 **Status**: READY TO START
 
 ### Completed
 - **T01.0**: Phase 1 plan reviewed and approved
 - **T01.1**: Runtime filesystem layout designed and documented (DD-01)
+- **T01.2**: Go package for Python runtime management implemented (`internal/cli/pythonrt/`)
 
 ### Next Up
-- **T01.2**: Implement Go package for Python runtime management (download, extract, venv, install)
+- **T01.4**: Rewrite `startAgentRunner()` in daemon.go and supervisor.go — wire pythonrt.EnsureReady(), start agent-runner as native process
 
 ### Key Design Decision
 - **DD-01**: `design-decisions/DD01_runtime_filesystem_layout.md` — Runtime lives at `~/.stigmer/runtimes/agent-runner/<cli-version>/<platform>/` with self-contained python/, venv/, wheels/, and manifest.json
@@ -108,20 +109,19 @@ When starting a new session:
 - Reviewed T01_0_plan.md and approved the Phase 1 plan
 - Deep-dived into existing codebase: daemon.go, supervisor.go, config.go, embedded package, agent-runner Dockerfile and pyproject.toml
 - Identified three issues with the research report's proposed layout (ambiguous version key, over-engineered lock hash, split directory trees)
-- Designed self-contained runtime layout with five key decisions documented
-- Produced DD-01 design decision document with four alternatives analyzed and rejected
-- Flagged surprise: dormant `embedded.EnsureBinariesExtracted()` infrastructure as potential T01.2 hook point
-- Noted existing tech debt: Temporal/Ollama path inconsistency, container ID file naming mismatch
+- Designed self-contained runtime layout with five key decisions documented (DD-01)
+- **T01.2 completed**: Implemented `internal/cli/pythonrt/` — 7 files, 659 lines. Downloads python-build-standalone (CPython 3.11.14), extracts, creates venv, installs deps, exposes `EnsureReady()`. Atomic bootstrap, idempotent re-run (~34µs). Unit + integration tests passing on macOS arm64.
 
 ### Context for Resume
-- The `embedded` package in `client-apps/cli/embedded/` has existing binary extraction infrastructure that does nothing for agent-runner (all platforms use Docker). T01.2 needs to decide whether to repurpose this or build fresh.
-- Workflow-runner uses a "BusyBox" pattern — the CLI binary itself is invoked with `internal-workflow-runner` subcommand. Agent-runner cannot follow this pattern (it's Python, not Go), so it will need its own process management.
-- The `deepagents-cli` namespace collision workaround is already present in the Dockerfile (force-reinstall deepagents==0.4.0). The native venv bootstrap will need the same fix.
+- **pythonrt package** is standalone; T01.4 will wire it into daemon.go and supervisor.go. Bootstrap runs in daemon before stigmer-server starts; supervisor receives paths via env vars.
+- Workflow-runner uses a "BusyBox" pattern; agent-runner cannot (Python). T01.4 will start agent-runner as `<venv>/bin/python main.py` subprocess.
+- `PostInstallCmds` in pythonrt Config handles the `deepagents-cli` namespace collision (e.g., `["pip", "install", "--force-reinstall", "deepagents==0.4.0"]`).
+- Known issue for T01.4: daemon passes `WORKSPACE_ROOT` but agent-runner reads `SANDBOX_ROOT_DIR` — fix when wiring native startup.
 
 ## Quick Commands
 
 After loading context:
-- "Start T01.2" - Begin implementing the Python runtime manager
+- "Start T01.4" - Wire pythonrt into daemon.go and supervisor.go
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
