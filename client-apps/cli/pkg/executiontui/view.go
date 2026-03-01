@@ -6,6 +6,8 @@ import (
 
 	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/lipgloss"
+
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
 )
 
 // Layout constants for the header and footer areas.
@@ -129,7 +131,8 @@ func (m Model) renderFooter() string {
 		hints = "  ⏳ Cancelling...  ↑↓ scroll  q detach"
 	case m.approval != nil:
 		if m.approval.toolName != "" {
-			hints = fmt.Sprintf("  [a] Approve (%s)  [s] Skip  [r] Reject  [q] Detach", m.approval.toolName)
+			label := toolrender.DisplayLabel(m.approval.toolName)
+			hints = fmt.Sprintf("  [a] Approve (%s)  [s] Skip  [r] Reject  [q] Detach", label)
 		} else {
 			hints = "  [a] Approve  [s] Skip  [r] Reject  [q] Detach"
 		}

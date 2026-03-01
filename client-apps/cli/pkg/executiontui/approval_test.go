@@ -248,46 +248,109 @@ func TestApproval_Sequential_TwoApprovals(t *testing.T) {
 	}
 }
 
-// --- Rendering ---
+// --- Rendering: shell-specific approval prompt ---
 
-func TestRenderApprovalConfirmation_Approve(t *testing.T) {
-	result := renderApprovalConfirmation("approve", "shell")
-	if !strings.Contains(result, "Approved") {
-		t.Errorf("should contain 'Approved', got %q", result)
+func TestRenderApprovalPrompt_ShellTool_TerminalStyleCommand(t *testing.T) {
+	args := `{"command": "python3 script.py --flag", "timeout": 120}`
+	result := renderApprovalPrompt("execute", args, "Execute command: python3 script.py --flag", false, "")
+	if !strings.Contains(result, "APPROVAL REQUIRED") {
+		t.Error("should contain header")
 	}
-	if !strings.Contains(result, "shell") {
-		t.Errorf("should contain tool name, got %q", result)
+	if !strings.Contains(result, "$ python3 script.py --flag") {
+		t.Errorf("should render command with $ prefix, got %q", result)
+	}
+	if strings.Contains(result, "Tool:") {
+		t.Error("shell approval should not show 'Tool:' line")
+	}
+	if strings.Contains(result, "Execute command:") {
+		t.Error("should suppress redundant 'Execute command:' message")
+	}
+	if !strings.Contains(result, "timeout:") {
+		t.Error("should show secondary args like timeout")
 	}
 }
 
-func TestRenderApprovalConfirmation_Skip(t *testing.T) {
-	result := renderApprovalConfirmation("skip", "write_file")
-	if !strings.Contains(result, "Skipped") {
-		t.Errorf("should contain 'Skipped', got %q", result)
+func TestRenderApprovalPrompt_ShellTool_PreFormattedArgs(t *testing.T) {
+	args := "Command: ls -la /tmp\nworking_directory: /workspace"
+	result := renderApprovalPrompt("shell", args, "", false, "")
+	if !strings.Contains(result, "$ ls -la /tmp") {
+		t.Errorf("should extract and render command with $ prefix, got %q", result)
+	}
+	if !strings.Contains(result, "working_directory: /workspace") {
+		t.Error("should show secondary args")
 	}
 }
 
-func TestRenderApprovalConfirmation_Reject(t *testing.T) {
-	result := renderApprovalConfirmation("reject", "delete_file")
-	if !strings.Contains(result, "Rejected") {
-		t.Errorf("should contain 'Rejected', got %q", result)
+func TestRenderApprovalPrompt_NonShellTool_GenericFormat(t *testing.T) {
+	result := renderApprovalPrompt("write_file", "Path: output.txt", "Write file", false, "")
+	if !strings.Contains(result, "Tool: write_file") {
+		t.Error("non-shell tool should show 'Tool:' line")
+	}
+	if !strings.Contains(result, "Write file") {
+		t.Error("non-shell tool should show message")
 	}
 }
 
-func TestRenderApprovalConfirmation_EmptyToolName_FallsBack(t *testing.T) {
-	result := renderApprovalConfirmation("approve", "")
-	if !strings.Contains(result, "tool call") {
-		t.Errorf("empty tool name should fall back to 'tool call', got %q", result)
+func TestRenderApprovalPrompt_ShellTool_SubAgent(t *testing.T) {
+	args := `{"command": "npm install"}`
+	result := renderApprovalPrompt("shell", args, "", true, "general-purpose")
+	if !strings.Contains(result, "sub-agent") {
+		t.Error("should show sub-agent label")
+	}
+	if !strings.Contains(result, "general-purpose") {
+		t.Error("should show sub-agent name")
+	}
+	if !strings.Contains(result, "$ npm install") {
+		t.Error("should still render terminal-style command")
 	}
 }
 
-func TestRenderApprovalConfirmation_UnknownAction(t *testing.T) {
-	result := renderApprovalConfirmation("unknown", "shell")
-	if !strings.Contains(result, "unknown") {
-		t.Errorf("unknown action should appear in output, got %q", result)
+// --- Rendering: extractShellCommand ---
+
+func TestExtractShellCommand_JSON(t *testing.T) {
+	cmd, secondary := extractShellCommand(`{"command": "ls -la", "timeout": 30}`)
+	if cmd != "ls -la" {
+		t.Errorf("command = %q, want %q", cmd, "ls -la")
 	}
-	if !strings.Contains(result, "shell") {
-		t.Errorf("tool name should appear in output, got %q", result)
+	if len(secondary) != 1 || !strings.Contains(secondary[0], "timeout") {
+		t.Errorf("secondary = %v, want timeout entry", secondary)
+	}
+}
+
+func TestExtractShellCommand_PreFormatted(t *testing.T) {
+	cmd, secondary := extractShellCommand("Command: git status\nworking_directory: /repo")
+	if cmd != "git status" {
+		t.Errorf("command = %q, want %q", cmd, "git status")
+	}
+	if len(secondary) != 1 || secondary[0] != "working_directory: /repo" {
+		t.Errorf("secondary = %v, want [working_directory: /repo]", secondary)
+	}
+}
+
+func TestExtractShellCommand_EmptyInput(t *testing.T) {
+	cmd, secondary := extractShellCommand("")
+	if cmd != "" {
+		t.Errorf("command = %q, want empty", cmd)
+	}
+	if len(secondary) != 0 {
+		t.Errorf("secondary = %v, want empty", secondary)
+	}
+}
+
+// --- Rendering: isRedundantShellMessage ---
+
+func TestIsRedundantShellMessage_Redundant(t *testing.T) {
+	if !isRedundantShellMessage("Execute command: python3 script.py") {
+		t.Error("should detect redundant shell message")
+	}
+}
+
+func TestIsRedundantShellMessage_NotRedundant(t *testing.T) {
+	if isRedundantShellMessage("Write file to disk") {
+		t.Error("should not flag non-shell message")
+	}
+	if isRedundantShellMessage("") {
+		t.Error("should not flag empty message")
 	}
 }
 
@@ -376,15 +439,26 @@ func TestApproval_Reject_CmdReturnsNilMsg(t *testing.T) {
 	}
 }
 
-// --- Rendering ---
+// --- Rendering: multiline args ---
 
-func TestRenderApprovalPrompt_MultilineArgs(t *testing.T) {
+func TestRenderApprovalPrompt_MultilineArgs_ShellTool(t *testing.T) {
 	multiLineArgs := "Command: rm -rf /tmp\npath: /tmp"
-	result := renderApprovalPrompt("shell", multiLineArgs, "Execute command", false, "")
-	if !strings.Contains(result, "Command: rm -rf /tmp") {
-		t.Error("should contain first arg line")
+	result := renderApprovalPrompt("shell", multiLineArgs, "Execute command: rm -rf /tmp", false, "")
+	if !strings.Contains(result, "$ rm -rf /tmp") {
+		t.Errorf("shell tool should render command with $ prefix, got %q", result)
 	}
 	if !strings.Contains(result, "path: /tmp") {
+		t.Error("should contain secondary arg line")
+	}
+}
+
+func TestRenderApprovalPrompt_MultilineArgs_NonShellTool(t *testing.T) {
+	multiLineArgs := "Path: /workspace/file.txt\ncontent: hello"
+	result := renderApprovalPrompt("write_file", multiLineArgs, "Write file", false, "")
+	if !strings.Contains(result, "Path: /workspace/file.txt") {
+		t.Error("should contain first arg line")
+	}
+	if !strings.Contains(result, "content: hello") {
 		t.Error("should contain second arg line")
 	}
 }
@@ -432,7 +506,7 @@ func TestApproval_CreatesContextBlock(t *testing.T) {
 	}
 }
 
-func TestApproval_Approve_ReplacesContextBlockWithConfirmation(t *testing.T) {
+func TestApproval_Approve_HidesContextBlock(t *testing.T) {
 	m, _, _ := newTestModel()
 	m = enterApproval(t, m, "tc-replace", "shell")
 	approvalIdx := m.approvalBlockIdx
@@ -445,35 +519,32 @@ func TestApproval_Approve_ReplacesContextBlockWithConfirmation(t *testing.T) {
 	if approvalIdx >= len(m.blocks) {
 		t.Fatal("approval block index out of range")
 	}
-	replaced := m.blocks[approvalIdx]
-	if !strings.Contains(replaced.content, "Approved") {
-		t.Errorf("replaced block should contain 'Approved', got %q", replaced.content)
+	if !m.blocks[approvalIdx].hidden {
+		t.Error("approval block should be hidden after approve")
 	}
 }
 
-func TestApproval_Skip_ReplacesContextBlockWithConfirmation(t *testing.T) {
+func TestApproval_Skip_HidesContextBlock(t *testing.T) {
 	m, _, _ := newTestModel()
 	m = enterApproval(t, m, "tc-skip-ctx", "write_file")
 	approvalIdx := m.approvalBlockIdx
 
 	m, _ = pressApprovalKey(t, m, 's')
 
-	replaced := m.blocks[approvalIdx]
-	if !strings.Contains(replaced.content, "Skipped") {
-		t.Errorf("replaced block should contain 'Skipped', got %q", replaced.content)
+	if !m.blocks[approvalIdx].hidden {
+		t.Error("approval block should be hidden after skip")
 	}
 }
 
-func TestApproval_Reject_ReplacesContextBlockWithConfirmation(t *testing.T) {
+func TestApproval_Reject_HidesContextBlock(t *testing.T) {
 	m, _, _ := newTestModel()
 	m = enterApproval(t, m, "tc-reject-ctx", "delete_file")
 	approvalIdx := m.approvalBlockIdx
 
 	m, _ = pressApprovalKey(t, m, 'r')
 
-	replaced := m.blocks[approvalIdx]
-	if !strings.Contains(replaced.content, "Rejected") {
-		t.Errorf("replaced block should contain 'Rejected', got %q", replaced.content)
+	if !m.blocks[approvalIdx].hidden {
+		t.Error("approval block should be hidden after reject")
 	}
 }
 
@@ -509,7 +580,7 @@ func TestApproval_SubAgentContext_ShownInBlock(t *testing.T) {
 	}
 }
 
-// --- Footer shows tool name ---
+// --- Footer shows display label ---
 
 func TestApproval_Footer_ShowsToolName(t *testing.T) {
 	m, _, _ := newTestModel()
@@ -521,5 +592,18 @@ func TestApproval_Footer_ShowsToolName(t *testing.T) {
 	}
 	if !strings.Contains(footer, "[a] Approve") {
 		t.Errorf("footer should contain approval key hints, got %q", footer)
+	}
+}
+
+func TestApproval_Footer_MapsRawToolNameToDisplayLabel(t *testing.T) {
+	m, _, _ := newTestModel()
+	m = enterApproval(t, m, "tc-footer-label", "execute")
+
+	footer := m.renderFooter()
+	if !strings.Contains(footer, "Execute") {
+		t.Errorf("footer should map 'execute' to display label 'Execute', got %q", footer)
+	}
+	if strings.Contains(footer, "(execute)") {
+		t.Errorf("footer should not show raw tool name 'execute', got %q", footer)
 	}
 }
