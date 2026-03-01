@@ -9,16 +9,21 @@ import "buf/validate/validate.proto";
 // All execution results and state live in AgentExecutionStatus (in api.proto).
 message AgentExecutionSpec {
   // Session ID this execution belongs to (optional).
-  // If not provided, agent_id must be specified - a session will be auto-created
+  // At least one of session_id or agent_id must be provided (enforced in handler).
+  // Both may be set — when both are present, session_id is used for session
+  // resolution and agent_id is preserved as metadata for downstream consumers
+  // (e.g., session subject generation).
+  // When absent, agent_id must be specified — a session is auto-created
   // using the agent's default instance.
-  // Either session_id or agent_id must be provided (enforced in handler).
   string session_id = 1;
 
   // Agent ID (optional).
-  // If session_id is not provided, agent_id must be specified.
+  // At least one of session_id or agent_id must be provided (enforced in handler).
+  // Both may be set — agent_id is preserved on the execution record even when
+  // session_id is present, so downstream consumers can access the agent
+  // without resolving through the session chain.
   // When provided without session_id, a new session is auto-created using
   // the agent's default instance ID.
-  // Either session_id or agent_id must be provided (enforced in handler).
   string agent_id = 2;
 
   // User input message that triggers this execution.

@@ -14,6 +14,7 @@ from temporalio import activity
 
 from grpc_client.agent_client import AgentClient
 from grpc_client.agent_execution_client import AgentExecutionClient
+from grpc_client.agent_instance_client import AgentInstanceClient
 from grpc_client.session_client import SessionClient
 from worker.config import Config
 from worker.token_manager import get_api_key
@@ -101,13 +102,23 @@ async def _generate_and_update_subject(execution_id: str) -> None:
         )
         return
 
-    # Step 3: Fetch agent metadata for prompt context
+    # Step 3: Resolve agent_id — prefer execution spec, fall back to session chain
+    if not agent_id:
+        agent_id = await _resolve_agent_id_from_session(api_key, session)
+    if not agent_id:
+        activity_logger.warning(
+            "Cannot resolve agent_id for execution %s, skipping subject generation",
+            execution_id,
+        )
+        return
+
+    # Step 4: Fetch agent metadata for prompt context
     agent_client = AgentClient(api_key)
     agent = await agent_client.get(agent_id)
     agent_name = agent.metadata.name
     agent_description = agent.spec.description or ""
 
-    # Step 4: Generate title with economy-tier model
+    # Step 5: Generate title with economy-tier model
     generated_subject = await _generate_title(
         user_message, agent_name, agent_description
     )
@@ -116,13 +127,43 @@ async def _generate_and_update_subject(execution_id: str) -> None:
         activity_logger.warning("LLM returned empty subject, skipping update")
         return
 
-    # Step 5: Update session
+    # Step 6: Update session
     session.spec.subject = generated_subject
     await session_client.update(session)
 
     activity_logger.info(
         "Updated session %s subject to '%s'", session_id, generated_subject
     )
+
+
+async def _resolve_agent_id_from_session(
+    api_key: str, session
+) -> str | None:
+    """Resolve agent_id via the session chain: session -> agent_instance -> agent.
+
+    This mirrors the chain resolution in execute_graphton.py and handles
+    executions created with only session_id (e.g., follow-up messages or
+    workspace-based runs where the CLI creates the session first).
+    """
+    agent_instance_id = session.spec.agent_instance_id
+    if not agent_instance_id:
+        activity_logger.warning(
+            "Session %s has no agent_instance_id, cannot resolve agent",
+            session.metadata.id,
+        )
+        return None
+
+    agent_instance_client = AgentInstanceClient(api_key)
+    agent_instance = await agent_instance_client.get(agent_instance_id)
+    resolved = agent_instance.spec.agent_id
+
+    if resolved:
+        activity_logger.info(
+            "Resolved agent_id=%s from session chain (instance=%s)",
+            resolved,
+            agent_instance_id,
+        )
+    return resolved or None
 
 
 async def _generate_title(
