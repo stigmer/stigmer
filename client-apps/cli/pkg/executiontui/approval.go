@@ -13,7 +13,7 @@ import (
 // When an approval key is pressed:
 //  1. The approval response is sent to the goroutine via the response channel.
 //  2. The tool block badge is updated in-place to reflect the decision.
-//  3. The approval context block is replaced with a compact confirmation line.
+//  3. The approval context block is hidden (the badge transition is sufficient).
 //  4. The approval state is cleared.
 //
 // IMPORTANT: This handler does NOT issue a new listenForEvents command.
@@ -80,11 +80,11 @@ func (m Model) handleApprovalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	// Replace the approval context block with a compact confirmation line.
+	// Hide the approval context block. The tool block's badge transition
+	// (⏸ → ⏳ for approve, ⏸ → ⏭ for skip, ⏸ → ✗ for reject) already
+	// communicates the outcome — a separate confirmation line is redundant.
 	if m.approvalBlockIdx >= 0 && m.approvalBlockIdx < len(m.blocks) {
-		m.blocks[m.approvalBlockIdx] = newSystemBlock(
-			renderApprovalConfirmation(action, m.approval.toolName),
-		)
+		m.blocks[m.approvalBlockIdx].hidden = true
 	}
 	m.approvalBlockIdx = -1
 

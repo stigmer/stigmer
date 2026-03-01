@@ -1459,3 +1459,52 @@ func assertNotContains(t *testing.T, s, substr string) {
 		t.Errorf("expected output to NOT contain %q\n  plain: %q", substr, plain)
 	}
 }
+
+// --- DisplayLabel ---
+
+func TestDisplayLabel_KnownTool(t *testing.T) {
+	tests := map[string]string{
+		"execute":      "Execute",
+		"shell":        "Shell",
+		"read_file":    "Read",
+		"write_file":   "Write",
+		"delete_file":  "Delete",
+		"glob":         "Find",
+		"grep":         "Search",
+		"task":         "Task",
+		"think":        "Thinking",
+	}
+	for toolName, wantLabel := range tests {
+		got := DisplayLabel(toolName)
+		if got != wantLabel {
+			t.Errorf("DisplayLabel(%q) = %q, want %q", toolName, got, wantLabel)
+		}
+	}
+}
+
+func TestDisplayLabel_UnknownTool_ReturnsRawName(t *testing.T) {
+	got := DisplayLabel("custom_mcp_tool")
+	if got != "custom_mcp_tool" {
+		t.Errorf("DisplayLabel(unknown) = %q, want raw name", got)
+	}
+}
+
+// --- IsShellTool ---
+
+func TestIsShellTool_ShellTools(t *testing.T) {
+	shellTools := []string{"shell", "bash", "execute", "execute_command", "run_command", "terminal"}
+	for _, name := range shellTools {
+		if !IsShellTool(name) {
+			t.Errorf("IsShellTool(%q) = false, want true", name)
+		}
+	}
+}
+
+func TestIsShellTool_NonShellTools(t *testing.T) {
+	nonShell := []string{"read_file", "write_file", "delete_file", "glob", "grep", "task", "think", "custom_tool"}
+	for _, name := range nonShell {
+		if IsShellTool(name) {
+			t.Errorf("IsShellTool(%q) = true, want false", name)
+		}
+	}
+}

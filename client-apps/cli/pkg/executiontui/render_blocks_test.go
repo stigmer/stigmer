@@ -121,12 +121,12 @@ func TestRenderPhaseChange_WaitingForApproval_Suppressed(t *testing.T) {
 }
 
 func TestRenderApprovalPrompt(t *testing.T) {
-	result := renderApprovalPrompt("shell", `{"command":"ls"}`, "Execute command", false, "")
+	result := renderApprovalPrompt("shell", `{"command":"ls"}`, "Execute command: ls", false, "")
 	if !strings.Contains(result, "APPROVAL REQUIRED") {
 		t.Error("should contain APPROVAL REQUIRED")
 	}
-	if !strings.Contains(result, "shell") {
-		t.Error("should contain tool name")
+	if !strings.Contains(result, "$ ls") {
+		t.Errorf("shell tool should render command with $ prefix, got %q", result)
 	}
 }
 
