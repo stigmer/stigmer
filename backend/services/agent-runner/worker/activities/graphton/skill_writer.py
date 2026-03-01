@@ -305,13 +305,25 @@ class SkillWriter:
             "runtime. Do not write, modify, or create files inside it. "
             "When creating new files, write them relative to the workspace "
             "root (e.g. `my-output/file.md`, not "
-            f"`{_SKILLS_RELATIVE_BASE}/my-output/file.md`). "
-            "When a skill's SKILL.md references relative paths "
-            "(e.g. `scripts/run.py`, `references/schema.md`), resolve them "
-            "from the skill's **Location** directory "
-            "(e.g. `read {location}/references/schema.md`). "
-            "For shell execution of skill scripts, use "
-            "`$STIGMER_PLATFORM_DIR/skills/{name}/scripts/…`.",
+            f"`{_SKILLS_RELATIVE_BASE}/my-output/file.md`).",
+            "",
+            "### Working with Skill Files",
+            "",
+            "Skills reference their own files using relative paths "
+            "(e.g. `scripts/run.py`, `references/schema.md`). "
+            "How you resolve these depends on the operation:",
+            "",
+            "**Reading** -- resolve from the skill's **Location** directory:",
+            "`read {location}/references/schema.md`",
+            "",
+            "**Executing scripts** -- use the `execute` tool with the "
+            "`$STIGMER_PLATFORM_DIR` environment variable:",
+            '`execute("python3 $STIGMER_PLATFORM_DIR/skills/{name}/scripts/run.py")`',
+            "",
+            "The `$STIGMER_PLATFORM_DIR` variable is automatically set in the "
+            "sandbox and points to the platform directory containing skill files. "
+            "Always use it for script execution -- do not construct paths manually "
+            "or use the `.stigmer/` prefix for `execute` commands.",
             "",
         ]
 

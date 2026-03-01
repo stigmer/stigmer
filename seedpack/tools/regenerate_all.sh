@@ -7,13 +7,16 @@
 # depends on the output of earlier ones:
 #
 #   01  Vendor upstream skills (standalone — brings in skill-creator source)
-#   02  Draft agent-creator skill    (uses proto schemas only)
-#   03  Draft skill-creator agent    (uses proto schemas only)
+#   02  Draft agent-creator skill       (uses proto schemas only)
+#   03  Draft agent-creator agent       (uses proto schemas only)
 #   04  Draft mcp-server-creator skill  (uses proto schemas only)
 #   05  Draft mcp-server-creator agent  (uses proto schemas only)
-#   06  Draft agent-creator agent    (uses proto schemas only)
 #
-# The draft scripts (02-06) are independent of each other — they only read
+# NOTE: The skill-creator agent (agents/skill-creator.yaml) is hand-maintained
+# and NOT regenerated. It contains runtime-specific conventions that AI
+# generation cannot reliably produce.
+#
+# The draft scripts (02-05) are independent of each other — they only read
 # proto schemas from apis/. However, the numbering is preserved for clarity.
 #
 # Prerequisites:
@@ -77,10 +80,9 @@ if [ "$SKIP_VENDOR" = false ]; then
 fi
 
 run_script "${SCRIPT_DIR}/02_draft-agent-creator-skill.sh"
-run_script "${SCRIPT_DIR}/03_draft-skill-creator-agent.sh"
+run_script "${SCRIPT_DIR}/03_draft-agent-creator-agent.sh"
 run_script "${SCRIPT_DIR}/04_draft-mcp-server-creator-skill.sh"
 run_script "${SCRIPT_DIR}/05_draft-mcp-server-creator-agent.sh"
-run_script "${SCRIPT_DIR}/06_draft-agent-creator-agent.sh"
 
 echo ""
 echo "================================================================="
