@@ -1,0 +1,216 @@
+package pythonrt
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"path/filepath"
+	"time"
+
+	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
+)
+
+// Config holds the parameters for managing a Python runtime environment.
+type Config struct {
+	// BaseDir is the root for all runtime versions
+	// (e.g., ~/.stigmer/runtimes/agent-runner).
+	BaseDir string
+
+	// CLIVersion is the current CLI build version, used as the directory key
+	// for version isolation.
+	CLIVersion string
+
+	// DepsSource is the path to a pip requirements file. When empty,
+	// dependency installation is skipped entirely.
+	DepsSource string
+
+	// WheelDir is an optional path to a directory of pre-built wheels.
+	// When non-empty, pip installs offline from this wheelhouse.
+	WheelDir string
+
+	// PostInstallCmds lists commands to run inside the venv after dependency
+	// installation (e.g., namespace collision fixups). Each entry is a
+	// command with its arguments.
+	PostInstallCmds [][]string
+}
+
+// Manager manages the lifecycle of a hermetic Python runtime environment
+// backed by python-build-standalone.
+type Manager struct {
+	config   Config
+	platform Platform
+}
+
+// NewManager creates a runtime Manager for the current platform.
+func NewManager(cfg Config) (*Manager, error) {
+	if cfg.BaseDir == "" {
+		return nil, errors.New("pythonrt: BaseDir is required")
+	}
+	if cfg.CLIVersion == "" {
+		return nil, errors.New("pythonrt: CLIVersion is required")
+	}
+	p := DetectPlatform()
+	if !p.IsSupported() {
+		return nil, fmt.Errorf("pythonrt: unsupported platform %s", p)
+	}
+	return &Manager{config: cfg, platform: p}, nil
+}
+
+// RuntimeDir returns the versioned, platform-specific runtime directory.
+func (m *Manager) RuntimeDir() string {
+	return filepath.Join(m.config.BaseDir, m.config.CLIVersion, m.platform.String())
+}
+
+// PythonBin returns the path to the Python binary inside the venv.
+func (m *Manager) PythonBin() string {
+	return filepath.Join(m.venvDir(), "bin", "python")
+}
+
+// IsReady reports whether the runtime is bootstrapped and valid for the
+// current CLI version.
+func (m *Manager) IsReady() bool {
+	manifest, err := ReadManifest(m.manifestPath())
+	if err != nil {
+		return false
+	}
+	return manifest.IsValid(m.config.CLIVersion)
+}
+
+// EnsureReady guarantees a valid Python runtime exists. When the runtime is
+// already bootstrapped for the current CLI version this is a fast no-op.
+func (m *Manager) EnsureReady(ctx context.Context) error {
+	if m.IsReady() {
+		log.Debug().
+			Str("runtime_dir", m.RuntimeDir()).
+			Msg("Python runtime already bootstrapped")
+		return nil
+	}
+	return m.bootstrap(ctx)
+}
+
+func (m *Manager) pythonDir() string    { return filepath.Join(m.RuntimeDir(), "python") }
+func (m *Manager) venvDir() string      { return filepath.Join(m.RuntimeDir(), "venv") }
+func (m *Manager) manifestPath() string { return filepath.Join(m.RuntimeDir(), "manifest.json") }
+func (m *Manager) basePythonBin() string {
+	return filepath.Join(m.pythonDir(), "bin", "python3")
+}
+
+// ---------------------------------------------------------------------------
+// Bootstrap orchestration
+// ---------------------------------------------------------------------------
+
+// bootstrap performs a complete runtime provisioning. The operation is atomic:
+// if any step fails the runtime directory is removed so no partial state
+// remains on disk.
+func (m *Manager) bootstrap(ctx context.Context) error {
+	runtimeDir := m.RuntimeDir()
+	if err := prepareDir(runtimeDir); err != nil {
+		return err
+	}
+
+	success := false
+	defer func() {
+		if !success {
+			_ = os.RemoveAll(runtimeDir)
+		}
+	}()
+
+	start := time.Now()
+
+	if err := m.downloadAndExtractPython(ctx); err != nil {
+		return err
+	}
+	if err := m.setupVenv(ctx); err != nil {
+		return err
+	}
+	if err := m.writeManifest(start); err != nil {
+		return err
+	}
+
+	success = true
+	return nil
+}
+
+// prepareDir removes any stale directory at path and creates a fresh one.
+func prepareDir(dir string) error {
+	if err := os.RemoveAll(dir); err != nil {
+		return errors.Wrap(err, "failed to remove stale runtime directory")
+	}
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return errors.Wrap(err, "failed to create runtime directory")
+	}
+	return nil
+}
+
+func (m *Manager) downloadAndExtractPython(ctx context.Context) error {
+	tmpTarball := filepath.Join(m.RuntimeDir(), ".download.tar.gz")
+	defer os.Remove(tmpTarball)
+
+	if err := downloadPythonDist(m.platform, tmpTarball); err != nil {
+		return errors.Wrap(err, "failed to download Python distribution")
+	}
+	if err := extractTarball(tmpTarball, m.RuntimeDir()); err != nil {
+		return errors.Wrap(err, "failed to extract Python distribution")
+	}
+	if m.platform.OS == "darwin" {
+		if err := clearQuarantine(m.pythonDir()); err != nil {
+			log.Warn().Err(err).Msg("Failed to clear macOS quarantine attribute")
+		}
+	}
+	return nil
+}
+
+func (m *Manager) setupVenv(ctx context.Context) error {
+	log.Info().Msg("Creating virtual environment")
+	if err := createVenv(ctx, m.basePythonBin(), m.venvDir()); err != nil {
+		return errors.Wrap(err, "failed to create virtual environment")
+	}
+
+	if m.config.DepsSource != "" {
+		log.Info().Msg("Installing dependencies")
+		if err := installDependencies(ctx, m.PythonBin(), m.config.DepsSource, m.config.WheelDir); err != nil {
+			return errors.Wrap(err, "failed to install dependencies")
+		}
+	}
+
+	if len(m.config.PostInstallCmds) > 0 {
+		if err := runPostInstallCmds(ctx, m.venvDir(), m.config.PostInstallCmds); err != nil {
+			return errors.Wrap(err, "failed to run post-install commands")
+		}
+	}
+	return nil
+}
+
+func (m *Manager) writeManifest(start time.Time) error {
+	depsHash := ""
+	if m.config.DepsSource != "" {
+		h, err := hashFile(m.config.DepsSource)
+		if err != nil {
+			return errors.Wrap(err, "failed to hash dependency lock file")
+		}
+		depsHash = h
+	}
+
+	manifest := &Manifest{
+		SchemaVersion:       manifestSchemaVersion,
+		CLIVersion:          m.config.CLIVersion,
+		Platform:            m.platform.String(),
+		PythonVersion:       PythonVersion,
+		PBSTag:              PBSTag,
+		DepsLockSHA256:      depsHash,
+		InstalledAt:         time.Now(),
+		BootstrapDurationMS: time.Since(start).Milliseconds(),
+	}
+
+	if err := manifest.Write(m.manifestPath()); err != nil {
+		return errors.Wrap(err, "failed to write runtime manifest")
+	}
+
+	log.Info().
+		Str("runtime_dir", m.RuntimeDir()).
+		Str("python_version", PythonVersion).
+		Int64("duration_ms", manifest.BootstrapDurationMS).
+		Msg("Python runtime bootstrapped successfully")
+	return nil
+}
