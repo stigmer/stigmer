@@ -8,16 +8,18 @@
 #
 #   01  Vendor upstream skills (standalone — brings in skill-creator source)
 #   02  Draft agent-creator skill       (uses proto schemas only)
-#   03  Draft agent-creator agent       (uses proto schemas only)
 #   04  Draft mcp-server-creator skill  (uses proto schemas only)
 #   05  Draft mcp-server-creator agent  (uses proto schemas only)
 #
-# NOTE: The skill-creator agent (agents/skill-creator.yaml) is hand-maintained
-# and NOT regenerated. It contains runtime-specific conventions that AI
-# generation cannot reliably produce.
+# NOTE: The following agents are hand-maintained and NOT regenerated:
+#   - skill-creator agent   (agents/skill-creator.yaml)
+#   - agent-creator agent   (agents/agent-creator.yaml)
+# They contain runtime-specific conventions (path schemes, tool invocation
+# patterns, output directory handling) that AI generation cannot reliably
+# produce.
 #
-# The draft scripts (02-05) are independent of each other — they only read
-# proto schemas from apis/. However, the numbering is preserved for clarity.
+# The draft scripts (02, 04, 05) are independent of each other — they only
+# read proto schemas from apis/. The numbering is preserved for clarity.
 #
 # Prerequisites:
 #   - stigmer CLI built and available in PATH
@@ -80,7 +82,7 @@ if [ "$SKIP_VENDOR" = false ]; then
 fi
 
 run_script "${SCRIPT_DIR}/02_draft-agent-creator-skill.sh"
-run_script "${SCRIPT_DIR}/03_draft-agent-creator-agent.sh"
+# 03 removed — agent-creator agent is hand-maintained (see header note)
 run_script "${SCRIPT_DIR}/04_draft-mcp-server-creator-skill.sh"
 run_script "${SCRIPT_DIR}/05_draft-mcp-server-creator-agent.sh"
 
