@@ -20,6 +20,19 @@ func init() {
 	sourceFS = os.DirFS(dir)
 }
 
+func devRepoRoot() string {
+	src := locateRepoSource()
+	if src == "" {
+		return ""
+	}
+	// agent-runner source is at backend/services/agent-runner — repo root is 3 levels up.
+	root := filepath.Clean(filepath.Join(src, "..", "..", ".."))
+	if _, err := os.Stat(filepath.Join(root, "Makefile")); err == nil {
+		return root
+	}
+	return ""
+}
+
 // locateRepoSource finds the agent-runner source directory.
 //
 // Resolution order:

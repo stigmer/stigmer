@@ -23,6 +23,12 @@ const (
 	healthCheckInterval      = 10 * time.Second
 	maxRestarts              = 5
 	gracefulStopTimeout      = 5 * time.Second
+
+	// rapidCrashWindow is the minimum uptime before a crash is considered
+	// transient. A component that crashes within this window of its last
+	// start is treated as a structural failure (e.g. missing dependency,
+	// bad config) and is not retried.
+	rapidCrashWindow = 5 * time.Second
 )
 
 // HealthState is written atomically by the daemon process and read by the
@@ -331,6 +337,18 @@ func runHealthMonitor(ctx context.Context, dataDir string, components []*managed
 				}
 
 				log.Warn().Str("component", c.name).Int("pid", c.cmd.Process.Pid).Msg("Component is not alive, attempting restart")
+
+				// If the component crashed almost immediately after starting,
+				// it's likely a structural problem that restarts won't fix.
+				if !c.state.StartedAt.IsZero() && time.Since(c.state.StartedAt) < rapidCrashWindow {
+					c.state.State = "failed"
+					c.state.LastError = "crashed immediately after start (likely a configuration or dependency error)"
+					log.Error().
+						Str("component", c.name).
+						Dur("uptime", time.Since(c.state.StartedAt)).
+						Msg("Component crashed too quickly, marking as failed without retry")
+					continue
+				}
 
 				if c.state.RestartCount >= maxRestarts {
 					c.state.State = "failed"

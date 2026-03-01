@@ -77,6 +77,28 @@ lint: ## Run all linters and type checks
 
 check: lint build test ## Run full CI gate locally
 
+# ─── Dependencies ─────────────────────────────
+
+.PHONY: update-agent-runner-deps
+update-agent-runner-deps: ## Regenerate agent-runner requirements.txt from poetry.lock
+	@cd $(AGENT_RUNNER_DIR) && poetry show --only main --no-ansi \
+		| awk '{ name=$$1; ver=$$2; if (name=="graphton" || name=="stigmer-stubs") next; printf "%s==%s\n", name, ver }' \
+		| sort > /tmp/stigmer-ar-deps.txt
+	@cd $(AGENT_RUNNER_DIR) && poetry show pathspec --no-ansi >/dev/null 2>&1 \
+		&& echo "pathspec==$$(cd $(AGENT_RUNNER_DIR) && poetry show pathspec --no-ansi | awk '/version/{print $$3}')" >> /tmp/stigmer-ar-deps.txt \
+		&& sort -o /tmp/stigmer-ar-deps.txt /tmp/stigmer-ar-deps.txt || true
+	@{ echo "# Auto-generated from poetry.lock — do not edit manually."; \
+	   echo "# Regenerate with: make update-agent-runner-deps"; \
+	   echo "#"; \
+	   echo "# This file lists all PyPI dependencies (direct + transitive) needed to run"; \
+	   echo "# agent-runner inside the hermetic pythonrt venv.  Path dependencies (graphton,"; \
+	   echo "# stigmer-stubs) are excluded; they are installed separately from the local"; \
+	   echo "# source tree by the bootstrap pipeline."; \
+	   cat /tmp/stigmer-ar-deps.txt; \
+	} > $(AGENT_RUNNER_DIR)/requirements.txt
+	@rm -f /tmp/stigmer-ar-deps.txt
+	@echo "updated: $(AGENT_RUNNER_DIR)/requirements.txt ($$(wc -l < $(AGENT_RUNNER_DIR)/requirements.txt | tr -d ' ') lines)"
+
 # ─── Local Dev ────────────────────────────────
 
 DEV_LDFLAGS := -X github.com/stigmer/stigmer/client-apps/cli/embedded/agentrunner.devSourceDir=$(CURDIR)/backend/services/agent-runner

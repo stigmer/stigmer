@@ -17,3 +17,5 @@ func init() {
 	}
 	sourceFS = sub
 }
+
+func devRepoRoot() string { return "" }

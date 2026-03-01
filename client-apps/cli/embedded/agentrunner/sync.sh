@@ -23,14 +23,15 @@ mkdir -p "$SOURCE_DIR"
 
 echo "Syncing agent-runner source..."
 cp "$AGENT_RUNNER/main.py" "$SOURCE_DIR/"
+cp "$AGENT_RUNNER/requirements.txt" "$SOURCE_DIR/"
 cp -r "$AGENT_RUNNER/worker" "$SOURCE_DIR/worker"
 cp -r "$AGENT_RUNNER/grpc_client" "$SOURCE_DIR/grpc_client"
 
 if [ -d "$GRAPHTON" ]; then
     echo "Syncing graphton lib..."
-    mkdir -p "$SOURCE_DIR/libs/graphton"
-    cp -r "$GRAPHTON/graphton" "$SOURCE_DIR/libs/graphton/" 2>/dev/null || true
-    cp "$GRAPHTON/pyproject.toml" "$SOURCE_DIR/libs/graphton/" 2>/dev/null || true
+    mkdir -p "$SOURCE_DIR/libs/graphton/src"
+    cp -r "$GRAPHTON/src/graphton" "$SOURCE_DIR/libs/graphton/src/"
+    cp "$GRAPHTON/pyproject.toml" "$SOURCE_DIR/libs/graphton/"
 fi
 
 if [ -d "$STUBS" ]; then

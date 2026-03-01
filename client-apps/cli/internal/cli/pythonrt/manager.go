@@ -39,6 +39,12 @@ type Config struct {
 	// source code (e.g., agent-runner's main.py + worker/ package). When
 	// non-nil, bootstrap extracts the contents into <runtime>/app/.
 	AppSourceFS fs.FS
+
+	// PreInstallFn runs after the application source is extracted into the
+	// app directory but before dependency installation. Use it to copy
+	// additional source trees that are not part of AppSourceFS (e.g.,
+	// monorepo path dependencies in dev mode).
+	PreInstallFn func(appDir string) error
 }
 
 // Manager manages the lifecycle of a hermetic Python runtime environment
@@ -108,6 +114,14 @@ func (m *Manager) EnsureReady(ctx context.Context) error {
 // Only meaningful when Config.AppSourceFS is set.
 func (m *Manager) AppDir() string { return filepath.Join(m.RuntimeDir(), "app") }
 
+// SetDeps configures dependency installation after Manager construction.
+// This allows callers to reference AppDir() for paths that are only known
+// after the Manager is created (e.g. app/requirements.txt).
+func (m *Manager) SetDeps(depsSource string, postInstallCmds [][]string) {
+	m.config.DepsSource = depsSource
+	m.config.PostInstallCmds = postInstallCmds
+}
+
 func (m *Manager) pythonDir() string    { return filepath.Join(m.RuntimeDir(), "python") }
 func (m *Manager) venvDir() string      { return filepath.Join(m.RuntimeDir(), "venv") }
 func (m *Manager) manifestPath() string { return filepath.Join(m.RuntimeDir(), "manifest.json") }
@@ -140,10 +154,18 @@ func (m *Manager) bootstrap(ctx context.Context) error {
 	if err := m.downloadAndExtractPython(ctx); err != nil {
 		return err
 	}
-	if err := m.setupVenv(ctx); err != nil {
+	// Extract app source before venv setup so that files referenced by
+	// DepsSource (e.g. app/requirements.txt) and PostInstallCmds (e.g.
+	// pip install app/libs/graphton) are on disk when pip runs.
+	if err := m.extractAppSource(); err != nil {
 		return err
 	}
-	if err := m.extractAppSource(); err != nil {
+	if m.config.PreInstallFn != nil {
+		if err := m.config.PreInstallFn(m.AppDir()); err != nil {
+			return errors.Wrap(err, "pre-install hook failed")
+		}
+	}
+	if err := m.setupVenv(ctx); err != nil {
 		return err
 	}
 	if err := m.writeManifest(start); err != nil {
