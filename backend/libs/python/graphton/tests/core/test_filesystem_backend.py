@@ -718,3 +718,136 @@ class TestIsDirectory:
 
     def test_traversal_returns_false(self, sandbox: FilesystemBackend) -> None:
         assert sandbox.is_directory("../../etc") is False
+
+
+# =============================================================================
+# .gitignore filtering
+# =============================================================================
+
+
+@pytest.fixture
+def gitignore_sandbox(tmp_path: Path) -> FilesystemBackend:
+    """Sandbox with a .gitignore and matching entries.
+
+    Layout::
+
+        {root_dir}/
+        ├── .gitignore          ("*.pyc\\nbuild/\\nlogs/*.log\\n")
+        ├── src/
+        │   ├── main.py
+        │   └── main.pyc        (gitignored)
+        ├── build/              (gitignored dir)
+        │   └── output.js
+        ├── logs/
+        │   ├── app.log         (gitignored)
+        │   └── readme.txt
+        ├── lib/
+        │   └── helper.py
+        └── README.md
+    """
+    gi = tmp_path / ".gitignore"
+    gi.write_text("*.pyc\nbuild/\nlogs/*.log\n")
+
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "main.py").write_text("print('hi')")
+    (tmp_path / "src" / "main.pyc").write_bytes(b"\x00" * 10)
+
+    (tmp_path / "build").mkdir()
+    (tmp_path / "build" / "output.js").write_text("//js")
+
+    (tmp_path / "logs").mkdir()
+    (tmp_path / "logs" / "app.log").write_text("error")
+    (tmp_path / "logs" / "readme.txt").write_text("kept")
+
+    (tmp_path / "lib").mkdir()
+    (tmp_path / "lib" / "helper.py").write_text("def f(): ...")
+
+    (tmp_path / "README.md").write_text("# Hello")
+
+    return FilesystemBackend(root_dir=tmp_path)
+
+
+class TestGitignoreListFiles:
+    """.gitignore patterns must be respected by list_files()."""
+
+    def test_gitignored_dir_excluded(self, gitignore_sandbox: FilesystemBackend) -> None:
+        entries = gitignore_sandbox.list_files(".")
+        assert "build" not in entries
+
+    def test_non_gitignored_dir_visible(self, gitignore_sandbox: FilesystemBackend) -> None:
+        entries = gitignore_sandbox.list_files(".")
+        assert "src" in entries
+        assert "lib" in entries
+        assert "logs" in entries
+
+    def test_gitignored_file_in_subdir(self, gitignore_sandbox: FilesystemBackend) -> None:
+        entries = gitignore_sandbox.list_files("src")
+        assert "main.py" in entries
+        assert "main.pyc" not in entries
+
+    def test_path_prefix_gitignore(self, gitignore_sandbox: FilesystemBackend) -> None:
+        entries = gitignore_sandbox.list_files("logs")
+        assert "app.log" not in entries
+        assert "readme.txt" in entries
+
+    def test_skip_dirs_still_work_with_gitignore(self, tmp_path: Path) -> None:
+        (tmp_path / ".gitignore").write_text("*.tmp\n")
+        (tmp_path / "node_modules").mkdir()
+        (tmp_path / "src").mkdir()
+        sb = FilesystemBackend(root_dir=tmp_path)
+        entries = sb.list_files(".")
+        assert "node_modules" not in entries
+        assert "src" in entries
+
+    def test_no_gitignore_no_filtering(self, tmp_path: Path) -> None:
+        (tmp_path / "build").mkdir()
+        (tmp_path / "build" / "app.js").write_text("//ok")
+        (tmp_path / "src").mkdir()
+        sb = FilesystemBackend(root_dir=tmp_path)
+        entries = sb.list_files(".")
+        assert "build" in entries
+        assert "src" in entries
+
+
+class TestGitignoreDirectoryListing:
+    """.gitignore filtering in _format_directory_listing (read on a dir)."""
+
+    def test_gitignored_file_excluded_from_listing(
+        self, gitignore_sandbox: FilesystemBackend,
+    ) -> None:
+        listing = gitignore_sandbox.read_file("src")
+        assert "main.py" in listing
+        assert "main.pyc" not in listing
+
+    def test_gitignored_dir_excluded_from_listing(
+        self, gitignore_sandbox: FilesystemBackend,
+    ) -> None:
+        listing = gitignore_sandbox.read_file(".")
+        assert "build" not in listing
+        assert "src" in listing
+
+    def test_item_count_excludes_gitignored(
+        self, gitignore_sandbox: FilesystemBackend,
+    ) -> None:
+        listing = gitignore_sandbox.read_file(".")
+        assert "logs/" in listing
+        # logs/ has readme.txt visible, app.log gitignored → 1 item
+        assert "1 item" in listing
+
+
+class TestGitignorePlatformMount:
+    """.gitignore filtering must NOT apply to platform-mount paths."""
+
+    def test_platform_files_bypass_gitignore(self, tmp_path: Path) -> None:
+        ws = tmp_path / "workspace"
+        pdir = tmp_path / "platform"
+        ws.mkdir()
+        pdir.mkdir()
+
+        (ws / ".gitignore").write_text("*.md\n")
+        (pdir / "skills").mkdir()
+        (pdir / "skills" / "SKILL.md").write_text("# Skill")
+
+        sb = FilesystemBackend(root_dir=ws, platform_dir=pdir)
+        entries = sb.list_files(".stigmer/skills")
+        assert "SKILL.md" in entries

@@ -9,9 +9,11 @@ from graphton.core.backends.daytona import (
     create_daytona_backend,
 )
 from graphton.core.backends.filesystem import FilesystemBackend
+from graphton.core.backends.gitignore_filter import GitIgnoreFilter
 
 __all__ = [
     "FilesystemBackend",
+    "GitIgnoreFilter",
     "WorkspaceNormalizingBackend",
     "create_daytona_backend",
 ]

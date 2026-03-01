@@ -14,11 +14,21 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: 2026-03-01 — Completed T01
-- **Active Task**: T02 (.gitignore-Aware File Filtering) — next up
+- **Last Session**: 2026-03-01 — Completed T02
+- **Active Task**: T03 (File-Tree Cache Across Tool Calls) — next up
 - **Branch**: `feat/smart-workspace-context`
 
-## Session Progress (2026-03-01, Session 2)
+## Session Progress (2026-03-01, Session 3)
+
+### Completed: T02 — .gitignore-Aware File Filtering
+
+- Created `GitIgnoreFilter` value object in `graphton/core/backends/gitignore_filter.py` with `from_file()`, `from_content()`, `is_ignored()` using `pathspec`
+- Added `pathspec>=0.12.0,<1.0.0` to graphton dependencies
+- Integrated into `FilesystemBackend`: eager init, `_should_include()` helper, applied in `list_files()` and `_format_directory_listing()`
+- Integrated into `WorkspaceNormalizingBackend`: lazy `_get_gitignore()`, `_workspace_relative()` helper, filter in `list_files()`
+- Tree module: optional `gitignore_filter` param in `build_directory_tree()` and `build_workspace_file_tree()`; provisioner loads filter and passes through
+- 45 new tests; 153 graphton + 204 agent-runner workspace tests pass
+- Changelog: `_changelog/2026-03/2026-03-01-174341-gitignore-aware-file-filtering.md`
 
 ### Completed: T01 — Workspace Tree Snapshot at Startup
 
@@ -51,15 +61,13 @@ Drop this file into your conversation to quickly resume work on this project.
 
 Per the implementation order in `tasks/T01_0_plan.md`:
 
-1. **T02: .gitignore-Aware File Filtering** (P1)
-   - Add `pathspec` dependency, parse `.gitignore` in `FilesystemBackend`
-   - This will largely supersede the T04 hardcoded list for git repos
-
-2. **T03: File-Tree Cache Across Tool Calls** (P1)
+1. **T03: File-Tree Cache Across Tool Calls** (P1)
    - Cache the workspace file-tree in memory per execution
+   - Add `_cached_tree` to `FilesystemBackend`, populate via `list_files()`, invalidate on `write`/`execute`
+   - `glob` and `grep` use cached tree when available
 
-3. **T06: Task-Aware Relevance Signaling** (P2)
-4. **T07: Semantic Search / Structural Indexing** (P3)
+2. **T06: Task-Aware Relevance Signaling** (P2)
+3. **T07: Semantic Search / Structural Indexing** (P3)
 
 ## Essential Files to Review
 
@@ -112,12 +120,12 @@ When starting a new session:
 3. [ ] Review design decisions in `design-decisions/`
 4. [ ] Check coding guidelines in `coding-guidelines/`
 5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with T02 (.gitignore-Aware File Filtering)
+6. [ ] Continue with T03 (File-Tree Cache Across Tool Calls)
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T02" - Start the next task
+- "Continue with T03" - Start the next task
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

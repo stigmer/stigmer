@@ -487,3 +487,133 @@ class TestBuildWorkspaceFileTree:
 
         assert result is not None
         assert "leaf.txt" not in result
+
+
+# ============================================================================
+# .gitignore filter integration
+# ============================================================================
+
+
+class TestBuildDirectoryTreeWithGitignore:
+    """build_directory_tree() with gitignore_filter parameter."""
+
+    def test_gitignored_file_excluded(self, tmp_path):
+        from graphton.core.backends.gitignore_filter import GitIgnoreFilter
+
+        root = tmp_path / "project"
+        root.mkdir()
+        (root / "main.py").write_text("print('hi')")
+        (root / "main.pyc").write_bytes(b"\x00" * 10)
+        (root / "utils.py").write_text("def f(): ...")
+
+        f = GitIgnoreFilter.from_content("*.pyc\n")
+        lines, total = build_directory_tree(str(root), "", gitignore_filter=f)
+
+        paths = "\n".join(lines)
+        assert "main.py" in paths
+        assert "utils.py" in paths
+        assert "main.pyc" not in paths
+        assert total == 2
+
+    def test_gitignored_dir_excluded(self, tmp_path):
+        from graphton.core.backends.gitignore_filter import GitIgnoreFilter
+
+        root = tmp_path / "project"
+        root.mkdir()
+        (root / "src").mkdir()
+        (root / "src" / "app.py").write_text("app")
+        (root / "build").mkdir()
+        (root / "build" / "output.js").write_text("//js")
+
+        f = GitIgnoreFilter.from_content("build/\n")
+        lines, total = build_directory_tree(str(root), "", gitignore_filter=f)
+
+        paths = "\n".join(lines)
+        assert "src/" in paths
+        assert "app.py" in paths
+        assert "build" not in paths
+        assert total == 2  # src/ + src/app.py
+
+    def test_none_filter_no_change(self, tmp_path):
+        root = tmp_path / "project"
+        root.mkdir()
+        (root / "a.txt").write_text("a")
+        (root / "b.txt").write_text("b")
+
+        lines_without, total_without = build_directory_tree(
+            str(root), "", gitignore_filter=None,
+        )
+        lines_default, total_default = build_directory_tree(str(root), "")
+
+        assert lines_without == lines_default
+        assert total_without == total_default
+
+
+class TestParseOutputWithGitignore:
+    """_parse_find_output() with gitignore_filter parameter."""
+
+    def test_gitignored_entries_removed(self):
+        from graphton.core.backends.gitignore_filter import GitIgnoreFilter
+
+        find_output = (
+            "D\tsrc\n"
+            "F\t100\tsrc/main.py\n"
+            "F\t50\tsrc/main.pyc\n"
+            "D\tbuild\n"
+            "F\t200\tbuild/output.js\n"
+        )
+        f = GitIgnoreFilter.from_content("*.pyc\nbuild/\n")
+        lines, total = _parse_find_output(
+            find_output, max_entries=500, gitignore_filter=f,
+        )
+
+        paths = "\n".join(lines)
+        assert "main.py" in paths
+        assert "main.pyc" not in paths
+        assert "build" not in paths
+        assert "output.js" not in paths
+
+    def test_none_filter_keeps_all(self):
+        find_output = "D\tsrc\nF\t100\tsrc/main.py\nF\t50\tsrc/main.pyc\n"
+        lines, total = _parse_find_output(
+            find_output, max_entries=500, gitignore_filter=None,
+        )
+        paths = "\n".join(lines)
+        assert "main.py" in paths
+        assert "main.pyc" in paths
+
+
+class TestBuildWorkspaceFileTreeWithGitignore:
+    """build_workspace_file_tree() passes gitignore_filter through."""
+
+    def test_local_mode_with_filter(self, tmp_path):
+        from graphton.core.backends.gitignore_filter import GitIgnoreFilter
+
+        root = _make_tree(tmp_path)
+        backend = _MockBackend(str(root))
+        f = GitIgnoreFilter.from_content("docs/\n")
+
+        result = build_workspace_file_tree(
+            str(root), backend, is_local_mode=True, gitignore_filter=f,
+        )
+
+        assert result is not None
+        assert "src/" in result
+        assert "docs" not in result
+
+    def test_remote_mode_with_filter(self):
+        from graphton.core.backends.gitignore_filter import GitIgnoreFilter
+
+        f = GitIgnoreFilter.from_content("*.pyc\n")
+        backend = _MockBackend(
+            "/workspace",
+            find_output="D\tsrc\nF\t100\tsrc/main.py\nF\t50\tsrc/cache.pyc\n",
+        )
+
+        result = build_workspace_file_tree(
+            "/workspace", backend, is_local_mode=False, gitignore_filter=f,
+        )
+
+        assert result is not None
+        assert "main.py" in result
+        assert "cache.pyc" not in result

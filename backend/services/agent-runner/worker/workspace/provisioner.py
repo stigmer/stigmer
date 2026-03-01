@@ -35,6 +35,7 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from graphton.core.backends.gitignore_filter import GitIgnoreFilter
     from worker.workspace.backend import WorkspaceBackend
 
 logger = logging.getLogger(__name__)
@@ -262,17 +263,24 @@ class WorkspaceProvisioner:
 
         Empty workspaces are skipped (no useful tree to show).  Failures
         are logged but never block provisioning — the tree is best-effort.
+
+        A ``.gitignore`` filter is created when the workspace has a
+        root-level ``.gitignore`` file, keeping the system-prompt tree
+        consistent with what the agent tools can see at runtime.
         """
         if result.source_type == SourceType.EMPTY:
             return result
 
         from worker.workspace.tree import build_workspace_file_tree
 
+        gitignore = self._load_gitignore_filter(result, backend, is_local_mode)
+
         try:
             file_tree = build_workspace_file_tree(
                 result.root_dir,
                 backend,
                 is_local_mode=is_local_mode,
+                gitignore_filter=gitignore,
             )
         except Exception:
             self._log.warning(
@@ -290,6 +298,29 @@ class WorkspaceProvisioner:
             result.source_type.value,
         )
         return dataclasses.replace(result, file_tree=file_tree)
+
+    @staticmethod
+    def _load_gitignore_filter(
+        result: ProvisionResult,
+        backend: WorkspaceBackend,
+        is_local_mode: bool,
+    ) -> GitIgnoreFilter | None:
+        """Best-effort loading of the workspace's root ``.gitignore``."""
+        from pathlib import Path
+
+        from graphton.core.backends.gitignore_filter import (
+            GitIgnoreFilter as _GIF,
+        )
+
+        if is_local_mode:
+            return _GIF.from_file(Path(result.root_dir) / ".gitignore")
+
+        try:
+            raw = backend.read_file(".gitignore")
+            content = raw.decode("utf-8") if isinstance(raw, bytes) else raw
+            return _GIF.from_content(content)
+        except Exception:
+            return None
 
 
 # ---------------------------------------------------------------------------

@@ -276,3 +276,77 @@ class TestGetattr:
     ) -> None:
         inner_backend.sandbox_id = "sandbox-123"
         assert wrapper.sandbox_id == "sandbox-123"
+
+
+# ---------------------------------------------------------------------------
+# .gitignore filtering
+# ---------------------------------------------------------------------------
+
+class TestGitignoreFiltering:
+    """Lazy .gitignore loading and list_files() filtering."""
+
+    def test_gitignore_loaded_lazily(self, inner_backend: MagicMock) -> None:
+        inner_backend.read.return_value = "*.pyc\nbuild/\n"
+        inner_backend.list_files.return_value = [
+            "src", "build", "main.py", "cache.pyc",
+        ]
+        w = WorkspaceNormalizingBackend(inner_backend, workspace_root="/workspace")
+        entries = w.list_files(".")
+        assert "src" in entries
+        assert "main.py" in entries
+        assert "build" not in entries
+        assert "cache.pyc" not in entries
+
+    def test_gitignore_missing_no_filtering(self, inner_backend: MagicMock) -> None:
+        inner_backend.read.side_effect = FileNotFoundError(".gitignore not found")
+        inner_backend.list_files.return_value = ["src", "build", "cache.pyc"]
+        w = WorkspaceNormalizingBackend(inner_backend, workspace_root="/workspace")
+        entries = w.list_files(".")
+        assert entries == ["src", "build", "cache.pyc"]
+
+    def test_gitignore_read_error_graceful(self, inner_backend: MagicMock) -> None:
+        inner_backend.read.side_effect = RuntimeError("sandbox down")
+        inner_backend.list_files.return_value = ["src", "build"]
+        w = WorkspaceNormalizingBackend(inner_backend, workspace_root="/workspace")
+        entries = w.list_files(".")
+        assert entries == ["src", "build"]
+
+    def test_subdir_path_filtering(self, inner_backend: MagicMock) -> None:
+        inner_backend.read.return_value = "*.pyc\n"
+        inner_backend.list_files.return_value = ["main.py", "main.pyc", "utils.py"]
+        w = WorkspaceNormalizingBackend(inner_backend, workspace_root="/workspace")
+        entries = w.list_files("src")
+        assert "main.py" in entries
+        assert "utils.py" in entries
+        assert "main.pyc" not in entries
+
+    def test_gitignore_cached_across_calls(self, inner_backend: MagicMock) -> None:
+        inner_backend.read.return_value = "*.log\n"
+        inner_backend.list_files.return_value = ["app.log", "main.py"]
+        w = WorkspaceNormalizingBackend(inner_backend, workspace_root="/workspace")
+        w.list_files(".")
+        w.list_files(".")
+        # .gitignore should be read only once (the first list_files call)
+        inner_backend.read.assert_called_once()
+
+    def test_workspace_relative_strips_prefix(self) -> None:
+        inner = MagicMock()
+        inner.read.return_value = "*.log\n"
+        inner.list_files.return_value = ["debug.log", "main.py"]
+        w = WorkspaceNormalizingBackend(inner, workspace_root="/workspace")
+        entries = w.list_files("/workspace/src")
+        assert "main.py" in entries
+        assert "debug.log" not in entries
+
+    def test_rebase_wrapper_gitignore(self, inner_backend: MagicMock) -> None:
+        inner_backend.read.return_value = "dist/\n"
+        inner_backend.list_files.return_value = ["src", "dist", "README.md"]
+        w = WorkspaceNormalizingBackend(
+            inner_backend,
+            workspace_root="/home/daytona/workspace",
+            sandbox_root="/home/daytona",
+        )
+        entries = w.list_files(".")
+        assert "src" in entries
+        assert "README.md" in entries
+        assert "dist" not in entries
