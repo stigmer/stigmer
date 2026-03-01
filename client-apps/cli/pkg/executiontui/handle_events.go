@@ -120,15 +120,17 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 		}
 		// The tool block already exists from ToolWaitingApprovalEvent (or
 		// ToolRunningEvent). Ensure it is in "waiting_approval" state so the
-		// badge shows ⏸. The block stays collapsed — the header line shows
-		// the tool type, file path, size, and line count, which is enough
-		// context for the user to decide. They can Tab + Enter to expand
-		// manually if needed. The footer shows [a]/[s]/[r].
+		// badge shows ⏸.
 		if idx, ok := m.runningTools[e.ToolCallID]; ok && idx < len(m.blocks) {
 			if tc := m.blocks[idx].toolCall; tc != nil {
 				m.updateToolBadge(e.ToolCallID, *tc, "waiting_approval", m.blocks[idx].subAgentID)
 			}
 		}
+		// Append a contextual approval block so the user can see what needs
+		// approval without hunting for a ⏸ badge among many tool blocks.
+		prompt := renderApprovalPrompt(e.ToolName, e.ArgsPreview, e.Message, e.FromSubAgent, e.SubAgentName)
+		m.blocks = append(m.blocks, newApprovalBlock(prompt))
+		m.approvalBlockIdx = len(m.blocks) - 1
 
 	case DoneEvent:
 		m.phase = e.Phase

@@ -147,7 +147,7 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 					Str("tool_name", pa.GetToolName()).
 					Msg("[stream] approval detected — emitting ApprovalNeededEvent")
 
-				tc := findToolCallByID(execution.Status.ToolCalls, pa.ToolCallId)
+				tc := findToolCallByID(execution.Status.ToolCalls, execution.Status.GetSubAgentExecutions(), pa.ToolCallId)
 				emitAndWaitApproval(ctx, cfg, tc, pa, promptedIDs)
 			}
 		}
@@ -496,28 +496,30 @@ func emitAndWaitApproval(
 	promptedIDs map[string]bool,
 ) {
 	// Determine the approval info from the best available source.
-	toolCallID, toolName, argsPreview, message := extractApprovalInfo(tc, pa)
+	info := extractApprovalInfo(tc, pa)
 
 	cfg.events <- executiontui.ApprovalNeededEvent{
-		ToolCallID:  toolCallID,
-		ToolName:    toolName,
-		ArgsPreview: approval.FormatArgs(toolName, argsPreview),
-		Message:     message,
+		ToolCallID:   info.toolCallID,
+		ToolName:     info.toolName,
+		ArgsPreview:  approval.FormatArgs(info.toolName, info.argsPreview),
+		Message:      info.message,
+		FromSubAgent: info.fromSubAgent,
+		SubAgentName: info.subAgentName,
 	}
 
-	promptedIDs[toolCallID] = true
+	promptedIDs[info.toolCallID] = true
 
 	// Block until the user responds.
 	resp := <-cfg.approvalResponses
 
 	// Submit the decision to the backend.
 	decision := mapApprovalResponseToDecision(resp)
-	_, err := submitAgentApproval(ctx, cfg.conn, cfg.executionID, toolCallID, decision)
+	_, err := submitAgentApproval(ctx, cfg.conn, cfg.executionID, info.toolCallID, decision)
 	if err != nil {
 		log.Error().
 			Err(err).
 			Str("execution_id", cfg.executionID).
-			Str("tool_call_id", toolCallID).
+			Str("tool_call_id", info.toolCallID).
 			Str("action", resp.Action).
 			Msg("[stream] failed to submit approval decision")
 
@@ -527,33 +529,48 @@ func emitAndWaitApproval(
 	}
 }
 
+// approvalInfo holds all display-relevant fields extracted from a
+// PendingApproval proto and its corresponding ToolCall (if found).
+type approvalInfo struct {
+	toolCallID   string
+	toolName     string
+	argsPreview  string
+	message      string
+	fromSubAgent bool
+	subAgentName string
+}
+
 // extractApprovalInfo extracts approval display info from a ToolCall and/or
 // PendingApproval message, preferring the richer PendingApproval fields.
 func extractApprovalInfo(
 	tc *agentexecutionv1.ToolCall,
 	pa *agentexecutionv1.PendingApproval,
-) (toolCallID, toolName, argsPreview, message string) {
+) approvalInfo {
+	var info approvalInfo
+
 	if pa != nil {
-		toolCallID = pa.ToolCallId
-		toolName = pa.ToolName
-		argsPreview = pa.ArgsPreview
-		message = pa.Message
+		info.toolCallID = pa.ToolCallId
+		info.toolName = pa.ToolName
+		info.argsPreview = pa.ArgsPreview
+		info.message = pa.Message
+		info.fromSubAgent = pa.FromSubAgent
+		info.subAgentName = pa.SubAgentName
 	}
 
 	// Fill gaps from the tool call if PendingApproval is incomplete.
 	if tc != nil {
-		if toolCallID == "" {
-			toolCallID = tc.Id
+		if info.toolCallID == "" {
+			info.toolCallID = tc.Id
 		}
-		if toolName == "" {
-			toolName = tc.Name
+		if info.toolName == "" {
+			info.toolName = tc.Name
 		}
-		if argsPreview == "" && tc.Args != nil {
+		if info.argsPreview == "" && tc.Args != nil {
 			if argsJSON, err := json.Marshal(tc.Args.AsMap()); err == nil {
-				argsPreview = string(argsJSON)
+				info.argsPreview = string(argsJSON)
 			}
 		}
 	}
 
-	return
+	return info
 }

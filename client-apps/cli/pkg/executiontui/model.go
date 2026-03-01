@@ -157,6 +157,12 @@ type Model struct {
 	// nil when no approval is pending.
 	approval *approvalState
 
+	// approvalBlockIdx is the index into blocks of the current approval
+	// context block. -1 means no approval block exists. Set when an
+	// ApprovalNeededEvent creates the block; cleared when the user responds
+	// (the block is replaced with a compact confirmation line).
+	approvalBlockIdx int
+
 	// width and height are the terminal dimensions from the last WindowSizeMsg.
 	width  int
 	height int
@@ -268,6 +274,7 @@ func New(cfg Config) Model {
 		runningTools:      make(map[string]int),
 		subAgentMeta:      make(map[string]subAgentInfo),
 		todoBlockIdx:      -1,
+		approvalBlockIdx:  -1,
 		spinner:           s,
 		lastEventAt:       time.Now(),
 		textarea:          ta,

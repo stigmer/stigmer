@@ -15,11 +15,17 @@ var (
 	approvalRejectStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
 )
 
-// renderApprovalPrompt formats the approval request display shown in the viewport.
-func renderApprovalPrompt(toolName, argsPreview, message string) string {
+// renderApprovalPrompt formats the approval request display shown in the
+// viewport. The block provides full context about what needs approval so the
+// user can make an informed decision. Action keys live in the footer, not here.
+func renderApprovalPrompt(toolName, argsPreview, message string, fromSubAgent bool, subAgentName string) string {
 	var lines []string
 
-	lines = append(lines, lipgloss.NewStyle().Bold(true).Render("⏸  APPROVAL REQUIRED"))
+	header := "⏸  APPROVAL REQUIRED"
+	if fromSubAgent && subAgentName != "" {
+		header = fmt.Sprintf("⏸  APPROVAL REQUIRED  (sub-agent: %s)", subAgentName)
+	}
+	lines = append(lines, lipgloss.NewStyle().Bold(true).Render(header))
 	lines = append(lines, "")
 
 	if message != "" {
@@ -29,17 +35,10 @@ func renderApprovalPrompt(toolName, argsPreview, message string) string {
 		lines = append(lines, fmt.Sprintf("   Tool: %s", toolName))
 	}
 	if argsPreview != "" {
-		// argsPreview is pre-formatted by approval.FormatArgs at the boundary.
-		// Indent each line for visual alignment within the approval block.
 		for _, line := range strings.Split(argsPreview, "\n") {
 			lines = append(lines, fmt.Sprintf("   %s", line))
 		}
 	}
-
-	lines = append(lines, "")
-	lines = append(lines, lipgloss.NewStyle().Bold(true).Render(
-		"   [a] Approve   [s] Skip   [r] Reject",
-	))
 
 	return strings.Join(lines, "\n")
 }
