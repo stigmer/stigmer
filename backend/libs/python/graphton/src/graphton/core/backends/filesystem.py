@@ -98,6 +98,26 @@ class FilesystemBackend:
             self.root_dir / ".gitignore",
         )
 
+        self._dir_cache: dict[str, list[str]] = {}
+        self._path_type_cache: dict[str, bool] = {}
+
+    # -- Cache management ------------------------------------------------------
+
+    def _invalidate_cache(self) -> None:
+        """Clear directory listing and path type caches.
+
+        Called before any filesystem mutation (write, execute) to ensure
+        subsequent reads see fresh data.
+        """
+        if self._dir_cache or self._path_type_cache:
+            logger.debug(
+                "Cache invalidated (%d dir entries, %d type entries)",
+                len(self._dir_cache),
+                len(self._path_type_cache),
+            )
+        self._dir_cache.clear()
+        self._path_type_cache.clear()
+
     # -- Entry filtering -------------------------------------------------------
 
     def _should_include(
@@ -205,6 +225,8 @@ class FilesystemBackend:
         Returns:
             ExecutionResult with exit code, stdout, and stderr
         """
+        self._invalidate_cache()
+
         try:
             env = {**os.environ, "PYTHONUNBUFFERED": "1"}
             if self._platform_root is not None:
@@ -354,6 +376,7 @@ class FilesystemBackend:
         Raises:
             ValueError: If path escapes sandbox root
         """
+        self._invalidate_cache()
         file_path = self._resolve_sandbox_path(path)
         file_path.parent.mkdir(parents=True, exist_ok=True)
         file_path.write_text(content)
@@ -363,10 +386,19 @@ class FilesystemBackend:
 
         Returns ``False`` for files, non-existent paths, or paths that
         escape the sandbox root.  Never raises.
+
+        Results are cached per-instance; cache is invalidated by
+        ``write_file()`` and ``execute()``.
         """
         try:
             resolved = self._resolve_sandbox_path(path)
-            return resolved.is_dir()
+            cache_key = str(resolved)
+            cached = self._path_type_cache.get(cache_key)
+            if cached is not None:
+                return cached
+            result = resolved.is_dir()
+            self._path_type_cache[cache_key] = result
+            return result
         except (ValueError, OSError):
             return False
 
@@ -380,6 +412,10 @@ class FilesystemBackend:
         When ``platform_dir`` is set and *path* resolves to the workspace
         root, a virtual ``.stigmer`` entry is merged into the listing so
         the agent discovers the platform namespace.
+
+        Results are cached per-instance; the first call for a directory does
+        real I/O and populates the cache, subsequent calls return the cached
+        result.  ``write_file()`` and ``execute()`` invalidate the cache.
 
         Raises:
             ValueError: If path escapes sandbox root
@@ -402,10 +438,17 @@ class FilesystemBackend:
             logger.debug(msg)
             raise NotADirectoryError(msg)
 
-        entries = [
-            item.name for item in dir_path.iterdir()
-            if self._should_include(dir_path, item.name, is_dir=item.is_dir())
-        ]
+        cache_key = str(dir_path)
+        cached = self._dir_cache.get(cache_key)
+        if cached is not None:
+            return list(cached)
+
+        entries: list[str] = []
+        for item in dir_path.iterdir():
+            child_is_dir = item.is_dir()
+            self._path_type_cache[str(item)] = child_is_dir
+            if self._should_include(dir_path, item.name, is_dir=child_is_dir):
+                entries.append(item.name)
 
         # Inject virtual .stigmer entry at the workspace root level.
         if (
@@ -415,4 +458,5 @@ class FilesystemBackend:
         ):
             entries.append(PLATFORM_DIR_NAME)
 
-        return entries
+        self._dir_cache[cache_key] = entries
+        return list(entries)

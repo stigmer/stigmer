@@ -350,3 +350,123 @@ class TestGitignoreFiltering:
         assert "src" in entries
         assert "README.md" in entries
         assert "dist" not in entries
+
+
+# ---------------------------------------------------------------------------
+# Directory cache (T03)
+# ---------------------------------------------------------------------------
+
+
+class TestDirectoryCache:
+    """list_files() and is_directory() caching with invalidation."""
+
+    def test_list_files_cache_hit(self, inner_backend: MagicMock) -> None:
+        """Second list_files() call uses the cache, not the inner backend."""
+        inner_backend.read.side_effect = FileNotFoundError
+        inner_backend.list_files.return_value = ["src", "README.md"]
+        w = WorkspaceNormalizingBackend(inner_backend, workspace_root="/workspace")
+
+        first = w.list_files(".")
+        second = w.list_files(".")
+        assert sorted(first) == sorted(second)
+        inner_backend.list_files.assert_called_once()
+
+    def test_list_files_returns_copy(self, inner_backend: MagicMock) -> None:
+        """Caller cannot corrupt the cache by mutating the returned list."""
+        inner_backend.read.side_effect = FileNotFoundError
+        inner_backend.list_files.return_value = ["src"]
+        w = WorkspaceNormalizingBackend(inner_backend, workspace_root="/workspace")
+
+        first = w.list_files(".")
+        first.append("INJECTED")
+        second = w.list_files(".")
+        assert "INJECTED" not in second
+
+    def test_is_directory_cache_hit(self, inner_backend: MagicMock) -> None:
+        """Second is_directory() call uses the cache, not the inner backend."""
+        inner_backend.is_directory.return_value = True
+        w = WorkspaceNormalizingBackend(inner_backend, workspace_root="/workspace")
+
+        assert w.is_directory("src") is True
+        assert w.is_directory("src") is True
+        inner_backend.is_directory.assert_called_once()
+
+    def test_write_invalidates_cache(self, inner_backend: MagicMock) -> None:
+        inner_backend.read.side_effect = FileNotFoundError
+        inner_backend.list_files.return_value = ["src"]
+        w = WorkspaceNormalizingBackend(inner_backend, workspace_root="/workspace")
+
+        w.list_files(".")
+        assert inner_backend.list_files.call_count == 1
+
+        w.write("new.py", "x")
+        w.list_files(".")
+        assert inner_backend.list_files.call_count == 2
+
+    def test_write_file_invalidates_cache(self, inner_backend: MagicMock) -> None:
+        inner_backend.read.side_effect = FileNotFoundError
+        inner_backend.list_files.return_value = ["src"]
+        w = WorkspaceNormalizingBackend(inner_backend, workspace_root="/workspace")
+
+        w.list_files(".")
+        w.write_file("new.py", "x")
+        w.list_files(".")
+        assert inner_backend.list_files.call_count == 2
+
+    def test_execute_invalidates_cache(self, inner_backend: MagicMock) -> None:
+        inner_backend.read.side_effect = FileNotFoundError
+        inner_backend.list_files.return_value = ["src"]
+        inner_backend.execute.return_value = None
+        w = WorkspaceNormalizingBackend(inner_backend, workspace_root="/workspace")
+
+        w.list_files(".")
+        w.execute("touch new.txt")
+        w.list_files(".")
+        assert inner_backend.list_files.call_count == 2
+
+    def test_gitignore_filtering_with_cache(self, inner_backend: MagicMock) -> None:
+        """Gitignore filtering is applied before caching, so cached results are filtered."""
+        inner_backend.read.return_value = "*.pyc\n"
+        inner_backend.list_files.return_value = ["main.py", "main.pyc", "utils.py"]
+        w = WorkspaceNormalizingBackend(inner_backend, workspace_root="/workspace")
+
+        first = w.list_files("src")
+        assert "main.py" in first
+        assert "main.pyc" not in first
+
+        second = w.list_files("src")
+        assert sorted(first) == sorted(second)
+        inner_backend.list_files.assert_called_once()
+
+    def test_rebase_wrapper_cache(self, inner_backend: MagicMock) -> None:
+        """Cache works correctly with rebase prefix normalisation."""
+        inner_backend.read.side_effect = FileNotFoundError
+        inner_backend.list_files.return_value = ["SKILL.md", "scripts"]
+        inner_backend.is_directory.return_value = True
+        w = WorkspaceNormalizingBackend(
+            inner_backend,
+            workspace_root="/home/daytona/workspace",
+            sandbox_root="/home/daytona",
+        )
+
+        w.list_files("bin/skills")
+        w.list_files("bin/skills")
+        inner_backend.list_files.assert_called_once_with("workspace/bin/skills")
+
+        assert w.is_directory("bin/skills") is True
+        assert w.is_directory("bin/skills") is True
+        inner_backend.is_directory.assert_called_once()
+
+    def test_is_directory_invalidated_by_write(
+        self, inner_backend: MagicMock,
+    ) -> None:
+        inner_backend.is_directory.return_value = False
+        w = WorkspaceNormalizingBackend(inner_backend, workspace_root="/workspace")
+
+        assert w.is_directory("new_dir") is False
+        assert inner_backend.is_directory.call_count == 1
+
+        inner_backend.is_directory.return_value = True
+        w.write("new_dir/file.txt", "x")
+        assert w.is_directory("new_dir") is True
+        assert inner_backend.is_directory.call_count == 2
