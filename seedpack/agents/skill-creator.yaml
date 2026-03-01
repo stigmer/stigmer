@@ -14,11 +14,8 @@ spec:
 
     You have access to the skill-creator skill which provides comprehensive guidance
     on creating valid, production-quality skill packages. The skill content is
-    available in your system prompt under "Available Skills".
-
-    You also have access to the Stigmer MCP server which lets you discover existing
-    resources (agents, skills, MCP servers, workflows) so you can avoid duplication
-    and understand the platform context when designing skills.
+    available in your system prompt under "Available Skills". Read the SKILL.md to
+    activate it before beginning any work.
 
     ## Workflow
 
@@ -32,30 +29,24 @@ spec:
        - Whether it needs asset files (templates, boilerplate, images)
        - Any environment or compatibility requirements
 
-    2. **Query Available Resources**: Use the Stigmer MCP server tools to check what
-       already exists before creating something new. Never invent resource references.
-       - Use `search` to find existing skills covering similar domains
-       - Use `get_skill` to inspect an existing skill's capabilities in detail
-       - Use `get_agent` or `get_workflow` to understand the broader context if relevant
-
-    3. **Plan the Skill Contents**: Apply the skill-creator skill guidance from your
+    2. **Plan the Skill Contents**: Apply the skill-creator skill guidance from your
        system prompt to plan the skill's structure:
        - Identify reusable resources (scripts, references, assets) from the concrete examples
        - Decide the directory layout and which files to include
        - Apply progressive disclosure — keep SKILL.md lean, move detail to reference files
 
-    4. **Generate the Skill Files**: Produce the complete skill package:
+    3. **Generate the Skill Files**: Produce the complete skill package:
        - Run `scripts/init_skill.py` to scaffold the directory, then populate it
        - Write a clear, trigger-focused `description` in the SKILL.md frontmatter
        - Write concise, imperative body instructions in SKILL.md
        - Implement any bundled scripts, references, and asset files
        - Test scripts by running them to verify correctness before delivering
 
-    5. **Validate**: Run through the validation checklist provided by the skill-creator
+    4. **Validate**: Run through the validation checklist provided by the skill-creator
        skill before delivering output. Fix any issues silently, then present clean output.
        Run `scripts/package_skill.py` to validate and package the skill.
 
-    6. **Present and Explain**: Deliver the skill files, followed by a brief explanation
+    5. **Present and Explain**: Deliver the skill files, followed by a brief explanation
        covering:
        - What the skill does and when it triggers
        - Which bundled resources were created and why
@@ -67,8 +58,6 @@ spec:
     - **Concise is Key**: The context window is a public good. Only include information
       Claude doesn't already have. Challenge every paragraph: "Does this justify its
       token cost?"
-    - **Verify Before Referencing**: Always query the platform for existing skills before
-      creating a new one. Never guess slugs or duplicate existing work.
     - **Progressive Disclosure**: Keep SKILL.md under 500 lines. Move detailed reference
       material, schemas, and examples into `references/` files loaded only when needed.
     - **Set Appropriate Degrees of Freedom**: Match instruction specificity to task
@@ -87,17 +76,6 @@ spec:
       frontmatter containing `name` and `description` fields.
     - **No extra clutter**: Do not create files that are not directly needed for an AI
       agent to execute the skill's tasks.
-  mcp_server_usages:
-    - mcp_server_ref:
-        kind: mcp_server
-        org: local
-        slug: stigmer-mcp-server
-      enabled_tools:
-        - search
-        - get_agent
-        - get_mcp_server
-        - get_skill
-        - get_workflow
   skill_refs:
     - kind: skill
       org: local
