@@ -36,6 +36,11 @@ def setup_logging() -> None:
     logging.getLogger("temporalio").setLevel(logging.INFO)
     logging.getLogger("temporalio.worker._activity").setLevel(logging.INFO)
     logging.getLogger("temporalio.activity").setLevel(logging.INFO)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("graphton").setLevel(logging.INFO)
     logging.getLogger("graphton.core.loop_detection").setLevel(logging.INFO)
     logging.getLogger("grpc_client.auth.token_manager").setLevel(logging.INFO)
+
+    # Suppress DEBUG noise from internal worker activity loggers.
+    # These use __name__ (worker.activities.graphton.*), distinct from the graphton library namespace.
+    logging.getLogger("worker.activities.graphton").setLevel(logging.INFO)
