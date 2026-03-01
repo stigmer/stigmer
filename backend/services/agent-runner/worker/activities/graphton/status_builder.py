@@ -1489,8 +1489,9 @@ class StatusBuilder:
             existing.result = ""
 
             if tool_args:
+                display_args = self._humanize_args_for_display(tool_args)
                 args_struct = Struct()
-                args_struct.update(tool_args)
+                args_struct.update(display_args)
                 existing.args.CopyFrom(args_struct)
 
             existing.is_streaming = False
@@ -2160,6 +2161,31 @@ class StatusBuilder:
         
         return None
     
+    def _humanize_args_for_display(self, tool_args: dict[str, Any]) -> dict[str, Any]:
+        """Return a shallow copy of *tool_args* with string values humanized.
+
+        Applies :func:`humanize_platform_refs` and
+        :func:`resolve_display_env_vars` (respecting ``_secret_keys``) to
+        every top-level string value.  Non-string values are passed through
+        unchanged.
+
+        The original *tool_args* dict is never modified — callers that also
+        need the raw args (e.g. for fingerprinting or approval checks) are
+        safe.
+        """
+        if not tool_args:
+            return tool_args
+
+        result: dict[str, Any] = {}
+        for key, value in tool_args.items():
+            if isinstance(value, str):
+                value = humanize_platform_refs(value)
+                value = resolve_display_env_vars(
+                    value, self._display_env_vars, self._secret_keys,
+                )
+            result[key] = value
+        return result
+
     def _create_args_preview(self, tool_args: dict[str, Any]) -> str:
         """
         Create a sanitized preview of tool arguments for UI display.
