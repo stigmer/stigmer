@@ -12,6 +12,17 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// PhaseEntry pairs a phase identifier with its human-readable label.
+type PhaseEntry struct {
+	Phase ProgressPhase
+	Label string
+}
+
+// PhaseConfig defines the ordered list of phases a ProgressDisplay renders.
+// Callers provide a config that matches the semantic lifecycle of their
+// operation so labels and display order are always accurate.
+type PhaseConfig []PhaseEntry
+
 // ProgressPhase represents a stage in a multi-step operation
 type ProgressPhase string
 
@@ -85,19 +96,34 @@ func (p *ProgressState) getSnapshot() (ProgressPhase, string, map[ProgressPhase]
 	return p.active, p.detail, phasesCopy
 }
 
+// defaultPhaseConfig is used when no custom config is provided.
+var defaultPhaseConfig = PhaseConfig{
+	{phaseDiscovering, "Discovering resources"},
+	{phaseValidating, "Validating configuration"},
+	{phaseConnecting, "Connecting to backend"},
+	{PhaseDeploying, "Deploying"},
+	{phaseExecuting, "Starting execution"},
+	{PhaseInitializing, "Initializing"},
+	{PhaseInstalling, "Installing dependencies"},
+	{phaseDeleting, "Deleting resources"},
+	{PhaseStarting, "Starting services"},
+}
+
 type progressModel struct {
 	state   *ProgressState
+	phases  PhaseConfig
 	spinner spinner.Model
 	done    bool
 }
 
-func newProgressModel(state *ProgressState) progressModel {
+func newProgressModel(state *ProgressState, phases PhaseConfig) progressModel {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
 
 	return progressModel{
 		state:   state,
+		phases:  phases,
 		spinner: s,
 		done:    false,
 	}
@@ -136,23 +162,8 @@ func (m progressModel) View() string {
 
 	var lines []string
 
-	phaseOrder := []struct {
-		phase ProgressPhase
-		label string
-	}{
-		{phaseDiscovering, "Discovering resources"},
-		{phaseValidating, "Validating configuration"},
-		{phaseConnecting, "Connecting to backend"},
-		{PhaseDeploying, "Deploying"},
-		{phaseExecuting, "Starting execution"},
-		{PhaseInitializing, "Initializing"},
-		{PhaseInstalling, "Installing dependencies"},
-		{phaseDeleting, "Deleting resources"},
-		{PhaseStarting, "Starting services"},
-	}
-
-	for _, p := range phaseOrder {
-		status, exists := phases[p.phase]
+	for _, p := range m.phases {
+		status, exists := phases[p.Phase]
 		if !exists {
 			continue
 		}
@@ -162,7 +173,7 @@ func (m progressModel) View() string {
 		case statusComplete:
 			line = fmt.Sprintf("   %s %s: done",
 				lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Render("✓"),
-				lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Render(p.label))
+				lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Render(p.Label))
 		case statusActive:
 			detailStr := ""
 			if detail != "" {
@@ -170,7 +181,7 @@ func (m progressModel) View() string {
 			}
 			line = fmt.Sprintf("   %s %s%s",
 				m.spinner.View(),
-				lipgloss.NewStyle().Foreground(lipgloss.Color("12")).Render(p.label),
+				lipgloss.NewStyle().Foreground(lipgloss.Color("12")).Render(p.Label),
 				lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Render(detailStr))
 		}
 
@@ -189,23 +200,8 @@ func (m progressModel) View() string {
 func (m progressModel) renderFinalState(phases map[ProgressPhase]phaseStatus) string {
 	var lines []string
 
-	phaseOrder := []struct {
-		phase ProgressPhase
-		label string
-	}{
-		{phaseDiscovering, "Discovering resources"},
-		{phaseValidating, "Validating configuration"},
-		{phaseConnecting, "Connecting to backend"},
-		{PhaseDeploying, "Deploying"},
-		{phaseExecuting, "Starting execution"},
-		{PhaseInitializing, "Initializing"},
-		{PhaseInstalling, "Installing dependencies"},
-		{phaseDeleting, "Deleting resources"},
-		{PhaseStarting, "Starting services"},
-	}
-
-	for _, p := range phaseOrder {
-		status, exists := phases[p.phase]
+	for _, p := range m.phases {
+		status, exists := phases[p.Phase]
 		if !exists {
 			continue
 		}
@@ -214,7 +210,7 @@ func (m progressModel) renderFinalState(phases map[ProgressPhase]phaseStatus) st
 		if status == statusComplete || status == statusActive {
 			line = fmt.Sprintf("   %s %s: done",
 				lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Render("✓"),
-				lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Render(p.label))
+				lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Render(p.Label))
 		}
 
 		if line != "" {
@@ -236,10 +232,16 @@ type ProgressDisplay struct {
 	done    chan struct{}
 }
 
-// NewProgressDisplay creates a new progress display
+// NewProgressDisplay creates a new progress display with the default phase config.
 func NewProgressDisplay() *ProgressDisplay {
+	return NewProgressDisplayWithPhases(defaultPhaseConfig)
+}
+
+// NewProgressDisplayWithPhases creates a progress display whose rendering
+// order and labels are determined by the supplied PhaseConfig.
+func NewProgressDisplayWithPhases(phases PhaseConfig) *ProgressDisplay {
 	state := NewProgressState()
-	model := newProgressModel(state)
+	model := newProgressModel(state, phases)
 
 	program := tea.NewProgram(model, tea.WithOutput(os.Stderr))
 

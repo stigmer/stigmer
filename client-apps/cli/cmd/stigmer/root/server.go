@@ -143,9 +143,12 @@ func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 
 	var progress *cliprint.ProgressDisplay
 	if format == clioutput.FormatHuman {
-		progress = cliprint.NewProgressDisplay()
+		progress = cliprint.NewProgressDisplayWithPhases(cliprint.PhaseConfig{
+			{Phase: cliprint.PhaseInitializing, Label: "Initializing"},
+			{Phase: cliprint.PhaseInstalling, Label: "Installing"},
+			{Phase: cliprint.PhaseStarting, Label: "Starting"},
+		})
 		progress.Start()
-		progress.SetPhase(cliprint.PhaseStarting, "Preparing environment")
 	}
 
 	var llmSetupErr error
@@ -182,7 +185,7 @@ func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 	// controllers, Temporal workers, search index, and supervisor), so a
 	// successful connection here guarantees full readiness.
 	if progress != nil {
-		progress.SetPhase(cliprint.PhaseReady, "Waiting for services")
+		progress.SetPhase(cliprint.PhaseStarting, "Waiting for server to become ready")
 	}
 
 	readyCtx, readyCancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -199,7 +202,7 @@ func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 	}
 
 	if progress != nil {
-		progress.CompletePhase(cliprint.PhaseReady)
+		progress.CompletePhase(cliprint.PhaseStarting)
 		progress.Stop()
 	}
 
