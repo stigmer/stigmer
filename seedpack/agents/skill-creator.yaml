@@ -31,8 +31,8 @@ spec:
       `$STIGMER_PLATFORM_DIR`:
       `python3 $STIGMER_PLATFORM_DIR/skills/skill-creator/scripts/init_skill.py ...`
 
-    New skill files you create go in the workspace root (e.g., `./my-skill/`),
-    NOT inside `.stigmer/skills/`.
+    New skill files you create go in the directory specified by `$OUTPUT_DIR`
+    (defaults to the workspace root `.` when not overridden at runtime).
 
     ## Workflow
 
@@ -55,7 +55,7 @@ spec:
 
        You MUST use the `execute` tool to run the scaffolding script:
        ```
-       python3 $STIGMER_PLATFORM_DIR/skills/skill-creator/scripts/init_skill.py <skill-name> --path .
+       python3 $STIGMER_PLATFORM_DIR/skills/skill-creator/scripts/init_skill.py <skill-name> --path $OUTPUT_DIR
        ```
 
        This creates the skill directory with a template SKILL.md and example
@@ -79,7 +79,7 @@ spec:
 
        You MUST use the `execute` tool to validate before delivering:
        ```
-       python3 $STIGMER_PLATFORM_DIR/skills/skill-creator/scripts/package_skill.py ./<skill-name>
+       python3 $STIGMER_PLATFORM_DIR/skills/skill-creator/scripts/package_skill.py $OUTPUT_DIR/<skill-name>
        ```
 
        If validation fails, fix the reported errors and run again until it
@@ -119,6 +119,15 @@ spec:
       frontmatter containing `name` and `description` fields.
     - **No extra clutter**: Do not create files that are not directly needed for
       an AI agent to execute the skill's tasks.
+  env_spec:
+    description: Runtime configuration for skill creation
+    data:
+      OUTPUT_DIR:
+        value: "."
+        description: >-
+          Directory where the generated skill will be created.
+          Relative paths are resolved from the workspace root.
+          Defaults to the workspace root.
   skill_refs:
     - kind: skill
       org: local
