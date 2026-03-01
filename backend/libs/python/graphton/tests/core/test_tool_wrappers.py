@@ -746,17 +746,21 @@ class TestCreatePlatformToolWrappers:
         backend.list_files.return_value = ["file1.txt", "file2.py"]
         return backend
 
-    def test_creates_seven_tools(self, mock_backend):
-        """Test that exactly 7 tools are created."""
+    def test_creates_platform_tools(self, mock_backend):
+        """Test that 11 tools are created (8 primary + 3 aliases)."""
         tools = create_platform_tool_wrappers(mock_backend)
-        assert len(tools) == 7
+        assert len(tools) == 11
 
     def test_creates_tools_with_correct_names(self, mock_backend):
         """Test that tools have correct names."""
         tools = create_platform_tool_wrappers(mock_backend)
         tool_names = [getattr(t, 'name', None) for t in tools]
         
-        expected_names = ["read", "ls", "glob", "grep", "write", "edit", "execute"]
+        expected_names = [
+            "read", "ls", "glob", "grep", "search",
+            "write", "edit", "execute",
+            "read_file", "write_file", "edit_file",
+        ]
         for name in expected_names:
             assert name in tool_names, f"Tool '{name}' not found in {tool_names}"
 
@@ -773,7 +777,7 @@ class TestCreatePlatformToolWrappers:
             return ApprovalRequirement(requires_approval=False)
         
         tools = create_platform_tool_wrappers(mock_backend, approval_checker=checker)
-        assert len(tools) == 7
+        assert len(tools) == 11
 
 
 class TestApplyLineRange:
