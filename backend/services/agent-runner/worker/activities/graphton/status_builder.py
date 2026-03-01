@@ -36,6 +36,7 @@ from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ToolCallStatus,
 )
 from google.protobuf.struct_pb2 import Struct
+from graphton.core.backends.platform_mount import humanize_platform_refs
 from graphton.core.summarization_callback import SummarizationEventData
 
 from worker.activities.graphton.approval_policy import (
@@ -2164,9 +2165,11 @@ class StatusBuilder:
                 if pattern in key_lower:
                     return "***REDACTED***"
             
-            # Truncate long strings
-            if isinstance(value, str) and len(value) > 200:
-                return value[:200] + "... (truncated)"
+            if isinstance(value, str):
+                value = humanize_platform_refs(value)
+                if len(value) > 200:
+                    return value[:200] + "... (truncated)"
+                return value
             
             # Recursively sanitize nested dicts
             if isinstance(value, dict):
