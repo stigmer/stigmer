@@ -15,15 +15,20 @@ from worker.config import Config
 logger = logging.getLogger(__name__)
 
 
+_DEFAULT_GRPC_TIMEOUT_SECONDS = 10.0
+
+
 class SkillClient:
     """Client for fetching skills from Stigmer backend."""
     
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, *, timeout: float = _DEFAULT_GRPC_TIMEOUT_SECONDS):
         """
         Initialize SkillClient with authentication.
         
         Args:
             api_key: Stigmer API key for authentication
+            timeout: Per-call gRPC deadline in seconds (must stay well under
+                     Temporal's 30s heartbeat timeout to allow graceful recovery).
         """
         config = Config.load_from_env()
         endpoint = config.stigmer_backend_endpoint
@@ -45,6 +50,7 @@ class SkillClient:
             )
         
         self.stub = query_pb2_grpc.SkillQueryControllerStub(self.channel)
+        self._timeout = timeout
     
     async def list_by_ids(self, skill_ids: list[str]) -> list[Skill]:
         """Fetch multiple skills by IDs.
@@ -72,7 +78,7 @@ class SkillClient:
             """Fetch a single skill by ID."""
             request = SkillId(value=skill_id)
             try:
-                return await self.stub.get(request)
+                return await self.stub.get(request, timeout=self._timeout)
             except grpc.RpcError as e:
                 if e.code() == grpc.StatusCode.NOT_FOUND:
                     logger.error(f"Skill {skill_id} not found")
@@ -116,7 +122,7 @@ class SkillClient:
             ValueError: If skill not found or access denied
         """
         try:
-            return await self.stub.getByReference(ref)
+            return await self.stub.getByReference(ref, timeout=self._timeout)
         except grpc.RpcError as e:
             if e.code() == grpc.StatusCode.NOT_FOUND:
                 logger.error(f"Skill {ref.slug} not found")
@@ -190,7 +196,7 @@ class SkillClient:
         request = GetArtifactRequest(artifact_storage_key=artifact_storage_key)
         
         try:
-            response = await self.stub.getArtifact(request)
+            response = await self.stub.getArtifact(request, timeout=self._timeout)
             
             artifact_bytes = response.artifact
             logger.info(

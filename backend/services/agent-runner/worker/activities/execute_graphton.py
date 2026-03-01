@@ -1044,12 +1044,19 @@ async def _execute_graphton_impl(
         activity_logger.info(
             f"Session {session_id}: agent_instance_id={session.spec.agent_instance_id}"
         )
+        heartbeat_during_setup("chain_resolution:session", {
+            "session_id": session_id,
+        })
         
         # 1b. Get agent instance from session
         agent_instance = await agent_instance_client.get(session.spec.agent_instance_id)
         activity_logger.info(
             f"AgentInstance {session.spec.agent_instance_id}: agent_id={agent_instance.spec.agent_id}"
         )
+        heartbeat_during_setup("chain_resolution:agent_instance", {
+            "session_id": session_id,
+            "agent_instance_id": session.spec.agent_instance_id,
+        })
         
         # 1c. Get agent template
         agent = await agent_client.get(agent_instance.spec.agent_id)
@@ -1060,8 +1067,7 @@ async def _execute_graphton_impl(
         # Extract agent instructions
         instructions = agent.spec.instructions if agent.spec.instructions else "You are a helpful AI assistant."
         
-        # Heartbeat after chain resolution to prevent timeout during setup
-        heartbeat_during_setup("chain_resolution", {
+        heartbeat_during_setup("chain_resolution:agent", {
             "session_id": session_id,
             "agent_instance_id": session.spec.agent_instance_id,
             "agent_id": agent_instance.spec.agent_id,

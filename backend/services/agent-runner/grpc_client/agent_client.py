@@ -9,15 +9,20 @@ from grpc_client.auth.client_interceptor import AuthClientInterceptor
 from worker.config import Config
 
 
+_DEFAULT_GRPC_TIMEOUT_SECONDS = 10.0
+
+
 class AgentClient:
     """Client for interacting with AgentQueryController."""
     
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, *, timeout: float = _DEFAULT_GRPC_TIMEOUT_SECONDS):
         """
         Initialize Agent client with authentication.
         
         Args:
             api_key: Stigmer API key for authentication
+            timeout: Per-call gRPC deadline in seconds (must stay well under
+                     Temporal's 30s heartbeat timeout to allow graceful recovery).
         """
         config = Config.load_from_env()
         endpoint = config.stigmer_backend_endpoint
@@ -39,10 +44,11 @@ class AgentClient:
             )
         
         self.stub = query_pb2_grpc.AgentQueryControllerStub(self.channel)
+        self._timeout = timeout
     
     async def get(self, agent_id: str) -> Agent:
         """Fetch agent by ID."""
         if not agent_id:
             raise ValueError("agent_id cannot be empty")
         request = AgentId(value=agent_id)
-        return await self.stub.get(request)
+        return await self.stub.get(request, timeout=self._timeout)

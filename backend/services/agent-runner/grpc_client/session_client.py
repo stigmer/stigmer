@@ -9,15 +9,20 @@ from grpc_client.auth.client_interceptor import AuthClientInterceptor
 from worker.config import Config
 
 
+_DEFAULT_GRPC_TIMEOUT_SECONDS = 10.0
+
+
 class SessionClient:
     """Client for interacting with SessionCommandController and SessionQueryController."""
     
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, *, timeout: float = _DEFAULT_GRPC_TIMEOUT_SECONDS):
         """
         Initialize Session client with authentication.
         
         Args:
             api_key: Stigmer API key for authentication
+            timeout: Per-call gRPC deadline in seconds (must stay well under
+                     Temporal's 30s heartbeat timeout to allow graceful recovery).
         """
         config = Config.load_from_env()
         endpoint = config.stigmer_backend_endpoint
@@ -40,6 +45,7 @@ class SessionClient:
         
         self.command_stub = command_pb2_grpc.SessionCommandControllerStub(self.channel)
         self.query_stub = query_pb2_grpc.SessionQueryControllerStub(self.channel)
+        self._timeout = timeout
     
     async def get(self, session_id: str) -> Session:
         """
@@ -54,7 +60,7 @@ class SessionClient:
         if not session_id:
             raise ValueError("session_id cannot be empty")
         request = SessionId(value=session_id)
-        return await self.query_stub.get(request)
+        return await self.query_stub.get(request, timeout=self._timeout)
     
     async def update(self, session: Session) -> Session:
         """
@@ -66,4 +72,4 @@ class SessionClient:
         Returns:
             Updated Session protobuf object
         """
-        return await self.command_stub.update(session)
+        return await self.command_stub.update(session, timeout=self._timeout)
