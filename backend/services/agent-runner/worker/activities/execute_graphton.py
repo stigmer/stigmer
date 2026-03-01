@@ -2788,6 +2788,21 @@ async def _execute_graphton_impl(
                                 matched_tc_ids.add(tc.id)
                                 break
                         
+                        if not matched_tool_call_id:
+                            for sa in status_builder.current_status.sub_agent_executions:
+                                for tc in sa.tool_calls:
+                                    tc_canonical = resolve_platform_tool_name(tc.name)
+                                    if (
+                                        (tc.name == tool_name or tc_canonical == tool_name)
+                                        and tc.status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
+                                        and tc.id not in matched_tc_ids
+                                    ):
+                                        matched_tool_call_id = tc.id
+                                        matched_tc_ids.add(tc.id)
+                                        break
+                                if matched_tool_call_id:
+                                    break
+                        
                         # Create args preview via StatusBuilder's sanitiser
                         args_preview = status_builder._create_args_preview(tool_args)
                         
