@@ -176,27 +176,25 @@ func (s *validateApprovalStep) Execute(ctx *pipeline.RequestContext[*agentexecut
 	currentPhase := execution.GetStatus().GetPhase()
 
 	// Check for idempotency: If the tool call already has an approval action,
-	// and it matches the requested action, treat as no-op
-	for _, toolCall := range execution.GetStatus().GetToolCalls() {
-		if toolCall.GetId() == requestedToolCallId {
-			existingAction := toolCall.GetApprovalAction()
-			if existingAction != agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED {
-				if existingAction == requestedAction {
-					log.Info().
-						Str("execution_id", executionID).
-						Str("tool_call_id", requestedToolCallId).
-						Str("action", requestedAction.String()).
-						Msg("IDEMPOTENT: Tool call already has matching approval action")
-					ctx.Set(IsIdempotentRequestKey, true)
-					return nil
-				}
-				// Different action - this is an error
-				return grpclib.FailedPreconditionError(
-					"tool call %s already has approval action %s, cannot change to %s",
-					requestedToolCallId, existingAction.String(), requestedAction.String(),
-				)
+	// and it matches the requested action, treat as no-op.
+	// Searches both top-level and sub-agent tool calls because approval-
+	// requiring tools may originate from sub-agents.
+	if tc := findToolCallInExecution(execution, requestedToolCallId); tc != nil {
+		existingAction := tc.GetApprovalAction()
+		if existingAction != agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED {
+			if existingAction == requestedAction {
+				log.Info().
+					Str("execution_id", executionID).
+					Str("tool_call_id", requestedToolCallId).
+					Str("action", requestedAction.String()).
+					Msg("IDEMPOTENT: Tool call already has matching approval action")
+				ctx.Set(IsIdempotentRequestKey, true)
+				return nil
 			}
-			break
+			return grpclib.FailedPreconditionError(
+				"tool call %s already has approval action %s, cannot change to %s",
+				requestedToolCallId, existingAction.String(), requestedAction.String(),
+			)
 		}
 	}
 
@@ -403,11 +401,8 @@ func (s *buildApprovalResponseStep) Execute(ctx *pipeline.RequestContext[*agente
 
 	// Find tool name for audit logging
 	toolName := "unknown"
-	for _, tc := range execution.GetStatus().GetToolCalls() {
-		if tc.GetId() == toolCallId {
-			toolName = tc.GetName()
-			break
-		}
+	if tc := findToolCallInExecution(execution, toolCallId); tc != nil {
+		toolName = tc.GetName()
 	}
 
 	// Audit log the approval decision
@@ -425,5 +420,24 @@ func (s *buildApprovalResponseStep) Execute(ctx *pipeline.RequestContext[*agente
 	// Status updates happen asynchronously via Temporal workflow -> Python activity -> gRPC
 	// We return the current state; clients should subscribe for real-time updates
 
+	return nil
+}
+
+// findToolCallInExecution searches for a ToolCall by ID across both top-level
+// and sub-agent tool calls. Sub-agent tools (e.g., write invoked by a
+// sub-agent) live under SubAgentExecution.ToolCalls, not the top-level list.
+func findToolCallInExecution(execution *agentexecutionv1.AgentExecution, toolCallID string) *agentexecutionv1.ToolCall {
+	for _, tc := range execution.GetStatus().GetToolCalls() {
+		if tc.GetId() == toolCallID {
+			return tc
+		}
+	}
+	for _, sa := range execution.GetStatus().GetSubAgentExecutions() {
+		for _, tc := range sa.GetToolCalls() {
+			if tc.GetId() == toolCallID {
+				return tc
+			}
+		}
+	}
 	return nil
 }
