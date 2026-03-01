@@ -78,6 +78,17 @@ def classify_platform_path(rel_path: str) -> tuple[bool, str]:
     return False, clean
 
 
+_SENSITIVE_KEY_PATTERNS = frozenset((
+    "password", "passwd", "pwd",
+    "token", "api_key", "apikey", "api-key",
+    "secret", "credential", "auth",
+    "private_key", "privatekey", "private-key",
+))
+"""Lowercase substrings that mark an env-var name as sensitive.  Used by
+:func:`resolve_display_env_vars` to avoid expanding secrets into display
+strings."""
+
+
 def humanize_platform_refs(text: str) -> str:
     """Replace platform environment-variable references with the user-facing
     ``.stigmer`` virtual-mount prefix.
@@ -102,3 +113,58 @@ def humanize_platform_refs(text: str) -> str:
     if not text:
         return text
     return _PLATFORM_ENV_RE.sub(PLATFORM_DIR_NAME, text)
+
+
+def _is_sensitive_key(name: str) -> bool:
+    """Return ``True`` if *name* looks like a secret based on
+    :data:`_SENSITIVE_KEY_PATTERNS`."""
+    lower = name.lower()
+    return any(p in lower for p in _SENSITIVE_KEY_PATTERNS)
+
+
+def resolve_display_env_vars(
+    text: str,
+    env_vars: dict[str, str] | None,
+) -> str:
+    """Resolve agent environment-variable references to their values in a
+    display string.
+
+    Replaces ``$KEY`` and ``${KEY}`` with the corresponding value from
+    *env_vars* for every key that is **not** sensitive (passwords, tokens,
+    etc.).  ``$STIGMER_PLATFORM_DIR`` is handled separately by
+    :func:`humanize_platform_refs` and is skipped here.
+
+    Call this **after** :func:`humanize_platform_refs` so platform paths
+    are humanized before general env-var resolution runs.
+
+    Args:
+        text: The display string (e.g. a shell command preview).
+        env_vars: Mapping of env-var names to their resolved values.  ``None``
+            or empty dict is a safe no-op.
+
+    Examples::
+
+        >>> resolve_display_env_vars("--path $OUTPUT_DIR", {"OUTPUT_DIR": "."})
+        '--path .'
+        >>> resolve_display_env_vars("--path ${OUTPUT_DIR}", {"OUTPUT_DIR": "out"})
+        '--path out'
+        >>> resolve_display_env_vars("--key $API_TOKEN", {"API_TOKEN": "sk-xx"})
+        '--key $API_TOKEN'
+        >>> resolve_display_env_vars("ls -la", None)
+        'ls -la'
+    """
+    if not text or not env_vars:
+        return text
+
+    for key, value in env_vars.items():
+        if key == STIGMER_PLATFORM_DIR_ENV:
+            continue
+        if _is_sensitive_key(key):
+            continue
+        text = re.sub(
+            r"\$\{" + re.escape(key) + r"\}"
+            r"|\$" + re.escape(key) + r"(?![A-Za-z0-9_])",
+            value,
+            text,
+        )
+    return text

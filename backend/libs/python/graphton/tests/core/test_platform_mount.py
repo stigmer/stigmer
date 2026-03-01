@@ -1,13 +1,16 @@
-"""Unit tests for platform_mount utilities.
+"""Unit tests for platform_mount display-humanization utilities.
 
-Covers humanize_platform_refs() — the display-layer function that replaces
-$STIGMER_PLATFORM_DIR environment variable references with the user-facing
-.stigmer virtual-mount prefix.
+Covers:
+- humanize_platform_refs() — $STIGMER_PLATFORM_DIR → .stigmer
+- resolve_display_env_vars() — $KEY → resolved value for agent env vars
 """
 
 import pytest
 
-from graphton.core.backends.platform_mount import humanize_platform_refs
+from graphton.core.backends.platform_mount import (
+    humanize_platform_refs,
+    resolve_display_env_vars,
+)
 
 
 class TestHumanizePlatformRefs:
@@ -58,3 +61,68 @@ class TestHumanizePlatformRefs:
         """Ensure $STIGMER_PLATFORM_DIR_EXTRA is not falsely matched."""
         text = "echo $STIGMER_PLATFORM_DIR_EXTRA"
         assert humanize_platform_refs(text) == text
+
+
+class TestResolveDisplayEnvVars:
+    """Resolve agent env-var references to their values in display strings."""
+
+    def test_dollar_prefix(self):
+        result = resolve_display_env_vars(
+            "--path $OUTPUT_DIR", {"OUTPUT_DIR": "."},
+        )
+        assert result == "--path ."
+
+    def test_brace_prefix(self):
+        result = resolve_display_env_vars(
+            "--path ${OUTPUT_DIR}", {"OUTPUT_DIR": "out"},
+        )
+        assert result == "--path out"
+
+    def test_multiple_vars(self):
+        result = resolve_display_env_vars(
+            "$OUTPUT_DIR/$PROJECT_NAME",
+            {"OUTPUT_DIR": "build", "PROJECT_NAME": "demo"},
+        )
+        assert result == "build/demo"
+
+    def test_none_env_vars_passthrough(self):
+        assert resolve_display_env_vars("$OUTPUT_DIR", None) == "$OUTPUT_DIR"
+
+    def test_empty_env_vars_passthrough(self):
+        assert resolve_display_env_vars("$OUTPUT_DIR", {}) == "$OUTPUT_DIR"
+
+    def test_empty_text(self):
+        assert resolve_display_env_vars("", {"OUTPUT_DIR": "."}) == ""
+
+    def test_sensitive_key_not_resolved(self):
+        result = resolve_display_env_vars(
+            "echo $API_TOKEN", {"API_TOKEN": "sk-secret-xxx"},
+        )
+        assert result == "echo $API_TOKEN"
+
+    def test_sensitive_key_password(self):
+        result = resolve_display_env_vars(
+            "echo $DB_PASSWORD", {"DB_PASSWORD": "hunter2"},
+        )
+        assert result == "echo $DB_PASSWORD"
+
+    def test_skips_stigmer_platform_dir(self):
+        """$STIGMER_PLATFORM_DIR is handled by humanize_platform_refs, not here."""
+        result = resolve_display_env_vars(
+            "$STIGMER_PLATFORM_DIR/skills",
+            {"STIGMER_PLATFORM_DIR": "/tmp/platform"},
+        )
+        assert result == "$STIGMER_PLATFORM_DIR/skills"
+
+    def test_no_partial_match(self):
+        result = resolve_display_env_vars(
+            "$OUTPUT_DIR_EXTRA", {"OUTPUT_DIR": "."},
+        )
+        assert result == "$OUTPUT_DIR_EXTRA"
+
+    def test_combined_with_humanize(self):
+        """Full pipeline: humanize first, then resolve remaining vars."""
+        text = "python3 $STIGMER_PLATFORM_DIR/run.py --path $OUTPUT_DIR"
+        text = humanize_platform_refs(text)
+        text = resolve_display_env_vars(text, {"OUTPUT_DIR": "."})
+        assert text == "python3 .stigmer/run.py --path ."

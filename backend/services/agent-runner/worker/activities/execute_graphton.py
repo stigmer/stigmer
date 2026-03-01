@@ -23,7 +23,10 @@ from ai.stigmer.agentic.agentexecution.v1.io_pb2 import (
 )
 from graphton import SummarizationConfig, create_deep_agent
 from graphton.core import ModelRegistry
-from graphton.core.backends.platform_mount import humanize_platform_refs
+from graphton.core.backends.platform_mount import (
+    humanize_platform_refs,
+    resolve_display_env_vars,
+)
 from langchain_core.runnables import RunnableConfig
 from temporalio import activity
 
@@ -1714,6 +1717,7 @@ async def _execute_graphton_impl(
         
         # Initialize status builder with approval config
         status_builder = StatusBuilder(execution_id, execution.status, approval_config)
+        status_builder.set_display_env_vars(merged_env_vars)
         
         # ─────────────────────────────────────────────────────────────────────────────
         # Step 5.7: Build ResolvedExecutionContext (Phase 2.5)
@@ -2813,10 +2817,15 @@ async def _execute_graphton_impl(
                         # Create args preview via StatusBuilder's sanitiser
                         args_preview = status_builder._create_args_preview(tool_args)
                         
+                        display_message = humanize_platform_refs(message)
+                        display_message = resolve_display_env_vars(
+                            display_message, merged_env_vars,
+                        )
+
                         pa = PendingApproval(
                             tool_call_id=matched_tool_call_id,
                             tool_name=tool_name,
-                            message=humanize_platform_refs(message),
+                            message=display_message,
                             args_preview=args_preview,
                             requested_at=_utc_timestamp(),
                             from_sub_agent=from_sub_agent,
