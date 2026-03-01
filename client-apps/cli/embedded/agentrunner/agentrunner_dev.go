@@ -5,8 +5,6 @@ package agentrunner
 import (
 	"os"
 	"path/filepath"
-
-	"github.com/rs/zerolog/log"
 )
 
 // devSourceDir is injected at build time via -ldflags for local dev builds
@@ -31,9 +29,6 @@ func init() {
 func locateRepoSource() string {
 	if devSourceDir != "" {
 		if _, err := os.Stat(filepath.Join(devSourceDir, "main.py")); err == nil {
-			log.Debug().
-				Str("path", devSourceDir).
-				Msg("Located agent-runner source via build-time path")
 			return devSourceDir
 		}
 	}
@@ -44,9 +39,6 @@ func locateRepoSource() string {
 		for i := 0; i < 10; i++ {
 			candidate := filepath.Join(dir, "backend", "services", "agent-runner")
 			if _, err := os.Stat(filepath.Join(candidate, "main.py")); err == nil {
-				log.Debug().
-					Str("path", candidate).
-					Msg("Located agent-runner source in repository tree")
 				return candidate
 			}
 			parent := filepath.Dir(dir)
@@ -59,9 +51,6 @@ func locateRepoSource() string {
 
 	if envDir := os.Getenv("STIGMER_AGENT_RUNNER_SOURCE_DIR"); envDir != "" {
 		if _, err := os.Stat(filepath.Join(envDir, "main.py")); err == nil {
-			log.Debug().
-				Str("path", envDir).
-				Msg("Located agent-runner source via STIGMER_AGENT_RUNNER_SOURCE_DIR")
 			return envDir
 		}
 	}
