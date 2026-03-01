@@ -36,6 +36,7 @@ from grpc_client.execution_context_client import (
 from grpc_client.mcp_server_client import McpServerClient
 from grpc_client.session_client import SessionClient
 from grpc_client.skill_client import SkillClient
+from worker.activities.relevance import build_relevance_prompt_section
 from worker.activities.graphton.approval_policy import (
     build_approval_config,
     create_approval_checker,
@@ -1773,6 +1774,13 @@ async def _execute_graphton_impl(
         if workspace_section:
             enhanced_system_prompt += workspace_section
             activity_logger.info("Enhanced system prompt with workspace context")
+
+        relevance_section = build_relevance_prompt_section(
+            user_message, provision_result.root_dir,
+        )
+        if relevance_section:
+            enhanced_system_prompt += relevance_section
+            activity_logger.info("Enhanced system prompt with relevance signals")
 
         if skills_prompt_section:
             enhanced_system_prompt += skills_prompt_section
