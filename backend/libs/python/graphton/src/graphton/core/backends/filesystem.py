@@ -319,8 +319,25 @@ class FilesystemBackend:
         file_path.parent.mkdir(parents=True, exist_ok=True)
         file_path.write_text(content)
 
+    def is_directory(self, path: str) -> bool:
+        """Check whether *path* points to a directory inside the sandbox.
+
+        Returns ``False`` for files, non-existent paths, or paths that
+        escape the sandbox root.  Never raises.
+        """
+        try:
+            resolved = self._resolve_sandbox_path(path)
+            return resolved.is_dir()
+        except (ValueError, OSError):
+            return False
+
     def list_files(self, path: str = ".") -> list[str]:
         """List files in directory.
+
+        Hidden entries (names starting with ``"."``) and well-known noise
+        directories (``.git``, ``__pycache__``, ``node_modules``) are
+        excluded so that recursive tool traversals never descend into
+        infrastructure directories.
 
         When ``platform_dir`` is set and *path* resolves to the workspace
         root, a virtual ``.stigmer`` entry is merged into the listing so
@@ -344,10 +361,14 @@ class FilesystemBackend:
                 f"Path '{path}' is a file, not a directory "
                 f"(resolved to '{dir_path}'). Use read() to read files."
             )
-            logger.warning(msg)
+            logger.debug(msg)
             raise NotADirectoryError(msg)
 
-        entries = [item.name for item in dir_path.iterdir()]
+        entries = [
+            item.name for item in dir_path.iterdir()
+            if not item.name.startswith(".")
+            and item.name not in self._SKIP_DIR_NAMES
+        ]
 
         # Inject virtual .stigmer entry at the workspace root level.
         if (
