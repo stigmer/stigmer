@@ -79,11 +79,13 @@ check: lint build test ## Run full CI gate locally
 
 # ─── Local Dev ────────────────────────────────
 
+DEV_LDFLAGS := -X github.com/stigmer/stigmer/client-apps/cli/embedded/agentrunner.devSourceDir=$(CURDIR)/backend/services/agent-runner
+
 .PHONY: release-local build-release
 release-local: ## Build + install CLI for local development
 	@rm -f $(HOME)/bin/stigmer /usr/local/bin/stigmer bin/stigmer 2>/dev/null || true
 	@mkdir -p bin $(HOME)/bin
-	@cd client-apps/cli && go build -o ../../bin/stigmer .
+	@cd client-apps/cli && go build -ldflags '$(DEV_LDFLAGS)' -o ../../bin/stigmer .
 	@cp bin/stigmer $(HOME)/bin/stigmer && chmod +x $(HOME)/bin/stigmer
 	@echo "cli: installed $(HOME)/bin/stigmer"
 	@stigmer --version 2>/dev/null || echo "cli: development build"

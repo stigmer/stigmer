@@ -100,6 +100,7 @@ When starting a new session:
 - **T01.5**: Log Integration for Native Mode — verified and hardened
 - **WA-01 Resolution**: Dual lifecycle management consolidated — single daemon as lifecycle owner (DD-02)
 - **Pipeline Fix**: CI pipeline and Makefile aligned with native agent-runner (release-blocking bug fixed)
+- **Dev Source Detection Fix**: `make release-local` now injects agent-runner source path via `-ldflags` so the binary works when installed outside the repo tree
 
 ### WA-01 Resolution Summary (2026-03-01)
 - **Problem**: Two independent systems (CLI daemon + stigmer-server supervisor) both managed agent-runner and workflow-runner with conflicting state files, competing health monitors, and no health monitoring for native agent-runner
@@ -126,7 +127,7 @@ When starting a new session:
 - **DD-02**: `design-decisions/DD02_single_daemon_lifecycle_owner.md` — Single long-lived daemon process as exclusive lifecycle owner for all components; supervisor removed
 - **WA-01**: `wrong-assumptions/WA01_dual_lifecycle_management.md` — Resolved via DD-02
 
-## Session Progress (2026-03-01)
+## Session Progress (2026-03-01, Sessions 1-3)
 
 ### What Was Accomplished
 - Reviewed T01_0_plan.md and approved the Phase 1 plan
@@ -139,6 +140,15 @@ When starting a new session:
   - **Go //go:embed limitation**: Can't embed files from outside module tree. Solution: build-tagged files with `os.DirFS` for dev and `//go:embed` for production after sync.sh copies source.
   - **WORKSPACE_ROOT vs SANDBOX_ROOT_DIR bug**: Fixed — native mode passes `SANDBOX_ROOT_DIR` directly.
 
+## Session Progress (2026-03-01, Session 4)
+
+### What Was Accomplished
+- **Dev source detection bug fixed**: `make release-local && stigmer server` failed with "agent-runner Python source is not available" because the binary was installed to `~/bin/` (outside repo tree) and the dev-mode detection in `agentrunner_dev.go` only walked up from `os.Executable()`
+- **Root cause**: `locateRepoSource()` walks up from the executable path, but `make release-local` copies the binary to `~/bin/stigmer`, which never reaches the repo
+- **Fix**: Added `devSourceDir` variable to `agentrunner_dev.go`, injected via `-ldflags` in the Makefile's `release-local` target — follows the exact same pattern as `buildVersion` in `version.go`
+- **Files changed**: `Makefile` (2 lines), `client-apps/cli/embedded/agentrunner/agentrunner_dev.go` (restructured with 3-tier resolution)
+- **Verified**: `make release-local` builds successfully, path confirmed baked into binary via `strings` inspection
+
 ### Context for Resume
 - **T01.6 is next** — end-to-end validation of the full native agent-runner flow on macOS arm64
 - The daemon is now a long-lived background process (`stigmer internal-daemon`); it starts, monitors, and restarts all components
@@ -147,8 +157,9 @@ When starting a new session:
 - supervisor.go is deleted — stigmer-server is a pure backend service
 - All Docker agent-runner code is removed — agent-runner is always native
 - `embedded/agentrunner/` package provides Python source as `fs.FS` — dev mode uses repo tree, production requires running `sync.sh` before build with `-tags embed_agentrunner`
+- Dev-mode source resolution order: (1) ldflags-injected path, (2) walk up from executable, (3) `STIGMER_AGENT_RUNNER_SOURCE_DIR` env var
 - CI pipeline now runs `sync.sh` + `-tags embed_agentrunner` on all 3 platforms
-- `make release-local` is Docker-free; `make build-release` does a production-like build with embedding
+- `make release-local` is Docker-free with ldflags; `make build-release` does a production-like build with embedding
 - `sync.sh` graphton path fixed to `backend/libs/python/graphton`
 
 ## Quick Commands
