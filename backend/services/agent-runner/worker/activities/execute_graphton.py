@@ -623,6 +623,79 @@ def build_workspace_prompt_section(
     return "\n\n## Workspace\n\n" + provision_result.workspace_description
 
 
+_TREE_SKIP_DIRS: frozenset[str] = frozenset({
+    ".git", "__pycache__", "node_modules", ".stigmer",
+})
+_TREE_MAX_DEPTH: int = 3
+_TREE_MAX_ENTRIES: int = 200
+
+
+def _human_size(size_bytes: int) -> str:
+    """Format a byte count as a compact human-readable string."""
+    if size_bytes < 1024:
+        return f"{size_bytes} bytes"
+    if size_bytes < 1024 * 1024:
+        return f"{size_bytes / 1024:.1f} KB"
+    return f"{size_bytes / (1024 * 1024):.1f} MB"
+
+
+def _build_directory_tree(
+    root: str,
+    prefix: str,
+    *,
+    max_depth: int = _TREE_MAX_DEPTH,
+    max_entries: int = _TREE_MAX_ENTRIES,
+) -> tuple[list[str], int]:
+    """Recursively collect a file-tree manifest for a directory.
+
+    Returns ``(lines, total_count)`` where *lines* contains at most
+    *max_entries* formatted strings and *total_count* is the true number
+    of entries discovered (used to signal truncation).
+    """
+    lines: list[str] = []
+    total = 0
+
+    def _walk(dir_path: str, rel_prefix: str, depth: int) -> None:
+        nonlocal total
+        if depth > max_depth:
+            return
+        try:
+            entries = sorted(os.listdir(dir_path))
+        except OSError:
+            return
+
+        child_dirs: list[tuple[str, str, str]] = []
+        child_files: list[tuple[str, str, int | None]] = []
+
+        for name in entries:
+            if name.startswith(".") or name in _TREE_SKIP_DIRS:
+                continue
+            full = os.path.join(dir_path, name)
+            rel = f"{rel_prefix}{name}" if rel_prefix else name
+            try:
+                if os.path.isdir(full):
+                    child_dirs.append((full, rel, name))
+                else:
+                    child_files.append((rel, name, os.path.getsize(full)))
+            except OSError:
+                child_files.append((rel, name, None))
+
+        for full, rel, _name in child_dirs:
+            total += 1
+            if len(lines) < max_entries:
+                lines.append(f"    - `{rel}/`")
+            _walk(full, f"{rel}/", depth + 1)
+
+        for rel, _name, size in child_files:
+            total += 1
+            if len(lines) < max_entries:
+                size_str = f" ({_human_size(size)})" if size is not None else ""
+                lines.append(f"    - `{rel}`{size_str}")
+
+    _walk(root, prefix, 1)
+    return lines, total
+
+
 def build_referenced_files_prompt_section(
     workspace_file_refs: list[str],
     workspace_root: str,
@@ -631,12 +704,12 @@ def build_referenced_files_prompt_section(
 
     When the user attaches files that are inside the workspace, the CLI
     records them as workspace-relative paths instead of uploading them.
-    This function builds a system prompt section telling the agent to
-    read those files directly from the workspace.
+    This function builds a prompt section listing those paths with
+    structural metadata so the agent can navigate them efficiently.
 
-    Each path is annotated as either a file (with size) or a directory so
-    the agent knows to use ``read`` for files and ``ls`` for directories
-    without wasting a turn on an ``IsADirectoryError``.
+    For files the size is shown.  For directories the full tree (up to a
+    depth and entry limit) is expanded inline so the agent has a complete
+    map without needing to ``ls`` first.
 
     Args:
         workspace_file_refs: Workspace-relative paths (files or
@@ -654,18 +727,29 @@ def build_referenced_files_prompt_section(
     section = (
         "\n\n## Referenced Files\n\n"
         "The user has highlighted the following workspace paths for your "
-        "attention. Use `read` for files and `ls` for directories.\n\n"
+        "attention. Use `read` to access file contents.\n\n"
     )
 
     for ref_path in workspace_file_refs:
         full_path = os.path.join(workspace_root, ref_path)
         try:
-            stat = os.stat(full_path)
             if os.path.isdir(full_path):
-                section += f"- `{ref_path}/` (directory)\n"
+                tree_lines, total = _build_directory_tree(
+                    full_path,
+                    ref_path.rstrip("/") + "/",
+                )
+                label = "entry" if total == 1 else "entries"
+                section += f"- `{ref_path}/` (directory, {total} {label})\n"
+                for line in tree_lines:
+                    section += line + "\n"
+                if total > len(tree_lines):
+                    section += (
+                        f"    - ... and {total - len(tree_lines)} more "
+                        f"(truncated at {_TREE_MAX_ENTRIES} entries)\n"
+                    )
             else:
-                size = stat.st_size
-                section += f"- `{ref_path}` ({size} bytes)\n"
+                size = os.path.getsize(full_path)
+                section += f"- `{ref_path}` ({_human_size(size)})\n"
         except OSError:
             section += f"- `{ref_path}`\n"
 
