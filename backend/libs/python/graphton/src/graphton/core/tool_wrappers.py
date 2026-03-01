@@ -1282,13 +1282,9 @@ def _create_glob_tool(
             
             collect_files(path)
             
-            # Filter by glob pattern
-            # Handle ** for recursive matching
-            if "**" in pattern:
-                # Use fnmatch with the full path
+            if "/" in pattern:
                 matches = [f for f in all_files if fnmatch.fnmatch(f, pattern)]
             else:
-                # Match just the filename
                 matches = [f for f in all_files if fnmatch.fnmatch(os.path.basename(f), pattern)]
             
             if not matches:

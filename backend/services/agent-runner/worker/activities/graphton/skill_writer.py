@@ -306,6 +306,10 @@ class SkillWriter:
             "When creating new files, write them relative to the workspace "
             "root (e.g. `my-output/file.md`, not "
             f"`{_SKILLS_RELATIVE_BASE}/my-output/file.md`). "
+            "When a skill's SKILL.md references relative paths "
+            "(e.g. `scripts/run.py`, `references/schema.md`), resolve them "
+            "from the skill's **Location** directory "
+            "(e.g. `read {location}/references/schema.md`). "
             "For shell execution of skill scripts, use "
             "`$STIGMER_PLATFORM_DIR/skills/{name}/scripts/…`.",
             "",

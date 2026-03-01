@@ -1246,6 +1246,153 @@ class TestGlobToolWrapper:
         assert "No files matching" in result
 
 
+class TestGlobToolPathPatterns:
+    """Tests for glob pattern matching with path-containing patterns.
+
+    Validates that patterns with '/' match against full paths while
+    patterns without '/' match against basenames only.
+    """
+
+    @pytest.fixture
+    def deep_backend(self):
+        """Backend with a realistic nested directory tree."""
+        backend = MagicMock()
+        _dirs = {
+            ".", "docs", "docs/product", "src", "src/utils",
+            ".stigmer", ".stigmer/skills", ".stigmer/skills/my-skill",
+            ".stigmer/skills/my-skill/scripts",
+            ".stigmer/skills/my-skill/references",
+        }
+
+        _tree = {
+            ".": ["docs", "src", ".stigmer", "README.md"],
+            "docs": ["product"],
+            "docs/product": [
+                "what-is-agent.md",
+                "what-is-skill.md",
+                "what-is-session.md",
+            ],
+            "src": ["utils", "main.py"],
+            "src/utils": ["helpers.py", "config.py"],
+            ".stigmer": ["skills"],
+            ".stigmer/skills": ["my-skill"],
+            ".stigmer/skills/my-skill": ["SKILL.md", "scripts", "references"],
+            ".stigmer/skills/my-skill/scripts": ["init_skill.py", "validate.sh"],
+            ".stigmer/skills/my-skill/references": ["schema.md", "examples.md"],
+        }
+
+        backend.list_files.side_effect = lambda p: _tree.get(p, [])
+        backend.is_directory.side_effect = lambda p: p in _dirs
+        return backend
+
+    # -- Pattern with path components (contains '/') -----------------------
+
+    @pytest.mark.asyncio
+    async def test_path_pattern_matches_full_path(self, deep_backend):
+        tool = _create_glob_tool(deep_backend)
+        result = await tool.ainvoke({"pattern": "docs/product/what-is-*.md"})
+
+        assert "docs/product/what-is-agent.md" in result
+        assert "docs/product/what-is-skill.md" in result
+        assert "docs/product/what-is-session.md" in result
+
+    @pytest.mark.asyncio
+    async def test_path_pattern_no_false_positives(self, deep_backend):
+        tool = _create_glob_tool(deep_backend)
+        result = await tool.ainvoke({"pattern": "docs/product/what-is-*.md"})
+
+        assert "README.md" not in result
+        assert "schema.md" not in result
+
+    @pytest.mark.asyncio
+    async def test_path_pattern_subdir_wildcard(self, deep_backend):
+        tool = _create_glob_tool(deep_backend)
+        result = await tool.ainvoke({"pattern": "src/utils/*.py"})
+
+        assert "src/utils/helpers.py" in result
+        assert "src/utils/config.py" in result
+        assert "main.py" not in result
+
+    @pytest.mark.asyncio
+    async def test_path_pattern_exact_file(self, deep_backend):
+        tool = _create_glob_tool(deep_backend)
+        result = await tool.ainvoke({"pattern": "src/main.py"})
+
+        assert "src/main.py" in result
+
+    @pytest.mark.asyncio
+    async def test_path_pattern_no_match_wrong_prefix(self, deep_backend):
+        """scripts/init_skill.py should NOT match .stigmer/.../scripts/init_skill.py
+        because fnmatch requires the full path to match."""
+        tool = _create_glob_tool(deep_backend)
+        result = await tool.ainvoke({"pattern": "scripts/init_skill.py"})
+
+        assert "No files matching" in result
+
+    # -- Recursive ** patterns ---------------------------------------------
+
+    @pytest.mark.asyncio
+    async def test_double_star_finds_all_py_files(self, deep_backend):
+        tool = _create_glob_tool(deep_backend)
+        result = await tool.ainvoke({"pattern": "**/*.py"})
+
+        assert "src/main.py" in result
+        assert "src/utils/helpers.py" in result
+        assert "src/utils/config.py" in result
+        assert ".stigmer/skills/my-skill/scripts/init_skill.py" in result
+
+    @pytest.mark.asyncio
+    async def test_double_star_finds_nested_exact(self, deep_backend):
+        tool = _create_glob_tool(deep_backend)
+        result = await tool.ainvoke({"pattern": "**/init_skill.py"})
+
+        assert ".stigmer/skills/my-skill/scripts/init_skill.py" in result
+
+    @pytest.mark.asyncio
+    async def test_double_star_finds_nested_md(self, deep_backend):
+        tool = _create_glob_tool(deep_backend)
+        result = await tool.ainvoke({"pattern": "**/*.md"})
+
+        # fnmatch requires a literal '/' in the path for **/*.md to match,
+        # so root-level README.md is not matched (use "*.md" for those).
+        assert "docs/product/what-is-agent.md" in result
+        assert ".stigmer/skills/my-skill/SKILL.md" in result
+        assert ".stigmer/skills/my-skill/references/schema.md" in result
+        assert "README.md" not in result
+
+    # -- Pure filename patterns (no '/') -----------------------------------
+
+    @pytest.mark.asyncio
+    async def test_basename_pattern_matches_across_dirs(self, deep_backend):
+        tool = _create_glob_tool(deep_backend)
+        result = await tool.ainvoke({"pattern": "*.py"})
+
+        assert "src/main.py" in result
+        assert "src/utils/helpers.py" in result
+        assert ".stigmer/skills/my-skill/scripts/init_skill.py" in result
+
+    @pytest.mark.asyncio
+    async def test_basename_pattern_exact_filename(self, deep_backend):
+        tool = _create_glob_tool(deep_backend)
+        result = await tool.ainvoke({"pattern": "SKILL.md"})
+
+        assert ".stigmer/skills/my-skill/SKILL.md" in result
+
+    # -- Custom path argument ----------------------------------------------
+
+    @pytest.mark.asyncio
+    async def test_path_scoping_limits_search(self, deep_backend):
+        tool = _create_glob_tool(deep_backend)
+        result = await tool.ainvoke({
+            "pattern": "*.py",
+            "path": ".stigmer/skills/my-skill/scripts",
+        })
+
+        assert "init_skill.py" in result
+        assert "helpers.py" not in result
+        assert "main.py" not in result
+
+
 class TestGrepToolWrapper:
     """Tests for _create_grep_tool wrapper."""
 
