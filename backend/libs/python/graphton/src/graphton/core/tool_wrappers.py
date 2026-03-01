@@ -57,6 +57,22 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _unwrap_exception(exc: BaseException) -> BaseException:
+    """Extract the first meaningful cause from an exception.
+
+    ``anyio`` wraps failures inside ``ExceptionGroup`` (Python 3.11+) or
+    the backport ``exceptiongroup.ExceptionGroup``.  The outer wrapper
+    reads "unhandled errors in a TaskGroup (1 sub-exception)" which is
+    uninformative.  This helper digs out the actual root cause so that
+    error messages shown to the user (and logged) are actionable.
+    """
+    if isinstance(exc, BaseExceptionGroup) and exc.exceptions:
+        return _unwrap_exception(exc.exceptions[0])
+    if exc.__cause__ is not None and isinstance(exc.__cause__, BaseExceptionGroup):
+        return _unwrap_exception(exc.__cause__)
+    return exc
+
+
 # =============================================================================
 # Exception Classes for HITL Approval Flow
 # =============================================================================
@@ -179,43 +195,27 @@ def create_tool_wrapper(
         
         # Invoke the actual MCP tool with provided arguments
         try:
-            # Phase 1 Diagnostic Logging: Capture exact argument structure
-            logger.info(f"=== MCP Tool Invocation Diagnostics for '{tool_name}' ===")
-            logger.info(f"kwargs type: {type(kwargs)}")
-            logger.info(f"kwargs value: {kwargs}")
-            logger.info(f"kwargs keys: {list(kwargs.keys()) if isinstance(kwargs, dict) else 'N/A - not a dict'}")
-            
-            # Inspect the MCP tool's expected schema
-            if hasattr(mcp_tool, 'args_schema'):
-                logger.info(f"Tool args_schema: {mcp_tool.args_schema}")
-            if hasattr(mcp_tool, 'name'):
-                logger.info(f"Tool name from object: {mcp_tool.name}")
-            
-            # Check for double-nesting and unwrap if needed (FIX for argument marshalling)
             actual_args = kwargs
             if isinstance(kwargs, dict):
                 if len(kwargs) == 1 and 'input' in kwargs:
-                    logger.warning("⚠️  Double-nesting detected: unwrapping 'input' key")
-                    logger.info(f"Value inside 'input': {kwargs.get('input')}")
+                    logger.debug(f"Unwrapping 'input' key for '{tool_name}'")
                     actual_args = kwargs['input']
                 elif len(kwargs) == 1 and 'kwargs' in kwargs:
-                    logger.warning("⚠️  Double-nesting detected: unwrapping 'kwargs' key")
-                    logger.info(f"Value inside 'kwargs': {kwargs.get('kwargs')}")
+                    logger.debug(f"Unwrapping 'kwargs' key for '{tool_name}'")
                     actual_args = kwargs['kwargs']
-            
-            logger.info(f"Calling mcp_tool.ainvoke() with (after unwrapping): {actual_args}")
+
+            logger.debug(f"Calling mcp_tool.ainvoke() for '{tool_name}'")
             result = await mcp_tool.ainvoke(actual_args)
-            logger.info(f"✅ MCP tool '{tool_name}' returned successfully")
-            logger.info(f"Result type: {type(result)}")
-            logger.info(f"=== End Diagnostics for '{tool_name}' ===")
+            logger.debug(f"MCP tool '{tool_name}' returned successfully")
             return result
         except Exception as e:
+            cause = _unwrap_exception(e)
             logger.error(
-                f"MCP tool '{tool_name}' invocation failed: {e}",
-                exc_info=True
+                f"MCP tool '{tool_name}' invocation failed: {cause}",
+                exc_info=True,
             )
             raise RuntimeError(
-                f"MCP tool '{tool_name}' invocation failed: {e}"
+                f"MCP tool '{tool_name}' invocation failed: {cause}"
             ) from e
     
     # Copy metadata from original tool for better LangChain integration
@@ -360,17 +360,18 @@ def create_approval_aware_tool_wrapper(
         
         # Invoke the actual MCP tool
         try:
-            logger.info(f"🔧 Executing MCP tool '{tool_name}'")
+            logger.info(f"Executing MCP tool '{tool_name}'")
             result = await mcp_tool.ainvoke(actual_args)
-            logger.info(f"✅ MCP tool '{tool_name}' completed successfully")
+            logger.info(f"MCP tool '{tool_name}' completed successfully")
             return result
         except Exception as e:
+            cause = _unwrap_exception(e)
             logger.error(
-                f"MCP tool '{tool_name}' invocation failed: {e}",
-                exc_info=True
+                f"MCP tool '{tool_name}' invocation failed: {cause}",
+                exc_info=True,
             )
             raise RuntimeError(
-                f"MCP tool '{tool_name}' invocation failed: {e}"
+                f"MCP tool '{tool_name}' invocation failed: {cause}"
             ) from e
     
     # Copy metadata from original tool for better LangChain integration
@@ -462,43 +463,27 @@ def create_lazy_tool_wrapper(
         
         # Invoke the actual MCP tool with provided arguments
         try:
-            # Phase 1 Diagnostic Logging: Capture exact argument structure (lazy mode)
-            logger.info(f"=== MCP Tool Invocation Diagnostics for '{tool_name}' (LAZY MODE) ===")
-            logger.info(f"kwargs type: {type(kwargs)}")
-            logger.info(f"kwargs value: {kwargs}")
-            logger.info(f"kwargs keys: {list(kwargs.keys()) if isinstance(kwargs, dict) else 'N/A - not a dict'}")
-            
-            # Inspect the MCP tool's expected schema
-            if hasattr(mcp_tool, 'args_schema'):
-                logger.info(f"Tool args_schema: {mcp_tool.args_schema}")
-            if hasattr(mcp_tool, 'name'):
-                logger.info(f"Tool name from object: {mcp_tool.name}")
-            
-            # Check for double-nesting and unwrap if needed (FIX for argument marshalling)
             actual_args = kwargs
             if isinstance(kwargs, dict):
                 if len(kwargs) == 1 and 'input' in kwargs:
-                    logger.warning("⚠️  Double-nesting detected: unwrapping 'input' key")
-                    logger.info(f"Value inside 'input': {kwargs.get('input')}")
+                    logger.debug(f"Unwrapping 'input' key for '{tool_name}' (lazy)")
                     actual_args = kwargs['input']
                 elif len(kwargs) == 1 and 'kwargs' in kwargs:
-                    logger.warning("⚠️  Double-nesting detected: unwrapping 'kwargs' key")
-                    logger.info(f"Value inside 'kwargs': {kwargs.get('kwargs')}")
+                    logger.debug(f"Unwrapping 'kwargs' key for '{tool_name}' (lazy)")
                     actual_args = kwargs['kwargs']
-            
-            logger.info(f"Calling mcp_tool.ainvoke() with (after unwrapping): {actual_args}")
+
+            logger.debug(f"Calling mcp_tool.ainvoke() for '{tool_name}' (lazy)")
             result = await mcp_tool.ainvoke(actual_args)
-            logger.info(f"✅ MCP tool '{tool_name}' returned successfully (lazy mode)")
-            logger.info(f"Result type: {type(result)}")
-            logger.info(f"=== End Diagnostics for '{tool_name}' (LAZY MODE) ===")
+            logger.debug(f"MCP tool '{tool_name}' returned successfully (lazy)")
             return result
         except Exception as e:
+            cause = _unwrap_exception(e)
             logger.error(
-                f"MCP tool '{tool_name}' invocation failed (lazy mode): {e}",
-                exc_info=True
+                f"MCP tool '{tool_name}' invocation failed (lazy): {cause}",
+                exc_info=True,
             )
             raise RuntimeError(
-                f"MCP tool '{tool_name}' invocation failed: {e}"
+                f"MCP tool '{tool_name}' invocation failed: {cause}"
             ) from e
     
     # Set basic metadata for the lazy wrapper

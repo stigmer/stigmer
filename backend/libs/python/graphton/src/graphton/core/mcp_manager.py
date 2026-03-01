@@ -4,14 +4,28 @@ This module handles MCP client operations: tool loading, resource listing,
 and resource reading. It accepts pre-configured server configurations
 (with auth already injected) and creates MCP clients accordingly.
 
+For tool loading there are two entry points:
+
+- ``connect_mcp_client`` -- enters the ``async with`` context on a
+  ``MultiServerMCPClient``, keeping stdio subprocesses alive for the
+  entire agent execution.  The caller owns the returned client's
+  lifecycle (via ``contextlib.AsyncExitStack`` or similar).
+
+- ``load_mcp_tools`` -- convenience wrapper that creates an ephemeral
+  client, loads tools, and lets the client close immediately.  Safe for
+  HTTP-only servers; **not safe for stdio** servers because the
+  subprocess dies before tool invocations happen.
+
 Functions:
-    load_mcp_tools: Load and filter MCP tools from configured servers.
+    connect_mcp_client: Open a persistent MCP client and return filtered tools.
+    load_mcp_tools: Load and filter MCP tools (ephemeral -- HTTP-only).
     list_mcp_resources: List available resources and resource templates.
     read_mcp_resource: Read a specific resource by URI.
 """
 
 import logging
 from collections.abc import Sequence
+from contextlib import AsyncExitStack
 from typing import Any
 
 from langchain_core.tools import BaseTool
@@ -21,126 +35,148 @@ from mcp.types import BlobResourceContents, TextResourceContents
 logger = logging.getLogger(__name__)
 
 
-async def load_mcp_tools(
+def _validate_inputs(
     servers: dict[str, dict[str, Any]],
     tool_filter: dict[str, list[str]],
-) -> Sequence[BaseTool]:
-    """Load MCP tools from configured servers.
-    
-    This function:
-    1. Accepts pre-configured server dictionaries (with auth already injected)
-    2. Initializes MultiServerMCPClient with the provided configurations
-    3. Loads all available tools from the servers
-    4. Filters tools based on the provided tool_filter
-    5. Returns the filtered list of LangChain-compatible tools
-    
-    Args:
-        servers: Dictionary mapping server names to raw MCP server configs.
-            These configs should be complete and ready to pass to the MCP client,
-            including any authentication headers or other required fields.
-            Example: {
-                "planton-cloud": {
-                    "transport": "streamable_http",
-                    "url": "https://mcp.planton.ai/",
-                    "headers": {
-                        "Authorization": "Bearer token123"
-                    }
-                }
-            }
-        tool_filter: Dictionary mapping server names to lists of tool names to load.
-            Only tools whose names appear in this filter will be returned.
-            Example: {
-                "planton-cloud": ["list_organizations", "create_cloud_resource"]
-            }
-        
-    Returns:
-        Sequence of LangChain BaseTool instances ready for use
-        
-    Raises:
-        ValueError: If no tools match the filter
-        RuntimeError: If MCP client fails to connect or load tools
-        
-    Example:
-        >>> servers = {
-        ...     "planton-cloud": {
-        ...         "transport": "streamable_http",
-        ...         "url": "https://mcp.planton.ai/",
-        ...         "headers": {
-        ...             "Authorization": "Bearer token123"
-        ...         }
-        ...     }
-        ... }
-        >>> tool_filter = {
-        ...     "planton-cloud": ["list_organizations", "create_cloud_resource"]
-        ... }
-        >>> tools = await load_mcp_tools(servers, tool_filter)
-        >>> len(tools)
-        2
-
-    """
-    # Validate inputs
+) -> None:
     if not servers:
-        raise ValueError("servers cannot be empty. Provide at least one MCP server configuration.")
-    
+        raise ValueError(
+            "servers cannot be empty. Provide at least one MCP server configuration."
+        )
     if not tool_filter:
-        raise ValueError("tool_filter cannot be empty. Specify which tools to load.")
-    
+        raise ValueError(
+            "tool_filter cannot be empty. Specify which tools to load."
+        )
+
+
+def _filter_tools(
+    all_tools: Sequence[BaseTool],
+    tool_filter: dict[str, list[str]],
+) -> list[BaseTool]:
+    """Filter tools by name, validate at least one match, and log."""
+    requested: set[str] = set()
+    for names in tool_filter.values():
+        requested.update(names)
+
+    filtered = [t for t in all_tools if t.name in requested]
+
+    if not filtered:
+        available = [t.name for t in all_tools]
+        raise ValueError(
+            f"No tools found matching filter. "
+            f"Available tools: {available}, "
+            f"Requested tools: {sorted(requested)}"
+        )
+
+    loaded_names = [t.name for t in filtered]
+    logger.info(f"Loaded {len(filtered)} MCP tool(s): {loaded_names}")
+
+    missing = requested - set(loaded_names)
+    if missing:
+        logger.warning(f"Some requested tools were not found: {sorted(missing)}")
+
+    return filtered
+
+
+async def connect_mcp_client(
+    servers: dict[str, dict[str, Any]],
+    tool_filter: dict[str, list[str]],
+    exit_stack: AsyncExitStack,
+) -> Sequence[BaseTool]:
+    """Open a persistent MCP client and return filtered tools.
+
+    The client is entered via *exit_stack* so its connections (including
+    stdio subprocesses) stay alive until the stack is closed.  This is
+    the **required** entry point for any configuration that includes
+    stdio-transport servers.
+
+    Args:
+        servers: Server-name -> complete MCP server config (auth resolved).
+        tool_filter: Server-name -> list of tool names to expose.
+        exit_stack: An ``AsyncExitStack`` whose lifetime spans the agent
+            execution.  The MCP client is registered on this stack; when
+            the stack is closed the client shuts down gracefully.
+
+    Returns:
+        Filtered sequence of LangChain ``BaseTool`` instances backed by
+        the persistent client.
+
+    Raises:
+        ValueError: If inputs are empty or no tools match the filter.
+        RuntimeError: If the MCP client fails to connect.
+    """
+    _validate_inputs(servers, tool_filter)
+
     logger.info(
-        f"Connecting to {len(servers)} MCP server(s): {list(servers.keys())}"
+        f"Opening persistent MCP connection to {len(servers)} server(s): "
+        f"{list(servers.keys())}"
     )
-    
+
     try:
-        # Initialize MCP client with the provided server configurations
-        # No modification needed - configs are already complete with auth
-        mcp_client = MultiServerMCPClient(servers)
-        
-        # Get all tools from all servers
-        all_tools = await mcp_client.get_tools()
-        
+        client = MultiServerMCPClient(servers)
+        await exit_stack.enter_async_context(client)
+
+        all_tools = await client.get_tools()
         logger.info(
             f"Retrieved {len(all_tools)} total tool(s) from MCP server(s): "
             f"{[t.name for t in all_tools]}"
         )
-        
-        # Filter tools based on configuration
-        # Build a set of all requested tool names for fast lookup
-        requested_tools: set[str] = set()
-        for tool_names in tool_filter.values():
-            requested_tools.update(tool_names)
-        
-        # Filter tools
-        filtered_tools = [
-            tool for tool in all_tools
-            if tool.name in requested_tools
-        ]
-        
-        # Validate we found tools
-        if not filtered_tools:
-            available_names = [t.name for t in all_tools]
-            raise ValueError(
-                f"No tools found matching filter. "
-                f"Available tools: {available_names}, "
-                f"Requested tools: {sorted(requested_tools)}"
-            )
-        
-        # Log what we're returning
-        loaded_names = [t.name for t in filtered_tools]
-        logger.info(
-            f"Loaded {len(filtered_tools)} MCP tool(s): {loaded_names}"
-        )
-        
-        # Check if any requested tools were not found
-        found_names = set(loaded_names)
-        missing_tools = requested_tools - found_names
-        if missing_tools:
-            logger.warning(
-                f"Some requested tools were not found: {sorted(missing_tools)}"
-            )
-        
-        return filtered_tools
-        
+
+        return _filter_tools(all_tools, tool_filter)
+
     except ValueError:
-        # Re-raise validation errors as-is
+        raise
+    except Exception as e:
+        logger.error(f"Failed to connect MCP client: {e}", exc_info=True)
+        raise RuntimeError(
+            f"MCP persistent connection failed: {e}. "
+            "Check MCP server connectivity and configuration."
+        ) from e
+
+
+async def load_mcp_tools(
+    servers: dict[str, dict[str, Any]],
+    tool_filter: dict[str, list[str]],
+) -> Sequence[BaseTool]:
+    """Load MCP tools from configured servers (ephemeral client).
+
+    Creates an ephemeral ``MultiServerMCPClient`` that closes after tool
+    discovery.  This is fine for HTTP-transport servers but **will cause
+    ``BrokenResourceError`` for stdio servers** because the subprocess
+    exits before tools are invoked at runtime.
+
+    Prefer ``connect_mcp_client`` for any configuration that may include
+    stdio-transport servers.
+
+    Args:
+        servers: Server-name -> complete MCP server config (auth resolved).
+        tool_filter: Server-name -> list of tool names to expose.
+
+    Returns:
+        Sequence of LangChain BaseTool instances.
+
+    Raises:
+        ValueError: If inputs are empty or no tools match the filter.
+        RuntimeError: If MCP client fails to connect or load tools.
+    """
+    _validate_inputs(servers, tool_filter)
+
+    logger.info(
+        f"Connecting to {len(servers)} MCP server(s): {list(servers.keys())}"
+    )
+
+    try:
+        mcp_client = MultiServerMCPClient(servers)
+        all_tools = await mcp_client.get_tools()
+
+        logger.info(
+            f"Retrieved {len(all_tools)} total tool(s) from MCP server(s): "
+            f"{[t.name for t in all_tools]}"
+        )
+
+        return _filter_tools(all_tools, tool_filter)
+
+    except ValueError:
         raise
     except Exception as e:
         logger.error(f"Failed to load MCP tools: {e}", exc_info=True)
