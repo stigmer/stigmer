@@ -23,6 +23,7 @@ from ai.stigmer.agentic.agentexecution.v1.io_pb2 import (
 )
 from graphton import SummarizationConfig, create_deep_agent
 from graphton.core import ModelRegistry
+from graphton.core.backends.platform_mount import humanize_platform_refs
 from langchain_core.runnables import RunnableConfig
 from temporalio import activity
 
@@ -2815,7 +2816,7 @@ async def _execute_graphton_impl(
                         pa = PendingApproval(
                             tool_call_id=matched_tool_call_id,
                             tool_name=tool_name,
-                            message=message,
+                            message=humanize_platform_refs(message),
                             args_preview=args_preview,
                             requested_at=_utc_timestamp(),
                             from_sub_agent=from_sub_agent,

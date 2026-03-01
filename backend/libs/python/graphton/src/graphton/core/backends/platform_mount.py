@@ -15,6 +15,8 @@ See design decision AD-01 v3 (virtual platform mount) for full rationale.
 
 from __future__ import annotations
 
+import re
+
 PLATFORM_PREFIX = ".stigmer/"
 """Prefix that identifies paths targeting the virtual platform mount."""
 
@@ -24,6 +26,15 @@ PLATFORM_DIR_NAME = ".stigmer"
 STIGMER_PLATFORM_DIR_ENV = "STIGMER_PLATFORM_DIR"
 """Environment variable injected into ``execute()`` calls so shell commands
 can access platform files via ``$STIGMER_PLATFORM_DIR/skills/…``."""
+
+_PLATFORM_ENV_RE = re.compile(
+    r"\$\{" + STIGMER_PLATFORM_DIR_ENV + r"\}"
+    r"|\$" + STIGMER_PLATFORM_DIR_ENV + r"(?![A-Za-z0-9_])"
+)
+"""Matches ``$STIGMER_PLATFORM_DIR`` and ``${STIGMER_PLATFORM_DIR}`` in
+display strings.  Brace form is tried first so the replacement does not
+leave stray braces.  The negative lookahead on the bare-dollar form
+prevents matching ``$STIGMER_PLATFORM_DIR_OTHER`` as a false positive."""
 
 
 def classify_platform_path(rel_path: str) -> tuple[bool, str]:
@@ -65,3 +76,29 @@ def classify_platform_path(rel_path: str) -> tuple[bool, str]:
         return True, ""
 
     return False, clean
+
+
+def humanize_platform_refs(text: str) -> str:
+    """Replace platform environment-variable references with the user-facing
+    ``.stigmer`` virtual-mount prefix.
+
+    Intended for display strings only (approval previews, messages) — **not**
+    for the actual command executed in the sandbox, where the shell must expand
+    the real environment variable.
+
+    Handles both ``$STIGMER_PLATFORM_DIR`` and ``${STIGMER_PLATFORM_DIR}``.
+
+    Examples::
+
+        >>> humanize_platform_refs("python3 $STIGMER_PLATFORM_DIR/skills/s/run.py")
+        'python3 .stigmer/skills/s/run.py'
+        >>> humanize_platform_refs("${STIGMER_PLATFORM_DIR}/skills/s/run.py")
+        '.stigmer/skills/s/run.py'
+        >>> humanize_platform_refs("echo $STIGMER_PLATFORM_DIR")
+        'echo .stigmer'
+        >>> humanize_platform_refs("ls -la")
+        'ls -la'
+    """
+    if not text:
+        return text
+    return _PLATFORM_ENV_RE.sub(PLATFORM_DIR_NAME, text)

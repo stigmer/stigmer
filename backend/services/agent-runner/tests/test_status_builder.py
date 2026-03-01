@@ -3107,6 +3107,49 @@ class TestToolWaitingApproval:
 
 
 # =============================================================================
+# Tests for _create_args_preview platform path humanization
+# =============================================================================
+
+
+class TestArgsPreviewPlatformPathHumanization:
+    """_create_args_preview replaces $STIGMER_PLATFORM_DIR with .stigmer."""
+
+    def test_command_field_humanized(self, status_builder):
+        preview = status_builder._create_args_preview({
+            "command": "python3 $STIGMER_PLATFORM_DIR/skills/s/run.py",
+            "timeout": 120,
+        })
+        import json
+        parsed = json.loads(preview)
+        assert parsed["command"] == "python3 .stigmer/skills/s/run.py"
+        assert parsed["timeout"] == 120
+
+    def test_brace_syntax_humanized(self, status_builder):
+        preview = status_builder._create_args_preview({
+            "command": "python3 ${STIGMER_PLATFORM_DIR}/skills/s/run.py",
+        })
+        import json
+        parsed = json.loads(preview)
+        assert parsed["command"] == "python3 .stigmer/skills/s/run.py"
+
+    def test_no_env_var_unchanged(self, status_builder):
+        preview = status_builder._create_args_preview({
+            "command": "ls -la",
+        })
+        import json
+        parsed = json.loads(preview)
+        assert parsed["command"] == "ls -la"
+
+    def test_nested_dict_values_humanized(self, status_builder):
+        preview = status_builder._create_args_preview({
+            "config": {"path": "$STIGMER_PLATFORM_DIR/data"},
+        })
+        import json
+        parsed = json.loads(preview)
+        assert parsed["config"]["path"] == ".stigmer/data"
+
+
+# =============================================================================
 # Tests for Tool Approval Decision (HITL Phase 2)
 # =============================================================================
 
