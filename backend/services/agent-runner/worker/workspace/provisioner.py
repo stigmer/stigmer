@@ -28,6 +28,7 @@ Credential scoping (AD-05):
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 from dataclasses import dataclass
 from enum import Enum
@@ -93,6 +94,10 @@ class ProvisionResult:
                                keys.
         workspace_description: Human-readable summary for the system
                                prompt ``## Workspace`` section.
+        file_tree:             Formatted ``### Project Structure`` section
+                               for the system prompt, or ``None`` when tree
+                               generation was skipped or the workspace is
+                               empty.
         git_metadata:          Present only for ``GIT_REPO`` sources.
     """
 
@@ -100,6 +105,7 @@ class ProvisionResult:
     source_type: SourceType
     consumed_keys: tuple[str, ...]
     workspace_description: str
+    file_tree: str | None = None
     git_metadata: GitMetadata | None = None
 
 
@@ -171,6 +177,8 @@ class WorkspaceProvisioner:
         """
         result = self._dispatch(workspace_source, backend, merged_env, is_local_mode)
 
+        result = self._enrich_with_file_tree(result, backend, is_local_mode)
+
         # AD-05: strip WORKSPACE_PROVISION_-prefixed keys unconditionally.
         prefix_keys = tuple(
             k for k in merged_env if k.startswith(_PROVISION_KEY_PREFIX)
@@ -184,14 +192,7 @@ class WorkspaceProvisioner:
         all_consumed = _merge_consumed_keys(result.consumed_keys, prefix_keys)
 
         if all_consumed != result.consumed_keys:
-            # Rebuild with the expanded consumed_keys.
-            result = ProvisionResult(
-                root_dir=result.root_dir,
-                source_type=result.source_type,
-                consumed_keys=all_consumed,
-                workspace_description=result.workspace_description,
-                git_metadata=result.git_metadata,
-            )
+            result = dataclasses.replace(result, consumed_keys=all_consumed)
 
         self._log.info(
             "Provisioned workspace: source=%s root=%s consumed_keys=%s",
@@ -246,6 +247,49 @@ class WorkspaceProvisioner:
             SourceType.EMPTY,
             "WorkspaceSource has no recognised source variant set",
         )
+
+    # ------------------------------------------------------------------
+    # Tree enrichment
+    # ------------------------------------------------------------------
+
+    def _enrich_with_file_tree(
+        self,
+        result: ProvisionResult,
+        backend: WorkspaceBackend,
+        is_local_mode: bool,
+    ) -> ProvisionResult:
+        """Append a file-tree manifest to the provisioning result.
+
+        Empty workspaces are skipped (no useful tree to show).  Failures
+        are logged but never block provisioning — the tree is best-effort.
+        """
+        if result.source_type == SourceType.EMPTY:
+            return result
+
+        from worker.workspace.tree import build_workspace_file_tree
+
+        try:
+            file_tree = build_workspace_file_tree(
+                result.root_dir,
+                backend,
+                is_local_mode=is_local_mode,
+            )
+        except Exception:
+            self._log.warning(
+                "File-tree generation failed; continuing without tree",
+                exc_info=True,
+            )
+            return result
+
+        if file_tree is None:
+            return result
+
+        self._log.info(
+            "Generated workspace file tree for %s (%s)",
+            result.root_dir,
+            result.source_type.value,
+        )
+        return dataclasses.replace(result, file_tree=file_tree)
 
 
 # ---------------------------------------------------------------------------

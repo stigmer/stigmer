@@ -617,89 +617,30 @@ def build_workspace_prompt_section(
     Returns the section string (with leading newlines for concatenation)
     when *provision_result* carries a workspace description, or an empty
     string otherwise.  Callers can unconditionally append the result.
+
+    When *provision_result.file_tree* is present, the formatted tree
+    section (``### Project Structure``) is appended after the description.
     """
     if not provision_result or not provision_result.workspace_description:
         return ""
-    return "\n\n## Workspace\n\n" + provision_result.workspace_description
+
+    section = "\n\n## Workspace\n\n" + provision_result.workspace_description
+
+    if provision_result.file_tree:
+        section += "\n\n" + provision_result.file_tree
+
+    return section
 
 
-# Directories excluded from the system-prompt directory tree.  Hidden entries
-# (names starting with ".") are filtered separately in _build_directory_tree().
-#
-# NOTE: graphton's FilesystemBackend._SKIP_DIR_NAMES (filesystem.py) mirrors
-# this set for tool-level traversals (ls, glob, grep).  Keep them aligned.
-_TREE_SKIP_DIRS: frozenset[str] = frozenset({
-    ".git", "__pycache__", "node_modules", ".stigmer",
-    "venv", "dist", "target", "vendor", "coverage", "bower_components",
-})
-_TREE_MAX_DEPTH: int = 3
-_TREE_MAX_ENTRIES: int = 200
-
-
-def _human_size(size_bytes: int) -> str:
-    """Format a byte count as a compact human-readable string."""
-    if size_bytes < 1024:
-        return f"{size_bytes} bytes"
-    if size_bytes < 1024 * 1024:
-        return f"{size_bytes / 1024:.1f} KB"
-    return f"{size_bytes / (1024 * 1024):.1f} MB"
-
-
-def _build_directory_tree(
-    root: str,
-    prefix: str,
-    *,
-    max_depth: int = _TREE_MAX_DEPTH,
-    max_entries: int = _TREE_MAX_ENTRIES,
-) -> tuple[list[str], int]:
-    """Recursively collect a file-tree manifest for a directory.
-
-    Returns ``(lines, total_count)`` where *lines* contains at most
-    *max_entries* formatted strings and *total_count* is the true number
-    of entries discovered (used to signal truncation).
-    """
-    lines: list[str] = []
-    total = 0
-
-    def _walk(dir_path: str, rel_prefix: str, depth: int) -> None:
-        nonlocal total
-        if depth > max_depth:
-            return
-        try:
-            entries = sorted(os.listdir(dir_path))
-        except OSError:
-            return
-
-        child_dirs: list[tuple[str, str, str]] = []
-        child_files: list[tuple[str, str, int | None]] = []
-
-        for name in entries:
-            if name.startswith(".") or name in _TREE_SKIP_DIRS:
-                continue
-            full = os.path.join(dir_path, name)
-            rel = f"{rel_prefix}{name}" if rel_prefix else name
-            try:
-                if os.path.isdir(full):
-                    child_dirs.append((full, rel, name))
-                else:
-                    child_files.append((rel, name, os.path.getsize(full)))
-            except OSError:
-                child_files.append((rel, name, None))
-
-        for full, rel, _name in child_dirs:
-            total += 1
-            if len(lines) < max_entries:
-                lines.append(f"    - `{rel}/`")
-            _walk(full, f"{rel}/", depth + 1)
-
-        for rel, _name, size in child_files:
-            total += 1
-            if len(lines) < max_entries:
-                size_str = f" ({_human_size(size)})" if size is not None else ""
-                lines.append(f"    - `{rel}`{size_str}")
-
-    _walk(root, prefix, 1)
-    return lines, total
+# Tree-building utilities live in worker.workspace.tree.  Module-level
+# aliases preserve backward compatibility for in-module callers and tests
+# that import the private names from this module.
+from worker.workspace.tree import (
+    TREE_DEFAULT_MAX_ENTRIES as _TREE_MAX_ENTRIES,
+    TREE_SKIP_DIRS as _TREE_SKIP_DIRS,
+    build_directory_tree as _build_directory_tree,
+    human_size as _human_size,
+)
 
 
 def build_referenced_files_prompt_section(
