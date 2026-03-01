@@ -1,9 +1,7 @@
 package daemon
 
 import (
-	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 
 	"github.com/pkg/errors"
@@ -19,9 +17,8 @@ type ResetOptions struct {
 
 // ResetResult describes what was removed during a reset.
 type ResetResult struct {
-	ServicesStopped  bool
-	RemovedPaths     []string
-	ContainerRemoved bool
+	ServicesStopped bool
+	RemovedPaths    []string
 }
 
 // Reset stops all services and removes runtime state from configDir (~/.stigmer).
@@ -35,12 +32,6 @@ func Reset(configDir, dataDir string, opts ResetOptions) (*ResetResult, error) {
 		log.Debug().Err(err).Msg("Stop returned an error (may already be stopped)")
 	}
 	result.ServicesStopped = true
-
-	if removed, err := removeDockerContainer(); err != nil {
-		log.Warn().Err(err).Msg("Failed to remove Docker container")
-	} else {
-		result.ContainerRemoved = removed
-	}
 
 	removers := []struct {
 		name string
@@ -78,23 +69,6 @@ func stopAllServices(dataDir string) error {
 		return nil
 	}
 	return Stop(dataDir)
-}
-
-// removeDockerContainer removes the agent-runner Docker container by name.
-// Returns true if a container was actually removed.
-func removeDockerContainer() (bool, error) {
-	cmd := exec.Command("docker", "ps", "-aq", "-f",
-		fmt.Sprintf("name=^%s$", AgentRunnerContainerName))
-	output, err := cmd.Output()
-	if err != nil || len(output) == 0 {
-		return false, nil
-	}
-
-	rmCmd := exec.Command("docker", "rm", "-f", AgentRunnerContainerName)
-	if err := rmCmd.Run(); err != nil {
-		return false, errors.Wrap(err, "failed to remove agent-runner container")
-	}
-	return true, nil
 }
 
 // removeDataDir removes the entire data directory (~/.stigmer/data).

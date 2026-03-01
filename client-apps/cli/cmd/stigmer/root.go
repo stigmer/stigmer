@@ -76,6 +76,7 @@ func init() {
 	// Hidden internal commands (no group needed)
 	rootCmd.AddCommand(root.NewInternalServerCommand())
 	rootCmd.AddCommand(root.NewInternalWorkflowRunnerCommand())
+	rootCmd.AddCommand(root.NewInternalDaemonCommand())
 }
 
 func withGroup(cmd *cobra.Command, groupID string) *cobra.Command {

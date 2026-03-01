@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/logs"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 )
@@ -43,25 +42,14 @@ Use --all to view logs from all components in a single interleaved stream (defau
 
 			logDir := filepath.Join(dataDir, "logs")
 
-			// Handle --all flag: show logs from all components
-			// If --component is explicitly set, use single-component mode (unless --all is also explicitly set)
 			componentExplicitlySet := cmd.Flags().Changed("component")
 			allExplicitlySet := cmd.Flags().Changed("all")
 
-			// Use all-components mode if:
-			// 1. --all is explicitly set to true, OR
-			// 2. Neither --component nor --all was explicitly set (default behavior)
 			useAllMode := (allExplicitlySet && showAll) || (!componentExplicitlySet && !allExplicitlySet && showAll)
 
 			if useAllMode {
-				// Smart defaults: use the stream that actually has logs for each component
-				// - stigmer-server: stderr (zerolog defaults to stderr)
-				// - workflow-runner: stdout (Go's log package defaults to stdout)
-				// - agent-runner: both stdout and stderr from Docker
-				// If user explicitly set --stderr, respect that for all components
 				useSmartDefaults := !cmd.Flags().Changed("stderr")
-
-				components := getComponentConfigsWithStreamPreferences(dataDir, logDir, useSmartDefaults)
+				components := getComponentConfigsWithStreamPreferences(logDir, useSmartDefaults)
 
 				streamType := "mixed (smart defaults)"
 				if !useSmartDefaults {
@@ -97,56 +85,24 @@ Use --all to view logs from all components in a single interleaved stream (defau
 				return
 			}
 
-			// Original single-component logic
-			// Validate component
 			if component != "stigmer-server" && component != "agent-runner" && component != "workflow-runner" {
 				climsg.Error("Invalid component: %s (must be 'stigmer-server', 'agent-runner', or 'workflow-runner')", component)
 				return
 			}
 
-			// Special handling for agent-runner: check if running in Docker
-			if component == "agent-runner" && daemon.IsAgentRunnerDocker(dataDir) {
-				climsg.Info("Agent-runner is running in Docker, streaming from container")
-				if err := streamDockerLogs(daemon.AgentRunnerContainerName, follow, lines); err != nil {
-					climsg.Error("Failed to stream Docker logs")
-					clierr.Handle(err)
-					return
-				}
-				return
-			}
-
-			// Determine log file
 			var logFile string
-
-			if component == "stigmer-server" {
-				if showStderr {
-					logFile = filepath.Join(logDir, "stigmer-server.err")
-				} else {
-					logFile = filepath.Join(logDir, "stigmer-server.log")
-				}
-			} else if component == "agent-runner" {
-				if showStderr {
-					logFile = filepath.Join(logDir, "agent-runner.err")
-				} else {
-					logFile = filepath.Join(logDir, "agent-runner.log")
-				}
+			if showStderr {
+				logFile = filepath.Join(logDir, component+".err")
 			} else {
-				// workflow-runner
-				if showStderr {
-					logFile = filepath.Join(logDir, "workflow-runner.err")
-				} else {
-					logFile = filepath.Join(logDir, "workflow-runner.log")
-				}
+				logFile = filepath.Join(logDir, component+".log")
 			}
 
-			// Check if log file exists
 			if _, err := os.Stat(logFile); os.IsNotExist(err) {
 				climsg.Warning("Log file does not exist: %s", logFile)
 				climsg.Info("Server might not have been started yet.")
 				return
 			}
 
-			// Stream or show logs
 			if follow {
 				if err := streamLogs(logFile, lines); err != nil {
 					climsg.Error("Failed to stream logs")
@@ -172,73 +128,27 @@ Use --all to view logs from all components in a single interleaved stream (defau
 	return cmd
 }
 
-// getComponentConfigs returns the log file configuration for all components
-func getComponentConfigs(dataDir, logDir string) []logs.ComponentConfig {
-	components := []logs.ComponentConfig{
-		{
-			Name:    "stigmer-server",
-			LogFile: filepath.Join(logDir, "stigmer-server.log"),
-			ErrFile: filepath.Join(logDir, "stigmer-server.err"),
-		},
-		{
-			Name:    "workflow-runner",
-			LogFile: filepath.Join(logDir, "workflow-runner.log"),
-			ErrFile: filepath.Join(logDir, "workflow-runner.err"),
-		},
-	}
-
-	// Check if agent-runner is running in Docker
-	if daemon.IsAgentRunnerDocker(dataDir) {
-		components = append(components, logs.ComponentConfig{
-			Name:            "agent-runner",
-			DockerContainer: daemon.AgentRunnerContainerName,
-		})
-	} else {
-		components = append(components, logs.ComponentConfig{
-			Name:    "agent-runner",
-			LogFile: filepath.Join(logDir, "agent-runner.log"),
-			ErrFile: filepath.Join(logDir, "agent-runner.err"),
-		})
-	}
-
-	return components
-}
-
-// getComponentConfigsWithStreamPreferences returns component configs with smart stream preferences.
-// stigmer-server: prefers stderr (zerolog defaults to stderr)
-// workflow-runner: prefers stdout (Go's log package defaults to stdout)
-// agent-runner: reads from Docker (both streams)
-func getComponentConfigsWithStreamPreferences(dataDir, logDir string, useSmartDefaults bool) []logs.ComponentConfig {
-	components := []logs.ComponentConfig{
+// getComponentConfigsWithStreamPreferences returns component configs for all components.
+// All components use file-based log streaming.
+func getComponentConfigsWithStreamPreferences(logDir string, useSmartDefaults bool) []logs.ComponentConfig {
+	return []logs.ComponentConfig{
 		{
 			Name:         "stigmer-server",
 			LogFile:      filepath.Join(logDir, "stigmer-server.log"),
 			ErrFile:      filepath.Join(logDir, "stigmer-server.err"),
-			PreferStderr: false, // Both stdout and stderr are redirected to .log file in daemon.go
+			PreferStderr: false,
 		},
 		{
 			Name:         "workflow-runner",
 			LogFile:      filepath.Join(logDir, "workflow-runner.log"),
 			ErrFile:      filepath.Join(logDir, "workflow-runner.err"),
-			PreferStderr: false, // Both stdout and stderr are redirected to .log file in daemon.go
+			PreferStderr: false,
 		},
-	}
-
-	// Check if agent-runner is running in Docker
-	if daemon.IsAgentRunnerDocker(dataDir) {
-		components = append(components, logs.ComponentConfig{
-			Name:            "agent-runner",
-			DockerContainer: daemon.AgentRunnerContainerName,
-			PreferStderr:    false, // Docker logs include both streams
-		})
-	} else {
-		components = append(components, logs.ComponentConfig{
+		{
 			Name:         "agent-runner",
 			LogFile:      filepath.Join(logDir, "agent-runner.log"),
 			ErrFile:      filepath.Join(logDir, "agent-runner.err"),
-			PreferStderr: false, // agent-runner logs to stdout
-		})
+			PreferStderr: false,
+		},
 	}
-
-	return components
 }
