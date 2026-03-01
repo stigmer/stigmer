@@ -16,6 +16,7 @@ from __future__ import annotations
 import logging
 import os
 import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -237,6 +238,14 @@ class FilesystemBackend:
 
         try:
             env = {**os.environ, "PYTHONUNBUFFERED": "1"}
+
+            # Ensure the managed Python is first on PATH so skill scripts
+            # use the same Python (and installed packages) as the agent-runner.
+            managed_bin = str(Path(sys.executable).parent)
+            current_path = env.get("PATH", "")
+            if managed_bin not in current_path.split(os.pathsep):
+                env["PATH"] = f"{managed_bin}{os.pathsep}{current_path}"
+
             if self._env_vars:
                 env.update(self._env_vars)
             if self._platform_root is not None:
