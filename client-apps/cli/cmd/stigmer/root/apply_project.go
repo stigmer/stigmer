@@ -1,12 +1,15 @@
 package root
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/pkg/errors"
 
+	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
@@ -62,10 +65,12 @@ func executeProjectApply(detectResult *project.DetectResult, opts projectApplyOp
 	}
 	defer conn.Close()
 
-	members, err := pushAndApplyResources(synthResult.Result, detectResult.ConfigDir, conn, orgID)
+	members, appliedServers, err := pushAndApplyResources(synthResult.Result, detectResult.ConfigDir, conn, orgID)
 	if err != nil {
 		return err
 	}
+
+	discoverAppliedMcpServersSDK(appliedServers, conn)
 
 	detectResult.Project.Spec.Members = members
 	projectResult, err := project.Apply(&project.ApplyOptions{
@@ -142,27 +147,28 @@ func establishBackendConnection(
 // pushAndApplyResources pushes skills and applies agents/workflows/MCP servers,
 // collecting ApiResourceReferences for project membership.
 // Skills are pushed first because agents may reference them.
+// Also returns applied MCP server protos for post-apply discovery.
 func pushAndApplyResources(
 	synthResult *synthesis.Result,
 	projectDir string,
 	conn *grpc.ClientConn,
 	orgID string,
-) ([]*apiresource.ApiResourceReference, error) {
+) ([]*apiresource.ApiResourceReference, []*mcpserverv1.McpServer, error) {
 	var members []*apiresource.ApiResourceReference
 
 	skillRefs, err := pushSynthesizedSkills(synthResult.SkillSynths, projectDir, conn, orgID)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	members = append(members, skillRefs...)
 
-	resourceRefs, err := applySynthesizedResources(synthResult, conn, orgID)
+	resourceRefs, appliedServers, err := applySynthesizedResources(synthResult, conn, orgID)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	members = append(members, resourceRefs...)
 
-	return members, nil
+	return members, appliedServers, nil
 }
 
 // pushSynthesizedSkills pushes each SkillSynth to the backend and returns references.
@@ -236,13 +242,15 @@ func pushSkillSynth(
 }
 
 // applySynthesizedResources applies agents, workflows, and MCP servers from
-// synthesis output, returning references for each successfully applied resource.
+// synthesis output, returning references for each successfully applied resource
+// and the applied MCP server protos for post-apply discovery.
 func applySynthesizedResources(
 	synthResult *synthesis.Result,
 	conn *grpc.ClientConn,
 	orgID string,
-) ([]*apiresource.ApiResourceReference, error) {
+) ([]*apiresource.ApiResourceReference, []*mcpserverv1.McpServer, error) {
 	var refs []*apiresource.ApiResourceReference
+	var appliedServers []*mcpserverv1.McpServer
 
 	for _, a := range synthResult.Agents {
 		climsg.Info("Applying agent: %s", a.Metadata.Name)
@@ -250,7 +258,7 @@ func applySynthesizedResources(
 			Agent: a, OrgID: orgID, Conn: conn,
 		})
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to apply agent %s", a.Metadata.Name)
+			return nil, nil, errors.Wrapf(err, "failed to apply agent %s", a.Metadata.Name)
 		}
 		refs = append(refs, buildResourceReference(result.Agent.Metadata, apiresourcekind.ApiResourceKind_agent))
 	}
@@ -261,7 +269,7 @@ func applySynthesizedResources(
 			Workflow: w, OrgID: orgID, Conn: conn,
 		})
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to apply workflow %s", w.Metadata.Name)
+			return nil, nil, errors.Wrapf(err, "failed to apply workflow %s", w.Metadata.Name)
 		}
 		refs = append(refs, buildResourceReference(result.Workflow.Metadata, apiresourcekind.ApiResourceKind_workflow))
 	}
@@ -272,10 +280,47 @@ func applySynthesizedResources(
 			McpServer: m, OrgID: orgID, Conn: conn,
 		})
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to apply MCP server %s", m.Metadata.Name)
+			return nil, nil, errors.Wrapf(err, "failed to apply MCP server %s", m.Metadata.Name)
 		}
 		refs = append(refs, buildResourceReference(result.McpServer.Metadata, apiresourcekind.ApiResourceKind_mcp_server))
+		appliedServers = append(appliedServers, result.McpServer)
 	}
 
-	return refs, nil
+	return refs, appliedServers, nil
+}
+
+// discoverAppliedMcpServersSDK triggers best-effort discovery for MCP servers
+// applied via the SDK synthesis path.
+func discoverAppliedMcpServersSDK(servers []*mcpserverv1.McpServer, conn *grpc.ClientConn) {
+	if len(servers) == 0 {
+		return
+	}
+
+	cfg, err := config.Load()
+	if err != nil {
+		return
+	}
+
+	climsg.Info("Discovering capabilities for %d applied MCP server(s)...", len(servers))
+
+	for _, server := range servers {
+		skipMsg, discoverErr := mcpserver.DiscoverOne(context.Background(), &mcpserver.DiscoverOneOptions{
+			Conn:    conn,
+			Cfg:     cfg,
+			Server:  server,
+			Timeout: 30 * time.Second,
+		})
+
+		name := server.Metadata.GetName()
+
+		if skipMsg != "" {
+			climsg.Warning("%s", skipMsg)
+			continue
+		}
+		if discoverErr != nil {
+			climsg.Warning("Discovery failed for %s: %v", name, discoverErr)
+			continue
+		}
+		climsg.Success("Discovered capabilities for %s", name)
+	}
 }

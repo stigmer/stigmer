@@ -321,10 +321,74 @@ func renderedBlockText(b contentBlock, blockIdx, focusedIdx int) string {
 	return text
 }
 
+// subAgentHeaderGutter is the visual gutter prefix for each line of the
+// expanded sub-agent input. Matches the gutter used by renderStreamingTool
+// and todo blocks for visual consistency.
+const subAgentHeaderGutter = "     │ "
+
+// subAgentHeaderMaxDescLen is the maximum character length for the task
+// description shown on the collapsed header line. Longer descriptions are
+// truncated at the nearest word boundary with an ellipsis.
+const subAgentHeaderMaxDescLen = 80
+
+// renderSubAgentHeader returns the collapsed single-line header for a
+// sub-agent delegation block. Uses description when available; otherwise
+// falls back to a word-boundary-truncated version of input.
+//
+// Example: "🔀 general-purpose ─ Explore CLI sub-agent rendering"
+func renderSubAgentHeader(name, description, input string) string {
+	if name == "" {
+		name = "sub-agent"
+	}
+	label := description
+	if label == "" {
+		label = truncateAtWord(input, subAgentHeaderMaxDescLen)
+	}
+	if label == "" {
+		return dimStyle.Render("🔀 " + name)
+	}
+	return dimStyle.Render("🔀 "+name+" ─ ") + label
+}
+
+// renderSubAgentHeaderExpanded returns the expanded view for a sub-agent
+// header block. The header line is followed by the full input prompt rendered
+// in gutter-bordered lines, mirroring the visual language of tool streaming
+// and todo blocks.
+func renderSubAgentHeaderExpanded(name, description, input string) string {
+	header := renderSubAgentHeader(name, description, input)
+	if input == "" {
+		return header
+	}
+	lines := strings.Split(input, "\n")
+	var gutterLines []string
+	for _, line := range lines {
+		gutterLines = append(gutterLines, dimStyle.Render(subAgentHeaderGutter)+line)
+	}
+	return header + "\n" + strings.Join(gutterLines, "\n")
+}
+
+// truncateAtWord truncates s to at most maxLen characters, breaking at the
+// nearest preceding word boundary. An ellipsis is appended when truncation
+// occurs. Returns s unchanged if it fits within maxLen.
+func truncateAtWord(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	// Walk backwards from maxLen to find a space.
+	cut := maxLen
+	for cut > 0 && s[cut] != ' ' {
+		cut--
+	}
+	if cut == 0 {
+		cut = maxLen
+	}
+	return s[:cut] + "..."
+}
+
 // renderSubAgentSeparator returns a dim horizontal separator line labeled with
-// the sub-agent name. Inserted by rebuildViewportContent when the active agent
-// context changes, so the user can see which sub-agent owns a group of blocks
-// without per-block prefixes.
+// the sub-agent name. Used as a lightweight context indicator when a sub-agent
+// re-enters after the main agent (rare). The primary sub-agent introduction is
+// handled by blockSubAgent header blocks.
 func renderSubAgentSeparator(name string) string {
 	if name == "" {
 		name = "sub-agent"
@@ -332,13 +396,19 @@ func renderSubAgentSeparator(name string) string {
 	return dimStyle.Render("── " + name + " ──")
 }
 
-// needsSubAgentSeparator reports whether a context separator should be inserted
-// before the block at index idx. A separator is needed when the block originates
-// from a sub-agent AND the previous rendered block belongs to a different agent
-// (main agent or a different sub-agent).
+// needsSubAgentSeparator reports whether a lightweight context separator should
+// be inserted before the block at index idx. A separator is needed when:
+//   - The block originates from a sub-agent, AND
+//   - The previous rendered block belongs to a different agent, AND
+//   - The current block is NOT a blockSubAgent header (those serve as their own
+//     introduction and don't need a preceding separator).
 func needsSubAgentSeparator(blocks []contentBlock, idx int) bool {
 	cur := blocks[idx]
 	if cur.subAgentID == "" {
+		return false
+	}
+	// Sub-agent header blocks introduce themselves — no separator needed.
+	if cur.blockType == blockSubAgent {
 		return false
 	}
 	for j := idx - 1; j >= 0; j-- {
@@ -347,8 +417,9 @@ func needsSubAgentSeparator(blocks []contentBlock, idx int) bool {
 		}
 		return blocks[j].subAgentID != cur.subAgentID
 	}
-	// First rendered block in the list — show separator to introduce the
-	// sub-agent context.
+	// First rendered block and it's a sub-agent block without a preceding
+	// header — show separator. This shouldn't happen in normal flow because
+	// SubAgentStartedEvent creates a header block first.
 	return true
 }
 
@@ -360,10 +431,10 @@ func needsSubAgentSeparator(blocks []contentBlock, idx int) bool {
 //   - ▼ suffix when expanded (can be collapsed)
 //   - ▸ prefix when the block has keyboard focus
 //
-// When the active agent context changes (a block's subAgentID differs from
-// the previous block's), a dim separator line is inserted to label the new
-// sub-agent (e.g., "── researcher ──"). Separators only appear when entering
-// a sub-agent context, not when returning to the main agent.
+// Sub-agent context is introduced by blockSubAgent header blocks (created by
+// SubAgentStartedEvent). Lightweight dim separator lines are inserted only for
+// rare re-entry cases where a sub-agent resumes after the main agent without
+// a new header block.
 //
 // focusedIndex is the index into blocks of the currently focused expandable
 // block, or -1 when no block is focused.

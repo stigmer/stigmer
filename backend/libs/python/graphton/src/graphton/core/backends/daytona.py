@@ -194,6 +194,10 @@ class WorkspaceNormalizingBackend:
         """List directory contents with path normalisation."""
         return self._inner.list_files(self._normalize(path))
 
+    def is_directory(self, path: str) -> bool:
+        """Check whether path is a directory, with path normalisation."""
+        return self._inner.is_directory(self._normalize(path))
+
     def execute(self, command: str, **kwargs: Any) -> Any:  # noqa: ANN401
         """Execute shell command -- no path normalisation needed."""
         return self._inner.execute(command, **kwargs)

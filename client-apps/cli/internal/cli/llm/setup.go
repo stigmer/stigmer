@@ -72,13 +72,7 @@ func Setup(ctx context.Context, cfg *config.LocalBackendConfig, opts *SetupOptio
 		log.Info().Str("binary", binaryPath).Msg("Local LLM server is already running")
 	} else {
 		if binaryPath == "" {
-			return fmt.Errorf("Ollama is not installed\n\n" +
-				"  Install Ollama:\n" +
-				"    brew install ollama\n\n" +
-				"  Then start it:\n" +
-				"    ollama serve\n\n" +
-				"  Or switch to a cloud provider:\n" +
-				"    stigmer server setup")
+			return fmt.Errorf("Ollama is not installed")
 		}
 
 		// Step 3: Start LLM server

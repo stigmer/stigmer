@@ -59,13 +59,14 @@ const (
 
 // StartOptions provides options for starting the daemon
 type StartOptions struct {
-	Progress        *cliprint.ProgressDisplay // Optional progress display for UI
-	ExecutionMode   string                    // Agent execution mode (local, sandbox, auto) - overrides config
-	SandboxImage    string                    // Docker image for sandbox mode - overrides config
-	SandboxAutoPull bool                      // Auto-pull sandbox image if missing - overrides config
-	SandboxCleanup  bool                      // Cleanup sandbox containers after execution - overrides config
-	SandboxTTL      int                       // Sandbox container reuse TTL in seconds - overrides config
-	Secrets         map[string]string         // Pre-gathered secrets (to avoid prompting during progress display)
+	Progress         *cliprint.ProgressDisplay // Optional progress display for UI
+	ExecutionMode    string                    // Agent execution mode (local, sandbox, auto) - overrides config
+	SandboxImage     string                    // Docker image for sandbox mode - overrides config
+	SandboxAutoPull  bool                      // Auto-pull sandbox image if missing - overrides config
+	SandboxCleanup   bool                      // Cleanup sandbox containers after execution - overrides config
+	SandboxTTL       int                       // Sandbox container reuse TTL in seconds - overrides config
+	Secrets          map[string]string         // Pre-gathered secrets (to avoid prompting during progress display)
+	OnLLMSetupFailed func(err error)           // Called when LLM setup fails; caller handles display after progress stops
 }
 
 // dockerAvailable checks if Docker is installed and running
@@ -271,10 +272,9 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 
 		if err := llm.Setup(context.Background(), cfg.Backend.Local, llmOpts); err != nil {
 			log.Warn().Err(err).Msg("Ollama setup failed, continuing without local LLM")
-			climsg.Warning("Ollama setup failed: %v", err)
-			climsg.Warning("Agents will not execute until Ollama is available.")
-			climsg.Warning("  Install: brew install ollama && ollama serve && ollama pull qwen2.5-coder:7b")
-			climsg.Warning("  Or switch provider: stigmer server setup")
+			if opts.OnLLMSetupFailed != nil {
+				opts.OnLLMSetupFailed(err)
+			}
 		}
 	} else if llmProvider == "" {
 		log.Info().Msg("No LLM provider configured, skipping LLM setup")
@@ -629,7 +629,17 @@ After installing Docker, restart Stigmer server.`)
 
 		// Volume mount for Docker socket (needed for sandbox mode)
 		"-v", "/var/run/docker.sock:/var/run/docker.sock",
+	)
 
+	// Mount the user's home directory so LocalPathSource workspaces are
+	// accessible inside the container with identical host paths.
+	if homeDir, err := os.UserHomeDir(); err != nil {
+		log.Warn().Err(err).Msg("Cannot resolve home directory; LocalPathSource workspaces may not work")
+	} else {
+		args = append(args, "-v", fmt.Sprintf("%s:%s", homeDir, homeDir))
+	}
+
+	args = append(args,
 		// Log driver for better log access
 		"--log-driver", "json-file",
 		"--log-opt", "max-size=10m",
@@ -782,21 +792,20 @@ func cleanupOrphanedProcesses(dataDir string) {
 		_ = os.Remove(containerIDFile)
 	}
 
-	// Also check for orphaned Temporal (if managed)
+	// Also check for orphaned Temporal (if managed).
+	// We do NOT gate on IsRunning() here because the lock file may have been
+	// released when the parent CLI exited, making the orphan invisible to
+	// lock-based checks. CleanupStaleProcesses handles both PID-file and
+	// port-based detection.
 	cfg, err := config.Load()
 	if err == nil && (cfg.Backend.Local.Temporal == nil || cfg.Backend.Local.Temporal.Managed) {
-		// Load config, use defaults if it fails
 		temporalManager := temporal.NewManager(
 			dataDir,
 			cfg.Backend.Local.ResolveTemporalVersion(),
 			cfg.Backend.Local.ResolveTemporalPort(),
 		)
 
-		if temporalManager.IsRunning() {
-			orphansFound = true
-			log.Warn().Msg("Found orphaned Temporal server from previous run, stopping")
-			_ = temporalManager.Stop()
-		}
+		temporalManager.CleanupStaleProcesses()
 	}
 
 	if orphansFound {
@@ -884,35 +893,35 @@ func Stop(dataDir string) error {
 
 // stopManagedTemporal stops managed Temporal if it's running
 func stopManagedTemporal(dataDir string) {
-	// Load config, use defaults if it fails
 	cfg, err := config.Load()
 	if err != nil {
 		log.Debug().Err(err).Msg("Failed to load config, using defaults for Temporal stop")
 		cfg = config.GetDefault()
 	}
 
-	// Skip if explicitly configured as external Temporal
 	if cfg.Backend.Local.Temporal != nil && !cfg.Backend.Local.Temporal.Managed {
-		return // Using external Temporal, don't stop it
+		return
 	}
 
-	// Create manager with config (or defaults)
 	tm := temporal.NewManager(
 		dataDir,
 		cfg.Backend.Local.ResolveTemporalVersion(),
 		cfg.Backend.Local.ResolveTemporalPort(),
 	)
 
-	if !tm.IsRunning() {
-		return // Not running
-	}
-
+	// Try PID-based stop first (does not depend on lock state).
+	// Then run stale-process cleanup which handles the port-based fallback
+	// for cases where the PID file is missing but the process is alive.
 	log.Info().Msg("Stopping managed Temporal...")
 	if err := tm.Stop(); err != nil {
-		log.Error().Err(err).Msg("Failed to stop Temporal")
+		log.Debug().Err(err).Msg("PID-based Temporal stop failed (may not be running or PID file missing)")
 	} else {
 		log.Info().Msg("Temporal stopped successfully")
+		return
 	}
+
+	// Fallback: clean up any orphaned Temporal process that lost its PID file.
+	tm.CleanupStaleProcesses()
 }
 
 // stopWorkflowRunner stops the workflow-runner subprocess
@@ -1085,7 +1094,7 @@ func EnsureRunning(dataDir string) error {
 	// Already running? We're done!
 	if IsRunning(dataDir) {
 		log.Debug().Msg("Daemon is already running")
-		return ensureSeedpackBootstrapped(dataDir)
+		return EnsureSeedpackBootstrapped(dataDir)
 	}
 
 	// Not running - start it with nice UX
@@ -1107,10 +1116,10 @@ func EnsureRunning(dataDir string) error {
 	fmt.Fprintln(os.Stderr)
 
 	// Apply embedded seedpack if needed (system agents, skills, MCP servers)
-	return ensureSeedpackBootstrapped(dataDir)
+	return EnsureSeedpackBootstrapped(dataDir)
 }
 
-// ensureSeedpackBootstrapped applies the embedded seedpack content if the
+// EnsureSeedpackBootstrapped applies the embedded seedpack content if the
 // current binary's seedpack differs from the last-applied version.
 //
 // This function:
@@ -1122,7 +1131,7 @@ func EnsureRunning(dataDir string) error {
 //
 // The subprocess approach means system resources are applied through the exact
 // same code path as user resources — no duplication.
-func ensureSeedpackBootstrapped(dataDir string) error {
+func EnsureSeedpackBootstrapped(dataDir string) error {
 	if os.Getenv(seedpackSkipEnvVar) == "1" {
 		log.Debug().Msg("Seedpack bootstrap skipped (recursion guard)")
 		return nil

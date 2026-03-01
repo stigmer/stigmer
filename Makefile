@@ -110,6 +110,15 @@ release-local: ## Build + install CLI; rebuilds agent-runner image only when nee
 	@cp bin/stigmer $(HOME)/bin/stigmer && chmod +x $(HOME)/bin/stigmer
 	@echo "cli: installed $(HOME)/bin/stigmer"
 	@stigmer --version 2>/dev/null || echo "cli: development build"
+	@echo ""
+	@echo "stigmer server will auto-detect API keys from your environment."
+	@echo ""
+	@echo "  Option 1 (recommended):       export ANTHROPIC_API_KEY=sk-ant-..."
+	@echo "  Option 2:                      export OPENAI_API_KEY=sk-..."
+	@echo "  Option 3 (local, lower quality): brew install ollama && ollama serve"
+	@echo ""
+	@echo "Then run:  stigmer server"
+	@echo ""
 
 # ─── Release ──────────────────────────────────
 

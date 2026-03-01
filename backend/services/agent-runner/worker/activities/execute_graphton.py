@@ -623,6 +623,79 @@ def build_workspace_prompt_section(
     return "\n\n## Workspace\n\n" + provision_result.workspace_description
 
 
+_TREE_SKIP_DIRS: frozenset[str] = frozenset({
+    ".git", "__pycache__", "node_modules", ".stigmer",
+})
+_TREE_MAX_DEPTH: int = 3
+_TREE_MAX_ENTRIES: int = 200
+
+
+def _human_size(size_bytes: int) -> str:
+    """Format a byte count as a compact human-readable string."""
+    if size_bytes < 1024:
+        return f"{size_bytes} bytes"
+    if size_bytes < 1024 * 1024:
+        return f"{size_bytes / 1024:.1f} KB"
+    return f"{size_bytes / (1024 * 1024):.1f} MB"
+
+
+def _build_directory_tree(
+    root: str,
+    prefix: str,
+    *,
+    max_depth: int = _TREE_MAX_DEPTH,
+    max_entries: int = _TREE_MAX_ENTRIES,
+) -> tuple[list[str], int]:
+    """Recursively collect a file-tree manifest for a directory.
+
+    Returns ``(lines, total_count)`` where *lines* contains at most
+    *max_entries* formatted strings and *total_count* is the true number
+    of entries discovered (used to signal truncation).
+    """
+    lines: list[str] = []
+    total = 0
+
+    def _walk(dir_path: str, rel_prefix: str, depth: int) -> None:
+        nonlocal total
+        if depth > max_depth:
+            return
+        try:
+            entries = sorted(os.listdir(dir_path))
+        except OSError:
+            return
+
+        child_dirs: list[tuple[str, str, str]] = []
+        child_files: list[tuple[str, str, int | None]] = []
+
+        for name in entries:
+            if name.startswith(".") or name in _TREE_SKIP_DIRS:
+                continue
+            full = os.path.join(dir_path, name)
+            rel = f"{rel_prefix}{name}" if rel_prefix else name
+            try:
+                if os.path.isdir(full):
+                    child_dirs.append((full, rel, name))
+                else:
+                    child_files.append((rel, name, os.path.getsize(full)))
+            except OSError:
+                child_files.append((rel, name, None))
+
+        for full, rel, _name in child_dirs:
+            total += 1
+            if len(lines) < max_entries:
+                lines.append(f"    - `{rel}/`")
+            _walk(full, f"{rel}/", depth + 1)
+
+        for rel, _name, size in child_files:
+            total += 1
+            if len(lines) < max_entries:
+                size_str = f" ({_human_size(size)})" if size is not None else ""
+                lines.append(f"    - `{rel}`{size_str}")
+
+    _walk(root, prefix, 1)
+    return lines, total
+
+
 def build_referenced_files_prompt_section(
     workspace_file_refs: list[str],
     workspace_root: str,
@@ -631,13 +704,18 @@ def build_referenced_files_prompt_section(
 
     When the user attaches files that are inside the workspace, the CLI
     records them as workspace-relative paths instead of uploading them.
-    This function builds a system prompt section telling the agent to
-    read those files directly from the workspace.
+    This function builds a prompt section listing those paths with
+    structural metadata so the agent can navigate them efficiently.
+
+    For files the size is shown.  For directories the full tree (up to a
+    depth and entry limit) is expanded inline so the agent has a complete
+    map without needing to ``ls`` first.
 
     Args:
-        workspace_file_refs: Workspace-relative file paths.
+        workspace_file_refs: Workspace-relative paths (files or
+            directories).
         workspace_root: Absolute path to the workspace root (used to
-            stat files for size info).
+            stat entries for type and size info).
 
     Returns:
         The section string (with leading newlines) or empty string if
@@ -648,16 +726,30 @@ def build_referenced_files_prompt_section(
 
     section = (
         "\n\n## Referenced Files\n\n"
-        "The user has highlighted the following workspace files for your "
-        "attention. Read them directly at their workspace-relative paths "
-        "using the `read` tool.\n\n"
+        "The user has highlighted the following workspace paths for your "
+        "attention. Use `read` to access file contents.\n\n"
     )
 
     for ref_path in workspace_file_refs:
         full_path = os.path.join(workspace_root, ref_path)
         try:
-            size = os.path.getsize(full_path)
-            section += f"- `{ref_path}` ({size} bytes)\n"
+            if os.path.isdir(full_path):
+                tree_lines, total = _build_directory_tree(
+                    full_path,
+                    ref_path.rstrip("/") + "/",
+                )
+                label = "entry" if total == 1 else "entries"
+                section += f"- `{ref_path}/` (directory, {total} {label})\n"
+                for line in tree_lines:
+                    section += line + "\n"
+                if total > len(tree_lines):
+                    section += (
+                        f"    - ... and {total - len(tree_lines)} more "
+                        f"(truncated at {_TREE_MAX_ENTRIES} entries)\n"
+                    )
+            else:
+                size = os.path.getsize(full_path)
+                section += f"- `{ref_path}` ({_human_size(size)})\n"
         except OSError:
             section += f"- `{ref_path}`\n"
 
@@ -1271,6 +1363,7 @@ async def _execute_graphton_impl(
                     )
                     workspace_backend = LocalWorkspaceBackend(
                         root_dir=provision_result.root_dir,
+                        platform_dir=workspace_init.platform_dir,
                     )
                 
                 if provision_result.consumed_keys:
@@ -1813,6 +1906,7 @@ async def _execute_graphton_impl(
             )
         else:
             sandbox_config_for_agent = sandbox_config.copy()
+            sandbox_config_for_agent["root_dir"] = workspace_backend.root_dir
             if workspace_init.platform_dir:
                 sandbox_config_for_agent["platform_dir"] = workspace_init.platform_dir
             activity_logger.info(
@@ -1865,13 +1959,14 @@ async def _execute_graphton_impl(
         #
         # Transforms proto SubAgent definitions from AgentSpec.sub_agents to graphton
         # format. Each subagent gets:
+        # - Platform tools (read, write, ls, glob, grep, execute) from the sandbox
         # - Filtered MCP access based on McpAccess grants (subset of parent's tools)
         # - Resolved skills injected into system_prompt
-        # - Tool wrappers for allowed MCP tools
         #
         # Permission model:
+        # - Every subagent receives the full platform tool set from the sandbox
         # - SubAgent can only access MCP servers explicitly listed in mcp_access
-        # - SubAgent tools = intersection of parent's enabled tools and subagent's request
+        # - SubAgent MCP tools = intersection of parent's enabled tools and subagent's request
         # - SubAgent skills are independent (can reference any Skill resource)
         # ─────────────────────────────────────────────────────────────────────────────
         
@@ -1892,6 +1987,7 @@ async def _execute_graphton_impl(
                     skill_client=skill_client,
                     skill_writer_class=SkillWriter,
                     skill_writer_kwargs={"backend": workspace_backend},
+                    sandbox_config=sandbox_config_for_agent,
                     approval_checker=approval_checker,
                     activity_logger=activity_logger,
                 )
@@ -1899,7 +1995,7 @@ async def _execute_graphton_impl(
                 if transformed_subagents:
                     activity_logger.info(
                         f"Successfully transformed {len(transformed_subagents)} sub-agent(s) "
-                        f"with MCP tools and skills"
+                        f"with platform tools, MCP tools, and skills"
                     )
                 else:
                     activity_logger.warning(

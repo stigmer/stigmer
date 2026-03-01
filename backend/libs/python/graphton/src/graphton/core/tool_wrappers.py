@@ -57,6 +57,22 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _unwrap_exception(exc: BaseException) -> BaseException:
+    """Extract the first meaningful cause from an exception.
+
+    ``anyio`` wraps failures inside ``ExceptionGroup`` (Python 3.11+) or
+    the backport ``exceptiongroup.ExceptionGroup``.  The outer wrapper
+    reads "unhandled errors in a TaskGroup (1 sub-exception)" which is
+    uninformative.  This helper digs out the actual root cause so that
+    error messages shown to the user (and logged) are actionable.
+    """
+    if isinstance(exc, BaseExceptionGroup) and exc.exceptions:
+        return _unwrap_exception(exc.exceptions[0])
+    if exc.__cause__ is not None and isinstance(exc.__cause__, BaseExceptionGroup):
+        return _unwrap_exception(exc.__cause__)
+    return exc
+
+
 # =============================================================================
 # Exception Classes for HITL Approval Flow
 # =============================================================================
@@ -179,43 +195,27 @@ def create_tool_wrapper(
         
         # Invoke the actual MCP tool with provided arguments
         try:
-            # Phase 1 Diagnostic Logging: Capture exact argument structure
-            logger.info(f"=== MCP Tool Invocation Diagnostics for '{tool_name}' ===")
-            logger.info(f"kwargs type: {type(kwargs)}")
-            logger.info(f"kwargs value: {kwargs}")
-            logger.info(f"kwargs keys: {list(kwargs.keys()) if isinstance(kwargs, dict) else 'N/A - not a dict'}")
-            
-            # Inspect the MCP tool's expected schema
-            if hasattr(mcp_tool, 'args_schema'):
-                logger.info(f"Tool args_schema: {mcp_tool.args_schema}")
-            if hasattr(mcp_tool, 'name'):
-                logger.info(f"Tool name from object: {mcp_tool.name}")
-            
-            # Check for double-nesting and unwrap if needed (FIX for argument marshalling)
             actual_args = kwargs
             if isinstance(kwargs, dict):
                 if len(kwargs) == 1 and 'input' in kwargs:
-                    logger.warning("⚠️  Double-nesting detected: unwrapping 'input' key")
-                    logger.info(f"Value inside 'input': {kwargs.get('input')}")
+                    logger.debug(f"Unwrapping 'input' key for '{tool_name}'")
                     actual_args = kwargs['input']
                 elif len(kwargs) == 1 and 'kwargs' in kwargs:
-                    logger.warning("⚠️  Double-nesting detected: unwrapping 'kwargs' key")
-                    logger.info(f"Value inside 'kwargs': {kwargs.get('kwargs')}")
+                    logger.debug(f"Unwrapping 'kwargs' key for '{tool_name}'")
                     actual_args = kwargs['kwargs']
-            
-            logger.info(f"Calling mcp_tool.ainvoke() with (after unwrapping): {actual_args}")
+
+            logger.debug(f"Calling mcp_tool.ainvoke() for '{tool_name}'")
             result = await mcp_tool.ainvoke(actual_args)
-            logger.info(f"✅ MCP tool '{tool_name}' returned successfully")
-            logger.info(f"Result type: {type(result)}")
-            logger.info(f"=== End Diagnostics for '{tool_name}' ===")
+            logger.debug(f"MCP tool '{tool_name}' returned successfully")
             return result
         except Exception as e:
+            cause = _unwrap_exception(e)
             logger.error(
-                f"MCP tool '{tool_name}' invocation failed: {e}",
-                exc_info=True
+                f"MCP tool '{tool_name}' invocation failed: {cause}",
+                exc_info=True,
             )
             raise RuntimeError(
-                f"MCP tool '{tool_name}' invocation failed: {e}"
+                f"MCP tool '{tool_name}' invocation failed: {cause}"
             ) from e
     
     # Copy metadata from original tool for better LangChain integration
@@ -360,17 +360,18 @@ def create_approval_aware_tool_wrapper(
         
         # Invoke the actual MCP tool
         try:
-            logger.info(f"🔧 Executing MCP tool '{tool_name}'")
+            logger.info(f"Executing MCP tool '{tool_name}'")
             result = await mcp_tool.ainvoke(actual_args)
-            logger.info(f"✅ MCP tool '{tool_name}' completed successfully")
+            logger.info(f"MCP tool '{tool_name}' completed successfully")
             return result
         except Exception as e:
+            cause = _unwrap_exception(e)
             logger.error(
-                f"MCP tool '{tool_name}' invocation failed: {e}",
-                exc_info=True
+                f"MCP tool '{tool_name}' invocation failed: {cause}",
+                exc_info=True,
             )
             raise RuntimeError(
-                f"MCP tool '{tool_name}' invocation failed: {e}"
+                f"MCP tool '{tool_name}' invocation failed: {cause}"
             ) from e
     
     # Copy metadata from original tool for better LangChain integration
@@ -462,43 +463,27 @@ def create_lazy_tool_wrapper(
         
         # Invoke the actual MCP tool with provided arguments
         try:
-            # Phase 1 Diagnostic Logging: Capture exact argument structure (lazy mode)
-            logger.info(f"=== MCP Tool Invocation Diagnostics for '{tool_name}' (LAZY MODE) ===")
-            logger.info(f"kwargs type: {type(kwargs)}")
-            logger.info(f"kwargs value: {kwargs}")
-            logger.info(f"kwargs keys: {list(kwargs.keys()) if isinstance(kwargs, dict) else 'N/A - not a dict'}")
-            
-            # Inspect the MCP tool's expected schema
-            if hasattr(mcp_tool, 'args_schema'):
-                logger.info(f"Tool args_schema: {mcp_tool.args_schema}")
-            if hasattr(mcp_tool, 'name'):
-                logger.info(f"Tool name from object: {mcp_tool.name}")
-            
-            # Check for double-nesting and unwrap if needed (FIX for argument marshalling)
             actual_args = kwargs
             if isinstance(kwargs, dict):
                 if len(kwargs) == 1 and 'input' in kwargs:
-                    logger.warning("⚠️  Double-nesting detected: unwrapping 'input' key")
-                    logger.info(f"Value inside 'input': {kwargs.get('input')}")
+                    logger.debug(f"Unwrapping 'input' key for '{tool_name}' (lazy)")
                     actual_args = kwargs['input']
                 elif len(kwargs) == 1 and 'kwargs' in kwargs:
-                    logger.warning("⚠️  Double-nesting detected: unwrapping 'kwargs' key")
-                    logger.info(f"Value inside 'kwargs': {kwargs.get('kwargs')}")
+                    logger.debug(f"Unwrapping 'kwargs' key for '{tool_name}' (lazy)")
                     actual_args = kwargs['kwargs']
-            
-            logger.info(f"Calling mcp_tool.ainvoke() with (after unwrapping): {actual_args}")
+
+            logger.debug(f"Calling mcp_tool.ainvoke() for '{tool_name}' (lazy)")
             result = await mcp_tool.ainvoke(actual_args)
-            logger.info(f"✅ MCP tool '{tool_name}' returned successfully (lazy mode)")
-            logger.info(f"Result type: {type(result)}")
-            logger.info(f"=== End Diagnostics for '{tool_name}' (LAZY MODE) ===")
+            logger.debug(f"MCP tool '{tool_name}' returned successfully (lazy)")
             return result
         except Exception as e:
+            cause = _unwrap_exception(e)
             logger.error(
-                f"MCP tool '{tool_name}' invocation failed (lazy mode): {e}",
-                exc_info=True
+                f"MCP tool '{tool_name}' invocation failed (lazy): {cause}",
+                exc_info=True,
             )
             raise RuntimeError(
-                f"MCP tool '{tool_name}' invocation failed: {e}"
+                f"MCP tool '{tool_name}' invocation failed: {cause}"
             ) from e
     
     # Set basic metadata for the lazy wrapper
@@ -1205,6 +1190,8 @@ def _create_glob_tool(
     """
     import fnmatch
     import os
+
+    _GLOB_MAX_DEPTH = 15
     
     @tool
     async def glob(pattern: str, path: str = ".") -> str:
@@ -1223,26 +1210,28 @@ def _create_glob_tool(
         try:
             logger.debug(f"🔍 Searching for pattern '{pattern}' in '{path}'")
             
-            # Get all files recursively using backend's list_files
-            # Then filter by pattern
-            all_files = []
+            all_files: list[str] = []
+            _has_is_dir = hasattr(backend, "is_directory")
             
-            def collect_files(dir_path: str) -> None:
-                """Recursively collect all files."""
+            def collect_files(dir_path: str, depth: int = 0) -> None:
+                if depth > _GLOB_MAX_DEPTH:
+                    return
                 try:
                     items = backend.list_files(dir_path)
-                    for item in items:
-                        item_path = os.path.join(dir_path, item) if dir_path != "." else item
-                        # Normalize path separators
-                        item_path = item_path.replace("\\", "/")
-                        all_files.append(item_path)
-                        # Try to recurse into directories
-                        try:
-                            collect_files(item_path)
-                        except Exception:
-                            pass  # Not a directory or can't access
                 except Exception:
-                    pass  # Can't list this directory
+                    return
+                for item in items:
+                    item_path = os.path.join(dir_path, item) if dir_path != "." else item
+                    item_path = item_path.replace("\\", "/")
+                    all_files.append(item_path)
+                    if _has_is_dir:
+                        if backend.is_directory(item_path):
+                            collect_files(item_path, depth + 1)
+                    else:
+                        try:
+                            collect_files(item_path, depth + 1)
+                        except NotADirectoryError:
+                            pass
             
             collect_files(path)
             
@@ -1285,6 +1274,8 @@ def _create_grep_tool(
     """
     import os
     import re
+
+    _GREP_MAX_DEPTH = 15
     
     @tool
     async def grep(pattern: str, path: str = ".", include: str = "*") -> str:
@@ -1306,58 +1297,55 @@ def _create_grep_tool(
         try:
             logger.debug(f"🔎 Searching for '{pattern}' in '{path}' (include={include})")
             
-            # Compile the regex pattern
             try:
                 regex = re.compile(pattern)
             except re.error as e:
                 return f"Invalid regex pattern '{pattern}': {e}"
             
-            results = []
+            results: list[str] = []
             files_searched = 0
-            max_results = 1000  # Limit results to prevent overwhelming output
+            max_results = 1000
+            _has_is_dir = hasattr(backend, "is_directory")
             
             def search_file(file_path: str) -> None:
-                """Search a single file for matches."""
                 nonlocal files_searched
-                
-                # Check include pattern
                 if not fnmatch.fnmatch(os.path.basename(file_path), include):
                     return
-                
                 try:
                     content = backend.read(file_path)
                     files_searched += 1
-                    
                     for line_num, line in enumerate(content.splitlines(), 1):
                         if len(results) >= max_results:
                             return
                         if regex.search(line):
                             results.append(f"{file_path}:{line_num}:{line.rstrip()}")
                 except Exception:
-                    pass  # Skip files that can't be read (binary, permission, etc.)
+                    pass
             
-            def collect_and_search(dir_path: str) -> None:
-                """Recursively search files in directory."""
+            def collect_and_search(dir_path: str, depth: int = 0) -> None:
+                if depth > _GREP_MAX_DEPTH:
+                    return
                 try:
                     items = backend.list_files(dir_path)
-                    for item in items:
-                        if len(results) >= max_results:
-                            return
-                        item_path = os.path.join(dir_path, item) if dir_path != "." else item
-                        item_path = item_path.replace("\\", "/")
-                        
-                        # Try to search as file
-                        search_file(item_path)
-                        
-                        # Try to recurse as directory
-                        try:
-                            collect_and_search(item_path)
-                        except Exception:
-                            pass  # Not a directory
                 except Exception:
-                    pass  # Can't list this directory
+                    return
+                for item in items:
+                    if len(results) >= max_results:
+                        return
+                    item_path = os.path.join(dir_path, item) if dir_path != "." else item
+                    item_path = item_path.replace("\\", "/")
+
+                    if _has_is_dir and backend.is_directory(item_path):
+                        collect_and_search(item_path, depth + 1)
+                    elif not _has_is_dir:
+                        search_file(item_path)
+                        try:
+                            collect_and_search(item_path, depth + 1)
+                        except NotADirectoryError:
+                            pass
+                    else:
+                        search_file(item_path)
             
-            # Start the search
             collect_and_search(path)
             
             if not results:

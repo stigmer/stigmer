@@ -42,14 +42,24 @@ func emitSubAgentEvents(
 			}
 			trackers[sa.Id] = tracker
 
+			desc := ""
+			if sa.Metadata != nil {
+				if v, ok := sa.Metadata.Fields["description"]; ok {
+					desc = v.GetStringValue()
+				}
+			}
+
 			events <- executiontui.SubAgentStartedEvent{
-				ID:   sa.Id,
-				Name: sa.Name,
+				ID:          sa.Id,
+				Name:        sa.Name,
+				Input:       sa.Input,
+				Description: desc,
 			}
 
 			log.Debug().
 				Str("sub_agent_id", sa.Id).
 				Str("name", sa.Name).
+				Str("description", desc).
 				Msg("[stream] new sub-agent execution detected")
 		}
 

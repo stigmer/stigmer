@@ -221,9 +221,38 @@ func fileExists(path string) bool {
 	return err == nil
 }
 
-// ResolveLLMProvider resolves the LLM provider with cascading config
-// Priority: env var > config file
-// Returns "" if no provider is configured (user skipped setup or hasn't run wizard yet)
+// DetectProviderFromAPIKeys checks the environment for well-known LLM API key
+// variables and returns the corresponding provider name. Priority order reflects
+// output quality: Anthropic first, then OpenAI. Returns "" if no keys are found.
+//
+// This is a pure environment scan with no I/O or network calls.
+// Ollama is intentionally excluded -- it requires explicit opt-in.
+func DetectProviderFromAPIKeys() string {
+	if os.Getenv("ANTHROPIC_API_KEY") != "" {
+		return "anthropic"
+	}
+	if os.Getenv("OPENAI_API_KEY") != "" {
+		return "openai"
+	}
+	return ""
+}
+
+// LLM provider source constants used by ResolveLLMProviderSource.
+const (
+	ProviderSourceEnvOverride  = "STIGMER_LLM_PROVIDER environment variable"
+	ProviderSourceConfigFile   = "configuration file"
+	ProviderSourceAnthropicKey = "ANTHROPIC_API_KEY detected in environment"
+	ProviderSourceOpenAIKey    = "OPENAI_API_KEY detected in environment"
+	ProviderSourceNone         = ""
+)
+
+// ResolveLLMProvider resolves the LLM provider with cascading config.
+//
+// Priority chain:
+//  1. STIGMER_LLM_PROVIDER env var (explicit override)
+//  2. Config file llm.provider (explicit user choice)
+//  3. Auto-detect from ANTHROPIC_API_KEY / OPENAI_API_KEY in environment
+//  4. "" (no provider available)
 func (c *LocalBackendConfig) ResolveLLMProvider() string {
 	if provider := os.Getenv("STIGMER_LLM_PROVIDER"); provider != "" {
 		return provider
@@ -233,7 +262,26 @@ func (c *LocalBackendConfig) ResolveLLMProvider() string {
 		return c.LLM.Provider
 	}
 
-	return ""
+	return DetectProviderFromAPIKeys()
+}
+
+// ResolveLLMProviderSource returns a human-readable description of where the
+// resolved LLM provider setting came from. Useful for UX messages that tell
+// the user "Using X [from Y]".
+func (c *LocalBackendConfig) ResolveLLMProviderSource() string {
+	if os.Getenv("STIGMER_LLM_PROVIDER") != "" {
+		return ProviderSourceEnvOverride
+	}
+	if c.LLM != nil && c.LLM.Provider != "" {
+		return ProviderSourceConfigFile
+	}
+	if os.Getenv("ANTHROPIC_API_KEY") != "" {
+		return ProviderSourceAnthropicKey
+	}
+	if os.Getenv("OPENAI_API_KEY") != "" {
+		return ProviderSourceOpenAIKey
+	}
+	return ProviderSourceNone
 }
 
 // ResolveLLMModel resolves the LLM model with cascading config
