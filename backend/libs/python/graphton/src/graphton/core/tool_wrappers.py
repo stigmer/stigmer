@@ -571,7 +571,7 @@ def create_platform_tool_wrappers(
 ) -> list[Callable[..., Any]]:
     """Create approval-aware wrappers for platform tools (sandbox/filesystem tools).
     
-    This function creates LangChain-compatible tool wrappers for all 7 platform tools
+    This function creates LangChain-compatible tool wrappers for all 8 platform tools
     that delegate to a backend (FilesystemBackend, DaytonaBackend, etc.).
     
     Platform tools are divided into two categories:
@@ -581,6 +581,7 @@ def create_platform_tool_wrappers(
     - ls: List directory contents
     - glob: Find files by pattern
     - grep: Search file contents
+    - search: Find code definitions by concept/name (structural symbol search)
     
     **Dangerous tools** (write/execute operations, require approval by default):
     - write: Write content to a file
@@ -604,7 +605,7 @@ def create_platform_tool_wrappers(
             If None, tools execute without approval check.
         
     Returns:
-        List of 10 @tool decorated functions for platform tools (7 primary + 3 aliases)
+        List of 11 @tool decorated functions for platform tools (8 primary + 3 aliases)
         
     Example:
         >>> from graphton.core.sandbox_factory import create_sandbox_backend
@@ -612,10 +613,10 @@ def create_platform_tool_wrappers(
         >>> 
         >>> backend = create_sandbox_backend({"type": "filesystem", "root_dir": "/workspace"})
         >>> tools = create_platform_tool_wrappers(backend, approval_checker=my_checker)
-        >>> # tools contains: read, ls, glob, grep, write, edit, execute,
+        >>> # tools contains: read, ls, glob, grep, search, write, edit, execute,
         >>> #                  read_file, write_file, edit_file
         >>> len(tools)
-        10
+        11
     
     """
     tools: list[Callable[..., Any]] = []
@@ -635,6 +636,9 @@ def create_platform_tool_wrappers(
     
     # grep: Search file contents
     tools.append(_create_grep_tool(backend))
+    
+    # search: Structural symbol search (definitions by concept/name)
+    tools.append(_create_search_tool(backend))
     
     # =========================================================================
     # Dangerous tools (write/execute operations, require approval by default)
@@ -1409,4 +1413,81 @@ def _create_grep_tool(
     
     grep.name = "grep"  # type: ignore[attr-defined]
     return grep  # type: ignore[return-value]
+
+
+def _create_search_tool(
+    backend: Any,  # noqa: ANN401
+) -> Callable[..., Any]:
+    """Create search (structural symbol lookup) tool wrapper.
+
+    This is a SAFE read-only operation that does not require approval.
+    On first invocation the tool lazily builds a structural symbol index
+    by walking workspace source files.  The index is cached in the
+    closure for the lifetime of the execution.
+
+    Args:
+        backend: Backend instance with read(), list_files(), and
+            is_directory() methods.
+
+    Returns:
+        @tool decorated function for structural code search.
+    """
+    from graphton.core.workspace_index import (
+        WorkspaceIndex,
+        build_workspace_index,
+        format_search_results,
+    )
+
+    _cached_index: list[WorkspaceIndex | None] = [None]
+
+    def _get_index() -> WorkspaceIndex:
+        if _cached_index[0] is None:
+            logger.info("Building workspace symbol index (first search call)…")
+            _cached_index[0] = build_workspace_index(backend)
+        return _cached_index[0]
+
+    @tool
+    async def search(query: str) -> str:
+        """Search for code definitions by concept or name.
+
+        Finds structural elements (classes, functions, methods, types,
+        structs, enums, interfaces, traits) whose names match the query.
+        Use this when you know *what concept* to find.  Use ``grep`` when
+        you know *what exact text* to find.
+
+        Examples:
+            search("authentication middleware")
+            search("database connection")
+            search("LoginController")
+            search("parse_config")
+
+        Args:
+            query: Natural-language query or identifier name to search for.
+
+        Returns:
+            Ranked list of matching definitions with file paths, line
+            numbers, and signatures.
+        """
+        try:
+            logger.debug("search tool invoked with query: %r", query)
+
+            if not query or not query.strip():
+                return "Please provide a search query."
+
+            index = _get_index()
+            results = index.search(query)
+
+            output = format_search_results(results, query, index=index)
+            logger.debug(
+                "search tool returned %d result(s) for %r",
+                len(results),
+                query,
+            )
+            return output
+        except Exception as e:
+            logger.warning("search tool failed for query %r: %s", query, e)
+            return enrich_error_message("search", str(e))
+
+    search.name = "search"  # type: ignore[attr-defined]
+    return search  # type: ignore[return-value]
 
