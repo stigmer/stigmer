@@ -1190,6 +1190,8 @@ def _create_glob_tool(
     """
     import fnmatch
     import os
+
+    _GLOB_MAX_DEPTH = 15
     
     @tool
     async def glob(pattern: str, path: str = ".") -> str:
@@ -1208,26 +1210,28 @@ def _create_glob_tool(
         try:
             logger.debug(f"🔍 Searching for pattern '{pattern}' in '{path}'")
             
-            # Get all files recursively using backend's list_files
-            # Then filter by pattern
-            all_files = []
+            all_files: list[str] = []
+            _has_is_dir = hasattr(backend, "is_directory")
             
-            def collect_files(dir_path: str) -> None:
-                """Recursively collect all files."""
+            def collect_files(dir_path: str, depth: int = 0) -> None:
+                if depth > _GLOB_MAX_DEPTH:
+                    return
                 try:
                     items = backend.list_files(dir_path)
-                    for item in items:
-                        item_path = os.path.join(dir_path, item) if dir_path != "." else item
-                        # Normalize path separators
-                        item_path = item_path.replace("\\", "/")
-                        all_files.append(item_path)
-                        # Try to recurse into directories
-                        try:
-                            collect_files(item_path)
-                        except Exception:
-                            pass  # Not a directory or can't access
                 except Exception:
-                    pass  # Can't list this directory
+                    return
+                for item in items:
+                    item_path = os.path.join(dir_path, item) if dir_path != "." else item
+                    item_path = item_path.replace("\\", "/")
+                    all_files.append(item_path)
+                    if _has_is_dir:
+                        if backend.is_directory(item_path):
+                            collect_files(item_path, depth + 1)
+                    else:
+                        try:
+                            collect_files(item_path, depth + 1)
+                        except NotADirectoryError:
+                            pass
             
             collect_files(path)
             
@@ -1270,6 +1274,8 @@ def _create_grep_tool(
     """
     import os
     import re
+
+    _GREP_MAX_DEPTH = 15
     
     @tool
     async def grep(pattern: str, path: str = ".", include: str = "*") -> str:
@@ -1291,58 +1297,55 @@ def _create_grep_tool(
         try:
             logger.debug(f"🔎 Searching for '{pattern}' in '{path}' (include={include})")
             
-            # Compile the regex pattern
             try:
                 regex = re.compile(pattern)
             except re.error as e:
                 return f"Invalid regex pattern '{pattern}': {e}"
             
-            results = []
+            results: list[str] = []
             files_searched = 0
-            max_results = 1000  # Limit results to prevent overwhelming output
+            max_results = 1000
+            _has_is_dir = hasattr(backend, "is_directory")
             
             def search_file(file_path: str) -> None:
-                """Search a single file for matches."""
                 nonlocal files_searched
-                
-                # Check include pattern
                 if not fnmatch.fnmatch(os.path.basename(file_path), include):
                     return
-                
                 try:
                     content = backend.read(file_path)
                     files_searched += 1
-                    
                     for line_num, line in enumerate(content.splitlines(), 1):
                         if len(results) >= max_results:
                             return
                         if regex.search(line):
                             results.append(f"{file_path}:{line_num}:{line.rstrip()}")
                 except Exception:
-                    pass  # Skip files that can't be read (binary, permission, etc.)
+                    pass
             
-            def collect_and_search(dir_path: str) -> None:
-                """Recursively search files in directory."""
+            def collect_and_search(dir_path: str, depth: int = 0) -> None:
+                if depth > _GREP_MAX_DEPTH:
+                    return
                 try:
                     items = backend.list_files(dir_path)
-                    for item in items:
-                        if len(results) >= max_results:
-                            return
-                        item_path = os.path.join(dir_path, item) if dir_path != "." else item
-                        item_path = item_path.replace("\\", "/")
-                        
-                        # Try to search as file
-                        search_file(item_path)
-                        
-                        # Try to recurse as directory
-                        try:
-                            collect_and_search(item_path)
-                        except Exception:
-                            pass  # Not a directory
                 except Exception:
-                    pass  # Can't list this directory
+                    return
+                for item in items:
+                    if len(results) >= max_results:
+                        return
+                    item_path = os.path.join(dir_path, item) if dir_path != "." else item
+                    item_path = item_path.replace("\\", "/")
+
+                    if _has_is_dir and backend.is_directory(item_path):
+                        collect_and_search(item_path, depth + 1)
+                    elif not _has_is_dir:
+                        search_file(item_path)
+                        try:
+                            collect_and_search(item_path, depth + 1)
+                        except NotADirectoryError:
+                            pass
+                    else:
+                        search_file(item_path)
             
-            # Start the search
             collect_and_search(path)
             
             if not results:
