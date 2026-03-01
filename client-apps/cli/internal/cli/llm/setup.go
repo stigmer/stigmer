@@ -148,7 +148,7 @@ func IsRunning() bool {
 // StartServer starts the LLM server in the background
 func StartServer(ctx context.Context, binaryPath string, opts *SetupOptions) error {
 	if opts.Progress != nil {
-		opts.Progress.SetPhase(cliprint.PhaseStarting, "Starting local LLM server")
+		opts.Progress.SetPhase(cliprint.PhaseInstalling, "Starting local LLM server")
 	}
 
 	stigmerDir, err := getStigmerDir()

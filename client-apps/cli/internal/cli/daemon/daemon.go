@@ -109,9 +109,27 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		Str("llm_base_url", llmBaseURL).
 		Msg("Resolved LLM configuration")
 
+	var secrets map[string]string
+	if opts.Secrets != nil {
+		secrets = opts.Secrets
+	} else {
+		if opts.Progress != nil {
+			opts.Progress.SetPhase(cliprint.PhaseInitializing, "Gathering credentials")
+		}
+		var err error
+		secrets, err = GatherRequiredSecrets(llmProvider, cfg.Backend.Local)
+		if err != nil {
+			return errors.Wrap(err, "failed to gather required secrets")
+		}
+	}
+
+	// --- Phase 2: Installing ---
+	// Operations that download/install external dependencies.
+	// Slow on first run, fast or no-op on subsequent runs.
+
 	if llmProvider == "ollama" {
 		if opts.Progress != nil {
-			opts.Progress.SetPhase(cliprint.PhaseInitializing, "Setting up local LLM")
+			opts.Progress.SetPhase(cliprint.PhaseInstalling, "Setting up local LLM")
 		}
 
 		llmOpts := &llm.SetupOptions{
@@ -130,20 +148,6 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		log.Info().Msg("No LLM provider configured, skipping LLM setup")
 	}
 
-	var secrets map[string]string
-	if opts.Secrets != nil {
-		secrets = opts.Secrets
-	} else {
-		if opts.Progress != nil {
-			opts.Progress.SetPhase(cliprint.PhaseInitializing, "Gathering credentials")
-		}
-		var err error
-		secrets, err = GatherRequiredSecrets(llmProvider, cfg.Backend.Local)
-		if err != nil {
-			return errors.Wrap(err, "failed to gather required secrets")
-		}
-	}
-
 	temporalAddr, isManaged := cfg.Backend.Local.ResolveTemporalAddress()
 
 	log.Debug().
@@ -156,7 +160,7 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		if opts.Progress != nil {
 			opts.Progress.SetPhase(cliprint.PhaseInstalling, "Setting up Temporal")
 		}
-		log.Info().Msg("Starting managed Temporal server...")
+		log.Info().Msg("Setting up managed Temporal...")
 
 		temporalManager = temporal.NewManager(
 			dataDir,
@@ -167,34 +171,15 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		if err := temporalManager.EnsureInstalled(); err != nil {
 			return errors.Wrap(err, "failed to ensure Temporal installation")
 		}
-
-		if opts.Progress != nil {
-			opts.Progress.SetPhase(cliprint.PhaseDeploying, "Starting Temporal server")
-		}
-		if err := temporalManager.Start(); err != nil {
-			return errors.Wrap(err, "failed to start Temporal")
-		}
-
-		temporalAddr = temporalManager.GetAddress()
-		log.Info().Str("address", temporalAddr).Msg("Temporal started successfully")
 	} else {
 		log.Info().Str("address", temporalAddr).Msg("Using external Temporal")
 	}
 
-	if opts.Progress != nil {
-		opts.Progress.SetPhase(cliprint.PhaseDeploying, "Starting Stigmer server")
-	}
-	cliBin, err := os.Executable()
-	if err != nil {
-		return errors.Wrap(err, "failed to get CLI executable path")
-	}
-
-	log.Debug().Str("binary", cliBin).Msg("Starting daemon process")
-
 	// Bootstrap the native Python runtime for agent-runner.
 	// This runs in the foreground so the user sees progress.
+	// Independent of Temporal — only needs configDir and embedded source.
 	if opts.Progress != nil {
-		opts.Progress.SetPhase(cliprint.PhaseDeploying, "Bootstrapping Python runtime")
+		opts.Progress.SetPhase(cliprint.PhaseInstalling, "Bootstrapping Python runtime")
 	}
 
 	if !agentrunner.IsAvailable() {
@@ -205,6 +190,31 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to bootstrap agent-runner runtime")
 	}
+
+	// --- Phase 3: Starting ---
+	// Start processes that the daemon depends on, then spawn the daemon.
+
+	if isManaged {
+		if opts.Progress != nil {
+			opts.Progress.SetPhase(cliprint.PhaseStarting, "Starting Temporal server")
+		}
+		if err := temporalManager.Start(); err != nil {
+			return errors.Wrap(err, "failed to start Temporal")
+		}
+
+		temporalAddr = temporalManager.GetAddress()
+		log.Info().Str("address", temporalAddr).Msg("Temporal started successfully")
+	}
+
+	if opts.Progress != nil {
+		opts.Progress.SetPhase(cliprint.PhaseStarting, "Launching Stigmer server")
+	}
+	cliBin, err := os.Executable()
+	if err != nil {
+		return errors.Wrap(err, "failed to get CLI executable path")
+	}
+
+	log.Debug().Str("binary", cliBin).Msg("Starting daemon process")
 
 	execMode := opts.ExecutionMode
 	if execMode == "" {
