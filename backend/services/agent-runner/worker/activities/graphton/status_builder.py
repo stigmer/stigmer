@@ -36,7 +36,10 @@ from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ToolCallStatus,
 )
 from google.protobuf.struct_pb2 import Struct
-from graphton.core.backends.platform_mount import humanize_platform_refs
+from graphton.core.backends.platform_mount import (
+    humanize_platform_refs,
+    resolve_display_env_vars,
+)
 from graphton.core.summarization_callback import SummarizationEventData
 
 from worker.activities.graphton.approval_policy import (
@@ -382,7 +385,21 @@ class StatusBuilder:
         # waiting for the next scheduled update (which may be 500ms–30s away
         # if no further LangGraph events arrive).
         self.force_next_update: bool = False
+
+        # Resolved agent env vars used by _create_args_preview to expand
+        # $VAR references in display strings.  Set via set_display_env_vars()
+        # once the merged environment is available.
+        self._display_env_vars: dict[str, str] | None = None
     
+    def set_display_env_vars(self, env_vars: dict[str, str]) -> None:
+        """Store resolved agent env vars for display humanization.
+
+        Called once after environment merge completes.  ``_create_args_preview``
+        uses these to replace ``$KEY`` references with their values so the
+        approval prompt shows concrete paths instead of opaque env-var names.
+        """
+        self._display_env_vars = env_vars
+
     async def process_event(self, event: dict[str, Any]) -> None:
         """
         Process astream_events v2 event and update local status.
@@ -2167,6 +2184,7 @@ class StatusBuilder:
             
             if isinstance(value, str):
                 value = humanize_platform_refs(value)
+                value = resolve_display_env_vars(value, self._display_env_vars)
                 if len(value) > 200:
                     return value[:200] + "... (truncated)"
                 return value
