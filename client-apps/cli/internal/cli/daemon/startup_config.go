@@ -35,6 +35,10 @@ type StartupConfig struct {
 
 	// Docker container ID (for Docker mode)
 	AgentRunnerContainerID string `json:"agent_runner_container_id,omitempty"`
+
+	// AgentRunnerMode records which mode agent-runner was started in ("native" or "docker").
+	// Used by health monitoring and restart logic to recover after crashes.
+	AgentRunnerMode string `json:"agent_runner_mode,omitempty"`
 }
 
 // saveStartupConfig persists startup configuration to disk

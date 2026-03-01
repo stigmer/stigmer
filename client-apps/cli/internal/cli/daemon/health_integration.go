@@ -198,21 +198,28 @@ func createWorkflowRunnerComponent(dataDir string) (*health.Component, error) {
 	return component, nil
 }
 
-// createAgentRunnerComponent creates health component for agent-runner
+// createAgentRunnerComponent creates health component for agent-runner.
+// Prefers native (PID-based) over Docker based on startup config or
+// presence of PID file vs container ID file.
 func createAgentRunnerComponent(dataDir string) (*health.Component, error) {
-	// Check if agent-runner is using Docker mode (most common)
-	containerIDFile := filepath.Join(dataDir, AgentRunnerContainerIDFileName)
-	if _, err := os.Stat(containerIDFile); err == nil {
-		return createAgentRunnerDockerComponent(dataDir)
+	cfg, err := loadStartupConfig(dataDir)
+	if err == nil && cfg.AgentRunnerMode == cliconfig.AgentRunnerModeNative {
+		return createAgentRunnerBinaryComponent(dataDir)
 	}
 
-	// Fallback to binary mode (if PID file exists)
+	// Check PID file first (native mode)
 	pidFile := filepath.Join(dataDir, AgentRunnerPIDFileName)
 	if _, err := os.Stat(pidFile); err == nil {
 		return createAgentRunnerBinaryComponent(dataDir)
 	}
 
-	return nil, errors.New("agent-runner not found (neither Docker nor binary mode)")
+	// Fallback to Docker mode
+	containerIDFile := filepath.Join(dataDir, AgentRunnerContainerIDFileName)
+	if _, err := os.Stat(containerIDFile); err == nil {
+		return createAgentRunnerDockerComponent(dataDir)
+	}
+
+	return nil, errors.New("agent-runner not found (neither native nor Docker mode)")
 }
 
 // createAgentRunnerDockerComponent creates health component for Docker-based agent-runner
@@ -373,10 +380,14 @@ func restartStigmerServer(dataDir string) error {
 
 	// Start stigmer-server process with saved configuration
 	cmd := exec.Command(cliBin, "internal-server")
-	cmd.Env = append(os.Environ(),
+	serverEnv := append(os.Environ(),
 		fmt.Sprintf("STIGMER_DATA_DIR=%s", config.DataDir),
 		fmt.Sprintf("GRPC_PORT=%d", DaemonPort),
 	)
+	if config.AgentRunnerMode == cliconfig.AgentRunnerModeNative {
+		serverEnv = append(serverEnv, "STIGMER_SKIP_AGENT_RUNNER=true")
+	}
+	cmd.Env = serverEnv
 
 	// Redirect output to log file
 	// Consolidate stdout and stderr to single .log file for clarity
@@ -437,46 +448,64 @@ func restartWorkflowRunner(dataDir string) error {
 	return nil
 }
 
-// restartAgentRunner restarts the agent-runner
+// restartAgentRunner restarts the agent-runner in the mode recorded in
+// the startup config (native or Docker).
 func restartAgentRunner(dataDir string) error {
-	// Load startup configuration
-	config, err := loadStartupConfig(dataDir)
+	startupCfg, err := loadStartupConfig(dataDir)
 	if err != nil {
 		return errors.Wrap(err, "failed to load startup configuration")
 	}
 
-	// Load full CLI config for API key resolution
 	cliCfg, cliErr := cliconfig.Load()
 	var localCfg *cliconfig.LocalBackendConfig
 	if cliErr == nil && cliCfg.Backend.Local != nil {
 		localCfg = cliCfg.Backend.Local
 	}
 
-	secrets, err := GatherRequiredSecrets(config.LLMProvider, localCfg)
+	secrets, err := GatherRequiredSecrets(startupCfg.LLMProvider, localCfg)
 	if err != nil {
 		return errors.Wrap(err, "failed to gather required secrets")
 	}
 
-	// Call existing startAgentRunner function
-	if err := startAgentRunner(
-		config.DataDir,
-		config.LogDir,
-		config.LLMProvider,
-		config.LLMModel,
-		config.LLMBaseURL,
-		config.TemporalAddr,
-		secrets,
-		config.ExecutionMode,
-		config.SandboxImage,
-		config.SandboxAutoPull,
-		config.SandboxCleanup,
-		config.SandboxTTL,
-	); err != nil {
-		return errors.Wrap(err, "failed to restart agent-runner")
+	if startupCfg.AgentRunnerMode == cliconfig.AgentRunnerModeNative {
+		if err := startAgentRunnerNative(
+			startupCfg.DataDir,
+			startupCfg.LogDir,
+			startupCfg.LLMProvider,
+			startupCfg.LLMModel,
+			startupCfg.LLMBaseURL,
+			startupCfg.TemporalAddr,
+			secrets,
+			startupCfg.ExecutionMode,
+			startupCfg.SandboxImage,
+			startupCfg.SandboxAutoPull,
+			startupCfg.SandboxCleanup,
+			startupCfg.SandboxTTL,
+		); err != nil {
+			return errors.Wrap(err, "failed to restart native agent-runner")
+		}
+	} else {
+		if err := startAgentRunnerDocker(
+			startupCfg.DataDir,
+			startupCfg.LogDir,
+			startupCfg.LLMProvider,
+			startupCfg.LLMModel,
+			startupCfg.LLMBaseURL,
+			startupCfg.TemporalAddr,
+			secrets,
+			startupCfg.ExecutionMode,
+			startupCfg.SandboxImage,
+			startupCfg.SandboxAutoPull,
+			startupCfg.SandboxCleanup,
+			startupCfg.SandboxTTL,
+		); err != nil {
+			return errors.Wrap(err, "failed to restart Docker agent-runner")
+		}
 	}
 
-	log.Info().Msg("Agent-runner restarted successfully")
-
+	log.Info().
+		Str("mode", startupCfg.AgentRunnerMode).
+		Msg("Agent-runner restarted successfully")
 	return nil
 }
 

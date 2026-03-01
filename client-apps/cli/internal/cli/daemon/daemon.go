@@ -15,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/stigmer/stigmer/client-apps/cli/embedded"
+	"github.com/stigmer/stigmer/client-apps/cli/embedded/agentrunner"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/llm"
@@ -347,6 +348,36 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 
 	log.Debug().Str("binary", cliBin).Msg("Starting stigmer-server via CLI")
 
+	// Resolve agent-runner mode and determine viability BEFORE starting the
+	// server so we can tell the supervisor to skip agent-runner when the daemon
+	// manages it natively. This prevents the dual-start problem.
+	agentRunnerMode := cfg.Backend.Local.ResolveAgentRunnerMode()
+	useNativeAgentRunner := false
+
+	switch agentRunnerMode {
+	case config.AgentRunnerModeNative:
+		if !agentrunner.IsAvailable() {
+			return errors.New("agent-runner mode is 'native' but Python source is not available")
+		}
+		useNativeAgentRunner = true
+
+	case config.AgentRunnerModeAuto:
+		if agentrunner.IsAvailable() {
+			nativeViable := probeNativeAgentRunnerViability(cfg)
+			if nativeViable {
+				useNativeAgentRunner = true
+				log.Info().Msg("Auto-detected viable native agent-runner environment")
+			} else {
+				log.Info().Msg("Native agent-runner not viable, falling back to Docker")
+			}
+		} else {
+			log.Info().Msg("Agent-runner source not available, using Docker")
+		}
+
+	default:
+		log.Info().Msg("Agent-runner mode is Docker (supervisor-managed)")
+	}
+
 	// Prepare environment variables for stigmer-server (including supervisor config)
 	env := append(os.Environ(),
 		fmt.Sprintf("STIGMER_DATA_DIR=%s", dataDir),
@@ -358,13 +389,18 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		fmt.Sprintf("STIGMER_LLM_BASE_URL=%s", llmBaseURL),
 	)
 
+	if useNativeAgentRunner {
+		env = append(env, "STIGMER_SKIP_AGENT_RUNNER=true")
+	}
+
 	// Add LLM secrets to environment
 	for key, value := range secrets {
 		env = append(env, fmt.Sprintf("%s=%s", key, value))
 	}
 
 	// Start daemon process (spawn CLI with hidden internal-server command)
-	// stigmer-server will now start its own child processes (workflow-runner, agent-runner)
+	// stigmer-server starts workflow-runner internally; agent-runner is started
+	// by the daemon when native mode is active, or by the supervisor in Docker mode.
 	cmd := exec.Command(cliBin, "internal-server")
 	cmd.Env = env
 
@@ -407,7 +443,55 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		Str("data_dir", dataDir).
 		Msg("Stigmer server started successfully")
 
-	log.Info().Msg("Stigmer server will spawn and monitor child components (workflow-runner, agent-runner) internally")
+	// Resolve execution config from opts or config defaults
+	execMode := opts.ExecutionMode
+	if execMode == "" {
+		execMode = cfg.Backend.Local.ResolveExecutionMode()
+	}
+	sbImage := opts.SandboxImage
+	if sbImage == "" {
+		sbImage = cfg.Backend.Local.ResolveSandboxImage()
+	}
+
+	resolvedMode := config.AgentRunnerModeDocker
+
+	if useNativeAgentRunner {
+		if opts.Progress != nil {
+			opts.Progress.SetPhase(cliprint.PhaseDeploying, "Starting agent-runner (native)")
+		}
+
+		if err := startAgentRunnerNative(
+			dataDir, logDir,
+			llmProvider, llmModel, llmBaseURL, temporalAddr,
+			secrets, execMode, sbImage,
+			opts.SandboxAutoPull, opts.SandboxCleanup, opts.SandboxTTL,
+		); err != nil {
+			return errors.Wrap(err, "failed to start native agent-runner")
+		}
+		resolvedMode = config.AgentRunnerModeNative
+	} else {
+		log.Info().Msg("Agent-runner will be started by stigmer-server supervisor (Docker mode)")
+	}
+
+	// Persist startup config for crash recovery / health monitoring
+	startupCfg := &StartupConfig{
+		DataDir:         dataDir,
+		LogDir:          logDir,
+		TemporalAddr:    temporalAddr,
+		LLMProvider:     llmProvider,
+		LLMModel:        llmModel,
+		LLMBaseURL:      llmBaseURL,
+		ExecutionMode:   execMode,
+		SandboxImage:    sbImage,
+		SandboxAutoPull: opts.SandboxAutoPull,
+		SandboxCleanup:  opts.SandboxCleanup,
+		SandboxTTL:      opts.SandboxTTL,
+		StigmerServerPID: cmd.Process.Pid,
+		AgentRunnerMode: resolvedMode,
+	}
+	if err := saveStartupConfig(startupCfg); err != nil {
+		log.Warn().Err(err).Msg("Failed to save startup config (health monitoring may not work)")
+	}
 
 	return nil
 }
@@ -518,8 +602,9 @@ func startWorkflowRunner(
 	return nil
 }
 
-// startAgentRunner starts the agent-runner in Docker container
-func startAgentRunner(
+// startAgentRunnerDocker starts the agent-runner in a Docker container.
+// This is the legacy path, retained for Docker-mode fallback and restart flows.
+func startAgentRunnerDocker(
 	dataDir string,
 	logDir string,
 	llmProvider string,
@@ -726,6 +811,7 @@ func cleanupOrphanedProcesses(dataDir string) {
 	pidFiles := map[string]string{
 		"stigmer-server":  filepath.Join(dataDir, PIDFileName),
 		"workflow-runner": filepath.Join(dataDir, WorkflowRunnerPIDFileName),
+		"agent-runner":    filepath.Join(dataDir, AgentRunnerPIDFileName),
 	}
 
 	orphansFound := false
@@ -981,9 +1067,61 @@ func stopWorkflowRunner(dataDir string) {
 	_ = os.Remove(pidFile)
 }
 
-// stopAgentRunner stops the agent-runner Docker container
+// stopAgentRunner stops the agent-runner regardless of how it was started.
+// Native mode: signal the process via PID file.
+// Docker mode: stop and remove the container.
 func stopAgentRunner(dataDir string) {
-	// Try to read container ID from file
+	if stopAgentRunnerByPID(dataDir) {
+		return
+	}
+	stopAgentRunnerDocker(dataDir)
+}
+
+// stopAgentRunnerByPID stops a native agent-runner process using its PID file.
+// Returns true if a PID file was found (regardless of whether the process was alive).
+func stopAgentRunnerByPID(dataDir string) bool {
+	pidFile := filepath.Join(dataDir, AgentRunnerPIDFileName)
+	data, err := os.ReadFile(pidFile)
+	if err != nil {
+		return false
+	}
+
+	pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
+	if err != nil {
+		log.Warn().Str("pid_file", pidFile).Msg("Invalid agent-runner PID file, removing")
+		_ = os.Remove(pidFile)
+		return true
+	}
+
+	if !isProcessAlive(pid) {
+		log.Debug().Int("pid", pid).Msg("Agent-runner process already exited")
+		_ = os.Remove(pidFile)
+		return true
+	}
+
+	log.Info().Int("pid", pid).Msg("Stopping native agent-runner process")
+	process, _ := os.FindProcess(pid)
+
+	_ = process.Signal(syscall.SIGTERM)
+
+	for i := 0; i < 10; i++ {
+		time.Sleep(500 * time.Millisecond)
+		if !isProcessAlive(pid) {
+			_ = os.Remove(pidFile)
+			log.Info().Int("pid", pid).Msg("Native agent-runner stopped gracefully")
+			return true
+		}
+	}
+
+	log.Warn().Int("pid", pid).Msg("Agent-runner did not stop gracefully, force killing")
+	_ = process.Kill()
+	time.Sleep(500 * time.Millisecond)
+	_ = os.Remove(pidFile)
+	return true
+}
+
+// stopAgentRunnerDocker stops the agent-runner Docker container.
+func stopAgentRunnerDocker(dataDir string) {
 	containerIDFile := filepath.Join(dataDir, AgentRunnerContainerIDFileName)
 	data, err := os.ReadFile(containerIDFile)
 
@@ -992,7 +1130,6 @@ func stopAgentRunner(dataDir string) {
 		containerID = strings.TrimSpace(string(data))
 	}
 
-	// If no container ID file, try to find container by name
 	if containerID == "" {
 		log.Debug().Msg("No container ID file found, trying to find container by name")
 		cmd := exec.Command("docker", "ps", "-aq", "-f", fmt.Sprintf("name=^%s$", AgentRunnerContainerName))
@@ -1010,27 +1147,21 @@ func stopAgentRunner(dataDir string) {
 
 	log.Info().Str("container_id", containerID[:12]).Msg("Stopping agent-runner container")
 
-	// Stop container (graceful)
 	stopCmd := exec.Command("docker", "stop", containerID)
 	if err := stopCmd.Run(); err != nil {
 		log.Warn().Str("container_id", containerID[:12]).Err(err).Msg("Failed to stop container gracefully")
-
-		// Try force kill
 		killCmd := exec.Command("docker", "kill", containerID)
 		if err := killCmd.Run(); err != nil {
 			log.Error().Str("container_id", containerID[:12]).Err(err).Msg("Failed to kill container")
 		}
 	}
 
-	// Remove container
 	rmCmd := exec.Command("docker", "rm", containerID)
 	if err := rmCmd.Run(); err != nil {
 		log.Warn().Str("container_id", containerID[:12]).Err(err).Msg("Failed to remove container")
 	}
 
-	// Clean up container ID file
 	_ = os.Remove(containerIDFile)
-
 	log.Info().Msg("Agent-runner container stopped successfully")
 }
 

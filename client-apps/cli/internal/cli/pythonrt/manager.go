@@ -3,6 +3,7 @@ package pythonrt
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"time"
@@ -33,6 +34,11 @@ type Config struct {
 	// installation (e.g., namespace collision fixups). Each entry is a
 	// command with its arguments.
 	PostInstallCmds [][]string
+
+	// AppSourceFS is an embedded filesystem containing the Python application
+	// source code (e.g., agent-runner's main.py + worker/ package). When
+	// non-nil, bootstrap extracts the contents into <runtime>/app/.
+	AppSourceFS fs.FS
 }
 
 // Manager manages the lifecycle of a hermetic Python runtime environment
@@ -68,13 +74,22 @@ func (m *Manager) PythonBin() string {
 }
 
 // IsReady reports whether the runtime is bootstrapped and valid for the
-// current CLI version.
+// current CLI version. When AppSourceFS is configured, it also verifies
+// that the extracted app directory exists.
 func (m *Manager) IsReady() bool {
 	manifest, err := ReadManifest(m.manifestPath())
 	if err != nil {
 		return false
 	}
-	return manifest.IsValid(m.config.CLIVersion)
+	if !manifest.IsValid(m.config.CLIVersion) {
+		return false
+	}
+	if m.config.AppSourceFS != nil {
+		if _, err := os.Stat(m.AppDir()); err != nil {
+			return false
+		}
+	}
+	return true
 }
 
 // EnsureReady guarantees a valid Python runtime exists. When the runtime is
@@ -88,6 +103,10 @@ func (m *Manager) EnsureReady(ctx context.Context) error {
 	}
 	return m.bootstrap(ctx)
 }
+
+// AppDir returns the path to the extracted application source directory.
+// Only meaningful when Config.AppSourceFS is set.
+func (m *Manager) AppDir() string { return filepath.Join(m.RuntimeDir(), "app") }
 
 func (m *Manager) pythonDir() string    { return filepath.Join(m.RuntimeDir(), "python") }
 func (m *Manager) venvDir() string      { return filepath.Join(m.RuntimeDir(), "venv") }
@@ -122,6 +141,9 @@ func (m *Manager) bootstrap(ctx context.Context) error {
 		return err
 	}
 	if err := m.setupVenv(ctx); err != nil {
+		return err
+	}
+	if err := m.extractAppSource(); err != nil {
 		return err
 	}
 	if err := m.writeManifest(start); err != nil {
@@ -178,6 +200,17 @@ func (m *Manager) setupVenv(ctx context.Context) error {
 		if err := runPostInstallCmds(ctx, m.venvDir(), m.config.PostInstallCmds); err != nil {
 			return errors.Wrap(err, "failed to run post-install commands")
 		}
+	}
+	return nil
+}
+
+func (m *Manager) extractAppSource() error {
+	if m.config.AppSourceFS == nil {
+		return nil
+	}
+	log.Info().Msg("Extracting application source")
+	if err := copyFS(m.config.AppSourceFS, m.AppDir()); err != nil {
+		return errors.Wrap(err, "failed to extract application source")
 	}
 	return nil
 }
