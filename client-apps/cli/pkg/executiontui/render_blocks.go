@@ -385,41 +385,53 @@ func truncateAtWord(s string, maxLen int) string {
 	return s[:cut] + "..."
 }
 
-// renderSubAgentSeparator returns a dim horizontal separator line labeled with
-// the sub-agent name. Used as a lightweight context indicator when a sub-agent
-// re-enters after the main agent (rare). The primary sub-agent introduction is
-// handled by blockSubAgent header blocks.
+// renderSubAgentSeparator returns a fallback header line for orphaned
+// sub-agent content blocks that have no preceding blockSubAgent header.
+// Uses the same visual language as the proper header (🔀 prefix) so the
+// UX is consistent even in this abnormal state.
 func renderSubAgentSeparator(name string) string {
 	if name == "" {
 		name = "sub-agent"
 	}
-	return dimStyle.Render("── " + name + " ──")
+	return dimStyle.Render("🔀 " + name)
 }
 
-// needsSubAgentSeparator reports whether a lightweight context separator should
-// be inserted before the block at index idx. A separator is needed when:
-//   - The block originates from a sub-agent, AND
-//   - The previous rendered block belongs to a different agent, AND
-//   - The current block is NOT a blockSubAgent header (those serve as their own
-//     introduction and don't need a preceding separator).
+// needsSubAgentSeparator reports whether a fallback separator should be
+// inserted before the block at index idx. The two cases:
+//
+//  1. Header exists (normal path): A blockSubAgent header for this sub-agent
+//     was already rendered above. No separator is ever needed, regardless of
+//     how blocks are interleaved with top-level content. The header already
+//     introduced the sub-agent context and the user can scroll up to see it.
+//
+//  2. No header (orphaned blocks): The header event was lost or never
+//     emitted. A fallback separator is shown on context switches — when the
+//     immediately preceding rendered block belongs to a different agent.
+//     Consecutive orphaned blocks from the same sub-agent share a single
+//     separator.
 func needsSubAgentSeparator(blocks []contentBlock, idx int) bool {
 	cur := blocks[idx]
 	if cur.subAgentID == "" {
 		return false
 	}
-	// Sub-agent header blocks introduce themselves — no separator needed.
 	if cur.blockType == blockSubAgent {
 		return false
 	}
+	// If a header block exists anywhere above for this sub-agent, the user
+	// has already been introduced to this context — no separator needed.
+	for j := 0; j < idx; j++ {
+		if blocks[j].blockType == blockSubAgent && blocks[j].subAgentID == cur.subAgentID {
+			return false
+		}
+	}
+	// No header found (orphaned block). Show a fallback separator only on
+	// context switch — not between consecutive blocks from the same agent.
 	for j := idx - 1; j >= 0; j-- {
 		if blocks[j].displayContent() == "" {
 			continue
 		}
 		return blocks[j].subAgentID != cur.subAgentID
 	}
-	// First rendered block and it's a sub-agent block without a preceding
-	// header — show separator. This shouldn't happen in normal flow because
-	// SubAgentStartedEvent creates a header block first.
 	return true
 }
 
@@ -432,9 +444,9 @@ func needsSubAgentSeparator(blocks []contentBlock, idx int) bool {
 //   - ▸ prefix when the block has keyboard focus
 //
 // Sub-agent context is introduced by blockSubAgent header blocks (created by
-// SubAgentStartedEvent). Lightweight dim separator lines are inserted only for
-// rare re-entry cases where a sub-agent resumes after the main agent without
-// a new header block.
+// SubAgentStartedEvent). A fallback separator is inserted only when orphaned
+// sub-agent content blocks appear without a preceding header — an abnormal
+// state that indicates the header event was lost.
 //
 // focusedIndex is the index into blocks of the currently focused expandable
 // block, or -1 when no block is focused.

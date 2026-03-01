@@ -60,7 +60,15 @@ func emitSubAgentEvents(
 				Str("sub_agent_id", sa.Id).
 				Str("name", sa.Name).
 				Str("description", desc).
+				Bool("has_input", sa.Input != "").
 				Msg("[stream] new sub-agent execution detected")
+
+			if sa.Input == "" {
+				log.Warn().
+					Str("sub_agent_id", sa.Id).
+					Str("name", sa.Name).
+					Msg("[stream] sub-agent has empty input — header will lack task description")
+			}
 		}
 
 		tracker.toolCallStates, tracker.toolCallResults = emitToolCallStateEvents(

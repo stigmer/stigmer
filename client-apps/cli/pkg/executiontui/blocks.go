@@ -63,15 +63,16 @@ type contentBlock struct {
 	toolState string
 
 	// subAgentID is set when this block originates from a sub-agent execution.
-	// Used by the renderer to detect context switches between agents and
-	// insert visual separator lines (e.g., "── researcher ──") when the
-	// active agent changes.
+	// Used by the renderer to associate content blocks with their sub-agent
+	// header block (blockSubAgent). When a header exists for this ID, no
+	// separator is rendered; a fallback separator appears only for orphaned
+	// blocks whose header was lost.
 	subAgentID string
 
 	// subAgentName is the human-readable name for the sub-agent (e.g.,
-	// "researcher", "code_editor"). Populated from the Model's subAgentMeta
-	// map when the block is created. Used by the renderer to label context
-	// separator lines.
+	// "generalPurpose", "explore"). Populated from the Model's subAgentMeta
+	// map when the block is created. Used by the fallback separator label
+	// when the header block is missing.
 	subAgentName string
 }
 
@@ -205,20 +206,26 @@ func newTodoBlock(preview, full string) contentBlock {
 	}
 }
 
-// newSubAgentBlock creates an expandable header block for a sub-agent
-// delegation. Collapsed view shows the sub-agent type and a short task
-// description; expanded view adds the full prompt in a gutter-bordered
-// section. The block starts collapsed by default.
+// newSubAgentBlock creates a header block for a sub-agent delegation.
+// When input is available, the block is expandable: collapsed view shows
+// the sub-agent type and a short task description; expanded view adds the
+// full prompt in a gutter-bordered section.
 //
-// When input is empty (no task prompt available), the block is not
-// expandable — only the header line is shown.
+// When input is empty (no task prompt available), the block is
+// non-expandable and uses the content field directly so that
+// displayContent() returns the header text.
 func newSubAgentBlock(name, description, input string) contentBlock {
-	preview := renderSubAgentHeader(name, description, input)
-	full := renderSubAgentHeaderExpanded(name, description, input)
+	header := renderSubAgentHeader(name, description, input)
+	if input == "" {
+		return contentBlock{
+			blockType: blockSubAgent,
+			content:   header,
+		}
+	}
 	return contentBlock{
 		blockType:  blockSubAgent,
-		expandable: input != "",
-		preview:    preview,
-		full:       full,
+		expandable: true,
+		preview:    header,
+		full:       renderSubAgentHeaderExpanded(name, description, input),
 	}
 }

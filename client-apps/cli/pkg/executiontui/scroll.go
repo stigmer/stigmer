@@ -38,7 +38,7 @@ func (m *Model) scrollFocusedBlockIntoView() {
 // lines (\n\n produces one separator line between consecutive blocks).
 //
 // This function mirrors the layout logic of rebuildViewportContent, including
-// lightweight context separator lines for rare sub-agent re-entry cases.
+// fallback separator lines for orphaned sub-agent blocks that lack a header.
 // Primary sub-agent introductions are blockSubAgent header blocks and don't
 // need separate accounting.
 //
