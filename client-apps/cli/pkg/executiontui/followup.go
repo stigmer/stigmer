@@ -64,6 +64,8 @@ func (m Model) handleFollowUpStarted(msg followUpStartedMsg) (tea.Model, tea.Cmd
 	m.phase = "pending"
 	m.streaming = nil
 	m.runningTools = make(map[string]int)
+	m.subAgentMeta = make(map[string]subAgentInfo)
+	m.subAgentBlockIdx = make(map[string]int)
 	m.todoBlockIdx = -1
 	m.approval = nil
 	m.inputActive = false

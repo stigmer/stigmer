@@ -612,7 +612,7 @@ func TestRebuildViewportContent_NoSeparator_SameSubAgent(t *testing.T) {
 // =============================================================================
 
 func TestNeedsSubAgentSeparator_HeaderPreventsAll(t *testing.T) {
-	header := newSubAgentBlock("gp", "task desc", "full prompt text")
+	header := newSubAgentBlock("gp", "task desc", 0, "")
 	header.subAgentID = "sa-1"
 	blocks := []contentBlock{
 		{content: "main block"},
@@ -633,7 +633,7 @@ func TestNeedsSubAgentSeparator_HeaderBlockedByInterleaving(t *testing.T) {
 	// Recv() iterations, followed by more sub-agent blocks. The old logic
 	// would show a separator here because the immediately preceding block
 	// has a different subAgentID. The new logic finds the header and skips.
-	header := newSubAgentBlock("gen", "explore", "full prompt")
+	header := newSubAgentBlock("gen", "explore", 0, "")
 	header.subAgentID = "sa-1"
 	blocks := []contentBlock{
 		{content: "main block"},
@@ -664,9 +664,9 @@ func TestNeedsSubAgentSeparator_OrphanedBlocksGetSeparator(t *testing.T) {
 }
 
 func TestNeedsSubAgentSeparator_MultipleSubAgentsWithHeaders(t *testing.T) {
-	h1 := newSubAgentBlock("sa1", "", "prompt 1")
+	h1 := newSubAgentBlock("sa1", "", 0, "")
 	h1.subAgentID = "sa-1"
-	h2 := newSubAgentBlock("sa2", "", "prompt 2")
+	h2 := newSubAgentBlock("sa2", "", 0, "")
 	h2.subAgentID = "sa-2"
 	blocks := []contentBlock{
 		h1,
@@ -687,7 +687,7 @@ func TestNeedsSubAgentSeparator_MultipleSubAgentsWithHeaders(t *testing.T) {
 }
 
 func TestRebuildViewportContent_HeaderBlockNoSeparator(t *testing.T) {
-	header := newSubAgentBlock("general-purpose", "Explore", "full prompt text here")
+	header := newSubAgentBlock("general-purpose", "Explore", 0, "")
 	header.subAgentID = "sa-1"
 	blocks := []contentBlock{
 		{content: "main block"},
@@ -705,7 +705,7 @@ func TestRebuildViewportContent_HeaderBlockNoSeparator(t *testing.T) {
 }
 
 func TestRebuildViewportContent_InterleavedWithHeader(t *testing.T) {
-	header := newSubAgentBlock("gp", "explore", "full prompt")
+	header := newSubAgentBlock("gp", "explore", 0, "")
 	header.subAgentID = "sa-1"
 	blocks := []contentBlock{
 		header,
@@ -724,33 +724,39 @@ func TestRebuildViewportContent_InterleavedWithHeader(t *testing.T) {
 	}
 }
 
-func TestNewSubAgentBlock_EmptyInput_NonExpandable(t *testing.T) {
-	b := newSubAgentBlock("general-purpose", "explore cli", "")
-	if b.expandable {
-		t.Error("block with empty input should not be expandable")
+func TestNewSubAgentBlock_AlwaysExpandable(t *testing.T) {
+	b := newSubAgentBlock("general-purpose", "explore cli", 0, "")
+	if !b.expandable {
+		t.Error("sub-agent block should always be expandable (controls child visibility)")
 	}
 	dc := b.displayContent()
 	if dc == "" {
-		t.Fatal("block with empty input must still have visible content")
+		t.Fatal("sub-agent block must have visible content")
 	}
 	plain := ansi.Strip(dc)
 	if !strings.Contains(plain, "general-purpose") {
-		t.Errorf("non-expandable header should contain sub-agent name, got %q", plain)
+		t.Errorf("header should contain sub-agent name, got %q", plain)
 	}
 }
 
-func TestNewSubAgentBlock_WithInput_Expandable(t *testing.T) {
-	b := newSubAgentBlock("explore", "find files", "Search the codebase for test files")
+func TestNewSubAgentBlock_WithToolCountAndStatus(t *testing.T) {
+	b := newSubAgentBlock("explore", "find files", 5, "completed")
 	if !b.expandable {
-		t.Error("block with input should be expandable")
+		t.Error("sub-agent block should be expandable")
 	}
-	collapsed := b.displayContent()
-	if collapsed == "" {
-		t.Fatal("collapsed view should not be empty")
+	dc := b.displayContent()
+	plain := ansi.Strip(dc)
+	if !strings.Contains(plain, "5 tools") {
+		t.Errorf("header should contain tool count, got %q", plain)
 	}
-	b.expanded = true
-	expanded := b.displayContent()
-	if !strings.Contains(ansi.Strip(expanded), "Search the codebase") {
-		t.Error("expanded view should contain the full input prompt")
+	if !strings.Contains(plain, "done") {
+		t.Errorf("header should contain status badge, got %q", plain)
+	}
+}
+
+func TestNewSubAgentBlock_StartsCollapsed(t *testing.T) {
+	b := newSubAgentBlock("explore", "find files", 0, "running")
+	if b.expanded {
+		t.Error("sub-agent block should start collapsed")
 	}
 }

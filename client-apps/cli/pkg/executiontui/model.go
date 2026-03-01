@@ -98,6 +98,14 @@ type subAgentInfo struct {
 	Input string
 	// Description is a concise (3-5 word) summary of the delegated task.
 	Description string
+	// ToolCount tracks the number of tool calls made by this sub-agent.
+	// Incremented when a new tool block is created (not on updates).
+	// Displayed in the sub-agent header summary.
+	ToolCount int
+	// Status is the sub-agent lifecycle state: "running", "completed",
+	// or "failed". Updated by SubAgentCompletedEvent. Displayed as a
+	// badge in the sub-agent header.
+	Status string
 }
 
 // approvalState tracks an active approval prompt.
@@ -142,10 +150,17 @@ type Model struct {
 	runningTools map[string]int
 
 	// subAgentMeta maps sub-agent execution IDs to their metadata (name,
-	// input prompt, short description). Populated by SubAgentStartedEvent
-	// and used to label context separator lines and render sub-agent header
-	// blocks in the viewport.
+	// input prompt, short description, tool count, status). Populated by
+	// SubAgentStartedEvent and updated as tool events and completion events
+	// arrive. Used to render the sub-agent header block summary.
 	subAgentMeta map[string]subAgentInfo
+
+	// subAgentBlockIdx maps sub-agent execution IDs to their header block
+	// index in the blocks slice. Used to update the header block in-place
+	// when the sub-agent's tool count or status changes, and to check
+	// the header's expanded state when deciding whether new child blocks
+	// should be hidden.
+	subAgentBlockIdx map[string]int
 
 	// todoBlockIdx is the index into blocks of the current execution's todo
 	// block. -1 means no todo block exists yet. Set on the first
@@ -273,6 +288,7 @@ func New(cfg Config) Model {
 		focusedBlockIndex: -1,
 		runningTools:      make(map[string]int),
 		subAgentMeta:      make(map[string]subAgentInfo),
+		subAgentBlockIdx:  make(map[string]int),
 		todoBlockIdx:      -1,
 		approvalBlockIdx:  -1,
 		spinner:           s,

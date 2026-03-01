@@ -235,6 +235,24 @@ type SubAgentStartedEvent struct {
 
 func (SubAgentStartedEvent) isEvent() {}
 
+// SubAgentCompletedEvent signals that a sub-agent execution has reached a
+// terminal status (completed or failed). Emitted by the bridge layer when
+// SubAgentExecution.Status transitions to SUB_AGENT_COMPLETED or
+// SUB_AGENT_FAILED. The TUI updates the sub-agent header block with the
+// final tool count and status badge.
+type SubAgentCompletedEvent struct {
+	// ID is the sub-agent execution identifier (matches SubAgentStartedEvent.ID).
+	ID string
+	// Status is the terminal status string: "completed" or "failed".
+	Status string
+	// ToolCount is the final number of tool calls made by this sub-agent.
+	ToolCount int
+	// Output is the sub-agent's result summary. Only populated on success.
+	Output string
+}
+
+func (SubAgentCompletedEvent) isEvent() {}
+
 // ApprovalResponse carries the user's approval decision back to the gRPC
 // goroutine. Action is one of "approve", "skip", "reject". Comment is an
 // optional reason (currently unused; reserved for future rejection reasons).
