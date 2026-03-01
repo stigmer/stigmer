@@ -282,6 +282,10 @@ def tree_sandbox(tmp_path: Path) -> FilesystemBackend:
             │   └── config        (hidden — should be skipped)
             ├── __pycache__/
             │   └── main.cpython-311.pyc  (should be skipped)
+            ├── venv/
+            │   └── lib/          (should be skipped)
+            ├── dist/
+            │   └── bundle.js     (should be skipped)
             └── README.md         (20 bytes)
     """
     sb = FilesystemBackend(root_dir=tmp_path)
@@ -299,6 +303,11 @@ def tree_sandbox(tmp_path: Path) -> FilesystemBackend:
 
     (base / "__pycache__").mkdir()
     (base / "__pycache__" / "main.cpython-311.pyc").write_text("bytecode")
+
+    (base / "venv" / "lib").mkdir(parents=True)
+
+    (base / "dist").mkdir()
+    (base / "dist" / "bundle.js").write_text("compiled")
 
     (base / "README.md").write_text("x" * 20)
     return sb
@@ -355,6 +364,18 @@ class TestReadFileOnDirectory:
     ) -> None:
         result = tree_sandbox.read_file("project")
         assert "__pycache__" not in result
+
+    def test_listing_skips_venv(
+        self, tree_sandbox: FilesystemBackend,
+    ) -> None:
+        result = tree_sandbox.read_file("project")
+        assert "venv" not in result
+
+    def test_listing_skips_dist(
+        self, tree_sandbox: FilesystemBackend,
+    ) -> None:
+        result = tree_sandbox.read_file("project")
+        assert "dist" not in result
 
     def test_dirs_listed_before_files(
         self, tree_sandbox: FilesystemBackend,
@@ -643,6 +664,26 @@ class TestListFilesFiltering:
         assert ".env" not in result
         assert ".hidden_dir" not in result
         assert "visible.txt" in result
+
+    def test_venv_excluded(self, tree_sandbox: FilesystemBackend) -> None:
+        result = tree_sandbox.list_files("project")
+        assert "venv" not in result
+
+    def test_dist_excluded(self, tree_sandbox: FilesystemBackend) -> None:
+        result = tree_sandbox.list_files("project")
+        assert "dist" not in result
+
+    @pytest.mark.parametrize("dirname", [
+        "target", "vendor", "coverage", "bower_components",
+    ])
+    def test_skip_dir_excluded(self, tmp_path: Path, dirname: str) -> None:
+        sb = FilesystemBackend(root_dir=tmp_path)
+        (tmp_path / dirname).mkdir()
+        (tmp_path / dirname / "artifact.bin").write_text("data")
+        (tmp_path / "src").mkdir()
+        result = sb.list_files(".")
+        assert dirname not in result
+        assert "src" in result
 
     def test_visible_entries_preserved(self, tree_sandbox: FilesystemBackend) -> None:
         result = tree_sandbox.list_files("project")

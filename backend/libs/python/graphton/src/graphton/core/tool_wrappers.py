@@ -829,46 +829,89 @@ def _check_and_handle_approval(
         )
 
 
+def _apply_line_range(content: str, offset: int, limit: int) -> str:
+    """Slice file content to a line range and prepend a position header.
+
+    Args:
+        content: Full file text returned by the backend.
+        offset: 1-indexed starting line (0 means "from the beginning").
+        limit: Maximum number of lines to return (0 means "no limit").
+
+    Returns:
+        The (possibly sliced) content.  When slicing is applied, a compact
+        ``[Lines ...]`` header is prepended so the caller knows its
+        position within the file.
+    """
+    if offset <= 0 and limit <= 0:
+        return content
+
+    lines = content.splitlines(keepends=True)
+    total = len(lines)
+
+    start_idx = max(offset - 1, 0)  # 1-indexed → 0-indexed
+
+    if start_idx >= total:
+        return (
+            f"[File has {total} line{'s' if total != 1 else ''}; "
+            f"requested offset {offset} is beyond end of file]"
+        )
+
+    if limit > 0:
+        end_idx = min(start_idx + limit, total)
+    else:
+        end_idx = total
+
+    shown_start = start_idx + 1  # back to 1-indexed for display
+    shown_end = end_idx
+    header = f"[Lines {shown_start}-{shown_end} of {total} total]\n"
+    return header + "".join(lines[start_idx:end_idx])
+
+
 def _create_read_tool(
     backend: Any,  # noqa: ANN401
     approval_checker: Callable[[str, dict[str, Any]], ApprovalRequirement] | None = None,
 ) -> Callable[..., Any]:
     """Create approval-aware read tool wrapper.
-    
+
     Args:
         backend: Backend instance with read() method
         approval_checker: Optional approval checker
-        
+
     Returns:
         @tool decorated function for reading files
     """
     @tool
-    async def read(path: str) -> str:
+    async def read(path: str, offset: int = 0, limit: int = 0) -> str:
         """Read file contents from the workspace.
-        
+
         Args:
             path: Relative path to the file within the workspace
-            
+            offset: 1-indexed line number to start reading from.
+                    Use 0 (default) to start from the beginning.
+            limit: Maximum number of lines to return.
+                   Use 0 (default) to read the entire file.
+
         Returns:
-            File contents as string
+            File contents as string, optionally sliced to the requested
+            line range with a position header.
         """
         tool_args = {"path": path}
-        
-        # Check approval (read is typically auto-approved but respects config)
+
         skip_result = _check_and_handle_approval("read", tool_args, approval_checker)
         if skip_result is not None:
             return skip_result
-        
-        # Execute the read operation
+
         try:
             logger.info("GRAPHTON read tool invoked for path: %s", path)
             result = backend.read(path)
-            logger.info("GRAPHTON read tool succeeded for path: %s (%d chars)", path, len(result))
-            return result
+            logger.info(
+                "GRAPHTON read tool succeeded for path: %s (%d chars)", path, len(result),
+            )
+            return _apply_line_range(result, offset, limit)
         except Exception as e:
             logger.warning(f"⚠️  read tool failed for '{path}': {e}")
             return enrich_error_message("read", str(e))
-    
+
     read.name = "read"  # type: ignore[attr-defined]
     return read  # type: ignore[return-value]
 

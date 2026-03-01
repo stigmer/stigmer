@@ -250,8 +250,16 @@ class FilesystemBackend:
 
     # -- Directory listing helpers ---------------------------------------------
 
+    # Well-known directories that should never be traversed by agent tools.
+    # Entries starting with "." are already caught by the hidden-entry filter
+    # in list_files() and _format_directory_listing(); the remaining entries
+    # here cover non-hidden noise directories (build output, vendored deps).
+    #
+    # NOTE: agent-runner's _TREE_SKIP_DIRS (execute_graphton.py) mirrors this
+    # set for the system-prompt directory tree.  Keep them aligned.
     _SKIP_DIR_NAMES: frozenset[str] = frozenset({
         ".git", "__pycache__", "node_modules", ".stigmer",
+        "venv", "dist", "target", "vendor", "coverage", "bower_components",
     })
     _MAX_LISTING_ENTRIES: int = 100
 
@@ -334,10 +342,9 @@ class FilesystemBackend:
     def list_files(self, path: str = ".") -> list[str]:
         """List files in directory.
 
-        Hidden entries (names starting with ``"."``) and well-known noise
-        directories (``.git``, ``__pycache__``, ``node_modules``) are
-        excluded so that recursive tool traversals never descend into
-        infrastructure directories.
+        Hidden entries (names starting with ``"."``) and directories listed
+        in ``_SKIP_DIR_NAMES`` are excluded so that recursive tool traversals
+        never descend into infrastructure or generated-output directories.
 
         When ``platform_dir`` is set and *path* resolves to the workspace
         root, a virtual ``.stigmer`` entry is merged into the listing so

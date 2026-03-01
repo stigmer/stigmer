@@ -93,6 +93,14 @@ Available Skills and Input Files sections.
 **Output Discipline**: When you read files, their contents are captured in tool
 results already present in your context. NEVER echo, reprint, list, or summarize
 file contents in your response text. Proceed directly to analysis and action.
+
+**Context Efficiency**: Every file you read consumes context window budget. Be
+strategic:
+- Use `grep` to locate relevant sections before reading entire files
+- Use `glob` to find specific files rather than listing directories manually
+- For large files, pass `offset` and `limit` to `read` to fetch only the lines
+  you need instead of the entire file
+- Prefer targeted reads over broad exploration
 """
 
 MCP_TOOLS_CAPABILITY = """
