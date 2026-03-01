@@ -60,13 +60,13 @@ git push origin main
 
 **Use this to:**
 - Test if your code compiles on all platforms
-- Verify PyInstaller works correctly
+- Verify agent-runner source embeds correctly
 - Check binary sizes
 - Download and manually test binaries before releasing
 
 ### 2. Create a Release (Manual Trigger)
 
-Go to GitHub Actions → "Release with Embedded Binaries" → "Run workflow"
+Go to GitHub Actions → "release.cli" → "Run workflow"
 
 **Option A: Just build and test (no release)**
 - Leave version empty
@@ -101,13 +101,12 @@ Runs in parallel:
 - `build-linux-amd64` (Linux x86_64)
 
 Each job:
-1. Sets up Python, Poetry, Go, Buf
+1. Sets up Go and Buf
 2. Generates proto stubs
-3. Builds `agent-runner` with PyInstaller
-4. Embeds `agent-runner` in CLI binary
-5. Compiles CLI with embedded version
-6. Creates tarballs with checksums
-7. Uploads artifacts
+3. Syncs agent-runner Python source into embed directory (`sync.sh`)
+4. Compiles CLI with `-tags embed_agentrunner` (embeds Python source via `//go:embed`)
+5. Creates tarballs with checksums
+6. Uploads artifacts
 
 ### Stage 3: Release (Conditional)
 Only runs if `should_release == true`:
@@ -125,7 +124,6 @@ Artifacts (temporary, 90 days):
 - `stigmer-test-abc123-darwin-amd64.tar.gz`
 - `stigmer-test-abc123-linux-amd64.tar.gz`
 - Checksums (`.sha256` files)
-- Standalone `agent-runner` binaries
 
 ### For Releases
 Git tag:
@@ -136,7 +134,6 @@ GitHub Release assets:
 - `stigmer-v1.0.0-darwin-amd64.tar.gz`
 - `stigmer-v1.0.0-linux-amd64.tar.gz`
 - Checksums (`.sha256` files)
-- Standalone `agent-runner` binaries
 
 Homebrew formula:
 - Updated `Formula/stigmer.rb` with new version and checksums
@@ -170,13 +167,8 @@ Mark as pre-release in GitHub Actions or manually edit the release.
 
 1. **Test locally first**
    ```bash
-   make protos
-   cd backend/services/agent-runner
-   poetry install
-   poetry run pyinstaller agent-runner.spec
-   cd ../../../client-apps/cli
-   go build -o stigmer .
-   ./stigmer --version
+   make build-release
+   ./bin/stigmer --version
    ```
 
 2. **Push to main and verify test build**
@@ -219,14 +211,14 @@ Mark as pre-release in GitHub Actions or manually edit the release.
 - Push to main (creates new test build)
 - No tags were created, nothing to clean up
 
-### PyInstaller Error
+### Agent-Runner Sync Error
 
-**Problem:** PyInstaller fails with "option(s) not allowed"
+**Problem:** `sync.sh` fails or agent-runner source is missing in the binary
 
 **Solution:**
-- The workflow automatically modifies the spec file for cross-compilation
-- If you see this error, it means the `sed` command failed
-- Check that `agent-runner.spec` has `target_arch=None` on the right line
+- Verify `backend/services/agent-runner/main.py` exists
+- Run `sync.sh` manually to check for errors: `cd client-apps/cli/embedded/agentrunner && ./sync.sh`
+- Ensure proto stubs are generated first (`make protos`)
 
 ### Tag Already Exists
 

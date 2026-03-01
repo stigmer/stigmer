@@ -99,6 +99,7 @@ When starting a new session:
 - **T01.4**: Rewrite `startAgentRunner()` — Native Process Mode (daemon-only; supervisor out of scope)
 - **T01.5**: Log Integration for Native Mode — verified and hardened
 - **WA-01 Resolution**: Dual lifecycle management consolidated — single daemon as lifecycle owner (DD-02)
+- **Pipeline Fix**: CI pipeline and Makefile aligned with native agent-runner (release-blocking bug fixed)
 
 ### WA-01 Resolution Summary (2026-03-01)
 - **Problem**: Two independent systems (CLI daemon + stigmer-server supervisor) both managed agent-runner and workflow-runner with conflicting state files, competing health monitors, and no health monitoring for native agent-runner
@@ -146,7 +147,9 @@ When starting a new session:
 - supervisor.go is deleted — stigmer-server is a pure backend service
 - All Docker agent-runner code is removed — agent-runner is always native
 - `embedded/agentrunner/` package provides Python source as `fs.FS` — dev mode uses repo tree, production requires running `sync.sh` before build with `-tags embed_agentrunner`
-- Some Docker-referencing comments remain in `embedded/` package files — these are informational and don't affect compilation
+- CI pipeline now runs `sync.sh` + `-tags embed_agentrunner` on all 3 platforms
+- `make release-local` is Docker-free; `make build-release` does a production-like build with embedding
+- `sync.sh` graphton path fixed to `backend/libs/python/graphton`
 
 ## Quick Commands
 
