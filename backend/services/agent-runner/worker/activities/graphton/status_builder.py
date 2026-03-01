@@ -806,15 +806,15 @@ class StatusBuilder:
                     not block_types
                     or all(bt in expected_non_text_types for bt in block_types)
                 )
-                log_fn = self.logger.debug if is_expected else self.logger.info
-                log_fn(
-                    f"[STREAM_DIAG] List content with no thinking/text: "
-                    f"execution={self.execution_id} "
-                    f"run_id={event.get('run_id', '')} "
-                    f"namespace={namespace or 'main'} "
-                    f"blocks={len(chunk_data.content)} "
-                    f"block_types={block_types}"
-                )
+                if not is_expected:
+                    self.logger.info(
+                        f"[STREAM_DIAG] List content with no thinking/text: "
+                        f"execution={self.execution_id} "
+                        f"run_id={event.get('run_id', '')} "
+                        f"namespace={namespace or 'main'} "
+                        f"blocks={len(chunk_data.content)} "
+                        f"block_types={block_types}"
+                    )
             
             # ── Early Tool Call Creation ─────────────────────────────────────
             # When a tool_use block appears in the stream, create the ToolCall
@@ -1432,12 +1432,6 @@ class StatusBuilder:
 
         self.force_next_update = True
 
-        self.logger.debug(
-            f"[TOOL_EARLY] execution={self.execution_id} "
-            f"tool={tool_name} temp_id={temp_id} "
-            f"namespace={namespace or 'main'}"
-        )
-
     def _reconcile_early_tool_call(
         self,
         tool_name: str,
@@ -1490,12 +1484,6 @@ class StatusBuilder:
 
             fingerprint = self._get_tool_fingerprint(tool_name, tool_args)
             self._fingerprint_to_tool_call_id[fingerprint] = temp_id
-
-            self.logger.debug(
-                f"[TOOL_RECONCILE] execution={self.execution_id} "
-                f"tool={tool_name} run_id={run_id} -> temp_id={temp_id} "
-                f"namespace={namespace or 'main'}"
-            )
 
             if approval.requires_approval:
                 _, sub_agent = self._get_execution_context(namespace)

@@ -11,6 +11,9 @@ python = ">=3.11,<4.0"
 # Temporal
 temporalio = "^1.9.0"
 
+# YAML logging config (logging.yaml)
+pyyaml = ">=6.0"
+
 # LangGraph (for Graphton state persistence)
 langgraph = "*"
 langchain-core = ">=1.0.0"
