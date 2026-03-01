@@ -490,3 +490,47 @@ func TestResolveLLMProviderSource_None(t *testing.T) {
 
 	assert.Equal(t, ProviderSourceNone, cfg.ResolveLLMProviderSource())
 }
+
+// =============================================================================
+// Agent-runner mode resolution
+// =============================================================================
+
+func TestResolveAgentRunnerMode_Default(t *testing.T) {
+	os.Unsetenv("STIGMER_AGENT_RUNNER_MODE")
+	cfg := &LocalBackendConfig{}
+	assert.Equal(t, AgentRunnerModeAuto, cfg.ResolveAgentRunnerMode())
+}
+
+func TestResolveAgentRunnerMode_EnvVar(t *testing.T) {
+	t.Setenv("STIGMER_AGENT_RUNNER_MODE", "native")
+	cfg := &LocalBackendConfig{}
+	assert.Equal(t, AgentRunnerModeNative, cfg.ResolveAgentRunnerMode())
+}
+
+func TestResolveAgentRunnerMode_EnvVarDocker(t *testing.T) {
+	t.Setenv("STIGMER_AGENT_RUNNER_MODE", "docker")
+	cfg := &LocalBackendConfig{}
+	assert.Equal(t, AgentRunnerModeDocker, cfg.ResolveAgentRunnerMode())
+}
+
+func TestResolveAgentRunnerMode_EnvVarInvalid(t *testing.T) {
+	t.Setenv("STIGMER_AGENT_RUNNER_MODE", "invalid")
+	cfg := &LocalBackendConfig{}
+	assert.Equal(t, AgentRunnerModeAuto, cfg.ResolveAgentRunnerMode())
+}
+
+func TestResolveAgentRunnerMode_ConfigFile(t *testing.T) {
+	os.Unsetenv("STIGMER_AGENT_RUNNER_MODE")
+	cfg := &LocalBackendConfig{
+		AgentRunner: &AgentRunnerConfig{Mode: "native"},
+	}
+	assert.Equal(t, AgentRunnerModeNative, cfg.ResolveAgentRunnerMode())
+}
+
+func TestResolveAgentRunnerMode_EnvOverridesConfig(t *testing.T) {
+	t.Setenv("STIGMER_AGENT_RUNNER_MODE", "docker")
+	cfg := &LocalBackendConfig{
+		AgentRunner: &AgentRunnerConfig{Mode: "native"},
+	}
+	assert.Equal(t, AgentRunnerModeDocker, cfg.ResolveAgentRunnerMode())
+}

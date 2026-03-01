@@ -89,6 +89,11 @@ Note: Temporal and Ollama put files directly under `~/.stigmer/` while daemon co
 │               │   ├── temporalio-1.9.0-cp311-*.whl
 │               │   ├── grpcio-*.whl
 │               │   └── ...
+│               ├── app/                 # (DD-01-A) agent-runner Python source
+│               │   ├── main.py
+│               │   ├── worker/
+│               │   ├── grpc_client/
+│               │   └── ...
 │               └── manifest.json        # environment metadata
 ```
 
@@ -167,6 +172,18 @@ The Go runtime manager (T01.2) reads `manifest.json` on startup. If the file is 
 | **Reinstall** | Delete `venv/`, recreate from `wheels/` without re-downloading |
 | **Full reset** | `rm -rf runtimes/agent-runner/<version>/` removes everything for that version |
 | **Cleanup stale versions** | Future `stigmer runtime cleanup` command deletes all version directories except the current one |
+
+### DD-01-A: Application Source Directory (Amendment)
+
+**Added**: 2026-03-01 (T01.4)
+
+The `app/` directory holds the agent-runner Python source code (main.py, worker/, grpc_client/). It is extracted from the CLI binary (production) or copied from the repository tree (development) during the `EnsureReady()` bootstrap, alongside Python download and venv creation.
+
+The `pythonrt.Config.AppSourceFS` field accepts an `io/fs.FS` containing the source tree. The `pythonrt.Manager.AppDir()` returns the extracted path. `IsReady()` verifies the app directory exists when `AppSourceFS` is configured.
+
+Source delivery mechanism:
+- **Development**: `os.DirFS()` of the repo tree (`backend/services/agent-runner/`), located by walking up from the CLI binary or via `STIGMER_AGENT_RUNNER_SOURCE_DIR`
+- **Production**: `//go:embed` via `embedded/agentrunner/` package after running `sync.sh` to copy source into the embeddable directory
 
 ### Disk Budget
 

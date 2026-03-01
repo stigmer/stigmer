@@ -160,8 +160,29 @@ func TestNewManagerValidation(t *testing.T) {
 	if mgr.PythonBin() == "" {
 		t.Error("PythonBin should not be empty")
 	}
+	if mgr.AppDir() == "" {
+		t.Error("AppDir should not be empty")
+	}
 	if mgr.IsReady() {
 		t.Error("IsReady should be false for a fresh manager with no runtime on disk")
+	}
+}
+
+func TestAppDirPath(t *testing.T) {
+	mgr, err := pythonrt.NewManager(pythonrt.Config{
+		BaseDir:    "/home/user/.stigmer/runtimes/agent-runner",
+		CLIVersion: "1.2.3",
+	})
+	if err != nil {
+		t.Fatalf("NewManager: %v", err)
+	}
+
+	appDir := mgr.AppDir()
+	if !strings.Contains(appDir, "1.2.3") {
+		t.Errorf("AppDir should contain CLI version, got: %s", appDir)
+	}
+	if !strings.HasSuffix(appDir, "/app") {
+		t.Errorf("AppDir should end with /app, got: %s", appDir)
 	}
 }
 

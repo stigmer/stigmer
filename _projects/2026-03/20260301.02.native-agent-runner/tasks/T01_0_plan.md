@@ -178,6 +178,11 @@ After Phase 1 is stable:
 - Docker becomes an optional config for MCP sandbox isolation only
 - Clean up Docker-specific code paths, container ID management, etc.
 - Update onboarding docs: remove Docker as prerequisite
+- **Resolve dual lifecycle management** (see `wrong-assumptions/WA01_dual_lifecycle_management.md`):
+  - Investigate why both `daemon.go` and `supervisor.go` independently manage agent-runner and workflow-runner
+  - Determine single ownership (daemon vs supervisor)
+  - Consolidate to a single lifecycle manager
+  - Fix container ID file naming mismatch (`agent-runner-container.id` vs `agent-runner.containerid`)
 
 ---
 

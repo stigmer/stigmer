@@ -89,19 +89,35 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-01
-**Current Task**: T01.4 (Rewrite startAgentRunner — Native Process Mode)
+**Current Task**: T01.5 (Log Integration for Native Mode)
 **Status**: READY TO START
 
 ### Completed
 - **T01.0**: Phase 1 plan reviewed and approved
 - **T01.1**: Runtime filesystem layout designed and documented (DD-01)
 - **T01.2**: Go package for Python runtime management implemented (`internal/cli/pythonrt/`)
+- **T01.4**: Rewrite `startAgentRunner()` — Native Process Mode (daemon-only; supervisor out of scope)
+
+### T01.4 Summary
+- Extended `pythonrt.Config` with `AppSourceFS` for embedding Python application source
+- Created `embedded/agentrunner/` package with build-tagged dev/embed source resolution
+- Added `AgentRunnerConfig` with mode resolution (env > config > auto) to `config.go`
+- Split `startAgentRunner()` into `startAgentRunnerNative()` / `startAgentRunnerDocker()` with mode dispatch in `StartWithOptions()`
+- Refactored `stopAgentRunner()` to handle PID-based (native) and Docker-based stopping
+- Added `AgentRunnerMode` to `StartupConfig` for crash recovery
+- Updated `health_integration.go` for mode-aware health checks and restarts
+- Added `STIGMER_SKIP_AGENT_RUNNER` env var guard to `supervisor.go` to prevent dual-start
+- Documented dual lifecycle concern in `wrong-assumptions/WA01_dual_lifecycle_management.md`
+- Amended DD-01 with `app/` directory (DD-01-A)
+- Unit tests for mode resolution, env var construction, copyFS
 
 ### Next Up
-- **T01.4**: Rewrite `startAgentRunner()` in daemon.go and supervisor.go — wire pythonrt.EnsureReady(), start agent-runner as native process
+- **T01.5**: Log Integration for Native Mode — verify `stigmer server logs` works with file-based agent-runner logs
 
-### Key Design Decision
-- **DD-01**: `design-decisions/DD01_runtime_filesystem_layout.md` — Runtime lives at `~/.stigmer/runtimes/agent-runner/<cli-version>/<platform>/` with self-contained python/, venv/, wheels/, and manifest.json
+### Key Design Decisions
+- **DD-01**: `design-decisions/DD01_runtime_filesystem_layout.md` — Runtime lives at `~/.stigmer/runtimes/agent-runner/<cli-version>/<platform>/` with self-contained python/, venv/, wheels/, app/, and manifest.json
+- **DD-01-A**: `app/` directory added for Python source code extraction
+- **WA-01**: `wrong-assumptions/WA01_dual_lifecycle_management.md` — Dual lifecycle management concern (daemon.go vs supervisor.go)
 
 ## Session Progress (2026-03-01)
 
@@ -111,20 +127,23 @@ When starting a new session:
 - Identified three issues with the research report's proposed layout (ambiguous version key, over-engineered lock hash, split directory trees)
 - Designed self-contained runtime layout with five key decisions documented (DD-01)
 - **T01.2 completed**: Implemented `internal/cli/pythonrt/` — 7 files, 659 lines. Downloads python-build-standalone (CPython 3.11.14), extracts, creates venv, installs deps, exposes `EnsureReady()`. Atomic bootstrap, idempotent re-run (~34µs). Unit + integration tests passing on macOS arm64.
+- **T01.4 completed**: Native agent-runner startup in daemon. Major findings during implementation:
+  - **Dual lifecycle discovery**: Both daemon.go and supervisor.go manage agent-runner. StartWithOptions() starts stigmer-server which runs supervisor; the daemon's startAgentRunner was dead code. Solution: daemon now starts agent-runner natively and tells supervisor to skip via `STIGMER_SKIP_AGENT_RUNNER=true` env var.
+  - **Go //go:embed limitation**: Can't embed files from outside module tree. Solution: build-tagged files with `os.DirFS` for dev and `//go:embed` for production after sync.sh copies source.
+  - **WORKSPACE_ROOT vs SANDBOX_ROOT_DIR bug**: Fixed — native mode passes `SANDBOX_ROOT_DIR` directly.
 
 ### Context for Resume
-- **pythonrt package** is standalone; T01.4 will wire it into daemon.go and supervisor.go. Bootstrap runs in daemon before stigmer-server starts; supervisor receives paths via env vars.
-- Workflow-runner uses a "BusyBox" pattern; agent-runner cannot (Python). T01.4 will start agent-runner as `<venv>/bin/python main.py` subprocess.
-- `PostInstallCmds` in pythonrt Config handles the `deepagents-cli` namespace collision (e.g., `["pip", "install", "--force-reinstall", "deepagents==0.4.0"]`).
-- Known issue for T01.4: daemon passes `WORKSPACE_ROOT` but agent-runner reads `SANDBOX_ROOT_DIR` — fix when wiring native startup.
+- **T01.5 is next** — verify that `stigmer server logs --component agent-runner` works for native mode (should work already since file-based logging uses existing patterns)
+- supervisor.go has a minimal 3-line guard (`STIGMER_SKIP_AGENT_RUNNER`); full native support in supervisor deferred to Phase 3 dual lifecycle investigation
+- `embedded/agentrunner/` package provides Python source as `fs.FS` — dev mode uses repo tree, production requires running `sync.sh` before build with `-tags embed_agentrunner`
 
 ## Quick Commands
 
 After loading context:
-- "Start T01.4" - Wire pythonrt into daemon.go and supervisor.go
-- "Show project status" - Get overview of progress
-- "Create checkpoint" - Save current progress
-- "Review guidelines" - Check established patterns
+- "Start T01.5" — Verify log integration for native agent-runner mode
+- "Show project status" — Get overview of progress
+- "Create checkpoint" — Save current progress
+- "Review guidelines" — Check established patterns
 
 ---
 

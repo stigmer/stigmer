@@ -231,8 +231,15 @@ func (s *Supervisor) startWorkflowRunner() error {
 	return nil
 }
 
-// startAgentRunner starts the agent-runner in Docker
+// startAgentRunner starts the agent-runner in Docker.
+// When STIGMER_SKIP_AGENT_RUNNER is set, the daemon manages agent-runner
+// externally (native mode) and the supervisor skips startup to avoid conflicts.
 func (s *Supervisor) startAgentRunner() error {
+	if os.Getenv("STIGMER_SKIP_AGENT_RUNNER") == "true" {
+		log.Info().Msg("Skipping agent-runner startup (managed by daemon in native mode)")
+		return nil
+	}
+
 	log.Info().Msg("Starting agent-runner")
 
 	// Check Docker availability
