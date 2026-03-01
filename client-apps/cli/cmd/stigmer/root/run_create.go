@@ -15,10 +15,10 @@ import (
 
 // CreateAgentExecutionInput holds the parameters for creating an agent execution.
 //
-// Either AgentID or SessionID must be provided:
-//   - AgentID: starts a new session (backend auto-creates it) and runs the first execution.
-//   - SessionID: creates a follow-up execution within an existing session
-//     (the backend infers the agent from the session).
+// At least one of AgentID or SessionID must be provided (both may be set):
+//   - AgentID only: starts a new session (backend auto-creates it).
+//   - SessionID only: follow-up execution; the backend infers the agent.
+//   - Both: execution within an existing session with explicit agent metadata.
 type CreateAgentExecutionInput struct {
 	AgentID           string
 	SessionID         string
@@ -32,11 +32,12 @@ type CreateAgentExecutionInput struct {
 	Conn              *grpc.ClientConn
 }
 
-// createAgentExecution creates a new agent execution within a session.
+// createAgentExecution creates a new agent execution.
 //
-// When SessionID is set, the execution is created within that existing session
-// and AgentID is not required (the backend resolves it from the session).
-// When only AgentID is set, the backend auto-creates a new session.
+// Both SessionID and AgentID are set on the spec when available.
+// The backend requires at least one and uses SessionID for session
+// resolution when present; AgentID is preserved as metadata for
+// downstream consumers (e.g., session subject generation).
 func createAgentExecution(input CreateAgentExecutionInput) (*agentexecutionv1.AgentExecution, error) {
 	message := input.Message
 	if message == "" {
@@ -55,7 +56,8 @@ func createAgentExecution(input CreateAgentExecutionInput) (*agentexecutionv1.Ag
 
 	if input.SessionID != "" {
 		spec.SessionId = input.SessionID
-	} else {
+	}
+	if input.AgentID != "" {
 		spec.AgentId = input.AgentID
 	}
 
