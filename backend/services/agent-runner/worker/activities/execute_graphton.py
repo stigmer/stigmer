@@ -1247,6 +1247,15 @@ async def _execute_graphton_impl(
             )
         
         if use_legacy_env_merge:
+            # Layer 1: agent env_spec defaults (always applied)
+            if agent.spec.env_spec and agent.spec.env_spec.data:
+                for key, env_value in agent.spec.env_spec.data.items():
+                    merged_env_vars[key] = env_value.value
+                    if env_value.is_secret:
+                        secret_keys.add(key)
+                activity_logger.info(f"[Legacy] Base env vars from agent: {len(agent.spec.env_spec.data)}")
+            
+            # Layer 2: environment_refs (only when present)
             environment_refs = agent_instance.spec.environment_refs
             if environment_refs:
                 activity_logger.info(
@@ -1256,13 +1265,6 @@ async def _execute_graphton_impl(
                 try:
                     environment_client = EnvironmentClient(api_key)
                     environments = await environment_client.list_by_refs(list(environment_refs))
-                    
-                    if agent.spec.env_spec and agent.spec.env_spec.data:
-                        for key, env_value in agent.spec.env_spec.data.items():
-                            merged_env_vars[key] = env_value.value
-                            if env_value.is_secret:
-                                secret_keys.add(key)
-                        activity_logger.info(f"[Legacy] Base env vars from agent: {len(agent.spec.env_spec.data)}")
                     
                     for idx, env in enumerate(environments):
                         if env.spec.data:
@@ -1274,18 +1276,18 @@ async def _execute_graphton_impl(
                                 f"[Legacy] Merged env {idx+1}/{len(environments)} ({env.metadata.name}): "
                                 f"{len(env.spec.data)} vars"
                             )
-                    
-                    if execution.spec.runtime_env:
-                        for key, value in execution.spec.runtime_env.items():
-                            merged_env_vars[key] = value.value
-                            if value.is_secret:
-                                secret_keys.add(key)
-                        activity_logger.info(f"[Legacy] Applied runtime env overrides: {len(runtime_vars)} vars")
-                    
-                    activity_logger.info(f"[Legacy] Final merged environment: {len(merged_env_vars)} total vars")
                 except Exception as e:
-                    activity_logger.error(f"[Legacy] Failed to merge environments: {e}")
-                    merged_env_vars = {}
+                    activity_logger.error(f"[Legacy] Failed to merge environment_refs: {e}")
+            
+            # Layer 3: runtime_env CLI overrides (always applied, highest priority)
+            if execution.spec.runtime_env:
+                for key, value in execution.spec.runtime_env.items():
+                    merged_env_vars[key] = value.value
+                    if value.is_secret:
+                        secret_keys.add(key)
+                activity_logger.info(f"[Legacy] Applied runtime env overrides: {len(execution.spec.runtime_env)} vars")
+            
+            activity_logger.info(f"[Legacy] Final merged environment: {len(merged_env_vars)} total vars")
         
         heartbeat_during_setup("environment_merged", {
             "env_var_count": len(merged_env_vars),
@@ -1885,6 +1887,13 @@ async def _execute_graphton_impl(
                 "Configuring agent for local mode (root=%s, platform_dir=%s)",
                 workspace_backend.root_dir,
                 workspace_init.platform_dir,
+            )
+        
+        if merged_env_vars:
+            sandbox_config_for_agent["env_vars"] = dict(merged_env_vars)
+            activity_logger.info(
+                "Injecting %d env var(s) into sandbox config for shell execution",
+                len(merged_env_vars),
             )
         
         # ─────────────────────────────────────────────────────────────────────────────

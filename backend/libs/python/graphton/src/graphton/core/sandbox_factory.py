@@ -93,7 +93,12 @@ def create_sandbox_backend(config: dict[str, Any]) -> BackendProtocol:
 
         root_dir = config.get("root_dir", ".")
         platform_dir = config.get("platform_dir")
-        return FilesystemBackend(root_dir=root_dir, platform_dir=platform_dir)
+        env_vars = config.get("env_vars")
+        return FilesystemBackend(
+            root_dir=root_dir,
+            platform_dir=platform_dir,
+            env_vars=env_vars,
+        )
     
     elif backend_type == "daytona":
         # Delegate to specialized Daytona backend module
