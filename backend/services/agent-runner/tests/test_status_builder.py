@@ -3170,8 +3170,10 @@ class TestArgsPreviewEnvVarResolution:
         parsed = json.loads(preview)
         assert parsed["command"] == "python3 .stigmer/scripts/run.py --path seedpack/skills"
 
-    def test_sensitive_env_var_not_resolved(self, status_builder):
-        status_builder.set_display_env_vars({"API_TOKEN": "sk-secret"})
+    def test_secret_env_var_not_resolved(self, status_builder):
+        status_builder.set_display_env_vars(
+            {"API_TOKEN": "sk-secret"}, secret_keys={"API_TOKEN"},
+        )
         preview = status_builder._create_args_preview({
             "command": "curl -H $API_TOKEN",
         })

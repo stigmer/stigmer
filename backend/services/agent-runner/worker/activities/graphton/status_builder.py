@@ -390,15 +390,26 @@ class StatusBuilder:
         # $VAR references in display strings.  Set via set_display_env_vars()
         # once the merged environment is available.
         self._display_env_vars: dict[str, str] | None = None
+        self._secret_keys: set[str] | None = None
     
-    def set_display_env_vars(self, env_vars: dict[str, str]) -> None:
+    def set_display_env_vars(
+        self,
+        env_vars: dict[str, str],
+        secret_keys: set[str] | None = None,
+    ) -> None:
         """Store resolved agent env vars for display humanization.
 
         Called once after environment merge completes.  ``_create_args_preview``
         uses these to replace ``$KEY`` references with their values so the
         approval prompt shows concrete paths instead of opaque env-var names.
+
+        Args:
+            env_vars: Merged env-var name-to-value mapping.
+            secret_keys: Keys marked ``is_secret=true`` in the EnvironmentValue
+                proto.  These are never expanded into display strings.
         """
         self._display_env_vars = env_vars
+        self._secret_keys = secret_keys
 
     async def process_event(self, event: dict[str, Any]) -> None:
         """
@@ -2184,7 +2195,9 @@ class StatusBuilder:
             
             if isinstance(value, str):
                 value = humanize_platform_refs(value)
-                value = resolve_display_env_vars(value, self._display_env_vars)
+                value = resolve_display_env_vars(
+                    value, self._display_env_vars, self._secret_keys,
+                )
                 if len(value) > 200:
                     return value[:200] + "... (truncated)"
                 return value

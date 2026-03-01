@@ -94,17 +94,31 @@ class TestResolveDisplayEnvVars:
     def test_empty_text(self):
         assert resolve_display_env_vars("", {"OUTPUT_DIR": "."}) == ""
 
-    def test_sensitive_key_not_resolved(self):
+    def test_secret_key_not_resolved(self):
+        """Keys in secret_keys (from is_secret=true) are never expanded."""
         result = resolve_display_env_vars(
-            "echo $API_TOKEN", {"API_TOKEN": "sk-secret-xxx"},
+            "echo $API_TOKEN",
+            {"API_TOKEN": "sk-secret-xxx"},
+            secret_keys={"API_TOKEN"},
         )
         assert result == "echo $API_TOKEN"
 
-    def test_sensitive_key_password(self):
+    def test_non_secret_key_resolved_regardless_of_name(self):
+        """Without is_secret=true, even 'password'-like names are resolved."""
         result = resolve_display_env_vars(
-            "echo $DB_PASSWORD", {"DB_PASSWORD": "hunter2"},
+            "echo $DB_PASSWORD",
+            {"DB_PASSWORD": "hunter2"},
+            secret_keys=set(),
         )
-        assert result == "echo $DB_PASSWORD"
+        assert result == "echo hunter2"
+
+    def test_mixed_secret_and_non_secret(self):
+        result = resolve_display_env_vars(
+            "$OUTPUT_DIR $AUTH_TOKEN",
+            {"OUTPUT_DIR": ".", "AUTH_TOKEN": "sk-xxx"},
+            secret_keys={"AUTH_TOKEN"},
+        )
+        assert result == ". $AUTH_TOKEN"
 
     def test_skips_stigmer_platform_dir(self):
         """$STIGMER_PLATFORM_DIR is handled by humanize_platform_refs, not here."""
@@ -126,3 +140,10 @@ class TestResolveDisplayEnvVars:
         text = humanize_platform_refs(text)
         text = resolve_display_env_vars(text, {"OUTPUT_DIR": "."})
         assert text == "python3 .stigmer/run.py --path ."
+
+    def test_no_secret_keys_defaults_to_empty(self):
+        """When secret_keys is None, all keys are resolved."""
+        result = resolve_display_env_vars(
+            "$API_TOKEN", {"API_TOKEN": "resolved"},
+        )
+        assert result == "resolved"
