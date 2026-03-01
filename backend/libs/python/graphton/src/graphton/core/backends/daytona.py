@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import logging
 import os
+import shlex
 import time
 from typing import Any
 
@@ -77,10 +78,14 @@ class WorkspaceNormalizingBackend:
         inner: Any,  # noqa: ANN401
         workspace_root: str,
         sandbox_root: str | None = None,
+        env_vars: dict[str, str] | None = None,
     ) -> None:
         self._inner = inner
         self._workspace_root = workspace_root.rstrip("/")
         self._sandbox_root = (sandbox_root or workspace_root).rstrip("/")
+        self._env_vars: dict[str, str] | None = (
+            dict(env_vars) if env_vars else None
+        )
 
         # Compute rebase prefix: the relative path from the sandbox root to
         # the workspace root.  When the workspace root is a subdirectory of
@@ -291,8 +296,19 @@ class WorkspaceNormalizingBackend:
         return result
 
     def execute(self, command: str, **kwargs: Any) -> Any:  # noqa: ANN401
-        """Execute shell command -- no path normalisation needed."""
+        """Execute shell command with injected env vars.
+
+        When ``env_vars`` were provided at construction, each variable is
+        exported before the user command so it is available in the remote
+        sandbox shell.
+        """
         self._invalidate_cache()
+        if self._env_vars:
+            exports = "; ".join(
+                f"export {k}={shlex.quote(v)}"
+                for k, v in self._env_vars.items()
+            )
+            command = f"{exports}; {command}"
         return self._inner.execute(command, **kwargs)
 
     # -- transparent delegation for everything else -------------------------
@@ -408,8 +424,15 @@ def create_daytona_backend(config: dict[str, Any]) -> BackendProtocol:
         workspace_root = sandbox_root
         logger.info("Using sandbox root as workspace root: %s", workspace_root)
 
+    env_vars = config.get("env_vars")
+
     inner = DaytonaBackend(sandbox)
-    return WorkspaceNormalizingBackend(inner, workspace_root, sandbox_root=sandbox_root)
+    return WorkspaceNormalizingBackend(
+        inner,
+        workspace_root,
+        sandbox_root=sandbox_root,
+        env_vars=env_vars,
+    )
 
 
 def _reuse_existing_sandbox(daytona: Any, sandbox_id: str) -> Any:

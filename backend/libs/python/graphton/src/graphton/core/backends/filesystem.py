@@ -77,6 +77,7 @@ class FilesystemBackend:
         root_dir: str | Path = ".",
         *,
         platform_dir: str | Path | None = None,
+        env_vars: dict[str, str] | None = None,
     ) -> None:
         """Initialize filesystem backend.
 
@@ -84,6 +85,9 @@ class FilesystemBackend:
             root_dir: Root directory for operations (defaults to current directory)
             platform_dir: External directory for platform files (``.stigmer/``).
                 When set, ``.stigmer/*`` paths resolve here instead of root_dir.
+            env_vars: Extra environment variables injected into every
+                ``execute()`` subprocess.  Sourced from the agent's
+                ``env_spec`` and CLI ``--env`` overrides.
         """
         self.root_dir = Path(root_dir).resolve()
         self.root_dir.mkdir(parents=True, exist_ok=True)
@@ -93,6 +97,10 @@ class FilesystemBackend:
             self._platform_root.mkdir(parents=True, exist_ok=True)
         else:
             self._platform_root = None
+
+        self._env_vars: dict[str, str] | None = (
+            dict(env_vars) if env_vars else None
+        )
 
         self._gitignore: GitIgnoreFilter | None = GitIgnoreFilter.from_file(
             self.root_dir / ".gitignore",
@@ -229,6 +237,8 @@ class FilesystemBackend:
 
         try:
             env = {**os.environ, "PYTHONUNBUFFERED": "1"}
+            if self._env_vars:
+                env.update(self._env_vars)
             if self._platform_root is not None:
                 env[STIGMER_PLATFORM_DIR_ENV] = str(self._platform_root)
 
