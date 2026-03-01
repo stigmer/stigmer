@@ -461,4 +461,5 @@ stigmer list workflows
 - [Expression Syntax](../../apis/ai/stigmer/agentic/workflow/docs/expressions.md) — `${ }` notation, context variables, JQ patterns
 - [Workflow Examples](../../apis/ai/stigmer/agentic/workflow/docs/examples.md) — Complete workflows from minimal to multi-agent pipelines
 - [What is an Agent?](./what-is-agent.md) — How agents and workflows relate: agents think, workflows orchestrate
+- [What is a Workflow Execution?](./what-is-workflow-execution.md) — The runtime record for a single workflow run — task progress, lifecycle control, signals
 - [What is an Agent Execution?](./what-is-agent-execution.md) — The runtime record for agent invocations called from `agent_call` tasks
