@@ -1476,18 +1476,25 @@ func GetAgentRunnerStatus(dataDir string) *AgentRunnerStatus {
 	return status
 }
 
-// IsAgentRunnerDocker checks if agent-runner is running in Docker mode.
-// This is the unified detection logic used by both status and logs commands.
+// IsAgentRunnerDocker checks if agent-runner was started in Docker mode.
+// Used by logs and status commands to choose between file-based and Docker
+// log streaming.
+//
+// Detection priority:
+//  1. startup-config.json AgentRunnerMode (authoritative — set at startup time)
+//  2. Marker file heuristic: PID file -> native, container ID file -> Docker
+//  3. Default false (file-based log lookup handles missing files gracefully)
 func IsAgentRunnerDocker(dataDir string) bool {
-	// Check if container ID file exists
-	containerIDFile := filepath.Join(dataDir, AgentRunnerContainerIDFileName)
-	if _, err := os.Stat(containerIDFile); err == nil {
+	if cfg, err := loadStartupConfig(dataDir); err == nil && cfg.AgentRunnerMode != "" {
+		return cfg.AgentRunnerMode == config.AgentRunnerModeDocker
+	}
+	if _, err := os.Stat(filepath.Join(dataDir, AgentRunnerPIDFileName)); err == nil {
+		return false
+	}
+	if _, err := os.Stat(filepath.Join(dataDir, AgentRunnerContainerIDFileName)); err == nil {
 		return true
 	}
-
-	// Fallback: check if container exists by name
-	containerID := getContainerIDByName(AgentRunnerContainerName)
-	return containerID != ""
+	return false
 }
 
 // getContainerIDByName finds a container ID by its name using docker ps
