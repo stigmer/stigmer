@@ -74,6 +74,12 @@ type contentBlock struct {
 	// map when the block is created. Used by the fallback separator label
 	// when the header block is missing.
 	subAgentName string
+
+	// hidden is true when this block should be excluded from rendering,
+	// focus navigation, and scroll math. Controlled by the parent
+	// blockSubAgent header's expand/collapse state: when the header is
+	// collapsed, all child blocks with matching subAgentID are hidden.
+	hidden bool
 }
 
 // displayContent returns the text that should be shown for this block.
@@ -207,25 +213,19 @@ func newTodoBlock(preview, full string) contentBlock {
 }
 
 // newSubAgentBlock creates a header block for a sub-agent delegation.
-// When input is available, the block is expandable: collapsed view shows
-// the sub-agent type and a short task description; expanded view adds the
-// full prompt in a gutter-bordered section.
+// The block is always expandable: expand/collapse controls the visibility
+// of all child blocks (tool calls, AI messages) belonging to this
+// sub-agent. Starts collapsed so the header summary is shown while child
+// blocks are hidden.
 //
-// When input is empty (no task prompt available), the block is
-// non-expandable and uses the content field directly so that
-// displayContent() returns the header text.
-func newSubAgentBlock(name, description, input string) contentBlock {
-	header := renderSubAgentHeader(name, description, input)
-	if input == "" {
-		return contentBlock{
-			blockType: blockSubAgent,
-			content:   header,
-		}
-	}
+// The header line includes the sub-agent type, task description, and a
+// dynamic tool count + status badge (updated in-place as events arrive).
+func newSubAgentBlock(name, description string, toolCount int, status string) contentBlock {
+	header := renderSubAgentHeader(name, description, toolCount, status)
 	return contentBlock{
 		blockType:  blockSubAgent,
 		expandable: true,
 		preview:    header,
-		full:       renderSubAgentHeaderExpanded(name, description, input),
+		full:       header,
 	}
 }

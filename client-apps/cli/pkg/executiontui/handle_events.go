@@ -23,23 +23,30 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 		m.blocks = append(m.blocks, newHumanBlock(renderHumanContent(e.Content)))
 
 	case SubAgentStartedEvent:
-		info := subAgentInfo{Name: e.Name, Input: e.Input, Description: e.Description}
+		info := subAgentInfo{Name: e.Name, Input: e.Input, Description: e.Description, Status: "running"}
 		m.subAgentMeta[e.ID] = info
-		b := newSubAgentBlock(e.Name, e.Description, e.Input)
+		b := newSubAgentBlock(e.Name, e.Description, 0, "running")
 		b.subAgentID = e.ID
 		b.subAgentName = e.Name
 		m.blocks = append(m.blocks, b)
+		m.subAgentBlockIdx[e.ID] = len(m.blocks) - 1
 
 	case AIMessageEvent:
 		b := newAIBlock(renderAIContent(e.Content, e.ToolCalls, m.width))
 		b.subAgentID = e.SubAgentID
 		b.subAgentName = m.subAgentMeta[e.SubAgentID].Name
+		if e.SubAgentID != "" {
+			b.hidden = m.isSubAgentCollapsed(e.SubAgentID)
+		}
 		m.blocks = append(m.blocks, b)
 
 	case AIStreamStartEvent:
 		b := newAIBlock(renderStreamingAI(e.Content))
 		b.subAgentID = e.SubAgentID
 		b.subAgentName = m.subAgentMeta[e.SubAgentID].Name
+		if e.SubAgentID != "" {
+			b.hidden = m.isSubAgentCollapsed(e.SubAgentID)
+		}
 		m.blocks = append(m.blocks, b)
 		m.streaming = &streamingState{
 			content:    e.Content,
@@ -64,9 +71,11 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 		// Uses the tracked blockIdx for the same reason as AIStreamDeltaEvent:
 		// tool blocks may have been appended after the streaming block.
 		if m.streaming != nil && m.streaming.blockIdx < len(m.blocks) {
+			wasHidden := m.blocks[m.streaming.blockIdx].hidden
 			b := newAIBlock(renderAIContent(e.Content, e.ToolCalls, m.width))
 			b.subAgentID = e.SubAgentID
 			b.subAgentName = m.subAgentMeta[e.SubAgentID].Name
+			b.hidden = wasHidden
 			m.blocks[m.streaming.blockIdx] = b
 		}
 		m.streaming = nil
@@ -178,6 +187,13 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 			m.done = true
 		}
 
+	case SubAgentCompletedEvent:
+		info := m.subAgentMeta[e.ID]
+		info.Status = e.Status
+		info.ToolCount = e.ToolCount
+		m.subAgentMeta[e.ID] = info
+		m.updateSubAgentHeader(e.ID)
+
 	case TodoUpdateEvent:
 		preview := renderTodoPreview(e.Todos)
 		full := renderTodoExpanded(e.Todos)
@@ -234,24 +250,34 @@ func (m Model) handleStreamClosed() (tea.Model, tea.Cmd) {
 
 // updateToolBadge updates a tool call block in-place with a new lifecycle state.
 // If a block already exists for this toolCallID (tracked in runningTools), it is
-// replaced in-place — preserving the block's position and expand/collapse state.
-// If no block exists, a new one is appended.
+// replaced in-place — preserving the block's position, expand/collapse state,
+// and hidden state. If no block exists, a new one is appended.
 //
-// All transitions simply swap the badge; the expand/collapse state is always
-// preserved from before the update. The subAgentID and subAgentName are
-// propagated to the block so context separators render correctly.
+// When the block belongs to a sub-agent (subAgentID != ""), a new block
+// creation also increments the sub-agent's tool count and refreshes the
+// header summary. The block is created hidden if the sub-agent section is
+// currently collapsed.
 func (m *Model) updateToolBadge(toolCallID string, tc toolrender.ToolCallInfo, state, subAgentID string) {
 	name := m.subAgentMeta[subAgentID].Name
 	if idx, ok := m.runningTools[toolCallID]; ok && idx < len(m.blocks) {
 		wasExpanded := m.blocks[idx].expanded
+		wasHidden := m.blocks[idx].hidden
 		m.blocks[idx] = newStatefulToolBlock(tc, toolCallID, state)
 		m.blocks[idx].expanded = wasExpanded
+		m.blocks[idx].hidden = wasHidden
 		m.blocks[idx].subAgentID = subAgentID
 		m.blocks[idx].subAgentName = name
 	} else {
 		block := newStatefulToolBlock(tc, toolCallID, state)
 		block.subAgentID = subAgentID
 		block.subAgentName = name
+		if subAgentID != "" {
+			block.hidden = m.isSubAgentCollapsed(subAgentID)
+			info := m.subAgentMeta[subAgentID]
+			info.ToolCount++
+			m.subAgentMeta[subAgentID] = info
+			m.updateSubAgentHeader(subAgentID)
+		}
 		m.blocks = append(m.blocks, block)
 		m.runningTools[toolCallID] = len(m.blocks) - 1
 	}
@@ -271,10 +297,12 @@ func (m *Model) finalizeRunningTools() {
 			tc := *b.toolCall
 			tc.Status = "completed"
 			wasExpanded := b.expanded
+			wasHidden := b.hidden
 			savedSubAgentID := b.subAgentID
 			savedSubAgentName := b.subAgentName
 			m.blocks[idx] = newStatefulToolBlock(tc, toolCallID, "completed")
 			m.blocks[idx].expanded = wasExpanded
+			m.blocks[idx].hidden = wasHidden
 			m.blocks[idx].subAgentID = savedSubAgentID
 			m.blocks[idx].subAgentName = savedSubAgentName
 		} else {
@@ -282,6 +310,32 @@ func (m *Model) finalizeRunningTools() {
 		}
 	}
 	m.runningTools = make(map[string]int)
+}
+
+// isSubAgentCollapsed reports whether the sub-agent with the given ID has
+// a header block that is currently collapsed (not expanded). Returns true
+// (collapsed) as the default when the header block index is not tracked,
+// since sub-agents start collapsed.
+func (m *Model) isSubAgentCollapsed(subAgentID string) bool {
+	idx, ok := m.subAgentBlockIdx[subAgentID]
+	if !ok || idx >= len(m.blocks) {
+		return true
+	}
+	return !m.blocks[idx].expanded
+}
+
+// updateSubAgentHeader rebuilds the sub-agent header block's preview and
+// full content from the current subAgentInfo. Called when the tool count
+// or status changes. Preserves the block's expand/collapse state.
+func (m *Model) updateSubAgentHeader(subAgentID string) {
+	idx, ok := m.subAgentBlockIdx[subAgentID]
+	if !ok || idx >= len(m.blocks) {
+		return
+	}
+	info := m.subAgentMeta[subAgentID]
+	header := renderSubAgentHeader(info.Name, info.Description, info.ToolCount, info.Status)
+	m.blocks[idx].preview = header
+	m.blocks[idx].full = header
 }
 
 // refreshViewport rebuilds the viewport content from blocks and applies
