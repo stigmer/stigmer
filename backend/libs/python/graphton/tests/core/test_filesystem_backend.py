@@ -261,6 +261,139 @@ class TestReadWriteAbsolutePaths:
 
 
 # =============================================================================
+# read_file on directories (graceful listing)
+# =============================================================================
+
+
+@pytest.fixture
+def tree_sandbox(tmp_path: Path) -> FilesystemBackend:
+    """Sandbox with a multi-level directory tree for listing tests.
+
+    Layout::
+
+        {root_dir}/
+        └── project/
+            ├── src/
+            │   ├── main.py       (30 bytes)
+            │   └── utils.py      (15 bytes)
+            ├── docs/
+            │   └── guide.md      (10 bytes)
+            ├── .git/
+            │   └── config        (hidden — should be skipped)
+            ├── __pycache__/
+            │   └── main.cpython-311.pyc  (should be skipped)
+            └── README.md         (20 bytes)
+    """
+    sb = FilesystemBackend(root_dir=tmp_path)
+    base = tmp_path / "project"
+
+    (base / "src").mkdir(parents=True)
+    (base / "src" / "main.py").write_text("x" * 30)
+    (base / "src" / "utils.py").write_text("x" * 15)
+
+    (base / "docs").mkdir()
+    (base / "docs" / "guide.md").write_text("x" * 10)
+
+    (base / ".git").mkdir()
+    (base / ".git" / "config").write_text("hidden")
+
+    (base / "__pycache__").mkdir()
+    (base / "__pycache__" / "main.cpython-311.pyc").write_text("bytecode")
+
+    (base / "README.md").write_text("x" * 20)
+    return sb
+
+
+class TestReadFileOnDirectory:
+    """read_file() on a directory returns a structured listing, not an error."""
+
+    def test_returns_string_not_raises(
+        self, tree_sandbox: FilesystemBackend,
+    ) -> None:
+        result = tree_sandbox.read_file("project")
+        assert isinstance(result, str)
+
+    def test_header_contains_path(
+        self, tree_sandbox: FilesystemBackend,
+    ) -> None:
+        result = tree_sandbox.read_file("project")
+        assert "[Directory: project]" in result
+
+    def test_listing_contains_child_dirs(
+        self, tree_sandbox: FilesystemBackend,
+    ) -> None:
+        result = tree_sandbox.read_file("project")
+        assert "src/" in result
+        assert "docs/" in result
+
+    def test_listing_contains_child_files(
+        self, tree_sandbox: FilesystemBackend,
+    ) -> None:
+        result = tree_sandbox.read_file("project")
+        assert "README.md" in result
+
+    def test_listing_shows_file_sizes(
+        self, tree_sandbox: FilesystemBackend,
+    ) -> None:
+        result = tree_sandbox.read_file("project")
+        assert "20 bytes" in result
+
+    def test_listing_shows_dir_item_counts(
+        self, tree_sandbox: FilesystemBackend,
+    ) -> None:
+        result = tree_sandbox.read_file("project")
+        assert "2 items" in result  # src/ has main.py + utils.py
+
+    def test_listing_skips_hidden_dirs(
+        self, tree_sandbox: FilesystemBackend,
+    ) -> None:
+        result = tree_sandbox.read_file("project")
+        assert ".git" not in result
+
+    def test_listing_skips_pycache(
+        self, tree_sandbox: FilesystemBackend,
+    ) -> None:
+        result = tree_sandbox.read_file("project")
+        assert "__pycache__" not in result
+
+    def test_dirs_listed_before_files(
+        self, tree_sandbox: FilesystemBackend,
+    ) -> None:
+        result = tree_sandbox.read_file("project")
+        first_dir_pos = result.find("src/")
+        first_file_pos = result.find("README.md")
+        assert first_dir_pos < first_file_pos
+
+    def test_read_file_on_file_still_returns_content(
+        self, tree_sandbox: FilesystemBackend,
+    ) -> None:
+        result = tree_sandbox.read_file("project/README.md")
+        assert result == "x" * 20
+
+    def test_read_via_facade_on_directory(
+        self, tree_sandbox: FilesystemBackend,
+    ) -> None:
+        result = tree_sandbox.read("project")
+        assert "[Directory: project]" in result
+
+    def test_empty_directory(self, sandbox: FilesystemBackend) -> None:
+        (sandbox.root_dir / "empty_dir").mkdir()
+        result = sandbox.read_file("empty_dir")
+        assert "[Directory: empty_dir]" in result
+        assert "(empty)" in result
+
+    def test_truncation_with_many_entries(self, tmp_path: Path) -> None:
+        sb = FilesystemBackend(root_dir=tmp_path)
+        big_dir = tmp_path / "big"
+        big_dir.mkdir()
+        for i in range(150):
+            (big_dir / f"file_{i:04d}.txt").write_text("data")
+
+        result = sb.read_file("big")
+        assert "truncated" in result
+
+
+# =============================================================================
 # execute command with relative skill paths
 # =============================================================================
 
