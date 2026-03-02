@@ -1037,6 +1037,35 @@ def _create_write_tool(
     return write  # type: ignore[return-value]
 
 
+# ---------------------------------------------------------------------------
+# Shell output formatting helpers
+# ---------------------------------------------------------------------------
+
+def _format_shell_success(stdout: str, stderr: str) -> str:
+    """Format shell output for a successful command (exit code 0).
+
+    Returns just the raw output with no labels or metadata -- the same
+    experience a human gets running a command in a terminal.
+    """
+    parts = [s for s in (stdout, stderr) if s]
+    return "\n".join(parts) if parts else "(no output)"
+
+
+def _format_shell_failure(exit_code: int, stdout: str, stderr: str) -> str:
+    """Format shell output for a failed command (exit code != 0).
+
+    Surfaces the exit code prominently followed by stderr (the error) and
+    then stdout (if any).  The LLM uses the exit code to reason about
+    retries, so it must remain in the returned string.
+    """
+    lines = [f"Command failed (exit code {exit_code})"]
+    if stderr:
+        lines.append(stderr)
+    if stdout:
+        lines.append(stdout)
+    return "\n".join(lines) if len(lines) > 1 else lines[0]
+
+
 def _create_execute_tool(
     backend: Any,  # noqa: ANN401
     approval_checker: Callable[[str, dict[str, Any]], ApprovalRequirement] | None = None,
@@ -1082,20 +1111,14 @@ def _create_execute_tool(
             
             result = backend.execute(command, timeout=timeout)
             
-            # Format output
-            output_parts = []
-            if result.stdout:
-                output_parts.append(f"STDOUT:\n{result.stdout}")
-            if result.stderr:
-                output_parts.append(f"STDERR:\n{result.stderr}")
-            output = "\n".join(output_parts) if output_parts else "(no output)"
-            
             if result.exit_code == 0:
                 logger.info("✅ Command completed successfully")
+                return _format_shell_success(result.stdout, result.stderr)
             else:
                 logger.warning(f"⚠️  Command exited with code {result.exit_code}")
-            
-            return f"Exit code: {result.exit_code}\n{output}"
+                return _format_shell_failure(
+                    result.exit_code, result.stdout, result.stderr,
+                )
         except Exception as e:
             logger.warning(f"⚠️  execute tool failed: {e}")
             return enrich_error_message("execute", str(e))

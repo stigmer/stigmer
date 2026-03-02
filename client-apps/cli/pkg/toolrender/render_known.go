@@ -31,6 +31,9 @@ func resolveDisplayContent(tc ToolCallInfo, info toolDisplayInfo) string {
 	}
 
 	if tc.Result != "" {
+		if info.primaryField == "command" {
+			return CleanShellResult(tc.Result)
+		}
 		return tc.Result
 	}
 
