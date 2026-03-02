@@ -12,6 +12,7 @@ go_library(
         "skills/**",
         "agents/**",
         "mcp-servers/**",
+        "organizations/**",
     ]),
     importpath = "github.com/stigmer/stigmer/seedpack",
     visibility = ["//visibility:public"],

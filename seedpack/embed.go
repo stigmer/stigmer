@@ -6,6 +6,7 @@
 //
 // Embedded directories:
 //   - stigmer.yaml: Project manifest (declares this as a Stigmer project)
+//   - organizations/: Organization YAML definitions
 //   - skills/: Skill directories (SKILL.md, scripts, references)
 //   - agents/: System agent YAML definitions
 //   - mcp-servers/: MCP server YAML definitions
@@ -20,4 +21,5 @@ import "embed"
 //go:embed skills
 //go:embed agents
 //go:embed mcp-servers
+//go:embed organizations
 var content embed.FS
