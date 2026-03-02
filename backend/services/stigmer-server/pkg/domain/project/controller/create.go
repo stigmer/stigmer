@@ -54,7 +54,8 @@ func (c *ProjectController) buildCreatePipeline() *pipeline.Pipeline[*projectv1.
 		AddStep(steps.NewValidateProtoStep[*projectv1.Project]()).         // 1. Validate field constraints
 		AddStep(steps.NewResolveSlugStep[*projectv1.Project]()).           // 2. Resolve slug
 		AddStep(steps.NewCheckDuplicateStep[*projectv1.Project](c.store)). // 3. Check duplicate
-		AddStep(steps.NewBuildNewStateStep[*projectv1.Project]()).         // 4. Build new state
-		AddStep(steps.NewPersistStep[*projectv1.Project](c.store)).        // 5. Persist project
+		AddStep(steps.NewBuildNewStateStep[*projectv1.Project]()).                // 4. Build new state
+		AddStep(steps.NewNormalizeReferencesStep[*projectv1.Project]()).          // 5. Normalize cross-references
+		AddStep(steps.NewPersistStep[*projectv1.Project](c.store)).              // 6. Persist project
 		Build()
 }

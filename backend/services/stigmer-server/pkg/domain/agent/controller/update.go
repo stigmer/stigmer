@@ -16,7 +16,8 @@ import (
 // 2. ResolveSlug - Generate slug from metadata.name
 // 3. LoadExisting - Load existing agent from repository by ID
 // 4. BuildUpdateState - Merge spec, preserve IDs, update timestamps, clear computed fields
-// 5. Persist - Save updated agent to repository
+// 5. NormalizeReferences - Resolve empty org in cross-references (skill_refs, mcp_server_usages, etc.)
+// 6. Persist - Save updated agent to repository
 //
 // Note: Compared to Stigmer Cloud, OSS excludes:
 // - Authorize step (no multi-tenant auth in OSS)
@@ -43,7 +44,8 @@ func (c *AgentController) buildUpdatePipeline() *pipeline.Pipeline[*agentv1.Agen
 		AddStep(steps.NewResolveSlugStep[*agentv1.Agent]()).                                     // 2. Resolve slug
 		AddStep(steps.NewLoadExistingStep[*agentv1.Agent](c.store)).                             // 3. Load existing agent
 		AddStep(steps.NewBuildUpdateStateStep[*agentv1.Agent]()).                                // 4. Build updated state
-		AddStep(steps.NewPersistStep[*agentv1.Agent](c.store)).                                  // 5. Persist agent
+		AddStep(steps.NewNormalizeReferencesStep[*agentv1.Agent]()).                              // 5. Normalize cross-references
+		AddStep(steps.NewPersistStep[*agentv1.Agent](c.store)).                                  // 6. Persist agent
 		AddStep(steps.NewIndexSearchStep[*agentv1.Agent](c.store, &extractor.AgentExtractor{})). // 6. Update search index
 		Build()
 }
