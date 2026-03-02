@@ -993,7 +993,13 @@ type SubAgentExecution struct {
 	// Token and LLM resource usage for this sub-agent execution.
 	// Captures only this sub-agent's direct LLM calls.
 	// Isolated from main agent and other sub-agents for accurate cost attribution.
-	Usage         *UsageMetrics `protobuf:"bytes,12,opt,name=usage,proto3" json:"usage,omitempty"`
+	Usage *UsageMetrics `protobuf:"bytes,12,opt,name=usage,proto3" json:"usage,omitempty"`
+	// Concise, human-readable summary of the sub-agent's task (3-7 words).
+	// Generated server-side by an economy-tier LLM from the input prompt,
+	// following the same pattern as session subject generation.
+	// Used as the primary display label in collapsed UI views.
+	// Examples: "Explore CLI rendering", "Fix auth middleware tests"
+	Subject       string `protobuf:"bytes,13,opt,name=subject,proto3" json:"subject,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1110,6 +1116,13 @@ func (x *SubAgentExecution) GetUsage() *UsageMetrics {
 		return x.Usage
 	}
 	return nil
+}
+
+func (x *SubAgentExecution) GetSubject() string {
+	if x != nil {
+		return x.Subject
+	}
+	return ""
 }
 
 // UsageMetrics tracks token consumption and LLM resource usage.
@@ -2233,7 +2246,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x0fcomponent_group\x18\x02 \x01(\tR\x0ecomponentGroup\x12\x1f\n" +
 	"\vlayout_hint\x18\x03 \x01(\tR\n" +
 	"layoutHint\x123\n" +
-	"\bmetadata\x18\x04 \x01(\v2\x17.google.protobuf.StructR\bmetadata\"\xb3\x04\n" +
+	"\bmetadata\x18\x04 \x01(\v2\x17.google.protobuf.StructR\bmetadata\"\xcd\x04\n" +
 	"\x11SubAgentExecution\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
@@ -2249,7 +2262,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"tool_calls\x18\n" +
 	" \x03(\v2..ai.stigmer.agentic.agentexecution.v1.ToolCallR\ttoolCalls\x12N\n" +
 	"\bmessages\x18\v \x03(\v22.ai.stigmer.agentic.agentexecution.v1.AgentMessageR\bmessages\x12H\n" +
-	"\x05usage\x18\f \x01(\v22.ai.stigmer.agentic.agentexecution.v1.UsageMetricsR\x05usage\"\xce\x01\n" +
+	"\x05usage\x18\f \x01(\v22.ai.stigmer.agentic.agentexecution.v1.UsageMetricsR\x05usage\x12\x18\n" +
+	"\asubject\x18\r \x01(\tR\asubject\"\xce\x01\n" +
 	"\fUsageMetrics\x12#\n" +
 	"\rprompt_tokens\x18\x01 \x01(\x05R\fpromptTokens\x12+\n" +
 	"\x11completion_tokens\x18\x02 \x01(\x05R\x10completionTokens\x12!\n" +

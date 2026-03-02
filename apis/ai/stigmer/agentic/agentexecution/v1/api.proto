@@ -456,6 +456,17 @@ message SubAgentExecution {
   // Captures only this sub-agent's direct LLM calls.
   // Isolated from main agent and other sub-agents for accurate cost attribution.
   UsageMetrics usage = 12;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Display Metadata
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Concise, human-readable summary of the sub-agent's task (3-7 words).
+  // Generated server-side by an economy-tier LLM from the input prompt,
+  // following the same pattern as session subject generation.
+  // Used as the primary display label in collapsed UI views.
+  // Examples: "Explore CLI rendering", "Fix auth middleware tests"
+  string subject = 13;
 }
 
 // UsageMetrics tracks token consumption and LLM resource usage.

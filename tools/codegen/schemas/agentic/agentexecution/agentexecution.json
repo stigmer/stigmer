@@ -12,7 +12,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Session ID this execution belongs to (optional).\n If not provided, agent_id must be specified - a session will be auto-created\n using the agent's default instance.\n Either session_id or agent_id must be provided (enforced in handler).",
+      "description": "Session ID this execution belongs to (optional).\n At least one of session_id or agent_id must be provided (enforced in handler).\n Both may be set — when both are present, session_id is used for session\n resolution and agent_id is preserved as metadata for downstream consumers\n (e.g., session subject generation).\n When absent, agent_id must be specified — a session is auto-created\n using the agent's default instance.",
       "required": false
     },
     {
@@ -22,7 +22,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Agent ID (optional).\n If session_id is not provided, agent_id must be specified.\n When provided without session_id, a new session is auto-created using\n the agent's default instance ID.\n Either session_id or agent_id must be provided (enforced in handler).",
+      "description": "Agent ID (optional).\n At least one of session_id or agent_id must be provided (enforced in handler).\n Both may be set — agent_id is preserved on the execution record even when\n session_id is present, so downstream consumers can access the agent\n without resolving through the session chain.\n When provided without session_id, a new session is auto-created using\n the agent's default instance ID.",
       "required": false
     },
     {
@@ -108,6 +108,19 @@
         }
       },
       "description": "Files attached to this execution.\n\n Attachments are injected into the sandbox before execution begins.\n The agent can read these files from the specified mount paths.\n\n Use cases:\n - Provide input data files to process\n - Pass configuration files\n - Supply reference documents for analysis\n\n Example CLI usage:\n   stigmer run agent my-agent --attach ./config.yaml -m \"Process this config\"\n\n @since Artifact Lifecycle (Attachments \u0026 Outputs)",
+      "required": false
+    },
+    {
+      "name": "WorkspaceFileRefs",
+      "jsonName": "workspaceFileRefs",
+      "protoField": "workspace_file_refs",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Workspace-relative file paths the user wants the agent to focus on.\n\n When users attach files that already exist inside the session's workspace,\n the CLI skips the upload/injection flow and records the workspace-relative\n path here instead. The agent accesses these files directly via the\n workspace filesystem -- no upload, no copy, no injection.\n\n This separates the \"attention\" signal (\"look at this file\") from the\n \"transport\" mechanism (upload + inject) that regular attachments use.\n\n Valid only when the session has a workspace_source with a local path.\n For git workspaces or sessions without a workspace, all files go through\n the regular attachment flow.\n\n Example CLI usage:\n   stigmer run agent reviewer --workspace . --attach ./src/config.yaml -m \"Review\"\n   # CLI detects src/config.yaml is inside workspace -\u003e workspace_file_ref\n   # No upload, no injection; agent reads directly from src/config.yaml\n\n @since Workspace-Aware File Referencing",
       "required": false
     }
   ]
