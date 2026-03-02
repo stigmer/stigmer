@@ -8,7 +8,6 @@ from ai.stigmer.agentic.session.v1.io_pb2 import SessionId
 from grpc_client.auth.client_interceptor import AuthClientInterceptor
 from worker.config import Config
 
-
 _DEFAULT_GRPC_TIMEOUT_SECONDS = 10.0
 
 

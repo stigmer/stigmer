@@ -22,8 +22,6 @@ import pytest
 
 from graphton.core.workspace_index import (
     MAX_FILES,
-    MAX_SYMBOLS_PER_FILE,
-    LanguageSpec,
     SearchResult,
     Symbol,
     SymbolKind,
@@ -35,7 +33,6 @@ from graphton.core.workspace_index import (
     parse_file,
     spec_for_extension,
 )
-
 
 # =============================================================================
 # SymbolKind

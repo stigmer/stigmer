@@ -9,16 +9,10 @@ Verifies that the adapter:
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
-from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
-from langchain.agents.middleware.types import ModelRequest, ModelResponse
-from langchain_core.messages import AIMessage
-from langchain_core.tools import tool
-
 from deepagents.backends.protocol import (  # type: ignore[import-untyped]
     BackendProtocol,
     EditResult,
@@ -27,14 +21,15 @@ from deepagents.backends.protocol import (  # type: ignore[import-untyped]
     WriteResult,
 )
 from deepagents.middleware.filesystem import (  # type: ignore[import-untyped]
-    EXECUTION_SYSTEM_PROMPT,
     FilesystemMiddleware,
     _supports_execution,
 )
+from langchain.agents.middleware.types import ModelRequest, ModelResponse
+from langchain_core.messages import AIMessage
+from langchain_core.tools import tool
 
 from graphton.core.backends.deepagents_adapter import DeepAgentsBackendAdapter
 from graphton.core.backends.filesystem import FilesystemBackend
-
 
 # =============================================================================
 # Fixtures

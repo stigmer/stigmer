@@ -8,19 +8,17 @@ Tests cover:
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import pytest
 
 from worker.activities.relevance import (
-    ResolvedPath,
     _MAX_RESULTS,
+    ResolvedPath,
     build_relevance_prompt_section,
     extract_file_path_candidates,
     resolve_workspace_paths,
 )
-
 
 # =============================================================================
 # extract_file_path_candidates

@@ -40,7 +40,6 @@ from grpc_client.execution_context_client import (
 from grpc_client.mcp_server_client import McpServerClient
 from grpc_client.session_client import SessionClient
 from grpc_client.skill_client import SkillClient
-from worker.activities.relevance import build_relevance_prompt_section
 from worker.activities.graphton.approval_policy import (
     build_approval_config,
     create_approval_checker,
@@ -49,6 +48,7 @@ from worker.activities.graphton.approval_policy import (
 from worker.activities.graphton.skill_writer import SkillWriter
 from worker.activities.graphton.status_builder import StatusBuilder, _utc_timestamp
 from worker.activities.graphton.subagent_transformer import transform_sub_agents
+from worker.activities.relevance import build_relevance_prompt_section
 from worker.checkpointer import create_checkpointer
 from worker.mcp import transform_all_mcp_configs
 from worker.resilience import (
@@ -640,10 +640,13 @@ def build_workspace_prompt_section(
 # Tree-building utilities live in worker.workspace.tree.  Module-level
 # aliases preserve backward compatibility for in-module callers and tests
 # that import the private names from this module.
-from worker.workspace.tree import (
+from worker.workspace.tree import (  # noqa: E402
     TREE_DEFAULT_MAX_ENTRIES as _TREE_MAX_ENTRIES,
-    TREE_SKIP_DIRS as _TREE_SKIP_DIRS,
+)
+from worker.workspace.tree import (  # noqa: E402
     build_directory_tree as _build_directory_tree,
+)
+from worker.workspace.tree import (  # noqa: E402
     human_size as _human_size,
 )
 
@@ -1795,7 +1798,7 @@ async def _execute_graphton_impl(
             activity_logger.info("Enhanced system prompt with workspace context")
 
         relevance_section = build_relevance_prompt_section(
-            user_message, provision_result.root_dir,
+            user_message, provision_result.root_dir if provision_result else "",
         )
         if relevance_section:
             enhanced_system_prompt += relevance_section

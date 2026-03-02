@@ -76,7 +76,7 @@ async def _generate_and_update_subject(execution_id: str) -> None:
     execution = await execution_client.get(execution_id)
 
     session_id = execution.spec.session_id
-    agent_id = execution.spec.agent_id
+    agent_id: str | None = execution.spec.agent_id or None
     user_message = execution.spec.message
 
     if not session_id:

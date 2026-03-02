@@ -36,6 +36,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from graphton.core.backends.gitignore_filter import GitIgnoreFilter
+
     from worker.workspace.backend import WorkspaceBackend
 
 logger = logging.getLogger(__name__)
@@ -309,16 +310,16 @@ class WorkspaceProvisioner:
         from pathlib import Path
 
         from graphton.core.backends.gitignore_filter import (
-            GitIgnoreFilter as _GIF,
+            GitIgnoreFilter as _GitIgnoreFilter,
         )
 
         if is_local_mode:
-            return _GIF.from_file(Path(result.root_dir) / ".gitignore")
+            return _GitIgnoreFilter.from_file(Path(result.root_dir) / ".gitignore")
 
         try:
             raw = backend.read_file(".gitignore")
             content = raw.decode("utf-8") if isinstance(raw, bytes) else raw
-            return _GIF.from_content(content)
+            return _GitIgnoreFilter.from_content(content)
         except Exception:
             return None
 

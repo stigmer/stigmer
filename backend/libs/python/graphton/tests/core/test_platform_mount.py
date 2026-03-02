@@ -5,8 +5,6 @@ Covers:
 - resolve_display_env_vars() — $KEY → resolved value for agent env vars
 """
 
-import pytest
-
 from graphton.core.backends.platform_mount import (
     humanize_platform_refs,
     resolve_display_env_vars,

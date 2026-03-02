@@ -11,7 +11,6 @@ Covers:
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 
 import pytest
@@ -25,7 +24,6 @@ from worker.workspace.tree import (
     build_workspace_file_tree,
     human_size,
 )
-
 
 # ============================================================================
 # Mock backend for remote walker tests
@@ -141,8 +139,8 @@ class TestBuildDirectoryTree:
     def test_produces_sorted_dirs_first(self, tmp_path):
         root = _make_tree(tmp_path)
         lines, total = build_directory_tree(str(root), "")
-        paths = [l.strip().lstrip("- ").strip("`").rstrip("/`") for l in lines]
-        dir_indices = [i for i, p in enumerate(paths) if p.endswith("/") or "docs" in p or "src" in p]
+        paths = [line.strip().lstrip("- ").strip("`").rstrip("/`") for line in lines]
+        _ = [i for i, p in enumerate(paths) if p.endswith("/") or "docs" in p or "src" in p]
         assert total == 6
 
     def test_skips_hidden_directories(self, tmp_path):
@@ -249,15 +247,15 @@ class TestParseFindOutput:
     def test_dirs_before_files(self):
         stdout = "F\t50\tfile.txt\nD\tdir\nF\t30\tdir/inner.py\n"
         lines, total = _parse_find_output(stdout, max_entries=200)
-        first_dir = next(i for i, l in enumerate(lines) if "dir/" in l)
-        first_file = next(i for i, l in enumerate(lines) if "file.txt" in l)
+        first_dir = next(i for i, line in enumerate(lines) if "dir/" in line)
+        first_file = next(i for i, line in enumerate(lines) if "file.txt" in line)
         assert first_dir < first_file
 
     def test_alphabetical_sorting(self):
         stdout = "D\tzebra\nD\talpha\nF\t10\tzebra/z.txt\nF\t10\talpha/a.txt\n"
         lines, _ = _parse_find_output(stdout, max_entries=200)
-        alpha_idx = next(i for i, l in enumerate(lines) if "alpha/" in l)
-        zebra_idx = next(i for i, l in enumerate(lines) if "zebra/" in l)
+        alpha_idx = next(i for i, line in enumerate(lines) if "alpha/" in line)
+        zebra_idx = next(i for i, line in enumerate(lines) if "zebra/" in line)
         assert alpha_idx < zebra_idx
 
     def test_nested_dfs_order(self):
@@ -267,7 +265,7 @@ class TestParseFindOutput:
         )
         lines, total = _parse_find_output(stdout, max_entries=200)
         assert total == 6
-        texts = [l.strip() for l in lines]
+        texts = [line.strip() for line in lines]
         a_idx = next(i for i, t in enumerate(texts) if "`a/`" in t)
         ab_idx = next(i for i, t in enumerate(texts) if "`a/b/`" in t)
         ab_leaf = next(i for i, t in enumerate(texts) if "a/b/leaf.py" in t)

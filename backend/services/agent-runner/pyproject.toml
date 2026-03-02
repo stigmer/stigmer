@@ -65,6 +65,7 @@ mypy = ">=1.10.0"
 pytest = ">=8.0.0"
 pytest-asyncio = ">=0.24.0"
 pyinstaller = {version = "^6.18.0", python = ">=3.11,<3.15"}
+types-pyyaml = "^6.0.12.20250915"
 
 [tool.mypy]
 python_version = "3.11"

@@ -15,7 +15,6 @@ import pytest
 
 from graphton.core.backends.gitignore_filter import GitIgnoreFilter
 
-
 # =============================================================================
 # from_content
 # =============================================================================
