@@ -13,9 +13,23 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: In Progress
-- **Last Session**: 2026-03-03 (session 7) — T01.5: Organization OSS controllers complete
-- **Active Task**: T01.4 (in progress in parallel conversation) or T01.6 (seedpack updates — next after T01.4 + T01.5)
-- **Cloud Repo Status**: Build restored. Reconciliation subsystem rearchitected for reference-based membership model. All pre-existing build failures fixed. See `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
+- **Last Session**: 2026-03-03 (session 8) — T01.4: Server-side org reference resolution (OSS + Cloud)
+- **Active Task**: T01.6 (seedpack updates — next)
+- **Cloud Repo Status**: Build restored. Reconciliation subsystem rearchitected. NormalizeApiResourceReferencesStepV2 wired into all 29 handlers. See `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
+
+## Session Progress (2026-03-03, session 8 — T01.4: Server-Side Org Reference Resolution)
+- Completed T01.4: Generic pipeline step resolves empty `org` in `ApiResourceReference` at write time (both OSS and Cloud)
+- **OSS (Go)**: Created `normalize_references.go` — proto reflection walker finds all `ApiResourceReference` in spec, fills empty org from `metadata.org`
+- Created `normalize_references_test.go` — 14 unit tests (empty fill, explicit preserved, mixed, nested sub-agents, MCP server usages, no-op, idempotency)
+- Wired `NormalizeReferencesStep` into 16 controller pipelines (after BuildNewState/BuildUpdateState, before Persist)
+- All Go tests pass, `go build` clean across all modules
+- **Cloud (Java)**: Created `NormalizeApiResourceReferencesStepV2.java` — same walker using `Descriptors.FieldDescriptor` and `Message.Builder` pattern
+- Created `NormalizeApiResourceReferencesStepV2Test.java` — 12 unit tests matching OSS coverage
+- Added to `RequestOperationCommonSteps` as `normalizeReferences` field
+- Wired into all 29 Create and Update handler pipelines (Agent, AgentExecution, AgentInstance, ApiKey, Environment, ExecutionContext, IdentityAccount, IdentityProvider, McpServer, Organization, Project, Session, Workflow, WorkflowExecution, WorkflowInstance)
+- `grpc-request` library builds clean via Bazel; service-level build has pre-existing errors unrelated to this change
+- Key design: step is a safe no-op for resources without references — added to ALL pipelines for forward-compatibility
+- Key design: only walks `spec` field (not `status`) — status refs are system-generated and already absolute
 
 ## Session Progress (2026-03-03, session 7 — T01.5: Organization OSS Controllers)
 - Completed T01.5: Full Organization CRUD controller in OSS server
@@ -96,14 +110,12 @@ Drop this file into your conversation to quickly resume work on this project.
 - Key decision: Merged Project into tenancy domain (not management) — Organization, Platform, and Project form the resource hierarchy bounded context
 
 ## Next Steps
-1. **T01.4**: Server-side org resolution — in progress in parallel conversation (NormalizeReferencesStep)
-2. **T01.6**: Seedpack updates — add Organization resource, update apiVersion, remove `org: local` (blocked on T01.4 + T01.5 completion)
-3. **T01.7**: CLI defaults — replace `"local"` with `"default"`, add org context commands
-4. Known gap for T01.7: Organization query proto has no `getBySlug` RPC — CLI `stigmer org get <slug>` will need either a proto addition or client-side filtering via `findMyOrganizations`
+1. **T01.6**: Seedpack updates — add Organization resource, update apiVersion, remove `org: local` (unblocked — T01.4 + T01.5 both complete)
+2. **T01.7**: CLI defaults — replace `"local"` with `"default"`, add org context commands
+3. Known gap for T01.7: Organization query proto has no `getBySlug` RPC — CLI `stigmer org get <slug>` will need either a proto addition or client-side filtering via `findMyOrganizations`
 
 ## Context for Resume
-- T01.1, T01.2, T01.3, and T01.5 are complete in OSS
-- T01.4 is in progress in a parallel conversation (NormalizeReferencesStep added to all controllers)
+- T01.1, T01.2, T01.3, T01.4, and T01.5 are complete in both OSS and Cloud
 - The Project proto now lives at `apis/ai/stigmer/tenancy/project/v1/` with package `ai.stigmer.tenancy.project.v1`
 - Organization is fully supported in both CLI apply pipeline AND server-side controllers
 - `ApiResourceReference.org` is now optional — empty means "resolve from parent resource's org"
@@ -113,8 +125,10 @@ Drop this file into your conversation to quickly resume work on this project.
 - Organization server controllers are live: create, update, delete, apply, get, find, findMyOrganizations
 - Organization slug is REQUIRED in proto input (2-15 chars, CEL validation) — not auto-derived from name
 - Organization `getByExternalOrgId` is Unimplemented in OSS (cloud-only feature)
-- Server-side org resolution doesn't exist yet (T01.4) — empty org in cross-refs passes validation but is not yet resolved
-- The task plan is in `tasks/T01_0_plan.md` — review T01.4/T01.6 sections for next task details
+- Server-side org resolution is live (T01.4) — NormalizeReferencesStep fills empty org from metadata.org at write time
+- In OSS: `normalize_references.go` in `backend/libs/go/grpc/request/pipeline/steps/`
+- In Cloud: `NormalizeApiResourceReferencesStepV2.java` in `grpc-request` library, `commonSteps.normalizeReferences` in all handlers
+- The task plan is in `tasks/T01_0_plan.md` — review T01.6 section for next task details
 - **stigmer-cloud**: Partially migrated — stubs regenerated, Java domain moved, imports updated. Blocked on reconciliation rearchitecture due to ProjectSpec redesign. Full status documented in `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
 - **Pre-existing Bazel issue**: `com_github_charmbracelet_glamour` repo unresolved — CLI root_test can't build via Bazel but passes via `go test`
 
@@ -122,7 +136,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260302.01.org-tenancy-portable-resources/checkpoints/2026-03-03-session-7.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260302.01.org-tenancy-portable-resources/checkpoints/2026-03-03-session-8.md
 ```
 
 ### 2. Task Plan
@@ -159,18 +173,18 @@ Drop this file into your conversation to quickly resume work on this project.
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-03-03-session-7.md`
+1. [ ] Read the latest checkpoint from `checkpoints/2026-03-03-session-8.md`
 2. [ ] Read cloud migration doc: `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
 3. [ ] Check current task status in `tasks/T01_0_plan.md`
 4. [ ] Review any new design decisions in `design-decisions/`
 5. [ ] Check coding guidelines in `coding-guidelines/`
 6. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-7. [ ] Check if T01.4 is complete (parallel conversation) — then proceed to T01.6 (seedpack updates)
+7. [ ] Proceed to T01.6 (seedpack updates — unblocked)
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T01.6" - Seedpack updates with Organization resource
+- "Continue with T01.6" - Seedpack updates with Organization resource (next — unblocked)
 - "Continue with T01.7" - CLI defaults and org context commands
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress

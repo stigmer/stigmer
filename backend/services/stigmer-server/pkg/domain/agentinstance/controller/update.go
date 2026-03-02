@@ -42,6 +42,7 @@ func (c *AgentInstanceController) buildUpdatePipeline() *pipeline.Pipeline[*agen
 		AddStep(steps.NewResolveSlugStep[*agentinstancev1.AgentInstance]()).         // 2. Resolve slug
 		AddStep(steps.NewLoadExistingStep[*agentinstancev1.AgentInstance](c.store)). // 3. Load existing instance
 		AddStep(steps.NewBuildUpdateStateStep[*agentinstancev1.AgentInstance]()).    // 4. Build updated state
-		AddStep(steps.NewPersistStep[*agentinstancev1.AgentInstance](c.store)).      // 5. Persist instance
+		AddStep(steps.NewNormalizeReferencesStep[*agentinstancev1.AgentInstance]()). // 5. Normalize cross-references
+		AddStep(steps.NewPersistStep[*agentinstancev1.AgentInstance](c.store)).      // 6. Persist instance
 		Build()
 }
