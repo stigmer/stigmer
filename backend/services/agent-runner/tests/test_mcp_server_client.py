@@ -155,7 +155,7 @@ class TestMcpServerClientGetByReference:
         
         # Assert
         assert result == mock_mcp_server
-        mock_mcp_server_stub.getByReference.assert_called_once_with(mock_api_resource_reference)
+        mock_mcp_server_stub.getByReference.assert_called_once_with(mock_api_resource_reference, timeout=10.0)
 
     @pytest.mark.asyncio
     async def test_get_by_reference_not_found(
