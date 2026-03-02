@@ -32,6 +32,7 @@ if [ -d "$GRAPHTON" ]; then
     mkdir -p "$SOURCE_DIR/libs/graphton/src"
     cp -r "$GRAPHTON/src/graphton" "$SOURCE_DIR/libs/graphton/src/"
     cp "$GRAPHTON/pyproject.toml" "$SOURCE_DIR/libs/graphton/"
+    cp "$GRAPHTON/README.md" "$SOURCE_DIR/libs/graphton/" 2>/dev/null || true
 fi
 
 if [ -d "$STUBS" ]; then
