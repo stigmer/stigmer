@@ -14,7 +14,8 @@ import (
 )
 
 // =============================================================================
-// resolveApplyOrganization
+// resolveApplyOrganization — unified priority chain
+// flag > metadata > context.organization > Backend.Cloud.OrgID > error
 // =============================================================================
 
 func TestResolveApplyOrganization_FlagOverrideWins(t *testing.T) {
@@ -32,6 +33,7 @@ func TestResolveApplyOrganization_FlagOverridesProjectAndConfig(t *testing.T) {
 			Type:  config.BackendTypeCloud,
 			Cloud: &config.CloudBackendConfig{OrgID: "cloud-org"},
 		},
+		Context: config.ContextConfig{Organization: "ctx-org"},
 	}
 	proj := projectWithOrg("yaml-org")
 
@@ -49,7 +51,34 @@ func TestResolveApplyOrganization_ProjectMetadataOrg(t *testing.T) {
 	assert.Equal(t, "yaml-org", orgID)
 }
 
-func TestResolveApplyOrganization_CloudConfigOrg(t *testing.T) {
+func TestResolveApplyOrganization_ContextOrganization(t *testing.T) {
+	cfg := &config.Config{
+		Backend: config.BackendConfig{Type: config.BackendTypeLocal},
+		Context: config.ContextConfig{Organization: "ctx-org"},
+	}
+	proj := projectWithOrg("")
+
+	orgID, err := captureStderrAndResolveOrg(t, cfg, proj, "")
+	require.NoError(t, err)
+	assert.Equal(t, "ctx-org", orgID)
+}
+
+func TestResolveApplyOrganization_ContextOverridesCloudOrgID(t *testing.T) {
+	cfg := &config.Config{
+		Backend: config.BackendConfig{
+			Type:  config.BackendTypeCloud,
+			Cloud: &config.CloudBackendConfig{OrgID: "cloud-org"},
+		},
+		Context: config.ContextConfig{Organization: "ctx-org"},
+	}
+	proj := projectWithOrg("")
+
+	orgID, err := captureStderrAndResolveOrg(t, cfg, proj, "")
+	require.NoError(t, err)
+	assert.Equal(t, "ctx-org", orgID)
+}
+
+func TestResolveApplyOrganization_CloudOrgIDBackwardCompat(t *testing.T) {
 	cfg := &config.Config{
 		Backend: config.BackendConfig{
 			Type:  config.BackendTypeCloud,
@@ -61,6 +90,19 @@ func TestResolveApplyOrganization_CloudConfigOrg(t *testing.T) {
 	orgID, err := captureStderrAndResolveOrg(t, cfg, proj, "")
 	require.NoError(t, err)
 	assert.Equal(t, "cloud-org", orgID)
+}
+
+func TestResolveApplyOrganization_NoOrgAnywhere(t *testing.T) {
+	cfg := &config.Config{
+		Backend: config.BackendConfig{Type: config.BackendTypeLocal},
+	}
+	proj := projectWithOrg("")
+
+	_, err := captureStderrAndResolveOrg(t, cfg, proj, "")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "organization not set")
+	assert.Contains(t, err.Error(), "--org flag")
+	assert.Contains(t, err.Error(), "stigmer context set --org")
 }
 
 func TestResolveApplyOrganization_CloudModeNoOrgAnywhere(t *testing.T) {
@@ -75,7 +117,6 @@ func TestResolveApplyOrganization_CloudModeNoOrgAnywhere(t *testing.T) {
 	_, err := captureStderrAndResolveOrg(t, cfg, proj, "")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "organization not set")
-	assert.Contains(t, err.Error(), "--org flag")
 }
 
 func TestResolveApplyOrganization_CloudModeNilCloudConfig(t *testing.T) {
@@ -89,38 +130,119 @@ func TestResolveApplyOrganization_CloudModeNilCloudConfig(t *testing.T) {
 	assert.Contains(t, err.Error(), "organization not set")
 }
 
-func TestResolveApplyOrganization_LocalModeReturnsLocal(t *testing.T) {
+func TestResolveApplyOrganization_FlagOverrideLocalMode(t *testing.T) {
 	cfg := &config.Config{
 		Backend: config.BackendConfig{Type: config.BackendTypeLocal},
-	}
-	proj := projectWithOrg("")
-
-	orgID, err := captureStderrAndResolveOrg(t, cfg, proj, "")
-	require.NoError(t, err)
-	assert.Equal(t, "local", orgID)
-}
-
-func TestResolveApplyOrganization_LocalModeIgnoresProjectOrg(t *testing.T) {
-	cfg := &config.Config{
-		Backend: config.BackendConfig{Type: config.BackendTypeLocal},
+		Context: config.ContextConfig{Organization: "ctx-org"},
 	}
 	proj := projectWithOrg("yaml-org")
 
-	// Flag override still works in local mode
 	orgID, err := captureStderrAndResolveOrg(t, cfg, proj, "flag-org")
 	require.NoError(t, err)
 	assert.Equal(t, "flag-org", orgID)
 }
 
+func TestResolveApplyOrganization_ProjectMetadataLocalMode(t *testing.T) {
+	cfg := &config.Config{
+		Backend: config.BackendConfig{Type: config.BackendTypeLocal},
+		Context: config.ContextConfig{Organization: "ctx-org"},
+	}
+	proj := projectWithOrg("yaml-org")
+
+	orgID, err := captureStderrAndResolveOrg(t, cfg, proj, "")
+	require.NoError(t, err)
+	assert.Equal(t, "yaml-org", orgID)
+}
+
 func TestResolveApplyOrganization_NilProjectMetadata(t *testing.T) {
 	cfg := &config.Config{
 		Backend: config.BackendConfig{Type: config.BackendTypeLocal},
+		Context: config.ContextConfig{Organization: "ctx-org"},
 	}
 	proj := &projectv1.Project{Spec: &projectv1.ProjectSpec{}}
 
 	orgID, err := captureStderrAndResolveOrg(t, cfg, proj, "")
 	require.NoError(t, err)
-	assert.Equal(t, "local", orgID)
+	assert.Equal(t, "ctx-org", orgID)
+}
+
+func TestResolveApplyOrganization_NilProjectMetadataNoContext(t *testing.T) {
+	cfg := &config.Config{
+		Backend: config.BackendConfig{Type: config.BackendTypeLocal},
+	}
+	proj := &projectv1.Project{Spec: &projectv1.ProjectSpec{}}
+
+	_, err := captureStderrAndResolveOrg(t, cfg, proj, "")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "organization not set")
+}
+
+// =============================================================================
+// resolveOrgID — flag > context > ""
+// =============================================================================
+
+func TestResolveOrgID_FlagOverride(t *testing.T) {
+	cfg := &config.Config{
+		Backend: config.BackendConfig{Type: config.BackendTypeLocal},
+		Context: config.ContextConfig{Organization: "ctx-org"},
+	}
+	assert.Equal(t, "flag-org", resolveOrgID("flag-org", cfg))
+}
+
+func TestResolveOrgID_ContextOrg(t *testing.T) {
+	cfg := &config.Config{
+		Backend: config.BackendConfig{Type: config.BackendTypeLocal},
+		Context: config.ContextConfig{Organization: "ctx-org"},
+	}
+	assert.Equal(t, "ctx-org", resolveOrgID("", cfg))
+}
+
+func TestResolveOrgID_CloudBackwardCompat(t *testing.T) {
+	cfg := &config.Config{
+		Backend: config.BackendConfig{
+			Type:  config.BackendTypeCloud,
+			Cloud: &config.CloudBackendConfig{OrgID: "cloud-org"},
+		},
+	}
+	assert.Equal(t, "cloud-org", resolveOrgID("", cfg))
+}
+
+func TestResolveOrgID_NoOrgAnywhere(t *testing.T) {
+	cfg := &config.Config{Backend: config.BackendConfig{Type: config.BackendTypeLocal}}
+	assert.Equal(t, "", resolveOrgID("", cfg))
+}
+
+// =============================================================================
+// ResolveContextOrganization (config method)
+// =============================================================================
+
+func TestResolveContextOrganization_ContextSet(t *testing.T) {
+	cfg := &config.Config{Context: config.ContextConfig{Organization: "ctx-org"}}
+	assert.Equal(t, "ctx-org", cfg.ResolveContextOrganization())
+}
+
+func TestResolveContextOrganization_CloudFallback(t *testing.T) {
+	cfg := &config.Config{
+		Backend: config.BackendConfig{
+			Cloud: &config.CloudBackendConfig{OrgID: "cloud-org"},
+		},
+	}
+	assert.Equal(t, "cloud-org", cfg.ResolveContextOrganization())
+}
+
+func TestResolveContextOrganization_ContextTakesPrecedence(t *testing.T) {
+	cfg := &config.Config{
+		Backend: config.BackendConfig{
+			Cloud: &config.CloudBackendConfig{OrgID: "cloud-org"},
+		},
+		Context: config.ContextConfig{Organization: "ctx-org"},
+	}
+	assert.Equal(t, "ctx-org", cfg.ResolveContextOrganization())
+}
+
+func TestResolveContextOrganization_Empty(t *testing.T) {
+	cfg := &config.Config{}
+	assert.Equal(t, "", cfg.ResolveContextOrganization())
 }
 
 // =============================================================================

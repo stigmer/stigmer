@@ -13,9 +13,31 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: In Progress
-- **Last Session**: 2026-03-03 (session 9) — T01.6: Seedpack updates (Organization resource, remove org: local)
-- **Active Task**: T01.7 (CLI defaults — next)
+- **Last Session**: 2026-03-03 (session 10) — T01.7: Unified Organization Context and CLI Defaults
+- **Active Task**: T01.8 (Skill docs — next)
 - **Cloud Repo Status**: Build restored. Reconciliation subsystem rearchitected. NormalizeApiResourceReferencesStepV2 wired into all 29 handlers. See `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
+
+## Session Progress (2026-03-03, session 10 — T01.7: Unified Organization Context and CLI Defaults)
+- Completed T01.7: Eliminated all hardcoded `"local"` org fallbacks, unified 3 fragmented org-resolution functions into single backend-agnostic priority chain, added `stigmer context` commands, auto-sets org context during server startup
+- **Architectural change**: Single org resolution priority chain: `--org flag > stigmer.yaml metadata.org > config context.organization > Backend.Cloud.OrgID (compat) > error` — same chain for local AND cloud
+- Added `ResolveContextOrganization()` to `config.Config` — reads `Context.Organization`, falls back to `Backend.Cloud.OrgID` for backward compat
+- **apply.go** `resolveApplyOrganization()`: removed backend-type branching and `"local"` fallback; unified chain
+- **verb_helpers.go** `resolveOrganization()`: removed entire `switch` on backend type; also fixed existing bug where `--org` flag was ignored for local backend
+- **run_resolve.go** `resolveOrgID()`: simplified to flag > `ResolveContextOrganization()`
+- **server.go** `handleServerStart()`: added `autoSetOrgContext(cfg)` after seedpack bootstrap — queries `findMyOrganizations`, auto-sets `context.organization` when exactly 1 org, warns when multiple
+- **server.go** `runBootstrapDiscovery()`: replaced hardcoded `orgID := "local"` with `cfg.ResolveContextOrganization()`
+- **New file** `context.go`: `stigmer context show` (displays org, environment, backend) and `stigmer context set --org <slug>` (validates org exists via server, saves to config)
+- Registered `stigmer context` in root.go Configuration group (alongside `backend` and `config`)
+- **config_values.go**: added `context.organization` and `context.environment` to `stigmer config get/set`
+- **daemon.go** `EnsureRunning()`: added `EnsureOrgContext()` after `EnsureSeedpackBootstrapped` — idempotent auto-detection for commands that auto-start daemon
+- Updated `ContextConfig` comment to clarify it's used by both local and cloud backends
+- **Tests**: rewrote `apply_org_test.go` from 8 tests to 24 tests covering unified resolution, context org, cloud backward compat, no-org error, nil metadata, resolveOrgID, ResolveContextOrganization
+- All 26 CLI test packages pass, all 23 stigmer-server test packages pass, all modules build clean
+- **Key design**: zero hardcoded org strings in CLI code — `"local"` is gone from all 4 locations
+- **Key design**: single code path for local and cloud — no backend-type branching in org resolution
+- **Key design**: auto-detection during startup means zero manual steps for normal flow
+- **Files modified**: 11 files modified, 1 file created (+314 lines, -63 lines)
+- BUILD.bazel updated for both `root/` (added context.go, emptypb dep) and `daemon/` (added org proto, emptypb dep)
 
 ## Session Progress (2026-03-03, session 9 — T01.6: Seedpack Updates)
 - Completed T01.6: Seedpack bootstraps a real Organization resource and all `org: local` removed from YAML resources
@@ -122,13 +144,11 @@ Drop this file into your conversation to quickly resume work on this project.
 - Key decision: Merged Project into tenancy domain (not management) — Organization, Platform, and Project form the resource hierarchy bounded context
 
 ## Next Steps
-1. **T01.7**: CLI defaults — replace `"local"` fallback with `"default"` in `resolveApplyOrganization()`, add org context commands
-2. Known gap for T01.7: Organization query proto has no `getBySlug` RPC — CLI `stigmer org get <slug>` will need either a proto addition or client-side filtering via `findMyOrganizations`
-3. **T01.8**: Skill docs — update `org: local` references in skill reference files and agent instruction text
-4. **T01.9**: Product docs — update for new patterns
+1. **T01.8**: Skill docs — update `org: local` references in skill reference files and agent instruction text
+2. **T01.9**: Product docs — update for new patterns
 
 ## Context for Resume
-- T01.1, T01.2, T01.3, T01.4, T01.5, and T01.6 are complete in OSS; T01.4 also complete in Cloud
+- T01.1 through T01.7 are complete in OSS; T01.4 also complete in Cloud
 - The Project proto now lives at `apis/ai/stigmer/tenancy/project/v1/` with package `ai.stigmer.tenancy.project.v1`
 - Organization is fully supported in both CLI apply pipeline AND server-side controllers
 - `ApiResourceReference.org` is now optional — empty means "resolve from parent resource's org"
@@ -142,7 +162,11 @@ Drop this file into your conversation to quickly resume work on this project.
 - In OSS: `normalize_references.go` in `backend/libs/go/grpc/request/pipeline/steps/`
 - In Cloud: `NormalizeApiResourceReferencesStepV2.java` in `grpc-request` library, `commonSteps.normalizeReferences` in all handlers
 - **Seedpack** now bootstraps Organization resource (slug `default`), project manifest declares `org: default`, all agent YAML cross-refs use relative (empty org) pattern
-- The task plan is in `tasks/T01_0_plan.md` — review T01.7 section for next task details
+- **CLI org context**: unified resolution (flag > metadata > context.organization > Cloud.OrgID > error), `stigmer context show/set --org`, auto-detection on server start
+- **CLI org context**: `EnsureOrgContext()` in daemon.go auto-detects org for commands that auto-start the daemon
+- **CLI org context**: `context.organization` readable/writable via `stigmer config get/set`
+- **CLI org context**: zero hardcoded org strings in CLI code
+- The task plan is in `tasks/T01_0_plan.md` — review T01.8 section for next task details
 - **stigmer-cloud**: Partially migrated — stubs regenerated, Java domain moved, imports updated. Reconciliation rearchitected. Full status documented in `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
 - **Pre-existing Bazel issue**: `com_github_charmbracelet_glamour` repo unresolved — CLI root_test can't build via Bazel but passes via `go test`
 
@@ -150,7 +174,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260302.01.org-tenancy-portable-resources/checkpoints/2026-03-03-session-9.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260302.01.org-tenancy-portable-resources/checkpoints/2026-03-03-session-10.md
 ```
 
 ### 2. Task Plan
@@ -187,19 +211,19 @@ Drop this file into your conversation to quickly resume work on this project.
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-03-03-session-9.md`
+1. [ ] Read the latest checkpoint from `checkpoints/2026-03-03-session-10.md`
 2. [ ] Read cloud migration doc: `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
 3. [ ] Check current task status in `tasks/T01_0_plan.md`
 4. [ ] Review any new design decisions in `design-decisions/`
 5. [ ] Check coding guidelines in `coding-guidelines/`
 6. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-7. [ ] Proceed to T01.7 (CLI defaults — unblocked)
+7. [ ] Proceed to T01.8 (Skill docs — unblocked)
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T01.7" - CLI defaults and org context commands
 - "Continue with T01.8" - Skill docs (org: local references)
+- "Continue with T01.9" - Product docs (new patterns)
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

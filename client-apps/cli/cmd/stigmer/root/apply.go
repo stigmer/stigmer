@@ -128,7 +128,8 @@ type projectApplyOptions struct {
 }
 
 // resolveApplyOrganization determines the organization ID for deployment.
-// Progress messages go to stderr to keep stdout clean for structured output.
+// Priority: --org flag > stigmer.yaml metadata.org > CLI context > error.
+// The same chain applies regardless of backend type (local or cloud).
 func resolveApplyOrganization(cfg *config.Config, proj *projectv1.Project, override string) (string, error) {
 	if override != "" {
 		fmt.Fprintf(os.Stderr, "Using organization from flag: %s\n", override)
@@ -140,20 +141,16 @@ func resolveApplyOrganization(cfg *config.Config, proj *projectv1.Project, overr
 		return proj.Metadata.Org, nil
 	}
 
-	if cfg.Backend.Type == config.BackendTypeCloud {
-		if cfg.Backend.Cloud != nil && cfg.Backend.Cloud.OrgID != "" {
-			fmt.Fprintf(os.Stderr, "Using organization from context: %s\n", cfg.Backend.Cloud.OrgID)
-			return cfg.Backend.Cloud.OrgID, nil
-		}
-		return "", errors.New("organization not set for cloud mode\n\n" +
-			"Specify organization in one of these ways:\n" +
-			"  1. Set metadata.org in stigmer.yaml\n" +
-			"  2. Use --org flag: stigmer apply --org <org-id>\n" +
-			"  3. Set context: stigmer context set --org <org-id>")
+	if ctxOrg := cfg.ResolveContextOrganization(); ctxOrg != "" {
+		fmt.Fprintf(os.Stderr, "Using organization from context: %s\n", ctxOrg)
+		return ctxOrg, nil
 	}
 
-	fmt.Fprintf(os.Stderr, "Using local backend (organization: local)\n")
-	return "local", nil
+	return "", errors.New("organization not set\n\n" +
+		"Specify organization in one of these ways:\n" +
+		"  1. Set metadata.org in stigmer.yaml\n" +
+		"  2. Use --org flag: stigmer apply --org <org-id>\n" +
+		"  3. Set context: stigmer context set --org <org-id>")
 }
 
 func buildAtomicTrackResult() *clioutput.CommandResult {
