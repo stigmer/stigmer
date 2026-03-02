@@ -765,21 +765,20 @@ class TestZipFormatEndToEnd:
 
         for item in items:
             item_path = f"{skill_path}/{item}"
-            try:
-                # Try to read as file first
-                backend.read(item_path)
-                readable.append(item_path)
-            except IsADirectoryError:
-                # It's a directory – recurse
+            if backend.is_directory(item_path):
                 readable.extend(
                     self._assert_listable_files_are_readable(
                         backend, item_path, depth=depth + 1, max_depth=max_depth
                     )
                 )
-            except FileNotFoundError as exc:
-                raise AssertionError(
-                    f"File listed but not readable: '{item_path}'"
-                ) from exc
+            else:
+                try:
+                    backend.read(item_path)
+                    readable.append(item_path)
+                except FileNotFoundError as exc:
+                    raise AssertionError(
+                        f"File listed but not readable: '{item_path}'"
+                    ) from exc
 
         return readable
 
@@ -893,8 +892,8 @@ class TestZipFormatEndToEnd:
             # Error should hint at what the directory actually contains
             assert "Parent directory" in error_msg
 
-    def test_read_directory_gives_clear_error(self, mock_skill):
-        """Reading a directory path should raise IsADirectoryError."""
+    def test_read_directory_returns_listing(self, mock_skill):
+        """Reading a directory path should return a structured listing."""
         from graphton.core.backends.filesystem import FilesystemBackend
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -905,10 +904,9 @@ class TestZipFormatEndToEnd:
             backend = FilesystemBackend(root_dir=tmpdir)
             skill_path = skill_paths[mock_skill.metadata.id]
 
-            with pytest.raises(IsADirectoryError) as exc_info:
-                backend.read(f"{skill_path}/scripts")
-
-            assert "is a directory" in str(exc_info.value)
+            result = backend.read(f"{skill_path}/scripts")
+            assert "[Directory:" in result
+            assert "init_skill.py" in result
 
     def test_list_file_path_gives_clear_error(self, mock_skill):
         """Listing a file (not directory) should raise NotADirectoryError."""
