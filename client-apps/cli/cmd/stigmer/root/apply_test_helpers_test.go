@@ -8,12 +8,14 @@ import (
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
-	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/project/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	organizationv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/organization/v1"
+	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/project/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/agent"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpserver"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/organization"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/project"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/workflow"
 )
@@ -68,6 +70,23 @@ func newTestMembers(kinds ...apiresourcekind.ApiResourceKind) []*apiresource.Api
 		}
 	}
 	return refs
+}
+
+func newTestOrganizationApplyResult(created bool) *organization.ApplyResult {
+	return &organization.ApplyResult{
+		Organization: &organizationv1.Organization{
+			Metadata: &apiresource.ApiResourceMetadata{
+				Id:   "org-001",
+				Name: "Acme Corp",
+				Slug: "acme-corp",
+				Org:  testApplyOrgID,
+			},
+			Spec: &organizationv1.OrganizationSpec{
+				Description: "Acme Corporation",
+			},
+		},
+		Created: created,
+	}
 }
 
 func newTestAgentApplyResult(created bool) *agent.ApplyResult {

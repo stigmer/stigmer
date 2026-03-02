@@ -1,0 +1,37 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "organization",
+    srcs = [
+        "applier.go",
+        "loader.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/organization",
+    visibility = ["//client-apps/cli:__subpackages__"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "//apis/stubs/go/ai/stigmer/tenancy/organization/v1:organization",
+        "//client-apps/cli/pkg/climsg",
+        "@build_buf_go_protovalidate//:protovalidate",
+        "@com_github_pkg_errors//:errors",
+        "@in_gopkg_yaml_v3//:yaml_v3",
+        "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_protobuf//encoding/protojson",
+    ],
+)
+
+go_test(
+    name = "organization_test",
+    srcs = [
+        "applier_test.go",
+        "loader_test.go",
+    ],
+    embed = [":organization"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "//apis/stubs/go/ai/stigmer/tenancy/organization/v1:organization",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+        "@org_golang_google_grpc//:grpc",
+    ],
+)

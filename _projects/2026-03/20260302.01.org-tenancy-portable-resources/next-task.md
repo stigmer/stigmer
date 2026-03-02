@@ -13,9 +13,21 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: In Progress
-- **Last Session**: 2026-03-03 (session 3) — Cloud repo proto migration (partially complete, blocked)
-- **Active Task**: T01.2 (next — Add Organization as supported resource kind in apply pipeline)
+- **Last Session**: 2026-03-03 (session 4) — T01.2 complete: Organization added to CLI apply pipeline
+- **Active Task**: T01.3 (next — Make cross-references org-agnostic)
 - **Cloud Repo Status**: Migration partially complete — blocked on ProjectSpec reconciliation rearchitecture. See `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
+
+## Session Progress (2026-03-03, session 4 — T01.2: Organization Apply Pipeline)
+- Completed T01.2: Organization is now a fully supported resource kind in the CLI apply pipeline
+- Created `client-apps/cli/internal/cli/organization/` package (loader, applier, BUILD, tests)
+- Added Organization to CLI type registry and verb support (apply, get, list, delete)
+- Introduced `types.IsProjectMemberKind()` to distinguish project member vs infrastructure kinds
+- Wired Organization into apply dispatch (`apply_file.go`) and handlers (`apply_file_handlers.go`)
+- Added membership filter in declarative apply — Organization is applied but NOT added to `Project.Spec.Members`
+- Changed Organization proto tier from `TIER_CLOUD_ONLY` to `open_source`
+- Renamed `ResourceTier` enum values to lowercase (cosmetic proto cleanup)
+- All tests updated and passing
+- Key architectural decision: Organization is infrastructure (parent of Project), NOT a project member — no changes to reconcile/service.go
 
 ## Session Progress (2026-03-03, session 3 — Cloud Repo Migration)
 - Migrated stigmer-cloud Project proto stubs from `agentic/project/v1` to `tenancy/project/v1` (all 5 languages: Go, Java, Python, TS, Dart)
@@ -48,24 +60,25 @@ Drop this file into your conversation to quickly resume work on this project.
 - Key decision: Merged Project into tenancy domain (not management) — Organization, Platform, and Project form the resource hierarchy bounded context
 
 ## Next Steps
-1. **T01.2**: Add Organization as a supported resource kind in the Project apply pipeline (expand the hardcoded 4-kind restriction)
-2. **T01.3**: Make cross-references org-agnostic (empty `org` in `ApiResourceReference` resolves to parent resource's org)
-3. **T01.4+**: Bootstrap real Organization resource in seedpack, replace all hardcoded `"local"` org defaults with `"default"`
+1. **T01.3**: Make cross-references org-agnostic (empty `org` in `ApiResourceReference` resolves to parent resource's org)
+2. **T01.4+**: Bootstrap real Organization resource in seedpack, replace all hardcoded `"local"` org defaults with `"default"`
+3. **T01.5**: Organization command/query controllers in OSS server (needed for gRPC calls to succeed)
 
 ## Context for Resume
-- T01.1 is committed and complete in OSS (code + docs)
+- T01.1 and T01.2 are complete in OSS
 - The Project proto now lives at `apis/ai/stigmer/tenancy/project/v1/` with package `ai.stigmer.tenancy.project.v1`
-- All generated stubs, codegen schemas, MCP gen, and consumers have been updated in OSS
-- Project docs now live at `apis/ai/stigmer/tenancy/project/docs/` (moved from agentic path)
-- Zero remaining `management/project` or `agentic/project` references in OSS non-historical files
-- The task plan is in `tasks/T01_0_plan.md` — review T01.2 section for next task details
+- Organization is fully supported in the CLI apply pipeline (loader, applier, handler, registry, verb support)
+- `types.IsProjectMemberKind()` defines the member/non-member boundary — Organization is NOT a member
+- `ResourceTier` enum values now use lowercase naming convention (e.g., `open_source`, `cloud_only`)
+- Server-side Organization controllers don't exist yet (T01.5) — CLI gRPC calls will fail until then
+- The task plan is in `tasks/T01_0_plan.md` — review T01.3 section for next task details
 - **stigmer-cloud**: Partially migrated — stubs regenerated, Java domain moved, imports updated. Blocked on reconciliation rearchitecture due to ProjectSpec redesign. Full status documented in `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260302.01.org-tenancy-portable-resources/checkpoints/2026-03-03-session-3.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260302.01.org-tenancy-portable-resources/checkpoints/2026-03-03-session-4.md
 ```
 
 ### 2. Task Plan
@@ -102,18 +115,18 @@ Drop this file into your conversation to quickly resume work on this project.
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-03-03-session-3.md`
+1. [ ] Read the latest checkpoint from `checkpoints/2026-03-03-session-4.md`
 2. [ ] Read cloud migration doc: `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
 3. [ ] Check current task status in `tasks/T01_0_plan.md`
 4. [ ] Review any new design decisions in `design-decisions/`
 5. [ ] Check coding guidelines in `coding-guidelines/`
 6. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-7. [ ] Continue with T01.2 (OSS) or cloud reconciliation rearchitecture (stigmer-cloud)
+7. [ ] Continue with T01.3 (OSS) or cloud reconciliation rearchitecture (stigmer-cloud)
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T01.2" - Start the next task
+- "Continue with T01.3" - Start the next task
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
