@@ -17,6 +17,7 @@ import (
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
+	organizationv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/organization/v1"
 	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/project/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
@@ -35,6 +36,7 @@ import (
 	environmentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/controller"
 	executioncontextcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/executioncontext/controller"
 	mcpservercontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/controller"
+	organizationcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/organization/controller"
 	projectcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/project/controller"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/project/reconcile"
 	sessioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/session/controller"
@@ -300,6 +302,13 @@ func Run() error {
 	projectv1.RegisterProjectQueryControllerServer(grpcServer, projectController)
 
 	log.Info().Msg("Registered Project controllers")
+
+	// Create and register Organization controller
+	organizationController := organizationcontroller.NewOrganizationController(store)
+	organizationv1.RegisterOrganizationCommandControllerServer(grpcServer, organizationController)
+	organizationv1.RegisterOrganizationQueryControllerServer(grpcServer, organizationController)
+
+	log.Info().Msg("Registered Organization controllers")
 
 	// Create and register SearchService controller (CQRS Query Service)
 	// The search service provides unified search across all searchable resources
