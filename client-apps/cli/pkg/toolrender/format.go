@@ -142,6 +142,45 @@ func truncateANSI(s string, maxLen int) string {
 const previewMaxWidth = 72
 
 // ---------------------------------------------------------------------------
+// Defense-in-depth: legacy shell result cleaning
+// ---------------------------------------------------------------------------
+
+// CleanShellResult strips legacy formatting labels from shell/execute tool
+// results so older backends that still return "Exit code: 0\nSTDOUT:\n..."
+// render cleanly on updated CLIs.
+//
+// Specifically:
+//   - A leading "Exit code: 0\n" line is removed (success exit code is noise)
+//   - "STDOUT:\n" and "STDERR:\n" label lines are removed
+//
+// Non-zero exit codes and unrecognized formats pass through unchanged — the
+// backend's failure header ("Command failed (exit code N)") is kept as-is.
+func CleanShellResult(s string) string {
+	// Fast path: new-format results never contain the legacy prefix.
+	if !strings.HasPrefix(s, "Exit code: ") {
+		return s
+	}
+
+	// Strip "Exit code: 0\n" — only for success. Non-zero exit codes are
+	// meaningful and must remain visible.
+	cleaned := s
+	if strings.HasPrefix(cleaned, "Exit code: 0\n") {
+		cleaned = cleaned[len("Exit code: 0\n"):]
+	} else {
+		return s
+	}
+
+	// Remove "STDOUT:\n" and "STDERR:\n" label lines.
+	cleaned = strings.ReplaceAll(cleaned, "STDOUT:\n", "")
+	cleaned = strings.ReplaceAll(cleaned, "STDERR:\n", "")
+
+	if strings.TrimSpace(cleaned) == "" {
+		return "(no output)"
+	}
+	return cleaned
+}
+
+// ---------------------------------------------------------------------------
 // Defense-in-depth: ToolMessage repr stripping
 // ---------------------------------------------------------------------------
 

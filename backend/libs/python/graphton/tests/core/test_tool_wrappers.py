@@ -23,6 +23,8 @@ from graphton.core.tool_wrappers import (
     _create_ls_tool,
     _create_read_tool,
     _create_write_tool,
+    _format_shell_failure,
+    _format_shell_success,
     _stream_write_content,
     create_approval_aware_tool_wrapper,
     create_platform_tool_wrappers,
@@ -1152,8 +1154,7 @@ class TestExecuteToolWrapper:
         tool = _create_execute_tool(mock_backend)
         result = await tool.ainvoke({"command": "ls -la"})
         
-        assert "Exit code: 0" in result
-        assert "command output" in result
+        assert result == "command output"
         mock_backend.execute.assert_called_once_with("ls -la", timeout=120)
 
     @pytest.mark.asyncio
@@ -1179,7 +1180,132 @@ class TestExecuteToolWrapper:
             result = await tool.ainvoke({"command": "ls"})
         
         mock_interrupt.assert_called_once()
-        assert "Exit code: 0" in result
+        assert result == "command output"
+
+
+# =============================================================================
+# Shell output formatting helpers
+# =============================================================================
+
+
+class TestFormatShellSuccess:
+    """Tests for _format_shell_success output formatting."""
+
+    def test_stdout_only(self):
+        assert _format_shell_success("file1\nfile2", "") == "file1\nfile2"
+
+    def test_stderr_only(self):
+        assert _format_shell_success("", "warning: something") == "warning: something"
+
+    def test_stdout_and_stderr(self):
+        result = _format_shell_success("output", "warning")
+        assert result == "output\nwarning"
+
+    def test_no_output(self):
+        assert _format_shell_success("", "") == "(no output)"
+
+    def test_no_labels_in_output(self):
+        result = _format_shell_success("hello world", "")
+        assert "STDOUT" not in result
+        assert "STDERR" not in result
+        assert "Exit code" not in result
+
+    def test_no_exit_code_in_output(self):
+        result = _format_shell_success("ok", "warn")
+        assert "Exit code" not in result
+        assert "exit code" not in result
+
+
+class TestFormatShellFailure:
+    """Tests for _format_shell_failure output formatting."""
+
+    def test_stderr_only(self):
+        result = _format_shell_failure(1, "", "Permission denied")
+        assert result == "Command failed (exit code 1)\nPermission denied"
+
+    def test_stdout_only(self):
+        result = _format_shell_failure(2, "partial output", "")
+        assert result == "Command failed (exit code 2)\npartial output"
+
+    def test_both_streams(self):
+        result = _format_shell_failure(1, "out", "err")
+        lines = result.split("\n")
+        assert lines[0] == "Command failed (exit code 1)"
+        assert "err" in result
+        assert "out" in result
+
+    def test_no_output_shows_header_only(self):
+        result = _format_shell_failure(127, "", "")
+        assert result == "Command failed (exit code 127)"
+
+    def test_exit_code_preserved_for_llm(self):
+        result = _format_shell_failure(42, "", "bad thing")
+        assert "exit code 42" in result
+
+    def test_no_labels_in_output(self):
+        result = _format_shell_failure(1, "out", "err")
+        assert "STDOUT" not in result
+        assert "STDERR" not in result
+
+
+class TestExecuteToolOutputFormat:
+    """Integration tests verifying the execute tool produces clean output."""
+
+    @staticmethod
+    def _make_backend(stdout="", stderr="", exit_code=0):
+        backend = MagicMock()
+        result = MagicMock()
+        result.stdout = stdout
+        result.stderr = stderr
+        result.exit_code = exit_code
+        backend.execute.return_value = result
+        return backend
+
+    @pytest.mark.asyncio
+    async def test_success_returns_raw_stdout(self):
+        backend = self._make_backend(stdout="file1\nfile2\n")
+        tool = _create_execute_tool(backend)
+        result = await tool.ainvoke({"command": "ls"})
+        assert result == "file1\nfile2\n"
+
+    @pytest.mark.asyncio
+    async def test_success_no_exit_code(self):
+        backend = self._make_backend(stdout="ok")
+        tool = _create_execute_tool(backend)
+        result = await tool.ainvoke({"command": "echo ok"})
+        assert "Exit code" not in result
+        assert "exit code" not in result
+
+    @pytest.mark.asyncio
+    async def test_success_no_labels(self):
+        backend = self._make_backend(stdout="data", stderr="warn")
+        tool = _create_execute_tool(backend)
+        result = await tool.ainvoke({"command": "cmd"})
+        assert "STDOUT" not in result
+        assert "STDERR" not in result
+
+    @pytest.mark.asyncio
+    async def test_success_empty_output(self):
+        backend = self._make_backend()
+        tool = _create_execute_tool(backend)
+        result = await tool.ainvoke({"command": "true"})
+        assert result == "(no output)"
+
+    @pytest.mark.asyncio
+    async def test_failure_shows_exit_code(self):
+        backend = self._make_backend(stderr="not found", exit_code=1)
+        tool = _create_execute_tool(backend)
+        result = await tool.ainvoke({"command": "bad"})
+        assert "Command failed (exit code 1)" in result
+        assert "not found" in result
+
+    @pytest.mark.asyncio
+    async def test_failure_no_labels(self):
+        backend = self._make_backend(stdout="x", stderr="y", exit_code=2)
+        tool = _create_execute_tool(backend)
+        result = await tool.ainvoke({"command": "fail"})
+        assert "STDOUT" not in result
+        assert "STDERR" not in result
 
 
 class TestLsToolWrapper:
