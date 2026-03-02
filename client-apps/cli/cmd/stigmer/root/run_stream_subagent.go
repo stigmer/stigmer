@@ -16,6 +16,10 @@ type subAgentTracker struct {
 	inStream          bool
 	toolCallStates    map[string]string
 	toolCallResults   map[string]string
+	// completed is true after a SubAgentCompletedEvent has been emitted for
+	// this sub-agent. Prevents duplicate completion events when the same
+	// terminal status is seen across multiple stream updates.
+	completed bool
 }
 
 // emitSubAgentEvents processes all sub-agent executions from a status update
@@ -60,7 +64,15 @@ func emitSubAgentEvents(
 				Str("sub_agent_id", sa.Id).
 				Str("name", sa.Name).
 				Str("description", desc).
+				Bool("has_input", sa.Input != "").
 				Msg("[stream] new sub-agent execution detected")
+
+			if sa.Input == "" {
+				log.Warn().
+					Str("sub_agent_id", sa.Id).
+					Str("name", sa.Name).
+					Msg("[stream] sub-agent has empty input — header will lack task description")
+			}
 		}
 
 		tracker.toolCallStates, tracker.toolCallResults = emitToolCallStateEvents(
@@ -70,9 +82,35 @@ func emitSubAgentEvents(
 		tracker.displayedMsgCount, tracker.inStream = emitSubAgentMessageEvents(
 			events, sa.Id, sa.Messages, tracker.displayedMsgCount, tracker.inStream,
 		)
+
+		if !tracker.completed && isTerminalSubAgentStatus(sa.Status) {
+			tracker.completed = true
+			status := "completed"
+			if sa.Status == agentexecutionv1.SubAgentStatus_SUB_AGENT_FAILED {
+				status = "failed"
+			}
+			events <- executiontui.SubAgentCompletedEvent{
+				ID:        sa.Id,
+				Status:    status,
+				ToolCount: len(sa.ToolCalls),
+				Output:    sa.Output,
+			}
+			log.Debug().
+				Str("sub_agent_id", sa.Id).
+				Str("status", status).
+				Int("tool_count", len(sa.ToolCalls)).
+				Msg("[stream] sub-agent execution completed")
+		}
 	}
 
 	return trackers
+}
+
+// isTerminalSubAgentStatus reports whether a SubAgentStatus value represents
+// a terminal (finished) state.
+func isTerminalSubAgentStatus(s agentexecutionv1.SubAgentStatus) bool {
+	return s == agentexecutionv1.SubAgentStatus_SUB_AGENT_COMPLETED ||
+		s == agentexecutionv1.SubAgentStatus_SUB_AGENT_FAILED
 }
 
 // emitSubAgentMessageEvents processes new messages from a sub-agent and emits

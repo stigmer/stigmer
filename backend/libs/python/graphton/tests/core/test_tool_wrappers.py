@@ -14,6 +14,7 @@ import pytest
 from graphton.core.tool_wrappers import (
     ApprovalRequirement,
     ToolExecutionRejectedError,
+    _apply_line_range,
     _check_and_handle_approval,
     _create_edit_tool,
     _create_execute_tool,
@@ -22,6 +23,8 @@ from graphton.core.tool_wrappers import (
     _create_ls_tool,
     _create_read_tool,
     _create_write_tool,
+    _format_shell_failure,
+    _format_shell_success,
     _stream_write_content,
     create_approval_aware_tool_wrapper,
     create_platform_tool_wrappers,
@@ -745,17 +748,21 @@ class TestCreatePlatformToolWrappers:
         backend.list_files.return_value = ["file1.txt", "file2.py"]
         return backend
 
-    def test_creates_seven_tools(self, mock_backend):
-        """Test that exactly 7 tools are created."""
+    def test_creates_platform_tools(self, mock_backend):
+        """Test that 11 tools are created (8 primary + 3 aliases)."""
         tools = create_platform_tool_wrappers(mock_backend)
-        assert len(tools) == 7
+        assert len(tools) == 11
 
     def test_creates_tools_with_correct_names(self, mock_backend):
         """Test that tools have correct names."""
         tools = create_platform_tool_wrappers(mock_backend)
         tool_names = [getattr(t, 'name', None) for t in tools]
         
-        expected_names = ["read", "ls", "glob", "grep", "write", "edit", "execute"]
+        expected_names = [
+            "read", "ls", "glob", "grep", "search",
+            "write", "edit", "execute",
+            "read_file", "write_file", "edit_file",
+        ]
         for name in expected_names:
             assert name in tool_names, f"Tool '{name}' not found in {tool_names}"
 
@@ -772,7 +779,62 @@ class TestCreatePlatformToolWrappers:
             return ApprovalRequirement(requires_approval=False)
         
         tools = create_platform_tool_wrappers(mock_backend, approval_checker=checker)
-        assert len(tools) == 7
+        assert len(tools) == 11
+
+
+class TestApplyLineRange:
+    """Tests for the _apply_line_range helper."""
+
+    SAMPLE = "line1\nline2\nline3\nline4\nline5\n"
+
+    def test_no_slicing_when_defaults(self):
+        assert _apply_line_range(self.SAMPLE, offset=0, limit=0) == self.SAMPLE
+
+    def test_negative_values_treated_as_defaults(self):
+        assert _apply_line_range(self.SAMPLE, offset=-3, limit=-1) == self.SAMPLE
+
+    def test_offset_only(self):
+        result = _apply_line_range(self.SAMPLE, offset=3, limit=0)
+        assert result.startswith("[Lines 3-5 of 5 total]")
+        assert "line3\n" in result
+        assert "line1" not in result
+
+    def test_limit_only(self):
+        result = _apply_line_range(self.SAMPLE, offset=0, limit=2)
+        assert result.startswith("[Lines 1-2 of 5 total]")
+        assert "line1\n" in result
+        assert "line2\n" in result
+        assert "line3" not in result
+
+    def test_offset_and_limit(self):
+        result = _apply_line_range(self.SAMPLE, offset=2, limit=2)
+        assert result.startswith("[Lines 2-3 of 5 total]")
+        assert "line2\n" in result
+        assert "line3\n" in result
+        assert "line1" not in result
+        assert "line4" not in result
+
+    def test_offset_beyond_file(self):
+        result = _apply_line_range(self.SAMPLE, offset=100, limit=0)
+        assert "5 lines" in result
+        assert "offset 100" in result
+        assert "beyond end of file" in result
+
+    def test_limit_exceeds_remaining(self):
+        result = _apply_line_range(self.SAMPLE, offset=4, limit=50)
+        assert "[Lines 4-5 of 5 total]" in result
+        assert "line4\n" in result
+        assert "line5\n" in result
+
+    def test_single_line_file(self):
+        result = _apply_line_range("only line", offset=1, limit=1)
+        assert "[Lines 1-1 of 1 total]" in result
+        assert "only line" in result
+
+    def test_empty_content(self):
+        result = _apply_line_range("", offset=1, limit=5)
+        assert "0 lines" in result
+        assert "beyond end of file" in result
 
 
 class TestReadToolWrapper:
@@ -789,7 +851,7 @@ class TestReadToolWrapper:
         """Test that read tool reads file correctly."""
         tool = _create_read_tool(mock_backend)
         result = await tool.ainvoke({"path": "test.txt"})
-        
+
         assert result == "Hello, world!"
         mock_backend.read.assert_called_once_with("test.txt")
 
@@ -798,10 +860,10 @@ class TestReadToolWrapper:
         """Test that read tool checks approval."""
         def checker(name: str, args: dict) -> ApprovalRequirement:
             return ApprovalRequirement(requires_approval=False)
-        
+
         tool = _create_read_tool(mock_backend, approval_checker=checker)
         result = await tool.ainvoke({"path": "test.txt"})
-        
+
         assert result == "Hello, world!"
 
     @pytest.mark.asyncio
@@ -809,15 +871,40 @@ class TestReadToolWrapper:
         """Test that read returns skip message when skipped."""
         def checker(name: str, args: dict) -> ApprovalRequirement:
             return ApprovalRequirement(requires_approval=True, message="Confirm read?")
-        
+
         tool = _create_read_tool(mock_backend, approval_checker=checker)
-        
+
         with patch("langgraph.types.interrupt") as mock_interrupt:
             mock_interrupt.return_value = {"action": "skip"}
             result = await tool.ainvoke({"path": "test.txt"})
-        
+
         assert "skipped" in result.lower()
         mock_backend.read.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_read_with_offset_and_limit(self):
+        """Test that read tool applies offset/limit to file content."""
+        backend = MagicMock()
+        backend.read.return_value = "a\nb\nc\nd\ne\n"
+
+        tool = _create_read_tool(backend)
+        result = await tool.ainvoke({"path": "f.txt", "offset": 2, "limit": 2})
+
+        assert "[Lines 2-3 of 5 total]" in result
+        assert "b\n" in result
+        assert "c\n" in result
+        assert "a\n" not in result
+
+    @pytest.mark.asyncio
+    async def test_read_defaults_return_full_content(self):
+        """Test that default offset=0, limit=0 returns unmodified content."""
+        backend = MagicMock()
+        backend.read.return_value = "full content"
+
+        tool = _create_read_tool(backend)
+        result = await tool.ainvoke({"path": "f.txt"})
+
+        assert result == "full content"
 
 
 class TestWriteToolWrapper:
@@ -1067,8 +1154,7 @@ class TestExecuteToolWrapper:
         tool = _create_execute_tool(mock_backend)
         result = await tool.ainvoke({"command": "ls -la"})
         
-        assert "Exit code: 0" in result
-        assert "command output" in result
+        assert result == "command output"
         mock_backend.execute.assert_called_once_with("ls -la", timeout=120)
 
     @pytest.mark.asyncio
@@ -1094,7 +1180,132 @@ class TestExecuteToolWrapper:
             result = await tool.ainvoke({"command": "ls"})
         
         mock_interrupt.assert_called_once()
-        assert "Exit code: 0" in result
+        assert result == "command output"
+
+
+# =============================================================================
+# Shell output formatting helpers
+# =============================================================================
+
+
+class TestFormatShellSuccess:
+    """Tests for _format_shell_success output formatting."""
+
+    def test_stdout_only(self):
+        assert _format_shell_success("file1\nfile2", "") == "file1\nfile2"
+
+    def test_stderr_only(self):
+        assert _format_shell_success("", "warning: something") == "warning: something"
+
+    def test_stdout_and_stderr(self):
+        result = _format_shell_success("output", "warning")
+        assert result == "output\nwarning"
+
+    def test_no_output(self):
+        assert _format_shell_success("", "") == "(no output)"
+
+    def test_no_labels_in_output(self):
+        result = _format_shell_success("hello world", "")
+        assert "STDOUT" not in result
+        assert "STDERR" not in result
+        assert "Exit code" not in result
+
+    def test_no_exit_code_in_output(self):
+        result = _format_shell_success("ok", "warn")
+        assert "Exit code" not in result
+        assert "exit code" not in result
+
+
+class TestFormatShellFailure:
+    """Tests for _format_shell_failure output formatting."""
+
+    def test_stderr_only(self):
+        result = _format_shell_failure(1, "", "Permission denied")
+        assert result == "Command failed (exit code 1)\nPermission denied"
+
+    def test_stdout_only(self):
+        result = _format_shell_failure(2, "partial output", "")
+        assert result == "Command failed (exit code 2)\npartial output"
+
+    def test_both_streams(self):
+        result = _format_shell_failure(1, "out", "err")
+        lines = result.split("\n")
+        assert lines[0] == "Command failed (exit code 1)"
+        assert "err" in result
+        assert "out" in result
+
+    def test_no_output_shows_header_only(self):
+        result = _format_shell_failure(127, "", "")
+        assert result == "Command failed (exit code 127)"
+
+    def test_exit_code_preserved_for_llm(self):
+        result = _format_shell_failure(42, "", "bad thing")
+        assert "exit code 42" in result
+
+    def test_no_labels_in_output(self):
+        result = _format_shell_failure(1, "out", "err")
+        assert "STDOUT" not in result
+        assert "STDERR" not in result
+
+
+class TestExecuteToolOutputFormat:
+    """Integration tests verifying the execute tool produces clean output."""
+
+    @staticmethod
+    def _make_backend(stdout="", stderr="", exit_code=0):
+        backend = MagicMock()
+        result = MagicMock()
+        result.stdout = stdout
+        result.stderr = stderr
+        result.exit_code = exit_code
+        backend.execute.return_value = result
+        return backend
+
+    @pytest.mark.asyncio
+    async def test_success_returns_raw_stdout(self):
+        backend = self._make_backend(stdout="file1\nfile2\n")
+        tool = _create_execute_tool(backend)
+        result = await tool.ainvoke({"command": "ls"})
+        assert result == "file1\nfile2\n"
+
+    @pytest.mark.asyncio
+    async def test_success_no_exit_code(self):
+        backend = self._make_backend(stdout="ok")
+        tool = _create_execute_tool(backend)
+        result = await tool.ainvoke({"command": "echo ok"})
+        assert "Exit code" not in result
+        assert "exit code" not in result
+
+    @pytest.mark.asyncio
+    async def test_success_no_labels(self):
+        backend = self._make_backend(stdout="data", stderr="warn")
+        tool = _create_execute_tool(backend)
+        result = await tool.ainvoke({"command": "cmd"})
+        assert "STDOUT" not in result
+        assert "STDERR" not in result
+
+    @pytest.mark.asyncio
+    async def test_success_empty_output(self):
+        backend = self._make_backend()
+        tool = _create_execute_tool(backend)
+        result = await tool.ainvoke({"command": "true"})
+        assert result == "(no output)"
+
+    @pytest.mark.asyncio
+    async def test_failure_shows_exit_code(self):
+        backend = self._make_backend(stderr="not found", exit_code=1)
+        tool = _create_execute_tool(backend)
+        result = await tool.ainvoke({"command": "bad"})
+        assert "Command failed (exit code 1)" in result
+        assert "not found" in result
+
+    @pytest.mark.asyncio
+    async def test_failure_no_labels(self):
+        backend = self._make_backend(stdout="x", stderr="y", exit_code=2)
+        tool = _create_execute_tool(backend)
+        result = await tool.ainvoke({"command": "fail"})
+        assert "STDOUT" not in result
+        assert "STDERR" not in result
 
 
 class TestLsToolWrapper:
@@ -1159,6 +1370,153 @@ class TestGlobToolWrapper:
         result = await tool.ainvoke({"pattern": "*.xyz"})
         
         assert "No files matching" in result
+
+
+class TestGlobToolPathPatterns:
+    """Tests for glob pattern matching with path-containing patterns.
+
+    Validates that patterns with '/' match against full paths while
+    patterns without '/' match against basenames only.
+    """
+
+    @pytest.fixture
+    def deep_backend(self):
+        """Backend with a realistic nested directory tree."""
+        backend = MagicMock()
+        _dirs = {
+            ".", "docs", "docs/product", "src", "src/utils",
+            ".stigmer", ".stigmer/skills", ".stigmer/skills/my-skill",
+            ".stigmer/skills/my-skill/scripts",
+            ".stigmer/skills/my-skill/references",
+        }
+
+        _tree = {
+            ".": ["docs", "src", ".stigmer", "README.md"],
+            "docs": ["product"],
+            "docs/product": [
+                "what-is-agent.md",
+                "what-is-skill.md",
+                "what-is-session.md",
+            ],
+            "src": ["utils", "main.py"],
+            "src/utils": ["helpers.py", "config.py"],
+            ".stigmer": ["skills"],
+            ".stigmer/skills": ["my-skill"],
+            ".stigmer/skills/my-skill": ["SKILL.md", "scripts", "references"],
+            ".stigmer/skills/my-skill/scripts": ["init_skill.py", "validate.sh"],
+            ".stigmer/skills/my-skill/references": ["schema.md", "examples.md"],
+        }
+
+        backend.list_files.side_effect = lambda p: _tree.get(p, [])
+        backend.is_directory.side_effect = lambda p: p in _dirs
+        return backend
+
+    # -- Pattern with path components (contains '/') -----------------------
+
+    @pytest.mark.asyncio
+    async def test_path_pattern_matches_full_path(self, deep_backend):
+        tool = _create_glob_tool(deep_backend)
+        result = await tool.ainvoke({"pattern": "docs/product/what-is-*.md"})
+
+        assert "docs/product/what-is-agent.md" in result
+        assert "docs/product/what-is-skill.md" in result
+        assert "docs/product/what-is-session.md" in result
+
+    @pytest.mark.asyncio
+    async def test_path_pattern_no_false_positives(self, deep_backend):
+        tool = _create_glob_tool(deep_backend)
+        result = await tool.ainvoke({"pattern": "docs/product/what-is-*.md"})
+
+        assert "README.md" not in result
+        assert "schema.md" not in result
+
+    @pytest.mark.asyncio
+    async def test_path_pattern_subdir_wildcard(self, deep_backend):
+        tool = _create_glob_tool(deep_backend)
+        result = await tool.ainvoke({"pattern": "src/utils/*.py"})
+
+        assert "src/utils/helpers.py" in result
+        assert "src/utils/config.py" in result
+        assert "main.py" not in result
+
+    @pytest.mark.asyncio
+    async def test_path_pattern_exact_file(self, deep_backend):
+        tool = _create_glob_tool(deep_backend)
+        result = await tool.ainvoke({"pattern": "src/main.py"})
+
+        assert "src/main.py" in result
+
+    @pytest.mark.asyncio
+    async def test_path_pattern_no_match_wrong_prefix(self, deep_backend):
+        """scripts/init_skill.py should NOT match .stigmer/.../scripts/init_skill.py
+        because fnmatch requires the full path to match."""
+        tool = _create_glob_tool(deep_backend)
+        result = await tool.ainvoke({"pattern": "scripts/init_skill.py"})
+
+        assert "No files matching" in result
+
+    # -- Recursive ** patterns ---------------------------------------------
+
+    @pytest.mark.asyncio
+    async def test_double_star_finds_all_py_files(self, deep_backend):
+        tool = _create_glob_tool(deep_backend)
+        result = await tool.ainvoke({"pattern": "**/*.py"})
+
+        assert "src/main.py" in result
+        assert "src/utils/helpers.py" in result
+        assert "src/utils/config.py" in result
+        assert ".stigmer/skills/my-skill/scripts/init_skill.py" in result
+
+    @pytest.mark.asyncio
+    async def test_double_star_finds_nested_exact(self, deep_backend):
+        tool = _create_glob_tool(deep_backend)
+        result = await tool.ainvoke({"pattern": "**/init_skill.py"})
+
+        assert ".stigmer/skills/my-skill/scripts/init_skill.py" in result
+
+    @pytest.mark.asyncio
+    async def test_double_star_finds_nested_md(self, deep_backend):
+        tool = _create_glob_tool(deep_backend)
+        result = await tool.ainvoke({"pattern": "**/*.md"})
+
+        # fnmatch requires a literal '/' in the path for **/*.md to match,
+        # so root-level README.md is not matched (use "*.md" for those).
+        assert "docs/product/what-is-agent.md" in result
+        assert ".stigmer/skills/my-skill/SKILL.md" in result
+        assert ".stigmer/skills/my-skill/references/schema.md" in result
+        assert "README.md" not in result
+
+    # -- Pure filename patterns (no '/') -----------------------------------
+
+    @pytest.mark.asyncio
+    async def test_basename_pattern_matches_across_dirs(self, deep_backend):
+        tool = _create_glob_tool(deep_backend)
+        result = await tool.ainvoke({"pattern": "*.py"})
+
+        assert "src/main.py" in result
+        assert "src/utils/helpers.py" in result
+        assert ".stigmer/skills/my-skill/scripts/init_skill.py" in result
+
+    @pytest.mark.asyncio
+    async def test_basename_pattern_exact_filename(self, deep_backend):
+        tool = _create_glob_tool(deep_backend)
+        result = await tool.ainvoke({"pattern": "SKILL.md"})
+
+        assert ".stigmer/skills/my-skill/SKILL.md" in result
+
+    # -- Custom path argument ----------------------------------------------
+
+    @pytest.mark.asyncio
+    async def test_path_scoping_limits_search(self, deep_backend):
+        tool = _create_glob_tool(deep_backend)
+        result = await tool.ainvoke({
+            "pattern": "*.py",
+            "path": ".stigmer/skills/my-skill/scripts",
+        })
+
+        assert "init_skill.py" in result
+        assert "helpers.py" not in result
+        assert "main.py" not in result
 
 
 class TestGrepToolWrapper:

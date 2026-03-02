@@ -8,6 +8,7 @@ import (
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/panel"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
 )
 
 // Note: summaryPanelWidth() from run_display_summary.go is reused here
@@ -35,27 +36,60 @@ func displayPendingApproval(pa *agentexecutionv1.PendingApproval) {
 }
 
 // buildApprovalContent assembles the labeled sections displayed inside the
-// approval panel. Sections are separated by blank lines for visual clarity.
+// approval panel. Shell/execute tools get a terminal-style command display;
+// all other tools use the generic format with tool name, message, and args.
 func buildApprovalContent(pa *agentexecutionv1.PendingApproval) string {
+	if toolrender.IsShellTool(pa.ToolName) {
+		return buildShellApprovalContent(pa)
+	}
+	return buildGenericApprovalContent(pa)
+}
+
+// buildShellApprovalContent formats the approval panel for shell/execute tools
+// with a terminal-style command display, suppressing the redundant "Tool:" and
+// duplicate "Execute command:" message.
+func buildShellApprovalContent(pa *agentexecutionv1.PendingApproval) string {
 	var sections []string
 
-	// Tool name — always present
+	if pa.FromSubAgent && pa.SubAgentName != "" {
+		sections = append(sections, fmt.Sprintf("From:  %s (sub-agent)", pa.SubAgentName))
+		sections = append(sections, "")
+	}
+
+	formatted := approval.FormatArgs(pa.ToolName, pa.ArgsPreview)
+	command, secondary := parseShellFormattedArgs(formatted)
+	if command != "" {
+		sections = append(sections, fmt.Sprintf("$ %s", command))
+	} else if pa.Message != "" && !strings.HasPrefix(pa.Message, "Execute command:") {
+		sections = append(sections, pa.Message)
+	}
+
+	for _, line := range secondary {
+		sections = append(sections, line)
+	}
+
+	sections = append(sections, "")
+	sections = append(sections, fmt.Sprintf("Waiting for: %s", formatWaitingDuration(pa.RequestedAt)))
+
+	return strings.Join(sections, "\n")
+}
+
+// buildGenericApprovalContent is the default approval panel format for
+// non-shell tools: tool name, sub-agent, message, and formatted arguments.
+func buildGenericApprovalContent(pa *agentexecutionv1.PendingApproval) string {
+	var sections []string
+
 	sections = append(sections, fmt.Sprintf("Tool:  %s", pa.ToolName))
 
-	// Sub-agent indicator — only when approval originates from a sub-agent
 	if pa.FromSubAgent && pa.SubAgentName != "" {
 		sections = append(sections, fmt.Sprintf("From:  %s (sub-agent)", pa.SubAgentName))
 	}
 
-	// Approval message from the agent
 	if pa.Message != "" {
 		sections = append(sections, "")
 		sections = append(sections, fmt.Sprintf("Message: %s", pa.Message))
 	}
 
-	// Tool arguments, formatted by tool type.
-	// Only show arguments when there is no human-readable message
-	// (the message already includes the key arguments via its template).
 	if pa.Message == "" && pa.ArgsPreview != "" {
 		formatted := approval.FormatArgs(pa.ToolName, pa.ArgsPreview)
 		if formatted != "" {
@@ -65,11 +99,28 @@ func buildApprovalContent(pa *agentexecutionv1.PendingApproval) string {
 		}
 	}
 
-	// Waiting duration
 	sections = append(sections, "")
 	sections = append(sections, fmt.Sprintf("Waiting for: %s", formatWaitingDuration(pa.RequestedAt)))
 
 	return strings.Join(sections, "\n")
+}
+
+// parseShellFormattedArgs splits pre-formatted shell args (from
+// approval.FormatArgs) into the command and secondary arguments.
+// The command is the value following "Command:" on the first matching line.
+func parseShellFormattedArgs(formatted string) (command string, secondary []string) {
+	for _, line := range strings.Split(formatted, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			continue
+		}
+		if strings.HasPrefix(trimmed, "Command:") {
+			command = strings.TrimSpace(strings.TrimPrefix(trimmed, "Command:"))
+		} else {
+			secondary = append(secondary, trimmed)
+		}
+	}
+	return command, secondary
 }
 
 // formatWaitingDuration calculates and formats the duration since the approval

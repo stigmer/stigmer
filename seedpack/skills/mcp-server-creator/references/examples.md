@@ -1,10 +1,12 @@
 # McpServer YAML Examples
 
-Complete, production-ready examples. All apply directly with `stigmer mcp-server apply`.
+Production-ready examples covering the full range of McpServer configurations.
 
 ---
 
 ## 1. Minimal Stdio Server
+
+Absolute minimum to get started. Apply, then discover.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -19,15 +21,16 @@ spec:
     args: ["-y", "@modelcontextprotocol/server-github"]
 ```
 
-After applying, always run discovery:
 ```bash
-stigmer mcp-server apply mcpserver.yaml
+stigmer mcp-server apply github.yaml
 stigmer discover mcp-server github
 ```
 
 ---
 
 ## 2. Stdio Server with Credentials
+
+A GitHub server with declared credential requirements.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -56,7 +59,45 @@ spec:
 
 ---
 
-## 3. Stdio Server with Tool Restrictions and Approval Policies
+## 3. Stdio with Tool Gate (Restricted Defaults)
+
+A database server that intentionally excludes destructive operations from defaults.
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: postgres
+  org: local
+  labels:
+    category: database
+  tags:
+    - database
+    - sql
+    - postgresql
+spec:
+  description: "PostgreSQL MCP server for database queries and schema inspection"
+  stdio:
+    command: python
+    args: ["-m", "mcp_server_postgres"]
+  default_enabled_tools:
+    - execute_query
+    - list_tables
+    - describe_table
+    - list_schemas
+    # execute_ddl and drop_table omitted — too destructive for defaults
+  env_spec:
+    data:
+      POSTGRES_URL:
+        description: "PostgreSQL connection URL (postgres://user:pass@host/db)"
+        is_secret: true
+```
+
+---
+
+## 4. Stdio with Approval Policies (Full Production)
+
+A GitHub server with tool gate and approval policies for destructive operations.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -84,7 +125,6 @@ spec:
     - create_pull_request
     - get_pull_request
     - merge_pull_request
-    # delete_repository intentionally omitted — too destructive for defaults
   default_tool_approvals:
     - tool_name: merge_pull_request
       message: "Merge PR #{{args.pull_number}} in {{args.repo}}"
@@ -99,48 +139,16 @@ spec:
       GITHUB_TOKEN:
         description: "GitHub personal access token with repo, read:org, and admin:repo_hook scopes"
         is_secret: true
+      GITHUB_OWNER:
+        description: "Default GitHub organization or username (e.g., acme-corp)"
+        is_secret: false
 ```
 
 ---
 
-## 4. Database Server (Python, restricted tools)
+## 5. HTTP Server with Bearer Auth
 
-```yaml
-apiVersion: agentic.stigmer.ai/v1
-kind: McpServer
-metadata:
-  name: postgres
-  org: local
-  labels:
-    category: database
-  tags:
-    - database
-    - sql
-    - postgresql
-spec:
-  description: "PostgreSQL MCP server for database queries and schema inspection"
-  stdio:
-    command: python
-    args: ["-m", "mcp_server_postgres"]
-  default_enabled_tools:
-    - execute_query
-    - list_tables
-    - describe_table
-    - list_schemas
-    # execute_ddl and drop_table intentionally omitted
-  default_tool_approvals:
-    - tool_name: execute_query
-      message: "Execute SQL: {{args.query}}"
-  env_spec:
-    data:
-      POSTGRES_URL:
-        description: "PostgreSQL connection URL (postgres://user:pass@host/db)"
-        is_secret: true
-```
-
----
-
-## 5. HTTP Server with Header Authentication
+A remote MCP service over HTTPS.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -169,6 +177,8 @@ spec:
 ---
 
 ## 6. HTTP Server with Multi-Tenant Routing
+
+A hosted MCP service that routes requests via tenant headers.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -210,7 +220,9 @@ spec:
 
 ---
 
-## 7. Public Marketplace Server
+## 7. Public Marketplace McpServer
+
+A fully-featured MCP server published for any organization to use.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -228,14 +240,10 @@ metadata:
   tags:
     - slack
     - messaging
-    - notifications
+    - communication
 spec:
   description: "Slack MCP server for channel messaging, search, and workspace management"
   icon_url: "https://a.slack-edge.com/80588/marketing/img/icons/icon_slack_hash_colored.png"
-  tags:
-    - slack
-    - messaging
-    - communication
   stdio:
     command: npx
     args: ["-y", "@modelcontextprotocol/server-slack"]
@@ -265,4 +273,75 @@ spec:
         is_secret: false
 ```
 
-**Marketplace server requirements:** `metadata.org` is a real org slug (not `local`), `visibility_public`, detailed `env_spec` descriptions for external users, `annotations` with docs/support URLs.
+**Differences from private servers:**
+- `visibility: visibility_public` — any org can reference it
+- `metadata.annotations` include marketplace support/docs URLs
+- `env_spec` descriptions are precise about required token scopes and format — external users need this
+
+---
+
+## 8. Python Module with Working Directory
+
+A custom Python-based MCP server.
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: sqlite-database
+  org: local
+spec:
+  description: "SQLite MCP server for local database access"
+  stdio:
+    command: python
+    args: ["-m", "mcp_server_sqlite", "--db-path", "/data/app.sqlite"]
+    working_dir: /opt/mcp-server
+  env_spec:
+    data:
+      SQLITE_DB_PATH:
+        description: "Absolute path to the SQLite database file"
+        is_secret: false
+```
+
+---
+
+## Referencing Any McpServer from an Agent
+
+```yaml
+# In an Agent spec — basic reference (uses McpServer's default_enabled_tools)
+spec:
+  mcp_server_usages:
+    - mcp_server_ref:
+        org: local          # must match McpServer metadata.org
+        kind: mcp_server    # always mcp_server (snake_case) in references
+        slug: github        # must match McpServer metadata.slug
+
+# With tool restriction (subset of McpServer's defaults)
+spec:
+  mcp_server_usages:
+    - mcp_server_ref:
+        org: local
+        kind: mcp_server
+        slug: github
+      enabled_tools:
+        - search_code
+        - get_file_contents
+        - create_pull_request
+
+# With approval overrides (agent-level customization)
+spec:
+  mcp_server_usages:
+    - mcp_server_ref:
+        org: acme-corp
+        kind: mcp_server
+        slug: github
+      enabled_tools:
+        - search_code
+        - create_pull_request
+      tool_approval_overrides:
+        - tool_name: create_pull_request
+          requires_approval: true
+          message: "Create PR in {{args.repo}}: {{args.title}}"
+        - tool_name: merge_pull_request
+          requires_approval: false  # this trusted agent doesn't need approval to merge
+```

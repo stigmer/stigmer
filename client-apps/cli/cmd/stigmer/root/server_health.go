@@ -3,7 +3,8 @@ package root
 import (
 	"fmt"
 	"os"
-	"os/exec"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -16,74 +17,22 @@ func isProcessAlive(pid int) bool {
 	if err != nil {
 		return false
 	}
-
-	err = process.Signal(syscall.Signal(0))
-	return err == nil
+	return process.Signal(syscall.Signal(0)) == nil
 }
 
-func isDockerContainerRunning(containerID string) bool {
-	cmd := exec.Command("docker", "inspect", "-f", "{{.State.Running}}", containerID)
-	output, err := cmd.Output()
+func readPIDFile(dataDir, filename string) int {
+	data, err := os.ReadFile(filepath.Join(dataDir, filename))
 	if err != nil {
-		return false
+		return 0
 	}
-
-	return strings.TrimSpace(string(output)) == "true"
+	pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
+	if err != nil {
+		return 0
+	}
+	return pid
 }
 
-// createBasicHealthStatus creates a basic health status map when the health
-// monitor isn't accessible (status command runs in a separate process from the daemon).
-func createBasicHealthStatus(dataDir string, stigmerPID int) map[string]daemon.ComponentHealth {
-	healthMap := make(map[string]daemon.ComponentHealth)
-
-	healthMap["stigmer-server"] = daemon.ComponentHealth{
-		State: daemon.ComponentState("running"),
-	}
-
-	if wfPID, err := daemon.GetWorkflowRunnerPID(dataDir); err == nil {
-		if isProcessAlive(wfPID) {
-			healthMap["workflow-runner"] = daemon.ComponentHealth{
-				State: daemon.ComponentState("running"),
-			}
-		} else {
-			healthMap["workflow-runner"] = daemon.ComponentHealth{
-				State: daemon.ComponentState("unhealthy"),
-			}
-		}
-	}
-
-	agentStatus := daemon.GetAgentRunnerStatus(dataDir)
-	if agentStatus.Found {
-		health := daemon.ComponentHealth{}
-
-		if agentStatus.Restarting || agentStatus.InCrashLoop {
-			health.State = daemon.ComponentState("unhealthy")
-			if agentStatus.LastError != "" {
-				health.LastError = fmt.Errorf("%s", agentStatus.LastError)
-			} else {
-				health.LastError = fmt.Errorf("container in crash loop (%d restarts)", agentStatus.RestartCount)
-			}
-		} else if agentStatus.Running {
-			health.State = daemon.ComponentState("running")
-		} else {
-			health.State = daemon.ComponentState("stopped")
-			if agentStatus.ExitCode != 0 {
-				health.LastError = fmt.Errorf("exited with code %d", agentStatus.ExitCode)
-			}
-		}
-
-		health.RestartCount = agentStatus.RestartCount
-		healthMap["agent-runner"] = health
-	} else {
-		healthMap["agent-runner"] = daemon.ComponentHealth{
-			State: daemon.ComponentState("stopped"),
-		}
-	}
-
-	return healthMap
-}
-
-func getStateDisplay(state daemon.ComponentState) string {
+func getStateDisplay(state string) string {
 	switch state {
 	case "running":
 		return "Running"
@@ -98,24 +47,22 @@ func getStateDisplay(state daemon.ComponentState) string {
 	case "failed":
 		return "Failed"
 	default:
-		return string(state)
+		return state
 	}
 }
 
-func getHealthSymbol(state daemon.ComponentState) string {
+func getHealthSymbol(state string) string {
 	switch state {
 	case "running":
 		return "✓"
 	case "starting":
 		return "↻"
-	case "unhealthy":
+	case "unhealthy", "failed":
 		return "✗"
 	case "restarting":
 		return "↻"
 	case "stopped":
 		return "○"
-	case "failed":
-		return "✗"
 	default:
 		return "?"
 	}
@@ -132,9 +79,50 @@ func formatDuration(d time.Duration) string {
 		hours := int(d.Hours())
 		minutes := int(d.Minutes()) % 60
 		return fmt.Sprintf("%dh %dm", hours, minutes)
-	} else {
-		days := int(d.Hours()) / 24
-		hours := int(d.Hours()) % 24
-		return fmt.Sprintf("%dd %dh", days, hours)
 	}
+	days := int(d.Hours()) / 24
+	hours := int(d.Hours()) % 24
+	return fmt.Sprintf("%dd %dh", days, hours)
+}
+
+// createBasicHealthState creates a fallback HealthState by reading PID files
+// directly when health-state.json is not available.
+func createBasicHealthState(dataDir string, daemonPID int) *daemon.HealthState {
+	hs := &daemon.HealthState{
+		DaemonPID:  daemonPID,
+		Components: make(map[string]*daemon.ComponentState),
+	}
+
+	hs.Components["stigmer-server"] = &daemon.ComponentState{
+		State: "running",
+	}
+
+	if wfPID, err := daemon.GetWorkflowRunnerPID(dataDir); err == nil {
+		state := "running"
+		if !isProcessAlive(wfPID) {
+			state = "stopped"
+		}
+		hs.Components["workflow-runner"] = &daemon.ComponentState{
+			PID:   wfPID,
+			State: state,
+		}
+	} else {
+		hs.Components["workflow-runner"] = &daemon.ComponentState{State: "stopped"}
+	}
+
+	arPID := readPIDFile(dataDir, daemon.AgentRunnerPIDFileName)
+	if arPID > 0 {
+		state := "running"
+		if !isProcessAlive(arPID) {
+			state = "stopped"
+		}
+		hs.Components["agent-runner"] = &daemon.ComponentState{
+			PID:   arPID,
+			State: state,
+		}
+	} else {
+		hs.Components["agent-runner"] = &daemon.ComponentState{State: "stopped"}
+	}
+
+	return hs
 }

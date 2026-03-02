@@ -24,12 +24,17 @@ from __future__ import annotations
 
 import logging
 import os
+import shlex
 import time
 from typing import Any
 
 from deepagents.backends.protocol import BackendProtocol  # type: ignore[import-untyped]
 
+from graphton.core.backends.gitignore_filter import GitIgnoreFilter
+
 logger = logging.getLogger(__name__)
+
+_UNSET = object()
 
 
 # ---------------------------------------------------------------------------
@@ -73,10 +78,14 @@ class WorkspaceNormalizingBackend:
         inner: Any,  # noqa: ANN401
         workspace_root: str,
         sandbox_root: str | None = None,
+        env_vars: dict[str, str] | None = None,
     ) -> None:
         self._inner = inner
         self._workspace_root = workspace_root.rstrip("/")
         self._sandbox_root = (sandbox_root or workspace_root).rstrip("/")
+        self._env_vars: dict[str, str] | None = (
+            dict(env_vars) if env_vars else None
+        )
 
         # Compute rebase prefix: the relative path from the sandbox root to
         # the workspace root.  When the workspace root is a subdirectory of
@@ -101,6 +110,11 @@ class WorkspaceNormalizingBackend:
         else:
             self._rebase_prefix = ""
 
+        self._gitignore: GitIgnoreFilter | None | object = _UNSET
+
+        self._dir_cache: dict[str, list[str]] = {}
+        self._path_type_cache: dict[str, bool] = {}
+
         if self._rebase_prefix:
             logger.info(
                 "WorkspaceNormalizingBackend: rebase prefix = '%s' "
@@ -109,6 +123,55 @@ class WorkspaceNormalizingBackend:
                 self._workspace_root,
                 self._sandbox_root,
             )
+
+    # -- cache management ---------------------------------------------------
+
+    def _invalidate_cache(self) -> None:
+        """Clear directory listing and path type caches.
+
+        Called before any filesystem mutation (write, execute) to ensure
+        subsequent reads see fresh data.
+        """
+        if self._dir_cache or self._path_type_cache:
+            logger.debug(
+                "Cache invalidated (%d dir entries, %d type entries)",
+                len(self._dir_cache),
+                len(self._path_type_cache),
+            )
+        self._dir_cache.clear()
+        self._path_type_cache.clear()
+
+    # -- gitignore helpers --------------------------------------------------
+
+    def _get_gitignore(self) -> GitIgnoreFilter | None:
+        """Return the cached gitignore filter, loading lazily on first call.
+
+        Lazy because the Daytona sandbox may not have a provisioned
+        workspace at construction time — ``create_daytona_backend()``
+        runs before ``provisioner.provision()``.  By the first
+        ``list_files()`` call the workspace is fully provisioned.
+        """
+        if self._gitignore is _UNSET:
+            try:
+                content = self._inner.read(self._normalize(".gitignore"))
+                self._gitignore = GitIgnoreFilter.from_content(content)
+            except Exception:
+                self._gitignore = None
+        return self._gitignore  # type: ignore[return-value]
+
+    def _workspace_relative(self, path: str) -> str:
+        """Extract the workspace-relative portion of *path*.
+
+        Used to build correct relative paths for gitignore matching
+        *before* the rebase/normalisation step transforms them into
+        sandbox-space coordinates.
+        """
+        prefix = self._workspace_root + "/"
+        if path.startswith(prefix):
+            return path[len(prefix):]
+        if path == self._workspace_root:
+            return "."
+        return path.lstrip("/") or "."
 
     # -- path helpers -------------------------------------------------------
 
@@ -184,22 +247,68 @@ class WorkspaceNormalizingBackend:
 
     def write(self, path: str, content: str) -> None:
         """Write content to file with path normalisation."""
+        self._invalidate_cache()
         return self._inner.write(self._normalize(path), content)
 
     def write_file(self, path: str, content: str) -> None:
         """Write content to file with path normalisation (alias)."""
+        self._invalidate_cache()
         return self._inner.write_file(self._normalize(path), content)
 
     def list_files(self, path: str = ".") -> list[str]:
-        """List directory contents with path normalisation."""
-        return self._inner.list_files(self._normalize(path))
+        """List directory contents with path normalisation and gitignore filtering.
+
+        Results are cached per-instance; ``write()``, ``write_file()``,
+        and ``execute()`` invalidate the cache.
+        """
+        norm_path = self._normalize(path)
+        cached = self._dir_cache.get(norm_path)
+        if cached is not None:
+            return list(cached)
+
+        entries = self._inner.list_files(norm_path)
+        gitignore = self._get_gitignore()
+        if gitignore is not None:
+            ws_rel = self._workspace_relative(path)
+            entries = [
+                name for name in entries
+                if not gitignore.is_ignored(
+                    f"{ws_rel}/{name}" if ws_rel not in (".", "") else name,
+                    is_dir=None,
+                )
+            ]
+
+        self._dir_cache[norm_path] = entries
+        return list(entries)
 
     def is_directory(self, path: str) -> bool:
-        """Check whether path is a directory, with path normalisation."""
-        return self._inner.is_directory(self._normalize(path))
+        """Check whether path is a directory, with path normalisation.
+
+        Results are cached per-instance; ``write()``, ``write_file()``,
+        and ``execute()`` invalidate the cache.
+        """
+        norm_path = self._normalize(path)
+        cached = self._path_type_cache.get(norm_path)
+        if cached is not None:
+            return cached
+        result = self._inner.is_directory(norm_path)
+        self._path_type_cache[norm_path] = result
+        return result
 
     def execute(self, command: str, **kwargs: Any) -> Any:  # noqa: ANN401
-        """Execute shell command -- no path normalisation needed."""
+        """Execute shell command with injected env vars.
+
+        When ``env_vars`` were provided at construction, each variable is
+        exported before the user command so it is available in the remote
+        sandbox shell.
+        """
+        self._invalidate_cache()
+        if self._env_vars:
+            exports = "; ".join(
+                f"export {k}={shlex.quote(v)}"
+                for k, v in self._env_vars.items()
+            )
+            command = f"{exports}; {command}"
         return self._inner.execute(command, **kwargs)
 
     # -- transparent delegation for everything else -------------------------
@@ -315,8 +424,15 @@ def create_daytona_backend(config: dict[str, Any]) -> BackendProtocol:
         workspace_root = sandbox_root
         logger.info("Using sandbox root as workspace root: %s", workspace_root)
 
+    env_vars = config.get("env_vars")
+
     inner = DaytonaBackend(sandbox)
-    return WorkspaceNormalizingBackend(inner, workspace_root, sandbox_root=sandbox_root)
+    return WorkspaceNormalizingBackend(
+        inner,
+        workspace_root,
+        sandbox_root=sandbox_root,
+        env_vars=env_vars,
+    )
 
 
 def _reuse_existing_sandbox(daytona: Any, sandbox_id: str) -> Any:

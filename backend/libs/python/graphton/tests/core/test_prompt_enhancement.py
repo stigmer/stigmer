@@ -83,6 +83,15 @@ class TestCapabilitySections:
         assert "never echo" in FILESYSTEM_CAPABILITY.lower()
         assert "proceed directly" in FILESYSTEM_CAPABILITY.lower()
 
+    def test_filesystem_capability_includes_context_efficiency(self):
+        """Test that file system capability includes context efficiency guidance."""
+        lower = FILESYSTEM_CAPABILITY.lower()
+        assert "context efficiency" in lower
+        assert "grep" in lower
+        assert "glob" in lower
+        assert "offset" in lower
+        assert "limit" in lower
+
     def test_mcp_tools_capability_content(self):
         """Test MCP tools capability section content."""
         assert "mcp" in MCP_TOOLS_CAPABILITY.lower()

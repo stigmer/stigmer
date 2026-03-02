@@ -63,16 +63,23 @@ type contentBlock struct {
 	toolState string
 
 	// subAgentID is set when this block originates from a sub-agent execution.
-	// Used by the renderer to detect context switches between agents and
-	// insert visual separator lines (e.g., "── researcher ──") when the
-	// active agent changes.
+	// Used by the renderer to associate content blocks with their sub-agent
+	// header block (blockSubAgent). When a header exists for this ID, no
+	// separator is rendered; a fallback separator appears only for orphaned
+	// blocks whose header was lost.
 	subAgentID string
 
 	// subAgentName is the human-readable name for the sub-agent (e.g.,
-	// "researcher", "code_editor"). Populated from the Model's subAgentMeta
-	// map when the block is created. Used by the renderer to label context
-	// separator lines.
+	// "generalPurpose", "explore"). Populated from the Model's subAgentMeta
+	// map when the block is created. Used by the fallback separator label
+	// when the header block is missing.
 	subAgentName string
+
+	// hidden is true when this block should be excluded from rendering,
+	// focus navigation, and scroll math. Controlled by the parent
+	// blockSubAgent header's expand/collapse state: when the header is
+	// collapsed, all child blocks with matching subAgentID are hidden.
+	hidden bool
 }
 
 // displayContent returns the text that should be shown for this block.
@@ -205,20 +212,20 @@ func newTodoBlock(preview, full string) contentBlock {
 	}
 }
 
-// newSubAgentBlock creates an expandable header block for a sub-agent
-// delegation. Collapsed view shows the sub-agent type and a short task
-// description; expanded view adds the full prompt in a gutter-bordered
-// section. The block starts collapsed by default.
+// newSubAgentBlock creates a header block for a sub-agent delegation.
+// The block is always expandable: expand/collapse controls the visibility
+// of all child blocks (tool calls, AI messages) belonging to this
+// sub-agent. Starts collapsed so the header summary is shown while child
+// blocks are hidden.
 //
-// When input is empty (no task prompt available), the block is not
-// expandable — only the header line is shown.
-func newSubAgentBlock(name, description, input string) contentBlock {
-	preview := renderSubAgentHeader(name, description, input)
-	full := renderSubAgentHeaderExpanded(name, description, input)
+// The header line includes the sub-agent type, task description, and a
+// dynamic tool count + status badge (updated in-place as events arrive).
+func newSubAgentBlock(name, description string, toolCount int, status string) contentBlock {
+	header := renderSubAgentHeader(name, description, toolCount, status)
 	return contentBlock{
 		blockType:  blockSubAgent,
-		expandable: input != "",
-		preview:    preview,
-		full:       full,
+		expandable: true,
+		preview:    header,
+		full:       header,
 	}
 }

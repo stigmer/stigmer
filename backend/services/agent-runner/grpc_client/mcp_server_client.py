@@ -21,6 +21,8 @@ from worker.config import Config
 
 logger = logging.getLogger(__name__)
 
+_DEFAULT_GRPC_TIMEOUT_SECONDS = 10.0
+
 
 class McpServerClient:
     """Client for fetching MCP server configurations from Stigmer backend.
@@ -35,12 +37,14 @@ class McpServerClient:
         >>> for server in servers:
         ...     print(f"Server: {server.metadata.name}")
     """
-    
-    def __init__(self, api_key: str) -> None:
+
+    def __init__(self, api_key: str, *, timeout: float = _DEFAULT_GRPC_TIMEOUT_SECONDS) -> None:
         """Initialize McpServerClient with authentication.
         
         Args:
             api_key: Stigmer API key for authentication.
+            timeout: Per-call gRPC deadline in seconds (must stay well under
+                     Temporal's 30s heartbeat timeout to allow graceful recovery).
         """
         config = Config.load_from_env()
         endpoint = config.stigmer_backend_endpoint
@@ -62,6 +66,7 @@ class McpServerClient:
             )
         
         self.stub = query_pb2_grpc.McpServerQueryControllerStub(self.channel)
+        self._timeout = timeout
     
     async def get(self, mcp_server_id: str) -> McpServer:
         """Fetch a single MCP server by ID.
@@ -79,7 +84,7 @@ class McpServerClient:
         request = McpServerId(value=mcp_server_id)
         
         try:
-            return await self.stub.get(request)
+            return await self.stub.get(request, timeout=self._timeout)
         except grpc.RpcError as e:
             if e.code() == grpc.StatusCode.NOT_FOUND:
                 logger.error(f"MCP server {mcp_server_id} not found")
@@ -105,7 +110,7 @@ class McpServerClient:
             ValueError: If MCP server not found or access denied.
         """
         try:
-            return await self.stub.getByReference(ref)
+            return await self.stub.getByReference(ref, timeout=self._timeout)
         except grpc.RpcError as e:
             if e.code() == grpc.StatusCode.NOT_FOUND:
                 logger.error(f"MCP server '{ref.slug}' not found")

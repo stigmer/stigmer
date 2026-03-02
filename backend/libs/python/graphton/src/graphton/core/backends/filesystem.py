@@ -16,10 +16,12 @@ from __future__ import annotations
 import logging
 import os
 import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from graphton.core.backends.gitignore_filter import GitIgnoreFilter
 from graphton.core.backends.platform_mount import (
     PLATFORM_DIR_NAME,
     STIGMER_PLATFORM_DIR_ENV,
@@ -76,6 +78,7 @@ class FilesystemBackend:
         root_dir: str | Path = ".",
         *,
         platform_dir: str | Path | None = None,
+        env_vars: dict[str, str] | None = None,
     ) -> None:
         """Initialize filesystem backend.
 
@@ -83,6 +86,9 @@ class FilesystemBackend:
             root_dir: Root directory for operations (defaults to current directory)
             platform_dir: External directory for platform files (``.stigmer/``).
                 When set, ``.stigmer/*`` paths resolve here instead of root_dir.
+            env_vars: Extra environment variables injected into every
+                ``execute()`` subprocess.  Sourced from the agent's
+                ``env_spec`` and CLI ``--env`` overrides.
         """
         self.root_dir = Path(root_dir).resolve()
         self.root_dir.mkdir(parents=True, exist_ok=True)
@@ -92,6 +98,60 @@ class FilesystemBackend:
             self._platform_root.mkdir(parents=True, exist_ok=True)
         else:
             self._platform_root = None
+
+        self._env_vars: dict[str, str] | None = (
+            dict(env_vars) if env_vars else None
+        )
+
+        self._gitignore: GitIgnoreFilter | None = GitIgnoreFilter.from_file(
+            self.root_dir / ".gitignore",
+        )
+
+        self._dir_cache: dict[str, list[str]] = {}
+        self._path_type_cache: dict[str, bool] = {}
+
+    # -- Cache management ------------------------------------------------------
+
+    def _invalidate_cache(self) -> None:
+        """Clear directory listing and path type caches.
+
+        Called before any filesystem mutation (write, execute) to ensure
+        subsequent reads see fresh data.
+        """
+        if self._dir_cache or self._path_type_cache:
+            logger.debug(
+                "Cache invalidated (%d dir entries, %d type entries)",
+                len(self._dir_cache),
+                len(self._path_type_cache),
+            )
+        self._dir_cache.clear()
+        self._path_type_cache.clear()
+
+    # -- Entry filtering -------------------------------------------------------
+
+    def _should_include(
+        self,
+        parent_dir: Path,
+        name: str,
+        *,
+        is_dir: bool,
+    ) -> bool:
+        """Decide whether a directory entry should be visible to agent tools.
+
+        Consolidates the three filtering layers (hidden, skip-dir, gitignore)
+        into a single predicate so that ``list_files`` and
+        ``_format_directory_listing`` share one source of truth.
+        """
+        if name.startswith(".") or name in self._SKIP_DIR_NAMES:
+            return False
+        if self._gitignore is not None:
+            try:
+                rel_path = str(parent_dir.relative_to(self.root_dir) / name)
+            except ValueError:
+                return True
+            if self._gitignore.is_ignored(rel_path, is_dir=is_dir):
+                return False
+        return True
 
     # -- Path resolution -------------------------------------------------------
 
@@ -174,8 +234,20 @@ class FilesystemBackend:
         Returns:
             ExecutionResult with exit code, stdout, and stderr
         """
+        self._invalidate_cache()
+
         try:
             env = {**os.environ, "PYTHONUNBUFFERED": "1"}
+
+            # Ensure the managed Python is first on PATH so skill scripts
+            # use the same Python (and installed packages) as the agent-runner.
+            managed_bin = str(Path(sys.executable).parent)
+            current_path = env.get("PATH", "")
+            if managed_bin not in current_path.split(os.pathsep):
+                env["PATH"] = f"{managed_bin}{os.pathsep}{current_path}"
+
+            if self._env_vars:
+                env.update(self._env_vars)
             if self._platform_root is not None:
                 env[STIGMER_PLATFORM_DIR_ENV] = str(self._platform_root)
 
@@ -250,8 +322,16 @@ class FilesystemBackend:
 
     # -- Directory listing helpers ---------------------------------------------
 
+    # Well-known directories that should never be traversed by agent tools.
+    # Entries starting with "." are already caught by the hidden-entry filter
+    # in list_files() and _format_directory_listing(); the remaining entries
+    # here cover non-hidden noise directories (build output, vendored deps).
+    #
+    # NOTE: agent-runner's _TREE_SKIP_DIRS (execute_graphton.py) mirrors this
+    # set for the system-prompt directory tree.  Keep them aligned.
     _SKIP_DIR_NAMES: frozenset[str] = frozenset({
         ".git", "__pycache__", "node_modules", ".stigmer",
+        "venv", "dist", "target", "vendor", "coverage", "bower_components",
     })
     _MAX_LISTING_ENTRIES: int = 100
 
@@ -276,14 +356,14 @@ class FilesystemBackend:
 
         for child in children:
             name = child.name
-            if name.startswith(".") or name in self._SKIP_DIR_NAMES:
+            child_is_dir = child.is_dir()
+            if not self._should_include(dir_path, name, is_dir=child_is_dir):
                 continue
             try:
-                if child.is_dir():
+                if child_is_dir:
                     item_count = sum(
                         1 for c in child.iterdir()
-                        if not c.name.startswith(".")
-                        and c.name not in self._SKIP_DIR_NAMES
+                        if self._should_include(child, c.name, is_dir=c.is_dir())
                     )
                     label = "item" if item_count == 1 else "items"
                     dirs.append(f"  {name}/  ({item_count} {label})")
@@ -315,6 +395,7 @@ class FilesystemBackend:
         Raises:
             ValueError: If path escapes sandbox root
         """
+        self._invalidate_cache()
         file_path = self._resolve_sandbox_path(path)
         file_path.parent.mkdir(parents=True, exist_ok=True)
         file_path.write_text(content)
@@ -324,24 +405,36 @@ class FilesystemBackend:
 
         Returns ``False`` for files, non-existent paths, or paths that
         escape the sandbox root.  Never raises.
+
+        Results are cached per-instance; cache is invalidated by
+        ``write_file()`` and ``execute()``.
         """
         try:
             resolved = self._resolve_sandbox_path(path)
-            return resolved.is_dir()
+            cache_key = str(resolved)
+            cached = self._path_type_cache.get(cache_key)
+            if cached is not None:
+                return cached
+            result = resolved.is_dir()
+            self._path_type_cache[cache_key] = result
+            return result
         except (ValueError, OSError):
             return False
 
     def list_files(self, path: str = ".") -> list[str]:
         """List files in directory.
 
-        Hidden entries (names starting with ``"."``) and well-known noise
-        directories (``.git``, ``__pycache__``, ``node_modules``) are
-        excluded so that recursive tool traversals never descend into
-        infrastructure directories.
+        Hidden entries (names starting with ``"."``) and directories listed
+        in ``_SKIP_DIR_NAMES`` are excluded so that recursive tool traversals
+        never descend into infrastructure or generated-output directories.
 
         When ``platform_dir`` is set and *path* resolves to the workspace
         root, a virtual ``.stigmer`` entry is merged into the listing so
         the agent discovers the platform namespace.
+
+        Results are cached per-instance; the first call for a directory does
+        real I/O and populates the cache, subsequent calls return the cached
+        result.  ``write_file()`` and ``execute()`` invalidate the cache.
 
         Raises:
             ValueError: If path escapes sandbox root
@@ -364,11 +457,17 @@ class FilesystemBackend:
             logger.debug(msg)
             raise NotADirectoryError(msg)
 
-        entries = [
-            item.name for item in dir_path.iterdir()
-            if not item.name.startswith(".")
-            and item.name not in self._SKIP_DIR_NAMES
-        ]
+        cache_key = str(dir_path)
+        cached = self._dir_cache.get(cache_key)
+        if cached is not None:
+            return list(cached)
+
+        entries: list[str] = []
+        for item in dir_path.iterdir():
+            child_is_dir = item.is_dir()
+            self._path_type_cache[str(item)] = child_is_dir
+            if self._should_include(dir_path, item.name, is_dir=child_is_dir):
+                entries.append(item.name)
 
         # Inject virtual .stigmer entry at the workspace root level.
         if (
@@ -378,4 +477,5 @@ class FilesystemBackend:
         ):
             entries.append(PLATFORM_DIR_NAME)
 
-        return entries
+        self._dir_cache[cache_key] = entries
+        return list(entries)

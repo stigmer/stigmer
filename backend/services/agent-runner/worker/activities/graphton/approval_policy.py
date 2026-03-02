@@ -374,10 +374,6 @@ def resolve_tool_approval(
     """
     # Priority 1: auto_approve_all bypasses everything
     if auto_approve_all:
-        logger.debug(
-            f"[APPROVAL] tool={tool_name} server={mcp_server_name} "
-            f"result=BYPASS source=auto_approve_all"
-        )
         return ApprovalRequirement(
             requires_approval=False,
             message="",
@@ -400,7 +396,7 @@ def resolve_tool_approval(
             if not message:
                 message = DEFAULT_APPROVAL_MESSAGE_TEMPLATE.format(tool_name=tool_name)
             
-            logger.debug(
+            logger.info(
                 f"[APPROVAL] tool={tool_name} server={mcp_server_name} "
                 f"result=REQUIRED source=agent_override"
             )
@@ -411,11 +407,6 @@ def resolve_tool_approval(
                 mcp_server=mcp_server_name,
             )
         else:
-            # Override explicitly disables approval
-            logger.debug(
-                f"[APPROVAL] tool={tool_name} server={mcp_server_name} "
-                f"result=DISABLED source=agent_override"
-            )
             return ApprovalRequirement(
                 requires_approval=False,
                 message="",
@@ -430,7 +421,7 @@ def resolve_tool_approval(
         if not message:
             message = DEFAULT_APPROVAL_MESSAGE_TEMPLATE.format(tool_name=tool_name)
         
-        logger.debug(
+        logger.info(
             f"[APPROVAL] tool={tool_name} server={mcp_server_name} "
             f"result=REQUIRED source=mcp_default"
         )
@@ -455,7 +446,7 @@ def resolve_tool_approval(
             if not message:
                 message = DEFAULT_APPROVAL_MESSAGE_TEMPLATE.format(tool_name=tool_name)
             
-            logger.debug(
+            logger.info(
                 f"[APPROVAL] tool={tool_name} server={mcp_server_name} "
                 f"result=REQUIRED source=platform_default"
             )
@@ -463,13 +454,9 @@ def resolve_tool_approval(
                 requires_approval=True,
                 message=message,
                 source="platform_default",
-                mcp_server=PLATFORM_SERVER_NAME,  # Use platform server marker
+                mcp_server=PLATFORM_SERVER_NAME,
             )
         else:
-            logger.debug(
-                f"[APPROVAL] tool={tool_name} server={mcp_server_name} "
-                f"result=NOT_REQUIRED source=platform_default"
-            )
             return ApprovalRequirement(
                 requires_approval=False,
                 message="",
@@ -477,11 +464,6 @@ def resolve_tool_approval(
                 mcp_server=PLATFORM_SERVER_NAME,  # Use platform server marker
             )
     
-    # No policy matched - tool does not require approval
-    logger.debug(
-        f"[APPROVAL] tool={tool_name} server={mcp_server_name} "
-        f"result=NOT_REQUIRED source=none"
-    )
     return ApprovalRequirement(
         requires_approval=False,
         message="",

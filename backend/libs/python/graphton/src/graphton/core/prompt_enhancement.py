@@ -81,7 +81,7 @@ Skip planning for simple single-step tasks. Use it when the task has 3+ distinct
 
 FILESYSTEM_CAPABILITY = """
 **File System**: You have file system tools (`ls`, `read`, `write`, `edit`,
-`glob`, `grep`) for managing information. Use the file system to:
+`glob`, `grep`, `search`) for managing information. Use the file system to:
 - Store large content that doesn't fit in context
 - Maintain state between operations
 - Search and discover files across directories
@@ -93,6 +93,16 @@ Available Skills and Input Files sections.
 **Output Discipline**: When you read files, their contents are captured in tool
 results already present in your context. NEVER echo, reprint, list, or summarize
 file contents in your response text. Proceed directly to analysis and action.
+
+**Context Efficiency**: Every file you read consumes context window budget. Be
+strategic:
+- Use `search` to find code definitions by concept (classes, functions, types,
+  interfaces).  Use `grep` for exact text patterns.
+- Use `grep` to locate relevant sections before reading entire files
+- Use `glob` to find specific files rather than listing directories manually
+- For large files, pass `offset` and `limit` to `read` to fetch only the lines
+  you need instead of the entire file
+- Prefer targeted reads over broad exploration
 """
 
 MCP_TOOLS_CAPABILITY = """

@@ -226,7 +226,6 @@ func executeResolvedAgent(input resolvedAgentExecInput) error {
 		}
 
 		execInput.SessionID = session.GetMetadata().GetId()
-		execInput.AgentID = ""
 	}
 
 	totalInputFiles := len(input.AttachResult.Attachments) + len(input.AttachResult.WorkspaceFileRefs)
