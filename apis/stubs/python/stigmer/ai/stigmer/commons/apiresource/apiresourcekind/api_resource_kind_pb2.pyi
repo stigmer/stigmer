@@ -16,9 +16,9 @@ class ApiResourceVersion(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
 
 class ResourceTier(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
-    TIER_UNSPECIFIED: _ClassVar[ResourceTier]
-    TIER_OPEN_SOURCE: _ClassVar[ResourceTier]
-    TIER_CLOUD_ONLY: _ClassVar[ResourceTier]
+    resource_tier_unspecified: _ClassVar[ResourceTier]
+    open_source: _ClassVar[ResourceTier]
+    cloud_only: _ClassVar[ResourceTier]
 
 class PlatformIdValue(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -49,9 +49,9 @@ class ApiResourceKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     project: _ClassVar[ApiResourceKind]
 api_resource_version_unspecified: ApiResourceVersion
 v1: ApiResourceVersion
-TIER_UNSPECIFIED: ResourceTier
-TIER_OPEN_SOURCE: ResourceTier
-TIER_CLOUD_ONLY: ResourceTier
+resource_tier_unspecified: ResourceTier
+open_source: ResourceTier
+cloud_only: ResourceTier
 platform_id_value_unspecified: PlatformIdValue
 stigmer: PlatformIdValue
 api_resource_kind_unknown: ApiResourceKind

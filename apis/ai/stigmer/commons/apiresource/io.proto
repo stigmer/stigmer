@@ -48,14 +48,20 @@ message FindApiResourcesRequest {
 // Used across resources to reference other resources (e.g., Environment, Agent, Skill).
 // Canonical format: "org/slug" (e.g., "stigmer/web-search", "acme/my-agent").
 message ApiResourceReference {
-  // Organization that owns the referenced resource. Required.
-  // Format: lowercase alphanumeric with hyphens, must start with a letter (e.g., "stigmer", "acme-corp").
-  // Length: 1-63 characters.
+  // Organization that owns the referenced resource.
+  //
+  // When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens,
+  // starts with a letter, 1-63 characters). Example: "stigmer", "acme-corp".
+  //
+  // When empty: the reference is relative — the server resolves it to the parent
+  // resource's organization at write time. All stored and returned references
+  // always have org populated (absolute form).
+  //
+  // Use empty org for same-org references (the common case).
+  // Use explicit org for cross-org references (e.g., marketplace resources).
   string org = 1 [
-    (buf.validate.field).required = true,
-    (buf.validate.field).string.pattern = "^[a-z][a-z0-9-]*$",
-    (buf.validate.field).string.min_len = 1,
-    (buf.validate.field).string.max_len = 63
+    (buf.validate.field).string.max_len = 63,
+    (buf.validate.field).string.pattern = "^$|^[a-z][a-z0-9-]*$"
   ];
 
   // Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).
