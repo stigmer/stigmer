@@ -52,6 +52,7 @@ interactively. The generated agent YAML will be saved to the output directory
   # Override organization
   stigmer draft agent -m "Create an agent for X" --org acme-corp`,
 		Run: func(cmd *cobra.Command, args []string) {
+			opts.OrgOverride = GetOrgFlag(cmd)
 			clierr.Handle(executeDraft(agentCreatorConfig, opts))
 		},
 	}

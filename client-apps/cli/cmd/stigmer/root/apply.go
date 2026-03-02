@@ -22,7 +22,6 @@ import (
 func NewApplyCommand() *cobra.Command {
 	var dryRun bool
 	var configDir string
-	var orgOverride string
 	var pruneEnabled bool
 	var filePath string
 	var jsonOutput, quietOutput bool
@@ -64,6 +63,7 @@ DECLARATIVE MODE supports:
 		Run: func(cmd *cobra.Command, args []string) {
 			var err error
 			format := resolveResultFormat(jsonOutput, quietOutput)
+			orgOverride := GetOrgFlag(cmd)
 
 			if filePath != "" {
 				err = executeFileApply(fileApplyOptions{
@@ -113,7 +113,6 @@ DECLARATIVE MODE supports:
 	cmd.Flags().StringVar(&configDir, "config", "", "path to project directory (project mode)")
 	cmd.Flags().BoolVar(&pruneEnabled, "prune", true, "delete orphaned resources (project mode)")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "validate without applying")
-	cmd.Flags().StringVar(&orgOverride, "org", "", "organization ID override")
 	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
 
 	return cmd

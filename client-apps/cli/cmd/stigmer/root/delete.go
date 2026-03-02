@@ -19,7 +19,6 @@ import (
 // NewDeleteCommand creates the unified delete command.
 func NewDeleteCommand() *cobra.Command {
 	var force bool
-	var orgOverride string
 	var jsonOutput, quietOutput bool
 
 	cmd := &cobra.Command{
@@ -58,7 +57,7 @@ For executions, this gracefully cancels the running agent.`,
 			err := executeDelete(deleteOptions{
 				TypeArg:      args[0],
 				Reference:    args[1],
-				OrgOverride:  orgOverride,
+				OrgOverride:  GetOrgFlag(cmd),
 				Force:        force,
 				OutputFormat: resolveResultFormat(jsonOutput, quietOutput),
 			})
@@ -67,7 +66,6 @@ For executions, this gracefully cancels the running agent.`,
 	}
 
 	cmd.Flags().BoolVarP(&force, "force", "f", false, "skip confirmation prompt")
-	cmd.Flags().StringVar(&orgOverride, "org", "", "organization ID override")
 	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
 
 	return cmd

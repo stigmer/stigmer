@@ -49,7 +49,7 @@ Source: `ApiResourceMetadata` in `ai/stigmer/commons/apiresource/metadata.proto`
 |---|---|---|---|
 | `name` | Yes | String | Human-readable name. |
 | `slug` | No | `^[a-z][a-z0-9-]*$`, 1-63 chars | URL-friendly identifier, unique within org. Auto-generated from `name` if omitted. |
-| `org` | Conditional | `^[a-z][a-z0-9-]*$`, 1-63 chars | **Local mode**: defaults to `local` if omitted. **Cloud mode**: required. |
+| `org` | Yes | `^[a-z][a-z0-9-]*$`, 1-63 chars | Use the value from the `STIGMER_ORG_ID` environment variable. Always set. |
 | `visibility` | No | Enum string | `visibility_private` (default) or `visibility_public`. Public agents appear in marketplace. |
 | `tags` | No | `[]string` | Categorization strings for search and filtering. |
 | `labels` | No | `map<string,string>` | Key-value pairs for organization (e.g., `team: engineering`). |
@@ -90,7 +90,7 @@ Source: `McpServerUsage` message in `spec.proto`.
 ```yaml
 mcp_server_usages:
   - mcp_server_ref:
-      org: local
+      org: <STIGMER_ORG_ID>   # read from STIGMER_ORG_ID env var
       kind: mcp_server
       slug: github
     enabled_tools:
@@ -157,10 +157,10 @@ YAML always uses string `skill`).
 
 ```yaml
 skill_refs:
-  - org: local
+  - org: <STIGMER_ORG_ID>   # read from STIGMER_ORG_ID env var
     kind: skill
     slug: code-review-best-practices
-  - org: acme-corp
+  - org: <STIGMER_ORG_ID>
     kind: skill
     slug: security-checklist
     version: stable
@@ -201,7 +201,7 @@ sub_agents:
           - search_code
           - get_file
     skill_refs:
-      - org: local
+      - org: <STIGMER_ORG_ID>
         kind: skill
         slug: security-checklist
 ```
@@ -251,7 +251,7 @@ Used for both `mcp_server_ref` (inside `McpServerUsage`) and items in `skill_ref
 
 | Field | Required | Format | Notes |
 |---|---|---|---|
-| `org` | Yes | `^[a-z][a-z0-9-]*$`, 1-63 chars | Organization owning the resource. `local` for local mode. |
+| `org` | Yes | `^[a-z][a-z0-9-]*$`, 1-63 chars | Organization owning the resource. Use `STIGMER_ORG_ID`. |
 | `kind` | Yes | Lowercase enum string | `skill` or `mcp_server`. Never use integers (43, 44). |
 | `slug` | Yes | `^[a-z][a-z0-9-]*$`, 1-63 chars | Resource slug. Must start with a letter. |
 | `version` | No | Tag, hash, or empty | Meaningful only for skills. |

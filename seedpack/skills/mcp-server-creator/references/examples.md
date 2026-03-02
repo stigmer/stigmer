@@ -13,7 +13,7 @@ apiVersion: agentic.stigmer.ai/v1
 kind: McpServer
 metadata:
   name: github
-  org: local
+  org: <STIGMER_ORG_ID>     # read from STIGMER_ORG_ID env var
 spec:
   description: "GitHub MCP server for repository operations"
   stdio:
@@ -37,7 +37,7 @@ apiVersion: agentic.stigmer.ai/v1
 kind: McpServer
 metadata:
   name: github
-  org: local
+  org: <STIGMER_ORG_ID>     # read from STIGMER_ORG_ID env var
   tags:
     - git
     - vcs
@@ -68,7 +68,7 @@ apiVersion: agentic.stigmer.ai/v1
 kind: McpServer
 metadata:
   name: postgres
-  org: local
+  org: <STIGMER_ORG_ID>     # read from STIGMER_ORG_ID env var
   labels:
     category: database
   tags:
@@ -155,7 +155,7 @@ apiVersion: agentic.stigmer.ai/v1
 kind: McpServer
 metadata:
   name: web-search
-  org: local
+  org: <STIGMER_ORG_ID>     # read from STIGMER_ORG_ID env var
   tags:
     - search
     - web
@@ -289,7 +289,7 @@ apiVersion: agentic.stigmer.ai/v1
 kind: McpServer
 metadata:
   name: sqlite-database
-  org: local
+  org: <STIGMER_ORG_ID>     # read from STIGMER_ORG_ID env var
 spec:
   description: "SQLite MCP server for local database access"
   stdio:
@@ -312,7 +312,7 @@ spec:
 spec:
   mcp_server_usages:
     - mcp_server_ref:
-        org: local          # must match McpServer metadata.org
+        org: <STIGMER_ORG_ID>     # read from STIGMER_ORG_ID env var          # must match McpServer metadata.org
         kind: mcp_server    # always mcp_server (snake_case) in references
         slug: github        # must match McpServer metadata.slug
 
@@ -320,7 +320,7 @@ spec:
 spec:
   mcp_server_usages:
     - mcp_server_ref:
-        org: local
+        org: <STIGMER_ORG_ID>     # read from STIGMER_ORG_ID env var
         kind: mcp_server
         slug: github
       enabled_tools:

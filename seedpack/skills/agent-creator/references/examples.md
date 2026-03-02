@@ -29,7 +29,7 @@ apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
   name: simple-assistant
-  org: local
+  org: <STIGMER_ORG_ID>     # read from STIGMER_ORG_ID env var
 spec:
   description: "A helpful assistant that answers questions clearly and concisely."
   instructions: |
@@ -38,7 +38,7 @@ spec:
 ```
 
 **Key points:**
-- `org: local` — local development mode
+- `org` uses `STIGMER_ORG_ID` from the environment
 - `instructions` exceeds 10-character minimum ✓
 - No `status` field ✓
 - `description` provides meaningful UI display ✓
@@ -55,7 +55,7 @@ apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
   name: code-reviewer
-  org: local
+  org: <STIGMER_ORG_ID>     # read from STIGMER_ORG_ID env var
   tags:
     - code-review
     - security
@@ -68,10 +68,10 @@ spec:
     3. Identify performance bottlenecks
     4. Suggest specific, actionable improvements with line references
   skill_refs:
-    - org: local
+    - org: <STIGMER_ORG_ID>
       kind: skill           # lowercase string, never 43
       slug: code-analysis
-    - org: local
+    - org: <STIGMER_ORG_ID>
       kind: skill
       slug: security-checklist
       version: stable       # pinned to mutable "stable" tag
@@ -95,7 +95,7 @@ apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
   name: github-assistant
-  org: local
+  org: <STIGMER_ORG_ID>     # read from STIGMER_ORG_ID env var
   labels:
     team: engineering
 spec:
@@ -108,7 +108,7 @@ spec:
     Always get and review the relevant files before creating a PR.
   mcp_server_usages:
     - mcp_server_ref:
-        org: local
+        org: <STIGMER_ORG_ID>
         kind: mcp_server    # lowercase string, never 44
         slug: github        # confirm with get_mcp_server(slug="github")
       enabled_tools:
@@ -137,7 +137,7 @@ apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
   name: deployment-bot
-  org: local
+  org: <STIGMER_ORG_ID>     # read from STIGMER_ORG_ID env var
 spec:
   description: "Automates deployment workflows with mandatory human approval for production changes."
   instructions: |
@@ -146,7 +146,7 @@ spec:
     Prefer rollbacks over retries when a deployment fails.
   mcp_server_usages:
     - mcp_server_ref:
-        org: local
+        org: <STIGMER_ORG_ID>
         kind: mcp_server
         slug: kubernetes
       enabled_tools:
@@ -186,7 +186,7 @@ apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
   name: engineering-coordinator
-  org: local
+  org: <STIGMER_ORG_ID>     # read from STIGMER_ORG_ID env var
 spec:
   description: "Coordinates engineering tasks by delegating to specialized sub-agents."
   instructions: |
@@ -196,7 +196,7 @@ spec:
     Handle general questions directly without delegating.
   mcp_server_usages:
     - mcp_server_ref:
-        org: local
+        org: <STIGMER_ORG_ID>
         kind: mcp_server
         slug: github
       enabled_tools:
@@ -221,7 +221,7 @@ spec:
             - get_file
             - create_review_comment
       skill_refs:                            # independent of parent's skills
-        - org: local
+        - org: <STIGMER_ORG_ID>
           kind: skill
           slug: security-checklist
 
@@ -257,7 +257,7 @@ apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
   name: deployment-assistant
-  org: local
+  org: <STIGMER_ORG_ID>     # read from STIGMER_ORG_ID env var
   labels:
     team: devops
     environment: production
@@ -284,7 +284,7 @@ spec:
 
   mcp_server_usages:
     - mcp_server_ref:
-        org: local
+        org: <STIGMER_ORG_ID>
         kind: mcp_server
         slug: github
       enabled_tools:
@@ -292,7 +292,7 @@ spec:
         - get_file
         - create_pr
     - mcp_server_ref:
-        org: local
+        org: <STIGMER_ORG_ID>
         kind: mcp_server
         slug: kubernetes
       enabled_tools:
@@ -308,10 +308,10 @@ spec:
           requires_approval: false
 
   skill_refs:
-    - org: local
+    - org: <STIGMER_ORG_ID>
       kind: skill
       slug: kubernetes-runbook
-    - org: local
+    - org: <STIGMER_ORG_ID>
       kind: skill
       slug: deployment-procedures
       version: stable
@@ -402,7 +402,7 @@ apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
   name: database-analyst
-  org: local
+  org: <STIGMER_ORG_ID>     # read from STIGMER_ORG_ID env var
 spec:
   description: "Analyzes database query performance and suggests optimizations."
   instructions: |
@@ -411,7 +411,7 @@ spec:
     plan, identify bottlenecks, and suggest optimized alternatives.
   mcp_server_usages:
     - mcp_server_ref:
-        org: local
+        org: <STIGMER_ORG_ID>
         kind: mcp_server
         slug: postgres
       enabled_tools:

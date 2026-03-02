@@ -25,7 +25,6 @@ import (
 // NewGetCommand creates the unified get command.
 func NewGetCommand() *cobra.Command {
 	var outputFormat string
-	var orgOverride string
 
 	cmd := &cobra.Command{
 		Use:   "get <type> <name-or-id>",
@@ -64,7 +63,7 @@ The reference can be:
 			err := executeGet(getOptions{
 				TypeArg:      args[0],
 				Reference:    args[1],
-				OrgOverride:  orgOverride,
+				OrgOverride:  GetOrgFlag(cmd),
 				OutputFormat: outputFormat,
 			})
 			clierr.Handle(err)
@@ -72,7 +71,6 @@ The reference can be:
 	}
 
 	cmd.Flags().StringVarP(&outputFormat, "output", "o", "table", "output format: table, yaml, json")
-	cmd.Flags().StringVar(&orgOverride, "org", "", "organization ID override")
 
 	return cmd
 }

@@ -17,7 +17,6 @@ import (
 // NewSearchCommand creates the unified search command.
 func NewSearchCommand() *cobra.Command {
 	var outputFormat string
-	var orgOverride string
 	var excludePublic bool
 	var page int32
 	var pageSize int32
@@ -63,7 +62,7 @@ Output formats:
 			err := executeSearch(searchOptions{
 				TypeArg:       args[0],
 				Query:         args[1],
-				OrgOverride:   orgOverride,
+				OrgOverride:   GetOrgFlag(cmd),
 				ExcludePublic: excludePublic,
 				OutputFormat:  outputFormat,
 				Page:          page,
@@ -74,7 +73,6 @@ Output formats:
 	}
 
 	cmd.Flags().StringVarP(&outputFormat, "output", "o", "table", "output format: table, yaml, json")
-	cmd.Flags().StringVar(&orgOverride, "org", "", "search within specific organization")
 	cmd.Flags().BoolVar(&excludePublic, "exclude-public", false, "exclude public/platform resources")
 	cmd.Flags().Int32Var(&page, "page", 1, "page number (1-indexed)")
 	cmd.Flags().Int32Var(&pageSize, "page-size", 20, "results per page (max 100)")

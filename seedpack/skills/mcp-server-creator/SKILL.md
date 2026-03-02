@@ -35,8 +35,7 @@ Before writing any YAML, ask:
 3. **What credentials does it need?** List each env var, whether it's a secret, and the required format/permissions.
 4. **Which tools should be on by default?** If the server has destructive tools (delete, drop, send), should they be excluded from defaults?
 5. **Which tools should require user approval?** Anything that modifies production state, sends messages, or deletes resources.
-6. **Who owns this?** (`org: local` for local-mode development; real org slug for cloud/team use)
-7. **Is it private or public?** Private = org only. Public = marketplace, any org can reference it.
+6. **Is it private or public?** Private = org only. Public = marketplace, any org can reference it.
 
 If the user has already described the system, proceed directly to authoring. Only ask for missing critical information.
 
@@ -155,7 +154,7 @@ apiVersion: agentic.stigmer.ai/v1
 kind: McpServer
 metadata:
   name: <human-readable-name>                 # required
-  org: local                                  # local mode; use org slug for cloud
+  org: <STIGMER_ORG_ID>                       # read from STIGMER_ORG_ID env var
   slug: <url-friendly-slug>                   # optional — auto-derived from name
   visibility: visibility_private              # optional — visibility_public for marketplace
   labels:                                     # optional
@@ -233,7 +232,7 @@ After delivering the McpServer YAML, always explain how agents reference it. Rea
 # In an Agent's spec.mcp_server_usages:
 mcp_server_usages:
   - mcp_server_ref:
-      org: local            # matches McpServer metadata.org
+      org: <STIGMER_ORG_ID>   # matches McpServer metadata.org
       kind: mcp_server      # snake_case in ApiResourceReference (not McpServer)
       slug: github          # matches McpServer metadata.slug
     enabled_tools:          # optional — subset of McpServer's default_enabled_tools

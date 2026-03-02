@@ -23,7 +23,6 @@ import (
 // NewListCommand creates the unified list command.
 func NewListCommand() *cobra.Command {
 	var outputFormat string
-	var orgOverride string
 	var limit int32
 
 	cmd := &cobra.Command{
@@ -62,7 +61,7 @@ Both singular and plural forms are accepted.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := executeList(listOptions{
 				TypeArg:      args[0],
-				OrgOverride:  orgOverride,
+				OrgOverride:  GetOrgFlag(cmd),
 				OutputFormat: outputFormat,
 				Limit:        limit,
 			})
@@ -71,7 +70,6 @@ Both singular and plural forms are accepted.`,
 	}
 
 	cmd.Flags().StringVarP(&outputFormat, "output", "o", "table", "output format: table, yaml, json")
-	cmd.Flags().StringVar(&orgOverride, "org", "", "organization ID override")
 	cmd.Flags().Int32Var(&limit, "limit", 50, "maximum number of results")
 
 	return cmd

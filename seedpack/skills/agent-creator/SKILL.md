@@ -20,14 +20,13 @@ Before writing any YAML, resolve these questions from the user's request or by
 asking:
 
 1. **Purpose** — What does this agent do? What is its core task?
-2. **Org** — Local development (`local`) or a named cloud org?
-3. **Tools needed** — Does the agent need to act on external systems
+2. **Tools needed** — Does the agent need to act on external systems
    (GitHub, Slack, databases, APIs)? If yes, which ones?
-4. **Knowledge needed** — Does it need specialized domain knowledge packaged
+3. **Knowledge needed** — Does it need specialized domain knowledge packaged
    as a Skill?
-5. **Delegation** — Should specialized sub-tasks be routed to focused
+4. **Delegation** — Should specialized sub-tasks be routed to focused
    sub-agents?
-6. **Approvals** — Are any tool calls sensitive enough to require human
+5. **Approvals** — Are any tool calls sensitive enough to require human
    confirmation before execution?
 
 If the intent is ambiguous, **ask before proceeding**. Never guess.
@@ -84,7 +83,7 @@ apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
   name: <human-readable-name>
-  org: <org-slug>            # "local" for local mode; real org slug for cloud
+  org: <org-slug>            # use the STIGMER_ORG_ID environment variable
   # Optional metadata:
   # slug: <url-friendly-id>  # auto-derived from name if omitted
   # visibility: visibility_public   # omit for private (default)
@@ -178,7 +177,7 @@ Run every item on this checklist mentally before showing the YAML to the user.
 - [ ] `spec.instructions` — present, at least 10 characters
 
 ### Metadata
-- [ ] `metadata.org` — set to `local` (local mode) or correct org slug (cloud)
+- [ ] `metadata.org` — set to the value of `STIGMER_ORG_ID` environment variable
 - [ ] `metadata.visibility` — `visibility_public` only for marketplace agents;
        omit for private (default)
 - [ ] `metadata.slug` (if provided) — lowercase alphanumeric + hyphens, starts

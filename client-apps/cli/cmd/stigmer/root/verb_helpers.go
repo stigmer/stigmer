@@ -4,10 +4,18 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/spf13/cobra"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 )
+
+// GetOrgFlag reads the --org persistent flag from the root command.
+// Returns "" if the flag was not provided.
+func GetOrgFlag(cmd *cobra.Command) string {
+	val, _ := cmd.Root().PersistentFlags().GetString("org")
+	return val
+}
 
 // formatUnsupportedVerbError creates a helpful error message for unsupported verb+type combinations.
 func formatUnsupportedVerbError(info *types.TypeInfo, verb types.Verb) error {
