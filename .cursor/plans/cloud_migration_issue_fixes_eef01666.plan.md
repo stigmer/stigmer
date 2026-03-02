@@ -16,25 +16,25 @@ todos:
     status: completed
   - id: phase1-mcp-server
     content: Fix McpServerCreateHandler + McpServerUpdateHandler — remove DockerServerConfig/VolumeMount handling
-    status: in_progress
+    status: completed
   - id: phase2-design-decisions
     content: "Resolve 3 design decisions with user: DependencyGraph disposal, dry-run retention, orphan deletion strategy"
-    status: pending
+    status: completed
   - id: phase2-domain-types
     content: Simplify DesiredState, ActualState, ReconciliationPlan, ResourceChange to reference-based model
-    status: pending
+    status: completed
   - id: phase2-reconciliation-service
     content: Rewrite ProjectReconciliationService for reference-based orphan pruning
-    status: pending
+    status: completed
   - id: phase2-cleanup
     content: Delete DependencyGraph/Builder/Discoverer (pending decision)
-    status: pending
+    status: completed
   - id: phase2-handlers
     content: Update ProjectCreateHandler, ProjectUpdateHandler, ProjectApplyHandler for new ProjectSpec
-    status: pending
+    status: completed
   - id: phase2-tests
     content: Rewrite all reconciliation and handler tests for reference-based model
-    status: pending
+    status: completed
 isProject: false
 ---
 

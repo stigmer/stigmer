@@ -13,9 +13,30 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: In Progress
-- **Last Session**: 2026-03-03 (session 4) — T01.2 complete: Organization added to CLI apply pipeline
-- **Active Task**: T01.3 (next — Make cross-references org-agnostic)
-- **Cloud Repo Status**: Migration partially complete — blocked on ProjectSpec reconciliation rearchitecture. See `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
+- **Last Session**: 2026-03-03 (session 6) — Cloud reconciliation rearchitecture complete
+- **Active Task**: T01.4 (next — Server-side org resolution for cross-refs) or T01.5 (Organization controllers)
+- **Cloud Repo Status**: Build restored. Reconciliation subsystem rearchitected for reference-based membership model. All pre-existing build failures fixed. See `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
+
+## Session Progress (2026-03-03, session 6 — Cloud Reconciliation Rearchitecture)
+- Fixed 6 pre-existing build failures in stigmer-cloud (SkillPushHandler, CreateExecutionContextStep x2, WorkflowExecutionSendSignalHandler, AgentInstance controllers, McpServer handlers)
+- Rearchitected reconciliation subsystem from embedded-resource to reference-based membership model
+- Deleted DependencyGraph/Builder/Discoverer and tests (~3,500 lines of dead code removed)
+- Added `deleteByOrgAndSlug` to `ApiResourceRepository` and `AbstractMongoApiResourceRepository`
+- Rewrote domain types: `DesiredState`, `ActualState`, `ReconciliationPlan`, `ResourceChange` for `Set<ApiResourceReference>` model
+- Rewrote `ProjectReconciliationService` for orphan-pruning-only semantics
+- Updated all handler tests to remove `ProjectRuntime`, embedded resource lists references
+- Net result: ~24,000 lines deleted, ~2,900 lines added across 172 files
+- Design decisions: delete dependency graphs, keep dry-run, add deleteByOrgAndSlug
+
+## Session Progress (2026-03-03, session 5 — T01.3: Optional Org in ApiResourceReference)
+- Completed T01.3: Made `org` optional in `ApiResourceReference` proto message
+- Removed `required = true` and `min_len = 1` from `org` field validation
+- Changed pattern to `^$|^[a-z][a-z0-9-]*$` (follows established `SearchRequest.org` precedent)
+- Updated field comment to document relative (empty) vs absolute (explicit) reference semantics
+- Regenerated Go and Python stubs via `make protos` (also caught up ResourceTier enum rename stubs from T01.2)
+- All verification passed: buf lint clean, Go build clean, 114 Bazel targets build, 38 test suites pass
+- Architectural decision: Single `ApiResourceReference` type is correct (not split into relative/absolute types) — same pattern as `version` field
+- Committed: `4f423b9f feat(apis/commons): make org optional in ApiResourceReference`
 
 ## Session Progress (2026-03-03, session 4 — T01.2: Organization Apply Pipeline)
 - Completed T01.2: Organization is now a fully supported resource kind in the CLI apply pipeline
@@ -60,25 +81,30 @@ Drop this file into your conversation to quickly resume work on this project.
 - Key decision: Merged Project into tenancy domain (not management) — Organization, Platform, and Project form the resource hierarchy bounded context
 
 ## Next Steps
-1. **T01.3**: Make cross-references org-agnostic (empty `org` in `ApiResourceReference` resolves to parent resource's org)
-2. **T01.4+**: Bootstrap real Organization resource in seedpack, replace all hardcoded `"local"` org defaults with `"default"`
-3. **T01.5**: Organization command/query controllers in OSS server (needed for gRPC calls to succeed)
+1. **T01.4**: Server-side org resolution — fill empty `org` in cross-references from parent resource's `metadata.org` at write time
+2. **T01.5**: Organization command/query controllers in OSS server (can be done in parallel with T01.4)
+3. **T01.6**: Seedpack updates — add Organization resource, update apiVersion, remove `org: local`
+4. **T01.7**: CLI defaults — replace `"local"` with `"default"`, add org context commands
 
 ## Context for Resume
-- T01.1 and T01.2 are complete in OSS
+- T01.1, T01.2, and T01.3 are complete in OSS
 - The Project proto now lives at `apis/ai/stigmer/tenancy/project/v1/` with package `ai.stigmer.tenancy.project.v1`
 - Organization is fully supported in the CLI apply pipeline (loader, applier, handler, registry, verb support)
+- `ApiResourceReference.org` is now optional — empty means "resolve from parent resource's org"
+- The `^$|^pattern$` convention is the established way to make proto fields optional-but-validated in this codebase
 - `types.IsProjectMemberKind()` defines the member/non-member boundary — Organization is NOT a member
 - `ResourceTier` enum values now use lowercase naming convention (e.g., `open_source`, `cloud_only`)
 - Server-side Organization controllers don't exist yet (T01.5) — CLI gRPC calls will fail until then
-- The task plan is in `tasks/T01_0_plan.md` — review T01.3 section for next task details
+- Server-side org resolution doesn't exist yet (T01.4) — empty org in cross-refs passes validation but is not yet resolved
+- The task plan is in `tasks/T01_0_plan.md` — review T01.4/T01.5 sections for next task details
 - **stigmer-cloud**: Partially migrated — stubs regenerated, Java domain moved, imports updated. Blocked on reconciliation rearchitecture due to ProjectSpec redesign. Full status documented in `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
+- **Pre-existing Bazel issue**: `com_github_charmbracelet_glamour` repo unresolved — CLI root_test can't build via Bazel but passes via `go test`
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260302.01.org-tenancy-portable-resources/checkpoints/2026-03-03-session-4.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260302.01.org-tenancy-portable-resources/checkpoints/2026-03-03-session-6.md
 ```
 
 ### 2. Task Plan
@@ -115,18 +141,19 @@ Drop this file into your conversation to quickly resume work on this project.
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-03-03-session-4.md`
+1. [ ] Read the latest checkpoint from `checkpoints/2026-03-03-session-6.md`
 2. [ ] Read cloud migration doc: `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
 3. [ ] Check current task status in `tasks/T01_0_plan.md`
 4. [ ] Review any new design decisions in `design-decisions/`
 5. [ ] Check coding guidelines in `coding-guidelines/`
 6. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-7. [ ] Continue with T01.3 (OSS) or cloud reconciliation rearchitecture (stigmer-cloud)
+7. [ ] Continue with T01.4 (server-side org resolution) or T01.5 (Organization controllers in OSS server)
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T01.3" - Start the next task
+- "Continue with T01.4" - Server-side org resolution
+- "Continue with T01.5" - Organization controllers
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
