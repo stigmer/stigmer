@@ -483,4 +483,3 @@ func setupLogging(cfg *config.Config) {
 	// Set timestamp format
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 }
-

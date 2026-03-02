@@ -44,11 +44,11 @@ func (c *McpServerController) Update(ctx context.Context, mcpServer *mcpserverv1
 // by the apiresource interceptor and injected into request context.
 func (c *McpServerController) buildUpdatePipeline() *pipeline.Pipeline[*mcpserverv1.McpServer] {
 	return pipeline.NewPipeline[*mcpserverv1.McpServer]("mcpserver-update").
-		AddStep(steps.NewValidateProtoStep[*mcpserverv1.McpServer]()).       // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*mcpserverv1.McpServer]()).         // 2. Resolve slug
-		AddStep(steps.NewLoadExistingStep[*mcpserverv1.McpServer](c.store)). // 3. Load existing MCP server
-		AddStep(steps.NewBuildUpdateStateStep[*mcpserverv1.McpServer]()).    // 4. Build updated state
-		AddStep(steps.NewPersistStep[*mcpserverv1.McpServer](c.store)).                           // 5. Persist MCP server
+		AddStep(steps.NewValidateProtoStep[*mcpserverv1.McpServer]()).                                       // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*mcpserverv1.McpServer]()).                                         // 2. Resolve slug
+		AddStep(steps.NewLoadExistingStep[*mcpserverv1.McpServer](c.store)).                                 // 3. Load existing MCP server
+		AddStep(steps.NewBuildUpdateStateStep[*mcpserverv1.McpServer]()).                                    // 4. Build updated state
+		AddStep(steps.NewPersistStep[*mcpserverv1.McpServer](c.store)).                                      // 5. Persist MCP server
 		AddStep(steps.NewIndexSearchStep[*mcpserverv1.McpServer](c.store, &extractor.McpServerExtractor{})). // 6. Update search index
 		Build()
 }

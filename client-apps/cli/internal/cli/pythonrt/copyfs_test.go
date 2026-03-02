@@ -9,8 +9,8 @@ import (
 
 func TestCopyFS(t *testing.T) {
 	src := fstest.MapFS{
-		"main.py":                  {Data: []byte("print('hello')\n")},
-		"worker/__init__.py":       {Data: []byte("")},
+		"main.py":                 {Data: []byte("print('hello')\n")},
+		"worker/__init__.py":      {Data: []byte("")},
 		"worker/config.py":        {Data: []byte("MODE='local'\n")},
 		"worker/sub/deep_file.py": {Data: []byte("deep\n")},
 	}

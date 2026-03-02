@@ -47,11 +47,11 @@ type BackendConfig struct {
 
 // LocalBackendConfig represents local backend configuration
 type LocalBackendConfig struct {
-	Endpoint    string             `yaml:"endpoint,omitempty"`     // DEPRECATED: Not used (daemon always runs on localhost:7234)
-	DataDir     string             `yaml:"data_dir,omitempty"`     // DEPRECATED: Not used (always ~/.stigmer/data)
-	LLM         *LLMConfig         `yaml:"llm,omitempty"`          // LLM configuration
-	Temporal    *TemporalConfig    `yaml:"temporal,omitempty"`     // Temporal configuration
-	Execution   *ExecutionConfig   `yaml:"execution,omitempty"`    // Agent execution configuration
+	Endpoint  string           `yaml:"endpoint,omitempty"`  // DEPRECATED: Not used (daemon always runs on localhost:7234)
+	DataDir   string           `yaml:"data_dir,omitempty"`  // DEPRECATED: Not used (always ~/.stigmer/data)
+	LLM       *LLMConfig       `yaml:"llm,omitempty"`       // LLM configuration
+	Temporal  *TemporalConfig  `yaml:"temporal,omitempty"`  // Temporal configuration
+	Execution *ExecutionConfig `yaml:"execution,omitempty"` // Agent execution configuration
 }
 
 // LLMConfig represents LLM provider configuration
@@ -486,4 +486,3 @@ func (c *LocalBackendConfig) ResolveSandboxTTL() int {
 	// 3. Default (1 hour)
 	return 3600
 }
-

@@ -152,4 +152,3 @@ func showLastNLines(logFile string, n int) error {
 
 	return nil
 }
-

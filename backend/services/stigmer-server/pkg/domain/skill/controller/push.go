@@ -93,9 +93,9 @@ func (c *SkillController) buildPushPipeline() *pipeline.Pipeline[*skillv1.PushSk
 		AddStep(c.newGenerateIDIfNeededStep()).                           // 6. Generate ID if creating
 		AddStep(c.newCheckAndStoreArtifactStep()).                        // 7. Store artifact
 		AddStep(c.newPopulateSkillFieldsStep()).                          // 8. Populate fields
-		AddStep(c.newArchiveCurrentSkillStep()). // 9. Archive NEW skill
-		AddStep(c.newStoreSkillStep()).          // 10. Persist to DB
-		AddStep(c.newIndexSkillSearchStep()).    // 11. Update search index
+		AddStep(c.newArchiveCurrentSkillStep()).                          // 9. Archive NEW skill
+		AddStep(c.newStoreSkillStep()).                                   // 10. Persist to DB
+		AddStep(c.newIndexSkillSearchStep()).                             // 11. Update search index
 		Build()
 }
 

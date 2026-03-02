@@ -639,7 +639,7 @@ func TestNeedsSubAgentSeparator_HeaderBlockedByInterleaving(t *testing.T) {
 		{content: "main block"},
 		header,
 		{content: "sub tool 1", subAgentID: "sa-1"},
-		{content: "system message"},                                       // top-level interleaving
+		{content: "system message"},                                      // top-level interleaving
 		{content: "sub tool 2", subAgentID: "sa-1", subAgentName: "gen"}, // should NOT get separator
 	}
 	if needsSubAgentSeparator(blocks, 4) {
