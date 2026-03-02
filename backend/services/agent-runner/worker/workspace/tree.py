@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from graphton.core.backends.gitignore_filter import GitIgnoreFilter
+
     from worker.workspace.backend import WorkspaceBackend
 
 logger = logging.getLogger(__name__)
@@ -231,7 +232,6 @@ def _sort_and_format(
     dir_children: dict[str, list[str]] = defaultdict(list)
     file_children: dict[str, list[tuple[str, int | None]]] = defaultdict(list)
 
-    dir_set = set(dirs)
     for d in dirs:
         parent = os.path.dirname(d) or ""
         dir_children[parent].append(d)

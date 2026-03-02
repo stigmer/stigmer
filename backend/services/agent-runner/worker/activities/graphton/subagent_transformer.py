@@ -131,7 +131,7 @@ async def transform_sub_agents(
             from graphton.core.tool_wrappers import create_platform_tool_wrappers
 
             sandbox_backend = create_sandbox_backend(sandbox_config)
-            platform_tools = create_platform_tool_wrappers(
+            platform_tools = create_platform_tool_wrappers(  # type: ignore[assignment]
                 backend=sandbox_backend,
                 approval_checker=approval_checker,
             )

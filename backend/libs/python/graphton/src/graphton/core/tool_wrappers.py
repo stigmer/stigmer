@@ -1261,7 +1261,7 @@ def _create_glob_tool(
     import fnmatch
     import os
 
-    _GLOB_MAX_DEPTH = 15
+    _glob_max_depth = 15
     
     @tool
     async def glob(pattern: str, path: str = ".") -> str:
@@ -1284,7 +1284,7 @@ def _create_glob_tool(
             _has_is_dir = hasattr(backend, "is_directory")
             
             def collect_files(dir_path: str, depth: int = 0) -> None:
-                if depth > _GLOB_MAX_DEPTH:
+                if depth > _glob_max_depth:
                     return
                 try:
                     items = backend.list_files(dir_path)
@@ -1341,7 +1341,7 @@ def _create_grep_tool(
     import os
     import re
 
-    _GREP_MAX_DEPTH = 15
+    _grep_max_depth = 15
     
     @tool
     async def grep(pattern: str, path: str = ".", include: str = "*") -> str:
@@ -1389,7 +1389,7 @@ def _create_grep_tool(
                     pass
             
             def collect_and_search(dir_path: str, depth: int = 0) -> None:
-                if depth > _GREP_MAX_DEPTH:
+                if depth > _grep_max_depth:
                     return
                 try:
                     items = backend.list_files(dir_path)
