@@ -361,9 +361,9 @@ enum ApiResourceKind {
     }
   }];
 
-  // Agentic - Project management (aggregate root for resource lifecycle)
+  // Tenancy - Project management (aggregate root for resource lifecycle)
   project = 60 [(kind_meta) = {
-    group: agentic
+    group: tenancy
     version: v1
     name: "Project"
     display_name: "Project"

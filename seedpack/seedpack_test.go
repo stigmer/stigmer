@@ -56,7 +56,7 @@ func TestExtractToDir_ProducesApplyableProject(t *testing.T) {
 	}
 
 	content := string(data)
-	if !strings.Contains(content, "apiVersion: management.stigmer.ai/v1") {
+	if !strings.Contains(content, "apiVersion: tenancy.stigmer.ai/v1") {
 		t.Error("stigmer.yaml missing apiVersion")
 	}
 	if !strings.Contains(content, "kind: Project") {

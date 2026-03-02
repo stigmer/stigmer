@@ -19,9 +19,9 @@ go_library(
         "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
+        "//apis/stubs/go/ai/stigmer/tenancy/project/v1:project",
         "//backend/libs/go/grpc/request/pipeline/steps",
         "//backend/libs/go/store",
-        "@com_github_stigmer_stigmer_apis_stubs_go//ai/stigmer/agentic/project/v1:project",
         "@org_golang_google_protobuf//proto",
     ],
 )

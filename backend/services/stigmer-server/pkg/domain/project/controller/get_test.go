@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/management/project/v1"
+	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/project/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
@@ -54,8 +54,8 @@ func TestGet_ReturnsCompleteProject(t *testing.T) {
 	}
 
 	t.Run("preserves ApiVersion", func(t *testing.T) {
-		if retrieved.ApiVersion != "management.stigmer.ai/v1" {
-			t.Errorf("Expected ApiVersion 'management.stigmer.ai/v1', got '%s'", retrieved.ApiVersion)
+		if retrieved.ApiVersion != "tenancy.stigmer.ai/v1" {
+			t.Errorf("Expected ApiVersion 'tenancy.stigmer.ai/v1', got '%s'", retrieved.ApiVersion)
 		}
 	})
 

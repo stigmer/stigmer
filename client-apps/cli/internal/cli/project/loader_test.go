@@ -22,7 +22,7 @@ func createTestFile(t *testing.T, dir, filename, content string) string {
 }
 
 func minimalValidProjectYAML() string {
-	return `apiVersion: management.stigmer.ai/v1
+	return `apiVersion: tenancy.stigmer.ai/v1
 kind: Project
 metadata:
   name: test-project
@@ -32,7 +32,7 @@ spec:
 }
 
 func fullProjectYAML() string {
-	return `apiVersion: management.stigmer.ai/v1
+	return `apiVersion: tenancy.stigmer.ai/v1
 kind: Project
 metadata:
   name: my-super-app
@@ -45,7 +45,7 @@ spec:
 
 func minimalValidProjectJSON() string {
 	return `{
-  "apiVersion": "management.stigmer.ai/v1",
+  "apiVersion": "tenancy.stigmer.ai/v1",
   "kind": "Project",
   "metadata": {
     "name": "test-project"
@@ -103,7 +103,7 @@ func TestLoad_ValidYAML(t *testing.T) {
 
 	result, err := Load(&LoadOptions{FilePath: path})
 	require.NoError(t, err)
-	assert.Equal(t, "management.stigmer.ai/v1", result.Project.ApiVersion)
+	assert.Equal(t, "tenancy.stigmer.ai/v1", result.Project.ApiVersion)
 	assert.Equal(t, "Project", result.Project.Kind)
 	assert.Equal(t, "test-project", result.Project.Metadata.Name)
 }
@@ -114,14 +114,14 @@ func TestLoad_ValidJSON(t *testing.T) {
 
 	result, err := Load(&LoadOptions{FilePath: path})
 	require.NoError(t, err)
-	assert.Equal(t, "management.stigmer.ai/v1", result.Project.ApiVersion)
+	assert.Equal(t, "tenancy.stigmer.ai/v1", result.Project.ApiVersion)
 	assert.Equal(t, "Project", result.Project.Kind)
 	assert.Equal(t, "test-project", result.Project.Metadata.Name)
 }
 
 func TestLoad_InvalidYAMLSyntax(t *testing.T) {
 	dir := t.TempDir()
-	invalidYAML := `apiVersion: management.stigmer.ai/v1
+	invalidYAML := `apiVersion: tenancy.stigmer.ai/v1
 kind: Project
 metadata:
   name: test
@@ -136,7 +136,7 @@ metadata:
 
 func TestLoad_UnknownFieldsRejected(t *testing.T) {
 	dir := t.TempDir()
-	yamlWithUnknownField := `apiVersion: management.stigmer.ai/v1
+	yamlWithUnknownField := `apiVersion: tenancy.stigmer.ai/v1
 kind: Project
 metadata:
   name: test-project
@@ -153,7 +153,7 @@ spec:
 
 func TestLoad_LegacyRuntimeFieldRejected(t *testing.T) {
 	dir := t.TempDir()
-	legacyYAML := `apiVersion: management.stigmer.ai/v1
+	legacyYAML := `apiVersion: tenancy.stigmer.ai/v1
 kind: Project
 metadata:
   name: test-project
@@ -191,7 +191,7 @@ spec:
 		},
 		{
 			name: "wrong kind",
-			yaml: `apiVersion: management.stigmer.ai/v1
+			yaml: `apiVersion: tenancy.stigmer.ai/v1
 kind: WrongKind
 metadata:
   name: test-project
@@ -202,7 +202,7 @@ spec:
 		},
 		{
 			name: "missing metadata",
-			yaml: `apiVersion: management.stigmer.ai/v1
+			yaml: `apiVersion: tenancy.stigmer.ai/v1
 kind: Project
 spec:
   description: A test project
@@ -211,7 +211,7 @@ spec:
 		},
 		{
 			name: "missing spec",
-			yaml: `apiVersion: management.stigmer.ai/v1
+			yaml: `apiVersion: tenancy.stigmer.ai/v1
 kind: Project
 metadata:
   name: test-project
@@ -243,7 +243,7 @@ func TestLoad_MinimalValidProject(t *testing.T) {
 	result, err := Load(&LoadOptions{FilePath: path})
 	require.NoError(t, err)
 
-	assert.Equal(t, "management.stigmer.ai/v1", result.Project.ApiVersion)
+	assert.Equal(t, "tenancy.stigmer.ai/v1", result.Project.ApiVersion)
 	assert.Equal(t, "Project", result.Project.Kind)
 	assert.NotNil(t, result.Project.Metadata)
 	assert.Equal(t, "test-project", result.Project.Metadata.Name)
@@ -258,7 +258,7 @@ func TestLoad_FullProject(t *testing.T) {
 	result, err := Load(&LoadOptions{FilePath: path})
 	require.NoError(t, err)
 
-	assert.Equal(t, "management.stigmer.ai/v1", result.Project.ApiVersion)
+	assert.Equal(t, "tenancy.stigmer.ai/v1", result.Project.ApiVersion)
 	assert.Equal(t, "Project", result.Project.Kind)
 	assert.Equal(t, "my-super-app", result.Project.Metadata.Name)
 	assert.Equal(t, "acme-corp", result.Project.Metadata.Org)
@@ -281,7 +281,7 @@ func TestLoad_EmptyEntryPoint(t *testing.T) {
 
 func TestLoad_EmptyDescription(t *testing.T) {
 	dir := t.TempDir()
-	yaml := `apiVersion: management.stigmer.ai/v1
+	yaml := `apiVersion: tenancy.stigmer.ai/v1
 kind: Project
 metadata:
   name: test-project
@@ -298,7 +298,7 @@ spec:
 
 func TestLoad_YAMLSpecialCharacters(t *testing.T) {
 	dir := t.TempDir()
-	yaml := `apiVersion: management.stigmer.ai/v1
+	yaml := `apiVersion: tenancy.stigmer.ai/v1
 kind: Project
 metadata:
   name: test-project
@@ -315,7 +315,7 @@ spec:
 
 func TestLoad_MultiLineDescription(t *testing.T) {
 	dir := t.TempDir()
-	yaml := `apiVersion: management.stigmer.ai/v1
+	yaml := `apiVersion: tenancy.stigmer.ai/v1
 kind: Project
 metadata:
   name: test-project
