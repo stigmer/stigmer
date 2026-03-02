@@ -66,8 +66,8 @@ func TestGetByReference_ReturnsCompleteProject(t *testing.T) {
 	}
 
 	t.Run("preserves ApiVersion", func(t *testing.T) {
-		if retrieved.ApiVersion != "agentic.stigmer.ai/v1" {
-			t.Errorf("Expected ApiVersion 'agentic.stigmer.ai/v1', got '%s'", retrieved.ApiVersion)
+		if retrieved.ApiVersion != "management.stigmer.ai/v1" {
+			t.Errorf("Expected ApiVersion 'management.stigmer.ai/v1', got '%s'", retrieved.ApiVersion)
 		}
 	})
 

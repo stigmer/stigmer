@@ -11,7 +11,7 @@ import (
 
 	"buf.build/go/protovalidate"
 	"github.com/pkg/errors"
-	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/project/v1"
+	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/management/project/v1"
 	"google.golang.org/protobuf/encoding/protojson"
 	"gopkg.in/yaml.v3"
 )
@@ -84,7 +84,7 @@ func LoadFromBytes(content []byte) (*LoadResult, error) {
 // resolveFilePath validates that the file path is provided and exists.
 func resolveFilePath(filePath string) (string, error) {
 	if filePath == "" {
-		return "", fmt.Errorf("file path is required\n\nUsage: stigmer project validate <file>\n\nThe file can be YAML or JSON with apiVersion: agentic.stigmer.ai/v1 and kind: Project")
+		return "", fmt.Errorf("file path is required\n\nUsage: stigmer project validate <file>\n\nThe file can be YAML or JSON with apiVersion: management.stigmer.ai/v1 and kind: Project")
 	}
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {

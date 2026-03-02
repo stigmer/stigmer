@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library", "go_test")
+load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "daemon",
@@ -15,24 +15,18 @@ go_library(
     visibility = ["//client-apps/cli:__subpackages__"],
     deps = [
         "//client-apps/cli/embedded",
+        "//client-apps/cli/embedded/agentrunner",
         "//client-apps/cli/internal/cli/cliprint",
         "//client-apps/cli/internal/cli/config",
         "//client-apps/cli/internal/cli/llm",
+        "//client-apps/cli/internal/cli/pythonrt",
         "//client-apps/cli/internal/cli/temporal",
         "//client-apps/cli/pkg/climsg",
         "//seedpack",
-        "//seedpack/agentrunner",
-        "//seedpack/pythonrt",
         "@com_github_pkg_errors//:errors",
         "@com_github_rs_zerolog//log",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//credentials/insecure",
         "@org_golang_x_term//:term",
     ],
-)
-
-go_test(
-    name = "daemon_test",
-    srcs = ["agent_runner_native_test.go"],
-    embed = [":daemon"],
 )

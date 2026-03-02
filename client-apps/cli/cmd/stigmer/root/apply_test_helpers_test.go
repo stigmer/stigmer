@@ -8,7 +8,7 @@ import (
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
-	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/project/v1"
+	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/management/project/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
@@ -27,7 +27,7 @@ const (
 
 func newTestProject(name string) *projectv1.Project {
 	return &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "management.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: name,
@@ -43,7 +43,7 @@ func newTestProject(name string) *projectv1.Project {
 func newTestProjectApplyResult(name, slug string, created bool) *project.ApplyResult {
 	return &project.ApplyResult{
 		Project: &projectv1.Project{
-			ApiVersion: "agentic.stigmer.ai/v1",
+			ApiVersion: "management.stigmer.ai/v1",
 			Kind:       "Project",
 			Metadata: &apiresource.ApiResourceMetadata{
 				Name: name,
@@ -140,7 +140,7 @@ func newTestMcpServerApplyResult(created bool) *mcpserver.ApplyResult {
 // writeResourceYAML creates a minimal valid YAML resource file.
 func writeResourceYAML(t *testing.T, dir, filename, kind, name string) string {
 	t.Helper()
-	content := fmt.Sprintf(`apiVersion: agentic.stigmer.ai/v1
+	content := fmt.Sprintf(`apiVersion: management.stigmer.ai/v1
 kind: %s
 metadata:
   name: %s

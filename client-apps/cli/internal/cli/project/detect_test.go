@@ -38,7 +38,7 @@ func createStigmerYAML(t *testing.T, dir, content string) string {
 // declarativeStigmerYAML returns a minimal valid stigmer.yaml for declarative track
 // (no entry_point).
 func declarativeStigmerYAML() string {
-	return `apiVersion: agentic.stigmer.ai/v1
+	return `apiVersion: management.stigmer.ai/v1
 kind: Project
 metadata:
   name: test-project
@@ -49,7 +49,7 @@ spec:
 
 // sdkStigmerYAML returns a stigmer.yaml for SDK track (with entry_point).
 func sdkStigmerYAML() string {
-	return `apiVersion: agentic.stigmer.ai/v1
+	return `apiVersion: management.stigmer.ai/v1
 kind: Project
 metadata:
   name: my-awesome-project
@@ -72,7 +72,7 @@ spec:
   description: test
 `
 	case "wrong-kind":
-		return `apiVersion: agentic.stigmer.ai/v1
+		return `apiVersion: management.stigmer.ai/v1
 kind: WrongKind
 metadata:
   name: test
@@ -80,7 +80,7 @@ spec:
   description: test
 `
 	case "malformed-yaml":
-		return `apiVersion: agentic.stigmer.ai/v1
+		return `apiVersion: management.stigmer.ai/v1
 kind: Project
 metadata:
   name: test
@@ -310,7 +310,7 @@ func TestDetectTrack_ProjectIsPopulated(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NotNil(t, result.Project)
-	assert.Equal(t, "agentic.stigmer.ai/v1", result.Project.ApiVersion)
+	assert.Equal(t, "management.stigmer.ai/v1", result.Project.ApiVersion)
 	assert.Equal(t, "Project", result.Project.Kind)
 	assert.Equal(t, "my-awesome-project", result.Project.Metadata.Name)
 	assert.Equal(t, "acme-corp", result.Project.Metadata.Org)
@@ -332,7 +332,7 @@ func TestDetectTrack_EntryPointVariants(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dir := t.TempDir()
-			content := `apiVersion: agentic.stigmer.ai/v1
+			content := `apiVersion: management.stigmer.ai/v1
 kind: Project
 metadata:
   name: test

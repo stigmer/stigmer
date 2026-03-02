@@ -3,7 +3,7 @@
 # This example demonstrates a realistic Python project for data processing workflows.
 # Use this as a template for batch processing, ETL pipelines, or ML data preparation.
 
-apiVersion: agentic.stigmer.ai/v1
+apiVersion: management.stigmer.ai/v1
 kind: Project
 
 metadata:

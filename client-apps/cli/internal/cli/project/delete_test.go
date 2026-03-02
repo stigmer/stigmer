@@ -3,7 +3,7 @@ package project
 import (
 	"testing"
 
-	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/project/v1"
+	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/management/project/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
@@ -78,7 +78,7 @@ func TestDeleteFromBackend_EmptyProjectID(t *testing.T) {
 func TestDeleteResult_Structure(t *testing.T) {
 	// Verify DeleteResult correctly wraps a Project
 	project := &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "management.stigmer.ai/v1",
 		Kind:       "Project",
 	}
 
@@ -87,7 +87,7 @@ func TestDeleteResult_Structure(t *testing.T) {
 	}
 
 	assert.NotNil(t, result.Project)
-	assert.Equal(t, "agentic.stigmer.ai/v1", result.Project.ApiVersion)
+	assert.Equal(t, "management.stigmer.ai/v1", result.Project.ApiVersion)
 	assert.Equal(t, "Project", result.Project.Kind)
 }
 

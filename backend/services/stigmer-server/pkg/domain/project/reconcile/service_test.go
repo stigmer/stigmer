@@ -97,7 +97,7 @@ func setupTestStore(t *testing.T) *sqlite.Store {
 func seedAgent(t *testing.T, s *sqlite.Store, id, slug string) {
 	t.Helper()
 	agent := &agentv1.Agent{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "management.stigmer.ai/v1",
 		Kind:       "Agent",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Id:   id,
@@ -114,7 +114,7 @@ func seedAgent(t *testing.T, s *sqlite.Store, id, slug string) {
 func seedWorkflow(t *testing.T, s *sqlite.Store, id, slug string) {
 	t.Helper()
 	wf := &workflowv1.Workflow{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "management.stigmer.ai/v1",
 		Kind:       "Workflow",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Id:   id,

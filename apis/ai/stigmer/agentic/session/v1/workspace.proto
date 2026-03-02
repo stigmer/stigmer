@@ -81,7 +81,5 @@ message GitRepoSource {
   //   - N > 0: shallow clone with depth N.
   //
   // Uses proto3 optional to distinguish "not set" from "set to 0."
-  optional int32 depth = 4 [
-    (buf.validate.field).int32.gte = 0
-  ];
+  optional int32 depth = 4 [(buf.validate.field).int32.gte = 0];
 }
