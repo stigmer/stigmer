@@ -23,6 +23,10 @@ from ai.stigmer.agentic.agentexecution.v1.io_pb2 import (
 )
 from graphton import SummarizationConfig, create_deep_agent
 from graphton.core import ModelRegistry
+from graphton.core.backends.platform_mount import (
+    humanize_platform_refs,
+    resolve_display_env_vars,
+)
 from langchain_core.runnables import RunnableConfig
 from temporalio import activity
 
@@ -36,6 +40,7 @@ from grpc_client.execution_context_client import (
 from grpc_client.mcp_server_client import McpServerClient
 from grpc_client.session_client import SessionClient
 from grpc_client.skill_client import SkillClient
+from worker.activities.relevance import build_relevance_prompt_section
 from worker.activities.graphton.approval_policy import (
     build_approval_config,
     create_approval_checker,
@@ -617,83 +622,30 @@ def build_workspace_prompt_section(
     Returns the section string (with leading newlines for concatenation)
     when *provision_result* carries a workspace description, or an empty
     string otherwise.  Callers can unconditionally append the result.
+
+    When *provision_result.file_tree* is present, the formatted tree
+    section (``### Project Structure``) is appended after the description.
     """
     if not provision_result or not provision_result.workspace_description:
         return ""
-    return "\n\n## Workspace\n\n" + provision_result.workspace_description
+
+    section = "\n\n## Workspace\n\n" + provision_result.workspace_description
+
+    if provision_result.file_tree:
+        section += "\n\n" + provision_result.file_tree
+
+    return section
 
 
-_TREE_SKIP_DIRS: frozenset[str] = frozenset({
-    ".git", "__pycache__", "node_modules", ".stigmer",
-})
-_TREE_MAX_DEPTH: int = 3
-_TREE_MAX_ENTRIES: int = 200
-
-
-def _human_size(size_bytes: int) -> str:
-    """Format a byte count as a compact human-readable string."""
-    if size_bytes < 1024:
-        return f"{size_bytes} bytes"
-    if size_bytes < 1024 * 1024:
-        return f"{size_bytes / 1024:.1f} KB"
-    return f"{size_bytes / (1024 * 1024):.1f} MB"
-
-
-def _build_directory_tree(
-    root: str,
-    prefix: str,
-    *,
-    max_depth: int = _TREE_MAX_DEPTH,
-    max_entries: int = _TREE_MAX_ENTRIES,
-) -> tuple[list[str], int]:
-    """Recursively collect a file-tree manifest for a directory.
-
-    Returns ``(lines, total_count)`` where *lines* contains at most
-    *max_entries* formatted strings and *total_count* is the true number
-    of entries discovered (used to signal truncation).
-    """
-    lines: list[str] = []
-    total = 0
-
-    def _walk(dir_path: str, rel_prefix: str, depth: int) -> None:
-        nonlocal total
-        if depth > max_depth:
-            return
-        try:
-            entries = sorted(os.listdir(dir_path))
-        except OSError:
-            return
-
-        child_dirs: list[tuple[str, str, str]] = []
-        child_files: list[tuple[str, str, int | None]] = []
-
-        for name in entries:
-            if name.startswith(".") or name in _TREE_SKIP_DIRS:
-                continue
-            full = os.path.join(dir_path, name)
-            rel = f"{rel_prefix}{name}" if rel_prefix else name
-            try:
-                if os.path.isdir(full):
-                    child_dirs.append((full, rel, name))
-                else:
-                    child_files.append((rel, name, os.path.getsize(full)))
-            except OSError:
-                child_files.append((rel, name, None))
-
-        for full, rel, _name in child_dirs:
-            total += 1
-            if len(lines) < max_entries:
-                lines.append(f"    - `{rel}/`")
-            _walk(full, f"{rel}/", depth + 1)
-
-        for rel, _name, size in child_files:
-            total += 1
-            if len(lines) < max_entries:
-                size_str = f" ({_human_size(size)})" if size is not None else ""
-                lines.append(f"    - `{rel}`{size_str}")
-
-    _walk(root, prefix, 1)
-    return lines, total
+# Tree-building utilities live in worker.workspace.tree.  Module-level
+# aliases preserve backward compatibility for in-module callers and tests
+# that import the private names from this module.
+from worker.workspace.tree import (
+    TREE_DEFAULT_MAX_ENTRIES as _TREE_MAX_ENTRIES,
+    TREE_SKIP_DIRS as _TREE_SKIP_DIRS,
+    build_directory_tree as _build_directory_tree,
+    human_size as _human_size,
+)
 
 
 def build_referenced_files_prompt_section(
@@ -1096,12 +1048,19 @@ async def _execute_graphton_impl(
         activity_logger.info(
             f"Session {session_id}: agent_instance_id={session.spec.agent_instance_id}"
         )
+        heartbeat_during_setup("chain_resolution:session", {
+            "session_id": session_id,
+        })
         
         # 1b. Get agent instance from session
         agent_instance = await agent_instance_client.get(session.spec.agent_instance_id)
         activity_logger.info(
             f"AgentInstance {session.spec.agent_instance_id}: agent_id={agent_instance.spec.agent_id}"
         )
+        heartbeat_during_setup("chain_resolution:agent_instance", {
+            "session_id": session_id,
+            "agent_instance_id": session.spec.agent_instance_id,
+        })
         
         # 1c. Get agent template
         agent = await agent_client.get(agent_instance.spec.agent_id)
@@ -1112,8 +1071,7 @@ async def _execute_graphton_impl(
         # Extract agent instructions
         instructions = agent.spec.instructions if agent.spec.instructions else "You are a helpful AI assistant."
         
-        # Heartbeat after chain resolution to prevent timeout during setup
-        heartbeat_during_setup("chain_resolution", {
+        heartbeat_during_setup("chain_resolution:agent", {
             "session_id": session_id,
             "agent_instance_id": session.spec.agent_instance_id,
             "agent_id": agent_instance.spec.agent_id,
@@ -1260,6 +1218,7 @@ async def _execute_graphton_impl(
         # ─────────────────────────────────────────────────────────────────────────────
         setup_timer.start("environment")
         merged_env_vars: dict[str, str] = {}
+        secret_keys: set[str] = set()
         use_legacy_env_merge = True
         
         try:
@@ -1273,6 +1232,8 @@ async def _execute_graphton_impl(
                 )
                 for key, exec_value in exec_ctx.spec.data.items():
                     merged_env_vars[key] = exec_value.value
+                    if exec_value.is_secret:
+                        secret_keys.add(key)
                 use_legacy_env_merge = False
                 activity_logger.info(f"ExecutionContext environment: {len(merged_env_vars)} total vars")
             else:
@@ -1286,6 +1247,15 @@ async def _execute_graphton_impl(
             )
         
         if use_legacy_env_merge:
+            # Layer 1: agent env_spec defaults (always applied)
+            if agent.spec.env_spec and agent.spec.env_spec.data:
+                for key, env_value in agent.spec.env_spec.data.items():
+                    merged_env_vars[key] = env_value.value
+                    if env_value.is_secret:
+                        secret_keys.add(key)
+                activity_logger.info(f"[Legacy] Base env vars from agent: {len(agent.spec.env_spec.data)}")
+            
+            # Layer 2: environment_refs (only when present)
             environment_refs = agent_instance.spec.environment_refs
             if environment_refs:
                 activity_logger.info(
@@ -1296,32 +1266,28 @@ async def _execute_graphton_impl(
                     environment_client = EnvironmentClient(api_key)
                     environments = await environment_client.list_by_refs(list(environment_refs))
                     
-                    if agent.spec.env_spec and agent.spec.env_spec.data:
-                        for key, env_value in agent.spec.env_spec.data.items():
-                            merged_env_vars[key] = env_value.value
-                        activity_logger.info(f"[Legacy] Base env vars from agent: {len(agent.spec.env_spec.data)}")
-                    
                     for idx, env in enumerate(environments):
                         if env.spec.data:
                             for key, env_value in env.spec.data.items():
                                 merged_env_vars[key] = env_value.value
+                                if env_value.is_secret:
+                                    secret_keys.add(key)
                             activity_logger.info(
                                 f"[Legacy] Merged env {idx+1}/{len(environments)} ({env.metadata.name}): "
                                 f"{len(env.spec.data)} vars"
                             )
-                    
-                    if execution.spec.runtime_env:
-                        runtime_vars = {
-                            key: value.value
-                            for key, value in execution.spec.runtime_env.items()
-                        }
-                        merged_env_vars.update(runtime_vars)
-                        activity_logger.info(f"[Legacy] Applied runtime env overrides: {len(runtime_vars)} vars")
-                    
-                    activity_logger.info(f"[Legacy] Final merged environment: {len(merged_env_vars)} total vars")
                 except Exception as e:
-                    activity_logger.error(f"[Legacy] Failed to merge environments: {e}")
-                    merged_env_vars = {}
+                    activity_logger.error(f"[Legacy] Failed to merge environment_refs: {e}")
+            
+            # Layer 3: runtime_env CLI overrides (always applied, highest priority)
+            if execution.spec.runtime_env:
+                for key, value in execution.spec.runtime_env.items():
+                    merged_env_vars[key] = value.value
+                    if value.is_secret:
+                        secret_keys.add(key)
+                activity_logger.info(f"[Legacy] Applied runtime env overrides: {len(execution.spec.runtime_env)} vars")
+            
+            activity_logger.info(f"[Legacy] Final merged environment: {len(merged_env_vars)} total vars")
         
         heartbeat_during_setup("environment_merged", {
             "env_var_count": len(merged_env_vars),
@@ -1759,6 +1725,7 @@ async def _execute_graphton_impl(
         
         # Initialize status builder with approval config
         status_builder = StatusBuilder(execution_id, execution.status, approval_config)
+        status_builder.set_display_env_vars(merged_env_vars, secret_keys)
         
         # ─────────────────────────────────────────────────────────────────────────────
         # Step 5.7: Build ResolvedExecutionContext (Phase 2.5)
@@ -1826,6 +1793,13 @@ async def _execute_graphton_impl(
         if workspace_section:
             enhanced_system_prompt += workspace_section
             activity_logger.info("Enhanced system prompt with workspace context")
+
+        relevance_section = build_relevance_prompt_section(
+            user_message, provision_result.root_dir,
+        )
+        if relevance_section:
+            enhanced_system_prompt += relevance_section
+            activity_logger.info("Enhanced system prompt with relevance signals")
 
         if skills_prompt_section:
             enhanced_system_prompt += skills_prompt_section
@@ -1913,6 +1887,13 @@ async def _execute_graphton_impl(
                 "Configuring agent for local mode (root=%s, platform_dir=%s)",
                 workspace_backend.root_dir,
                 workspace_init.platform_dir,
+            )
+        
+        if merged_env_vars:
+            sandbox_config_for_agent["env_vars"] = dict(merged_env_vars)
+            activity_logger.info(
+                "Injecting %d env var(s) into sandbox config for shell execution",
+                len(merged_env_vars),
             )
         
         # ─────────────────────────────────────────────────────────────────────────────
@@ -2833,13 +2814,33 @@ async def _execute_graphton_impl(
                                 matched_tc_ids.add(tc.id)
                                 break
                         
+                        if not matched_tool_call_id:
+                            for sa in status_builder.current_status.sub_agent_executions:
+                                for tc in sa.tool_calls:
+                                    tc_canonical = resolve_platform_tool_name(tc.name)
+                                    if (
+                                        (tc.name == tool_name or tc_canonical == tool_name)
+                                        and tc.status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
+                                        and tc.id not in matched_tc_ids
+                                    ):
+                                        matched_tool_call_id = tc.id
+                                        matched_tc_ids.add(tc.id)
+                                        break
+                                if matched_tool_call_id:
+                                    break
+                        
                         # Create args preview via StatusBuilder's sanitiser
                         args_preview = status_builder._create_args_preview(tool_args)
                         
+                        display_message = humanize_platform_refs(message)
+                        display_message = resolve_display_env_vars(
+                            display_message, merged_env_vars, secret_keys,
+                        )
+
                         pa = PendingApproval(
                             tool_call_id=matched_tool_call_id,
                             tool_name=tool_name,
-                            message=message,
+                            message=display_message,
                             args_preview=args_preview,
                             requested_at=_utc_timestamp(),
                             from_sub_agent=from_sub_agent,

@@ -515,18 +515,26 @@ def create_deep_agent(
     # tools to deepagents. When approval_checker is provided, these wrappers
     # include HITL approval checks; otherwise they execute directly.
     #
-    # deepagents 0.4.x also creates its own FilesystemMiddleware internally
-    # with an in-memory StateBackend. The deepagents filesystem tools have
-    # different names (read_file, write_file, edit_file) than graphton's
-    # sandbox tools (read, write, edit).
+    # deepagents 0.4.x also creates its own FilesystemMiddleware internally.
+    # Without a backend, it defaults to in-memory StateBackend which does NOT
+    # implement SandboxBackendProtocol.  This causes FilesystemMiddleware to
+    # actively STRIP the execute tool from the model's tool set — even
+    # graphton's real sandbox-backed execute tool — because the middleware
+    # filters by tool name ("execute") without distinguishing providers.
     #
-    # IMPORTANT: graphton also registers aliases named read_file, write_file,
-    # edit_file backed by the REAL filesystem (not in-memory). These aliases
-    # ensure that regardless of which tool name the LLM picks (read vs
-    # read_file), the call always goes through the filesystem backend where
-    # skills and other files actually exist. The explicit tools from graphton
+    # To prevent this, we wrap graphton's backend in a DeepAgentsBackendAdapter
+    # that implements SandboxBackendProtocol and pass it as `backend` to
+    # deepagents.  This ensures:
+    #   1. FilesystemMiddleware._supports_execution() returns True
+    #   2. The execute tool is NOT filtered from the model's tool set
+    #   3. Sub-agents inherit the real backend through middleware propagation
+    #   4. deepagents' own filesystem tools are backed by the real workspace
+    #
+    # Graphton's explicit tools (read, write, edit, execute + aliases) still
     # take precedence over middleware-created tools in LangChain's ToolNode.
+    deepagents_backend = None
     if sandbox_config:
+        from graphton.core.backends.deepagents_adapter import DeepAgentsBackendAdapter
         from graphton.core.sandbox_factory import create_sandbox_backend
         from graphton.core.tool_wrappers import create_platform_tool_wrappers
         
@@ -537,11 +545,26 @@ def create_deep_agent(
         )
         tools_list.extend(platform_tools)
         
+        deepagents_backend = DeepAgentsBackendAdapter(sandbox_backend)
+        
+        from deepagents.backends.protocol import (  # type: ignore[import-untyped]
+            SandboxBackendProtocol as _SandboxProto,
+        )
+        
+        if not isinstance(deepagents_backend, _SandboxProto):
+            raise TypeError(
+                f"DeepAgentsBackendAdapter ({type(deepagents_backend).__mro__}) "
+                f"does not satisfy SandboxBackendProtocol. "
+                f"FilesystemMiddleware will strip the execute tool."
+            )
+        
         logger.info(
             "Created %d platform tool wrapper(s) for sandbox "
-            "(approval_checker=%s)",
+            "(approval_checker=%s, deepagents_backend=%s, "
+            "protocol_compliant=True)",
             len(platform_tools),
             "enabled" if approval_checker else "disabled",
+            type(deepagents_backend).__name__,
         )
     
     # Auto-inject think tool for structured reasoning — only when the model
@@ -562,12 +585,14 @@ def create_deep_agent(
     # Create the Deep Agent using deepagents library.
     #
     # deepagents 0.4.x internally creates SubAgentMiddleware (with a
-    # general-purpose subagent) and FilesystemMiddleware (with StateBackend
-    # for in-memory file storage). The recursion_limit for all graphs
-    # created by langchain's create_agent() defaults to
-    # DEFAULT_RECURSION_LIMIT (10,000 as of langgraph 1.0.x), so subagent
-    # graphs have generous limits by default.
+    # general-purpose subagent) and FilesystemMiddleware.  When `backend`
+    # is provided, FilesystemMiddleware uses it instead of the default
+    # StateBackend.  This is critical: without a SandboxBackendProtocol-
+    # compliant backend, the middleware strips the execute tool from the
+    # model's tool set (both main agent and sub-agents).
     #
+    # The recursion_limit for subagent graphs defaults to
+    # DEFAULT_RECURSION_LIMIT (10,000 as of langgraph 1.0.x).
     # Graphton applies an explicit recursion_limit via with_config() below
     # to control the top-level graph's limit independently.
     agent = deepagents_create_deep_agent(
@@ -578,6 +603,7 @@ def create_deep_agent(
         subagents=transformed_subagents or [],
         context_schema=context_schema,
         checkpointer=checkpointer,
+        backend=deepagents_backend,
     )
     
     # Apply recursion limit to the top-level graph.

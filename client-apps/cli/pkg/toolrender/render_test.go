@@ -1459,3 +1459,206 @@ func assertNotContains(t *testing.T, s, substr string) {
 		t.Errorf("expected output to NOT contain %q\n  plain: %q", substr, plain)
 	}
 }
+
+// --- DisplayLabel ---
+
+func TestDisplayLabel_KnownTool(t *testing.T) {
+	tests := map[string]string{
+		"execute":      "Execute",
+		"shell":        "Shell",
+		"read_file":    "Read",
+		"write_file":   "Write",
+		"delete_file":  "Delete",
+		"glob":         "Find",
+		"grep":         "Search",
+		"task":         "Task",
+		"think":        "Thinking",
+	}
+	for toolName, wantLabel := range tests {
+		got := DisplayLabel(toolName)
+		if got != wantLabel {
+			t.Errorf("DisplayLabel(%q) = %q, want %q", toolName, got, wantLabel)
+		}
+	}
+}
+
+func TestDisplayLabel_UnknownTool_ReturnsRawName(t *testing.T) {
+	got := DisplayLabel("custom_mcp_tool")
+	if got != "custom_mcp_tool" {
+		t.Errorf("DisplayLabel(unknown) = %q, want raw name", got)
+	}
+}
+
+// --- IsShellTool ---
+
+func TestIsShellTool_ShellTools(t *testing.T) {
+	shellTools := []string{"shell", "bash", "execute", "execute_command", "run_command", "terminal"}
+	for _, name := range shellTools {
+		if !IsShellTool(name) {
+			t.Errorf("IsShellTool(%q) = false, want true", name)
+		}
+	}
+}
+
+func TestIsShellTool_NonShellTools(t *testing.T) {
+	nonShell := []string{"read_file", "write_file", "delete_file", "glob", "grep", "task", "think", "custom_tool"}
+	for _, name := range nonShell {
+		if IsShellTool(name) {
+			t.Errorf("IsShellTool(%q) = true, want false", name)
+		}
+	}
+}
+
+// =============================================================================
+// CleanShellResult Tests — backward-compat stripping of legacy format
+// =============================================================================
+
+func TestCleanShellResult_NewFormat_Passthrough(t *testing.T) {
+	// New-format results (no "Exit code:" prefix) pass through unchanged.
+	input := "file1\nfile2\nfile3"
+	if got := CleanShellResult(input); got != input {
+		t.Errorf("expected passthrough, got %q", got)
+	}
+}
+
+func TestCleanShellResult_SuccessExitCode_Stripped(t *testing.T) {
+	input := "Exit code: 0\nSTDOUT:\nfile1\nfile2"
+	got := CleanShellResult(input)
+	if strings.Contains(got, "Exit code") {
+		t.Errorf("expected exit code stripped, got %q", got)
+	}
+	if strings.Contains(got, "STDOUT") {
+		t.Errorf("expected STDOUT label stripped, got %q", got)
+	}
+	assertContains(t, got, "file1")
+	assertContains(t, got, "file2")
+}
+
+func TestCleanShellResult_SuccessWithStderr_LabelsStripped(t *testing.T) {
+	input := "Exit code: 0\nSTDOUT:\noutput\nSTDERR:\nwarning"
+	got := CleanShellResult(input)
+	if strings.Contains(got, "STDOUT") || strings.Contains(got, "STDERR") {
+		t.Errorf("expected labels stripped, got %q", got)
+	}
+	assertContains(t, got, "output")
+	assertContains(t, got, "warning")
+}
+
+func TestCleanShellResult_NonZeroExitCode_Preserved(t *testing.T) {
+	input := "Exit code: 1\nSTDERR:\nPermission denied"
+	got := CleanShellResult(input)
+	if got != input {
+		t.Errorf("expected non-zero exit code result to pass through, got %q", got)
+	}
+}
+
+func TestCleanShellResult_SuccessNoOutput(t *testing.T) {
+	input := "Exit code: 0\n(no output)"
+	got := CleanShellResult(input)
+	if got != "(no output)" {
+		t.Errorf("expected %q, got %q", "(no output)", got)
+	}
+}
+
+func TestCleanShellResult_FailureFormat_Passthrough(t *testing.T) {
+	input := "Command failed (exit code 127)\nbash: foo: command not found"
+	if got := CleanShellResult(input); got != input {
+		t.Errorf("expected passthrough for new failure format, got %q", got)
+	}
+}
+
+func TestCleanShellResult_EmptyString(t *testing.T) {
+	if got := CleanShellResult(""); got != "" {
+		t.Errorf("expected empty, got %q", got)
+	}
+}
+
+func TestCleanShellResult_OnlyExitCodeSuccess_NoContent(t *testing.T) {
+	input := "Exit code: 0\n"
+	got := CleanShellResult(input)
+	if got != "(no output)" {
+		t.Errorf("expected %q for empty content after stripping, got %q", "(no output)", got)
+	}
+}
+
+// =============================================================================
+// Shell tool rendering integration — old vs new backend format
+// =============================================================================
+
+func TestResolveDisplayContent_ShellTool_CleansLegacyResult(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "execute",
+		Args:   map[string]interface{}{"command": "ls"},
+		Result: "Exit code: 0\nSTDOUT:\nfile1\nfile2",
+	}
+	info := toolDisplayMap["execute"]
+	content := resolveDisplayContent(tc, info)
+
+	if strings.Contains(content, "Exit code") {
+		t.Errorf("expected legacy exit code stripped, got %q", content)
+	}
+	if strings.Contains(content, "STDOUT") {
+		t.Errorf("expected STDOUT label stripped, got %q", content)
+	}
+	if !strings.Contains(content, "file1") || !strings.Contains(content, "file2") {
+		t.Errorf("expected output content preserved, got %q", content)
+	}
+}
+
+func TestResolveDisplayContent_ShellTool_NewFormatPassthrough(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "shell",
+		Args:   map[string]interface{}{"command": "echo hello"},
+		Result: "hello",
+	}
+	info := toolDisplayMap["shell"]
+	content := resolveDisplayContent(tc, info)
+	if content != "hello" {
+		t.Errorf("expected %q, got %q", "hello", content)
+	}
+}
+
+func TestResolveDisplayContent_NonShellTool_NoCleanup(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "read",
+		Args:   map[string]interface{}{"path": "test.txt"},
+		Result: "Exit code: 0\nSTDOUT:\nthis should not be stripped",
+	}
+	info := toolDisplayMap["read"]
+	content := resolveDisplayContent(tc, info)
+	if !strings.Contains(content, "Exit code: 0") {
+		t.Errorf("non-shell tool should not strip result, got %q", content)
+	}
+}
+
+func TestRenderExpanded_ShellTool_LegacyResult_CleansOutput(t *testing.T) {
+	result := RenderExpanded(ToolCallInfo{
+		Name:   "execute",
+		Args:   map[string]interface{}{"command": "ls"},
+		Result: "Exit code: 0\nSTDOUT:\nfile1\nfile2",
+	})
+
+	plain := stripANSI(result)
+	if strings.Contains(plain, "Exit code") {
+		t.Errorf("expanded view should not show legacy exit code, got %q", plain)
+	}
+	if strings.Contains(plain, "STDOUT") {
+		t.Errorf("expanded view should not show STDOUT label, got %q", plain)
+	}
+	assertContains(t, result, "file1")
+	assertContains(t, result, "file2")
+}
+
+func TestRenderWithBadge_ShellTool_LegacyResult_CleansPreview(t *testing.T) {
+	result := RenderWithBadge(ToolCallInfo{
+		Name:   "shell",
+		Args:   map[string]interface{}{"command": "cat /etc/hostname"},
+		Result: "Exit code: 0\nSTDOUT:\nmy-hostname",
+	}, StateBadge("completed"))
+
+	plain := stripANSI(result)
+	if strings.Contains(plain, "Exit code") {
+		t.Errorf("badge view should not show legacy exit code, got %q", plain)
+	}
+	assertContains(t, result, "my-hostname")
+}

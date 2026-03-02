@@ -192,6 +192,23 @@ var (
 	dangerStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Bold(true)
 )
 
+// DisplayLabel returns the human-readable label for a tool name (e.g.,
+// "execute" -> "Execute", "read_file" -> "Read"). Returns the raw tool
+// name unchanged for unrecognized tools.
+func DisplayLabel(toolName string) string {
+	if info, ok := toolDisplayMap[toolName]; ok {
+		return info.label
+	}
+	return toolName
+}
+
+// IsShellTool reports whether toolName represents a shell/command execution
+// tool. Derived from toolDisplayMap entries whose primaryField is "command".
+func IsShellTool(toolName string) bool {
+	info, ok := toolDisplayMap[toolName]
+	return ok && info.primaryField == "command"
+}
+
 // Render returns a structured single-line display of a tool call.
 //
 // Known tools are rendered with a category-specific icon and the most relevant

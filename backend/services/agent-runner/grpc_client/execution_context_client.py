@@ -22,6 +22,9 @@ class ExecutionContextNotFoundError(Exception):
     pass
 
 
+_DEFAULT_GRPC_TIMEOUT_SECONDS = 10.0
+
+
 class ExecutionContextClient:
     """Client for fetching ExecutionContext from Stigmer backend.
     
@@ -44,12 +47,14 @@ class ExecutionContextClient:
             pass
     """
     
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, *, timeout: float = _DEFAULT_GRPC_TIMEOUT_SECONDS):
         """
         Initialize ExecutionContextClient with authentication.
         
         Args:
             api_key: Stigmer API key for authentication (must have operator permission)
+            timeout: Per-call gRPC deadline in seconds (must stay well under
+                     Temporal's 30s heartbeat timeout to allow graceful recovery).
         """
         config = Config.load_from_env()
         endpoint = config.stigmer_backend_endpoint
@@ -71,6 +76,7 @@ class ExecutionContextClient:
             )
         
         self.stub = query_pb2_grpc.ExecutionContextQueryControllerStub(self.channel)
+        self._timeout = timeout
     
     async def get_by_execution_id(self, execution_id: str) -> ExecutionContext:
         """Fetch ExecutionContext by execution ID.
@@ -95,7 +101,7 @@ class ExecutionContextClient:
         
         try:
             input_msg = ExecutionContextExecutionIdInput(execution_id=execution_id)
-            result = await self.stub.getByExecutionId(input_msg)
+            result = await self.stub.getByExecutionId(input_msg, timeout=self._timeout)
             
             logger.debug(
                 f"Successfully retrieved ExecutionContext for execution {execution_id}: "

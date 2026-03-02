@@ -282,6 +282,10 @@ def tree_sandbox(tmp_path: Path) -> FilesystemBackend:
             │   └── config        (hidden — should be skipped)
             ├── __pycache__/
             │   └── main.cpython-311.pyc  (should be skipped)
+            ├── venv/
+            │   └── lib/          (should be skipped)
+            ├── dist/
+            │   └── bundle.js     (should be skipped)
             └── README.md         (20 bytes)
     """
     sb = FilesystemBackend(root_dir=tmp_path)
@@ -299,6 +303,11 @@ def tree_sandbox(tmp_path: Path) -> FilesystemBackend:
 
     (base / "__pycache__").mkdir()
     (base / "__pycache__" / "main.cpython-311.pyc").write_text("bytecode")
+
+    (base / "venv" / "lib").mkdir(parents=True)
+
+    (base / "dist").mkdir()
+    (base / "dist" / "bundle.js").write_text("compiled")
 
     (base / "README.md").write_text("x" * 20)
     return sb
@@ -355,6 +364,18 @@ class TestReadFileOnDirectory:
     ) -> None:
         result = tree_sandbox.read_file("project")
         assert "__pycache__" not in result
+
+    def test_listing_skips_venv(
+        self, tree_sandbox: FilesystemBackend,
+    ) -> None:
+        result = tree_sandbox.read_file("project")
+        assert "venv" not in result
+
+    def test_listing_skips_dist(
+        self, tree_sandbox: FilesystemBackend,
+    ) -> None:
+        result = tree_sandbox.read_file("project")
+        assert "dist" not in result
 
     def test_dirs_listed_before_files(
         self, tree_sandbox: FilesystemBackend,
@@ -644,6 +665,26 @@ class TestListFilesFiltering:
         assert ".hidden_dir" not in result
         assert "visible.txt" in result
 
+    def test_venv_excluded(self, tree_sandbox: FilesystemBackend) -> None:
+        result = tree_sandbox.list_files("project")
+        assert "venv" not in result
+
+    def test_dist_excluded(self, tree_sandbox: FilesystemBackend) -> None:
+        result = tree_sandbox.list_files("project")
+        assert "dist" not in result
+
+    @pytest.mark.parametrize("dirname", [
+        "target", "vendor", "coverage", "bower_components",
+    ])
+    def test_skip_dir_excluded(self, tmp_path: Path, dirname: str) -> None:
+        sb = FilesystemBackend(root_dir=tmp_path)
+        (tmp_path / dirname).mkdir()
+        (tmp_path / dirname / "artifact.bin").write_text("data")
+        (tmp_path / "src").mkdir()
+        result = sb.list_files(".")
+        assert dirname not in result
+        assert "src" in result
+
     def test_visible_entries_preserved(self, tree_sandbox: FilesystemBackend) -> None:
         result = tree_sandbox.list_files("project")
         assert "src" in result
@@ -677,3 +718,300 @@ class TestIsDirectory:
 
     def test_traversal_returns_false(self, sandbox: FilesystemBackend) -> None:
         assert sandbox.is_directory("../../etc") is False
+
+
+# =============================================================================
+# .gitignore filtering
+# =============================================================================
+
+
+@pytest.fixture
+def gitignore_sandbox(tmp_path: Path) -> FilesystemBackend:
+    """Sandbox with a .gitignore and matching entries.
+
+    Layout::
+
+        {root_dir}/
+        ├── .gitignore          ("*.pyc\\nbuild/\\nlogs/*.log\\n")
+        ├── src/
+        │   ├── main.py
+        │   └── main.pyc        (gitignored)
+        ├── build/              (gitignored dir)
+        │   └── output.js
+        ├── logs/
+        │   ├── app.log         (gitignored)
+        │   └── readme.txt
+        ├── lib/
+        │   └── helper.py
+        └── README.md
+    """
+    gi = tmp_path / ".gitignore"
+    gi.write_text("*.pyc\nbuild/\nlogs/*.log\n")
+
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "main.py").write_text("print('hi')")
+    (tmp_path / "src" / "main.pyc").write_bytes(b"\x00" * 10)
+
+    (tmp_path / "build").mkdir()
+    (tmp_path / "build" / "output.js").write_text("//js")
+
+    (tmp_path / "logs").mkdir()
+    (tmp_path / "logs" / "app.log").write_text("error")
+    (tmp_path / "logs" / "readme.txt").write_text("kept")
+
+    (tmp_path / "lib").mkdir()
+    (tmp_path / "lib" / "helper.py").write_text("def f(): ...")
+
+    (tmp_path / "README.md").write_text("# Hello")
+
+    return FilesystemBackend(root_dir=tmp_path)
+
+
+class TestGitignoreListFiles:
+    """.gitignore patterns must be respected by list_files()."""
+
+    def test_gitignored_dir_excluded(self, gitignore_sandbox: FilesystemBackend) -> None:
+        entries = gitignore_sandbox.list_files(".")
+        assert "build" not in entries
+
+    def test_non_gitignored_dir_visible(self, gitignore_sandbox: FilesystemBackend) -> None:
+        entries = gitignore_sandbox.list_files(".")
+        assert "src" in entries
+        assert "lib" in entries
+        assert "logs" in entries
+
+    def test_gitignored_file_in_subdir(self, gitignore_sandbox: FilesystemBackend) -> None:
+        entries = gitignore_sandbox.list_files("src")
+        assert "main.py" in entries
+        assert "main.pyc" not in entries
+
+    def test_path_prefix_gitignore(self, gitignore_sandbox: FilesystemBackend) -> None:
+        entries = gitignore_sandbox.list_files("logs")
+        assert "app.log" not in entries
+        assert "readme.txt" in entries
+
+    def test_skip_dirs_still_work_with_gitignore(self, tmp_path: Path) -> None:
+        (tmp_path / ".gitignore").write_text("*.tmp\n")
+        (tmp_path / "node_modules").mkdir()
+        (tmp_path / "src").mkdir()
+        sb = FilesystemBackend(root_dir=tmp_path)
+        entries = sb.list_files(".")
+        assert "node_modules" not in entries
+        assert "src" in entries
+
+    def test_no_gitignore_no_filtering(self, tmp_path: Path) -> None:
+        (tmp_path / "build").mkdir()
+        (tmp_path / "build" / "app.js").write_text("//ok")
+        (tmp_path / "src").mkdir()
+        sb = FilesystemBackend(root_dir=tmp_path)
+        entries = sb.list_files(".")
+        assert "build" in entries
+        assert "src" in entries
+
+
+class TestGitignoreDirectoryListing:
+    """.gitignore filtering in _format_directory_listing (read on a dir)."""
+
+    def test_gitignored_file_excluded_from_listing(
+        self, gitignore_sandbox: FilesystemBackend,
+    ) -> None:
+        listing = gitignore_sandbox.read_file("src")
+        assert "main.py" in listing
+        assert "main.pyc" not in listing
+
+    def test_gitignored_dir_excluded_from_listing(
+        self, gitignore_sandbox: FilesystemBackend,
+    ) -> None:
+        listing = gitignore_sandbox.read_file(".")
+        assert "build" not in listing
+        assert "src" in listing
+
+    def test_item_count_excludes_gitignored(
+        self, gitignore_sandbox: FilesystemBackend,
+    ) -> None:
+        listing = gitignore_sandbox.read_file(".")
+        assert "logs/" in listing
+        # logs/ has readme.txt visible, app.log gitignored → 1 item
+        assert "1 item" in listing
+
+
+class TestGitignorePlatformMount:
+    """.gitignore filtering must NOT apply to platform-mount paths."""
+
+    def test_platform_files_bypass_gitignore(self, tmp_path: Path) -> None:
+        ws = tmp_path / "workspace"
+        pdir = tmp_path / "platform"
+        ws.mkdir()
+        pdir.mkdir()
+
+        (ws / ".gitignore").write_text("*.md\n")
+        (pdir / "skills").mkdir()
+        (pdir / "skills" / "SKILL.md").write_text("# Skill")
+
+        sb = FilesystemBackend(root_dir=ws, platform_dir=pdir)
+        entries = sb.list_files(".stigmer/skills")
+        assert "SKILL.md" in entries
+
+
+# =============================================================================
+# Directory cache (T03)
+# =============================================================================
+
+
+@pytest.fixture
+def cache_sandbox(tmp_path: Path) -> FilesystemBackend:
+    """Sandbox with a small directory tree for cache tests.
+
+    Layout::
+
+        {root_dir}/
+        ├── src/
+        │   ├── main.py
+        │   └── utils.py
+        ├── tests/
+        │   └── test_main.py
+        └── README.md
+    """
+    sb = FilesystemBackend(root_dir=tmp_path)
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "main.py").write_text("print('main')")
+    (tmp_path / "src" / "utils.py").write_text("print('utils')")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_main.py").write_text("def test(): pass")
+    (tmp_path / "README.md").write_text("# Hello")
+    return sb
+
+
+class TestDirectoryCache:
+    """list_files() and is_directory() caching with invalidation."""
+
+    def test_list_files_returns_same_result_on_repeat(
+        self, cache_sandbox: FilesystemBackend,
+    ) -> None:
+        first = cache_sandbox.list_files(".")
+        second = cache_sandbox.list_files(".")
+        assert sorted(first) == sorted(second)
+
+    def test_list_files_returns_copy(
+        self, cache_sandbox: FilesystemBackend,
+    ) -> None:
+        """Caller cannot corrupt the cache by mutating the returned list."""
+        first = cache_sandbox.list_files(".")
+        first.append("INJECTED")
+        second = cache_sandbox.list_files(".")
+        assert "INJECTED" not in second
+
+    def test_list_files_cache_serves_stale_on_direct_fs_mutation(
+        self, cache_sandbox: FilesystemBackend,
+    ) -> None:
+        """Bypassing the backend to mutate the filesystem leaves the cache stale.
+
+        This proves the cache is active — the new file is invisible until
+        the cache is explicitly invalidated.
+        """
+        cache_sandbox.list_files("src")
+        (cache_sandbox.root_dir / "src" / "new_file.py").write_text("x")
+        stale = cache_sandbox.list_files("src")
+        assert "new_file.py" not in stale
+
+        cache_sandbox._invalidate_cache()
+        fresh = cache_sandbox.list_files("src")
+        assert "new_file.py" in fresh
+
+    def test_is_directory_cache_hit_after_list_files(
+        self, cache_sandbox: FilesystemBackend,
+    ) -> None:
+        """list_files() pre-populates the path type cache for all entries."""
+        cache_sandbox.list_files(".")
+        root = str(cache_sandbox.root_dir)
+        assert f"{root}/src" in cache_sandbox._path_type_cache
+        assert cache_sandbox._path_type_cache[f"{root}/src"] is True
+        assert f"{root}/README.md" in cache_sandbox._path_type_cache
+        assert cache_sandbox._path_type_cache[f"{root}/README.md"] is False
+
+    def test_is_directory_caches_own_lookups(
+        self, cache_sandbox: FilesystemBackend,
+    ) -> None:
+        assert cache_sandbox.is_directory("src") is True
+        resolved = str(cache_sandbox.root_dir / "src")
+        assert resolved in cache_sandbox._path_type_cache
+
+    def test_write_file_invalidates_cache(
+        self, cache_sandbox: FilesystemBackend,
+    ) -> None:
+        cache_sandbox.list_files("src")
+        assert cache_sandbox._dir_cache
+
+        cache_sandbox.write_file("src/new.py", "x")
+        assert not cache_sandbox._dir_cache
+        assert not cache_sandbox._path_type_cache
+
+        entries = cache_sandbox.list_files("src")
+        assert "new.py" in entries
+
+    def test_write_facade_invalidates_cache(
+        self, cache_sandbox: FilesystemBackend,
+    ) -> None:
+        cache_sandbox.list_files(".")
+        cache_sandbox.write("new_root_file.txt", "x")
+        assert not cache_sandbox._dir_cache
+
+    def test_execute_invalidates_cache(
+        self, cache_sandbox: FilesystemBackend,
+    ) -> None:
+        cache_sandbox.list_files(".")
+        assert cache_sandbox._dir_cache
+
+        cache_sandbox.execute("touch new_via_exec.txt")
+        assert not cache_sandbox._dir_cache
+
+        entries = cache_sandbox.list_files(".")
+        assert "new_via_exec.txt" in entries
+
+    def test_path_representations_share_cache(
+        self, cache_sandbox: FilesystemBackend,
+    ) -> None:
+        """'.', '', and '/' all resolve to root_dir and share one cache entry."""
+        cache_sandbox.list_files(".")
+        assert len(cache_sandbox._dir_cache) == 1
+
+        result_empty = cache_sandbox.list_files("")
+        result_slash = cache_sandbox.list_files("/")
+        assert sorted(result_empty) == sorted(result_slash)
+        assert len(cache_sandbox._dir_cache) == 1
+
+    def test_platform_stigmer_entry_cached(self, tmp_path: Path) -> None:
+        ws = tmp_path / "workspace"
+        pdir = tmp_path / "platform"
+        sb = FilesystemBackend(root_dir=ws, platform_dir=pdir)
+        (ws / "src").mkdir()
+
+        first = sb.list_files(".")
+        assert ".stigmer" in first
+
+        second = sb.list_files(".")
+        assert ".stigmer" in second
+
+    def test_gitignore_filtering_correct_with_cache(self, tmp_path: Path) -> None:
+        (tmp_path / ".gitignore").write_text("*.pyc\nlogs/\n")
+        (tmp_path / "src").mkdir()
+        (tmp_path / "src" / "main.py").write_text("x")
+        (tmp_path / "src" / "main.pyc").write_bytes(b"\x00")
+        (tmp_path / "logs").mkdir()
+        (tmp_path / "logs" / "app.log").write_text("x")
+
+        sb = FilesystemBackend(root_dir=tmp_path)
+
+        first = sb.list_files(".")
+        assert "src" in first
+        assert "logs" not in first
+
+        second = sb.list_files(".")
+        assert sorted(first) == sorted(second)
+
+        sub_first = sb.list_files("src")
+        assert "main.py" in sub_first
+        assert "main.pyc" not in sub_first
+
+        sub_second = sb.list_files("src")
+        assert sorted(sub_first) == sorted(sub_second)

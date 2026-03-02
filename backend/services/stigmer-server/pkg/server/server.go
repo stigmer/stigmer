@@ -7,9 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strings"
 	"syscall"
-	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -62,7 +60,6 @@ import (
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/extractor"
 	searchhandler "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/handler"
 	searchstore "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/store"
-	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/supervisor"
 )
 
 // Run starts the Stigmer server (extracted from main for BusyBox pattern)
@@ -425,25 +422,6 @@ func Run() error {
 	// Start health monitor for automatic reconnection
 	temporalManager.StartHealthMonitor(monitorCtx)
 
-	// ============================================================================
-	// Start component supervisor (workflow-runner, agent-runner)
-	// ============================================================================
-
-	// Load supervisor configuration from environment
-	supervisorConfig := loadSupervisorConfig(cfg)
-
-	// Create and start supervisor
-	componentSupervisor := supervisor.NewSupervisor(supervisorConfig)
-	if err := componentSupervisor.Start(); err != nil {
-		log.Warn().
-			Err(err).
-			Msg("Failed to start component supervisor - child components will not auto-restart")
-		// Don't fail server startup if supervisor fails
-	} else {
-		log.Info().Msg("Component supervisor active - child components will auto-restart on failure")
-	}
-	defer componentSupervisor.Stop()
-
 	// Setup graceful shutdown
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
@@ -506,42 +484,3 @@ func setupLogging(cfg *config.Config) {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 }
 
-// loadSupervisorConfig loads supervisor configuration from environment variables
-func loadSupervisorConfig(cfg *config.Config) *supervisor.Config {
-	// Helper function to get env var with default
-	getEnv := func(key, defaultValue string) string {
-		if value := os.Getenv(key); value != "" {
-			return value
-		}
-		return defaultValue
-	}
-
-	// Parse LLM secrets from environment
-	secrets := make(map[string]string)
-	if apiKey := os.Getenv("OPENAI_API_KEY"); apiKey != "" {
-		secrets["OPENAI_API_KEY"] = apiKey
-	}
-	if apiKey := os.Getenv("ANTHROPIC_API_KEY"); apiKey != "" {
-		secrets["ANTHROPIC_API_KEY"] = apiKey
-	}
-
-	return &supervisor.Config{
-		DataDir:             getEnv("STIGMER_DATA_DIR", ""),
-		LogDir:              getEnv("STIGMER_LOG_DIR", ""),
-		LogLevel:            strings.ToUpper(cfg.LogLevel),
-		TemporalAddr:        getEnv("TEMPORAL_SERVICE_ADDRESS", "localhost:7233"),
-		StigmerServerPort:   cfg.GRPCPort,
-		ArtifactHTTPPort:    cfg.ArtifactHTTPPort,
-		LLMProvider:         getEnv("STIGMER_LLM_PROVIDER", "ollama"),
-		LLMModel:            getEnv("STIGMER_LLM_MODEL", "qwen2.5-coder:14b"),
-		LLMBaseURL:          getEnv("STIGMER_LLM_BASE_URL", "http://localhost:11434"),
-		LLMSecrets:          secrets,
-		ExecutionMode:       getEnv("STIGMER_EXECUTION_MODE", "local"),
-		SandboxImage:        getEnv("STIGMER_SANDBOX_IMAGE", "ghcr.io/stigmer/agent-sandbox-basic:latest"),
-		SandboxAutoPull:     getEnv("STIGMER_SANDBOX_AUTO_PULL", "true") == "true",
-		SandboxCleanup:      getEnv("STIGMER_SANDBOX_CLEANUP", "true") == "true",
-		SandboxTTL:          3600, // Default 1 hour
-		HealthCheckInterval: 10 * time.Second,
-		MaxRestarts:         10,
-	}
-}

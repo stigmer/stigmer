@@ -12,6 +12,8 @@ Agent Runner is a Python background service, not an API resource. It is a [Tempo
 
 When a user runs `stigmer run my-agent "Review this PR"`, the Stigmer backend creates an `AgentExecution` record and enqueues a Temporal workflow. Agent Runner picks up that workflow's activities, resolves all the resources the agent needs, provisions a workspace, starts the AI model loop, streams events back to the backend in real time, and handles human-in-the-loop approval checkpoints along the way.
 
+Agent Runner runs as a **native OS process**—no Docker Desktop required. The Stigmer CLI bootstraps a hermetic CPython runtime on first use and manages the entire Agent Runner lifecycle through a long-lived background daemon (`stigmer internal-daemon`).
+
 If you are working on Stigmer, Agent Runner is the code that actually *runs* agents. Everything else—the CLI, the API, the YAML resources—converges here.
 
 ---
@@ -27,7 +29,7 @@ stigmer-service  ──────► Temporal Workflow (Java)
       ▲                     │  schedules activities on task queue:
       │                     │  "agent_execution_runner"
       │                     ▼
-      └─────────── Agent Runner (Python)
+      └─────────── Agent Runner (Python, native process)
                         │
                         ├── resolves resources via gRPC
                         ├── provisions workspace
@@ -35,6 +37,31 @@ stigmer-service  ──────► Temporal Workflow (Java)
                         ├── streams status updates ──► stigmer-service
                         └── handles HITL approvals
 ```
+
+### Lifecycle: How Agent Runner Starts
+
+Agent Runner is managed exclusively by the `stigmer internal-daemon` background process. When you run `stigmer server start`, the foreground command does interactive setup and then hands off:
+
+```
+stigmer server start (foreground)
+  ├── load config, resolve secrets
+  ├── start Temporal
+  ├── bootstrap Python runtime (downloads & installs hermetic CPython on first run)
+  ├── spawn "stigmer internal-daemon" (background, detached)
+  └── exit(0)
+
+stigmer internal-daemon (long-lived background)
+  ├── start stigmer-server
+  ├── start workflow-runner
+  ├── start agent-runner (native Python process)
+  ├── health monitor loop (every 5s)
+  │   ├── check PIDs via Signal(0)
+  │   ├── restart crashed components (up to threshold)
+  │   └── write health-state.json atomically
+  └── SIGTERM handler → graceful shutdown
+```
+
+The daemon is the **single lifecycle owner** for all components — there is no competing supervisor inside stigmer-server. This means `stigmer server status` and `stigmer server logs` read from a unified `health-state.json` with no Docker special cases.
 
 The Stigmer backend uses a **polyglot Temporal pattern**: Java handles the durable workflow orchestration and resource management; Python handles the actual AI execution. This separation means the workflow layer is reliable and observable while the execution layer can use the full Python AI ecosystem (LangGraph, LangChain tool integrations, etc.).
 
@@ -67,7 +94,7 @@ It registers four activities:
 | `EnsureThread` | Creates or retrieves the LangGraph thread ID for the session. |
 | `ExecuteGraphton` | The main execution activity—resolves resources, runs the agent, streams status. |
 | `GenerateSessionSubject` | Generates a human-readable title for a session after its first execution. |
-| `CleanupSandbox` | Tears down Docker or Daytona sandbox containers after execution. |
+| `CleanupSandbox` | Tears down Daytona sandbox containers after cloud execution. |
 
 ### Execute Graphton Activity (`worker/activities/execute_graphton.py`)
 
@@ -112,15 +139,16 @@ Step 10 Return final status
 
 ### Sandbox Manager (`worker/sandbox_manager.py`)
 
-Manages where the agent process actually runs. There are three modes:
+Manages where the agent process actually runs. There are two modes:
 
 | Mode | Description | When Used |
 |---|---|---|
-| `local` | Direct subprocess on the host filesystem | Local development, simple tasks |
-| `docker` | Isolated Docker container with TTL-based reuse | Sandboxed local execution |
+| `local` | Direct subprocess on the host filesystem | Local development, OSS deployments |
 | `daytona` | Cloud-based Daytona sandbox | Production cloud deployments |
 
-In cloud mode, sandbox containers are reused across executions of the same agent instance to avoid cold-start overhead. When a sandbox is idle beyond its TTL, `CleanupSandbox` tears it down.
+In cloud mode, Daytona sandbox containers are reused across executions of the same agent instance to avoid cold-start overhead. When a sandbox is idle beyond its TTL, `CleanupSandbox` tears it down.
+
+> **Note:** Docker-based sandboxing for agent execution was removed. Agent Runner itself runs natively (see [Python Runtime Manager](#python-runtime-manager-internalclipythonrt) below); Docker is no longer a dependency for any part of the local Stigmer stack.
 
 ### Workspace Provisioner (`worker/workspace/provisioner.py`)
 
@@ -141,6 +169,29 @@ Creates the LangGraph state persistence layer:
 | `mongodb` | MongoDB collection | Cloud deployments; multi-instance safe |
 
 The checkpointer is keyed by thread ID, so a session's conversation history is preserved across multiple `AgentExecution` runs.
+
+### Python Runtime Manager (`internal/cli/pythonrt/`)
+
+The Python Runtime Manager is the Go-side component that provisions and maintains the hermetic CPython environment Agent Runner runs in. It lives in the CLI, not in the Python service itself, because the CLI orchestrates all daemon startup.
+
+On first use, the manager downloads [python-build-standalone](https://github.com/indygreg/python-build-standalone) (CPython 3.11.14), verifies its SHA-256 checksum, creates a virtual environment, and installs all Agent Runner dependencies from a pinned `requirements.txt`. Subsequent starts skip the download and perform only a fast manifest check (~34 µs).
+
+The runtime is stored at:
+
+```
+~/.stigmer/runtimes/agent-runner/<cli-version>/<platform>/
+├── python/        # python-build-standalone interpreter
+├── venv/          # virtual environment with all dependencies
+├── wheels/        # cached wheelhouse for offline reinstall (future)
+└── manifest.json  # environment metadata (version, python version, platform)
+```
+
+| Key Behaviour | Detail |
+|---|---|
+| Version key | CLI build version — mismatch triggers a full re-bootstrap |
+| Atomic bootstrap | Any failure removes the entire directory; no partial state |
+| Dev mode refresh | When running as version `"dev"`, app source and path dependencies are always re-extracted on restart (~3–4 s, no network I/O) |
+| Platform support | `darwin-arm64`, `darwin-amd64`, `linux-amd64`, `linux-arm64` |
 
 ### Streaming Update Scheduler (`worker/streaming/update_scheduler.py`)
 
@@ -167,7 +218,7 @@ For OSS users and local development. No cloud dependencies required.
 
 - Checkpointer: SQLite (`./checkpoints/langgraph.db`)
 - Workspace: Local filesystem (`./workspace`)
-- Sandbox: Direct subprocess or Docker (no Daytona)
+- Sandbox: Direct subprocess on host filesystem (no Docker, no Daytona)
 - LLM: Ollama (`qwen2.5-coder:7b`)
 - Backend: `localhost:50051`
 
@@ -187,11 +238,11 @@ The same codebase runs in both modes—only the `Config` changes.
 
 ## Configuration Reference
 
-Key environment variables:
+Key environment variables passed to the Agent Runner process by the daemon:
 
 | Variable | Description | Local Default | Cloud Default |
 |---|---|---|---|
-| `MODE` | `local` or `cloud` | `cloud` | `cloud` |
+| `MODE` | `local` or `cloud` | `local` | `cloud` |
 | `TEMPORAL_SERVICE_ADDRESS` | Temporal server address | `localhost:7233` | — |
 | `TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE` | Task queue name | `agent_execution_runner` | `agent_execution_runner` |
 | `STIGMER_BACKEND_ENDPOINT` | gRPC endpoint for stigmer-service | `localhost:50051` | `localhost:8080` |
@@ -203,9 +254,12 @@ Key environment variables:
 | `STIGMER_CHECKPOINTER_SQLITE_PATH` | SQLite file path | `./checkpoints/langgraph.db` | — |
 | `STIGMER_CHECKPOINTER_MONGODB_URI` | MongoDB URI | — | required |
 | `SANDBOX_TYPE` | `filesystem` or `daytona` | `filesystem` | `daytona` |
-| `STIGMER_EXECUTION_MODE` | `local`, `sandbox`, or `auto` | `local` | `local` |
+| `SANDBOX_ROOT_DIR` | Root directory for agent sandboxes | set by daemon | set by daemon |
+| `LOG_LEVEL` | Python log level override (`DEBUG`, `INFO`, `WARNING`) | `INFO` | `INFO` |
 | `STREAMING_MIN_INTERVAL_MS` | Min ms between status updates | `500` | `500` |
 | `STREAMING_MAX_INTERVAL_MS` | Max ms before forced keepalive | `5000` | `5000` |
+
+> **Note:** `SANDBOX_ROOT_DIR` replaces the old `WORKSPACE_ROOT` variable that Docker mode used. The daemon constructs and injects these variables automatically; you do not need to set them manually when using `stigmer server start`.
 
 ---
 
@@ -226,22 +280,49 @@ Agent Runner does not define resources—it *executes* them. Every resource in t
 
 ## Running Agent Runner Locally
 
-```bash
-cd backend/services/agent-runner
+The recommended way to run Agent Runner locally is through the Stigmer CLI. The CLI bootstraps the hermetic Python runtime automatically on first start:
 
-# Install dependencies
-pip install -e ".[dev]"
+```bash
+# Start the full local stack (Temporal, stigmer-service, workflow-runner, agent-runner)
+stigmer server start
+```
+
+On first run, the CLI downloads python-build-standalone (~350 MB), creates a virtual environment, and installs all 131+ pinned dependencies. Subsequent starts take only a few seconds.
+
+To check status and view logs:
+
+```bash
+stigmer server status
+stigmer server logs agent-runner
+```
+
+### Running Agent Runner Directly (Advanced)
+
+If you need to run Agent Runner outside the daemon (for example, to attach a debugger), activate the hermetic venv created by the CLI and run the entry point manually:
+
+```bash
+# The venv lives at:
+~/.stigmer/runtimes/agent-runner/<cli-version>/<platform>/venv/bin/python
 
 # Configure for local mode
 export MODE=local
 export STIGMER_LLM_PROVIDER=ollama
 export STIGMER_LLM_MODEL=qwen2.5-coder:7b
+export SANDBOX_ROOT_DIR=~/.stigmer/data/workspace
 
-# Start (requires local Temporal server and stigmer-service)
+# Start (requires Temporal and stigmer-service to already be running)
+~/.stigmer/runtimes/agent-runner/*/python main.py
+```
+
+Alternatively, install dependencies into your own venv from the repo:
+
+```bash
+cd backend/services/agent-runner
+pip install -e ".[dev]"
 python main.py
 ```
 
-For a full local stack, use the `docker-compose.yml` at the repo root. Agent Runner, Temporal, stigmer-service, and all dependencies are wired together.
+> **Docker is not required.** Agent Runner runs as a native process on macOS and Linux. There is no `docker-compose.yml` dependency for the local Stigmer stack.
 
 ---
 

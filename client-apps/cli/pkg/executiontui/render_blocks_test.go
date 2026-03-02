@@ -121,12 +121,12 @@ func TestRenderPhaseChange_WaitingForApproval_Suppressed(t *testing.T) {
 }
 
 func TestRenderApprovalPrompt(t *testing.T) {
-	result := renderApprovalPrompt("shell", `{"command":"ls"}`, "Execute command", false, "")
+	result := renderApprovalPrompt("shell", `{"command":"ls"}`, "Execute command: ls", false, "")
 	if !strings.Contains(result, "APPROVAL REQUIRED") {
 		t.Error("should contain APPROVAL REQUIRED")
 	}
-	if !strings.Contains(result, "shell") {
-		t.Error("should contain tool name")
+	if !strings.Contains(result, "$ ls") {
+		t.Errorf("shell tool should render command with $ prefix, got %q", result)
 	}
 }
 
@@ -499,8 +499,8 @@ func TestRenderSubAgentSeparator(t *testing.T) {
 	if !strings.Contains(plain, "researcher") {
 		t.Errorf("separator should contain sub-agent name, got %q", plain)
 	}
-	if !strings.Contains(plain, "──") {
-		t.Errorf("separator should contain horizontal line characters, got %q", plain)
+	if !strings.Contains(plain, "🔀") {
+		t.Errorf("separator should use 🔀 prefix, got %q", plain)
 	}
 }
 
@@ -583,7 +583,7 @@ func TestRebuildViewportContent_NoSeparator_MainAgent(t *testing.T) {
 	}
 	result := rebuildViewportContent(blocks, -1)
 	plain := ansi.Strip(result)
-	if strings.Contains(plain, "──") {
+	if strings.Contains(plain, "🔀") {
 		t.Error("main-agent-only blocks should not have any separators")
 	}
 }
@@ -595,10 +595,168 @@ func TestRebuildViewportContent_NoSeparator_SameSubAgent(t *testing.T) {
 	}
 	result := rebuildViewportContent(blocks, -1)
 	plain := ansi.Strip(result)
-	// Should have exactly one separator (before the first sub-agent block),
-	// not two.
+	// Should have exactly one fallback separator (before the first orphaned
+	// sub-agent block), not two.
 	if strings.Count(plain, "researcher") != 1 {
 		t.Errorf("expected exactly 1 separator for consecutive same-sub-agent blocks, got %d occurrences of 'researcher'",
 			strings.Count(plain, "researcher"))
+	}
+}
+
+// =============================================================================
+// Sub-Agent Header Block Interleaving Tests
+//
+// These tests verify that needsSubAgentSeparator is robust against block
+// interleaving — when top-level events are appended between sub-agent blocks
+// across Recv() iterations, the header block prevents spurious separators.
+// =============================================================================
+
+func TestNeedsSubAgentSeparator_HeaderPreventsAll(t *testing.T) {
+	header := newSubAgentBlock("gp", "task desc", 0, "")
+	header.subAgentID = "sa-1"
+	blocks := []contentBlock{
+		{content: "main block"},
+		header,
+		{content: "sub tool 1", subAgentID: "sa-1"},
+		{content: "sub tool 2", subAgentID: "sa-1"},
+	}
+	if needsSubAgentSeparator(blocks, 2) {
+		t.Error("sub-agent block after its header should not need separator")
+	}
+	if needsSubAgentSeparator(blocks, 3) {
+		t.Error("consecutive sub-agent block after header should not need separator")
+	}
+}
+
+func TestNeedsSubAgentSeparator_HeaderBlockedByInterleaving(t *testing.T) {
+	// Simulates: header created, then a top-level event is appended between
+	// Recv() iterations, followed by more sub-agent blocks. The old logic
+	// would show a separator here because the immediately preceding block
+	// has a different subAgentID. The new logic finds the header and skips.
+	header := newSubAgentBlock("gen", "explore", 0, "")
+	header.subAgentID = "sa-1"
+	blocks := []contentBlock{
+		{content: "main block"},
+		header,
+		{content: "sub tool 1", subAgentID: "sa-1"},
+		{content: "system message"},                                       // top-level interleaving
+		{content: "sub tool 2", subAgentID: "sa-1", subAgentName: "gen"}, // should NOT get separator
+	}
+	if needsSubAgentSeparator(blocks, 4) {
+		t.Error("sub-agent block should not need separator when header exists, even with interleaved top-level block")
+	}
+}
+
+func TestNeedsSubAgentSeparator_OrphanedBlocksGetSeparator(t *testing.T) {
+	// No header block — sub-agent blocks are orphaned. The first one after
+	// a main-agent block should get a separator; the second should not.
+	blocks := []contentBlock{
+		{content: "main block"},
+		{content: "sub block 1", subAgentID: "sa-1"},
+		{content: "sub block 2", subAgentID: "sa-1"},
+	}
+	if !needsSubAgentSeparator(blocks, 1) {
+		t.Error("first orphaned sub-agent block after main should need separator")
+	}
+	if needsSubAgentSeparator(blocks, 2) {
+		t.Error("consecutive orphaned block from same sub-agent should not need separator")
+	}
+}
+
+func TestNeedsSubAgentSeparator_MultipleSubAgentsWithHeaders(t *testing.T) {
+	h1 := newSubAgentBlock("sa1", "", 0, "")
+	h1.subAgentID = "sa-1"
+	h2 := newSubAgentBlock("sa2", "", 0, "")
+	h2.subAgentID = "sa-2"
+	blocks := []contentBlock{
+		h1,
+		{content: "sub-1 tool", subAgentID: "sa-1"},
+		{content: "main response"},
+		h2,
+		{content: "sub-2 tool", subAgentID: "sa-2"},
+		{content: "another main response"},
+		{content: "sub-1 resumes", subAgentID: "sa-1"}, // sa-1 header at idx 0
+		{content: "sub-2 resumes", subAgentID: "sa-2"}, // sa-2 header at idx 3
+	}
+	if needsSubAgentSeparator(blocks, 6) {
+		t.Error("sa-1 block should not need separator — header at idx 0")
+	}
+	if needsSubAgentSeparator(blocks, 7) {
+		t.Error("sa-2 block should not need separator — header at idx 3")
+	}
+}
+
+func TestRebuildViewportContent_HeaderBlockNoSeparator(t *testing.T) {
+	header := newSubAgentBlock("general-purpose", "Explore", 0, "")
+	header.subAgentID = "sa-1"
+	blocks := []contentBlock{
+		{content: "main block"},
+		header,
+		{content: "sub tool", subAgentID: "sa-1", subAgentName: "general-purpose"},
+	}
+	result := rebuildViewportContent(blocks, -1)
+	plain := ansi.Strip(result)
+	// The header should appear once (from the blockSubAgent). No fallback
+	// separator should appear.
+	if strings.Count(plain, "general-purpose") != 1 {
+		t.Errorf("expected exactly 1 occurrence of sub-agent name (from header only), got %d in: %q",
+			strings.Count(plain, "general-purpose"), plain)
+	}
+}
+
+func TestRebuildViewportContent_InterleavedWithHeader(t *testing.T) {
+	header := newSubAgentBlock("gp", "explore", 0, "")
+	header.subAgentID = "sa-1"
+	blocks := []contentBlock{
+		header,
+		{content: "sub tool 1", subAgentID: "sa-1", subAgentName: "gp"},
+		{content: "system event"},
+		{content: "sub tool 2", subAgentID: "sa-1", subAgentName: "gp"},
+	}
+	result := rebuildViewportContent(blocks, -1)
+	plain := ansi.Strip(result)
+	// Count occurrences of "gp" — should be 1 from the header only.
+	// No fallback separators because the header exists.
+	gpCount := strings.Count(plain, "gp")
+	if gpCount != 1 {
+		t.Errorf("expected 1 occurrence of 'gp' (from header only, no fallback separators), got %d in: %q",
+			gpCount, plain)
+	}
+}
+
+func TestNewSubAgentBlock_AlwaysExpandable(t *testing.T) {
+	b := newSubAgentBlock("general-purpose", "explore cli", 0, "")
+	if !b.expandable {
+		t.Error("sub-agent block should always be expandable (controls child visibility)")
+	}
+	dc := b.displayContent()
+	if dc == "" {
+		t.Fatal("sub-agent block must have visible content")
+	}
+	plain := ansi.Strip(dc)
+	if !strings.Contains(plain, "general-purpose") {
+		t.Errorf("header should contain sub-agent name, got %q", plain)
+	}
+}
+
+func TestNewSubAgentBlock_WithToolCountAndStatus(t *testing.T) {
+	b := newSubAgentBlock("explore", "find files", 5, "completed")
+	if !b.expandable {
+		t.Error("sub-agent block should be expandable")
+	}
+	dc := b.displayContent()
+	plain := ansi.Strip(dc)
+	if !strings.Contains(plain, "5 tools") {
+		t.Errorf("header should contain tool count, got %q", plain)
+	}
+	if !strings.Contains(plain, "done") {
+		t.Errorf("header should contain status badge, got %q", plain)
+	}
+}
+
+func TestNewSubAgentBlock_StartsCollapsed(t *testing.T) {
+	b := newSubAgentBlock("explore", "find files", 0, "running")
+	if b.expanded {
+		t.Error("sub-agent block should start collapsed")
 	}
 }

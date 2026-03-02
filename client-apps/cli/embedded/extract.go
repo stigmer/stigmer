@@ -12,84 +12,60 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// EnsureBinariesExtracted ensures all embedded binaries are extracted to the bin directory
-// This should be called on daemon start before attempting to use any binaries
-//
-// NOTE: As of Docker-based architecture, no binaries are embedded anymore.
-// All platforms (darwin/arm64, darwin/amd64, linux/amd64) use Docker images for agent-runner.
-// This function is kept for backward compatibility and graceful migration.
+// EnsureBinariesExtracted ensures the bin directory and version marker exist.
+// Agent-runner now runs as a native Python process managed by pythonrt, so
+// no binaries are embedded. This function maintains the version marker for
+// legacy compatibility and future use.
 func EnsureBinariesExtracted(dataDir string) error {
 	binDir := filepath.Join(dataDir, "bin")
 
-	// Check if extraction is needed
 	needsExtraction, err := needsExtraction(binDir)
 	if err != nil {
 		return errors.Wrap(err, "failed to check extraction status")
 	}
 
 	if !needsExtraction {
-		log.Debug().Msg("Binaries already extracted, skipping extraction")
+		log.Debug().Msg("Bin directory already initialized, skipping")
 		return nil
 	}
 
-	// Log version information if doing fresh extraction
 	currentVersion := GetBuildVersion()
 	if extractedVersion, _ := readVersionFile(binDir); extractedVersion != "" {
 		log.Info().
 			Str("extracted", extractedVersion).
 			Str("current", currentVersion).
-			Msg("Version mismatch detected, re-extracting binaries")
-	} else {
-		log.Info().
-			Str("version", currentVersion).
-			Msg("First run detected - agent-runner will be pulled from Docker registry")
+			Msg("Version mismatch detected, reinitializing bin directory")
 	}
 
-	// Clean slate: remove old binaries if they exist
 	if err := os.RemoveAll(binDir); err != nil && !os.IsNotExist(err) {
-		return errors.Wrap(err, "failed to remove old binaries")
+		return errors.Wrap(err, "failed to remove old bin directory")
 	}
-
-	// Create bin directory
 	if err := os.MkdirAll(binDir, 0755); err != nil {
 		return errors.Wrap(err, "failed to create bin directory")
 	}
 
-	// Extract agent-runner (will be nil for all platforms now - Docker-based)
-	log.Debug().Msg("Checking for embedded agent-runner (Docker-based architecture)...")
 	if err := extractAgentRunner(binDir); err != nil {
 		return errors.Wrap(err, "failed to extract agent-runner")
 	}
 
-	// Write version marker
 	if err := writeVersionFile(binDir, currentVersion); err != nil {
 		return errors.Wrap(err, "failed to write version file")
 	}
 
-	log.Info().
-		Str("version", currentVersion).
-		Str("location", binDir).
-		Msg("Binary extraction check complete - using Docker-based agent-runner")
-
 	return nil
 }
 
-// extractAgentRunner extracts the agent-runner binary to the bin directory
-// Note: As of Docker-based architecture, this always returns nil (no embedded binaries).
-// The daemon will pull the agent-runner Docker image from ghcr.io/stigmer/agent-runner on first start.
+// extractAgentRunner handles legacy embedded agent-runner binaries.
+// The native architecture uses pythonrt instead; this is retained for
+// backward compatibility with older binary formats.
 func extractAgentRunner(binDir string) error {
 	data, err := GetAgentRunnerBinary()
 	if err != nil {
 		return err
 	}
-
-	// If data is nil, it means the binary is not embedded (Docker-based architecture for all platforms)
-	// Skip extraction gracefully - the daemon will pull the Docker image on first use
 	if data == nil || len(data) == 0 {
-		log.Debug().Msg("Agent-runner not embedded (Docker-based), will be pulled from ghcr.io on daemon start")
 		return nil
 	}
-
 	destPath := filepath.Join(binDir, "agent-runner")
 	return extractBinary(destPath, data)
 }

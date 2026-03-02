@@ -1,41 +1,33 @@
-"""Logging configuration for agent-runner service."""
+"""Logging configuration for agent-runner service.
 
-import logging
+Uses dictConfig with a YAML file (logging.yaml), the Python equivalent of
+Spring Boot's application.yml logging section.  dictConfig replaces the
+entire logging tree atomically, so there are no ordering issues with
+imports that create loggers before setup_logging() runs.
+
+The LOG_LEVEL environment variable overrides the root logger level at
+startup (default: INFO).
+"""
+
+import logging.config
 import os
+from pathlib import Path
+
+import yaml
 
 
 def setup_logging() -> None:
+    """Load logging configuration from logging.yaml and apply it.
+
+    The root logger level is overridden by the LOG_LEVEL env var when set.
+    All per-logger levels are declared in logging.yaml.
     """
-    Configure logging for the agent-runner service.
-    
-    Sets global logging level (default: INFO) and suppresses noisy third-party libraries.
-    Use LOG_LEVEL environment variable to override (DEBUG, INFO, WARNING, ERROR).
-    """
-    # Configure global logging level (default: INFO)
-    log_level_str = os.getenv("LOG_LEVEL", "INFO").upper()
-    log_level = getattr(logging, log_level_str, logging.INFO)
-    
-    logging.basicConfig(
-        level=log_level,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    )
-    
-    # Suppress DEBUG logs from third-party libraries (they don't respect root logger level)
-    # Only show WARNING and above for infrastructure noise
-    logging.getLogger("asyncio").setLevel(logging.WARNING)
-    logging.getLogger("httpcore").setLevel(logging.WARNING)
-    logging.getLogger("grpc").setLevel(logging.WARNING)
-    logging.getLogger("grpc._cython.cygrpc").setLevel(logging.WARNING)
-    logging.getLogger("aiosqlite").setLevel(logging.WARNING)
-    logging.getLogger("langgraph.checkpoint.sqlite").setLevel(logging.WARNING)
-    
-    # Suppress DEBUG logs from libraries that create their own loggers
-    # Show INFO and above for these (useful operational logs, no debug noise)
-    logging.getLogger("anthropic").setLevel(logging.INFO)
-    logging.getLogger("anthropic._base_client").setLevel(logging.INFO)
-    logging.getLogger("temporalio").setLevel(logging.INFO)
-    logging.getLogger("temporalio.worker._activity").setLevel(logging.INFO)
-    logging.getLogger("temporalio.activity").setLevel(logging.INFO)
-    logging.getLogger("graphton").setLevel(logging.INFO)
-    logging.getLogger("graphton.core.loop_detection").setLevel(logging.INFO)
-    logging.getLogger("grpc_client.auth.token_manager").setLevel(logging.INFO)
+    config_path = Path(__file__).parent / "logging.yaml"
+    with open(config_path) as f:
+        config = yaml.safe_load(f)
+
+    log_level = os.getenv("LOG_LEVEL", "").upper()
+    if log_level:
+        config["root"]["level"] = log_level
+
+    logging.config.dictConfig(config)

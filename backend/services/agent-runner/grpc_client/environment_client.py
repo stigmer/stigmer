@@ -14,15 +14,20 @@ from worker.config import Config
 logger = logging.getLogger(__name__)
 
 
+_DEFAULT_GRPC_TIMEOUT_SECONDS = 10.0
+
+
 class EnvironmentClient:
     """Client for fetching environments from Stigmer backend."""
     
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, *, timeout: float = _DEFAULT_GRPC_TIMEOUT_SECONDS):
         """
         Initialize EnvironmentClient with authentication.
         
         Args:
             api_key: Stigmer API key for authentication
+            timeout: Per-call gRPC deadline in seconds (must stay well under
+                     Temporal's 30s heartbeat timeout to allow graceful recovery).
         """
         config = Config.load_from_env()
         endpoint = config.stigmer_backend_endpoint
@@ -44,6 +49,7 @@ class EnvironmentClient:
             )
         
         self.stub = query_pb2_grpc.EnvironmentQueryControllerStub(self.channel)
+        self._timeout = timeout
     
     async def get_by_reference(self, ref: ApiResourceReference) -> Environment:
         """Fetch environment by ApiResourceReference.
@@ -59,7 +65,7 @@ class EnvironmentClient:
             ValueError: If environment not found or access denied
         """
         try:
-            return await self.stub.getByReference(ref)
+            return await self.stub.getByReference(ref, timeout=self._timeout)
         except grpc.RpcError as e:
             if e.code() == grpc.StatusCode.NOT_FOUND:
                 logger.error(f"Environment {ref.slug} not found")

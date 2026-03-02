@@ -36,6 +36,10 @@ from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ToolCallStatus,
 )
 from google.protobuf.struct_pb2 import Struct
+from graphton.core.backends.platform_mount import (
+    humanize_platform_refs,
+    resolve_display_env_vars,
+)
 from graphton.core.summarization_callback import SummarizationEventData
 
 from worker.activities.graphton.approval_policy import (
@@ -381,7 +385,32 @@ class StatusBuilder:
         # waiting for the next scheduled update (which may be 500ms–30s away
         # if no further LangGraph events arrive).
         self.force_next_update: bool = False
+
+        # Resolved agent env vars used by _create_args_preview to expand
+        # $VAR references in display strings.  Set via set_display_env_vars()
+        # once the merged environment is available.
+        self._display_env_vars: dict[str, str] | None = None
+        self._secret_keys: set[str] | None = None
     
+    def set_display_env_vars(
+        self,
+        env_vars: dict[str, str],
+        secret_keys: set[str] | None = None,
+    ) -> None:
+        """Store resolved agent env vars for display humanization.
+
+        Called once after environment merge completes.  ``_create_args_preview``
+        uses these to replace ``$KEY`` references with their values so the
+        approval prompt shows concrete paths instead of opaque env-var names.
+
+        Args:
+            env_vars: Merged env-var name-to-value mapping.
+            secret_keys: Keys marked ``is_secret=true`` in the EnvironmentValue
+                proto.  These are never expanded into display strings.
+        """
+        self._display_env_vars = env_vars
+        self._secret_keys = secret_keys
+
     async def process_event(self, event: dict[str, Any]) -> None:
         """
         Process astream_events v2 event and update local status.
@@ -806,15 +835,15 @@ class StatusBuilder:
                     not block_types
                     or all(bt in expected_non_text_types for bt in block_types)
                 )
-                log_fn = self.logger.debug if is_expected else self.logger.info
-                log_fn(
-                    f"[STREAM_DIAG] List content with no thinking/text: "
-                    f"execution={self.execution_id} "
-                    f"run_id={event.get('run_id', '')} "
-                    f"namespace={namespace or 'main'} "
-                    f"blocks={len(chunk_data.content)} "
-                    f"block_types={block_types}"
-                )
+                if not is_expected:
+                    self.logger.info(
+                        f"[STREAM_DIAG] List content with no thinking/text: "
+                        f"execution={self.execution_id} "
+                        f"run_id={event.get('run_id', '')} "
+                        f"namespace={namespace or 'main'} "
+                        f"blocks={len(chunk_data.content)} "
+                        f"block_types={block_types}"
+                    )
             
             # ── Early Tool Call Creation ─────────────────────────────────────
             # When a tool_use block appears in the stream, create the ToolCall
@@ -1432,12 +1461,6 @@ class StatusBuilder:
 
         self.force_next_update = True
 
-        self.logger.debug(
-            f"[TOOL_EARLY] execution={self.execution_id} "
-            f"tool={tool_name} temp_id={temp_id} "
-            f"namespace={namespace or 'main'}"
-        )
-
     def _reconcile_early_tool_call(
         self,
         tool_name: str,
@@ -1466,8 +1489,9 @@ class StatusBuilder:
             existing.result = ""
 
             if tool_args:
+                display_args = self._humanize_args_for_display(tool_args)
                 args_struct = Struct()
-                args_struct.update(tool_args)
+                args_struct.update(display_args)
                 existing.args.CopyFrom(args_struct)
 
             existing.is_streaming = False
@@ -1490,12 +1514,6 @@ class StatusBuilder:
 
             fingerprint = self._get_tool_fingerprint(tool_name, tool_args)
             self._fingerprint_to_tool_call_id[fingerprint] = temp_id
-
-            self.logger.debug(
-                f"[TOOL_RECONCILE] execution={self.execution_id} "
-                f"tool={tool_name} run_id={run_id} -> temp_id={temp_id} "
-                f"namespace={namespace or 'main'}"
-            )
 
             if approval.requires_approval:
                 _, sub_agent = self._get_execution_context(namespace)
@@ -2143,6 +2161,31 @@ class StatusBuilder:
         
         return None
     
+    def _humanize_args_for_display(self, tool_args: dict[str, Any]) -> dict[str, Any]:
+        """Return a shallow copy of *tool_args* with string values humanized.
+
+        Applies :func:`humanize_platform_refs` and
+        :func:`resolve_display_env_vars` (respecting ``_secret_keys``) to
+        every top-level string value.  Non-string values are passed through
+        unchanged.
+
+        The original *tool_args* dict is never modified — callers that also
+        need the raw args (e.g. for fingerprinting or approval checks) are
+        safe.
+        """
+        if not tool_args:
+            return tool_args
+
+        result: dict[str, Any] = {}
+        for key, value in tool_args.items():
+            if isinstance(value, str):
+                value = humanize_platform_refs(value)
+                value = resolve_display_env_vars(
+                    value, self._display_env_vars, self._secret_keys,
+                )
+            result[key] = value
+        return result
+
     def _create_args_preview(self, tool_args: dict[str, Any]) -> str:
         """
         Create a sanitized preview of tool arguments for UI display.
@@ -2176,9 +2219,14 @@ class StatusBuilder:
                 if pattern in key_lower:
                     return "***REDACTED***"
             
-            # Truncate long strings
-            if isinstance(value, str) and len(value) > 200:
-                return value[:200] + "... (truncated)"
+            if isinstance(value, str):
+                value = humanize_platform_refs(value)
+                value = resolve_display_env_vars(
+                    value, self._display_env_vars, self._secret_keys,
+                )
+                if len(value) > 200:
+                    return value[:200] + "... (truncated)"
+                return value
             
             # Recursively sanitize nested dicts
             if isinstance(value, dict):

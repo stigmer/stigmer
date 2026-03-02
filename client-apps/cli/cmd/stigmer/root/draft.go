@@ -15,8 +15,9 @@ The draft command invokes specialized system agents to help you create
 well-structured configuration files for various Stigmer resources.
 
 Supported resource types:
-  - skill: Create SKILL.md files using the skill-creator agent
-  - agent: Create Agent YAML files using the agent-creator agent
+  - skill:      Create SKILL.md files using the skill-creator agent
+  - agent:      Create Agent YAML files using the agent-creator agent
+  - mcp-server: Create McpServer YAML files using the mcp-server-creator agent
 
 Each draft command:
   - Invokes the appropriate system agent
@@ -34,7 +35,7 @@ Each draft command:
 
 	cmd.AddCommand(NewDraftSkillCommand())
 	cmd.AddCommand(NewDraftAgentCommand())
-	// Future: NewDraftWorkflowCommand(), NewDraftMcpServerCommand()
+	cmd.AddCommand(NewDraftMcpServerCommand())
 
 	return cmd
 }

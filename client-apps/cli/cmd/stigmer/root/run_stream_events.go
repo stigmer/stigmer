@@ -137,18 +137,20 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 		// new updates until every pending approval has a decision.
 		if pendingApprovals := execution.Status.GetPendingApprovals(); len(pendingApprovals) > 0 {
 			for _, pa := range pendingApprovals {
-				if pa.ToolCallId == "" || promptedIDs[pa.ToolCallId] {
+				dedupKey := approvalDedupKey(pa)
+				if dedupKey == "" || promptedIDs[dedupKey] {
 					continue
 				}
 
 				log.Debug().
 					Str("execution_id", cfg.executionID).
 					Str("tool_call_id", pa.GetToolCallId()).
+					Str("interrupt_id", pa.GetInterruptId()).
 					Str("tool_name", pa.GetToolName()).
 					Msg("[stream] approval detected — emitting ApprovalNeededEvent")
 
 				tc := findToolCallByID(execution.Status.ToolCalls, execution.Status.GetSubAgentExecutions(), pa.ToolCallId)
-				emitAndWaitApproval(ctx, cfg, tc, pa, promptedIDs)
+				emitAndWaitApproval(ctx, cfg, tc, pa, promptedIDs, dedupKey)
 			}
 		}
 
@@ -494,6 +496,7 @@ func emitAndWaitApproval(
 	tc *agentexecutionv1.ToolCall,
 	pa *agentexecutionv1.PendingApproval,
 	promptedIDs map[string]bool,
+	dedupKey string,
 ) {
 	// Determine the approval info from the best available source.
 	info := extractApprovalInfo(tc, pa)
@@ -507,7 +510,7 @@ func emitAndWaitApproval(
 		SubAgentName: info.subAgentName,
 	}
 
-	promptedIDs[info.toolCallID] = true
+	promptedIDs[dedupKey] = true
 
 	// Block until the user responds.
 	resp := <-cfg.approvalResponses
@@ -573,4 +576,22 @@ func extractApprovalInfo(
 	}
 
 	return info
+}
+
+// approvalDedupKey returns a stable key for deduplicating PendingApproval
+// entries across successive stream updates. Prefers tool_call_id (always
+// unique per tool invocation); falls back to interrupt_id when the backend
+// could not match the interrupt to a specific tool call.
+func approvalDedupKey(pa *agentexecutionv1.PendingApproval) string {
+	if id := pa.GetToolCallId(); id != "" {
+		return id
+	}
+	if id := pa.GetInterruptId(); id != "" {
+		log.Debug().
+			Str("interrupt_id", id).
+			Str("tool_name", pa.GetToolName()).
+			Msg("[stream] approval has no tool_call_id — using interrupt_id as dedup key")
+		return id
+	}
+	return ""
 }

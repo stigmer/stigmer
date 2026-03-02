@@ -3107,6 +3107,90 @@ class TestToolWaitingApproval:
 
 
 # =============================================================================
+# Tests for _create_args_preview platform path humanization
+# =============================================================================
+
+
+class TestArgsPreviewPlatformPathHumanization:
+    """_create_args_preview replaces $STIGMER_PLATFORM_DIR with .stigmer."""
+
+    def test_command_field_humanized(self, status_builder):
+        preview = status_builder._create_args_preview({
+            "command": "python3 $STIGMER_PLATFORM_DIR/skills/s/run.py",
+            "timeout": 120,
+        })
+        import json
+        parsed = json.loads(preview)
+        assert parsed["command"] == "python3 .stigmer/skills/s/run.py"
+        assert parsed["timeout"] == 120
+
+    def test_brace_syntax_humanized(self, status_builder):
+        preview = status_builder._create_args_preview({
+            "command": "python3 ${STIGMER_PLATFORM_DIR}/skills/s/run.py",
+        })
+        import json
+        parsed = json.loads(preview)
+        assert parsed["command"] == "python3 .stigmer/skills/s/run.py"
+
+    def test_no_env_var_unchanged(self, status_builder):
+        preview = status_builder._create_args_preview({
+            "command": "ls -la",
+        })
+        import json
+        parsed = json.loads(preview)
+        assert parsed["command"] == "ls -la"
+
+    def test_nested_dict_values_humanized(self, status_builder):
+        preview = status_builder._create_args_preview({
+            "config": {"path": "$STIGMER_PLATFORM_DIR/data"},
+        })
+        import json
+        parsed = json.loads(preview)
+        assert parsed["config"]["path"] == ".stigmer/data"
+
+
+class TestArgsPreviewEnvVarResolution:
+    """_create_args_preview resolves agent env vars to their values."""
+
+    def test_output_dir_resolved(self, status_builder):
+        status_builder.set_display_env_vars({"OUTPUT_DIR": "."})
+        preview = status_builder._create_args_preview({
+            "command": "python3 init.py --path $OUTPUT_DIR",
+        })
+        import json
+        parsed = json.loads(preview)
+        assert parsed["command"] == "python3 init.py --path ."
+
+    def test_combined_platform_and_agent_vars(self, status_builder):
+        status_builder.set_display_env_vars({"OUTPUT_DIR": "seedpack/skills"})
+        preview = status_builder._create_args_preview({
+            "command": "python3 $STIGMER_PLATFORM_DIR/scripts/run.py --path $OUTPUT_DIR",
+        })
+        import json
+        parsed = json.loads(preview)
+        assert parsed["command"] == "python3 .stigmer/scripts/run.py --path seedpack/skills"
+
+    def test_secret_env_var_not_resolved(self, status_builder):
+        status_builder.set_display_env_vars(
+            {"API_TOKEN": "sk-secret"}, secret_keys={"API_TOKEN"},
+        )
+        preview = status_builder._create_args_preview({
+            "command": "curl -H $API_TOKEN",
+        })
+        import json
+        parsed = json.loads(preview)
+        assert "$API_TOKEN" in parsed["command"]
+
+    def test_no_env_vars_set(self, status_builder):
+        preview = status_builder._create_args_preview({
+            "command": "echo $OUTPUT_DIR",
+        })
+        import json
+        parsed = json.loads(preview)
+        assert parsed["command"] == "echo $OUTPUT_DIR"
+
+
+# =============================================================================
 # Tests for Tool Approval Decision (HITL Phase 2)
 # =============================================================================
 

@@ -12,6 +12,9 @@ from grpc_client.auth.client_interceptor import AuthClientInterceptor
 from worker.config import Config
 
 
+_DEFAULT_GRPC_TIMEOUT_SECONDS = 10.0
+
+
 class AgentExecutionClient:
     """Client for reading and updating AgentExecution resources.
     
@@ -20,12 +23,14 @@ class AgentExecutionClient:
     - AgentExecutionCommandController -- write operations (updateStatus, ...)
     """
     
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, *, timeout: float = _DEFAULT_GRPC_TIMEOUT_SECONDS):
         """
         Initialize AgentExecution client with authentication.
         
         Args:
             api_key: Stigmer API key for authentication
+            timeout: Per-call gRPC deadline in seconds (must stay well under
+                     Temporal's 30s heartbeat timeout to allow graceful recovery).
         """
         config = Config.load_from_env()
         endpoint = config.stigmer_backend_endpoint
@@ -48,6 +53,7 @@ class AgentExecutionClient:
         
         self.command_stub = command_pb2_grpc.AgentExecutionCommandControllerStub(self.channel)
         self.query_stub = query_pb2_grpc.AgentExecutionQueryControllerStub(self.channel)
+        self._timeout = timeout
     
     async def get(self, execution_id: str) -> AgentExecution:
         """
@@ -70,7 +76,9 @@ class AgentExecutionClient:
         if not execution_id:
             raise ValueError("execution_id cannot be empty")
         
-        return await self.query_stub.get(AgentExecutionId(value=execution_id))
+        return await self.query_stub.get(
+            AgentExecutionId(value=execution_id), timeout=self._timeout,
+        )
     
     async def update_status(self, execution_id: str, status: AgentExecutionStatus) -> AgentExecution:
         """
@@ -97,4 +105,4 @@ class AgentExecutionClient:
             status=status
         )
         
-        return await self.command_stub.updateStatus(update_input)
+        return await self.command_stub.updateStatus(update_input, timeout=self._timeout)

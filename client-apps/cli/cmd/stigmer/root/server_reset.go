@@ -92,9 +92,6 @@ func printResetSummary(result *daemon.ResetResult, includeConfig bool) {
 	if result.ServicesStopped {
 		climsg.Success("Services stopped")
 	}
-	if result.ContainerRemoved {
-		climsg.Success("Docker container removed")
-	}
 	for _, p := range result.RemovedPaths {
 		climsg.Success("Removed %s", p)
 	}

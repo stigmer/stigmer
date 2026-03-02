@@ -143,9 +143,12 @@ func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 
 	var progress *cliprint.ProgressDisplay
 	if format == clioutput.FormatHuman {
-		progress = cliprint.NewProgressDisplay()
+		progress = cliprint.NewProgressDisplayWithPhases(cliprint.PhaseConfig{
+			{Phase: cliprint.PhaseInitializing, Label: "Initializing"},
+			{Phase: cliprint.PhaseInstalling, Label: "Installing"},
+			{Phase: cliprint.PhaseStarting, Label: "Starting"},
+		})
 		progress.Start()
-		progress.SetPhase(cliprint.PhaseStarting, "Preparing environment")
 	}
 
 	var llmSetupErr error
@@ -182,7 +185,7 @@ func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 	// controllers, Temporal workers, search index, and supervisor), so a
 	// successful connection here guarantees full readiness.
 	if progress != nil {
-		progress.SetPhase(cliprint.PhaseReady, "Waiting for services")
+		progress.SetPhase(cliprint.PhaseStarting, "Waiting for server to become ready")
 	}
 
 	readyCtx, readyCancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -199,9 +202,14 @@ func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 	}
 
 	if progress != nil {
-		progress.CompletePhase(cliprint.PhaseReady)
+		progress.CompletePhase(cliprint.PhaseStarting)
 		progress.Stop()
 	}
+
+	// Check if any non-critical components failed during startup.
+	// The daemon writes health-state.json after starting all components;
+	// by this point (gRPC is ready), the health state has been written.
+	reportDegradedComponents(dataDir)
 
 	// LLM status messaging: only announce after validation is complete.
 	displayLLMStatus(llmProvider, llmModel, cfg.Backend.Local, llmSetupErr)
@@ -311,6 +319,26 @@ func runBootstrapDiscovery(cfg *config.Config) {
 	}
 	for _, msg := range result.SkipMessages {
 		climsg.Warning("%s", msg)
+	}
+}
+
+// reportDegradedComponents reads the daemon's health state and warns about
+// any components that failed or stopped during startup.
+func reportDegradedComponents(dataDir string) {
+	hs := daemon.LoadHealthState(dataDir)
+	if hs == nil {
+		return
+	}
+
+	for name, cs := range hs.Components {
+		if cs.State != "failed" && cs.State != "stopped" {
+			continue
+		}
+		climsg.Warning("Component %s is %s", name, cs.State)
+		if cs.LastError != "" {
+			climsg.Warning("  Error: %s", cs.LastError)
+		}
+		climsg.Info("  View logs: stigmer server logs --component %s", name)
 	}
 }
 

@@ -127,8 +127,16 @@ class TestAgentCreation:
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
     @patch("graphton.core.agent.parse_model_string")
-    def test_no_backend_parameter(self, mock_parse, mock_create):
-        """Verify backend parameter is NOT passed to deepagents."""
+    def test_backend_none_without_sandbox(self, mock_parse, mock_create):
+        """Verify backend=None when no sandbox_config is provided.
+
+        Without a sandbox, there is no backend to adapt, so graphton
+        passes ``backend=None`` letting deepagents use its default
+        StateBackend.  When sandbox_config IS provided, graphton wraps
+        the backend in a DeepAgentsBackendAdapter so that deepagents'
+        FilesystemMiddleware recognises the execute capability and does
+        not strip the execute tool.
+        """
         from graphton import create_deep_agent
 
         mock_model = MagicMock()
@@ -145,8 +153,8 @@ class TestAgentCreation:
 
         mock_create.assert_called_once()
         call_kwargs = mock_create.call_args.kwargs
-        assert "backend" not in call_kwargs, (
-            "backend parameter must not be passed to deepagents 0.4.x "
+        assert call_kwargs.get("backend") is None, (
+            "backend must be None when no sandbox_config is provided "
             f"(found: {call_kwargs.get('backend')})"
         )
 

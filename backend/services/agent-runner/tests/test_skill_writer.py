@@ -257,6 +257,30 @@ class TestGeneratePromptSection:
         result = SkillWriter.generate_prompt_section([mock_skill], {})
         assert f"**Location**: `.stigmer/skills/{mock_skill.metadata.name}/`" in result
 
+    def test_workspace_rule_covers_read_and_execute(self, mock_skill):
+        """Prompt must guide agents on resolving skill-relative paths
+        for both file reading and shell execution."""
+        skill_paths = {
+            mock_skill.metadata.id: f".stigmer/skills/{mock_skill.metadata.name}",
+        }
+        result = SkillWriter.generate_prompt_section([mock_skill], skill_paths)
+
+        assert "### Working with Skill Files" in result, (
+            "Prompt must include a dedicated subsection for skill file access"
+        )
+        assert "**Reading**" in result and "Location" in result, (
+            "Prompt must explain how to read skill files via Location path"
+        )
+        assert "**Executing scripts**" in result, (
+            "Prompt must explain how to execute skill scripts"
+        )
+        assert "$STIGMER_PLATFORM_DIR" in result, (
+            "Prompt must reference the $STIGMER_PLATFORM_DIR env var"
+        )
+        assert "execute" in result.lower(), (
+            "Prompt must mention the execute tool"
+        )
+
     def test_progressive_disclosure_format(self, mock_skill):
         skill_paths = {
             mock_skill.metadata.id: f".stigmer/skills/{mock_skill.metadata.name}",
