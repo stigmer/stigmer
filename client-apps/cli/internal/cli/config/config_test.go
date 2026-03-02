@@ -490,4 +490,3 @@ func TestResolveLLMProviderSource_None(t *testing.T) {
 
 	assert.Equal(t, ProviderSourceNone, cfg.ResolveLLMProviderSource())
 }
-

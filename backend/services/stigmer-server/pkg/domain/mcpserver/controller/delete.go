@@ -54,7 +54,7 @@ func (c *McpServerController) buildDeletePipeline() *pipeline.Pipeline[*apiresou
 	return pipeline.NewPipeline[*apiresource.ApiResourceDeleteInput]("mcpserver-delete").
 		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceDeleteInput]()).                                        // 1. Validate field constraints
 		AddStep(steps.NewLoadExistingForDeleteStep[*apiresource.ApiResourceDeleteInput, *mcpserverv1.McpServer](c.store)). // 2. Load MCP server
-		AddStep(steps.NewDeleteResourceStep[*apiresource.ApiResourceDeleteInput](c.store)).      // 3. Delete from database
-		AddStep(steps.NewDeleteSearchIndexStep[*apiresource.ApiResourceDeleteInput](c.store)). // 4. Remove from search index
+		AddStep(steps.NewDeleteResourceStep[*apiresource.ApiResourceDeleteInput](c.store)).                                // 3. Delete from database
+		AddStep(steps.NewDeleteSearchIndexStep[*apiresource.ApiResourceDeleteInput](c.store)).                             // 4. Remove from search index
 		Build()
 }

@@ -60,8 +60,8 @@ func (c *SkillController) buildDeletePipeline() *pipeline.Pipeline[*skillv1.Skil
 		AddStep(steps.NewExtractResourceIdStep[*skillv1.SkillId]()).                            // 2. Extract ID from wrapper
 		AddStep(steps.NewLoadExistingForDeleteStep[*skillv1.SkillId, *skillv1.Skill](c.store)). // 3. Load skill
 		AddStep(c.newDeleteSkillArchivesStep()).                                                // 4. Delete archive records
-		AddStep(steps.NewDeleteResourceStep[*skillv1.SkillId](c.store)).      // 5. Delete from database
-		AddStep(steps.NewDeleteSearchIndexStep[*skillv1.SkillId](c.store)). // 6. Remove from search index
+		AddStep(steps.NewDeleteResourceStep[*skillv1.SkillId](c.store)).                        // 5. Delete from database
+		AddStep(steps.NewDeleteSearchIndexStep[*skillv1.SkillId](c.store)).                     // 6. Remove from search index
 		Build()
 }
 

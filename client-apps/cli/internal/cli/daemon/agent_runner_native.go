@@ -29,9 +29,9 @@ func bootstrapAgentRunnerRuntime() (pythonBin string, appDir string, err error) 
 	}
 
 	mgr, err := pythonrt.NewManager(pythonrt.Config{
-		BaseDir:     filepath.Join(configDir, "runtimes", "agent-runner"),
-		CLIVersion:  embedded.GetBuildVersion(),
-		AppSourceFS: sourceFS,
+		BaseDir:      filepath.Join(configDir, "runtimes", "agent-runner"),
+		CLIVersion:   embedded.GetBuildVersion(),
+		AppSourceFS:  sourceFS,
 		PreInstallFn: buildPreInstallFn(),
 	})
 	if err != nil {
@@ -124,5 +124,3 @@ func copyDir(src, dst string) error {
 		return copyFile(path, target)
 	})
 }
-
-

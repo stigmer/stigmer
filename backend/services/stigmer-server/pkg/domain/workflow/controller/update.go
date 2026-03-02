@@ -38,12 +38,12 @@ func (c *WorkflowController) Update(ctx context.Context, workflow *workflowv1.Wo
 // buildUpdatePipeline constructs the pipeline for workflow update
 func (c *WorkflowController) buildUpdatePipeline() *pipeline.Pipeline[*workflowv1.Workflow] {
 	return pipeline.NewPipeline[*workflowv1.Workflow]("workflow-update").
-		AddStep(steps.NewValidateProtoStep[*workflowv1.Workflow]()).       // 1. Validate field constraints (Layer 1)
-		AddStep(newValidateWorkflowSpecStep(c.validator)).                 // 2. Validate via Temporal (Layer 2: Go converts + validates - SSOT)
-		AddStep(steps.NewResolveSlugStep[*workflowv1.Workflow]()).         // 3. Resolve slug
-		AddStep(steps.NewLoadExistingStep[*workflowv1.Workflow](c.store)). // 4. Load existing workflow
-		AddStep(steps.NewBuildUpdateStateStep[*workflowv1.Workflow]()).    // 5. Build updated state (merge spec, preserve status, update audit)
-		AddStep(steps.NewPersistStep[*workflowv1.Workflow](c.store)).                                 // 6. Persist workflow
+		AddStep(steps.NewValidateProtoStep[*workflowv1.Workflow]()).                                      // 1. Validate field constraints (Layer 1)
+		AddStep(newValidateWorkflowSpecStep(c.validator)).                                                // 2. Validate via Temporal (Layer 2: Go converts + validates - SSOT)
+		AddStep(steps.NewResolveSlugStep[*workflowv1.Workflow]()).                                        // 3. Resolve slug
+		AddStep(steps.NewLoadExistingStep[*workflowv1.Workflow](c.store)).                                // 4. Load existing workflow
+		AddStep(steps.NewBuildUpdateStateStep[*workflowv1.Workflow]()).                                   // 5. Build updated state (merge spec, preserve status, update audit)
+		AddStep(steps.NewPersistStep[*workflowv1.Workflow](c.store)).                                     // 6. Persist workflow
 		AddStep(steps.NewIndexSearchStep[*workflowv1.Workflow](c.store, &extractor.WorkflowExtractor{})). // 7. Update search index
 		Build()
 }

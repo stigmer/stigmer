@@ -1464,15 +1464,15 @@ func assertNotContains(t *testing.T, s, substr string) {
 
 func TestDisplayLabel_KnownTool(t *testing.T) {
 	tests := map[string]string{
-		"execute":      "Execute",
-		"shell":        "Shell",
-		"read_file":    "Read",
-		"write_file":   "Write",
-		"delete_file":  "Delete",
-		"glob":         "Find",
-		"grep":         "Search",
-		"task":         "Task",
-		"think":        "Thinking",
+		"execute":     "Execute",
+		"shell":       "Shell",
+		"read_file":   "Read",
+		"write_file":  "Write",
+		"delete_file": "Delete",
+		"glob":        "Find",
+		"grep":        "Search",
+		"task":        "Task",
+		"think":       "Thinking",
 	}
 	for toolName, wantLabel := range tests {
 		got := DisplayLabel(toolName)

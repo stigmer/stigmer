@@ -39,11 +39,11 @@ func (c *AgentController) buildUpdatePipeline() *pipeline.Pipeline[*agentv1.Agen
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*agentv1.Agent]("agent-update").
-		AddStep(steps.NewValidateProtoStep[*agentv1.Agent]()).       // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*agentv1.Agent]()).         // 2. Resolve slug
-		AddStep(steps.NewLoadExistingStep[*agentv1.Agent](c.store)). // 3. Load existing agent
-		AddStep(steps.NewBuildUpdateStateStep[*agentv1.Agent]()).    // 4. Build updated state
-		AddStep(steps.NewPersistStep[*agentv1.Agent](c.store)).                           // 5. Persist agent
+		AddStep(steps.NewValidateProtoStep[*agentv1.Agent]()).                                   // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*agentv1.Agent]()).                                     // 2. Resolve slug
+		AddStep(steps.NewLoadExistingStep[*agentv1.Agent](c.store)).                             // 3. Load existing agent
+		AddStep(steps.NewBuildUpdateStateStep[*agentv1.Agent]()).                                // 4. Build updated state
+		AddStep(steps.NewPersistStep[*agentv1.Agent](c.store)).                                  // 5. Persist agent
 		AddStep(steps.NewIndexSearchStep[*agentv1.Agent](c.store, &extractor.AgentExtractor{})). // 6. Update search index
 		Build()
 }
