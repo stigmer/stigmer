@@ -51,7 +51,7 @@
 
 **Manual Validation**:
 - ✅ Valid YAML syntax (checked with yamllint logic)
-- ✅ apiVersion: `management.stigmer.ai/v1` (correct)
+- ✅ apiVersion: `tenancy.stigmer.ai/v1` (correct)
 - ✅ kind: `Project` (correct)
 - ✅ metadata.name: `minimal-project` (valid format)
 - ✅ metadata.org: `my-org` (present)
@@ -80,7 +80,7 @@
 
 **Manual Validation**:
 - ✅ Valid YAML syntax
-- ✅ apiVersion: `management.stigmer.ai/v1` (correct)
+- ✅ apiVersion: `tenancy.stigmer.ai/v1` (correct)
 - ✅ kind: `Project` (correct)
 - ✅ metadata.name: `customer-analytics-pipeline` (valid format, descriptive)
 - ✅ metadata.org: `data-team` (present)
@@ -110,7 +110,7 @@
 
 **Manual Validation**:
 - ✅ Valid YAML syntax
-- ✅ apiVersion: `management.stigmer.ai/v1` (correct)
+- ✅ apiVersion: `tenancy.stigmer.ai/v1` (correct)
 - ✅ kind: `Project` (correct)
 - ✅ metadata.name: `notification-service-api` (valid format, descriptive)
 - ✅ metadata.org: `platform-engineering` (present)

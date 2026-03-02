@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/management/project/v1"
+	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/project/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 )
 
@@ -18,7 +18,7 @@ import (
 // newProjectWithEntryPoint creates a project with the given name and entry point.
 func newProjectWithEntryPoint(name, entryPoint string) *projectv1.Project {
 	return &projectv1.Project{
-		ApiVersion: "management.stigmer.ai/v1",
+		ApiVersion: "tenancy.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: name,
@@ -45,7 +45,7 @@ func TestValidate_NilProject(t *testing.T) {
 
 func TestValidate_NilSpec(t *testing.T) {
 	project := &projectv1.Project{
-		ApiVersion: "management.stigmer.ai/v1",
+		ApiVersion: "tenancy.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: "my-project",
@@ -57,7 +57,7 @@ func TestValidate_NilSpec(t *testing.T) {
 
 func TestValidate_NilMetadata(t *testing.T) {
 	project := &projectv1.Project{
-		ApiVersion: "management.stigmer.ai/v1",
+		ApiVersion: "tenancy.stigmer.ai/v1",
 		Kind:       "Project",
 		Spec:       &projectv1.ProjectSpec{},
 	}

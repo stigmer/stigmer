@@ -1,4 +1,4 @@
-apiVersion: management.stigmer.ai/v1
+apiVersion: tenancy.stigmer.ai/v1
 kind: Project
 metadata:
   name: stigmer-seedpack

@@ -15,13 +15,13 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "//apis/stubs/go/ai/stigmer/tenancy/project/v1:project",
         "//backend/libs/go/grpc",
         "//backend/libs/go/grpc/request/pipeline",
         "//backend/libs/go/grpc/request/pipeline/steps",
         "//backend/libs/go/store",
         "//backend/services/stigmer-server/pkg/domain/project/reconcile",
         "@com_github_rs_zerolog//log",
-        "@com_github_stigmer_stigmer_apis_stubs_go//ai/stigmer/agentic/project/v1:project",
     ],
 )
 
@@ -40,10 +40,10 @@ go_test(
     deps = [
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
+        "//apis/stubs/go/ai/stigmer/tenancy/project/v1:project",
         "//backend/libs/go/grpc/interceptors/apiresource",
         "//backend/libs/go/store",
         "//backend/libs/go/store/sqlite",
         "//backend/services/stigmer-server/pkg/domain/project/reconcile",
-        "@com_github_stigmer_stigmer_apis_stubs_go//ai/stigmer/agentic/project/v1:project",
     ],
 )
