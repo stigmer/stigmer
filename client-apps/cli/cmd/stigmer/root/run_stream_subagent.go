@@ -46,10 +46,12 @@ func emitSubAgentEvents(
 			}
 			trackers[sa.Id] = tracker
 
-			desc := ""
-			if sa.Metadata != nil {
-				if v, ok := sa.Metadata.Fields["description"]; ok {
-					desc = v.GetStringValue()
+			desc := sa.GetSubject()
+			if desc == "" {
+				if sa.Metadata != nil {
+					if v, ok := sa.Metadata.Fields["description"]; ok {
+						desc = v.GetStringValue()
+					}
 				}
 			}
 
@@ -63,16 +65,10 @@ func emitSubAgentEvents(
 			log.Debug().
 				Str("sub_agent_id", sa.Id).
 				Str("name", sa.Name).
+				Str("subject", sa.GetSubject()).
 				Str("description", desc).
 				Bool("has_input", sa.Input != "").
 				Msg("[stream] new sub-agent execution detected")
-
-			if sa.Input == "" {
-				log.Warn().
-					Str("sub_agent_id", sa.Id).
-					Str("name", sa.Name).
-					Msg("[stream] sub-agent has empty input — header will lack task description")
-			}
 		}
 
 		tracker.toolCallStates, tracker.toolCallResults = emitToolCallStateEvents(

@@ -25,7 +25,7 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 	case SubAgentStartedEvent:
 		info := subAgentInfo{Name: e.Name, Input: e.Input, Description: e.Description, Status: "running"}
 		m.subAgentMeta[e.ID] = info
-		b := newSubAgentBlock(e.Name, e.Description, 0, "running")
+		b := newSubAgentBlock(e.Name, e.Description, e.Input, "", 0, "running")
 		b.subAgentID = e.ID
 		b.subAgentName = e.Name
 		m.blocks = append(m.blocks, b)
@@ -191,6 +191,7 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 		info := m.subAgentMeta[e.ID]
 		info.Status = e.Status
 		info.ToolCount = e.ToolCount
+		info.Output = e.Output
 		m.subAgentMeta[e.ID] = info
 		m.updateSubAgentHeader(e.ID)
 
@@ -325,17 +326,16 @@ func (m *Model) isSubAgentCollapsed(subAgentID string) bool {
 }
 
 // updateSubAgentHeader rebuilds the sub-agent header block's preview and
-// full content from the current subAgentInfo. Called when the tool count
-// or status changes. Preserves the block's expand/collapse state.
+// full content from the current subAgentInfo. Called when the tool count,
+// status, or output changes. Preserves the block's expand/collapse state.
 func (m *Model) updateSubAgentHeader(subAgentID string) {
 	idx, ok := m.subAgentBlockIdx[subAgentID]
 	if !ok || idx >= len(m.blocks) {
 		return
 	}
 	info := m.subAgentMeta[subAgentID]
-	header := renderSubAgentHeader(info.Name, info.Description, info.ToolCount, info.Status)
-	m.blocks[idx].preview = header
-	m.blocks[idx].full = header
+	m.blocks[idx].preview = renderSubAgentHeader(info.Name, info.Description, info.Input, info.ToolCount, info.Status)
+	m.blocks[idx].full = renderSubAgentExpanded(info.Name, info.Description, info.Input, info.Output, info.ToolCount, info.Status)
 }
 
 // refreshViewport rebuilds the viewport content from blocks and applies
