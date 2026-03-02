@@ -74,7 +74,7 @@ The `stigmer.yaml` file is minimal - just metadata and runtime configuration. Al
 ### Minimal Example
 
 ```yaml
-apiVersion: agentic.stigmer.ai/v1
+apiVersion: management.stigmer.ai/v1
 kind: Project
 metadata:
   name: my-project
@@ -88,7 +88,7 @@ That's it! Everything else has sensible defaults.
 ### Complete Example with All Fields
 
 ```yaml
-apiVersion: agentic.stigmer.ai/v1
+apiVersion: management.stigmer.ai/v1
 kind: Project
 
 metadata:
@@ -335,7 +335,7 @@ cd my-project
 
 2. **Create stigmer.yaml:**
 ```yaml
-apiVersion: agentic.stigmer.ai/v1
+apiVersion: management.stigmer.ai/v1
 kind: Project
 metadata:
   name: my-project
@@ -506,7 +506,7 @@ stigmer project info --dir /path/to/project
 ### Schema Validation (via Protobuf)
 
 Automatic validation of:
-- `apiVersion` must be `agentic.stigmer.ai/v1`
+- `apiVersion` must be `management.stigmer.ai/v1`
 - `kind` must be `Project`
 - `metadata.name` is required
 - `metadata.org` is required

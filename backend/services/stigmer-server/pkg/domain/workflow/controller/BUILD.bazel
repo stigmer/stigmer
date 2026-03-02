@@ -25,6 +25,7 @@ go_library(
         "//backend/libs/go/store",
         "//backend/services/stigmer-server/pkg/domain/workflow/temporal",
         "//backend/services/stigmer-server/pkg/downstream/workflowinstance",
+        "//backend/services/stigmer-server/pkg/query/search/extractor",
         "@com_github_rs_zerolog//log",
     ],
 )

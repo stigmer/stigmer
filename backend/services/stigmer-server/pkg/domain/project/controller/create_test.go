@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/project/v1"
+	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/management/project/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 )
@@ -24,8 +24,8 @@ func TestCreate_SuccessfulCreation(t *testing.T) {
 		t.Fatalf("Create failed: %v", err)
 	}
 
-	if created.ApiVersion != "agentic.stigmer.ai/v1" {
-		t.Errorf("Expected ApiVersion 'agentic.stigmer.ai/v1', got '%s'", created.ApiVersion)
+	if created.ApiVersion != "management.stigmer.ai/v1" {
+		t.Errorf("Expected ApiVersion 'management.stigmer.ai/v1', got '%s'", created.ApiVersion)
 	}
 	if created.Kind != "Project" {
 		t.Errorf("Expected Kind 'Project', got '%s'", created.Kind)
@@ -146,7 +146,7 @@ func TestCreate_RejectsMissingMetadata(t *testing.T) {
 	defer store.Close()
 
 	project := &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "management.stigmer.ai/v1",
 		Kind:       "Project",
 		Spec: &projectv1.ProjectSpec{
 			EntryPoint: "main.go",
@@ -164,7 +164,7 @@ func TestCreate_RejectsMissingName(t *testing.T) {
 	defer store.Close()
 
 	project := &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "management.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Org: "test-org",
@@ -207,7 +207,7 @@ func TestCreate_RejectsInvalidKind(t *testing.T) {
 	defer store.Close()
 
 	project := &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "management.stigmer.ai/v1",
 		Kind:       "InvalidKind",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: "Invalid Kind",
@@ -229,7 +229,7 @@ func TestCreate_RejectsMissingSpec(t *testing.T) {
 	defer store.Close()
 
 	project := &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "management.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: "Missing Spec",
@@ -317,7 +317,7 @@ func TestCreate_PreservesSpecFields(t *testing.T) {
 	defer store.Close()
 
 	project := &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "management.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: "Full Spec Project",

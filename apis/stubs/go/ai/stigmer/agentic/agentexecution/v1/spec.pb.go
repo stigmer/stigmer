@@ -28,15 +28,20 @@ const (
 type AgentExecutionSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Session ID this execution belongs to (optional).
-	// If not provided, agent_id must be specified - a session will be auto-created
+	// At least one of session_id or agent_id must be provided (enforced in handler).
+	// Both may be set — when both are present, session_id is used for session
+	// resolution and agent_id is preserved as metadata for downstream consumers
+	// (e.g., session subject generation).
+	// When absent, agent_id must be specified — a session is auto-created
 	// using the agent's default instance.
-	// Either session_id or agent_id must be provided (enforced in handler).
 	SessionId string `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	// Agent ID (optional).
-	// If session_id is not provided, agent_id must be specified.
+	// At least one of session_id or agent_id must be provided (enforced in handler).
+	// Both may be set — agent_id is preserved on the execution record even when
+	// session_id is present, so downstream consumers can access the agent
+	// without resolving through the session chain.
 	// When provided without session_id, a new session is auto-created using
 	// the agent's default instance ID.
-	// Either session_id or agent_id must be provided (enforced in handler).
 	AgentId string `protobuf:"bytes,2,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
 	// User input message that triggers this execution.
 	// Each execution represents one user message and the agent's response.

@@ -15,13 +15,13 @@ go_library(
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
         "//apis/stubs/go/ai/stigmer/agentic/mcpserver/v1:mcpserver",
-        "//apis/stubs/go/ai/stigmer/agentic/project/v1:project",
         "//apis/stubs/go/ai/stigmer/agentic/skill/v1:skill",
         "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//backend/libs/go/grpc/request/pipeline/steps",
         "//backend/libs/go/store",
+        "@com_github_stigmer_stigmer_apis_stubs_go//ai/stigmer/agentic/project/v1:project",
         "@org_golang_google_protobuf//proto",
     ],
 )

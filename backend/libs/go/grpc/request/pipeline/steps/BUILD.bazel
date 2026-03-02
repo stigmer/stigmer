@@ -8,6 +8,7 @@ go_library(
         "delete.go",
         "duplicate.go",
         "helpers.go",
+        "index_search.go",
         "interfaces.go",
         "load_by_reference.go",
         "load_existing.go",

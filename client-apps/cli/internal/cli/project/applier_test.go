@@ -3,7 +3,7 @@ package project
 import (
 	"testing"
 
-	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/project/v1"
+	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/management/project/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,7 +37,7 @@ func TestApply_NilProject(t *testing.T) {
 func TestApply_NilConnection(t *testing.T) {
 	opts := &ApplyOptions{
 		Project: &projectv1.Project{
-			ApiVersion: "agentic.stigmer.ai/v1",
+			ApiVersion: "management.stigmer.ai/v1",
 			Kind:       "Project",
 		},
 		Conn: nil,
@@ -91,7 +91,7 @@ func TestApply_ValidationOrder(t *testing.T) {
 
 func TestApply_DryRun_ReturnsWithoutRPC(t *testing.T) {
 	project := &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "management.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: "test-project",
@@ -118,7 +118,7 @@ func TestApply_DryRun_ReturnsWithoutRPC(t *testing.T) {
 
 func TestApply_DryRun_PreservesProject(t *testing.T) {
 	project := &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "management.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: "test-project",
@@ -155,7 +155,7 @@ func TestApply_DryRun_PreservesProject(t *testing.T) {
 
 func TestApply_SetsOrgFromOptions_WhenMetadataNil(t *testing.T) {
 	project := &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "management.stigmer.ai/v1",
 		Kind:       "Project",
 		// Metadata is nil
 	}
@@ -178,7 +178,7 @@ func TestApply_SetsOrgFromOptions_WhenMetadataNil(t *testing.T) {
 
 func TestApply_SetsOrgFromOptions_WhenOrgEmpty(t *testing.T) {
 	project := &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "management.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: "test-project",
@@ -203,7 +203,7 @@ func TestApply_SetsOrgFromOptions_WhenOrgEmpty(t *testing.T) {
 
 func TestApply_PreservesExistingOrg_WhenOrgIDProvided(t *testing.T) {
 	project := &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "management.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: "test-project",
@@ -240,7 +240,7 @@ func TestApplyOptions_DefaultPruneValue(t *testing.T) {
 
 func TestApplyOptions_AllFields(t *testing.T) {
 	project := &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "management.stigmer.ai/v1",
 		Kind:       "Project",
 	}
 
@@ -267,7 +267,7 @@ func TestApplyOptions_AllFields(t *testing.T) {
 
 func TestApplyResult_Structure(t *testing.T) {
 	project := &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "management.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Id:   "prj_abc123",
@@ -287,7 +287,7 @@ func TestApplyResult_Structure(t *testing.T) {
 
 func TestApplyResult_UpdateCase(t *testing.T) {
 	project := &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "management.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Id:   "prj_existing",
@@ -310,7 +310,7 @@ func TestApplyResult_UpdateCase(t *testing.T) {
 
 func TestApply_DetectsCreate_WhenNoExistingID(t *testing.T) {
 	project := &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "management.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: "new-project",
@@ -335,7 +335,7 @@ func TestApply_DetectsCreate_WhenNoExistingID(t *testing.T) {
 
 func TestApply_DetectsUpdate_WhenExistingID(t *testing.T) {
 	project := &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "management.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Id:   "prj_existing123",
