@@ -188,6 +188,8 @@ func applyResourceItem(item applyItem, fctx *fileApplyContext) (*apiresource.Api
 	fmt.Fprintf(os.Stderr, "Applying %s from %s...\n", item.typeInfo.DisplayName, item.filePath)
 
 	switch item.typeInfo.ProtoKind {
+	case apiresourcekind.ApiResourceKind_organization:
+		return applyOrganization(item, fctx)
 	case apiresourcekind.ApiResourceKind_agent:
 		return applyAgent(item, fctx)
 	case apiresourcekind.ApiResourceKind_workflow:

@@ -20,6 +20,16 @@ func TestVerbSupport_Matrix(t *testing.T) {
 		verb        types.Verb
 		wantSupport bool
 	}{
+		// Organization: supports apply, get, list, delete
+		{apiresourcekind.ApiResourceKind_organization, types.VerbApply, true},
+		{apiresourcekind.ApiResourceKind_organization, types.VerbValidate, false},
+		{apiresourcekind.ApiResourceKind_organization, types.VerbGet, true},
+		{apiresourcekind.ApiResourceKind_organization, types.VerbList, true},
+		{apiresourcekind.ApiResourceKind_organization, types.VerbDelete, true},
+		{apiresourcekind.ApiResourceKind_organization, types.VerbRun, false},
+		{apiresourcekind.ApiResourceKind_organization, types.VerbSearch, false},
+		{apiresourcekind.ApiResourceKind_organization, types.VerbPush, false},
+
 		// Agent: supports all verbs except push
 		{apiresourcekind.ApiResourceKind_agent, types.VerbApply, true},
 		{apiresourcekind.ApiResourceKind_agent, types.VerbValidate, true},
@@ -115,6 +125,7 @@ func TestVerbSupport_TypesForVerb(t *testing.T) {
 		{
 			verb: types.VerbApply,
 			expectedKinds: []apiresourcekind.ApiResourceKind{
+				apiresourcekind.ApiResourceKind_organization,
 				apiresourcekind.ApiResourceKind_agent,
 				apiresourcekind.ApiResourceKind_workflow,
 				apiresourcekind.ApiResourceKind_mcp_server,

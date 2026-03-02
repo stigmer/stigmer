@@ -125,7 +125,7 @@ func executeDeclarativeApply(detectResult *project.DetectResult, opts projectApp
 		if err != nil {
 			return errors.Wrapf(err, "failed to apply %s from %s", item.typeInfo.DisplayName, item.filePath)
 		}
-		if ref != nil {
+		if ref != nil && types.IsProjectMemberKind(item.typeInfo.ProtoKind) {
 			members = append(members, ref)
 		}
 	}

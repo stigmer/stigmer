@@ -10,18 +10,19 @@ func TestDefaultRegistry_ReturnsAllCLIRelevantTypes(t *testing.T) {
 	reg := DefaultRegistry()
 	all := reg.All()
 
-	// Should have exactly 5 CLI-relevant types
-	if len(all) != 5 {
-		t.Errorf("expected 5 types, got %d", len(all))
+	// Should have exactly 6 CLI-relevant types
+	if len(all) != 6 {
+		t.Errorf("expected 6 types, got %d", len(all))
 	}
 
 	// Verify expected types are present
 	expectedKinds := map[apiresourcekind.ApiResourceKind]bool{
-		apiresourcekind.ApiResourceKind_agent:      false,
-		apiresourcekind.ApiResourceKind_workflow:   false,
-		apiresourcekind.ApiResourceKind_skill:      false,
-		apiresourcekind.ApiResourceKind_mcp_server: false,
-		apiresourcekind.ApiResourceKind_project:    false,
+		apiresourcekind.ApiResourceKind_organization: false,
+		apiresourcekind.ApiResourceKind_agent:        false,
+		apiresourcekind.ApiResourceKind_workflow:     false,
+		apiresourcekind.ApiResourceKind_skill:        false,
+		apiresourcekind.ApiResourceKind_mcp_server:   false,
+		apiresourcekind.ApiResourceKind_project:      false,
 	}
 
 	for _, info := range all {
@@ -283,13 +284,13 @@ func TestRegistry_TypesForVerb(t *testing.T) {
 		verb          Verb
 		expectedCount int
 	}{
-		{VerbApply, 4},    // Agent, Workflow, McpServer, Project
+		{VerbApply, 5},    // Organization, Agent, Workflow, McpServer, Project
 		{VerbRun, 2},      // Agent, Workflow
 		{VerbPush, 1},     // Skill only
 		{VerbSearch, 2},   // Agent, Workflow
-		{VerbGet, 5},      // All types
-		{VerbList, 5},     // All types
-		{VerbDelete, 5},   // All types
+		{VerbGet, 6},      // All types
+		{VerbList, 6},     // All types
+		{VerbDelete, 6},   // All types
 		{VerbValidate, 4}, // Agent, Workflow, McpServer, Project
 	}
 
