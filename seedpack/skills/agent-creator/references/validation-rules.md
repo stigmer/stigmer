@@ -280,7 +280,7 @@ instructions: |
 - [ ] `spec.instructions` ≥ 10 characters
 
 ### Organization and visibility
-- [ ] `metadata.org` is `local` (local mode) or correct org slug (cloud mode)
+- [ ] `metadata.org` matches the `STIGMER_ORG_ID` environment variable
 - [ ] `metadata.visibility` is omitted (private) or `visibility_public` (intentional)
 
 ### Resource discovery (before writing any reference)

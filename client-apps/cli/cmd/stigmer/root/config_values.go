@@ -53,8 +53,6 @@ func getConfigValue(cfg *config.Config, key string) (string, error) {
 		switch parts[1] {
 		case "organization":
 			return cfg.Context.Organization, nil
-		case "environment":
-			return cfg.Context.Environment, nil
 		}
 	}
 
@@ -148,9 +146,6 @@ func setConfigValue(cfg *config.Config, key, value string) error {
 		switch parts[1] {
 		case "organization":
 			cfg.Context.Organization = value
-			return nil
-		case "environment":
-			cfg.Context.Environment = value
 			return nil
 		}
 	}

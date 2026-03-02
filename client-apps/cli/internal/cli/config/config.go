@@ -87,12 +87,11 @@ type CloudBackendConfig struct {
 	EnvID    string `yaml:"env_id,omitempty"` // Environment ID
 }
 
-// ContextConfig represents the active CLI context — which organization (and
-// eventually environment) the user is operating in. Used by both local and
-// cloud backends; the backend type determines connectivity, not tenancy.
+// ContextConfig represents the active CLI context — which organization the
+// user is operating in. Used by both local and cloud backends; the backend
+// type determines connectivity, not tenancy.
 type ContextConfig struct {
 	Organization string `yaml:"organization,omitempty"` // Active organization slug
-	Environment  string `yaml:"environment,omitempty"`  // Active environment name/ID
 }
 
 // ResolveContextOrganization returns the active organization from the CLI

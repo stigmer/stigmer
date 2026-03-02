@@ -13,9 +13,22 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: In Progress
-- **Last Session**: 2026-03-03 (session 10) — T01.7: Unified Organization Context and CLI Defaults
-- **Active Task**: T01.8 (Skill docs — next)
+- **Last Session**: 2026-03-03 (session 11) — T01.8: CLI Org Global Flag, Runtime Injection, and Cleanup
+- **Active Task**: T01.9 (Product docs — next)
 - **Cloud Repo Status**: Build restored. Reconciliation subsystem rearchitected. NormalizeApiResourceReferencesStepV2 wired into all 29 handlers. See `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
+
+## Session Progress (2026-03-03, session 11 — T01.8: CLI Org Global Flag, Runtime Injection, and Cleanup)
+- Completed T01.8: Removed speculative `ContextConfig.Environment` (YAGNI), promoted `--org` to root persistent flag, injected `STIGMER_ORG_ID` into agent runtime and SDK synthesis, updated all seedpack skill docs
+- **Removed `ContextConfig.Environment`**: Removed field from config struct, config get/set handlers, `context show` display, and all related test fixtures — no domain semantics defined, dead surface area
+- **Promoted `--org` to root persistent flag**: Added `rootCmd.PersistentFlags().String("org", ...)` and `GetOrgFlag(cmd)` helper. Removed per-command `--org` flag from 10 files (apply, get, list, delete, push, search, discover, run_agent_exec, draft_agent, draft_mcp_server, draft_skill). Follows `kubectl --namespace` pattern
+- **Injected `STIGMER_ORG_ID` into agent RuntimeEnv**: In `prepareAgentExec()` after `connectToBackend()` resolves orgID, injects `STIGMER_ORG_ID` into `runtimeEnv` (shared by `stigmer run` and `stigmer draft`). Respects user override via `--env STIGMER_ORG_ID=xxx`
+- **Injected `STIGMER_ORG_ID` into SDK synthesis env**: Added `OrgID` to `SynthesizeOptions`, set as env var alongside `STIGMER_OUT_DIR`. Restructured `executeProjectApply()` to resolve org before synthesis
+- **Updated seedpack skill docs**: Updated 10 files across agent-creator and mcp-server-creator — replaced all `org: local` with `STIGMER_ORG_ID` references, removed "local vs cloud" org guidance, removed questions asking user for org
+- **Updated `next-task.md`**: Marked T01.8 complete, added detailed T01.9 scope for documentation consolidation
+- **Tests**: Fixed `config_test.go` references to removed `Environment` field. All 26 CLI test packages pass, build clean
+- **Files modified**: 30 files modified (+125 lines, -128 lines) — net reduction
+- **Key design**: `STIGMER_ORG_ID` is outbound-only (injected by CLI into agent runtime), not inbound (CLI's own org resolution chain unchanged)
+- **Key design**: Agents no longer mention "local mode vs cloud mode" for org — org is always from context, backend type is a separate concern
 
 ## Session Progress (2026-03-03, session 10 — T01.7: Unified Organization Context and CLI Defaults)
 - Completed T01.7: Eliminated all hardcoded `"local"` org fallbacks, unified 3 fragmented org-resolution functions into single backend-agnostic priority chain, added `stigmer context` commands, auto-sets org context during server startup
@@ -144,11 +157,18 @@ Drop this file into your conversation to quickly resume work on this project.
 - Key decision: Merged Project into tenancy domain (not management) — Organization, Platform, and Project form the resource hierarchy bounded context
 
 ## Next Steps
-1. **T01.8**: Skill docs — update `org: local` references in skill reference files and agent instruction text
-2. **T01.9**: Product docs — update for new patterns
+1. ~~**T01.8**: Skill docs~~ — COMPLETED: updated seedpack skill docs to use `STIGMER_ORG_ID`, removed `org: local` hardcoding, promoted `--org` to global flag, injected org into agent runtime
+2. **T01.9**: Product docs — update for new patterns. Scope:
+   - Create "What is CLI Configuration" doc (following existing what-is doc pattern)
+   - Consolidate `docs/cli/configuration.md` and `docs/cli/configuration-cascade.md` into coherent documentation
+   - Document `context.organization` and `stigmer context show/set --org`
+   - Document `--org` global persistent flag (available on all commands)
+   - Document `STIGMER_ORG_ID` runtime injection into agent execution and SDK synthesis environments
+   - Document org resolution priority chain: `--org flag > stigmer.yaml metadata.org > context.organization > Backend.Cloud.OrgID (compat) > error`
 
 ## Context for Resume
-- T01.1 through T01.7 are complete in OSS; T01.4 also complete in Cloud
+- T01.1 through T01.8 are complete in OSS; T01.4 also complete in Cloud
+- **T01.8 changes**: Removed `ContextConfig.Environment` (YAGNI), promoted `--org` to root persistent flag (was duplicated across 11+ commands), injected `STIGMER_ORG_ID` into agent `RuntimeEnv` and SDK synthesis env, updated all seedpack skill docs (agent-creator, mcp-server-creator) to read `STIGMER_ORG_ID` instead of asking user or hardcoding `org: local`
 - The Project proto now lives at `apis/ai/stigmer/tenancy/project/v1/` with package `ai.stigmer.tenancy.project.v1`
 - Organization is fully supported in both CLI apply pipeline AND server-side controllers
 - `ApiResourceReference.org` is now optional — empty means "resolve from parent resource's org"
@@ -211,19 +231,18 @@ Drop this file into your conversation to quickly resume work on this project.
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-03-03-session-10.md`
+1. [ ] Read the latest checkpoint from `checkpoints/2026-03-03-session-11.md`
 2. [ ] Read cloud migration doc: `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
 3. [ ] Check current task status in `tasks/T01_0_plan.md`
 4. [ ] Review any new design decisions in `design-decisions/`
 5. [ ] Check coding guidelines in `coding-guidelines/`
 6. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-7. [ ] Proceed to T01.8 (Skill docs — unblocked)
+7. [ ] Proceed to T01.9 (Product docs — unblocked)
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T01.8" - Skill docs (org: local references)
-- "Continue with T01.9" - Product docs (new patterns)
+- "Continue with T01.9" - Product docs (CLI config documentation, consolidation)
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

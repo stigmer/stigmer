@@ -31,9 +31,8 @@ tools and resource templates, and push the results to stigmer-server.`,
 
 func newDiscoverMcpServerCommand() *cobra.Command {
 	var (
-		orgOverride string
-		timeout     time.Duration
-		dryRun      bool
+		timeout time.Duration
+		dryRun  bool
 	)
 
 	cmd := &cobra.Command{
@@ -64,7 +63,7 @@ Examples:
 		Run: func(cmd *cobra.Command, args []string) {
 			err := executeDiscoverMcpServer(discoverMcpServerOptions{
 				Reference:   args[0],
-				OrgOverride: orgOverride,
+				OrgOverride: GetOrgFlag(cmd),
 				Timeout:     timeout,
 				DryRun:      dryRun,
 			})
@@ -72,7 +71,6 @@ Examples:
 		},
 	}
 
-	cmd.Flags().StringVar(&orgOverride, "org", "", "organization ID override")
 	cmd.Flags().DurationVar(&timeout, "timeout", 30*time.Second, "timeout for MCP server connection and discovery")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "discover and display results without pushing to backend")
 

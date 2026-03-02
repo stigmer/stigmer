@@ -21,7 +21,7 @@ Declared in `Agent.spec.mcp_server_usages`.
 spec:
   mcp_server_usages:
     - mcp_server_ref:
-        org: local          # McpServer's metadata.org
+        org: <STIGMER_ORG_ID>   # matches McpServer metadata.org
         kind: mcp_server    # always "mcp_server" (snake_case) in references
         slug: github        # McpServer's metadata.slug
       enabled_tools:
@@ -140,7 +140,7 @@ Sub-agents inherit the parent's MCP server usages but can only access servers ex
 spec:
   mcp_server_usages:
     - mcp_server_ref:
-        org: local
+        org: <STIGMER_ORG_ID>
         kind: mcp_server
         slug: github
       enabled_tools:
@@ -171,7 +171,7 @@ apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
   name: code-review-assistant
-  org: local
+  org: <STIGMER_ORG_ID>     # read from STIGMER_ORG_ID env var
 spec:
   description: "Code review assistant with GitHub integration"
   instructions: |
@@ -180,7 +180,7 @@ spec:
     create or delete repositories without explicit user instruction.
   mcp_server_usages:
     - mcp_server_ref:
-        org: local
+        org: <STIGMER_ORG_ID>
         kind: mcp_server
         slug: github
       enabled_tools:

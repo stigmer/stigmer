@@ -13,7 +13,7 @@ Run through this checklist before presenting any McpServer YAML to the user.
 
 ### Metadata
 - [ ] `metadata.slug` format: `^[a-z][a-z0-9-]*$` (lowercase, hyphens only, starts with letter, 1–63 chars)
-- [ ] `metadata.org` is set: `local` for local mode, actual org slug for cloud mode
+- [ ] `metadata.org` matches the `STIGMER_ORG_ID` environment variable
 - [ ] `metadata.visibility` is intentional: `visibility_private` (default) or `visibility_public` (marketplace only)
 - [ ] `status` is NOT set — system-managed only
 
@@ -164,16 +164,16 @@ slug: github-mcp
 slug: my-internal-db-v2
 ```
 
-### ❌ Missing metadata.org in cloud mode
+### ❌ Missing metadata.org
 ```yaml
-# Wrong in cloud mode (OK in local mode where it defaults to "local")
+# Wrong — org must always be set
 metadata:
   name: github
 
-# ✓ Correct for cloud
+# ✓ Correct — use the value from STIGMER_ORG_ID env var
 metadata:
   name: github
-  org: acme-corp
+  org: <STIGMER_ORG_ID>
 ```
 
 ---

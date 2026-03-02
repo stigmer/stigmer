@@ -9,7 +9,7 @@ apiVersion: agentic.stigmer.ai/v1   # REQUIRED — exactly this string
 kind: McpServer                      # REQUIRED — exactly "McpServer" (PascalCase)
 metadata:                            # REQUIRED
   name: github                       # REQUIRED — human-readable name
-  org: local                         # local mode default; required in cloud mode
+  org: <STIGMER_ORG_ID>               # read from STIGMER_ORG_ID env var
   slug: github                       # optional — auto-derived from name if omitted
   visibility: visibility_private     # optional — default is visibility_private
   labels:                            # optional — key-value pairs for filtering
@@ -37,7 +37,7 @@ status: {}                           # NEVER set by users — system-managed onl
 |---|---|---|
 | `name` | Yes | Human-readable. Used to auto-generate `slug` if omitted. |
 | `slug` | No | URL-friendly identifier. Format: `^[a-z][a-z0-9-]*$` (1–63 chars). This is what agents use in `mcp_server_ref.slug`. |
-| `org` | Depends | Local mode: defaults to `local`. Cloud mode: required, must match authenticated org. |
+| `org` | Yes | Use the value from the `STIGMER_ORG_ID` environment variable. Always set. |
 | `visibility` | No | `visibility_private` (default) or `visibility_public` (marketplace). |
 | `labels` | No | Key-value, used for filtering in list operations. |
 | `annotations` | No | Key-value, not indexed. Use for docs URLs, support links, etc. |

@@ -155,6 +155,7 @@ OTHER OPTIONS:
 			return fmt.Errorf("accepts 1 or 2 args, received %d", len(args))
 		},
 		Run: func(cmd *cobra.Command, args []string) {
+			opts.OrgOverride = GetOrgFlag(cmd)
 			if len(args) == 1 {
 				err := executeRunSession(args[0], opts.OrgOverride, opts.Verbose)
 				clierr.Handle(err)

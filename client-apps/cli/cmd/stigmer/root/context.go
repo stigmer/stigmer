@@ -86,15 +86,9 @@ func handleContextShow(format clioutput.OutputFormat) {
 		org = "(not set)"
 	}
 
-	env := cfg.Context.Environment
-	if env == "" {
-		env = "(not set)"
-	}
-
 	result := clioutput.Success("CLI context")
 	result.AddSection("").
 		Field("Organization", org).
-		Field("Environment", env).
 		Field("Backend", string(cfg.Backend.Type))
 
 	renderer.Render(result)
