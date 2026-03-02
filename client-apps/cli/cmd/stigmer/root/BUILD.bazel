@@ -13,6 +13,7 @@ go_library(
         "completion.go",
         "config.go",
         "config_values.go",
+        "context.go",
         "delete.go",
         "delete_cancel.go",
         "delete_handlers.go",
@@ -120,6 +121,7 @@ go_library(
         "@com_github_spf13_cobra//:cobra",
         "@in_gopkg_yaml_v3//:yaml_v3",
         "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_protobuf//types/known/emptypb",
     ],
 )
 

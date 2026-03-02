@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	orgv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/organization/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
@@ -16,6 +17,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/setup"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 // NewServerCommand creates the server command for daemon management
@@ -222,6 +224,11 @@ func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 		climsg.Warning("Failed to apply system resources: %v", err)
 	}
 
+	// Auto-detect and set the active organization context. On first run, the
+	// seedpack creates the "default" org; this discovers it and persists the
+	// context so all subsequent commands work without manual configuration.
+	autoSetOrgContext(cfg)
+
 	climsg.Info("Discovering MCP server capabilities...")
 	runBootstrapDiscovery(cfg)
 
@@ -299,9 +306,10 @@ func runBootstrapDiscovery(cfg *config.Config) {
 	}
 	defer conn.Close()
 
-	orgID := "local"
-	if cfg.Backend.Type == config.BackendTypeCloud && cfg.Backend.Cloud != nil && cfg.Backend.Cloud.OrgID != "" {
-		orgID = cfg.Backend.Cloud.OrgID
+	orgID := cfg.ResolveContextOrganization()
+	if orgID == "" {
+		climsg.Warning("Skipping MCP discovery: no organization context set")
+		return
 	}
 
 	result := mcpserver.DiscoverAll(context.Background(), &mcpserver.DiscoverAllOptions{
@@ -319,6 +327,54 @@ func runBootstrapDiscovery(cfg *config.Config) {
 	}
 	for _, msg := range result.SkipMessages {
 		climsg.Warning("%s", msg)
+	}
+}
+
+// autoSetOrgContext ensures the CLI has an active organization context. If
+// context.organization is already set, this is a no-op. Otherwise, it queries
+// the server for available organizations and auto-sets the context when exactly
+// one is found. With multiple orgs, it warns the user to choose explicitly.
+func autoSetOrgContext(cfg *config.Config) {
+	if cfg.ResolveContextOrganization() != "" {
+		return
+	}
+
+	conn, err := backend.NewConnection()
+	if err != nil {
+		climsg.Warning("Skipping org context auto-detection: %v", err)
+		return
+	}
+	defer conn.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	client := orgv1.NewOrganizationQueryControllerClient(conn)
+	resp, err := client.FindMyOrganizations(ctx, &emptypb.Empty{})
+	if err != nil {
+		climsg.Warning("Failed to detect organizations: %v", err)
+		return
+	}
+
+	switch len(resp.GetEntries()) {
+	case 0:
+		climsg.Warning("No organizations found. Resources cannot be applied until an organization exists.")
+	case 1:
+		org := resp.GetEntries()[0]
+		slug := org.GetMetadata().GetSlug()
+		cfg.Context.Organization = slug
+		if err := config.Save(cfg); err != nil {
+			climsg.Warning("Failed to save organization context: %v", err)
+			return
+		}
+		climsg.Success("Active organization: %s", slug)
+	default:
+		climsg.Warning("Multiple organizations found. Set the active organization:")
+		for _, org := range resp.GetEntries() {
+			climsg.Info("  - %s", org.GetMetadata().GetSlug())
+		}
+		climsg.Info("")
+		climsg.Info("Run: stigmer context set --org <slug>")
 	}
 }
 
