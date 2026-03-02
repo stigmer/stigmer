@@ -2,6 +2,7 @@ apiVersion: tenancy.stigmer.ai/v1
 kind: Project
 metadata:
   name: stigmer-seedpack
+  org: default
 spec:
   description: >
     Default skills, agents, and MCP servers bootstrapped with every Stigmer server.

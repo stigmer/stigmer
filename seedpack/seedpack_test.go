@@ -16,6 +16,7 @@ func TestExtractToDir(t *testing.T) {
 
 	expectedFiles := []string{
 		"stigmer.yaml",
+		"organizations/default.yaml",
 		"agents/skill-creator.yaml",
 		"agents/agent-creator.yaml",
 		"agents/mcp-server-creator.yaml",
