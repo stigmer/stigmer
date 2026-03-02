@@ -13,8 +13,19 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: In Progress
-- **Last Session**: 2026-03-03 (session 2) — Documentation gap analysis and cleanup for T01.1
+- **Last Session**: 2026-03-03 (session 3) — Cloud repo proto migration (partially complete, blocked)
 - **Active Task**: T01.2 (next — Add Organization as supported resource kind in apply pipeline)
+- **Cloud Repo Status**: Migration partially complete — blocked on ProjectSpec reconciliation rearchitecture. See `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
+
+## Session Progress (2026-03-03, session 3 — Cloud Repo Migration)
+- Migrated stigmer-cloud Project proto stubs from `agentic/project/v1` to `tenancy/project/v1` (all 5 languages: Go, Java, Python, TS, Dart)
+- Moved 37 Java domain files from `domain.agentic.project` to `domain.tenancy.project` (20 main + 17 test)
+- Updated all package declarations, proto imports, and apiVersion test assertions
+- Adapted `ReconciliationResult` and `ProjectReconciliationService` from `ResourceChangeRecord` to `ApiResourceReference` (proto type removed in OSS redesign)
+- Discovered major surprise: `ProjectSpec` fundamentally redesigned — embedded resources replaced by lightweight `ApiResourceReference` membership references
+- Entire cloud reconciliation subsystem (`DesiredState`, `ActualState`, `ReconciliationPlan`, `DependencyGraph*`) needs rearchitecting for reference-based model
+- Created comprehensive documentation: `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
+- Build currently fails — blocked on reconciliation rearchitecture (separate task)
 
 ## Session Progress (2026-03-03, session 2)
 - Thorough codebase-wide gap analysis for management/project and agentic/project remnants
@@ -42,19 +53,19 @@ Drop this file into your conversation to quickly resume work on this project.
 3. **T01.4+**: Bootstrap real Organization resource in seedpack, replace all hardcoded `"local"` org defaults with `"default"`
 
 ## Context for Resume
-- T01.1 is committed and complete (code + docs)
+- T01.1 is committed and complete in OSS (code + docs)
 - The Project proto now lives at `apis/ai/stigmer/tenancy/project/v1/` with package `ai.stigmer.tenancy.project.v1`
-- All generated stubs, codegen schemas, MCP gen, and consumers have been updated
+- All generated stubs, codegen schemas, MCP gen, and consumers have been updated in OSS
 - Project docs now live at `apis/ai/stigmer/tenancy/project/docs/` (moved from agentic path)
-- Zero remaining `management/project` or `agentic/project` references in any non-historical file
+- Zero remaining `management/project` or `agentic/project` references in OSS non-historical files
 - The task plan is in `tasks/T01_0_plan.md` — review T01.2 section for next task details
-- `stigmer-cloud` was NOT modified — cloud team handles proto bump separately
+- **stigmer-cloud**: Partially migrated — stubs regenerated, Java domain moved, imports updated. Blocked on reconciliation rearchitecture due to ProjectSpec redesign. Full status documented in `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260302.01.org-tenancy-portable-resources/checkpoints/2026-03-03-session-2.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260302.01.org-tenancy-portable-resources/checkpoints/2026-03-03-session-3.md
 ```
 
 ### 2. Task Plan
@@ -91,12 +102,13 @@ Drop this file into your conversation to quickly resume work on this project.
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-03-03-session-2.md`
-2. [ ] Check current task status in `tasks/T01_0_plan.md`
-3. [ ] Review any new design decisions in `design-decisions/`
-4. [ ] Check coding guidelines in `coding-guidelines/`
-5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with T01.2
+1. [ ] Read the latest checkpoint from `checkpoints/2026-03-03-session-3.md`
+2. [ ] Read cloud migration doc: `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
+3. [ ] Check current task status in `tasks/T01_0_plan.md`
+4. [ ] Review any new design decisions in `design-decisions/`
+5. [ ] Check coding guidelines in `coding-guidelines/`
+6. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
+7. [ ] Continue with T01.2 (OSS) or cloud reconciliation rearchitecture (stigmer-cloud)
 
 ## Quick Commands
 
