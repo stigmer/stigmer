@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-04 00:23
-**Current Task**: Phase 2.4 (Other Tools Compact Rendering)
+**Current Task**: Phase 2.5 (Sub-Agent Tool Grouping)
 **Status**: Ready to Start
-**Last Session**: 2026-03-04 — Phase 2.3 complete
+**Last Session**: 2026-03-04 — Phase 2.4 complete
 
 ## Session Progress (2026-03-04, Session 1)
 
@@ -194,24 +194,49 @@ When starting a new session:
 - `client-apps/cli/pkg/toolrender/render_compact.go` (modified)
 - `client-apps/cli/pkg/toolrender/render_compact_test.go` (modified)
 
+## Session Progress (2026-03-04, Session 7)
+
+- Phase 2.4 (Other Tools Compact Rendering) completed
+- Extended `pkg/toolrender/render_compact.go` (+205 lines, now 578 lines) — 3 new renderers: `renderCompactDiscovery`, `renderCompactDelete`, `renderCompactThink`; 2 helpers: `countResultEntries`, `discoverySummary`; 2 predicates: `isDiscoveryLabel`, `isPatternBasedLabel`; `maxThinkLines` constant
+- Extended `pkg/toolrender/render_compact_test.go` (+821 lines) — 51 new test functions covering discovery/delete/think compact format, running state, item counting, summary text, hasCompactRenderer coverage
+- Refactored `RenderCompact` from if-cascade to switch-on-label (6 branches)
+- Refactored `RenderCompactRunning` to handle pattern-based (plain text), path-based (hyperlinked), and label-only (Thinking, no parens) tools
+- Updated `hasCompactRenderer` to cover all 11 tool labels — only "Task" remains uncovered (Phase 2.5)
+- No changes to `run_stream_inline.go` — graduated routing picked up all new tools automatically
+
+### Key Design Decisions (Session 7)
+- **Discovery tools show count-only** — Discovery is reconnaissance input to the agent, not output for the user. Count provides scope awareness without noise. Maintains visual density hierarchy (shell densest, reads lightest). Confirmed via UX/Engineering/Architecture analysis.
+- **`countResultEntries` vs `countLines`** — Discovery results need non-empty line counting (skips blank lines, trims trailing newline), unlike `countLines` which is designed for file content. Same split pattern as `renderCompactShell`.
+- **`discoverySummary` label-aware** — List uses "N entries" (neutral for files/dirs), Find/Search use "Found N matches" (searching). Proper singular/plural handling.
+- **Think bypasses `resolveDisplayContent`** — The think tool's `tc.Result` is a meaningless "ok" acknowledgment. Extracting thought directly from args via `contentArgField` avoids displaying "ok" when thought is empty. Documented as intentional deviation.
+- **Think header has no parens** — `● Thinking` instead of `● Thinking()`. The thought is the body, not a parameter. Only tool where the `Label(arg)` pattern is dropped.
+- **Pattern-based vs path-based display** — `isPatternBasedLabel` distinguishes Find/Search (plain text patterns, not hyperlinked) from List/Delete (file paths, hyperlinked). Avoids wrapping glob patterns in `file://` URIs.
+- **Switch-on-label routing** — Replaced if-cascade with switch for `RenderCompact`. Case lists (`"Write", "Create", "Edit"`) group related labels. Default branch handles Task (Phase 2.5) and unknown tools via `RenderWithBadge`.
+
+### Files Modified (Session 7)
+- `client-apps/cli/pkg/toolrender/render_compact.go` (modified)
+- `client-apps/cli/pkg/toolrender/render_compact_test.go` (modified)
+
 ## Next Steps
 
-1. Phase 2.4: Other tools (glob, search, delete, think)
-2. Phase 2.5: Sub-agent tool grouping with indentation
+1. Phase 2.5: Sub-agent tool grouping with indentation
+2. Phase 3: Streamlined single-key approval prompts
+3. Phase 4: Inline follow-up readline + thinking spinner
 
 ## Context for Resume
 
 - Pre-existing compile error in `run_create.go:114` (references `WorkspaceSource` from multi-source-workspace project) blocks `go test` for the `root` package. Our changes are isolated and verified correct via `go vet`.
 - The `OutputInteractive` constant is retained in `output_mode.go` — TUI code references it from `run_stream.go` and `run_session.go` default branches.
-- **`RenderCompact`** is the graduated entry point for compact completed tool rendering. Read, write, create, edit, and shell tools now get compact format. Only glob, search, delete, think, and task tools still fall back to `RenderWithBadge`. Phase 2.4 adds the remaining branches.
-- **`RenderCompactRunning`** is the graduated entry point for compact running state. Tools with compact renderers (read, write, create, edit, shell) get bullet-style with `…` suffix; others fall back to `RenderWithBadge` with `⏳`. Shell tools use `truncate(firstLine(...), 60)` instead of `buildHyperlinkedPath`.
-- **`hasCompactRenderer`** is the graduated registry — now includes "Read", "Write", "Create", "Edit", "Shell", "Execute". Phase 2.4 adds remaining labels.
+- **`RenderCompact`** is the graduated entry point for compact completed tool rendering. Every known tool label now has a compact renderer. Only "Task" (Phase 2.5) and unknown/MCP tools fall back to `RenderWithBadge`.
+- **`RenderCompactRunning`** is the graduated entry point for compact running state. All tools with compact renderers get bullet-style `…` suffix. Display varies by category: shell (truncated command), pattern-based (plain text), path-based (hyperlinked), label-only (Thinking, no parens). Only "Task" and unknown tools fall back to legacy `⏳`.
+- **`hasCompactRenderer`** covers all 11 known labels: Read, Write, Create, Edit, Shell, Execute, List, Find, Search, Delete, Thinking. Only "Task" returns false.
 - `CompactOptions` is initialized once in `renderInline()` with `HyperlinksEnabled` from `cfg.status` and an empty `WorkingDir` (relative path resolution deferred until working directory is available from execution context).
 - **Read grouping**: `handleEvent` intercepts read completions before the switch and buffers them in `pendingReads`. `flushPendingReads()` renders as group (>= 3) or individually (< 3). Flush triggers on any non-read visible event, context cancel, or channel close. `ToolStreamDeltaEvent` does NOT flush (no visible output).
-- **ToolRunningEvent for reads**: Suppressed (intercepted before switch). For write/edit and shell: NOT suppressed — uses `RenderCompactRunning`.
-- **Shell output truncation**: `maxShellOutputLines = 3` with smart cutoff (show 4 if exactly 4 lines). Output cleaned via `resolveDisplayContent` which calls `CleanShellResult` for shell tools.
-- **OSC 8 / `stripANSI` gap**: `display/colors.go` `stripANSI` only handles CSI (`\x1b[...m`), not OSC (`\x1b]...`). NOT a blocker for compact rendering (output goes to stderr via `statusf`, never through width measurement). Becomes relevant if hyperlinked strings ever enter `MeasureColorizedString` or `TrimColorizedString`.
-- **`charmbracelet/x/ansi.StringWidth()` OSC 8 verification**: Still pending empirical verification. Not needed until a phase truncates hyperlinked strings with `truncateANSI`.
+- **ToolRunningEvent for reads**: Suppressed (intercepted before switch). For all other tools: NOT suppressed — uses `RenderCompactRunning`.
+- **Shell output truncation**: `maxShellOutputLines = 3` with smart cutoff. Think uses `maxThinkLines = 3` with same pattern.
+- **Discovery result counting**: `countResultEntries` counts non-empty lines (not `countLines`). `discoverySummary` maps label to human-readable text.
+- **Think content extraction**: Directly from `contentArgField` ("thought") arg, bypassing `resolveDisplayContent` to avoid showing meaningless "ok" result.
+- **OSC 8 / `stripANSI` gap**: NOT a blocker — compact output goes to stderr via `statusf`, never through width measurement.
 - **Bazel test blocked** by pre-existing `com_github_alecthomas_chroma_v2` repository resolution issue. All tests verified via `go test` directly.
 
 ## Blockers
@@ -221,7 +246,7 @@ None.
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 2.4" - Start other tools compact rendering (glob, search, delete, think)
+- "Continue with Phase 2.5" - Start sub-agent tool grouping with indentation
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
