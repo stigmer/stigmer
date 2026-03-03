@@ -12,6 +12,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/envfile"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
 	"google.golang.org/grpc"
 )
 
@@ -109,8 +110,12 @@ type preparedAgentExec struct {
 // connects to the backend, and processes attachments. The returned struct
 // contains everything needed to execute an agent (once the agent is resolved).
 //
+// The spinner (sp) is updated at key steps to show preparation progress.
+// The caller owns the spinner lifecycle — this function neither starts nor
+// stops it.
+//
 // The caller MUST defer prep.Conn.Close() on success.
-func prepareAgentExec(flags agentExecFlags) (*preparedAgentExec, error) {
+func prepareAgentExec(flags agentExecFlags, sp *spinner.Spinner) (*preparedAgentExec, error) {
 	var defaultAction approval.Action
 	if flags.ApproveDefault != "" {
 		var err error
@@ -142,6 +147,7 @@ func prepareAgentExec(flags agentExecFlags) (*preparedAgentExec, error) {
 		runtimeEnv = autoEnv
 	}
 
+	sp.Update("Connecting...")
 	conn, orgID, err := connectToBackend(flags.OrgOverride)
 	if err != nil {
 		return nil, err
@@ -155,6 +161,7 @@ func prepareAgentExec(flags agentExecFlags) (*preparedAgentExec, error) {
 
 	var attachResult AttachmentResult
 	if len(flags.AttachFlags) > 0 {
+		sp.Update("Processing attachments...")
 		processor := NewAttachmentProcessor(conn)
 		localRoot := localWorkspaceRoot(workspaceSource)
 		res, err := processor.ProcessFiles(flags.AttachFlags, localRoot)
@@ -206,7 +213,13 @@ type resolvedAgentExecInput struct {
 // the agent execution, streams it in the alt-screen TUI, and optionally
 // downloads artifacts. This is the single source of truth for the "run a
 // resolved agent" flow used by both `run` and `draft`.
-func executeResolvedAgent(input resolvedAgentExecInput) error {
+//
+// The spinner (sp) provides animated progress feedback during session and
+// execution creation. It may arrive already running (from the run path) or
+// stopped (from the draft path after printing agent info). Start() handles
+// both: it resumes a stopped spinner or updates an active one.
+// The spinner is stopped before streaming begins.
+func executeResolvedAgent(input resolvedAgentExecInput, sp *spinner.Spinner) error {
 	execInput := CreateAgentExecutionInput{
 		AgentID:           input.Agent.Metadata.Id,
 		OrgID:             input.OrgID,
@@ -222,27 +235,24 @@ func executeResolvedAgent(input resolvedAgentExecInput) error {
 	if input.WorkspaceSource != nil {
 		instanceID := input.Agent.GetStatus().GetDefaultInstanceId()
 		if instanceID == "" {
+			sp.Stop()
 			return errors.New("agent has no default instance — cannot create workspace session")
 		}
 
-		climsg.Info("Creating workspace session...")
+		sp.Start("Creating workspace...")
 		session, err := createSessionForAgent(instanceID, input.OrgID, input.WorkspaceSource, input.Conn)
 		if err != nil {
+			sp.Stop()
 			return errors.Wrap(err, "failed to create workspace session")
 		}
 
 		execInput.SessionID = session.GetMetadata().GetId()
 	}
 
-	totalInputFiles := len(input.AttachResult.Attachments) + len(input.AttachResult.WorkspaceFileRefs)
-	if totalInputFiles > 0 {
-		climsg.Info("Starting execution with %d input file(s)...", totalInputFiles)
-	} else if input.WorkspaceSource == nil {
-		climsg.Info("Starting session...")
-	}
-
+	sp.Start("Creating execution...")
 	exec, err := createAgentExecution(execInput)
 	if err != nil {
+		sp.Stop()
 		return errors.Wrap(err, "failed to create execution")
 	}
 
@@ -253,6 +263,7 @@ func executeResolvedAgent(input resolvedAgentExecInput) error {
 			Msg("backend returned execution without session_id — session display may be degraded")
 	}
 
+	sp.Stop()
 	climsg.Success("Session started: %s", sessionID)
 	fmt.Println()
 

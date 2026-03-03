@@ -77,8 +77,20 @@ Role reference: `_roles/003_cli_tui_ux_eng`
 ## Current State
 
 - **Status**: in-progress
-- **Last Session**: 2026-03-03 (Session 8) — Phase 2.3 implementation complete; **third Phase 2 (High) item done**
-- **Active Task**: None — ready to pick Phase 2.4 (Preparation Phase Spinner)
+- **Last Session**: 2026-03-03 (Session 9) — Phase 2.4 implementation complete; **fourth Phase 2 (High) item done**
+- **Active Task**: None — ready to pick Phase 2.5 (`stigmer doctor` Diagnostic Command)
+
+## Session Progress (2026-03-03 — Session 9)
+
+- Completed Phase 2.4: Preparation Phase Spinner — the **fourth Phase 2 (High) item**
+- Fixed spinner TTY detection bug: replaced `display.IsTerminal()` (hardcoded to stdout) with writer-fd-based `isWriterTerminal(w)` using `term.IsTerminal(fd)`, removed `display` package dependency from `spinner`
+- Threaded `*spinner.Spinner` through `prepareAgentExec`, `executeResolvedAgent`, `routeRun`, `executeDraft`, `executeRunSession`, `openSession`
+- Spinner writes to `os.Stderr` — consistent with Phase 2.2 stdout/stderr discipline; animates even when stdout is piped (`--json | jq`)
+- Replaced 3 intermediate `climsg.Info` messages with spinner label updates; kept `climsg.Success("Session started: ...")` as static confirmation after spinner stops
+- Spinner label progression: "Preparing..." → "Connecting..." → "Resolving agent..." → "Processing attachments..." → "Creating workspace..." → "Creating execution..." → stop → "Session started: ses-xxx"
+- Draft path uses stop-print-restart pattern: spinner stops for static "Using system agent: ..." line, then `sp.Start()` re-animates in `executeResolvedAgent`
+- Wrote 3 new spinner tests — all passing alongside the full existing suite
+- Created changelog: `_changelog/2026-03/2026-03-03-230452-preparation-phase-spinner.md`
 
 ## Session Progress (2026-03-03 — Session 8)
 
@@ -180,12 +192,13 @@ Role reference: `_roles/003_cli_tui_ux_eng`
 
 ## Next Steps
 
-1. **Phase 2.4**: Preparation Phase Spinner — the **next Phase 2 (High) item**
-2. **Phase 2.5**: `stigmer doctor` Diagnostic Command
-3. **Phase 3.1**: stdout/stderr Separation (partially subsumed by Phase 2.2 for inline/JSON paths)
+1. **Phase 2.5**: `stigmer doctor` Diagnostic Command — the **next Phase 2 (High) item**
+2. **Phase 3.1**: stdout/stderr Separation (partially subsumed by Phase 2.2 for inline/JSON paths)
+3. **Phase 3.2**: TUI Epilogue Standardization
 
 ## Context for Resume
 
+- **Phase 2.4 key pattern**: `spinner.New(os.Stderr)` + `sp.Start("label")` + `sp.Update("label")` + `sp.Stop()`. The spinner is passed as `*spinner.Spinner` to `prepareAgentExec`, `executeResolvedAgent`, `routeRun`, `openSession`. `isWriterTerminal(w)` checks if the io.Writer is a `*os.File` with a terminal fd. `Start()` on a stopped spinner re-animates it (used in draft stop-print-restart pattern).
 - **Phase 2.3 key pattern**: `retryWithBackoff(ctx, maxAttempts, baseDelay, fn)` is a generic retry loop used by `emitAndWaitApproval`. `isRetryableSubmitError(err)` walks the `Unwrap()` chain to classify gRPC codes. Retryable: Unavailable, DeadlineExceeded, ResourceExhausted, Aborted, Internal, Unknown. Non-retryable: NotFound, InvalidArgument, PermissionDenied, etc. Non-gRPC errors default to retryable.
 - **Retry constants**: `approvalRetryMaxAttempts = 3`, `approvalRetryBaseDelay = 1s`. Total worst-case wait: 3s.
 - **Error message format**: "Failed to submit approval after 3 attempts. Re-attach to retry: stigmer run ses-xxx" — includes session ID when available.
@@ -227,6 +240,7 @@ Role reference: `_roles/003_cli_tui_ux_eng`
 | 2.1 | Comprehensive Error Handler | Done (code + 24 tests) |
 | 2.2 | Two-Lane Output Design | Done (code + 33 tests) |
 | 2.3 | Retry on Approval Submission Failure | Done (code + 13 tests) |
+| 2.4 | Preparation Phase Spinner | Done (code + 3 tests) |
 
 ## Blockers
 

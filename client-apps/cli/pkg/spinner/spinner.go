@@ -17,10 +17,11 @@ package spinner
 import (
 	"fmt"
 	"io"
+	"os"
 	"sync"
 	"time"
 
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
+	"golang.org/x/term"
 )
 
 // frames are the braille-dot animation characters. This is the standard
@@ -49,11 +50,11 @@ func New(w io.Writer) *Spinner {
 	return &Spinner{w: w}
 }
 
-// Start begins the spinner animation with the given label. If the output
-// is not a terminal, Start is a no-op. Calling Start while already active
-// is equivalent to calling Update.
+// Start begins the spinner animation with the given label. If the writer
+// is not connected to a terminal, Start is a no-op. Calling Start while
+// already active is equivalent to calling Update.
 func (s *Spinner) Start(label string) {
-	if !display.IsTerminal() {
+	if !isWriterTerminal(s.w) {
 		return
 	}
 
@@ -143,6 +144,16 @@ func (s *Spinner) renderFrame(frame, label string, elapsed time.Duration) {
 // clearLine erases the current line by writing carriage return + ANSI clear.
 func (s *Spinner) clearLine() {
 	fmt.Fprint(s.w, "\r\033[K")
+}
+
+// isWriterTerminal reports whether w is connected to a terminal. For *os.File
+// writers this checks the underlying file descriptor; for any other writer
+// type (e.g., bytes.Buffer in tests) it returns false.
+func isWriterTerminal(w io.Writer) bool {
+	if f, ok := w.(*os.File); ok {
+		return term.IsTerminal(int(f.Fd()))
+	}
+	return false
 }
 
 // formatElapsed returns a human-readable elapsed time string in parentheses.

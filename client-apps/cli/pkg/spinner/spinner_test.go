@@ -2,6 +2,7 @@ package spinner
 
 import (
 	"bytes"
+	"os"
 	"testing"
 	"time"
 )
@@ -201,6 +202,35 @@ func TestFrames_AllNonEmpty(t *testing.T) {
 		if f == "" {
 			t.Errorf("frame[%d] is empty", i)
 		}
+	}
+}
+
+// =============================================================================
+// isWriterTerminal Tests
+// =============================================================================
+
+func TestIsWriterTerminal_Buffer(t *testing.T) {
+	var buf bytes.Buffer
+	if isWriterTerminal(&buf) {
+		t.Error("bytes.Buffer should not be detected as a terminal")
+	}
+}
+
+func TestIsWriterTerminal_DevNull(t *testing.T) {
+	f, err := os.Open(os.DevNull)
+	if err != nil {
+		t.Skipf("cannot open %s: %v", os.DevNull, err)
+	}
+	defer f.Close()
+
+	if isWriterTerminal(f) {
+		t.Errorf("%s should not be detected as a terminal", os.DevNull)
+	}
+}
+
+func TestIsWriterTerminal_Nil(t *testing.T) {
+	if isWriterTerminal(nil) {
+		t.Error("nil writer should not be detected as a terminal")
 	}
 }
 
