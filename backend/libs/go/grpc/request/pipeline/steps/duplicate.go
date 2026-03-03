@@ -1,10 +1,8 @@
 package steps
 
 import (
-	"context"
 	"fmt"
 
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/backend/libs/go/apiresource"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
@@ -12,13 +10,15 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// CheckDuplicateStep verifies that no resource with the same slug exists
+// CheckDuplicateStep verifies that no resource with the same slug exists within the same org
 //
-// This step searches for existing resources by slug globally.
-// If a duplicate is found, returns ALREADY_EXISTS error.
+// This step searches for existing resources by slug+org using the shared
+// FindResourceBySlug helper. Slugs are org-scoped: the same slug can exist
+// in different orgs. If a duplicate is found within the same org, returns an error.
 //
 // The step requires:
 //   - metadata.slug must be set (typically by ResolveSlugStep)
+//   - metadata.org is used for org-scoped lookup (empty org falls back to global check)
 //   - api_resource_kind is extracted from request context (injected by interceptor)
 type CheckDuplicateStep[T proto.Message] struct {
 	store store.Store
@@ -42,7 +42,7 @@ func (s *CheckDuplicateStep[T]) Name() string {
 	return "CheckDuplicate"
 }
 
-// Execute checks for duplicate resources by slug
+// Execute checks for duplicate resources by slug within the same org
 func (s *CheckDuplicateStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 	resource := ctx.NewState()
 
@@ -62,53 +62,22 @@ func (s *CheckDuplicateStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 		return fmt.Errorf("resource slug is empty, cannot check for duplicates")
 	}
 
+	slug := metadata.Slug
+	org := metadata.Org
+
 	// Get api_resource_kind from request context (injected by interceptor)
 	kind := apiresourceinterceptor.GetApiResourceKind(ctx.Context())
 
-	// Check for duplicate by slug
-	existing, err := s.findBySlug(ctx.Context(), metadata.Slug, kind)
+	existing, found, err := FindResourceBySlug[T](ctx.Context(), s.store, kind, slug, org)
 	if err != nil {
 		return fmt.Errorf("failed to check for duplicates: %w", err)
 	}
 
-	// If duplicate found, return error
-	if existing != nil {
-		existingMetadata := existing.(HasMetadata).GetMetadata()
-		// Extract kind name for error message
+	if found {
+		existingMetadata := any(existing).(HasMetadata).GetMetadata()
 		kindName, _ := apiresource.GetKindName(kind)
-		return fmt.Errorf("%s with slug '%s' already exists (id: %s)", kindName, metadata.Slug, existingMetadata.Id)
+		return fmt.Errorf("%s with slug '%s' already exists in org '%s' (id: %s)", kindName, slug, existingMetadata.Org, existingMetadata.Id)
 	}
 
 	return nil
-}
-
-// findBySlug searches for a resource by slug globally
-func (s *CheckDuplicateStep[T]) findBySlug(ctx context.Context, slug string, kind apiresourcekind.ApiResourceKind) (proto.Message, error) {
-	resources, err := s.store.ListResources(ctx, kind)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list resources: %w", err)
-	}
-
-	// Scan through resources to find matching slug
-	for _, data := range resources {
-		// Create a new instance of T to unmarshal into
-		var resource T
-		resource = resource.ProtoReflect().New().Interface().(T)
-
-		// Use proto.Unmarshal since stores return proto bytes (not JSON)
-		if err := proto.Unmarshal(data, resource); err != nil {
-			// Skip resources that can't be unmarshaled
-			continue
-		}
-
-		// Check if this resource has the matching slug
-		if metadataResource, ok := any(resource).(HasMetadata); ok {
-			metadata := metadataResource.GetMetadata()
-			if metadata != nil && metadata.Slug == slug {
-				return resource, nil
-			}
-		}
-	}
-
-	return nil, nil
 }
