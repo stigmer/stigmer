@@ -3,7 +3,7 @@ package project
 import (
 	"testing"
 
-	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/project/v1"
+	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/project/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stretchr/testify/assert"
@@ -107,7 +107,7 @@ func TestDisplayProjectPreview_NoPanic(t *testing.T) {
 
 func TestDisplayProjectPreview_NilSpec_NoPanic(t *testing.T) {
 	project := &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "tenancy.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: testProjectName,
@@ -146,7 +146,7 @@ func TestDisplayValidationSuccess_DeclarativeMode_NoPanic(t *testing.T) {
 
 func TestDisplayProjectSummary_NilSpec_NoPanic(t *testing.T) {
 	project := &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "tenancy.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: testProjectName,
@@ -161,7 +161,7 @@ func TestDisplayProjectSummary_NilSpec_NoPanic(t *testing.T) {
 
 func TestDisplayProjectSummary_EmptySpec_NoPanic(t *testing.T) {
 	project := &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "tenancy.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: testProjectName,
@@ -195,7 +195,7 @@ func TestDisplayProjectSummary_LongDescription_NoPanic(t *testing.T) {
 		"It contains more than 60 characters to test the truncation functionality."
 
 	project := &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "tenancy.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: testProjectName,
@@ -216,7 +216,7 @@ func TestDisplayProjectSummary_LongDescription_NoPanic(t *testing.T) {
 
 func TestDisplayMemberCounts_NilSpec_NoPanic(t *testing.T) {
 	project := &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "tenancy.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: testProjectName,
@@ -231,7 +231,7 @@ func TestDisplayMemberCounts_NilSpec_NoPanic(t *testing.T) {
 
 func TestDisplayMemberCounts_EmptyMembers_NoPanic(t *testing.T) {
 	project := &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "tenancy.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: testProjectName,
@@ -246,7 +246,7 @@ func TestDisplayMemberCounts_EmptyMembers_NoPanic(t *testing.T) {
 
 func TestDisplayMemberCounts_WithAgents_NoPanic(t *testing.T) {
 	project := &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "tenancy.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: testProjectName,
@@ -266,7 +266,7 @@ func TestDisplayMemberCounts_WithAgents_NoPanic(t *testing.T) {
 
 func TestDisplayMemberCounts_WithWorkflows_NoPanic(t *testing.T) {
 	project := &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "tenancy.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: testProjectName,
@@ -298,7 +298,7 @@ func TestDisplayMemberCounts_AllResourceKinds_NoPanic(t *testing.T) {
 // createTestProject creates an SDK-mode project (with entry_point).
 func createTestProject() *projectv1.Project {
 	return &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "tenancy.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: testProjectName,
@@ -313,7 +313,7 @@ func createTestProject() *projectv1.Project {
 // createDeclarativeTestProject creates a declarative-mode project (no entry_point).
 func createDeclarativeTestProject() *projectv1.Project {
 	return &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "tenancy.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: testProjectName,

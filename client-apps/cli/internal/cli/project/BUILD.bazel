@@ -14,9 +14,9 @@ go_library(
     importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/project",
     visibility = ["//client-apps/cli:__subpackages__"],
     deps = [
-        "//apis/stubs/go/ai/stigmer/agentic/project/v1:project",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
+        "//apis/stubs/go/ai/stigmer/tenancy/project/v1:project",
         "//client-apps/cli/pkg/climsg",
         "//client-apps/cli/pkg/display",
         "//client-apps/cli/pkg/reference",
@@ -41,9 +41,9 @@ go_test(
     ],
     embed = [":project"],
     deps = [
-        "//apis/stubs/go/ai/stigmer/agentic/project/v1:project",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
+        "//apis/stubs/go/ai/stigmer/tenancy/project/v1:project",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
         "@org_golang_google_grpc//:grpc",

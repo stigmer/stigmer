@@ -120,28 +120,28 @@ func TestRenderPhaseChange_WaitingForApproval_Suppressed(t *testing.T) {
 	}
 }
 
-func TestRenderApprovalPrompt(t *testing.T) {
-	result := renderApprovalPrompt("shell", `{"command":"ls"}`, "Execute command: ls", false, "")
-	if !strings.Contains(result, "APPROVAL REQUIRED") {
+func TestRenderApprovalContent(t *testing.T) {
+	_, full := renderApprovalContent("shell", `{"command":"ls"}`, "Execute command: ls", false, "")
+	if !strings.Contains(full, "APPROVAL REQUIRED") {
 		t.Error("should contain APPROVAL REQUIRED")
 	}
-	if !strings.Contains(result, "$ ls") {
-		t.Errorf("shell tool should render command with $ prefix, got %q", result)
+	if !strings.Contains(full, "$ ls") {
+		t.Errorf("shell tool should render command with $ prefix, got %q", full)
 	}
 }
 
-func TestRenderApprovalPrompt_SubAgent(t *testing.T) {
-	result := renderApprovalPrompt("Write", "path: README.md", "Write file to disk", true, "general-purpose")
-	if !strings.Contains(result, "APPROVAL REQUIRED") {
+func TestRenderApprovalContent_SubAgent(t *testing.T) {
+	_, full := renderApprovalContent("Write", "path: README.md", "Write file to disk", true, "general-purpose")
+	if !strings.Contains(full, "APPROVAL REQUIRED") {
 		t.Error("should contain APPROVAL REQUIRED")
 	}
-	if !strings.Contains(result, "general-purpose") {
+	if !strings.Contains(full, "general-purpose") {
 		t.Error("should contain sub-agent name")
 	}
-	if !strings.Contains(result, "sub-agent") {
+	if !strings.Contains(full, "sub-agent") {
 		t.Error("should contain sub-agent label")
 	}
-	if !strings.Contains(result, "Write") {
+	if !strings.Contains(full, "Write") {
 		t.Error("should contain tool name")
 	}
 }
@@ -612,7 +612,7 @@ func TestRebuildViewportContent_NoSeparator_SameSubAgent(t *testing.T) {
 // =============================================================================
 
 func TestNeedsSubAgentSeparator_HeaderPreventsAll(t *testing.T) {
-	header := newSubAgentBlock("gp", "task desc", 0, "")
+	header := newSubAgentBlock("gp", "task desc", "", "", 0, "")
 	header.subAgentID = "sa-1"
 	blocks := []contentBlock{
 		{content: "main block"},
@@ -633,7 +633,7 @@ func TestNeedsSubAgentSeparator_HeaderBlockedByInterleaving(t *testing.T) {
 	// Recv() iterations, followed by more sub-agent blocks. The old logic
 	// would show a separator here because the immediately preceding block
 	// has a different subAgentID. The new logic finds the header and skips.
-	header := newSubAgentBlock("gen", "explore", 0, "")
+	header := newSubAgentBlock("gen", "explore", "", "", 0, "")
 	header.subAgentID = "sa-1"
 	blocks := []contentBlock{
 		{content: "main block"},
@@ -664,9 +664,9 @@ func TestNeedsSubAgentSeparator_OrphanedBlocksGetSeparator(t *testing.T) {
 }
 
 func TestNeedsSubAgentSeparator_MultipleSubAgentsWithHeaders(t *testing.T) {
-	h1 := newSubAgentBlock("sa1", "", 0, "")
+	h1 := newSubAgentBlock("sa1", "", "", "", 0, "")
 	h1.subAgentID = "sa-1"
-	h2 := newSubAgentBlock("sa2", "", 0, "")
+	h2 := newSubAgentBlock("sa2", "", "", "", 0, "")
 	h2.subAgentID = "sa-2"
 	blocks := []contentBlock{
 		h1,
@@ -687,7 +687,7 @@ func TestNeedsSubAgentSeparator_MultipleSubAgentsWithHeaders(t *testing.T) {
 }
 
 func TestRebuildViewportContent_HeaderBlockNoSeparator(t *testing.T) {
-	header := newSubAgentBlock("general-purpose", "Explore", 0, "")
+	header := newSubAgentBlock("general-purpose", "Explore", "", "", 0, "")
 	header.subAgentID = "sa-1"
 	blocks := []contentBlock{
 		{content: "main block"},
@@ -696,16 +696,21 @@ func TestRebuildViewportContent_HeaderBlockNoSeparator(t *testing.T) {
 	}
 	result := rebuildViewportContent(blocks, -1)
 	plain := ansi.Strip(result)
-	// The header should appear once (from the blockSubAgent). No fallback
-	// separator should appear.
-	if strings.Count(plain, "general-purpose") != 1 {
-		t.Errorf("expected exactly 1 occurrence of sub-agent name (from header only), got %d in: %q",
-			strings.Count(plain, "general-purpose"), plain)
+	// "Explore" from the header block. No fallback separator should appear.
+	if !strings.Contains(plain, "Explore") {
+		t.Errorf("header should contain description, got %q", plain)
+	}
+	// No fallback separator (🔀 general-purpose) should be added for the
+	// child block since the header block exists above it.
+	exploreCount := strings.Count(plain, "Explore")
+	if exploreCount != 1 {
+		t.Errorf("expected exactly 1 occurrence of 'Explore' (from header only), got %d in: %q",
+			exploreCount, plain)
 	}
 }
 
 func TestRebuildViewportContent_InterleavedWithHeader(t *testing.T) {
-	header := newSubAgentBlock("gp", "explore", 0, "")
+	header := newSubAgentBlock("gp", "explore", "", "", 0, "")
 	header.subAgentID = "sa-1"
 	blocks := []contentBlock{
 		header,
@@ -715,17 +720,14 @@ func TestRebuildViewportContent_InterleavedWithHeader(t *testing.T) {
 	}
 	result := rebuildViewportContent(blocks, -1)
 	plain := ansi.Strip(result)
-	// Count occurrences of "gp" — should be 1 from the header only.
-	// No fallback separators because the header exists.
-	gpCount := strings.Count(plain, "gp")
-	if gpCount != 1 {
-		t.Errorf("expected 1 occurrence of 'gp' (from header only, no fallback separators), got %d in: %q",
-			gpCount, plain)
+	// "explore" appears once from the header. No fallback separators.
+	if !strings.Contains(plain, "explore") {
+		t.Errorf("header should contain description 'explore', got %q", plain)
 	}
 }
 
 func TestNewSubAgentBlock_AlwaysExpandable(t *testing.T) {
-	b := newSubAgentBlock("general-purpose", "explore cli", 0, "")
+	b := newSubAgentBlock("general-purpose", "explore cli", "full task prompt", "", 0, "")
 	if !b.expandable {
 		t.Error("sub-agent block should always be expandable (controls child visibility)")
 	}
@@ -734,13 +736,13 @@ func TestNewSubAgentBlock_AlwaysExpandable(t *testing.T) {
 		t.Fatal("sub-agent block must have visible content")
 	}
 	plain := ansi.Strip(dc)
-	if !strings.Contains(plain, "general-purpose") {
-		t.Errorf("header should contain sub-agent name, got %q", plain)
+	if !strings.Contains(plain, "explore cli") {
+		t.Errorf("collapsed header should contain description, got %q", plain)
 	}
 }
 
 func TestNewSubAgentBlock_WithToolCountAndStatus(t *testing.T) {
-	b := newSubAgentBlock("explore", "find files", 5, "completed")
+	b := newSubAgentBlock("explore", "find files", "", "", 5, "completed")
 	if !b.expandable {
 		t.Error("sub-agent block should be expandable")
 	}
@@ -755,8 +757,98 @@ func TestNewSubAgentBlock_WithToolCountAndStatus(t *testing.T) {
 }
 
 func TestNewSubAgentBlock_StartsCollapsed(t *testing.T) {
-	b := newSubAgentBlock("explore", "find files", 0, "running")
+	b := newSubAgentBlock("explore", "find files", "", "", 0, "running")
 	if b.expanded {
 		t.Error("sub-agent block should start collapsed")
+	}
+}
+
+// =============================================================================
+// Sub-Agent Header Content Tests (Collapsed vs. Expanded)
+// =============================================================================
+
+func TestRenderSubAgentHeader_DescriptionFirst(t *testing.T) {
+	plain := ansi.Strip(renderSubAgentHeader("general-purpose", "Explore CLI rendering", "", 3, "running"))
+	if !strings.Contains(plain, "Explore CLI rendering") {
+		t.Errorf("collapsed header should contain description, got %q", plain)
+	}
+	if strings.Contains(plain, "general-purpose") {
+		t.Errorf("collapsed header should NOT contain sub-agent type, got %q", plain)
+	}
+}
+
+func TestRenderSubAgentHeader_FallbackToInput(t *testing.T) {
+	plain := ansi.Strip(renderSubAgentHeader("explore", "", "Search the codebase for auth", 0, ""))
+	if !strings.Contains(plain, "Search the codebase for auth") {
+		t.Errorf("header should fall back to truncated input, got %q", plain)
+	}
+}
+
+func TestRenderSubAgentHeader_FallbackToName(t *testing.T) {
+	plain := ansi.Strip(renderSubAgentHeader("explore", "", "", 0, ""))
+	if !strings.Contains(plain, "explore") {
+		t.Errorf("header should fall back to name when description and input are empty, got %q", plain)
+	}
+}
+
+func TestResolveSubAgentLabel_Cascade(t *testing.T) {
+	tests := []struct {
+		desc, input, name, want string
+	}{
+		{"Explore CLI", "full prompt", "gp", "Explore CLI"},
+		{"", "Search the codebase", "gp", "Search the codebase"},
+		{"", "", "general-purpose", "general-purpose"},
+		{"", "", "", "sub-agent"},
+	}
+	for _, tt := range tests {
+		got := resolveSubAgentLabel(tt.desc, tt.input, tt.name)
+		if got != tt.want {
+			t.Errorf("resolveSubAgentLabel(%q, %q, %q) = %q, want %q",
+				tt.desc, tt.input, tt.name, got, tt.want)
+		}
+	}
+}
+
+func TestRenderSubAgentExpanded_ContainsTypeAndInput(t *testing.T) {
+	full := renderSubAgentExpanded("general-purpose", "Explore CLI", "Search for frontend code", "", 3, "running")
+	plain := ansi.Strip(full)
+	if !strings.Contains(plain, "Type: general-purpose") {
+		t.Errorf("expanded view should contain sub-agent type, got %q", plain)
+	}
+	if !strings.Contains(plain, "Search for frontend code") {
+		t.Errorf("expanded view should contain input text, got %q", plain)
+	}
+}
+
+func TestRenderSubAgentExpanded_WithOutput(t *testing.T) {
+	full := renderSubAgentExpanded("explore", "Find files", "Search src/", "Found 5 matching files", 2, "completed")
+	plain := ansi.Strip(full)
+	if !strings.Contains(plain, "Result:") {
+		t.Errorf("expanded view should contain Result label, got %q", plain)
+	}
+	if !strings.Contains(plain, "Found 5 matching files") {
+		t.Errorf("expanded view should contain output, got %q", plain)
+	}
+}
+
+func TestRenderSubAgentExpanded_NoOutputWhenEmpty(t *testing.T) {
+	full := renderSubAgentExpanded("explore", "Find files", "Search src/", "", 2, "running")
+	plain := ansi.Strip(full)
+	if strings.Contains(plain, "Result:") {
+		t.Errorf("expanded view should NOT contain Result when output is empty, got %q", plain)
+	}
+}
+
+func TestNewSubAgentBlock_ExpandedDiffersFromCollapsed(t *testing.T) {
+	b := newSubAgentBlock("gp", "Explore CLI", "Full task prompt here", "", 0, "running")
+	if b.preview == b.full {
+		t.Error("expanded (full) content should differ from collapsed (preview)")
+	}
+	plainFull := ansi.Strip(b.full)
+	if !strings.Contains(plainFull, "Type: gp") {
+		t.Errorf("expanded content should contain sub-agent type, got %q", plainFull)
+	}
+	if !strings.Contains(plainFull, "Full task prompt here") {
+		t.Errorf("expanded content should contain input, got %q", plainFull)
 	}
 }

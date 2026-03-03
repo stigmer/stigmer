@@ -1,46 +1,38 @@
 # McpServer YAML Examples
 
-Production-ready examples covering the full range of McpServer configurations.
+Production-ready examples covering common patterns. All field values are valid and can be applied directly.
 
 ---
 
-## 1. Minimal Stdio Server
+## 1. Minimal — stdio, no credentials
 
-Absolute minimum to get started. Apply, then discover.
+The smallest valid McpServer. Works for MCP servers that need no environment variables.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
 kind: McpServer
 metadata:
-  name: github
-  org: local
+  name: filesystem
+  org: default
 spec:
-  description: "GitHub MCP server for repository operations"
+  description: "Local filesystem access — read and write files in allowed directories"
   stdio:
     command: npx
-    args: ["-y", "@modelcontextprotocol/server-github"]
-```
-
-```bash
-stigmer mcp-server apply github.yaml
-stigmer discover mcp-server github
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
 ```
 
 ---
 
-## 2. Stdio Server with Credentials
+## 2. stdio with credentials (GitHub)
 
-A GitHub server with declared credential requirements.
+Standard pattern for most community MCP servers — subprocess with secret env vars.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
 kind: McpServer
 metadata:
   name: github
-  org: local
-  tags:
-    - git
-    - vcs
+  org: default
 spec:
   description: "GitHub MCP server for repository operations, code search, and PR management"
   icon_url: "https://github.githubassets.com/favicons/favicon.svg"
@@ -50,7 +42,7 @@ spec:
   env_spec:
     data:
       GITHUB_TOKEN:
-        description: "GitHub personal access token with repo and read:org scopes"
+        description: "GitHub personal access token with repo, read:org, and admin:repo_hook scopes"
         is_secret: true
       GITHUB_OWNER:
         description: "Default GitHub organization or username (e.g., acme-corp)"
@@ -59,45 +51,9 @@ spec:
 
 ---
 
-## 3. Stdio with Tool Gate (Restricted Defaults)
+## 3. stdio with tool gate and approvals (GitHub, production-ready)
 
-A database server that intentionally excludes destructive operations from defaults.
-
-```yaml
-apiVersion: agentic.stigmer.ai/v1
-kind: McpServer
-metadata:
-  name: postgres
-  org: local
-  labels:
-    category: database
-  tags:
-    - database
-    - sql
-    - postgresql
-spec:
-  description: "PostgreSQL MCP server for database queries and schema inspection"
-  stdio:
-    command: python
-    args: ["-m", "mcp_server_postgres"]
-  default_enabled_tools:
-    - execute_query
-    - list_tables
-    - describe_table
-    - list_schemas
-    # execute_ddl and drop_table omitted — too destructive for defaults
-  env_spec:
-    data:
-      POSTGRES_URL:
-        description: "PostgreSQL connection URL (postgres://user:pass@host/db)"
-        is_secret: true
-```
-
----
-
-## 4. Stdio with Approval Policies (Full Production)
-
-A GitHub server with tool gate and approval policies for destructive operations.
+Full GitHub integration with a curated tool list and approval policies for destructive operations.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -125,6 +81,7 @@ spec:
     - create_pull_request
     - get_pull_request
     - merge_pull_request
+    - list_branches
   default_tool_approvals:
     - tool_name: merge_pull_request
       message: "Merge PR #{{args.pull_number}} in {{args.repo}}"
@@ -139,23 +96,103 @@ spec:
       GITHUB_TOKEN:
         description: "GitHub personal access token with repo, read:org, and admin:repo_hook scopes"
         is_secret: true
-      GITHUB_OWNER:
-        description: "Default GitHub organization or username (e.g., acme-corp)"
+```
+
+---
+
+## 4. stdio — Python module (SQLite/Postgres database)
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: postgres
+  org: default
+  labels:
+    category: database
+  tags:
+    - database
+    - sql
+    - postgresql
+spec:
+  description: "PostgreSQL MCP server for query execution and schema inspection"
+  stdio:
+    command: python
+    args: ["-m", "mcp_server_postgres"]
+  default_enabled_tools:
+    - execute_query
+    - list_tables
+    - describe_table
+    - list_schemas
+    # execute_ddl and drop_table intentionally omitted — too destructive for defaults
+  default_tool_approvals:
+    - tool_name: execute_query
+      message: "Execute SQL: {{args.query}}"
+  env_spec:
+    data:
+      POSTGRES_URL:
+        description: "PostgreSQL connection URL (postgres://user:pass@host/dbname)"
+        is_secret: true
+```
+
+---
+
+## 5. stdio — Slack messaging
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: slack
+  org: default
+  tags:
+    - slack
+    - messaging
+    - communication
+spec:
+  description: "Slack MCP server for channel messaging, search, and workspace management"
+  icon_url: "https://a.slack-edge.com/80588/marketing/img/icons/icon_slack_hash_colored.png"
+  stdio:
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-slack"]
+  default_enabled_tools:
+    - list_channels
+    - get_channel_history
+    - search_messages
+    - add_reaction
+    - post_message
+    - reply_to_thread
+  default_tool_approvals:
+    - tool_name: post_message
+      message: "Post to #{{args.channel_name}}: {{args.text}}"
+    - tool_name: reply_to_thread
+      message: "Reply in #{{args.channel_name}} thread"
+    - tool_name: invite_user_to_channel
+      message: "Invite {{args.user_id}} to #{{args.channel_name}}"
+    - tool_name: archive_channel
+      message: "Archive channel #{{args.channel_name}}"
+  env_spec:
+    data:
+      SLACK_BOT_TOKEN:
+        description: "Slack Bot User OAuth Token (xoxb-...) with channels:read, chat:write, and search:read scopes"
+        is_secret: true
+      SLACK_TEAM_ID:
+        description: "Slack workspace team ID (e.g., T01234567)"
         is_secret: false
 ```
 
 ---
 
-## 5. HTTP Server with Bearer Auth
+## 6. HTTP server with bearer auth
 
-A remote MCP service over HTTPS.
+For managed/hosted MCP services exposed over HTTPS.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
 kind: McpServer
 metadata:
   name: web-search
-  org: local
+  org: default
   tags:
     - search
     - web
@@ -170,15 +207,13 @@ spec:
   env_spec:
     data:
       SEARCH_API_TOKEN:
-        description: "API token for the web search service"
+        description: "API token for the web search MCP service"
         is_secret: true
 ```
 
 ---
 
-## 6. HTTP Server with Multi-Tenant Routing
-
-A hosted MCP service that routes requests via tenant headers.
+## 7. HTTP server — multi-tenant with headers + query params
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -220,128 +255,70 @@ spec:
 
 ---
 
-## 7. Public Marketplace McpServer
+## 8. Public marketplace McpServer
 
-A fully-featured MCP server published for any organization to use.
+Designed to be referenced by agents from any organization.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
 kind: McpServer
 metadata:
-  name: Slack
+  name: github
   org: stigmer
   visibility: visibility_public
   labels:
-    category: communication
+    category: vcs
     tier: production
   annotations:
-    docs-url: "https://github.com/modelcontextprotocol/servers/tree/main/src/slack"
+    docs-url: "https://github.com/modelcontextprotocol/servers/tree/main/src/github"
     support-url: "https://github.com/stigmer/stigmer/issues"
   tags:
-    - slack
-    - messaging
-    - communication
+    - git
+    - vcs
+    - code-review
+    - github
 spec:
-  description: "Slack MCP server for channel messaging, search, and workspace management"
-  icon_url: "https://a.slack-edge.com/80588/marketing/img/icons/icon_slack_hash_colored.png"
+  description: "GitHub MCP server for repository operations, code search, and PR management. Requires a GitHub PAT with repo and read:org scopes."
+  icon_url: "https://github.githubassets.com/favicons/favicon.svg"
   stdio:
     command: npx
-    args: ["-y", "@modelcontextprotocol/server-slack"]
+    args: ["-y", "@modelcontextprotocol/server-github"]
   default_enabled_tools:
-    - list_channels
-    - post_message
-    - reply_to_thread
-    - get_channel_history
-    - search_messages
-    - add_reaction
+    - search_code
+    - get_file_contents
+    - list_issues
+    - create_issue
+    - create_pull_request
+    - get_pull_request
+    - merge_pull_request
   default_tool_approvals:
-    - tool_name: post_message
-      message: "Post to #{{args.channel_name}}: {{args.text}}"
-    - tool_name: reply_to_thread
-      message: "Reply in #{{args.channel_name}} thread: {{args.text}}"
-    - tool_name: invite_user_to_channel
-      message: "Invite {{args.user_id}} to #{{args.channel_name}}"
-    - tool_name: archive_channel
-      message: "Archive channel #{{args.channel_name}}"
+    - tool_name: merge_pull_request
+      message: "Merge PR #{{args.pull_number}} in {{args.repo}}"
+    - tool_name: delete_repository
+      message: "Delete repository: {{args.repo}}"
+    - tool_name: force_push
+      message: "Force push to {{args.branch}} on {{args.repo}}"
   env_spec:
     data:
-      SLACK_BOT_TOKEN:
-        description: "Slack Bot User OAuth Token (xoxb-...) with channels:read, chat:write, and search:read scopes"
+      GITHUB_TOKEN:
+        description: "GitHub personal access token with repo, read:org, and admin:repo_hook scopes. Create at https://github.com/settings/tokens"
         is_secret: true
-      SLACK_TEAM_ID:
-        description: "Slack workspace team ID (e.g., T01234567)"
-        is_secret: false
-```
-
-**Differences from private servers:**
-- `visibility: visibility_public` — any org can reference it
-- `metadata.annotations` include marketplace support/docs URLs
-- `env_spec` descriptions are precise about required token scopes and format — external users need this
-
----
-
-## 8. Python Module with Working Directory
-
-A custom Python-based MCP server.
-
-```yaml
-apiVersion: agentic.stigmer.ai/v1
-kind: McpServer
-metadata:
-  name: sqlite-database
-  org: local
-spec:
-  description: "SQLite MCP server for local database access"
-  stdio:
-    command: python
-    args: ["-m", "mcp_server_sqlite", "--db-path", "/data/app.sqlite"]
-    working_dir: /opt/mcp-server
-  env_spec:
-    data:
-      SQLITE_DB_PATH:
-        description: "Absolute path to the SQLite database file"
-        is_secret: false
 ```
 
 ---
 
-## Referencing Any McpServer from an Agent
+## Post-Apply CLI Workflow
 
-```yaml
-# In an Agent spec — basic reference (uses McpServer's default_enabled_tools)
-spec:
-  mcp_server_usages:
-    - mcp_server_ref:
-        org: local          # must match McpServer metadata.org
-        kind: mcp_server    # always mcp_server (snake_case) in references
-        slug: github        # must match McpServer metadata.slug
+```bash
+# Apply the McpServer
+stigmer mcp-server apply github.yaml
 
-# With tool restriction (subset of McpServer's defaults)
-spec:
-  mcp_server_usages:
-    - mcp_server_ref:
-        org: local
-        kind: mcp_server
-        slug: github
-      enabled_tools:
-        - search_code
-        - get_file_contents
-        - create_pull_request
+# Discover tools (run locally — credentials stay on your machine)
+stigmer discover mcp-server github
 
-# With approval overrides (agent-level customization)
-spec:
-  mcp_server_usages:
-    - mcp_server_ref:
-        org: acme-corp
-        kind: mcp_server
-        slug: github
-      enabled_tools:
-        - search_code
-        - create_pull_request
-      tool_approval_overrides:
-        - tool_name: create_pull_request
-          requires_approval: true
-          message: "Create PR in {{args.repo}}: {{args.title}}"
-        - tool_name: merge_pull_request
-          requires_approval: false  # this trusted agent doesn't need approval to merge
+# Inspect discovered tool names (use these for default_enabled_tools and default_tool_approvals)
+stigmer mcp-server get github --output yaml
+
+# Dry-run validation only
+stigmer mcp-server apply github.yaml --dry-run
 ```

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/project/v1"
+	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/project/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
@@ -36,7 +36,7 @@ func setupTestController(t *testing.T) (*ProjectController, store.Store) {
 // createTestProject creates a valid Project proto for testing.
 func createTestProject(name string) *projectv1.Project {
 	return &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "tenancy.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: name,
@@ -113,8 +113,8 @@ func TestProjectController_AllMethodsImplemented(t *testing.T) {
 func TestCreateTestProject_ValidProto(t *testing.T) {
 	project := createTestProject("My Test Project")
 
-	if project.ApiVersion != "agentic.stigmer.ai/v1" {
-		t.Errorf("Expected ApiVersion 'agentic.stigmer.ai/v1', got '%s'", project.ApiVersion)
+	if project.ApiVersion != "tenancy.stigmer.ai/v1" {
+		t.Errorf("Expected ApiVersion 'tenancy.stigmer.ai/v1', got '%s'", project.ApiVersion)
 	}
 
 	if project.Kind != "Project" {

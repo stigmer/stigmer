@@ -87,10 +87,24 @@ type CloudBackendConfig struct {
 	EnvID    string `yaml:"env_id,omitempty"` // Environment ID
 }
 
-// ContextConfig represents CLI context (only used in cloud mode)
+// ContextConfig represents the active CLI context — which organization the
+// user is operating in. Used by both local and cloud backends; the backend
+// type determines connectivity, not tenancy.
 type ContextConfig struct {
-	Organization string `yaml:"organization,omitempty"` // Organization name/ID
-	Environment  string `yaml:"environment,omitempty"`  // Environment name/ID
+	Organization string `yaml:"organization,omitempty"` // Active organization slug
+}
+
+// ResolveContextOrganization returns the active organization from the CLI
+// context. Falls back to Backend.Cloud.OrgID for backward compatibility with
+// existing cloud configurations that predate the unified context model.
+func (cfg *Config) ResolveContextOrganization() string {
+	if cfg.Context.Organization != "" {
+		return cfg.Context.Organization
+	}
+	if cfg.Backend.Cloud != nil && cfg.Backend.Cloud.OrgID != "" {
+		return cfg.Backend.Cloud.OrgID
+	}
+	return ""
 }
 
 // Load reads the config file from ~/.stigmer/config.yaml

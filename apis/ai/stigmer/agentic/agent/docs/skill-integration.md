@@ -15,11 +15,9 @@ Agents declare skill references via `spec.skill_refs`. Each entry is an `ApiReso
 ```yaml
 spec:
   skill_refs:
-    - org: local
-      kind: skill
+    - kind: skill
       slug: code-review-best-practices
-    - org: local
-      kind: skill
+    - kind: skill
       slug: api-design-guide
       version: stable
 ```

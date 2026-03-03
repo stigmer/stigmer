@@ -4,10 +4,18 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/spf13/cobra"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 )
+
+// GetOrgFlag reads the --org persistent flag from the root command.
+// Returns "" if the flag was not provided.
+func GetOrgFlag(cmd *cobra.Command) string {
+	val, _ := cmd.Root().PersistentFlags().GetString("org")
+	return val
+}
 
 // formatUnsupportedVerbError creates a helpful error message for unsupported verb+type combinations.
 func formatUnsupportedVerbError(info *types.TypeInfo, verb types.Verb) error {
@@ -58,29 +66,19 @@ func displayResourceTypes(verb types.Verb) {
 	}
 }
 
-// resolveOrganization determines the organization ID based on backend type and overrides.
-// This is the unified helper used by all verb commands.
+// resolveOrganization determines the organization ID for verb commands.
+// Priority: --org flag > CLI context > error.
+// The same chain applies regardless of backend type (local or cloud).
 func resolveOrganization(cfg *config.Config, orgOverride string) (string, error) {
-	switch cfg.Backend.Type {
-	case config.BackendTypeLocal:
-		orgID := "local"
-		climsg.Info("Using local backend (organization: %s)", orgID)
-		return orgID, nil
-
-	case config.BackendTypeCloud:
-		if orgOverride != "" {
-			climsg.Info("Using organization from flag: %s", orgOverride)
-			return orgOverride, nil
-		}
-
-		if cfg.Backend.Cloud != nil && cfg.Backend.Cloud.OrgID != "" {
-			climsg.Info("Using organization from context: %s", cfg.Backend.Cloud.OrgID)
-			return cfg.Backend.Cloud.OrgID, nil
-		}
-
-		return "", fmt.Errorf("organization not set for cloud mode\n\nUse --org flag or run: stigmer context set --org <org-id>")
-
-	default:
-		return "", fmt.Errorf("unknown backend type: %s", cfg.Backend.Type)
+	if orgOverride != "" {
+		climsg.Info("Using organization from flag: %s", orgOverride)
+		return orgOverride, nil
 	}
+
+	if ctxOrg := cfg.ResolveContextOrganization(); ctxOrg != "" {
+		climsg.Info("Using organization: %s", ctxOrg)
+		return ctxOrg, nil
+	}
+
+	return "", fmt.Errorf("organization not set\n\nUse --org flag or run: stigmer context set --org <org-id>")
 }

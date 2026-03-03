@@ -51,7 +51,6 @@ func cloudConfig() string {
     org_id: org_123
 context:
   organization: my-org
-  environment: production
 `
 }
 
@@ -193,7 +192,6 @@ func TestLoad_ParsesCloudConfig(t *testing.T) {
 	assert.Equal(t, "api.stigmer.ai:443", config.Backend.Cloud.Endpoint)
 	assert.Equal(t, "org_123", config.Backend.Cloud.OrgID)
 	assert.Equal(t, "my-org", config.Context.Organization)
-	assert.Equal(t, "production", config.Context.Environment)
 }
 
 // =============================================================================
@@ -237,7 +235,6 @@ func TestSave_PreservesConfigData(t *testing.T) {
 		},
 		Context: ContextConfig{
 			Organization: "test-org",
-			Environment:  "staging",
 		},
 	}
 
@@ -251,7 +248,6 @@ func TestSave_PreservesConfigData(t *testing.T) {
 	assert.Equal(t, "custom.stigmer.ai:443", loadedConfig.Backend.Cloud.Endpoint)
 	assert.Equal(t, "org_custom", loadedConfig.Backend.Cloud.OrgID)
 	assert.Equal(t, "test-org", loadedConfig.Context.Organization)
-	assert.Equal(t, "staging", loadedConfig.Context.Environment)
 }
 
 // =============================================================================

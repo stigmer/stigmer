@@ -54,12 +54,22 @@ func executeProjectApply(detectResult *project.DetectResult, opts projectApplyOp
 		return executeSDKDryRun(detectResult, runtime, renderer)
 	}
 
-	synthResult, err := runSynthesis(detectResult.ConfigDir, entryPoint, runtime)
+	cfg, err := config.Load()
+	if err != nil {
+		return errors.Wrap(err, "failed to load configuration")
+	}
+
+	orgID, err := resolveApplyOrganization(cfg, detectResult.Project, opts.OrgOverride)
 	if err != nil {
 		return err
 	}
 
-	conn, orgID, err := establishBackendConnection(detectResult, opts)
+	synthResult, err := runSynthesis(detectResult.ConfigDir, entryPoint, runtime, orgID)
+	if err != nil {
+		return err
+	}
+
+	conn, err := connectAndEnsureDaemon(cfg)
 	if err != nil {
 		return err
 	}
@@ -90,13 +100,14 @@ func executeProjectApply(detectResult *project.DetectResult, opts projectApplyOp
 }
 
 // runSynthesis executes the SDK entry point and parses the synthesized resource manifests.
-func runSynthesis(projectDir, entryPoint string, runtime apply.Runtime) (*apply.SynthesizeResult, error) {
+func runSynthesis(projectDir, entryPoint string, runtime apply.Runtime, orgID string) (*apply.SynthesizeResult, error) {
 	climsg.Info("Running SDK synthesis...")
 
 	result, err := apply.Synthesize(&apply.SynthesizeOptions{
 		ProjectDir: projectDir,
 		Runtime:    runtime,
 		EntryPoint: entryPoint,
+		OrgID:      orgID,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "SDK synthesis failed")
@@ -109,39 +120,27 @@ func runSynthesis(projectDir, entryPoint string, runtime apply.Runtime) (*apply.
 	return result, nil
 }
 
-// establishBackendConnection loads configuration and creates a gRPC connection.
-func establishBackendConnection(
-	detectResult *project.DetectResult,
-	opts projectApplyOptions,
-) (*grpc.ClientConn, string, error) {
-	cfg, err := config.Load()
-	if err != nil {
-		return nil, "", errors.Wrap(err, "failed to load configuration")
-	}
-
-	orgID, err := resolveApplyOrganization(cfg, detectResult.Project, opts.OrgOverride)
-	if err != nil {
-		return nil, "", err
-	}
-
+// connectAndEnsureDaemon ensures the daemon is running (local mode) and
+// returns a gRPC connection. The caller is responsible for org resolution.
+func connectAndEnsureDaemon(cfg *config.Config) (*grpc.ClientConn, error) {
 	if cfg.Backend.Type == config.BackendTypeLocal {
 		dataDir, err := config.GetDataDir()
 		if err != nil {
-			return nil, "", errors.Wrap(err, "failed to get data directory")
+			return nil, errors.Wrap(err, "failed to get data directory")
 		}
 		if err := daemon.EnsureRunning(dataDir); err != nil {
-			return nil, "", errors.Wrap(err, "failed to start daemon")
+			return nil, errors.Wrap(err, "failed to start daemon")
 		}
 	}
 
 	climsg.Info("Connecting to backend...")
 	conn, err := backend.NewConnection()
 	if err != nil {
-		return nil, "", errors.Wrap(err, "failed to connect to backend")
+		return nil, errors.Wrap(err, "failed to connect to backend")
 	}
 	climsg.Info("Connected to backend")
 
-	return conn, orgID, nil
+	return conn, nil
 }
 
 // pushAndApplyResources pushes skills and applies agents/workflows/MCP servers,

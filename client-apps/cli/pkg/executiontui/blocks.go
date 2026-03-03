@@ -181,10 +181,23 @@ func newPhaseBlock(content string) contentBlock {
 }
 
 // newApprovalBlock creates a block for an approval request display.
-func newApprovalBlock(content string) contentBlock {
+// When preview and full differ, the block is expandable and starts collapsed
+// so the viewport stays compact. The user can press Enter to expand and
+// inspect the full content before deciding. When they are identical (short
+// content), the block is non-expandable and uses the content field directly.
+func newApprovalBlock(preview, full string) contentBlock {
+	expandable := preview != full
+	if expandable {
+		return contentBlock{
+			blockType:  blockApproval,
+			preview:    preview,
+			full:       full,
+			expandable: true,
+		}
+	}
 	return contentBlock{
 		blockType: blockApproval,
-		content:   content,
+		content:   full,
 	}
 }
 
@@ -218,14 +231,15 @@ func newTodoBlock(preview, full string) contentBlock {
 // sub-agent. Starts collapsed so the header summary is shown while child
 // blocks are hidden.
 //
-// The header line includes the sub-agent type, task description, and a
-// dynamic tool count + status badge (updated in-place as events arrive).
-func newSubAgentBlock(name, description string, toolCount int, status string) contentBlock {
-	header := renderSubAgentHeader(name, description, toolCount, status)
+// Collapsed (preview): concise subject line with tool count and status badge.
+// Expanded (full): subject line + sub-agent type + input prompt + output.
+func newSubAgentBlock(name, description, input, output string, toolCount int, status string) contentBlock {
+	preview := renderSubAgentHeader(name, description, input, toolCount, status)
+	full := renderSubAgentExpanded(name, description, input, output, toolCount, status)
 	return contentBlock{
 		blockType:  blockSubAgent,
 		expandable: true,
-		preview:    header,
-		full:       header,
+		preview:    preview,
+		full:       full,
 	}
 }

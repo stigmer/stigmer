@@ -6,6 +6,7 @@ go_library(
         "aliases.go",
         "detect.go",
         "doc.go",
+        "membership.go",
         "registry.go",
         "typeinfo.go",
         "verb.go",

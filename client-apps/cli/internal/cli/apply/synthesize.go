@@ -37,6 +37,9 @@ type SynthesizeOptions struct {
 
 	// Quiet suppresses SDK stdout output during synthesis.
 	Quiet bool
+
+	// OrgID is injected as STIGMER_ORG_ID so the SDK can use it as default org.
+	OrgID string
 }
 
 // SynthesizeResult contains the outcome of SDK synthesis.
@@ -116,6 +119,9 @@ func Synthesize(opts *SynthesizeOptions) (*SynthesizeResult, error) {
 	cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
 	cmd.Dir = absProjectDir
 	cmd.Env = append(os.Environ(), "STIGMER_OUT_DIR="+outputDir)
+	if opts.OrgID != "" {
+		cmd.Env = append(cmd.Env, "STIGMER_ORG_ID="+opts.OrgID)
+	}
 
 	// Capture stdout and stderr
 	var stdout, stderr strings.Builder

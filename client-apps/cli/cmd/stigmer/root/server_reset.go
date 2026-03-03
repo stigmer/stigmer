@@ -19,7 +19,7 @@ func newServerResetCommand() *cobra.Command {
 		Use:   "reset",
 		Short: "Reset local environment to a fresh state",
 		Long: `Stop all services and remove runtime data (databases, logs, Temporal
-state, downloaded binaries) so the next 'stigmer server' starts fresh.
+state, downloaded binaries), then automatically restart the server fresh.
 
 Configuration (config.yaml) is preserved by default. Use --include-config
 to also remove it; the setup wizard will run again on next start.`,
@@ -76,6 +76,13 @@ func handleServerReset(force, includeConfig bool) {
 	}
 
 	printResetSummary(result, includeConfig)
+
+	if includeConfig {
+		return
+	}
+
+	fmt.Fprintln(os.Stderr)
+	startServerFresh(dataDir, daemon.StartOptions{}, clioutput.FormatHuman)
 }
 
 func buildResetPrompt(configDir string, includeConfig bool) string {
@@ -99,7 +106,5 @@ func printResetSummary(result *daemon.ResetResult, includeConfig bool) {
 	climsg.Success("Reset complete")
 	if includeConfig {
 		climsg.Info("Run 'stigmer server' to reconfigure and start fresh")
-	} else {
-		climsg.Info("Run 'stigmer server' to start fresh")
 	}
 }

@@ -91,7 +91,7 @@ spec:
 }
 
 func TestDetect_Project(t *testing.T) {
-	content := `apiVersion: agentic.stigmer.ai/v1
+	content := `apiVersion: tenancy.stigmer.ai/v1
 kind: Project
 metadata:
   name: my-project

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	orgv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/organization/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
@@ -16,6 +17,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/setup"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 // NewServerCommand creates the server command for daemon management
@@ -123,6 +125,26 @@ func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 		time.Sleep(1 * time.Second)
 	}
 
+	executionMode, _ := cmd.Flags().GetString("execution-mode")
+	sandboxImage, _ := cmd.Flags().GetString("sandbox-image")
+	sandboxAutoPull, _ := cmd.Flags().GetBool("sandbox-auto-pull")
+	sandboxCleanup, _ := cmd.Flags().GetBool("sandbox-cleanup")
+	sandboxTTL, _ := cmd.Flags().GetInt("sandbox-ttl")
+
+	startServerFresh(dataDir, daemon.StartOptions{
+		ExecutionMode:   executionMode,
+		SandboxImage:    sandboxImage,
+		SandboxAutoPull: sandboxAutoPull,
+		SandboxCleanup:  sandboxCleanup,
+		SandboxTTL:      sandboxTTL,
+	}, format)
+}
+
+// startServerFresh performs a full interactive server start with phased progress,
+// config/secret loading, readiness checks, seedpack bootstrap, org context,
+// MCP discovery, and status output. Shared by 'stigmer server' and
+// 'stigmer server reset'.
+func startServerFresh(dataDir string, startOpts daemon.StartOptions, format clioutput.OutputFormat) {
 	climsg.Info("Starting Stigmer server...")
 
 	cfg, err := config.Load()
@@ -153,24 +175,13 @@ func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 
 	var llmSetupErr error
 
-	executionMode, _ := cmd.Flags().GetString("execution-mode")
-	sandboxImage, _ := cmd.Flags().GetString("sandbox-image")
-	sandboxAutoPull, _ := cmd.Flags().GetBool("sandbox-auto-pull")
-	sandboxCleanup, _ := cmd.Flags().GetBool("sandbox-cleanup")
-	sandboxTTL, _ := cmd.Flags().GetInt("sandbox-ttl")
+	startOpts.Progress = progress
+	startOpts.Secrets = secrets
+	startOpts.OnLLMSetupFailed = func(err error) {
+		llmSetupErr = err
+	}
 
-	if err := daemon.StartWithOptions(dataDir, daemon.StartOptions{
-		Progress:        progress,
-		ExecutionMode:   executionMode,
-		SandboxImage:    sandboxImage,
-		SandboxAutoPull: sandboxAutoPull,
-		SandboxCleanup:  sandboxCleanup,
-		SandboxTTL:      sandboxTTL,
-		Secrets:         secrets,
-		OnLLMSetupFailed: func(err error) {
-			llmSetupErr = err
-		},
-	}); err != nil {
+	if err := daemon.StartWithOptions(dataDir, startOpts); err != nil {
 		if progress != nil {
 			progress.Stop()
 		}
@@ -179,11 +190,6 @@ func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 		return
 	}
 
-	// Wait for the gRPC server to accept connections before proceeding.
-	// StartWithOptions spawns the server process and returns immediately;
-	// the gRPC listener is the last component to start (after SQLite,
-	// controllers, Temporal workers, search index, and supervisor), so a
-	// successful connection here guarantees full readiness.
 	if progress != nil {
 		progress.SetPhase(cliprint.PhaseStarting, "Waiting for server to become ready")
 	}
@@ -206,21 +212,14 @@ func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 		progress.Stop()
 	}
 
-	// Check if any non-critical components failed during startup.
-	// The daemon writes health-state.json after starting all components;
-	// by this point (gRPC is ready), the health state has been written.
 	reportDegradedComponents(dataDir)
-
-	// LLM status messaging: only announce after validation is complete.
 	displayLLMStatus(llmProvider, llmModel, cfg.Backend.Local, llmSetupErr)
 
-	// Apply seedpack (system agents, skills, MCP servers) before discovery.
-	// This ensures system resources exist before we attempt to discover their
-	// capabilities. EnsureRunning() also calls this as a safety net, but
-	// stigmer server is the canonical place for first-run bootstrap.
 	if err := daemon.EnsureSeedpackBootstrapped(dataDir); err != nil {
 		climsg.Warning("Failed to apply system resources: %v", err)
 	}
+
+	autoSetOrgContext(cfg)
 
 	climsg.Info("Discovering MCP server capabilities...")
 	runBootstrapDiscovery(cfg)
@@ -299,9 +298,10 @@ func runBootstrapDiscovery(cfg *config.Config) {
 	}
 	defer conn.Close()
 
-	orgID := "local"
-	if cfg.Backend.Type == config.BackendTypeCloud && cfg.Backend.Cloud != nil && cfg.Backend.Cloud.OrgID != "" {
-		orgID = cfg.Backend.Cloud.OrgID
+	orgID := cfg.ResolveContextOrganization()
+	if orgID == "" {
+		climsg.Warning("Skipping MCP discovery: no organization context set")
+		return
 	}
 
 	result := mcpserver.DiscoverAll(context.Background(), &mcpserver.DiscoverAllOptions{
@@ -319,6 +319,54 @@ func runBootstrapDiscovery(cfg *config.Config) {
 	}
 	for _, msg := range result.SkipMessages {
 		climsg.Warning("%s", msg)
+	}
+}
+
+// autoSetOrgContext ensures the CLI has an active organization context. If
+// context.organization is already set, this is a no-op. Otherwise, it queries
+// the server for available organizations and auto-sets the context when exactly
+// one is found. With multiple orgs, it warns the user to choose explicitly.
+func autoSetOrgContext(cfg *config.Config) {
+	if cfg.ResolveContextOrganization() != "" {
+		return
+	}
+
+	conn, err := backend.NewConnection()
+	if err != nil {
+		climsg.Warning("Skipping org context auto-detection: %v", err)
+		return
+	}
+	defer conn.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	client := orgv1.NewOrganizationQueryControllerClient(conn)
+	resp, err := client.FindMyOrganizations(ctx, &emptypb.Empty{})
+	if err != nil {
+		climsg.Warning("Failed to detect organizations: %v", err)
+		return
+	}
+
+	switch len(resp.GetEntries()) {
+	case 0:
+		climsg.Warning("No organizations found. Resources cannot be applied until an organization exists.")
+	case 1:
+		org := resp.GetEntries()[0]
+		slug := org.GetMetadata().GetSlug()
+		cfg.Context.Organization = slug
+		if err := config.Save(cfg); err != nil {
+			climsg.Warning("Failed to save organization context: %v", err)
+			return
+		}
+		climsg.Success("Active organization: %s", slug)
+	default:
+		climsg.Warning("Multiple organizations found. Set the active organization:")
+		for _, org := range resp.GetEntries() {
+			climsg.Info("  - %s", org.GetMetadata().GetSlug())
+		}
+		climsg.Info("")
+		climsg.Info("Run: stigmer context set --org <slug>")
 	}
 }
 

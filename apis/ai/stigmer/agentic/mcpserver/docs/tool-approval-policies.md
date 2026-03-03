@@ -135,7 +135,6 @@ Set in `Agent.spec.mcp_server_usages[*].tool_approval_overrides`. Each entry eit
 spec:
   mcp_server_usages:
     - mcp_server_ref:
-        org: local
         kind: mcp_server
         slug: database
       tool_approval_overrides:

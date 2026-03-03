@@ -26,6 +26,7 @@ var wellKnownVars = []string{
 	"STIGMER_API_KEY",
 	"GITHUB_TOKEN",
 	"PLANTON_API_KEY",
+	"PLANTON_CLOUD_ENVIRONMENT",
 }
 
 // secretVars is the set of well-known variables that contain credentials
@@ -59,6 +60,7 @@ type EnvResolutionResult struct {
 //   - STIGMER_API_KEY — resolved from the CLI's backend configuration.
 //   - GITHUB_TOKEN — resolved by running `gh auth token` (reads from OS keychain).
 //   - PLANTON_API_KEY — resolved from ~/.planton/credentials/{env}/token.json.
+//   - PLANTON_CLOUD_ENVIRONMENT — resolved from ~/.planton/config.yaml (defaults to "production").
 func ResolveEnvForDiscovery(server *mcpserverv1.McpServer, cfg *config.Config) *EnvResolutionResult {
 	envSpec := server.GetSpec().GetEnvSpec().GetData()
 	if len(envSpec) == 0 {
@@ -137,6 +139,9 @@ func resolveKnownVar(name string, cfg *config.Config) (string, bool) {
 
 	case "PLANTON_API_KEY":
 		return resolvePlantonAPIKey()
+
+	case "PLANTON_CLOUD_ENVIRONMENT":
+		return resolvePlantonCloudEnvironment()
 
 	default:
 		return "", false
@@ -252,4 +257,15 @@ func resolvePlantonEnvironment(configPath string) string {
 		return "production"
 	}
 	return cfg.CurrentEnvironment
+}
+
+// resolvePlantonCloudEnvironment returns the Planton Cloud environment name
+// from ~/.planton/config.yaml. Defaults to "production" when the config is
+// absent or incomplete. Always succeeds — a sensible default is available.
+func resolvePlantonCloudEnvironment() (string, bool) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "production", true
+	}
+	return resolvePlantonEnvironment(filepath.Join(home, ".planton", "config.yaml")), true
 }

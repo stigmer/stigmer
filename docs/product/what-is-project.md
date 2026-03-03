@@ -71,7 +71,7 @@ The CLI handles discovery, ordering, apply, and cleanup. You author resources. T
 **The project file (`stigmer.yaml`):**
 
 ```yaml
-apiVersion: agentic.stigmer.ai/v1
+apiVersion: tenancy.stigmer.ai/v1
 kind: Project
 metadata:
   name: code-review-fleet
@@ -247,11 +247,11 @@ mkdir my-fleet && cd my-fleet
 
 # 2. Write the project file
 cat > stigmer.yaml << 'EOF'
-apiVersion: agentic.stigmer.ai/v1
+apiVersion: tenancy.stigmer.ai/v1
 kind: Project
 metadata:
   name: my-fleet
-  org: local
+  org: default
 spec:
   description: "My first Stigmer project"
 EOF
@@ -262,7 +262,7 @@ apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
   name: assistant
-  org: local
+  org: default
 spec:
   description: "A helpful assistant"
   instructions: |
@@ -287,11 +287,11 @@ mkdir my-sdk-fleet && cd my-sdk-fleet
 
 # 2. Write the project file
 cat > stigmer.yaml << 'EOF'
-apiVersion: agentic.stigmer.ai/v1
+apiVersion: tenancy.stigmer.ai/v1
 kind: Project
 metadata:
   name: my-sdk-fleet
-  org: local
+  org: default
 spec:
   description: "Synthesized via Go SDK"
   entry_point: main.go
@@ -308,9 +308,9 @@ stigmer project apply stigmer.yaml
 
 ## Further Reading
 
-- [Project YAML Schema Reference](../../apis/ai/stigmer/agentic/project/docs/project-resource-guide.md) — Complete field documentation, spec, status, and CLI commands
-- [Declarative Track](../../apis/ai/stigmer/agentic/project/docs/declarative-track.md) — Directory layout, file discovery, orphan pruning
-- [SDK Track](../../apis/ai/stigmer/agentic/project/docs/sdk-track.md) — Entry-point execution, runtime inference, Go/Python/Node examples
-- [Examples](../../apis/ai/stigmer/agentic/project/docs/examples.md) — Complete YAML and SDK examples
+- [Project YAML Schema Reference](../../apis/ai/stigmer/tenancy/project/docs/project-resource-guide.md) — Complete field documentation, spec, status, and CLI commands
+- [Declarative Track](../../apis/ai/stigmer/tenancy/project/docs/declarative-track.md) — Directory layout, file discovery, orphan pruning
+- [SDK Track](../../apis/ai/stigmer/tenancy/project/docs/sdk-track.md) — Entry-point execution, runtime inference, Go/Python/Node examples
+- [Examples](../../apis/ai/stigmer/tenancy/project/docs/examples.md) — Complete YAML and SDK examples
 - [What is an Agent?](what-is-agent.md) — The core resource that projects most commonly manage
 - [What is an Agent Execution?](what-is-agent-execution.md) — How agents run once they are applied

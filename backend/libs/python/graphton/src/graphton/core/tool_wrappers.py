@@ -138,7 +138,12 @@ def create_tool_wrapper(
     The generated wrapper:
     1. Gets the actual MCP tool from middleware cache
     2. Invokes the tool with provided arguments
-    3. Returns the tool result
+    3. Returns the tool result, or an enriched error string on failure
+    
+    Tool invocation errors (e.g. gRPC NotFound, permission denied) are
+    returned as enriched error strings so the LLM can reason about them
+    and self-correct.  Only setup errors (tool not found in middleware
+    cache) raise.
     
     This eliminates the need to manually write wrapper functions for each MCP tool.
     
@@ -150,7 +155,8 @@ def create_tool_wrapper(
         A @tool decorated function that delegates to the MCP tool
         
     Raises:
-        RuntimeError: If tool metadata cannot be copied from original
+        RuntimeError: If the tool does not exist in the middleware cache
+            at wrapper creation time
         
     Example:
         >>> from graphton.core.middleware import McpToolsLoader
@@ -210,13 +216,11 @@ def create_tool_wrapper(
             return result
         except Exception as e:
             cause = _unwrap_exception(e)
-            logger.error(
+            logger.warning(
                 f"MCP tool '{tool_name}' invocation failed: {cause}",
                 exc_info=True,
             )
-            raise RuntimeError(
-                f"MCP tool '{tool_name}' invocation failed: {cause}"
-            ) from e
+            return enrich_error_message(tool_name, str(cause))
     
     # Copy metadata from original tool for better LangChain integration
     try:
@@ -260,7 +264,12 @@ def create_approval_aware_tool_wrapper(
     2. If approval required: calls interrupt() with approval request payload
     3. Handles the resume response (approve/skip/reject)
     4. If approved or no approval needed: executes the actual MCP tool
-    5. Returns the tool result or skip message
+    5. Returns the tool result, skip message, or enriched error string
+    
+    Tool invocation errors (e.g. gRPC NotFound, permission denied) are
+    returned as enriched error strings so the LLM can reason about them
+    and self-correct.  Only setup errors (tool not found in middleware
+    cache) and deliberate user rejections raise.
     
     Args:
         tool_name: Name of the MCP tool to wrap
@@ -276,7 +285,8 @@ def create_approval_aware_tool_wrapper(
         A @tool decorated function that checks approval before executing
         
     Raises:
-        RuntimeError: If tool metadata cannot be copied from original
+        RuntimeError: If the tool does not exist in the middleware cache
+            at wrapper creation time
         ToolExecutionRejectedError: If user rejects tool execution
         
     Example:
@@ -366,13 +376,11 @@ def create_approval_aware_tool_wrapper(
             return result
         except Exception as e:
             cause = _unwrap_exception(e)
-            logger.error(
+            logger.warning(
                 f"MCP tool '{tool_name}' invocation failed: {cause}",
                 exc_info=True,
             )
-            raise RuntimeError(
-                f"MCP tool '{tool_name}' invocation failed: {cause}"
-            ) from e
+            return enrich_error_message(tool_name, str(cause))
     
     # Copy metadata from original tool for better LangChain integration
     try:

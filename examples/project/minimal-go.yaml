@@ -3,7 +3,7 @@
 # This is the simplest valid stigmer.yaml - perfect for getting started.
 # Place this file at the root of your project directory alongside your entry_point.
 
-apiVersion: agentic.stigmer.ai/v1
+apiVersion: tenancy.stigmer.ai/v1
 kind: Project
 
 metadata:

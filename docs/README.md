@@ -13,8 +13,7 @@ Complete documentation index for the Stigmer open-source project.
 ### CLI
 - [Managing Agents](cli/managing-agents.md) - **NEW**: Complete guide to listing, searching, and managing agents
 - [Running Agents and Workflows](cli/running-agents-workflows.md) - Execute agents and workflows with `stigmer run`
-- [Configuration](cli/configuration.md) - CLI configuration and context management
-- [Configuration Cascade](cli/configuration-cascade.md) - Complete guide to configuration priority (CLI flags, env vars, config file)
+- [Configuration](cli/configuration.md) - CLI configuration, organization context, and precedence rules
 - [Server Logs](cli/server-logs.md) - Viewing and managing server logs
 
 ### SDK

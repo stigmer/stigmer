@@ -1,0 +1,10 @@
+apiVersion: tenancy.stigmer.ai/v1
+kind: Organization
+metadata:
+  name: Default Organization
+  slug: default
+  labels:
+    stigmer.ai/system: "true"
+spec:
+  description: "Default organization for local Stigmer installations"
+  management_mode: self_managed

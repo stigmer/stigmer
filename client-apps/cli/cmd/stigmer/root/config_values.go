@@ -48,6 +48,12 @@ func getConfigValue(cfg *config.Config, key string) (string, error) {
 		case "ttl":
 			return strconv.Itoa(execution.TTL), nil
 		}
+
+	case len(parts) >= 2 && parts[0] == "context":
+		switch parts[1] {
+		case "organization":
+			return cfg.Context.Organization, nil
+		}
 	}
 
 	return "", fmt.Errorf("unknown configuration key: %s", key)
@@ -133,6 +139,13 @@ func setConfigValue(cfg *config.Config, key, value string) error {
 				return fmt.Errorf("invalid integer value for %s: %s", key, value)
 			}
 			execution.TTL = intValue
+			return nil
+		}
+
+	case len(parts) >= 2 && parts[0] == "context":
+		switch parts[1] {
+		case "organization":
+			cfg.Context.Organization = value
 			return nil
 		}
 	}

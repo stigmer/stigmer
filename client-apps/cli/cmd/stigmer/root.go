@@ -37,6 +37,7 @@ Run locally or scale to production with Stigmer Cloud.`,
 
 func init() {
 	rootCmd.PersistentFlags().BoolVarP(&debugMode, "debug", "d", false, "enable debug mode with detailed logs")
+	rootCmd.PersistentFlags().String("org", "", "organization slug (overrides context)")
 
 	rootCmd.AddGroup(
 		&cobra.Group{ID: "core", Title: "Core Commands:"},
@@ -69,6 +70,7 @@ func init() {
 
 	// Configuration
 	rootCmd.AddCommand(withGroup(root.NewBackendCommand(), "config"))
+	rootCmd.AddCommand(withGroup(root.NewContextCommand(), "config"))
 	rootCmd.AddCommand(withGroup(root.NewConfigCommand(), "config"))
 	rootCmd.AddCommand(withGroup(root.NewResourcesCommand(), "config"))
 	rootCmd.AddCommand(withGroup(root.NewCompletionCommand(), "config"))

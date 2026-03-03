@@ -7,6 +7,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/envfile"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
@@ -55,9 +56,6 @@ func registerAgentExecFlags(cmd *cobra.Command, f *agentExecFlags) {
 
 	cmd.Flags().BoolVar(&f.Detach, "detach", false,
 		"start execution and return immediately without streaming")
-
-	cmd.Flags().StringVar(&f.OrgOverride, "org", "",
-		"organization ID (overrides context)")
 
 	cmd.Flags().StringVar(&f.WorkspaceFlag, "workspace", "",
 		"workspace source: HTTPS git URL or local filesystem path")
@@ -146,6 +144,12 @@ func prepareAgentExec(flags agentExecFlags) (*preparedAgentExec, error) {
 	conn, orgID, err := connectToBackend(flags.OrgOverride)
 	if err != nil {
 		return nil, err
+	}
+
+	if _, ok := runtimeEnv["STIGMER_ORG_ID"]; !ok && orgID != "" {
+		runtimeEnv["STIGMER_ORG_ID"] = &executioncontextv1.ExecutionValue{
+			Value: orgID,
+		}
 	}
 
 	var attachResult AttachmentResult

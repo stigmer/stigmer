@@ -13,7 +13,7 @@ api_version: agentic.stigmer.ai/v1
 kind: WorkflowInstance
 metadata:
   name: hello-world-instance
-  org: local
+  org: default
 spec:
   workflow_id: wfl_01abc123def456789
   description: "Default instance for the hello-world workflow"
@@ -177,7 +177,7 @@ api_version: agentic.stigmer.ai/v1
 kind: WorkflowInstance
 metadata:
   name: my-workflow-dev
-  org: local
+  org: default
 spec:
   workflow_id: wfl_01abc123def456789
   description: "Development instance for my-workflow"

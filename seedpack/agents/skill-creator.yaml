@@ -130,5 +130,4 @@ spec:
           Defaults to the workspace root.
   skill_refs:
     - kind: skill
-      org: local
       slug: skill-creator

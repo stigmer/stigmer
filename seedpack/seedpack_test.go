@@ -16,6 +16,7 @@ func TestExtractToDir(t *testing.T) {
 
 	expectedFiles := []string{
 		"stigmer.yaml",
+		"organizations/default.yaml",
 		"agents/skill-creator.yaml",
 		"agents/agent-creator.yaml",
 		"agents/mcp-server-creator.yaml",
@@ -56,7 +57,7 @@ func TestExtractToDir_ProducesApplyableProject(t *testing.T) {
 	}
 
 	content := string(data)
-	if !strings.Contains(content, "apiVersion: agentic.stigmer.ai/v1") {
+	if !strings.Contains(content, "apiVersion: tenancy.stigmer.ai/v1") {
 		t.Error("stigmer.yaml missing apiVersion")
 	}
 	if !strings.Contains(content, "kind: Project") {

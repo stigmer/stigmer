@@ -61,7 +61,8 @@ func (c *WorkflowController) buildCreatePipeline() *pipeline.Pipeline[*workflowv
 		AddStep(steps.NewResolveSlugStep[*workflowv1.Workflow]()).                                        // 3. Resolve slug
 		AddStep(steps.NewCheckDuplicateStep[*workflowv1.Workflow](c.store)).                              // 4. Check duplicate
 		AddStep(steps.NewBuildNewStateStep[*workflowv1.Workflow]()).                                      // 5. Build new state
-		AddStep(steps.NewPersistStep[*workflowv1.Workflow](c.store)).                                     // 6. Persist workflow
+		AddStep(steps.NewNormalizeReferencesStep[*workflowv1.Workflow]()).                                // 6. Normalize cross-references
+		AddStep(steps.NewPersistStep[*workflowv1.Workflow](c.store)).                                     // 7. Persist workflow
 		AddStep(newCreateDefaultInstanceStep(c.workflowInstanceClient)).                                  // 7. Create default instance
 		AddStep(newUpdateWorkflowStatusWithDefaultInstanceStep(c.store)).                                 // 8. Update status
 		AddStep(steps.NewIndexSearchStep[*workflowv1.Workflow](c.store, &extractor.WorkflowExtractor{})). // 9. Update search index

@@ -16,14 +16,14 @@ Run through this list before applying an Agent YAML with `stigmer agent apply`.
 
 ### Organization and Visibility
 
-- [ ] `metadata.org` is set appropriately — `local` for local mode, your org slug for cloud mode
+- [ ] `metadata.org` is set if applying outside a project (the CLI resolves it from context if omitted during `stigmer project apply`)
 - [ ] `metadata.visibility` is intentional — omit for private (default), set `visibility_public` only for marketplace publishing
 
 ### Resource References
 
 - [ ] All `skill_refs` use `kind: skill` (lowercase string, not `kind: 43`)
 - [ ] All `mcp_server_ref` entries use `kind: mcp_server` (lowercase string, not `kind: 44`)
-- [ ] All `org` values in references are valid organization identifiers
+- [ ] All `org` values in references (if set) are valid organization identifiers — omit `org` for same-org references
 - [ ] All `slug` values are lowercase alphanumeric with hyphens, start with a letter, 1-63 characters
 - [ ] All referenced MCP servers and skills actually exist — query with `stigmer mcp-server get <slug>` or `stigmer skill get <slug>` before referencing
 
@@ -131,12 +131,10 @@ Each MCP server slug must appear only once in `mcp_server_usages`.
 # Wrong — github appears twice
 mcp_server_usages:
   - mcp_server_ref:
-      org: local
       kind: mcp_server
       slug: github
     enabled_tools: [search_code]
   - mcp_server_ref:
-      org: local
       kind: mcp_server
       slug: github
     enabled_tools: [create_pr]
@@ -144,7 +142,6 @@ mcp_server_usages:
 # Correct — single entry with all tools
 mcp_server_usages:
   - mcp_server_ref:
-      org: local
       kind: mcp_server
       slug: github
     enabled_tools: [search_code, create_pr]
@@ -162,16 +159,21 @@ stigmer skill get code-review-best-practices
 
 ### Missing required fields in references
 
-All three fields (`org`, `kind`, `slug`) are required in every `ApiResourceReference`.
+Both `kind` and `slug` are required in every `ApiResourceReference`. The `org` field is optional (omit for same-org relative references).
 
 ```yaml
 # Wrong — missing kind and slug
 skill_refs:
-  - org: local
+  - org: acme-corp
 
-# Correct
+# Correct (relative reference)
 skill_refs:
-  - org: local
+  - kind: skill
+    slug: my-skill
+
+# Correct (absolute reference)
+skill_refs:
+  - org: acme-corp
     kind: skill
     slug: my-skill
 ```
@@ -214,19 +216,17 @@ tool_approval_overrides:
 
 Always verify tool names against the MCP server before writing overrides.
 
-### Missing `metadata.org` in cloud mode
+### Missing `metadata.org` when applying outside a project
 
-In cloud mode, `metadata.org` is required. Omitting it will fail validation.
+When applying a standalone YAML file (not as part of a `stigmer project apply`), set `metadata.org` explicitly or ensure the CLI has an active organization context.
 
 ```yaml
-# Wrong in cloud mode — no org specified
-metadata:
-  name: my-agent
-
-# Correct for cloud mode
+# Recommended — explicit org
 metadata:
   name: my-agent
   org: acme-corp
-```
 
-In local mode, `org` defaults to `local` if omitted.
+# Also works — org resolved from CLI context
+metadata:
+  name: my-agent
+```
