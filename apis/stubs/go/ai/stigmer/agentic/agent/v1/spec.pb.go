@@ -39,13 +39,11 @@ const (
 //	  instructions: "You are an engineering assistant..."
 //	  mcp_server_usages:
 //	    - mcp_server_ref:
-//	        org: local
 //	        kind: mcp_server
 //	        slug: github
 //	      enabled_tools: [search_code, create_pr]
 //	  skill_refs:
-//	    - org: local
-//	      kind: skill
+//	    - kind: skill
 //	      slug: code-review-best-practices
 type AgentSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -173,8 +171,7 @@ func (x *AgentSpec) GetEnvSpec() *v1.EnvironmentSpec {
 //	      - mcp_server: github
 //	        enabled_tools: [search_code, get_file]
 //	    skill_refs:
-//	      - org: local
-//	        kind: skill
+//	      - kind: skill
 //	        slug: code-review-best-practices
 type SubAgent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -277,7 +274,6 @@ func (x *SubAgent) GetSkillRefs() []*apiresource.ApiResourceReference {
 //
 //	mcp_server_usages:
 //	  - mcp_server_ref:
-//	      org: local
 //	      kind: mcp_server
 //	      slug: github
 //	    enabled_tools: [search_code, get_file, create_pr]

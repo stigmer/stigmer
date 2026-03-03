@@ -11,13 +11,11 @@
       "type": {
         "kind": "string"
       },
-      "description": "Organization that owns the referenced resource. Required.\n Format: lowercase alphanumeric with hyphens, must start with a letter (e.g., \"stigmer\", \"acme-corp\").\n Length: 1-63 characters.",
-      "required": true,
+      "description": "Organization that owns the referenced resource.\n\n When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens,\n starts with a letter, 1-63 characters). Example: \"stigmer\", \"acme-corp\".\n\n When empty: the reference is relative — the server resolves it to the parent\n resource's organization at write time. All stored and returned references\n always have org populated (absolute form).\n\n Use empty org for same-org references (the common case).\n Use explicit org for cross-org references (e.g., marketplace resources).",
+      "required": false,
       "validation": {
-        "required": true,
-        "minLength": 1,
         "maxLength": 63,
-        "pattern": "^[a-z][a-z0-9-]*$"
+        "pattern": "^$|^[a-z][a-z0-9-]*$"
       }
     },
     {

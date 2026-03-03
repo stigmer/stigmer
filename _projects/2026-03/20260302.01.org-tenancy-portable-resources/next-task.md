@@ -12,10 +12,19 @@ Drop this file into your conversation to quickly resume work on this project.
 **Components**: Proto definitions (tenancy/project), CLI apply pipeline, OSS server (Organization controller, project reconciliation), seedpack, CLI config (org context), documentation
 
 ## Current State
-- **Status**: T01.1–T01.9 Complete (OSS). T01.4 also complete in Cloud. Secondary API docs cleanup complete.
-- **Last Session**: 2026-03-03 (session 13) — Secondary API Docs and Validation Rules Cleanup
-- **Active Task**: All planned tasks and optional cleanup complete. Zero `org: local` in any hand-written source file. Remaining: regenerate stubs/codegen to propagate proto comment changes to generated files, then run `seedpack/tools/regenerate_all.sh` to verify clean skill output.
+- **Status**: T01.1–T01.9 Complete (OSS). T01.4 also complete in Cloud. All generated files regenerated. Only skill regeneration and cloud commit remain.
+- **Last Session**: 2026-03-03 (session 14) — Regenerate Proto Stubs, Codegen Schemas, and MCP Gen
+- **Active Task**: Proto stubs, codegen schemas, and MCP gen all regenerated and verified clean. Remaining: (1) regenerate skills via `seedpack/tools/regenerate_all.sh`, (2) commit cloud repo T01.4 changes.
 - **Cloud Repo Status**: Build restored. Reconciliation subsystem rearchitected. NormalizeApiResourceReferencesStepV2 wired into all 29 handlers. Cloud T01.4 changes uncommitted. See `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
+
+## Session Progress (2026-03-03, session 14 — Regenerate Proto Stubs, Codegen Schemas, and MCP Gen)
+- Regenerated proto stubs via `make protos` — propagated spec.proto comment changes (org removed from cross-reference examples) to `spec.pb.go` and Python stubs
+- Regenerated codegen schemas via `make codegen-schemas` — 6 `apiresourcereference.json` files updated (org field no longer required/min_len), 3 agent type schemas updated
+- Regenerated MCP Go input types via `make codegen-mcp` — 16 resources regenerated, 0 failures, all `*_gen.go` files reflect optional org in `ApiResourceReference`
+- Gazelle auto-updated 3 BUILD.bazel files (pre-existing dep catch-up, not from our changes)
+- **Files modified**: 29 files (+61 lines, -75 lines) — net reduction of 14 lines
+- **Verified clean**: `go build ./...` passes for mcp-server, CLI, and stigmer-server
+- **Remaining**: Skill regeneration (`seedpack/tools/regenerate_all.sh`) deferred to user manual step; cloud repo commit still pending
 
 ## Session Progress (2026-03-03, session 13 — Secondary API Docs and Validation Rules Cleanup)
 - Completed final `org: local` cleanup across all hand-written source files
@@ -180,9 +189,9 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Next Steps
 1. ~~**T01.8**: Skill docs~~ — COMPLETED
 2. ~~**T01.9**: Product docs~~ — COMPLETED
-3. ~~**Optional cleanup**: Secondary API docs~~ — COMPLETED: zero `org: local` in hand-written source files
-4. **Regenerate proto stubs**: Run `make protos` to propagate spec.proto comment changes to `spec.pb.go`
-5. **Regenerate codegen schemas + MCP gen**: Propagate proto changes to `tools/codegen/schemas/` and `mcp-server/gen/`
+3. ~~**Optional cleanup**: Secondary API docs~~ — COMPLETED
+4. ~~**Regenerate proto stubs**: `make protos`~~ — COMPLETED (session 14)
+5. ~~**Regenerate codegen schemas + MCP gen**: `make codegen`~~ — COMPLETED (session 14)
 6. **Regenerate skills**: Run `seedpack/tools/regenerate_all.sh` to verify clean skill output
 7. **Commit cloud repo changes**: T01.4 cloud changes (NormalizeApiResourceReferencesStepV2 + 29 handlers) still uncommitted
 
@@ -214,7 +223,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260302.01.org-tenancy-portable-resources/checkpoints/2026-03-03-session-13.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260302.01.org-tenancy-portable-resources/checkpoints/2026-03-03-session-14.md
 ```
 
 ### 2. Task Plan
@@ -251,13 +260,13 @@ Drop this file into your conversation to quickly resume work on this project.
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-03-03-session-13.md`
+1. [ ] Read the latest checkpoint from `checkpoints/2026-03-03-session-14.md`
 2. [ ] Read cloud migration doc: `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
 3. [ ] Check current task status in `tasks/T01_0_plan.md`
 4. [ ] Review any new design decisions in `design-decisions/`
 5. [ ] Check coding guidelines in `coding-guidelines/`
 6. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-7. [ ] Regenerate proto stubs + codegen schemas to propagate spec.proto changes
+7. [x] Regenerate proto stubs + codegen schemas to propagate spec.proto changes (done session 14)
 8. [ ] Regenerate skills with `seedpack/tools/regenerate_all.sh` to verify clean output
 9. [ ] Commit cloud repo T01.4 changes (uncommitted)
 
