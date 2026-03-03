@@ -3,6 +3,7 @@ package root
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"strings"
 
@@ -12,15 +13,60 @@ import (
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // streamToEventsConfig holds the dependencies for the gRPC-to-TUI bridge goroutine.
 type streamToEventsConfig struct {
 	executionID       string
+	sessionID         string
 	stream            agentexecutionv1.AgentExecutionQueryController_SubscribeClient
 	events            chan<- executiontui.Event
 	approvalResponses <-chan executiontui.ApprovalResponse
 	conn              *grpc.ClientConn
+}
+
+// streamError wraps a raw error with a user-facing actionable message.
+// Error() returns the actionable message for display; Unwrap() provides
+// the original error for debug logging and programmatic inspection.
+type streamError struct {
+	message string
+	cause   error
+}
+
+func (e *streamError) Error() string { return e.message }
+func (e *streamError) Unwrap() error { return e.cause }
+
+// classifyStreamError translates a raw gRPC or io error from stream.Recv()
+// into an actionable message that tells the user what happened and how to
+// recover. The returned error's Error() is the user-facing message; its
+// Unwrap() is the original for debug logging.
+func classifyStreamError(err error, sessionID string) *streamError {
+	var message string
+
+	if err == io.EOF {
+		message = "Server closed the connection unexpectedly."
+	} else if st, ok := status.FromError(err); ok {
+		switch st.Code() {
+		case codes.Unavailable:
+			message = "Connection to server lost."
+		case codes.Canceled:
+			message = "Server cancelled the stream."
+		case codes.DeadlineExceeded:
+			message = "Server response timed out."
+		default:
+			message = fmt.Sprintf("Stream error (%s): %s", st.Code(), st.Message())
+		}
+	} else {
+		message = "Unexpected stream error: " + err.Error()
+	}
+
+	if sessionID != "" {
+		message += fmt.Sprintf("\nRe-attach to this session: stigmer run %s", sessionID)
+	}
+
+	return &streamError{message: message, cause: err}
 }
 
 // trySendEvent attempts to send an event on the channel. Returns true if the
@@ -66,15 +112,16 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 			if ctx.Err() != nil {
 				return
 			}
-			if err == io.EOF {
-				trySendEvent(ctx, cfg.events, executiontui.StreamErrorEvent{
-					Err: errors.New("execution stream ended unexpectedly"),
-				})
-			} else {
-				trySendEvent(ctx, cfg.events, executiontui.StreamErrorEvent{
-					Err: errors.Wrap(err, "execution stream error"),
-				})
-			}
+
+			log.Debug().
+				Err(err).
+				Str("execution_id", cfg.executionID).
+				Str("session_id", cfg.sessionID).
+				Msg("[stream] recv error — classifying for user display")
+
+			trySendEvent(ctx, cfg.events, executiontui.StreamErrorEvent{
+				Err: classifyStreamError(err, cfg.sessionID),
+			})
 			return
 		}
 

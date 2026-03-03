@@ -2,11 +2,16 @@ package root
 
 import (
 	"context"
+	"errors"
+	"io"
+	"strings"
 	"testing"
 	"time"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // =============================================================================
@@ -654,7 +659,11 @@ func TestTrySendEvent_DeliversEvent(t *testing.T) {
 }
 
 func TestTrySendEvent_ReturnsFalseOnCancelledContext(t *testing.T) {
-	ch := make(chan executiontui.Event, 1)
+	// Unbuffered channel with no receiver — the send case can never
+	// complete, so only ctx.Done() is ready. A buffered channel would
+	// make both cases ready simultaneously, causing non-deterministic
+	// behavior in Go's select.
+	ch := make(chan executiontui.Event)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
@@ -662,11 +671,6 @@ func TestTrySendEvent_ReturnsFalseOnCancelledContext(t *testing.T) {
 
 	if sent {
 		t.Fatal("expected trySendEvent to return false when context is already cancelled")
-	}
-	select {
-	case <-ch:
-		t.Fatal("event should not have been sent to channel")
-	default:
 	}
 }
 
@@ -835,4 +839,120 @@ func TestEmitAndWaitApproval_EventContainsCorrectFields(t *testing.T) {
 	}
 
 	cancel()
+}
+
+// =============================================================================
+// classifyStreamError Tests — error translation for user-facing messages
+// =============================================================================
+
+func TestClassifyStreamError_EOF(t *testing.T) {
+	se := classifyStreamError(io.EOF, "")
+
+	if !strings.Contains(se.Error(), "Server closed the connection unexpectedly") {
+		t.Errorf("expected EOF message, got %q", se.Error())
+	}
+	if !errors.Is(se, io.EOF) {
+		t.Error("Unwrap should return the original io.EOF")
+	}
+}
+
+func TestClassifyStreamError_Unavailable(t *testing.T) {
+	err := status.Error(codes.Unavailable, "connection closed before server preface received")
+	se := classifyStreamError(err, "")
+
+	if !strings.Contains(se.Error(), "Connection to server lost") {
+		t.Errorf("expected Unavailable message, got %q", se.Error())
+	}
+	if se.Unwrap() != err {
+		t.Error("Unwrap should return the original gRPC error")
+	}
+}
+
+func TestClassifyStreamError_Canceled(t *testing.T) {
+	err := status.Error(codes.Canceled, "context canceled")
+	se := classifyStreamError(err, "")
+
+	if !strings.Contains(se.Error(), "Server cancelled the stream") {
+		t.Errorf("expected Canceled message, got %q", se.Error())
+	}
+}
+
+func TestClassifyStreamError_DeadlineExceeded(t *testing.T) {
+	err := status.Error(codes.DeadlineExceeded, "deadline exceeded")
+	se := classifyStreamError(err, "")
+
+	if !strings.Contains(se.Error(), "Server response timed out") {
+		t.Errorf("expected DeadlineExceeded message, got %q", se.Error())
+	}
+}
+
+func TestClassifyStreamError_OtherGRPCCode(t *testing.T) {
+	err := status.Error(codes.PermissionDenied, "access denied for resource")
+	se := classifyStreamError(err, "")
+
+	if !strings.Contains(se.Error(), "PermissionDenied") {
+		t.Errorf("expected gRPC code name in message, got %q", se.Error())
+	}
+	if !strings.Contains(se.Error(), "access denied for resource") {
+		t.Errorf("expected gRPC status message in output, got %q", se.Error())
+	}
+}
+
+func TestClassifyStreamError_NonGRPCError(t *testing.T) {
+	err := errors.New("some unexpected network failure")
+	se := classifyStreamError(err, "")
+
+	if !strings.Contains(se.Error(), "Unexpected stream error") {
+		t.Errorf("expected non-gRPC fallback message, got %q", se.Error())
+	}
+	if !strings.Contains(se.Error(), "some unexpected network failure") {
+		t.Errorf("expected original error message preserved, got %q", se.Error())
+	}
+}
+
+func TestClassifyStreamError_WithSessionID_IncludesReattach(t *testing.T) {
+	err := status.Error(codes.Unavailable, "transport closing")
+	se := classifyStreamError(err, "ses-abc123")
+
+	if !strings.Contains(se.Error(), "stigmer run ses-abc123") {
+		t.Errorf("expected re-attach instructions with session ID, got %q", se.Error())
+	}
+}
+
+func TestClassifyStreamError_WithoutSessionID_NoReattach(t *testing.T) {
+	err := status.Error(codes.Unavailable, "transport closing")
+	se := classifyStreamError(err, "")
+
+	if strings.Contains(se.Error(), "stigmer run") {
+		t.Errorf("expected no re-attach instructions without session ID, got %q", se.Error())
+	}
+}
+
+func TestClassifyStreamError_EOF_WithSessionID(t *testing.T) {
+	se := classifyStreamError(io.EOF, "ses-xyz789")
+
+	if !strings.Contains(se.Error(), "Server closed the connection unexpectedly") {
+		t.Errorf("expected EOF message, got %q", se.Error())
+	}
+	if !strings.Contains(se.Error(), "stigmer run ses-xyz789") {
+		t.Errorf("expected re-attach instructions, got %q", se.Error())
+	}
+}
+
+func TestClassifyStreamError_Unwrap_PreservesOriginal(t *testing.T) {
+	original := status.Error(codes.Internal, "internal server error")
+	se := classifyStreamError(original, "ses-test")
+
+	unwrapped := se.Unwrap()
+	if unwrapped != original {
+		t.Errorf("Unwrap() returned %v, want original error %v", unwrapped, original)
+	}
+
+	st, ok := status.FromError(unwrapped)
+	if !ok {
+		t.Fatal("expected Unwrap() to return a gRPC status error")
+	}
+	if st.Code() != codes.Internal {
+		t.Errorf("expected code Internal, got %v", st.Code())
+	}
 }
