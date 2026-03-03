@@ -69,7 +69,22 @@ When starting a new session:
 
 **Created**: 2026-03-04
 **Current Task**: Phase 5 — Tests + Polish
-**Status**: IN PROGRESS — Phases 1-4 complete, Phase 5 ready to start
+**Status**: COMPLETE — All 5 phases done; MVP feature-complete
+
+## Session Progress (2026-03-04, Session 5)
+
+### Phase 5: Tests + Polish — COMPLETE
+
+**What was accomplished:**
+- Integration tests in `test_multi_workspace_integration.py`: full pipeline (provision_all → tree enrichment → build_workspace_prompt_section) with real backends and temp dirs; multi-local, single local/git backward compat, multi-git; guard-rails for backend replacement and referenced-files primary root.
+- Guard-rail tests: mixed local+git in `test_provisioner.py`; backend replacement and referenced-files in integration file.
+- Daytona `cwd` conformance: `TestCwdConformance` in `test_daytona_backend.py` (4 tests).
+- Heading-level polish: `tree_heading_level` threaded from provision_all through tree builder; string replace removed from `_build_multi_workspace_section`.
+- All 1071 backend tests pass.
+
+**Files changed:** tree.py, provisioner.py, execute_graphton.py; test_multi_workspace_integration.py (new), test_provisioner.py, test_daytona_backend.py, test_workspace_prompt_section.py.
+
+**Checkpoint:** `checkpoints/2026-03-04-session-5.md`
 
 ## Session Progress (2026-03-04, Session 4)
 
@@ -113,19 +128,16 @@ When starting a new session:
 
 ## Next Steps
 
-1. **Phase 5: Tests + Polish** (Gaps 30-33)
-   - Integration-level multi-workspace tests (multi-git cloud mode end-to-end)
-   - Edge cases: mixed local+git entries, empty entries
-   - Daytona `cwd` behavior verification
-2. **Known MVP limitations to address later:**
-   - `build_referenced_files_prompt_section` uses single primary root — multi-root file referencing is a future enhancement
-   - Mixed local+git entries: if `use_subdirs = True`, local_path entries ignore `target_subdir` — primary root_dir heuristic may produce unexpected results
-   - stigmer-cloud stubs NOT regenerated yet
+1. **Pre-release (optional):** Regenerate stigmer-cloud stubs for `workspace_entries` before production ship.
+2. **Known MVP limitations (documented by guard-rail tests):**
+   - `build_referenced_files_prompt_section` uses single primary root — multi-root file referencing is future work.
+   - Mixed local+git: local entry keeps original path; git entry gets subdir. Primary root heuristic may differ from expectations.
+3. **Later:** E2E or infra-backed tests (real Daytona sandbox, real git clone) if needed.
 
 ## Context for Resume
 
-- Phases 1-4 implemented. Phase 4 is the final code-heavy phase — Phase 5 is integration tests and polish.
-- All 292 Python backend tests pass (239 workspace + 53 prompt section).
+- All 5 phases implemented. Multi-source workspace MVP is feature-complete.
+- All 1071 backend tests pass (including 21 new integration + guard-rail tests).
 - The `target_subdir` threading pattern is consistent: git.py uses it for clone/detect/recover/excludes, provisioner.py routes it, tree.py scopes remote find, execute_graphton.py scopes git diff.
 - When `target_subdir` is `None`, every function behaves identically to before — zero regression risk for single-entry sessions.
 - Agent CWD for multi-entry stays at workspace root (not primary's subdirectory) — system prompt compensates, worth monitoring in integration testing.
@@ -138,15 +150,14 @@ The multi-source workspace feature requires changes across 6 layers:
 3. **Backend provisioner** — Iterate entries, per-entry provisioning **(DONE — local + git)**
 4. **System prompt** — Multi-entry workspace description **(DONE)**
 5. **Git provisioning** — Subdirectory cloning for cloud mode **(DONE)**
-6. **Tests** — Multi-workspace scenarios **(partial — unit tests done, integration pending)**
+6. **Tests** — Multi-workspace scenarios **(DONE — unit + integration + guard-rails + Daytona cwd)**
 
 ## Quick Commands
 
 After loading context:
-- "Start Phase 5" - Begin integration tests and polish
-- "Show project status" - Get overview of progress
-- "Create checkpoint" - Save current progress
-- "Review guidelines" - Check established patterns
+- "Show project status" - Overview of progress (all phases complete)
+- "Review guidelines" - Established patterns
+- "Regenerate stigmer-cloud stubs" - Pre-release step when ready
 
 ## Quick Resume
 To continue this project, drag this file into chat:

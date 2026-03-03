@@ -170,6 +170,7 @@ class WorkspaceProvisioner:
         is_local_mode: bool,
         *,
         target_subdir: str | None = None,
+        tree_heading_level: int = 3,
     ) -> ProvisionResult:
         """Provision workspace content.
 
@@ -185,6 +186,10 @@ class WorkspaceProvisioner:
             target_subdir: When set, git sources clone into this
                 subdirectory of ``backend.root_dir``.  Ignored by
                 local-path and empty sources.
+            tree_heading_level: Markdown heading depth for the file-tree
+                section (default 3 → ``###``).  Multi-entry callers
+                pass 4 so the tree nests under per-entry ``###``
+                headings.
 
         Returns:
             A ``ProvisionResult`` describing what was provisioned.
@@ -198,7 +203,10 @@ class WorkspaceProvisioner:
             target_subdir=target_subdir,
         )
 
-        result = self._enrich_with_file_tree(result, backend, is_local_mode)
+        result = self._enrich_with_file_tree(
+            result, backend, is_local_mode,
+            heading_level=tree_heading_level,
+        )
 
         # AD-05: strip WORKSPACE_PROVISION_-prefixed keys unconditionally.
         prefix_keys = tuple(
@@ -263,6 +271,7 @@ class WorkspaceProvisioner:
             return []
 
         use_subdirs = len(entries) > 1
+        heading_level = 4 if use_subdirs else 3
 
         results: list[ProvisionResult] = []
         for entry in entries:
@@ -280,6 +289,7 @@ class WorkspaceProvisioner:
             result = self.provision(
                 source, backend, merged_env, is_local_mode,
                 target_subdir=target_subdir,
+                tree_heading_level=heading_level,
             )
             result = dataclasses.replace(result, entry_name=name)
             results.append(result)
@@ -350,6 +360,8 @@ class WorkspaceProvisioner:
         result: ProvisionResult,
         backend: WorkspaceBackend,
         is_local_mode: bool,
+        *,
+        heading_level: int = 3,
     ) -> ProvisionResult:
         """Append a file-tree manifest to the provisioning result.
 
@@ -364,6 +376,9 @@ class WorkspaceProvisioner:
         ``backend.root_dir`` (multi-entry cloud mode), the remote tree
         builder and gitignore loader are scoped to that subdirectory
         via the ``cwd`` parameter so they only see the entry's files.
+
+        Args:
+            heading_level: Markdown heading depth for the tree heading.
         """
         if result.source_type == SourceType.EMPTY:
             return result
@@ -383,6 +398,7 @@ class WorkspaceProvisioner:
                 is_local_mode=is_local_mode,
                 gitignore_filter=gitignore,
                 cwd=rel_subdir,
+                heading_level=heading_level,
             )
         except Exception:
             self._log.warning(
