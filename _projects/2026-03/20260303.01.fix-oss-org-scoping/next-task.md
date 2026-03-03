@@ -67,7 +67,7 @@ That's it! No complex structure - just focused work.
 ## Current Status
 
 **Last Updated**: 2026-03-03  
-**Current Focus**: Task 4 — Fix `CheckDuplicateStep.findBySlug`  
+**Current Focus**: Task 5 — Fix ID-based lookups (org verification after load)  
 **Phase**: Implementation
 
 ## Session Progress (2026-03-03)
@@ -95,15 +95,19 @@ That's it! No complex structure - just focused work.
   - Net ~30 lines removed
   - Build verified clean
 
+- **Task 4**: Fixed `CheckDuplicateStep.findBySlug` — org-scoped duplicate check
+  - Replaced private `findBySlug` with shared `FindResourceBySlug[T]`; extracted `org := metadata.Org` and passed to helper
+  - Duplicate check now scoped to same org (same slug allowed in different orgs)
+  - Removed unused imports (`"context"`, `apiresourcekind`); updated struct and Execute doc comments
+  - Error message now includes org: `already exists in org '%s' (id: %s)`
+  - Net ~33 lines removed from duplicate.go; all workspace modules build cleanly
+
 ### Next Steps
-1. **Task 4**: Fix `CheckDuplicateStep.findBySlug` — add org filter for cross-org slug reuse
-2. **Task 5**: Fix ID-based lookups — add org verification after load (3 steps)
-3. **Task 6**: Tests
+1. **Task 5**: Fix ID-based lookups — add org verification after load in LoadExistingStep, LoadTargetStep, LoadExistingForDeleteStep
+2. **Task 6**: Tests
 
 ### Context for Resume
-- **Pattern established in Tasks 2-3**: Task 4 should follow the same consolidation approach — delete the private `findBySlug` method and delegate to the shared `FindResourceBySlug[T]` helper. The helper already has org filtering and returns `(T, bool, error)`.
-- The org value comes from `metadata.Org` on `ctx.NewState()` (the resource being applied/created/updated)
-- Task 5 is different: ID-based lookups need post-load org verification, not slug filtering
+- **Task 5 is different**: ID-based lookups need post-load org verification (compare loaded resource's metadata.Org to request org), not slug filtering.
 - **Key gotcha**: Go generics does not allow `T == nil` on type parameters constrained to interfaces. Use the `found` bool from `FindResourceBySlug` instead of nil-checking the returned value.
 
 ---

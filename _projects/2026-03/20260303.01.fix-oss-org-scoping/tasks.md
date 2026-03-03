@@ -77,14 +77,23 @@ Add timestamps and notes to track your progress.
 
 ## Task 4: Fix CheckDuplicateStep.findBySlug — add org filter so same slug can exist in different orgs
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-03-03 06:53
+**Completed**: 2026-03-03
 
 ### Subtasks
-- [ ] [Add specific steps as you work]
+- [x] Replace private `findBySlug` call with shared `FindResourceBySlug[T]` helper
+- [x] Extract `slug` and `org` from metadata, pass org to helper
+- [x] Use `found` bool instead of `existing != nil`; type assertion via `any(existing).(HasMetadata)`
+- [x] Add org to duplicate error message for debuggability
+- [x] Delete private `findBySlug` method (~30 lines)
+- [x] Remove unused imports (`"context"`, `apiresourcekind`)
+- [x] Update struct and Execute doc comments to reflect org-scoped semantics
+- [x] Verify backend libs and stigmer-server build cleanly
 
 ### Notes
-- [Add notes about this task here]
+- Followed same consolidation pattern as Tasks 2–3. No new architectural decisions.
+- Error message uses `existingMetadata.Org` so the reported org is the resource’s org, not the request org.
 
 ## Task 5: Fix ID-based lookups — add org verification after load in LoadExistingStep, LoadTargetStep, LoadExistingForDeleteStep
 
