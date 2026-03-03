@@ -207,7 +207,7 @@ func (r *inlineRenderer) renderHumanMessage(e executiontui.HumanMessageEvent) {
 // ---------------------------------------------------------------------------
 
 func (r *inlineRenderer) renderToolRunning(e executiontui.ToolRunningEvent) {
-	line := toolrender.RenderWithBadge(e.ToolCall, toolrender.StateBadge("running"))
+	line := toolrender.RenderCompactRunning(e.ToolCall, r.compactOpts)
 	r.statusf("%s\n", line)
 }
 
