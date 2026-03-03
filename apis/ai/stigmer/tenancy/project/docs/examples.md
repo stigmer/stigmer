@@ -14,7 +14,7 @@ apiVersion: tenancy.stigmer.ai/v1
 kind: Project
 metadata:
   name: my-project
-  org: local
+  org: default
 spec:
   description: "My first Stigmer project"
 ```

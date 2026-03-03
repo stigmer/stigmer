@@ -20,7 +20,7 @@ stigmer run my-agent "What files are in the current directory?"
 apiVersion: agentic.stigmer.ai/v1
 kind: AgentExecution
 metadata:
-  org: local
+  org: default
 spec:
   agent_id: agt_abc123
   message: "What files are in the current directory?"
