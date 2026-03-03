@@ -102,8 +102,13 @@ func resumeSession(sessionID, sessionSubject, orgID string, executions []*agente
 	latestExec := executions[0]
 	latestExecID := latestExec.GetMetadata().GetId()
 
-	ctx := context.Background()
-	followUpFn := buildFollowUpFn(ctx, sessionID, orgID, conn)
+	// streamCtx governs the lifetime of follow-up stream goroutines created
+	// by buildFollowUpFn. snapshotToEvents doesn't need cancellation (it
+	// closes its channel after emitting all events), but follow-up goroutines
+	// spawned during the session must be cancellable when the TUI exits.
+	streamCtx, streamCancel := context.WithCancel(context.Background())
+
+	followUpFn := buildFollowUpFn(streamCtx, sessionID, orgID, conn)
 
 	// Convert stored executions into events through the same pipeline that
 	// the live gRPC stream uses. The TUI processes these events identically
@@ -138,6 +143,11 @@ func resumeSession(sessionID, sessionSubject, orgID string, executions []*agente
 
 	p := tea.NewProgram(model, tea.WithAltScreen())
 	finalModel, err := p.Run()
+
+	// TUI has exited — cancel the stream context so any follow-up
+	// goroutines unblock and clean up.
+	streamCancel()
+
 	if err != nil {
 		return errors.Wrap(err, "TUI session failed")
 	}
@@ -146,8 +156,9 @@ func resumeSession(sessionID, sessionSubject, orgID string, executions []*agente
 
 	// Fetch the final execution state. When the user sent follow-ups,
 	// LatestExecutionID returns the most recent one.
+	// Uses a fresh context because streamCtx is now cancelled.
 	finalExecID := result.LatestExecutionID()
-	finalExec, err := fetchFinalExecution(ctx, conn, finalExecID)
+	finalExec, err := fetchFinalExecution(context.Background(), conn, finalExecID)
 	if err != nil {
 		return errors.Wrap(err, "failed to fetch final execution state")
 	}

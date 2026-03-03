@@ -46,11 +46,17 @@ func streamAgentExecution(sessionID, sessionSubject, executionID, orgID string, 
 
 	// Create streaming client
 	client := agentexecutionv1.NewAgentExecutionQueryControllerClient(conn)
-	ctx := context.Background()
+
+	// streamCtx governs the lifetime of all stream goroutines (initial +
+	// follow-ups). Cancelling it after the TUI exits ensures goroutines
+	// that are blocked on channel operations or stream.Recv() can exit
+	// cleanly instead of leaking until process termination.
+	streamCtx, streamCancel := context.WithCancel(context.Background())
 
 	// Subscribe to execution updates
-	stream, err := client.Subscribe(ctx, &agentexecutionv1.AgentExecutionId{Value: executionID})
+	stream, err := client.Subscribe(streamCtx, &agentexecutionv1.AgentExecutionId{Value: executionID})
 	if err != nil {
+		streamCancel()
 		return nil, errors.Wrap(err, "failed to subscribe to agent execution")
 	}
 
@@ -74,7 +80,7 @@ func streamAgentExecution(sessionID, sessionSubject, executionID, orgID string, 
 	// the channels needed for the TUI to render it.
 	var followUpFn executiontui.FollowUpFn
 	if sessionID != "" {
-		followUpFn = buildFollowUpFn(ctx, sessionID, orgID, conn)
+		followUpFn = buildFollowUpFn(streamCtx, sessionID, orgID, conn)
 	}
 
 	// When the session subject is not yet known (new session or subject
@@ -105,7 +111,7 @@ func streamAgentExecution(sessionID, sessionSubject, executionID, orgID string, 
 	})
 
 	// Launch the gRPC stream goroutine that converts proto updates to TUI events.
-	go streamToEvents(ctx, streamToEventsConfig{
+	go streamToEvents(streamCtx, streamToEventsConfig{
 		executionID:       executionID,
 		stream:            stream,
 		events:            events,
@@ -116,6 +122,11 @@ func streamAgentExecution(sessionID, sessionSubject, executionID, orgID string, 
 	// Run the TUI in alt-screen mode. This blocks until the TUI exits.
 	p := tea.NewProgram(model, tea.WithAltScreen())
 	finalModel, err := p.Run()
+
+	// TUI has exited — cancel the stream context so all goroutines
+	// (initial stream + any follow-up streams) unblock and clean up.
+	streamCancel()
+
 	if err != nil {
 		return nil, errors.Wrap(err, "TUI execution failed")
 	}
@@ -130,8 +141,9 @@ func streamAgentExecution(sessionID, sessionSubject, executionID, orgID string, 
 	// The TUI has exited and the terminal is back to inline mode.
 	// Fetch the final execution state. When follow-ups were sent, use the
 	// latest execution ID rather than the original.
+	// Uses a fresh context because streamCtx is now cancelled.
 	latestExecID := result.LatestExecutionID()
-	finalExec, err := fetchFinalExecution(ctx, conn, latestExecID)
+	finalExec, err := fetchFinalExecution(context.Background(), conn, latestExecID)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to fetch final execution state")
 	}

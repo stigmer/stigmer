@@ -1,7 +1,9 @@
 package root
 
 import (
+	"context"
 	"testing"
+	"time"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
@@ -626,4 +628,211 @@ func TestBuildPendingApprovalFromToolCall_SubAgentEnrichment(t *testing.T) {
 	if pa.SubAgentName != "code-reviewer" {
 		t.Errorf("SubAgentName = %q, want %q", pa.SubAgentName, "code-reviewer")
 	}
+}
+
+// =============================================================================
+// trySendEvent Tests — context-aware channel send
+// =============================================================================
+
+func TestTrySendEvent_DeliversEvent(t *testing.T) {
+	ch := make(chan executiontui.Event, 1)
+	ctx := context.Background()
+
+	sent := trySendEvent(ctx, ch, executiontui.PhaseChangeEvent{Phase: "running"})
+
+	if !sent {
+		t.Fatal("expected trySendEvent to return true on successful send")
+	}
+	select {
+	case evt := <-ch:
+		if _, ok := evt.(executiontui.PhaseChangeEvent); !ok {
+			t.Fatalf("expected PhaseChangeEvent, got %T", evt)
+		}
+	default:
+		t.Fatal("expected event on channel after successful send")
+	}
+}
+
+func TestTrySendEvent_ReturnsFalseOnCancelledContext(t *testing.T) {
+	ch := make(chan executiontui.Event, 1)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	sent := trySendEvent(ctx, ch, executiontui.PhaseChangeEvent{Phase: "running"})
+
+	if sent {
+		t.Fatal("expected trySendEvent to return false when context is already cancelled")
+	}
+	select {
+	case <-ch:
+		t.Fatal("event should not have been sent to channel")
+	default:
+	}
+}
+
+func TestTrySendEvent_UnblocksOnCancellation(t *testing.T) {
+	// Unbuffered channel — send blocks until a receiver is ready.
+	ch := make(chan executiontui.Event)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	done := make(chan bool, 1)
+	go func() {
+		sent := trySendEvent(ctx, ch, executiontui.DoneEvent{Phase: "completed"})
+		done <- sent
+	}()
+
+	// Give the goroutine time to enter the select, then cancel.
+	time.Sleep(10 * time.Millisecond)
+	cancel()
+
+	select {
+	case sent := <-done:
+		if sent {
+			t.Fatal("expected false — context was cancelled while send was blocked")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("trySendEvent did not return within 2s after context cancellation — goroutine is stuck")
+	}
+}
+
+// =============================================================================
+// emitAndWaitApproval Tests — cancellation safety
+// =============================================================================
+
+func TestEmitAndWaitApproval_CancelledDuringEventSend(t *testing.T) {
+	// Full channel — the event send will block until context cancels.
+	events := make(chan executiontui.Event)
+	approvals := make(chan executiontui.ApprovalResponse, 1)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	cfg := streamToEventsConfig{
+		executionID:       "aex-test-1",
+		events:            events,
+		approvalResponses: approvals,
+	}
+	pa := &agentexecutionv1.PendingApproval{
+		ToolCallId: "tc-1",
+		ToolName:   "write_file",
+	}
+	promptedIDs := make(map[string]bool)
+
+	err := emitAndWaitApproval(ctx, cfg, nil, pa, promptedIDs, "tc-1")
+
+	if err == nil {
+		t.Fatal("expected error when context is cancelled during event send")
+	}
+	if err != context.Canceled {
+		t.Errorf("expected context.Canceled, got %v", err)
+	}
+	if promptedIDs["tc-1"] {
+		t.Error("promptedIDs should not be updated when event send fails")
+	}
+}
+
+func TestEmitAndWaitApproval_CancelledDuringApprovalWait(t *testing.T) {
+	events := make(chan executiontui.Event, 1)
+	approvals := make(chan executiontui.ApprovalResponse)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	cfg := streamToEventsConfig{
+		executionID:       "aex-test-2",
+		events:            events,
+		approvalResponses: approvals,
+	}
+	pa := &agentexecutionv1.PendingApproval{
+		ToolCallId: "tc-2",
+		ToolName:   "shell",
+	}
+	promptedIDs := make(map[string]bool)
+
+	done := make(chan error, 1)
+	go func() {
+		done <- emitAndWaitApproval(ctx, cfg, nil, pa, promptedIDs, "tc-2")
+	}()
+
+	// Wait for the approval event to arrive (proves the send succeeded).
+	select {
+	case evt := <-events:
+		if _, ok := evt.(executiontui.ApprovalNeededEvent); !ok {
+			t.Fatalf("expected ApprovalNeededEvent, got %T", evt)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("ApprovalNeededEvent not received within 2s")
+	}
+
+	// Cancel the context while the goroutine waits for the approval response.
+	cancel()
+
+	select {
+	case err := <-done:
+		if err == nil {
+			t.Fatal("expected error when context is cancelled during approval wait")
+		}
+		if err != context.Canceled {
+			t.Errorf("expected context.Canceled, got %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("emitAndWaitApproval did not return within 2s after context cancellation")
+	}
+
+	if !promptedIDs["tc-2"] {
+		t.Error("promptedIDs should be updated after successful event send, before approval wait")
+	}
+}
+
+func TestEmitAndWaitApproval_EventContainsCorrectFields(t *testing.T) {
+	events := make(chan executiontui.Event, 1)
+	approvals := make(chan executiontui.ApprovalResponse)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	cfg := streamToEventsConfig{
+		executionID:       "aex-test-3",
+		events:            events,
+		approvalResponses: approvals,
+	}
+	pa := &agentexecutionv1.PendingApproval{
+		ToolCallId:   "tc-3",
+		ToolName:     "execute_sql",
+		ArgsPreview:  `{"query": "DROP TABLE users"}`,
+		Message:      "Dangerous SQL operation",
+		FromSubAgent: true,
+		SubAgentName: "db-admin",
+	}
+	promptedIDs := make(map[string]bool)
+
+	go func() {
+		emitAndWaitApproval(ctx, cfg, nil, pa, promptedIDs, "tc-3")
+	}()
+
+	select {
+	case evt := <-events:
+		ae, ok := evt.(executiontui.ApprovalNeededEvent)
+		if !ok {
+			t.Fatalf("expected ApprovalNeededEvent, got %T", evt)
+		}
+		if ae.ToolCallID != "tc-3" {
+			t.Errorf("ToolCallID = %q, want %q", ae.ToolCallID, "tc-3")
+		}
+		if ae.ToolName != "execute_sql" {
+			t.Errorf("ToolName = %q, want %q", ae.ToolName, "execute_sql")
+		}
+		if ae.ArgsPreview != `{"query": "DROP TABLE users"}` {
+			t.Errorf("ArgsPreview = %q, want %q", ae.ArgsPreview, `{"query": "DROP TABLE users"}`)
+		}
+		if ae.Message != "Dangerous SQL operation" {
+			t.Errorf("Message = %q, want %q", ae.Message, "Dangerous SQL operation")
+		}
+		if !ae.FromSubAgent {
+			t.Error("FromSubAgent should be true")
+		}
+		if ae.SubAgentName != "db-admin" {
+			t.Errorf("SubAgentName = %q, want %q", ae.SubAgentName, "db-admin")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("ApprovalNeededEvent not received within 2s")
+	}
+
+	cancel()
 }
