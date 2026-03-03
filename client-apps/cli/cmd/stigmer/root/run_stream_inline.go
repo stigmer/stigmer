@@ -11,6 +11,11 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
 )
 
+// readGroupThreshold is the minimum number of consecutive read tool completions
+// that triggers grouped rendering via RenderReadGroup. Below this threshold,
+// reads are rendered individually via RenderCompact.
+const readGroupThreshold = 3
+
 // inlineRenderConfig configures the inline (non-TUI) event renderer.
 type inlineRenderConfig struct {
 	events            <-chan executiontui.Event
@@ -37,6 +42,11 @@ type inlineRenderer struct {
 	// only prints the bytes appended since the last delta event.
 	inAIStream    bool
 	streamedBytes int
+
+	// pendingReads buffers consecutive read tool completions for grouped
+	// rendering. Flushed when a non-read event arrives that produces visible
+	// output, or when the stream terminates.
+	pendingReads []toolrender.ToolCallInfo
 }
 
 // renderInline consumes events from the channel and renders them inline until
@@ -53,11 +63,13 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, ex
 	for {
 		select {
 		case <-ctx.Done():
+			r.flushPendingReads()
 			r.statusf("⚠ Stream cancelled\n")
 			return "", "context cancelled"
 
 		case event, ok := <-cfg.events:
 			if !ok {
+				r.flushPendingReads()
 				return "", ""
 			}
 
@@ -71,7 +83,31 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, ex
 
 // handleEvent dispatches a single event to the appropriate render method.
 // Returns (true, phase, error) when a terminal event is received.
+//
+// Read tool events are intercepted before the main switch for consecutive-event
+// grouping: completed reads accumulate in pendingReads and are flushed as a
+// group (or individually) when any other visible event arrives.
 func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Event) (done bool, phase string, exitErr string) {
+	// Buffer read completions for consecutive-event grouping.
+	if e, ok := event.(executiontui.ToolCompletedEvent); ok && toolrender.IsReadTool(e.ToolCall.Name) {
+		r.pendingReads = append(r.pendingReads, e.ToolCall)
+		return false, "", ""
+	}
+	// Suppress running indicators for read tools — reads complete fast,
+	// the grouped completion renders the result.
+	if e, ok := event.(executiontui.ToolRunningEvent); ok && toolrender.IsReadTool(e.ToolCall.Name) {
+		return false, "", ""
+	}
+	// Tool stream deltas produce no visible output in inline mode. They must
+	// not flush the read buffer — a concurrent streaming tool (e.g. shell)
+	// would break read grouping otherwise.
+	if _, ok := event.(executiontui.ToolStreamDeltaEvent); ok {
+		return false, "", ""
+	}
+
+	// All remaining events produce visible output. Flush pending reads first.
+	r.flushPendingReads()
+
 	switch e := event.(type) {
 	case executiontui.AIStreamStartEvent:
 		r.renderAIStreamStart(e)
@@ -89,10 +125,6 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 		r.renderToolCompleted(e)
 	case executiontui.ToolWaitingApprovalEvent:
 		r.renderToolWaitingApproval(e)
-	case executiontui.ToolStreamDeltaEvent:
-		// Intentionally ignored in inline mode — the completed event
-		// carries the final result. Streaming partial output to stderr
-		// would produce excessive noise without scrollback management.
 	case executiontui.SystemMessageEvent:
 		r.renderSystemMessage(e)
 	case executiontui.PhaseChangeEvent:
@@ -175,9 +207,6 @@ func (r *inlineRenderer) renderHumanMessage(e executiontui.HumanMessageEvent) {
 // ---------------------------------------------------------------------------
 
 func (r *inlineRenderer) renderToolRunning(e executiontui.ToolRunningEvent) {
-	if toolrender.IsReadTool(e.ToolCall.Name) {
-		return
-	}
 	line := toolrender.RenderWithBadge(e.ToolCall, toolrender.StateBadge("running"))
 	r.statusf("%s\n", line)
 }
@@ -334,6 +363,27 @@ func (r *inlineRenderer) handleApproval(ctx context.Context, e executiontui.Appr
 		ToolCallID: e.ToolCallID,
 		Comment:    decision.Comment,
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Read grouping
+// ---------------------------------------------------------------------------
+
+// flushPendingReads renders any buffered read tool completions. When the buffer
+// contains readGroupThreshold or more reads, they are rendered as a compact
+// group. Otherwise, each read is rendered individually.
+func (r *inlineRenderer) flushPendingReads() {
+	if len(r.pendingReads) == 0 {
+		return
+	}
+	if len(r.pendingReads) >= readGroupThreshold {
+		r.statusf("%s\n", toolrender.RenderReadGroup(r.pendingReads, r.compactOpts))
+	} else {
+		for _, tc := range r.pendingReads {
+			r.statusf("%s\n", toolrender.RenderCompact(tc, r.compactOpts))
+		}
+	}
+	r.pendingReads = r.pendingReads[:0]
 }
 
 // ---------------------------------------------------------------------------
