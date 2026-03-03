@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-04 00:23
-**Current Task**: Phase 2.2 (Write/Edit Tool Compact Rendering)
+**Current Task**: Phase 2.3 (Shell Tool Compact Rendering)
 **Status**: Ready to Start
-**Last Session**: 2026-03-04 — Phase 2.1 complete
+**Last Session**: 2026-03-04 — Phase 2.2 complete
 
 ## Session Progress (2026-03-04, Session 1)
 
@@ -131,20 +131,63 @@ When starting a new session:
 - `client-apps/cli/pkg/toolrender/BUILD.bazel` (modified)
 - `client-apps/cli/cmd/stigmer/root/run_stream_inline.go` (modified)
 
+## Session Progress (2026-03-04, Session 4)
+
+- Phase 2.1b (Read Tool Consecutive-Event Grouping) completed
+- Added `RenderReadGroup` and `renderGroupEntry` to `pkg/toolrender/render_compact.go` (+62 lines)
+- Restructured `handleEvent` in `run_stream_inline.go` with pre-switch interception for read buffering (+33 lines net)
+- Added 8 new test functions to `render_compact_test.go` (+135 lines)
+- Committed as `7b3ad46e`
+
+### Key Design Decisions (Session 4)
+- **Consecutive-event grouping** over time-based: events arrive from remote gRPC backend, network latency makes arrival time unreliable. Consecutive ordering is deterministic and testable.
+- **Smart truncation**: `maxVisibleInGroup = 3`, show all when count <= 4 (avoid pointless "+1 more"), truncate to 3 + "… +N more" for 5+.
+- **Pre-switch interception pattern**: Read completions, read running events, and tool stream deltas intercepted before the main switch in `handleEvent`. The switch only sees events that produce visible output.
+- **ToolStreamDeltaEvent excluded from flush**: Concurrent streaming tools (shell) must not break read grouping.
+- **`IsReadTool` removed from `renderToolRunning`**: Reads never reach the switch, so the guard is unnecessary.
+
+### Files Modified (Session 4)
+- `client-apps/cli/pkg/toolrender/render_compact.go` (modified)
+- `client-apps/cli/pkg/toolrender/render_compact_test.go` (modified)
+- `client-apps/cli/cmd/stigmer/root/run_stream_inline.go` (modified)
+
+## Session Progress (2026-03-04, Session 5)
+
+- Phase 2.2 (Write/Edit Tool Compact Rendering) completed
+- Extended `pkg/toolrender/render_compact.go` (+106 lines, now 280 lines) — 6 new functions: `RenderCompactRunning`, `IsWriteOrEditTool`, `isWriteOrEditLabel`, `hasCompactRenderer`, `completedVerb`, `renderCompactWrite`
+- Extended `pkg/toolrender/render_compact_test.go` (+494 lines) — 30 new test functions covering write/edit/create compact format, running state, hyperlinks, fallback, errors
+- Changed `cmd/stigmer/root/run_stream_inline.go` (1-line change) — `renderToolRunning` now uses `RenderCompactRunning`
+- Committed as `3dfcef8e`
+
+### Key Design Decisions (Session 5)
+- **No emoji badges** — Structure communicates state. Result summary line = done. Error line with `✗` = failed. Dim `…` suffix = running. Matches Claude Code's professional aesthetic.
+- **Running events NOT suppressed for write/edit** — Writes have observable latency (user confirmed from real Cursor usage). Dim `…` suffix prevents "is it stuck?" anxiety.
+- **`RenderCompactRunning`** is a new graduated entry point for running state. Uses `hasCompactRenderer` registry — as Phases 2.3-2.4 add compact renderers, running events automatically get compact formatting.
+- **`completedVerb`** maps labels to past-tense verbs (Wrote/Created/Edited) via simple switch.
+- **Line count from `resolveDisplayContent`** — Write tools correctly count from args content (the file being written), not the result confirmation message.
+- **Waiting-approval state untouched** — Verbose gutter preview intentionally kept for approval decisions. Richer approval UX is Phase 3 scope.
+
+### Files Modified (Session 5)
+- `client-apps/cli/pkg/toolrender/render_compact.go` (modified)
+- `client-apps/cli/pkg/toolrender/render_compact_test.go` (modified)
+- `client-apps/cli/cmd/stigmer/root/run_stream_inline.go` (modified)
+
 ## Next Steps
 
-1. Phase 2.2: Write/Edit tool compact rendering — minimal header + line count with clickable path
-2. Phase 2.3: Shell tool compact rendering — command + exit code + truncated output
-3. Phase 2.4: Other tools (glob, search, delete, think)
-4. Phase 2.5: Sub-agent tool grouping with indentation
+1. Phase 2.3: Shell tool compact rendering — command + exit code + truncated output
+2. Phase 2.4: Other tools (glob, search, delete, think)
+3. Phase 2.5: Sub-agent tool grouping with indentation
 
 ## Context for Resume
 
 - Pre-existing compile error in `run_create.go:114` (references `WorkspaceSource` from multi-source-workspace project) blocks `go test` for the `root` package. Our changes are isolated and verified correct via `go vet`.
 - The `OutputInteractive` constant is retained in `output_mode.go` — TUI code references it from `run_stream.go` and `run_session.go` default branches.
-- `RenderCompact(tc, opts)` is the graduated entry point for compact tool rendering. Currently only read tools get compact format; non-read tools fall back to `RenderWithBadge`. Phases 2.2-2.4 add branches to `RenderCompact` and the fallback shrinks.
+- **`RenderCompact`** is the graduated entry point for compact completed tool rendering. Read, write, create, and edit tools now get compact format; shell and others fall back to `RenderWithBadge`. Phases 2.3-2.4 add branches and the fallback shrinks.
+- **`RenderCompactRunning`** is the graduated entry point for compact running state. Tools with compact renderers (read, write, create, edit) get bullet-style with `…` suffix; others fall back to `RenderWithBadge` with `⏳`.
+- **`hasCompactRenderer`** is the graduated registry — add tool labels here as new compact renderers are implemented.
 - `CompactOptions` is initialized once in `renderInline()` with `HyperlinksEnabled` from `cfg.status` and an empty `WorkingDir` (relative path resolution deferred until working directory is available from execution context).
-- `ToolRunningEvent` is suppressed for read tools. The same pattern should be evaluated per-tool-type in subsequent phases.
+- **Read grouping**: `handleEvent` intercepts read completions before the switch and buffers them in `pendingReads`. `flushPendingReads()` renders as group (>= 3) or individually (< 3). Flush triggers on any non-read visible event, context cancel, or channel close. `ToolStreamDeltaEvent` does NOT flush (no visible output).
+- **ToolRunningEvent for reads**: Suppressed (intercepted before switch). For write/edit: NOT suppressed — uses `RenderCompactRunning`.
 - **OSC 8 / `stripANSI` gap**: `display/colors.go` `stripANSI` only handles CSI (`\x1b[...m`), not OSC (`\x1b]...`). NOT a blocker for compact rendering (output goes to stderr via `statusf`, never through width measurement). Becomes relevant if hyperlinked strings ever enter `MeasureColorizedString` or `TrimColorizedString`.
 - **`charmbracelet/x/ansi.StringWidth()` OSC 8 verification**: Still pending empirical verification. Not needed until a phase truncates hyperlinked strings with `truncateANSI`.
 
@@ -155,7 +198,7 @@ None.
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 2.2" - Start Write/Edit tool compact rendering
+- "Continue with Phase 2.3" - Start Shell tool compact rendering
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
