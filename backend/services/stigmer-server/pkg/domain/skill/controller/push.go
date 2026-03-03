@@ -202,12 +202,12 @@ func (s *FindExistingBySlugStep) Execute(ctx *pipeline.RequestContext[*skillv1.P
 	skill := ctx.Get(SkillKey).(*skillv1.Skill)
 	slug := skill.Metadata.Slug
 
-	// Find existing skill by slug using common helper
 	existingSkill, err := steps.FindResourceBySlug[*skillv1.Skill](
 		ctx.Context(),
 		s.store,
 		apiresourcekind.ApiResourceKind_skill,
 		slug,
+		skill.Metadata.Org,
 	)
 	if err != nil {
 		return grpclib.InternalError(err, "failed to search for existing skill")
