@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -15,6 +16,11 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+)
+
+const (
+	approvalRetryMaxAttempts = 3
+	approvalRetryBaseDelay   = 1 * time.Second
 )
 
 // streamToEventsConfig holds the dependencies for the gRPC-to-TUI bridge goroutine.
@@ -80,6 +86,94 @@ func trySendEvent(ctx context.Context, ch chan<- executiontui.Event, event execu
 	case <-ctx.Done():
 		return false
 	}
+}
+
+// isRetryableSubmitError returns true if the error from submitAgentApproval
+// is transient and worth retrying. It walks the Unwrap() chain to find a
+// gRPC status code and classifies it:
+//
+//   - Retryable: Unavailable, DeadlineExceeded, ResourceExhausted, Aborted,
+//     Internal, Unknown — transient server/network conditions.
+//   - Non-retryable: NotFound, InvalidArgument, PermissionDenied,
+//     Unauthenticated, FailedPrecondition, AlreadyExists, Canceled —
+//     permanent conditions that won't change on retry.
+//
+// Non-gRPC errors (raw network/io) default to retryable since they are
+// typically transient.
+func isRetryableSubmitError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	for e := err; e != nil; {
+		st, ok := status.FromError(e)
+		if ok && st.Code() != codes.OK {
+			switch st.Code() {
+			case codes.Unavailable, codes.DeadlineExceeded, codes.ResourceExhausted,
+				codes.Aborted, codes.Internal, codes.Unknown:
+				return true
+			default:
+				return false
+			}
+		}
+		if u, ok := e.(interface{ Unwrap() error }); ok {
+			e = u.Unwrap()
+		} else {
+			break
+		}
+	}
+
+	return true
+}
+
+// retryWithBackoff calls fn up to maxAttempts times with exponential backoff
+// between failures. It stops early when:
+//   - fn succeeds (returns nil)
+//   - fn returns a non-retryable error (per isRetryableSubmitError)
+//   - the context is cancelled (returns ctx.Err())
+//
+// Backoff doubles each attempt: baseDelay, 2*baseDelay, 4*baseDelay, etc.
+// The sleep between attempts is context-aware — a cancelled context
+// interrupts the wait immediately.
+func retryWithBackoff(
+	ctx context.Context,
+	maxAttempts int,
+	baseDelay time.Duration,
+	fn func() error,
+) error {
+	var lastErr error
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+
+		lastErr = fn()
+		if lastErr == nil {
+			return nil
+		}
+
+		if !isRetryableSubmitError(lastErr) {
+			return lastErr
+		}
+
+		if attempt < maxAttempts-1 {
+			delay := baseDelay * time.Duration(1<<uint(attempt))
+
+			log.Debug().
+				Err(lastErr).
+				Int("attempt", attempt+1).
+				Int("max_attempts", maxAttempts).
+				Dur("next_delay", delay).
+				Msg("[stream] retryable approval submit error — backing off")
+
+			select {
+			case <-time.After(delay):
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}
+	}
+	return lastErr
 }
 
 // streamToEvents runs the gRPC stream loop and converts execution updates
@@ -624,19 +718,27 @@ func emitAndWaitApproval(
 		return ctx.Err()
 	}
 
-	// Submit the decision to the backend.
+	// Submit the decision to the backend with retry for transient failures.
 	decision := mapApprovalResponseToDecision(resp)
-	_, err := submitAgentApproval(ctx, cfg.conn, cfg.executionID, info.toolCallID, decision)
+	err := retryWithBackoff(ctx, approvalRetryMaxAttempts, approvalRetryBaseDelay, func() error {
+		_, submitErr := submitAgentApproval(ctx, cfg.conn, cfg.executionID, info.toolCallID, decision)
+		return submitErr
+	})
 	if err != nil {
 		log.Error().
 			Err(err).
 			Str("execution_id", cfg.executionID).
 			Str("tool_call_id", info.toolCallID).
 			Str("action", resp.Action).
-			Msg("[stream] failed to submit approval decision")
+			Msg("[stream] failed to submit approval decision after retries")
+
+		msg := fmt.Sprintf("Failed to submit approval after %d attempts", approvalRetryMaxAttempts)
+		if cfg.sessionID != "" {
+			msg += fmt.Sprintf(". Re-attach to retry: stigmer run %s", cfg.sessionID)
+		}
 
 		trySendEvent(ctx, cfg.events, executiontui.StreamErrorEvent{
-			Err: errors.Wrap(err, "failed to submit approval decision"),
+			Err: errors.Wrap(err, msg),
 		})
 	}
 

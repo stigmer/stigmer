@@ -3,6 +3,7 @@ package root
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 	"testing"
@@ -954,5 +955,205 @@ func TestClassifyStreamError_Unwrap_PreservesOriginal(t *testing.T) {
 	}
 	if st.Code() != codes.Internal {
 		t.Errorf("expected code Internal, got %v", st.Code())
+	}
+}
+
+// =============================================================================
+// isRetryableSubmitError Tests — gRPC code classification
+// =============================================================================
+
+func TestIsRetryableSubmitError_Nil(t *testing.T) {
+	if isRetryableSubmitError(nil) {
+		t.Error("nil error should not be retryable")
+	}
+}
+
+func TestIsRetryableSubmitError_RetryableCodes(t *testing.T) {
+	retryable := []codes.Code{
+		codes.Unavailable,
+		codes.DeadlineExceeded,
+		codes.ResourceExhausted,
+		codes.Aborted,
+		codes.Internal,
+		codes.Unknown,
+	}
+	for _, code := range retryable {
+		err := status.Error(code, "transient")
+		if !isRetryableSubmitError(err) {
+			t.Errorf("expected %s to be retryable", code)
+		}
+	}
+}
+
+func TestIsRetryableSubmitError_NonRetryableCodes(t *testing.T) {
+	permanent := []codes.Code{
+		codes.NotFound,
+		codes.InvalidArgument,
+		codes.PermissionDenied,
+		codes.Unauthenticated,
+		codes.FailedPrecondition,
+		codes.AlreadyExists,
+		codes.Canceled,
+	}
+	for _, code := range permanent {
+		err := status.Error(code, "permanent")
+		if isRetryableSubmitError(err) {
+			t.Errorf("expected %s to NOT be retryable", code)
+		}
+	}
+}
+
+func TestIsRetryableSubmitError_WrappedGRPCError(t *testing.T) {
+	inner := status.Error(codes.Unavailable, "connection reset")
+	wrapped := fmt.Errorf("failed to submit agent approval for aex-123: %w", inner)
+
+	if !isRetryableSubmitError(wrapped) {
+		t.Error("wrapped Unavailable error should be retryable")
+	}
+}
+
+func TestIsRetryableSubmitError_WrappedNonRetryableGRPCError(t *testing.T) {
+	inner := status.Error(codes.NotFound, "execution not found")
+	wrapped := fmt.Errorf("failed to submit agent approval for aex-123: %w", inner)
+
+	if isRetryableSubmitError(wrapped) {
+		t.Error("wrapped NotFound error should NOT be retryable")
+	}
+}
+
+func TestIsRetryableSubmitError_NonGRPCError(t *testing.T) {
+	err := errors.New("connection refused")
+	if !isRetryableSubmitError(err) {
+		t.Error("non-gRPC errors should default to retryable")
+	}
+}
+
+func TestIsRetryableSubmitError_IOError(t *testing.T) {
+	err := fmt.Errorf("submit failed: %w", io.ErrUnexpectedEOF)
+	if !isRetryableSubmitError(err) {
+		t.Error("IO errors should default to retryable")
+	}
+}
+
+// =============================================================================
+// retryWithBackoff Tests — retry loop with exponential backoff
+// =============================================================================
+
+func TestRetryWithBackoff_SucceedsFirstAttempt(t *testing.T) {
+	attempts := 0
+	err := retryWithBackoff(context.Background(), 3, time.Millisecond, func() error {
+		attempts++
+		return nil
+	})
+
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	if attempts != 1 {
+		t.Errorf("expected 1 attempt, got %d", attempts)
+	}
+}
+
+func TestRetryWithBackoff_SucceedsOnSecondAttempt(t *testing.T) {
+	attempts := 0
+	err := retryWithBackoff(context.Background(), 3, time.Millisecond, func() error {
+		attempts++
+		if attempts == 1 {
+			return status.Error(codes.Unavailable, "transient")
+		}
+		return nil
+	})
+
+	if err != nil {
+		t.Fatalf("expected nil error after retry, got %v", err)
+	}
+	if attempts != 2 {
+		t.Errorf("expected 2 attempts, got %d", attempts)
+	}
+}
+
+func TestRetryWithBackoff_AllAttemptsFail(t *testing.T) {
+	attempts := 0
+	sentinel := status.Error(codes.Unavailable, "persistent failure")
+	err := retryWithBackoff(context.Background(), 3, time.Millisecond, func() error {
+		attempts++
+		return sentinel
+	})
+
+	if err == nil {
+		t.Fatal("expected error after all attempts exhausted")
+	}
+	if attempts != 3 {
+		t.Errorf("expected 3 attempts, got %d", attempts)
+	}
+}
+
+func TestRetryWithBackoff_NonRetryableError_StopsImmediately(t *testing.T) {
+	attempts := 0
+	err := retryWithBackoff(context.Background(), 3, time.Millisecond, func() error {
+		attempts++
+		return status.Error(codes.NotFound, "execution not found")
+	})
+
+	if err == nil {
+		t.Fatal("expected error for non-retryable failure")
+	}
+	if attempts != 1 {
+		t.Errorf("expected 1 attempt (no retry for NotFound), got %d", attempts)
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatal("expected gRPC status error")
+	}
+	if st.Code() != codes.NotFound {
+		t.Errorf("expected NotFound, got %v", st.Code())
+	}
+}
+
+func TestRetryWithBackoff_ContextCancelledDuringBackoff(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	attempts := 0
+
+	done := make(chan error, 1)
+	go func() {
+		done <- retryWithBackoff(ctx, 3, 5*time.Second, func() error {
+			attempts++
+			return status.Error(codes.Unavailable, "transient")
+		})
+	}()
+
+	// Wait for the first attempt to complete and backoff to start.
+	time.Sleep(50 * time.Millisecond)
+	cancel()
+
+	select {
+	case err := <-done:
+		if err != context.Canceled {
+			t.Errorf("expected context.Canceled, got %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("retryWithBackoff did not return within 2s after context cancellation")
+	}
+
+	if attempts != 1 {
+		t.Errorf("expected 1 attempt before cancellation, got %d", attempts)
+	}
+}
+
+func TestRetryWithBackoff_ContextAlreadyCancelled(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	attempts := 0
+	err := retryWithBackoff(ctx, 3, time.Millisecond, func() error {
+		attempts++
+		return nil
+	})
+
+	if err != context.Canceled {
+		t.Errorf("expected context.Canceled, got %v", err)
+	}
+	if attempts != 0 {
+		t.Errorf("expected 0 attempts with pre-cancelled context, got %d", attempts)
 	}
 }
