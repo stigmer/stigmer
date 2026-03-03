@@ -23,6 +23,19 @@ type streamToEventsConfig struct {
 	conn              *grpc.ClientConn
 }
 
+// trySendEvent attempts to send an event on the channel. Returns true if the
+// event was delivered, false if the context was cancelled before the send
+// could complete. This prevents goroutines from blocking indefinitely on
+// channel sends when the TUI has exited.
+func trySendEvent(ctx context.Context, ch chan<- executiontui.Event, event executiontui.Event) bool {
+	select {
+	case ch <- event:
+		return true
+	case <-ctx.Done():
+		return false
+	}
+}
+
 // streamToEvents runs the gRPC stream loop and converts execution updates
 // into TUI events sent over the events channel. This function is designed to
 // run in a goroutine — it blocks on stream.Recv() and sends events until the
@@ -50,14 +63,17 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 	for {
 		execution, err := cfg.stream.Recv()
 		if err != nil {
+			if ctx.Err() != nil {
+				return
+			}
 			if err == io.EOF {
-				cfg.events <- executiontui.StreamErrorEvent{
+				trySendEvent(ctx, cfg.events, executiontui.StreamErrorEvent{
 					Err: errors.New("execution stream ended unexpectedly"),
-				}
+				})
 			} else {
-				cfg.events <- executiontui.StreamErrorEvent{
+				trySendEvent(ctx, cfg.events, executiontui.StreamErrorEvent{
 					Err: errors.Wrap(err, "execution stream error"),
-				}
+				})
 			}
 			return
 		}
@@ -121,9 +137,11 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 		// Previously this ran after approval handling, which suppressed the
 		// phase change and left the header stuck on "in_progress".
 		if execution.Status.Phase != lastPhase {
-			cfg.events <- executiontui.PhaseChangeEvent{
+			if !trySendEvent(ctx, cfg.events, executiontui.PhaseChangeEvent{
 				Phase:    mapPhaseToString(execution.Status.Phase),
 				Previous: mapPhaseToString(lastPhase),
+			}) {
+				return
 			}
 			lastPhase = execution.Status.Phase
 		}
@@ -149,7 +167,9 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 					Msg("[stream] approval detected — emitting ApprovalNeededEvent")
 
 				tc := findToolCallByID(execution.Status.ToolCalls, execution.Status.GetSubAgentExecutions(), pa.ToolCallId)
-				emitAndWaitApproval(ctx, cfg, tc, pa, promptedIDs, dedupKey)
+				if err := emitAndWaitApproval(ctx, cfg, tc, pa, promptedIDs, dedupKey); err != nil {
+					return
+				}
 			}
 		}
 
@@ -179,7 +199,9 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 					Bool("from_sub_agent", u.fromSubAgent).
 					Msg("[stream] defense-in-depth: approval detected via tool call status scan")
 
-				emitAndWaitApproval(ctx, cfg, u.toolCall, pa, promptedIDs, pa.ToolCallId)
+				if err := emitAndWaitApproval(ctx, cfg, u.toolCall, pa, promptedIDs, pa.ToolCallId); err != nil {
+					return
+				}
 			}
 		}
 
@@ -194,10 +216,10 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 			if execution.Status.Error != "" {
 				errMsg = execution.Status.Error
 			}
-			cfg.events <- executiontui.DoneEvent{
+			trySendEvent(ctx, cfg.events, executiontui.DoneEvent{
 				Phase: mapPhaseToString(execution.Status.Phase),
 				Error: errMsg,
-			}
+			})
 			return
 		}
 	}
@@ -515,6 +537,11 @@ func todoFingerprintsChanged(prev, current map[string]todoFingerprint) bool {
 // emitAndWaitApproval sends an approval event to the TUI and blocks until
 // the user responds. It then submits the decision to the backend.
 //
+// All channel operations use select with ctx.Done() so the goroutine can
+// exit cleanly when the TUI exits (context cancelled). Returns a non-nil
+// error only on context cancellation — the caller should exit the stream
+// loop when this happens.
+//
 // If the approval submission fails, a StreamErrorEvent is emitted so the TUI
 // can display an actionable error to the user instead of silently continuing
 // with a stream that will never receive new updates (the backend never got
@@ -526,23 +553,29 @@ func emitAndWaitApproval(
 	pa *agentexecutionv1.PendingApproval,
 	promptedIDs map[string]bool,
 	dedupKey string,
-) {
-	// Determine the approval info from the best available source.
+) error {
 	info := extractApprovalInfo(tc, pa)
 
-	cfg.events <- executiontui.ApprovalNeededEvent{
+	if !trySendEvent(ctx, cfg.events, executiontui.ApprovalNeededEvent{
 		ToolCallID:   info.toolCallID,
 		ToolName:     info.toolName,
 		ArgsPreview:  info.argsPreview,
 		Message:      info.message,
 		FromSubAgent: info.fromSubAgent,
 		SubAgentName: info.subAgentName,
+	}) {
+		return ctx.Err()
 	}
 
 	promptedIDs[dedupKey] = true
 
-	// Block until the user responds.
-	resp := <-cfg.approvalResponses
+	// Block until the user responds or the context is cancelled.
+	var resp executiontui.ApprovalResponse
+	select {
+	case resp = <-cfg.approvalResponses:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 
 	// Submit the decision to the backend.
 	decision := mapApprovalResponseToDecision(resp)
@@ -555,10 +588,12 @@ func emitAndWaitApproval(
 			Str("action", resp.Action).
 			Msg("[stream] failed to submit approval decision")
 
-		cfg.events <- executiontui.StreamErrorEvent{
+		trySendEvent(ctx, cfg.events, executiontui.StreamErrorEvent{
 			Err: errors.Wrap(err, "failed to submit approval decision"),
-		}
+		})
 	}
+
+	return nil
 }
 
 // approvalInfo holds all display-relevant fields extracted from a

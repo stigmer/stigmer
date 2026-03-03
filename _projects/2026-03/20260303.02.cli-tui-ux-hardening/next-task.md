@@ -77,12 +77,24 @@ Role reference: `_roles/003_cli_tui_ux_eng`
 ## Current State
 
 - **Status**: in-progress
-- **Last Session**: 2026-03-03 — Phase 1.1 implementation complete
-- **Active Task**: Phase 1.1 "Approval Not Surfaced on Resume" (code + tests done; manual test pending)
+- **Last Session**: 2026-03-03 (Session 2) — Phase 1.2 implementation complete
+- **Active Task**: None — ready to pick next phase
 
-## Session Progress (2026-03-03)
+## Session Progress (2026-03-03 — Session 2)
 
-- Completed Phase 1.1 defense-in-depth fix for approval prompts on resume
+- Completed Phase 1.2: Context-Cancellable Approval Flow
+- Challenged the original plan's "deadlock" diagnosis — identified it as a goroutine lifecycle management failure
+- Rejected buffer increase (16 → 64) and 30s approval timeout as wrong fixes
+- Added `trySendEvent` reusable helper for context-aware channel sends
+- Made `emitAndWaitApproval` cancellable with `select` + `ctx.Done()` on all channel ops
+- Applied cancellable context pattern to `streamAgentExecution`, `resumeSession`, and `buildFollowUpFn`
+- Migrated error/phase/done sends in `streamToEvents` to use `trySendEvent`
+- Wrote 6 new unit tests — all passing alongside existing suite
+- Created changelog: `_changelog/2026-03/2026-03-03-205941-context-cancellable-approval-flow.md`
+
+## Session Progress (2026-03-03 — Session 1)
+
+- Completed Phase 1.1: Defense-in-depth fix for approval prompts on resume
 - Discovered and corrected an architectural misdirection: plan targeted snapshot path, but the fix belongs on the stream path
 - Added `findAllUnpromptedApprovals` with sub-agent awareness to `run_stream_approval.go`
 - Added Step 3b fallback block in `streamToEvents` in `run_stream_events.go`
@@ -91,19 +103,30 @@ Role reference: `_roles/003_cli_tui_ux_eng`
 
 ## Next Steps
 
-1. **Manual test**: Detach during an approval, re-attach via `stigmer run ses-XXX`, verify the approval prompt appears
-2. Pick the next phase from the plan in `tasks/T01_0_plan.md` (likely Phase 1.2 or another Phase 1 item)
-3. Continue through the CLI/TUI UX hardening plan
+1. Pick the next phase from the plan in `tasks/T01_0_plan.md`:
+   - **Phase 1.3**: Dead Stream Connection Detection — builds on `trySendEvent` and cancellable context
+   - **Phase 1.4**: Emergency Terminal Restore on Crash
+   - **Phase 1.5**: Esc as Cancel Shortcut
+2. Phase 1.3 is the natural next step since it directly extends the patterns introduced in 1.2
 
 ## Context for Resume
 
-- The fix targets the **stream path** (`run_stream_events.go`), NOT the snapshot path. The snapshot path only handles terminal executions and lacks gRPC approval response plumbing.
-- The defense-in-depth block only fires when `pending_approvals` is empty AND the execution phase is `WAITING_FOR_APPROVAL`. It does not replace the primary path.
+- **Phase 1.2 key pattern**: `streamCtx, streamCancel := context.WithCancel(context.Background())` in both `streamAgentExecution` and `resumeSession`. `streamCancel()` is called after `p.Run()` returns. Follow-up goroutines share the same context via `buildFollowUpFn`.
+- **`trySendEvent` helper**: Reusable for Phase 1.3. Returns `bool` — `false` means context was cancelled.
+- **`emitAndWaitApproval` returns `error`**: Callers check `err != nil` and return (exit goroutine).
+- The Phase 1.1 fix targets the **stream path** (`run_stream_events.go`), NOT the snapshot path.
 - The backend has a known write-ordering issue between MongoDB and Redis that can cause `pending_approvals` to be empty in the initial Subscribe snapshot. This is tracked as a backend follow-up.
+
+## Completed Phases
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| 1.1 | Approval Not Surfaced on Resume | Done (code + tests, manual test pending) |
+| 1.2 | Context-Cancellable Approval Flow | Done (code + 6 tests) |
 
 ## Blockers
 
-- None. Manual test requires running backend environment.
+- None. Phase 1.1 manual test requires running backend environment.
 
 ## Quick Resume
 
