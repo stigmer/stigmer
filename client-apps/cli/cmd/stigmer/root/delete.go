@@ -11,6 +11,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/organization"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
 	"google.golang.org/grpc"
@@ -90,15 +91,25 @@ type deleteContext struct {
 	conn      *grpc.ClientConn
 }
 
+// isDeleteOrganizationType checks if the type arg refers to organizations.
+func isDeleteOrganizationType(typeArg string) bool {
+	return isOrganizationType(typeArg)
+}
+
 func executeDelete(opts deleteOptions) error {
 	if isDeleteExecutionType(opts.TypeArg) {
 		return executeCancelExecution(opts)
 	}
 
+	// Organizations use FindMyOrganizations and don't need org context
+	if isDeleteOrganizationType(opts.TypeArg) {
+		return executeDeleteOrganization(opts)
+	}
+
 	reg := types.DefaultRegistry()
 	info, ok := reg.GetByAlias(opts.TypeArg)
 	if !ok {
-		return fmt.Errorf("unknown resource type: %s\n\nAvailable types: agent, workflow, mcpserver, project, skill, execution", opts.TypeArg)
+		return fmt.Errorf("unknown resource type: %s\n\nAvailable types: agent, workflow, mcpserver, project, skill, execution, organization", opts.TypeArg)
 	}
 
 	if !info.SupportsVerb(types.VerbDelete) {
@@ -140,6 +151,75 @@ func executeDelete(opts deleteOptions) error {
 		conn:      conn,
 	}
 	return routeDelete(info, dctx)
+}
+
+// executeDeleteOrganization handles the special case of deleting an organization.
+// Organizations don't require org context - they're looked up directly by slug or ID.
+func executeDeleteOrganization(opts deleteOptions) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return errors.Wrap(err, "failed to load configuration")
+	}
+
+	if cfg.Backend.Type == config.BackendTypeLocal {
+		dataDir, err := config.GetDataDir()
+		if err != nil {
+			return errors.Wrap(err, "failed to get data directory")
+		}
+		if err := daemon.EnsureRunning(dataDir); err != nil {
+			return errors.Wrap(err, "failed to start daemon")
+		}
+	}
+
+	conn, err := backend.NewConnection()
+	if err != nil {
+		return errors.Wrap(err, "failed to connect to backend")
+	}
+	defer conn.Close()
+
+	renderer := clioutput.NewRenderer(opts.OutputFormat, os.Stdout, os.Stderr)
+	confirmer := clioutput.NewConfirmer(opts.Force, os.Stderr)
+
+	orgRes, err := organization.GetFromBackend(conn, opts.Reference)
+	if err != nil {
+		return err
+	}
+
+	if !opts.Force {
+		warn := clioutput.Warning("You are about to delete the following organization:")
+		warn.AddSection("").
+			Field("ID", orgRes.GetMetadata().GetId()).
+			Field("Name", orgRes.GetMetadata().GetName()).
+			Field("Slug", orgRes.GetMetadata().GetSlug())
+		warn.Hint("This will delete the organization and all its resources.")
+		warn.Hint("This action cannot be undone.")
+		renderer.Render(warn)
+
+		confirmed, err := confirmer.Confirm("Proceed with deletion? [y/N]")
+		if err != nil {
+			return errors.Wrap(err, "failed to read confirmation")
+		}
+		if !confirmed {
+			fmt.Fprintln(os.Stderr, "Aborted.")
+			return nil
+		}
+	}
+
+	result, err := organization.Delete(&organization.DeleteOptions{
+		OrganizationID: orgRes.GetMetadata().GetId(),
+		Conn:           conn,
+	})
+	if err != nil {
+		return err
+	}
+
+	out := clioutput.Success("Organization deleted successfully")
+	out.AddSection("Deleted Organization").
+		Field("ID", result.Organization.GetMetadata().GetId()).
+		Field("Name", result.Organization.GetMetadata().GetName()).
+		Field("Slug", result.Organization.GetMetadata().GetSlug())
+	renderer.Render(out)
+	return nil
 }
 
 func routeDelete(info *types.TypeInfo, dctx *deleteContext) error {
