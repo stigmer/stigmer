@@ -1,7 +1,7 @@
 {
   "name": "AgentSpec",
   "kind": "AGENT_SPEC",
-  "description": "AgentSpec defines the configurable properties of an AI agent.\n This is the \"Template\" layer - declares capabilities and requirements.\n\n Example YAML:\n   apiVersion: agentic.stigmer.ai/v1\n   kind: Agent\n   metadata:\n     name: engineering-assistant\n     slug: eng-assistant\n   spec:\n     description: \"Helps engineering teams with code review\"\n     instructions: \"You are an engineering assistant...\"\n     mcp_server_usages:\n       - mcp_server_ref:\n           org: local\n           kind: mcp_server\n           slug: github\n         enabled_tools: [search_code, create_pr]\n     skill_refs:\n       - org: local\n         kind: skill\n         slug: code-review-best-practices",
+  "description": "AgentSpec defines the configurable properties of an AI agent.\n This is the \"Template\" layer - declares capabilities and requirements.\n\n Example YAML:\n   apiVersion: agentic.stigmer.ai/v1\n   kind: Agent\n   metadata:\n     name: engineering-assistant\n     slug: eng-assistant\n   spec:\n     description: \"Helps engineering teams with code review\"\n     instructions: \"You are an engineering assistant...\"\n     mcp_server_usages:\n       - mcp_server_ref:\n           kind: mcp_server\n           slug: github\n         enabled_tools: [search_code, create_pr]\n     skill_refs:\n       - kind: skill\n         slug: code-review-best-practices",
   "protoType": "ai.stigmer.agentic.agent.v1.AgentSpec",
   "protoFile": "apis/ai/stigmer/agentic/agent/v1/spec.proto",
   "fields": [

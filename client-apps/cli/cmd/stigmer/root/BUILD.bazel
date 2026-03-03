@@ -69,6 +69,7 @@ go_library(
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
         "//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution",
+        "//apis/stubs/go/ai/stigmer/agentic/executioncontext/v1:executioncontext",
         "//apis/stubs/go/ai/stigmer/agentic/mcpserver/v1:mcpserver",
         "//apis/stubs/go/ai/stigmer/agentic/session/v1:session",
         "//apis/stubs/go/ai/stigmer/agentic/skill/v1:skill",
