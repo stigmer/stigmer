@@ -649,7 +649,35 @@ func TestRenderCompact_CreateFile_UsesCreatedVerb(t *testing.T) {
 // RenderCompact — fallback for non-compact tools
 // =============================================================================
 
-func TestRenderCompact_ShellTool_FallsBackToRenderWithBadge(t *testing.T) {
+// =============================================================================
+// RenderCompact — shell tool, basic format
+// =============================================================================
+
+func TestRenderCompact_Shell_BasicFormat(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "shell",
+		Args:   map[string]interface{}{"command": "go test ./..."},
+		Status: "completed",
+		Result: "ok  pkg/foo  0.5s\nok  pkg/bar  1.2s\nok  pkg/baz  0.3s\n",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, got, "●")
+	assertContains(t, got, "Shell")
+	assertContains(t, got, "go test ./...")
+	assertContains(t, got, "ok  pkg/foo")
+	assertContains(t, got, "ok  pkg/bar")
+	assertContains(t, got, "ok  pkg/baz")
+
+	if !strings.Contains(plain, "Shell(go test ./...)") {
+		t.Errorf("expected header format Shell(go test ./...), got:\n  %q", plain)
+	}
+}
+
+func TestRenderCompact_Shell_NoExitCode(t *testing.T) {
 	tc := ToolCallInfo{
 		Name:   "shell",
 		Args:   map[string]interface{}{"command": "ls -la"},
@@ -659,11 +687,327 @@ func TestRenderCompact_ShellTool_FallsBackToRenderWithBadge(t *testing.T) {
 	opts := CompactOptions{HyperlinksEnabled: false}
 
 	got := RenderCompact(tc, opts)
-	assertContains(t, got, "🖥 ")
-	assertContains(t, got, "Shell")
-	assertContains(t, got, "ls -la")
-	assertContains(t, got, "✓")
+	plain := stripANSI(got)
+
+	if strings.Contains(strings.ToLower(plain), "exit") {
+		t.Errorf("compact shell should not display exit code, got:\n  %q", plain)
+	}
 }
+
+func TestRenderCompact_Shell_OutputTruncation(t *testing.T) {
+	lines := make([]string, 20)
+	for i := range lines {
+		lines[i] = fmt.Sprintf("line %d output", i+1)
+	}
+	tc := ToolCallInfo{
+		Name:   "shell",
+		Args:   map[string]interface{}{"command": "cat big.log"},
+		Status: "completed",
+		Result: strings.Join(lines, "\n") + "\n",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, got, "line 1 output")
+	assertContains(t, got, "line 2 output")
+	assertContains(t, got, "line 3 output")
+	assertNotContains(t, got, "line 4 output")
+	assertContains(t, got, "+17 more lines")
+
+	outputLines := strings.Split(plain, "\n")
+	if len(outputLines) != 5 {
+		t.Errorf("expected 5 lines (header + 3 output + footer), got %d:\n%s", len(outputLines), plain)
+	}
+}
+
+func TestRenderCompact_Shell_SmartCutoff_FourLines(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "shell",
+		Args:   map[string]interface{}{"command": "ls"},
+		Status: "completed",
+		Result: "a.go\nb.go\nc.go\nd.go\n",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+
+	assertContains(t, got, "a.go")
+	assertContains(t, got, "b.go")
+	assertContains(t, got, "c.go")
+	assertContains(t, got, "d.go")
+	assertNotContains(t, got, "more lines")
+}
+
+func TestRenderCompact_Shell_ShortOutput(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "shell",
+		Args:   map[string]interface{}{"command": "ls *.go"},
+		Status: "completed",
+		Result: "main.go\nutil.go\n",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+
+	assertContains(t, got, "main.go")
+	assertContains(t, got, "util.go")
+	assertNotContains(t, got, "more lines")
+}
+
+func TestRenderCompact_Shell_NoOutput(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "shell",
+		Args:   map[string]interface{}{"command": "mkdir -p tmp"},
+		Status: "completed",
+		Result: "",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+
+	assertContains(t, got, "mkdir -p tmp")
+	assertContains(t, got, "(no output)")
+}
+
+func TestRenderCompact_Shell_WhitespaceOnlyOutput(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "shell",
+		Args:   map[string]interface{}{"command": "true"},
+		Status: "completed",
+		Result: "   \n\n  \n",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertContains(t, got, "(no output)")
+}
+
+// =============================================================================
+// RenderCompact — shell tool, failed
+// =============================================================================
+
+func TestRenderCompact_Shell_Failed(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "shell",
+		Args:   map[string]interface{}{"command": "go build ./..."},
+		Status: "failed",
+		Error:  "compilation failed",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+
+	assertContains(t, got, "go build ./...")
+	assertContains(t, got, "✗")
+	assertContains(t, got, "compilation failed")
+	assertNotContains(t, got, "lines")
+}
+
+func TestRenderCompact_Shell_FailedEmptyError(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "shell",
+		Args:   map[string]interface{}{"command": "bad_cmd"},
+		Status: "failed",
+		Error:  "",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertContains(t, got, "✗")
+	assertContains(t, got, "failed")
+}
+
+func TestRenderCompact_Shell_FailedLongError(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "shell",
+		Args:   map[string]interface{}{"command": "compile"},
+		Status: "failed",
+		Error:  strings.Repeat("e", 100),
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	lines := strings.Split(plain, "\n")
+	if len(lines) < 2 {
+		t.Fatalf("expected at least 2 lines, got %d", len(lines))
+	}
+	if len(lines[1]) > 80 {
+		t.Errorf("error line too long (%d chars), should be truncated", len(lines[1]))
+	}
+}
+
+// =============================================================================
+// RenderCompact — shell tool, command truncation
+// =============================================================================
+
+func TestRenderCompact_Shell_LongCommandTruncated(t *testing.T) {
+	longCmd := "find /Users/suresh/scm/github.com/stigmer/stigmer -type f -name '*.go' | sort | head -20"
+	tc := ToolCallInfo{
+		Name:   "shell",
+		Args:   map[string]interface{}{"command": longCmd},
+		Status: "completed",
+		Result: "file1.go\n",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	headerLine := strings.Split(plain, "\n")[0]
+	if len(headerLine) > 80 {
+		t.Errorf("header too long (%d chars), command should be truncated:\n  %q", len(headerLine), headerLine)
+	}
+	if !strings.Contains(headerLine, "...") {
+		t.Errorf("truncated command should end with ..., got:\n  %q", headerLine)
+	}
+}
+
+func TestRenderCompact_Shell_MultilineCommandUsesFirstLine(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "shell",
+		Args:   map[string]interface{}{"command": "echo hello\necho world"},
+		Status: "completed",
+		Result: "hello\nworld\n",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	headerLine := strings.Split(plain, "\n")[0]
+	if strings.Contains(headerLine, "echo world") {
+		t.Errorf("header should only contain first line of command, got:\n  %q", headerLine)
+	}
+	if !strings.Contains(headerLine, "Shell(echo hello)") {
+		t.Errorf("expected Shell(echo hello) in header, got:\n  %q", headerLine)
+	}
+}
+
+// =============================================================================
+// RenderCompact — shell tool, style constraints
+// =============================================================================
+
+func TestRenderCompact_Shell_NoGutterPreview(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "shell",
+		Args:   map[string]interface{}{"command": "ls -la"},
+		Status: "completed",
+		Result: "file1\nfile2\nfile3\n",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+
+	assertNotContains(t, got, "│")
+	assertNotContains(t, got, "⋮")
+}
+
+func TestRenderCompact_Shell_NoEmojiBadge(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "shell",
+		Args:   map[string]interface{}{"command": "ls"},
+		Status: "completed",
+		Result: "output\n",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertNotContains(t, got, "🖥")
+	assertNotContains(t, got, "✓")
+	assertNotContains(t, got, "⏳")
+}
+
+// =============================================================================
+// RenderCompact — shell tool, legacy result cleaning
+// =============================================================================
+
+func TestRenderCompact_Shell_LegacyResultCleaned(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "shell",
+		Args:   map[string]interface{}{"command": "hostname"},
+		Status: "completed",
+		Result: "Exit code: 0\nSTDOUT:\nmy-hostname",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, got, "my-hostname")
+	if strings.Contains(plain, "Exit code") {
+		t.Errorf("legacy exit code prefix should be cleaned, got:\n  %q", plain)
+	}
+	if strings.Contains(plain, "STDOUT") {
+		t.Errorf("legacy STDOUT label should be cleaned, got:\n  %q", plain)
+	}
+}
+
+// =============================================================================
+// RenderCompact — shell tool, aliases
+// =============================================================================
+
+func TestRenderCompact_Shell_BashAlias(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "bash",
+		Args:   map[string]interface{}{"command": "echo hello"},
+		Status: "completed",
+		Result: "hello\n",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, got, "●")
+	assertContains(t, got, "Shell")
+	if !strings.Contains(plain, "Shell(echo hello)") {
+		t.Errorf("bash alias should render as Shell, got:\n  %q", plain)
+	}
+}
+
+func TestRenderCompact_Shell_ExecuteAlias(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "execute",
+		Args:   map[string]interface{}{"command": "date"},
+		Status: "completed",
+		Result: "Mon Mar 4 2026\n",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, got, "●")
+	assertContains(t, got, "Execute")
+	if !strings.Contains(plain, "Execute(date)") {
+		t.Errorf("execute alias should render with Execute label, got:\n  %q", plain)
+	}
+}
+
+func TestRenderCompact_Shell_ExecuteCommandAlias(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "execute_command",
+		Args:   map[string]interface{}{"command": "pwd"},
+		Status: "completed",
+		Result: "/home/user\n",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+
+	assertContains(t, got, "●")
+	assertContains(t, got, "Shell")
+	assertContains(t, got, "pwd")
+	assertContains(t, got, "/home/user")
+}
+
+// =============================================================================
+// RenderCompact — fallback for non-compact tools
+// =============================================================================
 
 func TestRenderCompact_UnknownTool_FallsBackToRenderWithBadge(t *testing.T) {
 	tc := ToolCallInfo{
@@ -740,7 +1084,7 @@ func TestRenderCompactRunning_ReadTool_CompactFormat(t *testing.T) {
 	}
 }
 
-func TestRenderCompactRunning_ShellTool_FallsBackToLegacy(t *testing.T) {
+func TestRenderCompactRunning_ShellTool_CompactFormat(t *testing.T) {
 	tc := ToolCallInfo{
 		Name: "shell",
 		Args: map[string]interface{}{"command": "go test ./..."},
@@ -748,10 +1092,53 @@ func TestRenderCompactRunning_ShellTool_FallsBackToLegacy(t *testing.T) {
 	opts := CompactOptions{HyperlinksEnabled: false}
 
 	got := RenderCompactRunning(tc, opts)
-	assertContains(t, got, "🖥 ")
+	plain := stripANSI(got)
+
+	assertContains(t, got, "●")
 	assertContains(t, got, "Shell")
 	assertContains(t, got, "go test ./...")
-	assertContains(t, got, "⏳")
+	assertContains(t, got, "…")
+
+	if !strings.Contains(plain, "Shell(go test ./...)") {
+		t.Errorf("expected compact header Shell(go test ./...), got:\n  %q", plain)
+	}
+	assertNotContains(t, got, "🖥")
+	assertNotContains(t, got, "⏳")
+}
+
+func TestRenderCompactRunning_ShellTool_LongCommandTruncated(t *testing.T) {
+	longCmd := "find /Users/suresh/scm/github.com/stigmer -type f -name '*.go' | sort | head -20"
+	tc := ToolCallInfo{
+		Name: "shell",
+		Args: map[string]interface{}{"command": longCmd},
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompactRunning(tc, opts)
+	plain := stripANSI(got)
+
+	if len(plain) > 85 {
+		t.Errorf("running header too long (%d chars), command should be truncated:\n  %q", len(plain), plain)
+	}
+	if !strings.Contains(plain, "...") {
+		t.Errorf("truncated command should end with ..., got:\n  %q", plain)
+	}
+}
+
+func TestRenderCompactRunning_ShellTool_SingleLine(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "shell",
+		Args: map[string]interface{}{"command": "ls -la"},
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompactRunning(tc, opts)
+	plain := stripANSI(got)
+
+	lines := strings.Split(plain, "\n")
+	if len(lines) != 1 {
+		t.Errorf("expected single line for running state, got %d:\n%s", len(lines), plain)
+	}
 }
 
 func TestRenderCompactRunning_UnknownTool_FallsBackToLegacy(t *testing.T) {
@@ -1032,5 +1419,33 @@ func TestBuildHyperlinkedPath_RelativePathNoWorkingDir(t *testing.T) {
 	got := buildHyperlinkedPath("src/main.go", opts)
 	if !strings.Contains(got, "file://src/main.go") {
 		t.Errorf("expected relative path used as-is in URI, got %q", got)
+	}
+}
+
+// =============================================================================
+// firstLine
+// =============================================================================
+
+func TestFirstLine_SingleLine(t *testing.T) {
+	if got := firstLine("hello"); got != "hello" {
+		t.Errorf("expected %q, got %q", "hello", got)
+	}
+}
+
+func TestFirstLine_MultiLine(t *testing.T) {
+	if got := firstLine("first\nsecond\nthird"); got != "first" {
+		t.Errorf("expected %q, got %q", "first", got)
+	}
+}
+
+func TestFirstLine_EmptyString(t *testing.T) {
+	if got := firstLine(""); got != "" {
+		t.Errorf("expected empty string, got %q", got)
+	}
+}
+
+func TestFirstLine_TrailingNewline(t *testing.T) {
+	if got := firstLine("hello\n"); got != "hello" {
+		t.Errorf("expected %q, got %q", "hello", got)
 	}
 }
