@@ -5,7 +5,6 @@ When an Agent references another resource (MCP server, skill), it uses the `ApiR
 ## YAML Format
 
 ```yaml
-org: local
 kind: skill
 slug: code-review-best-practices
 version: stable
@@ -15,7 +14,7 @@ version: stable
 
 | Field | Required | Format | Description |
 |---|---|---|---|
-| `org` | Yes | `^[a-z][a-z0-9-]*$`, 1-63 chars | Organization that owns the referenced resource. |
+| `org` | No | `^$\|^[a-z][a-z0-9-]*$`, 0-63 chars | Organization that owns the referenced resource. Empty = relative reference (resolved from the parent resource's `metadata.org` at write time). |
 | `kind` | Yes | Lowercase string enum name | Resource kind. See [Kind Values](#kind-values). |
 | `slug` | Yes | `^[a-z][a-z0-9-]*$`, 1-63 chars | Resource slug, unique within the organization. |
 | `version` | No | Tag, hash, or empty | Version pin. Only applicable to versioned resources (Skills). Ignored for non-versioned resources. |
@@ -47,33 +46,35 @@ kind: MCP_SERVER
 
 ## Organization (`org`)
 
-The `org` field identifies which organization owns the referenced resource. It is always required.
+The `org` field identifies which organization owns the referenced resource. It supports two modes:
 
-### Local Mode
+### Relative References (Recommended)
 
-In local mode (CLI single-tenant), bootstrapped system resources use `org: local`. This is the default org for all resources in local mode.
+Omit the `org` field to create a relative reference. The server resolves the organization from the parent resource's `metadata.org` at write time. This makes YAML portable across organizations.
 
 ```yaml
-# Referencing a system-bootstrapped skill in local mode
-org: local
-kind: skill
-slug: code-review-best-practices
+# Relative — org resolved from the agent's metadata.org
+skill_refs:
+  - kind: skill
+    slug: code-review-best-practices
 ```
 
-### Cloud Mode
+### Absolute References
 
-In cloud mode, `org` is the actual organization identifier. Resources are scoped to their owning organization.
+Set `org` explicitly when referencing resources in a different organization — typically public marketplace resources published by another org.
 
 ```yaml
-# Referencing a skill from your own org
-org: acme-corp
-kind: skill
-slug: internal-style-guide
+# Absolute — referencing a public skill from another org
+skill_refs:
+  - org: stigmer
+    kind: skill
+    slug: code-analysis
 
-# Referencing a public skill from another org
-org: stigmer
-kind: skill
-slug: code-analysis
+# Absolute — referencing a resource in your own org (explicit)
+skill_refs:
+  - org: acme-corp
+    kind: skill
+    slug: internal-style-guide
 ```
 
 ### Canonical Format
@@ -114,21 +115,18 @@ The `version` field is only meaningful for versioned resources. Currently, only 
 ```yaml
 # Use latest version (implicit)
 skill_refs:
-  - org: local
-    kind: skill
+  - kind: skill
     slug: code-review-best-practices
 
 # Pin to a named tag
 skill_refs:
-  - org: local
-    kind: skill
+  - kind: skill
     slug: code-review-best-practices
     version: stable
 
 # Pin to an exact content hash (immutable)
 skill_refs:
-  - org: local
-    kind: skill
+  - kind: skill
     slug: code-review-best-practices
     version: "a1b2c3d4e5f6..."
 ```
@@ -139,7 +137,7 @@ Tags are mutable pointers — `stable` may point to different content over time.
 
 The proto enforces these constraints via `buf.validate`:
 
-- `org`: required, matches `^[a-z][a-z0-9-]*$`, 1-63 chars
+- `org`: optional, matches `^$|^[a-z][a-z0-9-]*$` (empty string allowed for relative references)
 - `slug`: required, matches `^[a-z][a-z0-9-]*$`, 1-63 chars
 - `version`: optional, matches `^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$`
 - `kind`: required, must be a defined `ApiResourceKind` enum value

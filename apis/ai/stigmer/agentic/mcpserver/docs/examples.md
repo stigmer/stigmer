@@ -11,7 +11,6 @@ apiVersion: agentic.stigmer.ai/v1
 kind: McpServer
 metadata:
   name: github
-  org: local
 spec:
   description: "GitHub MCP server for repository operations"
   stdio:
@@ -36,7 +35,6 @@ apiVersion: agentic.stigmer.ai/v1
 kind: McpServer
 metadata:
   name: github
-  org: local
   tags:
     - git
     - vcs
@@ -67,7 +65,6 @@ apiVersion: agentic.stigmer.ai/v1
 kind: McpServer
 metadata:
   name: postgres
-  org: local
   labels:
     category: database
   tags:
@@ -151,7 +148,6 @@ apiVersion: agentic.stigmer.ai/v1
 kind: McpServer
 metadata:
   name: web-search
-  org: local
   tags:
     - search
     - web
@@ -274,8 +270,8 @@ spec:
         is_secret: false
 ```
 
-Key differences from private/local McpServers:
-- `metadata.org` is a real organization (`stigmer`), not `local`.
+Key characteristics of marketplace McpServers:
+- `metadata.org` is set explicitly to the publishing organization (`stigmer`).
 - `metadata.visibility` is `visibility_public` — any organization can reference this server.
 - `metadata.annotations` include support and documentation URLs for marketplace users.
 - `env_spec` descriptions are precise — marketplace users need to know exactly what credentials to provide and what permissions they require.
@@ -291,7 +287,6 @@ After applying any of the above examples:
 spec:
   mcp_server_usages:
     - mcp_server_ref:
-        org: local          # matches McpServer metadata.org
         kind: mcp_server
         slug: github        # matches McpServer metadata.slug (auto-generated from name)
       enabled_tools:

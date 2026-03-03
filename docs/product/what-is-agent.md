@@ -182,7 +182,6 @@ MCP servers give agents the ability to take action in external systems—GitHub,
 spec:
   mcp_server_usages:
     - mcp_server_ref:
-        org: local
         kind: mcp_server
         slug: github
       enabled_tools:
@@ -288,7 +287,7 @@ Public agents appear in the Stigmer marketplace. Anyone can reference a public a
 | Sharing an agent means copying code | Reference a public agent by `org/slug`; improvements propagate |
 | Multi-agent delegation written from scratch each time | Sub-agents declared inline; delegation routing is built in |
 | No audit trail of who ran what, when | Every execution linked to an AgentInstance, Session, and Execution record |
-| Local dev agents cannot promote to production cleanly | Same YAML, different backend—`local` vs. cloud org |
+| Local dev agents cannot promote to production cleanly | Same YAML, different backend — swap org context |
 
 ---
 
@@ -301,7 +300,7 @@ apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
   name: my-assistant
-  org: local
+  org: default
 spec:
   description: "A helpful assistant"
   instructions: |

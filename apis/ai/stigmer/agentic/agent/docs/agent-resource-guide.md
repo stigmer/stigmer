@@ -9,7 +9,7 @@ apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
   name: my-agent
-  org: local
+  org: acme-corp
   visibility: visibility_private
   labels:
     team: engineering
@@ -49,7 +49,7 @@ All metadata fields are defined by `ApiResourceMetadata` in `ai/stigmer/commons/
 | `metadata.name` | Yes | Human-readable name of the agent. |
 | `metadata.slug` | No | URL-friendly identifier, unique within the organization. Auto-generated from `name` if omitted. Format: lowercase alphanumeric with hyphens, starts with a letter, 1-63 characters. |
 | `metadata.id` | No | System-generated unique identifier. Never set by users. |
-| `metadata.org` | Depends | Organization that owns this agent. **Local mode:** defaults to `local` if omitted. **Cloud mode:** required, enforced by the Authorization Service. Format: lowercase alphanumeric with hyphens (e.g., `acme-corp`). |
+| `metadata.org` | Recommended | Organization that owns this agent. Set automatically from `context.organization` if omitted during apply. Format: lowercase alphanumeric with hyphens (e.g., `acme-corp`). |
 | `metadata.visibility` | No | Access control. `visibility_private` (default): only org members can access. `visibility_public`: anyone can read (write still requires org membership). Used for marketplace-published agents. |
 | `metadata.labels` | No | Key-value pairs for organization and filtering (e.g., `team: engineering`). |
 | `metadata.annotations` | No | Key-value pairs for additional metadata not used for filtering (e.g., `docs-url: "https://..."`). |
@@ -76,12 +76,7 @@ metadata:
 
 ### Organization
 
-The `org` field determines ownership. Every agent belongs to exactly one organization.
-
-| Mode | Behavior |
-|---|---|
-| Local (CLI) | Defaults to `local` if omitted. All bootstrapped system resources use `org: local`. |
-| Cloud | Required. The Authorization Service enforces org membership for all write operations. |
+The `org` field determines ownership. Every agent belongs to exactly one organization. The CLI resolves the organization through a priority chain: `--org` flag > `stigmer.yaml` `metadata.org` > `context.organization` in config > error. On first server start, a `default` organization is bootstrapped automatically.
 
 ## Spec Fields
 

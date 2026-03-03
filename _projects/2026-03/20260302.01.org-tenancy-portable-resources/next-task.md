@@ -12,10 +12,21 @@ Drop this file into your conversation to quickly resume work on this project.
 **Components**: Proto definitions (tenancy/project), CLI apply pipeline, OSS server (Organization controller, project reconciliation), seedpack, CLI config (org context), documentation
 
 ## Current State
-- **Status**: In Progress
-- **Last Session**: 2026-03-03 (session 11) — T01.8: CLI Org Global Flag, Runtime Injection, and Cleanup
-- **Active Task**: T01.9 (Product docs — next)
+- **Status**: T01.1–T01.9 Complete (OSS). T01.4 also complete in Cloud.
+- **Last Session**: 2026-03-03 (session 12) — T01.9: Product Documentation Update
+- **Active Task**: All planned tasks complete. Remaining: ~14 `org: local` hits in secondary API docs (workflow, workflowinstance, environment, agentinstance, agentexecution, project docs in `apis/`). These are not attached to skill generation scripts but are browsable via workspace.
 - **Cloud Repo Status**: Build restored. Reconciliation subsystem rearchitected. NormalizeApiResourceReferencesStepV2 wired into all 29 handlers. See `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
+
+## Session Progress (2026-03-03, session 12 — T01.9: Product Documentation Update)
+- Completed T01.9: Eliminated all `org: local` from docs that feed into skill generation, consolidated CLI config docs, documented unified org context model
+- **Product docs** (7 files): Replaced `org: local` with correct patterns in `what-is-organization.md`, `what-is-agent.md`, `what-is-mcp-server.md`, `what-is-project.md`, `what-is-skill.md`, `what-is-workflow.md`, `docs/guides/uploading-skills.md`
+- **API resource docs** (13 files): Fixed all `org: local` in skill-generation-attached directories: `agent/docs/` (7 files), `mcpserver/docs/` (4 files), `skill/docs/` (2 files)
+- **resource-references.md**: Complete rewrite — org field from "Required" to optional, documented relative vs absolute references, updated validation rules to match T01.3 proto changes
+- **CLI config consolidation**: Merged `configuration.md` + `configuration-cascade.md` into single doc. Added Organization Context section documenting `--org` flag, `stigmer context show/set --org`, `context.organization`, `STIGMER_ORG_ID` injection, resolution chain. Deleted `configuration-cascade.md`
+- **Design decision**: No `what-is-cli-configuration.md` — CLI config is a tool concern, not a domain resource; the what-is pattern is reserved for domain resources (Agent, Organization, etc.)
+- **YAML example org strategy**: `default` for getting-started metadata, omit org for cross-references (relative pattern from T01.3), `acme-corp` for illustrative examples
+- **Files modified**: 23 files modified (+241 lines, -549 lines) — net reduction of 308 lines
+- **Verified clean**: All skill-generation-attached directories (`agent/docs/`, `mcpserver/docs/`, `skill/docs/`, `docs/product/`) have zero `org: local` remaining
 
 ## Session Progress (2026-03-03, session 11 — T01.8: CLI Org Global Flag, Runtime Injection, and Cleanup)
 - Completed T01.8: Removed speculative `ContextConfig.Environment` (YAGNI), promoted `--org` to root persistent flag, injected `STIGMER_ORG_ID` into agent runtime and SDK synthesis, updated all seedpack skill docs
@@ -157,17 +168,13 @@ Drop this file into your conversation to quickly resume work on this project.
 - Key decision: Merged Project into tenancy domain (not management) — Organization, Platform, and Project form the resource hierarchy bounded context
 
 ## Next Steps
-1. ~~**T01.8**: Skill docs~~ — COMPLETED: updated seedpack skill docs to use `STIGMER_ORG_ID`, removed `org: local` hardcoding, promoted `--org` to global flag, injected org into agent runtime
-2. **T01.9**: Product docs — update for new patterns. Scope:
-   - Create "What is CLI Configuration" doc (following existing what-is doc pattern)
-   - Consolidate `docs/cli/configuration.md` and `docs/cli/configuration-cascade.md` into coherent documentation
-   - Document `context.organization` and `stigmer context show/set --org`
-   - Document `--org` global persistent flag (available on all commands)
-   - Document `STIGMER_ORG_ID` runtime injection into agent execution and SDK synthesis environments
-   - Document org resolution priority chain: `--org flag > stigmer.yaml metadata.org > context.organization > Backend.Cloud.OrgID (compat) > error`
+1. ~~**T01.8**: Skill docs~~ — COMPLETED
+2. ~~**T01.9**: Product docs~~ — COMPLETED: eliminated `org: local` from all skill-generation inputs, consolidated CLI config docs, documented org context model
+3. **Optional cleanup**: ~14 remaining `org: local` hits in secondary API docs (`apis/ai/stigmer/agentic/workflow/docs/`, `workflowinstance/docs/`, `environment/docs/`, `agentinstance/docs/`, `agentexecution/docs/`, `tenancy/project/docs/`). Not urgent — these are not spotlight-attached to skill generation scripts.
+4. **Regenerate skills**: Run `seedpack/tools/regenerate_all.sh` to verify clean skill output with updated docs
 
 ## Context for Resume
-- T01.1 through T01.8 are complete in OSS; T01.4 also complete in Cloud
+- T01.1 through T01.9 are complete in OSS; T01.4 also complete in Cloud
 - **T01.8 changes**: Removed `ContextConfig.Environment` (YAGNI), promoted `--org` to root persistent flag (was duplicated across 11+ commands), injected `STIGMER_ORG_ID` into agent `RuntimeEnv` and SDK synthesis env, updated all seedpack skill docs (agent-creator, mcp-server-creator) to read `STIGMER_ORG_ID` instead of asking user or hardcoding `org: local`
 - The Project proto now lives at `apis/ai/stigmer/tenancy/project/v1/` with package `ai.stigmer.tenancy.project.v1`
 - Organization is fully supported in both CLI apply pipeline AND server-side controllers
@@ -194,7 +201,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260302.01.org-tenancy-portable-resources/checkpoints/2026-03-03-session-10.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260302.01.org-tenancy-portable-resources/checkpoints/2026-03-03-session-12.md
 ```
 
 ### 2. Task Plan
@@ -231,21 +238,22 @@ Drop this file into your conversation to quickly resume work on this project.
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-03-03-session-11.md`
+1. [ ] Read the latest checkpoint from `checkpoints/2026-03-03-session-12.md`
 2. [ ] Read cloud migration doc: `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
 3. [ ] Check current task status in `tasks/T01_0_plan.md`
 4. [ ] Review any new design decisions in `design-decisions/`
 5. [ ] Check coding guidelines in `coding-guidelines/`
 6. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-7. [ ] Proceed to T01.9 (Product docs — unblocked)
+7. [ ] Optional: clean up remaining ~14 `org: local` hits in secondary API docs
+8. [ ] Regenerate skills with `seedpack/tools/regenerate_all.sh` to verify clean output
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T01.9" - Product docs (CLI config documentation, consolidation)
+- "Clean up secondary API docs" - Fix ~14 remaining `org: local` in non-attached API docs
+- "Regenerate skills" - Run `seedpack/tools/regenerate_all.sh` to verify clean output
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
-- "Review guidelines" - Check established patterns
 
 ---
 
