@@ -77,8 +77,19 @@ Role reference: `_roles/003_cli_tui_ux_eng`
 ## Current State
 
 - **Status**: in-progress
-- **Last Session**: 2026-03-03 (Session 7) — Phase 2.2 implementation complete; **second Phase 2 (High) item done**
-- **Active Task**: None — ready to pick Phase 2.3 (Retry on Approval Submission Failure)
+- **Last Session**: 2026-03-03 (Session 8) — Phase 2.3 implementation complete; **third Phase 2 (High) item done**
+- **Active Task**: None — ready to pick Phase 2.4 (Preparation Phase Spinner)
+
+## Session Progress (2026-03-03 — Session 8)
+
+- Completed Phase 2.3: Retry on Approval Submission Failure — the **third Phase 2 (High) item**
+- Added `isRetryableSubmitError` — gRPC error classifier walking `Unwrap()` chain, classifying 13 gRPC codes as retryable vs permanent
+- Added `retryWithBackoff` — generic retry loop with exponential backoff (1s/2s), context-aware sleep, early exit on non-retryable errors
+- Wired retry into `emitAndWaitApproval` via closure wrapping `submitAgentApproval` (3 attempts max)
+- Improved `StreamErrorEvent` message to include retry count and re-attach session ID
+- Used interface type assertion `e.(interface{ Unwrap() error })` to avoid import conflict with `github.com/pkg/errors`
+- Wrote 13 new unit tests — all passing alongside the full existing suite
+- Created changelog: `_changelog/2026-03/2026-03-03-223510-retry-on-approval-submission-failure.md`
 
 ## Session Progress (2026-03-03 — Session 7)
 
@@ -169,12 +180,16 @@ Role reference: `_roles/003_cli_tui_ux_eng`
 
 ## Next Steps
 
-1. **Phase 2.3**: Retry on Approval Submission Failure — the **next Phase 2 (High) item**
-2. **Phase 2.4**: Preparation Phase Spinner
-3. **Phase 2.5**: `stigmer doctor` Diagnostic Command
+1. **Phase 2.4**: Preparation Phase Spinner — the **next Phase 2 (High) item**
+2. **Phase 2.5**: `stigmer doctor` Diagnostic Command
+3. **Phase 3.1**: stdout/stderr Separation (partially subsumed by Phase 2.2 for inline/JSON paths)
 
 ## Context for Resume
 
+- **Phase 2.3 key pattern**: `retryWithBackoff(ctx, maxAttempts, baseDelay, fn)` is a generic retry loop used by `emitAndWaitApproval`. `isRetryableSubmitError(err)` walks the `Unwrap()` chain to classify gRPC codes. Retryable: Unavailable, DeadlineExceeded, ResourceExhausted, Aborted, Internal, Unknown. Non-retryable: NotFound, InvalidArgument, PermissionDenied, etc. Non-gRPC errors default to retryable.
+- **Retry constants**: `approvalRetryMaxAttempts = 3`, `approvalRetryBaseDelay = 1s`. Total worst-case wait: 3s.
+- **Error message format**: "Failed to submit approval after 3 attempts. Re-attach to retry: stigmer run ses-xxx" — includes session ID when available.
+- **`retryWithBackoff` is reusable**: Generic `func() error` signature. Can be used for other retry needs without importing approval-specific types.
 - **Phase 2.2 key pattern**: `resolveOutputMode()` determines Interactive/Inline/JSON based on flag precedence (`--json` > `--no-tui` > TTY detection + `TERM=dumb`). `streamAgentExecution` branches into `streamAgentInteractive`, `streamAgentInline`, or `streamAgentJSON`. All three consume the same `executiontui.Event` channel.
 - **`OutputMode` type**: `OutputInteractive`, `OutputInline`, `OutputJSON` — defined in `output_mode.go`.
 - **`--json` and `--no-tui` flags**: Registered via `registerOutputModeFlags()`, mutually exclusive. Applied to both `run` and `draft` commands.
@@ -211,6 +226,7 @@ Role reference: `_roles/003_cli_tui_ux_eng`
 | 1.5 | Esc as Cancel Shortcut | Done (code + 7 tests) |
 | 2.1 | Comprehensive Error Handler | Done (code + 24 tests) |
 | 2.2 | Two-Lane Output Design | Done (code + 33 tests) |
+| 2.3 | Retry on Approval Submission Failure | Done (code + 13 tests) |
 
 ## Blockers
 
