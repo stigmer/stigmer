@@ -12,10 +12,20 @@ Drop this file into your conversation to quickly resume work on this project.
 **Components**: Proto definitions (tenancy/project), CLI apply pipeline, OSS server (Organization controller, project reconciliation), seedpack, CLI config (org context), documentation
 
 ## Current State
-- **Status**: T01.1–T01.9 Complete (OSS). T01.4 also complete in Cloud.
-- **Last Session**: 2026-03-03 (session 12) — T01.9: Product Documentation Update
-- **Active Task**: All planned tasks complete. Remaining: ~14 `org: local` hits in secondary API docs (workflow, workflowinstance, environment, agentinstance, agentexecution, project docs in `apis/`). These are not attached to skill generation scripts but are browsable via workspace.
-- **Cloud Repo Status**: Build restored. Reconciliation subsystem rearchitected. NormalizeApiResourceReferencesStepV2 wired into all 29 handlers. See `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
+- **Status**: T01.1–T01.9 Complete (OSS). T01.4 also complete in Cloud. Secondary API docs cleanup complete.
+- **Last Session**: 2026-03-03 (session 13) — Secondary API Docs and Validation Rules Cleanup
+- **Active Task**: All planned tasks and optional cleanup complete. Zero `org: local` in any hand-written source file. Remaining: regenerate stubs/codegen to propagate proto comment changes to generated files, then run `seedpack/tools/regenerate_all.sh` to verify clean skill output.
+- **Cloud Repo Status**: Build restored. Reconciliation subsystem rearchitected. NormalizeApiResourceReferencesStepV2 wired into all 29 handlers. Cloud T01.4 changes uncommitted. See `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
+
+## Session Progress (2026-03-03, session 13 — Secondary API Docs and Validation Rules Cleanup)
+- Completed final `org: local` cleanup across all hand-written source files
+- **API docs** (6 files): Fixed metadata `org: local` → `org: default` in workflow, workflowinstance, agentexecution, project examples; removed org from cross-reference in hitl-approvals.md
+- **Proto comments** (`spec.proto`): Removed `org` from 5 cross-reference examples (AgentSpec, SubAgent, McpServerUsage)
+- **Validation rules** (`agent-creator/references/validation-rules.md`): Removed `org` from 8 cross-ref examples, rewrote Pitfall I (org is optional, kind+slug are required), updated pre-apply checklist
+- **Files modified**: 7 files (+20 lines, -30 lines)
+- **Committed**: `ca03d434 docs: eliminate org: local from secondary API docs and validation rules`
+- **Verified clean**: Zero `org: local` in apis/, seedpack/, docs/, client-apps/, backend/
+- **Generated files still stale**: `spec.pb.go`, 3 codegen schemas, `agent_gen.go` — need `make protos` + codegen regeneration
 
 ## Session Progress (2026-03-03, session 12 — T01.9: Product Documentation Update)
 - Completed T01.9: Eliminated all `org: local` from docs that feed into skill generation, consolidated CLI config docs, documented unified org context model
@@ -169,9 +179,12 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 1. ~~**T01.8**: Skill docs~~ — COMPLETED
-2. ~~**T01.9**: Product docs~~ — COMPLETED: eliminated `org: local` from all skill-generation inputs, consolidated CLI config docs, documented org context model
-3. **Optional cleanup**: ~14 remaining `org: local` hits in secondary API docs (`apis/ai/stigmer/agentic/workflow/docs/`, `workflowinstance/docs/`, `environment/docs/`, `agentinstance/docs/`, `agentexecution/docs/`, `tenancy/project/docs/`). Not urgent — these are not spotlight-attached to skill generation scripts.
-4. **Regenerate skills**: Run `seedpack/tools/regenerate_all.sh` to verify clean skill output with updated docs
+2. ~~**T01.9**: Product docs~~ — COMPLETED
+3. ~~**Optional cleanup**: Secondary API docs~~ — COMPLETED: zero `org: local` in hand-written source files
+4. **Regenerate proto stubs**: Run `make protos` to propagate spec.proto comment changes to `spec.pb.go`
+5. **Regenerate codegen schemas + MCP gen**: Propagate proto changes to `tools/codegen/schemas/` and `mcp-server/gen/`
+6. **Regenerate skills**: Run `seedpack/tools/regenerate_all.sh` to verify clean skill output
+7. **Commit cloud repo changes**: T01.4 cloud changes (NormalizeApiResourceReferencesStepV2 + 29 handlers) still uncommitted
 
 ## Context for Resume
 - T01.1 through T01.9 are complete in OSS; T01.4 also complete in Cloud
@@ -201,7 +214,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260302.01.org-tenancy-portable-resources/checkpoints/2026-03-03-session-12.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260302.01.org-tenancy-portable-resources/checkpoints/2026-03-03-session-13.md
 ```
 
 ### 2. Task Plan
@@ -238,20 +251,23 @@ Drop this file into your conversation to quickly resume work on this project.
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-03-03-session-12.md`
+1. [ ] Read the latest checkpoint from `checkpoints/2026-03-03-session-13.md`
 2. [ ] Read cloud migration doc: `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
 3. [ ] Check current task status in `tasks/T01_0_plan.md`
 4. [ ] Review any new design decisions in `design-decisions/`
 5. [ ] Check coding guidelines in `coding-guidelines/`
 6. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-7. [ ] Optional: clean up remaining ~14 `org: local` hits in secondary API docs
+7. [ ] Regenerate proto stubs + codegen schemas to propagate spec.proto changes
 8. [ ] Regenerate skills with `seedpack/tools/regenerate_all.sh` to verify clean output
+9. [ ] Commit cloud repo T01.4 changes (uncommitted)
 
 ## Quick Commands
 
 After loading context:
-- "Clean up secondary API docs" - Fix ~14 remaining `org: local` in non-attached API docs
+- "Regenerate proto stubs" - Run `make protos` to propagate spec.proto changes
+- "Regenerate codegen" - Propagate proto changes to codegen schemas and MCP gen
 - "Regenerate skills" - Run `seedpack/tools/regenerate_all.sh` to verify clean output
+- "Commit cloud changes" - Commit T01.4 cloud repo changes
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 
