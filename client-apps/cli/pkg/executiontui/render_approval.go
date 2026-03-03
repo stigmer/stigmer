@@ -23,12 +23,14 @@ const (
 	// fewer are shown in full without expand/collapse.
 	shellExpandThreshold = 5
 
-	// genericExpandThreshold is the arg line count above which a non-shell
-	// approval block becomes expandable.
+	// genericExpandThreshold is the visual line count above which a
+	// non-shell approval block becomes expandable. A single arg entry
+	// with a multi-line value (e.g., file content) counts as many visual
+	// lines, not one.
 	genericExpandThreshold = 5
 
-	// genericPreviewLines is the number of arg lines shown in the collapsed
-	// preview for generic (non-shell) approval blocks.
+	// genericPreviewLines is the number of visual lines shown in the
+	// collapsed preview for generic (non-shell) approval blocks.
 	genericPreviewLines = 3
 )
 
@@ -137,7 +139,7 @@ func renderGenericApprovalContent(toolName, argsPreview, message string, fromSub
 
 	full = buildGenericApproval(header, toolName, message, argLines, 0)
 
-	if len(argLines) > genericExpandThreshold {
+	if countArgVisualLines(argLines) > genericExpandThreshold {
 		preview = buildGenericApproval(header, toolName, message, argLines, genericPreviewLines)
 		return preview, full
 	}
@@ -146,9 +148,11 @@ func renderGenericApprovalContent(toolName, argsPreview, message string, fromSub
 }
 
 // buildGenericApproval constructs the approval block text for a non-shell tool.
-// When maxLines > 0, args content is truncated to that many lines with an
-// indicator. When maxLines == 0, all lines are shown.
-func buildGenericApproval(header, toolName, message string, argLines []string, maxLines int) string {
+// When maxVisualLines > 0, args content is truncated to that many visual lines
+// with an indicator. A single arg entry with embedded newlines (e.g., file
+// content) counts as multiple visual lines. When maxVisualLines == 0, all
+// lines are shown.
+func buildGenericApproval(header, toolName, message string, argLines []string, maxVisualLines int) string {
 	var lines []string
 	lines = append(lines, header, "")
 
@@ -159,20 +163,40 @@ func buildGenericApproval(header, toolName, message string, argLines []string, m
 		lines = append(lines, fmt.Sprintf("   Tool: %s", toolName))
 	}
 
-	showAll := maxLines <= 0 || len(argLines) <= maxLines
-	if showAll {
+	totalVisual := countArgVisualLines(argLines)
+	if maxVisualLines <= 0 || totalVisual <= maxVisualLines {
 		for _, al := range argLines {
-			lines = append(lines, fmt.Sprintf("   %s", al))
+			for _, vl := range strings.Split(al, "\n") {
+				lines = append(lines, fmt.Sprintf("   %s", vl))
+			}
 		}
 	} else {
-		for _, al := range argLines[:maxLines] {
-			lines = append(lines, fmt.Sprintf("   %s", al))
+		shown := 0
+		for _, al := range argLines {
+			for _, vl := range strings.Split(al, "\n") {
+				if shown >= maxVisualLines {
+					remaining := totalVisual - shown
+					lines = append(lines, "   "+shellArgStyle.Render(fmt.Sprintf("(+%d more lines)", remaining)))
+					return strings.Join(lines, "\n")
+				}
+				lines = append(lines, fmt.Sprintf("   %s", vl))
+				shown++
+			}
 		}
-		remaining := len(argLines) - maxLines
-		lines = append(lines, "   "+shellArgStyle.Render(fmt.Sprintf("(+%d more lines)", remaining)))
 	}
 
 	return strings.Join(lines, "\n")
+}
+
+// countArgVisualLines returns the total number of visual lines across all arg
+// entries. Multi-line values (containing embedded newlines) contribute one
+// visual line per newline-delimited segment.
+func countArgVisualLines(argLines []string) int {
+	n := 0
+	for _, al := range argLines {
+		n += strings.Count(al, "\n") + 1
+	}
+	return n
 }
 
 // formatGenericArgs extracts key-value lines from argsPreview for display.
