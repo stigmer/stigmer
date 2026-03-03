@@ -82,11 +82,7 @@ func handleServerReset(force, includeConfig bool) {
 	}
 
 	fmt.Fprintln(os.Stderr)
-	if err := daemon.EnsureRunning(dataDir); err != nil {
-		climsg.Error("Failed to start server after reset")
-		clierr.Handle(err)
-		return
-	}
+	startServerFresh(dataDir, daemon.StartOptions{}, clioutput.FormatHuman)
 }
 
 func buildResetPrompt(configDir string, includeConfig bool) string {

@@ -125,6 +125,26 @@ func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 		time.Sleep(1 * time.Second)
 	}
 
+	executionMode, _ := cmd.Flags().GetString("execution-mode")
+	sandboxImage, _ := cmd.Flags().GetString("sandbox-image")
+	sandboxAutoPull, _ := cmd.Flags().GetBool("sandbox-auto-pull")
+	sandboxCleanup, _ := cmd.Flags().GetBool("sandbox-cleanup")
+	sandboxTTL, _ := cmd.Flags().GetInt("sandbox-ttl")
+
+	startServerFresh(dataDir, daemon.StartOptions{
+		ExecutionMode:   executionMode,
+		SandboxImage:    sandboxImage,
+		SandboxAutoPull: sandboxAutoPull,
+		SandboxCleanup:  sandboxCleanup,
+		SandboxTTL:      sandboxTTL,
+	}, format)
+}
+
+// startServerFresh performs a full interactive server start with phased progress,
+// config/secret loading, readiness checks, seedpack bootstrap, org context,
+// MCP discovery, and status output. Shared by 'stigmer server' and
+// 'stigmer server reset'.
+func startServerFresh(dataDir string, startOpts daemon.StartOptions, format clioutput.OutputFormat) {
 	climsg.Info("Starting Stigmer server...")
 
 	cfg, err := config.Load()
@@ -155,24 +175,13 @@ func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 
 	var llmSetupErr error
 
-	executionMode, _ := cmd.Flags().GetString("execution-mode")
-	sandboxImage, _ := cmd.Flags().GetString("sandbox-image")
-	sandboxAutoPull, _ := cmd.Flags().GetBool("sandbox-auto-pull")
-	sandboxCleanup, _ := cmd.Flags().GetBool("sandbox-cleanup")
-	sandboxTTL, _ := cmd.Flags().GetInt("sandbox-ttl")
+	startOpts.Progress = progress
+	startOpts.Secrets = secrets
+	startOpts.OnLLMSetupFailed = func(err error) {
+		llmSetupErr = err
+	}
 
-	if err := daemon.StartWithOptions(dataDir, daemon.StartOptions{
-		Progress:        progress,
-		ExecutionMode:   executionMode,
-		SandboxImage:    sandboxImage,
-		SandboxAutoPull: sandboxAutoPull,
-		SandboxCleanup:  sandboxCleanup,
-		SandboxTTL:      sandboxTTL,
-		Secrets:         secrets,
-		OnLLMSetupFailed: func(err error) {
-			llmSetupErr = err
-		},
-	}); err != nil {
+	if err := daemon.StartWithOptions(dataDir, startOpts); err != nil {
 		if progress != nil {
 			progress.Stop()
 		}
@@ -181,11 +190,6 @@ func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 		return
 	}
 
-	// Wait for the gRPC server to accept connections before proceeding.
-	// StartWithOptions spawns the server process and returns immediately;
-	// the gRPC listener is the last component to start (after SQLite,
-	// controllers, Temporal workers, search index, and supervisor), so a
-	// successful connection here guarantees full readiness.
 	if progress != nil {
 		progress.SetPhase(cliprint.PhaseStarting, "Waiting for server to become ready")
 	}
@@ -208,25 +212,13 @@ func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 		progress.Stop()
 	}
 
-	// Check if any non-critical components failed during startup.
-	// The daemon writes health-state.json after starting all components;
-	// by this point (gRPC is ready), the health state has been written.
 	reportDegradedComponents(dataDir)
-
-	// LLM status messaging: only announce after validation is complete.
 	displayLLMStatus(llmProvider, llmModel, cfg.Backend.Local, llmSetupErr)
 
-	// Apply seedpack (system agents, skills, MCP servers) before discovery.
-	// This ensures system resources exist before we attempt to discover their
-	// capabilities. EnsureRunning() also calls this as a safety net, but
-	// stigmer server is the canonical place for first-run bootstrap.
 	if err := daemon.EnsureSeedpackBootstrapped(dataDir); err != nil {
 		climsg.Warning("Failed to apply system resources: %v", err)
 	}
 
-	// Auto-detect and set the active organization context. On first run, the
-	// seedpack creates the "default" org; this discovers it and persists the
-	// context so all subsequent commands work without manual configuration.
 	autoSetOrgContext(cfg)
 
 	climsg.Info("Discovering MCP server capabilities...")
