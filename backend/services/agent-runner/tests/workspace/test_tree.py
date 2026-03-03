@@ -615,3 +615,85 @@ class TestBuildWorkspaceFileTreeWithGitignore:
         assert result is not None
         assert "main.py" in result
         assert "cache.pyc" not in result
+
+
+# ============================================================================
+# Remote tree cwd scoping (multi-entry cloud mode)
+# ============================================================================
+
+
+class _CwdTrackingBackend:
+    """Minimal backend that records (command, cwd) for each execute call."""
+
+    def __init__(self, root_dir: str, *, find_output: str = ""):
+        self._root_dir = root_dir
+        self._find_output = find_output
+        self.execute_records: list[tuple[str, str | None]] = []
+
+    @property
+    def root_dir(self) -> str:
+        return self._root_dir
+
+    def execute(self, command: str, *, cwd: str | None = None, timeout: int = 30):
+        self.execute_records.append((command, cwd))
+        return _MockExecuteResult(
+            exit_code=0, stdout=self._find_output, stderr="",
+        )
+
+
+class TestRemoteTreeCwdScoping:
+    """Remote tree builder passes cwd to backend.execute()."""
+
+    def test_cwd_passed_to_find_via_build_directory_tree(self):
+        backend = _CwdTrackingBackend(
+            "/workspace",
+            find_output="D\tsrc\nF\t100\tsrc/main.py\n",
+        )
+
+        _build_directory_tree_via_find(backend, cwd="my-app")
+
+        assert len(backend.execute_records) == 1
+        _, cwd = backend.execute_records[0]
+        assert cwd == "my-app"
+
+    def test_no_cwd_passes_none(self):
+        backend = _CwdTrackingBackend(
+            "/workspace",
+            find_output="D\tsrc\nF\t100\tsrc/main.py\n",
+        )
+
+        _build_directory_tree_via_find(backend)
+
+        assert len(backend.execute_records) == 1
+        _, cwd = backend.execute_records[0]
+        assert cwd is None
+
+    def test_cwd_threaded_through_public_api(self):
+        backend = _CwdTrackingBackend(
+            "/workspace",
+            find_output="D\tsrc\nF\t100\tsrc/main.py\n",
+        )
+
+        result = build_workspace_file_tree(
+            "/workspace/my-app", backend,
+            is_local_mode=False, cwd="my-app",
+        )
+
+        assert result is not None
+        assert "src/" in result
+        assert len(backend.execute_records) == 1
+        _, cwd = backend.execute_records[0]
+        assert cwd == "my-app"
+
+    def test_local_mode_ignores_cwd(self, tmp_path):
+        root = _make_tree(tmp_path)
+        backend = _CwdTrackingBackend(str(tmp_path))
+
+        result = build_workspace_file_tree(
+            str(root), backend,
+            is_local_mode=True, cwd="ignored-subdir",
+        )
+
+        assert result is not None
+        assert "src/" in result
+        assert len(backend.execute_records) == 0

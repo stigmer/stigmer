@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+import os
 from dataclasses import dataclass
 from enum import Enum
 from collections.abc import Sequence
@@ -167,6 +168,8 @@ class WorkspaceProvisioner:
         backend: WorkspaceBackend,
         merged_env: dict[str, str],
         is_local_mode: bool,
+        *,
+        target_subdir: str | None = None,
     ) -> ProvisionResult:
         """Provision workspace content.
 
@@ -179,6 +182,9 @@ class WorkspaceProvisioner:
             backend: The ``WorkspaceBackend`` to execute commands against.
             merged_env: Fully-merged environment (``dict[str, str]``).
             is_local_mode: Whether the runner is in local mode.
+            target_subdir: When set, git sources clone into this
+                subdirectory of ``backend.root_dir``.  Ignored by
+                local-path and empty sources.
 
         Returns:
             A ``ProvisionResult`` describing what was provisioned.
@@ -187,7 +193,10 @@ class WorkspaceProvisioner:
             WorkspaceProvisionError: If provisioning fails for any reason
                 (auth, network, invalid path, deployment constraint, …).
         """
-        result = self._dispatch(workspace_source, backend, merged_env, is_local_mode)
+        result = self._dispatch(
+            workspace_source, backend, merged_env, is_local_mode,
+            target_subdir=target_subdir,
+        )
 
         result = self._enrich_with_file_tree(result, backend, is_local_mode)
 
@@ -227,6 +236,11 @@ class WorkspaceProvisioner:
         delegates each to :meth:`provision`.  The ``entry_name`` from
         the proto is stamped onto each result.
 
+        When there are multiple entries, git sources receive the entry
+        name as ``target_subdir`` so each repo is cloned into its own
+        subdirectory of the workspace root.  Single-entry sessions
+        preserve backward-compatible behavior (clone into root).
+
         Fail-fast: if any entry raises ``WorkspaceProvisionError`` the
         exception propagates immediately — no partial provisioning.
 
@@ -248,6 +262,8 @@ class WorkspaceProvisioner:
         if not entries:
             return []
 
+        use_subdirs = len(entries) > 1
+
         results: list[ProvisionResult] = []
         for entry in entries:
             name: str = entry.name  # type: ignore[attr-defined]
@@ -260,7 +276,11 @@ class WorkspaceProvisioner:
                 name,
             )
 
-            result = self.provision(source, backend, merged_env, is_local_mode)
+            target_subdir = name if use_subdirs else None
+            result = self.provision(
+                source, backend, merged_env, is_local_mode,
+                target_subdir=target_subdir,
+            )
             result = dataclasses.replace(result, entry_name=name)
             results.append(result)
 
@@ -282,6 +302,8 @@ class WorkspaceProvisioner:
         backend: WorkspaceBackend,
         merged_env: dict[str, str],
         is_local_mode: bool,
+        *,
+        target_subdir: str | None = None,
     ) -> ProvisionResult:
         # Deferred imports to break the provisioner ↔ sources cycle.
         from worker.workspace.sources import empty as empty_source
@@ -301,6 +323,7 @@ class WorkspaceProvisioner:
                 workspace_source.git_repo,  # type: ignore[attr-defined]
                 backend,
                 merged_env,
+                target_subdir=target_subdir,
             )
 
         if workspace_source.HasField("local_path"):  # type: ignore[attr-defined]
@@ -336,13 +359,22 @@ class WorkspaceProvisioner:
         A ``.gitignore`` filter is created when the workspace has a
         root-level ``.gitignore`` file, keeping the system-prompt tree
         consistent with what the agent tools can see at runtime.
+
+        When ``result.root_dir`` is a subdirectory of
+        ``backend.root_dir`` (multi-entry cloud mode), the remote tree
+        builder and gitignore loader are scoped to that subdirectory
+        via the ``cwd`` parameter so they only see the entry's files.
         """
         if result.source_type == SourceType.EMPTY:
             return result
 
         from worker.workspace.tree import build_workspace_file_tree
 
-        gitignore = self._load_gitignore_filter(result, backend, is_local_mode)
+        rel_subdir = _relative_subdir(result.root_dir, backend.root_dir)
+
+        gitignore = self._load_gitignore_filter(
+            result, backend, is_local_mode, rel_subdir=rel_subdir,
+        )
 
         try:
             file_tree = build_workspace_file_tree(
@@ -350,6 +382,7 @@ class WorkspaceProvisioner:
                 backend,
                 is_local_mode=is_local_mode,
                 gitignore_filter=gitignore,
+                cwd=rel_subdir,
             )
         except Exception:
             self._log.warning(
@@ -373,8 +406,15 @@ class WorkspaceProvisioner:
         result: ProvisionResult,
         backend: WorkspaceBackend,
         is_local_mode: bool,
+        *,
+        rel_subdir: str | None = None,
     ) -> GitIgnoreFilter | None:
-        """Best-effort loading of the workspace's root ``.gitignore``."""
+        """Best-effort loading of the workspace's root ``.gitignore``.
+
+        When *rel_subdir* is set (multi-entry cloud mode), the
+        ``.gitignore`` is read from inside the subdirectory instead of
+        the backend root.
+        """
         from pathlib import Path
 
         from graphton.core.backends.gitignore_filter import (
@@ -384,8 +424,11 @@ class WorkspaceProvisioner:
         if is_local_mode:
             return _GitIgnoreFilter.from_file(Path(result.root_dir) / ".gitignore")
 
+        gitignore_path = (
+            os.path.join(rel_subdir, ".gitignore") if rel_subdir else ".gitignore"
+        )
         try:
-            raw = backend.read_file(".gitignore")
+            raw = backend.read_file(gitignore_path)
             content = raw.decode("utf-8") if isinstance(raw, bytes) else raw
             return _GitIgnoreFilter.from_content(content)
         except Exception:
@@ -395,6 +438,19 @@ class WorkspaceProvisioner:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def _relative_subdir(root_dir: str, backend_root: str) -> str | None:
+    """Compute the relative subdirectory of *root_dir* within *backend_root*.
+
+    Returns ``None`` when they refer to the same directory (the common
+    single-entry case).  Used to scope remote file operations and tree
+    generation to an entry's subdirectory in multi-entry cloud mode.
+    """
+    rel = os.path.relpath(root_dir, backend_root)
+    if rel == ".":
+        return None
+    return rel
 
 
 def _has_source(workspace_source: object) -> bool:

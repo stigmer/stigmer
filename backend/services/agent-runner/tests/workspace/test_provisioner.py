@@ -501,3 +501,120 @@ class TestProvisionAll:
 
         assert result.entry_name == ""
         assert result.source_type is SourceType.LOCAL_PATH
+
+
+# ---------------------------------------------------------------------------
+# provision_all — multi-git subdirectory support
+# ---------------------------------------------------------------------------
+
+
+class TestProvisionAllMultiGit:
+    """Multi-git entries get target_subdir from provision_all."""
+
+    def test_two_git_entries_get_subdirectories(self, tmp_path):
+        entry_a = _MockWorkspaceEntry(
+            name="frontend",
+            source=_MockWorkspaceSource(
+                git_repo=_MockGitRepoSource(
+                    url="https://github.com/org/front.git",
+                ),
+            ),
+        )
+        entry_b = _MockWorkspaceEntry(
+            name="backend",
+            source=_MockWorkspaceSource(
+                git_repo=_MockGitRepoSource(
+                    url="https://github.com/org/back.git",
+                ),
+            ),
+        )
+        backend = _make_git_backend(tmp_path)
+        provisioner = WorkspaceProvisioner()
+
+        results = provisioner.provision_all(
+            [entry_a, entry_b], backend, {}, is_local_mode=True,
+        )
+
+        assert len(results) == 2
+        assert results[0].entry_name == "frontend"
+        assert results[0].root_dir == str(tmp_path / "frontend")
+        assert results[1].entry_name == "backend"
+        assert results[1].root_dir == str(tmp_path / "backend")
+
+    def test_single_git_entry_clones_into_root(self, tmp_path):
+        entry = _MockWorkspaceEntry(
+            name="my-app",
+            source=_MockWorkspaceSource(
+                git_repo=_MockGitRepoSource(
+                    url="https://github.com/org/repo.git",
+                ),
+            ),
+        )
+        backend = _make_git_backend(tmp_path)
+        provisioner = WorkspaceProvisioner()
+
+        results = provisioner.provision_all(
+            [entry], backend, {}, is_local_mode=True,
+        )
+
+        assert len(results) == 1
+        assert results[0].root_dir == str(tmp_path)
+
+    def test_multi_git_entries_have_git_metadata(self, tmp_path):
+        entry_a = _MockWorkspaceEntry(
+            name="svc-a",
+            source=_MockWorkspaceSource(
+                git_repo=_MockGitRepoSource(
+                    url="https://github.com/org/svc-a.git",
+                ),
+            ),
+        )
+        entry_b = _MockWorkspaceEntry(
+            name="svc-b",
+            source=_MockWorkspaceSource(
+                git_repo=_MockGitRepoSource(
+                    url="https://github.com/org/svc-b.git",
+                ),
+            ),
+        )
+        backend = _make_git_backend(tmp_path)
+        provisioner = WorkspaceProvisioner()
+
+        results = provisioner.provision_all(
+            [entry_a, entry_b], backend, {}, is_local_mode=True,
+        )
+
+        assert results[0].git_metadata is not None
+        assert results[0].git_metadata.repo_url == "https://github.com/org/svc-a.git"
+        assert results[1].git_metadata is not None
+        assert results[1].git_metadata.repo_url == "https://github.com/org/svc-b.git"
+
+    def test_multi_entry_consumed_keys_propagated(self, tmp_path):
+        entry_a = _MockWorkspaceEntry(
+            name="a",
+            source=_MockWorkspaceSource(
+                git_repo=_MockGitRepoSource(
+                    url="https://github.com/org/a.git",
+                ),
+            ),
+        )
+        entry_b = _MockWorkspaceEntry(
+            name="b",
+            source=_MockWorkspaceSource(
+                git_repo=_MockGitRepoSource(
+                    url="https://github.com/org/b.git",
+                ),
+            ),
+        )
+        backend = _make_git_backend(tmp_path)
+        provisioner = WorkspaceProvisioner()
+
+        results = provisioner.provision_all(
+            [entry_a, entry_b],
+            backend,
+            {"GITHUB_TOKEN": "ghp_test"},
+            is_local_mode=True,
+        )
+
+        assert "GITHUB_TOKEN" in results[0].consumed_keys
+        assert "GITHUB_TOKEN" in results[1].consumed_keys

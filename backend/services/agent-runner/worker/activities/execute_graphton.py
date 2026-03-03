@@ -768,6 +768,10 @@ def _generate_git_diff_artifact(
     exclusions are needed.  When it is not active (backward compat),
     the old exclusions for ``.stigmer`` are applied.
 
+    For multi-entry sessions, the ``git diff`` is scoped to the
+    entry's subdirectory via ``cwd``, and the patch filename includes
+    the entry name to distinguish per-repo artifacts.
+
     Returns ``True`` if an artifact was generated, ``False`` otherwise.
     This function is intentionally non-fatal: failures are logged but
     never propagate.
@@ -785,9 +789,15 @@ def _generate_git_diff_artifact(
     else:
         diff_cmd = "git diff -- ':!.stigmer' ':!.stigmer-inputs' ':!bin/skills'"
 
+    # Scope git diff to the entry's directory when it differs from
+    # the backend root (multi-entry subdirectory layout).
+    rel = os.path.relpath(provision_result.root_dir, workspace_backend.root_dir)
+    cwd = rel if rel != "." else None
+
     try:
         result = workspace_backend.execute(
             diff_cmd,
+            cwd=cwd,
             timeout=30,
         )
     except Exception as exc:
@@ -808,7 +818,10 @@ def _generate_git_diff_artifact(
         return False
 
     patch_bytes = diff_text.encode("utf-8")
-    filename = f"{execution_id}.patch"
+    if provision_result.entry_name:
+        filename = f"{execution_id}-{provision_result.entry_name}.patch"
+    else:
+        filename = f"{execution_id}.patch"
     storage_key = f"artifacts/{execution_id}/{filename}"
 
     try:
@@ -1366,7 +1379,12 @@ async def _execute_graphton_impl(
                 
                 if provision_results:
                     primary = provision_results[0]
-                    if primary.root_dir != workspace_backend.root_dir:
+                    if (
+                        len(provision_results) == 1
+                        and primary.root_dir != workspace_backend.root_dir
+                    ):
+                        # Single entry: replace backend so the agent's
+                        # CWD is the provisioned root (backward compat).
                         activity_logger.info(
                             "Workspace root changed by provisioning: %s -> %s",
                             workspace_backend.root_dir,
@@ -1375,6 +1393,17 @@ async def _execute_graphton_impl(
                         workspace_backend = LocalWorkspaceBackend(
                             root_dir=primary.root_dir,
                             platform_dir=workspace_init.platform_dir,
+                        )
+                    elif len(provision_results) > 1:
+                        # Multi-entry: keep backend at workspace root so
+                        # all entry subdirectories remain reachable.  The
+                        # system prompt tells the agent which entry is
+                        # primary and how to navigate between them.
+                        activity_logger.info(
+                            "Multi-entry workspace: keeping backend at "
+                            "root %s (%d entries)",
+                            workspace_backend.root_dir,
+                            len(provision_results),
                         )
                 
                     all_consumed: set[str] = set()

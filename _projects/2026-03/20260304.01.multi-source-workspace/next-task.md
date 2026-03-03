@@ -68,94 +68,82 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-04
-**Current Task**: Phase 4 — Backend Provisioner: Multiple Git Repos
-**Status**: IN PROGRESS — Phases 1-3 complete (MVP reached), Phase 4 ready to start
+**Current Task**: Phase 5 — Tests + Polish
+**Status**: IN PROGRESS — Phases 1-4 complete, Phase 5 ready to start
 
-## Session Progress (2026-03-04)
+## Session Progress (2026-03-04, Session 4)
 
-### Phase 1: Proto Schema + Code Generation — COMPLETE
+### Phase 4: Backend Provisioner — Multiple Git Repos — COMPLETE
 
 **What was accomplished:**
-- Added `WorkspaceEntry` message to `workspace.proto` (name + source pair)
-- Replaced singular `workspace_source` (field 6) with `repeated WorkspaceEntry workspace_entries` (field 7) on `SessionSpec`
-- Reserved field 6 and name `workspace_source` for wire-format safety
-- Regenerated all Go and Python stubs via `make protos`
+- Deep architectural analysis uncovered three concerns not anticipated in the original plan: backend replacement creating unreachable siblings, remote tree builder ignoring `root_dir`, and gitignore filter reading from wrong root
+- Designed and implemented subdirectory-aware git provisioning via `target_subdir` parameter threading (no new backend types needed)
+- Modified `provision_all()` to route multi-entry sessions through named subdirectories (`use_subdirs = len(entries) > 1`)
+- Added multi-entry guard to backend replacement in `execute_graphton.py` — single entry replaces backend (backward compat), multi-entry keeps workspace root
+- Scoped git diff artifact generation to per-entry subdirectories via `cwd` parameter; multi-entry patch naming: `{execution_id}-{entry_name}.patch`
+- Fixed remote tree builder and gitignore filter to scope correctly via `cwd` and relative path prefixing
+- 28 new tests across 4 test files, all 239 workspace tests + 53 prompt section tests passing
 
+**Files changed (4 production, 4 test):**
+- `backend/services/agent-runner/worker/workspace/sources/git.py` — `target_subdir` parameter, `_effective_root()`, `_scoped_path()` helpers, threaded through all 7 internal functions (+136 lines)
+- `backend/services/agent-runner/worker/workspace/provisioner.py` — `target_subdir` in `provision()`, `_dispatch()`, `provision_all()` routing, `_relative_subdir()` helper, scoped `_enrich_with_file_tree` and `_load_gitignore_filter` (+66 lines)
+- `backend/services/agent-runner/worker/workspace/tree.py` — `cwd` parameter on `build_workspace_file_tree()` and `_build_directory_tree_via_find()` (+13 lines)
+- `backend/services/agent-runner/worker/activities/execute_graphton.py` — multi-entry backend guard, per-entry `cwd` for git diff, entry-name patch naming (+33 lines)
+- `tests/workspace/test_git_source.py` — 12 new subdirectory tests (+187 lines)
+- `tests/workspace/test_provisioner.py` — 4 new multi-git tests (+117 lines)
+- `tests/workspace/test_tree.py` — 4 new cwd scoping tests (+82 lines)
+- `tests/workspace/test_git_diff_artifact.py` — NEW FILE, 8 tests for per-entry cwd and naming
+
+**Key design decisions:**
+- D1: Thread `target_subdir` through git.py internals rather than creating per-entry backend instances — keeps changes local, avoids new types, works on both Local and Daytona backends
+- D2: Skip backend replacement for multi-entry (`len(provision_results) > 1`) — workspace root stays as the container, all subdirectories remain reachable
+- D3: Single entry clones into workspace root (backward compat), multiple entries clone into `{root}/{entry.name}/`
+- D4: Patch naming `{execution_id}-{entry_name}.patch` for multi-entry, `{execution_id}.patch` for single
+
+## Previous Sessions
+
+### Phase 1: Proto Schema + Code Generation — COMPLETE
 **Commit**: `e5e0704a feat(apis): add WorkspaceEntry and multi-workspace support to session proto`
 
 ### Phase 2: CLI Multi-Workspace Support — COMPLETE
-
-**What was accomplished:**
-- Changed `--workspace` to repeatable `StringArrayVarP` with `-w` shorthand
-- Added `parseWorkspaceEntries()`, `deriveEntryName()` and supporting functions
-- Migrated all pipeline structs from singular `WorkspaceSource` to `WorkspaceEntries []*WorkspaceEntry`
-- Updated session creation, attachments, and help text
-- 11 new tests, 4 updated tests
-
 **Commit**: `712e12b8 feat(cli): add repeatable --workspace/-w flag for multi-root sessions`
 
 ### Phase 3: Backend Provisioner — Multiple Local Paths — COMPLETE
-
-**What was accomplished:**
-- Extended `ProvisionResult` with `entry_name: str = ""` (backward-compatible, at end of frozen dataclass)
-- Added `WorkspaceProvisioner.provision_all()` — iterates `WorkspaceEntry` protos, delegates to `provision()` per entry, stamps `entry_name` via `dataclasses.replace()`, fail-fast on error
-- Rewrote `build_workspace_prompt_section()` for `list[ProvisionResult]` — single entry preserves legacy format, multi-entry generates preamble + per-entry `###` headings + adjusted `####` file tree headings
-- Wired `execute_graphton.py`: replaced singular `workspace_source` check with `workspace_entries`, called `provision_all()`, updated backend replacement (primary = first entry), consumed keys union across all entries, heartbeat data, relevance section root, git diff artifact loop
-- Added 7 new provisioner tests (`TestProvisionAll`) with `_MockWorkspaceEntry`
-- Updated all 44 existing prompt section tests from singular to list API, added 7 new multi-entry tests (`TestMultiEntryWorkspacePromptSection`)
-- All 78 tests pass
-
-**Files changed:**
-- `backend/services/agent-runner/worker/workspace/provisioner.py` — `entry_name` field, `provision_all()` method (+76 lines)
-- `backend/services/agent-runner/worker/activities/execute_graphton.py` — multi-entry wiring (+141/-100 lines)
-- `backend/services/agent-runner/tests/workspace/test_provisioner.py` — `TestProvisionAll` (+146 lines)
-- `backend/services/agent-runner/tests/test_workspace_prompt_section.py` — list API migration + multi-entry tests (+154/-42 lines)
-
-**Key design decisions:**
-- Extended existing `ProvisionResult` instead of creating new `EntryProvisionResult` — DRY, no field duplication, backward-compatible via default value
-- `entry_name` added at end of frozen dataclass with `str = ""` default — existing construction sites unaffected
-- `provision_all()` uses duck-typing for proto entries (`.name`, `.source`) — no import dependency on generated stubs
-- Single-entry output format preserved exactly — no regressions for single-workspace sessions
-- Multi-entry preamble names the primary workspace and instructs the agent to navigate by absolute paths
-- File tree headings adjusted from `###` to `####` in multi-entry mode to avoid conflicting with per-entry `###` headings
-- Relevance section and referenced-files section use primary workspace root — acknowledged MVP limitation
+**Commit**: `bb5eaf06 feat(backend/agent-runner): add multi-workspace provisioning (Phase 3 MVP)`
 
 ## Next Steps
 
-1. **Phase 4: Backend Provisioner — Multiple Git Repos** (Gaps 17, 19, 20, 25-27)
-   - Handle git clone into subdirectories for cloud mode
-   - Per-entry workspace backend creation or root management
-   - Git diff artifact generation for each repo entry
-2. **Phase 5: Tests + Polish** (Gaps 30-33)
-   - Integration-level multi-workspace tests
+1. **Phase 5: Tests + Polish** (Gaps 30-33)
+   - Integration-level multi-workspace tests (multi-git cloud mode end-to-end)
    - Edge cases: mixed local+git entries, empty entries
+   - Daytona `cwd` behavior verification
+2. **Known MVP limitations to address later:**
+   - `build_referenced_files_prompt_section` uses single primary root — multi-root file referencing is a future enhancement
+   - Mixed local+git entries: if `use_subdirs = True`, local_path entries ignore `target_subdir` — primary root_dir heuristic may produce unexpected results
+   - stigmer-cloud stubs NOT regenerated yet
 
 ## Context for Resume
 
-- Phases 1-3 are committed and clean. **MVP milestone reached** — local multi-path workspaces work end-to-end.
-- All 78 Python backend tests pass (provisioner + prompt section).
-- The `provision_all()` method is generic enough to handle git entries in Phase 4 — it delegates to `provision()` which already dispatches by source type.
-- `build_workspace_prompt_section()` already handles any number of entries — no further prompt changes needed for Phase 4.
-- The `_generate_git_diff_artifact` loop already iterates all `provision_results` — Phase 4 just needs the git provisioning per-entry to work correctly.
-- `build_referenced_files_prompt_section` still uses a single primary root — multi-root file referencing is a future enhancement.
-- stigmer-cloud stubs are NOT regenerated yet.
+- Phases 1-4 implemented. Phase 4 is the final code-heavy phase — Phase 5 is integration tests and polish.
+- All 292 Python backend tests pass (239 workspace + 53 prompt section).
+- The `target_subdir` threading pattern is consistent: git.py uses it for clone/detect/recover/excludes, provisioner.py routes it, tree.py scopes remote find, execute_graphton.py scopes git diff.
+- When `target_subdir` is `None`, every function behaves identically to before — zero regression risk for single-entry sessions.
+- Agent CWD for multi-entry stays at workspace root (not primary's subdirectory) — system prompt compensates, worth monitoring in integration testing.
 
 ## Architecture Context
 
 The multi-source workspace feature requires changes across 6 layers:
 1. **Proto schema** — `WorkspaceEntry` type, `repeated workspace_entries` on `SessionSpec` **(DONE)**
 2. **CLI** — Repeatable `--workspace` flag, multi-root attachment processing **(DONE)**
-3. **Backend provisioner** — Iterate entries, per-entry provisioning **(DONE — local paths)**
+3. **Backend provisioner** — Iterate entries, per-entry provisioning **(DONE — local + git)**
 4. **System prompt** — Multi-entry workspace description **(DONE)**
-5. **Git provisioning** — Subdirectory cloning for cloud mode
-6. **Tests** — Multi-workspace scenarios **(partial — unit tests done)**
-
-MVP milestone reached after Phase 3.
+5. **Git provisioning** — Subdirectory cloning for cloud mode **(DONE)**
+6. **Tests** — Multi-workspace scenarios **(partial — unit tests done, integration pending)**
 
 ## Quick Commands
 
 After loading context:
-- "Start Phase 4" - Begin backend git multi-repo provisioning
+- "Start Phase 5" - Begin integration tests and polish
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
