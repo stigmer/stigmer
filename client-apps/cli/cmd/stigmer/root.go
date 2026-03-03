@@ -75,6 +75,7 @@ func init() {
 	rootCmd.AddCommand(withGroup(root.NewResourcesCommand(), "config"))
 	rootCmd.AddCommand(withGroup(root.NewCompletionCommand(), "config"))
 	rootCmd.AddCommand(withGroup(root.NewFixCommand(), "config"))
+	rootCmd.AddCommand(withGroup(root.NewDoctorCommand(), "config"))
 
 	// Hidden internal commands (no group needed)
 	rootCmd.AddCommand(root.NewInternalServerCommand())

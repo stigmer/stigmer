@@ -77,8 +77,18 @@ Role reference: `_roles/003_cli_tui_ux_eng`
 ## Current State
 
 - **Status**: in-progress
-- **Last Session**: 2026-03-03 (Session 9) — Phase 2.4 implementation complete; **fourth Phase 2 (High) item done**
-- **Active Task**: None — ready to pick Phase 2.5 (`stigmer doctor` Diagnostic Command)
+- **Last Session**: 2026-03-03 (Session 10) — Phase 2.5 implementation complete; **fifth Phase 2 (High) item done**
+- **Active Task**: None — ready to pick Phase 3.1 (stdout/stderr Separation) or Phase 3.2 (TUI Epilogue)
+
+## Session Progress (2026-03-03 — Session 10)
+
+- Completed Phase 2.5: `stigmer doctor` Diagnostic Command — the **fifth Phase 2 (High) item**
+- New command `stigmer doctor` under config group with `--json`/`--quiet`; runs seven checks in order: config, server, auth, org, agents (when conn+org), MCP health (skip), terminal
+- Added `doctor.go` (orchestration + buildDoctorResult), `doctor_checks.go` (types + pure checks), `doctor_checks_runtime.go` (checkServer, checkTerminal), `doctor_test.go` (22 tests)
+- Backend: added `Client.Conn()` accessor for search.List in checkAgents; server check uses 5s timeout and reports latency
+- Exit code 0 when all pass/warn/skip, 1 when any fail; output via clioutput (human/JSON/quiet)
+- Created changelog: `_changelog/2026-03/2026-03-03-234112-stigmer-doctor-diagnostic-command.md`
+- Session checkpoint: `checkpoints/2026-03-03-session-10.md`
 
 ## Session Progress (2026-03-03 — Session 9)
 
@@ -192,12 +202,12 @@ Role reference: `_roles/003_cli_tui_ux_eng`
 
 ## Next Steps
 
-1. **Phase 2.5**: `stigmer doctor` Diagnostic Command — the **next Phase 2 (High) item**
-2. **Phase 3.1**: stdout/stderr Separation (partially subsumed by Phase 2.2 for inline/JSON paths)
-3. **Phase 3.2**: TUI Epilogue Standardization
+1. **Phase 3.1**: stdout/stderr Separation (partially subsumed by Phase 2.2 for inline/JSON paths)
+2. **Phase 3.2**: TUI Epilogue Standardization
 
 ## Context for Resume
 
+- **Phase 2.5 key pattern**: `stigmer doctor` runs seven checks in order; each returns `checkResult` (name, status, fields, hint). Orchestrator in `doctor.go`, pure checks in `doctor_checks.go`, runtime checks (server, terminal) in `doctor_checks_runtime.go`. Uses `clioutput.CommandResult` and same human/JSON/quiet flags as server status. Exit 0 if no fail, 1 otherwise. `backend.Client.Conn()` exposes gRPC conn for `checkAgents` (search.List).
 - **Phase 2.4 key pattern**: `spinner.New(os.Stderr)` + `sp.Start("label")` + `sp.Update("label")` + `sp.Stop()`. The spinner is passed as `*spinner.Spinner` to `prepareAgentExec`, `executeResolvedAgent`, `routeRun`, `openSession`. `isWriterTerminal(w)` checks if the io.Writer is a `*os.File` with a terminal fd. `Start()` on a stopped spinner re-animates it (used in draft stop-print-restart pattern).
 - **Phase 2.3 key pattern**: `retryWithBackoff(ctx, maxAttempts, baseDelay, fn)` is a generic retry loop used by `emitAndWaitApproval`. `isRetryableSubmitError(err)` walks the `Unwrap()` chain to classify gRPC codes. Retryable: Unavailable, DeadlineExceeded, ResourceExhausted, Aborted, Internal, Unknown. Non-retryable: NotFound, InvalidArgument, PermissionDenied, etc. Non-gRPC errors default to retryable.
 - **Retry constants**: `approvalRetryMaxAttempts = 3`, `approvalRetryBaseDelay = 1s`. Total worst-case wait: 3s.
@@ -241,6 +251,7 @@ Role reference: `_roles/003_cli_tui_ux_eng`
 | 2.2 | Two-Lane Output Design | Done (code + 33 tests) |
 | 2.3 | Retry on Approval Submission Failure | Done (code + 13 tests) |
 | 2.4 | Preparation Phase Spinner | Done (code + 3 tests) |
+| 2.5 | stigmer doctor Diagnostic Command | Done (code + 22 tests) |
 
 ## Blockers
 
