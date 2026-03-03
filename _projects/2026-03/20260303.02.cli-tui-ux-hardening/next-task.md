@@ -74,19 +74,48 @@ per-gap fixes is in `tasks/T01_0_plan.md`.
 Related issue file: `_cursor/issues/tui-resume-flow-approval-not-surfaced.md`
 Role reference: `_roles/003_cli_tui_ux_eng`
 
-## Current Status
+## Current State
 
-**Created**: 2026-03-03
-**Current Task**: T01 (Full Gap Fix Plan — PENDING REVIEW)
-**Status**: Awaiting developer review of task plan
+- **Status**: in-progress
+- **Last Session**: 2026-03-03 — Phase 1.1 implementation complete
+- **Active Task**: Phase 1.1 "Approval Not Surfaced on Resume" (code + tests done; manual test pending)
+
+## Session Progress (2026-03-03)
+
+- Completed Phase 1.1 defense-in-depth fix for approval prompts on resume
+- Discovered and corrected an architectural misdirection: plan targeted snapshot path, but the fix belongs on the stream path
+- Added `findAllUnpromptedApprovals` with sub-agent awareness to `run_stream_approval.go`
+- Added Step 3b fallback block in `streamToEvents` in `run_stream_events.go`
+- Wrote 6 unit tests — all passing
+- Created changelog: `_changelog/2026-03/2026-03-03-204258-fix-approval-not-surfaced-on-resume.md`
+
+## Next Steps
+
+1. **Manual test**: Detach during an approval, re-attach via `stigmer run ses-XXX`, verify the approval prompt appears
+2. Pick the next phase from the plan in `tasks/T01_0_plan.md` (likely Phase 1.2 or another Phase 1 item)
+3. Continue through the CLI/TUI UX hardening plan
+
+## Context for Resume
+
+- The fix targets the **stream path** (`run_stream_events.go`), NOT the snapshot path. The snapshot path only handles terminal executions and lacks gRPC approval response plumbing.
+- The defense-in-depth block only fires when `pending_approvals` is empty AND the execution phase is `WAITING_FOR_APPROVAL`. It does not replace the primary path.
+- The backend has a known write-ordering issue between MongoDB and Redis that can cause `pending_approvals` to be empty in the initial Subscribe snapshot. This is tracked as a backend follow-up.
+
+## Blockers
+
+- None. Manual test requires running backend environment.
+
+## Quick Resume
+
+To continue this project, drag this file into chat:
+`@_projects/2026-03/20260303.02.cli-tui-ux-hardening/next-task.md`
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T01" - Resume the current task
+- "Continue with the next phase" - Pick the next task from the plan
 - "Show project status" - Get overview of progress
-- "Create checkpoint" - Save current progress
-- "Review guidelines" - Check established patterns
+- "Run manual test" - Follow manual test instructions for Phase 1.1
 
 ---
 

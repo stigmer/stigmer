@@ -153,6 +153,36 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 			}
 		}
 
+		// --- Step 3b: Defense-in-depth approval detection ---
+		//
+		// When the execution is WAITING_FOR_APPROVAL but pending_approvals is
+		// empty (backend snapshot timing: write-ordering or replication lag
+		// between MongoDB and Redis), fall back to scanning tool call statuses.
+		// This ensures the approval prompt appears on re-attach even when the
+		// backend's initial snapshot omits pending_approvals.
+		if len(execution.Status.GetPendingApprovals()) == 0 &&
+			execution.Status.Phase == agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL {
+			unprompted := findAllUnpromptedApprovals(
+				execution.Status.ToolCalls,
+				execution.Status.GetSubAgentExecutions(),
+				promptedIDs,
+			)
+			for _, u := range unprompted {
+				pa := buildPendingApprovalFromToolCall(u.toolCall)
+				pa.FromSubAgent = u.fromSubAgent
+				pa.SubAgentName = u.subAgentName
+
+				log.Debug().
+					Str("execution_id", cfg.executionID).
+					Str("tool_call_id", pa.ToolCallId).
+					Str("tool_name", pa.ToolName).
+					Bool("from_sub_agent", u.fromSubAgent).
+					Msg("[stream] defense-in-depth: approval detected via tool call status scan")
+
+				emitAndWaitApproval(ctx, cfg, u.toolCall, pa, promptedIDs, pa.ToolCallId)
+			}
+		}
+
 		// --- Step 5: Terminal check ---
 		if isTerminalAgentPhase(execution.Status.Phase) {
 			log.Debug().
