@@ -7,6 +7,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/stigmer/stigmer/client-apps/cli/cmd/stigmer/root"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 )
 
 var (
@@ -23,13 +24,12 @@ Run locally or scale to production with Stigmer Cloud.`,
 	SilenceErrors: true,
 	SilenceUsage:  true,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		// Configure zerolog based on debug flag
+		clierr.SetDebug(debugMode)
+
 		if debugMode {
-			// Debug mode: pretty console output with debug level
 			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 			zerolog.SetGlobalLevel(zerolog.DebugLevel)
 		} else {
-			// Normal mode: disable zerolog output (only show user-friendly messages)
 			zerolog.SetGlobalLevel(zerolog.Disabled)
 		}
 	},
