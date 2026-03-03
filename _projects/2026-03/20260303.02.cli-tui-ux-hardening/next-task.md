@@ -77,8 +77,24 @@ Role reference: `_roles/003_cli_tui_ux_eng`
 ## Current State
 
 - **Status**: in-progress
-- **Last Session**: 2026-03-03 (Session 4) — Phase 1.5 implementation complete
-- **Active Task**: None — ready to pick Phase 1.4 (last Critical item)
+- **Last Session**: 2026-03-03 (Session 5) — Phase 1.4 implementation complete; **Phase 1 fully complete**
+- **Active Task**: None — ready to pick Phase 2.1 (first High item)
+
+## Session Progress (2026-03-03 — Session 5)
+
+- Completed Phase 1.4: Emergency Terminal Restore on Crash — the **last Critical item**
+- Created `runTUIWithProtection` wrapper in new `run_tui.go` with:
+  - Three-tier panic recovery (Bubbletea RestoreTerminal → term.Restore → raw ANSI sequences)
+  - SIGTERM/SIGHUP signal handling via `p.Kill()` (bypasses event loop)
+  - Signal handler goroutine with proper lifecycle management (done channel)
+- Integrated wrapper into both TUI entry points (one-line change each in `run_stream.go` and `run_session.go`)
+- Created `stigmer fix` escape hatch command in new `fix.go` (ANSI reset + `stty sane`)
+- Registered `NewFixCommand()` in `root.go` under config group
+- Discovery: Bubbletea v1.2.4 has its own `recoverFromPanic` for event loop panics — our wrapper is defense-in-depth for panics outside the event loop; primary value is signal handling
+- Discovery: `p.RestoreTerminal()` panics if program was never initialized — added nested `recover()` guard in `restoreTerminal`
+- Discovery: `term.MakeRaw` + `term.Restore` cycle doesn't fix broken terminals — switched to `stty sane` for the fix command
+- Wrote 9 new unit tests — all passing alongside existing suite
+- Created changelog: `_changelog/2026-03/2026-03-03-213500-emergency-terminal-restore-on-crash.md`
 
 ## Session Progress (2026-03-03 — Session 4)
 
@@ -125,15 +141,23 @@ Role reference: `_roles/003_cli_tui_ux_eng`
 
 ## Next Steps
 
-1. **Phase 1.4**: Emergency Terminal Restore on Crash — the **last remaining Phase 1 (Critical) item**
-   - Register `defer` recovery handler around `tea.NewProgram().Run()` for panic recovery
-   - Register signal handlers for SIGTERM/SIGHUP for graceful alt-screen teardown
-   - Add `stigmer reset-terminal` escape hatch command
-   - Files: `run_stream.go`, `run_session.go`, new `reset_terminal.go`
-2. After Phase 1.4, **Phase 1 is fully complete** — move to Phase 2 (High — Error Handling, Progress & Output Modes)
+1. **Phase 2.1**: Comprehensive Error Handler — the **first Phase 2 (High) item**
+   - Add handlers for all missing gRPC codes (PermissionDenied, DeadlineExceeded, ResourceExhausted, FailedPrecondition, AlreadyExists, Internal, Aborted)
+   - Introduce exit code constants: 1=general, 2=usage, 3=connection, 4=auth, 5=not-found
+   - Add `--debug` global flag for full error chain
+   - Files: `internal/cli/clierr/clierr.go`, new `clierr/codes.go`
+2. **Phase 2.2**: Two-Lane Output Design (Interactive TUI + Non-interactive stream)
+3. **Phase 2.3**: Retry on Approval Submission Failure
+4. **Phase 2.4**: Preparation Phase Spinner
+5. **Phase 2.5**: `stigmer doctor` Diagnostic Command
 
 ## Context for Resume
 
+- **Phase 1.4 key pattern**: `runTUIWithProtection(p)` wraps `p.Run()` with panic recovery + signal handling. Both TUI entry points (streamAgentExecution, resumeSession) call it instead of `p.Run()` directly. Signal handler goroutine is lifecycle-managed via a `done` channel.
+- **Bubbletea catches event loop panics internally** via `recoverFromPanic`. Our wrapper's `recover()` is defense-in-depth for panics outside the event loop (terminal setup/teardown). Primary wrapper value is SIGTERM/SIGHUP handling.
+- **`p.RestoreTerminal()` panics if program was never initialized** — guarded with nested `recover()` in `restoreTerminal()`.
+- **`stty sane` is more reliable than `term.MakeRaw+Restore`** for fixing broken terminals — the latter just saves and re-applies the broken state.
+- **`stigmer fix`** is the escape hatch command, registered under "config" group in root.go.
 - **Phase 1.5 key pattern**: Esc maps to the same cancel-confirm flow as `c` via `msg.Type == tea.KeyEsc` in `handleKeyPress`. No new model fields — reuses existing `cancelConfirm` and `handleCancelConfirmKey`.
 - **Phase 1.3 key pattern**: `classifyStreamError(err, sessionID)` returns a `*streamError` where `Error()` is the user-facing message and `Unwrap()` preserves the raw error. This replaces raw `errors.Wrap()` at the `stream.Recv()` error site.
 - **Keepalive is already configured** at 30s/10s in `internal/cli/backend/client.go`. Do NOT add application-level recv timeouts — they were already tried and removed (falsely triggered during LLM thinking).
@@ -148,6 +172,7 @@ Role reference: `_roles/003_cli_tui_ux_eng`
 | 1.1 | Approval Not Surfaced on Resume | Done (code + tests, manual test pending) |
 | 1.2 | Context-Cancellable Approval Flow | Done (code + 6 tests) |
 | 1.3 | Dead Stream Connection Detection | Done (code + 10 tests) |
+| 1.4 | Emergency Terminal Restore on Crash | Done (code + 9 tests) |
 | 1.5 | Esc as Cancel Shortcut | Done (code + 7 tests) |
 
 ## Blockers

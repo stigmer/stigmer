@@ -141,8 +141,10 @@ func resumeSession(sessionID, sessionSubject, orgID string, executions []*agente
 		Verbose:           verbose,
 	})
 
+	// runTUIWithProtection wraps p.Run() with panic recovery and signal
+	// handling so the terminal is always restored on crash or SIGTERM/SIGHUP.
 	p := tea.NewProgram(model, tea.WithAltScreen())
-	finalModel, err := p.Run()
+	finalModel, err := runTUIWithProtection(p)
 
 	// TUI has exited — cancel the stream context so any follow-up
 	// goroutines unblock and clean up.

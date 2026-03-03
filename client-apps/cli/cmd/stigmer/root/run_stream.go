@@ -121,8 +121,10 @@ func streamAgentExecution(sessionID, sessionSubject, executionID, orgID string, 
 	})
 
 	// Run the TUI in alt-screen mode. This blocks until the TUI exits.
+	// runTUIWithProtection wraps p.Run() with panic recovery and signal
+	// handling so the terminal is always restored on crash or SIGTERM/SIGHUP.
 	p := tea.NewProgram(model, tea.WithAltScreen())
-	finalModel, err := p.Run()
+	finalModel, err := runTUIWithProtection(p)
 
 	// TUI has exited — cancel the stream context so all goroutines
 	// (initial stream + any follow-up streams) unblock and clean up.
