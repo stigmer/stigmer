@@ -637,9 +637,10 @@ class StatusBuilder:
         
         # Create tool call with appropriate initial status
         # If approval required: WAITING_APPROVAL, otherwise: RUNNING
+        display_args = self._humanize_args_for_display(tool_args) if tool_args else {}
         args_struct = Struct()
-        if tool_args:
-            args_struct.update(tool_args)
+        if display_args:
+            args_struct.update(display_args)
         
         now = datetime.utcnow()
         initial_status = (
