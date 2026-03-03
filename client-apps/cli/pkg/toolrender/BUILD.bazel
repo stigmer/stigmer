@@ -6,6 +6,7 @@ go_library(
         "file_preview.go",
         "format.go",
         "highlight.go",
+        "hyperlink.go",
         "render.go",
         "render_known.go",
     ],
@@ -18,6 +19,7 @@ go_library(
         "@com_github_alecthomas_chroma_v2//styles",
         "@com_github_charmbracelet_lipgloss//:lipgloss",
         "@com_github_charmbracelet_x_ansi//:ansi",
+        "@org_golang_x_term//:term",
     ],
 )
 
@@ -26,6 +28,7 @@ go_test(
     srcs = [
         "file_preview_test.go",
         "highlight_test.go",
+        "hyperlink_test.go",
         "render_test.go",
     ],
     embed = [":toolrender"],
