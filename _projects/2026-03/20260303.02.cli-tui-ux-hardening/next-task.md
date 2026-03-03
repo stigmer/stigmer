@@ -77,8 +77,22 @@ Role reference: `_roles/003_cli_tui_ux_eng`
 ## Current State
 
 - **Status**: in-progress
-- **Last Session**: 2026-03-03 (Session 6) — Phase 2.1 implementation complete; **first Phase 2 (High) item done**
-- **Active Task**: None — ready to pick Phase 2.2 (Two-Lane Output Design)
+- **Last Session**: 2026-03-03 (Session 7) — Phase 2.2 implementation complete; **second Phase 2 (High) item done**
+- **Active Task**: None — ready to pick Phase 2.3 (Retry on Approval Submission Failure)
+
+## Session Progress (2026-03-03 — Session 7)
+
+- Completed Phase 2.2: Two-Lane Output Design — the **second Phase 2 (High) item**
+- Created `output_mode.go` with `OutputMode` enum (Interactive/Inline/JSON), `resolveOutputMode()` with TTY + `TERM=dumb` + flag precedence, `registerOutputModeFlags()` helper
+- Created `run_stream_inline.go` — inline event renderer with AI content → stdout, status/progress → stderr, approval via `Prompter`, tool call badges, AI stream delta dedup
+- Created `run_stream_json.go` — NDJSON event serializer with auto-resolve approvals via `defaultAction`, structured `{type, ts, payload}` output
+- Refactored `run_stream.go` to branch on `OutputMode`: interactive/inline/JSON paths, extracted `streamAgentEpilogue`
+- Refactored `run_session.go` to thread `outputMode` through session lifecycle, disabled follow-up in non-interactive modes
+- Added `OutputMode` to `preparedAgentExec` and `resolvedAgentExecInput` in `run_agent_exec.go`
+- Registered `--json` and `--no-tui` flags on `run` and `draft` commands
+- stdout/stderr separation baked in from day one — subsumes Phase 3.1 for inline/JSON paths
+- Wrote 33 new unit tests — all passing alongside the full existing suite
+- Created changelog: `_changelog/2026-03/2026-03-03-222109-two-lane-output-design.md`
 
 ## Session Progress (2026-03-03 — Session 6)
 
@@ -155,17 +169,19 @@ Role reference: `_roles/003_cli_tui_ux_eng`
 
 ## Next Steps
 
-1. **Phase 2.2**: Two-Lane Output Design (Interactive TUI + Non-interactive stream) — the **next Phase 2 (High) item**
-   - Lane 1 (Interactive): Current alt-screen TUI (default when TTY detected)
-   - Lane 2 (Non-interactive): Fall back to `messageStreamRenderer` when stdout is not a TTY or `TERM=dumb`
-   - Add `--no-alt-screen` flag and `--output json` flag
-   - Files: `run_stream.go`, `run_session.go`, new `run_output_json.go`
-2. **Phase 2.3**: Retry on Approval Submission Failure
-3. **Phase 2.4**: Preparation Phase Spinner
-4. **Phase 2.5**: `stigmer doctor` Diagnostic Command
+1. **Phase 2.3**: Retry on Approval Submission Failure — the **next Phase 2 (High) item**
+2. **Phase 2.4**: Preparation Phase Spinner
+3. **Phase 2.5**: `stigmer doctor` Diagnostic Command
 
 ## Context for Resume
 
+- **Phase 2.2 key pattern**: `resolveOutputMode()` determines Interactive/Inline/JSON based on flag precedence (`--json` > `--no-tui` > TTY detection + `TERM=dumb`). `streamAgentExecution` branches into `streamAgentInteractive`, `streamAgentInline`, or `streamAgentJSON`. All three consume the same `executiontui.Event` channel.
+- **`OutputMode` type**: `OutputInteractive`, `OutputInline`, `OutputJSON` — defined in `output_mode.go`.
+- **`--json` and `--no-tui` flags**: Registered via `registerOutputModeFlags()`, mutually exclusive. Applied to both `run` and `draft` commands.
+- **Inline renderer**: AI content → stdout (`data` writer), all other output → stderr (`status` writer). Approvals handled via `approval.Prompter` when TTY available, auto-skipped otherwise. AI stream deltas deduplicated at byte level.
+- **JSON renderer**: NDJSON `{type, ts, payload}` on stdout. Approvals auto-resolved via `defaultAction`. Empty strings omitted from payloads.
+- **stdout/stderr discipline**: Baked into inline and JSON paths. AI content is the "pipeable data", everything else is status chrome. Subsumes Phase 3.1 for these paths.
+- **Follow-up disabled**: `FollowUpFn` and `SubjectFetchFn` set to nil for non-interactive modes. Non-interactive sessions run to completion and exit.
 - **Phase 2.1 key pattern**: `Classify(err) *CLIError` is a pure function that maps any error to a structured `CLIError` with exit code, user message, hints, and cause. `Handle(err)` is a thin orchestrator that calls Classify, formats, and exits. `extractGRPCStatus(err)` walks the `Unwrap()` chain to find gRPC status through wrapped errors.
 - **`CLIError` type**: `ExitCode int`, `Message string`, `Hints []string`, `Cause error`. Implements `Error()` and `Unwrap()`.
 - **Exit codes**: `ExitSuccess=0`, `ExitGeneral=1`, `ExitUsage=2`, `ExitConnection=3`, `ExitAuth=4`, `ExitNotFound=5` — defined in `exit_codes.go`.
@@ -194,6 +210,7 @@ Role reference: `_roles/003_cli_tui_ux_eng`
 | 1.4 | Emergency Terminal Restore on Crash | Done (code + 9 tests) |
 | 1.5 | Esc as Cancel Shortcut | Done (code + 7 tests) |
 | 2.1 | Comprehensive Error Handler | Done (code + 24 tests) |
+| 2.2 | Two-Lane Output Design | Done (code + 33 tests) |
 
 ## Blockers
 

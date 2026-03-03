@@ -3,6 +3,7 @@ package root
 import (
 	"context"
 	"fmt"
+	"os"
 	"slices"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -18,14 +19,14 @@ import (
 
 // executeRunSession handles the single-arg `stigmer run ses-xxx` path.
 // It connects to the backend and delegates to openSession.
-func executeRunSession(sessionID, orgOverride string, verbose bool) error {
+func executeRunSession(sessionID, orgOverride string, verbose bool, outputMode OutputMode) error {
 	conn, orgID, err := connectToBackend(orgOverride)
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
 
-	return openSession(sessionID, orgID, verbose, conn)
+	return openSession(sessionID, orgID, verbose, outputMode, conn)
 }
 
 // openSession re-opens an existing session by its ID.
@@ -34,7 +35,7 @@ func executeRunSession(sessionID, orgOverride string, verbose bool) error {
 //   - Re-attaches to the live stream if the execution is still running
 //   - Opens a resumable TUI with the full conversation history if all
 //     executions have completed, allowing the user to continue
-func openSession(sessionID, orgID string, verbose bool, conn *grpc.ClientConn) error {
+func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, conn *grpc.ClientConn) error {
 	ses, err := session.GetFromBackend(conn, sessionID)
 	if err != nil {
 		climsg.Error("Session not found: %s", sessionID)
@@ -75,11 +76,11 @@ func openSession(sessionID, orgID string, verbose bool, conn *grpc.ClientConn) e
 		fmt.Println()
 		executionID := latestExec.GetMetadata().GetId()
 		prompter := approval.NewInteractivePrompter()
-		_, err := streamAgentExecution(sessionID, subject, executionID, orgID, prompter, approval.Action(0), verbose, conn)
+		_, err := streamAgentExecution(sessionID, subject, executionID, orgID, prompter, approval.Action(0), verbose, outputMode, conn)
 		return err
 
 	default:
-		return resumeSession(sessionID, subject, orgID, entries, verbose, conn)
+		return resumeSession(sessionID, subject, orgID, entries, verbose, outputMode, conn)
 	}
 }
 
@@ -89,12 +90,10 @@ func openSession(sessionID, orgID string, verbose bool, conn *grpc.ClientConn) e
 // noise suppression, lifecycle badges, and duplicate filtering all apply
 // automatically. The input composer activates after all historical events
 // are processed, letting the user send a follow-up message.
-func resumeSession(sessionID, sessionSubject, orgID string, executions []*agentexecutionv1.AgentExecution, verbose bool, conn *grpc.ClientConn) error {
+func resumeSession(sessionID, sessionSubject, orgID string, executions []*agentexecutionv1.AgentExecution, verbose bool, outputMode OutputMode, conn *grpc.ClientConn) error {
 	climsg.Info("Resuming session...")
 	fmt.Println()
 
-	// The backend returns executions newest-first. Reverse for chronological
-	// event emission so the conversation reads top-to-bottom.
 	chronological := make([]*agentexecutionv1.AgentExecution, len(executions))
 	copy(chronological, executions)
 	slices.Reverse(chronological)
@@ -102,23 +101,53 @@ func resumeSession(sessionID, sessionSubject, orgID string, executions []*agente
 	latestExec := executions[0]
 	latestExecID := latestExec.GetMetadata().GetId()
 
-	// streamCtx governs the lifetime of follow-up stream goroutines created
-	// by buildFollowUpFn. snapshotToEvents doesn't need cancellation (it
-	// closes its channel after emitting all events), but follow-up goroutines
-	// spawned during the session must be cancellable when the TUI exits.
 	streamCtx, streamCancel := context.WithCancel(context.Background())
 
-	followUpFn := buildFollowUpFn(streamCtx, sessionID, orgID, conn)
-
-	// Convert stored executions into events through the same pipeline that
-	// the live gRPC stream uses. The TUI processes these events identically
-	// to a live execution — single rendering path, zero parity drift.
 	events := make(chan executiontui.Event, 256)
 	approvalResponses := make(chan executiontui.ApprovalResponse, 1)
 	go snapshotToEvents(chronological, events)
 
-	// When the session subject is not yet known, provide a fetch function so
-	// the TUI can update the header in-place once the backend generates a title.
+	switch outputMode {
+	case OutputInline:
+		prompter := approval.NewInteractivePrompter()
+		_, exitErr := renderInline(streamCtx, inlineRenderConfig{
+			events:            events,
+			approvalResponses: approvalResponses,
+			prompter:          prompter,
+			data:              os.Stdout,
+			status:            os.Stderr,
+			sessionID:         sessionID,
+		})
+		streamCancel()
+		if exitErr != "" {
+			return errors.New(exitErr)
+		}
+		displaySessionExitLine(sessionID, latestExec)
+		return nil
+
+	case OutputJSON:
+		_, exitErr := renderJSON(streamCtx, jsonRenderConfig{
+			events:            events,
+			approvalResponses: approvalResponses,
+			data:              os.Stdout,
+			status:            os.Stderr,
+		})
+		streamCancel()
+		if exitErr != "" {
+			return errors.New(exitErr)
+		}
+		return nil
+
+	default:
+		return resumeSessionInteractive(streamCtx, streamCancel, sessionID, sessionSubject, orgID, latestExecID, events, approvalResponses, verbose, conn)
+	}
+}
+
+// resumeSessionInteractive runs the Bubbletea alt-screen TUI for a resumed
+// session with the full conversation history and follow-up capability.
+func resumeSessionInteractive(streamCtx context.Context, streamCancel context.CancelFunc, sessionID, sessionSubject, orgID, latestExecID string, events chan executiontui.Event, approvalResponses chan executiontui.ApprovalResponse, verbose bool, conn *grpc.ClientConn) error {
+	followUpFn := buildFollowUpFn(streamCtx, sessionID, orgID, conn)
+
 	var subjectFetchFn func() string
 	if sessionSubject == "" {
 		subjectFetchFn = func() string {
@@ -141,13 +170,8 @@ func resumeSession(sessionID, sessionSubject, orgID string, executions []*agente
 		Verbose:           verbose,
 	})
 
-	// runTUIWithProtection wraps p.Run() with panic recovery and signal
-	// handling so the terminal is always restored on crash or SIGTERM/SIGHUP.
 	p := tea.NewProgram(model, tea.WithAltScreen())
 	finalModel, err := runTUIWithProtection(p)
-
-	// TUI has exited — cancel the stream context so any follow-up
-	// goroutines unblock and clean up.
 	streamCancel()
 
 	if err != nil {
@@ -156,9 +180,6 @@ func resumeSession(sessionID, sessionSubject, orgID string, executions []*agente
 
 	result := finalModel.(executiontui.Model)
 
-	// Fetch the final execution state. When the user sent follow-ups,
-	// LatestExecutionID returns the most recent one.
-	// Uses a fresh context because streamCtx is now cancelled.
 	finalExecID := result.LatestExecutionID()
 	finalExec, err := fetchFinalExecution(context.Background(), conn, finalExecID)
 	if err != nil {

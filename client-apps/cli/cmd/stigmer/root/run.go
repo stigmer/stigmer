@@ -84,6 +84,14 @@ WORKSPACE:
   --branch NAME           Git branch to clone (default: repo default branch)
   --commit SHA            Git commit to checkout after cloning
 
+OUTPUT MODES:
+
+  --no-tui:   Stream output inline without the interactive TUI (preserves scrollback)
+  --json:     Stream events as newline-delimited JSON (for scripting/CI)
+
+  By default, the command auto-detects the best output mode:
+  interactive TUI when stdout is a terminal, inline stream otherwise.
+
 OTHER OPTIONS:
 
   --message, -m:  Initial prompt to send to the agent/workflow
@@ -141,7 +149,16 @@ OTHER OPTIONS:
   stigmer run agent refactorer --workspace ~/projects/my-app -m "Refactor the auth module"
 
   # Override organization
-  stigmer run agent my-agent --org acme-corp`,
+  stigmer run agent my-agent --org acme-corp
+
+  # Stream inline without the TUI (preserves scrollback)
+  stigmer run agent my-agent --no-tui
+
+  # Stream events as JSON for scripting
+  stigmer run agent my-agent --json | jq '.payload.content'
+
+  # Pipe output (auto-detects non-TTY, uses inline mode)
+  stigmer run agent my-agent -m "explain this" | cat`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 1 {
 				if !reference.IsSessionID(args[0]) {
@@ -156,18 +173,20 @@ OTHER OPTIONS:
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 			opts.OrgOverride = GetOrgFlag(cmd)
+			outputMode := resolveOutputMode(opts.outputModeFlags)
 			if len(args) == 1 {
-				err := executeRunSession(args[0], opts.OrgOverride, opts.Verbose)
+				err := executeRunSession(args[0], opts.OrgOverride, opts.Verbose, outputMode)
 				clierr.Handle(err)
 				return
 			}
 			opts.TypeArg = args[0]
 			opts.Reference = args[1]
-			clierr.Handle(executeRun(opts))
+			clierr.Handle(executeRun(opts, outputMode))
 		},
 	}
 
 	registerAgentExecFlags(cmd, &opts.agentExecFlags)
+	registerOutputModeFlags(cmd, &opts.outputModeFlags)
 
 	cmd.Flags().StringVar(&opts.DownloadDir, "download", "",
 		"download artifacts to directory when complete")
@@ -179,6 +198,7 @@ OTHER OPTIONS:
 // agent execution flags.
 type runOptions struct {
 	agentExecFlags
+	outputModeFlags
 	TypeArg     string
 	Reference   string
 	DownloadDir string
@@ -186,7 +206,7 @@ type runOptions struct {
 
 // executeRun validates the resource type and delegates to the shared
 // preparation + execution layers.
-func executeRun(opts runOptions) error {
+func executeRun(opts runOptions, outputMode OutputMode) error {
 	reg := types.DefaultRegistry()
 	info, ok := reg.GetByAlias(opts.TypeArg)
 	if !ok {
@@ -201,6 +221,7 @@ func executeRun(opts runOptions) error {
 	if err != nil {
 		return err
 	}
+	prep.OutputMode = outputMode
 	defer prep.Conn.Close()
 
 	return routeRun(info, opts.Reference, opts.DownloadDir, prep)
@@ -250,6 +271,7 @@ func routeRun(info *types.TypeInfo, ref, downloadDir string, prep *preparedAgent
 			OrgID:           prep.OrgID,
 			DefaultAction:   prep.DefaultAction,
 			Verbose:         prep.Verbose,
+			OutputMode:      prep.OutputMode,
 			Conn:            prep.Conn,
 		})
 
