@@ -76,12 +76,18 @@ func executeFileApply(opts fileApplyOptions) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to load configuration")
 		}
-
-		fctx.orgID, err = resolveOrganization(cfg, opts.OrgOverride)
-		if err != nil {
-			return err
-		}
 		fctx.cfg = cfg
+
+		// Organization resources are self-identifying (slug-based lookup on
+		// the server) and sit above Project in the hierarchy. They don't
+		// require an org context to be applied. Only resolve org when at
+		// least one non-Organization resource is present.
+		if requiresOrgContext(applyItems) {
+			fctx.orgID, err = resolveOrganization(cfg, opts.OrgOverride)
+			if err != nil {
+				return err
+			}
+		}
 
 		if cfg.Backend.Type == config.BackendTypeLocal {
 			dataDir, err := config.GetDataDir()
@@ -199,6 +205,19 @@ func applyResourceItem(item applyItem, fctx *fileApplyContext) (*apiresource.Api
 	default:
 		return nil, fmt.Errorf("apply not implemented for %s", item.typeInfo.DisplayName)
 	}
+}
+
+// requiresOrgContext returns true when the item set contains at least one
+// resource kind that needs an organization context to be applied. Organization
+// resources are the sole exception: they are the root of the resource hierarchy
+// and are identified by slug, not by a parent org.
+func requiresOrgContext(items []applyItem) bool {
+	for _, item := range items {
+		if item.typeInfo.ProtoKind != apiresourcekind.ApiResourceKind_organization {
+			return true
+		}
+	}
+	return false
 }
 
 // discoverAppliedMcpServers triggers best-effort capability discovery for MCP

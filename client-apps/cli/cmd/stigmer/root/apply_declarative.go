@@ -327,7 +327,12 @@ func pushSkillDirectory(dir string, conn *grpc.ClientConn, orgID string) (*apire
 
 // detectResourceItems detects the resource kind in each file and builds
 // applyItems for resources that support the apply verb.
-// Files containing Project kind are silently skipped (already loaded as stigmer.yaml).
+//
+// Skipped kinds:
+//   - Project: already loaded as stigmer.yaml
+//   - Organization: sits above Project in the resource hierarchy
+//     (Organization -> Project -> Members) and must be applied separately
+//     via 'stigmer apply -f'. A project should never create its parent.
 func detectResourceItems(files []string) ([]applyItem, error) {
 	reg := types.DefaultRegistry()
 	var items []applyItem
@@ -340,6 +345,11 @@ func detectResourceItems(files []string) ([]applyItem, error) {
 
 		for _, result := range results {
 			if result.Kind == "Project" {
+				continue
+			}
+
+			if result.Kind == "Organization" {
+				climsg.Warning("Skipping %s: Organization is not a project resource. Use 'stigmer apply -f' to manage organizations.", filePath)
 				continue
 			}
 
