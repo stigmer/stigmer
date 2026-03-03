@@ -77,8 +77,30 @@ Role reference: `_roles/003_cli_tui_ux_eng`
 ## Current State
 
 - **Status**: in-progress
-- **Last Session**: 2026-03-03 (Session 2) — Phase 1.2 implementation complete
-- **Active Task**: None — ready to pick next phase
+- **Last Session**: 2026-03-03 (Session 4) — Phase 1.5 implementation complete
+- **Active Task**: None — ready to pick Phase 1.4 (last Critical item)
+
+## Session Progress (2026-03-03 — Session 4)
+
+- Completed Phase 1.5: Esc as Cancel Shortcut
+- Added Esc as alternative cancel trigger in `handleKeyPress` — single condition expansion, no new model state
+- Updated footer hints (4 locations) from `c cancel` to `Esc/c cancel`
+- Updated help panel Execution Control binding from `c` to `Esc / c`
+- Added `newTestModelWithCancel` test helper and 7 new unit tests covering all Esc interaction states
+- All tests passing alongside existing suite
+- Created changelog: `_changelog/2026-03/2026-03-03-212159-esc-as-cancel-shortcut.md`
+
+## Session Progress (2026-03-03 — Session 3)
+
+- Completed Phase 1.3: Dead Stream Connection Detection (revised scope)
+- Challenged all three original plan components — keepalive already existed, recv timeout and stale warning were proven anti-patterns
+- Added `classifyStreamError` — translates raw gRPC/io errors into actionable user messages with re-attach instructions
+- Added `streamError` type with idiomatic Go error wrapping (`Error()` for display, `Unwrap()` for diagnostics)
+- Threaded `sessionID` into `streamToEventsConfig` for re-attach instructions
+- Improved TUI `StreamErrorEvent` rendering — removed "Stream error:" prefix, added follow-up reconnection hint
+- Fixed pre-existing flaky test (`select` non-determinism with buffered channel)
+- Wrote 10 new unit tests — all passing alongside existing suite
+- Created changelog: `_changelog/2026-03/2026-03-03-211329-actionable-stream-error-messages.md`
 
 ## Session Progress (2026-03-03 — Session 2)
 
@@ -103,17 +125,19 @@ Role reference: `_roles/003_cli_tui_ux_eng`
 
 ## Next Steps
 
-1. Pick the next phase from the plan in `tasks/T01_0_plan.md`:
-   - **Phase 1.3**: Dead Stream Connection Detection — builds on `trySendEvent` and cancellable context
-   - **Phase 1.4**: Emergency Terminal Restore on Crash
-   - **Phase 1.5**: Esc as Cancel Shortcut
-2. Phase 1.3 is the natural next step since it directly extends the patterns introduced in 1.2
+1. **Phase 1.4**: Emergency Terminal Restore on Crash — the **last remaining Phase 1 (Critical) item**
+   - Register `defer` recovery handler around `tea.NewProgram().Run()` for panic recovery
+   - Register signal handlers for SIGTERM/SIGHUP for graceful alt-screen teardown
+   - Add `stigmer reset-terminal` escape hatch command
+   - Files: `run_stream.go`, `run_session.go`, new `reset_terminal.go`
+2. After Phase 1.4, **Phase 1 is fully complete** — move to Phase 2 (High — Error Handling, Progress & Output Modes)
 
 ## Context for Resume
 
-- **Phase 1.2 key pattern**: `streamCtx, streamCancel := context.WithCancel(context.Background())` in both `streamAgentExecution` and `resumeSession`. `streamCancel()` is called after `p.Run()` returns. Follow-up goroutines share the same context via `buildFollowUpFn`.
-- **`trySendEvent` helper**: Reusable for Phase 1.3. Returns `bool` — `false` means context was cancelled.
-- **`emitAndWaitApproval` returns `error`**: Callers check `err != nil` and return (exit goroutine).
+- **Phase 1.5 key pattern**: Esc maps to the same cancel-confirm flow as `c` via `msg.Type == tea.KeyEsc` in `handleKeyPress`. No new model fields — reuses existing `cancelConfirm` and `handleCancelConfirmKey`.
+- **Phase 1.3 key pattern**: `classifyStreamError(err, sessionID)` returns a `*streamError` where `Error()` is the user-facing message and `Unwrap()` preserves the raw error. This replaces raw `errors.Wrap()` at the `stream.Recv()` error site.
+- **Keepalive is already configured** at 30s/10s in `internal/cli/backend/client.go`. Do NOT add application-level recv timeouts — they were already tried and removed (falsely triggered during LLM thinking).
+- **`trySendEvent` migration was decided against** for helper functions. They run inside the recv loop, bounded by the cancellable stream context. Over-engineering for near-zero probability.
 - The Phase 1.1 fix targets the **stream path** (`run_stream_events.go`), NOT the snapshot path.
 - The backend has a known write-ordering issue between MongoDB and Redis that can cause `pending_approvals` to be empty in the initial Subscribe snapshot. This is tracked as a backend follow-up.
 
@@ -123,6 +147,8 @@ Role reference: `_roles/003_cli_tui_ux_eng`
 |-------|-------------|--------|
 | 1.1 | Approval Not Surfaced on Resume | Done (code + tests, manual test pending) |
 | 1.2 | Context-Cancellable Approval Flow | Done (code + 6 tests) |
+| 1.3 | Dead Stream Connection Detection | Done (code + 10 tests) |
+| 1.5 | Esc as Cancel Shortcut | Done (code + 7 tests) |
 
 ## Blockers
 

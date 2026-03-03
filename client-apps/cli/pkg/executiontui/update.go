@@ -132,7 +132,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	// Cancel key — available when execution is running and not already cancelling.
-	if msg.String() == "c" && !m.done && !m.cancelling && m.activeCancelFn != nil {
+	// Esc is the universally expected "stop" key; c is the legacy binding.
+	if (msg.String() == "c" || msg.Type == tea.KeyEsc) && !m.done && !m.cancelling && m.activeCancelFn != nil {
 		m.cancelConfirm = true
 		return m, nil
 	}

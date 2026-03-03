@@ -1086,6 +1086,141 @@ func TestThinkingIndicator_NotShownDuringApproval(t *testing.T) {
 }
 
 // =============================================================================
+// Esc as Cancel Shortcut Tests (Phase 1.5)
+// =============================================================================
+
+// newTestModelWithCancel creates a Model with a CancelFn configured, simulating
+// a running execution that supports cancellation. The cancel function records
+// whether it was called via the returned pointer.
+func newTestModelWithCancel() (Model, *bool) {
+	events := make(chan Event, 16)
+	approvals := make(chan ApprovalResponse, 1)
+	var cancelled bool
+	m := New(Config{
+		ExecutionID:       "aex-cancel-test",
+		Events:            events,
+		ApprovalResponses: approvals,
+		CancelFn:          func() error { cancelled = true; return nil },
+	})
+	sized, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	return sized.(Model), &cancelled
+}
+
+func TestUpdate_Esc_EntersCancelConfirm(t *testing.T) {
+	m, _ := newTestModelWithCancel()
+
+	if m.cancelConfirm {
+		t.Fatal("cancelConfirm should be false initially")
+	}
+
+	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	model := result.(Model)
+
+	if !model.cancelConfirm {
+		t.Error("Esc should enter cancel-confirm state when execution is running")
+	}
+}
+
+func TestUpdate_Esc_DoesNothing_WhenDone(t *testing.T) {
+	m, _ := newTestModelWithCancel()
+	m.done = true
+
+	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	model := result.(Model)
+
+	if model.cancelConfirm {
+		t.Error("Esc should not enter cancel-confirm when execution is done")
+	}
+}
+
+func TestUpdate_Esc_DoesNothing_WhenAlreadyCancelling(t *testing.T) {
+	m, _ := newTestModelWithCancel()
+	m.cancelling = true
+
+	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	model := result.(Model)
+
+	if model.cancelConfirm {
+		t.Error("Esc should not enter cancel-confirm when already cancelling")
+	}
+}
+
+func TestUpdate_Esc_DoesNothing_WhenNoCancelFn(t *testing.T) {
+	m, _, _ := newTestModel()
+
+	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	model := result.(Model)
+
+	if model.cancelConfirm {
+		t.Error("Esc should not enter cancel-confirm when no CancelFn is configured")
+	}
+}
+
+func TestUpdate_Esc_DoesNotTriggerCancel_DuringApproval(t *testing.T) {
+	m, _ := newTestModelWithCancel()
+	m = enterApproval(t, m, "tc-esc", "shell")
+
+	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	model := result.(Model)
+
+	if model.cancelConfirm {
+		t.Error("Esc should not enter cancel-confirm during approval — it is delegated to navigation")
+	}
+	if model.approval == nil {
+		t.Error("approval should still be active after Esc")
+	}
+}
+
+func TestUpdate_Esc_ThenEsc_DismissesCancelConfirm(t *testing.T) {
+	m, _ := newTestModelWithCancel()
+
+	// First Esc: enter cancel-confirm.
+	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	model := result.(Model)
+
+	if !model.cancelConfirm {
+		t.Fatal("cancelConfirm should be true after first Esc")
+	}
+
+	// Second Esc: dismiss cancel-confirm (handled by handleCancelConfirmKey).
+	result, _ = model.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	model = result.(Model)
+
+	if model.cancelConfirm {
+		t.Error("cancelConfirm should be false after second Esc — user changed their mind")
+	}
+	if model.cancelling {
+		t.Error("cancelling should be false — user dismissed the prompt")
+	}
+}
+
+func TestUpdate_Esc_ThenY_ConfirmsCancel(t *testing.T) {
+	m, _ := newTestModelWithCancel()
+
+	// Esc: enter cancel-confirm.
+	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	model := result.(Model)
+
+	if !model.cancelConfirm {
+		t.Fatal("cancelConfirm should be true after Esc")
+	}
+
+	// y: confirm the cancellation.
+	result, cmd := model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'y'}})
+	model = result.(Model)
+
+	if model.cancelConfirm {
+		t.Error("cancelConfirm should be false after confirming with y")
+	}
+	if !model.cancelling {
+		t.Error("cancelling should be true after confirming with y")
+	}
+	if cmd == nil {
+		t.Error("cmd should be non-nil — executeCancelCmd should be returned")
+	}
+}
+
+// =============================================================================
 // TodoUpdateEvent Tests
 // =============================================================================
 
