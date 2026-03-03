@@ -69,8 +69,8 @@ When starting a new session:
 
 **Created**: 2026-03-04 00:23
 **Current Task**: Phase 3 (Claude Code-Style Approval Flow — REVISED)
-**Status**: In Progress — Phase 3.0 complete
-**Last Session**: 2026-03-04 — Phase 3.0 (termctl primitives) complete
+**Status**: In Progress — Phase 3.1 complete
+**Last Session**: 2026-03-04 — Phase 3.1 (custom inline prompter) complete
 
 ## Session Progress (2026-03-04, Session 1)
 
@@ -262,11 +262,35 @@ When starting a new session:
 - `client-apps/cli/pkg/termctl/termctl_test.go` (new)
 - `client-apps/cli/pkg/termctl/BUILD.bazel` (new)
 
+## Session Progress (2026-03-04, Session 10)
+
+- Phase 3.1 (Custom Inline Prompter) completed
+- Created `pkg/approval/keyread.go` (178 lines) — `keyCode` type, `keyReader` with persistent goroutine, `readKey` with escape sequence parsing (50ms timeout), `drain` for stale input, priority-select `readByte`
+- Created `pkg/approval/inline_prompter.go` (164 lines) — `InlinePrompter` struct (DI: `io.Reader` + `io.Writer`), `Prompt` (Prompter interface), `PromptWithLineCount` (returns decision + line count for Phase 3.3), raw mode lifecycle, `renderMenu`/`rerenderMenu` via `termctl.EraseLines`
+- Created `pkg/approval/inline_prompter_test.go` (417 lines) — 30 test functions
+- Updated `pkg/approval/BUILD.bazel` — added new files + `termctl` and `golang.org/x/term` deps
+
+### Key Design Decisions (Session 10)
+- **Two-file SRP split**: `keyread.go` (byte-to-keycode decoding) and `inline_prompter.go` (prompt orchestration). Each file has one reason to change.
+- **Persistent reader goroutine**: One goroutine per prompter lifetime, avoids race conditions from multiple goroutines competing for the same fd. Dormant between prompts (blocked on `Read` in cooked mode), active during prompts (raw mode).
+- **Priority-select in readByte**: Two-phase select pattern ensures buffered bytes are consumed before EOF errors. Without this, Go's random channel selection caused a race when the reader goroutine hit EOF while bytes remained in the channel.
+- **Menu layout**: Vertical compact, 4 lines total (3 options + 1 hint). Labels: "Yes", "Skip", "Reject". Deviated from original spec's descriptions — approval context is printed by the caller above the menu, descriptions are redundant.
+- **Escape sequence disambiguation**: 50ms timeout after `\033` distinguishes standalone Esc from arrow key sequences (`\033[A`, `\033[B`).
+- **Stale input draining**: `drain()` empties byte channel before each prompt to prevent buffered keystrokes from triggering unintended selections.
+- **Rejection comments deferred**: Text input in raw mode requires readline-like functionality — Phase 4 scope. `Decision.Comment` always empty from `InlinePrompter`.
+- **Interface compliance**: `InlinePrompter` implements `Prompter` (drop-in replacement). Phase 3.3 calls `PromptWithLineCount` directly for cursor integration.
+
+### Files Created/Modified (Session 10)
+- `client-apps/cli/pkg/approval/keyread.go` (new)
+- `client-apps/cli/pkg/approval/inline_prompter.go` (new)
+- `client-apps/cli/pkg/approval/inline_prompter_test.go` (new)
+- `client-apps/cli/pkg/approval/BUILD.bazel` (modified)
+
 ## Next Steps
 
-1. Phase 3: Claude Code-Style Approval Flow (REVISED — 3-4 sessions remaining)
+1. Phase 3: Claude Code-Style Approval Flow (REVISED — 2-3 sessions remaining)
    - ~~3.0: Terminal cursor control primitives (pkg/termctl)~~ DONE
-   - 3.1: Custom inline prompter (arrow-key menu, raw mode, line counting)
+   - ~~3.1: Custom inline prompter (arrow-key menu, raw mode, line counting)~~ DONE
    - 3.2: Four-state tool rendering (streaming → approval → collapse with └ connector)
    - 3.3: Rewrite handleApproval (orchestrate expand/prompt/collapse/suppress)
    - 3.4: Shell tool approval variant + enable ToolStreamDeltaEvent streaming
@@ -274,7 +298,9 @@ When starting a new session:
 
 ## Context for Resume
 
-- **`pkg/termctl/`** is the new ANSI cursor control package (Phase 3.0). 7 public functions: `IsSupported(w)` (TTY+not-dumb, NO_COLOR excluded), `MoveUp(w, n)`, `ClearDown(w)`, `ClearLine(w)`, `EraseLines(w, n)` (atomic), `Width(w, default)`, `DisplayRows(text, width)`. All stateless, DI-compliant (io.Writer params). Used by Phase 3.2-3.3 for approval collapse. `DisplayRows` uses `charmbracelet/x/ansi.StringWidth` for ANSI-aware width measurement.
+- **`pkg/approval/inline_prompter.go`** is the new inline-mode approval prompter (Phase 3.1). `InlinePrompter` accepts `io.Reader` (input) + `io.Writer` (output) — fully DI-compliant. `Prompt(ctx, opts)` implements `Prompter` interface (drop-in replacement for `InteractivePrompter`). `PromptWithLineCount(ctx, opts)` returns `(*Decision, int, error)` — the `int` is the exact row count (always `menuLines = 4`) for Phase 3.3 cursor collapse. Non-interactive fast path when `fd == -1` (non-TTY) or `opts.NonInteractive`. Raw mode via `term.MakeRaw`/`term.Restore` with deferred cleanup. Menu re-rendering via `termctl.EraseLines`.
+- **`pkg/approval/keyread.go`** is the keystroke decoder for `InlinePrompter`. `keyReader` runs a persistent goroutine that reads one byte at a time from `io.Reader` and sends to a buffered channel (cap 64). `readKey(ctx)` returns typed `keyCode` values (keyUp, keyDown, keyEnter, keyEsc, keyCtrlC, keyOne, keyTwo, keyThree, keyUnknown). Escape sequence parsing uses 50ms timeout to distinguish standalone Esc from arrow keys (`\033[A`/`\033[B`). `drain()` empties the byte channel before each prompt. `readByte` uses a two-phase priority-select pattern: try bytes channel without blocking first, then wait on bytes/errs/ctx — this prevents a race where EOF arrives while unconsumed bytes remain in the channel.
+- **`pkg/termctl/`** is the ANSI cursor control package (Phase 3.0). 7 public functions: `IsSupported(w)` (TTY+not-dumb, NO_COLOR excluded), `MoveUp(w, n)`, `ClearDown(w)`, `ClearLine(w)`, `EraseLines(w, n)` (atomic), `Width(w, default)`, `DisplayRows(text, width)`. All stateless, DI-compliant (io.Writer params). Used by Phase 3.2-3.3 for approval collapse and by `InlinePrompter` for menu re-rendering. `DisplayRows` uses `charmbracelet/x/ansi.StringWidth` for ANSI-aware width measurement.
 - Pre-existing compile error in `run_create.go:114` (references `WorkspaceSource` from multi-source-workspace project) blocks `go test` for the `root` package. Our changes are isolated and verified correct via `go vet`.
 - The `OutputInteractive` constant is retained in `output_mode.go` — TUI code references it from `run_stream.go` and `run_session.go` default branches.
 - **`RenderCompact`** is the graduated entry point for compact completed tool rendering. Every known tool label now has a compact renderer. Task still falls back to `RenderWithBadge` (its visual representation comes from lifecycle events, not RenderCompact). Only unknown/MCP tools lack compact renderers.
@@ -297,7 +323,6 @@ None.
 ## Quick Commands
 
 After loading context:
-- "Start Phase 3.1" - Build custom inline prompter (arrow-key menu, raw mode)
 - "Start Phase 3.2" - Build four-state approval rendering (streaming → collapse)
 - "Start Phase 3.3" - Rewrite handleApproval with expand/collapse
 - "Start Phase 3.4" - Shell tool approval variant + streaming
