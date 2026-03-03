@@ -20,24 +20,25 @@ import (
 // When org is empty, no org filtering is applied (matches any org).
 //
 // Returns:
-//   - resource: The found resource (nil if not found)
+//   - resource: The found resource (zero value if not found)
+//   - found: true if a matching resource was found
 //   - error: Database error (does NOT return error if resource not found)
 //
 // Usage:
 //
-//	skill, err := steps.FindResourceBySlug[*skillv1.Skill](ctx, store, kind, "my-skill", "default")
+//	skill, found, err := steps.FindResourceBySlug[*skillv1.Skill](ctx, store, kind, "my-skill", "default")
 //	if err != nil {
 //	    return err // database error
 //	}
-//	if skill != nil {
+//	if found {
 //	    // found existing skill in org "default"
 //	}
-func FindResourceBySlug[T proto.Message](ctx context.Context, s store.Store, kind apiresourcekind.ApiResourceKind, slug string, org string) (T, error) {
+func FindResourceBySlug[T proto.Message](ctx context.Context, s store.Store, kind apiresourcekind.ApiResourceKind, slug string, org string) (T, bool, error) {
 	var zero T
 
 	resources, err := s.ListResources(ctx, kind)
 	if err != nil {
-		return zero, fmt.Errorf("failed to list resources: %w", err)
+		return zero, false, fmt.Errorf("failed to list resources: %w", err)
 	}
 
 	for _, data := range resources {
@@ -54,10 +55,10 @@ func FindResourceBySlug[T proto.Message](ctx context.Context, s store.Store, kin
 				if org != "" && metadata.Org != org {
 					continue
 				}
-				return resource, nil
+				return resource, true, nil
 			}
 		}
 	}
 
-	return zero, nil
+	return zero, false, nil
 }

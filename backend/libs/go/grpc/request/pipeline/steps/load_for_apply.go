@@ -1,11 +1,9 @@
 package steps
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/rs/zerolog/log"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
@@ -23,7 +21,7 @@ const (
 // LoadForApplyStep optionally loads an existing resource for apply operations
 //
 // This step:
-//  1. Attempts to load existing resource by slug (from metadata.slug set by ResolveSlugStep)
+//  1. Attempts to load existing resource by slug+org (from metadata set by ResolveSlugStep)
 //  2. If found:
 //     - Stores existing resource in context (ExistingResourceKey)
 //     - Sets existsInDatabase = true
@@ -104,79 +102,44 @@ func (s *LoadForApplyStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 	}
 
 	slug := metadata.Slug
+	org := metadata.Org
 
 	// Get api_resource_kind from request context (injected by interceptor)
 	kind := apiresourceinterceptor.GetApiResourceKind(ctx.Context())
 
 	log.Debug().
 		Str("slug", slug).
+		Str("org", org).
 		Str("kind", kind.String()).
 		Msg("LoadForApply: Looking for existing resource")
 
-	// Attempt to find existing resource by slug
-	existing, err := s.findBySlug(ctx.Context(), slug, kind)
+	existing, found, err := FindResourceBySlug[T](ctx.Context(), s.store, kind, slug, org)
 	if err != nil {
-		// Database error - fail the operation
 		return fmt.Errorf("failed to check for existing resource: %w", err)
 	}
 
-	if existing == nil {
-		// Resource doesn't exist - CREATE
+	if !found {
 		log.Debug().
 			Str("slug", slug).
+			Str("org", org).
 			Msg("LoadForApply: Resource not found, will create new")
 		ctx.Set(ExistsInDatabaseKey, false)
 		ctx.Set(ShouldCreateKey, true)
 		return nil
 	}
 
-	// Resource exists - UPDATE
 	log.Debug().
 		Str("slug", slug).
+		Str("org", org).
 		Msg("LoadForApply: Resource found, will update")
-	// Store existing resource in context for potential use
 	ctx.Set(ExistingResourceKey, existing)
 	ctx.Set(ExistsInDatabaseKey, true)
 	ctx.Set(ShouldCreateKey, false)
 
-	// Set the existing resource's ID into the input metadata
-	// This ensures Update operations have the correct ID
-	existingMetadata := existing.(HasMetadata).GetMetadata()
+	existingMetadata := any(existing).(HasMetadata).GetMetadata()
 	if metadata.Id == "" {
 		metadata.Id = existingMetadata.Id
 	}
 
 	return nil
-}
-
-// findBySlug searches for a resource by slug globally
-// Returns the resource if found, nil if not found, error if database operation fails
-func (s *LoadForApplyStep[T]) findBySlug(ctx context.Context, slug string, kind apiresourcekind.ApiResourceKind) (proto.Message, error) {
-	resources, err := s.store.ListResources(ctx, kind)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list resources: %w", err)
-	}
-
-	// Scan through resources to find matching slug
-	for _, data := range resources {
-		// Create a new instance of T to unmarshal into
-		var resource T
-		resource = resource.ProtoReflect().New().Interface().(T)
-
-		// Use proto.Unmarshal since stores return proto bytes (not JSON)
-		if err := proto.Unmarshal(data, resource); err != nil {
-			// Skip resources that can't be unmarshaled
-			continue
-		}
-
-		// Check if this resource has the matching slug
-		if metadataResource, ok := any(resource).(HasMetadata); ok {
-			metadata := metadataResource.GetMetadata()
-			if metadata != nil && metadata.Slug == slug {
-				return resource, nil
-			}
-		}
-	}
-
-	return nil, nil
 }

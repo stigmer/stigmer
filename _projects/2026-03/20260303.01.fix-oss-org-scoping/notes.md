@@ -70,3 +70,31 @@ New tests are planned for Task 6 which covers all org-scoping tests.
 
 ---
 
+## 2026-03-03 — Task 2 Complete: LoadForApplyStep org-scoped + FindResourceBySlug (T, bool, error)
+
+### Gotcha: Go generics `T == nil` does not compile
+The plan assumed `existing == nil` would work on a type parameter `T` constrained to
+`proto.Message`. It does not. Go does not allow comparing type parameter values to `nil`
+with `==`, even when all concrete instantiations are pointer types. The compiler error:
+`invalid operation: existing == nil (mismatched types T and untyped nil)`.
+
+This forced upgrading `FindResourceBySlug` from `(T, error)` to `(T, bool, error)`.
+
+### Decision: Upgrade to `(T, bool, error)` return type (supersedes Task 1 decision)
+Task 1 deferred the return type change as "a separate refactoring concern." Task 2 proved
+it is not separable — the `(T, error)` pattern cannot be consumed from generic callers
+(other pipeline steps). The `(T, bool, error)` signature now matches `LoadByReferenceStep.findBySlug`
+(the reference implementation) and correctly models three outcomes: found / not-found / error.
+
+### Decision: Consolidate into shared helper
+Rather than patching `LoadForApplyStep`'s private `findBySlug` with an org param (preserving
+duplicated code), deleted the private method entirely and delegated to `FindResourceBySlug[T]`.
+Net reduction: ~25 lines. Same consolidation pattern should apply to Tasks 3 and 4.
+
+### Build verification
+All 9 workspace modules (`apis/stubs/go`, `backend/libs/go`, `backend/services/stigmer-server`,
+`backend/services/workflow-runner`, `client-apps/cli`, `mcp-server`, `sdk/go`, `seedpack`, `tools`)
+build cleanly.
+
+---
+

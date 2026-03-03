@@ -66,8 +66,8 @@ That's it! No complex structure - just focused work.
 
 ## Current Status
 
-**Last Updated**: 2026-03-03 07:02  
-**Current Focus**: Task 2 — Fix `LoadForApplyStep.findBySlug` (root cause of bootstrap bug)  
+**Last Updated**: 2026-03-03 07:16  
+**Current Focus**: Task 3 — Fix `LoadExistingStep.findBySlug`  
 **Phase**: Implementation
 
 ## Session Progress (2026-03-03)
@@ -79,17 +79,25 @@ That's it! No complex structure - just focused work.
   - Updated the single caller in `push.go` to pass `skill.Metadata.Org`
   - Build verified clean
 
+- **Task 2**: Fixed `LoadForApplyStep.findBySlug` — ROOT CAUSE of bootstrap bug
+  - Deleted private `findBySlug` method, consolidated into shared `FindResourceBySlug[T]`
+  - Added org-scoped lookup via `metadata.Org`
+  - Upgraded `FindResourceBySlug` return type from `(T, error)` to `(T, bool, error)` — Go generics does not allow `T == nil`, so an explicit `found` bool was required
+  - Updated caller in `push.go` to use new signature
+  - All 9 workspace modules build cleanly
+  - Net ~25 lines removed from load_for_apply.go
+
 ### Next Steps
-1. **Task 2**: Fix `LoadForApplyStep.findBySlug` — add org filter (ROOT CAUSE of bootstrap bug)
-2. **Task 3**: Fix `LoadExistingStep.findBySlug` — add org filter for Update/Delete slug fallback
-3. **Task 4**: Fix `CheckDuplicateStep.findBySlug` — add org filter for cross-org slug reuse
-4. **Task 5**: Fix ID-based lookups — add org verification after load (3 steps)
-5. **Task 6**: Tests
+1. **Task 3**: Fix `LoadExistingStep.findBySlug` — add org filter for Update/Delete slug fallback
+2. **Task 4**: Fix `CheckDuplicateStep.findBySlug` — add org filter for cross-org slug reuse
+3. **Task 5**: Fix ID-based lookups — add org verification after load (3 steps)
+4. **Task 6**: Tests
 
 ### Context for Resume
-- Tasks 2-4 all follow the same pattern: add `org` param to private `findBySlug` methods and apply `if org != "" && metadata.Org != org { continue }`
+- **Pattern established in Task 2**: Tasks 3 and 4 should follow the same consolidation approach — delete the private `findBySlug` method and delegate to the shared `FindResourceBySlug[T]` helper. The helper already has org filtering and returns `(T, bool, error)`.
 - The org value comes from `metadata.Org` on `ctx.NewState()` (the resource being applied/created/updated)
 - Task 5 is different: ID-based lookups need post-load org verification, not slug filtering
+- **Key gotcha**: Go generics does not allow `T == nil` on type parameters constrained to interfaces. Use the `found` bool from `FindResourceBySlug` instead of nil-checking the returned value.
 
 ---
 

@@ -202,7 +202,7 @@ func (s *FindExistingBySlugStep) Execute(ctx *pipeline.RequestContext[*skillv1.P
 	skill := ctx.Get(SkillKey).(*skillv1.Skill)
 	slug := skill.Metadata.Slug
 
-	existingSkill, err := steps.FindResourceBySlug[*skillv1.Skill](
+	existingSkill, found, err := steps.FindResourceBySlug[*skillv1.Skill](
 		ctx.Context(),
 		s.store,
 		apiresourcekind.ApiResourceKind_skill,
@@ -213,14 +213,11 @@ func (s *FindExistingBySlugStep) Execute(ctx *pipeline.RequestContext[*skillv1.P
 		return grpclib.InternalError(err, "failed to search for existing skill")
 	}
 
-	if existingSkill != nil {
-		// Skill exists - will update
-		// Copy existing ID to current skill
+	if found {
 		skill.Metadata.Id = existingSkill.Metadata.Id
 		ctx.Set(ExistingSkillKey, existingSkill)
 		ctx.Set(ShouldCreateSkillKey, false)
 	} else {
-		// Skill doesn't exist - will create new
 		ctx.Set(ExistingSkillKey, nil)
 		ctx.Set(ShouldCreateSkillKey, true)
 	}
