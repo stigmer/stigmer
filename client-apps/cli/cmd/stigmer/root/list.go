@@ -13,6 +13,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/organization"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/search"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/session"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
@@ -31,6 +32,7 @@ func NewListCommand() *cobra.Command {
 		Long: `List all resources of a given type.
 
 The type can be specified using any alias:
+  - organizations, organization, org
   - agents, agent, agt
   - workflows, workflow, wf
   - mcpservers, mcpserver, mcp
@@ -40,7 +42,10 @@ The type can be specified using any alias:
   - sessions, session, ses
 
 Both singular and plural forms are accepted.`,
-		Example: `  # List all agents
+		Example: `  # List all organizations
+  stigmer list organizations
+
+  # List all agents
   stigmer list agents
 
   # List workflows (singular works too)
@@ -96,6 +101,12 @@ func isSessionType(typeArg string) bool {
 	return normalized == "session" || normalized == "sessions" || normalized == "ses"
 }
 
+// isOrganizationType checks if the type arg refers to organizations.
+func isOrganizationType(typeArg string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(typeArg))
+	return normalized == "organization" || normalized == "organizations" || normalized == "org" || normalized == "orgs"
+}
+
 // executeList lists resources of a given type.
 func executeList(opts listOptions) error {
 	// Special case: Executions don't go through the registry
@@ -109,11 +120,16 @@ func executeList(opts listOptions) error {
 		return executeListSessions(opts)
 	}
 
+	// Special case: Organizations use FindMyOrganizations and don't need org context
+	if isOrganizationType(opts.TypeArg) {
+		return executeListOrganizations(opts)
+	}
+
 	// Step 1: Resolve type from alias
 	reg := types.DefaultRegistry()
 	info, ok := reg.GetByAlias(opts.TypeArg)
 	if !ok {
-		return fmt.Errorf("unknown resource type: %s\n\nAvailable types: agents, workflows, mcpservers, projects, skills, executions, sessions", opts.TypeArg)
+		return fmt.Errorf("unknown resource type: %s\n\nAvailable types: organizations, agents, workflows, mcpservers, projects, skills, executions, sessions", opts.TypeArg)
 	}
 
 	// Step 2: Check verb support
@@ -366,6 +382,40 @@ func executeListSessions(opts listOptions) error {
 		fmt.Println()
 	}
 
+	return nil
+}
+
+// executeListOrganizations handles listing organizations.
+// Organizations use their own dedicated FindMyOrganizations RPC
+// and don't require an org context.
+func executeListOrganizations(opts listOptions) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return errors.Wrap(err, "failed to load configuration")
+	}
+
+	if cfg.Backend.Type == config.BackendTypeLocal {
+		dataDir, err := config.GetDataDir()
+		if err != nil {
+			return errors.Wrap(err, "failed to get data directory")
+		}
+		if err := daemon.EnsureRunning(dataDir); err != nil {
+			return errors.Wrap(err, "failed to start daemon")
+		}
+	}
+
+	conn, err := backend.NewConnection()
+	if err != nil {
+		return errors.Wrap(err, "failed to connect to backend")
+	}
+	defer conn.Close()
+
+	orgs, err := organization.ListFromBackend(conn)
+	if err != nil {
+		return errors.Wrap(err, "failed to list organizations")
+	}
+
+	organization.DisplayListResult(orgs, opts.OutputFormat)
 	return nil
 }
 
