@@ -7,6 +7,7 @@ via Java activity (polyglot pattern).
 """
 
 import hashlib
+import inspect
 import json
 import logging
 from datetime import datetime
@@ -548,7 +549,9 @@ class StatusBuilder:
 
         if handler is not None:
             try:
-                handler(event, namespace)
+                result = handler(event, namespace)
+                if inspect.isawaitable(result):
+                    await result
             except Exception:
                 self.logger.exception(
                     f"[EVENT_ERROR] execution={self.execution_id} "
@@ -556,7 +559,7 @@ class StatusBuilder:
                     f"run_id={event.get('run_id', '')}"
                 )
     
-    def _handle_tool_start_event(self, event: dict[str, Any], namespace: str = "") -> None:
+    async def _handle_tool_start_event(self, event: dict[str, Any], namespace: str = "") -> None:
         """Handle on_tool_start event - updates local status."""
         tool_name = event.get("name", "")
         tool_args_raw = event.get("data", {}).get("input", {})
