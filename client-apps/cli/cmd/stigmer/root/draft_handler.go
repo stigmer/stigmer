@@ -86,20 +86,20 @@ func executeDraft(cfg draftConfig, opts draftOptions) error {
 	}
 
 	return executeResolvedAgent(resolvedAgentExecInput{
-		Agent:           agent,
-		Message:         prep.Message,
-		RuntimeEnv:      prep.RuntimeEnv,
-		AttachResult:    &prep.AttachResult,
-		WorkspaceSource: prep.WorkspaceSource,
-		Model:           opts.Model,
-		AutoApproveAll:  opts.AutoApprove,
-		Detach:          prep.Detach,
-		DownloadDir:     downloadDir,
-		OrgID:           prep.OrgID,
-		DefaultAction:   prep.DefaultAction,
-		Verbose:         prep.Verbose,
-		OutputMode:      prep.OutputMode,
-		Conn:            prep.Conn,
+		Agent:            agent,
+		Message:          prep.Message,
+		RuntimeEnv:       prep.RuntimeEnv,
+		AttachResult:     &prep.AttachResult,
+		WorkspaceEntries: prep.WorkspaceEntries,
+		Model:            opts.Model,
+		AutoApproveAll:   opts.AutoApprove,
+		Detach:           prep.Detach,
+		DownloadDir:      downloadDir,
+		OrgID:            prep.OrgID,
+		DefaultAction:    prep.DefaultAction,
+		Verbose:          prep.Verbose,
+		OutputMode:       prep.OutputMode,
+		Conn:             prep.Conn,
 	}, sp)
 }
 

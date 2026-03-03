@@ -17,17 +17,19 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
 )
 
-// localWorkspaceRoot extracts the absolute path from a local-path workspace source.
-// Returns empty string for nil, git, or non-local workspace sources.
-func localWorkspaceRoot(ws *sessionv1.WorkspaceSource) string {
-	if ws == nil {
-		return ""
+// localWorkspaceRoots extracts the absolute paths from all local-path workspace
+// entries. Git entries are skipped (they have no local root). Returns nil when
+// there are no local-path entries.
+func localWorkspaceRoots(entries []*sessionv1.WorkspaceEntry) []string {
+	var roots []string
+	for _, entry := range entries {
+		if lp := entry.GetSource().GetLocalPath(); lp != nil {
+			if p := lp.GetPath(); p != "" {
+				roots = append(roots, p)
+			}
+		}
 	}
-	lp := ws.GetLocalPath()
-	if lp == nil {
-		return ""
-	}
-	return lp.GetPath()
+	return roots
 }
 
 // NewRunCommand creates the unified run command for executing agents and workflows.
@@ -81,10 +83,13 @@ INPUT FILES:
 
 WORKSPACE:
 
-  --workspace URL|PATH    Workspace source for the agent (agents only)
-                          HTTPS git URL or local filesystem path
-  --branch NAME           Git branch to clone (default: repo default branch)
-  --commit SHA            Git commit to checkout after cloning
+  --workspace, -w URL|PATH  Workspace source for the agent (can be repeated)
+                            HTTPS git URL or local filesystem path
+  --branch NAME             Git branch to clone (default: repo default branch)
+  --commit SHA              Git commit to checkout after cloning
+
+  Multiple --workspace flags create a multi-root workspace (VS Code model).
+  --branch and --commit apply only when a single git workspace is provided.
 
 OUTPUT MODES:
 
@@ -146,8 +151,11 @@ OTHER OPTIONS:
   stigmer run agent code-reviewer --workspace https://github.com/acme/app --branch feature/auth
 
   # Run with a local workspace (agent operates directly on your files)
-  stigmer run agent code-reviewer --workspace . -m "Review my project"
-  stigmer run agent refactorer --workspace ~/projects/my-app -m "Refactor the auth module"
+  stigmer run agent code-reviewer -w . -m "Review my project"
+  stigmer run agent refactorer -w ~/projects/my-app -m "Refactor the auth module"
+
+  # Run with multiple workspaces (multi-root)
+  stigmer run agent code-reviewer -w ./frontend -w ./backend -m "Review both"
 
   # Override organization
   stigmer run agent my-agent --org acme-corp
@@ -267,23 +275,23 @@ func routeRun(info *types.TypeInfo, ref, downloadDir string, prep *preparedAgent
 		}
 
 		return executeResolvedAgent(resolvedAgentExecInput{
-			Agent:           agent,
-			Message:         prep.Message,
-			RuntimeEnv:      prep.RuntimeEnv,
-			AttachResult:    &prep.AttachResult,
-			WorkspaceSource: prep.WorkspaceSource,
-			Detach:          prep.Detach,
-			DownloadDir:     downloadDir,
-			OrgID:           prep.OrgID,
-			DefaultAction:   prep.DefaultAction,
-			Verbose:         prep.Verbose,
-			OutputMode:      prep.OutputMode,
-			Conn:            prep.Conn,
+			Agent:            agent,
+			Message:          prep.Message,
+			RuntimeEnv:       prep.RuntimeEnv,
+			AttachResult:     &prep.AttachResult,
+			WorkspaceEntries: prep.WorkspaceEntries,
+			Detach:           prep.Detach,
+			DownloadDir:      downloadDir,
+			OrgID:            prep.OrgID,
+			DefaultAction:    prep.DefaultAction,
+			Verbose:          prep.Verbose,
+			OutputMode:       prep.OutputMode,
+			Conn:             prep.Conn,
 		}, sp)
 
 	case apiresourcekind.ApiResourceKind_workflow:
 		sp.Stop()
-		if prep.WorkspaceSource != nil {
+		if len(prep.WorkspaceEntries) > 0 {
 			return fmt.Errorf("--workspace is not supported for workflows (workspace is an agent-level concept)")
 		}
 		return runWorkflow(ref, prep)
