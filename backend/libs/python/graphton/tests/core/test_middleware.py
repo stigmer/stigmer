@@ -22,9 +22,9 @@ class TestMcpToolsLoaderInit:
     """Tests for McpToolsLoader initialization."""
 
     @pytest.fixture
-    def mock_load_mcp_tools(self, mock_mcp_tools):
-        """Mock load_mcp_tools function."""
-        with patch('graphton.core.middleware.load_mcp_tools') as mock:
+    def mock_connect_mcp_client(self, mock_mcp_tools):
+        """Mock connect_mcp_client function."""
+        with patch('graphton.core.middleware.connect_mcp_client') as mock:
             mock.return_value = mock_mcp_tools
             yield mock
 
@@ -49,7 +49,7 @@ class TestMcpToolsLoaderInit:
         self, sample_servers_config, sample_tool_filter, mock_mcp_tools
     ):
         """Test that tools load synchronously when no event loop exists."""
-        with patch('graphton.core.middleware.load_mcp_tools', new_callable=AsyncMock) as mock_load:
+        with patch('graphton.core.middleware.connect_mcp_client', new_callable=AsyncMock) as mock_load:
             mock_load.return_value = mock_mcp_tools
             
             with patch('graphton.core.middleware.asyncio') as mock_asyncio:
@@ -78,7 +78,7 @@ class TestMcpToolsLoaderInit:
         self, sample_servers_config, sample_tool_filter
     ):
         """Test that tool loading is deferred when event loop is running."""
-        with patch('graphton.core.middleware.load_mcp_tools') as mock_load, \
+        with patch('graphton.core.middleware.connect_mcp_client') as mock_load, \
              patch('graphton.core.middleware.asyncio') as mock_asyncio:
             
             mock_loop = MagicMock()
@@ -93,14 +93,14 @@ class TestMcpToolsLoaderInit:
             assert middleware._deferred_loading is True
             assert middleware._tools_loaded is False
             
-            # load_mcp_tools should NOT have been called yet
+            # connect_mcp_client should NOT have been called yet
             mock_load.assert_not_called()
 
     def test_loading_failure_raises_runtime_error(
         self, sample_servers_config, sample_tool_filter
     ):
         """Test that loading failure raises RuntimeError."""
-        with patch('graphton.core.middleware.load_mcp_tools', new_callable=AsyncMock), \
+        with patch('graphton.core.middleware.connect_mcp_client', new_callable=AsyncMock), \
              patch('graphton.core.middleware.asyncio') as mock_asyncio:
             
             mock_loop = MagicMock()
@@ -146,7 +146,7 @@ class TestMcpToolsLoaderDeferredLoading:
         self, middleware_with_deferred_loading, mock_mcp_tools
     ):
         """Test that deferred tools are loaded on first abefore_agent() call."""
-        with patch('graphton.core.middleware.load_mcp_tools', new_callable=AsyncMock) as mock_load:
+        with patch('graphton.core.middleware.connect_mcp_client', new_callable=AsyncMock) as mock_load:
             mock_load.return_value = mock_mcp_tools
             
             # Verify deferred state
@@ -169,7 +169,7 @@ class TestMcpToolsLoaderDeferredLoading:
         self, middleware_with_deferred_loading, mock_mcp_tools
     ):
         """Test that tools are properly cached after deferred loading."""
-        with patch('graphton.core.middleware.load_mcp_tools', new_callable=AsyncMock) as mock_load:
+        with patch('graphton.core.middleware.connect_mcp_client', new_callable=AsyncMock) as mock_load:
             mock_load.return_value = mock_mcp_tools
             
             mock_state = MagicMock()
@@ -187,7 +187,7 @@ class TestMcpToolsLoaderDeferredLoading:
         self, middleware_with_deferred_loading
     ):
         """Test that deferred loading failure raises RuntimeError."""
-        with patch('graphton.core.middleware.load_mcp_tools', new_callable=AsyncMock) as mock_load:
+        with patch('graphton.core.middleware.connect_mcp_client', new_callable=AsyncMock) as mock_load:
             mock_load.side_effect = ConnectionError("Failed to connect")
             
             mock_state = MagicMock()
@@ -200,38 +200,25 @@ class TestMcpToolsLoaderDeferredLoading:
 
     @pytest.mark.asyncio
     async def test_abefore_agent_skips_if_already_loaded(
-        self, sample_servers_config, sample_tool_filter, mock_mcp_tools, caplog
+        self, middleware_with_deferred_loading, mock_mcp_tools, caplog
     ):
         """Test that abefore_agent() skips loading if tools are already loaded."""
-        with patch('graphton.core.middleware.load_mcp_tools', new_callable=AsyncMock) as mock_load:
-            mock_load.return_value = mock_mcp_tools
-            
-            with patch('graphton.core.middleware.asyncio') as mock_asyncio:
-                mock_loop = MagicMock()
-                mock_loop.is_running.return_value = False
-                mock_loop.run_until_complete = lambda coro: asyncio.get_event_loop().run_until_complete(coro)
-                mock_asyncio.get_event_loop.side_effect = RuntimeError("No loop")
-                mock_asyncio.new_event_loop.return_value = mock_loop
-                mock_asyncio.set_event_loop = MagicMock()
-                
-                from graphton.core.middleware import McpToolsLoader
-                middleware = McpToolsLoader(sample_servers_config, sample_tool_filter)
-                
-                # Tools should already be loaded
-                assert middleware._tools_loaded is True
-                
-                # Reset mock to track new calls
-                mock_load.reset_mock()
-                
-                # Call abefore_agent
-                mock_state = MagicMock()
-                mock_runtime = MagicMock()
-                
-                with caplog.at_level(logging.DEBUG):
-                    await middleware.abefore_agent(mock_state, mock_runtime)
-                
-                # load_mcp_tools should NOT have been called again
-                mock_load.assert_not_called()
+        middleware = middleware_with_deferred_loading
+
+        # Simulate that tools were already loaded (as if sync init succeeded)
+        middleware._tools_cache = {tool.name: tool for tool in mock_mcp_tools}
+        middleware._tools_loaded = True
+        middleware._deferred_loading = False
+
+        with patch('graphton.core.middleware.connect_mcp_client', new_callable=AsyncMock) as mock_load:
+            mock_state = MagicMock()
+            mock_runtime = MagicMock()
+
+            with caplog.at_level(logging.DEBUG):
+                await middleware.abefore_agent(mock_state, mock_runtime)
+
+            # connect_mcp_client should NOT have been called
+            mock_load.assert_not_called()
 
 
 # =============================================================================
@@ -245,7 +232,7 @@ class TestMcpToolsLoaderToolAccess:
     @pytest.fixture
     def loaded_middleware(self, sample_servers_config, sample_tool_filter, mock_mcp_tools):
         """Create middleware with tools already loaded."""
-        with patch('graphton.core.middleware.load_mcp_tools', new_callable=AsyncMock) as mock_load:
+        with patch('graphton.core.middleware.connect_mcp_client', new_callable=AsyncMock) as mock_load:
             mock_load.return_value = mock_mcp_tools
             
             with patch('graphton.core.middleware.asyncio') as mock_asyncio:
@@ -313,77 +300,68 @@ class TestMcpToolsLoaderLifecycle:
         self, sample_servers_config, sample_tool_filter, mock_mcp_tools
     ):
         """Test that aafter_agent() keeps tools cached."""
-        with patch('graphton.core.middleware.load_mcp_tools', new_callable=AsyncMock) as mock_load:
-            mock_load.return_value = mock_mcp_tools
-            
-            with patch('graphton.core.middleware.asyncio') as mock_asyncio:
-                mock_loop = MagicMock()
-                mock_loop.is_running.return_value = False
-                mock_loop.run_until_complete = lambda coro: asyncio.get_event_loop().run_until_complete(coro)
-                mock_asyncio.get_event_loop.side_effect = RuntimeError("No loop")
-                mock_asyncio.new_event_loop.return_value = mock_loop
-                mock_asyncio.set_event_loop = MagicMock()
-                
-                from graphton.core.middleware import McpToolsLoader
-                middleware = McpToolsLoader(sample_servers_config, sample_tool_filter)
-                
-                # Call aafter_agent
-                mock_state = MagicMock()
-                mock_runtime = MagicMock()
-                
-                result = await middleware.aafter_agent(mock_state, mock_runtime)
-                
-                # Should return None
-                assert result is None
-                
-                # Tools should still be cached
-                assert middleware._tools_loaded is True
-                assert len(middleware._tools_cache) == len(mock_mcp_tools)
+        with patch('graphton.core.middleware.asyncio') as mock_asyncio:
+            mock_loop = MagicMock()
+            mock_loop.is_running.return_value = True
+            mock_asyncio.get_event_loop.return_value = mock_loop
+
+            from graphton.core.middleware import McpToolsLoader
+            middleware = McpToolsLoader(sample_servers_config, sample_tool_filter)
+
+        # Simulate that tools were loaded
+        middleware._tools_cache = {tool.name: tool for tool in mock_mcp_tools}
+        middleware._tools_loaded = True
+        middleware._deferred_loading = False
+
+        mock_state = MagicMock()
+        mock_runtime = MagicMock()
+
+        result = await middleware.aafter_agent(mock_state, mock_runtime)
+
+        assert result is None
+        assert middleware._tools_loaded is True
+        assert len(middleware._tools_cache) == len(mock_mcp_tools)
 
     @pytest.mark.asyncio
     async def test_full_lifecycle_sync_context(
         self, sample_servers_config, sample_tool_filter, mock_mcp_tools
     ):
-        """Test complete lifecycle in sync context (tools loaded at init)."""
-        with patch('graphton.core.middleware.load_mcp_tools', new_callable=AsyncMock) as mock_load:
-            mock_load.return_value = mock_mcp_tools
-            
-            with patch('graphton.core.middleware.asyncio') as mock_asyncio:
-                mock_loop = MagicMock()
-                mock_loop.is_running.return_value = False
-                mock_loop.run_until_complete = lambda coro: asyncio.get_event_loop().run_until_complete(coro)
-                mock_asyncio.get_event_loop.side_effect = RuntimeError("No loop")
-                mock_asyncio.new_event_loop.return_value = mock_loop
-                mock_asyncio.set_event_loop = MagicMock()
-                
-                from graphton.core.middleware import McpToolsLoader
-                
-                # 1. Create middleware - tools load immediately
-                middleware = McpToolsLoader(sample_servers_config, sample_tool_filter)
-                assert middleware._tools_loaded is True
-                
-                # 2. Call abefore_agent - should skip loading
-                mock_state = MagicMock()
-                mock_runtime = MagicMock()
-                mock_load.reset_mock()
-                
-                await middleware.abefore_agent(mock_state, mock_runtime)
-                mock_load.assert_not_called()  # Already loaded
-                
-                # 3. Access tools
-                tool = middleware.get_tool("search_code")
-                assert tool.name == "search_code"
-                
-                # 4. Call aafter_agent - tools remain
-                await middleware.aafter_agent(mock_state, mock_runtime)
-                assert middleware._tools_loaded is True
+        """Test complete lifecycle when tools are pre-loaded (simulates sync init)."""
+        with patch('graphton.core.middleware.asyncio') as mock_asyncio:
+            mock_loop = MagicMock()
+            mock_loop.is_running.return_value = True
+            mock_asyncio.get_event_loop.return_value = mock_loop
+
+            from graphton.core.middleware import McpToolsLoader
+            middleware = McpToolsLoader(sample_servers_config, sample_tool_filter)
+
+        # Simulate that tools were loaded at init (sync path)
+        middleware._tools_cache = {tool.name: tool for tool in mock_mcp_tools}
+        middleware._tools_loaded = True
+        middleware._deferred_loading = False
+
+        # 1. Call abefore_agent - should skip loading
+        mock_state = MagicMock()
+        mock_runtime = MagicMock()
+
+        with patch('graphton.core.middleware.connect_mcp_client', new_callable=AsyncMock) as mock_load:
+            await middleware.abefore_agent(mock_state, mock_runtime)
+            mock_load.assert_not_called()
+
+        # 2. Access tools
+        tool = middleware.get_tool("search_code")
+        assert tool.name == "search_code"
+
+        # 3. Call aafter_agent - tools remain
+        await middleware.aafter_agent(mock_state, mock_runtime)
+        assert middleware._tools_loaded is True
 
     @pytest.mark.asyncio
     async def test_full_lifecycle_async_context(
         self, sample_servers_config, sample_tool_filter, mock_mcp_tools
     ):
         """Test complete lifecycle in async context (deferred loading)."""
-        with patch('graphton.core.middleware.load_mcp_tools', new_callable=AsyncMock) as mock_load:
+        with patch('graphton.core.middleware.connect_mcp_client', new_callable=AsyncMock) as mock_load:
             mock_load.return_value = mock_mcp_tools
             
             with patch('graphton.core.middleware.asyncio') as mock_asyncio:
