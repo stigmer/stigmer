@@ -9,7 +9,7 @@ Drop this file into your conversation to quickly resume work on this project.
 **Description**: Move Stigmer CLI from alt-screen TUI default to inline-first terminal experience inspired by Claude Code. Compact tool rendering (read as filename+line count, write/edit with previews, grouped sub-agents), inline follow-up input, and streamlined approval prompts — all in normal terminal scrollback without alt-screen.
 **Goal**: Make the inline rendering mode the default CLI experience with four perfected UI surfaces: (1) Read tool as compact filename+line count, (2) Write/Edit tool with appropriate previews, (3) Sub-agent tool grouping, and (4) Streamlined approval prompts. TUI code retained but unreachable from CLI flags.
 **Tech Stack**: Go, Bubbletea (charmbracelet), gRPC, Cobra
-**Components**: client-apps/cli/cmd/stigmer/root (run_stream_inline.go, output_mode.go, run_stream.go), client-apps/cli/pkg/executiontui (model.go, render_blocks.go, view.go), client-apps/cli/pkg/toolrender (file_preview.go, render.go, hyperlink.go)
+**Components**: client-apps/cli/cmd/stigmer/root (run_stream_inline.go, output_mode.go, run_stream.go), client-apps/cli/pkg/executiontui (model.go, render_blocks.go, view.go), client-apps/cli/pkg/toolrender (file_preview.go, render.go, render_compact.go, hyperlink.go)
 
 ## Essential Files to Review
 
@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-04 00:23
-**Current Task**: Phase 2.1 (Read Tool Compact Rendering)
+**Current Task**: Phase 2.2 (Write/Edit Tool Compact Rendering)
 **Status**: Ready to Start
-**Last Session**: 2026-03-04 — Phase 2.0 complete
+**Last Session**: 2026-03-04 — Phase 2.1 complete
 
 ## Session Progress (2026-03-04, Session 1)
 
@@ -107,23 +107,46 @@ When starting a new session:
 - `client-apps/cli/pkg/toolrender/hyperlink_test.go` (new)
 - `client-apps/cli/pkg/toolrender/BUILD.bazel` (modified)
 
+## Session Progress (2026-03-04, Session 3)
+
+- Phase 2.1 (Read Tool Compact Rendering) completed
+- Created `pkg/toolrender/render_compact.go` (96 lines) — `CompactOptions`, `RenderCompact`, `IsReadTool`, `renderCompactRead`, `buildHyperlinkedPath`, `bulletStyle`
+- Created `pkg/toolrender/render_compact_test.go` (289 lines) — 22 test functions covering format, hyperlinks, fallback, errors
+- Updated `cmd/stigmer/root/run_stream_inline.go` — added `compactOpts` field, HyperlinksEnabled init, read running suppression, `RenderCompact` routing
+- Updated `pkg/toolrender/BUILD.bazel` — added new source and test files
+- Committed as `5a87c60c`
+
+### Key Design Decisions (Session 3)
+- `RenderCompact` is a graduated entry point: read tools get compact format, all others fall back to `RenderWithBadge`. This enables incremental migration in Phases 2.2-2.4.
+- `ToolRunningEvent` suppressed for read tools — reads complete in <100ms, showing both running and completed is redundant noise.
+- `CompactOptions` struct follows DI-over-hard-coding: `HyperlinksEnabled` queried once at renderer init, `WorkingDir` left empty for now (most backend paths are absolute).
+- `IsReadTool` derives from `toolDisplayMap` label (not hardcoded names), consistent with `IsShellTool` pattern.
+- `buildHyperlinkedPath` is a standalone helper for reuse in subsequent compact renderers.
+- OSC 8 / `stripANSI` gap confirmed NOT a blocker — compact output goes to stderr, never through width measurement functions.
+- Read grouping (3+ sequential reads collapsed) deferred to Phase 2.1b.
+
+### Files Modified (Session 3)
+- `client-apps/cli/pkg/toolrender/render_compact.go` (new)
+- `client-apps/cli/pkg/toolrender/render_compact_test.go` (new)
+- `client-apps/cli/pkg/toolrender/BUILD.bazel` (modified)
+- `client-apps/cli/cmd/stigmer/root/run_stream_inline.go` (modified)
+
 ## Next Steps
 
-1. Phase 2.1: Read tool compact rendering — `RenderCompact` with one-line clickable path + "Read N lines"
-2. Phase 2.2: Write/Edit tool compact rendering — minimal header + line count with clickable path
-3. Phase 2.3: Shell tool compact rendering — command + exit code + truncated output
-4. Phase 2.4: Other tools (glob, search, delete, think)
-5. Phase 2.5: Sub-agent tool grouping with indentation
+1. Phase 2.2: Write/Edit tool compact rendering — minimal header + line count with clickable path
+2. Phase 2.3: Shell tool compact rendering — command + exit code + truncated output
+3. Phase 2.4: Other tools (glob, search, delete, think)
+4. Phase 2.5: Sub-agent tool grouping with indentation
 
 ## Context for Resume
 
 - Pre-existing compile error in `run_create.go:114` (references `WorkspaceSource` from multi-source-workspace project) blocks `go test` for the `root` package. Our changes are isolated and verified correct via `go vet`.
 - The `OutputInteractive` constant is retained in `output_mode.go` — TUI code references it from `run_stream.go` and `run_session.go` default branches.
-- OSC 8 hyperlink primitives now exist in `pkg/toolrender/hyperlink.go`. Phase 2.1 will wire them into a new `RenderCompact` function.
-- **Integration concern for Phase 2.1**: `display/colors.go` `stripANSI` only handles CSI (`\x1b[...m`), not OSC (`\x1b]...`). When hyperlinked strings flow through `MeasureColorizedString` or `TrimColorizedString`, those functions will need OSC-awareness.
-- **Integration concern for Phase 2.1**: Verify that `charmbracelet/x/ansi.StringWidth()` correctly handles OSC 8 sequences in width calculations.
-- Current tool rendering uses `RenderWithBadge` in `pkg/toolrender/` — Phase 2.1 will add a new `RenderCompact` path that the inline renderer calls instead.
-- The inline renderer (`run_stream_inline.go`) will call `HyperlinksEnabled(cfg.status)` once at init and store the bool.
+- `RenderCompact(tc, opts)` is the graduated entry point for compact tool rendering. Currently only read tools get compact format; non-read tools fall back to `RenderWithBadge`. Phases 2.2-2.4 add branches to `RenderCompact` and the fallback shrinks.
+- `CompactOptions` is initialized once in `renderInline()` with `HyperlinksEnabled` from `cfg.status` and an empty `WorkingDir` (relative path resolution deferred until working directory is available from execution context).
+- `ToolRunningEvent` is suppressed for read tools. The same pattern should be evaluated per-tool-type in subsequent phases.
+- **OSC 8 / `stripANSI` gap**: `display/colors.go` `stripANSI` only handles CSI (`\x1b[...m`), not OSC (`\x1b]...`). NOT a blocker for compact rendering (output goes to stderr via `statusf`, never through width measurement). Becomes relevant if hyperlinked strings ever enter `MeasureColorizedString` or `TrimColorizedString`.
+- **`charmbracelet/x/ansi.StringWidth()` OSC 8 verification**: Still pending empirical verification. Not needed until a phase truncates hyperlinked strings with `truncateANSI`.
 
 ## Blockers
 
@@ -132,7 +155,7 @@ None.
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 2.1" - Start Read tool compact rendering
+- "Continue with Phase 2.2" - Start Write/Edit tool compact rendering
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
