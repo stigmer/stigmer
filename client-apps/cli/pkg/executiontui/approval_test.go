@@ -523,6 +523,39 @@ func TestRenderApprovalContent_GenericTool_FewArgs_NotExpandable(t *testing.T) {
 	}
 }
 
+func TestRenderApprovalContent_GenericTool_MultilineContent_Expandable(t *testing.T) {
+	contentLines := make([]string, 20)
+	for i := range contentLines {
+		contentLines[i] = fmt.Sprintf("line %d of file content", i)
+	}
+	args := fmt.Sprintf(`{"path": "/tmp/file.txt", "content": %q}`, strings.Join(contentLines, "\n"))
+
+	preview, full := renderApprovalContent("write_file", args, "Write file", false, "")
+
+	if preview == full {
+		t.Error("multi-line content (20 visual lines across 2 JSON keys) should produce different preview and full")
+	}
+	if !strings.Contains(preview, "(+") {
+		t.Error("preview should have truncation indicator")
+	}
+	if !strings.Contains(full, "line 19 of file content") {
+		t.Error("full should contain the last content line")
+	}
+}
+
+func TestNewApprovalBlock_Expandable_StartsCollapsed(t *testing.T) {
+	b := newApprovalBlock("short preview", "much longer full content\nwith many lines")
+	if !b.expandable {
+		t.Error("block with different preview and full should be expandable")
+	}
+	if b.expanded {
+		t.Error("expandable approval block should start collapsed")
+	}
+	if b.displayContent() != "short preview" {
+		t.Errorf("collapsed block should show preview, got %q", b.displayContent())
+	}
+}
+
 // --- No auto-expand ---
 
 func TestApproval_BlockNotAutoExpanded(t *testing.T) {
