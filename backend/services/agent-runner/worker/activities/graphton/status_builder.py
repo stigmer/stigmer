@@ -2329,18 +2329,12 @@ class StatusBuilder:
                 value = resolve_display_env_vars(
                     value, self._display_env_vars, self._secret_keys,
                 )
-                if len(value) > 200:
-                    return value[:200] + "... (truncated)"
                 return value
             
-            # Recursively sanitize nested dicts
             if isinstance(value, dict):
                 return {k: sanitize_value(k, v) for k, v in value.items()}
             
-            # Truncate long lists
             if isinstance(value, list):
-                if len(value) > 10:
-                    return value[:10] + [f"... ({len(value) - 10} more items)"]
                 return [sanitize_value(str(i), v) for i, v in enumerate(value)]
             
             return value

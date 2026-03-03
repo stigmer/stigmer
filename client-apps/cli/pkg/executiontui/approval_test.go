@@ -1,6 +1,7 @@
 package executiontui
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -248,59 +249,59 @@ func TestApproval_Sequential_TwoApprovals(t *testing.T) {
 	}
 }
 
-// --- Rendering: shell-specific approval prompt ---
+// --- Rendering: shell-specific approval content ---
 
-func TestRenderApprovalPrompt_ShellTool_TerminalStyleCommand(t *testing.T) {
+func TestRenderApprovalContent_ShellTool_TerminalStyleCommand(t *testing.T) {
 	args := `{"command": "python3 script.py --flag", "timeout": 120}`
-	result := renderApprovalPrompt("execute", args, "Execute command: python3 script.py --flag", false, "")
-	if !strings.Contains(result, "APPROVAL REQUIRED") {
+	_, full := renderApprovalContent("execute", args, "Execute command: python3 script.py --flag", false, "")
+	if !strings.Contains(full, "APPROVAL REQUIRED") {
 		t.Error("should contain header")
 	}
-	if !strings.Contains(result, "$ python3 script.py --flag") {
-		t.Errorf("should render command with $ prefix, got %q", result)
+	if !strings.Contains(full, "$ python3 script.py --flag") {
+		t.Errorf("should render command with $ prefix, got %q", full)
 	}
-	if strings.Contains(result, "Tool:") {
+	if strings.Contains(full, "Tool:") {
 		t.Error("shell approval should not show 'Tool:' line")
 	}
-	if strings.Contains(result, "Execute command:") {
+	if strings.Contains(full, "Execute command:") {
 		t.Error("should suppress redundant 'Execute command:' message")
 	}
-	if !strings.Contains(result, "timeout:") {
+	if !strings.Contains(full, "timeout:") {
 		t.Error("should show secondary args like timeout")
 	}
 }
 
-func TestRenderApprovalPrompt_ShellTool_PreFormattedArgs(t *testing.T) {
+func TestRenderApprovalContent_ShellTool_PreFormattedArgs(t *testing.T) {
 	args := "Command: ls -la /tmp\nworking_directory: /workspace"
-	result := renderApprovalPrompt("shell", args, "", false, "")
-	if !strings.Contains(result, "$ ls -la /tmp") {
-		t.Errorf("should extract and render command with $ prefix, got %q", result)
+	_, full := renderApprovalContent("shell", args, "", false, "")
+	if !strings.Contains(full, "$ ls -la /tmp") {
+		t.Errorf("should extract and render command with $ prefix, got %q", full)
 	}
-	if !strings.Contains(result, "working_directory: /workspace") {
+	if !strings.Contains(full, "working_directory: /workspace") {
 		t.Error("should show secondary args")
 	}
 }
 
-func TestRenderApprovalPrompt_NonShellTool_GenericFormat(t *testing.T) {
-	result := renderApprovalPrompt("write_file", "Path: output.txt", "Write file", false, "")
-	if !strings.Contains(result, "Tool: write_file") {
+func TestRenderApprovalContent_NonShellTool_GenericFormat(t *testing.T) {
+	_, full := renderApprovalContent("write_file", "Path: output.txt", "Write file", false, "")
+	if !strings.Contains(full, "Tool: write_file") {
 		t.Error("non-shell tool should show 'Tool:' line")
 	}
-	if !strings.Contains(result, "Write file") {
+	if !strings.Contains(full, "Write file") {
 		t.Error("non-shell tool should show message")
 	}
 }
 
-func TestRenderApprovalPrompt_ShellTool_SubAgent(t *testing.T) {
+func TestRenderApprovalContent_ShellTool_SubAgent(t *testing.T) {
 	args := `{"command": "npm install"}`
-	result := renderApprovalPrompt("shell", args, "", true, "general-purpose")
-	if !strings.Contains(result, "sub-agent") {
+	_, full := renderApprovalContent("shell", args, "", true, "general-purpose")
+	if !strings.Contains(full, "sub-agent") {
 		t.Error("should show sub-agent label")
 	}
-	if !strings.Contains(result, "general-purpose") {
+	if !strings.Contains(full, "general-purpose") {
 		t.Error("should show sub-agent name")
 	}
-	if !strings.Contains(result, "$ npm install") {
+	if !strings.Contains(full, "$ npm install") {
 		t.Error("should still render terminal-style command")
 	}
 }
@@ -441,25 +442,84 @@ func TestApproval_Reject_CmdReturnsNilMsg(t *testing.T) {
 
 // --- Rendering: multiline args ---
 
-func TestRenderApprovalPrompt_MultilineArgs_ShellTool(t *testing.T) {
+func TestRenderApprovalContent_MultilineArgs_ShellTool(t *testing.T) {
 	multiLineArgs := "Command: rm -rf /tmp\npath: /tmp"
-	result := renderApprovalPrompt("shell", multiLineArgs, "Execute command: rm -rf /tmp", false, "")
-	if !strings.Contains(result, "$ rm -rf /tmp") {
-		t.Errorf("shell tool should render command with $ prefix, got %q", result)
+	_, full := renderApprovalContent("shell", multiLineArgs, "Execute command: rm -rf /tmp", false, "")
+	if !strings.Contains(full, "$ rm -rf /tmp") {
+		t.Errorf("shell tool should render command with $ prefix, got %q", full)
 	}
-	if !strings.Contains(result, "path: /tmp") {
+	if !strings.Contains(full, "path: /tmp") {
 		t.Error("should contain secondary arg line")
 	}
 }
 
-func TestRenderApprovalPrompt_MultilineArgs_NonShellTool(t *testing.T) {
+func TestRenderApprovalContent_MultilineArgs_NonShellTool(t *testing.T) {
 	multiLineArgs := "Path: /workspace/file.txt\ncontent: hello"
-	result := renderApprovalPrompt("write_file", multiLineArgs, "Write file", false, "")
-	if !strings.Contains(result, "Path: /workspace/file.txt") {
+	_, full := renderApprovalContent("write_file", multiLineArgs, "Write file", false, "")
+	if !strings.Contains(full, "Path: /workspace/file.txt") {
 		t.Error("should contain first arg line")
 	}
-	if !strings.Contains(result, "content: hello") {
+	if !strings.Contains(full, "content: hello") {
 		t.Error("should contain second arg line")
+	}
+}
+
+// --- Expandable approval block for long commands ---
+
+func TestRenderApprovalContent_ShellTool_LongCommand_Expandable(t *testing.T) {
+	cmdLines := make([]string, 10)
+	for i := range cmdLines {
+		cmdLines[i] = fmt.Sprintf("rm -f file%d.txt", i)
+	}
+	args := fmt.Sprintf(`{"command": %q, "timeout": 120}`, strings.Join(cmdLines, "\n"))
+
+	preview, full := renderApprovalContent("execute", args, "", false, "")
+
+	if preview == full {
+		t.Error("long command should produce different preview and full")
+	}
+	if !strings.Contains(preview, "$ rm -f file0.txt") {
+		t.Error("preview should show first command line")
+	}
+	if !strings.Contains(preview, "(+9 more lines)") {
+		t.Errorf("preview should show remaining line count, got %q", preview)
+	}
+	if !strings.Contains(full, "rm -f file9.txt") {
+		t.Error("full should contain the last command line")
+	}
+	if !strings.Contains(full, "timeout:") {
+		t.Error("full should contain secondary args")
+	}
+}
+
+func TestRenderApprovalContent_ShellTool_ShortCommand_NotExpandable(t *testing.T) {
+	args := `{"command": "rm -f file1.txt\nrm -f file2.txt", "timeout": 120}`
+	preview, full := renderApprovalContent("execute", args, "", false, "")
+	if preview != full {
+		t.Error("short command (<=5 lines) should have identical preview and full")
+	}
+}
+
+func TestRenderApprovalContent_GenericTool_ManyArgs_Expandable(t *testing.T) {
+	args := `{"a": "1", "b": "2", "c": "3", "d": "4", "e": "5", "f": "6", "g": "7"}`
+	preview, full := renderApprovalContent("custom_tool", args, "Do something", false, "")
+
+	if preview == full {
+		t.Error("many args should produce different preview and full")
+	}
+	if !strings.Contains(preview, "(+") {
+		t.Error("preview should have truncation indicator")
+	}
+	if !strings.Contains(full, "g: 7") {
+		t.Error("full should contain all args")
+	}
+}
+
+func TestRenderApprovalContent_GenericTool_FewArgs_NotExpandable(t *testing.T) {
+	args := `{"path": "/tmp/file.txt", "content": "hello"}`
+	preview, full := renderApprovalContent("write_file", args, "Write file", false, "")
+	if preview != full {
+		t.Error("few args should have identical preview and full")
 	}
 }
 
@@ -501,7 +561,7 @@ func TestApproval_CreatesContextBlock(t *testing.T) {
 	if last.blockType != blockApproval {
 		t.Errorf("last block type = %d, want blockApproval", last.blockType)
 	}
-	if !strings.Contains(last.content, "APPROVAL REQUIRED") {
+	if !strings.Contains(last.displayContent(), "APPROVAL REQUIRED") {
 		t.Error("approval block should contain 'APPROVAL REQUIRED'")
 	}
 }
@@ -572,10 +632,10 @@ func TestApproval_SubAgentContext_ShownInBlock(t *testing.T) {
 		t.Fatal("approval block should exist")
 	}
 	block := m.blocks[m.approvalBlockIdx]
-	if !strings.Contains(block.content, "general-purpose") {
+	if !strings.Contains(block.displayContent(), "general-purpose") {
 		t.Error("approval block should contain sub-agent name")
 	}
-	if !strings.Contains(block.content, "sub-agent") {
+	if !strings.Contains(block.displayContent(), "sub-agent") {
 		t.Error("approval block should contain sub-agent label")
 	}
 }

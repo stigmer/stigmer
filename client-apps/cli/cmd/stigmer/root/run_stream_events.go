@@ -10,7 +10,6 @@ import (
 	"github.com/rs/zerolog/log"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"google.golang.org/grpc"
 )
@@ -504,7 +503,7 @@ func emitAndWaitApproval(
 	cfg.events <- executiontui.ApprovalNeededEvent{
 		ToolCallID:   info.toolCallID,
 		ToolName:     info.toolName,
-		ArgsPreview:  approval.FormatArgs(info.toolName, info.argsPreview),
+		ArgsPreview:  info.argsPreview,
 		Message:      info.message,
 		FromSubAgent: info.fromSubAgent,
 		SubAgentName: info.subAgentName,

@@ -137,8 +137,8 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 		}
 		// Append a contextual approval block so the user can see what needs
 		// approval without hunting for a ⏸ badge among many tool blocks.
-		prompt := renderApprovalPrompt(e.ToolName, e.ArgsPreview, e.Message, e.FromSubAgent, e.SubAgentName)
-		m.blocks = append(m.blocks, newApprovalBlock(prompt))
+		preview, full := renderApprovalContent(e.ToolName, e.ArgsPreview, e.Message, e.FromSubAgent, e.SubAgentName)
+		m.blocks = append(m.blocks, newApprovalBlock(preview, full))
 		m.approvalBlockIdx = len(m.blocks) - 1
 
 	case DoneEvent:

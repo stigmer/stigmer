@@ -181,10 +181,24 @@ func newPhaseBlock(content string) contentBlock {
 }
 
 // newApprovalBlock creates a block for an approval request display.
-func newApprovalBlock(content string) contentBlock {
+// When preview and full differ, the block is expandable and starts expanded
+// so the user sees the complete content needed for an informed decision.
+// When they are identical (short content), the block is non-expandable and
+// uses the content field directly.
+func newApprovalBlock(preview, full string) contentBlock {
+	expandable := preview != full
+	if expandable {
+		return contentBlock{
+			blockType:  blockApproval,
+			preview:    preview,
+			full:       full,
+			expandable: true,
+			expanded:   true,
+		}
+	}
 	return contentBlock{
 		blockType: blockApproval,
-		content:   content,
+		content:   full,
 	}
 }
 
