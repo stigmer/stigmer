@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-04 00:23
-**Current Task**: Phase 2.3 (Shell Tool Compact Rendering)
+**Current Task**: Phase 2.4 (Other Tools Compact Rendering)
 **Status**: Ready to Start
-**Last Session**: 2026-03-04 — Phase 2.2 complete
+**Last Session**: 2026-03-04 — Phase 2.3 complete
 
 ## Session Progress (2026-03-04, Session 1)
 
@@ -172,24 +172,47 @@ When starting a new session:
 - `client-apps/cli/pkg/toolrender/render_compact_test.go` (modified)
 - `client-apps/cli/cmd/stigmer/root/run_stream_inline.go` (modified)
 
+## Session Progress (2026-03-04, Session 6)
+
+- Phase 2.3 (Shell Tool Compact Rendering) completed
+- Extended `pkg/toolrender/render_compact.go` (+93 lines, now 373 lines) — 4 new functions: `renderCompactShell`, `isShellLabel`, `firstLine`, plus `maxShellOutputLines` constant
+- Extended `pkg/toolrender/render_compact_test.go` (+411 net lines) — 25 new test functions covering shell compact format, output truncation, smart cutoff, failures, command truncation, multiline commands, legacy result cleaning, aliases, running state, firstLine helper
+- Updated `hasCompactRenderer` to include "Shell" and "Execute" labels
+- Updated `RenderCompactRunning` to handle shell tools (command truncation instead of hyperlinked paths)
+- Replaced 2 existing shell fallback tests with compact-format equivalents
+- No changes to `run_stream_inline.go` — graduated routing picks up shell automatically
+
+### Key Design Decisions (Session 6)
+- **No exit code display** — ToolCallInfo has no ExitCode field; parsing from result text is fragile and coupled to backend format. Claude Code reference doesn't show exit codes either. Status communicated through structure: output lines = success, `✗` = failed. Confirmed with user as Option A.
+- **Command truncation at 60 chars** — Shell commands can be very long (unlike file paths). Truncated in header for scannability; full command visible from AI message in scrollback.
+- **`firstLine` helper** — Defensive sanitization for commands with embedded newlines. Extracts first line before truncation to prevent broken multi-line headers.
+- **Smart cutoff** — Same pattern as read groups: show all when count <= maxShellOutputLines + 1 (avoids pointless "+1 more lines" footer).
+- **`isShellLabel`** — Internal predicate covering "Shell" and "Execute" labels (the 2 labels mapped from 6 shell tool names in `toolDisplayMap`).
+- **`RenderCompactRunning` refactored** — Now shell-aware: uses `truncate(firstLine(...), 60)` for shell tools instead of `buildHyperlinkedPath` (commands aren't file paths).
+
+### Files Modified (Session 6)
+- `client-apps/cli/pkg/toolrender/render_compact.go` (modified)
+- `client-apps/cli/pkg/toolrender/render_compact_test.go` (modified)
+
 ## Next Steps
 
-1. Phase 2.3: Shell tool compact rendering — command + exit code + truncated output
-2. Phase 2.4: Other tools (glob, search, delete, think)
-3. Phase 2.5: Sub-agent tool grouping with indentation
+1. Phase 2.4: Other tools (glob, search, delete, think)
+2. Phase 2.5: Sub-agent tool grouping with indentation
 
 ## Context for Resume
 
 - Pre-existing compile error in `run_create.go:114` (references `WorkspaceSource` from multi-source-workspace project) blocks `go test` for the `root` package. Our changes are isolated and verified correct via `go vet`.
 - The `OutputInteractive` constant is retained in `output_mode.go` — TUI code references it from `run_stream.go` and `run_session.go` default branches.
-- **`RenderCompact`** is the graduated entry point for compact completed tool rendering. Read, write, create, and edit tools now get compact format; shell and others fall back to `RenderWithBadge`. Phases 2.3-2.4 add branches and the fallback shrinks.
-- **`RenderCompactRunning`** is the graduated entry point for compact running state. Tools with compact renderers (read, write, create, edit) get bullet-style with `…` suffix; others fall back to `RenderWithBadge` with `⏳`.
-- **`hasCompactRenderer`** is the graduated registry — add tool labels here as new compact renderers are implemented.
+- **`RenderCompact`** is the graduated entry point for compact completed tool rendering. Read, write, create, edit, and shell tools now get compact format. Only glob, search, delete, think, and task tools still fall back to `RenderWithBadge`. Phase 2.4 adds the remaining branches.
+- **`RenderCompactRunning`** is the graduated entry point for compact running state. Tools with compact renderers (read, write, create, edit, shell) get bullet-style with `…` suffix; others fall back to `RenderWithBadge` with `⏳`. Shell tools use `truncate(firstLine(...), 60)` instead of `buildHyperlinkedPath`.
+- **`hasCompactRenderer`** is the graduated registry — now includes "Read", "Write", "Create", "Edit", "Shell", "Execute". Phase 2.4 adds remaining labels.
 - `CompactOptions` is initialized once in `renderInline()` with `HyperlinksEnabled` from `cfg.status` and an empty `WorkingDir` (relative path resolution deferred until working directory is available from execution context).
 - **Read grouping**: `handleEvent` intercepts read completions before the switch and buffers them in `pendingReads`. `flushPendingReads()` renders as group (>= 3) or individually (< 3). Flush triggers on any non-read visible event, context cancel, or channel close. `ToolStreamDeltaEvent` does NOT flush (no visible output).
-- **ToolRunningEvent for reads**: Suppressed (intercepted before switch). For write/edit: NOT suppressed — uses `RenderCompactRunning`.
+- **ToolRunningEvent for reads**: Suppressed (intercepted before switch). For write/edit and shell: NOT suppressed — uses `RenderCompactRunning`.
+- **Shell output truncation**: `maxShellOutputLines = 3` with smart cutoff (show 4 if exactly 4 lines). Output cleaned via `resolveDisplayContent` which calls `CleanShellResult` for shell tools.
 - **OSC 8 / `stripANSI` gap**: `display/colors.go` `stripANSI` only handles CSI (`\x1b[...m`), not OSC (`\x1b]...`). NOT a blocker for compact rendering (output goes to stderr via `statusf`, never through width measurement). Becomes relevant if hyperlinked strings ever enter `MeasureColorizedString` or `TrimColorizedString`.
 - **`charmbracelet/x/ansi.StringWidth()` OSC 8 verification**: Still pending empirical verification. Not needed until a phase truncates hyperlinked strings with `truncateANSI`.
+- **Bazel test blocked** by pre-existing `com_github_alecthomas_chroma_v2` repository resolution issue. All tests verified via `go test` directly.
 
 ## Blockers
 
@@ -198,7 +221,7 @@ None.
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 2.3" - Start Shell tool compact rendering
+- "Continue with Phase 2.4" - Start other tools compact rendering (glob, search, delete, think)
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
