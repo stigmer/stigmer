@@ -9,6 +9,8 @@ import (
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCheckDuplicateStep_NoDuplicate(t *testing.T) {
@@ -44,17 +46,19 @@ func TestCheckDuplicateStep_DuplicateExists(t *testing.T) {
 			Id:   "agent-existing",
 			Slug: "test-agent",
 			Name: "Existing Agent",
+			Org:  "default",
 		},
 		Kind:       "Agent",
 		ApiVersion: "ai.stigmer.agentic.agent/v1",
 	}
 	store.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_agent, existing.Metadata.Id, existing)
 
-	// Try to create another agent with same slug
+	// Try to create another agent with same slug and org
 	newAgent := &agentv1.Agent{
 		Metadata: &apiresource.ApiResourceMetadata{
-			Slug: "test-agent", // Same slug
+			Slug: "test-agent",
 			Name: "New Agent",
+			Org:  "default",
 		},
 	}
 
@@ -162,4 +166,83 @@ func TestCheckDuplicateStep_Name(t *testing.T) {
 	if step.Name() != "CheckDuplicate" {
 		t.Errorf("Expected Name()=CheckDuplicate, got %q", step.Name())
 	}
+}
+
+func TestCheckDuplicateStep_OrgScoping(t *testing.T) {
+	testStore := setupTestStore(t)
+	defer testStore.Close()
+
+	ctx := context.Background()
+	kind := apiresourcekind.ApiResourceKind_agent
+
+	existing := &agentv1.Agent{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "Agent",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Id:   "agent-local-id",
+			Slug: "my-agent",
+			Name: "My Agent",
+			Org:  "local",
+		},
+	}
+
+	err := testStore.SaveResource(ctx, kind, existing.Metadata.Id, existing)
+	require.NoError(t, err)
+
+	t.Run("same slug different org is allowed", func(t *testing.T) {
+		input := &agentv1.Agent{
+			Metadata: &apiresource.ApiResourceMetadata{
+				Slug: "my-agent",
+				Name: "My Agent",
+				Org:  "default",
+			},
+		}
+
+		reqCtx := pipeline.NewRequestContext(contextWithKind(kind), input)
+		reqCtx.SetNewState(input)
+
+		step := NewCheckDuplicateStep[*agentv1.Agent](testStore)
+		err := step.Execute(reqCtx)
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("same slug same org is duplicate", func(t *testing.T) {
+		input := &agentv1.Agent{
+			Metadata: &apiresource.ApiResourceMetadata{
+				Slug: "my-agent",
+				Name: "My Agent",
+				Org:  "local",
+			},
+		}
+
+		reqCtx := pipeline.NewRequestContext(contextWithKind(kind), input)
+		reqCtx.SetNewState(input)
+
+		step := NewCheckDuplicateStep[*agentv1.Agent](testStore)
+		err := step.Execute(reqCtx)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "already exists")
+	})
+
+	t.Run("error message includes org", func(t *testing.T) {
+		input := &agentv1.Agent{
+			Metadata: &apiresource.ApiResourceMetadata{
+				Slug: "my-agent",
+				Name: "My Agent",
+				Org:  "local",
+			},
+		}
+
+		reqCtx := pipeline.NewRequestContext(contextWithKind(kind), input)
+		reqCtx.SetNewState(input)
+
+		step := NewCheckDuplicateStep[*agentv1.Agent](testStore)
+		err := step.Execute(reqCtx)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "org 'local'")
+		assert.Contains(t, err.Error(), "my-agent")
+	})
 }

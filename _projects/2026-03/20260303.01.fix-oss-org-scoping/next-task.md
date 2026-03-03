@@ -67,8 +67,8 @@ That's it! No complex structure - just focused work.
 ## Current Status
 
 **Last Updated**: 2026-03-03  
-**Current Focus**: Task 5 — Fix ID-based lookups (org verification after load)  
-**Phase**: Implementation
+**Current Focus**: All tasks complete  
+**Phase**: Done
 
 ## Session Progress (2026-03-03)
 
@@ -102,13 +102,20 @@ That's it! No complex structure - just focused work.
   - Error message now includes org: `already exists in org '%s' (id: %s)`
   - Net ~33 lines removed from duplicate.go; all workspace modules build cleanly
 
-### Next Steps
-1. **Task 5**: Fix ID-based lookups — add org verification after load in LoadExistingStep, LoadTargetStep, LoadExistingForDeleteStep
-2. **Task 6**: Tests
+- **Task 5**: N/A — cloud comparison showed ID-based lookups intentionally do not verify org in generic pipeline steps. Cloud relies on FGA for access control. OSS is now aligned with cloud pattern after Tasks 1–4.
+
+- **Task 6**: Added comprehensive org-scoping tests for all fixed pipeline steps
+  - Created `helpers_test.go` with 6 direct unit tests for `FindResourceBySlug`
+  - Added `TestLoadForApplyStep_OrgScoping` (2 subtests) — the bootstrap bug scenario
+  - Added `TestLoadExistingStep_SlugFallback` (3 subtests) — filled zero-coverage gap on slug fallback path
+  - Added `TestCheckDuplicateStep_OrgScoping` (3 subtests) — org-scoped duplicate check
+  - Updated 2 existing tests to include `Org` in test data
+  - All 63 tests pass, build clean
 
 ### Context for Resume
-- **Task 5 is different**: ID-based lookups need post-load org verification (compare loaded resource's metadata.Org to request org), not slug filtering.
 - **Key gotcha**: Go generics does not allow `T == nil` on type parameters constrained to interfaces. Use the `found` bool from `FindResourceBySlug` instead of nil-checking the returned value.
+- **Cloud alignment**: ID-based lookups (Get/Delete/Update-by-ID) do not verify org — matches cloud pattern. Only slug-based lookups are org-scoped.
+- **Testing gotcha**: `NewRequestContext` clones input via `proto.Clone()`. Assertions on fields set by pipeline steps must use `reqCtx.NewState()`, not the original input pointer.
 
 ---
 
@@ -142,15 +149,15 @@ All other slug lookups need this same guard.
 
 All in `backend/libs/go/grpc/request/pipeline/steps/`:
 
-| File | Function | Gap |
-|------|----------|-----|
-| `helpers.go` | `FindResourceBySlug` | No org param at all (exported API) |
-| `load_for_apply.go` | `findBySlug` | Slug matches globally — ROOT CAUSE of bootstrap bug |
-| `load_existing.go` | `findBySlug` | Slug fallback matches across orgs |
-| `duplicate.go` | `findBySlug` | Prevents same slug in different orgs |
-| `load_existing.go` | `Execute` (ID path) | No org verify after load |
-| `load_target.go` | `Execute` | No org verify after load |
-| `delete.go` | `LoadExistingForDeleteStep.Execute` | No org verify after load |
+| File | Function | Status |
+|------|----------|--------|
+| `helpers.go` | `FindResourceBySlug` | Fixed (Task 1) — org param added |
+| `load_for_apply.go` | `findBySlug` | Fixed (Task 2) — consolidated to shared helper with org |
+| `load_existing.go` | `findBySlug` | Fixed (Task 3) — consolidated to shared helper with org |
+| `duplicate.go` | `findBySlug` | Fixed (Task 4) — consolidated to shared helper with org |
+| `load_existing.go` | `Execute` (ID path) | N/A (Task 5) — matches cloud pattern |
+| `load_target.go` | `Execute` | N/A (Task 5) — matches cloud pattern |
+| `delete.go` | `LoadExistingForDeleteStep.Execute` | N/A (Task 5) — matches cloud pattern |
 
 ### Tier 2 — Callers of shared helper
 

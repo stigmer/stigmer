@@ -119,3 +119,73 @@ is for Update/Delete, not Apply. Corrected to describe org-scoped slug semantics
 
 ---
 
+## 2026-03-03 — Task 6 Complete: Org-scoping tests for all pipeline steps
+
+### Surprise: `NewRequestContext` clones input via `proto.Clone()`
+`pipeline.NewRequestContext(ctx, input)` creates `newState` as `proto.Clone(input).(T)`.
+This means `ctx.NewState()` returns a clone, not the original reference. When
+`LoadExistingStep.Execute` sets `metadata.Id` on the resource it gets from `ctx.NewState()`,
+it modifies the clone — not the test's original `input` variable. Test assertions on fields
+set by pipeline steps must use `reqCtx.NewState()`, not the original input pointer.
+
+### Pre-existing gap filled: `LoadExistingStep` slug fallback had zero coverage
+The existing `load_existing_test.go` only tested the ID-based lookup path. The slug fallback
+path (which is where the Task 3 org-scoping fix lives) had no test coverage at all. Added 3
+subtests covering slug+org match, slug+different-org not-found, and slug+empty-org backward compat.
+
+### Test coverage added
+
+| File | New tests | What they prove |
+|------|-----------|----------------|
+| `helpers_test.go` (new) | 6 subtests | `FindResourceBySlug` org isolation, multi-org, empty-org, not-found |
+| `load_for_apply_test.go` | 2 subtests + 1 updated | Same slug in different org triggers CREATE (bootstrap bug scenario) |
+| `load_existing_test.go` | 3 subtests | Slug fallback path with org-scoping |
+| `duplicate_test.go` | 3 subtests + 1 updated | Same slug in different org is allowed; error includes org |
+
+### Flagged tech debt
+`LoadByReferenceStep.findBySlug` (lines 118–170) still duplicates the logic now in
+`FindResourceBySlug`. It could call the shared helper by passing `ctx.Context()`,
+`ref.Slug`, and `ref.Org`. Not addressed in this project — noted for follow-up.
+
+---
+
+## 2026-03-03 — Task 5 Resolved: N/A after cloud comparison
+
+### Decision: ID-based lookups do not need org verification in generic pipeline steps
+
+Investigated the cloud implementation (`stigmer-cloud`) to determine how it handles
+org scoping for ID-based operations. Key findings:
+
+- `GetOperationLoadTargetStepV2` — loads by `repository.findById()` only, no org verification
+- `DeleteOperationLoadExistingStepV2` — loads by `repository.findById()` only, no org verification
+- `UpdateOperationLoadExistingResourceStepV2` — tries ID first (no org check), falls back to org+slug
+
+The cloud's access control for ID-based operations is handled by **FGA (Fine-Grained
+Authorization)**, a separate concern from pipeline steps. Org verification in generic
+steps was never part of the cloud's architecture.
+
+### Why this is safe in OSS
+
+- IDs are globally unique ULIDs (`{prefix}-{lowercase-ulid}`), so cross-org ID collision
+  is impossible.
+- `preserveImmutableFields` preserves `metadata.Org` on updates, preventing org mutation.
+- The remaining gap (access control for Get/Delete by ID) is an authorization concern,
+  not a pipeline step concern. It will be addressed when FGA is implemented for OSS.
+
+### Alternatives considered and rejected
+
+1. **Add org to proto ID wrappers** — would change the API contract for every Get/Delete
+   RPC across all domains. Violates separation of concerns (org context is infrastructure,
+   not domain payload). Cloud doesn't do this.
+2. **Add org interceptor** — architecturally cleaner than proto changes, but cloud doesn't
+   have one either. Would introduce a pattern not present in the reference implementation.
+3. **Post-load org verification in LoadExistingStep ID path** — the request has `metadata.Org`,
+   so it's technically possible, but cloud doesn't do it. Following cloud pattern exactly.
+
+### Impact
+
+No code changes. Tasks 1–4 already aligned OSS slug lookups with the cloud pattern.
+ID-based lookups already match the cloud pattern (direct lookup, no org filtering).
+
+---
+

@@ -8,6 +8,8 @@ import (
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLoadExistingStep_Execute(t *testing.T) {
@@ -150,4 +152,94 @@ func TestLoadExistingStep_Name(t *testing.T) {
 	if step.Name() != "LoadExisting" {
 		t.Errorf("Expected Name()=LoadExisting, got %q", step.Name())
 	}
+}
+
+func TestLoadExistingStep_SlugFallback(t *testing.T) {
+	testStore := setupTestStore(t)
+	defer testStore.Close()
+
+	ctx := context.Background()
+	kind := apiresourcekind.ApiResourceKind_agent
+
+	existing := &agentv1.Agent{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "Agent",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Id:   "agent-slug-id",
+			Name: "my-agent",
+			Slug: "my-agent",
+			Org:  "default",
+		},
+		Spec: &agentv1.AgentSpec{
+			Description: "Agent in default org",
+		},
+	}
+
+	err := testStore.SaveResource(ctx, kind, existing.Metadata.Id, existing)
+	require.NoError(t, err)
+
+	t.Run("loads by slug when ID is empty", func(t *testing.T) {
+		input := &agentv1.Agent{
+			Metadata: &apiresource.ApiResourceMetadata{
+				Slug: "my-agent",
+				Org:  "default",
+			},
+		}
+
+		reqCtx := pipeline.NewRequestContext(contextWithKind(kind), input)
+
+		step := NewLoadExistingStep[*agentv1.Agent](testStore)
+		err := step.Execute(reqCtx)
+
+		require.NoError(t, err)
+
+		loaded := reqCtx.Get(ExistingResourceKey)
+		require.NotNil(t, loaded)
+
+		agent := loaded.(*agentv1.Agent)
+		assert.Equal(t, "agent-slug-id", agent.Metadata.Id)
+		assert.Equal(t, "default", agent.Metadata.Org)
+
+		newState := reqCtx.NewState()
+		assert.Equal(t, "agent-slug-id", newState.GetMetadata().GetId(), "ID should be populated into newState metadata")
+	})
+
+	t.Run("slug with different org returns not found", func(t *testing.T) {
+		input := &agentv1.Agent{
+			Metadata: &apiresource.ApiResourceMetadata{
+				Slug: "my-agent",
+				Org:  "other-org",
+			},
+		}
+
+		reqCtx := pipeline.NewRequestContext(contextWithKind(kind), input)
+
+		step := NewLoadExistingStep[*agentv1.Agent](testStore)
+		err := step.Execute(reqCtx)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "not found")
+	})
+
+	t.Run("slug with empty org matches any", func(t *testing.T) {
+		input := &agentv1.Agent{
+			Metadata: &apiresource.ApiResourceMetadata{
+				Slug: "my-agent",
+				Org:  "",
+			},
+		}
+
+		reqCtx := pipeline.NewRequestContext(contextWithKind(kind), input)
+
+		step := NewLoadExistingStep[*agentv1.Agent](testStore)
+		err := step.Execute(reqCtx)
+
+		require.NoError(t, err)
+
+		loaded := reqCtx.Get(ExistingResourceKey)
+		require.NotNil(t, loaded)
+
+		agent := loaded.(*agentv1.Agent)
+		assert.Equal(t, "agent-slug-id", agent.Metadata.Id)
+	})
 }

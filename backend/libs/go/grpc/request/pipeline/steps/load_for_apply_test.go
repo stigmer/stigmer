@@ -1,12 +1,15 @@
 package steps
 
 import (
+	"context"
 	"testing"
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	commonspb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestLoadForApplyStep_ResourceExists tests the happy path where resource exists
@@ -25,6 +28,7 @@ func TestLoadForApplyStep_ResourceExists(t *testing.T) {
 			Id:   "existing-id-123",
 			Name: "test-agent",
 			Slug: "test-agent",
+			Org:  "default",
 		},
 		Spec: &agentv1.AgentSpec{
 			Description: "Existing agent",
@@ -36,13 +40,14 @@ func TestLoadForApplyStep_ResourceExists(t *testing.T) {
 		t.Fatalf("Failed to save test resource: %v", err)
 	}
 
-	// Create input (apply request) with same slug
+	// Create input (apply request) with same slug and org
 	input := &agentv1.Agent{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Agent",
 		Metadata: &commonspb.ApiResourceMetadata{
 			Name: "test-agent",
-			Slug: "test-agent", // Same slug as existing
+			Slug: "test-agent",
+			Org:  "default",
 		},
 		Spec: &agentv1.AgentSpec{
 			Description: "Updated description",
@@ -276,4 +281,89 @@ func TestLoadForApplyStep_IntegrationWithPipeline(t *testing.T) {
 	if input.GetMetadata().GetId() != "existing-id" {
 		t.Errorf("Expected ID to be 'existing-id', got %q", input.GetMetadata().GetId())
 	}
+}
+
+func TestLoadForApplyStep_OrgScoping(t *testing.T) {
+	testStore := setupTestStore(t)
+	defer testStore.Close()
+
+	ctx := context.Background()
+	kind := apiresourcekind.ApiResourceKind_agent
+
+	existing := &agentv1.Agent{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "Agent",
+		Metadata: &commonspb.ApiResourceMetadata{
+			Id:   "agent-local-id",
+			Name: "my-agent",
+			Slug: "my-agent",
+			Org:  "local",
+		},
+		Spec: &agentv1.AgentSpec{
+			Description: "Agent in local org",
+		},
+	}
+
+	err := testStore.SaveResource(ctx, kind, existing.Metadata.Id, existing)
+	require.NoError(t, err)
+
+	t.Run("same slug different org creates new", func(t *testing.T) {
+		input := &agentv1.Agent{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "Agent",
+			Metadata: &commonspb.ApiResourceMetadata{
+				Name: "my-agent",
+				Slug: "my-agent",
+				Org:  "default",
+			},
+			Spec: &agentv1.AgentSpec{
+				Description: "Agent in default org",
+			},
+		}
+
+		reqCtx := pipeline.NewRequestContext(contextWithKind(kind), input)
+		reqCtx.SetNewState(input)
+
+		step := NewLoadForApplyStep[*agentv1.Agent](testStore)
+		err := step.Execute(reqCtx)
+
+		require.NoError(t, err)
+		assert.Equal(t, false, reqCtx.Get(ExistsInDatabaseKey))
+		assert.Equal(t, true, reqCtx.Get(ShouldCreateKey))
+		assert.Nil(t, reqCtx.Get(ExistingResourceKey))
+	})
+
+	t.Run("same slug same org updates existing", func(t *testing.T) {
+		input := &agentv1.Agent{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "Agent",
+			Metadata: &commonspb.ApiResourceMetadata{
+				Name: "my-agent",
+				Slug: "my-agent",
+				Org:  "local",
+			},
+			Spec: &agentv1.AgentSpec{
+				Description: "Updated agent in local org",
+			},
+		}
+
+		reqCtx := pipeline.NewRequestContext(contextWithKind(kind), input)
+		reqCtx.SetNewState(input)
+
+		step := NewLoadForApplyStep[*agentv1.Agent](testStore)
+		err := step.Execute(reqCtx)
+
+		require.NoError(t, err)
+		assert.Equal(t, true, reqCtx.Get(ExistsInDatabaseKey))
+		assert.Equal(t, false, reqCtx.Get(ShouldCreateKey))
+
+		loaded := reqCtx.Get(ExistingResourceKey)
+		require.NotNil(t, loaded)
+
+		agent := loaded.(*agentv1.Agent)
+		assert.Equal(t, "agent-local-id", agent.Metadata.Id)
+		assert.Equal(t, "local", agent.Metadata.Org)
+
+		assert.Equal(t, "agent-local-id", input.Metadata.Id)
+	})
 }
