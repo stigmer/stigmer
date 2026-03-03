@@ -11,7 +11,10 @@ import (
 	"syscall"
 	"time"
 
+	"bytes"
+
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	orgv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/organization/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/embedded"
@@ -585,6 +588,7 @@ func EnsureSeedpackBootstrapped(dataDir string) error {
 	}
 
 	bootstrapEnv := append(os.Environ(), seedpackSkipEnvVar+"=1")
+	verbose := zerolog.GlobalLevel() <= zerolog.DebugLevel
 
 	// Phase 1: Apply organizations first. Organization is the root of the
 	// resource hierarchy and must exist before any project members reference it.
@@ -592,9 +596,18 @@ func EnsureSeedpackBootstrapped(dataDir string) error {
 	if info, statErr := os.Stat(orgDir); statErr == nil && info.IsDir() {
 		cmd := exec.Command(cliBin, "apply", "-f", orgDir)
 		cmd.Env = bootstrapEnv
-		cmd.Stdout = os.Stderr
-		cmd.Stderr = os.Stderr
+		var buf bytes.Buffer
+		if verbose {
+			cmd.Stdout = os.Stderr
+			cmd.Stderr = os.Stderr
+		} else {
+			cmd.Stdout = &buf
+			cmd.Stderr = &buf
+		}
 		if err := cmd.Run(); err != nil {
+			if !verbose {
+				os.Stderr.Write(buf.Bytes())
+			}
 			return errors.Wrap(err, "failed to apply seedpack organizations")
 		}
 	}
@@ -604,9 +617,18 @@ func EnsureSeedpackBootstrapped(dataDir string) error {
 	// is safe even though the organizations/ directory still exists in tmpDir.
 	cmd := exec.Command(cliBin, "apply", "--config", tmpDir)
 	cmd.Env = bootstrapEnv
-	cmd.Stdout = os.Stderr
-	cmd.Stderr = os.Stderr
+	var buf bytes.Buffer
+	if verbose {
+		cmd.Stdout = os.Stderr
+		cmd.Stderr = os.Stderr
+	} else {
+		cmd.Stdout = &buf
+		cmd.Stderr = &buf
+	}
 	if err := cmd.Run(); err != nil {
+		if !verbose {
+			os.Stderr.Write(buf.Bytes())
+		}
 		return errors.Wrap(err, "failed to apply seedpack project")
 	}
 
