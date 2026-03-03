@@ -14,7 +14,7 @@
 
 Three interconnected changes that make Stigmer OSS resources portable to Cloud:
 
-1. **Migrate Project** from `agentic.stigmer.ai/v1` to `management.stigmer.ai/v1` and expand its apply pipeline to support non-agentic resource kinds (Organization, etc.)
+1. **Migrate Project** from `agentic.stigmer.ai/v1` to `tenancy.stigmer.ai/v1` and expand its apply pipeline to support non-agentic resource kinds (Organization, etc.)
 2. **Make cross-references org-agnostic** — empty `org` in `mcp_server_ref`, `skill_refs` resolves to parent resource's org
 3. **Bootstrap a real Organization resource** in seedpack with slug `default`, replace all hardcoded `"local"` org defaults
 
@@ -24,8 +24,8 @@ After this work, resources authored locally work on Stigmer Cloud without rewrit
 
 ## Architecture Decisions
 
-### AD-01: Project moves from `agentic` to `management` domain
-Project is a generic resource grouping mechanism, not an agentic concept. It belongs in the `management` domain alongside future resources like Release or Template. The apiVersion becomes `management.stigmer.ai/v1`, proto path becomes `apis/ai/stigmer/management/project/v1/`.
+### AD-01: Project moves from `agentic` to `tenancy` domain
+Project is a resource hierarchy concept, not an agentic concept. It belongs in the `tenancy` domain alongside Organization and Platform — together they form the resource hierarchy bounded context (Platform → Organization → Project → Resources). The apiVersion becomes `tenancy.stigmer.ai/v1`, proto path becomes `apis/ai/stigmer/tenancy/project/v1/`. Note: Project was briefly in a `management` domain during migration, but was consolidated into `tenancy` as the architecturally correct home.
 
 ### AD-02: Project apply pipeline supports any resource kind
 The hardcoded 4-kind restriction (Agent, Workflow, McpServer, Skill) is expanded. Organization is the first non-agentic kind added. The apply file handler, CLI type registry, verb support, and backend reconciliation service all gain Organization support.
@@ -37,10 +37,10 @@ When `ApiResourceReference.org` is empty, the server resolves it to the parent r
 The magic string `local` is replaced everywhere with `default`. Seedpack creates a real Organization resource with this slug. The name is neutral and doesn't imply deployment mode.
 
 ### AD-05: Seedpack Project creates the Organization resource
-The seedpack `stigmer.yaml` uses `apiVersion: management.stigmer.ai/v1` and the seedpack directory includes `organizations/default.yaml`. The bootstrap apply creates the Organization alongside agents, skills, and MCP servers.
+The seedpack `stigmer.yaml` uses `apiVersion: tenancy.stigmer.ai/v1` and the seedpack directory includes `organizations/default.yaml`. The bootstrap apply creates the Organization alongside agents, skills, and MCP servers.
 
-### AD-06: Backward compatibility — `org: local` and old apiVersion still work
-Resources with explicit `org: local` continue to function. The CLI parser accepts both `agentic.stigmer.ai/v1` and `management.stigmer.ai/v1` for `kind: Project` during a transition period.
+### AD-06: Backward compatibility — `org: local` still works, clean break on apiVersion
+Resources with explicit `org: local` continue to function. For apiVersion, a clean break approach was chosen — only `tenancy.stigmer.ai/v1` is accepted for `kind: Project`. No backward compat for `agentic.stigmer.ai/v1` or `management.stigmer.ai/v1`.
 
 ---
 
@@ -157,7 +157,7 @@ spec:
 **Updated**: `seedpack/stigmer.yaml`
 
 ```yaml
-apiVersion: management.stigmer.ai/v1
+apiVersion: tenancy.stigmer.ai/v1
 kind: Project
 metadata:
   name: stigmer-seedpack
@@ -276,14 +276,14 @@ T01.1  Migrate Project proto (agentic → management)
 
 ## Success Criteria
 
-- [ ] Project proto lives at `apis/ai/stigmer/management/project/v1/`
-- [ ] `apiVersion: management.stigmer.ai/v1` accepted for `kind: Project`
-- [ ] Backward compat: `apiVersion: agentic.stigmer.ai/v1` still accepted for Project
+- [x] Project proto lives at `apis/ai/stigmer/tenancy/project/v1/`
+- [x] `apiVersion: tenancy.stigmer.ai/v1` accepted for `kind: Project`
+- [x] Clean break: no backward compat for old apiVersions (agentic or management)
 - [ ] Project apply pipeline handles Organization resources
 - [ ] Zero `org: local` in seedpack YAML resource files
 - [ ] Cross-references with empty org resolve to parent resource's org
 - [ ] Seedpack bootstraps a real Organization resource with slug `default`
-- [ ] Seedpack `stigmer.yaml` uses `management.stigmer.ai/v1`
+- [x] Seedpack `stigmer.yaml` uses `tenancy.stigmer.ai/v1`
 - [ ] CLI defaults to `default` org (not `local`) for local backend
 - [ ] `stigmer org use <slug>` sets active org in CLI config
 - [ ] `stigmer org list` and `stigmer org get` work

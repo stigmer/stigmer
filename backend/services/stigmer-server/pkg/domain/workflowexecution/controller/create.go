@@ -70,8 +70,9 @@ func (c *WorkflowExecutionController) buildCreatePipeline() *pipeline.Pipeline[*
 		AddStep(newValidateWorkflowOrInstanceStep()).                                          // 3. Validate workflow_id OR workflow_instance_id
 		AddStep(newCreateDefaultInstanceIfNeededStep(c.workflowInstanceClient, c.store)).      // 4. Create default instance if needed
 		AddStep(steps.NewCheckDuplicateStep[*workflowexecutionv1.WorkflowExecution](c.store)). // 5. Check duplicate
-		AddStep(steps.NewBuildNewStateStep[*workflowexecutionv1.WorkflowExecution]()).         // 6. Build new state
-		AddStep(newSetInitialPhaseStep()).                                                     // 7. Set phase to PENDING
+		AddStep(steps.NewBuildNewStateStep[*workflowexecutionv1.WorkflowExecution]()).              // 6. Build new state
+		AddStep(steps.NewNormalizeReferencesStep[*workflowexecutionv1.WorkflowExecution]()).    // 7. Normalize cross-references
+		AddStep(newSetInitialPhaseStep()).                                                      // 8. Set phase to PENDING
 		AddStep(steps.NewPersistStep[*workflowexecutionv1.WorkflowExecution](c.store)).        // 8. Persist execution
 		AddStep(c.newStartWorkflowStep()).                                                     // 9. Start Temporal workflow
 		Build()

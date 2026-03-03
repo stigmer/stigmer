@@ -315,20 +315,14 @@ Source Metadata:
 
 ### Backend Mode
 
-Skills are uploaded to your active backend:
+Skills are uploaded to your active backend. The organization is resolved from the CLI context (see `stigmer context show`), or overridden with the `--org` flag:
 
-**Local Backend** (Development):
 ```bash
-# Uses local daemon at localhost:7234
-# Organization: "local"
+# Uses the active organization from context
 stigmer skill push
-```
 
-**Cloud Backend** (Production):
-```bash
-# Uses cloud backend from config
-# Organization: from config or --org flag
-stigmer skill push --org my-org-id
+# Override organization for this command
+stigmer skill push --org acme-corp
 ```
 
 ### Scope

@@ -420,7 +420,7 @@ api_version: agentic.stigmer.ai/v1
 kind: Workflow
 metadata:
   name: my-workflow
-  org: local
+  org: default
 spec:
   document:
     dsl: "1.0.0"

@@ -43,18 +43,13 @@ func connectToBackend(orgOverride string) (*grpc.ClientConn, string, error) {
 	return conn, orgID, nil
 }
 
-// resolveOrgID determines the organization ID from override or config
+// resolveOrgID determines the organization ID from override or config context.
+// The same chain applies regardless of backend type (local or cloud).
 func resolveOrgID(orgOverride string, cfg *config.Config) string {
 	if orgOverride != "" {
 		return orgOverride
 	}
-	if cfg.Backend.Type == config.BackendTypeLocal {
-		return "local"
-	}
-	if cfg.Backend.Type == config.BackendTypeCloud && cfg.Backend.Cloud != nil {
-		return cfg.Backend.Cloud.OrgID
-	}
-	return ""
+	return cfg.ResolveContextOrganization()
 }
 
 // printOrgNotSetError displays the organization not set error message

@@ -31,7 +31,7 @@ const (
 	ApiResourceGroup_agentic ApiResourceGroup = 1
 	// Identity and Access Management - IAM policies, identity accounts, and credentials
 	ApiResourceGroup_iam ApiResourceGroup = 2
-	// Tenancy - Platform and organizational resources
+	// Tenancy - Resource hierarchy: platform, organizations, and projects
 	ApiResourceGroup_tenancy ApiResourceGroup = 3
 )
 

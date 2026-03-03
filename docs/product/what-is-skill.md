@@ -405,14 +405,13 @@ apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
   name: my-assistant
-  org: local
+  org: default
 spec:
   description: "A helpful assistant"
   instructions: |
     You are a helpful assistant.
   skill_refs:
-    - org: local
-      kind: skill
+    - kind: skill
       slug: my-skill
 EOF
 stigmer apply -f my-agent.yaml

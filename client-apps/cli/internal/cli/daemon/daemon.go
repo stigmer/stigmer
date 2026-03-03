@@ -11,8 +11,12 @@ import (
 	"syscall"
 	"time"
 
+	"bytes"
+
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	orgv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/organization/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/embedded"
 	"github.com/stigmer/stigmer/client-apps/cli/embedded/agentrunner"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
@@ -23,6 +27,7 @@ import (
 	"github.com/stigmer/stigmer/seedpack"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 const (
@@ -503,7 +508,11 @@ func IsRunning(dataDir string) bool {
 func EnsureRunning(dataDir string) error {
 	if IsRunning(dataDir) {
 		log.Debug().Msg("Daemon is already running")
-		return EnsureSeedpackBootstrapped(dataDir)
+		if err := EnsureSeedpackBootstrapped(dataDir); err != nil {
+			return err
+		}
+		EnsureOrgContext()
+		return nil
 	}
 
 	climsg.Info("🚀 Starting local backend daemon...")
@@ -521,11 +530,23 @@ func EnsureRunning(dataDir string) error {
 	climsg.Success("✓ Daemon started successfully")
 	fmt.Fprintln(os.Stderr)
 
-	return EnsureSeedpackBootstrapped(dataDir)
+	if err := EnsureSeedpackBootstrapped(dataDir); err != nil {
+		return err
+	}
+	EnsureOrgContext()
+	return nil
 }
 
 // EnsureSeedpackBootstrapped applies the embedded seedpack content if the
 // current binary's seedpack differs from the last-applied version.
+//
+// Bootstrap runs in two phases to respect the resource hierarchy
+// (Organization -> Project -> Members):
+//
+//  1. Apply organization resources — creates the prerequisite Organization
+//     that all other resources belong to.
+//  2. Apply the project — creates agents, skills, MCP servers, and the
+//     project itself under the organization from phase 1.
 func EnsureSeedpackBootstrapped(dataDir string) error {
 	if os.Getenv(seedpackSkipEnvVar) == "1" {
 		log.Debug().Msg("Seedpack bootstrap skipped (recursion guard)")
@@ -566,13 +587,49 @@ func EnsureSeedpackBootstrapped(dataDir string) error {
 		return errors.Wrap(err, "failed to get CLI executable path")
 	}
 
-	cmd := exec.Command(cliBin, "apply", "--config", tmpDir)
-	cmd.Env = append(os.Environ(), seedpackSkipEnvVar+"=1")
-	cmd.Stdout = os.Stderr
-	cmd.Stderr = os.Stderr
+	bootstrapEnv := append(os.Environ(), seedpackSkipEnvVar+"=1")
+	verbose := zerolog.GlobalLevel() <= zerolog.DebugLevel
 
+	// Phase 1: Apply organizations first. Organization is the root of the
+	// resource hierarchy and must exist before any project members reference it.
+	orgDir := filepath.Join(tmpDir, "organizations")
+	if info, statErr := os.Stat(orgDir); statErr == nil && info.IsDir() {
+		cmd := exec.Command(cliBin, "apply", "-f", orgDir)
+		cmd.Env = bootstrapEnv
+		var buf bytes.Buffer
+		if verbose {
+			cmd.Stdout = os.Stderr
+			cmd.Stderr = os.Stderr
+		} else {
+			cmd.Stdout = &buf
+			cmd.Stderr = &buf
+		}
+		if err := cmd.Run(); err != nil {
+			if !verbose {
+				os.Stderr.Write(buf.Bytes())
+			}
+			return errors.Wrap(err, "failed to apply seedpack organizations")
+		}
+	}
+
+	// Phase 2: Apply the project (agents, skills, MCP servers).
+	// Organization YAMLs are skipped by the declarative apply flow, so this
+	// is safe even though the organizations/ directory still exists in tmpDir.
+	cmd := exec.Command(cliBin, "apply", "--config", tmpDir)
+	cmd.Env = bootstrapEnv
+	var buf bytes.Buffer
+	if verbose {
+		cmd.Stdout = os.Stderr
+		cmd.Stderr = os.Stderr
+	} else {
+		cmd.Stdout = &buf
+		cmd.Stderr = &buf
+	}
 	if err := cmd.Run(); err != nil {
-		return errors.Wrap(err, "failed to apply seedpack")
+		if !verbose {
+			os.Stderr.Write(buf.Bytes())
+		}
+		return errors.Wrap(err, "failed to apply seedpack project")
 	}
 
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
@@ -585,6 +642,49 @@ func EnsureSeedpackBootstrapped(dataDir string) error {
 
 	climsg.Success("✓ System resources applied successfully")
 	return nil
+}
+
+// EnsureOrgContext checks whether the CLI has an active organization context
+// and auto-sets it when exactly one organization exists on the server. This is
+// idempotent: if context.organization is already set, it returns immediately.
+func EnsureOrgContext() {
+	cfg, err := config.Load()
+	if err != nil {
+		log.Debug().Err(err).Msg("Skipping org context auto-detection: failed to load config")
+		return
+	}
+
+	if cfg.ResolveContextOrganization() != "" {
+		return
+	}
+
+	endpoint := fmt.Sprintf("localhost:%d", DaemonPort)
+	conn, err := grpc.NewClient(endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Debug().Err(err).Msg("Skipping org context auto-detection: failed to connect")
+		return
+	}
+	defer conn.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	client := orgv1.NewOrganizationQueryControllerClient(conn)
+	resp, err := client.FindMyOrganizations(ctx, &emptypb.Empty{})
+	if err != nil {
+		log.Debug().Err(err).Msg("Skipping org context auto-detection: query failed")
+		return
+	}
+
+	if len(resp.GetEntries()) == 1 {
+		slug := resp.GetEntries()[0].GetMetadata().GetSlug()
+		cfg.Context.Organization = slug
+		if err := config.Save(cfg); err != nil {
+			log.Warn().Err(err).Msg("Failed to save org context")
+			return
+		}
+		log.Debug().Str("org", slug).Msg("Auto-set organization context")
+	}
 }
 
 // GetStatus returns the daemon status.

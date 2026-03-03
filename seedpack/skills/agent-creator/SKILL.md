@@ -1,226 +1,187 @@
 ---
 name: agent-creator
 description: >
-  Creates valid, production-quality Stigmer Agent YAML files conforming to the
-  agentic.stigmer.ai/v1 API. Use this skill whenever a user wants to create,
-  write, draft, generate, or update a Stigmer Agent definition. Covers all
-  agent features: instructions, MCP server usages, skill references, sub-agents,
-  tool approval overrides, environment variables, and metadata (visibility, tags,
-  labels). Always discovers real platform resources before referencing them.
+  Create valid, production-quality Stigmer Agent YAML files conforming to the
+  agentic.stigmer.ai/v1 API. Use this skill when asked to create, write,
+  generate, or author a Stigmer Agent definition — including agents with MCP
+  server tool integrations, skill references, sub-agents, environment variables,
+  and human-in-the-loop approval policies.
 ---
 
 # Agent Creator
 
-Produce correct, production-ready `agentic.stigmer.ai/v1` Agent YAML on the
-first attempt by following the four-phase workflow below.
+Produce `agentic.stigmer.ai/v1` Agent YAML files that are correct on the first
+attempt. Follow every step below in order. Do not skip discovery or validation.
 
-## Phase 1 — Clarify Intent
+## Step 1 — Clarify Intent Before Writing Anything
 
-Before writing any YAML, resolve these questions from the user's request or by
-asking:
+Ask the user:
 
-1. **Purpose** — What does this agent do? What is its core task?
-2. **Org** — Local development (`local`) or a named cloud org?
-3. **Tools needed** — Does the agent need to act on external systems
-   (GitHub, Slack, databases, APIs)? If yes, which ones?
-4. **Knowledge needed** — Does it need specialized domain knowledge packaged
-   as a Skill?
-5. **Delegation** — Should specialized sub-tasks be routed to focused
-   sub-agents?
-6. **Approvals** — Are any tool calls sensitive enough to require human
-   confirmation before execution?
+1. **What should this agent do?** (If already clear, proceed.)
+2. **What tools does it need?** (MCP servers? Which actions — e.g., create PR, search
+   code?)
+3. **What domain knowledge?** (Skills? Approval checkpoints?)
+4. **Org context?** (If not in a Stigmer project, ask for `metadata.org`; default to
+   `default` only if they confirm.)
+5. **Sub-agents?** (Only if complexity warrants delegation.)
 
-If the intent is ambiguous, **ask before proceeding**. Never guess.
+Do **not** assume. If the stated intent is unclear, pause and ask. Prefer one focused
+question over multiple at once.
 
----
+## Step 2 — Discover Real Resources (MANDATORY)
 
-## Phase 2 — Discover Real Platform Resources
-
-> **Rule**: Never write a `slug` for an MCP server or skill that you have
-> not confirmed exists on the platform. Guessing or hallucinating slugs creates
-> YAML that fails at runtime with no obvious error message.
-
-### If the user mentions tools or MCP servers
-
-Use the Stigmer MCP server tools to search and confirm:
+**Never guess or hallucinate resource slugs.** Before writing any `mcp_server_usages`
+or `skill_refs`, use the Stigmer MCP server tools to query what exists:
 
 ```
-search(query="<tool category, e.g. github>")
-get_mcp_server(slug="<candidate-slug>")
+search(query="<domain keyword>", resource_type="mcp_server")
+search(query="<domain keyword>", resource_type="skill")
+get_mcp_server(org="<org>", slug="<candidate-slug>")
+get_skill(org="<org>", slug="<candidate-slug>")
 ```
 
-Collect from each result:
-- Confirmed `slug` and `org`
-- Available tool names (from `spec.default_enabled_tools` or discovered
-  capabilities) — these are the only valid values for `enabled_tools`
+Rules:
+- If a needed MCP server or skill **does not exist**, stop and tell the user. Do
+  not invent placeholder slugs.
+- If multiple candidates exist, show the user the options and ask which to use.
+- Capture the **exact slug**, the **org** (if needed for cross-org references), and
+  for MCP servers get the list of actual tool names from the discovery data.
 
-### If the user mentions skills or domain knowledge
+See `references/discovery.md` for tool call patterns and how to extract tool names
+from `status.discovered_capabilities`.
 
-```
-search(query="<domain, e.g. code review>")
-get_skill(slug="<candidate-slug>")
-```
+## Step 3 — Draft the YAML
 
-Collect confirmed `slug`, `org`, and available `version` tags.
+Build the YAML top-down. See `references/schema.md` for the full field reference and
+`references/examples.md` for annotated complete examples.
 
-### If a resource does not exist
-
-**Stop and ask the user.** Do not invent a slug. Options to offer:
-- Use a different existing resource that covers the need
-- Skip the reference for now and add it later
-- Note that the resource must be created first
-
----
-
-## Phase 3 — Assemble the YAML
-
-Use the structure below. See `references/schema.md` for every field's rules
-and `references/examples.md` for annotated complete examples.
-
-### Top-level skeleton
+### Skeleton
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
-  name: <human-readable-name>
-  org: <org-slug>            # "local" for local mode; real org slug for cloud
-  # Optional metadata:
-  # slug: <url-friendly-id>  # auto-derived from name if omitted
-  # visibility: visibility_public   # omit for private (default)
-  # tags: [tag1, tag2]
-  # labels:
-  #   key: value
+  name: <kebab-case-name>
+  org: <org>                    # omit if using project context
 spec:
-  description: "<1-2 sentences for UI and marketplace>"
+  description: "<1–2 sentence summary for UI/marketplace>"
   instructions: |
-    <system prompt — at least 10 characters, use | block scalar>
-  # Optional:
-  # mcp_server_usages: [...]
-  # skill_refs: [...]
-  # sub_agents: [...]
-  # env_spec: { data: { VAR: { description: "...", is_secret: true } } }
+    <system prompt — minimum 10 characters; use rich behavioral guidance>
+  mcp_server_usages: []         # see Step 3a
+  skill_refs: []                # see Step 3b
+  sub_agents: []                # see Step 3c; omit if none
 ```
 
-### Adding MCP server usages
+### 3a — MCP Server Usages
 
-Only add entries for servers confirmed in Phase 2.
+For each discovered MCP server:
 
 ```yaml
 mcp_server_usages:
   - mcp_server_ref:
-      org: <confirmed-org>
-      kind: mcp_server          # always lowercase "mcp_server"
-      slug: <confirmed-slug>
-    enabled_tools:              # omit to use server's default_enabled_tools
-      - <exact-tool-name>       # case-sensitive; must match tools/list
-    tool_approval_overrides:    # optional HITL gates
-      - tool_name: <exact-tool-name>
+      kind: mcp_server
+      slug: <exact-slug>        # discovered in Step 2
+      org: <org>                # only if cross-org (different from agent's org)
+    enabled_tools:              # list ONLY what this agent actually needs
+      - <tool-name-exact>       # copy exactly from discovered_capabilities
+    tool_approval_overrides:    # optional HITL checkpoints
+      - tool_name: <tool>
         requires_approval: true
-        message: "Human-readable message. Supports {{args.field}} placeholders."
+        message: "<verb> <object>: {{args.<field>}}"
 ```
 
-**Uniqueness rule**: each `mcp_server_ref.slug` must appear at most once
-within `mcp_server_usages`. Consolidate all tools for one server into a
-single entry.
+Constraints (enforced by proto validation):
+- `kind` must be the string `mcp_server` (never `44` or `McpServer`)
+- Each MCP server slug must appear **exactly once** across all `mcp_server_usages`
+- `enabled_tools` must contain real tool names — copy from `discovered_capabilities.tools[*].name`
+- Tool names in `tool_approval_overrides` must also be exact (typos silently disable approval)
 
-### Adding skill references
-
-Only add entries for skills confirmed in Phase 2.
+### 3b — Skill References
 
 ```yaml
 skill_refs:
-  - org: <confirmed-org>
-    kind: skill               # always lowercase "skill"
-    slug: <confirmed-slug>
-    # version: stable         # optional; omit for latest
+  - kind: skill
+    slug: <exact-slug>          # discovered in Step 2
+    org: <org>                  # only if cross-org
+    version: stable             # omit for latest; use "stable" for production
 ```
 
-### Adding sub-agents
+Constraints:
+- `kind` must be the string `skill` (never `43` or `Skill`)
+- Both `kind` and `slug` are required in every entry
+- `org` is optional — omit it for same-org relative references
 
-Sub-agents are defined **inline** — they are not separate resources.
+### 3c — Sub-Agents
+
+Only add sub-agents when the task genuinely benefits from delegation. See
+`references/sub-agents.md` for the full model.
 
 ```yaml
 sub_agents:
-  - name: <unique-name-within-parent>   # required; used for routing
-    description: "<what this sub-agent specializes in>"
+  - name: <kebab-case-role>     # unique within parent
+    description: "<what triggers delegation>"
     instructions: |
-      <at least 10 characters>
-    mcp_access:                 # subset of parent's mcp_server_usages
-      - mcp_server: <slug>      # must match a slug in parent's mcp_server_usages
-        enabled_tools:          # must be a subset of parent's enabled_tools
-          - <exact-tool-name>
-    skill_refs:                 # independent of parent — any skill is valid
-      - org: <org>
-        kind: skill
+      <focused instructions — min 10 chars>
+    mcp_access:                 # only servers the parent declares
+      - mcp_server: <parent-slug>   # slug only — NOT kind/org
+        enabled_tools:              # must be SUBSET of parent's tools
+          - <tool-name>
+    skill_refs:                     # independent of parent's skills
+      - kind: skill
         slug: <slug>
 ```
 
-**Sub-agent permission rules** (enforced at runtime):
-- `mcp_access[*].mcp_server` must match a slug from the parent's
-  `mcp_server_usages`.
-- `mcp_access[*].enabled_tools` must be a **subset** of the parent's
-  `enabled_tools` for that server. Sub-agents can restrict but never expand.
-- An empty `enabled_tools` in `mcp_access` means "all tools the parent has
-  for this server" — still bounded by parent configuration.
-- If a sub-agent should have no tool access, omit `mcp_access` entirely.
+Sub-agent permission rules (validated at runtime):
+- `mcp_access[*].mcp_server` must match a slug from the parent's `mcp_server_usages`
+- `mcp_access[*].enabled_tools` must be a **subset** of the parent's `enabled_tools` for
+  that server — sub-agents can never expand tool access beyond the parent
+- Sub-agent `skill_refs` are independent and can reference any skill
 
----
+## Step 4 — Validate Before Presenting
 
-## Phase 4 — Validate Before Presenting
+Before showing the final YAML, run through this checklist mentally:
 
-Run every item on this checklist mentally before showing the YAML to the user.
+| Rule | Check |
+|---|---|
+| `apiVersion` = `agentic.stigmer.ai/v1` | ✓/✗ |
+| `kind` = `Agent` | ✓/✗ |
+| `metadata.name` present | ✓/✗ |
+| `spec.instructions` ≥ 10 chars | ✓/✗ |
+| `spec.description` present (strongly recommended) | ✓/✗ |
+| All `kind` fields use lowercase strings (`skill`, `mcp_server`) | ✓/✗ |
+| All slugs are `^[a-z][a-z0-9-]*$`, 1-63 chars | ✓/✗ |
+| No duplicate MCP server slugs in `mcp_server_usages` | ✓/✗ |
+| All `enabled_tools` / `tool_approval_overrides.tool_name` are exact (from discovery) | ✓/✗ |
+| Sub-agent tools ⊆ parent tools for each server | ✓/✗ |
+| Sub-agent `mcp_access[*].mcp_server` references only parent's MCP slugs | ✓/✗ |
+| `metadata.status` absent (never set by users) | ✓/✗ |
 
-### Required fields
-- [ ] `apiVersion: agentic.stigmer.ai/v1` — exact string
-- [ ] `kind: Agent` — exact string, capital A
-- [ ] `metadata.name` — present
-- [ ] `spec.instructions` — present, at least 10 characters
+Fix any failures before presenting the YAML.
 
-### Metadata
-- [ ] `metadata.org` — set to `local` (local mode) or correct org slug (cloud)
-- [ ] `metadata.visibility` — `visibility_public` only for marketplace agents;
-       omit for private (default)
-- [ ] `metadata.slug` (if provided) — lowercase alphanumeric + hyphens, starts
-       with a letter, 1-63 chars
+## Step 5 — Present and Explain
 
-### Resource references (every `skill_refs` and `mcp_server_ref` entry)
-- [ ] `org` — present and valid
-- [ ] `kind` — lowercase string: `skill` or `mcp_server` (never integers 43/44)
-- [ ] `slug` — present, confirmed to exist, `^[a-z][a-z0-9-]*$`, 1-63 chars
+Deliver the YAML in a fenced code block. Follow with a brief explanation:
 
-### MCP server usages
-- [ ] All slugs are unique within `mcp_server_usages`
-- [ ] `enabled_tools` values are exact tool names from that server's `tools/list`
-- [ ] `tool_approval_overrides[*].tool_name` — exact, case-sensitive; a typo
-       silently disables the approval (no runtime error)
-
-### Sub-agents
-- [ ] Each sub-agent `name` is unique within `sub_agents`
-- [ ] Each sub-agent `instructions` ≥ 10 characters
-- [ ] Each `mcp_access[*].mcp_server` matches a slug in parent `mcp_server_usages`
-- [ ] Each `mcp_access[*].enabled_tools` is a subset of the parent's
-       `enabled_tools` for that server
-
-### YAML format
-- [ ] Multi-line instructions use `|` block scalar
-- [ ] No tabs; consistent 2-space indentation
-- [ ] No `status` field (system-managed; never authored by users)
-
-If any check fails, fix it before presenting the YAML.
+- What the agent does and when to use it
+- Which MCP servers and tools are enabled (and why those specific tools)
+- Which skills are attached and what knowledge they provide
+- Any HITL approval checkpoints and what they protect
+- Any sub-agents and their delegation boundaries
+- How to apply: `stigmer apply -f <filename>.yaml`
 
 ---
 
 ## Reference Files
 
-Load these when you need them:
+Load these only when needed — they are detailed and token-heavy:
 
-- **`references/schema.md`** — Complete field reference for every Agent YAML
-  field, derived from the proto schemas. Load when you need precise field
-  definitions, format constraints, or enum values.
-- **`references/validation-rules.md`** — Full validation rule set, common
-  pitfalls with wrong/correct examples, and edge cases. Load when an authoring
-  decision feels uncertain.
-- **`references/examples.md`** — Annotated YAML examples: minimal, skills-only,
-  MCP-only, sub-agents, full-featured, cloud/public. Load when you want a
-  concrete starting point.
+- **`references/schema.md`** — Full field reference for all Agent YAML fields,
+  metadata options, visibility, env_spec. Load when authoring any non-trivial agent.
+- **`references/discovery.md`** — MCP server and skill discovery tool call patterns,
+  extracting exact tool names, handling missing resources.
+- **`references/examples.md`** — Annotated complete examples: minimal, with skills,
+  with MCP servers, with sub-agents, full-featured, marketplace.
+- **`references/sub-agents.md`** — Sub-agent permission model, mcp_access, delegation
+  routing patterns. Load when the agent needs sub-agents.
+- **`references/hitl.md`** — HITL tool approval policy chain, `tool_approval_overrides`,
+  message template placeholders. Load when configuring approval checkpoints.

@@ -53,6 +53,7 @@ directory (default: current directory).`,
   # Override organization
   stigmer draft mcp-server -m "Create an MCP server for X" --org acme-corp`,
 		Run: func(cmd *cobra.Command, args []string) {
+			opts.OrgOverride = GetOrgFlag(cmd)
 			clierr.Handle(executeDraft(mcpServerCreatorConfig, opts))
 		},
 	}

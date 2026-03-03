@@ -9,6 +9,7 @@ import (
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	organizationv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/organization/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -50,6 +51,59 @@ func TestBuildResourceReference_McpServerKind(t *testing.T) {
 
 	assert.Equal(t, apiresourcekind.ApiResourceKind_mcp_server, ref.Kind)
 	assert.Equal(t, "github-mcp", ref.Slug)
+}
+
+// =============================================================================
+// buildOrganizationApplyResult
+// =============================================================================
+
+func TestBuildOrganizationApplyResult_Created(t *testing.T) {
+	result := newTestOrganizationApplyResult(true)
+	cr := buildOrganizationApplyResult(result)
+
+	assert.Equal(t, clioutput.StatusSuccess, cr.Status)
+	assert.Contains(t, cr.Message, "created")
+	requireSectionField(t, cr, "Resource Details", "Name", "Acme Corp")
+	requireSectionField(t, cr, "Resource Details", "Slug", "acme-corp")
+	requireSectionField(t, cr, "Resource Details", "ID", "org-001")
+}
+
+func TestBuildOrganizationApplyResult_Updated(t *testing.T) {
+	result := newTestOrganizationApplyResult(false)
+	cr := buildOrganizationApplyResult(result)
+
+	assert.Contains(t, cr.Message, "updated")
+	assert.NotContains(t, cr.Message, "created")
+}
+
+// =============================================================================
+// buildOrganizationDryRunResult
+// =============================================================================
+
+func TestBuildOrganizationDryRunResult_BasicFields(t *testing.T) {
+	org := &organizationv1.Organization{
+		Metadata: &apiresource.ApiResourceMetadata{Name: "Test Org"},
+		Spec: &organizationv1.OrganizationSpec{
+			Description: "A test organization",
+		},
+	}
+	cr := buildOrganizationDryRunResult(org)
+
+	assert.Equal(t, clioutput.StatusSuccess, cr.Status)
+	assert.Contains(t, cr.Message, "Test Org")
+	requireSectionField(t, cr, "Organization Preview", "Name", "Test Org")
+	requireSectionField(t, cr, "Organization Preview", "Description", "A test organization")
+}
+
+func TestBuildOrganizationDryRunResult_EmptySpec(t *testing.T) {
+	org := &organizationv1.Organization{
+		Metadata: &apiresource.ApiResourceMetadata{Name: "Minimal Org"},
+		Spec:     &organizationv1.OrganizationSpec{},
+	}
+	cr := buildOrganizationDryRunResult(org)
+
+	assert.Equal(t, clioutput.StatusSuccess, cr.Status)
+	requireSectionField(t, cr, "Organization Preview", "Name", "Minimal Org")
 }
 
 // =============================================================================

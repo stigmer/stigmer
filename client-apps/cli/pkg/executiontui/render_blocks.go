@@ -351,6 +351,11 @@ func renderedBlockText(b contentBlock, blockIdx, focusedIdx int) string {
 // truncated at the nearest word boundary with an ellipsis.
 const subAgentHeaderMaxDescLen = 80
 
+// subAgentExpandedMaxInputLines is the maximum number of input text lines
+// shown in the expanded header view. Longer inputs are truncated with an
+// ellipsis indicator.
+const subAgentExpandedMaxInputLines = 12
+
 // subAgentStatusBadge returns a compact status indicator for the sub-agent
 // header line. Running sub-agents show a spinner-like indicator; terminal
 // states show a completion or failure badge.
@@ -365,26 +370,38 @@ func subAgentStatusBadge(status string) string {
 	}
 }
 
-// renderSubAgentHeader returns the single-line header for a sub-agent
-// delegation block. Includes the sub-agent type, task description, and a
-// dynamic summary showing tool count and status.
+// resolveSubAgentLabel returns the display label for a sub-agent header,
+// applying the fallback cascade: description -> truncated input -> name.
+func resolveSubAgentLabel(description, input, name string) string {
+	if description != "" {
+		return truncateAtWord(description, subAgentHeaderMaxDescLen)
+	}
+	if input != "" {
+		return truncateAtWord(input, subAgentHeaderMaxDescLen)
+	}
+	if name != "" {
+		return name
+	}
+	return "sub-agent"
+}
+
+// renderSubAgentHeader returns the single-line collapsed header for a
+// sub-agent delegation block. The subject/description is the primary label;
+// the sub-agent type name is omitted from the collapsed view.
+//
+// The label is resolved via a fallback cascade:
+//
+//	description (server-generated subject) -> truncated input -> name
 //
 // Examples:
-//   - "🔀 general-purpose ─ Explore CLI rendering"              (just started)
-//   - "🔀 general-purpose ─ Explore CLI rendering  (3 tools)"   (running)
-//   - "🔀 general-purpose ─ Explore CLI rendering  (6 tools, done)"  (completed)
-func renderSubAgentHeader(name, description string, toolCount int, status string) string {
-	if name == "" {
-		name = "sub-agent"
-	}
-	label := truncateAtWord(description, subAgentHeaderMaxDescLen)
+//
+//	"🔀 Explore CLI rendering"              (just started)
+//	"🔀 Explore CLI rendering  (3 tools)"   (running)
+//	"🔀 Explore CLI rendering  (6 tools, done)"  (completed)
+func renderSubAgentHeader(name, description, input string, toolCount int, status string) string {
+	label := resolveSubAgentLabel(description, input, name)
 
-	var header string
-	if label == "" {
-		header = "🔀 " + name
-	} else {
-		header = "🔀 " + name + " ─ " + label
-	}
+	header := "🔀 " + label
 
 	badge := subAgentStatusBadge(status)
 	switch {
@@ -397,6 +414,51 @@ func renderSubAgentHeader(name, description string, toolCount int, status string
 	}
 
 	return dimStyle.Render(header)
+}
+
+// renderSubAgentExpanded returns the expanded content for a sub-agent header
+// block. Includes the collapsed header line followed by sub-agent type, the
+// full input prompt, and (when available) the output summary.
+//
+// The gutter-bordered layout matches the visual language used by tool blocks
+// and todo items for consistency.
+func renderSubAgentExpanded(name, description, input, output string, toolCount int, status string) string {
+	header := renderSubAgentHeader(name, description, input, toolCount, status)
+	gutter := dimStyle.Render(subAgentIndent)
+
+	var lines []string
+	lines = append(lines, header)
+
+	if name != "" {
+		lines = append(lines, gutter+dimStyle.Render("Type: "+name))
+	}
+
+	if input != "" {
+		lines = append(lines, gutter)
+		inputLines := strings.Split(input, "\n")
+		if len(inputLines) > subAgentExpandedMaxInputLines {
+			inputLines = inputLines[:subAgentExpandedMaxInputLines]
+			inputLines = append(inputLines, dimStyle.Render("..."))
+		}
+		for _, il := range inputLines {
+			lines = append(lines, gutter+il)
+		}
+	}
+
+	if output != "" {
+		lines = append(lines, gutter)
+		lines = append(lines, gutter+dimStyle.Render("Result:"))
+		outputLines := strings.Split(output, "\n")
+		if len(outputLines) > subAgentExpandedMaxInputLines {
+			outputLines = outputLines[:subAgentExpandedMaxInputLines]
+			outputLines = append(outputLines, dimStyle.Render("..."))
+		}
+		for _, ol := range outputLines {
+			lines = append(lines, gutter+ol)
+		}
+	}
+
+	return strings.Join(lines, "\n")
 }
 
 // truncateAtWord truncates s to at most maxLen characters, breaking at the

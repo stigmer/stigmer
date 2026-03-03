@@ -6,10 +6,10 @@ and resource reading. It accepts pre-configured server configurations
 
 For tool loading there are two entry points:
 
-- ``connect_mcp_client`` -- enters the ``async with`` context on a
-  ``MultiServerMCPClient``, keeping stdio subprocesses alive for the
-  entire agent execution.  The caller owns the returned client's
-  lifecycle (via ``contextlib.AsyncExitStack`` or similar).
+- ``connect_mcp_client`` -- opens a per-server persistent session via
+  ``MultiServerMCPClient.session()``, registering each session on the
+  caller's ``AsyncExitStack``.  This keeps stdio subprocesses alive for
+  the entire agent execution.
 
 - ``load_mcp_tools`` -- convenience wrapper that creates an ephemeral
   client, loads tools, and lets the client close immediately.  Safe for
@@ -17,7 +17,7 @@ For tool loading there are two entry points:
   subprocess dies before tool invocations happen.
 
 Functions:
-    connect_mcp_client: Open a persistent MCP client and return filtered tools.
+    connect_mcp_client: Open persistent per-server sessions and return filtered tools.
     load_mcp_tools: Load and filter MCP tools (ephemeral -- HTTP-only).
     list_mcp_resources: List available resources and resource templates.
     read_mcp_resource: Read a specific resource by URI.
@@ -30,6 +30,7 @@ from typing import Any
 
 from langchain_core.tools import BaseTool
 from langchain_mcp_adapters.client import MultiServerMCPClient  # type: ignore[import-untyped]
+from langchain_mcp_adapters.tools import load_mcp_tools as _lc_load_mcp_tools
 from mcp.types import BlobResourceContents, TextResourceContents
 
 logger = logging.getLogger(__name__)
@@ -83,23 +84,27 @@ async def connect_mcp_client(
     tool_filter: dict[str, list[str]],
     exit_stack: AsyncExitStack,
 ) -> Sequence[BaseTool]:
-    """Open a persistent MCP client and return filtered tools.
+    """Open persistent per-server MCP sessions and return filtered tools.
 
-    The client is entered via *exit_stack* so its connections (including
-    stdio subprocesses) stay alive until the stack is closed.  This is
-    the **required** entry point for any configuration that includes
-    stdio-transport servers.
+    Creates a ``MultiServerMCPClient`` and opens a ``ClientSession`` for
+    each server via ``client.session(server_name)``.  Each session is
+    registered on *exit_stack* so connections (including stdio
+    subprocesses) stay alive until the stack is closed.  Tools returned
+    are bound to their persistent sessions, avoiding per-call reconnects.
+
+    This is the **required** entry point for any configuration that
+    includes stdio-transport servers.
 
     Args:
         servers: Server-name -> complete MCP server config (auth resolved).
         tool_filter: Server-name -> list of tool names to expose.
         exit_stack: An ``AsyncExitStack`` whose lifetime spans the agent
-            execution.  The MCP client is registered on this stack; when
-            the stack is closed the client shuts down gracefully.
+            execution.  Per-server sessions are registered on this stack;
+            when the stack is closed all sessions shut down gracefully.
 
     Returns:
         Filtered sequence of LangChain ``BaseTool`` instances backed by
-        the persistent client.
+        persistent sessions.
 
     Raises:
         ValueError: If inputs are empty or no tools match the filter.
@@ -114,9 +119,15 @@ async def connect_mcp_client(
 
     try:
         client = MultiServerMCPClient(servers)
-        await exit_stack.enter_async_context(client)
+        all_tools: list[BaseTool] = []
 
-        all_tools = await client.get_tools()
+        for server_name in servers:
+            session = await exit_stack.enter_async_context(
+                client.session(server_name)
+            )
+            server_tools = await _lc_load_mcp_tools(session)
+            all_tools.extend(server_tools)
+
         logger.info(
             f"Retrieved {len(all_tools)} total tool(s) from MCP server(s): "
             f"{[t.name for t in all_tools]}"

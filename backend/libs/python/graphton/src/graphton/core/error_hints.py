@@ -91,6 +91,31 @@ def enrich_error_message(tool_name: str, error: str) -> str:
         hints.append("Use a list/search operation to discover valid resources")
         hints.append("The resource may have been deleted or renamed")
     
+    # gRPC / MCP tool errors -- backend API calls returning domain-level failures.
+    # These are distinct from file/path errors and need API-aware recovery hints.
+    if "rpc error" in error_lower or "grpc" in error_lower:
+        if "not found" in error_lower:
+            hints.append("The requested resource does not exist on the platform yet")
+            hints.append("If you intended to create it, proceed with the create operation instead")
+            hints.append("Use a list or search tool to discover existing resources")
+        if "permission denied" in error_lower or "permissiondenied" in error_lower:
+            hints.append("The API key or credentials lack permission for this operation")
+            hints.append("Verify the org/environment context is correct")
+        if "unauthenticated" in error_lower:
+            hints.append("The API key may be missing, expired, or invalid")
+            hints.append("Check that the required authentication environment variables are set")
+        if "unavailable" in error_lower:
+            hints.append("The backend service is temporarily unreachable - wait and retry")
+    
+    # MCP tool-specific "not found" for platform entities (org, slug, server, etc.).
+    # These errors come from MCP servers wrapping gRPC calls and are not file-related.
+    if ("not found" in error_lower
+            and ("org" in error_lower or "slug" in error_lower
+                 or "server" in error_lower or "environment" in error_lower)):
+        hints.append("Verify the org and slug/name values are correct")
+        hints.append("The resource may not have been created yet - this is normal for new resources")
+        hints.append("Use a list operation to see what exists in the current org/environment")
+    
     # Rate limiting
     if "rate" in error_lower or "limit" in error_lower or "quota" in error_lower or "429" in error_lower:
         hints.append("Wait a moment before retrying - rate limits reset over time")

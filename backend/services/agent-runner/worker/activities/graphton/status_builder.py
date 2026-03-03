@@ -7,6 +7,7 @@ via Java activity (polyglot pattern).
 """
 
 import hashlib
+import inspect
 import json
 import logging
 from datetime import datetime
@@ -36,11 +37,14 @@ from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ToolCallStatus,
 )
 from google.protobuf.struct_pb2 import Struct
+from graphton.core import ModelRegistry
 from graphton.core.backends.platform_mount import (
     humanize_platform_refs,
     resolve_display_env_vars,
 )
+from graphton.core.models import parse_model_string
 from graphton.core.summarization_callback import SummarizationEventData
+from langchain_core.messages import HumanMessage, SystemMessage
 
 from worker.activities.graphton.approval_policy import (
     ApprovalConfig,
@@ -49,6 +53,104 @@ from worker.activities.graphton.approval_policy import (
     resolve_tool_approval,
 )
 from worker.component_type_inference import infer_component_type
+from worker.config import Config
+
+_logger = logging.getLogger(__name__)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Sub-Agent Subject Generation
+#
+# Generates a concise task title for sub-agent executions using an economy-tier
+# LLM. Follows the same pattern as session subject generation in
+# generate_session_subject.py.
+# ─────────────────────────────────────────────────────────────────────────────
+
+_MAX_SUBJECT_LENGTH = 50
+
+_SUBJECT_SYSTEM_PROMPT = """\
+You are a task title generator. Given a task description delegated to a \
+sub-agent, produce a concise task title.
+
+Rules:
+- 3 to 7 words, maximum 50 characters
+- Capture the core intent of the task
+- Be specific (e.g. "Fix auth middleware tests" not "Fix tests")
+- No filler words ("help with", "please", "I need")
+- No quotes, no punctuation at the end
+- Output ONLY the title, nothing else"""
+
+
+async def _generate_sub_agent_subject(
+    input_text: str,
+    sub_agent_name: str,
+) -> str:
+    """Generate a concise task title for a sub-agent from its input prompt.
+
+    Uses ``ModelRegistry.get_summarization_model()`` to select the cheapest
+    available model (claude-haiku-4.5 / gpt-4o-mini / same model for Ollama),
+    keeping costs negligible even with many sub-agent invocations per execution.
+
+    Returns the generated subject (stripped, truncated to 50 chars), or an
+    empty string on any failure so callers can fall back gracefully.
+    """
+    if not input_text:
+        return ""
+
+    try:
+        worker_config = Config.load_from_env()
+        economy_model = ModelRegistry.get_summarization_model(
+            worker_config.llm.model_name
+        )
+
+        llm_kwargs: dict = {}
+        if worker_config.llm.provider == "ollama":
+            llm_kwargs["base_url"] = worker_config.llm.base_url
+        elif worker_config.llm.provider in ("anthropic", "openai"):
+            llm_kwargs["api_key"] = worker_config.llm.api_key
+
+        model = parse_model_string(
+            economy_model,
+            max_tokens=100,
+            temperature=0.7,
+            **llm_kwargs,
+        )
+
+        # Truncate very long inputs to avoid wasting tokens on the economy model.
+        truncated_input = input_text[:2000] if len(input_text) > 2000 else input_text
+
+        user_prompt = (
+            f'Sub-agent type: {sub_agent_name}\n\n'
+            f'Task description:\n"{truncated_input}"\n\n'
+            f'Generate the title:'
+        )
+
+        response = await model.ainvoke([
+            SystemMessage(content=_SUBJECT_SYSTEM_PROMPT),
+            HumanMessage(content=user_prompt),
+        ])
+
+        content = response.content
+        if not isinstance(content, str):
+            content = (
+                "".join(str(part) for part in content)
+                if isinstance(content, list)
+                else str(content)
+            )
+        subject = content.strip().strip('"').strip("'")
+
+        if subject and len(subject) > _MAX_SUBJECT_LENGTH:
+            subject = subject[:_MAX_SUBJECT_LENGTH - 3] + "..."
+
+        return subject or ""
+
+    except Exception:
+        _logger.debug(
+            "Sub-agent subject generation failed (non-critical), "
+            "falling back to empty subject",
+            exc_info=True,
+        )
+        return ""
+
 
 # Planning tools that update execution state without UI display
 PLANNING_TOOLS = {
@@ -447,7 +549,9 @@ class StatusBuilder:
 
         if handler is not None:
             try:
-                handler(event, namespace)
+                result = handler(event, namespace)
+                if inspect.isawaitable(result):
+                    await result
             except Exception:
                 self.logger.exception(
                     f"[EVENT_ERROR] execution={self.execution_id} "
@@ -455,7 +559,7 @@ class StatusBuilder:
                     f"run_id={event.get('run_id', '')}"
                 )
     
-    def _handle_tool_start_event(self, event: dict[str, Any], namespace: str = "") -> None:
+    async def _handle_tool_start_event(self, event: dict[str, Any], namespace: str = "") -> None:
         """Handle on_tool_start event - updates local status."""
         tool_name = event.get("name", "")
         tool_args_raw = event.get("data", {}).get("input", {})
@@ -500,7 +604,7 @@ class StatusBuilder:
         # Sub-Agent Detection (Phase 2.3): "task" tool invokes a sub-agent
         # ─────────────────────────────────────────────────────────────────────
         if tool_name == "task":
-            self._handle_sub_agent_start(event, tool_args, run_id)
+            await self._handle_sub_agent_start(event, tool_args, run_id)
             return  # Don't create regular ToolCall for task tool
         
         # Try to register namespace for event routing (for sub-agent child events)
@@ -533,9 +637,10 @@ class StatusBuilder:
         
         # Create tool call with appropriate initial status
         # If approval required: WAITING_APPROVAL, otherwise: RUNNING
+        display_args = self._humanize_args_for_display(tool_args) if tool_args else {}
         args_struct = Struct()
-        if tool_args:
-            args_struct.update(tool_args)
+        if display_args:
+            args_struct.update(display_args)
         
         now = datetime.utcnow()
         initial_status = (
@@ -2224,18 +2329,12 @@ class StatusBuilder:
                 value = resolve_display_env_vars(
                     value, self._display_env_vars, self._secret_keys,
                 )
-                if len(value) > 200:
-                    return value[:200] + "... (truncated)"
                 return value
             
-            # Recursively sanitize nested dicts
             if isinstance(value, dict):
                 return {k: sanitize_value(k, v) for k, v in value.items()}
             
-            # Truncate long lists
             if isinstance(value, list):
-                if len(value) > 10:
-                    return value[:10] + [f"... ({len(value) - 10} more items)"]
                 return [sanitize_value(str(i), v) for i, v in enumerate(value)]
             
             return value
@@ -2392,19 +2491,19 @@ class StatusBuilder:
                 f"pending={self._pending_sub_agent_id}"
             )
     
-    def _handle_sub_agent_start(self, event: dict[str, Any], tool_args: dict[str, Any], run_id: str) -> None:
+    async def _handle_sub_agent_start(self, event: dict[str, Any], tool_args: dict[str, Any], run_id: str) -> None:
         """
         Handle task tool invocation - creates SubAgentExecution.
         
         The "task" tool is the mechanism for invoking sub-agents in LangGraph.
-        We extract sub-agent metadata and create a tracking entry.
+        We extract sub-agent metadata, generate a concise subject using an
+        economy-tier LLM, and create a tracking entry.
         
         Args:
             event: The on_tool_start event dictionary
             tool_args: Unwrapped tool arguments
             run_id: The run_id for this tool invocation
         """
-        # Extract sub-agent metadata from tool args
         sub_agent_name = tool_args.get("subagent_type", "") or tool_args.get("agent_type", "") or "unknown"
         sub_agent_input = tool_args.get("input", "") or tool_args.get("task", "") or tool_args.get("prompt", "")
         sub_agent_description = tool_args.get("description", "")
@@ -2413,12 +2512,15 @@ class StatusBuilder:
         if sub_agent_description:
             metadata.update({"description": sub_agent_description})
         
+        subject = await _generate_sub_agent_subject(sub_agent_input, sub_agent_name)
+        
         now = datetime.utcnow()
         sub_agent = SubAgentExecution(
             id=run_id,
             name=sub_agent_name,
             input=sub_agent_input,
-            status=SubAgentStatus.SUB_AGENT_IN_PROGRESS,  # Skip PENDING - already executing
+            subject=subject,
+            status=SubAgentStatus.SUB_AGENT_IN_PROGRESS,
             started_at=_utc_timestamp(now),
             metadata=metadata if metadata.fields else None,
         )
@@ -2435,9 +2537,12 @@ class StatusBuilder:
         # The next multi-segment namespace will be associated with this sub-agent.
         self._pending_sub_agent_id = run_id
         
+        self.force_next_update = True
+        
         self.logger.info(
             f"[SUBAGENT] execution={self.execution_id} "
-            f"sub_agent={sub_agent_name} id={run_id} status=IN_PROGRESS "
+            f"sub_agent={sub_agent_name} id={run_id} "
+            f"subject={subject!r} status=IN_PROGRESS "
             f"(pending namespace registration)"
         )
     

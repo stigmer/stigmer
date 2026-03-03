@@ -72,7 +72,8 @@ func (c *AgentExecutionController) buildCreatePipeline() *pipeline.Pipeline[*age
 		AddStep(steps.NewResolveSlugStep[*agentexecutionv1.AgentExecution]()).                        // 2. Resolve slug
 		AddStep(newValidateSessionOrAgentStep()).                                                     // 3. Validate session_id OR agent_id
 		AddStep(steps.NewBuildNewStateStep[*agentexecutionv1.AgentExecution]()).                      // 4. Build new state
-		AddStep(newCreateDefaultInstanceIfNeededStep(c.agentClient, c.agentInstanceClient, c.store)). // 5. Create default instance if needed
+		AddStep(steps.NewNormalizeReferencesStep[*agentexecutionv1.AgentExecution]()).                // 5. Normalize cross-references
+		AddStep(newCreateDefaultInstanceIfNeededStep(c.agentClient, c.agentInstanceClient, c.store)). // 6. Create default instance if needed
 		AddStep(newCreateSessionIfNeededStep(c.agentClient, c.sessionClient)).                        // 6. Create session if needed
 		AddStep(newSetInitialPhaseStep()).                                                            // 7. Set phase to PENDING
 		AddStep(c.newProcessAttachmentsStep()).                                                       // 8. Process attachments (upload large files to storage)

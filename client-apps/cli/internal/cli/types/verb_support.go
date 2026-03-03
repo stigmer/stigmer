@@ -9,14 +9,15 @@ import (
 //
 // Verb support matrix:
 //
-//	| Kind      | apply | validate | get | list | delete | run | push | search | download |
-//	|-----------|-------|----------|-----|------|--------|-----|------|--------|----------|
-//	| Agent     | Y     | Y        | Y   | Y    | Y      | Y   | -    | Y      | -        |
-//	| Workflow  | Y     | Y        | Y   | Y    | Y      | Y   | -    | Y      | -        |
-//	| Skill     | -     | -        | Y   | Y    | Y      | -   | Y    | -      | -        |
-//	| McpServer | Y     | Y        | Y   | Y    | Y      | -   | -    | -      | -        |
-//	| Project   | Y*    | Y        | Y   | Y    | Y      | -   | -    | -      | -        |
-//	| Execution | -     | -        | Y   | Y    | Y**    | -   | -    | -      | Y        |
+//	| Kind         | apply | validate | get | list | delete | run | push | search | download |
+//	|--------------|-------|----------|-----|------|--------|-----|------|--------|----------|
+//	| Organization | Y     | -        | Y   | Y    | Y      | -   | -    | -      | -        |
+//	| Agent        | Y     | Y        | Y   | Y    | Y      | Y   | -    | Y      | -        |
+//	| Workflow     | Y     | Y        | Y   | Y    | Y      | Y   | -    | Y      | -        |
+//	| Skill        | -     | -        | Y   | Y    | Y      | -   | Y    | -      | -        |
+//	| McpServer    | Y     | Y        | Y   | Y    | Y      | -   | -    | -      | -        |
+//	| Project      | Y*    | Y        | Y   | Y    | Y      | -   | -    | -      | -        |
+//	| Execution    | -     | -        | Y   | Y    | Y**    | -   | -    | -      | Y        |
 //
 // *Project "apply" triggers SDK synthesis mode
 // **Execution "delete" maps to cancel operation
@@ -25,6 +26,12 @@ import (
 // not the unified SearchService. It is included here for documentation and validation
 // but is NOT added to cliRelevantKinds in registry.go.
 var verbSupport = map[apiresourcekind.ApiResourceKind]map[Verb]bool{
+	apiresourcekind.ApiResourceKind_organization: {
+		VerbApply:  true,
+		VerbGet:    true,
+		VerbList:   true,
+		VerbDelete: true,
+	},
 	apiresourcekind.ApiResourceKind_agent: {
 		VerbApply:    true,
 		VerbValidate: true,

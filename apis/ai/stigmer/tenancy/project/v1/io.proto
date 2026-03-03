@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package ai.stigmer.tenancy.project.v1;
+
+import "buf/validate/validate.proto";
+
+// ProjectId wraps a project identifier.
+message ProjectId {
+  string value = 1 [(buf.validate.field).required = true];
+}

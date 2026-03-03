@@ -98,6 +98,8 @@ type subAgentInfo struct {
 	Input string
 	// Description is a concise (3-5 word) summary of the delegated task.
 	Description string
+	// Output is the sub-agent's result summary, populated on completion.
+	Output string
 	// ToolCount tracks the number of tool calls made by this sub-agent.
 	// Incremented when a new tool block is created (not on updates).
 	// Displayed in the sub-agent header summary.

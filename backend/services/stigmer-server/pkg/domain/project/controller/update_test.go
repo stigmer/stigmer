@@ -3,7 +3,7 @@ package project
 import (
 	"testing"
 
-	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/project/v1"
+	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/project/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 )
 
@@ -68,7 +68,7 @@ func TestUpdate_RejectsNonExistentProject(t *testing.T) {
 	defer store.Close()
 
 	project := &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "tenancy.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Id:   "prj-nonexistent12345678901234",
@@ -91,7 +91,7 @@ func TestUpdate_RejectsMissingMetadata(t *testing.T) {
 	defer store.Close()
 
 	project := &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "tenancy.stigmer.ai/v1",
 		Kind:       "Project",
 		Spec: &projectv1.ProjectSpec{
 			EntryPoint: "main.go",
@@ -138,7 +138,7 @@ func TestUpdate_PreservesIDFromExistingResource(t *testing.T) {
 	originalID := created.Metadata.Id
 
 	updateRequest := &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "tenancy.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Slug: created.Metadata.Slug,
@@ -263,7 +263,7 @@ func TestUpdate_CanLookupBySlug(t *testing.T) {
 	}
 
 	updateRequest := &projectv1.Project{
-		ApiVersion: "agentic.stigmer.ai/v1",
+		ApiVersion: "tenancy.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Slug: created.Metadata.Slug,

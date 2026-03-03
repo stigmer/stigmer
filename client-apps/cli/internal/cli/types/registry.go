@@ -52,14 +52,14 @@ func DefaultRegistry() Registry {
 	return defaultRegistry
 }
 
-// cliRelevantKinds lists the kinds that are user-facing in the CLI.
-// These are filtered from all TIER_OPEN_SOURCE kinds.
+// cliRelevantKinds lists the resource kinds that are user-facing in the CLI.
 var cliRelevantKinds = map[apiresourcekind.ApiResourceKind]bool{
-	apiresourcekind.ApiResourceKind_agent:      true,
-	apiresourcekind.ApiResourceKind_workflow:   true,
-	apiresourcekind.ApiResourceKind_skill:      true,
-	apiresourcekind.ApiResourceKind_mcp_server: true,
-	apiresourcekind.ApiResourceKind_project:    true,
+	apiresourcekind.ApiResourceKind_organization: true,
+	apiresourcekind.ApiResourceKind_agent:        true,
+	apiresourcekind.ApiResourceKind_workflow:     true,
+	apiresourcekind.ApiResourceKind_skill:        true,
+	apiresourcekind.ApiResourceKind_mcp_server:   true,
+	apiresourcekind.ApiResourceKind_project:      true,
 }
 
 // buildRegistry creates the registry from proto metadata.

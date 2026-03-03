@@ -190,7 +190,7 @@ The `stigmer.yaml` file is deliberately minimal - it's configuration, not resour
 ### Minimal Valid Configuration
 
 ```yaml
-apiVersion: agentic.stigmer.ai/v1
+apiVersion: tenancy.stigmer.ai/v1
 kind: Project
 metadata:
   name: my-project
@@ -204,7 +204,7 @@ That's all you need! The rest has sensible defaults.
 ### Complete Configuration Reference
 
 ```yaml
-apiVersion: agentic.stigmer.ai/v1  # Required: API version
+apiVersion: tenancy.stigmer.ai/v1  # Required: API version
 kind: Project                       # Required: Resource kind
 
 metadata:
@@ -244,7 +244,7 @@ spec:
 
 #### apiVersion
 
-**Required**: Must be exactly `agentic.stigmer.ai/v1`
+**Required**: Must be exactly `tenancy.stigmer.ai/v1`
 
 This follows Kubernetes-style API versioning. Future versions may introduce new fields or behaviors while maintaining backward compatibility.
 
@@ -856,7 +856,7 @@ stigmer project info
 stigmer project info --output yaml
 
 # Output:
-# apiVersion: agentic.stigmer.ai/v1
+# apiVersion: tenancy.stigmer.ai/v1
 # kind: Project
 # metadata:
 #   name: customer-analytics
@@ -867,7 +867,7 @@ stigmer project info --output yaml
 stigmer project info --output json
 
 # Output:
-# {"apiVersion":"agentic.stigmer.ai/v1","kind":"Project",...}
+# {"apiVersion":"tenancy.stigmer.ai/v1","kind":"Project",...}
 
 # From a specific directory
 stigmer project info --dir /path/to/project
@@ -912,7 +912,7 @@ where resources are deployed individually:
   stigmer workflow apply workflow.yaml
 
 To create a project, add a stigmer.yaml file:
-  apiVersion: agentic.stigmer.ai/v1
+  apiVersion: tenancy.stigmer.ai/v1
   kind: Project
   metadata:
     name: my-project
@@ -1312,7 +1312,7 @@ cd my-project
 **Step 3: Create stigmer.yaml**
 
 ```yaml
-apiVersion: agentic.stigmer.ai/v1
+apiVersion: tenancy.stigmer.ai/v1
 kind: Project
 metadata:
   name: my-project

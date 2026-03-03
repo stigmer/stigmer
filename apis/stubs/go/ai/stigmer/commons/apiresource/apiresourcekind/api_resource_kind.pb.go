@@ -73,22 +73,22 @@ func (ApiResourceVersion) EnumDescriptor() ([]byte, []int) {
 type ResourceTier int32
 
 const (
-	ResourceTier_TIER_UNSPECIFIED ResourceTier = 0
-	ResourceTier_TIER_OPEN_SOURCE ResourceTier = 1 // Available in CLI local mode & Cloud
-	ResourceTier_TIER_CLOUD_ONLY  ResourceTier = 2 // Hidden in CLI local mode; Available in Cloud
+	ResourceTier_resource_tier_unspecified ResourceTier = 0
+	ResourceTier_open_source               ResourceTier = 1 // Available in CLI local mode & Cloud
+	ResourceTier_cloud_only                ResourceTier = 2 // Hidden in CLI local mode; Available in Cloud
 )
 
 // Enum value maps for ResourceTier.
 var (
 	ResourceTier_name = map[int32]string{
-		0: "TIER_UNSPECIFIED",
-		1: "TIER_OPEN_SOURCE",
-		2: "TIER_CLOUD_ONLY",
+		0: "resource_tier_unspecified",
+		1: "open_source",
+		2: "cloud_only",
 	}
 	ResourceTier_value = map[string]int32{
-		"TIER_UNSPECIFIED": 0,
-		"TIER_OPEN_SOURCE": 1,
-		"TIER_CLOUD_ONLY":  2,
+		"resource_tier_unspecified": 0,
+		"open_source":               1,
+		"cloud_only":                2,
 	}
 )
 
@@ -198,7 +198,7 @@ const (
 	ApiResourceKind_workflow_execution ApiResourceKind = 52
 	ApiResourceKind_environment        ApiResourceKind = 53
 	ApiResourceKind_execution_context  ApiResourceKind = 54
-	// Agentic - Project management (aggregate root for resource lifecycle)
+	// Tenancy - Project management (aggregate root for resource lifecycle)
 	ApiResourceKind_project ApiResourceKind = 60
 )
 
@@ -385,7 +385,7 @@ func (x *ApiResourceKindMeta) GetTier() ResourceTier {
 	if x != nil {
 		return x.Tier
 	}
-	return ResourceTier_TIER_UNSPECIFIED
+	return ResourceTier_resource_tier_unspecified
 }
 
 func (x *ApiResourceKindMeta) GetAuthorization() *AuthorizationConfig {
@@ -429,11 +429,12 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\rauthorization\x18\t \x01(\v2C.ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfigR\rauthorization*B\n" +
 	"\x12ApiResourceVersion\x12$\n" +
 	" api_resource_version_unspecified\x10\x00\x12\x06\n" +
-	"\x02v1\x10\x01*O\n" +
-	"\fResourceTier\x12\x14\n" +
-	"\x10TIER_UNSPECIFIED\x10\x00\x12\x14\n" +
-	"\x10TIER_OPEN_SOURCE\x10\x01\x12\x13\n" +
-	"\x0fTIER_CLOUD_ONLY\x10\x02*A\n" +
+	"\x02v1\x10\x01*N\n" +
+	"\fResourceTier\x12\x1d\n" +
+	"\x19resource_tier_unspecified\x10\x00\x12\x0f\n" +
+	"\vopen_source\x10\x01\x12\x0e\n" +
+	"\n" +
+	"cloud_only\x10\x02*A\n" +
 	"\x0fPlatformIdValue\x12!\n" +
 	"\x1dplatform_id_value_unspecified\x10\x00\x12\v\n" +
 	"\astigmer\x10\x01*\xb2\v\n" +
@@ -447,7 +448,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\x10identity_account\x10\v\x1a8\xaa\xff+4\b\x02\x10\x01\x1a\x0fIdentityAccount\"\x10Identity Account*\x03ida@\x02J\x04\b\x01\x10\x03\x125\n" +
 	"\aapi_key\x10\f\x1a(\xaa\xff+$\b\x02\x10\x01\x1a\x06ApiKey\"\aAPI Key*\x03key8\x01@\x02J\x04\b\x04\x10\x01\x12S\n" +
 	"\x11identity_provider\x10\x15\x1a<\xaa\xff+8\b\x02\x10\x01\x1a\x10IdentityProvider\"\x11Identity Provider*\x03idp8\x01@\x02J\x04\b\x02\x10\x01\x12C\n" +
-	"\forganization\x10\x1e\x1a1\xaa\xff+-\b\x03\x10\x01\x1a\fOrganization\"\fOrganization*\x03org@\x02J\x04\b\x01\x10\x01\x129\n" +
+	"\forganization\x10\x1e\x1a1\xaa\xff+-\b\x03\x10\x01\x1a\fOrganization\"\fOrganization*\x03org@\x01J\x04\b\x01\x10\x01\x129\n" +
 	"\bplatform\x10\x1f\x1a+\xaa\xff+'\b\x03\x10\x01\x1a\bPlatform\"\bPlatform*\x03plt8\x01@\x02J\x04\b\x05\x10\x04\x122\n" +
 	"\x05agent\x10(\x1a'\xaa\xff+#\b\x01\x10\x01\x1a\x05Agent\"\x05Agent*\x03agt@\x01J\b\b\x02\x10\x01*\x02\b\x01\x12k\n" +
 	"\x0fagent_execution\x10)\x1aV\xaa\xff+R\b\x01\x10\x01\x1a\x0eAgentExecution\"\x0fAgent Execution*\x03aex@\x01J$\b\x03\x10\x02\x1a\x1e\n" +
@@ -466,7 +467,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\x12workflow_execution\x104\x1a<\xaa\xff+8\b\x01\x10\x01\x1a\x11WorkflowExecution\"\x12Workflow Execution*\x03wex@\x01J\x04\b\x02\x10\x01\x12@\n" +
 	"\venvironment\x105\x1a/\xaa\xff++\b\x01\x10\x01\x1a\vEnvironment\"\vEnvironment*\x03env@\x01J\x04\b\x02\x10\x01\x12R\n" +
 	"\x11execution_context\x106\x1a;\xaa\xff+7\b\x01\x10\x01\x1a\x10ExecutionContext\"\x11Execution Context*\x04exec@\x01J\x04\b\x05\x10\x04\x124\n" +
-	"\aproject\x10<\x1a'\xaa\xff+#\b\x01\x10\x01\x1a\aProject\"\aProject*\x03prj@\x01J\x04\b\x02\x10\x01:\x85\x01\n" +
+	"\aproject\x10<\x1a'\xaa\xff+#\b\x03\x10\x01\x1a\aProject\"\aProject*\x03prj@\x01J\x04\b\x02\x10\x01:\x85\x01\n" +
 	"\tkind_meta\x12!.google.protobuf.EnumValueOptions\x18\xf5\xbf\x05 \x01(\v2C.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMetaR\bkindMetaB\x81\x03\n" +
 	"2com.ai.stigmer.commons.apiresource.apiresourcekindB\x14ApiResourceKindProtoP\x01ZWgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind\xa2\x02\x05ASCAA\xaa\x02.Ai.Stigmer.Commons.Apiresource.Apiresourcekind\xca\x02.Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\xe2\x02:Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\\GPBMetadata\xea\x022Ai::Stigmer::Commons::Apiresource::Apiresourcekindb\x06proto3"
 

@@ -54,6 +54,7 @@ interactively. The generated skill will be saved to the output directory
   # Run with environment variables for MCP servers
   stigmer draft skill -m "Create a skill for X" --env GITHUB_TOKEN=ghp_xxx`,
 		Run: func(cmd *cobra.Command, args []string) {
+			opts.OrgOverride = GetOrgFlag(cmd)
 			clierr.Handle(executeDraft(skillCreatorConfig, opts))
 		},
 	}

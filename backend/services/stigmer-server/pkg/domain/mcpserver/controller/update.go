@@ -48,7 +48,8 @@ func (c *McpServerController) buildUpdatePipeline() *pipeline.Pipeline[*mcpserve
 		AddStep(steps.NewResolveSlugStep[*mcpserverv1.McpServer]()).                                         // 2. Resolve slug
 		AddStep(steps.NewLoadExistingStep[*mcpserverv1.McpServer](c.store)).                                 // 3. Load existing MCP server
 		AddStep(steps.NewBuildUpdateStateStep[*mcpserverv1.McpServer]()).                                    // 4. Build updated state
-		AddStep(steps.NewPersistStep[*mcpserverv1.McpServer](c.store)).                                      // 5. Persist MCP server
+		AddStep(steps.NewNormalizeReferencesStep[*mcpserverv1.McpServer]()).                                  // 5. Normalize cross-references
+		AddStep(steps.NewPersistStep[*mcpserverv1.McpServer](c.store)).                                      // 6. Persist MCP server
 		AddStep(steps.NewIndexSearchStep[*mcpserverv1.McpServer](c.store, &extractor.McpServerExtractor{})). // 6. Update search index
 		Build()
 }

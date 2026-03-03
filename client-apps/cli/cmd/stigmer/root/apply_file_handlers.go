@@ -10,8 +10,10 @@ import (
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	organizationv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/organization/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/agent"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpserver"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/organization"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/workflow"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
 )
@@ -26,6 +28,32 @@ func buildResourceReference(
 		Kind: kind,
 		Slug: metadata.Slug,
 	}
+}
+
+func applyOrganization(item applyItem, fctx *fileApplyContext) (*apiresource.ApiResourceReference, error) {
+	loadResult, err := organization.LoadFromBytes(item.rawContent)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to load organization")
+	}
+
+	if fctx.dryRun {
+		fctx.renderer.Render(buildOrganizationDryRunResult(loadResult.Organization))
+		return nil, nil
+	}
+
+	result, err := organization.Apply(&organization.ApplyOptions{
+		Organization: loadResult.Organization,
+		OrgID:        fctx.orgID,
+		Conn:         fctx.conn,
+		Quiet:        false,
+		DryRun:       false,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	fctx.renderer.Render(buildOrganizationApplyResult(result))
+	return buildResourceReference(result.Organization.Metadata, apiresourcekind.ApiResourceKind_organization), nil
 }
 
 func applyAgent(item applyItem, fctx *fileApplyContext) (*apiresource.ApiResourceReference, error) {
@@ -221,6 +249,33 @@ func buildMcpServerDryRunResult(mcp *mcpserverv1.McpServer) *clioutput.CommandRe
 	}
 	if len(mcp.Spec.Tags) > 0 {
 		sec.Field("Tags", fmt.Sprintf("%v", mcp.Spec.Tags))
+	}
+	return out
+}
+
+func buildOrganizationApplyResult(result *organization.ApplyResult) *clioutput.CommandResult {
+	action := "updated"
+	if result.Created {
+		action = "created"
+	}
+	out := clioutput.Success("Organization %s successfully", action)
+	out.AddSection("Resource Details").
+		Field("ID", result.Organization.Metadata.Id).
+		Field("Name", result.Organization.Metadata.Name).
+		Field("Slug", result.Organization.Metadata.Slug)
+	out.Hintf("View details: stigmer get organization %s", result.Organization.Metadata.Slug)
+	out.Hintf("Delete:       stigmer delete organization %s", result.Organization.Metadata.Slug)
+	return out
+}
+
+func buildOrganizationDryRunResult(org *organizationv1.Organization) *clioutput.CommandResult {
+	out := clioutput.Success("Dry run: %s is valid", org.Metadata.Name)
+	sec := out.AddSection("Organization Preview")
+	sec.Field("Name", org.Metadata.Name)
+	if org.Spec != nil {
+		if org.Spec.Description != "" {
+			sec.Field("Description", truncateForDisplay(org.Spec.Description, 80))
+		}
 	}
 	return out
 }

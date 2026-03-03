@@ -14,6 +14,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpserver"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/organization"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/project"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/skill"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
@@ -25,7 +26,6 @@ import (
 // NewGetCommand creates the unified get command.
 func NewGetCommand() *cobra.Command {
 	var outputFormat string
-	var orgOverride string
 
 	cmd := &cobra.Command{
 		Use:   "get <type> <name-or-id>",
@@ -33,6 +33,7 @@ func NewGetCommand() *cobra.Command {
 		Long: `Get a resource by type and name or ID.
 
 The type can be specified using any alias:
+  - organization, org, organizations
   - agent, agt, agents
   - workflow, wf, workflows
   - mcpserver, mcp, mcp-server
@@ -44,7 +45,10 @@ The reference can be:
   - Resource ID (e.g., agt_abc123, aex_xyz789)
   - Slug (e.g., my-agent) - not for executions
   - Org/slug (e.g., stigmer/my-agent) - not for executions`,
-		Example: `  # Get agent by slug
+		Example: `  # Get organization by slug
+  stigmer get organization default
+
+  # Get agent by slug
   stigmer get agent my-agent
 
   # Get workflow by ID
@@ -64,7 +68,7 @@ The reference can be:
 			err := executeGet(getOptions{
 				TypeArg:      args[0],
 				Reference:    args[1],
-				OrgOverride:  orgOverride,
+				OrgOverride:  GetOrgFlag(cmd),
 				OutputFormat: outputFormat,
 			})
 			clierr.Handle(err)
@@ -72,7 +76,6 @@ The reference can be:
 	}
 
 	cmd.Flags().StringVarP(&outputFormat, "output", "o", "table", "output format: table, yaml, json")
-	cmd.Flags().StringVar(&orgOverride, "org", "", "organization ID override")
 
 	return cmd
 }
@@ -91,6 +94,12 @@ func isGetExecutionType(typeArg string) bool {
 	return normalized == "execution" || normalized == "executions" || normalized == "exec"
 }
 
+// isGetOrganizationType checks if the type arg refers to organizations.
+func isGetOrganizationType(typeArg string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(typeArg))
+	return normalized == "organization" || normalized == "organizations" || normalized == "org" || normalized == "orgs"
+}
+
 // executeGet retrieves a resource by type and reference.
 func executeGet(opts getOptions) error {
 	// Special case: Executions don't go through the registry
@@ -99,11 +108,16 @@ func executeGet(opts getOptions) error {
 		return executeGetExecution(opts)
 	}
 
+	// Special case: Organizations use FindMyOrganizations and don't need org context
+	if isGetOrganizationType(opts.TypeArg) {
+		return executeGetOrganization(opts)
+	}
+
 	// Step 1: Resolve type from alias
 	reg := types.DefaultRegistry()
 	info, ok := reg.GetByAlias(opts.TypeArg)
 	if !ok {
-		return fmt.Errorf("unknown resource type: %s\n\nAvailable types: agent, workflow, mcpserver, project, skill, execution", opts.TypeArg)
+		return fmt.Errorf("unknown resource type: %s\n\nAvailable types: organization, agent, workflow, mcpserver, project, skill, execution", opts.TypeArg)
 	}
 
 	// Step 2: Check verb support
@@ -253,5 +267,38 @@ func executeGetExecution(opts getOptions) error {
 
 	// Display result
 	execution.DisplayGetResult(result, opts.OutputFormat)
+	return nil
+}
+
+// executeGetOrganization handles the special case of getting an organization.
+// Organizations use FindMyOrganizations and don't require org context.
+func executeGetOrganization(opts getOptions) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return errors.Wrap(err, "failed to load configuration")
+	}
+
+	if cfg.Backend.Type == config.BackendTypeLocal {
+		dataDir, err := config.GetDataDir()
+		if err != nil {
+			return errors.Wrap(err, "failed to get data directory")
+		}
+		if err := daemon.EnsureRunning(dataDir); err != nil {
+			return errors.Wrap(err, "failed to start daemon")
+		}
+	}
+
+	conn, err := backend.NewConnection()
+	if err != nil {
+		return errors.Wrap(err, "failed to connect to backend")
+	}
+	defer conn.Close()
+
+	result, err := organization.GetFromBackend(conn, opts.Reference)
+	if err != nil {
+		return err
+	}
+
+	organization.DisplayGetResult(result, opts.OutputFormat)
 	return nil
 }

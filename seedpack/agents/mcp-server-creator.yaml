@@ -2,7 +2,6 @@ apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
   name: mcp-server-creator
-  org: local
   labels:
     stigmer.ai/system: "true"
 spec:
@@ -155,7 +154,6 @@ spec:
           Defaults to the workspace root.
   mcp_server_usages:
     - mcp_server_ref:
-        org: local
         kind: mcp_server
         slug: stigmer-mcp-server
       enabled_tools:
@@ -165,6 +163,5 @@ spec:
         - get_skill
         - get_workflow
   skill_refs:
-    - org: local
-      kind: skill
+    - kind: skill
       slug: mcp-server-creator

@@ -19,7 +19,6 @@ import (
 // NewPushCommand creates the unified push command for pushing artifacts.
 func NewPushCommand() *cobra.Command {
 	var tag string
-	var orgOverride string
 	var dryRun bool
 	var gitURL string
 	var gitRef string
@@ -87,7 +86,7 @@ SOURCE MODES:
 				TypeArg:         typeArg,
 				Path:            path,
 				Tag:             tag,
-				OrgOverride:     orgOverride,
+				OrgOverride:     GetOrgFlag(cmd),
 				DryRun:          dryRun,
 				GitURL:          gitURL,
 				GitRef:          gitRef,
@@ -103,7 +102,6 @@ SOURCE MODES:
 
 	// Core flags
 	cmd.Flags().StringVar(&tag, "tag", "latest", "version tag for the artifact")
-	cmd.Flags().StringVar(&orgOverride, "org", "", "organization ID (overrides context)")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "validate without pushing")
 
 	// Git source flags

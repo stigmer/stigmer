@@ -16,7 +16,6 @@ Agents declare MCP server usage via `spec.mcp_server_usages`. Each entry referen
 spec:
   mcp_server_usages:
     - mcp_server_ref:
-        org: local
         kind: mcp_server
         slug: github
       enabled_tools:

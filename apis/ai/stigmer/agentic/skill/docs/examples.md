@@ -46,8 +46,7 @@ stigmer push skill ./skills/greeting
 **Reference in an Agent:**
 ```yaml
 skill_refs:
-  - org: local
-    kind: skill
+  - kind: skill
     slug: greeting
 ```
 
@@ -347,8 +346,7 @@ stigmer push skill ./skills/my-skill
 
 # 4. Reference in a dev agent YAML to test behavior
 # skill_refs:
-#   - org: local
-#     kind: skill
+#   - kind: skill
 #     slug: my-skill
 
 # 5. Iterate — edit SKILL.md, re-push

@@ -28,7 +28,6 @@ Approval policies are configured on the **Agent** (not on the AgentExecution). T
 spec:
   mcp_server_usages:
     - mcp_server_ref:
-        org: local
         kind: mcp_server
         slug: github
       tool_approval_overrides:
