@@ -3,13 +3,13 @@ from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from collections.abc import Mapping as _Mapping
+from collections.abc import Iterable as _Iterable, Mapping as _Mapping
 from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class SessionSpec(_message.Message):
-    __slots__ = ("agent_instance_id", "subject", "thread_id", "sandbox_id", "metadata", "workspace_source")
+    __slots__ = ("agent_instance_id", "subject", "thread_id", "sandbox_id", "metadata", "workspace_entries")
     class MetadataEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -22,11 +22,11 @@ class SessionSpec(_message.Message):
     THREAD_ID_FIELD_NUMBER: _ClassVar[int]
     SANDBOX_ID_FIELD_NUMBER: _ClassVar[int]
     METADATA_FIELD_NUMBER: _ClassVar[int]
-    WORKSPACE_SOURCE_FIELD_NUMBER: _ClassVar[int]
+    WORKSPACE_ENTRIES_FIELD_NUMBER: _ClassVar[int]
     agent_instance_id: str
     subject: str
     thread_id: str
     sandbox_id: str
     metadata: _containers.ScalarMap[str, str]
-    workspace_source: _workspace_pb2.WorkspaceSource
-    def __init__(self, agent_instance_id: _Optional[str] = ..., subject: _Optional[str] = ..., thread_id: _Optional[str] = ..., sandbox_id: _Optional[str] = ..., metadata: _Optional[_Mapping[str, str]] = ..., workspace_source: _Optional[_Union[_workspace_pb2.WorkspaceSource, _Mapping]] = ...) -> None: ...
+    workspace_entries: _containers.RepeatedCompositeFieldContainer[_workspace_pb2.WorkspaceEntry]
+    def __init__(self, agent_instance_id: _Optional[str] = ..., subject: _Optional[str] = ..., thread_id: _Optional[str] = ..., sandbox_id: _Optional[str] = ..., metadata: _Optional[_Mapping[str, str]] = ..., workspace_entries: _Optional[_Iterable[_Union[_workspace_pb2.WorkspaceEntry, _Mapping]]] = ...) -> None: ...

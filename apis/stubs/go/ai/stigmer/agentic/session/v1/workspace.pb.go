@@ -24,12 +24,9 @@ const (
 
 // WorkspaceSource defines where the agent's workspace content comes from.
 //
-// This is a session-level concept: the workspace is provisioned once on the
-// first execution and reused by subsequent executions in the same session.
-// Changing the workspace source requires creating a new session.
-//
-// When workspace_source is absent on SessionSpec, the session uses an empty
-// workspace (existing default behavior, no provisioning step).
+// This is a pure source-definition type: it describes the origin of workspace
+// content (a git repo or a local directory) without any identity or naming.
+// Use WorkspaceEntry to pair a source with a name for session-level usage.
 type WorkspaceSource struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Source:
@@ -112,6 +109,73 @@ func (*WorkspaceSource_GitRepo) isWorkspaceSource_Source() {}
 
 func (*WorkspaceSource_LocalPath) isWorkspaceSource_Source() {}
 
+// WorkspaceEntry pairs a WorkspaceSource with a human-readable name,
+// forming an addressable unit within a session's workspace.
+//
+// In a multi-root workspace (VS Code model), each entry is a separate
+// directory or repository that the agent can operate on. The name serves as
+// the entry's identity: it appears in the system prompt, and in cloud mode
+// it becomes the subdirectory name under the workspace root.
+//
+// Names are auto-derived by the CLI from the repository name (last URL path
+// segment sans ".git") or the directory basename. They must be unique within
+// a session's workspace_entries list.
+type WorkspaceEntry struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Short identifier for this workspace entry (required).
+	// Used in system prompt headings and as the clone subdirectory in cloud mode.
+	// Example: "my-app", "frontend", "shared-lib"
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// The source that provides this entry's content (required).
+	Source        *WorkspaceSource `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WorkspaceEntry) Reset() {
+	*x = WorkspaceEntry{}
+	mi := &file_ai_stigmer_agentic_session_v1_workspace_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WorkspaceEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WorkspaceEntry) ProtoMessage() {}
+
+func (x *WorkspaceEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_session_v1_workspace_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WorkspaceEntry.ProtoReflect.Descriptor instead.
+func (*WorkspaceEntry) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_session_v1_workspace_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *WorkspaceEntry) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *WorkspaceEntry) GetSource() *WorkspaceSource {
+	if x != nil {
+		return x.Source
+	}
+	return nil
+}
+
 // LocalPathSource uses an existing directory on the host filesystem as the
 // workspace. The agent operates directly on the user's files -- changes are
 // immediate and persistent.
@@ -135,7 +199,7 @@ type LocalPathSource struct {
 
 func (x *LocalPathSource) Reset() {
 	*x = LocalPathSource{}
-	mi := &file_ai_stigmer_agentic_session_v1_workspace_proto_msgTypes[1]
+	mi := &file_ai_stigmer_agentic_session_v1_workspace_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -147,7 +211,7 @@ func (x *LocalPathSource) String() string {
 func (*LocalPathSource) ProtoMessage() {}
 
 func (x *LocalPathSource) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_session_v1_workspace_proto_msgTypes[1]
+	mi := &file_ai_stigmer_agentic_session_v1_workspace_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -160,7 +224,7 @@ func (x *LocalPathSource) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalPathSource.ProtoReflect.Descriptor instead.
 func (*LocalPathSource) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_session_v1_workspace_proto_rawDescGZIP(), []int{1}
+	return file_ai_stigmer_agentic_session_v1_workspace_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *LocalPathSource) GetPath() string {
@@ -211,7 +275,7 @@ type GitRepoSource struct {
 
 func (x *GitRepoSource) Reset() {
 	*x = GitRepoSource{}
-	mi := &file_ai_stigmer_agentic_session_v1_workspace_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_session_v1_workspace_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -223,7 +287,7 @@ func (x *GitRepoSource) String() string {
 func (*GitRepoSource) ProtoMessage() {}
 
 func (x *GitRepoSource) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_session_v1_workspace_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_session_v1_workspace_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -236,7 +300,7 @@ func (x *GitRepoSource) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GitRepoSource.ProtoReflect.Descriptor instead.
 func (*GitRepoSource) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_session_v1_workspace_proto_rawDescGZIP(), []int{2}
+	return file_ai_stigmer_agentic_session_v1_workspace_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *GitRepoSource) GetUrl() string {
@@ -276,7 +340,10 @@ const file_ai_stigmer_agentic_session_v1_workspace_proto_rawDesc = "" +
 	"\bgit_repo\x18\x01 \x01(\v2,.ai.stigmer.agentic.session.v1.GitRepoSourceH\x00R\agitRepo\x12O\n" +
 	"\n" +
 	"local_path\x18\x02 \x01(\v2..ai.stigmer.agentic.session.v1.LocalPathSourceH\x00R\tlocalPathB\x0f\n" +
-	"\x06source\x12\x05\xbaH\x02\b\x01\".\n" +
+	"\x06source\x12\x05\xbaH\x02\b\x01\"}\n" +
+	"\x0eWorkspaceEntry\x12\x1b\n" +
+	"\x04name\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04name\x12N\n" +
+	"\x06source\x18\x02 \x01(\v2..ai.stigmer.agentic.session.v1.WorkspaceSourceB\x06\xbaH\x03\xc8\x01\x01R\x06source\".\n" +
 	"\x0fLocalPathSource\x12\x1b\n" +
 	"\x04path\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04path\"\x9a\x02\n" +
 	"\rGitRepoSource\x12\xaa\x01\n" +
@@ -300,20 +367,22 @@ func file_ai_stigmer_agentic_session_v1_workspace_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_session_v1_workspace_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_session_v1_workspace_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_ai_stigmer_agentic_session_v1_workspace_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ai_stigmer_agentic_session_v1_workspace_proto_goTypes = []any{
 	(*WorkspaceSource)(nil), // 0: ai.stigmer.agentic.session.v1.WorkspaceSource
-	(*LocalPathSource)(nil), // 1: ai.stigmer.agentic.session.v1.LocalPathSource
-	(*GitRepoSource)(nil),   // 2: ai.stigmer.agentic.session.v1.GitRepoSource
+	(*WorkspaceEntry)(nil),  // 1: ai.stigmer.agentic.session.v1.WorkspaceEntry
+	(*LocalPathSource)(nil), // 2: ai.stigmer.agentic.session.v1.LocalPathSource
+	(*GitRepoSource)(nil),   // 3: ai.stigmer.agentic.session.v1.GitRepoSource
 }
 var file_ai_stigmer_agentic_session_v1_workspace_proto_depIdxs = []int32{
-	2, // 0: ai.stigmer.agentic.session.v1.WorkspaceSource.git_repo:type_name -> ai.stigmer.agentic.session.v1.GitRepoSource
-	1, // 1: ai.stigmer.agentic.session.v1.WorkspaceSource.local_path:type_name -> ai.stigmer.agentic.session.v1.LocalPathSource
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	3, // 0: ai.stigmer.agentic.session.v1.WorkspaceSource.git_repo:type_name -> ai.stigmer.agentic.session.v1.GitRepoSource
+	2, // 1: ai.stigmer.agentic.session.v1.WorkspaceSource.local_path:type_name -> ai.stigmer.agentic.session.v1.LocalPathSource
+	0, // 2: ai.stigmer.agentic.session.v1.WorkspaceEntry.source:type_name -> ai.stigmer.agentic.session.v1.WorkspaceSource
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_session_v1_workspace_proto_init() }
@@ -325,14 +394,14 @@ func file_ai_stigmer_agentic_session_v1_workspace_proto_init() {
 		(*WorkspaceSource_GitRepo)(nil),
 		(*WorkspaceSource_LocalPath)(nil),
 	}
-	file_ai_stigmer_agentic_session_v1_workspace_proto_msgTypes[2].OneofWrappers = []any{}
+	file_ai_stigmer_agentic_session_v1_workspace_proto_msgTypes[3].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_session_v1_workspace_proto_rawDesc), len(file_ai_stigmer_agentic_session_v1_workspace_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -6,18 +6,36 @@ import "buf/validate/validate.proto";
 
 // WorkspaceSource defines where the agent's workspace content comes from.
 //
-// This is a session-level concept: the workspace is provisioned once on the
-// first execution and reused by subsequent executions in the same session.
-// Changing the workspace source requires creating a new session.
-//
-// When workspace_source is absent on SessionSpec, the session uses an empty
-// workspace (existing default behavior, no provisioning step).
+// This is a pure source-definition type: it describes the origin of workspace
+// content (a git repo or a local directory) without any identity or naming.
+// Use WorkspaceEntry to pair a source with a name for session-level usage.
 message WorkspaceSource {
   oneof source {
     option (buf.validate.oneof).required = true;
     GitRepoSource git_repo = 1;
     LocalPathSource local_path = 2;
   }
+}
+
+// WorkspaceEntry pairs a WorkspaceSource with a human-readable name,
+// forming an addressable unit within a session's workspace.
+//
+// In a multi-root workspace (VS Code model), each entry is a separate
+// directory or repository that the agent can operate on. The name serves as
+// the entry's identity: it appears in the system prompt, and in cloud mode
+// it becomes the subdirectory name under the workspace root.
+//
+// Names are auto-derived by the CLI from the repository name (last URL path
+// segment sans ".git") or the directory basename. They must be unique within
+// a session's workspace_entries list.
+message WorkspaceEntry {
+  // Short identifier for this workspace entry (required).
+  // Used in system prompt headings and as the clone subdirectory in cloud mode.
+  // Example: "my-app", "frontend", "shared-lib"
+  string name = 1 [(buf.validate.field).string.min_len = 1];
+
+  // The source that provides this entry's content (required).
+  WorkspaceSource source = 2 [(buf.validate.field).required = true];
 }
 
 // LocalPathSource uses an existing directory on the host filesystem as the

@@ -37,16 +37,17 @@ type SessionSpec struct {
 	SandboxId string `protobuf:"bytes,4,opt,name=sandbox_id,json=sandboxId,proto3" json:"sandbox_id,omitempty"`
 	// Session metadata (e.g., client info, tags).
 	Metadata map[string]string `protobuf:"bytes,5,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Workspace source for this session (optional).
+	// Workspace entries for this session (optional, may be empty).
 	//
-	// Defines where the workspace content comes from. Provisioned on the
+	// Each entry pairs a name with a source (git repo or local path), forming
+	// a multi-root workspace (VS Code model). Entries are provisioned on the
 	// first execution; subsequent executions reuse the same workspace.
 	//
-	// When absent, the session uses an empty workspace directory
-	// (existing behavior, fully backward-compatible).
-	WorkspaceSource *WorkspaceSource `protobuf:"bytes,6,opt,name=workspace_source,json=workspaceSource,proto3" json:"workspace_source,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// When empty, the session uses an empty workspace directory
+	// (existing default behavior, no provisioning step).
+	WorkspaceEntries []*WorkspaceEntry `protobuf:"bytes,7,rep,name=workspace_entries,json=workspaceEntries,proto3" json:"workspace_entries,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *SessionSpec) Reset() {
@@ -114,9 +115,9 @@ func (x *SessionSpec) GetMetadata() map[string]string {
 	return nil
 }
 
-func (x *SessionSpec) GetWorkspaceSource() *WorkspaceSource {
+func (x *SessionSpec) GetWorkspaceEntries() []*WorkspaceEntry {
 	if x != nil {
-		return x.WorkspaceSource
+		return x.WorkspaceEntries
 	}
 	return nil
 }
@@ -125,18 +126,18 @@ var File_ai_stigmer_agentic_session_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a\x1bbuf/validate/validate.proto\"\x85\x03\n" +
+	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a\x1bbuf/validate/validate.proto\"\x9e\x03\n" +
 	"\vSessionSpec\x122\n" +
 	"\x11agent_instance_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0fagentInstanceId\x12\x18\n" +
 	"\asubject\x18\x02 \x01(\tR\asubject\x12\x1b\n" +
 	"\tthread_id\x18\x03 \x01(\tR\bthreadId\x12\x1d\n" +
 	"\n" +
 	"sandbox_id\x18\x04 \x01(\tR\tsandboxId\x12T\n" +
-	"\bmetadata\x18\x05 \x03(\v28.ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntryR\bmetadata\x12Y\n" +
-	"\x10workspace_source\x18\x06 \x01(\v2..ai.stigmer.agentic.session.v1.WorkspaceSourceR\x0fworkspaceSource\x1a;\n" +
+	"\bmetadata\x18\x05 \x03(\v28.ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntryR\bmetadata\x12Z\n" +
+	"\x11workspace_entries\x18\a \x03(\v2-.ai.stigmer.agentic.session.v1.WorkspaceEntryR\x10workspaceEntries\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x99\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x06\x10\aR\x10workspace_sourceB\x99\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\tSpecProtoP\x01ZPgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
 var (
@@ -153,13 +154,13 @@ func file_ai_stigmer_agentic_session_v1_spec_proto_rawDescGZIP() []byte {
 
 var file_ai_stigmer_agentic_session_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_ai_stigmer_agentic_session_v1_spec_proto_goTypes = []any{
-	(*SessionSpec)(nil),     // 0: ai.stigmer.agentic.session.v1.SessionSpec
-	nil,                     // 1: ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntry
-	(*WorkspaceSource)(nil), // 2: ai.stigmer.agentic.session.v1.WorkspaceSource
+	(*SessionSpec)(nil),    // 0: ai.stigmer.agentic.session.v1.SessionSpec
+	nil,                    // 1: ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntry
+	(*WorkspaceEntry)(nil), // 2: ai.stigmer.agentic.session.v1.WorkspaceEntry
 }
 var file_ai_stigmer_agentic_session_v1_spec_proto_depIdxs = []int32{
 	1, // 0: ai.stigmer.agentic.session.v1.SessionSpec.metadata:type_name -> ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntry
-	2, // 1: ai.stigmer.agentic.session.v1.SessionSpec.workspace_source:type_name -> ai.stigmer.agentic.session.v1.WorkspaceSource
+	2, // 1: ai.stigmer.agentic.session.v1.SessionSpec.workspace_entries:type_name -> ai.stigmer.agentic.session.v1.WorkspaceEntry
 	2, // [2:2] is the sub-list for method output_type
 	2, // [2:2] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
