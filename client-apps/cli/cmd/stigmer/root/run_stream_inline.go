@@ -30,7 +30,8 @@ type inlineRenderConfig struct {
 // the agent's response, while progress and tool activity remain visible on
 // the terminal via stderr.
 type inlineRenderer struct {
-	cfg inlineRenderConfig
+	cfg         inlineRenderConfig
+	compactOpts toolrender.CompactOptions
 
 	// AI streaming state — tracks incremental delta output so each render
 	// only prints the bytes appended since the last delta event.
@@ -42,7 +43,12 @@ type inlineRenderer struct {
 // a terminal event (DoneEvent or StreamErrorEvent) arrives. Returns the final
 // phase string and any error message from the done event.
 func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, exitErr string) {
-	r := &inlineRenderer{cfg: cfg}
+	r := &inlineRenderer{
+		cfg: cfg,
+		compactOpts: toolrender.CompactOptions{
+			HyperlinksEnabled: toolrender.HyperlinksEnabled(cfg.status),
+		},
+	}
 
 	for {
 		select {
@@ -169,13 +175,15 @@ func (r *inlineRenderer) renderHumanMessage(e executiontui.HumanMessageEvent) {
 // ---------------------------------------------------------------------------
 
 func (r *inlineRenderer) renderToolRunning(e executiontui.ToolRunningEvent) {
+	if toolrender.IsReadTool(e.ToolCall.Name) {
+		return
+	}
 	line := toolrender.RenderWithBadge(e.ToolCall, toolrender.StateBadge("running"))
 	r.statusf("%s\n", line)
 }
 
 func (r *inlineRenderer) renderToolCompleted(e executiontui.ToolCompletedEvent) {
-	badge := toolrender.StateBadge(e.ToolCall.Status)
-	line := toolrender.RenderWithBadge(e.ToolCall, badge)
+	line := toolrender.RenderCompact(e.ToolCall, r.compactOpts)
 	r.statusf("%s\n", line)
 }
 
