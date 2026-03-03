@@ -57,14 +57,23 @@ Add timestamps and notes to track your progress.
 
 ## Task 3: Fix LoadExistingStep.findBySlug — add org filter for Update/Delete slug fallback
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-03-03 06:53
+**Completed**: 2026-03-03
 
 ### Subtasks
-- [ ] [Add specific steps as you work]
+- [x] Replace private `findBySlug` call with shared `FindResourceBySlug[T]` helper
+- [x] Extract `org := metadata.Org` and pass to shared helper
+- [x] Delete private `findBySlug` method (~30 lines removed)
+- [x] Remove unused imports (`"context"`, `apiresourcekind`)
+- [x] Fix inaccurate struct doc comment (said "Apply operations" — corrected to org-scoped Update/Delete semantics)
+- [x] Verify `backend/libs/go` and `backend/services/stigmer-server` build cleanly
 
 ### Notes
-- [Add notes about this task here]
+- **No surprises**: Followed the exact consolidation pattern from Task 2. No new architectural decisions required.
+- **Type assertion eliminated**: The old private `findBySlug` returned `(proto.Message, error)` requiring `found.(T)` at the call site. The shared helper returns `(T, bool, error)` directly — cleaner and type-safe.
+- **Net reduction**: ~30 lines removed (private method deleted), ~3 lines changed in Execute.
+- **Doc comment fix**: The struct comment incorrectly said "Apply operations" — `LoadExistingStep` is for Update/Delete, not Apply (that's `LoadForApplyStep`).
 
 ## Task 4: Fix CheckDuplicateStep.findBySlug — add org filter so same slug can exist in different orgs
 

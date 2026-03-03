@@ -98,3 +98,24 @@ build cleanly.
 
 ---
 
+## 2026-03-03 — Task 3 Complete: LoadExistingStep org-scoped
+
+### No surprises — clean application of Task 2 pattern
+Replaced the private `findBySlug` with the shared `FindResourceBySlug[T]` helper,
+passing `metadata.Org` for org-scoped filtering. Deleted the 30-line private method.
+
+### Improvement: Type assertion eliminated
+The old private `findBySlug` returned `(proto.Message, error)`, requiring
+`found.(T)` type assertion at the call site. The shared helper returns
+`(T, bool, error)` directly — cleaner, type-safe, and consistent with the
+`LoadByReferenceStep.findBySlug` reference implementation.
+
+### Doc comment fix
+The struct doc comment incorrectly referenced "Apply operations" — this step
+is for Update/Delete, not Apply. Corrected to describe org-scoped slug semantics.
+
+### Build verification
+`backend/libs/go` and `backend/services/stigmer-server` build cleanly.
+
+---
+

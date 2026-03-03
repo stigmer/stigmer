@@ -1,10 +1,8 @@
 package steps
 
 import (
-	"context"
 	"fmt"
 
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/backend/libs/go/apiresource"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
@@ -25,10 +23,10 @@ const ExistingResourceKey = "existingResource"
 //  4. Populates ID into metadata if loaded by slug
 //  5. Returns NotFound error if resource doesn't exist
 //
-// The slug fallback enables Apply operations where users provide name/slug
-// instead of ID. Direct update calls with ID continue to work efficiently.
-//
-// The step is typically used in Update and Delete operations.
+// The slug fallback is org-scoped: when metadata.org is set, only resources
+// belonging to that org are considered. This prevents cross-org slug collisions
+// in Update and Delete operations. Direct update calls with ID continue to
+// work efficiently.
 type LoadExistingStep[T proto.Message] struct {
 	store store.Store
 }
@@ -80,16 +78,16 @@ func (s *LoadExistingStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 			return grpclib.NotFoundError(kindName, metadata.Id)
 		}
 	} else if metadata.Slug != "" {
-		// Fallback to slug-based lookup (for apply operations)
-		found, err := s.findBySlug(ctx.Context(), metadata.Slug, kind)
+		org := metadata.Org
+		result, found, err := FindResourceBySlug[T](ctx.Context(), s.store, kind, metadata.Slug, org)
 		if err != nil {
 			return fmt.Errorf("failed to load resource by slug: %w", err)
 		}
-		if found == nil {
+		if !found {
 			kindName, _ := apiresource.GetKindName(kind)
 			return grpclib.NotFoundError(kindName, metadata.Slug)
 		}
-		existing = found.(T)
+		existing = result
 
 		// Populate ID from existing resource into input metadata
 		// This ensures subsequent steps (merge, persist) have the ID
@@ -105,34 +103,3 @@ func (s *LoadExistingStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 	return nil
 }
 
-// findBySlug searches for a resource by slug
-// Returns the resource if found, nil if not found, error if database operation fails
-func (s *LoadExistingStep[T]) findBySlug(ctx context.Context, slug string, kind apiresourcekind.ApiResourceKind) (proto.Message, error) {
-	resources, err := s.store.ListResources(ctx, kind)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list resources: %w", err)
-	}
-
-	// Scan through resources to find matching slug
-	for _, data := range resources {
-		// Create a new instance of T to unmarshal into
-		var resource T
-		resource = resource.ProtoReflect().New().Interface().(T)
-
-		// Use proto.Unmarshal since stores return proto bytes (not JSON)
-		if err := proto.Unmarshal(data, resource); err != nil {
-			// Skip resources that can't be unmarshaled
-			continue
-		}
-
-		// Check if this resource has the matching slug
-		if metadataResource, ok := any(resource).(HasMetadata); ok {
-			metadata := metadataResource.GetMetadata()
-			if metadata != nil && metadata.Slug == slug {
-				return resource, nil
-			}
-		}
-	}
-
-	return nil, nil
-}
