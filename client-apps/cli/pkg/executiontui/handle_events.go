@@ -170,8 +170,12 @@ func (m Model) handleExecutionEvent(event Event) (tea.Model, tea.Cmd) {
 		m.exitError = e.Err.Error()
 		m.finalizeRunningTools()
 
+		errContent := e.Err.Error()
+		if m.cfg.FollowUpFn != nil {
+			errContent += "\nSend a follow-up message to reconnect."
+		}
 		m.blocks = append(m.blocks, newErrorBlock(
-			renderErrorContent("Stream error: "+e.Err.Error()),
+			renderErrorContent(errContent),
 		))
 
 		// In conversational mode, treat stream errors like any other terminal

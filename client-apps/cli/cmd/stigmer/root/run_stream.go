@@ -113,6 +113,7 @@ func streamAgentExecution(sessionID, sessionSubject, executionID, orgID string, 
 	// Launch the gRPC stream goroutine that converts proto updates to TUI events.
 	go streamToEvents(streamCtx, streamToEventsConfig{
 		executionID:       executionID,
+		sessionID:         sessionID,
 		stream:            stream,
 		events:            events,
 		approvalResponses: approvalResponses,
@@ -202,6 +203,7 @@ func buildFollowUpFn(ctx context.Context, sessionID, orgID string, conn *grpc.Cl
 
 		go streamToEvents(ctx, streamToEventsConfig{
 			executionID:       newExecID,
+			sessionID:         sessionID,
 			stream:            stream,
 			events:            events,
 			approvalResponses: approvalResponses,
