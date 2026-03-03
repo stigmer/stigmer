@@ -2,6 +2,7 @@ package root
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -40,6 +41,112 @@ func parseWorkspaceSource(workspace, branch, commit string) (*sessionv1.Workspac
 	}
 
 	return parseLocalWorkspace(workspace)
+}
+
+// parseWorkspaceEntries converts repeatable --workspace flags plus --branch
+// and --commit into a list of WorkspaceEntry proto messages.
+//
+// Returns nil when no workspace is requested (empty workspaces list).
+//
+// --branch and --commit are rejected when more than one workspace is provided;
+// they apply only to a single git workspace. This keeps the top-level flags
+// simple for the common case while deferring per-entry branch syntax to a
+// future inline format.
+func parseWorkspaceEntries(workspaces []string, branch, commit string) ([]*sessionv1.WorkspaceEntry, error) {
+	if len(workspaces) == 0 {
+		if branch != "" || commit != "" {
+			return nil, fmt.Errorf("--branch and --commit require --workspace")
+		}
+		return nil, nil
+	}
+
+	if len(workspaces) > 1 && (branch != "" || commit != "") {
+		return nil, fmt.Errorf("--branch and --commit are only valid with a single git workspace")
+	}
+
+	entries := make([]*sessionv1.WorkspaceEntry, 0, len(workspaces))
+	seenNames := make(map[string]string) // derived name -> original workspace value
+
+	for _, ws := range workspaces {
+		source, err := parseWorkspaceSource(ws, branch, commit)
+		if err != nil {
+			return nil, err
+		}
+
+		name, err := deriveEntryName(ws)
+		if err != nil {
+			return nil, err
+		}
+
+		if prev, exists := seenNames[name]; exists {
+			return nil, fmt.Errorf(
+				"duplicate workspace name %q derived from both %q and %q; "+
+					"use distinct directory names or repository URLs",
+				name, prev, ws,
+			)
+		}
+		seenNames[name] = ws
+
+		entries = append(entries, &sessionv1.WorkspaceEntry{
+			Name:   name,
+			Source: source,
+		})
+	}
+
+	return entries, nil
+}
+
+// deriveEntryName returns a short identifier from a workspace flag value.
+// Git URLs use the last path segment (sans ".git"), local paths use the
+// directory basename. The name is used in system prompt headings and as
+// the clone subdirectory in cloud mode.
+func deriveEntryName(workspace string) (string, error) {
+	if isGitURL(workspace) {
+		return deriveGitRepoName(workspace)
+	}
+	return deriveLocalDirName(workspace)
+}
+
+// deriveGitRepoName extracts the repository name from an HTTPS git URL.
+// Examples:
+//
+//	"https://github.com/acme/my-app.git"  -> "my-app"
+//	"https://github.com/acme/my-app"      -> "my-app"
+//	"https://github.com/acme/my-app/"     -> "my-app"
+func deriveGitRepoName(rawURL string) (string, error) {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return "", fmt.Errorf("cannot parse git URL for name derivation: %w", err)
+	}
+
+	path := strings.TrimRight(u.Path, "/")
+	path = strings.TrimSuffix(path, ".git")
+
+	segments := strings.Split(path, "/")
+	for i := len(segments) - 1; i >= 0; i-- {
+		if segments[i] != "" {
+			return segments[i], nil
+		}
+	}
+
+	return "", fmt.Errorf("cannot derive workspace name from URL: %s", rawURL)
+}
+
+// deriveLocalDirName extracts the directory basename from a local path.
+// The path is resolved to absolute before taking the basename so that
+// relative paths like "." produce meaningful names.
+func deriveLocalDirName(path string) (string, error) {
+	resolved, err := resolveLocalPath(path)
+	if err != nil {
+		return "", fmt.Errorf("cannot resolve path for name derivation: %w", err)
+	}
+
+	name := filepath.Base(resolved)
+	if name == "." || name == "/" || name == string(filepath.Separator) {
+		return "", fmt.Errorf("cannot derive workspace name from path: %s", path)
+	}
+
+	return name, nil
 }
 
 // isGitURL returns true if the value looks like an HTTPS git URL.

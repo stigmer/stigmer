@@ -555,7 +555,7 @@ func TestProcessFiles_WorkspaceAware(t *testing.T) {
 		result, err := proc.ProcessFiles([]string{
 			filepath.Join(dir, "a.txt"),
 			filepath.Join(dir, "b.txt"),
-		}, "")
+		}, nil)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -578,7 +578,7 @@ func TestProcessFiles_WorkspaceAware(t *testing.T) {
 		result, err := proc.ProcessFiles([]string{
 			filepath.Join(dir, "src", "config.yaml"),
 			filepath.Join(dir, "README.md"),
-		}, dir)
+		}, []string{dir})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -609,7 +609,7 @@ func TestProcessFiles_WorkspaceAware(t *testing.T) {
 		result, err := proc.ProcessFiles([]string{
 			filepath.Join(workspace, "schema.sql"),
 			filepath.Join(external, "data.csv"),
-		}, workspace)
+		}, []string{workspace})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -628,7 +628,7 @@ func TestProcessFiles_WorkspaceAware(t *testing.T) {
 		conn := &fakeUploadConn{}
 		proc := NewAttachmentProcessor(conn)
 
-		result, err := proc.ProcessFiles([]string{}, "/some/workspace")
+		result, err := proc.ProcessFiles([]string{}, []string{"/some/workspace"})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

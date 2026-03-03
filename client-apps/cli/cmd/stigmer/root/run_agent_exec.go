@@ -30,7 +30,7 @@ type agentExecFlags struct {
 	Verbose         bool
 	Detach          bool
 	OrgOverride     string
-	WorkspaceFlag   string
+	WorkspaceFlags  []string
 	BranchFlag      string
 	CommitFlag      string
 	EnvFlags        []string
@@ -58,8 +58,8 @@ func registerAgentExecFlags(cmd *cobra.Command, f *agentExecFlags) {
 	cmd.Flags().BoolVar(&f.Detach, "detach", false,
 		"start execution and return immediately without streaming")
 
-	cmd.Flags().StringVar(&f.WorkspaceFlag, "workspace", "",
-		"workspace source: HTTPS git URL or local filesystem path")
+	cmd.Flags().StringArrayVarP(&f.WorkspaceFlags, "workspace", "w", []string{},
+		"workspace source: HTTPS git URL or local filesystem path (can be repeated)")
 
 	cmd.Flags().StringVar(&f.BranchFlag, "branch", "",
 		"git branch to clone (only valid with git --workspace URL)")
@@ -88,17 +88,17 @@ func registerAgentExecFlags(cmd *cobra.Command, f *agentExecFlags) {
 // agent execution. The caller is responsible for closing Conn when done.
 //
 // Fields fall into two categories:
-//   - Processed values derived from raw flags (DefaultAction, WorkspaceSource,
+//   - Processed values derived from raw flags (DefaultAction, WorkspaceEntries,
 //     RuntimeEnv, AttachResult) — the raw flag is consumed and not stored.
 //   - Pass-through values copied verbatim from agentExecFlags (Message,
 //     Detach, Verbose) — needed by downstream consumers without transformation.
 type preparedAgentExec struct {
-	DefaultAction   approval.Action
-	WorkspaceSource *sessionv1.WorkspaceSource
-	RuntimeEnv      envfile.EnvMap
-	Conn            *grpc.ClientConn
-	OrgID           string
-	AttachResult    AttachmentResult
+	DefaultAction    approval.Action
+	WorkspaceEntries []*sessionv1.WorkspaceEntry
+	RuntimeEnv       envfile.EnvMap
+	Conn             *grpc.ClientConn
+	OrgID            string
+	AttachResult     AttachmentResult
 
 	Message    string
 	Detach     bool
@@ -125,7 +125,7 @@ func prepareAgentExec(flags agentExecFlags, sp *spinner.Spinner) (*preparedAgent
 		}
 	}
 
-	workspaceSource, err := parseWorkspaceSource(flags.WorkspaceFlag, flags.BranchFlag, flags.CommitFlag)
+	workspaceEntries, err := parseWorkspaceEntries(flags.WorkspaceFlags, flags.BranchFlag, flags.CommitFlag)
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid workspace configuration")
 	}
@@ -163,8 +163,8 @@ func prepareAgentExec(flags agentExecFlags, sp *spinner.Spinner) (*preparedAgent
 	if len(flags.AttachFlags) > 0 {
 		sp.Update("Processing attachments...")
 		processor := NewAttachmentProcessor(conn)
-		localRoot := localWorkspaceRoot(workspaceSource)
-		res, err := processor.ProcessFiles(flags.AttachFlags, localRoot)
+		localRoots := localWorkspaceRoots(workspaceEntries)
+		res, err := processor.ProcessFiles(flags.AttachFlags, localRoots)
 		if err != nil {
 			conn.Close()
 			return nil, errors.Wrap(err, "failed to process attachments")
@@ -173,15 +173,15 @@ func prepareAgentExec(flags agentExecFlags, sp *spinner.Spinner) (*preparedAgent
 	}
 
 	return &preparedAgentExec{
-		DefaultAction:   defaultAction,
-		WorkspaceSource: workspaceSource,
-		RuntimeEnv:      runtimeEnv,
-		Conn:            conn,
-		OrgID:           orgID,
-		AttachResult:    attachResult,
-		Message:         flags.Message,
-		Detach:          flags.Detach,
-		Verbose:         flags.Verbose,
+		DefaultAction:    defaultAction,
+		WorkspaceEntries: workspaceEntries,
+		RuntimeEnv:       runtimeEnv,
+		Conn:             conn,
+		OrgID:            orgID,
+		AttachResult:     attachResult,
+		Message:          flags.Message,
+		Detach:           flags.Detach,
+		Verbose:          flags.Verbose,
 	}, nil
 }
 
@@ -193,20 +193,20 @@ func prepareAgentExec(flags agentExecFlags, sp *spinner.Spinner) (*preparedAgent
 // agent execution once the agent has been resolved. This is the common
 // execution path shared by `stigmer run agent` and `stigmer draft`.
 type resolvedAgentExecInput struct {
-	Agent           *agentv1.Agent
-	Message         string
-	RuntimeEnv      envfile.EnvMap
-	AttachResult    *AttachmentResult
-	WorkspaceSource *sessionv1.WorkspaceSource
-	Model           string
-	AutoApproveAll  bool
-	Detach          bool
-	DownloadDir     string // empty = skip artifact download
-	OrgID           string
-	DefaultAction   approval.Action
-	Verbose         bool
-	OutputMode      OutputMode
-	Conn            *grpc.ClientConn
+	Agent            *agentv1.Agent
+	Message          string
+	RuntimeEnv       envfile.EnvMap
+	AttachResult     *AttachmentResult
+	WorkspaceEntries []*sessionv1.WorkspaceEntry
+	Model            string
+	AutoApproveAll   bool
+	Detach           bool
+	DownloadDir      string // empty = skip artifact download
+	OrgID            string
+	DefaultAction    approval.Action
+	Verbose          bool
+	OutputMode       OutputMode
+	Conn             *grpc.ClientConn
 }
 
 // executeResolvedAgent creates a session (if workspace is configured), creates
@@ -232,7 +232,7 @@ func executeResolvedAgent(input resolvedAgentExecInput, sp *spinner.Spinner) err
 		Conn:              input.Conn,
 	}
 
-	if input.WorkspaceSource != nil {
+	if len(input.WorkspaceEntries) > 0 {
 		instanceID := input.Agent.GetStatus().GetDefaultInstanceId()
 		if instanceID == "" {
 			sp.Stop()
@@ -240,7 +240,7 @@ func executeResolvedAgent(input resolvedAgentExecInput, sp *spinner.Spinner) err
 		}
 
 		sp.Start("Creating workspace...")
-		session, err := createSessionForAgent(instanceID, input.OrgID, input.WorkspaceSource, input.Conn)
+		session, err := createSessionForAgent(instanceID, input.OrgID, input.WorkspaceEntries, input.Conn)
 		if err != nil {
 			sp.Stop()
 			return errors.Wrap(err, "failed to create workspace session")
