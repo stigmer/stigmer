@@ -66,6 +66,14 @@ class _MockLocalPathSource:
         self.path = path
 
 
+class _MockWorkspaceEntry:
+    """Mimics a ``WorkspaceEntry`` proto for provision_all testing."""
+
+    def __init__(self, name: str, source: object) -> None:
+        self.name = name
+        self.source = source
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -355,3 +363,141 @@ class TestWorkspaceProvisionError:
         )
         assert err.cause is cause
         assert err.source_type is SourceType.GIT_REPO
+
+
+# ---------------------------------------------------------------------------
+# provision_all — multi-entry orchestrator
+# ---------------------------------------------------------------------------
+
+
+class TestProvisionAll:
+    """Tests for WorkspaceProvisioner.provision_all()."""
+
+    def test_empty_entries_returns_empty_list(self, tmp_path):
+        backend = LocalWorkspaceBackend(root_dir=tmp_path)
+        provisioner = WorkspaceProvisioner()
+
+        results = provisioner.provision_all([], backend, {}, is_local_mode=True)
+
+        assert results == []
+
+    def test_single_local_entry_returns_one_result_with_name(self, tmp_path):
+        source = _MockWorkspaceSource(
+            local_path=_MockLocalPathSource(path=str(tmp_path)),
+        )
+        entry = _MockWorkspaceEntry(name="my-project", source=source)
+        backend = LocalWorkspaceBackend(root_dir=tmp_path / "unused")
+        provisioner = WorkspaceProvisioner()
+
+        results = provisioner.provision_all(
+            [entry], backend, {}, is_local_mode=True,
+        )
+
+        assert len(results) == 1
+        assert results[0].entry_name == "my-project"
+        assert results[0].source_type is SourceType.LOCAL_PATH
+        assert results[0].root_dir == str(tmp_path)
+
+    def test_multiple_local_entries_returns_all_with_names(self, tmp_path):
+        dir_a = tmp_path / "alpha"
+        dir_b = tmp_path / "beta"
+        dir_a.mkdir()
+        dir_b.mkdir()
+
+        entry_a = _MockWorkspaceEntry(
+            name="alpha",
+            source=_MockWorkspaceSource(
+                local_path=_MockLocalPathSource(path=str(dir_a)),
+            ),
+        )
+        entry_b = _MockWorkspaceEntry(
+            name="beta",
+            source=_MockWorkspaceSource(
+                local_path=_MockLocalPathSource(path=str(dir_b)),
+            ),
+        )
+        backend = LocalWorkspaceBackend(root_dir=tmp_path / "unused")
+        provisioner = WorkspaceProvisioner()
+
+        results = provisioner.provision_all(
+            [entry_a, entry_b], backend, {}, is_local_mode=True,
+        )
+
+        assert len(results) == 2
+        assert results[0].entry_name == "alpha"
+        assert results[0].root_dir == str(dir_a)
+        assert results[1].entry_name == "beta"
+        assert results[1].root_dir == str(dir_b)
+
+    def test_entry_name_stamped_on_result(self, tmp_path):
+        """entry_name comes from the entry, not the source handler."""
+        source = _MockWorkspaceSource(
+            local_path=_MockLocalPathSource(path=str(tmp_path)),
+        )
+        entry = _MockWorkspaceEntry(name="custom-label", source=source)
+        backend = LocalWorkspaceBackend(root_dir=tmp_path / "unused")
+        provisioner = WorkspaceProvisioner()
+
+        results = provisioner.provision_all(
+            [entry], backend, {}, is_local_mode=True,
+        )
+
+        assert results[0].entry_name == "custom-label"
+
+    def test_consumed_keys_propagated_per_entry(self, tmp_path):
+        dir_a = tmp_path / "a"
+        dir_a.mkdir()
+
+        entry = _MockWorkspaceEntry(
+            name="a",
+            source=_MockWorkspaceSource(
+                local_path=_MockLocalPathSource(path=str(dir_a)),
+            ),
+        )
+        backend = LocalWorkspaceBackend(root_dir=tmp_path / "unused")
+        provisioner = WorkspaceProvisioner()
+
+        env = {"WORKSPACE_PROVISION_SECRET": "val"}
+        results = provisioner.provision_all(
+            [entry], backend, env, is_local_mode=True,
+        )
+
+        assert "WORKSPACE_PROVISION_SECRET" in results[0].consumed_keys
+
+    def test_first_failure_aborts_remaining_entries(self, tmp_path):
+        good_dir = tmp_path / "good"
+        good_dir.mkdir()
+        bad_path = str(tmp_path / "does-not-exist")
+
+        entry_good = _MockWorkspaceEntry(
+            name="good",
+            source=_MockWorkspaceSource(
+                local_path=_MockLocalPathSource(path=str(good_dir)),
+            ),
+        )
+        entry_bad = _MockWorkspaceEntry(
+            name="bad",
+            source=_MockWorkspaceSource(
+                local_path=_MockLocalPathSource(path=bad_path),
+            ),
+        )
+        backend = LocalWorkspaceBackend(root_dir=tmp_path / "unused")
+        provisioner = WorkspaceProvisioner()
+
+        with pytest.raises(WorkspaceProvisionError, match="does not exist"):
+            provisioner.provision_all(
+                [entry_good, entry_bad], backend, {}, is_local_mode=True,
+            )
+
+    def test_existing_provision_method_unchanged(self, tmp_path):
+        """provision() still works as before — no entry_name."""
+        source = _MockWorkspaceSource(
+            local_path=_MockLocalPathSource(path=str(tmp_path)),
+        )
+        backend = LocalWorkspaceBackend(root_dir=tmp_path / "unused")
+        provisioner = WorkspaceProvisioner()
+
+        result = provisioner.provision(source, backend, {}, is_local_mode=True)
+
+        assert result.entry_name == ""
+        assert result.source_type is SourceType.LOCAL_PATH

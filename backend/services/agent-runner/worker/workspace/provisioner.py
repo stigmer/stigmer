@@ -32,6 +32,7 @@ import dataclasses
 import logging
 from dataclasses import dataclass
 from enum import Enum
+from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -101,6 +102,9 @@ class ProvisionResult:
                                generation was skipped or the workspace is
                                empty.
         git_metadata:          Present only for ``GIT_REPO`` sources.
+        entry_name:            Identity label from ``WorkspaceEntry.name``.
+                               Empty string for unnamed / single-source
+                               workspaces.  Stamped by ``provision_all()``.
     """
 
     root_dir: str
@@ -109,6 +113,7 @@ class ProvisionResult:
     workspace_description: str
     file_tree: str | None = None
     git_metadata: GitMetadata | None = None
+    entry_name: str = ""
 
 
 class WorkspaceProvisionError(Exception):
@@ -141,11 +146,16 @@ class WorkspaceProvisionError(Exception):
 
 
 class WorkspaceProvisioner:
-    """Provisions workspace content based on a ``WorkspaceSource`` proto.
+    """Provisions workspace content based on ``WorkspaceSource`` protos.
 
-    This is the single entry-point for workspace provisioning.  It
-    inspects the ``oneof source`` field and delegates to the matching
-    handler in ``worker.workspace.sources``.
+    Two entry-points:
+
+    ``provision``
+        Provisions a single ``WorkspaceSource`` — the per-source method.
+    ``provision_all``
+        Provisions a sequence of ``WorkspaceEntry`` protos — the
+        multi-entry orchestrator.  Delegates to ``provision`` per entry
+        and stamps ``entry_name`` on each result.
     """
 
     def __init__(self, *, log: logging.Logger | None = None) -> None:
@@ -203,6 +213,64 @@ class WorkspaceProvisioner:
             result.consumed_keys,
         )
         return result
+
+    def provision_all(
+        self,
+        entries: Sequence[object],
+        backend: WorkspaceBackend,
+        merged_env: dict[str, str],
+        is_local_mode: bool,
+    ) -> list[ProvisionResult]:
+        """Provision multiple workspace entries.
+
+        Iterates *entries* (``WorkspaceEntry`` protos, duck-typed) and
+        delegates each to :meth:`provision`.  The ``entry_name`` from
+        the proto is stamped onto each result.
+
+        Fail-fast: if any entry raises ``WorkspaceProvisionError`` the
+        exception propagates immediately — no partial provisioning.
+
+        Args:
+            entries: Sequence of ``WorkspaceEntry`` proto messages.
+                Each must expose ``.name`` (str) and ``.source``
+                (``WorkspaceSource``).
+            backend: The ``WorkspaceBackend`` for command execution.
+            merged_env: Fully-merged environment (``dict[str, str]``).
+            is_local_mode: Whether the runner is in local mode.
+
+        Returns:
+            One ``ProvisionResult`` per entry, in the same order.
+            Empty list when *entries* is empty.
+
+        Raises:
+            WorkspaceProvisionError: If any entry fails to provision.
+        """
+        if not entries:
+            return []
+
+        results: list[ProvisionResult] = []
+        for entry in entries:
+            name: str = entry.name  # type: ignore[attr-defined]
+            source: object = entry.source  # type: ignore[attr-defined]
+
+            self._log.info(
+                "Provisioning workspace entry %d/%d: name=%r",
+                len(results) + 1,
+                len(entries),
+                name,
+            )
+
+            result = self.provision(source, backend, merged_env, is_local_mode)
+            result = dataclasses.replace(result, entry_name=name)
+            results.append(result)
+
+        self._log.info(
+            "Provisioned %d workspace entr%s: %s",
+            len(results),
+            "y" if len(results) == 1 else "ies",
+            ", ".join(r.entry_name or "(unnamed)" for r in results),
+        )
+        return results
 
     # ------------------------------------------------------------------
     # Internal dispatch
