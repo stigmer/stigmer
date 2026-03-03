@@ -31,8 +31,9 @@ tools and resource templates, and push the results to stigmer-server.`,
 
 func newDiscoverMcpServerCommand() *cobra.Command {
 	var (
-		timeout time.Duration
-		dryRun  bool
+		timeout  time.Duration
+		dryRun   bool
+		envFlags []string
 	)
 
 	cmd := &cobra.Command{
@@ -47,12 +48,31 @@ so credentials (e.g., GITHUB_TOKEN) never leave your machine.
 
 For HTTP-based servers the CLI connects to the configured URL.
 
+ENVIRONMENT VARIABLES:
+
+  Use --env KEY=VALUE to pass credentials the MCP server needs. These are
+  merged on top of your shell environment (--env values win on collision).
+  The flag can be repeated for multiple variables.
+
+  You can also export variables in your shell before running the command;
+  --env is simply more convenient and mirrors stigmer run / stigmer draft.
+
+  During automated flows (bootstrap, apply), well-known variables like
+  PLANTON_API_KEY, GITHUB_TOKEN, and STIGMER_API_KEY are auto-resolved
+  from local credential stores (Planton CLI, gh CLI, stigmer login).
+
 Examples:
   # Discover by slug (uses default org)
   stigmer discover mcp-server github
 
   # Discover by org/slug
   stigmer discover mcp-server stigmer/stigmer-mcp-server
+
+  # Pass required credentials via --env
+  stigmer discover mcp-server planton-cloud --env PLANTON_API_KEY=pk-xxx
+
+  # Multiple env vars
+  stigmer discover mcp-server my-server --env GITHUB_TOKEN=ghp-xxx --env API_URL=https://...
 
   # Preview without pushing
   stigmer discover mcp-server github --dry-run
@@ -62,10 +82,11 @@ Examples:
 		Args: cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := executeDiscoverMcpServer(discoverMcpServerOptions{
-				Reference:   args[0],
-				OrgOverride: GetOrgFlag(cmd),
-				Timeout:     timeout,
-				DryRun:      dryRun,
+				Reference:    args[0],
+				OrgOverride:  GetOrgFlag(cmd),
+				Timeout:      timeout,
+				DryRun:       dryRun,
+				EnvOverrides: envFlags,
 			})
 			clierr.Handle(err)
 		},
@@ -73,15 +94,17 @@ Examples:
 
 	cmd.Flags().DurationVar(&timeout, "timeout", 30*time.Second, "timeout for MCP server connection and discovery")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "discover and display results without pushing to backend")
+	cmd.Flags().StringArrayVar(&envFlags, "env", []string{}, "environment variable for the MCP server (KEY=VALUE, can be repeated)")
 
 	return cmd
 }
 
 type discoverMcpServerOptions struct {
-	Reference   string
-	OrgOverride string
-	Timeout     time.Duration
-	DryRun      bool
+	Reference    string
+	OrgOverride  string
+	Timeout      time.Duration
+	DryRun       bool
+	EnvOverrides []string
 }
 
 func executeDiscoverMcpServer(opts discoverMcpServerOptions) error {
@@ -112,11 +135,12 @@ func executeDiscoverMcpServer(opts discoverMcpServerOptions) error {
 	defer conn.Close()
 
 	result, err := mcpserver.Discover(context.Background(), &mcpserver.DiscoverOptions{
-		Conn:    conn,
-		OrgID:   orgID,
-		Ref:     opts.Reference,
-		Timeout: opts.Timeout,
-		DryRun:  opts.DryRun,
+		Conn:         conn,
+		OrgID:        orgID,
+		Ref:          opts.Reference,
+		Timeout:      opts.Timeout,
+		DryRun:       opts.DryRun,
+		EnvOverrides: opts.EnvOverrides,
 	})
 	if err != nil {
 		return err
