@@ -229,9 +229,9 @@ type AgentExecutionSpec struct {
 	// This separates the "attention" signal ("look at this file") from the
 	// "transport" mechanism (upload + inject) that regular attachments use.
 	//
-	// Valid only when the session has a workspace_source with a local path.
-	// For git workspaces or sessions without a workspace, all files go through
-	// the regular attachment flow.
+	// Valid only when the session has a workspace entry with a local path source.
+	// For git workspaces or sessions without workspace entries, all files go
+	// through the regular attachment flow.
 	//
 	// Example CLI usage:
 	//
