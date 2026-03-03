@@ -641,6 +641,193 @@ class TestTokenScrubbing:
 
 
 # ---------------------------------------------------------------------------
+# Subdirectory provisioning (multi-entry cloud mode)
+# ---------------------------------------------------------------------------
+
+
+class _CwdTrackingGitBackend(_GitBackend):
+    """Extends _GitBackend to record (command, cwd) pairs."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.command_records: list[tuple[str, str | None]] = []
+
+    def execute(self, command, *, cwd=None, timeout=30):
+        self.command_records.append((command, cwd))
+        return super().execute(command, cwd=cwd, timeout=timeout)
+
+
+class TestSubdirectoryClone:
+    """When target_subdir is set, clone into a named subdirectory."""
+
+    def test_clone_target_includes_subdirectory(self, tmp_path):
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CwdTrackingGitBackend(tmp_path)
+
+        git_source.provision(source, backend, {}, target_subdir="my-app")
+
+        clone_cmd = _find_command(backend.commands, "git clone")
+        expected_target = str(tmp_path / "my-app")
+        assert clone_cmd.endswith(expected_target)
+
+    def test_root_dir_includes_subdirectory(self, tmp_path):
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CwdTrackingGitBackend(tmp_path)
+
+        result = git_source.provision(source, backend, {}, target_subdir="my-app")
+
+        assert result.root_dir == str(tmp_path / "my-app")
+
+    def test_no_subdir_preserves_root_dir(self, tmp_path):
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CwdTrackingGitBackend(tmp_path)
+
+        result = git_source.provision(source, backend, {})
+
+        assert result.root_dir == str(tmp_path)
+
+    def test_post_clone_commands_use_cwd(self, tmp_path):
+        source = _MockGitRepoSource(
+            url="https://github.com/org/repo.git", commit="abc123"
+        )
+        backend = _CwdTrackingGitBackend(tmp_path)
+
+        git_source.provision(source, backend, {}, target_subdir="my-app")
+
+        for cmd, cwd in backend.command_records:
+            if "git checkout" in cmd or "rev-parse" in cmd:
+                assert cwd == "my-app", (
+                    f"Expected cwd='my-app' for '{cmd}', got {cwd!r}"
+                )
+
+    def test_clone_command_runs_from_root(self, tmp_path):
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CwdTrackingGitBackend(tmp_path)
+
+        git_source.provision(source, backend, {}, target_subdir="my-app")
+
+        for cmd, cwd in backend.command_records:
+            if "git clone" in cmd:
+                assert cwd is None, f"Clone should run from root, got cwd={cwd!r}"
+
+    def test_metadata_populated_for_subdir_clone(self, tmp_path):
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CwdTrackingGitBackend(tmp_path)
+
+        result = git_source.provision(source, backend, {}, target_subdir="my-app")
+
+        assert result.source_type is SourceType.GIT_REPO
+        assert result.git_metadata is not None
+        assert result.git_metadata.repo_url == "https://github.com/org/repo.git"
+        assert result.git_metadata.branch == "main"
+
+
+class TestSubdirectoryIdempotency:
+    """Idempotent detection scoped to subdirectory."""
+
+    def test_existing_repo_in_subdir_detected(self, tmp_path):
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CwdTrackingGitBackend(tmp_path, responses={
+            "test -d .git && echo yes || echo no": ExecuteResult(
+                exit_code=0, stdout="yes\n", stderr="",
+            ),
+        })
+
+        result = git_source.provision(
+            source, backend, {}, target_subdir="my-app"
+        )
+
+        assert result.root_dir == str(tmp_path / "my-app")
+        assert not any("git clone" in c for c in backend.commands)
+
+    def test_detect_uses_cwd(self, tmp_path):
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CwdTrackingGitBackend(tmp_path, responses={
+            "test -d .git && echo yes || echo no": ExecuteResult(
+                exit_code=0, stdout="yes\n", stderr="",
+            ),
+        })
+
+        git_source.provision(source, backend, {}, target_subdir="my-app")
+
+        for cmd, cwd in backend.command_records:
+            if "test -d .git" in cmd:
+                assert cwd == "my-app"
+
+
+class TestSubdirectoryRecovery:
+    """Cleanup scoped to subdirectory."""
+
+    def test_cleanup_uses_cwd(self, tmp_path):
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CwdTrackingGitBackend(tmp_path, responses={
+            "test -d .git && echo yes || echo no": ExecuteResult(
+                exit_code=0, stdout="no\n", stderr="",
+            ),
+            "ls -A": ExecuteResult(
+                exit_code=0, stdout="partial-data\n", stderr="",
+            ),
+            "rm -rf": ExecuteResult(exit_code=0, stdout="", stderr=""),
+        })
+
+        git_source.provision(source, backend, {}, target_subdir="my-app")
+
+        for cmd, cwd in backend.command_records:
+            if "rm -rf" in cmd:
+                assert cwd == "my-app", (
+                    f"Cleanup should be scoped, got cwd={cwd!r}"
+                )
+
+    def test_nonexistent_subdir_skips_cleanup(self, tmp_path):
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CwdTrackingGitBackend(tmp_path, responses={
+            "test -d .git && echo yes || echo no": ExecuteResult(
+                exit_code=1, stdout="", stderr="",
+            ),
+            "ls -A": ExecuteResult(
+                exit_code=1, stdout="", stderr="No such file or directory",
+            ),
+        })
+
+        result = git_source.provision(
+            source, backend, {}, target_subdir="new-entry"
+        )
+
+        assert not any("rm -rf" in c for c in backend.commands)
+        assert result.source_type is SourceType.GIT_REPO
+
+
+class TestSubdirectoryExcludes:
+    """Git excludes written to subdirectory's .git/info/exclude."""
+
+    def test_excludes_written_in_subdirectory(self, tmp_path):
+        subdir = tmp_path / "my-app"
+        subdir.mkdir()
+        (subdir / ".git" / "info").mkdir(parents=True)
+
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CwdTrackingGitBackend(tmp_path)
+
+        git_source.provision(source, backend, {}, target_subdir="my-app")
+
+        exclude_content = (subdir / ".git" / "info" / "exclude").read_text()
+        assert ".stigmer" in exclude_content
+
+    def test_excludes_not_written_to_parent(self, tmp_path):
+        subdir = tmp_path / "my-app"
+        subdir.mkdir()
+        (subdir / ".git" / "info").mkdir(parents=True)
+
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CwdTrackingGitBackend(tmp_path)
+
+        git_source.provision(source, backend, {}, target_subdir="my-app")
+
+        root_exclude = tmp_path / ".git" / "info" / "exclude"
+        assert not root_exclude.exists()
+
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 

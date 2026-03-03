@@ -271,8 +271,13 @@ def _build_directory_tree_via_find(
     max_depth: int = _WORKSPACE_TREE_MAX_DEPTH,
     max_entries: int = _WORKSPACE_TREE_MAX_ENTRIES,
     gitignore_filter: GitIgnoreFilter | None = None,
+    cwd: str | None = None,
 ) -> tuple[list[str], int] | None:
     """Walk a remote workspace directory tree using ``backend.execute()``.
+
+    When *cwd* is set, the ``find`` command runs inside that
+    subdirectory (relative to ``backend.root_dir``) so only the
+    entry's files are included.  Used for multi-entry cloud mode.
 
     Returns ``(lines, total_count)`` on success, or ``None`` if the
     command fails or produces no parseable output.
@@ -280,7 +285,7 @@ def _build_directory_tree_via_find(
     cmd = _build_find_command(skip_dirs=skip_dirs, max_depth=max_depth)
 
     try:
-        result = backend.execute(cmd, timeout=30)
+        result = backend.execute(cmd, cwd=cwd, timeout=30)
     except Exception:
         logger.warning("Tree generation via find failed with exception", exc_info=True)
         return None
@@ -314,6 +319,7 @@ def build_workspace_file_tree(
     max_depth: int = _WORKSPACE_TREE_MAX_DEPTH,
     max_entries: int = _WORKSPACE_TREE_MAX_ENTRIES,
     gitignore_filter: GitIgnoreFilter | None = None,
+    cwd: str | None = None,
 ) -> str | None:
     """Generate a formatted workspace file-tree section for the system prompt.
 
@@ -323,6 +329,10 @@ def build_workspace_file_tree(
       on *root_dir*.  Fast and produces rich metadata (file sizes).
     - **Remote mode (Daytona):** Uses ``backend.execute("find ...")``
       with GNU ``find -printf`` to walk the tree inside the sandbox.
+
+    When *cwd* is set (multi-entry cloud mode), the remote ``find``
+    runs inside that subdirectory of ``backend.root_dir``.  Local mode
+    is unaffected — it always uses *root_dir* directly.
 
     When *gitignore_filter* is provided, entries matching ``.gitignore``
     patterns are excluded from the tree.
@@ -345,6 +355,7 @@ def build_workspace_file_tree(
             max_depth=max_depth,
             max_entries=max_entries,
             gitignore_filter=gitignore_filter,
+            cwd=cwd,
         )
         if result is None:
             return None
