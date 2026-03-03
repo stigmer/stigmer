@@ -536,6 +536,14 @@ func EnsureRunning(dataDir string) error {
 
 // EnsureSeedpackBootstrapped applies the embedded seedpack content if the
 // current binary's seedpack differs from the last-applied version.
+//
+// Bootstrap runs in two phases to respect the resource hierarchy
+// (Organization -> Project -> Members):
+//
+//  1. Apply organization resources — creates the prerequisite Organization
+//     that all other resources belong to.
+//  2. Apply the project — creates agents, skills, MCP servers, and the
+//     project itself under the organization from phase 1.
 func EnsureSeedpackBootstrapped(dataDir string) error {
 	if os.Getenv(seedpackSkipEnvVar) == "1" {
 		log.Debug().Msg("Seedpack bootstrap skipped (recursion guard)")
@@ -576,13 +584,30 @@ func EnsureSeedpackBootstrapped(dataDir string) error {
 		return errors.Wrap(err, "failed to get CLI executable path")
 	}
 
+	bootstrapEnv := append(os.Environ(), seedpackSkipEnvVar+"=1")
+
+	// Phase 1: Apply organizations first. Organization is the root of the
+	// resource hierarchy and must exist before any project members reference it.
+	orgDir := filepath.Join(tmpDir, "organizations")
+	if info, statErr := os.Stat(orgDir); statErr == nil && info.IsDir() {
+		cmd := exec.Command(cliBin, "apply", "-f", orgDir)
+		cmd.Env = bootstrapEnv
+		cmd.Stdout = os.Stderr
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			return errors.Wrap(err, "failed to apply seedpack organizations")
+		}
+	}
+
+	// Phase 2: Apply the project (agents, skills, MCP servers).
+	// Organization YAMLs are skipped by the declarative apply flow, so this
+	// is safe even though the organizations/ directory still exists in tmpDir.
 	cmd := exec.Command(cliBin, "apply", "--config", tmpDir)
-	cmd.Env = append(os.Environ(), seedpackSkipEnvVar+"=1")
+	cmd.Env = bootstrapEnv
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
-
 	if err := cmd.Run(); err != nil {
-		return errors.Wrap(err, "failed to apply seedpack")
+		return errors.Wrap(err, "failed to apply seedpack project")
 	}
 
 	if err := os.MkdirAll(dataDir, 0755); err != nil {

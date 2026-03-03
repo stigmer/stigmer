@@ -57,7 +57,7 @@ func executeDraft(cfg draftConfig, opts draftOptions) error {
 	agentRef := prep.OrgID + "/" + cfg.AgentName
 	agent, err := resolveAgent(agentRef, prep.OrgID, prep.Conn)
 	if err != nil {
-		displayDraftAgentNotFoundError(cfg.AgentName)
+		displayDraftAgentNotFoundError(cfg.AgentName, prep.OrgID)
 		return errors.Wrapf(err, "%s agent not found", cfg.AgentName)
 	}
 
@@ -95,14 +95,16 @@ func executeDraft(cfg draftConfig, opts draftOptions) error {
 	return nil
 }
 
-// displayDraftAgentNotFoundError shows a helpful error when a draft system agent is missing.
-func displayDraftAgentNotFoundError(agentName string) {
-	climsg.Error("%s agent not found", agentName)
+// displayDraftAgentNotFoundError shows a helpful error when a draft system
+// agent is missing, including the org that was searched and recovery steps.
+func displayDraftAgentNotFoundError(agentName, orgID string) {
+	climsg.Error("%s agent not found in organization %q", agentName, orgID)
 	climsg.Info("")
 	climsg.Info("This system agent is created during server bootstrap.")
-	climsg.Info("Ensure the server has completed bootstrap successfully.")
 	climsg.Info("")
-	climsg.Info("Check bootstrap status with:")
-	climsg.Info("  Check server logs for 'Seedpack bootstrap completed successfully'")
+	climsg.Info("Troubleshooting:")
+	climsg.Info("  1. Verify agents exist:  stigmer list agents")
+	climsg.Info("  2. Check active org:     stigmer context show")
+	climsg.Info("  3. Re-bootstrap:         stigmer server reset && stigmer server")
 	fmt.Println()
 }

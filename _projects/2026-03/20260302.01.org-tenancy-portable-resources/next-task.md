@@ -12,10 +12,21 @@ Drop this file into your conversation to quickly resume work on this project.
 **Components**: Proto definitions (tenancy/project), CLI apply pipeline, OSS server (Organization controller, project reconciliation), seedpack, CLI config (org context), documentation
 
 ## Current State
-- **Status**: T01.1–T01.9 Complete (OSS). T01.4 also complete in Cloud. All generated files regenerated. Only skill regeneration and cloud commit remain.
-- **Last Session**: 2026-03-03 (session 14) — Regenerate Proto Stubs, Codegen Schemas, and MCP Gen
-- **Active Task**: Proto stubs, codegen schemas, and MCP gen all regenerated and verified clean. Remaining: (1) regenerate skills via `seedpack/tools/regenerate_all.sh`, (2) commit cloud repo T01.4 changes.
+- **Status**: T01.1–T01.9 Complete (OSS). T01.4 also complete in Cloud. Seedpack bootstrap fix complete. Skill regeneration and cloud commit remain.
+- **Last Session**: 2026-03-03 (session 15) — Seedpack Bootstrap and Organization Hierarchy Fix
+- **Active Task**: Seedpack bootstrap chicken-and-egg problem fixed. Organization removed from project apply flow, two-phase bootstrap implemented, draft diagnostics improved. Remaining: (1) run `stigmer server reset && stigmer server` to verify fix, (2) regenerate skills via `seedpack/tools/regenerate_all.sh`, (3) commit cloud repo T01.4 changes.
 - **Cloud Repo Status**: Build restored. Reconciliation subsystem rearchitected. NormalizeApiResourceReferencesStepV2 wired into all 29 handlers. Cloud T01.4 changes uncommitted. See `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
+
+## Session Progress (2026-03-03, session 15 — Seedpack Bootstrap and Organization Hierarchy Fix)
+- Diagnosed seedpack bootstrap chicken-and-egg bug: system agents exist under org `local` (pre-migration) but CLI context resolves to `default` (post-migration), causing `stigmer draft skill` and `stigmer list agents` to find nothing
+- **Architectural decision**: Organization removed from project declarative apply flow — Organization sits above Project in the hierarchy (Organization → Project → Members) and must be applied separately via `stigmer apply -f`
+- **`apply_declarative.go`**: `detectResourceItems` now skips Organization kind with a warning message guiding users to `stigmer apply -f`
+- **`apply_file.go`**: Org resolution made conditional — `resolveOrganization` is skipped when all items are Organization kind (self-identifying by slug). Added `requiresOrgContext` helper
+- **`daemon.go`**: Seedpack bootstrap is now two-phase: Phase 1 applies `organizations/` directory via `stigmer apply -f` (no org context needed), Phase 2 applies the project via `stigmer apply --config` (org from `stigmer.yaml`). Organization YAMLs harmlessly skipped in Phase 2
+- **`draft_handler.go`**: Error message now shows which org was searched and provides numbered troubleshooting steps (verify agents, check context, re-bootstrap)
+- **Cleanup strategy**: Manual via existing `stigmer server reset` command — no automatic migration of old `local` resources
+- **Files modified**: 4 files (+71 lines, -15 lines in our changes; seedpack skill deletions are pre-existing)
+- **Verified clean**: `go build ./client-apps/cli/...` passes for all CLI packages
 
 ## Session Progress (2026-03-03, session 14 — Regenerate Proto Stubs, Codegen Schemas, and MCP Gen)
 - Regenerated proto stubs via `make protos` — propagated spec.proto comment changes (org removed from cross-reference examples) to `spec.pb.go` and Python stubs
@@ -192,11 +203,13 @@ Drop this file into your conversation to quickly resume work on this project.
 3. ~~**Optional cleanup**: Secondary API docs~~ — COMPLETED
 4. ~~**Regenerate proto stubs**: `make protos`~~ — COMPLETED (session 14)
 5. ~~**Regenerate codegen schemas + MCP gen**: `make codegen`~~ — COMPLETED (session 14)
-6. **Regenerate skills**: Run `seedpack/tools/regenerate_all.sh` to verify clean skill output
-7. **Commit cloud repo changes**: T01.4 cloud changes (NormalizeApiResourceReferencesStepV2 + 29 handlers) still uncommitted
+6. ~~**Seedpack bootstrap fix**: Organization hierarchy, two-phase bootstrap~~ — COMPLETED (session 15)
+7. **Verify bootstrap fix**: Run `stigmer server reset && stigmer server` then `stigmer list agents` to confirm agents under org `default`
+8. **Regenerate skills**: Run `seedpack/tools/regenerate_all.sh` to verify clean skill output
+9. **Commit cloud repo changes**: T01.4 cloud changes (NormalizeApiResourceReferencesStepV2 + 29 handlers) still uncommitted
 
 ## Context for Resume
-- T01.1 through T01.9 are complete in OSS; T01.4 also complete in Cloud
+- T01.1 through T01.9 are complete in OSS; T01.4 also complete in Cloud. Seedpack bootstrap fix complete (session 15)
 - **T01.8 changes**: Removed `ContextConfig.Environment` (YAGNI), promoted `--org` to root persistent flag (was duplicated across 11+ commands), injected `STIGMER_ORG_ID` into agent `RuntimeEnv` and SDK synthesis env, updated all seedpack skill docs (agent-creator, mcp-server-creator) to read `STIGMER_ORG_ID` instead of asking user or hardcoding `org: local`
 - The Project proto now lives at `apis/ai/stigmer/tenancy/project/v1/` with package `ai.stigmer.tenancy.project.v1`
 - Organization is fully supported in both CLI apply pipeline AND server-side controllers
@@ -217,13 +230,17 @@ Drop this file into your conversation to quickly resume work on this project.
 - **CLI org context**: zero hardcoded org strings in CLI code
 - The task plan is in `tasks/T01_0_plan.md` — review T01.8 section for next task details
 - **stigmer-cloud**: Partially migrated — stubs regenerated, Java domain moved, imports updated. Reconciliation rearchitected. Full status documented in `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
+- **Seedpack bootstrap**: Now two-phase — Phase 1 applies `organizations/` (via `apply -f`, no org context needed), Phase 2 applies project (via `apply --config`, org from `stigmer.yaml`). Organization kind is skipped in declarative apply.
+- **Organization is NOT a project resource**: Removed from declarative project apply flow. Must be applied separately via `stigmer apply -f`. Enforces hierarchy: Organization → Project → Members
+- **`requiresOrgContext()`**: New helper in `apply_file.go` — returns false for Organization-only applies, enabling `stigmer apply -f organizations/` to work before any org context exists
+- **Draft diagnostics**: `displayDraftAgentNotFoundError` now accepts orgID and shows which org was searched, plus numbered troubleshooting steps
 - **Pre-existing Bazel issue**: `com_github_charmbracelet_glamour` repo unresolved — CLI root_test can't build via Bazel but passes via `go test`
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260302.01.org-tenancy-portable-resources/checkpoints/2026-03-03-session-14.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260302.01.org-tenancy-portable-resources/checkpoints/2026-03-03-session-15.md
 ```
 
 ### 2. Task Plan
@@ -260,15 +277,17 @@ Drop this file into your conversation to quickly resume work on this project.
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-03-03-session-14.md`
+1. [ ] Read the latest checkpoint from `checkpoints/2026-03-03-session-15.md`
 2. [ ] Read cloud migration doc: `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
 3. [ ] Check current task status in `tasks/T01_0_plan.md`
 4. [ ] Review any new design decisions in `design-decisions/`
 5. [ ] Check coding guidelines in `coding-guidelines/`
 6. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
 7. [x] Regenerate proto stubs + codegen schemas to propagate spec.proto changes (done session 14)
-8. [ ] Regenerate skills with `seedpack/tools/regenerate_all.sh` to verify clean output
-9. [ ] Commit cloud repo T01.4 changes (uncommitted)
+8. [x] Fix seedpack bootstrap chicken-and-egg problem (done session 15)
+9. [ ] Verify bootstrap fix: `stigmer server reset && stigmer server` then `stigmer list agents`
+10. [ ] Regenerate skills with `seedpack/tools/regenerate_all.sh` to verify clean output
+11. [ ] Commit cloud repo T01.4 changes (uncommitted)
 
 ## Quick Commands
 
