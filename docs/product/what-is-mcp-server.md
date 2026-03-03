@@ -350,7 +350,7 @@ apiVersion: agentic.stigmer.ai/v1
 kind: McpServer
 metadata:
   name: github
-  org: local
+  org: default
 spec:
   description: "GitHub MCP server for repository operations"
   stdio:

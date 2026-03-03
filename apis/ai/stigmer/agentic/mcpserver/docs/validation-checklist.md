@@ -234,7 +234,7 @@ metadata:
   org: acme-corp
 ```
 
-In local mode, `org` defaults to `local` if omitted.
+If `org` is omitted, the CLI resolves it from the active context (`stigmer context show`).
 
 ### Forgetting to run discovery after apply
 

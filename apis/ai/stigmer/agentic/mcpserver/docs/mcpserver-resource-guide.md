@@ -9,7 +9,7 @@ apiVersion: agentic.stigmer.ai/v1
 kind: McpServer
 metadata:
   name: github
-  org: local
+  org: acme-corp
   visibility: visibility_private
   labels:
     category: vcs
@@ -62,7 +62,7 @@ All metadata fields are defined by `ApiResourceMetadata` in `ai/stigmer/commons/
 | `metadata.name` | Yes | Human-readable name of the MCP server (e.g., `"GitHub MCP Server"`). |
 | `metadata.slug` | No | URL-friendly identifier, unique within the organization. Auto-generated from `name` if omitted. Format: lowercase alphanumeric with hyphens, starts with a letter, 1–63 characters. This is what agents use in `mcp_server_ref.slug`. |
 | `metadata.id` | No | System-generated unique identifier. Never set by users. |
-| `metadata.org` | Depends | Organization that owns this McpServer. **Local mode:** defaults to `local` if omitted. **Cloud mode:** required, enforced by the Authorization Service. |
+| `metadata.org` | Recommended | Organization that owns this McpServer. Set automatically from `context.organization` if omitted during apply. |
 | `metadata.visibility` | No | `visibility_private` (default): only org members can access. `visibility_public`: anyone can discover and reference this server (used for marketplace publishing). Write access always requires org membership. |
 | `metadata.labels` | No | Key-value pairs for filtering and organization (e.g., `category: vcs`). |
 | `metadata.annotations` | No | Key-value pairs for additional metadata not used for filtering (e.g., `docs-url: "https://..."`). |

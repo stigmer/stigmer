@@ -14,7 +14,6 @@ Sub-agents are defined inline within the parent Agent YAML — they are not sepa
 spec:
   mcp_server_usages:
     - mcp_server_ref:
-        org: local
         kind: mcp_server
         slug: github
       enabled_tools:
@@ -37,8 +36,7 @@ spec:
             - search_code
             - get_file
       skill_refs:
-        - org: local
-          kind: skill
+        - kind: skill
           slug: code-review-best-practices
 ```
 

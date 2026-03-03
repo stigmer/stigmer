@@ -11,7 +11,6 @@ apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
   name: simple-assistant
-  org: local
 spec:
   description: "A simple conversational assistant"
   instructions: |
@@ -20,14 +19,13 @@ spec:
 
 ## Agent with Skills
 
-An agent that uses skill references for specialized knowledge.
+An agent that uses skill references for specialized knowledge. Skill references omit the `org` field — the server resolves it from the agent's `metadata.org` at write time.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
   name: code-reviewer
-  org: local
   tags:
     - code-review
     - security
@@ -40,24 +38,21 @@ spec:
     - Performance issues
     - Proper error handling
   skill_refs:
-    - org: local
-      kind: skill
+    - kind: skill
       slug: code-analysis
-    - org: local
-      kind: skill
+    - kind: skill
       slug: company-style-guide
 ```
 
 ## Agent with MCP Servers
 
-An agent that uses external tools via MCP server integration.
+An agent that uses external tools via MCP server integration. The `mcp_server_ref` uses a relative reference (no `org` field).
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
   name: github-assistant
-  org: local
   labels:
     team: engineering
 spec:
@@ -67,7 +62,6 @@ spec:
     creating pull requests, and managing issues.
   mcp_server_usages:
     - mcp_server_ref:
-        org: local
         kind: mcp_server
         slug: github
       enabled_tools:
@@ -86,7 +80,6 @@ apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
   name: engineering-manager
-  org: local
 spec:
   description: "Coordinates engineering tasks with specialized sub-agents"
   instructions: |
@@ -95,7 +88,6 @@ spec:
     - PR creation goes to the pr-creator sub-agent
   mcp_server_usages:
     - mcp_server_ref:
-        org: local
         kind: mcp_server
         slug: github
       enabled_tools:
@@ -126,7 +118,7 @@ spec:
             - get_file
 ```
 
-## Full-Featured Agent (Local Mode)
+## Full-Featured Agent
 
 An agent using all available features — MCP servers with approval overrides, skills, sub-agents, and environment variables.
 
@@ -135,7 +127,6 @@ apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
   name: deployment-assistant
-  org: local
   labels:
     team: devops
     environment: production
@@ -159,7 +150,6 @@ spec:
     Always verify deployment targets before executing changes.
   mcp_server_usages:
     - mcp_server_ref:
-        org: local
         kind: mcp_server
         slug: github
       enabled_tools:
@@ -167,7 +157,6 @@ spec:
         - get_file
         - create_pr
     - mcp_server_ref:
-        org: local
         kind: mcp_server
         slug: kubernetes
       enabled_tools:
@@ -181,11 +170,9 @@ spec:
         - tool_name: rollback_deployment
           requires_approval: false
   skill_refs:
-    - org: local
-      kind: skill
+    - kind: skill
       slug: kubernetes-best-practices
-    - org: local
-      kind: skill
+    - kind: skill
       slug: company-deployment-procedures
   env_spec:
     data:
@@ -207,9 +194,9 @@ spec:
             - get_pod_status
 ```
 
-## Cloud Mode — Public Agent
+## Public Marketplace Agent
 
-An agent published to the marketplace from a named organization with public visibility.
+An agent published to the marketplace from a named organization with public visibility. Uses absolute references (explicit `org`) to reference resources from the publishing organization.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -248,8 +235,8 @@ spec:
       version: stable
 ```
 
-Key differences from local mode:
-- `metadata.org` is a real organization name (`acme-corp`), not `local`
+Key characteristics of marketplace agents:
+- `metadata.org` is set explicitly to the publishing organization (`acme-corp`)
 - `metadata.visibility` is `visibility_public` for marketplace publishing
-- Resource references use the same org (`acme-corp`) or can reference public resources from other orgs
+- Resource references use absolute `org` values (same org or cross-org public resources)
 - Skill version is pinned to `stable` for production reliability

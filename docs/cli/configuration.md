@@ -4,9 +4,11 @@ Configuration file location: `~/.stigmer/config.yaml`
 
 ## Quick Start
 
-The CLI auto-generates a default configuration on first run. For most users, **no manual configuration is needed** - just run `stigmer server` and it works!
+The CLI auto-generates a default configuration on first run. For most users, **no manual configuration is needed** — just run `stigmer server` and it works.
 
-If `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` is set in your environment, the CLI picks up the provider automatically - no config file changes needed.
+If `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` is set in your environment, the CLI picks up the provider automatically.
+
+On first server start, the seedpack bootstraps a `default` organization and the CLI sets it as the active context. All commands target this organization automatically.
 
 ---
 
@@ -24,9 +26,64 @@ backend:
             managed: true
         execution:
             mode: local  # "local" (default), "sandbox", or "auto"
+context:
+    organization: default  # active organization slug
 ```
 
 `backend.type` selects which sub-section is active. Use `local:` for local mode and `cloud:` for Stigmer Cloud. The daemon endpoint (`localhost:7234`) and data directory (`~/.stigmer/data`) are managed by the CLI and cannot be configured.
+
+---
+
+## Organization Context
+
+Every Stigmer command operates within an organization. The CLI resolves the active organization through a priority chain, from highest to lowest:
+
+```
+1. --org flag              (per-command override)
+    ↓
+2. stigmer.yaml metadata.org  (project-level, apply commands only)
+    ↓
+3. context.organization    (config file — persistent default)
+    ↓
+4. Backend.Cloud.OrgID     (backward compat for existing cloud configs)
+    ↓
+5. Error                   (no org found)
+```
+
+### Automatic Setup
+
+On first `stigmer server start`, the CLI bootstraps a `default` organization from the seedpack and sets `context.organization: default` in the config file. No manual steps required for single-org use.
+
+### Viewing and Switching Context
+
+```bash
+# See the active organization
+stigmer context show
+
+# Switch to a different organization
+stigmer context set --org acme-corp
+
+# Override for a single command (does not change saved context)
+stigmer agent list --org acme-corp
+```
+
+The `--org` flag is a global persistent flag available on all commands.
+
+### Managing Context via Config
+
+```bash
+# Read the active organization
+stigmer config get context.organization
+
+# Set it directly
+stigmer config set context.organization acme-corp
+```
+
+### `STIGMER_ORG_ID` Runtime Injection
+
+When the CLI runs an agent (`stigmer run`) or synthesizes SDK output (`stigmer project apply` with an entry point), it injects the resolved organization as `STIGMER_ORG_ID` into the execution environment. Agents and SDK programs can read this variable to know which organization they are operating in.
+
+If the user explicitly provides `--env STIGMER_ORG_ID=custom-value`, the user's value takes precedence.
 
 ---
 
@@ -145,8 +202,6 @@ backend:
 | `sandbox` | Runs in an isolated Docker container |
 | `auto` | Uses sandbox if Docker is available, otherwise local |
 
-Override via environment variable: `STIGMER_EXECUTION_MODE=sandbox`
-
 ---
 
 ## Temporal Workflow Engine
@@ -176,8 +231,6 @@ backend:
             address: temporal.example.com:7233
 ```
 
-Override via environment variable: `TEMPORAL_SERVICE_ADDRESS=temporal.example.com:7233`
-
 ---
 
 ## Cloud Backend
@@ -194,29 +247,84 @@ backend:
         env_id: your-env-id
 ```
 
-When `type: cloud` is set, the `local:` section is ignored.
+When `type: cloud` is set, the `local:` section is ignored. The `cloud.org_id` field is read as a fallback if `context.organization` is not set (backward compatibility).
 
 ---
 
 ## Configuration Precedence
 
-| Priority | Source |
-|----------|--------|
-| 1 (highest) | Environment variables |
-| 2 | Config file (`~/.stigmer/config.yaml`) |
-| 3 (lowest) | Default values |
+Configuration is resolved from highest to lowest priority:
 
-**Environment variable reference**:
+```
+1. CLI Flags            (highest — per-command override)
+    ↓
+2. Environment Variables
+    ↓
+3. Config File          (~/.stigmer/config.yaml)
+    ↓
+4. Defaults             (lowest — zero-config experience)
+```
 
-| Config setting | Environment variable |
+This follows the same cascade pattern as kubectl, Docker, and AWS CLI.
+
+**When to use each method:**
+
+| Method | Use Case |
+|--------|----------|
+| CLI flags | Quick testing, one-off overrides |
+| Environment variables | CI/CD pipelines, session-level config |
+| Config file | Daily development preferences |
+| Defaults | First-time zero-config experience |
+
+---
+
+## Environment Variables
+
+| Config Setting | Environment Variable |
 |----------------|---------------------|
 | LLM provider | `STIGMER_LLM_PROVIDER` |
 | LLM model | `STIGMER_LLM_MODEL` |
 | LLM base URL | `STIGMER_LLM_BASE_URL` |
 | Anthropic API key | `ANTHROPIC_API_KEY` |
 | OpenAI API key | `OPENAI_API_KEY` |
-| Temporal address | `TEMPORAL_SERVICE_ADDRESS` |
 | Execution mode | `STIGMER_EXECUTION_MODE` |
+| Sandbox image | `STIGMER_SANDBOX_IMAGE` |
+| Sandbox auto-pull | `STIGMER_SANDBOX_AUTO_PULL` |
+| Sandbox cleanup | `STIGMER_SANDBOX_CLEANUP` |
+| Sandbox TTL | `STIGMER_SANDBOX_TTL` |
+| Temporal address | `TEMPORAL_SERVICE_ADDRESS` |
+
+**Runtime environment (injected by CLI into agent/SDK execution):**
+
+| Variable | Description |
+|----------|-------------|
+| `STIGMER_ORG_ID` | Resolved organization slug — available to agents and SDK entry points |
+| `STIGMER_OUT_DIR` | Output directory for SDK synthesis |
+
+---
+
+## CLI Commands for Config Management
+
+```bash
+# View all config values
+stigmer config list
+
+# Get a specific value
+stigmer config get llm.provider
+stigmer config get context.organization
+
+# Set a value
+stigmer config set llm.provider anthropic
+stigmer config set context.organization acme-corp
+stigmer config set execution.mode sandbox
+
+# Show config file path
+stigmer config path
+
+# View and switch org context
+stigmer context show
+stigmer context set --org acme-corp
+```
 
 ---
 
@@ -254,11 +362,32 @@ temporal:
     managed: true
 ```
 
+### "Which setting is being used?"
+
+```bash
+# Check env vars that may override config
+env | grep STIGMER_
+
+# View effective config
+stigmer config list
+
+# Check active context
+stigmer context show
+```
+
+### "My config file changes are not working"
+
+Environment variables and CLI flags take precedence over the config file. Check for overrides:
+
+```bash
+env | grep STIGMER_
+```
+
 ---
 
 ## Security
 
-- The config file has restricted permissions (`0600` - owner only).
+- The config file has restricted permissions (`0600` — owner only).
 - Use environment variables for API keys on shared or production systems.
 - Do not commit `config.yaml` to git if it contains API keys. Add it to `.gitignore`.
 - Rotate keys immediately if accidentally exposed.

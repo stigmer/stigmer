@@ -251,7 +251,7 @@ apiVersion: tenancy.stigmer.ai/v1
 kind: Project
 metadata:
   name: my-fleet
-  org: local
+  org: default
 spec:
   description: "My first Stigmer project"
 EOF
@@ -262,7 +262,7 @@ apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
   name: assistant
-  org: local
+  org: default
 spec:
   description: "A helpful assistant"
   instructions: |
@@ -291,7 +291,7 @@ apiVersion: tenancy.stigmer.ai/v1
 kind: Project
 metadata:
   name: my-sdk-fleet
-  org: local
+  org: default
 spec:
   description: "Synthesized via Go SDK"
   entry_point: main.go

@@ -103,19 +103,28 @@ Organization
 | Session | owned by org of the triggering instance |
 | Member | membership record links user ↔ org |
 
-### Local Mode
+### Default Organization
 
-When running Stigmer locally (SQLite, no cloud), the system bootstraps a built-in organization with slug `local`. All local resources default to `org: local`. You do not create it—it exists automatically.
+When you first start the Stigmer server, the seedpack bootstraps a built-in organization with slug `default`. The CLI auto-detects this organization and sets it as the active context — no manual configuration required.
 
 ```bash
-# Local: org defaults to local
-stigmer agent list          # lists agents in org: local
-stigmer run my-agent "..."  # runs an agent in org: local
+# After first server start, org context is set automatically
+stigmer context show
+# Organization: default
+
+# All commands target the active org
+stigmer agent list          # lists agents in org: default
+stigmer run my-agent "..."  # runs an agent in org: default
 ```
 
-### Cloud Mode
+The organization model is the same regardless of backend type (local or cloud). The CLI resolves the active organization through a unified priority chain:
 
-In cloud mode, you create and manage real organizations. Resources must explicitly declare their organization, and the Authorization Service enforces membership for every write operation.
+1. `--org` flag (per-command override)
+2. `stigmer.yaml` `metadata.org` (project-level)
+3. `context.organization` in `~/.stigmer/config.yaml`
+4. Error if none of the above is set
+
+Switch the active organization with `stigmer context set --org <slug>`.
 
 ---
 
