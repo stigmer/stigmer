@@ -1426,6 +1426,827 @@ func TestBuildHyperlinkedPath_RelativePathNoWorkingDir(t *testing.T) {
 // firstLine
 // =============================================================================
 
+// =============================================================================
+// RenderCompact — discovery tools (List, Find, Search)
+// =============================================================================
+
+func TestRenderCompact_List_BasicFormat(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "list_directory",
+		Args:   map[string]interface{}{"path": "src/"},
+		Status: "completed",
+		Result: "main.go\nconfig.go\nutil.go\nREADME.md\n",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, got, "●")
+	assertContains(t, got, "List")
+	assertContains(t, got, "src/")
+	assertContains(t, got, "4 entries")
+
+	if !strings.Contains(plain, "List(src/)") {
+		t.Errorf("expected header format List(src/), got:\n  %q", plain)
+	}
+}
+
+func TestRenderCompact_List_SingleEntry(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "ls",
+		Args:   map[string]interface{}{"path": "pkg/"},
+		Status: "completed",
+		Result: "main.go\n",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertContains(t, got, "1 entry")
+}
+
+func TestRenderCompact_List_EmptyResult(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "list_directory",
+		Args:   map[string]interface{}{"path": "empty/"},
+		Status: "completed",
+		Result: "",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertContains(t, got, "(empty)")
+}
+
+func TestRenderCompact_List_WhitespaceOnlyResult(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "list_directory",
+		Args:   map[string]interface{}{"path": "empty/"},
+		Status: "completed",
+		Result: "  \n\n  \n",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertContains(t, got, "(empty)")
+}
+
+func TestRenderCompact_List_Failed(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "list_directory",
+		Args:   map[string]interface{}{"path": "/nope"},
+		Status: "failed",
+		Error:  "directory not found",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertContains(t, got, "/nope")
+	assertContains(t, got, "✗")
+	assertContains(t, got, "directory not found")
+	assertNotContains(t, got, "entries")
+}
+
+func TestRenderCompact_List_HyperlinksEnabled(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "list_directory",
+		Args:   map[string]interface{}{"path": "/Users/dev/project/src"},
+		Status: "completed",
+		Result: "main.go\nutil.go\n",
+	}
+	opts := CompactOptions{HyperlinksEnabled: true}
+
+	got := RenderCompact(tc, opts)
+
+	if !strings.Contains(got, osc8Open) {
+		t.Error("expected OSC 8 open sequence when hyperlinks enabled for List path")
+	}
+	if !strings.Contains(got, "file:///Users/dev/project/src") {
+		t.Error("expected file:// URI in hyperlink for List path")
+	}
+}
+
+func TestRenderCompact_List_NoGutterPreview(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "list_directory",
+		Args:   map[string]interface{}{"path": "src/"},
+		Status: "completed",
+		Result: "main.go\nconfig.go\nutil.go\n",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	assertNotContains(t, got, "│")
+	assertNotContains(t, got, "⋮")
+	if strings.Contains(plain, "main.go") {
+		t.Error("compact list should not include directory entry names in output")
+	}
+}
+
+func TestRenderCompact_Find_BasicFormat(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "glob",
+		Args:   map[string]interface{}{"pattern": "*.go"},
+		Status: "completed",
+		Result: "main.go\nconfig.go\nutil.go\n",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, got, "●")
+	assertContains(t, got, "Find")
+	assertContains(t, got, "*.go")
+	assertContains(t, got, "Found 3 matches")
+
+	if !strings.Contains(plain, "Find(*.go)") {
+		t.Errorf("expected header format Find(*.go), got:\n  %q", plain)
+	}
+}
+
+func TestRenderCompact_Find_SingleMatch(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "glob",
+		Args:   map[string]interface{}{"pattern": "README.md"},
+		Status: "completed",
+		Result: "README.md\n",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertContains(t, got, "Found 1 match")
+}
+
+func TestRenderCompact_Find_EmptyResult(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "glob",
+		Args:   map[string]interface{}{"pattern": "*.proto"},
+		Status: "completed",
+		Result: "",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertContains(t, got, "(no matches)")
+}
+
+func TestRenderCompact_Find_NoHyperlinksOnPattern(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "glob",
+		Args:   map[string]interface{}{"pattern": "**/*.go"},
+		Status: "completed",
+		Result: "main.go\n",
+	}
+	opts := CompactOptions{HyperlinksEnabled: true}
+
+	got := RenderCompact(tc, opts)
+
+	if strings.Contains(got, osc8Open+"file://") {
+		t.Error("pattern should not be hyperlinked — it's a glob, not a file path")
+	}
+}
+
+func TestRenderCompact_Find_Failed(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "glob",
+		Args:   map[string]interface{}{"pattern": "*.go"},
+		Status: "failed",
+		Error:  "no readable directories",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertContains(t, got, "✗")
+	assertContains(t, got, "no readable directories")
+	assertNotContains(t, got, "matches")
+}
+
+func TestRenderCompact_Search_BasicFormat(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "grep",
+		Args:   map[string]interface{}{"pattern": "TODO"},
+		Status: "completed",
+		Result: "main.go:12: // TODO fix\nutil.go:5: // TODO refactor\n",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, got, "●")
+	assertContains(t, got, "Search")
+	assertContains(t, got, "TODO")
+	assertContains(t, got, "Found 2 matches")
+
+	if !strings.Contains(plain, "Search(TODO)") {
+		t.Errorf("expected header format Search(TODO), got:\n  %q", plain)
+	}
+}
+
+func TestRenderCompact_Search_NoHyperlinksOnPattern(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "grep",
+		Args:   map[string]interface{}{"pattern": "func main"},
+		Status: "completed",
+		Result: "main.go:1:func main() {\n",
+	}
+	opts := CompactOptions{HyperlinksEnabled: true}
+
+	got := RenderCompact(tc, opts)
+
+	if strings.Contains(got, osc8Open+"file://") {
+		t.Error("search pattern should not be hyperlinked")
+	}
+}
+
+func TestRenderCompact_Search_Failed(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "grep",
+		Args:   map[string]interface{}{"pattern": "TODO"},
+		Status: "failed",
+		Error:  "search timed out",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertContains(t, got, "✗")
+	assertContains(t, got, "search timed out")
+}
+
+func TestRenderCompact_Search_NoEmojiBadge(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "grep",
+		Args:   map[string]interface{}{"pattern": "TODO"},
+		Status: "completed",
+		Result: "match\n",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertNotContains(t, got, "🔎")
+	assertNotContains(t, got, "✓")
+	assertNotContains(t, got, "⏳")
+}
+
+func TestRenderCompact_Discovery_FailedEmptyError(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "glob",
+		Args:   map[string]interface{}{"pattern": "*.go"},
+		Status: "failed",
+		Error:  "",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertContains(t, got, "✗")
+	assertContains(t, got, "failed")
+}
+
+func TestRenderCompact_Discovery_FailedLongError(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "glob",
+		Args:   map[string]interface{}{"pattern": "*.go"},
+		Status: "failed",
+		Error:  strings.Repeat("e", 100),
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	lines := strings.Split(plain, "\n")
+	if len(lines) < 2 {
+		t.Fatalf("expected at least 2 lines, got %d", len(lines))
+	}
+	if len(lines[1]) > 80 {
+		t.Errorf("error line too long (%d chars), should be truncated", len(lines[1]))
+	}
+}
+
+func TestRenderCompact_Discovery_SkipsEmptyLines(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "glob",
+		Args:   map[string]interface{}{"pattern": "*.go"},
+		Status: "completed",
+		Result: "main.go\n\nutil.go\n\n",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertContains(t, got, "Found 2 matches")
+}
+
+// =============================================================================
+// RenderCompact — delete tool
+// =============================================================================
+
+func TestRenderCompact_Delete_BasicFormat(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "delete_file",
+		Args:   map[string]interface{}{"path": "tmp/old.go"},
+		Status: "completed",
+		Result: "deleted",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, got, "●")
+	assertContains(t, got, "Delete")
+	assertContains(t, got, "tmp/old.go")
+	assertContains(t, got, "Deleted")
+
+	if !strings.Contains(plain, "Delete(tmp/old.go)") {
+		t.Errorf("expected header format Delete(tmp/old.go), got:\n  %q", plain)
+	}
+}
+
+func TestRenderCompact_Delete_RemoveFileAlias(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "remove_file",
+		Args:   map[string]interface{}{"path": "temp.txt"},
+		Status: "completed",
+		Result: "removed",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, got, "Delete")
+	assertContains(t, got, "Deleted")
+	if !strings.Contains(plain, "Delete(temp.txt)") {
+		t.Errorf("remove_file should render as Delete, got:\n  %q", plain)
+	}
+}
+
+func TestRenderCompact_Delete_HyperlinksEnabled(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "delete_file",
+		Args:   map[string]interface{}{"path": "/Users/dev/project/tmp.go"},
+		Status: "completed",
+		Result: "deleted",
+	}
+	opts := CompactOptions{HyperlinksEnabled: true}
+
+	got := RenderCompact(tc, opts)
+
+	if !strings.Contains(got, osc8Open) {
+		t.Error("expected OSC 8 open sequence when hyperlinks enabled for delete path")
+	}
+	if !strings.Contains(got, "file:///Users/dev/project/tmp.go") {
+		t.Error("expected file:// URI in hyperlink for delete path")
+	}
+}
+
+func TestRenderCompact_Delete_Failed(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "delete_file",
+		Args:   map[string]interface{}{"path": "/readonly/file.go"},
+		Status: "failed",
+		Error:  "permission denied",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertContains(t, got, "/readonly/file.go")
+	assertContains(t, got, "✗")
+	assertContains(t, got, "permission denied")
+	assertNotContains(t, got, "Deleted")
+}
+
+func TestRenderCompact_Delete_FailedEmptyError(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "delete_file",
+		Args:   map[string]interface{}{"path": "bad.go"},
+		Status: "failed",
+		Error:  "",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertContains(t, got, "✗")
+	assertContains(t, got, "failed")
+}
+
+func TestRenderCompact_Delete_NoEmojiBadge(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "delete_file",
+		Args:   map[string]interface{}{"path": "tmp.go"},
+		Status: "completed",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertNotContains(t, got, "⚠️")
+	assertNotContains(t, got, "✓")
+	assertNotContains(t, got, "⏳")
+}
+
+// =============================================================================
+// RenderCompact — think tool
+// =============================================================================
+
+func TestRenderCompact_Think_BasicFormat(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "think",
+		Args:   map[string]interface{}{"thought": "The user wants to refactor the module.\nI should check existing patterns.\n"},
+		Status: "completed",
+		Result: "ok",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, got, "●")
+	assertContains(t, got, "Thinking")
+	assertContains(t, got, "The user wants to refactor")
+	assertContains(t, got, "I should check existing patterns")
+
+	if strings.Contains(plain, "Thinking(") {
+		t.Errorf("think header should not have parens, got:\n  %q", plain)
+	}
+}
+
+func TestRenderCompact_Think_NoParensInHeader(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "think",
+		Args:   map[string]interface{}{"thought": "short thought"},
+		Status: "completed",
+		Result: "ok",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	headerLine := strings.Split(plain, "\n")[0]
+	if strings.Contains(headerLine, "(") || strings.Contains(headerLine, ")") {
+		t.Errorf("think header should not contain parens, got:\n  %q", headerLine)
+	}
+}
+
+func TestRenderCompact_Think_Truncation(t *testing.T) {
+	lines := make([]string, 10)
+	for i := range lines {
+		lines[i] = fmt.Sprintf("thought line %d", i+1)
+	}
+	tc := ToolCallInfo{
+		Name:   "think",
+		Args:   map[string]interface{}{"thought": strings.Join(lines, "\n") + "\n"},
+		Status: "completed",
+		Result: "ok",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+
+	assertContains(t, got, "thought line 1")
+	assertContains(t, got, "thought line 2")
+	assertContains(t, got, "thought line 3")
+	assertNotContains(t, got, "thought line 4")
+	assertContains(t, got, "+7 more lines")
+}
+
+func TestRenderCompact_Think_SmartCutoff_FourLines(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "think",
+		Args:   map[string]interface{}{"thought": "line1\nline2\nline3\nline4\n"},
+		Status: "completed",
+		Result: "ok",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+
+	assertContains(t, got, "line1")
+	assertContains(t, got, "line2")
+	assertContains(t, got, "line3")
+	assertContains(t, got, "line4")
+	assertNotContains(t, got, "more lines")
+}
+
+func TestRenderCompact_Think_ShortThought(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "think",
+		Args:   map[string]interface{}{"thought": "quick thought"},
+		Status: "completed",
+		Result: "ok",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+
+	assertContains(t, got, "quick thought")
+	assertNotContains(t, got, "more lines")
+}
+
+func TestRenderCompact_Think_EmptyThought(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "think",
+		Args:   map[string]interface{}{"thought": ""},
+		Status: "completed",
+		Result: "ok",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertContains(t, got, "(no content)")
+}
+
+func TestRenderCompact_Think_NoThoughtArg(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "think",
+		Args:   map[string]interface{}{},
+		Status: "completed",
+		Result: "",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertContains(t, got, "(no content)")
+}
+
+func TestRenderCompact_Think_Failed(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "think",
+		Args:   map[string]interface{}{"thought": "deep thought"},
+		Status: "failed",
+		Error:  "internal error",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertContains(t, got, "✗")
+	assertContains(t, got, "internal error")
+	assertNotContains(t, got, "deep thought")
+}
+
+func TestRenderCompact_Think_NoEmojiBadge(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "think",
+		Args:   map[string]interface{}{"thought": "reasoning"},
+		Status: "completed",
+		Result: "ok",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertNotContains(t, got, "💭")
+	assertNotContains(t, got, "✓")
+	assertNotContains(t, got, "⏳")
+}
+
+// =============================================================================
+// RenderCompact — Task tool still falls back to RenderWithBadge
+// =============================================================================
+
+func TestRenderCompact_Task_FallsBackToLegacy(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "task",
+		Args:   map[string]interface{}{"description": "Explore CLI rendering"},
+		Status: "completed",
+		Result: "done",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertContains(t, got, "🔀")
+	assertContains(t, got, "Task")
+}
+
+// =============================================================================
+// RenderCompactRunning — new tool categories
+// =============================================================================
+
+func TestRenderCompactRunning_Find_PatternNotHyperlinked(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "glob",
+		Args: map[string]interface{}{"pattern": "**/*.go"},
+	}
+	opts := CompactOptions{HyperlinksEnabled: true}
+
+	got := RenderCompactRunning(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, got, "●")
+	assertContains(t, got, "Find")
+	assertContains(t, got, "**/*.go")
+	assertContains(t, got, "…")
+
+	if strings.Contains(got, osc8Open+"file://") {
+		t.Error("pattern should not be hyperlinked in running state")
+	}
+	if !strings.Contains(plain, "Find(**/*.go)") {
+		t.Errorf("expected Find(**/*.go) in header, got:\n  %q", plain)
+	}
+}
+
+func TestRenderCompactRunning_Search_PatternNotHyperlinked(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "grep",
+		Args: map[string]interface{}{"pattern": "TODO"},
+	}
+	opts := CompactOptions{HyperlinksEnabled: true}
+
+	got := RenderCompactRunning(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, got, "Search")
+	assertContains(t, got, "…")
+	if !strings.Contains(plain, "Search(TODO)") {
+		t.Errorf("expected Search(TODO) in header, got:\n  %q", plain)
+	}
+	if strings.Contains(got, osc8Open+"file://") {
+		t.Error("search pattern should not be hyperlinked")
+	}
+}
+
+func TestRenderCompactRunning_List_PathHyperlinked(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "list_directory",
+		Args: map[string]interface{}{"path": "/Users/dev/src"},
+	}
+	opts := CompactOptions{HyperlinksEnabled: true}
+
+	got := RenderCompactRunning(tc, opts)
+
+	assertContains(t, got, "List")
+	assertContains(t, got, "…")
+	if !strings.Contains(got, osc8Open) {
+		t.Error("list path should be hyperlinked when enabled")
+	}
+	if !strings.Contains(got, "file:///Users/dev/src") {
+		t.Error("expected file:// URI for list path")
+	}
+}
+
+func TestRenderCompactRunning_Delete_PathHyperlinked(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "delete_file",
+		Args: map[string]interface{}{"path": "/Users/dev/tmp.go"},
+	}
+	opts := CompactOptions{HyperlinksEnabled: true}
+
+	got := RenderCompactRunning(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, got, "Delete")
+	assertContains(t, got, "…")
+	if !strings.Contains(got, "file:///Users/dev/tmp.go") {
+		t.Error("expected file:// URI for delete path")
+	}
+	if !strings.Contains(plain, "Delete(") {
+		t.Errorf("expected Delete( in header, got:\n  %q", plain)
+	}
+}
+
+func TestRenderCompactRunning_Think_NoParens(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "think",
+		Args: map[string]interface{}{"thought": "deep reasoning"},
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompactRunning(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, got, "●")
+	assertContains(t, got, "Thinking")
+	assertContains(t, got, "…")
+
+	if strings.Contains(plain, "(") || strings.Contains(plain, ")") {
+		t.Errorf("think running should not have parens, got:\n  %q", plain)
+	}
+
+	lines := strings.Split(plain, "\n")
+	if len(lines) != 1 {
+		t.Errorf("expected single line for running think, got %d:\n%s", len(lines), plain)
+	}
+}
+
+func TestRenderCompactRunning_Task_FallsBackToLegacy(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "task",
+		Args: map[string]interface{}{"description": "Explore code"},
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompactRunning(tc, opts)
+	assertContains(t, got, "🔀")
+	assertContains(t, got, "Task")
+	assertContains(t, got, "⏳")
+}
+
+// =============================================================================
+// countResultEntries
+// =============================================================================
+
+func TestCountResultEntries_BasicLines(t *testing.T) {
+	if got := countResultEntries("a\nb\nc\n"); got != 3 {
+		t.Errorf("expected 3, got %d", got)
+	}
+}
+
+func TestCountResultEntries_NoTrailingNewline(t *testing.T) {
+	if got := countResultEntries("a\nb\nc"); got != 3 {
+		t.Errorf("expected 3, got %d", got)
+	}
+}
+
+func TestCountResultEntries_EmptyLines(t *testing.T) {
+	if got := countResultEntries("a\n\nb\n\nc\n"); got != 3 {
+		t.Errorf("expected 3 (skipping empty lines), got %d", got)
+	}
+}
+
+func TestCountResultEntries_WhitespaceOnlyLines(t *testing.T) {
+	if got := countResultEntries("a\n   \nb\n  \n"); got != 2 {
+		t.Errorf("expected 2 (skipping whitespace-only), got %d", got)
+	}
+}
+
+func TestCountResultEntries_EmptyString(t *testing.T) {
+	if got := countResultEntries(""); got != 0 {
+		t.Errorf("expected 0, got %d", got)
+	}
+}
+
+func TestCountResultEntries_SingleEntry(t *testing.T) {
+	if got := countResultEntries("only\n"); got != 1 {
+		t.Errorf("expected 1, got %d", got)
+	}
+}
+
+// =============================================================================
+// discoverySummary
+// =============================================================================
+
+func TestDiscoverySummary_List_Plural(t *testing.T) {
+	if got := discoverySummary("List", 5); got != "5 entries" {
+		t.Errorf("expected %q, got %q", "5 entries", got)
+	}
+}
+
+func TestDiscoverySummary_List_Singular(t *testing.T) {
+	if got := discoverySummary("List", 1); got != "1 entry" {
+		t.Errorf("expected %q, got %q", "1 entry", got)
+	}
+}
+
+func TestDiscoverySummary_Find_Plural(t *testing.T) {
+	if got := discoverySummary("Find", 12); got != "Found 12 matches" {
+		t.Errorf("expected %q, got %q", "Found 12 matches", got)
+	}
+}
+
+func TestDiscoverySummary_Find_Singular(t *testing.T) {
+	if got := discoverySummary("Find", 1); got != "Found 1 match" {
+		t.Errorf("expected %q, got %q", "Found 1 match", got)
+	}
+}
+
+func TestDiscoverySummary_Search_Plural(t *testing.T) {
+	if got := discoverySummary("Search", 8); got != "Found 8 matches" {
+		t.Errorf("expected %q, got %q", "Found 8 matches", got)
+	}
+}
+
+// =============================================================================
+// hasCompactRenderer — comprehensive check
+// =============================================================================
+
+func TestHasCompactRenderer_AllKnownLabels(t *testing.T) {
+	compactLabels := []string{
+		"Read", "Write", "Create", "Edit",
+		"Shell", "Execute",
+		"List", "Find", "Search",
+		"Delete", "Thinking",
+	}
+	for _, label := range compactLabels {
+		info := toolDisplayInfo{label: label}
+		if !hasCompactRenderer(info) {
+			t.Errorf("hasCompactRenderer(%q) = false, want true", label)
+		}
+	}
+}
+
+func TestHasCompactRenderer_TaskReturnsFalse(t *testing.T) {
+	info := toolDisplayInfo{label: "Task"}
+	if hasCompactRenderer(info) {
+		t.Error("hasCompactRenderer(Task) = true, want false — Task is Phase 2.5")
+	}
+}
+
+// =============================================================================
+// firstLine
+// =============================================================================
+
 func TestFirstLine_SingleLine(t *testing.T) {
 	if got := firstLine("hello"); got != "hello" {
 		t.Errorf("expected %q, got %q", "hello", got)

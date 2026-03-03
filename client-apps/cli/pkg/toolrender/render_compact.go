@@ -20,6 +20,11 @@ const maxVisibleInGroup = 3
 // pointless "+ 1 more lines" footer (same smart cutoff as read groups).
 const maxShellOutputLines = 3
 
+// maxThinkLines is the maximum number of thought text lines shown in a
+// compact think tool display. Uses the same smart cutoff pattern as shell
+// output: when total lines <= maxThinkLines + 1, all lines are shown.
+const maxThinkLines = 3
+
 // bulletStyle is the green bullet prefix used in compact tool rendering.
 // Matches the visual language of Claude Code's tool call output.
 var bulletStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
@@ -39,30 +44,39 @@ type CompactOptions struct {
 	WorkingDir string
 }
 
-// RenderCompact returns a compact display of a completed tool call. For tools
-// with a compact implementation (read, write, create, edit, shell), this
-// produces a terse format: header + result summary. For tools not yet
-// converted, falls back to RenderWithBadge with the tool's status badge.
+// RenderCompact returns a compact display of a completed tool call. Every
+// known tool label has a compact renderer; unknown/MCP tools and "Task"
+// (Phase 2.5) fall back to RenderWithBadge.
 //
 // Examples:
 //
 //	"● Read(main.go)\n    Read 125 lines"
 //	"● Write(config.go)\n    Wrote 45 lines"
-//	"● Edit(main.go)\n    Edited 12 lines"
 //	"● Shell(go test ./...)\n    ok  pkg/foo  0.5s\n    … +15 more lines"
-//	"● Read(missing.go)\n    ✗ file not found"
+//	"● Find(*.go)\n    Found 12 matches"
+//	"● Delete(tmp/old.go)\n    Deleted"
+//	"● Thinking\n    The user wants to refactor..."
 func RenderCompact(tc ToolCallInfo, opts CompactOptions) string {
 	info, known := toolDisplayMap[tc.Name]
-	if known && info.label == "Read" {
+	if !known {
+		return RenderWithBadge(tc, StateBadge(tc.Status))
+	}
+	switch {
+	case info.label == "Read":
 		return renderCompactRead(tc, info, opts)
-	}
-	if known && isWriteOrEditLabel(info.label) {
+	case isWriteOrEditLabel(info.label):
 		return renderCompactWrite(tc, info, opts)
-	}
-	if known && isShellLabel(info.label) {
+	case isShellLabel(info.label):
 		return renderCompactShell(tc, info, opts)
+	case isDiscoveryLabel(info.label):
+		return renderCompactDiscovery(tc, info, opts)
+	case info.label == "Delete":
+		return renderCompactDelete(tc, info, opts)
+	case info.label == "Thinking":
+		return renderCompactThink(tc, info, opts)
+	default:
+		return RenderWithBadge(tc, StateBadge(tc.Status))
 	}
-	return RenderWithBadge(tc, StateBadge(tc.Status))
 }
 
 // RenderCompactRunning returns a compact single-line display for a running
@@ -70,22 +84,39 @@ func RenderCompact(tc ToolCallInfo, opts CompactOptions) string {
 // header with a dim ellipsis suffix. For tools without compact support, falls
 // back to RenderWithBadge with the running badge.
 //
+// Display logic varies by tool category:
+//   - Shell: truncated command text
+//   - Pattern-based (Find, Search): plain text pattern, not hyperlinked
+//   - Path-based (List, Delete, Read, Write, Edit): hyperlinked file path
+//   - Label-only (Thinking): no parens, just "● Thinking …"
+//
 // Examples:
 //
-//	"● Write(path/to/file.go) …"   (compact, file tool)
-//	"● Shell(go test ./...) …"     (compact, shell tool)
+//	"● Write(path/to/file.go) …"   (path-based)
+//	"● Shell(go test ./...) …"     (command)
+//	"● Find(*.go) …"              (pattern-based)
+//	"● Thinking …"                (label-only)
 func RenderCompactRunning(tc ToolCallInfo, opts CompactOptions) string {
 	info, known := toolDisplayMap[tc.Name]
 	if !known || !hasCompactRenderer(info) {
 		return RenderWithBadge(tc, StateBadge("running"))
 	}
 
+	if info.label == "Thinking" {
+		return fmt.Sprintf("%s %s %s",
+			bulletStyle.Render("●"), labelStyle.Render(info.label),
+			dimStyle.Render("…"))
+	}
+
 	primaryVal := extractPrimaryArgWithFallbacks(tc.Args, info.primaryField, info.fallbackFields)
 
 	var displayVal string
-	if isShellLabel(info.label) {
+	switch {
+	case isShellLabel(info.label):
 		displayVal = truncate(firstLine(primaryVal), 60)
-	} else {
+	case isPatternBasedLabel(info.label):
+		displayVal = truncate(primaryVal, 60)
+	default:
 		displayVal = buildHyperlinkedPath(primaryVal, opts)
 	}
 
@@ -133,13 +164,31 @@ func isShellLabel(label string) bool {
 	return false
 }
 
+// isDiscoveryLabel checks whether a toolDisplayInfo label belongs to the
+// discovery tool family (directory listing, glob, grep).
+func isDiscoveryLabel(label string) bool {
+	switch label {
+	case "List", "Find", "Search":
+		return true
+	}
+	return false
+}
+
+// isPatternBasedLabel checks whether a label's primary field is a search
+// pattern rather than a file path. Used by RenderCompactRunning to avoid
+// wrapping patterns in file:// hyperlinks.
+func isPatternBasedLabel(label string) bool {
+	return label == "Find" || label == "Search"
+}
+
 // hasCompactRenderer reports whether a tool has a compact rendering
 // implementation. Used by RenderCompactRunning to decide between compact
-// and legacy formats. As new compact renderers are added in Phase 2.4,
-// their labels are registered here.
+// and legacy formats. After Phase 2.4, only "Task" (Phase 2.5) and
+// unknown tools lack compact renderers.
 func hasCompactRenderer(info toolDisplayInfo) bool {
 	switch info.label {
-	case "Read", "Write", "Create", "Edit", "Shell", "Execute":
+	case "Read", "Write", "Create", "Edit", "Shell", "Execute",
+		"List", "Find", "Search", "Delete", "Thinking":
 		return true
 	}
 	return false
@@ -271,6 +320,164 @@ func renderCompactShell(tc ToolCallInfo, info toolDisplayInfo, opts CompactOptio
 	}
 
 	return b.String()
+}
+
+// renderCompactDiscovery produces a two-line compact display for a discovery
+// tool call (List, Find, Search):
+//
+//	● Find(*.go)
+//	    Found 12 matches
+//	● List(src/)
+//	    15 entries
+//
+// Empty results show "(no matches)" or "(empty)". Failed calls show the error:
+//
+//	● Find(*.go)
+//	    ✗ no readable directories
+func renderCompactDiscovery(tc ToolCallInfo, info toolDisplayInfo, opts CompactOptions) string {
+	primaryVal := extractPrimaryArgWithFallbacks(tc.Args, info.primaryField, info.fallbackFields)
+
+	var displayVal string
+	if isPatternBasedLabel(info.label) {
+		displayVal = truncate(primaryVal, 60)
+	} else {
+		displayVal = buildHyperlinkedPath(primaryVal, opts)
+	}
+	header := fmt.Sprintf("%s %s(%s)", bulletStyle.Render("●"), labelStyle.Render(info.label), displayVal)
+
+	if tc.Status == "failed" || tc.Error != "" {
+		errMsg := tc.Error
+		if errMsg == "" {
+			errMsg = "failed"
+		}
+		return header + "\n" + dimStyle.Render("    ✗ "+truncate(errMsg, 60))
+	}
+
+	content := resolveDisplayContent(tc, info)
+	if content == "" || strings.TrimSpace(content) == "" {
+		empty := "(no matches)"
+		if info.label == "List" {
+			empty = "(empty)"
+		}
+		return header + "\n" + dimStyle.Render("    "+empty)
+	}
+
+	count := countResultEntries(content)
+	return header + "\n" + dimStyle.Render("    "+discoverySummary(info.label, count))
+}
+
+// renderCompactDelete produces a two-line compact display for a delete tool call:
+//
+//	● Delete(tmp/old.go)
+//	    Deleted
+//
+// Failed deletes show the error:
+//
+//	● Delete(tmp/old.go)
+//	    ✗ permission denied
+func renderCompactDelete(tc ToolCallInfo, info toolDisplayInfo, opts CompactOptions) string {
+	path := extractPrimaryArgWithFallbacks(tc.Args, info.primaryField, info.fallbackFields)
+
+	displayPath := buildHyperlinkedPath(path, opts)
+	header := fmt.Sprintf("%s %s(%s)", bulletStyle.Render("●"), labelStyle.Render("Delete"), displayPath)
+
+	if tc.Status == "failed" || tc.Error != "" {
+		errMsg := tc.Error
+		if errMsg == "" {
+			errMsg = "failed"
+		}
+		return header + "\n" + dimStyle.Render("    ✗ "+truncate(errMsg, 60))
+	}
+
+	return header + "\n" + dimStyle.Render("    Deleted")
+}
+
+// renderCompactThink produces a compact display for a think tool call:
+//
+//	● Thinking
+//	    The user wants to refactor the module structure.
+//	    I should consider the existing patterns in the
+//	    codebase before making changes.
+//	    … +5 more lines
+//
+// Thought text is extracted directly from the "thought" arg. Unlike other
+// renderers, this intentionally bypasses resolveDisplayContent — the think
+// tool's tc.Result is a meaningless acknowledgment ("ok"), not content
+// worth displaying. Up to maxThinkLines are shown, with the same smart
+// cutoff as shell output.
+//
+// Empty thoughts show "(no content)". Failed calls show the error.
+func renderCompactThink(tc ToolCallInfo, info toolDisplayInfo, opts CompactOptions) string {
+	header := fmt.Sprintf("%s %s", bulletStyle.Render("●"), labelStyle.Render("Thinking"))
+
+	if tc.Status == "failed" || tc.Error != "" {
+		errMsg := tc.Error
+		if errMsg == "" {
+			errMsg = "failed"
+		}
+		return header + "\n" + dimStyle.Render("    ✗ "+truncate(errMsg, 60))
+	}
+
+	content := extractPrimaryArgWithFallbacks(tc.Args, info.contentArgField, info.contentArgFallbacks)
+	if content == "" || strings.TrimSpace(content) == "" {
+		return header + "\n" + dimStyle.Render("    (no content)")
+	}
+
+	lines := strings.Split(strings.TrimRight(content, "\n"), "\n")
+
+	showAll := len(lines) <= maxThinkLines+1
+	visibleCount := len(lines)
+	if !showAll {
+		visibleCount = maxThinkLines
+	}
+
+	var b strings.Builder
+	b.WriteString(header)
+	for i := 0; i < visibleCount; i++ {
+		b.WriteByte('\n')
+		b.WriteString(dimStyle.Render("    " + lines[i]))
+	}
+	if !showAll {
+		b.WriteByte('\n')
+		b.WriteString(dimStyle.Render(fmt.Sprintf("    … +%d more lines", len(lines)-visibleCount)))
+	}
+
+	return b.String()
+}
+
+// countResultEntries counts non-empty lines in a discovery tool result.
+// Unlike countLines (designed for file content where trailing newlines
+// matter), this counts actual result entries — appropriate for directory
+// listings, glob matches, and search results.
+func countResultEntries(s string) int {
+	if s == "" {
+		return 0
+	}
+	lines := strings.Split(strings.TrimRight(s, "\n"), "\n")
+	count := 0
+	for _, line := range lines {
+		if strings.TrimSpace(line) != "" {
+			count++
+		}
+	}
+	return count
+}
+
+// discoverySummary maps a discovery tool label and result count to a
+// human-readable summary line.
+func discoverySummary(label string, count int) string {
+	switch label {
+	case "List":
+		if count == 1 {
+			return "1 entry"
+		}
+		return fmt.Sprintf("%d entries", count)
+	default:
+		if count == 1 {
+			return "Found 1 match"
+		}
+		return fmt.Sprintf("Found %d matches", count)
+	}
 }
 
 // firstLine returns the first line of s, stripping any trailing newline.
