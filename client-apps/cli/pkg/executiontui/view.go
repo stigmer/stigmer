@@ -143,14 +143,14 @@ func (m Model) renderFooter() string {
 	case !m.autoScroll:
 		// Scroll paused — user scrolled away from the bottom.
 		if m.hasExpandableBlocks() {
-			hints = "  ↓ Paused — G resume  Tab/S-Tab focus  Enter expand  c cancel  ? help  q detach"
+			hints = "  ↓ Paused — G resume  Tab/S-Tab focus  Enter expand  Esc/c cancel  ? help  q detach"
 		} else {
-			hints = "  ↓ Paused — G resume  c cancel  ? help  q detach"
+			hints = "  ↓ Paused — G resume  Esc/c cancel  ? help  q detach"
 		}
 	case m.hasExpandableBlocks():
-		hints = "  ↑↓ scroll  Tab/S-Tab focus  Enter expand  c cancel  ? help  q detach"
+		hints = "  ↑↓ scroll  Tab/S-Tab focus  Enter expand  Esc/c cancel  ? help  q detach"
 	default:
-		hints = "  ↑↓ scroll  c cancel  ? help  q detach"
+		hints = "  ↑↓ scroll  Esc/c cancel  ? help  q detach"
 	}
 
 	// Pad footer to full width.

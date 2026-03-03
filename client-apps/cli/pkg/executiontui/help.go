@@ -72,7 +72,7 @@ func helpSections() []helpSection {
 		{
 			title: "Execution Control",
 			bindings: []helpBinding{
-				{"c", "Cancel execution (with confirmation)"},
+				{"Esc / c", "Cancel execution (with confirmation)"},
 			},
 		},
 		{
