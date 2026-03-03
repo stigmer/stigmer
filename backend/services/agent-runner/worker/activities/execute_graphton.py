@@ -615,24 +615,66 @@ async def _auto_publish_written_files(
 
 
 def build_workspace_prompt_section(
-    provision_result: ProvisionResult | None,
+    provision_results: list[ProvisionResult] | None = None,
 ) -> str:
     """Build the ``## Workspace`` system prompt section.
 
     Returns the section string (with leading newlines for concatenation)
-    when *provision_result* carries a workspace description, or an empty
-    string otherwise.  Callers can unconditionally append the result.
+    when *provision_results* is non-empty, or an empty string otherwise.
+    Callers can unconditionally append the result.
 
-    When *provision_result.file_tree* is present, the formatted tree
-    section (``### Project Structure``) is appended after the description.
+    For a single entry the output is identical to the legacy
+    single-workspace format (no regression).  For multiple entries each
+    gets a ``### {name}`` sub-heading with its description and file
+    tree (heading level adjusted to ``####``).
     """
-    if not provision_result or not provision_result.workspace_description:
+    if not provision_results:
         return ""
 
-    section = "\n\n## Workspace\n\n" + provision_result.workspace_description
+    if len(provision_results) == 1:
+        return _build_single_workspace_section(provision_results[0])
 
-    if provision_result.file_tree:
-        section += "\n\n" + provision_result.file_tree
+    return _build_multi_workspace_section(provision_results)
+
+
+def _build_single_workspace_section(result: ProvisionResult) -> str:
+    """Format the workspace section for a single entry (legacy compat)."""
+    if not result.workspace_description:
+        return ""
+
+    section = "\n\n## Workspace\n\n" + result.workspace_description
+
+    if result.file_tree:
+        section += "\n\n" + result.file_tree
+
+    return section
+
+
+def _build_multi_workspace_section(results: list[ProvisionResult]) -> str:
+    """Format the workspace section for multiple entries."""
+    primary = results[0]
+    primary_label = primary.entry_name or "entry-1"
+
+    section = (
+        f"\n\n## Workspace\n\n"
+        f"This session has {len(results)} workspace entries. "
+        f"Your starting directory is **{primary_label}** "
+        f"(`{primary.root_dir}`). "
+        f"Navigate between entries using their absolute paths.\n"
+    )
+
+    for idx, result in enumerate(results):
+        label = result.entry_name or f"entry-{idx + 1}"
+        section += f"\n### {label}\n\n"
+
+        if result.workspace_description:
+            section += result.workspace_description
+
+        if result.file_tree:
+            tree = result.file_tree.replace(
+                "### Project Structure", "#### Project Structure", 1,
+            )
+            section += "\n\n" + tree
 
     return section
 
@@ -1298,55 +1340,57 @@ async def _execute_graphton_impl(
         })
         
         # ─────────────────────────────────────────────────────────────────────────────
-        # Step 2.9: Workspace provisioning (Phase 3)
+        # Step 2.9: Workspace provisioning
         #
-        # When the session has a workspace_source, the provisioner clones a
-        # git repo, validates
-        # a local path, or returns an empty workspace result.  The provisioner
-        # is idempotent: if the workspace was already provisioned (e.g. by a
-        # previous execution in this session), it detects the existing state
-        # and returns metadata without re-cloning.
+        # When the session has workspace_entries, the provisioner iterates
+        # each entry and provisions it (git clone, local-path validation,
+        # or empty).  The provisioner is idempotent: previously provisioned
+        # workspaces are detected and reused without re-cloning.
         #
         # Credential stripping (AD-05): keys consumed by provisioning
         # (e.g. GITHUB_TOKEN) are removed from merged_env_vars so they
         # do not leak into MCP config placeholders or status reporting.
         # ─────────────────────────────────────────────────────────────────────────────
-        provision_result: ProvisionResult | None = None
+        provision_results: list[ProvisionResult] = []
         
-        if session.spec.HasField("workspace_source"):
+        if session.spec.workspace_entries:
             setup_timer.start("workspace_provisioning")
             try:
                 provisioner = WorkspaceProvisioner(log=activity_logger)
-                provision_result = provisioner.provision(
-                    workspace_source=session.spec.workspace_source,
+                provision_results = provisioner.provision_all(
+                    entries=session.spec.workspace_entries,
                     backend=workspace_backend,
                     merged_env=merged_env_vars,
                     is_local_mode=worker_config.is_local_mode(),
                 )
                 
-                if provision_result.root_dir != workspace_backend.root_dir:
-                    activity_logger.info(
-                        "Workspace root changed by provisioning: %s -> %s",
-                        workspace_backend.root_dir,
-                        provision_result.root_dir,
-                    )
-                    workspace_backend = LocalWorkspaceBackend(
-                        root_dir=provision_result.root_dir,
-                        platform_dir=workspace_init.platform_dir,
-                    )
-                
-                if provision_result.consumed_keys:
-                    stripped = []
-                    for key in provision_result.consumed_keys:
-                        if key in merged_env_vars:
-                            del merged_env_vars[key]
-                            stripped.append(key)
-                    if stripped:
+                if provision_results:
+                    primary = provision_results[0]
+                    if primary.root_dir != workspace_backend.root_dir:
                         activity_logger.info(
-                            "Stripped %d provisioning key(s) from agent environment: %s",
-                            len(stripped),
-                            ", ".join(stripped),
+                            "Workspace root changed by provisioning: %s -> %s",
+                            workspace_backend.root_dir,
+                            primary.root_dir,
                         )
+                        workspace_backend = LocalWorkspaceBackend(
+                            root_dir=primary.root_dir,
+                            platform_dir=workspace_init.platform_dir,
+                        )
+                
+                    all_consumed: set[str] = set()
+                    for pr in provision_results:
+                        all_consumed.update(pr.consumed_keys)
+                    if all_consumed:
+                        stripped = [
+                            k for k in all_consumed
+                            if merged_env_vars.pop(k, None) is not None
+                        ]
+                        if stripped:
+                            activity_logger.info(
+                                "Stripped %d provisioning key(s) from agent environment: %s",
+                                len(stripped),
+                                ", ".join(sorted(stripped)),
+                            )
                 
             except WorkspaceProvisionError as prov_err:
                 activity_logger.error(
@@ -1357,9 +1401,9 @@ async def _execute_graphton_impl(
                 ) from prov_err
             
             heartbeat_during_setup("workspace_provisioned", {
-                "source_type": provision_result.source_type.value,
-                "root_dir": provision_result.root_dir,
-                "consumed_keys": list(provision_result.consumed_keys),
+                "entry_count": len(provision_results),
+                "source_types": [pr.source_type.value for pr in provision_results],
+                "primary_root_dir": provision_results[0].root_dir if provision_results else None,
             })
         
         # ─────────────────────────────────────────────────────────────────────────────
@@ -1792,13 +1836,14 @@ async def _execute_graphton_impl(
         # Enhance system prompt with workspace context, skills, input files
         enhanced_system_prompt = instructions
 
-        workspace_section = build_workspace_prompt_section(provision_result)
+        workspace_section = build_workspace_prompt_section(provision_results)
         if workspace_section:
             enhanced_system_prompt += workspace_section
             activity_logger.info("Enhanced system prompt with workspace context")
 
+        primary_root = provision_results[0].root_dir if provision_results else ""
         relevance_section = build_relevance_prompt_section(
-            user_message, provision_result.root_dir if provision_result else "",
+            user_message, primary_root,
         )
         if relevance_section:
             enhanced_system_prompt += relevance_section
@@ -2731,10 +2776,10 @@ async def _execute_graphton_impl(
                 ExecutionPhase.EXECUTION_PAUSED,
                 ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
             ):
-                if provision_result is not None:
+                for pr in provision_results:
                     _generate_git_diff_artifact(
                         workspace_backend=workspace_backend,
-                        provision_result=provision_result,
+                        provision_result=pr,
                         execution_id=execution_id,
                         storage=artifact_storage,
                         status_builder=status_builder,
