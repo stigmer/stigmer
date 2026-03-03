@@ -77,8 +77,22 @@ Role reference: `_roles/003_cli_tui_ux_eng`
 ## Current State
 
 - **Status**: in-progress
-- **Last Session**: 2026-03-03 (Session 5) — Phase 1.4 implementation complete; **Phase 1 fully complete**
-- **Active Task**: None — ready to pick Phase 2.1 (first High item)
+- **Last Session**: 2026-03-03 (Session 6) — Phase 2.1 implementation complete; **first Phase 2 (High) item done**
+- **Active Task**: None — ready to pick Phase 2.2 (Two-Lane Output Design)
+
+## Session Progress (2026-03-03 — Session 6)
+
+- Completed Phase 2.1: Comprehensive Error Handler — the **first Phase 2 (High) item**
+- Redesigned `clierr` package with structured `CLIError` type separating classification, formatting, and exit
+- Added `Classify(err) *CLIError` — pure function mapping any error to a structured CLI error
+- Added `extractGRPCStatus(err)` — walks `Unwrap()` chain to find gRPC status through wrapped errors
+- Discovery: **wrapped gRPC errors were silently misclassified** — `status.FromError()` only checks the outermost error, but 25+ call sites wrap gRPC errors with `errors.Wrap`. Fixed by walking the error chain.
+- Added `classifyGRPCCode(st)` covering 13 gRPC codes (up from 4): Unavailable, NotFound, InvalidArgument, Unauthenticated, PermissionDenied, DeadlineExceeded, ResourceExhausted, FailedPrecondition, AlreadyExists, Internal, Aborted, Canceled, + default
+- Created `exit_codes.go` with 6 exit code constants: 0=success, 1=general, 2=usage, 3=connection, 4=auth, 5=not-found
+- Extended `--debug` flag to show raw error chain + gRPC code in error output (alongside existing zerolog behavior)
+- Wired `clierr.SetDebug(debugMode)` in `PersistentPreRun`; routed `main.go` Cobra errors through `clierr.Handle`
+- Wrote 24 new unit tests — all passing
+- Created changelog: `_changelog/2026-03/2026-03-03-215553-comprehensive-error-handler.md`
 
 ## Session Progress (2026-03-03 — Session 5)
 
@@ -141,18 +155,23 @@ Role reference: `_roles/003_cli_tui_ux_eng`
 
 ## Next Steps
 
-1. **Phase 2.1**: Comprehensive Error Handler — the **first Phase 2 (High) item**
-   - Add handlers for all missing gRPC codes (PermissionDenied, DeadlineExceeded, ResourceExhausted, FailedPrecondition, AlreadyExists, Internal, Aborted)
-   - Introduce exit code constants: 1=general, 2=usage, 3=connection, 4=auth, 5=not-found
-   - Add `--debug` global flag for full error chain
-   - Files: `internal/cli/clierr/clierr.go`, new `clierr/codes.go`
-2. **Phase 2.2**: Two-Lane Output Design (Interactive TUI + Non-interactive stream)
-3. **Phase 2.3**: Retry on Approval Submission Failure
-4. **Phase 2.4**: Preparation Phase Spinner
-5. **Phase 2.5**: `stigmer doctor` Diagnostic Command
+1. **Phase 2.2**: Two-Lane Output Design (Interactive TUI + Non-interactive stream) — the **next Phase 2 (High) item**
+   - Lane 1 (Interactive): Current alt-screen TUI (default when TTY detected)
+   - Lane 2 (Non-interactive): Fall back to `messageStreamRenderer` when stdout is not a TTY or `TERM=dumb`
+   - Add `--no-alt-screen` flag and `--output json` flag
+   - Files: `run_stream.go`, `run_session.go`, new `run_output_json.go`
+2. **Phase 2.3**: Retry on Approval Submission Failure
+3. **Phase 2.4**: Preparation Phase Spinner
+4. **Phase 2.5**: `stigmer doctor` Diagnostic Command
 
 ## Context for Resume
 
+- **Phase 2.1 key pattern**: `Classify(err) *CLIError` is a pure function that maps any error to a structured `CLIError` with exit code, user message, hints, and cause. `Handle(err)` is a thin orchestrator that calls Classify, formats, and exits. `extractGRPCStatus(err)` walks the `Unwrap()` chain to find gRPC status through wrapped errors.
+- **`CLIError` type**: `ExitCode int`, `Message string`, `Hints []string`, `Cause error`. Implements `Error()` and `Unwrap()`.
+- **Exit codes**: `ExitSuccess=0`, `ExitGeneral=1`, `ExitUsage=2`, `ExitConnection=3`, `ExitAuth=4`, `ExitNotFound=5` — defined in `exit_codes.go`.
+- **`--debug` error output**: `SetDebug(bool)` package-level setter wired from `PersistentPreRun`. When enabled, `formatError` appends `--- debug ---` section with gRPC code and raw error.
+- **Wrapped error bug fixed**: `status.FromError()` only checks outermost error. `extractGRPCStatus` walks `errors.Unwrap()` chain. This fixes silent misclassification across 25+ command error sites.
+- **`classifyStreamError` remains separate**: Stream errors (TUI mid-operation) and command errors (CLI exit) serve different audiences. Not unified.
 - **Phase 1.4 key pattern**: `runTUIWithProtection(p)` wraps `p.Run()` with panic recovery + signal handling. Both TUI entry points (streamAgentExecution, resumeSession) call it instead of `p.Run()` directly. Signal handler goroutine is lifecycle-managed via a `done` channel.
 - **Bubbletea catches event loop panics internally** via `recoverFromPanic`. Our wrapper's `recover()` is defense-in-depth for panics outside the event loop (terminal setup/teardown). Primary wrapper value is SIGTERM/SIGHUP handling.
 - **`p.RestoreTerminal()` panics if program was never initialized** — guarded with nested `recover()` in `restoreTerminal()`.
@@ -174,6 +193,7 @@ Role reference: `_roles/003_cli_tui_ux_eng`
 | 1.3 | Dead Stream Connection Detection | Done (code + 10 tests) |
 | 1.4 | Emergency Terminal Restore on Crash | Done (code + 9 tests) |
 | 1.5 | Esc as Cancel Shortcut | Done (code + 7 tests) |
+| 2.1 | Comprehensive Error Handler | Done (code + 24 tests) |
 
 ## Blockers
 
