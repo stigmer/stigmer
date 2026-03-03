@@ -9,7 +9,7 @@ Drop this file into your conversation to quickly resume work on this project.
 **Description**: Move Stigmer CLI from alt-screen TUI default to inline-first terminal experience inspired by Claude Code. Compact tool rendering (read as filename+line count, write/edit with previews, grouped sub-agents), inline follow-up input, and streamlined approval prompts — all in normal terminal scrollback without alt-screen.
 **Goal**: Make the inline rendering mode the default CLI experience with four perfected UI surfaces: (1) Read tool as compact filename+line count, (2) Write/Edit tool with appropriate previews, (3) Sub-agent tool grouping, and (4) Streamlined approval prompts. TUI code retained but unreachable from CLI flags.
 **Tech Stack**: Go, Bubbletea (charmbracelet), gRPC, Cobra
-**Components**: client-apps/cli/cmd/stigmer/root (run_stream_inline.go, output_mode.go, run_stream.go), client-apps/cli/pkg/executiontui (model.go, render_blocks.go, view.go), client-apps/cli/pkg/toolrender (file_preview.go, render.go, render_compact.go, hyperlink.go)
+**Components**: client-apps/cli/cmd/stigmer/root (run_stream_inline.go, output_mode.go, run_stream.go), client-apps/cli/pkg/executiontui (model.go, render_blocks.go, view.go), client-apps/cli/pkg/toolrender (file_preview.go, render.go, render_compact.go, hyperlink.go), client-apps/cli/pkg/termctl (termctl.go)
 
 ## Essential Files to Review
 
@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-04 00:23
-**Current Task**: Phase 3 (Streamlined Approval Prompts)
-**Status**: Ready to Start
-**Last Session**: 2026-03-04 — Phase 2.5 complete
+**Current Task**: Phase 3 (Claude Code-Style Approval Flow — REVISED)
+**Status**: In Progress — Phase 3.0 complete
+**Last Session**: 2026-03-04 — Phase 3.0 (termctl primitives) complete
 
 ## Session Progress (2026-03-04, Session 1)
 
@@ -242,13 +242,39 @@ When starting a new session:
 - `client-apps/cli/pkg/toolrender/render_compact_test.go` (modified)
 - `client-apps/cli/cmd/stigmer/root/run_stream_inline.go` (modified)
 
+## Session Progress (2026-03-04, Session 9)
+
+- Phase 3.0 (Terminal Cursor Control Primitives) completed
+- Created `pkg/termctl/termctl.go` (113 lines) — 7 public functions: `IsSupported`, `MoveUp`, `ClearDown`, `ClearLine`, `EraseLines`, `Width`, `DisplayRows`
+- Created `pkg/termctl/termctl_test.go` (296 lines) — 37 test functions covering ANSI output, no-op guards, atomicity, DisplayRows with wrapping/ANSI/edge cases
+- Created `pkg/termctl/BUILD.bazel` — Bazel build targets with `charmbracelet/x/ansi` and `golang.org/x/term` deps
+
+### Key Design Decisions (Session 9)
+- **`IsSupported` does NOT check `NO_COLOR`** — Cursor control (collapse after approval) is a UX mechanism, not color decoration. Users who disable color still benefit from content management. Only checks TTY + TERM!=dumb.
+- **`EraseLines` is atomic** — Builds full ANSI sequence (`\033[nA\r\033[J`) and writes in a single `Write` call, preventing interleaving with concurrent output.
+- **`DisplayRows` uses `charmbracelet/x/ansi.StringWidth`** — Already a dependency. Handles CSI, OSC 8, and Unicode width correctly. No custom ANSI stripping needed.
+- **`MoveUp(w, 0)` is a no-op** — ANSI spec treats `\033[0A` as "move up 1" (0 defaults to 1). Guard prevents accidental cursor displacement.
+- **Free functions over struct** — Stateless DI-compliant functions. Every function takes `io.Writer` or pure parameters. No `os.Stdout` references. Struct can be added later if call sites become noisy.
+- **New package `pkg/termctl/`** — Not an extension of `display/` (which is stdout-hardcoded formatting) or `spinner/` (which has private helpers). Separate concern, separate package.
+
+### Files Created (Session 9)
+- `client-apps/cli/pkg/termctl/termctl.go` (new)
+- `client-apps/cli/pkg/termctl/termctl_test.go` (new)
+- `client-apps/cli/pkg/termctl/BUILD.bazel` (new)
+
 ## Next Steps
 
-1. Phase 3: Streamlined single-key approval prompts
+1. Phase 3: Claude Code-Style Approval Flow (REVISED — 3-4 sessions remaining)
+   - ~~3.0: Terminal cursor control primitives (pkg/termctl)~~ DONE
+   - 3.1: Custom inline prompter (arrow-key menu, raw mode, line counting)
+   - 3.2: Four-state tool rendering (streaming → approval → collapse with └ connector)
+   - 3.3: Rewrite handleApproval (orchestrate expand/prompt/collapse/suppress)
+   - 3.4: Shell tool approval variant + enable ToolStreamDeltaEvent streaming
 2. Phase 4: Inline follow-up readline + thinking spinner
 
 ## Context for Resume
 
+- **`pkg/termctl/`** is the new ANSI cursor control package (Phase 3.0). 7 public functions: `IsSupported(w)` (TTY+not-dumb, NO_COLOR excluded), `MoveUp(w, n)`, `ClearDown(w)`, `ClearLine(w)`, `EraseLines(w, n)` (atomic), `Width(w, default)`, `DisplayRows(text, width)`. All stateless, DI-compliant (io.Writer params). Used by Phase 3.2-3.3 for approval collapse. `DisplayRows` uses `charmbracelet/x/ansi.StringWidth` for ANSI-aware width measurement.
 - Pre-existing compile error in `run_create.go:114` (references `WorkspaceSource` from multi-source-workspace project) blocks `go test` for the `root` package. Our changes are isolated and verified correct via `go vet`.
 - The `OutputInteractive` constant is retained in `output_mode.go` — TUI code references it from `run_stream.go` and `run_session.go` default branches.
 - **`RenderCompact`** is the graduated entry point for compact completed tool rendering. Every known tool label now has a compact renderer. Task still falls back to `RenderWithBadge` (its visual representation comes from lifecycle events, not RenderCompact). Only unknown/MCP tools lack compact renderers.
@@ -271,10 +297,12 @@ None.
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 3" - Start streamlined single-key approval prompts
+- "Start Phase 3.1" - Build custom inline prompter (arrow-key menu, raw mode)
+- "Start Phase 3.2" - Build four-state approval rendering (streaming → collapse)
+- "Start Phase 3.3" - Rewrite handleApproval with expand/collapse
+- "Start Phase 3.4" - Shell tool approval variant + streaming
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
-- "Review guidelines" - Check established patterns
 
 ## Quick Resume
 To continue this project, drag this file into chat:
