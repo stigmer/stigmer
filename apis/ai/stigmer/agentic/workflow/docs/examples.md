@@ -13,7 +13,7 @@ api_version: agentic.stigmer.ai/v1
 kind: Workflow
 metadata:
   name: hello-world
-  org: local
+  org: default
 spec:
   description: "Sends a single HTTP request"
   document:
@@ -681,7 +681,7 @@ api_version: agentic.stigmer.ai/v1
 kind: Workflow
 metadata:
   name: my-workflow
-  org: local
+  org: default
 spec:
   document:
     dsl: "1.0.0"

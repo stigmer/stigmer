@@ -104,14 +104,14 @@ from the same server into a single entry.
 ```yaml
 # WRONG — github appears twice
 mcp_server_usages:
-  - mcp_server_ref: { org: local, kind: mcp_server, slug: github }
+  - mcp_server_ref: { kind: mcp_server, slug: github }
     enabled_tools: [search_code]
-  - mcp_server_ref: { org: local, kind: mcp_server, slug: github }
+  - mcp_server_ref: { kind: mcp_server, slug: github }
     enabled_tools: [create_pr]
 
 # CORRECT — single entry with all tools
 mcp_server_usages:
-  - mcp_server_ref: { org: local, kind: mcp_server, slug: github }
+  - mcp_server_ref: { kind: mcp_server, slug: github }
     enabled_tools: [search_code, create_pr]
 ```
 
@@ -182,31 +182,28 @@ execution fails when the runner cannot resolve the reference.
 ```yaml
 # WRONG — guessing a slug
 skill_refs:
-  - org: local
-    kind: skill
+  - kind: skill
     slug: my-great-skill   # hallucinated; does not exist
 
 # CORRECT — confirmed via search/get before writing
 skill_refs:
-  - org: local
-    kind: skill
+  - kind: skill
     slug: code-review-best-practices  # confirmed to exist
 ```
 
 ### Pitfall I — Missing required fields in references
 
-All three fields (`org`, `kind`, `slug`) are required in every
-`ApiResourceReference`.
+`kind` and `slug` are required in every `ApiResourceReference`.
+`org` is optional — when omitted, it resolves from the parent resource's org.
 
 ```yaml
-# WRONG — missing kind and slug
+# WRONG — missing kind
 skill_refs:
-  - org: local
+  - slug: my-skill
 
 # CORRECT
 skill_refs:
-  - org: local
-    kind: skill
+  - kind: skill
     slug: my-skill
 ```
 
@@ -244,13 +241,11 @@ status:
 ```yaml
 # WRONG
 mcp_server_ref:
-  org: local
   kind: agent    # wrong kind
   slug: github
 
 # CORRECT
 mcp_server_ref:
-  org: local
   kind: mcp_server
   slug: github
 ```
@@ -291,8 +286,8 @@ instructions: |
 ### Reference format
 - [ ] All `kind` values are lowercase strings (`skill`, `mcp_server`)
 - [ ] All `slug` values match `^[a-z][a-z0-9-]*$`, 1-63 chars
-- [ ] All `org` values match `^[a-z][a-z0-9-]*$`, 1-63 chars
-- [ ] Three fields present in every reference: `org`, `kind`, `slug`
+- [ ] `org` omitted for same-org references (resolved from parent resource's org)
+- [ ] If `org` is explicit, it matches `^[a-z][a-z0-9-]*$`
 
 ### MCP server usages
 - [ ] Each `mcp_server_ref.slug` appears at most once
