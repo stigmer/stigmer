@@ -120,28 +120,28 @@ func TestRenderPhaseChange_WaitingForApproval_Suppressed(t *testing.T) {
 	}
 }
 
-func TestRenderApprovalPrompt(t *testing.T) {
-	result := renderApprovalPrompt("shell", `{"command":"ls"}`, "Execute command: ls", false, "")
-	if !strings.Contains(result, "APPROVAL REQUIRED") {
+func TestRenderApprovalContent(t *testing.T) {
+	_, full := renderApprovalContent("shell", `{"command":"ls"}`, "Execute command: ls", false, "")
+	if !strings.Contains(full, "APPROVAL REQUIRED") {
 		t.Error("should contain APPROVAL REQUIRED")
 	}
-	if !strings.Contains(result, "$ ls") {
-		t.Errorf("shell tool should render command with $ prefix, got %q", result)
+	if !strings.Contains(full, "$ ls") {
+		t.Errorf("shell tool should render command with $ prefix, got %q", full)
 	}
 }
 
-func TestRenderApprovalPrompt_SubAgent(t *testing.T) {
-	result := renderApprovalPrompt("Write", "path: README.md", "Write file to disk", true, "general-purpose")
-	if !strings.Contains(result, "APPROVAL REQUIRED") {
+func TestRenderApprovalContent_SubAgent(t *testing.T) {
+	_, full := renderApprovalContent("Write", "path: README.md", "Write file to disk", true, "general-purpose")
+	if !strings.Contains(full, "APPROVAL REQUIRED") {
 		t.Error("should contain APPROVAL REQUIRED")
 	}
-	if !strings.Contains(result, "general-purpose") {
+	if !strings.Contains(full, "general-purpose") {
 		t.Error("should contain sub-agent name")
 	}
-	if !strings.Contains(result, "sub-agent") {
+	if !strings.Contains(full, "sub-agent") {
 		t.Error("should contain sub-agent label")
 	}
-	if !strings.Contains(result, "Write") {
+	if !strings.Contains(full, "Write") {
 		t.Error("should contain tool name")
 	}
 }

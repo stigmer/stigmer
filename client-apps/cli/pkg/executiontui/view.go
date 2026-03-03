@@ -130,11 +130,15 @@ func (m Model) renderFooter() string {
 	case m.cancelling:
 		hints = "  ⏳ Cancelling...  ↑↓ scroll  q detach"
 	case m.approval != nil:
+		var navHints string
+		if m.hasExpandableBlocks() {
+			navHints = "↑↓ scroll  Tab focus  Enter expand  "
+		}
 		if m.approval.toolName != "" {
 			label := toolrender.DisplayLabel(m.approval.toolName)
-			hints = fmt.Sprintf("  [a] Approve (%s)  [s] Skip  [r] Reject  [q] Detach", label)
+			hints = fmt.Sprintf("  %s[a] Approve (%s)  [s] Skip  [r] Reject  [q] Detach", navHints, label)
 		} else {
-			hints = "  [a] Approve  [s] Skip  [r] Reject  [q] Detach"
+			hints = fmt.Sprintf("  %s[a] Approve  [s] Skip  [r] Reject  [q] Detach", navHints)
 		}
 	case !m.autoScroll:
 		// Scroll paused — user scrolled away from the bottom.
