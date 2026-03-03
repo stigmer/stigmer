@@ -2130,7 +2130,7 @@ func TestRenderCompactRunning_Think_NoParens(t *testing.T) {
 	}
 }
 
-func TestRenderCompactRunning_Task_FallsBackToLegacy(t *testing.T) {
+func TestRenderCompactRunning_Task_CompactFormat(t *testing.T) {
 	tc := ToolCallInfo{
 		Name: "task",
 		Args: map[string]interface{}{"description": "Explore code"},
@@ -2138,9 +2138,18 @@ func TestRenderCompactRunning_Task_FallsBackToLegacy(t *testing.T) {
 	opts := CompactOptions{HyperlinksEnabled: false}
 
 	got := RenderCompactRunning(tc, opts)
-	assertContains(t, got, "🔀")
+	plain := stripANSI(got)
+
+	assertContains(t, got, "●")
 	assertContains(t, got, "Task")
-	assertContains(t, got, "⏳")
+	assertContains(t, got, "Explore code")
+	assertContains(t, got, "…")
+	assertNotContains(t, got, "🔀")
+	assertNotContains(t, got, "⏳")
+
+	if !strings.Contains(plain, "Task: Explore code") {
+		t.Errorf("expected 'Task: Explore code' format, got:\n  %q", plain)
+	}
 }
 
 // =============================================================================
@@ -2226,7 +2235,7 @@ func TestHasCompactRenderer_AllKnownLabels(t *testing.T) {
 		"Read", "Write", "Create", "Edit",
 		"Shell", "Execute",
 		"List", "Find", "Search",
-		"Delete", "Thinking",
+		"Delete", "Thinking", "Task",
 	}
 	for _, label := range compactLabels {
 		info := toolDisplayInfo{label: label}
@@ -2236,10 +2245,10 @@ func TestHasCompactRenderer_AllKnownLabels(t *testing.T) {
 	}
 }
 
-func TestHasCompactRenderer_TaskReturnsFalse(t *testing.T) {
+func TestHasCompactRenderer_TaskReturnsTrue(t *testing.T) {
 	info := toolDisplayInfo{label: "Task"}
-	if hasCompactRenderer(info) {
-		t.Error("hasCompactRenderer(Task) = true, want false — Task is Phase 2.5")
+	if !hasCompactRenderer(info) {
+		t.Error("hasCompactRenderer(Task) = false, want true — Task has visual representation via lifecycle events")
 	}
 }
 
@@ -2268,5 +2277,249 @@ func TestFirstLine_EmptyString(t *testing.T) {
 func TestFirstLine_TrailingNewline(t *testing.T) {
 	if got := firstLine("hello\n"); got != "hello" {
 		t.Errorf("expected %q, got %q", "hello", got)
+	}
+}
+
+// =============================================================================
+// IsTaskTool
+// =============================================================================
+
+func TestIsTaskTool_TaskReturnsTrue(t *testing.T) {
+	if !IsTaskTool("task") {
+		t.Error("IsTaskTool(task) = false, want true")
+	}
+}
+
+func TestIsTaskTool_ShellReturnsFalse(t *testing.T) {
+	if IsTaskTool("shell") {
+		t.Error("IsTaskTool(shell) = true, want false")
+	}
+}
+
+func TestIsTaskTool_UnknownReturnsFalse(t *testing.T) {
+	if IsTaskTool("custom_mcp_tool") {
+		t.Error("IsTaskTool(custom_mcp_tool) = true, want false")
+	}
+}
+
+func TestIsTaskTool_ReadReturnsFalse(t *testing.T) {
+	if IsTaskTool("read") {
+		t.Error("IsTaskTool(read) = true, want false")
+	}
+}
+
+// =============================================================================
+// GutterWrap
+// =============================================================================
+
+func TestGutterWrap_SingleLine(t *testing.T) {
+	got := GutterWrap("hello")
+	plain := stripANSI(got)
+
+	if !strings.HasPrefix(plain, "  │ hello") {
+		t.Errorf("expected gutter prefix, got:\n  %q", plain)
+	}
+}
+
+func TestGutterWrap_MultiLine(t *testing.T) {
+	got := GutterWrap("line1\nline2\nline3")
+	plain := stripANSI(got)
+
+	lines := strings.Split(plain, "\n")
+	if len(lines) != 3 {
+		t.Fatalf("expected 3 lines, got %d:\n%s", len(lines), plain)
+	}
+	for i, line := range lines {
+		if !strings.HasPrefix(line, "  │ ") {
+			t.Errorf("line %d missing gutter prefix: %q", i, line)
+		}
+	}
+	if !strings.Contains(lines[0], "line1") {
+		t.Error("first line should contain 'line1'")
+	}
+	if !strings.Contains(lines[2], "line3") {
+		t.Error("third line should contain 'line3'")
+	}
+}
+
+func TestGutterWrap_EmptyString(t *testing.T) {
+	got := GutterWrap("")
+	if got != "" {
+		t.Errorf("GutterWrap(\"\") should return empty string, got %q", got)
+	}
+}
+
+func TestGutterWrap_ContainsPipeCharacter(t *testing.T) {
+	got := GutterWrap("content")
+	plain := stripANSI(got)
+
+	if !strings.Contains(plain, "│") {
+		t.Errorf("expected gutter pipe character (│), got:\n  %q", plain)
+	}
+	if !strings.Contains(plain, "content") {
+		t.Errorf("expected original content preserved, got:\n  %q", plain)
+	}
+}
+
+// =============================================================================
+// GutterWrap — integration with compact renderers
+// =============================================================================
+
+func TestGutterWrap_WithRenderCompactRead(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "read_file",
+		Args:   map[string]interface{}{"path": "main.go"},
+		Status: "completed",
+		Result: "package main\nfunc main() {}\n",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	inner := RenderCompact(tc, opts)
+	got := GutterWrap(inner)
+	plain := stripANSI(got)
+
+	lines := strings.Split(plain, "\n")
+	if len(lines) != 2 {
+		t.Fatalf("expected 2 lines (header + result), got %d:\n%s", len(lines), plain)
+	}
+	for i, line := range lines {
+		if !strings.HasPrefix(line, "  │ ") {
+			t.Errorf("line %d missing gutter prefix: %q", i, line)
+		}
+	}
+	assertContains(t, got, "Read")
+	assertContains(t, got, "main.go")
+	assertContains(t, got, "3 lines")
+}
+
+func TestGutterWrap_WithRenderCompactShell(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "shell",
+		Args:   map[string]interface{}{"command": "go test ./..."},
+		Status: "completed",
+		Result: "ok  pkg/foo  0.5s\nok  pkg/bar  1.2s\n",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	inner := RenderCompact(tc, opts)
+	got := GutterWrap(inner)
+	plain := stripANSI(got)
+
+	lines := strings.Split(plain, "\n")
+	for i, line := range lines {
+		if !strings.HasPrefix(line, "  │ ") {
+			t.Errorf("line %d missing gutter prefix: %q", i, line)
+		}
+	}
+	assertContains(t, got, "Shell")
+	assertContains(t, got, "go test ./...")
+}
+
+func TestGutterWrap_WithRenderCompactWrite(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "write_file",
+		Args:   map[string]interface{}{"path": "config.go", "contents": "package config\n"},
+		Status: "completed",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	inner := RenderCompact(tc, opts)
+	got := GutterWrap(inner)
+	plain := stripANSI(got)
+
+	lines := strings.Split(plain, "\n")
+	if len(lines) != 2 {
+		t.Fatalf("expected 2 lines, got %d:\n%s", len(lines), plain)
+	}
+	for i, line := range lines {
+		if !strings.HasPrefix(line, "  │ ") {
+			t.Errorf("line %d missing gutter prefix: %q", i, line)
+		}
+	}
+	assertContains(t, got, "Write")
+	assertContains(t, got, "config.go")
+}
+
+func TestGutterWrap_WithRenderReadGroup(t *testing.T) {
+	reads := []ToolCallInfo{
+		{Name: "read_file", Args: map[string]interface{}{"path": "a.go"}, Status: "completed", Result: "package a\n"},
+		{Name: "read_file", Args: map[string]interface{}{"path": "b.go"}, Status: "completed", Result: "package b\n"},
+		{Name: "read_file", Args: map[string]interface{}{"path": "c.go"}, Status: "completed", Result: "package c\n"},
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	inner := RenderReadGroup(reads, opts)
+	got := GutterWrap(inner)
+	plain := stripANSI(got)
+
+	lines := strings.Split(plain, "\n")
+	if len(lines) != 4 {
+		t.Fatalf("expected 4 lines (header + 3 entries), got %d:\n%s", len(lines), plain)
+	}
+	for i, line := range lines {
+		if !strings.HasPrefix(line, "  │ ") {
+			t.Errorf("line %d missing gutter prefix: %q", i, line)
+		}
+	}
+	assertContains(t, got, "Read 3 files")
+	assertContains(t, got, "a.go")
+	assertContains(t, got, "b.go")
+	assertContains(t, got, "c.go")
+}
+
+// =============================================================================
+// RenderCompactRunning — Task tool format
+// =============================================================================
+
+func TestRenderCompactRunning_Task_EmptyDescription(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "task",
+		Args: map[string]interface{}{},
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompactRunning(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, got, "Task")
+	assertContains(t, got, "running")
+	assertContains(t, got, "…")
+
+	if !strings.Contains(plain, "Task: running") {
+		t.Errorf("expected 'Task: running' fallback, got:\n  %q", plain)
+	}
+}
+
+func TestRenderCompactRunning_Task_SingleLine(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "task",
+		Args: map[string]interface{}{"description": "Investigate bug"},
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompactRunning(tc, opts)
+	plain := stripANSI(got)
+
+	lines := strings.Split(plain, "\n")
+	if len(lines) != 1 {
+		t.Errorf("expected single line for running Task, got %d:\n%s", len(lines), plain)
+	}
+}
+
+// =============================================================================
+// BulletGreen / LabelBold
+// =============================================================================
+
+func TestBulletGreen_RendersBullet(t *testing.T) {
+	got := BulletGreen("●")
+	if stripANSI(got) != "●" {
+		t.Errorf("expected bullet character, got %q", stripANSI(got))
+	}
+}
+
+func TestLabelBold_RendersLabel(t *testing.T) {
+	got := LabelBold("Task")
+	if stripANSI(got) != "Task" {
+		t.Errorf("expected 'Task', got %q", stripANSI(got))
 	}
 }

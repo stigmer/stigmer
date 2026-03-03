@@ -29,6 +29,16 @@ const maxThinkLines = 3
 // Matches the visual language of Claude Code's tool call output.
 var bulletStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
 
+// BulletGreen renders s with the green bullet style. Exposed for use by
+// the inline renderer's sub-agent lifecycle handlers which construct
+// headers outside of RenderCompact (from SubAgentStartedEvent, not
+// ToolCallInfo).
+func BulletGreen(s string) string { return bulletStyle.Render(s) }
+
+// LabelBold renders s with the bold label style used in compact tool
+// headers. Exposed for the same reason as BulletGreen.
+func LabelBold(s string) string { return labelStyle.Render(s) }
+
 // CompactOptions configures compact tool rendering. Created once per renderer
 // lifecycle and passed to RenderCompact on each call — no environment reads
 // happen inside formatting functions.
@@ -45,8 +55,10 @@ type CompactOptions struct {
 }
 
 // RenderCompact returns a compact display of a completed tool call. Every
-// known tool label has a compact renderer; unknown/MCP tools and "Task"
-// (Phase 2.5) fall back to RenderWithBadge.
+// known tool label has a compact renderer; unknown/MCP tools fall back to
+// RenderWithBadge. Task tools also fall back — their visual representation
+// comes from SubAgentStarted/Completed lifecycle events, not from
+// RenderCompact (the inline renderer suppresses Task tool events).
 //
 // Examples:
 //
@@ -106,6 +118,16 @@ func RenderCompactRunning(tc ToolCallInfo, opts CompactOptions) string {
 		return fmt.Sprintf("%s %s %s",
 			bulletStyle.Render("●"), labelStyle.Render(info.label),
 			dimStyle.Render("…"))
+	}
+
+	if info.label == "Task" {
+		desc := extractPrimaryArgWithFallbacks(tc.Args, info.primaryField, info.fallbackFields)
+		if desc == "" {
+			desc = "running"
+		}
+		return fmt.Sprintf("%s %s: %s %s",
+			bulletStyle.Render("●"), labelStyle.Render("Task"),
+			truncate(desc, 60), dimStyle.Render("…"))
 	}
 
 	primaryVal := extractPrimaryArgWithFallbacks(tc.Args, info.primaryField, info.fallbackFields)
@@ -183,15 +205,38 @@ func isPatternBasedLabel(label string) bool {
 
 // hasCompactRenderer reports whether a tool has a compact rendering
 // implementation. Used by RenderCompactRunning to decide between compact
-// and legacy formats. After Phase 2.4, only "Task" (Phase 2.5) and
-// unknown tools lack compact renderers.
+// and legacy formats. All known tool labels have compact renderers; only
+// unknown/MCP tools fall back to legacy.
 func hasCompactRenderer(info toolDisplayInfo) bool {
 	switch info.label {
 	case "Read", "Write", "Create", "Edit", "Shell", "Execute",
-		"List", "Find", "Search", "Delete", "Thinking":
+		"List", "Find", "Search", "Delete", "Thinking", "Task":
 		return true
 	}
 	return false
+}
+
+// IsTaskTool reports whether toolName represents a sub-agent task tool.
+// Derived from toolDisplayMap entries whose label is "Task".
+func IsTaskTool(toolName string) bool {
+	info, ok := toolDisplayMap[toolName]
+	return ok && info.label == "Task"
+}
+
+// GutterWrap prepends a dim gutter prefix ("  │ ") to each line of s,
+// visually nesting the content under a sub-agent Task header. The pipe
+// character uses dimStyle for a subtle visual guide; surrounding spaces
+// are unstyled.
+func GutterWrap(s string) string {
+	if s == "" {
+		return ""
+	}
+	prefix := "  " + dimStyle.Render("│") + " "
+	lines := strings.Split(s, "\n")
+	for i, line := range lines {
+		lines[i] = prefix + line
+	}
+	return strings.Join(lines, "\n")
 }
 
 // completedVerb maps a tool display label to its past-tense action verb

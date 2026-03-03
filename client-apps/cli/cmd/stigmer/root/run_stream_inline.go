@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
@@ -27,6 +28,14 @@ type inlineRenderConfig struct {
 	sessionID         string
 }
 
+// pendingRead wraps a read tool completion with the sub-agent context it
+// originated from. This allows flushPendingReads to apply gutter-wrapping
+// when reads belong to a sub-agent.
+type pendingRead struct {
+	tc         toolrender.ToolCallInfo
+	subAgentID string
+}
+
 // inlineRenderer consumes execution events and renders them to the terminal
 // without the Bubbletea alt-screen TUI. AI content flows to the data writer
 // (stdout) while all status/progress goes to the status writer (stderr).
@@ -45,8 +54,9 @@ type inlineRenderer struct {
 
 	// pendingReads buffers consecutive read tool completions for grouped
 	// rendering. Flushed when a non-read event arrives that produces visible
-	// output, or when the stream terminates.
-	pendingReads []toolrender.ToolCallInfo
+	// output, or when the stream terminates. Each entry is tagged with its
+	// sub-agent context so gutter-wrapping is applied correctly on flush.
+	pendingReads []pendingRead
 }
 
 // renderInline consumes events from the channel and renders them inline until
@@ -84,13 +94,20 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, ex
 // handleEvent dispatches a single event to the appropriate render method.
 // Returns (true, phase, error) when a terminal event is received.
 //
-// Read tool events are intercepted before the main switch for consecutive-event
-// grouping: completed reads accumulate in pendingReads and are flushed as a
-// group (or individually) when any other visible event arrives.
+// Pre-switch interceptions handle three concerns:
+//  1. Read grouping: completed reads buffer in pendingReads; running reads
+//     and tool stream deltas are suppressed.
+//  2. Task tool suppression: the backend emits ToolRunning/ToolCompleted for
+//     the parent "task" tool AND SubAgentStarted/Completed lifecycle events.
+//     These are redundant — we suppress the tool events and use the lifecycle
+//     events (which carry richer data: Description, ToolCount, Status).
+//  3. Sub-agent AI redirection: sub-agent AI messages are intermediate
+//     reasoning, not the final agent response. They render on stderr with
+//     gutter prefix instead of stdout.
 func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Event) (done bool, phase string, exitErr string) {
 	// Buffer read completions for consecutive-event grouping.
 	if e, ok := event.(executiontui.ToolCompletedEvent); ok && toolrender.IsReadTool(e.ToolCall.Name) {
-		r.pendingReads = append(r.pendingReads, e.ToolCall)
+		r.pendingReads = append(r.pendingReads, pendingRead{tc: e.ToolCall, subAgentID: e.SubAgentID})
 		return false, "", ""
 	}
 	// Suppress running indicators for read tools — reads complete fast,
@@ -102,6 +119,46 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 	// not flush the read buffer — a concurrent streaming tool (e.g. shell)
 	// would break read grouping otherwise.
 	if _, ok := event.(executiontui.ToolStreamDeltaEvent); ok {
+		return false, "", ""
+	}
+
+	// Suppress the parent "task" tool's running/completed events. The
+	// SubAgentStarted/Completed lifecycle events handle the header and
+	// footer with richer data. Flush pending reads first — a top-level
+	// read might be buffered when the task tool event arrives.
+	if e, ok := event.(executiontui.ToolRunningEvent); ok && toolrender.IsTaskTool(e.ToolCall.Name) && e.SubAgentID == "" {
+		r.flushPendingReads()
+		return false, "", ""
+	}
+	if e, ok := event.(executiontui.ToolCompletedEvent); ok && toolrender.IsTaskTool(e.ToolCall.Name) && e.SubAgentID == "" {
+		r.flushPendingReads()
+		return false, "", ""
+	}
+
+	// Sub-agent AI messages are intermediate reasoning — render on stderr
+	// with gutter prefix instead of stdout. We suppress Start/Delta and
+	// emit the full content on End/Message to avoid character-by-character
+	// streaming with per-line gutter insertion.
+	if e, ok := event.(executiontui.AIStreamStartEvent); ok && e.SubAgentID != "" {
+		return false, "", ""
+	}
+	if e, ok := event.(executiontui.AIStreamDeltaEvent); ok && e.SubAgentID != "" {
+		return false, "", ""
+	}
+	if e, ok := event.(executiontui.AIStreamEndEvent); ok && e.SubAgentID != "" {
+		r.flushPendingReads()
+		r.finishAIStreamIfNeeded()
+		if e.Content != "" {
+			r.statusf("%s\n", toolrender.GutterWrap("🤖 "+e.Content))
+		}
+		return false, "", ""
+	}
+	if e, ok := event.(executiontui.AIMessageEvent); ok && e.SubAgentID != "" {
+		r.flushPendingReads()
+		r.finishAIStreamIfNeeded()
+		if e.Content != "" {
+			r.statusf("%s\n", toolrender.GutterWrap("🤖 "+e.Content))
+		}
 		return false, "", ""
 	}
 
@@ -208,11 +265,17 @@ func (r *inlineRenderer) renderHumanMessage(e executiontui.HumanMessageEvent) {
 
 func (r *inlineRenderer) renderToolRunning(e executiontui.ToolRunningEvent) {
 	line := toolrender.RenderCompactRunning(e.ToolCall, r.compactOpts)
+	if e.SubAgentID != "" {
+		line = toolrender.GutterWrap(line)
+	}
 	r.statusf("%s\n", line)
 }
 
 func (r *inlineRenderer) renderToolCompleted(e executiontui.ToolCompletedEvent) {
 	line := toolrender.RenderCompact(e.ToolCall, r.compactOpts)
+	if e.SubAgentID != "" {
+		line = toolrender.GutterWrap(line)
+	}
 	r.statusf("%s\n", line)
 }
 
@@ -285,15 +348,16 @@ func (r *inlineRenderer) renderSubAgentStarted(e executiontui.SubAgentStartedEve
 	if e.Description != "" {
 		label = e.Description
 	}
-	r.statusf("🔀 Sub-agent started: %s\n", label)
+	r.statusf("%s %s: %s\n",
+		toolrender.BulletGreen("●"), toolrender.LabelBold("Task"), label)
 }
 
 func (r *inlineRenderer) renderSubAgentCompleted(e executiontui.SubAgentCompletedEvent) {
-	badge := "✓"
 	if e.Status == "failed" {
-		badge = "✗"
+		r.statusf("  ✗ Failed (%d tools)\n\n", e.ToolCount)
+	} else {
+		r.statusf("  ✓ Done (%d tools)\n\n", e.ToolCount)
 	}
-	r.statusf("🔀 Sub-agent %s %s (%d tools)\n\n", e.ID, badge, e.ToolCount)
 }
 
 // ---------------------------------------------------------------------------
@@ -372,17 +436,36 @@ func (r *inlineRenderer) handleApproval(ctx context.Context, e executiontui.Appr
 // flushPendingReads renders any buffered read tool completions. When the buffer
 // contains readGroupThreshold or more reads, they are rendered as a compact
 // group. Otherwise, each read is rendered individually.
+//
+// All pending reads share the same sub-agent context (events don't interleave
+// across agents), so checking the first entry's subAgentID is sufficient to
+// determine whether gutter-wrapping is needed.
 func (r *inlineRenderer) flushPendingReads() {
 	if len(r.pendingReads) == 0 {
 		return
 	}
-	if len(r.pendingReads) >= readGroupThreshold {
-		r.statusf("%s\n", toolrender.RenderReadGroup(r.pendingReads, r.compactOpts))
-	} else {
-		for _, tc := range r.pendingReads {
-			r.statusf("%s\n", toolrender.RenderCompact(tc, r.compactOpts))
-		}
+
+	subAgentID := r.pendingReads[0].subAgentID
+	tcs := make([]toolrender.ToolCallInfo, len(r.pendingReads))
+	for i, pr := range r.pendingReads {
+		tcs[i] = pr.tc
 	}
+
+	var output string
+	if len(tcs) >= readGroupThreshold {
+		output = toolrender.RenderReadGroup(tcs, r.compactOpts)
+	} else {
+		var lines []string
+		for _, tc := range tcs {
+			lines = append(lines, toolrender.RenderCompact(tc, r.compactOpts))
+		}
+		output = strings.Join(lines, "\n")
+	}
+
+	if subAgentID != "" {
+		output = toolrender.GutterWrap(output)
+	}
+	r.statusf("%s\n", output)
 	r.pendingReads = r.pendingReads[:0]
 }
 

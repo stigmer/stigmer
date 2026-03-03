@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-04 00:23
-**Current Task**: Phase 2.5 (Sub-Agent Tool Grouping)
+**Current Task**: Phase 3 (Streamlined Approval Prompts)
 **Status**: Ready to Start
-**Last Session**: 2026-03-04 — Phase 2.4 complete
+**Last Session**: 2026-03-04 — Phase 2.5 complete
 
 ## Session Progress (2026-03-04, Session 1)
 
@@ -217,22 +217,47 @@ When starting a new session:
 - `client-apps/cli/pkg/toolrender/render_compact.go` (modified)
 - `client-apps/cli/pkg/toolrender/render_compact_test.go` (modified)
 
+## Session Progress (2026-03-04, Session 8)
+
+- Phase 2.5 (Sub-Agent Tool Grouping) completed
+- Added `IsTaskTool`, `GutterWrap`, `BulletGreen`, `LabelBold` to `render_compact.go` (+55 lines)
+- Updated `hasCompactRenderer` to cover all 12 known labels (Task now included)
+- Added `RenderCompactRunning` Task branch (`● Task: description …`)
+- Introduced `pendingRead` wrapper struct in `run_stream_inline.go` to tag reads with `subAgentID`
+- Added 6 pre-switch interceptions: task tool suppression, sub-agent AI redirection to stderr with gutter prefix
+- Updated `renderToolRunning`/`renderToolCompleted` to gutter-wrap for sub-agent context
+- Rewrote `renderSubAgentStarted` (bullet Task header) and `renderSubAgentCompleted` (Done/Failed footer)
+- Updated `flushPendingReads` to extract ToolCallInfo slice and apply `GutterWrap` for sub-agent context
+- Added 18 new tests, updated 3 existing tests in `render_compact_test.go` (+267 lines)
+
+### Key Design Decisions (Session 8)
+- **Reuse, don't reinvent** — Inner tools use existing `RenderCompact*` + `GutterWrap`, no parallel sub-agent renderers
+- **Task tool events suppressed** — Lifecycle events carry richer data than tool events
+- **Sub-agent AI on stderr, non-streaming** — Preserves `stdout = main agent data` contract
+- **`pendingRead` wrapper** — Minimal structural change enabling gutter-aware flush without breaking buffering invariant
+- **Always expanded** — Collapse/expand deferred to Phases 3-4 (terminal cursor control)
+
+### Files Modified (Session 8)
+- `client-apps/cli/pkg/toolrender/render_compact.go` (modified)
+- `client-apps/cli/pkg/toolrender/render_compact_test.go` (modified)
+- `client-apps/cli/cmd/stigmer/root/run_stream_inline.go` (modified)
+
 ## Next Steps
 
-1. Phase 2.5: Sub-agent tool grouping with indentation
-2. Phase 3: Streamlined single-key approval prompts
-3. Phase 4: Inline follow-up readline + thinking spinner
+1. Phase 3: Streamlined single-key approval prompts
+2. Phase 4: Inline follow-up readline + thinking spinner
 
 ## Context for Resume
 
 - Pre-existing compile error in `run_create.go:114` (references `WorkspaceSource` from multi-source-workspace project) blocks `go test` for the `root` package. Our changes are isolated and verified correct via `go vet`.
 - The `OutputInteractive` constant is retained in `output_mode.go` — TUI code references it from `run_stream.go` and `run_session.go` default branches.
-- **`RenderCompact`** is the graduated entry point for compact completed tool rendering. Every known tool label now has a compact renderer. Only "Task" (Phase 2.5) and unknown/MCP tools fall back to `RenderWithBadge`.
-- **`RenderCompactRunning`** is the graduated entry point for compact running state. All tools with compact renderers get bullet-style `…` suffix. Display varies by category: shell (truncated command), pattern-based (plain text), path-based (hyperlinked), label-only (Thinking, no parens). Only "Task" and unknown tools fall back to legacy `⏳`.
-- **`hasCompactRenderer`** covers all 11 known labels: Read, Write, Create, Edit, Shell, Execute, List, Find, Search, Delete, Thinking. Only "Task" returns false.
+- **`RenderCompact`** is the graduated entry point for compact completed tool rendering. Every known tool label now has a compact renderer. Task still falls back to `RenderWithBadge` (its visual representation comes from lifecycle events, not RenderCompact). Only unknown/MCP tools lack compact renderers.
+- **`RenderCompactRunning`** is the graduated entry point for compact running state. All tools with compact renderers get bullet-style `…` suffix. Display varies by category: shell (truncated command), pattern-based (plain text), path-based (hyperlinked), label-only (Thinking, no parens), Task (`● Task: description …`). Only unknown tools fall back to legacy `⏳`.
+- **`hasCompactRenderer`** covers all 12 known labels: Read, Write, Create, Edit, Shell, Execute, List, Find, Search, Delete, Thinking, Task.
 - `CompactOptions` is initialized once in `renderInline()` with `HyperlinksEnabled` from `cfg.status` and an empty `WorkingDir` (relative path resolution deferred until working directory is available from execution context).
-- **Read grouping**: `handleEvent` intercepts read completions before the switch and buffers them in `pendingReads`. `flushPendingReads()` renders as group (>= 3) or individually (< 3). Flush triggers on any non-read visible event, context cancel, or channel close. `ToolStreamDeltaEvent` does NOT flush (no visible output).
+- **Read grouping**: `handleEvent` intercepts read completions before the switch and buffers them in `pendingReads` (as `pendingRead` structs carrying `subAgentID`). `flushPendingReads()` renders as group (>= 3) or individually (< 3), applying `GutterWrap` when `subAgentID != ""`. Flush triggers on any non-read visible event, context cancel, or channel close. `ToolStreamDeltaEvent` does NOT flush (no visible output).
 - **ToolRunningEvent for reads**: Suppressed (intercepted before switch). For all other tools: NOT suppressed — uses `RenderCompactRunning`.
+- **Sub-agent tool grouping (Phase 2.5)**: Task tool events (ToolRunning/ToolCompleted for "task") suppressed in pre-switch — lifecycle events (`SubAgentStarted`/`SubAgentCompleted`) handle header/footer. Sub-agent AI events redirected: Start/Delta suppressed, End/Message emitted to stderr with `GutterWrap`. All sub-agent tool events (`renderToolRunning`/`renderToolCompleted`) gutter-wrapped when `SubAgentID != ""`. `GutterWrap(s)` prepends dim `  │ ` to each line. `BulletGreen`/`LabelBold` expose package-private styles for lifecycle handlers.
 - **Shell output truncation**: `maxShellOutputLines = 3` with smart cutoff. Think uses `maxThinkLines = 3` with same pattern.
 - **Discovery result counting**: `countResultEntries` counts non-empty lines (not `countLines`). `discoverySummary` maps label to human-readable text.
 - **Think content extraction**: Directly from `contentArgField` ("thought") arg, bypassing `resolveDisplayContent` to avoid showing meaningless "ok" result.
@@ -246,7 +271,7 @@ None.
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 2.5" - Start sub-agent tool grouping with indentation
+- "Continue with Phase 3" - Start streamlined single-key approval prompts
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
