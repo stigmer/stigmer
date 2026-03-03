@@ -14,19 +14,24 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
 	"google.golang.org/grpc"
 )
 
 // executeRunSession handles the single-arg `stigmer run ses-xxx` path.
 // It connects to the backend and delegates to openSession.
 func executeRunSession(sessionID, orgOverride string, verbose bool, outputMode OutputMode) error {
+	sp := spinner.New(os.Stderr)
+	sp.Start("Connecting...")
+
 	conn, orgID, err := connectToBackend(orgOverride)
 	if err != nil {
+		sp.Stop()
 		return err
 	}
 	defer conn.Close()
 
-	return openSession(sessionID, orgID, verbose, outputMode, conn)
+	return openSession(sessionID, orgID, verbose, outputMode, conn, sp)
 }
 
 // openSession re-opens an existing session by its ID.
@@ -35,21 +40,30 @@ func executeRunSession(sessionID, orgOverride string, verbose bool, outputMode O
 //   - Re-attaches to the live stream if the execution is still running
 //   - Opens a resumable TUI with the full conversation history if all
 //     executions have completed, allowing the user to continue
-func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, conn *grpc.ClientConn) error {
+//
+// The spinner is active on entry and stopped after session data is loaded
+// (before printing session info and entering streaming/TUI).
+func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, conn *grpc.ClientConn, sp *spinner.Spinner) error {
+	sp.Update("Loading session...")
 	ses, err := session.GetFromBackend(conn, sessionID)
 	if err != nil {
+		sp.Stop()
 		climsg.Error("Session not found: %s", sessionID)
 		return err
 	}
 
+	sp.Update("Loading session history...")
 	execList, err := execution.ListBySession(&execution.ListBySessionOptions{
 		Conn:      conn,
 		SessionID: sessionID,
 		PageSize:  execution.MaxPageSize,
 	})
 	if err != nil {
+		sp.Stop()
 		return errors.Wrap(err, "failed to list session executions")
 	}
+
+	sp.Stop()
 
 	entries := execList.GetEntries()
 	if len(entries) == 0 {

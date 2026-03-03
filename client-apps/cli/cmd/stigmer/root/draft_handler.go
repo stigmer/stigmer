@@ -2,10 +2,12 @@ package root
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
 )
 
 // draftConfig identifies which system agent to invoke and how to label
@@ -50,20 +52,27 @@ func registerDraftFlags(cmd *cobra.Command, opts *draftOptions, resourceType str
 // behavior: the agent is a hardcoded system agent, and artifacts are always
 // downloaded on completion (unless --detach).
 func executeDraft(cfg draftConfig, opts draftOptions) error {
-	prep, err := prepareAgentExec(opts.agentExecFlags)
+	sp := spinner.New(os.Stderr)
+	sp.Start("Preparing...")
+
+	prep, err := prepareAgentExec(opts.agentExecFlags, sp)
 	if err != nil {
+		sp.Stop()
 		return err
 	}
 	prep.OutputMode = resolveOutputMode(opts.outputModeFlags)
 	defer prep.Conn.Close()
 
+	sp.Update("Resolving agent...")
 	agentRef := prep.OrgID + "/" + cfg.AgentName
 	agent, err := resolveAgent(agentRef, prep.OrgID, prep.Conn)
 	if err != nil {
+		sp.Stop()
 		displayDraftAgentNotFoundError(cfg.AgentName, prep.OrgID)
 		return errors.Wrapf(err, "%s agent not found", cfg.AgentName)
 	}
 
+	sp.Stop()
 	climsg.Info("Using system agent: %s", agent.Metadata.Name)
 
 	if len(prep.AttachResult.Attachments)+len(prep.AttachResult.WorkspaceFileRefs) > 0 {
@@ -76,7 +85,7 @@ func executeDraft(cfg draftConfig, opts draftOptions) error {
 		downloadDir = ""
 	}
 
-	err = executeResolvedAgent(resolvedAgentExecInput{
+	return executeResolvedAgent(resolvedAgentExecInput{
 		Agent:           agent,
 		Message:         prep.Message,
 		RuntimeEnv:      prep.RuntimeEnv,
@@ -91,12 +100,7 @@ func executeDraft(cfg draftConfig, opts draftOptions) error {
 		Verbose:         prep.Verbose,
 		OutputMode:      prep.OutputMode,
 		Conn:            prep.Conn,
-	})
-	if err != nil {
-		return err
-	}
-
-	return nil
+	}, sp)
 }
 
 // displayDraftAgentNotFoundError shows a helpful error when a draft system

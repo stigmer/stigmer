@@ -2,6 +2,7 @@ package root
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -13,6 +14,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpserver"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/reference"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
 )
 
 // localWorkspaceRoot extracts the absolute path from a local-path workspace source.
@@ -217,14 +219,18 @@ func executeRun(opts runOptions, outputMode OutputMode) error {
 		return formatUnsupportedVerbError(info, types.VerbRun)
 	}
 
-	prep, err := prepareAgentExec(opts.agentExecFlags)
+	sp := spinner.New(os.Stderr)
+	sp.Start("Preparing...")
+
+	prep, err := prepareAgentExec(opts.agentExecFlags, sp)
 	if err != nil {
+		sp.Stop()
 		return err
 	}
 	prep.OutputMode = outputMode
 	defer prep.Conn.Close()
 
-	return routeRun(info, opts.Reference, opts.DownloadDir, prep)
+	return routeRun(info, opts.Reference, opts.DownloadDir, prep, sp)
 }
 
 // resolveAndMergeAutoEnv loads the CLI config, resolves well-known
@@ -251,11 +257,15 @@ func resolveAndMergeAutoEnv(userEnv envfile.EnvMap) (envfile.EnvMap, error) {
 }
 
 // routeRun routes to the appropriate handler based on resource kind.
-func routeRun(info *types.TypeInfo, ref, downloadDir string, prep *preparedAgentExec) error {
+// The spinner is active on entry — each branch is responsible for updating
+// or stopping it as appropriate.
+func routeRun(info *types.TypeInfo, ref, downloadDir string, prep *preparedAgentExec, sp *spinner.Spinner) error {
 	switch info.ProtoKind {
 	case apiresourcekind.ApiResourceKind_agent:
+		sp.Update("Resolving agent...")
 		agent, err := resolveAgent(ref, prep.OrgID, prep.Conn)
 		if err != nil {
+			sp.Stop()
 			displayAgentNotFoundError(ref)
 			return err
 		}
@@ -273,15 +283,17 @@ func routeRun(info *types.TypeInfo, ref, downloadDir string, prep *preparedAgent
 			Verbose:         prep.Verbose,
 			OutputMode:      prep.OutputMode,
 			Conn:            prep.Conn,
-		})
+		}, sp)
 
 	case apiresourcekind.ApiResourceKind_workflow:
+		sp.Stop()
 		if prep.WorkspaceSource != nil {
 			return fmt.Errorf("--workspace is not supported for workflows (workspace is an agent-level concept)")
 		}
 		return runWorkflow(ref, prep)
 
 	default:
+		sp.Stop()
 		return fmt.Errorf("run not implemented for %s", info.DisplayName)
 	}
 }
