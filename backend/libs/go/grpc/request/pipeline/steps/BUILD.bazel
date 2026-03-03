@@ -44,6 +44,7 @@ go_test(
         "build_update_state_test.go",
         "defaults_test.go",
         "duplicate_test.go",
+        "helpers_test.go",
         "integration_test.go",
         "load_by_reference_test.go",
         "load_existing_test.go",

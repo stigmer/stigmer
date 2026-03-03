@@ -21,6 +21,7 @@ type draftConfig struct {
 // detach, and all other options that `stigmer run agent` supports.
 type draftOptions struct {
 	agentExecFlags
+	outputModeFlags
 	OutputDir   string
 	Model       string
 	AutoApprove bool
@@ -31,6 +32,7 @@ type draftOptions struct {
 // The --message flag is marked as required for draft commands.
 func registerDraftFlags(cmd *cobra.Command, opts *draftOptions, resourceType string) {
 	registerAgentExecFlags(cmd, &opts.agentExecFlags)
+	registerOutputModeFlags(cmd, &opts.outputModeFlags)
 	cmd.MarkFlagRequired("message")
 
 	cmd.Flags().StringVarP(&opts.OutputDir, "output", "o", ".",
@@ -52,6 +54,7 @@ func executeDraft(cfg draftConfig, opts draftOptions) error {
 	if err != nil {
 		return err
 	}
+	prep.OutputMode = resolveOutputMode(opts.outputModeFlags)
 	defer prep.Conn.Close()
 
 	agentRef := prep.OrgID + "/" + cfg.AgentName
@@ -86,6 +89,7 @@ func executeDraft(cfg draftConfig, opts draftOptions) error {
 		OrgID:           prep.OrgID,
 		DefaultAction:   prep.DefaultAction,
 		Verbose:         prep.Verbose,
+		OutputMode:      prep.OutputMode,
 		Conn:            prep.Conn,
 	})
 	if err != nil {

@@ -99,9 +99,10 @@ type preparedAgentExec struct {
 	OrgID           string
 	AttachResult    AttachmentResult
 
-	Message string
-	Detach  bool
-	Verbose bool
+	Message    string
+	Detach     bool
+	Verbose    bool
+	OutputMode OutputMode
 }
 
 // prepareAgentExec validates the common flags, resolves environment variables,
@@ -197,6 +198,7 @@ type resolvedAgentExecInput struct {
 	OrgID           string
 	DefaultAction   approval.Action
 	Verbose         bool
+	OutputMode      OutputMode
 	Conn            *grpc.ClientConn
 }
 
@@ -259,7 +261,7 @@ func executeResolvedAgent(input resolvedAgentExecInput) error {
 	}
 
 	prompter := approval.NewInteractivePrompter()
-	exec, err = streamAgentExecution(sessionID, "", exec.Metadata.Id, input.OrgID, prompter, input.DefaultAction, input.Verbose, input.Conn)
+	exec, err = streamAgentExecution(sessionID, "", exec.Metadata.Id, input.OrgID, prompter, input.DefaultAction, input.Verbose, input.OutputMode, input.Conn)
 	if err != nil {
 		return errors.Wrap(err, "error streaming execution")
 	}
