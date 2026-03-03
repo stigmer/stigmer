@@ -102,7 +102,7 @@ func checkTerminal() checkResult {
 
 	if !stdoutTTY && !stderrTTY {
 		r.status = statusWarn
-		r.hint = "Running in a non-interactive environment — consider --no-tui or --json flags"
+		r.hint = "Running in a non-interactive environment — consider --json flag for scripting"
 	} else {
 		r.status = statusPass
 	}

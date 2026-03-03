@@ -88,11 +88,10 @@ WORKSPACE:
 
 OUTPUT MODES:
 
-  --no-tui:   Stream output inline without the interactive TUI (preserves scrollback)
   --json:     Stream events as newline-delimited JSON (for scripting/CI)
 
-  By default, the command auto-detects the best output mode:
-  interactive TUI when stdout is a terminal, inline stream otherwise.
+  Output streams inline to the terminal by default.
+  Use --json for machine-readable output in scripts and CI.
 
 OTHER OPTIONS:
 
@@ -152,9 +151,6 @@ OTHER OPTIONS:
 
   # Override organization
   stigmer run agent my-agent --org acme-corp
-
-  # Stream inline without the TUI (preserves scrollback)
-  stigmer run agent my-agent --no-tui
 
   # Stream events as JSON for scripting
   stigmer run agent my-agent --json | jq '.payload.content'
