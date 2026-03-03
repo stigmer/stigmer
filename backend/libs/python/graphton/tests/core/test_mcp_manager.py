@@ -1,6 +1,7 @@
 """Unit tests for MCP manager module.
 
 Tests cover:
+- connect_mcp_client() function (persistent per-server sessions)
 - load_mcp_tools() function
 - Input validation (empty servers, empty filter)
 - Tool filtering logic
@@ -10,6 +11,7 @@ Tests cover:
 """
 
 import logging
+from contextlib import AsyncExitStack
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -225,6 +227,234 @@ class TestLoadMcpTools:
         assert any("retrieved" in msg.lower() for msg in log_messages)
         # Should log about loaded tools
         assert any("loaded" in msg.lower() for msg in log_messages)
+
+
+# =============================================================================
+# TestConnectMcpClient - Tests for connect_mcp_client() function
+# =============================================================================
+
+
+def _make_mock_tool_session():
+    """Create a mock session context manager for connect_mcp_client tests.
+
+    Returns:
+        A tuple of (mock_session, async_context_manager) where the context
+        manager yields the mock_session when entered.
+    """
+    session = AsyncMock()
+    ctx = AsyncMock()
+    ctx.__aenter__ = AsyncMock(return_value=session)
+    ctx.__aexit__ = AsyncMock(return_value=False)
+    return session, ctx
+
+
+class TestConnectMcpClient:
+    """Tests for connect_mcp_client() with persistent per-server sessions."""
+
+    @pytest.mark.asyncio
+    async def test_connect_success_single_server(self, sample_servers_config):
+        """Test successful connection and tool loading from a single server."""
+        single_server = {"github": sample_servers_config["github"]}
+        tool_filter = {"github": ["search_code", "create_pr"]}
+
+        mock_tools = []
+        for name in ["search_code", "create_pr", "unused_tool"]:
+            t = MagicMock()
+            t.name = name
+            mock_tools.append(t)
+
+        _, ctx = _make_mock_tool_session()
+
+        with patch("graphton.core.mcp_manager.MultiServerMCPClient") as mock_class, \
+             patch("graphton.core.mcp_manager._lc_load_mcp_tools", new_callable=AsyncMock) as mock_load:
+            client = MagicMock()
+            mock_class.return_value = client
+            client.session = MagicMock(return_value=ctx)
+            mock_load.return_value = mock_tools
+
+            from graphton.core.mcp_manager import connect_mcp_client
+
+            async with AsyncExitStack() as stack:
+                result = await connect_mcp_client(single_server, tool_filter, stack)
+
+            assert len(result) == 2
+            tool_names = [t.name for t in result]
+            assert "search_code" in tool_names
+            assert "create_pr" in tool_names
+
+            mock_class.assert_called_once_with(single_server)
+            client.session.assert_called_once_with("github")
+
+    @pytest.mark.asyncio
+    async def test_connect_success_multiple_servers(self, sample_servers_config):
+        """Test that sessions are opened for each server independently."""
+        tool_filter = {
+            "github": ["search_code"],
+            "custom-api": ["list_resources"],
+        }
+
+        github_tools = [MagicMock(name="search_code")]
+        github_tools[0].name = "search_code"
+        api_tools = [MagicMock(name="list_resources")]
+        api_tools[0].name = "list_resources"
+
+        github_session, github_ctx = _make_mock_tool_session()
+        api_session, api_ctx = _make_mock_tool_session()
+
+        contexts = {"github": github_ctx, "custom-api": api_ctx}
+
+        with patch("graphton.core.mcp_manager.MultiServerMCPClient") as mock_class, \
+             patch("graphton.core.mcp_manager._lc_load_mcp_tools", new_callable=AsyncMock) as mock_load:
+            client = MagicMock()
+            mock_class.return_value = client
+            client.session = MagicMock(side_effect=lambda name: contexts[name])
+            mock_load.side_effect = [github_tools, api_tools]
+
+            from graphton.core.mcp_manager import connect_mcp_client
+
+            async with AsyncExitStack() as stack:
+                result = await connect_mcp_client(sample_servers_config, tool_filter, stack)
+
+            assert len(result) == 2
+            tool_names = [t.name for t in result]
+            assert "search_code" in tool_names
+            assert "list_resources" in tool_names
+
+            assert client.session.call_count == 2
+            assert mock_load.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_connect_empty_servers_raises(self):
+        """Test that empty servers dict raises ValueError."""
+        from graphton.core.mcp_manager import connect_mcp_client
+
+        with pytest.raises(ValueError, match="servers cannot be empty"):
+            async with AsyncExitStack() as stack:
+                await connect_mcp_client({}, {"github": ["search"]}, stack)
+
+    @pytest.mark.asyncio
+    async def test_connect_empty_filter_raises(self, sample_servers_config):
+        """Test that empty tool_filter dict raises ValueError."""
+        from graphton.core.mcp_manager import connect_mcp_client
+
+        with pytest.raises(ValueError, match="tool_filter cannot be empty"):
+            async with AsyncExitStack() as stack:
+                await connect_mcp_client(sample_servers_config, {}, stack)
+
+    @pytest.mark.asyncio
+    async def test_connect_no_matching_tools_raises(self, sample_servers_config):
+        """Test that ValueError is raised when no tools match the filter."""
+        tool_filter = {"github": ["nonexistent_tool"]}
+
+        other_tool = MagicMock()
+        other_tool.name = "other_tool"
+        _, ctx = _make_mock_tool_session()
+
+        with patch("graphton.core.mcp_manager.MultiServerMCPClient") as mock_class, \
+             patch("graphton.core.mcp_manager._lc_load_mcp_tools", new_callable=AsyncMock) as mock_load:
+            client = MagicMock()
+            mock_class.return_value = client
+            client.session = MagicMock(return_value=ctx)
+            mock_load.return_value = [other_tool]
+
+            from graphton.core.mcp_manager import connect_mcp_client
+
+            with pytest.raises(ValueError, match="No tools found matching filter"):
+                async with AsyncExitStack() as stack:
+                    await connect_mcp_client(
+                        {"github": sample_servers_config["github"]},
+                        tool_filter,
+                        stack,
+                    )
+
+    @pytest.mark.asyncio
+    async def test_connect_session_failure_raises_runtime_error(self, sample_servers_config):
+        """Test that a session connection failure raises RuntimeError."""
+        tool_filter = {"github": ["search_code"]}
+
+        ctx = AsyncMock()
+        ctx.__aenter__ = AsyncMock(side_effect=ConnectionError("refused"))
+        ctx.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("graphton.core.mcp_manager.MultiServerMCPClient") as mock_class:
+            client = MagicMock()
+            mock_class.return_value = client
+            client.session = MagicMock(return_value=ctx)
+
+            from graphton.core.mcp_manager import connect_mcp_client
+
+            with pytest.raises(RuntimeError, match="MCP persistent connection failed"):
+                async with AsyncExitStack() as stack:
+                    await connect_mcp_client(
+                        {"github": sample_servers_config["github"]},
+                        tool_filter,
+                        stack,
+                    )
+
+    @pytest.mark.asyncio
+    async def test_connect_partial_filter_match_warns(
+        self, sample_servers_config, caplog
+    ):
+        """Test that a partial filter match logs a warning for missing tools."""
+        tool_filter = {"github": ["search_code", "nonexistent_tool"]}
+
+        search_tool = MagicMock()
+        search_tool.name = "search_code"
+        _, ctx = _make_mock_tool_session()
+
+        with patch("graphton.core.mcp_manager.MultiServerMCPClient") as mock_class, \
+             patch("graphton.core.mcp_manager._lc_load_mcp_tools", new_callable=AsyncMock) as mock_load:
+            client = MagicMock()
+            mock_class.return_value = client
+            client.session = MagicMock(return_value=ctx)
+            mock_load.return_value = [search_tool]
+
+            from graphton.core.mcp_manager import connect_mcp_client
+
+            with caplog.at_level(logging.WARNING):
+                async with AsyncExitStack() as stack:
+                    result = await connect_mcp_client(
+                        {"github": sample_servers_config["github"]},
+                        tool_filter,
+                        stack,
+                    )
+
+            assert len(result) == 1
+            assert result[0].name == "search_code"
+            assert any("nonexistent_tool" in r.message for r in caplog.records)
+
+    @pytest.mark.asyncio
+    async def test_connect_logs_info_messages(
+        self, sample_servers_config, caplog
+    ):
+        """Test that info messages are logged during connection and tool loading."""
+        tool_filter = {"github": ["search_code"]}
+
+        search_tool = MagicMock()
+        search_tool.name = "search_code"
+        _, ctx = _make_mock_tool_session()
+
+        with patch("graphton.core.mcp_manager.MultiServerMCPClient") as mock_class, \
+             patch("graphton.core.mcp_manager._lc_load_mcp_tools", new_callable=AsyncMock) as mock_load:
+            client = MagicMock()
+            mock_class.return_value = client
+            client.session = MagicMock(return_value=ctx)
+            mock_load.return_value = [search_tool]
+
+            from graphton.core.mcp_manager import connect_mcp_client
+
+            with caplog.at_level(logging.INFO):
+                async with AsyncExitStack() as stack:
+                    await connect_mcp_client(
+                        {"github": sample_servers_config["github"]},
+                        tool_filter,
+                        stack,
+                    )
+
+            log_messages = [r.message for r in caplog.records]
+            assert any("persistent" in msg.lower() for msg in log_messages)
+            assert any("retrieved" in msg.lower() for msg in log_messages)
+            assert any("loaded" in msg.lower() for msg in log_messages)
 
 
 # =============================================================================
