@@ -49,9 +49,12 @@ func Discover(
 		return nil, withStderr(errors.Wrap(err, "failed to list tools"), &stderrBuf)
 	}
 
-	templates, err := listAllResourceTemplates(ctx, session)
-	if err != nil {
-		return nil, withStderr(errors.Wrap(err, "failed to list resource templates"), &stderrBuf)
+	var templates []*mcp.ResourceTemplate
+	if caps := session.InitializeResult().Capabilities; caps != nil && caps.Resources != nil {
+		templates, err = listAllResourceTemplates(ctx, session)
+		if err != nil {
+			return nil, withStderr(errors.Wrap(err, "failed to list resource templates"), &stderrBuf)
+		}
 	}
 
 	return &mcpserverv1.DiscoveredCapabilities{
