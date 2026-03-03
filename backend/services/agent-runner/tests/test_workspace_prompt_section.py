@@ -616,14 +616,20 @@ class TestMultiEntryWorkspacePromptSection:
         assert "### frontend" in section
         assert "### backend" in section
 
-    def test_multi_entry_file_tree_heading_adjusted(self):
+    def test_multi_entry_file_tree_heading_preserved(self):
+        """Multi-entry trees are produced at #### level by the provisioner.
+
+        The prompt builder passes them through verbatim — no post-hoc
+        string replacement.  This test uses #### in the fixture to
+        reflect what ``provision_all(heading_level=4)`` generates.
+        """
         results = [
             ProvisionResult(
                 root_dir="/Users/dev/alpha",
                 source_type=SourceType.LOCAL_PATH,
                 consumed_keys=(),
                 workspace_description="Alpha workspace.",
-                file_tree="### Project Structure\n\n    - `src/`\n\n1 entry.",
+                file_tree="#### Project Structure\n\n    - `src/`\n\n1 entry.",
                 entry_name="alpha",
             ),
             ProvisionResult(

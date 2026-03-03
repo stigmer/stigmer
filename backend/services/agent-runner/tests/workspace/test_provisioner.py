@@ -618,3 +618,93 @@ class TestProvisionAllMultiGit:
 
         assert "GITHUB_TOKEN" in results[0].consumed_keys
         assert "GITHUB_TOKEN" in results[1].consumed_keys
+
+
+# ---------------------------------------------------------------------------
+# Guard-rail tests — MVP limitation: mixed local + git entries
+# ---------------------------------------------------------------------------
+
+
+class TestMixedLocalGitGuardRail:
+    """Document intentional MVP behavior for mixed local + git entries.
+
+    When ``provision_all()`` receives a mix of local-path and git_repo
+    entries, ``use_subdirs`` is ``True`` (len > 1).  The git entry
+    clones into ``{root}/{name}/`` but the local-path entry retains
+    its original absolute path — ``local_path_source.provision()`` does
+    not accept ``target_subdir``.
+
+    This means the local entry's ``root_dir`` is *outside* the
+    workspace root tree.  This is intentional for MVP and only valid
+    in local mode.
+    """
+
+    def test_local_entry_keeps_original_path(self, tmp_path):
+        """local-path root_dir is the user's original path, not a subdir."""
+        user_dir = tmp_path / "user-project"
+        user_dir.mkdir()
+
+        entry_local = _MockWorkspaceEntry(
+            name="my-lib",
+            source=_MockWorkspaceSource(
+                local_path=_MockLocalPathSource(path=str(user_dir)),
+            ),
+        )
+        entry_git = _MockWorkspaceEntry(
+            name="my-app",
+            source=_MockWorkspaceSource(
+                git_repo=_MockGitRepoSource(
+                    url="https://github.com/org/my-app.git",
+                ),
+            ),
+        )
+        backend = _make_git_backend(tmp_path / "workspace")
+        provisioner = WorkspaceProvisioner()
+
+        results = provisioner.provision_all(
+            [entry_local, entry_git],
+            backend,
+            {},
+            is_local_mode=True,
+        )
+
+        assert len(results) == 2
+        assert results[0].entry_name == "my-lib"
+        assert results[0].root_dir == str(user_dir)
+        assert results[0].source_type is SourceType.LOCAL_PATH
+
+        assert results[1].entry_name == "my-app"
+        assert results[1].root_dir == str(tmp_path / "workspace" / "my-app")
+        assert results[1].source_type is SourceType.GIT_REPO
+
+    def test_git_entry_gets_subdir_in_mixed_session(self, tmp_path):
+        """git entry clones into {workspace_root}/{name}/ when mixed."""
+        user_dir = tmp_path / "local-lib"
+        user_dir.mkdir()
+
+        entry_local = _MockWorkspaceEntry(
+            name="local-lib",
+            source=_MockWorkspaceSource(
+                local_path=_MockLocalPathSource(path=str(user_dir)),
+            ),
+        )
+        entry_git = _MockWorkspaceEntry(
+            name="cloud-svc",
+            source=_MockWorkspaceSource(
+                git_repo=_MockGitRepoSource(
+                    url="https://github.com/org/cloud-svc.git",
+                ),
+            ),
+        )
+        ws_root = tmp_path / "workspace"
+        backend = _make_git_backend(ws_root)
+        provisioner = WorkspaceProvisioner()
+
+        results = provisioner.provision_all(
+            [entry_local, entry_git],
+            backend,
+            {},
+            is_local_mode=True,
+        )
+
+        assert results[1].root_dir == str(ws_root / "cloud-svc")

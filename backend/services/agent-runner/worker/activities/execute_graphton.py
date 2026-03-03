@@ -651,7 +651,12 @@ def _build_single_workspace_section(result: ProvisionResult) -> str:
 
 
 def _build_multi_workspace_section(results: list[ProvisionResult]) -> str:
-    """Format the workspace section for multiple entries."""
+    """Format the workspace section for multiple entries.
+
+    The tree heading level is controlled at provisioning time via
+    ``tree_heading_level`` (set to 4 by ``provision_all`` for
+    multi-entry sessions), so no post-hoc string replacement is needed.
+    """
     primary = results[0]
     primary_label = primary.entry_name or "entry-1"
 
@@ -671,10 +676,7 @@ def _build_multi_workspace_section(results: list[ProvisionResult]) -> str:
             section += result.workspace_description
 
         if result.file_tree:
-            tree = result.file_tree.replace(
-                "### Project Structure", "#### Project Structure", 1,
-            )
-            section += "\n\n" + tree
+            section += "\n\n" + result.file_tree
 
     return section
 
