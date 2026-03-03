@@ -1,6 +1,7 @@
 package toolrender
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -331,6 +332,184 @@ func TestRenderCompact_UnknownTool_FallsBackToRenderWithBadge(t *testing.T) {
 	got := RenderCompact(tc, opts)
 	assertContains(t, got, "🔧")
 	assertContains(t, got, "custom_mcp_tool")
+}
+
+// =============================================================================
+// RenderReadGroup
+// =============================================================================
+
+func TestRenderReadGroup_ThreeFiles_AllShown(t *testing.T) {
+	reads := []ToolCallInfo{
+		{Name: "read_file", Args: map[string]interface{}{"path": "main.go"}, Status: "completed", Result: "package main\nfunc main() {}\n"},
+		{Name: "read", Args: map[string]interface{}{"path": "config.go"}, Status: "completed", Result: "package config\n"},
+		{Name: "read_file", Args: map[string]interface{}{"path": "util.go"}, Status: "completed", Result: strings.Repeat("line\n", 50)},
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderReadGroup(reads, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, got, "●")
+	assertContains(t, got, "Read")
+	assertContains(t, got, "3 files")
+	assertContains(t, got, "main.go")
+	assertContains(t, got, "config.go")
+	assertContains(t, got, "util.go")
+	assertContains(t, got, "3 lines")
+	assertContains(t, got, "2 lines")
+	assertContains(t, got, "51 lines")
+	assertNotContains(t, got, "more")
+
+	lines := strings.Split(plain, "\n")
+	if len(lines) != 4 {
+		t.Errorf("expected 4 lines (header + 3 entries), got %d:\n%s", len(lines), plain)
+	}
+}
+
+func TestRenderReadGroup_FourFiles_AllShown_SmartCutoff(t *testing.T) {
+	reads := []ToolCallInfo{
+		{Name: "read_file", Args: map[string]interface{}{"path": "a.go"}, Status: "completed", Result: "line\n"},
+		{Name: "read_file", Args: map[string]interface{}{"path": "b.go"}, Status: "completed", Result: "line\n"},
+		{Name: "read_file", Args: map[string]interface{}{"path": "c.go"}, Status: "completed", Result: "line\n"},
+		{Name: "read_file", Args: map[string]interface{}{"path": "d.go"}, Status: "completed", Result: "line\n"},
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderReadGroup(reads, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, got, "4 files")
+	assertContains(t, got, "a.go")
+	assertContains(t, got, "b.go")
+	assertContains(t, got, "c.go")
+	assertContains(t, got, "d.go")
+	assertNotContains(t, got, "more")
+
+	lines := strings.Split(plain, "\n")
+	if len(lines) != 5 {
+		t.Errorf("expected 5 lines (header + 4 entries), got %d:\n%s", len(lines), plain)
+	}
+}
+
+func TestRenderReadGroup_SixFiles_Truncated(t *testing.T) {
+	reads := make([]ToolCallInfo, 6)
+	for i := range reads {
+		reads[i] = ToolCallInfo{
+			Name:   "read_file",
+			Args:   map[string]interface{}{"path": fmt.Sprintf("file%d.go", i)},
+			Status: "completed",
+			Result: "content\n",
+		}
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderReadGroup(reads, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, got, "6 files")
+	assertContains(t, got, "file0.go")
+	assertContains(t, got, "file1.go")
+	assertContains(t, got, "file2.go")
+	assertNotContains(t, got, "file3.go")
+	assertNotContains(t, got, "file4.go")
+	assertNotContains(t, got, "file5.go")
+	assertContains(t, got, "+3 more")
+
+	lines := strings.Split(plain, "\n")
+	if len(lines) != 5 {
+		t.Errorf("expected 5 lines (header + 3 entries + footer), got %d:\n%s", len(lines), plain)
+	}
+}
+
+func TestRenderReadGroup_WithFailure_HeaderShowsCount(t *testing.T) {
+	reads := []ToolCallInfo{
+		{Name: "read_file", Args: map[string]interface{}{"path": "main.go"}, Status: "completed", Result: "package main\n"},
+		{Name: "read_file", Args: map[string]interface{}{"path": "missing.go"}, Status: "failed", Error: "file not found"},
+		{Name: "read_file", Args: map[string]interface{}{"path": "config.go"}, Status: "completed", Result: "package config\n"},
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderReadGroup(reads, opts)
+
+	assertContains(t, got, "3 files")
+	assertContains(t, got, "(1 failed)")
+	assertContains(t, got, "main.go")
+	assertContains(t, got, "missing.go")
+	assertContains(t, got, "✗")
+	assertContains(t, got, "file not found")
+	assertContains(t, got, "config.go")
+}
+
+func TestRenderReadGroup_AllFailed(t *testing.T) {
+	reads := []ToolCallInfo{
+		{Name: "read_file", Args: map[string]interface{}{"path": "a.go"}, Status: "failed", Error: "not found"},
+		{Name: "read_file", Args: map[string]interface{}{"path": "b.go"}, Status: "failed", Error: "permission denied"},
+		{Name: "read_file", Args: map[string]interface{}{"path": "c.go"}, Status: "failed", Error: ""},
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderReadGroup(reads, opts)
+
+	assertContains(t, got, "3 files")
+	assertContains(t, got, "(3 failed)")
+	assertContains(t, got, "a.go")
+	assertContains(t, got, "not found")
+	assertContains(t, got, "b.go")
+	assertContains(t, got, "permission denied")
+	assertContains(t, got, "c.go")
+	assertContains(t, got, "failed")
+	assertNotContains(t, got, "lines")
+}
+
+func TestRenderReadGroup_HyperlinksEnabled(t *testing.T) {
+	reads := []ToolCallInfo{
+		{Name: "read_file", Args: map[string]interface{}{"path": "/Users/dev/main.go"}, Status: "completed", Result: "code\n"},
+		{Name: "read_file", Args: map[string]interface{}{"path": "/Users/dev/config.go"}, Status: "completed", Result: "code\n"},
+		{Name: "read_file", Args: map[string]interface{}{"path": "/Users/dev/util.go"}, Status: "completed", Result: "code\n"},
+	}
+	opts := CompactOptions{HyperlinksEnabled: true}
+
+	got := RenderReadGroup(reads, opts)
+
+	if !strings.Contains(got, osc8Open) {
+		t.Error("expected OSC 8 open sequence when hyperlinks enabled")
+	}
+	if !strings.Contains(got, "file:///Users/dev/main.go") {
+		t.Error("expected file:// URI for main.go")
+	}
+	if !strings.Contains(got, "file:///Users/dev/config.go") {
+		t.Error("expected file:// URI for config.go")
+	}
+}
+
+func TestRenderReadGroup_HyperlinksDisabled(t *testing.T) {
+	reads := []ToolCallInfo{
+		{Name: "read_file", Args: map[string]interface{}{"path": "/Users/dev/main.go"}, Status: "completed", Result: "code\n"},
+		{Name: "read_file", Args: map[string]interface{}{"path": "/Users/dev/config.go"}, Status: "completed", Result: "code\n"},
+		{Name: "read_file", Args: map[string]interface{}{"path": "/Users/dev/util.go"}, Status: "completed", Result: "code\n"},
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderReadGroup(reads, opts)
+
+	if strings.Contains(got, osc8Open) {
+		t.Error("should not contain OSC 8 when hyperlinks disabled")
+	}
+	assertContains(t, got, "/Users/dev/main.go")
+	assertContains(t, got, "/Users/dev/config.go")
+}
+
+func TestRenderReadGroup_SingleFile_Defensive(t *testing.T) {
+	reads := []ToolCallInfo{
+		{Name: "read_file", Args: map[string]interface{}{"path": "solo.go"}, Status: "completed", Result: "package solo\n"},
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderReadGroup(reads, opts)
+
+	assertContains(t, got, "1 files")
+	assertContains(t, got, "solo.go")
+	assertNotContains(t, got, "more")
 }
 
 // =============================================================================
