@@ -465,3 +465,165 @@ func TestEmitTodoEvents_EmitsOnChange(t *testing.T) {
 		t.Errorf("expected 2 fingerprints, got %d", len(newPrev))
 	}
 }
+
+// =============================================================================
+// findAllUnpromptedApprovals Tests — defense-in-depth approval detection
+// =============================================================================
+
+func TestFindAllUnpromptedApprovals_TopLevel(t *testing.T) {
+	toolCalls := []*agentexecutionv1.ToolCall{
+		{Id: "tc-1", Name: "delete_file", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL},
+		{Id: "tc-2", Name: "read_file", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED},
+	}
+
+	result := findAllUnpromptedApprovals(toolCalls, nil, make(map[string]bool))
+
+	if len(result) != 1 {
+		t.Fatalf("expected 1 unprompted approval, got %d", len(result))
+	}
+	if result[0].toolCall.Id != "tc-1" {
+		t.Errorf("expected tool call tc-1, got %s", result[0].toolCall.Id)
+	}
+	if result[0].fromSubAgent {
+		t.Error("top-level tool call should not be marked as from sub-agent")
+	}
+	if result[0].subAgentName != "" {
+		t.Errorf("expected empty sub-agent name for top-level, got %q", result[0].subAgentName)
+	}
+}
+
+func TestFindAllUnpromptedApprovals_SubAgent(t *testing.T) {
+	subAgents := []*agentexecutionv1.SubAgentExecution{
+		{
+			Id:   "sa-1",
+			Name: "code-reviewer",
+			ToolCalls: []*agentexecutionv1.ToolCall{
+				{Id: "sa-tc-1", Name: "shell", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL},
+				{Id: "sa-tc-2", Name: "read_file", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_RUNNING},
+			},
+		},
+	}
+
+	result := findAllUnpromptedApprovals(nil, subAgents, make(map[string]bool))
+
+	if len(result) != 1 {
+		t.Fatalf("expected 1 unprompted approval, got %d", len(result))
+	}
+	if result[0].toolCall.Id != "sa-tc-1" {
+		t.Errorf("expected tool call sa-tc-1, got %s", result[0].toolCall.Id)
+	}
+	if !result[0].fromSubAgent {
+		t.Error("sub-agent tool call should be marked as from sub-agent")
+	}
+	if result[0].subAgentName != "code-reviewer" {
+		t.Errorf("expected sub-agent name %q, got %q", "code-reviewer", result[0].subAgentName)
+	}
+}
+
+func TestFindAllUnpromptedApprovals_AlreadyPrompted(t *testing.T) {
+	toolCalls := []*agentexecutionv1.ToolCall{
+		{Id: "tc-1", Name: "delete_file", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL},
+	}
+	subAgents := []*agentexecutionv1.SubAgentExecution{
+		{
+			Id:   "sa-1",
+			Name: "researcher",
+			ToolCalls: []*agentexecutionv1.ToolCall{
+				{Id: "sa-tc-1", Name: "shell", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL},
+			},
+		},
+	}
+
+	prompted := map[string]bool{"tc-1": true, "sa-tc-1": true}
+	result := findAllUnpromptedApprovals(toolCalls, subAgents, prompted)
+
+	if len(result) != 0 {
+		t.Errorf("expected 0 unprompted approvals (all already prompted), got %d", len(result))
+	}
+}
+
+func TestFindAllUnpromptedApprovals_Mixed(t *testing.T) {
+	toolCalls := []*agentexecutionv1.ToolCall{
+		{Id: "tc-1", Name: "write_file", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL},
+		{Id: "tc-2", Name: "read_file", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED},
+		{Id: "tc-3", Name: "shell", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_RUNNING},
+	}
+	subAgents := []*agentexecutionv1.SubAgentExecution{
+		{
+			Id:   "sa-1",
+			Name: "debugger",
+			ToolCalls: []*agentexecutionv1.ToolCall{
+				{Id: "sa-tc-1", Name: "execute_sql", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL},
+				{Id: "sa-tc-2", Name: "list_tables", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED},
+			},
+		},
+		{
+			Id:   "sa-2",
+			Name: "researcher",
+			ToolCalls: []*agentexecutionv1.ToolCall{
+				{Id: "sa-tc-3", Name: "web_search", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED},
+			},
+		},
+	}
+
+	prompted := map[string]bool{"tc-2": true}
+	result := findAllUnpromptedApprovals(toolCalls, subAgents, prompted)
+
+	if len(result) != 2 {
+		t.Fatalf("expected 2 unprompted approvals, got %d", len(result))
+	}
+
+	var topLevel, subAgent int
+	for _, u := range result {
+		if u.fromSubAgent {
+			subAgent++
+			if u.subAgentName != "debugger" {
+				t.Errorf("expected sub-agent name %q, got %q", "debugger", u.subAgentName)
+			}
+			if u.toolCall.Id != "sa-tc-1" {
+				t.Errorf("expected sub-agent tool call sa-tc-1, got %s", u.toolCall.Id)
+			}
+		} else {
+			topLevel++
+			if u.toolCall.Id != "tc-1" {
+				t.Errorf("expected top-level tool call tc-1, got %s", u.toolCall.Id)
+			}
+		}
+	}
+	if topLevel != 1 {
+		t.Errorf("expected 1 top-level unprompted approval, got %d", topLevel)
+	}
+	if subAgent != 1 {
+		t.Errorf("expected 1 sub-agent unprompted approval, got %d", subAgent)
+	}
+}
+
+func TestFindAllUnpromptedApprovals_EmptyToolCallID_Skipped(t *testing.T) {
+	toolCalls := []*agentexecutionv1.ToolCall{
+		{Id: "", Name: "shell", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL},
+	}
+
+	result := findAllUnpromptedApprovals(toolCalls, nil, make(map[string]bool))
+
+	if len(result) != 0 {
+		t.Errorf("expected 0 results for tool call with empty ID, got %d", len(result))
+	}
+}
+
+func TestBuildPendingApprovalFromToolCall_SubAgentEnrichment(t *testing.T) {
+	tc := &agentexecutionv1.ToolCall{
+		Id:   "sa-tc-1",
+		Name: "shell",
+	}
+
+	pa := buildPendingApprovalFromToolCall(tc)
+	pa.FromSubAgent = true
+	pa.SubAgentName = "code-reviewer"
+
+	if !pa.FromSubAgent {
+		t.Error("FromSubAgent should be true after enrichment")
+	}
+	if pa.SubAgentName != "code-reviewer" {
+		t.Errorf("SubAgentName = %q, want %q", pa.SubAgentName, "code-reviewer")
+	}
+}

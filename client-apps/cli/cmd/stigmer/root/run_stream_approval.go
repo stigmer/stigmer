@@ -235,6 +235,60 @@ func handleWorkflowApprovalPrompt(
 	return nil
 }
 
+// unpromptedApproval pairs a tool call in WAITING_APPROVAL status with
+// sub-agent provenance. Used by findAllUnpromptedApprovals to return
+// enriched results that enable the caller to construct a synthetic
+// PendingApproval with accurate sub-agent context.
+type unpromptedApproval struct {
+	toolCall     *agentexecutionv1.ToolCall
+	fromSubAgent bool
+	subAgentName string
+}
+
+// findAllUnpromptedApprovals scans top-level and sub-agent tool calls for
+// any in WAITING_APPROVAL status that have not been prompted yet. Returns
+// all matches with sub-agent provenance, enabling the caller to construct
+// synthetic PendingApproval entries with accurate context.
+//
+// This is the multi-result, sub-agent-aware successor to findUnpromptedApproval.
+// It serves as the defense-in-depth mechanism for the stream path: when
+// pending_approvals is not populated in the backend's initial snapshot
+// (write-ordering or replication lag), this function detects approvals via
+// tool call status instead.
+func findAllUnpromptedApprovals(
+	toolCalls []*agentexecutionv1.ToolCall,
+	subAgents []*agentexecutionv1.SubAgentExecution,
+	promptedIDs map[string]bool,
+) []unpromptedApproval {
+	var result []unpromptedApproval
+
+	for _, tc := range toolCalls {
+		if tc.Status == agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL &&
+			tc.Id != "" &&
+			!promptedIDs[tc.Id] {
+			result = append(result, unpromptedApproval{
+				toolCall: tc,
+			})
+		}
+	}
+
+	for _, sa := range subAgents {
+		for _, tc := range sa.ToolCalls {
+			if tc.Status == agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL &&
+				tc.Id != "" &&
+				!promptedIDs[tc.Id] {
+				result = append(result, unpromptedApproval{
+					toolCall:     tc,
+					fromSubAgent: true,
+					subAgentName: sa.Name,
+				})
+			}
+		}
+	}
+
+	return result
+}
+
 // buildPromptOptions constructs approval.Options from a PendingApproval message.
 // When defaultAction is set (not ActionUnspecified), it is passed through so
 // that non-interactive environments can auto-resolve the approval.
