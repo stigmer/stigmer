@@ -12,10 +12,18 @@ Drop this file into your conversation to quickly resume work on this project.
 **Components**: Proto definitions (tenancy/project), CLI apply pipeline, OSS server (Organization controller, project reconciliation), seedpack, CLI config (org context), documentation
 
 ## Current State
-- **Status**: T01.1–T01.9 Complete (OSS). T01.4 also complete in Cloud. Seedpack bootstrap fix complete. Skill regeneration and cloud commit remain.
-- **Last Session**: 2026-03-03 (session 15) — Seedpack Bootstrap and Organization Hierarchy Fix
-- **Active Task**: Seedpack bootstrap chicken-and-egg problem fixed. Organization removed from project apply flow, two-phase bootstrap implemented, draft diagnostics improved. Remaining: (1) run `stigmer server reset && stigmer server` to verify fix, (2) regenerate skills via `seedpack/tools/regenerate_all.sh`, (3) commit cloud repo T01.4 changes.
+- **Status**: T01.1–T01.9 Complete (OSS). T01.4 also complete in Cloud. Seedpack bootstrap fix complete. Server reset UX improved. Skill regeneration and cloud commit remain.
+- **Last Session**: 2026-03-03 (session 16) — Server Reset Auto-Start UX
+- **Active Task**: Remaining: (1) run `stigmer server reset` to verify fix end-to-end (now auto-starts), (2) regenerate skills via `seedpack/tools/regenerate_all.sh`, (3) commit cloud repo T01.4 changes.
 - **Cloud Repo Status**: Build restored. Reconciliation subsystem rearchitected. NormalizeApiResourceReferencesStepV2 wired into all 29 handlers. Cloud T01.4 changes uncommitted. See `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
+
+## Session Progress (2026-03-03, session 16 — Server Reset Auto-Start UX)
+- `stigmer server reset` now auto-starts the server instead of printing "Run 'stigmer server' to start fresh"
+- Extracted `startServerFresh()` from `handleServerStart()` in `server.go` — shared by both `stigmer server` and `stigmer server reset`
+- Post-reset startup gets the same full interactive UX: phased progress (Initializing → Installing → Starting), gRPC readiness, LLM status, seedpack bootstrap, org context, MCP discovery, "Ready!" status
+- `--include-config` path unchanged — still tells user to run `stigmer server` to reconfigure
+- **Files modified**: `server.go` (extracted function), `server_reset.go` (calls `startServerFresh`)
+- **Committed**: `34c2e7ec feat(cli): auto-start server after reset when config is preserved` + `3297607c refactor(cli): extract startServerFresh for consistent reset startup UX`
 
 ## Session Progress (2026-03-03, session 15 — Seedpack Bootstrap and Organization Hierarchy Fix)
 - Diagnosed seedpack bootstrap chicken-and-egg bug: system agents exist under org `local` (pre-migration) but CLI context resolves to `default` (post-migration), causing `stigmer draft skill` and `stigmer list agents` to find nothing
@@ -204,7 +212,8 @@ Drop this file into your conversation to quickly resume work on this project.
 4. ~~**Regenerate proto stubs**: `make protos`~~ — COMPLETED (session 14)
 5. ~~**Regenerate codegen schemas + MCP gen**: `make codegen`~~ — COMPLETED (session 14)
 6. ~~**Seedpack bootstrap fix**: Organization hierarchy, two-phase bootstrap~~ — COMPLETED (session 15)
-7. **Verify bootstrap fix**: Run `stigmer server reset && stigmer server` then `stigmer list agents` to confirm agents under org `default`
+7. ~~**Server reset UX**: Auto-start server after reset with full interactive startup~~ — COMPLETED (session 16)
+8. **Verify bootstrap fix**: Run `stigmer server reset` (now auto-starts) then `stigmer list agents` to confirm agents under org `default`
 8. **Regenerate skills**: Run `seedpack/tools/regenerate_all.sh` to verify clean skill output
 9. **Commit cloud repo changes**: T01.4 cloud changes (NormalizeApiResourceReferencesStepV2 + 29 handlers) still uncommitted
 
@@ -277,7 +286,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-03-03-session-15.md`
+1. [ ] Read the latest checkpoint from `checkpoints/2026-03-03-session-15.md` (session 16 was small — no separate checkpoint)
 2. [ ] Read cloud migration doc: `stigmer-cloud/_docs/2026-03-03-cloud-project-tenancy-migration.md`
 3. [ ] Check current task status in `tasks/T01_0_plan.md`
 4. [ ] Review any new design decisions in `design-decisions/`
@@ -285,7 +294,8 @@ When starting a new session:
 6. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
 7. [x] Regenerate proto stubs + codegen schemas to propagate spec.proto changes (done session 14)
 8. [x] Fix seedpack bootstrap chicken-and-egg problem (done session 15)
-9. [ ] Verify bootstrap fix: `stigmer server reset && stigmer server` then `stigmer list agents`
+9. [x] Server reset auto-start with full startup UX (done session 16)
+10. [ ] Verify bootstrap fix: `stigmer server reset` (now auto-starts) then `stigmer list agents`
 10. [ ] Regenerate skills with `seedpack/tools/regenerate_all.sh` to verify clean output
 11. [ ] Commit cloud repo T01.4 changes (uncommitted)
 
