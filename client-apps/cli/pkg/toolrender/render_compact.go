@@ -33,21 +33,48 @@ type CompactOptions struct {
 }
 
 // RenderCompact returns a compact display of a completed tool call. For tools
-// with a compact implementation (currently: read), this produces a terse
-// two-line format (header + result summary). For tools not yet converted,
+// with a compact implementation (read, write, create, edit), this produces a
+// terse two-line format (header + result summary). For tools not yet converted,
 // falls back to RenderWithBadge with the tool's status badge.
 //
 // Examples:
 //
 //	"● Read(main.go)\n    Read 125 lines"
+//	"● Write(config.go)\n    Wrote 45 lines"
+//	"● Edit(main.go)\n    Edited 12 lines"
 //	"● Read(missing.go)\n    ✗ file not found"
-//	"  📝 Write: SKILL.md (11.0 KB, 384 lines) ✓"   (fallback)
+//	"  🖥  Shell: ls -la (97 chars) ✓"               (fallback)
 func RenderCompact(tc ToolCallInfo, opts CompactOptions) string {
 	info, known := toolDisplayMap[tc.Name]
 	if known && info.label == "Read" {
 		return renderCompactRead(tc, info, opts)
 	}
+	if known && isWriteOrEditLabel(info.label) {
+		return renderCompactWrite(tc, info, opts)
+	}
 	return RenderWithBadge(tc, StateBadge(tc.Status))
+}
+
+// RenderCompactRunning returns a compact single-line display for a running
+// tool call. For tools with a compact renderer, this produces a bullet-style
+// header with a dim ellipsis suffix. For tools without compact support, falls
+// back to RenderWithBadge with the running badge.
+//
+// Examples:
+//
+//	"● Write(path/to/file.go) …"   (compact)
+//	"  🖥  Shell: ls -la ⏳"        (fallback)
+func RenderCompactRunning(tc ToolCallInfo, opts CompactOptions) string {
+	info, known := toolDisplayMap[tc.Name]
+	if !known || !hasCompactRenderer(info) {
+		return RenderWithBadge(tc, StateBadge("running"))
+	}
+
+	path := extractPrimaryArgWithFallbacks(tc.Args, info.primaryField, info.fallbackFields)
+	displayPath := buildHyperlinkedPath(path, opts)
+	return fmt.Sprintf("%s %s(%s) %s",
+		bulletStyle.Render("●"), labelStyle.Render(info.label),
+		displayPath, dimStyle.Render("…"))
 }
 
 // IsReadTool reports whether toolName represents a file read tool.
@@ -55,6 +82,54 @@ func RenderCompact(tc ToolCallInfo, opts CompactOptions) string {
 func IsReadTool(toolName string) bool {
 	info, ok := toolDisplayMap[toolName]
 	return ok && info.label == "Read"
+}
+
+// IsWriteOrEditTool reports whether toolName represents a file mutation tool
+// (write, create, or edit). Derived from toolDisplayMap labels.
+func IsWriteOrEditTool(toolName string) bool {
+	info, ok := toolDisplayMap[toolName]
+	if !ok {
+		return false
+	}
+	return isWriteOrEditLabel(info.label)
+}
+
+// isWriteOrEditLabel checks whether a toolDisplayInfo label belongs to the
+// write/edit family. Extracted so RenderCompact routing and IsWriteOrEditTool
+// share the same predicate.
+func isWriteOrEditLabel(label string) bool {
+	switch label {
+	case "Write", "Create", "Edit":
+		return true
+	}
+	return false
+}
+
+// hasCompactRenderer reports whether a tool has a compact rendering
+// implementation. Used by RenderCompactRunning to decide between compact
+// and legacy formats. As new compact renderers are added in Phases 2.3-2.4,
+// their labels are registered here.
+func hasCompactRenderer(info toolDisplayInfo) bool {
+	switch info.label {
+	case "Read", "Write", "Create", "Edit":
+		return true
+	}
+	return false
+}
+
+// completedVerb maps a tool display label to its past-tense action verb
+// for the compact result summary line (e.g., "Wrote 45 lines").
+func completedVerb(label string) string {
+	switch label {
+	case "Write":
+		return "Wrote"
+	case "Create":
+		return "Created"
+	case "Edit":
+		return "Edited"
+	default:
+		return label
+	}
 }
 
 // renderCompactRead produces a two-line compact display for a read tool call:
@@ -82,6 +157,37 @@ func renderCompactRead(tc ToolCallInfo, info toolDisplayInfo, opts CompactOption
 
 	lineCount := countLines(tc.Result)
 	return header + "\n" + dimStyle.Render("    Read "+formatLineCount(lineCount))
+}
+
+// renderCompactWrite produces a two-line compact display for a write, create,
+// or edit tool call:
+//
+//	● Write(path/to/file.go)         <- line 1: header with clickable path
+//	    Wrote 45 lines               <- line 2: dim result summary
+//
+// Line count is derived from the tool's displayable content (args content for
+// write/edit tools via resolveDisplayContent). Failed calls show the error:
+//
+//	● Write(path/to/file.go)
+//	    ✗ permission denied
+func renderCompactWrite(tc ToolCallInfo, info toolDisplayInfo, opts CompactOptions) string {
+	path := extractPrimaryArgWithFallbacks(tc.Args, info.primaryField, info.fallbackFields)
+
+	displayPath := buildHyperlinkedPath(path, opts)
+	header := fmt.Sprintf("%s %s(%s)", bulletStyle.Render("●"), labelStyle.Render(info.label), displayPath)
+
+	if tc.Status == "failed" || tc.Error != "" {
+		errMsg := tc.Error
+		if errMsg == "" {
+			errMsg = "failed"
+		}
+		return header + "\n" + dimStyle.Render("    ✗ "+truncate(errMsg, 60))
+	}
+
+	content := resolveDisplayContent(tc, info)
+	lineCount := countLines(content)
+	verb := completedVerb(info.label)
+	return header + "\n" + dimStyle.Render("    "+verb+" "+formatLineCount(lineCount))
 }
 
 // RenderReadGroup returns a compact grouped display for multiple consecutive

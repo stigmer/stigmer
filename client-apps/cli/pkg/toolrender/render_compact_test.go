@@ -30,6 +30,37 @@ func TestIsReadTool_NonReadTools(t *testing.T) {
 }
 
 // =============================================================================
+// IsWriteOrEditTool
+// =============================================================================
+
+func TestIsWriteOrEditTool_WriteTools(t *testing.T) {
+	writeTools := []string{"write", "write_file", "create_file", "overwrite_file"}
+	for _, name := range writeTools {
+		if !IsWriteOrEditTool(name) {
+			t.Errorf("IsWriteOrEditTool(%q) = false, want true", name)
+		}
+	}
+}
+
+func TestIsWriteOrEditTool_EditTools(t *testing.T) {
+	editTools := []string{"edit", "edit_file"}
+	for _, name := range editTools {
+		if !IsWriteOrEditTool(name) {
+			t.Errorf("IsWriteOrEditTool(%q) = false, want true", name)
+		}
+	}
+}
+
+func TestIsWriteOrEditTool_NonWriteEditTools(t *testing.T) {
+	nonWrite := []string{"read", "read_file", "shell", "bash", "delete_file", "glob", "grep", "task", "think", "custom_mcp_tool"}
+	for _, name := range nonWrite {
+		if IsWriteOrEditTool(name) {
+			t.Errorf("IsWriteOrEditTool(%q) = true, want false", name)
+		}
+	}
+}
+
+// =============================================================================
 // RenderCompact — read tool, hyperlinks disabled
 // =============================================================================
 
@@ -286,7 +317,336 @@ func TestRenderCompact_Read_EmptyPath(t *testing.T) {
 }
 
 // =============================================================================
-// RenderCompact — fallback for non-read tools
+// RenderCompact — write tool, hyperlinks disabled
+// =============================================================================
+
+func TestRenderCompact_Write_BasicFormat(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "write_file",
+		Args:   map[string]interface{}{"path": "config.go", "contents": "package config\n\nvar Port = 8080\n"},
+		Status: "completed",
+		Result: "wrote 32 bytes",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, got, "●")
+	assertContains(t, got, "Write")
+	assertContains(t, got, "config.go")
+	assertContains(t, got, "Wrote")
+	assertContains(t, got, "4 lines")
+
+	if !strings.Contains(plain, "Write(config.go)") {
+		t.Errorf("expected header format Write(config.go), got:\n  %q", plain)
+	}
+}
+
+func TestRenderCompact_Write_LineCountFromArgsNotResult(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "write_file",
+		Args:   map[string]interface{}{"path": "out.txt", "contents": "line1\nline2\nline3\nline4\nline5\n"},
+		Status: "completed",
+		Result: "wrote 30 bytes",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertContains(t, got, "Wrote 6 lines")
+	assertNotContains(t, got, "wrote 30 bytes")
+}
+
+func TestRenderCompact_Write_SingleLine(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "write",
+		Args:   map[string]interface{}{"path": "VERSION", "contents": "1.0.0"},
+		Status: "completed",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertContains(t, got, "Wrote 1 line")
+}
+
+func TestRenderCompact_Write_EmptyContent(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "write_file",
+		Args:   map[string]interface{}{"path": "empty.txt", "contents": ""},
+		Status: "completed",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertContains(t, got, "Wrote 0 lines")
+}
+
+func TestRenderCompact_Write_NoGutterPreview(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "write_file",
+		Args:   map[string]interface{}{"path": "main.go", "contents": "package main\nimport \"fmt\"\nfunc main() {}"},
+		Status: "completed",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	assertNotContains(t, got, "│")
+	assertNotContains(t, got, "⋮")
+	if strings.Contains(plain, "package main") {
+		t.Error("compact write should not include file content preview")
+	}
+}
+
+func TestRenderCompact_Write_NoEmojiBadge(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "write_file",
+		Args:   map[string]interface{}{"path": "out.txt", "contents": "hello\n"},
+		Status: "completed",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertNotContains(t, got, "📝")
+	assertNotContains(t, got, "✓")
+	assertNotContains(t, got, "⏳")
+}
+
+// =============================================================================
+// RenderCompact — write tool, failed
+// =============================================================================
+
+func TestRenderCompact_Write_Failed(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "write_file",
+		Args:   map[string]interface{}{"path": "/readonly/file.go", "contents": "data"},
+		Status: "failed",
+		Error:  "permission denied",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertContains(t, got, "/readonly/file.go")
+	assertContains(t, got, "✗")
+	assertContains(t, got, "permission denied")
+	assertNotContains(t, got, "lines")
+	assertNotContains(t, got, "Wrote")
+}
+
+func TestRenderCompact_Write_FailedWithLongError(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "write_file",
+		Args:   map[string]interface{}{"path": "bad.go", "contents": "data"},
+		Status: "failed",
+		Error:  strings.Repeat("x", 100),
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	lines := strings.Split(plain, "\n")
+	if len(lines) < 2 {
+		t.Fatalf("expected at least 2 lines, got %d", len(lines))
+	}
+	if len(lines[1]) > 80 {
+		t.Errorf("error line too long (%d chars), should be truncated", len(lines[1]))
+	}
+}
+
+func TestRenderCompact_Write_FailedEmptyErrorField(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "write_file",
+		Args:   map[string]interface{}{"path": "bad.go", "contents": "data"},
+		Status: "failed",
+		Error:  "",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertContains(t, got, "✗")
+	assertContains(t, got, "failed")
+}
+
+// =============================================================================
+// RenderCompact — write tool, OSC 8 hyperlinks
+// =============================================================================
+
+func TestRenderCompact_Write_HyperlinksEnabled(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "write_file",
+		Args:   map[string]interface{}{"path": "/Users/dev/project/out.go", "contents": "package out\n"},
+		Status: "completed",
+	}
+	opts := CompactOptions{HyperlinksEnabled: true}
+
+	got := RenderCompact(tc, opts)
+
+	if !strings.Contains(got, osc8Open) {
+		t.Error("expected OSC 8 open sequence when hyperlinks enabled")
+	}
+	if !strings.Contains(got, "file:///Users/dev/project/out.go") {
+		t.Error("expected file:// URI in hyperlink")
+	}
+}
+
+func TestRenderCompact_Write_HyperlinksDisabled_NoEscapes(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "write_file",
+		Args:   map[string]interface{}{"path": "/Users/dev/project/out.go", "contents": "data\n"},
+		Status: "completed",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+
+	if strings.Contains(got, osc8Open+"file://") {
+		t.Error("should not contain OSC 8 file hyperlink when disabled")
+	}
+}
+
+func TestRenderCompact_Write_RelativePathResolution(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "write",
+		Args:   map[string]interface{}{"path": "src/out.go", "contents": "package out\n"},
+		Status: "completed",
+	}
+	opts := CompactOptions{
+		HyperlinksEnabled: true,
+		WorkingDir:        "/Users/dev/project",
+	}
+
+	got := RenderCompact(tc, opts)
+
+	if !strings.Contains(got, "file:///Users/dev/project/src/out.go") {
+		t.Errorf("expected resolved absolute path in URI, got:\n  %q", got)
+	}
+	assertContains(t, got, "src/out.go")
+}
+
+// =============================================================================
+// RenderCompact — write tool, content arg fallback
+// =============================================================================
+
+func TestRenderCompact_Write_FallbackContentArg(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "write_file",
+		Args:   map[string]interface{}{"path": "out.txt", "content": "line1\nline2\n"},
+		Status: "completed",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertContains(t, got, "Wrote 3 lines")
+}
+
+func TestRenderCompact_Write_EmptyPath(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "write_file",
+		Args:   map[string]interface{}{"contents": "data\n"},
+		Status: "completed",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	if !strings.Contains(plain, "Write()") {
+		t.Errorf("expected Write() with empty parens for missing path, got:\n  %q", plain)
+	}
+}
+
+// =============================================================================
+// RenderCompact — edit tool
+// =============================================================================
+
+func TestRenderCompact_Edit_BasicFormat(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "edit_file",
+		Args:   map[string]interface{}{"path": "main.go", "new_text": "func updated() {\n\treturn nil\n}\n"},
+		Status: "completed",
+		Result: "edit applied",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, got, "●")
+	assertContains(t, got, "Edit")
+	assertContains(t, got, "main.go")
+	assertContains(t, got, "Edited")
+	assertContains(t, got, "4 lines")
+
+	if !strings.Contains(plain, "Edit(main.go)") {
+		t.Errorf("expected header format Edit(main.go), got:\n  %q", plain)
+	}
+}
+
+func TestRenderCompact_Edit_FallbackArgName_NewString(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "edit",
+		Args:   map[string]interface{}{"path": "util.go", "new_string": "replacement\n"},
+		Status: "completed",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertContains(t, got, "Edited 2 lines")
+}
+
+func TestRenderCompact_Edit_FallbackArgName_Replacement(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "edit",
+		Args:   map[string]interface{}{"path": "util.go", "replacement": "new content\nmore content\n"},
+		Status: "completed",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertContains(t, got, "Edited 3 lines")
+}
+
+func TestRenderCompact_Edit_NoEmojiBadge(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "edit_file",
+		Args:   map[string]interface{}{"path": "main.go", "new_text": "update\n"},
+		Status: "completed",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertNotContains(t, got, "✏️")
+	assertNotContains(t, got, "✓")
+	assertNotContains(t, got, "⏳")
+}
+
+// =============================================================================
+// RenderCompact — create_file tool
+// =============================================================================
+
+func TestRenderCompact_CreateFile_UsesCreatedVerb(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "create_file",
+		Args:   map[string]interface{}{"path": "README.md", "contents": "# Title\n\nDescription\n"},
+		Status: "completed",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, got, "Created")
+	assertContains(t, got, "4 lines")
+
+	if !strings.Contains(plain, "Create(README.md)") {
+		t.Errorf("expected header format Create(README.md), got:\n  %q", plain)
+	}
+}
+
+// =============================================================================
+// RenderCompact — fallback for non-compact tools
 // =============================================================================
 
 func TestRenderCompact_ShellTool_FallsBackToRenderWithBadge(t *testing.T) {
@@ -305,20 +665,6 @@ func TestRenderCompact_ShellTool_FallsBackToRenderWithBadge(t *testing.T) {
 	assertContains(t, got, "✓")
 }
 
-func TestRenderCompact_WriteTool_FallsBackToRenderWithBadge(t *testing.T) {
-	tc := ToolCallInfo{
-		Name:   "write_file",
-		Args:   map[string]interface{}{"path": "out.txt", "contents": "hello"},
-		Status: "completed",
-		Result: "wrote 5 bytes",
-	}
-	opts := CompactOptions{HyperlinksEnabled: false}
-
-	got := RenderCompact(tc, opts)
-	assertContains(t, got, "📝")
-	assertContains(t, got, "Write")
-}
-
 func TestRenderCompact_UnknownTool_FallsBackToRenderWithBadge(t *testing.T) {
 	tc := ToolCallInfo{
 		Name:     "custom_mcp_tool",
@@ -332,6 +678,126 @@ func TestRenderCompact_UnknownTool_FallsBackToRenderWithBadge(t *testing.T) {
 	got := RenderCompact(tc, opts)
 	assertContains(t, got, "🔧")
 	assertContains(t, got, "custom_mcp_tool")
+}
+
+// =============================================================================
+// RenderCompactRunning
+// =============================================================================
+
+func TestRenderCompactRunning_WriteTool_CompactFormat(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "write_file",
+		Args: map[string]interface{}{"path": "config.go", "contents": "data"},
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompactRunning(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, got, "●")
+	assertContains(t, got, "Write")
+	assertContains(t, got, "config.go")
+	assertContains(t, got, "…")
+
+	if !strings.Contains(plain, "Write(config.go)") {
+		t.Errorf("expected compact header Write(config.go), got:\n  %q", plain)
+	}
+	assertNotContains(t, got, "📝")
+	assertNotContains(t, got, "⏳")
+}
+
+func TestRenderCompactRunning_EditTool_CompactFormat(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "edit_file",
+		Args: map[string]interface{}{"path": "main.go", "new_text": "update"},
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompactRunning(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, got, "Edit")
+	if !strings.Contains(plain, "Edit(main.go)") {
+		t.Errorf("expected compact header Edit(main.go), got:\n  %q", plain)
+	}
+	assertContains(t, got, "…")
+}
+
+func TestRenderCompactRunning_ReadTool_CompactFormat(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "read_file",
+		Args: map[string]interface{}{"path": "main.go"},
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompactRunning(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, got, "●")
+	assertContains(t, got, "…")
+	if !strings.Contains(plain, "Read(main.go)") {
+		t.Errorf("expected compact header Read(main.go), got:\n  %q", plain)
+	}
+}
+
+func TestRenderCompactRunning_ShellTool_FallsBackToLegacy(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "shell",
+		Args: map[string]interface{}{"command": "go test ./..."},
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompactRunning(tc, opts)
+	assertContains(t, got, "🖥 ")
+	assertContains(t, got, "Shell")
+	assertContains(t, got, "go test ./...")
+	assertContains(t, got, "⏳")
+}
+
+func TestRenderCompactRunning_UnknownTool_FallsBackToLegacy(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "custom_mcp_tool",
+		Args: map[string]interface{}{"query": "test"},
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompactRunning(tc, opts)
+	assertContains(t, got, "🔧")
+	assertContains(t, got, "custom_mcp_tool")
+	assertContains(t, got, "⏳")
+}
+
+func TestRenderCompactRunning_HyperlinksEnabled(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "write_file",
+		Args: map[string]interface{}{"path": "/Users/dev/out.go", "contents": "data"},
+	}
+	opts := CompactOptions{HyperlinksEnabled: true}
+
+	got := RenderCompactRunning(tc, opts)
+
+	if !strings.Contains(got, osc8Open) {
+		t.Error("expected OSC 8 open sequence when hyperlinks enabled")
+	}
+	if !strings.Contains(got, "file:///Users/dev/out.go") {
+		t.Error("expected file:// URI in hyperlink")
+	}
+}
+
+func TestRenderCompactRunning_SingleLineOutput(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "write_file",
+		Args: map[string]interface{}{"path": "out.go", "contents": "data"},
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompactRunning(tc, opts)
+	plain := stripANSI(got)
+
+	lines := strings.Split(plain, "\n")
+	if len(lines) != 1 {
+		t.Errorf("expected single line for running state, got %d:\n%s", len(lines), plain)
+	}
 }
 
 // =============================================================================
