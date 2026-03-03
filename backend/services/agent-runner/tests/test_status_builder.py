@@ -3191,6 +3191,97 @@ class TestArgsPreviewEnvVarResolution:
 
 
 # =============================================================================
+# Tests for ToolCall.args humanization via on_tool_start (fresh creation path)
+# =============================================================================
+
+
+class TestToolCallArgsHumanization:
+    """on_tool_start stores humanized args in ToolCall.args for display.
+
+    The fresh-creation path in _handle_tool_start_event must apply the same
+    humanization as _reconcile_early_tool_call so that all clients see
+    user-friendly paths instead of raw environment-variable references.
+    """
+
+    @pytest.mark.asyncio
+    async def test_platform_dir_humanized_in_tool_call_args(self, status_builder):
+        """$STIGMER_PLATFORM_DIR is replaced with .stigmer in ToolCall.args."""
+        event = {
+            "event": "on_tool_start",
+            "name": "execute",
+            "run_id": "tool-run-humanize-1",
+            "data": {
+                "input": {
+                    "command": "python3 $STIGMER_PLATFORM_DIR/skills/s/run.py",
+                    "timeout": 120,
+                }
+            },
+            "metadata": {},
+        }
+        await status_builder.process_event(event)
+
+        tc = status_builder.current_status.tool_calls[0]
+        args = tc.args.fields
+        assert args["command"].string_value == "python3 .stigmer/skills/s/run.py"
+        assert args["timeout"].number_value == 120
+
+    @pytest.mark.asyncio
+    async def test_env_vars_resolved_in_tool_call_args(self, status_builder):
+        """Agent env vars like $OUTPUT_DIR are resolved in ToolCall.args."""
+        status_builder.set_display_env_vars({"OUTPUT_DIR": "seedpack/skills"})
+        event = {
+            "event": "on_tool_start",
+            "name": "execute",
+            "run_id": "tool-run-humanize-2",
+            "data": {
+                "input": {
+                    "command": "python3 $STIGMER_PLATFORM_DIR/scripts/init.py --path $OUTPUT_DIR",
+                }
+            },
+            "metadata": {},
+        }
+        await status_builder.process_event(event)
+
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.args.fields["command"].string_value == (
+            "python3 .stigmer/scripts/init.py --path seedpack/skills"
+        )
+
+    @pytest.mark.asyncio
+    async def test_secret_env_var_not_resolved_in_tool_call_args(self, status_builder):
+        """Secret env vars remain unexpanded in ToolCall.args."""
+        status_builder.set_display_env_vars(
+            {"API_TOKEN": "sk-secret"}, secret_keys={"API_TOKEN"},
+        )
+        event = {
+            "event": "on_tool_start",
+            "name": "execute",
+            "run_id": "tool-run-humanize-3",
+            "data": {"input": {"command": "curl -H $API_TOKEN"}},
+            "metadata": {},
+        }
+        await status_builder.process_event(event)
+
+        tc = status_builder.current_status.tool_calls[0]
+        assert "$API_TOKEN" in tc.args.fields["command"].string_value
+
+    @pytest.mark.asyncio
+    async def test_no_env_var_args_unchanged(self, status_builder):
+        """Args without env vars pass through unchanged."""
+        event = {
+            "event": "on_tool_start",
+            "name": "read_file",
+            "run_id": "tool-run-humanize-4",
+            "data": {"input": {"path": "src/main.py"}},
+            "metadata": {},
+        }
+        await status_builder.process_event(event)
+
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.args.fields["path"].string_value == "src/main.py"
+
+
+# =============================================================================
 # Tests for Tool Approval Decision (HITL Phase 2)
 # =============================================================================
 
