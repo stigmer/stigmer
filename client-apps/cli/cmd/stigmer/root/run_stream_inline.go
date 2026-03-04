@@ -284,17 +284,23 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 		return false, "", ""
 	}
 
-	// All remaining events produce visible output. Close any open AI
-	// stream on stdout before status/tool output goes to stderr to
-	// prevent them from sharing a terminal line. AI stream events
-	// manage stream lifecycle internally and must not be closed here.
+	// Flush buffered state before events that produce visible output.
 	//
-	// flushPendingReads is inside the default case because it internally
-	// calls finishAIStreamIfNeeded — running it during AIStreamEndEvent
-	// would reset streamedBytes to 0 before renderAIStreamEnd, causing
-	// the full AI content to be re-printed.
+	// AIStreamStartEvent flushes pending reads to create a natural
+	// grouping boundary: reads from the preceding AI message context
+	// are rendered before the new message begins. finishAIStreamIfNeeded
+	// is not called here because renderAIStreamStart handles it.
+	//
+	// AIStreamDeltaEvent and AIStreamEndEvent skip flushing entirely —
+	// they are mid-stream events that manage the AI stream lifecycle
+	// internally.
+	//
+	// All other events close any open AI stream and flush pending reads
+	// before rendering to stderr, preventing garbled interleaving.
 	switch event.(type) {
-	case executiontui.AIStreamStartEvent, executiontui.AIStreamDeltaEvent, executiontui.AIStreamEndEvent:
+	case executiontui.AIStreamStartEvent:
+		r.flushPendingReads()
+	case executiontui.AIStreamDeltaEvent, executiontui.AIStreamEndEvent:
 	default:
 		r.finishAIStreamIfNeeded()
 		r.flushPendingReads()
