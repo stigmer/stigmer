@@ -171,9 +171,9 @@ func TestResolveColor_AllStyles(t *testing.T) {
 	// Verify each style resolves to a non-nil color
 	styles := []PanelStyle{StyleDefault, StyleWarning, StyleError, StyleSuccess}
 	for _, style := range styles {
-		color := resolveColor(style)
+		color := ResolveColor(style)
 		if color == nil {
-			t.Errorf("resolveColor(%d) returned nil", style)
+			t.Errorf("ResolveColor(%d) returned nil", style)
 		}
 	}
 }

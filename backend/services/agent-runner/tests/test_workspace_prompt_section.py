@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from worker.activities.execute_graphton import (
     _build_directory_tree,
+    _format_entry_description,
     _human_size,
     build_referenced_files_prompt_section,
     build_workspace_prompt_section,
@@ -89,7 +90,10 @@ def _empty_provision() -> ProvisionResult:
 class TestBuildWorkspacePromptSection:
     """Tests for build_workspace_prompt_section()."""
 
-    def test_returns_empty_string_when_provision_result_is_none(self):
+    def test_returns_empty_string_when_list_is_empty(self):
+        assert build_workspace_prompt_section([]) == ""
+
+    def test_returns_empty_string_when_none(self):
         assert build_workspace_prompt_section(None) == ""
 
     def test_returns_empty_string_when_description_is_empty(self):
@@ -99,45 +103,45 @@ class TestBuildWorkspacePromptSection:
             consumed_keys=(),
             workspace_description="",
         )
-        assert build_workspace_prompt_section(result) == ""
+        assert build_workspace_prompt_section([result]) == ""
 
     def test_section_header_for_git_repo(self):
-        section = build_workspace_prompt_section(_git_provision())
+        section = build_workspace_prompt_section([_git_provision()])
         assert section.startswith("\n\n## Workspace\n\n")
 
     def test_git_repo_includes_repo_url(self):
         url = "https://github.com/acme/my-app"
-        section = build_workspace_prompt_section(_git_provision(url=url))
+        section = build_workspace_prompt_section([_git_provision(url=url)])
         assert url in section
 
     def test_git_repo_includes_branch(self):
-        section = build_workspace_prompt_section(_git_provision(branch="develop"))
+        section = build_workspace_prompt_section([_git_provision(branch="develop")])
         assert "develop" in section
 
     def test_git_repo_includes_short_commit(self):
         section = build_workspace_prompt_section(
-            _git_provision(commit="deadbeef1234567890abcdef1234567890abcdef")
+            [_git_provision(commit="deadbeef1234567890abcdef1234567890abcdef")]
         )
         assert "deadbee" in section
 
     def test_local_path_includes_directory(self):
         path = "/Users/dev/my-project"
-        section = build_workspace_prompt_section(_local_path_provision(path))
+        section = build_workspace_prompt_section([_local_path_provision(path)])
         assert path in section
 
     def test_local_path_includes_persistence_warning(self):
-        section = build_workspace_prompt_section(_local_path_provision())
+        section = build_workspace_prompt_section([_local_path_provision()])
         assert "immediate and persistent" in section
 
     def test_empty_workspace_content(self):
-        section = build_workspace_prompt_section(_empty_provision())
+        section = build_workspace_prompt_section([_empty_provision()])
         assert "workspace is empty" in section.lower()
 
     def test_section_starts_with_double_newline_for_concatenation(self):
         """The section must start with \\n\\n so it concatenates cleanly
         after the base instructions string."""
         for factory in (_git_provision, _local_path_provision, _empty_provision):
-            section = build_workspace_prompt_section(factory())
+            section = build_workspace_prompt_section([factory()])
             assert section.startswith("\n\n"), (
                 f"Section from {factory.__name__} must start with \\n\\n"
             )
@@ -152,12 +156,12 @@ class TestBuildWorkspacePromptSection:
             workspace_description="Workspace description.",
             file_tree="### Project Structure\n\n    - `src/`\n\n1 entry.",
         )
-        section = build_workspace_prompt_section(result)
+        section = build_workspace_prompt_section([result])
         assert "### Project Structure" in section
         assert "`src/`" in section
 
     def test_tree_absent_when_none(self):
-        section = build_workspace_prompt_section(_git_provision())
+        section = build_workspace_prompt_section([_git_provision()])
         assert "### Project Structure" not in section
 
     def test_tree_follows_description(self):
@@ -168,7 +172,7 @@ class TestBuildWorkspacePromptSection:
             workspace_description="Description text.",
             file_tree="### Project Structure\n\n    - `a.txt`\n\n1 entry.",
         )
-        section = build_workspace_prompt_section(result)
+        section = build_workspace_prompt_section([result])
         desc_pos = section.find("Description text.")
         tree_pos = section.find("### Project Structure")
         assert desc_pos < tree_pos, "Description must precede tree"
@@ -181,7 +185,7 @@ class TestBuildWorkspacePromptSection:
             workspace_description="Local workspace.",
             file_tree="### Project Structure\n\n    - `a.py`\n\n1 entry.",
         )
-        section = build_workspace_prompt_section(result)
+        section = build_workspace_prompt_section([result])
         assert section.startswith("\n\n## Workspace\n\n")
 
 
@@ -198,14 +202,14 @@ class TestPromptAssemblyOrdering:
     @staticmethod
     def _assemble(
         instructions: str = "You are a helpful agent.",
-        provision_result: ProvisionResult | None = None,
+        provision_results: list[ProvisionResult] | None = None,
         skills_prompt_section: str = "",
         injected_files: list[dict] | None = None,
     ) -> str:
         """Mirror the prompt assembly logic from execute_graphton.py."""
         enhanced = instructions
 
-        workspace_section = build_workspace_prompt_section(provision_result)
+        workspace_section = build_workspace_prompt_section(provision_results)
         if workspace_section:
             enhanced += workspace_section
 
@@ -223,7 +227,7 @@ class TestPromptAssemblyOrdering:
 
     def test_workspace_before_skills(self):
         prompt = self._assemble(
-            provision_result=_git_provision(),
+            provision_results=[_git_provision()],
             skills_prompt_section="\n\n## Available Skills\n\n- skill-a",
         )
         ws_pos = prompt.find("## Workspace")
@@ -232,7 +236,7 @@ class TestPromptAssemblyOrdering:
 
     def test_workspace_before_input_files(self):
         prompt = self._assemble(
-            provision_result=_git_provision(),
+            provision_results=[_git_provision()],
             injected_files=[{"path": ".stigmer/inputs/data.csv"}],
         )
         ws_pos = prompt.find("## Workspace")
@@ -240,20 +244,20 @@ class TestPromptAssemblyOrdering:
         assert ws_pos < if_pos, "Workspace must appear before input files"
 
     def test_workspace_before_response_rules(self):
-        prompt = self._assemble(provision_result=_git_provision())
+        prompt = self._assemble(provision_results=[_git_provision()])
         ws_pos = prompt.find("## Workspace")
         rr_pos = prompt.find("## Response rules")
         assert ws_pos < rr_pos, "Workspace must appear before response rules"
 
-    def test_no_workspace_when_provision_result_is_none(self):
-        prompt = self._assemble(provision_result=None)
+    def test_no_workspace_when_list_is_empty(self):
+        prompt = self._assemble(provision_results=[])
         assert "## Workspace" not in prompt
 
     def test_instructions_preserved_when_no_provisioning(self):
         instructions = "You are a helpful agent."
         prompt = self._assemble(
             instructions=instructions,
-            provision_result=None,
+            provision_results=[],
         )
         assert prompt.startswith(instructions)
 
@@ -261,7 +265,7 @@ class TestPromptAssemblyOrdering:
         instructions = "You are a helpful agent."
         prompt = self._assemble(
             instructions=instructions,
-            provision_result=_git_provision(),
+            provision_results=[_git_provision()],
         )
         instr_pos = prompt.find(instructions)
         ws_pos = prompt.find("## Workspace")
@@ -276,7 +280,7 @@ class TestPromptAssemblyOrdering:
             file_tree="### Project Structure\n\n    - `src/`\n\n1 entry.",
         )
         prompt = self._assemble(
-            provision_result=result,
+            provision_results=[result],
             skills_prompt_section="\n\n## Available Skills\n\n- skill-a",
         )
         ws_pos = prompt.find("## Workspace")
@@ -497,7 +501,7 @@ class TestReferencedFilesPromptOrdering:
     @staticmethod
     def _assemble_with_refs(
         instructions: str = "You are a helpful agent.",
-        provision_result: ProvisionResult | None = None,
+        provision_results: list[ProvisionResult] | None = None,
         skills_prompt_section: str = "",
         workspace_file_refs: list[str] | None = None,
         workspace_root: str = "/workspace",
@@ -506,7 +510,7 @@ class TestReferencedFilesPromptOrdering:
         """Mirror the updated prompt assembly logic with referenced files."""
         enhanced = instructions
 
-        workspace_section = build_workspace_prompt_section(provision_result)
+        workspace_section = build_workspace_prompt_section(provision_results)
         if workspace_section:
             enhanced += workspace_section
 
@@ -531,7 +535,7 @@ class TestReferencedFilesPromptOrdering:
 
     def test_referenced_files_before_input_files(self):
         prompt = self._assemble_with_refs(
-            provision_result=_local_path_provision(),
+            provision_results=[_local_path_provision()],
             workspace_file_refs=["src/config.yaml"],
             injected_files=[{"path": ".stigmer/inputs/external.csv"}],
         )
@@ -541,7 +545,7 @@ class TestReferencedFilesPromptOrdering:
 
     def test_workspace_before_referenced_files(self):
         prompt = self._assemble_with_refs(
-            provision_result=_local_path_provision(),
+            provision_results=[_local_path_provision()],
             workspace_file_refs=["README.md"],
         )
         ws_pos = prompt.find("## Workspace")
@@ -561,3 +565,283 @@ class TestReferencedFilesPromptOrdering:
             workspace_file_refs=[],
         )
         assert "## Referenced Files" not in prompt
+
+
+# =============================================================================
+# TestMultiEntryWorkspacePromptSection
+# =============================================================================
+
+
+class TestMultiEntryWorkspacePromptSection:
+    """Tests for multi-workspace prompt generation."""
+
+    @staticmethod
+    def _two_local_entries() -> list[ProvisionResult]:
+        return [
+            ProvisionResult(
+                root_dir="/Users/dev/frontend",
+                source_type=SourceType.LOCAL_PATH,
+                consumed_keys=(),
+                workspace_description=(
+                    "Your workspace is the user's project directory: /Users/dev/frontend\n"
+                    "IMPORTANT: You are operating directly on the user's files. "
+                    "Changes are immediate and persistent."
+                ),
+                entry_name="frontend",
+            ),
+            ProvisionResult(
+                root_dir="/Users/dev/backend",
+                source_type=SourceType.LOCAL_PATH,
+                consumed_keys=(),
+                workspace_description=(
+                    "Your workspace is the user's project directory: /Users/dev/backend\n"
+                    "IMPORTANT: You are operating directly on the user's files. "
+                    "Changes are immediate and persistent."
+                ),
+                entry_name="backend",
+            ),
+        ]
+
+    def test_two_local_entries_shows_both_paths(self):
+        section = build_workspace_prompt_section(self._two_local_entries())
+        assert "/Users/dev/frontend" in section
+        assert "/Users/dev/backend" in section
+
+    def test_multi_entry_preamble_has_cwd_and_path_rules(self):
+        section = build_workspace_prompt_section(self._two_local_entries())
+        assert "Current working directory" in section
+        assert "Path resolution" in section
+        assert "frontend/src/main.py" in section
+
+    def test_multi_entry_headings_use_entry_names(self):
+        section = build_workspace_prompt_section(self._two_local_entries())
+        assert "### frontend (`/Users/dev/frontend`)" in section
+        assert "### backend (`/Users/dev/backend`)" in section
+
+    def test_multi_entry_file_tree_heading_preserved(self):
+        """Multi-entry trees are produced at #### level by the provisioner.
+
+        The prompt builder passes them through verbatim — no post-hoc
+        string replacement.  This test uses #### in the fixture to
+        reflect what ``provision_all(heading_level=4)`` generates.
+        """
+        results = [
+            ProvisionResult(
+                root_dir="/Users/dev/alpha",
+                source_type=SourceType.LOCAL_PATH,
+                consumed_keys=(),
+                workspace_description="Alpha workspace.",
+                file_tree="#### Project Structure\n\n    - `src/`\n\n1 entry.",
+                entry_name="alpha",
+            ),
+            ProvisionResult(
+                root_dir="/Users/dev/beta",
+                source_type=SourceType.LOCAL_PATH,
+                consumed_keys=(),
+                workspace_description="Beta workspace.",
+                entry_name="beta",
+            ),
+        ]
+        section = build_workspace_prompt_section(results)
+        assert "#### Project Structure" in section
+        lines = section.split("\n")
+        tree_headings = [line for line in lines if "Project Structure" in line]
+        for heading in tree_headings:
+            assert heading.startswith("####"), (
+                f"Tree heading must be #### level, got: {heading!r}"
+            )
+
+    def test_single_entry_identical_to_legacy(self):
+        """A list with one result produces the same output as the
+        legacy single-result path (no multi-entry preamble)."""
+        result = _local_path_provision("/Users/dev/my-project")
+        single = build_workspace_prompt_section([result])
+        assert single.startswith("\n\n## Workspace\n\n")
+        assert "workspace entries" not in single.lower()
+        assert "starting directory" not in single.lower()
+
+    def test_multi_entry_starts_with_double_newline(self):
+        section = build_workspace_prompt_section(self._two_local_entries())
+        assert section.startswith("\n\n")
+
+    def test_multi_entry_entry_count_in_preamble(self):
+        section = build_workspace_prompt_section(self._two_local_entries())
+        assert "2 workspace entries" in section
+
+    # -- CWD and path resolution -----------------------------------------------
+
+    def test_multi_entry_cwd_in_preamble(self):
+        section = build_workspace_prompt_section(
+            self._two_local_entries(), container_root="/workspace",
+        )
+        assert "**Current working directory**: `/workspace`" in section
+
+    def test_multi_entry_path_resolution_rules(self):
+        section = build_workspace_prompt_section(self._two_local_entries())
+        assert "Path resolution" in section
+        assert "entry-relative paths" in section
+        assert "frontend/src/main.py" in section
+
+    # -- per-entry descriptions ------------------------------------------------
+
+    def test_multi_entry_local_path_description(self):
+        section = build_workspace_prompt_section(self._two_local_entries())
+        assert "Workspace entry **frontend** is the user's project directory" in section
+        assert "Workspace entry **backend** is the user's project directory" in section
+        assert "Your workspace is" not in section
+
+    def test_multi_entry_git_description(self):
+        section = build_workspace_prompt_section(self._two_git_entries())
+        assert "Workspace entry **svc-api** was initialized from" in section
+        assert "https://github.com/acme/svc-api" in section
+        assert "branch: main" in section
+        assert "commit: a1b2c3d" in section
+        assert "Workspace entry **svc-web** was initialized from" in section
+        assert "https://github.com/acme/svc-web" in section
+
+    def test_multi_entry_empty_description(self):
+        results = [
+            ProvisionResult(
+                root_dir="/workspace/scratch",
+                source_type=SourceType.EMPTY,
+                consumed_keys=(),
+                workspace_description="Your workspace is empty.",
+                entry_name="scratch",
+            ),
+            ProvisionResult(
+                root_dir="/workspace/main",
+                source_type=SourceType.LOCAL_PATH,
+                consumed_keys=(),
+                workspace_description="Local workspace.",
+                entry_name="main",
+            ),
+        ]
+        section = build_workspace_prompt_section(results)
+        assert "Workspace entry **scratch** is an empty workspace" in section
+
+    def test_multi_entry_mixed_sources(self):
+        section = build_workspace_prompt_section(self._mixed_entries())
+        assert "Workspace entry **app** is the user's project directory" in section
+        assert "Workspace entry **lib** was initialized from" in section
+        assert "immediate and persistent" in section
+        assert "captured as artifacts" in section
+
+    def test_multi_entry_entry_heading_includes_path(self):
+        section = build_workspace_prompt_section(self._two_local_entries())
+        assert "### frontend (`/Users/dev/frontend`)" in section
+        assert "### backend (`/Users/dev/backend`)" in section
+
+    # -- _format_entry_description direct tests --------------------------------
+
+    def test_format_entry_description_local_path(self):
+        result = ProvisionResult(
+            root_dir="/projects/my-app",
+            source_type=SourceType.LOCAL_PATH,
+            consumed_keys=(),
+            workspace_description="ignored",
+            entry_name="my-app",
+        )
+        desc = _format_entry_description(result)
+        assert "Workspace entry **my-app**" in desc
+        assert "`/projects/my-app`" in desc
+        assert "immediate and persistent" in desc
+
+    def test_format_entry_description_git_repo(self):
+        result = ProvisionResult(
+            root_dir="/workspace/backend",
+            source_type=SourceType.GIT_REPO,
+            consumed_keys=(),
+            workspace_description="ignored",
+            entry_name="backend",
+            git_metadata=GitMetadata(
+                repo_url="https://github.com/acme/backend",
+                branch="develop",
+                base_commit="deadbeef1234567890",
+            ),
+        )
+        desc = _format_entry_description(result)
+        assert "Workspace entry **backend** was initialized from" in desc
+        assert "https://github.com/acme/backend" in desc
+        assert "branch: develop" in desc
+        assert "commit: deadbee" in desc
+        assert "captured as artifacts" in desc
+
+    def test_format_entry_description_empty(self):
+        result = ProvisionResult(
+            root_dir="/workspace/scratch",
+            source_type=SourceType.EMPTY,
+            consumed_keys=(),
+            workspace_description="ignored",
+            entry_name="scratch",
+        )
+        desc = _format_entry_description(result)
+        assert "Workspace entry **scratch** is an empty workspace" in desc
+        assert "Create files and directories" in desc
+
+    def test_format_entry_description_fallback_unknown_source(self):
+        """Unknown source types fall back to workspace_description."""
+        result = ProvisionResult(
+            root_dir="/workspace/custom",
+            source_type=SourceType.GIT_REPO,
+            consumed_keys=(),
+            workspace_description="Custom source description.",
+            entry_name="custom",
+            git_metadata=None,
+        )
+        desc = _format_entry_description(result)
+        assert desc == "Custom source description."
+
+    # -- fixtures for multi-entry tests ----------------------------------------
+
+    @staticmethod
+    def _two_git_entries() -> list[ProvisionResult]:
+        return [
+            ProvisionResult(
+                root_dir="/workspace/svc-api",
+                source_type=SourceType.GIT_REPO,
+                consumed_keys=("GITHUB_TOKEN",),
+                workspace_description="git workspace",
+                entry_name="svc-api",
+                git_metadata=GitMetadata(
+                    repo_url="https://github.com/acme/svc-api",
+                    branch="main",
+                    base_commit="a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2",
+                ),
+            ),
+            ProvisionResult(
+                root_dir="/workspace/svc-web",
+                source_type=SourceType.GIT_REPO,
+                consumed_keys=("GITHUB_TOKEN",),
+                workspace_description="git workspace",
+                entry_name="svc-web",
+                git_metadata=GitMetadata(
+                    repo_url="https://github.com/acme/svc-web",
+                    branch="main",
+                    base_commit="b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3",
+                ),
+            ),
+        ]
+
+    @staticmethod
+    def _mixed_entries() -> list[ProvisionResult]:
+        return [
+            ProvisionResult(
+                root_dir="/workspace/app",
+                source_type=SourceType.LOCAL_PATH,
+                consumed_keys=(),
+                workspace_description="local workspace",
+                entry_name="app",
+            ),
+            ProvisionResult(
+                root_dir="/workspace/lib",
+                source_type=SourceType.GIT_REPO,
+                consumed_keys=("GITHUB_TOKEN",),
+                workspace_description="git workspace",
+                entry_name="lib",
+                git_metadata=GitMetadata(
+                    repo_url="https://github.com/acme/lib",
+                    branch="main",
+                    base_commit="c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4",
+                ),
+            ),
+        ]

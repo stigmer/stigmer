@@ -39,11 +39,16 @@ var secretVars = map[string]bool{
 
 // EnvResolutionResult contains the outcome of resolving environment variables
 // for an MCP server. Overrides are KEY=VALUE pairs for variables that were
-// successfully resolved. Unresolved lists variable names that are declared in
-// env_spec but could not be resolved from any local source.
+// successfully resolved. Unresolved lists secret variable names that could not
+// be resolved and block discovery (the server cannot authenticate without
+// credentials). UnresolvedOptional lists non-secret variable names that could
+// not be resolved but are non-blocking — the MCP server is expected to have
+// sensible defaults for configuration variables like endpoints or environment
+// selectors.
 type EnvResolutionResult struct {
-	Overrides  []string
-	Unresolved []string
+	Overrides          []string
+	Unresolved         []string
+	UnresolvedOptional []string
 }
 
 // ResolveEnvForDiscovery builds a list of KEY=VALUE environment overrides
@@ -68,15 +73,17 @@ func ResolveEnvForDiscovery(server *mcpserverv1.McpServer, cfg *config.Config) *
 	}
 
 	result := &EnvResolutionResult{}
-	for name := range envSpec {
+	for name, spec := range envSpec {
 		if os.Getenv(name) != "" {
 			continue
 		}
 
 		if val, ok := resolveKnownVar(name, cfg); ok {
 			result.Overrides = append(result.Overrides, fmt.Sprintf("%s=%s", name, val))
-		} else {
+		} else if spec.GetIsSecret() {
 			result.Unresolved = append(result.Unresolved, name)
+		} else {
+			result.UnresolvedOptional = append(result.UnresolvedOptional, name)
 		}
 	}
 

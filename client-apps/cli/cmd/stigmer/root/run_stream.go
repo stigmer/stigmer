@@ -6,13 +6,11 @@ import (
 	"io"
 	"os"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/pkg/errors"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/session"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
@@ -20,137 +18,110 @@ import (
 	"google.golang.org/grpc"
 )
 
-// streamAgentExecution subscribes to execution updates and displays them in
-// a Bubbletea alt-screen TUI. The TUI provides a scrollable viewport with
-// auto-follow, inline approval handling, and streams AI content incrementally.
+// streamAgentExecution subscribes to execution updates and renders them using
+// the selected output mode:
 //
-// When sessionID and orgID are provided, the TUI enters conversational mode:
-// after an execution completes, the user can type follow-up messages that
-// create new executions within the same session. The returned execution is
-// the last one that ran (which may be a follow-up, not the original).
+//   - OutputInline (default): Streaming text output in normal terminal
+//     scrollback. AI content goes to stdout; status/progress goes to stderr.
+//   - OutputJSON: Newline-delimited JSON events on stdout for scripting/CI.
 //
-// A background goroutine reads the gRPC stream and converts updates into TUI
-// events sent over a channel. The TUI model receives these events and renders
-// content blocks in a viewport.
+// A background goroutine reads the gRPC stream and converts updates into
+// events sent over a channel. The consumer (renderer) receives these events
+// and renders or serializes them.
 //
-// Approval is handled inline in the TUI: when the goroutine detects an approval
-// request, it sends an ApprovalNeededEvent. The TUI shows a prompt and captures
-// the user's key press (a/s/r). The response flows back via a channel, and the
-// goroutine submits the decision to the backend API.
-//
-// After the TUI exits (execution completes or user quits), a summary is printed
-// to inline stdout so the terminal history shows the final state.
-func streamAgentExecution(sessionID, sessionSubject, executionID, orgID string, prompter approval.Prompter, defaultAction approval.Action, verbose bool, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
-	climsg.Success("Streaming session...")
-	fmt.Println()
-
-	// Create streaming client
+// The returned execution is the last one that ran (which may be a follow-up
+// in inline mode, not the original).
+func streamAgentExecution(sessionID, sessionSubject, executionID, orgID string, prompter approval.Prompter, defaultAction approval.Action, verbose bool, outputMode OutputMode, conn *grpc.ClientConn, workspaceRoots []string, dataW, statusW io.Writer) (*agentexecutionv1.AgentExecution, error) {
 	client := agentexecutionv1.NewAgentExecutionQueryControllerClient(conn)
-	ctx := context.Background()
 
-	// Subscribe to execution updates
-	stream, err := client.Subscribe(ctx, &agentexecutionv1.AgentExecutionId{Value: executionID})
+	streamCtx, streamCancel := context.WithCancel(context.Background())
+
+	stream, err := client.Subscribe(streamCtx, &agentexecutionv1.AgentExecutionId{Value: executionID})
 	if err != nil {
+		streamCancel()
 		return nil, errors.Wrap(err, "failed to subscribe to agent execution")
 	}
 
-	// Channels for communication between gRPC goroutine and TUI.
-	// events: gRPC goroutine -> TUI (execution state changes)
-	// approvalResponses: TUI -> gRPC goroutine (user's approval decisions)
 	events := make(chan executiontui.Event, 16)
 	approvalResponses := make(chan executiontui.ApprovalResponse, 1)
 
-	// CancelFn is called by the TUI when the user confirms cancellation.
-	// It invokes the Cancel API; the backend will transition the execution
-	// to CANCELLED and the stream will deliver the phase change.
-	cancelFn := func() error {
-		_, err := execution.Cancel(conn, executionID)
-		return err
-	}
-
-	// FollowUpFn enables conversational mode: after an execution completes,
-	// the user can type a follow-up message. This closure creates a new
-	// execution in the same session, subscribes to its stream, and returns
-	// the channels needed for the TUI to render it.
-	var followUpFn executiontui.FollowUpFn
-	if sessionID != "" {
-		followUpFn = buildFollowUpFn(ctx, sessionID, orgID, conn)
-	}
-
-	// When the session subject is not yet known (new session or subject
-	// generation still pending), provide a fetch function so the TUI can
-	// update the header in-place once the backend generates a real title.
-	var subjectFetchFn func() string
-	if sessionID != "" && sessionSubject == "" {
-		subjectFetchFn = func() string {
-			ses, err := session.GetFromBackend(conn, sessionID)
-			if err != nil {
-				return ""
-			}
-			return session.ResolvedSubject(ses.GetSpec().GetSubject())
-		}
-	}
-
-	// Create and configure the TUI model.
-	model := executiontui.New(executiontui.Config{
-		SessionID:         sessionID,
-		SessionSubject:    sessionSubject,
-		ExecutionID:       executionID,
-		Events:            events,
-		ApprovalResponses: approvalResponses,
-		CancelFn:          cancelFn,
-		FollowUpFn:        followUpFn,
-		SubjectFetchFn:    subjectFetchFn,
-		Verbose:           verbose,
-	})
-
-	// Launch the gRPC stream goroutine that converts proto updates to TUI events.
-	go streamToEvents(ctx, streamToEventsConfig{
+	go streamToEvents(streamCtx, streamToEventsConfig{
 		executionID:       executionID,
+		sessionID:         sessionID,
 		stream:            stream,
 		events:            events,
 		approvalResponses: approvalResponses,
 		conn:              conn,
 	})
 
-	// Run the TUI in alt-screen mode. This blocks until the TUI exits.
-	p := tea.NewProgram(model, tea.WithAltScreen())
-	finalModel, err := p.Run()
-	if err != nil {
-		return nil, errors.Wrap(err, "TUI execution failed")
+	switch outputMode {
+	case OutputJSON:
+		return streamAgentJSON(streamCtx, streamCancel, sessionID, executionID, events, approvalResponses, defaultAction, conn)
+	default:
+		return streamAgentInline(streamCtx, streamCancel, sessionID, executionID, orgID, events, approvalResponses, prompter, defaultAction, conn, workspaceRoots, dataW, statusW)
+	}
+}
+
+// streamAgentInline renders events as streaming text without the TUI.
+// AI content goes to dataW, status/progress goes to statusW. When a session
+// exists, a follow-up loop prompts for continued conversation after each
+// execution completes.
+func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFunc, sessionID, executionID, orgID string, events chan executiontui.Event, approvalResponses chan executiontui.ApprovalResponse, prompter approval.Prompter, defaultAction approval.Action, conn *grpc.ClientConn, workspaceRoots []string, dataW, statusW io.Writer) (*agentexecutionv1.AgentExecution, error) {
+	var followUpFn executiontui.FollowUpFn
+	if sessionID != "" {
+		followUpFn = buildFollowUpFn(streamCtx, sessionID, orgID, conn)
 	}
 
-	// Extract the final state from the TUI model.
-	result := finalModel.(executiontui.Model)
-
-	if result.FinalError() != "" && !result.Done() {
-		return nil, errors.New(result.FinalError())
+	cfg := inlineRenderConfig{
+		events:            events,
+		approvalResponses: approvalResponses,
+		prompter:          prompter,
+		defaultAction:     defaultAction,
+		data:              dataW,
+		status:            statusW,
+		sessionID:         sessionID,
+		workspaceRoots:    workspaceRoots,
+		cancelExecFn: func() {
+			_, _ = execution.Cancel(conn, executionID)
+		},
 	}
 
-	// The TUI has exited and the terminal is back to inline mode.
-	// Fetch the final execution state. When follow-ups were sent, use the
-	// latest execution ID rather than the original.
-	latestExecID := result.LatestExecutionID()
-	finalExec, err := fetchFinalExecution(ctx, conn, latestExecID)
+	latestExecID, phase, exitErr := runInlineFollowUpLoop(streamCtx, cfg, followUpFn, executionID)
+	streamCancel()
+
+	return streamAgentEpilogue(sessionID, latestExecID, phase, exitErr, conn)
+}
+
+// streamAgentJSON renders events as newline-delimited JSON on stdout.
+func streamAgentJSON(streamCtx context.Context, streamCancel context.CancelFunc, sessionID, executionID string, events chan executiontui.Event, approvalResponses chan executiontui.ApprovalResponse, defaultAction approval.Action, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
+	phase, exitErr := renderJSON(streamCtx, jsonRenderConfig{
+		events:            events,
+		approvalResponses: approvalResponses,
+		defaultAction:     defaultAction,
+		data:              os.Stdout,
+		status:            os.Stderr,
+	})
+	streamCancel()
+
+	return streamAgentEpilogue(sessionID, executionID, phase, exitErr, conn)
+}
+
+// streamAgentEpilogue fetches the final execution and prints a summary.
+// Shared by the inline and JSON rendering paths.
+func streamAgentEpilogue(sessionID, executionID, phase, exitErr string, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
+	if exitErr != "" && phase == "" {
+		return nil, errors.New(exitErr)
+	}
+
+	finalExec, err := fetchFinalExecution(context.Background(), conn, executionID)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to fetch final execution state")
 	}
 
-	// Print the appropriate summary to inline stdout.
-	// When a session ID is available, use the concise single-line format.
-	// Otherwise, fall back to the verbose panel format for backwards compat.
 	if sessionID != "" {
-		if result.Done() {
-			displaySessionExitLine(sessionID, finalExec)
-		} else {
-			displaySessionDetachLine(sessionID)
-		}
+		displaySessionExitLine(sessionID, finalExec)
 	} else {
-		if result.Done() {
-			displayAgentExecutionComplete(finalExec)
-		} else {
-			displayAgentExecutionDetached(finalExec)
-		}
+		displayAgentExecutionComplete(finalExec)
 	}
 
 	return finalExec, nil
@@ -190,6 +161,7 @@ func buildFollowUpFn(ctx context.Context, sessionID, orgID string, conn *grpc.Cl
 
 		go streamToEvents(ctx, streamToEventsConfig{
 			executionID:       newExecID,
+			sessionID:         sessionID,
 			stream:            stream,
 			events:            events,
 			approvalResponses: approvalResponses,
@@ -206,8 +178,7 @@ func buildFollowUpFn(ctx context.Context, sessionID, orgID string, conn *grpc.Cl
 }
 
 // fetchFinalExecution retrieves the current execution state from the backend.
-// Called after the TUI exits to get the full proto object for the summary display
-// and to return to the caller.
+// Called after the renderer exits to get the full proto for the summary display.
 func fetchFinalExecution(ctx context.Context, conn *grpc.ClientConn, executionID string) (*agentexecutionv1.AgentExecution, error) {
 	client := agentexecutionv1.NewAgentExecutionQueryControllerClient(conn)
 	resp, err := client.Get(ctx, &agentexecutionv1.AgentExecutionId{Value: executionID})

@@ -48,8 +48,8 @@ func (c *ExecutionContextController) buildCreatePipeline() *pipeline.Pipeline[*e
 		AddStep(steps.NewValidateProtoStep[*executioncontextv1.ExecutionContext]()).         // 1. Validate field constraints
 		AddStep(steps.NewResolveSlugStep[*executioncontextv1.ExecutionContext]()).           // 2. Resolve slug
 		AddStep(steps.NewCheckDuplicateStep[*executioncontextv1.ExecutionContext](c.store)). // 3. Check duplicate
-		AddStep(steps.NewBuildNewStateStep[*executioncontextv1.ExecutionContext]()).              // 4. Build new state
-		AddStep(steps.NewNormalizeReferencesStep[*executioncontextv1.ExecutionContext]()).    // 5. Normalize cross-references
+		AddStep(steps.NewBuildNewStateStep[*executioncontextv1.ExecutionContext]()).         // 4. Build new state
+		AddStep(steps.NewNormalizeReferencesStep[*executioncontextv1.ExecutionContext]()).   // 5. Normalize cross-references
 		AddStep(steps.NewPersistStep[*executioncontextv1.ExecutionContext](c.store)).        // 6. Persist
 		Build()
 }

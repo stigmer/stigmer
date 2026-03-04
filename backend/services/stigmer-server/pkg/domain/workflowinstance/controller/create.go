@@ -65,8 +65,8 @@ func (c *WorkflowInstanceController) buildCreatePipeline() *pipeline.Pipeline[*w
 		AddStep(newLoadParentWorkflowStep(c.workflowClient)).                                // 3. Load parent workflow
 		AddStep(newValidateSameOrgBusinessRuleStep()).                                       // 4. Validate same-org business rule
 		AddStep(steps.NewCheckDuplicateStep[*workflowinstancev1.WorkflowInstance](c.store)). // 5. Check duplicate
-		AddStep(steps.NewBuildNewStateStep[*workflowinstancev1.WorkflowInstance]()).              // 6. Build new state
-		AddStep(steps.NewNormalizeReferencesStep[*workflowinstancev1.WorkflowInstance]()).    // 7. Normalize cross-references
+		AddStep(steps.NewBuildNewStateStep[*workflowinstancev1.WorkflowInstance]()).         // 6. Build new state
+		AddStep(steps.NewNormalizeReferencesStep[*workflowinstancev1.WorkflowInstance]()).   // 7. Normalize cross-references
 		AddStep(steps.NewPersistStep[*workflowinstancev1.WorkflowInstance](c.store)).        // 8. Persist workflow instance
 		Build()
 }

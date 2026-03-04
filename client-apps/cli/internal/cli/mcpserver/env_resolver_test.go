@@ -49,7 +49,7 @@ func TestResolveEnvForDiscovery_StigmerVars(t *testing.T) {
 	assert.Empty(t, result.Unresolved)
 }
 
-func TestResolveEnvForDiscovery_UnknownVarsAreUnresolved(t *testing.T) {
+func TestResolveEnvForDiscovery_NonSecretUnknownVarsAreOptional(t *testing.T) {
 	cfg := &config.Config{
 		Backend: config.BackendConfig{Type: config.BackendTypeLocal},
 	}
@@ -60,7 +60,40 @@ func TestResolveEnvForDiscovery_UnknownVarsAreUnresolved(t *testing.T) {
 	result := ResolveEnvForDiscovery(server, cfg)
 
 	assert.Empty(t, result.Overrides)
-	assert.Contains(t, result.Unresolved, "UNKNOWN_VAR")
+	assert.Empty(t, result.Unresolved, "non-secret var should not block discovery")
+	assert.Contains(t, result.UnresolvedOptional, "UNKNOWN_VAR")
+}
+
+func TestResolveEnvForDiscovery_SecretUnknownVarsAreBlocking(t *testing.T) {
+	cfg := &config.Config{
+		Backend: config.BackendConfig{Type: config.BackendTypeLocal},
+	}
+	server := makeServerWithEnvSpec(map[string]bool{
+		"UNKNOWN_SECRET": true,
+	})
+
+	result := ResolveEnvForDiscovery(server, cfg)
+
+	assert.Empty(t, result.Overrides)
+	assert.Contains(t, result.Unresolved, "UNKNOWN_SECRET")
+	assert.Empty(t, result.UnresolvedOptional, "secret var should block discovery")
+}
+
+func TestResolveEnvForDiscovery_MixedSecretAndNonSecret(t *testing.T) {
+	cfg := &config.Config{
+		Backend: config.BackendConfig{Type: config.BackendTypeLocal},
+	}
+	server := makeServerWithEnvSpec(map[string]bool{
+		"STIGMER_SERVER_ADDRESS": false,
+		"OPTIONAL_CONFIG":       false,
+		"MISSING_CREDENTIAL":    true,
+	})
+
+	result := ResolveEnvForDiscovery(server, cfg)
+
+	assert.Contains(t, result.Overrides, "STIGMER_SERVER_ADDRESS=localhost:7234")
+	assert.Contains(t, result.Unresolved, "MISSING_CREDENTIAL")
+	assert.Contains(t, result.UnresolvedOptional, "OPTIONAL_CONFIG")
 }
 
 func TestResolveEnvForDiscovery_EnvVarTakesPriority(t *testing.T) {

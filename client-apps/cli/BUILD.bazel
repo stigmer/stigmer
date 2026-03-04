@@ -5,7 +5,10 @@ go_library(
     srcs = ["main.go"],
     importpath = "github.com/stigmer/stigmer/client-apps/cli",
     visibility = ["//visibility:private"],
-    deps = ["//client-apps/cli/cmd/stigmer"],
+    deps = [
+        "//client-apps/cli/cmd/stigmer",
+        "//client-apps/cli/internal/cli/clierr",
+    ],
 )
 
 go_binary(

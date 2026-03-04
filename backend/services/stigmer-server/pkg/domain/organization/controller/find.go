@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/rs/zerolog/log"
-	organizationv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/organization/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	organizationv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/organization/v1"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
@@ -44,7 +44,7 @@ func (c *OrganizationController) Find(ctx context.Context, req *apiresource.Find
 func (c *OrganizationController) buildFindPipeline() *pipeline.Pipeline[*apiresource.FindApiResourcesRequest] {
 	return pipeline.NewPipeline[*apiresource.FindApiResourcesRequest]("organization-find").
 		AddStep(steps.NewValidateProtoStep[*apiresource.FindApiResourcesRequest]()). // 1. Validate input
-		AddStep(newListAllOrganizationsStep(c.store)).                                // 2. List all organizations
+		AddStep(newListAllOrganizationsStep(c.store)).                               // 2. List all organizations
 		Build()
 }
 

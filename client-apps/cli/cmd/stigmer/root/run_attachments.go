@@ -40,14 +40,15 @@ func NewAttachmentProcessor(conn grpc.ClientConnInterface) *AttachmentProcessor 
 
 // ProcessFiles converts file paths to Attachment protos or workspace file references.
 //
-// When workspaceRoot is non-empty (local workspace), each path is checked for
-// containment inside the workspace:
-//   - Inside workspace: recorded as a workspace-relative path in WorkspaceFileRefs.
-//     No upload, no injection -- the agent reads directly from the workspace.
-//   - Outside workspace: uploaded via the normal attachment flow.
+// When workspaceRoots is non-empty (local workspace), each path is checked for
+// containment inside any workspace root (first match wins):
+//   - Inside a workspace root: recorded as a workspace-relative path in
+//     WorkspaceFileRefs. No upload, no injection -- the agent reads directly
+//     from the workspace.
+//   - Outside all workspace roots: uploaded via the normal attachment flow.
 //
-// When workspaceRoot is empty, all files go through the upload flow (existing behavior).
-func (p *AttachmentProcessor) ProcessFiles(paths []string, workspaceRoot string) (*AttachmentResult, error) {
+// When workspaceRoots is empty, all files go through the upload flow (existing behavior).
+func (p *AttachmentProcessor) ProcessFiles(paths []string, workspaceRoots []string) (*AttachmentResult, error) {
 	if len(paths) == 0 {
 		return &AttachmentResult{}, nil
 	}
@@ -58,16 +59,8 @@ func (p *AttachmentProcessor) ProcessFiles(paths []string, workspaceRoot string)
 	}
 
 	for _, path := range paths {
-		if workspaceRoot != "" {
-			relPath, inside, err := workspaceRelativePath(path, workspaceRoot)
-			if err != nil {
-				return nil, errors.Wrapf(err, "failed to check workspace containment for '%s'", path)
-			}
-			if inside {
-				climsg.Info("Referencing workspace file: %s", relPath)
-				result.WorkspaceFileRefs = append(result.WorkspaceFileRefs, relPath)
-				continue
-			}
+		if matched := p.matchWorkspaceRoot(path, workspaceRoots, result); matched {
+			continue
 		}
 
 		attachment, err := p.processFile(path)
@@ -78,6 +71,25 @@ func (p *AttachmentProcessor) ProcessFiles(paths []string, workspaceRoot string)
 	}
 
 	return result, nil
+}
+
+// matchWorkspaceRoot checks whether path is contained in any of the workspace
+// roots. On the first match, it appends a workspace-relative reference to
+// result and returns true. Returns false if the path is outside all roots
+// or if there are no roots to check.
+func (p *AttachmentProcessor) matchWorkspaceRoot(path string, roots []string, result *AttachmentResult) bool {
+	for _, root := range roots {
+		relPath, inside, err := workspaceRelativePath(path, root)
+		if err != nil {
+			continue
+		}
+		if inside {
+			climsg.Info("Referencing workspace file: %s", relPath)
+			result.WorkspaceFileRefs = append(result.WorkspaceFileRefs, relPath)
+			return true
+		}
+	}
+	return false
 }
 
 // workspaceRelativePath checks whether filePath is inside workspaceRoot.

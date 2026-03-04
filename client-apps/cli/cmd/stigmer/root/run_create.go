@@ -89,14 +89,14 @@ func createAgentExecution(input CreateAgentExecutionInput) (*agentexecutionv1.Ag
 	return result, nil
 }
 
-// createSessionForAgent creates a new session with a workspace source.
+// createSessionForAgent creates a new session with workspace entries.
 //
 // This is used when the CLI needs explicit control over session creation
-// (e.g., to set workspace_source), bypassing the backend's auto-create flow
+// (e.g., to set workspace entries), bypassing the backend's auto-create flow
 // which has no workspace passthrough. The session subject uses the same
 // sentinel as the backend auto-create, so the LLM-generated title activity
 // will replace it asynchronously.
-func createSessionForAgent(agentInstanceID, orgID string, workspaceSource *sessionv1.WorkspaceSource, conn *grpc.ClientConn) (*sessionv1.Session, error) {
+func createSessionForAgent(agentInstanceID, orgID string, entries []*sessionv1.WorkspaceEntry, conn *grpc.ClientConn) (*sessionv1.Session, error) {
 	client := sessionv1.NewSessionCommandControllerClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -109,9 +109,9 @@ func createSessionForAgent(agentInstanceID, orgID string, workspaceSource *sessi
 			Org:  orgID,
 		},
 		Spec: &sessionv1.SessionSpec{
-			AgentInstanceId: agentInstanceID,
-			Subject:         "Auto-created session",
-			WorkspaceSource: workspaceSource,
+			AgentInstanceId:  agentInstanceID,
+			Subject:          "Auto-created session",
+			WorkspaceEntries: entries,
 		},
 	}
 

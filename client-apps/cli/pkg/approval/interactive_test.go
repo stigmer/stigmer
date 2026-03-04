@@ -265,3 +265,19 @@ func TestErrPromptCancelled_Message(t *testing.T) {
 		t.Errorf("unexpected error message: %q", msg)
 	}
 }
+
+func TestErrSessionExit_IsDistinct(t *testing.T) {
+	if errors.Is(ErrSessionExit, ErrPromptCancelled) {
+		t.Error("ErrSessionExit should not equal ErrPromptCancelled")
+	}
+	if errors.Is(ErrSessionExit, ErrNonInteractiveNoDefault) {
+		t.Error("ErrSessionExit should not equal ErrNonInteractiveNoDefault")
+	}
+}
+
+func TestErrSessionExit_Message(t *testing.T) {
+	msg := ErrSessionExit.Error()
+	if msg != "session exit requested by user" {
+		t.Errorf("unexpected error message: %q", msg)
+	}
+}

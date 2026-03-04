@@ -10,6 +10,7 @@ import hashlib
 import inspect
 import json
 import logging
+from collections.abc import Callable, Coroutine
 from datetime import datetime
 from typing import Any
 from uuid import uuid4
@@ -535,7 +536,9 @@ class StatusBuilder:
         
         # Route by event type.  Each handler is wrapped so a single bad
         # event never crashes the entire activity stream.
-        handler = None
+        handler: (
+            Callable[[dict[str, Any], str], None | Coroutine[Any, Any, None]] | None
+        ) = None
         if event_type == "on_tool_start":
             handler = self._handle_tool_start_event
         elif event_type == "on_tool_end":

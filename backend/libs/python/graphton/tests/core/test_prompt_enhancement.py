@@ -92,6 +92,14 @@ class TestCapabilitySections:
         assert "offset" in lower
         assert "limit" in lower
 
+    def test_filesystem_capability_discourages_alias_names(self):
+        """Canonical tool guidance must warn against _file-suffixed aliases."""
+        lower = FILESYSTEM_CAPABILITY.lower()
+        assert "read_file" in lower
+        assert "write_file" in lower
+        assert "edit_file" in lower
+        assert "internal override" in lower or "do not use" in lower
+
     def test_mcp_tools_capability_content(self):
         """Test MCP tools capability section content."""
         assert "mcp" in MCP_TOOLS_CAPABILITY.lower()

@@ -232,3 +232,62 @@ class TestExecute:
         result = backend.execute("echo test")
         assert result.exit_code == 1
         assert "connection lost" in result.stderr
+
+
+# ---------------------------------------------------------------------------
+# cwd conformance — multi-workspace subdirectory scoping
+# ---------------------------------------------------------------------------
+
+
+class TestCwdConformance:
+    """Verify the ``cwd`` parameter contract for multi-entry subdirectory scoping.
+
+    The ``WorkspaceBackend`` protocol (``backend.py``) defines ``cwd``
+    as "relative to ``root_dir``" with ``None`` meaning the workspace
+    root itself.  These tests verify Daytona implements this correctly,
+    addressing the open question from Phase 4 Session 4.
+    """
+
+    def test_cwd_scopes_to_subdirectory(self):
+        """execute(cmd, cwd="my-repo") runs in {root}/my-repo/."""
+        sandbox = _make_sandbox()
+        backend = DaytonaWorkspaceBackend(
+            sandbox=sandbox, workspace_root="/home/daytona/workspace",
+        )
+        backend.execute("git diff", cwd="my-repo")
+
+        cmd = sandbox.process.exec.call_args[0][0]
+        assert cmd == "cd /home/daytona/workspace/my-repo && git diff"
+
+    def test_no_cwd_runs_in_root(self):
+        """execute(cmd) without cwd runs in the workspace root."""
+        sandbox = _make_sandbox()
+        backend = DaytonaWorkspaceBackend(
+            sandbox=sandbox, workspace_root="/home/daytona/workspace",
+        )
+        backend.execute("ls -la")
+
+        cmd = sandbox.process.exec.call_args[0][0]
+        assert cmd == "cd /home/daytona/workspace && ls -la"
+
+    def test_cwd_strips_leading_slash(self):
+        """Leading slash is stripped — cwd is always relative to root."""
+        sandbox = _make_sandbox()
+        backend = DaytonaWorkspaceBackend(
+            sandbox=sandbox, workspace_root="/workspace",
+        )
+        backend.execute("find .", cwd="/my-repo")
+
+        cmd = sandbox.process.exec.call_args[0][0]
+        assert cmd == "cd /workspace/my-repo && find ."
+
+    def test_cwd_nested_subdirectory(self):
+        """cwd can be a nested path within the workspace."""
+        sandbox = _make_sandbox()
+        backend = DaytonaWorkspaceBackend(
+            sandbox=sandbox, workspace_root="/workspace",
+        )
+        backend.execute("cat README.md", cwd="services/api")
+
+        cmd = sandbox.process.exec.call_args[0][0]
+        assert cmd == "cd /workspace/services/api && cat README.md"

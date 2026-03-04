@@ -172,6 +172,11 @@ func (c *Client) Connect(ctx context.Context) error {
 	return nil
 }
 
+// Conn returns the underlying gRPC connection. Returns nil if not connected.
+func (c *Client) Conn() *grpc.ClientConn {
+	return c.conn
+}
+
 // Close closes the gRPC connection
 func (c *Client) Close() error {
 	if c.conn != nil {

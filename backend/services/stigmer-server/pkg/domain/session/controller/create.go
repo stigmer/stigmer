@@ -47,8 +47,8 @@ func (c *SessionController) buildCreatePipeline() *pipeline.Pipeline[*sessionv1.
 		AddStep(steps.NewValidateProtoStep[*sessionv1.Session]()).         // 1. Validate field constraints
 		AddStep(steps.NewResolveSlugStep[*sessionv1.Session]()).           // 2. Resolve slug
 		AddStep(steps.NewCheckDuplicateStep[*sessionv1.Session](c.store)). // 3. Check duplicate
-		AddStep(steps.NewBuildNewStateStep[*sessionv1.Session]()).              // 4. Build new state
-		AddStep(steps.NewNormalizeReferencesStep[*sessionv1.Session]()).    // 5. Normalize cross-references
+		AddStep(steps.NewBuildNewStateStep[*sessionv1.Session]()).         // 4. Build new state
+		AddStep(steps.NewNormalizeReferencesStep[*sessionv1.Session]()).   // 5. Normalize cross-references
 		AddStep(steps.NewPersistStep[*sessionv1.Session](c.store)).        // 6. Persist session
 		Build()
 }
