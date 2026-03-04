@@ -24,12 +24,12 @@ import (
 	"golang.org/x/term"
 )
 
-// frames are the braille-dot animation characters. This is the standard
+// Frames are the braille-dot animation characters. This is the standard
 // CLI spinner pattern used by ora, npm, cargo, and others.
-var frames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+var Frames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 
-// frameInterval controls how often the spinner frame advances.
-const frameInterval = 80 * time.Millisecond
+// FrameInterval controls how often the spinner frame advances.
+const FrameInterval = 80 * time.Millisecond
 
 // Spinner is a lightweight terminal activity indicator that animates on a
 // single line. It is safe for concurrent use — Start, Stop, and Update may
@@ -113,7 +113,7 @@ func (s *Spinner) IsActive() bool {
 func (s *Spinner) run() {
 	defer close(s.done)
 
-	ticker := time.NewTicker(frameInterval)
+	ticker := time.NewTicker(FrameInterval)
 	defer ticker.Stop()
 
 	frame := 0
@@ -127,7 +127,7 @@ func (s *Spinner) run() {
 			elapsed := time.Since(s.start)
 			s.mu.Unlock()
 
-			s.renderFrame(frames[frame%len(frames)], label, elapsed)
+			s.renderFrame(Frames[frame%len(Frames)], label, elapsed)
 			frame++
 		}
 	}
@@ -136,7 +136,7 @@ func (s *Spinner) run() {
 // renderFrame writes a single spinner frame to the writer, overwriting the
 // current line. The format is: "⠹ Label... (3s)"
 func (s *Spinner) renderFrame(frame, label string, elapsed time.Duration) {
-	elapsedStr := formatElapsed(elapsed)
+	elapsedStr := FormatElapsed(elapsed)
 	line := fmt.Sprintf("\r%s %s %s", frame, label, elapsedStr)
 	fmt.Fprint(s.w, line)
 }
@@ -156,8 +156,8 @@ func isWriterTerminal(w io.Writer) bool {
 	return false
 }
 
-// formatElapsed returns a human-readable elapsed time string in parentheses.
-func formatElapsed(d time.Duration) string {
+// FormatElapsed returns a human-readable elapsed time string in parentheses.
+func FormatElapsed(d time.Duration) string {
 	secs := int(d.Seconds())
 	if secs < 1 {
 		return ""

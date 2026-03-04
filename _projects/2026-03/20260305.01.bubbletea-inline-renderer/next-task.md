@@ -13,10 +13,19 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: in-progress
-- **Last Session**: March 5, 2026 -- Phase 1 (Bubbletea Program Shell) completed
-- **Active Task**: T01 Architecture Design and Migration Plan -- Phase 1 done, Phase 2 next
+- **Last Session**: March 5, 2026 -- Phase 2 (Spinner Migration) completed
+- **Active Task**: T01 Architecture Design and Migration Plan -- Phase 1 and Phase 2 done, Phase 3 next
 
-## Session Progress (2026-03-05)
+## Session Progress (2026-03-05, Session 2)
+- Completed Phase 2: Spinner Migration to Bubbletea View()
+- Exported `Frames`, `FrameInterval`, `FormatElapsed` from `pkg/spinner` for shared use
+- Bubbletea model gained spinner state, three message types, `Update()` handlers with tea.Tick chain, and `View()` rendering
+- `startThinkingSpinner`/`stopThinkingSpinner` now route through `program.Send()` instead of `spinner.Start/Stop`
+- Removed goroutine-based `spinner.Spinner` from `inlineRenderer` -- `pkg/spinner` import no longer needed in inline renderer
+- 8 new model tests; all 18 spinner/bubbletea tests pass; zero visual regression
+- 7 files changed, 258 insertions, 52 deletions
+
+## Previous Session Progress (2026-03-05, Session 1)
 - Completed deep exploration of Bubbletea v1.2.4 API and existing renderer architecture
 - Discovered 3 architectural constraints that revised the original T01 plan:
   - `tea.Println` is line-based (appends `\r\n`), cannot support token-by-token AI streaming
@@ -30,9 +39,8 @@ Drop this file into your conversation to quickly resume work on this project.
 - All existing tests pass unchanged; zero visual regression
 
 ## Next Steps
-1. **Phase 2: Spinner Migration** -- Move the thinking spinner into Bubbletea's `View()` so Bubbletea tracks its rows. Replace `\r\033[K` repainting with model state updates.
-2. **Phase 3: Subject / Header Update** -- Move session header into `View()` and replace manual `\033[s`/`\033[u`/`\033[NA`/`\033[2K` cursor save/restore with Bubbletea re-rendering.
-3. **Phase 4: Approval Flow Migration** -- Move the blocking approval flow into Bubbletea's event-driven Update cycle. Replace all 6 `termctl.EraseLines` call sites with `View()` state transitions.
+1. **Phase 3: Subject / Header Update** -- Move session header into `View()` and replace manual `\033[s`/`\033[u`/`\033[NA`/`\033[2K` cursor save/restore with Bubbletea re-rendering. Delete `lineCountingWriter` and `subjectUpdater`.
+2. **Phase 4: Approval Flow Migration** -- Move the blocking approval flow into Bubbletea's event-driven Update cycle. Replace all 6 `termctl.EraseLines` call sites with `View()` state transitions. This is the most complex phase -- needs a dedicated planning session.
 
 ## Plan Divergence (READ THIS)
 
@@ -47,8 +55,10 @@ Key documents:
 - AI content continues directly to stdout via `dataW` (unchanged)
 - `statusf()` routes through `program.Println()` when program is non-nil and not in approval flow
 - `inApprovalFlow` sentinel ensures approval-adjacent writes bypass Bubbletea's async render queue
-- Model's `View()` returns empty string -- subsequent phases progressively populate it
-- Key files to read when resuming: `run_stream.go` (lifecycle), `run_stream_inline.go` (routing), `run_stream_inline_bubbletea.go` (model)
+- **Model's `View()` now renders the thinking spinner** when active (Phase 2) -- returns "" when inactive
+- Spinner uses idiomatic `tea.Tick` Cmd chain: `spinnerStartMsg` -> tick chain at 80ms -> `spinnerStopMsg` terminates chain
+- The event loop still owns the 2s idle timer and start/stop decisions; it communicates to Bubbletea via `program.Send()`
+- Key files to read when resuming: `run_stream.go` (lifecycle), `run_stream_inline.go` (routing), `run_stream_inline_bubbletea.go` (model + spinner), `run_stream_inline_spinner.go` (timer + routing)
 
 ## Blockers (if any)
 - None
@@ -105,7 +115,7 @@ When starting a new session:
 3. [ ] Review any new design decisions in `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260305.01.bubbletea-inline-renderer/design-decisions/`
 4. [ ] Check coding guidelines in `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260305.01.bubbletea-inline-renderer/coding-guidelines/`
 5. [ ] Review lessons learned in `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260305.01.bubbletea-inline-renderer/wrong-assumptions/` and `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260305.01.bubbletea-inline-renderer/dont-dos/`
-6. [ ] Continue with Phase 2: Spinner Migration
+6. [ ] Continue with Phase 3: Subject / Header Update
 
 ## Quick Resume
 
@@ -115,7 +125,7 @@ To continue this project, drag this file into chat:
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 2" - Resume with spinner migration
+- "Continue with Phase 3" - Resume with subject/header migration
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
