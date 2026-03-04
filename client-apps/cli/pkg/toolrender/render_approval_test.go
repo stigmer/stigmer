@@ -393,20 +393,23 @@ func TestRenderApprovalResult_InvalidAction(t *testing.T) {
 // ApprovalSeparator
 // ---------------------------------------------------------------------------
 
-func TestApprovalSeparator_ContainsDashes(t *testing.T) {
-	result := stripANSI(ApprovalSeparator())
+func TestApprovalSeparator_MatchesRequestedWidth(t *testing.T) {
+	for _, width := range []int{40, 80, 120} {
+		result := stripANSI(ApprovalSeparator(width))
 
-	if !strings.Contains(result, strings.Repeat("─", approvalSeparatorWidth)) {
-		t.Errorf("separator should contain %d dash characters, got: %q", approvalSeparatorWidth, result)
+		if len([]rune(result)) != width {
+			t.Errorf("ApprovalSeparator(%d): expected %d characters, got %d: %q",
+				width, width, len([]rune(result)), result)
+		}
 	}
 }
 
-func TestApprovalSeparator_FixedWidth(t *testing.T) {
-	result := stripANSI(ApprovalSeparator())
+func TestApprovalSeparator_DefaultsOnZeroWidth(t *testing.T) {
+	result := stripANSI(ApprovalSeparator(0))
 
-	if len([]rune(result)) != approvalSeparatorWidth {
-		t.Errorf("separator should be exactly %d characters, got %d: %q",
-			approvalSeparatorWidth, len([]rune(result)), result)
+	if len([]rune(result)) != defaultApprovalSeparatorWidth {
+		t.Errorf("ApprovalSeparator(0): expected default %d characters, got %d",
+			defaultApprovalSeparatorWidth, len([]rune(result)))
 	}
 }
 

@@ -14,9 +14,9 @@ import (
 // shown to avoid a pointless "+ 1 more lines" footer.
 const maxApprovalPreviewLines = 10
 
-// approvalSeparatorWidth is the fixed character width of the horizontal
-// separator placed between streamed content and the approval menu.
-const approvalSeparatorWidth = 24
+// defaultApprovalSeparatorWidth is the fallback separator width used when
+// the caller cannot determine terminal width (e.g., in tests).
+const defaultApprovalSeparatorWidth = 80
 
 // rejectBulletStyle colors the bullet red for rejected tool calls.
 var rejectBulletStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
@@ -72,11 +72,14 @@ func RenderApprovalResult(tc ToolCallInfo, action string, opts CompactOptions) s
 	return result
 }
 
-// ApprovalSeparator returns a dim horizontal separator for the expanded
-// approval view. Phase 3.3 places this between header/content and between
-// content/question during the waiting-approval state.
-func ApprovalSeparator() string {
-	return dimStyle.Render(strings.Repeat("─", approvalSeparatorWidth))
+// ApprovalSeparator returns a dim horizontal separator spanning the given
+// width. Used in the expanded approval view between header/content and
+// between content/question during the waiting-approval state.
+func ApprovalSeparator(width int) string {
+	if width <= 0 {
+		width = defaultApprovalSeparatorWidth
+	}
+	return dimStyle.Render(strings.Repeat("─", width))
 }
 
 // ApprovalQuestion returns the contextual question line for the approval
