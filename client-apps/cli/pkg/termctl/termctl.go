@@ -22,12 +22,15 @@ import (
 // IsSupported reports whether w is a terminal that can handle ANSI cursor
 // control sequences. Returns false for non-TTY writers and dumb terminals.
 //
+// If w is wrapped (e.g., by a line-counting middleware), IsSupported follows
+// the Unwrap() chain to find the underlying *os.File.
+//
 // Does NOT check NO_COLOR — cursor control is a UX mechanism (collapsing
 // content after approval), not a color decoration. Users who disable color
 // still benefit from cursor-controlled content management.
 func IsSupported(w io.Writer) bool {
-	f, ok := w.(*os.File)
-	if !ok || !term.IsTerminal(int(f.Fd())) {
+	f := unwrapFile(w)
+	if f == nil || !term.IsTerminal(int(f.Fd())) {
 		return false
 	}
 	return os.Getenv("TERM") != "dumb"
@@ -56,9 +59,11 @@ func EraseLines(w io.Writer, n int) {
 // Width returns the terminal width in columns for the writer's underlying
 // file descriptor. Returns defaultWidth if w is not an *os.File, not a
 // terminal, or the size cannot be determined.
+//
+// Follows the Unwrap() chain when w is a wrapped writer.
 func Width(w io.Writer, defaultWidth int) int {
-	f, ok := w.(*os.File)
-	if !ok {
+	f := unwrapFile(w)
+	if f == nil {
 		return defaultWidth
 	}
 	width, _, err := term.GetSize(int(f.Fd()))
@@ -66,6 +71,23 @@ func Width(w io.Writer, defaultWidth int) int {
 		return defaultWidth
 	}
 	return width
+}
+
+// unwrapFile follows the Unwrap() chain on w to find the underlying *os.File.
+// Returns nil if no *os.File is found. This allows termctl functions to work
+// correctly when the writer is wrapped by middleware (e.g., line-counting
+// wrappers used for session header updates).
+func unwrapFile(w io.Writer) *os.File {
+	for {
+		if f, ok := w.(*os.File); ok {
+			return f
+		}
+		u, ok := w.(interface{ Unwrap() io.Writer })
+		if !ok {
+			return nil
+		}
+		w = u.Unwrap()
+	}
 }
 
 // DisplayRows calculates the number of terminal rows required to display

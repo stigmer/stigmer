@@ -82,6 +82,12 @@ func (w *lineCountingWriter) Write(p []byte) (int, error) {
 	return n, err
 }
 
+// Unwrap returns the underlying writer so termctl functions (IsSupported,
+// Width) can discover the real *os.File through the wrapper chain.
+func (w *lineCountingWriter) Unwrap() io.Writer {
+	return w.inner
+}
+
 // renderSubjectPanelRow produces a single panel content row for the Subject
 // field, matching the default panel style (bright blue borders). The subject
 // text is truncated if it exceeds the available width.
