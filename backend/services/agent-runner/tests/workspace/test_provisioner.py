@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import FrozenInstanceError
 
 import pytest
@@ -708,3 +709,101 @@ class TestMixedLocalGitGuardRail:
         )
 
         assert results[1].root_dir == str(ws_root / "cloud-svc")
+
+
+# ---------------------------------------------------------------------------
+# provision_all — multi-local-path symlink creation
+# ---------------------------------------------------------------------------
+
+
+class TestProvisionAllMultiLocalPathSymlinks:
+    """When multiple local_path entries are provisioned, symlinks are
+    created inside the backend's root_dir so the FilesystemBackend can
+    navigate to them via entry-relative paths."""
+
+    def test_two_local_paths_create_symlinks(self, tmp_path):
+        dir_a = tmp_path / "repo-a"
+        dir_b = tmp_path / "repo-b"
+        dir_a.mkdir()
+        dir_b.mkdir()
+
+        entry_a = _MockWorkspaceEntry(
+            name="repo-a",
+            source=_MockWorkspaceSource(
+                local_path=_MockLocalPathSource(path=str(dir_a)),
+            ),
+        )
+        entry_b = _MockWorkspaceEntry(
+            name="repo-b",
+            source=_MockWorkspaceSource(
+                local_path=_MockLocalPathSource(path=str(dir_b)),
+            ),
+        )
+        ws_root = tmp_path / "workspace"
+        ws_root.mkdir()
+        backend = LocalWorkspaceBackend(root_dir=ws_root)
+        provisioner = WorkspaceProvisioner()
+
+        results = provisioner.provision_all(
+            [entry_a, entry_b], backend, {}, is_local_mode=True,
+        )
+
+        assert len(results) == 2
+        assert (ws_root / "repo-a").is_symlink()
+        assert (ws_root / "repo-b").is_symlink()
+        assert os.path.realpath(str(ws_root / "repo-a")) == str(dir_a.resolve())
+        assert os.path.realpath(str(ws_root / "repo-b")) == str(dir_b.resolve())
+
+    def test_single_local_path_no_symlink(self, tmp_path):
+        dir_a = tmp_path / "repo-a"
+        dir_a.mkdir()
+
+        entry = _MockWorkspaceEntry(
+            name="repo-a",
+            source=_MockWorkspaceSource(
+                local_path=_MockLocalPathSource(path=str(dir_a)),
+            ),
+        )
+        ws_root = tmp_path / "workspace"
+        ws_root.mkdir()
+        backend = LocalWorkspaceBackend(root_dir=ws_root)
+        provisioner = WorkspaceProvisioner()
+
+        provisioner.provision_all(
+            [entry], backend, {}, is_local_mode=True,
+        )
+
+        assert not (ws_root / "repo-a").exists()
+
+    def test_mixed_local_path_creates_symlink(self, tmp_path):
+        """In a mixed session, the local_path entry gets a symlink."""
+        dir_local = tmp_path / "local-lib"
+        dir_local.mkdir()
+
+        entry_local = _MockWorkspaceEntry(
+            name="local-lib",
+            source=_MockWorkspaceSource(
+                local_path=_MockLocalPathSource(path=str(dir_local)),
+            ),
+        )
+        entry_git = _MockWorkspaceEntry(
+            name="cloud-svc",
+            source=_MockWorkspaceSource(
+                git_repo=_MockGitRepoSource(
+                    url="https://github.com/org/cloud-svc.git",
+                ),
+            ),
+        )
+        ws_root = tmp_path / "workspace"
+        backend = _make_git_backend(ws_root)
+        provisioner = WorkspaceProvisioner()
+
+        provisioner.provision_all(
+            [entry_local, entry_git],
+            backend,
+            {},
+            is_local_mode=True,
+        )
+
+        assert (ws_root / "local-lib").is_symlink()
+        assert os.path.realpath(str(ws_root / "local-lib")) == str(dir_local.resolve())
