@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from worker.activities.execute_graphton import (
     _build_directory_tree,
+    _format_entry_description,
     _human_size,
     build_referenced_files_prompt_section,
     build_workspace_prompt_section,
@@ -606,15 +607,16 @@ class TestMultiEntryWorkspacePromptSection:
         assert "/Users/dev/frontend" in section
         assert "/Users/dev/backend" in section
 
-    def test_multi_entry_preamble_names_primary(self):
+    def test_multi_entry_preamble_has_cwd_and_path_rules(self):
         section = build_workspace_prompt_section(self._two_local_entries())
-        assert "**frontend**" in section
-        assert "starting directory" in section.lower()
+        assert "Current working directory" in section
+        assert "Path resolution" in section
+        assert "frontend/src/main.py" in section
 
     def test_multi_entry_headings_use_entry_names(self):
         section = build_workspace_prompt_section(self._two_local_entries())
-        assert "### frontend" in section
-        assert "### backend" in section
+        assert "### frontend (`/Users/dev/frontend`)" in section
+        assert "### backend (`/Users/dev/backend`)" in section
 
     def test_multi_entry_file_tree_heading_preserved(self):
         """Multi-entry trees are produced at #### level by the provisioner.
@@ -665,3 +667,181 @@ class TestMultiEntryWorkspacePromptSection:
     def test_multi_entry_entry_count_in_preamble(self):
         section = build_workspace_prompt_section(self._two_local_entries())
         assert "2 workspace entries" in section
+
+    # -- CWD and path resolution -----------------------------------------------
+
+    def test_multi_entry_cwd_in_preamble(self):
+        section = build_workspace_prompt_section(
+            self._two_local_entries(), container_root="/workspace",
+        )
+        assert "**Current working directory**: `/workspace`" in section
+
+    def test_multi_entry_path_resolution_rules(self):
+        section = build_workspace_prompt_section(self._two_local_entries())
+        assert "Path resolution" in section
+        assert "entry-relative paths" in section
+        assert "frontend/src/main.py" in section
+
+    # -- per-entry descriptions ------------------------------------------------
+
+    def test_multi_entry_local_path_description(self):
+        section = build_workspace_prompt_section(self._two_local_entries())
+        assert "Workspace entry **frontend** is the user's project directory" in section
+        assert "Workspace entry **backend** is the user's project directory" in section
+        assert "Your workspace is" not in section
+
+    def test_multi_entry_git_description(self):
+        section = build_workspace_prompt_section(self._two_git_entries())
+        assert "Workspace entry **svc-api** was initialized from" in section
+        assert "https://github.com/acme/svc-api" in section
+        assert "branch: main" in section
+        assert "commit: a1b2c3d" in section
+        assert "Workspace entry **svc-web** was initialized from" in section
+        assert "https://github.com/acme/svc-web" in section
+
+    def test_multi_entry_empty_description(self):
+        results = [
+            ProvisionResult(
+                root_dir="/workspace/scratch",
+                source_type=SourceType.EMPTY,
+                consumed_keys=(),
+                workspace_description="Your workspace is empty.",
+                entry_name="scratch",
+            ),
+            ProvisionResult(
+                root_dir="/workspace/main",
+                source_type=SourceType.LOCAL_PATH,
+                consumed_keys=(),
+                workspace_description="Local workspace.",
+                entry_name="main",
+            ),
+        ]
+        section = build_workspace_prompt_section(results)
+        assert "Workspace entry **scratch** is an empty workspace" in section
+
+    def test_multi_entry_mixed_sources(self):
+        section = build_workspace_prompt_section(self._mixed_entries())
+        assert "Workspace entry **app** is the user's project directory" in section
+        assert "Workspace entry **lib** was initialized from" in section
+        assert "immediate and persistent" in section
+        assert "captured as artifacts" in section
+
+    def test_multi_entry_entry_heading_includes_path(self):
+        section = build_workspace_prompt_section(self._two_local_entries())
+        assert "### frontend (`/Users/dev/frontend`)" in section
+        assert "### backend (`/Users/dev/backend`)" in section
+
+    # -- _format_entry_description direct tests --------------------------------
+
+    def test_format_entry_description_local_path(self):
+        result = ProvisionResult(
+            root_dir="/projects/my-app",
+            source_type=SourceType.LOCAL_PATH,
+            consumed_keys=(),
+            workspace_description="ignored",
+            entry_name="my-app",
+        )
+        desc = _format_entry_description(result)
+        assert "Workspace entry **my-app**" in desc
+        assert "`/projects/my-app`" in desc
+        assert "immediate and persistent" in desc
+
+    def test_format_entry_description_git_repo(self):
+        result = ProvisionResult(
+            root_dir="/workspace/backend",
+            source_type=SourceType.GIT_REPO,
+            consumed_keys=(),
+            workspace_description="ignored",
+            entry_name="backend",
+            git_metadata=GitMetadata(
+                repo_url="https://github.com/acme/backend",
+                branch="develop",
+                base_commit="deadbeef1234567890",
+            ),
+        )
+        desc = _format_entry_description(result)
+        assert "Workspace entry **backend** was initialized from" in desc
+        assert "https://github.com/acme/backend" in desc
+        assert "branch: develop" in desc
+        assert "commit: deadbee" in desc
+        assert "captured as artifacts" in desc
+
+    def test_format_entry_description_empty(self):
+        result = ProvisionResult(
+            root_dir="/workspace/scratch",
+            source_type=SourceType.EMPTY,
+            consumed_keys=(),
+            workspace_description="ignored",
+            entry_name="scratch",
+        )
+        desc = _format_entry_description(result)
+        assert "Workspace entry **scratch** is an empty workspace" in desc
+        assert "Create files and directories" in desc
+
+    def test_format_entry_description_fallback_unknown_source(self):
+        """Unknown source types fall back to workspace_description."""
+        result = ProvisionResult(
+            root_dir="/workspace/custom",
+            source_type=SourceType.GIT_REPO,
+            consumed_keys=(),
+            workspace_description="Custom source description.",
+            entry_name="custom",
+            git_metadata=None,
+        )
+        desc = _format_entry_description(result)
+        assert desc == "Custom source description."
+
+    # -- fixtures for multi-entry tests ----------------------------------------
+
+    @staticmethod
+    def _two_git_entries() -> list[ProvisionResult]:
+        return [
+            ProvisionResult(
+                root_dir="/workspace/svc-api",
+                source_type=SourceType.GIT_REPO,
+                consumed_keys=("GITHUB_TOKEN",),
+                workspace_description="git workspace",
+                entry_name="svc-api",
+                git_metadata=GitMetadata(
+                    repo_url="https://github.com/acme/svc-api",
+                    branch="main",
+                    base_commit="a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2",
+                ),
+            ),
+            ProvisionResult(
+                root_dir="/workspace/svc-web",
+                source_type=SourceType.GIT_REPO,
+                consumed_keys=("GITHUB_TOKEN",),
+                workspace_description="git workspace",
+                entry_name="svc-web",
+                git_metadata=GitMetadata(
+                    repo_url="https://github.com/acme/svc-web",
+                    branch="main",
+                    base_commit="b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3",
+                ),
+            ),
+        ]
+
+    @staticmethod
+    def _mixed_entries() -> list[ProvisionResult]:
+        return [
+            ProvisionResult(
+                root_dir="/workspace/app",
+                source_type=SourceType.LOCAL_PATH,
+                consumed_keys=(),
+                workspace_description="local workspace",
+                entry_name="app",
+            ),
+            ProvisionResult(
+                root_dir="/workspace/lib",
+                source_type=SourceType.GIT_REPO,
+                consumed_keys=("GITHUB_TOKEN",),
+                workspace_description="git workspace",
+                entry_name="lib",
+                git_metadata=GitMetadata(
+                    repo_url="https://github.com/acme/lib",
+                    branch="main",
+                    base_commit="c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4",
+                ),
+            ),
+        ]
