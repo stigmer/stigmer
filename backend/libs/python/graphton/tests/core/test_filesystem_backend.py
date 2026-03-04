@@ -1015,3 +1015,167 @@ class TestDirectoryCache:
 
         sub_second = sb.list_files("src")
         assert sorted(sub_first) == sorted(sub_second)
+
+
+# =============================================================================
+# Multi-entry .gitignore (hierarchical discovery)
+# =============================================================================
+
+
+@pytest.fixture
+def multi_entry_sandbox(tmp_path: Path) -> FilesystemBackend:
+    """Container root with two workspace entries, each with its own .gitignore.
+
+    Simulates multi-workspace provisioning where git clones live as
+    immediate subdirectories of the container root.
+
+    NOTE: ``build_output`` is used instead of ``dist`` because ``dist``
+    is in ``_SKIP_DIR_NAMES`` and would be hidden regardless of gitignore.
+
+    Layout::
+
+        {root_dir}/                     (container root — no .gitignore)
+        ├── frontend/
+        │   ├── .gitignore              ("build_output/\\n*.map\\n")
+        │   ├── src/
+        │   │   ├── index.ts
+        │   │   └── index.ts.map        (gitignored by *.map)
+        │   └── build_output/           (gitignored by build_output/)
+        │       └── bundle.js
+        └── backend/
+            ├── .gitignore              ("*.pyc\\n")
+            ├── src/
+            │   ├── app.py
+            │   └── app.pyc             (gitignored by *.pyc)
+            └── build_output/           (NOT gitignored — backend has no build_output/)
+                └── artifact.tar
+    """
+    fe = tmp_path / "frontend"
+    (fe / "src").mkdir(parents=True)
+    (fe / ".gitignore").write_text("build_output/\n*.map\n")
+    (fe / "src" / "index.ts").write_text("export {}")
+    (fe / "src" / "index.ts.map").write_text("{}")
+    (fe / "build_output").mkdir()
+    (fe / "build_output" / "bundle.js").write_text("//bundled")
+
+    be = tmp_path / "backend"
+    (be / "src").mkdir(parents=True)
+    (be / ".gitignore").write_text("*.pyc\n")
+    (be / "src" / "app.py").write_text("print('app')")
+    (be / "src" / "app.pyc").write_bytes(b"\x00" * 10)
+    (be / "build_output").mkdir()
+    (be / "build_output" / "artifact.tar").write_text("tarball")
+
+    return FilesystemBackend(root_dir=tmp_path)
+
+
+class TestMultiEntryGitignore:
+    """Entry-level .gitignore patterns discovered from immediate subdirectories."""
+
+    def test_entry_gitignores_discovered(
+        self, multi_entry_sandbox: FilesystemBackend,
+    ) -> None:
+        """Both entries' .gitignore files are discovered at construction."""
+        assert "frontend" in multi_entry_sandbox._entry_gitignores
+        assert "backend" in multi_entry_sandbox._entry_gitignores
+
+    def test_entry_patterns_filter_within_entry(
+        self, multi_entry_sandbox: FilesystemBackend,
+    ) -> None:
+        """frontend/.gitignore (build_output/) hides it from list_files."""
+        entries = multi_entry_sandbox.list_files("frontend")
+        assert "src" in entries
+        assert "build_output" not in entries
+
+    def test_entry_file_pattern_filters_files(
+        self, multi_entry_sandbox: FilesystemBackend,
+    ) -> None:
+        """frontend/.gitignore (*.map) hides .map files inside frontend/src."""
+        entries = multi_entry_sandbox.list_files("frontend/src")
+        assert "index.ts" in entries
+        assert "index.ts.map" not in entries
+
+    def test_patterns_do_not_leak_across_entries(
+        self, multi_entry_sandbox: FilesystemBackend,
+    ) -> None:
+        """frontend's build_output/ pattern must NOT affect backend/build_output."""
+        entries = multi_entry_sandbox.list_files("backend")
+        assert "build_output" in entries
+        assert "src" in entries
+
+    def test_backend_entry_filters_its_own_patterns(
+        self, multi_entry_sandbox: FilesystemBackend,
+    ) -> None:
+        """backend/.gitignore (*.pyc) hides .pyc files inside backend/src."""
+        entries = multi_entry_sandbox.list_files("backend/src")
+        assert "app.py" in entries
+        assert "app.pyc" not in entries
+
+    def test_entry_dirs_themselves_visible_at_root(
+        self, multi_entry_sandbox: FilesystemBackend,
+    ) -> None:
+        """Entry subdirectories are not filtered by their own .gitignore."""
+        entries = multi_entry_sandbox.list_files(".")
+        assert "frontend" in entries
+        assert "backend" in entries
+
+    def test_read_directory_listing_respects_entry_filter(
+        self, multi_entry_sandbox: FilesystemBackend,
+    ) -> None:
+        """read_file() on an entry dir uses entry-level gitignore filtering."""
+        listing = multi_entry_sandbox.read_file("frontend")
+        assert "src/" in listing
+        assert "build_output" not in listing
+
+    def test_directory_listing_item_count_excludes_gitignored(
+        self, multi_entry_sandbox: FilesystemBackend,
+    ) -> None:
+        """Item count in directory listing excludes gitignored files."""
+        listing = multi_entry_sandbox.read_file("frontend")
+        # frontend/src/ has index.ts visible, index.ts.map gitignored → 1 item
+        assert "1 item" in listing
+
+    def test_root_plus_entry_gitignores_combine(self, tmp_path: Path) -> None:
+        """Root .gitignore and entry .gitignore both apply (additive)."""
+        (tmp_path / ".gitignore").write_text("*.log\n")
+        entry = tmp_path / "service"
+        (entry / "src").mkdir(parents=True)
+        (entry / ".gitignore").write_text("*.tmp\n")
+        (entry / "src" / "app.py").write_text("ok")
+        (entry / "src" / "debug.log").write_text("log")
+        (entry / "src" / "scratch.tmp").write_text("tmp")
+
+        sb = FilesystemBackend(root_dir=tmp_path)
+        entries = sb.list_files("service/src")
+        assert "app.py" in entries
+        assert "debug.log" not in entries   # blocked by root .gitignore
+        assert "scratch.tmp" not in entries  # blocked by entry .gitignore
+
+    def test_no_entry_gitignore_means_no_entry_filtering(
+        self, tmp_path: Path,
+    ) -> None:
+        """Subdirectory without .gitignore gets no entry-level filtering."""
+        entry = tmp_path / "project"
+        (entry / "build_output").mkdir(parents=True)
+        (entry / "build_output" / "output.js").write_text("//js")
+
+        sb = FilesystemBackend(root_dir=tmp_path)
+        assert "project" not in sb._entry_gitignores
+        entries = sb.list_files("project")
+        assert "build_output" in entries
+
+    def test_single_workspace_backward_compat(
+        self, gitignore_sandbox: FilesystemBackend,
+    ) -> None:
+        """Pre-existing single-workspace gitignore tests still behave correctly.
+
+        Re-uses the gitignore_sandbox fixture to confirm that the entry-level
+        discovery layer does not interfere with root-only filtering.
+        """
+        root_entries = gitignore_sandbox.list_files(".")
+        assert "build" not in root_entries
+        assert "src" in root_entries
+
+        src_entries = gitignore_sandbox.list_files("src")
+        assert "main.py" in src_entries
+        assert "main.pyc" not in src_entries

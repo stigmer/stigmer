@@ -106,6 +106,7 @@ class FilesystemBackend:
         self._gitignore: GitIgnoreFilter | None = GitIgnoreFilter.from_file(
             self.root_dir / ".gitignore",
         )
+        self._entry_gitignores = self._discover_entry_gitignores()
 
         self._dir_cache: dict[str, list[str]] = {}
         self._path_type_cache: dict[str, bool] = {}
@@ -127,6 +128,41 @@ class FilesystemBackend:
         self._dir_cache.clear()
         self._path_type_cache.clear()
 
+    # -- Gitignore discovery ----------------------------------------------------
+
+    def _discover_entry_gitignores(self) -> dict[str, GitIgnoreFilter]:
+        """Scan immediate subdirectories for ``.gitignore`` files.
+
+        In multi-workspace sessions ``root_dir`` is a container directory
+        whose children are workspace entries (e.g. git clones).  Each entry
+        may carry its own ``.gitignore`` that should govern filtering within
+        that subtree.
+
+        Returns a mapping from subdirectory name to its compiled filter.
+        Subdirectories without a ``.gitignore`` (or with an empty one) are
+        omitted.  Hidden directories (starting with ``"."``) are skipped
+        because they are already excluded by ``_should_include``.
+        """
+        result: dict[str, GitIgnoreFilter] = {}
+        try:
+            children = self.root_dir.iterdir()
+        except OSError:
+            return result
+        for child in children:
+            if not child.is_dir() or child.name.startswith("."):
+                continue
+            gi_path = child / ".gitignore"
+            if gi_path.is_file():
+                gi = GitIgnoreFilter.from_file(gi_path)
+                if gi is not None:
+                    result[child.name] = gi
+        if result:
+            logger.debug(
+                "Discovered entry-level .gitignore filters: %s",
+                ", ".join(sorted(result)),
+            )
+        return result
+
     # -- Entry filtering -------------------------------------------------------
 
     def _should_include(
@@ -138,19 +174,41 @@ class FilesystemBackend:
     ) -> bool:
         """Decide whether a directory entry should be visible to agent tools.
 
-        Consolidates the three filtering layers (hidden, skip-dir, gitignore)
-        into a single predicate so that ``list_files`` and
-        ``_format_directory_listing`` share one source of truth.
+        Consolidates the filtering layers into a single predicate so that
+        ``list_files`` and ``_format_directory_listing`` share one source of
+        truth.
+
+        Layers checked in order (first rejection wins):
+
+        1. Hidden entries (names starting with ``"."``) and well-known
+           noise directories (``_SKIP_DIR_NAMES``).
+        2. Root-level ``.gitignore`` patterns (checked against the full
+           workspace-relative path).
+        3. Entry-level ``.gitignore`` patterns (checked against the path
+           relative to the entry subdirectory).  Only applies to paths
+           *within* a subdirectory that has a discovered ``.gitignore``,
+           never to the subdirectory name itself.
         """
         if name.startswith(".") or name in self._SKIP_DIR_NAMES:
             return False
+
+        try:
+            rel_path = str(parent_dir.relative_to(self.root_dir) / name)
+        except ValueError:
+            return True
+
         if self._gitignore is not None:
-            try:
-                rel_path = str(parent_dir.relative_to(self.root_dir) / name)
-            except ValueError:
-                return True
             if self._gitignore.is_ignored(rel_path, is_dir=is_dir):
                 return False
+
+        if self._entry_gitignores:
+            parts = rel_path.split("/", 1)
+            if len(parts) == 2 and parts[0] in self._entry_gitignores:
+                if self._entry_gitignores[parts[0]].is_ignored(
+                    parts[1], is_dir=is_dir,
+                ):
+                    return False
+
         return True
 
     # -- Path resolution -------------------------------------------------------
