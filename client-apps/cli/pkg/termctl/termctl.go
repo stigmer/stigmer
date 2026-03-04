@@ -33,28 +33,6 @@ func IsSupported(w io.Writer) bool {
 	return os.Getenv("TERM") != "dumb"
 }
 
-// MoveUp moves the cursor up n lines using ANSI CSI CUU.
-// No-op when n <= 0. This guard is critical because the ANSI spec treats
-// a parameter of 0 as 1 — omitting it would cause an unintended move.
-func MoveUp(w io.Writer, n int) {
-	if n <= 0 {
-		return
-	}
-	fmt.Fprintf(w, "\033[%dA", n)
-}
-
-// ClearDown erases from the cursor position to the end of the screen
-// using ANSI CSI ED (Erase in Display, parameter 0).
-func ClearDown(w io.Writer) {
-	fmt.Fprint(w, "\033[J")
-}
-
-// ClearLine erases the entire current line and moves the cursor to column 0
-// using ANSI CSI EL (Erase in Line, parameter 2) followed by carriage return.
-func ClearLine(w io.Writer) {
-	fmt.Fprint(w, "\033[2K\r")
-}
-
 // EraseLines erases n lines of previously written output. The cursor moves
 // up n-1 lines, resets to column 0, then clears from that position to the
 // end of the screen. After this call the cursor sits at column 0 of the

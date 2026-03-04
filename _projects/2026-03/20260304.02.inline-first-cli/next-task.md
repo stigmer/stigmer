@@ -7,9 +7,9 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Project: 20260304.02.inline-first-cli
 
 **Description**: Move Stigmer CLI from alt-screen TUI default to inline-first terminal experience inspired by Claude Code. Compact tool rendering (read as filename+line count, write/edit with previews, grouped sub-agents), inline follow-up input, and streamlined approval prompts — all in normal terminal scrollback without alt-screen.
-**Goal**: Make the inline rendering mode the default CLI experience with four perfected UI surfaces: (1) Read tool as compact filename+line count, (2) Write/Edit tool with appropriate previews, (3) Sub-agent tool grouping, and (4) Streamlined approval prompts. TUI code retained but unreachable from CLI flags.
-**Tech Stack**: Go, Bubbletea (charmbracelet), gRPC, Cobra
-**Components**: client-apps/cli/cmd/stigmer/root (run_stream_inline.go, output_mode.go, run_stream.go), client-apps/cli/pkg/executiontui (model.go, render_blocks.go, view.go), client-apps/cli/pkg/toolrender (file_preview.go, render.go, render_compact.go, hyperlink.go), client-apps/cli/pkg/termctl (termctl.go)
+**Goal**: Make the inline rendering mode the default CLI experience with four perfected UI surfaces: (1) Read tool as compact filename+line count, (2) Write/Edit tool with appropriate previews, (3) Sub-agent tool grouping, and (4) Streamlined approval prompts. TUI alt-screen code removed entirely in Phase 5.
+**Tech Stack**: Go, gRPC, Cobra, Bubbletea (used by InteractivePrompter and cliprint only — not for TUI)
+**Components**: client-apps/cli/cmd/stigmer/root (run_stream_inline.go, output_mode.go, run_stream.go), client-apps/cli/pkg/executiontui (events.go, followup.go — event types only), client-apps/cli/pkg/toolrender (file_preview.go, render.go, render_compact.go, hyperlink.go), client-apps/cli/pkg/termctl (termctl.go)
 
 ## Essential Files to Review
 
@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-04 00:23
-**Current Task**: Phase 5 (Quick Cleanups)
-**Status**: In Progress — Phase 4 complete
-**Last Session**: 2026-03-04 — Phase 4 (Thinking Spinner + Follow-Up Input) complete
+**Current Task**: Phase 5 (Dead Code Cleanup and TUI Removal)
+**Status**: Complete — All phases done
+**Last Session**: 2026-03-04 — Phase 5 (Dead Code Cleanup and TUI Removal) complete
 
 ## Session Progress (2026-03-04, Session 1)
 
@@ -349,7 +349,12 @@ When starting a new session:
 2. ~~Phase 4: Inline follow-up readline + thinking spinner~~ DONE
    - ~~4.0: Thinking spinner (mid-run idle indicator)~~ DONE
    - ~~4.1: Post-completion follow-up readline loop~~ DONE
-3. Phase 5: Quick Cleanups
+3. ~~Phase 5: Dead Code Cleanup and TUI Removal~~ DONE
+   - ~~5.1: Remove TUI path from root package~~ DONE
+   - ~~5.2: Remove TUI-only files from executiontui (~95KB)~~ DONE
+   - ~~5.3: Remove dead exports across packages~~ DONE
+   - ~~5.4: Overlap consolidation (no migration needed)~~ DONE
+   - ~~5.5: Verify and polish~~ DONE
 
 ## Session Progress (2026-03-04, Session 13)
 
@@ -414,6 +419,74 @@ When starting a new session:
 - `client-apps/cli/cmd/stigmer/root/run_session.go` (modified — follow-up loop for resumed sessions)
 - `client-apps/cli/cmd/stigmer/root/BUILD.bazel` (modified — new files)
 
+## Session Progress (2026-03-04, Session 15)
+
+- Phase 5 (Dead Code Cleanup and TUI Removal) completed
+- **Phase 5.1**: Removed TUI path from root package
+  - Deleted `run_tui.go` (80 lines — `runTUIWithProtection`, `restoreTerminal`)
+  - Deleted `run_tui_test.go` (178 lines)
+  - Removed `streamAgentInteractive` from `run_stream.go` (~70 lines) and `resumeSessionInteractive` from `run_session.go` (~50 lines)
+  - Removed `OutputInteractive` constant and its `String()` case from `output_mode.go`
+  - Changed switch pattern: inline is now the explicit `default`, JSON is `case OutputJSON`
+  - Removed `tea` (Bubbletea) import from `run_stream.go`, `run_session.go`, and `BUILD.bazel` deps
+  - Removed `session` import from `run_stream.go` (no longer needed after `streamAgentInteractive` removal)
+- **Phase 5.2**: Removed TUI-only files from `executiontui`
+  - Deleted 13 source files (~95KB): `model.go`, `update.go`, `handle_events.go`, `view.go`, `blocks.go`, `render_blocks.go`, `render_approval.go`, `approval.go`, `help.go`, `input.go`, `focus.go`, `scroll.go`, `messages.go`
+  - Deleted 5 test files (~98KB): `update_test.go`, `render_blocks_test.go`, `approval_test.go`, `help_test.go`, `scroll_test.go`
+  - Kept `events.go` (event types) and `followup.go` (FollowUpFn/FollowUpResult types)
+  - Rewrote `followup.go` to remove TUI-specific `Model` methods (`handleFollowUpStarted`, `handleFollowUpError`)
+  - Rewrote `doc.go` to reflect new scope as event/type definition package
+  - Updated all TUI-referencing docstrings in `events.go` to be renderer-agnostic
+  - Rewrote `BUILD.bazel` — 3 source files, 1 dep (`toolrender`), no Bubbletea/bubbles/lipgloss deps
+- **Phase 5.3**: Removed dead exports across packages
+  - `pkg/toolrender/render.go`: Removed 6 dead exports — `DisplayLabel`, `HasDisplayableContent`, `RenderRunning`, `RenderWaitingApproval`, `RenderExpanded`, `RenderExpandedWithBadge`
+  - `pkg/toolrender/render_test.go`: Removed corresponding dead test functions (17 tests)
+  - `pkg/termctl/termctl.go`: Removed `MoveUp`, `ClearDown`, `ClearLine` (zero callers; speculative Phase 3.0 code)
+  - `pkg/termctl/termctl_test.go`: Removed corresponding tests (5 test functions)
+  - `pkg/display/table.go`: Deleted entire file (~200 lines) — `ApplyResultTable` and all associated types/functions had zero callers
+  - `internal/cli/cliprint/progress.go`: Removed `PhaseReady` constant (zero callers)
+  - Updated `pkg/display/BUILD.bazel` to remove `table.go`
+- **Phase 5.4**: Overlap consolidation — no migration needed
+  - `display.GetTerminalWidth()` callers (2) correctly target stdout and benefit from `MinTermWidth` clamp
+  - `tablerender.go` uses it internally — cannot be removed without creating a `display` → `termctl` dependency
+  - Different semantics (convenience with clamp vs DI-flexible) justify coexistence
+- **Phase 5.5**: Verification
+  - `go vet ./client-apps/cli/...` — clean
+  - `go build ./client-apps/cli/cmd/stigmer/` — clean
+  - `go test ./client-apps/cli/pkg/toolrender/` — all pass
+  - `go test ./client-apps/cli/pkg/termctl/` — all pass
+  - `go test ./client-apps/cli/pkg/display/` — all pass
+  - Root package: 3 pre-existing test failures confirmed (identical before and after changes via `git stash` isolation)
+
+### Key Architectural Decisions (Session 15)
+- **TUI alt-screen removed entirely** — Git history preserves it. The shared event system (`events.go`, `followup.go`) remains as the contract between stream producers and rendering consumers. `InteractivePrompter` (workflow approvals) and `cliprint/ProgressDisplay` (server start spinner) both use Bubbletea independently and are unaffected.
+- **`RenderResultWithPreview` kept** — Confirmed alive in `run_display_stream.go` (workflow rendering path), not TUI-only.
+- **`StateBadge`, `RenderWithBadge` kept** — Used by `render_compact.go` (inline renderer path).
+- **Internal helpers preserved** — `formatFullResultWithGutter`, `extractFilename`, `resolveDisplayContent` all have live callers in compact/approval rendering paths.
+
+### Files Deleted (Session 15)
+- `client-apps/cli/cmd/stigmer/root/run_tui.go`
+- `client-apps/cli/cmd/stigmer/root/run_tui_test.go`
+- `client-apps/cli/pkg/executiontui/` — 13 source files + 5 test files
+- `client-apps/cli/pkg/display/table.go`
+
+### Files Modified (Session 15)
+- `client-apps/cli/cmd/stigmer/root/output_mode.go`
+- `client-apps/cli/cmd/stigmer/root/output_mode_test.go`
+- `client-apps/cli/cmd/stigmer/root/run_stream.go`
+- `client-apps/cli/cmd/stigmer/root/run_session.go`
+- `client-apps/cli/cmd/stigmer/root/BUILD.bazel`
+- `client-apps/cli/pkg/executiontui/events.go`
+- `client-apps/cli/pkg/executiontui/followup.go`
+- `client-apps/cli/pkg/executiontui/doc.go`
+- `client-apps/cli/pkg/executiontui/BUILD.bazel`
+- `client-apps/cli/pkg/toolrender/render.go`
+- `client-apps/cli/pkg/toolrender/render_test.go`
+- `client-apps/cli/pkg/termctl/termctl.go`
+- `client-apps/cli/pkg/termctl/termctl_test.go`
+- `client-apps/cli/pkg/display/BUILD.bazel`
+- `client-apps/cli/internal/cli/cliprint/progress.go`
+
 ## Context for Resume
 
 - **`cmd/stigmer/root/run_stream_inline_spinner.go`** is the thinking spinner module (Phase 4.0). Four methods on `inlineRenderer`: `startThinkingSpinner` (guarded `spinner.Start("Thinking...")`), `stopThinkingSpinner` (synchronous `spinner.Stop()`), `resetThinkTimer` (resets 2s timer when `thinkingAllowed`, stops otherwise), `thinkingAllowed` (returns true when phase is `in_progress`, no AI stream, no tool stream, no approval pending). State tracked via `spinner *spinner.Spinner`, `thinkTimer *time.Timer`, `phase string` on `inlineRenderer`. Timer integrated as third `select` case in `renderInline`'s event loop.
@@ -425,7 +498,7 @@ When starting a new session:
 - **`pkg/approval/keyread.go`** is the keystroke decoder for `InlinePrompter`. `keyReader` runs a persistent goroutine that reads one byte at a time from `io.Reader` and sends to a buffered channel (cap 64). `readKey(ctx)` returns typed `keyCode` values (keyUp, keyDown, keyEnter, keyEsc, keyCtrlC, keyOne, keyTwo, keyThree, keyUnknown). Escape sequence parsing uses 50ms timeout to distinguish standalone Esc from arrow keys (`\033[A`/`\033[B`). `drain()` empties the byte channel before each prompt. `readByte` uses a two-phase priority-select pattern: try bytes channel without blocking first, then wait on bytes/errs/ctx — this prevents a race where EOF arrives while unconsumed bytes remain in the channel.
 - **`pkg/termctl/`** is the ANSI cursor control package (Phase 3.0). 7 public functions: `IsSupported(w)` (TTY+not-dumb, NO_COLOR excluded), `MoveUp(w, n)`, `ClearDown(w)`, `ClearLine(w)`, `EraseLines(w, n)` (atomic), `Width(w, default)`, `DisplayRows(text, width)`. All stateless, DI-compliant (io.Writer params). Used by Phase 3.2-3.3 for approval collapse and by `InlinePrompter` for menu re-rendering. `DisplayRows` uses `charmbracelet/x/ansi.StringWidth` for ANSI-aware width measurement.
 - Pre-existing compile error in `run_create.go:114` (references `WorkspaceSource` from multi-source-workspace project) blocks `go test` for the `root` package. Our changes are isolated and verified correct via `go vet`.
-- The `OutputInteractive` constant is retained in `output_mode.go` — TUI code references it from `run_stream.go` and `run_session.go` default branches.
+- The `OutputInteractive` constant has been removed from `output_mode.go` — TUI path fully excised. Only `OutputInline` (default) and `OutputJSON` remain.
 - **`RenderCompact`** is the graduated entry point for compact completed tool rendering. Every known tool label now has a compact renderer. Task still falls back to `RenderWithBadge` (its visual representation comes from lifecycle events, not RenderCompact). Only unknown/MCP tools lack compact renderers.
 - **`RenderCompactRunning`** is the graduated entry point for compact running state. All tools with compact renderers get bullet-style `…` suffix. Display varies by category: shell (truncated command), pattern-based (plain text), path-based (hyperlinked), label-only (Thinking, no parens), Task (`● Task: description …`). Only unknown tools fall back to legacy `⏳`.
 - **`hasCompactRenderer`** covers all 12 known labels: Read, Write, Create, Edit, Shell, Execute, List, Find, Search, Delete, Thinking, Task.

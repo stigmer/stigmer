@@ -8,16 +8,11 @@ import (
 type OutputMode int
 
 const (
-	// OutputInteractive renders events in a Bubbletea alt-screen TUI with
-	// scrollable viewport, inline approval handling, and follow-up input.
-	// Retained for potential future use but not reachable from CLI flags.
-	OutputInteractive OutputMode = iota
-
 	// OutputInline streams events directly to the terminal without
 	// alt-screen. AI content goes to stdout (pipeable), status/progress
 	// goes to stderr. Colors are preserved when stdout is a TTY.
 	// This is the default for all interactive and non-interactive contexts.
-	OutputInline
+	OutputInline OutputMode = iota
 
 	// OutputJSON emits every event as a newline-delimited JSON object on
 	// stdout. Intended for scripting, CI pipelines, and tool integration.
@@ -48,8 +43,6 @@ func resolveOutputMode(flags outputModeFlags) OutputMode {
 
 func (m OutputMode) String() string {
 	switch m {
-	case OutputInteractive:
-		return "interactive"
 	case OutputInline:
 		return "inline"
 	case OutputJSON:

@@ -1,28 +1,19 @@
-// Package executiontui provides a Bubbletea-based interactive TUI for displaying
-// agent execution output in real-time.
+// Package executiontui defines the event types and shared data structures
+// used by agent execution rendering pipelines.
 //
-// The TUI runs in alt-screen mode during execution, providing a scrollable viewport
-// with auto-follow for new content. When Config.FollowUpFn is set, the TUI enters
-// conversational mode: after an execution completes, an input composer activates
-// and the user can send follow-up messages that create new executions within the
-// same session. The conversation continues seamlessly in the same viewport.
+// The Event interface and its concrete implementations represent all state
+// changes that occur during an agent execution — AI messages, tool calls,
+// phase transitions, approval requests, sub-agent lifecycle, and errors.
 //
-// When FollowUpFn is nil, the TUI behaves as a single-execution viewer: it exits
-// after the execution completes (or the user quits).
+// These types are consumed by multiple rendering modes:
+//   - Inline renderer (streaming text in normal terminal scrollback)
+//   - JSON renderer (newline-delimited JSON for scripting/CI)
 //
-// This package accepts domain-agnostic input types — callers convert from proto or
-// other sources into the Event types defined here. The same pattern is used by the
-// sibling toolrender package.
+// The event channel pattern decouples the gRPC stream producer (streamToEvents)
+// from the rendering consumer. Any new rendering mode only needs to implement
+// a consumer of chan Event.
 //
-// Usage:
-//
-//	events := make(chan executiontui.Event, 16)
-//	model := executiontui.New(executiontui.Config{
-//	    ExecutionID: "aex-01abc...",
-//	    Events:      events,
-//	    FollowUpFn:  myFollowUpFn,  // nil for single-execution mode
-//	})
-//	p := tea.NewProgram(model, tea.WithAltScreen())
-//	go sendEvents(stream, events)  // gRPC goroutine
-//	finalModel, err := p.Run()
+// This package also defines FollowUpFn and FollowUpResult, which enable
+// conversational follow-up within a session. The inline renderer uses these
+// to prompt for continued conversation after execution completion.
 package executiontui

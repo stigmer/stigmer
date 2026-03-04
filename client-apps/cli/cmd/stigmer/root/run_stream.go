@@ -6,13 +6,11 @@ import (
 	"io"
 	"os"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/pkg/errors"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/session"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
@@ -23,18 +21,16 @@ import (
 // streamAgentExecution subscribes to execution updates and renders them using
 // the selected output mode:
 //
-//   - OutputInteractive: Bubbletea alt-screen TUI with scrollable viewport,
-//     inline approval handling, and conversational follow-up.
-//   - OutputInline: Streaming text output without alt-screen. AI content goes
-//     to stdout; status/progress goes to stderr.
+//   - OutputInline (default): Streaming text output in normal terminal
+//     scrollback. AI content goes to stdout; status/progress goes to stderr.
 //   - OutputJSON: Newline-delimited JSON events on stdout for scripting/CI.
 //
 // A background goroutine reads the gRPC stream and converts updates into
-// events sent over a channel. The consumer (TUI or renderer) receives these
-// events and renders or serializes them.
+// events sent over a channel. The consumer (renderer) receives these events
+// and renders or serializes them.
 //
 // The returned execution is the last one that ran (which may be a follow-up
-// in interactive mode, not the original).
+// in inline mode, not the original).
 func streamAgentExecution(sessionID, sessionSubject, executionID, orgID string, prompter approval.Prompter, defaultAction approval.Action, verbose bool, outputMode OutputMode, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
 	climsg.Success("Streaming session...")
 	fmt.Println()
@@ -62,87 +58,11 @@ func streamAgentExecution(sessionID, sessionSubject, executionID, orgID string, 
 	})
 
 	switch outputMode {
-	case OutputInline:
-		return streamAgentInline(streamCtx, streamCancel, sessionID, executionID, orgID, events, approvalResponses, prompter, defaultAction, conn)
 	case OutputJSON:
 		return streamAgentJSON(streamCtx, streamCancel, sessionID, executionID, events, approvalResponses, defaultAction, conn)
 	default:
-		return streamAgentInteractive(streamCtx, streamCancel, sessionID, sessionSubject, executionID, orgID, events, approvalResponses, prompter, defaultAction, verbose, conn)
+		return streamAgentInline(streamCtx, streamCancel, sessionID, executionID, orgID, events, approvalResponses, prompter, defaultAction, conn)
 	}
-}
-
-// streamAgentInteractive runs the Bubbletea alt-screen TUI. This is the
-// original interactive path with scrollable viewport, approval handling,
-// and conversational follow-up.
-func streamAgentInteractive(streamCtx context.Context, streamCancel context.CancelFunc, sessionID, sessionSubject, executionID, orgID string, events chan executiontui.Event, approvalResponses chan executiontui.ApprovalResponse, prompter approval.Prompter, defaultAction approval.Action, verbose bool, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
-	cancelFn := func() error {
-		_, err := execution.Cancel(conn, executionID)
-		return err
-	}
-
-	var followUpFn executiontui.FollowUpFn
-	if sessionID != "" {
-		followUpFn = buildFollowUpFn(streamCtx, sessionID, orgID, conn)
-	}
-
-	var subjectFetchFn func() string
-	if sessionID != "" && sessionSubject == "" {
-		subjectFetchFn = func() string {
-			ses, err := session.GetFromBackend(conn, sessionID)
-			if err != nil {
-				return ""
-			}
-			return session.ResolvedSubject(ses.GetSpec().GetSubject())
-		}
-	}
-
-	model := executiontui.New(executiontui.Config{
-		SessionID:         sessionID,
-		SessionSubject:    sessionSubject,
-		ExecutionID:       executionID,
-		Events:            events,
-		ApprovalResponses: approvalResponses,
-		CancelFn:          cancelFn,
-		FollowUpFn:        followUpFn,
-		SubjectFetchFn:    subjectFetchFn,
-		Verbose:           verbose,
-	})
-
-	p := tea.NewProgram(model, tea.WithAltScreen())
-	finalModel, err := runTUIWithProtection(p)
-	streamCancel()
-
-	if err != nil {
-		return nil, errors.Wrap(err, "TUI execution failed")
-	}
-
-	result := finalModel.(executiontui.Model)
-
-	if result.FinalError() != "" && !result.Done() {
-		return nil, errors.New(result.FinalError())
-	}
-
-	latestExecID := result.LatestExecutionID()
-	finalExec, err := fetchFinalExecution(context.Background(), conn, latestExecID)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to fetch final execution state")
-	}
-
-	if sessionID != "" {
-		if result.Done() {
-			displaySessionExitLine(sessionID, finalExec)
-		} else {
-			displaySessionDetachLine(sessionID)
-		}
-	} else {
-		if result.Done() {
-			displayAgentExecutionComplete(finalExec)
-		} else {
-			displayAgentExecutionDetached(finalExec)
-		}
-	}
-
-	return finalExec, nil
 }
 
 // streamAgentInline renders events as streaming text without the TUI.
@@ -257,8 +177,7 @@ func buildFollowUpFn(ctx context.Context, sessionID, orgID string, conn *grpc.Cl
 }
 
 // fetchFinalExecution retrieves the current execution state from the backend.
-// Called after the TUI exits to get the full proto object for the summary display
-// and to return to the caller.
+// Called after the renderer exits to get the full proto for the summary display.
 func fetchFinalExecution(ctx context.Context, conn *grpc.ClientConn, executionID string) (*agentexecutionv1.AgentExecution, error) {
 	client := agentexecutionv1.NewAgentExecutionQueryControllerClient(conn)
 	resp, err := client.Get(ctx, &agentexecutionv1.AgentExecutionId{Value: executionID})
