@@ -111,6 +111,13 @@ type inlineRenderer struct {
 	streamLineCount    int    // total display rows including content (for erase)
 	streamSubAgentID   string // sub-agent context for gutter wrapping
 
+	// streamHeaderDeferred is true when the pre-approval streaming header
+	// could not be rendered because the tool call's primary arg (e.g. path)
+	// was not yet available. The header is rendered on the first
+	// ToolStreamDeltaEvent, which carries an updated ToolCall with
+	// populated Args.
+	streamHeaderDeferred bool
+
 	// exitRequested is set by handleSessionExit when the user presses
 	// Ctrl+C at an approval prompt. Checked after handleApproval returns
 	// to terminate the render loop with a "cancelled" phase.
@@ -368,6 +375,9 @@ func (r *inlineRenderer) renderAIStreamStart(e executiontui.AIStreamStartEvent) 
 }
 
 func (r *inlineRenderer) renderAIStreamDelta(e executiontui.AIStreamDeltaEvent) {
+	if !r.inAIStream {
+		return
+	}
 	if len(e.Content) <= r.streamedBytes {
 		return
 	}
@@ -377,6 +387,10 @@ func (r *inlineRenderer) renderAIStreamDelta(e executiontui.AIStreamDeltaEvent) 
 }
 
 func (r *inlineRenderer) renderAIStreamEnd(e executiontui.AIStreamEndEvent) {
+	if !r.inAIStream {
+		r.streamedBytes = 0
+		return
+	}
 	if len(e.Content) > r.streamedBytes {
 		fmt.Fprint(r.cfg.data, e.Content[r.streamedBytes:])
 	}
