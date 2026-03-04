@@ -1,7 +1,6 @@
 package root
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/pkg/errors"
@@ -12,7 +11,6 @@ import (
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/envfile"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
 	"google.golang.org/grpc"
 )
@@ -265,8 +263,12 @@ func executeResolvedAgent(input resolvedAgentExecInput, sp *spinner.Spinner) err
 	}
 
 	sp.Stop()
-	climsg.Success("Session started: %s", sessionID)
-	fmt.Println()
+	renderSessionHeader(os.Stderr, sessionHeaderInfo{
+		AgentName:  input.Agent.GetMetadata().GetName(),
+		SessionID:  sessionID,
+		Model:      input.Model,
+		Workspaces: workspaceNames(input.WorkspaceEntries),
+	})
 
 	if input.Detach {
 		return nil

@@ -32,21 +32,19 @@ func flushStdout() {
 func displayAgentPhaseChange(phase, previousPhase agentexecutionv1.ExecutionPhase) {
 	switch phase {
 	case agentexecutionv1.ExecutionPhase_EXECUTION_PENDING:
-		climsg.Info("⏳ Execution pending...")
+		climsg.Info("Execution pending...")
 	case agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS:
 		if previousPhase == agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL {
-			// Returning from an approval pause — show "resumed" instead of
-			// the misleading "started" which implies a fresh execution.
-			climsg.Success("▶️  Resumed after approval")
+			climsg.Success("Resumed after approval")
 		} else {
-			climsg.Success("▶️  Execution started")
+			climsg.Success("Execution started")
 		}
 	case agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED:
-		climsg.Success("✅ Execution completed")
+		climsg.Success("Execution completed")
 	case agentexecutionv1.ExecutionPhase_EXECUTION_FAILED:
-		climsg.Error("❌ Execution failed")
+		climsg.Error("Execution failed")
 	case agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED:
-		climsg.Warning("⚠️  Execution cancelled")
+		climsg.Warning("Execution cancelled")
 	case agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL:
 		// Suppressed: The approval panel ("APPROVAL REQUIRED" box) and the
 		// interactive prompt are the user-facing signal for this state.
@@ -80,14 +78,14 @@ func displayAgentMessage(msg *agentexecutionv1.AgentMessage) {
 		displaySystemMessage(msg)
 	default:
 		// Fallback for unknown message types
-		fmt.Printf("❓ Unknown: %s\n\n", msg.Content)
+		fmt.Printf("Unknown: %s\n\n", msg.Content)
 		flushStdout()
 	}
 }
 
 // displayHumanMessage renders the user's input message.
 func displayHumanMessage(msg *agentexecutionv1.AgentMessage) {
-	fmt.Printf("💬 You: %s\n\n", msg.Content)
+	fmt.Printf("You: %s\n\n", msg.Content)
 	flushStdout()
 }
 
@@ -111,10 +109,9 @@ func displayAIMessage(msg *agentexecutionv1.AgentMessage) {
 // terminal width. Plain text uses the compact inline prefix.
 func formatNonTUIAIText(content string) string {
 	if !mdrender.HasMarkdown(content) {
-		return fmt.Sprintf("🤖 Agent: %s", content)
+		return content
 	}
-	rendered := mdrender.Render(content, display.GetTerminalWidth())
-	return fmt.Sprintf("🤖 Agent:\n%s", rendered)
+	return mdrender.Render(content, display.GetTerminalWidth())
 }
 
 // displayToolMessage renders a tool result as a concise summary line.
@@ -129,7 +126,7 @@ func displayToolMessage(msg *agentexecutionv1.AgentMessage) {
 // Raw API errors are sanitized to user-friendly text before display.
 func displaySystemMessage(msg *agentexecutionv1.AgentMessage) {
 	content := sanitizeSystemContent(msg.Content)
-	fmt.Printf("%s\n\n", systemMsgStyle.Render("ℹ️  "+content))
+	fmt.Printf("%s\n\n", systemMsgStyle.Render(content))
 	flushStdout()
 }
 
@@ -137,15 +134,15 @@ func displaySystemMessage(msg *agentexecutionv1.AgentMessage) {
 func displayWorkflowPhaseChange(phase workflowexecutionv1.ExecutionPhase) {
 	switch phase {
 	case workflowexecutionv1.ExecutionPhase_EXECUTION_PENDING:
-		climsg.Info("⏳ Execution pending...")
+		climsg.Info("Execution pending...")
 	case workflowexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS:
-		climsg.Success("▶️  Execution started")
+		climsg.Success("Execution started")
 	case workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED:
-		climsg.Success("✅ Execution completed")
+		climsg.Success("Execution completed")
 	case workflowexecutionv1.ExecutionPhase_EXECUTION_FAILED:
-		climsg.Error("❌ Execution failed")
+		climsg.Error("Execution failed")
 	case workflowexecutionv1.ExecutionPhase_EXECUTION_CANCELLED:
-		climsg.Warning("⚠️  Execution cancelled")
+		climsg.Warning("Execution cancelled")
 	}
 	fmt.Println()
 	flushStdout()
@@ -153,31 +150,31 @@ func displayWorkflowPhaseChange(phase workflowexecutionv1.ExecutionPhase) {
 
 // displayWorkflowTask displays a workflow task's status
 func displayWorkflowTask(task *workflowexecutionv1.WorkflowTask) {
-	var icon string
+	var badge string
 	var statusText string
 
 	switch task.Status {
 	case workflowexecutionv1.WorkflowTaskStatus_WORKFLOW_TASK_PENDING:
-		icon = "⏳"
+		badge = "..."
 		statusText = "Pending"
 	case workflowexecutionv1.WorkflowTaskStatus_WORKFLOW_TASK_IN_PROGRESS:
-		icon = "⚙️"
+		badge = "..."
 		statusText = "Running"
 	case workflowexecutionv1.WorkflowTaskStatus_WORKFLOW_TASK_COMPLETED:
-		icon = "✓"
+		badge = "✓"
 		statusText = "Completed"
 	case workflowexecutionv1.WorkflowTaskStatus_WORKFLOW_TASK_FAILED:
-		icon = "✗"
+		badge = "✗"
 		statusText = "Failed"
 	case workflowexecutionv1.WorkflowTaskStatus_WORKFLOW_TASK_SKIPPED:
-		icon = "⊘"
+		badge = "~"
 		statusText = "Skipped"
 	case workflowexecutionv1.WorkflowTaskStatus_WORKFLOW_TASK_WAITING_APPROVAL:
-		icon = "⏸"
+		badge = "||"
 		statusText = "Awaiting Approval"
 	}
 
-	fmt.Printf("%s Task: %s [%s]\n", icon, task.TaskName, statusText)
+	fmt.Printf("%s Task: %s [%s]\n", badge, task.TaskName, statusText)
 
 	// Show error if failed
 	if task.Error != "" {

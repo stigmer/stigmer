@@ -42,7 +42,7 @@ func runInlineFollowUpLoop(
 
 		result, err := followUpFn(input)
 		if err != nil {
-			fmt.Fprintf(cfg.status, "❌ Follow-up failed: %s\n", err)
+			fmt.Fprintf(cfg.status, "Error: follow-up failed: %s\n", err)
 			return latestExecID, phase, exitErr
 		}
 

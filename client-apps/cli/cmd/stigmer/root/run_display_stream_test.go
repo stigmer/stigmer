@@ -48,7 +48,7 @@ func TestRenderer_CompleteAIMessage(t *testing.T) {
 
 	rendered, streaming := r.render(msgs)
 	assertFlags(t, rendered, true, streaming, false)
-	assertContains(t, buf.String(), "Agent: I can help")
+	assertContains(t, buf.String(), "I can help")
 	assertDisplayedCount(t, r, 1)
 }
 
@@ -93,7 +93,7 @@ func TestRenderer_StreamingAI_BeginDeltaFinalize(t *testing.T) {
 	// Step 1: Begin streaming — prefix + initial content.
 	rendered, streaming := r.render(msgs)
 	assertFlags(t, rendered, true, streaming, true)
-	assertContains(t, buf.String(), "Agent: Hello")
+	assertContains(t, buf.String(), "Hello")
 	assertDisplayedCount(t, r, 0) // not yet finalized
 
 	// Step 2: Delta — more content arrives.
@@ -124,7 +124,7 @@ func TestRenderer_StreamingAI_EmptyInitialContent(t *testing.T) {
 	}
 	rendered, streaming := r.render(msgs)
 	assertFlags(t, rendered, true, streaming, true)
-	assertContains(t, buf.String(), "Agent: ")
+	assertEqual(t, buf.String(), "")
 
 	// First token arrives.
 	buf.Reset()
@@ -191,7 +191,7 @@ func TestRenderer_MixedSequence_HumanThenStreamingAIThenTool(t *testing.T) {
 	msgs = append(msgs, makeMessage(agentexecutionv1.MessageType_MESSAGE_AI, "I'll", true))
 	rendered, streaming = r.render(msgs)
 	assertFlags(t, rendered, true, streaming, true)
-	assertContains(t, buf.String(), "Agent: I'll")
+	assertContains(t, buf.String(), "I'll")
 
 	// Update 3: AI finishes, tool result follows.
 	buf.Reset()
@@ -218,7 +218,7 @@ func TestRenderer_LateSubscription_AllMessagesComplete(t *testing.T) {
 	rendered, streaming := r.render(msgs)
 	assertFlags(t, rendered, true, streaming, false)
 	assertContains(t, buf.String(), "You: hello")
-	assertContains(t, buf.String(), "Agent: response text")
+	assertContains(t, buf.String(), "response text")
 	assertDisplayedCount(t, r, 3)
 }
 
@@ -529,9 +529,6 @@ func TestRenderer_CompleteAI_MarkdownHeader(t *testing.T) {
 	output := buf.String()
 	plain := ansi.Strip(output)
 
-	if !strings.Contains(plain, "Agent:") {
-		t.Error("should contain agent prefix")
-	}
 	if !strings.Contains(plain, "Analysis Results") {
 		t.Errorf("should contain header text, got: %q", plain)
 	}
@@ -573,8 +570,8 @@ func TestRenderer_CompleteAI_PlainTextKeepsInlinePrefix(t *testing.T) {
 	r.render(msgs)
 
 	output := buf.String()
-	if !strings.Contains(output, "🤖 Agent: Sure, I can help.") {
-		t.Errorf("plain text should use inline prefix, got: %q", output)
+	if !strings.Contains(output, "Sure, I can help.") {
+		t.Errorf("plain text should appear in output, got: %q", output)
 	}
 }
 

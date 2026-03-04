@@ -243,7 +243,7 @@ func (r *inlineRenderer) handlePromptError(e executiontui.ApprovalNeededEvent, e
 	if canCollapse && renderedRows > 0 {
 		termctl.EraseLines(r.cfg.status, renderedRows)
 	}
-	r.statusf("⚠ Approval prompt failed: %s — auto-skipping\n", err)
+	r.statusf("Approval prompt failed: %s — auto-skipping\n", err)
 	r.cfg.approvalResponses <- executiontui.ApprovalResponse{
 		Action:     "skip",
 		ToolCallID: e.ToolCallID,

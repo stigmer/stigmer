@@ -77,9 +77,6 @@ func TestInlineRenderer_AIStreaming_GoesToStdout(t *testing.T) {
 	})
 
 	out := stdout.String()
-	if !strings.Contains(out, "Agent: ") {
-		t.Errorf("should have Agent prefix, got: %q", out)
-	}
 	if !strings.Contains(out, "Hello, world!") {
 		t.Errorf("should contain final content, got: %q", out)
 	}
@@ -94,8 +91,8 @@ func TestInlineRenderer_PhaseChange_GoesToStderr(t *testing.T) {
 	events := make(chan executiontui.Event, 10)
 
 	go feedEvents(events,
-		executiontui.PhaseChangeEvent{Phase: "in_progress"},
-		executiontui.DoneEvent{Phase: "completed"},
+		executiontui.PhaseChangeEvent{Phase: "failed"},
+		executiontui.DoneEvent{Phase: "failed"},
 	)
 
 	renderInline(context.Background(), inlineRenderConfig{
@@ -106,10 +103,10 @@ func TestInlineRenderer_PhaseChange_GoesToStderr(t *testing.T) {
 		status:            &stderr,
 	})
 
-	if !strings.Contains(stderr.String(), "Execution started") {
-		t.Errorf("phase change should appear on stderr, got: %q", stderr.String())
+	if !strings.Contains(stderr.String(), "Execution failed") {
+		t.Errorf("failed phase should appear on stderr, got: %q", stderr.String())
 	}
-	if strings.Contains(stdout.String(), "Execution started") {
+	if strings.Contains(stdout.String(), "Execution failed") {
 		t.Error("phase change should NOT appear on stdout")
 	}
 }
@@ -271,11 +268,11 @@ func TestInlineRenderer_TodoUpdate_GoesToStderr(t *testing.T) {
 	if !strings.Contains(out, "Plan:") {
 		t.Errorf("todo update should show Plan label, got: %q", out)
 	}
-	if !strings.Contains(out, "✓ Step one") {
-		t.Errorf("completed todo should have ✓, got: %q", out)
+	if !strings.Contains(out, "[x] Step one") {
+		t.Errorf("completed todo should have [x], got: %q", out)
 	}
-	if !strings.Contains(out, "⏳ Step two") {
-		t.Errorf("in-progress todo should have ⏳, got: %q", out)
+	if !strings.Contains(out, "[-] Step two") {
+		t.Errorf("in-progress todo should have [-], got: %q", out)
 	}
 }
 
@@ -391,7 +388,7 @@ func TestInlineRenderer_AIStreamDelta_OnlyPrintsNewBytes(t *testing.T) {
 
 	out := stdout.String()
 	// The output should contain the prefix + content once, not duplicated.
-	// Prefix is "🤖 Agent: " followed by "ABCDEF!"
+	// Content should be "ABCDEF!" with no emoji prefix.
 	if !strings.Contains(out, "ABCDEF!") {
 		t.Errorf("should contain full content, got: %q", out)
 	}
@@ -429,7 +426,7 @@ func TestInlineRenderer_WaitingForApproval_Suppressed(t *testing.T) {
 	}
 }
 
-func TestInlineRenderer_ResumedAfterApproval(t *testing.T) {
+func TestInlineRenderer_ResumedAfterApproval_Suppressed(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	events := make(chan executiontui.Event, 10)
 
@@ -446,7 +443,7 @@ func TestInlineRenderer_ResumedAfterApproval(t *testing.T) {
 		status:            &stderr,
 	})
 
-	if !strings.Contains(stderr.String(), "Resumed after approval") {
-		t.Errorf("should show 'Resumed after approval', got: %q", stderr.String())
+	if strings.Contains(stderr.String(), "Resumed") {
+		t.Errorf("in_progress phase after approval should be suppressed, got: %q", stderr.String())
 	}
 }
