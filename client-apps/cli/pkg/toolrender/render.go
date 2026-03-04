@@ -51,6 +51,12 @@ type ToolCallInfo struct {
 	// When true, Result contains partial output accumulated so far.
 	// Mirrors the proto ToolCall.is_streaming field.
 	IsStreaming bool
+
+	// ServerName is the MCP server slug that provides this tool.
+	// Empty for built-in sandbox tools. When populated, the compact
+	// renderer shows "server/tool" in the header for disambiguation.
+	// Populated from proto ToolCall.mcp_server_slug (Phase 2).
+	ServerName string
 }
 
 // previewStyle controls how (or whether) a result preview line is rendered

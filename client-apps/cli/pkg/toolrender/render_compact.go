@@ -80,7 +80,7 @@ type CompactOptions struct {
 func RenderCompact(tc ToolCallInfo, opts CompactOptions) string {
 	info, known := toolDisplayMap[tc.Name]
 	if !known {
-		return RenderWithBadge(tc, StateBadge(tc.Status))
+		return renderCompactUnknown(tc, opts)
 	}
 	switch {
 	case info.label == "Read":
@@ -119,7 +119,10 @@ func RenderCompact(tc ToolCallInfo, opts CompactOptions) string {
 //	"● Thinking …"                (label-only)
 func RenderCompactRunning(tc ToolCallInfo, opts CompactOptions) string {
 	info, known := toolDisplayMap[tc.Name]
-	if !known || !hasCompactRenderer(info) {
+	if !known {
+		return renderCompactUnknownRunning(tc)
+	}
+	if !hasCompactRenderer(info) {
 		return RenderWithBadge(tc, StateBadge("running"))
 	}
 
@@ -500,6 +503,129 @@ func renderCompactThink(tc ToolCallInfo, info toolDisplayInfo, opts CompactOptio
 	}
 
 	return b.String()
+}
+
+// maxUnknownOutputLines is the maximum number of result output lines shown
+// in a compact unknown/MCP tool display. Uses the same smart cutoff pattern
+// as shell output: when total lines <= maxUnknownOutputLines + 1, all lines
+// are shown.
+const maxUnknownOutputLines = 3
+
+// renderCompactUnknown produces a compact display for unknown/MCP tool calls.
+// Uses the same visual language as built-in compact renderers — green bullet,
+// bold tool name, dim metadata, input args, and output preview:
+//
+//	● search (1.6 KB, 1.6s)
+//	    query: "planton cloud mcp server"
+//	    Found 8 definition(s) matching "planton cloud mcp server"
+//	    … +22 more lines
+//
+// Error case (error embedded in result):
+//
+//	● get_mcp_server (521 chars, 196ms)
+//	    org: "default"
+//	    ✗ MCP server "planton-cloud" not found...
+//
+// With server identity (Phase 2, when tc.ServerName is populated):
+//
+//	● planton-cloud/search (1.6 KB, 1.6s)
+//	    query: "planton cloud mcp server"
+//	    Found 8 definition(s) matching...
+func renderCompactUnknown(tc ToolCallInfo, opts CompactOptions) string {
+	header := buildUnknownCompactHeader(tc)
+
+	if errMsg := toolCallError(tc); errMsg != "" {
+		return buildUnknownWithError(header, tc.Args, errMsg)
+	}
+
+	return buildUnknownWithResult(header, tc)
+}
+
+// buildUnknownCompactHeader produces the first line: bullet, tool name, and
+// metadata suffix. When ServerName is populated (Phase 2), the header shows
+// "● server/tool (metadata)".
+func buildUnknownCompactHeader(tc ToolCallInfo) string {
+	name := tc.Name
+	if tc.ServerName != "" {
+		name = tc.ServerName + "/" + tc.Name
+	}
+
+	header := fmt.Sprintf("%s %s", bulletStyle.Render("●"), labelStyle.Render(name))
+
+	suffix := renderSuffix(tc)
+	if suffix != "" {
+		header += " " + dimStyle.Render(suffix)
+	}
+	return header
+}
+
+// buildUnknownWithError assembles the compact unknown tool display when an
+// error is detected. Shows input args followed by the error message.
+func buildUnknownWithError(header string, args map[string]interface{}, errMsg string) string {
+	var b strings.Builder
+	b.WriteString(header)
+
+	if inputLines := formatInputArgs(args, maxInputArgs); inputLines != "" {
+		b.WriteByte('\n')
+		b.WriteString(inputLines)
+	}
+
+	b.WriteByte('\n')
+	b.WriteString(dimStyle.Render("    ✗ " + truncate(errMsg, 60)))
+	return b.String()
+}
+
+// buildUnknownWithResult assembles the compact unknown tool display for a
+// successful (or in-progress) tool call. Shows input args followed by up to
+// maxUnknownOutputLines of result content.
+func buildUnknownWithResult(header string, tc ToolCallInfo) string {
+	var b strings.Builder
+	b.WriteString(header)
+
+	if inputLines := formatInputArgs(tc.Args, maxInputArgs); inputLines != "" {
+		b.WriteByte('\n')
+		b.WriteString(inputLines)
+	}
+
+	result := strings.TrimSpace(tc.Result)
+	if result == "" {
+		return b.String()
+	}
+
+	lines := strings.Split(strings.TrimRight(result, "\n"), "\n")
+	showAll := len(lines) <= maxUnknownOutputLines+1
+	visibleCount := len(lines)
+	if !showAll {
+		visibleCount = maxUnknownOutputLines
+	}
+
+	for i := 0; i < visibleCount; i++ {
+		b.WriteByte('\n')
+		b.WriteString(dimStyle.Render("    " + lines[i]))
+	}
+	if !showAll {
+		b.WriteByte('\n')
+		b.WriteString(dimStyle.Render(fmt.Sprintf("    … +%d more lines", len(lines)-visibleCount)))
+	}
+
+	return b.String()
+}
+
+// renderCompactUnknownRunning produces a single-line running indicator for
+// unknown/MCP tools. Matches the compact running style of built-in tools.
+//
+// Examples:
+//
+//	"● search …"
+//	"● planton-cloud/get_mcp_server …"
+func renderCompactUnknownRunning(tc ToolCallInfo) string {
+	name := tc.Name
+	if tc.ServerName != "" {
+		name = tc.ServerName + "/" + tc.Name
+	}
+	return fmt.Sprintf("%s %s %s",
+		bulletStyle.Render("●"), labelStyle.Render(name),
+		dimStyle.Render("…"))
 }
 
 // countResultEntries counts non-empty lines in a discovery tool result.
