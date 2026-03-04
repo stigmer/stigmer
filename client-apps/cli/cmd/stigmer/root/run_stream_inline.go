@@ -10,6 +10,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/termctl"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
 )
 
@@ -81,6 +82,14 @@ type inlineRenderer struct {
 	// indicator line was last printed to stderr. Used by handleApproval
 	// to safely erase the running line before rendering the expanded view.
 	lastRenderedRunningID string
+
+	// lastOutputWasRunning is true when the most recent write to the
+	// status writer was a tool running indicator. Cleared by any
+	// subsequent statusf or flushData call. Used by renderToolCompleted
+	// to erase the running line and replace it with the completed result
+	// (in-place replacement) when the completed event arrives for the
+	// same tool with no intervening output.
+	lastOutputWasRunning bool
 
 	// waitingApproval holds the ToolCallInfo saved from the most recent
 	// ToolWaitingApprovalEvent. handleApproval uses this to render the
@@ -262,7 +271,15 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 		return false, "", ""
 	}
 
-	// All remaining events produce visible output. Flush pending reads first.
+	// All remaining events produce visible output. Close any open AI
+	// stream on stdout before status/tool output goes to stderr to
+	// prevent them from sharing a terminal line. AI stream events
+	// manage stream lifecycle internally and must not be closed here.
+	switch event.(type) {
+	case executiontui.AIStreamStartEvent, executiontui.AIStreamDeltaEvent, executiontui.AIStreamEndEvent:
+	default:
+		r.finishAIStreamIfNeeded()
+	}
 	r.flushPendingReads()
 
 	switch e := event.(type) {
@@ -337,20 +354,14 @@ func (r *inlineRenderer) renderAIStreamEnd(e executiontui.AIStreamEndEvent) {
 	r.inAIStream = false
 	r.streamedBytes = 0
 	r.flushData()
-
-	if len(e.ToolCalls) > 0 {
-		r.renderToolCalls(e.ToolCalls)
-	}
 }
 
 func (r *inlineRenderer) renderAIMessage(e executiontui.AIMessageEvent) {
 	r.finishAIStreamIfNeeded()
 	if e.Content != "" {
-		fmt.Fprintf(r.cfg.data, "%s\n\n", formatNonTUIAIText(e.Content))
+		prefix := r.agentPrefix(e.SubAgentID)
+		fmt.Fprintf(r.cfg.data, "%s%s\n\n", prefix, formatNonTUIAIText(e.Content))
 		r.flushData()
-	}
-	if len(e.ToolCalls) > 0 {
-		r.renderToolCalls(e.ToolCalls)
 	}
 }
 
@@ -369,10 +380,15 @@ func (r *inlineRenderer) renderToolRunning(e executiontui.ToolRunningEvent) {
 		line = toolrender.GutterWrap(line)
 	}
 	r.statusf("%s\n", line)
+	r.lastOutputWasRunning = true
 	r.lastRenderedRunningID = e.ToolCallID
 }
 
 func (r *inlineRenderer) renderToolCompleted(e executiontui.ToolCompletedEvent) {
+	if r.lastOutputWasRunning && r.lastRenderedRunningID == e.ToolCallID &&
+		termctl.IsSupported(r.cfg.status) {
+		termctl.EraseLines(r.cfg.status, 1)
+	}
 	line := toolrender.RenderCompact(e.ToolCall, r.compactOpts)
 	if e.SubAgentID != "" {
 		line = toolrender.GutterWrap(line)
@@ -396,15 +412,6 @@ func (r *inlineRenderer) renderToolWaitingApproval(e executiontui.ToolWaitingApp
 		runningLineRendered: r.lastRenderedRunningID == e.ToolCallID,
 		contentStreamed:     contentStreamed,
 		streamedRows:        streamedRows,
-	}
-}
-
-func (r *inlineRenderer) renderToolCalls(toolCalls []toolrender.ToolCallInfo) {
-	for _, tc := range toolCalls {
-		r.statusf("%s\n", toolrender.Render(tc))
-	}
-	if len(toolCalls) > 0 {
-		r.statusf("\n")
 	}
 }
 
@@ -502,6 +509,7 @@ func (r *inlineRenderer) flushPendingReads() {
 	if len(r.pendingReads) == 0 {
 		return
 	}
+	r.finishAIStreamIfNeeded()
 
 	subAgentID := r.pendingReads[0].subAgentID
 	tcs := make([]toolrender.ToolCallInfo, len(r.pendingReads))
@@ -547,16 +555,24 @@ func (r *inlineRenderer) finishAIStreamIfNeeded() {
 }
 
 // agentPrefix returns the AI message prefix, adjusted for sub-agent context.
+// Main-agent messages get a plain bullet marker matching Claude Code's visual
+// language. Sub-agent messages are rendered separately with gutter wrapping
+// and do not need a prefix here.
 func (r *inlineRenderer) agentPrefix(subAgentID string) string {
-	return ""
+	if subAgentID != "" {
+		return ""
+	}
+	return "● "
 }
 
 func (r *inlineRenderer) statusf(format string, args ...interface{}) {
+	r.lastOutputWasRunning = false
 	fmt.Fprintf(r.cfg.status, format, args...)
 	r.flushWriter(r.cfg.status)
 }
 
 func (r *inlineRenderer) flushData() {
+	r.lastOutputWasRunning = false
 	r.flushWriter(r.cfg.data)
 }
 

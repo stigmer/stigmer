@@ -202,6 +202,28 @@ func TestBuildExpandedView_EmptyContent(t *testing.T) {
 	}
 }
 
+func TestBuildExpandedView_SeparatorBeforeHeader(t *testing.T) {
+	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
+	tc := shellToolCall()
+
+	view := stripANSIApproval(r.buildExpandedView(tc))
+	lines := strings.Split(strings.TrimRight(view, "\n"), "\n")
+
+	if len(lines) < 3 {
+		t.Fatalf("expected at least 3 lines, got %d:\n%s", len(lines), view)
+	}
+	if !strings.Contains(lines[0], "─") {
+		t.Errorf("first line should be a separator, got: %q", lines[0])
+	}
+	if !strings.Contains(lines[1], "Shell") {
+		t.Errorf("second line should contain the tool header, got: %q", lines[1])
+	}
+	lastLine := lines[len(lines)-1]
+	if !strings.Contains(lastLine, "─") {
+		t.Errorf("last line should be a separator, got: %q", lastLine)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Non-interactive approval (defaultAction set)
 // ---------------------------------------------------------------------------

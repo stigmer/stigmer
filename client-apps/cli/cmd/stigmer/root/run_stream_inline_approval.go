@@ -199,17 +199,18 @@ func (r *inlineRenderer) resolveApprovalContext(e executiontui.ApprovalNeededEve
 }
 
 // buildExpandedView assembles the expanded approval content shown before
-// the user makes a decision: header + separator + content + separator.
-// The trailing newline is included so the caller can count rows accurately.
+// the user makes a decision: separator + header + content + separator.
+// Separators frame the tool call, with the question and menu rendered
+// in the footer below the bottom separator.
 func (r *inlineRenderer) buildExpandedView(tc toolrender.ToolCallInfo) string {
 	var b strings.Builder
+	sep := toolrender.ApprovalSeparator()
+
+	b.WriteString(sep)
+	b.WriteByte('\n')
 
 	header := toolrender.ExpandedApprovalHeader(tc, r.compactOpts)
 	b.WriteString(header)
-	b.WriteByte('\n')
-
-	sep := toolrender.ApprovalSeparator()
-	b.WriteString(sep)
 	b.WriteByte('\n')
 
 	content := toolrender.ExpandedApprovalContent(tc)
