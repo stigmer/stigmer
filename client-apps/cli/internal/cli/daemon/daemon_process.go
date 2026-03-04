@@ -15,6 +15,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/temporal"
 )
 
 const (
@@ -99,6 +100,37 @@ func RunDaemonProcess() error {
 		Components: make(map[string]*ComponentState),
 	}
 
+	// Start managed Temporal before any components that depend on it.
+	var temporalManager *temporal.Manager
+	temporalManaged := os.Getenv("STIGMER_TEMPORAL_MANAGED") == "true"
+
+	if temporalManaged {
+		temporalManager = temporal.NewManager(dataDir, "", 0)
+
+		log.Info().Msg("Starting managed Temporal...")
+		temporalState := &ComponentState{}
+		hs.Components["temporal"] = temporalState
+
+		if err := temporalManager.Start(); err != nil {
+			temporalState.State = "failed"
+			temporalState.LastError = err.Error()
+			log.Error().Err(err).Msg("Failed to start managed Temporal")
+			writeHealthState(dataDir, hs)
+			return errors.Wrap(err, "failed to start managed Temporal")
+		}
+
+		temporalState.PID = temporalManager.GetPID()
+		temporalState.State = "running"
+		temporalState.StartedAt = time.Now()
+		log.Info().
+			Int("pid", temporalState.PID).
+			Str("address", temporalManager.GetAddress()).
+			Msg("Managed Temporal started")
+
+		temporalManager.StartSupervisor()
+		writeHealthState(dataDir, hs)
+	}
+
 	components := buildComponents(cliBin, dataDir, logDir, grpcPort)
 
 	// Start components sequentially. stigmer-server must be first because
@@ -173,7 +205,7 @@ func RunDaemonProcess() error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		runHealthMonitor(ctx, dataDir, components, hs)
+		runHealthMonitor(ctx, dataDir, components, hs, temporalManager)
 	}()
 
 	// Wait for shutdown signal
@@ -194,6 +226,20 @@ func RunDaemonProcess() error {
 		stopProcess(c.name, c.cmd.Process.Pid)
 		_ = os.Remove(c.pidFile)
 		c.state.State = "stopped"
+	}
+
+	// Stop managed Temporal last -- workers need it available while they drain.
+	if temporalManager != nil {
+		temporalManager.StopSupervisor()
+		log.Info().Msg("Stopping managed Temporal...")
+		if err := temporalManager.Stop(); err != nil {
+			log.Warn().Err(err).Msg("Failed to stop managed Temporal cleanly")
+		} else {
+			log.Info().Msg("Managed Temporal stopped")
+		}
+		if ts := hs.Components["temporal"]; ts != nil {
+			ts.State = "stopped"
+		}
 	}
 
 	writeHealthState(dataDir, hs)
@@ -336,7 +382,8 @@ func startChildProcessWithDir(bin string, args []string, dir, logDir, name strin
 }
 
 // runHealthMonitor periodically checks component health and restarts crashed ones.
-func runHealthMonitor(ctx context.Context, dataDir string, components []*managedComponent, hs *HealthState) {
+// temporalMgr may be nil when Temporal is external (unmanaged).
+func runHealthMonitor(ctx context.Context, dataDir string, components []*managedComponent, hs *HealthState, temporalMgr *temporal.Manager) {
 	ticker := time.NewTicker(healthCheckInterval)
 	defer ticker.Stop()
 
@@ -345,6 +392,20 @@ func runHealthMonitor(ctx context.Context, dataDir string, components []*managed
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+			// Sync Temporal state from the supervisor (which handles restarts
+			// independently via Manager.IsRunning / Manager.Start).
+			if temporalMgr != nil {
+				if ts := hs.Components["temporal"]; ts != nil {
+					if temporalMgr.IsRunning() {
+						ts.State = "running"
+						ts.PID = temporalMgr.GetPID()
+						ts.LastError = ""
+					} else {
+						ts.State = "unhealthy"
+					}
+				}
+			}
+
 			for _, c := range components {
 				if c.cmd == nil || c.state.State == "failed" {
 					continue

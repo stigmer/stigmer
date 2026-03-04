@@ -45,9 +45,10 @@ func handleServerStatus(format clioutput.OutputFormat) {
 			Field("Uptime", formatDuration(time.Since(hs.StartedAt)))
 	}
 
-	// Show all components uniformly
-	componentOrder := []string{"stigmer-server", "workflow-runner", "agent-runner"}
+	// Show all components uniformly (Temporal first as foundational dependency)
+	componentOrder := []string{"temporal", "stigmer-server", "workflow-runner", "agent-runner"}
 	componentLabels := map[string]string{
+		"temporal":        "Temporal",
 		"stigmer-server":  "Stigmer Server",
 		"workflow-runner": "Workflow Runner",
 		"agent-runner":    "Agent Runner",
@@ -72,8 +73,14 @@ func handleServerStatus(format clioutput.OutputFormat) {
 		addLLMSections(result, cfg)
 	}
 
-	result.AddSection("Web UI").
-		Field("Temporal", "http://localhost:8233")
+	temporalRunning := false
+	if ts, ok := hs.Components["temporal"]; ok && ts.State == "running" {
+		temporalRunning = true
+	}
+	if temporalRunning {
+		result.AddSection("Web UI").
+			Field("Temporal", "http://localhost:8233")
+	}
 
 	renderer.Render(result)
 }
