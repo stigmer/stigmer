@@ -333,13 +333,11 @@ func (r *inlineRenderer) printCollapsedResult(tc toolrender.ToolCallInfo, action
 
 // trackSuppression records the tool call ID for ToolCompletedEvent
 // suppression when the tool's completion would duplicate the approval
-// result. Write/edit/delete completions are suppressed. Shell tool
-// completions are handled separately by the streaming interception
-// (completeStreamingTool) and do not use suppressedToolIDs.
+// result. Write/edit/delete completions are suppressed for all approval
+// actions (approve, skip, reject). Shell tool completions are handled
+// separately by the streaming interception (completeStreamingTool) and
+// do not use suppressedToolIDs.
 func (r *inlineRenderer) trackSuppression(toolCallID, toolName, action string) {
-	if action == "reject" {
-		return
-	}
 	if toolrender.ShouldSuppressCompletion(toolName) {
 		r.suppressedToolIDs[toolCallID] = true
 	}

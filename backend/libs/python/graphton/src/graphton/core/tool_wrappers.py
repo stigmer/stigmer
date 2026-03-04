@@ -841,11 +841,14 @@ def _check_and_handle_approval(
         return skip_message
     
     elif action == "reject":
-        logger.warning(f"❌ User rejected execution of '{tool_name}'")
-        raise ToolExecutionRejectedError(
-            tool_name=tool_name,
-            message=f"User rejected execution of tool '{tool_name}'",
+        reject_message = (
+            f"Tool '{tool_name}' was REJECTED by the user. "
+            "The user has explicitly indicated they do not want this operation. "
+            "Do NOT retry this exact operation. "
+            "Re-evaluate your approach and propose an alternative."
         )
+        logger.info(f"❌ {reject_message}")
+        return reject_message
     
     elif action == "approve":
         logger.info(f"✅ User approved execution of '{tool_name}'")
@@ -853,14 +856,17 @@ def _check_and_handle_approval(
     
     else:
         # Unknown action - treat as rejection for safety
+        reject_message = (
+            f"Tool '{tool_name}' received unknown approval action '{action}'. "
+            "Treating as rejected for safety. "
+            "Do NOT retry this exact operation. "
+            "Re-evaluate your approach and propose an alternative."
+        )
         logger.warning(
             f"⚠️  Unknown approval action '{action}' for '{tool_name}'. "
             "Treating as rejection for safety."
         )
-        raise ToolExecutionRejectedError(
-            tool_name=tool_name,
-            message=f"Unknown approval action '{action}'. Execution rejected.",
-        )
+        return reject_message
 
 
 def _apply_line_range(content: str, offset: int, limit: int) -> str:
