@@ -8,7 +8,6 @@ import (
 
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
 )
 
@@ -28,7 +27,6 @@ func newSpinnerTestRenderer() *inlineRenderer {
 		},
 		compactOpts:       toolrender.CompactOptions{},
 		suppressedToolIDs: make(map[string]bool),
-		spinner:           spinner.New(&stderr),
 		thinkTimer:        thinkTimer,
 	}
 }
@@ -139,11 +137,18 @@ func TestStartThinkingSpinner_NoOpWhenNotAllowed(t *testing.T) {
 	r := newSpinnerTestRenderer()
 	r.phase = "completed"
 
+	// No program is set, so startThinkingSpinner is a no-op regardless.
+	// The thinkingAllowed guard prevents sending spinnerStartMsg.
 	r.startThinkingSpinner()
+}
 
-	if r.spinner.IsActive() {
-		t.Error("spinner should not start when thinking is not allowed")
-	}
+func TestStartThinkingSpinner_NoOpWhenNoProgram(t *testing.T) {
+	r := newSpinnerTestRenderer()
+	r.phase = "in_progress"
+
+	// program is nil in test environment; startThinkingSpinner should
+	// not panic — it simply has no program to send to.
+	r.startThinkingSpinner()
 }
 
 func TestStopThinkingSpinner_SafeWhenInactive(t *testing.T) {

@@ -44,6 +44,121 @@ func TestInlineBubbleModel_Update_PassThrough(t *testing.T) {
 }
 
 // =============================================================================
+// Spinner Model Tests
+// =============================================================================
+
+func TestInlineBubbleModel_SpinnerStart_ActivatesAndReturnsTick(t *testing.T) {
+	m := newInlineBubbleModel()
+	updated, cmd := m.Update(spinnerStartMsg{label: "Thinking..."})
+
+	model := updated.(inlineBubbleModel)
+	if !model.spinnerActive {
+		t.Error("spinnerStartMsg should set spinnerActive=true")
+	}
+	if model.spinnerLabel != "Thinking..." {
+		t.Errorf("expected label 'Thinking...', got %q", model.spinnerLabel)
+	}
+	if model.spinnerFrame != 0 {
+		t.Errorf("expected frame 0 on start, got %d", model.spinnerFrame)
+	}
+	if cmd == nil {
+		t.Error("spinnerStartMsg should return a tick Cmd")
+	}
+}
+
+func TestInlineBubbleModel_SpinnerStop_Deactivates(t *testing.T) {
+	m := newInlineBubbleModel()
+	started, _ := m.Update(spinnerStartMsg{label: "Thinking..."})
+	stopped, cmd := started.Update(spinnerStopMsg{})
+
+	model := stopped.(inlineBubbleModel)
+	if model.spinnerActive {
+		t.Error("spinnerStopMsg should set spinnerActive=false")
+	}
+	if cmd != nil {
+		t.Error("spinnerStopMsg should return nil Cmd (no more ticks)")
+	}
+}
+
+func TestInlineBubbleModel_SpinnerTick_AdvancesFrame(t *testing.T) {
+	m := newInlineBubbleModel()
+	started, _ := m.Update(spinnerStartMsg{label: "Thinking..."})
+
+	ticked, cmd := started.Update(spinnerTickMsg{})
+	model := ticked.(inlineBubbleModel)
+	if model.spinnerFrame != 1 {
+		t.Errorf("expected frame 1 after one tick, got %d", model.spinnerFrame)
+	}
+	if cmd == nil {
+		t.Error("active tick should return next tick Cmd")
+	}
+
+	ticked2, _ := ticked.Update(spinnerTickMsg{})
+	model2 := ticked2.(inlineBubbleModel)
+	if model2.spinnerFrame != 2 {
+		t.Errorf("expected frame 2 after two ticks, got %d", model2.spinnerFrame)
+	}
+}
+
+func TestInlineBubbleModel_SpinnerTick_StopsWhenInactive(t *testing.T) {
+	m := newInlineBubbleModel()
+
+	ticked, cmd := m.Update(spinnerTickMsg{})
+	model := ticked.(inlineBubbleModel)
+	if model.spinnerFrame != 0 {
+		t.Errorf("tick on inactive spinner should not advance frame, got %d", model.spinnerFrame)
+	}
+	if cmd != nil {
+		t.Error("tick on inactive spinner should return nil Cmd (terminate chain)")
+	}
+}
+
+func TestInlineBubbleModel_View_SpinnerActive(t *testing.T) {
+	m := newInlineBubbleModel()
+	started, _ := m.Update(spinnerStartMsg{label: "Thinking..."})
+	model := started.(inlineBubbleModel)
+
+	v := model.View()
+	if v == "" {
+		t.Fatal("View() should return non-empty string when spinner is active")
+	}
+	if !strings.Contains(v, "Thinking...") {
+		t.Errorf("View() should contain the label, got %q", v)
+	}
+	if !strings.Contains(v, "⠋") {
+		t.Errorf("View() should contain the first spinner frame, got %q", v)
+	}
+}
+
+func TestInlineBubbleModel_View_SpinnerInactive(t *testing.T) {
+	m := newInlineBubbleModel()
+	if v := m.View(); v != "" {
+		t.Errorf("View() should return empty string when spinner is inactive, got %q", v)
+	}
+}
+
+func TestInlineBubbleModel_SpinnerStart_ResetsFrame(t *testing.T) {
+	m := newInlineBubbleModel()
+	started, _ := m.Update(spinnerStartMsg{label: "Working..."})
+	ticked, _ := started.Update(spinnerTickMsg{})
+	ticked2, _ := ticked.Update(spinnerTickMsg{})
+
+	model := ticked2.(inlineBubbleModel)
+	if model.spinnerFrame != 2 {
+		t.Fatalf("expected frame 2 before restart, got %d", model.spinnerFrame)
+	}
+
+	restarted, _ := ticked2.Update(spinnerStartMsg{label: "Thinking..."})
+	restartedModel := restarted.(inlineBubbleModel)
+	if restartedModel.spinnerFrame != 0 {
+		t.Errorf("spinnerStartMsg should reset frame to 0, got %d", restartedModel.spinnerFrame)
+	}
+	if restartedModel.spinnerLabel != "Thinking..." {
+		t.Errorf("expected label 'Thinking...' after restart, got %q", restartedModel.spinnerLabel)
+	}
+}
+
+// =============================================================================
 // Program Lifecycle Tests
 // =============================================================================
 

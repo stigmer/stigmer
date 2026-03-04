@@ -11,7 +11,6 @@ import (
 
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
 )
 
@@ -73,11 +72,9 @@ type inlineRenderer struct {
 	cfg         inlineRenderConfig
 	compactOpts toolrender.CompactOptions
 
-	// Thinking spinner state — shows an animated indicator on stderr when
-	// the agent is idle (reasoning between tool calls). The timer fires
-	// after thinkingIdleDelay of inactivity; the spinner is cleared before
-	// processing any event.
-	spinner    *spinner.Spinner
+	// thinkTimer fires after thinkingIdleDelay of inactivity, triggering
+	// the thinking spinner. The spinner itself is rendered by Bubbletea's
+	// View() via spinnerStartMsg / spinnerStopMsg sent from the event loop.
 	thinkTimer *time.Timer
 	phase      string
 
@@ -175,7 +172,6 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, ex
 			WorkspaceRoots:    cfg.workspaceRoots,
 		},
 		suppressedToolIDs: make(map[string]bool),
-		spinner:           spinner.New(cfg.status),
 		thinkTimer:        thinkTimer,
 	}
 
