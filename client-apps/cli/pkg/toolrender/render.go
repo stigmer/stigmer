@@ -192,16 +192,6 @@ var (
 	dangerStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Bold(true)
 )
 
-// DisplayLabel returns the human-readable label for a tool name (e.g.,
-// "execute" -> "Execute", "read_file" -> "Read"). Returns the raw tool
-// name unchanged for unrecognized tools.
-func DisplayLabel(toolName string) string {
-	if info, ok := toolDisplayMap[toolName]; ok {
-		return info.label
-	}
-	return toolName
-}
-
 // IsShellTool reports whether toolName represents a shell/command execution
 // tool. Derived from toolDisplayMap entries whose primaryField is "command".
 func IsShellTool(toolName string) bool {
@@ -260,18 +250,6 @@ func StateBadge(state string) string {
 	}
 }
 
-// HasDisplayableContent reports whether a tool call has content that can be
-// shown in an expanded view. For most tools, content is tc.Result. For write
-// tools (and others with contentArgField configured), content may come from
-// the tool arguments (e.g., the file content being written).
-func HasDisplayableContent(tc ToolCallInfo) bool {
-	info, known := toolDisplayMap[tc.Name]
-	if !known {
-		return tc.Result != ""
-	}
-	return resolveDisplayContent(tc, info) != ""
-}
-
 // RenderWithBadge returns the tool call header with metadata and a status
 // badge, followed by content preview lines. This is the collapsed (preview)
 // rendering for a stateful tool block.
@@ -316,126 +294,6 @@ func RenderWithBadge(tc ToolCallInfo, badge string) string {
 	return header
 }
 
-// RenderExpandedWithBadge returns the tool call header with a status badge,
-// followed by the complete displayable content with gutter borders. This is
-// the expanded rendering for a stateful tool block.
-//
-// When no displayable content is available, the output is identical to
-// a badge-only header (no content lines).
-//
-// Examples:
-//
-//	"  📝 Write: SKILL.md (11.0 KB, 384 lines) ⏸\n     │ # Agent Drafter\n     │ ..."
-//	"  📖 Read: main.go (1.5 KB, 33 lines) ✓\n     │ package main\n     │ ..."
-func RenderExpandedWithBadge(tc ToolCallInfo, badge string) string {
-	info, known := toolDisplayMap[tc.Name]
-
-	var header string
-	if known {
-		header = renderKnownHeader(tc, info)
-	} else {
-		header = renderUnknownHeader(tc)
-	}
-
-	if badge != "" {
-		header += " " + dimStyle.Render(badge)
-	}
-
-	// Resolve the displayable content — respects contentSource so write
-	// tools show args content, read tools show result content.
-	var content string
-	if known {
-		content = resolveDisplayContent(tc, info)
-	} else {
-		content = tc.Result
-	}
-
-	if content == "" {
-		return header
-	}
-
-	filename := extractFilename(tc.Args)
-	fullContent := formatFullResultWithGutter(content, filename)
-	if fullContent == "" {
-		return header
-	}
-
-	return header + "\n" + fullContent
-}
-
-// RenderRunning returns a tool call header with a running indicator.
-// Used by the TUI to display tools that are currently executing.
-// The running indicator (⏳) signals liveness to the user.
-//
-// Deprecated: Use RenderWithBadge(tc, StateBadge("running")) instead.
-// Kept for backward compatibility with non-TUI rendering paths.
-//
-// Examples:
-//
-//	"  📖 Read: main.go ⏳"
-//	"  🖥  Shell: ls -la /tmp ⏳"
-//	"  📝 Write: outputs/SKILL.md ⏳"
-//	"  🔧 custom_tool: some_value ⏳"
-func RenderRunning(tc ToolCallInfo) string {
-	info, known := toolDisplayMap[tc.Name]
-
-	var header string
-	if known {
-		primaryVal := extractPrimaryArgWithFallbacks(tc.Args, info.primaryField, info.fallbackFields)
-		if primaryVal != "" {
-			styled := styleValue(primaryVal, info.dangerous)
-			header = fmt.Sprintf("  %s %s: %s", info.icon, labelStyle.Render(info.label), styled)
-		} else {
-			header = fmt.Sprintf("  %s %s", info.icon, labelStyle.Render(info.label))
-		}
-	} else {
-		firstVal := extractFirstArg(tc.Args)
-		if firstVal != "" {
-			header = fmt.Sprintf("  🔧 %s: %s", labelStyle.Render(tc.Name), firstVal)
-		} else {
-			header = fmt.Sprintf("  🔧 %s", labelStyle.Render(tc.Name))
-		}
-	}
-
-	return header + " " + dimStyle.Render("⏳")
-}
-
-// RenderWaitingApproval returns a tool call header with a waiting-for-approval
-// indicator. Used by the TUI to display tools that need user approval before
-// they can execute. The pause indicator (⏸) signals that the tool is blocked.
-//
-// Deprecated: Use RenderWithBadge(tc, StateBadge("waiting_approval")) instead.
-// Kept for backward compatibility with non-TUI rendering paths.
-//
-// Examples:
-//
-//	"  📝 Write: outputs/SKILL.md ⏸ awaiting approval"
-//	"  🖥  Shell: rm -rf /tmp ⏸ awaiting approval"
-//	"  🔧 custom_tool: some_value ⏸ awaiting approval"
-func RenderWaitingApproval(tc ToolCallInfo) string {
-	info, known := toolDisplayMap[tc.Name]
-
-	var header string
-	if known {
-		primaryVal := extractPrimaryArgWithFallbacks(tc.Args, info.primaryField, info.fallbackFields)
-		if primaryVal != "" {
-			styled := styleValue(primaryVal, info.dangerous)
-			header = fmt.Sprintf("  %s %s: %s", info.icon, labelStyle.Render(info.label), styled)
-		} else {
-			header = fmt.Sprintf("  %s %s", info.icon, labelStyle.Render(info.label))
-		}
-	} else {
-		firstVal := extractFirstArg(tc.Args)
-		if firstVal != "" {
-			header = fmt.Sprintf("  🔧 %s: %s", labelStyle.Render(tc.Name), firstVal)
-		} else {
-			header = fmt.Sprintf("  🔧 %s", labelStyle.Render(tc.Name))
-		}
-	}
-
-	return header + " " + dimStyle.Render("⏸ awaiting approval")
-}
-
 // RenderResult returns a compact display of a tool result message.
 //
 // Used for MESSAGE_TOOL messages where we have the result content but not
@@ -473,59 +331,4 @@ func RenderResultWithPreview(content string) string {
 	// Show a truncated preview (max ~80 chars to fit on one line).
 	preview := truncate(content, 80)
 	return dimStyle.Render("  ↳ " + preview)
-}
-
-// RenderExpanded returns the tool call header followed by the complete
-// displayable content with gutter borders. Used by the TUI's expanded state
-// to show all output lines instead of a truncated preview.
-//
-// Content source respects the tool's contentSource setting: write/edit tools
-// show args content (the input), read/shell/discovery tools show tc.Result
-// (the output). See resolveDisplayContent.
-//
-// When no displayable content is available, the output is identical to the
-// header produced by Render (without the preview). For unknown tools, the
-// generic header is used.
-//
-// Examples:
-//
-//	"  📖 Read: main.go (1.5 KB, 33 lines)\n     │ package main\n     │ \n     │ import \"fmt\"\n     │ ..."
-//	"  📂 List: /workspace (97 chars)\n     │ bin\n     │ etc\n     │ home"
-//	"  📝 Write: SKILL.md (11.0 KB, 384 lines)\n     │ # Agent Drafter\n     │ ..."
-func RenderExpanded(tc ToolCallInfo) string {
-	info, known := toolDisplayMap[tc.Name]
-
-	var header string
-	if known {
-		header = renderKnownHeader(tc, info)
-	} else {
-		header = renderUnknownHeader(tc)
-	}
-
-	// Resolve the displayable content — respects contentSource so write
-	// tools show args content, read tools show result content.
-	var content string
-	if known {
-		content = resolveDisplayContent(tc, info)
-	} else {
-		content = tc.Result
-	}
-
-	if content == "" {
-		return header
-	}
-
-	// Extract filename for syntax highlighting. For file-read and write
-	// tools, the filename comes from the args. For other tools, this
-	// returns "" and highlighting is gracefully skipped.
-	filename := extractFilename(tc.Args)
-
-	fullContent := formatFullResultWithGutter(content, filename)
-	if fullContent == "" {
-		return header
-	}
-
-	// formatFullResultWithGutter handles styling internally (dim gutter +
-	// syntax-highlighted content), so we append directly.
-	return header + "\n" + fullContent
 }

@@ -38,7 +38,6 @@ func TestOutputMode_String(t *testing.T) {
 		mode OutputMode
 		want string
 	}{
-		{OutputInteractive, "interactive"},
 		{OutputInline, "inline"},
 		{OutputJSON, "json"},
 		{OutputMode(99), "unknown"},

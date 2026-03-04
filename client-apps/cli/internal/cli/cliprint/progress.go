@@ -37,7 +37,6 @@ const (
 	phaseDeleting     ProgressPhase = "deleting"
 	phaseCompleted    ProgressPhase = "completed"
 	PhaseStarting     ProgressPhase = "starting"
-	PhaseReady        ProgressPhase = "ready"
 )
 
 type phaseStatus int

@@ -6,7 +6,6 @@ import (
 	"os"
 	"slices"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/pkg/errors"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
@@ -38,11 +37,10 @@ func executeRunSession(sessionID, orgOverride string, verbose bool, outputMode O
 //
 // It fetches the session, finds the latest execution, and either:
 //   - Re-attaches to the live stream if the execution is still running
-//   - Opens a resumable TUI with the full conversation history if all
-//     executions have completed, allowing the user to continue
+//   - Resumes with the full conversation history if all executions have
+//     completed, allowing the user to continue
 //
-// The spinner is active on entry and stopped after session data is loaded
-// (before printing session info and entering streaming/TUI).
+// The spinner is active on entry and stopped after session data is loaded.
 func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, conn *grpc.ClientConn, sp *spinner.Spinner) error {
 	sp.Update("Loading session...")
 	ses, err := session.GetFromBackend(conn, sessionID)
@@ -89,12 +87,7 @@ func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, c
 		climsg.Info("Re-attaching to session...")
 		fmt.Println()
 		executionID := latestExec.GetMetadata().GetId()
-		var prompter approval.Prompter
-		if outputMode == OutputInline {
-			prompter = approval.NewInlinePrompter(os.Stdin, os.Stderr)
-		} else {
-			prompter = approval.NewInteractivePrompter()
-		}
+		prompter := approval.NewInlinePrompter(os.Stdin, os.Stderr)
 		_, err := streamAgentExecution(sessionID, subject, executionID, orgID, prompter, approval.Action(0), verbose, outputMode, conn)
 		return err
 
@@ -105,10 +98,9 @@ func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, c
 
 // resumeSession opens a completed session with the full conversation history
 // and allows the user to continue. Stored executions are converted into the
-// same event stream that the live TUI processes (via snapshotToEvents), so
-// noise suppression, lifecycle badges, and duplicate filtering all apply
-// automatically. The input composer activates after all historical events
-// are processed, letting the user send a follow-up message.
+// same event stream (via snapshotToEvents), so noise suppression, lifecycle
+// badges, and duplicate filtering all apply automatically. The follow-up
+// prompt activates after all historical events are rendered.
 func resumeSession(sessionID, sessionSubject, orgID string, executions []*agentexecutionv1.AgentExecution, verbose bool, outputMode OutputMode, conn *grpc.ClientConn) error {
 	climsg.Info("Resuming session...")
 	fmt.Println()
@@ -127,7 +119,20 @@ func resumeSession(sessionID, sessionSubject, orgID string, executions []*agente
 	go snapshotToEvents(chronological, events)
 
 	switch outputMode {
-	case OutputInline:
+	case OutputJSON:
+		_, exitErr := renderJSON(streamCtx, jsonRenderConfig{
+			events:            events,
+			approvalResponses: approvalResponses,
+			data:              os.Stdout,
+			status:            os.Stderr,
+		})
+		streamCancel()
+		if exitErr != "" {
+			return errors.New(exitErr)
+		}
+		return nil
+
+	default:
 		prompter := approval.NewInlinePrompter(os.Stdin, os.Stderr)
 		followUpFn := buildFollowUpFn(streamCtx, sessionID, orgID, conn)
 		cfg := inlineRenderConfig{
@@ -149,73 +154,5 @@ func resumeSession(sessionID, sessionSubject, orgID string, executions []*agente
 		}
 		displaySessionExitLine(sessionID, finalExec)
 		return nil
-
-	case OutputJSON:
-		_, exitErr := renderJSON(streamCtx, jsonRenderConfig{
-			events:            events,
-			approvalResponses: approvalResponses,
-			data:              os.Stdout,
-			status:            os.Stderr,
-		})
-		streamCancel()
-		if exitErr != "" {
-			return errors.New(exitErr)
-		}
-		return nil
-
-	default:
-		return resumeSessionInteractive(streamCtx, streamCancel, sessionID, sessionSubject, orgID, latestExecID, events, approvalResponses, verbose, conn)
 	}
-}
-
-// resumeSessionInteractive runs the Bubbletea alt-screen TUI for a resumed
-// session with the full conversation history and follow-up capability.
-func resumeSessionInteractive(streamCtx context.Context, streamCancel context.CancelFunc, sessionID, sessionSubject, orgID, latestExecID string, events chan executiontui.Event, approvalResponses chan executiontui.ApprovalResponse, verbose bool, conn *grpc.ClientConn) error {
-	followUpFn := buildFollowUpFn(streamCtx, sessionID, orgID, conn)
-
-	var subjectFetchFn func() string
-	if sessionSubject == "" {
-		subjectFetchFn = func() string {
-			ses, err := session.GetFromBackend(conn, sessionID)
-			if err != nil {
-				return ""
-			}
-			return session.ResolvedSubject(ses.GetSpec().GetSubject())
-		}
-	}
-
-	model := executiontui.New(executiontui.Config{
-		SessionID:         sessionID,
-		SessionSubject:    sessionSubject,
-		ExecutionID:       latestExecID,
-		Events:            events,
-		ApprovalResponses: approvalResponses,
-		FollowUpFn:        followUpFn,
-		SubjectFetchFn:    subjectFetchFn,
-		Verbose:           verbose,
-	})
-
-	p := tea.NewProgram(model, tea.WithAltScreen())
-	finalModel, err := runTUIWithProtection(p)
-	streamCancel()
-
-	if err != nil {
-		return errors.Wrap(err, "TUI session failed")
-	}
-
-	result := finalModel.(executiontui.Model)
-
-	finalExecID := result.LatestExecutionID()
-	finalExec, err := fetchFinalExecution(context.Background(), conn, finalExecID)
-	if err != nil {
-		return errors.Wrap(err, "failed to fetch final execution state")
-	}
-
-	if result.Done() {
-		displaySessionExitLine(sessionID, finalExec)
-	} else {
-		displaySessionDetachLine(sessionID)
-	}
-
-	return nil
 }
