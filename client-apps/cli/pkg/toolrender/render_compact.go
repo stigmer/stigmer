@@ -278,11 +278,7 @@ func renderCompactRead(tc ToolCallInfo, info toolDisplayInfo, opts CompactOption
 	displayPath := buildHyperlinkedPath(path, opts)
 	header := fmt.Sprintf("%s %s(%s)", bulletStyle.Render("●"), labelStyle.Render("Read"), displayPath)
 
-	if tc.Status == "failed" || tc.Error != "" {
-		errMsg := tc.Error
-		if errMsg == "" {
-			errMsg = "failed"
-		}
+	if errMsg := toolCallError(tc); errMsg != "" {
 		return header + "\n" + dimStyle.Render("    ✗ "+truncate(errMsg, 60))
 	}
 
@@ -534,6 +530,46 @@ func discoverySummary(label string, count int) string {
 	}
 }
 
+// resultErrorPrefix is the prefix the backend's enrich_error_message uses to
+// mark tool results that contain error information. When a tool catches an
+// exception, the Python worker returns the error as a result string starting
+// with this prefix while leaving status as TOOL_CALL_COMPLETED and error empty.
+const resultErrorPrefix = "Error: "
+
+// toolCallError returns the error message for a tool call, checking three
+// sources in priority order:
+//  1. tc.Error (explicit error field from proto)
+//  2. tc.Status == "failed" (status without error message)
+//  3. tc.Result starts with "Error: " (backend embeds errors in result)
+//
+// Returns empty string if no error is detected.
+func toolCallError(tc ToolCallInfo) string {
+	if tc.Error != "" {
+		return tc.Error
+	}
+	if tc.Status == "failed" {
+		return "failed"
+	}
+	if msg := extractResultError(tc.Result); msg != "" {
+		return msg
+	}
+	return ""
+}
+
+// extractResultError checks if a tool result contains an embedded error
+// message (prefixed with "Error: "). Returns the first line of the error
+// (without prefix), or empty string if no error detected.
+func extractResultError(result string) string {
+	if !strings.HasPrefix(result, resultErrorPrefix) {
+		return ""
+	}
+	msg := result[len(resultErrorPrefix):]
+	if idx := strings.IndexByte(msg, '\n'); idx >= 0 {
+		msg = msg[:idx]
+	}
+	return msg
+}
+
 // firstLine returns the first line of s, stripping any trailing newline.
 // Used to sanitize commands that may contain embedded newlines before
 // rendering them in a single-line header.
@@ -560,7 +596,7 @@ func RenderReadGroup(reads []ToolCallInfo, opts CompactOptions) string {
 
 	failCount := 0
 	for _, tc := range reads {
-		if tc.Status == "failed" || tc.Error != "" {
+		if toolCallError(tc) != "" {
 			failCount++
 		}
 	}
@@ -602,11 +638,7 @@ func renderGroupEntry(tc ToolCallInfo, opts CompactOptions) string {
 	path := extractPrimaryArgWithFallbacks(tc.Args, info.primaryField, info.fallbackFields)
 	displayPath := buildHyperlinkedPath(path, opts)
 
-	if tc.Status == "failed" || tc.Error != "" {
-		errMsg := tc.Error
-		if errMsg == "" {
-			errMsg = "failed"
-		}
+	if errMsg := toolCallError(tc); errMsg != "" {
 		return "    " + displayPath + dimStyle.Render(" ✗ "+truncate(errMsg, 50))
 	}
 

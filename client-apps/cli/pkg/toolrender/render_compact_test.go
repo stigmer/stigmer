@@ -221,6 +221,184 @@ func TestRenderCompact_Read_ErrorWithEmptyErrorField(t *testing.T) {
 }
 
 // =============================================================================
+// RenderCompact — read tool, error embedded in result
+// =============================================================================
+
+func TestRenderCompact_Read_ErrorInResult(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "read_file",
+		Args:   map[string]interface{}{"path": "missing.go"},
+		Status: "completed",
+		Result: "Error: File not found: 'missing.go' (resolved to '/workspace/missing.go')\n\nRecovery suggestions:\n- Try using ls or glob to discover available files/resources\n- Check if the path is correct\n",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertContains(t, got, "missing.go")
+	assertContains(t, got, "✗")
+	assertContains(t, got, "File not found")
+	assertNotContains(t, got, "lines")
+}
+
+func TestRenderCompact_Read_ErrorInResult_ShowsFirstLine(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "read_file",
+		Args:   map[string]interface{}{"path": "bad.go"},
+		Status: "completed",
+		Result: "Error: Permission denied\n\nRecovery suggestions:\n- Check file permissions\n",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertContains(t, got, "✗")
+	assertContains(t, got, "Permission denied")
+	assertNotContains(t, got, "Recovery suggestions")
+}
+
+func TestRenderCompact_Read_ErrorInResult_ExplicitErrorTakesPriority(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "read_file",
+		Args:   map[string]interface{}{"path": "bad.go"},
+		Status: "failed",
+		Error:  "explicit error",
+		Result: "Error: result error",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertContains(t, got, "explicit error")
+}
+
+func TestRenderCompact_Read_NormalResultNotMistaken(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "read_file",
+		Args:   map[string]interface{}{"path": "errors.go"},
+		Status: "completed",
+		Result: "package errors\n\nfunc New(msg string) error {\n\treturn &errorString{msg}\n}\n",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	assertContains(t, got, "6 lines")
+	assertNotContains(t, got, "✗")
+}
+
+// =============================================================================
+// RenderReadGroup — error embedded in result
+// =============================================================================
+
+func TestRenderReadGroup_WithErrorInResult_HeaderShowsCount(t *testing.T) {
+	reads := []ToolCallInfo{
+		{Name: "read_file", Args: map[string]interface{}{"path": "main.go"}, Status: "completed", Result: "package main\n"},
+		{Name: "read_file", Args: map[string]interface{}{"path": "missing.go"}, Status: "completed", Result: "Error: File not found: 'missing.go'\n\nRecovery suggestions:\n- Check path\n"},
+		{Name: "read_file", Args: map[string]interface{}{"path": "config.go"}, Status: "completed", Result: "package config\n"},
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderReadGroup(reads, opts)
+
+	assertContains(t, got, "3 files")
+	assertContains(t, got, "(1 failed)")
+	assertContains(t, got, "main.go")
+	assertContains(t, got, "missing.go")
+	assertContains(t, got, "✗")
+	assertContains(t, got, "File not found")
+	assertContains(t, got, "config.go")
+}
+
+func TestRenderReadGroup_AllErrorInResult(t *testing.T) {
+	reads := []ToolCallInfo{
+		{Name: "read_file", Args: map[string]interface{}{"path": "a.go"}, Status: "completed", Result: "Error: not found\n\nRecovery suggestions:\n- Check path\n"},
+		{Name: "read_file", Args: map[string]interface{}{"path": "b.go"}, Status: "completed", Result: "Error: permission denied\n\nRecovery suggestions:\n- Check permissions\n"},
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderReadGroup(reads, opts)
+
+	assertContains(t, got, "2 files")
+	assertContains(t, got, "(2 failed)")
+	assertNotContains(t, got, "lines")
+}
+
+// =============================================================================
+// extractResultError
+// =============================================================================
+
+func TestExtractResultError_ErrorPrefix(t *testing.T) {
+	got := extractResultError("Error: File not found\n\nRecovery suggestions:\n- Check path\n")
+	if got != "File not found" {
+		t.Errorf("expected %q, got %q", "File not found", got)
+	}
+}
+
+func TestExtractResultError_ErrorPrefixNoNewline(t *testing.T) {
+	got := extractResultError("Error: Permission denied")
+	if got != "Permission denied" {
+		t.Errorf("expected %q, got %q", "Permission denied", got)
+	}
+}
+
+func TestExtractResultError_NormalContent(t *testing.T) {
+	got := extractResultError("package main\nfunc main() {}\n")
+	if got != "" {
+		t.Errorf("expected empty, got %q", got)
+	}
+}
+
+func TestExtractResultError_Empty(t *testing.T) {
+	got := extractResultError("")
+	if got != "" {
+		t.Errorf("expected empty, got %q", got)
+	}
+}
+
+func TestExtractResultError_ContentWithErrorWord(t *testing.T) {
+	got := extractResultError("errors.New(\"something\")\n")
+	if got != "" {
+		t.Errorf("expected empty (content starts with 'errors' not 'Error: '), got %q", got)
+	}
+}
+
+// =============================================================================
+// toolCallError
+// =============================================================================
+
+func TestToolCallError_ExplicitError(t *testing.T) {
+	tc := ToolCallInfo{Status: "failed", Error: "explicit"}
+	if got := toolCallError(tc); got != "explicit" {
+		t.Errorf("expected %q, got %q", "explicit", got)
+	}
+}
+
+func TestToolCallError_FailedNoError(t *testing.T) {
+	tc := ToolCallInfo{Status: "failed"}
+	if got := toolCallError(tc); got != "failed" {
+		t.Errorf("expected %q, got %q", "failed", got)
+	}
+}
+
+func TestToolCallError_ErrorInResult(t *testing.T) {
+	tc := ToolCallInfo{Status: "completed", Result: "Error: not found\n\nRecovery:\n- hint\n"}
+	if got := toolCallError(tc); got != "not found" {
+		t.Errorf("expected %q, got %q", "not found", got)
+	}
+}
+
+func TestToolCallError_NoError(t *testing.T) {
+	tc := ToolCallInfo{Status: "completed", Result: "package main\n"}
+	if got := toolCallError(tc); got != "" {
+		t.Errorf("expected empty, got %q", got)
+	}
+}
+
+func TestToolCallError_ExplicitErrorPriority(t *testing.T) {
+	tc := ToolCallInfo{Status: "failed", Error: "explicit", Result: "Error: result error\n"}
+	if got := toolCallError(tc); got != "explicit" {
+		t.Errorf("expected explicit error to take priority, got %q", got)
+	}
+}
+
+// =============================================================================
 // RenderCompact — read tool, OSC 8 hyperlinks
 // =============================================================================
 
