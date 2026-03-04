@@ -643,7 +643,7 @@ class TestMultiEntryWorkspacePromptSection:
         section = build_workspace_prompt_section(results)
         assert "#### Project Structure" in section
         lines = section.split("\n")
-        tree_headings = [l for l in lines if "Project Structure" in l]
+        tree_headings = [line for line in lines if "Project Structure" in line]
         for heading in tree_headings:
             assert heading.startswith("####"), (
                 f"Tree heading must be #### level, got: {heading!r}"

@@ -586,8 +586,8 @@ func RenderReadGroup(reads []ToolCallInfo, opts CompactOptions) string {
 // The file path uses normal styling (with optional hyperlink for clickability);
 // metadata (line count or error) is dim.
 //
-//	    main.go (125 lines)
-//	    missing.go ✗ file not found
+//	main.go (125 lines)
+//	missing.go ✗ file not found
 func renderGroupEntry(tc ToolCallInfo, opts CompactOptions) string {
 	info := toolDisplayMap[tc.Name]
 	path := extractPrimaryArgWithFallbacks(tc.Args, info.primaryField, info.fallbackFields)

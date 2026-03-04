@@ -44,7 +44,7 @@ func (c *WorkflowExecutionController) buildUpdatePipeline() *pipeline.Pipeline[*
 		AddStep(steps.NewValidateProtoStep[*workflowexecutionv1.WorkflowExecution]()).       // 1. Validate field constraints
 		AddStep(steps.NewResolveSlugStep[*workflowexecutionv1.WorkflowExecution]()).         // 2. Resolve slug
 		AddStep(steps.NewLoadExistingStep[*workflowexecutionv1.WorkflowExecution](c.store)). // 3. Load existing execution
-		AddStep(steps.NewBuildUpdateStateStep[*workflowexecutionv1.WorkflowExecution]()).       // 4. Build updated state
+		AddStep(steps.NewBuildUpdateStateStep[*workflowexecutionv1.WorkflowExecution]()).    // 4. Build updated state
 		AddStep(steps.NewNormalizeReferencesStep[*workflowexecutionv1.WorkflowExecution]()). // 5. Normalize cross-references
 		AddStep(steps.NewPersistStep[*workflowexecutionv1.WorkflowExecution](c.store)).      // 6. Persist execution
 		Build()

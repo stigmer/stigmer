@@ -44,7 +44,7 @@ func (c *AgentController) buildUpdatePipeline() *pipeline.Pipeline[*agentv1.Agen
 		AddStep(steps.NewResolveSlugStep[*agentv1.Agent]()).                                     // 2. Resolve slug
 		AddStep(steps.NewLoadExistingStep[*agentv1.Agent](c.store)).                             // 3. Load existing agent
 		AddStep(steps.NewBuildUpdateStateStep[*agentv1.Agent]()).                                // 4. Build updated state
-		AddStep(steps.NewNormalizeReferencesStep[*agentv1.Agent]()).                              // 5. Normalize cross-references
+		AddStep(steps.NewNormalizeReferencesStep[*agentv1.Agent]()).                             // 5. Normalize cross-references
 		AddStep(steps.NewPersistStep[*agentv1.Agent](c.store)).                                  // 6. Persist agent
 		AddStep(steps.NewIndexSearchStep[*agentv1.Agent](c.store, &extractor.AgentExtractor{})). // 6. Update search index
 		Build()

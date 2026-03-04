@@ -31,9 +31,9 @@ from __future__ import annotations
 import dataclasses
 import logging
 import os
+from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
-from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:

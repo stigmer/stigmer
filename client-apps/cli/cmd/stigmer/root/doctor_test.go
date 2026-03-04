@@ -390,7 +390,7 @@ func TestBuildDoctorResult_SectionFields(t *testing.T) {
 func TestCheckServer_BadEndpoint_Fails(t *testing.T) {
 	cfg := &config.Config{
 		Backend: config.BackendConfig{
-			Type: config.BackendTypeLocal,
+			Type:  config.BackendTypeLocal,
 			Local: &config.LocalBackendConfig{},
 		},
 	}
