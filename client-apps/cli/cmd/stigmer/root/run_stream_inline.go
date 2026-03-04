@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
 )
 
@@ -56,6 +58,14 @@ type inlineRenderer struct {
 	cfg         inlineRenderConfig
 	compactOpts toolrender.CompactOptions
 
+	// Thinking spinner state — shows an animated indicator on stderr when
+	// the agent is idle (reasoning between tool calls). The timer fires
+	// after thinkingIdleDelay of inactivity; the spinner is cleared before
+	// processing any event.
+	spinner    *spinner.Spinner
+	thinkTimer *time.Timer
+	phase      string
+
 	// AI streaming state — tracks incremental delta output so each render
 	// only prints the bytes appended since the last delta event.
 	inAIStream    bool
@@ -98,22 +108,35 @@ type inlineRenderer struct {
 // a terminal event (DoneEvent or StreamErrorEvent) arrives. Returns the final
 // phase string and any error message from the done event.
 func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, exitErr string) {
+	thinkTimer := time.NewTimer(0)
+	thinkTimer.Stop()
+	select {
+	case <-thinkTimer.C:
+	default:
+	}
+
 	r := &inlineRenderer{
 		cfg: cfg,
 		compactOpts: toolrender.CompactOptions{
 			HyperlinksEnabled: toolrender.HyperlinksEnabled(cfg.status),
 		},
 		suppressedToolIDs: make(map[string]bool),
+		spinner:           spinner.New(cfg.status),
+		thinkTimer:        thinkTimer,
 	}
 
 	for {
 		select {
 		case <-ctx.Done():
+			r.stopThinkingSpinner()
 			r.flushPendingReads()
 			r.statusf("⚠ Stream cancelled\n")
 			return "", "context cancelled"
 
 		case event, ok := <-cfg.events:
+			r.stopThinkingSpinner()
+			r.thinkTimer.Stop()
+
 			if !ok {
 				r.flushPendingReads()
 				return "", ""
@@ -123,6 +146,10 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, ex
 			if done {
 				return p, e
 			}
+			r.resetThinkTimer()
+
+		case <-r.thinkTimer.C:
+			r.startThinkingSpinner()
 		}
 	}
 }
@@ -385,6 +412,7 @@ func (r *inlineRenderer) renderSystemMessage(e executiontui.SystemMessageEvent) 
 }
 
 func (r *inlineRenderer) renderPhaseChange(e executiontui.PhaseChangeEvent) {
+	r.phase = e.Phase
 	switch e.Phase {
 	case "pending":
 		r.statusf("⏳ Execution pending...\n")
