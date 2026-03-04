@@ -1,5 +1,7 @@
 """gRPC client for fetching ExecutionContext resources."""
 
+from __future__ import annotations
+
 import logging
 
 import grpc
@@ -8,6 +10,7 @@ from ai.stigmer.agentic.executioncontext.v1.api_pb2 import ExecutionContext
 from ai.stigmer.agentic.executioncontext.v1.io_pb2 import ExecutionContextExecutionIdInput
 
 from grpc_client.auth.client_interceptor import AuthClientInterceptor
+from grpc_client.channel import create_channel
 from worker.config import Config
 
 logger = logging.getLogger(__name__)
@@ -47,33 +50,33 @@ class ExecutionContextClient:
             pass
     """
     
-    def __init__(self, api_key: str, *, timeout: float = _DEFAULT_GRPC_TIMEOUT_SECONDS):
+    def __init__(
+        self,
+        api_key: str,
+        *,
+        timeout: float = _DEFAULT_GRPC_TIMEOUT_SECONDS,
+        channel: grpc.aio.Channel | None = None,
+    ):
         """
         Initialize ExecutionContextClient with authentication.
         
         Args:
-            api_key: Stigmer API key for authentication (must have operator permission)
+            api_key: Stigmer API key for authentication (must have operator permission).
             timeout: Per-call gRPC deadline in seconds (must stay well under
                      Temporal's 30s heartbeat timeout to allow graceful recovery).
+            channel: Optional shared gRPC channel (from ChannelProvider). When
+                     provided, the client does not create or own a channel.
         """
-        config = Config.load_from_env()
-        endpoint = config.stigmer_backend_endpoint
-        
-        # Create interceptor with API key
-        interceptor = AuthClientInterceptor(api_key)
-        
-        # Create channel with interceptor
-        if endpoint.endswith(":443"):
-            self.channel = grpc.aio.secure_channel(
-                endpoint,
-                grpc.ssl_channel_credentials(),
-                interceptors=[interceptor]
-            )
+        if channel is not None:
+            self.channel = channel
+            self._owns_channel = False
         else:
-            self.channel = grpc.aio.insecure_channel(
-                endpoint,
-                interceptors=[interceptor]
+            config = Config.load_from_env()
+            interceptor = AuthClientInterceptor(api_key)
+            self.channel = create_channel(
+                config.stigmer_backend_endpoint, interceptors=[interceptor],
             )
+            self._owns_channel = True
         
         self.stub = query_pb2_grpc.ExecutionContextQueryControllerStub(self.channel)
         self._timeout = timeout

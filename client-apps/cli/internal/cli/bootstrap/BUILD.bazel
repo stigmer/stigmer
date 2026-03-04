@@ -5,9 +5,6 @@ go_library(
     srcs = ["status.go"],
     importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/bootstrap",
     visibility = ["//client-apps/cli:__subpackages__"],
-    deps = [
-        "@org_modernc_sqlite//:sqlite",
-    ],
 )
 
 go_test(
