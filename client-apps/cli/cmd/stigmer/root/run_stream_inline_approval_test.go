@@ -108,7 +108,7 @@ func TestResolveApprovalContext_FromWaitingState(t *testing.T) {
 		runningLineRendered: true,
 	}
 
-	gotTC, gotSub, gotRunning := r.resolveApprovalContext(executiontui.ApprovalNeededEvent{
+	gotTC, gotSub, gotRunning, gotStreamed, gotRows := r.resolveApprovalContext(executiontui.ApprovalNeededEvent{
 		ToolCallID: "tc-1",
 		ToolName:   "write_file",
 	})
@@ -122,12 +122,18 @@ func TestResolveApprovalContext_FromWaitingState(t *testing.T) {
 	if !gotRunning {
 		t.Error("expected runningLineRendered to be true")
 	}
+	if gotStreamed {
+		t.Error("expected contentStreamed to be false")
+	}
+	if gotRows != 0 {
+		t.Errorf("expected streamedRows 0, got %d", gotRows)
+	}
 }
 
 func TestResolveApprovalContext_Fallback(t *testing.T) {
 	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
 
-	gotTC, gotSub, gotRunning := r.resolveApprovalContext(executiontui.ApprovalNeededEvent{
+	gotTC, gotSub, gotRunning, gotStreamed, gotRows := r.resolveApprovalContext(executiontui.ApprovalNeededEvent{
 		ToolCallID: "tc-1",
 		ToolName:   "write_file",
 	})
@@ -140,6 +146,12 @@ func TestResolveApprovalContext_Fallback(t *testing.T) {
 	}
 	if gotRunning {
 		t.Error("expected runningLineRendered to be false")
+	}
+	if gotStreamed {
+		t.Error("expected contentStreamed to be false")
+	}
+	if gotRows != 0 {
+		t.Errorf("expected streamedRows 0, got %d", gotRows)
 	}
 }
 
@@ -366,7 +378,7 @@ func TestHandleApproval_SuppressesDeleteCompletion(t *testing.T) {
 	}
 }
 
-func TestHandleApproval_DoesNotSuppressShellCompletion(t *testing.T) {
+func TestHandleApproval_ShellApproval_InitiatesStreaming(t *testing.T) {
 	prompter := &mockPrompter{decision: &approval.Decision{Action: approval.ActionApprove}}
 	r, _, _, responses := newApprovalTestRenderer(prompter, approval.ActionUnspecified)
 	tc := shellToolCall()
@@ -379,7 +391,10 @@ func TestHandleApproval_DoesNotSuppressShellCompletion(t *testing.T) {
 	<-responses
 
 	if r.suppressedToolIDs["tc-1"] {
-		t.Error("shell tool completion should NOT be suppressed")
+		t.Error("shell tool completion should NOT be in suppressedToolIDs")
+	}
+	if r.activeStreamToolID != "tc-1" {
+		t.Errorf("expected activeStreamToolID=tc-1 after shell approval, got %q", r.activeStreamToolID)
 	}
 }
 
