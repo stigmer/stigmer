@@ -291,6 +291,15 @@ func (m *Manager) GetAddress() string {
 	return fmt.Sprintf("localhost:%d", m.port)
 }
 
+// GetPID returns the PID of the running Temporal process, or 0 if unavailable.
+func (m *Manager) GetPID() int {
+	pid, err := m.getPID()
+	if err != nil {
+		return 0
+	}
+	return pid
+}
+
 // writePIDFile writes the enhanced PID file with metadata
 func (m *Manager) writePIDFile(pid int, cmdName string) error {
 	timestamp := time.Now().Unix()

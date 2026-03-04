@@ -2,6 +2,7 @@ package root
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/temporal"
 )
 
 func isProcessAlive(pid int) bool {
@@ -20,12 +22,17 @@ func isProcessAlive(pid int) bool {
 	return process.Signal(syscall.Signal(0)) == nil
 }
 
-func readPIDFile(dataDir, filename string) int {
-	data, err := os.ReadFile(filepath.Join(dataDir, filename))
+func readPIDFile(dir, filename string) int {
+	data, err := os.ReadFile(filepath.Join(dir, filename))
 	if err != nil {
 		return 0
 	}
-	pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
+	// PID is always on the first line; some PID files have extra metadata lines.
+	line := strings.TrimSpace(string(data))
+	if idx := strings.IndexByte(line, '\n'); idx > 0 {
+		line = line[:idx]
+	}
+	pid, err := strconv.Atoi(strings.TrimSpace(line))
 	if err != nil {
 		return 0
 	}
@@ -91,6 +98,21 @@ func createBasicHealthState(dataDir string, daemonPID int) *daemon.HealthState {
 	hs := &daemon.HealthState{
 		DaemonPID:  daemonPID,
 		Components: make(map[string]*daemon.ComponentState),
+	}
+
+	// Temporal: live TCP probe is the only reliable way to check reachability
+	// when health-state.json is missing (e.g. legacy daemon, crash recovery).
+	temporalAddr := fmt.Sprintf("localhost:%d", temporal.DefaultTemporalPort)
+	conn, err := net.DialTimeout("tcp", temporalAddr, 200*time.Millisecond)
+	if err != nil {
+		hs.Components["temporal"] = &daemon.ComponentState{State: "stopped"}
+	} else {
+		conn.Close()
+		temporalPID := readPIDFile(filepath.Dir(dataDir), temporal.TemporalPIDFileName)
+		hs.Components["temporal"] = &daemon.ComponentState{
+			PID:   temporalPID,
+			State: "running",
+		}
 	}
 
 	hs.Components["stigmer-server"] = &daemon.ComponentState{
