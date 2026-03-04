@@ -190,14 +190,15 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 	defer close(cfg.events)
 
 	var (
-		displayedCount   int
-		inStream         bool
-		lastPhase        agentexecutionv1.ExecutionPhase
-		promptedIDs      = make(map[string]bool)
-		toolCallStates   = make(map[string]string)           // toolCallID -> last known status string
-		toolCallResults  = make(map[string]string)           // toolCallID -> last known result content (for streaming delta detection)
-		subAgentTrackers = make(map[string]*subAgentTracker) // subAgentID -> per-sub-agent state
-		prevTodos        = make(map[string]todoFingerprint)  // todoID -> {content, status} for change detection
+		displayedCount      int
+		inStream            bool
+		humanMessageEmitted bool
+		lastPhase           agentexecutionv1.ExecutionPhase
+		promptedIDs         = make(map[string]bool)
+		toolCallStates      = make(map[string]string)           // toolCallID -> last known status string
+		toolCallResults     = make(map[string]string)           // toolCallID -> last known result content (for streaming delta detection)
+		subAgentTrackers    = make(map[string]*subAgentTracker) // subAgentID -> per-sub-agent state
+		prevTodos           = make(map[string]todoFingerprint)  // todoID -> {content, status} for change detection
 	)
 
 	for {
@@ -231,6 +232,22 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 			Int("sub_agents", len(execution.Status.GetSubAgentExecutions())).
 			Int("pending_approvals", len(execution.Status.GetPendingApprovals())).
 			Msg("[stream] received execution update")
+
+		// --- Step 0: Emit the user's input message (once) ---
+		//
+		// The user's message lives in execution.Spec.Message. Emit it as a
+		// HumanMessageEvent on the first update so the renderer displays it
+		// with highlighted styling before the AI response begins. The
+		// "execute" placeholder is suppressed — it's the default when no
+		// message was provided.
+		if !humanMessageEmitted {
+			if msg := execution.GetSpec().GetMessage(); msg != "" && msg != "execute" {
+				if !trySendEvent(ctx, cfg.events, executiontui.HumanMessageEvent{Content: msg}) {
+					return
+				}
+				humanMessageEmitted = true
+			}
+		}
 
 		messages := execution.Status.Messages
 
