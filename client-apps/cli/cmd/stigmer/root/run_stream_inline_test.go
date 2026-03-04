@@ -159,7 +159,7 @@ func TestInlineRenderer_SystemMessage_GoesToStderr(t *testing.T) {
 // Tool Call Rendering
 // =============================================================================
 
-func TestInlineRenderer_ToolRunning_GoesToStderr(t *testing.T) {
+func TestInlineRenderer_ToolRunning_Suppressed(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	events := make(chan executiontui.Event, 10)
 
@@ -179,8 +179,8 @@ func TestInlineRenderer_ToolRunning_GoesToStderr(t *testing.T) {
 		status:            &stderr,
 	})
 
-	if !strings.Contains(stderr.String(), "Shell") {
-		t.Errorf("tool running should appear on stderr with label, got: %q", stderr.String())
+	if strings.Contains(stderr.String(), "Shell") {
+		t.Errorf("tool running indicator should be suppressed, got: %q", stderr.String())
 	}
 }
 
@@ -500,33 +500,94 @@ func TestInlineRenderer_AIStreaming_HasBulletPrefix(t *testing.T) {
 }
 
 // =============================================================================
-// Tool Running-to-Completed In-Place Replacement
+// Running Indicator Suppression
 // =============================================================================
 
-func TestInlineRenderer_ToolRunning_SetsLastOutputWasRunning(t *testing.T) {
-	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
+func TestHandleEvent_AllRunningIndicatorsSuppressed(t *testing.T) {
+	r, _, stderr, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
 
-	r.renderToolRunning(executiontui.ToolRunningEvent{
-		ToolCallID: "tc-1",
-		ToolCall:   shellToolCall(),
-	})
-
-	if !r.lastOutputWasRunning {
-		t.Error("lastOutputWasRunning should be true after renderToolRunning")
+	tools := []string{"bash", "list_directory", "find_files", "search_files", "custom_mcp_tool"}
+	for _, name := range tools {
+		done, _, _ := r.handleEvent(context.Background(), executiontui.ToolRunningEvent{
+			ToolCallID: "tc-" + name,
+			ToolCall:   toolrender.ToolCallInfo{Name: name, Status: "running"},
+		})
+		if done {
+			t.Errorf("running event for %s should not terminate the loop", name)
+		}
 	}
-	if r.lastRenderedRunningID != "tc-1" {
-		t.Errorf("expected tc-1, got %s", r.lastRenderedRunningID)
+
+	if stderr.Len() != 0 {
+		t.Errorf("all running indicators should be suppressed, got stderr: %q", stderr.String())
 	}
 }
 
-func TestInlineRenderer_StatusfClearsRunningFlag(t *testing.T) {
-	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
-	r.lastOutputWasRunning = true
+func TestHandleEvent_RunningThenCompleted_NoDuplication(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 10)
 
-	r.statusf("some output\n")
+	go feedEvents(events,
+		executiontui.ToolRunningEvent{
+			ToolCallID: "tc-1",
+			ToolCall:   toolrender.ToolCallInfo{Name: "list_directory", Status: "running"},
+		},
+		executiontui.AIMessageEvent{Content: "Let me check"},
+		executiontui.ToolCompletedEvent{
+			ToolCallID: "tc-1",
+			ToolCall:   toolrender.ToolCallInfo{Name: "list_directory", Status: "completed", Result: "3 entries"},
+		},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
 
-	if r.lastOutputWasRunning {
-		t.Error("statusf should clear lastOutputWasRunning")
+	renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	stderrStr := stderr.String()
+	listCount := strings.Count(stderrStr, "List")
+	if listCount != 1 {
+		t.Errorf("list tool should appear exactly once (completed only), appeared %d times in: %q", listCount, stderrStr)
+	}
+}
+
+// =============================================================================
+// flushPendingReads Guard During AI Stream Events
+// =============================================================================
+
+func TestInlineRenderer_AIStreamEnd_WithPendingReads_NoDuplication(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 10)
+
+	go feedEvents(events,
+		executiontui.AIStreamStartEvent{Content: "Reading files"},
+		executiontui.AIStreamDeltaEvent{Content: "Reading files now"},
+		executiontui.ToolCompletedEvent{
+			ToolCallID: "tc-read-1",
+			ToolCall:   toolrender.ToolCallInfo{Name: "read_file", Status: "completed", Result: "contents", Args: map[string]interface{}{"path": "main.go"}},
+		},
+		executiontui.AIStreamEndEvent{Content: "Reading files now done"},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	out := stdout.String()
+	count := strings.Count(out, "Reading files")
+	if count != 1 {
+		t.Errorf("AI content 'Reading files' should appear exactly once, appeared %d times in: %q", count, out)
+	}
+	if !strings.Contains(out, "Reading files now done") {
+		t.Errorf("should contain final streamed content, got: %q", out)
 	}
 }
 
