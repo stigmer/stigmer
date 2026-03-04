@@ -10,19 +10,29 @@ search (class names, function names) is deferred to Phase B.
 
 Architecture
 ------------
-Three pure-ish functions compose left-to-right:
+Three pure-ish functions compose left-to-right::
 
-    extract_file_path_candidates   (str -> list[str])
-    resolve_workspace_paths        (list[str], str -> list[ResolvedPath])
-    build_relevance_prompt_section (str, str -> str)
+    extract_file_path_candidates    (str -> list[str])
+    resolve_workspace_paths         (list[str], Sequence[WorkspaceRoot] -> list[ResolvedPath])
+    build_relevance_prompt_section  (str, Sequence[WorkspaceRoot] -> str)
 
 The public entry point is ``build_relevance_prompt_section``.
+
+Multi-workspace support
+~~~~~~~~~~~~~~~~~~~~~~~
+Both ``resolve_workspace_paths`` and ``build_relevance_prompt_section``
+accept a sequence of ``WorkspaceRoot`` entries.  Each candidate path is
+tried against roots in order; the first existing match wins and is
+stamped with that entry's name.  Single-workspace sessions pass a list
+of length 1 with an empty name — output is identical to the original
+single-root behaviour.
 """
 
 from __future__ import annotations
 
 import logging
 import os
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from worker.workspace.tree import human_size
@@ -66,8 +76,22 @@ _KNOWN_FILENAMES: frozenset[str] = frozenset({
 
 
 # ---------------------------------------------------------------------------
-# Value Object
+# Value Objects
 # ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class WorkspaceRoot:
+    """A labeled workspace entry root for relevance resolution.
+
+    Attributes:
+        name:     Entry label (e.g. ``"svc-api"``).  Empty string for
+                  single-workspace sessions.
+        root_dir: Absolute path to the entry's root directory.
+    """
+
+    name: str
+    root_dir: str
 
 
 @dataclass(frozen=True)
@@ -78,11 +102,14 @@ class ResolvedPath:
         path:         Workspace-relative path (forward slashes).
         is_directory: ``True`` when the path points to a directory.
         size_bytes:   File size in bytes, or ``None`` for directories.
+        entry_name:   Which workspace entry the path was found in.
+                      Empty string for single-workspace sessions.
     """
 
     path: str
     is_directory: bool
     size_bytes: int | None = None
+    entry_name: str = ""
 
 
 # ---------------------------------------------------------------------------
@@ -171,35 +198,46 @@ def extract_file_path_candidates(message: str) -> list[str]:
 
 def resolve_workspace_paths(
     candidates: list[str],
-    workspace_root: str,
+    workspace_roots: Sequence[WorkspaceRoot],
 ) -> list[ResolvedPath]:
-    """Check each candidate against the workspace and return confirmed paths.
+    """Check each candidate against workspace entry roots and return confirmed paths.
 
-    Non-existent paths are silently dropped (false positives from
-    extraction are expected).  Stat failures are logged and skipped.
+    For each candidate, roots are tried in order; the first existing
+    match wins and is stamped with that entry's name.  Non-existent
+    paths are silently dropped (false positives from extraction are
+    expected).  Stat failures are logged and skipped.
     """
     resolved: list[ResolvedPath] = []
 
     for candidate in candidates:
-        full_path = os.path.join(workspace_root, candidate)
-        try:
-            if os.path.isdir(full_path):
-                resolved.append(ResolvedPath(
-                    path=candidate.rstrip("/") + "/",
-                    is_directory=True,
-                ))
-            elif os.path.isfile(full_path):
-                try:
-                    size = os.path.getsize(full_path)
-                except OSError:
-                    size = None
-                resolved.append(ResolvedPath(
-                    path=candidate,
-                    is_directory=False,
-                    size_bytes=size,
-                ))
-        except OSError:
-            logger.debug("Stat failed for candidate %r, skipping", candidate)
+        for root in workspace_roots:
+            full_path = os.path.join(root.root_dir, candidate)
+            try:
+                if os.path.isdir(full_path):
+                    resolved.append(ResolvedPath(
+                        path=candidate.rstrip("/") + "/",
+                        is_directory=True,
+                        entry_name=root.name,
+                    ))
+                    break
+                if os.path.isfile(full_path):
+                    try:
+                        size = os.path.getsize(full_path)
+                    except OSError:
+                        size = None
+                    resolved.append(ResolvedPath(
+                        path=candidate,
+                        is_directory=False,
+                        size_bytes=size,
+                        entry_name=root.name,
+                    ))
+                    break
+            except OSError:
+                logger.debug(
+                    "Stat failed for candidate %r under root %r, skipping",
+                    candidate,
+                    root.root_dir,
+                )
 
     return resolved
 
@@ -211,29 +249,30 @@ def resolve_workspace_paths(
 
 def _format_resolved_path(rp: ResolvedPath) -> str:
     """Format a single resolved path as a markdown list item."""
+    suffix = f" — in **{rp.entry_name}**" if rp.entry_name else ""
     if rp.is_directory:
-        return f"- `{rp.path}` (directory)"
+        return f"- `{rp.path}` (directory){suffix}"
     if rp.size_bytes is not None:
-        return f"- `{rp.path}` ({human_size(rp.size_bytes)})"
-    return f"- `{rp.path}`"
+        return f"- `{rp.path}` ({human_size(rp.size_bytes)}){suffix}"
+    return f"- `{rp.path}`{suffix}"
 
 
 def build_relevance_prompt_section(
     user_message: str,
-    workspace_root: str,
+    workspace_roots: Sequence[WorkspaceRoot],
     *,
     max_results: int = _MAX_RESULTS,
 ) -> str:
     """Build the ``## Potentially Relevant Files`` system prompt section.
 
     Extracts file-path candidates from *user_message*, resolves them
-    against *workspace_root*, and formats the confirmed paths into a
+    against *workspace_roots*, and formats the confirmed paths into a
     prompt section.  Returns an empty string when no paths resolve.
 
     Args:
-        user_message:   The raw user message text.
-        workspace_root: Absolute path to the workspace root directory.
-        max_results:    Maximum number of resolved paths to include.
+        user_message:    The raw user message text.
+        workspace_roots: Ordered workspace entry roots to resolve against.
+        max_results:     Maximum number of resolved paths to include.
 
     Returns:
         The formatted prompt section (with leading newlines for
@@ -243,7 +282,7 @@ def build_relevance_prompt_section(
     if not candidates:
         return ""
 
-    resolved = resolve_workspace_paths(candidates, workspace_root)
+    resolved = resolve_workspace_paths(candidates, workspace_roots)
     if not resolved:
         return ""
 
