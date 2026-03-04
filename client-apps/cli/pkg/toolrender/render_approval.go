@@ -109,6 +109,66 @@ func ApprovalQuestion(tc ToolCallInfo) string {
 	return fmt.Sprintf("Do you want to %s?", verb)
 }
 
+// ExpandedApprovalHeader returns the header line for the expanded approval
+// view shown before the user makes a decision. Uses a green bullet (same
+// as normal tool calls) since no action has been taken yet. The action
+// coloring (green/red/dim) only applies to the collapsed post-decision view.
+func ExpandedApprovalHeader(tc ToolCallInfo, opts CompactOptions) string {
+	info, known := toolDisplayMap[tc.Name]
+	if !known {
+		firstVal := extractFirstArg(tc.Args)
+		if firstVal != "" {
+			return fmt.Sprintf("%s %s(%s)", bulletStyle.Render("●"),
+				labelStyle.Render(tc.Name), truncate(firstVal, 60))
+		}
+		return fmt.Sprintf("%s %s", bulletStyle.Render("●"), labelStyle.Render(tc.Name))
+	}
+
+	bullet := bulletStyle.Render("●")
+	primaryVal := extractPrimaryArgWithFallbacks(tc.Args, info.primaryField, info.fallbackFields)
+
+	switch {
+	case isShellLabel(info.label):
+		return fmt.Sprintf("%s %s(%s)", bullet, labelStyle.Render(info.label),
+			truncate(firstLine(primaryVal), 60))
+	default:
+		return fmt.Sprintf("%s %s(%s)", bullet, labelStyle.Render(info.label),
+			buildHyperlinkedPath(primaryVal, opts))
+	}
+}
+
+// ExpandedApprovalContent extracts the full display content for a tool call.
+// For write/edit tools this is the file content from args; for shell tools
+// this is the command; for read/discovery tools this is the result.
+//
+// This is the public interface to resolveDisplayContent — the command layer
+// needs it to build the expanded approval view but cannot access the private
+// toolDisplayMap or resolveDisplayContent directly.
+func ExpandedApprovalContent(tc ToolCallInfo) string {
+	info, known := toolDisplayMap[tc.Name]
+	if !known {
+		return extractFirstArg(tc.Args)
+	}
+	return resolveDisplayContent(tc, info)
+}
+
+// ShouldSuppressCompletion reports whether the ToolCompletedEvent for an
+// approved or skipped tool should be suppressed. Write, edit, create, and
+// delete tools have their outcome fully represented by the collapsed
+// approval result (RenderApprovalResult). Shell tools are NOT suppressed
+// because their output only arrives via the completion event (streaming
+// is Phase 3.4).
+func ShouldSuppressCompletion(toolName string) bool {
+	if IsWriteOrEditTool(toolName) {
+		return true
+	}
+	info, ok := toolDisplayMap[toolName]
+	if ok && info.label == "Delete" {
+		return true
+	}
+	return false
+}
+
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------

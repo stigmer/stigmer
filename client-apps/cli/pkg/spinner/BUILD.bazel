@@ -6,7 +6,7 @@ go_library(
     importpath = "github.com/stigmer/stigmer/client-apps/cli/pkg/spinner",
     visibility = ["//visibility:public"],
     deps = [
-        "//client-apps/cli/pkg/display",
+        "@org_golang_x_term//:term",
     ],
 )
 

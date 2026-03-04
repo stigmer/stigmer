@@ -89,7 +89,12 @@ func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, c
 		climsg.Info("Re-attaching to session...")
 		fmt.Println()
 		executionID := latestExec.GetMetadata().GetId()
-		prompter := approval.NewInteractivePrompter()
+		var prompter approval.Prompter
+		if outputMode == OutputInline {
+			prompter = approval.NewInlinePrompter(os.Stdin, os.Stderr)
+		} else {
+			prompter = approval.NewInteractivePrompter()
+		}
 		_, err := streamAgentExecution(sessionID, subject, executionID, orgID, prompter, approval.Action(0), verbose, outputMode, conn)
 		return err
 
@@ -123,7 +128,7 @@ func resumeSession(sessionID, sessionSubject, orgID string, executions []*agente
 
 	switch outputMode {
 	case OutputInline:
-		prompter := approval.NewInteractivePrompter()
+		prompter := approval.NewInlinePrompter(os.Stdin, os.Stderr)
 		_, exitErr := renderInline(streamCtx, inlineRenderConfig{
 			events:            events,
 			approvalResponses: approvalResponses,

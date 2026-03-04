@@ -578,3 +578,185 @@ func TestFormatApprovalPreview_Indented(t *testing.T) {
 		t.Errorf("preview lines should have 4-space indent, got: %q", result)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// ExpandedApprovalHeader
+// ---------------------------------------------------------------------------
+
+func TestExpandedApprovalHeader_WriteFile(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "write_file",
+		Args: map[string]interface{}{"path": "config.go"},
+	}
+	result := stripANSI(ExpandedApprovalHeader(tc, CompactOptions{}))
+
+	assertContains(t, result, "●")
+	assertContains(t, result, "Write(config.go)")
+}
+
+func TestExpandedApprovalHeader_Shell(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "shell",
+		Args: map[string]interface{}{"command": "go test ./..."},
+	}
+	result := stripANSI(ExpandedApprovalHeader(tc, CompactOptions{}))
+
+	assertContains(t, result, "Shell(go test ./...)")
+}
+
+func TestExpandedApprovalHeader_ShellTruncated(t *testing.T) {
+	longCmd := strings.Repeat("x", 80)
+	tc := ToolCallInfo{
+		Name: "shell",
+		Args: map[string]interface{}{"command": longCmd},
+	}
+	result := stripANSI(ExpandedApprovalHeader(tc, CompactOptions{}))
+
+	assertContains(t, result, "...")
+	assertNotContains(t, result, longCmd)
+}
+
+func TestExpandedApprovalHeader_Delete(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "delete_file",
+		Args: map[string]interface{}{"path": "old.txt"},
+	}
+	result := stripANSI(ExpandedApprovalHeader(tc, CompactOptions{}))
+
+	assertContains(t, result, "Delete(old.txt)")
+}
+
+func TestExpandedApprovalHeader_UnknownTool(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "custom_deploy",
+		Args: map[string]interface{}{"target": "production"},
+	}
+	result := stripANSI(ExpandedApprovalHeader(tc, CompactOptions{}))
+
+	assertContains(t, result, "●")
+	assertContains(t, result, "custom_deploy(production)")
+}
+
+func TestExpandedApprovalHeader_UnknownNoArgs(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "mystery_tool",
+	}
+	result := stripANSI(ExpandedApprovalHeader(tc, CompactOptions{}))
+
+	assertContains(t, result, "mystery_tool")
+}
+
+func TestExpandedApprovalHeader_Hyperlinks(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "write_file",
+		Args: map[string]interface{}{"path": "/abs/path/file.go"},
+	}
+	result := ExpandedApprovalHeader(tc, CompactOptions{HyperlinksEnabled: true})
+
+	assertContains(t, result, "\033]8;")
+	assertContains(t, result, "file:///abs/path/file.go")
+}
+
+// ---------------------------------------------------------------------------
+// ExpandedApprovalContent
+// ---------------------------------------------------------------------------
+
+func TestExpandedApprovalContent_WriteFile(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "write_file",
+		Args: map[string]interface{}{"path": "test.go", "contents": "package test\n\nfunc Test() {}"},
+	}
+	result := ExpandedApprovalContent(tc)
+
+	assertContains(t, result, "package test")
+	assertContains(t, result, "func Test() {}")
+}
+
+func TestExpandedApprovalContent_Shell(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "shell",
+		Args:   map[string]interface{}{"command": "go test ./..."},
+		Result: "ok  pkg/foo  0.5s",
+	}
+	result := ExpandedApprovalContent(tc)
+
+	assertContains(t, result, "ok  pkg/foo")
+}
+
+func TestExpandedApprovalContent_UnknownTool(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "custom_deploy",
+		Args: map[string]interface{}{"target": "production"},
+	}
+	result := ExpandedApprovalContent(tc)
+
+	if result != "production" {
+		t.Errorf("expected first arg value, got: %q", result)
+	}
+}
+
+func TestExpandedApprovalContent_WriteArgFallback(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "write_file",
+		Args: map[string]interface{}{"path": "test.go", "content": "fallback content"},
+	}
+	result := ExpandedApprovalContent(tc)
+
+	if result != "fallback content" {
+		t.Errorf("expected fallback arg content, got: %q", result)
+	}
+}
+
+func TestExpandedApprovalContent_Empty(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "write_file",
+		Args: map[string]interface{}{"path": "empty.go"},
+	}
+	result := ExpandedApprovalContent(tc)
+
+	if result != "" {
+		t.Errorf("expected empty for no content, got: %q", result)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// ShouldSuppressCompletion
+// ---------------------------------------------------------------------------
+
+func TestShouldSuppressCompletion_WriteTools(t *testing.T) {
+	for _, name := range []string{"write_file", "write", "create_file", "edit_file", "edit"} {
+		if !ShouldSuppressCompletion(name) {
+			t.Errorf("expected suppression for %q", name)
+		}
+	}
+}
+
+func TestShouldSuppressCompletion_DeleteTools(t *testing.T) {
+	for _, name := range []string{"delete_file", "remove_file"} {
+		if !ShouldSuppressCompletion(name) {
+			t.Errorf("expected suppression for %q", name)
+		}
+	}
+}
+
+func TestShouldSuppressCompletion_ShellNotSuppressed(t *testing.T) {
+	for _, name := range []string{"shell", "bash", "execute", "run_command"} {
+		if ShouldSuppressCompletion(name) {
+			t.Errorf("shell tool %q should NOT be suppressed", name)
+		}
+	}
+}
+
+func TestShouldSuppressCompletion_ReadNotSuppressed(t *testing.T) {
+	for _, name := range []string{"read", "read_file"} {
+		if ShouldSuppressCompletion(name) {
+			t.Errorf("read tool %q should NOT be suppressed", name)
+		}
+	}
+}
+
+func TestShouldSuppressCompletion_UnknownNotSuppressed(t *testing.T) {
+	if ShouldSuppressCompletion("custom_mcp_tool") {
+		t.Error("unknown tool should NOT be suppressed")
+	}
+}

@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
 )
@@ -36,6 +35,14 @@ type pendingRead struct {
 	subAgentID string
 }
 
+// waitingApprovalState holds context saved from ToolWaitingApprovalEvent
+// for use by handleApproval when the subsequent ApprovalNeededEvent arrives.
+type waitingApprovalState struct {
+	tc                  toolrender.ToolCallInfo
+	subAgentID          string
+	runningLineRendered bool
+}
+
 // inlineRenderer consumes execution events and renders them to the terminal
 // without the Bubbletea alt-screen TUI. AI content flows to the data writer
 // (stdout) while all status/progress goes to the status writer (stderr).
@@ -57,6 +64,22 @@ type inlineRenderer struct {
 	// output, or when the stream terminates. Each entry is tagged with its
 	// sub-agent context so gutter-wrapping is applied correctly on flush.
 	pendingReads []pendingRead
+
+	// lastRenderedRunningID is the ToolCallID of the tool whose running
+	// indicator line was last printed to stderr. Used by handleApproval
+	// to safely erase the running line before rendering the expanded view.
+	lastRenderedRunningID string
+
+	// waitingApproval holds the ToolCallInfo saved from the most recent
+	// ToolWaitingApprovalEvent. handleApproval uses this to render the
+	// expanded view and the collapsed result with full tool metadata.
+	waitingApproval *waitingApprovalState
+
+	// suppressedToolIDs tracks tool call IDs whose ToolCompletedEvent
+	// should be suppressed because the approval result already rendered
+	// the outcome. Write/edit/delete completions are suppressed; shell
+	// completions are NOT (their output only arrives via completion).
+	suppressedToolIDs map[string]bool
 }
 
 // renderInline consumes events from the channel and renders them inline until
@@ -68,6 +91,7 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, ex
 		compactOpts: toolrender.CompactOptions{
 			HyperlinksEnabled: toolrender.HyperlinksEnabled(cfg.status),
 		},
+		suppressedToolIDs: make(map[string]bool),
 	}
 
 	for {
@@ -94,20 +118,32 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, ex
 // handleEvent dispatches a single event to the appropriate render method.
 // Returns (true, phase, error) when a terminal event is received.
 //
-// Pre-switch interceptions handle three concerns:
+// Pre-switch interceptions handle four concerns:
 //  1. Read grouping: completed reads buffer in pendingReads; running reads
 //     and tool stream deltas are suppressed.
-//  2. Task tool suppression: the backend emits ToolRunning/ToolCompleted for
+//  2. Approval completion suppression: tools whose outcome was already
+//     rendered by the approval flow (write/edit/delete) have their
+//     ToolCompletedEvent suppressed to avoid duplicate output.
+//  3. Task tool suppression: the backend emits ToolRunning/ToolCompleted for
 //     the parent "task" tool AND SubAgentStarted/Completed lifecycle events.
 //     These are redundant — we suppress the tool events and use the lifecycle
 //     events (which carry richer data: Description, ToolCount, Status).
-//  3. Sub-agent AI redirection: sub-agent AI messages are intermediate
+//  4. Sub-agent AI redirection: sub-agent AI messages are intermediate
 //     reasoning, not the final agent response. They render on stderr with
 //     gutter prefix instead of stdout.
 func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Event) (done bool, phase string, exitErr string) {
 	// Buffer read completions for consecutive-event grouping.
 	if e, ok := event.(executiontui.ToolCompletedEvent); ok && toolrender.IsReadTool(e.ToolCall.Name) {
 		r.pendingReads = append(r.pendingReads, pendingRead{tc: e.ToolCall, subAgentID: e.SubAgentID})
+		return false, "", ""
+	}
+	// Suppress ToolCompletedEvent for tools whose outcome was already
+	// rendered by the approval collapse (write/edit/delete). Shell
+	// completions are NOT suppressed — their output is the only way to
+	// see shell results until Phase 3.4 enables streaming.
+	if e, ok := event.(executiontui.ToolCompletedEvent); ok && r.suppressedToolIDs[e.ToolCallID] {
+		r.flushPendingReads()
+		delete(r.suppressedToolIDs, e.ToolCallID)
 		return false, "", ""
 	}
 	// Suppress running indicators for read tools — reads complete fast,
@@ -269,6 +305,7 @@ func (r *inlineRenderer) renderToolRunning(e executiontui.ToolRunningEvent) {
 		line = toolrender.GutterWrap(line)
 	}
 	r.statusf("%s\n", line)
+	r.lastRenderedRunningID = e.ToolCallID
 }
 
 func (r *inlineRenderer) renderToolCompleted(e executiontui.ToolCompletedEvent) {
@@ -280,8 +317,11 @@ func (r *inlineRenderer) renderToolCompleted(e executiontui.ToolCompletedEvent) 
 }
 
 func (r *inlineRenderer) renderToolWaitingApproval(e executiontui.ToolWaitingApprovalEvent) {
-	line := toolrender.RenderWithBadge(e.ToolCall, toolrender.StateBadge("waiting_approval"))
-	r.statusf("%s\n", line)
+	r.waitingApproval = &waitingApprovalState{
+		tc:                  e.ToolCall,
+		subAgentID:          e.SubAgentID,
+		runningLineRendered: r.lastRenderedRunningID == e.ToolCallID,
+	}
 }
 
 func (r *inlineRenderer) renderToolCalls(toolCalls []toolrender.ToolCallInfo) {
@@ -379,55 +419,8 @@ func (r *inlineRenderer) renderStreamError(e executiontui.StreamErrorEvent) {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// Approval handling
-// ---------------------------------------------------------------------------
-
-func (r *inlineRenderer) handleApproval(ctx context.Context, e executiontui.ApprovalNeededEvent) {
-	r.finishAIStreamIfNeeded()
-
-	// Display approval context on stderr.
-	r.statusf("\n⏸  Approval required: %s\n", e.ToolName)
-	if e.FromSubAgent {
-		r.statusf("   Sub-agent: %s\n", e.SubAgentName)
-	}
-	if e.Message != "" {
-		r.statusf("   %s\n", e.Message)
-	}
-	if e.ArgsPreview != "" {
-		r.statusf("   Args: %s\n", display.TruncateWithEllipsis(e.ArgsPreview, 200))
-	}
-
-	opts := approval.Options{
-		ToolName:      e.ToolName,
-		Message:       e.Message,
-		ArgsPreview:   e.ArgsPreview,
-		DefaultAction: r.cfg.defaultAction,
-	}
-
-	if r.cfg.defaultAction != approval.ActionUnspecified {
-		opts.NonInteractive = true
-	}
-
-	decision, err := r.cfg.prompter.Prompt(ctx, opts)
-	if err != nil {
-		r.statusf("   ⚠ Approval prompt failed: %s — auto-skipping\n\n", err)
-		r.cfg.approvalResponses <- executiontui.ApprovalResponse{
-			Action:     "skip",
-			ToolCallID: e.ToolCallID,
-		}
-		return
-	}
-
-	actionStr := actionToString(decision.Action)
-	r.statusf("   → %s\n\n", decision.Action.String())
-
-	r.cfg.approvalResponses <- executiontui.ApprovalResponse{
-		Action:     actionStr,
-		ToolCallID: e.ToolCallID,
-		Comment:    decision.Comment,
-	}
-}
+// handleApproval is defined in run_stream_inline_approval.go — it
+// orchestrates the expand/prompt/collapse/suppress approval flow.
 
 // ---------------------------------------------------------------------------
 // Read grouping
