@@ -13,35 +13,41 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: in-progress
-- **Last Session**: March 5, 2026 -- Phase 3 (Header Simplification) completed
-- **Active Task**: T01 Architecture Design and Migration Plan -- Phases 1-3 done, Phase 4 next
+- **Last Session**: March 5, 2026 -- Phase 4 (Approval Flow Migration) completed
+- **Active Task**: T01 Architecture Design and Migration Plan -- Phases 1-4 done, Phase 5 next
 
-## Session Progress (2026-03-05, Session 3)
+## Session Progress (2026-03-05, Session 4)
+- Completed Phase 4: Approval Flow Migration to Bubbletea View()
+- Adopted "hybrid" architecture: blocking event loop reads keys, Bubbletea manages rendering. Evaluated full-async alternative and determined hybrid is the simplest correct solution for current requirements.
+- Exported `RenderMenu` from `pkg/approval` so the Bubbletea model can call it from `View()`
+- Added `PromptKeyOnly` method to `InlinePrompter`: reads raw keystrokes without rendering the menu; calls `onSelect` callback on arrow keys for relay via `program.Send()`
+- Added 3 new message types to inlineBubbleModel: `approvalShowMsg`, `approvalSelectMsg`, `approvalHideMsg`
+- `View()` renders the full approval panel (expanded content + question + menu) when `approvalActive`; approval takes priority over spinner
+- `approvalHideMsg` returns `tea.Println(collapsedResult)` as a Cmd -- Bubbletea's FIFO message ordering guarantees the panel clears before the collapsed result is committed
+- Restructured `handleInteractiveApproval` into two paths: `promptApprovalViaBubbletea` (program != nil) and `promptApprovalDirect` (fallback for non-TTY/CI/tests)
+- Extracted `erasePreApprovalContent` (shared streaming erasure), `formatCollapsedResult` (string builder for Bubbletea path), `handlePromptErrorAfterHide` (error handling when panel already hidden)
+- Removed `inApprovalFlow` sentinel from `inlineRenderer` and its set/clear guards in `handleEvent`
+- Simplified `statusf`: always uses `program.Println` when program is non-nil (no approval gate)
+- 3 EraseLines removed from approval flow; 4 remain (2 streaming erasure + 2 streaming update -- all Phase 5 scope)
+- 7 files changed, +489/-128 lines; 8 new approval model tests, 5 new PromptKeyOnly/RenderMenu tests, 2 obsolete tests removed
+- All existing tests pass (2 pre-existing failures unrelated to this phase)
+
+## Previous Session Progress (2026-03-05, Session 3)
 - Completed Phase 3: Header Simplification
-- Discovered architectural constraint: Bubbletea's `View()` renders at the bottom; `Println()` commits above. Putting the header in `View()` would invert the display order. Header must stay as committed content.
-- Deleted `run_stream_inline_header_update.go` entirely (176 lines): `lineCountingWriter`, `subjectUpdater`, `setupSubjectUpdater`, `pollSessionSubject`, `renderSubjectPanelRow`, `subjectLineOffset`, all ANSI cursor constants
-- Deleted `run_stream_inline_header_update_test.go` entirely (175 lines): 11 tests for deleted code
-- Simplified `run_agent_exec.go`: removed Subject placeholder, writer wrapping, background polling goroutine, unused `"context"` import
-- New sessions render header without Subject field (no placeholder dash); session resume shows Subject when resolved
-- 3 files changed, 1 insertion, 362 deletions; zero visual regression
+- Deleted `lineCountingWriter`, `subjectUpdater`, and all ANSI cursor constants (362 lines removed)
+- Header renders directly to stderr before Bubbletea starts; `View()` renders at bottom
 
 ## Previous Session Progress (2026-03-05, Session 2)
 - Completed Phase 2: Spinner Migration to Bubbletea View()
-- Exported `Frames`, `FrameInterval`, `FormatElapsed` from `pkg/spinner` for shared use
-- Bubbletea model gained spinner state, three message types, `Update()` handlers with tea.Tick chain, and `View()` rendering
-- `startThinkingSpinner`/`stopThinkingSpinner` now route through `program.Send()` instead of `spinner.Start/Stop`
-- 8 new model tests; all 18 spinner/bubbletea tests pass; zero visual regression
+- Model gained spinner state with `tea.Tick` chain; `startThinkingSpinner`/`stopThinkingSpinner` route through `program.Send()`
 
 ## Previous Session Progress (2026-03-05, Session 1)
 - Completed Phase 1: Bubbletea Program Shell -- Foundation
-- Discovered 3 API constraints that revised T01 plan; adopted conservative integration strategy
-- New files: `run_stream_inline_bubbletea.go`, `run_stream_inline_bubbletea_test.go`
-- Modified: `run_stream.go`, `run_stream_inline.go`
+- Discovered 3 API constraints; adopted conservative integration strategy
 
 ## Next Steps
-1. **Phase 4: Approval Flow Migration** -- Move the blocking approval flow into Bubbletea's event-driven Update cycle. Replace all 6 `termctl.EraseLines` call sites with `View()` state transitions. This is the most complex phase -- needs a dedicated planning session.
-2. **Phase 5: Tool Streaming Migration** -- Move pre-approval tool content streaming into `View()`.
-3. **Phase 6: Follow-up Prompt Migration** -- Move follow-up prompt into `View()`.
+1. **Phase 5: Tool Streaming Migration** -- Move pre-approval tool content streaming into `View()`. This eliminates the remaining 4 `termctl.EraseLines` call sites in `run_stream_inline_streaming.go` and `run_stream_inline_approval.go` (streaming erasure).
+2. **Phase 6: Follow-up Prompt Migration** -- Move follow-up prompt into `View()`.
 
 ## Plan Divergence (READ THIS)
 
@@ -55,13 +61,14 @@ Key documents:
 ## Context for Resume
 - Bubbletea Program is configured with `tea.WithOutput(statusW)` + `tea.WithInput(nil)` -- owns stderr, avoids stdin/stdout conflicts
 - AI content continues directly to stdout via `dataW` (unchanged)
-- `statusf()` routes through `program.Println()` when program is non-nil and not in approval flow
-- `inApprovalFlow` sentinel ensures approval-adjacent writes bypass Bubbletea's async render queue
-- **Model's `View()` now renders the thinking spinner** when active (Phase 2) -- returns "" when inactive
-- Spinner uses idiomatic `tea.Tick` Cmd chain: `spinnerStartMsg` -> tick chain at 80ms -> `spinnerStopMsg` terminates chain
-- The event loop still owns the 2s idle timer and start/stop decisions; it communicates to Bubbletea via `program.Send()`
-- **Session header renders directly to stderr before Bubbletea starts** (Phase 3) -- `lineCountingWriter` and `subjectUpdater` deleted; no writer wrapping; raw `os.Stdout/os.Stderr` passed to streaming pipeline
-- Key files to read when resuming: `run_stream.go` (lifecycle), `run_stream_inline.go` (routing), `run_stream_inline_bubbletea.go` (model + spinner), `run_stream_inline_spinner.go` (timer + routing)
+- `statusf()` routes through `program.Println()` when program is non-nil -- no more `inApprovalFlow` gate (removed in Phase 4)
+- **Model's `View()` now renders the approval panel** when `approvalActive` (Phase 4) -- expanded content + question + menu. Approval takes priority over spinner
+- **Model's `View()` renders the thinking spinner** when active (Phase 2) -- returns "" when inactive
+- `PromptKeyOnly` reads raw keystrokes without rendering; calls `onSelect` callback to relay selection changes to Bubbletea via `program.Send(approvalSelectMsg{})`
+- `approvalHideMsg` clears the panel (View()="") and commits collapsed result via `tea.Println` Cmd -- FIFO ordering guarantees correct sequencing
+- Pre-approval streaming content still uses direct `fmt.Fprint` + `termctl.EraseLines` for cursor sync restoration -- Phase 5 will move streaming into View()
+- **Session header renders directly to stderr before Bubbletea starts** (Phase 3)
+- Key files: `run_stream_inline_bubbletea.go` (model + messages + handlers), `run_stream_inline_approval.go` (approval flow with Bubbletea/direct-write branching), `run_stream_inline.go` (routing, statusf), `pkg/approval/inline_prompter.go` (RenderMenu, PromptKeyOnly)
 
 ## Blockers (if any)
 - None
@@ -118,7 +125,7 @@ When starting a new session:
 3. [ ] Review any new design decisions in `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260305.01.bubbletea-inline-renderer/design-decisions/`
 4. [ ] Check coding guidelines in `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260305.01.bubbletea-inline-renderer/coding-guidelines/`
 5. [ ] Review lessons learned in `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260305.01.bubbletea-inline-renderer/wrong-assumptions/` and `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260305.01.bubbletea-inline-renderer/dont-dos/`
-6. [ ] Continue with Phase 4: Approval Flow Migration
+6. [ ] Continue with Phase 5: Tool Streaming Migration
 
 ## Quick Resume
 
@@ -128,7 +135,7 @@ To continue this project, drag this file into chat:
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 4" - Resume with approval flow migration
+- "Continue with Phase 5" - Resume with tool streaming migration
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

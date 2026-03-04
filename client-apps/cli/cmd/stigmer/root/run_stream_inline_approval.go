@@ -110,9 +110,18 @@ func (r *inlineRenderer) handleNonInteractiveApproval(
 }
 
 // handleInteractiveApproval renders the full display/prompt/collapse flow.
-// Delegates display setup to prepareApprovalDisplay and post-decision
-// handling to finalizeApproval, keeping this function focused on the
-// question and prompt orchestration.
+//
+// Two rendering paths based on whether a Bubbletea program is running:
+//
+// Bubbletea path (program != nil): the approval panel is rendered by View().
+// Streaming content is erased (restoring cursor sync), then approvalShowMsg
+// puts the panel into View(). Key events relay selection changes via Send().
+// After the decision, approvalHideMsg clears the panel and commits the
+// collapsed result via tea.Println Cmd.
+//
+// Direct-write fallback (program == nil): the legacy path using
+// prepareApprovalDisplay, promptForDecision, and finalizeApproval with
+// manual EraseLines. Used in non-TTY/CI environments and tests.
 func (r *inlineRenderer) handleInteractiveApproval(
 	ctx context.Context,
 	e executiontui.ApprovalNeededEvent,
@@ -122,9 +131,115 @@ func (r *inlineRenderer) handleInteractiveApproval(
 	streamedRows, width int,
 	opts approval.Options,
 ) {
-	displayRows := r.prepareApprovalDisplay(tc, contentStreamed, streamedRows, runningRendered, canCollapse, width)
+	r.erasePreApprovalContent(contentStreamed, streamedRows, runningRendered, canCollapse)
 
+	termHeight := termctl.Height(r.cfg.status, 40)
+	maxContentLines := approvalContentBudget(termHeight)
+	expanded := r.buildExpandedView(tc, width, maxContentLines)
 	question := toolrender.ApprovalQuestion(tc)
+
+	if r.cfg.program != nil {
+		r.promptApprovalViaBubbletea(ctx, e, tc, subAgentID, expanded, question, opts)
+		return
+	}
+
+	r.promptApprovalDirect(ctx, e, tc, subAgentID, expanded, question, width, canCollapse, opts)
+}
+
+// erasePreApprovalContent removes any prior streaming output or running
+// indicator from stderr before the approval panel is displayed. This is
+// shared by both the Bubbletea and direct-write paths.
+//
+// For the Bubbletea path, the erasure also restores cursor sync: the
+// streaming content was written directly to stderr (bypassing Bubbletea),
+// so EraseLines puts the cursor back to where Bubbletea thinks it is.
+// Phase 5 will eliminate this by moving streaming into View().
+func (r *inlineRenderer) erasePreApprovalContent(
+	contentStreamed bool,
+	streamedRows int,
+	runningRendered, canCollapse bool,
+) {
+	if !canCollapse {
+		return
+	}
+	if contentStreamed {
+		termctl.EraseLines(r.cfg.status, streamedRows)
+	} else if runningRendered {
+		termctl.EraseLines(r.cfg.status, 1)
+	}
+}
+
+// promptApprovalViaBubbletea renders the approval panel through View()
+// and reads the user's decision via PromptKeyOnly. The panel is shown by
+// sending approvalShowMsg; arrow keys send approvalSelectMsg to update
+// the menu; the decision triggers approvalHideMsg which clears the panel
+// and commits the collapsed result via tea.Println.
+func (r *inlineRenderer) promptApprovalViaBubbletea(
+	ctx context.Context,
+	e executiontui.ApprovalNeededEvent,
+	tc toolrender.ToolCallInfo,
+	subAgentID string,
+	expanded, question string,
+	opts approval.Options,
+) {
+	r.cfg.program.Send(approvalShowMsg{content: expanded + question + "\n"})
+
+	ip, ok := r.cfg.prompter.(*approval.InlinePrompter)
+	if !ok {
+		r.cfg.program.Send(approvalHideMsg{})
+		r.statusf("Approval prompt error: inline prompter required — auto-skipping\n")
+		r.cfg.approvalResponses <- executiontui.ApprovalResponse{
+			Action: "skip", ToolCallID: e.ToolCallID,
+		}
+		r.waitingApproval = nil
+		return
+	}
+
+	decision, err := ip.PromptKeyOnly(ctx, opts, func(selected int) {
+		r.cfg.program.Send(approvalSelectMsg{selected: selected})
+	})
+	if err != nil {
+		r.cfg.program.Send(approvalHideMsg{})
+		r.handlePromptErrorAfterHide(e, err)
+		return
+	}
+
+	action := actionToString(decision.Action)
+
+	if action == "approve" && toolrender.IsShellTool(tc.Name) {
+		r.cfg.program.Send(approvalHideMsg{})
+		r.initPostApprovalStreaming(e.ToolCallID, tc, subAgentID)
+	} else {
+		collapsed := r.formatCollapsedResult(tc, action, subAgentID)
+		r.cfg.program.Send(approvalHideMsg{collapsedResult: collapsed})
+		r.trackSuppression(e.ToolCallID, tc.Name, action)
+	}
+
+	r.cfg.approvalResponses <- executiontui.ApprovalResponse{
+		Action:     action,
+		ToolCallID: e.ToolCallID,
+		Comment:    decision.Comment,
+	}
+	r.waitingApproval = nil
+}
+
+// promptApprovalDirect is the legacy direct-write fallback used when no
+// Bubbletea program is running (non-TTY, CI, tests). It writes the
+// expanded view and menu directly to stderr and uses EraseLines for
+// collapse after the decision.
+func (r *inlineRenderer) promptApprovalDirect(
+	ctx context.Context,
+	e executiontui.ApprovalNeededEvent,
+	tc toolrender.ToolCallInfo,
+	subAgentID string,
+	expanded, question string,
+	width int,
+	canCollapse bool,
+	opts approval.Options,
+) {
+	fmt.Fprint(r.cfg.status, expanded)
+	displayRows := termctl.DisplayRows(expanded, width)
+
 	fmt.Fprintf(r.cfg.status, "%s\n", question)
 	questionRows := termctl.DisplayRows(question+"\n", width)
 
@@ -136,44 +251,6 @@ func (r *inlineRenderer) handleInteractiveApproval(
 
 	totalRows := displayRows + questionRows + menuRows
 	r.finalizeApproval(e, tc, decision, subAgentID, totalRows, canCollapse)
-}
-
-// prepareApprovalDisplay renders the content shown above the approval
-// question. Returns the number of display rows rendered, used for
-// EraseLines-based erasure after the user decides.
-//
-// When contentStreamed is true and cursor control is available, the
-// streamed content is erased and replaced with the full expanded view
-// built from the now-complete Args. This ensures the header shows the
-// file path and separators span the terminal width.
-//
-// When contentStreamed is false, the full expanded view (separator +
-// header + content + separator) is printed from Args.
-//
-// Content is height-capped and width-clamped via buildExpandedView to
-// keep the total display within the terminal height, making the row
-// count deterministic for EraseLines.
-func (r *inlineRenderer) prepareApprovalDisplay(
-	tc toolrender.ToolCallInfo,
-	contentStreamed bool,
-	streamedRows int,
-	runningRendered, canCollapse bool,
-	width int,
-) int {
-	termHeight := termctl.Height(r.cfg.status, 40)
-
-	if contentStreamed && canCollapse {
-		termctl.EraseLines(r.cfg.status, streamedRows)
-	}
-
-	if !contentStreamed && canCollapse && runningRendered {
-		termctl.EraseLines(r.cfg.status, 1)
-	}
-
-	maxContentLines := approvalContentBudget(termHeight)
-	expanded := r.buildExpandedView(tc, width, maxContentLines)
-	fmt.Fprint(r.cfg.status, expanded)
-	return termctl.DisplayRows(expanded, width)
 }
 
 // finalizeApproval handles the post-decision phase: erases the display,
@@ -277,8 +354,8 @@ func (r *inlineRenderer) promptForDecision(ctx context.Context, opts approval.Op
 }
 
 // handlePromptError routes prompt errors to the appropriate handler.
-// Session exit (Esc/Ctrl+C) terminates the session. Any other error
-// (context cancellation, unexpected failure) auto-skips the tool.
+// Used by the direct-write fallback path. Erases any rendered content
+// before handling the error.
 func (r *inlineRenderer) handlePromptError(e executiontui.ApprovalNeededEvent, err error, renderedRows int, canCollapse bool) {
 	if canCollapse && renderedRows > 0 {
 		termHeight := termctl.Height(r.cfg.status, 40)
@@ -288,6 +365,23 @@ func (r *inlineRenderer) handlePromptError(e executiontui.ApprovalNeededEvent, e
 		termctl.EraseLines(r.cfg.status, renderedRows)
 	}
 
+	if errors.Is(err, approval.ErrSessionExit) {
+		r.handleSessionExit(e)
+		return
+	}
+
+	r.statusf("Approval prompt error: %s — auto-skipping\n", err)
+	r.cfg.approvalResponses <- executiontui.ApprovalResponse{
+		Action:     "skip",
+		ToolCallID: e.ToolCallID,
+	}
+	r.waitingApproval = nil
+}
+
+// handlePromptErrorAfterHide routes prompt errors when the Bubbletea
+// panel has already been hidden via approvalHideMsg. No manual erasure
+// is needed — View()="" cleared the panel.
+func (r *inlineRenderer) handlePromptErrorAfterHide(e executiontui.ApprovalNeededEvent, err error) {
 	if errors.Is(err, approval.ErrSessionExit) {
 		r.handleSessionExit(e)
 		return
@@ -321,14 +415,22 @@ func (r *inlineRenderer) handleSessionExit(e executiontui.ApprovalNeededEvent) {
 	r.exitRequested = true
 }
 
-// printCollapsedResult renders the post-decision compact summary. Applies
-// gutter-wrapping when the tool belongs to a sub-agent.
-func (r *inlineRenderer) printCollapsedResult(tc toolrender.ToolCallInfo, action string, subAgentID string) {
+// formatCollapsedResult builds the post-decision compact summary string
+// without printing it. Used by the Bubbletea path where the result is
+// committed via tea.Println through the approvalHideMsg Cmd.
+func (r *inlineRenderer) formatCollapsedResult(tc toolrender.ToolCallInfo, action string, subAgentID string) string {
 	result := toolrender.RenderApprovalResult(tc, action, r.compactOpts)
 	if subAgentID != "" {
 		result = toolrender.GutterWrap(result)
 	}
-	r.statusf("%s\n", result)
+	return result
+}
+
+// printCollapsedResult renders the post-decision compact summary. Applies
+// gutter-wrapping when the tool belongs to a sub-agent. Used by the
+// direct-write fallback and non-interactive paths.
+func (r *inlineRenderer) printCollapsedResult(tc toolrender.ToolCallInfo, action string, subAgentID string) {
+	r.statusf("%s\n", r.formatCollapsedResult(tc, action, subAgentID))
 }
 
 // trackSuppression records the tool call ID for ToolCompletedEvent

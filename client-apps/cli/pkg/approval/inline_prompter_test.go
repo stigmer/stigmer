@@ -21,7 +21,7 @@ var _ Prompter = (*InlinePrompter)(nil)
 // =============================================================================
 
 func TestRenderMenu_DefaultSelection(t *testing.T) {
-	menu := renderMenu(0)
+	menu := RenderMenu(0)
 	if !strings.Contains(menu, "> Yes") {
 		t.Error("expected '> Yes' indicator for first selection")
 	}
@@ -31,7 +31,7 @@ func TestRenderMenu_DefaultSelection(t *testing.T) {
 }
 
 func TestRenderMenu_SecondSelection(t *testing.T) {
-	menu := renderMenu(1)
+	menu := RenderMenu(1)
 	if !strings.Contains(menu, "> Skip") {
 		t.Error("expected '> Skip' indicator for second selection")
 	}
@@ -41,14 +41,14 @@ func TestRenderMenu_SecondSelection(t *testing.T) {
 }
 
 func TestRenderMenu_ThirdSelection(t *testing.T) {
-	menu := renderMenu(2)
+	menu := RenderMenu(2)
 	if !strings.Contains(menu, "> Reject") {
 		t.Error("expected '> Reject' indicator for third selection")
 	}
 }
 
 func TestRenderMenu_ContainsHint(t *testing.T) {
-	menu := renderMenu(0)
+	menu := RenderMenu(0)
 	for _, fragment := range []string{"select", "esc/ctrl+c exit"} {
 		if !strings.Contains(menu, fragment) {
 			t.Errorf("expected hint to contain %q", fragment)
@@ -57,7 +57,7 @@ func TestRenderMenu_ContainsHint(t *testing.T) {
 }
 
 func TestRenderMenu_ContainsAllLabels(t *testing.T) {
-	menu := renderMenu(0)
+	menu := RenderMenu(0)
 	for _, label := range []string{"Yes", "Skip", "Reject"} {
 		if !strings.Contains(menu, label) {
 			t.Errorf("menu missing label %q", label)
@@ -66,7 +66,7 @@ func TestRenderMenu_ContainsAllLabels(t *testing.T) {
 }
 
 func TestRenderMenu_LineCount(t *testing.T) {
-	menu := renderMenu(0)
+	menu := RenderMenu(0)
 	lines := strings.Split(menu, "\r\n")
 	// 3 choice lines end with \r\n; the hint line has no trailing \r\n,
 	// so Split produces 4 segments (3 choices + remainder with hint).
@@ -380,6 +380,71 @@ func TestNewInlinePrompter_NilKeyReader(t *testing.T) {
 	p := NewInlinePrompter(&bytes.Buffer{}, &bytes.Buffer{})
 	if p.kr != nil {
 		t.Error("keyReader should be nil before first prompt")
+	}
+}
+
+// =============================================================================
+// PromptKeyOnly — non-interactive / non-TTY paths
+// =============================================================================
+
+func TestPromptKeyOnly_NonInteractive_Approve(t *testing.T) {
+	p := NewInlinePrompter(&bytes.Buffer{}, &bytes.Buffer{})
+	called := false
+	decision, err := p.PromptKeyOnly(context.Background(), Options{
+		NonInteractive: true,
+		DefaultAction:  ActionApprove,
+	}, func(int) { called = true })
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if decision.Action != ActionApprove {
+		t.Errorf("action = %v, want ActionApprove", decision.Action)
+	}
+	if called {
+		t.Error("onSelect should not be called for non-interactive")
+	}
+}
+
+func TestPromptKeyOnly_NonInteractive_NoDefault(t *testing.T) {
+	p := NewInlinePrompter(&bytes.Buffer{}, &bytes.Buffer{})
+	_, err := p.PromptKeyOnly(context.Background(), Options{
+		NonInteractive: true,
+	}, func(int) {})
+	if err != ErrNonInteractiveNoDefault {
+		t.Errorf("expected ErrNonInteractiveNoDefault, got %v", err)
+	}
+}
+
+func TestPromptKeyOnly_NonTTY_WithDefault(t *testing.T) {
+	p := NewInlinePrompter(&bytes.Buffer{}, &bytes.Buffer{})
+	decision, err := p.PromptKeyOnly(context.Background(), Options{
+		DefaultAction: ActionSkip,
+	}, func(int) {})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if decision.Action != ActionSkip {
+		t.Errorf("action = %v, want ActionSkip", decision.Action)
+	}
+}
+
+func TestPromptKeyOnly_NonTTY_NoDefault(t *testing.T) {
+	p := NewInlinePrompter(&bytes.Buffer{}, &bytes.Buffer{})
+	_, err := p.PromptKeyOnly(context.Background(), Options{}, func(int) {})
+	if err != ErrNonInteractiveNoDefault {
+		t.Errorf("expected ErrNonInteractiveNoDefault, got %v", err)
+	}
+}
+
+// =============================================================================
+// RenderMenu (exported)
+// =============================================================================
+
+func TestRenderMenu_Exported_MatchesMenuLines(t *testing.T) {
+	menu := RenderMenu(0)
+	lines := strings.Split(menu, "\r\n")
+	if len(lines) != menuLines {
+		t.Errorf("RenderMenu produced %d segments, want %d", len(lines), menuLines)
 	}
 }
 

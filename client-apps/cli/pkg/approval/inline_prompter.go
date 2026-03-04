@@ -86,7 +86,7 @@ func (p *InlinePrompter) PromptWithLineCount(ctx context.Context, opts Options) 
 	defer term.Restore(p.fd, oldState)
 
 	selected := 0
-	menu := renderMenu(selected)
+	menu := RenderMenu(selected)
 	fmt.Fprint(p.out, menu)
 
 	for {
@@ -120,6 +120,68 @@ func (p *InlinePrompter) PromptWithLineCount(ctx context.Context, opts Options) 
 	}
 }
 
+// PromptKeyOnly reads approval keystrokes without rendering the menu.
+// The caller is responsible for visual output (typically via Bubbletea's
+// View()). On arrow key changes, onSelect is called with the new
+// selection index so the caller can update the visual state.
+//
+// Returns the user's decision on Enter/number-key, or an error on
+// Esc/Ctrl+C/context cancellation.
+//
+// Non-interactive fast path: when NonInteractive is true, DefaultAction
+// is set, or the input is not a terminal, the decision is returned
+// immediately without reading any keys or calling onSelect.
+func (p *InlinePrompter) PromptKeyOnly(ctx context.Context, opts Options, onSelect func(int)) (*Decision, error) {
+	if opts.NonInteractive {
+		d, _, err := handleNonInteractiveInline(opts)
+		return d, err
+	}
+	if p.fd < 0 {
+		d, _, err := handleNonInteractiveInline(opts)
+		return d, err
+	}
+
+	p.ensureKeyReader()
+	p.kr.drain()
+
+	oldState, err := term.MakeRaw(p.fd)
+	if err != nil {
+		return nil, fmt.Errorf("failed to enter raw terminal mode: %w", err)
+	}
+	defer term.Restore(p.fd, oldState)
+
+	selected := 0
+	for {
+		key, err := p.kr.readKey(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		switch key {
+		case keyUp:
+			if selected > 0 {
+				selected--
+				onSelect(selected)
+			}
+		case keyDown:
+			if selected < len(inlineChoices)-1 {
+				selected++
+				onSelect(selected)
+			}
+		case keyEnter:
+			return &Decision{Action: inlineChoices[selected].action}, nil
+		case keyOne:
+			return &Decision{Action: ActionApprove}, nil
+		case keyTwo:
+			return &Decision{Action: ActionSkip}, nil
+		case keyThree:
+			return &Decision{Action: ActionReject}, nil
+		case keyEsc, keyCtrlC:
+			return nil, ErrSessionExit
+		}
+	}
+}
+
 func (p *InlinePrompter) ensureKeyReader() {
 	if p.kr == nil {
 		p.kr = newKeyReader(p.in)
@@ -133,10 +195,13 @@ func handleNonInteractiveInline(opts Options) (*Decision, int, error) {
 	return &Decision{Action: opts.DefaultAction}, 0, nil
 }
 
-// renderMenu builds the 4-line vertical menu string for the given
+// RenderMenu builds the 4-line vertical menu string for the given
 // selection index. The output has no trailing newline — the caller
 // writes it as-is and tracks the line count via the menuLines constant.
-func renderMenu(selected int) string {
+//
+// Exported so the Bubbletea model can render the menu in View() during
+// the approval flow (Phase 4).
+func RenderMenu(selected int) string {
 	var b strings.Builder
 	for i, choice := range inlineChoices {
 		if i == selected {
@@ -152,9 +217,10 @@ func renderMenu(selected int) string {
 
 // rerenderMenu erases the current menu and redraws it with the updated
 // selection. Uses termctl.EraseLines for precise cursor control.
+// Used by PromptWithLineCount (the legacy direct-write path).
 func rerenderMenu(w io.Writer, selected int) {
 	termctl.EraseLines(w, menuLines)
-	fmt.Fprint(w, renderMenu(selected))
+	fmt.Fprint(w, RenderMenu(selected))
 }
 
 var (
