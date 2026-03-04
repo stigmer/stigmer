@@ -619,6 +619,7 @@ async def _auto_publish_written_files(
 
 def build_workspace_prompt_section(
     provision_results: list[ProvisionResult] | None = None,
+    container_root: str = "",
 ) -> str:
     """Build the ``## Workspace`` system prompt section.
 
@@ -630,6 +631,9 @@ def build_workspace_prompt_section(
     single-workspace format (no regression).  For multiple entries each
     gets a ``### {name}`` sub-heading with its description and file
     tree (heading level adjusted to ``####``).
+
+    *container_root* is the backend's root directory — used only in the
+    multi-entry path to tell the agent its current working directory.
     """
     if not provision_results:
         return ""
@@ -637,7 +641,7 @@ def build_workspace_prompt_section(
     if len(provision_results) == 1:
         return _build_single_workspace_section(provision_results[0])
 
-    return _build_multi_workspace_section(provision_results)
+    return _build_multi_workspace_section(provision_results, container_root)
 
 
 def _build_single_workspace_section(result: ProvisionResult) -> str:
@@ -653,35 +657,87 @@ def _build_single_workspace_section(result: ProvisionResult) -> str:
     return section
 
 
-def _build_multi_workspace_section(results: list[ProvisionResult]) -> str:
+def _build_multi_workspace_section(
+    results: list[ProvisionResult],
+    container_root: str,
+) -> str:
     """Format the workspace section for multiple entries.
 
     The tree heading level is controlled at provisioning time via
     ``tree_heading_level`` (set to 4 by ``provision_all`` for
     multi-entry sessions), so no post-hoc string replacement is needed.
+
+    *container_root* is the backend's root directory — included in the
+    prompt so the agent knows its CWD and how to form entry-relative
+    paths.
     """
-    primary = results[0]
-    primary_label = primary.entry_name or "entry-1"
+    first_label = results[0].entry_name or "entry-1"
 
     section = (
         f"\n\n## Workspace\n\n"
-        f"This session has {len(results)} workspace entries. "
-        f"Your starting directory is **{primary_label}** "
-        f"(`{primary.root_dir}`). "
-        f"Navigate between entries using their absolute paths.\n"
+        f"This session has {len(results)} workspace entries.\n\n"
+        f"**Current working directory**: `{container_root}`\n"
+        f"**Path resolution**: All file tools (read, write, edit, ls, "
+        f"glob, grep) resolve paths relative to the current working "
+        f"directory. Use entry-relative paths "
+        f"(e.g., `{first_label}/src/main.py`) or absolute paths.\n"
     )
 
     for idx, result in enumerate(results):
         label = result.entry_name or f"entry-{idx + 1}"
-        section += f"\n### {label}\n\n"
-
-        if result.workspace_description:
-            section += result.workspace_description
+        section += f"\n### {label} (`{result.root_dir}`)\n\n"
+        section += _format_entry_description(result)
 
         if result.file_tree:
             section += "\n\n" + result.file_tree
 
     return section
+
+
+def _format_entry_description(result: ProvisionResult) -> str:
+    """Generate a multi-workspace-appropriate description for one entry.
+
+    Uses structured fields on *result* (``source_type``, ``entry_name``,
+    ``git_metadata``) rather than the generic ``workspace_description``
+    so the phrasing fits a multi-entry context ("Workspace entry **X**"
+    instead of "Your workspace is ...").
+
+    Falls back to ``workspace_description`` for unknown source types so
+    that new sources work without changes here.
+    """
+    name = result.entry_name or "this entry"
+
+    if result.source_type == SourceType.LOCAL_PATH:
+        return (
+            f"Workspace entry **{name}** is the user's project directory "
+            f"at `{result.root_dir}`.\n"
+            "You are operating directly on the user's files — changes are "
+            "immediate and persistent. Use git to track and verify your "
+            "changes."
+        )
+
+    if result.source_type == SourceType.GIT_REPO and result.git_metadata:
+        meta = result.git_metadata
+        short_sha = (
+            meta.base_commit[:7]
+            if len(meta.base_commit) >= 7
+            else meta.base_commit
+        )
+        return (
+            f"Workspace entry **{name}** was initialized from "
+            f"{meta.repo_url} (branch: {meta.branch}, "
+            f"commit: {short_sha}).\n"
+            "Changes you make will be captured as artifacts when "
+            "execution completes."
+        )
+
+    if result.source_type == SourceType.EMPTY:
+        return (
+            f"Workspace entry **{name}** is an empty workspace.\n"
+            "Create files and directories as needed for your task."
+        )
+
+    return result.workspace_description
 
 
 # Tree-building utilities live in worker.workspace.tree.  Module-level
@@ -1870,7 +1926,10 @@ async def _execute_graphton_impl(
         # Enhance system prompt with workspace context, skills, input files
         enhanced_system_prompt = instructions
 
-        workspace_section = build_workspace_prompt_section(provision_results)
+        workspace_section = build_workspace_prompt_section(
+            provision_results,
+            container_root=workspace_backend.root_dir,
+        )
         if workspace_section:
             enhanced_system_prompt += workspace_section
             activity_logger.info("Enhanced system prompt with workspace context")
