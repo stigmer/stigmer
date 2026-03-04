@@ -81,6 +81,9 @@ func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFun
 		status:            os.Stderr,
 		sessionID:         sessionID,
 		workspaceRoots:    workspaceRoots,
+		cancelExecFn: func() {
+			_, _ = execution.Cancel(conn, executionID)
+		},
 	}
 
 	latestExecID, phase, exitErr := runInlineFollowUpLoop(streamCtx, cfg, followUpFn, executionID)

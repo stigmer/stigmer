@@ -115,7 +115,7 @@ func (p *InlinePrompter) PromptWithLineCount(ctx context.Context, opts Options) 
 		case keyThree:
 			return &Decision{Action: ActionReject}, menuLines, nil
 		case keyEsc, keyCtrlC:
-			return nil, menuLines, ErrPromptCancelled
+			return nil, menuLines, ErrSessionExit
 		}
 	}
 }
@@ -146,7 +146,7 @@ func renderMenu(selected int) string {
 		}
 		b.WriteString("\r\n")
 	}
-	b.WriteString(hintStyle.Render("  arrows/1-3/enter/esc"))
+	b.WriteString(hintStyle.Render("  ↑↓/1-3 select · esc/ctrl+c exit"))
 	return b.String()
 }
 

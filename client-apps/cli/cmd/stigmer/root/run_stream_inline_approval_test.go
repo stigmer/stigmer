@@ -5,6 +5,7 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
@@ -513,7 +514,7 @@ func TestHandleApproval_SubAgentGutterWrapped(t *testing.T) {
 // Prompt error fallback
 // ---------------------------------------------------------------------------
 
-func TestHandleApproval_PromptError_AutoSkips(t *testing.T) {
+func TestHandleApproval_UnexpectedError_AutoSkips(t *testing.T) {
 	prompter := &mockPrompter{err: approval.ErrPromptCancelled}
 	r, _, stderr, responses := newApprovalTestRenderer(prompter, approval.ActionUnspecified)
 	tc := writeToolCall()
@@ -526,12 +527,56 @@ func TestHandleApproval_PromptError_AutoSkips(t *testing.T) {
 
 	output := stripANSIApproval(stderr.String())
 	if !strings.Contains(output, "auto-skipping") {
-		t.Errorf("prompt error should show auto-skipping message, got:\n%s", output)
+		t.Errorf("unexpected error should show auto-skipping message, got:\n%s", output)
 	}
 
 	resp := <-responses
 	if resp.Action != "skip" {
-		t.Errorf("prompt error should auto-skip, got %s", resp.Action)
+		t.Errorf("unexpected error should auto-skip, got %s", resp.Action)
+	}
+	if r.exitRequested {
+		t.Error("unexpected error should not set exitRequested")
+	}
+}
+
+func TestHandleApproval_SessionExit_CancelsAndExits(t *testing.T) {
+	prompter := &mockPrompter{err: approval.ErrSessionExit}
+	r, _, stderr, responses := newApprovalTestRenderer(prompter, approval.ActionUnspecified)
+	tc := writeToolCall()
+	r.waitingApproval = &waitingApprovalState{tc: tc, runningLineRendered: false}
+	r.cfg.sessionID = "ses-test123"
+
+	cancelDone := make(chan struct{})
+	r.cfg.cancelExecFn = func() { close(cancelDone) }
+
+	r.handleApproval(context.Background(), executiontui.ApprovalNeededEvent{
+		ToolCallID: "tc-1",
+		ToolName:   "write_file",
+	})
+
+	resp := <-responses
+	if resp.Action != "skip" {
+		t.Errorf("session exit should send skip to unblock stream, got %s", resp.Action)
+	}
+	if !r.exitRequested {
+		t.Error("session exit should set exitRequested")
+	}
+
+	select {
+	case <-cancelDone:
+	case <-time.After(time.Second):
+		t.Error("cancelExecFn was not called within timeout")
+	}
+
+	output := stripANSIApproval(stderr.String())
+	if !strings.Contains(output, "Session ended by user") {
+		t.Errorf("session exit should show ended message, got:\n%s", output)
+	}
+	if !strings.Contains(output, "ses-test123") {
+		t.Errorf("session exit should show resume hint with session ID, got:\n%s", output)
+	}
+	if r.waitingApproval != nil {
+		t.Error("session exit should clear waitingApproval")
 	}
 }
 
@@ -604,18 +649,18 @@ func TestRenderToolWaitingApproval_NoRunningLine(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// renderToolRunning tracks lastRenderedRunningID
+// Running indicators are suppressed; lastRenderedRunningID stays empty
 // ---------------------------------------------------------------------------
 
-func TestRenderToolRunning_TracksID(t *testing.T) {
+func TestHandleEvent_RunningIndicator_DoesNotSetLastRenderedID(t *testing.T) {
 	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
 
-	r.renderToolRunning(executiontui.ToolRunningEvent{
+	r.handleEvent(context.Background(), executiontui.ToolRunningEvent{
 		ToolCallID: "tc-42",
 		ToolCall:   shellToolCall(),
 	})
 
-	if r.lastRenderedRunningID != "tc-42" {
-		t.Errorf("expected tc-42, got %s", r.lastRenderedRunningID)
+	if r.lastRenderedRunningID != "" {
+		t.Errorf("running indicators are suppressed, lastRenderedRunningID should be empty, got %q", r.lastRenderedRunningID)
 	}
 }

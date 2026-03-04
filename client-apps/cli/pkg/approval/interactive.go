@@ -62,8 +62,8 @@ func (p *InteractivePrompter) showInteractivePrompt(_ context.Context, _ Options
 		return nil, fmt.Errorf("unexpected model type from approval prompt")
 	}
 
-	if result.cancelled {
-		return nil, ErrPromptCancelled
+	if result.sessionExit {
+		return nil, ErrSessionExit
 	}
 
 	return result.decision, nil

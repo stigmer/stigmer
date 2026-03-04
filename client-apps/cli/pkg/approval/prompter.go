@@ -16,14 +16,22 @@ type Prompter interface {
 	//   - No TTY available: Falls back to non-interactive behavior
 	//
 	// Returns error if:
-	//   - User cancels the prompt (Ctrl+C) - returns ErrPromptCancelled
+	//   - User exits the session (Esc/Ctrl+C) - returns ErrSessionExit
 	//   - Non-interactive mode without DefaultAction - returns ErrNonInteractiveNoDefault
 	//   - Context is cancelled
 	Prompt(ctx context.Context, opts Options) (*Decision, error)
 }
 
-// ErrPromptCancelled indicates the user cancelled the prompt (e.g., Ctrl+C).
+// ErrPromptCancelled is retained for backward compatibility. The built-in
+// prompters no longer produce this error from user key presses (both Esc
+// and Ctrl+C now return ErrSessionExit), but external Prompter
+// implementations or tests may still use it.
 var ErrPromptCancelled = errors.New("prompt cancelled by user")
+
+// ErrSessionExit indicates the user requested a full session exit
+// (Esc or Ctrl+C at an approval prompt). The current execution should
+// be cancelled and the CLI should exit cleanly.
+var ErrSessionExit = errors.New("session exit requested by user")
 
 // ErrNonInteractiveNoDefault indicates non-interactive mode was requested
 // but no DefaultAction was specified in Options.

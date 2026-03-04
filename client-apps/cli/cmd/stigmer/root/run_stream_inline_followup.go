@@ -49,6 +49,10 @@ func runInlineFollowUpLoop(
 		latestExecID = result.ExecutionID
 		cfg.events = result.Events
 		cfg.approvalResponses = result.ApprovalResponses
+		if result.CancelFn != nil {
+			fn := result.CancelFn
+			cfg.cancelExecFn = func() { _ = fn() }
+		}
 	}
 }
 

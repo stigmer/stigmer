@@ -23,8 +23,8 @@ func TestPromptModel_InitialState(t *testing.T) {
 	if m.decision != nil {
 		t.Error("expected nil decision initially")
 	}
-	if m.cancelled {
-		t.Error("expected not cancelled initially")
+	if m.sessionExit {
+		t.Error("expected not sessionExit initially")
 	}
 	if len(m.choices) != 3 {
 		t.Errorf("expected 3 choices, got %d", len(m.choices))
@@ -190,21 +190,32 @@ func TestPromptModel_SelectReject_WithoutComment_QuitsImmediately(t *testing.T) 
 }
 
 // =============================================================================
-// Cancellation Tests
+// Session Exit Tests — both Esc and Ctrl+C exit the session
 // =============================================================================
 
-func TestPromptModel_Cancel_InSelect(t *testing.T) {
+func TestPromptModel_Esc_InSelect_SetsSessionExit(t *testing.T) {
+	m := newPromptModel(true)
+
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	result := updated.(promptModel)
+
+	if !result.sessionExit {
+		t.Error("expected sessionExit to be true after esc")
+	}
+}
+
+func TestPromptModel_CtrlC_InSelect_SetsSessionExit(t *testing.T) {
 	m := newPromptModel(true)
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
 	result := updated.(promptModel)
 
-	if !result.cancelled {
-		t.Error("expected cancelled to be true after ctrl+c")
+	if !result.sessionExit {
+		t.Error("expected sessionExit to be true after ctrl+c")
 	}
 }
 
-func TestPromptModel_Cancel_InComment(t *testing.T) {
+func TestPromptModel_CtrlC_InComment_SetsSessionExit(t *testing.T) {
 	m := newPromptModel(true)
 	m.phase = phaseComment
 	m.decision = &Decision{Action: ActionReject}
@@ -212,11 +223,11 @@ func TestPromptModel_Cancel_InComment(t *testing.T) {
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
 	result := updated.(promptModel)
 
-	if !result.cancelled {
-		t.Error("expected cancelled to be true after ctrl+c in comment")
+	if !result.sessionExit {
+		t.Error("expected sessionExit to be true after ctrl+c in comment")
 	}
 	if result.decision != nil {
-		t.Error("expected decision to be cleared on cancel in comment")
+		t.Error("expected decision to be cleared on ctrl+c in comment")
 	}
 }
 
@@ -290,14 +301,10 @@ func TestPromptModel_ViewSelect_ShowsHints(t *testing.T) {
 	m := newPromptModel(true)
 	view := m.View()
 
-	if !strings.Contains(view, "move") {
-		t.Error("view should contain navigation hint")
-	}
-	if !strings.Contains(view, "select") {
-		t.Error("view should contain selection hint")
-	}
-	if !strings.Contains(view, "cancel") {
-		t.Error("view should contain cancel hint")
+	for _, fragment := range []string{"move", "select", "esc/ctrl+c exit"} {
+		if !strings.Contains(view, fragment) {
+			t.Errorf("view should contain hint %q", fragment)
+		}
 	}
 }
 
