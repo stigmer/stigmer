@@ -118,10 +118,22 @@ type inlineRenderer struct {
 	// populated Args.
 	streamHeaderDeferred bool
 
-	// cursorSaved tracks whether a DEC cursor save (\033 7) is active for
-	// the current approval flow. Set by initPreApprovalStreaming or
-	// prepareApprovalDisplay; consumed by finalizeApproval / error handlers.
-	cursorSaved bool
+	// maxStreamContentLines caps the number of content lines displayed
+	// during pre-approval streaming. Computed from the terminal height
+	// in initPreApprovalStreaming. When the cap is reached, a truncation
+	// indicator replaces further content, keeping the display within
+	// the visible terminal and making the row count deterministic.
+	maxStreamContentLines int
+
+	// streamContentLines tracks content lines actually displayed during
+	// pre-approval streaming (excluding the header). Used to enforce the
+	// maxStreamContentLines cap.
+	streamContentLines int
+
+	// streamTruncationShown is true when the streaming content hit the
+	// cap and a truncation indicator was printed. The indicator is updated
+	// in-place as more content arrives (incrementing the overflow count).
+	streamTruncationShown bool
 
 	// exitRequested is set by handleSessionExit when the user presses
 	// Ctrl+C at an approval prompt. Checked after handleApproval returns

@@ -3,6 +3,7 @@ package root
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -164,7 +165,7 @@ func TestBuildExpandedView_WriteFile(t *testing.T) {
 	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
 	tc := writeToolCall()
 
-	view := stripANSIApproval(r.buildExpandedView(tc, 80))
+	view := stripANSIApproval(r.buildExpandedView(tc, 80, 30))
 
 	if !strings.Contains(view, "Write(config.go)") {
 		t.Errorf("expected header with Write(config.go), got:\n%s", view)
@@ -181,7 +182,7 @@ func TestBuildExpandedView_Shell(t *testing.T) {
 	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
 	tc := shellToolCall()
 
-	view := stripANSIApproval(r.buildExpandedView(tc, 80))
+	view := stripANSIApproval(r.buildExpandedView(tc, 80, 30))
 
 	if !strings.Contains(view, "Shell(go test ./...)") {
 		t.Errorf("expected header with Shell command, got:\n%s", view)
@@ -192,7 +193,7 @@ func TestBuildExpandedView_EmptyContent(t *testing.T) {
 	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
 	tc := deleteToolCall()
 
-	view := stripANSIApproval(r.buildExpandedView(tc, 80))
+	view := stripANSIApproval(r.buildExpandedView(tc, 80, 30))
 
 	if !strings.Contains(view, "Delete(old.txt)") {
 		t.Errorf("expected header with Delete(old.txt), got:\n%s", view)
@@ -207,7 +208,7 @@ func TestBuildExpandedView_SeparatorBeforeHeader(t *testing.T) {
 	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
 	tc := shellToolCall()
 
-	view := stripANSIApproval(r.buildExpandedView(tc, 80))
+	view := stripANSIApproval(r.buildExpandedView(tc, 80, 30))
 	lines := strings.Split(strings.TrimRight(view, "\n"), "\n")
 
 	if len(lines) < 3 {
@@ -649,74 +650,43 @@ func TestRenderToolWaitingApproval_NoRunningLine(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Cursor save/restore tracking
+// Content viewport and deterministic erasure
 // ---------------------------------------------------------------------------
 
-func TestPrepareApprovalDisplay_NonStreamedPath_SetsCursorSaved(t *testing.T) {
+func TestBuildExpandedView_TruncatesLongContent(t *testing.T) {
 	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
-	tc := writeToolCall()
+	lines := make([]string, 100)
+	for i := range lines {
+		lines[i] = fmt.Sprintf("line %d", i+1)
+	}
+	tc := toolrender.ToolCallInfo{
+		Name:   "write_file",
+		Args:   map[string]interface{}{"path": "big.go", "contents": strings.Join(lines, "\n")},
+		Status: "waiting_approval",
+	}
 
-	r.prepareApprovalDisplay(tc, false, 0, false, true, 80)
+	view := stripANSIApproval(r.buildExpandedView(tc, 80, 10))
 
-	if !r.cursorSaved {
-		t.Error("prepareApprovalDisplay should set cursorSaved when building expanded view")
+	if !strings.Contains(view, "line 1") {
+		t.Error("truncated view should contain first line")
+	}
+	if !strings.Contains(view, "+90 more lines") {
+		t.Errorf("truncated view should show overflow indicator, got:\n%s", view)
+	}
+	if strings.Contains(view, "line 100") {
+		t.Error("truncated view should not contain the 100th line")
 	}
 }
 
-func TestFinalizeApproval_ClearsCursorSaved(t *testing.T) {
-	prompter := &mockPrompter{decision: &approval.Decision{Action: approval.ActionApprove}}
-	r, _, _, responses := newApprovalTestRenderer(prompter, approval.ActionUnspecified)
-	tc := writeToolCall()
-	r.waitingApproval = &waitingApprovalState{tc: tc}
-	r.cursorSaved = true
-
-	r.handleApproval(context.Background(), executiontui.ApprovalNeededEvent{
-		ToolCallID: "tc-cs1",
-		ToolName:   "write_file",
-	})
-	<-responses
-
-	if r.cursorSaved {
-		t.Error("cursorSaved should be cleared after finalizeApproval")
+func TestApprovalContentBudget(t *testing.T) {
+	if got := approvalContentBudget(40); got != 30 {
+		t.Errorf("approvalContentBudget(40) = %d, want 30", got)
 	}
-}
-
-func TestHandleNonInteractiveApproval_ContentStreamed_ClearsCursorSaved(t *testing.T) {
-	r, _, _, responses := newApprovalTestRenderer(&mockPrompter{}, approval.ActionApprove)
-	tc := writeToolCall()
-	r.waitingApproval = &waitingApprovalState{
-		tc:             tc,
-		contentStreamed: true,
-		streamedRows:   5,
+	if got := approvalContentBudget(12); got != 5 {
+		t.Errorf("approvalContentBudget(12) = %d, want 5 (minimum)", got)
 	}
-	r.cursorSaved = true
-
-	r.handleApproval(context.Background(), executiontui.ApprovalNeededEvent{
-		ToolCallID: "tc-cs2",
-		ToolName:   "write_file",
-	})
-	<-responses
-
-	if r.cursorSaved {
-		t.Error("cursorSaved should be cleared after non-interactive approval with content streamed")
-	}
-}
-
-func TestHandlePromptError_ClearsCursorSaved(t *testing.T) {
-	prompter := &mockPrompter{err: approval.ErrPromptCancelled}
-	r, _, _, responses := newApprovalTestRenderer(prompter, approval.ActionUnspecified)
-	tc := writeToolCall()
-	r.waitingApproval = &waitingApprovalState{tc: tc}
-	r.cursorSaved = true
-
-	r.handleApproval(context.Background(), executiontui.ApprovalNeededEvent{
-		ToolCallID: "tc-cs3",
-		ToolName:   "write_file",
-	})
-	<-responses
-
-	if r.cursorSaved {
-		t.Error("cursorSaved should be cleared after prompt error")
+	if got := approvalContentBudget(100); got != 90 {
+		t.Errorf("approvalContentBudget(100) = %d, want 90", got)
 	}
 }
 

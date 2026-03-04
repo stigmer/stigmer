@@ -40,8 +40,8 @@ func TestInitPreApprovalStreaming_PrintsHeaderAndSeparator(t *testing.T) {
 	if r.streamLineCount != r.streamHeaderRows {
 		t.Errorf("expected streamLineCount == streamHeaderRows, got %d vs %d", r.streamLineCount, r.streamHeaderRows)
 	}
-	if !r.cursorSaved {
-		t.Error("expected cursorSaved=true after initPreApprovalStreaming")
+	if r.maxStreamContentLines <= 0 {
+		t.Error("expected maxStreamContentLines > 0 after initPreApprovalStreaming")
 	}
 
 	output := stripANSIApproval(stderr.String())
@@ -788,14 +788,18 @@ func TestInteractiveApproval_ContentStreamed_ReRendersWithPath(t *testing.T) {
 	}
 }
 
-func TestPrepareApprovalDisplay_StreamedPath_SetsCursorSaved(t *testing.T) {
-	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
+func TestPrepareApprovalDisplay_StreamedPath_ErasesAndReRenders(t *testing.T) {
+	r, _, stderr, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
 	tc := writeToolCall()
 
-	r.prepareApprovalDisplay(tc, true, 4, false, true, 80)
+	rows := r.prepareApprovalDisplay(tc, true, 4, false, true, 80)
 
-	if !r.cursorSaved {
-		t.Error("prepareApprovalDisplay should set cursorSaved when re-rendering expanded view for streamed content")
+	if rows <= 0 {
+		t.Error("prepareApprovalDisplay should return positive row count")
+	}
+	output := stripANSIApproval(stderr.String())
+	if !strings.Contains(output, "Write(config.go)") {
+		t.Errorf("expected expanded view header, got:\n%s", output)
 	}
 }
 

@@ -2,7 +2,9 @@ package root
 
 import (
 	"fmt"
+	"strings"
 
+	"github.com/charmbracelet/x/ansi"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/termctl"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
@@ -13,6 +15,10 @@ import (
 // the expanded header and separator, then sets streaming state so
 // subsequent ToolStreamDeltaEvents append content below.
 //
+// The content display is capped at maxStreamContentLines (derived from
+// terminal height) to keep the total output within the visible terminal.
+// This ensures deterministic row counting for EraseLines-based collapse.
+//
 // When the tool's primary arg (e.g. file path) is not yet available in
 // Args, header rendering is deferred to the first ToolStreamDeltaEvent,
 // which carries an updated ToolCall with populated args.
@@ -20,12 +26,12 @@ func (r *inlineRenderer) initPreApprovalStreaming(e executiontui.ToolRunningEven
 	r.finishAIStreamIfNeeded()
 	r.flushPendingReads()
 
-	termctl.SaveCursor(r.cfg.status)
-	r.cursorSaved = true
-
 	r.activeStreamToolID = e.ToolCallID
 	r.toolStreamedBytes = 0
 	r.streamSubAgentID = e.SubAgentID
+	r.streamContentLines = 0
+	r.streamTruncationShown = false
+	r.maxStreamContentLines = approvalContentBudget(termctl.Height(r.cfg.status, 40))
 
 	if !toolrender.HasPrimaryArg(e.ToolCall) {
 		r.streamHeaderDeferred = true
@@ -76,8 +82,16 @@ func (r *inlineRenderer) initPostApprovalStreaming(toolCallID string, tc toolren
 
 // renderToolStreamDelta prints new content bytes from a streaming tool.
 // Uses the same append-only pattern as renderAIStreamDelta: only bytes
-// beyond streamedBytes are printed. Display row count is recomputed from
-// the full accumulated content to avoid partial-line overcounting.
+// beyond streamedBytes are printed.
+//
+// For pre-approval streaming (maxStreamContentLines > 0), content is
+// capped at maxStreamContentLines. Once the cap is reached, a truncation
+// indicator is printed and updated in-place as more content arrives.
+// Each displayed line is width-clamped to prevent terminal line wrapping,
+// keeping the row count deterministic for EraseLines collapse.
+//
+// For post-approval streaming (maxStreamContentLines == 0), content flows
+// uncapped as before.
 //
 // When the header was deferred (streamHeaderDeferred), the first delta
 // renders the header using e.ToolCall's updated Args before appending
@@ -95,20 +109,92 @@ func (r *inlineRenderer) renderToolStreamDelta(e executiontui.ToolStreamDeltaEve
 	}
 
 	newBytes := content[r.toolStreamedBytes:]
-	output := newBytes
-	if r.streamSubAgentID != "" {
-		output = toolrender.GutterWrap(output)
+	r.toolStreamedBytes = len(content)
+
+	cappingEnabled := r.maxStreamContentLines > 0
+
+	if !cappingEnabled {
+		output := newBytes
+		if r.streamSubAgentID != "" {
+			output = toolrender.GutterWrap(output)
+		}
+		fmt.Fprint(r.cfg.status, output)
+		r.flushWriter(r.cfg.status)
+
+		width := termctl.Width(r.cfg.status, 80)
+		displayContent := content
+		if r.streamSubAgentID != "" {
+			displayContent = toolrender.GutterWrap(content)
+		}
+		r.streamLineCount = r.streamHeaderRows + termctl.DisplayRows(displayContent, width)
+		return
 	}
-	fmt.Fprint(r.cfg.status, output)
+
+	width := termctl.Width(r.cfg.status, 80)
+	maxVisibleWidth := width - 1
+	if r.streamSubAgentID != "" {
+		maxVisibleWidth = width - 1 - toolrender.GutterWidth()
+	}
+
+	totalContentLines := strings.Count(content, "\n")
+
+	if r.streamContentLines >= r.maxStreamContentLines {
+		if r.streamTruncationShown {
+			termctl.EraseLines(r.cfg.status, 1)
+		}
+		overflow := totalContentLines - r.maxStreamContentLines
+		if overflow < 0 {
+			overflow = 0
+		}
+		indicator := toolrender.StreamTruncationIndicator(overflow)
+		if r.streamSubAgentID != "" {
+			indicator = toolrender.GutterWrap(indicator)
+		}
+		fmt.Fprint(r.cfg.status, indicator)
+		r.flushWriter(r.cfg.status)
+		r.streamTruncationShown = true
+		return
+	}
+
+	newLines := strings.Split(newBytes, "\n")
+	var outputBuf strings.Builder
+	for i, line := range newLines {
+		if i > 0 {
+			outputBuf.WriteByte('\n')
+			r.streamContentLines++
+			if r.streamContentLines >= r.maxStreamContentLines {
+				overflow := totalContentLines - r.maxStreamContentLines
+				if overflow < 0 {
+					overflow = 0
+				}
+				out := outputBuf.String()
+				if r.streamSubAgentID != "" {
+					out = toolrender.GutterWrap(out)
+				}
+				fmt.Fprint(r.cfg.status, out)
+
+				indicator := toolrender.StreamTruncationIndicator(overflow)
+				if r.streamSubAgentID != "" {
+					indicator = toolrender.GutterWrap(indicator)
+				}
+				fmt.Fprint(r.cfg.status, indicator)
+				r.flushWriter(r.cfg.status)
+				r.streamTruncationShown = true
+				r.streamLineCount = r.streamHeaderRows + r.streamContentLines + 1
+				return
+			}
+		}
+		outputBuf.WriteString(truncateLineWidth(line, maxVisibleWidth))
+	}
+
+	out := outputBuf.String()
+	if r.streamSubAgentID != "" {
+		out = toolrender.GutterWrap(out)
+	}
+	fmt.Fprint(r.cfg.status, out)
 	r.flushWriter(r.cfg.status)
 
-	r.toolStreamedBytes = len(content)
-	width := termctl.Width(r.cfg.status, 80)
-	displayContent := content
-	if r.streamSubAgentID != "" {
-		displayContent = toolrender.GutterWrap(content)
-	}
-	r.streamLineCount = r.streamHeaderRows + termctl.DisplayRows(displayContent, width)
+	r.streamLineCount = r.streamHeaderRows + r.streamContentLines + 1
 }
 
 // completeStreamingTool handles ToolCompletedEvent for a tool that was
@@ -138,6 +224,9 @@ func (r *inlineRenderer) clearStreamingState() {
 	r.streamLineCount = 0
 	r.streamSubAgentID = ""
 	r.streamHeaderDeferred = false
+	r.maxStreamContentLines = 0
+	r.streamContentLines = 0
+	r.streamTruncationShown = false
 }
 
 // resolveStreamContent extracts the displayable content from a
@@ -149,4 +238,16 @@ func resolveStreamContent(e executiontui.ToolStreamDeltaEvent) string {
 		return e.Content
 	}
 	return toolrender.ExpandedApprovalContent(e.ToolCall)
+}
+
+// truncateLineWidth clamps a single line to maxWidth visible characters.
+// ANSI escape codes are preserved and do not count toward the width.
+func truncateLineWidth(line string, maxWidth int) string {
+	if maxWidth <= 0 || ansi.StringWidth(line) <= maxWidth {
+		return line
+	}
+	if maxWidth <= 3 {
+		return ansi.Truncate(line, maxWidth, "")
+	}
+	return ansi.Truncate(line, maxWidth-1, "…")
 }

@@ -160,6 +160,63 @@ func TestWidth_DifferentDefaults(t *testing.T) {
 }
 
 // =============================================================================
+// Height
+// =============================================================================
+
+func TestHeight_BufferReturnsFallback(t *testing.T) {
+	var buf bytes.Buffer
+	got := Height(&buf, 40)
+	if got != 40 {
+		t.Errorf("Height(buffer, 40) = %d, want 40", got)
+	}
+}
+
+func TestHeight_DevNullReturnsFallback(t *testing.T) {
+	f, err := os.Open(os.DevNull)
+	if err != nil {
+		t.Skipf("cannot open %s: %v", os.DevNull, err)
+	}
+	defer f.Close()
+
+	got := Height(f, 24)
+	if got != 24 {
+		t.Errorf("Height(/dev/null, 24) = %d, want 24", got)
+	}
+}
+
+func TestHeight_DifferentDefaults(t *testing.T) {
+	var buf bytes.Buffer
+	for _, def := range []int{20, 40, 60, 100} {
+		got := Height(&buf, def)
+		if got != def {
+			t.Errorf("Height(buffer, %d) = %d, want %d", def, got, def)
+		}
+	}
+}
+
+func TestHeight_WrappedDevNull(t *testing.T) {
+	f, err := os.Open(os.DevNull)
+	if err != nil {
+		t.Skipf("cannot open %s: %v", os.DevNull, err)
+	}
+	defer f.Close()
+
+	w := &wrappedWriter{inner: f}
+	got := Height(w, 50)
+	if got != 50 {
+		t.Errorf("Height(wrapped /dev/null, 50) = %d, want 50", got)
+	}
+}
+
+func TestHeight_OpaqueWrapper(t *testing.T) {
+	w := &opaqueWriter{inner: os.Stderr}
+	got := Height(w, 35)
+	if got != 35 {
+		t.Errorf("Height(opaqueWriter, 35) = %d, want 35", got)
+	}
+}
+
+// =============================================================================
 // IsSupported
 // =============================================================================
 
