@@ -76,6 +76,79 @@ func formatArgValue(v interface{}) string {
 	}
 }
 
+// maxInputArgs is the maximum number of input arguments shown in the compact
+// unknown/MCP tool display. Keeps output scannable without losing important context.
+const maxInputArgs = 3
+
+// inputArgTruncateLen is the maximum visible length for a single argument
+// value in the compact input arg display. Values longer than this are truncated
+// with "..." to keep lines from wrapping.
+const inputArgTruncateLen = 80
+
+// inputArgPlaceholderLen is the threshold above which a string argument value
+// is replaced with a "(N chars)" placeholder instead of being shown inline.
+// Values this large are typically file content or encoded data — showing them
+// would overwhelm the compact display.
+const inputArgPlaceholderLen = 200
+
+// formatInputArgs formats tool arguments as indented key-value lines for the
+// compact unknown/MCP tool display. Each arg is rendered as:
+//
+//	key: "string value"
+//	key: 42
+//	key: true
+//	key: (1523 chars)
+//
+// Keys are sorted alphabetically for stable, deterministic output. At most
+// maxInputArgs args are shown; remaining args are indicated with a
+// "+ N more args" footer. Nil args produce an empty string.
+func formatInputArgs(args map[string]interface{}, max int) string {
+	if len(args) == 0 {
+		return ""
+	}
+
+	keys := make([]string, 0, len(args))
+	for k := range args {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	showAll := len(keys) <= max+1
+	visibleCount := len(keys)
+	if !showAll {
+		visibleCount = max
+	}
+
+	var b strings.Builder
+	for i := 0; i < visibleCount; i++ {
+		if i > 0 {
+			b.WriteByte('\n')
+		}
+		b.WriteString(dimStyle.Render("    " + formatKeyValue(keys[i], args[keys[i]])))
+	}
+	if !showAll {
+		b.WriteByte('\n')
+		b.WriteString(dimStyle.Render(fmt.Sprintf("    … +%d more args", len(keys)-visibleCount)))
+	}
+	return b.String()
+}
+
+// formatKeyValue renders a single key-value pair for the compact input arg
+// display. String values are quoted; large strings get a size placeholder.
+func formatKeyValue(key string, val interface{}) string {
+	switch v := val.(type) {
+	case string:
+		if len(v) > inputArgPlaceholderLen {
+			return fmt.Sprintf("%s: (%s)", key, formatSize(len(v)))
+		}
+		return fmt.Sprintf("%s: %q", key, truncate(v, inputArgTruncateLen))
+	case nil:
+		return fmt.Sprintf("%s: null", key)
+	default:
+		return fmt.Sprintf("%s: %s", key, formatArgValue(val))
+	}
+}
+
 // styleValue applies appropriate styling based on whether the tool is dangerous.
 func styleValue(val string, dangerous bool) string {
 	if dangerous {

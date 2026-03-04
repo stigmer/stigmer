@@ -2,6 +2,7 @@ package toolrender
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -100,7 +101,7 @@ func ApprovalQuestion(tc ToolCallInfo) string {
 		}
 	} else {
 		verb = "run " + tc.Name
-		target = truncate(extractFirstArg(tc.Args), 60)
+		target = formatApprovalArgs(tc.Args)
 	}
 
 	if target != "" {
@@ -116,12 +117,11 @@ func ApprovalQuestion(tc ToolCallInfo) string {
 func ExpandedApprovalHeader(tc ToolCallInfo, opts CompactOptions) string {
 	info, known := toolDisplayMap[tc.Name]
 	if !known {
-		firstVal := extractFirstArg(tc.Args)
-		if firstVal != "" {
-			return fmt.Sprintf("%s %s(%s)", bulletStyle.Render("●"),
-				labelStyle.Render(tc.Name), truncate(firstVal, 60))
+		name := tc.Name
+		if tc.ServerName != "" {
+			name = tc.ServerName + "/" + tc.Name
 		}
-		return fmt.Sprintf("%s %s", bulletStyle.Render("●"), labelStyle.Render(tc.Name))
+		return fmt.Sprintf("%s %s", bulletStyle.Render("●"), labelStyle.Render(name))
 	}
 
 	bullet := bulletStyle.Render("●")
@@ -299,20 +299,16 @@ func formatApprovalPreview(content string) string {
 }
 
 // renderApprovalUnknown handles unknown/MCP tools that go through approval.
-// Uses the tool name as label and tc.Result for preview content (which may
-// be empty during the approval flow — unknown tools typically lack content
-// at waiting-approval time).
+// Shows the tool name (with optional server prefix), input args for context,
+// and tc.Result for preview content (which may be empty during the approval
+// flow — unknown tools typically lack content at waiting-approval time).
 func renderApprovalUnknown(tc ToolCallInfo, action string, opts CompactOptions) string {
 	bullet := approvalBullet(action)
-	firstVal := extractFirstArg(tc.Args)
-
-	var header string
-	if firstVal != "" {
-		header = fmt.Sprintf("%s %s(%s)", bullet, labelStyle.Render(tc.Name),
-			truncate(firstVal, 60))
-	} else {
-		header = fmt.Sprintf("%s %s", bullet, labelStyle.Render(tc.Name))
+	name := tc.Name
+	if tc.ServerName != "" {
+		name = tc.ServerName + "/" + tc.Name
 	}
+	header := fmt.Sprintf("%s %s", bullet, labelStyle.Render(name))
 
 	connector := buildApprovalConnector(action, "Approved")
 	result := header + "\n" + connector
@@ -321,9 +317,63 @@ func renderApprovalUnknown(tc ToolCallInfo, action string, opts CompactOptions) 
 		return result
 	}
 
+	if inputLines := formatInputArgs(tc.Args, maxInputArgs); inputLines != "" {
+		result += "\n" + inputLines
+	}
+
 	preview := formatApprovalPreview(tc.Result)
 	if preview != "" {
 		result += "\n" + preview
 	}
 	return result
+}
+
+// formatApprovalArgs produces a compact parenthesized summary of tool
+// arguments for the approval question. Shows up to 2 key=value pairs
+// inline, truncated for readability.
+//
+// Examples:
+//
+//	"(query=\"planton cloud...\")"
+//	"(org=\"default\", name=\"planton-cloud\")"
+//	""  (empty args)
+func formatApprovalArgs(args map[string]interface{}) string {
+	if len(args) == 0 {
+		return ""
+	}
+
+	keys := make([]string, 0, len(args))
+	for k := range args {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	const maxApprovalInlineArgs = 2
+	visibleCount := len(keys)
+	if visibleCount > maxApprovalInlineArgs {
+		visibleCount = maxApprovalInlineArgs
+	}
+
+	parts := make([]string, visibleCount)
+	for i := 0; i < visibleCount; i++ {
+		parts[i] = formatInlineArg(keys[i], args[keys[i]])
+	}
+
+	summary := "(" + strings.Join(parts, ", ") + ")"
+	if len(keys) > maxApprovalInlineArgs {
+		summary = "(" + strings.Join(parts, ", ") + ", ...)"
+	}
+	return truncate(summary, 60)
+}
+
+// formatInlineArg renders a single key=value pair for inline display.
+func formatInlineArg(key string, val interface{}) string {
+	switch v := val.(type) {
+	case string:
+		return fmt.Sprintf("%s=%q", key, truncate(v, 30))
+	case nil:
+		return key + "=null"
+	default:
+		return fmt.Sprintf("%s=%s", key, formatArgValue(val))
+	}
 }

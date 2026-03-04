@@ -1207,7 +1207,7 @@ func TestRenderCompact_Shell_ExecuteCommandAlias(t *testing.T) {
 // RenderCompact — fallback for non-compact tools
 // =============================================================================
 
-func TestRenderCompact_UnknownTool_FallsBackToRenderWithBadge(t *testing.T) {
+func TestRenderCompact_UnknownTool_UsesCompactFormat(t *testing.T) {
 	tc := ToolCallInfo{
 		Name:     "custom_mcp_tool",
 		Args:     map[string]interface{}{"query": "test"},
@@ -1218,8 +1218,11 @@ func TestRenderCompact_UnknownTool_FallsBackToRenderWithBadge(t *testing.T) {
 	opts := CompactOptions{HyperlinksEnabled: false}
 
 	got := RenderCompact(tc, opts)
-	assertContains(t, got, "*")
+	assertContains(t, got, "●")
 	assertContains(t, got, "custom_mcp_tool")
+	assertContains(t, got, "query")
+	assertContains(t, got, "result")
+	assertNotContains(t, got, "*")
 }
 
 // =============================================================================
@@ -1339,7 +1342,7 @@ func TestRenderCompactRunning_ShellTool_SingleLine(t *testing.T) {
 	}
 }
 
-func TestRenderCompactRunning_UnknownTool_FallsBackToLegacy(t *testing.T) {
+func TestRenderCompactRunning_UnknownTool_UsesCompactFormat(t *testing.T) {
 	tc := ToolCallInfo{
 		Name: "custom_mcp_tool",
 		Args: map[string]interface{}{"query": "test"},
@@ -1347,9 +1350,10 @@ func TestRenderCompactRunning_UnknownTool_FallsBackToLegacy(t *testing.T) {
 	opts := CompactOptions{HyperlinksEnabled: false}
 
 	got := RenderCompactRunning(tc, opts)
-	assertContains(t, got, "*")
+	assertContains(t, got, "●")
 	assertContains(t, got, "custom_mcp_tool")
-	assertContains(t, got, "...")
+	assertContains(t, got, "…")
+	assertNotContains(t, got, "*")
 }
 
 func TestRenderCompactRunning_HyperlinksEnabled(t *testing.T) {
@@ -2817,4 +2821,446 @@ func TestLabelBold_RendersLabel(t *testing.T) {
 	if stripANSI(got) != "Task" {
 		t.Errorf("expected 'Task', got %q", stripANSI(got))
 	}
+}
+
+// =============================================================================
+// renderCompactUnknown — MCP/unknown tool compact rendering
+// =============================================================================
+
+func TestRenderCompact_UnknownTool_BasicFormat(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "search",
+		Args:   map[string]interface{}{"query": "planton cloud mcp server"},
+		Status: "completed",
+		Result: "Found 8 definition(s) matching \"planton cloud mcp server\"",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, got, "●")
+	assertContains(t, got, "search")
+	assertContains(t, got, "query")
+	assertContains(t, got, "planton cloud mcp server")
+	assertContains(t, got, "Found 8 definition(s)")
+	assertNotContains(t, got, "*")
+
+	lines := strings.Split(plain, "\n")
+	if len(lines) < 2 {
+		t.Fatalf("expected at least 2 lines (header + input), got %d:\n%s", len(lines), plain)
+	}
+}
+
+func TestRenderCompact_UnknownTool_ShowsInputArgs(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "get_mcp_server",
+		Args:   map[string]interface{}{"org": "default", "name": "planton-cloud"},
+		Status: "completed",
+		Result: "server config...",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, plain, `name: "planton-cloud"`)
+	assertContains(t, plain, `org: "default"`)
+}
+
+func TestRenderCompact_UnknownTool_ResultPreview(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "search",
+		Args:   map[string]interface{}{"query": "test"},
+		Status: "completed",
+		Result: "line1\nline2\nline3",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, plain, "line1")
+	assertContains(t, plain, "line2")
+	assertContains(t, plain, "line3")
+	assertNotContains(t, plain, "more lines")
+}
+
+func TestRenderCompact_UnknownTool_ResultPreviewTruncation(t *testing.T) {
+	lines := make([]string, 10)
+	for i := range lines {
+		lines[i] = fmt.Sprintf("result line %d", i+1)
+	}
+	tc := ToolCallInfo{
+		Name:   "search",
+		Args:   map[string]interface{}{"query": "test"},
+		Status: "completed",
+		Result: strings.Join(lines, "\n"),
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, plain, "result line 1")
+	assertContains(t, plain, "result line 2")
+	assertContains(t, plain, "result line 3")
+	assertNotContains(t, plain, "result line 4")
+	assertContains(t, plain, "… +7 more lines")
+}
+
+func TestRenderCompact_UnknownTool_ErrorInResult(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "get_mcp_server",
+		Args:   map[string]interface{}{"org": "default"},
+		Status: "completed",
+		Result: "Error: MCP server \"planton-cloud\" in org \"default\" not found...\n\nRecovery suggestions:\n  1. Check the server name",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, plain, "●")
+	assertContains(t, plain, "get_mcp_server")
+	assertContains(t, plain, "org")
+	assertContains(t, plain, "✗")
+	assertContains(t, plain, "MCP server")
+	assertNotContains(t, plain, "Recovery suggestions")
+}
+
+func TestRenderCompact_UnknownTool_FailedStatus(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "deploy",
+		Args:   map[string]interface{}{"env": "prod"},
+		Status: "failed",
+		Error:  "connection timed out",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, plain, "✗")
+	assertContains(t, plain, "connection timed out")
+}
+
+func TestRenderCompact_UnknownTool_LongArgTruncation(t *testing.T) {
+	longValue := strings.Repeat("x", 300)
+	tc := ToolCallInfo{
+		Name:   "custom_tool",
+		Args:   map[string]interface{}{"content": longValue, "name": "short"},
+		Status: "completed",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, plain, "content: (")
+	assertContains(t, plain, "chars)")
+	assertContains(t, plain, `name: "short"`)
+	assertNotContains(t, plain, longValue)
+}
+
+func TestRenderCompact_UnknownTool_NoArgs(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "ping",
+		Status: "completed",
+		Result: "pong",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, plain, "●")
+	assertContains(t, plain, "ping")
+	assertContains(t, plain, "pong")
+}
+
+func TestRenderCompact_UnknownTool_NoResult(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "notify",
+		Args:   map[string]interface{}{"channel": "alerts"},
+		Status: "completed",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, plain, "notify")
+	assertContains(t, plain, "channel")
+	lines := strings.Split(plain, "\n")
+	if len(lines) != 2 {
+		t.Errorf("expected 2 lines (header + 1 arg, no output), got %d:\n%s", len(lines), plain)
+	}
+}
+
+func TestRenderCompact_UnknownTool_WithMetadata(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:     "search",
+		Args:     map[string]interface{}{"query": "test"},
+		Status:   "completed",
+		Result:   strings.Repeat("x", 2000),
+		Duration: 1500 * time.Millisecond,
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, plain, "2.0 KB")
+	assertContains(t, plain, "1.5s")
+}
+
+func TestRenderCompact_UnknownTool_WithServerName(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:       "search",
+		ServerName: "planton-cloud",
+		Args:       map[string]interface{}{"query": "test"},
+		Status:     "completed",
+		Result:     "found",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, plain, "planton-cloud/search")
+}
+
+func TestRenderCompact_UnknownTool_ManyArgs_Truncated(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "complex_tool",
+		Args: map[string]interface{}{
+			"alpha": "a", "bravo": "b", "charlie": "c",
+			"delta": "d", "echo": "e",
+		},
+		Status: "completed",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, plain, "alpha")
+	assertContains(t, plain, "bravo")
+	assertContains(t, plain, "charlie")
+	assertNotContains(t, plain, "delta")
+	assertContains(t, plain, "… +2 more args")
+}
+
+func TestRenderCompactRunning_UnknownTool_SingleLine(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "search",
+		Args: map[string]interface{}{"query": "test"},
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompactRunning(tc, opts)
+	plain := stripANSI(got)
+
+	lines := strings.Split(plain, "\n")
+	if len(lines) != 1 {
+		t.Errorf("expected single line for running state, got %d:\n%s", len(lines), plain)
+	}
+}
+
+func TestRenderCompactRunning_UnknownTool_WithServerName(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:       "search",
+		ServerName: "planton-cloud",
+		Args:       map[string]interface{}{"query": "test"},
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompactRunning(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, plain, "planton-cloud/search")
+	assertContains(t, plain, "…")
+}
+
+func TestRenderCompact_UnknownTool_NoGutter(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "search",
+		Args:   map[string]interface{}{"query": "test"},
+		Status: "completed",
+		Result: "line1\nline2",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	assertNotContains(t, plain, "│")
+	assertNotContains(t, plain, "⋮")
+}
+
+func TestRenderCompact_UnknownTool_SmartCutoff(t *testing.T) {
+	lines := make([]string, 4)
+	for i := range lines {
+		lines[i] = fmt.Sprintf("line %d", i+1)
+	}
+	tc := ToolCallInfo{
+		Name:   "tool",
+		Status: "completed",
+		Result: strings.Join(lines, "\n"),
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	got := RenderCompact(tc, opts)
+	plain := stripANSI(got)
+
+	assertContains(t, plain, "line 1")
+	assertContains(t, plain, "line 4")
+	assertNotContains(t, plain, "more lines")
+}
+
+// =============================================================================
+// formatInputArgs
+// =============================================================================
+
+func TestFormatInputArgs_Empty(t *testing.T) {
+	if got := formatInputArgs(nil, 3); got != "" {
+		t.Errorf("expected empty for nil args, got %q", got)
+	}
+	if got := formatInputArgs(map[string]interface{}{}, 3); got != "" {
+		t.Errorf("expected empty for empty args, got %q", got)
+	}
+}
+
+func TestFormatInputArgs_SingleArg(t *testing.T) {
+	args := map[string]interface{}{"query": "test value"}
+	got := stripANSI(formatInputArgs(args, 3))
+
+	if got != `    query: "test value"` {
+		t.Errorf("unexpected format: %q", got)
+	}
+}
+
+func TestFormatInputArgs_MultipleArgs_Sorted(t *testing.T) {
+	args := map[string]interface{}{"zebra": "z", "alpha": "a", "middle": "m"}
+	got := stripANSI(formatInputArgs(args, 3))
+
+	lines := strings.Split(got, "\n")
+	if len(lines) != 3 {
+		t.Fatalf("expected 3 lines, got %d:\n%s", len(lines), got)
+	}
+	assertContains(t, lines[0], "alpha")
+	assertContains(t, lines[1], "middle")
+	assertContains(t, lines[2], "zebra")
+}
+
+func TestFormatInputArgs_TruncatesAtMax(t *testing.T) {
+	args := map[string]interface{}{"a": "1", "b": "2", "c": "3", "d": "4", "e": "5"}
+	got := stripANSI(formatInputArgs(args, 3))
+
+	assertContains(t, got, "a:")
+	assertContains(t, got, "b:")
+	assertContains(t, got, "c:")
+	assertNotContains(t, got, "d:")
+	assertContains(t, got, "… +2 more args")
+}
+
+func TestFormatInputArgs_SmartCutoff(t *testing.T) {
+	args := map[string]interface{}{"a": "1", "b": "2", "c": "3", "d": "4"}
+	got := stripANSI(formatInputArgs(args, 3))
+
+	assertContains(t, got, "a:")
+	assertContains(t, got, "d:")
+	assertNotContains(t, got, "more args")
+}
+
+func TestFormatInputArgs_LargeStringPlaceholder(t *testing.T) {
+	args := map[string]interface{}{"content": strings.Repeat("x", 300)}
+	got := stripANSI(formatInputArgs(args, 3))
+
+	assertContains(t, got, "content: (")
+	assertContains(t, got, "chars)")
+	assertNotContains(t, got, strings.Repeat("x", 100))
+}
+
+func TestFormatInputArgs_NonStringTypes(t *testing.T) {
+	args := map[string]interface{}{
+		"count":   float64(42),
+		"enabled": true,
+		"empty":   nil,
+	}
+	got := stripANSI(formatInputArgs(args, 3))
+
+	assertContains(t, got, "count: 42")
+	assertContains(t, got, "enabled: true")
+	assertContains(t, got, "empty: null")
+}
+
+func TestFormatInputArgs_StringQuoting(t *testing.T) {
+	args := map[string]interface{}{"key": "value with spaces"}
+	got := stripANSI(formatInputArgs(args, 3))
+
+	assertContains(t, got, `key: "value with spaces"`)
+}
+
+// =============================================================================
+// formatApprovalArgs
+// =============================================================================
+
+func TestFormatApprovalArgs_Empty(t *testing.T) {
+	if got := formatApprovalArgs(nil); got != "" {
+		t.Errorf("expected empty for nil args, got %q", got)
+	}
+}
+
+func TestFormatApprovalArgs_SingleArg(t *testing.T) {
+	args := map[string]interface{}{"target": "staging"}
+	got := formatApprovalArgs(args)
+
+	assertContains(t, got, "target=")
+	assertContains(t, got, "staging")
+	assertContains(t, got, "(")
+	assertContains(t, got, ")")
+}
+
+func TestFormatApprovalArgs_TwoArgs(t *testing.T) {
+	args := map[string]interface{}{"env": "prod", "force": true}
+	got := formatApprovalArgs(args)
+
+	assertContains(t, got, "env=")
+	assertContains(t, got, "force=true")
+}
+
+func TestFormatApprovalArgs_ManyArgs_Ellipsis(t *testing.T) {
+	args := map[string]interface{}{"a": "1", "b": "2", "c": "3"}
+	got := formatApprovalArgs(args)
+
+	assertContains(t, got, "...")
+}
+
+// =============================================================================
+// GutterWrap — unknown/MCP tool integration
+// =============================================================================
+
+func TestGutterWrap_WithRenderCompactUnknown(t *testing.T) {
+	tc := ToolCallInfo{
+		Name:   "search",
+		Args:   map[string]interface{}{"query": "test"},
+		Status: "completed",
+		Result: "found 3 matches",
+	}
+	opts := CompactOptions{HyperlinksEnabled: false}
+
+	inner := RenderCompact(tc, opts)
+	got := GutterWrap(inner)
+	plain := stripANSI(got)
+
+	lines := strings.Split(plain, "\n")
+	for i, line := range lines {
+		if !strings.HasPrefix(line, "  │ ") {
+			t.Errorf("line %d missing gutter prefix: %q", i, line)
+		}
+	}
+	assertContains(t, got, "search")
+	assertContains(t, got, "query")
 }

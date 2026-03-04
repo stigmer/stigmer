@@ -652,6 +652,10 @@ class StatusBuilder:
             else ToolCallStatus.TOOL_CALL_RUNNING
         )
         
+        mcp_server_slug = ""
+        if self._approval_config is not None:
+            mcp_server_slug = self._approval_config.get_mcp_server_for_tool(tool_name)
+        
         tool_call = ToolCall(
             id=run_id,
             name=tool_name,
@@ -660,6 +664,7 @@ class StatusBuilder:
             status=initial_status,
             component_metadata=component_metadata,
             started_at=_utc_timestamp(now),
+            mcp_server_slug=mcp_server_slug,
         )
         
         # If approval required, populate approval fields on the ToolCall

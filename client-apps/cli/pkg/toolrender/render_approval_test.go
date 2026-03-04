@@ -305,8 +305,10 @@ func TestRenderApprovalResult_UnknownApproved(t *testing.T) {
 	}
 	result := stripANSI(RenderApprovalResult(tc, "approve", CompactOptions{}))
 
-	assertContains(t, result, "custom_deploy(production)")
+	assertContains(t, result, "custom_deploy")
 	assertContains(t, result, "└ Approved")
+	assertContains(t, result, "target")
+	assertContains(t, result, "production")
 }
 
 func TestRenderApprovalResult_UnknownRejected(t *testing.T) {
@@ -479,9 +481,9 @@ func TestApprovalQuestion_UnknownTool(t *testing.T) {
 	}
 	result := ApprovalQuestion(tc)
 
-	if result != "Do you want to run custom_deploy staging?" {
-		t.Errorf("unexpected question: %q", result)
-	}
+	assertContains(t, result, "run custom_deploy")
+	assertContains(t, result, "target=")
+	assertContains(t, result, "staging")
 }
 
 func TestApprovalQuestion_MissingArgs(t *testing.T) {
@@ -634,7 +636,7 @@ func TestExpandedApprovalHeader_UnknownTool(t *testing.T) {
 	result := stripANSI(ExpandedApprovalHeader(tc, CompactOptions{}))
 
 	assertContains(t, result, "●")
-	assertContains(t, result, "custom_deploy(production)")
+	assertContains(t, result, "custom_deploy")
 }
 
 func TestExpandedApprovalHeader_UnknownNoArgs(t *testing.T) {
