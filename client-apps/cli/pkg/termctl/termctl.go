@@ -36,6 +36,31 @@ func IsSupported(w io.Writer) bool {
 	return os.Getenv("TERM") != "dumb"
 }
 
+// SaveCursor saves the current cursor position using the DEC sequence
+// (ESC 7). The approval flow uses DEC save/restore while the session header
+// subject updater uses SCO (CSI s/u) — most terminals maintain independent
+// save slots for the two families, avoiding conflicts.
+//
+// No-op when w is not a supported terminal.
+func SaveCursor(w io.Writer) {
+	if !IsSupported(w) {
+		return
+	}
+	fmt.Fprint(w, "\0337")
+}
+
+// RestoreCursorAndClear restores the cursor position saved by SaveCursor
+// (DEC ESC 8) and clears from that position to the end of the screen
+// (CSI J). The combined sequence is written atomically.
+//
+// No-op when w is not a supported terminal.
+func RestoreCursorAndClear(w io.Writer) {
+	if !IsSupported(w) {
+		return
+	}
+	fmt.Fprint(w, "\0338\033[J")
+}
+
 // EraseLines erases n lines of previously written output. The cursor moves
 // up n-1 lines, resets to column 0, then clears from that position to the
 // end of the screen. After this call the cursor sits at column 0 of the

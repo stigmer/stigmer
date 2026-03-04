@@ -73,8 +73,15 @@ func TestReadFollowUpInput_ReturnsInput(t *testing.T) {
 	if input != "hello world" {
 		t.Errorf("expected 'hello world', got %q", input)
 	}
-	if !strings.Contains(status.String(), ">") {
-		t.Errorf("expected prompt marker on status, got %q", status.String())
+	out := status.String()
+	if !strings.Contains(out, ">") {
+		t.Errorf("expected prompt marker on status, got %q", out)
+	}
+	if !strings.Contains(out, "─") {
+		t.Errorf("expected separator on status, got %q", out)
+	}
+	if !strings.Contains(out, "enter send") {
+		t.Errorf("expected hint text on status, got %q", out)
 	}
 }
 

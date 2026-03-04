@@ -649,6 +649,78 @@ func TestRenderToolWaitingApproval_NoRunningLine(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// Cursor save/restore tracking
+// ---------------------------------------------------------------------------
+
+func TestPrepareApprovalDisplay_NonStreamedPath_SetsCursorSaved(t *testing.T) {
+	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
+	tc := writeToolCall()
+
+	r.prepareApprovalDisplay(tc, false, 0, false, true, 80)
+
+	if !r.cursorSaved {
+		t.Error("prepareApprovalDisplay should set cursorSaved when building expanded view")
+	}
+}
+
+func TestFinalizeApproval_ClearsCursorSaved(t *testing.T) {
+	prompter := &mockPrompter{decision: &approval.Decision{Action: approval.ActionApprove}}
+	r, _, _, responses := newApprovalTestRenderer(prompter, approval.ActionUnspecified)
+	tc := writeToolCall()
+	r.waitingApproval = &waitingApprovalState{tc: tc}
+	r.cursorSaved = true
+
+	r.handleApproval(context.Background(), executiontui.ApprovalNeededEvent{
+		ToolCallID: "tc-cs1",
+		ToolName:   "write_file",
+	})
+	<-responses
+
+	if r.cursorSaved {
+		t.Error("cursorSaved should be cleared after finalizeApproval")
+	}
+}
+
+func TestHandleNonInteractiveApproval_ContentStreamed_ClearsCursorSaved(t *testing.T) {
+	r, _, _, responses := newApprovalTestRenderer(&mockPrompter{}, approval.ActionApprove)
+	tc := writeToolCall()
+	r.waitingApproval = &waitingApprovalState{
+		tc:             tc,
+		contentStreamed: true,
+		streamedRows:   5,
+	}
+	r.cursorSaved = true
+
+	r.handleApproval(context.Background(), executiontui.ApprovalNeededEvent{
+		ToolCallID: "tc-cs2",
+		ToolName:   "write_file",
+	})
+	<-responses
+
+	if r.cursorSaved {
+		t.Error("cursorSaved should be cleared after non-interactive approval with content streamed")
+	}
+}
+
+func TestHandlePromptError_ClearsCursorSaved(t *testing.T) {
+	prompter := &mockPrompter{err: approval.ErrPromptCancelled}
+	r, _, _, responses := newApprovalTestRenderer(prompter, approval.ActionUnspecified)
+	tc := writeToolCall()
+	r.waitingApproval = &waitingApprovalState{tc: tc}
+	r.cursorSaved = true
+
+	r.handleApproval(context.Background(), executiontui.ApprovalNeededEvent{
+		ToolCallID: "tc-cs3",
+		ToolName:   "write_file",
+	})
+	<-responses
+
+	if r.cursorSaved {
+		t.Error("cursorSaved should be cleared after prompt error")
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Running indicators are suppressed; lastRenderedRunningID stays empty
 // ---------------------------------------------------------------------------
 

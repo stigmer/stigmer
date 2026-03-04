@@ -74,6 +74,21 @@ var promptStyle = lipgloss.NewStyle().
 	Bold(true).
 	Foreground(lipgloss.Color("12"))
 
+// followUpHintStyle renders the hint line below the follow-up prompt in
+// dim italic, matching the approval menu hint styling for consistency.
+var followUpHintStyle = lipgloss.NewStyle().
+	Foreground(lipgloss.Color("8")).
+	Italic(true)
+
+// followUpSepWidth is the fixed character width of the separator rendered
+// above the follow-up prompt. Matches the approval separator aesthetic.
+const followUpSepWidth = 40
+
+// followUpPromptRows is the number of terminal rows the follow-up prompt
+// occupies: separator + prompt + hint = 3 visible rows, plus the leading
+// blank line = 4 rows total for erasure.
+const followUpPromptRows = 4
+
 // formatHumanMessage formats a user message with highlighted styling for
 // display in both streaming and non-streaming rendering paths.
 func formatHumanMessage(content string) string {

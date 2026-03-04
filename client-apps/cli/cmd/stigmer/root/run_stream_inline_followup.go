@@ -41,12 +41,11 @@ func runInlineFollowUpLoop(
 			return latestExecID, phase, exitErr
 		}
 
-		// Erase the raw terminal echo (prompt + typed text) and replace it
-		// with the styled user message block. The erase covers two rows: the
-		// prompt line and the blank line the cursor advanced to after Enter.
-		// On non-TTY writers (pipes, tests) this is a no-op.
+		// Erase the follow-up prompt UI (separator + prompt + hint + the
+		// blank line the cursor advanced to after Enter) and replace it with
+		// the styled user message block. On non-TTY writers this is a no-op.
 		if termctl.IsSupported(cfg.status) {
-			termctl.EraseLines(cfg.status, 2)
+			termctl.EraseLines(cfg.status, followUpPromptRows)
 		}
 		fmt.Fprintf(cfg.status, "%s\n\n", formatHumanMessage(input))
 		cfg.suppressHumanEcho = true
@@ -67,12 +66,26 @@ func runInlineFollowUpLoop(
 	}
 }
 
-// readFollowUpInput prints a styled prompt to the status writer and reads one
-// line of input from stdin. Returns the trimmed input, or empty string on EOF
-// (Ctrl+D) or blank input (just Enter). The prompt goes to stderr so stdout
-// remains clean for piping.
+// readFollowUpInput renders a three-section input prompt to the status writer
+// and reads one line of input from stdin. The layout:
+//
+//	────────────────────────────────────────
+//	  enter send · ctrl+c exit
+//	> [cursor]
+//
+// The hint sits above the prompt so Enter's terminal echo doesn't overwrite
+// it. No cursor repositioning is needed -- the cursor is naturally on the
+// prompt line ready for input.
+//
+// Returns the trimmed input, or empty string on EOF (Ctrl+D) or blank input
+// (just Enter). All prompt output goes to stderr so stdout remains clean for
+// piping.
 func readFollowUpInput(status io.Writer) (string, error) {
-	fmt.Fprintf(status, "\n%s ", promptStyle.Render(">"))
+	sep := systemMsgStyle.Render(strings.Repeat("─", followUpSepWidth))
+	hint := followUpHintStyle.Render("  enter send · ctrl+c exit")
+	marker := promptStyle.Render(">")
+
+	fmt.Fprintf(status, "\n%s\n%s\n%s ", sep, hint, marker)
 
 	scanner := bufio.NewScanner(os.Stdin)
 	if !scanner.Scan() {

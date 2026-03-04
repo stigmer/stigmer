@@ -20,6 +20,9 @@ func (r *inlineRenderer) initPreApprovalStreaming(e executiontui.ToolRunningEven
 	r.finishAIStreamIfNeeded()
 	r.flushPendingReads()
 
+	termctl.SaveCursor(r.cfg.status)
+	r.cursorSaved = true
+
 	r.activeStreamToolID = e.ToolCallID
 	r.toolStreamedBytes = 0
 	r.streamSubAgentID = e.SubAgentID
