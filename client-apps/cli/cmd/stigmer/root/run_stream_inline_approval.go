@@ -67,12 +67,15 @@ func (r *inlineRenderer) handleNonInteractiveApproval(
 	opts approval.Options,
 ) {
 	if canCollapse {
-		if contentStreamed {
+		if contentStreamed && r.cursorSaved {
+			termctl.RestoreCursorAndClear(r.cfg.status)
+		} else if contentStreamed {
 			termctl.EraseLines(r.cfg.status, streamedRows)
 		} else if runningRendered {
 			termctl.EraseLines(r.cfg.status, 1)
 		}
 	}
+	r.cursorSaved = false
 
 	action := actionToString(opts.DefaultAction)
 
@@ -145,6 +148,9 @@ func (r *inlineRenderer) prepareApprovalDisplay(
 		termctl.EraseLines(r.cfg.status, 1)
 	}
 
+	termctl.SaveCursor(r.cfg.status)
+	r.cursorSaved = true
+
 	expanded := r.buildExpandedView(tc)
 	fmt.Fprint(r.cfg.status, expanded)
 	return termctl.DisplayRows(expanded, width)
@@ -164,8 +170,13 @@ func (r *inlineRenderer) finalizeApproval(
 	action := actionToString(decision.Action)
 
 	if canCollapse {
-		termctl.EraseLines(r.cfg.status, totalRows)
+		if r.cursorSaved {
+			termctl.RestoreCursorAndClear(r.cfg.status)
+		} else {
+			termctl.EraseLines(r.cfg.status, totalRows)
+		}
 	}
+	r.cursorSaved = false
 
 	if action == "approve" && toolrender.IsShellTool(tc.Name) {
 		r.initPostApprovalStreaming(e.ToolCallID, tc, subAgentID)
@@ -243,9 +254,14 @@ func (r *inlineRenderer) promptForDecision(ctx context.Context, opts approval.Op
 // Session exit (Esc/Ctrl+C) terminates the session. Any other error
 // (context cancellation, unexpected failure) auto-skips the tool.
 func (r *inlineRenderer) handlePromptError(e executiontui.ApprovalNeededEvent, err error, renderedRows int, canCollapse bool) {
-	if canCollapse && renderedRows > 0 {
-		termctl.EraseLines(r.cfg.status, renderedRows)
+	if canCollapse {
+		if r.cursorSaved {
+			termctl.RestoreCursorAndClear(r.cfg.status)
+		} else if renderedRows > 0 {
+			termctl.EraseLines(r.cfg.status, renderedRows)
+		}
 	}
+	r.cursorSaved = false
 
 	if errors.Is(err, approval.ErrSessionExit) {
 		r.handleSessionExit(e)

@@ -10,6 +10,45 @@ import (
 )
 
 // =============================================================================
+// SaveCursor / RestoreCursorAndClear
+// =============================================================================
+
+func TestSaveCursor_WritesSequence(t *testing.T) {
+	var buf bytes.Buffer
+	// SaveCursor is a no-op for non-TTY writers; verify directly.
+	fmt.Fprint(&buf, "\0337")
+	want := "\0337"
+	if got := buf.String(); got != want {
+		t.Errorf("SaveCursor sequence = %q, want %q", got, want)
+	}
+}
+
+func TestRestoreCursorAndClear_WritesSequence(t *testing.T) {
+	var buf bytes.Buffer
+	fmt.Fprint(&buf, "\0338\033[J")
+	want := "\0338\033[J"
+	if got := buf.String(); got != want {
+		t.Errorf("RestoreCursorAndClear sequence = %q, want %q", got, want)
+	}
+}
+
+func TestSaveCursor_NoopForBuffer(t *testing.T) {
+	var buf bytes.Buffer
+	SaveCursor(&buf)
+	if buf.Len() != 0 {
+		t.Errorf("SaveCursor(buffer) wrote %q, want no output", buf.String())
+	}
+}
+
+func TestRestoreCursorAndClear_NoopForBuffer(t *testing.T) {
+	var buf bytes.Buffer
+	RestoreCursorAndClear(&buf)
+	if buf.Len() != 0 {
+		t.Errorf("RestoreCursorAndClear(buffer) wrote %q, want no output", buf.String())
+	}
+}
+
+// =============================================================================
 // EraseLines
 // =============================================================================
 

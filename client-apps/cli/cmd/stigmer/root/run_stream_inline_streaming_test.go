@@ -40,6 +40,9 @@ func TestInitPreApprovalStreaming_PrintsHeaderAndSeparator(t *testing.T) {
 	if r.streamLineCount != r.streamHeaderRows {
 		t.Errorf("expected streamLineCount == streamHeaderRows, got %d vs %d", r.streamLineCount, r.streamHeaderRows)
 	}
+	if !r.cursorSaved {
+		t.Error("expected cursorSaved=true after initPreApprovalStreaming")
+	}
 
 	output := stripANSIApproval(stderr.String())
 	if !strings.Contains(output, "Write") {

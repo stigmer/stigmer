@@ -118,6 +118,11 @@ type inlineRenderer struct {
 	// populated Args.
 	streamHeaderDeferred bool
 
+	// cursorSaved tracks whether a DEC cursor save (\033 7) is active for
+	// the current approval flow. Set by initPreApprovalStreaming or
+	// prepareApprovalDisplay; consumed by finalizeApproval / error handlers.
+	cursorSaved bool
+
 	// exitRequested is set by handleSessionExit when the user presses
 	// Ctrl+C at an approval prompt. Checked after handleApproval returns
 	// to terminate the render loop with a "cancelled" phase.
