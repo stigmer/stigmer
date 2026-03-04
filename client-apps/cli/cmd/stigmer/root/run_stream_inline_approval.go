@@ -272,7 +272,7 @@ func (r *inlineRenderer) handleSessionExit(e executiontui.ApprovalNeededEvent) {
 	if r.cfg.cancelExecFn != nil {
 		go r.cfg.cancelExecFn()
 	}
-	r.statusf("Session ended by user\n")
+	r.statusf("\nSession ended by user\n")
 	if r.cfg.sessionID != "" {
 		r.statusf("Resume later with: stigmer run %s\n", r.cfg.sessionID)
 	}
