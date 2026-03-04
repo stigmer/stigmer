@@ -11,7 +11,6 @@ import (
 
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
 )
 
 // =============================================================================
@@ -159,6 +158,129 @@ func TestInlineBubbleModel_SpinnerStart_ResetsFrame(t *testing.T) {
 }
 
 // =============================================================================
+// Approval Model Tests
+// =============================================================================
+
+func TestInlineBubbleModel_ApprovalShow_ActivatesPanel(t *testing.T) {
+	m := newInlineBubbleModel()
+	updated, cmd := m.Update(approvalShowMsg{content: "expanded view\nquestion\n"})
+
+	model := updated.(inlineBubbleModel)
+	if !model.approvalActive {
+		t.Error("approvalShowMsg should set approvalActive=true")
+	}
+	if model.approvalContent != "expanded view\nquestion\n" {
+		t.Errorf("expected content to be stored, got %q", model.approvalContent)
+	}
+	if model.approvalSelected != 0 {
+		t.Errorf("expected selected=0 on show, got %d", model.approvalSelected)
+	}
+	if cmd != nil {
+		t.Error("approvalShowMsg should return nil Cmd")
+	}
+}
+
+func TestInlineBubbleModel_ApprovalSelect_UpdatesIndex(t *testing.T) {
+	m := newInlineBubbleModel()
+	shown, _ := m.Update(approvalShowMsg{content: "content\n"})
+	updated, cmd := shown.Update(approvalSelectMsg{selected: 2})
+
+	model := updated.(inlineBubbleModel)
+	if model.approvalSelected != 2 {
+		t.Errorf("expected selected=2, got %d", model.approvalSelected)
+	}
+	if cmd != nil {
+		t.Error("approvalSelectMsg should return nil Cmd")
+	}
+}
+
+func TestInlineBubbleModel_ApprovalHide_ClearsPanelWithPrintln(t *testing.T) {
+	m := newInlineBubbleModel()
+	shown, _ := m.Update(approvalShowMsg{content: "content\n"})
+	updated, cmd := shown.Update(approvalHideMsg{collapsedResult: "✓ Write(config.go)"})
+
+	model := updated.(inlineBubbleModel)
+	if model.approvalActive {
+		t.Error("approvalHideMsg should set approvalActive=false")
+	}
+	if model.approvalContent != "" {
+		t.Errorf("approvalHideMsg should clear content, got %q", model.approvalContent)
+	}
+	if model.approvalSelected != 0 {
+		t.Errorf("approvalHideMsg should reset selected, got %d", model.approvalSelected)
+	}
+	if cmd == nil {
+		t.Fatal("approvalHideMsg with non-empty result should return a Println Cmd")
+	}
+}
+
+func TestInlineBubbleModel_ApprovalHide_NoCmdWhenEmpty(t *testing.T) {
+	m := newInlineBubbleModel()
+	shown, _ := m.Update(approvalShowMsg{content: "content\n"})
+	_, cmd := shown.Update(approvalHideMsg{})
+
+	if cmd != nil {
+		t.Error("approvalHideMsg with empty collapsedResult should return nil Cmd")
+	}
+}
+
+func TestInlineBubbleModel_View_ApprovalActive_ShowsContentAndMenu(t *testing.T) {
+	m := newInlineBubbleModel()
+	shown, _ := m.Update(approvalShowMsg{content: "─── expanded ───\n"})
+	model := shown.(inlineBubbleModel)
+
+	v := model.View()
+	if !strings.Contains(v, "─── expanded ───") {
+		t.Errorf("View() with approval active should contain content, got %q", v)
+	}
+	if !strings.Contains(v, "Yes") || !strings.Contains(v, "Skip") || !strings.Contains(v, "Reject") {
+		t.Errorf("View() with approval active should contain menu choices, got %q", v)
+	}
+}
+
+func TestInlineBubbleModel_View_ApprovalPriorityOverSpinner(t *testing.T) {
+	m := newInlineBubbleModel()
+	started, _ := m.Update(spinnerStartMsg{label: "Thinking..."})
+	shown, _ := started.Update(approvalShowMsg{content: "approval content\n"})
+	model := shown.(inlineBubbleModel)
+
+	v := model.View()
+	if strings.Contains(v, "Thinking...") {
+		t.Error("approval panel should take priority over spinner in View()")
+	}
+	if !strings.Contains(v, "approval content") {
+		t.Errorf("View() should show approval content, got %q", v)
+	}
+}
+
+func TestInlineBubbleModel_ApprovalHide_ResumesSpinner(t *testing.T) {
+	m := newInlineBubbleModel()
+	started, _ := m.Update(spinnerStartMsg{label: "Thinking..."})
+	shown, _ := started.Update(approvalShowMsg{content: "content\n"})
+	hidden, _ := shown.Update(approvalHideMsg{})
+	model := hidden.(inlineBubbleModel)
+
+	if model.approvalActive {
+		t.Error("approval should be inactive after hide")
+	}
+	if !model.spinnerActive {
+		t.Error("spinner should still be active after approval hide")
+	}
+}
+
+func TestInlineBubbleModel_ApprovalShow_ResetsSelectedToZero(t *testing.T) {
+	m := newInlineBubbleModel()
+	shown, _ := m.Update(approvalShowMsg{content: "first\n"})
+	selected, _ := shown.Update(approvalSelectMsg{selected: 2})
+	reshown, _ := selected.Update(approvalShowMsg{content: "second\n"})
+
+	model := reshown.(inlineBubbleModel)
+	if model.approvalSelected != 0 {
+		t.Errorf("approvalShowMsg should reset selected to 0, got %d", model.approvalSelected)
+	}
+}
+
+// =============================================================================
 // Program Lifecycle Tests
 // =============================================================================
 
@@ -198,57 +320,6 @@ func TestStatusf_DirectWrite_WhenNoProgram(t *testing.T) {
 
 	if !strings.Contains(stderr.String(), "direct write test") {
 		t.Errorf("statusf without program should write directly to status, got: %q", stderr.String())
-	}
-}
-
-func TestStatusf_DirectWrite_DuringApprovalFlow(t *testing.T) {
-	r := &inlineRenderer{
-		cfg: inlineRenderConfig{
-			status: &bytes.Buffer{},
-		},
-		suppressedToolIDs: make(map[string]bool),
-		inApprovalFlow:    true,
-	}
-
-	r.statusf("approval output\n")
-
-	buf := r.cfg.status.(*bytes.Buffer)
-	if !strings.Contains(buf.String(), "approval output") {
-		t.Errorf("statusf during approval should use direct write, got: %q", buf.String())
-	}
-}
-
-func TestInApprovalFlow_SetBeforeFlush_ClearedAfter(t *testing.T) {
-	var stdout, stderr bytes.Buffer
-	events := make(chan executiontui.Event, 10)
-
-	go feedEvents(events,
-		executiontui.ToolCompletedEvent{
-			ToolCallID: "r1",
-			ToolCall:   toolrender.ToolCallInfo{Name: "read_file", Status: "completed", Result: "ok", Args: map[string]interface{}{"path": "a.go"}},
-		},
-		executiontui.ApprovalNeededEvent{
-			ToolCallID: "tc-1",
-			ToolName:   "write_file",
-			Message:    "test approval",
-		},
-		executiontui.DoneEvent{Phase: "completed"},
-	)
-
-	cfg := inlineRenderConfig{
-		events:            events,
-		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
-		prompter: &mockAutoApprovePrompter{
-			action: approval.ActionSkip,
-		},
-		defaultAction: approval.ActionSkip,
-		data:          &stdout,
-		status:        &stderr,
-	}
-
-	phase, _ := renderInline(context.Background(), cfg)
-	if phase != "completed" {
-		t.Errorf("expected phase 'completed', got %q", phase)
 	}
 }
 

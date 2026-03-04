@@ -140,13 +140,6 @@ type inlineRenderer struct {
 	// in-place as more content arrives (incrementing the overflow count).
 	streamTruncationShown bool
 
-	// inApprovalFlow is true while handleApproval (and the pre-switch flush
-	// that precedes it) is executing. During this window, statusf bypasses
-	// program.Println and writes directly to cfg.status, avoiding a race
-	// between Bubbletea's asynchronous render cycle and the approval flow's
-	// direct termctl.EraseLines cursor control. Phase 4 will eliminate this
-	// flag by moving the entire approval flow into the Bubbletea View.
-	inApprovalFlow bool
 
 	// exitRequested is set by handleSessionExit when the user presses
 	// Ctrl+C at an approval prompt. Checked after handleApproval returns
@@ -338,12 +331,6 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 	//
 	// All other events close any open AI stream and flush pending reads
 	// before rendering to stderr, preventing garbled interleaving.
-	// Activate the approval sentinel before the pre-switch flush so any
-	// pending reads flushed immediately before approval use direct writes,
-	// avoiding a race with Bubbletea's asynchronous render cycle.
-	if _, ok := event.(executiontui.ApprovalNeededEvent); ok {
-		r.inApprovalFlow = true
-	}
 
 	switch event.(type) {
 	case executiontui.AIStreamStartEvent:
@@ -375,7 +362,6 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 		r.renderPhaseChange(e)
 	case executiontui.ApprovalNeededEvent:
 		r.handleApproval(ctx, e)
-		r.inApprovalFlow = false
 		if r.exitRequested {
 			return true, "cancelled", ""
 		}
@@ -638,7 +624,7 @@ func (r *inlineRenderer) agentPrefix(subAgentID string) string {
 
 func (r *inlineRenderer) statusf(format string, args ...interface{}) {
 	msg := fmt.Sprintf(format, args...)
-	if r.cfg.program != nil && !r.inApprovalFlow {
+	if r.cfg.program != nil {
 		r.cfg.program.Println(strings.TrimRight(msg, "\n"))
 		return
 	}

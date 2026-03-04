@@ -2,11 +2,13 @@ package root
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/termctl"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
 )
 
@@ -788,14 +790,19 @@ func TestInteractiveApproval_ContentStreamed_ReRendersWithPath(t *testing.T) {
 	}
 }
 
-func TestPrepareApprovalDisplay_StreamedPath_ErasesAndReRenders(t *testing.T) {
+func TestErasePreApprovalContent_AndBuildExpandedView(t *testing.T) {
 	r, _, stderr, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
 	tc := writeToolCall()
 
-	rows := r.prepareApprovalDisplay(tc, true, 4, false, true, 80)
+	r.erasePreApprovalContent(true, 4, false, true)
+
+	maxContentLines := approvalContentBudget(40)
+	expanded := r.buildExpandedView(tc, 80, maxContentLines)
+	fmt.Fprint(r.cfg.status, expanded)
+	rows := termctl.DisplayRows(expanded, 80)
 
 	if rows <= 0 {
-		t.Error("prepareApprovalDisplay should return positive row count")
+		t.Error("expanded view should have positive row count")
 	}
 	output := stripANSIApproval(stderr.String())
 	if !strings.Contains(output, "Write(config.go)") {
