@@ -1537,6 +1537,10 @@ class StatusBuilder:
 
         temp_id = f"early-{tool_use_id or uuid4()}"
 
+        mcp_server_slug = ""
+        if self._approval_config is not None:
+            mcp_server_slug = self._approval_config.get_mcp_server_for_tool(tool_name)
+
         now = datetime.utcnow()
         tool_call = ToolCall(
             id=temp_id,
@@ -1549,6 +1553,7 @@ class StatusBuilder:
                 component_group="main-agent-tools",
             ),
             started_at=_utc_timestamp(now),
+            mcp_server_slug=mcp_server_slug,
         )
 
         tool_message = AgentMessage(
@@ -1608,6 +1613,11 @@ class StatusBuilder:
                 existing.args.CopyFrom(args_struct)
 
             existing.is_streaming = False
+
+            if self._approval_config is not None:
+                slug = self._approval_config.get_mcp_server_for_tool(tool_name)
+                if slug and not existing.mcp_server_slug:
+                    existing.mcp_server_slug = slug
 
             approval = self._check_tool_approval_requirement(tool_name, tool_args)
             if approval.requires_approval:
