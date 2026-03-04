@@ -2,6 +2,7 @@ package toolrender
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -1636,17 +1637,84 @@ func TestBuildHyperlinkedPath_MultiRoot_MatchesWorkspaceName(t *testing.T) {
 	}
 }
 
-func TestBuildHyperlinkedPath_MultiRoot_NoMatch_DegradesToPlainText(t *testing.T) {
+func TestBuildHyperlinkedPath_MultiRoot_NoMatch_StatFallback(t *testing.T) {
+	existingPaths := map[string]bool{
+		"/Users/dev/scm/github.com/org/stigmer/.stigmer/skills/mcp/SKILL.md": true,
+	}
+	opts := CompactOptions{
+		HyperlinksEnabled: true,
+		WorkspaceRoots: []string{
+			"/Users/dev/scm/github.com/org/stigmer",
+			"/Users/dev/scm/github.com/org/backend",
+		},
+		StatFunc: func(path string) (os.FileInfo, error) {
+			if existingPaths[path] {
+				return nil, nil
+			}
+			return nil, os.ErrNotExist
+		},
+	}
+	got := buildHyperlinkedPath(".stigmer/skills/mcp/SKILL.md", opts)
+	if !strings.Contains(got, "file:///Users/dev/scm/github.com/org/stigmer/.stigmer/skills/mcp/SKILL.md") {
+		t.Errorf("stat fallback should resolve .stigmer/ path, got %q", got)
+	}
+	if !strings.Contains(got, ".stigmer/skills/mcp/SKILL.md"+osc8Close) {
+		t.Errorf("display text should be the original relative path, got %q", got)
+	}
+}
+
+func TestBuildHyperlinkedPath_MultiRoot_NoMatch_StatAllFail_DegradesToPlainText(t *testing.T) {
 	opts := CompactOptions{
 		HyperlinksEnabled: true,
 		WorkspaceRoots: []string{
 			"/Users/dev/scm/github.com/org/frontend",
 			"/Users/dev/scm/github.com/org/backend",
 		},
+		StatFunc: func(path string) (os.FileInfo, error) {
+			return nil, os.ErrNotExist
+		},
 	}
 	got := buildHyperlinkedPath("unknown-ws/README.md", opts)
 	if got != "unknown-ws/README.md" {
-		t.Errorf("unmatched workspace should degrade to plain text, got %q", got)
+		t.Errorf("unmatched workspace with no stat match should degrade to plain text, got %q", got)
+	}
+}
+
+func TestBuildHyperlinkedPath_MultiRoot_StatFallback_SecondRoot(t *testing.T) {
+	existingPaths := map[string]bool{
+		"/Users/dev/backend/config/app.yaml": true,
+	}
+	opts := CompactOptions{
+		HyperlinksEnabled: true,
+		WorkspaceRoots: []string{
+			"/Users/dev/frontend",
+			"/Users/dev/backend",
+		},
+		StatFunc: func(path string) (os.FileInfo, error) {
+			if existingPaths[path] {
+				return nil, nil
+			}
+			return nil, os.ErrNotExist
+		},
+	}
+	got := buildHyperlinkedPath("config/app.yaml", opts)
+	if !strings.Contains(got, "file:///Users/dev/backend/config/app.yaml") {
+		t.Errorf("stat fallback should match second root, got %q", got)
+	}
+}
+
+func TestBuildHyperlinkedPath_MultiRoot_NilStatFunc_DefaultsToOsStat(t *testing.T) {
+	opts := CompactOptions{
+		HyperlinksEnabled: true,
+		WorkspaceRoots: []string{
+			"/Users/dev/frontend",
+			"/Users/dev/backend",
+		},
+		StatFunc: nil,
+	}
+	got := buildHyperlinkedPath("nonexistent/file.go", opts)
+	if got != "nonexistent/file.go" {
+		t.Errorf("nil StatFunc with nonexistent path should degrade to plain text, got %q", got)
 	}
 }
 
