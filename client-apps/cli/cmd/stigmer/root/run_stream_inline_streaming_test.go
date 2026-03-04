@@ -50,6 +50,34 @@ func TestInitPreApprovalStreaming_PrintsHeaderAndSeparator(t *testing.T) {
 	}
 }
 
+func TestInitPreApprovalStreaming_SeparatorBeforeHeader(t *testing.T) {
+	r, _, stderr, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
+
+	e := executiontui.ToolRunningEvent{
+		ToolCallID: "tc-w3",
+		ToolCall: toolrender.ToolCallInfo{
+			Name:        "write_file",
+			Args:        map[string]interface{}{"path": "test.go", "contents": "package test"},
+			Status:      "running",
+			IsStreaming: true,
+		},
+	}
+	r.initPreApprovalStreaming(e)
+
+	output := stripANSIApproval(stderr.String())
+	lines := strings.Split(strings.TrimRight(output, "\n"), "\n")
+
+	if len(lines) < 2 {
+		t.Fatalf("expected at least 2 lines, got %d:\n%s", len(lines), output)
+	}
+	if !strings.Contains(lines[0], "─") {
+		t.Errorf("first line should be a separator, got: %q", lines[0])
+	}
+	if !strings.Contains(lines[1], "Write") {
+		t.Errorf("second line should contain the Write header, got: %q", lines[1])
+	}
+}
+
 func TestInitPreApprovalStreaming_SubAgentGutterWrapped(t *testing.T) {
 	r, _, stderr, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
 

@@ -447,3 +447,113 @@ func TestInlineRenderer_ResumedAfterApproval_Suppressed(t *testing.T) {
 		t.Errorf("in_progress phase after approval should be suppressed, got: %q", stderr.String())
 	}
 }
+
+// =============================================================================
+// AI Message Bullet Prefix
+// =============================================================================
+
+func TestInlineRenderer_AIMessage_HasBulletPrefix(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 10)
+
+	go feedEvents(events,
+		executiontui.AIMessageEvent{Content: "Hello from agent"},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	out := stdout.String()
+	if !strings.HasPrefix(out, "● ") {
+		t.Errorf("AI message should start with bullet prefix, got: %q", out)
+	}
+}
+
+func TestInlineRenderer_AIStreaming_HasBulletPrefix(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 10)
+
+	go feedEvents(events,
+		executiontui.AIStreamStartEvent{Content: "Start"},
+		executiontui.AIStreamEndEvent{Content: "Start end"},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	out := stdout.String()
+	if !strings.HasPrefix(out, "● ") {
+		t.Errorf("streaming AI should start with bullet prefix, got: %q", out)
+	}
+}
+
+// =============================================================================
+// Tool Running-to-Completed In-Place Replacement
+// =============================================================================
+
+func TestInlineRenderer_ToolRunning_SetsLastOutputWasRunning(t *testing.T) {
+	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
+
+	r.renderToolRunning(executiontui.ToolRunningEvent{
+		ToolCallID: "tc-1",
+		ToolCall:   shellToolCall(),
+	})
+
+	if !r.lastOutputWasRunning {
+		t.Error("lastOutputWasRunning should be true after renderToolRunning")
+	}
+	if r.lastRenderedRunningID != "tc-1" {
+		t.Errorf("expected tc-1, got %s", r.lastRenderedRunningID)
+	}
+}
+
+func TestInlineRenderer_StatusfClearsRunningFlag(t *testing.T) {
+	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
+	r.lastOutputWasRunning = true
+
+	r.statusf("some output\n")
+
+	if r.lastOutputWasRunning {
+		t.Error("statusf should clear lastOutputWasRunning")
+	}
+}
+
+func TestInlineRenderer_AIStreamEnd_NoLegacyToolCalls(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 10)
+
+	go feedEvents(events,
+		executiontui.AIStreamStartEvent{Content: "Checking"},
+		executiontui.AIStreamEndEvent{
+			Content: "Checking files",
+			ToolCalls: []toolrender.ToolCallInfo{
+				{Name: "list_directory", Args: map[string]interface{}{"path": "."}, Status: "running"},
+			},
+		},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	if strings.Contains(stderr.String(), "List") {
+		t.Errorf("tool calls from AIStreamEndEvent should not be rendered via legacy path, got stderr: %q", stderr.String())
+	}
+}

@@ -16,9 +16,9 @@ func (r *inlineRenderer) initPreApprovalStreaming(e executiontui.ToolRunningEven
 	r.finishAIStreamIfNeeded()
 	r.flushPendingReads()
 
-	header := toolrender.ExpandedApprovalHeader(e.ToolCall, r.compactOpts)
 	sep := toolrender.ApprovalSeparator()
-	output := header + "\n" + sep + "\n"
+	header := toolrender.ExpandedApprovalHeader(e.ToolCall, r.compactOpts)
+	output := sep + "\n" + header + "\n"
 
 	if e.SubAgentID != "" {
 		output = toolrender.GutterWrap(output)
