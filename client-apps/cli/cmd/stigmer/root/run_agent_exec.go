@@ -1,7 +1,6 @@
 package root
 
 import (
-	"context"
 	"os"
 
 	"github.com/pkg/errors"
@@ -267,7 +266,6 @@ func executeResolvedAgent(input resolvedAgentExecInput, sp *spinner.Spinner) err
 	headerInfo := sessionHeaderInfo{
 		AgentName:  input.Agent.GetMetadata().GetName(),
 		SessionID:  sessionID,
-		Subject:    subjectPlaceholder,
 		Model:      input.Model,
 		Workspaces: workspaceNames(input.WorkspaceEntries),
 	}
@@ -277,21 +275,13 @@ func executeResolvedAgent(input resolvedAgentExecInput, sp *spinner.Spinner) err
 		return nil
 	}
 
-	dataW, statusW, updater := setupSubjectUpdater(os.Stdout, os.Stderr, headerInfo)
-
-	if sessionID != "" && updater != nil {
-		pollCtx, pollCancel := context.WithCancel(context.Background())
-		defer pollCancel()
-		go pollSessionSubject(pollCtx, input.Conn, sessionID, updater)
-	}
-
 	var prompter approval.Prompter
 	if input.OutputMode == OutputInline {
 		prompter = approval.NewInlinePrompter(os.Stdin, os.Stderr)
 	} else {
 		prompter = approval.NewInteractivePrompter()
 	}
-	exec, err = streamAgentExecution(sessionID, "", exec.Metadata.Id, input.OrgID, prompter, input.DefaultAction, input.Verbose, input.OutputMode, input.Conn, localWorkspaceRoots(input.WorkspaceEntries), dataW, statusW)
+	exec, err = streamAgentExecution(sessionID, "", exec.Metadata.Id, input.OrgID, prompter, input.DefaultAction, input.Verbose, input.OutputMode, input.Conn, localWorkspaceRoots(input.WorkspaceEntries), os.Stdout, os.Stderr)
 	if err != nil {
 		return errors.Wrap(err, "error streaming execution")
 	}
