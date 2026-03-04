@@ -729,6 +729,97 @@ func TestInlineRenderer_NonReadToolBetweenAIStream_NoDuplication(t *testing.T) {
 	}
 }
 
+// Reproduces the cross-Recv() duplication scenario: a streaming write tool's
+// ToolRunningEvent arrives while the AI is still streaming, causing
+// initPreApprovalStreaming to force-close the AI stream. The subsequent
+// AIStreamEndEvent must NOT reprint the AI content.
+func TestInlineRenderer_StreamingWriteToolDuringAIStream_NoDuplication(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 16)
+
+	go feedEvents(events,
+		executiontui.AIStreamStartEvent{Content: "I have"},
+		executiontui.AIStreamDeltaEvent{Content: "I have everything I need"},
+		// Streaming write tool starts while AI stream is still open.
+		// initPreApprovalStreaming calls finishAIStreamIfNeeded, closing
+		// the AI stream and resetting streamedBytes.
+		executiontui.ToolRunningEvent{
+			ToolCallID: "tc-write",
+			ToolCall: toolrender.ToolCallInfo{
+				Name:        "write",
+				Status:      "running",
+				IsStreaming:  true,
+				Args:        map[string]interface{}{"path": "output.yaml"},
+			},
+		},
+		// AIStreamEndEvent arrives after the stream was force-closed.
+		// Without the guard, this reprints the full AI content.
+		executiontui.AIStreamEndEvent{Content: "I have everything I need."},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	out := stdout.String()
+	count := strings.Count(out, "I have everything")
+	if count != 1 {
+		t.Errorf("AI content should appear exactly once after force-close, appeared %d times in stdout: %q", count, out)
+	}
+	if !strings.Contains(stderr.String(), "Write(output.yaml)") {
+		t.Errorf("write tool header should appear on stderr, got: %q", stderr.String())
+	}
+}
+
+// Verifies that AIStreamDeltaEvent arriving after finishAIStreamIfNeeded
+// is silently ignored (no content written to stdout).
+func TestInlineRenderer_AIStreamDelta_AfterForceClose_Ignored(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 16)
+
+	go feedEvents(events,
+		executiontui.AIStreamStartEvent{Content: "Hello"},
+		executiontui.AIStreamDeltaEvent{Content: "Hello world"},
+		// Non-read tool completion force-closes the AI stream.
+		executiontui.ToolCompletedEvent{
+			ToolCallID: "tc-1",
+			ToolCall: toolrender.ToolCallInfo{
+				Name:   "get_mcp_server",
+				Status: "completed",
+				Result: "ok",
+				Args:   map[string]interface{}{"name": "test"},
+			},
+		},
+		// Late delta arrives after force-close — must be ignored.
+		executiontui.AIStreamDeltaEvent{Content: "Hello world, this is extra"},
+		// Late end arrives after force-close — must be ignored.
+		executiontui.AIStreamEndEvent{Content: "Hello world, this is extra."},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	out := stdout.String()
+	if strings.Contains(out, "this is extra") {
+		t.Errorf("late delta/end content after force-close should not appear in stdout: %q", out)
+	}
+	count := strings.Count(out, "Hello")
+	if count != 1 {
+		t.Errorf("'Hello' should appear exactly once, appeared %d times: %q", count, out)
+	}
+}
+
 // =============================================================================
 // Read Group Splitting at AI Message Boundaries
 // =============================================================================
@@ -869,5 +960,88 @@ func TestInlineRenderer_MultipleAIMessages_InterleavedTools_CorrectOrder(t *test
 	writePos := strings.Index(stderrStr, "write_to_file")
 	if mcpPos > writePos {
 		t.Errorf("get_mcp_server should appear before write_to_file on stderr; mcp at %d, write at %d in: %q", mcpPos, writePos, stderrStr)
+	}
+}
+
+// =============================================================================
+// Deferred Header Rendering
+// =============================================================================
+
+// When a streaming write tool's ToolRunningEvent has nil Args, the header
+// is deferred to the first ToolStreamDeltaEvent which carries updated Args.
+func TestInlineRenderer_DeferredHeader_RendersPathFromDelta(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 16)
+
+	go feedEvents(events,
+		executiontui.ToolRunningEvent{
+			ToolCallID: "tc-write",
+			ToolCall: toolrender.ToolCallInfo{
+				Name:       "write",
+				Status:     "running",
+				IsStreaming: true,
+				Args:       nil,
+			},
+		},
+		executiontui.ToolStreamDeltaEvent{
+			ToolCallID: "tc-write",
+			ToolCall: toolrender.ToolCallInfo{
+				Name:       "write",
+				Status:     "running",
+				IsStreaming: true,
+				Args:       map[string]interface{}{"path": "config.yaml", "contents": "key: value"},
+			},
+			Content: "key: value",
+		},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	stderrStr := stderr.String()
+	if !strings.Contains(stderrStr, "Write(config.yaml)") {
+		t.Errorf("deferred header should show path from delta event, got stderr: %q", stderrStr)
+	}
+	if !strings.Contains(stderrStr, "key: value") {
+		t.Errorf("streamed content should appear on stderr, got: %q", stderrStr)
+	}
+}
+
+// When Args are present in the ToolRunningEvent, the header renders
+// immediately without deferral.
+func TestInlineRenderer_ImmediateHeader_WhenArgsPresent(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 16)
+
+	go feedEvents(events,
+		executiontui.ToolRunningEvent{
+			ToolCallID: "tc-write",
+			ToolCall: toolrender.ToolCallInfo{
+				Name:       "write",
+				Status:     "running",
+				IsStreaming: true,
+				Args:       map[string]interface{}{"path": "output.yaml"},
+			},
+		},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	stderrStr := stderr.String()
+	if !strings.Contains(stderrStr, "Write(output.yaml)") {
+		t.Errorf("header should show path immediately when Args are present, got stderr: %q", stderrStr)
 	}
 }
