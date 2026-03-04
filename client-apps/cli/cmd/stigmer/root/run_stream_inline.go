@@ -10,7 +10,6 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/termctl"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
 )
 
@@ -29,6 +28,7 @@ type inlineRenderConfig struct {
 	status            io.Writer // status/progress (stderr)
 	sessionID         string
 	workspaceRoots    []string // local workspace root paths for file hyperlinks
+	cancelExecFn      func()   // cancels the current backend execution; nil-safe
 }
 
 // pendingRead wraps a read tool completion with the sub-agent context it
@@ -80,17 +80,10 @@ type inlineRenderer struct {
 	pendingReads []pendingRead
 
 	// lastRenderedRunningID is the ToolCallID of the tool whose running
-	// indicator line was last printed to stderr. Used by handleApproval
-	// to safely erase the running line before rendering the expanded view.
+	// indicator line was last printed to stderr. With running indicators
+	// suppressed for all tools, this field is effectively always empty,
+	// but it is retained for the approval flow's runningLineRendered check.
 	lastRenderedRunningID string
-
-	// lastOutputWasRunning is true when the most recent write to the
-	// status writer was a tool running indicator. Cleared by any
-	// subsequent statusf or flushData call. Used by renderToolCompleted
-	// to erase the running line and replace it with the completed result
-	// (in-place replacement) when the completed event arrives for the
-	// same tool with no intervening output.
-	lastOutputWasRunning bool
 
 	// waitingApproval holds the ToolCallInfo saved from the most recent
 	// ToolWaitingApprovalEvent. handleApproval uses this to render the
@@ -112,6 +105,11 @@ type inlineRenderer struct {
 	streamHeaderRows   int    // display rows for header portion (set at init)
 	streamLineCount    int    // total display rows including content (for erase)
 	streamSubAgentID   string // sub-agent context for gutter wrapping
+
+	// exitRequested is set by handleSessionExit when the user presses
+	// Ctrl+C at an approval prompt. Checked after handleApproval returns
+	// to terminate the render loop with a "cancelled" phase.
+	exitRequested bool
 }
 
 // renderInline consumes events from the channel and renders them inline until
@@ -168,7 +166,7 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, ex
 // handleEvent dispatches a single event to the appropriate render method.
 // Returns (true, phase, error) when a terminal event is received.
 //
-// Pre-switch interceptions handle four concerns:
+// Pre-switch interceptions handle five concerns:
 //  1. Read grouping: completed reads buffer in pendingReads; running reads
 //     and tool stream deltas are suppressed.
 //  2. Approval completion suppression: tools whose outcome was already
@@ -178,7 +176,10 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, ex
 //     the parent "task" tool AND SubAgentStarted/Completed lifecycle events.
 //     These are redundant — we suppress the tool events and use the lifecycle
 //     events (which carry richer data: Description, ToolCount, Status).
-//  4. Sub-agent AI redirection: sub-agent AI messages are intermediate
+//  4. Running indicator suppression: all ToolRunningEvent are suppressed.
+//     Non-streaming tools show only their completed result. The append-only
+//     stream model cannot reliably erase running lines when events interleave.
+//  5. Sub-agent AI redirection: sub-agent AI messages are intermediate
 //     reasoning, not the final agent response. They render on stderr with
 //     gutter prefix instead of stdout.
 func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Event) (done bool, phase string, exitErr string) {
@@ -246,6 +247,16 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 		return false, "", ""
 	}
 
+	// Suppress all remaining running indicators. Non-streaming tools
+	// (list, search, find, execute, shell pre-approval, etc.) show only
+	// their completed result — running indicators are not rendered because
+	// the append-only stream model cannot reliably erase them when events
+	// interleave. Read, think, task, and pre-approval streaming running
+	// events are already handled by earlier interceptions above.
+	if _, ok := event.(executiontui.ToolRunningEvent); ok {
+		return false, "", ""
+	}
+
 	// Sub-agent AI messages are intermediate reasoning — render on stderr
 	// with gutter prefix instead of stdout. We suppress Start/Delta and
 	// emit the full content on End/Message to avoid character-by-character
@@ -277,12 +288,17 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 	// stream on stdout before status/tool output goes to stderr to
 	// prevent them from sharing a terminal line. AI stream events
 	// manage stream lifecycle internally and must not be closed here.
+	//
+	// flushPendingReads is inside the default case because it internally
+	// calls finishAIStreamIfNeeded — running it during AIStreamEndEvent
+	// would reset streamedBytes to 0 before renderAIStreamEnd, causing
+	// the full AI content to be re-printed.
 	switch event.(type) {
 	case executiontui.AIStreamStartEvent, executiontui.AIStreamDeltaEvent, executiontui.AIStreamEndEvent:
 	default:
 		r.finishAIStreamIfNeeded()
+		r.flushPendingReads()
 	}
-	r.flushPendingReads()
 
 	switch e := event.(type) {
 	case executiontui.AIStreamStartEvent:
@@ -295,8 +311,6 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 		r.renderAIMessage(e)
 	case executiontui.HumanMessageEvent:
 		r.renderHumanMessage(e)
-	case executiontui.ToolRunningEvent:
-		r.renderToolRunning(e)
 	case executiontui.ToolCompletedEvent:
 		r.renderToolCompleted(e)
 	case executiontui.ToolWaitingApprovalEvent:
@@ -307,6 +321,9 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 		r.renderPhaseChange(e)
 	case executiontui.ApprovalNeededEvent:
 		r.handleApproval(ctx, e)
+		if r.exitRequested {
+			return true, "cancelled", ""
+		}
 	case executiontui.TodoUpdateEvent:
 		r.renderTodoUpdate(e)
 	case executiontui.SubAgentStartedEvent:
@@ -376,21 +393,7 @@ func (r *inlineRenderer) renderHumanMessage(e executiontui.HumanMessageEvent) {
 // Tool call rendering — status goes to status writer (stderr)
 // ---------------------------------------------------------------------------
 
-func (r *inlineRenderer) renderToolRunning(e executiontui.ToolRunningEvent) {
-	line := toolrender.RenderCompactRunning(e.ToolCall, r.compactOpts)
-	if e.SubAgentID != "" {
-		line = toolrender.GutterWrap(line)
-	}
-	r.statusf("%s\n", line)
-	r.lastOutputWasRunning = true
-	r.lastRenderedRunningID = e.ToolCallID
-}
-
 func (r *inlineRenderer) renderToolCompleted(e executiontui.ToolCompletedEvent) {
-	if r.lastOutputWasRunning && r.lastRenderedRunningID == e.ToolCallID &&
-		termctl.IsSupported(r.cfg.status) {
-		termctl.EraseLines(r.cfg.status, 1)
-	}
 	line := toolrender.RenderCompact(e.ToolCall, r.compactOpts)
 	if e.SubAgentID != "" {
 		line = toolrender.GutterWrap(line)
@@ -568,13 +571,11 @@ func (r *inlineRenderer) agentPrefix(subAgentID string) string {
 }
 
 func (r *inlineRenderer) statusf(format string, args ...interface{}) {
-	r.lastOutputWasRunning = false
 	fmt.Fprintf(r.cfg.status, format, args...)
 	r.flushWriter(r.cfg.status)
 }
 
 func (r *inlineRenderer) flushData() {
-	r.lastOutputWasRunning = false
 	r.flushWriter(r.cfg.data)
 }
 

@@ -2,6 +2,7 @@ package root
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -238,18 +239,45 @@ func (r *inlineRenderer) promptForDecision(ctx context.Context, opts approval.Op
 	return decision, 0, err
 }
 
-// handlePromptError sends a skip response when the prompt fails. If cursor
-// control is available, erases the expanded view first.
+// handlePromptError routes prompt errors to the appropriate handler.
+// Session exit (Esc/Ctrl+C) terminates the session. Any other error
+// (context cancellation, unexpected failure) auto-skips the tool.
 func (r *inlineRenderer) handlePromptError(e executiontui.ApprovalNeededEvent, err error, renderedRows int, canCollapse bool) {
 	if canCollapse && renderedRows > 0 {
 		termctl.EraseLines(r.cfg.status, renderedRows)
 	}
-	r.statusf("Approval prompt failed: %s — auto-skipping\n", err)
+
+	if errors.Is(err, approval.ErrSessionExit) {
+		r.handleSessionExit(e)
+		return
+	}
+
+	r.statusf("Approval prompt error: %s — auto-skipping\n", err)
 	r.cfg.approvalResponses <- executiontui.ApprovalResponse{
 		Action:     "skip",
 		ToolCallID: e.ToolCallID,
 	}
 	r.waitingApproval = nil
+}
+
+// handleSessionExit performs a clean session exit when the user presses
+// Ctrl+C at an approval prompt. It unblocks the stream goroutine with a
+// skip response, fires backend cancellation in a goroutine (so the CLI
+// exits immediately), and sets exitRequested so renderInline terminates.
+func (r *inlineRenderer) handleSessionExit(e executiontui.ApprovalNeededEvent) {
+	r.cfg.approvalResponses <- executiontui.ApprovalResponse{
+		Action:     "skip",
+		ToolCallID: e.ToolCallID,
+	}
+	if r.cfg.cancelExecFn != nil {
+		go r.cfg.cancelExecFn()
+	}
+	r.statusf("Session ended by user\n")
+	if r.cfg.sessionID != "" {
+		r.statusf("Resume later with: stigmer run %s\n", r.cfg.sessionID)
+	}
+	r.waitingApproval = nil
+	r.exitRequested = true
 }
 
 // printCollapsedResult renders the post-decision compact summary. Applies

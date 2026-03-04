@@ -49,8 +49,10 @@ func TestRenderMenu_ThirdSelection(t *testing.T) {
 
 func TestRenderMenu_ContainsHint(t *testing.T) {
 	menu := renderMenu(0)
-	if !strings.Contains(menu, "arrows/1-3/enter/esc") {
-		t.Error("expected hint line in menu")
+	for _, fragment := range []string{"select", "esc/ctrl+c exit"} {
+		if !strings.Contains(menu, fragment) {
+			t.Errorf("expected hint to contain %q", fragment)
+		}
 	}
 }
 
