@@ -2112,20 +2112,24 @@ class StatusBuilder:
             )
             
         elif action == ApprovalAction.APPROVAL_ACTION_REJECT:
-            # Tool is rejected — fail the entire execution.
-            tool_call.status = ToolCallStatus.TOOL_CALL_FAILED
-            tool_call.error = f"Tool execution rejected by {approved_by}"
+            # Tool is rejected — non-terminal. The agent receives a corrective
+            # message and re-evaluates its approach, just like Skip but with
+            # stronger guidance. Execution continues.
+            tool_call.status = ToolCallStatus.TOOL_CALL_SKIPPED
+            tool_call.result = (
+                f"Tool '{tool_call.name}' was REJECTED by the user. "
+                "The user has explicitly indicated they do not want this operation. "
+                "Do NOT retry this exact operation. "
+                "Re-evaluate your approach and propose an alternative."
+            )
             tool_call.completed_at = timestamp
             
-            # Clear ALL pending state and set phase to FAILED
-            self._pending_tool_approvals.clear()
-            del self.current_status.pending_approvals[:]
-            self.current_status.phase = ExecutionPhase.EXECUTION_FAILED
-            self.current_status.error = f"Tool '{tool_call.name}' execution rejected by {approved_by}"
-            
+            # Remove this run_id from pending list (restores phase when empty).
+            self._remove_from_pending(run_id)
             self.logger.info(
                 f"[APPROVAL] execution={self.execution_id} "
-                f"run_id={run_id} decision=REJECT by={approved_by}"
+                f"run_id={run_id} decision=REJECT by={approved_by} "
+                f"remaining_pending={len(self._pending_tool_approvals)}"
             )
         else:
             self.logger.warning(

@@ -2358,7 +2358,7 @@ async def _execute_graphton_impl(
             _approval_to_tool_status = {
                 ApprovalAction.APPROVAL_ACTION_APPROVE: ToolCallStatus.TOOL_CALL_RUNNING,
                 ApprovalAction.APPROVAL_ACTION_SKIP: ToolCallStatus.TOOL_CALL_SKIPPED,
-                ApprovalAction.APPROVAL_ACTION_REJECT: ToolCallStatus.TOOL_CALL_FAILED,
+                ApprovalAction.APPROVAL_ACTION_REJECT: ToolCallStatus.TOOL_CALL_SKIPPED,
             }
             
             # Index decisions by tool_call_id for O(1) lookup
@@ -2385,6 +2385,31 @@ async def _execute_graphton_impl(
                     f"tool_call={tc.id} name={tc.name} "
                     f"WAITING_APPROVAL -> {ToolCallStatus.Name(new_status)}"
                 )
+            
+            # Auto-skip remaining WAITING_APPROVAL tools when a REJECT was
+            # in the batch.  The Go workflow short-circuits signal collection
+            # on REJECT, so these tools never received a decision.  Mark them
+            # as skipped so the agent gets a clear picture of what happened.
+            has_reject = any(
+                d.action == ApprovalAction.APPROVAL_ACTION_REJECT
+                for d in approval_decisions
+            )
+            if has_reject:
+                for tc in status_builder.current_status.tool_calls:
+                    if tc.status != ToolCallStatus.TOOL_CALL_WAITING_APPROVAL:
+                        continue
+                    tc.status = ToolCallStatus.TOOL_CALL_SKIPPED
+                    tc.approval_action = ApprovalAction.APPROVAL_ACTION_SKIP
+                    tc.approval_decided_at = _utc_timestamp()
+                    tc.result = (
+                        f"Tool '{tc.name}' was automatically skipped because "
+                        "another tool in this batch was rejected by the user."
+                    )
+                    activity_logger.info(
+                        f"[RESUME_RECONCILE] execution={execution_id} "
+                        f"tool_call={tc.id} name={tc.name} "
+                        f"WAITING_APPROVAL -> TOOL_CALL_SKIPPED (auto-skip after reject)"
+                    )
             
             # Clear stale pending_approvals — they are no longer pending
             del status_builder.current_status.pending_approvals[:]
