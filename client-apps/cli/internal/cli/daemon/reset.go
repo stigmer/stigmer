@@ -37,7 +37,11 @@ func Reset(configDir, dataDir string, opts ResetOptions) (*ResetResult, error) {
 		name string
 		fn   func(string) ([]string, error)
 	}{
+		{"database", removeSQLiteDatabase},
 		{"data directory", removeDataDir},
+		{"storage", removeStorageDir},
+		{"sessions", removeSessionsDir},
+		{"runtimes", removeRuntimesDir},
 		{"temporal state", removeTemporalState},
 		{"downloaded binaries", removeDownloadedBinaries},
 		{"root logs", removeRootLogs},
@@ -71,10 +75,32 @@ func stopAllServices(dataDir string) error {
 	return Stop(dataDir)
 }
 
+// removeSQLiteDatabase removes the SQLite database and its WAL/SHM sidecar
+// files (~/.stigmer/stigmer.db, stigmer.db-wal, stigmer.db-shm).
+func removeSQLiteDatabase(configDir string) ([]string, error) {
+	base := filepath.Join(configDir, config.DefaultDBFile)
+	return removeAll([]string{base, base + "-wal", base + "-shm"})
+}
+
 // removeDataDir removes the entire data directory (~/.stigmer/data).
 func removeDataDir(configDir string) ([]string, error) {
 	dataDir := filepath.Join(configDir, config.DefaultDataDir)
 	return removeIfExists(dataDir)
+}
+
+// removeStorageDir removes the skill artifact storage directory (~/.stigmer/storage).
+func removeStorageDir(configDir string) ([]string, error) {
+	return removeIfExists(filepath.Join(configDir, config.DefaultStorageDir))
+}
+
+// removeSessionsDir removes the CLI sessions directory (~/.stigmer/sessions).
+func removeSessionsDir(configDir string) ([]string, error) {
+	return removeIfExists(filepath.Join(configDir, config.DefaultSessionsDir))
+}
+
+// removeRuntimesDir removes the agent-runner runtimes directory (~/.stigmer/runtimes).
+func removeRuntimesDir(configDir string) ([]string, error) {
+	return removeIfExists(filepath.Join(configDir, config.DefaultRuntimesDir))
 }
 
 // removeTemporalState removes Temporal data directory and state files.
