@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	tea "github.com/charmbracelet/bubbletea"
+
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
@@ -29,6 +31,12 @@ type inlineRenderConfig struct {
 	sessionID         string
 	workspaceRoots    []string // local workspace root paths for file hyperlinks
 	cancelExecFn      func()   // cancels the current backend execution; nil-safe
+
+	// program is the Bubbletea Program running alongside the event loop. When
+	// non-nil, status output is routed through program.Println so Bubbletea
+	// tracks stderr row positions accurately. When nil (unit tests, non-TTY),
+	// output falls back to direct writes on the status writer.
+	program *tea.Program
 
 	// suppressHumanEcho skips the next HumanMessageEvent rendering. Set by
 	// the follow-up loop after local echo to prevent duplicate display when
@@ -134,6 +142,14 @@ type inlineRenderer struct {
 	// cap and a truncation indicator was printed. The indicator is updated
 	// in-place as more content arrives (incrementing the overflow count).
 	streamTruncationShown bool
+
+	// inApprovalFlow is true while handleApproval (and the pre-switch flush
+	// that precedes it) is executing. During this window, statusf bypasses
+	// program.Println and writes directly to cfg.status, avoiding a race
+	// between Bubbletea's asynchronous render cycle and the approval flow's
+	// direct termctl.EraseLines cursor control. Phase 4 will eliminate this
+	// flag by moving the entire approval flow into the Bubbletea View.
+	inApprovalFlow bool
 
 	// exitRequested is set by handleSessionExit when the user presses
 	// Ctrl+C at an approval prompt. Checked after handleApproval returns
@@ -326,6 +342,13 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 	//
 	// All other events close any open AI stream and flush pending reads
 	// before rendering to stderr, preventing garbled interleaving.
+	// Activate the approval sentinel before the pre-switch flush so any
+	// pending reads flushed immediately before approval use direct writes,
+	// avoiding a race with Bubbletea's asynchronous render cycle.
+	if _, ok := event.(executiontui.ApprovalNeededEvent); ok {
+		r.inApprovalFlow = true
+	}
+
 	switch event.(type) {
 	case executiontui.AIStreamStartEvent:
 		r.flushPendingReads()
@@ -356,6 +379,7 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 		r.renderPhaseChange(e)
 	case executiontui.ApprovalNeededEvent:
 		r.handleApproval(ctx, e)
+		r.inApprovalFlow = false
 		if r.exitRequested {
 			return true, "cancelled", ""
 		}
@@ -617,7 +641,12 @@ func (r *inlineRenderer) agentPrefix(subAgentID string) string {
 }
 
 func (r *inlineRenderer) statusf(format string, args ...interface{}) {
-	fmt.Fprintf(r.cfg.status, format, args...)
+	msg := fmt.Sprintf(format, args...)
+	if r.cfg.program != nil && !r.inApprovalFlow {
+		r.cfg.program.Println(strings.TrimRight(msg, "\n"))
+		return
+	}
+	fmt.Fprint(r.cfg.status, msg)
 	r.flushWriter(r.cfg.status)
 }
 
