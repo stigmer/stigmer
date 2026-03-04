@@ -69,8 +69,8 @@ When starting a new session:
 
 **Created**: 2026-03-04 00:23
 **Current Task**: Phase 3 (Claude Code-Style Approval Flow — REVISED)
-**Status**: In Progress — Phase 3.2 complete
-**Last Session**: 2026-03-04 — Phase 3.2 (approval result rendering primitives) complete
+**Status**: In Progress — Phase 3.3 complete
+**Last Session**: 2026-03-04 — Phase 3.3 (rewrite handleApproval: expand/prompt/collapse/suppress) complete
 
 ## Session Progress (2026-03-04, Session 1)
 
@@ -308,19 +308,50 @@ When starting a new session:
 - `client-apps/cli/pkg/toolrender/render_approval_test.go` (new)
 - `client-apps/cli/pkg/toolrender/BUILD.bazel` (modified)
 
+## Session Progress (2026-03-04, Session 12)
+
+- Phase 3.3 (Rewrite handleApproval — Expand / Prompt / Collapse / Suppress) completed
+- Created `cmd/stigmer/root/run_stream_inline_approval.go` (216 lines) — approval orchestrator extracted from `run_stream_inline.go` for SRP compliance. Contains `handleApproval` (entry point dispatching to interactive/non-interactive), `handleNonInteractiveApproval` (fast path), `handleInteractiveApproval` (full expand/prompt/collapse), `resolveApprovalContext` (state lookup with fallback), `buildExpandedView` (header+separator+content+separator), `promptForDecision` (type-assert to InlinePrompter, fallback to Prompter), `handlePromptError`, `printCollapsedResult`, `trackSuppression`
+- Created `cmd/stigmer/root/run_stream_inline_approval_test.go` (21 tests) — comprehensive coverage: approve/skip/reject collapse, non-interactive fast path, ToolCompletedEvent suppression, sub-agent gutter-wrapping, prompt error fallback, state lifecycle
+- Added 3 public functions to `pkg/toolrender/render_approval.go` (+59 lines): `ExpandedApprovalHeader` (green bullet header for pre-decision view), `ExpandedApprovalContent` (public wrapper around `resolveDisplayContent`), `ShouldSuppressCompletion` (predicate for write/edit/delete suppression)
+- Added 17 new tests to `pkg/toolrender/render_approval_test.go` for the 3 new functions
+- Structural changes to `run_stream_inline.go`: added `waitingApprovalState` struct, `waitingApproval`, `suppressedToolIDs`, `lastRenderedRunningID` fields; `renderToolRunning` tracks ID; `renderToolWaitingApproval` saves state only (no visual output); pre-switch interception for ToolCompletedEvent suppression
+- Updated call sites (`run_agent_exec.go`, `run_session.go`) to use `NewInlinePrompter(os.Stdin, os.Stderr)` for inline mode
+- Updated `BUILD.bazel` — added new files and `termctl` dep
+
+### Key Design Decisions (Session 12)
+- **SRP extraction**: Approval orchestration is a distinct concern from event dispatch. Extracted to `run_stream_inline_approval.go` (216 lines) keeping `run_stream_inline.go` focused on event routing.
+- **Type-assert, don't change interface**: `promptForDecision` type-asserts `cfg.prompter` to `*InlinePrompter` for `PromptWithLineCount`. Falls back to `Prompter.Prompt()` with lineCount=0 (graceful degradation — no collapse on non-InlinePrompter).
+- **renderToolWaitingApproval becomes silent**: All visual output moved to `handleApproval` which needs full line count for collapse. Saves `ToolCallInfo` + `subAgentID` + `runningLineRendered` in `waitingApprovalState`.
+- **Non-interactive fast path**: When `defaultAction` is set, skips expanded view entirely — erases running line, prints collapsed result directly. No content review needed for predetermined decisions.
+- **Selective ToolCompletedEvent suppression**: Write/edit/delete completions suppressed (their `RenderApprovalResult` already shows the summary). Shell completions NOT suppressed (output only arrives via completion event until Phase 3.4). Reject never suppresses (no completion follows). `ShouldSuppressCompletion` predicate in toolrender package.
+- **Pre-switch interception ordering**: Approval suppression checked after read grouping but before task tool suppression. Flush pending reads first to avoid losing buffered reads.
+- **Prompter call site switching**: `run_agent_exec.go` and `run_session.go` conditionally create `InlinePrompter` vs `InteractivePrompter` based on `outputMode`. `run_handlers.go` (workflow) keeps `InteractivePrompter` (workflow doesn't use inline renderer).
+
+### Files Created/Modified (Session 12)
+- `client-apps/cli/cmd/stigmer/root/run_stream_inline_approval.go` (new — 216 lines)
+- `client-apps/cli/cmd/stigmer/root/run_stream_inline_approval_test.go` (new — 21 tests)
+- `client-apps/cli/cmd/stigmer/root/run_stream_inline.go` (modified — structural changes)
+- `client-apps/cli/cmd/stigmer/root/run_agent_exec.go` (modified — prompter switch)
+- `client-apps/cli/cmd/stigmer/root/run_session.go` (modified — prompter switch)
+- `client-apps/cli/cmd/stigmer/root/BUILD.bazel` (modified — new files + termctl dep)
+- `client-apps/cli/pkg/toolrender/render_approval.go` (modified — 3 new public functions)
+- `client-apps/cli/pkg/toolrender/render_approval_test.go` (modified — 17 new tests)
+
 ## Next Steps
 
-1. Phase 3: Claude Code-Style Approval Flow (REVISED — 2 sessions remaining)
+1. Phase 3: Claude Code-Style Approval Flow (REVISED — 1 session remaining)
    - ~~3.0: Terminal cursor control primitives (pkg/termctl)~~ DONE
    - ~~3.1: Custom inline prompter (arrow-key menu, raw mode, line counting)~~ DONE
    - ~~3.2: Four-state tool rendering (streaming → approval → collapse with └ connector)~~ DONE
-   - 3.3: Rewrite handleApproval (orchestrate expand/prompt/collapse/suppress)
+   - ~~3.3: Rewrite handleApproval (orchestrate expand/prompt/collapse/suppress)~~ DONE
    - 3.4: Shell tool approval variant + enable ToolStreamDeltaEvent streaming
 2. Phase 4: Inline follow-up readline + thinking spinner
 
 ## Context for Resume
 
-- **`pkg/toolrender/render_approval.go`** is the approval result rendering module (Phase 3.2). Three public functions: `RenderApprovalResult(tc, action, opts)` produces the collapsed post-decision view with action-colored bullet (green/red/dim), `└` connector, and content preview (up to 10 lines with smart cutoff). `ApprovalSeparator()` returns a dim 24-char `────...` separator for the expanded approval view. `ApprovalQuestion(tc)` returns a contextual "Do you want to X Y?" question line with verb mapping from tool labels. Internal helpers: `approvalBullet` (action-colored `●`), `renderApprovalHeader` (tool header with variable bullet color), `buildApprovalConnector` (dim `└` summary), `approvedSummary` (past-tense verb + line count), `shouldShowApprovalPreview` (predicate: no preview for skip, approved shell, delete), `formatApprovalPreview` (indented dim content block), `renderApprovalUnknown` (unknown/MCP tool fallback). Phase 3.3 will use these as building blocks in the rewritten `handleApproval`.
+- **`cmd/stigmer/root/run_stream_inline_approval.go`** is the approval orchestrator (Phase 3.3). Entry point `handleApproval(r, e)` dispatches to `handleNonInteractiveApproval` (fast path: erase running line, print collapsed result) or `handleInteractiveApproval` (full flow: erase running line, print expanded view, prompt, erase expanded+menu, print collapsed result). Helper `resolveApprovalContext` looks up `waitingApprovalState` set by `renderToolWaitingApproval` (falls back to building from `ApprovalNeededEvent` data). `buildExpandedView` composes header+separator+content+separator. `promptForDecision` type-asserts to `*InlinePrompter` for `PromptWithLineCount` (returns lineCount for collapse), falls back to generic `Prompter.Prompt` with lineCount=0. `trackSuppression` adds tool ID to `suppressedToolIDs` when `ShouldSuppressCompletion` returns true for approved/skipped tools. Phase 3.4 will add shell streaming before approval and keep shell completions unsuppressed.
+- **`pkg/toolrender/render_approval.go`** is the approval rendering module (Phase 3.2 + 3.3). Six public functions: `RenderApprovalResult` (collapsed post-decision view), `ApprovalSeparator` (dim separator), `ApprovalQuestion` (contextual question), `ExpandedApprovalHeader` (green bullet pre-decision header), `ExpandedApprovalContent` (full display content for expanded view), `ShouldSuppressCompletion` (predicate: write/edit/create/delete → true, shell → false).
 - **`pkg/approval/inline_prompter.go`** is the new inline-mode approval prompter (Phase 3.1). `InlinePrompter` accepts `io.Reader` (input) + `io.Writer` (output) — fully DI-compliant. `Prompt(ctx, opts)` implements `Prompter` interface (drop-in replacement for `InteractivePrompter`). `PromptWithLineCount(ctx, opts)` returns `(*Decision, int, error)` — the `int` is the exact row count (always `menuLines = 4`) for Phase 3.3 cursor collapse. Non-interactive fast path when `fd == -1` (non-TTY) or `opts.NonInteractive`. Raw mode via `term.MakeRaw`/`term.Restore` with deferred cleanup. Menu re-rendering via `termctl.EraseLines`.
 - **`pkg/approval/keyread.go`** is the keystroke decoder for `InlinePrompter`. `keyReader` runs a persistent goroutine that reads one byte at a time from `io.Reader` and sends to a buffered channel (cap 64). `readKey(ctx)` returns typed `keyCode` values (keyUp, keyDown, keyEnter, keyEsc, keyCtrlC, keyOne, keyTwo, keyThree, keyUnknown). Escape sequence parsing uses 50ms timeout to distinguish standalone Esc from arrow keys (`\033[A`/`\033[B`). `drain()` empties the byte channel before each prompt. `readByte` uses a two-phase priority-select pattern: try bytes channel without blocking first, then wait on bytes/errs/ctx — this prevents a race where EOF arrives while unconsumed bytes remain in the channel.
 - **`pkg/termctl/`** is the ANSI cursor control package (Phase 3.0). 7 public functions: `IsSupported(w)` (TTY+not-dumb, NO_COLOR excluded), `MoveUp(w, n)`, `ClearDown(w)`, `ClearLine(w)`, `EraseLines(w, n)` (atomic), `Width(w, default)`, `DisplayRows(text, width)`. All stateless, DI-compliant (io.Writer params). Used by Phase 3.2-3.3 for approval collapse and by `InlinePrompter` for menu re-rendering. `DisplayRows` uses `charmbracelet/x/ansi.StringWidth` for ANSI-aware width measurement.
@@ -346,9 +377,8 @@ None.
 ## Quick Commands
 
 After loading context:
-- "Start Phase 3.2" - Build four-state approval rendering (streaming → collapse)
-- "Start Phase 3.3" - Rewrite handleApproval with expand/collapse
 - "Start Phase 3.4" - Shell tool approval variant + streaming
+- "Start Phase 4" - Inline follow-up readline + thinking spinner
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 

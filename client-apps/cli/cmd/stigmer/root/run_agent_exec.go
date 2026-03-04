@@ -2,6 +2,7 @@ package root
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -271,7 +272,12 @@ func executeResolvedAgent(input resolvedAgentExecInput, sp *spinner.Spinner) err
 		return nil
 	}
 
-	prompter := approval.NewInteractivePrompter()
+	var prompter approval.Prompter
+	if input.OutputMode == OutputInline {
+		prompter = approval.NewInlinePrompter(os.Stdin, os.Stderr)
+	} else {
+		prompter = approval.NewInteractivePrompter()
+	}
 	exec, err = streamAgentExecution(sessionID, "", exec.Metadata.Id, input.OrgID, prompter, input.DefaultAction, input.Verbose, input.OutputMode, input.Conn)
 	if err != nil {
 		return errors.Wrap(err, "error streaming execution")

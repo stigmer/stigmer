@@ -31,7 +31,7 @@ we've identified that the inline-first approach is fundamentally better for our 
 | Shell tool | 🖥 icon + command + 3-line gutter preview | Command + exit code + truncated output |
 | File paths | Plain text, not clickable | OSC 8 hyperlinks, click to open in editor |
 | Sub-agent | Single start/complete lines | Indented tool calls grouped under header |
-| Approval | Bubbletea ↑↓ menu (heavy) | Single-key `[a/s/r/Esc]` prompt |
+| Approval | Bubbletea ↑↓ menu (heavy) | Expanded content + arrow-key menu + cursor-collapse (Claude Code style) |
 | Follow-up | Not supported (exits on completion) | Simple readline prompt after completion |
 | Multiple reads | Individual 3-line blocks | Grouped: `Read N files (ctrl+e to expand)` |
 
@@ -39,9 +39,10 @@ we've identified that the inline-first approach is fundamentally better for our 
 
 | Package | Key Files |
 |---------|-----------|
-| `cmd/stigmer/root/` | `output_mode.go`, `run_stream_inline.go`, `run_stream.go`, `run_session.go` |
-| `pkg/toolrender/` | `render.go`, `file_preview.go` |
-| `pkg/approval/` | `interactive.go`, `prompt_model.go` |
+| `cmd/stigmer/root/` | `output_mode.go`, `run_stream_inline.go`, `run_stream.go`, `run_session.go`, `run_stream_events.go` |
+| `pkg/toolrender/` | `render.go`, `render_compact.go`, `hyperlink.go`, `file_preview.go` |
+| `pkg/approval/` | `interactive.go`, `prompt_model.go`, `inline_prompter.go` (new), `formatter.go` |
+| `pkg/termctl/` | `termctl.go` (new) — ANSI cursor control primitives |
 
 ### Reference: Claude Code's Tool Rendering
 
@@ -297,47 +298,253 @@ indentation. Current backend metadata (`subAgentID`, `subAgentName`) is sufficie
 
 ---
 
-## Phase 3: Streamlined Approval Prompts
+## Phase 3: Claude Code-Style Approval Flow
 
-**Effort**: Small-Medium (1 session)
+**Effort**: Medium (3-4 sessions)
 
-### 3.1 Single-Key Inline Approval
+**Reference**: Claude Code screenshots (2026-03-04) showing three visual states:
+expanded content during approval wait, arrow-key decision menu, and in-place
+collapse after decision using terminal cursor control.
 
-**Current**: Full Bubbletea program with ↑↓ menu selection + Enter to confirm.
-This is heavy for inline mode — launches a mini-TUI for each approval.
+This replaces the original plan's lightweight single-key prompt with a
+significantly richer experience modeled after Claude Code's approval UX.
 
-**Target**: Single-key prompt matching the TUI footer pattern:
+### 3.0 Terminal Cursor Control Primitives
+
+The collapse-after-decision flow requires ANSI cursor control to erase the
+expanded content and replace it with a compact summary. This is the foundation
+that also enables Phase 4's thinking spinner.
+
+New package: `pkg/termctl/`
+
+| Function | Purpose |
+|----------|---------|
+| `MoveUp(w, n)` | ANSI `\033[nA` — move cursor up n lines |
+| `ClearDown(w)` | ANSI `\033[J` — clear from cursor to end of screen |
+| `ClearLine(w)` | ANSI `\033[2K\r` — clear current line |
+| `TerminalWidth(fd)` | Terminal width via `golang.org/x/term` (already a dep) |
+| `DisplayRows(text, width)` | Count actual display rows accounting for wrapping |
+| `IsSupported(w)` | True if TTY + not dumb + not NO_COLOR |
+
+**Graceful degradation**: When `IsSupported` returns false (pipe, dumb terminal,
+CI), cursor control is skipped — content stays in scrollback as-is.
+
+**Files**: new `pkg/termctl/termctl.go`, `termctl_test.go`, `BUILD.bazel`
+
+### 3.1 Custom Inline Prompter
+
+**Current**: `InteractivePrompter` uses Bubbletea `tea.NewProgram` for an
+inline ↑↓ menu. This works but Bubbletea's opaque rendering prevents accurate
+line counting needed for cursor-controlled collapse.
+
+**Target**: New `InlinePrompter` using raw terminal mode for precise control.
 
 ```
-⏸  Approval required: Shell(rm -rf ./tmp)
-    Command: rm -rf ./tmp
+Do you want to create tests/test_tools.sh?
+> 1. Yes — Execute this tool
+  2. Skip — Skip, continue execution
+  3. Reject — Stop execution
 
-  [a] Approve  [s] Skip  [r] Reject  [Esc] Cancel
-  >
+Esc to cancel
 ```
 
-User presses `a` (single key, no Enter needed) → `→ Approved` appears and execution
-continues.
+**Design**:
+- Arrow-key navigation (↑↓) + Enter to confirm (primary interaction)
+- Number keys (1/2/3) as immediate accelerators for power users
+- Esc and Ctrl+C for cancel
+- Uses `term.MakeRaw` / `term.Restore` for single-character reads
+- Reports **exact line count** of rendered output for cursor control
+- Implements `Prompter` interface (compatibility) plus a richer
+  `PromptInline(ctx, opts) (*Decision, lineCount, err)` for cursor integration
 
-**Implementation**:
-- New `approval.InlinePrompter` (or modify `InteractivePrompter`)
-- Use raw terminal mode for single-key read (via `term.MakeRaw` + single byte read)
-- Restore terminal immediately after key press
-- Keys: `a` = approve, `s` = skip, `r` = reject, `Esc` = cancel
-- On `r` (reject): optionally prompt for a reason with a simple readline
-- No Bubbletea dependency for this prompt
+**Architecture**: `InteractivePrompter` (Bubbletea) retained for TUI mode.
+`InlinePrompter` is for inline mode only. `Prompter` interface unchanged.
 
-### 3.2 Approval Context Display
+**Files**: new `pkg/approval/inline_prompter.go`, `inline_prompter_test.go`
 
-Show enough context for the user to decide:
+### 3.2 Four-State Tool Rendering for Approval
 
-| Tool Type | Context Shown |
-|-----------|---------------|
-| Shell | Full command |
-| Write | Filepath + line count |
-| Edit | Filepath + what's changing (old→new first line) |
-| Delete | Filepath |
-| Other | Tool name + args summary |
+Every tool requiring approval goes through four visual states. Content streams
+in live during the running phase, then the approval prompt appears, then
+everything collapses after the user decides.
+
+**Background: Existing streaming infrastructure**
+
+The backend already supports live tool content streaming:
+- `ToolStreamDeltaEvent` fires when a running tool has `is_streaming=true`
+- `tc.Result` accumulates content as the AI generates it (token by token)
+- The TUI handles this via `renderStreamingTool()` (updates block in-place)
+- **Inline mode currently SUPPRESSES all `ToolStreamDeltaEvent`s** (Phase 2
+  decision). Phase 3 re-enables them for tools requiring approval.
+
+**State 1: RUNNING + STREAMING (content generating)**
+
+The tool enters `running` with `is_streaming=true`. `ToolStreamDeltaEvent`s
+arrive with incremental content. Inline mode renders this by appending only
+new bytes (same pattern as `renderAIStreamDelta` with `streamedBytes` tracking):
+
+```
+● Write(tests/test_tools.sh) …
+────────────────────────
+#!/usr/bin/env bash
+# tests/test_tools.sh
+# ================================================================
+# ... (content appears progressively as AI generates it) ...
+█                                          ← cursor blinks here
+```
+
+This is the "typewriter" live experience. The tool header shows the running
+indicator (`…`), and the content streams in below it in real time.
+
+**State 2: WAITING_APPROVAL (content complete, prompt shown)**
+
+When the tool transitions from `running` to `waiting_approval`, streaming ends.
+A separator and approval menu appear below the now-complete content:
+
+```
+● Write(tests/test_tools.sh)
+────────────────────────
+#!/usr/bin/env bash
+# ... (full file content, now complete) ...
+echo "done"
+
+────────────────────────
+Do you want to create tests/test_tools.sh?
+> 1. Yes   2. Skip   3. Reject
+Esc to cancel
+```
+
+**State 3: COLLAPSED (after decision)**
+
+Cursor control erases ALL of states 1+2 (header + content + prompt), replaces
+with compact summary:
+
+Approved (green dot):
+```
+● Write(tests/test_tools.sh)
+└ Wrote 241 lines to tests/test_tools.sh
+    #!/usr/bin/env bash
+    # ================================================================
+    # tests/test_tools.sh
+    ... (first ~10 lines of content preview)
+    … +231 lines
+```
+
+Rejected (red dot):
+```
+● Write(tests/test_tools.sh)
+└ User rejected write to tests/test_tools.sh
+    #!/usr/bin/env bash
+    ... (first ~10 lines)
+    … +247 lines
+```
+
+Skipped (dim dot):
+```
+● Write(tests/test_tools.sh)
+└ Skipped
+```
+
+**State 4: EXPANDED (ctrl+O)** — Deferred. The collapsed view is final for now.
+
+**Streaming implementation in inline mode**:
+
+Track streaming state per tool in `inlineRenderer`:
+```
+activeStreamID    string  // tool call ID of the tool currently streaming
+streamedBytes     int     // bytes already printed (for delta rendering)
+streamLineCount   int     // total lines printed for cursor control
+```
+
+When `ToolStreamDeltaEvent` arrives for a tool requiring approval:
+- Print only new bytes: `e.Content[r.streamedBytes:]` (append-only, like AI streaming)
+- Track `streamedBytes` and `streamLineCount` for each line printed
+- No cursor control needed during streaming — content flows naturally
+
+When `ToolWaitingApprovalEvent` arrives for the streaming tool:
+- Finalize streaming state
+- Add separator + approval menu (tracked in `streamLineCount`)
+- Now cursor control can erase `streamLineCount` lines after decision
+
+**New render functions** in `pkg/toolrender/render_compact.go`:
+- `RenderApprovalResult(tc, action, opts) string` — collapsed view with `└` connector,
+  content preview (~10 lines), truncation footer
+
+### 3.3 Rewrite Event Handling in Inline Renderer
+
+Significant changes to `run_stream_inline.go` to support the four-state flow:
+
+**New pre-switch interceptions**:
+1. **`ToolRunningEvent` for streaming tools**: When a running tool has
+   `is_streaming=true`, print the tool header + separator. Initialize streaming
+   state (`activeStreamID`, `streamedBytes = 0`, `streamLineCount`). Don't suppress.
+2. **`ToolStreamDeltaEvent` for approval-bound tools**: Instead of suppressing
+   (Phase 2 behavior), print incremental content: `e.Content[streamedBytes:]`.
+   Track `streamedBytes` and `streamLineCount` for cursor control.
+3. **`ToolWaitingApprovalEvent`**: When the streaming tool transitions to
+   `waiting_approval`, finalize streaming. Add to `streamLineCount`.
+4. **`ApprovalNeededEvent`**: Print separator + approval menu below streamed
+   content. Total line count = `streamLineCount` + menu lines.
+
+**handleApproval rewrite**:
+1. **Prompt**: Create `InlinePrompter`, show menu, get decision + menu line count
+2. **Collapse**: `termctl.MoveUp(totalLines)` + `termctl.ClearDown()` to erase
+   everything (header + streamed content + separator + menu), then print
+   `RenderApprovalResult` in place
+3. **Suppress**: Track tool call IDs in `approvedToolIDs` set. Suppress
+   subsequent `ToolCompletedEvent` for write/edit (result is deterministic).
+   Let shell `ToolCompletedEvent` through.
+4. **Reset**: Clear streaming state (`activeStreamID = ""`, `streamedBytes = 0`)
+5. **Fallback**: If `termctl.IsSupported` is false, skip cursor control — print
+   collapsed result below the expanded content.
+
+**New fields on `inlineRenderer`**:
+```
+activeStreamID   string           // tool call ID currently streaming
+streamedBytes    int              // bytes printed so far (for delta)
+streamLineCount  int              // total lines for cursor control
+approvedToolIDs  map[string]bool  // suppress duplicate ToolCompletedEvent
+```
+
+**For tools WITHOUT streaming** (no `is_streaming` flag but still require
+approval): The `ApprovalNeededEvent` handler extracts content from `ArgsPreview`,
+prints it all at once (as if all deltas arrived instantly), then shows the
+approval menu. Same collapse flow applies.
+
+### 3.4 Shell Tool Approval Variant
+
+Shell approval shows the command:
+```
+● Shell(rm -rf ./tmp)
+────────────────────────
+Command: rm -rf ./tmp
+────────────────────────
+Do you want to execute this command?
+> 1. Yes   2. Skip   3. Reject
+```
+
+After approval, shell output streams live via `ToolStreamDeltaEvent` (now
+enabled for inline mode). On completion, collapses to compact shell format.
+
+### Streaming Content Notes
+
+The backend already provides live tool content streaming via `ToolStreamDeltaEvent`
+(when `is_streaming=true` on the tool call). This was used by the TUI's
+`renderStreamingTool()` function. Inline mode suppressed it in Phase 2.
+Phase 3 re-enables it for tools requiring approval.
+
+| Tool Type | Running phase | Waiting-approval phase | Post-approval |
+|-----------|---------------|------------------------|---------------|
+| Write/Edit | `ToolStreamDeltaEvent` streams file content as AI generates it | Content complete in args; show approval menu | Collapse to compact |
+| Shell | `ToolStreamDeltaEvent` streams command (if backend supports) | Show command + approval menu | Output streams live via `ToolStreamDeltaEvent` |
+| Other | May or may not stream | Args available at event time | Normal completion |
+
+**Key lifecycle**: `ToolRunningEvent` (is_streaming) → multiple `ToolStreamDeltaEvent`s
+→ `ToolWaitingApprovalEvent` → `ApprovalNeededEvent` → user decides → collapse.
+
+**Inline streaming pattern**: Same as `renderAIStreamDelta` — track `streamedBytes`,
+print only `e.Content[streamedBytes:]` on each delta. Append-only, no cursor control
+needed during streaming. Cursor control only used for the final collapse after decision.
 
 ---
 
@@ -416,25 +623,29 @@ done regardless:
 ## Implementation Order
 
 ```
-Phase 1: Flip Default (small)              ←── START HERE
+Phase 1: Flip Default (small)              ←── DONE (Session 1)
   1.1 Change resolveOutputMode default
   1.1 Add --tui flag, deprecate --no-tui
 
-Phase 2: Compact Tool Rendering (core)
+Phase 2: Compact Tool Rendering (core)     ←── DONE (Sessions 2-8)
   2.0 Clickable file paths (OSC 8 hyperlinks)
   2.1 Read → one-line compact with clickable path
-  2.2 Write/Edit → compact with clickable path + preview decision
-  2.3 Shell → command + exit code + truncated
+  2.1b Read → consecutive-event grouping
+  2.2 Write/Edit → compact with clickable path
+  2.3 Shell → command + truncated output
   2.4 Other tools (glob, search, delete, think)
   2.5 Sub-agent grouping with indentation
 
-Phase 3: Streamlined Approvals
-  3.1 Single-key inline prompt (replace Bubbletea menu)
-  3.2 Approval context display
+Phase 3: Claude Code-Style Approval Flow   ←── NEXT
+  3.0 Terminal cursor control primitives (pkg/termctl)
+  3.1 Custom inline prompter (arrow-key menu, raw mode)
+  3.2 Three-state tool rendering (expanded → collapse)
+  3.3 Rewrite handleApproval (orchestrate expand/prompt/collapse)
+  3.4 Shell tool approval variant + streaming output
 
 Phase 4: Inline Follow-Up + Thinking Spinner
   4.1 Post-completion readline loop (with history/editing)
-  4.2 Mid-run thinking spinner
+  4.2 Mid-run thinking spinner (uses termctl from Phase 3.0)
 
 Phase 5: Quick Cleanups
   5.1 Todo index reset, duplicate code, orphaned functions
@@ -446,15 +657,21 @@ Phase 5: Quick Cleanups
 2. `stigmer run agent x --tui` → alt-screen TUI (opt-in)
 3. Read tools render as `● Read(path)` + `Read N lines` with clickable path (2 lines total)
 4. Write tools render as compact header + line count with clickable path
-5. Shell tools show command + exit code + truncated output
+5. Shell tools show command + truncated output
 6. All file paths in tool rendering are OSC 8 clickable hyperlinks (graceful degradation)
-6. Sub-agent tool calls grouped under header with `│` indentation
-7. Approval prompts use single-key `[a/s/r/Esc]` (no Bubbletea menu)
-8. Follow-up input works after completion via readline with history/editing
-9. Mid-run thinking spinner shows during agent "thinking" gaps
-10. Sequential reads (3+) grouped into compact collapsed display
-11. All existing tests pass (TUI mode unchanged, inline rendering updated)
-12. `stigmer run agent x --json | jq` still works (unchanged)
+7. Sub-agent tool calls grouped under header with `│` indentation
+8. Write/edit tools stream content live during running phase (typewriter effect via `ToolStreamDeltaEvent`)
+9. Approval menu appears below streamed content when tool enters `waiting_approval`
+10. After decision: cursor-collapses entire block (header + content + menu) to compact summary
+11. Approved tools show `└` connector with result summary + ~10 line content preview
+12. Rejected tools show `└ User rejected` with content preview
+13. Shell tool output streams live after approval via `ToolStreamDeltaEvent`
+12. Graceful degradation: non-TTY/dumb terminals skip cursor control (content stays)
+13. Follow-up input works after completion via readline with history/editing
+14. Mid-run thinking spinner shows during agent "thinking" gaps
+15. Sequential reads (3+) grouped into compact collapsed display
+16. All existing tests pass (TUI mode unchanged, inline rendering updated)
+17. `stigmer run agent x --json | jq` still works (unchanged)
 
 ## Design Decisions (Finalized)
 
@@ -462,22 +679,36 @@ All design decisions were reviewed and approved on 2026-03-04:
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| Write/Edit rendering | **Option A** (minimal: header + line count) | Clickable path provides one-click access to content |
+| Write/Edit rendering (non-approval) | **Option A** (minimal: header + line count) | Clickable path provides one-click access to content |
 | Read grouping | **Yes** (collapse 3+ sequential reads) | Reduces noise; grouped display with individual file listing |
 | Follow-up readline | **With history/editing** (`chzyer/readline`) | Shell-like UX for multi-turn conversations |
 | Mid-run thinking spinner | **Yes** (include in MVP) | Eliminates "is it frozen?" anxiety during thinking gaps |
 
+Approved on 2026-03-04, Session 9 (Phase 3 redesign):
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Approval interaction model | **Arrow-key menu** (not single-key) | Safety-first: two deliberate actions (navigate + enter) prevent accidental approvals |
+| Approval labels | **Yes / Skip / Reject** | "Yes" is natural; "Reject" is unambiguous (means stop everything); "Skip" is the middle ground |
+| Inline prompter | **Custom raw-mode** (replace Bubbletea for inline) | Cursor control integration requires exact line counting; Bubbletea rendering is opaque |
+| Post-decision collapse | **Cursor control erase + replace** | Claude Code reference UX; requires ANSI cursor primitives |
+| `└` connector style | **Yes** (tree-drawing for collapsed result) | Matches Claude Code's visual hierarchy; shows parent-child relationship |
+| Ctrl+O expand | **Deferred** | Ship collapsed view first; expand feature adds complexity |
+| "Yes, approve all" option | **Deferred** | Infrastructure exists (`defaultAction`); ship core 3 options first |
+| Tool content streaming | **Re-enable `ToolStreamDeltaEvent` for approval tools** | Live typewriter effect during running phase; append-only like AI streaming; currently suppressed in inline mode |
+| Shell output streaming | **Enable `ToolStreamDeltaEvent` post-approval** | Real-time shell output after approval; same append-only pattern |
+
 ## Estimated Effort
 
-| Phase | Scope | Estimated Effort |
-|-------|-------|-----------------|
-| Phase 1 | Output mode flip | < 1 hour |
-| Phase 2 | Tool rendering (6 items incl. hyperlinks + grouping) | 2-3 sessions |
-| Phase 3 | Approval prompts | 1 session |
-| Phase 4 | Follow-up input + thinking spinner | 1-2 sessions |
-| Phase 5 | Quick cleanups | < 1 hour |
-| **Total** | | **5-7 sessions** |
+| Phase | Scope | Estimated Effort | Status |
+|-------|-------|-----------------|--------|
+| Phase 1 | Output mode flip | < 1 hour | DONE |
+| Phase 2 | Tool rendering (8 items incl. hyperlinks + grouping) | 7 sessions | DONE |
+| Phase 3 | Claude Code-style approval flow (5 items) | 3-4 sessions | NEXT |
+| Phase 4 | Follow-up input + thinking spinner | 1-2 sessions | Pending |
+| Phase 5 | Quick cleanups | < 1 hour | Pending |
+| **Total** | | **12-14 sessions** | |
 
 ---
 
-**APPROVED** — All decisions finalized. Ready for execution.
+**APPROVED** — Phase 3 redesigned on 2026-03-04. Ready for execution.
