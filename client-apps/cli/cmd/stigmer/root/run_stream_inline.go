@@ -43,7 +43,7 @@ type waitingApprovalState struct {
 	tc                  toolrender.ToolCallInfo
 	subAgentID          string
 	runningLineRendered bool
-	contentStreamed      bool // content was shown via ToolStreamDeltaEvent
+	contentStreamed     bool // content was shown via ToolStreamDeltaEvent
 	streamedRows        int  // total display rows of streamed content
 }
 
@@ -388,7 +388,7 @@ func (r *inlineRenderer) renderToolWaitingApproval(e executiontui.ToolWaitingApp
 		tc:                  e.ToolCall,
 		subAgentID:          e.SubAgentID,
 		runningLineRendered: r.lastRenderedRunningID == e.ToolCallID,
-		contentStreamed:      contentStreamed,
+		contentStreamed:     contentStreamed,
 		streamedRows:        streamedRows,
 	}
 }

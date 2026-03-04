@@ -41,11 +41,11 @@ func (c *OrganizationController) Update(ctx context.Context, org *organizationv1
 // by the apiresource interceptor and injected into request context.
 func (c *OrganizationController) buildUpdatePipeline() *pipeline.Pipeline[*organizationv1.Organization] {
 	return pipeline.NewPipeline[*organizationv1.Organization]("organization-update").
-		AddStep(steps.NewValidateProtoStep[*organizationv1.Organization]()).                                            // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*organizationv1.Organization]()).                                              // 2. Resolve slug
-		AddStep(steps.NewLoadExistingStep[*organizationv1.Organization](c.store)).                                      // 3. Load existing organization
-		AddStep(steps.NewBuildUpdateStateStep[*organizationv1.Organization]()).                                         // 4. Build updated state
-		AddStep(steps.NewPersistStep[*organizationv1.Organization](c.store)).                                           // 5. Persist organization
+		AddStep(steps.NewValidateProtoStep[*organizationv1.Organization]()).                                          // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*organizationv1.Organization]()).                                            // 2. Resolve slug
+		AddStep(steps.NewLoadExistingStep[*organizationv1.Organization](c.store)).                                    // 3. Load existing organization
+		AddStep(steps.NewBuildUpdateStateStep[*organizationv1.Organization]()).                                       // 4. Build updated state
+		AddStep(steps.NewPersistStep[*organizationv1.Organization](c.store)).                                         // 5. Persist organization
 		AddStep(steps.NewIndexSearchStep[*organizationv1.Organization](c.store, &extractor.OrganizationExtractor{})). // 6. Update search index
 		Build()
 }

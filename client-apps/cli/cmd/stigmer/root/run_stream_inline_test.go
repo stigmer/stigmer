@@ -169,7 +169,7 @@ func TestInlineRenderer_ToolRunning_GoesToStderr(t *testing.T) {
 	go feedEvents(events,
 		executiontui.ToolRunningEvent{
 			ToolCallID: "tc-1",
-			ToolCall:   toolrender.ToolCallInfo{Name: "read_file", Args: map[string]interface{}{"path": "main.go"}, Status: "running"},
+			ToolCall:   toolrender.ToolCallInfo{Name: "bash", Args: map[string]interface{}{"command": "ls"}, Status: "running"},
 		},
 		executiontui.DoneEvent{Phase: "completed"},
 	)
@@ -182,7 +182,7 @@ func TestInlineRenderer_ToolRunning_GoesToStderr(t *testing.T) {
 		status:            &stderr,
 	})
 
-	if !strings.Contains(stderr.String(), "Read") {
+	if !strings.Contains(stderr.String(), "Shell") {
 		t.Errorf("tool running should appear on stderr with label, got: %q", stderr.String())
 	}
 }
@@ -194,7 +194,7 @@ func TestInlineRenderer_ToolCompleted_ShowsBadge(t *testing.T) {
 	go feedEvents(events,
 		executiontui.ToolCompletedEvent{
 			ToolCallID: "tc-1",
-			ToolCall:   toolrender.ToolCallInfo{Name: "read_file", Status: "completed", Args: map[string]interface{}{"path": "main.go"}},
+			ToolCall:   toolrender.ToolCallInfo{Name: "custom_mcp_tool", Status: "completed", Args: map[string]interface{}{"input": "test"}},
 		},
 		executiontui.DoneEvent{Phase: "completed"},
 	)
@@ -234,8 +234,8 @@ func TestInlineRenderer_SubAgentLifecycle(t *testing.T) {
 		status:            &stderr,
 	})
 
-	if !strings.Contains(stderr.String(), "Sub-agent started: find docs") {
-		t.Errorf("sub-agent start should appear on stderr, got: %q", stderr.String())
+	if !strings.Contains(stderr.String(), "Task") || !strings.Contains(stderr.String(), "find docs") {
+		t.Errorf("sub-agent start should appear on stderr with Task label, got: %q", stderr.String())
 	}
 	if !strings.Contains(stderr.String(), "✓") {
 		t.Errorf("sub-agent completion should show badge on stderr, got: %q", stderr.String())

@@ -17,13 +17,10 @@ from __future__ import annotations
 
 import pytest
 
-from worker.activities.execute_graphton import (
-    build_workspace_prompt_section,
-)
+from worker.activities.execute_graphton import build_workspace_prompt_section
 from worker.workspace.backend import ExecuteResult
 from worker.workspace.local import LocalWorkspaceBackend
 from worker.workspace.provisioner import WorkspaceProvisioner
-
 
 # ---------------------------------------------------------------------------
 # Proto mocks — minimal duck-typed stand-ins for WorkspaceEntry / Source
@@ -227,9 +224,9 @@ class TestMultiLocalIntegration:
         section = build_workspace_prompt_section(results)
 
         lines = section.split("\n")
-        h2 = [l for l in lines if l.startswith("## ")]
-        h3 = [l for l in lines if l.startswith("### ") and not l.startswith("#### ")]
-        h4 = [l for l in lines if l.startswith("#### ")]
+        h2 = [line for line in lines if line.startswith("## ")]
+        h3 = [line for line in lines if line.startswith("### ") and not line.startswith("#### ")]
+        h4 = [line for line in lines if line.startswith("#### ")]
 
         assert any("Workspace" in h for h in h2)
         assert any("frontend" in h for h in h3)
@@ -575,7 +572,7 @@ class TestReferencedFilesPrimaryRootGuardRail:
         assert "bytes" in section.split("src/App.tsx")[1].split("\n")[0]
 
         assert "`cmd/main.go`" in section
-        go_line = [l for l in section.split("\n") if "cmd/main.go" in l][0]
+        go_line = [line for line in section.split("\n") if "cmd/main.go" in line][0]
         assert "bytes" not in go_line
 
     def test_all_refs_listed_even_when_unresolvable(self, tmp_path):

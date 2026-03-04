@@ -23,7 +23,7 @@ func TestInitPreApprovalStreaming_PrintsHeaderAndSeparator(t *testing.T) {
 			Name:        "write_file",
 			Args:        map[string]interface{}{"path": "main.go", "contents": "package main"},
 			Status:      "running",
-			IsStreaming:  true,
+			IsStreaming: true,
 		},
 	}
 	r.initPreApprovalStreaming(e)
@@ -59,7 +59,7 @@ func TestInitPreApprovalStreaming_SubAgentGutterWrapped(t *testing.T) {
 			Name:        "write_file",
 			Args:        map[string]interface{}{"path": "lib.go", "contents": "package lib"},
 			Status:      "running",
-			IsStreaming:  true,
+			IsStreaming: true,
 		},
 		SubAgentID: "sa-1",
 	}
@@ -475,7 +475,7 @@ func TestHandleEvent_InitiatesPreApprovalStreamingForWriteTool(t *testing.T) {
 			Name:        "write_file",
 			Args:        map[string]interface{}{"path": "x.go", "contents": "pkg x"},
 			Status:      "running",
-			IsStreaming:  true,
+			IsStreaming: true,
 		},
 	})
 
@@ -500,7 +500,7 @@ func TestHandleEvent_DoesNotInitiateStreamingForNonStreamingWrite(t *testing.T) 
 			Name:        "write_file",
 			Args:        map[string]interface{}{"path": "y.go"},
 			Status:      "running",
-			IsStreaming:  false,
+			IsStreaming: false,
 		},
 	})
 
@@ -518,7 +518,7 @@ func TestHandleEvent_DoesNotInitiateStreamingForShellRunning(t *testing.T) {
 			Name:        "shell",
 			Args:        map[string]interface{}{"command": "ls"},
 			Status:      "running",
-			IsStreaming:  true,
+			IsStreaming: true,
 		},
 	})
 
@@ -710,9 +710,9 @@ func TestNonInteractiveApproval_ContentStreamed_ErasesStreamedRows(t *testing.T)
 
 	tc := writeToolCall()
 	r.waitingApproval = &waitingApprovalState{
-		tc:             tc,
+		tc:              tc,
 		contentStreamed: true,
-		streamedRows:   5,
+		streamedRows:    5,
 	}
 
 	r.handleApproval(context.Background(), executiontui.ApprovalNeededEvent{
@@ -737,9 +737,9 @@ func TestInteractiveApproval_ContentStreamed_AddsSeparator(t *testing.T) {
 
 	tc := writeToolCall()
 	r.waitingApproval = &waitingApprovalState{
-		tc:             tc,
+		tc:              tc,
 		contentStreamed: true,
-		streamedRows:   4,
+		streamedRows:    4,
 	}
 
 	r.handleApproval(context.Background(), executiontui.ApprovalNeededEvent{
@@ -762,10 +762,10 @@ func TestResolveApprovalContext_WithStreaming(t *testing.T) {
 	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
 	tc := writeToolCall()
 	r.waitingApproval = &waitingApprovalState{
-		tc:             tc,
-		subAgentID:     "sa-1",
+		tc:              tc,
+		subAgentID:      "sa-1",
 		contentStreamed: true,
-		streamedRows:   7,
+		streamedRows:    7,
 	}
 
 	_, _, _, gotStreamed, gotRows := r.resolveApprovalContext(executiontui.ApprovalNeededEvent{

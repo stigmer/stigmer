@@ -59,7 +59,7 @@ func (c *AgentController) buildCreatePipeline() *pipeline.Pipeline[*agentv1.Agen
 		AddStep(steps.NewResolveSlugStep[*agentv1.Agent]()).                                     // 2. Resolve slug
 		AddStep(steps.NewCheckDuplicateStep[*agentv1.Agent](c.store)).                           // 3. Check duplicate
 		AddStep(steps.NewBuildNewStateStep[*agentv1.Agent]()).                                   // 4. Build new state
-		AddStep(steps.NewNormalizeReferencesStep[*agentv1.Agent]()).                              // 5. Normalize cross-references
+		AddStep(steps.NewNormalizeReferencesStep[*agentv1.Agent]()).                             // 5. Normalize cross-references
 		AddStep(steps.NewPersistStep[*agentv1.Agent](c.store)).                                  // 6. Persist agent
 		AddStep(newCreateDefaultInstanceStep(c.agentInstanceClient)).                            // 6. Create default instance
 		AddStep(newUpdateAgentStatusWithDefaultInstanceStep(c.store)).                           // 7. Update status

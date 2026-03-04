@@ -39,7 +39,7 @@ func (c *OrganizationController) Get(ctx context.Context, orgId *organizationv1.
 // by the apiresource interceptor and injected into request context.
 func (c *OrganizationController) buildGetPipeline() *pipeline.Pipeline[*organizationv1.OrganizationId] {
 	return pipeline.NewPipeline[*organizationv1.OrganizationId]("organization-get").
-		AddStep(steps.NewValidateProtoStep[*organizationv1.OrganizationId]()).                                     // 1. Validate input
+		AddStep(steps.NewValidateProtoStep[*organizationv1.OrganizationId]()).                                   // 1. Validate input
 		AddStep(steps.NewLoadTargetStep[*organizationv1.OrganizationId, *organizationv1.Organization](c.store)). // 2. Load by ID
 		Build()
 }

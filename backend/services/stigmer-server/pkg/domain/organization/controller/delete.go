@@ -51,10 +51,10 @@ func (c *OrganizationController) Delete(ctx context.Context, orgId *organization
 // by the apiresource interceptor and injected into request context.
 func (c *OrganizationController) buildDeletePipeline() *pipeline.Pipeline[*organizationv1.OrganizationId] {
 	return pipeline.NewPipeline[*organizationv1.OrganizationId]("organization-delete").
-		AddStep(steps.NewValidateProtoStep[*organizationv1.OrganizationId]()).                                                // 1. Validate field constraints
-		AddStep(steps.NewExtractResourceIdStep[*organizationv1.OrganizationId]()).                                            // 2. Extract ID from wrapper
+		AddStep(steps.NewValidateProtoStep[*organizationv1.OrganizationId]()).                                              // 1. Validate field constraints
+		AddStep(steps.NewExtractResourceIdStep[*organizationv1.OrganizationId]()).                                          // 2. Extract ID from wrapper
 		AddStep(steps.NewLoadExistingForDeleteStep[*organizationv1.OrganizationId, *organizationv1.Organization](c.store)). // 3. Load organization
-		AddStep(steps.NewDeleteResourceStep[*organizationv1.OrganizationId](c.store)).                                       // 4. Delete from database
-		AddStep(steps.NewDeleteSearchIndexStep[*organizationv1.OrganizationId](c.store)).                                    // 5. Remove from search index
+		AddStep(steps.NewDeleteResourceStep[*organizationv1.OrganizationId](c.store)).                                      // 4. Delete from database
+		AddStep(steps.NewDeleteSearchIndexStep[*organizationv1.OrganizationId](c.store)).                                   // 5. Remove from search index
 		Build()
 }
