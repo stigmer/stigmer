@@ -130,6 +130,24 @@ func RunDaemonProcess() error {
 			log.Warn().Err(err).Str("component", c.name).Msg("Failed to write PID file")
 		}
 		log.Info().Str("component", c.name).Int("pid", cmd.Process.Pid).Msg("Component started")
+
+		// After stigmer-server starts, wait for gRPC readiness before
+		// starting workflow-runner and agent-runner. Without this gate the
+		// workers can start polling Temporal and executing activities
+		// against a server that is not yet accepting RPCs.
+		if c.name == "stigmer-server" {
+			endpoint := fmt.Sprintf("localhost:%d", grpcPort)
+			readyCtx, readyCancel := context.WithTimeout(context.Background(), 30*time.Second)
+			if readyErr := WaitForReady(readyCtx, endpoint); readyErr != nil {
+				readyCancel()
+				c.state.State = "failed"
+				c.state.LastError = "gRPC not ready: " + readyErr.Error()
+				writeHealthState(dataDir, hs)
+				return errors.Wrap(readyErr, "stigmer-server gRPC did not become ready")
+			}
+			readyCancel()
+			log.Info().Str("endpoint", endpoint).Msg("stigmer-server gRPC is ready")
+		}
 	}
 
 	writeHealthState(dataDir, hs)

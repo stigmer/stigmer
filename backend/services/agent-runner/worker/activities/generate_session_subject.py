@@ -5,7 +5,11 @@ the user's first message and agent context. Runs fire-and-forget alongside
 main agent execution — failures are logged but never propagate.
 """
 
+from __future__ import annotations
+
 import logging
+
+import grpc
 
 from graphton.core import ModelRegistry
 from graphton.core.models import parse_model_string
@@ -15,6 +19,7 @@ from temporalio import activity
 from grpc_client.agent_client import AgentClient
 from grpc_client.agent_execution_client import AgentExecutionClient
 from grpc_client.agent_instance_client import AgentInstanceClient
+from grpc_client.channel import ChannelProvider
 from grpc_client.session_client import SessionClient
 from worker.config import Config
 from worker.token_manager import get_api_key
@@ -71,73 +76,82 @@ async def _generate_and_update_subject(execution_id: str) -> None:
         )
         return
 
-    # Step 1: Hydrate execution
-    execution_client = AgentExecutionClient(api_key)
-    execution = await execution_client.get(execution_id)
+    grpc_provider = ChannelProvider(api_key)
+    ch = grpc_provider.channel
 
-    session_id = execution.spec.session_id
-    agent_id: str | None = execution.spec.agent_id or None
-    user_message = execution.spec.message
+    try:
+        # Step 1: Hydrate execution
+        execution_client = AgentExecutionClient(api_key, channel=ch)
+        execution = await execution_client.get(execution_id)
 
-    if not session_id:
+        session_id = execution.spec.session_id
+        agent_id: str | None = execution.spec.agent_id or None
+        user_message = execution.spec.message
+
+        if not session_id:
+            activity_logger.info(
+                "No session_id on execution, skipping subject generation"
+            )
+            return
+
+        if not user_message:
+            activity_logger.info(
+                "No user message on execution, skipping subject generation"
+            )
+            return
+
+        # Step 2: Check if subject still has the auto-created sentinel value
+        session_client = SessionClient(api_key, channel=ch)
+        session = await session_client.get(session_id)
+
+        if session.spec.subject != _AUTO_CREATED_SUBJECT:
+            activity_logger.info(
+                "Session subject is '%s' (not auto-created), skipping generation",
+                session.spec.subject,
+            )
+            return
+
+        # Step 3: Resolve agent_id -- prefer execution spec, fall back to session chain
+        if not agent_id:
+            agent_id = await _resolve_agent_id_from_session(api_key, session, channel=ch)
+        if not agent_id:
+            activity_logger.warning(
+                "Cannot resolve agent_id for execution %s, skipping subject generation",
+                execution_id,
+            )
+            return
+
+        # Step 4: Fetch agent metadata for prompt context
+        agent_client = AgentClient(api_key, channel=ch)
+        agent = await agent_client.get(agent_id)
+        agent_name = agent.metadata.name
+        agent_description = agent.spec.description or ""
+
+        # Step 5: Generate title with economy-tier model
+        generated_subject = await _generate_title(
+            user_message, agent_name, agent_description
+        )
+
+        if not generated_subject:
+            activity_logger.warning("LLM returned empty subject, skipping update")
+            return
+
+        # Step 6: Update session
+        session.spec.subject = generated_subject
+        await session_client.update(session)
+
         activity_logger.info(
-            "No session_id on execution, skipping subject generation"
+            "Updated session %s subject to '%s'", session_id, generated_subject
         )
-        return
-
-    if not user_message:
-        activity_logger.info(
-            "No user message on execution, skipping subject generation"
-        )
-        return
-
-    # Step 2: Check if subject still has the auto-created sentinel value
-    session_client = SessionClient(api_key)
-    session = await session_client.get(session_id)
-
-    if session.spec.subject != _AUTO_CREATED_SUBJECT:
-        activity_logger.info(
-            "Session subject is '%s' (not auto-created), skipping generation",
-            session.spec.subject,
-        )
-        return
-
-    # Step 3: Resolve agent_id — prefer execution spec, fall back to session chain
-    if not agent_id:
-        agent_id = await _resolve_agent_id_from_session(api_key, session)
-    if not agent_id:
-        activity_logger.warning(
-            "Cannot resolve agent_id for execution %s, skipping subject generation",
-            execution_id,
-        )
-        return
-
-    # Step 4: Fetch agent metadata for prompt context
-    agent_client = AgentClient(api_key)
-    agent = await agent_client.get(agent_id)
-    agent_name = agent.metadata.name
-    agent_description = agent.spec.description or ""
-
-    # Step 5: Generate title with economy-tier model
-    generated_subject = await _generate_title(
-        user_message, agent_name, agent_description
-    )
-
-    if not generated_subject:
-        activity_logger.warning("LLM returned empty subject, skipping update")
-        return
-
-    # Step 6: Update session
-    session.spec.subject = generated_subject
-    await session_client.update(session)
-
-    activity_logger.info(
-        "Updated session %s subject to '%s'", session_id, generated_subject
-    )
+    finally:
+        await grpc_provider.close()
 
 
 async def _resolve_agent_id_from_session(
-    api_key: str, session
+    api_key: str,
+    session,
+    *,
+    channel: "grpc.aio.Channel | None" = None,
 ) -> str | None:
     """Resolve agent_id via the session chain: session -> agent_instance -> agent.
 
@@ -153,7 +167,7 @@ async def _resolve_agent_id_from_session(
         )
         return None
 
-    agent_instance_client = AgentInstanceClient(api_key)
+    agent_instance_client = AgentInstanceClient(api_key, channel=channel)
     agent_instance = await agent_instance_client.get(agent_instance_id)
     resolved = agent_instance.spec.agent_id
 
