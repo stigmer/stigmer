@@ -73,7 +73,11 @@ func (r *inlineRenderer) renderToolStreamDelta(e executiontui.ToolStreamDeltaEve
 
 	r.toolStreamedBytes = len(content)
 	width := termctl.Width(r.cfg.status, 80)
-	r.streamLineCount = r.streamHeaderRows + termctl.DisplayRows(content, width)
+	displayContent := content
+	if r.streamSubAgentID != "" {
+		displayContent = toolrender.GutterWrap(content)
+	}
+	r.streamLineCount = r.streamHeaderRows + termctl.DisplayRows(displayContent, width)
 }
 
 // completeStreamingTool handles ToolCompletedEvent for a tool that was

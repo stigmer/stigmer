@@ -3,6 +3,7 @@ package termctl
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"testing"
@@ -139,6 +140,142 @@ func TestIsSupported_DevNullReturnsFalse(t *testing.T) {
 
 	if IsSupported(f) {
 		t.Errorf("IsSupported(/dev/null) = true, want false")
+	}
+}
+
+// =============================================================================
+// unwrapFile / Wrapped writer support
+// =============================================================================
+
+// wrappedWriter implements Unwrap() to let termctl see through to the inner writer.
+type wrappedWriter struct {
+	inner io.Writer
+}
+
+func (w *wrappedWriter) Write(p []byte) (int, error) { return w.inner.Write(p) }
+func (w *wrappedWriter) Unwrap() io.Writer            { return w.inner }
+
+// doubleWrappedWriter wraps a wrappedWriter to test multi-level unwrapping.
+type doubleWrappedWriter struct {
+	inner io.Writer
+}
+
+func (w *doubleWrappedWriter) Write(p []byte) (int, error) { return w.inner.Write(p) }
+func (w *doubleWrappedWriter) Unwrap() io.Writer            { return w.inner }
+
+// opaqueWriter does NOT implement Unwrap — termctl should return nil / fallback.
+type opaqueWriter struct {
+	inner io.Writer
+}
+
+func (w *opaqueWriter) Write(p []byte) (int, error) { return w.inner.Write(p) }
+
+func TestUnwrapFile_DirectFile(t *testing.T) {
+	f, err := os.Open(os.DevNull)
+	if err != nil {
+		t.Skipf("cannot open %s: %v", os.DevNull, err)
+	}
+	defer f.Close()
+
+	got := unwrapFile(f)
+	if got != f {
+		t.Errorf("unwrapFile(os.File) should return the same file, got %v", got)
+	}
+}
+
+func TestUnwrapFile_SingleWrap(t *testing.T) {
+	f, err := os.Open(os.DevNull)
+	if err != nil {
+		t.Skipf("cannot open %s: %v", os.DevNull, err)
+	}
+	defer f.Close()
+
+	w := &wrappedWriter{inner: f}
+	got := unwrapFile(w)
+	if got != f {
+		t.Errorf("unwrapFile(wrappedWriter{os.File}) should return the file, got %v", got)
+	}
+}
+
+func TestUnwrapFile_DoubleWrap(t *testing.T) {
+	f, err := os.Open(os.DevNull)
+	if err != nil {
+		t.Skipf("cannot open %s: %v", os.DevNull, err)
+	}
+	defer f.Close()
+
+	inner := &wrappedWriter{inner: f}
+	outer := &doubleWrappedWriter{inner: inner}
+	got := unwrapFile(outer)
+	if got != f {
+		t.Errorf("unwrapFile(double-wrapped) should return the file, got %v", got)
+	}
+}
+
+func TestUnwrapFile_OpaqueWrapper(t *testing.T) {
+	f, err := os.Open(os.DevNull)
+	if err != nil {
+		t.Skipf("cannot open %s: %v", os.DevNull, err)
+	}
+	defer f.Close()
+
+	w := &opaqueWriter{inner: f}
+	got := unwrapFile(w)
+	if got != nil {
+		t.Errorf("unwrapFile(opaqueWriter) should return nil, got %v", got)
+	}
+}
+
+func TestUnwrapFile_Buffer(t *testing.T) {
+	var buf bytes.Buffer
+	got := unwrapFile(&buf)
+	if got != nil {
+		t.Errorf("unwrapFile(bytes.Buffer) should return nil, got %v", got)
+	}
+}
+
+func TestIsSupported_WrappedDevNull(t *testing.T) {
+	f, err := os.Open(os.DevNull)
+	if err != nil {
+		t.Skipf("cannot open %s: %v", os.DevNull, err)
+	}
+	defer f.Close()
+
+	w := &wrappedWriter{inner: f}
+	// /dev/null is not a terminal, so IsSupported should still return false,
+	// but it should reach the terminal check (not fail at the type assertion).
+	if IsSupported(w) {
+		t.Error("IsSupported(wrapped /dev/null) = true, want false")
+	}
+}
+
+func TestIsSupported_OpaqueWrapper(t *testing.T) {
+	w := &opaqueWriter{inner: os.Stderr}
+	if IsSupported(w) {
+		t.Error("IsSupported(opaqueWriter) should return false for non-unwrappable wrapper")
+	}
+}
+
+func TestWidth_WrappedDevNull(t *testing.T) {
+	f, err := os.Open(os.DevNull)
+	if err != nil {
+		t.Skipf("cannot open %s: %v", os.DevNull, err)
+	}
+	defer f.Close()
+
+	w := &wrappedWriter{inner: f}
+	got := Width(w, 120)
+	// /dev/null won't report a terminal size, so fallback is expected.
+	if got != 120 {
+		t.Errorf("Width(wrapped /dev/null, 120) = %d, want 120", got)
+	}
+}
+
+func TestWidth_OpaqueWrapper(t *testing.T) {
+	w := &opaqueWriter{inner: os.Stderr}
+	got := Width(w, 99)
+	if got != 99 {
+		t.Errorf("Width(opaqueWriter, 99) = %d, want 99", got)
 	}
 }
 
