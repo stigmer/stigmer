@@ -2,6 +2,7 @@ package toolrender
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -51,9 +52,15 @@ type CompactOptions struct {
 	// WorkspaceRoots holds the local absolute paths of workspace directories.
 	// Used to resolve relative file paths into absolute paths for file://
 	// hyperlinks. In multi-workspace sessions, the first path segment of a
-	// relative path is matched against workspace root basenames.
+	// relative path is matched against workspace root basenames; unmatched
+	// paths fall back to a stat-probe against each root.
 	// When empty, relative paths degrade to plain text (no hyperlink).
 	WorkspaceRoots []string
+
+	// StatFunc checks whether a path exists on disk. Used by the stat-probe
+	// fallback in multi-workspace path resolution. Defaults to os.Stat when
+	// nil. Inject a stub for deterministic tests.
+	StatFunc func(string) (os.FileInfo, error)
 }
 
 // RenderCompact returns a compact display of a completed tool call. Every
@@ -660,7 +667,7 @@ func buildHyperlinkedPath(path string, opts CompactOptions) string {
 
 	absPath := path
 	if !filepath.IsAbs(path) {
-		resolved := resolveWorkspacePath(path, opts.WorkspaceRoots)
+		resolved := resolveWorkspacePath(path, opts.WorkspaceRoots, opts.StatFunc)
 		if resolved == "" {
 			return path
 		}
@@ -674,8 +681,13 @@ func buildHyperlinkedPath(path string, opts CompactOptions) string {
 // With a single workspace root, the path is joined directly. With multiple
 // roots, the first path segment is matched against each root's basename
 // (the workspace directory name) and the remainder is joined with the
-// matching root. Returns empty string when resolution fails.
-func resolveWorkspacePath(relPath string, roots []string) string {
+// matching root.
+//
+// When no basename matches (e.g., paths like .stigmer/skills/... where
+// .stigmer is a directory inside a workspace, not a workspace name), a
+// stat-probe fallback checks whether the path exists under each root.
+// Returns empty string when all resolution strategies fail.
+func resolveWorkspacePath(relPath string, roots []string, statFn func(string) (os.FileInfo, error)) string {
 	if len(roots) == 0 {
 		return ""
 	}
@@ -692,6 +704,16 @@ func resolveWorkspacePath(relPath string, roots []string) string {
 				return filepath.Join(root, parts[1])
 			}
 			return root
+		}
+	}
+
+	if statFn == nil {
+		statFn = os.Stat
+	}
+	for _, root := range roots {
+		candidate := filepath.Join(root, relPath)
+		if _, err := statFn(candidate); err == nil {
+			return candidate
 		}
 	}
 

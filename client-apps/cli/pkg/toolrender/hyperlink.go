@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"golang.org/x/term"
 )
@@ -13,7 +14,12 @@ import (
 //
 // The OSC 8 protocol wraps display text in a start/end pair:
 //
-//	\033]8;;<URI>\033\\<display text>\033]8;;\033\\
+//	\033]8;;<URI>\a<display text>\033]8;;\a
+//
+// BEL (\a / \007) is used as the string terminator instead of ST (\033\\)
+// for broader compatibility. While the spec allows both, BEL is handled
+// more reliably by xterm.js-based terminals (VS Code, Cursor), older
+// iTerm2 builds, and macOS Terminal.app.
 //
 // Supported by iTerm2, Wezterm, Kitty, Ghostty, Hyper, GNOME Terminal,
 // and most modern terminal emulators. Terminals that don't support it
@@ -21,9 +27,9 @@ import (
 //
 // Reference: https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
 const (
-	osc8Open  = "\033]8;;"       // OSC 8 start: ESC ] 8 ; <params> ;
-	osc8Close = "\033]8;;\033\\" // OSC 8 end: empty URI terminates the hyperlink
-	st        = "\033\\"         // String Terminator: ESC backslash
+	osc8Open  = "\033]8;;"     // OSC 8 start: ESC ] 8 ; <params> ;
+	osc8Close = "\033]8;;\a"   // OSC 8 end: empty URI terminates the hyperlink
+	st        = "\a"           // String Terminator: BEL (broader compat than ESC \)
 )
 
 // Hyperlink wraps displayText in an OSC 8 terminal hyperlink pointing to uri.
@@ -62,17 +68,38 @@ func fileURI(absPath string) string {
 	return (&url.URL{Scheme: "file", Path: absPath}).String()
 }
 
+// osc8SupportedTerminals lists TERM_PROGRAM values for terminals known to
+// handle OSC 8 hyperlinks correctly. Used by HyperlinksEnabled when no
+// explicit override is set. An allowlist is intentionally conservative —
+// plain text is always safe; broken hyperlinks that open a browser are not.
+var osc8SupportedTerminals = map[string]bool{
+	"iTerm.app": true,
+	"WezTerm":   true,
+	"ghostty":   true,
+	"vscode":    true,
+	"tmux":      true,
+	"kitty":     true,
+}
+
 // HyperlinksEnabled reports whether the terminal attached to w supports
-// OSC 8 hyperlinks. The check is conservative — it returns false for any
-// environment where escape sequences might produce garbled output:
+// OSC 8 hyperlinks. The detection is layered:
 //
-//   - w is not an *os.File or its fd is not a TTY (pipes, buffers)
-//   - TERM=dumb (minimal terminal that cannot interpret escape sequences)
-//   - NO_COLOR is set (user explicitly wants plain, undecorated output)
+//  1. STIGMER_HYPERLINKS env var — explicit override. "on"/"1"/"true" forces
+//     enable; "off"/"0"/"false" forces disable. Takes precedence over all
+//     other checks.
+//  2. TTY check — w must be an *os.File backed by a terminal.
+//  3. TERM=dumb / NO_COLOR — environments that cannot handle escape sequences.
+//  4. TERM_PROGRAM allowlist — only terminals known to support OSC 8 are
+//     enabled. Unknown terminals degrade to plain text. Users can override
+//     with STIGMER_HYPERLINKS=on.
 //
 // This function reads environment variables and should be called once per
 // renderer lifecycle, not per tool call.
 func HyperlinksEnabled(w io.Writer) bool {
+	if v, set := os.LookupEnv("STIGMER_HYPERLINKS"); set {
+		return isEnvTrue(v)
+	}
+
 	f, ok := w.(*os.File)
 	if !ok || !term.IsTerminal(int(f.Fd())) {
 		return false
@@ -83,5 +110,15 @@ func HyperlinksEnabled(w io.Writer) bool {
 	if _, set := os.LookupEnv("NO_COLOR"); set {
 		return false
 	}
-	return true
+	return osc8SupportedTerminals[os.Getenv("TERM_PROGRAM")]
+}
+
+// isEnvTrue interprets a boolean-ish environment variable value.
+func isEnvTrue(v string) bool {
+	switch strings.ToLower(v) {
+	case "on", "1", "true", "yes":
+		return true
+	default:
+		return false
+	}
 }
