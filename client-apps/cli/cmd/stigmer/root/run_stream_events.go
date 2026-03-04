@@ -236,24 +236,34 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 
 		// --- Step 1: Track tool call state transitions ---
 		//
-		// This runs BEFORE message processing so the toolCallStates map is
-		// populated. emitMessageEvents uses this map to suppress MESSAGE_TOOL
-		// entries for tool calls that the state tracker already owns — preventing
-		// duplicate blocks in the TUI.
-		toolCallStates, toolCallResults = emitToolCallStateEvents(
-			cfg.events,
+		// Builds the toolCallStates map WITHOUT emitting events yet.
+		// emitMessageEvents uses this map to suppress MESSAGE_TOOL entries
+		// for tool calls the state tracker owns. Tool events are collected
+		// in a slice and emitted AFTER message events so that AIStreamEnd
+		// reaches the renderer before ToolCompleted — preventing the
+		// renderer's finishAIStreamIfNeeded from resetting streamedBytes
+		// before the stream-end handler runs.
+		var toolEvents []executiontui.Event
+		toolCallStates, toolCallResults, toolEvents = trackToolCallStates(
 			execution.Status.ToolCalls,
 			toolCallStates,
 			toolCallResults,
 			"",
 		)
 
-		// --- Step 1b: Convert new messages to events ---
+		// --- Step 1b: Convert new messages to events (emitted first) ---
 		displayedCount, inStream = emitMessageEvents(
 			cfg.events, messages, displayedCount, inStream, toolCallStates,
 		)
 
-		// --- Step 1c: Sub-agent activity ---
+		// --- Step 1c: Emit queued tool events ---
+		for _, ev := range toolEvents {
+			if !trySendEvent(ctx, cfg.events, ev) {
+				return
+			}
+		}
+
+		// --- Step 1d: Sub-agent activity ---
 		//
 		// Process sub-agent executions for nested tool calls and messages.
 		// Events emitted here carry SubAgentID so the TUI renders them with
@@ -262,7 +272,7 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 			subAgentTrackers = emitSubAgentEvents(cfg.events, subs, subAgentTrackers)
 		}
 
-		// --- Step 1d: Todo list changes ---
+		// --- Step 1e: Todo list changes ---
 		//
 		// Detect changes in the execution's todo map and emit a TodoUpdateEvent
 		// when items are added, removed, or updated. The guard avoids calling
@@ -369,11 +379,11 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 // emitMessageEvents converts new proto messages to TUI events and sends them
 // over the channel. It returns the updated displayedCount and inStream state.
 //
-// trackedTools is the toolCallStates map from emitToolCallStateEvents, which
-// runs first. MESSAGE_TOOL entries whose tool call ID appears in this map are
-// suppressed — the state tracker owns their visual representation via stateful
-// tool blocks, and emitting a duplicate ToolResultEvent would create a second
-// block in the TUI.
+// trackedTools is the toolCallStates map from trackToolCallStates, which runs
+// first (map-building only, no emission). MESSAGE_TOOL entries whose tool call
+// ID appears in this map are suppressed — the state tracker owns their visual
+// representation via stateful tool blocks, and emitting a duplicate
+// ToolResultEvent would create a second block in the TUI.
 func emitMessageEvents(
 	events chan<- executiontui.Event,
 	messages []*agentexecutionv1.AgentMessage,
@@ -462,28 +472,30 @@ func emitCompleteMessage(events chan<- executiontui.Event, msg *agentexecutionv1
 	}
 }
 
-// emitToolCallStateEvents diffs the current tool call statuses against the
-// last-known state and emits ToolRunningEvent / ToolCompletedEvent for any
+// trackToolCallStates diffs the current tool call statuses against the
+// last-known state and collects ToolRunningEvent / ToolCompletedEvent for any
 // transitions. It also detects streaming content changes on running tools
-// and emits ToolStreamDeltaEvent when the result content changes.
+// and collects ToolStreamDeltaEvent when the result content changes.
 //
-// subAgentID scopes the emitted events: when non-empty, the TUI renders
+// Unlike the previous emitToolCallStateEvents, this function does NOT write
+// events to a channel. It returns them in a slice so the caller can control
+// emission order — specifically, emitting message events (AIStreamEnd) before
+// tool events (ToolCompleted) to prevent the renderer from prematurely closing
+// an active AI stream.
+//
+// subAgentID scopes the collected events: when non-empty, the TUI renders
 // the resulting blocks with sub-agent visual nesting. Pass "" for top-level
-// tool calls. This function serves both top-level and sub-agent tool call
-// tracking — eliminating the duplicated emitSubAgentToolCallEvents.
+// tool calls.
 //
-// Returns the updated state and result maps.
-//
-// This is a separate tracking pass from emitMessageEvents — it operates on the
-// top-level ToolCalls list (not the message array) and is immune to the
-// displayedCount cursor advancing past in-place message updates.
-func emitToolCallStateEvents(
-	events chan<- executiontui.Event,
+// Returns the updated state maps and the collected events.
+func trackToolCallStates(
 	toolCalls []*agentexecutionv1.ToolCall,
 	prevStates map[string]string,
 	prevResults map[string]string,
 	subAgentID string,
-) (map[string]string, map[string]string) {
+) (map[string]string, map[string]string, []executiontui.Event) {
+	var pending []executiontui.Event
+
 	for _, tc := range toolCalls {
 		if tc.Id == "" {
 			continue
@@ -493,22 +505,22 @@ func emitToolCallStateEvents(
 		prevStatus, seen := prevStates[tc.Id]
 
 		if !seen && currentStatus == "running" {
-			events <- executiontui.ToolRunningEvent{
+			pending = append(pending, executiontui.ToolRunningEvent{
 				ToolCallID: tc.Id,
 				ToolCall:   convertToolCall(tc),
 				SubAgentID: subAgentID,
-			}
+			})
 			prevStates[tc.Id] = currentStatus
 			prevResults[tc.Id] = tc.Result
 			continue
 		}
 
 		if !seen && currentStatus == "waiting_approval" {
-			events <- executiontui.ToolWaitingApprovalEvent{
+			pending = append(pending, executiontui.ToolWaitingApprovalEvent{
 				ToolCallID: tc.Id,
 				ToolCall:   convertToolCall(tc),
 				SubAgentID: subAgentID,
-			}
+			})
 			prevStates[tc.Id] = currentStatus
 			continue
 		}
@@ -516,26 +528,26 @@ func emitToolCallStateEvents(
 		if !seen && isTerminalToolStatus(currentStatus) {
 			// Tool appeared for the first time already in a terminal state
 			// (e.g., reconnecting to an execution where the tool has already
-			// completed). Emit a ToolCompletedEvent so the TUI creates a
+			// completed). Collect a ToolCompletedEvent so the TUI creates a
 			// stateful block for it. Without this, the tool's MESSAGE_TOOL
 			// would be suppressed by isTrackedToolMessage (since we add it
 			// to prevStates below) and no block would exist — the tool
 			// would silently vanish.
-			events <- executiontui.ToolCompletedEvent{
+			pending = append(pending, executiontui.ToolCompletedEvent{
 				ToolCallID: tc.Id,
 				ToolCall:   convertToolCall(tc),
 				SubAgentID: subAgentID,
-			}
+			})
 			prevStates[tc.Id] = currentStatus
 			continue
 		}
 
 		if seen && (prevStatus == "running" || prevStatus == "waiting_approval") && isTerminalToolStatus(currentStatus) {
-			events <- executiontui.ToolCompletedEvent{
+			pending = append(pending, executiontui.ToolCompletedEvent{
 				ToolCallID: tc.Id,
 				ToolCall:   convertToolCall(tc),
 				SubAgentID: subAgentID,
-			}
+			})
 			prevStates[tc.Id] = currentStatus
 			delete(prevResults, tc.Id)
 			continue
@@ -543,37 +555,37 @@ func emitToolCallStateEvents(
 
 		if currentStatus != prevStatus {
 			if currentStatus == "running" {
-				events <- executiontui.ToolRunningEvent{
+				pending = append(pending, executiontui.ToolRunningEvent{
 					ToolCallID: tc.Id,
 					ToolCall:   convertToolCall(tc),
 					SubAgentID: subAgentID,
-				}
+				})
 				prevResults[tc.Id] = tc.Result
 			} else if currentStatus == "waiting_approval" {
-				events <- executiontui.ToolWaitingApprovalEvent{
+				pending = append(pending, executiontui.ToolWaitingApprovalEvent{
 					ToolCallID: tc.Id,
 					ToolCall:   convertToolCall(tc),
 					SubAgentID: subAgentID,
-				}
+				})
 			}
 			prevStates[tc.Id] = currentStatus
 			continue
 		}
 
 		// Streaming content detection: when a running tool has is_streaming=true
-		// and its result content has changed, emit a delta event for live rendering.
+		// and its result content has changed, collect a delta event for live rendering.
 		if currentStatus == "running" && tc.IsStreaming && tc.Result != prevResults[tc.Id] {
-			events <- executiontui.ToolStreamDeltaEvent{
+			pending = append(pending, executiontui.ToolStreamDeltaEvent{
 				ToolCallID: tc.Id,
 				ToolCall:   convertToolCall(tc),
 				Content:    tc.Result,
 				SubAgentID: subAgentID,
-			}
+			})
 			prevResults[tc.Id] = tc.Result
 		}
 	}
 
-	return prevStates, prevResults
+	return prevStates, prevResults, pending
 }
 
 // isTerminalToolStatus returns true for tool call statuses that indicate
@@ -624,7 +636,7 @@ type todoFingerprint struct {
 // fingerprint snapshot and emits a TodoUpdateEvent if anything changed.
 // Returns the new fingerprint map for tracking across stream iterations.
 //
-// The function follows the same diff-and-emit pattern as emitToolCallStateEvents:
+// The function follows the same diff-and-emit pattern as trackToolCallStates:
 // build a lightweight snapshot, compare, emit on change.
 func emitTodoEvents(
 	events chan<- executiontui.Event,

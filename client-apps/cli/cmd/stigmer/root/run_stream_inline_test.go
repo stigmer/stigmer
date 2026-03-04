@@ -618,3 +618,202 @@ func TestInlineRenderer_AIStreamEnd_NoLegacyToolCalls(t *testing.T) {
 		t.Errorf("tool calls from AIStreamEndEvent should not be rendered via legacy path, got stderr: %q", stderr.String())
 	}
 }
+
+// =============================================================================
+// Event Ordering: Non-Read Tool Between AI Stream Events
+// =============================================================================
+
+// Reproduces the exact duplication bug: when a non-read ToolCompletedEvent
+// arrives between AIStreamDelta and AIStreamEnd (same gRPC update, tool events
+// emitted before message events), the renderer used to call
+// finishAIStreamIfNeeded which reset streamedBytes, causing AIStreamEnd to
+// reprint the full content without bullet prefix.
+//
+// After the fix (message events emitted before tool events), the AI stream
+// closes normally before the tool completion arrives, so no duplication occurs.
+func TestInlineRenderer_NonReadToolBetweenAIStream_NoDuplication(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 16)
+
+	go feedEvents(events,
+		executiontui.AIStreamStartEvent{Content: "I have everything"},
+		executiontui.AIStreamDeltaEvent{Content: "I have everything I need"},
+		// In the old code, a tool completion arriving here (same Recv() batch)
+		// would be emitted BEFORE AIStreamEnd, triggering finishAIStreamIfNeeded
+		// and resetting streamedBytes. With the fix, AIStreamEnd arrives first.
+		executiontui.AIStreamEndEvent{Content: "I have everything I need."},
+		executiontui.ToolCompletedEvent{
+			ToolCallID: "tc-mcp",
+			ToolCall: toolrender.ToolCallInfo{
+				Name:   "get_mcp_server",
+				Status: "completed",
+				Result: `{"kind": "McpServer"}`,
+				Args:   map[string]interface{}{"name": "planton-cloud"},
+			},
+		},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	out := stdout.String()
+	count := strings.Count(out, "I have everything")
+	if count != 1 {
+		t.Errorf("AI content 'I have everything' should appear exactly once, appeared %d times in stdout: %q", count, out)
+	}
+	if !strings.HasPrefix(out, "● ") {
+		t.Errorf("AI content should start with bullet prefix, got: %q", out)
+	}
+	if !strings.Contains(stderr.String(), "get_mcp_server") {
+		t.Errorf("tool completion should appear on stderr, got: %q", stderr.String())
+	}
+}
+
+// =============================================================================
+// Read Group Splitting at AI Message Boundaries
+// =============================================================================
+
+// Verifies that pending reads are flushed when a new AI stream starts,
+// creating distinct read groups per AI message context instead of merging
+// all reads into a single group.
+func TestInlineRenderer_ReadGroupSplitAtAIMessageBoundary(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 32)
+
+	go feedEvents(events,
+		// AI message 1 triggers reads
+		executiontui.AIStreamStartEvent{Content: "Let me read the entry point"},
+		executiontui.AIStreamEndEvent{Content: "Let me read the entry point."},
+
+		// First batch: 3 reads
+		executiontui.ToolCompletedEvent{ToolCallID: "r1", ToolCall: toolrender.ToolCallInfo{Name: "read_file", Status: "completed", Result: "pkg main", Args: map[string]interface{}{"path": "main.go"}}},
+		executiontui.ToolCompletedEvent{ToolCallID: "r2", ToolCall: toolrender.ToolCallInfo{Name: "read_file", Status: "completed", Result: "module x", Args: map[string]interface{}{"path": "go.mod"}}},
+		executiontui.ToolCompletedEvent{ToolCallID: "r3", ToolCall: toolrender.ToolCallInfo{Name: "read_file", Status: "completed", Result: "# README", Args: map[string]interface{}{"path": "README.md"}}},
+
+		// AI message 2 starts — should flush the 3 reads above
+		executiontui.AIStreamStartEvent{Content: "Now checking the config"},
+		executiontui.AIStreamEndEvent{Content: "Now checking the config."},
+
+		// Second batch: 3 more reads
+		executiontui.ToolCompletedEvent{ToolCallID: "r4", ToolCall: toolrender.ToolCallInfo{Name: "read_file", Status: "completed", Result: "key=val", Args: map[string]interface{}{"path": "config.yaml"}}},
+		executiontui.ToolCompletedEvent{ToolCallID: "r5", ToolCall: toolrender.ToolCallInfo{Name: "read_file", Status: "completed", Result: "{}", Args: map[string]interface{}{"path": "schema.json"}}},
+		executiontui.ToolCompletedEvent{ToolCallID: "r6", ToolCall: toolrender.ToolCallInfo{Name: "read_file", Status: "completed", Result: "v1", Args: map[string]interface{}{"path": "VERSION"}}},
+
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	stderrStr := stderr.String()
+
+	// With grouping threshold=3, both batches should be rendered as groups.
+	// The key assertion: there should be TWO separate read groups, not one
+	// merged "Read 6 files" group.
+	readGroupCount := strings.Count(stderrStr, "Read 3 files")
+	if readGroupCount != 2 {
+		t.Errorf("expected 2 'Read 3 files' groups (split at AI message boundary), got %d in stderr: %q", readGroupCount, stderrStr)
+	}
+	if strings.Contains(stderrStr, "Read 6 files") {
+		t.Errorf("reads should NOT be merged into a single 'Read 6 files' group, got stderr: %q", stderrStr)
+	}
+}
+
+// =============================================================================
+// End-to-End Ordering: Multiple AI Messages with Interleaved Tools
+// =============================================================================
+
+// Verifies correct chronological ordering when multiple AI messages and tool
+// completions arrive in an interleaved pattern, reproducing the real-world
+// scenario from the mcp-server-creator session.
+func TestInlineRenderer_MultipleAIMessages_InterleavedTools_CorrectOrder(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 32)
+
+	go feedEvents(events,
+		// AI message 1
+		executiontui.AIStreamStartEvent{Content: "Thinking"},
+		executiontui.AIStreamEndEvent{Content: "Thinking about the problem."},
+
+		// Read tools from message 1
+		executiontui.ToolCompletedEvent{ToolCallID: "r1", ToolCall: toolrender.ToolCallInfo{Name: "read_file", Status: "completed", Result: "contents", Args: map[string]interface{}{"path": "SKILL.md"}}},
+		executiontui.ToolCompletedEvent{ToolCallID: "r2", ToolCall: toolrender.ToolCallInfo{Name: "read_file", Status: "completed", Result: "contents", Args: map[string]interface{}{"path": "README.md"}}},
+		executiontui.ToolCompletedEvent{ToolCallID: "r3", ToolCall: toolrender.ToolCallInfo{Name: "read_file", Status: "completed", Result: "contents", Args: map[string]interface{}{"path": "go.mod"}}},
+
+		// Non-read tool
+		executiontui.ToolCompletedEvent{ToolCallID: "tc-mcp", ToolCall: toolrender.ToolCallInfo{Name: "get_mcp_server", Status: "completed", Result: `{"kind":"McpServer"}`, Args: map[string]interface{}{"name": "default"}}},
+
+		// AI message 2
+		executiontui.AIStreamStartEvent{Content: "The server already exists"},
+		executiontui.AIStreamEndEvent{Content: "The server already exists. Updating now."},
+
+		// Write tool
+		executiontui.ToolCompletedEvent{ToolCallID: "tc-write", ToolCall: toolrender.ToolCallInfo{Name: "write_to_file", Status: "completed", Result: "ok", Args: map[string]interface{}{"path": "planton-cloud.yaml"}}},
+
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	out := stdout.String()
+	stderrStr := stderr.String()
+
+	// AI messages should appear exactly once on stdout with bullet prefix.
+	if strings.Count(out, "Thinking") != 1 {
+		t.Errorf("'Thinking' should appear exactly once on stdout, got: %q", out)
+	}
+	if strings.Count(out, "The server already exists") != 1 {
+		t.Errorf("'The server already exists' should appear exactly once on stdout, got: %q", out)
+	}
+
+	// Both AI messages should have bullet prefix.
+	if !strings.Contains(out, "● Thinking") {
+		t.Errorf("first AI message should have bullet prefix, got: %q", out)
+	}
+	if !strings.Contains(out, "● The server already exists") {
+		t.Errorf("second AI message should have bullet prefix, got: %q", out)
+	}
+
+	// Read group should appear on stderr.
+	if !strings.Contains(stderrStr, "Read 3 files") {
+		t.Errorf("expected 'Read 3 files' group on stderr, got: %q", stderrStr)
+	}
+
+	// get_mcp_server and write tool should appear on stderr.
+	if !strings.Contains(stderrStr, "get_mcp_server") {
+		t.Errorf("expected get_mcp_server on stderr, got: %q", stderrStr)
+	}
+	if !strings.Contains(stderrStr, "write_to_file") {
+		t.Errorf("expected write_to_file on stderr, got: %q", stderrStr)
+	}
+
+	// Verify ordering on stderr: reads should appear before get_mcp_server.
+	readPos := strings.Index(stderrStr, "Read 3 files")
+	mcpPos := strings.Index(stderrStr, "get_mcp_server")
+	if readPos > mcpPos {
+		t.Errorf("reads should appear before get_mcp_server on stderr; read at %d, mcp at %d in: %q", readPos, mcpPos, stderrStr)
+	}
+
+	// Verify ordering on stderr: get_mcp_server should appear before write.
+	writePos := strings.Index(stderrStr, "write_to_file")
+	if mcpPos > writePos {
+		t.Errorf("get_mcp_server should appear before write_to_file on stderr; mcp at %d, write at %d in: %q", mcpPos, writePos, stderrStr)
+	}
+}

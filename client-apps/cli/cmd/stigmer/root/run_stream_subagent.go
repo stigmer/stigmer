@@ -71,13 +71,18 @@ func emitSubAgentEvents(
 				Msg("[stream] new sub-agent execution detected")
 		}
 
-		tracker.toolCallStates, tracker.toolCallResults = emitToolCallStateEvents(
-			events, sa.ToolCalls, tracker.toolCallStates, tracker.toolCallResults, sa.Id,
+		var toolEvents []executiontui.Event
+		tracker.toolCallStates, tracker.toolCallResults, toolEvents = trackToolCallStates(
+			sa.ToolCalls, tracker.toolCallStates, tracker.toolCallResults, sa.Id,
 		)
 
 		tracker.displayedMsgCount, tracker.inStream = emitSubAgentMessageEvents(
 			events, sa.Id, sa.Messages, tracker.displayedMsgCount, tracker.inStream,
 		)
+
+		for _, ev := range toolEvents {
+			events <- ev
+		}
 
 		if !tracker.completed && isTerminalSubAgentStatus(sa.Status) {
 			tracker.completed = true
@@ -119,7 +124,7 @@ func isTerminalSubAgentStatus(s agentexecutionv1.SubAgentStatus) bool {
 // full message to finalize — which previously caused a dead zone where no
 // events flowed and the TUI showed "Thinking..." indefinitely.
 //
-// Sub-agent tool results are handled by emitToolCallStateEvents (stateful
+// Sub-agent tool results are handled by trackToolCallStates (stateful
 // tool blocks), so MESSAGE_TOOL entries are skipped. Human and system messages
 // are not relevant for sub-agent display. Tool call lists on AI messages are
 // omitted to avoid duplication with the stateful tool blocks.

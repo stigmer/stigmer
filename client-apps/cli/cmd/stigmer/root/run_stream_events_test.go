@@ -127,11 +127,10 @@ func TestIsApprovalNoiseMessage_DoesNotMatchEmpty(t *testing.T) {
 }
 
 // =============================================================================
-// emitToolCallStateEvents: first-time-seen terminal tool Tests
+// trackToolCallStates: first-time-seen terminal tool Tests
 // =============================================================================
 
-func TestEmitToolCallStateEvents_FirstTimeTerminal_EmitsCompleted(t *testing.T) {
-	events := make(chan executiontui.Event, 16)
+func TestTrackToolCallStates_FirstTimeTerminal_CollectsCompleted(t *testing.T) {
 	prevStates := make(map[string]string)
 	prevResults := make(map[string]string)
 
@@ -144,36 +143,31 @@ func TestEmitToolCallStateEvents_FirstTimeTerminal_EmitsCompleted(t *testing.T) 
 		},
 	}
 
-	newStates, _ := emitToolCallStateEvents(events, toolCalls, prevStates, prevResults, "")
+	newStates, _, collected := trackToolCallStates(toolCalls, prevStates, prevResults, "")
 
-	// Should have emitted exactly one event.
-	select {
-	case evt := <-events:
-		completed, ok := evt.(executiontui.ToolCompletedEvent)
-		if !ok {
-			t.Fatalf("expected ToolCompletedEvent, got %T", evt)
-		}
-		if completed.ToolCallID != "tc-completed" {
-			t.Errorf("ToolCallID = %q, want %q", completed.ToolCallID, "tc-completed")
-		}
-		if completed.ToolCall.Name != "read_file" {
-			t.Errorf("ToolCall.Name = %q, want %q", completed.ToolCall.Name, "read_file")
-		}
-		if completed.ToolCall.Result != "package main" {
-			t.Errorf("ToolCall.Result = %q, want %q", completed.ToolCall.Result, "package main")
-		}
-	default:
-		t.Fatal("expected a ToolCompletedEvent to be emitted, got nothing")
+	if len(collected) != 1 {
+		t.Fatalf("expected 1 collected event, got %d", len(collected))
+	}
+	completed, ok := collected[0].(executiontui.ToolCompletedEvent)
+	if !ok {
+		t.Fatalf("expected ToolCompletedEvent, got %T", collected[0])
+	}
+	if completed.ToolCallID != "tc-completed" {
+		t.Errorf("ToolCallID = %q, want %q", completed.ToolCallID, "tc-completed")
+	}
+	if completed.ToolCall.Name != "read_file" {
+		t.Errorf("ToolCall.Name = %q, want %q", completed.ToolCall.Name, "read_file")
+	}
+	if completed.ToolCall.Result != "package main" {
+		t.Errorf("ToolCall.Result = %q, want %q", completed.ToolCall.Result, "package main")
 	}
 
-	// Tool should now be tracked in the state map.
 	if status, ok := newStates["tc-completed"]; !ok || status != "completed" {
 		t.Errorf("expected tool to be tracked as 'completed', got %q (ok=%v)", status, ok)
 	}
 }
 
-func TestEmitToolCallStateEvents_FirstTimeTerminalFailed_EmitsCompleted(t *testing.T) {
-	events := make(chan executiontui.Event, 16)
+func TestTrackToolCallStates_FirstTimeTerminalFailed_CollectsCompleted(t *testing.T) {
 	prevStates := make(map[string]string)
 	prevResults := make(map[string]string)
 
@@ -186,24 +180,21 @@ func TestEmitToolCallStateEvents_FirstTimeTerminalFailed_EmitsCompleted(t *testi
 		},
 	}
 
-	emitToolCallStateEvents(events, toolCalls, prevStates, prevResults, "")
+	_, _, collected := trackToolCallStates(toolCalls, prevStates, prevResults, "")
 
-	select {
-	case evt := <-events:
-		completed, ok := evt.(executiontui.ToolCompletedEvent)
-		if !ok {
-			t.Fatalf("expected ToolCompletedEvent, got %T", evt)
-		}
-		if completed.ToolCallID != "tc-failed" {
-			t.Errorf("ToolCallID = %q, want %q", completed.ToolCallID, "tc-failed")
-		}
-	default:
-		t.Fatal("expected a ToolCompletedEvent for first-time-seen failed tool")
+	if len(collected) != 1 {
+		t.Fatalf("expected 1 collected event, got %d", len(collected))
+	}
+	completed, ok := collected[0].(executiontui.ToolCompletedEvent)
+	if !ok {
+		t.Fatalf("expected ToolCompletedEvent, got %T", collected[0])
+	}
+	if completed.ToolCallID != "tc-failed" {
+		t.Errorf("ToolCallID = %q, want %q", completed.ToolCallID, "tc-failed")
 	}
 }
 
-func TestEmitToolCallStateEvents_FirstTimeRunning_EmitsRunning(t *testing.T) {
-	events := make(chan executiontui.Event, 16)
+func TestTrackToolCallStates_FirstTimeRunning_CollectsRunning(t *testing.T) {
 	prevStates := make(map[string]string)
 	prevResults := make(map[string]string)
 
@@ -215,16 +206,13 @@ func TestEmitToolCallStateEvents_FirstTimeRunning_EmitsRunning(t *testing.T) {
 		},
 	}
 
-	emitToolCallStateEvents(events, toolCalls, prevStates, prevResults, "")
+	_, _, collected := trackToolCallStates(toolCalls, prevStates, prevResults, "")
 
-	select {
-	case evt := <-events:
-		_, ok := evt.(executiontui.ToolRunningEvent)
-		if !ok {
-			t.Fatalf("expected ToolRunningEvent, got %T", evt)
-		}
-	default:
-		t.Fatal("expected a ToolRunningEvent to be emitted")
+	if len(collected) != 1 {
+		t.Fatalf("expected 1 collected event, got %d", len(collected))
+	}
+	if _, ok := collected[0].(executiontui.ToolRunningEvent); !ok {
+		t.Fatalf("expected ToolRunningEvent, got %T", collected[0])
 	}
 }
 
