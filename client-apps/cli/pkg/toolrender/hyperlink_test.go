@@ -136,6 +136,23 @@ func TestFileHyperlink_EmptyPaths(t *testing.T) {
 	})
 }
 
+func TestFileHyperlink_RelativePath_DegradesToDisplayPath(t *testing.T) {
+	got := FileHyperlink("src/main.go", "src/main.go", true)
+	if got != "src/main.go" {
+		t.Errorf("relative absolutePath should degrade to displayPath, got %q", got)
+	}
+}
+
+func TestFileHyperlink_RelativePath_WithWorkspacePrefix_DegradesToDisplayPath(t *testing.T) {
+	got := FileHyperlink("my-repo/README.md", "my-repo/README.md", true)
+	if got != "my-repo/README.md" {
+		t.Errorf("relative absolutePath should degrade to displayPath, got %q", got)
+	}
+	if strings.Contains(got, osc8Open) {
+		t.Error("should not produce OSC 8 sequence for relative path")
+	}
+}
+
 // =============================================================================
 // fileURI — file path to file:// URI conversion
 // =============================================================================

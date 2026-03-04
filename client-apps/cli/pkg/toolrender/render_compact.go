@@ -48,10 +48,12 @@ type CompactOptions struct {
 	// at initialization and store the result here.
 	HyperlinksEnabled bool
 
-	// WorkingDir is the directory used to resolve relative file paths into
-	// absolute paths for file:// hyperlinks. When empty, paths are used
-	// as-is (hyperlinks still work for absolute paths).
-	WorkingDir string
+	// WorkspaceRoots holds the local absolute paths of workspace directories.
+	// Used to resolve relative file paths into absolute paths for file://
+	// hyperlinks. In multi-workspace sessions, the first path segment of a
+	// relative path is matched against workspace root basenames.
+	// When empty, relative paths degrade to plain text (no hyperlink).
+	WorkspaceRoots []string
 }
 
 // RenderCompact returns a compact display of a completed tool call. Every
@@ -613,8 +615,9 @@ func renderGroupEntry(tc ToolCallInfo, opts CompactOptions) string {
 }
 
 // buildHyperlinkedPath wraps a file path in an OSC 8 hyperlink when enabled.
-// Relative paths are resolved against opts.WorkingDir to produce a valid
-// file:// URI.
+// Relative paths are resolved against WorkspaceRoots; unresolvable relative
+// paths degrade to plain text (no hyperlink) to avoid malformed file:// URIs
+// where the first path segment would be misinterpreted as a hostname.
 func buildHyperlinkedPath(path string, opts CompactOptions) string {
 	if path == "" {
 		return ""
@@ -624,8 +627,41 @@ func buildHyperlinkedPath(path string, opts CompactOptions) string {
 	}
 
 	absPath := path
-	if !filepath.IsAbs(path) && opts.WorkingDir != "" {
-		absPath = filepath.Join(opts.WorkingDir, path)
+	if !filepath.IsAbs(path) {
+		resolved := resolveWorkspacePath(path, opts.WorkspaceRoots)
+		if resolved == "" {
+			return path
+		}
+		absPath = resolved
 	}
 	return FileHyperlink(path, absPath, true)
+}
+
+// resolveWorkspacePath resolves a relative path against known workspace roots.
+//
+// With a single workspace root, the path is joined directly. With multiple
+// roots, the first path segment is matched against each root's basename
+// (the workspace directory name) and the remainder is joined with the
+// matching root. Returns empty string when resolution fails.
+func resolveWorkspacePath(relPath string, roots []string) string {
+	if len(roots) == 0 {
+		return ""
+	}
+
+	if len(roots) == 1 {
+		return filepath.Join(roots[0], relPath)
+	}
+
+	parts := strings.SplitN(filepath.ToSlash(relPath), "/", 2)
+	firstSeg := parts[0]
+	for _, root := range roots {
+		if filepath.Base(root) == firstSeg {
+			if len(parts) > 1 {
+				return filepath.Join(root, parts[1])
+			}
+			return root
+		}
+	}
+
+	return ""
 }

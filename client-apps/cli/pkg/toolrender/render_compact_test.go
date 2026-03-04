@@ -271,7 +271,7 @@ func TestRenderCompact_Read_RelativePathResolution(t *testing.T) {
 	}
 	opts := CompactOptions{
 		HyperlinksEnabled: true,
-		WorkingDir:        "/Users/dev/project",
+		WorkspaceRoots:    []string{"/Users/dev/project"},
 	}
 
 	got := RenderCompact(tc, opts)
@@ -291,13 +291,13 @@ func TestRenderCompact_Read_AbsolutePathNotDoubleResolved(t *testing.T) {
 	}
 	opts := CompactOptions{
 		HyperlinksEnabled: true,
-		WorkingDir:        "/Users/dev/project",
+		WorkspaceRoots:    []string{"/Users/dev/project"},
 	}
 
 	got := RenderCompact(tc, opts)
 
 	if !strings.Contains(got, "file:///absolute/path/main.go") {
-		t.Errorf("absolute path should not be joined with WorkingDir, got:\n  %q", got)
+		t.Errorf("absolute path should not be joined with WorkspaceRoots, got:\n  %q", got)
 	}
 }
 
@@ -533,7 +533,7 @@ func TestRenderCompact_Write_RelativePathResolution(t *testing.T) {
 	}
 	opts := CompactOptions{
 		HyperlinksEnabled: true,
-		WorkingDir:        "/Users/dev/project",
+		WorkspaceRoots:    []string{"/Users/dev/project"},
 	}
 
 	got := RenderCompact(tc, opts)
@@ -1402,24 +1402,24 @@ func TestBuildHyperlinkedPath_EmptyPath(t *testing.T) {
 	}
 }
 
-func TestBuildHyperlinkedPath_AbsolutePathIgnoresWorkingDir(t *testing.T) {
+func TestBuildHyperlinkedPath_AbsolutePathIgnoresWorkspaceRoots(t *testing.T) {
 	opts := CompactOptions{
 		HyperlinksEnabled: true,
-		WorkingDir:        "/should/not/appear",
+		WorkspaceRoots:    []string{"/should/not/appear"},
 	}
 	got := buildHyperlinkedPath("/absolute/file.go", opts)
 	if strings.Contains(got, "should/not/appear") {
-		t.Errorf("absolute path should not be joined with WorkingDir, got %q", got)
+		t.Errorf("absolute path should not be joined with WorkspaceRoots, got %q", got)
 	}
 	if !strings.Contains(got, "file:///absolute/file.go") {
 		t.Errorf("expected file URI for absolute path, got %q", got)
 	}
 }
 
-func TestBuildHyperlinkedPath_RelativePathResolvedWithWorkingDir(t *testing.T) {
+func TestBuildHyperlinkedPath_RelativePathResolvedWithSingleRoot(t *testing.T) {
 	opts := CompactOptions{
 		HyperlinksEnabled: true,
-		WorkingDir:        "/workspace",
+		WorkspaceRoots:    []string{"/workspace"},
 	}
 	got := buildHyperlinkedPath("src/main.go", opts)
 	if !strings.Contains(got, "file:///workspace/src/main.go") {
@@ -1430,14 +1430,45 @@ func TestBuildHyperlinkedPath_RelativePathResolvedWithWorkingDir(t *testing.T) {
 	}
 }
 
-func TestBuildHyperlinkedPath_RelativePathNoWorkingDir(t *testing.T) {
+func TestBuildHyperlinkedPath_RelativePathNoRoots_DegradesToPlainText(t *testing.T) {
 	opts := CompactOptions{
 		HyperlinksEnabled: true,
-		WorkingDir:        "",
+		WorkspaceRoots:    nil,
 	}
 	got := buildHyperlinkedPath("src/main.go", opts)
-	if !strings.Contains(got, "file://src/main.go") {
-		t.Errorf("expected relative path used as-is in URI, got %q", got)
+	if got != "src/main.go" {
+		t.Errorf("relative path with no roots should degrade to plain text, got %q", got)
+	}
+}
+
+func TestBuildHyperlinkedPath_MultiRoot_MatchesWorkspaceName(t *testing.T) {
+	opts := CompactOptions{
+		HyperlinksEnabled: true,
+		WorkspaceRoots: []string{
+			"/Users/dev/scm/github.com/org/frontend",
+			"/Users/dev/scm/github.com/org/backend",
+		},
+	}
+	got := buildHyperlinkedPath("backend/src/main.go", opts)
+	if !strings.Contains(got, "file:///Users/dev/scm/github.com/org/backend/src/main.go") {
+		t.Errorf("expected path resolved against matching workspace root, got %q", got)
+	}
+	if !strings.Contains(got, "backend/src/main.go"+osc8Close) {
+		t.Errorf("display text should be the original relative path, got %q", got)
+	}
+}
+
+func TestBuildHyperlinkedPath_MultiRoot_NoMatch_DegradesToPlainText(t *testing.T) {
+	opts := CompactOptions{
+		HyperlinksEnabled: true,
+		WorkspaceRoots: []string{
+			"/Users/dev/scm/github.com/org/frontend",
+			"/Users/dev/scm/github.com/org/backend",
+		},
+	}
+	got := buildHyperlinkedPath("unknown-ws/README.md", opts)
+	if got != "unknown-ws/README.md" {
+		t.Errorf("unmatched workspace should degrade to plain text, got %q", got)
 	}
 }
 

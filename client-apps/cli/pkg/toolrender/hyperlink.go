@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"path/filepath"
 
 	"golang.org/x/term"
 )
@@ -37,13 +38,15 @@ func Hyperlink(displayText, uri string) string {
 
 // FileHyperlink wraps displayPath in an OSC 8 terminal hyperlink that opens
 // the file at absolutePath when clicked. Returns displayPath unchanged when
-// enabled is false (graceful degradation for non-supporting terminals).
+// enabled is false or absolutePath is not an absolute path (graceful
+// degradation — a relative path would produce a malformed file:// URI where
+// the first path segment is misinterpreted as a hostname).
 //
 // The enabled parameter is intentionally explicit rather than auto-detected:
 // callers should query HyperlinksEnabled once at initialization and thread
 // the result through, avoiding per-call environment checks.
 func FileHyperlink(displayPath, absolutePath string, enabled bool) string {
-	if !enabled {
+	if !enabled || !filepath.IsAbs(absolutePath) {
 		return displayPath
 	}
 	return Hyperlink(displayPath, fileURI(absolutePath))
@@ -51,6 +54,10 @@ func FileHyperlink(displayPath, absolutePath string, enabled bool) string {
 
 // fileURI converts an absolute filesystem path to a file:// URI with proper
 // percent-encoding for spaces, unicode, and URI-significant characters.
+//
+// The caller must ensure absPath is absolute. Relative paths produce
+// malformed URIs where the first segment becomes the host component
+// (e.g., "src/main.go" → "file://src/main.go" where "src" is the host).
 func fileURI(absPath string) string {
 	return (&url.URL{Scheme: "file", Path: absPath}).String()
 }

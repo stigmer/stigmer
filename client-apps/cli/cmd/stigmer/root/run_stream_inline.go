@@ -28,6 +28,7 @@ type inlineRenderConfig struct {
 	data              io.Writer // AI content (stdout)
 	status            io.Writer // status/progress (stderr)
 	sessionID         string
+	workspaceRoots    []string // local workspace root paths for file hyperlinks
 }
 
 // pendingRead wraps a read tool completion with the sub-agent context it
@@ -128,6 +129,7 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, ex
 		cfg: cfg,
 		compactOpts: toolrender.CompactOptions{
 			HyperlinksEnabled: toolrender.HyperlinksEnabled(cfg.status),
+			WorkspaceRoots:    cfg.workspaceRoots,
 		},
 		suppressedToolIDs: make(map[string]bool),
 		spinner:           spinner.New(cfg.status),
