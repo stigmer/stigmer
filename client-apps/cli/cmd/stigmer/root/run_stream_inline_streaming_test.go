@@ -759,10 +759,10 @@ func TestNonInteractiveApproval_ContentStreamed_ErasesStreamedRows(t *testing.T)
 }
 
 // ---------------------------------------------------------------------------
-// Interactive approval with content-streamed path
+// Interactive approval with content-streamed path re-renders expanded view
 // ---------------------------------------------------------------------------
 
-func TestInteractiveApproval_ContentStreamed_AddsSeparator(t *testing.T) {
+func TestInteractiveApproval_ContentStreamed_ReRendersWithPath(t *testing.T) {
 	prompter := &mockPrompter{decision: &approval.Decision{Action: approval.ActionApprove}}
 	r, _, stderr, responses := newApprovalTestRenderer(prompter, approval.ActionUnspecified)
 
@@ -780,8 +780,22 @@ func TestInteractiveApproval_ContentStreamed_AddsSeparator(t *testing.T) {
 	<-responses
 
 	output := stripANSIApproval(stderr.String())
+	if !strings.Contains(output, "Write(config.go)") {
+		t.Errorf("re-rendered expanded view should contain header with path, got:\n%s", output)
+	}
 	if !strings.Contains(output, "─") {
-		t.Errorf("expected separator added below streamed content, got:\n%s", output)
+		t.Errorf("re-rendered expanded view should contain separator, got:\n%s", output)
+	}
+}
+
+func TestPrepareApprovalDisplay_StreamedPath_SetsCursorSaved(t *testing.T) {
+	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
+	tc := writeToolCall()
+
+	r.prepareApprovalDisplay(tc, true, 4, false, true, 80)
+
+	if !r.cursorSaved {
+		t.Error("prepareApprovalDisplay should set cursorSaved when re-rendering expanded view for streamed content")
 	}
 }
 

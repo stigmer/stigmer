@@ -40,7 +40,8 @@ func (r *inlineRenderer) initPreApprovalStreaming(e executiontui.ToolRunningEven
 // renderStreamHeader prints the pre-approval separator and header for
 // a streaming write/edit tool, and updates the row-tracking state.
 func (r *inlineRenderer) renderStreamHeader(tc toolrender.ToolCallInfo, subAgentID string) {
-	sep := toolrender.ApprovalSeparator()
+	width := termctl.Width(r.cfg.status, 80)
+	sep := toolrender.ApprovalSeparator(width)
 	header := toolrender.ExpandedApprovalHeader(tc, r.compactOpts)
 	output := sep + "\n" + header + "\n"
 
@@ -50,7 +51,6 @@ func (r *inlineRenderer) renderStreamHeader(tc toolrender.ToolCallInfo, subAgent
 	fmt.Fprint(r.cfg.status, output)
 	r.flushWriter(r.cfg.status)
 
-	width := termctl.Width(r.cfg.status, 80)
 	r.streamHeaderRows = termctl.DisplayRows(output, width)
 	r.streamLineCount = r.streamHeaderRows
 }

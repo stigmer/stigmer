@@ -15,8 +15,8 @@ import (
 // handleApproval orchestrates the expand/prompt/collapse approval flow.
 //
 // For interactive prompts the flow is:
-//  1. Prepare display: if content was streamed (pre-approval), add bottom
-//     separator; otherwise erase running line and print expanded view
+//  1. Prepare display: erase any prior streaming output and render the
+//     full expanded view (header with path + content + separators)
 //  2. Print the contextual question and show the arrow-key menu
 //  3. Block until the user makes a decision
 //  4. Erase the entire display + question + menu
@@ -126,10 +126,17 @@ func (r *inlineRenderer) handleInteractiveApproval(
 // question. Returns the number of display rows rendered, used for cursor
 // control erasure after the user decides.
 //
-// When contentStreamed is true, the content is already visible from
-// pre-approval streaming. Only a bottom separator is added below the
-// existing content. When false, the full expanded view (header +
-// separator + content + separator) is printed from Args.
+// When contentStreamed is true and cursor control is available, the
+// incomplete streaming output (which may lack the file path in the
+// header) is erased and replaced with the full expanded view built from
+// the now-complete Args. This ensures the header shows the file path
+// and separators span the terminal width.
+//
+// Degraded fallback (no cursor control): a bottom separator is appended
+// below the existing content with a defensive newline.
+//
+// When contentStreamed is false, the full expanded view (separator +
+// header + content + separator) is printed from Args.
 func (r *inlineRenderer) prepareApprovalDisplay(
 	tc toolrender.ToolCallInfo,
 	contentStreamed bool,
@@ -138,10 +145,15 @@ func (r *inlineRenderer) prepareApprovalDisplay(
 	width int,
 ) int {
 	if contentStreamed {
-		sep := toolrender.ApprovalSeparator()
-		fmt.Fprintf(r.cfg.status, "%s\n", sep)
-		sepRows := termctl.DisplayRows(sep+"\n", width)
-		return streamedRows + sepRows
+		if canCollapse && r.cursorSaved {
+			termctl.RestoreCursorAndClear(r.cfg.status)
+		}
+		termctl.SaveCursor(r.cfg.status)
+		r.cursorSaved = true
+
+		expanded := r.buildExpandedView(tc, width)
+		fmt.Fprint(r.cfg.status, expanded)
+		return termctl.DisplayRows(expanded, width)
 	}
 
 	if canCollapse && runningRendered {
@@ -151,7 +163,7 @@ func (r *inlineRenderer) prepareApprovalDisplay(
 	termctl.SaveCursor(r.cfg.status)
 	r.cursorSaved = true
 
-	expanded := r.buildExpandedView(tc)
+	expanded := r.buildExpandedView(tc, width)
 	fmt.Fprint(r.cfg.status, expanded)
 	return termctl.DisplayRows(expanded, width)
 }
@@ -212,11 +224,11 @@ func (r *inlineRenderer) resolveApprovalContext(e executiontui.ApprovalNeededEve
 
 // buildExpandedView assembles the expanded approval content shown before
 // the user makes a decision: separator + header + content + separator.
-// Separators frame the tool call, with the question and menu rendered
-// in the footer below the bottom separator.
-func (r *inlineRenderer) buildExpandedView(tc toolrender.ToolCallInfo) string {
+// Separators span the given terminal width. The question and menu are
+// rendered by the caller below the bottom separator.
+func (r *inlineRenderer) buildExpandedView(tc toolrender.ToolCallInfo, width int) string {
 	var b strings.Builder
-	sep := toolrender.ApprovalSeparator()
+	sep := toolrender.ApprovalSeparator(width)
 
 	b.WriteString(sep)
 	b.WriteByte('\n')

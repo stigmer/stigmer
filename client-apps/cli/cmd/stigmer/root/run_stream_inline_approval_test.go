@@ -164,7 +164,7 @@ func TestBuildExpandedView_WriteFile(t *testing.T) {
 	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
 	tc := writeToolCall()
 
-	view := stripANSIApproval(r.buildExpandedView(tc))
+	view := stripANSIApproval(r.buildExpandedView(tc, 80))
 
 	if !strings.Contains(view, "Write(config.go)") {
 		t.Errorf("expected header with Write(config.go), got:\n%s", view)
@@ -181,7 +181,7 @@ func TestBuildExpandedView_Shell(t *testing.T) {
 	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
 	tc := shellToolCall()
 
-	view := stripANSIApproval(r.buildExpandedView(tc))
+	view := stripANSIApproval(r.buildExpandedView(tc, 80))
 
 	if !strings.Contains(view, "Shell(go test ./...)") {
 		t.Errorf("expected header with Shell command, got:\n%s", view)
@@ -192,7 +192,7 @@ func TestBuildExpandedView_EmptyContent(t *testing.T) {
 	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
 	tc := deleteToolCall()
 
-	view := stripANSIApproval(r.buildExpandedView(tc))
+	view := stripANSIApproval(r.buildExpandedView(tc, 80))
 
 	if !strings.Contains(view, "Delete(old.txt)") {
 		t.Errorf("expected header with Delete(old.txt), got:\n%s", view)
@@ -207,7 +207,7 @@ func TestBuildExpandedView_SeparatorBeforeHeader(t *testing.T) {
 	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
 	tc := shellToolCall()
 
-	view := stripANSIApproval(r.buildExpandedView(tc))
+	view := stripANSIApproval(r.buildExpandedView(tc, 80))
 	lines := strings.Split(strings.TrimRight(view, "\n"), "\n")
 
 	if len(lines) < 3 {
