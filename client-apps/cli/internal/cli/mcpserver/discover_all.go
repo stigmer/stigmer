@@ -72,8 +72,15 @@ func DiscoverAll(ctx context.Context, opts *DiscoverAllOptions) *DiscoverAllResu
 			log.Debug().
 				Str("mcp_server", server.Metadata.GetName()).
 				Strs("unresolved", envResult.Unresolved).
-				Msg("Skipping discovery: required env vars not available")
+				Msg("Skipping discovery: required credentials not available")
 			continue
+		}
+
+		if len(envResult.UnresolvedOptional) > 0 {
+			log.Debug().
+				Str("mcp_server", server.Metadata.GetName()).
+				Strs("unresolved_optional", envResult.UnresolvedOptional).
+				Msg("Non-secret env vars unresolved, proceeding with server defaults")
 		}
 
 		result.Attempted++
@@ -96,9 +103,10 @@ func DiscoverAll(ctx context.Context, opts *DiscoverAllOptions) *DiscoverAllResu
 }
 
 // FormatDiscoverySkipMessage builds a user-facing message explaining that
-// discovery was skipped for a server because required environment variables
-// could not be resolved. The message includes a copy-paste stigmer discover
-// command so the user can run discovery manually with the correct env vars.
+// discovery was skipped for a server because required credentials (secret env
+// vars) could not be resolved. The message includes a copy-paste stigmer
+// discover command so the user can run discovery manually with the correct
+// env vars.
 func FormatDiscoverySkipMessage(serverName string, unresolved []string) string {
 	envPrefix := strings.Join(unresolved, "=<value> ") + "=<value>"
 	return fmt.Sprintf(
@@ -129,6 +137,13 @@ func DiscoverOne(ctx context.Context, opts *DiscoverOneOptions) (skipMessage str
 
 	if len(envResult.Unresolved) > 0 {
 		return FormatDiscoverySkipMessage(server.Metadata.GetName(), envResult.Unresolved), nil
+	}
+
+	if len(envResult.UnresolvedOptional) > 0 {
+		log.Debug().
+			Str("mcp_server", server.Metadata.GetName()).
+			Strs("unresolved_optional", envResult.UnresolvedOptional).
+			Msg("Non-secret env vars unresolved, proceeding with server defaults")
 	}
 
 	if err := DiscoverServer(ctx, opts.Conn, server, envResult.Overrides, opts.Timeout); err != nil {
