@@ -81,7 +81,9 @@ Skip planning for simple single-step tasks. Use it when the task has 3+ distinct
 
 FILESYSTEM_CAPABILITY = """
 **File System**: You have file system tools (`ls`, `read`, `write`, `edit`,
-`glob`, `grep`, `search`) for managing information. Use the file system to:
+`glob`, `grep`, `search`) for managing information. Always use these canonical
+tool names. Do not use `read_file`, `write_file`, or `edit_file` — they are
+internal overrides with identical behavior. Use the file system to:
 - Store large content that doesn't fit in context
 - Maintain state between operations
 - Search and discover files across directories

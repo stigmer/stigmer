@@ -781,6 +781,32 @@ class TestCreatePlatformToolWrappers:
         tools = create_platform_tool_wrappers(mock_backend, approval_checker=checker)
         assert len(tools) == 11
 
+    def test_alias_tools_have_redirect_descriptions(self, mock_backend):
+        """Alias tools should steer the LLM toward canonical names."""
+        tools = create_platform_tool_wrappers(mock_backend)
+        tools_by_name = {getattr(t, "name", None): t for t in tools}
+
+        aliases_to_canonical = {
+            "read_file": "read",
+            "write_file": "write",
+            "edit_file": "edit",
+        }
+
+        for alias_name, canonical_name in aliases_to_canonical.items():
+            alias = tools_by_name[alias_name]
+            canonical = tools_by_name[canonical_name]
+            desc = alias.description
+
+            assert "do not call directly" in desc.lower(), (
+                f"{alias_name} description must discourage direct use"
+            )
+            assert canonical_name in desc, (
+                f"{alias_name} description must reference canonical tool '{canonical_name}'"
+            )
+            assert desc != canonical.description, (
+                f"{alias_name} must not share the same description as '{canonical_name}'"
+            )
+
 
 class TestApplyLineRange:
     """Tests for the _apply_line_range helper."""
