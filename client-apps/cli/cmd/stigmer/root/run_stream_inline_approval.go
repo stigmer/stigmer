@@ -12,6 +12,25 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
 )
 
+// approvalOverheadRows is the number of display rows consumed by the
+// non-content parts of the expanded approval view: top separator (1),
+// header (1), bottom separator (1), question (1-2), menu (4), plus a
+// small margin (2) for safety. This is subtracted from terminal height
+// to compute the maximum content lines.
+const approvalOverheadRows = 10
+
+// approvalContentBudget computes the maximum number of content lines
+// that can be displayed in the expanded approval view without exceeding
+// the terminal height. This prevents scrolling, which would invalidate
+// EraseLines-based collapse.
+func approvalContentBudget(termHeight int) int {
+	budget := termHeight - approvalOverheadRows
+	if budget < 5 {
+		budget = 5
+	}
+	return budget
+}
+
 // handleApproval orchestrates the expand/prompt/collapse approval flow.
 //
 // For interactive prompts the flow is:
@@ -67,15 +86,12 @@ func (r *inlineRenderer) handleNonInteractiveApproval(
 	opts approval.Options,
 ) {
 	if canCollapse {
-		if contentStreamed && r.cursorSaved {
-			termctl.RestoreCursorAndClear(r.cfg.status)
-		} else if contentStreamed {
+		if contentStreamed {
 			termctl.EraseLines(r.cfg.status, streamedRows)
 		} else if runningRendered {
 			termctl.EraseLines(r.cfg.status, 1)
 		}
 	}
-	r.cursorSaved = false
 
 	action := actionToString(opts.DefaultAction)
 
@@ -123,20 +139,20 @@ func (r *inlineRenderer) handleInteractiveApproval(
 }
 
 // prepareApprovalDisplay renders the content shown above the approval
-// question. Returns the number of display rows rendered, used for cursor
-// control erasure after the user decides.
+// question. Returns the number of display rows rendered, used for
+// EraseLines-based erasure after the user decides.
 //
 // When contentStreamed is true and cursor control is available, the
-// incomplete streaming output (which may lack the file path in the
-// header) is erased and replaced with the full expanded view built from
-// the now-complete Args. This ensures the header shows the file path
-// and separators span the terminal width.
-//
-// Degraded fallback (no cursor control): a bottom separator is appended
-// below the existing content with a defensive newline.
+// streamed content is erased and replaced with the full expanded view
+// built from the now-complete Args. This ensures the header shows the
+// file path and separators span the terminal width.
 //
 // When contentStreamed is false, the full expanded view (separator +
 // header + content + separator) is printed from Args.
+//
+// Content is height-capped and width-clamped via buildExpandedView to
+// keep the total display within the terminal height, making the row
+// count deterministic for EraseLines.
 func (r *inlineRenderer) prepareApprovalDisplay(
 	tc toolrender.ToolCallInfo,
 	contentStreamed bool,
@@ -144,26 +160,18 @@ func (r *inlineRenderer) prepareApprovalDisplay(
 	runningRendered, canCollapse bool,
 	width int,
 ) int {
-	if contentStreamed {
-		if canCollapse && r.cursorSaved {
-			termctl.RestoreCursorAndClear(r.cfg.status)
-		}
-		termctl.SaveCursor(r.cfg.status)
-		r.cursorSaved = true
+	termHeight := termctl.Height(r.cfg.status, 40)
 
-		expanded := r.buildExpandedView(tc, width)
-		fmt.Fprint(r.cfg.status, expanded)
-		return termctl.DisplayRows(expanded, width)
+	if contentStreamed && canCollapse {
+		termctl.EraseLines(r.cfg.status, streamedRows)
 	}
 
-	if canCollapse && runningRendered {
+	if !contentStreamed && canCollapse && runningRendered {
 		termctl.EraseLines(r.cfg.status, 1)
 	}
 
-	termctl.SaveCursor(r.cfg.status)
-	r.cursorSaved = true
-
-	expanded := r.buildExpandedView(tc, width)
+	maxContentLines := approvalContentBudget(termHeight)
+	expanded := r.buildExpandedView(tc, width, maxContentLines)
 	fmt.Fprint(r.cfg.status, expanded)
 	return termctl.DisplayRows(expanded, width)
 }
@@ -181,14 +189,13 @@ func (r *inlineRenderer) finalizeApproval(
 ) {
 	action := actionToString(decision.Action)
 
-	if canCollapse {
-		if r.cursorSaved {
-			termctl.RestoreCursorAndClear(r.cfg.status)
-		} else {
-			termctl.EraseLines(r.cfg.status, totalRows)
+	if canCollapse && totalRows > 0 {
+		termHeight := termctl.Height(r.cfg.status, 40)
+		if totalRows > termHeight {
+			totalRows = termHeight
 		}
+		termctl.EraseLines(r.cfg.status, totalRows)
 	}
-	r.cursorSaved = false
 
 	if action == "approve" && toolrender.IsShellTool(tc.Name) {
 		r.initPostApprovalStreaming(e.ToolCallID, tc, subAgentID)
@@ -224,9 +231,11 @@ func (r *inlineRenderer) resolveApprovalContext(e executiontui.ApprovalNeededEve
 
 // buildExpandedView assembles the expanded approval content shown before
 // the user makes a decision: separator + header + content + separator.
+// Content is height-capped to maxContentLines and width-clamped to
+// width-1 to prevent line wrapping, making the row count deterministic.
 // Separators span the given terminal width. The question and menu are
 // rendered by the caller below the bottom separator.
-func (r *inlineRenderer) buildExpandedView(tc toolrender.ToolCallInfo, width int) string {
+func (r *inlineRenderer) buildExpandedView(tc toolrender.ToolCallInfo, width, maxContentLines int) string {
 	var b strings.Builder
 	sep := toolrender.ApprovalSeparator(width)
 
@@ -239,6 +248,11 @@ func (r *inlineRenderer) buildExpandedView(tc toolrender.ToolCallInfo, width int
 
 	content := toolrender.ExpandedApprovalContent(tc)
 	if content != "" {
+		maxWidth := width - 1
+		if maxWidth < 20 {
+			maxWidth = 20
+		}
+		content = toolrender.TruncateContent(content, maxContentLines, maxWidth)
 		b.WriteString(content)
 		if !strings.HasSuffix(content, "\n") {
 			b.WriteByte('\n')
@@ -266,14 +280,13 @@ func (r *inlineRenderer) promptForDecision(ctx context.Context, opts approval.Op
 // Session exit (Esc/Ctrl+C) terminates the session. Any other error
 // (context cancellation, unexpected failure) auto-skips the tool.
 func (r *inlineRenderer) handlePromptError(e executiontui.ApprovalNeededEvent, err error, renderedRows int, canCollapse bool) {
-	if canCollapse {
-		if r.cursorSaved {
-			termctl.RestoreCursorAndClear(r.cfg.status)
-		} else if renderedRows > 0 {
-			termctl.EraseLines(r.cfg.status, renderedRows)
+	if canCollapse && renderedRows > 0 {
+		termHeight := termctl.Height(r.cfg.status, 40)
+		if renderedRows > termHeight {
+			renderedRows = termHeight
 		}
+		termctl.EraseLines(r.cfg.status, renderedRows)
 	}
-	r.cursorSaved = false
 
 	if errors.Is(err, approval.ErrSessionExit) {
 		r.handleSessionExit(e)

@@ -242,6 +242,11 @@ func IsTaskTool(toolName string) bool {
 	return ok && info.label == "Task"
 }
 
+// GutterWidth returns the visible character width of the gutter prefix
+// added by GutterWrap. Callers use this to compute the available content
+// width after gutter indentation.
+func GutterWidth() int { return 4 }
+
 // GutterWrap prepends a dim gutter prefix ("  │ ") to each line of s,
 // visually nesting the content under a sub-agent Task header. The pipe
 // character uses dimStyle for a subtle visual guide; surrounding spaces

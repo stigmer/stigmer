@@ -765,3 +765,99 @@ func TestShouldSuppressCompletion_UnknownNotSuppressed(t *testing.T) {
 		t.Error("unknown tool should NOT be suppressed")
 	}
 }
+
+// ---------------------------------------------------------------------------
+// TruncateContent
+// ---------------------------------------------------------------------------
+
+func TestTruncateContent_Empty(t *testing.T) {
+	if got := TruncateContent("", 10, 80); got != "" {
+		t.Errorf("TruncateContent(\"\", 10, 80) = %q, want \"\"", got)
+	}
+}
+
+func TestTruncateContent_UnderLimit(t *testing.T) {
+	content := "line 1\nline 2\nline 3"
+	got := TruncateContent(content, 10, 80)
+	if got != content {
+		t.Errorf("content under limit should be unchanged, got:\n%s", got)
+	}
+}
+
+func TestTruncateContent_ExactLimit(t *testing.T) {
+	content := "line 1\nline 2\nline 3"
+	got := TruncateContent(content, 3, 80)
+	if got != content {
+		t.Errorf("content at exact limit should be unchanged, got:\n%s", got)
+	}
+}
+
+func TestTruncateContent_OverLimit(t *testing.T) {
+	content := "line 1\nline 2\nline 3\nline 4\nline 5"
+	got := stripANSI(TruncateContent(content, 2, 80))
+	if !strings.Contains(got, "line 1") {
+		t.Errorf("truncated content should contain first line, got:\n%s", got)
+	}
+	if !strings.Contains(got, "line 2") {
+		t.Errorf("truncated content should contain second line, got:\n%s", got)
+	}
+	if strings.Contains(got, "line 3") {
+		t.Errorf("truncated content should NOT contain third line, got:\n%s", got)
+	}
+	if !strings.Contains(got, "+3 more lines") {
+		t.Errorf("truncated content should show overflow, got:\n%s", got)
+	}
+}
+
+func TestTruncateContent_ClampsWidth(t *testing.T) {
+	content := strings.Repeat("x", 100) + "\nshort"
+	got := TruncateContent(content, 10, 40)
+	lines := strings.Split(got, "\n")
+	// First line should be truncated (visible width <= 40)
+	if len(lines) < 2 {
+		t.Fatalf("expected at least 2 lines, got %d", len(lines))
+	}
+	if len(lines[0]) >= 100 {
+		t.Errorf("first line should be width-clamped, got len %d", len(lines[0]))
+	}
+}
+
+func TestTruncateContent_TrailingNewline(t *testing.T) {
+	content := "line 1\nline 2\n"
+	got := TruncateContent(content, 5, 80)
+	if got != "line 1\nline 2" {
+		t.Errorf("trailing newline should be trimmed before processing, got: %q", got)
+	}
+}
+
+func TestTruncateContent_ZeroMaxLines(t *testing.T) {
+	got := TruncateContent("hello", 0, 80)
+	if got != "hello" {
+		t.Errorf("zero maxLines should return content unchanged, got: %q", got)
+	}
+}
+
+func TestTruncateContent_ZeroMaxWidth(t *testing.T) {
+	got := TruncateContent("hello", 10, 0)
+	if got != "hello" {
+		t.Errorf("zero maxWidth should return content unchanged, got: %q", got)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// StreamTruncationIndicator
+// ---------------------------------------------------------------------------
+
+func TestStreamTruncationIndicator_ZeroOverflow(t *testing.T) {
+	got := stripANSI(StreamTruncationIndicator(0))
+	if !strings.Contains(got, "content continues") {
+		t.Errorf("zero overflow should show generic indicator, got: %q", got)
+	}
+}
+
+func TestStreamTruncationIndicator_WithOverflow(t *testing.T) {
+	got := stripANSI(StreamTruncationIndicator(42))
+	if !strings.Contains(got, "+42 more lines") {
+		t.Errorf("overflow indicator should show count, got: %q", got)
+	}
+}

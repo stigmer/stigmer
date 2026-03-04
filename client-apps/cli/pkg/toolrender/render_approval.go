@@ -173,6 +173,53 @@ func ShouldSuppressCompletion(toolName string) bool {
 	return false
 }
 
+// StreamTruncationIndicator returns a dim single-line indicator shown when
+// streaming content exceeds the display cap. overflow is the number of
+// content lines beyond the cap.
+func StreamTruncationIndicator(overflow int) string {
+	if overflow <= 0 {
+		return dimStyle.Render("… content continues") + "\n"
+	}
+	return dimStyle.Render(fmt.Sprintf("… +%d more lines", overflow)) + "\n"
+}
+
+// TruncateContent caps content to maxLines lines and clamps each line to
+// maxWidth visible characters. Returns the truncated content with a
+// "… +N more lines" footer if lines were removed.
+//
+// maxWidth uses ANSI-aware truncation so escape codes (colors, hyperlinks)
+// do not count toward the visible width. This prevents line wrapping in the
+// expanded approval view, making the display row count deterministic.
+//
+// A maxLines <= 0 or maxWidth <= 0 returns the content unchanged.
+func TruncateContent(content string, maxLines, maxWidth int) string {
+	if content == "" || maxLines <= 0 || maxWidth <= 0 {
+		return content
+	}
+
+	lines := strings.Split(strings.TrimRight(content, "\n"), "\n")
+
+	clamped := lines
+	if len(clamped) > maxLines {
+		clamped = clamped[:maxLines]
+	}
+
+	var b strings.Builder
+	for i, line := range clamped {
+		if i > 0 {
+			b.WriteByte('\n')
+		}
+		b.WriteString(truncateANSI(line, maxWidth))
+	}
+
+	if len(lines) > maxLines {
+		b.WriteByte('\n')
+		b.WriteString(dimStyle.Render(fmt.Sprintf("… +%d more lines", len(lines)-maxLines)))
+	}
+
+	return b.String()
+}
+
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
