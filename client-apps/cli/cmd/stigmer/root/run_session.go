@@ -129,19 +129,25 @@ func resumeSession(sessionID, sessionSubject, orgID string, executions []*agente
 	switch outputMode {
 	case OutputInline:
 		prompter := approval.NewInlinePrompter(os.Stdin, os.Stderr)
-		_, exitErr := renderInline(streamCtx, inlineRenderConfig{
+		followUpFn := buildFollowUpFn(streamCtx, sessionID, orgID, conn)
+		cfg := inlineRenderConfig{
 			events:            events,
 			approvalResponses: approvalResponses,
 			prompter:          prompter,
 			data:              os.Stdout,
 			status:            os.Stderr,
 			sessionID:         sessionID,
-		})
+		}
+		finalExecID, _, exitErr := runInlineFollowUpLoop(streamCtx, cfg, followUpFn, latestExecID)
 		streamCancel()
 		if exitErr != "" {
 			return errors.New(exitErr)
 		}
-		displaySessionExitLine(sessionID, latestExec)
+		finalExec, err := fetchFinalExecution(context.Background(), conn, finalExecID)
+		if err != nil {
+			return errors.Wrap(err, "failed to fetch final execution state")
+		}
+		displaySessionExitLine(sessionID, finalExec)
 		return nil
 
 	case OutputJSON:

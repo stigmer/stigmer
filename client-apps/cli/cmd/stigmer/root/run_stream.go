@@ -63,7 +63,7 @@ func streamAgentExecution(sessionID, sessionSubject, executionID, orgID string, 
 
 	switch outputMode {
 	case OutputInline:
-		return streamAgentInline(streamCtx, streamCancel, sessionID, executionID, events, approvalResponses, prompter, defaultAction, conn)
+		return streamAgentInline(streamCtx, streamCancel, sessionID, executionID, orgID, events, approvalResponses, prompter, defaultAction, conn)
 	case OutputJSON:
 		return streamAgentJSON(streamCtx, streamCancel, sessionID, executionID, events, approvalResponses, defaultAction, conn)
 	default:
@@ -146,9 +146,16 @@ func streamAgentInteractive(streamCtx context.Context, streamCancel context.Canc
 }
 
 // streamAgentInline renders events as streaming text without the TUI.
-// AI content goes to stdout, status/progress goes to stderr.
-func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFunc, sessionID, executionID string, events chan executiontui.Event, approvalResponses chan executiontui.ApprovalResponse, prompter approval.Prompter, defaultAction approval.Action, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
-	phase, exitErr := renderInline(streamCtx, inlineRenderConfig{
+// AI content goes to stdout, status/progress goes to stderr. When a session
+// exists, a follow-up loop prompts for continued conversation after each
+// execution completes.
+func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFunc, sessionID, executionID, orgID string, events chan executiontui.Event, approvalResponses chan executiontui.ApprovalResponse, prompter approval.Prompter, defaultAction approval.Action, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
+	var followUpFn executiontui.FollowUpFn
+	if sessionID != "" {
+		followUpFn = buildFollowUpFn(streamCtx, sessionID, orgID, conn)
+	}
+
+	cfg := inlineRenderConfig{
 		events:            events,
 		approvalResponses: approvalResponses,
 		prompter:          prompter,
@@ -156,10 +163,12 @@ func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFun
 		data:              os.Stdout,
 		status:            os.Stderr,
 		sessionID:         sessionID,
-	})
+	}
+
+	latestExecID, phase, exitErr := runInlineFollowUpLoop(streamCtx, cfg, followUpFn, executionID)
 	streamCancel()
 
-	return streamAgentEpilogue(sessionID, executionID, phase, exitErr, conn)
+	return streamAgentEpilogue(sessionID, latestExecID, phase, exitErr, conn)
 }
 
 // streamAgentJSON renders events as newline-delimited JSON on stdout.

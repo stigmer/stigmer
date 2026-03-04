@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-04 00:23
-**Current Task**: Phase 3 (Claude Code-Style Approval Flow — REVISED)
-**Status**: In Progress — Phase 3.4 complete
-**Last Session**: 2026-03-04 — Phase 3.4 (ToolStreamDeltaEvent streaming for pre- and post-approval flows) complete
+**Current Task**: Phase 5 (Quick Cleanups)
+**Status**: In Progress — Phase 4 complete
+**Last Session**: 2026-03-04 — Phase 4 (Thinking Spinner + Follow-Up Input) complete
 
 ## Session Progress (2026-03-04, Session 1)
 
@@ -346,7 +346,10 @@ When starting a new session:
    - ~~3.2: Four-state tool rendering (streaming → approval → collapse with └ connector)~~ DONE
    - ~~3.3: Rewrite handleApproval (orchestrate expand/prompt/collapse/suppress)~~ DONE
    - ~~3.4: Shell tool approval variant + enable ToolStreamDeltaEvent streaming~~ DONE
-2. Phase 4: Inline follow-up readline + thinking spinner
+2. ~~Phase 4: Inline follow-up readline + thinking spinner~~ DONE
+   - ~~4.0: Thinking spinner (mid-run idle indicator)~~ DONE
+   - ~~4.1: Post-completion follow-up readline loop~~ DONE
+3. Phase 5: Quick Cleanups
 
 ## Session Progress (2026-03-04, Session 13)
 
@@ -377,8 +380,44 @@ When starting a new session:
 - `client-apps/cli/cmd/stigmer/root/BUILD.bazel` (modified — new files)
 - `client-apps/cli/pkg/toolrender/render_approval.go` (modified — docstring update)
 
+## Session Progress (2026-03-04, Session 14)
+
+- Phase 4.0 (Thinking Spinner) completed
+- Created `cmd/stigmer/root/run_stream_inline_spinner.go` (62 lines) — 4 methods on `inlineRenderer`: `startThinkingSpinner` (guarded activation), `stopThinkingSpinner` (synchronous clear), `resetThinkTimer` (conditional timer reset), `thinkingAllowed` (state predicate)
+- Created `cmd/stigmer/root/run_stream_inline_spinner_test.go` (14 tests) — covers `thinkingAllowed` under all state combinations (6 tests), timer reset/stop (2 tests), spinner guards (2 tests), event integration (4 tests including full event loop with idle gap)
+- Modified `cmd/stigmer/root/run_stream_inline.go` (+28 lines) — added `spinner`, `thinkTimer`, `phase` fields to `inlineRenderer`; added timer initialization with drain in `renderInline`; added third `select` case for timer fire; `stopThinkingSpinner`/`resetThinkTimer` called on every event; `phase` tracked in `renderPhaseChange`
+- Phase 4.1 (Follow-Up Readline Loop) completed
+- Created `cmd/stigmer/root/run_stream_inline_followup.go` (83 lines) — `runInlineFollowUpLoop` (outer loop wrapping `renderInline`), `readFollowUpInput` (bufio.Scanner prompt on stderr), `isFollowUpEligible` (allows `completed`/`failed` phases)
+- Created `cmd/stigmer/root/run_stream_inline_followup_test.go` (16 tests) — covers `isFollowUpEligible` for all phases (6 tests), `readFollowUpInput` with input/trim/empty/EOF (4 tests), loop flow: nil followUpFn, non-eligible phase, empty input, error, successful follow-up, failed-phase corrective follow-up (6 tests)
+- Modified `cmd/stigmer/root/run_stream.go` (+15 lines) — `streamAgentInline` now accepts `orgID`, builds `followUpFn` when session exists, delegates to `runInlineFollowUpLoop`; `streamAgentExecution` passes `orgID` through
+- Modified `cmd/stigmer/root/run_session.go` (+12 lines) — `resumeSession` inline path uses `runInlineFollowUpLoop` with `buildFollowUpFn`, fetches final execution by `latestExecID`
+- Updated `cmd/stigmer/root/BUILD.bazel` (+4 lines) — added 4 new files (2 source, 2 test)
+
+### Key Design Decisions (Session 14)
+- **Reuse `pkg/spinner`**: No new spinner code. Existing spinner handles TTY detection, goroutine lifecycle, and `\r\033[K` clearing. Spinner writes to stderr (cfg.status), consistent with all status output.
+- **2-second idle threshold**: Matches TUI's `idleThreshold`. Prevents flicker during rapid tool cycling. Timer reset on every event; only fires after sustained silence.
+- **`thinkingAllowed` predicate**: Centralizes the 4-condition guard (phase is `in_progress`, no AI stream, no tool stream, no approval pending). Both `startThinkingSpinner` and `resetThinkTimer` use it.
+- **Timer drain on init**: `time.NewTimer(0)` immediately fires; `Stop()` + drain prevents a spurious spinner start at the beginning of the event loop.
+- **`bufio.Scanner` over readline library**: Zero new dependencies. OS terminal provides line editing (backspace, arrow keys, Home/End) natively in cooked mode. No raw mode means no conflict with `InlinePrompter`. History recall deferred — can swap `readFollowUpInput` internals later without architectural changes.
+- **`isFollowUpEligible` allows `failed` phase**: Matches TUI behavior where users can recover from failures by sending corrective instructions. Only `cancelled`, stream errors, and unknown phases exit.
+- **Follow-up loop as outer wrapper**: `runInlineFollowUpLoop` wraps `renderInline`, keeping the event loop single-responsibility. Each iteration creates a fresh `inlineRenderer` — no stale state leaks between executions.
+- **Both entry points wired**: `streamAgentInline` (live sessions) and `resumeSession` inline path (replayed history) both use the follow-up loop, matching TUI behavior.
+- **`latestExecID` tracking**: The loop returns the most recent execution ID so `streamAgentEpilogue` and `resumeSession` fetch the correct final execution (which may be a follow-up, not the original).
+
+### Files Created/Modified (Session 14)
+- `client-apps/cli/cmd/stigmer/root/run_stream_inline_spinner.go` (new — 62 lines)
+- `client-apps/cli/cmd/stigmer/root/run_stream_inline_spinner_test.go` (new — 14 tests)
+- `client-apps/cli/cmd/stigmer/root/run_stream_inline_followup.go` (new — 83 lines)
+- `client-apps/cli/cmd/stigmer/root/run_stream_inline_followup_test.go` (new — 16 tests)
+- `client-apps/cli/cmd/stigmer/root/run_stream_inline.go` (modified — spinner/timer/phase integration)
+- `client-apps/cli/cmd/stigmer/root/run_stream.go` (modified — orgID passthrough + follow-up loop)
+- `client-apps/cli/cmd/stigmer/root/run_session.go` (modified — follow-up loop for resumed sessions)
+- `client-apps/cli/cmd/stigmer/root/BUILD.bazel` (modified — new files)
+
 ## Context for Resume
 
+- **`cmd/stigmer/root/run_stream_inline_spinner.go`** is the thinking spinner module (Phase 4.0). Four methods on `inlineRenderer`: `startThinkingSpinner` (guarded `spinner.Start("Thinking...")`), `stopThinkingSpinner` (synchronous `spinner.Stop()`), `resetThinkTimer` (resets 2s timer when `thinkingAllowed`, stops otherwise), `thinkingAllowed` (returns true when phase is `in_progress`, no AI stream, no tool stream, no approval pending). State tracked via `spinner *spinner.Spinner`, `thinkTimer *time.Timer`, `phase string` on `inlineRenderer`. Timer integrated as third `select` case in `renderInline`'s event loop.
+- **`cmd/stigmer/root/run_stream_inline_followup.go`** is the follow-up loop module (Phase 4.1). `runInlineFollowUpLoop(ctx, cfg, followUpFn, executionID)` wraps `renderInline` in a conversational loop — after `DoneEvent`, prompts for input via `readFollowUpInput`, creates follow-up execution via `followUpFn`, swaps channels, and loops. `readFollowUpInput(status)` prints `\n> ` to stderr, reads one line from stdin via `bufio.Scanner`. `isFollowUpEligible(phase, exitErr)` gates on `completed`/`failed` phases with no exit error. Both `streamAgentInline` and `resumeSession` inline path use this loop.
 - **`cmd/stigmer/root/run_stream_inline_streaming.go`** is the tool content streaming module (Phase 3.4). Five methods on `inlineRenderer`: `initPreApprovalStreaming` (prints header+separator, sets state for write/edit typewriter), `initPostApprovalStreaming` (prints compact running header, sets state for shell output), `renderToolStreamDelta` (append-only delta rendering, recomputes row count from full content), `completeStreamingTool` (erases streaming output via cursor control, prints compact result), `resolveStreamContent` (prefers `e.Content`, falls back to `ExpandedApprovalContent`). Plus `clearStreamingState` helper. Streaming state tracked via `activeStreamToolID`, `toolStreamedBytes`, `streamHeaderRows`, `streamLineCount`, `streamSubAgentID` on `inlineRenderer`.
 - **`cmd/stigmer/root/run_stream_inline_approval.go`** is the approval orchestrator (Phase 3.3 + 3.4). Entry point `handleApproval(r, e)` dispatches to `handleNonInteractiveApproval` or `handleInteractiveApproval`. The interactive path uses `prepareApprovalDisplay` (content-already-streamed: add separator only; non-streamed: full expanded view), prompt orchestration, and `finalizeApproval` (erase + collapse or shell streaming). `resolveApprovalContext` returns 5 values including `contentStreamed` and `streamedRows`. Shell approval calls `initPostApprovalStreaming` instead of `printCollapsedResult`. `trackSuppression` adds to `suppressedToolIDs` for non-shell tools; shell completions are handled by the streaming interception in `handleEvent`.
 - **`pkg/toolrender/render_approval.go`** is the approval rendering module (Phase 3.2 + 3.3). Six public functions: `RenderApprovalResult` (collapsed post-decision view), `ApprovalSeparator` (dim separator), `ApprovalQuestion` (contextual question), `ExpandedApprovalHeader` (green bullet pre-decision header), `ExpandedApprovalContent` (full display content for expanded view), `ShouldSuppressCompletion` (predicate: write/edit/create/delete → true, shell → false — shell completions handled by streaming interception).
@@ -407,7 +446,7 @@ None.
 ## Quick Commands
 
 After loading context:
-- "Start Phase 4" - Inline follow-up readline + thinking spinner
+- "Start Phase 5" - Quick cleanups (todo index reset, duplicate code, orphaned functions)
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 
