@@ -573,6 +573,36 @@ def create_tool_wrappers_for_server(
 # =============================================================================
 
 
+_ALIAS_DESCRIPTION_TEMPLATE = (
+    "Internal override for '{canonical}'. Do not call directly "
+    "-- use '{canonical}' instead (identical parameters and behavior)."
+)
+
+
+def _register_alias(
+    factory: Callable[..., Any],
+    alias_name: str,
+    canonical_name: str,
+    backend: Any,  # noqa: ANN401
+    approval_checker: Callable[[str, dict[str, Any]], ApprovalRequirement] | None,
+    tools: list[Callable[..., Any]],
+) -> None:
+    """Register a tool alias that redirects the LLM to the canonical name.
+
+    Creates a fully functional tool (same backend, same approval checking) but
+    with a description that tells the LLM to prefer the canonical tool instead.
+    The alias exists so that LangChain's ToolNode resolves to our approval-aware
+    implementation even when the LLM (or deepagents middleware) uses the _file
+    suffixed name.
+    """
+    alias_tool = factory(backend, approval_checker)
+    alias_tool.name = alias_name  # type: ignore[attr-defined]
+    alias_tool.description = _ALIAS_DESCRIPTION_TEMPLATE.format(  # type: ignore[attr-defined]
+        canonical=canonical_name,
+    )
+    tools.append(alias_tool)
+
+
 def create_platform_tool_wrappers(
     backend: Any,  # noqa: ANN401
     approval_checker: Callable[[str, dict[str, Any]], ApprovalRequirement] | None = None,
@@ -674,21 +704,13 @@ def create_platform_tool_wrappers(
     # ensure that LangChain's ToolNode resolves to our versions (explicit tools
     # take precedence over middleware-created tools).  This eliminates the tool
     # selection conflict regardless of which name the LLM picks.
+    #
+    # Alias descriptions are set to redirect the LLM toward the canonical name
+    # so it does not waste turns deliberating between duplicate tools.
     
-    # read_file alias -> same filesystem backend as "read"
-    read_file_alias = _create_read_tool(backend, approval_checker)
-    read_file_alias.name = "read_file"  # type: ignore[attr-defined]
-    tools.append(read_file_alias)
-    
-    # write_file alias -> same filesystem backend as "write"
-    write_file_alias = _create_write_tool(backend, approval_checker)
-    write_file_alias.name = "write_file"  # type: ignore[attr-defined]
-    tools.append(write_file_alias)
-    
-    # edit_file alias -> same filesystem backend as "edit"
-    edit_file_alias = _create_edit_tool(backend, approval_checker)
-    edit_file_alias.name = "edit_file"  # type: ignore[attr-defined]
-    tools.append(edit_file_alias)
+    _register_alias(_create_read_tool, "read_file", "read", backend, approval_checker, tools)
+    _register_alias(_create_write_tool, "write_file", "write", backend, approval_checker, tools)
+    _register_alias(_create_edit_tool, "edit_file", "edit", backend, approval_checker, tools)
     
     tool_names = [getattr(t, 'name', 'unknown') for t in tools]
     logger.info(

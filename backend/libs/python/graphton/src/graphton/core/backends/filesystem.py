@@ -17,6 +17,7 @@ import logging
 import os
 import subprocess
 import sys
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -79,6 +80,7 @@ class FilesystemBackend:
         *,
         platform_dir: str | Path | None = None,
         env_vars: dict[str, str] | None = None,
+        allowed_roots: Mapping[str, str | Path] | Sequence[str | Path] | None = None,
     ) -> None:
         """Initialize filesystem backend.
 
@@ -89,6 +91,14 @@ class FilesystemBackend:
             env_vars: Extra environment variables injected into every
                 ``execute()`` subprocess.  Sourced from the agent's
                 ``env_spec`` and CLI ``--env`` overrides.
+            allowed_roots: Additional filesystem roots that the sandbox
+                may access (typically symlink targets for multi-workspace
+                local-path entries).  Accepts either a mapping of
+                ``{entry_name: host_path}`` for path rewriting support,
+                or a flat sequence of paths for containment-only checks.
+                When a mapping is provided, absolute host paths in tool
+                calls are rewritten to entry-relative form before
+                resolution.
         """
         self.root_dir = Path(root_dir).resolve()
         self.root_dir.mkdir(parents=True, exist_ok=True)
@@ -103,9 +113,14 @@ class FilesystemBackend:
             dict(env_vars) if env_vars else None
         )
 
+        self._allowed_roots, self._allowed_root_map = _parse_allowed_roots(
+            allowed_roots,
+        )
+
         self._gitignore: GitIgnoreFilter | None = GitIgnoreFilter.from_file(
             self.root_dir / ".gitignore",
         )
+        self._entry_gitignores = self._discover_entry_gitignores()
 
         self._dir_cache: dict[str, list[str]] = {}
         self._path_type_cache: dict[str, bool] = {}
@@ -127,6 +142,41 @@ class FilesystemBackend:
         self._dir_cache.clear()
         self._path_type_cache.clear()
 
+    # -- Gitignore discovery ----------------------------------------------------
+
+    def _discover_entry_gitignores(self) -> dict[str, GitIgnoreFilter]:
+        """Scan immediate subdirectories for ``.gitignore`` files.
+
+        In multi-workspace sessions ``root_dir`` is a container directory
+        whose children are workspace entries (e.g. git clones).  Each entry
+        may carry its own ``.gitignore`` that should govern filtering within
+        that subtree.
+
+        Returns a mapping from subdirectory name to its compiled filter.
+        Subdirectories without a ``.gitignore`` (or with an empty one) are
+        omitted.  Hidden directories (starting with ``"."``) are skipped
+        because they are already excluded by ``_should_include``.
+        """
+        result: dict[str, GitIgnoreFilter] = {}
+        try:
+            children = self.root_dir.iterdir()
+        except OSError:
+            return result
+        for child in children:
+            if not child.is_dir() or child.name.startswith("."):
+                continue
+            gi_path = child / ".gitignore"
+            if gi_path.is_file():
+                gi = GitIgnoreFilter.from_file(gi_path)
+                if gi is not None:
+                    result[child.name] = gi
+        if result:
+            logger.debug(
+                "Discovered entry-level .gitignore filters: %s",
+                ", ".join(sorted(result)),
+            )
+        return result
+
     # -- Entry filtering -------------------------------------------------------
 
     def _should_include(
@@ -138,19 +188,41 @@ class FilesystemBackend:
     ) -> bool:
         """Decide whether a directory entry should be visible to agent tools.
 
-        Consolidates the three filtering layers (hidden, skip-dir, gitignore)
-        into a single predicate so that ``list_files`` and
-        ``_format_directory_listing`` share one source of truth.
+        Consolidates the filtering layers into a single predicate so that
+        ``list_files`` and ``_format_directory_listing`` share one source of
+        truth.
+
+        Layers checked in order (first rejection wins):
+
+        1. Hidden entries (names starting with ``"."``) and well-known
+           noise directories (``_SKIP_DIR_NAMES``).
+        2. Root-level ``.gitignore`` patterns (checked against the full
+           workspace-relative path).
+        3. Entry-level ``.gitignore`` patterns (checked against the path
+           relative to the entry subdirectory).  Only applies to paths
+           *within* a subdirectory that has a discovered ``.gitignore``,
+           never to the subdirectory name itself.
         """
         if name.startswith(".") or name in self._SKIP_DIR_NAMES:
             return False
+
+        try:
+            rel_path = str(parent_dir.relative_to(self.root_dir) / name)
+        except ValueError:
+            return True
+
         if self._gitignore is not None:
-            try:
-                rel_path = str(parent_dir.relative_to(self.root_dir) / name)
-            except ValueError:
-                return True
             if self._gitignore.is_ignored(rel_path, is_dir=is_dir):
                 return False
+
+        if self._entry_gitignores:
+            parts = rel_path.split("/", 1)
+            if len(parts) == 2 and parts[0] in self._entry_gitignores:
+                if self._entry_gitignores[parts[0]].is_ignored(
+                    parts[1], is_dir=is_dir,
+                ):
+                    return False
+
         return True
 
     # -- Path resolution -------------------------------------------------------
@@ -165,6 +237,14 @@ class FilesystemBackend:
         When ``platform_dir`` is set, ``.stigmer/*`` paths are resolved
         against the platform directory with a separate containment check.
 
+        When ``allowed_roots`` was provided with a mapping, absolute host
+        paths that match an allowed root are rewritten to entry-relative
+        form before resolution (e.g. ``/Users/dev/repo-a/foo.py`` becomes
+        ``repo-a/foo.py`` when ``repo-a`` maps to ``/Users/dev/repo-a``).
+
+        After resolution (which follows symlinks), the containment check
+        accepts paths under ``root_dir`` *or* under any allowed root.
+
         Args:
             path: Path to resolve. May be relative or absolute.
                   Absolute paths have their leading ``/`` stripped.
@@ -173,7 +253,7 @@ class FilesystemBackend:
             Resolved Path within the appropriate root.
 
         Raises:
-            ValueError: If the resolved path escapes its root
+            ValueError: If the resolved path escapes all trusted roots
                 (e.g. via ``../../`` traversal).
         """
         root_str = str(self.root_dir)
@@ -181,6 +261,11 @@ class FilesystemBackend:
             path = path[len(root_str):]
         elif path == root_str:
             path = ""
+
+        # Rewrite absolute host paths that match an allowed root to
+        # entry-relative form so they resolve through the symlinks.
+        if self._allowed_root_map:
+            path = self._rewrite_allowed_root_path(path)
 
         # Virtual platform mount: route .stigmer/* to platform_dir.
         if self._platform_root is not None:
@@ -191,12 +276,39 @@ class FilesystemBackend:
         clean = path.lstrip("/")
         resolved = (self.root_dir / clean).resolve()
 
-        if not str(resolved).startswith(str(self.root_dir)):
+        if not self._is_within_trusted_roots(resolved):
             raise ValueError(
                 f"Path '{path}' resolves outside sandbox root '{self.root_dir}'"
             )
 
         return resolved
+
+    def _rewrite_allowed_root_path(self, path: str) -> str:
+        """Rewrite an absolute host path to entry-relative if it matches
+        an allowed root.
+
+        For example, if ``allowed_root_map`` contains
+        ``{"repo-a": Path("/Users/dev/repo-a")}``, then
+        ``/Users/dev/repo-a/src/main.py`` is rewritten to
+        ``repo-a/src/main.py``.
+        """
+        for entry_name, host_path in self._allowed_root_map.items():
+            host_str = str(host_path)
+            if path.startswith(host_str + "/"):
+                return entry_name + path[len(host_str):]
+            if path == host_str:
+                return entry_name
+        return path
+
+    def _is_within_trusted_roots(self, resolved: Path) -> bool:
+        """Check whether *resolved* falls under root_dir or any allowed root."""
+        resolved_str = str(resolved)
+        if resolved_str.startswith(str(self.root_dir)):
+            return True
+        return any(
+            resolved_str.startswith(str(ar))
+            for ar in self._allowed_roots
+        )
 
     def _resolve_platform(self, remainder: str) -> Path:
         """Resolve *remainder* within ``platform_dir`` with containment check."""
@@ -479,3 +591,32 @@ class FilesystemBackend:
 
         self._dir_cache[cache_key] = entries
         return list(entries)
+
+
+# ---------------------------------------------------------------------------
+# Module-level helpers
+# ---------------------------------------------------------------------------
+
+
+def _parse_allowed_roots(
+    allowed_roots: Mapping[str, str | Path] | Sequence[str | Path] | None,
+) -> tuple[list[Path], dict[str, Path]]:
+    """Normalize *allowed_roots* into a resolved list and an optional mapping.
+
+    Returns:
+        A tuple of ``(allowed_list, allowed_map)``.  ``allowed_list``
+        contains resolved ``Path`` objects for the containment check.
+        ``allowed_map`` maps entry names to resolved ``Path`` objects
+        for absolute-path rewriting; empty when the input was a flat
+        sequence (no entry names available).
+    """
+    if not allowed_roots:
+        return [], {}
+
+    if isinstance(allowed_roots, Mapping):
+        resolved_map: dict[str, Path] = {
+            name: Path(p).resolve() for name, p in allowed_roots.items()
+        }
+        return list(resolved_map.values()), resolved_map
+
+    return [Path(p).resolve() for p in allowed_roots], {}

@@ -49,8 +49,8 @@ type Options struct {
 // DefaultWidth is used when Options.Width is not specified.
 const DefaultWidth = 70
 
-// padding is the horizontal space between the border and content on each side.
-const padding = 2
+// Padding is the horizontal space between the border and content on each side.
+const Padding = 2
 
 // Render draws a bordered box panel around the given content.
 //
@@ -73,7 +73,7 @@ func Render(content string, opts Options) string {
 		width = DefaultWidth
 	}
 
-	color := resolveColor(opts.Style)
+	color := ResolveColor(opts.Style)
 	border := lipgloss.NewStyle().Foreground(color)
 	title := lipgloss.NewStyle().Foreground(color).Bold(true)
 
@@ -81,7 +81,7 @@ func Render(content string, opts Options) string {
 	innerWidth := width - 2
 
 	// contentWidth is the space available for text after subtracting padding.
-	contentWidth := innerWidth - (2 * padding)
+	contentWidth := innerWidth - (2 * Padding)
 
 	var b strings.Builder
 
@@ -96,7 +96,7 @@ func Render(content string, opts Options) string {
 	// Content lines — wrap long lines to fit within the panel.
 	for _, line := range strings.Split(content, "\n") {
 		for _, wrapped := range wrapLine(line, contentWidth) {
-			b.WriteString(renderContentRow(wrapped, contentWidth, border))
+			b.WriteString(RenderContentRow(wrapped, contentWidth, border))
 			b.WriteByte('\n')
 		}
 	}
@@ -139,23 +139,26 @@ func renderEmptyRow(innerWidth int, border lipgloss.Style) string {
 	return border.Render("│") + strings.Repeat(" ", innerWidth) + border.Render("│")
 }
 
-// renderContentRow draws a row with content between padded borders.
+// RenderContentRow draws a row with content between padded borders.
 //
 // If the content's visual width exceeds contentWidth, no right-padding is
 // applied. The content will extend to (or slightly beyond) the right border.
-func renderContentRow(text string, contentWidth int, border lipgloss.Style) string {
+//
+// Exported for in-place updates (e.g., session header subject replacement)
+// that need to produce a single row matching the panel's visual format.
+func RenderContentRow(text string, contentWidth int, border lipgloss.Style) string {
 	visWidth := lipgloss.Width(text)
 	rightPad := contentWidth - visWidth
 	if rightPad < 0 {
 		rightPad = 0
 	}
 
-	pad := strings.Repeat(" ", padding)
+	pad := strings.Repeat(" ", Padding)
 	return border.Render("│") + pad + text + strings.Repeat(" ", rightPad) + pad + border.Render("│")
 }
 
-// resolveColor maps a PanelStyle to a lipgloss terminal color.
-func resolveColor(style PanelStyle) lipgloss.TerminalColor {
+// ResolveColor maps a PanelStyle to a lipgloss terminal color.
+func ResolveColor(style PanelStyle) lipgloss.TerminalColor {
 	switch style {
 	case StyleWarning:
 		return lipgloss.Color("11") // Bright yellow

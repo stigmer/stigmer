@@ -2,6 +2,7 @@ package root
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -13,19 +14,22 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpserver"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/reference"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
 )
 
-// localWorkspaceRoot extracts the absolute path from a local-path workspace source.
-// Returns empty string for nil, git, or non-local workspace sources.
-func localWorkspaceRoot(ws *sessionv1.WorkspaceSource) string {
-	if ws == nil {
-		return ""
+// localWorkspaceRoots extracts the absolute paths from all local-path workspace
+// entries. Git entries are skipped (they have no local root). Returns nil when
+// there are no local-path entries.
+func localWorkspaceRoots(entries []*sessionv1.WorkspaceEntry) []string {
+	var roots []string
+	for _, entry := range entries {
+		if lp := entry.GetSource().GetLocalPath(); lp != nil {
+			if p := lp.GetPath(); p != "" {
+				roots = append(roots, p)
+			}
+		}
 	}
-	lp := ws.GetLocalPath()
-	if lp == nil {
-		return ""
-	}
-	return lp.GetPath()
+	return roots
 }
 
 // NewRunCommand creates the unified run command for executing agents and workflows.
@@ -79,10 +83,20 @@ INPUT FILES:
 
 WORKSPACE:
 
-  --workspace URL|PATH    Workspace source for the agent (agents only)
-                          HTTPS git URL or local filesystem path
-  --branch NAME           Git branch to clone (default: repo default branch)
-  --commit SHA            Git commit to checkout after cloning
+  --workspace, -w URL|PATH  Workspace source for the agent (can be repeated)
+                            HTTPS git URL or local filesystem path
+  --branch NAME             Git branch to clone (default: repo default branch)
+  --commit SHA              Git commit to checkout after cloning
+
+  Multiple --workspace flags create a multi-root workspace (VS Code model).
+  --branch and --commit apply only when a single git workspace is provided.
+
+OUTPUT MODES:
+
+  --json:     Stream events as newline-delimited JSON (for scripting/CI)
+
+  Output streams inline to the terminal by default.
+  Use --json for machine-readable output in scripts and CI.
 
 OTHER OPTIONS:
 
@@ -137,11 +151,20 @@ OTHER OPTIONS:
   stigmer run agent code-reviewer --workspace https://github.com/acme/app --branch feature/auth
 
   # Run with a local workspace (agent operates directly on your files)
-  stigmer run agent code-reviewer --workspace . -m "Review my project"
-  stigmer run agent refactorer --workspace ~/projects/my-app -m "Refactor the auth module"
+  stigmer run agent code-reviewer -w . -m "Review my project"
+  stigmer run agent refactorer -w ~/projects/my-app -m "Refactor the auth module"
+
+  # Run with multiple workspaces (multi-root)
+  stigmer run agent code-reviewer -w ./frontend -w ./backend -m "Review both"
 
   # Override organization
-  stigmer run agent my-agent --org acme-corp`,
+  stigmer run agent my-agent --org acme-corp
+
+  # Stream events as JSON for scripting
+  stigmer run agent my-agent --json | jq '.payload.content'
+
+  # Pipe output (auto-detects non-TTY, uses inline mode)
+  stigmer run agent my-agent -m "explain this" | cat`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 1 {
 				if !reference.IsSessionID(args[0]) {
@@ -156,18 +179,20 @@ OTHER OPTIONS:
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 			opts.OrgOverride = GetOrgFlag(cmd)
+			outputMode := resolveOutputMode(opts.outputModeFlags)
 			if len(args) == 1 {
-				err := executeRunSession(args[0], opts.OrgOverride, opts.Verbose)
+				err := executeRunSession(args[0], opts.OrgOverride, opts.Verbose, outputMode)
 				clierr.Handle(err)
 				return
 			}
 			opts.TypeArg = args[0]
 			opts.Reference = args[1]
-			clierr.Handle(executeRun(opts))
+			clierr.Handle(executeRun(opts, outputMode))
 		},
 	}
 
 	registerAgentExecFlags(cmd, &opts.agentExecFlags)
+	registerOutputModeFlags(cmd, &opts.outputModeFlags)
 
 	cmd.Flags().StringVar(&opts.DownloadDir, "download", "",
 		"download artifacts to directory when complete")
@@ -179,6 +204,7 @@ OTHER OPTIONS:
 // agent execution flags.
 type runOptions struct {
 	agentExecFlags
+	outputModeFlags
 	TypeArg     string
 	Reference   string
 	DownloadDir string
@@ -186,7 +212,7 @@ type runOptions struct {
 
 // executeRun validates the resource type and delegates to the shared
 // preparation + execution layers.
-func executeRun(opts runOptions) error {
+func executeRun(opts runOptions, outputMode OutputMode) error {
 	reg := types.DefaultRegistry()
 	info, ok := reg.GetByAlias(opts.TypeArg)
 	if !ok {
@@ -197,13 +223,18 @@ func executeRun(opts runOptions) error {
 		return formatUnsupportedVerbError(info, types.VerbRun)
 	}
 
-	prep, err := prepareAgentExec(opts.agentExecFlags)
+	sp := spinner.New(os.Stderr)
+	sp.Start("Preparing...")
+
+	prep, err := prepareAgentExec(opts.agentExecFlags, sp)
 	if err != nil {
+		sp.Stop()
 		return err
 	}
+	prep.OutputMode = outputMode
 	defer prep.Conn.Close()
 
-	return routeRun(info, opts.Reference, opts.DownloadDir, prep)
+	return routeRun(info, opts.Reference, opts.DownloadDir, prep, sp)
 }
 
 // resolveAndMergeAutoEnv loads the CLI config, resolves well-known
@@ -230,36 +261,43 @@ func resolveAndMergeAutoEnv(userEnv envfile.EnvMap) (envfile.EnvMap, error) {
 }
 
 // routeRun routes to the appropriate handler based on resource kind.
-func routeRun(info *types.TypeInfo, ref, downloadDir string, prep *preparedAgentExec) error {
+// The spinner is active on entry — each branch is responsible for updating
+// or stopping it as appropriate.
+func routeRun(info *types.TypeInfo, ref, downloadDir string, prep *preparedAgentExec, sp *spinner.Spinner) error {
 	switch info.ProtoKind {
 	case apiresourcekind.ApiResourceKind_agent:
+		sp.Update("Resolving agent...")
 		agent, err := resolveAgent(ref, prep.OrgID, prep.Conn)
 		if err != nil {
+			sp.Stop()
 			displayAgentNotFoundError(ref)
 			return err
 		}
 
 		return executeResolvedAgent(resolvedAgentExecInput{
-			Agent:           agent,
-			Message:         prep.Message,
-			RuntimeEnv:      prep.RuntimeEnv,
-			AttachResult:    &prep.AttachResult,
-			WorkspaceSource: prep.WorkspaceSource,
-			Detach:          prep.Detach,
-			DownloadDir:     downloadDir,
-			OrgID:           prep.OrgID,
-			DefaultAction:   prep.DefaultAction,
-			Verbose:         prep.Verbose,
-			Conn:            prep.Conn,
-		})
+			Agent:            agent,
+			Message:          prep.Message,
+			RuntimeEnv:       prep.RuntimeEnv,
+			AttachResult:     &prep.AttachResult,
+			WorkspaceEntries: prep.WorkspaceEntries,
+			Detach:           prep.Detach,
+			DownloadDir:      downloadDir,
+			OrgID:            prep.OrgID,
+			DefaultAction:    prep.DefaultAction,
+			Verbose:          prep.Verbose,
+			OutputMode:       prep.OutputMode,
+			Conn:             prep.Conn,
+		}, sp)
 
 	case apiresourcekind.ApiResourceKind_workflow:
-		if prep.WorkspaceSource != nil {
+		sp.Stop()
+		if len(prep.WorkspaceEntries) > 0 {
 			return fmt.Errorf("--workspace is not supported for workflows (workspace is an agent-level concept)")
 		}
 		return runWorkflow(ref, prep)
 
 	default:
+		sp.Stop()
 		return fmt.Errorf("run not implemented for %s", info.DisplayName)
 	}
 }

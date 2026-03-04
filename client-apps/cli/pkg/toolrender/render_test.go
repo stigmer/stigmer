@@ -27,7 +27,6 @@ func TestRender_ShellTool(t *testing.T) {
 		Args: map[string]interface{}{"command": "ls -la /tmp"},
 	})
 
-	assertContains(t, result, "🖥 ")
 	assertContains(t, result, "Shell")
 	assertContains(t, result, "ls -la /tmp")
 }
@@ -52,7 +51,6 @@ func TestRender_ReadFileTool(t *testing.T) {
 		Args: map[string]interface{}{"path": "inputs/agent-api.proto"},
 	})
 
-	assertContains(t, result, "📖")
 	assertContains(t, result, "Read")
 	assertContains(t, result, "inputs/agent-api.proto")
 }
@@ -63,7 +61,6 @@ func TestRender_ListDirectoryTool(t *testing.T) {
 		Args: map[string]interface{}{"path": "/workspace"},
 	})
 
-	assertContains(t, result, "📂")
 	assertContains(t, result, "List")
 	assertContains(t, result, "/workspace")
 }
@@ -74,7 +71,6 @@ func TestRender_WriteFileTool(t *testing.T) {
 		Args: map[string]interface{}{"path": "outputs/SKILL.md", "content": "# Skill"},
 	})
 
-	assertContains(t, result, "📝")
 	assertContains(t, result, "Write")
 	assertContains(t, result, "outputs/SKILL.md")
 }
@@ -87,7 +83,6 @@ func TestRender_AllWriteToolNames(t *testing.T) {
 				Name: tool,
 				Args: map[string]interface{}{"path": "/tmp/test.txt"},
 			})
-			assertContains(t, result, "📝")
 			assertContains(t, result, "/tmp/test.txt")
 		})
 	}
@@ -99,7 +94,6 @@ func TestRender_DeleteFileTool(t *testing.T) {
 		Args: map[string]interface{}{"path": "/tmp/old.txt"},
 	})
 
-	assertContains(t, result, "⚠️")
 	assertContains(t, result, "Delete")
 	assertContains(t, result, "/tmp/old.txt")
 }
@@ -127,7 +121,6 @@ func TestRender_LsTool(t *testing.T) {
 		Args: map[string]interface{}{"path": "/workspace"},
 	})
 
-	assertContains(t, result, "📂")
 	assertContains(t, result, "List")
 	assertContains(t, result, "/workspace")
 }
@@ -138,7 +131,6 @@ func TestRender_GlobTool(t *testing.T) {
 		Args: map[string]interface{}{"pattern": "**/*.py"},
 	})
 
-	assertContains(t, result, "🔍")
 	assertContains(t, result, "Find")
 	assertContains(t, result, "**/*.py")
 }
@@ -149,7 +141,6 @@ func TestRender_GrepTool(t *testing.T) {
 		Args: map[string]interface{}{"pattern": "TODO"},
 	})
 
-	assertContains(t, result, "🔎")
 	assertContains(t, result, "Search")
 	assertContains(t, result, "TODO")
 }
@@ -160,7 +151,6 @@ func TestRender_EditTool(t *testing.T) {
 		Args: map[string]interface{}{"path": "main.py"},
 	})
 
-	assertContains(t, result, "✏️")
 	assertContains(t, result, "Edit")
 	assertContains(t, result, "main.py")
 }
@@ -171,7 +161,6 @@ func TestRender_EditFileTool(t *testing.T) {
 		Args: map[string]interface{}{"path": "main.py"},
 	})
 
-	assertContains(t, result, "✏️")
 	assertContains(t, result, "Edit")
 	assertContains(t, result, "main.py")
 }
@@ -182,7 +171,6 @@ func TestRender_ExecuteTool(t *testing.T) {
 		Args: map[string]interface{}{"command": "python test.py"},
 	})
 
-	assertContains(t, result, "🖥 ")
 	assertContains(t, result, "Execute")
 	assertContains(t, result, "python test.py")
 }
@@ -199,7 +187,6 @@ func TestRender_LsWithResultPreview(t *testing.T) {
 	})
 
 	// Header line
-	assertContains(t, result, "📂")
 	assertContains(t, result, "/workspace")
 
 	// Preview line (second line, dimmed, comma-separated)
@@ -213,7 +200,6 @@ func TestRender_GlobWithResultPreview(t *testing.T) {
 		Result: "No files matching pattern '**/init_skill.py'",
 	})
 
-	assertContains(t, result, "🔍")
 	assertContains(t, result, "No files matching pattern")
 }
 
@@ -224,7 +210,6 @@ func TestRender_GrepWithResultPreview(t *testing.T) {
 		Result: "Found 3 matches in 2 files:\n\nmain.py:10:# TODO fix\nutils.py:5:# TODO refactor\nutils.py:20:# TODO test",
 	})
 
-	assertContains(t, result, "🔎")
 	assertContains(t, result, "Found 3 matches")
 }
 
@@ -286,7 +271,6 @@ func TestRender_ThinkTool(t *testing.T) {
 		Args: map[string]interface{}{"thought": "I need to analyze the proto files and understand the service structure."},
 	})
 
-	assertContains(t, result, "💭")
 	assertContains(t, result, "Thinking")
 }
 
@@ -295,7 +279,6 @@ func TestRender_ThinkTool_NoArgs(t *testing.T) {
 		Name: "think",
 	})
 
-	assertContains(t, result, "💭")
 	assertContains(t, result, "Thinking")
 }
 
@@ -307,7 +290,6 @@ func TestRender_ThinkTool_ShowsThoughtPreview(t *testing.T) {
 		},
 	})
 
-	assertContains(t, result, "💭")
 	assertContains(t, result, "Thinking")
 	assertContains(t, result, "│")
 	assertContains(t, result, "First, let me understand the architecture.")
@@ -327,32 +309,14 @@ func TestRender_ThinkTool_ContentSourceIsInput(t *testing.T) {
 	}
 }
 
-func TestRenderExpanded_ThinkTool_ShowsFullThought(t *testing.T) {
-	result := RenderExpanded(ToolCallInfo{
-		Name: "think",
-		Args: map[string]interface{}{
-			"thought": "Step 1: Read the proto files.\nStep 2: Identify the service RPCs.\nStep 3: Generate the SKILL.md.",
-		},
-		Result: "ok",
-	})
-
-	assertContains(t, result, "💭")
-	assertContains(t, result, "Thinking")
-	assertContains(t, result, "│ Step 1: Read the proto files.")
-	assertContains(t, result, "│ Step 2: Identify the service RPCs.")
-	assertContains(t, result, "│ Step 3: Generate the SKILL.md.")
-	assertNotContains(t, result, "more lines")
-}
-
 func TestRenderWithBadge_ThinkTool_RunningState(t *testing.T) {
 	result := RenderWithBadge(ToolCallInfo{
 		Name: "think",
 		Args: map[string]interface{}{"thought": "analyzing the codebase..."},
 	}, StateBadge("running"))
 
-	assertContains(t, result, "💭")
 	assertContains(t, result, "Thinking")
-	assertContains(t, result, "⏳")
+	assertContains(t, result, "...")
 }
 
 func TestRenderWithBadge_ThinkTool_CompletedState(t *testing.T) {
@@ -362,30 +326,9 @@ func TestRenderWithBadge_ThinkTool_CompletedState(t *testing.T) {
 		Result: "ok",
 	}, StateBadge("completed"))
 
-	assertContains(t, result, "💭")
 	assertContains(t, result, "Thinking")
 	assertContains(t, result, "✓")
 	assertContains(t, result, "│")
-}
-
-func TestHasDisplayableContent_ThinkTool(t *testing.T) {
-	tc := ToolCallInfo{
-		Name:   "think",
-		Args:   map[string]interface{}{"thought": "some reasoning"},
-		Result: "ok",
-	}
-	if !HasDisplayableContent(tc) {
-		t.Error("expected think tool with thought to have displayable content")
-	}
-}
-
-func TestHasDisplayableContent_ThinkTool_EmptyResult_NoThought(t *testing.T) {
-	tc := ToolCallInfo{
-		Name: "think",
-	}
-	if HasDisplayableContent(tc) {
-		t.Error("expected think tool without thought or result to have no displayable content")
-	}
 }
 
 // =============================================================================
@@ -398,7 +341,7 @@ func TestRender_UnknownTool(t *testing.T) {
 		Args: map[string]interface{}{"repo": "acme/staging"},
 	})
 
-	assertContains(t, result, "🔧")
+	assertContains(t, result, "*")
 	assertContains(t, result, "custom_deploy")
 	assertContains(t, result, "acme/staging")
 }
@@ -418,7 +361,7 @@ func TestRender_UnknownTool_NoArgs(t *testing.T) {
 		Name: "ping_server",
 	})
 
-	assertContains(t, result, "🔧")
+	assertContains(t, result, "*")
 	assertContains(t, result, "ping_server")
 }
 
@@ -462,7 +405,7 @@ func TestRender_EmptyName(t *testing.T) {
 	})
 
 	// Falls through to unknown path
-	assertContains(t, result, "🔧")
+	assertContains(t, result, "*")
 }
 
 // =============================================================================
@@ -766,7 +709,6 @@ func TestRender_ReadFile_FallbackToFilePath(t *testing.T) {
 		Args: map[string]interface{}{"file_path": "/workspace/main.py"},
 	})
 
-	assertContains(t, result, "📖")
 	assertContains(t, result, "Read")
 	assertContains(t, result, "/workspace/main.py")
 }
@@ -1277,166 +1219,6 @@ func TestFirstNonEmptyLine_Empty(t *testing.T) {
 }
 
 // =============================================================================
-// RenderExpanded Tests
-// =============================================================================
-
-func TestRenderExpanded_KnownTool_WithResult(t *testing.T) {
-	result := RenderExpanded(ToolCallInfo{
-		Name:   "read_file",
-		Args:   map[string]interface{}{"path": "main.go"},
-		Result: "package main\n\nimport \"fmt\"\n\nfunc main() {\n\tfmt.Println(\"hello\")\n}",
-	})
-
-	// Header should be present.
-	assertContains(t, result, "📖")
-	assertContains(t, result, "Read")
-	assertContains(t, result, "main.go")
-
-	// Full content should be shown with gutter.
-	assertContains(t, result, "│ package main")
-	assertContains(t, result, "│ import \"fmt\"")
-	assertContains(t, result, "│ func main() {")
-
-	// Should NOT have the "more lines" indicator (that's the preview).
-	assertNotContains(t, result, "more lines")
-}
-
-func TestRenderExpanded_KnownTool_EmptyResult(t *testing.T) {
-	result := RenderExpanded(ToolCallInfo{
-		Name: "read_file",
-		Args: map[string]interface{}{"path": "empty.txt"},
-	})
-
-	// Header should be present.
-	assertContains(t, result, "📖")
-	assertContains(t, result, "Read")
-	assertContains(t, result, "empty.txt")
-
-	// No gutter content since result is empty.
-	assertNotContains(t, result, "│")
-}
-
-func TestRenderExpanded_DiscoveryTool_ShowsAllEntries(t *testing.T) {
-	result := RenderExpanded(ToolCallInfo{
-		Name:   "list_directory",
-		Args:   map[string]interface{}{"path": "/workspace"},
-		Result: "bin\netc\nhome\nopt\ntmp\nusr\nvar",
-	})
-
-	// Header present.
-	assertContains(t, result, "📂")
-	assertContains(t, result, "List")
-
-	// All entries shown with gutter (not comma-joined like the preview).
-	assertContains(t, result, "│ bin")
-	assertContains(t, result, "│ etc")
-	assertContains(t, result, "│ var")
-}
-
-func TestRenderExpanded_ShellTool_ShowsFullOutput(t *testing.T) {
-	result := RenderExpanded(ToolCallInfo{
-		Name:   "shell",
-		Args:   map[string]interface{}{"command": "ls -la"},
-		Result: "total 8\ndrwxr-xr-x  5 user staff 160 Feb 14 22:00 .\ndrwxr-xr-x 10 user staff 320 Feb 14 22:00 ..",
-	})
-
-	assertContains(t, result, "🖥 ")
-	assertContains(t, result, "Shell")
-	assertContains(t, result, "│ total 8")
-	assertContains(t, result, "│ drwxr-xr-x  5 user staff")
-}
-
-func TestRenderExpanded_UnknownTool_WithResult(t *testing.T) {
-	result := RenderExpanded(ToolCallInfo{
-		Name:   "custom_tool",
-		Args:   map[string]interface{}{"input": "test"},
-		Result: "line one\nline two",
-	})
-
-	assertContains(t, result, "🔧")
-	assertContains(t, result, "custom_tool")
-	assertContains(t, result, "│ line one")
-	assertContains(t, result, "│ line two")
-}
-
-func TestRenderExpanded_UnknownTool_EmptyResult(t *testing.T) {
-	result := RenderExpanded(ToolCallInfo{
-		Name: "custom_tool",
-		Args: map[string]interface{}{"input": "test"},
-	})
-
-	assertContains(t, result, "🔧")
-	assertContains(t, result, "custom_tool")
-	assertNotContains(t, result, "│")
-}
-
-func TestRenderExpanded_IncludesMetadataSuffix(t *testing.T) {
-	result := RenderExpanded(ToolCallInfo{
-		Name:     "read_file",
-		Args:     map[string]interface{}{"path": "main.go"},
-		Result:   "package main",
-		Duration: 5 * time.Millisecond,
-	})
-
-	// Should include size and duration in the header.
-	assertContains(t, result, "5ms")
-}
-
-// =============================================================================
-// RenderRunning Tests — Running Indicator
-// =============================================================================
-
-func TestRenderRunning_KnownTool(t *testing.T) {
-	result := RenderRunning(ToolCallInfo{
-		Name:   "write",
-		Args:   map[string]interface{}{"path": "outputs/SKILL.md"},
-		Status: "running",
-	})
-
-	assertContains(t, result, "📝")
-	assertContains(t, result, "Write")
-	assertContains(t, result, "outputs/SKILL.md")
-	assertContains(t, result, "⏳")
-}
-
-func TestRenderRunning_UnknownTool(t *testing.T) {
-	result := RenderRunning(ToolCallInfo{
-		Name:   "custom_tool",
-		Args:   map[string]interface{}{"input": "test"},
-		Status: "running",
-	})
-
-	assertContains(t, result, "🔧")
-	assertContains(t, result, "custom_tool")
-	assertContains(t, result, "test")
-	assertContains(t, result, "⏳")
-}
-
-func TestRenderRunning_NoArgs(t *testing.T) {
-	result := RenderRunning(ToolCallInfo{
-		Name:   "shell",
-		Status: "running",
-	})
-
-	assertContains(t, result, "🖥")
-	assertContains(t, result, "Shell")
-	assertContains(t, result, "⏳")
-}
-
-func TestRenderRunning_ShellTool(t *testing.T) {
-	result := RenderRunning(ToolCallInfo{
-		Name:   "execute",
-		Args:   map[string]interface{}{"command": "npm install"},
-		Status: "running",
-	})
-
-	assertContains(t, result, "🖥")
-	assertContains(t, result, "Execute")
-	assertContains(t, result, "npm install")
-	assertContains(t, result, "⏳")
-}
-
-// =============================================================================
 // Test Helpers
 // =============================================================================
 
@@ -1457,35 +1239,6 @@ func assertNotContains(t *testing.T, s, substr string) {
 	plain := stripANSI(s)
 	if strings.Contains(plain, substr) {
 		t.Errorf("expected output to NOT contain %q\n  plain: %q", substr, plain)
-	}
-}
-
-// --- DisplayLabel ---
-
-func TestDisplayLabel_KnownTool(t *testing.T) {
-	tests := map[string]string{
-		"execute":     "Execute",
-		"shell":       "Shell",
-		"read_file":   "Read",
-		"write_file":  "Write",
-		"delete_file": "Delete",
-		"glob":        "Find",
-		"grep":        "Search",
-		"task":        "Task",
-		"think":       "Thinking",
-	}
-	for toolName, wantLabel := range tests {
-		got := DisplayLabel(toolName)
-		if got != wantLabel {
-			t.Errorf("DisplayLabel(%q) = %q, want %q", toolName, got, wantLabel)
-		}
-	}
-}
-
-func TestDisplayLabel_UnknownTool_ReturnsRawName(t *testing.T) {
-	got := DisplayLabel("custom_mcp_tool")
-	if got != "custom_mcp_tool" {
-		t.Errorf("DisplayLabel(unknown) = %q, want raw name", got)
 	}
 }
 
@@ -1629,24 +1382,6 @@ func TestResolveDisplayContent_NonShellTool_NoCleanup(t *testing.T) {
 	if !strings.Contains(content, "Exit code: 0") {
 		t.Errorf("non-shell tool should not strip result, got %q", content)
 	}
-}
-
-func TestRenderExpanded_ShellTool_LegacyResult_CleansOutput(t *testing.T) {
-	result := RenderExpanded(ToolCallInfo{
-		Name:   "execute",
-		Args:   map[string]interface{}{"command": "ls"},
-		Result: "Exit code: 0\nSTDOUT:\nfile1\nfile2",
-	})
-
-	plain := stripANSI(result)
-	if strings.Contains(plain, "Exit code") {
-		t.Errorf("expanded view should not show legacy exit code, got %q", plain)
-	}
-	if strings.Contains(plain, "STDOUT") {
-		t.Errorf("expanded view should not show STDOUT label, got %q", plain)
-	}
-	assertContains(t, result, "file1")
-	assertContains(t, result, "file2")
 }
 
 func TestRenderWithBadge_ShellTool_LegacyResult_CleansPreview(t *testing.T) {

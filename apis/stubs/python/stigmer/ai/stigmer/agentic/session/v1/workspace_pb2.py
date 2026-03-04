@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n-ai/stigmer/agentic/session/v1/workspace.proto\x12\x1d\x61i.stigmer.agentic.session.v1\x1a\x1b\x62uf/validate/validate.proto\"\xbe\x01\n\x0fWorkspaceSource\x12I\n\x08git_repo\x18\x01 \x01(\x0b\x32,.ai.stigmer.agentic.session.v1.GitRepoSourceH\x00R\x07gitRepo\x12O\n\nlocal_path\x18\x02 \x01(\x0b\x32..ai.stigmer.agentic.session.v1.LocalPathSourceH\x00R\tlocalPathB\x0f\n\x06source\x12\x05\xbaH\x02\x08\x01\".\n\x0fLocalPathSource\x12\x1b\n\x04path\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x04path\"\x9a\x02\n\rGitRepoSource\x12\xaa\x01\n\x03url\x18\x01 \x01(\tB\x97\x01\xbaH\x93\x01\xba\x01\x8c\x01\n\x19git_repo_source.url.https\x12Rurl must use HTTPS (e.g. https://github.com/org/repo). SSH URLs are not supported.\x1a\x1bthis.startsWith(\'https://\')\xc8\x01\x01R\x03url\x12\x16\n\x06\x62ranch\x18\x02 \x01(\tR\x06\x62ranch\x12\x16\n\x06\x63ommit\x18\x03 \x01(\tR\x06\x63ommit\x12\"\n\x05\x64\x65pth\x18\x04 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00H\x00R\x05\x64\x65pth\x88\x01\x01\x42\x08\n\x06_depthB\xcc\x01\n!com.ai.stigmer.agentic.session.v1B\x0eWorkspaceProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1d\x41i.Stigmer.Agentic.Session.V1\xca\x02\x1d\x41i\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n-ai/stigmer/agentic/session/v1/workspace.proto\x12\x1d\x61i.stigmer.agentic.session.v1\x1a\x1b\x62uf/validate/validate.proto\"\xbe\x01\n\x0fWorkspaceSource\x12I\n\x08git_repo\x18\x01 \x01(\x0b\x32,.ai.stigmer.agentic.session.v1.GitRepoSourceH\x00R\x07gitRepo\x12O\n\nlocal_path\x18\x02 \x01(\x0b\x32..ai.stigmer.agentic.session.v1.LocalPathSourceH\x00R\tlocalPathB\x0f\n\x06source\x12\x05\xbaH\x02\x08\x01\"}\n\x0eWorkspaceEntry\x12\x1b\n\x04name\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x04name\x12N\n\x06source\x18\x02 \x01(\x0b\x32..ai.stigmer.agentic.session.v1.WorkspaceSourceB\x06\xbaH\x03\xc8\x01\x01R\x06source\".\n\x0fLocalPathSource\x12\x1b\n\x04path\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x04path\"\x9a\x02\n\rGitRepoSource\x12\xaa\x01\n\x03url\x18\x01 \x01(\tB\x97\x01\xbaH\x93\x01\xba\x01\x8c\x01\n\x19git_repo_source.url.https\x12Rurl must use HTTPS (e.g. https://github.com/org/repo). SSH URLs are not supported.\x1a\x1bthis.startsWith(\'https://\')\xc8\x01\x01R\x03url\x12\x16\n\x06\x62ranch\x18\x02 \x01(\tR\x06\x62ranch\x12\x16\n\x06\x63ommit\x18\x03 \x01(\tR\x06\x63ommit\x12\"\n\x05\x64\x65pth\x18\x04 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00H\x00R\x05\x64\x65pth\x88\x01\x01\x42\x08\n\x06_depthB\xcc\x01\n!com.ai.stigmer.agentic.session.v1B\x0eWorkspaceProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1d\x41i.Stigmer.Agentic.Session.V1\xca\x02\x1d\x41i\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -35,6 +35,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._serialized_options = b'\n!com.ai.stigmer.agentic.session.v1B\016WorkspaceProtoP\001\242\002\004ASAS\252\002\035Ai.Stigmer.Agentic.Session.V1\312\002\035Ai\\Stigmer\\Agentic\\Session\\V1\342\002)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\352\002!Ai::Stigmer::Agentic::Session::V1'
   _globals['_WORKSPACESOURCE'].oneofs_by_name['source']._loaded_options = None
   _globals['_WORKSPACESOURCE'].oneofs_by_name['source']._serialized_options = b'\272H\002\010\001'
+  _globals['_WORKSPACEENTRY'].fields_by_name['name']._loaded_options = None
+  _globals['_WORKSPACEENTRY'].fields_by_name['name']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_WORKSPACEENTRY'].fields_by_name['source']._loaded_options = None
+  _globals['_WORKSPACEENTRY'].fields_by_name['source']._serialized_options = b'\272H\003\310\001\001'
   _globals['_LOCALPATHSOURCE'].fields_by_name['path']._loaded_options = None
   _globals['_LOCALPATHSOURCE'].fields_by_name['path']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_GITREPOSOURCE'].fields_by_name['url']._loaded_options = None
@@ -43,8 +47,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_GITREPOSOURCE'].fields_by_name['depth']._serialized_options = b'\272H\004\032\002(\000'
   _globals['_WORKSPACESOURCE']._serialized_start=110
   _globals['_WORKSPACESOURCE']._serialized_end=300
-  _globals['_LOCALPATHSOURCE']._serialized_start=302
-  _globals['_LOCALPATHSOURCE']._serialized_end=348
-  _globals['_GITREPOSOURCE']._serialized_start=351
-  _globals['_GITREPOSOURCE']._serialized_end=633
+  _globals['_WORKSPACEENTRY']._serialized_start=302
+  _globals['_WORKSPACEENTRY']._serialized_end=427
+  _globals['_LOCALPATHSOURCE']._serialized_start=429
+  _globals['_LOCALPATHSOURCE']._serialized_end=475
+  _globals['_GITREPOSOURCE']._serialized_start=478
+  _globals['_GITREPOSOURCE']._serialized_end=760
 # @@protoc_insertion_point(module_scope)

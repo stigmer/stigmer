@@ -44,7 +44,7 @@ func snapshotToEvents(executions []*agentexecutionv1.AgentExecution, events chan
 //     (ToolCompletedEvent with lifecycle badges), using the full tool call
 //     data from the top-level ToolCalls array. This matches the expandable,
 //     badge-decorated blocks that the live streaming path produces via
-//     emitToolCallStateEvents.
+//     trackToolCallStates.
 //   - Tool calls that exist only in ToolCalls[] (e.g., native thinking blocks)
 //     are interleaved at their correct chronological position based on the
 //     started_at timestamp.
@@ -171,7 +171,7 @@ func emitInterleaved(
 // ToolCalls array.
 //
 // This produces the same expandable, badge-decorated blocks that the live
-// streaming path creates via emitToolCallStateEvents — unlike ToolResultEvent
+// streaming path creates via trackToolCallStates — unlike ToolResultEvent
 // which renders in a simpler format without lifecycle badges.
 //
 // Falls back to emitCompleteMessage if the message carries no tool call

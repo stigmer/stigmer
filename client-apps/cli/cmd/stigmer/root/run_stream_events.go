@@ -3,8 +3,10 @@ package root
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -12,15 +14,166 @@ import (
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+)
+
+const (
+	approvalRetryMaxAttempts = 3
+	approvalRetryBaseDelay   = 1 * time.Second
 )
 
 // streamToEventsConfig holds the dependencies for the gRPC-to-TUI bridge goroutine.
 type streamToEventsConfig struct {
 	executionID       string
+	sessionID         string
 	stream            agentexecutionv1.AgentExecutionQueryController_SubscribeClient
 	events            chan<- executiontui.Event
 	approvalResponses <-chan executiontui.ApprovalResponse
 	conn              *grpc.ClientConn
+}
+
+// streamError wraps a raw error with a user-facing actionable message.
+// Error() returns the actionable message for display; Unwrap() provides
+// the original error for debug logging and programmatic inspection.
+type streamError struct {
+	message string
+	cause   error
+}
+
+func (e *streamError) Error() string { return e.message }
+func (e *streamError) Unwrap() error { return e.cause }
+
+// classifyStreamError translates a raw gRPC or io error from stream.Recv()
+// into an actionable message that tells the user what happened and how to
+// recover. The returned error's Error() is the user-facing message; its
+// Unwrap() is the original for debug logging.
+func classifyStreamError(err error, sessionID string) *streamError {
+	var message string
+
+	if err == io.EOF {
+		message = "Server closed the connection unexpectedly."
+	} else if st, ok := status.FromError(err); ok {
+		switch st.Code() {
+		case codes.Unavailable:
+			message = "Connection to server lost."
+		case codes.Canceled:
+			message = "Server cancelled the stream."
+		case codes.DeadlineExceeded:
+			message = "Server response timed out."
+		default:
+			message = fmt.Sprintf("Stream error (%s): %s", st.Code(), st.Message())
+		}
+	} else {
+		message = "Unexpected stream error: " + err.Error()
+	}
+
+	if sessionID != "" {
+		message += fmt.Sprintf("\nRe-attach to this session: stigmer run %s", sessionID)
+	}
+
+	return &streamError{message: message, cause: err}
+}
+
+// trySendEvent attempts to send an event on the channel. Returns true if the
+// event was delivered, false if the context was cancelled before the send
+// could complete. This prevents goroutines from blocking indefinitely on
+// channel sends when the TUI has exited.
+func trySendEvent(ctx context.Context, ch chan<- executiontui.Event, event executiontui.Event) bool {
+	select {
+	case ch <- event:
+		return true
+	case <-ctx.Done():
+		return false
+	}
+}
+
+// isRetryableSubmitError returns true if the error from submitAgentApproval
+// is transient and worth retrying. It walks the Unwrap() chain to find a
+// gRPC status code and classifies it:
+//
+//   - Retryable: Unavailable, DeadlineExceeded, ResourceExhausted, Aborted,
+//     Internal, Unknown — transient server/network conditions.
+//   - Non-retryable: NotFound, InvalidArgument, PermissionDenied,
+//     Unauthenticated, FailedPrecondition, AlreadyExists, Canceled —
+//     permanent conditions that won't change on retry.
+//
+// Non-gRPC errors (raw network/io) default to retryable since they are
+// typically transient.
+func isRetryableSubmitError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	for e := err; e != nil; {
+		st, ok := status.FromError(e)
+		if ok && st.Code() != codes.OK {
+			switch st.Code() {
+			case codes.Unavailable, codes.DeadlineExceeded, codes.ResourceExhausted,
+				codes.Aborted, codes.Internal, codes.Unknown:
+				return true
+			default:
+				return false
+			}
+		}
+		if u, ok := e.(interface{ Unwrap() error }); ok {
+			e = u.Unwrap()
+		} else {
+			break
+		}
+	}
+
+	return true
+}
+
+// retryWithBackoff calls fn up to maxAttempts times with exponential backoff
+// between failures. It stops early when:
+//   - fn succeeds (returns nil)
+//   - fn returns a non-retryable error (per isRetryableSubmitError)
+//   - the context is cancelled (returns ctx.Err())
+//
+// Backoff doubles each attempt: baseDelay, 2*baseDelay, 4*baseDelay, etc.
+// The sleep between attempts is context-aware — a cancelled context
+// interrupts the wait immediately.
+func retryWithBackoff(
+	ctx context.Context,
+	maxAttempts int,
+	baseDelay time.Duration,
+	fn func() error,
+) error {
+	var lastErr error
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+
+		lastErr = fn()
+		if lastErr == nil {
+			return nil
+		}
+
+		if !isRetryableSubmitError(lastErr) {
+			return lastErr
+		}
+
+		if attempt < maxAttempts-1 {
+			delay := baseDelay * time.Duration(1<<uint(attempt))
+
+			log.Debug().
+				Err(lastErr).
+				Int("attempt", attempt+1).
+				Int("max_attempts", maxAttempts).
+				Dur("next_delay", delay).
+				Msg("[stream] retryable approval submit error — backing off")
+
+			select {
+			case <-time.After(delay):
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}
+	}
+	return lastErr
 }
 
 // streamToEvents runs the gRPC stream loop and converts execution updates
@@ -50,15 +203,19 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 	for {
 		execution, err := cfg.stream.Recv()
 		if err != nil {
-			if err == io.EOF {
-				cfg.events <- executiontui.StreamErrorEvent{
-					Err: errors.New("execution stream ended unexpectedly"),
-				}
-			} else {
-				cfg.events <- executiontui.StreamErrorEvent{
-					Err: errors.Wrap(err, "execution stream error"),
-				}
+			if ctx.Err() != nil {
+				return
 			}
+
+			log.Debug().
+				Err(err).
+				Str("execution_id", cfg.executionID).
+				Str("session_id", cfg.sessionID).
+				Msg("[stream] recv error — classifying for user display")
+
+			trySendEvent(ctx, cfg.events, executiontui.StreamErrorEvent{
+				Err: classifyStreamError(err, cfg.sessionID),
+			})
 			return
 		}
 
@@ -79,24 +236,34 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 
 		// --- Step 1: Track tool call state transitions ---
 		//
-		// This runs BEFORE message processing so the toolCallStates map is
-		// populated. emitMessageEvents uses this map to suppress MESSAGE_TOOL
-		// entries for tool calls that the state tracker already owns — preventing
-		// duplicate blocks in the TUI.
-		toolCallStates, toolCallResults = emitToolCallStateEvents(
-			cfg.events,
+		// Builds the toolCallStates map WITHOUT emitting events yet.
+		// emitMessageEvents uses this map to suppress MESSAGE_TOOL entries
+		// for tool calls the state tracker owns. Tool events are collected
+		// in a slice and emitted AFTER message events so that AIStreamEnd
+		// reaches the renderer before ToolCompleted — preventing the
+		// renderer's finishAIStreamIfNeeded from resetting streamedBytes
+		// before the stream-end handler runs.
+		var toolEvents []executiontui.Event
+		toolCallStates, toolCallResults, toolEvents = trackToolCallStates(
 			execution.Status.ToolCalls,
 			toolCallStates,
 			toolCallResults,
 			"",
 		)
 
-		// --- Step 1b: Convert new messages to events ---
+		// --- Step 1b: Convert new messages to events (emitted first) ---
 		displayedCount, inStream = emitMessageEvents(
 			cfg.events, messages, displayedCount, inStream, toolCallStates,
 		)
 
-		// --- Step 1c: Sub-agent activity ---
+		// --- Step 1c: Emit queued tool events ---
+		for _, ev := range toolEvents {
+			if !trySendEvent(ctx, cfg.events, ev) {
+				return
+			}
+		}
+
+		// --- Step 1d: Sub-agent activity ---
 		//
 		// Process sub-agent executions for nested tool calls and messages.
 		// Events emitted here carry SubAgentID so the TUI renders them with
@@ -105,7 +272,7 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 			subAgentTrackers = emitSubAgentEvents(cfg.events, subs, subAgentTrackers)
 		}
 
-		// --- Step 1d: Todo list changes ---
+		// --- Step 1e: Todo list changes ---
 		//
 		// Detect changes in the execution's todo map and emit a TodoUpdateEvent
 		// when items are added, removed, or updated. The guard avoids calling
@@ -121,9 +288,11 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 		// Previously this ran after approval handling, which suppressed the
 		// phase change and left the header stuck on "in_progress".
 		if execution.Status.Phase != lastPhase {
-			cfg.events <- executiontui.PhaseChangeEvent{
+			if !trySendEvent(ctx, cfg.events, executiontui.PhaseChangeEvent{
 				Phase:    mapPhaseToString(execution.Status.Phase),
 				Previous: mapPhaseToString(lastPhase),
+			}) {
+				return
 			}
 			lastPhase = execution.Status.Phase
 		}
@@ -149,7 +318,41 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 					Msg("[stream] approval detected — emitting ApprovalNeededEvent")
 
 				tc := findToolCallByID(execution.Status.ToolCalls, execution.Status.GetSubAgentExecutions(), pa.ToolCallId)
-				emitAndWaitApproval(ctx, cfg, tc, pa, promptedIDs, dedupKey)
+				if err := emitAndWaitApproval(ctx, cfg, tc, pa, promptedIDs, dedupKey); err != nil {
+					return
+				}
+			}
+		}
+
+		// --- Step 3b: Defense-in-depth approval detection ---
+		//
+		// When the execution is WAITING_FOR_APPROVAL but pending_approvals is
+		// empty (backend snapshot timing: write-ordering or replication lag
+		// between MongoDB and Redis), fall back to scanning tool call statuses.
+		// This ensures the approval prompt appears on re-attach even when the
+		// backend's initial snapshot omits pending_approvals.
+		if len(execution.Status.GetPendingApprovals()) == 0 &&
+			execution.Status.Phase == agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL {
+			unprompted := findAllUnpromptedApprovals(
+				execution.Status.ToolCalls,
+				execution.Status.GetSubAgentExecutions(),
+				promptedIDs,
+			)
+			for _, u := range unprompted {
+				pa := buildPendingApprovalFromToolCall(u.toolCall)
+				pa.FromSubAgent = u.fromSubAgent
+				pa.SubAgentName = u.subAgentName
+
+				log.Debug().
+					Str("execution_id", cfg.executionID).
+					Str("tool_call_id", pa.ToolCallId).
+					Str("tool_name", pa.ToolName).
+					Bool("from_sub_agent", u.fromSubAgent).
+					Msg("[stream] defense-in-depth: approval detected via tool call status scan")
+
+				if err := emitAndWaitApproval(ctx, cfg, u.toolCall, pa, promptedIDs, pa.ToolCallId); err != nil {
+					return
+				}
 			}
 		}
 
@@ -164,10 +367,10 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 			if execution.Status.Error != "" {
 				errMsg = execution.Status.Error
 			}
-			cfg.events <- executiontui.DoneEvent{
+			trySendEvent(ctx, cfg.events, executiontui.DoneEvent{
 				Phase: mapPhaseToString(execution.Status.Phase),
 				Error: errMsg,
-			}
+			})
 			return
 		}
 	}
@@ -176,11 +379,11 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 // emitMessageEvents converts new proto messages to TUI events and sends them
 // over the channel. It returns the updated displayedCount and inStream state.
 //
-// trackedTools is the toolCallStates map from emitToolCallStateEvents, which
-// runs first. MESSAGE_TOOL entries whose tool call ID appears in this map are
-// suppressed — the state tracker owns their visual representation via stateful
-// tool blocks, and emitting a duplicate ToolResultEvent would create a second
-// block in the TUI.
+// trackedTools is the toolCallStates map from trackToolCallStates, which runs
+// first (map-building only, no emission). MESSAGE_TOOL entries whose tool call
+// ID appears in this map are suppressed — the state tracker owns their visual
+// representation via stateful tool blocks, and emitting a duplicate
+// ToolResultEvent would create a second block in the TUI.
 func emitMessageEvents(
 	events chan<- executiontui.Event,
 	messages []*agentexecutionv1.AgentMessage,
@@ -269,28 +472,30 @@ func emitCompleteMessage(events chan<- executiontui.Event, msg *agentexecutionv1
 	}
 }
 
-// emitToolCallStateEvents diffs the current tool call statuses against the
-// last-known state and emits ToolRunningEvent / ToolCompletedEvent for any
+// trackToolCallStates diffs the current tool call statuses against the
+// last-known state and collects ToolRunningEvent / ToolCompletedEvent for any
 // transitions. It also detects streaming content changes on running tools
-// and emits ToolStreamDeltaEvent when the result content changes.
+// and collects ToolStreamDeltaEvent when the result content changes.
 //
-// subAgentID scopes the emitted events: when non-empty, the TUI renders
+// Unlike the previous emitToolCallStateEvents, this function does NOT write
+// events to a channel. It returns them in a slice so the caller can control
+// emission order — specifically, emitting message events (AIStreamEnd) before
+// tool events (ToolCompleted) to prevent the renderer from prematurely closing
+// an active AI stream.
+//
+// subAgentID scopes the collected events: when non-empty, the TUI renders
 // the resulting blocks with sub-agent visual nesting. Pass "" for top-level
-// tool calls. This function serves both top-level and sub-agent tool call
-// tracking — eliminating the duplicated emitSubAgentToolCallEvents.
+// tool calls.
 //
-// Returns the updated state and result maps.
-//
-// This is a separate tracking pass from emitMessageEvents — it operates on the
-// top-level ToolCalls list (not the message array) and is immune to the
-// displayedCount cursor advancing past in-place message updates.
-func emitToolCallStateEvents(
-	events chan<- executiontui.Event,
+// Returns the updated state maps and the collected events.
+func trackToolCallStates(
 	toolCalls []*agentexecutionv1.ToolCall,
 	prevStates map[string]string,
 	prevResults map[string]string,
 	subAgentID string,
-) (map[string]string, map[string]string) {
+) (map[string]string, map[string]string, []executiontui.Event) {
+	var pending []executiontui.Event
+
 	for _, tc := range toolCalls {
 		if tc.Id == "" {
 			continue
@@ -300,22 +505,22 @@ func emitToolCallStateEvents(
 		prevStatus, seen := prevStates[tc.Id]
 
 		if !seen && currentStatus == "running" {
-			events <- executiontui.ToolRunningEvent{
+			pending = append(pending, executiontui.ToolRunningEvent{
 				ToolCallID: tc.Id,
 				ToolCall:   convertToolCall(tc),
 				SubAgentID: subAgentID,
-			}
+			})
 			prevStates[tc.Id] = currentStatus
 			prevResults[tc.Id] = tc.Result
 			continue
 		}
 
 		if !seen && currentStatus == "waiting_approval" {
-			events <- executiontui.ToolWaitingApprovalEvent{
+			pending = append(pending, executiontui.ToolWaitingApprovalEvent{
 				ToolCallID: tc.Id,
 				ToolCall:   convertToolCall(tc),
 				SubAgentID: subAgentID,
-			}
+			})
 			prevStates[tc.Id] = currentStatus
 			continue
 		}
@@ -323,26 +528,26 @@ func emitToolCallStateEvents(
 		if !seen && isTerminalToolStatus(currentStatus) {
 			// Tool appeared for the first time already in a terminal state
 			// (e.g., reconnecting to an execution where the tool has already
-			// completed). Emit a ToolCompletedEvent so the TUI creates a
+			// completed). Collect a ToolCompletedEvent so the TUI creates a
 			// stateful block for it. Without this, the tool's MESSAGE_TOOL
 			// would be suppressed by isTrackedToolMessage (since we add it
 			// to prevStates below) and no block would exist — the tool
 			// would silently vanish.
-			events <- executiontui.ToolCompletedEvent{
+			pending = append(pending, executiontui.ToolCompletedEvent{
 				ToolCallID: tc.Id,
 				ToolCall:   convertToolCall(tc),
 				SubAgentID: subAgentID,
-			}
+			})
 			prevStates[tc.Id] = currentStatus
 			continue
 		}
 
 		if seen && (prevStatus == "running" || prevStatus == "waiting_approval") && isTerminalToolStatus(currentStatus) {
-			events <- executiontui.ToolCompletedEvent{
+			pending = append(pending, executiontui.ToolCompletedEvent{
 				ToolCallID: tc.Id,
 				ToolCall:   convertToolCall(tc),
 				SubAgentID: subAgentID,
-			}
+			})
 			prevStates[tc.Id] = currentStatus
 			delete(prevResults, tc.Id)
 			continue
@@ -350,37 +555,37 @@ func emitToolCallStateEvents(
 
 		if currentStatus != prevStatus {
 			if currentStatus == "running" {
-				events <- executiontui.ToolRunningEvent{
+				pending = append(pending, executiontui.ToolRunningEvent{
 					ToolCallID: tc.Id,
 					ToolCall:   convertToolCall(tc),
 					SubAgentID: subAgentID,
-				}
+				})
 				prevResults[tc.Id] = tc.Result
 			} else if currentStatus == "waiting_approval" {
-				events <- executiontui.ToolWaitingApprovalEvent{
+				pending = append(pending, executiontui.ToolWaitingApprovalEvent{
 					ToolCallID: tc.Id,
 					ToolCall:   convertToolCall(tc),
 					SubAgentID: subAgentID,
-				}
+				})
 			}
 			prevStates[tc.Id] = currentStatus
 			continue
 		}
 
 		// Streaming content detection: when a running tool has is_streaming=true
-		// and its result content has changed, emit a delta event for live rendering.
+		// and its result content has changed, collect a delta event for live rendering.
 		if currentStatus == "running" && tc.IsStreaming && tc.Result != prevResults[tc.Id] {
-			events <- executiontui.ToolStreamDeltaEvent{
+			pending = append(pending, executiontui.ToolStreamDeltaEvent{
 				ToolCallID: tc.Id,
 				ToolCall:   convertToolCall(tc),
 				Content:    tc.Result,
 				SubAgentID: subAgentID,
-			}
+			})
 			prevResults[tc.Id] = tc.Result
 		}
 	}
 
-	return prevStates, prevResults
+	return prevStates, prevResults, pending
 }
 
 // isTerminalToolStatus returns true for tool call statuses that indicate
@@ -431,7 +636,7 @@ type todoFingerprint struct {
 // fingerprint snapshot and emits a TodoUpdateEvent if anything changed.
 // Returns the new fingerprint map for tracking across stream iterations.
 //
-// The function follows the same diff-and-emit pattern as emitToolCallStateEvents:
+// The function follows the same diff-and-emit pattern as trackToolCallStates:
 // build a lightweight snapshot, compare, emit on change.
 func emitTodoEvents(
 	events chan<- executiontui.Event,
@@ -485,6 +690,11 @@ func todoFingerprintsChanged(prev, current map[string]todoFingerprint) bool {
 // emitAndWaitApproval sends an approval event to the TUI and blocks until
 // the user responds. It then submits the decision to the backend.
 //
+// All channel operations use select with ctx.Done() so the goroutine can
+// exit cleanly when the TUI exits (context cancelled). Returns a non-nil
+// error only on context cancellation — the caller should exit the stream
+// loop when this happens.
+//
 // If the approval submission fails, a StreamErrorEvent is emitted so the TUI
 // can display an actionable error to the user instead of silently continuing
 // with a stream that will never receive new updates (the backend never got
@@ -496,39 +706,55 @@ func emitAndWaitApproval(
 	pa *agentexecutionv1.PendingApproval,
 	promptedIDs map[string]bool,
 	dedupKey string,
-) {
-	// Determine the approval info from the best available source.
+) error {
 	info := extractApprovalInfo(tc, pa)
 
-	cfg.events <- executiontui.ApprovalNeededEvent{
+	if !trySendEvent(ctx, cfg.events, executiontui.ApprovalNeededEvent{
 		ToolCallID:   info.toolCallID,
 		ToolName:     info.toolName,
 		ArgsPreview:  info.argsPreview,
 		Message:      info.message,
 		FromSubAgent: info.fromSubAgent,
 		SubAgentName: info.subAgentName,
+	}) {
+		return ctx.Err()
 	}
 
 	promptedIDs[dedupKey] = true
 
-	// Block until the user responds.
-	resp := <-cfg.approvalResponses
+	// Block until the user responds or the context is cancelled.
+	var resp executiontui.ApprovalResponse
+	select {
+	case resp = <-cfg.approvalResponses:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 
-	// Submit the decision to the backend.
+	// Submit the decision to the backend with retry for transient failures.
 	decision := mapApprovalResponseToDecision(resp)
-	_, err := submitAgentApproval(ctx, cfg.conn, cfg.executionID, info.toolCallID, decision)
+	err := retryWithBackoff(ctx, approvalRetryMaxAttempts, approvalRetryBaseDelay, func() error {
+		_, submitErr := submitAgentApproval(ctx, cfg.conn, cfg.executionID, info.toolCallID, decision)
+		return submitErr
+	})
 	if err != nil {
 		log.Error().
 			Err(err).
 			Str("execution_id", cfg.executionID).
 			Str("tool_call_id", info.toolCallID).
 			Str("action", resp.Action).
-			Msg("[stream] failed to submit approval decision")
+			Msg("[stream] failed to submit approval decision after retries")
 
-		cfg.events <- executiontui.StreamErrorEvent{
-			Err: errors.Wrap(err, "failed to submit approval decision"),
+		msg := fmt.Sprintf("Failed to submit approval after %d attempts", approvalRetryMaxAttempts)
+		if cfg.sessionID != "" {
+			msg += fmt.Sprintf(". Re-attach to retry: stigmer run %s", cfg.sessionID)
 		}
+
+		trySendEvent(ctx, cfg.events, executiontui.StreamErrorEvent{
+			Err: errors.Wrap(err, msg),
+		})
 	}
+
+	return nil
 }
 
 // approvalInfo holds all display-relevant fields extracted from a

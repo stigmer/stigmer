@@ -8,6 +8,14 @@ Idempotent provisioning:
     but lacks ``.git`` (e.g. a crash during a previous clone), the
     contents are cleaned and a fresh clone is performed.
 
+Multi-entry subdirectory mode:
+    When ``target_subdir`` is provided, the repository is cloned into
+    a named subdirectory of the workspace root instead of the root
+    itself.  All idempotency checks, recovery, metadata resolution,
+    and git-exclude setup are scoped to the subdirectory.  This
+    supports multi-workspace sessions where each git entry occupies
+    its own subdirectory (e.g. ``{workspace_root}/my-app/``).
+
 Authentication (AD-07, GitHub-only for MVP):
     If ``GITHUB_TOKEN`` is present in the merged environment **and** the
     clone URL points to ``github.com``, the token is injected into the
@@ -33,6 +41,7 @@ Git excludes:
 from __future__ import annotations
 
 import logging
+import os
 import re
 from urllib.parse import urlparse
 
@@ -56,6 +65,35 @@ _PLATFORM_EXCLUDES = (".stigmer",)
 
 
 # ---------------------------------------------------------------------------
+# Subdirectory helpers
+# ---------------------------------------------------------------------------
+
+
+def _effective_root(backend_root: str, target_subdir: str | None) -> str:
+    """Compute the effective root directory for a provisioning target.
+
+    When *target_subdir* is set, the repo lives in a named subdirectory
+    of the workspace root (multi-entry cloud mode).  Otherwise the repo
+    occupies the workspace root directly (single-entry backward compat).
+    """
+    if target_subdir:
+        return os.path.join(backend_root, target_subdir)
+    return backend_root
+
+
+def _scoped_path(rel_path: str, target_subdir: str | None) -> str:
+    """Prefix a workspace-relative path with the target subdirectory.
+
+    File I/O methods on ``WorkspaceBackend`` take paths relative to
+    ``root_dir``.  When the repo lives in a subdirectory, all paths
+    must include the subdirectory prefix.
+    """
+    if target_subdir:
+        return os.path.join(target_subdir, rel_path)
+    return rel_path
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
@@ -64,6 +102,8 @@ def provision(
     source: object,
     backend: WorkspaceBackend,
     merged_env: dict[str, str],
+    *,
+    target_subdir: str | None = None,
 ) -> ProvisionResult:
     """Clone a git repository into the workspace, or reuse an existing clone.
 
@@ -76,6 +116,10 @@ def provision(
         source: ``GitRepoSource`` proto message (duck-typed).
         backend: Workspace backend for command execution.
         merged_env: Merged environment with potential ``GITHUB_TOKEN``.
+        target_subdir: When set, clone into this subdirectory of
+            ``backend.root_dir`` instead of the root itself.  Used by
+            multi-entry provisioning so each git repo occupies a named
+            subdirectory (e.g. ``{workspace_root}/my-app/``).
 
     Returns:
         ``ProvisionResult`` with ``git_metadata`` populated.
@@ -90,17 +134,18 @@ def provision(
     depth: int = source.depth if has_depth else -1  # type: ignore[attr-defined]
 
     token = merged_env.get(_TOKEN_KEY)
+    root_dir = _effective_root(backend.root_dir, target_subdir)
 
-    existing = _detect_existing_repo(backend, url, token)
+    existing = _detect_existing_repo(backend, url, token, target_subdir=target_subdir)
     if existing is not None:
-        _setup_git_excludes(backend)
+        _setup_git_excludes(backend, target_subdir=target_subdir)
         return existing
 
-    _recover_non_empty_workspace(backend)
+    _recover_non_empty_workspace(backend, target_subdir=target_subdir)
 
     auth_url = _build_auth_url(url, token)
 
-    clone_cmd = _build_clone_command(auth_url, branch, has_depth, depth, backend.root_dir)
+    clone_cmd = _build_clone_command(auth_url, branch, has_depth, depth, root_dir)
     _run_git(backend, clone_cmd, token, timeout=_CLONE_TIMEOUT, context="clone")
 
     if commit:
@@ -110,10 +155,11 @@ def provision(
             token,
             timeout=_POST_CLONE_TIMEOUT,
             context=f"checkout {commit}",
+            cwd=target_subdir,
         )
 
-    resolved_branch = _resolve_branch(backend, token)
-    head_sha = _resolve_head(backend, token)
+    resolved_branch = _resolve_branch(backend, token, cwd=target_subdir)
+    head_sha = _resolve_head(backend, token, cwd=target_subdir)
 
     consumed_keys: tuple[str, ...] = (_TOKEN_KEY,) if token else ()
     if consumed_keys:
@@ -122,10 +168,10 @@ def provision(
             _TOKEN_KEY,
         )
 
-    _setup_git_excludes(backend)
+    _setup_git_excludes(backend, target_subdir=target_subdir)
 
     return ProvisionResult(
-        root_dir=backend.root_dir,
+        root_dir=root_dir,
         source_type=_SOURCE,
         consumed_keys=consumed_keys,
         workspace_description=_build_description(url, resolved_branch, head_sha),
@@ -146,31 +192,39 @@ def _detect_existing_repo(
     backend: WorkspaceBackend,
     url: str,
     token: str | None,
+    *,
+    target_subdir: str | None = None,
 ) -> ProvisionResult | None:
     """Return a ``ProvisionResult`` if the workspace already contains a repo.
 
-    Checks for ``.git`` in the workspace root.  When found, reads branch
-    and HEAD from the existing clone — no network operations, no auth.
+    Checks for ``.git`` in the target directory (workspace root or a
+    named subdirectory).  When found, reads branch and HEAD from the
+    existing clone — no network operations, no auth.
 
-    Returns ``None`` if the workspace is empty or has no ``.git``.
+    Returns ``None`` if the directory is empty or has no ``.git``.
     """
-    result = backend.execute("test -d .git && echo yes || echo no", timeout=5)
+    result = backend.execute(
+        "test -d .git && echo yes || echo no",
+        cwd=target_subdir,
+        timeout=5,
+    )
     if result.exit_code != 0 or result.stdout.strip() != "yes":
         return None
 
+    root_dir = _effective_root(backend.root_dir, target_subdir)
     logger.info(
         "Workspace already provisioned (git repo detected), reusing: "
         "root_dir=%s",
-        backend.root_dir,
+        root_dir,
     )
 
-    resolved_branch = _resolve_branch(backend, token=None)
-    head_sha = _resolve_head(backend, token=None)
+    resolved_branch = _resolve_branch(backend, token=None, cwd=target_subdir)
+    head_sha = _resolve_head(backend, token=None, cwd=target_subdir)
 
     consumed_keys: tuple[str, ...] = (_TOKEN_KEY,) if token else ()
 
     return ProvisionResult(
-        root_dir=backend.root_dir,
+        root_dir=root_dir,
         source_type=_SOURCE,
         consumed_keys=consumed_keys,
         workspace_description=_build_description(url, resolved_branch, head_sha),
@@ -182,24 +236,33 @@ def _detect_existing_repo(
     )
 
 
-def _recover_non_empty_workspace(backend: WorkspaceBackend) -> None:
-    """Clean a non-empty workspace that has no ``.git`` directory.
+def _recover_non_empty_workspace(
+    backend: WorkspaceBackend,
+    *,
+    target_subdir: str | None = None,
+) -> None:
+    """Clean a non-empty target directory that has no ``.git``.
 
     This handles the case where a previous provisioning attempt crashed
     mid-clone, leaving partial content without a valid git repository.
-    An empty workspace (the normal case) is left untouched.
+    An empty directory (or one that does not exist yet) is left untouched.
+
+    When *target_subdir* is set, only the subdirectory is inspected and
+    cleaned — sibling entries are never touched.
     """
-    result = backend.execute("ls -A", timeout=5)
+    result = backend.execute("ls -A", cwd=target_subdir, timeout=5)
     if result.exit_code != 0 or not result.stdout.strip():
         return
 
+    root_dir = _effective_root(backend.root_dir, target_subdir)
     logger.warning(
         "Workspace contains partial state (no .git), "
         "cleaning up before re-provisioning: root_dir=%s",
-        backend.root_dir,
+        root_dir,
     )
     cleanup = backend.execute(
         "rm -rf * .[!.]* 2>/dev/null; true",
+        cwd=target_subdir,
         timeout=_CLEANUP_TIMEOUT,
     )
     if cleanup.exit_code != 0:
@@ -276,9 +339,10 @@ def _run_git(
     *,
     timeout: int,
     context: str,
+    cwd: str | None = None,
 ) -> ExecuteResult:
     """Execute a git command, scrub the token from errors, classify failures."""
-    result = backend.execute(command, timeout=timeout)
+    result = backend.execute(command, cwd=cwd, timeout=timeout)
 
     if result.exit_code != 0:
         stderr = _scrub_token(result.stderr, token)
@@ -342,7 +406,11 @@ def _classify_error(stderr: str, context: str) -> WorkspaceProvisionError:
 # ---------------------------------------------------------------------------
 
 
-def _resolve_branch(backend: WorkspaceBackend, token: str | None) -> str:
+def _resolve_branch(
+    backend: WorkspaceBackend,
+    token: str | None,
+    cwd: str | None = None,
+) -> str:
     """Get the current branch name (resolves default branch when unspecified)."""
     result = _run_git(
         backend,
@@ -350,13 +418,18 @@ def _resolve_branch(backend: WorkspaceBackend, token: str | None) -> str:
         token,
         timeout=_POST_CLONE_TIMEOUT,
         context="resolve branch",
+        cwd=cwd,
     )
     branch = result.stdout.strip()
     # Detached HEAD (after checkout of a specific commit) returns "HEAD".
     return branch if branch and branch != "HEAD" else "HEAD"
 
 
-def _resolve_head(backend: WorkspaceBackend, token: str | None) -> str:
+def _resolve_head(
+    backend: WorkspaceBackend,
+    token: str | None,
+    cwd: str | None = None,
+) -> str:
     """Get the full SHA of HEAD."""
     result = _run_git(
         backend,
@@ -364,6 +437,7 @@ def _resolve_head(backend: WorkspaceBackend, token: str | None) -> str:
         token,
         timeout=_POST_CLONE_TIMEOUT,
         context="resolve HEAD",
+        cwd=cwd,
     )
     return result.stdout.strip()
 
@@ -373,7 +447,11 @@ def _resolve_head(backend: WorkspaceBackend, token: str | None) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _setup_git_excludes(backend: WorkspaceBackend) -> None:
+def _setup_git_excludes(
+    backend: WorkspaceBackend,
+    *,
+    target_subdir: str | None = None,
+) -> None:
     """Add platform directories to ``.git/info/exclude``.
 
     When the virtual platform mount is active (``backend.platform_dir``
@@ -383,6 +461,9 @@ def _setup_git_excludes(backend: WorkspaceBackend) -> None:
     Uses the local exclude file (not ``.gitignore``) so that tracked
     project files are never modified.  Entries are appended only if not
     already present, making the function idempotent across executions.
+
+    When *target_subdir* is set, the ``.git`` directory is located
+    inside the subdirectory rather than at the workspace root.
     """
     if backend.platform_dir:
         logger.info(
@@ -391,7 +472,8 @@ def _setup_git_excludes(backend: WorkspaceBackend) -> None:
             backend.platform_dir,
         )
         return
-    excludes_path = ".git/info/exclude"
+
+    excludes_path = _scoped_path(".git/info/exclude", target_subdir)
 
     existing = ""
     try:
@@ -407,7 +489,7 @@ def _setup_git_excludes(backend: WorkspaceBackend) -> None:
     separator = "" if existing.endswith("\n") or not existing else "\n"
     new_content = existing + separator + "\n".join(needed) + "\n"
 
-    backend.mkdir(".git/info")
+    backend.mkdir(_scoped_path(".git/info", target_subdir))
     backend.write_file(excludes_path, new_content.encode("utf-8"))
 
     logger.info(

@@ -24,12 +24,18 @@ message SessionSpec {
   // Session metadata (e.g., client info, tags).
   map<string, string> metadata = 5;
 
-  // Workspace source for this session (optional).
+  // Field 6 was workspace_source (singular WorkspaceSource). Removed in the
+  // multi-workspace migration; replaced by workspace_entries (field 7).
+  reserved 6;
+  reserved "workspace_source";
+
+  // Workspace entries for this session (optional, may be empty).
   //
-  // Defines where the workspace content comes from. Provisioned on the
+  // Each entry pairs a name with a source (git repo or local path), forming
+  // a multi-root workspace (VS Code model). Entries are provisioned on the
   // first execution; subsequent executions reuse the same workspace.
   //
-  // When absent, the session uses an empty workspace directory
-  // (existing behavior, fully backward-compatible).
-  WorkspaceSource workspace_source = 6;
+  // When empty, the session uses an empty workspace directory
+  // (existing default behavior, no provisioning step).
+  repeated WorkspaceEntry workspace_entries = 7;
 }

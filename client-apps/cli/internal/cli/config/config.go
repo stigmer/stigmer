@@ -16,6 +16,14 @@ const (
 	ConfigFileName = "config.yaml"
 	// DefaultDataDir is the default directory for local backend data
 	DefaultDataDir = "data"
+	// DefaultDBFile is the SQLite database filename within ConfigDir
+	DefaultDBFile = "stigmer.db"
+	// DefaultStorageDir is the directory for skill artifact storage
+	DefaultStorageDir = "storage"
+	// DefaultSessionsDir is the directory for CLI session data
+	DefaultSessionsDir = "sessions"
+	// DefaultRuntimesDir is the directory for agent-runner runtimes
+	DefaultRuntimesDir = "runtimes"
 )
 
 // BackendType represents the type of backend (local or cloud)

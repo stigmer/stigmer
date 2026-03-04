@@ -42,7 +42,7 @@ func New(w io.Writer) *Writer {
 
 func (w *Writer) Info(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
-	infoStyle.Fprintf(w.out, "ℹ %s\n", msg)
+	infoStyle.Fprintf(w.out, "%s\n", msg)
 }
 
 func (w *Writer) Success(format string, args ...any) {

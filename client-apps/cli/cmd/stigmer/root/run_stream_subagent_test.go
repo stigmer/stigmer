@@ -284,11 +284,10 @@ func TestEmitSubAgentEvents_NoStartedEventOnSubsequentCalls(t *testing.T) {
 }
 
 // =============================================================================
-// emitToolCallStateEvents with subAgentID Tests
+// trackToolCallStates with subAgentID Tests
 // =============================================================================
 
-func TestEmitToolCallStateEvents_PropagatesSubAgentID(t *testing.T) {
-	events := make(chan executiontui.Event, 16)
+func TestTrackToolCallStates_PropagatesSubAgentID(t *testing.T) {
 	prevStates := make(map[string]string)
 	prevResults := make(map[string]string)
 
@@ -296,20 +295,21 @@ func TestEmitToolCallStateEvents_PropagatesSubAgentID(t *testing.T) {
 		{Id: "tc-1", Name: "read_file", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_RUNNING},
 	}
 
-	emitToolCallStateEvents(events, toolCalls, prevStates, prevResults, "sa-42")
+	_, _, collected := trackToolCallStates(toolCalls, prevStates, prevResults, "sa-42")
 
-	evt := <-events
-	running, ok := evt.(executiontui.ToolRunningEvent)
+	if len(collected) != 1 {
+		t.Fatalf("expected 1 collected event, got %d", len(collected))
+	}
+	running, ok := collected[0].(executiontui.ToolRunningEvent)
 	if !ok {
-		t.Fatalf("expected ToolRunningEvent, got %T", evt)
+		t.Fatalf("expected ToolRunningEvent, got %T", collected[0])
 	}
 	if running.SubAgentID != "sa-42" {
 		t.Errorf("SubAgentID = %q, want %q", running.SubAgentID, "sa-42")
 	}
 }
 
-func TestEmitToolCallStateEvents_EmptySubAgentID_NoNesting(t *testing.T) {
-	events := make(chan executiontui.Event, 16)
+func TestTrackToolCallStates_EmptySubAgentID_NoNesting(t *testing.T) {
 	prevStates := make(map[string]string)
 	prevResults := make(map[string]string)
 
@@ -317,12 +317,14 @@ func TestEmitToolCallStateEvents_EmptySubAgentID_NoNesting(t *testing.T) {
 		{Id: "tc-1", Name: "read_file", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED, Result: "ok"},
 	}
 
-	emitToolCallStateEvents(events, toolCalls, prevStates, prevResults, "")
+	_, _, collected := trackToolCallStates(toolCalls, prevStates, prevResults, "")
 
-	evt := <-events
-	completed, ok := evt.(executiontui.ToolCompletedEvent)
+	if len(collected) != 1 {
+		t.Fatalf("expected 1 collected event, got %d", len(collected))
+	}
+	completed, ok := collected[0].(executiontui.ToolCompletedEvent)
 	if !ok {
-		t.Fatalf("expected ToolCompletedEvent, got %T", evt)
+		t.Fatalf("expected ToolCompletedEvent, got %T", collected[0])
 	}
 	if completed.SubAgentID != "" {
 		t.Errorf("SubAgentID = %q, want empty for top-level", completed.SubAgentID)

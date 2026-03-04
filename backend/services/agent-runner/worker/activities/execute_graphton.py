@@ -48,7 +48,10 @@ from worker.activities.graphton.approval_policy import (
 from worker.activities.graphton.skill_writer import SkillWriter
 from worker.activities.graphton.status_builder import StatusBuilder, _utc_timestamp
 from worker.activities.graphton.subagent_transformer import transform_sub_agents
-from worker.activities.relevance import build_relevance_prompt_section
+from worker.activities.relevance import (
+    WorkspaceRoot,
+    build_relevance_prompt_section,
+)
 from worker.checkpointer import create_checkpointer
 from worker.mcp import transform_all_mcp_configs
 from worker.resilience import (
@@ -615,26 +618,126 @@ async def _auto_publish_written_files(
 
 
 def build_workspace_prompt_section(
-    provision_result: ProvisionResult | None,
+    provision_results: list[ProvisionResult] | None = None,
+    container_root: str = "",
 ) -> str:
     """Build the ``## Workspace`` system prompt section.
 
     Returns the section string (with leading newlines for concatenation)
-    when *provision_result* carries a workspace description, or an empty
-    string otherwise.  Callers can unconditionally append the result.
+    when *provision_results* is non-empty, or an empty string otherwise.
+    Callers can unconditionally append the result.
 
-    When *provision_result.file_tree* is present, the formatted tree
-    section (``### Project Structure``) is appended after the description.
+    For a single entry the output is identical to the legacy
+    single-workspace format (no regression).  For multiple entries each
+    gets a ``### {name}`` sub-heading with its description and file
+    tree (heading level adjusted to ``####``).
+
+    *container_root* is the backend's root directory — used only in the
+    multi-entry path to tell the agent its current working directory.
     """
-    if not provision_result or not provision_result.workspace_description:
+    if not provision_results:
         return ""
 
-    section = "\n\n## Workspace\n\n" + provision_result.workspace_description
+    if len(provision_results) == 1:
+        return _build_single_workspace_section(provision_results[0])
 
-    if provision_result.file_tree:
-        section += "\n\n" + provision_result.file_tree
+    return _build_multi_workspace_section(provision_results, container_root)
+
+
+def _build_single_workspace_section(result: ProvisionResult) -> str:
+    """Format the workspace section for a single entry (legacy compat)."""
+    if not result.workspace_description:
+        return ""
+
+    section = "\n\n## Workspace\n\n" + result.workspace_description
+
+    if result.file_tree:
+        section += "\n\n" + result.file_tree
 
     return section
+
+
+def _build_multi_workspace_section(
+    results: list[ProvisionResult],
+    container_root: str,
+) -> str:
+    """Format the workspace section for multiple entries.
+
+    The tree heading level is controlled at provisioning time via
+    ``tree_heading_level`` (set to 4 by ``provision_all`` for
+    multi-entry sessions), so no post-hoc string replacement is needed.
+
+    *container_root* is the backend's root directory — included in the
+    prompt so the agent knows its CWD and how to form entry-relative
+    paths.
+    """
+    first_label = results[0].entry_name or "entry-1"
+
+    section = (
+        f"\n\n## Workspace\n\n"
+        f"This session has {len(results)} workspace entries.\n\n"
+        f"**Current working directory**: `{container_root}`\n"
+        f"**Path resolution**: All file tools (read, write, edit, ls, "
+        f"glob, grep) resolve paths relative to the current working "
+        f"directory. Use entry-relative paths "
+        f"(e.g., `{first_label}/src/main.py`) or absolute paths.\n"
+    )
+
+    for idx, result in enumerate(results):
+        label = result.entry_name or f"entry-{idx + 1}"
+        section += f"\n### {label} (`{result.root_dir}`)\n\n"
+        section += _format_entry_description(result)
+
+        if result.file_tree:
+            section += "\n\n" + result.file_tree
+
+    return section
+
+
+def _format_entry_description(result: ProvisionResult) -> str:
+    """Generate a multi-workspace-appropriate description for one entry.
+
+    Uses structured fields on *result* (``source_type``, ``entry_name``,
+    ``git_metadata``) rather than the generic ``workspace_description``
+    so the phrasing fits a multi-entry context ("Workspace entry **X**"
+    instead of "Your workspace is ...").
+
+    Falls back to ``workspace_description`` for unknown source types so
+    that new sources work without changes here.
+    """
+    name = result.entry_name or "this entry"
+
+    if result.source_type == SourceType.LOCAL_PATH:
+        return (
+            f"Workspace entry **{name}** is the user's project directory "
+            f"at `{result.root_dir}`.\n"
+            "You are operating directly on the user's files — changes are "
+            "immediate and persistent. Use git to track and verify your "
+            "changes."
+        )
+
+    if result.source_type == SourceType.GIT_REPO and result.git_metadata:
+        meta = result.git_metadata
+        short_sha = (
+            meta.base_commit[:7]
+            if len(meta.base_commit) >= 7
+            else meta.base_commit
+        )
+        return (
+            f"Workspace entry **{name}** was initialized from "
+            f"{meta.repo_url} (branch: {meta.branch}, "
+            f"commit: {short_sha}).\n"
+            "Changes you make will be captured as artifacts when "
+            "execution completes."
+        )
+
+    if result.source_type == SourceType.EMPTY:
+        return (
+            f"Workspace entry **{name}** is an empty workspace.\n"
+            "Create files and directories as needed for your task."
+        )
+
+    return result.workspace_description
 
 
 # Tree-building utilities live in worker.workspace.tree.  Module-level
@@ -726,6 +829,10 @@ def _generate_git_diff_artifact(
     exclusions are needed.  When it is not active (backward compat),
     the old exclusions for ``.stigmer`` are applied.
 
+    For multi-entry sessions, the ``git diff`` is scoped to the
+    entry's subdirectory via ``cwd``, and the patch filename includes
+    the entry name to distinguish per-repo artifacts.
+
     Returns ``True`` if an artifact was generated, ``False`` otherwise.
     This function is intentionally non-fatal: failures are logged but
     never propagate.
@@ -743,9 +850,15 @@ def _generate_git_diff_artifact(
     else:
         diff_cmd = "git diff -- ':!.stigmer' ':!.stigmer-inputs' ':!bin/skills'"
 
+    # Scope git diff to the entry's directory when it differs from
+    # the backend root (multi-entry subdirectory layout).
+    rel = os.path.relpath(provision_result.root_dir, workspace_backend.root_dir)
+    cwd = rel if rel != "." else None
+
     try:
         result = workspace_backend.execute(
             diff_cmd,
+            cwd=cwd,
             timeout=30,
         )
     except Exception as exc:
@@ -766,7 +879,10 @@ def _generate_git_diff_artifact(
         return False
 
     patch_bytes = diff_text.encode("utf-8")
-    filename = f"{execution_id}.patch"
+    if provision_result.entry_name:
+        filename = f"{execution_id}-{provision_result.entry_name}.patch"
+    else:
+        filename = f"{execution_id}.patch"
     storage_key = f"artifacts/{execution_id}/{filename}"
 
     try:
@@ -1298,55 +1414,73 @@ async def _execute_graphton_impl(
         })
         
         # ─────────────────────────────────────────────────────────────────────────────
-        # Step 2.9: Workspace provisioning (Phase 3)
+        # Step 2.9: Workspace provisioning
         #
-        # When the session has a workspace_source, the provisioner clones a
-        # git repo, validates
-        # a local path, or returns an empty workspace result.  The provisioner
-        # is idempotent: if the workspace was already provisioned (e.g. by a
-        # previous execution in this session), it detects the existing state
-        # and returns metadata without re-cloning.
+        # When the session has workspace_entries, the provisioner iterates
+        # each entry and provisions it (git clone, local-path validation,
+        # or empty).  The provisioner is idempotent: previously provisioned
+        # workspaces are detected and reused without re-cloning.
         #
         # Credential stripping (AD-05): keys consumed by provisioning
         # (e.g. GITHUB_TOKEN) are removed from merged_env_vars so they
         # do not leak into MCP config placeholders or status reporting.
         # ─────────────────────────────────────────────────────────────────────────────
-        provision_result: ProvisionResult | None = None
+        provision_results: list[ProvisionResult] = []
         
-        if session.spec.HasField("workspace_source"):
+        if session.spec.workspace_entries:
             setup_timer.start("workspace_provisioning")
             try:
                 provisioner = WorkspaceProvisioner(log=activity_logger)
-                provision_result = provisioner.provision(
-                    workspace_source=session.spec.workspace_source,
+                provision_results = provisioner.provision_all(
+                    entries=session.spec.workspace_entries,
                     backend=workspace_backend,
                     merged_env=merged_env_vars,
                     is_local_mode=worker_config.is_local_mode(),
                 )
                 
-                if provision_result.root_dir != workspace_backend.root_dir:
-                    activity_logger.info(
-                        "Workspace root changed by provisioning: %s -> %s",
-                        workspace_backend.root_dir,
-                        provision_result.root_dir,
-                    )
-                    workspace_backend = LocalWorkspaceBackend(
-                        root_dir=provision_result.root_dir,
-                        platform_dir=workspace_init.platform_dir,
-                    )
-                
-                if provision_result.consumed_keys:
-                    stripped = []
-                    for key in provision_result.consumed_keys:
-                        if key in merged_env_vars:
-                            del merged_env_vars[key]
-                            stripped.append(key)
-                    if stripped:
+                if provision_results:
+                    primary = provision_results[0]
+                    if (
+                        len(provision_results) == 1
+                        and primary.root_dir != workspace_backend.root_dir
+                    ):
+                        # Single entry: replace backend so the agent's
+                        # CWD is the provisioned root (backward compat).
                         activity_logger.info(
-                            "Stripped %d provisioning key(s) from agent environment: %s",
-                            len(stripped),
-                            ", ".join(stripped),
+                            "Workspace root changed by provisioning: %s -> %s",
+                            workspace_backend.root_dir,
+                            primary.root_dir,
                         )
+                        workspace_backend = LocalWorkspaceBackend(
+                            root_dir=primary.root_dir,
+                            platform_dir=workspace_init.platform_dir,
+                        )
+                    elif len(provision_results) > 1:
+                        # Multi-entry: keep backend at workspace root so
+                        # all entry subdirectories remain reachable.  The
+                        # system prompt tells the agent which entry is
+                        # primary and how to navigate between them.
+                        activity_logger.info(
+                            "Multi-entry workspace: keeping backend at "
+                            "root %s (%d entries)",
+                            workspace_backend.root_dir,
+                            len(provision_results),
+                        )
+                
+                    all_consumed: set[str] = set()
+                    for pr in provision_results:
+                        all_consumed.update(pr.consumed_keys)
+                    if all_consumed:
+                        stripped = [
+                            k for k in all_consumed
+                            if merged_env_vars.pop(k, None) is not None
+                        ]
+                        if stripped:
+                            activity_logger.info(
+                                "Stripped %d provisioning key(s) from agent environment: %s",
+                                len(stripped),
+                                ", ".join(sorted(stripped)),
+                            )
                 
             except WorkspaceProvisionError as prov_err:
                 activity_logger.error(
@@ -1357,9 +1491,9 @@ async def _execute_graphton_impl(
                 ) from prov_err
             
             heartbeat_during_setup("workspace_provisioned", {
-                "source_type": provision_result.source_type.value,
-                "root_dir": provision_result.root_dir,
-                "consumed_keys": list(provision_result.consumed_keys),
+                "entry_count": len(provision_results),
+                "source_types": [pr.source_type.value for pr in provision_results],
+                "primary_root_dir": provision_results[0].root_dir if provision_results else None,
             })
         
         # ─────────────────────────────────────────────────────────────────────────────
@@ -1792,13 +1926,20 @@ async def _execute_graphton_impl(
         # Enhance system prompt with workspace context, skills, input files
         enhanced_system_prompt = instructions
 
-        workspace_section = build_workspace_prompt_section(provision_result)
+        workspace_section = build_workspace_prompt_section(
+            provision_results,
+            container_root=workspace_backend.root_dir,
+        )
         if workspace_section:
             enhanced_system_prompt += workspace_section
             activity_logger.info("Enhanced system prompt with workspace context")
 
+        workspace_roots = [
+            WorkspaceRoot(name=pr.entry_name, root_dir=pr.root_dir)
+            for pr in provision_results
+        ]
         relevance_section = build_relevance_prompt_section(
-            user_message, provision_result.root_dir if provision_result else "",
+            user_message, workspace_roots,
         )
         if relevance_section:
             enhanced_system_prompt += relevance_section
@@ -1898,6 +2039,23 @@ async def _execute_graphton_impl(
                 "Injecting %d env var(s) into sandbox config for shell execution",
                 len(merged_env_vars),
             )
+
+        # Multi-local-path: collect host paths so the FilesystemBackend
+        # can accept resolved symlink targets in its containment check
+        # and rewrite absolute host paths to entry-relative form.
+        if len(provision_results) > 1 and sandbox is None:
+            local_roots: dict[str, str] = {
+                pr.entry_name: pr.root_dir
+                for pr in provision_results
+                if pr.source_type == SourceType.LOCAL_PATH and pr.entry_name
+            }
+            if local_roots:
+                sandbox_config_for_agent["allowed_roots"] = local_roots
+                activity_logger.info(
+                    "Configured %d allowed root(s) for multi-local-path: %s",
+                    len(local_roots),
+                    ", ".join(f"{n}={p}" for n, p in local_roots.items()),
+                )
         
         # ─────────────────────────────────────────────────────────────────────────────
         # Resolve model name for logging/diagnostics only.
@@ -2731,10 +2889,10 @@ async def _execute_graphton_impl(
                 ExecutionPhase.EXECUTION_PAUSED,
                 ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
             ):
-                if provision_result is not None:
+                for pr in provision_results:
                     _generate_git_diff_artifact(
                         workspace_backend=workspace_backend,
-                        provision_result=provision_result,
+                        provision_result=pr,
                         execution_id=execution_id,
                         storage=artifact_storage,
                         status_builder=status_builder,

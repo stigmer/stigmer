@@ -25,6 +25,7 @@ go_library(
         "//client-apps/cli/pkg/climsg",
         "//seedpack",
         "@com_github_pkg_errors//:errors",
+        "@com_github_rs_zerolog//:zerolog",
         "@com_github_rs_zerolog//log",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//credentials/insecure",

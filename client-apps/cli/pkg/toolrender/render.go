@@ -102,8 +102,6 @@ const (
 
 // toolDisplayInfo defines how to render a specific category of tool.
 type toolDisplayInfo struct {
-	// icon is the emoji prefix for this tool category.
-	icon string
 	// label is the human-readable action name (e.g. "Read", "Shell").
 	label string
 	// primaryField is the most important argument to extract and show.
@@ -136,53 +134,36 @@ type toolDisplayInfo struct {
 // This map is intentionally extensible — add new tool names as the platform
 // introduces new agent capabilities.
 var toolDisplayMap = map[string]toolDisplayInfo{
-	// Shell/command execution — preview shows first lines of command output
-	// after completion. Before execution, the command in the header is the
-	// only context (no content to preview), which is correct.
-	"shell":           {icon: "🖥 ", label: "Shell", primaryField: "command", preview: previewFileContent},
-	"bash":            {icon: "🖥 ", label: "Shell", primaryField: "command", preview: previewFileContent},
-	"execute":         {icon: "🖥 ", label: "Execute", primaryField: "command", preview: previewFileContent},
-	"execute_command": {icon: "🖥 ", label: "Shell", primaryField: "command", preview: previewFileContent},
-	"run_command":     {icon: "🖥 ", label: "Shell", primaryField: "command", preview: previewFileContent},
-	"terminal":        {icon: "🖥 ", label: "Shell", primaryField: "command", preview: previewFileContent},
+	"shell":           {label: "Shell", primaryField: "command", preview: previewFileContent},
+	"bash":            {label: "Shell", primaryField: "command", preview: previewFileContent},
+	"execute":         {label: "Execute", primaryField: "command", preview: previewFileContent},
+	"execute_command": {label: "Shell", primaryField: "command", preview: previewFileContent},
+	"run_command":     {label: "Shell", primaryField: "command", preview: previewFileContent},
+	"terminal":        {label: "Shell", primaryField: "command", preview: previewFileContent},
 
-	// File read operations — fallbackFields handle arg name variance across
-	// agent frameworks (deepagents uses "file_path", others may use "file").
-	"read":      {icon: "📖", label: "Read", primaryField: "path", fallbackFields: []string{"file_path", "file"}, preview: previewFileContent},
-	"read_file": {icon: "📖", label: "Read", primaryField: "path", fallbackFields: []string{"file_path", "file"}, preview: previewFileContent},
+	"read":      {label: "Read", primaryField: "path", fallbackFields: []string{"file_path", "file"}, preview: previewFileContent},
+	"read_file": {label: "Read", primaryField: "path", fallbackFields: []string{"file_path", "file"}, preview: previewFileContent},
 
-	// Directory listing
-	"list_directory": {icon: "📂", label: "List", primaryField: "path", preview: previewDiscovery},
-	"ls":             {icon: "📂", label: "List", primaryField: "path", preview: previewDiscovery},
+	"list_directory": {label: "List", primaryField: "path", preview: previewDiscovery},
+	"ls":             {label: "List", primaryField: "path", preview: previewDiscovery},
 
-	// File search / pattern matching
-	"glob": {icon: "🔍", label: "Find", primaryField: "pattern", preview: previewDiscovery},
-	"grep": {icon: "🔎", label: "Search", primaryField: "pattern", preview: previewDiscovery},
+	"glob": {label: "Find", primaryField: "pattern", preview: previewDiscovery},
+	"grep": {label: "Search", primaryField: "pattern", preview: previewDiscovery},
 
-	// File write operations — contentSource is contentSourceInput so preview
-	// and expanded views always show the content being written (from args),
-	// never the result confirmation message.
-	"write":          {icon: "📝", label: "Write", primaryField: "path", preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "contents", contentArgFallbacks: []string{"content", "file_content"}},
-	"write_file":     {icon: "📝", label: "Write", primaryField: "path", preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "contents", contentArgFallbacks: []string{"content", "file_content"}},
-	"create_file":    {icon: "📝", label: "Create", primaryField: "path", preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "contents", contentArgFallbacks: []string{"content", "file_content"}},
-	"overwrite_file": {icon: "📝", label: "Write", primaryField: "path", preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "contents", contentArgFallbacks: []string{"content", "file_content"}},
+	"write":          {label: "Write", primaryField: "path", preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "contents", contentArgFallbacks: []string{"content", "file_content"}},
+	"write_file":     {label: "Write", primaryField: "path", preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "contents", contentArgFallbacks: []string{"content", "file_content"}},
+	"create_file":    {label: "Create", primaryField: "path", preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "contents", contentArgFallbacks: []string{"content", "file_content"}},
+	"overwrite_file": {label: "Write", primaryField: "path", preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "contents", contentArgFallbacks: []string{"content", "file_content"}},
 
-	// File edit operations — contentSource is contentSourceInput so preview
-	// and expanded views show the replacement text from args.
-	"edit":      {icon: "✏️ ", label: "Edit", primaryField: "path", preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "new_text", contentArgFallbacks: []string{"new_string", "replacement", "content"}},
-	"edit_file": {icon: "✏️ ", label: "Edit", primaryField: "path", preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "new_text", contentArgFallbacks: []string{"new_string", "replacement", "content"}},
+	"edit":      {label: "Edit", primaryField: "path", preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "new_text", contentArgFallbacks: []string{"new_string", "replacement", "content"}},
+	"edit_file": {label: "Edit", primaryField: "path", preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "new_text", contentArgFallbacks: []string{"new_string", "replacement", "content"}},
 
-	// File delete operations (dangerous)
-	"delete_file": {icon: "⚠️ ", label: "Delete", primaryField: "path", dangerous: true},
-	"remove_file": {icon: "⚠️ ", label: "Delete", primaryField: "path", dangerous: true},
+	"delete_file": {label: "Delete", primaryField: "path", dangerous: true},
+	"remove_file": {label: "Delete", primaryField: "path", dangerous: true},
 
-	// Agent reasoning — content is the thought from args, not the result ("ok")
-	"think": {icon: "💭", label: "Thinking", preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "thought"},
+	"think": {label: "Thinking", preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "thought"},
 
-	// Sub-agent delegation — the "task" tool spawns an isolated sub-agent.
-	// primaryField is "description" (the short label); "prompt" is the full
-	// instruction but too long for the header.
-	"task": {icon: "🔀", label: "Task", primaryField: "description", fallbackFields: []string{"prompt"}},
+	"task": {label: "Task", primaryField: "description", fallbackFields: []string{"prompt"}},
 }
 
 // Styles for tool call rendering.
@@ -191,16 +172,6 @@ var (
 	dimStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 	dangerStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Bold(true)
 )
-
-// DisplayLabel returns the human-readable label for a tool name (e.g.,
-// "execute" -> "Execute", "read_file" -> "Read"). Returns the raw tool
-// name unchanged for unrecognized tools.
-func DisplayLabel(toolName string) string {
-	if info, ok := toolDisplayMap[toolName]; ok {
-		return info.label
-	}
-	return toolName
-}
 
 // IsShellTool reports whether toolName represents a shell/command execution
 // tool. Derived from toolDisplayMap entries whose primaryField is "command".
@@ -211,17 +182,17 @@ func IsShellTool(toolName string) bool {
 
 // Render returns a structured single-line display of a tool call.
 //
-// Known tools are rendered with a category-specific icon and the most relevant
-// argument highlighted. Unknown tools fall back to a generic format showing the
+// Known tools are rendered with a label and the most relevant argument
+// highlighted. Unknown tools fall back to a generic format showing the
 // tool name and first argument value.
 //
 // Examples:
 //
-//	"  📖 Read: main.go"
-//	"  🖥  Shell: ls -la /tmp"
-//	"  📝 Write: outputs/SKILL.md"
-//	"  ⚠️  Delete: /tmp/old.txt"
-//	"  🔧 custom_tool: some_value"
+//	"  Read: main.go"
+//	"  Shell: ls -la /tmp"
+//	"  Write: outputs/SKILL.md"
+//	"  Delete: /tmp/old.txt"
+//	"  * custom_tool: some_value"
 //
 // This function never panics — nil or empty input produces reasonable output.
 func Render(tc ToolCallInfo) string {
@@ -237,39 +208,27 @@ func Render(tc ToolCallInfo) string {
 // The badge is a small visual indicator appended to the tool header line.
 //
 // States and badges:
-//   - "running":          ⏳
-//   - "waiting_approval": ⏸
+//   - "running":          ...
+//   - "waiting_approval": ||
 //   - "completed":        ✓
 //   - "failed":           ✗
-//   - "skipped":          ⏭
+//   - "skipped":          ~
 //   - anything else:      empty string (no badge)
 func StateBadge(state string) string {
 	switch state {
 	case "running":
-		return "⏳"
+		return "..."
 	case "waiting_approval":
-		return "⏸"
+		return "||"
 	case "completed":
 		return "✓"
 	case "failed":
 		return "✗"
 	case "skipped":
-		return "⏭"
+		return "~"
 	default:
 		return ""
 	}
-}
-
-// HasDisplayableContent reports whether a tool call has content that can be
-// shown in an expanded view. For most tools, content is tc.Result. For write
-// tools (and others with contentArgField configured), content may come from
-// the tool arguments (e.g., the file content being written).
-func HasDisplayableContent(tc ToolCallInfo) bool {
-	info, known := toolDisplayMap[tc.Name]
-	if !known {
-		return tc.Result != ""
-	}
-	return resolveDisplayContent(tc, info) != ""
 }
 
 // RenderWithBadge returns the tool call header with metadata and a status
@@ -283,10 +242,10 @@ func HasDisplayableContent(tc ToolCallInfo) bool {
 //
 // Examples:
 //
-//	"  📝 Write: SKILL.md (11.0 KB, 384 lines) ⏳\n     │ # Agent Drafter\n     │ ...\n     ⋮ 381 more lines"
-//	"  📖 Read: main.go (1.5 KB, 33 lines) ✓\n     │ package main\n     │ ...\n     ⋮ 30 more lines"
-//	"  🖥  Shell: ls -la /tmp ⏸"
-//	"  🔧 custom_tool: some_value ⏳"
+//	"  Write: SKILL.md (11.0 KB, 384 lines) ...\n     │ # Agent Drafter\n     │ ...\n     ⋮ 381 more lines"
+//	"  Read: main.go (1.5 KB, 33 lines) ✓\n     │ package main\n     │ ...\n     ⋮ 30 more lines"
+//	"  Shell: ls -la /tmp ||"
+//	"  * custom_tool: some_value ..."
 func RenderWithBadge(tc ToolCallInfo, badge string) string {
 	info, known := toolDisplayMap[tc.Name]
 
@@ -314,126 +273,6 @@ func RenderWithBadge(tc ToolCallInfo, badge string) string {
 	}
 
 	return header
-}
-
-// RenderExpandedWithBadge returns the tool call header with a status badge,
-// followed by the complete displayable content with gutter borders. This is
-// the expanded rendering for a stateful tool block.
-//
-// When no displayable content is available, the output is identical to
-// a badge-only header (no content lines).
-//
-// Examples:
-//
-//	"  📝 Write: SKILL.md (11.0 KB, 384 lines) ⏸\n     │ # Agent Drafter\n     │ ..."
-//	"  📖 Read: main.go (1.5 KB, 33 lines) ✓\n     │ package main\n     │ ..."
-func RenderExpandedWithBadge(tc ToolCallInfo, badge string) string {
-	info, known := toolDisplayMap[tc.Name]
-
-	var header string
-	if known {
-		header = renderKnownHeader(tc, info)
-	} else {
-		header = renderUnknownHeader(tc)
-	}
-
-	if badge != "" {
-		header += " " + dimStyle.Render(badge)
-	}
-
-	// Resolve the displayable content — respects contentSource so write
-	// tools show args content, read tools show result content.
-	var content string
-	if known {
-		content = resolveDisplayContent(tc, info)
-	} else {
-		content = tc.Result
-	}
-
-	if content == "" {
-		return header
-	}
-
-	filename := extractFilename(tc.Args)
-	fullContent := formatFullResultWithGutter(content, filename)
-	if fullContent == "" {
-		return header
-	}
-
-	return header + "\n" + fullContent
-}
-
-// RenderRunning returns a tool call header with a running indicator.
-// Used by the TUI to display tools that are currently executing.
-// The running indicator (⏳) signals liveness to the user.
-//
-// Deprecated: Use RenderWithBadge(tc, StateBadge("running")) instead.
-// Kept for backward compatibility with non-TUI rendering paths.
-//
-// Examples:
-//
-//	"  📖 Read: main.go ⏳"
-//	"  🖥  Shell: ls -la /tmp ⏳"
-//	"  📝 Write: outputs/SKILL.md ⏳"
-//	"  🔧 custom_tool: some_value ⏳"
-func RenderRunning(tc ToolCallInfo) string {
-	info, known := toolDisplayMap[tc.Name]
-
-	var header string
-	if known {
-		primaryVal := extractPrimaryArgWithFallbacks(tc.Args, info.primaryField, info.fallbackFields)
-		if primaryVal != "" {
-			styled := styleValue(primaryVal, info.dangerous)
-			header = fmt.Sprintf("  %s %s: %s", info.icon, labelStyle.Render(info.label), styled)
-		} else {
-			header = fmt.Sprintf("  %s %s", info.icon, labelStyle.Render(info.label))
-		}
-	} else {
-		firstVal := extractFirstArg(tc.Args)
-		if firstVal != "" {
-			header = fmt.Sprintf("  🔧 %s: %s", labelStyle.Render(tc.Name), firstVal)
-		} else {
-			header = fmt.Sprintf("  🔧 %s", labelStyle.Render(tc.Name))
-		}
-	}
-
-	return header + " " + dimStyle.Render("⏳")
-}
-
-// RenderWaitingApproval returns a tool call header with a waiting-for-approval
-// indicator. Used by the TUI to display tools that need user approval before
-// they can execute. The pause indicator (⏸) signals that the tool is blocked.
-//
-// Deprecated: Use RenderWithBadge(tc, StateBadge("waiting_approval")) instead.
-// Kept for backward compatibility with non-TUI rendering paths.
-//
-// Examples:
-//
-//	"  📝 Write: outputs/SKILL.md ⏸ awaiting approval"
-//	"  🖥  Shell: rm -rf /tmp ⏸ awaiting approval"
-//	"  🔧 custom_tool: some_value ⏸ awaiting approval"
-func RenderWaitingApproval(tc ToolCallInfo) string {
-	info, known := toolDisplayMap[tc.Name]
-
-	var header string
-	if known {
-		primaryVal := extractPrimaryArgWithFallbacks(tc.Args, info.primaryField, info.fallbackFields)
-		if primaryVal != "" {
-			styled := styleValue(primaryVal, info.dangerous)
-			header = fmt.Sprintf("  %s %s: %s", info.icon, labelStyle.Render(info.label), styled)
-		} else {
-			header = fmt.Sprintf("  %s %s", info.icon, labelStyle.Render(info.label))
-		}
-	} else {
-		firstVal := extractFirstArg(tc.Args)
-		if firstVal != "" {
-			header = fmt.Sprintf("  🔧 %s: %s", labelStyle.Render(tc.Name), firstVal)
-		} else {
-			header = fmt.Sprintf("  🔧 %s", labelStyle.Render(tc.Name))
-		}
-	}
-
-	return header + " " + dimStyle.Render("⏸ awaiting approval")
 }
 
 // RenderResult returns a compact display of a tool result message.
@@ -473,59 +312,4 @@ func RenderResultWithPreview(content string) string {
 	// Show a truncated preview (max ~80 chars to fit on one line).
 	preview := truncate(content, 80)
 	return dimStyle.Render("  ↳ " + preview)
-}
-
-// RenderExpanded returns the tool call header followed by the complete
-// displayable content with gutter borders. Used by the TUI's expanded state
-// to show all output lines instead of a truncated preview.
-//
-// Content source respects the tool's contentSource setting: write/edit tools
-// show args content (the input), read/shell/discovery tools show tc.Result
-// (the output). See resolveDisplayContent.
-//
-// When no displayable content is available, the output is identical to the
-// header produced by Render (without the preview). For unknown tools, the
-// generic header is used.
-//
-// Examples:
-//
-//	"  📖 Read: main.go (1.5 KB, 33 lines)\n     │ package main\n     │ \n     │ import \"fmt\"\n     │ ..."
-//	"  📂 List: /workspace (97 chars)\n     │ bin\n     │ etc\n     │ home"
-//	"  📝 Write: SKILL.md (11.0 KB, 384 lines)\n     │ # Agent Drafter\n     │ ..."
-func RenderExpanded(tc ToolCallInfo) string {
-	info, known := toolDisplayMap[tc.Name]
-
-	var header string
-	if known {
-		header = renderKnownHeader(tc, info)
-	} else {
-		header = renderUnknownHeader(tc)
-	}
-
-	// Resolve the displayable content — respects contentSource so write
-	// tools show args content, read tools show result content.
-	var content string
-	if known {
-		content = resolveDisplayContent(tc, info)
-	} else {
-		content = tc.Result
-	}
-
-	if content == "" {
-		return header
-	}
-
-	// Extract filename for syntax highlighting. For file-read and write
-	// tools, the filename comes from the args. For other tools, this
-	// returns "" and highlighting is gracefully skipped.
-	filename := extractFilename(tc.Args)
-
-	fullContent := formatFullResultWithGutter(content, filename)
-	if fullContent == "" {
-		return header
-	}
-
-	// formatFullResultWithGutter handles styling internally (dim gutter +
-	// syntax-highlighted content), so we append directly.
-	return header + "\n" + fullContent
 }

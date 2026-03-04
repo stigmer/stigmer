@@ -2,10 +2,12 @@ package root
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
 )
 
 // draftConfig identifies which system agent to invoke and how to label
@@ -21,6 +23,7 @@ type draftConfig struct {
 // detach, and all other options that `stigmer run agent` supports.
 type draftOptions struct {
 	agentExecFlags
+	outputModeFlags
 	OutputDir   string
 	Model       string
 	AutoApprove bool
@@ -31,6 +34,7 @@ type draftOptions struct {
 // The --message flag is marked as required for draft commands.
 func registerDraftFlags(cmd *cobra.Command, opts *draftOptions, resourceType string) {
 	registerAgentExecFlags(cmd, &opts.agentExecFlags)
+	registerOutputModeFlags(cmd, &opts.outputModeFlags)
 	cmd.MarkFlagRequired("message")
 
 	cmd.Flags().StringVarP(&opts.OutputDir, "output", "o", ".",
@@ -48,20 +52,27 @@ func registerDraftFlags(cmd *cobra.Command, opts *draftOptions, resourceType str
 // behavior: the agent is a hardcoded system agent, and artifacts are always
 // downloaded on completion (unless --detach).
 func executeDraft(cfg draftConfig, opts draftOptions) error {
-	prep, err := prepareAgentExec(opts.agentExecFlags)
+	sp := spinner.New(os.Stderr)
+	sp.Start("Preparing...")
+
+	prep, err := prepareAgentExec(opts.agentExecFlags, sp)
 	if err != nil {
+		sp.Stop()
 		return err
 	}
+	prep.OutputMode = resolveOutputMode(opts.outputModeFlags)
 	defer prep.Conn.Close()
 
+	sp.Update("Resolving agent...")
 	agentRef := prep.OrgID + "/" + cfg.AgentName
 	agent, err := resolveAgent(agentRef, prep.OrgID, prep.Conn)
 	if err != nil {
+		sp.Stop()
 		displayDraftAgentNotFoundError(cfg.AgentName, prep.OrgID)
 		return errors.Wrapf(err, "%s agent not found", cfg.AgentName)
 	}
 
-	climsg.Info("Using system agent: %s", agent.Metadata.Name)
+	sp.Stop()
 
 	if len(prep.AttachResult.Attachments)+len(prep.AttachResult.WorkspaceFileRefs) > 0 {
 		climsg.Info("Attached %d file(s) as context",
@@ -73,26 +84,22 @@ func executeDraft(cfg draftConfig, opts draftOptions) error {
 		downloadDir = ""
 	}
 
-	err = executeResolvedAgent(resolvedAgentExecInput{
-		Agent:           agent,
-		Message:         prep.Message,
-		RuntimeEnv:      prep.RuntimeEnv,
-		AttachResult:    &prep.AttachResult,
-		WorkspaceSource: prep.WorkspaceSource,
-		Model:           opts.Model,
-		AutoApproveAll:  opts.AutoApprove,
-		Detach:          prep.Detach,
-		DownloadDir:     downloadDir,
-		OrgID:           prep.OrgID,
-		DefaultAction:   prep.DefaultAction,
-		Verbose:         prep.Verbose,
-		Conn:            prep.Conn,
-	})
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return executeResolvedAgent(resolvedAgentExecInput{
+		Agent:            agent,
+		Message:          prep.Message,
+		RuntimeEnv:       prep.RuntimeEnv,
+		AttachResult:     &prep.AttachResult,
+		WorkspaceEntries: prep.WorkspaceEntries,
+		Model:            opts.Model,
+		AutoApproveAll:   opts.AutoApprove,
+		Detach:           prep.Detach,
+		DownloadDir:      downloadDir,
+		OrgID:            prep.OrgID,
+		DefaultAction:    prep.DefaultAction,
+		Verbose:          prep.Verbose,
+		OutputMode:       prep.OutputMode,
+		Conn:             prep.Conn,
+	}, sp)
 }
 
 // displayDraftAgentNotFoundError shows a helpful error when a draft system

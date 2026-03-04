@@ -271,8 +271,13 @@ def _build_directory_tree_via_find(
     max_depth: int = _WORKSPACE_TREE_MAX_DEPTH,
     max_entries: int = _WORKSPACE_TREE_MAX_ENTRIES,
     gitignore_filter: GitIgnoreFilter | None = None,
+    cwd: str | None = None,
 ) -> tuple[list[str], int] | None:
     """Walk a remote workspace directory tree using ``backend.execute()``.
+
+    When *cwd* is set, the ``find`` command runs inside that
+    subdirectory (relative to ``backend.root_dir``) so only the
+    entry's files are included.  Used for multi-entry cloud mode.
 
     Returns ``(lines, total_count)`` on success, or ``None`` if the
     command fails or produces no parseable output.
@@ -280,7 +285,7 @@ def _build_directory_tree_via_find(
     cmd = _build_find_command(skip_dirs=skip_dirs, max_depth=max_depth)
 
     try:
-        result = backend.execute(cmd, timeout=30)
+        result = backend.execute(cmd, cwd=cwd, timeout=30)
     except Exception:
         logger.warning("Tree generation via find failed with exception", exc_info=True)
         return None
@@ -314,6 +319,8 @@ def build_workspace_file_tree(
     max_depth: int = _WORKSPACE_TREE_MAX_DEPTH,
     max_entries: int = _WORKSPACE_TREE_MAX_ENTRIES,
     gitignore_filter: GitIgnoreFilter | None = None,
+    cwd: str | None = None,
+    heading_level: int = 3,
 ) -> str | None:
     """Generate a formatted workspace file-tree section for the system prompt.
 
@@ -324,12 +331,21 @@ def build_workspace_file_tree(
     - **Remote mode (Daytona):** Uses ``backend.execute("find ...")``
       with GNU ``find -printf`` to walk the tree inside the sandbox.
 
+    When *cwd* is set (multi-entry cloud mode), the remote ``find``
+    runs inside that subdirectory of ``backend.root_dir``.  Local mode
+    is unaffected — it always uses *root_dir* directly.
+
     When *gitignore_filter* is provided, entries matching ``.gitignore``
     patterns are excluded from the tree.
 
-    Returns a prompt-ready string starting with ``### Project Structure``
-    (including header, tree lines, and truncation notice), or ``None`` if
-    the workspace is empty or tree generation fails.
+    Args:
+        heading_level: Markdown heading depth for the tree heading
+            (default 3 → ``### Project Structure``).  Multi-entry
+            callers pass 4 so the tree nests under per-entry headings.
+
+    Returns a prompt-ready string starting with the ``Project Structure``
+    heading (including header, tree lines, and truncation notice), or
+    ``None`` if the workspace is empty or tree generation fails.
     """
     if is_local_mode:
         lines, total = build_directory_tree(
@@ -345,6 +361,7 @@ def build_workspace_file_tree(
             max_depth=max_depth,
             max_entries=max_entries,
             gitignore_filter=gitignore_filter,
+            cwd=cwd,
         )
         if result is None:
             return None
@@ -353,15 +370,31 @@ def build_workspace_file_tree(
     if not lines:
         return None
 
-    return _format_workspace_tree(lines, total, max_entries)
+    return _format_workspace_tree(lines, total, max_entries, heading_level=heading_level)
+
+
+TREE_HEADING_TITLE = "Project Structure"
+"""Heading text used in the formatted tree section.
+
+The default heading level is ``###`` (H3), suitable for the legacy
+single-workspace prompt (``## Workspace`` → ``### Project Structure``).
+Multi-entry prompts pass ``heading_level=4`` so the tree nests under
+the per-entry ``### {name}`` heading.
+"""
 
 
 def _format_workspace_tree(
     lines: list[str],
     total: int,
     max_entries: int,
+    *,
+    heading_level: int = 3,
 ) -> str:
-    """Format tree lines into a complete prompt section."""
+    """Format tree lines into a complete prompt section.
+
+    Args:
+        heading_level: Markdown heading depth (default 3 → ``###``).
+    """
     tree_text = "\n".join(lines)
 
     if total > len(lines):
@@ -377,4 +410,5 @@ def _format_workspace_tree(
             "and `glob` to find specific files."
         )
 
-    return f"### Project Structure\n\n{tree_text}\n{footer}"
+    heading = "#" * heading_level
+    return f"{heading} {TREE_HEADING_TITLE}\n\n{tree_text}\n{footer}"

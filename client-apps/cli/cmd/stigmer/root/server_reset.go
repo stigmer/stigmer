@@ -18,8 +18,9 @@ func newServerResetCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "reset",
 		Short: "Reset local environment to a fresh state",
-		Long: `Stop all services and remove runtime data (databases, logs, Temporal
-state, downloaded binaries), then automatically restart the server fresh.
+		Long: `Stop all services and remove all persistent state — the SQLite database,
+skill artifacts, sessions, runtimes, Temporal state, logs, and downloaded
+binaries — then automatically restart the server fresh.
 
 Configuration (config.yaml) is preserved by default. Use --include-config
 to also remove it; the setup wizard will run again on next start.`,

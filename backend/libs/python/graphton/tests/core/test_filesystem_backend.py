@@ -1015,3 +1015,397 @@ class TestDirectoryCache:
 
         sub_second = sb.list_files("src")
         assert sorted(sub_first) == sorted(sub_second)
+
+
+# =============================================================================
+# Multi-entry .gitignore (hierarchical discovery)
+# =============================================================================
+
+
+@pytest.fixture
+def multi_entry_sandbox(tmp_path: Path) -> FilesystemBackend:
+    """Container root with two workspace entries, each with its own .gitignore.
+
+    Simulates multi-workspace provisioning where git clones live as
+    immediate subdirectories of the container root.
+
+    NOTE: ``build_output`` is used instead of ``dist`` because ``dist``
+    is in ``_SKIP_DIR_NAMES`` and would be hidden regardless of gitignore.
+
+    Layout::
+
+        {root_dir}/                     (container root — no .gitignore)
+        ├── frontend/
+        │   ├── .gitignore              ("build_output/\\n*.map\\n")
+        │   ├── src/
+        │   │   ├── index.ts
+        │   │   └── index.ts.map        (gitignored by *.map)
+        │   └── build_output/           (gitignored by build_output/)
+        │       └── bundle.js
+        └── backend/
+            ├── .gitignore              ("*.pyc\\n")
+            ├── src/
+            │   ├── app.py
+            │   └── app.pyc             (gitignored by *.pyc)
+            └── build_output/           (NOT gitignored — backend has no build_output/)
+                └── artifact.tar
+    """
+    fe = tmp_path / "frontend"
+    (fe / "src").mkdir(parents=True)
+    (fe / ".gitignore").write_text("build_output/\n*.map\n")
+    (fe / "src" / "index.ts").write_text("export {}")
+    (fe / "src" / "index.ts.map").write_text("{}")
+    (fe / "build_output").mkdir()
+    (fe / "build_output" / "bundle.js").write_text("//bundled")
+
+    be = tmp_path / "backend"
+    (be / "src").mkdir(parents=True)
+    (be / ".gitignore").write_text("*.pyc\n")
+    (be / "src" / "app.py").write_text("print('app')")
+    (be / "src" / "app.pyc").write_bytes(b"\x00" * 10)
+    (be / "build_output").mkdir()
+    (be / "build_output" / "artifact.tar").write_text("tarball")
+
+    return FilesystemBackend(root_dir=tmp_path)
+
+
+class TestMultiEntryGitignore:
+    """Entry-level .gitignore patterns discovered from immediate subdirectories."""
+
+    def test_entry_gitignores_discovered(
+        self, multi_entry_sandbox: FilesystemBackend,
+    ) -> None:
+        """Both entries' .gitignore files are discovered at construction."""
+        assert "frontend" in multi_entry_sandbox._entry_gitignores
+        assert "backend" in multi_entry_sandbox._entry_gitignores
+
+    def test_entry_patterns_filter_within_entry(
+        self, multi_entry_sandbox: FilesystemBackend,
+    ) -> None:
+        """frontend/.gitignore (build_output/) hides it from list_files."""
+        entries = multi_entry_sandbox.list_files("frontend")
+        assert "src" in entries
+        assert "build_output" not in entries
+
+    def test_entry_file_pattern_filters_files(
+        self, multi_entry_sandbox: FilesystemBackend,
+    ) -> None:
+        """frontend/.gitignore (*.map) hides .map files inside frontend/src."""
+        entries = multi_entry_sandbox.list_files("frontend/src")
+        assert "index.ts" in entries
+        assert "index.ts.map" not in entries
+
+    def test_patterns_do_not_leak_across_entries(
+        self, multi_entry_sandbox: FilesystemBackend,
+    ) -> None:
+        """frontend's build_output/ pattern must NOT affect backend/build_output."""
+        entries = multi_entry_sandbox.list_files("backend")
+        assert "build_output" in entries
+        assert "src" in entries
+
+    def test_backend_entry_filters_its_own_patterns(
+        self, multi_entry_sandbox: FilesystemBackend,
+    ) -> None:
+        """backend/.gitignore (*.pyc) hides .pyc files inside backend/src."""
+        entries = multi_entry_sandbox.list_files("backend/src")
+        assert "app.py" in entries
+        assert "app.pyc" not in entries
+
+    def test_entry_dirs_themselves_visible_at_root(
+        self, multi_entry_sandbox: FilesystemBackend,
+    ) -> None:
+        """Entry subdirectories are not filtered by their own .gitignore."""
+        entries = multi_entry_sandbox.list_files(".")
+        assert "frontend" in entries
+        assert "backend" in entries
+
+    def test_read_directory_listing_respects_entry_filter(
+        self, multi_entry_sandbox: FilesystemBackend,
+    ) -> None:
+        """read_file() on an entry dir uses entry-level gitignore filtering."""
+        listing = multi_entry_sandbox.read_file("frontend")
+        assert "src/" in listing
+        assert "build_output" not in listing
+
+    def test_directory_listing_item_count_excludes_gitignored(
+        self, multi_entry_sandbox: FilesystemBackend,
+    ) -> None:
+        """Item count in directory listing excludes gitignored files."""
+        listing = multi_entry_sandbox.read_file("frontend")
+        # frontend/src/ has index.ts visible, index.ts.map gitignored → 1 item
+        assert "1 item" in listing
+
+    def test_root_plus_entry_gitignores_combine(self, tmp_path: Path) -> None:
+        """Root .gitignore and entry .gitignore both apply (additive)."""
+        (tmp_path / ".gitignore").write_text("*.log\n")
+        entry = tmp_path / "service"
+        (entry / "src").mkdir(parents=True)
+        (entry / ".gitignore").write_text("*.tmp\n")
+        (entry / "src" / "app.py").write_text("ok")
+        (entry / "src" / "debug.log").write_text("log")
+        (entry / "src" / "scratch.tmp").write_text("tmp")
+
+        sb = FilesystemBackend(root_dir=tmp_path)
+        entries = sb.list_files("service/src")
+        assert "app.py" in entries
+        assert "debug.log" not in entries   # blocked by root .gitignore
+        assert "scratch.tmp" not in entries  # blocked by entry .gitignore
+
+    def test_no_entry_gitignore_means_no_entry_filtering(
+        self, tmp_path: Path,
+    ) -> None:
+        """Subdirectory without .gitignore gets no entry-level filtering."""
+        entry = tmp_path / "project"
+        (entry / "build_output").mkdir(parents=True)
+        (entry / "build_output" / "output.js").write_text("//js")
+
+        sb = FilesystemBackend(root_dir=tmp_path)
+        assert "project" not in sb._entry_gitignores
+        entries = sb.list_files("project")
+        assert "build_output" in entries
+
+    def test_single_workspace_backward_compat(
+        self, gitignore_sandbox: FilesystemBackend,
+    ) -> None:
+        """Pre-existing single-workspace gitignore tests still behave correctly.
+
+        Re-uses the gitignore_sandbox fixture to confirm that the entry-level
+        discovery layer does not interfere with root-only filtering.
+        """
+        root_entries = gitignore_sandbox.list_files(".")
+        assert "build" not in root_entries
+        assert "src" in root_entries
+
+        src_entries = gitignore_sandbox.list_files("src")
+        assert "main.py" in src_entries
+        assert "main.pyc" not in src_entries
+
+
+# =============================================================================
+# Allowed roots (multi-local-path workspace support)
+# =============================================================================
+
+
+class TestAllowedRootsContainment:
+    """Symlink-backed entries whose resolved paths fall under allowed_roots
+    must pass the containment check."""
+
+    def test_symlink_entry_read_with_allowed_roots(self, tmp_path: Path) -> None:
+        """Entry-relative read through a symlink succeeds when the target
+        is in allowed_roots."""
+        session_dir = tmp_path / "session"
+        session_dir.mkdir()
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        (project_dir / "README.md").write_text("# hello")
+
+        os.symlink(str(project_dir), str(session_dir / "project"))
+
+        sb = FilesystemBackend(
+            root_dir=session_dir,
+            allowed_roots={"project": str(project_dir)},
+        )
+        content = sb.read_file("project/README.md")
+        assert content == "# hello"
+
+    def test_symlink_entry_list_files(self, tmp_path: Path) -> None:
+        """list_files through a symlink returns the real directory's entries."""
+        session_dir = tmp_path / "session"
+        session_dir.mkdir()
+        project_dir = tmp_path / "project"
+        (project_dir / "src").mkdir(parents=True)
+        (project_dir / "src" / "main.py").write_text("pass")
+        (project_dir / "README.md").write_text("# readme")
+
+        os.symlink(str(project_dir), str(session_dir / "project"))
+
+        sb = FilesystemBackend(
+            root_dir=session_dir,
+            allowed_roots={"project": str(project_dir)},
+        )
+        entries = sb.list_files("project")
+        assert "src" in entries
+        assert "README.md" in entries
+
+    def test_symlink_entry_write(self, tmp_path: Path) -> None:
+        """Writing through a symlink-backed entry lands in the real directory."""
+        session_dir = tmp_path / "session"
+        session_dir.mkdir()
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+
+        os.symlink(str(project_dir), str(session_dir / "project"))
+
+        sb = FilesystemBackend(
+            root_dir=session_dir,
+            allowed_roots={"project": str(project_dir)},
+        )
+        sb.write_file("project/new_file.txt", "content")
+        assert (project_dir / "new_file.txt").read_text() == "content"
+
+    def test_rejected_without_allowed_roots(self, tmp_path: Path) -> None:
+        """Without allowed_roots, symlink targets outside root_dir are rejected."""
+        session_dir = tmp_path / "session"
+        session_dir.mkdir()
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        (project_dir / "README.md").write_text("# hello")
+
+        os.symlink(str(project_dir), str(session_dir / "project"))
+
+        sb = FilesystemBackend(root_dir=session_dir)
+        with pytest.raises(ValueError, match="resolves outside sandbox root"):
+            sb.read_file("project/README.md")
+
+    def test_traversal_via_symlink_blocked(self, tmp_path: Path) -> None:
+        """Traversal through a symlink that escapes allowed roots is rejected."""
+        session_dir = tmp_path / "session"
+        session_dir.mkdir()
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+
+        os.symlink(str(project_dir), str(session_dir / "project"))
+
+        sb = FilesystemBackend(
+            root_dir=session_dir,
+            allowed_roots={"project": str(project_dir)},
+        )
+        with pytest.raises(ValueError, match="resolves outside sandbox root"):
+            sb.read_file("project/../../etc/passwd")
+
+    def test_allowed_roots_as_list(self, tmp_path: Path) -> None:
+        """Flat list of allowed_roots works for containment (no path rewriting)."""
+        session_dir = tmp_path / "session"
+        session_dir.mkdir()
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        (project_dir / "file.txt").write_text("data")
+
+        os.symlink(str(project_dir), str(session_dir / "project"))
+
+        sb = FilesystemBackend(
+            root_dir=session_dir,
+            allowed_roots=[str(project_dir)],
+        )
+        assert sb.read_file("project/file.txt") == "data"
+
+    def test_multiple_allowed_roots(self, tmp_path: Path) -> None:
+        """Multiple symlinked entries each with their own allowed root."""
+        session_dir = tmp_path / "session"
+        session_dir.mkdir()
+        repo_a = tmp_path / "repo_a"
+        repo_b = tmp_path / "repo_b"
+        repo_a.mkdir()
+        repo_b.mkdir()
+        (repo_a / "a.txt").write_text("aaa")
+        (repo_b / "b.txt").write_text("bbb")
+
+        os.symlink(str(repo_a), str(session_dir / "repo_a"))
+        os.symlink(str(repo_b), str(session_dir / "repo_b"))
+
+        sb = FilesystemBackend(
+            root_dir=session_dir,
+            allowed_roots={
+                "repo_a": str(repo_a),
+                "repo_b": str(repo_b),
+            },
+        )
+        assert sb.read_file("repo_a/a.txt") == "aaa"
+        assert sb.read_file("repo_b/b.txt") == "bbb"
+
+    def test_no_cross_entry_access(self, tmp_path: Path) -> None:
+        """An entry's allowed root does not grant access to another entry's files."""
+        session_dir = tmp_path / "session"
+        session_dir.mkdir()
+        repo_a = tmp_path / "repo_a"
+        repo_a.mkdir()
+        (repo_a / "secret.txt").write_text("secret")
+
+        sb = FilesystemBackend(
+            root_dir=session_dir,
+            allowed_roots={"repo_a": str(repo_a)},
+        )
+        with pytest.raises((ValueError, FileNotFoundError)):
+            sb.read_file("repo_b/secret.txt")
+
+
+class TestAllowedRootsPathRewriting:
+    """Absolute host paths that match an allowed root's host_path are
+    rewritten to entry-relative form before resolution."""
+
+    def test_absolute_host_path_rewritten(self, tmp_path: Path) -> None:
+        """Agent using the absolute host path (from system prompt) succeeds."""
+        session_dir = tmp_path / "session"
+        session_dir.mkdir()
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        (project_dir / "go.mod").write_text("module example")
+
+        os.symlink(str(project_dir), str(session_dir / "project"))
+
+        sb = FilesystemBackend(
+            root_dir=session_dir,
+            allowed_roots={"project": str(project_dir)},
+        )
+        content = sb.read_file(str(project_dir / "go.mod"))
+        assert content == "module example"
+
+    def test_absolute_host_path_to_root(self, tmp_path: Path) -> None:
+        """Absolute path equal to an allowed root resolves to the entry dir."""
+        session_dir = tmp_path / "session"
+        session_dir.mkdir()
+        project_dir = tmp_path / "project"
+        (project_dir / "src").mkdir(parents=True)
+        (project_dir / "README.md").write_text("# readme")
+
+        os.symlink(str(project_dir), str(session_dir / "project"))
+
+        sb = FilesystemBackend(
+            root_dir=session_dir,
+            allowed_roots={"project": str(project_dir)},
+        )
+        resolved = sb._resolve_sandbox_path(str(project_dir))
+        assert resolved == project_dir.resolve()
+
+    def test_no_rewrite_without_mapping(self, tmp_path: Path) -> None:
+        """When allowed_roots is a flat list, no path rewriting happens."""
+        session_dir = tmp_path / "session"
+        session_dir.mkdir()
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        (project_dir / "file.txt").write_text("data")
+
+        os.symlink(str(project_dir), str(session_dir / "project"))
+
+        sb = FilesystemBackend(
+            root_dir=session_dir,
+            allowed_roots=[str(project_dir)],
+        )
+        # Absolute host path without mapping falls through to chroot logic,
+        # which strips the leading "/" and prepends root_dir, producing a
+        # path like session_dir/Users/dev/.../file.txt that doesn't exist.
+        with pytest.raises(FileNotFoundError):
+            sb.read_file(str(project_dir / "file.txt"))
+
+    def test_no_allowed_roots_backward_compat(self, tmp_path: Path) -> None:
+        """Without allowed_roots the backend works identically to before."""
+        sb = FilesystemBackend(root_dir=tmp_path)
+        (tmp_path / "hello.txt").write_text("hi")
+        assert sb.read_file("hello.txt") == "hi"
+
+    def test_root_dir_files_still_accessible(self, tmp_path: Path) -> None:
+        """Files directly under root_dir remain accessible when allowed_roots
+        is set."""
+        session_dir = tmp_path / "session"
+        session_dir.mkdir()
+        (session_dir / "root_file.txt").write_text("root")
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+
+        os.symlink(str(project_dir), str(session_dir / "project"))
+
+        sb = FilesystemBackend(
+            root_dir=session_dir,
+            allowed_roots={"project": str(project_dir)},
+        )
+        assert sb.read_file("root_file.txt") == "root"

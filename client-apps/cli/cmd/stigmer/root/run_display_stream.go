@@ -99,7 +99,7 @@ func (r *messageStreamRenderer) render(messages []*agentexecutionv1.AgentMessage
 // beginAIStream prints the AI message prefix and any initial content available.
 // Subsequent content will be appended by printDelta on future render() calls.
 func (r *messageStreamRenderer) beginAIStream(msg *agentexecutionv1.AgentMessage) {
-	fmt.Fprint(r.w, "🤖 Agent: ")
+	// No prefix — AI content flows directly to the writer.
 	if len(msg.Content) > 0 {
 		fmt.Fprint(r.w, msg.Content)
 	}
@@ -139,7 +139,7 @@ func (r *messageStreamRenderer) finalizeAIStream(msg *agentexecutionv1.AgentMess
 func (r *messageStreamRenderer) writeCompleteMessage(msg *agentexecutionv1.AgentMessage) {
 	switch msg.Type {
 	case agentexecutionv1.MessageType_MESSAGE_HUMAN:
-		fmt.Fprintf(r.w, "💬 You: %s\n\n", msg.Content)
+		fmt.Fprintf(r.w, "You: %s\n\n", msg.Content)
 		r.flush()
 	case agentexecutionv1.MessageType_MESSAGE_AI:
 		if msg.Content != "" {
@@ -150,7 +150,7 @@ func (r *messageStreamRenderer) writeCompleteMessage(msg *agentexecutionv1.Agent
 		} else if msg.Content == "" {
 			// AI decided to call tools without text — show indicator so user sees activity.
 			// The actual tool calls will appear in subsequent MESSAGE_TOOL messages.
-			fmt.Fprintln(r.w, systemMsgStyle.Render("🤖 Agent is invoking tools..."))
+			fmt.Fprintln(r.w, systemMsgStyle.Render("Agent is invoking tools..."))
 			fmt.Fprintln(r.w)
 			r.flush()
 		} else {
@@ -172,10 +172,10 @@ func (r *messageStreamRenderer) writeCompleteMessage(msg *agentexecutionv1.Agent
 		// Sanitize raw API errors (e.g., Anthropic 400 responses) into
 		// user-friendly text. The full error is available in execution logs.
 		content := sanitizeSystemContent(msg.Content)
-		fmt.Fprintf(r.w, "%s\n\n", systemMsgStyle.Render("ℹ️  "+content))
+		fmt.Fprintf(r.w, "%s\n\n", systemMsgStyle.Render(content))
 		r.flush()
 	default:
-		fmt.Fprintf(r.w, "❓ Unknown: %s\n\n", msg.Content)
+		fmt.Fprintf(r.w, "Unknown: %s\n\n", msg.Content)
 		r.flush()
 	}
 }

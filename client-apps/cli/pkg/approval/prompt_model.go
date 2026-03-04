@@ -43,9 +43,9 @@ type promptModel struct {
 	cursor     int
 	askComment bool
 
-	textInput textinput.Model
-	decision  *Decision
-	cancelled bool
+	textInput   textinput.Model
+	decision    *Decision
+	sessionExit bool // Esc or Ctrl+C: exit the entire session
 }
 
 // newPromptModel creates a new approval prompt model.
@@ -120,8 +120,8 @@ func (m promptModel) updateSelect(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		return m, tea.Quit
-	case "ctrl+c":
-		m.cancelled = true
+	case "esc", "ctrl+c":
+		m.sessionExit = true
 		return m, tea.Quit
 	}
 
@@ -144,7 +144,7 @@ func (m promptModel) viewSelect() string {
 	}
 
 	b.WriteString("\n")
-	b.WriteString(promptHintStyle.Render("  ↑↓ move  enter select  ctrl+c cancel"))
+	b.WriteString(promptHintStyle.Render("  ↑↓ move · enter select · esc/ctrl+c exit"))
 	b.WriteString("\n")
 
 	return b.String()
@@ -159,10 +159,9 @@ func (m promptModel) updateComment(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.decision.Comment = m.textInput.Value()
 			return m, tea.Quit
 		case "esc":
-			// Skip comment — submit rejection without a reason
 			return m, tea.Quit
 		case "ctrl+c":
-			m.cancelled = true
+			m.sessionExit = true
 			m.decision = nil
 			return m, tea.Quit
 		}

@@ -341,6 +341,7 @@ func resolveFailureError(execution *agentexecutionv1.AgentExecution) string {
 // displaySessionExitLine prints a single-line summary after the TUI exits
 // for a completed session. Replaces the verbose multi-line panel.
 func displaySessionExitLine(sessionID string, exec *agentexecutionv1.AgentExecution) {
+	fmt.Println()
 	phase := exec.GetStatus().GetPhase()
 	duration := parseDuration(exec.GetStatus().GetStartedAt(), exec.GetStatus().GetCompletedAt())
 
@@ -367,6 +368,7 @@ func displaySessionExitLine(sessionID string, exec *agentexecutionv1.AgentExecut
 // displaySessionDetachLine prints a single-line detach notice with
 // a copy-paste-ready re-attach command.
 func displaySessionDetachLine(sessionID string) {
+	fmt.Println()
 	fmt.Printf("Detached from %s (still running) — stigmer run %s to re-attach\n", sessionID, sessionID)
 	flushStdout()
 }

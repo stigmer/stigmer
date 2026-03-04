@@ -5,7 +5,6 @@ go_library(
     srcs = [
         "colors.go",
         "proto.go",
-        "table.go",
         "tablerender.go",
         "terminal.go",
         "truncate.go",

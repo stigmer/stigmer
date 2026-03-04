@@ -36,8 +36,8 @@ func (c *AgentInstanceController) buildCreatePipeline() *pipeline.Pipeline[*agen
 		AddStep(steps.NewValidateProtoStep[*agentinstancev1.AgentInstance]()).         // 1. Validate field constraints
 		AddStep(steps.NewResolveSlugStep[*agentinstancev1.AgentInstance]()).           // 2. Resolve slug
 		AddStep(steps.NewCheckDuplicateStep[*agentinstancev1.AgentInstance](c.store)). // 3. Check duplicate
-		AddStep(steps.NewBuildNewStateStep[*agentinstancev1.AgentInstance]()).              // 4. Build new state
-		AddStep(steps.NewNormalizeReferencesStep[*agentinstancev1.AgentInstance]()).    // 5. Normalize cross-references
+		AddStep(steps.NewBuildNewStateStep[*agentinstancev1.AgentInstance]()).         // 4. Build new state
+		AddStep(steps.NewNormalizeReferencesStep[*agentinstancev1.AgentInstance]()).   // 5. Normalize cross-references
 		AddStep(steps.NewPersistStep[*agentinstancev1.AgentInstance](c.store)).        // 6. Persist agent instance
 		Build()
 }
