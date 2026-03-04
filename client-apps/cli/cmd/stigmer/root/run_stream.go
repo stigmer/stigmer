@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/pkg/errors"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
@@ -15,6 +16,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/termctl"
 	"google.golang.org/grpc"
 )
 
@@ -66,11 +68,19 @@ func streamAgentExecution(sessionID, sessionSubject, executionID, orgID string, 
 // AI content goes to dataW, status/progress goes to statusW. When a session
 // exists, a follow-up loop prompts for continued conversation after each
 // execution completes.
+//
+// A Bubbletea Program runs alongside the event loop in inline mode (no alt
+// screen), owning the stderr writer for accurate row tracking. The Program
+// is started before the first renderInline call and shut down on return.
+// When the status writer is not a terminal, the Program is skipped entirely
+// and all output falls back to direct writes.
 func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFunc, sessionID, executionID, orgID string, events chan executiontui.Event, approvalResponses chan executiontui.ApprovalResponse, prompter approval.Prompter, defaultAction approval.Action, conn *grpc.ClientConn, workspaceRoots []string, dataW, statusW io.Writer) (*agentexecutionv1.AgentExecution, error) {
 	var followUpFn executiontui.FollowUpFn
 	if sessionID != "" {
 		followUpFn = buildFollowUpFn(streamCtx, sessionID, orgID, conn)
 	}
+
+	program := startInlineProgram(statusW)
 
 	cfg := inlineRenderConfig{
 		events:            events,
@@ -81,15 +91,46 @@ func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFun
 		status:            statusW,
 		sessionID:         sessionID,
 		workspaceRoots:    workspaceRoots,
+		program:           program,
 		cancelExecFn: func() {
 			_, _ = execution.Cancel(conn, executionID)
 		},
 	}
 
 	latestExecID, phase, exitErr := runInlineFollowUpLoop(streamCtx, cfg, followUpFn, executionID)
+
+	stopInlineProgram(program)
 	streamCancel()
 
 	return streamAgentEpilogue(sessionID, latestExecID, phase, exitErr, conn)
+}
+
+// startInlineProgram creates and starts a Bubbletea Program in inline mode
+// for row-tracked stderr rendering. Returns nil when the writer is not a
+// terminal (CI, piped output) — the renderer falls back to direct writes.
+func startInlineProgram(statusW io.Writer) *tea.Program {
+	if !termctl.IsSupported(statusW) {
+		return nil
+	}
+
+	p := tea.NewProgram(
+		newInlineBubbleModel(),
+		tea.WithOutput(statusW),
+		tea.WithInput(nil),
+	)
+
+	go func() { _, _ = p.Run() }()
+	return p
+}
+
+// stopInlineProgram sends Quit to the Program and waits for it to exit.
+// Safe to call with nil (non-TTY path).
+func stopInlineProgram(p *tea.Program) {
+	if p == nil {
+		return
+	}
+	p.Quit()
+	p.Wait()
 }
 
 // streamAgentJSON renders events as newline-delimited JSON on stdout.
