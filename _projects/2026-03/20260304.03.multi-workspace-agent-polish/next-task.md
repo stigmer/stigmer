@@ -13,10 +13,24 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: In Progress
-- **Last Session**: 2026-03-04 — Completed T04
-- **Active Task**: T05 (final integration pass)
+- **Status**: Complete
+- **Last Session**: 2026-03-04 — Completed T05 (final integration pass)
+- **Active Task**: None — all tasks complete
 - **Commits**: `229e6f2d` (T01), `a7468869` (T02), `611ba688` (T03), pending (T04) on `feat/cli-tui-ux-hardening`
+
+## Session Progress (2026-03-04, Session 5)
+
+### T05: Tests and Verification (Final Integration Pass) — COMPLETED
+
+- Ran full graphton test suite: 873 passed, 24 failed — all failures pre-existing and unrelated to T01-T04 (model registry `claude-haiku-4` → `claude-haiku-4.5` rename, summarization middleware API changes, pre-existing `test_edit_raises_when_text_not_found`)
+- Ran full agent-runner test suite: 1093 passed, 0 failed — clean
+- Focused T01-T04 test run: 252 graphton tests passed (1 pre-existing failure), 124 agent-runner tests passed — zero regressions
+- Verified all T01 tests (alias descriptions + prompt guidance): `test_alias_tools_have_redirect_descriptions`, `test_filesystem_capability_discourages_alias_names` — pass
+- Verified all T02 tests (relevance multi-root): 10 `TestMultiRootResolution` tests + 50 existing — all 60 pass
+- Verified all T03 tests (hierarchical gitignore): 11 `TestMultiEntryGitignore` tests + 102 existing — all 113 pass
+- Verified all T04 tests (multi-workspace prompt): 15 new tests + 49 existing — all 64 pass
+- No linting errors in changed files
+- Coverage review: no gaps identified — all source types, edge cases, and backward compat paths tested
 
 ## Session Progress (2026-03-04, Session 4)
 
@@ -60,11 +74,10 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-Per the plan in `tasks/T01_0_plan.md`, the remaining task is:
+All tasks complete (T01-T05). Remaining work:
 
-1. **T05**: Tests and verification (final integration pass after T01-T04)
-
-T01-T04 are all complete. T05 is the final integration pass to verify everything works end-to-end.
+1. **Commit T04**: The T04 changes (`execute_graphton.py`, `test_workspace_prompt_section.py`) are uncommitted
+2. **Manual verification**: Run `stigmer draft mcp-server` with two `--workspace` flags to confirm clean agent behavior in a live session
 
 ## Context for Resume
 
@@ -128,15 +141,14 @@ When starting a new session:
 3. [ ] Review any new design decisions in `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260304.03.multi-workspace-agent-polish/design-decisions/`
 4. [ ] Check coding guidelines in `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260304.03.multi-workspace-agent-polish/coding-guidelines/`
 5. [ ] Review lessons learned in `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260304.03.multi-workspace-agent-polish/wrong-assumptions/` and `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260304.03.multi-workspace-agent-polish/dont-dos/`
-6. [ ] Continue with T05 (final integration pass)
+6. [ ] All tasks complete — commit T04 and do manual verification
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T05" - Run the final integration pass
+- "Commit T04" - Commit the pending multi-workspace prompt changes
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
-- "Review guidelines" - Check established patterns
 
 ---
 
