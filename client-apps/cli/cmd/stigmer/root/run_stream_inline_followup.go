@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/termctl"
 )
 
 // runInlineFollowUpLoop wraps renderInline in a conversational loop. After
@@ -40,6 +41,16 @@ func runInlineFollowUpLoop(
 			return latestExecID, phase, exitErr
 		}
 
+		// Erase the raw terminal echo (prompt + typed text) and replace it
+		// with the styled user message block. The erase covers two rows: the
+		// prompt line and the blank line the cursor advanced to after Enter.
+		// On non-TTY writers (pipes, tests) this is a no-op.
+		if termctl.IsSupported(cfg.status) {
+			termctl.EraseLines(cfg.status, 2)
+		}
+		fmt.Fprintf(cfg.status, "%s\n\n", formatHumanMessage(input))
+		cfg.suppressHumanEcho = true
+
 		result, err := followUpFn(input)
 		if err != nil {
 			fmt.Fprintf(cfg.status, "Error: follow-up failed: %s\n", err)
@@ -56,12 +67,12 @@ func runInlineFollowUpLoop(
 	}
 }
 
-// readFollowUpInput prints a prompt to the status writer and reads one line
-// of input from stdin. Returns the trimmed input, or empty string on EOF
+// readFollowUpInput prints a styled prompt to the status writer and reads one
+// line of input from stdin. Returns the trimmed input, or empty string on EOF
 // (Ctrl+D) or blank input (just Enter). The prompt goes to stderr so stdout
 // remains clean for piping.
 func readFollowUpInput(status io.Writer) (string, error) {
-	fmt.Fprint(status, "\n> ")
+	fmt.Fprintf(status, "\n%s ", promptStyle.Render(">"))
 
 	scanner := bufio.NewScanner(os.Stdin)
 	if !scanner.Scan() {

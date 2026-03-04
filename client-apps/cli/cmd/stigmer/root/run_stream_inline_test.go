@@ -133,6 +133,60 @@ func TestInlineRenderer_HumanMessage_GoesToStderr(t *testing.T) {
 	}
 }
 
+func TestInlineRenderer_SuppressHumanEcho_SkipsFirstHumanMessage(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 10)
+
+	go feedEvents(events,
+		executiontui.HumanMessageEvent{Content: "suppressed echo"},
+		executiontui.AIMessageEvent{Content: "response"},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+		suppressHumanEcho: true,
+	})
+
+	if strings.Contains(stderr.String(), "suppressed echo") {
+		t.Errorf("human message should be suppressed when suppressHumanEcho is set, got: %q", stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "response") {
+		t.Errorf("AI response should still render on stdout, got: %q", stdout.String())
+	}
+}
+
+func TestInlineRenderer_SuppressHumanEcho_OnlySkipsFirst(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 10)
+
+	go feedEvents(events,
+		executiontui.HumanMessageEvent{Content: "first message"},
+		executiontui.HumanMessageEvent{Content: "second message"},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+		suppressHumanEcho: true,
+	})
+
+	if strings.Contains(stderr.String(), "first message") {
+		t.Errorf("first human message should be suppressed, got: %q", stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "second message") {
+		t.Errorf("second human message should render normally, got: %q", stderr.String())
+	}
+}
+
 func TestInlineRenderer_SystemMessage_GoesToStderr(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	events := make(chan executiontui.Event, 10)

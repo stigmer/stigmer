@@ -59,6 +59,27 @@ func displayAgentPhaseChange(phase, previousPhase agentexecutionv1.ExecutionPhas
 // hierarchy — system messages are informational, not primary content.
 var systemMsgStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 
+// humanMsgStyle renders user messages with a highlighted background block,
+// making them visually distinct from AI responses and status output. The
+// subtle dark-gray background with bright-white foreground matches the
+// Claude Code-style inverted treatment for user input.
+var humanMsgStyle = lipgloss.NewStyle().
+	Background(lipgloss.Color("236")).
+	Foreground(lipgloss.Color("15")).
+	Padding(0, 1)
+
+// promptStyle renders the follow-up input prompt marker (">") in bold blue,
+// matching the session header panel color for visual continuity.
+var promptStyle = lipgloss.NewStyle().
+	Bold(true).
+	Foreground(lipgloss.Color("12"))
+
+// formatHumanMessage formats a user message with highlighted styling for
+// display in both streaming and non-streaming rendering paths.
+func formatHumanMessage(content string) string {
+	return humanMsgStyle.Render(content)
+}
+
 // displayAgentMessage renders a single agent message with type-aware formatting.
 //
 // Each message type gets distinct visual treatment:
@@ -83,9 +104,9 @@ func displayAgentMessage(msg *agentexecutionv1.AgentMessage) {
 	}
 }
 
-// displayHumanMessage renders the user's input message.
+// displayHumanMessage renders the user's input message with highlighted styling.
 func displayHumanMessage(msg *agentexecutionv1.AgentMessage) {
-	fmt.Printf("You: %s\n\n", msg.Content)
+	fmt.Printf("%s\n\n", formatHumanMessage(msg.Content))
 	flushStdout()
 }
 

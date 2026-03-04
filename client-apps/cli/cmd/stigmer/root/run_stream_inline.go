@@ -29,6 +29,11 @@ type inlineRenderConfig struct {
 	sessionID         string
 	workspaceRoots    []string // local workspace root paths for file hyperlinks
 	cancelExecFn      func()   // cancels the current backend execution; nil-safe
+
+	// suppressHumanEcho skips the next HumanMessageEvent rendering. Set by
+	// the follow-up loop after local echo to prevent duplicate display when
+	// the backend echoes the same message.
+	suppressHumanEcho bool
 }
 
 // pendingRead wraps a read tool completion with the sub-agent context it
@@ -391,8 +396,12 @@ func (r *inlineRenderer) renderAIMessage(e executiontui.AIMessageEvent) {
 }
 
 func (r *inlineRenderer) renderHumanMessage(e executiontui.HumanMessageEvent) {
+	if r.cfg.suppressHumanEcho {
+		r.cfg.suppressHumanEcho = false
+		return
+	}
 	r.finishAIStreamIfNeeded()
-	r.statusf("You: %s\n\n", e.Content)
+	r.statusf("%s\n\n", formatHumanMessage(e.Content))
 }
 
 // ---------------------------------------------------------------------------

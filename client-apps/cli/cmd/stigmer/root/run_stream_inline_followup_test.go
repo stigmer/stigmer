@@ -73,8 +73,8 @@ func TestReadFollowUpInput_ReturnsInput(t *testing.T) {
 	if input != "hello world" {
 		t.Errorf("expected 'hello world', got %q", input)
 	}
-	if !strings.Contains(status.String(), "> ") {
-		t.Errorf("expected prompt on status, got %q", status.String())
+	if !strings.Contains(status.String(), ">") {
+		t.Errorf("expected prompt marker on status, got %q", status.String())
 	}
 }
 
@@ -225,8 +225,12 @@ func TestFollowUpLoop_FollowUpError_ExitsLoop(t *testing.T) {
 	if execID != "exec-1" {
 		t.Errorf("expected original execID on error, got %q", execID)
 	}
-	if !strings.Contains(statusBuf.String(), "follow-up failed") {
-		t.Errorf("expected error message on status, got %q", statusBuf.String())
+	statusStr := statusBuf.String()
+	if !strings.Contains(statusStr, "continue") {
+		t.Errorf("expected local echo of user message on status, got %q", statusStr)
+	}
+	if !strings.Contains(statusStr, "follow-up failed") {
+		t.Errorf("expected error message on status, got %q", statusStr)
 	}
 }
 
