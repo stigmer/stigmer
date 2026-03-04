@@ -69,8 +69,8 @@ When starting a new session:
 
 **Created**: 2026-03-04 00:23
 **Current Task**: Phase 3 (Claude Code-Style Approval Flow — REVISED)
-**Status**: In Progress — Phase 3.1 complete
-**Last Session**: 2026-03-04 — Phase 3.1 (custom inline prompter) complete
+**Status**: In Progress — Phase 3.2 complete
+**Last Session**: 2026-03-04 — Phase 3.2 (approval result rendering primitives) complete
 
 ## Session Progress (2026-03-04, Session 1)
 
@@ -286,18 +286,41 @@ When starting a new session:
 - `client-apps/cli/pkg/approval/inline_prompter_test.go` (new)
 - `client-apps/cli/pkg/approval/BUILD.bazel` (modified)
 
+## Session Progress (2026-03-04, Session 11)
+
+- Phase 3.2 (Approval Result Rendering Primitives) completed
+- Created `pkg/toolrender/render_approval.go` (269 lines) — 3 public functions: `RenderApprovalResult`, `ApprovalSeparator`, `ApprovalQuestion`; 8 internal helpers: `approvalBullet`, `renderApprovalHeader`, `buildApprovalConnector`, `approvedSummary`, `approvalVerb`, `shouldShowApprovalPreview`, `formatApprovalPreview`, `renderApprovalUnknown`
+- Created `pkg/toolrender/render_approval_test.go` (581 lines) — 38 test functions covering all action/tool-type combinations, preview truncation, smart cutoff, hyperlinks, arg fallbacks, separator, question verbs
+- Updated `pkg/toolrender/BUILD.bazel` — added new source and test files
+
+### Key Design Decisions (Session 11)
+- **Action-colored bullets**: green `●` (approved), red `●` (rejected), dim `●` (skipped). Provides at-a-glance status without reading connector text.
+- **No path repetition in `└` connector**: Header already shows path via `Label(path)`. Connector shows only the summary ("Wrote 241 lines", "Rejected", "Skipped"). Consistent with existing compact format.
+- **`action` as string, not `approval.Action`**: Uses `"approve"`, `"skip"`, `"reject"` strings (matching `ApprovalResponse` protocol) to avoid `toolrender` depending on `approval` package.
+- **Separate `render_approval.go` file**: `render_compact.go` was already 578 lines with a distinct concern (compact status display). Approval rendering is a separate concern (approval flow display) with its own constants, styles, and helper set. Follows SRP pattern: `render.go`, `render_compact.go`, `render_known.go`, `hyperlink.go`, `render_approval.go`.
+- **`shouldShowApprovalPreview` predicate**: Centralizes the preview-visibility rules: no preview for skip (user doesn't care), no preview for approved shell (output streams separately in Phase 3.4), no preview for delete (no content body). Keeps `RenderApprovalResult` clean.
+- **`formatApprovalPreview` takes raw content**: Decoupled from `ToolCallInfo`/`toolDisplayInfo` so it can serve both known tools (via `resolveDisplayContent`) and unknown tools (via `tc.Result`).
+- **`ApprovalQuestion` verb mapping**: Write/Create → "create", Edit → "edit", Shell/Execute → "execute", Delete → "delete", unknown → "run {toolName}". Shell commands truncated to 60 chars with multiline sanitization.
+- **Smart cutoff (10+1)**: Shows all lines when count <= 11, truncates to 10 + "… +N more lines" for 12+. Same pattern as shell (3+1), think (3+1), and read groups (3+1).
+
+### Files Created/Modified (Session 11)
+- `client-apps/cli/pkg/toolrender/render_approval.go` (new)
+- `client-apps/cli/pkg/toolrender/render_approval_test.go` (new)
+- `client-apps/cli/pkg/toolrender/BUILD.bazel` (modified)
+
 ## Next Steps
 
-1. Phase 3: Claude Code-Style Approval Flow (REVISED — 2-3 sessions remaining)
+1. Phase 3: Claude Code-Style Approval Flow (REVISED — 2 sessions remaining)
    - ~~3.0: Terminal cursor control primitives (pkg/termctl)~~ DONE
    - ~~3.1: Custom inline prompter (arrow-key menu, raw mode, line counting)~~ DONE
-   - 3.2: Four-state tool rendering (streaming → approval → collapse with └ connector)
+   - ~~3.2: Four-state tool rendering (streaming → approval → collapse with └ connector)~~ DONE
    - 3.3: Rewrite handleApproval (orchestrate expand/prompt/collapse/suppress)
    - 3.4: Shell tool approval variant + enable ToolStreamDeltaEvent streaming
 2. Phase 4: Inline follow-up readline + thinking spinner
 
 ## Context for Resume
 
+- **`pkg/toolrender/render_approval.go`** is the approval result rendering module (Phase 3.2). Three public functions: `RenderApprovalResult(tc, action, opts)` produces the collapsed post-decision view with action-colored bullet (green/red/dim), `└` connector, and content preview (up to 10 lines with smart cutoff). `ApprovalSeparator()` returns a dim 24-char `────...` separator for the expanded approval view. `ApprovalQuestion(tc)` returns a contextual "Do you want to X Y?" question line with verb mapping from tool labels. Internal helpers: `approvalBullet` (action-colored `●`), `renderApprovalHeader` (tool header with variable bullet color), `buildApprovalConnector` (dim `└` summary), `approvedSummary` (past-tense verb + line count), `shouldShowApprovalPreview` (predicate: no preview for skip, approved shell, delete), `formatApprovalPreview` (indented dim content block), `renderApprovalUnknown` (unknown/MCP tool fallback). Phase 3.3 will use these as building blocks in the rewritten `handleApproval`.
 - **`pkg/approval/inline_prompter.go`** is the new inline-mode approval prompter (Phase 3.1). `InlinePrompter` accepts `io.Reader` (input) + `io.Writer` (output) — fully DI-compliant. `Prompt(ctx, opts)` implements `Prompter` interface (drop-in replacement for `InteractivePrompter`). `PromptWithLineCount(ctx, opts)` returns `(*Decision, int, error)` — the `int` is the exact row count (always `menuLines = 4`) for Phase 3.3 cursor collapse. Non-interactive fast path when `fd == -1` (non-TTY) or `opts.NonInteractive`. Raw mode via `term.MakeRaw`/`term.Restore` with deferred cleanup. Menu re-rendering via `termctl.EraseLines`.
 - **`pkg/approval/keyread.go`** is the keystroke decoder for `InlinePrompter`. `keyReader` runs a persistent goroutine that reads one byte at a time from `io.Reader` and sends to a buffered channel (cap 64). `readKey(ctx)` returns typed `keyCode` values (keyUp, keyDown, keyEnter, keyEsc, keyCtrlC, keyOne, keyTwo, keyThree, keyUnknown). Escape sequence parsing uses 50ms timeout to distinguish standalone Esc from arrow keys (`\033[A`/`\033[B`). `drain()` empties the byte channel before each prompt. `readByte` uses a two-phase priority-select pattern: try bytes channel without blocking first, then wait on bytes/errs/ctx — this prevents a race where EOF arrives while unconsumed bytes remain in the channel.
 - **`pkg/termctl/`** is the ANSI cursor control package (Phase 3.0). 7 public functions: `IsSupported(w)` (TTY+not-dumb, NO_COLOR excluded), `MoveUp(w, n)`, `ClearDown(w)`, `ClearLine(w)`, `EraseLines(w, n)` (atomic), `Width(w, default)`, `DisplayRows(text, width)`. All stateless, DI-compliant (io.Writer params). Used by Phase 3.2-3.3 for approval collapse and by `InlinePrompter` for menu re-rendering. `DisplayRows` uses `charmbracelet/x/ansi.StringWidth` for ANSI-aware width measurement.
