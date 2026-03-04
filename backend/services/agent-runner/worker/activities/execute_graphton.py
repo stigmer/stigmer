@@ -48,7 +48,10 @@ from worker.activities.graphton.approval_policy import (
 from worker.activities.graphton.skill_writer import SkillWriter
 from worker.activities.graphton.status_builder import StatusBuilder, _utc_timestamp
 from worker.activities.graphton.subagent_transformer import transform_sub_agents
-from worker.activities.relevance import build_relevance_prompt_section
+from worker.activities.relevance import (
+    WorkspaceRoot,
+    build_relevance_prompt_section,
+)
 from worker.checkpointer import create_checkpointer
 from worker.mcp import transform_all_mcp_configs
 from worker.resilience import (
@@ -1872,9 +1875,12 @@ async def _execute_graphton_impl(
             enhanced_system_prompt += workspace_section
             activity_logger.info("Enhanced system prompt with workspace context")
 
-        primary_root = provision_results[0].root_dir if provision_results else ""
+        workspace_roots = [
+            WorkspaceRoot(name=pr.entry_name, root_dir=pr.root_dir)
+            for pr in provision_results
+        ]
         relevance_section = build_relevance_prompt_section(
-            user_message, primary_root,
+            user_message, workspace_roots,
         )
         if relevance_section:
             enhanced_system_prompt += relevance_section
