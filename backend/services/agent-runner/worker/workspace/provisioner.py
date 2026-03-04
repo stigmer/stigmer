@@ -184,8 +184,9 @@ class WorkspaceProvisioner:
             merged_env: Fully-merged environment (``dict[str, str]``).
             is_local_mode: Whether the runner is in local mode.
             target_subdir: When set, git sources clone into this
-                subdirectory of ``backend.root_dir``.  Ignored by
-                local-path and empty sources.
+                subdirectory of ``backend.root_dir``, and local-path
+                sources create a symlink with this name pointing to the
+                validated path.  Ignored by empty sources.
             tree_heading_level: Markdown heading depth for the file-tree
                 section (default 3 → ``###``).  Multi-entry callers
                 pass 4 so the tree nests under per-entry ``###``
@@ -344,6 +345,8 @@ class WorkspaceProvisioner:
             return local_path_source.provision(
                 workspace_source.local_path,  # type: ignore[attr-defined]
                 is_local_mode=is_local_mode,
+                target_subdir=target_subdir,
+                backend_root_dir=backend.root_dir if target_subdir else None,
             )
 
         raise WorkspaceProvisionError(

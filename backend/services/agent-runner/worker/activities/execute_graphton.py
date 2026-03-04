@@ -2039,6 +2039,23 @@ async def _execute_graphton_impl(
                 "Injecting %d env var(s) into sandbox config for shell execution",
                 len(merged_env_vars),
             )
+
+        # Multi-local-path: collect host paths so the FilesystemBackend
+        # can accept resolved symlink targets in its containment check
+        # and rewrite absolute host paths to entry-relative form.
+        if len(provision_results) > 1 and sandbox is None:
+            local_roots: dict[str, str] = {
+                pr.entry_name: pr.root_dir
+                for pr in provision_results
+                if pr.source_type == SourceType.LOCAL_PATH and pr.entry_name
+            }
+            if local_roots:
+                sandbox_config_for_agent["allowed_roots"] = local_roots
+                activity_logger.info(
+                    "Configured %d allowed root(s) for multi-local-path: %s",
+                    len(local_roots),
+                    ", ".join(f"{n}={p}" for n, p in local_roots.items()),
+                )
         
         # ─────────────────────────────────────────────────────────────────────────────
         # Resolve model name for logging/diagnostics only.

@@ -1179,3 +1179,233 @@ class TestMultiEntryGitignore:
         src_entries = gitignore_sandbox.list_files("src")
         assert "main.py" in src_entries
         assert "main.pyc" not in src_entries
+
+
+# =============================================================================
+# Allowed roots (multi-local-path workspace support)
+# =============================================================================
+
+
+class TestAllowedRootsContainment:
+    """Symlink-backed entries whose resolved paths fall under allowed_roots
+    must pass the containment check."""
+
+    def test_symlink_entry_read_with_allowed_roots(self, tmp_path: Path) -> None:
+        """Entry-relative read through a symlink succeeds when the target
+        is in allowed_roots."""
+        session_dir = tmp_path / "session"
+        session_dir.mkdir()
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        (project_dir / "README.md").write_text("# hello")
+
+        os.symlink(str(project_dir), str(session_dir / "project"))
+
+        sb = FilesystemBackend(
+            root_dir=session_dir,
+            allowed_roots={"project": str(project_dir)},
+        )
+        content = sb.read_file("project/README.md")
+        assert content == "# hello"
+
+    def test_symlink_entry_list_files(self, tmp_path: Path) -> None:
+        """list_files through a symlink returns the real directory's entries."""
+        session_dir = tmp_path / "session"
+        session_dir.mkdir()
+        project_dir = tmp_path / "project"
+        (project_dir / "src").mkdir(parents=True)
+        (project_dir / "src" / "main.py").write_text("pass")
+        (project_dir / "README.md").write_text("# readme")
+
+        os.symlink(str(project_dir), str(session_dir / "project"))
+
+        sb = FilesystemBackend(
+            root_dir=session_dir,
+            allowed_roots={"project": str(project_dir)},
+        )
+        entries = sb.list_files("project")
+        assert "src" in entries
+        assert "README.md" in entries
+
+    def test_symlink_entry_write(self, tmp_path: Path) -> None:
+        """Writing through a symlink-backed entry lands in the real directory."""
+        session_dir = tmp_path / "session"
+        session_dir.mkdir()
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+
+        os.symlink(str(project_dir), str(session_dir / "project"))
+
+        sb = FilesystemBackend(
+            root_dir=session_dir,
+            allowed_roots={"project": str(project_dir)},
+        )
+        sb.write_file("project/new_file.txt", "content")
+        assert (project_dir / "new_file.txt").read_text() == "content"
+
+    def test_rejected_without_allowed_roots(self, tmp_path: Path) -> None:
+        """Without allowed_roots, symlink targets outside root_dir are rejected."""
+        session_dir = tmp_path / "session"
+        session_dir.mkdir()
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        (project_dir / "README.md").write_text("# hello")
+
+        os.symlink(str(project_dir), str(session_dir / "project"))
+
+        sb = FilesystemBackend(root_dir=session_dir)
+        with pytest.raises(ValueError, match="resolves outside sandbox root"):
+            sb.read_file("project/README.md")
+
+    def test_traversal_via_symlink_blocked(self, tmp_path: Path) -> None:
+        """Traversal through a symlink that escapes allowed roots is rejected."""
+        session_dir = tmp_path / "session"
+        session_dir.mkdir()
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+
+        os.symlink(str(project_dir), str(session_dir / "project"))
+
+        sb = FilesystemBackend(
+            root_dir=session_dir,
+            allowed_roots={"project": str(project_dir)},
+        )
+        with pytest.raises(ValueError, match="resolves outside sandbox root"):
+            sb.read_file("project/../../etc/passwd")
+
+    def test_allowed_roots_as_list(self, tmp_path: Path) -> None:
+        """Flat list of allowed_roots works for containment (no path rewriting)."""
+        session_dir = tmp_path / "session"
+        session_dir.mkdir()
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        (project_dir / "file.txt").write_text("data")
+
+        os.symlink(str(project_dir), str(session_dir / "project"))
+
+        sb = FilesystemBackend(
+            root_dir=session_dir,
+            allowed_roots=[str(project_dir)],
+        )
+        assert sb.read_file("project/file.txt") == "data"
+
+    def test_multiple_allowed_roots(self, tmp_path: Path) -> None:
+        """Multiple symlinked entries each with their own allowed root."""
+        session_dir = tmp_path / "session"
+        session_dir.mkdir()
+        repo_a = tmp_path / "repo_a"
+        repo_b = tmp_path / "repo_b"
+        repo_a.mkdir()
+        repo_b.mkdir()
+        (repo_a / "a.txt").write_text("aaa")
+        (repo_b / "b.txt").write_text("bbb")
+
+        os.symlink(str(repo_a), str(session_dir / "repo_a"))
+        os.symlink(str(repo_b), str(session_dir / "repo_b"))
+
+        sb = FilesystemBackend(
+            root_dir=session_dir,
+            allowed_roots={
+                "repo_a": str(repo_a),
+                "repo_b": str(repo_b),
+            },
+        )
+        assert sb.read_file("repo_a/a.txt") == "aaa"
+        assert sb.read_file("repo_b/b.txt") == "bbb"
+
+    def test_no_cross_entry_access(self, tmp_path: Path) -> None:
+        """An entry's allowed root does not grant access to another entry's files."""
+        session_dir = tmp_path / "session"
+        session_dir.mkdir()
+        repo_a = tmp_path / "repo_a"
+        repo_a.mkdir()
+        (repo_a / "secret.txt").write_text("secret")
+
+        sb = FilesystemBackend(
+            root_dir=session_dir,
+            allowed_roots={"repo_a": str(repo_a)},
+        )
+        with pytest.raises((ValueError, FileNotFoundError)):
+            sb.read_file("repo_b/secret.txt")
+
+
+class TestAllowedRootsPathRewriting:
+    """Absolute host paths that match an allowed root's host_path are
+    rewritten to entry-relative form before resolution."""
+
+    def test_absolute_host_path_rewritten(self, tmp_path: Path) -> None:
+        """Agent using the absolute host path (from system prompt) succeeds."""
+        session_dir = tmp_path / "session"
+        session_dir.mkdir()
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        (project_dir / "go.mod").write_text("module example")
+
+        os.symlink(str(project_dir), str(session_dir / "project"))
+
+        sb = FilesystemBackend(
+            root_dir=session_dir,
+            allowed_roots={"project": str(project_dir)},
+        )
+        content = sb.read_file(str(project_dir / "go.mod"))
+        assert content == "module example"
+
+    def test_absolute_host_path_to_root(self, tmp_path: Path) -> None:
+        """Absolute path equal to an allowed root resolves to the entry dir."""
+        session_dir = tmp_path / "session"
+        session_dir.mkdir()
+        project_dir = tmp_path / "project"
+        (project_dir / "src").mkdir(parents=True)
+        (project_dir / "README.md").write_text("# readme")
+
+        os.symlink(str(project_dir), str(session_dir / "project"))
+
+        sb = FilesystemBackend(
+            root_dir=session_dir,
+            allowed_roots={"project": str(project_dir)},
+        )
+        resolved = sb._resolve_sandbox_path(str(project_dir))
+        assert resolved == project_dir.resolve()
+
+    def test_no_rewrite_without_mapping(self, tmp_path: Path) -> None:
+        """When allowed_roots is a flat list, no path rewriting happens."""
+        session_dir = tmp_path / "session"
+        session_dir.mkdir()
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        (project_dir / "file.txt").write_text("data")
+
+        os.symlink(str(project_dir), str(session_dir / "project"))
+
+        sb = FilesystemBackend(
+            root_dir=session_dir,
+            allowed_roots=[str(project_dir)],
+        )
+        # Absolute host path without mapping falls through to chroot logic,
+        # which strips the leading "/" and prepends root_dir, producing a
+        # path like session_dir/Users/dev/.../file.txt that doesn't exist.
+        with pytest.raises(FileNotFoundError):
+            sb.read_file(str(project_dir / "file.txt"))
+
+    def test_no_allowed_roots_backward_compat(self, tmp_path: Path) -> None:
+        """Without allowed_roots the backend works identically to before."""
+        sb = FilesystemBackend(root_dir=tmp_path)
+        (tmp_path / "hello.txt").write_text("hi")
+        assert sb.read_file("hello.txt") == "hi"
+
+    def test_root_dir_files_still_accessible(self, tmp_path: Path) -> None:
+        """Files directly under root_dir remain accessible when allowed_roots
+        is set."""
+        session_dir = tmp_path / "session"
+        session_dir.mkdir()
+        (session_dir / "root_file.txt").write_text("root")
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+
+        os.symlink(str(project_dir), str(session_dir / "project"))
+
+        sb = FilesystemBackend(
+            root_dir=session_dir,
+            allowed_roots={"project": str(project_dir)},
+        )
+        assert sb.read_file("root_file.txt") == "root"
