@@ -14,24 +14,24 @@ import (
 // handleApproval orchestrates the expand/prompt/collapse approval flow.
 //
 // For interactive prompts the flow is:
-//  1. Erase the running indicator line (if cursor control is available)
-//  2. Render expanded view: header + separator + content + separator
-//  3. Print the contextual question and show the arrow-key menu
-//  4. Block until the user makes a decision
-//  5. Erase the entire expanded view + question + menu
-//  6. Print the collapsed RenderApprovalResult in place
-//  7. Suppress subsequent ToolCompletedEvent for non-shell tools
+//  1. Prepare display: if content was streamed (pre-approval), add bottom
+//     separator; otherwise erase running line and print expanded view
+//  2. Print the contextual question and show the arrow-key menu
+//  3. Block until the user makes a decision
+//  4. Erase the entire display + question + menu
+//  5. Finalize: print collapsed result or start post-approval streaming
+//  6. Suppress subsequent ToolCompletedEvent for non-shell tools
 //
 // For non-interactive mode (defaultAction set): skips the expanded view,
-// erases the running line, and prints the collapsed result directly.
+// erases any prior output, and either prints collapsed result or starts
+// post-approval streaming for shell tools.
 //
 // Graceful degradation: when termctl.IsSupported is false, no erasure
-// happens — both the expanded view and collapsed result remain in
-// scrollback.
+// happens — content remains in scrollback.
 func (r *inlineRenderer) handleApproval(ctx context.Context, e executiontui.ApprovalNeededEvent) {
 	r.finishAIStreamIfNeeded()
 
-	tc, subAgentID, runningRendered := r.resolveApprovalContext(e)
+	tc, subAgentID, runningRendered, contentStreamed, streamedRows := r.resolveApprovalContext(e)
 	canCollapse := termctl.IsSupported(r.cfg.status)
 	width := termctl.Width(r.cfg.status, 80)
 
@@ -46,30 +46,41 @@ func (r *inlineRenderer) handleApproval(ctx context.Context, e executiontui.Appr
 	}
 
 	if opts.NonInteractive {
-		r.handleNonInteractiveApproval(e, tc, subAgentID, runningRendered, canCollapse, opts)
+		r.handleNonInteractiveApproval(e, tc, subAgentID, runningRendered, contentStreamed, canCollapse, streamedRows, opts)
 		return
 	}
 
-	r.handleInteractiveApproval(ctx, e, tc, subAgentID, runningRendered, canCollapse, width, opts)
+	r.handleInteractiveApproval(ctx, e, tc, subAgentID, runningRendered, contentStreamed, canCollapse, streamedRows, width, opts)
 }
 
 // handleNonInteractiveApproval is the fast path when defaultAction is set.
-// No expanded view or menu — erase the running line and print the collapsed
+// Erases any prior output (streamed content or running line), then either
+// starts post-approval streaming (approved shell) or prints the collapsed
 // result directly.
 func (r *inlineRenderer) handleNonInteractiveApproval(
 	e executiontui.ApprovalNeededEvent,
 	tc toolrender.ToolCallInfo,
 	subAgentID string,
-	runningRendered, canCollapse bool,
+	runningRendered, contentStreamed, canCollapse bool,
+	streamedRows int,
 	opts approval.Options,
 ) {
-	if canCollapse && runningRendered {
-		termctl.EraseLines(r.cfg.status, 1)
+	if canCollapse {
+		if contentStreamed {
+			termctl.EraseLines(r.cfg.status, streamedRows)
+		} else if runningRendered {
+			termctl.EraseLines(r.cfg.status, 1)
+		}
 	}
 
 	action := actionToString(opts.DefaultAction)
-	r.printCollapsedResult(tc, action, subAgentID)
-	r.trackSuppression(e.ToolCallID, tc.Name, action)
+
+	if action == "approve" && toolrender.IsShellTool(tc.Name) {
+		r.initPostApprovalStreaming(e.ToolCallID, tc, subAgentID)
+	} else {
+		r.printCollapsedResult(tc, action, subAgentID)
+		r.trackSuppression(e.ToolCallID, tc.Name, action)
+	}
 
 	r.cfg.approvalResponses <- executiontui.ApprovalResponse{
 		Action:     action,
@@ -78,23 +89,20 @@ func (r *inlineRenderer) handleNonInteractiveApproval(
 	r.waitingApproval = nil
 }
 
-// handleInteractiveApproval renders the full expand/prompt/collapse flow.
+// handleInteractiveApproval renders the full display/prompt/collapse flow.
+// Delegates display setup to prepareApprovalDisplay and post-decision
+// handling to finalizeApproval, keeping this function focused on the
+// question and prompt orchestration.
 func (r *inlineRenderer) handleInteractiveApproval(
 	ctx context.Context,
 	e executiontui.ApprovalNeededEvent,
 	tc toolrender.ToolCallInfo,
 	subAgentID string,
-	runningRendered, canCollapse bool,
-	width int,
+	runningRendered, contentStreamed, canCollapse bool,
+	streamedRows, width int,
 	opts approval.Options,
 ) {
-	if canCollapse && runningRendered {
-		termctl.EraseLines(r.cfg.status, 1)
-	}
-
-	expanded := r.buildExpandedView(tc)
-	fmt.Fprint(r.cfg.status, expanded)
-	expandedRows := termctl.DisplayRows(expanded, width)
+	displayRows := r.prepareApprovalDisplay(tc, contentStreamed, streamedRows, runningRendered, canCollapse, width)
 
 	question := toolrender.ApprovalQuestion(tc)
 	fmt.Fprintf(r.cfg.status, "%s\n", question)
@@ -102,19 +110,68 @@ func (r *inlineRenderer) handleInteractiveApproval(
 
 	decision, menuRows, err := r.promptForDecision(ctx, opts)
 	if err != nil {
-		r.handlePromptError(e, err, expandedRows+questionRows+menuRows, canCollapse)
+		r.handlePromptError(e, err, displayRows+questionRows+menuRows, canCollapse)
 		return
 	}
 
+	totalRows := displayRows + questionRows + menuRows
+	r.finalizeApproval(e, tc, decision, subAgentID, totalRows, canCollapse)
+}
+
+// prepareApprovalDisplay renders the content shown above the approval
+// question. Returns the number of display rows rendered, used for cursor
+// control erasure after the user decides.
+//
+// When contentStreamed is true, the content is already visible from
+// pre-approval streaming. Only a bottom separator is added below the
+// existing content. When false, the full expanded view (header +
+// separator + content + separator) is printed from Args.
+func (r *inlineRenderer) prepareApprovalDisplay(
+	tc toolrender.ToolCallInfo,
+	contentStreamed bool,
+	streamedRows int,
+	runningRendered, canCollapse bool,
+	width int,
+) int {
+	if contentStreamed {
+		sep := toolrender.ApprovalSeparator()
+		fmt.Fprintf(r.cfg.status, "%s\n", sep)
+		sepRows := termctl.DisplayRows(sep+"\n", width)
+		return streamedRows + sepRows
+	}
+
+	if canCollapse && runningRendered {
+		termctl.EraseLines(r.cfg.status, 1)
+	}
+
+	expanded := r.buildExpandedView(tc)
+	fmt.Fprint(r.cfg.status, expanded)
+	return termctl.DisplayRows(expanded, width)
+}
+
+// finalizeApproval handles the post-decision phase: erases the display,
+// prints the collapsed result (or starts shell streaming for approved
+// shell tools), sends the approval response, and clears state.
+func (r *inlineRenderer) finalizeApproval(
+	e executiontui.ApprovalNeededEvent,
+	tc toolrender.ToolCallInfo,
+	decision *approval.Decision,
+	subAgentID string,
+	totalRows int,
+	canCollapse bool,
+) {
 	action := actionToString(decision.Action)
 
-	totalRows := expandedRows + questionRows + menuRows
 	if canCollapse {
 		termctl.EraseLines(r.cfg.status, totalRows)
 	}
 
-	r.printCollapsedResult(tc, action, subAgentID)
-	r.trackSuppression(e.ToolCallID, tc.Name, action)
+	if action == "approve" && toolrender.IsShellTool(tc.Name) {
+		r.initPostApprovalStreaming(e.ToolCallID, tc, subAgentID)
+	} else {
+		r.printCollapsedResult(tc, action, subAgentID)
+		r.trackSuppression(e.ToolCallID, tc.Name, action)
+	}
 
 	r.cfg.approvalResponses <- executiontui.ApprovalResponse{
 		Action:     action,
@@ -124,19 +181,21 @@ func (r *inlineRenderer) handleInteractiveApproval(
 	r.waitingApproval = nil
 }
 
-// resolveApprovalContext returns the ToolCallInfo, sub-agent ID, and whether
-// a running line was rendered for this tool. Prefers the state saved by
-// renderToolWaitingApproval; falls back to constructing a minimal
-// ToolCallInfo from ApprovalNeededEvent fields.
-func (r *inlineRenderer) resolveApprovalContext(e executiontui.ApprovalNeededEvent) (toolrender.ToolCallInfo, string, bool) {
+// resolveApprovalContext returns the ToolCallInfo, sub-agent ID, whether
+// a running line was rendered, and streaming state for this tool. Prefers
+// the state saved by renderToolWaitingApproval; falls back to constructing
+// a minimal ToolCallInfo from ApprovalNeededEvent fields.
+func (r *inlineRenderer) resolveApprovalContext(e executiontui.ApprovalNeededEvent) (
+	tc toolrender.ToolCallInfo, subAgentID string, runningRendered, contentStreamed bool, streamedRows int,
+) {
 	if r.waitingApproval != nil {
-		return r.waitingApproval.tc, r.waitingApproval.subAgentID, r.waitingApproval.runningLineRendered
+		w := r.waitingApproval
+		return w.tc, w.subAgentID, w.runningLineRendered, w.contentStreamed, w.streamedRows
 	}
-	tc := toolrender.ToolCallInfo{
+	return toolrender.ToolCallInfo{
 		Name:   e.ToolName,
 		Status: "waiting_approval",
-	}
-	return tc, "", false
+	}, "", false, false, 0
 }
 
 // buildExpandedView assembles the expanded approval content shown before
@@ -204,8 +263,9 @@ func (r *inlineRenderer) printCollapsedResult(tc toolrender.ToolCallInfo, action
 
 // trackSuppression records the tool call ID for ToolCompletedEvent
 // suppression when the tool's completion would duplicate the approval
-// result. Shell tools are excluded because their output only arrives
-// via the completion event.
+// result. Write/edit/delete completions are suppressed. Shell tool
+// completions are handled separately by the streaming interception
+// (completeStreamingTool) and do not use suppressedToolIDs.
 func (r *inlineRenderer) trackSuppression(toolCallID, toolName, action string) {
 	if action == "reject" {
 		return

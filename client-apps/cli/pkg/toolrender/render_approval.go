@@ -156,8 +156,9 @@ func ExpandedApprovalContent(tc ToolCallInfo) string {
 // approved or skipped tool should be suppressed. Write, edit, create, and
 // delete tools have their outcome fully represented by the collapsed
 // approval result (RenderApprovalResult). Shell tools are NOT suppressed
-// because their output only arrives via the completion event (streaming
-// is Phase 3.4).
+// here — their completion is intercepted by the streaming tool handler
+// (completeStreamingTool) which erases the streamed output and prints the
+// compact result.
 func ShouldSuppressCompletion(toolName string) bool {
 	if IsWriteOrEditTool(toolName) {
 		return true
