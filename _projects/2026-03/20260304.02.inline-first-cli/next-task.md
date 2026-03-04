@@ -69,8 +69,8 @@ When starting a new session:
 
 **Created**: 2026-03-04 00:23
 **Current Task**: Phase 3 (Claude Code-Style Approval Flow — REVISED)
-**Status**: In Progress — Phase 3.3 complete
-**Last Session**: 2026-03-04 — Phase 3.3 (rewrite handleApproval: expand/prompt/collapse/suppress) complete
+**Status**: In Progress — Phase 3.4 complete
+**Last Session**: 2026-03-04 — Phase 3.4 (ToolStreamDeltaEvent streaming for pre- and post-approval flows) complete
 
 ## Session Progress (2026-03-04, Session 1)
 
@@ -340,18 +340,48 @@ When starting a new session:
 
 ## Next Steps
 
-1. Phase 3: Claude Code-Style Approval Flow (REVISED — 1 session remaining)
+1. ~~Phase 3: Claude Code-Style Approval Flow (REVISED)~~ DONE
    - ~~3.0: Terminal cursor control primitives (pkg/termctl)~~ DONE
    - ~~3.1: Custom inline prompter (arrow-key menu, raw mode, line counting)~~ DONE
    - ~~3.2: Four-state tool rendering (streaming → approval → collapse with └ connector)~~ DONE
    - ~~3.3: Rewrite handleApproval (orchestrate expand/prompt/collapse/suppress)~~ DONE
-   - 3.4: Shell tool approval variant + enable ToolStreamDeltaEvent streaming
+   - ~~3.4: Shell tool approval variant + enable ToolStreamDeltaEvent streaming~~ DONE
 2. Phase 4: Inline follow-up readline + thinking spinner
+
+## Session Progress (2026-03-04, Session 13)
+
+- Phase 3.4 (ToolStreamDeltaEvent Streaming) completed
+- Created `cmd/stigmer/root/run_stream_inline_streaming.go` (115 lines) — 5 streaming methods + `clearStreamingState` helper: `initPreApprovalStreaming` (pre-approval write/edit typewriter), `initPostApprovalStreaming` (post-approval shell output), `renderToolStreamDelta` (append-only delta rendering), `completeStreamingTool` (erase+compact on completion), `resolveStreamContent` (content extraction with fallback)
+- Created `cmd/stigmer/root/run_stream_inline_streaming_test.go` (597 lines) — 32 test functions covering pre-approval streaming, post-approval streaming, delta rendering, completion erasure, sub-agent gutter wrapping, graceful degradation, handleEvent routing, full end-to-end flows
+- Modified `cmd/stigmer/root/run_stream_inline.go` (+52 lines) — added streaming state fields (`activeStreamToolID`, `toolStreamedBytes`, `streamHeaderRows`, `streamLineCount`, `streamSubAgentID`); extended `waitingApprovalState` with `contentStreamed`/`streamedRows`; added 3 pre-switch interceptions (conditional ToolStreamDelta routing, streaming tool completion interception, write/edit streaming initiation); `renderToolWaitingApproval` captures streaming state at transition
+- Refactored `cmd/stigmer/root/run_stream_inline_approval.go` (+148/-55 lines) — extracted `prepareApprovalDisplay` (content-streamed vs expanded view), `finalizeApproval` (collapse/shell-streaming/suppress); `resolveApprovalContext` returns 5 values; both interactive and non-interactive paths support content-already-streamed and shell post-approval streaming
+- Updated `cmd/stigmer/root/run_stream_inline_approval_test.go` (+23 lines) — updated `resolveApprovalContext` tests for new return values; renamed `TestHandleApproval_DoesNotSuppressShellCompletion` to `TestHandleApproval_ShellApproval_InitiatesStreaming` to verify streaming path
+- Updated `pkg/toolrender/render_approval.go` (+5/-3 lines) — updated `ShouldSuppressCompletion` docstring to reflect shell completion now handled by streaming interception
+- Updated `cmd/stigmer/root/BUILD.bazel` (+2 lines) — added new source and test files
+- Committed as `b8dddb12`
+
+### Key Design Decisions (Session 13)
+- **`toolStreamedBytes` (not `streamedBytes`)**: Renamed to avoid field collision with existing AI streaming state field in `inlineRenderer`. Both track byte offsets for delta rendering but for different concerns (AI message streaming vs tool content streaming).
+- **Full-content row recomputation on each delta**: `streamLineCount = streamHeaderRows + DisplayRows(fullContent, width)` recomputed from the full accumulated content. Avoids partial-line overcounting from summing per-delta row counts. O(n) per delta is acceptable — terminal output is bounded and string scanning is fast.
+- **No indentation during shell streaming**: Live output printed raw to match direct execution experience. On completion, `RenderCompact` applies standard indent + dim styling + truncation. Clean visual transition: ephemeral real-time feedback → permanent compact record.
+- **Streaming tools bypass `suppressedToolIDs`**: Post-approval shell completions intercepted by `activeStreamToolID` check (before `suppressedToolIDs` check). Natural separation: streaming tools → `completeStreamingTool`, non-streaming approval tools → `suppressedToolIDs`.
+- **`resolveStreamContent` prefers `e.Content`**: Shell output arrives in `Content` field. Write/edit content lives in Args (accessed via `ExpandedApprovalContent` fallback). This is defensive and backend-behavior-agnostic.
+- **SRP refactoring of `handleInteractiveApproval`**: Extracted `prepareApprovalDisplay` and `finalizeApproval` to keep all functions under 50 lines. Three distinct display paths: content-already-streamed (add separator only), standard expanded view (full render), and post-approval streaming (shell running header).
+
+### Files Created/Modified (Session 13)
+- `client-apps/cli/cmd/stigmer/root/run_stream_inline_streaming.go` (new — 115 lines)
+- `client-apps/cli/cmd/stigmer/root/run_stream_inline_streaming_test.go` (new — 32 tests)
+- `client-apps/cli/cmd/stigmer/root/run_stream_inline.go` (modified — streaming state + routing)
+- `client-apps/cli/cmd/stigmer/root/run_stream_inline_approval.go` (modified — refactored with streaming paths)
+- `client-apps/cli/cmd/stigmer/root/run_stream_inline_approval_test.go` (modified — updated tests)
+- `client-apps/cli/cmd/stigmer/root/BUILD.bazel` (modified — new files)
+- `client-apps/cli/pkg/toolrender/render_approval.go` (modified — docstring update)
 
 ## Context for Resume
 
-- **`cmd/stigmer/root/run_stream_inline_approval.go`** is the approval orchestrator (Phase 3.3). Entry point `handleApproval(r, e)` dispatches to `handleNonInteractiveApproval` (fast path: erase running line, print collapsed result) or `handleInteractiveApproval` (full flow: erase running line, print expanded view, prompt, erase expanded+menu, print collapsed result). Helper `resolveApprovalContext` looks up `waitingApprovalState` set by `renderToolWaitingApproval` (falls back to building from `ApprovalNeededEvent` data). `buildExpandedView` composes header+separator+content+separator. `promptForDecision` type-asserts to `*InlinePrompter` for `PromptWithLineCount` (returns lineCount for collapse), falls back to generic `Prompter.Prompt` with lineCount=0. `trackSuppression` adds tool ID to `suppressedToolIDs` when `ShouldSuppressCompletion` returns true for approved/skipped tools. Phase 3.4 will add shell streaming before approval and keep shell completions unsuppressed.
-- **`pkg/toolrender/render_approval.go`** is the approval rendering module (Phase 3.2 + 3.3). Six public functions: `RenderApprovalResult` (collapsed post-decision view), `ApprovalSeparator` (dim separator), `ApprovalQuestion` (contextual question), `ExpandedApprovalHeader` (green bullet pre-decision header), `ExpandedApprovalContent` (full display content for expanded view), `ShouldSuppressCompletion` (predicate: write/edit/create/delete → true, shell → false).
+- **`cmd/stigmer/root/run_stream_inline_streaming.go`** is the tool content streaming module (Phase 3.4). Five methods on `inlineRenderer`: `initPreApprovalStreaming` (prints header+separator, sets state for write/edit typewriter), `initPostApprovalStreaming` (prints compact running header, sets state for shell output), `renderToolStreamDelta` (append-only delta rendering, recomputes row count from full content), `completeStreamingTool` (erases streaming output via cursor control, prints compact result), `resolveStreamContent` (prefers `e.Content`, falls back to `ExpandedApprovalContent`). Plus `clearStreamingState` helper. Streaming state tracked via `activeStreamToolID`, `toolStreamedBytes`, `streamHeaderRows`, `streamLineCount`, `streamSubAgentID` on `inlineRenderer`.
+- **`cmd/stigmer/root/run_stream_inline_approval.go`** is the approval orchestrator (Phase 3.3 + 3.4). Entry point `handleApproval(r, e)` dispatches to `handleNonInteractiveApproval` or `handleInteractiveApproval`. The interactive path uses `prepareApprovalDisplay` (content-already-streamed: add separator only; non-streamed: full expanded view), prompt orchestration, and `finalizeApproval` (erase + collapse or shell streaming). `resolveApprovalContext` returns 5 values including `contentStreamed` and `streamedRows`. Shell approval calls `initPostApprovalStreaming` instead of `printCollapsedResult`. `trackSuppression` adds to `suppressedToolIDs` for non-shell tools; shell completions are handled by the streaming interception in `handleEvent`.
+- **`pkg/toolrender/render_approval.go`** is the approval rendering module (Phase 3.2 + 3.3). Six public functions: `RenderApprovalResult` (collapsed post-decision view), `ApprovalSeparator` (dim separator), `ApprovalQuestion` (contextual question), `ExpandedApprovalHeader` (green bullet pre-decision header), `ExpandedApprovalContent` (full display content for expanded view), `ShouldSuppressCompletion` (predicate: write/edit/create/delete → true, shell → false — shell completions handled by streaming interception).
 - **`pkg/approval/inline_prompter.go`** is the new inline-mode approval prompter (Phase 3.1). `InlinePrompter` accepts `io.Reader` (input) + `io.Writer` (output) — fully DI-compliant. `Prompt(ctx, opts)` implements `Prompter` interface (drop-in replacement for `InteractivePrompter`). `PromptWithLineCount(ctx, opts)` returns `(*Decision, int, error)` — the `int` is the exact row count (always `menuLines = 4`) for Phase 3.3 cursor collapse. Non-interactive fast path when `fd == -1` (non-TTY) or `opts.NonInteractive`. Raw mode via `term.MakeRaw`/`term.Restore` with deferred cleanup. Menu re-rendering via `termctl.EraseLines`.
 - **`pkg/approval/keyread.go`** is the keystroke decoder for `InlinePrompter`. `keyReader` runs a persistent goroutine that reads one byte at a time from `io.Reader` and sends to a buffered channel (cap 64). `readKey(ctx)` returns typed `keyCode` values (keyUp, keyDown, keyEnter, keyEsc, keyCtrlC, keyOne, keyTwo, keyThree, keyUnknown). Escape sequence parsing uses 50ms timeout to distinguish standalone Esc from arrow keys (`\033[A`/`\033[B`). `drain()` empties the byte channel before each prompt. `readByte` uses a two-phase priority-select pattern: try bytes channel without blocking first, then wait on bytes/errs/ctx — this prevents a race where EOF arrives while unconsumed bytes remain in the channel.
 - **`pkg/termctl/`** is the ANSI cursor control package (Phase 3.0). 7 public functions: `IsSupported(w)` (TTY+not-dumb, NO_COLOR excluded), `MoveUp(w, n)`, `ClearDown(w)`, `ClearLine(w)`, `EraseLines(w, n)` (atomic), `Width(w, default)`, `DisplayRows(text, width)`. All stateless, DI-compliant (io.Writer params). Used by Phase 3.2-3.3 for approval collapse and by `InlinePrompter` for menu re-rendering. `DisplayRows` uses `charmbracelet/x/ansi.StringWidth` for ANSI-aware width measurement.
@@ -377,7 +407,6 @@ None.
 ## Quick Commands
 
 After loading context:
-- "Start Phase 3.4" - Shell tool approval variant + streaming
 - "Start Phase 4" - Inline follow-up readline + thinking spinner
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
