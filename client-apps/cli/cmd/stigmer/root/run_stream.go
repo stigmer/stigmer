@@ -31,7 +31,7 @@ import (
 //
 // The returned execution is the last one that ran (which may be a follow-up
 // in inline mode, not the original).
-func streamAgentExecution(sessionID, sessionSubject, executionID, orgID string, prompter approval.Prompter, defaultAction approval.Action, verbose bool, outputMode OutputMode, conn *grpc.ClientConn, workspaceRoots []string) (*agentexecutionv1.AgentExecution, error) {
+func streamAgentExecution(sessionID, sessionSubject, executionID, orgID string, prompter approval.Prompter, defaultAction approval.Action, verbose bool, outputMode OutputMode, conn *grpc.ClientConn, workspaceRoots []string, dataW, statusW io.Writer) (*agentexecutionv1.AgentExecution, error) {
 	client := agentexecutionv1.NewAgentExecutionQueryControllerClient(conn)
 
 	streamCtx, streamCancel := context.WithCancel(context.Background())
@@ -58,15 +58,15 @@ func streamAgentExecution(sessionID, sessionSubject, executionID, orgID string, 
 	case OutputJSON:
 		return streamAgentJSON(streamCtx, streamCancel, sessionID, executionID, events, approvalResponses, defaultAction, conn)
 	default:
-		return streamAgentInline(streamCtx, streamCancel, sessionID, executionID, orgID, events, approvalResponses, prompter, defaultAction, conn, workspaceRoots)
+		return streamAgentInline(streamCtx, streamCancel, sessionID, executionID, orgID, events, approvalResponses, prompter, defaultAction, conn, workspaceRoots, dataW, statusW)
 	}
 }
 
 // streamAgentInline renders events as streaming text without the TUI.
-// AI content goes to stdout, status/progress goes to stderr. When a session
+// AI content goes to dataW, status/progress goes to statusW. When a session
 // exists, a follow-up loop prompts for continued conversation after each
 // execution completes.
-func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFunc, sessionID, executionID, orgID string, events chan executiontui.Event, approvalResponses chan executiontui.ApprovalResponse, prompter approval.Prompter, defaultAction approval.Action, conn *grpc.ClientConn, workspaceRoots []string) (*agentexecutionv1.AgentExecution, error) {
+func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFunc, sessionID, executionID, orgID string, events chan executiontui.Event, approvalResponses chan executiontui.ApprovalResponse, prompter approval.Prompter, defaultAction approval.Action, conn *grpc.ClientConn, workspaceRoots []string, dataW, statusW io.Writer) (*agentexecutionv1.AgentExecution, error) {
 	var followUpFn executiontui.FollowUpFn
 	if sessionID != "" {
 		followUpFn = buildFollowUpFn(streamCtx, sessionID, orgID, conn)
@@ -77,8 +77,8 @@ func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFun
 		approvalResponses: approvalResponses,
 		prompter:          prompter,
 		defaultAction:     defaultAction,
-		data:              os.Stdout,
-		status:            os.Stderr,
+		data:              dataW,
+		status:            statusW,
 		sessionID:         sessionID,
 		workspaceRoots:    workspaceRoots,
 		cancelExecFn: func() {

@@ -73,9 +73,13 @@ func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, c
 
 	subject := session.ResolvedSubject(ses.GetSpec().GetSubject())
 	wsRoots := localWorkspaceRoots(ses.GetSpec().GetWorkspaceEntries())
+
+	model := latestExec.GetStatus().GetUsage().GetPrimaryModel()
 	renderSessionHeader(os.Stderr, sessionHeaderInfo{
-		SessionID: sessionID,
-		Subject:   subject,
+		SessionID:  sessionID,
+		Subject:    subject,
+		Model:      model,
+		Workspaces: wsRoots,
 	})
 
 	switch phase {
@@ -85,7 +89,7 @@ func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, c
 		agentexecutionv1.ExecutionPhase_EXECUTION_PAUSED:
 		executionID := latestExec.GetMetadata().GetId()
 		prompter := approval.NewInlinePrompter(os.Stdin, os.Stderr)
-		_, err := streamAgentExecution(sessionID, subject, executionID, orgID, prompter, approval.Action(0), verbose, outputMode, conn, wsRoots)
+		_, err := streamAgentExecution(sessionID, subject, executionID, orgID, prompter, approval.Action(0), verbose, outputMode, conn, wsRoots, os.Stdout, os.Stderr)
 		return err
 
 	default:
