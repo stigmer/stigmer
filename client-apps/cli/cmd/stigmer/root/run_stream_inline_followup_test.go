@@ -225,7 +225,7 @@ func TestFollowUpLoop_FollowUpError_ExitsLoop(t *testing.T) {
 	if execID != "exec-1" {
 		t.Errorf("expected original execID on error, got %q", execID)
 	}
-	if !strings.Contains(statusBuf.String(), "Follow-up failed") {
+	if !strings.Contains(statusBuf.String(), "follow-up failed") {
 		t.Errorf("expected error message on status, got %q", statusBuf.String())
 	}
 }

@@ -154,6 +154,13 @@ func IsReadTool(toolName string) bool {
 	return ok && info.label == "Read"
 }
 
+// IsThinkTool reports whether toolName represents an agent reasoning tool.
+// Derived from toolDisplayMap entries whose label is "Thinking".
+func IsThinkTool(toolName string) bool {
+	info, ok := toolDisplayMap[toolName]
+	return ok && info.label == "Thinking"
+}
+
 // IsWriteOrEditTool reports whether toolName represents a file mutation tool
 // (write, create, or edit). Derived from toolDisplayMap labels.
 func IsWriteOrEditTool(toolName string) bool {

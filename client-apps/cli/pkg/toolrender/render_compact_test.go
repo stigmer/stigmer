@@ -30,6 +30,25 @@ func TestIsReadTool_NonReadTools(t *testing.T) {
 }
 
 // =============================================================================
+// IsThinkTool
+// =============================================================================
+
+func TestIsThinkTool_ThinkTool(t *testing.T) {
+	if !IsThinkTool("think") {
+		t.Error("IsThinkTool(\"think\") = false, want true")
+	}
+}
+
+func TestIsThinkTool_NonThinkTools(t *testing.T) {
+	nonThink := []string{"read", "shell", "write", "edit", "task", "custom_mcp_tool"}
+	for _, name := range nonThink {
+		if IsThinkTool(name) {
+			t.Errorf("IsThinkTool(%q) = true, want false", name)
+		}
+	}
+}
+
+// =============================================================================
 // IsWriteOrEditTool
 // =============================================================================
 
@@ -1020,7 +1039,7 @@ func TestRenderCompact_UnknownTool_FallsBackToRenderWithBadge(t *testing.T) {
 	opts := CompactOptions{HyperlinksEnabled: false}
 
 	got := RenderCompact(tc, opts)
-	assertContains(t, got, "🔧")
+	assertContains(t, got, "*")
 	assertContains(t, got, "custom_mcp_tool")
 }
 
@@ -1149,9 +1168,9 @@ func TestRenderCompactRunning_UnknownTool_FallsBackToLegacy(t *testing.T) {
 	opts := CompactOptions{HyperlinksEnabled: false}
 
 	got := RenderCompactRunning(tc, opts)
-	assertContains(t, got, "🔧")
+	assertContains(t, got, "*")
 	assertContains(t, got, "custom_mcp_tool")
-	assertContains(t, got, "⏳")
+	assertContains(t, got, "...")
 }
 
 func TestRenderCompactRunning_HyperlinksEnabled(t *testing.T) {
@@ -2016,7 +2035,6 @@ func TestRenderCompact_Task_FallsBackToLegacy(t *testing.T) {
 	opts := CompactOptions{HyperlinksEnabled: false}
 
 	got := RenderCompact(tc, opts)
-	assertContains(t, got, "🔀")
 	assertContains(t, got, "Task")
 }
 

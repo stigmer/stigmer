@@ -32,9 +32,6 @@ import (
 // The returned execution is the last one that ran (which may be a follow-up
 // in inline mode, not the original).
 func streamAgentExecution(sessionID, sessionSubject, executionID, orgID string, prompter approval.Prompter, defaultAction approval.Action, verbose bool, outputMode OutputMode, conn *grpc.ClientConn) (*agentexecutionv1.AgentExecution, error) {
-	climsg.Success("Streaming session...")
-	fmt.Println()
-
 	client := agentexecutionv1.NewAgentExecutionQueryControllerClient(conn)
 
 	streamCtx, streamCancel := context.WithCancel(context.Background())

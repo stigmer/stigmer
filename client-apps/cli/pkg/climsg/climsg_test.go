@@ -16,7 +16,7 @@ func TestWriter_Info(t *testing.T) {
 	var buf bytes.Buffer
 	w := New(&buf)
 	w.Info("hello %s", "world")
-	assert.Equal(t, "ℹ hello world\n", buf.String())
+	assert.Equal(t, "hello world\n", buf.String())
 }
 
 func TestWriter_Success(t *testing.T) {
@@ -44,14 +44,14 @@ func TestWriter_NoArgs(t *testing.T) {
 	var buf bytes.Buffer
 	w := New(&buf)
 	w.Info("plain message")
-	assert.Equal(t, "ℹ plain message\n", buf.String())
+	assert.Equal(t, "plain message\n", buf.String())
 }
 
 func TestWriter_EmptyFormat(t *testing.T) {
 	var buf bytes.Buffer
 	w := New(&buf)
 	w.Info("")
-	assert.Equal(t, "ℹ \n", buf.String())
+	assert.Equal(t, "\n", buf.String())
 }
 
 func TestPackageLevelFunctions_DelegateToStderr(t *testing.T) {
@@ -65,7 +65,7 @@ func TestPackageLevelFunctions_DelegateToStderr(t *testing.T) {
 	Error("err")
 
 	out := buf.String()
-	assert.Contains(t, out, "ℹ info\n")
+	assert.Contains(t, out, "info\n")
 	assert.Contains(t, out, "✓ ok\n")
 	assert.Contains(t, out, "⚠ warn\n")
 	assert.Contains(t, out, "✗ err\n")

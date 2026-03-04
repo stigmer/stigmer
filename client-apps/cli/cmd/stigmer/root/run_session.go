@@ -2,7 +2,6 @@ package root
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"slices"
 
@@ -73,19 +72,16 @@ func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, c
 	phase := latestExec.GetStatus().GetPhase()
 
 	subject := session.ResolvedSubject(ses.GetSpec().GetSubject())
-	if subject != "" {
-		climsg.Info("Session: %s (%s)", sessionID, subject)
-	} else {
-		climsg.Info("Session: %s", sessionID)
-	}
+	renderSessionHeader(os.Stderr, sessionHeaderInfo{
+		SessionID: sessionID,
+		Subject:   subject,
+	})
 
 	switch phase {
 	case agentexecutionv1.ExecutionPhase_EXECUTION_PENDING,
 		agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS,
 		agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL,
 		agentexecutionv1.ExecutionPhase_EXECUTION_PAUSED:
-		climsg.Info("Re-attaching to session...")
-		fmt.Println()
 		executionID := latestExec.GetMetadata().GetId()
 		prompter := approval.NewInlinePrompter(os.Stdin, os.Stderr)
 		_, err := streamAgentExecution(sessionID, subject, executionID, orgID, prompter, approval.Action(0), verbose, outputMode, conn)
@@ -102,8 +98,6 @@ func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, c
 // badges, and duplicate filtering all apply automatically. The follow-up
 // prompt activates after all historical events are rendered.
 func resumeSession(sessionID, sessionSubject, orgID string, executions []*agentexecutionv1.AgentExecution, verbose bool, outputMode OutputMode, conn *grpc.ClientConn) error {
-	climsg.Info("Resuming session...")
-	fmt.Println()
 
 	chronological := make([]*agentexecutionv1.AgentExecution, len(executions))
 	copy(chronological, executions)

@@ -130,7 +130,7 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, ex
 		case <-ctx.Done():
 			r.stopThinkingSpinner()
 			r.flushPendingReads()
-			r.statusf("⚠ Stream cancelled\n")
+			r.statusf("Stream cancelled\n")
 			return "", "context cancelled"
 
 		case event, ok := <-cfg.events:
@@ -194,9 +194,12 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 		r.completeStreamingTool(e)
 		return false, "", ""
 	}
-	// Suppress running indicators for read tools — reads complete fast,
-	// the grouped completion renders the result.
-	if e, ok := event.(executiontui.ToolRunningEvent); ok && toolrender.IsReadTool(e.ToolCall.Name) {
+	// Suppress running indicators for read and think tools — reads
+	// complete fast and are grouped on completion; think tools complete
+	// near-instantly once content is ready, and the thinking spinner
+	// already provides idle feedback.
+	if e, ok := event.(executiontui.ToolRunningEvent); ok &&
+		(toolrender.IsReadTool(e.ToolCall.Name) || toolrender.IsThinkTool(e.ToolCall.Name)) {
 		return false, "", ""
 	}
 	// Route tool stream deltas to the streaming renderer when a tool is
@@ -246,7 +249,7 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 		r.flushPendingReads()
 		r.finishAIStreamIfNeeded()
 		if e.Content != "" {
-			r.statusf("%s\n", toolrender.GutterWrap("🤖 "+e.Content))
+			r.statusf("%s\n", toolrender.GutterWrap(e.Content))
 		}
 		return false, "", ""
 	}
@@ -254,7 +257,7 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 		r.flushPendingReads()
 		r.finishAIStreamIfNeeded()
 		if e.Content != "" {
-			r.statusf("%s\n", toolrender.GutterWrap("🤖 "+e.Content))
+			r.statusf("%s\n", toolrender.GutterWrap(e.Content))
 		}
 		return false, "", ""
 	}
@@ -353,7 +356,7 @@ func (r *inlineRenderer) renderAIMessage(e executiontui.AIMessageEvent) {
 
 func (r *inlineRenderer) renderHumanMessage(e executiontui.HumanMessageEvent) {
 	r.finishAIStreamIfNeeded()
-	r.statusf("💬 You: %s\n\n", e.Content)
+	r.statusf("You: %s\n\n", e.Content)
 }
 
 // ---------------------------------------------------------------------------
@@ -375,6 +378,9 @@ func (r *inlineRenderer) renderToolCompleted(e executiontui.ToolCompletedEvent) 
 		line = toolrender.GutterWrap(line)
 	}
 	r.statusf("%s\n", line)
+	if strings.Contains(line, "\n") {
+		r.statusf("\n")
+	}
 }
 
 func (r *inlineRenderer) renderToolWaitingApproval(e executiontui.ToolWaitingApprovalEvent) {
@@ -408,47 +414,36 @@ func (r *inlineRenderer) renderToolCalls(toolCalls []toolrender.ToolCallInfo) {
 
 func (r *inlineRenderer) renderSystemMessage(e executiontui.SystemMessageEvent) {
 	content := sanitizeSystemContent(e.Content)
-	r.statusf("%s\n\n", systemMsgStyle.Render("ℹ️  "+content))
+	r.statusf("%s\n\n", systemMsgStyle.Render(content))
 }
 
 func (r *inlineRenderer) renderPhaseChange(e executiontui.PhaseChangeEvent) {
 	r.phase = e.Phase
 	switch e.Phase {
-	case "pending":
-		r.statusf("⏳ Execution pending...\n")
-	case "in_progress":
-		if e.Previous == "waiting_for_approval" {
-			r.statusf("▶️  Resumed after approval\n")
-		} else {
-			r.statusf("▶️  Execution started\n")
-		}
-	case "completed":
-		r.statusf("✅ Execution completed\n")
 	case "failed":
-		r.statusf("❌ Execution failed\n")
+		r.statusf("Execution failed\n")
 	case "cancelled":
-		r.statusf("⚠️  Execution cancelled\n")
-	case "waiting_for_approval":
-		// Suppressed: the approval prompt itself is the signal.
+		r.statusf("Execution cancelled\n")
+	default:
 		return
 	}
 }
 
 func (r *inlineRenderer) renderTodoUpdate(e executiontui.TodoUpdateEvent) {
-	r.statusf("📋 Plan:\n")
+	r.statusf("Plan:\n")
 	for _, todo := range e.Todos {
-		var icon string
+		var marker string
 		switch todo.Status {
 		case "completed":
-			icon = "✓"
+			marker = "[x]"
 		case "in_progress":
-			icon = "⏳"
+			marker = "[-]"
 		case "cancelled":
-			icon = "⏭"
+			marker = "[~]"
 		default:
-			icon = "○"
+			marker = "[ ]"
 		}
-		r.statusf("  %s %s\n", icon, todo.Content)
+		r.statusf("  %s %s\n", marker, todo.Content)
 	}
 	r.statusf("\n")
 }
@@ -477,13 +472,13 @@ func (r *inlineRenderer) renderSubAgentCompleted(e executiontui.SubAgentComplete
 func (r *inlineRenderer) renderDone(e executiontui.DoneEvent) {
 	r.finishAIStreamIfNeeded()
 	if e.Error != "" {
-		r.statusf("❌ %s\n", e.Error)
+		r.statusf("Error: %s\n", e.Error)
 	}
 }
 
 func (r *inlineRenderer) renderStreamError(e executiontui.StreamErrorEvent) {
 	r.finishAIStreamIfNeeded()
-	r.statusf("❌ Stream error: %s\n", e.Err.Error())
+	r.statusf("Error: %s\n", e.Err.Error())
 	if r.cfg.sessionID != "" {
 		r.statusf("   Re-attach with: stigmer run %s\n", r.cfg.sessionID)
 	}
@@ -529,6 +524,9 @@ func (r *inlineRenderer) flushPendingReads() {
 		output = toolrender.GutterWrap(output)
 	}
 	r.statusf("%s\n", output)
+	if strings.Contains(output, "\n") {
+		r.statusf("\n")
+	}
 	r.pendingReads = r.pendingReads[:0]
 }
 
@@ -550,10 +548,7 @@ func (r *inlineRenderer) finishAIStreamIfNeeded() {
 
 // agentPrefix returns the AI message prefix, adjusted for sub-agent context.
 func (r *inlineRenderer) agentPrefix(subAgentID string) string {
-	if subAgentID != "" {
-		return "🤖 Sub-agent: "
-	}
-	return "🤖 Agent: "
+	return ""
 }
 
 func (r *inlineRenderer) statusf(format string, args ...interface{}) {

@@ -111,9 +111,8 @@ func TestDisplayWorkflowTask_WaitingApproval(t *testing.T) {
 		t.Errorf("expected output to contain task name 'invoke-agent', got: %s", output)
 	}
 
-	// Verify icon is displayed (pause symbol)
-	if !strings.Contains(output, "⏸") {
-		t.Errorf("expected output to contain pause icon '⏸', got: %s", output)
+	if !strings.Contains(output, "||") {
+		t.Errorf("expected output to contain waiting badge '||', got: %s", output)
 	}
 }
 

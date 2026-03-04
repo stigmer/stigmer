@@ -52,18 +52,18 @@ func resolveDisplayContent(tc ToolCallInfo, info toolDisplayInfo) string {
 //
 // Examples:
 //
-//	"  📖 Read: main.go (1.5 KB, 33 lines, 4ms)"
-//	"  📂 List: /workspace (97 chars, 3ms)"
-//	"  🖥  Shell: ls -la /tmp"
+//	"  Read: main.go (1.5 KB, 33 lines, 4ms)"
+//	"  List: /workspace (97 chars, 3ms)"
+//	"  Shell: ls -la /tmp"
 func renderKnownHeader(tc ToolCallInfo, info toolDisplayInfo) string {
 	primaryVal := extractPrimaryArgWithFallbacks(tc.Args, info.primaryField, info.fallbackFields)
 
 	var line string
 	if primaryVal != "" {
 		styled := styleValue(primaryVal, info.dangerous)
-		line = fmt.Sprintf("  %s %s: %s", info.icon, labelStyle.Render(info.label), styled)
+		line = fmt.Sprintf("  %s: %s", labelStyle.Render(info.label), styled)
 	} else {
-		line = fmt.Sprintf("  %s %s", info.icon, labelStyle.Render(info.label))
+		line = fmt.Sprintf("  %s", labelStyle.Render(info.label))
 	}
 
 	// Build suffix — file content tools include line count alongside size.
@@ -139,9 +139,9 @@ func renderPreviewLines(tc ToolCallInfo, info toolDisplayInfo) string {
 //
 // Examples:
 //
-//	"  📂 List: /workspace (97 chars, 3ms)\n     inputs/, outputs/"
-//	"  📖 Read: main.go (1.5 KB, 33 lines, 4ms)\n     │ package main\n     │ ...\n     ⋮ 30 more lines"
-//	"  📝 Write: SKILL.md (3.2 KB, 45 lines)\n     │ # Agent Drafter\n     │ ...\n     ⋮ 42 more lines"
+//	"  List: /workspace (97 chars, 3ms)\n     inputs/, outputs/"
+//	"  Read: main.go (1.5 KB, 33 lines, 4ms)\n     │ package main\n     │ ...\n     ⋮ 30 more lines"
+//	"  Write: SKILL.md (3.2 KB, 45 lines)\n     │ # Agent Drafter\n     │ ...\n     ⋮ 42 more lines"
 func renderKnown(tc ToolCallInfo, info toolDisplayInfo) string {
 	line := renderKnownHeader(tc, info)
 
@@ -160,9 +160,9 @@ func renderUnknownHeader(tc ToolCallInfo) string {
 
 	var line string
 	if firstVal != "" {
-		line = fmt.Sprintf("  🔧 %s: %s", labelStyle.Render(tc.Name), firstVal)
+		line = fmt.Sprintf("  * %s: %s", labelStyle.Render(tc.Name), firstVal)
 	} else {
-		line = fmt.Sprintf("  🔧 %s", labelStyle.Render(tc.Name))
+		line = fmt.Sprintf("  * %s", labelStyle.Render(tc.Name))
 	}
 
 	suffix := renderSuffix(tc)

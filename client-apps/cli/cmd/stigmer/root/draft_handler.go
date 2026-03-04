@@ -73,7 +73,6 @@ func executeDraft(cfg draftConfig, opts draftOptions) error {
 	}
 
 	sp.Stop()
-	climsg.Info("Using system agent: %s", agent.Metadata.Name)
 
 	if len(prep.AttachResult.Attachments)+len(prep.AttachResult.WorkspaceFileRefs) > 0 {
 		climsg.Info("Attached %d file(s) as context",

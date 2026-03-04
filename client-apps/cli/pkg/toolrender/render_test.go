@@ -27,7 +27,6 @@ func TestRender_ShellTool(t *testing.T) {
 		Args: map[string]interface{}{"command": "ls -la /tmp"},
 	})
 
-	assertContains(t, result, "🖥 ")
 	assertContains(t, result, "Shell")
 	assertContains(t, result, "ls -la /tmp")
 }
@@ -52,7 +51,6 @@ func TestRender_ReadFileTool(t *testing.T) {
 		Args: map[string]interface{}{"path": "inputs/agent-api.proto"},
 	})
 
-	assertContains(t, result, "📖")
 	assertContains(t, result, "Read")
 	assertContains(t, result, "inputs/agent-api.proto")
 }
@@ -63,7 +61,6 @@ func TestRender_ListDirectoryTool(t *testing.T) {
 		Args: map[string]interface{}{"path": "/workspace"},
 	})
 
-	assertContains(t, result, "📂")
 	assertContains(t, result, "List")
 	assertContains(t, result, "/workspace")
 }
@@ -74,7 +71,6 @@ func TestRender_WriteFileTool(t *testing.T) {
 		Args: map[string]interface{}{"path": "outputs/SKILL.md", "content": "# Skill"},
 	})
 
-	assertContains(t, result, "📝")
 	assertContains(t, result, "Write")
 	assertContains(t, result, "outputs/SKILL.md")
 }
@@ -87,7 +83,6 @@ func TestRender_AllWriteToolNames(t *testing.T) {
 				Name: tool,
 				Args: map[string]interface{}{"path": "/tmp/test.txt"},
 			})
-			assertContains(t, result, "📝")
 			assertContains(t, result, "/tmp/test.txt")
 		})
 	}
@@ -99,7 +94,6 @@ func TestRender_DeleteFileTool(t *testing.T) {
 		Args: map[string]interface{}{"path": "/tmp/old.txt"},
 	})
 
-	assertContains(t, result, "⚠️")
 	assertContains(t, result, "Delete")
 	assertContains(t, result, "/tmp/old.txt")
 }
@@ -127,7 +121,6 @@ func TestRender_LsTool(t *testing.T) {
 		Args: map[string]interface{}{"path": "/workspace"},
 	})
 
-	assertContains(t, result, "📂")
 	assertContains(t, result, "List")
 	assertContains(t, result, "/workspace")
 }
@@ -138,7 +131,6 @@ func TestRender_GlobTool(t *testing.T) {
 		Args: map[string]interface{}{"pattern": "**/*.py"},
 	})
 
-	assertContains(t, result, "🔍")
 	assertContains(t, result, "Find")
 	assertContains(t, result, "**/*.py")
 }
@@ -149,7 +141,6 @@ func TestRender_GrepTool(t *testing.T) {
 		Args: map[string]interface{}{"pattern": "TODO"},
 	})
 
-	assertContains(t, result, "🔎")
 	assertContains(t, result, "Search")
 	assertContains(t, result, "TODO")
 }
@@ -160,7 +151,6 @@ func TestRender_EditTool(t *testing.T) {
 		Args: map[string]interface{}{"path": "main.py"},
 	})
 
-	assertContains(t, result, "✏️")
 	assertContains(t, result, "Edit")
 	assertContains(t, result, "main.py")
 }
@@ -171,7 +161,6 @@ func TestRender_EditFileTool(t *testing.T) {
 		Args: map[string]interface{}{"path": "main.py"},
 	})
 
-	assertContains(t, result, "✏️")
 	assertContains(t, result, "Edit")
 	assertContains(t, result, "main.py")
 }
@@ -182,7 +171,6 @@ func TestRender_ExecuteTool(t *testing.T) {
 		Args: map[string]interface{}{"command": "python test.py"},
 	})
 
-	assertContains(t, result, "🖥 ")
 	assertContains(t, result, "Execute")
 	assertContains(t, result, "python test.py")
 }
@@ -199,7 +187,6 @@ func TestRender_LsWithResultPreview(t *testing.T) {
 	})
 
 	// Header line
-	assertContains(t, result, "📂")
 	assertContains(t, result, "/workspace")
 
 	// Preview line (second line, dimmed, comma-separated)
@@ -213,7 +200,6 @@ func TestRender_GlobWithResultPreview(t *testing.T) {
 		Result: "No files matching pattern '**/init_skill.py'",
 	})
 
-	assertContains(t, result, "🔍")
 	assertContains(t, result, "No files matching pattern")
 }
 
@@ -224,7 +210,6 @@ func TestRender_GrepWithResultPreview(t *testing.T) {
 		Result: "Found 3 matches in 2 files:\n\nmain.py:10:# TODO fix\nutils.py:5:# TODO refactor\nutils.py:20:# TODO test",
 	})
 
-	assertContains(t, result, "🔎")
 	assertContains(t, result, "Found 3 matches")
 }
 
@@ -286,7 +271,6 @@ func TestRender_ThinkTool(t *testing.T) {
 		Args: map[string]interface{}{"thought": "I need to analyze the proto files and understand the service structure."},
 	})
 
-	assertContains(t, result, "💭")
 	assertContains(t, result, "Thinking")
 }
 
@@ -295,7 +279,6 @@ func TestRender_ThinkTool_NoArgs(t *testing.T) {
 		Name: "think",
 	})
 
-	assertContains(t, result, "💭")
 	assertContains(t, result, "Thinking")
 }
 
@@ -307,7 +290,6 @@ func TestRender_ThinkTool_ShowsThoughtPreview(t *testing.T) {
 		},
 	})
 
-	assertContains(t, result, "💭")
 	assertContains(t, result, "Thinking")
 	assertContains(t, result, "│")
 	assertContains(t, result, "First, let me understand the architecture.")
@@ -333,9 +315,8 @@ func TestRenderWithBadge_ThinkTool_RunningState(t *testing.T) {
 		Args: map[string]interface{}{"thought": "analyzing the codebase..."},
 	}, StateBadge("running"))
 
-	assertContains(t, result, "💭")
 	assertContains(t, result, "Thinking")
-	assertContains(t, result, "⏳")
+	assertContains(t, result, "...")
 }
 
 func TestRenderWithBadge_ThinkTool_CompletedState(t *testing.T) {
@@ -345,7 +326,6 @@ func TestRenderWithBadge_ThinkTool_CompletedState(t *testing.T) {
 		Result: "ok",
 	}, StateBadge("completed"))
 
-	assertContains(t, result, "💭")
 	assertContains(t, result, "Thinking")
 	assertContains(t, result, "✓")
 	assertContains(t, result, "│")
@@ -361,7 +341,7 @@ func TestRender_UnknownTool(t *testing.T) {
 		Args: map[string]interface{}{"repo": "acme/staging"},
 	})
 
-	assertContains(t, result, "🔧")
+	assertContains(t, result, "*")
 	assertContains(t, result, "custom_deploy")
 	assertContains(t, result, "acme/staging")
 }
@@ -381,7 +361,7 @@ func TestRender_UnknownTool_NoArgs(t *testing.T) {
 		Name: "ping_server",
 	})
 
-	assertContains(t, result, "🔧")
+	assertContains(t, result, "*")
 	assertContains(t, result, "ping_server")
 }
 
@@ -425,7 +405,7 @@ func TestRender_EmptyName(t *testing.T) {
 	})
 
 	// Falls through to unknown path
-	assertContains(t, result, "🔧")
+	assertContains(t, result, "*")
 }
 
 // =============================================================================
@@ -729,7 +709,6 @@ func TestRender_ReadFile_FallbackToFilePath(t *testing.T) {
 		Args: map[string]interface{}{"file_path": "/workspace/main.py"},
 	})
 
-	assertContains(t, result, "📖")
 	assertContains(t, result, "Read")
 	assertContains(t, result, "/workspace/main.py")
 }
