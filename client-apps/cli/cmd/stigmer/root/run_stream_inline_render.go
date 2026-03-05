@@ -11,57 +11,8 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// AI message rendering — content goes to data writer (stdout)
+// Human message rendering
 // ---------------------------------------------------------------------------
-
-func (r *inlineRenderer) renderAIStreamStart(e executiontui.AIStreamStartEvent) {
-	r.finishAIStreamIfNeeded()
-	prefix := r.agentPrefix(e.SubAgentID)
-	fmt.Fprint(r.cfg.data, prefix)
-	if len(e.Content) > 0 {
-		fmt.Fprint(r.cfg.data, e.Content)
-	}
-	r.streamedBytes = len(e.Content)
-	r.inAIStream = true
-	r.flushData()
-}
-
-func (r *inlineRenderer) renderAIStreamDelta(e executiontui.AIStreamDeltaEvent) {
-	if !r.inAIStream {
-		return
-	}
-	if len(e.Content) <= r.streamedBytes {
-		return
-	}
-	fmt.Fprint(r.cfg.data, e.Content[r.streamedBytes:])
-	r.streamedBytes = len(e.Content)
-	r.flushData()
-}
-
-func (r *inlineRenderer) renderAIStreamEnd(e executiontui.AIStreamEndEvent) {
-	if !r.inAIStream {
-		r.streamedBytes = 0
-		return
-	}
-	if len(e.Content) > r.streamedBytes {
-		fmt.Fprint(r.cfg.data, e.Content[r.streamedBytes:])
-	}
-	fmt.Fprint(r.cfg.data, "\n\n")
-	r.inAIStream = false
-	r.streamedBytes = 0
-	r.flushData()
-	r.recordAIMessage(e.Content, e.SubAgentID)
-}
-
-func (r *inlineRenderer) renderAIMessage(e executiontui.AIMessageEvent) {
-	r.finishAIStreamIfNeeded()
-	if e.Content != "" {
-		prefix := r.agentPrefix(e.SubAgentID)
-		fmt.Fprintf(r.cfg.data, "%s%s\n\n", prefix, formatNonTUIAIText(e.Content))
-		r.flushData()
-		r.recordAIMessage(e.Content, e.SubAgentID)
-	}
-}
 
 func (r *inlineRenderer) renderHumanMessage(e executiontui.HumanMessageEvent) {
 	if r.cfg.suppressHumanEcho {
@@ -284,43 +235,6 @@ func (r *inlineRenderer) flushPendingReads() {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-// finishAIStreamIfNeeded closes an in-progress AI stream with a newline if
-// a non-AI event arrives mid-stream. Prevents garbled output when status
-// events interleave with streaming AI content.
-func (r *inlineRenderer) finishAIStreamIfNeeded() {
-	if r.inAIStream {
-		fmt.Fprint(r.cfg.data, "\n\n")
-		r.flushData()
-		r.inAIStream = false
-		r.streamedBytes = 0
-	}
-}
-
-// agentPrefix returns the AI message prefix, adjusted for sub-agent context.
-// Main-agent messages get a plain bullet marker matching Claude Code's visual
-// language. Sub-agent messages are rendered separately with gutter wrapping
-// and do not need a prefix here.
-func (r *inlineRenderer) agentPrefix(subAgentID string) string {
-	if subAgentID != "" {
-		return ""
-	}
-	return "● "
-}
-
-// recordAIMessage appends a kindAIMessage to history. The text is pre-formatted
-// with prefix and markdown rendering so it looks correct when replayed to stderr
-// via tea.Println during re-commit. Called after both streamed and non-streamed
-// AI message completion.
-func (r *inlineRenderer) recordAIMessage(content string, subAgentID string) {
-	prefix := r.agentPrefix(subAgentID)
-	text := prefix + formatNonTUIAIText(content)
-	r.history = append(r.history, committedItem{
-		kind:       kindAIMessage,
-		text:       text,
-		subAgentID: subAgentID,
-	})
-}
 
 func (r *inlineRenderer) statusf(format string, args ...interface{}) {
 	msg := fmt.Sprintf(format, args...)

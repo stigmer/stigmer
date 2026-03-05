@@ -136,3 +136,18 @@ type followUpHideMsg struct {
 type reCommitMsg struct {
 	rendered string
 }
+
+// aiStreamPartialMsg updates the partial (incomplete) line shown in View()
+// during AI text streaming. Sent on every delta so the user sees
+// character-level feedback. View() renders this as the live typing line
+// at the terminal bottom. Complete lines are committed separately via
+// program.Println before this message is sent.
+type aiStreamPartialMsg struct {
+	partial string
+}
+
+// aiStreamHideMsg clears the AI streaming state from the model. Sent when
+// the stream ends normally or is interrupted by a non-AI event. View()
+// returns "" on the next render, allowing the spinner or other content to
+// take the View() slot.
+type aiStreamHideMsg struct{}

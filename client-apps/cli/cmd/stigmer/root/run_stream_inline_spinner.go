@@ -27,8 +27,8 @@ func (r *inlineRenderer) startThinkingSpinner() {
 // spinner output from interleaving with event rendering.
 //
 // The stop is asynchronous — queued in Bubbletea's message channel. This is
-// safe because all subsequent status output also flows through the same
-// program (via Println), preserving ordering within Bubbletea's render cycle.
+// safe because all visual output (including AI text) flows through Bubbletea
+// when a program is active, preserving ordering within the render cycle.
 func (r *inlineRenderer) stopThinkingSpinner() {
 	if r.cfg.program != nil {
 		r.cfg.program.Send(spinnerStopMsg{})

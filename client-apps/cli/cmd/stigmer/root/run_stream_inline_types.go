@@ -87,15 +87,22 @@ type waitingApprovalState struct {
 }
 
 // inlineRenderer consumes execution events and renders them to the terminal
-// without the Bubbletea alt-screen TUI. AI content flows to the data writer
-// (stdout) while all status/progress goes to the status writer (stderr).
+// without the Bubbletea alt-screen TUI. When a Bubbletea program is active,
+// ALL visual output (including AI text) flows through Bubbletea on stderr,
+// keeping cursor tracking in sync. AI text is also written to stdout when
+// it is piped/redirected (not a TTY) so pipe consumers receive the data.
 //
-// This enables piping: `stigmer run agent x | process_output` captures only
-// the agent's response, while progress and tool activity remain visible on
-// the terminal via stderr.
+// When no program is running (non-TTY, tests, CI), AI content goes to the
+// data writer (stdout) and status/progress goes to the status writer (stderr).
 type inlineRenderer struct {
 	cfg         inlineRenderConfig
 	compactOpts toolrender.CompactOptions
+
+	// dataIsTTY is true when the data writer (stdout) is a terminal.
+	// When false (piped/redirected), AI text is also written to stdout
+	// for pipe consumers. When true and a Bubbletea program is active,
+	// AI text flows only through Bubbletea — no stdout writes.
+	dataIsTTY bool
 
 	// thinkTimer fires after thinkingIdleDelay of inactivity, triggering
 	// the thinking spinner. The spinner itself is rendered by Bubbletea's
@@ -107,6 +114,17 @@ type inlineRenderer struct {
 	// only prints the bytes appended since the last delta event.
 	inAIStream    bool
 	streamedBytes int
+
+	// aiStreamBuffer holds the partial (incomplete) line being accumulated
+	// during AI streaming via Bubbletea. Complete lines are committed via
+	// program.Println as each newline arrives; the remaining bytes stay
+	// here until the next newline or stream end.
+	aiStreamBuffer string
+
+	// aiStreamPrefix holds the "● " bullet prefix for the first line of
+	// an AI message. Consumed after the first line is committed, so
+	// subsequent lines have no prefix.
+	aiStreamPrefix string
 
 	// pendingReads buffers consecutive read tool completions for grouped
 	// rendering. Flushed when a non-read event arrives that produces visible

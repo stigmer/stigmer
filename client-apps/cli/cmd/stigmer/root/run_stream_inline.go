@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/termctl"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
 )
 
@@ -37,7 +38,8 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, ex
 	}
 
 	r := &inlineRenderer{
-		cfg: cfg,
+		cfg:       cfg,
+		dataIsTTY: termctl.IsSupported(cfg.data),
 		compactOpts: toolrender.CompactOptions{
 			HyperlinksEnabled: toolrender.HyperlinksEnabled(cfg.status),
 			WorkspaceRoots:    cfg.workspaceRoots,
