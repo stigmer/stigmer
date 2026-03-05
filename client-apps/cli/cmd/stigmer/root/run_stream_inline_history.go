@@ -67,16 +67,19 @@ type committedItem struct {
 // renderCommittedItem re-renders a history item to its display string.
 // The returned string is suitable for tea.Println — no trailing newline.
 //
-// Invariant: for compact mode, the output matches what was originally
-// committed via statusf/Println during normal rendering.
-func renderCommittedItem(item committedItem, opts toolrender.CompactOptions) string {
+// When expanded is false, output matches what was originally committed via
+// statusf/Println during normal rendering. When expanded is true, tool
+// completions and read groups use their expanded renderers (full output,
+// no truncation). Mode-invariant items (AI messages, system messages,
+// lifecycle events) are unaffected by the expanded flag.
+func renderCommittedItem(item committedItem, opts toolrender.CompactOptions, expanded bool) string {
 	switch item.kind {
 	case kindHeader:
 		return renderHeaderItem(item)
 	case kindToolCompact:
-		return renderToolCompactItem(item, opts)
+		return renderToolCompactItem(item, opts, expanded)
 	case kindReadGroup:
-		return renderReadGroupItem(item, opts)
+		return renderReadGroupItem(item, opts, expanded)
 	case kindApproval:
 		return renderApprovalItem(item, opts)
 	default:
@@ -98,11 +101,16 @@ func renderHeaderItem(item committedItem) string {
 	})
 }
 
-func renderToolCompactItem(item committedItem, opts toolrender.CompactOptions) string {
+func renderToolCompactItem(item committedItem, opts toolrender.CompactOptions, expanded bool) string {
 	if len(item.toolCalls) == 0 {
 		return ""
 	}
-	line := toolrender.RenderCompact(item.toolCalls[0], opts)
+	var line string
+	if expanded {
+		line = toolrender.RenderExpanded(item.toolCalls[0], opts)
+	} else {
+		line = toolrender.RenderCompact(item.toolCalls[0], opts)
+	}
 	if item.subAgentID != "" {
 		line = toolrender.GutterWrap(line)
 	}
@@ -112,17 +120,25 @@ func renderToolCompactItem(item committedItem, opts toolrender.CompactOptions) s
 	return line
 }
 
-func renderReadGroupItem(item committedItem, opts toolrender.CompactOptions) string {
+func renderReadGroupItem(item committedItem, opts toolrender.CompactOptions, expanded bool) string {
 	if len(item.toolCalls) == 0 {
 		return ""
 	}
 	var output string
 	if len(item.toolCalls) >= readGroupThreshold {
-		output = toolrender.RenderReadGroup(item.toolCalls, opts)
+		if expanded {
+			output = toolrender.RenderReadGroupExpanded(item.toolCalls, opts)
+		} else {
+			output = toolrender.RenderReadGroup(item.toolCalls, opts)
+		}
 	} else {
 		var lines []string
 		for _, tc := range item.toolCalls {
-			lines = append(lines, toolrender.RenderCompact(tc, opts))
+			if expanded {
+				lines = append(lines, toolrender.RenderExpanded(tc, opts))
+			} else {
+				lines = append(lines, toolrender.RenderCompact(tc, opts))
+			}
 		}
 		output = strings.Join(lines, "\n")
 	}
@@ -150,6 +166,9 @@ func renderApprovalItem(item committedItem, opts toolrender.CompactOptions) stri
 // and sends it to the Bubbletea model. The model handles the actual
 // ClearScreen + Println sequence atomically. No-op when no program is active
 // (non-TTY, tests).
+//
+// Currently always sends expanded=false (subject update is compact-mode only).
+// Phase 3 will thread the renderer's expand state through this call.
 func (r *inlineRenderer) triggerReCommit() {
 	if r.cfg.program == nil {
 		return
@@ -159,17 +178,20 @@ func (r *inlineRenderer) triggerReCommit() {
 	r.cfg.program.Send(reCommitMsg{
 		items:       snapshot,
 		compactOpts: r.compactOpts,
+		expanded:    false,
 	})
 }
 
 // reCommitHistory builds a tea.Cmd that clears the terminal and re-commits
-// all history items via tea.Println. Executed atomically within Bubbletea's
-// render loop so no intermediate frame is visible.
-func reCommitHistory(items []committedItem, opts toolrender.CompactOptions) tea.Cmd {
+// all history items via tea.Println. When expanded is true, tool completions
+// and read groups render in expanded mode (full output, no truncation).
+// Executed atomically within Bubbletea's render loop so no intermediate
+// frame is visible.
+func reCommitHistory(items []committedItem, opts toolrender.CompactOptions, expanded bool) tea.Cmd {
 	cmds := make([]tea.Cmd, 0, len(items)+1)
 	cmds = append(cmds, tea.ClearScreen)
 	for _, item := range items {
-		text := renderCommittedItem(item, opts)
+		text := renderCommittedItem(item, opts, expanded)
 		if text != "" {
 			cmds = append(cmds, tea.Println(text))
 		}
