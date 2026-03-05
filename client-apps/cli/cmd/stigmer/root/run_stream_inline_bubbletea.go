@@ -75,6 +75,8 @@ func (m inlineBubbleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleFollowUpShow(msg)
 	case followUpHideMsg:
 		return m.handleFollowUpHide(msg)
+	case reCommitMsg:
+		return m.handleReCommit(msg)
 	}
 	return m, nil
 }
@@ -215,6 +217,14 @@ func (m inlineBubbleModel) handleFollowUpHide(msg followUpHideMsg) (tea.Model, t
 		return m, tea.Println(strings.TrimRight(msg.styledMessage, "\n"))
 	}
 	return m, nil
+}
+
+// ---------------------------------------------------------------------------
+// Re-commit handler
+// ---------------------------------------------------------------------------
+
+func (m inlineBubbleModel) handleReCommit(msg reCommitMsg) (tea.Model, tea.Cmd) {
+	return m, reCommitHistory(msg.items, msg.compactOpts)
 }
 
 // ---------------------------------------------------------------------------

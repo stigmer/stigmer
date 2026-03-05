@@ -78,6 +78,7 @@ func (r *inlineRenderer) handleNonInteractiveApproval(
 		} else {
 			collapsed := r.formatCollapsedResult(tc, action, subAgentID)
 			r.cfg.program.Send(streamingHideMsg{collapsedResult: collapsed})
+			r.recordApproval(tc, action, subAgentID)
 			r.trackSuppression(e.ToolCallID, tc.Name, action)
 		}
 	} else {
@@ -200,6 +201,7 @@ func (r *inlineRenderer) promptApprovalViaBubbletea(
 	} else {
 		collapsed := r.formatCollapsedResult(tc, action, subAgentID)
 		r.cfg.program.Send(approvalHideMsg{collapsedResult: collapsed})
+		r.recordApproval(tc, action, subAgentID)
 		r.trackSuppression(e.ToolCallID, tc.Name, action)
 	}
 

@@ -27,6 +27,10 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, ex
 		},
 		suppressedToolIDs: make(map[string]bool),
 		thinkTimer:        thinkTimer,
+		history: []committedItem{{
+			kind:   kindHeader,
+			header: &cfg.headerInfo,
+		}},
 	}
 
 	for {
@@ -36,6 +40,13 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, ex
 			r.flushPendingReads()
 			r.statusf("Stream cancelled\n")
 			return "", "context cancelled"
+
+		case subject, ok := <-cfg.subjectUpdate:
+			if ok && subject != "" {
+				r.history[0].header.Subject = subject
+				r.triggerReCommit()
+				cfg.subjectUpdate = nil
+			}
 
 		case event, ok := <-cfg.events:
 			r.stopThinkingSpinner()

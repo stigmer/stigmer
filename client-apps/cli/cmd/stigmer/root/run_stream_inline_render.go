@@ -50,6 +50,7 @@ func (r *inlineRenderer) renderAIStreamEnd(e executiontui.AIStreamEndEvent) {
 	r.inAIStream = false
 	r.streamedBytes = 0
 	r.flushData()
+	r.recordAIMessage(e.Content, e.SubAgentID)
 }
 
 func (r *inlineRenderer) renderAIMessage(e executiontui.AIMessageEvent) {
@@ -58,6 +59,7 @@ func (r *inlineRenderer) renderAIMessage(e executiontui.AIMessageEvent) {
 		prefix := r.agentPrefix(e.SubAgentID)
 		fmt.Fprintf(r.cfg.data, "%s%s\n\n", prefix, formatNonTUIAIText(e.Content))
 		r.flushData()
+		r.recordAIMessage(e.Content, e.SubAgentID)
 	}
 }
 
@@ -68,6 +70,10 @@ func (r *inlineRenderer) renderHumanMessage(e executiontui.HumanMessageEvent) {
 	}
 	r.finishAIStreamIfNeeded()
 	r.statusf("%s\n\n", formatHumanMessage(e.Content))
+	r.history = append(r.history, committedItem{
+		kind: kindHumanMessage,
+		text: formatHumanMessage(e.Content),
+	})
 }
 
 // ---------------------------------------------------------------------------
@@ -83,6 +89,11 @@ func (r *inlineRenderer) renderToolCompleted(e executiontui.ToolCompletedEvent) 
 	if strings.Contains(line, "\n") {
 		r.statusf("\n")
 	}
+	r.history = append(r.history, committedItem{
+		kind:       kindToolCompact,
+		toolCalls:  []toolrender.ToolCallInfo{e.ToolCall},
+		subAgentID: e.SubAgentID,
+	})
 }
 
 func (r *inlineRenderer) renderToolWaitingApproval(e executiontui.ToolWaitingApprovalEvent) {
@@ -107,22 +118,33 @@ func (r *inlineRenderer) renderToolWaitingApproval(e executiontui.ToolWaitingApp
 func (r *inlineRenderer) renderSystemMessage(e executiontui.SystemMessageEvent) {
 	content := sanitizeSystemContent(e.Content)
 	r.statusf("%s\n\n", systemMsgStyle.Render(content))
+	r.history = append(r.history, committedItem{
+		kind: kindSystemMessage,
+		text: systemMsgStyle.Render(content),
+	})
 }
 
 func (r *inlineRenderer) renderPhaseChange(e executiontui.PhaseChangeEvent) {
 	r.phase = e.Phase
+	var text string
 	switch e.Phase {
 	case "failed":
-		r.statusf("Execution failed\n")
+		text = "Execution failed"
 	case "cancelled":
-		r.statusf("Execution cancelled\n")
+		text = "Execution cancelled"
 	default:
 		return
 	}
+	r.statusf("%s\n", text)
+	r.history = append(r.history, committedItem{
+		kind: kindPhaseChange,
+		text: text,
+	})
 }
 
 func (r *inlineRenderer) renderTodoUpdate(e executiontui.TodoUpdateEvent) {
-	r.statusf("Plan:\n")
+	var b strings.Builder
+	b.WriteString("Plan:")
 	for _, todo := range e.Todos {
 		var marker string
 		switch todo.Status {
@@ -135,9 +157,15 @@ func (r *inlineRenderer) renderTodoUpdate(e executiontui.TodoUpdateEvent) {
 		default:
 			marker = "[ ]"
 		}
-		r.statusf("  %s %s\n", marker, todo.Content)
+		fmt.Fprintf(&b, "\n  %s %s", marker, todo.Content)
 	}
+	text := b.String()
+	r.statusf("%s\n", text)
 	r.statusf("\n")
+	r.history = append(r.history, committedItem{
+		kind: kindTodoUpdate,
+		text: text,
+	})
 }
 
 func (r *inlineRenderer) renderSubAgentStarted(e executiontui.SubAgentStartedEvent) {
@@ -145,16 +173,27 @@ func (r *inlineRenderer) renderSubAgentStarted(e executiontui.SubAgentStartedEve
 	if e.Description != "" {
 		label = e.Description
 	}
-	r.statusf("%s %s: %s\n",
+	text := fmt.Sprintf("%s %s: %s",
 		toolrender.BulletGreen("●"), toolrender.LabelBold("Task"), label)
+	r.statusf("%s\n", text)
+	r.history = append(r.history, committedItem{
+		kind: kindSubAgentStart,
+		text: text,
+	})
 }
 
 func (r *inlineRenderer) renderSubAgentCompleted(e executiontui.SubAgentCompletedEvent) {
+	var text string
 	if e.Status == "failed" {
-		r.statusf("  ✗ Failed (%d tools)\n\n", e.ToolCount)
+		text = fmt.Sprintf("  ✗ Failed (%d tools)", e.ToolCount)
 	} else {
-		r.statusf("  ✓ Done (%d tools)\n\n", e.ToolCount)
+		text = fmt.Sprintf("  ✓ Done (%d tools)", e.ToolCount)
 	}
+	r.statusf("%s\n\n", text)
+	r.history = append(r.history, committedItem{
+		kind: kindSubAgentComplete,
+		text: text,
+	})
 }
 
 // ---------------------------------------------------------------------------
@@ -164,16 +203,28 @@ func (r *inlineRenderer) renderSubAgentCompleted(e executiontui.SubAgentComplete
 func (r *inlineRenderer) renderDone(e executiontui.DoneEvent) {
 	r.finishAIStreamIfNeeded()
 	if e.Error != "" {
-		r.statusf("Error: %s\n", e.Error)
+		text := fmt.Sprintf("Error: %s", e.Error)
+		r.statusf("%s\n", text)
+		r.history = append(r.history, committedItem{
+			kind: kindText,
+			text: text,
+		})
 	}
 }
 
 func (r *inlineRenderer) renderStreamError(e executiontui.StreamErrorEvent) {
 	r.finishAIStreamIfNeeded()
-	r.statusf("Error: %s\n", e.Err.Error())
+	var text string
 	if r.cfg.sessionID != "" {
-		r.statusf("   Re-attach with: stigmer run %s\n", r.cfg.sessionID)
+		text = fmt.Sprintf("Error: %s\n   Re-attach with: stigmer run %s", e.Err.Error(), r.cfg.sessionID)
+	} else {
+		text = fmt.Sprintf("Error: %s", e.Err.Error())
 	}
+	r.statusf("%s\n", text)
+	r.history = append(r.history, committedItem{
+		kind: kindText,
+		text: text,
+	})
 }
 
 // ---------------------------------------------------------------------------
@@ -217,6 +268,11 @@ func (r *inlineRenderer) flushPendingReads() {
 	if strings.Contains(output, "\n") {
 		r.statusf("\n")
 	}
+	r.history = append(r.history, committedItem{
+		kind:       kindReadGroup,
+		toolCalls:  tcs,
+		subAgentID: subAgentID,
+	})
 	r.pendingReads = r.pendingReads[:0]
 }
 
@@ -245,6 +301,20 @@ func (r *inlineRenderer) agentPrefix(subAgentID string) string {
 		return ""
 	}
 	return "● "
+}
+
+// recordAIMessage appends a kindAIMessage to history. The text is pre-formatted
+// with prefix and markdown rendering so it looks correct when replayed to stderr
+// via tea.Println during re-commit. Called after both streamed and non-streamed
+// AI message completion.
+func (r *inlineRenderer) recordAIMessage(content string, subAgentID string) {
+	prefix := r.agentPrefix(subAgentID)
+	text := prefix + formatNonTUIAIText(content)
+	r.history = append(r.history, committedItem{
+		kind:       kindAIMessage,
+		text:       text,
+		subAgentID: subAgentID,
+	})
 }
 
 func (r *inlineRenderer) statusf(format string, args ...interface{}) {
