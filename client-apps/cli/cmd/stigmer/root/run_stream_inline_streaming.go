@@ -2,9 +2,7 @@ package root
 
 import (
 	"fmt"
-	"strings"
 
-	"github.com/charmbracelet/x/ansi"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/termctl"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
@@ -28,7 +26,6 @@ func (r *inlineRenderer) initPreApprovalStreaming(e executiontui.ToolRunningEven
 	r.activeStreamToolID = e.ToolCallID
 	r.toolStreamedBytes = 0
 	r.streamSubAgentID = e.SubAgentID
-	r.maxStreamContentLines = approvalContentBudget(termctl.Height(r.cfg.status, 40))
 
 	if !toolrender.HasPrimaryArg(e.ToolCall) {
 		r.streamHeaderDeferred = true
@@ -36,8 +33,6 @@ func (r *inlineRenderer) initPreApprovalStreaming(e executiontui.ToolRunningEven
 		if r.cfg.program == nil {
 			r.streamHeaderRows = 0
 			r.streamLineCount = 0
-			r.streamContentLines = 0
-			r.streamTruncationShown = false
 		}
 		return
 	}
@@ -47,16 +42,13 @@ func (r *inlineRenderer) initPreApprovalStreaming(e executiontui.ToolRunningEven
 
 	if r.cfg.program != nil {
 		r.cfg.program.Send(streamingShowMsg{
-			header:     header,
-			subAgentID: e.SubAgentID,
-			maxLines:   r.maxStreamContentLines,
-			width:      termctl.Width(r.cfg.status, 80),
+			header:      header,
+			subAgentID:  e.SubAgentID,
+			progressive: true,
 		})
 		return
 	}
 
-	r.streamContentLines = 0
-	r.streamTruncationShown = false
 	r.renderStreamHeader(e.ToolCall, e.SubAgentID)
 }
 
@@ -98,16 +90,14 @@ func (r *inlineRenderer) initPostApprovalStreaming(toolCallID string, tc toolren
 	r.activeStreamToolID = toolCallID
 	r.toolStreamedBytes = 0
 	r.streamSubAgentID = subAgentID
-	r.maxStreamContentLines = 0
 
 	header := toolrender.RenderCompactRunning(tc, r.compactOpts)
 
 	if r.cfg.program != nil {
 		r.cfg.program.Send(streamingShowMsg{
-			header:     header + "\n",
-			subAgentID: subAgentID,
-			maxLines:   0,
-			width:      termctl.Width(r.cfg.status, 80),
+			header:      header + "\n",
+			subAgentID:  subAgentID,
+			progressive: false,
 		})
 		return
 	}
@@ -137,10 +127,9 @@ func (r *inlineRenderer) renderToolStreamDelta(e executiontui.ToolStreamDeltaEve
 		r.lastStreamHeader = header
 		if r.cfg.program != nil {
 			r.cfg.program.Send(streamingShowMsg{
-				header:     header,
-				subAgentID: r.streamSubAgentID,
-				maxLines:   r.maxStreamContentLines,
-				width:      termctl.Width(r.cfg.status, 80),
+				header:      header,
+				subAgentID:  r.streamSubAgentID,
+				progressive: true,
 			})
 		} else {
 			r.renderStreamHeader(e.ToolCall, r.streamSubAgentID)
@@ -168,26 +157,12 @@ func (r *inlineRenderer) renderToolStreamDelta(e executiontui.ToolStreamDeltaEve
 }
 
 // renderToolStreamDeltaDirect is the direct-write implementation of delta
-// rendering. Only bytes beyond toolStreamedBytes are printed. Pre-approval
-// content (maxStreamContentLines > 0) is width-clamped and line-capped
-// with a truncation indicator. Post-approval content flows uncapped.
+// rendering. Only bytes beyond toolStreamedBytes are printed. Content
+// flows uncapped to stderr.
 func (r *inlineRenderer) renderToolStreamDeltaDirect(content string) {
 	newBytes := content[r.toolStreamedBytes:]
 	r.toolStreamedBytes = len(content)
-
-	if r.maxStreamContentLines <= 0 {
-		r.renderStreamDeltaUncapped(content, newBytes)
-		return
-	}
-
-	totalContentLines := strings.Count(content, "\n")
-
-	if r.streamContentLines >= r.maxStreamContentLines {
-		r.renderStreamOverflowUpdate(totalContentLines)
-		return
-	}
-
-	r.renderStreamDeltaCapped(newBytes, totalContentLines)
+	r.renderStreamDeltaUncapped(content, newBytes)
 }
 
 // renderStreamDeltaUncapped handles post-approval streaming where no
@@ -209,106 +184,36 @@ func (r *inlineRenderer) renderStreamDeltaUncapped(content, newBytes string) {
 	r.streamLineCount = r.streamHeaderRows + termctl.DisplayRows(displayContent, width)
 }
 
-// renderStreamOverflowUpdate updates the truncation indicator in-place
-// when the pre-approval content cap has already been reached. Erases
-// the existing indicator and reprints it with the updated overflow count.
-func (r *inlineRenderer) renderStreamOverflowUpdate(totalContentLines int) {
-	if r.streamTruncationShown {
-		termctl.EraseLines(r.cfg.status, 1)
-	}
-	overflow := totalContentLines - r.maxStreamContentLines
-	if overflow < 0 {
-		overflow = 0
-	}
-	indicator := toolrender.StreamTruncationIndicator(overflow)
-	if r.streamSubAgentID != "" {
-		indicator = toolrender.GutterWrap(indicator)
-	}
-	fmt.Fprint(r.cfg.status, indicator)
-	r.flushWriter(r.cfg.status)
-	r.streamTruncationShown = true
-}
-
-// renderStreamDeltaCapped handles incremental pre-approval streaming with
-// width-clamping and line-capping. Each new line increments the content
-// counter; when the cap is reached, a truncation indicator is appended
-// and no further content is rendered.
-func (r *inlineRenderer) renderStreamDeltaCapped(newBytes string, totalContentLines int) {
-	width := termctl.Width(r.cfg.status, 80)
-	maxVisibleWidth := width - 1
-	if r.streamSubAgentID != "" {
-		maxVisibleWidth = width - 1 - toolrender.GutterWidth()
-	}
-
-	newLines := strings.Split(newBytes, "\n")
-	var outputBuf strings.Builder
-	for i, line := range newLines {
-		if i > 0 {
-			outputBuf.WriteByte('\n')
-			r.streamContentLines++
-			if r.streamContentLines >= r.maxStreamContentLines {
-				overflow := totalContentLines - r.maxStreamContentLines
-				if overflow < 0 {
-					overflow = 0
-				}
-				out := outputBuf.String()
-				if r.streamSubAgentID != "" {
-					out = toolrender.GutterWrap(out)
-				}
-				fmt.Fprint(r.cfg.status, out)
-
-				indicator := toolrender.StreamTruncationIndicator(overflow)
-				if r.streamSubAgentID != "" {
-					indicator = toolrender.GutterWrap(indicator)
-				}
-				fmt.Fprint(r.cfg.status, indicator)
-				r.flushWriter(r.cfg.status)
-				r.streamTruncationShown = true
-				r.streamLineCount = r.streamHeaderRows + r.streamContentLines + 1
-				return
-			}
-		}
-		outputBuf.WriteString(truncateLineWidth(line, maxVisibleWidth))
-	}
-
-	out := outputBuf.String()
-	if r.streamSubAgentID != "" {
-		out = toolrender.GutterWrap(out)
-	}
-	fmt.Fprint(r.cfg.status, out)
-	r.flushWriter(r.cfg.status)
-
-	r.streamLineCount = r.streamHeaderRows + r.streamContentLines + 1
-}
-
 // completeStreamingTool handles ToolCompletedEvent for a tool that was
 // streaming output.
 //
-// Bubbletea path: sends streamingHideMsg with the compact result. The
-// model clears View() and commits the result via tea.Println.
+// Bubbletea path: records the compact result in history, clears streaming
+// state, and triggers a re-commit. The re-commit atomically replaces any
+// progressively-committed scrollback content with the authoritative
+// history, ensuring no stale streaming lines remain.
 //
 // Direct-write path: erases the streaming content via EraseLines, then
 // prints the final compact result.
 func (r *inlineRenderer) completeStreamingTool(e executiontui.ToolCompletedEvent) {
 	subAgentID := r.streamSubAgentID
 
+	r.history = append(r.history, committedItem{
+		kind:       kindToolCompact,
+		toolCalls:  []toolrender.ToolCallInfo{e.ToolCall},
+		subAgentID: subAgentID,
+	})
+
 	if r.cfg.program != nil {
-		line := r.renderToolLine(e.ToolCall, subAgentID)
-		r.cfg.program.Send(streamingHideMsg{collapsedResult: line})
+		r.clearStreamingState()
+		r.triggerReCommit()
 	} else {
 		if termctl.IsSupported(r.cfg.status) && r.streamLineCount > 0 {
 			termctl.EraseLines(r.cfg.status, r.streamLineCount)
 		}
 		line := r.renderToolLine(e.ToolCall, subAgentID)
 		r.statusf("%s\n", line)
+		r.clearStreamingState()
 	}
-
-	r.history = append(r.history, committedItem{
-		kind:       kindToolCompact,
-		toolCalls:  []toolrender.ToolCallInfo{e.ToolCall},
-		subAgentID: subAgentID,
-	})
-	r.clearStreamingState()
 }
 
 // clearStreamingState resets all streaming tracking fields to their
@@ -323,9 +228,6 @@ func (r *inlineRenderer) clearStreamingState() {
 	r.streamSubAgentID = ""
 	r.streamHeaderDeferred = false
 	r.lastStreamHeader = ""
-	r.maxStreamContentLines = 0
-	r.streamContentLines = 0
-	r.streamTruncationShown = false
 }
 
 // resolveStreamContent extracts the displayable content from a
@@ -339,14 +241,3 @@ func resolveStreamContent(e executiontui.ToolStreamDeltaEvent) string {
 	return toolrender.ExpandedApprovalContent(e.ToolCall)
 }
 
-// truncateLineWidth clamps a single line to maxWidth visible characters.
-// ANSI escape codes are preserved and do not count toward the width.
-func truncateLineWidth(line string, maxWidth int) string {
-	if maxWidth <= 0 || ansi.StringWidth(line) <= maxWidth {
-		return line
-	}
-	if maxWidth <= 3 {
-		return ansi.Truncate(line, maxWidth, "")
-	}
-	return ansi.Truncate(line, maxWidth-1, "…")
-}

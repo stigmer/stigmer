@@ -57,6 +57,21 @@ func extractFirstArg(args map[string]interface{}) string {
 	return formatArgValue(args[keys[0]])
 }
 
+// extractLargestArg returns the arg value with the most content. This is
+// used for unknown/MCP tools where we cannot rely on a known field name
+// to identify the primary content. Preferring the longest string value
+// reliably selects file content over short metadata like paths or names.
+func extractLargestArg(args map[string]interface{}) string {
+	var best string
+	for _, v := range args {
+		s := formatArgValue(v)
+		if len(s) > len(best) {
+			best = s
+		}
+	}
+	return best
+}
+
 // formatArgValue converts an argument value to a display string.
 func formatArgValue(v interface{}) string {
 	switch val := v.(type) {

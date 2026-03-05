@@ -113,11 +113,19 @@ type textInputHideMsg struct {
 // The event loop sends this when pre-approval or post-approval streaming
 // begins. The header is pre-rendered (separator + tool header); content
 // arrives via subsequent streamingUpdateMsg messages.
+//
+// When progressive is true (pre-approval), the header and subsequent
+// complete lines are committed to scrollback via tea.Println as they
+// arrive. View() shows only the current partial (incomplete) line. This
+// avoids the Bubbletea inline-mode overflow problem where a View() taller
+// than the terminal causes scrollback artifacts.
+//
+// When progressive is false (post-approval shell streaming), the header
+// and content remain in View() for live replacement on each delta.
 type streamingShowMsg struct {
-	header     string
-	subAgentID string
-	maxLines   int // 0 = uncapped (post-approval), >0 = capped (pre-approval)
-	width      int // terminal width for line-clamping in View()
+	header      string
+	subAgentID  string
+	progressive bool // true = commit lines to scrollback progressively
 }
 
 // streamingUpdateMsg delivers the full accumulated content for the active

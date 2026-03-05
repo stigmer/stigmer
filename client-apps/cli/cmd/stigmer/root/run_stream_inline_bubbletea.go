@@ -38,12 +38,12 @@ type inlineBubbleModel struct {
 	// approvalShowMsg path (program==nil fallback).
 	approvalDecisionCh chan<- approvalDecision
 
-	streamingActive   bool
-	streamingHeader   string
-	streamingContent  string
-	streamingMaxLines int
-	streamingSubAgent string
-	streamingWidth    int
+	streamingActive      bool
+	streamingHeader      string
+	streamingContent     string
+	streamingSubAgent    string
+	streamingProgressive bool // pre-approval: commit lines to scrollback progressively
+	streamingCommittedLen int // bytes of content already committed to scrollback
 
 	// AI streaming state — when active, View() renders the partial
 	// (incomplete) line being typed by the model. Complete lines are
@@ -178,10 +178,17 @@ func (m inlineBubbleModel) View() tea.View {
 	case m.approvalActive:
 		content = m.approvalContent + approval.RenderMenu(m.approvalSelected, true)
 	case m.streamingActive:
-		content = formatStreamingView(
-			m.streamingHeader, m.streamingContent, m.streamingSubAgent,
-			m.streamingMaxLines, m.streamingWidth,
-		)
+		if m.streamingProgressive {
+			partial := m.streamingContent
+			if m.streamingSubAgent != "" && partial != "" {
+				partial = toolrender.GutterWrap(partial)
+			}
+			content = partial
+		} else {
+			content = formatStreamingView(
+				m.streamingHeader, m.streamingContent, m.streamingSubAgent,
+			)
+		}
 	case m.followUpActive:
 		content = m.followUpContent
 	case m.aiStreamActive:
@@ -282,6 +289,8 @@ func (m inlineBubbleModel) handleApprovalStart(msg approvalStartMsg) (tea.Model,
 	m.streamingActive = false
 	m.streamingHeader = ""
 	m.streamingContent = ""
+	m.streamingProgressive = false
+	m.streamingCommittedLen = 0
 	m.aiStreamActive = false
 	m.aiStreamPartial = ""
 
@@ -305,6 +314,8 @@ func (m inlineBubbleModel) handleApprovalShow(msg approvalShowMsg) (tea.Model, t
 	m.streamingActive = false
 	m.streamingHeader = ""
 	m.streamingContent = ""
+	m.streamingProgressive = false
+	m.streamingCommittedLen = 0
 	m.aiStreamActive = false
 	m.aiStreamPartial = ""
 
@@ -340,24 +351,72 @@ func (m inlineBubbleModel) handleApprovalHide(msg approvalHideMsg) (tea.Model, t
 
 func (m inlineBubbleModel) handleStreamingShow(msg streamingShowMsg) (tea.Model, tea.Cmd) {
 	m.streamingActive = true
-	m.streamingHeader = msg.header
 	m.streamingContent = ""
-	m.streamingMaxLines = msg.maxLines
 	m.streamingSubAgent = msg.subAgentID
-	m.streamingWidth = msg.width
+	m.streamingProgressive = msg.progressive
+	m.streamingCommittedLen = 0
+
+	if msg.progressive {
+		m.streamingHeader = ""
+		header := strings.TrimRight(msg.header, "\n")
+		if msg.subAgentID != "" {
+			header = toolrender.GutterWrap(header)
+		}
+		return m, tea.Println(header)
+	}
+
+	m.streamingHeader = msg.header
 	return m, nil
 }
 
 // handleStreamingHeaderUpdate replaces the header portion of the streaming
 // view without resetting the accumulated content. Called when the tool's
 // primary arg becomes available after the initial (empty-path) header.
+//
+// In progressive mode the header is already committed to scrollback and
+// cannot be updated in-place. The approval re-commit will show the
+// correct header, so the late update is silently ignored.
 func (m inlineBubbleModel) handleStreamingHeaderUpdate(msg streamingHeaderUpdateMsg) (tea.Model, tea.Cmd) {
+	if m.streamingProgressive {
+		return m, nil
+	}
 	m.streamingHeader = msg.header
 	return m, nil
 }
 
 func (m inlineBubbleModel) handleStreamingUpdate(msg streamingUpdateMsg) (tea.Model, tea.Cmd) {
-	m.streamingContent = msg.content
+	if !m.streamingProgressive {
+		m.streamingContent = msg.content
+		return m, nil
+	}
+
+	content := msg.content
+
+	lastNewline := strings.LastIndex(content, "\n")
+	var completeLen int
+	var partial string
+	if lastNewline >= 0 {
+		completeLen = lastNewline + 1
+		partial = content[completeLen:]
+	} else {
+		partial = content
+	}
+
+	m.streamingContent = partial
+
+	if completeLen > m.streamingCommittedLen {
+		newLines := content[m.streamingCommittedLen:completeLen]
+		m.streamingCommittedLen = completeLen
+
+		commitText := strings.TrimRight(newLines, "\n")
+		if m.streamingSubAgent != "" {
+			commitText = toolrender.GutterWrap(commitText)
+		}
+		if commitText != "" {
+			return m, tea.Println(commitText)
+		}
+	}
+
 	return m, nil
 }
 
@@ -365,9 +424,9 @@ func (m inlineBubbleModel) handleStreamingHide(msg streamingHideMsg) (tea.Model,
 	m.streamingActive = false
 	m.streamingHeader = ""
 	m.streamingContent = ""
-	m.streamingMaxLines = 0
 	m.streamingSubAgent = ""
-	m.streamingWidth = 0
+	m.streamingProgressive = false
+	m.streamingCommittedLen = 0
 	if msg.collapsedResult != "" {
 		return m, tea.Println(strings.TrimRight(msg.collapsedResult, "\n"))
 	}
@@ -449,6 +508,8 @@ func (m inlineBubbleModel) handleReCommit(msg reCommitMsg) (tea.Model, tea.Cmd) 
 	m.streamingActive = false
 	m.streamingHeader = ""
 	m.streamingContent = ""
+	m.streamingProgressive = false
+	m.streamingCommittedLen = 0
 	m.aiStreamActive = false
 	m.aiStreamPartial = ""
 	m.followUpActive = false
@@ -460,52 +521,17 @@ func (m inlineBubbleModel) handleReCommit(msg reCommitMsg) (tea.Model, tea.Cmd) 
 // Streaming view formatter
 // ---------------------------------------------------------------------------
 
-// formatStreamingView builds the streaming display string for View().
-// Assembles the pre-rendered header with formatted content. When maxLines
-// is positive (pre-approval streaming), each line is width-clamped and the
-// total is capped with a truncation indicator. When maxLines is zero
-// (post-approval streaming), content flows unmodified. Sub-agent content
-// is gutter-wrapped.
-func formatStreamingView(header, content, subAgentID string, maxLines, width int) string {
+// formatStreamingView builds the streaming display string for View() in
+// non-progressive mode (post-approval shell streaming). Assembles the
+// pre-rendered header with the full content, applying gutter-wrapping for
+// sub-agent content. Pre-approval streaming uses progressive commit
+// instead, so this function is only called for post-approval flows.
+func formatStreamingView(header, content, subAgentID string) string {
 	var b strings.Builder
 	b.WriteString(header)
-
-	if content == "" {
-		result := b.String()
-		if subAgentID != "" {
-			return toolrender.GutterWrap(result)
-		}
-		return result
-	}
-
-	if maxLines > 0 && width > 0 {
-		maxVisibleWidth := width - 1
-		if subAgentID != "" {
-			maxVisibleWidth = width - 1 - toolrender.GutterWidth()
-		}
-
-		totalNewlines := strings.Count(content, "\n")
-		lines := strings.Split(content, "\n")
-		displayed := 0
-		for i, line := range lines {
-			if i > 0 {
-				b.WriteByte('\n')
-				displayed++
-				if displayed >= maxLines {
-					overflow := totalNewlines - maxLines
-					if overflow < 0 {
-						overflow = 0
-					}
-					b.WriteString(toolrender.StreamTruncationIndicator(overflow))
-					break
-				}
-			}
-			b.WriteString(truncateLineWidth(line, maxVisibleWidth))
-		}
-	} else {
+	if content != "" {
 		b.WriteString(content)
 	}
-
 	result := b.String()
 	if subAgentID != "" {
 		return toolrender.GutterWrap(result)

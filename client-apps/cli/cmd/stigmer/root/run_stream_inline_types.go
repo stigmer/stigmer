@@ -179,12 +179,12 @@ type inlineRenderer struct {
 
 	// Tool content streaming state — tracks a tool call that is actively
 	// streaming content via ToolStreamDeltaEvent. Used for both pre-approval
-	// streaming (write/edit typewriter effect) and post-approval streaming
-	// (shell output after user approves).
+	// streaming (progressive commit to scrollback) and post-approval
+	// streaming (shell output in View() after user approves).
 	activeStreamToolID string // tool call ID currently streaming
 	toolStreamedBytes  int    // tool content bytes already printed (delta rendering)
-	streamHeaderRows   int    // display rows for header portion (set at init)
-	streamLineCount    int    // total display rows including content (for erase)
+	streamHeaderRows   int    // display rows for header portion (direct-write path)
+	streamLineCount    int    // total display rows including content (direct-write erase)
 	streamSubAgentID   string // sub-agent context for gutter wrapping
 
 	// streamHeaderDeferred is true when the pre-approval streaming header
@@ -198,23 +198,6 @@ type inlineRenderer struct {
 	// dynamic updates can be sent only when the header actually changes
 	// (e.g. when the tool's primary arg becomes available mid-stream).
 	lastStreamHeader string
-
-	// maxStreamContentLines caps the number of content lines displayed
-	// during pre-approval streaming. Computed from the terminal height
-	// in initPreApprovalStreaming. When the cap is reached, a truncation
-	// indicator replaces further content, keeping the display within
-	// the visible terminal and making the row count deterministic.
-	maxStreamContentLines int
-
-	// streamContentLines tracks content lines actually displayed during
-	// pre-approval streaming (excluding the header). Used to enforce the
-	// maxStreamContentLines cap.
-	streamContentLines int
-
-	// streamTruncationShown is true when the streaming content hit the
-	// cap and a truncation indicator was printed. The indicator is updated
-	// in-place as more content arrives (incrementing the overflow count).
-	streamTruncationShown bool
 
 	// exitRequested is set by handleSessionExit when the user presses
 	// Ctrl+C at an approval prompt. Checked after handleApproval returns
