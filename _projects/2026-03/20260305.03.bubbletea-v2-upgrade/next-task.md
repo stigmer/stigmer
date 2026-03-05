@@ -15,51 +15,50 @@ Drop this file into your conversation to quickly resume work on this project.
 
 **Created**: 2026-03-05 11:00
 **Current Task**: T01 -- Bubbletea v2 Migration + Design Decision Cleanup
-**Status**: Phase 2 COMPLETE -- ready for Phase 3
-**Last Session**: 2026-03-05 (Session 3 -- Phase 2: scrollback fix + follow-up prompt UX)
+**Status**: Phase 3 COMPLETE -- ready for Phase 4
+**Last Session**: 2026-03-05 (Session 4 -- Phase 3: replace custom text input with bubbles/textinput v2)
 
-## Session Progress (2026-03-05, Session 3)
+## Session Progress (2026-03-05, Session 4)
 
 ### Accomplished
-- **Part A: Scrollback Duplication Fix**
-  - Added `\033[3J` (Erase Saved Lines) direct write to `triggerReCommit()` -- eliminates scrollback duplication on Ctrl+O toggle and approval collapse
-  - Enabled subject update re-commit -- header now updates visually when the backend resolves the session subject
-- **Part B: Follow-up Prompt UX Overhaul**
-  - Added `termWidth` tracking via `tea.WindowSizeMsg` to `inlineBubbleModel`
-  - New prompt layout: full-width separator → `> input` → hint footer (hint moved below input)
-  - Real blinking bar cursor on the input line via `tea.View.Cursor`
-  - Removed `textInputPrompt` field -- prompt now rendered dynamically in `View()` using model state
-  - Simplified `textInputStartMsg` (removed `prompt` field) and `promptFollowUpViaChannel`
-  - Updated 3 existing tests, added 4 new tests (cursor position, width separator, WindowSizeMsg)
+- **Phase 3: Replace Custom Text Input with bubbles/textinput v2**
+  - Embedded `textinput.Model` from `charm.land/bubbles/v2/textinput` as child component in `inlineBubbleModel`
+  - Configured real cursor mode (`SetVirtualCursor(false)`) for `textinput.Cursor()` integration
+  - `handleTextInputKey` reduced to thin interceptor: Enter, Ctrl+C, Ctrl+D (Unix dual behavior), all else delegated to `textInput.Update(msg)`
+  - `renderTextInputView()` now uses `textInput.View()` + `textInput.Cursor()` with Y+2 offset
+  - Added `tea.PasteMsg` routing in `Update()` for native paste support
+  - Removed `textInputBuffer string` field, `unicode/utf8` import, `x/ansi` import
+  - Added `newFollowUpTextInput()` factory with promptStyle reuse
+  - Updated + added tests: 22 related tests, all passing
+  - Build + vet + full test suite: clean
 
 ### Key Decisions
-- `\033[3J` via direct write to `cfg.status` (Option 1) -- safe because it only affects scrollback
-- `followUpSepWidth` kept as fallback for legacy paths (direct-write, key-reader)
-- Legacy follow-up paths keep hint-above-input layout (no cursor API available)
+- Real cursor (not virtual): `SetVirtualCursor(false)` for consistency with Phase 2's `tea.View.Cursor`
+- Ctrl+D dual behavior: empty = EOF exit, non-empty = delete forward char (Unix convention)
+- `promptStyle` reused from `run_display.go` (no lipgloss import duplication)
+- `tea.PasteMsg` explicit routing (dedicated case, not catch-all default)
 
-### Files Modified (Phase 2)
-- `run_stream_inline_history.go` -- `\033[3J` in `triggerReCommit()`
-- `run_stream_inline.go` -- subject update re-commit
-- `run_stream_inline_bubbletea.go` -- `termWidth`, `renderTextInputView()`, cursor positioning
-- `run_stream_inline_messages.go` -- simplified `textInputStartMsg`
-- `run_stream_inline_followup.go` -- simplified `promptFollowUpViaChannel`
-- `run_display.go` -- updated `followUpSepWidth` comment
-- `run_stream_inline_keypress_test.go` -- updated + new tests
+### Files Modified (Phase 3)
+- `run_stream_inline_bubbletea.go` -- model field change, factory, constructors, renderTextInputView, start/hide handlers, PasteMsg routing
+- `run_stream_inline_keypress.go` -- handleTextInputKey rewritten as thin interceptor
+- `run_stream_inline_keypress_test.go` -- all text input tests updated, 4 new tests added
 
 ## Next Steps
 
-1. **Phase 3**: Replace custom `handleTextInputKey` with `bubbles/textinput` v2
-2. **Phase 4**: Unblock Ctrl+O during follow-up prompt
-3. **Phase 5**: Cleanup legacy paths, polish, update design decision docs
+1. **Phase 4**: Unblock Ctrl+O during follow-up prompt
+2. **Phase 5**: Cleanup legacy paths, polish, update design decision docs
 
 ## Context for Resume
 
-- Phase 2 is fully implemented and all tests pass (build + vet + tests green)
-- `tea.View.Cursor` is now used for cursor positioning in the follow-up prompt -- not yet visually verified in a live terminal
-- `ansi.StringWidth()` from `x/ansi` is the correct way to compute visual width of styled text for cursor X
-- `renderTextInputView()` method on `inlineBubbleModel` is the new follow-up prompt renderer
+- Phase 3 is fully implemented and all tests pass (build + vet + tests green)
+- `textinput.Model` is embedded in `inlineBubbleModel` with real cursor mode
+- `textinput.Cursor()` returns `*tea.Cursor` only when `SetVirtualCursor(false)` AND `Focused()` -- nil otherwise
+- `handleTextInputKey` intercepts Enter/Ctrl+C/Ctrl+D before delegating to textinput -- the interceptor pattern allows the textinput to handle all editing while we control submit/cancel
+- `newFollowUpTextInput()` factory configures: real cursor, prompt `"> "`, promptStyle on Focused.Prompt, CursorBar+Blink
 - Legacy follow-up paths (`promptFollowUpDirect`, `promptFollowUpViaKeyReader`) are unchanged
 - `followUpSepWidth = 40` is still used as fallback when `termWidth` is 0
+- Cursor positioning via textinput.Cursor() not yet visually verified in a live terminal (carried from Session 3)
+- `textinput.Cursor()` computes X using rune count (not visual width) -- known CJK limitation in upstream library, irrelevant for typical usage
 
 ## Essential Files to Review
 
@@ -107,13 +106,13 @@ When starting a new session:
 3. [ ] Review any new design decisions in `design-decisions/`
 4. [ ] Check coding guidelines in `coding-guidelines/`
 5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with Phase 3
+6. [ ] Continue with Phase 4
 
 ## Implementation Phases (from T01 plan)
 
 1. **Phase 1**: ~~Mechanical v1-to-v2 API migration~~ **COMPLETE**
 2. **Phase 2**: ~~Re-commit scrollback fix + follow-up prompt UX overhaul~~ **COMPLETE**
-3. **Phase 3**: Replace custom text input with bubbles/textinput v2
+3. **Phase 3**: ~~Replace custom text input with bubbles/textinput v2~~ **COMPLETE**
 4. **Phase 4**: Unblock Ctrl+O during follow-up prompt (deferred limitation resolved)
 5. **Phase 5**: Cleanup legacy paths, polish, update design decision docs
 
@@ -134,11 +133,12 @@ Key predecessor documents:
 - What's new in v2: https://github.com/charmbracelet/bubbletea/discussions/1374
 - v2 cursor API: `tea.View.Cursor = &tea.Cursor{Position: tea.Position{X, Y}, Shape, Blink, Color}`
 - v2 import: `charm.land/bubbletea/v2`, `charm.land/lipgloss/v2`, `charm.land/bubbles/v2`
+- textinput real cursor: `textinput.SetVirtualCursor(false)` + `textinput.Cursor()` returns `*tea.Cursor`
 
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 3" - Start replacing custom text input with bubbles/textinput v2
+- "Continue with Phase 4" - Start unblocking Ctrl+O during follow-up prompt
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

@@ -204,75 +204,68 @@ func TestHandleApprovalKey_CtrlC_SendsSessionExit(t *testing.T) {
 }
 
 // =============================================================================
-// handleTextInputKey — runes, backspace, enter, ctrl+c/d
+// handleTextInputKey — textinput delegation, submit/cancel intercept
 // =============================================================================
 
-func TestHandleTextInputKey_Runes_AppendToBuffer(t *testing.T) {
-	inputCh := make(chan string, 1)
+// newFocusedTextInputModel creates a model with text input activated and
+// focused, ready to process keystrokes through the textinput child model.
+func newFocusedTextInputModel(inputCh chan string) inlineBubbleModel {
 	m := newInlineBubbleModel()
 	m.textInputActive = true
 	m.textInputCh = inputCh
+	m.textInput.Focus()
+	return m
+}
+
+func TestHandleTextInputKey_Runes_InsertedViaTextInput(t *testing.T) {
+	m := newFocusedTextInputModel(make(chan string, 1))
 
 	updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyExtended, Text: "hello"})
 	model := updated.(inlineBubbleModel)
-	assert.Equal(t, "hello", model.textInputBuffer)
+	assert.Equal(t, "hello", model.textInput.Value())
 }
 
-func TestHandleTextInputKey_Space_AppendsSpace(t *testing.T) {
-	inputCh := make(chan string, 1)
-	m := newInlineBubbleModel()
-	m.textInputActive = true
-	m.textInputCh = inputCh
-	m.textInputBuffer = "hello"
+func TestHandleTextInputKey_Space_InsertedViaTextInput(t *testing.T) {
+	m := newFocusedTextInputModel(make(chan string, 1))
+	m.textInput.SetValue("hello")
 
-	updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeySpace})
+	updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeySpace, Text: " "})
 	model := updated.(inlineBubbleModel)
-	assert.Equal(t, "hello ", model.textInputBuffer)
+	assert.Equal(t, "hello ", model.textInput.Value())
 }
 
 func TestHandleTextInputKey_Backspace_RemovesLastRune(t *testing.T) {
-	inputCh := make(chan string, 1)
-	m := newInlineBubbleModel()
-	m.textInputActive = true
-	m.textInputCh = inputCh
-	m.textInputBuffer = "hello"
+	m := newFocusedTextInputModel(make(chan string, 1))
+	m.textInput.SetValue("hello")
 
 	updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyBackspace})
 	model := updated.(inlineBubbleModel)
-	assert.Equal(t, "hell", model.textInputBuffer)
+	assert.Equal(t, "hell", model.textInput.Value())
 }
 
 func TestHandleTextInputKey_Backspace_EmptyBuffer_NoPanic(t *testing.T) {
-	inputCh := make(chan string, 1)
-	m := newInlineBubbleModel()
-	m.textInputActive = true
-	m.textInputCh = inputCh
+	m := newFocusedTextInputModel(make(chan string, 1))
 
 	assert.NotPanics(t, func() {
 		updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyBackspace})
 		model := updated.(inlineBubbleModel)
-		assert.Equal(t, "", model.textInputBuffer)
+		assert.Equal(t, "", model.textInput.Value())
 	})
 }
 
 func TestHandleTextInputKey_Backspace_MultibyteRune(t *testing.T) {
-	inputCh := make(chan string, 1)
-	m := newInlineBubbleModel()
-	m.textInputActive = true
-	m.textInputCh = inputCh
-	m.textInputBuffer = "hello 世界"
+	m := newFocusedTextInputModel(make(chan string, 1))
+	m.textInput.SetValue("hello 世界")
 
 	updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyBackspace})
 	model := updated.(inlineBubbleModel)
-	assert.Equal(t, "hello 世", model.textInputBuffer)
+	assert.Equal(t, "hello 世", model.textInput.Value())
 }
 
-func TestHandleTextInputKey_Enter_SubmitsBuffer(t *testing.T) {
+func TestHandleTextInputKey_Enter_SubmitsValue(t *testing.T) {
 	inputCh := make(chan string, 1)
-	m := newInlineBubbleModel()
-	m.textInputActive = true
-	m.textInputCh = inputCh
-	m.textInputBuffer = "fix the bug"
+	m := newFocusedTextInputModel(inputCh)
+	m.textInput.SetValue("fix the bug")
 
 	m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 
@@ -282,10 +275,8 @@ func TestHandleTextInputKey_Enter_SubmitsBuffer(t *testing.T) {
 
 func TestHandleTextInputKey_CtrlC_SubmitsEmpty(t *testing.T) {
 	inputCh := make(chan string, 1)
-	m := newInlineBubbleModel()
-	m.textInputActive = true
-	m.textInputCh = inputCh
-	m.textInputBuffer = "partial input"
+	m := newFocusedTextInputModel(inputCh)
+	m.textInput.SetValue("partial input")
 
 	m.Update(tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtrl})
 
@@ -293,17 +284,67 @@ func TestHandleTextInputKey_CtrlC_SubmitsEmpty(t *testing.T) {
 	assert.Equal(t, "", result)
 }
 
-func TestHandleTextInputKey_CtrlD_SubmitsEmpty(t *testing.T) {
+func TestHandleTextInputKey_CtrlD_EmptyInput_SubmitsEmpty(t *testing.T) {
 	inputCh := make(chan string, 1)
-	m := newInlineBubbleModel()
-	m.textInputActive = true
-	m.textInputCh = inputCh
-	m.textInputBuffer = "partial input"
+	m := newFocusedTextInputModel(inputCh)
 
 	m.Update(tea.KeyPressMsg{Code: 'd', Mod: tea.ModCtrl})
 
 	result := <-inputCh
 	assert.Equal(t, "", result)
+}
+
+func TestHandleTextInputKey_CtrlD_NonEmpty_DeletesForward(t *testing.T) {
+	inputCh := make(chan string, 1)
+	m := newFocusedTextInputModel(inputCh)
+	m.textInput.SetValue("hello")
+	m.textInput.SetCursor(0)
+
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'd', Mod: tea.ModCtrl})
+	model := updated.(inlineBubbleModel)
+	assert.Equal(t, "ello", model.textInput.Value())
+
+	select {
+	case <-inputCh:
+		t.Error("Ctrl+D on non-empty input should not submit")
+	default:
+	}
+}
+
+func TestHandleTextInputKey_CursorMovement_LeftRight(t *testing.T) {
+	m := newFocusedTextInputModel(make(chan string, 1))
+	m.textInput.SetValue("hello")
+	assert.Equal(t, 5, m.textInput.Position())
+
+	updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyLeft})
+	model := updated.(inlineBubbleModel)
+	assert.Equal(t, 4, model.textInput.Position())
+
+	updated, _ = model.Update(tea.KeyPressMsg{Code: tea.KeyRight})
+	model = updated.(inlineBubbleModel)
+	assert.Equal(t, 5, model.textInput.Position())
+}
+
+func TestHandleTextInputKey_HomeEnd(t *testing.T) {
+	m := newFocusedTextInputModel(make(chan string, 1))
+	m.textInput.SetValue("hello world")
+
+	updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyHome})
+	model := updated.(inlineBubbleModel)
+	assert.Equal(t, 0, model.textInput.Position())
+
+	updated, _ = model.Update(tea.KeyPressMsg{Code: tea.KeyEnd})
+	model = updated.(inlineBubbleModel)
+	assert.Equal(t, 11, model.textInput.Position())
+}
+
+func TestHandleTextInputKey_Paste(t *testing.T) {
+	m := newFocusedTextInputModel(make(chan string, 1))
+	m.textInput.SetValue("start ")
+
+	updated, _ := m.Update(tea.PasteMsg{Content: "pasted text"})
+	model := updated.(inlineBubbleModel)
+	assert.Equal(t, "start pasted text", model.textInput.Value())
 }
 
 // =============================================================================
@@ -397,20 +438,20 @@ func TestTextInputStartMsg_ActivatesInput(t *testing.T) {
 
 	model := updated.(inlineBubbleModel)
 	assert.True(t, model.textInputActive)
-	assert.Empty(t, model.textInputBuffer)
+	assert.Empty(t, model.textInput.Value())
+	assert.True(t, model.textInput.Focused())
 	require.NotNil(t, model.textInputCh)
 }
 
 func TestTextInputHideMsg_ClearsState(t *testing.T) {
-	m := newInlineBubbleModel()
-	m.textInputActive = true
-	m.textInputBuffer = "leftover"
-	m.textInputCh = make(chan string, 1)
+	m := newFocusedTextInputModel(make(chan string, 1))
+	m.textInput.SetValue("leftover")
 
 	updated, _ := m.Update(textInputHideMsg{})
 	model := updated.(inlineBubbleModel)
 	assert.False(t, model.textInputActive)
-	assert.Empty(t, model.textInputBuffer)
+	assert.Empty(t, model.textInput.Value())
+	assert.False(t, model.textInput.Focused())
 	assert.Nil(t, model.textInputCh)
 }
 
@@ -419,9 +460,8 @@ func TestTextInputHideMsg_ClearsState(t *testing.T) {
 // =============================================================================
 
 func TestView_TextInputActive_ShowsPromptAndBuffer(t *testing.T) {
-	m := newInlineBubbleModel()
-	m.textInputActive = true
-	m.textInputBuffer = "hello world"
+	m := newFocusedTextInputModel(make(chan string, 1))
+	m.textInput.SetValue("hello world")
 	m.termWidth = 40
 
 	view := m.View()
@@ -432,8 +472,7 @@ func TestView_TextInputActive_ShowsPromptAndBuffer(t *testing.T) {
 }
 
 func TestView_TextInputActive_EmptyBuffer(t *testing.T) {
-	m := newInlineBubbleModel()
-	m.textInputActive = true
+	m := newFocusedTextInputModel(make(chan string, 1))
 	m.termWidth = 40
 
 	view := m.View()
@@ -442,8 +481,7 @@ func TestView_TextInputActive_EmptyBuffer(t *testing.T) {
 }
 
 func TestView_TextInput_TakesPrecedenceOverFollowUp(t *testing.T) {
-	m := newInlineBubbleModel()
-	m.textInputActive = true
+	m := newFocusedTextInputModel(make(chan string, 1))
 	m.termWidth = 40
 	m.followUpActive = true
 	m.followUpContent = "old follow-up"
@@ -454,9 +492,8 @@ func TestView_TextInput_TakesPrecedenceOverFollowUp(t *testing.T) {
 }
 
 func TestView_TextInput_CursorPosition(t *testing.T) {
-	m := newInlineBubbleModel()
-	m.textInputActive = true
-	m.textInputBuffer = "hello"
+	m := newFocusedTextInputModel(make(chan string, 1))
+	m.textInput.SetValue("hello")
 	m.termWidth = 80
 
 	view := m.View()
@@ -468,8 +505,7 @@ func TestView_TextInput_CursorPosition(t *testing.T) {
 }
 
 func TestView_TextInput_CursorPosition_EmptyBuffer(t *testing.T) {
-	m := newInlineBubbleModel()
-	m.textInputActive = true
+	m := newFocusedTextInputModel(make(chan string, 1))
 	m.termWidth = 80
 
 	view := m.View()
@@ -477,14 +513,13 @@ func TestView_TextInput_CursorPosition_EmptyBuffer(t *testing.T) {
 	assert.Equal(t, 2, view.Cursor.Y)
 	xEmpty := view.Cursor.X
 
-	m.textInputBuffer = "abc"
+	m.textInput.SetValue("abc")
 	view2 := m.View()
 	assert.Greater(t, view2.Cursor.X, xEmpty, "cursor X should advance with buffer content")
 }
 
 func TestView_TextInput_TermWidthSeparator(t *testing.T) {
-	m := newInlineBubbleModel()
-	m.textInputActive = true
+	m := newFocusedTextInputModel(make(chan string, 1))
 	m.termWidth = 60
 
 	view := m.View()

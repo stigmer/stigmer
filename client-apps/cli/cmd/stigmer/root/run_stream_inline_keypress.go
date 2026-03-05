@@ -1,8 +1,6 @@
 package root
 
 import (
-	"unicode/utf8"
-
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
@@ -67,28 +65,30 @@ func (m inlineBubbleModel) handleApprovalKey(msg tea.KeyPressMsg) (tea.Model, te
 	return m, nil
 }
 
-// handleTextInputKey processes keystrokes during follow-up text input.
-// Runes are appended to the buffer. Backspace removes the last rune.
-// Enter submits the buffer. Ctrl+D and Ctrl+C submit empty (exit).
+// handleTextInputKey intercepts submit/cancel keys and delegates all
+// other keystrokes to the embedded textinput.Model for cursor movement,
+// word navigation, deletion, and character input.
+//
+// Ctrl+D follows Unix convention: empty input = EOF (exit), non-empty
+// input = delete character forward (handled by textinput).
 func (m inlineBubbleModel) handleTextInputKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
-	case "backspace":
-		if len(m.textInputBuffer) > 0 {
-			_, size := utf8.DecodeLastRuneInString(m.textInputBuffer)
-			m.textInputBuffer = m.textInputBuffer[:len(m.textInputBuffer)-size]
-		}
 	case "enter":
-		m.textInputCh <- m.textInputBuffer
-	case "ctrl+d", "ctrl+c":
+		m.textInputCh <- m.textInput.Value()
+		return m, nil
+	case "ctrl+c":
 		m.textInputCh <- ""
-	case "space":
-		m.textInputBuffer += " "
-	default:
-		if msg.Text != "" {
-			m.textInputBuffer += msg.Text
+		return m, nil
+	case "ctrl+d":
+		if m.textInput.Value() == "" {
+			m.textInputCh <- ""
+			return m, nil
 		}
 	}
-	return m, nil
+
+	var cmd tea.Cmd
+	m.textInput, cmd = m.textInput.Update(msg)
+	return m, cmd
 }
 
 // handleIdleKey processes keystrokes when no interactive prompt is active.
