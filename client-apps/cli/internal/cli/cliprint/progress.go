@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/charmbracelet/bubbles/spinner"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/spinner"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 // PhaseEntry pairs a phase identifier with its human-readable label.
@@ -134,7 +134,7 @@ func (m progressModel) Init() tea.Cmd {
 
 func (m progressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if msg.String() == "ctrl+c" {
 			m.done = true
 			return m, tea.Quit
@@ -152,11 +152,11 @@ func (m progressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m progressModel) View() string {
+func (m progressModel) View() tea.View {
 	_, detail, phases := m.state.getSnapshot()
 
 	if m.done {
-		return m.renderFinalState(phases)
+		return tea.NewView(m.renderFinalState(phases))
 	}
 
 	var lines []string
@@ -190,10 +190,10 @@ func (m progressModel) View() string {
 	}
 
 	if len(lines) == 0 {
-		return ""
+		return tea.NewView("")
 	}
 
-	return "\n" + strings.Join(lines, "\n") + "\n"
+	return tea.NewView("\n" + strings.Join(lines, "\n") + "\n")
 }
 
 func (m progressModel) renderFinalState(phases map[ProgressPhase]phaseStatus) string {

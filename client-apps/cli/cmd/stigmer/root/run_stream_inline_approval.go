@@ -161,7 +161,7 @@ func (r *inlineRenderer) erasePreApprovalContent(
 // and collects the user's decision.
 //
 // When Bubbletea owns stdin (cancelCh is non-nil), the model receives
-// keystrokes as tea.KeyMsg and delivers the decision via a channel.
+// keystrokes as tea.KeyPressMsg and delivers the decision via a channel.
 // When stdin is external (legacy path), PromptKeyOnly reads keys
 // directly and sends approvalSelectMsg for menu updates.
 func (r *inlineRenderer) promptApprovalViaBubbletea(

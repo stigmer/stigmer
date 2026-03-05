@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/charmbracelet/x/ansi"
+
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
@@ -771,8 +773,9 @@ func TestInlineRenderer_StreamingWriteToolDuringAIStream_NoDuplication(t *testin
 	if count != 1 {
 		t.Errorf("AI content should appear exactly once after force-close, appeared %d times in stdout: %q", count, out)
 	}
-	if !strings.Contains(stderr.String(), "Write(output.yaml)") {
-		t.Errorf("write tool header should appear on stderr, got: %q", stderr.String())
+	stripped := ansi.Strip(stderr.String())
+	if !strings.Contains(stripped, "Write(output.yaml)") {
+		t.Errorf("write tool header should appear on stderr, got: %q", stripped)
 	}
 }
 
@@ -861,7 +864,7 @@ func TestInlineRenderer_ReadGroupSplitAtAIMessageBoundary(t *testing.T) {
 		status:            &stderr,
 	})
 
-	stderrStr := stderr.String()
+	stderrStr := ansi.Strip(stderr.String())
 
 	// With grouping threshold=3, both batches should be rendered as groups.
 	// The key assertion: there should be TWO separate read groups, not one
@@ -918,7 +921,7 @@ func TestInlineRenderer_MultipleAIMessages_InterleavedTools_CorrectOrder(t *test
 	})
 
 	out := stdout.String()
-	stderrStr := stderr.String()
+	stderrStr := ansi.Strip(stderr.String())
 
 	// AI messages should appear exactly once on stdout with bullet prefix.
 	if strings.Count(out, "Thinking") != 1 {
@@ -1004,7 +1007,7 @@ func TestInlineRenderer_DeferredHeader_RendersPathFromDelta(t *testing.T) {
 		status:            &stderr,
 	})
 
-	stderrStr := stderr.String()
+	stderrStr := ansi.Strip(stderr.String())
 	if !strings.Contains(stderrStr, "Write(config.yaml)") {
 		t.Errorf("deferred header should show path from delta event, got stderr: %q", stderrStr)
 	}
@@ -1040,7 +1043,7 @@ func TestInlineRenderer_ImmediateHeader_WhenArgsPresent(t *testing.T) {
 		status:            &stderr,
 	})
 
-	stderrStr := stderr.String()
+	stderrStr := ansi.Strip(stderr.String())
 	if !strings.Contains(stderrStr, "Write(output.yaml)") {
 		t.Errorf("header should show path immediately when Args are present, got stderr: %q", stderrStr)
 	}

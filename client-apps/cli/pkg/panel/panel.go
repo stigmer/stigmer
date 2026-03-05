@@ -13,9 +13,10 @@
 package panel
 
 import (
+	"image/color"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 )
 
 // PanelStyle controls the border and title color of the panel.
@@ -158,7 +159,7 @@ func RenderContentRow(text string, contentWidth int, border lipgloss.Style) stri
 }
 
 // ResolveColor maps a PanelStyle to a lipgloss terminal color.
-func ResolveColor(style PanelStyle) lipgloss.TerminalColor {
+func ResolveColor(style PanelStyle) color.Color {
 	switch style {
 	case StyleWarning:
 		return lipgloss.Color("11") // Bright yellow
