@@ -171,9 +171,8 @@ type inlineRenderer struct {
 	expandMode bool
 
 	// history records every item committed to terminal scrollback via
-	// statusf/Println (or direct stderr write for the session header).
-	// Used by the clear+re-commit mechanism to reconstruct the full
-	// session display when the subject resolves or the user toggles
-	// expand/collapse mode via Ctrl+O.
+	// statusf/Println. Used by the clear+re-commit mechanism to
+	// reconstruct the full session display when the subject resolves or
+	// the user toggles expand/collapse mode via Ctrl+O.
 	history []committedItem
 }

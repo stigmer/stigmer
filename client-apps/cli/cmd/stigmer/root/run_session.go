@@ -82,7 +82,6 @@ func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, c
 		Model:      model,
 		Workspaces: wsRoots,
 	}
-	renderSessionHeader(os.Stderr, headerInfo)
 
 	switch phase {
 	case agentexecutionv1.ExecutionPhase_EXECUTION_PENDING,
@@ -121,6 +120,7 @@ func resumeSession(sessionID string, headerInfo sessionHeaderInfo, orgID string,
 
 	switch outputMode {
 	case OutputJSON:
+		renderSessionHeader(os.Stderr, headerInfo)
 		_, exitErr := renderJSON(streamCtx, jsonRenderConfig{
 			events:            events,
 			approvalResponses: approvalResponses,

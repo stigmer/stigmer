@@ -407,14 +407,23 @@ func TestRenderHistoryBatch_MatchesPerItemOutput(t *testing.T) {
 			label = "expanded"
 		}
 		t.Run(label, func(t *testing.T) {
-			var perItem []string
+			var b strings.Builder
+			first := true
 			for _, item := range items {
 				text := renderCommittedItem(item, opts, expanded)
-				if text != "" {
-					perItem = append(perItem, text)
+				if text == "" {
+					continue
 				}
+				if !first {
+					b.WriteByte('\n')
+				}
+				b.WriteString(text)
+				if item.kind == kindHeader {
+					b.WriteByte('\n')
+				}
+				first = false
 			}
-			expected := strings.Join(perItem, "\n")
+			expected := b.String()
 			actual := renderHistoryBatch(items, opts, expanded)
 			assert.Equal(t, expected, actual)
 		})
@@ -449,4 +458,27 @@ func TestRenderHistoryBatch_NilHeader(t *testing.T) {
 	}
 	result := renderHistoryBatch(items, toolrender.CompactOptions{}, false)
 	assert.Equal(t, "after empty header", result)
+}
+
+func TestRenderHistoryBatch_HeaderHasBlankLineGap(t *testing.T) {
+	items := []committedItem{
+		{kind: kindHeader, header: &sessionHeaderInfo{SessionID: "ses-1"}},
+		{kind: kindText, text: "first content"},
+	}
+	result := renderHistoryBatch(items, toolrender.CompactOptions{}, false)
+
+	headerText := renderCommittedItem(items[0], toolrender.CompactOptions{}, false)
+	assert.Equal(t, headerText+"\n\nfirst content", result,
+		"header should be followed by a blank line before the next item")
+}
+
+func TestRenderHistoryBatch_HeaderOnly_NoExtraNewline(t *testing.T) {
+	items := []committedItem{
+		{kind: kindHeader, header: &sessionHeaderInfo{SessionID: "ses-1"}},
+	}
+	result := renderHistoryBatch(items, toolrender.CompactOptions{}, false)
+
+	headerText := renderCommittedItem(items[0], toolrender.CompactOptions{}, false)
+	assert.Equal(t, headerText+"\n", result,
+		"header-only batch should have trailing newline from the gap")
 }
