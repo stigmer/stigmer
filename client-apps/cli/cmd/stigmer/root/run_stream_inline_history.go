@@ -75,7 +75,7 @@ type committedItem struct {
 func renderCommittedItem(item committedItem, opts toolrender.CompactOptions, expanded bool) string {
 	switch item.kind {
 	case kindHeader:
-		return renderHeaderItem(item)
+		return renderHeaderItem(item, expanded)
 	case kindToolCompact:
 		return renderToolCompactItem(item, opts, expanded)
 	case kindReadGroup:
@@ -87,7 +87,7 @@ func renderCommittedItem(item committedItem, opts toolrender.CompactOptions, exp
 	}
 }
 
-func renderHeaderItem(item committedItem) string {
+func renderHeaderItem(item committedItem, expanded bool) string {
 	if item.header == nil {
 		return ""
 	}
@@ -95,8 +95,12 @@ func renderHeaderItem(item committedItem) string {
 	if content == "" {
 		return ""
 	}
+	title := "Stigmer"
+	if expanded {
+		title = "Stigmer · expanded"
+	}
 	return panel.Render(content, panel.Options{
-		Title: "Stigmer",
+		Title: title,
 		Style: panel.StyleDefault,
 	})
 }
@@ -166,9 +170,6 @@ func renderApprovalItem(item committedItem, opts toolrender.CompactOptions) stri
 // and sends it to the Bubbletea model. The model handles the actual
 // ClearScreen + Println sequence atomically. No-op when no program is active
 // (non-TTY, tests).
-//
-// Currently always sends expanded=false (subject update is compact-mode only).
-// Phase 3 will thread the renderer's expand state through this call.
 func (r *inlineRenderer) triggerReCommit() {
 	if r.cfg.program == nil {
 		return
@@ -178,7 +179,7 @@ func (r *inlineRenderer) triggerReCommit() {
 	r.cfg.program.Send(reCommitMsg{
 		items:       snapshot,
 		compactOpts: r.compactOpts,
-		expanded:    false,
+		expanded:    r.expandMode,
 	})
 }
 

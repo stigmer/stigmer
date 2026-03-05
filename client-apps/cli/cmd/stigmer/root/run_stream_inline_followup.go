@@ -38,7 +38,7 @@ func runInlineFollowUpLoop(
 			return latestExecID, phase, exitErr
 		}
 
-		input, err := promptFollowUp(cfg.program, cfg.status)
+		input, err := promptFollowUp(cfg.program, cfg.status, cfg.cancelCh)
 		if err != nil || input == "" {
 			return latestExecID, phase, exitErr
 		}
@@ -64,17 +64,47 @@ func runInlineFollowUpLoop(
 // prompt, and commits the styled human message. Returns the trimmed input and
 // any error. When program is non-nil, rendering and erasure are handled by
 // Bubbletea's View(); otherwise, direct stderr writes with EraseLines.
-func promptFollowUp(program *tea.Program, status io.Writer) (string, error) {
+//
+// When cancelCh is non-nil, Bubbletea owns stdin and text input is collected
+// through the model's handleTextInputKey. When nil, input is read directly
+// from os.Stdin via readStdinLine.
+func promptFollowUp(program *tea.Program, status io.Writer, cancelCh <-chan struct{}) (string, error) {
 	if program != nil {
-		return promptFollowUpViaBubbletea(program)
+		if cancelCh != nil {
+			return promptFollowUpViaChannel(program)
+		}
+		return promptFollowUpViaKeyReader(program)
 	}
 	return promptFollowUpDirect(status)
 }
 
-// promptFollowUpViaBubbletea renders the prompt via Bubbletea's View(), reads
-// a line from stdin, then hides the prompt and commits the styled human
-// message via tea.Println. Bubbletea manages cursor tracking — no EraseLines.
-func promptFollowUpViaBubbletea(program *tea.Program) (string, error) {
+// promptFollowUpViaChannel renders the prompt and reads input through the
+// Bubbletea model when it owns stdin. Sends textInputStartMsg with a prompt
+// and channel, blocks until the model delivers input on Enter.
+func promptFollowUpViaChannel(program *tea.Program) (string, error) {
+	inputCh := make(chan string, 1)
+
+	program.Send(textInputStartMsg{
+		prompt:  formatFollowUpPrompt(),
+		inputCh: inputCh,
+	})
+
+	input := strings.TrimSpace(<-inputCh)
+
+	if input == "" {
+		program.Send(textInputHideMsg{})
+		return "", nil
+	}
+
+	styledMsg := fmt.Sprintf("%s\n\n", formatHumanMessage(input))
+	program.Send(textInputHideMsg{styledMessage: styledMsg})
+	return input, nil
+}
+
+// promptFollowUpViaKeyReader renders the prompt via Bubbletea's View(), reads
+// a line from stdin via readStdinLine, then hides the prompt and commits the
+// styled human message. Legacy path when Bubbletea doesn't own stdin.
+func promptFollowUpViaKeyReader(program *tea.Program) (string, error) {
 	program.Send(followUpShowMsg{content: formatFollowUpPrompt()})
 
 	input, err := readStdinLine()

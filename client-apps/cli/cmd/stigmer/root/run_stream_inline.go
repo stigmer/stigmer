@@ -48,6 +48,22 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, ex
 				cfg.subjectUpdate = nil
 			}
 
+		case <-cfg.toggleExpandCh:
+			r.expandMode = !r.expandMode
+			r.triggerReCommit()
+
+		case <-cfg.cancelCh:
+			r.stopThinkingSpinner()
+			r.flushPendingReads()
+			if r.cfg.cancelExecFn != nil {
+				go r.cfg.cancelExecFn()
+			}
+			r.statusf("\nSession ended by user\n")
+			if r.cfg.sessionID != "" {
+				r.statusf("Resume later with: stigmer run %s\n", r.cfg.sessionID)
+			}
+			return "cancelled", ""
+
 		case event, ok := <-cfg.events:
 			r.stopThinkingSpinner()
 			r.thinkTimer.Stop()

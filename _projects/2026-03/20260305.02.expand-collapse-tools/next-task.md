@@ -14,39 +14,82 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-03-05 05:00
-**Current Task**: T02 — Phase 3 (Ctrl+O Keybinding Wiring)
-**Status**: Ready to begin Phase 3
-**Last Session**: 2026-03-05
+**Current Task**: T02 — Phase 4 (Follow-up and resume support)
+**Status**: Ready to begin Phase 4
+**Last Session**: 2026-03-05 (Session 3)
 
-## Session Progress (2026-03-05, Session 2)
+## Session Progress (2026-03-05, Session 3)
+
+### Completed
+- **T02 Phase 3**: Ctrl+O Keybinding — Full Bubbletea Stdin Ownership — all 4 steps complete
+
+### What Was Built
+
+**Step 3a — Expand mode + toggle channel:**
+- `expandMode bool` on `inlineRenderer`, threaded through `renderToolCompleted`, `flushPendingReads`, `completeStreamingTool`
+- Shared `renderToolLine` helper for mode-aware tool rendering
+- `triggerReCommit` now uses `r.expandMode` instead of hardcoded `false`
+- `toggleExpandCh <-chan struct{}` on `inlineRenderConfig`, wired into event loop select
+- 6 new tests
+
+**Step 3b — Model input infrastructure:**
+- New file `run_stream_inline_keypress.go` — state-based `handleKeyPress` with routing: Ctrl+O (global toggle), approval keys (arrows/enter/1-2-3/esc), text input keys (runes/backspace/enter/ctrl+c/d), idle Ctrl+C (cancel)
+- New message types: `approvalStartMsg`, `approvalDecision`, `textInputStartMsg`, `textInputHideMsg`
+- `newInlineBubbleModelWithChannels` constructor for channel-wired models
+- `View()` updated with `textInputActive` rendering
+- 32 new tests
+
+**Step 3c — Atomic stdin transfer:**
+- `startInlineProgram` removes `tea.WithInput(nil)` when channels are provided — Bubbletea now owns stdin in production TTY mode
+- `toggleExpandCh` and `cancelCh` channels created in `streamAgentInline`, threaded to model and config
+- `promptApprovalViaBubbletea` routes to `promptApprovalViaChannel` (new) or `promptApprovalViaKeyReader` (legacy) based on `cancelCh != nil`
+- `promptFollowUpViaBubbletea` routes to `promptFollowUpViaChannel` (new) or `promptFollowUpViaKeyReader` (legacy)
+- `cancelCh` case in event loop — calls `cancelExecFn` and returns "cancelled"
+
+**Step 3d — Polish:**
+- Session header mode indicator: panel title shows `"Stigmer · expanded"` when in expanded mode
+- Legacy message types (`approvalShowMsg`, `approvalSelectMsg`, `followUpShowMsg`) retained with updated comments documenting fallback role
+- All edge cases verified: toggle during streaming, empty history, rapid Ctrl+O, Ctrl+C during execution
+- `program == nil` paths fully preserved
+
+### Design Decisions (Phase 3)
+1. **Bubbletea owns stdin in TTY mode** — single entity owns the fd, all input routes through `Update()`. Eliminates race conditions between approval prompter, follow-up scanner, and Ctrl+O listener.
+2. **Channel-based decision delivery** — `approvalDecisionCh` and `textInputCh` connect the model's key handlers back to the event loop goroutine. Simple, type-safe, no shared mutable state.
+3. **Legacy path retained** — `approvalShowMsg`/`approvalSelectMsg`/`followUpShowMsg` kept for the `program==nil` fallback (tests, CI, non-TTY, resumed sessions). New flow gated on `cancelCh != nil`.
+4. **Non-blocking toggle send** — `handleToggleExpand` uses a buffered channel with `select`/`default` to avoid blocking the Bubbletea render loop if the event loop is busy.
+5. **Ctrl+C becomes explicit** — raw mode means no OS SIGINT. Idle Ctrl+C sends on `cancelCh`; approval Ctrl+C sends `ErrSessionExit` via decision channel; text input Ctrl+C submits empty string.
+
+### Files Created (2)
+- `client-apps/cli/cmd/stigmer/root/run_stream_inline_keypress.go` — state-based key routing (117 lines)
+- `client-apps/cli/cmd/stigmer/root/run_stream_inline_keypress_test.go` — 32 tests
+
+### Files Modified (14)
+- `run_stream_inline_types.go` — `expandMode`, `toggleExpandCh`, `cancelCh` fields
+- `run_stream_inline_render.go` — `renderToolLine` helper, mode-aware rendering
+- `run_stream_inline_history.go` — `triggerReCommit` uses `expandMode`, header mode indicator
+- `run_stream_inline.go` — event loop toggle + cancel cases
+- `run_stream_inline_bubbletea.go` — model fields, message handlers, `View()` text input
+- `run_stream_inline_messages.go` — new message types
+- `run_stream_inline_streaming.go` — `completeStreamingTool` uses `renderToolLine`
+- `run_stream_inline_approval.go` — channel-based approval flow
+- `run_stream_inline_followup.go` — channel-based text input flow
+- `run_stream.go` — channel creation, wiring, `startInlineProgram` signature
+- `run_stream_inline_bubbletea_test.go` — `startInlineProgram` call updated
+- `run_stream_inline_history_test.go` — header mode indicator test, `renderToolLine` tests
+- `run_stream_inline_test.go` — expand mode + toggle channel tests
+- `BUILD.bazel` — new source and test files
+
+## Previous Session Progress (2026-03-05, Session 2)
 
 ### Completed
 - **T02 Phase 2**: Expanded renderers + re-commit wiring — all 4 steps complete
 
 ### What Was Built
-- `RenderExpanded(tc, opts)` — routes by tool type, delegates to compact for unchanged tools (read, write, delete), uses expanded renderers for shell/think/discovery/unknown
-- `RenderReadGroupExpanded(reads, opts)` — shows ALL entries with no `maxVisibleInGroup` cap
-- 4 internal expanded renderers: `renderExpandedShell`, `renderExpandedThink`, `renderExpandedDiscovery`, `renderExpandedUnknown`
-- `expanded bool` parameter threaded through `renderCommittedItem`, `reCommitHistory`, `reCommitMsg`, and `handleReCommit`
-- 41 new tests in `render_expanded_test.go` + 7 expanded variants in `run_stream_inline_history_test.go`
-
-### Design Decisions (Phase 2)
-1. **Expanded read groups show all entries, no file content** — hyperlinked paths are clickable; showing file content would clutter the view. Expanded mode is a quick scannable list.
-2. **Read/write/delete identical in both modes** — `RenderExpanded` delegates directly to compact renderers for these tools. No truncation to lift.
-3. **Shell/think/discovery/unknown show all output** — truncation limits (`maxShellOutputLines`, `maxThinkLines`, `maxUnknownOutputLines`) are bypassed in expanded mode.
-4. **`triggerReCommit` sends `expanded: false` for now** — subject update is always compact. Phase 3 will thread the actual expand state.
-5. **`CompactOptions` naming deferred** — struct carries general rendering config (hyperlinks, workspace roots) used by both modes. Rename to `RenderOptions` in a future cleanup pass.
-
-### Files Created (2)
-- `client-apps/cli/pkg/toolrender/render_expanded.go` — `RenderExpanded`, `RenderReadGroupExpanded`, 4 internal expanded renderers (196 lines)
-- `client-apps/cli/pkg/toolrender/render_expanded_test.go` — 41 tests covering all tool types in expanded mode
-
-### Files Modified (5)
-- `run_stream_inline_history.go` — `expanded bool` parameter on `renderCommittedItem`, `renderToolCompactItem`, `renderReadGroupItem`, `reCommitHistory`
-- `run_stream_inline_messages.go` — `expanded bool` field on `reCommitMsg`
-- `run_stream_inline_bubbletea.go` — `handleReCommit` passes `msg.expanded` through
-- `run_stream_inline_history_test.go` — 14 existing tests updated with `expanded: false`, 7 new expanded variants added
-- `client-apps/cli/pkg/toolrender/BUILD.bazel` — added `render_expanded.go` and `render_expanded_test.go`
+- `RenderExpanded(tc, opts)` — routes by tool type, delegates to compact for unchanged tools
+- `RenderReadGroupExpanded(reads, opts)` — shows ALL entries with no cap
+- 4 internal expanded renderers: shell, think, discovery, unknown
+- `expanded bool` parameter threaded through `renderCommittedItem`, `reCommitHistory`, `reCommitMsg`, `handleReCommit`
+- 41 new tests + 7 expanded variants
 
 ## Previous Session Progress (2026-03-05, Session 1)
 
@@ -55,32 +98,28 @@ Drop this file into your conversation to quickly resume work on this project.
 - **T02 Phase 1**: Fully implemented — all 7 steps complete
 
 ### Key Decisions Made (Phase 1)
-1. **History lives on `inlineRenderer`**, not the Bubbletea model — synchronous appends, no races
-2. **AI content replayed to stderr** during re-commit — preserves stdout pipe compatibility
-3. **Session header stays as pre-Bubbletea direct write** — renderer stores it as `history[0]` for re-commit only
-4. **Pre-rendered text for mode-invariant items** (AI, system, lifecycle messages); **structured data for mode-variable items** (tool calls, read groups, approvals, header)
-5. **`sessionSubject` dead parameter replaced** with `sessionHeaderInfo` struct threaded through the entire call chain
-
-### Discoveries During Implementation (Phase 1)
-1. **stdout/stderr tension with ClearScreen** — `tea.ClearScreen` erases entire terminal including stdout AI content; resolved by replaying everything to stderr during re-commit
-2. **`resumeSession` bypasses Bubbletea** — subject update irrelevant there (subject already resolved); Phase 4 will need Bubbletea for Ctrl+O
-3. **`sessionSubject` was dead code** — replaced with structured `sessionHeaderInfo`
-4. **BUILD.bazel had phantom file references** — pre-allocated for this work; files now created
+1. History lives on `inlineRenderer`, not the Bubbletea model
+2. AI content replayed to stderr during re-commit
+3. Session header stays as pre-Bubbletea direct write
+4. Pre-rendered text for mode-invariant items; structured data for mode-variable items
+5. `sessionSubject` dead parameter replaced with `sessionHeaderInfo` struct
 
 ## Next Steps
 
-1. **T02 Phase 3**: Ctrl+O keybinding wiring — add `expandMode` to Bubbletea model, Bubbletea owns stdin, Ctrl+O triggers `triggerReCommit` with `expanded: true`
-2. **T02 Phase 4**: Follow-up history recording, resumed session Bubbletea support
-3. **T02 Phase 5**: Performance profiling for long sessions
+1. **T02 Phase 4**: Follow-up history recording, resumed session Bubbletea support
+2. **T02 Phase 5**: Performance profiling for long sessions
+3. Future: per-tool-call expand/collapse (individual toggle, not global)
+4. Future: advanced text input (cursor movement, word deletion, input history)
 
 ## Context for Resume
 
+- Phase 3 plan: `.cursor/plans/phase_3_ctrl+o_toggle_95144a68.plan.md`
 - Phase 2 plan: `.cursor/plans/phase_2_expanded_renderers_8bdf5824.plan.md`
 - Phase 1 plan: `.cursor/plans/phase_1_event_history_0eda7a7b.plan.md`
 - T01 plan: `_projects/2026-03/20260305.02.expand-collapse-tools/tasks/T01_0_plan.md`
 - Two pre-existing test failures (`TestHandleApproval_DoesNotSuppressOnReject`, `TestInlineRenderer_ToolCompleted_ShowsBadge`) are NOT from this work — they fail on the base commit
-- `go vet` passes clean; all new tests pass (41 expanded + 7 history expanded + all existing)
-- Phase 3 requires stdin ownership change — currently `tea.WithInput(nil)`. This intersects with the approval flow (which reads stdin separately). Significant architectural decision needed.
+- `go vet` passes clean; all new tests pass (40+ Phase 3 tests + all existing)
+- The `program == nil` fallback paths (resumed sessions, non-TTY, CI, tests) are fully preserved. New channel-based flow is gated on `cancelCh != nil`.
 
 ## Essential Files to Review
 
@@ -139,7 +178,7 @@ When starting a new session:
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 3" - Resume with Ctrl+O keybinding wiring
+- "Continue with Phase 4" - Resume with follow-up and resume support
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

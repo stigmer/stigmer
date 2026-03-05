@@ -21,7 +21,7 @@ import (
 // giving Bubbletea accurate row tracking for all content committed through
 // Program.Println.
 //
-// Rendering priority in View(): approval > streaming > followUp > spinner > empty.
+// Rendering priority in View(): approval > streaming > textInput > followUp > spinner > empty.
 type inlineBubbleModel struct {
 	spinnerActive bool
 	spinnerFrame  int
@@ -32,6 +32,11 @@ type inlineBubbleModel struct {
 	approvalContent  string // pre-rendered expanded view + question
 	approvalSelected int
 
+	// approvalDecisionCh delivers the user's approval choice back to the
+	// event loop. Set by approvalStartMsg; nil when using the legacy
+	// approvalShowMsg path (program==nil fallback).
+	approvalDecisionCh chan<- approvalDecision
+
 	streamingActive   bool
 	streamingHeader   string
 	streamingContent  string
@@ -41,10 +46,30 @@ type inlineBubbleModel struct {
 
 	followUpActive  bool
 	followUpContent string // pre-rendered prompt (separator + hint + marker)
+
+	// Text input state for follow-up prompts when Bubbletea owns stdin.
+	textInputActive bool
+	textInputBuffer string
+	textInputPrompt string       // pre-rendered prompt portion
+	textInputCh     chan<- string // delivers final input on Enter
+
+	// Channels for communicating with the event loop goroutine. Set during
+	// model initialization when Bubbletea owns stdin. nil otherwise.
+	toggleExpandCh chan<- struct{}
+	cancelCh       chan<- struct{}
 }
 
 func newInlineBubbleModel() inlineBubbleModel {
 	return inlineBubbleModel{}
+}
+
+// newInlineBubbleModelWithChannels creates a model wired to the event loop
+// via channels. Used when Bubbletea owns stdin and processes keystrokes.
+func newInlineBubbleModelWithChannels(toggleCh chan<- struct{}, cancelCh chan<- struct{}) inlineBubbleModel {
+	return inlineBubbleModel{
+		toggleExpandCh: toggleCh,
+		cancelCh:       cancelCh,
+	}
 }
 
 func (m inlineBubbleModel) Init() tea.Cmd {
@@ -53,18 +78,26 @@ func (m inlineBubbleModel) Init() tea.Cmd {
 
 func (m inlineBubbleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		return m.handleKeyPress(msg)
 	case spinnerStartMsg:
 		return m.handleSpinnerStart(msg)
 	case spinnerStopMsg:
 		return m.handleSpinnerStop()
 	case spinnerTickMsg:
 		return m.handleSpinnerTick()
+	case approvalStartMsg:
+		return m.handleApprovalStart(msg)
 	case approvalShowMsg:
 		return m.handleApprovalShow(msg)
 	case approvalSelectMsg:
 		return m.handleApprovalSelect(msg)
 	case approvalHideMsg:
 		return m.handleApprovalHide(msg)
+	case textInputStartMsg:
+		return m.handleTextInputStart(msg)
+	case textInputHideMsg:
+		return m.handleTextInputHide(msg)
 	case streamingShowMsg:
 		return m.handleStreamingShow(msg)
 	case streamingUpdateMsg:
@@ -90,6 +123,9 @@ func (m inlineBubbleModel) View() string {
 			m.streamingHeader, m.streamingContent, m.streamingSubAgent,
 			m.streamingMaxLines, m.streamingWidth,
 		)
+	}
+	if m.textInputActive {
+		return m.textInputPrompt + m.textInputBuffer
 	}
 	if m.followUpActive {
 		return m.followUpContent
@@ -143,6 +179,20 @@ func nextSpinnerTick() tea.Cmd {
 // Approval update handlers
 // ---------------------------------------------------------------------------
 
+// handleApprovalStart activates the approval panel with a decision channel.
+// Used when Bubbletea owns stdin — keystrokes are routed through
+// handleKeyPress instead of the external PromptKeyOnly reader.
+func (m inlineBubbleModel) handleApprovalStart(msg approvalStartMsg) (tea.Model, tea.Cmd) {
+	m.approvalActive = true
+	m.approvalContent = msg.content
+	m.approvalSelected = 0
+	m.approvalDecisionCh = msg.decisionCh
+	m.streamingActive = false
+	m.streamingHeader = ""
+	m.streamingContent = ""
+	return m, nil
+}
+
 func (m inlineBubbleModel) handleApprovalShow(msg approvalShowMsg) (tea.Model, tea.Cmd) {
 	m.approvalActive = true
 	m.approvalContent = msg.content
@@ -162,6 +212,7 @@ func (m inlineBubbleModel) handleApprovalHide(msg approvalHideMsg) (tea.Model, t
 	m.approvalActive = false
 	m.approvalContent = ""
 	m.approvalSelected = 0
+	m.approvalDecisionCh = nil
 	if msg.collapsedResult != "" {
 		return m, tea.Println(strings.TrimRight(msg.collapsedResult, "\n"))
 	}
@@ -213,6 +264,32 @@ func (m inlineBubbleModel) handleFollowUpShow(msg followUpShowMsg) (tea.Model, t
 func (m inlineBubbleModel) handleFollowUpHide(msg followUpHideMsg) (tea.Model, tea.Cmd) {
 	m.followUpActive = false
 	m.followUpContent = ""
+	if msg.styledMessage != "" {
+		return m, tea.Println(strings.TrimRight(msg.styledMessage, "\n"))
+	}
+	return m, nil
+}
+
+// ---------------------------------------------------------------------------
+// Text input update handlers
+// ---------------------------------------------------------------------------
+
+// handleTextInputStart activates the text input mode for follow-up prompts.
+// View() renders the prompt + accumulated buffer. Keystrokes are routed
+// through handleTextInputKey until Enter or Ctrl+C/D delivers the result.
+func (m inlineBubbleModel) handleTextInputStart(msg textInputStartMsg) (tea.Model, tea.Cmd) {
+	m.textInputActive = true
+	m.textInputBuffer = ""
+	m.textInputPrompt = msg.prompt
+	m.textInputCh = msg.inputCh
+	return m, nil
+}
+
+func (m inlineBubbleModel) handleTextInputHide(msg textInputHideMsg) (tea.Model, tea.Cmd) {
+	m.textInputActive = false
+	m.textInputBuffer = ""
+	m.textInputPrompt = ""
+	m.textInputCh = nil
 	if msg.styledMessage != "" {
 		return m, tea.Println(strings.TrimRight(msg.styledMessage, "\n"))
 	}

@@ -1,6 +1,9 @@
 package root
 
-import "github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
+import (
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
+)
 
 // Messages sent from the event loop to the Bubbletea program via Send().
 // Each message type maps to a handler in inlineBubbleModel.Update.
@@ -23,12 +26,19 @@ type spinnerTickMsg struct{}
 // streaming state so the panel replaces it without an intermediate empty
 // frame. The content field contains the pre-rendered expanded view +
 // question; the menu is rendered by View() using the selected index.
+//
+// Used by the program==nil fallback path (direct-write) and retained for
+// backward compatibility. The Bubbletea stdin path uses approvalStartMsg.
 type approvalShowMsg struct {
 	content string
 }
 
 // approvalSelectMsg updates the menu selection index. The event loop sends
 // this from the key reading loop when the user presses an arrow key.
+//
+// Used by the program==nil fallback path (direct-write) and retained for
+// backward compatibility. The Bubbletea stdin path routes arrow keys
+// through handleKeyPress.
 type approvalSelectMsg struct {
 	selected int
 }
@@ -39,6 +49,40 @@ type approvalSelectMsg struct {
 // commit the collapsed one-liner above the (now empty) View region.
 type approvalHideMsg struct {
 	collapsedResult string
+}
+
+// approvalStartMsg activates the approval panel and establishes a channel
+// for the model to deliver the user's decision back to the event loop.
+// The event loop creates the channel, sends this message, then blocks on
+// the channel. handleKeyPress routes arrow/enter/esc keys to the channel
+// when approvalActive is true.
+type approvalStartMsg struct {
+	content    string
+	decisionCh chan<- approvalDecision
+}
+
+// approvalDecision carries the user's approval choice from the model back
+// to the event loop goroutine via the channel in approvalStartMsg.
+type approvalDecision struct {
+	action approval.Action
+	err    error
+}
+
+// textInputStartMsg activates the text input mode for follow-up prompts.
+// The follow-up loop creates the channel, sends this message, then blocks
+// on the channel. handleKeyPress accumulates runes in textInputBuffer and
+// delivers the final string on Enter.
+type textInputStartMsg struct {
+	prompt  string
+	inputCh chan<- string
+}
+
+// textInputHideMsg deactivates text input mode. View() returns "" on the
+// next render, causing Bubbletea to erase the prompt area. When
+// styledMessage is non-empty, Update returns a tea.Println Cmd to commit
+// the formatted user message.
+type textInputHideMsg struct {
+	styledMessage string
 }
 
 // streamingShowMsg tells the model to render streaming content in View().
@@ -71,6 +115,9 @@ type streamingHideMsg struct {
 // The follow-up loop sends this after an execution completes and the user is
 // eligible to continue the conversation. The content field is the pre-rendered
 // prompt string (separator + hint + marker).
+//
+// Used by the legacy promptFollowUpViaKeyReader path when Bubbletea does not
+// own stdin. The channel-based path uses textInputStartMsg instead.
 type followUpShowMsg struct {
 	content string
 }
@@ -86,8 +133,8 @@ type followUpHideMsg struct {
 // reCommitMsg carries a snapshot of the renderer's history for full terminal
 // reconstruction. The model handles this by returning tea.Sequence(ClearScreen,
 // Println, Println, ...) to atomically clear and replay all committed output.
-// Sent by the renderer when the session header subject is resolved or (future)
-// the user toggles compact/expanded mode.
+// Sent by the renderer when the session header subject resolves or the user
+// toggles compact/expanded mode via Ctrl+O.
 type reCommitMsg struct {
 	items       []committedItem
 	compactOpts toolrender.CompactOptions
