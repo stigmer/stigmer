@@ -17,7 +17,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 )
 
 // ToolCallInfo holds the primitive fields needed to render a tool call.

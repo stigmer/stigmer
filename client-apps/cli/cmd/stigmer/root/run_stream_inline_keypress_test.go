@@ -3,7 +3,7 @@ package root
 import (
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -18,7 +18,7 @@ func TestHandleKeyPress_CtrlO_SendsOnToggleCh(t *testing.T) {
 	toggleCh := make(chan struct{}, 1)
 	m := newInlineBubbleModelWithChannels(toggleCh, nil)
 
-	m.Update(tea.KeyMsg{Type: tea.KeyCtrlO})
+	m.Update(tea.KeyPressMsg{Code: 'o', Mod: tea.ModCtrl})
 
 	select {
 	case <-toggleCh:
@@ -34,7 +34,7 @@ func TestHandleKeyPress_CtrlO_DuringApproval_StillToggles(t *testing.T) {
 	m.approvalActive = true
 	m.approvalDecisionCh = decisionCh
 
-	m.Update(tea.KeyMsg{Type: tea.KeyCtrlO})
+	m.Update(tea.KeyPressMsg{Code: 'o', Mod: tea.ModCtrl})
 
 	select {
 	case <-toggleCh:
@@ -56,7 +56,7 @@ func TestHandleKeyPress_CtrlO_DuringTextInput_StillToggles(t *testing.T) {
 	m.textInputActive = true
 	m.textInputCh = inputCh
 
-	m.Update(tea.KeyMsg{Type: tea.KeyCtrlO})
+	m.Update(tea.KeyPressMsg{Code: 'o', Mod: tea.ModCtrl})
 
 	select {
 	case <-toggleCh:
@@ -74,7 +74,7 @@ func TestHandleKeyPress_CtrlO_DuringTextInput_StillToggles(t *testing.T) {
 func TestHandleKeyPress_CtrlO_NilChannel_NoPanic(t *testing.T) {
 	m := newInlineBubbleModel()
 	assert.NotPanics(t, func() {
-		m.Update(tea.KeyMsg{Type: tea.KeyCtrlO})
+		m.Update(tea.KeyPressMsg{Code: 'o', Mod: tea.ModCtrl})
 	})
 }
 
@@ -89,7 +89,7 @@ func TestHandleApprovalKey_ArrowDown_IncrementsSelected(t *testing.T) {
 	m.approvalDecisionCh = decisionCh
 	m.approvalSelected = 0
 
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyDown})
+	updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyDown})
 	model := updated.(inlineBubbleModel)
 	assert.Equal(t, 1, model.approvalSelected)
 }
@@ -101,7 +101,7 @@ func TestHandleApprovalKey_ArrowUp_DecrementsSelected(t *testing.T) {
 	m.approvalDecisionCh = decisionCh
 	m.approvalSelected = 2
 
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyUp})
+	updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyUp})
 	model := updated.(inlineBubbleModel)
 	assert.Equal(t, 1, model.approvalSelected)
 }
@@ -113,7 +113,7 @@ func TestHandleApprovalKey_ArrowUp_ClampsAtZero(t *testing.T) {
 	m.approvalDecisionCh = decisionCh
 	m.approvalSelected = 0
 
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyUp})
+	updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyUp})
 	model := updated.(inlineBubbleModel)
 	assert.Equal(t, 0, model.approvalSelected)
 }
@@ -125,7 +125,7 @@ func TestHandleApprovalKey_ArrowDown_ClampsAtMax(t *testing.T) {
 	m.approvalDecisionCh = decisionCh
 	m.approvalSelected = 2
 
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyDown})
+	updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyDown})
 	model := updated.(inlineBubbleModel)
 	assert.Equal(t, 2, model.approvalSelected)
 }
@@ -147,7 +147,7 @@ func TestHandleApprovalKey_Enter_SendsSelectedAction(t *testing.T) {
 		m.approvalDecisionCh = decisionCh
 		m.approvalSelected = tt.selected
 
-		m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+		m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 
 		d := <-decisionCh
 		assert.Equal(t, tt.expected, d.action)
@@ -171,7 +171,7 @@ func TestHandleApprovalKey_NumberKeys_SendDirectAction(t *testing.T) {
 		m.approvalActive = true
 		m.approvalDecisionCh = decisionCh
 
-		m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(tt.key)})
+		m.Update(tea.KeyPressMsg{Code: rune(tt.key[0]), Text: tt.key})
 
 		d := <-decisionCh
 		assert.Equal(t, tt.expected, d.action)
@@ -184,7 +184,7 @@ func TestHandleApprovalKey_Esc_SendsSessionExit(t *testing.T) {
 	m.approvalActive = true
 	m.approvalDecisionCh = decisionCh
 
-	m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m.Update(tea.KeyPressMsg{Code: tea.KeyEsc})
 
 	d := <-decisionCh
 	assert.ErrorIs(t, d.err, approval.ErrSessionExit)
@@ -196,7 +196,7 @@ func TestHandleApprovalKey_CtrlC_SendsSessionExit(t *testing.T) {
 	m.approvalActive = true
 	m.approvalDecisionCh = decisionCh
 
-	m.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
+	m.Update(tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtrl})
 
 	d := <-decisionCh
 	assert.ErrorIs(t, d.err, approval.ErrSessionExit)
@@ -212,7 +212,7 @@ func TestHandleTextInputKey_Runes_AppendToBuffer(t *testing.T) {
 	m.textInputActive = true
 	m.textInputCh = inputCh
 
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("hello")})
+	updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyExtended, Text: "hello"})
 	model := updated.(inlineBubbleModel)
 	assert.Equal(t, "hello", model.textInputBuffer)
 }
@@ -224,7 +224,7 @@ func TestHandleTextInputKey_Space_AppendsSpace(t *testing.T) {
 	m.textInputCh = inputCh
 	m.textInputBuffer = "hello"
 
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeySpace})
+	updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeySpace})
 	model := updated.(inlineBubbleModel)
 	assert.Equal(t, "hello ", model.textInputBuffer)
 }
@@ -236,7 +236,7 @@ func TestHandleTextInputKey_Backspace_RemovesLastRune(t *testing.T) {
 	m.textInputCh = inputCh
 	m.textInputBuffer = "hello"
 
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyBackspace})
+	updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyBackspace})
 	model := updated.(inlineBubbleModel)
 	assert.Equal(t, "hell", model.textInputBuffer)
 }
@@ -248,7 +248,7 @@ func TestHandleTextInputKey_Backspace_EmptyBuffer_NoPanic(t *testing.T) {
 	m.textInputCh = inputCh
 
 	assert.NotPanics(t, func() {
-		updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyBackspace})
+		updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyBackspace})
 		model := updated.(inlineBubbleModel)
 		assert.Equal(t, "", model.textInputBuffer)
 	})
@@ -261,7 +261,7 @@ func TestHandleTextInputKey_Backspace_MultibyteRune(t *testing.T) {
 	m.textInputCh = inputCh
 	m.textInputBuffer = "hello 世界"
 
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyBackspace})
+	updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyBackspace})
 	model := updated.(inlineBubbleModel)
 	assert.Equal(t, "hello 世", model.textInputBuffer)
 }
@@ -273,7 +273,7 @@ func TestHandleTextInputKey_Enter_SubmitsBuffer(t *testing.T) {
 	m.textInputCh = inputCh
 	m.textInputBuffer = "fix the bug"
 
-	m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 
 	result := <-inputCh
 	assert.Equal(t, "fix the bug", result)
@@ -286,7 +286,7 @@ func TestHandleTextInputKey_CtrlC_SubmitsEmpty(t *testing.T) {
 	m.textInputCh = inputCh
 	m.textInputBuffer = "partial input"
 
-	m.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
+	m.Update(tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtrl})
 
 	result := <-inputCh
 	assert.Equal(t, "", result)
@@ -299,7 +299,7 @@ func TestHandleTextInputKey_CtrlD_SubmitsEmpty(t *testing.T) {
 	m.textInputCh = inputCh
 	m.textInputBuffer = "partial input"
 
-	m.Update(tea.KeyMsg{Type: tea.KeyCtrlD})
+	m.Update(tea.KeyPressMsg{Code: 'd', Mod: tea.ModCtrl})
 
 	result := <-inputCh
 	assert.Equal(t, "", result)
@@ -313,7 +313,7 @@ func TestHandleIdleKey_CtrlC_SendsOnCancelCh(t *testing.T) {
 	cancelCh := make(chan struct{}, 1)
 	m := newInlineBubbleModelWithChannels(nil, cancelCh)
 
-	m.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
+	m.Update(tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtrl})
 
 	select {
 	case <-cancelCh:
@@ -325,7 +325,7 @@ func TestHandleIdleKey_CtrlC_SendsOnCancelCh(t *testing.T) {
 func TestHandleIdleKey_CtrlC_NilChannel_NoPanic(t *testing.T) {
 	m := newInlineBubbleModel()
 	assert.NotPanics(t, func() {
-		m.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
+		m.Update(tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtrl})
 	})
 }
 
@@ -333,7 +333,7 @@ func TestHandleIdleKey_OtherKeys_Ignored(t *testing.T) {
 	cancelCh := make(chan struct{}, 1)
 	m := newInlineBubbleModelWithChannels(nil, cancelCh)
 
-	m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("x")})
+	m.Update(tea.KeyPressMsg{Code: 'x', Text: "x"})
 
 	select {
 	case <-cancelCh:
@@ -428,7 +428,7 @@ func TestView_TextInputActive_ShowsPromptAndBuffer(t *testing.T) {
 	m.textInputBuffer = "hello world"
 
 	view := m.View()
-	assert.Equal(t, "> hello world", view)
+	assert.Equal(t, "> hello world", view.Content)
 }
 
 func TestView_TextInputActive_EmptyBuffer(t *testing.T) {
@@ -437,7 +437,7 @@ func TestView_TextInputActive_EmptyBuffer(t *testing.T) {
 	m.textInputPrompt = "> "
 
 	view := m.View()
-	assert.Equal(t, "> ", view)
+	assert.Equal(t, "> ", view.Content)
 }
 
 func TestView_TextInput_TakesPrecedenceOverFollowUp(t *testing.T) {
@@ -448,8 +448,8 @@ func TestView_TextInput_TakesPrecedenceOverFollowUp(t *testing.T) {
 	m.followUpContent = "old follow-up"
 
 	view := m.View()
-	assert.Equal(t, "> ", view)
-	assert.NotContains(t, view, "old follow-up")
+	assert.Equal(t, "> ", view.Content)
+	assert.NotContains(t, view.Content, "old follow-up")
 }
 
 // =============================================================================

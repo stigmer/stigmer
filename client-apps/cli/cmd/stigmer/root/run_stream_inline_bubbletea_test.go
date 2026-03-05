@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
@@ -26,14 +26,14 @@ func TestInlineBubbleModel_Init_ReturnsNil(t *testing.T) {
 
 func TestInlineBubbleModel_View_ReturnsEmpty(t *testing.T) {
 	m := newInlineBubbleModel()
-	if v := m.View(); v != "" {
-		t.Errorf("View() should return empty string, got %q", v)
+	if v := m.View(); v.Content != "" {
+		t.Errorf("View() should return empty content, got %q", v.Content)
 	}
 }
 
 func TestInlineBubbleModel_Update_PassThrough(t *testing.T) {
 	m := newInlineBubbleModel()
-	updated, cmd := m.Update(tea.KeyMsg{})
+	updated, cmd := m.Update(tea.KeyPressMsg{})
 	if cmd != nil {
 		t.Error("Update() should return nil cmd")
 	}
@@ -117,7 +117,7 @@ func TestInlineBubbleModel_View_SpinnerActive(t *testing.T) {
 	started, _ := m.Update(spinnerStartMsg{label: "Thinking..."})
 	model := started.(inlineBubbleModel)
 
-	v := model.View()
+	v := model.View().Content
 	if v == "" {
 		t.Fatal("View() should return non-empty string when spinner is active")
 	}
@@ -131,7 +131,7 @@ func TestInlineBubbleModel_View_SpinnerActive(t *testing.T) {
 
 func TestInlineBubbleModel_View_SpinnerInactive(t *testing.T) {
 	m := newInlineBubbleModel()
-	if v := m.View(); v != "" {
+	if v := m.View().Content; v != "" {
 		t.Errorf("View() should return empty string when spinner is inactive, got %q", v)
 	}
 }
@@ -241,7 +241,7 @@ func TestInlineBubbleModel_View_ApprovalActive_ShowsQuestionAndMenu(t *testing.T
 	shown, _ := m.Update(approvalShowMsg{question: "Do you want to create config.go?"})
 	model := shown.(inlineBubbleModel)
 
-	v := model.View()
+	v := model.View().Content
 	if !strings.Contains(v, "Do you want to create config.go?") {
 		t.Errorf("View() with approval active should contain question, got %q", v)
 	}
@@ -256,7 +256,7 @@ func TestInlineBubbleModel_View_ApprovalPriorityOverSpinner(t *testing.T) {
 	shown, _ := started.Update(approvalShowMsg{question: "approval question"})
 	model := shown.(inlineBubbleModel)
 
-	v := model.View()
+	v := model.View().Content
 	if strings.Contains(v, "Thinking...") {
 		t.Error("approval panel should take priority over spinner in View()")
 	}
@@ -454,7 +454,7 @@ func TestInlineBubbleModel_View_StreamingActive_ShowsHeader(t *testing.T) {
 	shown, _ := m.Update(streamingShowMsg{header: "─── Write(main.go) ───\n", maxLines: 30, width: 80})
 	model := shown.(inlineBubbleModel)
 
-	v := model.View()
+	v := model.View().Content
 	if !strings.Contains(v, "Write(main.go)") {
 		t.Errorf("View() with streaming active should contain header, got %q", v)
 	}
@@ -466,7 +466,7 @@ func TestInlineBubbleModel_View_StreamingWithContent(t *testing.T) {
 	updated, _ := shown.Update(streamingUpdateMsg{content: "package main\n"})
 	model := updated.(inlineBubbleModel)
 
-	v := model.View()
+	v := model.View().Content
 	if !strings.Contains(v, "header") {
 		t.Errorf("View() should contain header, got %q", v)
 	}
@@ -482,7 +482,7 @@ func TestInlineBubbleModel_View_ApprovalPriorityOverStreaming(t *testing.T) {
 	approved, _ := updated.Update(approvalShowMsg{question: "approval question"})
 	model := approved.(inlineBubbleModel)
 
-	v := model.View()
+	v := model.View().Content
 	if strings.Contains(v, "streaming") {
 		t.Error("approval panel should take priority over streaming in View()")
 	}
@@ -515,7 +515,7 @@ func TestInlineBubbleModel_View_StreamingPriorityOverSpinner(t *testing.T) {
 	streamed, _ := started.Update(streamingShowMsg{header: "streaming\n", maxLines: 0, width: 80})
 	model := streamed.(inlineBubbleModel)
 
-	v := model.View()
+	v := model.View().Content
 	if strings.Contains(v, "Thinking...") {
 		t.Error("streaming should take priority over spinner in View()")
 	}
@@ -580,7 +580,7 @@ func TestInlineBubbleModel_View_FollowUpActive_ShowsPrompt(t *testing.T) {
 	shown, _ := m.Update(followUpShowMsg{content: "\n───\n  enter send\n> "})
 	model := shown.(inlineBubbleModel)
 
-	v := model.View()
+	v := model.View().Content
 	if !strings.Contains(v, "───") {
 		t.Errorf("View() with followUp active should contain separator, got %q", v)
 	}
@@ -598,7 +598,7 @@ func TestInlineBubbleModel_View_FollowUpPriorityOverSpinner(t *testing.T) {
 	shown, _ := started.Update(followUpShowMsg{content: "follow-up prompt"})
 	model := shown.(inlineBubbleModel)
 
-	v := model.View()
+	v := model.View().Content
 	if strings.Contains(v, "Thinking...") {
 		t.Error("follow-up prompt should take priority over spinner in View()")
 	}
@@ -613,7 +613,7 @@ func TestInlineBubbleModel_View_ApprovalPriorityOverFollowUp(t *testing.T) {
 	approved, _ := shown.Update(approvalShowMsg{question: "approval question"})
 	model := approved.(inlineBubbleModel)
 
-	v := model.View()
+	v := model.View().Content
 	if strings.Contains(v, "follow-up prompt") {
 		t.Error("approval panel should take priority over follow-up prompt in View()")
 	}
@@ -628,7 +628,7 @@ func TestInlineBubbleModel_View_StreamingPriorityOverFollowUp(t *testing.T) {
 	streamed, _ := shown.Update(streamingShowMsg{header: "streaming\n", maxLines: 0, width: 80})
 	model := streamed.(inlineBubbleModel)
 
-	v := model.View()
+	v := model.View().Content
 	if strings.Contains(v, "follow-up prompt") {
 		t.Error("streaming should take priority over follow-up prompt in View()")
 	}

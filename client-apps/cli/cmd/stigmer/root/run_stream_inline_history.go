@@ -3,7 +3,7 @@ package root
 import (
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/panel"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"

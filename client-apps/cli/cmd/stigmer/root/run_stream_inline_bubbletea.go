@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
@@ -85,7 +85,7 @@ func (m inlineBubbleModel) Init() tea.Cmd {
 
 func (m inlineBubbleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		return m.handleKeyPress(msg)
 	case spinnerStartMsg:
 		return m.handleSpinnerStart(msg)
@@ -127,34 +127,34 @@ func (m inlineBubbleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m inlineBubbleModel) View() string {
-	if m.approvalActive {
-		return m.approvalContent + approval.RenderMenuForView(m.approvalSelected)
-	}
-	if m.streamingActive {
-		return formatStreamingView(
+func (m inlineBubbleModel) View() tea.View {
+	var content string
+	switch {
+	case m.approvalActive:
+		content = m.approvalContent + approval.RenderMenuForView(m.approvalSelected)
+	case m.streamingActive:
+		content = formatStreamingView(
 			m.streamingHeader, m.streamingContent, m.streamingSubAgent,
 			m.streamingMaxLines, m.streamingWidth,
 		)
+	case m.textInputActive:
+		content = m.textInputPrompt + m.textInputBuffer
+	case m.followUpActive:
+		content = m.followUpContent
+	case m.aiStreamActive:
+		content = m.aiStreamPartial
+	case !m.spinnerActive:
+		content = ""
+	default:
+		frame := spinner.Frames[m.spinnerFrame%len(spinner.Frames)]
+		elapsed := spinner.FormatElapsed(time.Since(m.spinnerStart))
+		if elapsed != "" {
+			content = fmt.Sprintf("%s %s %s", frame, m.spinnerLabel, elapsed)
+		} else {
+			content = fmt.Sprintf("%s %s", frame, m.spinnerLabel)
+		}
 	}
-	if m.textInputActive {
-		return m.textInputPrompt + m.textInputBuffer
-	}
-	if m.followUpActive {
-		return m.followUpContent
-	}
-	if m.aiStreamActive {
-		return m.aiStreamPartial
-	}
-	if !m.spinnerActive {
-		return ""
-	}
-	frame := spinner.Frames[m.spinnerFrame%len(spinner.Frames)]
-	elapsed := spinner.FormatElapsed(time.Since(m.spinnerStart))
-	if elapsed != "" {
-		return fmt.Sprintf("%s %s %s", frame, m.spinnerLabel, elapsed)
-	}
-	return fmt.Sprintf("%s %s", frame, m.spinnerLabel)
+	return tea.NewView(content)
 }
 
 // ---------------------------------------------------------------------------

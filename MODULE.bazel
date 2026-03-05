@@ -32,9 +32,11 @@ use_repo(
     "com_github_aws_aws_sdk_go_v2_config",
     "com_github_aws_aws_sdk_go_v2_credentials",
     "com_github_aws_aws_sdk_go_v2_service_s3",
-    "com_github_charmbracelet_bubbles",  # keep: Required for CLI UI components
-    "com_github_charmbracelet_bubbletea",  # keep: Required for CLI TUI framework
-    "com_github_charmbracelet_lipgloss",  # keep: Required for CLI styling
+    "com_github_charmbracelet_x_ansi",  # keep: Required for CLI ANSI handling (unchanged - not charm.land)
+    "land_charm_bubbles_v2",  # keep: Required for CLI UI components (spinner, textinput)
+    "land_charm_bubbletea_v2",  # keep: Required for CLI TUI framework
+    "land_charm_glamour_v2",  # keep: Required for CLI markdown rendering
+    "land_charm_lipgloss_v2",  # keep: Required for CLI styling
     "com_github_fatih_color",  # keep: Required for CLI colored output
     "com_github_fullstorydev_grpcurl",
     "com_github_go_git_go_git_v5",  # keep: Required for gitignore pattern matching in pkg/ignore

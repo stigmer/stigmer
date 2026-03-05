@@ -3,7 +3,7 @@ package root
 import (
 	"unicode/utf8"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 )
@@ -11,7 +11,7 @@ import (
 // handleKeyPress routes keystrokes based on the model's current UI state.
 // Ctrl+O is a global toggle that works in all states. Other keys are
 // dispatched to state-specific handlers.
-func (m inlineBubbleModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m inlineBubbleModel) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if msg.String() == "ctrl+o" {
 		return m.handleToggleExpand()
 	}
@@ -42,7 +42,7 @@ func (m inlineBubbleModel) handleToggleExpand() (tea.Model, tea.Cmd) {
 // handleApprovalKey processes keystrokes during the approval prompt.
 // Arrow keys update the selection index. Enter and number keys deliver
 // the decision via approvalDecisionCh. Esc/Ctrl+C signal session exit.
-func (m inlineBubbleModel) handleApprovalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m inlineBubbleModel) handleApprovalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "up":
 		if m.approvalSelected > 0 {
@@ -70,28 +70,30 @@ func (m inlineBubbleModel) handleApprovalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd
 // handleTextInputKey processes keystrokes during follow-up text input.
 // Runes are appended to the buffer. Backspace removes the last rune.
 // Enter submits the buffer. Ctrl+D and Ctrl+C submit empty (exit).
-func (m inlineBubbleModel) handleTextInputKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.Type {
-	case tea.KeyRunes:
-		m.textInputBuffer += string(msg.Runes)
-	case tea.KeySpace:
-		m.textInputBuffer += " "
-	case tea.KeyBackspace:
+func (m inlineBubbleModel) handleTextInputKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "backspace":
 		if len(m.textInputBuffer) > 0 {
 			_, size := utf8.DecodeLastRuneInString(m.textInputBuffer)
 			m.textInputBuffer = m.textInputBuffer[:len(m.textInputBuffer)-size]
 		}
-	case tea.KeyEnter:
+	case "enter":
 		m.textInputCh <- m.textInputBuffer
-	case tea.KeyCtrlD, tea.KeyCtrlC:
+	case "ctrl+d", "ctrl+c":
 		m.textInputCh <- ""
+	case "space":
+		m.textInputBuffer += " "
+	default:
+		if msg.Text != "" {
+			m.textInputBuffer += msg.Text
+		}
 	}
 	return m, nil
 }
 
 // handleIdleKey processes keystrokes when no interactive prompt is active.
 // Ctrl+C sends a cancel signal to the event loop.
-func (m inlineBubbleModel) handleIdleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m inlineBubbleModel) handleIdleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if msg.String() == "ctrl+c" && m.cancelCh != nil {
 		select {
 		case m.cancelCh <- struct{}{}:
