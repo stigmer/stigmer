@@ -36,3 +36,13 @@ var ErrSessionExit = errors.New("session exit requested by user")
 // ErrNonInteractiveNoDefault indicates non-interactive mode was requested
 // but no DefaultAction was specified in Options.
 var ErrNonInteractiveNoDefault = errors.New("non-interactive mode requires default action")
+
+// resolveNonInteractive returns the default decision when interactive
+// prompting is skipped (non-interactive flag, no TTY, non-terminal fd).
+// Shared by InteractivePrompter and InlinePrompter.
+func resolveNonInteractive(opts Options) (*Decision, error) {
+	if opts.DefaultAction == ActionUnspecified {
+		return nil, ErrNonInteractiveNoDefault
+	}
+	return &Decision{Action: opts.DefaultAction}, nil
+}

@@ -21,7 +21,7 @@ var inlineChoices = []struct {
 	action Action
 	label  string
 }{
-	{ActionApprove, "Yes"},
+	{ActionApprove, "Approve"},
 	{ActionSkip, "Skip"},
 	{ActionReject, "Reject"},
 }
@@ -86,7 +86,7 @@ func (p *InlinePrompter) PromptWithLineCount(ctx context.Context, opts Options) 
 	defer term.Restore(p.fd, oldState)
 
 	selected := 0
-	menu := RenderMenu(selected)
+	menu := RenderMenu(selected, false)
 	fmt.Fprint(p.out, menu)
 
 	for {
@@ -189,46 +189,28 @@ func (p *InlinePrompter) ensureKeyReader() {
 }
 
 func handleNonInteractiveInline(opts Options) (*Decision, int, error) {
-	if opts.DefaultAction == ActionUnspecified {
-		return nil, 0, ErrNonInteractiveNoDefault
-	}
-	return &Decision{Action: opts.DefaultAction}, 0, nil
+	d, err := resolveNonInteractive(opts)
+	return d, 0, err
 }
 
 // RenderMenu builds the 4-line vertical menu string for the given
-// selection index. The output has no trailing newline — the caller
-// writes it as-is and tracks the line count via the menuLines constant.
-//
-// Exported so the Bubbletea model can render the menu in View() during
-// the approval flow (Phase 4).
-func RenderMenu(selected int) string {
-	var b strings.Builder
-	for i, choice := range inlineChoices {
-		if i == selected {
-			b.WriteString(selectedStyle.Render(fmt.Sprintf("  > %s", choice.label)))
-		} else {
-			b.WriteString(unselectedStyle.Render(fmt.Sprintf("    %s", choice.label)))
-		}
-		b.WriteString("\r\n")
+// selection index. When forView is true, lines are separated by \n
+// (correct for Bubbletea's View() which handles raw-mode translation).
+// When false, lines use \r\n for direct terminal writes in raw mode.
+func RenderMenu(selected int, forView bool) string {
+	lineEnd := "\r\n"
+	if forView {
+		lineEnd = "\n"
 	}
-	b.WriteString(hintStyle.Render("  ↑↓/1-3 select · esc/ctrl+c exit"))
-	return b.String()
-}
 
-// RenderMenuForView builds the 4-line vertical menu string for Bubbletea's
-// View() function. Uses \n line endings (Bubbletea handles raw-mode
-// translation internally). The existing RenderMenu uses \r\n which is
-// correct for direct terminal writes but causes rendering artifacts in
-// View() where each \r overwrites the previous option.
-func RenderMenuForView(selected int) string {
 	var b strings.Builder
 	for i, choice := range inlineChoices {
 		if i == selected {
-			b.WriteString(selectedStyle.Render(fmt.Sprintf("  > %s", choice.label)))
+			b.WriteString(selectedStyle.Render(fmt.Sprintf("  ▸ %s", choice.label)))
 		} else {
 			b.WriteString(unselectedStyle.Render(fmt.Sprintf("    %s", choice.label)))
 		}
-		b.WriteByte('\n')
+		b.WriteString(lineEnd)
 	}
 	b.WriteString(hintStyle.Render("  ↑↓/1-3 select · esc/ctrl+c exit"))
 	return b.String()
@@ -239,7 +221,7 @@ func RenderMenuForView(selected int) string {
 // Used by PromptWithLineCount (the legacy direct-write path).
 func rerenderMenu(w io.Writer, selected int) {
 	termctl.EraseLines(w, menuLines)
-	fmt.Fprint(w, RenderMenu(selected))
+	fmt.Fprint(w, RenderMenu(selected, false))
 }
 
 var (

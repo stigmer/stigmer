@@ -245,7 +245,7 @@ func TestInlineBubbleModel_View_ApprovalActive_ShowsQuestionAndMenu(t *testing.T
 	if !strings.Contains(v, "Do you want to create config.go?") {
 		t.Errorf("View() with approval active should contain question, got %q", v)
 	}
-	if !strings.Contains(v, "Yes") || !strings.Contains(v, "Skip") || !strings.Contains(v, "Reject") {
+	if !strings.Contains(v, "Approve") || !strings.Contains(v, "Skip") || !strings.Contains(v, "Reject") {
 		t.Errorf("View() with approval active should contain menu choices, got %q", v)
 	}
 }

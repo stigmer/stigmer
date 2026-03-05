@@ -21,34 +21,34 @@ var _ Prompter = (*InlinePrompter)(nil)
 // =============================================================================
 
 func TestRenderMenu_DefaultSelection(t *testing.T) {
-	menu := RenderMenu(0)
-	if !strings.Contains(menu, "> Yes") {
-		t.Error("expected '> Yes' indicator for first selection")
+	menu := RenderMenu(0, false)
+	if !strings.Contains(menu, "▸ Approve") {
+		t.Error("expected '▸ Approve' indicator for first selection")
 	}
-	if strings.Contains(menu, "> Skip") || strings.Contains(menu, "> Reject") {
+	if strings.Contains(menu, "▸ Skip") || strings.Contains(menu, "▸ Reject") {
 		t.Error("only first item should have selection indicator")
 	}
 }
 
 func TestRenderMenu_SecondSelection(t *testing.T) {
-	menu := RenderMenu(1)
-	if !strings.Contains(menu, "> Skip") {
-		t.Error("expected '> Skip' indicator for second selection")
+	menu := RenderMenu(1, false)
+	if !strings.Contains(menu, "▸ Skip") {
+		t.Error("expected '▸ Skip' indicator for second selection")
 	}
-	if strings.Contains(menu, "> Yes") {
+	if strings.Contains(menu, "▸ Approve") {
 		t.Error("first item should not have selection indicator")
 	}
 }
 
 func TestRenderMenu_ThirdSelection(t *testing.T) {
-	menu := RenderMenu(2)
-	if !strings.Contains(menu, "> Reject") {
-		t.Error("expected '> Reject' indicator for third selection")
+	menu := RenderMenu(2, false)
+	if !strings.Contains(menu, "▸ Reject") {
+		t.Error("expected '▸ Reject' indicator for third selection")
 	}
 }
 
 func TestRenderMenu_ContainsHint(t *testing.T) {
-	menu := RenderMenu(0)
+	menu := RenderMenu(0, false)
 	for _, fragment := range []string{"select", "esc/ctrl+c exit"} {
 		if !strings.Contains(menu, fragment) {
 			t.Errorf("expected hint to contain %q", fragment)
@@ -57,8 +57,8 @@ func TestRenderMenu_ContainsHint(t *testing.T) {
 }
 
 func TestRenderMenu_ContainsAllLabels(t *testing.T) {
-	menu := RenderMenu(0)
-	for _, label := range []string{"Yes", "Skip", "Reject"} {
+	menu := RenderMenu(0, false)
+	for _, label := range []string{"Approve", "Skip", "Reject"} {
 		if !strings.Contains(menu, label) {
 			t.Errorf("menu missing label %q", label)
 		}
@@ -66,7 +66,7 @@ func TestRenderMenu_ContainsAllLabels(t *testing.T) {
 }
 
 func TestRenderMenu_LineCount(t *testing.T) {
-	menu := RenderMenu(0)
+	menu := RenderMenu(0, false)
 	lines := strings.Split(menu, "\r\n")
 	// 3 choice lines end with \r\n; the hint line has no trailing \r\n,
 	// so Split produces 4 segments (3 choices + remainder with hint).
@@ -441,7 +441,7 @@ func TestPromptKeyOnly_NonTTY_NoDefault(t *testing.T) {
 // =============================================================================
 
 func TestRenderMenu_Exported_MatchesMenuLines(t *testing.T) {
-	menu := RenderMenu(0)
+	menu := RenderMenu(0, false)
 	lines := strings.Split(menu, "\r\n")
 	if len(lines) != menuLines {
 		t.Errorf("RenderMenu produced %d segments, want %d", len(lines), menuLines)
@@ -449,23 +449,23 @@ func TestRenderMenu_Exported_MatchesMenuLines(t *testing.T) {
 }
 
 // =============================================================================
-// RenderMenuForView (exported — Bubbletea View() path)
+// RenderMenu forView=true (Bubbletea View() path)
 // =============================================================================
 
 func TestRenderMenuForView_UsesNewlineNotCRLF(t *testing.T) {
-	menu := RenderMenuForView(0)
+	menu := RenderMenu(0, true)
 	if strings.Contains(menu, "\r\n") {
-		t.Error("RenderMenuForView should use \\n, not \\r\\n")
+		t.Error("RenderMenu(forView=true) should use \\n, not \\r\\n")
 	}
 	if !strings.Contains(menu, "\n") {
-		t.Error("RenderMenuForView should contain newlines")
+		t.Error("RenderMenu(forView=true) should contain newlines")
 	}
 }
 
 func TestRenderMenuForView_ContainsAllChoices(t *testing.T) {
-	menu := RenderMenuForView(0)
-	if !strings.Contains(menu, "Yes") {
-		t.Error("expected Yes choice")
+	menu := RenderMenu(0, true)
+	if !strings.Contains(menu, "Approve") {
+		t.Error("expected Approve choice")
 	}
 	if !strings.Contains(menu, "Skip") {
 		t.Error("expected Skip choice")
@@ -476,26 +476,24 @@ func TestRenderMenuForView_ContainsAllChoices(t *testing.T) {
 }
 
 func TestRenderMenuForView_ContainsHint(t *testing.T) {
-	menu := RenderMenuForView(0)
+	menu := RenderMenu(0, true)
 	if !strings.Contains(menu, "select") {
 		t.Errorf("expected hint text, got %q", menu)
 	}
 }
 
 func TestRenderMenuForView_SelectedMarker(t *testing.T) {
-	menu := RenderMenuForView(1)
-	if !strings.Contains(menu, "> Skip") {
+	menu := RenderMenu(1, true)
+	if !strings.Contains(menu, "▸ Skip") {
 		t.Errorf("expected selection marker on Skip, got %q", menu)
 	}
 }
 
 func TestRenderMenuForView_LineCount(t *testing.T) {
-	menu := RenderMenuForView(0)
+	menu := RenderMenu(0, true)
 	lines := strings.Split(menu, "\n")
-	// 3 choice lines + 1 hint line (no trailing newline after hint)
-	// Split produces: ["  > Yes", "    Skip", "    Reject", "  hint"]
 	if len(lines) != menuLines {
-		t.Errorf("RenderMenuForView produced %d segments on \\n split, want %d", len(lines), menuLines)
+		t.Errorf("RenderMenu(forView=true) produced %d segments on \\n split, want %d", len(lines), menuLines)
 	}
 }
 
@@ -521,7 +519,7 @@ func TestInlineChoices_Order(t *testing.T) {
 		action Action
 		label  string
 	}{
-		{ActionApprove, "Yes"},
+		{ActionApprove, "Approve"},
 		{ActionSkip, "Skip"},
 		{ActionReject, "Reject"},
 	}

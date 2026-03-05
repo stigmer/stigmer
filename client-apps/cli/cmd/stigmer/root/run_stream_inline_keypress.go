@@ -104,7 +104,11 @@ func (m inlineBubbleModel) handleIdleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cm
 }
 
 // approvalActionByIndex maps a menu selection index to the corresponding
-// approval action. Matches the order in approval.RenderMenu.
+// approval action. Matches the order in approval.RenderMenu. The model
+// constrains approvalSelected to [0,2] via handleApprovalKey bounds
+// checks, so the default branch is unreachable in practice. It falls
+// back to Skip as the safest no-op action (does not execute the tool,
+// does not terminate the session).
 func approvalActionByIndex(index int) approval.Action {
 	switch index {
 	case 0:

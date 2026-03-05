@@ -158,6 +158,7 @@ func resumeSession(sessionID string, headerInfo sessionHeaderInfo, orgID string,
 			program:           program,
 			toggleExpandCh:    toggleExpandCh,
 			cancelCh:          cancelCh,
+			followUpEnabled:   toggleExpandCh != nil && followUpFn != nil,
 		}
 		finalExecID, _, exitErr := runInlineFollowUpLoop(streamCtx, cfg, followUpFn, latestExecID)
 

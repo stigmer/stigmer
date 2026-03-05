@@ -216,8 +216,12 @@ func (r *inlineRenderer) promptApprovalViaChannel(
 }
 
 // promptApprovalViaKeyReader is the legacy path using PromptKeyOnly when
-// Bubbletea does not own stdin (tea.WithInput(nil)). Retained for
-// backward compatibility and test environments.
+// Bubbletea does not own stdin (tea.WithInput(nil)). In production,
+// cancelCh is always non-nil when program is non-nil (both gated on
+// termctl.IsSupported), so the channel path is always taken for TTY
+// sessions. This function is effectively reachable only from tests that
+// construct configs with cancelCh == nil. Retained for backward
+// compatibility and InlinePrompter integration test coverage.
 func (r *inlineRenderer) promptApprovalViaKeyReader(
 	ctx context.Context,
 	e executiontui.ApprovalNeededEvent,

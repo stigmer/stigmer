@@ -37,12 +37,10 @@ type approvalShowMsg struct {
 	question        string // question line for View()
 }
 
-// approvalSelectMsg updates the menu selection index. The event loop sends
-// this from the key reading loop when the user presses an arrow key.
-//
-// Used by the program==nil fallback path (direct-write) and retained for
-// backward compatibility. The Bubbletea stdin path routes arrow keys
-// through handleKeyPress.
+// approvalSelectMsg updates the menu selection index. Sent by the legacy
+// promptApprovalViaKeyReader path (PromptKeyOnly) when the user presses
+// an arrow key. The channel-based stdin path (promptApprovalViaChannel)
+// routes arrow keys through handleApprovalKey instead.
 type approvalSelectMsg struct {
 	selected int
 }
@@ -82,8 +80,9 @@ type approvalDecision struct {
 // The follow-up loop creates the channel, sends this message, then blocks
 // on the channel. View() renders the prompt dynamically using model state
 // (termWidth for separator, cursor positioning on input line).
-// handleKeyPress accumulates runes in textInputBuffer and delivers the
-// final string on Enter.
+// handleTextInputKey delegates to the embedded textinput.Model for cursor
+// movement, word navigation, and character input, delivering the final
+// string via the channel on Enter.
 type textInputStartMsg struct {
 	inputCh chan<- string
 }
