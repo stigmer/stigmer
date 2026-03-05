@@ -22,8 +22,8 @@ import (
 // IsSupported reports whether w is a terminal that can handle ANSI cursor
 // control sequences. Returns false for non-TTY writers and dumb terminals.
 //
-// If w is wrapped (e.g., by a line-counting middleware), IsSupported follows
-// the Unwrap() chain to find the underlying *os.File.
+// If w is wrapped (e.g., by buffered middleware), IsSupported follows the
+// Unwrap() chain to find the underlying *os.File.
 //
 // Does NOT check NO_COLOR — cursor control is a UX mechanism (collapsing
 // content after approval), not a color decoration. Users who disable color
@@ -34,31 +34,6 @@ func IsSupported(w io.Writer) bool {
 		return false
 	}
 	return os.Getenv("TERM") != "dumb"
-}
-
-// SaveCursor saves the current cursor position using the DEC sequence
-// (ESC 7). The approval flow uses DEC save/restore while the session header
-// subject updater uses SCO (CSI s/u) — most terminals maintain independent
-// save slots for the two families, avoiding conflicts.
-//
-// No-op when w is not a supported terminal.
-func SaveCursor(w io.Writer) {
-	if !IsSupported(w) {
-		return
-	}
-	fmt.Fprint(w, "\0337")
-}
-
-// RestoreCursorAndClear restores the cursor position saved by SaveCursor
-// (DEC ESC 8) and clears from that position to the end of the screen
-// (CSI J). The combined sequence is written atomically.
-//
-// No-op when w is not a supported terminal.
-func RestoreCursorAndClear(w io.Writer) {
-	if !IsSupported(w) {
-		return
-	}
-	fmt.Fprint(w, "\0338\033[J")
 }
 
 // EraseLines erases n lines of previously written output. The cursor moves
@@ -117,8 +92,7 @@ func Height(w io.Writer, defaultHeight int) int {
 
 // unwrapFile follows the Unwrap() chain on w to find the underlying *os.File.
 // Returns nil if no *os.File is found. This allows termctl functions to work
-// correctly when the writer is wrapped by middleware (e.g., line-counting
-// wrappers used for session header updates).
+// correctly when the writer is wrapped by middleware.
 func unwrapFile(w io.Writer) *os.File {
 	for {
 		if f, ok := w.(*os.File); ok {

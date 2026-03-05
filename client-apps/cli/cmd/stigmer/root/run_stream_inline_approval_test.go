@@ -105,12 +105,11 @@ func TestResolveApprovalContext_FromWaitingState(t *testing.T) {
 	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
 	tc := writeToolCall()
 	r.waitingApproval = &waitingApprovalState{
-		tc:                  tc,
-		subAgentID:          "sa-1",
-		runningLineRendered: true,
+		tc:         tc,
+		subAgentID: "sa-1",
 	}
 
-	gotTC, gotSub, gotRunning, gotStreamed, gotRows := r.resolveApprovalContext(executiontui.ApprovalNeededEvent{
+	gotTC, gotSub, gotStreamed, gotRows := r.resolveApprovalContext(executiontui.ApprovalNeededEvent{
 		ToolCallID: "tc-1",
 		ToolName:   "write_file",
 	})
@@ -120,9 +119,6 @@ func TestResolveApprovalContext_FromWaitingState(t *testing.T) {
 	}
 	if gotSub != "sa-1" {
 		t.Errorf("expected sa-1, got %s", gotSub)
-	}
-	if !gotRunning {
-		t.Error("expected runningLineRendered to be true")
 	}
 	if gotStreamed {
 		t.Error("expected contentStreamed to be false")
@@ -135,7 +131,7 @@ func TestResolveApprovalContext_FromWaitingState(t *testing.T) {
 func TestResolveApprovalContext_Fallback(t *testing.T) {
 	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
 
-	gotTC, gotSub, gotRunning, gotStreamed, gotRows := r.resolveApprovalContext(executiontui.ApprovalNeededEvent{
+	gotTC, gotSub, gotStreamed, gotRows := r.resolveApprovalContext(executiontui.ApprovalNeededEvent{
 		ToolCallID: "tc-1",
 		ToolName:   "write_file",
 	})
@@ -145,9 +141,6 @@ func TestResolveApprovalContext_Fallback(t *testing.T) {
 	}
 	if gotSub != "" {
 		t.Errorf("expected empty subAgentID, got %s", gotSub)
-	}
-	if gotRunning {
-		t.Error("expected runningLineRendered to be false")
 	}
 	if gotStreamed {
 		t.Error("expected contentStreamed to be false")
@@ -236,7 +229,7 @@ func TestHandleApproval_NonInteractive_Approve(t *testing.T) {
 		approval.ActionApprove,
 	)
 	tc := writeToolCall()
-	r.waitingApproval = &waitingApprovalState{tc: tc, runningLineRendered: false}
+	r.waitingApproval = &waitingApprovalState{tc: tc}
 
 	r.handleApproval(context.Background(), executiontui.ApprovalNeededEvent{
 		ToolCallID: "tc-1",
@@ -266,7 +259,7 @@ func TestHandleApproval_NonInteractive_Skip(t *testing.T) {
 		approval.ActionSkip,
 	)
 	tc := writeToolCall()
-	r.waitingApproval = &waitingApprovalState{tc: tc, runningLineRendered: false}
+	r.waitingApproval = &waitingApprovalState{tc: tc}
 
 	r.handleApproval(context.Background(), executiontui.ApprovalNeededEvent{
 		ToolCallID: "tc-2",
@@ -292,7 +285,7 @@ func TestHandleApproval_Interactive_Approve(t *testing.T) {
 	prompter := &mockPrompter{decision: &approval.Decision{Action: approval.ActionApprove}}
 	r, _, stderr, responses := newApprovalTestRenderer(prompter, approval.ActionUnspecified)
 	tc := writeToolCall()
-	r.waitingApproval = &waitingApprovalState{tc: tc, runningLineRendered: false}
+	r.waitingApproval = &waitingApprovalState{tc: tc}
 
 	r.handleApproval(context.Background(), executiontui.ApprovalNeededEvent{
 		ToolCallID: "tc-1",
@@ -321,7 +314,7 @@ func TestHandleApproval_Interactive_Reject(t *testing.T) {
 	prompter := &mockPrompter{decision: &approval.Decision{Action: approval.ActionReject, Comment: "too dangerous"}}
 	r, _, stderr, responses := newApprovalTestRenderer(prompter, approval.ActionUnspecified)
 	tc := writeToolCall()
-	r.waitingApproval = &waitingApprovalState{tc: tc, runningLineRendered: false}
+	r.waitingApproval = &waitingApprovalState{tc: tc}
 
 	r.handleApproval(context.Background(), executiontui.ApprovalNeededEvent{
 		ToolCallID: "tc-1",
@@ -346,7 +339,7 @@ func TestHandleApproval_Interactive_Skip(t *testing.T) {
 	prompter := &mockPrompter{decision: &approval.Decision{Action: approval.ActionSkip}}
 	r, _, stderr, responses := newApprovalTestRenderer(prompter, approval.ActionUnspecified)
 	tc := shellToolCall()
-	r.waitingApproval = &waitingApprovalState{tc: tc, runningLineRendered: false}
+	r.waitingApproval = &waitingApprovalState{tc: tc}
 
 	r.handleApproval(context.Background(), executiontui.ApprovalNeededEvent{
 		ToolCallID: "tc-1",
@@ -372,7 +365,7 @@ func TestHandleApproval_SuppressesWriteCompletion(t *testing.T) {
 	prompter := &mockPrompter{decision: &approval.Decision{Action: approval.ActionApprove}}
 	r, _, _, responses := newApprovalTestRenderer(prompter, approval.ActionUnspecified)
 	tc := writeToolCall()
-	r.waitingApproval = &waitingApprovalState{tc: tc, runningLineRendered: false}
+	r.waitingApproval = &waitingApprovalState{tc: tc}
 
 	r.handleApproval(context.Background(), executiontui.ApprovalNeededEvent{
 		ToolCallID: "tc-1",
@@ -389,7 +382,7 @@ func TestHandleApproval_SuppressesDeleteCompletion(t *testing.T) {
 	prompter := &mockPrompter{decision: &approval.Decision{Action: approval.ActionApprove}}
 	r, _, _, responses := newApprovalTestRenderer(prompter, approval.ActionUnspecified)
 	tc := deleteToolCall()
-	r.waitingApproval = &waitingApprovalState{tc: tc, runningLineRendered: false}
+	r.waitingApproval = &waitingApprovalState{tc: tc}
 
 	r.handleApproval(context.Background(), executiontui.ApprovalNeededEvent{
 		ToolCallID: "tc-1",
@@ -406,7 +399,7 @@ func TestHandleApproval_ShellApproval_InitiatesStreaming(t *testing.T) {
 	prompter := &mockPrompter{decision: &approval.Decision{Action: approval.ActionApprove}}
 	r, _, _, responses := newApprovalTestRenderer(prompter, approval.ActionUnspecified)
 	tc := shellToolCall()
-	r.waitingApproval = &waitingApprovalState{tc: tc, runningLineRendered: false}
+	r.waitingApproval = &waitingApprovalState{tc: tc}
 
 	r.handleApproval(context.Background(), executiontui.ApprovalNeededEvent{
 		ToolCallID: "tc-1",
@@ -426,7 +419,7 @@ func TestHandleApproval_DoesNotSuppressOnReject(t *testing.T) {
 	prompter := &mockPrompter{decision: &approval.Decision{Action: approval.ActionReject}}
 	r, _, _, responses := newApprovalTestRenderer(prompter, approval.ActionUnspecified)
 	tc := writeToolCall()
-	r.waitingApproval = &waitingApprovalState{tc: tc, runningLineRendered: false}
+	r.waitingApproval = &waitingApprovalState{tc: tc}
 
 	r.handleApproval(context.Background(), executiontui.ApprovalNeededEvent{
 		ToolCallID: "tc-1",
@@ -519,7 +512,7 @@ func TestHandleApproval_UnexpectedError_AutoSkips(t *testing.T) {
 	prompter := &mockPrompter{err: approval.ErrPromptCancelled}
 	r, _, stderr, responses := newApprovalTestRenderer(prompter, approval.ActionUnspecified)
 	tc := writeToolCall()
-	r.waitingApproval = &waitingApprovalState{tc: tc, runningLineRendered: false}
+	r.waitingApproval = &waitingApprovalState{tc: tc}
 
 	r.handleApproval(context.Background(), executiontui.ApprovalNeededEvent{
 		ToolCallID: "tc-1",
@@ -544,7 +537,7 @@ func TestHandleApproval_SessionExit_CancelsAndExits(t *testing.T) {
 	prompter := &mockPrompter{err: approval.ErrSessionExit}
 	r, _, stderr, responses := newApprovalTestRenderer(prompter, approval.ActionUnspecified)
 	tc := writeToolCall()
-	r.waitingApproval = &waitingApprovalState{tc: tc, runningLineRendered: false}
+	r.waitingApproval = &waitingApprovalState{tc: tc}
 	r.cfg.sessionID = "ses-test123"
 
 	cancelDone := make(chan struct{})
@@ -589,7 +582,7 @@ func TestHandleApproval_ClearsWaitingState(t *testing.T) {
 	prompter := &mockPrompter{decision: &approval.Decision{Action: approval.ActionApprove}}
 	r, _, _, responses := newApprovalTestRenderer(prompter, approval.ActionUnspecified)
 	tc := writeToolCall()
-	r.waitingApproval = &waitingApprovalState{tc: tc, runningLineRendered: true}
+	r.waitingApproval = &waitingApprovalState{tc: tc}
 
 	r.handleApproval(context.Background(), executiontui.ApprovalNeededEvent{
 		ToolCallID: "tc-1",
@@ -609,7 +602,6 @@ func TestHandleApproval_ClearsWaitingState(t *testing.T) {
 func TestRenderToolWaitingApproval_SavesState(t *testing.T) {
 	r, _, stderr, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
 	tc := writeToolCall()
-	r.lastRenderedRunningID = "tc-1"
 
 	r.renderToolWaitingApproval(executiontui.ToolWaitingApprovalEvent{
 		ToolCallID: "tc-1",
@@ -626,26 +618,8 @@ func TestRenderToolWaitingApproval_SavesState(t *testing.T) {
 	if r.waitingApproval.subAgentID != "sa-2" {
 		t.Errorf("expected sa-2, got %s", r.waitingApproval.subAgentID)
 	}
-	if !r.waitingApproval.runningLineRendered {
-		t.Error("expected runningLineRendered true when lastRenderedRunningID matches")
-	}
 	if stderr.Len() != 0 {
 		t.Errorf("renderToolWaitingApproval should produce no visual output, got: %q", stderr.String())
-	}
-}
-
-func TestRenderToolWaitingApproval_NoRunningLine(t *testing.T) {
-	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
-	tc := writeToolCall()
-	r.lastRenderedRunningID = "tc-other"
-
-	r.renderToolWaitingApproval(executiontui.ToolWaitingApprovalEvent{
-		ToolCallID: "tc-1",
-		ToolCall:   tc,
-	})
-
-	if r.waitingApproval.runningLineRendered {
-		t.Error("expected runningLineRendered false when IDs don't match")
 	}
 }
 
@@ -690,19 +664,3 @@ func TestApprovalContentBudget(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// Running indicators are suppressed; lastRenderedRunningID stays empty
-// ---------------------------------------------------------------------------
-
-func TestHandleEvent_RunningIndicator_DoesNotSetLastRenderedID(t *testing.T) {
-	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
-
-	r.handleEvent(context.Background(), executiontui.ToolRunningEvent{
-		ToolCallID: "tc-42",
-		ToolCall:   shellToolCall(),
-	})
-
-	if r.lastRenderedRunningID != "" {
-		t.Errorf("running indicators are suppressed, lastRenderedRunningID should be empty, got %q", r.lastRenderedRunningID)
-	}
-}
