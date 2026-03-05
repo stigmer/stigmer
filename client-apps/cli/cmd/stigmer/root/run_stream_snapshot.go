@@ -102,6 +102,9 @@ func emitSnapshotEvents(exec *agentexecutionv1.AgentExecution, events chan<- exe
 		nmCursor = emitInterleaved(events, nonMsgToolCalls, nmCursor, msg.GetTimestamp(), emittedIDs)
 
 		switch msg.Type {
+		case agentexecutionv1.MessageType_MESSAGE_HUMAN:
+			// Handled by Spec.Message emission above.
+
 		case agentexecutionv1.MessageType_MESSAGE_TOOL:
 			emitToolMessageAsStateful(events, msg, toolCallByID, emittedIDs)
 

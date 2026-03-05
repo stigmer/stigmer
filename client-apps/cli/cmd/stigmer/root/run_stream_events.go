@@ -434,6 +434,13 @@ func emitMessageEvents(
 			return displayedCount, true
 		}
 
+		// Skip MESSAGE_HUMAN — the user's message is already emitted from
+		// execution.Spec.Message by streamToEvents (Step 0).
+		if msg.Type == agentexecutionv1.MessageType_MESSAGE_HUMAN {
+			displayedCount++
+			continue
+		}
+
 		// Suppress MESSAGE_TOOL messages for tool calls owned by the state
 		// tracker. The tracker creates stateful blocks (with lifecycle badges)
 		// for these tools — emitting a ToolResultEvent here would create a

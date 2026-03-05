@@ -239,7 +239,7 @@ func (r *inlineRenderer) flushPendingReads() {
 func (r *inlineRenderer) statusf(format string, args ...interface{}) {
 	msg := fmt.Sprintf(format, args...)
 	if r.cfg.program != nil {
-		r.cfg.program.Println(strings.TrimRight(msg, "\n"))
+		r.cfg.program.Println(strings.TrimSuffix(msg, "\n"))
 		return
 	}
 	fmt.Fprint(r.cfg.status, msg)
