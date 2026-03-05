@@ -435,6 +435,142 @@ func TestInlineBubbleModel_View_StreamingPriorityOverSpinner(t *testing.T) {
 }
 
 // =============================================================================
+// Follow-up Prompt Model Tests
+// =============================================================================
+
+func TestInlineBubbleModel_FollowUpShow_ActivatesPrompt(t *testing.T) {
+	m := newInlineBubbleModel()
+	updated, cmd := m.Update(followUpShowMsg{content: "\n───\n  hint\n> "})
+
+	model := updated.(inlineBubbleModel)
+	if !model.followUpActive {
+		t.Error("followUpShowMsg should set followUpActive=true")
+	}
+	if model.followUpContent != "\n───\n  hint\n> " {
+		t.Errorf("expected content to be stored, got %q", model.followUpContent)
+	}
+	if cmd != nil {
+		t.Error("followUpShowMsg should return nil Cmd")
+	}
+}
+
+func TestInlineBubbleModel_FollowUpHide_ClearsState(t *testing.T) {
+	m := newInlineBubbleModel()
+	shown, _ := m.Update(followUpShowMsg{content: "\n───\n  hint\n> "})
+	updated, cmd := shown.Update(followUpHideMsg{})
+
+	model := updated.(inlineBubbleModel)
+	if model.followUpActive {
+		t.Error("followUpHideMsg should set followUpActive=false")
+	}
+	if model.followUpContent != "" {
+		t.Errorf("followUpHideMsg should clear content, got %q", model.followUpContent)
+	}
+	if cmd != nil {
+		t.Error("followUpHideMsg with empty styledMessage should return nil Cmd")
+	}
+}
+
+func TestInlineBubbleModel_FollowUpHide_WithStyledMessage(t *testing.T) {
+	m := newInlineBubbleModel()
+	shown, _ := m.Update(followUpShowMsg{content: "\n───\n  hint\n> "})
+	updated, cmd := shown.Update(followUpHideMsg{styledMessage: " fix the bug \n\n"})
+
+	model := updated.(inlineBubbleModel)
+	if model.followUpActive {
+		t.Error("followUpHideMsg should set followUpActive=false")
+	}
+	if cmd == nil {
+		t.Fatal("followUpHideMsg with non-empty styledMessage should return a Println Cmd")
+	}
+}
+
+func TestInlineBubbleModel_View_FollowUpActive_ShowsPrompt(t *testing.T) {
+	m := newInlineBubbleModel()
+	shown, _ := m.Update(followUpShowMsg{content: "\n───\n  enter send\n> "})
+	model := shown.(inlineBubbleModel)
+
+	v := model.View()
+	if !strings.Contains(v, "───") {
+		t.Errorf("View() with followUp active should contain separator, got %q", v)
+	}
+	if !strings.Contains(v, "enter send") {
+		t.Errorf("View() with followUp active should contain hint, got %q", v)
+	}
+	if !strings.Contains(v, ">") {
+		t.Errorf("View() with followUp active should contain prompt marker, got %q", v)
+	}
+}
+
+func TestInlineBubbleModel_View_FollowUpPriorityOverSpinner(t *testing.T) {
+	m := newInlineBubbleModel()
+	started, _ := m.Update(spinnerStartMsg{label: "Thinking..."})
+	shown, _ := started.Update(followUpShowMsg{content: "follow-up prompt"})
+	model := shown.(inlineBubbleModel)
+
+	v := model.View()
+	if strings.Contains(v, "Thinking...") {
+		t.Error("follow-up prompt should take priority over spinner in View()")
+	}
+	if !strings.Contains(v, "follow-up prompt") {
+		t.Errorf("View() should show follow-up prompt, got %q", v)
+	}
+}
+
+func TestInlineBubbleModel_View_ApprovalPriorityOverFollowUp(t *testing.T) {
+	m := newInlineBubbleModel()
+	shown, _ := m.Update(followUpShowMsg{content: "follow-up prompt"})
+	approved, _ := shown.Update(approvalShowMsg{content: "approval panel\n"})
+	model := approved.(inlineBubbleModel)
+
+	v := model.View()
+	if strings.Contains(v, "follow-up prompt") {
+		t.Error("approval panel should take priority over follow-up prompt in View()")
+	}
+	if !strings.Contains(v, "approval panel") {
+		t.Errorf("View() should show approval panel, got %q", v)
+	}
+}
+
+func TestInlineBubbleModel_View_StreamingPriorityOverFollowUp(t *testing.T) {
+	m := newInlineBubbleModel()
+	shown, _ := m.Update(followUpShowMsg{content: "follow-up prompt"})
+	streamed, _ := shown.Update(streamingShowMsg{header: "streaming\n", maxLines: 0, width: 80})
+	model := streamed.(inlineBubbleModel)
+
+	v := model.View()
+	if strings.Contains(v, "follow-up prompt") {
+		t.Error("streaming should take priority over follow-up prompt in View()")
+	}
+	if !strings.Contains(v, "streaming") {
+		t.Errorf("View() should show streaming content, got %q", v)
+	}
+}
+
+// =============================================================================
+// formatFollowUpPrompt Tests
+// =============================================================================
+
+func TestFormatFollowUpPrompt_ContainsAllElements(t *testing.T) {
+	prompt := formatFollowUpPrompt()
+	if !strings.Contains(prompt, "─") {
+		t.Errorf("prompt should contain separator, got %q", prompt)
+	}
+	if !strings.Contains(prompt, "enter send") {
+		t.Errorf("prompt should contain hint text, got %q", prompt)
+	}
+	if !strings.Contains(prompt, ">") {
+		t.Errorf("prompt should contain prompt marker, got %q", prompt)
+	}
+	if !strings.HasPrefix(prompt, "\n") {
+		t.Errorf("prompt should start with leading newline, got %q", prompt)
+	}
+	if !strings.HasSuffix(prompt, " ") {
+		t.Errorf("prompt should end with trailing space for cursor, got %q", prompt)
+	}
+}
+
+// =============================================================================
 // formatStreamingView Tests
 // =============================================================================
 

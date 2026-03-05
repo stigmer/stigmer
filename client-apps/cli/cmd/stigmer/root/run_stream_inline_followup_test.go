@@ -58,15 +58,15 @@ func TestIsFollowUpEligible_OtherPhases(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// readFollowUpInput
+// readFollowUpInputDirect
 // ---------------------------------------------------------------------------
 
-func TestReadFollowUpInput_ReturnsInput(t *testing.T) {
+func TestReadFollowUpInputDirect_ReturnsInput(t *testing.T) {
 	origStdin := replaceStdin(t, "hello world\n")
 	defer restoreStdin(origStdin)
 
 	var status bytes.Buffer
-	input, err := readFollowUpInput(&status)
+	input, err := readFollowUpInputDirect(&status)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -85,12 +85,12 @@ func TestReadFollowUpInput_ReturnsInput(t *testing.T) {
 	}
 }
 
-func TestReadFollowUpInput_TrimsWhitespace(t *testing.T) {
+func TestReadFollowUpInputDirect_TrimsWhitespace(t *testing.T) {
 	origStdin := replaceStdin(t, "  fix the bug  \n")
 	defer restoreStdin(origStdin)
 
 	var status bytes.Buffer
-	input, err := readFollowUpInput(&status)
+	input, err := readFollowUpInputDirect(&status)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -99,12 +99,12 @@ func TestReadFollowUpInput_TrimsWhitespace(t *testing.T) {
 	}
 }
 
-func TestReadFollowUpInput_EmptyLine(t *testing.T) {
+func TestReadFollowUpInputDirect_EmptyLine(t *testing.T) {
 	origStdin := replaceStdin(t, "\n")
 	defer restoreStdin(origStdin)
 
 	var status bytes.Buffer
-	input, err := readFollowUpInput(&status)
+	input, err := readFollowUpInputDirect(&status)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -113,12 +113,12 @@ func TestReadFollowUpInput_EmptyLine(t *testing.T) {
 	}
 }
 
-func TestReadFollowUpInput_EOF(t *testing.T) {
+func TestReadFollowUpInputDirect_EOF(t *testing.T) {
 	origStdin := replaceStdin(t, "")
 	defer restoreStdin(origStdin)
 
 	var status bytes.Buffer
-	input, err := readFollowUpInput(&status)
+	input, err := readFollowUpInputDirect(&status)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -326,7 +326,7 @@ func TestFollowUpLoop_FailedPhase_AllowsFollowUp(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers — stdin replacement for testing readFollowUpInput
+// Helpers — stdin replacement for testing readFollowUpInputDirect
 // ---------------------------------------------------------------------------
 
 func replaceStdin(t *testing.T, content string) *os.File {
