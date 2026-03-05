@@ -10,13 +10,29 @@ import (
 
 // renderInline consumes events from the channel and renders them inline until
 // a terminal event (DoneEvent or StreamErrorEvent) arrives. Returns the final
-// phase string and any error message from the done event.
-func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, exitErr string) {
+// phase, any error message, and the accumulated history. The history enables
+// the follow-up loop to carry state across executions so Ctrl+O toggles the
+// entire conversation, not just the current execution.
+//
+// When cfg.initialHistory is non-nil (continuation from a prior execution),
+// the renderer seeds its buffer from it. Otherwise it creates a fresh history
+// with the session header as the first entry.
+func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, exitErr string, history []committedItem) {
 	thinkTimer := time.NewTimer(0)
 	thinkTimer.Stop()
 	select {
 	case <-thinkTimer.C:
 	default:
+	}
+
+	var initialHistory []committedItem
+	if len(cfg.initialHistory) > 0 {
+		initialHistory = cfg.initialHistory
+	} else {
+		initialHistory = []committedItem{{
+			kind:   kindHeader,
+			header: &cfg.headerInfo,
+		}}
 	}
 
 	r := &inlineRenderer{
@@ -27,10 +43,7 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, ex
 		},
 		suppressedToolIDs: make(map[string]bool),
 		thinkTimer:        thinkTimer,
-		history: []committedItem{{
-			kind:   kindHeader,
-			header: &cfg.headerInfo,
-		}},
+		history:           initialHistory,
 	}
 
 	for {
@@ -39,7 +52,7 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, ex
 			r.stopThinkingSpinner()
 			r.flushPendingReads()
 			r.statusf("Stream cancelled\n")
-			return "", "context cancelled"
+			return "", "context cancelled", r.history
 
 		case subject, ok := <-cfg.subjectUpdate:
 			if ok && subject != "" {
@@ -62,7 +75,7 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, ex
 			if r.cfg.sessionID != "" {
 				r.statusf("Resume later with: stigmer run %s\n", r.cfg.sessionID)
 			}
-			return "cancelled", ""
+			return "cancelled", "", r.history
 
 		case event, ok := <-cfg.events:
 			r.stopThinkingSpinner()
@@ -70,12 +83,12 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, ex
 
 			if !ok {
 				r.flushPendingReads()
-				return "", ""
+				return "", "", r.history
 			}
 
 			done, p, e := r.handleEvent(ctx, event)
 			if done {
-				return p, e
+				return p, e, r.history
 			}
 			r.resetThinkTimer()
 

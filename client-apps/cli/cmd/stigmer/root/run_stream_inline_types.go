@@ -44,6 +44,13 @@ type inlineRenderConfig struct {
 	// during clear+re-commit (e.g., subject update).
 	headerInfo sessionHeaderInfo
 
+	// initialHistory seeds the renderer's history buffer when continuing
+	// from a prior execution (follow-up loop). When non-nil, the renderer
+	// uses this slice instead of creating a fresh [{kindHeader}]. This
+	// allows Ctrl+O to toggle all items across the entire conversation,
+	// not just the current execution.
+	initialHistory []committedItem
+
 	// subjectUpdate receives the resolved session subject from the
 	// pollSessionSubject goroutine. nil when no subject polling is needed
 	// (resumed sessions, detached mode, no session).

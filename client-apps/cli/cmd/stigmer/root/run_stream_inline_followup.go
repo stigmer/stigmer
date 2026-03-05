@@ -33,7 +33,8 @@ func runInlineFollowUpLoop(
 	latestExecID = executionID
 
 	for {
-		phase, exitErr = renderInline(ctx, cfg)
+		var history []committedItem
+		phase, exitErr, history = renderInline(ctx, cfg)
 		if followUpFn == nil || !isFollowUpEligible(phase, exitErr) {
 			return latestExecID, phase, exitErr
 		}
@@ -42,6 +43,12 @@ func runInlineFollowUpLoop(
 		if err != nil || input == "" {
 			return latestExecID, phase, exitErr
 		}
+
+		history = append(history, committedItem{
+			kind: kindHumanMessage,
+			text: formatHumanMessage(input),
+		})
+		cfg.initialHistory = history
 		cfg.suppressHumanEcho = true
 
 		result, err := followUpFn(input)

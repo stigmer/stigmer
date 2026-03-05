@@ -620,6 +620,70 @@ func TestRenderToolWaitingApproval_NoStreamingState(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// completeStreamingTool history recording
+// ---------------------------------------------------------------------------
+
+func TestCompleteStreamingTool_RecordsHistory(t *testing.T) {
+	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
+	r.activeStreamToolID = "tc-h1"
+	r.toolStreamedBytes = 10
+	r.streamHeaderRows = 1
+	r.streamLineCount = 3
+
+	tc := toolrender.ToolCallInfo{
+		Name:   "shell",
+		Args:   map[string]interface{}{"command": "echo hi"},
+		Status: "completed",
+		Result: "hi",
+	}
+	r.completeStreamingTool(executiontui.ToolCompletedEvent{
+		ToolCallID: "tc-h1",
+		ToolCall:   tc,
+	})
+
+	found := false
+	for _, item := range r.history {
+		if item.kind == kindToolCompact && len(item.toolCalls) > 0 && item.toolCalls[0].Name == "shell" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("completeStreamingTool should record kindToolCompact in history")
+	}
+}
+
+func TestCompleteStreamingTool_RecordsSubAgentID(t *testing.T) {
+	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
+	r.activeStreamToolID = "tc-h2"
+	r.toolStreamedBytes = 5
+	r.streamHeaderRows = 1
+	r.streamLineCount = 2
+	r.streamSubAgentID = "sa-hist"
+
+	r.completeStreamingTool(executiontui.ToolCompletedEvent{
+		ToolCallID: "tc-h2",
+		ToolCall: toolrender.ToolCallInfo{
+			Name:   "shell",
+			Args:   map[string]interface{}{"command": "ls"},
+			Status: "completed",
+			Result: "file.txt",
+		},
+	})
+
+	var item *committedItem
+	for i := range r.history {
+		if r.history[i].kind == kindToolCompact && r.history[i].subAgentID == "sa-hist" {
+			item = &r.history[i]
+			break
+		}
+	}
+	if item == nil {
+		t.Error("completeStreamingTool should record subAgentID in history item")
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Shell approval -> streaming -> completion (end-to-end)
 // ---------------------------------------------------------------------------
 

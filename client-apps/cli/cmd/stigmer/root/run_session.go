@@ -13,6 +13,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/termctl"
 	"google.golang.org/grpc"
 )
 
@@ -135,6 +136,16 @@ func resumeSession(sessionID string, headerInfo sessionHeaderInfo, orgID string,
 	default:
 		prompter := approval.NewInlinePrompter(os.Stdin, os.Stderr)
 		followUpFn := buildFollowUpFn(streamCtx, sessionID, orgID, conn)
+
+		var toggleExpandCh chan struct{}
+		var cancelCh chan struct{}
+		if termctl.IsSupported(os.Stderr) {
+			toggleExpandCh = make(chan struct{}, 1)
+			cancelCh = make(chan struct{}, 1)
+		}
+
+		program := startInlineProgram(os.Stderr, toggleExpandCh, cancelCh)
+
 		cfg := inlineRenderConfig{
 			events:            events,
 			approvalResponses: approvalResponses,
@@ -144,9 +155,15 @@ func resumeSession(sessionID string, headerInfo sessionHeaderInfo, orgID string,
 			sessionID:         sessionID,
 			workspaceRoots:    workspaceRoots,
 			headerInfo:        headerInfo,
+			program:           program,
+			toggleExpandCh:    toggleExpandCh,
+			cancelCh:          cancelCh,
 		}
 		finalExecID, _, exitErr := runInlineFollowUpLoop(streamCtx, cfg, followUpFn, latestExecID)
+
+		stopInlineProgram(program)
 		streamCancel()
+
 		if exitErr != "" {
 			return errors.New(exitErr)
 		}
