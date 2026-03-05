@@ -281,6 +281,218 @@ func TestInlineBubbleModel_ApprovalShow_ResetsSelectedToZero(t *testing.T) {
 }
 
 // =============================================================================
+// Streaming Model Tests
+// =============================================================================
+
+func TestInlineBubbleModel_StreamingShow_ActivatesStreaming(t *testing.T) {
+	m := newInlineBubbleModel()
+	updated, cmd := m.Update(streamingShowMsg{
+		header:     "─── separator ───\nWrite(main.go)\n",
+		subAgentID: "",
+		maxLines:   30,
+		width:      80,
+	})
+
+	model := updated.(inlineBubbleModel)
+	if !model.streamingActive {
+		t.Error("streamingShowMsg should set streamingActive=true")
+	}
+	if model.streamingHeader != "─── separator ───\nWrite(main.go)\n" {
+		t.Errorf("expected header stored, got %q", model.streamingHeader)
+	}
+	if model.streamingContent != "" {
+		t.Errorf("expected empty content on show, got %q", model.streamingContent)
+	}
+	if model.streamingMaxLines != 30 {
+		t.Errorf("expected maxLines=30, got %d", model.streamingMaxLines)
+	}
+	if model.streamingWidth != 80 {
+		t.Errorf("expected width=80, got %d", model.streamingWidth)
+	}
+	if cmd != nil {
+		t.Error("streamingShowMsg should return nil Cmd")
+	}
+}
+
+func TestInlineBubbleModel_StreamingUpdate_StoresContent(t *testing.T) {
+	m := newInlineBubbleModel()
+	shown, _ := m.Update(streamingShowMsg{header: "header\n", maxLines: 30, width: 80})
+	updated, cmd := shown.Update(streamingUpdateMsg{content: "line 1\nline 2\n"})
+
+	model := updated.(inlineBubbleModel)
+	if model.streamingContent != "line 1\nline 2\n" {
+		t.Errorf("expected content stored, got %q", model.streamingContent)
+	}
+	if cmd != nil {
+		t.Error("streamingUpdateMsg should return nil Cmd")
+	}
+}
+
+func TestInlineBubbleModel_StreamingHide_WithCollapsedResult(t *testing.T) {
+	m := newInlineBubbleModel()
+	shown, _ := m.Update(streamingShowMsg{header: "header\n", maxLines: 0, width: 80})
+	shown.Update(streamingUpdateMsg{content: "output\n"})
+	updated, cmd := shown.Update(streamingHideMsg{collapsedResult: "⊡ Shell command=echo hi"})
+
+	model := updated.(inlineBubbleModel)
+	if model.streamingActive {
+		t.Error("streamingHideMsg should set streamingActive=false")
+	}
+	if model.streamingHeader != "" {
+		t.Errorf("streamingHideMsg should clear header, got %q", model.streamingHeader)
+	}
+	if model.streamingContent != "" {
+		t.Errorf("streamingHideMsg should clear content, got %q", model.streamingContent)
+	}
+	if cmd == nil {
+		t.Fatal("streamingHideMsg with non-empty result should return a Println Cmd")
+	}
+}
+
+func TestInlineBubbleModel_StreamingHide_NoCmdWhenEmpty(t *testing.T) {
+	m := newInlineBubbleModel()
+	shown, _ := m.Update(streamingShowMsg{header: "header\n", maxLines: 30, width: 80})
+	_, cmd := shown.Update(streamingHideMsg{})
+
+	if cmd != nil {
+		t.Error("streamingHideMsg with empty collapsedResult should return nil Cmd")
+	}
+}
+
+func TestInlineBubbleModel_View_StreamingActive_ShowsHeader(t *testing.T) {
+	m := newInlineBubbleModel()
+	shown, _ := m.Update(streamingShowMsg{header: "─── Write(main.go) ───\n", maxLines: 30, width: 80})
+	model := shown.(inlineBubbleModel)
+
+	v := model.View()
+	if !strings.Contains(v, "Write(main.go)") {
+		t.Errorf("View() with streaming active should contain header, got %q", v)
+	}
+}
+
+func TestInlineBubbleModel_View_StreamingWithContent(t *testing.T) {
+	m := newInlineBubbleModel()
+	shown, _ := m.Update(streamingShowMsg{header: "header\n", maxLines: 30, width: 80})
+	updated, _ := shown.Update(streamingUpdateMsg{content: "package main\n"})
+	model := updated.(inlineBubbleModel)
+
+	v := model.View()
+	if !strings.Contains(v, "header") {
+		t.Errorf("View() should contain header, got %q", v)
+	}
+	if !strings.Contains(v, "package main") {
+		t.Errorf("View() should contain content, got %q", v)
+	}
+}
+
+func TestInlineBubbleModel_View_ApprovalPriorityOverStreaming(t *testing.T) {
+	m := newInlineBubbleModel()
+	streamed, _ := m.Update(streamingShowMsg{header: "streaming header\n", maxLines: 30, width: 80})
+	updated, _ := streamed.Update(streamingUpdateMsg{content: "streaming content\n"})
+	approved, _ := updated.Update(approvalShowMsg{content: "approval panel\n"})
+	model := approved.(inlineBubbleModel)
+
+	v := model.View()
+	if strings.Contains(v, "streaming") {
+		t.Error("approval panel should take priority over streaming in View()")
+	}
+	if !strings.Contains(v, "approval panel") {
+		t.Errorf("View() should show approval panel, got %q", v)
+	}
+}
+
+func TestInlineBubbleModel_ApprovalShow_ClearsStreamingState(t *testing.T) {
+	m := newInlineBubbleModel()
+	streamed, _ := m.Update(streamingShowMsg{header: "header\n", maxLines: 30, width: 80})
+	updated, _ := streamed.Update(streamingUpdateMsg{content: "content\n"})
+	approved, _ := updated.Update(approvalShowMsg{content: "panel\n"})
+	model := approved.(inlineBubbleModel)
+
+	if model.streamingActive {
+		t.Error("approvalShowMsg should clear streamingActive")
+	}
+	if model.streamingHeader != "" {
+		t.Errorf("approvalShowMsg should clear streamingHeader, got %q", model.streamingHeader)
+	}
+	if model.streamingContent != "" {
+		t.Errorf("approvalShowMsg should clear streamingContent, got %q", model.streamingContent)
+	}
+}
+
+func TestInlineBubbleModel_View_StreamingPriorityOverSpinner(t *testing.T) {
+	m := newInlineBubbleModel()
+	started, _ := m.Update(spinnerStartMsg{label: "Thinking..."})
+	streamed, _ := started.Update(streamingShowMsg{header: "streaming\n", maxLines: 0, width: 80})
+	model := streamed.(inlineBubbleModel)
+
+	v := model.View()
+	if strings.Contains(v, "Thinking...") {
+		t.Error("streaming should take priority over spinner in View()")
+	}
+	if !strings.Contains(v, "streaming") {
+		t.Errorf("View() should show streaming content, got %q", v)
+	}
+}
+
+// =============================================================================
+// formatStreamingView Tests
+// =============================================================================
+
+func TestFormatStreamingView_HeaderOnly(t *testing.T) {
+	v := formatStreamingView("─── header ───\n", "", "", 30, 80)
+	if v != "─── header ───\n" {
+		t.Errorf("expected header only, got %q", v)
+	}
+}
+
+func TestFormatStreamingView_UncappedContent(t *testing.T) {
+	v := formatStreamingView("header\n", "line 1\nline 2\nline 3\n", "", 0, 80)
+	if !strings.Contains(v, "header") {
+		t.Errorf("expected header in output, got %q", v)
+	}
+	if !strings.Contains(v, "line 1\nline 2\nline 3\n") {
+		t.Errorf("expected all content lines in output, got %q", v)
+	}
+}
+
+func TestFormatStreamingView_CappedContentTruncates(t *testing.T) {
+	lines := "l1\nl2\nl3\nl4\nl5\n"
+	v := formatStreamingView("header\n", lines, "", 3, 80)
+
+	if !strings.Contains(v, "header") {
+		t.Errorf("expected header in output, got %q", v)
+	}
+	if !strings.Contains(v, "l1") || !strings.Contains(v, "l2") || !strings.Contains(v, "l3") {
+		t.Errorf("expected first 3 lines, got %q", v)
+	}
+	if strings.Contains(v, "l4") || strings.Contains(v, "l5") {
+		t.Errorf("lines beyond cap should not appear, got %q", v)
+	}
+	if !strings.Contains(v, "more lines") {
+		t.Errorf("expected truncation indicator, got %q", v)
+	}
+}
+
+func TestFormatStreamingView_WidthClampingForCapped(t *testing.T) {
+	longLine := strings.Repeat("x", 100)
+	v := formatStreamingView("header\n", longLine+"\n", "", 30, 50)
+
+	if len(v) > 0 && strings.Contains(v, strings.Repeat("x", 100)) {
+		t.Error("long line should be width-clamped")
+	}
+	if !strings.Contains(v, "…") {
+		t.Error("truncated line should have ellipsis")
+	}
+}
+
+func TestFormatStreamingView_SubAgentGutterWrapped(t *testing.T) {
+	v := formatStreamingView("header\n", "content\n", "sa-1", 0, 80)
+	if !strings.Contains(v, "│") {
+		t.Errorf("sub-agent content should be gutter-wrapped, got %q", v)
+	}
+}
+
+// =============================================================================
 // Program Lifecycle Tests
 // =============================================================================
 
