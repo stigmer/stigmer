@@ -234,14 +234,21 @@ const clearAndHome = "\033[2J\033[1;1H\033[3J"
 // resets the renderer's internal cursor and erase flags so the next
 // flush correctly positions the View() output below the Raw content.
 //
+// The rendered content's \n line breaks are replaced with \r\n because
+// Bubbletea puts the terminal in raw mode (OPOST/ONLCR disabled). In
+// raw mode \n is a bare line-feed — it moves the cursor down without
+// returning to column 0. The explicit \r ensures each line starts at
+// the left margin.
+//
 // This approach eliminates the timing flaw in the previous
 // ClearScreen+Println pattern where clearScreen() only marked internal
 // state while insertAbove() wrote directly using stale cellbuf
 // dimensions.
 func buildReCommitCmd(rendered string) tea.Cmd {
-	payload := clearAndHome + rendered
+	safe := strings.ReplaceAll(rendered, "\n", "\r\n")
+	payload := clearAndHome + safe
 	if rendered != "" {
-		payload += "\n"
+		payload += "\r\n"
 	}
 	return tea.Sequence(tea.Raw(payload), tea.ClearScreen)
 }
