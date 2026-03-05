@@ -74,9 +74,14 @@ func (r *inlineRenderer) handleApproval(ctx context.Context, e executiontui.Appr
 }
 
 // handleNonInteractiveApproval is the fast path when defaultAction is set.
-// Erases any prior output (streamed content or running line), then either
-// starts post-approval streaming (approved shell) or prints the collapsed
-// result directly.
+//
+// Bubbletea path with streaming: sends streamingHideMsg to clear View().
+// For shell-approve, initPostApprovalStreaming starts a new streaming
+// session. For others, the collapsed result is committed via tea.Println
+// through the streamingHideMsg Cmd.
+//
+// Direct-write path: erases any prior output via EraseLines, then prints
+// the collapsed result or starts post-approval streaming.
 func (r *inlineRenderer) handleNonInteractiveApproval(
 	e executiontui.ApprovalNeededEvent,
 	tc toolrender.ToolCallInfo,
@@ -85,21 +90,31 @@ func (r *inlineRenderer) handleNonInteractiveApproval(
 	streamedRows int,
 	opts approval.Options,
 ) {
-	if canCollapse {
-		if contentStreamed {
-			termctl.EraseLines(r.cfg.status, streamedRows)
-		} else if runningRendered {
-			termctl.EraseLines(r.cfg.status, 1)
-		}
-	}
-
 	action := actionToString(opts.DefaultAction)
 
-	if action == "approve" && toolrender.IsShellTool(tc.Name) {
-		r.initPostApprovalStreaming(e.ToolCallID, tc, subAgentID)
+	if r.cfg.program != nil && contentStreamed {
+		if action == "approve" && toolrender.IsShellTool(tc.Name) {
+			r.cfg.program.Send(streamingHideMsg{})
+			r.initPostApprovalStreaming(e.ToolCallID, tc, subAgentID)
+		} else {
+			collapsed := r.formatCollapsedResult(tc, action, subAgentID)
+			r.cfg.program.Send(streamingHideMsg{collapsedResult: collapsed})
+			r.trackSuppression(e.ToolCallID, tc.Name, action)
+		}
 	} else {
-		r.printCollapsedResult(tc, action, subAgentID)
-		r.trackSuppression(e.ToolCallID, tc.Name, action)
+		if canCollapse {
+			if contentStreamed {
+				termctl.EraseLines(r.cfg.status, streamedRows)
+			} else if runningRendered {
+				termctl.EraseLines(r.cfg.status, 1)
+			}
+		}
+		if action == "approve" && toolrender.IsShellTool(tc.Name) {
+			r.initPostApprovalStreaming(e.ToolCallID, tc, subAgentID)
+		} else {
+			r.printCollapsedResult(tc, action, subAgentID)
+			r.trackSuppression(e.ToolCallID, tc.Name, action)
+		}
 	}
 
 	r.cfg.approvalResponses <- executiontui.ApprovalResponse{
@@ -113,15 +128,15 @@ func (r *inlineRenderer) handleNonInteractiveApproval(
 //
 // Two rendering paths based on whether a Bubbletea program is running:
 //
-// Bubbletea path (program != nil): the approval panel is rendered by View().
-// Streaming content is erased (restoring cursor sync), then approvalShowMsg
-// puts the panel into View(). Key events relay selection changes via Send().
-// After the decision, approvalHideMsg clears the panel and commits the
-// collapsed result via tea.Println Cmd.
+// Bubbletea path (program != nil): approvalShowMsg atomically replaces
+// any active streaming content in View() with the approval panel. Key
+// events relay selection changes via Send(). After the decision,
+// approvalHideMsg clears the panel and commits the collapsed result via
+// tea.Println Cmd.
 //
-// Direct-write fallback (program == nil): the legacy path using
-// prepareApprovalDisplay, promptForDecision, and finalizeApproval with
-// manual EraseLines. Used in non-TTY/CI environments and tests.
+// Direct-write fallback (program == nil): writes the expanded view and
+// menu directly to stderr, uses EraseLines for collapse after the
+// decision. Used in non-TTY/CI environments and tests.
 func (r *inlineRenderer) handleInteractiveApproval(
 	ctx context.Context,
 	e executiontui.ApprovalNeededEvent,
@@ -147,18 +162,21 @@ func (r *inlineRenderer) handleInteractiveApproval(
 }
 
 // erasePreApprovalContent removes any prior streaming output or running
-// indicator from stderr before the approval panel is displayed. This is
-// shared by both the Bubbletea and direct-write paths.
+// indicator from stderr before the approval panel is displayed.
 //
-// For the Bubbletea path, the erasure also restores cursor sync: the
-// streaming content was written directly to stderr (bypassing Bubbletea),
-// so EraseLines puts the cursor back to where Bubbletea thinks it is.
-// Phase 5 will eliminate this by moving streaming into View().
+// Bubbletea path: streaming content is already in View(). approvalShowMsg
+// atomically replaces it (handleApprovalShow clears streaming state).
+// No manual erasure needed.
+//
+// Direct-write path: EraseLines removes the content from stderr.
 func (r *inlineRenderer) erasePreApprovalContent(
 	contentStreamed bool,
 	streamedRows int,
 	runningRendered, canCollapse bool,
 ) {
+	if r.cfg.program != nil {
+		return
+	}
 	if !canCollapse {
 		return
 	}
