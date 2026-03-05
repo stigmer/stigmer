@@ -14,11 +14,32 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-03-05 11:00
-**Current Task**: T01 -- Bubbletea v2 Migration + Design Decision Cleanup
-**Status**: COMPLETE -- all 5 phases done
-**Last Session**: 2026-03-05 (Session 6 -- Phase 5: Cleanup, Polish, and Code Review)
+**Current Task**: Bug fix — duplicate Write block in approval scrollback
+**Status**: COMPLETE — fix committed
+**Last Session**: 2026-03-06 (Session 8 — Duplicate Write Block Fix)
 
-## Session Progress (2026-03-05, Session 6)
+## Session Progress (2026-03-06, Session 8)
+
+### Accomplished
+- **Fixed duplicate Write block in approval scrollback** — when a streaming tool transitioned to `waiting_approval`, Bubbletea V2's `insertAbove` (used by `Println`) pushed a stale streaming snapshot into scrollback, producing two Write blocks
+- Added early `streamingHideMsg` dispatch at the top of `handleEvent` — clears the model's streaming state before any intermediate `Println` calls
+- Added `TestInlineBubbleModel_StreamingHide_BeforeApprovalStart` unit test verifying the full state machine transition
+
+### Key Decisions
+- Surgical early interception over `handleEvent` refactor — minimal risk, localized change
+- Relies on Bubbletea V2's documented FIFO `p.msgs` channel guarantee
+
+## Previous Session Progress (2026-03-05, Session 7)
+
+### Accomplished
+- **Enhanced Welcome Header** — branded session header with version, greeting, and async recent sessions
+
+### Key Decisions
+- Orange 208 for CLI borders (distinct from web brand purple/blue)
+- No terminal hyperlinks — copy-friendly session IDs instead
+- Logo deferred — SVG too complex for Unicode pixel art
+
+## Previous Session Progress (2026-03-05, Session 6)
 
 ### Accomplished
 - **Phase 5: Cleanup, Polish, and Code Review**
@@ -35,11 +56,6 @@ Drop this file into your conversation to quickly resume work on this project.
   - Fixed stale T01 plan content (follow-up visibility, phase numbering)
   - Build + vet + full test suite: clean
 
-### Key Decisions
-- `filepath` import in `render_compact.go` confirmed used (6 call sites) -- audit false positive, no action
-- Keep `promptApprovalViaKeyReader` with doc comment rather than remove (test infrastructure dependency)
-- `statusPending` safely removable: zero-value enum state never reachable via `SetPhase`/`CompletePhase` API
-
 ## Project Completion Summary
 
 All 5 phases of the Bubbletea v2 migration are complete:
@@ -50,6 +66,10 @@ All 5 phases of the Bubbletea v2 migration are complete:
 4. **Phase 4**: Unblock Ctrl+O during follow-up prompt -- COMPLETE
 5. **Phase 5**: Cleanup, polish, design decision docs -- COMPLETE
 
+### Next Steps
+1. Verify the fix with a live run of the onboarding script (`agent-fleet/tools/00_onboard-planton-mcp-server.sh`)
+2. Address pre-existing dirty files on branch (daemon reliability, gRPC timeout retries) — separate commit or PR
+
 ### Deferred Items (candidates for future cleanup projects)
 - `handleEvent` refactoring (large function, but functional and tested)
 - Dual tool category maps consolidation
@@ -57,6 +77,9 @@ All 5 phases of the Bubbletea v2 migration are complete:
 - `handleApprovalShow`/`handleApprovalStart` consolidation
 - `progress.go` sleep removal
 - Cursor positioning visual verification in a live terminal
+- Logo rendering in terminal (Unicode pixel art or kitty/iTerm2 image protocol)
+- Time-of-day greeting variants ("Good morning!" etc.)
+- Pre-existing dirty files on branch: `run_resolve.go`, `server_health.go`, daemon/temporal changes
 
 ## Essential Files to Review
 

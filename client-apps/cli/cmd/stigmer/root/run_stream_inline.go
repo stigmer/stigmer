@@ -197,6 +197,22 @@ func (r *inlineRenderer) completeFollowUp(input string) renderResult {
 //     reasoning, not the final agent response. They render on stderr with
 //     gutter prefix instead of stdout.
 func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Event) (done bool, phase string, exitErr string) {
+	// When the actively-streaming tool transitions to waiting_approval,
+	// clear the Bubbletea model's streaming state BEFORE any
+	// program.Println calls in the pre-switch flush. Bubbletea's
+	// insertAbove (used by Println) scrolls the screen, pushing the
+	// current View() into scrollback. If the model still has
+	// streamingActive=true at that point, a dead snapshot of the
+	// streaming content persists in scrollback — producing a duplicate
+	// Write block above the approval expanded view. Sending
+	// streamingHideMsg first (same p.msgs FIFO channel) ensures View()
+	// returns "" before any insertAbove runs.
+	if e, ok := event.(executiontui.ToolWaitingApprovalEvent); ok && e.ToolCallID == r.activeStreamToolID {
+		if r.cfg.program != nil {
+			r.cfg.program.Send(streamingHideMsg{})
+		}
+	}
+
 	// Buffer read completions for consecutive-event grouping.
 	if e, ok := event.(executiontui.ToolCompletedEvent); ok && toolrender.IsReadTool(e.ToolCall.Name) {
 		r.pendingReads = append(r.pendingReads, pendingRead{tc: e.ToolCall, subAgentID: e.SubAgentID})

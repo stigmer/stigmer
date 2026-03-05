@@ -509,6 +509,75 @@ func TestInlineBubbleModel_ApprovalShow_ClearsStreamingState(t *testing.T) {
 	}
 }
 
+// TestInlineBubbleModel_StreamingHide_BeforeApprovalStart verifies the fix
+// for the duplicate Write block bug. When a streaming tool transitions to
+// waiting_approval, the event loop sends streamingHideMsg before any
+// program.Println calls (which go through insertAbove). This test simulates
+// the exact message sequence that reaches the model:
+//
+//	streamingShowMsg  -> streaming active
+//	streamingUpdateMsg -> content accumulated
+//	streamingHideMsg  -> View() clears to "" (prevents dead snapshot in scrollback)
+//	approvalStartMsg  -> approval active, expanded content committed via tea.Println
+//
+// Without the streamingHideMsg, insertAbove from intermediate Println calls
+// would push the streaming View() into scrollback, creating a duplicate.
+func TestInlineBubbleModel_StreamingHide_BeforeApprovalStart(t *testing.T) {
+	m := newInlineBubbleModel()
+
+	shown, _ := m.Update(streamingShowMsg{
+		header:   "─── sep ───\n● Write()\n",
+		maxLines: 30,
+		width:    80,
+	})
+	updated, _ := shown.Update(streamingUpdateMsg{content: "apiVersion: v1\nkind: McpServer\n"})
+
+	model := updated.(inlineBubbleModel)
+	if !model.streamingActive {
+		t.Fatal("precondition: streaming should be active")
+	}
+	v := model.View().Content
+	if v == "" {
+		t.Fatal("precondition: View() should show streaming content")
+	}
+
+	hidden, cmd := updated.Update(streamingHideMsg{})
+	model = hidden.(inlineBubbleModel)
+	if model.streamingActive {
+		t.Error("streamingHideMsg should clear streamingActive before approval")
+	}
+	if model.View().Content != "" {
+		t.Errorf("View() should be empty after streamingHideMsg, got %q", model.View().Content)
+	}
+	if cmd != nil {
+		t.Error("streamingHideMsg without collapsedResult should return nil Cmd")
+	}
+
+	decisionCh := make(chan approvalDecision, 1)
+	approved, approvalCmd := hidden.Update(approvalStartMsg{
+		expandedContent: "─── sep ───\n● Write(config.go)\napiVersion: v1\n─── sep ───\n",
+		question:        "Do you want to create config.go?",
+		decisionCh:      decisionCh,
+	})
+	model = approved.(inlineBubbleModel)
+	if !model.approvalActive {
+		t.Error("approvalStartMsg should set approvalActive=true")
+	}
+	if model.streamingActive {
+		t.Error("model should not have streamingActive after approval start")
+	}
+	if approvalCmd == nil {
+		t.Fatal("approvalStartMsg with expandedContent should return a Println Cmd")
+	}
+	approvalView := model.View().Content
+	if !strings.Contains(approvalView, "Do you want to create config.go?") {
+		t.Errorf("View() should show approval question, got %q", approvalView)
+	}
+	if strings.Contains(approvalView, "apiVersion") {
+		t.Error("View() should not contain streaming content after approval transition")
+	}
+}
+
 func TestInlineBubbleModel_View_StreamingPriorityOverSpinner(t *testing.T) {
 	m := newInlineBubbleModel()
 	started, _ := m.Update(spinnerStartMsg{label: "Thinking..."})
