@@ -267,8 +267,8 @@ func TestHandleApproval_NonInteractive_Skip(t *testing.T) {
 	})
 
 	output := stripANSIApproval(stderr.String())
-	if !strings.Contains(output, "Skipped") {
-		t.Errorf("non-interactive skip should show Skipped, got:\n%s", output)
+	if !strings.Contains(output, "User skipped create config.go") {
+		t.Errorf("non-interactive skip should show descriptive skip message, got:\n%s", output)
 	}
 
 	resp := <-responses
@@ -347,8 +347,8 @@ func TestHandleApproval_Interactive_Skip(t *testing.T) {
 	})
 
 	output := stripANSIApproval(stderr.String())
-	if !strings.Contains(output, "Skipped") {
-		t.Errorf("skip should show Skipped, got:\n%s", output)
+	if !strings.Contains(output, "User skipped execute go test") {
+		t.Errorf("skip should show descriptive skip message, got:\n%s", output)
 	}
 
 	resp := <-responses

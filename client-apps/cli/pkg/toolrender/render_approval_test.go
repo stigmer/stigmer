@@ -72,11 +72,11 @@ func TestRenderApprovalResult_SkippedWrite(t *testing.T) {
 
 	assertContains(t, result, "●")
 	assertContains(t, result, "Write(skip.go)")
-	assertContains(t, result, "└ Skipped")
-	assertNotContains(t, result, "package skip")
+	assertContains(t, result, "└ User skipped create skip.go")
+	assertContains(t, result, "package skip")
 }
 
-func TestRenderApprovalResult_SkippedWrite_NoPreview(t *testing.T) {
+func TestRenderApprovalResult_SkippedWrite_ShowsPreview(t *testing.T) {
 	tc := ToolCallInfo{
 		Name:   "write_file",
 		Args:   map[string]interface{}{"path": "skip.go", "contents": "line1\nline2\nline3\n"},
@@ -84,10 +84,11 @@ func TestRenderApprovalResult_SkippedWrite_NoPreview(t *testing.T) {
 	}
 	result := stripANSI(RenderApprovalResult(tc, "skip", CompactOptions{}))
 
-	lines := strings.Split(result, "\n")
-	if len(lines) != 2 {
-		t.Errorf("expected 2 lines (header + connector), got %d:\n%s", len(lines), result)
-	}
+	assertContains(t, result, "Write(skip.go)")
+	assertContains(t, result, "User skipped create skip.go")
+	assertContains(t, result, "line1")
+	assertContains(t, result, "line2")
+	assertContains(t, result, "line3")
 }
 
 // ---------------------------------------------------------------------------
@@ -141,7 +142,7 @@ func TestRenderApprovalResult_SkippedShell(t *testing.T) {
 	}
 	result := stripANSI(RenderApprovalResult(tc, "skip", CompactOptions{}))
 
-	assertContains(t, result, "└ Skipped")
+	assertContains(t, result, "└ User skipped execute echo hello")
 }
 
 func TestRenderApprovalResult_ShellCommandTruncated(t *testing.T) {
