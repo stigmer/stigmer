@@ -301,7 +301,7 @@ func (m inlineBubbleModel) handleTextInputHide(msg textInputHideMsg) (tea.Model,
 // ---------------------------------------------------------------------------
 
 func (m inlineBubbleModel) handleReCommit(msg reCommitMsg) (tea.Model, tea.Cmd) {
-	return m, reCommitHistory(msg.items, msg.compactOpts, msg.expanded)
+	return m, buildReCommitCmd(msg.rendered)
 }
 
 // ---------------------------------------------------------------------------

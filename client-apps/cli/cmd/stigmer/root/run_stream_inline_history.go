@@ -9,6 +9,31 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
 )
 
+// renderHistoryBatch renders all history items into a single string for
+// batched terminal output. Each non-empty item is separated by a newline,
+// matching the newline that tea.Println appends per call. The result is
+// suitable for a single tea.Println — reducing N event-loop round-trips
+// and N terminal writes to one of each.
+func renderHistoryBatch(items []committedItem, opts toolrender.CompactOptions, expanded bool) string {
+	if len(items) == 0 {
+		return ""
+	}
+	var b strings.Builder
+	first := true
+	for _, item := range items {
+		text := renderCommittedItem(item, opts, expanded)
+		if text == "" {
+			continue
+		}
+		if !first {
+			b.WriteByte('\n')
+		}
+		b.WriteString(text)
+		first = false
+	}
+	return b.String()
+}
+
 // committedKind classifies a committed history item for re-rendering.
 // Items that may render differently in compact vs expanded mode store
 // structured data (ToolCallInfo, sessionHeaderInfo). Mode-invariant
@@ -166,36 +191,23 @@ func renderApprovalItem(item committedItem, opts toolrender.CompactOptions) stri
 	return result
 }
 
-// triggerReCommit packages the renderer's current history into a reCommitMsg
-// and sends it to the Bubbletea model. The model handles the actual
-// ClearScreen + Println sequence atomically. No-op when no program is active
-// (non-TTY, tests).
+// triggerReCommit pre-renders the full history into a single string and
+// sends it to the Bubbletea model. The model issues ClearScreen + one
+// Println, producing exactly 2 event-loop passes and 2 terminal writes
+// instead of N+1. No-op when no program is active (non-TTY, tests).
 func (r *inlineRenderer) triggerReCommit() {
 	if r.cfg.program == nil {
 		return
 	}
-	snapshot := make([]committedItem, len(r.history))
-	copy(snapshot, r.history)
-	r.cfg.program.Send(reCommitMsg{
-		items:       snapshot,
-		compactOpts: r.compactOpts,
-		expanded:    r.expandMode,
-	})
+	rendered := renderHistoryBatch(r.history, r.compactOpts, r.expandMode)
+	r.cfg.program.Send(reCommitMsg{rendered: rendered})
 }
 
-// reCommitHistory builds a tea.Cmd that clears the terminal and re-commits
-// all history items via tea.Println. When expanded is true, tool completions
-// and read groups render in expanded mode (full output, no truncation).
-// Executed atomically within Bubbletea's render loop so no intermediate
-// frame is visible.
-func reCommitHistory(items []committedItem, opts toolrender.CompactOptions, expanded bool) tea.Cmd {
-	cmds := make([]tea.Cmd, 0, len(items)+1)
-	cmds = append(cmds, tea.ClearScreen)
-	for _, item := range items {
-		text := renderCommittedItem(item, opts, expanded)
-		if text != "" {
-			cmds = append(cmds, tea.Println(text))
-		}
+// buildReCommitCmd returns ClearScreen + a single Println containing
+// the pre-rendered history. Used by the Bubbletea model's handleReCommit.
+func buildReCommitCmd(rendered string) tea.Cmd {
+	if rendered == "" {
+		return tea.ClearScreen
 	}
-	return tea.Sequence(cmds...)
+	return tea.Sequence(tea.ClearScreen, tea.Println(rendered))
 }
