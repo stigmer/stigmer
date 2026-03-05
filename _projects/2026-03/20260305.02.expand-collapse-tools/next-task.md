@@ -14,11 +14,48 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-03-05 05:00
-**Current Task**: T02 — All phases complete
-**Status**: Feature complete (Phases 1-5 done)
-**Last Session**: 2026-03-05 (Session 5)
+**Current Task**: T02 — All phases complete + post-phase fix
+**Status**: Feature complete (Phases 1-5 done, duplicate header fix applied)
+**Last Session**: 2026-03-05 (Session 6)
 
-## Session Progress (2026-03-05, Session 5)
+## Session Progress (2026-03-05, Session 6)
+
+### Completed
+- **Fix duplicate session header on subject update** — eliminated dual-write architecture
+
+### What Was Done
+
+**Root Cause**: The session header was written directly to stderr by the caller (`renderSessionHeader(os.Stderr, ...)`) before Bubbletea started, and then the re-commit mechanism (`ClearScreen + Println`) tried to render it again when the subject arrived. Since terminal scrollback is immutable once content scrolls out of the viewport, both headers remained visible.
+
+**Fix — Single-source header via Bubbletea:**
+- Removed caller-side `renderSessionHeader` from inline rendering path in `run_agent_exec.go` and `run_session.go`
+- `renderInline` now prints the header at startup via `statusf` (routes through Bubbletea's `Println`) for new sessions
+- JSON and detach modes still render headers via `renderSessionHeader` in their own code paths
+- Existing `triggerReCommit()` on subject arrival works correctly since the header is now within Bubbletea's line tracking
+
+**Spacing fix:**
+- `renderHistoryBatch` now adds an extra `\n` after `kindHeader` items, producing a consistent blank-line gap between the header panel and the first content item
+- Matches the initial render spacing (`statusf(header)` + `statusf("")`)
+
+**Tests:**
+- Updated `TestRenderHistoryBatch_MatchesPerItemOutput` for new header spacing
+- Added `TestRenderHistoryBatch_HeaderHasBlankLineGap`
+- Added `TestRenderHistoryBatch_HeaderOnly_NoExtraNewline`
+- All tests pass, benchmarks unchanged
+
+### Files Modified (7)
+- `run_agent_exec.go` — moved `renderSessionHeader` inside `if input.Detach`
+- `run_session.go` — removed unconditional `renderSessionHeader` from `openSession`; added to JSON branch of `resumeSession`
+- `run_stream.go` — added `renderSessionHeader` to JSON branch of `streamAgentExecution`
+- `run_stream_inline.go` — render header at startup via `statusf` for new sessions
+- `run_stream_inline_history.go` — extra `\n` after header in `renderHistoryBatch`; updated doc comments
+- `run_stream_inline_history_test.go` — 2 new tests, 1 updated test
+- `run_stream_inline_types.go` — updated doc comment removing "direct stderr write" reference
+
+### Design Decisions (Session 6)
+1. **Session header key decision #3 revised** — Phase 1 chose "Session header stays as pre-Bubbletea direct write." This session reverses that decision: the header now renders exclusively through Bubbletea for inline mode. The old approach caused duplicate headers that couldn't be erased from scrollback.
+
+## Previous Session Progress (2026-03-05, Session 5)
 
 ### Completed
 - **T02 Phase 5**: Re-commit Performance Optimization — all 4 steps complete
@@ -193,7 +230,7 @@ Drop this file into your conversation to quickly resume work on this project.
 ### Key Decisions Made (Phase 1)
 1. History lives on `inlineRenderer`, not the Bubbletea model
 2. AI content replayed to stderr during re-commit
-3. Session header stays as pre-Bubbletea direct write
+3. ~~Session header stays as pre-Bubbletea direct write~~ — **Revised in Session 6**: header now renders exclusively through Bubbletea for inline mode (fixes duplicate headers)
 4. Pre-rendered text for mode-invariant items; structured data for mode-variable items
 5. `sessionSubject` dead parameter replaced with `sessionHeaderInfo` struct
 

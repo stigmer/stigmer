@@ -269,9 +269,9 @@ func executeResolvedAgent(input resolvedAgentExecInput, sp *spinner.Spinner) err
 		Model:      input.Model,
 		Workspaces: workspaceNames(input.WorkspaceEntries),
 	}
-	renderSessionHeader(os.Stderr, headerInfo)
 
 	if input.Detach {
+		renderSessionHeader(os.Stderr, headerInfo)
 		return nil
 	}
 

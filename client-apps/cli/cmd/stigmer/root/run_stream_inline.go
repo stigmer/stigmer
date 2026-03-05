@@ -26,13 +26,14 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, ex
 	}
 
 	var initialHistory []committedItem
-	if len(cfg.initialHistory) > 0 {
-		initialHistory = cfg.initialHistory
-	} else {
+	isNewSession := len(cfg.initialHistory) == 0
+	if isNewSession {
 		initialHistory = []committedItem{{
 			kind:   kindHeader,
 			header: &cfg.headerInfo,
 		}}
+	} else {
+		initialHistory = cfg.initialHistory
 	}
 
 	r := &inlineRenderer{
@@ -44,6 +45,14 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, ex
 		suppressedToolIDs: make(map[string]bool),
 		thinkTimer:        thinkTimer,
 		history:           initialHistory,
+	}
+
+	if isNewSession {
+		header := renderHeaderItem(initialHistory[0], false)
+		if header != "" {
+			r.statusf("%s", header)
+			r.statusf("")
+		}
 	}
 
 	for {

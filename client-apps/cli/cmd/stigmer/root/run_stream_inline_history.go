@@ -14,6 +14,10 @@ import (
 // matching the newline that tea.Println appends per call. The result is
 // suitable for a single tea.Println — reducing N event-loop round-trips
 // and N terminal writes to one of each.
+//
+// The header item (kindHeader) gets an extra trailing newline to produce
+// a blank-line gap between the panel and the first content item, matching
+// the spacing of the initial render (statusf + blank line).
 func renderHistoryBatch(items []committedItem, opts toolrender.CompactOptions, expanded bool) string {
 	if len(items) == 0 {
 		return ""
@@ -29,6 +33,9 @@ func renderHistoryBatch(items []committedItem, opts toolrender.CompactOptions, e
 			b.WriteByte('\n')
 		}
 		b.WriteString(text)
+		if item.kind == kindHeader {
+			b.WriteByte('\n')
+		}
 		first = false
 	}
 	return b.String()
@@ -56,8 +63,8 @@ const (
 )
 
 // committedItem represents one logical unit of output that was committed
-// to terminal scrollback via tea.Println (or direct stderr write for the
-// session header). Stored in the renderer's history for re-rendering.
+// to terminal scrollback via tea.Println. Stored in the renderer's history
+// for re-rendering.
 //
 // Items that may change between compact and expanded modes store structured
 // data (toolCalls, header). Mode-invariant items store pre-rendered text.

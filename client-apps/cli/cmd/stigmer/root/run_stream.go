@@ -58,6 +58,7 @@ func streamAgentExecution(sessionID string, headerInfo sessionHeaderInfo, execut
 
 	switch outputMode {
 	case OutputJSON:
+		renderSessionHeader(statusW, headerInfo)
 		return streamAgentJSON(streamCtx, streamCancel, sessionID, executionID, events, approvalResponses, defaultAction, conn)
 	default:
 		return streamAgentInline(streamCtx, streamCancel, sessionID, headerInfo, executionID, orgID, events, approvalResponses, prompter, defaultAction, conn, workspaceRoots, dataW, statusW)
