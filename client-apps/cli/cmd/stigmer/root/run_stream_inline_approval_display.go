@@ -83,6 +83,36 @@ func (r *inlineRenderer) buildExpandedView(tc toolrender.ToolCallInfo, width, ma
 	return b.String()
 }
 
+// buildFullExpandedView assembles the expanded approval content without any
+// truncation: separator + header + ALL content lines + separator. This is
+// committed to scrollback via tea.Println where there is no height limit.
+// The existing buildExpandedView (with truncation) is kept for the
+// direct-write fallback path that does not use split-commit.
+func (r *inlineRenderer) buildFullExpandedView(tc toolrender.ToolCallInfo, width int) string {
+	var b strings.Builder
+	sep := toolrender.ApprovalSeparator(width)
+
+	b.WriteString(sep)
+	b.WriteByte('\n')
+
+	header := toolrender.ExpandedApprovalHeader(tc, r.compactOpts)
+	b.WriteString(header)
+	b.WriteByte('\n')
+
+	content := toolrender.ExpandedApprovalContent(tc)
+	if content != "" {
+		b.WriteString(content)
+		if !strings.HasSuffix(content, "\n") {
+			b.WriteByte('\n')
+		}
+	}
+
+	b.WriteString(sep)
+	b.WriteByte('\n')
+
+	return b.String()
+}
+
 // promptForDecision calls the prompter and returns the decision with line
 // count. Uses PromptWithLineCount when an InlinePrompter is available;
 // falls back to the Prompter interface with lineCount 0.

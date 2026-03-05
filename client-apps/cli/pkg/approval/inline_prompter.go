@@ -215,6 +215,25 @@ func RenderMenu(selected int) string {
 	return b.String()
 }
 
+// RenderMenuForView builds the 4-line vertical menu string for Bubbletea's
+// View() function. Uses \n line endings (Bubbletea handles raw-mode
+// translation internally). The existing RenderMenu uses \r\n which is
+// correct for direct terminal writes but causes rendering artifacts in
+// View() where each \r overwrites the previous option.
+func RenderMenuForView(selected int) string {
+	var b strings.Builder
+	for i, choice := range inlineChoices {
+		if i == selected {
+			b.WriteString(selectedStyle.Render(fmt.Sprintf("  > %s", choice.label)))
+		} else {
+			b.WriteString(unselectedStyle.Render(fmt.Sprintf("    %s", choice.label)))
+		}
+		b.WriteByte('\n')
+	}
+	b.WriteString(hintStyle.Render("  ↑↓/1-3 select · esc/ctrl+c exit"))
+	return b.String()
+}
+
 // rerenderMenu erases the current menu and redraws it with the updated
 // selection. Uses termctl.EraseLines for precise cursor control.
 // Used by PromptWithLineCount (the legacy direct-write path).

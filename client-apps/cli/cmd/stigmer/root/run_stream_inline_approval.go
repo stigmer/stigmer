@@ -124,16 +124,15 @@ func (r *inlineRenderer) handleInteractiveApproval(
 ) {
 	r.erasePreApprovalContent(contentStreamed, streamedRows, canCollapse)
 
-	termHeight := termctl.Height(r.cfg.status, 40)
-	maxContentLines := approvalContentBudget(termHeight)
-	expanded := r.buildExpandedView(tc, width, maxContentLines)
 	question := toolrender.ApprovalQuestion(tc)
 
 	if r.cfg.program != nil {
+		expanded := r.buildFullExpandedView(tc, width)
 		r.promptApprovalViaBubbletea(ctx, e, tc, subAgentID, expanded, question, opts)
 		return
 	}
 
+	expanded := r.buildFullExpandedView(tc, width)
 	r.promptApprovalDirect(ctx, e, tc, subAgentID, expanded, question, width, canCollapse, opts)
 }
 
@@ -193,8 +192,9 @@ func (r *inlineRenderer) promptApprovalViaChannel(
 	decisionCh := make(chan approvalDecision, 1)
 
 	r.cfg.program.Send(approvalStartMsg{
-		content:    expanded + question + "\n",
-		decisionCh: decisionCh,
+		expandedContent: expanded,
+		question:        question,
+		decisionCh:      decisionCh,
 	})
 
 	d := <-decisionCh
@@ -226,7 +226,10 @@ func (r *inlineRenderer) promptApprovalViaKeyReader(
 	expanded, question string,
 	opts approval.Options,
 ) {
-	r.cfg.program.Send(approvalShowMsg{content: expanded + question + "\n"})
+	r.cfg.program.Send(approvalShowMsg{
+		expandedContent: expanded,
+		question:        question,
+	})
 
 	ip, ok := r.cfg.prompter.(*approval.InlinePrompter)
 	if !ok {

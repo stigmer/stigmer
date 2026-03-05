@@ -449,6 +449,57 @@ func TestRenderMenu_Exported_MatchesMenuLines(t *testing.T) {
 }
 
 // =============================================================================
+// RenderMenuForView (exported — Bubbletea View() path)
+// =============================================================================
+
+func TestRenderMenuForView_UsesNewlineNotCRLF(t *testing.T) {
+	menu := RenderMenuForView(0)
+	if strings.Contains(menu, "\r\n") {
+		t.Error("RenderMenuForView should use \\n, not \\r\\n")
+	}
+	if !strings.Contains(menu, "\n") {
+		t.Error("RenderMenuForView should contain newlines")
+	}
+}
+
+func TestRenderMenuForView_ContainsAllChoices(t *testing.T) {
+	menu := RenderMenuForView(0)
+	if !strings.Contains(menu, "Yes") {
+		t.Error("expected Yes choice")
+	}
+	if !strings.Contains(menu, "Skip") {
+		t.Error("expected Skip choice")
+	}
+	if !strings.Contains(menu, "Reject") {
+		t.Error("expected Reject choice")
+	}
+}
+
+func TestRenderMenuForView_ContainsHint(t *testing.T) {
+	menu := RenderMenuForView(0)
+	if !strings.Contains(menu, "select") {
+		t.Errorf("expected hint text, got %q", menu)
+	}
+}
+
+func TestRenderMenuForView_SelectedMarker(t *testing.T) {
+	menu := RenderMenuForView(1)
+	if !strings.Contains(menu, "> Skip") {
+		t.Errorf("expected selection marker on Skip, got %q", menu)
+	}
+}
+
+func TestRenderMenuForView_LineCount(t *testing.T) {
+	menu := RenderMenuForView(0)
+	lines := strings.Split(menu, "\n")
+	// 3 choice lines + 1 hint line (no trailing newline after hint)
+	// Split produces: ["  > Yes", "    Skip", "    Reject", "  hint"]
+	if len(lines) != menuLines {
+		t.Errorf("RenderMenuForView produced %d segments on \\n split, want %d", len(lines), menuLines)
+	}
+}
+
+// =============================================================================
 // menuLines constant
 // =============================================================================
 

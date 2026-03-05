@@ -23,13 +23,18 @@ type spinnerTickMsg struct{}
 // approvalShowMsg tells the model to render the approval panel in View().
 // When streaming was active, handleApprovalShow atomically clears the
 // streaming state so the panel replaces it without an intermediate empty
-// frame. The content field contains the pre-rendered expanded view +
-// question; the menu is rendered by View() using the selected index.
+// frame.
 //
-// Used by the program==nil fallback path (direct-write) and retained for
-// backward compatibility. The Bubbletea stdin path uses approvalStartMsg.
+// expandedContent (separator + header + full file content + separator) is
+// committed to scrollback via tea.Println so it is always visible and not
+// constrained by terminal height. Only the question line lives in View(),
+// keeping the interactive region small (question + menu ≈ 6 rows).
+//
+// Used by the legacy PromptKeyOnly path when Bubbletea does not own stdin.
+// The channel-based stdin path uses approvalStartMsg.
 type approvalShowMsg struct {
-	content string
+	expandedContent string // full content for tea.Println (scrollback)
+	question        string // question line for View()
 }
 
 // approvalSelectMsg updates the menu selection index. The event loop sends
@@ -52,12 +57,18 @@ type approvalHideMsg struct {
 
 // approvalStartMsg activates the approval panel and establishes a channel
 // for the model to deliver the user's decision back to the event loop.
+//
+// expandedContent is committed to scrollback via tea.Println so the full
+// file content is always visible regardless of terminal height. Only the
+// question line lives in View(), keeping the interactive region small.
+//
 // The event loop creates the channel, sends this message, then blocks on
 // the channel. handleKeyPress routes arrow/enter/esc keys to the channel
 // when approvalActive is true.
 type approvalStartMsg struct {
-	content    string
-	decisionCh chan<- approvalDecision
+	expandedContent string                 // full content for tea.Println (scrollback)
+	question        string                 // question line for View()
+	decisionCh      chan<- approvalDecision
 }
 
 // approvalDecision carries the user's approval choice from the model back
@@ -100,6 +111,14 @@ type streamingShowMsg struct {
 // formatting (width-clamping, line-capping, truncation indicator).
 type streamingUpdateMsg struct {
 	content string
+}
+
+// streamingHeaderUpdateMsg updates the header portion of the streaming view
+// without resetting the accumulated content. Sent when the tool's primary
+// arg (e.g. file path) becomes available in a later ToolStreamDeltaEvent
+// after the initial header was rendered with an empty primary arg.
+type streamingHeaderUpdateMsg struct {
+	header string
 }
 
 // streamingHideMsg tells the model to deactivate streaming. View() returns

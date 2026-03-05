@@ -322,8 +322,8 @@ func TestHandleApproval_Interactive_Reject(t *testing.T) {
 	})
 
 	output := stripANSIApproval(stderr.String())
-	if !strings.Contains(output, "Rejected") {
-		t.Errorf("reject should show Rejected, got:\n%s", output)
+	if !strings.Contains(output, "User rejected create to config.go") {
+		t.Errorf("reject should show descriptive rejection, got:\n%s", output)
 	}
 
 	resp := <-responses
