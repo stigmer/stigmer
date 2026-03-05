@@ -1,7 +1,6 @@
 package root
 
 import (
-	"fmt"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -196,30 +195,46 @@ func renderApprovalItem(item committedItem, opts toolrender.CompactOptions) stri
 }
 
 // triggerReCommit pre-renders the full history into a single string and
-// sends it to the Bubbletea model. The model issues ClearScreen + one
-// Println, producing exactly 2 event-loop passes and 2 terminal writes
-// instead of N+1. No-op when no program is active (non-TTY, tests).
+// sends it to the Bubbletea model. The model issues ClearScreen followed
+// by a single Println, producing exactly 2 event-loop passes and 2
+// terminal writes instead of N+1. No-op when no program is active
+// (non-TTY, tests).
 //
-// Before sending the message, \033[3J (Erase Saved Lines) is written
-// directly to the terminal to clear the scrollback buffer. Without this,
-// tea.ClearScreen (\033[2J) pushes visible content into scrollback on
-// re-commit, causing duplication when the user scrolls up. The direct
-// write is safe because \033[3J only affects scrollback (invisible to
-// the Cursed Renderer's cursor/cell tracking).
+// Scrollback deduplication is handled inside buildReCommitCmd by
+// prepending \033[3J (Erase Saved Lines) to the Println payload so it
+// executes *after* tea.ClearScreen's \033[2J. See buildReCommitCmd for
+// the ordering rationale.
 func (r *inlineRenderer) triggerReCommit() {
 	if r.cfg.program == nil {
 		return
 	}
-	fmt.Fprint(r.cfg.status, "\033[3J")
 	rendered := renderHistoryBatch(r.history, r.compactOpts, r.expandMode)
 	r.cfg.program.Send(reCommitMsg{rendered: rendered})
 }
 
+// eraseScrollback is prepended to Println content during re-commit so
+// that \033[3J executes after tea.ClearScreen's \033[2J.
+//
+// Ordering matters: in modern terminals (iTerm2, macOS Terminal, Ghostty)
+// \033[2J pushes the visible screen into scrollback rather than truly
+// erasing it. If \033[3J runs before \033[2J, the freshly-pushed content
+// survives and the user sees duplicates when scrolling up.
+//
+// By embedding \033[3J at the start of the Println payload, the terminal
+// processes the sequence as: \033[2J (push to scrollback) → \033[3J
+// (wipe scrollback) → rendered content (fresh history).
+const eraseScrollback = "\033[3J"
+
 // buildReCommitCmd returns ClearScreen + a single Println containing
 // the pre-rendered history. Used by the Bubbletea model's handleReCommit.
+//
+// \033[3J is prepended to the Println content rather than written
+// separately before ClearScreen. This guarantees the erase-scrollback
+// runs after \033[2J within a single Bubbletea event-loop tick,
+// eliminating the race that previously left duplicates in scrollback.
 func buildReCommitCmd(rendered string) tea.Cmd {
 	if rendered == "" {
-		return tea.ClearScreen
+		return tea.Sequence(tea.ClearScreen, tea.Println(eraseScrollback))
 	}
-	return tea.Sequence(tea.ClearScreen, tea.Println(rendered))
+	return tea.Sequence(tea.ClearScreen, tea.Println(eraseScrollback+rendered))
 }
