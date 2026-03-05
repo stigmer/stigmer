@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
-	"github.com/charmbracelet/x/ansi"
 
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
@@ -56,11 +56,11 @@ type inlineBubbleModel struct {
 	followUpContent string // pre-rendered prompt (separator + hint + marker)
 
 	// Text input state for follow-up prompts when Bubbletea owns stdin.
-	// View() renders the prompt dynamically using termWidth for the
-	// separator and positions the cursor on the input line via
-	// tea.View.Cursor.
+	// The textinput.Model handles cursor movement, word navigation, and
+	// paste; View() composes it into the separator/hint layout and
+	// positions the real terminal cursor via tea.View.Cursor.
 	textInputActive bool
-	textInputBuffer string
+	textInput       textinput.Model
 	textInputCh     chan<- string // delivers final input on Enter
 
 	// termWidth holds the terminal width in columns, updated via
@@ -74,14 +74,37 @@ type inlineBubbleModel struct {
 	cancelCh       chan<- struct{}
 }
 
+// newFollowUpTextInput configures a textinput.Model for the follow-up
+// prompt. Uses real cursor mode (SetVirtualCursor(false)) so that
+// Cursor() returns a *tea.Cursor for the parent to position in the
+// composed layout.
+func newFollowUpTextInput() textinput.Model {
+	ti := textinput.New()
+	ti.Prompt = "> "
+	ti.SetVirtualCursor(false)
+
+	styles := textinput.DefaultDarkStyles()
+	styles.Focused.Prompt = promptStyle
+	styles.Cursor = textinput.CursorStyle{
+		Shape: tea.CursorBar,
+		Blink: true,
+	}
+	ti.SetStyles(styles)
+
+	return ti
+}
+
 func newInlineBubbleModel() inlineBubbleModel {
-	return inlineBubbleModel{}
+	return inlineBubbleModel{
+		textInput: newFollowUpTextInput(),
+	}
 }
 
 // newInlineBubbleModelWithChannels creates a model wired to the event loop
 // via channels. Used when Bubbletea owns stdin and processes keystrokes.
 func newInlineBubbleModelWithChannels(toggleCh chan<- struct{}, cancelCh chan<- struct{}) inlineBubbleModel {
 	return inlineBubbleModel{
+		textInput:      newFollowUpTextInput(),
 		toggleExpandCh: toggleCh,
 		cancelCh:       cancelCh,
 	}
@@ -98,6 +121,13 @@ func (m inlineBubbleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case tea.KeyPressMsg:
 		return m.handleKeyPress(msg)
+	case tea.PasteMsg:
+		if m.textInputActive {
+			var cmd tea.Cmd
+			m.textInput, cmd = m.textInput.Update(msg)
+			return m, cmd
+		}
+		return m, nil
 	case spinnerStartMsg:
 		return m.handleSpinnerStart(msg)
 	case spinnerStopMsg:
@@ -173,29 +203,27 @@ func (m inlineBubbleModel) View() tea.View {
 // renderTextInputView builds the follow-up prompt View with cursor
 // positioning. Layout (top to bottom):
 //
-//	[blank line]
-//	───────────────────────── (full terminal width, dim)
-//	> user input here         (cursor on this line)
-//	  enter send · ctrl+c exit (dim italic hint)
+//	[blank line]                            Y=0
+//	───────────────────────── (full width)  Y=1
+//	> user input here         (cursor)      Y=2
+//	  enter send · ctrl+c exit (hint)       Y=3
 //
-// The real terminal cursor (blinking bar) is placed on the input line
-// after the typed text via tea.View.Cursor.
+// The real terminal cursor (blinking bar) is provided by
+// textinput.Cursor() and offset to the input line (Y+2).
 func (m inlineBubbleModel) renderTextInputView() tea.View {
 	sepWidth := m.termWidth
 	if sepWidth <= 0 {
 		sepWidth = followUpSepWidth
 	}
 	sep := systemMsgStyle.Render(strings.Repeat("─", sepWidth))
-	marker := promptStyle.Render(">")
+	inputLine := m.textInput.View()
 	hint := followUpHintStyle.Render("  enter send · ctrl+c exit")
-	content := fmt.Sprintf("\n%s\n%s %s\n%s", sep, marker, m.textInputBuffer, hint)
+	content := fmt.Sprintf("\n%s\n%s\n%s", sep, inputLine, hint)
 
 	v := tea.NewView(content)
-	cursorX := ansi.StringWidth(marker) + 1 + ansi.StringWidth(m.textInputBuffer)
-	v.Cursor = &tea.Cursor{
-		Position: tea.Position{X: cursorX, Y: 2},
-		Shape:    tea.CursorBar,
-		Blink:    true,
+	if cursor := m.textInput.Cursor(); cursor != nil {
+		cursor.Position.Y += 2 // blank line (Y=0) + separator (Y=1)
+		v.Cursor = cursor
 	}
 	return v
 }
@@ -380,20 +408,21 @@ func (m inlineBubbleModel) handleAIStreamHide() (tea.Model, tea.Cmd) {
 // ---------------------------------------------------------------------------
 
 // handleTextInputStart activates the text input mode for follow-up prompts.
-// View() renders the prompt dynamically (separator + input + hint) using
-// termWidth, with cursor positioning on the input line. Keystrokes are
-// routed through handleTextInputKey until Enter or Ctrl+C/D delivers the
-// result.
+// Resets and focuses the embedded textinput so it accepts keystrokes.
+// View() renders the composed layout (separator + textinput + hint) with
+// the real cursor positioned on the input line.
 func (m inlineBubbleModel) handleTextInputStart(msg textInputStartMsg) (tea.Model, tea.Cmd) {
 	m.textInputActive = true
-	m.textInputBuffer = ""
+	m.textInput.Reset()
+	cmd := m.textInput.Focus()
 	m.textInputCh = msg.inputCh
-	return m, nil
+	return m, cmd
 }
 
 func (m inlineBubbleModel) handleTextInputHide(msg textInputHideMsg) (tea.Model, tea.Cmd) {
 	m.textInputActive = false
-	m.textInputBuffer = ""
+	m.textInput.Blur()
+	m.textInput.Reset()
 	m.textInputCh = nil
 	if msg.styledMessage != "" {
 		return m, tea.Println(strings.TrimRight(msg.styledMessage, "\n"))
