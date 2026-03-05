@@ -40,3 +40,9 @@ Putting the header in `View()` would mean all subsequent output (tool calls, AI 
 ## Future Option
 
 The `lineCountingWriter` approach can be reintroduced later as a small, contained hack if in-place subject update is desired. The wrapping bug it carries only manifests when the header panel itself soft-wraps (rare at typical terminal widths of 80+ columns).
+
+---
+
+## Update (v2 Migration, 2026-03-05)
+
+The v2 migration (project 20260305.03) resolved the subject update limitation without reverting this decision. The `\033[3J` scrollback clear + full history replay mechanism (see `20260305.03/design-decisions/001-scrollback-clear-3J.md`) allows the header to be re-rendered with the resolved subject via re-commit. The header stays as committed content (this decision holds), and subject update works via clear+replay (no in-place cursor math needed).

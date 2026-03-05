@@ -61,3 +61,13 @@ The T01 plan's Phase 2-7 descriptions remain directionally correct but should be
 ## Recommendation for T01 Plan
 
 The T01 plan should be updated to status "REVISED" with a note pointing to this design decision. The phase descriptions in T01 remain useful as directional goals but are no longer literal implementation specs.
+
+---
+
+## Validation (v2 Migration, 2026-03-05)
+
+The Bubbletea v2 migration (project 20260305.03) validated this decision across 4 phases:
+- The conservative boundary held: Bubbletea still owns only stderr; stdout remains direct for AI streaming.
+- `tea.Println` is still line-based in v2, confirming the "single writer" approach was correctly rejected.
+- The approval flow was migrated to a channel-based async pattern (Phase 4 of project 02, then unified in project 03), but the renderer/model boundary from this decision remains intact.
+- `program == nil` fallback paths are still used for CI/non-TTY environments.

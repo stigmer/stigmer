@@ -27,23 +27,15 @@ type PhaseConfig []PhaseEntry
 type ProgressPhase string
 
 const (
-	phaseDiscovering  ProgressPhase = "discovering"
-	phaseValidating   ProgressPhase = "validating"
-	phaseConnecting   ProgressPhase = "connecting"
-	PhaseDeploying    ProgressPhase = "deploying"
-	phaseExecuting    ProgressPhase = "executing"
 	PhaseInitializing ProgressPhase = "initializing"
 	PhaseInstalling   ProgressPhase = "installing"
-	phaseDeleting     ProgressPhase = "deleting"
-	phaseCompleted    ProgressPhase = "completed"
 	PhaseStarting     ProgressPhase = "starting"
 )
 
 type phaseStatus int
 
 const (
-	statusPending phaseStatus = iota
-	statusActive
+	statusActive phaseStatus = iota + 1
 	statusComplete
 )
 
@@ -95,17 +87,12 @@ func (p *ProgressState) getSnapshot() (ProgressPhase, string, map[ProgressPhase]
 	return p.active, p.detail, phasesCopy
 }
 
-// defaultPhaseConfig is used when no custom config is provided.
+// defaultPhaseConfig covers the daemon bootstrap lifecycle. Callers with
+// different phase sets use NewProgressDisplayWithPhases instead.
 var defaultPhaseConfig = PhaseConfig{
-	{phaseDiscovering, "Discovering resources"},
-	{phaseValidating, "Validating configuration"},
-	{phaseConnecting, "Connecting to backend"},
-	{PhaseDeploying, "Deploying"},
-	{phaseExecuting, "Starting execution"},
 	{PhaseInitializing, "Initializing"},
-	{PhaseInstalling, "Installing dependencies"},
-	{phaseDeleting, "Deleting resources"},
-	{PhaseStarting, "Starting services"},
+	{PhaseInstalling, "Installing"},
+	{PhaseStarting, "Starting"},
 }
 
 type progressModel struct {

@@ -176,7 +176,7 @@ func (m inlineBubbleModel) View() tea.View {
 	var content string
 	switch {
 	case m.approvalActive:
-		content = m.approvalContent + approval.RenderMenuForView(m.approvalSelected)
+		content = m.approvalContent + approval.RenderMenu(m.approvalSelected, true)
 	case m.streamingActive:
 		content = formatStreamingView(
 			m.streamingHeader, m.streamingContent, m.streamingSubAgent,

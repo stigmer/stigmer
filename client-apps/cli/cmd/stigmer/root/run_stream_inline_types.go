@@ -16,6 +16,17 @@ import (
 // reads are rendered individually via RenderCompact.
 const readGroupThreshold = 3
 
+// followUpSepWidth is the fallback separator width used by legacy follow-up
+// paths (direct-write and key-reader) and as a default when terminal width
+// is unknown. The Bubbletea text-input path uses the live terminal width
+// from tea.WindowSizeMsg instead.
+const followUpSepWidth = 40
+
+// followUpPromptRows is the number of terminal rows the follow-up prompt
+// occupies: separator + prompt + hint = 3 visible rows, plus the leading
+// blank line = 4 rows total for erasure.
+const followUpPromptRows = 4
+
 // renderResult holds the outcome of a single renderInline invocation.
 // When followUpInput is non-empty, the renderer collected follow-up text
 // from the user before returning (channel path with Bubbletea owning stdin).

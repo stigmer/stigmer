@@ -128,7 +128,7 @@ These were problems caused by missing knowledge, not v1 API limitations:
 
 - **Scrollback duplication on re-commit** -- Fixed by adding `\033[3J` (Erase Saved Lines) to the clear sequence. Re-commit is now safe to use for any purpose.
 - **Session header subject update deferred** -- Was deferred because re-commit caused duplicate headers in scrollback. Now feasible: re-commit with `\033[3J` on subject resolution.
-- **Follow-up prompt visible in expanded mode** -- Claude Code observation: hide the follow-up prompt in expanded (Ctrl+O) mode. Expanded = read mode, collapsed = interact mode.
+- **Follow-up prompt visibility** -- Originally planned to hide in expanded mode (Claude Code observation). **REVISED**: implemented as always-visible in both modes (see `design-decisions/002-follow-up-prompt-always-visible.md`).
 
 ---
 
@@ -193,12 +193,12 @@ The most impactful change from the deep research. Replace `\033[2J` with `\033[2
 2. Verify re-commit works for Ctrl+O toggle with zero scrollback duplication
 3. Verify re-commit works for approval collapse with zero scrollback duplication
 4. **Enable session header subject update via re-commit**: when `subjectResolved` message arrives, trigger re-commit to show the updated header. This was previously deferred (see `_changelog/2026-03/2026-03-05-094106-fix-duplicate-session-header-on-subject-update.md`) because re-commit duplicated the header. Now safe.
-5. **Hide follow-up prompt in expanded mode**: when Ctrl+O toggles to expanded view, the re-committed content should NOT include the follow-up input prompt. Expanded = read mode. When user toggles back to collapsed, the follow-up prompt reappears.
+5. ~~**Hide follow-up prompt in expanded mode**~~: **REVISED** -- follow-up prompt stays visible in both compact and expanded modes (see `design-decisions/002-follow-up-prompt-always-visible.md`). Hiding active input mid-composition was determined to be disorienting.
 6. Update changelog and design decision docs to reflect the fix
 
 **Trade-off**: Pre-session terminal history (commands run before the Stigmer session) is cleared on re-commit. This matches Claude Code's behavior and is an accepted pattern for AI CLI tools.
 
-**Validation**: Manual test: run a session, do several Ctrl+O toggles, scroll up -- only one copy of content exists. Subject update appears cleanly. Follow-up prompt hidden in expanded mode.
+**Validation**: Manual test: run a session, do several Ctrl+O toggles, scroll up -- only one copy of content exists. Subject update appears cleanly. Follow-up prompt visible in both modes.
 
 ### Phase 3: Follow-up Prompt UX Overhaul (Cursor Positioning)
 
@@ -253,10 +253,10 @@ With textinput as a child model inside the Bubbletea event loop, Ctrl+O and text
 3. When user presses Enter: model sends result back via channel
 4. `renderInline` event loop continues running during follow-up (does not stop)
 5. The toggle signal is processed immediately, not buffered
-6. On Ctrl+O during follow-up: re-commit with follow-up prompt hidden (expanded = read mode). When toggled back to collapsed, follow-up prompt reappears with the user's partially-typed input preserved.
+6. On Ctrl+O during follow-up: re-commit history in toggled mode. **REVISED**: follow-up prompt stays visible in both modes (see `design-decisions/002-follow-up-prompt-always-visible.md`). User's partially-typed input is preserved across toggles.
 7. Update design decision doc `ctrl-o-during-follow-up-prompt.md` to mark resolved
 
-**Validation**: Manual test: press Ctrl+O during follow-up prompt, see immediate re-commit with follow-up hidden. Toggle back, follow-up reappears with previous input.
+**Validation**: Manual test: press Ctrl+O during follow-up prompt, see immediate re-commit. Follow-up prompt visible with input preserved. Toggle back, display density changes but prompt remains.
 
 ### Phase 6: Cleanup + Polish
 
@@ -318,7 +318,7 @@ With textinput as a child model inside the Bubbletea event loop, Ctrl+O and text
 1. All v1 API usage migrated to v2 equivalents (Phase 1)
 2. Re-commit produces zero scrollback duplication -- verified by scrolling up after Ctrl+O toggle (Phase 2)
 3. Session header subject update renders cleanly via re-commit (Phase 2)
-4. Follow-up prompt hidden in expanded mode, visible in collapsed mode (Phase 2)
+4. Follow-up prompt visible in both compact and expanded modes (revised -- see `design-decisions/002-follow-up-prompt-always-visible.md`)
 5. Follow-up prompt has cursor on input line with footer below -- Claude Code quality (Phase 3)
 6. `bubbles/textinput` v2 replaces custom text input buffer (Phase 4)
 7. Ctrl+O works during follow-up prompt -- deferred limitation resolved (Phase 5)
