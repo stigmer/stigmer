@@ -281,7 +281,7 @@ func executeResolvedAgent(input resolvedAgentExecInput, sp *spinner.Spinner) err
 	} else {
 		prompter = approval.NewInteractivePrompter()
 	}
-	exec, err = streamAgentExecution(sessionID, "", exec.Metadata.Id, input.OrgID, prompter, input.DefaultAction, input.Verbose, input.OutputMode, input.Conn, localWorkspaceRoots(input.WorkspaceEntries), os.Stdout, os.Stderr)
+	exec, err = streamAgentExecution(sessionID, headerInfo, exec.Metadata.Id, input.OrgID, prompter, input.DefaultAction, input.Verbose, input.OutputMode, input.Conn, localWorkspaceRoots(input.WorkspaceEntries), os.Stdout, os.Stderr)
 	if err != nil {
 		return errors.Wrap(err, "error streaming execution")
 	}

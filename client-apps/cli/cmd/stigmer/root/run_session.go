@@ -75,12 +75,13 @@ func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, c
 	wsRoots := localWorkspaceRoots(ses.GetSpec().GetWorkspaceEntries())
 
 	model := latestExec.GetStatus().GetUsage().GetPrimaryModel()
-	renderSessionHeader(os.Stderr, sessionHeaderInfo{
+	headerInfo := sessionHeaderInfo{
 		SessionID:  sessionID,
 		Subject:    subject,
 		Model:      model,
 		Workspaces: wsRoots,
-	})
+	}
+	renderSessionHeader(os.Stderr, headerInfo)
 
 	switch phase {
 	case agentexecutionv1.ExecutionPhase_EXECUTION_PENDING,
@@ -89,11 +90,11 @@ func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, c
 		agentexecutionv1.ExecutionPhase_EXECUTION_PAUSED:
 		executionID := latestExec.GetMetadata().GetId()
 		prompter := approval.NewInlinePrompter(os.Stdin, os.Stderr)
-		_, err := streamAgentExecution(sessionID, subject, executionID, orgID, prompter, approval.Action(0), verbose, outputMode, conn, wsRoots, os.Stdout, os.Stderr)
+		_, err := streamAgentExecution(sessionID, headerInfo, executionID, orgID, prompter, approval.Action(0), verbose, outputMode, conn, wsRoots, os.Stdout, os.Stderr)
 		return err
 
 	default:
-		return resumeSession(sessionID, subject, orgID, entries, verbose, outputMode, conn, wsRoots)
+		return resumeSession(sessionID, headerInfo, orgID, entries, verbose, outputMode, conn, wsRoots)
 	}
 }
 
@@ -102,7 +103,7 @@ func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, c
 // same event stream (via snapshotToEvents), so noise suppression, lifecycle
 // badges, and duplicate filtering all apply automatically. The follow-up
 // prompt activates after all historical events are rendered.
-func resumeSession(sessionID, sessionSubject, orgID string, executions []*agentexecutionv1.AgentExecution, verbose bool, outputMode OutputMode, conn *grpc.ClientConn, workspaceRoots []string) error {
+func resumeSession(sessionID string, headerInfo sessionHeaderInfo, orgID string, executions []*agentexecutionv1.AgentExecution, verbose bool, outputMode OutputMode, conn *grpc.ClientConn, workspaceRoots []string) error {
 
 	chronological := make([]*agentexecutionv1.AgentExecution, len(executions))
 	copy(chronological, executions)
@@ -142,6 +143,7 @@ func resumeSession(sessionID, sessionSubject, orgID string, executions []*agente
 			status:            os.Stderr,
 			sessionID:         sessionID,
 			workspaceRoots:    workspaceRoots,
+			headerInfo:        headerInfo,
 		}
 		finalExecID, _, exitErr := runInlineFollowUpLoop(streamCtx, cfg, followUpFn, latestExecID)
 		streamCancel()

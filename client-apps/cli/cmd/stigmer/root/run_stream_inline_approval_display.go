@@ -110,6 +110,19 @@ func (r *inlineRenderer) formatCollapsedResult(tc toolrender.ToolCallInfo, actio
 // direct-write fallback and non-interactive paths.
 func (r *inlineRenderer) printCollapsedResult(tc toolrender.ToolCallInfo, action string, subAgentID string) {
 	r.statusf("%s\n", r.formatCollapsedResult(tc, action, subAgentID))
+	r.recordApproval(tc, action, subAgentID)
+}
+
+// recordApproval appends a kindApproval item to history. Called from both
+// the direct-write path (printCollapsedResult) and the Bubbletea path
+// (where formatCollapsedResult is used with approvalHideMsg/streamingHideMsg).
+func (r *inlineRenderer) recordApproval(tc toolrender.ToolCallInfo, action string, subAgentID string) {
+	r.history = append(r.history, committedItem{
+		kind:       kindApproval,
+		toolCalls:  []toolrender.ToolCallInfo{tc},
+		action:     action,
+		subAgentID: subAgentID,
+	})
 }
 
 // trackSuppression records the tool call ID for ToolCompletedEvent

@@ -1,5 +1,7 @@
 package root
 
+import "github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
+
 // Messages sent from the event loop to the Bubbletea program via Send().
 // Each message type maps to a handler in inlineBubbleModel.Update.
 
@@ -79,4 +81,14 @@ type followUpShowMsg struct {
 // the formatted user message above the (now empty) View region.
 type followUpHideMsg struct {
 	styledMessage string
+}
+
+// reCommitMsg carries a snapshot of the renderer's history for full terminal
+// reconstruction. The model handles this by returning tea.Sequence(ClearScreen,
+// Println, Println, ...) to atomically clear and replay all committed output.
+// Sent by the renderer when the session header subject is resolved or (future)
+// the user toggles compact/expanded mode.
+type reCommitMsg struct {
+	items       []committedItem
+	compactOpts toolrender.CompactOptions
 }

@@ -38,6 +38,16 @@ type inlineRenderConfig struct {
 	// the follow-up loop after local echo to prevent duplicate display when
 	// the backend echoes the same message.
 	suppressHumanEcho bool
+
+	// headerInfo carries session metadata for the session header panel.
+	// Stored as history[0] (kindHeader) so the header can be re-rendered
+	// during clear+re-commit (e.g., subject update).
+	headerInfo sessionHeaderInfo
+
+	// subjectUpdate receives the resolved session subject from the
+	// pollSessionSubject goroutine. nil when no subject polling is needed
+	// (resumed sessions, detached mode, no session).
+	subjectUpdate <-chan string
 }
 
 // pendingRead wraps a read tool completion with the sub-agent context it
@@ -134,4 +144,11 @@ type inlineRenderer struct {
 	// Ctrl+C at an approval prompt. Checked after handleApproval returns
 	// to terminate the render loop with a "cancelled" phase.
 	exitRequested bool
+
+	// history records every item committed to terminal scrollback via
+	// statusf/Println (or direct stderr write for the session header).
+	// Used by the clear+re-commit mechanism to reconstruct the full
+	// session display when the subject resolves or (future) the user
+	// toggles expand/collapse mode.
+	history []committedItem
 }

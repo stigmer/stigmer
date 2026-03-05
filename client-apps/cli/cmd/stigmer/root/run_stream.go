@@ -33,7 +33,7 @@ import (
 //
 // The returned execution is the last one that ran (which may be a follow-up
 // in inline mode, not the original).
-func streamAgentExecution(sessionID, sessionSubject, executionID, orgID string, prompter approval.Prompter, defaultAction approval.Action, verbose bool, outputMode OutputMode, conn *grpc.ClientConn, workspaceRoots []string, dataW, statusW io.Writer) (*agentexecutionv1.AgentExecution, error) {
+func streamAgentExecution(sessionID string, headerInfo sessionHeaderInfo, executionID, orgID string, prompter approval.Prompter, defaultAction approval.Action, verbose bool, outputMode OutputMode, conn *grpc.ClientConn, workspaceRoots []string, dataW, statusW io.Writer) (*agentexecutionv1.AgentExecution, error) {
 	client := agentexecutionv1.NewAgentExecutionQueryControllerClient(conn)
 
 	streamCtx, streamCancel := context.WithCancel(context.Background())
@@ -60,7 +60,7 @@ func streamAgentExecution(sessionID, sessionSubject, executionID, orgID string, 
 	case OutputJSON:
 		return streamAgentJSON(streamCtx, streamCancel, sessionID, executionID, events, approvalResponses, defaultAction, conn)
 	default:
-		return streamAgentInline(streamCtx, streamCancel, sessionID, executionID, orgID, events, approvalResponses, prompter, defaultAction, conn, workspaceRoots, dataW, statusW)
+		return streamAgentInline(streamCtx, streamCancel, sessionID, headerInfo, executionID, orgID, events, approvalResponses, prompter, defaultAction, conn, workspaceRoots, dataW, statusW)
 	}
 }
 
@@ -74,13 +74,19 @@ func streamAgentExecution(sessionID, sessionSubject, executionID, orgID string, 
 // is started before the first renderInline call and shut down on return.
 // When the status writer is not a terminal, the Program is skipped entirely
 // and all output falls back to direct writes.
-func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFunc, sessionID, executionID, orgID string, events chan executiontui.Event, approvalResponses chan executiontui.ApprovalResponse, prompter approval.Prompter, defaultAction approval.Action, conn *grpc.ClientConn, workspaceRoots []string, dataW, statusW io.Writer) (*agentexecutionv1.AgentExecution, error) {
+func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFunc, sessionID string, headerInfo sessionHeaderInfo, executionID, orgID string, events chan executiontui.Event, approvalResponses chan executiontui.ApprovalResponse, prompter approval.Prompter, defaultAction approval.Action, conn *grpc.ClientConn, workspaceRoots []string, dataW, statusW io.Writer) (*agentexecutionv1.AgentExecution, error) {
 	var followUpFn executiontui.FollowUpFn
 	if sessionID != "" {
 		followUpFn = buildFollowUpFn(streamCtx, sessionID, orgID, conn)
 	}
 
 	program := startInlineProgram(statusW)
+
+	var subjectUpdate chan string
+	if sessionID != "" && headerInfo.Subject == "" {
+		subjectUpdate = make(chan string, 1)
+		go pollSessionSubject(streamCtx, conn, sessionID, subjectUpdate)
+	}
 
 	cfg := inlineRenderConfig{
 		events:            events,
@@ -92,6 +98,8 @@ func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFun
 		sessionID:         sessionID,
 		workspaceRoots:    workspaceRoots,
 		program:           program,
+		headerInfo:        headerInfo,
+		subjectUpdate:     subjectUpdate,
 		cancelExecFn: func() {
 			_, _ = execution.Cancel(conn, executionID)
 		},
