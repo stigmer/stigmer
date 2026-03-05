@@ -69,6 +69,7 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, ex
 			if ok && subject != "" {
 				r.history[0].header.Subject = subject
 				cfg.subjectUpdate = nil
+				r.triggerReCommit()
 			}
 
 		case <-cfg.toggleExpandCh:

@@ -1,6 +1,7 @@
 package root
 
 import (
+	"strings"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
@@ -392,14 +393,10 @@ func TestTextInputStartMsg_ActivatesInput(t *testing.T) {
 	inputCh := make(chan string, 1)
 	m := newInlineBubbleModel()
 
-	updated, _ := m.Update(textInputStartMsg{
-		prompt:  "> ",
-		inputCh: inputCh,
-	})
+	updated, _ := m.Update(textInputStartMsg{inputCh: inputCh})
 
 	model := updated.(inlineBubbleModel)
 	assert.True(t, model.textInputActive)
-	assert.Equal(t, "> ", model.textInputPrompt)
 	assert.Empty(t, model.textInputBuffer)
 	require.NotNil(t, model.textInputCh)
 }
@@ -424,32 +421,83 @@ func TestTextInputHideMsg_ClearsState(t *testing.T) {
 func TestView_TextInputActive_ShowsPromptAndBuffer(t *testing.T) {
 	m := newInlineBubbleModel()
 	m.textInputActive = true
-	m.textInputPrompt = "> "
 	m.textInputBuffer = "hello world"
+	m.termWidth = 40
 
 	view := m.View()
-	assert.Equal(t, "> hello world", view.Content)
+	assert.Contains(t, view.Content, ">")
+	assert.Contains(t, view.Content, "hello world")
+	assert.Contains(t, view.Content, "enter send")
+	assert.Contains(t, view.Content, "─")
 }
 
 func TestView_TextInputActive_EmptyBuffer(t *testing.T) {
 	m := newInlineBubbleModel()
 	m.textInputActive = true
-	m.textInputPrompt = "> "
+	m.termWidth = 40
 
 	view := m.View()
-	assert.Equal(t, "> ", view.Content)
+	assert.Contains(t, view.Content, ">")
+	assert.Contains(t, view.Content, "enter send")
 }
 
 func TestView_TextInput_TakesPrecedenceOverFollowUp(t *testing.T) {
 	m := newInlineBubbleModel()
 	m.textInputActive = true
-	m.textInputPrompt = "> "
+	m.termWidth = 40
 	m.followUpActive = true
 	m.followUpContent = "old follow-up"
 
 	view := m.View()
-	assert.Equal(t, "> ", view.Content)
+	assert.Contains(t, view.Content, ">")
 	assert.NotContains(t, view.Content, "old follow-up")
+}
+
+func TestView_TextInput_CursorPosition(t *testing.T) {
+	m := newInlineBubbleModel()
+	m.textInputActive = true
+	m.textInputBuffer = "hello"
+	m.termWidth = 80
+
+	view := m.View()
+	require.NotNil(t, view.Cursor, "cursor should be set for text input")
+	assert.Equal(t, tea.CursorBar, view.Cursor.Shape)
+	assert.True(t, view.Cursor.Blink)
+	assert.Equal(t, 2, view.Cursor.Y, "cursor should be on the input line (row 2)")
+	assert.Greater(t, view.Cursor.X, 0, "cursor X should be positive")
+}
+
+func TestView_TextInput_CursorPosition_EmptyBuffer(t *testing.T) {
+	m := newInlineBubbleModel()
+	m.textInputActive = true
+	m.termWidth = 80
+
+	view := m.View()
+	require.NotNil(t, view.Cursor)
+	assert.Equal(t, 2, view.Cursor.Y)
+	xEmpty := view.Cursor.X
+
+	m.textInputBuffer = "abc"
+	view2 := m.View()
+	assert.Greater(t, view2.Cursor.X, xEmpty, "cursor X should advance with buffer content")
+}
+
+func TestView_TextInput_TermWidthSeparator(t *testing.T) {
+	m := newInlineBubbleModel()
+	m.textInputActive = true
+	m.termWidth = 60
+
+	view := m.View()
+	assert.Contains(t, view.Content, strings.Repeat("─", 60))
+}
+
+func TestUpdate_WindowSizeMsg_StoresWidth(t *testing.T) {
+	m := newInlineBubbleModel()
+	updated, cmd := m.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
+
+	model := updated.(inlineBubbleModel)
+	assert.Equal(t, 120, model.termWidth)
+	assert.Nil(t, cmd)
 }
 
 // =============================================================================

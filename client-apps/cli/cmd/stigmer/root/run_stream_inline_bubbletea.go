@@ -6,6 +6,7 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
@@ -55,10 +56,17 @@ type inlineBubbleModel struct {
 	followUpContent string // pre-rendered prompt (separator + hint + marker)
 
 	// Text input state for follow-up prompts when Bubbletea owns stdin.
+	// View() renders the prompt dynamically using termWidth for the
+	// separator and positions the cursor on the input line via
+	// tea.View.Cursor.
 	textInputActive bool
 	textInputBuffer string
-	textInputPrompt string       // pre-rendered prompt portion
 	textInputCh     chan<- string // delivers final input on Enter
+
+	// termWidth holds the terminal width in columns, updated via
+	// tea.WindowSizeMsg. Used to render the full-width separator in
+	// the follow-up prompt.
+	termWidth int
 
 	// Channels for communicating with the event loop goroutine. Set during
 	// model initialization when Bubbletea owns stdin. nil otherwise.
@@ -85,6 +93,9 @@ func (m inlineBubbleModel) Init() tea.Cmd {
 
 func (m inlineBubbleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.termWidth = msg.Width
+		return m, nil
 	case tea.KeyPressMsg:
 		return m.handleKeyPress(msg)
 	case spinnerStartMsg:
@@ -128,6 +139,10 @@ func (m inlineBubbleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m inlineBubbleModel) View() tea.View {
+	if m.textInputActive {
+		return m.renderTextInputView()
+	}
+
 	var content string
 	switch {
 	case m.approvalActive:
@@ -137,8 +152,6 @@ func (m inlineBubbleModel) View() tea.View {
 			m.streamingHeader, m.streamingContent, m.streamingSubAgent,
 			m.streamingMaxLines, m.streamingWidth,
 		)
-	case m.textInputActive:
-		content = m.textInputPrompt + m.textInputBuffer
 	case m.followUpActive:
 		content = m.followUpContent
 	case m.aiStreamActive:
@@ -155,6 +168,36 @@ func (m inlineBubbleModel) View() tea.View {
 		}
 	}
 	return tea.NewView(content)
+}
+
+// renderTextInputView builds the follow-up prompt View with cursor
+// positioning. Layout (top to bottom):
+//
+//	[blank line]
+//	───────────────────────── (full terminal width, dim)
+//	> user input here         (cursor on this line)
+//	  enter send · ctrl+c exit (dim italic hint)
+//
+// The real terminal cursor (blinking bar) is placed on the input line
+// after the typed text via tea.View.Cursor.
+func (m inlineBubbleModel) renderTextInputView() tea.View {
+	sepWidth := m.termWidth
+	if sepWidth <= 0 {
+		sepWidth = followUpSepWidth
+	}
+	sep := systemMsgStyle.Render(strings.Repeat("─", sepWidth))
+	marker := promptStyle.Render(">")
+	hint := followUpHintStyle.Render("  enter send · ctrl+c exit")
+	content := fmt.Sprintf("\n%s\n%s %s\n%s", sep, marker, m.textInputBuffer, hint)
+
+	v := tea.NewView(content)
+	cursorX := ansi.StringWidth(marker) + 1 + ansi.StringWidth(m.textInputBuffer)
+	v.Cursor = &tea.Cursor{
+		Position: tea.Position{X: cursorX, Y: 2},
+		Shape:    tea.CursorBar,
+		Blink:    true,
+	}
+	return v
 }
 
 // ---------------------------------------------------------------------------
@@ -337,12 +380,13 @@ func (m inlineBubbleModel) handleAIStreamHide() (tea.Model, tea.Cmd) {
 // ---------------------------------------------------------------------------
 
 // handleTextInputStart activates the text input mode for follow-up prompts.
-// View() renders the prompt + accumulated buffer. Keystrokes are routed
-// through handleTextInputKey until Enter or Ctrl+C/D delivers the result.
+// View() renders the prompt dynamically (separator + input + hint) using
+// termWidth, with cursor positioning on the input line. Keystrokes are
+// routed through handleTextInputKey until Enter or Ctrl+C/D delivers the
+// result.
 func (m inlineBubbleModel) handleTextInputStart(msg textInputStartMsg) (tea.Model, tea.Cmd) {
 	m.textInputActive = true
 	m.textInputBuffer = ""
-	m.textInputPrompt = msg.prompt
 	m.textInputCh = msg.inputCh
 	return m, nil
 }
@@ -350,7 +394,6 @@ func (m inlineBubbleModel) handleTextInputStart(msg textInputStartMsg) (tea.Mode
 func (m inlineBubbleModel) handleTextInputHide(msg textInputHideMsg) (tea.Model, tea.Cmd) {
 	m.textInputActive = false
 	m.textInputBuffer = ""
-	m.textInputPrompt = ""
 	m.textInputCh = nil
 	if msg.styledMessage != "" {
 		return m, tea.Println(strings.TrimRight(msg.styledMessage, "\n"))
