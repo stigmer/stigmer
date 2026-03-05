@@ -78,6 +78,22 @@ type streamingHideMsg struct {
 	collapsedResult string
 }
 
+// followUpShowMsg tells the model to render the follow-up prompt in View().
+// The follow-up loop sends this after an execution completes and the user is
+// eligible to continue the conversation. The content field is the pre-rendered
+// prompt string (separator + hint + marker).
+type followUpShowMsg struct {
+	content string
+}
+
+// followUpHideMsg tells the model to deactivate the follow-up prompt. View()
+// returns "" on the next render, causing Bubbletea to erase the prompt area.
+// When styledMessage is non-empty, Update returns a tea.Println Cmd to commit
+// the formatted user message above the (now empty) View region.
+type followUpHideMsg struct {
+	styledMessage string
+}
+
 // ---------------------------------------------------------------------------
 // Model
 // ---------------------------------------------------------------------------
@@ -87,7 +103,7 @@ type streamingHideMsg struct {
 // giving Bubbletea accurate row tracking for all content committed through
 // Program.Println.
 //
-// Rendering priority in View(): approval > streaming > spinner > empty.
+// Rendering priority in View(): approval > streaming > followUp > spinner > empty.
 type inlineBubbleModel struct {
 	spinnerActive bool
 	spinnerFrame  int
@@ -104,6 +120,9 @@ type inlineBubbleModel struct {
 	streamingMaxLines int
 	streamingSubAgent string
 	streamingWidth    int
+
+	followUpActive  bool
+	followUpContent string // pre-rendered prompt (separator + hint + marker)
 }
 
 func newInlineBubbleModel() inlineBubbleModel {
@@ -134,6 +153,10 @@ func (m inlineBubbleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleStreamingUpdate(msg)
 	case streamingHideMsg:
 		return m.handleStreamingHide(msg)
+	case followUpShowMsg:
+		return m.handleFollowUpShow(msg)
+	case followUpHideMsg:
+		return m.handleFollowUpHide(msg)
 	}
 	return m, nil
 }
@@ -147,6 +170,9 @@ func (m inlineBubbleModel) View() string {
 			m.streamingHeader, m.streamingContent, m.streamingSubAgent,
 			m.streamingMaxLines, m.streamingWidth,
 		)
+	}
+	if m.followUpActive {
+		return m.followUpContent
 	}
 	if !m.spinnerActive {
 		return ""
@@ -250,6 +276,25 @@ func (m inlineBubbleModel) handleStreamingHide(msg streamingHideMsg) (tea.Model,
 	m.streamingWidth = 0
 	if msg.collapsedResult != "" {
 		return m, tea.Println(strings.TrimRight(msg.collapsedResult, "\n"))
+	}
+	return m, nil
+}
+
+// ---------------------------------------------------------------------------
+// Follow-up prompt update handlers
+// ---------------------------------------------------------------------------
+
+func (m inlineBubbleModel) handleFollowUpShow(msg followUpShowMsg) (tea.Model, tea.Cmd) {
+	m.followUpActive = true
+	m.followUpContent = msg.content
+	return m, nil
+}
+
+func (m inlineBubbleModel) handleFollowUpHide(msg followUpHideMsg) (tea.Model, tea.Cmd) {
+	m.followUpActive = false
+	m.followUpContent = ""
+	if msg.styledMessage != "" {
+		return m, tea.Println(strings.TrimRight(msg.styledMessage, "\n"))
 	}
 	return m, nil
 }
