@@ -421,6 +421,13 @@ func TestRenderHistoryBatch_MatchesPerItemOutput(t *testing.T) {
 				if item.kind == kindHeader {
 					b.WriteByte('\n')
 				}
+				needsGap := item.kind == kindHumanMessage ||
+					item.kind == kindSystemMessage ||
+					item.kind == kindSubAgentComplete ||
+					item.kind == kindPhaseChange
+				if needsGap {
+					b.WriteByte('\n')
+				}
 				first = false
 			}
 			expected := b.String()

@@ -36,6 +36,13 @@ func renderHistoryBatch(items []committedItem, opts toolrender.CompactOptions, e
 		if item.kind == kindHeader {
 			b.WriteByte('\n')
 		}
+		needsGap := item.kind == kindHumanMessage ||
+			item.kind == kindSystemMessage ||
+			item.kind == kindSubAgentComplete ||
+			item.kind == kindPhaseChange
+		if needsGap {
+			b.WriteByte('\n')
+		}
 		first = false
 	}
 	return b.String()

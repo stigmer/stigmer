@@ -57,6 +57,7 @@ func TestEmitSnapshotEvents_EmitsToolAndMessageEvents(t *testing.T) {
 			},
 		},
 	)
+	exec.Spec = &agentexecutionv1.AgentExecutionSpec{Message: "Hello"}
 
 	events := make(chan executiontui.Event, 64)
 	emitSnapshotEvents(exec, events, true)
@@ -122,6 +123,7 @@ func TestEmitSnapshotEvents_ChronologicalOrdering(t *testing.T) {
 			},
 		},
 	)
+	exec.Spec = &agentexecutionv1.AgentExecutionSpec{Message: "Read main.go"}
 
 	events := make(chan executiontui.Event, 64)
 	emitSnapshotEvents(exec, events, false)
@@ -299,6 +301,7 @@ func TestSnapshotToEvents_MultiExecution_OnlyLastEmitsDone(t *testing.T) {
 		},
 		nil,
 	)
+	exec1.Spec = &agentexecutionv1.AgentExecutionSpec{Message: "First message"}
 	exec2 := makeExecution(
 		agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
 		[]*agentexecutionv1.AgentMessage{
@@ -307,6 +310,7 @@ func TestSnapshotToEvents_MultiExecution_OnlyLastEmitsDone(t *testing.T) {
 		},
 		nil,
 	)
+	exec2.Spec = &agentexecutionv1.AgentExecutionSpec{Message: "Follow-up"}
 
 	events := make(chan executiontui.Event, 64)
 	go snapshotToEvents([]*agentexecutionv1.AgentExecution{exec1, exec2}, events)
@@ -457,6 +461,7 @@ func TestEmitSnapshotEvents_ThinkingBlockBeforeAIMessage(t *testing.T) {
 			},
 		},
 	)
+	exec.Spec = &agentexecutionv1.AgentExecutionSpec{Message: "Create a skill"}
 
 	events := make(chan executiontui.Event, 64)
 	emitSnapshotEvents(exec, events, false)
