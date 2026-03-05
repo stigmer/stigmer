@@ -91,4 +91,5 @@ type followUpHideMsg struct {
 type reCommitMsg struct {
 	items       []committedItem
 	compactOpts toolrender.CompactOptions
+	expanded    bool
 }

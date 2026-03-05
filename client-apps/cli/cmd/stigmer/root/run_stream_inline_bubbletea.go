@@ -224,7 +224,7 @@ func (m inlineBubbleModel) handleFollowUpHide(msg followUpHideMsg) (tea.Model, t
 // ---------------------------------------------------------------------------
 
 func (m inlineBubbleModel) handleReCommit(msg reCommitMsg) (tea.Model, tea.Cmd) {
-	return m, reCommitHistory(msg.items, msg.compactOpts)
+	return m, reCommitHistory(msg.items, msg.compactOpts, msg.expanded)
 }
 
 // ---------------------------------------------------------------------------
