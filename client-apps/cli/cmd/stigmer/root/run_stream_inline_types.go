@@ -16,6 +16,16 @@ import (
 // reads are rendered individually via RenderCompact.
 const readGroupThreshold = 3
 
+// renderResult holds the outcome of a single renderInline invocation.
+// When followUpInput is non-empty, the renderer collected follow-up text
+// from the user before returning (channel path with Bubbletea owning stdin).
+type renderResult struct {
+	phase         string
+	exitErr       string
+	history       []committedItem
+	followUpInput string
+}
+
 // inlineRenderConfig configures the inline (non-TUI) event renderer.
 type inlineRenderConfig struct {
 	events            <-chan executiontui.Event
@@ -67,6 +77,14 @@ type inlineRenderConfig struct {
 	// same cancellation logic as context.Done(). nil when Bubbletea does
 	// not own stdin.
 	cancelCh <-chan struct{}
+
+	// followUpEnabled indicates that renderInline should handle the
+	// follow-up prompt internally after a terminal event, rather than
+	// returning immediately. When true and the execution phase is
+	// eligible, the renderer activates text input mode and continues
+	// the event loop until the user submits or cancels. This keeps
+	// toggleExpandCh active so Ctrl+O works during the follow-up prompt.
+	followUpEnabled bool
 }
 
 // pendingRead wraps a read tool completion with the sub-agent context it
@@ -198,4 +216,15 @@ type inlineRenderer struct {
 	// reconstruct the full session display when the subject resolves or
 	// the user toggles expand/collapse mode via Ctrl+O.
 	history []committedItem
+
+	// followUpInputCh receives the user's follow-up input from the
+	// Bubbletea model's text input handler. nil until the renderer
+	// enters follow-up mode after an eligible terminal event.
+	followUpInputCh <-chan string
+
+	// donePhase and doneExitErr store the terminal event's phase and
+	// error when the renderer enters follow-up mode. Returned in the
+	// renderResult when the follow-up completes or is cancelled.
+	donePhase   string
+	doneExitErr string
 }

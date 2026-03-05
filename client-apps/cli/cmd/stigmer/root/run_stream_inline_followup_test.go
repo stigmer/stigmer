@@ -7,7 +7,9 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
+	tea "charm.land/bubbletea/v2"
 	"github.com/pkg/errors"
 
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
@@ -422,7 +424,7 @@ func TestRenderInline_InitialHistory_PreservesExistingItems(t *testing.T) {
 	}
 
 	var stdout bytes.Buffer
-	_, _, history := renderInline(context.Background(), inlineRenderConfig{
+	result := renderInline(context.Background(), inlineRenderConfig{
 		events:            events,
 		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
 		prompter:          approval.NewInteractivePrompter(),
@@ -431,20 +433,20 @@ func TestRenderInline_InitialHistory_PreservesExistingItems(t *testing.T) {
 		initialHistory:    existingHistory,
 	})
 
-	if len(history) < 4 {
-		t.Fatalf("expected at least 4 items (3 existing + 1 new AI), got %d", len(history))
+	if len(result.history) < 4 {
+		t.Fatalf("expected at least 4 items (3 existing + 1 new AI), got %d", len(result.history))
 	}
-	if history[0].kind != kindHeader {
-		t.Errorf("expected first item to be header, got %v", history[0].kind)
+	if result.history[0].kind != kindHeader {
+		t.Errorf("expected first item to be header, got %v", result.history[0].kind)
 	}
-	if history[1].kind != kindAIMessage {
-		t.Errorf("expected second item to be previous AI message, got %v", history[1].kind)
+	if result.history[1].kind != kindAIMessage {
+		t.Errorf("expected second item to be previous AI message, got %v", result.history[1].kind)
 	}
-	if history[2].kind != kindHumanMessage {
-		t.Errorf("expected third item to be human message, got %v", history[2].kind)
+	if result.history[2].kind != kindHumanMessage {
+		t.Errorf("expected third item to be human message, got %v", result.history[2].kind)
 	}
-	if history[3].kind != kindAIMessage {
-		t.Errorf("expected fourth item to be new AI message, got %v", history[3].kind)
+	if result.history[3].kind != kindAIMessage {
+		t.Errorf("expected fourth item to be new AI message, got %v", result.history[3].kind)
 	}
 }
 
@@ -453,7 +455,7 @@ func TestRenderInline_NoInitialHistory_CreatesHeader(t *testing.T) {
 	go feedEvents(events, executiontui.DoneEvent{Phase: "completed"})
 
 	headerInfo := sessionHeaderInfo{SessionID: "ses-new"}
-	_, _, history := renderInline(context.Background(), inlineRenderConfig{
+	result := renderInline(context.Background(), inlineRenderConfig{
 		events:            events,
 		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
 		prompter:          approval.NewInteractivePrompter(),
@@ -462,14 +464,256 @@ func TestRenderInline_NoInitialHistory_CreatesHeader(t *testing.T) {
 		headerInfo:        headerInfo,
 	})
 
-	if len(history) == 0 {
+	if len(result.history) == 0 {
 		t.Fatal("expected at least 1 item (header)")
 	}
-	if history[0].kind != kindHeader {
-		t.Errorf("expected first item to be header, got %v", history[0].kind)
+	if result.history[0].kind != kindHeader {
+		t.Errorf("expected first item to be header, got %v", result.history[0].kind)
 	}
-	if history[0].header == nil || history[0].header.SessionID != "ses-new" {
+	if result.history[0].header == nil || result.history[0].header.SessionID != "ses-new" {
 		t.Error("expected header to contain session info")
+	}
+}
+
+// ===========================================================================
+// Phase 4: renderInline follow-up mode (followUpEnabled = true)
+// ===========================================================================
+
+// followUpTestModel is a minimal Bubbletea model for testing the follow-up
+// flow. When it receives textInputStartMsg, it forwards the send-only
+// inputCh on capturedCh so the test can control when input is submitted.
+type followUpTestModel struct {
+	capturedCh chan<- chan<- string
+}
+
+func (m followUpTestModel) Init() tea.Cmd                           { return nil }
+func (m followUpTestModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if start, ok := msg.(textInputStartMsg); ok && start.inputCh != nil && m.capturedCh != nil {
+		m.capturedCh <- start.inputCh
+	}
+	return m, nil
+}
+func (m followUpTestModel) View() tea.View { return tea.NewView("") }
+
+// newFollowUpTestConfig creates an inlineRenderConfig with followUpEnabled
+// and a real Bubbletea program backed by followUpTestModel. The returned
+// capturedInputCh receives the inputCh that activateFollowUp creates,
+// allowing tests to submit input at a controlled time.
+func newFollowUpTestConfig(
+	events <-chan executiontui.Event,
+	toggleExpandCh chan struct{},
+) (cfg inlineRenderConfig, capturedInputCh <-chan chan<- string, cleanup func()) {
+	capturedCh := make(chan chan<- string, 1)
+
+	p := tea.NewProgram(
+		followUpTestModel{capturedCh: capturedCh},
+		tea.WithOutput(io.Discard),
+		tea.WithInput(nil),
+	)
+	go func() { _, _ = p.Run() }()
+
+	if toggleExpandCh == nil {
+		toggleExpandCh = make(chan struct{}, 1)
+	}
+
+	cfg = inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              io.Discard,
+		status:            io.Discard,
+		program:           p,
+		followUpEnabled:   true,
+		toggleExpandCh:    toggleExpandCh,
+	}
+	cleanup = func() {
+		p.Quit()
+		p.Wait()
+	}
+	return cfg, capturedCh, cleanup
+}
+
+func TestRenderInline_FollowUpEnabled_ActivatesAndReturnsInput(t *testing.T) {
+	events := make(chan executiontui.Event, 10)
+	go feedEvents(events, executiontui.DoneEvent{Phase: "completed"})
+
+	cfg, capturedCh, cleanup := newFollowUpTestConfig(events, nil)
+	defer cleanup()
+
+	go func() {
+		inputCh := <-capturedCh
+		inputCh <- "fix the login bug"
+	}()
+
+	result := renderInline(context.Background(), cfg)
+
+	if result.followUpInput != "fix the login bug" {
+		t.Errorf("expected followUpInput='fix the login bug', got %q", result.followUpInput)
+	}
+	if result.phase != "completed" {
+		t.Errorf("expected phase='completed', got %q", result.phase)
+	}
+	if result.exitErr != "" {
+		t.Errorf("expected no exitErr, got %q", result.exitErr)
+	}
+}
+
+func TestRenderInline_FollowUpEnabled_AppendsHumanMessageToHistory(t *testing.T) {
+	events := make(chan executiontui.Event, 10)
+	go feedEvents(events,
+		executiontui.AIMessageEvent{Content: "Analysis complete."},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	cfg, capturedCh, cleanup := newFollowUpTestConfig(events, nil)
+	defer cleanup()
+
+	go func() {
+		inputCh := <-capturedCh
+		inputCh <- "continue"
+	}()
+
+	result := renderInline(context.Background(), cfg)
+
+	found := false
+	for _, item := range result.history {
+		if item.kind == kindHumanMessage {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected human message in history after follow-up input")
+	}
+}
+
+func TestRenderInline_FollowUpEnabled_EmptyInput_ReturnsEmpty(t *testing.T) {
+	events := make(chan executiontui.Event, 10)
+	go feedEvents(events, executiontui.DoneEvent{Phase: "completed"})
+
+	cfg, capturedCh, cleanup := newFollowUpTestConfig(events, nil)
+	defer cleanup()
+
+	go func() {
+		inputCh := <-capturedCh
+		inputCh <- ""
+	}()
+
+	result := renderInline(context.Background(), cfg)
+
+	if result.followUpInput != "" {
+		t.Errorf("expected empty followUpInput, got %q", result.followUpInput)
+	}
+	if result.phase != "completed" {
+		t.Errorf("expected phase='completed', got %q", result.phase)
+	}
+}
+
+func TestRenderInline_FollowUpEnabled_CtrlO_DoesNotInterruptFollowUp(t *testing.T) {
+	events := make(chan executiontui.Event, 10)
+	go feedEvents(events, executiontui.DoneEvent{Phase: "completed"})
+
+	toggleCh := make(chan struct{}, 1)
+	cfg, capturedCh, cleanup := newFollowUpTestConfig(events, toggleCh)
+	defer cleanup()
+
+	go func() {
+		inputCh := <-capturedCh
+		toggleCh <- struct{}{}
+		time.Sleep(50 * time.Millisecond)
+		inputCh <- "after toggle"
+	}()
+
+	result := renderInline(context.Background(), cfg)
+
+	if result.followUpInput != "after toggle" {
+		t.Errorf("expected followUpInput='after toggle', got %q", result.followUpInput)
+	}
+	if result.phase != "completed" {
+		t.Errorf("expected phase='completed', got %q", result.phase)
+	}
+}
+
+func TestRenderInline_FollowUpEnabled_NotEligible_ReturnsNormally(t *testing.T) {
+	events := make(chan executiontui.Event, 10)
+	go feedEvents(events, executiontui.DoneEvent{Phase: "cancelled"})
+
+	cfg, _, cleanup := newFollowUpTestConfig(events, nil)
+	defer cleanup()
+
+	result := renderInline(context.Background(), cfg)
+
+	if result.followUpInput != "" {
+		t.Errorf("expected empty followUpInput for cancelled phase, got %q", result.followUpInput)
+	}
+	if result.phase != "cancelled" {
+		t.Errorf("expected phase='cancelled', got %q", result.phase)
+	}
+}
+
+func TestRenderInline_FollowUpEnabled_MultipleToggle_PreservesInput(t *testing.T) {
+	events := make(chan executiontui.Event, 10)
+	go feedEvents(events,
+		executiontui.AIMessageEvent{Content: "Done."},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	toggleCh := make(chan struct{}, 1)
+	cfg, capturedCh, cleanup := newFollowUpTestConfig(events, toggleCh)
+	defer cleanup()
+
+	go func() {
+		inputCh := <-capturedCh
+		toggleCh <- struct{}{}
+		time.Sleep(30 * time.Millisecond)
+		toggleCh <- struct{}{}
+		time.Sleep(30 * time.Millisecond)
+		inputCh <- "preserved text"
+	}()
+
+	result := renderInline(context.Background(), cfg)
+
+	if result.followUpInput != "preserved text" {
+		t.Errorf("expected followUpInput='preserved text', got %q", result.followUpInput)
+	}
+}
+
+func TestRenderInline_FollowUpEnabled_FailedPhase_ActivatesFollowUp(t *testing.T) {
+	events := make(chan executiontui.Event, 10)
+	go feedEvents(events, executiontui.DoneEvent{Phase: "failed"})
+
+	cfg, capturedCh, cleanup := newFollowUpTestConfig(events, nil)
+	defer cleanup()
+
+	go func() {
+		inputCh := <-capturedCh
+		inputCh <- "try again"
+	}()
+
+	result := renderInline(context.Background(), cfg)
+
+	if result.followUpInput != "try again" {
+		t.Errorf("expected followUpInput='try again', got %q", result.followUpInput)
+	}
+	if result.phase != "failed" {
+		t.Errorf("expected phase='failed', got %q", result.phase)
+	}
+}
+
+func TestRenderInline_FollowUpEnabled_DoneWithError_SkipsFollowUp(t *testing.T) {
+	events := make(chan executiontui.Event, 10)
+	go feedEvents(events, executiontui.DoneEvent{Phase: "completed", Error: "agent crashed"})
+
+	cfg, _, cleanup := newFollowUpTestConfig(events, nil)
+	defer cleanup()
+
+	result := renderInline(context.Background(), cfg)
+
+	if result.followUpInput != "" {
+		t.Errorf("expected empty followUpInput when exitErr is set, got %q", result.followUpInput)
+	}
+	if result.exitErr != "agent crashed" {
+		t.Errorf("expected exitErr='agent crashed', got %q", result.exitErr)
 	}
 }
 

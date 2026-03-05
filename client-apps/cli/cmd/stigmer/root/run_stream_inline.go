@@ -2,6 +2,8 @@ package root
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
@@ -10,15 +12,20 @@ import (
 )
 
 // renderInline consumes events from the channel and renders them inline until
-// a terminal event (DoneEvent or StreamErrorEvent) arrives. Returns the final
-// phase, any error message, and the accumulated history. The history enables
-// the follow-up loop to carry state across executions so Ctrl+O toggles the
-// entire conversation, not just the current execution.
+// a terminal event (DoneEvent or StreamErrorEvent) arrives. Returns a
+// renderResult with the final phase, error, accumulated history, and optional
+// follow-up input.
+//
+// When cfg.followUpEnabled is true and the terminal event's phase is eligible,
+// the renderer activates the follow-up text input and continues the event
+// loop instead of returning. This keeps toggleExpandCh active so Ctrl+O
+// triggers immediate re-commit during the follow-up prompt. The renderer
+// returns only when the user submits or cancels the follow-up.
 //
 // When cfg.initialHistory is non-nil (continuation from a prior execution),
 // the renderer seeds its buffer from it. Otherwise it creates a fresh history
 // with the session header as the first entry.
-func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, exitErr string, history []committedItem) {
+func renderInline(ctx context.Context, cfg inlineRenderConfig) renderResult {
 	thinkTimer := time.NewTimer(0)
 	thinkTimer.Stop()
 	select {
@@ -63,7 +70,7 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, ex
 			r.stopThinkingSpinner()
 			r.flushPendingReads()
 			r.statusf("Stream cancelled\n")
-			return "", "context cancelled", r.history
+			return renderResult{exitErr: "context cancelled", history: r.history}
 
 		case subject, ok := <-cfg.subjectUpdate:
 			if ok && subject != "" {
@@ -86,7 +93,7 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, ex
 			if r.cfg.sessionID != "" {
 				r.statusf("Resume later with: stigmer run %s\n", r.cfg.sessionID)
 			}
-			return "cancelled", "", r.history
+			return renderResult{phase: "cancelled", history: r.history}
 
 		case event, ok := <-cfg.events:
 			r.stopThinkingSpinner()
@@ -94,18 +101,72 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, ex
 
 			if !ok {
 				r.flushPendingReads()
-				return "", "", r.history
+				return renderResult{history: r.history}
 			}
 
 			done, p, e := r.handleEvent(ctx, event)
 			if done {
-				return p, e, r.history
+				if cfg.followUpEnabled && isFollowUpEligible(p, e) {
+					r.activateFollowUp(p, e)
+					cfg.events = nil
+					cfg.subjectUpdate = nil
+					continue
+				}
+				return renderResult{phase: p, exitErr: e, history: r.history}
 			}
 			r.resetThinkTimer()
+
+		case input := <-r.followUpInputCh:
+			return r.completeFollowUp(strings.TrimSpace(input))
 
 		case <-r.thinkTimer.C:
 			r.startThinkingSpinner()
 		}
+	}
+}
+
+// activateFollowUp transitions the renderer from execution mode to follow-up
+// mode. Stops any active spinner, flushes buffered reads, stores the terminal
+// event's phase/error, and activates the Bubbletea text input.
+func (r *inlineRenderer) activateFollowUp(phase, exitErr string) {
+	r.stopThinkingSpinner()
+	r.flushPendingReads()
+	r.thinkTimer.Stop()
+
+	r.donePhase = phase
+	r.doneExitErr = exitErr
+
+	inputCh := make(chan string, 1)
+	r.followUpInputCh = inputCh
+	r.cfg.program.Send(textInputStartMsg{inputCh: inputCh})
+}
+
+// completeFollowUp processes the user's follow-up input and returns a
+// renderResult. On non-empty input, the styled human message is committed
+// to both the terminal (via textInputHideMsg) and the history buffer.
+func (r *inlineRenderer) completeFollowUp(input string) renderResult {
+	if input == "" {
+		r.cfg.program.Send(textInputHideMsg{})
+		return renderResult{
+			phase:   r.donePhase,
+			exitErr: r.doneExitErr,
+			history: r.history,
+		}
+	}
+
+	styledMsg := fmt.Sprintf("%s\n\n", formatHumanMessage(input))
+	r.cfg.program.Send(textInputHideMsg{styledMessage: styledMsg})
+
+	r.history = append(r.history, committedItem{
+		kind: kindHumanMessage,
+		text: formatHumanMessage(input),
+	})
+
+	return renderResult{
+		phase:         r.donePhase,
+		exitErr:       r.doneExitErr,
+		history:       r.history,
+		followUpInput: input,
 	}
 }
 
