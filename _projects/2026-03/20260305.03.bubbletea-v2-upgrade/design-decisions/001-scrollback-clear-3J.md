@@ -1,7 +1,7 @@
 # Design Decision 001: Scrollback Clear via \033[3J] + Replay
 
-**Status**: Accepted
-**Date**: 2026-03-05 (Session 3)
+**Status**: Accepted (amended)
+**Date**: 2026-03-05 (Session 3), amended 2026-03-05 (Session 8)
 **Context**: Bubbletea v2 migration, Phase 2
 
 ## Problem
@@ -21,9 +21,20 @@ Alternative approaches considered and rejected:
 
 ## Decision
 
-Add `\033[3J` (Erase Saved Lines) to the clear sequence before replay. Combined: `\033[3J` wipes scrollback, then `\033[2J\033[1;1H` (via `reCommitMsg` through the Bubbletea program) clears the visible screen and repositions the cursor. The full session history is replayed from the in-memory event history.
+Add `\033[3J` (Erase Saved Lines) to the clear sequence during replay. The `\033[3J` is embedded at the start of the `tea.Println` payload inside `buildReCommitCmd`, so it executes *after* `tea.ClearScreen`'s `\033[2J`.
 
-Implementation: direct write of `\033[3J` to `cfg.status` in `triggerReCommit()` before sending `reCommitMsg` to the Bubbletea program. The direct write is safe because `\033[3J` only affects scrollback (invisible to the Cursed Renderer's cursor/cell tracking).
+The terminal processes the combined sequence as:
+1. `\033[2J\033[1;1H` — clear visible screen (pushes content to scrollback in modern terminals), reposition cursor
+2. `\033[3J` — erase saved lines (wipes scrollback including what step 1 just pushed)
+3. Rendered history content — fresh replay
+
+The full session history is replayed from the in-memory event history.
+
+## Amendment (Session 8): Ordering fix
+
+The original implementation wrote `\033[3J` directly to `cfg.status` in `triggerReCommit()` *before* sending `reCommitMsg` to the Bubbletea program. This created a race: `\033[3J` cleared scrollback, but then `tea.ClearScreen`'s `\033[2J` pushed visible content *back into* scrollback — producing the exact duplication it was meant to prevent.
+
+The fix moves `\033[3J` into the `tea.Println` payload inside `buildReCommitCmd`. Since `tea.Sequence` guarantees `tea.Println` runs after `tea.ClearScreen`, the ordering is now correct and atomic within a single Bubbletea event-loop tick.
 
 ## Trade-offs
 
@@ -37,5 +48,5 @@ Implementation: direct write of `\033[3J` to `cfg.status` in `triggerReCommit()`
 ## References
 
 - Research report: `research.inline-rerender-without-scrollback-duplication/04.report.gpt.md`
-- Implementation: `run_stream_inline_history.go` (`triggerReCommit`)
+- Implementation: `run_stream_inline_history.go` (`buildReCommitCmd`, `triggerReCommit`)
 - Checkpoint: `checkpoints/2026-03-05-session-3.md`
