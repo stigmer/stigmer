@@ -31,9 +31,10 @@ type spinnerTickMsg struct{}
 // keeping the interactive region small (question + menu ≈ 6 rows).
 //
 // When reCommitPayload is non-empty, the handler uses buildReCommitCmd
-// (ClearScreen + eraseScrollback + payload) instead of tea.Println. This
-// avoids the insertAbove stale-cellbuf race that occurs when transitioning
-// from a tall streaming View() to the approval panel (see DD-001).
+// (Raw clear+content followed by ClearScreen state reset) instead of
+// tea.Println. This avoids the insertAbove stale-cellbuf race that
+// occurs when transitioning from a tall streaming View() to the approval
+// panel (see DD-001).
 //
 // Used by the legacy PromptKeyOnly path when Bubbletea does not own stdin.
 // The channel-based stdin path uses approvalStartMsg.
@@ -67,9 +68,10 @@ type approvalHideMsg struct {
 // question line lives in View(), keeping the interactive region small.
 //
 // When reCommitPayload is non-empty, the handler uses buildReCommitCmd
-// (ClearScreen + eraseScrollback + payload) instead of tea.Println. This
-// avoids the insertAbove stale-cellbuf race that occurs when transitioning
-// from a tall streaming View() to the approval panel (see DD-001).
+// (Raw clear+content followed by ClearScreen state reset) instead of
+// tea.Println. This avoids the insertAbove stale-cellbuf race that
+// occurs when transitioning from a tall streaming View() to the approval
+// panel (see DD-001).
 //
 // The event loop creates the channel, sends this message, then blocks on
 // the channel. handleKeyPress routes arrow/enter/esc keys to the channel
@@ -161,9 +163,11 @@ type followUpHideMsg struct {
 }
 
 // reCommitMsg carries a pre-rendered string of the full session history.
-// The renderer owns rendering (via renderHistoryBatch); the model just
-// issues ClearScreen + Println(rendered). This reduces N+1 event-loop
-// round-trips to 2 and eliminates visible flicker on toggle.
+// The renderer owns rendering (via renderHistoryBatch); the model issues
+// tea.Raw (clear + content) followed by tea.ClearScreen (renderer state
+// reset). The Raw write goes to Bubbletea's outputBuf which flushes
+// before the renderer, guaranteeing the terminal is cleared and content
+// is written atomically before View() is re-rendered.
 type reCommitMsg struct {
 	rendered string
 }
