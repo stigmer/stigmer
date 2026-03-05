@@ -80,8 +80,10 @@ var followUpHintStyle = lipgloss.NewStyle().
 	Foreground(lipgloss.Color("8")).
 	Italic(true)
 
-// followUpSepWidth is the fixed character width of the separator rendered
-// above the follow-up prompt. Matches the approval separator aesthetic.
+// followUpSepWidth is the fallback separator width used by legacy follow-up
+// paths (direct-write and key-reader) and as a default when terminal width
+// is unknown. The Bubbletea text-input path uses the live terminal width
+// from tea.WindowSizeMsg instead.
 const followUpSepWidth = 40
 
 // followUpPromptRows is the number of terminal rows the follow-up prompt

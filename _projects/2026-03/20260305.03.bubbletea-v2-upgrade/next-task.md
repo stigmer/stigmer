@@ -15,51 +15,51 @@ Drop this file into your conversation to quickly resume work on this project.
 
 **Created**: 2026-03-05 11:00
 **Current Task**: T01 -- Bubbletea v2 Migration + Design Decision Cleanup
-**Status**: Phase 1 COMPLETE -- ready for Phase 2
-**Last Session**: 2026-03-05 (Session 2 -- Phase 1 mechanical v2 migration)
+**Status**: Phase 2 COMPLETE -- ready for Phase 3
+**Last Session**: 2026-03-05 (Session 3 -- Phase 2: scrollback fix + follow-up prompt UX)
 
-## Session Progress (2026-03-05, Session 2)
+## Session Progress (2026-03-05, Session 3)
 
 ### Accomplished
-- Completed full Phase 1: Mechanical v1-to-v2 API migration
-- All 4 charmbracelet dependencies upgraded: bubbletea v2.0.1, lipgloss v2.0.0, bubbles v2.0.0, glamour v2 (pseudoversion)
-- x/ansi bumped transitively from v0.8.0 to v0.11.6
-- 20 source files updated (imports + API changes)
-- 4 test files updated (~47 KeyMsg constructions + View() assertions)
-- 7 BUILD.bazel + MODULE.bazel updated
-- go build, go vet, all tests pass
+- **Part A: Scrollback Duplication Fix**
+  - Added `\033[3J` (Erase Saved Lines) direct write to `triggerReCommit()` -- eliminates scrollback duplication on Ctrl+O toggle and approval collapse
+  - Enabled subject update re-commit -- header now updates visually when the backend resolves the session subject
+- **Part B: Follow-up Prompt UX Overhaul**
+  - Added `termWidth` tracking via `tea.WindowSizeMsg` to `inlineBubbleModel`
+  - New prompt layout: full-width separator → `> input` → hint footer (hint moved below input)
+  - Real blinking bar cursor on the input line via `tea.View.Cursor`
+  - Removed `textInputPrompt` field -- prompt now rendered dynamically in `View()` using model state
+  - Simplified `textInputStartMsg` (removed `prompt` field) and `promptFollowUpViaChannel`
+  - Updated 3 existing tests, added 4 new tests (cursor position, width separator, WindowSizeMsg)
 
 ### Key Decisions
-- **glamour v2**: Included in Phase 1 (no stable tag yet, using pseudoversion v2.0.0-20260302162937-86f90cfe96d1)
-- **lipgloss.TerminalColor → color.Color**: v2 removed the TerminalColor interface; replaced with standard image/color.Color
-- **View() refactored to switch-case**: The multi-return View() on inlineBubbleModel was refactored to a single-return switch for cleanliness
+- `\033[3J` via direct write to `cfg.status` (Option 1) -- safe because it only affects scrollback
+- `followUpSepWidth` kept as fallback for legacy paths (direct-write, key-reader)
+- Legacy follow-up paths keep hint-above-input layout (no cursor API available)
 
-### Surprises Discovered & Resolved
-1. `lipgloss.TerminalColor` removed in v2 -- clean fix, replaced with `color.Color`
-2. Lipgloss v2 always emits ANSI codes (v1 auto-stripped for non-TTY) -- 5 integration tests needed `ansi.Strip()` before substring assertions
-3. `glamour/v2` not released as a stable tag -- using pseudoversion
-
-### Files Modified (v2 migration only)
-- 20 source files (imports + API)
-- 4 test files (KeyMsg→KeyPressMsg, View().Content, ansi.Strip)
-- 7 BUILD.bazel + MODULE.bazel
-- go.mod, go.sum, go.work.sum
+### Files Modified (Phase 2)
+- `run_stream_inline_history.go` -- `\033[3J` in `triggerReCommit()`
+- `run_stream_inline.go` -- subject update re-commit
+- `run_stream_inline_bubbletea.go` -- `termWidth`, `renderTextInputView()`, cursor positioning
+- `run_stream_inline_messages.go` -- simplified `textInputStartMsg`
+- `run_stream_inline_followup.go` -- simplified `promptFollowUpViaChannel`
+- `run_display.go` -- updated `followUpSepWidth` comment
+- `run_stream_inline_keypress_test.go` -- updated + new tests
 
 ## Next Steps
 
-1. **Phase 2**: Follow-up prompt UX overhaul (v2 cursor positioning -- footer below input)
-2. **Phase 3**: Replace custom text input with bubbles/textinput v2
-3. **Phase 4**: Unblock Ctrl+O during follow-up prompt
-4. **Phase 5**: Cleanup legacy paths, polish, update design decision docs
+1. **Phase 3**: Replace custom `handleTextInputKey` with `bubbles/textinput` v2
+2. **Phase 4**: Unblock Ctrl+O during follow-up prompt
+3. **Phase 5**: Cleanup legacy paths, polish, update design decision docs
 
 ## Context for Resume
 
-- Phase 1 is fully committed and green (build + vet + tests)
-- The v2 API surface is now available for Phases 2-5
-- Key v2 capability to leverage next: `tea.View.Cursor` for cursor positioning in follow-up prompt
-- `tea.NewView(content)` is the new pattern for all View() methods
-- `tea.KeyPressMsg` with `msg.String()` is the idiomatic key handling pattern
-- Lipgloss v2 always applies styles even in tests -- use `ansi.Strip()` when comparing styled output
+- Phase 2 is fully implemented and all tests pass (build + vet + tests green)
+- `tea.View.Cursor` is now used for cursor positioning in the follow-up prompt -- not yet visually verified in a live terminal
+- `ansi.StringWidth()` from `x/ansi` is the correct way to compute visual width of styled text for cursor X
+- `renderTextInputView()` method on `inlineBubbleModel` is the new follow-up prompt renderer
+- Legacy follow-up paths (`promptFollowUpDirect`, `promptFollowUpViaKeyReader`) are unchanged
+- `followUpSepWidth = 40` is still used as fallback when `termWidth` is 0
 
 ## Essential Files to Review
 
@@ -107,12 +107,12 @@ When starting a new session:
 3. [ ] Review any new design decisions in `design-decisions/`
 4. [ ] Check coding guidelines in `coding-guidelines/`
 5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with Phase 2
+6. [ ] Continue with Phase 3
 
 ## Implementation Phases (from T01 plan)
 
 1. **Phase 1**: ~~Mechanical v1-to-v2 API migration~~ **COMPLETE**
-2. **Phase 2**: Follow-up prompt UX overhaul (v2 cursor positioning -- footer below input)
+2. **Phase 2**: ~~Re-commit scrollback fix + follow-up prompt UX overhaul~~ **COMPLETE**
 3. **Phase 3**: Replace custom text input with bubbles/textinput v2
 4. **Phase 4**: Unblock Ctrl+O during follow-up prompt (deferred limitation resolved)
 5. **Phase 5**: Cleanup legacy paths, polish, update design decision docs
@@ -138,7 +138,7 @@ Key predecessor documents:
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 2" - Start the follow-up prompt UX overhaul
+- "Continue with Phase 3" - Start replacing custom text input with bubbles/textinput v2
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

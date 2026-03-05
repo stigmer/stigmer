@@ -85,16 +85,13 @@ func promptFollowUp(program *tea.Program, status io.Writer, cancelCh <-chan stru
 	return promptFollowUpDirect(status)
 }
 
-// promptFollowUpViaChannel renders the prompt and reads input through the
-// Bubbletea model when it owns stdin. Sends textInputStartMsg with a prompt
-// and channel, blocks until the model delivers input on Enter.
+// promptFollowUpViaChannel reads input through the Bubbletea model when
+// it owns stdin. View() renders the prompt dynamically with cursor
+// positioning. Blocks until the model delivers input on Enter.
 func promptFollowUpViaChannel(program *tea.Program) (string, error) {
 	inputCh := make(chan string, 1)
 
-	program.Send(textInputStartMsg{
-		prompt:  formatFollowUpPrompt(),
-		inputCh: inputCh,
-	})
+	program.Send(textInputStartMsg{inputCh: inputCh})
 
 	input := strings.TrimSpace(<-inputCh)
 

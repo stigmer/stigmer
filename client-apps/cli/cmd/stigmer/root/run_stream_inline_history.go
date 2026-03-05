@@ -1,6 +1,7 @@
 package root
 
 import (
+	"fmt"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -202,10 +203,18 @@ func renderApprovalItem(item committedItem, opts toolrender.CompactOptions) stri
 // sends it to the Bubbletea model. The model issues ClearScreen + one
 // Println, producing exactly 2 event-loop passes and 2 terminal writes
 // instead of N+1. No-op when no program is active (non-TTY, tests).
+//
+// Before sending the message, \033[3J (Erase Saved Lines) is written
+// directly to the terminal to clear the scrollback buffer. Without this,
+// tea.ClearScreen (\033[2J) pushes visible content into scrollback on
+// re-commit, causing duplication when the user scrolls up. The direct
+// write is safe because \033[3J only affects scrollback (invisible to
+// the Cursed Renderer's cursor/cell tracking).
 func (r *inlineRenderer) triggerReCommit() {
 	if r.cfg.program == nil {
 		return
 	}
+	fmt.Fprint(r.cfg.status, "\033[3J")
 	rendered := renderHistoryBatch(r.history, r.compactOpts, r.expandMode)
 	r.cfg.program.Send(reCommitMsg{rendered: rendered})
 }

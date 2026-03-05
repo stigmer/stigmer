@@ -80,10 +80,11 @@ type approvalDecision struct {
 
 // textInputStartMsg activates the text input mode for follow-up prompts.
 // The follow-up loop creates the channel, sends this message, then blocks
-// on the channel. handleKeyPress accumulates runes in textInputBuffer and
-// delivers the final string on Enter.
+// on the channel. View() renders the prompt dynamically using model state
+// (termWidth for separator, cursor positioning on input line).
+// handleKeyPress accumulates runes in textInputBuffer and delivers the
+// final string on Enter.
 type textInputStartMsg struct {
-	prompt  string
 	inputCh chan<- string
 }
 
