@@ -4,7 +4,7 @@
 
 ## Summary
 
-Fixed a rendering bug where the HITL approval flow for `Write` tool calls displayed two "Write" blocks in terminal scrollback — a dead streaming snapshot followed by the correct expanded approval view. The root cause was a race between Bubbletea V2's `insertAbove` scrollback mechanism and the model's streaming state lifecycle.
+Fixed a rendering bug where the HITL approval flow for `Write` tool calls displayed two "Write" blocks in terminal scrollback — a dead streaming snapshot followed by the correct expanded approval view. The root cause was a race between Bubbletea V2's `insertAbove` scroll calculations and the Cursed Renderer's timer-based `flush` cycle.
 
 ## Problem Statement
 
@@ -19,54 +19,66 @@ This made the approval flow look broken and cluttered the terminal scrollback wi
 
 - Confusing UX: two Write blocks for a single tool call
 - The first block showed incomplete information (no filepath, truncated content)
-- The duplication was non-deterministic depending on intermediate `Println` calls
+- The duplication was non-deterministic depending on timer tick timing
+
+## Root Cause
+
+Bubbletea V2 separates **view storage** from **view flushing**:
+
+- `p.render(model)` stores the View() output in the renderer. Runs synchronously after every `Update()`.
+- `p.renderer.flush()` updates `cellbuf` (resize, clear, draw) and writes to the terminal. Runs on a **timer tick** (~60fps).
+
+`insertAbove()` (the mechanism behind `Println`) reads `s.cellbuf.Height()` to compute scroll offsets. Since `cellbuf` is only resized during `flush()`, `insertAbove` reads stale dimensions from the last flush.
+
+When `streamingHideMsg`, `approvalStartMsg`, and the resulting `printLineMessage` were all processed within one timer tick, `insertAbove` used the stale streaming view height (e.g. 30 rows) instead of the updated approval view height (6 rows). The over-scroll pushed the physically-present streaming content into terminal scrollback.
+
+The initial attempt (Session 8) — sending `streamingHideMsg` before approval to clear View() — did not work because `insertAbove` reads `cellbuf` dimensions, not `View()`, and `cellbuf` is only updated by `flush()`.
 
 ## Solution
 
-Send `streamingHideMsg` to the Bubbletea model **before** any `program.Println` calls execute during the `ToolWaitingApprovalEvent` transition. This clears `streamingActive` in the model, making `View()` return an empty string. When `insertAbove` (the mechanism behind `Println`) then pushes the current view into scrollback, it pushes nothing instead of a dead streaming snapshot.
+For the streaming-to-approval transition, use the re-commit mechanism instead of bare `tea.Println`. When `contentStreamed` is true, the approval message carries a `reCommitPayload` (rendered history + expanded content). The model handler returns `buildReCommitCmd` (`tea.Sequence(tea.ClearScreen, tea.Println(eraseScrollback + payload))`) instead of `tea.Println(expandedContent)`.
+
+The `\033[3J` (eraseScrollback) in the payload wipes ALL scrollback, including anything incorrectly pushed by `insertAbove`'s stale-height scroll. This is the same mechanism already proven for Ctrl+O toggle, approval collapse, and subject update.
+
+Non-streaming approvals (shell commands, etc.) continue using the `Println` path since there is no stale cellbuf height to cause incorrect scrolling.
 
 ## Implementation Details
 
-**Root cause analysis**: Bubbletea V2's `Program.Println()` works via `renderer.insertAbove()`, which scrolls the terminal, pushing the **entire current `View()` content** into scrollback. When `ToolWaitingApprovalEvent` arrived, the pre-switch handlers in `handleEvent` (`finishAIStreamIfNeeded`, `flushPendingReads`) could call `Println` while the model still had `streamingActive=true`. This pushed a snapshot of the streaming view — the partial Write block — into scrollback. The approval flow then committed the *full* expanded view via `tea.Println()`, producing two Write blocks.
+**Messages** (`run_stream_inline_messages.go`): Added `reCommitPayload string` field to `approvalStartMsg` and `approvalShowMsg`.
 
-**Fix** (in `run_stream_inline.go`): Added an early interception at the top of `handleEvent`:
+**Model handlers** (`run_stream_inline_bubbletea.go`): `handleApprovalStart` and `handleApprovalShow` check `msg.reCommitPayload` — when non-empty, return `buildReCommitCmd(payload)` instead of `tea.Println(expandedContent)`.
 
-```go
-if e, ok := event.(executiontui.ToolWaitingApprovalEvent); ok && e.ToolCallID == r.activeStreamToolID {
-    if r.cfg.program != nil {
-        r.cfg.program.Send(streamingHideMsg{})
-    }
-}
-```
+**Approval flow** (`run_stream_inline_approval.go`): `handleInteractiveApproval` builds the re-commit payload (`renderHistoryBatch + expanded`) when `contentStreamed` is true and passes it through `promptApprovalViaBubbletea` to the channel/key-reader paths.
 
-This leverages Bubbletea's FIFO message channel — `streamingHideMsg` is processed before any subsequent messages from `Println`, ensuring the model's view is clear before `insertAbove` runs.
+**Cleanup** (`run_stream_inline.go`): Removed the `streamingHideMsg` pre-switch interception from `handleEvent` — the re-commit mechanism handles the transition entirely.
 
-**Test** (in `run_stream_inline_bubbletea_test.go`): Added `TestInlineBubbleModel_StreamingHide_BeforeApprovalStart` which verifies the exact message sequence:
-
-1. `streamingShowMsg` → streaming active, View() has content
-2. `streamingUpdateMsg` → content accumulated
-3. `streamingHideMsg` → View() returns "", `streamingActive` cleared
-4. `approvalStartMsg` → approval active, expanded content committed
+**Tests** (`run_stream_inline_bubbletea_test.go`): Replaced `TestInlineBubbleModel_StreamingHide_BeforeApprovalStart` with three tests:
+- `TestInlineBubbleModel_ApprovalStart_ReCommitForStreamedContent`: verifies the re-commit path
+- `TestInlineBubbleModel_ApprovalStart_FallsBackToPrintln`: verifies the Println fallback for non-streaming approvals
+- `TestInlineBubbleModel_ApprovalShow_ReCommitForStreamedContent`: verifies the legacy path
 
 ## Benefits
 
 - Clean, single Write block in terminal scrollback during approval
 - No flickering or stale content during the streaming → approval transition
-- Minimal, surgical fix (16 lines of code + 69 lines of test)
-- No changes to the Bubbletea model or approval flow logic
+- Uses the proven re-commit mechanism (same as Ctrl+O, approval collapse)
+- Non-streaming approvals are unaffected
+
+## Trade-off
+
+Pre-session terminal history is lost on approval display for streamed write/edit tools. This matches the existing behavior for Ctrl+O toggle and is an accepted pattern.
 
 ## Impact
 
 - **End users**: Approval flow for file-writing tools (`Write`, `EditFile`, etc.) now renders cleanly without duplicate blocks
-- **Maintainability**: The fix is localized and well-documented with a detailed comment explaining the Bubbletea V2 scrollback mechanism
+- **Maintainability**: The fix uses the existing re-commit infrastructure, documented in DD-001
 
 ## Related Work
 
 - Part of the Bubbletea V2 upgrade project (`20260305.03.bubbletea-v2-upgrade`)
-- Builds on Phase 5 cleanup which documented the `insertAbove` scrollback pattern
-- Related design decision: `_projects/2026-03/20260305.01.bubbletea-inline-renderer/wrong-assumptions/001-single-writer-all-through-println.md`
+- Design decision: `_projects/2026-03/20260305.03.bubbletea-v2-upgrade/design-decisions/001-scrollback-clear-3J.md`
 
 ---
 
 **Status**: ✅ Production Ready
-**Files Changed**: 2 (1 fix + 1 test)
+**Files Changed**: 5 (4 source + 1 test)

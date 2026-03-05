@@ -36,10 +36,37 @@ The original implementation wrote `\033[3J` directly to `cfg.status` in `trigger
 
 The fix moves `\033[3J` into the `tea.Println` payload inside `buildReCommitCmd`. Since `tea.Sequence` guarantees `tea.Println` runs after `tea.ClearScreen`, the ordering is now correct and atomic within a single Bubbletea event-loop tick.
 
+## Amendment (Session 9): Re-commit for streaming→approval transition
+
+The `streamingHideMsg` fix from Session 8 did not resolve the duplicate Write
+block bug. Root cause: a race between `insertAbove` and the Cursed Renderer's
+timer-based `flush`.
+
+**The race**: Bubbletea V2 separates view storage (`render()` — synchronous
+after every `Update`) from view flushing (`flush()` — runs on a ~60 fps timer
+tick). `insertAbove()` reads `cellbuf.Height()` to compute scroll offsets, but
+`cellbuf` is only resized during `flush()`. When `streamingHideMsg`,
+`approvalStartMsg`, and the resulting `printLineMessage` are all processed
+within a single timer tick, `insertAbove` reads the stale streaming view
+height (e.g. 30 rows) instead of the updated approval view height (6 rows).
+The over-scroll pushes the physically-present streaming content into terminal
+scrollback — producing the duplicate.
+
+**Fix**: For the streaming→approval transition, the approval message now
+carries a `reCommitPayload` containing the full session history plus the
+expanded approval content. The handler uses `buildReCommitCmd` (ClearScreen +
+`\033[3J` + history + expanded) instead of bare `tea.Println(expanded)`. The
+`\033[3J` wipes any stale content pushed by the over-scroll, and the history
+replay ensures clean scrollback.
+
+This only affects the streaming→approval path (`contentStreamed=true`).
+Non-streaming approvals (shell commands, etc.) continue using the `Println`
+path since there is no stale cellbuf height to cause incorrect scrolling.
+
 ## Trade-offs
 
 - **Pre-session terminal history is lost on re-commit**. Commands run before the Stigmer session (ls, cd, git status, etc.) are cleared when the user presses Ctrl+O or when approval collapses. This matches Claude Code's observed behavior and is an accepted pattern for AI CLI tools.
-- Re-commit is now safe for any purpose: Ctrl+O toggle, approval collapse, subject update.
+- Re-commit is now safe for any purpose: Ctrl+O toggle, approval collapse, subject update, streaming→approval transition.
 
 ## Terminal Support
 

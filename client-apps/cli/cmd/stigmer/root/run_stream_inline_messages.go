@@ -30,11 +30,17 @@ type spinnerTickMsg struct{}
 // constrained by terminal height. Only the question line lives in View(),
 // keeping the interactive region small (question + menu ≈ 6 rows).
 //
+// When reCommitPayload is non-empty, the handler uses buildReCommitCmd
+// (ClearScreen + eraseScrollback + payload) instead of tea.Println. This
+// avoids the insertAbove stale-cellbuf race that occurs when transitioning
+// from a tall streaming View() to the approval panel (see DD-001).
+//
 // Used by the legacy PromptKeyOnly path when Bubbletea does not own stdin.
 // The channel-based stdin path uses approvalStartMsg.
 type approvalShowMsg struct {
 	expandedContent string // full content for tea.Println (scrollback)
 	question        string // question line for View()
+	reCommitPayload string // when non-empty, use re-commit instead of Println
 }
 
 // approvalSelectMsg updates the menu selection index. Sent by the legacy
@@ -60,6 +66,11 @@ type approvalHideMsg struct {
 // file content is always visible regardless of terminal height. Only the
 // question line lives in View(), keeping the interactive region small.
 //
+// When reCommitPayload is non-empty, the handler uses buildReCommitCmd
+// (ClearScreen + eraseScrollback + payload) instead of tea.Println. This
+// avoids the insertAbove stale-cellbuf race that occurs when transitioning
+// from a tall streaming View() to the approval panel (see DD-001).
+//
 // The event loop creates the channel, sends this message, then blocks on
 // the channel. handleKeyPress routes arrow/enter/esc keys to the channel
 // when approvalActive is true.
@@ -67,6 +78,7 @@ type approvalStartMsg struct {
 	expandedContent string                 // full content for tea.Println (scrollback)
 	question        string                 // question line for View()
 	decisionCh      chan<- approvalDecision
+	reCommitPayload string                 // when non-empty, use re-commit instead of Println
 }
 
 // approvalDecision carries the user's approval choice from the model back
