@@ -42,10 +42,6 @@ func TestInitPreApprovalStreaming_PrintsHeaderAndSeparator(t *testing.T) {
 	if r.streamLineCount != r.streamHeaderRows {
 		t.Errorf("expected streamLineCount == streamHeaderRows, got %d vs %d", r.streamLineCount, r.streamHeaderRows)
 	}
-	if r.maxStreamContentLines <= 0 {
-		t.Error("expected maxStreamContentLines > 0 after initPreApprovalStreaming")
-	}
-
 	output := stripANSIApproval(stderr.String())
 	if !strings.Contains(output, "Write") {
 		t.Errorf("expected header to contain Write, got:\n%s", output)
@@ -542,7 +538,7 @@ func TestHandleEvent_DoesNotInitiateStreamingForNonStreamingWrite(t *testing.T) 
 	}
 }
 
-func TestHandleEvent_DoesNotInitiateStreamingForShellRunning(t *testing.T) {
+func TestHandleEvent_InitiatesStreamingForAnyStreamingTool(t *testing.T) {
 	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
 
 	r.handleEvent(context.Background(), executiontui.ToolRunningEvent{
@@ -555,8 +551,8 @@ func TestHandleEvent_DoesNotInitiateStreamingForShellRunning(t *testing.T) {
 		},
 	})
 
-	if r.activeStreamToolID == "tc-sh1" {
-		t.Error("shell ToolRunningEvent should not initiate pre-approval streaming")
+	if r.activeStreamToolID != "tc-sh1" {
+		t.Errorf("any tool with IsStreaming=true should initiate pre-approval streaming, got %q", r.activeStreamToolID)
 	}
 }
 

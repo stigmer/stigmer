@@ -697,7 +697,25 @@ func TestExpandedApprovalContent_UnknownTool(t *testing.T) {
 	result := ExpandedApprovalContent(tc)
 
 	if result != "production" {
-		t.Errorf("expected first arg value, got: %q", result)
+		t.Errorf("expected largest arg value, got: %q", result)
+	}
+}
+
+func TestExpandedApprovalContent_MCPToolSelectsLargestArg(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "WriteFile",
+		Args: map[string]interface{}{
+			"path":    "/tmp/config.yaml",
+			"content": "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: my-config\n",
+		},
+	}
+	result := ExpandedApprovalContent(tc)
+
+	if !strings.Contains(result, "apiVersion") {
+		t.Errorf("expected largest arg (content) to be selected, got: %q", result)
+	}
+	if result == "/tmp/config.yaml" {
+		t.Error("should not select short path arg over longer content arg")
 	}
 }
 

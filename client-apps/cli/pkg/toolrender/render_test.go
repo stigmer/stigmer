@@ -1487,3 +1487,48 @@ func TestRenderWithBadge_ShellTool_LegacyResult_CleansPreview(t *testing.T) {
 	}
 	assertContains(t, result, "my-hostname")
 }
+
+// ---------------------------------------------------------------------------
+// extractLargestArg Tests
+// ---------------------------------------------------------------------------
+
+func TestExtractLargestArg_SelectsLongestValue(t *testing.T) {
+	args := map[string]interface{}{
+		"path":    "/tmp/file.go",
+		"content": "package main\n\nfunc main() {\n\tfmt.Println(\"hello\")\n}\n",
+	}
+	got := extractLargestArg(args)
+	if !strings.Contains(got, "package main") {
+		t.Errorf("expected content (longest arg), got %q", got)
+	}
+}
+
+func TestExtractLargestArg_SingleArg(t *testing.T) {
+	args := map[string]interface{}{"target": "production"}
+	got := extractLargestArg(args)
+	if got != "production" {
+		t.Errorf("expected 'production', got %q", got)
+	}
+}
+
+func TestExtractLargestArg_EmptyArgs(t *testing.T) {
+	got := extractLargestArg(nil)
+	if got != "" {
+		t.Errorf("expected empty string for nil args, got %q", got)
+	}
+	got = extractLargestArg(map[string]interface{}{})
+	if got != "" {
+		t.Errorf("expected empty string for empty args, got %q", got)
+	}
+}
+
+func TestExtractLargestArg_NonStringValues(t *testing.T) {
+	args := map[string]interface{}{
+		"count":   float64(42),
+		"content": "some longer content value here",
+	}
+	got := extractLargestArg(args)
+	if got != "some longer content value here" {
+		t.Errorf("expected string value over short numeric, got %q", got)
+	}
+}

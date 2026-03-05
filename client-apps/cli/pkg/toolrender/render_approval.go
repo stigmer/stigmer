@@ -146,13 +146,17 @@ func ExpandedApprovalHeader(tc ToolCallInfo, opts CompactOptions) string {
 // For write/edit tools this is the file content from args; for shell tools
 // this is the command; for read/discovery tools this is the result.
 //
+// For unknown/MCP tools, the largest arg value is returned. This heuristic
+// reliably selects file content over short metadata (paths, names) because
+// the content body is always the largest argument by character count.
+//
 // This is the public interface to resolveDisplayContent — the command layer
 // needs it to build the expanded approval view but cannot access the private
 // toolDisplayMap or resolveDisplayContent directly.
 func ExpandedApprovalContent(tc ToolCallInfo) string {
 	info, known := toolDisplayMap[tc.Name]
 	if !known {
-		return extractFirstArg(tc.Args)
+		return extractLargestArg(tc.Args)
 	}
 	return resolveDisplayContent(tc, info)
 }
