@@ -9,6 +9,7 @@ import (
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
+	"github.com/stigmer/stigmer/client-apps/cli/embedded"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/envfile"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
@@ -267,6 +268,7 @@ func executeResolvedAgent(input resolvedAgentExecInput, sp *spinner.Spinner) err
 		AgentName:  input.Agent.GetMetadata().GetName(),
 		SessionID:  sessionID,
 		Model:      input.Model,
+		Version:    embedded.GetBuildVersion(),
 		Workspaces: workspaceNames(input.WorkspaceEntries),
 	}
 

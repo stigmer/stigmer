@@ -7,6 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	"github.com/stigmer/stigmer/client-apps/cli/embedded"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/session"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
@@ -80,7 +81,9 @@ func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, c
 		SessionID:  sessionID,
 		Subject:    subject,
 		Model:      model,
+		Version:    embedded.GetBuildVersion(),
 		Workspaces: wsRoots,
+		IsResumed:  true,
 	}
 
 	switch phase {

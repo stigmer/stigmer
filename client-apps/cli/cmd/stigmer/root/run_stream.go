@@ -96,6 +96,12 @@ func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFun
 		go pollSessionSubject(streamCtx, conn, sessionID, subjectUpdate)
 	}
 
+	var recentSessionsCh chan []recentSession
+	if !headerInfo.IsResumed && termctl.IsSupported(statusW) && sessionID != "" {
+		recentSessionsCh = make(chan []recentSession, 1)
+		go fetchRecentSessions(conn, sessionID, recentSessionsCh)
+	}
+
 	cfg := inlineRenderConfig{
 		events:            events,
 		approvalResponses: approvalResponses,
@@ -108,6 +114,7 @@ func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFun
 		program:           program,
 		headerInfo:        headerInfo,
 		subjectUpdate:     subjectUpdate,
+		recentSessionsCh:  recentSessionsCh,
 		toggleExpandCh:    toggleExpandCh,
 		cancelCh:          cancelCh,
 		followUpEnabled:   toggleExpandCh != nil && followUpFn != nil,

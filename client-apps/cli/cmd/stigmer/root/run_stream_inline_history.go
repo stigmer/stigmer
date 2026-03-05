@@ -128,13 +128,9 @@ func renderHeaderItem(item committedItem, expanded bool) string {
 	if content == "" {
 		return ""
 	}
-	title := "Stigmer"
-	if expanded {
-		title = "Stigmer · expanded"
-	}
 	return panel.Render(content, panel.Options{
-		Title: title,
-		Style: panel.StyleDefault,
+		Title: headerTitle(item.header.Version, expanded),
+		Style: panel.StyleBrand,
 	})
 }
 

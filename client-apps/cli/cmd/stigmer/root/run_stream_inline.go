@@ -79,6 +79,13 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) renderResult {
 				r.triggerReCommit()
 			}
 
+		case sessions, ok := <-cfg.recentSessionsCh:
+			if ok && len(sessions) > 0 {
+				r.history[0].header.RecentSessions = sessions
+				cfg.recentSessionsCh = nil
+				r.triggerReCommit()
+			}
+
 		case <-cfg.toggleExpandCh:
 			r.expandMode = !r.expandMode
 			r.triggerReCommit()

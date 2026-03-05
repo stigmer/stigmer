@@ -31,6 +31,8 @@ const (
 	StyleError
 	// StyleSuccess renders the panel with a green border.
 	StyleSuccess
+	// StyleBrand renders the panel with an orange border for Stigmer CLI brand identity.
+	StyleBrand
 )
 
 // Options configures panel rendering.
@@ -167,6 +169,8 @@ func ResolveColor(style PanelStyle) color.Color {
 		return lipgloss.Color("9") // Bright red
 	case StyleSuccess:
 		return lipgloss.Color("10") // Bright green
+	case StyleBrand:
+		return lipgloss.Color("208") // Orange
 	default:
 		return lipgloss.Color("12") // Bright blue
 	}
