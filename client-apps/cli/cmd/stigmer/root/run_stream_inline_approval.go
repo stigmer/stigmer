@@ -2,34 +2,13 @@ package root
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/termctl"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
 )
-
-// approvalOverheadRows is the number of display rows consumed by the
-// non-content parts of the expanded approval view: top separator (1),
-// header (1), bottom separator (1), question (1-2), menu (4), plus a
-// small margin (2) for safety. This is subtracted from terminal height
-// to compute the maximum content lines.
-const approvalOverheadRows = 10
-
-// approvalContentBudget computes the maximum number of content lines
-// that can be displayed in the expanded approval view without exceeding
-// the terminal height. This prevents scrolling, which would invalidate
-// EraseLines-based collapse.
-func approvalContentBudget(termHeight int) int {
-	budget := termHeight - approvalOverheadRows
-	if budget < 5 {
-		budget = 5
-	}
-	return budget
-}
 
 // handleApproval orchestrates the expand/prompt/collapse approval flow.
 //
@@ -51,7 +30,7 @@ func approvalContentBudget(termHeight int) int {
 func (r *inlineRenderer) handleApproval(ctx context.Context, e executiontui.ApprovalNeededEvent) {
 	r.finishAIStreamIfNeeded()
 
-	tc, subAgentID, runningRendered, contentStreamed, streamedRows := r.resolveApprovalContext(e)
+	tc, subAgentID, contentStreamed, streamedRows := r.resolveApprovalContext(e)
 	canCollapse := termctl.IsSupported(r.cfg.status)
 	width := termctl.Width(r.cfg.status, 80)
 
@@ -66,11 +45,11 @@ func (r *inlineRenderer) handleApproval(ctx context.Context, e executiontui.Appr
 	}
 
 	if opts.NonInteractive {
-		r.handleNonInteractiveApproval(e, tc, subAgentID, runningRendered, contentStreamed, canCollapse, streamedRows, opts)
+		r.handleNonInteractiveApproval(e, tc, subAgentID, contentStreamed, canCollapse, streamedRows, opts)
 		return
 	}
 
-	r.handleInteractiveApproval(ctx, e, tc, subAgentID, runningRendered, contentStreamed, canCollapse, streamedRows, width, opts)
+	r.handleInteractiveApproval(ctx, e, tc, subAgentID, contentStreamed, canCollapse, streamedRows, width, opts)
 }
 
 // handleNonInteractiveApproval is the fast path when defaultAction is set.
@@ -86,7 +65,7 @@ func (r *inlineRenderer) handleNonInteractiveApproval(
 	e executiontui.ApprovalNeededEvent,
 	tc toolrender.ToolCallInfo,
 	subAgentID string,
-	runningRendered, contentStreamed, canCollapse bool,
+	contentStreamed, canCollapse bool,
 	streamedRows int,
 	opts approval.Options,
 ) {
@@ -102,12 +81,8 @@ func (r *inlineRenderer) handleNonInteractiveApproval(
 			r.trackSuppression(e.ToolCallID, tc.Name, action)
 		}
 	} else {
-		if canCollapse {
-			if contentStreamed {
-				termctl.EraseLines(r.cfg.status, streamedRows)
-			} else if runningRendered {
-				termctl.EraseLines(r.cfg.status, 1)
-			}
+		if canCollapse && contentStreamed {
+			termctl.EraseLines(r.cfg.status, streamedRows)
 		}
 		if action == "approve" && toolrender.IsShellTool(tc.Name) {
 			r.initPostApprovalStreaming(e.ToolCallID, tc, subAgentID)
@@ -142,11 +117,11 @@ func (r *inlineRenderer) handleInteractiveApproval(
 	e executiontui.ApprovalNeededEvent,
 	tc toolrender.ToolCallInfo,
 	subAgentID string,
-	runningRendered, contentStreamed, canCollapse bool,
+	contentStreamed, canCollapse bool,
 	streamedRows, width int,
 	opts approval.Options,
 ) {
-	r.erasePreApprovalContent(contentStreamed, streamedRows, runningRendered, canCollapse)
+	r.erasePreApprovalContent(contentStreamed, streamedRows, canCollapse)
 
 	termHeight := termctl.Height(r.cfg.status, 40)
 	maxContentLines := approvalContentBudget(termHeight)
@@ -161,29 +136,24 @@ func (r *inlineRenderer) handleInteractiveApproval(
 	r.promptApprovalDirect(ctx, e, tc, subAgentID, expanded, question, width, canCollapse, opts)
 }
 
-// erasePreApprovalContent removes any prior streaming output or running
-// indicator from stderr before the approval panel is displayed.
+// erasePreApprovalContent removes any prior streaming output from stderr
+// before the approval panel is displayed.
 //
 // Bubbletea path: streaming content is already in View(). approvalShowMsg
 // atomically replaces it (handleApprovalShow clears streaming state).
 // No manual erasure needed.
 //
-// Direct-write path: EraseLines removes the content from stderr.
+// Direct-write path: EraseLines removes the streamed content from stderr.
 func (r *inlineRenderer) erasePreApprovalContent(
 	contentStreamed bool,
 	streamedRows int,
-	runningRendered, canCollapse bool,
+	canCollapse bool,
 ) {
 	if r.cfg.program != nil {
 		return
 	}
-	if !canCollapse {
-		return
-	}
-	if contentStreamed {
+	if canCollapse && contentStreamed {
 		termctl.EraseLines(r.cfg.status, streamedRows)
-	} else if runningRendered {
-		termctl.EraseLines(r.cfg.status, 1)
 	}
 }
 
@@ -241,7 +211,7 @@ func (r *inlineRenderer) promptApprovalViaBubbletea(
 	r.waitingApproval = nil
 }
 
-// promptApprovalDirect is the legacy direct-write fallback used when no
+// promptApprovalDirect is the direct-write fallback used when no
 // Bubbletea program is running (non-TTY, CI, tests). It writes the
 // expanded view and menu directly to stderr and uses EraseLines for
 // collapse after the decision.
@@ -305,160 +275,4 @@ func (r *inlineRenderer) finalizeApproval(
 		Comment:    decision.Comment,
 	}
 	r.waitingApproval = nil
-}
-
-// resolveApprovalContext returns the ToolCallInfo, sub-agent ID, whether
-// a running line was rendered, and streaming state for this tool. Prefers
-// the state saved by renderToolWaitingApproval; falls back to constructing
-// a minimal ToolCallInfo from ApprovalNeededEvent fields.
-func (r *inlineRenderer) resolveApprovalContext(e executiontui.ApprovalNeededEvent) (
-	tc toolrender.ToolCallInfo, subAgentID string, runningRendered, contentStreamed bool, streamedRows int,
-) {
-	if r.waitingApproval != nil {
-		w := r.waitingApproval
-		return w.tc, w.subAgentID, w.runningLineRendered, w.contentStreamed, w.streamedRows
-	}
-	return toolrender.ToolCallInfo{
-		Name:   e.ToolName,
-		Status: "waiting_approval",
-	}, "", false, false, 0
-}
-
-// buildExpandedView assembles the expanded approval content shown before
-// the user makes a decision: separator + header + content + separator.
-// Content is height-capped to maxContentLines and width-clamped to
-// width-1 to prevent line wrapping, making the row count deterministic.
-// Separators span the given terminal width. The question and menu are
-// rendered by the caller below the bottom separator.
-func (r *inlineRenderer) buildExpandedView(tc toolrender.ToolCallInfo, width, maxContentLines int) string {
-	var b strings.Builder
-	sep := toolrender.ApprovalSeparator(width)
-
-	b.WriteString(sep)
-	b.WriteByte('\n')
-
-	header := toolrender.ExpandedApprovalHeader(tc, r.compactOpts)
-	b.WriteString(header)
-	b.WriteByte('\n')
-
-	content := toolrender.ExpandedApprovalContent(tc)
-	if content != "" {
-		maxWidth := width - 1
-		if maxWidth < 20 {
-			maxWidth = 20
-		}
-		content = toolrender.TruncateContent(content, maxContentLines, maxWidth)
-		b.WriteString(content)
-		if !strings.HasSuffix(content, "\n") {
-			b.WriteByte('\n')
-		}
-	}
-
-	b.WriteString(sep)
-	b.WriteByte('\n')
-
-	return b.String()
-}
-
-// promptForDecision calls the prompter and returns the decision with line
-// count. Uses PromptWithLineCount when an InlinePrompter is available;
-// falls back to the Prompter interface with lineCount 0.
-func (r *inlineRenderer) promptForDecision(ctx context.Context, opts approval.Options) (*approval.Decision, int, error) {
-	if ip, ok := r.cfg.prompter.(*approval.InlinePrompter); ok {
-		return ip.PromptWithLineCount(ctx, opts)
-	}
-	decision, err := r.cfg.prompter.Prompt(ctx, opts)
-	return decision, 0, err
-}
-
-// handlePromptError routes prompt errors to the appropriate handler.
-// Used by the direct-write fallback path. Erases any rendered content
-// before handling the error.
-func (r *inlineRenderer) handlePromptError(e executiontui.ApprovalNeededEvent, err error, renderedRows int, canCollapse bool) {
-	if canCollapse && renderedRows > 0 {
-		termHeight := termctl.Height(r.cfg.status, 40)
-		if renderedRows > termHeight {
-			renderedRows = termHeight
-		}
-		termctl.EraseLines(r.cfg.status, renderedRows)
-	}
-
-	if errors.Is(err, approval.ErrSessionExit) {
-		r.handleSessionExit(e)
-		return
-	}
-
-	r.statusf("Approval prompt error: %s — auto-skipping\n", err)
-	r.cfg.approvalResponses <- executiontui.ApprovalResponse{
-		Action:     "skip",
-		ToolCallID: e.ToolCallID,
-	}
-	r.waitingApproval = nil
-}
-
-// handlePromptErrorAfterHide routes prompt errors when the Bubbletea
-// panel has already been hidden via approvalHideMsg. No manual erasure
-// is needed — View()="" cleared the panel.
-func (r *inlineRenderer) handlePromptErrorAfterHide(e executiontui.ApprovalNeededEvent, err error) {
-	if errors.Is(err, approval.ErrSessionExit) {
-		r.handleSessionExit(e)
-		return
-	}
-
-	r.statusf("Approval prompt error: %s — auto-skipping\n", err)
-	r.cfg.approvalResponses <- executiontui.ApprovalResponse{
-		Action:     "skip",
-		ToolCallID: e.ToolCallID,
-	}
-	r.waitingApproval = nil
-}
-
-// handleSessionExit performs a clean session exit when the user presses
-// Ctrl+C at an approval prompt. It unblocks the stream goroutine with a
-// skip response, fires backend cancellation in a goroutine (so the CLI
-// exits immediately), and sets exitRequested so renderInline terminates.
-func (r *inlineRenderer) handleSessionExit(e executiontui.ApprovalNeededEvent) {
-	r.cfg.approvalResponses <- executiontui.ApprovalResponse{
-		Action:     "skip",
-		ToolCallID: e.ToolCallID,
-	}
-	if r.cfg.cancelExecFn != nil {
-		go r.cfg.cancelExecFn()
-	}
-	r.statusf("\nSession ended by user\n")
-	if r.cfg.sessionID != "" {
-		r.statusf("Resume later with: stigmer run %s\n", r.cfg.sessionID)
-	}
-	r.waitingApproval = nil
-	r.exitRequested = true
-}
-
-// formatCollapsedResult builds the post-decision compact summary string
-// without printing it. Used by the Bubbletea path where the result is
-// committed via tea.Println through the approvalHideMsg Cmd.
-func (r *inlineRenderer) formatCollapsedResult(tc toolrender.ToolCallInfo, action string, subAgentID string) string {
-	result := toolrender.RenderApprovalResult(tc, action, r.compactOpts)
-	if subAgentID != "" {
-		result = toolrender.GutterWrap(result)
-	}
-	return result
-}
-
-// printCollapsedResult renders the post-decision compact summary. Applies
-// gutter-wrapping when the tool belongs to a sub-agent. Used by the
-// direct-write fallback and non-interactive paths.
-func (r *inlineRenderer) printCollapsedResult(tc toolrender.ToolCallInfo, action string, subAgentID string) {
-	r.statusf("%s\n", r.formatCollapsedResult(tc, action, subAgentID))
-}
-
-// trackSuppression records the tool call ID for ToolCompletedEvent
-// suppression when the tool's completion would duplicate the approval
-// result. Write/edit/delete completions are suppressed for all approval
-// actions (approve, skip, reject). Shell tool completions are handled
-// separately by the streaming interception (completeStreamingTool) and
-// do not use suppressedToolIDs.
-func (r *inlineRenderer) trackSuppression(toolCallID, toolName, action string) {
-	if toolrender.ShouldSuppressCompletion(toolName) {
-		r.suppressedToolIDs[toolCallID] = true
-	}
 }

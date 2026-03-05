@@ -671,15 +671,6 @@ func TestStatusf_DirectWrite_WhenNoProgram(t *testing.T) {
 	}
 }
 
-// mockAutoApprovePrompter returns a fixed action without blocking.
-type mockAutoApprovePrompter struct {
-	action approval.Action
-}
-
-func (m *mockAutoApprovePrompter) Prompt(_ context.Context, opts approval.Options) (*approval.Decision, error) {
-	return &approval.Decision{Action: m.action}, nil
-}
-
 // =============================================================================
 // Println Integration Test (with real Program)
 // =============================================================================

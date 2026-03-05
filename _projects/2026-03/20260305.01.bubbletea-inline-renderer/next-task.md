@@ -12,34 +12,34 @@ Drop this file into your conversation to quickly resume work on this project.
 **Components**: cmd/stigmer/root/run_stream_inline*.go, cmd/stigmer/root/run_stream_inline_approval.go, cmd/stigmer/root/run_stream_inline_streaming.go, cmd/stigmer/root/run_stream_inline_followup.go, pkg/approval/inline_prompter.go, pkg/spinner/, pkg/termctl/
 
 ## Current State
-- **Status**: in-progress
-- **Last Session**: March 5, 2026 -- Phase 6 (Follow-up Prompt Migration) completed
-- **Active Task**: T01 Architecture Design and Migration Plan -- Phases 1-6 done, Phase 7 next
+- **Status**: complete
+- **Last Session**: March 5, 2026 -- Phase 7 (Cleanup) completed
+- **Active Task**: T01 Architecture Design and Migration Plan -- All 7 Phases complete
 
-## Session Progress (2026-03-05, Session 6)
+## Session Progress (2026-03-05, Session 7)
+- Completed Phase 7: Cleanup -- Dead Code Removal, File Splitting, Comment Hygiene
+- **Dead code removed**: `termctl.SaveCursor`/`RestoreCursorAndClear` (zero callers), `lastRenderedRunningID`/`runningLineRendered` tracking (always-false due to suppressed ToolRunningEvent), `mockAutoApprovePrompter` (unused test type)
+- **Stale comments fixed**: termctl.go (line-counting middleware references), approval.go (EraseLines-only collapse reference), spinner.go (former goroutine migration commentary)
+- **File splitting** (4 new files created):
+  - `run_stream_inline.go` 658→243 lines (extracted `_types.go` 137 lines, `_render.go` 283 lines)
+  - `run_stream_inline_approval.go` 464→278 lines (extracted `_approval_display.go` 187 lines)
+  - `run_stream_inline_bubbletea.go` 358→275 lines (extracted `_messages.go` 82 lines)
+- **Function refactoring**: `renderToolStreamDeltaDirect` (90 lines) split into 3 focused helpers: `renderStreamDeltaUncapped`, `renderStreamOverflowUpdate`, `renderStreamDeltaCapped` (~14-37 lines each), parent reduced to ~14-line router
+- **BUILD.bazel updated**: 4 new source files, 1 new test file, bubbletea dependency added
+- Net: 11 files modified, 4 new files, -871 deletions / +98 additions in tracked files
+- All tests pass (same 2 pre-existing failures: `TestHandleApproval_DoesNotSuppressOnReject`, `TestInlineRenderer_ToolCompleted_ShowsBadge`)
+
+## Previous Session Progress (2026-03-05, Session 6)
 - Completed Phase 6: Follow-up Prompt Migration to Bubbletea View()
-- Added 2 new message types: `followUpShowMsg`, `followUpHideMsg` with 2 model state fields
-- Added 2 Update handlers (`handleFollowUpShow`, `handleFollowUpHide`) and View() followUp branch with priority `approval > streaming > followUp > spinner > empty`
-- Extracted `formatFollowUpPrompt` (pure string builder), `readStdinLine` (stdin I/O), and `readFollowUpInputDirect` (direct-write compose) from the monolithic `readFollowUpInput`
-- Added `promptFollowUp` branching function with `promptFollowUpViaBubbletea` and `promptFollowUpDirect` helpers
-- `runInlineFollowUpLoop` simplified to delegate prompt/erase/echo to `promptFollowUp(cfg.program, cfg.status)`
-- `termctl.EraseLines` on followup.go is now unreachable in the Bubbletea path — **all EraseLines are now unreachable when program != nil**
-- 4 files changed, +266/-32 lines; 9 new tests, all existing tests pass (same 2 pre-existing failures)
 
 ## Previous Session Progress (2026-03-05, Session 5)
 - Completed Phase 5: Tool Streaming Migration to Bubbletea View()
-- Added 3 new message types: `streamingShowMsg`, `streamingUpdateMsg`, `streamingHideMsg` with 6 model state fields
-- Added 3 Update handlers and View() streaming branch with priority `approval > streaming > spinner > empty`
-- 4 files changed, +506/-73 lines; 14 new streaming model tests
 
 ## Previous Session Progress (2026-03-05, Session 4)
 - Completed Phase 4: Approval Flow Migration to Bubbletea View()
-- Adopted "hybrid" architecture: blocking event loop reads keys, Bubbletea manages rendering
-- 7 files changed, +489/-128 lines; 8 new approval model tests, 5 new PromptKeyOnly/RenderMenu tests
 
 ## Previous Session Progress (2026-03-05, Session 3)
 - Completed Phase 3: Header Simplification
-- Deleted `lineCountingWriter`, `subjectUpdater`, and all ANSI cursor constants (362 lines removed)
 
 ## Previous Session Progress (2026-03-05, Session 2)
 - Completed Phase 2: Spinner Migration to Bubbletea View()
@@ -48,8 +48,9 @@ Drop this file into your conversation to quickly resume work on this project.
 - Completed Phase 1: Bubbletea Program Shell -- Foundation
 
 ## Next Steps
-1. **Phase 7: Cleanup** -- Remove dead code, audit for any remaining direct cursor manipulation, file size cleanup (bubbletea.go ~358 lines, streaming.go 321 lines, approval.go 464 lines are over the 250-line guideline).
-2. **After Phase 7**: Project 20260305.02 (expand-collapse-tools) becomes unblocked.
+1. **Project complete** -- All 7 phases of the Bubbletea inline renderer migration are done.
+2. **Project 20260305.02 (expand-collapse-tools)** is now unblocked.
+3. **Pre-existing test failures** should be addressed in a separate session (not part of this project scope).
 
 ## Plan Divergence (READ THIS)
 
@@ -69,13 +70,20 @@ Key documents:
 - **Model's `View()` now renders the follow-up prompt** when `followUpActive` (Phase 6) -- separator + hint + prompt marker
 - **View() priority**: `approval > streaming > followUp > spinner > empty`
 - **Model's `View()` renders the thinking spinner** when active (Phase 2) -- returns "" when inactive
-- `PromptKeyOnly` reads raw keystrokes without rendering; calls `onSelect` callback to relay selection changes to Bubbletea via `program.Send(approvalSelectMsg{})`
-- `approvalHideMsg` clears the panel (View()="") and commits collapsed result via `tea.Println` Cmd
-- `followUpHideMsg` clears the prompt (View()="") and commits styled human message via `tea.Println` Cmd
-- Pre-approval and post-approval streaming go through Bubbletea View() when program is non-nil (Phase 5)
 - **All `termctl.EraseLines` calls are unreachable in the Bubbletea path** after Phase 6; direct-write fallback EraseLines preserved for program == nil
 - **Session header renders directly to stderr before Bubbletea starts** (Phase 3)
-- Key files: `run_stream_inline_bubbletea.go` (model + messages + handlers), `run_stream_inline_approval.go` (approval flow), `run_stream_inline_followup.go` (follow-up with Bubbletea/direct branching), `run_stream_inline.go` (routing, statusf), `pkg/approval/inline_prompter.go` (RenderMenu, PromptKeyOnly)
+- **Phase 7 file structure** (post-cleanup):
+  - `run_stream_inline.go` (243 lines) -- event loop + handleEvent dispatch
+  - `run_stream_inline_types.go` (137 lines) -- all struct/type definitions
+  - `run_stream_inline_render.go` (283 lines) -- all rendering methods + helpers
+  - `run_stream_inline_messages.go` (82 lines) -- Bubbletea message types
+  - `run_stream_inline_bubbletea.go` (275 lines) -- model + Init/Update/View + handlers
+  - `run_stream_inline_approval.go` (278 lines) -- approval orchestration flow
+  - `run_stream_inline_approval_display.go` (187 lines) -- approval display helpers
+  - `run_stream_inline_streaming.go` (340 lines) -- tool content streaming
+  - `run_stream_inline_spinner.go` (71 lines) -- spinner event-loop helpers
+  - `run_stream_inline_followup.go` (163 lines) -- follow-up prompt flow
+  - `run_stream_inline_header.go` (105 lines) -- session header rendering
 
 ## Blockers (if any)
 - None
@@ -132,7 +140,7 @@ When starting a new session:
 3. [ ] Review any new design decisions in `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260305.01.bubbletea-inline-renderer/design-decisions/`
 4. [ ] Check coding guidelines in `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260305.01.bubbletea-inline-renderer/coding-guidelines/`
 5. [ ] Review lessons learned in `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260305.01.bubbletea-inline-renderer/wrong-assumptions/` and `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260305.01.bubbletea-inline-renderer/dont-dos/`
-6. [ ] Continue with Phase 7: Cleanup
+6. [ ] Project is complete -- proceed to 20260305.02.expand-collapse-tools
 
 ## Quick Resume
 
@@ -142,7 +150,6 @@ To continue this project, drag this file into chat:
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 7" - Resume with cleanup
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

@@ -163,49 +163,69 @@ func (r *inlineRenderer) renderToolStreamDeltaDirect(content string) {
 	newBytes := content[r.toolStreamedBytes:]
 	r.toolStreamedBytes = len(content)
 
-	cappingEnabled := r.maxStreamContentLines > 0
-
-	if !cappingEnabled {
-		output := newBytes
-		if r.streamSubAgentID != "" {
-			output = toolrender.GutterWrap(output)
-		}
-		fmt.Fprint(r.cfg.status, output)
-		r.flushWriter(r.cfg.status)
-
-		width := termctl.Width(r.cfg.status, 80)
-		displayContent := content
-		if r.streamSubAgentID != "" {
-			displayContent = toolrender.GutterWrap(content)
-		}
-		r.streamLineCount = r.streamHeaderRows + termctl.DisplayRows(displayContent, width)
+	if r.maxStreamContentLines <= 0 {
+		r.renderStreamDeltaUncapped(content, newBytes)
 		return
-	}
-
-	width := termctl.Width(r.cfg.status, 80)
-	maxVisibleWidth := width - 1
-	if r.streamSubAgentID != "" {
-		maxVisibleWidth = width - 1 - toolrender.GutterWidth()
 	}
 
 	totalContentLines := strings.Count(content, "\n")
 
 	if r.streamContentLines >= r.maxStreamContentLines {
-		if r.streamTruncationShown {
-			termctl.EraseLines(r.cfg.status, 1)
-		}
-		overflow := totalContentLines - r.maxStreamContentLines
-		if overflow < 0 {
-			overflow = 0
-		}
-		indicator := toolrender.StreamTruncationIndicator(overflow)
-		if r.streamSubAgentID != "" {
-			indicator = toolrender.GutterWrap(indicator)
-		}
-		fmt.Fprint(r.cfg.status, indicator)
-		r.flushWriter(r.cfg.status)
-		r.streamTruncationShown = true
+		r.renderStreamOverflowUpdate(totalContentLines)
 		return
+	}
+
+	r.renderStreamDeltaCapped(newBytes, totalContentLines)
+}
+
+// renderStreamDeltaUncapped handles post-approval streaming where no
+// line capping is needed. Prints the new bytes directly and updates
+// the row count for EraseLines.
+func (r *inlineRenderer) renderStreamDeltaUncapped(content, newBytes string) {
+	output := newBytes
+	if r.streamSubAgentID != "" {
+		output = toolrender.GutterWrap(output)
+	}
+	fmt.Fprint(r.cfg.status, output)
+	r.flushWriter(r.cfg.status)
+
+	width := termctl.Width(r.cfg.status, 80)
+	displayContent := content
+	if r.streamSubAgentID != "" {
+		displayContent = toolrender.GutterWrap(content)
+	}
+	r.streamLineCount = r.streamHeaderRows + termctl.DisplayRows(displayContent, width)
+}
+
+// renderStreamOverflowUpdate updates the truncation indicator in-place
+// when the pre-approval content cap has already been reached. Erases
+// the existing indicator and reprints it with the updated overflow count.
+func (r *inlineRenderer) renderStreamOverflowUpdate(totalContentLines int) {
+	if r.streamTruncationShown {
+		termctl.EraseLines(r.cfg.status, 1)
+	}
+	overflow := totalContentLines - r.maxStreamContentLines
+	if overflow < 0 {
+		overflow = 0
+	}
+	indicator := toolrender.StreamTruncationIndicator(overflow)
+	if r.streamSubAgentID != "" {
+		indicator = toolrender.GutterWrap(indicator)
+	}
+	fmt.Fprint(r.cfg.status, indicator)
+	r.flushWriter(r.cfg.status)
+	r.streamTruncationShown = true
+}
+
+// renderStreamDeltaCapped handles incremental pre-approval streaming with
+// width-clamping and line-capping. Each new line increments the content
+// counter; when the cap is reached, a truncation indicator is appended
+// and no further content is rendered.
+func (r *inlineRenderer) renderStreamDeltaCapped(newBytes string, totalContentLines int) {
+	width := termctl.Width(r.cfg.status, 80)
+	maxVisibleWidth := width - 1
+	if r.streamSubAgentID != "" {
+		maxVisibleWidth = width - 1 - toolrender.GutterWidth()
 	}
 
 	newLines := strings.Split(newBytes, "\n")

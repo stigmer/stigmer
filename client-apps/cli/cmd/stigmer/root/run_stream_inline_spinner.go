@@ -26,8 +26,7 @@ func (r *inlineRenderer) startThinkingSpinner() {
 // the spinner line. Must be called before processing any event to prevent
 // spinner output from interleaving with event rendering.
 //
-// Unlike the former goroutine-based spinner.Stop() (synchronous), this is
-// asynchronous — the stop is queued in Bubbletea's message channel. This is
+// The stop is asynchronous — queued in Bubbletea's message channel. This is
 // safe because all subsequent status output also flows through the same
 // program (via Println), preserving ordering within Bubbletea's render cycle.
 func (r *inlineRenderer) stopThinkingSpinner() {

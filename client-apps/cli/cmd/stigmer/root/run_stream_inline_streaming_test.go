@@ -628,7 +628,7 @@ func TestShellApproval_FullStreamingFlow(t *testing.T) {
 	r, _, stderr, responses := newApprovalTestRenderer(prompter, approval.ActionUnspecified)
 
 	tc := shellToolCall()
-	r.waitingApproval = &waitingApprovalState{tc: tc, runningLineRendered: true}
+	r.waitingApproval = &waitingApprovalState{tc: tc}
 
 	r.handleApproval(context.Background(), executiontui.ApprovalNeededEvent{
 		ToolCallID: "tc-e2e",
@@ -717,7 +717,7 @@ func TestNonInteractiveShellApproval_InitiatesStreaming(t *testing.T) {
 	r, _, stderr, responses := newApprovalTestRenderer(&mockPrompter{}, approval.ActionApprove)
 
 	tc := shellToolCall()
-	r.waitingApproval = &waitingApprovalState{tc: tc, runningLineRendered: false}
+	r.waitingApproval = &waitingApprovalState{tc: tc}
 
 	r.handleApproval(context.Background(), executiontui.ApprovalNeededEvent{
 		ToolCallID: "tc-ni",
@@ -794,7 +794,7 @@ func TestErasePreApprovalContent_AndBuildExpandedView(t *testing.T) {
 	r, _, stderr, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
 	tc := writeToolCall()
 
-	r.erasePreApprovalContent(true, 4, false, true)
+	r.erasePreApprovalContent(true, 4, true)
 
 	maxContentLines := approvalContentBudget(40)
 	expanded := r.buildExpandedView(tc, 80, maxContentLines)
@@ -824,7 +824,7 @@ func TestResolveApprovalContext_WithStreaming(t *testing.T) {
 		streamedRows:    7,
 	}
 
-	_, _, _, gotStreamed, gotRows := r.resolveApprovalContext(executiontui.ApprovalNeededEvent{
+	_, _, gotStreamed, gotRows := r.resolveApprovalContext(executiontui.ApprovalNeededEvent{
 		ToolCallID: "tc-1",
 		ToolName:   "write_file",
 	})
