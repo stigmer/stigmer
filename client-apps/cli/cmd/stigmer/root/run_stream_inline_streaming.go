@@ -279,10 +279,7 @@ func (r *inlineRenderer) renderStreamDeltaCapped(newBytes string, totalContentLi
 // prints the final compact result.
 func (r *inlineRenderer) completeStreamingTool(e executiontui.ToolCompletedEvent) {
 	if r.cfg.program != nil {
-		line := toolrender.RenderCompact(e.ToolCall, r.compactOpts)
-		if r.streamSubAgentID != "" {
-			line = toolrender.GutterWrap(line)
-		}
+		line := r.renderToolLine(e.ToolCall, r.streamSubAgentID)
 		r.cfg.program.Send(streamingHideMsg{collapsedResult: line})
 		r.clearStreamingState()
 		return
@@ -292,10 +289,7 @@ func (r *inlineRenderer) completeStreamingTool(e executiontui.ToolCompletedEvent
 		termctl.EraseLines(r.cfg.status, r.streamLineCount)
 	}
 
-	line := toolrender.RenderCompact(e.ToolCall, r.compactOpts)
-	if r.streamSubAgentID != "" {
-		line = toolrender.GutterWrap(line)
-	}
+	line := r.renderToolLine(e.ToolCall, r.streamSubAgentID)
 	r.statusf("%s\n", line)
 	r.clearStreamingState()
 }

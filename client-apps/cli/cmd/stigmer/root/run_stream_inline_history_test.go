@@ -262,7 +262,7 @@ func TestRenderCommittedItem_Expanded_TextKindsUnchanged(t *testing.T) {
 	assert.Equal(t, compact, expanded)
 }
 
-func TestRenderCommittedItem_Expanded_HeaderUnchanged(t *testing.T) {
+func TestRenderCommittedItem_Expanded_HeaderShowsModeIndicator(t *testing.T) {
 	item := committedItem{
 		kind: kindHeader,
 		header: &sessionHeaderInfo{
@@ -272,7 +272,13 @@ func TestRenderCommittedItem_Expanded_HeaderUnchanged(t *testing.T) {
 	}
 	compact := renderCommittedItem(item, toolrender.CompactOptions{}, false)
 	expanded := renderCommittedItem(item, toolrender.CompactOptions{}, true)
-	assert.Equal(t, compact, expanded)
+
+	assert.Contains(t, compact, "Stigmer")
+	assert.NotContains(t, compact, "expanded")
+
+	assert.Contains(t, expanded, "Stigmer · expanded")
+	assert.Contains(t, expanded, "ses-abc123")
+	assert.Contains(t, expanded, "Test subject")
 }
 
 func TestRenderCommittedItem_Expanded_ApprovalUnchanged(t *testing.T) {
@@ -298,4 +304,58 @@ func TestReCommitHistory_Expanded_ProducesCmd(t *testing.T) {
 	}
 	cmd := reCommitHistory(items, toolrender.CompactOptions{}, true)
 	assert.NotNil(t, cmd)
+}
+
+// =============================================================================
+// renderToolLine — shared compact/expanded rendering helper
+// =============================================================================
+
+func TestRenderToolLine_Compact(t *testing.T) {
+	r := &inlineRenderer{expandMode: false}
+	tc := toolrender.ToolCallInfo{
+		Name: "read_file",
+		Args: map[string]interface{}{"path": "main.go"},
+	}
+	line := r.renderToolLine(tc, "")
+	assert.Contains(t, line, "Read")
+	assert.Contains(t, line, "main.go")
+}
+
+func TestRenderToolLine_Expanded(t *testing.T) {
+	r := &inlineRenderer{expandMode: true}
+	tc := toolrender.ToolCallInfo{
+		Name:   "shell",
+		Args:   map[string]interface{}{"command": "go test ./..."},
+		Status: "completed",
+		Result: "ok pkg/a 0.1s\nok pkg/b 0.2s\nok pkg/c 0.3s\nok pkg/d 0.4s\nok pkg/e 0.5s\nok pkg/f 0.6s",
+	}
+	line := r.renderToolLine(tc, "")
+	assert.Contains(t, line, "pkg/f")
+	assert.NotContains(t, line, "more lines")
+}
+
+func TestRenderToolLine_SubAgent_GutterWrapped(t *testing.T) {
+	r := &inlineRenderer{expandMode: false}
+	tc := toolrender.ToolCallInfo{
+		Name: "read_file",
+		Args: map[string]interface{}{"path": "sub.go"},
+	}
+	line := r.renderToolLine(tc, "sub-1")
+	assert.Contains(t, line, "│")
+}
+
+func TestTriggerReCommit_UsesExpandMode(t *testing.T) {
+	r := &inlineRenderer{
+		expandMode: true,
+		history: []committedItem{
+			{kind: kindHeader, header: &sessionHeaderInfo{SessionID: "ses-1"}},
+			{kind: kindToolCompact, toolCalls: []toolrender.ToolCallInfo{
+				{Name: "shell", Args: map[string]interface{}{"command": "ls"}, Status: "completed", Result: "out"},
+			}},
+		},
+	}
+	// No program — triggerReCommit is a no-op. We verify it doesn't panic
+	// and the expandMode is set correctly on the renderer.
+	r.triggerReCommit()
+	assert.True(t, r.expandMode)
 }

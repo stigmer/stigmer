@@ -159,11 +159,66 @@ func (r *inlineRenderer) erasePreApprovalContent(
 }
 
 // promptApprovalViaBubbletea renders the approval panel through View()
-// and reads the user's decision via PromptKeyOnly. The panel is shown by
-// sending approvalShowMsg; arrow keys send approvalSelectMsg to update
-// the menu; the decision triggers approvalHideMsg which clears the panel
-// and commits the collapsed result via tea.Println.
+// and collects the user's decision.
+//
+// When Bubbletea owns stdin (cancelCh is non-nil), the model receives
+// keystrokes as tea.KeyMsg and delivers the decision via a channel.
+// When stdin is external (legacy path), PromptKeyOnly reads keys
+// directly and sends approvalSelectMsg for menu updates.
 func (r *inlineRenderer) promptApprovalViaBubbletea(
+	ctx context.Context,
+	e executiontui.ApprovalNeededEvent,
+	tc toolrender.ToolCallInfo,
+	subAgentID string,
+	expanded, question string,
+	opts approval.Options,
+) {
+	if r.cfg.cancelCh != nil {
+		r.promptApprovalViaChannel(ctx, e, tc, subAgentID, expanded, question)
+		return
+	}
+	r.promptApprovalViaKeyReader(ctx, e, tc, subAgentID, expanded, question, opts)
+}
+
+// promptApprovalViaChannel uses the channel-based flow when Bubbletea
+// owns stdin. Sends approvalStartMsg with a decision channel, then
+// blocks until the model delivers a decision via handleApprovalKey.
+func (r *inlineRenderer) promptApprovalViaChannel(
+	_ context.Context,
+	e executiontui.ApprovalNeededEvent,
+	tc toolrender.ToolCallInfo,
+	subAgentID string,
+	expanded, question string,
+) {
+	decisionCh := make(chan approvalDecision, 1)
+
+	r.cfg.program.Send(approvalStartMsg{
+		content:    expanded + question + "\n",
+		decisionCh: decisionCh,
+	})
+
+	d := <-decisionCh
+
+	if d.err != nil {
+		r.cfg.program.Send(approvalHideMsg{})
+		r.handlePromptErrorAfterHide(e, d.err)
+		return
+	}
+
+	action := actionToString(d.action)
+	r.finalizeApprovalViaBubbletea(e, tc, action, subAgentID)
+
+	r.cfg.approvalResponses <- executiontui.ApprovalResponse{
+		Action:     action,
+		ToolCallID: e.ToolCallID,
+	}
+	r.waitingApproval = nil
+}
+
+// promptApprovalViaKeyReader is the legacy path using PromptKeyOnly when
+// Bubbletea does not own stdin (tea.WithInput(nil)). Retained for
+// backward compatibility and test environments.
+func (r *inlineRenderer) promptApprovalViaKeyReader(
 	ctx context.Context,
 	e executiontui.ApprovalNeededEvent,
 	tc toolrender.ToolCallInfo,
@@ -194,7 +249,26 @@ func (r *inlineRenderer) promptApprovalViaBubbletea(
 	}
 
 	action := actionToString(decision.Action)
+	r.finalizeApprovalViaBubbletea(e, tc, action, subAgentID)
+	r.cfg.approvalResponses <- executiontui.ApprovalResponse{
+		Action:     action,
+		ToolCallID: e.ToolCallID,
+		Comment:    decision.Comment,
+	}
+	r.waitingApproval = nil
+}
 
+// finalizeApprovalViaBubbletea handles the post-decision visual phase when
+// a Bubbletea program is running. Hides the approval panel and either
+// starts post-approval streaming (approved shell) or commits the collapsed
+// result. Does NOT send the approval response or clear state — callers
+// handle that themselves so they can include path-specific fields (Comment).
+func (r *inlineRenderer) finalizeApprovalViaBubbletea(
+	e executiontui.ApprovalNeededEvent,
+	tc toolrender.ToolCallInfo,
+	action string,
+	subAgentID string,
+) {
 	if action == "approve" && toolrender.IsShellTool(tc.Name) {
 		r.cfg.program.Send(approvalHideMsg{})
 		r.initPostApprovalStreaming(e.ToolCallID, tc, subAgentID)
@@ -204,13 +278,6 @@ func (r *inlineRenderer) promptApprovalViaBubbletea(
 		r.recordApproval(tc, action, subAgentID)
 		r.trackSuppression(e.ToolCallID, tc.Name, action)
 	}
-
-	r.cfg.approvalResponses <- executiontui.ApprovalResponse{
-		Action:     action,
-		ToolCallID: e.ToolCallID,
-		Comment:    decision.Comment,
-	}
-	r.waitingApproval = nil
 }
 
 // promptApprovalDirect is the direct-write fallback used when no

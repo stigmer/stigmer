@@ -81,10 +81,7 @@ func (r *inlineRenderer) renderHumanMessage(e executiontui.HumanMessageEvent) {
 // ---------------------------------------------------------------------------
 
 func (r *inlineRenderer) renderToolCompleted(e executiontui.ToolCompletedEvent) {
-	line := toolrender.RenderCompact(e.ToolCall, r.compactOpts)
-	if e.SubAgentID != "" {
-		line = toolrender.GutterWrap(line)
-	}
+	line := r.renderToolLine(e.ToolCall, e.SubAgentID)
 	r.statusf("%s\n", line)
 	if strings.Contains(line, "\n") {
 		r.statusf("\n")
@@ -252,11 +249,19 @@ func (r *inlineRenderer) flushPendingReads() {
 
 	var output string
 	if len(tcs) >= readGroupThreshold {
-		output = toolrender.RenderReadGroup(tcs, r.compactOpts)
+		if r.expandMode {
+			output = toolrender.RenderReadGroupExpanded(tcs, r.compactOpts)
+		} else {
+			output = toolrender.RenderReadGroup(tcs, r.compactOpts)
+		}
 	} else {
 		var lines []string
 		for _, tc := range tcs {
-			lines = append(lines, toolrender.RenderCompact(tc, r.compactOpts))
+			if r.expandMode {
+				lines = append(lines, toolrender.RenderExpanded(tc, r.compactOpts))
+			} else {
+				lines = append(lines, toolrender.RenderCompact(tc, r.compactOpts))
+			}
 		}
 		output = strings.Join(lines, "\n")
 	}
@@ -335,6 +340,22 @@ func (r *inlineRenderer) flushWriter(w io.Writer) {
 	if f, ok := w.(interface{ Sync() error }); ok {
 		_ = f.Sync()
 	}
+}
+
+// renderToolLine renders a single tool call in the current expand mode,
+// applying gutter-wrapping for sub-agent tools. Used by renderToolCompleted
+// and completeStreamingTool to avoid duplicating mode-selection logic.
+func (r *inlineRenderer) renderToolLine(tc toolrender.ToolCallInfo, subAgentID string) string {
+	var line string
+	if r.expandMode {
+		line = toolrender.RenderExpanded(tc, r.compactOpts)
+	} else {
+		line = toolrender.RenderCompact(tc, r.compactOpts)
+	}
+	if subAgentID != "" {
+		line = toolrender.GutterWrap(line)
+	}
+	return line
 }
 
 // actionToString converts an approval.Action to the string expected by

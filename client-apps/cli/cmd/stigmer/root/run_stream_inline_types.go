@@ -48,6 +48,18 @@ type inlineRenderConfig struct {
 	// pollSessionSubject goroutine. nil when no subject polling is needed
 	// (resumed sessions, detached mode, no session).
 	subjectUpdate <-chan string
+
+	// toggleExpandCh receives a signal when the user presses Ctrl+O to
+	// toggle between compact and expanded display modes. The event loop
+	// flips expandMode and triggers a full re-commit. nil when Bubbletea
+	// does not own stdin (non-TTY, tests, resumed sessions).
+	toggleExpandCh <-chan struct{}
+
+	// cancelCh receives a signal when the user presses Ctrl+C during
+	// idle state (agent executing, no interactive prompt). Triggers the
+	// same cancellation logic as context.Done(). nil when Bubbletea does
+	// not own stdin.
+	cancelCh <-chan struct{}
 }
 
 // pendingRead wraps a read tool completion with the sub-agent context it
@@ -145,10 +157,16 @@ type inlineRenderer struct {
 	// to terminate the render loop with a "cancelled" phase.
 	exitRequested bool
 
+	// expandMode controls whether tool completions and read groups render
+	// in expanded form (full output, no truncation). Toggled by Ctrl+O.
+	// Affects both new items committed via statusf and re-committed items
+	// during clear+re-commit.
+	expandMode bool
+
 	// history records every item committed to terminal scrollback via
 	// statusf/Println (or direct stderr write for the session header).
 	// Used by the clear+re-commit mechanism to reconstruct the full
-	// session display when the subject resolves or (future) the user
-	// toggles expand/collapse mode.
+	// session display when the subject resolves or the user toggles
+	// expand/collapse mode via Ctrl+O.
 	history []committedItem
 }
