@@ -68,7 +68,6 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, ex
 		case subject, ok := <-cfg.subjectUpdate:
 			if ok && subject != "" {
 				r.history[0].header.Subject = subject
-				r.triggerReCommit()
 				cfg.subjectUpdate = nil
 			}
 
