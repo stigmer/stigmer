@@ -163,26 +163,38 @@ func TestInlineBubbleModel_SpinnerStart_ResetsFrame(t *testing.T) {
 
 func TestInlineBubbleModel_ApprovalShow_ActivatesPanel(t *testing.T) {
 	m := newInlineBubbleModel()
-	updated, cmd := m.Update(approvalShowMsg{content: "expanded view\nquestion\n"})
+	updated, cmd := m.Update(approvalShowMsg{
+		expandedContent: "expanded view\n",
+		question:        "question",
+	})
 
 	model := updated.(inlineBubbleModel)
 	if !model.approvalActive {
 		t.Error("approvalShowMsg should set approvalActive=true")
 	}
-	if model.approvalContent != "expanded view\nquestion\n" {
-		t.Errorf("expected content to be stored, got %q", model.approvalContent)
+	if model.approvalContent != "question\n" {
+		t.Errorf("expected question stored in approvalContent, got %q", model.approvalContent)
 	}
 	if model.approvalSelected != 0 {
 		t.Errorf("expected selected=0 on show, got %d", model.approvalSelected)
 	}
+	if cmd == nil {
+		t.Fatal("approvalShowMsg with expandedContent should return a Println Cmd")
+	}
+}
+
+func TestInlineBubbleModel_ApprovalShow_NoCmdWhenNoExpandedContent(t *testing.T) {
+	m := newInlineBubbleModel()
+	_, cmd := m.Update(approvalShowMsg{question: "question"})
+
 	if cmd != nil {
-		t.Error("approvalShowMsg should return nil Cmd")
+		t.Error("approvalShowMsg without expandedContent should return nil Cmd")
 	}
 }
 
 func TestInlineBubbleModel_ApprovalSelect_UpdatesIndex(t *testing.T) {
 	m := newInlineBubbleModel()
-	shown, _ := m.Update(approvalShowMsg{content: "content\n"})
+	shown, _ := m.Update(approvalShowMsg{question: "content"})
 	updated, cmd := shown.Update(approvalSelectMsg{selected: 2})
 
 	model := updated.(inlineBubbleModel)
@@ -196,7 +208,7 @@ func TestInlineBubbleModel_ApprovalSelect_UpdatesIndex(t *testing.T) {
 
 func TestInlineBubbleModel_ApprovalHide_ClearsPanelWithPrintln(t *testing.T) {
 	m := newInlineBubbleModel()
-	shown, _ := m.Update(approvalShowMsg{content: "content\n"})
+	shown, _ := m.Update(approvalShowMsg{question: "content"})
 	updated, cmd := shown.Update(approvalHideMsg{collapsedResult: "✓ Write(config.go)"})
 
 	model := updated.(inlineBubbleModel)
@@ -216,7 +228,7 @@ func TestInlineBubbleModel_ApprovalHide_ClearsPanelWithPrintln(t *testing.T) {
 
 func TestInlineBubbleModel_ApprovalHide_NoCmdWhenEmpty(t *testing.T) {
 	m := newInlineBubbleModel()
-	shown, _ := m.Update(approvalShowMsg{content: "content\n"})
+	shown, _ := m.Update(approvalShowMsg{question: "content"})
 	_, cmd := shown.Update(approvalHideMsg{})
 
 	if cmd != nil {
@@ -224,14 +236,14 @@ func TestInlineBubbleModel_ApprovalHide_NoCmdWhenEmpty(t *testing.T) {
 	}
 }
 
-func TestInlineBubbleModel_View_ApprovalActive_ShowsContentAndMenu(t *testing.T) {
+func TestInlineBubbleModel_View_ApprovalActive_ShowsQuestionAndMenu(t *testing.T) {
 	m := newInlineBubbleModel()
-	shown, _ := m.Update(approvalShowMsg{content: "─── expanded ───\n"})
+	shown, _ := m.Update(approvalShowMsg{question: "Do you want to create config.go?"})
 	model := shown.(inlineBubbleModel)
 
 	v := model.View()
-	if !strings.Contains(v, "─── expanded ───") {
-		t.Errorf("View() with approval active should contain content, got %q", v)
+	if !strings.Contains(v, "Do you want to create config.go?") {
+		t.Errorf("View() with approval active should contain question, got %q", v)
 	}
 	if !strings.Contains(v, "Yes") || !strings.Contains(v, "Skip") || !strings.Contains(v, "Reject") {
 		t.Errorf("View() with approval active should contain menu choices, got %q", v)
@@ -241,22 +253,22 @@ func TestInlineBubbleModel_View_ApprovalActive_ShowsContentAndMenu(t *testing.T)
 func TestInlineBubbleModel_View_ApprovalPriorityOverSpinner(t *testing.T) {
 	m := newInlineBubbleModel()
 	started, _ := m.Update(spinnerStartMsg{label: "Thinking..."})
-	shown, _ := started.Update(approvalShowMsg{content: "approval content\n"})
+	shown, _ := started.Update(approvalShowMsg{question: "approval question"})
 	model := shown.(inlineBubbleModel)
 
 	v := model.View()
 	if strings.Contains(v, "Thinking...") {
 		t.Error("approval panel should take priority over spinner in View()")
 	}
-	if !strings.Contains(v, "approval content") {
-		t.Errorf("View() should show approval content, got %q", v)
+	if !strings.Contains(v, "approval question") {
+		t.Errorf("View() should show approval question, got %q", v)
 	}
 }
 
 func TestInlineBubbleModel_ApprovalHide_ResumesSpinner(t *testing.T) {
 	m := newInlineBubbleModel()
 	started, _ := m.Update(spinnerStartMsg{label: "Thinking..."})
-	shown, _ := started.Update(approvalShowMsg{content: "content\n"})
+	shown, _ := started.Update(approvalShowMsg{question: "content"})
 	hidden, _ := shown.Update(approvalHideMsg{})
 	model := hidden.(inlineBubbleModel)
 
@@ -270,9 +282,9 @@ func TestInlineBubbleModel_ApprovalHide_ResumesSpinner(t *testing.T) {
 
 func TestInlineBubbleModel_ApprovalShow_ResetsSelectedToZero(t *testing.T) {
 	m := newInlineBubbleModel()
-	shown, _ := m.Update(approvalShowMsg{content: "first\n"})
+	shown, _ := m.Update(approvalShowMsg{question: "first"})
 	selected, _ := shown.Update(approvalSelectMsg{selected: 2})
-	reshown, _ := selected.Update(approvalShowMsg{content: "second\n"})
+	reshown, _ := selected.Update(approvalShowMsg{question: "second"})
 
 	model := reshown.(inlineBubbleModel)
 	if model.approvalSelected != 0 {
@@ -280,8 +292,86 @@ func TestInlineBubbleModel_ApprovalShow_ResetsSelectedToZero(t *testing.T) {
 	}
 }
 
+func TestInlineBubbleModel_ApprovalStart_CommitsExpandedContent(t *testing.T) {
+	m := newInlineBubbleModel()
+	decisionCh := make(chan approvalDecision, 1)
+	updated, cmd := m.Update(approvalStartMsg{
+		expandedContent: "─── sep ───\n● Write(config.go)\npackage config\n─── sep ───\n",
+		question:        "Do you want to create config.go?",
+		decisionCh:      decisionCh,
+	})
+
+	model := updated.(inlineBubbleModel)
+	if !model.approvalActive {
+		t.Error("approvalStartMsg should set approvalActive=true")
+	}
+	if model.approvalContent != "Do you want to create config.go?\n" {
+		t.Errorf("expected question in approvalContent, got %q", model.approvalContent)
+	}
+	if model.approvalDecisionCh == nil {
+		t.Error("approvalStartMsg should set decisionCh")
+	}
+	if model.streamingActive {
+		t.Error("approvalStartMsg should clear streamingActive")
+	}
+	if model.aiStreamActive {
+		t.Error("approvalStartMsg should clear aiStreamActive")
+	}
+	if cmd == nil {
+		t.Fatal("approvalStartMsg with expandedContent should return a Println Cmd")
+	}
+}
+
+func TestInlineBubbleModel_ApprovalStart_NoCmdWhenNoExpandedContent(t *testing.T) {
+	m := newInlineBubbleModel()
+	decisionCh := make(chan approvalDecision, 1)
+	_, cmd := m.Update(approvalStartMsg{
+		question:   "Do you want to run custom_tool?",
+		decisionCh: decisionCh,
+	})
+
+	if cmd != nil {
+		t.Error("approvalStartMsg without expandedContent should return nil Cmd")
+	}
+}
+
+func TestInlineBubbleModel_ApprovalShow_ClearsAIStreamState(t *testing.T) {
+	m := newInlineBubbleModel()
+	aiStreaming, _ := m.Update(aiStreamPartialMsg{partial: "typing..."})
+	shown, _ := aiStreaming.Update(approvalShowMsg{question: "question"})
+	model := shown.(inlineBubbleModel)
+
+	if model.aiStreamActive {
+		t.Error("approvalShowMsg should clear aiStreamActive")
+	}
+	if model.aiStreamPartial != "" {
+		t.Errorf("approvalShowMsg should clear aiStreamPartial, got %q", model.aiStreamPartial)
+	}
+}
+
 // =============================================================================
 // Streaming Model Tests
+// =============================================================================
+
+func TestInlineBubbleModel_StreamingHeaderUpdate(t *testing.T) {
+	m := newInlineBubbleModel()
+	shown, _ := m.Update(streamingShowMsg{header: "─── sep ───\nWrite()\n", maxLines: 30, width: 80})
+	updated, cmd := shown.Update(streamingHeaderUpdateMsg{header: "─── sep ───\nWrite(config.go)\n"})
+
+	model := updated.(inlineBubbleModel)
+	if model.streamingHeader != "─── sep ───\nWrite(config.go)\n" {
+		t.Errorf("expected updated header, got %q", model.streamingHeader)
+	}
+	if !model.streamingActive {
+		t.Error("streamingHeaderUpdateMsg should not deactivate streaming")
+	}
+	if cmd != nil {
+		t.Error("streamingHeaderUpdateMsg should return nil Cmd")
+	}
+}
+
+// =============================================================================
+// Streaming Model Tests (continued)
 // =============================================================================
 
 func TestInlineBubbleModel_StreamingShow_ActivatesStreaming(t *testing.T) {
@@ -389,15 +479,15 @@ func TestInlineBubbleModel_View_ApprovalPriorityOverStreaming(t *testing.T) {
 	m := newInlineBubbleModel()
 	streamed, _ := m.Update(streamingShowMsg{header: "streaming header\n", maxLines: 30, width: 80})
 	updated, _ := streamed.Update(streamingUpdateMsg{content: "streaming content\n"})
-	approved, _ := updated.Update(approvalShowMsg{content: "approval panel\n"})
+	approved, _ := updated.Update(approvalShowMsg{question: "approval question"})
 	model := approved.(inlineBubbleModel)
 
 	v := model.View()
 	if strings.Contains(v, "streaming") {
 		t.Error("approval panel should take priority over streaming in View()")
 	}
-	if !strings.Contains(v, "approval panel") {
-		t.Errorf("View() should show approval panel, got %q", v)
+	if !strings.Contains(v, "approval question") {
+		t.Errorf("View() should show approval question, got %q", v)
 	}
 }
 
@@ -405,7 +495,7 @@ func TestInlineBubbleModel_ApprovalShow_ClearsStreamingState(t *testing.T) {
 	m := newInlineBubbleModel()
 	streamed, _ := m.Update(streamingShowMsg{header: "header\n", maxLines: 30, width: 80})
 	updated, _ := streamed.Update(streamingUpdateMsg{content: "content\n"})
-	approved, _ := updated.Update(approvalShowMsg{content: "panel\n"})
+	approved, _ := updated.Update(approvalShowMsg{question: "panel"})
 	model := approved.(inlineBubbleModel)
 
 	if model.streamingActive {
@@ -520,15 +610,15 @@ func TestInlineBubbleModel_View_FollowUpPriorityOverSpinner(t *testing.T) {
 func TestInlineBubbleModel_View_ApprovalPriorityOverFollowUp(t *testing.T) {
 	m := newInlineBubbleModel()
 	shown, _ := m.Update(followUpShowMsg{content: "follow-up prompt"})
-	approved, _ := shown.Update(approvalShowMsg{content: "approval panel\n"})
+	approved, _ := shown.Update(approvalShowMsg{question: "approval question"})
 	model := approved.(inlineBubbleModel)
 
 	v := model.View()
 	if strings.Contains(v, "follow-up prompt") {
 		t.Error("approval panel should take priority over follow-up prompt in View()")
 	}
-	if !strings.Contains(v, "approval panel") {
-		t.Errorf("View() should show approval panel, got %q", v)
+	if !strings.Contains(v, "approval question") {
+		t.Errorf("View() should show approval question, got %q", v)
 	}
 }
 

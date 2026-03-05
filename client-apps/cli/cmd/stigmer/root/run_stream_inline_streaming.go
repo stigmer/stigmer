@@ -32,6 +32,7 @@ func (r *inlineRenderer) initPreApprovalStreaming(e executiontui.ToolRunningEven
 
 	if !toolrender.HasPrimaryArg(e.ToolCall) {
 		r.streamHeaderDeferred = true
+		r.lastStreamHeader = ""
 		if r.cfg.program == nil {
 			r.streamHeaderRows = 0
 			r.streamLineCount = 0
@@ -41,9 +42,12 @@ func (r *inlineRenderer) initPreApprovalStreaming(e executiontui.ToolRunningEven
 		return
 	}
 
+	header := r.buildStreamHeaderOutput(e.ToolCall)
+	r.lastStreamHeader = header
+
 	if r.cfg.program != nil {
 		r.cfg.program.Send(streamingShowMsg{
-			header:     r.buildStreamHeaderOutput(e.ToolCall),
+			header:     header,
 			subAgentID: e.SubAgentID,
 			maxLines:   r.maxStreamContentLines,
 			width:      termctl.Width(r.cfg.status, 80),
@@ -129,15 +133,23 @@ func (r *inlineRenderer) initPostApprovalStreaming(toolCallID string, tc toolren
 func (r *inlineRenderer) renderToolStreamDelta(e executiontui.ToolStreamDeltaEvent) {
 	if r.streamHeaderDeferred {
 		r.streamHeaderDeferred = false
+		header := r.buildStreamHeaderOutput(e.ToolCall)
+		r.lastStreamHeader = header
 		if r.cfg.program != nil {
 			r.cfg.program.Send(streamingShowMsg{
-				header:     r.buildStreamHeaderOutput(e.ToolCall),
+				header:     header,
 				subAgentID: r.streamSubAgentID,
 				maxLines:   r.maxStreamContentLines,
 				width:      termctl.Width(r.cfg.status, 80),
 			})
 		} else {
 			r.renderStreamHeader(e.ToolCall, r.streamSubAgentID)
+		}
+	} else if r.cfg.program != nil && r.lastStreamHeader != "" {
+		newHeader := r.buildStreamHeaderOutput(e.ToolCall)
+		if newHeader != r.lastStreamHeader {
+			r.lastStreamHeader = newHeader
+			r.cfg.program.Send(streamingHeaderUpdateMsg{header: newHeader})
 		}
 	}
 
@@ -310,6 +322,7 @@ func (r *inlineRenderer) clearStreamingState() {
 	r.streamLineCount = 0
 	r.streamSubAgentID = ""
 	r.streamHeaderDeferred = false
+	r.lastStreamHeader = ""
 	r.maxStreamContentLines = 0
 	r.streamContentLines = 0
 	r.streamTruncationShown = false

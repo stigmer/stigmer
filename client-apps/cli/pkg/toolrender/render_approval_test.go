@@ -58,7 +58,7 @@ func TestRenderApprovalResult_RejectedWrite(t *testing.T) {
 
 	assertContains(t, result, "●")
 	assertContains(t, result, "Write(danger.go)")
-	assertContains(t, result, "└ Rejected")
+	assertContains(t, result, "└ User rejected create to danger.go")
 	assertContains(t, result, "package danger")
 }
 
@@ -130,7 +130,7 @@ func TestRenderApprovalResult_RejectedShell(t *testing.T) {
 	result := stripANSI(RenderApprovalResult(tc, "reject", CompactOptions{}))
 
 	assertContains(t, result, "Shell(rm -rf /tmp)")
-	assertContains(t, result, "└ Rejected")
+	assertContains(t, result, "└ User rejected execute to rm -rf /tmp")
 }
 
 func TestRenderApprovalResult_SkippedShell(t *testing.T) {
@@ -187,7 +187,7 @@ func TestRenderApprovalResult_RejectedDelete(t *testing.T) {
 	result := stripANSI(RenderApprovalResult(tc, "reject", CompactOptions{}))
 
 	assertContains(t, result, "Delete(important.txt)")
-	assertContains(t, result, "└ Rejected")
+	assertContains(t, result, "└ User rejected delete to important.txt")
 }
 
 // ---------------------------------------------------------------------------

@@ -29,7 +29,7 @@ type inlineBubbleModel struct {
 	spinnerStart  time.Time
 
 	approvalActive   bool
-	approvalContent  string // pre-rendered expanded view + question
+	approvalContent  string // question line only — expanded content is in scrollback
 	approvalSelected int
 
 	// approvalDecisionCh delivers the user's approval choice back to the
@@ -107,6 +107,8 @@ func (m inlineBubbleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleTextInputHide(msg)
 	case streamingShowMsg:
 		return m.handleStreamingShow(msg)
+	case streamingHeaderUpdateMsg:
+		return m.handleStreamingHeaderUpdate(msg)
 	case streamingUpdateMsg:
 		return m.handleStreamingUpdate(msg)
 	case streamingHideMsg:
@@ -127,7 +129,7 @@ func (m inlineBubbleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m inlineBubbleModel) View() string {
 	if m.approvalActive {
-		return m.approvalContent + approval.RenderMenu(m.approvalSelected)
+		return m.approvalContent + approval.RenderMenuForView(m.approvalSelected)
 	}
 	if m.streamingActive {
 		return formatStreamingView(
@@ -194,27 +196,49 @@ func nextSpinnerTick() tea.Cmd {
 // ---------------------------------------------------------------------------
 
 // handleApprovalStart activates the approval panel with a decision channel.
+// The expanded content (separator + header + full file body + separator) is
+// committed to scrollback via tea.Println so it is always visible regardless
+// of terminal height. Only the question line remains in View(), keeping the
+// interactive region to ≈6 rows (question + menu).
+//
 // Used when Bubbletea owns stdin — keystrokes are routed through
 // handleKeyPress instead of the external PromptKeyOnly reader.
 func (m inlineBubbleModel) handleApprovalStart(msg approvalStartMsg) (tea.Model, tea.Cmd) {
 	m.approvalActive = true
-	m.approvalContent = msg.content
+	m.approvalContent = msg.question + "\n"
 	m.approvalSelected = 0
 	m.approvalDecisionCh = msg.decisionCh
 	m.streamingActive = false
 	m.streamingHeader = ""
 	m.streamingContent = ""
-	return m, nil
+	m.aiStreamActive = false
+	m.aiStreamPartial = ""
+
+	var cmds []tea.Cmd
+	if msg.expandedContent != "" {
+		cmds = append(cmds, tea.Println(strings.TrimRight(msg.expandedContent, "\n")))
+	}
+	return m, tea.Batch(cmds...)
 }
 
+// handleApprovalShow activates the approval panel via the legacy path.
+// Same split-commit approach as handleApprovalStart: expanded content goes
+// to scrollback, question stays in View().
 func (m inlineBubbleModel) handleApprovalShow(msg approvalShowMsg) (tea.Model, tea.Cmd) {
 	m.approvalActive = true
-	m.approvalContent = msg.content
+	m.approvalContent = msg.question + "\n"
 	m.approvalSelected = 0
 	m.streamingActive = false
 	m.streamingHeader = ""
 	m.streamingContent = ""
-	return m, nil
+	m.aiStreamActive = false
+	m.aiStreamPartial = ""
+
+	var cmds []tea.Cmd
+	if msg.expandedContent != "" {
+		cmds = append(cmds, tea.Println(strings.TrimRight(msg.expandedContent, "\n")))
+	}
+	return m, tea.Batch(cmds...)
 }
 
 func (m inlineBubbleModel) handleApprovalSelect(msg approvalSelectMsg) (tea.Model, tea.Cmd) {
@@ -244,6 +268,14 @@ func (m inlineBubbleModel) handleStreamingShow(msg streamingShowMsg) (tea.Model,
 	m.streamingMaxLines = msg.maxLines
 	m.streamingSubAgent = msg.subAgentID
 	m.streamingWidth = msg.width
+	return m, nil
+}
+
+// handleStreamingHeaderUpdate replaces the header portion of the streaming
+// view without resetting the accumulated content. Called when the tool's
+// primary arg becomes available after the initial (empty-path) header.
+func (m inlineBubbleModel) handleStreamingHeaderUpdate(msg streamingHeaderUpdateMsg) (tea.Model, tea.Cmd) {
+	m.streamingHeader = msg.header
 	return m, nil
 }
 

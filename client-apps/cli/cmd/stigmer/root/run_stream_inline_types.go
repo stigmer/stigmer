@@ -160,6 +160,11 @@ type inlineRenderer struct {
 	// populated Args.
 	streamHeaderDeferred bool
 
+	// lastStreamHeader tracks the most recently sent streaming header so
+	// dynamic updates can be sent only when the header actually changes
+	// (e.g. when the tool's primary arg becomes available mid-stream).
+	lastStreamHeader string
+
 	// maxStreamContentLines caps the number of content lines displayed
 	// during pre-approval streaming. Computed from the terminal height
 	// in initPreApprovalStreaming. When the cap is reached, a truncation

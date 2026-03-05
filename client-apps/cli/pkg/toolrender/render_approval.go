@@ -58,7 +58,7 @@ func RenderApprovalResult(tc ToolCallInfo, action string, opts CompactOptions) s
 	}
 
 	header := renderApprovalHeader(tc, info, action, opts)
-	connector := buildApprovalConnector(action, approvedSummary(tc, info))
+	connector := buildApprovalConnector(action, approvedSummary(tc, info), tc)
 	result := header + "\n" + connector
 
 	if !shouldShowApprovalPreview(action, info.label) {
@@ -255,13 +255,23 @@ func renderApprovalHeader(tc ToolCallInfo, info toolDisplayInfo, action string, 
 }
 
 // buildApprovalConnector produces the └ summary line below the header.
-// approvedText is used only for the "approve" action; reject and skip
-// have fixed text.
-func buildApprovalConnector(action string, approvedText string) string {
+// approvedText is used only for the "approve" action. For "reject", the
+// connector includes the verb and path (e.g. "User rejected write to
+// config.go") matching Claude Code's descriptive style. For "skip", the
+// text is fixed.
+func buildApprovalConnector(action string, approvedText string, tc ToolCallInfo) string {
 	switch action {
 	case "approve":
 		return dimStyle.Render("└ " + approvedText)
 	case "reject":
+		info, known := toolDisplayMap[tc.Name]
+		if known {
+			verb := approvalVerb(info.label)
+			path := extractPrimaryArgWithFallbacks(tc.Args, info.primaryField, info.fallbackFields)
+			if path != "" {
+				return dimStyle.Render(fmt.Sprintf("└ User rejected %s to %s", verb, path))
+			}
+		}
 		return dimStyle.Render("└ Rejected")
 	default:
 		return dimStyle.Render("└ Skipped")
@@ -360,7 +370,7 @@ func renderApprovalUnknown(tc ToolCallInfo, action string, opts CompactOptions) 
 	}
 	header := fmt.Sprintf("%s %s", bullet, labelStyle.Render(name))
 
-	connector := buildApprovalConnector(action, "Approved")
+	connector := buildApprovalConnector(action, "Approved", tc)
 	result := header + "\n" + connector
 
 	if action == "skip" {

@@ -351,13 +351,13 @@ func TestApprovalStartMsg_ActivatesApproval(t *testing.T) {
 	m := newInlineBubbleModel()
 
 	updated, _ := m.Update(approvalStartMsg{
-		content:    "approval content",
+		question:   "approval question",
 		decisionCh: decisionCh,
 	})
 
 	model := updated.(inlineBubbleModel)
 	assert.True(t, model.approvalActive)
-	assert.Equal(t, "approval content", model.approvalContent)
+	assert.Equal(t, "approval question\n", model.approvalContent)
 	assert.Equal(t, 0, model.approvalSelected)
 	require.NotNil(t, model.approvalDecisionCh)
 }
@@ -369,7 +369,7 @@ func TestApprovalStartMsg_ClearsStreaming(t *testing.T) {
 	m.streamingHeader = "streaming header"
 
 	updated, _ := m.Update(approvalStartMsg{
-		content:    "content",
+		question:   "question",
 		decisionCh: decisionCh,
 	})
 
