@@ -132,7 +132,7 @@ func (r *inlineRenderer) recordApproval(tc toolrender.ToolCallInfo, action strin
 // separately by the streaming interception (completeStreamingTool) and
 // do not use suppressedToolIDs.
 func (r *inlineRenderer) trackSuppression(toolCallID, toolName, action string) {
-	if toolrender.ShouldSuppressCompletion(toolName) {
+	if action == "approve" && toolrender.ShouldSuppressCompletion(toolName) {
 		r.suppressedToolIDs[toolCallID] = true
 	}
 }

@@ -561,6 +561,10 @@ func buildUnknownCompactHeader(tc ToolCallInfo) string {
 	if suffix != "" {
 		header += " " + dimStyle.Render(suffix)
 	}
+
+	if badge := StateBadge(tc.Status); badge != "" {
+		header += " " + dimStyle.Render(badge)
+	}
 	return header
 }
 
