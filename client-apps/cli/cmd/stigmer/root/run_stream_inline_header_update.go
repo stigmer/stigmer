@@ -52,3 +52,54 @@ func pollSessionSubject(ctx context.Context, conn grpc.ClientConnInterface, sess
 		}
 	}
 }
+
+// recentSessionsFetchPageSize is the page size passed to session.List when
+// fetching recent sessions for the welcome header. Slightly larger than
+// maxRecentSessions to account for filtering out the current session.
+const recentSessionsFetchPageSize = 5
+
+// fetchRecentSessions lists recent sessions from the backend, filters out
+// the current session, and sends up to maxRecentSessions entries on ch.
+// On any failure the channel is closed without sending — the header renders
+// gracefully without the recent sessions section.
+func fetchRecentSessions(conn grpc.ClientConnInterface, currentSessionID string, ch chan<- []recentSession) {
+	defer close(ch)
+
+	result, err := session.List(&session.ListOptions{
+		Conn:     conn,
+		PageSize: recentSessionsFetchPageSize,
+	})
+	if err != nil {
+		log.Debug().Err(err).Msg("recent sessions: failed to list sessions")
+		return
+	}
+
+	var sessions []recentSession
+	for _, ses := range result.GetEntries() {
+		id := ses.GetMetadata().GetId()
+		if id == currentSessionID {
+			continue
+		}
+
+		subject := session.ResolvedSubject(ses.GetSpec().GetSubject())
+
+		var createdAt time.Time
+		if audit := ses.GetStatus().GetAudit().GetSpecAudit(); audit != nil && audit.GetCreatedAt() != nil {
+			createdAt = audit.GetCreatedAt().AsTime()
+		}
+
+		sessions = append(sessions, recentSession{
+			SessionID: id,
+			Subject:   subject,
+			CreatedAt: createdAt,
+		})
+
+		if len(sessions) >= maxRecentSessions {
+			break
+		}
+	}
+
+	if len(sessions) > 0 {
+		ch <- sessions
+	}
+}

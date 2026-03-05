@@ -77,6 +77,11 @@ type inlineRenderConfig struct {
 	// (resumed sessions, detached mode, no session).
 	subjectUpdate <-chan string
 
+	// recentSessionsCh receives recently-created sessions fetched
+	// asynchronously from the backend. One-shot: consumed once, then
+	// nilled. nil for resumed sessions or non-TTY mode.
+	recentSessionsCh <-chan []recentSession
+
 	// toggleExpandCh receives a signal when the user presses Ctrl+O to
 	// toggle between compact and expanded display modes. The event loop
 	// flips expandMode and triggers a full re-commit. nil when Bubbletea
