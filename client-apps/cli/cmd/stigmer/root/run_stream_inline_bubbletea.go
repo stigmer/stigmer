@@ -44,6 +44,13 @@ type inlineBubbleModel struct {
 	streamingSubAgent string
 	streamingWidth    int
 
+	// AI streaming state — when active, View() renders the partial
+	// (incomplete) line being typed by the model. Complete lines are
+	// committed to scrollback via program.Println before the partial is
+	// updated, so View() only ever shows the current in-progress line.
+	aiStreamActive  bool
+	aiStreamPartial string
+
 	followUpActive  bool
 	followUpContent string // pre-rendered prompt (separator + hint + marker)
 
@@ -104,6 +111,10 @@ func (m inlineBubbleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleStreamingUpdate(msg)
 	case streamingHideMsg:
 		return m.handleStreamingHide(msg)
+	case aiStreamPartialMsg:
+		return m.handleAIStreamPartial(msg)
+	case aiStreamHideMsg:
+		return m.handleAIStreamHide()
 	case followUpShowMsg:
 		return m.handleFollowUpShow(msg)
 	case followUpHideMsg:
@@ -129,6 +140,9 @@ func (m inlineBubbleModel) View() string {
 	}
 	if m.followUpActive {
 		return m.followUpContent
+	}
+	if m.aiStreamActive {
+		return m.aiStreamPartial
 	}
 	if !m.spinnerActive {
 		return ""
@@ -267,6 +281,22 @@ func (m inlineBubbleModel) handleFollowUpHide(msg followUpHideMsg) (tea.Model, t
 	if msg.styledMessage != "" {
 		return m, tea.Println(strings.TrimRight(msg.styledMessage, "\n"))
 	}
+	return m, nil
+}
+
+// ---------------------------------------------------------------------------
+// AI stream update handlers
+// ---------------------------------------------------------------------------
+
+func (m inlineBubbleModel) handleAIStreamPartial(msg aiStreamPartialMsg) (tea.Model, tea.Cmd) {
+	m.aiStreamActive = true
+	m.aiStreamPartial = msg.partial
+	return m, nil
+}
+
+func (m inlineBubbleModel) handleAIStreamHide() (tea.Model, tea.Cmd) {
+	m.aiStreamActive = false
+	m.aiStreamPartial = ""
 	return m, nil
 }
 
