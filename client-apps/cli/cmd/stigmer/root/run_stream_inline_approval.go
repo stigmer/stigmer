@@ -3,6 +3,7 @@ package root
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
@@ -128,7 +129,17 @@ func (r *inlineRenderer) handleInteractiveApproval(
 
 	if r.cfg.program != nil {
 		expanded := r.buildFullExpandedView(tc, width)
-		r.promptApprovalViaBubbletea(ctx, e, tc, subAgentID, expanded, question, opts)
+		var reCommitPayload string
+		if contentStreamed {
+			rendered := renderHistoryBatch(r.history, r.compactOpts, r.expandMode)
+			trimmed := strings.TrimRight(expanded, "\n")
+			if rendered != "" {
+				reCommitPayload = rendered + "\n" + trimmed
+			} else {
+				reCommitPayload = trimmed
+			}
+		}
+		r.promptApprovalViaBubbletea(ctx, e, tc, subAgentID, expanded, question, reCommitPayload, opts)
 		return
 	}
 
@@ -160,6 +171,11 @@ func (r *inlineRenderer) erasePreApprovalContent(
 // promptApprovalViaBubbletea renders the approval panel through View()
 // and collects the user's decision.
 //
+// When reCommitPayload is non-empty (streaming→approval transition), the
+// message carries it instead of expandedContent. The model handler uses
+// buildReCommitCmd to atomically clear + replay, avoiding the insertAbove
+// stale-cellbuf race (see DD-001).
+//
 // When Bubbletea owns stdin (cancelCh is non-nil), the model receives
 // keystrokes as tea.KeyPressMsg and delivers the decision via a channel.
 // When stdin is external (legacy path), PromptKeyOnly reads keys
@@ -169,14 +185,14 @@ func (r *inlineRenderer) promptApprovalViaBubbletea(
 	e executiontui.ApprovalNeededEvent,
 	tc toolrender.ToolCallInfo,
 	subAgentID string,
-	expanded, question string,
+	expanded, question, reCommitPayload string,
 	opts approval.Options,
 ) {
 	if r.cfg.cancelCh != nil {
-		r.promptApprovalViaChannel(ctx, e, tc, subAgentID, expanded, question)
+		r.promptApprovalViaChannel(ctx, e, tc, subAgentID, expanded, question, reCommitPayload)
 		return
 	}
-	r.promptApprovalViaKeyReader(ctx, e, tc, subAgentID, expanded, question, opts)
+	r.promptApprovalViaKeyReader(ctx, e, tc, subAgentID, expanded, question, reCommitPayload, opts)
 }
 
 // promptApprovalViaChannel uses the channel-based flow when Bubbletea
@@ -187,15 +203,20 @@ func (r *inlineRenderer) promptApprovalViaChannel(
 	e executiontui.ApprovalNeededEvent,
 	tc toolrender.ToolCallInfo,
 	subAgentID string,
-	expanded, question string,
+	expanded, question, reCommitPayload string,
 ) {
 	decisionCh := make(chan approvalDecision, 1)
 
-	r.cfg.program.Send(approvalStartMsg{
-		expandedContent: expanded,
-		question:        question,
-		decisionCh:      decisionCh,
-	})
+	msg := approvalStartMsg{
+		question:   question,
+		decisionCh: decisionCh,
+	}
+	if reCommitPayload != "" {
+		msg.reCommitPayload = reCommitPayload
+	} else {
+		msg.expandedContent = expanded
+	}
+	r.cfg.program.Send(msg)
 
 	d := <-decisionCh
 
@@ -227,13 +248,18 @@ func (r *inlineRenderer) promptApprovalViaKeyReader(
 	e executiontui.ApprovalNeededEvent,
 	tc toolrender.ToolCallInfo,
 	subAgentID string,
-	expanded, question string,
+	expanded, question, reCommitPayload string,
 	opts approval.Options,
 ) {
-	r.cfg.program.Send(approvalShowMsg{
-		expandedContent: expanded,
-		question:        question,
-	})
+	msg := approvalShowMsg{
+		question: question,
+	}
+	if reCommitPayload != "" {
+		msg.reCommitPayload = reCommitPayload
+	} else {
+		msg.expandedContent = expanded
+	}
+	r.cfg.program.Send(msg)
 
 	ip, ok := r.cfg.prompter.(*approval.InlinePrompter)
 	if !ok {

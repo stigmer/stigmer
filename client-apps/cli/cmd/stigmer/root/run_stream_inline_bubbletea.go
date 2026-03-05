@@ -285,6 +285,9 @@ func (m inlineBubbleModel) handleApprovalStart(msg approvalStartMsg) (tea.Model,
 	m.aiStreamActive = false
 	m.aiStreamPartial = ""
 
+	if msg.reCommitPayload != "" {
+		return m, buildReCommitCmd(msg.reCommitPayload)
+	}
 	var cmds []tea.Cmd
 	if msg.expandedContent != "" {
 		cmds = append(cmds, tea.Println(strings.TrimRight(msg.expandedContent, "\n")))
@@ -305,6 +308,9 @@ func (m inlineBubbleModel) handleApprovalShow(msg approvalShowMsg) (tea.Model, t
 	m.aiStreamActive = false
 	m.aiStreamPartial = ""
 
+	if msg.reCommitPayload != "" {
+		return m, buildReCommitCmd(msg.reCommitPayload)
+	}
 	var cmds []tea.Cmd
 	if msg.expandedContent != "" {
 		cmds = append(cmds, tea.Println(strings.TrimRight(msg.expandedContent, "\n")))
