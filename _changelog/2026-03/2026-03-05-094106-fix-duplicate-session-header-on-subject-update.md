@@ -4,53 +4,75 @@
 
 ## Summary
 
-Eliminated the dual-write architecture that caused duplicate session header panels when the backend resolved the session subject. The header now renders exclusively through Bubbletea, enabling the existing re-commit mechanism (ClearScreen + Println) to update it in-place when the subject arrives. Also fixed a spacing inconsistency between the initial header render and re-committed output.
+Eliminated duplicate session header panels that appeared in terminal scrollback when the backend resolved the session subject. The previous fix consolidated header rendering into Bubbletea and relied on ClearScreen + Println to update the header in-place. However, `tea.ClearScreen` (`\033[2J`) in modern terminals moves visible content to the scrollback buffer rather than erasing it, so the old header and content remained in scrollback while the re-rendered version appeared on the fresh screen. The fix removes the automatic re-commit on subject arrival, keeping the subject update silent until the next user-initiated re-commit (Ctrl+O) or session resume.
 
 ## Problem Statement
 
 When starting a new agent session, the CLI displayed two separate header panels: one without the subject (rendered immediately) and one with the subject (rendered 3-6 seconds later via re-commit). Users saw duplicate, conflicting headers in the terminal scrollback.
 
+### Root Cause (Revised)
+
+The earlier fix (same date, earlier commit) correctly eliminated the dual-write path where `renderSessionHeader(os.Stderr, ...)` was called alongside the Bubbletea-based inline header. However, the ClearScreen-based re-commit mechanism itself was the remaining source of duplication.
+
+When `triggerReCommit()` fired on subject arrival:
+
+1. `tea.ClearScreen` sent `\033[2J\033[1;1H`
+2. In modern terminals (iTerm2, macOS Terminal, etc.), `\033[2J` **moves visible content to the scrollback buffer** -- it does not erase it
+3. `tea.Println(rendered)` re-printed the full history (with updated header) on the now-blank screen
+4. Result: old header + old content persisted in scrollback, followed by new header + full content on screen
+
+This is a terminal limitation, not a Bubbletea bug. The only escape that clears scrollback (`\033[3J`) would destroy ALL terminal history, not just Stigmer's output.
+
 ### Pain Points
 
 - **Duplicate headers**: Two bordered panels with different content visible in scrollback
-- **Spacing drift**: The initial header had a blank line gap after the panel (`\n\n`), but the re-committed header lacked it, causing content to visually shift on subject update
-- **Architectural confusion**: The header was written directly to stderr by the caller (bypassing Bubbletea), while the re-commit mechanism relied on Bubbletea's ClearScreen to erase it -- an impossible combination once content scrolled into terminal scrollback
+- **Duplicated content**: All AI messages and tool results repeated below the new header
+- **Terminal limitation**: `\033[2J` preserves scrollback in all modern terminals -- ClearScreen cannot erase previously-committed inline content
 
 ## Solution
 
-Single-source header rendering through Bubbletea. The `renderSessionHeader(os.Stderr, ...)` calls were removed from the inline rendering path. Instead, `renderInline` prints the header at startup via `statusf` (which routes through Bubbletea's `Println`), placing the header within Bubbletea's line tracking. When the subject arrives, the existing `triggerReCommit()` mechanism fires ClearScreen + Println, replacing the header and all content with the updated version.
+Remove the `triggerReCommit()` call from the subject update path. The subject is still stored in `history[0].header.Subject` (via pointer mutation), so it is available for:
 
-## Implementation Details
+- **Ctrl+O re-commit**: User-initiated re-commit renders the updated header with subject
+- **Session resume**: History carries the resolved subject across executions
+- **Follow-up loop**: The header in history[0] reflects the subject for subsequent renderings
 
-### Caller changes (3 files)
+### Changes (1 file)
 
-- **`run_agent_exec.go`**: Moved `renderSessionHeader` inside the `if input.Detach` block. Inline mode no longer calls it.
-- **`run_session.go`**: Removed the unconditional `renderSessionHeader` from `openSession`. Added it to the JSON branch of `resumeSession` so JSON mode still gets the header on stderr.
-- **`run_stream.go`**: Added `renderSessionHeader` to the JSON branch of `streamAgentExecution`.
+- **`run_stream_inline.go`**: Removed `r.triggerReCommit()` from the `subjectUpdate` case branch. The `history[0].header.Subject = subject` assignment is preserved.
 
-### Renderer changes (2 files)
+### Prior changes retained
 
-- **`run_stream_inline.go`**: At `renderInline` startup, when `initialHistory` is empty (new session), the header is printed via `statusf` through Bubbletea. Two calls produce the header panel followed by a blank line gap.
-- **`run_stream_inline_history.go`**: `renderHistoryBatch` now adds an extra `\n` after `kindHeader` items, producing a consistent blank-line gap between the header panel and the first content item. This matches the initial render spacing.
+All changes from the earlier fix remain in place and are correct:
 
-### Test changes (1 file)
+- **`run_agent_exec.go`**: `renderSessionHeader` confined to `if input.Detach` block
+- **`run_session.go`**: `renderSessionHeader` confined to JSON branch of `resumeSession`
+- **`run_stream.go`**: `renderSessionHeader` confined to JSON branch of `streamAgentExecution`
+- **`run_stream_inline.go`**: Header rendered at startup via `statusf` through Bubbletea
+- **`run_stream_inline_history.go`**: Blank-line gap after `kindHeader` in `renderHistoryBatch`
 
-- Updated `TestRenderHistoryBatch_MatchesPerItemOutput` to account for the new header spacing.
-- Added `TestRenderHistoryBatch_HeaderHasBlankLineGap` and `TestRenderHistoryBatch_HeaderOnly_NoExtraNewline`.
+### Test impact
+
+No test changes required. No existing tests assert that subject arrival triggers a re-commit. All 47 related tests pass unchanged.
 
 ## Benefits
 
-- **No duplicate headers**: Single header in terminal output, updated in-place when subject arrives
-- **Consistent spacing**: Blank line gap after the header panel is identical between initial render and re-commit
-- **Cleaner architecture**: Header rendering has a single source of truth (the inline renderer), eliminating the dual-write pattern
-- **Zero performance impact**: Benchmarks unchanged (~1.9ms for 500-item re-commit)
+- **No duplicate headers or content**: Subject update is silent -- no ClearScreen, no re-render
+- **Subject preserved in history**: Available for Ctrl+O, resume, and follow-up renderings
+- **Minimal change**: Single line removed, zero architectural risk
+- **ClearScreen reserved for user-initiated actions**: Ctrl+O re-commit still uses ClearScreen, which is acceptable because the user explicitly triggered it
 
 ## Impact
 
-- **Users**: No more duplicate header panels in terminal scrollback. Subject appears in the header in-place (within one ClearScreen cycle) when the backend resolves it.
+- **Users**: No more duplicate header panels or repeated content in terminal scrollback. Subject silently enriches the header metadata for future renderings.
+- **Ctrl+O**: Unchanged -- user-initiated re-commit still renders the header with subject via ClearScreen + Println. Scrollback duplication from Ctrl+O is accepted as an explicit user action.
 - **Detach mode**: Unchanged -- still renders header via `renderSessionHeader` since no inline renderer runs.
 - **JSON mode**: Unchanged -- header still renders on stderr for context.
-- **Non-TTY / CI**: Header prints once at startup via direct write fallback. No re-commit (no Bubbletea program). Subject updates silently update history for correctness.
+- **Non-TTY / CI**: Unchanged -- header prints once at startup. Subject updates silently update history.
+
+## Architectural Note
+
+The Ctrl+O expand/collapse toggle also uses `triggerReCommit()` and produces the same scrollback duplication. This is accepted because it is user-initiated. Addressing it would require a fundamentally different rendering model (alt-screen, virtual terminal emulation) and is tracked separately.
 
 ## Related Work
 
@@ -61,4 +83,4 @@ Single-source header rendering through Bubbletea. The `renderSessionHeader(os.St
 ---
 
 **Status**: Production Ready
-**Timeline**: ~1 hour
+**Timeline**: ~30 minutes
