@@ -22,6 +22,11 @@ import (
 //   - The user submits empty input (Enter or Ctrl+D)
 //   - The follow-up creation fails
 //
+// When cfg.followUpEnabled is true, renderInline handles the follow-up
+// prompt internally (channel path with Bubbletea owning stdin). The event
+// loop stays active during the prompt, so Ctrl+O toggles work immediately.
+// When false, the legacy promptFollowUp paths handle input externally.
+//
 // Returns the latest execution ID, final phase, and exit error so the caller
 // can fetch the correct execution for the epilogue summary.
 func runInlineFollowUpLoop(
@@ -33,35 +38,41 @@ func runInlineFollowUpLoop(
 	latestExecID = executionID
 
 	for {
-		var history []committedItem
-		phase, exitErr, history = renderInline(ctx, cfg)
-		if followUpFn == nil || !isFollowUpEligible(phase, exitErr) {
-			return latestExecID, phase, exitErr
+		result := renderInline(ctx, cfg)
+
+		if followUpFn == nil || !isFollowUpEligible(result.phase, result.exitErr) {
+			return latestExecID, result.phase, result.exitErr
 		}
 
-		input, err := promptFollowUp(cfg.program, cfg.status, cfg.cancelCh)
-		if err != nil || input == "" {
-			return latestExecID, phase, exitErr
+		var input string
+		if result.followUpInput != "" {
+			input = result.followUpInput
+		} else {
+			var err error
+			input, err = promptFollowUp(cfg.program, cfg.status)
+			if err != nil || input == "" {
+				return latestExecID, result.phase, result.exitErr
+			}
+			result.history = append(result.history, committedItem{
+				kind: kindHumanMessage,
+				text: formatHumanMessage(input),
+			})
 		}
 
-		history = append(history, committedItem{
-			kind: kindHumanMessage,
-			text: formatHumanMessage(input),
-		})
-		cfg.initialHistory = history
+		cfg.initialHistory = result.history
 		cfg.suppressHumanEcho = true
 
-		result, err := followUpFn(input)
+		followUp, err := followUpFn(input)
 		if err != nil {
 			fmt.Fprintf(cfg.status, "Error: follow-up failed: %s\n", err)
-			return latestExecID, phase, exitErr
+			return latestExecID, result.phase, result.exitErr
 		}
 
-		latestExecID = result.ExecutionID
-		cfg.events = result.Events
-		cfg.approvalResponses = result.ApprovalResponses
-		if result.CancelFn != nil {
-			fn := result.CancelFn
+		latestExecID = followUp.ExecutionID
+		cfg.events = followUp.Events
+		cfg.approvalResponses = followUp.ApprovalResponses
+		if followUp.CancelFn != nil {
+			fn := followUp.CancelFn
 			cfg.cancelExecFn = func() { _ = fn() }
 		}
 	}
@@ -69,40 +80,17 @@ func runInlineFollowUpLoop(
 
 // promptFollowUp renders the follow-up prompt, reads user input, erases the
 // prompt, and commits the styled human message. Returns the trimmed input and
-// any error. When program is non-nil, rendering and erasure are handled by
-// Bubbletea's View(); otherwise, direct stderr writes with EraseLines.
+// any error. Used only for legacy paths where renderInline does not handle
+// follow-up internally (non-TTY direct writes, or TTY without stdin ownership).
 //
-// When cancelCh is non-nil, Bubbletea owns stdin and text input is collected
-// through the model's handleTextInputKey. When nil, input is read directly
-// from os.Stdin via readStdinLine.
-func promptFollowUp(program *tea.Program, status io.Writer, cancelCh <-chan struct{}) (string, error) {
+// When Bubbletea owns stdin (cfg.followUpEnabled), the follow-up prompt is
+// handled inside renderInline's event loop instead, so this function is not
+// called on that path.
+func promptFollowUp(program *tea.Program, status io.Writer) (string, error) {
 	if program != nil {
-		if cancelCh != nil {
-			return promptFollowUpViaChannel(program)
-		}
 		return promptFollowUpViaKeyReader(program)
 	}
 	return promptFollowUpDirect(status)
-}
-
-// promptFollowUpViaChannel reads input through the Bubbletea model when
-// it owns stdin. View() renders the prompt dynamically with cursor
-// positioning. Blocks until the model delivers input on Enter.
-func promptFollowUpViaChannel(program *tea.Program) (string, error) {
-	inputCh := make(chan string, 1)
-
-	program.Send(textInputStartMsg{inputCh: inputCh})
-
-	input := strings.TrimSpace(<-inputCh)
-
-	if input == "" {
-		program.Send(textInputHideMsg{})
-		return "", nil
-	}
-
-	styledMsg := fmt.Sprintf("%s\n\n", formatHumanMessage(input))
-	program.Send(textInputHideMsg{styledMessage: styledMsg})
-	return input, nil
 }
 
 // promptFollowUpViaKeyReader renders the prompt via Bubbletea's View(), reads

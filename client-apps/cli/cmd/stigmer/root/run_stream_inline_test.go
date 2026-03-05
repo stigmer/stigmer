@@ -36,7 +36,7 @@ func TestInlineRenderer_AIMessage_GoesToStdout(t *testing.T) {
 		executiontui.DoneEvent{Phase: "completed"},
 	)
 
-	phase, exitErr, _ := renderInline(context.Background(), inlineRenderConfig{
+	result := renderInline(context.Background(), inlineRenderConfig{
 		events:            events,
 		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
 		prompter:          approval.NewInteractivePrompter(),
@@ -44,11 +44,11 @@ func TestInlineRenderer_AIMessage_GoesToStdout(t *testing.T) {
 		status:            &stderr,
 	})
 
-	if phase != "completed" {
-		t.Errorf("expected phase 'completed', got %q", phase)
+	if result.phase != "completed" {
+		t.Errorf("expected phase 'completed', got %q", result.phase)
 	}
-	if exitErr != "" {
-		t.Errorf("expected no error, got %q", exitErr)
+	if result.exitErr != "" {
+		t.Errorf("expected no error, got %q", result.exitErr)
 	}
 	if !strings.Contains(stdout.String(), "Hello, world!") {
 		t.Errorf("AI content should go to stdout, got: %q", stdout.String())
@@ -344,7 +344,7 @@ func TestInlineRenderer_StreamError_ReturnsError(t *testing.T) {
 		executiontui.StreamErrorEvent{Err: errors.New("connection lost")},
 	)
 
-	phase, exitErr, _ := renderInline(context.Background(), inlineRenderConfig{
+	result := renderInline(context.Background(), inlineRenderConfig{
 		events:            events,
 		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
 		prompter:          approval.NewInteractivePrompter(),
@@ -353,11 +353,11 @@ func TestInlineRenderer_StreamError_ReturnsError(t *testing.T) {
 		sessionID:         "ses-abc",
 	})
 
-	if phase != "" {
-		t.Errorf("expected empty phase on error, got %q", phase)
+	if result.phase != "" {
+		t.Errorf("expected empty phase on error, got %q", result.phase)
 	}
-	if exitErr != "connection lost" {
-		t.Errorf("expected error 'connection lost', got %q", exitErr)
+	if result.exitErr != "connection lost" {
+		t.Errorf("expected error 'connection lost', got %q", result.exitErr)
 	}
 	if !strings.Contains(stderr.String(), "Re-attach with: stigmer run ses-abc") {
 		t.Errorf("should show re-attach hint, got: %q", stderr.String())
@@ -372,7 +372,7 @@ func TestInlineRenderer_DoneWithError_ShowsError(t *testing.T) {
 		executiontui.DoneEvent{Phase: "failed", Error: "agent crashed"},
 	)
 
-	phase, exitErr, _ := renderInline(context.Background(), inlineRenderConfig{
+	result := renderInline(context.Background(), inlineRenderConfig{
 		events:            events,
 		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
 		prompter:          approval.NewInteractivePrompter(),
@@ -380,11 +380,11 @@ func TestInlineRenderer_DoneWithError_ShowsError(t *testing.T) {
 		status:            &stderr,
 	})
 
-	if phase != "failed" {
-		t.Errorf("expected phase 'failed', got %q", phase)
+	if result.phase != "failed" {
+		t.Errorf("expected phase 'failed', got %q", result.phase)
 	}
-	if exitErr != "agent crashed" {
-		t.Errorf("expected error 'agent crashed', got %q", exitErr)
+	if result.exitErr != "agent crashed" {
+		t.Errorf("expected error 'agent crashed', got %q", result.exitErr)
 	}
 	if !strings.Contains(stderr.String(), "agent crashed") {
 		t.Errorf("error should appear on stderr, got: %q", stderr.String())
@@ -402,7 +402,7 @@ func TestInlineRenderer_ContextCancelled_ReturnsEarly(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	phase, exitErr, _ := renderInline(ctx, inlineRenderConfig{
+	result := renderInline(ctx, inlineRenderConfig{
 		events:            events,
 		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
 		prompter:          approval.NewInteractivePrompter(),
@@ -410,11 +410,11 @@ func TestInlineRenderer_ContextCancelled_ReturnsEarly(t *testing.T) {
 		status:            &stderr,
 	})
 
-	if phase != "" {
-		t.Errorf("expected empty phase on cancel, got %q", phase)
+	if result.phase != "" {
+		t.Errorf("expected empty phase on cancel, got %q", result.phase)
 	}
-	if exitErr != "context cancelled" {
-		t.Errorf("expected 'context cancelled', got %q", exitErr)
+	if result.exitErr != "context cancelled" {
+		t.Errorf("expected 'context cancelled', got %q", result.exitErr)
 	}
 }
 

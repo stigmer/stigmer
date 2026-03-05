@@ -15,50 +15,53 @@ Drop this file into your conversation to quickly resume work on this project.
 
 **Created**: 2026-03-05 11:00
 **Current Task**: T01 -- Bubbletea v2 Migration + Design Decision Cleanup
-**Status**: Phase 3 COMPLETE -- ready for Phase 4
-**Last Session**: 2026-03-05 (Session 4 -- Phase 3: replace custom text input with bubbles/textinput v2)
+**Status**: Phase 4 COMPLETE -- ready for Phase 5
+**Last Session**: 2026-03-05 (Session 5 -- Phase 4: unblock Ctrl+O during follow-up prompt)
 
-## Session Progress (2026-03-05, Session 4)
+## Session Progress (2026-03-05, Session 5)
 
 ### Accomplished
-- **Phase 3: Replace Custom Text Input with bubbles/textinput v2**
-  - Embedded `textinput.Model` from `charm.land/bubbles/v2/textinput` as child component in `inlineBubbleModel`
-  - Configured real cursor mode (`SetVirtualCursor(false)`) for `textinput.Cursor()` integration
-  - `handleTextInputKey` reduced to thin interceptor: Enter, Ctrl+C, Ctrl+D (Unix dual behavior), all else delegated to `textInput.Update(msg)`
-  - `renderTextInputView()` now uses `textInput.View()` + `textInput.Cursor()` with Y+2 offset
-  - Added `tea.PasteMsg` routing in `Update()` for native paste support
-  - Removed `textInputBuffer string` field, `unicode/utf8` import, `x/ansi` import
-  - Added `newFollowUpTextInput()` factory with promptStyle reuse
-  - Updated + added tests: 22 related tests, all passing
+- **Phase 4: Unblock Ctrl+O During Follow-up Prompt**
+  - Extended `renderInline`'s event loop lifecycle to remain active during follow-up
+  - Introduced `renderResult` struct replacing `(phase, exitErr, history)` triple return
+  - Added `followUpEnabled` config flag and `activateFollowUp()`/`completeFollowUp()` methods
+  - Used nil-channel trick: after `DoneEvent`, `cfg.events`/`cfg.subjectUpdate` set to nil, `followUpInputCh` activated
+  - Removed `promptFollowUpViaChannel` (dead code — channel path now inside `renderInline`)
+  - Simplified `promptFollowUp` to legacy paths only (key reader, direct)
+  - Updated `runInlineFollowUpLoop` for `renderResult` consumption
+  - Wired `followUpEnabled = (toggleExpandCh != nil) && (followUpFn != nil)` in `streamAgentInline`
+  - Updated all test callers (3 files), added 8 Phase 4 tests with `followUpTestModel`
+  - Updated design decision doc `ctrl-o-during-follow-up-prompt.md` to RESOLVED
   - Build + vet + full test suite: clean
 
 ### Key Decisions
-- Real cursor (not virtual): `SetVirtualCursor(false)` for consistency with Phase 2's `tea.View.Cursor`
-- Ctrl+D dual behavior: empty = EOF exit, non-empty = delete forward char (Unix convention)
-- `promptStyle` reused from `run_display.go` (no lipgloss import duplication)
-- `tea.PasteMsg` explicit routing (dedicated case, not catch-all default)
+- Follow-up prompt always visible in both compact and expanded modes
+- Extend renderer lifecycle, not model (preserves model/renderer boundary)
+- Nil-channel pattern for conditional select cases (cleaner than boolean guards)
 
-### Files Modified (Phase 3)
-- `run_stream_inline_bubbletea.go` -- model field change, factory, constructors, renderTextInputView, start/hide handlers, PasteMsg routing
-- `run_stream_inline_keypress.go` -- handleTextInputKey rewritten as thin interceptor
-- `run_stream_inline_keypress_test.go` -- all text input tests updated, 4 new tests added
+### Files Modified (Phase 4)
+- `run_stream_inline_types.go` -- `renderResult` struct, `followUpEnabled` config, renderer follow-up state fields
+- `run_stream_inline.go` -- `renderInline` returns `renderResult`, `activateFollowUp`/`completeFollowUp` methods
+- `run_stream_inline_followup.go` -- `runInlineFollowUpLoop` updated, `promptFollowUpViaChannel` removed, `promptFollowUp` simplified
+- `run_stream.go` -- `followUpEnabled` wiring
+- `run_stream_inline_test.go` -- return type updates (4 callsites)
+- `run_stream_inline_followup_test.go` -- return type updates (2 callsites), 8 new tests
+- `ctrl-o-during-follow-up-prompt.md` -- marked RESOLVED
 
 ## Next Steps
 
-1. **Phase 4**: Unblock Ctrl+O during follow-up prompt
-2. **Phase 5**: Cleanup legacy paths, polish, update design decision docs
+1. **Phase 5**: Cleanup legacy paths, polish, update design decision docs
 
 ## Context for Resume
 
-- Phase 3 is fully implemented and all tests pass (build + vet + tests green)
-- `textinput.Model` is embedded in `inlineBubbleModel` with real cursor mode
-- `textinput.Cursor()` returns `*tea.Cursor` only when `SetVirtualCursor(false)` AND `Focused()` -- nil otherwise
-- `handleTextInputKey` intercepts Enter/Ctrl+C/Ctrl+D before delegating to textinput -- the interceptor pattern allows the textinput to handle all editing while we control submit/cancel
-- `newFollowUpTextInput()` factory configures: real cursor, prompt `"> "`, promptStyle on Focused.Prompt, CursorBar+Blink
+- Phase 4 is fully implemented and all tests pass (build + vet + tests green)
+- `renderInline` now returns `renderResult` struct (single value, not triple)
+- When `followUpEnabled` is true and DoneEvent phase is eligible, the renderer enters follow-up mode instead of returning
+- `activateFollowUp()` creates an `inputCh`, sets `r.followUpInputCh`, sends `textInputStartMsg` to the program, and nils out `cfg.events`/`cfg.subjectUpdate`
+- `completeFollowUp()` handles both empty (cancellation) and non-empty (submission) input
+- `promptFollowUpViaChannel` is removed; the channel path is fully inside `renderInline`
 - Legacy follow-up paths (`promptFollowUpDirect`, `promptFollowUpViaKeyReader`) are unchanged
-- `followUpSepWidth = 40` is still used as fallback when `termWidth` is 0
-- Cursor positioning via textinput.Cursor() not yet visually verified in a live terminal (carried from Session 3)
-- `textinput.Cursor()` computes X using rune count (not visual width) -- known CJK limitation in upstream library, irrelevant for typical usage
+- Cursor positioning via textinput.Cursor() not yet visually verified in a live terminal (carried from Sessions 3-4)
 
 ## Essential Files to Review
 
@@ -106,14 +109,14 @@ When starting a new session:
 3. [ ] Review any new design decisions in `design-decisions/`
 4. [ ] Check coding guidelines in `coding-guidelines/`
 5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with Phase 4
+6. [ ] Continue with Phase 5
 
 ## Implementation Phases (from T01 plan)
 
 1. **Phase 1**: ~~Mechanical v1-to-v2 API migration~~ **COMPLETE**
 2. **Phase 2**: ~~Re-commit scrollback fix + follow-up prompt UX overhaul~~ **COMPLETE**
 3. **Phase 3**: ~~Replace custom text input with bubbles/textinput v2~~ **COMPLETE**
-4. **Phase 4**: Unblock Ctrl+O during follow-up prompt (deferred limitation resolved)
+4. **Phase 4**: ~~Unblock Ctrl+O during follow-up prompt~~ **COMPLETE**
 5. **Phase 5**: Cleanup legacy paths, polish, update design decision docs
 
 ## Predecessor Projects (context)
@@ -138,7 +141,7 @@ Key predecessor documents:
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 4" - Start unblocking Ctrl+O during follow-up prompt
+- "Continue with Phase 5" - Start cleanup of legacy paths and polish
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

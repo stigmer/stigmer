@@ -110,6 +110,7 @@ func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFun
 		subjectUpdate:     subjectUpdate,
 		toggleExpandCh:    toggleExpandCh,
 		cancelCh:          cancelCh,
+		followUpEnabled:   toggleExpandCh != nil && followUpFn != nil,
 		cancelExecFn: func() {
 			_, _ = execution.Cancel(conn, executionID)
 		},
