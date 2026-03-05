@@ -14,11 +14,71 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-03-05 05:00
-**Current Task**: T02 — Phase 5 (Performance profiling)
-**Status**: Ready to begin Phase 5
-**Last Session**: 2026-03-05 (Session 4)
+**Current Task**: T02 — All phases complete
+**Status**: Feature complete (Phases 1-5 done)
+**Last Session**: 2026-03-05 (Session 5)
 
-## Session Progress (2026-03-05, Session 4)
+## Session Progress (2026-03-05, Session 5)
+
+### Completed
+- **T02 Phase 5**: Re-commit Performance Optimization — all 4 steps complete
+
+### What Was Built
+
+**Step 5a — Benchmarks:**
+- New file `run_stream_inline_history_bench_test.go` — first benchmark file in the CLI codebase
+- 7 per-kind benchmarks (`renderCommittedItem` for header, tool compact/expanded, read group compact/expanded, approval, text)
+- 8 batch benchmarks (`renderHistoryBatch` at 10/50/100/500 items in compact and expanded modes)
+- Allocation benchmarks with `b.ReportAllocs()`
+
+**Step 5b — Batch optimization:**
+- New `renderHistoryBatch` function — renders all history items into a single string using `strings.Builder`, joining with `\n`
+- `triggerReCommit` now pre-renders the full history into a string instead of copying a snapshot of items
+- `reCommitMsg` simplified from 3 fields (`items []committedItem`, `compactOpts`, `expanded bool`) to 1 field (`rendered string`)
+- `handleReCommit` now calls `buildReCommitCmd(msg.rendered)` — thin passthrough
+- Removed `reCommitHistory` function (the N-Println builder)
+- Removed unused `toolrender` import from messages file
+
+**Step 5c — Correctness tests:**
+- `TestRenderHistoryBatch_MatchesPerItemOutput` — byte-for-byte equivalence between batched and per-item rendering for both compact and expanded modes with a realistic mixed history (12 items, all kinds)
+- `TestRenderHistoryBatch_EmptyHistory` — nil and empty slice
+- `TestRenderHistoryBatch_SingleItem` — single item round-trip
+- `TestRenderHistoryBatch_SkipsEmptyItems` — empty items (nil toolCalls) omitted
+- `TestRenderHistoryBatch_NilHeader` — nil header gracefully handled
+- Updated 3 existing tests from `reCommitHistory` to new `buildReCommitCmd` API
+
+**Step 5d — Validation:**
+- `go vet` passes clean
+- All new and modified tests pass
+- Two pre-existing failures remain (unchanged from Phase 4)
+- Benchmark results: 500 items renders in ~1.9ms compact, ~2.0ms expanded (well under 500ms target)
+
+### Design Decisions (Phase 5)
+1. **Pre-render in renderer, not model** — the renderer owns both history AND rendering. The model is a thin command relay. Cleaner separation of concerns.
+2. **Single Println replaces N Println calls** — reduces N+1 event-loop round-trips and terminal writes to 2. Eliminates visible flicker on Ctrl+O toggle.
+3. **Snapshot copy removed** — pre-rendering to an immutable string eliminates the need to copy the history slice. Avoids shared-pointer questions (e.g., `header *sessionHeaderInfo`).
+4. **Terminal resize re-commit deferred** — mode-invariant items store pre-rendered text at the original terminal width. Resize re-commit would partially reflow, creating an inconsistent visual. Proper resize support requires storing raw content for all items.
+
+### Benchmark Results (Apple M1 Ultra)
+
+| History size | Compact | Expanded |
+|---|---|---|
+| 10 items | 79us | 72us |
+| 50 items | 223us | 238us |
+| 100 items | 416us | 439us |
+| 500 items | 1.9ms | 2.0ms |
+
+### Files Created (1)
+- `run_stream_inline_history_bench_test.go` — 225 lines, 15 benchmark functions
+
+### Files Modified (5)
+- `run_stream_inline_history.go` — added `renderHistoryBatch`, replaced `triggerReCommit` and `reCommitHistory` with `buildReCommitCmd`
+- `run_stream_inline_messages.go` — simplified `reCommitMsg` to single `rendered string` field, removed `toolrender` import
+- `run_stream_inline_bubbletea.go` — `handleReCommit` uses `buildReCommitCmd`
+- `run_stream_inline_history_test.go` — 5 new correctness tests, 3 updated existing tests
+- `BUILD.bazel` — registered new benchmark test file
+
+## Previous Session Progress (2026-03-05, Session 4)
 
 ### Completed
 - **T02 Phase 4**: Follow-up History Recording + Resumed Session Bubbletea Support — all 4 steps complete
@@ -139,13 +199,16 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **T02 Phase 5**: Performance profiling for long sessions
-2. Future: per-tool-call expand/collapse (individual toggle, not global)
-3. Future: Ctrl+O during follow-up prompt (deferred from Phase 4)
-4. Future: advanced text input (cursor movement, word deletion, input history)
+All 5 phases of T02 are complete. Remaining future work:
+
+1. Future: per-tool-call expand/collapse (individual toggle, not global)
+2. Future: Ctrl+O during follow-up prompt (deferred from Phase 4)
+3. Future: advanced text input (cursor movement, word deletion, input history)
+4. Future: terminal resize re-commit (requires storing raw content for all items)
 
 ## Context for Resume
 
+- Phase 5 plan: `.cursor/plans/phase_5_performance_71c4c48f.plan.md`
 - Phase 4 plan: `.cursor/plans/phase_4_follow-up_and_resume_d7dfc0e4.plan.md`
 - Phase 3 plan: `.cursor/plans/phase_3_ctrl+o_toggle_95144a68.plan.md`
 - Phase 2 plan: `.cursor/plans/phase_2_expanded_renderers_8bdf5824.plan.md`
@@ -153,8 +216,8 @@ Drop this file into your conversation to quickly resume work on this project.
 - T01 plan: `_projects/2026-03/20260305.02.expand-collapse-tools/tasks/T01_0_plan.md`
 - Known limitation: `design-decisions/ctrl-o-during-follow-up-prompt.md`
 - Two pre-existing test failures (`TestHandleApproval_DoesNotSuppressOnReject`, `TestInlineRenderer_ToolCompleted_ShowsBadge`) are NOT from this work — they fail on the base commit
-- `go vet` passes clean; all new tests pass (8 Phase 4 tests + all existing)
-- Resumed sessions now have full Bubbletea support (Ctrl+O, Ctrl+C, channel-based prompts)
+- `go vet` passes clean; all new tests pass
+- Benchmark results show ~2ms for 500-item re-commit (well under 500ms target)
 
 ## Essential Files to Review
 

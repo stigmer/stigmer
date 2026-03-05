@@ -177,6 +177,7 @@ go_test(
         "run_stream_inline_followup_test.go",
         "run_stream_inline_header_test.go",
         "run_stream_inline_header_update_test.go",
+        "run_stream_inline_history_bench_test.go",
         "run_stream_inline_history_test.go",
         "run_stream_inline_keypress_test.go",
         "run_stream_inline_spinner_test.go",

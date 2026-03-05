@@ -147,7 +147,7 @@ func TestRenderCommittedItem_TextKinds(t *testing.T) {
 	}
 }
 
-func TestReCommitHistory_ProducesCmd(t *testing.T) {
+func TestBuildReCommitCmd_ProducesCmd(t *testing.T) {
 	items := []committedItem{
 		{kind: kindHeader, header: &sessionHeaderInfo{SessionID: "ses-1"}},
 		{kind: kindText, text: "some output"},
@@ -155,12 +155,13 @@ func TestReCommitHistory_ProducesCmd(t *testing.T) {
 			{Name: "read_file", Args: map[string]interface{}{"path": "f.go"}},
 		}},
 	}
-	cmd := reCommitHistory(items, toolrender.CompactOptions{}, false)
+	rendered := renderHistoryBatch(items, toolrender.CompactOptions{}, false)
+	cmd := buildReCommitCmd(rendered)
 	assert.NotNil(t, cmd)
 }
 
-func TestReCommitHistory_EmptyHistory(t *testing.T) {
-	cmd := reCommitHistory(nil, toolrender.CompactOptions{}, false)
+func TestBuildReCommitCmd_EmptyHistory(t *testing.T) {
+	cmd := buildReCommitCmd("")
 	assert.NotNil(t, cmd)
 }
 
@@ -295,14 +296,15 @@ func TestRenderCommittedItem_Expanded_ApprovalUnchanged(t *testing.T) {
 	assert.Equal(t, compact, expanded)
 }
 
-func TestReCommitHistory_Expanded_ProducesCmd(t *testing.T) {
+func TestBuildReCommitCmd_Expanded_ProducesCmd(t *testing.T) {
 	items := []committedItem{
 		{kind: kindHeader, header: &sessionHeaderInfo{SessionID: "ses-1"}},
 		{kind: kindToolCompact, toolCalls: []toolrender.ToolCallInfo{
 			{Name: "shell", Args: map[string]interface{}{"command": "ls"}, Status: "completed", Result: "a\nb\nc\nd\ne"},
 		}},
 	}
-	cmd := reCommitHistory(items, toolrender.CompactOptions{}, true)
+	rendered := renderHistoryBatch(items, toolrender.CompactOptions{}, true)
+	cmd := buildReCommitCmd(rendered)
 	assert.NotNil(t, cmd)
 }
 
@@ -354,8 +356,97 @@ func TestTriggerReCommit_UsesExpandMode(t *testing.T) {
 			}},
 		},
 	}
-	// No program — triggerReCommit is a no-op. We verify it doesn't panic
-	// and the expandMode is set correctly on the renderer.
 	r.triggerReCommit()
 	assert.True(t, r.expandMode)
+}
+
+// =============================================================================
+// renderHistoryBatch — batched rendering correctness
+// =============================================================================
+
+func TestRenderHistoryBatch_MatchesPerItemOutput(t *testing.T) {
+	items := []committedItem{
+		{kind: kindHeader, header: &sessionHeaderInfo{
+			AgentName: "test-agent", SessionID: "ses-xyz", Subject: "Fix auth", Model: "sonnet-4.6",
+		}},
+		{kind: kindAIMessage, text: "I'll analyze the code and fix the authentication issue."},
+		{kind: kindToolCompact, toolCalls: []toolrender.ToolCallInfo{{
+			Name: "read_file", Args: map[string]interface{}{"path": "auth.go"},
+		}}},
+		{kind: kindToolCompact, toolCalls: []toolrender.ToolCallInfo{{
+			Name: "shell", Args: map[string]interface{}{"command": "go test ./..."}, Status: "completed",
+			Result: "ok pkg/auth 0.1s\nok pkg/user 0.2s\nok pkg/api 0.3s",
+		}}},
+		{kind: kindReadGroup, toolCalls: func() []toolrender.ToolCallInfo {
+			reads := make([]toolrender.ToolCallInfo, 4)
+			for i := range reads {
+				reads[i] = toolrender.ToolCallInfo{
+					Name: "read_file", Status: "completed",
+					Args:   map[string]interface{}{"path": fmt.Sprintf("pkg/auth/handler_%d.go", i)},
+					Result: "package auth\n",
+				}
+			}
+			return reads
+		}()},
+		{kind: kindApproval, action: "approve", toolCalls: []toolrender.ToolCallInfo{{
+			Name: "write_file", Args: map[string]interface{}{"path": "auth.go", "contents": "package auth\n"},
+		}}},
+		{kind: kindHumanMessage, text: "Looks good, continue."},
+		{kind: kindSystemMessage, text: "Session checkpoint saved."},
+		{kind: kindSubAgentStart, text: "● Task: Update tests"},
+		{kind: kindSubAgentComplete, text: "  ✓ Done (3 tools)"},
+		{kind: kindPhaseChange, text: "Execution completed"},
+		{kind: kindText, text: "Error: connection reset"},
+	}
+
+	opts := toolrender.CompactOptions{}
+
+	for _, expanded := range []bool{false, true} {
+		label := "compact"
+		if expanded {
+			label = "expanded"
+		}
+		t.Run(label, func(t *testing.T) {
+			var perItem []string
+			for _, item := range items {
+				text := renderCommittedItem(item, opts, expanded)
+				if text != "" {
+					perItem = append(perItem, text)
+				}
+			}
+			expected := strings.Join(perItem, "\n")
+			actual := renderHistoryBatch(items, opts, expanded)
+			assert.Equal(t, expected, actual)
+		})
+	}
+}
+
+func TestRenderHistoryBatch_EmptyHistory(t *testing.T) {
+	assert.Equal(t, "", renderHistoryBatch(nil, toolrender.CompactOptions{}, false))
+	assert.Equal(t, "", renderHistoryBatch([]committedItem{}, toolrender.CompactOptions{}, false))
+}
+
+func TestRenderHistoryBatch_SingleItem(t *testing.T) {
+	item := committedItem{kind: kindText, text: "only item"}
+	result := renderHistoryBatch([]committedItem{item}, toolrender.CompactOptions{}, false)
+	assert.Equal(t, "only item", result)
+}
+
+func TestRenderHistoryBatch_SkipsEmptyItems(t *testing.T) {
+	items := []committedItem{
+		{kind: kindText, text: "first"},
+		{kind: kindToolCompact},
+		{kind: kindText, text: "second"},
+	}
+	result := renderHistoryBatch(items, toolrender.CompactOptions{}, false)
+	assert.Equal(t, "first\nsecond", result)
+}
+
+func TestRenderHistoryBatch_NilHeader(t *testing.T) {
+	items := []committedItem{
+		{kind: kindHeader},
+		{kind: kindText, text: "after empty header"},
+	}
+	result := renderHistoryBatch(items, toolrender.CompactOptions{}, false)
+	assert.Equal(t, "after empty header", result)
 }
