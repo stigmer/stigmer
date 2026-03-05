@@ -65,6 +65,8 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) renderResult {
 	}
 
 	for {
+		recommitNeeded := false
+
 		select {
 		case <-ctx.Done():
 			r.stopThinkingSpinner()
@@ -76,19 +78,19 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) renderResult {
 			if ok && subject != "" {
 				r.history[0].header.Subject = subject
 				cfg.subjectUpdate = nil
-				r.triggerReCommit()
+				recommitNeeded = true
 			}
 
 		case sessions, ok := <-cfg.recentSessionsCh:
 			if ok && len(sessions) > 0 {
 				r.history[0].header.RecentSessions = sessions
 				cfg.recentSessionsCh = nil
-				r.triggerReCommit()
+				recommitNeeded = true
 			}
 
 		case <-cfg.toggleExpandCh:
 			r.expandMode = !r.expandMode
-			r.triggerReCommit()
+			recommitNeeded = true
 
 		case <-cfg.cancelCh:
 			r.stopThinkingSpinner()
@@ -129,6 +131,14 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) renderResult {
 		case <-r.thinkTimer.C:
 			r.startThinkingSpinner()
 		}
+
+		// Coalesce additional recommit triggers that are already queued.
+		// After processing one channel that sets recommitNeeded, drain any
+		// other ready channels before issuing a single triggerReCommit.
+		if recommitNeeded {
+			r.drainRecommitTriggers(&cfg)
+			r.triggerReCommit()
+		}
 	}
 }
 
@@ -146,6 +156,29 @@ func (r *inlineRenderer) activateFollowUp(phase, exitErr string) {
 	inputCh := make(chan string, 1)
 	r.followUpInputCh = inputCh
 	r.cfg.program.Send(textInputStartMsg{inputCh: inputCh})
+}
+
+// drainRecommitTriggers non-blockingly absorbs any additional recommit
+// triggers (subjectUpdate, recentSessionsCh) that are already queued.
+// Called after the main select fires a recommit-worthy case, so that
+// multiple near-simultaneous triggers produce a single triggerReCommit.
+func (r *inlineRenderer) drainRecommitTriggers(cfg *inlineRenderConfig) {
+	for {
+		select {
+		case subject, ok := <-cfg.subjectUpdate:
+			if ok && subject != "" {
+				r.history[0].header.Subject = subject
+				cfg.subjectUpdate = nil
+			}
+		case sessions, ok := <-cfg.recentSessionsCh:
+			if ok && len(sessions) > 0 {
+				r.history[0].header.RecentSessions = sessions
+				cfg.recentSessionsCh = nil
+			}
+		default:
+			return
+		}
+	}
 }
 
 // completeFollowUp processes the user's follow-up input and returns a

@@ -440,7 +440,19 @@ func (m inlineBubbleModel) handleTextInputHide(msg textInputHideMsg) (tea.Model,
 // Re-commit handler
 // ---------------------------------------------------------------------------
 
+// handleReCommit clears all active visual states so View() returns ""
+// during the renderer flush that follows the Raw write. Without this,
+// stale streaming/approval/spinner content would be rendered on top of
+// the freshly-written history.
 func (m inlineBubbleModel) handleReCommit(msg reCommitMsg) (tea.Model, tea.Cmd) {
+	m.spinnerActive = false
+	m.streamingActive = false
+	m.streamingHeader = ""
+	m.streamingContent = ""
+	m.aiStreamActive = false
+	m.aiStreamPartial = ""
+	m.followUpActive = false
+	m.followUpContent = ""
 	return m, buildReCommitCmd(msg.rendered)
 }
 
