@@ -14,11 +14,44 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-03-05 05:00
-**Current Task**: T02 — Phase 4 (Follow-up and resume support)
-**Status**: Ready to begin Phase 4
-**Last Session**: 2026-03-05 (Session 3)
+**Current Task**: T02 — Phase 5 (Performance profiling)
+**Status**: Ready to begin Phase 5
+**Last Session**: 2026-03-05 (Session 4)
 
-## Session Progress (2026-03-05, Session 3)
+## Session Progress (2026-03-05, Session 4)
+
+### Completed
+- **T02 Phase 4**: Follow-up History Recording + Resumed Session Bubbletea Support — all 4 steps complete
+
+### What Was Built
+
+**Step 4a — Streaming tool history gap fix:**
+- `completeStreamingTool` now records `kindToolCompact` in `r.history` before clearing streaming state
+- Fixes the bug where shell tools streaming post-approval output disappeared on Ctrl+O toggle
+- 2 new tests
+
+**Step 4b — History persistence across follow-ups:**
+- `renderInline` signature changed to return `(phase, exitErr string, history []committedItem)`
+- New `initialHistory []committedItem` field on `inlineRenderConfig`
+- `runInlineFollowUpLoop` captures history, appends follow-up human messages, passes accumulated history to next `renderInline` call
+- Combined with `suppressHumanEcho`, prevents duplicate human messages
+- 4 new tests + 4 call site updates
+
+**Step 4c — Bubbletea for resumed sessions:**
+- `resumeSession` now creates `toggleExpandCh`, `cancelCh`, and a Bubbletea program
+- Users resuming a session get full Ctrl+O toggle and Ctrl+C support
+- Mirrors the pattern from `streamAgentInline`
+
+**Step 4d — Documentation:**
+- Known limitation documented: `design-decisions/ctrl-o-during-follow-up-prompt.md`
+- Ctrl+O during follow-up prompt is deferred (buffered, not lost)
+
+### Design Decisions (Phase 4)
+1. **Explicit history return** — history is an output of `renderInline`, not smuggled through the config struct. Cleaner data flow, testable.
+2. **Follow-up message recorded by loop** — the loop owns the boundary between executions and records the human message there. The renderer's `suppressHumanEcho` prevents duplicates.
+3. **Ctrl+O-during-prompt deferred** — the toggle is buffered and processed when the next execution starts. Fixing this requires restructuring the renderer/model boundary.
+
+## Previous Session Progress (2026-03-05, Session 3)
 
 ### Completed
 - **T02 Phase 3**: Ctrl+O Keybinding — Full Bubbletea Stdin Ownership — all 4 steps complete
@@ -106,20 +139,22 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **T02 Phase 4**: Follow-up history recording, resumed session Bubbletea support
-2. **T02 Phase 5**: Performance profiling for long sessions
-3. Future: per-tool-call expand/collapse (individual toggle, not global)
+1. **T02 Phase 5**: Performance profiling for long sessions
+2. Future: per-tool-call expand/collapse (individual toggle, not global)
+3. Future: Ctrl+O during follow-up prompt (deferred from Phase 4)
 4. Future: advanced text input (cursor movement, word deletion, input history)
 
 ## Context for Resume
 
+- Phase 4 plan: `.cursor/plans/phase_4_follow-up_and_resume_d7dfc0e4.plan.md`
 - Phase 3 plan: `.cursor/plans/phase_3_ctrl+o_toggle_95144a68.plan.md`
 - Phase 2 plan: `.cursor/plans/phase_2_expanded_renderers_8bdf5824.plan.md`
 - Phase 1 plan: `.cursor/plans/phase_1_event_history_0eda7a7b.plan.md`
 - T01 plan: `_projects/2026-03/20260305.02.expand-collapse-tools/tasks/T01_0_plan.md`
+- Known limitation: `design-decisions/ctrl-o-during-follow-up-prompt.md`
 - Two pre-existing test failures (`TestHandleApproval_DoesNotSuppressOnReject`, `TestInlineRenderer_ToolCompleted_ShowsBadge`) are NOT from this work — they fail on the base commit
-- `go vet` passes clean; all new tests pass (40+ Phase 3 tests + all existing)
-- The `program == nil` fallback paths (resumed sessions, non-TTY, CI, tests) are fully preserved. New channel-based flow is gated on `cancelCh != nil`.
+- `go vet` passes clean; all new tests pass (8 Phase 4 tests + all existing)
+- Resumed sessions now have full Bubbletea support (Ctrl+O, Ctrl+C, channel-based prompts)
 
 ## Essential Files to Review
 
@@ -178,7 +213,7 @@ When starting a new session:
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 4" - Resume with follow-up and resume support
+- "Continue with Phase 5" - Resume with performance profiling
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

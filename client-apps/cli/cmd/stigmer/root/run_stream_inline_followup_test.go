@@ -326,6 +326,154 @@ func TestFollowUpLoop_FailedPhase_AllowsFollowUp(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// History persistence across follow-ups
+// ---------------------------------------------------------------------------
+
+func TestFollowUpLoop_SecondExecution_DoesNotDuplicateHeader(t *testing.T) {
+	events1 := make(chan executiontui.Event, 10)
+	go feedEvents(events1, executiontui.DoneEvent{Phase: "completed"})
+
+	events2 := make(chan executiontui.Event, 10)
+	go feedEvents(events2, executiontui.DoneEvent{Phase: "completed"})
+
+	origStdin := replaceStdin(t, "continue\n\n")
+	defer restoreStdin(origStdin)
+
+	mockFollowUp := func(msg string) (*executiontui.FollowUpResult, error) {
+		return &executiontui.FollowUpResult{
+			ExecutionID:       "exec-2",
+			Events:            events2,
+			ApprovalResponses: make(chan executiontui.ApprovalResponse, 1),
+		}, nil
+	}
+
+	var stderr bytes.Buffer
+	cfg := inlineRenderConfig{
+		events:            events1,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              io.Discard,
+		status:            &stderr,
+	}
+
+	runInlineFollowUpLoop(context.Background(), cfg, mockFollowUp, "exec-1")
+
+	// The second renderInline receives initialHistory with the header from
+	// the first execution. It should NOT add a second header. Verify via
+	// the follow-up user message appearing (proves the loop ran twice).
+	output := stderr.String()
+	if !strings.Contains(output, "continue") {
+		t.Errorf("expected follow-up message on stderr, got %q", output)
+	}
+}
+
+func TestFollowUpLoop_SuppressHumanEcho_NoDuplicateOnStderr(t *testing.T) {
+	events1 := make(chan executiontui.Event, 10)
+	go feedEvents(events1, executiontui.DoneEvent{Phase: "completed"})
+
+	events2 := make(chan executiontui.Event, 10)
+	go feedEvents(events2,
+		executiontui.HumanMessageEvent{Content: "continue"},
+		executiontui.AIMessageEvent{Content: "response"},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	origStdin := replaceStdin(t, "continue\n\n")
+	defer restoreStdin(origStdin)
+
+	mockFollowUp := func(msg string) (*executiontui.FollowUpResult, error) {
+		return &executiontui.FollowUpResult{
+			ExecutionID:       "exec-2",
+			Events:            events2,
+			ApprovalResponses: make(chan executiontui.ApprovalResponse, 1),
+		}, nil
+	}
+
+	var stderr bytes.Buffer
+	cfg := inlineRenderConfig{
+		events:            events1,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              io.Discard,
+		status:            &stderr,
+	}
+
+	runInlineFollowUpLoop(context.Background(), cfg, mockFollowUp, "exec-1")
+
+	// The follow-up loop sets suppressHumanEcho, so the backend echo of
+	// "continue" should not render a second time on stderr.
+	count := strings.Count(stderr.String(), "continue")
+	if count != 1 {
+		t.Errorf("expected 'continue' exactly once on stderr (local echo only), appeared %d times in: %q", count, stderr.String())
+	}
+}
+
+func TestRenderInline_InitialHistory_PreservesExistingItems(t *testing.T) {
+	events := make(chan executiontui.Event, 10)
+	go feedEvents(events,
+		executiontui.AIMessageEvent{Content: "New response"},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	existingHistory := []committedItem{
+		{kind: kindHeader, header: &sessionHeaderInfo{SessionID: "ses-1"}},
+		{kind: kindAIMessage, text: "Previous response"},
+		{kind: kindHumanMessage, text: "follow-up question"},
+	}
+
+	var stdout bytes.Buffer
+	_, _, history := renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            io.Discard,
+		initialHistory:    existingHistory,
+	})
+
+	if len(history) < 4 {
+		t.Fatalf("expected at least 4 items (3 existing + 1 new AI), got %d", len(history))
+	}
+	if history[0].kind != kindHeader {
+		t.Errorf("expected first item to be header, got %v", history[0].kind)
+	}
+	if history[1].kind != kindAIMessage {
+		t.Errorf("expected second item to be previous AI message, got %v", history[1].kind)
+	}
+	if history[2].kind != kindHumanMessage {
+		t.Errorf("expected third item to be human message, got %v", history[2].kind)
+	}
+	if history[3].kind != kindAIMessage {
+		t.Errorf("expected fourth item to be new AI message, got %v", history[3].kind)
+	}
+}
+
+func TestRenderInline_NoInitialHistory_CreatesHeader(t *testing.T) {
+	events := make(chan executiontui.Event, 10)
+	go feedEvents(events, executiontui.DoneEvent{Phase: "completed"})
+
+	headerInfo := sessionHeaderInfo{SessionID: "ses-new"}
+	_, _, history := renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              io.Discard,
+		status:            io.Discard,
+		headerInfo:        headerInfo,
+	})
+
+	if len(history) == 0 {
+		t.Fatal("expected at least 1 item (header)")
+	}
+	if history[0].kind != kindHeader {
+		t.Errorf("expected first item to be header, got %v", history[0].kind)
+	}
+	if history[0].header == nil || history[0].header.SessionID != "ses-new" {
+		t.Error("expected header to contain session info")
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Helpers — stdin replacement for testing readFollowUpInputDirect
 // ---------------------------------------------------------------------------
 

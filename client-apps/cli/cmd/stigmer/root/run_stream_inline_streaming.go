@@ -278,19 +278,24 @@ func (r *inlineRenderer) renderStreamDeltaCapped(newBytes string, totalContentLi
 // Direct-write path: erases the streaming content via EraseLines, then
 // prints the final compact result.
 func (r *inlineRenderer) completeStreamingTool(e executiontui.ToolCompletedEvent) {
+	subAgentID := r.streamSubAgentID
+
 	if r.cfg.program != nil {
-		line := r.renderToolLine(e.ToolCall, r.streamSubAgentID)
+		line := r.renderToolLine(e.ToolCall, subAgentID)
 		r.cfg.program.Send(streamingHideMsg{collapsedResult: line})
-		r.clearStreamingState()
-		return
+	} else {
+		if termctl.IsSupported(r.cfg.status) && r.streamLineCount > 0 {
+			termctl.EraseLines(r.cfg.status, r.streamLineCount)
+		}
+		line := r.renderToolLine(e.ToolCall, subAgentID)
+		r.statusf("%s\n", line)
 	}
 
-	if termctl.IsSupported(r.cfg.status) && r.streamLineCount > 0 {
-		termctl.EraseLines(r.cfg.status, r.streamLineCount)
-	}
-
-	line := r.renderToolLine(e.ToolCall, r.streamSubAgentID)
-	r.statusf("%s\n", line)
+	r.history = append(r.history, committedItem{
+		kind:       kindToolCompact,
+		toolCalls:  []toolrender.ToolCallInfo{e.ToolCall},
+		subAgentID: subAgentID,
+	})
 	r.clearStreamingState()
 }
 

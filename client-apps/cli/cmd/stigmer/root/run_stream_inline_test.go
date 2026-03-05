@@ -34,7 +34,7 @@ func TestInlineRenderer_AIMessage_GoesToStdout(t *testing.T) {
 		executiontui.DoneEvent{Phase: "completed"},
 	)
 
-	phase, exitErr := renderInline(context.Background(), inlineRenderConfig{
+	phase, exitErr, _ := renderInline(context.Background(), inlineRenderConfig{
 		events:            events,
 		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
 		prompter:          approval.NewInteractivePrompter(),
@@ -342,7 +342,7 @@ func TestInlineRenderer_StreamError_ReturnsError(t *testing.T) {
 		executiontui.StreamErrorEvent{Err: errors.New("connection lost")},
 	)
 
-	phase, exitErr := renderInline(context.Background(), inlineRenderConfig{
+	phase, exitErr, _ := renderInline(context.Background(), inlineRenderConfig{
 		events:            events,
 		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
 		prompter:          approval.NewInteractivePrompter(),
@@ -370,7 +370,7 @@ func TestInlineRenderer_DoneWithError_ShowsError(t *testing.T) {
 		executiontui.DoneEvent{Phase: "failed", Error: "agent crashed"},
 	)
 
-	phase, exitErr := renderInline(context.Background(), inlineRenderConfig{
+	phase, exitErr, _ := renderInline(context.Background(), inlineRenderConfig{
 		events:            events,
 		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
 		prompter:          approval.NewInteractivePrompter(),
@@ -400,7 +400,7 @@ func TestInlineRenderer_ContextCancelled_ReturnsEarly(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	phase, exitErr := renderInline(ctx, inlineRenderConfig{
+	phase, exitErr, _ := renderInline(ctx, inlineRenderConfig{
 		events:            events,
 		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
 		prompter:          approval.NewInteractivePrompter(),
