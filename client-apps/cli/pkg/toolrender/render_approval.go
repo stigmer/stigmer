@@ -28,8 +28,8 @@ var rejectBulletStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
 // action is one of "approve", "skip", "reject":
 //   - Approved: green bullet, past-tense summary (e.g., "Wrote 241 lines"),
 //     content preview for write/edit tools
-//   - Rejected: red bullet, "Rejected", content preview for scrollback record
-//   - Skipped: dim bullet, "Skipped", no preview
+//   - Rejected: red bullet, descriptive message, content preview
+//   - Skipped: dim bullet, descriptive message, content preview
 //
 // Shell tools show no content preview for "approve" because their output
 // streams separately after approval. Delete tools have no content body.
@@ -42,15 +42,17 @@ var rejectBulletStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
 //	      package config
 //	      … +42 more lines
 //
-//	Rejected:
+//	Rejected write:
 //	  ● Write(config.go)
-//	  └ Rejected
+//	  └ User rejected create to config.go
 //	      package config
 //	      … +42 more lines
 //
-//	Skipped:
+//	Skipped write:
 //	  ● Write(config.go)
-//	  └ Skipped
+//	  └ User skipped create config.go
+//	      package config
+//	      … +42 more lines
 func RenderApprovalResult(tc ToolCallInfo, action string, opts CompactOptions) string {
 	info, known := toolDisplayMap[tc.Name]
 	if !known {
@@ -255,10 +257,9 @@ func renderApprovalHeader(tc ToolCallInfo, info toolDisplayInfo, action string, 
 }
 
 // buildApprovalConnector produces the └ summary line below the header.
-// approvedText is used only for the "approve" action. For "reject", the
-// connector includes the verb and path (e.g. "User rejected write to
-// config.go") matching Claude Code's descriptive style. For "skip", the
-// text is fixed.
+// approvedText is used only for the "approve" action. For "reject" and
+// "skip", the connector includes the verb and path (e.g. "User rejected
+// write to config.go", "User skipped write to config.go").
 func buildApprovalConnector(action string, approvedText string, tc ToolCallInfo) string {
 	switch action {
 	case "approve":
@@ -273,6 +274,16 @@ func buildApprovalConnector(action string, approvedText string, tc ToolCallInfo)
 			}
 		}
 		return dimStyle.Render("└ Rejected")
+	case "skip":
+		info, known := toolDisplayMap[tc.Name]
+		if known {
+			verb := approvalVerb(info.label)
+			path := extractPrimaryArgWithFallbacks(tc.Args, info.primaryField, info.fallbackFields)
+			if path != "" {
+				return dimStyle.Render(fmt.Sprintf("└ User skipped %s %s", verb, path))
+			}
+		}
+		return dimStyle.Render("└ Skipped")
 	default:
 		return dimStyle.Render("└ Skipped")
 	}
@@ -314,10 +325,10 @@ func approvalVerb(label string) string {
 
 // shouldShowApprovalPreview reports whether the collapsed approval result
 // should include a content preview for this action and tool type.
+// Skip and reject both show previews for write/edit/create tools so the
+// user can see what was proposed. Shell-approve is excluded because the
+// output streams separately. Delete has no content body.
 func shouldShowApprovalPreview(action string, label string) bool {
-	if action == "skip" {
-		return false
-	}
 	if isShellLabel(label) && action == "approve" {
 		return false
 	}

@@ -264,8 +264,13 @@ func (r *inlineRenderer) promptApprovalViaKeyReader(
 // finalizeApprovalViaBubbletea handles the post-decision visual phase when
 // a Bubbletea program is running. Hides the approval panel and either
 // starts post-approval streaming (approved shell) or commits the collapsed
-// result. Does NOT send the approval response or clear state — callers
-// handle that themselves so they can include path-specific fields (Comment).
+// result via re-commit. Does NOT send the approval response or clear
+// state — callers handle that themselves so they can include path-specific
+// fields (Comment).
+//
+// For non-shell tools the collapsed result is recorded in history and a
+// re-commit replays the full history, which naturally excludes the expanded
+// content that handleApprovalStart committed to scrollback.
 func (r *inlineRenderer) finalizeApprovalViaBubbletea(
 	e executiontui.ApprovalNeededEvent,
 	tc toolrender.ToolCallInfo,
@@ -276,10 +281,10 @@ func (r *inlineRenderer) finalizeApprovalViaBubbletea(
 		r.cfg.program.Send(approvalHideMsg{})
 		r.initPostApprovalStreaming(e.ToolCallID, tc, subAgentID)
 	} else {
-		collapsed := r.formatCollapsedResult(tc, action, subAgentID)
-		r.cfg.program.Send(approvalHideMsg{collapsedResult: collapsed})
+		r.cfg.program.Send(approvalHideMsg{})
 		r.recordApproval(tc, action, subAgentID)
 		r.trackSuppression(e.ToolCallID, tc.Name, action)
+		r.triggerReCommit()
 	}
 }
 
