@@ -336,7 +336,7 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(...) error {
 ```go
 // NEW CODE - Broadcasts to subscribers!
 type UpdateExecutionStatusActivityImpl struct {
-    store        *badger.Store
+    store        store.Store
     streamBroker StreamBroker  // NEW: Injected via worker config
 }
 

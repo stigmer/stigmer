@@ -456,7 +456,7 @@ The Stigmer CLI manages a complete local daemon that includes:
 - **Temporal**: Workflow orchestration (localhost:7233, auto-downloaded)
 - **workflow-runner**: Zigflow workflow execution (Temporal worker)
 - **agent-runner**: AI agent execution (Temporal worker)
-- **BadgerDB**: Local embedded storage
+- **SQLite**: Local embedded storage
 
 Port allocation:
 - **7233** - Temporal gRPC

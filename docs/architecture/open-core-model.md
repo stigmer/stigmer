@@ -58,7 +58,7 @@ flowchart TB
         CLI[CLI/SDK]
         Proto[gRPC Service Definitions<br/>apis/]
         Daemon[Local Daemon<br/>localhost:50051]
-        Local[Local Controllers<br/>BadgerDB]
+        Local[Local Controllers<br/>SQLite]
         AgentRunner[Agent Runner<br/>Python]
     end
     
@@ -74,7 +74,7 @@ flowchart TB
     CLI -->|Local Mode<br/>gRPC| Daemon
     AgentRunner -->|gRPC| Daemon
     Daemon --> Local
-    Local --> BadgerDB[(BadgerDB<br/>File Lock)]
+    Local --> SQLiteDB[(SQLite<br/>stigmer.db)]
     
     CLI -->|Cloud Mode| Network[Network/TLS]
     Network --> Cloud
@@ -102,21 +102,21 @@ service AgentCommandController {
 }
 ```
 
-**Local Backend**: Implements these services with BadgerDB storage via daemon.  
+**Local Backend**: Implements these services with SQLite storage via daemon.  
 **Cloud Backend**: Implements these services with distributed storage (over network).
 
 ### Local Daemon Architecture
 
-BadgerDB uses file-based locking (only one process can open the database at a time). To support both CLI and Agent Runner (Python) accessing the database concurrently, we use a **daemon model**:
+SQLite uses file-based locking (only one process can write to the database at a time). To support both CLI and Agent Runner (Python) accessing the database concurrently, we use a **daemon model**:
 
 **Components**:
 1. **Local Daemon** (`stigmer server start`): Lightweight gRPC server with SQLite storage
    - Listens on `localhost:50051`
    - Implements the same gRPC services as Cloud
-   - Opens BadgerDB in `~/.stigmer/data`
+   - Opens SQLite database at `~/.stigmer/stigmer.db`
 
 2. **CLI**: Connects to `localhost:50051` for all database operations
-   - No direct BadgerDB access (avoids file lock conflicts)
+   - No direct SQLite access (avoids file lock conflicts)
    - Same gRPC client code as Cloud mode
 
 3. **Agent Runner** (Python): Connects to `localhost:50051` via gRPC
@@ -142,7 +142,7 @@ This guarantees:
 | Agent execution | ✅ | ✅ |
 | Workflow execution | ✅ | ✅ |
 | Secret storage | ✅ OS Keychain | ✅ Vault |
-| Execution history | ✅ BadgerDB | ✅ Postgres |
+| Execution history | ✅ SQLite | ✅ Postgres |
 | MCP server integration | ✅ | ✅ |
 | CLI access | ✅ | ✅ |
 | gRPC services | ✅ In-process | ✅ Network |
@@ -183,7 +183,7 @@ Users can start with local mode and upgrade to cloud mode seamlessly:
 - **Authentication**: None (trust the local user)
 - **Secrets**: Encrypted with OS keychain or local master key
 - **Access control**: Single-user mode (no IAM)
-- **Audit**: Basic timestamps in BadgerDB
+- **Audit**: Basic timestamps in SQLite
 - **Authorization**: Proto IAM annotations are ignored
 
 ### Cloud Mode
@@ -293,7 +293,7 @@ message ApiResourceMetadata {
 internal/backend/local/
 ├── agent_controller.go     # Implements AgentCommandControllerServer
 ├── workflow_controller.go  # Implements WorkflowCommandControllerServer
-└── database.go             # BadgerDB operations
+└── database.go             # SQLite operations
 ```
 
 **Proprietary** (`github.com/leftbin/stigmer-cloud`):

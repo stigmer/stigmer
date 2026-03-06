@@ -22,7 +22,7 @@ All files are located in `backend/services/stigmer-server/pkg/domain/skill/contr
 1. **skill_controller.go** (24 lines)
    - Controller struct with embedded unimplemented servers
    - Constructor function `NewSkillController`
-   - Dependencies: BadgerDB store, ArtifactStorage
+   - Dependencies: SQLite store, ArtifactStorage
 
 2. **push.go** (~500 lines)
    - Push handler for artifact-based create/update

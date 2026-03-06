@@ -18,7 +18,7 @@ func contextWithAgentKind() context.Context {
 }
 
 func TestAgentController_Create(t *testing.T) {
-	// Create temporary BadgerDB store
+	// Create temporary SQLite store
 	store, err := sqlite.NewStore(t.TempDir() + "/test.sqlite")
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)

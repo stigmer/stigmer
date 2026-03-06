@@ -13,7 +13,7 @@ import (
 )
 
 // InvokeAgentExecutionWorkflowCreator creates and starts Temporal workflows for agent execution invocation.
-// Called by AgentExecutionCreateHandler after persisting execution to BadgerDB.
+// Called by AgentExecutionCreateHandler after persisting execution to SQLite.
 //
 // Polyglot Configuration:
 // - stigmer: Go workflows on agent_execution_stigmer (stigmer-server)
