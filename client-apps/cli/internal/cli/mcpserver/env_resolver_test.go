@@ -368,6 +368,87 @@ func TestResolveWellKnownEnv_LocalBackendNoAPIKey(t *testing.T) {
 	assert.False(t, ok, "local backend has no API key to resolve")
 }
 
+// --- ResolveWellKnownEnvScoped tests ---
+
+func TestResolveWellKnownEnvScoped_OnlyResolvesRequiredVars(t *testing.T) {
+	cfg := &config.Config{
+		Backend: config.BackendConfig{
+			Type: config.BackendTypeCloud,
+			Cloud: &config.CloudBackendConfig{
+				Endpoint: "api.stigmer.ai:443",
+				Token:    "test-api-key",
+			},
+		},
+	}
+
+	required := map[string]bool{
+		"STIGMER_SERVER_ADDRESS": true,
+	}
+
+	result := ResolveWellKnownEnvScoped(cfg, required)
+
+	_, hasAddr := result["STIGMER_SERVER_ADDRESS"]
+	assert.True(t, hasAddr, "should resolve STIGMER_SERVER_ADDRESS (required)")
+
+	_, hasKey := result["STIGMER_API_KEY"]
+	assert.False(t, hasKey, "should NOT resolve STIGMER_API_KEY (not required)")
+
+	_, hasGithub := result["GITHUB_TOKEN"]
+	assert.False(t, hasGithub, "should NOT resolve GITHUB_TOKEN (not required)")
+}
+
+func TestResolveWellKnownEnvScoped_EmptyRequiredResolvesNothing(t *testing.T) {
+	cfg := &config.Config{
+		Backend: config.BackendConfig{
+			Type: config.BackendTypeCloud,
+			Cloud: &config.CloudBackendConfig{
+				Endpoint: "api.stigmer.ai:443",
+				Token:    "test-api-key",
+			},
+		},
+	}
+
+	result := ResolveWellKnownEnvScoped(cfg, map[string]bool{})
+
+	assert.Empty(t, result, "empty required set should resolve nothing")
+}
+
+func TestResolveWellKnownEnvScoped_NonWellKnownVarsIgnored(t *testing.T) {
+	cfg := &config.Config{
+		Backend: config.BackendConfig{Type: config.BackendTypeLocal},
+	}
+
+	required := map[string]bool{
+		"CUSTOM_VAR":             true,
+		"STIGMER_SERVER_ADDRESS": true,
+	}
+
+	result := ResolveWellKnownEnvScoped(cfg, required)
+
+	_, hasAddr := result["STIGMER_SERVER_ADDRESS"]
+	assert.True(t, hasAddr, "should resolve STIGMER_SERVER_ADDRESS (well-known + required)")
+
+	_, hasCustom := result["CUSTOM_VAR"]
+	assert.False(t, hasCustom, "CUSTOM_VAR is not well-known, cannot be auto-resolved")
+}
+
+func TestResolveWellKnownEnvScoped_ShellEnvStillWins(t *testing.T) {
+	t.Setenv("STIGMER_SERVER_ADDRESS", "user-override:9999")
+
+	cfg := &config.Config{
+		Backend: config.BackendConfig{Type: config.BackendTypeLocal},
+	}
+
+	required := map[string]bool{
+		"STIGMER_SERVER_ADDRESS": true,
+	}
+
+	result := ResolveWellKnownEnvScoped(cfg, required)
+
+	_, ok := result["STIGMER_SERVER_ADDRESS"]
+	assert.False(t, ok, "shell env should still take priority")
+}
+
 // --- isSecretVar tests ---
 
 func TestIsSecretVar(t *testing.T) {
