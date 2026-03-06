@@ -104,6 +104,8 @@ func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFun
 		go fetchRecentSessions(conn, sessionID, recentSessionsCh)
 	}
 
+	sbRoot, pfDir := sessionPaths(sessionID)
+
 	cfg := inlineRenderConfig{
 		events:            events,
 		approvalResponses: approvalResponses,
@@ -113,6 +115,8 @@ func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFun
 		status:            statusW,
 		sessionID:         sessionID,
 		workspaceRoots:    workspaceRoots,
+		sandboxRoot:       sbRoot,
+		platformDir:       pfDir,
 		program:           program,
 		headerInfo:        headerInfo,
 		subjectUpdate:     subjectUpdate,
