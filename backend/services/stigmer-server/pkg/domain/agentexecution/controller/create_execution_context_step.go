@@ -30,11 +30,11 @@ import (
 //  2. AgentInstance.environment_refs resolved via environmentClient (in order)
 //  3. AgentExecution.spec.runtime_env (execution-time overrides)
 type createExecutionContextStep struct {
-	agentClient          *agent.Client
-	agentInstanceClient  *agentinstance.Client
-	sessionClient        *session.Client
-	environmentClient    *environment.Client
-	executionCtxClient   *executioncontext.Client
+	agentClient         *agent.Client
+	agentInstanceClient *agentinstance.Client
+	sessionClient       *session.Client
+	environmentClient   *environment.Client
+	executionCtxClient  *executioncontext.Client
 }
 
 func (c *AgentExecutionController) newCreateExecutionContextStep() *createExecutionContextStep {

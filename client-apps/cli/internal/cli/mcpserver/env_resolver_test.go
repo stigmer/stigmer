@@ -85,8 +85,8 @@ func TestResolveEnvForDiscovery_MixedSecretAndNonSecret(t *testing.T) {
 	}
 	server := makeServerWithEnvSpec(map[string]bool{
 		"STIGMER_SERVER_ADDRESS": false,
-		"OPTIONAL_CONFIG":       false,
-		"MISSING_CREDENTIAL":    true,
+		"OPTIONAL_CONFIG":        false,
+		"MISSING_CREDENTIAL":     true,
 	})
 
 	result := ResolveEnvForDiscovery(server, cfg)

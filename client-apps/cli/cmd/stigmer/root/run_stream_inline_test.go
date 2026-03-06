@@ -829,7 +829,7 @@ func TestInlineRenderer_StreamingWriteToolDuringAIStream_NoDuplication(t *testin
 			ToolCall: toolrender.ToolCallInfo{
 				Name:        "write",
 				Status:      "running",
-				IsStreaming:  true,
+				IsStreaming: true,
 				Args:        map[string]interface{}{"path": "output.yaml"},
 			},
 		},
@@ -1059,19 +1059,19 @@ func TestInlineRenderer_DeferredHeader_RendersPathFromDelta(t *testing.T) {
 		executiontui.ToolRunningEvent{
 			ToolCallID: "tc-write",
 			ToolCall: toolrender.ToolCallInfo{
-				Name:       "write",
-				Status:     "running",
+				Name:        "write",
+				Status:      "running",
 				IsStreaming: true,
-				Args:       nil,
+				Args:        nil,
 			},
 		},
 		executiontui.ToolStreamDeltaEvent{
 			ToolCallID: "tc-write",
 			ToolCall: toolrender.ToolCallInfo{
-				Name:       "write",
-				Status:     "running",
+				Name:        "write",
+				Status:      "running",
 				IsStreaming: true,
-				Args:       map[string]interface{}{"path": "config.yaml", "contents": "key: value"},
+				Args:        map[string]interface{}{"path": "config.yaml", "contents": "key: value"},
 			},
 			Content: "key: value",
 		},
@@ -1105,10 +1105,10 @@ func TestInlineRenderer_ImmediateHeader_WhenArgsPresent(t *testing.T) {
 		executiontui.ToolRunningEvent{
 			ToolCallID: "tc-write",
 			ToolCall: toolrender.ToolCallInfo{
-				Name:       "write",
-				Status:     "running",
+				Name:        "write",
+				Status:      "running",
 				IsStreaming: true,
-				Args:       map[string]interface{}{"path": "output.yaml"},
+				Args:        map[string]interface{}{"path": "output.yaml"},
 			},
 		},
 		executiontui.DoneEvent{Phase: "completed"},

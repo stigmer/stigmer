@@ -80,7 +80,6 @@ var followUpHintStyle = lipgloss.NewStyle().
 	Foreground(lipgloss.Color("8")).
 	Italic(true)
 
-
 // formatHumanMessage formats a user message with highlighted styling for
 // display in both streaming and non-streaming rendering paths.
 func formatHumanMessage(content string) string {

@@ -57,11 +57,11 @@ import (
 // - TEMPORAL_AGENT_EXECUTION_STIGMER_TASK_QUEUE (Go workflows, default: agent_execution_stigmer)
 // - TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE (Python activities, default: agent_execution_runner)
 type WorkerConfig struct {
-	config                     *Config
-	store                      store.Store
-	updateStatusActivityImpl   *activities.UpdateExecutionStatusActivityImpl
-	loadExecutionActivityImpl  *activities.LoadAgentExecutionActivityImpl
-	deleteECActivityImpl       *ecactivities.DeleteExecutionContextActivityImpl
+	config                    *Config
+	store                     store.Store
+	updateStatusActivityImpl  *activities.UpdateExecutionStatusActivityImpl
+	loadExecutionActivityImpl *activities.LoadAgentExecutionActivityImpl
+	deleteECActivityImpl      *ecactivities.DeleteExecutionContextActivityImpl
 }
 
 // NewWorkerConfig creates a new WorkerConfig.

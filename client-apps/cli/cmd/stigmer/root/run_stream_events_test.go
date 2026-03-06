@@ -1501,9 +1501,9 @@ func TestBridgeIntegration_MultiSnapshot(t *testing.T) {
 	ctx := context.Background()
 
 	var (
-		displayedCount int
-		inStream       bool
-		toolCallStates = make(map[string]string)
+		displayedCount  int
+		inStream        bool
+		toolCallStates  = make(map[string]string)
 		toolCallResults = make(map[string]string)
 	)
 

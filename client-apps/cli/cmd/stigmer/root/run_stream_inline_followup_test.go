@@ -486,7 +486,7 @@ type followUpTestModel struct {
 	capturedCh chan<- chan<- string
 }
 
-func (m followUpTestModel) Init() tea.Cmd                           { return nil }
+func (m followUpTestModel) Init() tea.Cmd { return nil }
 func (m followUpTestModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if start, ok := msg.(textInputStartMsg); ok && start.inputCh != nil && m.capturedCh != nil {
 		m.capturedCh <- start.inputCh

@@ -663,4 +663,3 @@ func TestApprovalContentBudget(t *testing.T) {
 		t.Errorf("approvalContentBudget(100) = %d, want 90", got)
 	}
 }
-
