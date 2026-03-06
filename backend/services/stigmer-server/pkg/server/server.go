@@ -464,8 +464,8 @@ func Run() error {
 	}
 
 	// Wait for interrupt signal
-	<-done
-	log.Info().Msg("Received shutdown signal")
+	sig := <-done
+	log.Info().Str("signal", sig.String()).Msg("Received shutdown signal")
 
 	// Graceful shutdown
 	server.Stop()
