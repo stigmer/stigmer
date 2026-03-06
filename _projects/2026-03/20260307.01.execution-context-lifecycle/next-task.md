@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-07 01:47
-**Current Task**: T03 (Slim Workflow Input) -- COMPLETED
-**Status**: T03 complete, ready for T04
+**Current Task**: T04 (Cleanup Activity) -- COMPLETED
+**Status**: T04 complete, T05 (cancellation safety refactor) documented and ready
 
 ## Session Progress (2026-03-07 -- Session 3)
 
@@ -135,27 +135,60 @@ When starting a new session:
 - Verified: `go build ./backend/services/stigmer-server/...` compiles cleanly
 - No existing files modified
 
+## Session Progress (2026-03-07 -- Session 4)
+
+- **T04 completed** across BOTH OSS (Go) and Cloud (Java) codebases
+- New `DeleteExecutionContextActivity` local activity shared by AE and WE workflows
+- Uses `workflow.NewDisconnectedContext` for cancellation-safe cleanup (secrets cleanup must survive cancellation)
+- Fixed production bug: Java Cloud `DeleteExecutionContextActivityImpl` was defined but **not registered** in either worker config
+
+### New files (OSS Go):
+- `executioncontext/temporal/activities/delete_execution_context.go` -- activity impl (idempotent, best-effort, store-direct)
+- `executioncontext/temporal/activities/BUILD.bazel` -- Bazel build for new package
+
+### Modified files (OSS Go):
+- `agentexecution/temporal/worker_config.go` -- register DeleteExecutionContext activity
+- `workflowexecution/temporal/worker_config.go` -- register DeleteExecutionContext activity
+- `agentexecution/temporal/workflows/invoke_workflow_impl.go` -- add `deleteExecutionContext()` method + calls at both exit points
+- `workflowexecution/temporal/workflows/invoke_workflow_impl.go` -- add `deleteExecutionContext()` method + calls at both exit points
+- `agentexecution/temporal/activities/BUILD.bazel` -- fix: add missing `load_execution.go` to srcs
+- Various `BUILD.bazel` files -- add EC activities dependency
+
+### Modified files (Cloud Java):
+- `AgentExecutionTemporalWorkerConfig.java` -- register `DeleteExecutionContextActivityImpl`
+- `WorkflowExecutionTemporalWorkerConfig.java` -- register `DeleteExecutionContextActivityImpl`
+
+### Design decisions:
+- Activity placed in `executioncontext/temporal/activities/` (shared by both AE and WE, not duplicated)
+- Uses store-direct pattern (like `LoadAgentExecution`, `UpdateExecutionStatus`) -- no gRPC downstream client needed
+- `NewDisconnectedContext` applied surgically to EC cleanup only -- existing cleanup operations have mixed failure semantics that need separate design work (see T05)
+- Idempotent: no-op if ExecutionContext already deleted; best-effort: never returns errors
+
+### Verification:
+- `go build ./backend/services/stigmer-server/...` compiles cleanly
+- No actual lint issues (only IDE Go version mismatch warnings)
+
 ## Next Steps
 
-1. **T04: Cleanup Activity** -- Add a Temporal activity that deletes the ExecutionContext when the workflow completes (success or failure). Cloud Java already has `DeleteExecutionContextActivity` in the workflow's `finally` block; OSS Go needs the equivalent.
+1. **T05: Comprehensive Cancellation Safety** -- Refactor all cleanup operations in AE and WE workflows to be cancellation-safe. See `tasks/T05_0_plan.md` for full design context, open questions, and implementation guidance. This was intentionally separated from T04 due to the mixed failure semantics of `completeExternalActivity`.
 
 ## Context for Resume
 
 - T01 created Environment + ExecutionContext downstream clients
 - T02 wired them in and added CreateExecutionContext steps to both AE and WE pipelines
 - T03 stripped runtime_env from persisted executions, introduced slim AE workflow input, and fixed the stale callback result bug
-- After T03: runtime_env is consumed by createExecutionContextStep then cleared; it never reaches Temporal history or the persisted execution
-- The AE workflow now receives `InvokeAgentExecutionWorkflowInput` (6 fields) instead of the full `AgentExecution` proto
-- The WE workflow still receives the full `WorkflowExecution` proto but with `runtime_env` empty
-- The `LoadAgentExecution` local activity was added (OSS Go only) to load the current execution from DB for the callback result
-- Cloud Java's callback result already used a string summary, so no load activity was needed there
-- **BREAKING CHANGE**: AE workflow input type change breaks in-flight AE workflows on replay. Mitigation: drain running AE workflows before deployment.
-- No proto changes were made in T01, T02, or T03
+- T04 added ExecutionContext cleanup activity with cancellation-safe `NewDisconnectedContext` and fixed Java Cloud activity registration bug
+- After T04: ExecutionContext (containing secrets) is created during execution setup and deleted when workflow completes (success, failure, or cancellation)
+- The full lifecycle is now: create (T02) → use by runners → clean up (T04)
+- **Production bug fixed**: Java Cloud's `DeleteExecutionContextActivityImpl` was called but never registered -- now registered in both worker configs
+- T05 is documented for follow-up: comprehensive cancellation safety for ALL cleanup operations (not just EC deletion)
+- **BREAKING CHANGE** (from T03): AE workflow input type change breaks in-flight AE workflows on replay. Mitigation: drain running AE workflows before deployment.
+- No proto changes were made in T01-T04
 
 ## Quick Commands
 
 After loading context:
-- "Start T04" - Begin the Cleanup Activity task
+- "Start T05" - Begin the Comprehensive Cancellation Safety refactor
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

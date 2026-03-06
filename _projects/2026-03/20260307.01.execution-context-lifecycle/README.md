@@ -58,9 +58,10 @@ See [checkpoints/](checkpoints/) for the most recent project state.
 ### Progress Tracking
 - [x] Project initialized
 - [x] T01: Downstream clients (Environment query, ExecutionContext command)
-- [ ] T02: CreateExecutionContextStep (pipeline step + server wiring)
-- [ ] T03: Slim workflow input (remove secrets from Temporal history)
-- [ ] T04: Cleanup activity (delete ExecutionContext on completion)
+- [x] T02: CreateExecutionContextStep (pipeline step + server wiring)
+- [x] T03: Slim workflow input (remove secrets from Temporal history)
+- [x] T04: Cleanup activity (delete ExecutionContext on completion)
+- [ ] T05: Comprehensive cancellation safety (follow-up refactor)
 - [ ] Project completed
 
 ## How to Resume Work

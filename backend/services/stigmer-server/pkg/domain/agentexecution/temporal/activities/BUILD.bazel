@@ -7,6 +7,7 @@ go_library(
         "ensure_thread.go",
         "execute_graphton.go",
         "generate_session_subject.go",
+        "load_execution.go",
         "update_status.go",
         "update_status_impl.go",
     ],

@@ -5,6 +5,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal/activities"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal/workflows"
+	ecactivities "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/executioncontext/temporal/activities"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
@@ -60,6 +61,7 @@ type WorkerConfig struct {
 	store                      store.Store
 	updateStatusActivityImpl   *activities.UpdateExecutionStatusActivityImpl
 	loadExecutionActivityImpl  *activities.LoadAgentExecutionActivityImpl
+	deleteECActivityImpl       *ecactivities.DeleteExecutionContextActivityImpl
 }
 
 // NewWorkerConfig creates a new WorkerConfig.
@@ -73,6 +75,7 @@ func NewWorkerConfig(
 		store:                     store,
 		updateStatusActivityImpl:  activities.NewUpdateExecutionStatusActivityImpl(store, streamBroker),
 		loadExecutionActivityImpl: activities.NewLoadAgentExecutionActivityImpl(store),
+		deleteECActivityImpl:      ecactivities.NewDeleteExecutionContextActivityImpl(store),
 	}
 }
 
@@ -132,9 +135,11 @@ func (wc *WorkerConfig) CreateWorker(temporalClient client.Client) worker.Worker
 	// This avoids need for separate task queue configuration
 	w.RegisterActivity(wc.updateStatusActivityImpl.UpdateExecutionStatus)
 	w.RegisterActivity(wc.loadExecutionActivityImpl.LoadAgentExecution)
+	w.RegisterActivity(wc.deleteECActivityImpl.DeleteExecutionContext)
 
 	log.Info().Msg("✅ [POLYGLOT] Registered UpdateExecutionStatusActivity as LOCAL activity (in-process)")
 	log.Info().Msg("✅ [POLYGLOT] Registered LoadAgentExecutionActivity as LOCAL activity (in-process)")
+	log.Info().Msg("✅ [POLYGLOT] Registered DeleteExecutionContextActivity as LOCAL activity (in-process)")
 	log.Info().Msg("✅ [POLYGLOT] Temporal will route: workflow tasks → Go, Python activity tasks → Python")
 
 	return w
