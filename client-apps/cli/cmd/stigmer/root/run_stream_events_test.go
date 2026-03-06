@@ -1486,3 +1486,116 @@ func TestRetryWithBackoff_ContextAlreadyCancelled(t *testing.T) {
 		t.Errorf("expected 0 attempts with pre-cancelled context, got %d", attempts)
 	}
 }
+
+// =============================================================================
+// Bridge integration: multi-snapshot interleaving
+// =============================================================================
+
+// TestBridgeIntegration_MultiSnapshot simulates progressive gRPC snapshots
+// and verifies that the full bridge machinery (trackToolCallStates +
+// emitMessageEvents + orphan emission) produces events in chronological
+// order across multiple updates.
+func TestBridgeIntegration_MultiSnapshot(t *testing.T) {
+	collected := make([]executiontui.Event, 0, 16)
+	ch := make(chan executiontui.Event, 64)
+	ctx := context.Background()
+
+	var (
+		displayedCount int
+		inStream       bool
+		toolCallStates = make(map[string]string)
+		toolCallResults = make(map[string]string)
+	)
+
+	// Helper: drain channel into collected slice.
+	drain := func() {
+		for {
+			select {
+			case ev := <-ch:
+				collected = append(collected, ev)
+			default:
+				return
+			}
+		}
+	}
+
+	// --- Snapshot 1: AI message starts streaming, tool tc-1 starts running ---
+	snapshot1Messages := []*agentexecutionv1.AgentMessage{
+		{Type: agentexecutionv1.MessageType_MESSAGE_AI, Content: "I'll read that file.", IsStreaming: true},
+	}
+	snapshot1Tools := []*agentexecutionv1.ToolCall{
+		{Id: "tc-1", Name: "read_file", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_RUNNING},
+	}
+
+	var toolEvents []executiontui.Event
+	toolCallStates, toolCallResults, toolEvents = trackToolCallStates(
+		snapshot1Tools, toolCallStates, toolCallResults, "",
+	)
+	pending := buildToolEventMap(toolEvents)
+	displayedCount, inStream = emitMessageEvents(ch, snapshot1Messages, displayedCount, inStream, toolCallStates, pending)
+	for _, ev := range toolEvents {
+		if _, ok := pending[toolEventID(ev)]; !ok {
+			continue
+		}
+		trySendEvent(ctx, ch, ev)
+	}
+	drain()
+
+	// After snapshot 1: AIStreamStart + orphan ToolRunning
+	if len(collected) != 2 {
+		t.Fatalf("snapshot 1: expected 2 events, got %d", len(collected))
+	}
+	if _, ok := collected[0].(executiontui.AIStreamStartEvent); !ok {
+		t.Errorf("snapshot 1[0]: expected AIStreamStartEvent, got %T", collected[0])
+	}
+	if _, ok := collected[1].(executiontui.ToolRunningEvent); !ok {
+		t.Errorf("snapshot 1[1]: expected ToolRunningEvent, got %T", collected[1])
+	}
+
+	// --- Snapshot 2: AI stream ends, tool completes, new AI message ---
+	snapshot2Messages := []*agentexecutionv1.AgentMessage{
+		{Type: agentexecutionv1.MessageType_MESSAGE_AI, Content: "I'll read that file."},
+		{Type: agentexecutionv1.MessageType_MESSAGE_TOOL, Content: "package main", ToolCalls: []*agentexecutionv1.ToolCall{
+			{Id: "tc-1", Name: "read_file", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED, Result: "package main"},
+		}},
+		{Type: agentexecutionv1.MessageType_MESSAGE_AI, Content: "Here is the result."},
+	}
+	snapshot2Tools := []*agentexecutionv1.ToolCall{
+		{Id: "tc-1", Name: "read_file", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED, Result: "package main"},
+	}
+
+	collected = collected[:0]
+	toolCallStates, toolCallResults, toolEvents = trackToolCallStates(
+		snapshot2Tools, toolCallStates, toolCallResults, "",
+	)
+	pending = buildToolEventMap(toolEvents)
+	displayedCount, inStream = emitMessageEvents(ch, snapshot2Messages, displayedCount, inStream, toolCallStates, pending)
+	for _, ev := range toolEvents {
+		if _, ok := pending[toolEventID(ev)]; !ok {
+			continue
+		}
+		trySendEvent(ctx, ch, ev)
+	}
+	drain()
+
+	// After snapshot 2: AIStreamEnd → ToolCompleted (at MESSAGE_TOOL position) → AIMessage
+	if len(collected) != 3 {
+		t.Fatalf("snapshot 2: expected 3 events, got %d", len(collected))
+	}
+	if _, ok := collected[0].(executiontui.AIStreamEndEvent); !ok {
+		t.Errorf("snapshot 2[0]: expected AIStreamEndEvent, got %T", collected[0])
+	}
+	if tc, ok := collected[1].(executiontui.ToolCompletedEvent); !ok || tc.ToolCallID != "tc-1" {
+		t.Errorf("snapshot 2[1]: expected ToolCompletedEvent{tc-1}, got %T", collected[1])
+	}
+	if _, ok := collected[2].(executiontui.AIMessageEvent); !ok {
+		t.Errorf("snapshot 2[2]: expected AIMessageEvent, got %T", collected[2])
+	}
+
+	if inStream {
+		t.Error("expected inStream=false after all messages processed")
+	}
+	if displayedCount != 3 {
+		t.Errorf("displayedCount = %d, want 3", displayedCount)
+	}
+}
