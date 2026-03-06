@@ -3,6 +3,7 @@ package temporal
 import (
 	"github.com/rs/zerolog/log"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	ecactivities "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/executioncontext/temporal/activities"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/activities"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
 	"go.temporal.io/sdk/client"
@@ -58,6 +59,7 @@ type WorkerConfig struct {
 	config                   *Config
 	store                    store.Store
 	updateStatusActivityImpl *activities.UpdateWorkflowExecutionStatusActivityImpl
+	deleteECActivityImpl     *ecactivities.DeleteExecutionContextActivityImpl
 }
 
 // NewWorkerConfig creates a new WorkerConfig.
@@ -70,6 +72,7 @@ func NewWorkerConfig(
 		config:                   config,
 		store:                    store,
 		updateStatusActivityImpl: activities.NewUpdateWorkflowExecutionStatusActivityImpl(store, streamBroker),
+		deleteECActivityImpl:     ecactivities.NewDeleteExecutionContextActivityImpl(store),
 	}
 }
 
@@ -109,8 +112,10 @@ func (wc *WorkerConfig) CreateWorker(temporalClient client.Client) worker.Worker
 	// Register local activities (run in-process, don't participate in task queue routing)
 	// This avoids need for separate task queue configuration
 	w.RegisterActivity(wc.updateStatusActivityImpl.UpdateExecutionStatus)
+	w.RegisterActivity(wc.deleteECActivityImpl.DeleteExecutionContext)
 
 	log.Info().Msg("✅ [POLYGLOT] Registered UpdateWorkflowExecutionStatusActivity as LOCAL activity (in-process)")
+	log.Info().Msg("✅ [POLYGLOT] Registered DeleteExecutionContextActivity as LOCAL activity (in-process)")
 	log.Info().Msg("✅ [POLYGLOT] Temporal will route: workflow tasks → stigmer-server, activity tasks → workflow-runner")
 
 	return w

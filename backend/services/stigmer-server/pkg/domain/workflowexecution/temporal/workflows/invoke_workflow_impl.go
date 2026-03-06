@@ -5,6 +5,7 @@ import (
 	"time"
 
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
+	ecactivities "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/executioncontext/temporal/activities"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/activities"
 	"go.temporal.io/sdk/converter"
 	"go.temporal.io/sdk/temporal"
@@ -53,10 +54,13 @@ func (w *InvokeWorkflowExecutionWorkflowImpl) Run(ctx workflow.Context, executio
 			// Continue to return original error even if status update fails
 		}
 
+		w.deleteExecutionContext(ctx, executionID)
 		return temporal.NewApplicationError("Workflow execution failed", "", err)
 	}
 
 	logger.Info("✅ Workflow completed for execution (status updates were sent progressively via gRPC)", "execution_id", executionID)
+
+	w.deleteExecutionContext(ctx, executionID)
 	return nil
 }
 
@@ -162,4 +166,38 @@ func (w *InvokeWorkflowExecutionWorkflowImpl) updateStatusOnFailure(ctx workflow
 
 	logger.Info("✅ Updated execution status to FAILED", "execution_id", executionID)
 	return nil
+}
+
+// deleteExecutionContext deletes the ephemeral ExecutionContext that was created
+// during execution setup. The ExecutionContext holds the fully-merged environment
+// (including secrets) and must be cleaned up when the workflow finishes.
+//
+// Uses workflow.NewDisconnectedContext so cleanup runs even if the workflow was
+// cancelled. Errors are logged but never propagated -- cleanup is best-effort
+// with TTL-based backup for orphaned contexts.
+func (w *InvokeWorkflowExecutionWorkflowImpl) deleteExecutionContext(ctx workflow.Context, executionID string) {
+	logger := workflow.GetLogger(ctx)
+
+	cleanupCtx, cancel := workflow.NewDisconnectedContext(ctx)
+	defer cancel()
+
+	localCtx := workflow.WithLocalActivityOptions(cleanupCtx, workflow.LocalActivityOptions{
+		ScheduleToCloseTimeout: 30 * time.Second,
+		RetryPolicy: &temporal.RetryPolicy{
+			MaximumAttempts: 3,
+			InitialInterval: 2 * time.Second,
+		},
+	})
+
+	err := workflow.ExecuteLocalActivity(localCtx,
+		ecactivities.DeleteExecutionContextActivityName, executionID,
+	).Get(localCtx, nil)
+
+	if err != nil {
+		logger.Warn("ExecutionContext cleanup failed (will rely on TTL backup)",
+			"execution_id", executionID, "error", err.Error())
+		return
+	}
+
+	logger.Info("ExecutionContext cleaned up", "execution_id", executionID)
 }
