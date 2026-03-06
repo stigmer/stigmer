@@ -10,7 +10,6 @@ from __future__ import annotations
 import logging
 
 import grpc
-
 from graphton.core import ModelRegistry
 from graphton.core.models import parse_model_string
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -151,7 +150,7 @@ async def _resolve_agent_id_from_session(
     api_key: str,
     session,
     *,
-    channel: "grpc.aio.Channel | None" = None,
+    channel: grpc.aio.Channel | None = None,
 ) -> str | None:
     """Resolve agent_id via the session chain: session -> agent_instance -> agent.
 

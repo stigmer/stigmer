@@ -55,6 +55,13 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*workf
 	executionID := execution.GetMetadata().GetId()
 	executionOrg := execution.GetMetadata().GetOrg()
 
+	if s.workflowInstanceClient == nil || s.environmentClient == nil || s.executionCtxClient == nil {
+		log.Warn().
+			Str("execution_id", executionID).
+			Msg("ExecutionContext clients not available, skipping execution context creation")
+		return nil
+	}
+
 	log.Debug().
 		Str("execution_id", executionID).
 		Msg("Creating execution context with merged environment")
