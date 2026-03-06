@@ -61,7 +61,7 @@ See [checkpoints/](checkpoints/) for the most recent project state.
 - [x] T02: CreateExecutionContextStep (pipeline step + server wiring)
 - [x] T03: Slim workflow input (remove secrets from Temporal history)
 - [x] T04: Cleanup activity (delete ExecutionContext on completion)
-- [ ] T05: Comprehensive cancellation safety (follow-up refactor)
+- [x] T05: Comprehensive cancellation safety (follow-up refactor)
 - [ ] Project completed
 
 ## How to Resume Work

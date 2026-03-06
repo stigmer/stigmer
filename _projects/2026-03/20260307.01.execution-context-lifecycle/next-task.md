@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-07 01:47
-**Current Task**: T04 (Cleanup Activity) -- COMPLETED
-**Status**: T04 complete, T05 (cancellation safety refactor) documented and ready
+**Current Task**: T05 (Comprehensive Cancellation Safety) -- COMPLETED
+**Status**: All tasks (T01-T05) complete. Project ready for final review and completion.
 
 ## Session Progress (2026-03-07 -- Session 3)
 
@@ -168,9 +168,36 @@ When starting a new session:
 - `go build ./backend/services/stigmer-server/...` compiles cleanly
 - No actual lint issues (only IDE Go version mismatch warnings)
 
+## Session Progress (2026-03-07 -- Session 5)
+
+- **T05 completed** across BOTH OSS (Go) and Cloud (Java) codebases
+- Added explicit cancellation handling as a third distinct code path (success / failure / cancellation)
+- All cleanup operations (status update, callback notification, EC deletion) now execute reliably under workflow cancellation
+
+### Design decisions (T05):
+- Cancellation is a first-class domain event, not a subcase of failure
+- Cancelled executions transition to `EXECUTION_CANCELLED` (proto value 5, already existed -- no proto changes)
+- `completeExternalActivity` is best-effort on the cancellation path (same as failure path)
+- Used `temporal.IsCanceledError(ctx.Err())` in Go (matches codebase pattern in workflow-runner)
+- Used `catch (CanceledFailure cf)` with `!pauseRequested` guard in Java to distinguish external cancellation from pause
+- `Workflow.newDetachedCancellationScope()` in Java for all cleanup under cancellation (status update, callback, EC deletion)
+
+### Modified files (OSS Go):
+- `agentexecution/temporal/workflows/invoke_workflow_impl.go` -- cancellation detection in `Run()`, new `handleCancellation()` + `updateStatusOnCancellation()` methods
+- `workflowexecution/temporal/workflows/invoke_workflow_impl.go` -- same pattern (no callback token)
+
+### Modified files (Cloud Java):
+- `InvokeAgentExecutionWorkflowImpl.java` -- `catch (CanceledFailure)` in `run()` + `executeGraphtonFlow()`, new `handleCancellation()` with detached scope, `finally` block wrapped in detached scope
+- `InvokeWorkflowExecutionWorkflowImpl.java` -- `catch (CanceledFailure)` in `run()`, new `handleCancellation()` with detached scope, `finally` block wrapped in detached scope
+
+### Verification:
+- `go build ./backend/services/stigmer-server/...` compiles cleanly
+- Java Cloud Bazel build: no errors in modified files (pre-existing unrelated errors only)
+
 ## Next Steps
 
-1. **T05: Comprehensive Cancellation Safety** -- Refactor all cleanup operations in AE and WE workflows to be cancellation-safe. See `tasks/T05_0_plan.md` for full design context, open questions, and implementation guidance. This was intentionally separated from T04 due to the mixed failure semantics of `completeExternalActivity`.
+1. **Project complete** -- All tasks T01-T05 are done. Consider marking project as completed.
+2. **Deployment note**: AE workflow input type change (T03) breaks in-flight AE workflows on replay. Drain running AE workflows before deployment.
 
 ## Context for Resume
 
@@ -178,17 +205,16 @@ When starting a new session:
 - T02 wired them in and added CreateExecutionContext steps to both AE and WE pipelines
 - T03 stripped runtime_env from persisted executions, introduced slim AE workflow input, and fixed the stale callback result bug
 - T04 added ExecutionContext cleanup activity with cancellation-safe `NewDisconnectedContext` and fixed Java Cloud activity registration bug
-- After T04: ExecutionContext (containing secrets) is created during execution setup and deleted when workflow completes (success, failure, or cancellation)
-- The full lifecycle is now: create (T02) → use by runners → clean up (T04)
-- **Production bug fixed**: Java Cloud's `DeleteExecutionContextActivityImpl` was called but never registered -- now registered in both worker configs
-- T05 is documented for follow-up: comprehensive cancellation safety for ALL cleanup operations (not just EC deletion)
+- T05 added comprehensive cancellation safety: all four workflow implementations (Go AE/WE, Java AE/WE) now handle cancellation as a distinct code path with disconnected/detached context cleanup
+- The full lifecycle is now: create (T02) → use by runners → clean up on success/failure/cancellation (T04+T05)
+- **Production bug fixed (T04)**: Java Cloud's `DeleteExecutionContextActivityImpl` was called but never registered
+- **Java finally block fixed (T05)**: EC cleanup now uses `newDetachedCancellationScope` so it survives workflow cancellation
 - **BREAKING CHANGE** (from T03): AE workflow input type change breaks in-flight AE workflows on replay. Mitigation: drain running AE workflows before deployment.
-- No proto changes were made in T01-T04
+- No proto changes were made in T01-T05
 
 ## Quick Commands
 
 After loading context:
-- "Start T05" - Begin the Comprehensive Cancellation Safety refactor
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

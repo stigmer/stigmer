@@ -66,6 +66,15 @@ func (w *InvokeAgentExecutionWorkflowImpl) Run(ctx workflow.Context, input *Invo
 
 	// Execute the Graphton flow
 	if err := w.executeGraphtonFlow(ctx, input); err != nil {
+		// Cancellation path: workflow was cancelled externally (user cancel, namespace timeout).
+		// All cleanup runs in a disconnected context to guarantee execution.
+		if temporal.IsCanceledError(ctx.Err()) {
+			logger.Info("Workflow cancelled, running cancellation cleanup", "execution_id", executionID)
+			w.handleCancellation(ctx, executionID, callbackToken)
+			return err
+		}
+
+		// Failure path (unchanged)
 		logger.Error("Workflow execution failed", "execution_id", executionID, "error", err.Error())
 
 		if err := w.updateStatusOnFailure(ctx, executionID, err); err != nil {
@@ -512,6 +521,68 @@ func (w *InvokeAgentExecutionWorkflowImpl) updateStatusOnFailure(ctx workflow.Co
 
 	logger.Info("Updated execution status to FAILED", "execution_id", executionID)
 	return nil
+}
+
+// handleCancellation performs cleanup when the workflow is cancelled externally
+// (user cancellation, namespace timeout). All operations run in a disconnected
+// context so they complete even though the workflow context is cancelled.
+//
+// Operations are best-effort: each is attempted independently and failures are
+// logged but never propagated. The execution must reach a terminal state
+// (CANCELLED) and secrets (ExecutionContext) must be cleaned up regardless.
+func (w *InvokeAgentExecutionWorkflowImpl) handleCancellation(
+	ctx workflow.Context, executionID string, callbackToken []byte,
+) {
+	logger := workflow.GetLogger(ctx)
+
+	cleanupCtx, cancel := workflow.NewDisconnectedContext(ctx)
+	defer cancel()
+
+	w.updateStatusOnCancellation(cleanupCtx, executionID)
+
+	if len(callbackToken) > 0 {
+		if err := w.completeExternalActivity(cleanupCtx, callbackToken, nil,
+			fmt.Errorf("execution cancelled")); err != nil {
+			logger.Warn("Failed to notify parent of cancellation (best-effort)",
+				"execution_id", executionID, "error", err.Error())
+		}
+	}
+
+	w.deleteExecutionContext(cleanupCtx, executionID)
+}
+
+// updateStatusOnCancellation updates the execution status to CANCELLED.
+// Best-effort: logs on error but never propagates.
+func (w *InvokeAgentExecutionWorkflowImpl) updateStatusOnCancellation(ctx workflow.Context, executionID string) {
+	logger := workflow.GetLogger(ctx)
+
+	cancelledStatus := &agentexecutionv1.AgentExecutionStatus{
+		Phase: agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED,
+		Error: "Execution cancelled",
+		Messages: []*agentexecutionv1.AgentMessage{
+			{
+				Type:    agentexecutionv1.MessageType_MESSAGE_SYSTEM,
+				Content: "Execution was cancelled.",
+			},
+		},
+	}
+
+	localCtx := workflow.WithLocalActivityOptions(ctx, workflow.LocalActivityOptions{
+		ScheduleToCloseTimeout: 30 * time.Second,
+		RetryPolicy: &temporal.RetryPolicy{
+			MaximumAttempts: 3,
+			InitialInterval: 2 * time.Second,
+		},
+	})
+
+	err := workflow.ExecuteLocalActivity(localCtx, activities.UpdateExecutionStatusActivityName, executionID, cancelledStatus).Get(localCtx, nil)
+	if err != nil {
+		logger.Warn("Failed to update execution status to CANCELLED",
+			"execution_id", executionID, "error", err.Error())
+		return
+	}
+
+	logger.Info("Updated execution status to CANCELLED", "execution_id", executionID)
 }
 
 // persistFinalStatus persists a status returned by the Python activity as a fallback.
