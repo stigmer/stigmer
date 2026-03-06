@@ -59,8 +59,8 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) renderResult {
 	if isNewSession {
 		header := renderHeaderItem(initialHistory[0], false)
 		if header != "" {
-			r.statusf("%s", header)
-			r.statusf("")
+			r.statusf("%s\n", header)
+			r.statusf("\n")
 		}
 	}
 
@@ -197,7 +197,7 @@ func (r *inlineRenderer) completeFollowUp(input string) renderResult {
 	styledMsg := fmt.Sprintf("%s\n\n", formatHumanMessage(input))
 	r.cfg.program.Send(textInputHideMsg{styledMessage: styledMsg})
 
-	r.history = append(r.history, committedItem{
+	r.recordToHistory(committedItem{
 		kind: kindHumanMessage,
 		text: formatHumanMessage(input),
 	})

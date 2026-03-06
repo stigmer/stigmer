@@ -215,26 +215,25 @@ func (r *inlineRenderer) renderStreamDeltaUncapped(content, newBytes string) {
 // history, ensuring no stale streaming lines remain.
 //
 // Direct-write path: erases the streaming content via EraseLines, then
-// prints the final compact result.
+// prints the final compact result via commitToScrollback (which appends
+// to history and renders with unified spacing).
 func (r *inlineRenderer) completeStreamingTool(e executiontui.ToolCompletedEvent) {
-	subAgentID := r.streamSubAgentID
-
-	r.history = append(r.history, committedItem{
+	item := committedItem{
 		kind:       kindToolCompact,
 		toolCalls:  []toolrender.ToolCallInfo{e.ToolCall},
-		subAgentID: subAgentID,
-	})
+		subAgentID: r.streamSubAgentID,
+	}
 
 	if r.cfg.program != nil {
+		r.recordToHistory(item)
 		r.clearStreamingState()
 		r.triggerReCommit()
 	} else {
 		if termctl.IsSupported(r.cfg.status) && r.streamLineCount > 0 {
 			termctl.EraseLines(r.cfg.status, r.streamLineCount)
 		}
-		line := r.renderToolLine(e.ToolCall, subAgentID)
-		r.statusf("%s\n", line)
 		r.clearStreamingState()
+		r.commitToScrollback(item)
 	}
 }
 

@@ -9,6 +9,17 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
 )
 
+// needsTrailingGap reports whether a committed item kind requires a blank-line
+// gap after it. Used by both renderHistoryBatch (recommit) and
+// commitToScrollback (live) so that both codepaths produce identical spacing.
+func needsTrailingGap(kind committedKind) bool {
+	switch kind {
+	case kindHumanMessage, kindSystemMessage, kindSubAgentComplete, kindPhaseChange:
+		return true
+	}
+	return false
+}
+
 // renderHistoryBatch renders all history items into a single string for
 // batched terminal output. Each non-empty item is separated by a newline,
 // matching the newline that tea.Println appends per call. The result is
@@ -17,7 +28,7 @@ import (
 //
 // The header item (kindHeader) gets an extra trailing newline to produce
 // a blank-line gap between the panel and the first content item, matching
-// the spacing of the initial render (statusf + blank line).
+// the spacing of the initial render (commitToScrollback + blank line).
 func renderHistoryBatch(items []committedItem, opts toolrender.CompactOptions, expanded bool) string {
 	if len(items) == 0 {
 		return ""
@@ -36,11 +47,7 @@ func renderHistoryBatch(items []committedItem, opts toolrender.CompactOptions, e
 		if item.kind == kindHeader {
 			b.WriteByte('\n')
 		}
-		needsGap := item.kind == kindHumanMessage ||
-			item.kind == kindSystemMessage ||
-			item.kind == kindSubAgentComplete ||
-			item.kind == kindPhaseChange
-		if needsGap {
+		if needsTrailingGap(item.kind) {
 			b.WriteByte('\n')
 		}
 		first = false
