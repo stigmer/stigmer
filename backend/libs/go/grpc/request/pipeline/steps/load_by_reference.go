@@ -137,7 +137,7 @@ func (s *LoadByReferenceStep[T]) findBySlug(
 		var resource T
 		resource = resource.ProtoReflect().New().Interface().(T)
 
-		// Unmarshal (BadgerDB stores proto bytes directly)
+		// Unmarshal (store persists proto bytes directly)
 		if err := proto.Unmarshal(data, resource); err != nil {
 			// Skip invalid entries (should not happen in normal operation)
 			continue

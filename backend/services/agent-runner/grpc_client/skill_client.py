@@ -1,5 +1,7 @@
 """gRPC client for Skill API."""
 
+from __future__ import annotations
+
 import asyncio
 import logging
 
@@ -10,6 +12,7 @@ from ai.stigmer.agentic.skill.v1.io_pb2 import SkillId
 from ai.stigmer.commons.apiresource.io_pb2 import ApiResourceReference
 
 from grpc_client.auth.client_interceptor import AuthClientInterceptor
+from grpc_client.channel import create_channel
 from worker.config import Config
 
 logger = logging.getLogger(__name__)
@@ -21,33 +24,33 @@ _DEFAULT_GRPC_TIMEOUT_SECONDS = 10.0
 class SkillClient:
     """Client for fetching skills from Stigmer backend."""
     
-    def __init__(self, api_key: str, *, timeout: float = _DEFAULT_GRPC_TIMEOUT_SECONDS):
+    def __init__(
+        self,
+        api_key: str,
+        *,
+        timeout: float = _DEFAULT_GRPC_TIMEOUT_SECONDS,
+        channel: grpc.aio.Channel | None = None,
+    ):
         """
         Initialize SkillClient with authentication.
         
         Args:
-            api_key: Stigmer API key for authentication
+            api_key: Stigmer API key for authentication.
             timeout: Per-call gRPC deadline in seconds (must stay well under
                      Temporal's 30s heartbeat timeout to allow graceful recovery).
+            channel: Optional shared gRPC channel (from ChannelProvider). When
+                     provided, the client does not create or own a channel.
         """
-        config = Config.load_from_env()
-        endpoint = config.stigmer_backend_endpoint
-        
-        # Create interceptor with API key
-        interceptor = AuthClientInterceptor(api_key)
-        
-        # Create channel with interceptor
-        if endpoint.endswith(":443"):
-            self.channel = grpc.aio.secure_channel(
-                endpoint,
-                grpc.ssl_channel_credentials(),
-                interceptors=[interceptor]
-            )
+        if channel is not None:
+            self.channel = channel
+            self._owns_channel = False
         else:
-            self.channel = grpc.aio.insecure_channel(
-                endpoint,
-                interceptors=[interceptor]
+            config = Config.load_from_env()
+            interceptor = AuthClientInterceptor(api_key)
+            self.channel = create_channel(
+                config.stigmer_backend_endpoint, interceptors=[interceptor],
             )
+            self._owns_channel = True
         
         self.stub = query_pb2_grpc.SkillQueryControllerStub(self.channel)
         self._timeout = timeout
@@ -73,7 +76,6 @@ class SkillClient:
         
         logger.info(f"Fetching {len(skill_ids)} skills: {skill_ids}")
         
-        # Fetch all skills in parallel using get() RPC
         async def fetch_skill(skill_id: str) -> Skill:
             """Fetch a single skill by ID."""
             request = SkillId(value=skill_id)
@@ -91,7 +93,6 @@ class SkillClient:
                     raise
         
         try:
-            # Fetch all skills in parallel
             skills = await asyncio.gather(*[fetch_skill(skill_id) for skill_id in skill_ids])
             
             logger.info(
@@ -102,7 +103,6 @@ class SkillClient:
             return list(skills)
             
         except ValueError:
-            # Re-raise ValueError (skill not found)
             raise
         except grpc.RpcError as e:
             logger.error(f"Failed to fetch skills: {e}")
@@ -153,7 +153,6 @@ class SkillClient:
         logger.info(f"Fetching {len(refs)} skills: {[ref.slug for ref in refs]}")
         
         try:
-            # Fetch all skills in parallel
             skills = await asyncio.gather(
                 *[self.get_by_reference(ref) for ref in refs]
             )
@@ -166,7 +165,6 @@ class SkillClient:
             return list(skills)
             
         except ValueError:
-            # Re-raise ValueError (skill not found)
             raise
         except grpc.RpcError as e:
             logger.error(f"Failed to fetch skills: {e}")

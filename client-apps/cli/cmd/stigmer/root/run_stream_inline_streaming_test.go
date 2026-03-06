@@ -2,11 +2,13 @@ package root
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/termctl"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
 )
 
@@ -40,7 +42,6 @@ func TestInitPreApprovalStreaming_PrintsHeaderAndSeparator(t *testing.T) {
 	if r.streamLineCount != r.streamHeaderRows {
 		t.Errorf("expected streamLineCount == streamHeaderRows, got %d vs %d", r.streamLineCount, r.streamHeaderRows)
 	}
-
 	output := stripANSIApproval(stderr.String())
 	if !strings.Contains(output, "Write") {
 		t.Errorf("expected header to contain Write, got:\n%s", output)
@@ -537,7 +538,7 @@ func TestHandleEvent_DoesNotInitiateStreamingForNonStreamingWrite(t *testing.T) 
 	}
 }
 
-func TestHandleEvent_DoesNotInitiateStreamingForShellRunning(t *testing.T) {
+func TestHandleEvent_InitiatesStreamingForAnyStreamingTool(t *testing.T) {
 	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
 
 	r.handleEvent(context.Background(), executiontui.ToolRunningEvent{
@@ -550,8 +551,8 @@ func TestHandleEvent_DoesNotInitiateStreamingForShellRunning(t *testing.T) {
 		},
 	})
 
-	if r.activeStreamToolID == "tc-sh1" {
-		t.Error("shell ToolRunningEvent should not initiate pre-approval streaming")
+	if r.activeStreamToolID != "tc-sh1" {
+		t.Errorf("any tool with IsStreaming=true should initiate pre-approval streaming, got %q", r.activeStreamToolID)
 	}
 }
 
@@ -615,6 +616,70 @@ func TestRenderToolWaitingApproval_NoStreamingState(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// completeStreamingTool history recording
+// ---------------------------------------------------------------------------
+
+func TestCompleteStreamingTool_RecordsHistory(t *testing.T) {
+	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
+	r.activeStreamToolID = "tc-h1"
+	r.toolStreamedBytes = 10
+	r.streamHeaderRows = 1
+	r.streamLineCount = 3
+
+	tc := toolrender.ToolCallInfo{
+		Name:   "shell",
+		Args:   map[string]interface{}{"command": "echo hi"},
+		Status: "completed",
+		Result: "hi",
+	}
+	r.completeStreamingTool(executiontui.ToolCompletedEvent{
+		ToolCallID: "tc-h1",
+		ToolCall:   tc,
+	})
+
+	found := false
+	for _, item := range r.history {
+		if item.kind == kindToolCompact && len(item.toolCalls) > 0 && item.toolCalls[0].Name == "shell" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("completeStreamingTool should record kindToolCompact in history")
+	}
+}
+
+func TestCompleteStreamingTool_RecordsSubAgentID(t *testing.T) {
+	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
+	r.activeStreamToolID = "tc-h2"
+	r.toolStreamedBytes = 5
+	r.streamHeaderRows = 1
+	r.streamLineCount = 2
+	r.streamSubAgentID = "sa-hist"
+
+	r.completeStreamingTool(executiontui.ToolCompletedEvent{
+		ToolCallID: "tc-h2",
+		ToolCall: toolrender.ToolCallInfo{
+			Name:   "shell",
+			Args:   map[string]interface{}{"command": "ls"},
+			Status: "completed",
+			Result: "file.txt",
+		},
+	})
+
+	var item *committedItem
+	for i := range r.history {
+		if r.history[i].kind == kindToolCompact && r.history[i].subAgentID == "sa-hist" {
+			item = &r.history[i]
+			break
+		}
+	}
+	if item == nil {
+		t.Error("completeStreamingTool should record subAgentID in history item")
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Shell approval -> streaming -> completion (end-to-end)
 // ---------------------------------------------------------------------------
 
@@ -623,7 +688,7 @@ func TestShellApproval_FullStreamingFlow(t *testing.T) {
 	r, _, stderr, responses := newApprovalTestRenderer(prompter, approval.ActionUnspecified)
 
 	tc := shellToolCall()
-	r.waitingApproval = &waitingApprovalState{tc: tc, runningLineRendered: true}
+	r.waitingApproval = &waitingApprovalState{tc: tc}
 
 	r.handleApproval(context.Background(), executiontui.ApprovalNeededEvent{
 		ToolCallID: "tc-e2e",
@@ -712,7 +777,7 @@ func TestNonInteractiveShellApproval_InitiatesStreaming(t *testing.T) {
 	r, _, stderr, responses := newApprovalTestRenderer(&mockPrompter{}, approval.ActionApprove)
 
 	tc := shellToolCall()
-	r.waitingApproval = &waitingApprovalState{tc: tc, runningLineRendered: false}
+	r.waitingApproval = &waitingApprovalState{tc: tc}
 
 	r.handleApproval(context.Background(), executiontui.ApprovalNeededEvent{
 		ToolCallID: "tc-ni",
@@ -756,10 +821,10 @@ func TestNonInteractiveApproval_ContentStreamed_ErasesStreamedRows(t *testing.T)
 }
 
 // ---------------------------------------------------------------------------
-// Interactive approval with content-streamed path
+// Interactive approval with content-streamed path re-renders expanded view
 // ---------------------------------------------------------------------------
 
-func TestInteractiveApproval_ContentStreamed_AddsSeparator(t *testing.T) {
+func TestInteractiveApproval_ContentStreamed_ReRendersWithPath(t *testing.T) {
 	prompter := &mockPrompter{decision: &approval.Decision{Action: approval.ActionApprove}}
 	r, _, stderr, responses := newApprovalTestRenderer(prompter, approval.ActionUnspecified)
 
@@ -777,14 +842,114 @@ func TestInteractiveApproval_ContentStreamed_AddsSeparator(t *testing.T) {
 	<-responses
 
 	output := stripANSIApproval(stderr.String())
+	if !strings.Contains(output, "Write(config.go)") {
+		t.Errorf("re-rendered expanded view should contain header with path, got:\n%s", output)
+	}
 	if !strings.Contains(output, "─") {
-		t.Errorf("expected separator added below streamed content, got:\n%s", output)
+		t.Errorf("re-rendered expanded view should contain separator, got:\n%s", output)
+	}
+}
+
+func TestErasePreApprovalContent_AndBuildExpandedView(t *testing.T) {
+	r, _, stderr, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
+	tc := writeToolCall()
+
+	r.erasePreApprovalContent(true, 4, true)
+
+	maxContentLines := approvalContentBudget(40)
+	expanded := r.buildExpandedView(tc, 80, maxContentLines)
+	fmt.Fprint(r.cfg.status, expanded)
+	rows := termctl.DisplayRows(expanded, 80)
+
+	if rows <= 0 {
+		t.Error("expanded view should have positive row count")
+	}
+	output := stripANSIApproval(stderr.String())
+	if !strings.Contains(output, "Write(config.go)") {
+		t.Errorf("expected expanded view header, got:\n%s", output)
 	}
 }
 
 // ---------------------------------------------------------------------------
 // resolveApprovalContext returns streaming fields
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Direct-write streaming — pre-approval prints all lines
+// ---------------------------------------------------------------------------
+
+func TestRenderToolStreamDeltaDirect_PreApproval_PrintsAllLines(t *testing.T) {
+	r, _, stderr, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
+	r.activeStreamToolID = "tc-pre"
+	r.toolStreamedBytes = 0
+	r.streamHeaderRows = 2
+	r.streamLineCount = 2
+	r.streamIsPreApproval = true
+
+	var content string
+	for i := 1; i <= 50; i++ {
+		content += fmt.Sprintf("line %d\n", i)
+	}
+	r.renderToolStreamDeltaDirect(content)
+
+	output := stderr.String()
+	if !strings.Contains(output, "line 1") {
+		t.Errorf("expected first line printed, got: %q", output)
+	}
+	if !strings.Contains(output, "line 50") {
+		t.Errorf("expected last line printed, got: %q", output)
+	}
+}
+
+func TestRenderToolStreamDeltaDirect_PostApproval_PrintsAllLines(t *testing.T) {
+	r, _, stderr, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
+	r.activeStreamToolID = "tc-post"
+	r.toolStreamedBytes = 0
+	r.streamHeaderRows = 1
+	r.streamLineCount = 1
+	r.streamIsPreApproval = false
+
+	var content string
+	for i := 1; i <= 50; i++ {
+		content += fmt.Sprintf("line %d\n", i)
+	}
+	r.renderToolStreamDeltaDirect(content)
+
+	output := stderr.String()
+	if !strings.Contains(output, "line 50") {
+		t.Errorf("post-approval should print all lines, got: %q", output)
+	}
+}
+
+func TestClearStreamingState_ResetsPreApprovalFlag(t *testing.T) {
+	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
+	r.streamIsPreApproval = true
+
+	r.clearStreamingState()
+
+	if r.streamIsPreApproval {
+		t.Error("clearStreamingState should reset streamIsPreApproval")
+	}
+}
+
+func TestInitPreApprovalStreaming_SetsPreApprovalFlag(t *testing.T) {
+	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
+
+	e := executiontui.ToolRunningEvent{
+		ToolCallID: "tc-flag",
+		ToolCall: toolrender.ToolCallInfo{
+			Name:        "write_file",
+			Args:        map[string]interface{}{"path": "x.go", "contents": "pkg"},
+			Status:      "running",
+			IsStreaming: true,
+		},
+	}
+	r.initPreApprovalStreaming(e)
+
+	if !r.streamIsPreApproval {
+		t.Error("initPreApprovalStreaming should set streamIsPreApproval=true")
+	}
+}
 
 func TestResolveApprovalContext_WithStreaming(t *testing.T) {
 	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
@@ -796,7 +961,7 @@ func TestResolveApprovalContext_WithStreaming(t *testing.T) {
 		streamedRows:    7,
 	}
 
-	_, _, _, gotStreamed, gotRows := r.resolveApprovalContext(executiontui.ApprovalNeededEvent{
+	_, _, gotStreamed, gotRows := r.resolveApprovalContext(executiontui.ApprovalNeededEvent{
 		ToolCallID: "tc-1",
 		ToolName:   "write_file",
 	})

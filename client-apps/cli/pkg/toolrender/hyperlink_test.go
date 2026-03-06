@@ -13,7 +13,7 @@ import (
 
 func TestHyperlink_WrapsTextInOSC8(t *testing.T) {
 	got := Hyperlink("click me", "https://example.com")
-	want := "\033]8;;https://example.com\033\\click me\033]8;;\033\\"
+	want := "\033]8;;https://example.com\aclick me\033]8;;\a"
 	if got != want {
 		t.Errorf("Hyperlink() =\n  %q\nwant:\n  %q", got, want)
 	}
@@ -21,7 +21,7 @@ func TestHyperlink_WrapsTextInOSC8(t *testing.T) {
 
 func TestHyperlink_EmptyDisplayText(t *testing.T) {
 	got := Hyperlink("", "https://example.com")
-	want := "\033]8;;https://example.com\033\\\033]8;;\033\\"
+	want := "\033]8;;https://example.com\a\033]8;;\a"
 	if got != want {
 		t.Errorf("Hyperlink(\"\", uri) =\n  %q\nwant:\n  %q", got, want)
 	}
@@ -29,7 +29,7 @@ func TestHyperlink_EmptyDisplayText(t *testing.T) {
 
 func TestHyperlink_EmptyURI(t *testing.T) {
 	got := Hyperlink("some text", "")
-	want := "\033]8;;\033\\some text\033]8;;\033\\"
+	want := "\033]8;;\asome text\033]8;;\a"
 	if got != want {
 		t.Errorf("Hyperlink(text, \"\") =\n  %q\nwant:\n  %q", got, want)
 	}
@@ -290,25 +290,110 @@ func TestHyperlinksEnabled_NilWriter_ReturnsFalse(t *testing.T) {
 }
 
 // =============================================================================
+// HyperlinksEnabled — STIGMER_HYPERLINKS env var override
+// =============================================================================
+
+func TestHyperlinksEnabled_EnvOverride_On(t *testing.T) {
+	for _, val := range []string{"on", "1", "true", "yes", "ON", "True", "YES"} {
+		t.Run(val, func(t *testing.T) {
+			t.Setenv("STIGMER_HYPERLINKS", val)
+			var buf bytes.Buffer
+			if !HyperlinksEnabled(&buf) {
+				t.Errorf("STIGMER_HYPERLINKS=%q should force enable (even non-TTY)", val)
+			}
+		})
+	}
+}
+
+func TestHyperlinksEnabled_EnvOverride_Off(t *testing.T) {
+	for _, val := range []string{"off", "0", "false", "no", "OFF"} {
+		t.Run(val, func(t *testing.T) {
+			t.Setenv("STIGMER_HYPERLINKS", val)
+			if HyperlinksEnabled(os.Stderr) {
+				t.Errorf("STIGMER_HYPERLINKS=%q should force disable", val)
+			}
+		})
+	}
+}
+
+func TestHyperlinksEnabled_EnvOverride_UnsetFallsThrough(t *testing.T) {
+	os.Unsetenv("STIGMER_HYPERLINKS")
+	var buf bytes.Buffer
+	if HyperlinksEnabled(&buf) {
+		t.Error("unset STIGMER_HYPERLINKS with non-TTY should be false via fallthrough")
+	}
+}
+
+// =============================================================================
+// HyperlinksEnabled — TERM_PROGRAM allowlist
+// =============================================================================
+
+func TestHyperlinksEnabled_TermProgram_UnknownReturnsFalse(t *testing.T) {
+	os.Unsetenv("STIGMER_HYPERLINKS")
+	t.Setenv("TERM_PROGRAM", "unknown-terminal")
+	t.Setenv("TERM", "xterm-256color")
+	os.Unsetenv("NO_COLOR")
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("os.Pipe() failed: %v", err)
+	}
+	defer r.Close()
+	defer w.Close()
+
+	if HyperlinksEnabled(w) {
+		t.Error("unknown TERM_PROGRAM should return false (pipe is not a TTY anyway)")
+	}
+}
+
+func TestHyperlinksEnabled_TermProgram_AllowlistEntries(t *testing.T) {
+	for _, tp := range []string{"iTerm.app", "WezTerm", "ghostty", "vscode", "tmux", "kitty"} {
+		t.Run(tp, func(t *testing.T) {
+			if !osc8SupportedTerminals[tp] {
+				t.Errorf("expected %q in osc8SupportedTerminals allowlist", tp)
+			}
+		})
+	}
+}
+
+// =============================================================================
+// isEnvTrue
+// =============================================================================
+
+func TestIsEnvTrue_TrueValues(t *testing.T) {
+	for _, v := range []string{"on", "1", "true", "yes", "ON", "True", "YES"} {
+		if !isEnvTrue(v) {
+			t.Errorf("isEnvTrue(%q) = false, want true", v)
+		}
+	}
+}
+
+func TestIsEnvTrue_FalseValues(t *testing.T) {
+	for _, v := range []string{"off", "0", "false", "no", "", "maybe"} {
+		if isEnvTrue(v) {
+			t.Errorf("isEnvTrue(%q) = true, want false", v)
+		}
+	}
+}
+
+// =============================================================================
 // OSC 8 structure verification
 // =============================================================================
 
 func TestOSC8_SequenceStructure(t *testing.T) {
 	link := Hyperlink("text", "file:///path")
 
-	esc := "\033"
-
-	if !strings.HasPrefix(link, esc+"]8;;") {
+	if !strings.HasPrefix(link, "\033]8;;") {
 		t.Error("OSC 8 should start with ESC ] 8 ;;")
 	}
 
-	if !strings.Contains(link, esc+"\\") {
-		t.Error("OSC 8 should contain String Terminator (ESC + backslash)")
+	if !strings.Contains(link, "\a") {
+		t.Error("OSC 8 should contain BEL terminator")
 	}
 
-	parts := strings.Split(link, esc+"\\")
+	parts := strings.Split(link, "\a")
 	if len(parts) < 3 {
-		t.Errorf("expected at least 3 segments split by ST, got %d: %q", len(parts), parts)
+		t.Errorf("expected at least 3 segments split by BEL, got %d: %q", len(parts), parts)
 	}
 }
 
@@ -316,10 +401,10 @@ func TestOSC8_Constants_WellFormed(t *testing.T) {
 	if osc8Open != "\033]8;;" {
 		t.Errorf("osc8Open = %q, want %q", osc8Open, "\033]8;;")
 	}
-	if st != "\033\\" {
-		t.Errorf("st = %q, want %q", st, "\033\\")
+	if st != "\a" {
+		t.Errorf("st = %q, want %q", st, "\a")
 	}
-	if osc8Close != "\033]8;;\033\\" {
-		t.Errorf("osc8Close = %q, want %q", osc8Close, "\033]8;;\033\\")
+	if osc8Close != "\033]8;;\a" {
+		t.Errorf("osc8Close = %q, want %q", osc8Close, "\033]8;;\a")
 	}
 }

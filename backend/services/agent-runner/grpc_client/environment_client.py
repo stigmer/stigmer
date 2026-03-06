@@ -1,5 +1,7 @@
 """gRPC client for fetching Environment resources."""
 
+from __future__ import annotations
+
 import asyncio
 import logging
 
@@ -9,6 +11,7 @@ from ai.stigmer.agentic.environment.v1.api_pb2 import Environment
 from ai.stigmer.commons.apiresource.io_pb2 import ApiResourceReference
 
 from grpc_client.auth.client_interceptor import AuthClientInterceptor
+from grpc_client.channel import create_channel
 from worker.config import Config
 
 logger = logging.getLogger(__name__)
@@ -20,33 +23,33 @@ _DEFAULT_GRPC_TIMEOUT_SECONDS = 10.0
 class EnvironmentClient:
     """Client for fetching environments from Stigmer backend."""
     
-    def __init__(self, api_key: str, *, timeout: float = _DEFAULT_GRPC_TIMEOUT_SECONDS):
+    def __init__(
+        self,
+        api_key: str,
+        *,
+        timeout: float = _DEFAULT_GRPC_TIMEOUT_SECONDS,
+        channel: grpc.aio.Channel | None = None,
+    ):
         """
         Initialize EnvironmentClient with authentication.
         
         Args:
-            api_key: Stigmer API key for authentication
+            api_key: Stigmer API key for authentication.
             timeout: Per-call gRPC deadline in seconds (must stay well under
                      Temporal's 30s heartbeat timeout to allow graceful recovery).
+            channel: Optional shared gRPC channel (from ChannelProvider). When
+                     provided, the client does not create or own a channel.
         """
-        config = Config.load_from_env()
-        endpoint = config.stigmer_backend_endpoint
-        
-        # Create interceptor with API key
-        interceptor = AuthClientInterceptor(api_key)
-        
-        # Create channel with interceptor
-        if endpoint.endswith(":443"):
-            self.channel = grpc.aio.secure_channel(
-                endpoint,
-                grpc.ssl_channel_credentials(),
-                interceptors=[interceptor]
-            )
+        if channel is not None:
+            self.channel = channel
+            self._owns_channel = False
         else:
-            self.channel = grpc.aio.insecure_channel(
-                endpoint,
-                interceptors=[interceptor]
+            config = Config.load_from_env()
+            interceptor = AuthClientInterceptor(api_key)
+            self.channel = create_channel(
+                config.stigmer_backend_endpoint, interceptors=[interceptor],
             )
+            self._owns_channel = True
         
         self.stub = query_pb2_grpc.EnvironmentQueryControllerStub(self.channel)
         self._timeout = timeout
@@ -98,7 +101,6 @@ class EnvironmentClient:
         logger.info(f"Fetching {len(refs)} environments: {[ref.slug for ref in refs]}")
         
         try:
-            # Fetch all environments in parallel, preserving order
             environments = await asyncio.gather(
                 *[self.get_by_reference(ref) for ref in refs]
             )
@@ -111,7 +113,6 @@ class EnvironmentClient:
             return list(environments)
             
         except ValueError:
-            # Re-raise ValueError (environment not found)
             raise
         except grpc.RpcError as e:
             logger.error(f"Failed to fetch environments: {e}")

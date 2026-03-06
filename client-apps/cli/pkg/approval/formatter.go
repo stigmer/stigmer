@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 )
 
 // toolCategory defines how to format arguments for a specific type of tool.

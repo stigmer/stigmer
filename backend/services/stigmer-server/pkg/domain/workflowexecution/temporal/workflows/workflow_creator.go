@@ -11,7 +11,7 @@ import (
 )
 
 // InvokeWorkflowExecutionWorkflowCreator creates and starts Temporal workflows for workflow execution invocation.
-// Called by WorkflowExecutionController after persisting execution to BadgerDB.
+// Called by WorkflowExecutionController after persisting execution to SQLite.
 //
 // Polyglot Configuration:
 // - stigmer: Go workflows on workflow_execution_stigmer (stigmer-server)

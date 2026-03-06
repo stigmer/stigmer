@@ -86,6 +86,13 @@ func emitSnapshotEvents(exec *agentexecutionv1.AgentExecution, events chan<- exe
 		return a < b
 	})
 
+	// Emit the user's input message from the execution spec. Each execution
+	// represents one user message and the agent's response; the spec carries
+	// the original prompt. The "execute" placeholder is suppressed.
+	if msg := exec.GetSpec().GetMessage(); msg != "" && msg != "execute" {
+		events <- executiontui.HumanMessageEvent{Content: msg}
+	}
+
 	emittedIDs := make(map[string]bool)
 	nmCursor := 0
 
@@ -95,6 +102,9 @@ func emitSnapshotEvents(exec *agentexecutionv1.AgentExecution, events chan<- exe
 		nmCursor = emitInterleaved(events, nonMsgToolCalls, nmCursor, msg.GetTimestamp(), emittedIDs)
 
 		switch msg.Type {
+		case agentexecutionv1.MessageType_MESSAGE_HUMAN:
+			// Handled by Spec.Message emission above.
+
 		case agentexecutionv1.MessageType_MESSAGE_TOOL:
 			emitToolMessageAsStateful(events, msg, toolCallByID, emittedIDs)
 

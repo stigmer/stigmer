@@ -6,8 +6,8 @@ go_library(
     importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint",
     visibility = ["//client-apps/cli:__subpackages__"],
     deps = [
-        "@com_github_charmbracelet_bubbles//spinner",
-        "@com_github_charmbracelet_bubbletea//:bubbletea",
-        "@com_github_charmbracelet_lipgloss//:lipgloss",
+        "@land_charm_bubbles_v2//spinner:spinner",
+        "@land_charm_bubbletea_v2//:bubbletea",
+        "@land_charm_lipgloss_v2//:lipgloss",
     ],
 )

@@ -49,6 +49,8 @@ import (
 	workflowexecutionworkflows "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
 	workflowinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowinstance/controller"
 	agentclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
+	environmentclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/environment"
+	executioncontextclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/executioncontext"
 	mcpserverclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/mcpserver"
 	skillclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/skill"
 
@@ -366,8 +368,10 @@ func Run() error {
 	workflowInstanceClient := workflowinstanceclient.NewClient(inProcessConn)
 	mcpServerClient := mcpserverclient.NewClient(inProcessConn)
 	skillClient := skillclient.NewClient(inProcessConn)
+	environmentClient := environmentclient.NewClient(inProcessConn)
+	executionContextClient := executioncontextclient.NewClient(inProcessConn)
 
-	log.Info().Msg("Created in-process gRPC clients for Agent, AgentInstance, Session, Workflow, WorkflowInstance, McpServer, and Skill")
+	log.Info().Msg("Created in-process gRPC clients for Agent, AgentInstance, Session, Workflow, WorkflowInstance, McpServer, Skill, Environment, and ExecutionContext")
 
 	// ============================================================================
 	// Rebuild search index at startup
@@ -400,10 +404,11 @@ func Run() error {
 	// Now inject dependencies into controllers that need them
 	// Note: Controllers are already registered, we're just updating their internal state
 	agentController.SetAgentInstanceClient(agentInstanceClient)
-	agentExecutionController.SetClients(agentClient, agentInstanceClient, sessionClient)
+	agentExecutionController.SetClients(agentClient, agentInstanceClient, sessionClient, environmentClient, executionContextClient)
 	workflowController.SetWorkflowInstanceClient(workflowInstanceClient)
 	workflowInstanceController.SetWorkflowClient(workflowClient)
 	workflowExecutionController.SetWorkflowInstanceClient(workflowInstanceClient)
+	workflowExecutionController.SetEnvironmentAndExecutionContextClients(environmentClient, executionContextClient)
 
 	// Inject workflow creators (nil-safe, controllers handle gracefully)
 	workflowExecutionController.SetWorkflowCreator(workflowExecutionWorkflowCreator)
@@ -464,8 +469,8 @@ func Run() error {
 	}
 
 	// Wait for interrupt signal
-	<-done
-	log.Info().Msg("Received shutdown signal")
+	sig := <-done
+	log.Info().Str("signal", sig.String()).Msg("Received shutdown signal")
 
 	// Graceful shutdown
 	server.Stop()

@@ -144,7 +144,6 @@ func handleJSONEvent(enc *json.Encoder, cfg jsonRenderConfig, event executiontui
 		writeJSONEvent(enc, "sub_agent_started", map[string]any{
 			"id":          e.ID,
 			"name":        e.Name,
-			"input":       e.Input,
 			"description": e.Description,
 		})
 

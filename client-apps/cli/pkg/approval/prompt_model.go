@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 // promptPhase tracks the current stage of the approval prompt.
@@ -81,20 +81,21 @@ func (m promptModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 // View implements tea.Model. It delegates to the phase-specific renderer.
-func (m promptModel) View() string {
+func (m promptModel) View() tea.View {
+	var content string
 	switch m.phase {
 	case phaseSelect:
-		return m.viewSelect()
+		content = m.viewSelect()
 	case phaseComment:
-		return m.viewComment()
+		content = m.viewComment()
 	}
-	return ""
+	return tea.NewView(content)
 }
 
 // --- Selection phase ---
 
 func (m promptModel) updateSelect(msg tea.Msg) (tea.Model, tea.Cmd) {
-	keyMsg, ok := msg.(tea.KeyMsg)
+	keyMsg, ok := msg.(tea.KeyPressMsg)
 	if !ok {
 		return m, nil
 	}
@@ -153,7 +154,7 @@ func (m promptModel) viewSelect() string {
 // --- Comment phase ---
 
 func (m promptModel) updateComment(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if keyMsg, ok := msg.(tea.KeyMsg); ok {
+	if keyMsg, ok := msg.(tea.KeyPressMsg); ok {
 		switch keyMsg.String() {
 		case "enter":
 			m.decision.Comment = m.textInput.Value()

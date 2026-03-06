@@ -17,7 +17,7 @@ import (
 //
 // Pipeline (Stigmer OSS - simplified from Cloud):
 // - ValidateProto: Validates buf.validate constraints on ApiResourceId
-// - LoadTarget: Loads environment from BadgerDB by ID, returns NotFound if missing
+// - LoadTarget: Loads environment from SQLite by ID, returns NotFound if missing
 //
 // Note: Compared to Stigmer Cloud, OSS excludes:
 // - ExtractResourceId step (not needed - ID is already in ApiResourceId.value)

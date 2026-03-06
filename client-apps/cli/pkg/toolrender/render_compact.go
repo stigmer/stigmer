@@ -2,10 +2,11 @@ package toolrender
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 )
 
 // maxVisibleInGroup is the maximum number of file entries shown in a read
@@ -51,9 +52,29 @@ type CompactOptions struct {
 	// WorkspaceRoots holds the local absolute paths of workspace directories.
 	// Used to resolve relative file paths into absolute paths for file://
 	// hyperlinks. In multi-workspace sessions, the first path segment of a
-	// relative path is matched against workspace root basenames.
+	// relative path is matched against workspace root basenames; unmatched
+	// paths fall back to a stat-probe against each root.
 	// When empty, relative paths degrade to plain text (no hyperlink).
 	WorkspaceRoots []string
+
+	// SandboxRoot is the session's sandbox directory on disk:
+	// ~/.stigmer/data/workspace/sessions/<session-id>/
+	// Used as a universal fallback for path resolution — covers git clones,
+	// symlinked local workspaces, and any other files in the sandbox.
+	// Empty when no session is active.
+	SandboxRoot string
+
+	// PlatformDir is the session's platform directory on disk:
+	// ~/.stigmer/sessions/<session-id>/platform/
+	// Used to resolve .stigmer/ virtual-mount paths that the agent emits
+	// (e.g., .stigmer/skills/mcp-server-creator/SKILL.md). Empty when no
+	// session is active.
+	PlatformDir string
+
+	// StatFunc checks whether a path exists on disk. Used by the stat-probe
+	// fallback in multi-workspace path resolution. Defaults to os.Stat when
+	// nil. Inject a stub for deterministic tests.
+	StatFunc func(string) (os.FileInfo, error)
 }
 
 // RenderCompact returns a compact display of a completed tool call. Every
@@ -73,7 +94,7 @@ type CompactOptions struct {
 func RenderCompact(tc ToolCallInfo, opts CompactOptions) string {
 	info, known := toolDisplayMap[tc.Name]
 	if !known {
-		return RenderWithBadge(tc, StateBadge(tc.Status))
+		return renderCompactUnknown(tc, opts)
 	}
 	switch {
 	case info.label == "Read":
@@ -112,7 +133,10 @@ func RenderCompact(tc ToolCallInfo, opts CompactOptions) string {
 //	"● Thinking …"                (label-only)
 func RenderCompactRunning(tc ToolCallInfo, opts CompactOptions) string {
 	info, known := toolDisplayMap[tc.Name]
-	if !known || !hasCompactRenderer(info) {
+	if !known {
+		return renderCompactUnknownRunning(tc)
+	}
+	if !hasCompactRenderer(info) {
 		return RenderWithBadge(tc, StateBadge("running"))
 	}
 
@@ -231,6 +255,11 @@ func IsTaskTool(toolName string) bool {
 	info, ok := toolDisplayMap[toolName]
 	return ok && info.label == "Task"
 }
+
+// GutterWidth returns the visible character width of the gutter prefix
+// added by GutterWrap. Callers use this to compute the available content
+// width after gutter indentation.
+func GutterWidth() int { return 4 }
 
 // GutterWrap prepends a dim gutter prefix ("  │ ") to each line of s,
 // visually nesting the content under a sub-agent Task header. The pipe
@@ -495,6 +524,133 @@ func renderCompactThink(tc ToolCallInfo, info toolDisplayInfo, opts CompactOptio
 	return b.String()
 }
 
+// maxUnknownOutputLines is the maximum number of result output lines shown
+// in a compact unknown/MCP tool display. Uses the same smart cutoff pattern
+// as shell output: when total lines <= maxUnknownOutputLines + 1, all lines
+// are shown.
+const maxUnknownOutputLines = 3
+
+// renderCompactUnknown produces a compact display for unknown/MCP tool calls.
+// Uses the same visual language as built-in compact renderers — green bullet,
+// bold tool name, dim metadata, input args, and output preview:
+//
+//	● search (1.6 KB, 1.6s)
+//	    query: "planton cloud mcp server"
+//	    Found 8 definition(s) matching "planton cloud mcp server"
+//	    … +22 more lines
+//
+// Error case (error embedded in result):
+//
+//	● get_mcp_server (521 chars, 196ms)
+//	    org: "default"
+//	    ✗ MCP server "planton-cloud" not found...
+//
+// With server identity (Phase 2, when tc.ServerName is populated):
+//
+//	● planton-cloud/search (1.6 KB, 1.6s)
+//	    query: "planton cloud mcp server"
+//	    Found 8 definition(s) matching...
+func renderCompactUnknown(tc ToolCallInfo, opts CompactOptions) string {
+	header := buildUnknownCompactHeader(tc)
+
+	if errMsg := toolCallError(tc); errMsg != "" {
+		return buildUnknownWithError(header, tc.Args, errMsg)
+	}
+
+	return buildUnknownWithResult(header, tc)
+}
+
+// buildUnknownCompactHeader produces the first line: bullet, tool name, and
+// metadata suffix. When ServerName is populated (Phase 2), the header shows
+// "● server/tool (metadata)".
+func buildUnknownCompactHeader(tc ToolCallInfo) string {
+	name := tc.Name
+	if tc.ServerName != "" {
+		name = tc.ServerName + "/" + tc.Name
+	}
+
+	header := fmt.Sprintf("%s %s", bulletStyle.Render("●"), labelStyle.Render(name))
+
+	suffix := renderSuffix(tc)
+	if suffix != "" {
+		header += " " + dimStyle.Render(suffix)
+	}
+
+	if badge := StateBadge(tc.Status); badge != "" {
+		header += " " + dimStyle.Render(badge)
+	}
+	return header
+}
+
+// buildUnknownWithError assembles the compact unknown tool display when an
+// error is detected. Shows input args followed by the error message.
+func buildUnknownWithError(header string, args map[string]interface{}, errMsg string) string {
+	var b strings.Builder
+	b.WriteString(header)
+
+	if inputLines := formatInputArgs(args, maxInputArgs); inputLines != "" {
+		b.WriteByte('\n')
+		b.WriteString(inputLines)
+	}
+
+	b.WriteByte('\n')
+	b.WriteString(dimStyle.Render("    ✗ " + truncate(errMsg, 60)))
+	return b.String()
+}
+
+// buildUnknownWithResult assembles the compact unknown tool display for a
+// successful (or in-progress) tool call. Shows input args followed by up to
+// maxUnknownOutputLines of result content.
+func buildUnknownWithResult(header string, tc ToolCallInfo) string {
+	var b strings.Builder
+	b.WriteString(header)
+
+	if inputLines := formatInputArgs(tc.Args, maxInputArgs); inputLines != "" {
+		b.WriteByte('\n')
+		b.WriteString(inputLines)
+	}
+
+	result := strings.TrimSpace(tc.Result)
+	if result == "" {
+		return b.String()
+	}
+
+	lines := strings.Split(strings.TrimRight(result, "\n"), "\n")
+	showAll := len(lines) <= maxUnknownOutputLines+1
+	visibleCount := len(lines)
+	if !showAll {
+		visibleCount = maxUnknownOutputLines
+	}
+
+	for i := 0; i < visibleCount; i++ {
+		b.WriteByte('\n')
+		b.WriteString(dimStyle.Render("    " + lines[i]))
+	}
+	if !showAll {
+		b.WriteByte('\n')
+		b.WriteString(dimStyle.Render(fmt.Sprintf("    … +%d more lines", len(lines)-visibleCount)))
+	}
+
+	return b.String()
+}
+
+// renderCompactUnknownRunning produces a single-line running indicator for
+// unknown/MCP tools. Matches the compact running style of built-in tools.
+//
+// Examples:
+//
+//	"● search …"
+//	"● planton-cloud/get_mcp_server …"
+func renderCompactUnknownRunning(tc ToolCallInfo) string {
+	name := tc.Name
+	if tc.ServerName != "" {
+		name = tc.ServerName + "/" + tc.Name
+	}
+	return fmt.Sprintf("%s %s %s",
+		bulletStyle.Render("●"), labelStyle.Render(name),
+		dimStyle.Render("…"))
+}
+
 // countResultEntries counts non-empty lines in a discovery tool result.
 // Unlike countLines (designed for file content where trailing newlines
 // matter), this counts actual result entries — appropriate for directory
@@ -647,7 +803,8 @@ func renderGroupEntry(tc ToolCallInfo, opts CompactOptions) string {
 }
 
 // buildHyperlinkedPath wraps a file path in an OSC 8 hyperlink when enabled.
-// Relative paths are resolved against WorkspaceRoots; unresolvable relative
+// Relative paths are resolved against WorkspaceRoots, PlatformDir (.stigmer/
+// virtual mount), and SandboxRoot (universal fallback). Unresolvable relative
 // paths degrade to plain text (no hyperlink) to avoid malformed file:// URIs
 // where the first path segment would be misinterpreted as a hostname.
 func buildHyperlinkedPath(path string, opts CompactOptions) string {
@@ -660,7 +817,7 @@ func buildHyperlinkedPath(path string, opts CompactOptions) string {
 
 	absPath := path
 	if !filepath.IsAbs(path) {
-		resolved := resolveWorkspacePath(path, opts.WorkspaceRoots)
+		resolved := resolveWorkspacePath(path, opts)
 		if resolved == "" {
 			return path
 		}
@@ -669,13 +826,48 @@ func buildHyperlinkedPath(path string, opts CompactOptions) string {
 	return FileHyperlink(path, absPath, true)
 }
 
-// resolveWorkspacePath resolves a relative path against known workspace roots.
+// resolveWorkspacePath resolves a relative path to an absolute filesystem path
+// using a layered strategy:
 //
-// With a single workspace root, the path is joined directly. With multiple
-// roots, the first path segment is matched against each root's basename
-// (the workspace directory name) and the remainder is joined with the
-// matching root. Returns empty string when resolution fails.
-func resolveWorkspacePath(relPath string, roots []string) string {
+//  1. .stigmer/ virtual mount — paths prefixed with ".stigmer/" are stripped
+//     and joined with PlatformDir (the session's platform directory).
+//  2. Workspace roots (local) — basename-match + stat-probe against user's
+//     local workspace paths. Preferred because they resolve to the user's
+//     real path (not a symlink).
+//  3. Sandbox root — universal fallback that covers git clones, symlinked
+//     local paths, and any other files in the session sandbox.
+//
+// Each layer uses a stat-probe to verify the candidate exists on disk.
+// Returns empty string when all strategies fail (graceful degradation).
+func resolveWorkspacePath(relPath string, opts CompactOptions) string {
+	if opts.PlatformDir != "" {
+		if stripped, ok := strings.CutPrefix(filepath.ToSlash(relPath), ".stigmer/"); ok {
+			candidate := filepath.Join(opts.PlatformDir, stripped)
+			if statProbe(candidate, opts.StatFunc) {
+				return candidate
+			}
+		}
+	}
+
+	if resolved := resolveAgainstWorkspaceRoots(relPath, opts.WorkspaceRoots, opts.StatFunc); resolved != "" {
+		return resolved
+	}
+
+	if opts.SandboxRoot != "" {
+		candidate := filepath.Join(opts.SandboxRoot, relPath)
+		if statProbe(candidate, opts.StatFunc) {
+			return candidate
+		}
+	}
+
+	return ""
+}
+
+// resolveAgainstWorkspaceRoots resolves a relative path against local workspace
+// roots. With a single root, the path is joined directly. With multiple roots,
+// the first path segment is matched against each root's basename; unmatched
+// paths fall back to a stat-probe against each root.
+func resolveAgainstWorkspaceRoots(relPath string, roots []string, statFn func(string) (os.FileInfo, error)) string {
 	if len(roots) == 0 {
 		return ""
 	}
@@ -695,5 +887,26 @@ func resolveWorkspacePath(relPath string, roots []string) string {
 		}
 	}
 
+	if statFn == nil {
+		statFn = os.Stat
+	}
+	for _, root := range roots {
+		candidate := filepath.Join(root, relPath)
+		if _, err := statFn(candidate); err == nil {
+			return candidate
+		}
+	}
+
 	return ""
+}
+
+// statProbe checks whether a path exists on disk. Uses statFn when non-nil,
+// defaulting to os.Stat. Used by the new resolution layers (PlatformDir,
+// SandboxRoot) where a stat-probe is always required.
+func statProbe(path string, statFn func(string) (os.FileInfo, error)) bool {
+	if statFn == nil {
+		statFn = os.Stat
+	}
+	_, err := statFn(path)
+	return err == nil
 }

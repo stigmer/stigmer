@@ -127,6 +127,347 @@ func TestIsApprovalNoiseMessage_DoesNotMatchEmpty(t *testing.T) {
 }
 
 // =============================================================================
+// toolEventID Tests
+// =============================================================================
+
+func TestToolEventID_AllToolEventTypes(t *testing.T) {
+	tests := []struct {
+		name string
+		ev   executiontui.Event
+		want string
+	}{
+		{"ToolRunning", executiontui.ToolRunningEvent{ToolCallID: "tc-1"}, "tc-1"},
+		{"ToolCompleted", executiontui.ToolCompletedEvent{ToolCallID: "tc-2"}, "tc-2"},
+		{"ToolWaitingApproval", executiontui.ToolWaitingApprovalEvent{ToolCallID: "tc-3"}, "tc-3"},
+		{"ToolStreamDelta", executiontui.ToolStreamDeltaEvent{ToolCallID: "tc-4"}, "tc-4"},
+		{"NonToolEvent", executiontui.AIMessageEvent{Content: "hello"}, ""},
+		{"PhaseChange", executiontui.PhaseChangeEvent{Phase: "running"}, ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := toolEventID(tt.ev)
+			if got != tt.want {
+				t.Errorf("toolEventID() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+// =============================================================================
+// buildToolEventMap Tests
+// =============================================================================
+
+func TestBuildToolEventMap_IndexesByToolCallID(t *testing.T) {
+	events := []executiontui.Event{
+		executiontui.ToolRunningEvent{ToolCallID: "tc-1"},
+		executiontui.ToolCompletedEvent{ToolCallID: "tc-2"},
+	}
+
+	m := buildToolEventMap(events)
+
+	if len(m) != 2 {
+		t.Fatalf("expected 2 entries, got %d", len(m))
+	}
+	if _, ok := m["tc-1"].(executiontui.ToolRunningEvent); !ok {
+		t.Error("expected ToolRunningEvent for tc-1")
+	}
+	if _, ok := m["tc-2"].(executiontui.ToolCompletedEvent); !ok {
+		t.Error("expected ToolCompletedEvent for tc-2")
+	}
+}
+
+func TestBuildToolEventMap_Empty(t *testing.T) {
+	m := buildToolEventMap(nil)
+	if len(m) != 0 {
+		t.Errorf("expected empty map, got %d entries", len(m))
+	}
+}
+
+// =============================================================================
+// emitMatchedToolEvents Tests
+// =============================================================================
+
+func TestEmitMatchedToolEvents_EmitsAndConsumes(t *testing.T) {
+	ch := make(chan executiontui.Event, 4)
+	pending := map[string]executiontui.Event{
+		"tc-1": executiontui.ToolCompletedEvent{ToolCallID: "tc-1"},
+	}
+
+	msg := &agentexecutionv1.AgentMessage{
+		Type: agentexecutionv1.MessageType_MESSAGE_TOOL,
+		ToolCalls: []*agentexecutionv1.ToolCall{
+			{Id: "tc-1", Name: "write_file"},
+		},
+	}
+
+	emitMatchedToolEvents(ch, msg, pending)
+
+	if len(pending) != 0 {
+		t.Errorf("expected pending to be empty after match, got %d entries", len(pending))
+	}
+	select {
+	case ev := <-ch:
+		if tc, ok := ev.(executiontui.ToolCompletedEvent); !ok || tc.ToolCallID != "tc-1" {
+			t.Errorf("expected ToolCompletedEvent{tc-1}, got %T", ev)
+		}
+	default:
+		t.Fatal("expected event on channel")
+	}
+}
+
+func TestEmitMatchedToolEvents_NoMatchLeavesMapUntouched(t *testing.T) {
+	ch := make(chan executiontui.Event, 4)
+	pending := map[string]executiontui.Event{
+		"tc-other": executiontui.ToolCompletedEvent{ToolCallID: "tc-other"},
+	}
+
+	msg := &agentexecutionv1.AgentMessage{
+		Type: agentexecutionv1.MessageType_MESSAGE_TOOL,
+		ToolCalls: []*agentexecutionv1.ToolCall{
+			{Id: "tc-1", Name: "write_file"},
+		},
+	}
+
+	emitMatchedToolEvents(ch, msg, pending)
+
+	if len(pending) != 1 {
+		t.Errorf("expected pending unchanged with 1 entry, got %d", len(pending))
+	}
+	select {
+	case ev := <-ch:
+		t.Fatalf("expected no event, got %T", ev)
+	default:
+	}
+}
+
+func TestEmitMatchedToolEvents_SkipsEmptyToolCallID(t *testing.T) {
+	ch := make(chan executiontui.Event, 4)
+	pending := map[string]executiontui.Event{
+		"": executiontui.ToolCompletedEvent{ToolCallID: ""},
+	}
+
+	msg := &agentexecutionv1.AgentMessage{
+		Type: agentexecutionv1.MessageType_MESSAGE_TOOL,
+		ToolCalls: []*agentexecutionv1.ToolCall{
+			{Id: "", Name: "shell"},
+		},
+	}
+
+	emitMatchedToolEvents(ch, msg, pending)
+
+	select {
+	case ev := <-ch:
+		t.Fatalf("expected no event for empty ID, got %T", ev)
+	default:
+	}
+}
+
+// =============================================================================
+// emitMessageEvents: chronological interleaving Tests
+// =============================================================================
+
+func TestEmitMessageEvents_InterleavesToolAtCorrectPosition(t *testing.T) {
+	ch := make(chan executiontui.Event, 16)
+
+	messages := []*agentexecutionv1.AgentMessage{
+		{Type: agentexecutionv1.MessageType_MESSAGE_AI, Content: "I'll read that file."},
+		{Type: agentexecutionv1.MessageType_MESSAGE_TOOL, Content: "file contents", ToolCalls: []*agentexecutionv1.ToolCall{{Id: "tc-1", Name: "read_file"}}},
+		{Type: agentexecutionv1.MessageType_MESSAGE_AI, Content: "Here is the result."},
+	}
+	trackedTools := map[string]string{"tc-1": "completed"}
+	pendingToolEvents := map[string]executiontui.Event{
+		"tc-1": executiontui.ToolCompletedEvent{ToolCallID: "tc-1"},
+	}
+
+	count, inStream := emitMessageEvents(ch, messages, 0, false, trackedTools, pendingToolEvents)
+
+	if count != 3 {
+		t.Errorf("displayedCount = %d, want 3", count)
+	}
+	if inStream {
+		t.Error("expected inStream=false")
+	}
+	if len(pendingToolEvents) != 0 {
+		t.Errorf("expected all pending tool events consumed, got %d remaining", len(pendingToolEvents))
+	}
+
+	// Verify event order: AI1 → ToolCompleted → AI2
+	ev1 := <-ch
+	if _, ok := ev1.(executiontui.AIMessageEvent); !ok {
+		t.Errorf("event 1: expected AIMessageEvent, got %T", ev1)
+	}
+	ev2 := <-ch
+	if tc, ok := ev2.(executiontui.ToolCompletedEvent); !ok || tc.ToolCallID != "tc-1" {
+		t.Errorf("event 2: expected ToolCompletedEvent{tc-1}, got %T", ev2)
+	}
+	ev3 := <-ch
+	if _, ok := ev3.(executiontui.AIMessageEvent); !ok {
+		t.Errorf("event 3: expected AIMessageEvent, got %T", ev3)
+	}
+}
+
+func TestEmitMessageEvents_TrackedToolWithNoPendingEvent_SilentlyConsumed(t *testing.T) {
+	ch := make(chan executiontui.Event, 16)
+
+	messages := []*agentexecutionv1.AgentMessage{
+		{Type: agentexecutionv1.MessageType_MESSAGE_AI, Content: "Done."},
+		{Type: agentexecutionv1.MessageType_MESSAGE_TOOL, Content: "result", ToolCalls: []*agentexecutionv1.ToolCall{{Id: "tc-old", Name: "read_file"}}},
+	}
+	trackedTools := map[string]string{"tc-old": "completed"}
+	pendingToolEvents := map[string]executiontui.Event{}
+
+	count, _ := emitMessageEvents(ch, messages, 0, false, trackedTools, pendingToolEvents)
+
+	if count != 2 {
+		t.Errorf("displayedCount = %d, want 2", count)
+	}
+
+	// Only the AI message should be emitted; the tracked tool message with
+	// no pending event should be silently consumed (already emitted earlier).
+	ev := <-ch
+	if _, ok := ev.(executiontui.AIMessageEvent); !ok {
+		t.Errorf("expected AIMessageEvent, got %T", ev)
+	}
+	select {
+	case extra := <-ch:
+		t.Fatalf("expected no more events, got %T", extra)
+	default:
+	}
+}
+
+func TestEmitMessageEvents_OrphanToolEventsNotEmitted(t *testing.T) {
+	ch := make(chan executiontui.Event, 16)
+
+	messages := []*agentexecutionv1.AgentMessage{
+		{Type: agentexecutionv1.MessageType_MESSAGE_AI, Content: "Starting."},
+	}
+	trackedTools := map[string]string{"tc-run": "running"}
+	pendingToolEvents := map[string]executiontui.Event{
+		"tc-run": executiontui.ToolRunningEvent{ToolCallID: "tc-run"},
+	}
+
+	count, _ := emitMessageEvents(ch, messages, 0, false, trackedTools, pendingToolEvents)
+
+	if count != 1 {
+		t.Errorf("displayedCount = %d, want 1", count)
+	}
+
+	// The running tool has no MESSAGE_TOOL — its event stays in pending.
+	if len(pendingToolEvents) != 1 {
+		t.Errorf("expected orphan tool event to remain, got %d pending", len(pendingToolEvents))
+	}
+	if _, ok := pendingToolEvents["tc-run"]; !ok {
+		t.Error("expected tc-run to remain in pendingToolEvents")
+	}
+
+	// Only the AI message should be emitted by emitMessageEvents.
+	ev := <-ch
+	if _, ok := ev.(executiontui.AIMessageEvent); !ok {
+		t.Errorf("expected AIMessageEvent, got %T", ev)
+	}
+	select {
+	case extra := <-ch:
+		t.Fatalf("expected no more events from emitMessageEvents, got %T", extra)
+	default:
+	}
+}
+
+func TestEmitMessageEvents_MultipleToolsInterleaved(t *testing.T) {
+	ch := make(chan executiontui.Event, 32)
+
+	messages := []*agentexecutionv1.AgentMessage{
+		{Type: agentexecutionv1.MessageType_MESSAGE_AI, Content: "Reading files."},
+		{Type: agentexecutionv1.MessageType_MESSAGE_TOOL, Content: "a.go", ToolCalls: []*agentexecutionv1.ToolCall{{Id: "tc-1", Name: "read_file"}}},
+		{Type: agentexecutionv1.MessageType_MESSAGE_TOOL, Content: "b.go", ToolCalls: []*agentexecutionv1.ToolCall{{Id: "tc-2", Name: "read_file"}}},
+		{Type: agentexecutionv1.MessageType_MESSAGE_AI, Content: "Now writing."},
+		{Type: agentexecutionv1.MessageType_MESSAGE_TOOL, Content: "ok", ToolCalls: []*agentexecutionv1.ToolCall{{Id: "tc-3", Name: "write_file"}}},
+	}
+	trackedTools := map[string]string{
+		"tc-1": "completed",
+		"tc-2": "completed",
+		"tc-3": "completed",
+	}
+	pendingToolEvents := map[string]executiontui.Event{
+		"tc-1": executiontui.ToolCompletedEvent{ToolCallID: "tc-1"},
+		"tc-2": executiontui.ToolCompletedEvent{ToolCallID: "tc-2"},
+		"tc-3": executiontui.ToolCompletedEvent{ToolCallID: "tc-3"},
+	}
+
+	count, _ := emitMessageEvents(ch, messages, 0, false, trackedTools, pendingToolEvents)
+
+	if count != 5 {
+		t.Errorf("displayedCount = %d, want 5", count)
+	}
+	if len(pendingToolEvents) != 0 {
+		t.Errorf("expected all pending consumed, got %d", len(pendingToolEvents))
+	}
+
+	// Expected order: AI1 → Tool1 → Tool2 → AI2 → Tool3
+	types := make([]string, 0, 5)
+	for i := 0; i < 5; i++ {
+		select {
+		case ev := <-ch:
+			switch e := ev.(type) {
+			case executiontui.AIMessageEvent:
+				types = append(types, "AI:"+e.Content)
+			case executiontui.ToolCompletedEvent:
+				types = append(types, "TC:"+e.ToolCallID)
+			default:
+				types = append(types, fmt.Sprintf("?:%T", ev))
+			}
+		default:
+			t.Fatalf("expected event %d, channel empty", i)
+		}
+	}
+
+	expected := []string{
+		"AI:Reading files.",
+		"TC:tc-1",
+		"TC:tc-2",
+		"AI:Now writing.",
+		"TC:tc-3",
+	}
+	for i := range expected {
+		if i >= len(types) {
+			t.Fatalf("missing event at index %d", i)
+		}
+		if types[i] != expected[i] {
+			t.Errorf("event[%d] = %q, want %q", i, types[i], expected[i])
+		}
+	}
+}
+
+func TestEmitMessageEvents_StreamingAI_ToolEventsDeferred(t *testing.T) {
+	ch := make(chan executiontui.Event, 16)
+
+	messages := []*agentexecutionv1.AgentMessage{
+		{Type: agentexecutionv1.MessageType_MESSAGE_AI, Content: "partial...", IsStreaming: true},
+	}
+	trackedTools := map[string]string{"tc-1": "completed"}
+	pendingToolEvents := map[string]executiontui.Event{
+		"tc-1": executiontui.ToolCompletedEvent{ToolCallID: "tc-1"},
+	}
+
+	count, inStream := emitMessageEvents(ch, messages, 0, false, trackedTools, pendingToolEvents)
+
+	if count != 0 {
+		t.Errorf("displayedCount = %d, want 0 (streaming not advanced)", count)
+	}
+	if !inStream {
+		t.Error("expected inStream=true for actively streaming message")
+	}
+	// Tool event stays pending since no MESSAGE_TOOL was encountered.
+	if len(pendingToolEvents) != 1 {
+		t.Errorf("expected tool event still pending, got %d", len(pendingToolEvents))
+	}
+
+	ev := <-ch
+	if _, ok := ev.(executiontui.AIStreamStartEvent); !ok {
+		t.Errorf("expected AIStreamStartEvent, got %T", ev)
+	}
+}
+
+// =============================================================================
 // trackToolCallStates: first-time-seen terminal tool Tests
 // =============================================================================
 
@@ -1143,5 +1484,118 @@ func TestRetryWithBackoff_ContextAlreadyCancelled(t *testing.T) {
 	}
 	if attempts != 0 {
 		t.Errorf("expected 0 attempts with pre-cancelled context, got %d", attempts)
+	}
+}
+
+// =============================================================================
+// Bridge integration: multi-snapshot interleaving
+// =============================================================================
+
+// TestBridgeIntegration_MultiSnapshot simulates progressive gRPC snapshots
+// and verifies that the full bridge machinery (trackToolCallStates +
+// emitMessageEvents + orphan emission) produces events in chronological
+// order across multiple updates.
+func TestBridgeIntegration_MultiSnapshot(t *testing.T) {
+	collected := make([]executiontui.Event, 0, 16)
+	ch := make(chan executiontui.Event, 64)
+	ctx := context.Background()
+
+	var (
+		displayedCount  int
+		inStream        bool
+		toolCallStates  = make(map[string]string)
+		toolCallResults = make(map[string]string)
+	)
+
+	// Helper: drain channel into collected slice.
+	drain := func() {
+		for {
+			select {
+			case ev := <-ch:
+				collected = append(collected, ev)
+			default:
+				return
+			}
+		}
+	}
+
+	// --- Snapshot 1: AI message starts streaming, tool tc-1 starts running ---
+	snapshot1Messages := []*agentexecutionv1.AgentMessage{
+		{Type: agentexecutionv1.MessageType_MESSAGE_AI, Content: "I'll read that file.", IsStreaming: true},
+	}
+	snapshot1Tools := []*agentexecutionv1.ToolCall{
+		{Id: "tc-1", Name: "read_file", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_RUNNING},
+	}
+
+	var toolEvents []executiontui.Event
+	toolCallStates, toolCallResults, toolEvents = trackToolCallStates(
+		snapshot1Tools, toolCallStates, toolCallResults, "",
+	)
+	pending := buildToolEventMap(toolEvents)
+	displayedCount, inStream = emitMessageEvents(ch, snapshot1Messages, displayedCount, inStream, toolCallStates, pending)
+	for _, ev := range toolEvents {
+		if _, ok := pending[toolEventID(ev)]; !ok {
+			continue
+		}
+		trySendEvent(ctx, ch, ev)
+	}
+	drain()
+
+	// After snapshot 1: AIStreamStart + orphan ToolRunning
+	if len(collected) != 2 {
+		t.Fatalf("snapshot 1: expected 2 events, got %d", len(collected))
+	}
+	if _, ok := collected[0].(executiontui.AIStreamStartEvent); !ok {
+		t.Errorf("snapshot 1[0]: expected AIStreamStartEvent, got %T", collected[0])
+	}
+	if _, ok := collected[1].(executiontui.ToolRunningEvent); !ok {
+		t.Errorf("snapshot 1[1]: expected ToolRunningEvent, got %T", collected[1])
+	}
+
+	// --- Snapshot 2: AI stream ends, tool completes, new AI message ---
+	snapshot2Messages := []*agentexecutionv1.AgentMessage{
+		{Type: agentexecutionv1.MessageType_MESSAGE_AI, Content: "I'll read that file."},
+		{Type: agentexecutionv1.MessageType_MESSAGE_TOOL, Content: "package main", ToolCalls: []*agentexecutionv1.ToolCall{
+			{Id: "tc-1", Name: "read_file", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED, Result: "package main"},
+		}},
+		{Type: agentexecutionv1.MessageType_MESSAGE_AI, Content: "Here is the result."},
+	}
+	snapshot2Tools := []*agentexecutionv1.ToolCall{
+		{Id: "tc-1", Name: "read_file", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED, Result: "package main"},
+	}
+
+	collected = collected[:0]
+	toolCallStates, toolCallResults, toolEvents = trackToolCallStates(
+		snapshot2Tools, toolCallStates, toolCallResults, "",
+	)
+	pending = buildToolEventMap(toolEvents)
+	displayedCount, inStream = emitMessageEvents(ch, snapshot2Messages, displayedCount, inStream, toolCallStates, pending)
+	for _, ev := range toolEvents {
+		if _, ok := pending[toolEventID(ev)]; !ok {
+			continue
+		}
+		trySendEvent(ctx, ch, ev)
+	}
+	drain()
+
+	// After snapshot 2: AIStreamEnd → ToolCompleted (at MESSAGE_TOOL position) → AIMessage
+	if len(collected) != 3 {
+		t.Fatalf("snapshot 2: expected 3 events, got %d", len(collected))
+	}
+	if _, ok := collected[0].(executiontui.AIStreamEndEvent); !ok {
+		t.Errorf("snapshot 2[0]: expected AIStreamEndEvent, got %T", collected[0])
+	}
+	if tc, ok := collected[1].(executiontui.ToolCompletedEvent); !ok || tc.ToolCallID != "tc-1" {
+		t.Errorf("snapshot 2[1]: expected ToolCompletedEvent{tc-1}, got %T", collected[1])
+	}
+	if _, ok := collected[2].(executiontui.AIMessageEvent); !ok {
+		t.Errorf("snapshot 2[2]: expected AIMessageEvent, got %T", collected[2])
+	}
+
+	if inStream {
+		t.Error("expected inStream=false after all messages processed")
+	}
+	if displayedCount != 3 {
+		t.Errorf("displayedCount = %d, want 3", displayedCount)
 	}
 }

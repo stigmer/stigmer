@@ -6,8 +6,8 @@ go_library(
     importpath = "github.com/stigmer/stigmer/client-apps/cli/pkg/mdrender",
     visibility = ["//visibility:public"],
     deps = [
-        "@com_github_charmbracelet_glamour//:glamour",
-        "@com_github_charmbracelet_glamour//styles",
+        "@land_charm_glamour_v2//:glamour",
+        "@land_charm_glamour_v2//styles:styles",
     ],
 )
 

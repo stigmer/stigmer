@@ -2,7 +2,7 @@
 
 ## Current Implementation
 
-Stigmer uses **SQLite** (not BadgerDB) for local storage.
+Stigmer uses **SQLite** for local storage.
 
 **Code location**: `backend/libs/go/store/sqlite/`  
 **Driver**: modernc.org/sqlite (pure Go, no CGO)  
@@ -10,8 +10,7 @@ Stigmer uses **SQLite** (not BadgerDB) for local storage.
 
 ## When Writing Content
 
-**ALWAYS say**: "SQLite"  
-**NEVER say**: "BadgerDB"
+**ALWAYS say**: "SQLite"
 
 ## Why SQLite?
 
@@ -74,20 +73,10 @@ Stigmer uses **SQLite** with the pure Go modernc.org/sqlite driver.
 
 ## Historical Context
 
-**BadgerDB Consideration**: Earlier architecture discussions considered BadgerDB (a key-value store), but the actual implementation uses SQLite for superior developer experience and universal tooling.
-
-**Migration Project**: `_projects/2026-01/20260125.02.badgerdb-to-sqlite-migration/` documents the migration from BadgerDB to SQLite.
-
 **Current ADR**: [docs/adr/20260118-181912-local-backend-to-use-sqlite.md](../../docs/adr/20260118-181912-local-backend-to-use-sqlite.md)
 
-## Common Mistakes to Avoid
+## Quick Reference
 
-❌ **Don't Say**:
-- "Stigmer uses BadgerDB for local storage"
-- "BadgerDB key-value store in `~/.stigmer/data/`"
-- "Fast BadgerDB prefix scanning"
-
-✅ **Do Say**:
 - "Stigmer uses SQLite for local storage"
 - "SQLite database in `~/.stigmer/stigmer.db`"
 - "Standard SQL queries with SQLite"
@@ -116,5 +105,4 @@ ls ~/.stigmer/stigmer.db
 
 ---
 
-**Last Updated**: 2026-02-04  
-**Purpose**: Prevent AI assistants from incorrectly suggesting BadgerDB based on outdated content
+**Last Updated**: 2026-03-07

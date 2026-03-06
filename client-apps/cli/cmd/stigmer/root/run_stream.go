@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 
+	tea "charm.land/bubbletea/v2"
 	"github.com/pkg/errors"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
@@ -15,6 +16,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/termctl"
 	"google.golang.org/grpc"
 )
 
@@ -31,7 +33,7 @@ import (
 //
 // The returned execution is the last one that ran (which may be a follow-up
 // in inline mode, not the original).
-func streamAgentExecution(sessionID, sessionSubject, executionID, orgID string, prompter approval.Prompter, defaultAction approval.Action, verbose bool, outputMode OutputMode, conn *grpc.ClientConn, workspaceRoots []string, dataW, statusW io.Writer) (*agentexecutionv1.AgentExecution, error) {
+func streamAgentExecution(sessionID string, headerInfo sessionHeaderInfo, executionID, orgID string, prompter approval.Prompter, defaultAction approval.Action, verbose bool, outputMode OutputMode, conn *grpc.ClientConn, workspaceRoots []string, dataW, statusW io.Writer) (*agentexecutionv1.AgentExecution, error) {
 	client := agentexecutionv1.NewAgentExecutionQueryControllerClient(conn)
 
 	streamCtx, streamCancel := context.WithCancel(context.Background())
@@ -56,9 +58,10 @@ func streamAgentExecution(sessionID, sessionSubject, executionID, orgID string, 
 
 	switch outputMode {
 	case OutputJSON:
+		renderSessionHeader(statusW, headerInfo)
 		return streamAgentJSON(streamCtx, streamCancel, sessionID, executionID, events, approvalResponses, defaultAction, conn)
 	default:
-		return streamAgentInline(streamCtx, streamCancel, sessionID, executionID, orgID, events, approvalResponses, prompter, defaultAction, conn, workspaceRoots, dataW, statusW)
+		return streamAgentInline(streamCtx, streamCancel, sessionID, headerInfo, executionID, orgID, events, approvalResponses, prompter, defaultAction, conn, workspaceRoots, dataW, statusW)
 	}
 }
 
@@ -66,11 +69,42 @@ func streamAgentExecution(sessionID, sessionSubject, executionID, orgID string, 
 // AI content goes to dataW, status/progress goes to statusW. When a session
 // exists, a follow-up loop prompts for continued conversation after each
 // execution completes.
-func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFunc, sessionID, executionID, orgID string, events chan executiontui.Event, approvalResponses chan executiontui.ApprovalResponse, prompter approval.Prompter, defaultAction approval.Action, conn *grpc.ClientConn, workspaceRoots []string, dataW, statusW io.Writer) (*agentexecutionv1.AgentExecution, error) {
+//
+// A Bubbletea Program runs alongside the event loop in inline mode (no alt
+// screen), owning the stderr writer for accurate row tracking. The Program
+// is started before the first renderInline call and shut down on return.
+// When the status writer is not a terminal, the Program is skipped entirely
+// and all output falls back to direct writes.
+func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFunc, sessionID string, headerInfo sessionHeaderInfo, executionID, orgID string, events chan executiontui.Event, approvalResponses chan executiontui.ApprovalResponse, prompter approval.Prompter, defaultAction approval.Action, conn *grpc.ClientConn, workspaceRoots []string, dataW, statusW io.Writer) (*agentexecutionv1.AgentExecution, error) {
 	var followUpFn executiontui.FollowUpFn
 	if sessionID != "" {
 		followUpFn = buildFollowUpFn(streamCtx, sessionID, orgID, conn)
 	}
+
+	var toggleExpandCh chan struct{}
+	var cancelCh chan struct{}
+	var interruptCh chan struct{}
+	if termctl.IsSupported(statusW) {
+		toggleExpandCh = make(chan struct{}, 1)
+		cancelCh = make(chan struct{}, 1)
+		interruptCh = make(chan struct{}, 1)
+	}
+
+	program := startInlineProgram(statusW, toggleExpandCh, cancelCh, interruptCh)
+
+	var subjectUpdate chan string
+	if sessionID != "" && headerInfo.Subject == "" {
+		subjectUpdate = make(chan string, 1)
+		go pollSessionSubject(streamCtx, conn, sessionID, subjectUpdate)
+	}
+
+	var recentSessionsCh chan []recentSession
+	if !headerInfo.IsResumed && termctl.IsSupported(statusW) && sessionID != "" {
+		recentSessionsCh = make(chan []recentSession, 1)
+		go fetchRecentSessions(conn, sessionID, recentSessionsCh)
+	}
+
+	sbRoot, pfDir := sessionPaths(sessionID)
 
 	cfg := inlineRenderConfig{
 		events:            events,
@@ -81,15 +115,64 @@ func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFun
 		status:            statusW,
 		sessionID:         sessionID,
 		workspaceRoots:    workspaceRoots,
+		sandboxRoot:       sbRoot,
+		platformDir:       pfDir,
+		program:           program,
+		headerInfo:        headerInfo,
+		subjectUpdate:     subjectUpdate,
+		recentSessionsCh:  recentSessionsCh,
+		toggleExpandCh:    toggleExpandCh,
+		cancelCh:          cancelCh,
+		interruptCh:       interruptCh,
+		followUpEnabled:   toggleExpandCh != nil && followUpFn != nil,
 		cancelExecFn: func() {
 			_, _ = execution.Cancel(conn, executionID)
 		},
 	}
 
 	latestExecID, phase, exitErr := runInlineFollowUpLoop(streamCtx, cfg, followUpFn, executionID)
+
+	stopInlineProgram(program)
 	streamCancel()
 
 	return streamAgentEpilogue(sessionID, latestExecID, phase, exitErr, conn)
+}
+
+// startInlineProgram creates and starts a Bubbletea Program in inline mode
+// for row-tracked stderr rendering. Returns nil when the writer is not a
+// terminal (CI, piped output) — the renderer falls back to direct writes.
+//
+// When the channel arguments are non-nil, the model is wired to the event
+// loop via channels and Bubbletea owns stdin (raw mode). When nil, stdin
+// is not connected and input is handled externally.
+func startInlineProgram(statusW io.Writer, toggleCh, cancelCh, interruptCh chan struct{}) *tea.Program {
+	if !termctl.IsSupported(statusW) {
+		return nil
+	}
+
+	opts := []tea.ProgramOption{tea.WithOutput(statusW)}
+
+	var model inlineBubbleModel
+	if toggleCh != nil || cancelCh != nil {
+		model = newInlineBubbleModelWithChannels(toggleCh, cancelCh, interruptCh)
+	} else {
+		model = newInlineBubbleModel()
+		opts = append(opts, tea.WithInput(nil))
+	}
+
+	p := tea.NewProgram(model, opts...)
+	go func() { _, _ = p.Run() }()
+	return p
+}
+
+// stopInlineProgram sends Quit to the Program and waits for it to exit.
+// Safe to call with nil (non-TTY path).
+func stopInlineProgram(p *tea.Program) {
+	if p == nil {
+		return
+	}
+	p.Quit()
+	p.Wait()
 }
 
 // streamAgentJSON renders events as newline-delimited JSON on stdout.

@@ -113,7 +113,7 @@ func setupInProcessServers(t *testing.T, store store.Store) (*grpc.ClientConn, *
 
 // setupTestController creates a test controller with necessary dependencies
 func setupTestController(t *testing.T) (*WorkflowController, store.Store) {
-	// Create temporary BadgerDB store
+	// Create temporary SQLite store
 	store, err := sqlite.NewStore(t.TempDir() + "/test.sqlite")
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)

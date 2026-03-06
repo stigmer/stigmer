@@ -3,124 +3,29 @@ package root
 import (
 	"context"
 	"fmt"
-	"io"
 	"strings"
 	"time"
 
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/termctl"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
 )
 
-// readGroupThreshold is the minimum number of consecutive read tool completions
-// that triggers grouped rendering via RenderReadGroup. Below this threshold,
-// reads are rendered individually via RenderCompact.
-const readGroupThreshold = 3
-
-// inlineRenderConfig configures the inline (non-TUI) event renderer.
-type inlineRenderConfig struct {
-	events            <-chan executiontui.Event
-	approvalResponses chan<- executiontui.ApprovalResponse
-	prompter          approval.Prompter
-	defaultAction     approval.Action
-	data              io.Writer // AI content (stdout)
-	status            io.Writer // status/progress (stderr)
-	sessionID         string
-	workspaceRoots    []string // local workspace root paths for file hyperlinks
-	cancelExecFn      func()   // cancels the current backend execution; nil-safe
-
-	// suppressHumanEcho skips the next HumanMessageEvent rendering. Set by
-	// the follow-up loop after local echo to prevent duplicate display when
-	// the backend echoes the same message.
-	suppressHumanEcho bool
-}
-
-// pendingRead wraps a read tool completion with the sub-agent context it
-// originated from. This allows flushPendingReads to apply gutter-wrapping
-// when reads belong to a sub-agent.
-type pendingRead struct {
-	tc         toolrender.ToolCallInfo
-	subAgentID string
-}
-
-// waitingApprovalState holds context saved from ToolWaitingApprovalEvent
-// for use by handleApproval when the subsequent ApprovalNeededEvent arrives.
-type waitingApprovalState struct {
-	tc                  toolrender.ToolCallInfo
-	subAgentID          string
-	runningLineRendered bool
-	contentStreamed     bool // content was shown via ToolStreamDeltaEvent
-	streamedRows        int  // total display rows of streamed content
-}
-
-// inlineRenderer consumes execution events and renders them to the terminal
-// without the Bubbletea alt-screen TUI. AI content flows to the data writer
-// (stdout) while all status/progress goes to the status writer (stderr).
-//
-// This enables piping: `stigmer run agent x | process_output` captures only
-// the agent's response, while progress and tool activity remain visible on
-// the terminal via stderr.
-type inlineRenderer struct {
-	cfg         inlineRenderConfig
-	compactOpts toolrender.CompactOptions
-
-	// Thinking spinner state — shows an animated indicator on stderr when
-	// the agent is idle (reasoning between tool calls). The timer fires
-	// after thinkingIdleDelay of inactivity; the spinner is cleared before
-	// processing any event.
-	spinner    *spinner.Spinner
-	thinkTimer *time.Timer
-	phase      string
-
-	// AI streaming state — tracks incremental delta output so each render
-	// only prints the bytes appended since the last delta event.
-	inAIStream    bool
-	streamedBytes int
-
-	// pendingReads buffers consecutive read tool completions for grouped
-	// rendering. Flushed when a non-read event arrives that produces visible
-	// output, or when the stream terminates. Each entry is tagged with its
-	// sub-agent context so gutter-wrapping is applied correctly on flush.
-	pendingReads []pendingRead
-
-	// lastRenderedRunningID is the ToolCallID of the tool whose running
-	// indicator line was last printed to stderr. With running indicators
-	// suppressed for all tools, this field is effectively always empty,
-	// but it is retained for the approval flow's runningLineRendered check.
-	lastRenderedRunningID string
-
-	// waitingApproval holds the ToolCallInfo saved from the most recent
-	// ToolWaitingApprovalEvent. handleApproval uses this to render the
-	// expanded view and the collapsed result with full tool metadata.
-	waitingApproval *waitingApprovalState
-
-	// suppressedToolIDs tracks tool call IDs whose ToolCompletedEvent
-	// should be suppressed because the approval result already rendered
-	// the outcome. Write/edit/delete completions are suppressed; shell
-	// completions are handled by the streaming interception instead.
-	suppressedToolIDs map[string]bool
-
-	// Tool content streaming state — tracks a tool call that is actively
-	// streaming content via ToolStreamDeltaEvent. Used for both pre-approval
-	// streaming (write/edit typewriter effect) and post-approval streaming
-	// (shell output after user approves).
-	activeStreamToolID string // tool call ID currently streaming
-	toolStreamedBytes  int    // tool content bytes already printed (delta rendering)
-	streamHeaderRows   int    // display rows for header portion (set at init)
-	streamLineCount    int    // total display rows including content (for erase)
-	streamSubAgentID   string // sub-agent context for gutter wrapping
-
-	// exitRequested is set by handleSessionExit when the user presses
-	// Ctrl+C at an approval prompt. Checked after handleApproval returns
-	// to terminate the render loop with a "cancelled" phase.
-	exitRequested bool
-}
-
 // renderInline consumes events from the channel and renders them inline until
-// a terminal event (DoneEvent or StreamErrorEvent) arrives. Returns the final
-// phase string and any error message from the done event.
-func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, exitErr string) {
+// a terminal event (DoneEvent or StreamErrorEvent) arrives. Returns a
+// renderResult with the final phase, error, accumulated history, and optional
+// follow-up input.
+//
+// When cfg.followUpEnabled is true and the terminal event's phase is eligible,
+// the renderer activates the follow-up text input and continues the event
+// loop instead of returning. This keeps toggleExpandCh active so Ctrl+O
+// triggers immediate re-commit during the follow-up prompt. The renderer
+// returns only when the user submits or cancels the follow-up.
+//
+// When cfg.initialHistory is non-nil (continuation from a prior execution),
+// the renderer seeds its buffer from it. Otherwise it creates a fresh history
+// with the session header as the first entry.
+func renderInline(ctx context.Context, cfg inlineRenderConfig) renderResult {
 	thinkTimer := time.NewTimer(0)
 	thinkTimer.Stop()
 	select {
@@ -128,24 +33,99 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, ex
 	default:
 	}
 
+	var initialHistory []committedItem
+	isNewSession := len(cfg.initialHistory) == 0
+	if isNewSession {
+		initialHistory = []committedItem{{
+			kind:   kindHeader,
+			header: &cfg.headerInfo,
+		}}
+	} else {
+		initialHistory = cfg.initialHistory
+	}
+
 	r := &inlineRenderer{
-		cfg: cfg,
+		cfg:       cfg,
+		dataIsTTY: termctl.IsSupported(cfg.data),
 		compactOpts: toolrender.CompactOptions{
 			HyperlinksEnabled: toolrender.HyperlinksEnabled(cfg.status),
 			WorkspaceRoots:    cfg.workspaceRoots,
+			SandboxRoot:       cfg.sandboxRoot,
+			PlatformDir:       cfg.platformDir,
 		},
 		suppressedToolIDs: make(map[string]bool),
-		spinner:           spinner.New(cfg.status),
+		activeSubAgents:   make(map[string]*subAgentBlock),
 		thinkTimer:        thinkTimer,
+		history:           initialHistory,
+	}
+
+	if isNewSession {
+		header := renderHeaderItem(initialHistory[0], false)
+		if header != "" {
+			r.writeToScrollback(kindHeader, header)
+		}
+	} else {
+		r.lastScrollbackKind = lastKindFromHistory(initialHistory)
 	}
 
 	for {
+		recommitNeeded := false
+
 		select {
 		case <-ctx.Done():
 			r.stopThinkingSpinner()
 			r.flushPendingReads()
 			r.statusf("Stream cancelled\n")
-			return "", "context cancelled"
+			return renderResult{exitErr: "context cancelled", history: r.history}
+
+		case subject, ok := <-cfg.subjectUpdate:
+			if ok && subject != "" {
+				r.history[0].header.Subject = subject
+				cfg.subjectUpdate = nil
+				recommitNeeded = true
+			}
+
+		case sessions, ok := <-cfg.recentSessionsCh:
+			if ok && len(sessions) > 0 {
+				r.history[0].header.RecentSessions = sessions
+				cfg.recentSessionsCh = nil
+				recommitNeeded = true
+			}
+
+		case <-cfg.toggleExpandCh:
+			r.expandMode = !r.expandMode
+			recommitNeeded = true
+
+		case <-cfg.interruptCh:
+			r.stopThinkingSpinner()
+			r.flushPendingReads()
+			r.finishAIStreamIfNeeded()
+			if r.cfg.cancelExecFn != nil {
+				go r.cfg.cancelExecFn()
+			}
+			r.commitToScrollback(committedItem{
+				kind: kindSystemMessage,
+				text: systemMsgStyle.Render("Interrupted"),
+			})
+			if cfg.followUpEnabled {
+				r.activateFollowUp("interrupted", "")
+				cfg.events = nil
+				cfg.subjectUpdate = nil
+				continue
+			}
+			return renderResult{phase: "cancelled", history: r.history}
+
+		case <-cfg.cancelCh:
+			r.stopThinkingSpinner()
+			r.flushPendingReads()
+			if r.cfg.cancelExecFn != nil {
+				go r.cfg.cancelExecFn()
+			}
+			r.statusf("\nSession ended by user\n")
+			if r.cfg.sessionID != "" {
+				r.statusf("Resume later with: stigmer run %s\n", r.cfg.sessionID)
+			}
+			return renderResult{phase: "cancelled", history: r.history}
 
 		case event, ok := <-cfg.events:
 			r.stopThinkingSpinner()
@@ -153,18 +133,103 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) (phase string, ex
 
 			if !ok {
 				r.flushPendingReads()
-				return "", ""
+				return renderResult{history: r.history}
 			}
 
 			done, p, e := r.handleEvent(ctx, event)
 			if done {
-				return p, e
+				if cfg.followUpEnabled && isFollowUpEligible(p, e) {
+					r.activateFollowUp(p, e)
+					cfg.events = nil
+					cfg.subjectUpdate = nil
+					continue
+				}
+				return renderResult{phase: p, exitErr: e, history: r.history}
 			}
 			r.resetThinkTimer()
+
+		case input := <-r.followUpInputCh:
+			return r.completeFollowUp(strings.TrimSpace(input))
 
 		case <-r.thinkTimer.C:
 			r.startThinkingSpinner()
 		}
+
+		// Coalesce additional recommit triggers that are already queued.
+		// After processing one channel that sets recommitNeeded, drain any
+		// other ready channels before issuing a single triggerReCommit.
+		if recommitNeeded {
+			r.drainRecommitTriggers(&cfg)
+			r.triggerReCommit()
+		}
+	}
+}
+
+// activateFollowUp transitions the renderer from execution mode to follow-up
+// mode. Stops any active spinner, flushes buffered reads, stores the terminal
+// event's phase/error, and activates the Bubbletea text input.
+func (r *inlineRenderer) activateFollowUp(phase, exitErr string) {
+	r.stopThinkingSpinner()
+	r.flushPendingReads()
+	r.thinkTimer.Stop()
+
+	r.donePhase = phase
+	r.doneExitErr = exitErr
+
+	inputCh := make(chan string, 1)
+	r.followUpInputCh = inputCh
+	r.cfg.program.Send(textInputStartMsg{inputCh: inputCh})
+}
+
+// drainRecommitTriggers non-blockingly absorbs any additional recommit
+// triggers (subjectUpdate, recentSessionsCh) that are already queued.
+// Called after the main select fires a recommit-worthy case, so that
+// multiple near-simultaneous triggers produce a single triggerReCommit.
+func (r *inlineRenderer) drainRecommitTriggers(cfg *inlineRenderConfig) {
+	for {
+		select {
+		case subject, ok := <-cfg.subjectUpdate:
+			if ok && subject != "" {
+				r.history[0].header.Subject = subject
+				cfg.subjectUpdate = nil
+			}
+		case sessions, ok := <-cfg.recentSessionsCh:
+			if ok && len(sessions) > 0 {
+				r.history[0].header.RecentSessions = sessions
+				cfg.recentSessionsCh = nil
+			}
+		default:
+			return
+		}
+	}
+}
+
+// completeFollowUp processes the user's follow-up input and returns a
+// renderResult. On non-empty input, the styled human message is committed
+// to both the terminal (via textInputHideMsg) and the history buffer.
+func (r *inlineRenderer) completeFollowUp(input string) renderResult {
+	if input == "" {
+		r.cfg.program.Send(textInputHideMsg{})
+		return renderResult{
+			phase:   r.donePhase,
+			exitErr: r.doneExitErr,
+			history: r.history,
+		}
+	}
+
+	styledMsg := fmt.Sprintf("%s\n\n", formatHumanMessage(input))
+	r.cfg.program.Send(textInputHideMsg{styledMessage: styledMsg})
+
+	r.recordToHistory(committedItem{
+		kind: kindHumanMessage,
+		text: formatHumanMessage(input),
+	})
+
+	return renderResult{
+		phase:         r.donePhase,
+		exitErr:       r.doneExitErr,
+		history:       r.history,
+		followUpInput: input,
 	}
 }
 
@@ -206,7 +271,7 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 	// ToolStreamDeltaEvent. Erases the streaming content and prints the
 	// final compact result. This interception runs before the main switch
 	// so the completion never reaches renderToolCompleted.
-	if e, ok := event.(executiontui.ToolCompletedEvent); ok && e.ToolCallID == r.activeStreamToolID {
+	if e, ok := event.(executiontui.ToolCompletedEvent); ok && r.activeStreamToolID != "" && e.ToolCallID == r.activeStreamToolID {
 		r.flushPendingReads()
 		r.completeStreamingTool(e)
 		return false, "", ""
@@ -229,11 +294,13 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 		return false, "", ""
 	}
 
-	// Initiate pre-approval streaming for write/edit tools whose content
-	// is being generated by the AI (IsStreaming=true). The content will
-	// appear progressively below the header until ToolWaitingApprovalEvent
-	// transitions to the approval flow.
-	if e, ok := event.(executiontui.ToolRunningEvent); ok && e.ToolCall.IsStreaming && toolrender.IsWriteOrEditTool(e.ToolCall.Name) {
+	// Initiate pre-approval streaming for any tool whose content is being
+	// generated by the AI (IsStreaming=true). The content is committed to
+	// scrollback progressively as lines complete, giving the user a live
+	// typewriter view of what the agent is producing. ToolWaitingApprovalEvent
+	// transitions to the approval flow. Read, think, and task tools are
+	// already intercepted above this point.
+	if e, ok := event.(executiontui.ToolRunningEvent); ok && e.ToolCall.IsStreaming {
 		r.flushPendingReads()
 		r.initPreApprovalStreaming(e)
 		return false, "", ""
@@ -262,10 +329,10 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 		return false, "", ""
 	}
 
-	// Sub-agent AI messages are intermediate reasoning — render on stderr
-	// with gutter prefix instead of stdout. We suppress Start/Delta and
-	// emit the full content on End/Message to avoid character-by-character
-	// streaming with per-line gutter insertion.
+	// Sub-agent AI messages are intermediate reasoning. When a sub-agent
+	// block is active, they are buffered in the block's children for
+	// expanded-mode rendering. Start/Delta events are suppressed; only
+	// the complete content (End/Message) is captured.
 	if e, ok := event.(executiontui.AIStreamStartEvent); ok && e.SubAgentID != "" {
 		return false, "", ""
 	}
@@ -276,7 +343,15 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 		r.flushPendingReads()
 		r.finishAIStreamIfNeeded()
 		if e.Content != "" {
-			r.statusf("%s\n", toolrender.GutterWrap(e.Content))
+			if r.hasActiveSubAgent(e.SubAgentID) {
+				r.appendToSubAgentBlock(e.SubAgentID, committedItem{
+					kind:       kindAIMessage,
+					text:       e.Content,
+					subAgentID: e.SubAgentID,
+				}, false)
+			} else {
+				r.statusf("%s\n", toolrender.GutterWrap(e.Content))
+			}
 		}
 		return false, "", ""
 	}
@@ -284,7 +359,15 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 		r.flushPendingReads()
 		r.finishAIStreamIfNeeded()
 		if e.Content != "" {
-			r.statusf("%s\n", toolrender.GutterWrap(e.Content))
+			if r.hasActiveSubAgent(e.SubAgentID) {
+				r.appendToSubAgentBlock(e.SubAgentID, committedItem{
+					kind:       kindAIMessage,
+					text:       e.Content,
+					subAgentID: e.SubAgentID,
+				}, false)
+			} else {
+				r.statusf("%s\n", toolrender.GutterWrap(e.Content))
+			}
 		}
 		return false, "", ""
 	}
@@ -302,6 +385,7 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 	//
 	// All other events close any open AI stream and flush pending reads
 	// before rendering to stderr, preventing garbled interleaving.
+
 	switch event.(type) {
 	case executiontui.AIStreamStartEvent:
 		r.flushPendingReads()
@@ -349,268 +433,4 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 		return true, "", e.Err.Error()
 	}
 	return false, "", ""
-}
-
-// ---------------------------------------------------------------------------
-// AI message rendering — content goes to data writer (stdout)
-// ---------------------------------------------------------------------------
-
-func (r *inlineRenderer) renderAIStreamStart(e executiontui.AIStreamStartEvent) {
-	r.finishAIStreamIfNeeded()
-	prefix := r.agentPrefix(e.SubAgentID)
-	fmt.Fprint(r.cfg.data, prefix)
-	if len(e.Content) > 0 {
-		fmt.Fprint(r.cfg.data, e.Content)
-	}
-	r.streamedBytes = len(e.Content)
-	r.inAIStream = true
-	r.flushData()
-}
-
-func (r *inlineRenderer) renderAIStreamDelta(e executiontui.AIStreamDeltaEvent) {
-	if len(e.Content) <= r.streamedBytes {
-		return
-	}
-	fmt.Fprint(r.cfg.data, e.Content[r.streamedBytes:])
-	r.streamedBytes = len(e.Content)
-	r.flushData()
-}
-
-func (r *inlineRenderer) renderAIStreamEnd(e executiontui.AIStreamEndEvent) {
-	if len(e.Content) > r.streamedBytes {
-		fmt.Fprint(r.cfg.data, e.Content[r.streamedBytes:])
-	}
-	fmt.Fprint(r.cfg.data, "\n\n")
-	r.inAIStream = false
-	r.streamedBytes = 0
-	r.flushData()
-}
-
-func (r *inlineRenderer) renderAIMessage(e executiontui.AIMessageEvent) {
-	r.finishAIStreamIfNeeded()
-	if e.Content != "" {
-		prefix := r.agentPrefix(e.SubAgentID)
-		fmt.Fprintf(r.cfg.data, "%s%s\n\n", prefix, formatNonTUIAIText(e.Content))
-		r.flushData()
-	}
-}
-
-func (r *inlineRenderer) renderHumanMessage(e executiontui.HumanMessageEvent) {
-	if r.cfg.suppressHumanEcho {
-		r.cfg.suppressHumanEcho = false
-		return
-	}
-	r.finishAIStreamIfNeeded()
-	r.statusf("%s\n\n", formatHumanMessage(e.Content))
-}
-
-// ---------------------------------------------------------------------------
-// Tool call rendering — status goes to status writer (stderr)
-// ---------------------------------------------------------------------------
-
-func (r *inlineRenderer) renderToolCompleted(e executiontui.ToolCompletedEvent) {
-	line := toolrender.RenderCompact(e.ToolCall, r.compactOpts)
-	if e.SubAgentID != "" {
-		line = toolrender.GutterWrap(line)
-	}
-	r.statusf("%s\n", line)
-	if strings.Contains(line, "\n") {
-		r.statusf("\n")
-	}
-}
-
-func (r *inlineRenderer) renderToolWaitingApproval(e executiontui.ToolWaitingApprovalEvent) {
-	contentStreamed := e.ToolCallID == r.activeStreamToolID
-	streamedRows := 0
-	if contentStreamed {
-		streamedRows = r.streamLineCount
-		r.clearStreamingState()
-	}
-	r.waitingApproval = &waitingApprovalState{
-		tc:                  e.ToolCall,
-		subAgentID:          e.SubAgentID,
-		runningLineRendered: r.lastRenderedRunningID == e.ToolCallID,
-		contentStreamed:     contentStreamed,
-		streamedRows:        streamedRows,
-	}
-}
-
-// ---------------------------------------------------------------------------
-// Status / lifecycle rendering — goes to status writer (stderr)
-// ---------------------------------------------------------------------------
-
-func (r *inlineRenderer) renderSystemMessage(e executiontui.SystemMessageEvent) {
-	content := sanitizeSystemContent(e.Content)
-	r.statusf("%s\n\n", systemMsgStyle.Render(content))
-}
-
-func (r *inlineRenderer) renderPhaseChange(e executiontui.PhaseChangeEvent) {
-	r.phase = e.Phase
-	switch e.Phase {
-	case "failed":
-		r.statusf("Execution failed\n")
-	case "cancelled":
-		r.statusf("Execution cancelled\n")
-	default:
-		return
-	}
-}
-
-func (r *inlineRenderer) renderTodoUpdate(e executiontui.TodoUpdateEvent) {
-	r.statusf("Plan:\n")
-	for _, todo := range e.Todos {
-		var marker string
-		switch todo.Status {
-		case "completed":
-			marker = "[x]"
-		case "in_progress":
-			marker = "[-]"
-		case "cancelled":
-			marker = "[~]"
-		default:
-			marker = "[ ]"
-		}
-		r.statusf("  %s %s\n", marker, todo.Content)
-	}
-	r.statusf("\n")
-}
-
-func (r *inlineRenderer) renderSubAgentStarted(e executiontui.SubAgentStartedEvent) {
-	label := e.Name
-	if e.Description != "" {
-		label = e.Description
-	}
-	r.statusf("%s %s: %s\n",
-		toolrender.BulletGreen("●"), toolrender.LabelBold("Task"), label)
-}
-
-func (r *inlineRenderer) renderSubAgentCompleted(e executiontui.SubAgentCompletedEvent) {
-	if e.Status == "failed" {
-		r.statusf("  ✗ Failed (%d tools)\n\n", e.ToolCount)
-	} else {
-		r.statusf("  ✓ Done (%d tools)\n\n", e.ToolCount)
-	}
-}
-
-// ---------------------------------------------------------------------------
-// Terminal events
-// ---------------------------------------------------------------------------
-
-func (r *inlineRenderer) renderDone(e executiontui.DoneEvent) {
-	r.finishAIStreamIfNeeded()
-	if e.Error != "" {
-		r.statusf("Error: %s\n", e.Error)
-	}
-}
-
-func (r *inlineRenderer) renderStreamError(e executiontui.StreamErrorEvent) {
-	r.finishAIStreamIfNeeded()
-	r.statusf("Error: %s\n", e.Err.Error())
-	if r.cfg.sessionID != "" {
-		r.statusf("   Re-attach with: stigmer run %s\n", r.cfg.sessionID)
-	}
-}
-
-// handleApproval is defined in run_stream_inline_approval.go — it
-// orchestrates the expand/prompt/collapse/suppress approval flow.
-
-// ---------------------------------------------------------------------------
-// Read grouping
-// ---------------------------------------------------------------------------
-
-// flushPendingReads renders any buffered read tool completions. When the buffer
-// contains readGroupThreshold or more reads, they are rendered as a compact
-// group. Otherwise, each read is rendered individually.
-//
-// All pending reads share the same sub-agent context (events don't interleave
-// across agents), so checking the first entry's subAgentID is sufficient to
-// determine whether gutter-wrapping is needed.
-func (r *inlineRenderer) flushPendingReads() {
-	if len(r.pendingReads) == 0 {
-		return
-	}
-	r.finishAIStreamIfNeeded()
-
-	subAgentID := r.pendingReads[0].subAgentID
-	tcs := make([]toolrender.ToolCallInfo, len(r.pendingReads))
-	for i, pr := range r.pendingReads {
-		tcs[i] = pr.tc
-	}
-
-	var output string
-	if len(tcs) >= readGroupThreshold {
-		output = toolrender.RenderReadGroup(tcs, r.compactOpts)
-	} else {
-		var lines []string
-		for _, tc := range tcs {
-			lines = append(lines, toolrender.RenderCompact(tc, r.compactOpts))
-		}
-		output = strings.Join(lines, "\n")
-	}
-
-	if subAgentID != "" {
-		output = toolrender.GutterWrap(output)
-	}
-	r.statusf("%s\n", output)
-	if strings.Contains(output, "\n") {
-		r.statusf("\n")
-	}
-	r.pendingReads = r.pendingReads[:0]
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-// finishAIStreamIfNeeded closes an in-progress AI stream with a newline if
-// a non-AI event arrives mid-stream. Prevents garbled output when status
-// events interleave with streaming AI content.
-func (r *inlineRenderer) finishAIStreamIfNeeded() {
-	if r.inAIStream {
-		fmt.Fprint(r.cfg.data, "\n\n")
-		r.flushData()
-		r.inAIStream = false
-		r.streamedBytes = 0
-	}
-}
-
-// agentPrefix returns the AI message prefix, adjusted for sub-agent context.
-// Main-agent messages get a plain bullet marker matching Claude Code's visual
-// language. Sub-agent messages are rendered separately with gutter wrapping
-// and do not need a prefix here.
-func (r *inlineRenderer) agentPrefix(subAgentID string) string {
-	if subAgentID != "" {
-		return ""
-	}
-	return "● "
-}
-
-func (r *inlineRenderer) statusf(format string, args ...interface{}) {
-	fmt.Fprintf(r.cfg.status, format, args...)
-	r.flushWriter(r.cfg.status)
-}
-
-func (r *inlineRenderer) flushData() {
-	r.flushWriter(r.cfg.data)
-}
-
-func (r *inlineRenderer) flushWriter(w io.Writer) {
-	if f, ok := w.(interface{ Sync() error }); ok {
-		_ = f.Sync()
-	}
-}
-
-// actionToString converts an approval.Action to the string expected by
-// the ApprovalResponse channel and backend API.
-func actionToString(a approval.Action) string {
-	switch a {
-	case approval.ActionApprove:
-		return "approve"
-	case approval.ActionSkip:
-		return "skip"
-	case approval.ActionReject:
-		return "reject"
-	default:
-		return "skip"
-	}
 }

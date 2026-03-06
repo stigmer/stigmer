@@ -33,17 +33,48 @@ import (
 // with a network gRPC connection pointing to the workflow instance service endpoint.
 // No changes to this client code are needed - just the connection configuration.
 type Client struct {
-	conn   *grpc.ClientConn
-	client workflowinstancev1.WorkflowInstanceCommandControllerClient
+	conn        *grpc.ClientConn
+	client      workflowinstancev1.WorkflowInstanceCommandControllerClient
+	queryClient workflowinstancev1.WorkflowInstanceQueryControllerClient
 }
 
 // NewClient creates a new in-process WorkflowInstance client using a gRPC connection.
 // The connection should be an in-process gRPC connection created via NewInProcessConnection.
 func NewClient(conn *grpc.ClientConn) *Client {
 	return &Client{
-		conn:   conn,
-		client: workflowinstancev1.NewWorkflowInstanceCommandControllerClient(conn),
+		conn:        conn,
+		client:      workflowinstancev1.NewWorkflowInstanceCommandControllerClient(conn),
+		queryClient: workflowinstancev1.NewWorkflowInstanceQueryControllerClient(conn),
 	}
+}
+
+// Get retrieves a workflow instance by ID.
+//
+// This makes an in-process gRPC call to WorkflowInstanceQueryController.Get()
+// ensuring all gRPC interceptors run before reaching the handler.
+//
+// Use case: During workflow execution creation, load the workflow instance to
+// obtain env_refs for environment merging into an ExecutionContext.
+func (c *Client) Get(ctx context.Context, id string) (*workflowinstancev1.WorkflowInstance, error) {
+	log.Debug().
+		Str("workflow_instance_id", id).
+		Msg("Getting workflow instance via in-process gRPC")
+
+	instance, err := c.queryClient.Get(ctx, &workflowinstancev1.WorkflowInstanceId{Value: id})
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("workflow_instance_id", id).
+			Msg("Failed to get workflow instance")
+		return nil, err
+	}
+
+	log.Debug().
+		Str("id", instance.GetMetadata().GetId()).
+		Str("workflow_id", instance.GetSpec().GetWorkflowId()).
+		Msg("Successfully retrieved workflow instance")
+
+	return instance, nil
 }
 
 // CreateAsSystem creates a new workflow instance using system credentials.
