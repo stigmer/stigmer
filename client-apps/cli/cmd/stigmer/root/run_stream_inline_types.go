@@ -280,4 +280,3 @@ type inlineRenderer struct {
 	donePhase   string
 	doneExitErr string
 }
-

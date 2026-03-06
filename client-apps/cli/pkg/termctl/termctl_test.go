@@ -210,7 +210,7 @@ type wrappedWriter struct {
 }
 
 func (w *wrappedWriter) Write(p []byte) (int, error) { return w.inner.Write(p) }
-func (w *wrappedWriter) Unwrap() io.Writer            { return w.inner }
+func (w *wrappedWriter) Unwrap() io.Writer           { return w.inner }
 
 // doubleWrappedWriter wraps a wrappedWriter to test multi-level unwrapping.
 type doubleWrappedWriter struct {
@@ -218,7 +218,7 @@ type doubleWrappedWriter struct {
 }
 
 func (w *doubleWrappedWriter) Write(p []byte) (int, error) { return w.inner.Write(p) }
-func (w *doubleWrappedWriter) Unwrap() io.Writer            { return w.inner }
+func (w *doubleWrappedWriter) Unwrap() io.Writer           { return w.inner }
 
 // opaqueWriter does NOT implement Unwrap — termctl should return nil / fallback.
 type opaqueWriter struct {

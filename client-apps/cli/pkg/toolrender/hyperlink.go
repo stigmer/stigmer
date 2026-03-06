@@ -27,9 +27,9 @@ import (
 //
 // Reference: https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
 const (
-	osc8Open  = "\033]8;;"     // OSC 8 start: ESC ] 8 ; <params> ;
-	osc8Close = "\033]8;;\a"   // OSC 8 end: empty URI terminates the hyperlink
-	st        = "\a"           // String Terminator: BEL (broader compat than ESC \)
+	osc8Open  = "\033]8;;"   // OSC 8 start: ESC ] 8 ; <params> ;
+	osc8Close = "\033]8;;\a" // OSC 8 end: empty URI terminates the hyperlink
+	st        = "\a"         // String Terminator: BEL (broader compat than ESC \)
 )
 
 // Hyperlink wraps displayText in an OSC 8 terminal hyperlink pointing to uri.

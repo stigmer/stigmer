@@ -1681,7 +1681,7 @@ func TestBuildHyperlinkedPath_StigmerPrefix_NoPlatformDir_DegradesToPlainText(t 
 
 func TestBuildHyperlinkedPath_StigmerPrefix_PriorityOverWorkspaceRoots(t *testing.T) {
 	existingPaths := map[string]bool{
-		"/platform/skills/test/SKILL.md": true,
+		"/platform/skills/test/SKILL.md":           true,
 		"/workspace/.stigmer/skills/test/SKILL.md": true,
 	}
 	opts := CompactOptions{

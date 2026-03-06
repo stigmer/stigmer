@@ -270,4 +270,3 @@ func resolveStreamContent(e executiontui.ToolStreamDeltaEvent) string {
 	}
 	return toolrender.ExpandedApprovalContent(e.ToolCall)
 }
-

@@ -77,10 +77,10 @@ type approvalHideMsg struct {
 // the channel. handleKeyPress routes arrow/enter/esc keys to the channel
 // when approvalActive is true.
 type approvalStartMsg struct {
-	expandedContent string                 // full content for tea.Println (scrollback)
-	question        string                 // question line for View()
+	expandedContent string // full content for tea.Println (scrollback)
+	question        string // question line for View()
 	decisionCh      chan<- approvalDecision
-	reCommitPayload string                 // when non-empty, use re-commit instead of Println
+	reCommitPayload string // when non-empty, use re-commit instead of Println
 }
 
 // approvalDecision carries the user's approval choice from the model back
