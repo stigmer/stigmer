@@ -76,7 +76,8 @@ func (c *AgentExecutionController) buildCreatePipeline() *pipeline.Pipeline[*age
 		AddStep(newCreateDefaultInstanceIfNeededStep(c.agentClient, c.agentInstanceClient, c.store)). // 6. Create default instance if needed
 		AddStep(newCreateSessionIfNeededStep(c.agentClient, c.sessionClient)).                        // 6. Create session if needed
 		AddStep(newSetInitialPhaseStep()).                                                            // 7. Set phase to PENDING
-		AddStep(c.newProcessAttachmentsStep()).                                                       // 8. Process attachments (upload large files to storage)
+		AddStep(c.newCreateExecutionContextStep()).                                                   // 8. Create ExecutionContext with merged environment
+		AddStep(c.newProcessAttachmentsStep()).                                                       // 9. Process attachments (upload large files to storage)
 		AddStep(steps.NewPersistStep[*agentexecutionv1.AgentExecution](c.store)).                     // 9. Persist execution
 		AddStep(c.newStartWorkflowStep()).                                                            // 10. Start Temporal workflow
 		Build()
