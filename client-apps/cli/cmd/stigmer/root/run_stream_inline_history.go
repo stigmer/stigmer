@@ -201,13 +201,14 @@ func renderHeaderItem(item committedItem, expanded bool) string {
 	if item.header == nil {
 		return ""
 	}
-	content := formatSessionHeaderContent(*item.header)
+	content, pw := formatHeaderPanel(*item.header, terminalWidth())
 	if content == "" {
 		return ""
 	}
 	return panel.Render(content, panel.Options{
 		Title: headerTitle(item.header.Version, expanded),
 		Style: panel.StyleBrand,
+		Width: pw,
 	})
 }
 
