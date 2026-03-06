@@ -280,3 +280,10 @@ type inlineRenderer struct {
 	donePhase   string
 	doneExitErr string
 }
+
+// expandHintEnabled reports whether the "(ctrl+o to expand)" hint should
+// be shown on compact tool lines. True only when Bubbletea owns stdin
+// and the Ctrl+O toggle is available (TTY mode).
+func (r *inlineRenderer) expandHintEnabled() bool {
+	return r.cfg.toggleExpandCh != nil
+}

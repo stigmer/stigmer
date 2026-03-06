@@ -22,7 +22,7 @@ func TestRenderCommittedItem_Header_WithSubject(t *testing.T) {
 			Model:     "sonnet-4.6",
 		},
 	}
-	result := renderCommittedItem(item, toolrender.CompactOptions{}, false)
+	result := renderCommittedItem(item, toolrender.CompactOptions{}, false, false)
 
 	assert.Contains(t, result, "Stigmer")
 	assert.Contains(t, result, "test-agent")
@@ -38,7 +38,7 @@ func TestRenderCommittedItem_Header_WithoutSubject(t *testing.T) {
 			SessionID: "ses-abc123",
 		},
 	}
-	result := renderCommittedItem(item, toolrender.CompactOptions{}, false)
+	result := renderCommittedItem(item, toolrender.CompactOptions{}, false, false)
 
 	assert.Contains(t, result, "ses-abc123")
 	assert.NotContains(t, result, "Subject")
@@ -46,7 +46,7 @@ func TestRenderCommittedItem_Header_WithoutSubject(t *testing.T) {
 
 func TestRenderCommittedItem_Header_NilHeader(t *testing.T) {
 	item := committedItem{kind: kindHeader}
-	result := renderCommittedItem(item, toolrender.CompactOptions{}, false)
+	result := renderCommittedItem(item, toolrender.CompactOptions{}, false, false)
 	assert.Equal(t, "", result)
 }
 
@@ -58,7 +58,7 @@ func TestRenderCommittedItem_ToolCompact(t *testing.T) {
 			Args: map[string]interface{}{"path": "main.go"},
 		}},
 	}
-	result := renderCommittedItem(item, toolrender.CompactOptions{}, false)
+	result := renderCommittedItem(item, toolrender.CompactOptions{}, false, false)
 
 	assert.Contains(t, result, "Read")
 	assert.Contains(t, result, "main.go")
@@ -73,7 +73,7 @@ func TestRenderCommittedItem_ToolCompact_SubAgent(t *testing.T) {
 			Args: map[string]interface{}{"path": "main.go"},
 		}},
 	}
-	result := renderCommittedItem(item, toolrender.CompactOptions{}, false)
+	result := renderCommittedItem(item, toolrender.CompactOptions{}, false, false)
 
 	assert.Contains(t, result, "main.go")
 	assert.Contains(t, result, "│")
@@ -81,7 +81,7 @@ func TestRenderCommittedItem_ToolCompact_SubAgent(t *testing.T) {
 
 func TestRenderCommittedItem_ToolCompact_Empty(t *testing.T) {
 	item := committedItem{kind: kindToolCompact}
-	assert.Equal(t, "", renderCommittedItem(item, toolrender.CompactOptions{}, false))
+	assert.Equal(t, "", renderCommittedItem(item, toolrender.CompactOptions{}, false, false))
 }
 
 func TestRenderCommittedItem_ReadGroup_Grouped(t *testing.T) {
@@ -94,7 +94,7 @@ func TestRenderCommittedItem_ReadGroup_Grouped(t *testing.T) {
 		}
 	}
 	item := committedItem{kind: kindReadGroup, toolCalls: reads}
-	result := renderCommittedItem(item, toolrender.CompactOptions{}, false)
+	result := renderCommittedItem(item, toolrender.CompactOptions{}, false, false)
 
 	assert.Contains(t, result, "Read")
 }
@@ -105,7 +105,7 @@ func TestRenderCommittedItem_ReadGroup_Individual(t *testing.T) {
 		{Name: "read_file", Args: map[string]interface{}{"path": "b.go"}},
 	}
 	item := committedItem{kind: kindReadGroup, toolCalls: reads}
-	result := renderCommittedItem(item, toolrender.CompactOptions{}, false)
+	result := renderCommittedItem(item, toolrender.CompactOptions{}, false, false)
 
 	assert.Contains(t, result, "a.go")
 	assert.Contains(t, result, "b.go")
@@ -120,7 +120,7 @@ func TestRenderCommittedItem_Approval(t *testing.T) {
 			Args: map[string]interface{}{"path": "config.go"},
 		}},
 	}
-	result := renderCommittedItem(item, toolrender.CompactOptions{}, false)
+	result := renderCommittedItem(item, toolrender.CompactOptions{}, false, false)
 
 	assert.Contains(t, result, "config.go")
 }
@@ -140,7 +140,7 @@ func TestRenderCommittedItem_TextKinds(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			item := committedItem{kind: tt.kind, text: "expected output"}
-			result := renderCommittedItem(item, toolrender.CompactOptions{}, false)
+			result := renderCommittedItem(item, toolrender.CompactOptions{}, false, false)
 			assert.Equal(t, "expected output", result)
 		})
 	}
@@ -154,7 +154,7 @@ func TestBuildReCommitCmd_ProducesCmd(t *testing.T) {
 			{Name: "read_file", Args: map[string]interface{}{"path": "f.go"}},
 		}},
 	}
-	rendered := renderHistoryBatch(items, toolrender.CompactOptions{}, false)
+	rendered := renderHistoryBatch(items, toolrender.CompactOptions{}, false, false)
 	cmd := buildReCommitCmd(rendered)
 	assert.NotNil(t, cmd)
 }
@@ -170,11 +170,11 @@ func TestRenderCommittedItem_Header_SubjectMutation(t *testing.T) {
 	}
 	item := committedItem{kind: kindHeader, header: &info}
 
-	before := renderCommittedItem(item, toolrender.CompactOptions{}, false)
+	before := renderCommittedItem(item, toolrender.CompactOptions{}, false, false)
 	assert.NotContains(t, before, "Subject")
 
 	info.Subject = "Refactor auth module"
-	after := renderCommittedItem(item, toolrender.CompactOptions{}, false)
+	after := renderCommittedItem(item, toolrender.CompactOptions{}, false, false)
 	assert.Contains(t, after, "Subject")
 	assert.Contains(t, after, "Refactor auth module")
 }
@@ -188,7 +188,7 @@ func TestRenderToolCompactItem_MultiLine_HasTrailingBlank(t *testing.T) {
 			Result: "total 8\ndrwxr 2 user\n-rw-r 1 file",
 		}},
 	}
-	result := renderCommittedItem(item, toolrender.CompactOptions{}, false)
+	result := renderCommittedItem(item, toolrender.CompactOptions{}, false, false)
 	assert.True(t, strings.HasSuffix(result, "\n"),
 		"multi-line tool compact should end with blank line separator")
 }
@@ -208,10 +208,10 @@ func TestRenderCommittedItem_Expanded_ShellShowsAllOutput(t *testing.T) {
 		}},
 	}
 
-	compact := renderCommittedItem(item, toolrender.CompactOptions{}, false)
+	compact := renderCommittedItem(item, toolrender.CompactOptions{}, false, false)
 	assert.Contains(t, compact, "more lines")
 
-	expanded := renderCommittedItem(item, toolrender.CompactOptions{}, true)
+	expanded := renderCommittedItem(item, toolrender.CompactOptions{}, true, false)
 	assert.NotContains(t, expanded, "more lines")
 	assert.Contains(t, expanded, "pkg/a")
 	assert.Contains(t, expanded, "pkg/f")
@@ -229,10 +229,10 @@ func TestRenderCommittedItem_Expanded_ReadGroupShowsAll(t *testing.T) {
 	}
 	item := committedItem{kind: kindReadGroup, toolCalls: reads}
 
-	compact := renderCommittedItem(item, toolrender.CompactOptions{}, false)
+	compact := renderCommittedItem(item, toolrender.CompactOptions{}, false, false)
 	assert.Contains(t, compact, "more")
 
-	expanded := renderCommittedItem(item, toolrender.CompactOptions{}, true)
+	expanded := renderCommittedItem(item, toolrender.CompactOptions{}, true, false)
 	assert.NotContains(t, expanded, "more")
 	for i := range reads {
 		assert.Contains(t, expanded, fmt.Sprintf("file_%d.go", i+1))
@@ -251,14 +251,14 @@ func TestRenderCommittedItem_Expanded_ReadGroupSubAgent(t *testing.T) {
 	}
 	item := committedItem{kind: kindReadGroup, toolCalls: reads, subAgentID: "sub-1"}
 
-	result := renderCommittedItem(item, toolrender.CompactOptions{}, true)
+	result := renderCommittedItem(item, toolrender.CompactOptions{}, true, false)
 	assert.Contains(t, result, "│")
 }
 
 func TestRenderCommittedItem_Expanded_TextKindsUnchanged(t *testing.T) {
 	item := committedItem{kind: kindAIMessage, text: "AI response text"}
-	compact := renderCommittedItem(item, toolrender.CompactOptions{}, false)
-	expanded := renderCommittedItem(item, toolrender.CompactOptions{}, true)
+	compact := renderCommittedItem(item, toolrender.CompactOptions{}, false, false)
+	expanded := renderCommittedItem(item, toolrender.CompactOptions{}, true, false)
 	assert.Equal(t, compact, expanded)
 }
 
@@ -270,8 +270,8 @@ func TestRenderCommittedItem_Expanded_HeaderShowsModeIndicator(t *testing.T) {
 			Subject:   "Test subject",
 		},
 	}
-	compact := renderCommittedItem(item, toolrender.CompactOptions{}, false)
-	expanded := renderCommittedItem(item, toolrender.CompactOptions{}, true)
+	compact := renderCommittedItem(item, toolrender.CompactOptions{}, false, false)
+	expanded := renderCommittedItem(item, toolrender.CompactOptions{}, true, false)
 
 	assert.Contains(t, compact, "Stigmer")
 	assert.NotContains(t, compact, "expanded")
@@ -290,8 +290,8 @@ func TestRenderCommittedItem_Expanded_ApprovalUnchanged(t *testing.T) {
 			Args: map[string]interface{}{"path": "config.go", "contents": "pkg config\n"},
 		}},
 	}
-	compact := renderCommittedItem(item, toolrender.CompactOptions{}, false)
-	expanded := renderCommittedItem(item, toolrender.CompactOptions{}, true)
+	compact := renderCommittedItem(item, toolrender.CompactOptions{}, false, false)
+	expanded := renderCommittedItem(item, toolrender.CompactOptions{}, true, false)
 	assert.Equal(t, compact, expanded)
 }
 
@@ -302,7 +302,7 @@ func TestBuildReCommitCmd_Expanded_ProducesCmd(t *testing.T) {
 			{Name: "shell", Args: map[string]interface{}{"command": "ls"}, Status: "completed", Result: "a\nb\nc\nd\ne"},
 		}},
 	}
-	rendered := renderHistoryBatch(items, toolrender.CompactOptions{}, true)
+	rendered := renderHistoryBatch(items, toolrender.CompactOptions{}, true, false)
 	cmd := buildReCommitCmd(rendered)
 	assert.NotNil(t, cmd)
 }
@@ -417,7 +417,7 @@ func TestRenderHistoryBatch_MatchesPerItemOutput(t *testing.T) {
 			first := true
 			var lastKind committedKind
 			for _, item := range items {
-				text := renderCommittedItem(item, opts, expanded)
+				text := renderCommittedItem(item, opts, expanded, false)
 				if text == "" {
 					continue
 				}
@@ -438,20 +438,20 @@ func TestRenderHistoryBatch_MatchesPerItemOutput(t *testing.T) {
 				first = false
 			}
 			expected := b.String()
-			actual := renderHistoryBatch(items, opts, expanded)
+			actual := renderHistoryBatch(items, opts, expanded, false)
 			assert.Equal(t, expected, actual)
 		})
 	}
 }
 
 func TestRenderHistoryBatch_EmptyHistory(t *testing.T) {
-	assert.Equal(t, "", renderHistoryBatch(nil, toolrender.CompactOptions{}, false))
-	assert.Equal(t, "", renderHistoryBatch([]committedItem{}, toolrender.CompactOptions{}, false))
+	assert.Equal(t, "", renderHistoryBatch(nil, toolrender.CompactOptions{}, false, false))
+	assert.Equal(t, "", renderHistoryBatch([]committedItem{}, toolrender.CompactOptions{}, false, false))
 }
 
 func TestRenderHistoryBatch_SingleItem(t *testing.T) {
 	item := committedItem{kind: kindText, text: "only item"}
-	result := renderHistoryBatch([]committedItem{item}, toolrender.CompactOptions{}, false)
+	result := renderHistoryBatch([]committedItem{item}, toolrender.CompactOptions{}, false, false)
 	assert.Equal(t, "only item\n", result)
 }
 
@@ -461,7 +461,7 @@ func TestRenderHistoryBatch_SkipsEmptyItems(t *testing.T) {
 		{kind: kindToolCompact},
 		{kind: kindText, text: "second"},
 	}
-	result := renderHistoryBatch(items, toolrender.CompactOptions{}, false)
+	result := renderHistoryBatch(items, toolrender.CompactOptions{}, false, false)
 	assert.Equal(t, "first\n\nsecond\n", result)
 }
 
@@ -470,7 +470,7 @@ func TestRenderHistoryBatch_NilHeader(t *testing.T) {
 		{kind: kindHeader},
 		{kind: kindText, text: "after empty header"},
 	}
-	result := renderHistoryBatch(items, toolrender.CompactOptions{}, false)
+	result := renderHistoryBatch(items, toolrender.CompactOptions{}, false, false)
 	assert.Equal(t, "after empty header\n", result)
 }
 
@@ -479,9 +479,9 @@ func TestRenderHistoryBatch_HeaderHasBlankLineGap(t *testing.T) {
 		{kind: kindHeader, header: &sessionHeaderInfo{SessionID: "ses-1"}},
 		{kind: kindText, text: "first content"},
 	}
-	result := renderHistoryBatch(items, toolrender.CompactOptions{}, false)
+	result := renderHistoryBatch(items, toolrender.CompactOptions{}, false, false)
 
-	headerText := renderCommittedItem(items[0], toolrender.CompactOptions{}, false)
+	headerText := renderCommittedItem(items[0], toolrender.CompactOptions{}, false, false)
 	assert.Equal(t, headerText+"\n\nfirst content\n", result,
 		"header should be followed by a blank line before the next item")
 }
@@ -490,9 +490,9 @@ func TestRenderHistoryBatch_HeaderOnly_NoExtraNewline(t *testing.T) {
 	items := []committedItem{
 		{kind: kindHeader, header: &sessionHeaderInfo{SessionID: "ses-1"}},
 	}
-	result := renderHistoryBatch(items, toolrender.CompactOptions{}, false)
+	result := renderHistoryBatch(items, toolrender.CompactOptions{}, false, false)
 
-	headerText := renderCommittedItem(items[0], toolrender.CompactOptions{}, false)
+	headerText := renderCommittedItem(items[0], toolrender.CompactOptions{}, false, false)
 	assert.Equal(t, headerText+"\n", result,
 		"header-only batch should have trailing newline from the gap")
 }
@@ -562,7 +562,7 @@ func TestCommitToScrollback_MatchesRecommit(t *testing.T) {
 			}
 			liveOutput := buf.String()
 
-			batch := renderHistoryBatch(items, opts, expanded)
+			batch := renderHistoryBatch(items, opts, expanded, false)
 
 			assert.Equal(t, batch+"\n", liveOutput,
 				"live commitToScrollback output should match renderHistoryBatch "+
@@ -664,10 +664,10 @@ func TestRenderHistoryBatch_LeadingGapAfterTools(t *testing.T) {
 		}}},
 		{kind: kindAIMessage, text: "Here is my analysis."},
 	}
-	result := renderHistoryBatch(items, toolrender.CompactOptions{}, false)
+	result := renderHistoryBatch(items, toolrender.CompactOptions{}, false, false)
 
-	tool1 := renderCommittedItem(items[0], toolrender.CompactOptions{}, false)
-	tool2 := renderCommittedItem(items[1], toolrender.CompactOptions{}, false)
+	tool1 := renderCommittedItem(items[0], toolrender.CompactOptions{}, false, false)
+	tool2 := renderCommittedItem(items[1], toolrender.CompactOptions{}, false, false)
 
 	assert.Contains(t, result, tool1+"\n"+tool2,
 		"consecutive tools should stack tightly")
@@ -727,7 +727,7 @@ func TestRenderSubAgentBlockItem_Collapsed(t *testing.T) {
 	}
 	item := committedItem{kind: kindSubAgentBlock, saBlock: block}
 
-	result := renderCommittedItem(item, toolrender.CompactOptions{}, false)
+	result := renderCommittedItem(item, toolrender.CompactOptions{}, false, false)
 
 	assert.Contains(t, result, "Task")
 	assert.Contains(t, result, "Explore CLI rendering")
@@ -743,7 +743,7 @@ func TestRenderSubAgentBlockItem_Collapsed_Failed(t *testing.T) {
 	}
 	item := committedItem{kind: kindSubAgentBlock, saBlock: block}
 
-	result := renderCommittedItem(item, toolrender.CompactOptions{}, false)
+	result := renderCommittedItem(item, toolrender.CompactOptions{}, false, false)
 
 	assert.Contains(t, result, "✗ Failed")
 	assert.Contains(t, result, "3 tools")
@@ -764,7 +764,7 @@ func TestRenderSubAgentBlockItem_Expanded_ShowsChildren(t *testing.T) {
 	}
 	item := committedItem{kind: kindSubAgentBlock, saBlock: block}
 
-	result := renderCommittedItem(item, toolrender.CompactOptions{}, true)
+	result := renderCommittedItem(item, toolrender.CompactOptions{}, true, false)
 
 	assert.Contains(t, result, "Task")
 	assert.Contains(t, result, "Explore CLI rendering")
@@ -775,7 +775,7 @@ func TestRenderSubAgentBlockItem_Expanded_ShowsChildren(t *testing.T) {
 
 func TestRenderSubAgentBlockItem_NilBlock(t *testing.T) {
 	item := committedItem{kind: kindSubAgentBlock}
-	result := renderCommittedItem(item, toolrender.CompactOptions{}, false)
+	result := renderCommittedItem(item, toolrender.CompactOptions{}, false, false)
 	assert.Equal(t, "", result)
 }
 
@@ -786,7 +786,7 @@ func TestRenderSubAgentBlockItem_FallbackToName(t *testing.T) {
 	}
 	item := committedItem{kind: kindSubAgentBlock, saBlock: block}
 
-	result := renderCommittedItem(item, toolrender.CompactOptions{}, false)
+	result := renderCommittedItem(item, toolrender.CompactOptions{}, false, false)
 	assert.Contains(t, result, "code_editor")
 }
 
@@ -904,4 +904,188 @@ func TestRenderToolCompleted_NoBlock_WritesToScrollback(t *testing.T) {
 	})
 
 	assert.NotEqual(t, "", buf.String(), "non-sub-agent tool should write to scrollback")
+}
+
+// =============================================================================
+// Expand hint — "(ctrl+o to expand)" suffix
+// =============================================================================
+
+func TestAppendExpandHint_SingleLine(t *testing.T) {
+	result := appendExpandHint("● Read main.go (43 lines)")
+	assert.Contains(t, result, "● Read main.go (43 lines)")
+	assert.Contains(t, result, "ctrl+o to expand")
+}
+
+func TestAppendExpandHint_MultiLine_FirstLineOnly(t *testing.T) {
+	input := "● Read 3 files\n    main.go (125 lines)\n    config.go (43 lines)"
+	result := appendExpandHint(input)
+
+	lines := strings.SplitN(result, "\n", 2)
+	assert.Contains(t, lines[0], "ctrl+o to expand",
+		"hint should appear on the first line")
+	assert.NotContains(t, lines[1], "ctrl+o to expand",
+		"hint should NOT appear on subsequent lines")
+}
+
+func TestAppendExpandHint_EmptyString(t *testing.T) {
+	assert.Equal(t, "", appendExpandHint(""))
+}
+
+func TestRenderCommittedItem_ExpandHint_ToolCompact(t *testing.T) {
+	item := committedItem{
+		kind: kindToolCompact,
+		toolCalls: []toolrender.ToolCallInfo{{
+			Name: "read_file",
+			Args: map[string]interface{}{"path": "main.go"},
+		}},
+	}
+
+	withHint := renderCommittedItem(item, toolrender.CompactOptions{}, false, true)
+	assert.Contains(t, withHint, "ctrl+o to expand")
+
+	withoutHint := renderCommittedItem(item, toolrender.CompactOptions{}, false, false)
+	assert.NotContains(t, withoutHint, "ctrl+o to expand")
+}
+
+func TestRenderCommittedItem_ExpandHint_ReadGroup(t *testing.T) {
+	reads := make([]toolrender.ToolCallInfo, readGroupThreshold)
+	for i := range reads {
+		reads[i] = toolrender.ToolCallInfo{
+			Name:   "read_file",
+			Args:   map[string]interface{}{"path": fmt.Sprintf("file_%d.go", i)},
+			Status: "completed",
+			Result: "content\n",
+		}
+	}
+	item := committedItem{kind: kindReadGroup, toolCalls: reads}
+
+	withHint := renderCommittedItem(item, toolrender.CompactOptions{}, false, true)
+	assert.Contains(t, withHint, "ctrl+o to expand")
+
+	lines := strings.SplitN(withHint, "\n", 2)
+	assert.Contains(t, lines[0], "ctrl+o to expand",
+		"hint should appear on the read group header line")
+}
+
+func TestRenderCommittedItem_ExpandHint_SubAgentBlock(t *testing.T) {
+	block := &subAgentBlock{
+		id: "sa-1", name: "researcher", subject: "Explore CLI code",
+		status: "completed", toolCount: 5,
+	}
+	item := committedItem{kind: kindSubAgentBlock, saBlock: block}
+
+	withHint := renderCommittedItem(item, toolrender.CompactOptions{}, false, true)
+	assert.Contains(t, withHint, "ctrl+o to expand")
+}
+
+func TestRenderCommittedItem_NoHintWhenExpanded(t *testing.T) {
+	item := committedItem{
+		kind: kindToolCompact,
+		toolCalls: []toolrender.ToolCallInfo{{
+			Name:   "shell",
+			Args:   map[string]interface{}{"command": "ls"},
+			Status: "completed",
+			Result: "file1\nfile2",
+		}},
+	}
+	result := renderCommittedItem(item, toolrender.CompactOptions{}, true, true)
+	assert.NotContains(t, result, "ctrl+o to expand",
+		"hint should NOT appear in expanded mode even when showExpandHint is true")
+}
+
+func TestRenderCommittedItem_NoHintOnNonExpandableKinds(t *testing.T) {
+	tests := []struct {
+		name string
+		item committedItem
+	}{
+		{"Header", committedItem{
+			kind:   kindHeader,
+			header: &sessionHeaderInfo{SessionID: "ses-1"},
+		}},
+		{"AIMessage", committedItem{kind: kindAIMessage, text: "response"}},
+		{"HumanMessage", committedItem{kind: kindHumanMessage, text: "input"}},
+		{"Approval", committedItem{
+			kind: kindApproval, action: "approve",
+			toolCalls: []toolrender.ToolCallInfo{{
+				Name: "write_file",
+				Args: map[string]interface{}{"path": "f.go"},
+			}},
+		}},
+		{"Text", committedItem{kind: kindText, text: "plain text"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := renderCommittedItem(tt.item, toolrender.CompactOptions{}, false, true)
+			assert.NotContains(t, result, "ctrl+o to expand",
+				"non-expandable kind %q should not get hint", tt.name)
+		})
+	}
+}
+
+func TestExpandHintEnabled(t *testing.T) {
+	t.Run("nil channel", func(t *testing.T) {
+		r := &inlineRenderer{cfg: inlineRenderConfig{}}
+		assert.False(t, r.expandHintEnabled())
+	})
+	t.Run("non-nil channel", func(t *testing.T) {
+		ch := make(chan struct{}, 1)
+		r := &inlineRenderer{cfg: inlineRenderConfig{toggleExpandCh: ch}}
+		assert.True(t, r.expandHintEnabled())
+	})
+}
+
+func TestRenderHistoryBatch_WithExpandHint(t *testing.T) {
+	items := []committedItem{
+		{kind: kindToolCompact, toolCalls: []toolrender.ToolCallInfo{{
+			Name: "read_file", Args: map[string]interface{}{"path": "a.go"},
+		}}},
+		{kind: kindToolCompact, toolCalls: []toolrender.ToolCallInfo{{
+			Name: "read_file", Args: map[string]interface{}{"path": "b.go"},
+		}}},
+	}
+
+	withHint := renderHistoryBatch(items, toolrender.CompactOptions{}, false, true)
+	assert.Contains(t, withHint, "ctrl+o to expand")
+
+	withoutHint := renderHistoryBatch(items, toolrender.CompactOptions{}, false, false)
+	assert.NotContains(t, withoutHint, "ctrl+o to expand")
+}
+
+func TestCommitToScrollback_WithExpandHint(t *testing.T) {
+	ch := make(chan struct{}, 1)
+	var buf bytes.Buffer
+	r := &inlineRenderer{
+		cfg:             inlineRenderConfig{status: &buf, toggleExpandCh: ch},
+		activeSubAgents: make(map[string]*subAgentBlock),
+	}
+
+	item := committedItem{
+		kind: kindToolCompact,
+		toolCalls: []toolrender.ToolCallInfo{{
+			Name: "read_file", Args: map[string]interface{}{"path": "main.go"},
+		}},
+	}
+	r.commitToScrollback(item)
+
+	assert.Contains(t, buf.String(), "ctrl+o to expand",
+		"commitToScrollback should include hint when toggleExpandCh is set")
+}
+
+func TestCommitToScrollback_NoHintWithoutChannel(t *testing.T) {
+	var buf bytes.Buffer
+	r := &inlineRenderer{
+		cfg:             inlineRenderConfig{status: &buf},
+		activeSubAgents: make(map[string]*subAgentBlock),
+	}
+
+	item := committedItem{
+		kind: kindToolCompact,
+		toolCalls: []toolrender.ToolCallInfo{{
+			Name: "read_file", Args: map[string]interface{}{"path": "main.go"},
+		}},
+	}
+	r.commitToScrollback(item)
+
+	assert.NotContains(t, buf.String(), "ctrl+o to expand",
+		"commitToScrollback should NOT include hint when toggleExpandCh is nil")
 }
