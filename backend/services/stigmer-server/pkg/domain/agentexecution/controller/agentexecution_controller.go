@@ -7,6 +7,8 @@ import (
 	artifactstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/artifact/storage"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/environment"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/executioncontext"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/session"
 	temporalclient "go.temporal.io/sdk/client"
 )
@@ -15,14 +17,16 @@ import (
 type AgentExecutionController struct {
 	agentexecutionv1.UnimplementedAgentExecutionCommandControllerServer
 	agentexecutionv1.UnimplementedAgentExecutionQueryControllerServer
-	store               store.Store
-	agentClient         *agent.Client
-	agentInstanceClient *agentinstance.Client
-	sessionClient       *session.Client
-	workflowCreator     *temporal.InvokeAgentExecutionWorkflowCreator
-	streamBroker        *StreamBroker
-	temporalClient      temporalclient.Client           // Temporal client for lifecycle operations
-	artifactStorage     artifactstorage.ArtifactStorage // Artifact storage for attachments and outputs
+	store                  store.Store
+	agentClient            *agent.Client
+	agentInstanceClient    *agentinstance.Client
+	sessionClient          *session.Client
+	environmentClient      *environment.Client
+	executionContextClient *executioncontext.Client
+	workflowCreator        *temporal.InvokeAgentExecutionWorkflowCreator
+	streamBroker           *StreamBroker
+	temporalClient         temporalclient.Client           // Temporal client for lifecycle operations
+	artifactStorage        artifactstorage.ArtifactStorage // Artifact storage for attachments and outputs
 }
 
 // NewAgentExecutionController creates a new AgentExecutionController
@@ -56,10 +60,14 @@ func (c *AgentExecutionController) SetClients(
 	agentClient *agent.Client,
 	agentInstanceClient *agentinstance.Client,
 	sessionClient *session.Client,
+	environmentClient *environment.Client,
+	executionContextClient *executioncontext.Client,
 ) {
 	c.agentClient = agentClient
 	c.agentInstanceClient = agentInstanceClient
 	c.sessionClient = sessionClient
+	c.environmentClient = environmentClient
+	c.executionContextClient = executionContextClient
 }
 
 // SetWorkflowCreator sets the Temporal workflow creator dependency

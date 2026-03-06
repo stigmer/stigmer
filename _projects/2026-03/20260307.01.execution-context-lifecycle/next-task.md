@@ -68,10 +68,41 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-07 01:47
-**Current Task**: T01 (Create Downstream Clients) -- COMPLETED
-**Status**: T01 complete, ready for T02
+**Current Task**: T02 (CreateExecutionContext Pipeline Step) -- COMPLETED
+**Status**: T02 complete, ready for T03
 
-## Session Progress (2026-03-07)
+## Session Progress (2026-03-07 -- Session 2)
+
+- **T02 completed**: Added CreateExecutionContext pipeline step to BOTH AgentExecution and WorkflowExecution creation flows
+- Extracted shared three-layer environment merge utility (`envmerge.MergeEnvironmentLayers`)
+- Extended 3 downstream clients with new `Get` methods (session, agentinstance, workflowinstance)
+- Wired environment + executioncontext clients into both controllers via server.go
+
+### New files created (3):
+  - `backend/libs/go/envmerge/merge.go` -- shared pure merge function (template env_spec + environments + runtime_env -> ExecutionValue map)
+  - `backend/services/stigmer-server/pkg/domain/agentexecution/controller/create_execution_context_step.go` -- AE pipeline step (session -> instance -> agent resolution chain)
+  - `backend/services/stigmer-server/pkg/domain/workflowexecution/controller/create_execution_context_step.go` -- WE pipeline step (instance -> workflow via store resolution chain)
+
+### Modified files (8):
+  - `downstream/session/client.go` -- added `queryClient` + `Get(id)` method
+  - `downstream/agentinstance/client.go` -- added `Get(id)` method
+  - `downstream/workflowinstance/client.go` -- added `queryClient` + `Get(id)` method
+  - `agentexecution/controller/agentexecution_controller.go` -- added environmentClient, executionContextClient; expanded SetClients
+  - `agentexecution/controller/create.go` -- inserted CreateExecutionContext step into pipeline
+  - `workflowexecution/controller/workflowexecution_controller.go` -- added environmentClient, executionContextClient; added setter
+  - `workflowexecution/controller/create.go` -- inserted CreateExecutionContext step into pipeline
+  - `server/server.go` -- created + injected environment and executioncontext clients into both controllers
+
+### Design decisions:
+  - Shared merge lives in `backend/libs/go/envmerge/` (pure function, no I/O, easily testable)
+  - AE step uses downstream gRPC clients for all lookups (matching AE controller pattern)
+  - WE step loads Workflow from store directly (matching WE controller's "same service" pattern)
+  - EnvironmentValue entries with empty value are filtered (schema declarations, not runtime config)
+  - ExecutionContext is always created even with empty data map (contract consistency)
+
+- Verified: `go build ./backend/services/stigmer-server/...` and `go build ./backend/libs/go/envmerge/...` both compile cleanly
+
+## Session Progress (2026-03-07 -- Session 1)
 
 - **T01 completed**: Created two downstream gRPC clients (Environment query, ExecutionContext command)
 - Files created:
@@ -83,21 +114,22 @@ When starting a new session:
 
 ## Next Steps
 
-1. **T02: CreateExecutionContextStep** -- Add a pipeline step to the agent execution creation flow that builds and persists an ExecutionContext with the fully-merged environment (agent defaults + environment_refs + runtime_env). Wire the new downstream clients into the server.
-2. **T03: Slim Workflow Input** -- Change the Temporal workflow input from full AgentExecution proto to a slim struct without secrets. Strip runtime_env from persisted AgentExecution.
-3. **T04: Cleanup Activity** -- Add a Temporal activity that deletes the ExecutionContext when the workflow completes (success or failure).
+1. **T03: Slim Workflow Input** -- Change the Temporal workflow input from full AgentExecution proto to a slim struct without secrets. Strip runtime_env from persisted AgentExecution.
+2. **T04: Cleanup Activity** -- Add a Temporal activity that deletes the ExecutionContext when the workflow completes (success or failure).
 
 ## Context for Resume
 
-- The Environment client only exposes `GetByReference` (query-only, since the execution domain never mutates environments)
-- The ExecutionContext client only exposes `Create` and `Delete` (command-only, since query operations like `getByExecutionId` are used by agent-runner directly)
-- The `Delete` method follows the `ApiResourceDeleteInput` pattern from the mcpserver downstream client
-- Server wiring (connecting these clients to the in-process gRPC server) is deferred to T02
+- T01 created Environment + ExecutionContext downstream clients; T02 wired them into the server and both execution controllers
+- The merge function in `backend/libs/go/envmerge/merge.go` converts EnvironmentValue -> ExecutionValue, filtering empty values
+- After T02, there is temporary redundancy: runtime_env exists in both the execution AND the execution context. T03 removes it from the execution.
+- The AE step resolves agent_instance_id from pipeline context (DefaultInstanceIDKey) or by looking up the session via sessionClient.Get
+- The WE step resolves workflow_instance_id from execution.spec (always set by createDefaultInstanceIfNeededStep)
+- No proto changes were made in T01 or T02
 
 ## Quick Commands
 
 After loading context:
-- "Start T02" - Begin the CreateExecutionContextStep task
+- "Start T03" - Begin the Slim Workflow Input task
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

@@ -5,6 +5,8 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/dedupe"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/environment"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/executioncontext"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
 	"go.temporal.io/sdk/client"
 )
@@ -38,6 +40,8 @@ type WorkflowExecutionController struct {
 	workflowexecutionv1.UnimplementedWorkflowExecutionQueryControllerServer
 	store                  store.Store
 	workflowInstanceClient *workflowinstance.Client
+	environmentClient      *environment.Client
+	executionContextClient *executioncontext.Client
 	workflowCreator        *workflows.InvokeWorkflowExecutionWorkflowCreator
 	streamBroker           *StreamBroker
 	agentExecutionClient   AgentExecutionApprovalClient // For forwarding approvals to child agents
@@ -65,6 +69,16 @@ func NewWorkflowExecutionController(
 // This is used when the controller is created before the in-process gRPC server is started
 func (c *WorkflowExecutionController) SetWorkflowInstanceClient(client *workflowinstance.Client) {
 	c.workflowInstanceClient = client
+}
+
+// SetEnvironmentAndExecutionContextClients sets the clients needed for ExecutionContext creation
+// during the create pipeline. These are injected after the in-process gRPC server starts.
+func (c *WorkflowExecutionController) SetEnvironmentAndExecutionContextClients(
+	envClient *environment.Client,
+	ecClient *executioncontext.Client,
+) {
+	c.environmentClient = envClient
+	c.executionContextClient = ecClient
 }
 
 // SetWorkflowCreator sets the Temporal workflow creator dependency

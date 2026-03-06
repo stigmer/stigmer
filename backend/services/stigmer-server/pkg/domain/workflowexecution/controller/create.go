@@ -73,7 +73,8 @@ func (c *WorkflowExecutionController) buildCreatePipeline() *pipeline.Pipeline[*
 		AddStep(steps.NewBuildNewStateStep[*workflowexecutionv1.WorkflowExecution]()).         // 6. Build new state
 		AddStep(steps.NewNormalizeReferencesStep[*workflowexecutionv1.WorkflowExecution]()).   // 7. Normalize cross-references
 		AddStep(newSetInitialPhaseStep()).                                                     // 8. Set phase to PENDING
-		AddStep(steps.NewPersistStep[*workflowexecutionv1.WorkflowExecution](c.store)).        // 8. Persist execution
+		AddStep(c.newCreateExecutionContextStep()).                                            // 9. Create ExecutionContext with merged environment
+		AddStep(steps.NewPersistStep[*workflowexecutionv1.WorkflowExecution](c.store)).        // 10. Persist execution
 		AddStep(c.newStartWorkflowStep()).                                                     // 9. Start Temporal workflow
 		Build()
 }
