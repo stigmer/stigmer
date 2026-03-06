@@ -38,12 +38,12 @@ type inlineBubbleModel struct {
 	// approvalShowMsg path (program==nil fallback).
 	approvalDecisionCh chan<- approvalDecision
 
-	streamingActive      bool
-	streamingHeader      string
-	streamingContent     string
-	streamingSubAgent    string
-	streamingProgressive bool // pre-approval: commit lines to scrollback progressively
-	streamingCommittedLen int // bytes of content already committed to scrollback
+	streamingActive       bool
+	streamingHeader       string
+	streamingContent      string
+	streamingSubAgent     string
+	streamingProgressive  bool // pre-approval: commit lines to scrollback progressively
+	streamingCommittedLen int  // bytes of content already committed to scrollback
 
 	// AI streaming state — when active, View() renders the partial
 	// (incomplete) line being typed by the model. Complete lines are
@@ -358,11 +358,7 @@ func (m inlineBubbleModel) handleStreamingShow(msg streamingShowMsg) (tea.Model,
 
 	if msg.progressive {
 		m.streamingHeader = ""
-		header := strings.TrimRight(msg.header, "\n")
-		if msg.subAgentID != "" {
-			header = toolrender.GutterWrap(header)
-		}
-		return m, tea.Println(header)
+		return m, nil
 	}
 
 	m.streamingHeader = msg.header
@@ -394,15 +390,11 @@ func (m inlineBubbleModel) handleStreamingUpdate(msg streamingUpdateMsg) (tea.Mo
 
 	lastNewline := strings.LastIndex(content, "\n")
 	var completeLen int
-	var partial string
 	if lastNewline >= 0 {
 		completeLen = lastNewline + 1
-		partial = content[completeLen:]
-	} else {
-		partial = content
 	}
 
-	m.streamingContent = partial
+	m.streamingContent = content[completeLen:]
 
 	if completeLen > m.streamingCommittedLen {
 		newLines := content[m.streamingCommittedLen:completeLen]
@@ -416,7 +408,6 @@ func (m inlineBubbleModel) handleStreamingUpdate(msg streamingUpdateMsg) (tea.Mo
 			return m, tea.Println(commitText)
 		}
 	}
-
 	return m, nil
 }
 

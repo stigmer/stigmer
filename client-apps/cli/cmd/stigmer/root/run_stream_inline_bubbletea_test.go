@@ -3,6 +3,7 @@ package root
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -416,7 +417,6 @@ func TestInlineBubbleModel_StreamingShow_NonProgressive(t *testing.T) {
 func TestInlineBubbleModel_StreamingShow_Progressive(t *testing.T) {
 	m := newInlineBubbleModel()
 	updated, cmd := m.Update(streamingShowMsg{
-		header:      "─── separator ───\nWrite(main.go)\n",
 		progressive: true,
 	})
 
@@ -433,8 +433,8 @@ func TestInlineBubbleModel_StreamingShow_Progressive(t *testing.T) {
 	if model.streamingCommittedLen != 0 {
 		t.Errorf("expected streamingCommittedLen=0, got %d", model.streamingCommittedLen)
 	}
-	if cmd == nil {
-		t.Fatal("progressive streamingShowMsg should return a Println Cmd for the header")
+	if cmd != nil {
+		t.Error("progressive streamingShowMsg should return nil Cmd (header committed renderer-side)")
 	}
 }
 
@@ -821,6 +821,33 @@ func TestInlineBubbleModel_View_ApprovalPriorityOverFollowUp(t *testing.T) {
 	}
 	if !strings.Contains(v, "approval question") {
 		t.Errorf("View() should show approval question, got %q", v)
+	}
+}
+
+// =============================================================================
+// Progressive Streaming — Large Content Tests
+// =============================================================================
+
+func TestInlineBubbleModel_StreamingUpdate_ProgressiveLargeContent(t *testing.T) {
+	m := newInlineBubbleModel()
+	shown, _ := m.Update(streamingShowMsg{header: "header\n", progressive: true})
+
+	var b strings.Builder
+	for i := 1; i <= 50; i++ {
+		fmt.Fprintf(&b, "line %d\n", i)
+	}
+	content := b.String() + "partial"
+	updated, cmd := shown.Update(streamingUpdateMsg{content: content})
+
+	model := updated.(inlineBubbleModel)
+	if model.streamingContent != "partial" {
+		t.Errorf("expected partial line in View content, got %q", model.streamingContent)
+	}
+	if model.streamingCommittedLen != len(b.String()) {
+		t.Errorf("expected committedLen=%d, got %d", len(b.String()), model.streamingCommittedLen)
+	}
+	if cmd == nil {
+		t.Fatal("should return Println Cmd for committed lines")
 	}
 }
 
