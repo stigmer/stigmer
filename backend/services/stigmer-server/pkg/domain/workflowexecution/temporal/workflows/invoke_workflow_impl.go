@@ -45,13 +45,21 @@ func (w *InvokeWorkflowExecutionWorkflowImpl) Run(ctx workflow.Context, executio
 
 	// Execute the Zigflow workflow flow
 	if err := w.executeWorkflowFlow(ctx, execution); err != nil {
-		logger.Error("❌ Workflow execution failed", "execution_id", executionID, "error", err.Error())
+		// Cancellation path: workflow was cancelled externally (user cancel, namespace timeout).
+		// All cleanup runs in a disconnected context to guarantee execution.
+		if temporal.IsCanceledError(ctx.Err()) {
+			logger.Info("Workflow cancelled, running cancellation cleanup", "execution_id", executionID)
+			w.handleCancellation(ctx, executionID)
+			return err
+		}
+
+		// Failure path (unchanged)
+		logger.Error("Workflow execution failed", "execution_id", executionID, "error", err.Error())
 
 		// Update execution status to FAILED with error details
 		// This handles system errors (workflow type not found, activity registration, etc.)
 		if err := w.updateStatusOnFailure(ctx, executionID, err); err != nil {
-			logger.Error("❌ Failed to update execution status", "error", err.Error())
-			// Continue to return original error even if status update fails
+			logger.Error("Failed to update execution status", "error", err.Error())
 		}
 
 		w.deleteExecutionContext(ctx, executionID)
@@ -164,8 +172,50 @@ func (w *InvokeWorkflowExecutionWorkflowImpl) updateStatusOnFailure(ctx workflow
 		return err
 	}
 
-	logger.Info("✅ Updated execution status to FAILED", "execution_id", executionID)
+	logger.Info("Updated execution status to FAILED", "execution_id", executionID)
 	return nil
+}
+
+// handleCancellation performs cleanup when the workflow is cancelled externally
+// (user cancellation, namespace timeout). All operations run in a disconnected
+// context so they complete even though the workflow context is cancelled.
+//
+// Operations are best-effort: each is attempted independently and failures are
+// logged but never propagated.
+func (w *InvokeWorkflowExecutionWorkflowImpl) handleCancellation(ctx workflow.Context, executionID string) {
+	cleanupCtx, cancel := workflow.NewDisconnectedContext(ctx)
+	defer cancel()
+
+	w.updateStatusOnCancellation(cleanupCtx, executionID)
+	w.deleteExecutionContext(cleanupCtx, executionID)
+}
+
+// updateStatusOnCancellation updates the execution status to CANCELLED.
+// Best-effort: logs on error but never propagates.
+func (w *InvokeWorkflowExecutionWorkflowImpl) updateStatusOnCancellation(ctx workflow.Context, executionID string) {
+	logger := workflow.GetLogger(ctx)
+
+	cancelledStatus := &workflowexecutionv1.WorkflowExecutionStatus{
+		Phase: workflowexecutionv1.ExecutionPhase_EXECUTION_CANCELLED,
+		Error: "Workflow execution cancelled",
+	}
+
+	localCtx := workflow.WithLocalActivityOptions(ctx, workflow.LocalActivityOptions{
+		ScheduleToCloseTimeout: 30 * time.Second,
+		RetryPolicy: &temporal.RetryPolicy{
+			MaximumAttempts: 3,
+			InitialInterval: 2 * time.Second,
+		},
+	})
+
+	err := workflow.ExecuteLocalActivity(localCtx, activities.UpdateWorkflowExecutionStatusActivityName, executionID, cancelledStatus).Get(localCtx, nil)
+	if err != nil {
+		logger.Warn("Failed to update execution status to CANCELLED",
+			"execution_id", executionID, "error", err.Error())
+		return
+	}
+
+	logger.Info("Updated execution status to CANCELLED", "execution_id", executionID)
 }
 
 // deleteExecutionContext deletes the ephemeral ExecutionContext that was created
