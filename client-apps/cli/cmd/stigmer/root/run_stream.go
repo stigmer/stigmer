@@ -83,12 +83,14 @@ func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFun
 
 	var toggleExpandCh chan struct{}
 	var cancelCh chan struct{}
+	var interruptCh chan struct{}
 	if termctl.IsSupported(statusW) {
 		toggleExpandCh = make(chan struct{}, 1)
 		cancelCh = make(chan struct{}, 1)
+		interruptCh = make(chan struct{}, 1)
 	}
 
-	program := startInlineProgram(statusW, toggleExpandCh, cancelCh)
+	program := startInlineProgram(statusW, toggleExpandCh, cancelCh, interruptCh)
 
 	var subjectUpdate chan string
 	if sessionID != "" && headerInfo.Subject == "" {
@@ -117,6 +119,7 @@ func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFun
 		recentSessionsCh:  recentSessionsCh,
 		toggleExpandCh:    toggleExpandCh,
 		cancelCh:          cancelCh,
+		interruptCh:       interruptCh,
 		followUpEnabled:   toggleExpandCh != nil && followUpFn != nil,
 		cancelExecFn: func() {
 			_, _ = execution.Cancel(conn, executionID)
@@ -135,10 +138,10 @@ func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFun
 // for row-tracked stderr rendering. Returns nil when the writer is not a
 // terminal (CI, piped output) — the renderer falls back to direct writes.
 //
-// When toggleCh and cancelCh are non-nil, the model is wired to the event
+// When the channel arguments are non-nil, the model is wired to the event
 // loop via channels and Bubbletea owns stdin (raw mode). When nil, stdin
 // is not connected and input is handled externally.
-func startInlineProgram(statusW io.Writer, toggleCh chan struct{}, cancelCh chan struct{}) *tea.Program {
+func startInlineProgram(statusW io.Writer, toggleCh, cancelCh, interruptCh chan struct{}) *tea.Program {
 	if !termctl.IsSupported(statusW) {
 		return nil
 	}
@@ -147,7 +150,7 @@ func startInlineProgram(statusW io.Writer, toggleCh chan struct{}, cancelCh chan
 
 	var model inlineBubbleModel
 	if toggleCh != nil || cancelCh != nil {
-		model = newInlineBubbleModelWithChannels(toggleCh, cancelCh)
+		model = newInlineBubbleModelWithChannels(toggleCh, cancelCh, interruptCh)
 	} else {
 		model = newInlineBubbleModel()
 		opts = append(opts, tea.WithInput(nil))

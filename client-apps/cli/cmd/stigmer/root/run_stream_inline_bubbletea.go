@@ -22,7 +22,10 @@ import (
 // giving Bubbletea accurate row tracking for all content committed through
 // Program.Println.
 //
-// Rendering priority in View(): approval > streaming > textInput > followUp > spinner > empty.
+// The View() renders a composed layout: transient content (spinner, streaming,
+// approval, AI stream) above a persistent input bar. The input bar is always
+// visible in interactive mode, showing "esc to interrupt" during processing
+// and an active text input during follow-up.
 type inlineBubbleModel struct {
 	spinnerActive bool
 	spinnerFrame  int
@@ -52,26 +55,40 @@ type inlineBubbleModel struct {
 	aiStreamActive  bool
 	aiStreamPartial string
 
+	// inputBarMode controls the persistent input bar at the bottom of the
+	// View. Set to inputBarDisabled on init when Bubbletea owns stdin,
+	// inputBarActive when follow-up text input is engaged, and
+	// inputBarHidden for non-interactive environments.
+	inputBarMode inputBarMode
+
+	// currentTask holds the content of the in_progress todo item, shown
+	// as a 1-line indicator above the input bar separator. Empty when no
+	// task is in progress.
+	currentTask string
+
+	// Legacy follow-up state for the promptFollowUpViaKeyReader path
+	// (when Bubbletea does not own stdin). Not used when inputBarMode
+	// is inputBarDisabled or inputBarActive.
 	followUpActive  bool
-	followUpContent string // pre-rendered prompt (separator + hint + marker)
+	followUpContent string
 
 	// Text input state for follow-up prompts when Bubbletea owns stdin.
 	// The textinput.Model handles cursor movement, word navigation, and
-	// paste; View() composes it into the separator/hint layout and
-	// positions the real terminal cursor via tea.View.Cursor.
-	textInputActive bool
-	textInput       textinput.Model
-	textInputCh     chan<- string // delivers final input on Enter
+	// paste; View() composes it into the input bar layout and positions
+	// the real terminal cursor via tea.View.Cursor.
+	textInput   textinput.Model
+	textInputCh chan<- string // delivers final input on Enter
 
 	// termWidth holds the terminal width in columns, updated via
 	// tea.WindowSizeMsg. Used to render the full-width separator in
-	// the follow-up prompt.
+	// the input bar.
 	termWidth int
 
 	// Channels for communicating with the event loop goroutine. Set during
 	// model initialization when Bubbletea owns stdin. nil otherwise.
 	toggleExpandCh chan<- struct{}
 	cancelCh       chan<- struct{}
+	interruptCh    chan<- struct{}
 }
 
 // newFollowUpTextInput configures a textinput.Model for the follow-up
@@ -96,17 +113,21 @@ func newFollowUpTextInput() textinput.Model {
 
 func newInlineBubbleModel() inlineBubbleModel {
 	return inlineBubbleModel{
-		textInput: newFollowUpTextInput(),
+		textInput:    newFollowUpTextInput(),
+		inputBarMode: inputBarHidden,
 	}
 }
 
 // newInlineBubbleModelWithChannels creates a model wired to the event loop
 // via channels. Used when Bubbletea owns stdin and processes keystrokes.
-func newInlineBubbleModelWithChannels(toggleCh chan<- struct{}, cancelCh chan<- struct{}) inlineBubbleModel {
+// The input bar starts in disabled mode (visible, showing "esc to interrupt").
+func newInlineBubbleModelWithChannels(toggleCh, cancelCh, interruptCh chan<- struct{}) inlineBubbleModel {
 	return inlineBubbleModel{
 		textInput:      newFollowUpTextInput(),
+		inputBarMode:   inputBarDisabled,
 		toggleExpandCh: toggleCh,
 		cancelCh:       cancelCh,
+		interruptCh:    interruptCh,
 	}
 }
 
@@ -122,7 +143,7 @@ func (m inlineBubbleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyPressMsg:
 		return m.handleKeyPress(msg)
 	case tea.PasteMsg:
-		if m.textInputActive {
+		if m.inputBarMode == inputBarActive {
 			var cmd tea.Cmd
 			m.textInput, cmd = m.textInput.Update(msg)
 			return m, cmd
@@ -164,15 +185,22 @@ func (m inlineBubbleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleFollowUpHide(msg)
 	case reCommitMsg:
 		return m.handleReCommit(msg)
+	case inputBarModeMsg:
+		return m.handleInputBarMode(msg)
+	case currentTaskMsg:
+		m.currentTask = msg.task
+		return m, nil
 	}
 	return m, nil
 }
 
 func (m inlineBubbleModel) View() tea.View {
-	if m.textInputActive {
-		return m.renderTextInputView()
+	// New path: composed layout with persistent input bar.
+	if m.inputBarMode != inputBarHidden {
+		return m.renderComposedView()
 	}
 
+	// Legacy path: flat priority switch (no persistent input bar).
 	var content string
 	switch {
 	case m.approvalActive:
@@ -196,43 +224,109 @@ func (m inlineBubbleModel) View() tea.View {
 	case !m.spinnerActive:
 		content = ""
 	default:
-		frame := spinner.Frames[m.spinnerFrame%len(spinner.Frames)]
-		elapsed := spinner.FormatElapsed(time.Since(m.spinnerStart))
-		if elapsed != "" {
-			content = fmt.Sprintf("%s %s %s", frame, m.spinnerLabel, elapsed)
-		} else {
-			content = fmt.Sprintf("%s %s", frame, m.spinnerLabel)
-		}
+		content = m.renderSpinnerLine()
 	}
 	return tea.NewView(content)
 }
 
-// renderTextInputView builds the follow-up prompt View with cursor
-// positioning. Layout (top to bottom):
+// renderComposedView builds the composed View() layout for interactive mode.
+// Transient content (spinner, streaming, approval, AI stream) is rendered
+// above the persistent input bar. The input bar shows "esc to interrupt"
+// when disabled or an active text input when the follow-up prompt is engaged.
 //
-//	[blank line]                            Y=0
-//	───────────────────────── (full width)  Y=1
-//	> user input here         (cursor)      Y=2
-//	  enter send · ctrl+c exit (hint)       Y=3
+// Layout (top to bottom):
 //
-// The real terminal cursor (blinking bar) is provided by
-// textinput.Cursor() and offset to the input line (Y+2).
-func (m inlineBubbleModel) renderTextInputView() tea.View {
-	sepWidth := m.termWidth
-	if sepWidth <= 0 {
-		sepWidth = followUpSepWidth
-	}
-	sep := systemMsgStyle.Render(strings.Repeat("─", sepWidth))
-	inputLine := m.textInput.View()
-	hint := followUpHintStyle.Render("  enter send · ctrl+c exit")
-	content := fmt.Sprintf("\n%s\n%s\n%s", sep, inputLine, hint)
+//	[transient content]                      (optional: spinner/streaming/approval/AI)
+//	  [-] Current task description           (optional: in_progress todo)
+//	──────────────────────────── (full width)
+//	> user input / esc to interrupt          (input area)
+//	  enter send · ctrl+c exit               (hint, active mode only)
+func (m inlineBubbleModel) renderComposedView() tea.View {
+	var parts []string
 
-	v := tea.NewView(content)
-	if cursor := m.textInput.Cursor(); cursor != nil {
-		cursor.Position.Y += 2 // blank line (Y=0) + separator (Y=1)
-		v.Cursor = cursor
+	if transient := m.renderTransientContent(); transient != "" {
+		parts = append(parts, transient)
 	}
+
+	if m.currentTask != "" && !m.approvalActive {
+		parts = append(parts, systemMsgStyle.Render("  [-] "+m.currentTask))
+	}
+
+	parts = append(parts, m.renderSeparatorLine())
+
+	// Count lines above the text input for cursor positioning.
+	preInputLineCount := 0
+	for _, p := range parts {
+		preInputLineCount += strings.Count(p, "\n") + 1
+	}
+
+	switch {
+	case m.inputBarMode == inputBarActive:
+		parts = append(parts, m.textInput.View())
+		parts = append(parts, followUpHintStyle.Render("  enter send · ctrl+c exit"))
+	case m.approvalActive:
+		// Separator only during approval; approval menu provides its own keys.
+	default:
+		parts = append(parts, followUpHintStyle.Render("  esc to interrupt"))
+	}
+
+	content := strings.Join(parts, "\n")
+	v := tea.NewView(content)
+
+	if m.inputBarMode == inputBarActive {
+		if cursor := m.textInput.Cursor(); cursor != nil {
+			cursor.Position.Y += preInputLineCount
+			v.Cursor = cursor
+		}
+	}
+
 	return v
+}
+
+// renderTransientContent returns the current transient content string for
+// the top section of the composed View(). Returns "" when no transient
+// content is active.
+func (m inlineBubbleModel) renderTransientContent() string {
+	switch {
+	case m.approvalActive:
+		return m.approvalContent + approval.RenderMenu(m.approvalSelected, true)
+	case m.streamingActive:
+		if m.streamingProgressive {
+			partial := m.streamingContent
+			if m.streamingSubAgent != "" && partial != "" {
+				partial = toolrender.GutterWrap(partial)
+			}
+			return partial
+		}
+		return formatStreamingView(m.streamingHeader, m.streamingContent, m.streamingSubAgent)
+	case m.aiStreamActive:
+		return m.aiStreamPartial
+	case m.spinnerActive:
+		return m.renderSpinnerLine()
+	default:
+		return ""
+	}
+}
+
+// renderSeparatorLine returns a full-width separator line using the current
+// terminal width.
+func (m inlineBubbleModel) renderSeparatorLine() string {
+	w := m.termWidth
+	if w <= 0 {
+		w = followUpSepWidth
+	}
+	return systemMsgStyle.Render(strings.Repeat("─", w))
+}
+
+// renderSpinnerLine returns the spinner display string with frame and elapsed
+// time.
+func (m inlineBubbleModel) renderSpinnerLine() string {
+	frame := spinner.Frames[m.spinnerFrame%len(spinner.Frames)]
+	elapsed := spinner.FormatElapsed(time.Since(m.spinnerStart))
+	if elapsed != "" {
+		return fmt.Sprintf("%s %s %s", frame, m.spinnerLabel, elapsed)
+	}
+	return fmt.Sprintf("%s %s", frame, m.spinnerLabel)
 }
 
 // ---------------------------------------------------------------------------
@@ -464,24 +558,39 @@ func (m inlineBubbleModel) handleAIStreamHide() (tea.Model, tea.Cmd) {
 // ---------------------------------------------------------------------------
 
 // handleTextInputStart activates the text input mode for follow-up prompts.
-// Resets and focuses the embedded textinput so it accepts keystrokes.
-// View() renders the composed layout (separator + textinput + hint) with
-// the real cursor positioned on the input line.
+// Transitions the input bar from disabled to active, resets and focuses the
+// embedded textinput so it accepts keystrokes. View() renders the composed
+// layout with the real cursor positioned on the input line.
 func (m inlineBubbleModel) handleTextInputStart(msg textInputStartMsg) (tea.Model, tea.Cmd) {
-	m.textInputActive = true
+	m.inputBarMode = inputBarActive
 	m.textInput.Reset()
 	cmd := m.textInput.Focus()
 	m.textInputCh = msg.inputCh
 	return m, cmd
 }
 
+// handleTextInputHide transitions the input bar back to disabled mode after
+// the user submits or cancels follow-up input. Clears the current task
+// indicator since a new execution is about to start.
 func (m inlineBubbleModel) handleTextInputHide(msg textInputHideMsg) (tea.Model, tea.Cmd) {
-	m.textInputActive = false
+	m.inputBarMode = inputBarDisabled
 	m.textInput.Blur()
 	m.textInput.Reset()
 	m.textInputCh = nil
+	m.currentTask = ""
 	if msg.styledMessage != "" {
 		return m, tea.Println(strings.TrimRight(msg.styledMessage, "\n"))
+	}
+	return m, nil
+}
+
+// handleInputBarMode transitions the input bar to the requested mode. Used
+// by the event loop to disable the bar after session exit.
+func (m inlineBubbleModel) handleInputBarMode(msg inputBarModeMsg) (tea.Model, tea.Cmd) {
+	m.inputBarMode = msg.mode
+	if msg.mode != inputBarActive {
+		m.textInput.Blur()
+		m.textInputCh = nil
 	}
 	return m, nil
 }

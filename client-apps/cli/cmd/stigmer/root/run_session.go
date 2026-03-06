@@ -142,12 +142,14 @@ func resumeSession(sessionID string, headerInfo sessionHeaderInfo, orgID string,
 
 		var toggleExpandCh chan struct{}
 		var cancelCh chan struct{}
+		var interruptCh chan struct{}
 		if termctl.IsSupported(os.Stderr) {
 			toggleExpandCh = make(chan struct{}, 1)
 			cancelCh = make(chan struct{}, 1)
+			interruptCh = make(chan struct{}, 1)
 		}
 
-		program := startInlineProgram(os.Stderr, toggleExpandCh, cancelCh)
+		program := startInlineProgram(os.Stderr, toggleExpandCh, cancelCh, interruptCh)
 
 		cfg := inlineRenderConfig{
 			events:            events,
@@ -161,6 +163,7 @@ func resumeSession(sessionID string, headerInfo sessionHeaderInfo, orgID string,
 			program:           program,
 			toggleExpandCh:    toggleExpandCh,
 			cancelCh:          cancelCh,
+			interruptCh:       interruptCh,
 			followUpEnabled:   toggleExpandCh != nil && followUpFn != nil,
 		}
 		finalExecID, _, exitErr := runInlineFollowUpLoop(streamCtx, cfg, followUpFn, latestExecID)

@@ -923,7 +923,7 @@ func TestFormatStreamingView_SubAgentGutterWrapped(t *testing.T) {
 
 func TestStartInlineProgram_NilForNonTTY(t *testing.T) {
 	var buf bytes.Buffer
-	p := startInlineProgram(&buf, nil, nil)
+	p := startInlineProgram(&buf, nil, nil, nil)
 	if p != nil {
 		stopInlineProgram(p)
 		t.Error("startInlineProgram should return nil for non-TTY writer")

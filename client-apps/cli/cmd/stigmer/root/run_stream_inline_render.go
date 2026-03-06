@@ -84,6 +84,7 @@ func (r *inlineRenderer) renderPhaseChange(e executiontui.PhaseChangeEvent) {
 
 func (r *inlineRenderer) renderTodoUpdate(e executiontui.TodoUpdateEvent) {
 	var b strings.Builder
+	var currentTask string
 	b.WriteString("Plan:")
 	for _, todo := range e.Todos {
 		var marker string
@@ -92,6 +93,9 @@ func (r *inlineRenderer) renderTodoUpdate(e executiontui.TodoUpdateEvent) {
 			marker = "[x]"
 		case "in_progress":
 			marker = "[-]"
+			if currentTask == "" {
+				currentTask = todo.Content
+			}
 		case "cancelled":
 			marker = "[~]"
 		default:
@@ -99,10 +103,25 @@ func (r *inlineRenderer) renderTodoUpdate(e executiontui.TodoUpdateEvent) {
 		}
 		fmt.Fprintf(&b, "\n  %s %s", marker, todo.Content)
 	}
-	r.commitToScrollback(committedItem{
-		kind: kindTodoUpdate,
-		text: b.String(),
-	})
+
+	if r.cfg.program != nil {
+		r.cfg.program.Send(currentTaskMsg{task: currentTask})
+	}
+
+	newItem := committedItem{kind: kindTodoUpdate, text: b.String()}
+
+	// In-place update: replace the most recent kindTodoUpdate in history
+	// and re-render via triggerReCommit to avoid accumulating stale plan
+	// snapshots in scrollback.
+	for i := len(r.history) - 1; i >= 0; i-- {
+		if r.history[i].kind == kindTodoUpdate {
+			r.history[i] = newItem
+			r.triggerReCommit()
+			return
+		}
+	}
+
+	r.commitToScrollback(newItem)
 }
 
 func (r *inlineRenderer) renderSubAgentStarted(e executiontui.SubAgentStartedEvent) {
