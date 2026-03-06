@@ -299,7 +299,7 @@ func TestInlineRenderer_SubAgentLifecycle(t *testing.T) {
 // Todo Update
 // =============================================================================
 
-func TestInlineRenderer_TodoUpdate_GoesToStderr(t *testing.T) {
+func TestInlineRenderer_TodoUpdate_RecordedInHistory(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	events := make(chan executiontui.Event, 10)
 
@@ -312,7 +312,7 @@ func TestInlineRenderer_TodoUpdate_GoesToStderr(t *testing.T) {
 		executiontui.DoneEvent{Phase: "completed"},
 	)
 
-	renderInline(context.Background(), inlineRenderConfig{
+	result := renderInline(context.Background(), inlineRenderConfig{
 		events:            events,
 		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
 		prompter:          approval.NewInteractivePrompter(),
@@ -320,15 +320,30 @@ func TestInlineRenderer_TodoUpdate_GoesToStderr(t *testing.T) {
 		status:            &stderr,
 	})
 
-	out := stderr.String()
-	if !strings.Contains(out, "Plan:") {
-		t.Errorf("todo update should show Plan label, got: %q", out)
+	// Plan is rendered exclusively in the composed View() (via planDisplay),
+	// NOT in scrollback. Verify it is recorded in history for follow-up
+	// iteration carry-over.
+	var found bool
+	for _, item := range result.history {
+		if item.kind == kindTodoUpdate {
+			found = true
+			if !strings.Contains(item.text, "Plan:") {
+				t.Errorf("history todo should contain Plan label, got: %q", item.text)
+			}
+			if !strings.Contains(item.text, "[x] Step one") {
+				t.Errorf("completed todo should have [x], got: %q", item.text)
+			}
+			if !strings.Contains(item.text, "[-] Step two") {
+				t.Errorf("in-progress todo should have [-], got: %q", item.text)
+			}
+			if !strings.Contains(item.text, "[ ] Step three") {
+				t.Errorf("pending todo should have [ ], got: %q", item.text)
+			}
+			break
+		}
 	}
-	if !strings.Contains(out, "[x] Step one") {
-		t.Errorf("completed todo should have [x], got: %q", out)
-	}
-	if !strings.Contains(out, "[-] Step two") {
-		t.Errorf("in-progress todo should have [-], got: %q", out)
+	if !found {
+		t.Fatal("history should contain a kindTodoUpdate item")
 	}
 }
 

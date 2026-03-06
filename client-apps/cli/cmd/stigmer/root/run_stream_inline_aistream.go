@@ -113,6 +113,7 @@ func (r *inlineRenderer) renderAIStreamEnd(e executiontui.AIStreamEndEvent) {
 			r.cfg.program.Println(line)
 		}
 		r.cfg.program.Send(aiStreamHideMsg{})
+		r.cfg.program.Println("")
 		r.aiStreamBuffer = ""
 		r.aiStreamPrefix = ""
 
@@ -168,9 +169,9 @@ func (r *inlineRenderer) renderAIMessage(e executiontui.AIMessageEvent) {
 
 // finishAIStreamIfNeeded closes an in-progress AI stream when a non-AI
 // event arrives mid-stream. Commits any buffered partial line through
-// Bubbletea (when active) or stdout (fallback). No trailing blank line
-// is emitted — kindAIMessage is not in needsTrailingGap, so the gap
-// (or lack thereof) matches what renderHistoryBatch would produce.
+// Bubbletea (when active) or stdout (fallback). A trailing blank line
+// is emitted to match the gap that commitToScrollback produces for
+// kindAIMessage (via needsTrailingGap).
 func (r *inlineRenderer) finishAIStreamIfNeeded() {
 	if !r.inAIStream {
 		return
@@ -185,6 +186,7 @@ func (r *inlineRenderer) finishAIStreamIfNeeded() {
 			r.cfg.program.Println(line)
 		}
 		r.cfg.program.Send(aiStreamHideMsg{})
+		r.cfg.program.Println("")
 		r.aiStreamBuffer = ""
 		r.aiStreamPrefix = ""
 

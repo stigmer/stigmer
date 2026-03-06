@@ -12,12 +12,26 @@ import (
 // needsTrailingGap reports whether a committed item kind requires a blank-line
 // gap after it. Used by both renderHistoryBatch (recommit) and
 // commitToScrollback (live) so that both codepaths produce identical spacing.
+//
+// Default is true (safe-by-default spacing). Only items that should stack
+// tightly opt out. This avoids the pattern where a new kind silently gets
+// no spacing because someone forgot to add it to an allow-list.
 func needsTrailingGap(kind committedKind) bool {
 	switch kind {
-	case kindHumanMessage, kindSystemMessage, kindSubAgentComplete, kindPhaseChange:
-		return true
+	case kindHeader:
+		// Header has its own gap via a separate check in renderHistoryBatch
+		// and commitToScrollback. Including it here would double the gap.
+		return false
+	case kindToolCompact, kindReadGroup:
+		// Tool operations stack densely — consecutive reads, shell calls,
+		// etc. look best without blank lines between them.
+		return false
+	case kindTodoUpdate:
+		// Rendered exclusively in the composed View(); never appears in
+		// scrollback, so trailing gap is irrelevant.
+		return false
 	}
-	return false
+	return true
 }
 
 // renderHistoryBatch renders all history items into a single string for
@@ -128,6 +142,11 @@ func renderCommittedItem(item committedItem, opts toolrender.CompactOptions, exp
 		return renderReadGroupItem(item, opts, expanded)
 	case kindApproval:
 		return renderApprovalItem(item, opts)
+	case kindTodoUpdate:
+		// The plan is rendered exclusively in the composed View() (via
+		// planDisplay) so it is always visible above the input bar. Skip
+		// it during re-commits to avoid duplication in scrollback.
+		return ""
 	default:
 		return item.text
 	}

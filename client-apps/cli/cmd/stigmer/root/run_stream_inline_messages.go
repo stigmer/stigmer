@@ -200,7 +200,12 @@ type aiStreamHideMsg struct{}
 // disabled (showing "esc to interrupt"), or active (text input with cursor).
 type inputBarModeMsg struct{ mode inputBarMode }
 
-// currentTaskMsg updates the 1-line current task indicator shown above the
-// input bar separator. Extracted from the in_progress TodoItem when the
-// plan changes. An empty task string hides the indicator.
-type currentTaskMsg struct{ task string }
+// currentTaskMsg updates the plan display and current task indicator shown
+// above the input bar separator. planDisplay is the full formatted plan
+// (all items with markers) rendered in the composed view so the plan is
+// always visible. task is the content of the first in_progress item,
+// retained for potential future use (e.g. title bar).
+type currentTaskMsg struct {
+	task        string
+	planDisplay string
+}

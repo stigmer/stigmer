@@ -134,7 +134,6 @@ func TestRenderCommittedItem_TextKinds(t *testing.T) {
 		{"SystemMessage", kindSystemMessage},
 		{"SubAgentStart", kindSubAgentStart},
 		{"SubAgentComplete", kindSubAgentComplete},
-		{"TodoUpdate", kindTodoUpdate},
 		{"PhaseChange", kindPhaseChange},
 		{"Text", kindText},
 	}
@@ -442,7 +441,7 @@ func TestRenderHistoryBatch_EmptyHistory(t *testing.T) {
 func TestRenderHistoryBatch_SingleItem(t *testing.T) {
 	item := committedItem{kind: kindText, text: "only item"}
 	result := renderHistoryBatch([]committedItem{item}, toolrender.CompactOptions{}, false)
-	assert.Equal(t, "only item", result)
+	assert.Equal(t, "only item\n", result)
 }
 
 func TestRenderHistoryBatch_SkipsEmptyItems(t *testing.T) {
@@ -452,7 +451,7 @@ func TestRenderHistoryBatch_SkipsEmptyItems(t *testing.T) {
 		{kind: kindText, text: "second"},
 	}
 	result := renderHistoryBatch(items, toolrender.CompactOptions{}, false)
-	assert.Equal(t, "first\nsecond", result)
+	assert.Equal(t, "first\n\nsecond\n", result)
 }
 
 func TestRenderHistoryBatch_NilHeader(t *testing.T) {
@@ -461,7 +460,7 @@ func TestRenderHistoryBatch_NilHeader(t *testing.T) {
 		{kind: kindText, text: "after empty header"},
 	}
 	result := renderHistoryBatch(items, toolrender.CompactOptions{}, false)
-	assert.Equal(t, "after empty header", result)
+	assert.Equal(t, "after empty header\n", result)
 }
 
 func TestRenderHistoryBatch_HeaderHasBlankLineGap(t *testing.T) {
@@ -472,7 +471,7 @@ func TestRenderHistoryBatch_HeaderHasBlankLineGap(t *testing.T) {
 	result := renderHistoryBatch(items, toolrender.CompactOptions{}, false)
 
 	headerText := renderCommittedItem(items[0], toolrender.CompactOptions{}, false)
-	assert.Equal(t, headerText+"\n\nfirst content", result,
+	assert.Equal(t, headerText+"\n\nfirst content\n", result,
 		"header should be followed by a blank line before the next item")
 }
 
@@ -555,16 +554,19 @@ func TestCommitToScrollback_MatchesRecommit(t *testing.T) {
 }
 
 func TestNeedsTrailingGap(t *testing.T) {
+	// Default-true: most kinds get a trailing gap for consistent spacing.
 	gapKinds := []committedKind{
-		kindHumanMessage, kindSystemMessage, kindSubAgentComplete, kindPhaseChange,
+		kindAIMessage, kindHumanMessage, kindSystemMessage,
+		kindSubAgentComplete, kindSubAgentStart, kindPhaseChange,
+		kindApproval, kindText,
 	}
 	for _, k := range gapKinds {
 		assert.True(t, needsTrailingGap(k), "expected needsTrailingGap==true for kind %d", k)
 	}
 
+	// Explicit opt-outs only.
 	noGapKinds := []committedKind{
-		kindHeader, kindToolCompact, kindReadGroup, kindApproval,
-		kindAIMessage, kindSubAgentStart, kindTodoUpdate, kindText,
+		kindHeader, kindToolCompact, kindReadGroup, kindTodoUpdate,
 	}
 	for _, k := range noGapKinds {
 		assert.False(t, needsTrailingGap(k), "expected needsTrailingGap==false for kind %d", k)
