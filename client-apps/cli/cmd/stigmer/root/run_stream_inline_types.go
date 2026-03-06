@@ -140,6 +140,21 @@ type waitingApprovalState struct {
 	streamedRows    int  // total display rows of streamed content
 }
 
+// subAgentBlock is the aggregate for a single sub-agent execution. It buffers
+// all internal events (tool completions, AI messages, read groups, approvals)
+// while the sub-agent runs and is committed as a single kindSubAgentBlock
+// history item on completion. This enables collapsed rendering (one summary
+// line) by default and expanded rendering (gutter-wrapped children) via Ctrl+O.
+type subAgentBlock struct {
+	id        string
+	name      string
+	subject   string          // short display label (from SubAgentStartedEvent.Description)
+	status    string          // "running", "completed", "failed"
+	children  []committedItem // internal tool calls, AI messages, read groups
+	toolCount int             // running count of tool completions inside this sub-agent
+	output    string          // final result (from SubAgentCompletedEvent.Output)
+}
+
 // inlineRenderer consumes execution events and renders them to the terminal
 // without the Bubbletea alt-screen TUI. When a Bubbletea program is active,
 // ALL visual output (including AI text) flows through Bubbletea on stderr,
@@ -224,6 +239,12 @@ type inlineRenderer struct {
 	// post-approval shell output streaming. Controls whether the
 	// preview threshold is applied in the direct-write path.
 	streamIsPreApproval bool
+
+	// activeSubAgents holds the in-progress sub-agent blocks, keyed by
+	// sub-agent ID. Events with SubAgentID are routed to the matching
+	// block's children list instead of scrollback. Finalized blocks are
+	// committed as kindSubAgentBlock and removed from the map.
+	activeSubAgents map[string]*subAgentBlock
 
 	// exitRequested is set by handleSessionExit when the user presses
 	// Ctrl+C at an approval prompt. Checked after handleApproval returns

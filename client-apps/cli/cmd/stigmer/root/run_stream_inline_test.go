@@ -295,6 +295,70 @@ func TestInlineRenderer_SubAgentLifecycle(t *testing.T) {
 	}
 }
 
+func TestInlineRenderer_SubAgentToolsCollapsed(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 20)
+
+	go feedEvents(events,
+		executiontui.SubAgentStartedEvent{ID: "sa-1", Name: "researcher", Description: "explore code"},
+		executiontui.ToolCompletedEvent{
+			SubAgentID: "sa-1",
+			ToolCall:   toolrender.ToolCallInfo{Name: "read_file", Args: map[string]interface{}{"path": "main.go"}},
+		},
+		executiontui.ToolCompletedEvent{
+			SubAgentID: "sa-1",
+			ToolCall:   toolrender.ToolCallInfo{Name: "shell", Args: map[string]interface{}{"command": "ls"}},
+		},
+		executiontui.SubAgentCompletedEvent{ID: "sa-1", Status: "completed", ToolCount: 2},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	result := renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	output := stderr.String()
+
+	if !strings.Contains(output, "explore code") {
+		t.Errorf("collapsed output should contain subject, got: %q", output)
+	}
+	if !strings.Contains(output, "✓ Done") {
+		t.Errorf("collapsed output should contain Done badge, got: %q", output)
+	}
+	if !strings.Contains(output, "2 tools") {
+		t.Errorf("collapsed output should contain tool count, got: %q", output)
+	}
+
+	stripped := ansi.Strip(output)
+	if strings.Contains(stripped, "main.go") {
+		t.Errorf("collapsed output should NOT contain individual tool paths, got: %q", output)
+	}
+
+	found := false
+	for _, item := range result.history {
+		if item.kind == kindSubAgentBlock {
+			found = true
+			if item.saBlock == nil {
+				t.Fatal("kindSubAgentBlock item should have non-nil saBlock")
+			}
+			if item.saBlock.toolCount != 2 {
+				t.Errorf("expected toolCount=2, got %d", item.saBlock.toolCount)
+			}
+			if len(item.saBlock.children) != 2 {
+				t.Errorf("expected 2 children, got %d", len(item.saBlock.children))
+			}
+			break
+		}
+	}
+	if !found {
+		t.Error("history should contain a kindSubAgentBlock item")
+	}
+}
+
 // =============================================================================
 // Todo Update
 // =============================================================================

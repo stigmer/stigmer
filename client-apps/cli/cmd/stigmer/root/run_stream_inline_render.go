@@ -31,11 +31,16 @@ func (r *inlineRenderer) renderHumanMessage(e executiontui.HumanMessageEvent) {
 // ---------------------------------------------------------------------------
 
 func (r *inlineRenderer) renderToolCompleted(e executiontui.ToolCompletedEvent) {
-	r.commitToScrollback(committedItem{
+	item := committedItem{
 		kind:       kindToolCompact,
 		toolCalls:  []toolrender.ToolCallInfo{e.ToolCall},
 		subAgentID: e.SubAgentID,
-	})
+	}
+	if r.hasActiveSubAgent(e.SubAgentID) {
+		r.appendToSubAgentBlock(e.SubAgentID, item, true)
+	} else {
+		r.commitToScrollback(item)
+	}
 }
 
 func (r *inlineRenderer) renderToolWaitingApproval(e executiontui.ToolWaitingApprovalEvent) {
@@ -139,28 +144,51 @@ func (r *inlineRenderer) renderTodoUpdate(e executiontui.TodoUpdateEvent) {
 }
 
 func (r *inlineRenderer) renderSubAgentStarted(e executiontui.SubAgentStartedEvent) {
-	label := e.Name
-	if e.Description != "" {
-		label = e.Description
+	subject := e.Description
+	if subject == "" {
+		subject = e.Name
 	}
-	r.commitToScrollback(committedItem{
-		kind: kindSubAgentStart,
-		text: fmt.Sprintf("%s %s: %s",
-			toolrender.BulletGreen("●"), toolrender.LabelBold("Task"), label),
-	})
+	block := &subAgentBlock{
+		id:      e.ID,
+		name:    e.Name,
+		subject: subject,
+		status:  "running",
+	}
+	r.activeSubAgents[e.ID] = block
+
+	if r.cfg.program != nil {
+		r.cfg.program.Send(subAgentShowMsg{
+			id:      e.ID,
+			subject: subject,
+		})
+	} else {
+		r.statusf("%s %s: %s %s\n",
+			toolrender.BulletGreen("●"), toolrender.LabelBold("Task"),
+			subject, "…")
+	}
 }
 
 func (r *inlineRenderer) renderSubAgentCompleted(e executiontui.SubAgentCompletedEvent) {
-	var text string
-	if e.Status == "failed" {
-		text = fmt.Sprintf("  ✗ Failed (%d tools)", e.ToolCount)
-	} else {
-		text = fmt.Sprintf("  ✓ Done (%d tools)", e.ToolCount)
+	block, ok := r.activeSubAgents[e.ID]
+	if !ok {
+		return
 	}
+
+	block.status = e.Status
+	block.output = e.Output
+	if block.toolCount == 0 {
+		block.toolCount = e.ToolCount
+	}
+
 	r.commitToScrollback(committedItem{
-		kind: kindSubAgentComplete,
-		text: text,
+		kind:    kindSubAgentBlock,
+		saBlock: block,
 	})
+	delete(r.activeSubAgents, e.ID)
+
+	if r.cfg.program != nil {
+		r.cfg.program.Send(subAgentHideMsg{id: e.ID})
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -199,9 +227,12 @@ func (r *inlineRenderer) renderStreamError(e executiontui.StreamErrorEvent) {
 // contains readGroupThreshold or more reads, they are rendered as a compact
 // group. Otherwise, each read is rendered individually.
 //
+// When the reads belong to an active sub-agent block, they are appended to
+// the block's children instead of committed to scrollback.
+//
 // All pending reads share the same sub-agent context (events don't interleave
 // across agents), so checking the first entry's subAgentID is sufficient to
-// determine whether gutter-wrapping is needed.
+// determine whether gutter-wrapping or block routing is needed.
 func (r *inlineRenderer) flushPendingReads() {
 	if len(r.pendingReads) == 0 {
 		return
@@ -214,12 +245,61 @@ func (r *inlineRenderer) flushPendingReads() {
 		tcs[i] = pr.tc
 	}
 
-	r.commitToScrollback(committedItem{
+	item := committedItem{
 		kind:       kindReadGroup,
 		toolCalls:  tcs,
 		subAgentID: subAgentID,
-	})
+	}
+
+	if block, ok := r.activeSubAgents[subAgentID]; ok && subAgentID != "" {
+		block.children = append(block.children, item)
+		block.toolCount += len(tcs)
+		r.sendSubAgentUpdate(block)
+	} else {
+		r.commitToScrollback(item)
+	}
 	r.pendingReads = r.pendingReads[:0]
+}
+
+// ---------------------------------------------------------------------------
+// Sub-agent block helpers
+// ---------------------------------------------------------------------------
+
+// appendToSubAgentBlock adds a committed item to the active sub-agent block's
+// children and increments the tool count when the item represents a tool
+// completion. Sends a subAgentUpdateMsg to Bubbletea to refresh the live
+// summary. No-op if no active block matches subAgentID.
+func (r *inlineRenderer) appendToSubAgentBlock(subAgentID string, item committedItem, isTool bool) {
+	block, ok := r.activeSubAgents[subAgentID]
+	if !ok {
+		return
+	}
+	block.children = append(block.children, item)
+	if isTool {
+		block.toolCount++
+		r.sendSubAgentUpdate(block)
+	}
+}
+
+// sendSubAgentUpdate sends a subAgentUpdateMsg to the Bubbletea program
+// with the current tool count. No-op when no program is active.
+func (r *inlineRenderer) sendSubAgentUpdate(block *subAgentBlock) {
+	if r.cfg.program != nil {
+		r.cfg.program.Send(subAgentUpdateMsg{
+			id:        block.id,
+			toolCount: block.toolCount,
+		})
+	}
+}
+
+// hasActiveSubAgent reports whether a sub-agent block with the given ID
+// is currently buffering events (running, not yet committed to history).
+func (r *inlineRenderer) hasActiveSubAgent(subAgentID string) bool {
+	if subAgentID == "" {
+		return false
+	}
+	_, ok := r.activeSubAgents[subAgentID]
+	return ok
 }
 
 // ---------------------------------------------------------------------------
