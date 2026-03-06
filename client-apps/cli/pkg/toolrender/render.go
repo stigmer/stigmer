@@ -17,7 +17,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 )
 
 // ToolCallInfo holds the primitive fields needed to render a tool call.
@@ -51,6 +51,12 @@ type ToolCallInfo struct {
 	// When true, Result contains partial output accumulated so far.
 	// Mirrors the proto ToolCall.is_streaming field.
 	IsStreaming bool
+
+	// ServerName is the MCP server slug that provides this tool.
+	// Empty for built-in sandbox tools. When populated, the compact
+	// renderer shows "server/tool" in the header for disambiguation.
+	// Populated from proto ToolCall.mcp_server_slug (Phase 2).
+	ServerName string
 }
 
 // previewStyle controls how (or whether) a result preview line is rendered
@@ -150,16 +156,16 @@ var toolDisplayMap = map[string]toolDisplayInfo{
 	"glob": {label: "Find", primaryField: "pattern", preview: previewDiscovery},
 	"grep": {label: "Search", primaryField: "pattern", preview: previewDiscovery},
 
-	"write":          {label: "Write", primaryField: "path", preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "contents", contentArgFallbacks: []string{"content", "file_content"}},
-	"write_file":     {label: "Write", primaryField: "path", preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "contents", contentArgFallbacks: []string{"content", "file_content"}},
-	"create_file":    {label: "Create", primaryField: "path", preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "contents", contentArgFallbacks: []string{"content", "file_content"}},
-	"overwrite_file": {label: "Write", primaryField: "path", preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "contents", contentArgFallbacks: []string{"content", "file_content"}},
+	"write":          {label: "Write", primaryField: "path", fallbackFields: []string{"file_path", "file", "filename"}, preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "contents", contentArgFallbacks: []string{"content", "file_content"}},
+	"write_file":     {label: "Write", primaryField: "path", fallbackFields: []string{"file_path", "file", "filename"}, preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "contents", contentArgFallbacks: []string{"content", "file_content"}},
+	"create_file":    {label: "Create", primaryField: "path", fallbackFields: []string{"file_path", "file", "filename"}, preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "contents", contentArgFallbacks: []string{"content", "file_content"}},
+	"overwrite_file": {label: "Write", primaryField: "path", fallbackFields: []string{"file_path", "file", "filename"}, preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "contents", contentArgFallbacks: []string{"content", "file_content"}},
 
-	"edit":      {label: "Edit", primaryField: "path", preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "new_text", contentArgFallbacks: []string{"new_string", "replacement", "content"}},
-	"edit_file": {label: "Edit", primaryField: "path", preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "new_text", contentArgFallbacks: []string{"new_string", "replacement", "content"}},
+	"edit":      {label: "Edit", primaryField: "path", fallbackFields: []string{"file_path", "file", "filename"}, preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "new_text", contentArgFallbacks: []string{"new_string", "replacement", "content"}},
+	"edit_file": {label: "Edit", primaryField: "path", fallbackFields: []string{"file_path", "file", "filename"}, preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "new_text", contentArgFallbacks: []string{"new_string", "replacement", "content"}},
 
-	"delete_file": {label: "Delete", primaryField: "path", dangerous: true},
-	"remove_file": {label: "Delete", primaryField: "path", dangerous: true},
+	"delete_file": {label: "Delete", primaryField: "path", fallbackFields: []string{"file_path", "file", "filename"}, dangerous: true},
+	"remove_file": {label: "Delete", primaryField: "path", fallbackFields: []string{"file_path", "file", "filename"}, dangerous: true},
 
 	"think": {label: "Thinking", preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "thought"},
 
@@ -178,6 +184,17 @@ var (
 func IsShellTool(toolName string) bool {
 	info, ok := toolDisplayMap[toolName]
 	return ok && info.primaryField == "command"
+}
+
+// HasPrimaryArg reports whether the tool call's args contain the primary
+// display argument (or any of its fallback names) for the tool's type.
+// Returns false when the tool is unknown or the args are nil/empty.
+func HasPrimaryArg(tc ToolCallInfo) bool {
+	info, ok := toolDisplayMap[tc.Name]
+	if !ok {
+		return extractFirstArg(tc.Args) != ""
+	}
+	return extractPrimaryArgWithFallbacks(tc.Args, info.primaryField, info.fallbackFields) != ""
 }
 
 // Render returns a structured single-line display of a tool call.

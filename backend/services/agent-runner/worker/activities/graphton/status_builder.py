@@ -652,6 +652,10 @@ class StatusBuilder:
             else ToolCallStatus.TOOL_CALL_RUNNING
         )
         
+        mcp_server_slug = ""
+        if self._approval_config is not None:
+            mcp_server_slug = self._approval_config.get_mcp_server_for_tool(tool_name)
+        
         tool_call = ToolCall(
             id=run_id,
             name=tool_name,
@@ -660,6 +664,7 @@ class StatusBuilder:
             status=initial_status,
             component_metadata=component_metadata,
             started_at=_utc_timestamp(now),
+            mcp_server_slug=mcp_server_slug,
         )
         
         # If approval required, populate approval fields on the ToolCall
@@ -1532,6 +1537,10 @@ class StatusBuilder:
 
         temp_id = f"early-{tool_use_id or uuid4()}"
 
+        mcp_server_slug = ""
+        if self._approval_config is not None:
+            mcp_server_slug = self._approval_config.get_mcp_server_for_tool(tool_name)
+
         now = datetime.utcnow()
         tool_call = ToolCall(
             id=temp_id,
@@ -1544,6 +1553,7 @@ class StatusBuilder:
                 component_group="main-agent-tools",
             ),
             started_at=_utc_timestamp(now),
+            mcp_server_slug=mcp_server_slug,
         )
 
         tool_message = AgentMessage(
@@ -1603,6 +1613,11 @@ class StatusBuilder:
                 existing.args.CopyFrom(args_struct)
 
             existing.is_streaming = False
+
+            if self._approval_config is not None:
+                slug = self._approval_config.get_mcp_server_for_tool(tool_name)
+                if slug and not existing.mcp_server_slug:
+                    existing.mcp_server_slug = slug
 
             approval = self._check_tool_approval_requirement(tool_name, tool_args)
             if approval.requires_approval:
@@ -2107,20 +2122,24 @@ class StatusBuilder:
             )
             
         elif action == ApprovalAction.APPROVAL_ACTION_REJECT:
-            # Tool is rejected — fail the entire execution.
-            tool_call.status = ToolCallStatus.TOOL_CALL_FAILED
-            tool_call.error = f"Tool execution rejected by {approved_by}"
+            # Tool is rejected — non-terminal. The agent receives a corrective
+            # message and re-evaluates its approach, just like Skip but with
+            # stronger guidance. Execution continues.
+            tool_call.status = ToolCallStatus.TOOL_CALL_SKIPPED
+            tool_call.result = (
+                f"Tool '{tool_call.name}' was REJECTED by the user. "
+                "The user has explicitly indicated they do not want this operation. "
+                "Do NOT retry this exact operation. "
+                "Re-evaluate your approach and propose an alternative."
+            )
             tool_call.completed_at = timestamp
             
-            # Clear ALL pending state and set phase to FAILED
-            self._pending_tool_approvals.clear()
-            del self.current_status.pending_approvals[:]
-            self.current_status.phase = ExecutionPhase.EXECUTION_FAILED
-            self.current_status.error = f"Tool '{tool_call.name}' execution rejected by {approved_by}"
-            
+            # Remove this run_id from pending list (restores phase when empty).
+            self._remove_from_pending(run_id)
             self.logger.info(
                 f"[APPROVAL] execution={self.execution_id} "
-                f"run_id={run_id} decision=REJECT by={approved_by}"
+                f"run_id={run_id} decision=REJECT by={approved_by} "
+                f"remaining_pending={len(self._pending_tool_approvals)}"
             )
         else:
             self.logger.warning(

@@ -160,20 +160,19 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		Bool("temporal_managed", isManaged).
 		Msg("Resolved Temporal configuration")
 
-	var temporalManager *temporal.Manager
 	if isManaged {
 		if opts.Progress != nil {
 			opts.Progress.SetPhase(cliprint.PhaseInstalling, "Setting up Temporal")
 		}
 		log.Info().Msg("Setting up managed Temporal...")
 
-		temporalManager = temporal.NewManager(
+		tm := temporal.NewManager(
 			dataDir,
 			cfg.Backend.Local.ResolveTemporalVersion(),
 			cfg.Backend.Local.ResolveTemporalPort(),
 		)
 
-		if err := temporalManager.EnsureInstalled(); err != nil {
+		if err := tm.EnsureInstalled(); err != nil {
 			return errors.Wrap(err, "failed to ensure Temporal installation")
 		}
 	} else {
@@ -197,19 +196,8 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 	}
 
 	// --- Phase 3: Starting ---
-	// Start processes that the daemon depends on, then spawn the daemon.
-
-	if isManaged {
-		if opts.Progress != nil {
-			opts.Progress.SetPhase(cliprint.PhaseStarting, "Starting Temporal server")
-		}
-		if err := temporalManager.Start(); err != nil {
-			return errors.Wrap(err, "failed to start Temporal")
-		}
-
-		temporalAddr = temporalManager.GetAddress()
-		log.Info().Str("address", temporalAddr).Msg("Temporal started successfully")
-	}
+	// Spawn the daemon process. The daemon itself starts and supervises
+	// Temporal (if managed) along with all other child components.
 
 	if opts.Progress != nil {
 		opts.Progress.SetPhase(cliprint.PhaseStarting, "Launching Stigmer server")
@@ -242,6 +230,7 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		fmt.Sprintf("STIGMER_LOG_DIR=%s", logDir),
 		fmt.Sprintf("GRPC_PORT=%d", DaemonPort),
 		fmt.Sprintf("TEMPORAL_SERVICE_ADDRESS=%s", temporalAddr),
+		fmt.Sprintf("STIGMER_TEMPORAL_MANAGED=%t", isManaged),
 		fmt.Sprintf("STIGMER_LLM_PROVIDER=%s", llmProvider),
 		fmt.Sprintf("STIGMER_LLM_MODEL=%s", llmModel),
 		fmt.Sprintf("STIGMER_LLM_BASE_URL=%s", llmBaseURL),
@@ -382,13 +371,10 @@ func cleanupOrphanedProcesses(dataDir string) {
 	}
 }
 
-// Stop stops the daemon process (which gracefully stops all children)
-// and managed Temporal.
+// Stop stops the daemon process, which gracefully stops all children and
+// managed Temporal as part of its own shutdown sequence.
 func Stop(dataDir string) error {
 	log.Debug().Str("data_dir", dataDir).Msg("Stopping daemon")
-
-	// Stop managed Temporal
-	stopManagedTemporal(dataDir)
 
 	// Read daemon PID
 	pid, err := getPID(dataDir)
@@ -396,6 +382,8 @@ func Stop(dataDir string) error {
 		log.Warn().Msg("PID file not found, searching for process by port")
 		pid, err = findProcessByPort(DaemonPort)
 		if err != nil {
+			// Daemon is gone -- clean up Temporal as a safety net.
+			stopManagedTemporal(dataDir)
 			return errors.Wrap(err, "daemon is not running (no PID file and no process on port)")
 		}
 		log.Info().Int("pid", pid).Msg("Found orphaned daemon process by port")
@@ -404,19 +392,21 @@ func Stop(dataDir string) error {
 	if !isProcessAlive(pid) {
 		log.Debug().Int("pid", pid).Msg("Daemon not running (stale PID file)")
 		_ = os.Remove(filepath.Join(dataDir, PIDFileName))
+		stopManagedTemporal(dataDir)
 		return errors.New("daemon is not running")
 	}
 
 	process, _ := os.FindProcess(pid)
 
 	// The daemon process catches SIGTERM and gracefully stops all children
+	// including managed Temporal.
 	if err := process.Signal(syscall.SIGTERM); err != nil {
 		return errors.Wrap(err, "failed to send SIGTERM to daemon")
 	}
 
 	log.Info().Int("pid", pid).Msg("Sent SIGTERM to daemon")
 
-	// Allow more time since the daemon stops 3 children sequentially
+	// Allow more time since the daemon stops children + Temporal sequentially.
 	for i := 0; i < 30; i++ {
 		if !isProcessAlive(pid) {
 			_ = os.Remove(filepath.Join(dataDir, PIDFileName))
@@ -433,7 +423,8 @@ func Stop(dataDir string) error {
 	_ = os.Remove(filepath.Join(dataDir, PIDFileName))
 	removeStartupConfig(dataDir)
 
-	// Safety net: clean up any children that survived
+	// Safety net: clean up any children or Temporal that survived.
+	stopManagedTemporal(dataDir)
 	cleanupOrphanedProcesses(dataDir)
 
 	return nil

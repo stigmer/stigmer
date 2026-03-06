@@ -12,7 +12,7 @@ import (
 // =============================================================================
 
 func TestFormatElapsed_SubSecond(t *testing.T) {
-	result := formatElapsed(500 * time.Millisecond)
+	result := FormatElapsed(500 * time.Millisecond)
 	if result != "" {
 		t.Errorf("expected empty string for <1s, got %q", result)
 	}
@@ -31,8 +31,8 @@ func TestFormatElapsed_Seconds(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.expected, func(t *testing.T) {
-			if got := formatElapsed(tt.duration); got != tt.expected {
-				t.Errorf("formatElapsed(%v) = %q, want %q", tt.duration, got, tt.expected)
+			if got := FormatElapsed(tt.duration); got != tt.expected {
+				t.Errorf("FormatElapsed(%v) = %q, want %q", tt.duration, got, tt.expected)
 			}
 		})
 	}
@@ -50,8 +50,8 @@ func TestFormatElapsed_Minutes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.expected, func(t *testing.T) {
-			if got := formatElapsed(tt.duration); got != tt.expected {
-				t.Errorf("formatElapsed(%v) = %q, want %q", tt.duration, got, tt.expected)
+			if got := FormatElapsed(tt.duration); got != tt.expected {
+				t.Errorf("FormatElapsed(%v) = %q, want %q", tt.duration, got, tt.expected)
 			}
 		})
 	}
@@ -192,13 +192,13 @@ func TestClearLine(t *testing.T) {
 // =============================================================================
 
 func TestFrames_NotEmpty(t *testing.T) {
-	if len(frames) == 0 {
+	if len(Frames) == 0 {
 		t.Fatal("frames slice must not be empty")
 	}
 }
 
 func TestFrames_AllNonEmpty(t *testing.T) {
-	for i, f := range frames {
+	for i, f := range Frames {
 		if f == "" {
 			t.Errorf("frame[%d] is empty", i)
 		}

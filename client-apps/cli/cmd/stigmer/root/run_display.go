@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
@@ -73,6 +73,12 @@ var humanMsgStyle = lipgloss.NewStyle().
 var promptStyle = lipgloss.NewStyle().
 	Bold(true).
 	Foreground(lipgloss.Color("12"))
+
+// followUpHintStyle renders the hint line below the follow-up prompt in
+// dim italic, matching the approval menu hint styling for consistency.
+var followUpHintStyle = lipgloss.NewStyle().
+	Foreground(lipgloss.Color("8")).
+	Italic(true)
 
 // formatHumanMessage formats a user message with highlighted styling for
 // display in both streaming and non-streaming rendering paths.

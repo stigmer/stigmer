@@ -13,9 +13,10 @@
 package panel
 
 import (
+	"image/color"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 )
 
 // PanelStyle controls the border and title color of the panel.
@@ -30,6 +31,8 @@ const (
 	StyleError
 	// StyleSuccess renders the panel with a green border.
 	StyleSuccess
+	// StyleBrand renders the panel with an orange border for Stigmer CLI brand identity.
+	StyleBrand
 )
 
 // Options configures panel rendering.
@@ -158,7 +161,7 @@ func RenderContentRow(text string, contentWidth int, border lipgloss.Style) stri
 }
 
 // ResolveColor maps a PanelStyle to a lipgloss terminal color.
-func ResolveColor(style PanelStyle) lipgloss.TerminalColor {
+func ResolveColor(style PanelStyle) color.Color {
 	switch style {
 	case StyleWarning:
 		return lipgloss.Color("11") // Bright yellow
@@ -166,6 +169,8 @@ func ResolveColor(style PanelStyle) lipgloss.TerminalColor {
 		return lipgloss.Color("9") // Bright red
 	case StyleSuccess:
 		return lipgloss.Color("10") // Bright green
+	case StyleBrand:
+		return lipgloss.Color("208") // Orange
 	default:
 		return lipgloss.Color("12") // Bright blue
 	}

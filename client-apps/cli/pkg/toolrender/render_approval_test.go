@@ -58,7 +58,7 @@ func TestRenderApprovalResult_RejectedWrite(t *testing.T) {
 
 	assertContains(t, result, "●")
 	assertContains(t, result, "Write(danger.go)")
-	assertContains(t, result, "└ Rejected")
+	assertContains(t, result, "└ User rejected create to danger.go")
 	assertContains(t, result, "package danger")
 }
 
@@ -72,11 +72,11 @@ func TestRenderApprovalResult_SkippedWrite(t *testing.T) {
 
 	assertContains(t, result, "●")
 	assertContains(t, result, "Write(skip.go)")
-	assertContains(t, result, "└ Skipped")
-	assertNotContains(t, result, "package skip")
+	assertContains(t, result, "└ User skipped create skip.go")
+	assertContains(t, result, "package skip")
 }
 
-func TestRenderApprovalResult_SkippedWrite_NoPreview(t *testing.T) {
+func TestRenderApprovalResult_SkippedWrite_ShowsPreview(t *testing.T) {
 	tc := ToolCallInfo{
 		Name:   "write_file",
 		Args:   map[string]interface{}{"path": "skip.go", "contents": "line1\nline2\nline3\n"},
@@ -84,10 +84,11 @@ func TestRenderApprovalResult_SkippedWrite_NoPreview(t *testing.T) {
 	}
 	result := stripANSI(RenderApprovalResult(tc, "skip", CompactOptions{}))
 
-	lines := strings.Split(result, "\n")
-	if len(lines) != 2 {
-		t.Errorf("expected 2 lines (header + connector), got %d:\n%s", len(lines), result)
-	}
+	assertContains(t, result, "Write(skip.go)")
+	assertContains(t, result, "User skipped create skip.go")
+	assertContains(t, result, "line1")
+	assertContains(t, result, "line2")
+	assertContains(t, result, "line3")
 }
 
 // ---------------------------------------------------------------------------
@@ -130,7 +131,7 @@ func TestRenderApprovalResult_RejectedShell(t *testing.T) {
 	result := stripANSI(RenderApprovalResult(tc, "reject", CompactOptions{}))
 
 	assertContains(t, result, "Shell(rm -rf /tmp)")
-	assertContains(t, result, "└ Rejected")
+	assertContains(t, result, "└ User rejected execute to rm -rf /tmp")
 }
 
 func TestRenderApprovalResult_SkippedShell(t *testing.T) {
@@ -141,7 +142,7 @@ func TestRenderApprovalResult_SkippedShell(t *testing.T) {
 	}
 	result := stripANSI(RenderApprovalResult(tc, "skip", CompactOptions{}))
 
-	assertContains(t, result, "└ Skipped")
+	assertContains(t, result, "└ User skipped execute echo hello")
 }
 
 func TestRenderApprovalResult_ShellCommandTruncated(t *testing.T) {
@@ -187,7 +188,7 @@ func TestRenderApprovalResult_RejectedDelete(t *testing.T) {
 	result := stripANSI(RenderApprovalResult(tc, "reject", CompactOptions{}))
 
 	assertContains(t, result, "Delete(important.txt)")
-	assertContains(t, result, "└ Rejected")
+	assertContains(t, result, "└ User rejected delete to important.txt")
 }
 
 // ---------------------------------------------------------------------------
@@ -305,8 +306,10 @@ func TestRenderApprovalResult_UnknownApproved(t *testing.T) {
 	}
 	result := stripANSI(RenderApprovalResult(tc, "approve", CompactOptions{}))
 
-	assertContains(t, result, "custom_deploy(production)")
+	assertContains(t, result, "custom_deploy")
 	assertContains(t, result, "└ Approved")
+	assertContains(t, result, "target")
+	assertContains(t, result, "production")
 }
 
 func TestRenderApprovalResult_UnknownRejected(t *testing.T) {
@@ -391,20 +394,23 @@ func TestRenderApprovalResult_InvalidAction(t *testing.T) {
 // ApprovalSeparator
 // ---------------------------------------------------------------------------
 
-func TestApprovalSeparator_ContainsDashes(t *testing.T) {
-	result := stripANSI(ApprovalSeparator())
+func TestApprovalSeparator_MatchesRequestedWidth(t *testing.T) {
+	for _, width := range []int{40, 80, 120} {
+		result := stripANSI(ApprovalSeparator(width))
 
-	if !strings.Contains(result, strings.Repeat("─", approvalSeparatorWidth)) {
-		t.Errorf("separator should contain %d dash characters, got: %q", approvalSeparatorWidth, result)
+		if len([]rune(result)) != width {
+			t.Errorf("ApprovalSeparator(%d): expected %d characters, got %d: %q",
+				width, width, len([]rune(result)), result)
+		}
 	}
 }
 
-func TestApprovalSeparator_FixedWidth(t *testing.T) {
-	result := stripANSI(ApprovalSeparator())
+func TestApprovalSeparator_DefaultsOnZeroWidth(t *testing.T) {
+	result := stripANSI(ApprovalSeparator(0))
 
-	if len([]rune(result)) != approvalSeparatorWidth {
-		t.Errorf("separator should be exactly %d characters, got %d: %q",
-			approvalSeparatorWidth, len([]rune(result)), result)
+	if len([]rune(result)) != defaultApprovalSeparatorWidth {
+		t.Errorf("ApprovalSeparator(0): expected default %d characters, got %d",
+			defaultApprovalSeparatorWidth, len([]rune(result)))
 	}
 }
 
@@ -479,9 +485,9 @@ func TestApprovalQuestion_UnknownTool(t *testing.T) {
 	}
 	result := ApprovalQuestion(tc)
 
-	if result != "Do you want to run custom_deploy staging?" {
-		t.Errorf("unexpected question: %q", result)
-	}
+	assertContains(t, result, "run custom_deploy")
+	assertContains(t, result, "target=")
+	assertContains(t, result, "staging")
 }
 
 func TestApprovalQuestion_MissingArgs(t *testing.T) {
@@ -634,7 +640,7 @@ func TestExpandedApprovalHeader_UnknownTool(t *testing.T) {
 	result := stripANSI(ExpandedApprovalHeader(tc, CompactOptions{}))
 
 	assertContains(t, result, "●")
-	assertContains(t, result, "custom_deploy(production)")
+	assertContains(t, result, "custom_deploy")
 }
 
 func TestExpandedApprovalHeader_UnknownNoArgs(t *testing.T) {
@@ -691,7 +697,25 @@ func TestExpandedApprovalContent_UnknownTool(t *testing.T) {
 	result := ExpandedApprovalContent(tc)
 
 	if result != "production" {
-		t.Errorf("expected first arg value, got: %q", result)
+		t.Errorf("expected largest arg value, got: %q", result)
+	}
+}
+
+func TestExpandedApprovalContent_MCPToolSelectsLargestArg(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "WriteFile",
+		Args: map[string]interface{}{
+			"path":    "/tmp/config.yaml",
+			"content": "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: my-config\n",
+		},
+	}
+	result := ExpandedApprovalContent(tc)
+
+	if !strings.Contains(result, "apiVersion") {
+		t.Errorf("expected largest arg (content) to be selected, got: %q", result)
+	}
+	if result == "/tmp/config.yaml" {
+		t.Error("should not select short path arg over longer content arg")
 	}
 }
 
@@ -758,5 +782,101 @@ func TestShouldSuppressCompletion_ReadNotSuppressed(t *testing.T) {
 func TestShouldSuppressCompletion_UnknownNotSuppressed(t *testing.T) {
 	if ShouldSuppressCompletion("custom_mcp_tool") {
 		t.Error("unknown tool should NOT be suppressed")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// TruncateContent
+// ---------------------------------------------------------------------------
+
+func TestTruncateContent_Empty(t *testing.T) {
+	if got := TruncateContent("", 10, 80); got != "" {
+		t.Errorf("TruncateContent(\"\", 10, 80) = %q, want \"\"", got)
+	}
+}
+
+func TestTruncateContent_UnderLimit(t *testing.T) {
+	content := "line 1\nline 2\nline 3"
+	got := TruncateContent(content, 10, 80)
+	if got != content {
+		t.Errorf("content under limit should be unchanged, got:\n%s", got)
+	}
+}
+
+func TestTruncateContent_ExactLimit(t *testing.T) {
+	content := "line 1\nline 2\nline 3"
+	got := TruncateContent(content, 3, 80)
+	if got != content {
+		t.Errorf("content at exact limit should be unchanged, got:\n%s", got)
+	}
+}
+
+func TestTruncateContent_OverLimit(t *testing.T) {
+	content := "line 1\nline 2\nline 3\nline 4\nline 5"
+	got := stripANSI(TruncateContent(content, 2, 80))
+	if !strings.Contains(got, "line 1") {
+		t.Errorf("truncated content should contain first line, got:\n%s", got)
+	}
+	if !strings.Contains(got, "line 2") {
+		t.Errorf("truncated content should contain second line, got:\n%s", got)
+	}
+	if strings.Contains(got, "line 3") {
+		t.Errorf("truncated content should NOT contain third line, got:\n%s", got)
+	}
+	if !strings.Contains(got, "+3 more lines") {
+		t.Errorf("truncated content should show overflow, got:\n%s", got)
+	}
+}
+
+func TestTruncateContent_ClampsWidth(t *testing.T) {
+	content := strings.Repeat("x", 100) + "\nshort"
+	got := TruncateContent(content, 10, 40)
+	lines := strings.Split(got, "\n")
+	// First line should be truncated (visible width <= 40)
+	if len(lines) < 2 {
+		t.Fatalf("expected at least 2 lines, got %d", len(lines))
+	}
+	if len(lines[0]) >= 100 {
+		t.Errorf("first line should be width-clamped, got len %d", len(lines[0]))
+	}
+}
+
+func TestTruncateContent_TrailingNewline(t *testing.T) {
+	content := "line 1\nline 2\n"
+	got := TruncateContent(content, 5, 80)
+	if got != "line 1\nline 2" {
+		t.Errorf("trailing newline should be trimmed before processing, got: %q", got)
+	}
+}
+
+func TestTruncateContent_ZeroMaxLines(t *testing.T) {
+	got := TruncateContent("hello", 0, 80)
+	if got != "hello" {
+		t.Errorf("zero maxLines should return content unchanged, got: %q", got)
+	}
+}
+
+func TestTruncateContent_ZeroMaxWidth(t *testing.T) {
+	got := TruncateContent("hello", 10, 0)
+	if got != "hello" {
+		t.Errorf("zero maxWidth should return content unchanged, got: %q", got)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// StreamTruncationIndicator
+// ---------------------------------------------------------------------------
+
+func TestStreamTruncationIndicator_ZeroOverflow(t *testing.T) {
+	got := stripANSI(StreamTruncationIndicator(0))
+	if !strings.Contains(got, "content continues") {
+		t.Errorf("zero overflow should show generic indicator, got: %q", got)
+	}
+}
+
+func TestStreamTruncationIndicator_WithOverflow(t *testing.T) {
+	got := stripANSI(StreamTruncationIndicator(42))
+	if !strings.Contains(got, "+42 more lines") {
+		t.Errorf("overflow indicator should show count, got: %q", got)
 	}
 }

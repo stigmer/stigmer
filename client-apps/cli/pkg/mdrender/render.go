@@ -4,8 +4,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/charmbracelet/glamour"
-	"github.com/charmbracelet/glamour/styles"
+	"charm.land/glamour/v2"
+	"charm.land/glamour/v2/styles"
 )
 
 // rendererCache stores glamour.TermRenderer instances keyed by terminal width.

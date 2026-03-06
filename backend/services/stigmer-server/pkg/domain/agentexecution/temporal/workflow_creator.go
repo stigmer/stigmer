@@ -13,7 +13,7 @@ import (
 )
 
 // InvokeAgentExecutionWorkflowCreator creates and starts Temporal workflows for agent execution invocation.
-// Called by AgentExecutionCreateHandler after persisting execution to BadgerDB.
+// Called by AgentExecutionCreateHandler after persisting execution to SQLite.
 //
 // Polyglot Configuration:
 // - stigmer: Go workflows on agent_execution_stigmer (stigmer-server)
@@ -32,15 +32,18 @@ func NewInvokeAgentExecutionWorkflowCreator(workflowClient client.Client, config
 	}
 }
 
-// Create creates and starts a workflow for the given execution.
-func (c *InvokeAgentExecutionWorkflowCreator) Create(execution *agentexecutionv1.AgentExecution) error {
-	executionID := execution.GetMetadata().GetId()
+// Create creates and starts a workflow for the given execution input.
+//
+// The input is a slim struct containing only the orchestration coordinates the
+// workflow needs (execution ID, session ID, agent ID, callback token). Secrets
+// and large payloads (runtime_env, message, attachments) are excluded from the
+// Temporal workflow history.
+func (c *InvokeAgentExecutionWorkflowCreator) Create(input *workflows.InvokeAgentExecutionWorkflowInput) error {
+	executionID := input.ExecutionID
 
 	// Workflow ID format: stigmer/agent-execution/invoke/{execution-id}
 	workflowID := fmt.Sprintf("%s/%s", workflows.InvokeAgentExecutionWorkflowName, executionID)
 
-	// Build workflow options
-	//
 	// NOTE: No WorkflowRunTimeout is set intentionally. This workflow supports
 	// human-in-the-loop (HITL) approval flows where the workflow blocks waiting
 	// for a submitApproval signal. Humans may take minutes, hours, or days to
@@ -51,16 +54,16 @@ func (c *InvokeAgentExecutionWorkflowCreator) Create(execution *agentexecutionv1
 		ID:        workflowID,
 		TaskQueue: c.config.StigmerQueue,
 		Memo: map[string]interface{}{
-			"activityTaskQueue": c.config.RunnerQueue, // Pass runner queue to workflow
+			"activityTaskQueue": c.config.RunnerQueue,
 		},
 	}
 
-	// Start workflow asynchronously
+	// Start workflow asynchronously with the slim input
 	_, err := c.workflowClient.ExecuteWorkflow(
-		context.Background(), // Use background context for async start
+		context.Background(),
 		options,
 		workflows.InvokeAgentExecutionWorkflowName,
-		execution,
+		input,
 	)
 	if err != nil {
 		log.Error().

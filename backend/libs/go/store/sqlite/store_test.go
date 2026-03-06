@@ -17,7 +17,7 @@ import (
 )
 
 // =============================================================================
-// Core Functionality Tests (ported from BadgerDB)
+// Core Functionality Tests
 // =============================================================================
 
 func TestStore_SaveAndGetResource(t *testing.T) {

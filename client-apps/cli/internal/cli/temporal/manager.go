@@ -91,25 +91,36 @@ func (m *Manager) EnsureInstalled() error {
 // This function is idempotent - if Temporal is already running and healthy,
 // it will log success and return without error.
 func (m *Manager) Start() error {
-	// Check lock file first (fastest check, source of truth)
-	if m.isLocked() {
-		log.Info().
-			Str("address", m.GetAddress()).
-			Str("ui_url", "http://localhost:8233").
-			Msg("Temporal is already running (lock file held) - reusing existing instance")
-		return nil
-	}
-
-	// Cleanup any stale processes before checking if running
-	m.CleanupStaleProcesses()
-
-	// Check if already running and healthy (backup check)
+	// Full health check first: process alive, actually Temporal, port listening.
 	if m.IsRunning() {
 		log.Info().
 			Str("address", m.GetAddress()).
 			Str("ui_url", "http://localhost:8233").
 			Msg("Temporal is already running and healthy - reusing existing instance")
 		return nil
+	}
+
+	// If WE hold a stale lock (Temporal crashed while the daemon is still
+	// alive), release it so the fresh start below can re-acquire cleanly.
+	// This fixes macOS/BSD where flock is per-open-file-description: a new
+	// fd in isLocked() would see our own lock and wrongly bail out.
+	if m.lockFd != nil {
+		log.Info().Msg("Releasing stale Temporal lock (process died while we held the lock)")
+		m.releaseLock()
+		_ = os.Remove(m.pidFile)
+	}
+
+	// Cleanup any stale processes before starting
+	m.CleanupStaleProcesses()
+
+	// Check if ANOTHER process holds the lock (external Temporal instance).
+	if m.isLocked() {
+		if m.isPortInUse() {
+			log.Info().Msg("Temporal lock held by another process and port is active - reusing")
+			return nil
+		}
+		log.Warn().Msg("Temporal lock held by another process but port is not active - cannot start")
+		return errors.New("Temporal lock held by another process but service is not responding")
 	}
 
 	// Ensure binary is installed
@@ -289,6 +300,15 @@ func (m *Manager) IsRunning() bool {
 // GetAddress returns the Temporal service address
 func (m *Manager) GetAddress() string {
 	return fmt.Sprintf("localhost:%d", m.port)
+}
+
+// GetPID returns the PID of the running Temporal process, or 0 if unavailable.
+func (m *Manager) GetPID() int {
+	pid, err := m.getPID()
+	if err != nil {
+		return 0
+	}
+	return pid
 }
 
 // writePIDFile writes the enhanced PID file with metadata

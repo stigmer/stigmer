@@ -19,6 +19,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	agentexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal/workflows"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/session"
@@ -76,7 +77,8 @@ func (c *AgentExecutionController) buildCreatePipeline() *pipeline.Pipeline[*age
 		AddStep(newCreateDefaultInstanceIfNeededStep(c.agentClient, c.agentInstanceClient, c.store)). // 6. Create default instance if needed
 		AddStep(newCreateSessionIfNeededStep(c.agentClient, c.sessionClient)).                        // 6. Create session if needed
 		AddStep(newSetInitialPhaseStep()).                                                            // 7. Set phase to PENDING
-		AddStep(c.newProcessAttachmentsStep()).                                                       // 8. Process attachments (upload large files to storage)
+		AddStep(c.newCreateExecutionContextStep()).                                                   // 8. Create ExecutionContext with merged environment
+		AddStep(c.newProcessAttachmentsStep()).                                                       // 9. Process attachments (upload large files to storage)
 		AddStep(steps.NewPersistStep[*agentexecutionv1.AgentExecution](c.store)).                     // 9. Persist execution
 		AddStep(c.newStartWorkflowStep()).                                                            // 10. Start Temporal workflow
 		Build()
@@ -494,8 +496,20 @@ func (s *startWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecution
 		Str("execution_id", executionID).
 		Msg("Starting Temporal workflow")
 
-	// Start the Temporal workflow
-	if err := s.workflowCreator.Create(execution); err != nil {
+	// Construct the slim workflow input from the execution.
+	// Only orchestration coordinates are included; secrets (runtime_env)
+	// have already been cleared by createExecutionContextStep.
+	workflowInput := &workflows.InvokeAgentExecutionWorkflowInput{
+		ExecutionID:      executionID,
+		SessionID:        execution.GetSpec().GetSessionId(),
+		AgentID:          execution.GetSpec().GetAgentId(),
+		CallbackToken:    execution.GetSpec().GetCallbackToken(),
+		AutoApproveAll:   execution.GetSpec().GetAutoApproveAll(),
+		ParentWorkflowID: execution.GetSpec().GetParentWorkflowId(),
+	}
+
+	// Start the Temporal workflow with slim input
+	if err := s.workflowCreator.Create(workflowInput); err != nil {
 		log.Error().
 			Err(err).
 			Str("execution_id", executionID).

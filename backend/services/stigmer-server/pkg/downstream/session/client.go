@@ -33,17 +33,48 @@ import (
 // with a network gRPC connection pointing to the session service endpoint.
 // No changes to this client code are needed - just the connection configuration.
 type Client struct {
-	conn   *grpc.ClientConn
-	client sessionv1.SessionCommandControllerClient
+	conn        *grpc.ClientConn
+	client      sessionv1.SessionCommandControllerClient
+	queryClient sessionv1.SessionQueryControllerClient
 }
 
 // NewClient creates a new in-process Session client using a gRPC connection.
 // The connection should be an in-process gRPC connection created via NewInProcessConnection.
 func NewClient(conn *grpc.ClientConn) *Client {
 	return &Client{
-		conn:   conn,
-		client: sessionv1.NewSessionCommandControllerClient(conn),
+		conn:        conn,
+		client:      sessionv1.NewSessionCommandControllerClient(conn),
+		queryClient: sessionv1.NewSessionQueryControllerClient(conn),
 	}
+}
+
+// Get retrieves a session by ID.
+//
+// This makes an in-process gRPC call to SessionQueryController.Get()
+// ensuring all gRPC interceptors run before reaching the handler.
+//
+// Use case: During agent execution creation, resolve the session to obtain
+// the agent_instance_id for environment merging.
+func (c *Client) Get(ctx context.Context, id string) (*sessionv1.Session, error) {
+	log.Debug().
+		Str("session_id", id).
+		Msg("Getting session via in-process gRPC")
+
+	session, err := c.queryClient.Get(ctx, &sessionv1.SessionId{Value: id})
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("session_id", id).
+			Msg("Failed to get session")
+		return nil, err
+	}
+
+	log.Debug().
+		Str("id", session.GetMetadata().GetId()).
+		Str("agent_instance_id", session.GetSpec().GetAgentInstanceId()).
+		Msg("Successfully retrieved session")
+
+	return session, nil
 }
 
 // Create creates a new session.

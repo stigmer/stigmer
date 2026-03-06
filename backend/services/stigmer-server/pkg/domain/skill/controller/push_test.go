@@ -217,7 +217,7 @@ func TestPush_CreateNew_ArchivesVersion(t *testing.T) {
 	auditPrefix := fmt.Sprintf("skill_audit/%s/", result.Metadata.Id)
 
 	// Try to find audit records by listing with prefix
-	// Note: This is a simplified check - in a real scenario, we'd query BadgerDB with prefix
+	// Note: This is a simplified check - in a real scenario, we'd query SQLite with prefix
 	// For now, we verify that the archive step completed without error
 	assert.NotEmpty(t, result.Metadata.Id, "skill should be created")
 	assert.NotEmpty(t, result.Status.VersionHash, "version hash should be set for archive")

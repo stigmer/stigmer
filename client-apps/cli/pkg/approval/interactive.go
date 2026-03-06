@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
 )
 
@@ -24,25 +24,10 @@ func NewInteractivePrompter() *InteractivePrompter {
 // It shows an interactive selection prompt if a TTY is available,
 // otherwise falls back to non-interactive behavior.
 func (p *InteractivePrompter) Prompt(ctx context.Context, opts Options) (*Decision, error) {
-	// Handle explicit non-interactive mode
-	if opts.NonInteractive {
-		return p.handleNonInteractive(opts)
+	if opts.NonInteractive || !display.IsTerminal() {
+		return resolveNonInteractive(opts)
 	}
-
-	// Check for TTY - fallback to non-interactive if no TTY available
-	if !display.IsTerminal() {
-		return p.handleNonInteractive(opts)
-	}
-
 	return p.showInteractivePrompt(ctx, opts)
-}
-
-// handleNonInteractive returns the default action without prompting.
-func (p *InteractivePrompter) handleNonInteractive(opts Options) (*Decision, error) {
-	if opts.DefaultAction == ActionUnspecified {
-		return nil, ErrNonInteractiveNoDefault
-	}
-	return &Decision{Action: opts.DefaultAction}, nil
 }
 
 // showInteractivePrompt runs a Bubbletea program to collect the user's

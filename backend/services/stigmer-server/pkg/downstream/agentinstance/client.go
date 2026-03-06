@@ -118,6 +118,35 @@ func (c *Client) GetByAgent(ctx context.Context, agentID string) (*agentinstance
 	return list, nil
 }
 
+// Get retrieves an agent instance by ID.
+//
+// This makes an in-process gRPC call to AgentInstanceQueryController.Get()
+// ensuring all gRPC interceptors run before reaching the handler.
+//
+// Use case: During agent execution creation, load the agent instance to
+// obtain environment_refs for environment merging into an ExecutionContext.
+func (c *Client) Get(ctx context.Context, id string) (*agentinstancev1.AgentInstance, error) {
+	log.Debug().
+		Str("agent_instance_id", id).
+		Msg("Getting agent instance via in-process gRPC")
+
+	instance, err := c.queryClient.Get(ctx, &agentinstancev1.AgentInstanceId{Value: id})
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("agent_instance_id", id).
+			Msg("Failed to get agent instance")
+		return nil, err
+	}
+
+	log.Debug().
+		Str("id", instance.GetMetadata().GetId()).
+		Str("agent_id", instance.GetSpec().GetAgentId()).
+		Msg("Successfully retrieved agent instance")
+
+	return instance, nil
+}
+
 // Close closes the underlying gRPC connection
 func (c *Client) Close() error {
 	if c.conn != nil {

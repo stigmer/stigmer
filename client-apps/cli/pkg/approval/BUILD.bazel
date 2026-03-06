@@ -18,9 +18,9 @@ go_library(
     deps = [
         "//client-apps/cli/pkg/display",
         "//client-apps/cli/pkg/termctl",
-        "@com_github_charmbracelet_bubbles//textinput",
-        "@com_github_charmbracelet_bubbletea//:bubbletea",
-        "@com_github_charmbracelet_lipgloss//:lipgloss",
+        "@land_charm_bubbles_v2//textinput:textinput",
+        "@land_charm_bubbletea_v2//:bubbletea",
+        "@land_charm_lipgloss_v2//:lipgloss",
         "@org_golang_x_term//:term",
     ],
 )
@@ -36,6 +36,6 @@ go_test(
     ],
     embed = [":approval"],
     deps = [
-        "@com_github_charmbracelet_bubbletea//:bubbletea",
+        "@land_charm_bubbletea_v2//:bubbletea",
     ],
 )

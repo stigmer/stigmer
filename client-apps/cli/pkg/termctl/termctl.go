@@ -22,8 +22,8 @@ import (
 // IsSupported reports whether w is a terminal that can handle ANSI cursor
 // control sequences. Returns false for non-TTY writers and dumb terminals.
 //
-// If w is wrapped (e.g., by a line-counting middleware), IsSupported follows
-// the Unwrap() chain to find the underlying *os.File.
+// If w is wrapped (e.g., by buffered middleware), IsSupported follows the
+// Unwrap() chain to find the underlying *os.File.
 //
 // Does NOT check NO_COLOR — cursor control is a UX mechanism (collapsing
 // content after approval), not a color decoration. Users who disable color
@@ -73,10 +73,26 @@ func Width(w io.Writer, defaultWidth int) int {
 	return width
 }
 
+// Height returns the terminal height in rows for the writer's underlying
+// file descriptor. Returns defaultHeight if w is not an *os.File, not a
+// terminal, or the size cannot be determined.
+//
+// Follows the Unwrap() chain when w is a wrapped writer.
+func Height(w io.Writer, defaultHeight int) int {
+	f := unwrapFile(w)
+	if f == nil {
+		return defaultHeight
+	}
+	_, height, err := term.GetSize(int(f.Fd()))
+	if err != nil || height <= 0 {
+		return defaultHeight
+	}
+	return height
+}
+
 // unwrapFile follows the Unwrap() chain on w to find the underlying *os.File.
 // Returns nil if no *os.File is found. This allows termctl functions to work
-// correctly when the writer is wrapped by middleware (e.g., line-counting
-// wrappers used for session header updates).
+// correctly when the writer is wrapped by middleware.
 func unwrapFile(w io.Writer) *os.File {
 	for {
 		if f, ok := w.(*os.File); ok {

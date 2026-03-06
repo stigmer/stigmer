@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/charmbracelet/bubbles/spinner"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/spinner"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 // PhaseEntry pairs a phase identifier with its human-readable label.
@@ -27,23 +27,15 @@ type PhaseConfig []PhaseEntry
 type ProgressPhase string
 
 const (
-	phaseDiscovering  ProgressPhase = "discovering"
-	phaseValidating   ProgressPhase = "validating"
-	phaseConnecting   ProgressPhase = "connecting"
-	PhaseDeploying    ProgressPhase = "deploying"
-	phaseExecuting    ProgressPhase = "executing"
 	PhaseInitializing ProgressPhase = "initializing"
 	PhaseInstalling   ProgressPhase = "installing"
-	phaseDeleting     ProgressPhase = "deleting"
-	phaseCompleted    ProgressPhase = "completed"
 	PhaseStarting     ProgressPhase = "starting"
 )
 
 type phaseStatus int
 
 const (
-	statusPending phaseStatus = iota
-	statusActive
+	statusActive phaseStatus = iota + 1
 	statusComplete
 )
 
@@ -95,17 +87,12 @@ func (p *ProgressState) getSnapshot() (ProgressPhase, string, map[ProgressPhase]
 	return p.active, p.detail, phasesCopy
 }
 
-// defaultPhaseConfig is used when no custom config is provided.
+// defaultPhaseConfig covers the daemon bootstrap lifecycle. Callers with
+// different phase sets use NewProgressDisplayWithPhases instead.
 var defaultPhaseConfig = PhaseConfig{
-	{phaseDiscovering, "Discovering resources"},
-	{phaseValidating, "Validating configuration"},
-	{phaseConnecting, "Connecting to backend"},
-	{PhaseDeploying, "Deploying"},
-	{phaseExecuting, "Starting execution"},
 	{PhaseInitializing, "Initializing"},
-	{PhaseInstalling, "Installing dependencies"},
-	{phaseDeleting, "Deleting resources"},
-	{PhaseStarting, "Starting services"},
+	{PhaseInstalling, "Installing"},
+	{PhaseStarting, "Starting"},
 }
 
 type progressModel struct {
@@ -134,7 +121,7 @@ func (m progressModel) Init() tea.Cmd {
 
 func (m progressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if msg.String() == "ctrl+c" {
 			m.done = true
 			return m, tea.Quit
@@ -152,11 +139,11 @@ func (m progressModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m progressModel) View() string {
+func (m progressModel) View() tea.View {
 	_, detail, phases := m.state.getSnapshot()
 
 	if m.done {
-		return m.renderFinalState(phases)
+		return tea.NewView(m.renderFinalState(phases))
 	}
 
 	var lines []string
@@ -190,10 +177,10 @@ func (m progressModel) View() string {
 	}
 
 	if len(lines) == 0 {
-		return ""
+		return tea.NewView("")
 	}
 
-	return "\n" + strings.Join(lines, "\n") + "\n"
+	return tea.NewView("\n" + strings.Join(lines, "\n") + "\n")
 }
 
 func (m progressModel) renderFinalState(phases map[ProgressPhase]phaseStatus) string {

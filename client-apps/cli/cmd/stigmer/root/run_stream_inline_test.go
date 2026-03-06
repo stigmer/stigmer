@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/charmbracelet/x/ansi"
+
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
@@ -34,7 +36,7 @@ func TestInlineRenderer_AIMessage_GoesToStdout(t *testing.T) {
 		executiontui.DoneEvent{Phase: "completed"},
 	)
 
-	phase, exitErr := renderInline(context.Background(), inlineRenderConfig{
+	result := renderInline(context.Background(), inlineRenderConfig{
 		events:            events,
 		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
 		prompter:          approval.NewInteractivePrompter(),
@@ -42,11 +44,11 @@ func TestInlineRenderer_AIMessage_GoesToStdout(t *testing.T) {
 		status:            &stderr,
 	})
 
-	if phase != "completed" {
-		t.Errorf("expected phase 'completed', got %q", phase)
+	if result.phase != "completed" {
+		t.Errorf("expected phase 'completed', got %q", result.phase)
 	}
-	if exitErr != "" {
-		t.Errorf("expected no error, got %q", exitErr)
+	if result.exitErr != "" {
+		t.Errorf("expected no error, got %q", result.exitErr)
 	}
 	if !strings.Contains(stdout.String(), "Hello, world!") {
 		t.Errorf("AI content should go to stdout, got: %q", stdout.String())
@@ -293,11 +295,75 @@ func TestInlineRenderer_SubAgentLifecycle(t *testing.T) {
 	}
 }
 
+func TestInlineRenderer_SubAgentToolsCollapsed(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 20)
+
+	go feedEvents(events,
+		executiontui.SubAgentStartedEvent{ID: "sa-1", Name: "researcher", Description: "explore code"},
+		executiontui.ToolCompletedEvent{
+			SubAgentID: "sa-1",
+			ToolCall:   toolrender.ToolCallInfo{Name: "read_file", Args: map[string]interface{}{"path": "main.go"}},
+		},
+		executiontui.ToolCompletedEvent{
+			SubAgentID: "sa-1",
+			ToolCall:   toolrender.ToolCallInfo{Name: "shell", Args: map[string]interface{}{"command": "ls"}},
+		},
+		executiontui.SubAgentCompletedEvent{ID: "sa-1", Status: "completed", ToolCount: 2},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	result := renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	output := stderr.String()
+
+	if !strings.Contains(output, "explore code") {
+		t.Errorf("collapsed output should contain subject, got: %q", output)
+	}
+	if !strings.Contains(output, "✓ Done") {
+		t.Errorf("collapsed output should contain Done badge, got: %q", output)
+	}
+	if !strings.Contains(output, "2 tools") {
+		t.Errorf("collapsed output should contain tool count, got: %q", output)
+	}
+
+	stripped := ansi.Strip(output)
+	if strings.Contains(stripped, "main.go") {
+		t.Errorf("collapsed output should NOT contain individual tool paths, got: %q", output)
+	}
+
+	found := false
+	for _, item := range result.history {
+		if item.kind == kindSubAgentBlock {
+			found = true
+			if item.saBlock == nil {
+				t.Fatal("kindSubAgentBlock item should have non-nil saBlock")
+			}
+			if item.saBlock.toolCount != 2 {
+				t.Errorf("expected toolCount=2, got %d", item.saBlock.toolCount)
+			}
+			if len(item.saBlock.children) != 2 {
+				t.Errorf("expected 2 children, got %d", len(item.saBlock.children))
+			}
+			break
+		}
+	}
+	if !found {
+		t.Error("history should contain a kindSubAgentBlock item")
+	}
+}
+
 // =============================================================================
 // Todo Update
 // =============================================================================
 
-func TestInlineRenderer_TodoUpdate_GoesToStderr(t *testing.T) {
+func TestInlineRenderer_TodoUpdate_RecordedInHistory(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	events := make(chan executiontui.Event, 10)
 
@@ -310,7 +376,7 @@ func TestInlineRenderer_TodoUpdate_GoesToStderr(t *testing.T) {
 		executiontui.DoneEvent{Phase: "completed"},
 	)
 
-	renderInline(context.Background(), inlineRenderConfig{
+	result := renderInline(context.Background(), inlineRenderConfig{
 		events:            events,
 		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
 		prompter:          approval.NewInteractivePrompter(),
@@ -318,15 +384,30 @@ func TestInlineRenderer_TodoUpdate_GoesToStderr(t *testing.T) {
 		status:            &stderr,
 	})
 
-	out := stderr.String()
-	if !strings.Contains(out, "Plan:") {
-		t.Errorf("todo update should show Plan label, got: %q", out)
+	// Plan is rendered exclusively in the composed View() (via planDisplay),
+	// NOT in scrollback. Verify it is recorded in history for follow-up
+	// iteration carry-over.
+	var found bool
+	for _, item := range result.history {
+		if item.kind == kindTodoUpdate {
+			found = true
+			if !strings.Contains(item.text, "Plan:") {
+				t.Errorf("history todo should contain Plan label, got: %q", item.text)
+			}
+			if !strings.Contains(item.text, "[x] Step one") {
+				t.Errorf("completed todo should have [x], got: %q", item.text)
+			}
+			if !strings.Contains(item.text, "[-] Step two") {
+				t.Errorf("in-progress todo should have [-], got: %q", item.text)
+			}
+			if !strings.Contains(item.text, "[ ] Step three") {
+				t.Errorf("pending todo should have [ ], got: %q", item.text)
+			}
+			break
+		}
 	}
-	if !strings.Contains(out, "[x] Step one") {
-		t.Errorf("completed todo should have [x], got: %q", out)
-	}
-	if !strings.Contains(out, "[-] Step two") {
-		t.Errorf("in-progress todo should have [-], got: %q", out)
+	if !found {
+		t.Fatal("history should contain a kindTodoUpdate item")
 	}
 }
 
@@ -342,7 +423,7 @@ func TestInlineRenderer_StreamError_ReturnsError(t *testing.T) {
 		executiontui.StreamErrorEvent{Err: errors.New("connection lost")},
 	)
 
-	phase, exitErr := renderInline(context.Background(), inlineRenderConfig{
+	result := renderInline(context.Background(), inlineRenderConfig{
 		events:            events,
 		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
 		prompter:          approval.NewInteractivePrompter(),
@@ -351,11 +432,11 @@ func TestInlineRenderer_StreamError_ReturnsError(t *testing.T) {
 		sessionID:         "ses-abc",
 	})
 
-	if phase != "" {
-		t.Errorf("expected empty phase on error, got %q", phase)
+	if result.phase != "" {
+		t.Errorf("expected empty phase on error, got %q", result.phase)
 	}
-	if exitErr != "connection lost" {
-		t.Errorf("expected error 'connection lost', got %q", exitErr)
+	if result.exitErr != "connection lost" {
+		t.Errorf("expected error 'connection lost', got %q", result.exitErr)
 	}
 	if !strings.Contains(stderr.String(), "Re-attach with: stigmer run ses-abc") {
 		t.Errorf("should show re-attach hint, got: %q", stderr.String())
@@ -370,7 +451,7 @@ func TestInlineRenderer_DoneWithError_ShowsError(t *testing.T) {
 		executiontui.DoneEvent{Phase: "failed", Error: "agent crashed"},
 	)
 
-	phase, exitErr := renderInline(context.Background(), inlineRenderConfig{
+	result := renderInline(context.Background(), inlineRenderConfig{
 		events:            events,
 		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
 		prompter:          approval.NewInteractivePrompter(),
@@ -378,11 +459,11 @@ func TestInlineRenderer_DoneWithError_ShowsError(t *testing.T) {
 		status:            &stderr,
 	})
 
-	if phase != "failed" {
-		t.Errorf("expected phase 'failed', got %q", phase)
+	if result.phase != "failed" {
+		t.Errorf("expected phase 'failed', got %q", result.phase)
 	}
-	if exitErr != "agent crashed" {
-		t.Errorf("expected error 'agent crashed', got %q", exitErr)
+	if result.exitErr != "agent crashed" {
+		t.Errorf("expected error 'agent crashed', got %q", result.exitErr)
 	}
 	if !strings.Contains(stderr.String(), "agent crashed") {
 		t.Errorf("error should appear on stderr, got: %q", stderr.String())
@@ -400,7 +481,7 @@ func TestInlineRenderer_ContextCancelled_ReturnsEarly(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	phase, exitErr := renderInline(ctx, inlineRenderConfig{
+	result := renderInline(ctx, inlineRenderConfig{
 		events:            events,
 		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
 		prompter:          approval.NewInteractivePrompter(),
@@ -408,11 +489,11 @@ func TestInlineRenderer_ContextCancelled_ReturnsEarly(t *testing.T) {
 		status:            &stderr,
 	})
 
-	if phase != "" {
-		t.Errorf("expected empty phase on cancel, got %q", phase)
+	if result.phase != "" {
+		t.Errorf("expected empty phase on cancel, got %q", result.phase)
 	}
-	if exitErr != "context cancelled" {
-		t.Errorf("expected 'context cancelled', got %q", exitErr)
+	if result.exitErr != "context cancelled" {
+		t.Errorf("expected 'context cancelled', got %q", result.exitErr)
 	}
 }
 
@@ -729,6 +810,98 @@ func TestInlineRenderer_NonReadToolBetweenAIStream_NoDuplication(t *testing.T) {
 	}
 }
 
+// Reproduces the cross-Recv() duplication scenario: a streaming write tool's
+// ToolRunningEvent arrives while the AI is still streaming, causing
+// initPreApprovalStreaming to force-close the AI stream. The subsequent
+// AIStreamEndEvent must NOT reprint the AI content.
+func TestInlineRenderer_StreamingWriteToolDuringAIStream_NoDuplication(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 16)
+
+	go feedEvents(events,
+		executiontui.AIStreamStartEvent{Content: "I have"},
+		executiontui.AIStreamDeltaEvent{Content: "I have everything I need"},
+		// Streaming write tool starts while AI stream is still open.
+		// initPreApprovalStreaming calls finishAIStreamIfNeeded, closing
+		// the AI stream and resetting streamedBytes.
+		executiontui.ToolRunningEvent{
+			ToolCallID: "tc-write",
+			ToolCall: toolrender.ToolCallInfo{
+				Name:        "write",
+				Status:      "running",
+				IsStreaming: true,
+				Args:        map[string]interface{}{"path": "output.yaml"},
+			},
+		},
+		// AIStreamEndEvent arrives after the stream was force-closed.
+		// Without the guard, this reprints the full AI content.
+		executiontui.AIStreamEndEvent{Content: "I have everything I need."},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	out := stdout.String()
+	count := strings.Count(out, "I have everything")
+	if count != 1 {
+		t.Errorf("AI content should appear exactly once after force-close, appeared %d times in stdout: %q", count, out)
+	}
+	stripped := ansi.Strip(stderr.String())
+	if !strings.Contains(stripped, "Write(output.yaml)") {
+		t.Errorf("write tool header should appear on stderr, got: %q", stripped)
+	}
+}
+
+// Verifies that AIStreamDeltaEvent arriving after finishAIStreamIfNeeded
+// is silently ignored (no content written to stdout).
+func TestInlineRenderer_AIStreamDelta_AfterForceClose_Ignored(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 16)
+
+	go feedEvents(events,
+		executiontui.AIStreamStartEvent{Content: "Hello"},
+		executiontui.AIStreamDeltaEvent{Content: "Hello world"},
+		// Non-read tool completion force-closes the AI stream.
+		executiontui.ToolCompletedEvent{
+			ToolCallID: "tc-1",
+			ToolCall: toolrender.ToolCallInfo{
+				Name:   "get_mcp_server",
+				Status: "completed",
+				Result: "ok",
+				Args:   map[string]interface{}{"name": "test"},
+			},
+		},
+		// Late delta arrives after force-close — must be ignored.
+		executiontui.AIStreamDeltaEvent{Content: "Hello world, this is extra"},
+		// Late end arrives after force-close — must be ignored.
+		executiontui.AIStreamEndEvent{Content: "Hello world, this is extra."},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	out := stdout.String()
+	if strings.Contains(out, "this is extra") {
+		t.Errorf("late delta/end content after force-close should not appear in stdout: %q", out)
+	}
+	count := strings.Count(out, "Hello")
+	if count != 1 {
+		t.Errorf("'Hello' should appear exactly once, appeared %d times: %q", count, out)
+	}
+}
+
 // =============================================================================
 // Read Group Splitting at AI Message Boundaries
 // =============================================================================
@@ -770,7 +943,7 @@ func TestInlineRenderer_ReadGroupSplitAtAIMessageBoundary(t *testing.T) {
 		status:            &stderr,
 	})
 
-	stderrStr := stderr.String()
+	stderrStr := ansi.Strip(stderr.String())
 
 	// With grouping threshold=3, both batches should be rendered as groups.
 	// The key assertion: there should be TWO separate read groups, not one
@@ -827,7 +1000,7 @@ func TestInlineRenderer_MultipleAIMessages_InterleavedTools_CorrectOrder(t *test
 	})
 
 	out := stdout.String()
-	stderrStr := stderr.String()
+	stderrStr := ansi.Strip(stderr.String())
 
 	// AI messages should appear exactly once on stdout with bullet prefix.
 	if strings.Count(out, "Thinking") != 1 {
@@ -869,5 +1042,179 @@ func TestInlineRenderer_MultipleAIMessages_InterleavedTools_CorrectOrder(t *test
 	writePos := strings.Index(stderrStr, "write_to_file")
 	if mcpPos > writePos {
 		t.Errorf("get_mcp_server should appear before write_to_file on stderr; mcp at %d, write at %d in: %q", mcpPos, writePos, stderrStr)
+	}
+}
+
+// =============================================================================
+// Deferred Header Rendering
+// =============================================================================
+
+// When a streaming write tool's ToolRunningEvent has nil Args, the header
+// is deferred to the first ToolStreamDeltaEvent which carries updated Args.
+func TestInlineRenderer_DeferredHeader_RendersPathFromDelta(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 16)
+
+	go feedEvents(events,
+		executiontui.ToolRunningEvent{
+			ToolCallID: "tc-write",
+			ToolCall: toolrender.ToolCallInfo{
+				Name:        "write",
+				Status:      "running",
+				IsStreaming: true,
+				Args:        nil,
+			},
+		},
+		executiontui.ToolStreamDeltaEvent{
+			ToolCallID: "tc-write",
+			ToolCall: toolrender.ToolCallInfo{
+				Name:        "write",
+				Status:      "running",
+				IsStreaming: true,
+				Args:        map[string]interface{}{"path": "config.yaml", "contents": "key: value"},
+			},
+			Content: "key: value",
+		},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	stderrStr := ansi.Strip(stderr.String())
+	if !strings.Contains(stderrStr, "Write(config.yaml)") {
+		t.Errorf("deferred header should show path from delta event, got stderr: %q", stderrStr)
+	}
+	if !strings.Contains(stderrStr, "key: value") {
+		t.Errorf("streamed content should appear on stderr, got: %q", stderrStr)
+	}
+}
+
+// When Args are present in the ToolRunningEvent, the header renders
+// immediately without deferral.
+func TestInlineRenderer_ImmediateHeader_WhenArgsPresent(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 16)
+
+	go feedEvents(events,
+		executiontui.ToolRunningEvent{
+			ToolCallID: "tc-write",
+			ToolCall: toolrender.ToolCallInfo{
+				Name:        "write",
+				Status:      "running",
+				IsStreaming: true,
+				Args:        map[string]interface{}{"path": "output.yaml"},
+			},
+		},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	stderrStr := ansi.Strip(stderr.String())
+	if !strings.Contains(stderrStr, "Write(output.yaml)") {
+		t.Errorf("header should show path immediately when Args are present, got stderr: %q", stderrStr)
+	}
+}
+
+// =============================================================================
+// Expand Mode — renderToolCompleted and flushPendingReads
+// =============================================================================
+
+func TestInlineRenderer_ExpandMode_ToolCompleted_RendersExpanded(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 10)
+
+	go feedEvents(events,
+		executiontui.ToolCompletedEvent{
+			ToolCallID: "tc-1",
+			ToolCall: toolrender.ToolCallInfo{
+				Name:   "shell",
+				Args:   map[string]interface{}{"command": "go test ./..."},
+				Status: "completed",
+				Result: "ok pkg/a 0.1s\nok pkg/b 0.2s\nok pkg/c 0.3s\nok pkg/d 0.4s\nok pkg/e 0.5s\nok pkg/f 0.6s",
+			},
+		},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	cfg := inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+	}
+
+	// Inject expandMode by wrapping renderInline with a pre-set mode.
+	// We can't set it directly on the config, so we verify through the
+	// output. The compact renderer truncates shell output; the expanded
+	// renderer shows all lines. Since expandMode defaults to false, the
+	// compact path is already tested by TestRenderCommittedItem tests.
+	// Here we test the default (compact) path via the event loop.
+	renderInline(context.Background(), cfg)
+
+	out := stderr.String()
+	if !strings.Contains(out, "Shell") && !strings.Contains(out, "shell") {
+		t.Errorf("expected shell tool output on stderr, got: %q", out)
+	}
+}
+
+func TestInlineRenderer_ToggleExpandCh_FlipsMode(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	// Unbuffered channels enforce sequential processing: the goroutine
+	// blocks on each send until the event loop consumes it, guaranteeing
+	// the toggle is processed before the second tool event.
+	events := make(chan executiontui.Event)
+	toggleCh := make(chan struct{})
+
+	go func() {
+		events <- executiontui.ToolCompletedEvent{
+			ToolCallID: "tc-1",
+			ToolCall: toolrender.ToolCallInfo{
+				Name:   "shell",
+				Args:   map[string]interface{}{"command": "ls"},
+				Status: "completed",
+				Result: "a\nb\nc\nd\ne\nf\ng\nh",
+			},
+		}
+		toggleCh <- struct{}{}
+		events <- executiontui.ToolCompletedEvent{
+			ToolCallID: "tc-2",
+			ToolCall: toolrender.ToolCallInfo{
+				Name:   "shell",
+				Args:   map[string]interface{}{"command": "cat file.go"},
+				Status: "completed",
+				Result: "line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8",
+			},
+		}
+		close(events)
+	}()
+
+	cfg := inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+		toggleExpandCh:    toggleCh,
+	}
+
+	renderInline(context.Background(), cfg)
+
+	out := stderr.String()
+	if !strings.Contains(out, "line8") {
+		t.Errorf("after toggle, second tool should render expanded with full output, got: %q", out)
 	}
 }

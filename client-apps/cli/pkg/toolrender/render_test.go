@@ -750,6 +750,96 @@ func TestRender_Read_NoMatchingArgShowsLabelOnly(t *testing.T) {
 }
 
 // =============================================================================
+// Write/Edit/Delete Fallback Fields
+// =============================================================================
+
+func TestRender_Write_FallbackToFilePath(t *testing.T) {
+	result := Render(ToolCallInfo{
+		Name: "write",
+		Args: map[string]interface{}{"file_path": "output.yaml", "contents": "data"},
+	})
+
+	assertContains(t, result, "Write")
+	assertContains(t, result, "output.yaml")
+}
+
+func TestRender_Write_FallbackToFilename(t *testing.T) {
+	result := Render(ToolCallInfo{
+		Name: "write_file",
+		Args: map[string]interface{}{"filename": "config.json", "contents": "{}"},
+	})
+
+	assertContains(t, result, "Write")
+	assertContains(t, result, "config.json")
+}
+
+func TestRender_Edit_FallbackToFile(t *testing.T) {
+	result := Render(ToolCallInfo{
+		Name: "edit",
+		Args: map[string]interface{}{"file": "main.go", "new_text": "package main"},
+	})
+
+	assertContains(t, result, "Edit")
+	assertContains(t, result, "main.go")
+}
+
+func TestRender_Delete_FallbackToFilePath(t *testing.T) {
+	result := Render(ToolCallInfo{
+		Name: "delete_file",
+		Args: map[string]interface{}{"file_path": "/tmp/old.txt"},
+	})
+
+	assertContains(t, result, "Delete")
+	assertContains(t, result, "/tmp/old.txt")
+}
+
+// =============================================================================
+// HasPrimaryArg
+// =============================================================================
+
+func TestHasPrimaryArg_WriteWithPath(t *testing.T) {
+	if !HasPrimaryArg(ToolCallInfo{Name: "write", Args: map[string]interface{}{"path": "out.yaml"}}) {
+		t.Error("expected true when primary field is present")
+	}
+}
+
+func TestHasPrimaryArg_WriteWithFallback(t *testing.T) {
+	if !HasPrimaryArg(ToolCallInfo{Name: "write", Args: map[string]interface{}{"file_path": "out.yaml"}}) {
+		t.Error("expected true when fallback field is present")
+	}
+}
+
+func TestHasPrimaryArg_WriteNilArgs(t *testing.T) {
+	if HasPrimaryArg(ToolCallInfo{Name: "write", Args: nil}) {
+		t.Error("expected false when args is nil")
+	}
+}
+
+func TestHasPrimaryArg_WriteEmptyArgs(t *testing.T) {
+	if HasPrimaryArg(ToolCallInfo{Name: "write", Args: map[string]interface{}{}}) {
+		t.Error("expected false when args is empty")
+	}
+}
+
+func TestHasPrimaryArg_WriteOnlyContentArg(t *testing.T) {
+	if HasPrimaryArg(ToolCallInfo{Name: "write", Args: map[string]interface{}{"contents": "data"}}) {
+		t.Error("expected false when only non-primary arg is present")
+	}
+}
+
+func TestHasPrimaryArg_UnknownToolWithArgs(t *testing.T) {
+	if !HasPrimaryArg(ToolCallInfo{Name: "custom_tool", Args: map[string]interface{}{"key": "val"}}) {
+		t.Error("expected true for unknown tool with any arg")
+	}
+}
+
+func TestHasPrimaryArg_UnknownToolNoArgs(t *testing.T) {
+	if HasPrimaryArg(ToolCallInfo{Name: "custom_tool", Args: nil}) {
+		t.Error("expected false for unknown tool with nil args")
+	}
+}
+
+// =============================================================================
 // Render Tests — Read Content Preview (previewFileContent)
 // =============================================================================
 
@@ -1396,4 +1486,49 @@ func TestRenderWithBadge_ShellTool_LegacyResult_CleansPreview(t *testing.T) {
 		t.Errorf("badge view should not show legacy exit code, got %q", plain)
 	}
 	assertContains(t, result, "my-hostname")
+}
+
+// ---------------------------------------------------------------------------
+// extractLargestArg Tests
+// ---------------------------------------------------------------------------
+
+func TestExtractLargestArg_SelectsLongestValue(t *testing.T) {
+	args := map[string]interface{}{
+		"path":    "/tmp/file.go",
+		"content": "package main\n\nfunc main() {\n\tfmt.Println(\"hello\")\n}\n",
+	}
+	got := extractLargestArg(args)
+	if !strings.Contains(got, "package main") {
+		t.Errorf("expected content (longest arg), got %q", got)
+	}
+}
+
+func TestExtractLargestArg_SingleArg(t *testing.T) {
+	args := map[string]interface{}{"target": "production"}
+	got := extractLargestArg(args)
+	if got != "production" {
+		t.Errorf("expected 'production', got %q", got)
+	}
+}
+
+func TestExtractLargestArg_EmptyArgs(t *testing.T) {
+	got := extractLargestArg(nil)
+	if got != "" {
+		t.Errorf("expected empty string for nil args, got %q", got)
+	}
+	got = extractLargestArg(map[string]interface{}{})
+	if got != "" {
+		t.Errorf("expected empty string for empty args, got %q", got)
+	}
+}
+
+func TestExtractLargestArg_NonStringValues(t *testing.T) {
+	args := map[string]interface{}{
+		"count":   float64(42),
+		"content": "some longer content value here",
+	}
+	got := extractLargestArg(args)
+	if got != "some longer content value here" {
+		t.Errorf("expected string value over short numeric, got %q", got)
+	}
 }

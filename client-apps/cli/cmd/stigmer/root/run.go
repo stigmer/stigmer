@@ -3,6 +3,7 @@ package root
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -30,6 +31,23 @@ func localWorkspaceRoots(entries []*sessionv1.WorkspaceEntry) []string {
 		}
 	}
 	return roots
+}
+
+// sessionPaths computes the sandbox root and platform directory for a session.
+// These directories may not exist yet (session still starting); callers use
+// stat-probes so missing directories result in graceful degradation.
+func sessionPaths(sessionID string) (sandboxRoot, platformDir string) {
+	if sessionID == "" {
+		return "", ""
+	}
+	configDir, err := config.GetConfigDir()
+	if err != nil {
+		return "", ""
+	}
+	dataDir := filepath.Join(configDir, config.DefaultDataDir)
+	sandboxRoot = filepath.Join(dataDir, "workspace", "sessions", sessionID)
+	platformDir = filepath.Join(configDir, "sessions", sessionID, "platform")
+	return
 }
 
 // NewRunCommand creates the unified run command for executing agents and workflows.
@@ -241,12 +259,25 @@ func executeRun(opts runOptions, outputMode OutputMode) error {
 // credentials, and merges them with the user-provided env. Auto-resolved
 // values are the lowest priority: user-provided values always win.
 func resolveAndMergeAutoEnv(userEnv envfile.EnvMap) (envfile.EnvMap, error) {
+	return resolveAndMergeAutoEnvScoped(userEnv, nil)
+}
+
+// resolveAndMergeAutoEnvScoped loads the CLI config and resolves only the
+// well-known credentials that appear in requiredVars. When requiredVars is
+// nil, all well-known vars are resolved (same as resolveAndMergeAutoEnv).
+// Auto-resolved values are the lowest priority: user-provided values always win.
+func resolveAndMergeAutoEnvScoped(userEnv envfile.EnvMap, requiredVars map[string]bool) (envfile.EnvMap, error) {
 	cfg, err := config.Load()
 	if err != nil {
 		return nil, err
 	}
 
-	autoEnv := mcpserver.ResolveWellKnownEnv(cfg)
+	var autoEnv envfile.EnvMap
+	if requiredVars != nil {
+		autoEnv = mcpserver.ResolveWellKnownEnvScoped(cfg, requiredVars)
+	} else {
+		autoEnv = mcpserver.ResolveWellKnownEnv(cfg)
+	}
 	if len(autoEnv) == 0 {
 		return userEnv, nil
 	}
@@ -274,10 +305,16 @@ func routeRun(info *types.TypeInfo, ref, downloadDir string, prep *preparedAgent
 			return err
 		}
 
+		runtimeEnv, err := applyAutoEnvForAgent(prep.RuntimeEnv, agent)
+		if err != nil {
+			log.Warn().Err(err).Msg("skipping auto-env resolution (config load failed)")
+			runtimeEnv = prep.RuntimeEnv
+		}
+
 		return executeResolvedAgent(resolvedAgentExecInput{
 			Agent:            agent,
 			Message:          prep.Message,
-			RuntimeEnv:       prep.RuntimeEnv,
+			RuntimeEnv:       runtimeEnv,
 			AttachResult:     &prep.AttachResult,
 			WorkspaceEntries: prep.WorkspaceEntries,
 			Detach:           prep.Detach,
@@ -293,6 +330,11 @@ func routeRun(info *types.TypeInfo, ref, downloadDir string, prep *preparedAgent
 		sp.Stop()
 		if len(prep.WorkspaceEntries) > 0 {
 			return fmt.Errorf("--workspace is not supported for workflows (workspace is an agent-level concept)")
+		}
+		if autoEnv, err := resolveAndMergeAutoEnv(prep.RuntimeEnv); err != nil {
+			log.Warn().Err(err).Msg("skipping auto-env resolution (config load failed)")
+		} else {
+			prep.RuntimeEnv = autoEnv
 		}
 		return runWorkflow(ref, prep)
 

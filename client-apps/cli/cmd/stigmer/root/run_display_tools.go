@@ -40,6 +40,7 @@ func convertToolCall(tc *agentexecutionv1.ToolCall) toolrender.ToolCallInfo {
 		Result:      tc.Result,
 		Error:       tc.Error,
 		IsStreaming: tc.IsStreaming,
+		ServerName:  extractMcpServerSlug(tc),
 	}
 
 	// Convert proto Struct args to map
@@ -51,6 +52,13 @@ func convertToolCall(tc *agentexecutionv1.ToolCall) toolrender.ToolCallInfo {
 	info.Duration = computeToolCallDuration(tc.StartedAt, tc.CompletedAt)
 
 	return info
+}
+
+// extractMcpServerSlug returns the MCP server slug from a ToolCall proto.
+// Empty for built-in sandbox tools; populated by the worker when the tool
+// originates from an MCP server.
+func extractMcpServerSlug(tc *agentexecutionv1.ToolCall) string {
+	return tc.GetMcpServerSlug()
 }
 
 // mapToolCallStatus converts a proto ToolCallStatus to a display string.

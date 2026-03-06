@@ -57,6 +57,7 @@ func TestEmitSnapshotEvents_EmitsToolAndMessageEvents(t *testing.T) {
 			},
 		},
 	)
+	exec.Spec = &agentexecutionv1.AgentExecutionSpec{Message: "Hello"}
 
 	events := make(chan executiontui.Event, 64)
 	emitSnapshotEvents(exec, events, true)
@@ -122,6 +123,7 @@ func TestEmitSnapshotEvents_ChronologicalOrdering(t *testing.T) {
 			},
 		},
 	)
+	exec.Spec = &agentexecutionv1.AgentExecutionSpec{Message: "Read main.go"}
 
 	events := make(chan executiontui.Event, 64)
 	emitSnapshotEvents(exec, events, false)
@@ -299,6 +301,7 @@ func TestSnapshotToEvents_MultiExecution_OnlyLastEmitsDone(t *testing.T) {
 		},
 		nil,
 	)
+	exec1.Spec = &agentexecutionv1.AgentExecutionSpec{Message: "First message"}
 	exec2 := makeExecution(
 		agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
 		[]*agentexecutionv1.AgentMessage{
@@ -307,6 +310,7 @@ func TestSnapshotToEvents_MultiExecution_OnlyLastEmitsDone(t *testing.T) {
 		},
 		nil,
 	)
+	exec2.Spec = &agentexecutionv1.AgentExecutionSpec{Message: "Follow-up"}
 
 	events := make(chan executiontui.Event, 64)
 	go snapshotToEvents([]*agentexecutionv1.AgentExecution{exec1, exec2}, events)
@@ -457,6 +461,7 @@ func TestEmitSnapshotEvents_ThinkingBlockBeforeAIMessage(t *testing.T) {
 			},
 		},
 	)
+	exec.Spec = &agentexecutionv1.AgentExecutionSpec{Message: "Create a skill"}
 
 	events := make(chan executiontui.Event, 64)
 	emitSnapshotEvents(exec, events, false)
@@ -723,5 +728,170 @@ func TestEmitSnapshotEvents_AIMessageTextOnly(t *testing.T) {
 				t.Errorf("AI message content mismatch: got %q", ai.Content)
 			}
 		}
+	}
+}
+
+// =============================================================================
+// Human message from spec.message
+// =============================================================================
+
+func TestEmitSnapshotEvents_EmitsHumanMessageFromSpec(t *testing.T) {
+	exec := &agentexecutionv1.AgentExecution{
+		Spec: &agentexecutionv1.AgentExecutionSpec{
+			Message: "Refactor the auth module",
+		},
+		Status: &agentexecutionv1.AgentExecutionStatus{
+			Phase: agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
+			Messages: []*agentexecutionv1.AgentMessage{
+				{Type: agentexecutionv1.MessageType_MESSAGE_AI, Content: "I'll refactor it."},
+			},
+		},
+	}
+
+	events := make(chan executiontui.Event, 64)
+	emitSnapshotEvents(exec, events, true)
+	close(events)
+
+	evts := drainEvents(events)
+
+	if len(evts) < 1 {
+		t.Fatal("expected at least one event")
+	}
+	first, ok := evts[0].(executiontui.HumanMessageEvent)
+	if !ok {
+		t.Fatalf("expected first event to be HumanMessageEvent, got %T", evts[0])
+	}
+	if first.Content != "Refactor the auth module" {
+		t.Errorf("HumanMessageEvent.Content = %q, want %q", first.Content, "Refactor the auth module")
+	}
+}
+
+func TestEmitSnapshotEvents_SuppressesExecutePlaceholder(t *testing.T) {
+	exec := &agentexecutionv1.AgentExecution{
+		Spec: &agentexecutionv1.AgentExecutionSpec{
+			Message: "execute",
+		},
+		Status: &agentexecutionv1.AgentExecutionStatus{
+			Phase: agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
+			Messages: []*agentexecutionv1.AgentMessage{
+				{Type: agentexecutionv1.MessageType_MESSAGE_AI, Content: "Done."},
+			},
+		},
+	}
+
+	events := make(chan executiontui.Event, 64)
+	emitSnapshotEvents(exec, events, true)
+	close(events)
+
+	for evt := range events {
+		if _, ok := evt.(executiontui.HumanMessageEvent); ok {
+			t.Fatal("HumanMessageEvent should NOT be emitted for the 'execute' placeholder")
+		}
+	}
+}
+
+func TestEmitSnapshotEvents_SkipsEmptySpecMessage(t *testing.T) {
+	exec := &agentexecutionv1.AgentExecution{
+		Spec: &agentexecutionv1.AgentExecutionSpec{
+			Message: "",
+		},
+		Status: &agentexecutionv1.AgentExecutionStatus{
+			Phase: agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
+		},
+	}
+
+	events := make(chan executiontui.Event, 64)
+	emitSnapshotEvents(exec, events, true)
+	close(events)
+
+	for evt := range events {
+		if _, ok := evt.(executiontui.HumanMessageEvent); ok {
+			t.Fatal("HumanMessageEvent should NOT be emitted for empty spec message")
+		}
+	}
+}
+
+func TestEmitSnapshotEvents_SpecMessageBeforeAIContent(t *testing.T) {
+	exec := &agentexecutionv1.AgentExecution{
+		Spec: &agentexecutionv1.AgentExecutionSpec{
+			Message: "What does this code do?",
+		},
+		Status: &agentexecutionv1.AgentExecutionStatus{
+			Phase: agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
+			Messages: []*agentexecutionv1.AgentMessage{
+				{Type: agentexecutionv1.MessageType_MESSAGE_AI, Content: "This code implements a parser."},
+			},
+		},
+	}
+
+	events := make(chan executiontui.Event, 64)
+	emitSnapshotEvents(exec, events, true)
+	close(events)
+
+	evts := drainEvents(events)
+
+	var types []string
+	for _, evt := range evts {
+		switch evt.(type) {
+		case executiontui.HumanMessageEvent:
+			types = append(types, "HumanMessageEvent")
+		case executiontui.AIMessageEvent:
+			types = append(types, "AIMessageEvent")
+		case executiontui.DoneEvent:
+			types = append(types, "DoneEvent")
+		}
+	}
+
+	expected := []string{"HumanMessageEvent", "AIMessageEvent", "DoneEvent"}
+	if len(types) != len(expected) {
+		t.Fatalf("expected events %v, got %v", expected, types)
+	}
+	for i := range expected {
+		if types[i] != expected[i] {
+			t.Errorf("event[%d]: expected %s, got %s", i, expected[i], types[i])
+		}
+	}
+}
+
+func TestSnapshotToEvents_MultiExecution_SpecMessages(t *testing.T) {
+	exec1 := &agentexecutionv1.AgentExecution{
+		Spec: &agentexecutionv1.AgentExecutionSpec{Message: "First question"},
+		Status: &agentexecutionv1.AgentExecutionStatus{
+			Phase: agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
+			Messages: []*agentexecutionv1.AgentMessage{
+				{Type: agentexecutionv1.MessageType_MESSAGE_AI, Content: "First answer"},
+			},
+		},
+	}
+	exec2 := &agentexecutionv1.AgentExecution{
+		Spec: &agentexecutionv1.AgentExecutionSpec{Message: "Follow-up question"},
+		Status: &agentexecutionv1.AgentExecutionStatus{
+			Phase: agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
+			Messages: []*agentexecutionv1.AgentMessage{
+				{Type: agentexecutionv1.MessageType_MESSAGE_AI, Content: "Follow-up answer"},
+			},
+		},
+	}
+
+	events := make(chan executiontui.Event, 64)
+	go snapshotToEvents([]*agentexecutionv1.AgentExecution{exec1, exec2}, events)
+
+	evts := drainEvents(events)
+
+	var humanMessages []string
+	for _, evt := range evts {
+		if h, ok := evt.(executiontui.HumanMessageEvent); ok {
+			humanMessages = append(humanMessages, h.Content)
+		}
+	}
+
+	if len(humanMessages) != 2 {
+		t.Fatalf("expected 2 human messages, got %d: %v", len(humanMessages), humanMessages)
+	}
+	if humanMessages[0] != "First question" {
+		t.Errorf("first human message = %q, want %q", humanMessages[0], "First question")
+	}
+	if humanMessages[1] != "Follow-up question" {
+		t.Errorf("second human message = %q, want %q", humanMessages[1], "Follow-up question")
 	}
 }

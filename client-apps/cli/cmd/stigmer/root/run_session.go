@@ -7,12 +7,14 @@ import (
 
 	"github.com/pkg/errors"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	"github.com/stigmer/stigmer/client-apps/cli/embedded"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/session"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/termctl"
 	"google.golang.org/grpc"
 )
 
@@ -75,12 +77,14 @@ func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, c
 	wsRoots := localWorkspaceRoots(ses.GetSpec().GetWorkspaceEntries())
 
 	model := latestExec.GetStatus().GetUsage().GetPrimaryModel()
-	renderSessionHeader(os.Stderr, sessionHeaderInfo{
+	headerInfo := sessionHeaderInfo{
 		SessionID:  sessionID,
 		Subject:    subject,
 		Model:      model,
+		Version:    embedded.GetBuildVersion(),
 		Workspaces: wsRoots,
-	})
+		IsResumed:  true,
+	}
 
 	switch phase {
 	case agentexecutionv1.ExecutionPhase_EXECUTION_PENDING,
@@ -89,11 +93,11 @@ func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, c
 		agentexecutionv1.ExecutionPhase_EXECUTION_PAUSED:
 		executionID := latestExec.GetMetadata().GetId()
 		prompter := approval.NewInlinePrompter(os.Stdin, os.Stderr)
-		_, err := streamAgentExecution(sessionID, subject, executionID, orgID, prompter, approval.Action(0), verbose, outputMode, conn, wsRoots, os.Stdout, os.Stderr)
+		_, err := streamAgentExecution(sessionID, headerInfo, executionID, orgID, prompter, approval.Action(0), verbose, outputMode, conn, wsRoots, os.Stdout, os.Stderr)
 		return err
 
 	default:
-		return resumeSession(sessionID, subject, orgID, entries, verbose, outputMode, conn, wsRoots)
+		return resumeSession(sessionID, headerInfo, orgID, entries, verbose, outputMode, conn, wsRoots)
 	}
 }
 
@@ -102,7 +106,7 @@ func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, c
 // same event stream (via snapshotToEvents), so noise suppression, lifecycle
 // badges, and duplicate filtering all apply automatically. The follow-up
 // prompt activates after all historical events are rendered.
-func resumeSession(sessionID, sessionSubject, orgID string, executions []*agentexecutionv1.AgentExecution, verbose bool, outputMode OutputMode, conn *grpc.ClientConn, workspaceRoots []string) error {
+func resumeSession(sessionID string, headerInfo sessionHeaderInfo, orgID string, executions []*agentexecutionv1.AgentExecution, verbose bool, outputMode OutputMode, conn *grpc.ClientConn, workspaceRoots []string) error {
 
 	chronological := make([]*agentexecutionv1.AgentExecution, len(executions))
 	copy(chronological, executions)
@@ -119,6 +123,7 @@ func resumeSession(sessionID, sessionSubject, orgID string, executions []*agente
 
 	switch outputMode {
 	case OutputJSON:
+		renderSessionHeader(os.Stderr, headerInfo)
 		_, exitErr := renderJSON(streamCtx, jsonRenderConfig{
 			events:            events,
 			approvalResponses: approvalResponses,
@@ -134,6 +139,20 @@ func resumeSession(sessionID, sessionSubject, orgID string, executions []*agente
 	default:
 		prompter := approval.NewInlinePrompter(os.Stdin, os.Stderr)
 		followUpFn := buildFollowUpFn(streamCtx, sessionID, orgID, conn)
+
+		var toggleExpandCh chan struct{}
+		var cancelCh chan struct{}
+		var interruptCh chan struct{}
+		if termctl.IsSupported(os.Stderr) {
+			toggleExpandCh = make(chan struct{}, 1)
+			cancelCh = make(chan struct{}, 1)
+			interruptCh = make(chan struct{}, 1)
+		}
+
+		program := startInlineProgram(os.Stderr, toggleExpandCh, cancelCh, interruptCh)
+
+		sbRoot, pfDir := sessionPaths(sessionID)
+
 		cfg := inlineRenderConfig{
 			events:            events,
 			approvalResponses: approvalResponses,
@@ -142,9 +161,20 @@ func resumeSession(sessionID, sessionSubject, orgID string, executions []*agente
 			status:            os.Stderr,
 			sessionID:         sessionID,
 			workspaceRoots:    workspaceRoots,
+			sandboxRoot:       sbRoot,
+			platformDir:       pfDir,
+			headerInfo:        headerInfo,
+			program:           program,
+			toggleExpandCh:    toggleExpandCh,
+			cancelCh:          cancelCh,
+			interruptCh:       interruptCh,
+			followUpEnabled:   toggleExpandCh != nil && followUpFn != nil,
 		}
 		finalExecID, _, exitErr := runInlineFollowUpLoop(streamCtx, cfg, followUpFn, latestExecID)
+
+		stopInlineProgram(program)
 		streamCancel()
+
 		if exitErr != "" {
 			return errors.New(exitErr)
 		}

@@ -33,6 +33,7 @@ from temporalio import activity
 from grpc_client.agent_client import AgentClient
 from grpc_client.agent_execution_client import AgentExecutionClient
 from grpc_client.agent_instance_client import AgentInstanceClient
+from grpc_client.channel import ChannelProvider
 from grpc_client.environment_client import EnvironmentClient
 from grpc_client.execution_context_client import (
     ExecutionContextClient,
@@ -1102,11 +1103,16 @@ async def _execute_graphton_impl(
     if not api_key:
         raise RuntimeError("API key not initialized")
     
-    # Initialize gRPC clients (for reading agent configuration, sessions, etc.)
-    session_client = SessionClient(api_key)
-    agent_instance_client = AgentInstanceClient(api_key)
-    agent_client = AgentClient(api_key)
-    execution_client = AgentExecutionClient(api_key)
+    # Shared gRPC channel for all clients in this activity invocation.
+    # This avoids opening 4+ TCP connections per activity and ensures
+    # keepalive PINGs are configured to match the Go server's enforcement.
+    grpc_provider = ChannelProvider(api_key)
+    ch = grpc_provider.channel
+
+    session_client = SessionClient(api_key, channel=ch)
+    agent_instance_client = AgentInstanceClient(api_key, channel=ch)
+    agent_client = AgentClient(api_key, channel=ch)
+    execution_client = AgentExecutionClient(api_key, channel=ch)
     
     # ─────────────────────────────────────────────────────────────────────────────
     # Step 0: Hydrate AgentExecution from database via gRPC
@@ -1341,7 +1347,7 @@ async def _execute_graphton_impl(
         use_legacy_env_merge = True
         
         try:
-            execution_context_client = ExecutionContextClient(api_key)
+            execution_context_client = ExecutionContextClient(api_key, channel=ch)
             exec_ctx = await execution_context_client.try_get_by_execution_id(execution_id)
             
             if exec_ctx and exec_ctx.spec.data:
@@ -1382,7 +1388,7 @@ async def _execute_graphton_impl(
                     f"{[ref.slug for ref in environment_refs]}"
                 )
                 try:
-                    environment_client = EnvironmentClient(api_key)
+                    environment_client = EnvironmentClient(api_key, channel=ch)
                     environments = await environment_client.list_by_refs(list(environment_refs))
                     
                     for idx, env in enumerate(environments):
@@ -1532,7 +1538,7 @@ async def _execute_graphton_impl(
         skill_refs = agent.spec.skill_refs  # repeated ApiResourceReference
         
         # Create skill client (needed for both parent skills and subagent skills)
-        skill_client = SkillClient(api_key)
+        skill_client = SkillClient(api_key, channel=ch)
         
         if skill_refs:
             
@@ -1785,7 +1791,7 @@ async def _execute_graphton_impl(
             
             try:
                 # Create MCP server client
-                mcp_server_client = McpServerClient(api_key)
+                mcp_server_client = McpServerClient(api_key, channel=ch)
                 
                 # Extract refs from usages
                 mcp_server_refs = [usage.mcp_server_ref for usage in mcp_server_usages]
@@ -2352,7 +2358,7 @@ async def _execute_graphton_impl(
             _approval_to_tool_status = {
                 ApprovalAction.APPROVAL_ACTION_APPROVE: ToolCallStatus.TOOL_CALL_RUNNING,
                 ApprovalAction.APPROVAL_ACTION_SKIP: ToolCallStatus.TOOL_CALL_SKIPPED,
-                ApprovalAction.APPROVAL_ACTION_REJECT: ToolCallStatus.TOOL_CALL_FAILED,
+                ApprovalAction.APPROVAL_ACTION_REJECT: ToolCallStatus.TOOL_CALL_SKIPPED,
             }
             
             # Index decisions by tool_call_id for O(1) lookup
@@ -2379,6 +2385,31 @@ async def _execute_graphton_impl(
                     f"tool_call={tc.id} name={tc.name} "
                     f"WAITING_APPROVAL -> {ToolCallStatus.Name(new_status)}"
                 )
+            
+            # Auto-skip remaining WAITING_APPROVAL tools when a REJECT was
+            # in the batch.  The Go workflow short-circuits signal collection
+            # on REJECT, so these tools never received a decision.  Mark them
+            # as skipped so the agent gets a clear picture of what happened.
+            has_reject = any(
+                d.action == ApprovalAction.APPROVAL_ACTION_REJECT
+                for d in approval_decisions
+            )
+            if has_reject:
+                for tc in status_builder.current_status.tool_calls:
+                    if tc.status != ToolCallStatus.TOOL_CALL_WAITING_APPROVAL:
+                        continue
+                    tc.status = ToolCallStatus.TOOL_CALL_SKIPPED
+                    tc.approval_action = ApprovalAction.APPROVAL_ACTION_SKIP
+                    tc.approval_decided_at = _utc_timestamp()
+                    tc.result = (
+                        f"Tool '{tc.name}' was automatically skipped because "
+                        "another tool in this batch was rejected by the user."
+                    )
+                    activity_logger.info(
+                        f"[RESUME_RECONCILE] execution={execution_id} "
+                        f"tool_call={tc.id} name={tc.name} "
+                        f"WAITING_APPROVAL -> TOOL_CALL_SKIPPED (auto-skip after reject)"
+                    )
             
             # Clear stale pending_approvals — they are no longer pending
             del status_builder.current_status.pending_approvals[:]
@@ -3232,3 +3263,4 @@ async def _execute_graphton_impl(
         # Clean up checkpointer resources (SQLite connection, MongoDB client, etc.)
         # This runs regardless of success or failure, ensuring no resource leaks.
         await exit_stack.aclose()
+        await grpc_provider.close()

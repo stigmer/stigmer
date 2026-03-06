@@ -253,8 +253,8 @@ class TestApprovalAwareWrapperExecution:
         assert "test_tool" in result
 
     @pytest.mark.asyncio
-    async def test_raises_error_on_reject_action(self, mock_middleware):
-        """Test that rejection error is raised when user rejects."""
+    async def test_returns_rejection_message_on_reject_action(self, mock_middleware):
+        """Test that a corrective rejection message is returned when user rejects."""
         def checker(name: str, args: dict) -> ApprovalRequirement:
             return ApprovalRequirement(requires_approval=True, message="Confirm?")
         
@@ -267,14 +267,15 @@ class TestApprovalAwareWrapperExecution:
         with patch("langgraph.types.interrupt") as mock_interrupt:
             mock_interrupt.return_value = {"action": "reject", "approved_by": "user@test.com"}
             
-            with pytest.raises(ToolExecutionRejectedError) as exc_info:
-                await wrapper.ainvoke({"arg1": "value1"})
+            result = await wrapper.ainvoke({"arg1": "value1"})
         
-        assert exc_info.value.tool_name == "test_tool"
+        assert "REJECTED" in result
+        assert "test_tool" in result
+        assert "Re-evaluate" in result
 
     @pytest.mark.asyncio
-    async def test_raises_error_on_unknown_action(self, mock_middleware):
-        """Test that unknown action is treated as rejection."""
+    async def test_returns_rejection_message_on_unknown_action(self, mock_middleware):
+        """Test that unknown action returns a rejection message."""
         def checker(name: str, args: dict) -> ApprovalRequirement:
             return ApprovalRequirement(requires_approval=True, message="Confirm?")
         
@@ -287,10 +288,11 @@ class TestApprovalAwareWrapperExecution:
         with patch("langgraph.types.interrupt") as mock_interrupt:
             mock_interrupt.return_value = {"action": "unknown_action"}
             
-            with pytest.raises(ToolExecutionRejectedError) as exc_info:
-                await wrapper.ainvoke({"arg1": "value1"})
+            result = await wrapper.ainvoke({"arg1": "value1"})
         
-        assert "unknown" in str(exc_info.value).lower() or "test_tool" in str(exc_info.value)
+        assert "unknown_action" in result
+        assert "test_tool" in result
+        assert "Re-evaluate" in result
 
 
 # =============================================================================

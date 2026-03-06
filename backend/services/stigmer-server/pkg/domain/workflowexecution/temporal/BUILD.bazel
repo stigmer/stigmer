@@ -11,6 +11,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//backend/libs/go/store",
+        "//backend/services/stigmer-server/pkg/domain/executioncontext/temporal/activities",
         "//backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/activities",
         "//backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows",
         "@com_github_rs_zerolog//log",

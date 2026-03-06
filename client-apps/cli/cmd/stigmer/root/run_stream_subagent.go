@@ -58,7 +58,6 @@ func emitSubAgentEvents(
 			events <- executiontui.SubAgentStartedEvent{
 				ID:          sa.Id,
 				Name:        sa.Name,
-				Input:       sa.Input,
 				Description: desc,
 			}
 

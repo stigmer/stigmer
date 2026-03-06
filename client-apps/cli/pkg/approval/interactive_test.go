@@ -57,17 +57,16 @@ func TestAction_String(t *testing.T) {
 // See prompt_model_test.go for the new model tests.
 
 // =============================================================================
-// handleNonInteractive Tests
+// resolveNonInteractive Tests
 // =============================================================================
 
-func TestHandleNonInteractive_WithDefaultApprove(t *testing.T) {
-	p := NewInteractivePrompter()
+func TestResolveNonInteractive_WithDefaultApprove(t *testing.T) {
 	opts := Options{
 		ToolName:      "write_file",
 		DefaultAction: ActionApprove,
 	}
 
-	decision, err := p.handleNonInteractive(opts)
+	decision, err := resolveNonInteractive(opts)
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -80,14 +79,13 @@ func TestHandleNonInteractive_WithDefaultApprove(t *testing.T) {
 	}
 }
 
-func TestHandleNonInteractive_WithDefaultSkip(t *testing.T) {
-	p := NewInteractivePrompter()
+func TestResolveNonInteractive_WithDefaultSkip(t *testing.T) {
 	opts := Options{
 		ToolName:      "delete_file",
 		DefaultAction: ActionSkip,
 	}
 
-	decision, err := p.handleNonInteractive(opts)
+	decision, err := resolveNonInteractive(opts)
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -97,14 +95,13 @@ func TestHandleNonInteractive_WithDefaultSkip(t *testing.T) {
 	}
 }
 
-func TestHandleNonInteractive_WithDefaultReject(t *testing.T) {
-	p := NewInteractivePrompter()
+func TestResolveNonInteractive_WithDefaultReject(t *testing.T) {
 	opts := Options{
 		ToolName:      "execute_sql",
 		DefaultAction: ActionReject,
 	}
 
-	decision, err := p.handleNonInteractive(opts)
+	decision, err := resolveNonInteractive(opts)
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -114,14 +111,13 @@ func TestHandleNonInteractive_WithDefaultReject(t *testing.T) {
 	}
 }
 
-func TestHandleNonInteractive_NoDefault_ReturnsError(t *testing.T) {
-	p := NewInteractivePrompter()
+func TestResolveNonInteractive_NoDefault_ReturnsError(t *testing.T) {
 	opts := Options{
 		ToolName:      "write_file",
-		DefaultAction: ActionUnspecified, // No default set
+		DefaultAction: ActionUnspecified,
 	}
 
-	decision, err := p.handleNonInteractive(opts)
+	decision, err := resolveNonInteractive(opts)
 
 	if decision != nil {
 		t.Errorf("expected nil decision, got %v", decision)

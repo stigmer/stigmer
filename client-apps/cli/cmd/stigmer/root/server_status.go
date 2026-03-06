@@ -45,9 +45,10 @@ func handleServerStatus(format clioutput.OutputFormat) {
 			Field("Uptime", formatDuration(time.Since(hs.StartedAt)))
 	}
 
-	// Show all components uniformly
-	componentOrder := []string{"stigmer-server", "workflow-runner", "agent-runner"}
+	// Show all components uniformly (Temporal first as foundational dependency)
+	componentOrder := []string{"temporal", "stigmer-server", "workflow-runner", "agent-runner"}
 	componentLabels := map[string]string{
+		"temporal":        "Temporal",
 		"stigmer-server":  "Stigmer Server",
 		"workflow-runner": "Workflow Runner",
 		"agent-runner":    "Agent Runner",
@@ -65,15 +66,21 @@ func handleServerStatus(format clioutput.OutputFormat) {
 		addComponentSection(result, label, cs)
 	}
 
-	addBootstrapSection(result)
+	addBootstrapSection(result, dataDir)
 
 	cfg, err := config.Load()
 	if err == nil {
 		addLLMSections(result, cfg)
 	}
 
-	result.AddSection("Web UI").
-		Field("Temporal", "http://localhost:8233")
+	temporalRunning := false
+	if ts, ok := hs.Components["temporal"]; ok && ts.State == "running" {
+		temporalRunning = true
+	}
+	if temporalRunning {
+		result.AddSection("Web UI").
+			Field("Temporal", "http://localhost:8233")
+	}
 
 	renderer.Render(result)
 }
@@ -119,26 +126,16 @@ func componentNameToFlag(name string) string {
 }
 
 // addBootstrapSection appends the bootstrap/seedpack status.
-func addBootstrapSection(result *clioutput.CommandResult) {
+func addBootstrapSection(result *clioutput.CommandResult, dataDir string) {
 	sec := result.AddSection("Bootstrap")
 
-	status, err := bootstrap.GetBootstrapStatus()
-	if err != nil {
-		sec.Fieldf("Status", "Unable to read (%v)", err)
-		return
-	}
+	status := bootstrap.GetBootstrapStatus(dataDir)
 
 	statusDisplay := bootstrap.GetStatusDisplay(status.Status)
 	statusSymbol := bootstrap.GetStatusSymbol(status.Status)
 	sec.Fieldf("Status", "%s %s", statusDisplay, statusSymbol)
 
-	if status.Version != "" {
-		sec.Field("Version", status.Version)
+	if status.SeedpackHash != "" {
+		sec.Field("Seedpack Hash", status.SeedpackHash)
 	}
-
-	skillNames := bootstrap.FormatResourceNames(status.Skills)
-	sec.Fieldf("Skills", "%d applied (%s)", len(status.Skills), skillNames)
-
-	agentNames := bootstrap.FormatResourceNames(status.Agents)
-	sec.Fieldf("Agents", "%d applied (%s)", len(status.Agents), agentNames)
 }

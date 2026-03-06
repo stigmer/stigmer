@@ -723,7 +723,16 @@ type ToolCall struct {
 	// When false (default), `result` contains the final complete output.
 	// Consumers always read `result` — this flag only signals whether
 	// more content is expected.
-	IsStreaming   bool `protobuf:"varint,16,opt,name=is_streaming,json=isStreaming,proto3" json:"is_streaming,omitempty"`
+	IsStreaming bool `protobuf:"varint,16,opt,name=is_streaming,json=isStreaming,proto3" json:"is_streaming,omitempty"`
+	// Slug of the MCP server that provides this tool.
+	// Empty for built-in sandbox tools.
+	// Populated by the worker using the mcp_tools_config reverse lookup.
+	//
+	// Examples: "planton-cloud", "github", "slack"
+	//
+	// Used by CLI/UI to render a qualified tool name (e.g., "planton-cloud/search")
+	// so users can distinguish tools with the same name from different servers.
+	McpServerSlug string `protobuf:"bytes,17,opt,name=mcp_server_slug,json=mcpServerSlug,proto3" json:"mcp_server_slug,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -868,6 +877,13 @@ func (x *ToolCall) GetIsStreaming() bool {
 		return x.IsStreaming
 	}
 	return false
+}
+
+func (x *ToolCall) GetMcpServerSlug() string {
+	if x != nil {
+		return x.McpServerSlug
+	}
+	return ""
 }
 
 // Metadata to guide frontend UI component rendering for tool calls.
@@ -2220,7 +2236,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\fis_streaming\x18\x06 \x01(\bR\visStreaming\x12\x1f\n" +
 	"\vtoken_count\x18\a \x01(\x05R\n" +
 	"tokenCount\x124\n" +
-	"\x16generation_duration_ms\x18\b \x01(\x05R\x14generationDurationMs\"\xea\x05\n" +
+	"\x16generation_duration_ms\x18\b \x01(\x05R\x14generationDurationMs\"\x92\x06\n" +
 	"\bToolCall\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12+\n" +
@@ -2240,7 +2256,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\vapproved_by\x18\x0e \x01(\tR\n" +
 	"approvedBy\x12]\n" +
 	"\x0fapproval_action\x18\x0f \x01(\x0e24.ai.stigmer.agentic.agentexecution.v1.ApprovalActionR\x0eapprovalAction\x12!\n" +
-	"\fis_streaming\x18\x10 \x01(\bR\visStreaming\"\xb9\x01\n" +
+	"\fis_streaming\x18\x10 \x01(\bR\visStreaming\x12&\n" +
+	"\x0fmcp_server_slug\x18\x11 \x01(\tR\rmcpServerSlug\"\xb9\x01\n" +
 	"\x11ComponentMetadata\x12%\n" +
 	"\x0ecomponent_type\x18\x01 \x01(\tR\rcomponentType\x12'\n" +
 	"\x0fcomponent_group\x18\x02 \x01(\tR\x0ecomponentGroup\x12\x1f\n" +

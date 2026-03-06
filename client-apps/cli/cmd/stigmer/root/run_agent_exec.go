@@ -1,7 +1,6 @@
 package root
 
 import (
-	"context"
 	"os"
 
 	"github.com/pkg/errors"
@@ -10,6 +9,7 @@ import (
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
+	"github.com/stigmer/stigmer/client-apps/cli/embedded"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/envfile"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
@@ -140,13 +140,6 @@ func prepareAgentExec(flags agentExecFlags, sp *spinner.Spinner) (*preparedAgent
 		return nil, errors.Wrap(err, "failed to load environment")
 	}
 
-	autoEnv, err := resolveAndMergeAutoEnv(runtimeEnv)
-	if err != nil {
-		log.Warn().Err(err).Msg("skipping auto-env resolution (config load failed)")
-	} else {
-		runtimeEnv = autoEnv
-	}
-
 	sp.Update("Connecting...")
 	conn, orgID, err := connectToBackend(flags.OrgOverride)
 	if err != nil {
@@ -183,6 +176,26 @@ func prepareAgentExec(flags agentExecFlags, sp *spinner.Spinner) (*preparedAgent
 		Detach:           flags.Detach,
 		Verbose:          flags.Verbose,
 	}, nil
+}
+
+// applyAutoEnvForAgent resolves well-known credentials scoped to the agent's
+// env_spec and merges them into the runtime env. Only variables declared in
+// the agent's env_spec are auto-resolved — this prevents injecting unneeded
+// secrets (e.g. PLANTON_API_KEY for an agent that only needs STIGMER_SERVER_ADDRESS).
+//
+// User-provided --env/--secret flags always win over auto-resolved values.
+func applyAutoEnvForAgent(runtimeEnv envfile.EnvMap, agent *agentv1.Agent) (envfile.EnvMap, error) {
+	envSpec := agent.GetSpec().GetEnvSpec().GetData()
+	if len(envSpec) == 0 {
+		return runtimeEnv, nil
+	}
+
+	requiredVars := make(map[string]bool, len(envSpec))
+	for name := range envSpec {
+		requiredVars[name] = true
+	}
+
+	return resolveAndMergeAutoEnvScoped(runtimeEnv, requiredVars)
 }
 
 // ---------------------------------------------------------------------------
@@ -267,22 +280,14 @@ func executeResolvedAgent(input resolvedAgentExecInput, sp *spinner.Spinner) err
 	headerInfo := sessionHeaderInfo{
 		AgentName:  input.Agent.GetMetadata().GetName(),
 		SessionID:  sessionID,
-		Subject:    subjectPlaceholder,
 		Model:      input.Model,
+		Version:    embedded.GetBuildVersion(),
 		Workspaces: workspaceNames(input.WorkspaceEntries),
 	}
-	renderSessionHeader(os.Stderr, headerInfo)
 
 	if input.Detach {
+		renderSessionHeader(os.Stderr, headerInfo)
 		return nil
-	}
-
-	dataW, statusW, updater := setupSubjectUpdater(os.Stdout, os.Stderr, headerInfo)
-
-	if sessionID != "" && updater != nil {
-		pollCtx, pollCancel := context.WithCancel(context.Background())
-		defer pollCancel()
-		go pollSessionSubject(pollCtx, input.Conn, sessionID, updater)
 	}
 
 	var prompter approval.Prompter
@@ -291,7 +296,7 @@ func executeResolvedAgent(input resolvedAgentExecInput, sp *spinner.Spinner) err
 	} else {
 		prompter = approval.NewInteractivePrompter()
 	}
-	exec, err = streamAgentExecution(sessionID, "", exec.Metadata.Id, input.OrgID, prompter, input.DefaultAction, input.Verbose, input.OutputMode, input.Conn, localWorkspaceRoots(input.WorkspaceEntries), dataW, statusW)
+	exec, err = streamAgentExecution(sessionID, headerInfo, exec.Metadata.Id, input.OrgID, prompter, input.DefaultAction, input.Verbose, input.OutputMode, input.Conn, localWorkspaceRoots(input.WorkspaceEntries), os.Stdout, os.Stderr)
 	if err != nil {
 		return errors.Wrap(err, "error streaming execution")
 	}

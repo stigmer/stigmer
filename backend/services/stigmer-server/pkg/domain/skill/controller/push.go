@@ -38,7 +38,7 @@ const (
 // 7. Loads existing skill if it exists
 // 8. Archives previous version if updating
 // 9. Updates skill with artifact info and timestamps
-// 10. Persists skill to BadgerDB
+// 10. Persists skill to SQLite
 //
 // Pipeline leverages common steps where possible (ValidateProto, ResolveSlug, Persist)
 // and uses custom steps only for push-specific logic (artifact handling).
@@ -502,7 +502,7 @@ func (s *PopulateSkillFieldsStep) Execute(ctx *pipeline.RequestContext[*skillv1.
 	return nil
 }
 
-// StoreSkillStep persists the Skill to BadgerDB
+// StoreSkillStep persists the Skill to SQLite
 //
 // This is the final step that saves the fully populated Skill to the database.
 type StoreSkillStep struct {
@@ -522,7 +522,7 @@ func (s *StoreSkillStep) Name() string {
 func (s *StoreSkillStep) Execute(ctx *pipeline.RequestContext[*skillv1.PushSkillRequest]) error {
 	skill := ctx.Get(SkillKey).(*skillv1.Skill)
 
-	// Save skill to BadgerDB
+	// Save skill to SQLite
 	if err := s.store.SaveResource(ctx.Context(), apiresourcekind.ApiResourceKind_skill, skill.Metadata.Id, skill); err != nil {
 		return grpclib.InternalError(err, "failed to save skill")
 	}

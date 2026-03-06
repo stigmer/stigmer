@@ -7,24 +7,32 @@ import "time"
 // consistent "is it working?" signal across both rendering modes.
 const thinkingIdleDelay = 2 * time.Second
 
-// startThinkingSpinner activates the spinner on stderr if the renderer is in
-// a state where thinking feedback is appropriate. The spinner animates on a
-// single line using carriage-return overwriting and is cleared by Stop()
-// before any event output.
+// startThinkingSpinner activates the spinner via Bubbletea if the renderer is
+// in a state where thinking feedback is appropriate. When a Bubbletea program
+// is running, a spinnerStartMsg is sent so the model's View() renders the
+// animated spinner. When no program is present (non-TTY, tests), this is a
+// no-op — non-TTY environments intentionally have no spinner.
 func (r *inlineRenderer) startThinkingSpinner() {
 	if !r.thinkingAllowed() {
 		return
 	}
-	r.spinner.Start("Thinking...")
+	if r.cfg.program != nil {
+		r.cfg.program.Send(spinnerStartMsg{label: "Thinking..."})
+	}
 }
 
-// stopThinkingSpinner clears the spinner line if it is currently active.
-// Must be called before writing any event output to stderr to prevent the
-// spinner text from interleaving with event rendering. spinner.Stop() is
-// synchronous — it waits for the animation goroutine to exit and clears
-// the line before returning.
+// stopThinkingSpinner deactivates the spinner via Bubbletea. A spinnerStopMsg
+// causes the model's View() to return "" on the next render cycle, clearing
+// the spinner line. Must be called before processing any event to prevent
+// spinner output from interleaving with event rendering.
+//
+// The stop is asynchronous — queued in Bubbletea's message channel. This is
+// safe because all visual output (including AI text) flows through Bubbletea
+// when a program is active, preserving ordering within the render cycle.
 func (r *inlineRenderer) stopThinkingSpinner() {
-	r.spinner.Stop()
+	if r.cfg.program != nil {
+		r.cfg.program.Send(spinnerStopMsg{})
+	}
 }
 
 // resetThinkTimer conditionally resets the idle timer based on current state.

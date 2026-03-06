@@ -39,7 +39,7 @@ const (
 // This config supports both local and cloud backends, inspired by Pulumi's approach.
 // The active backend determines where resources are stored and managed.
 //
-// Local mode: Resources stored in BadgerDB at ~/.stigmer/data
+// Local mode: Resources stored in SQLite at ~/.stigmer/stigmer.db
 // Cloud mode: Resources managed via Stigmer Cloud gRPC API
 type Config struct {
 	Backend BackendConfig `yaml:"backend"`

@@ -21,7 +21,7 @@ import (
 //
 // Pipeline (Stigmer OSS - simplified from Cloud):
 // - ValidateProto: Validates buf.validate constraints on ExecutionContextId
-// - LoadTarget: Loads execution context from BadgerDB by ID, returns NotFound if missing
+// - LoadTarget: Loads execution context from SQLite by ID, returns NotFound if missing
 //
 // Note: Compared to Stigmer Cloud, OSS excludes:
 // - ExtractResourceId step (not needed - ID is already in ExecutionContextId.value)

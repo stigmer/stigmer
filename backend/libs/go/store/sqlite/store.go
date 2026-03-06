@@ -23,7 +23,7 @@ import (
 
 // Schema version constants for migration tracking
 const (
-	// schemaVersion1: Initial schema with single resources table (BadgerDB-style)
+	// schemaVersion1: Initial schema with single resources table (key-value style)
 	schemaVersion1 = 1
 	// schemaVersion2: Separate audit table with foreign keys for proper relational design
 	schemaVersion2 = 2
@@ -164,7 +164,7 @@ func setSchemaVersion(tx *sql.Tx, version int) error {
 }
 
 // migrateToV1 creates the initial resources table.
-// This is the original BadgerDB-style single-table schema.
+// This is the original key-value style single-table schema.
 func migrateToV1(db *sql.DB) error {
 	tx, err := db.Begin()
 	if err != nil {
@@ -197,7 +197,7 @@ func migrateToV1(db *sql.DB) error {
 }
 
 // migrateToV2 creates the dedicated audit table and migrates existing audit records.
-// This replaces the BadgerDB-style prefix-based audit storage with a proper relational model.
+// This replaces the legacy prefix-based audit storage with a proper relational model.
 //
 // Changes:
 //   - Creates resource_audit table with foreign key to resources
@@ -347,7 +347,7 @@ func migrateToV4(db *sql.DB) error {
 }
 
 // migrateAuditRecords moves prefix-based audit records to the new resource_audit table.
-// This handles the BadgerDB legacy pattern where audit records were stored as:
+// This handles the legacy pattern where audit records were stored as:
 // kind=skill, id="skill_audit/<resource_id>/<timestamp_nanos>"
 func migrateAuditRecords(tx *sql.Tx) error {
 	// Find all audit records using the legacy prefix pattern
@@ -605,7 +605,7 @@ func (s *Store) DeleteResourcesByKind(ctx context.Context, kind apiresourcekind.
 // starts with the specified prefix.
 // Uses GLOB for efficient prefix matching that utilizes the index.
 //
-// Deprecated: This method exists for backward compatibility with BadgerDB-style
+// Deprecated: This method exists for backward compatibility with legacy prefix-based
 // key patterns. New code should use the audit-specific methods instead.
 func (s *Store) DeleteResourcesByIdPrefix(ctx context.Context, kind apiresourcekind.ApiResourceKind, idPrefix string) (int64, error) {
 	// Acquire write lock to serialize writes (SQLite single-writer limitation)

@@ -9,7 +9,7 @@ import (
 // This activity provides the persistence layer for status updates from the workflow-runner worker.
 // By using a dedicated persistence activity, we maintain clean separation:
 // - Workflow-runner worker: Business logic (workflow execution, event processing)
-// - Persistence activity (this): Database operations (BadgerDB, events)
+// - Persistence activity (this): Database operations (SQLite, events)
 //
 // Design principle: Status is system-managed, updated via activities (not RPCs).
 // This maintains the spec/status separation where RPCs only modify spec.
@@ -21,7 +21,7 @@ type UpdateWorkflowExecutionStatusActivity interface {
 	// - Activity: Handles status updates (system-managed)
 	//
 	// The activity loads the execution once, applies all status updates,
-	// and persists to BadgerDB in a single operation.
+	// and persists to SQLite in a single operation.
 	//
 	// executionID: The execution ID
 	// statusUpdates: The status updates to apply (incremental or full)
