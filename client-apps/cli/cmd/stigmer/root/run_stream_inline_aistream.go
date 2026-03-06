@@ -89,6 +89,9 @@ func (r *inlineRenderer) renderAIStreamDelta(e executiontui.AIStreamDeltaEvent) 
 func (r *inlineRenderer) renderAIStreamEnd(e executiontui.AIStreamEndEvent) {
 	if !r.inAIStream {
 		r.streamedBytes = 0
+		if e.Content != "" {
+			r.recordAIMessage(e.Content, e.SubAgentID)
+		}
 		return
 	}
 

@@ -874,6 +874,83 @@ func TestErasePreApprovalContent_AndBuildExpandedView(t *testing.T) {
 // resolveApprovalContext returns streaming fields
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Direct-write streaming — pre-approval prints all lines
+// ---------------------------------------------------------------------------
+
+func TestRenderToolStreamDeltaDirect_PreApproval_PrintsAllLines(t *testing.T) {
+	r, _, stderr, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
+	r.activeStreamToolID = "tc-pre"
+	r.toolStreamedBytes = 0
+	r.streamHeaderRows = 2
+	r.streamLineCount = 2
+	r.streamIsPreApproval = true
+
+	var content string
+	for i := 1; i <= 50; i++ {
+		content += fmt.Sprintf("line %d\n", i)
+	}
+	r.renderToolStreamDeltaDirect(content)
+
+	output := stderr.String()
+	if !strings.Contains(output, "line 1") {
+		t.Errorf("expected first line printed, got: %q", output)
+	}
+	if !strings.Contains(output, "line 50") {
+		t.Errorf("expected last line printed, got: %q", output)
+	}
+}
+
+func TestRenderToolStreamDeltaDirect_PostApproval_PrintsAllLines(t *testing.T) {
+	r, _, stderr, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
+	r.activeStreamToolID = "tc-post"
+	r.toolStreamedBytes = 0
+	r.streamHeaderRows = 1
+	r.streamLineCount = 1
+	r.streamIsPreApproval = false
+
+	var content string
+	for i := 1; i <= 50; i++ {
+		content += fmt.Sprintf("line %d\n", i)
+	}
+	r.renderToolStreamDeltaDirect(content)
+
+	output := stderr.String()
+	if !strings.Contains(output, "line 50") {
+		t.Errorf("post-approval should print all lines, got: %q", output)
+	}
+}
+
+func TestClearStreamingState_ResetsPreApprovalFlag(t *testing.T) {
+	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
+	r.streamIsPreApproval = true
+
+	r.clearStreamingState()
+
+	if r.streamIsPreApproval {
+		t.Error("clearStreamingState should reset streamIsPreApproval")
+	}
+}
+
+func TestInitPreApprovalStreaming_SetsPreApprovalFlag(t *testing.T) {
+	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
+
+	e := executiontui.ToolRunningEvent{
+		ToolCallID: "tc-flag",
+		ToolCall: toolrender.ToolCallInfo{
+			Name:        "write_file",
+			Args:        map[string]interface{}{"path": "x.go", "contents": "pkg"},
+			Status:      "running",
+			IsStreaming: true,
+		},
+	}
+	r.initPreApprovalStreaming(e)
+
+	if !r.streamIsPreApproval {
+		t.Error("initPreApprovalStreaming should set streamIsPreApproval=true")
+	}
+}
+
 func TestResolveApprovalContext_WithStreaming(t *testing.T) {
 	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
 	tc := writeToolCall()
