@@ -1624,6 +1624,180 @@ func TestBuildHyperlinkedPath_RelativePathNoRoots_DegradesToPlainText(t *testing
 	}
 }
 
+// =============================================================================
+// buildHyperlinkedPath — PlatformDir (.stigmer/ virtual mount)
+// =============================================================================
+
+func TestBuildHyperlinkedPath_StigmerPrefix_ResolvedViaPlatformDir(t *testing.T) {
+	existingPaths := map[string]bool{
+		"/home/user/.stigmer/sessions/ses-abc/platform/skills/mcp-creator/SKILL.md": true,
+	}
+	opts := CompactOptions{
+		HyperlinksEnabled: true,
+		PlatformDir:       "/home/user/.stigmer/sessions/ses-abc/platform",
+		StatFunc: func(path string) (os.FileInfo, error) {
+			if existingPaths[path] {
+				return nil, nil
+			}
+			return nil, os.ErrNotExist
+		},
+	}
+	got := buildHyperlinkedPath(".stigmer/skills/mcp-creator/SKILL.md", opts)
+	if !strings.Contains(got, "file:///home/user/.stigmer/sessions/ses-abc/platform/skills/mcp-creator/SKILL.md") {
+		t.Errorf("expected .stigmer/ path resolved via PlatformDir, got %q", got)
+	}
+	if !strings.Contains(got, ".stigmer/skills/mcp-creator/SKILL.md"+osc8Close) {
+		t.Errorf("display text should be the original path, got %q", got)
+	}
+}
+
+func TestBuildHyperlinkedPath_StigmerPrefix_NonexistentFile_DegradesToPlainText(t *testing.T) {
+	opts := CompactOptions{
+		HyperlinksEnabled: true,
+		PlatformDir:       "/home/user/.stigmer/sessions/ses-abc/platform",
+		StatFunc: func(path string) (os.FileInfo, error) {
+			return nil, os.ErrNotExist
+		},
+	}
+	got := buildHyperlinkedPath(".stigmer/skills/nonexistent/SKILL.md", opts)
+	if got != ".stigmer/skills/nonexistent/SKILL.md" {
+		t.Errorf("nonexistent .stigmer/ path should degrade to plain text, got %q", got)
+	}
+}
+
+func TestBuildHyperlinkedPath_StigmerPrefix_NoPlatformDir_DegradesToPlainText(t *testing.T) {
+	opts := CompactOptions{
+		HyperlinksEnabled: true,
+		PlatformDir:       "",
+		StatFunc: func(path string) (os.FileInfo, error) {
+			return nil, os.ErrNotExist
+		},
+	}
+	got := buildHyperlinkedPath(".stigmer/skills/test/SKILL.md", opts)
+	if got != ".stigmer/skills/test/SKILL.md" {
+		t.Errorf("no PlatformDir should degrade to plain text, got %q", got)
+	}
+}
+
+func TestBuildHyperlinkedPath_StigmerPrefix_PriorityOverWorkspaceRoots(t *testing.T) {
+	existingPaths := map[string]bool{
+		"/platform/skills/test/SKILL.md": true,
+		"/workspace/.stigmer/skills/test/SKILL.md": true,
+	}
+	opts := CompactOptions{
+		HyperlinksEnabled: true,
+		WorkspaceRoots:    []string{"/workspace"},
+		PlatformDir:       "/platform",
+		StatFunc: func(path string) (os.FileInfo, error) {
+			if existingPaths[path] {
+				return nil, nil
+			}
+			return nil, os.ErrNotExist
+		},
+	}
+	got := buildHyperlinkedPath(".stigmer/skills/test/SKILL.md", opts)
+	if !strings.Contains(got, "file:///platform/skills/test/SKILL.md") {
+		t.Errorf(".stigmer/ should resolve via PlatformDir, not workspace root, got %q", got)
+	}
+}
+
+// =============================================================================
+// buildHyperlinkedPath — SandboxRoot fallback
+// =============================================================================
+
+func TestBuildHyperlinkedPath_SandboxRoot_GitWorkspaceResolved(t *testing.T) {
+	existingPaths := map[string]bool{
+		"/home/user/.stigmer/data/workspace/sessions/ses-abc/my-repo/README.md": true,
+	}
+	opts := CompactOptions{
+		HyperlinksEnabled: true,
+		SandboxRoot:       "/home/user/.stigmer/data/workspace/sessions/ses-abc",
+		StatFunc: func(path string) (os.FileInfo, error) {
+			if existingPaths[path] {
+				return nil, nil
+			}
+			return nil, os.ErrNotExist
+		},
+	}
+	got := buildHyperlinkedPath("my-repo/README.md", opts)
+	if !strings.Contains(got, "file:///home/user/.stigmer/data/workspace/sessions/ses-abc/my-repo/README.md") {
+		t.Errorf("expected sandbox root resolution for git workspace, got %q", got)
+	}
+}
+
+func TestBuildHyperlinkedPath_SandboxRoot_NonexistentFile_DegradesToPlainText(t *testing.T) {
+	opts := CompactOptions{
+		HyperlinksEnabled: true,
+		SandboxRoot:       "/home/user/.stigmer/data/workspace/sessions/ses-abc",
+		StatFunc: func(path string) (os.FileInfo, error) {
+			return nil, os.ErrNotExist
+		},
+	}
+	got := buildHyperlinkedPath("nonexistent-repo/file.go", opts)
+	if got != "nonexistent-repo/file.go" {
+		t.Errorf("nonexistent sandbox path should degrade to plain text, got %q", got)
+	}
+}
+
+func TestBuildHyperlinkedPath_WorkspaceRoots_PreferredOverSandboxRoot(t *testing.T) {
+	existingPaths := map[string]bool{
+		"/sandbox/ses-abc/my-app/main.go": true,
+	}
+	opts := CompactOptions{
+		HyperlinksEnabled: true,
+		WorkspaceRoots: []string{
+			"/Users/dev/scm/github.com/org/my-app",
+			"/Users/dev/scm/github.com/org/other",
+		},
+		SandboxRoot: "/sandbox/ses-abc",
+		StatFunc: func(path string) (os.FileInfo, error) {
+			if existingPaths[path] {
+				return nil, nil
+			}
+			return nil, os.ErrNotExist
+		},
+	}
+	got := buildHyperlinkedPath("my-app/main.go", opts)
+	if !strings.Contains(got, "file:///Users/dev/scm/github.com/org/my-app/main.go") {
+		t.Errorf("workspace roots basename match should be preferred over sandbox root, got %q", got)
+	}
+}
+
+func TestBuildHyperlinkedPath_NoRootsNoSandbox_DegradesToPlainText(t *testing.T) {
+	opts := CompactOptions{
+		HyperlinksEnabled: true,
+	}
+	got := buildHyperlinkedPath("some/path.go", opts)
+	if got != "some/path.go" {
+		t.Errorf("no roots, no sandbox → plain text, got %q", got)
+	}
+}
+
+// =============================================================================
+// statProbe
+// =============================================================================
+
+func TestStatProbe_FileExists(t *testing.T) {
+	fn := func(path string) (os.FileInfo, error) {
+		if path == "/exists" {
+			return nil, nil
+		}
+		return nil, os.ErrNotExist
+	}
+	if !statProbe("/exists", fn) {
+		t.Error("statProbe should return true for existing path")
+	}
+}
+
+func TestStatProbe_FileNotExists(t *testing.T) {
+	fn := func(path string) (os.FileInfo, error) {
+		return nil, os.ErrNotExist
+	}
+	if statProbe("/missing", fn) {
+		t.Error("statProbe should return false for missing path")
+	}
+}
+
 func TestBuildHyperlinkedPath_MultiRoot_MatchesWorkspaceName(t *testing.T) {
 	opts := CompactOptions{
 		HyperlinksEnabled: true,

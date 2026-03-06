@@ -57,6 +57,20 @@ type CompactOptions struct {
 	// When empty, relative paths degrade to plain text (no hyperlink).
 	WorkspaceRoots []string
 
+	// SandboxRoot is the session's sandbox directory on disk:
+	// ~/.stigmer/data/workspace/sessions/<session-id>/
+	// Used as a universal fallback for path resolution — covers git clones,
+	// symlinked local workspaces, and any other files in the sandbox.
+	// Empty when no session is active.
+	SandboxRoot string
+
+	// PlatformDir is the session's platform directory on disk:
+	// ~/.stigmer/sessions/<session-id>/platform/
+	// Used to resolve .stigmer/ virtual-mount paths that the agent emits
+	// (e.g., .stigmer/skills/mcp-server-creator/SKILL.md). Empty when no
+	// session is active.
+	PlatformDir string
+
 	// StatFunc checks whether a path exists on disk. Used by the stat-probe
 	// fallback in multi-workspace path resolution. Defaults to os.Stat when
 	// nil. Inject a stub for deterministic tests.
@@ -789,7 +803,8 @@ func renderGroupEntry(tc ToolCallInfo, opts CompactOptions) string {
 }
 
 // buildHyperlinkedPath wraps a file path in an OSC 8 hyperlink when enabled.
-// Relative paths are resolved against WorkspaceRoots; unresolvable relative
+// Relative paths are resolved against WorkspaceRoots, PlatformDir (.stigmer/
+// virtual mount), and SandboxRoot (universal fallback). Unresolvable relative
 // paths degrade to plain text (no hyperlink) to avoid malformed file:// URIs
 // where the first path segment would be misinterpreted as a hostname.
 func buildHyperlinkedPath(path string, opts CompactOptions) string {
@@ -802,7 +817,7 @@ func buildHyperlinkedPath(path string, opts CompactOptions) string {
 
 	absPath := path
 	if !filepath.IsAbs(path) {
-		resolved := resolveWorkspacePath(path, opts.WorkspaceRoots, opts.StatFunc)
+		resolved := resolveWorkspacePath(path, opts)
 		if resolved == "" {
 			return path
 		}
@@ -811,18 +826,48 @@ func buildHyperlinkedPath(path string, opts CompactOptions) string {
 	return FileHyperlink(path, absPath, true)
 }
 
-// resolveWorkspacePath resolves a relative path against known workspace roots.
+// resolveWorkspacePath resolves a relative path to an absolute filesystem path
+// using a layered strategy:
 //
-// With a single workspace root, the path is joined directly. With multiple
-// roots, the first path segment is matched against each root's basename
-// (the workspace directory name) and the remainder is joined with the
-// matching root.
+//  1. .stigmer/ virtual mount — paths prefixed with ".stigmer/" are stripped
+//     and joined with PlatformDir (the session's platform directory).
+//  2. Workspace roots (local) — basename-match + stat-probe against user's
+//     local workspace paths. Preferred because they resolve to the user's
+//     real path (not a symlink).
+//  3. Sandbox root — universal fallback that covers git clones, symlinked
+//     local paths, and any other files in the session sandbox.
 //
-// When no basename matches (e.g., paths like .stigmer/skills/... where
-// .stigmer is a directory inside a workspace, not a workspace name), a
-// stat-probe fallback checks whether the path exists under each root.
-// Returns empty string when all resolution strategies fail.
-func resolveWorkspacePath(relPath string, roots []string, statFn func(string) (os.FileInfo, error)) string {
+// Each layer uses a stat-probe to verify the candidate exists on disk.
+// Returns empty string when all strategies fail (graceful degradation).
+func resolveWorkspacePath(relPath string, opts CompactOptions) string {
+	if opts.PlatformDir != "" {
+		if stripped, ok := strings.CutPrefix(filepath.ToSlash(relPath), ".stigmer/"); ok {
+			candidate := filepath.Join(opts.PlatformDir, stripped)
+			if statProbe(candidate, opts.StatFunc) {
+				return candidate
+			}
+		}
+	}
+
+	if resolved := resolveAgainstWorkspaceRoots(relPath, opts.WorkspaceRoots, opts.StatFunc); resolved != "" {
+		return resolved
+	}
+
+	if opts.SandboxRoot != "" {
+		candidate := filepath.Join(opts.SandboxRoot, relPath)
+		if statProbe(candidate, opts.StatFunc) {
+			return candidate
+		}
+	}
+
+	return ""
+}
+
+// resolveAgainstWorkspaceRoots resolves a relative path against local workspace
+// roots. With a single root, the path is joined directly. With multiple roots,
+// the first path segment is matched against each root's basename; unmatched
+// paths fall back to a stat-probe against each root.
+func resolveAgainstWorkspaceRoots(relPath string, roots []string, statFn func(string) (os.FileInfo, error)) string {
 	if len(roots) == 0 {
 		return ""
 	}
@@ -853,4 +898,15 @@ func resolveWorkspacePath(relPath string, roots []string, statFn func(string) (o
 	}
 
 	return ""
+}
+
+// statProbe checks whether a path exists on disk. Uses statFn when non-nil,
+// defaulting to os.Stat. Used by the new resolution layers (PlatformDir,
+// SandboxRoot) where a stat-probe is always required.
+func statProbe(path string, statFn func(string) (os.FileInfo, error)) bool {
+	if statFn == nil {
+		statFn = os.Stat
+	}
+	_, err := statFn(path)
+	return err == nil
 }

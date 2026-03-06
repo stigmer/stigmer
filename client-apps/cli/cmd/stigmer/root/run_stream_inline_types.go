@@ -59,6 +59,8 @@ type inlineRenderConfig struct {
 	status            io.Writer // status/progress (stderr)
 	sessionID         string
 	workspaceRoots    []string // local workspace root paths for file hyperlinks
+	sandboxRoot       string   // session sandbox dir for universal path fallback
+	platformDir       string   // session platform dir for .stigmer/ virtual mount
 	cancelExecFn      func()   // cancels the current backend execution; nil-safe
 
 	// program is the Bubbletea Program running alongside the event loop. When

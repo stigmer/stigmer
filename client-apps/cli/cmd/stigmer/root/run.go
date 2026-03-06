@@ -3,6 +3,7 @@ package root
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -30,6 +31,23 @@ func localWorkspaceRoots(entries []*sessionv1.WorkspaceEntry) []string {
 		}
 	}
 	return roots
+}
+
+// sessionPaths computes the sandbox root and platform directory for a session.
+// These directories may not exist yet (session still starting); callers use
+// stat-probes so missing directories result in graceful degradation.
+func sessionPaths(sessionID string) (sandboxRoot, platformDir string) {
+	if sessionID == "" {
+		return "", ""
+	}
+	configDir, err := config.GetConfigDir()
+	if err != nil {
+		return "", ""
+	}
+	dataDir := filepath.Join(configDir, config.DefaultDataDir)
+	sandboxRoot = filepath.Join(dataDir, "workspace", "sessions", sessionID)
+	platformDir = filepath.Join(configDir, "sessions", sessionID, "platform")
+	return
 }
 
 // NewRunCommand creates the unified run command for executing agents and workflows.

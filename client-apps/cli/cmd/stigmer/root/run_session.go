@@ -151,6 +151,8 @@ func resumeSession(sessionID string, headerInfo sessionHeaderInfo, orgID string,
 
 		program := startInlineProgram(os.Stderr, toggleExpandCh, cancelCh, interruptCh)
 
+		sbRoot, pfDir := sessionPaths(sessionID)
+
 		cfg := inlineRenderConfig{
 			events:            events,
 			approvalResponses: approvalResponses,
@@ -159,6 +161,8 @@ func resumeSession(sessionID string, headerInfo sessionHeaderInfo, orgID string,
 			status:            os.Stderr,
 			sessionID:         sessionID,
 			workspaceRoots:    workspaceRoots,
+			sandboxRoot:       sbRoot,
+			platformDir:       pfDir,
 			headerInfo:        headerInfo,
 			program:           program,
 			toggleExpandCh:    toggleExpandCh,

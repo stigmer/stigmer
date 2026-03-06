@@ -50,6 +50,8 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) renderResult {
 		compactOpts: toolrender.CompactOptions{
 			HyperlinksEnabled: toolrender.HyperlinksEnabled(cfg.status),
 			WorkspaceRoots:    cfg.workspaceRoots,
+			SandboxRoot:       cfg.sandboxRoot,
+			PlatformDir:       cfg.platformDir,
 		},
 		suppressedToolIDs: make(map[string]bool),
 		thinkTimer:        thinkTimer,
