@@ -17,7 +17,7 @@ import (
 
 func TestHandleKeyPress_CtrlO_SendsOnToggleCh(t *testing.T) {
 	toggleCh := make(chan struct{}, 1)
-	m := newInlineBubbleModelWithChannels(toggleCh, nil)
+	m := newInlineBubbleModelWithChannels(toggleCh, nil, nil)
 
 	m.Update(tea.KeyPressMsg{Code: 'o', Mod: tea.ModCtrl})
 
@@ -31,7 +31,7 @@ func TestHandleKeyPress_CtrlO_SendsOnToggleCh(t *testing.T) {
 func TestHandleKeyPress_CtrlO_DuringApproval_StillToggles(t *testing.T) {
 	toggleCh := make(chan struct{}, 1)
 	decisionCh := make(chan approvalDecision, 1)
-	m := newInlineBubbleModelWithChannels(toggleCh, nil)
+	m := newInlineBubbleModelWithChannels(toggleCh, nil, nil)
 	m.approvalActive = true
 	m.approvalDecisionCh = decisionCh
 
@@ -53,8 +53,8 @@ func TestHandleKeyPress_CtrlO_DuringApproval_StillToggles(t *testing.T) {
 func TestHandleKeyPress_CtrlO_DuringTextInput_StillToggles(t *testing.T) {
 	toggleCh := make(chan struct{}, 1)
 	inputCh := make(chan string, 1)
-	m := newInlineBubbleModelWithChannels(toggleCh, nil)
-	m.textInputActive = true
+	m := newInlineBubbleModelWithChannels(toggleCh, nil, nil)
+	m.inputBarMode = inputBarActive
 	m.textInputCh = inputCh
 
 	m.Update(tea.KeyPressMsg{Code: 'o', Mod: tea.ModCtrl})
@@ -211,7 +211,7 @@ func TestHandleApprovalKey_CtrlC_SendsSessionExit(t *testing.T) {
 // focused, ready to process keystrokes through the textinput child model.
 func newFocusedTextInputModel(inputCh chan string) inlineBubbleModel {
 	m := newInlineBubbleModel()
-	m.textInputActive = true
+	m.inputBarMode = inputBarActive
 	m.textInputCh = inputCh
 	m.textInput.Focus()
 	return m
@@ -353,7 +353,7 @@ func TestHandleTextInputKey_Paste(t *testing.T) {
 
 func TestHandleIdleKey_CtrlC_SendsOnCancelCh(t *testing.T) {
 	cancelCh := make(chan struct{}, 1)
-	m := newInlineBubbleModelWithChannels(nil, cancelCh)
+	m := newInlineBubbleModelWithChannels(nil, cancelCh, nil)
 
 	m.Update(tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtrl})
 
@@ -373,7 +373,7 @@ func TestHandleIdleKey_CtrlC_NilChannel_NoPanic(t *testing.T) {
 
 func TestHandleIdleKey_OtherKeys_Ignored(t *testing.T) {
 	cancelCh := make(chan struct{}, 1)
-	m := newInlineBubbleModelWithChannels(nil, cancelCh)
+	m := newInlineBubbleModelWithChannels(nil, cancelCh, nil)
 
 	m.Update(tea.KeyPressMsg{Code: 'x', Text: "x"})
 
@@ -437,7 +437,7 @@ func TestTextInputStartMsg_ActivatesInput(t *testing.T) {
 	updated, _ := m.Update(textInputStartMsg{inputCh: inputCh})
 
 	model := updated.(inlineBubbleModel)
-	assert.True(t, model.textInputActive)
+	assert.Equal(t, inputBarActive, model.inputBarMode)
 	assert.Empty(t, model.textInput.Value())
 	assert.True(t, model.textInput.Focused())
 	require.NotNil(t, model.textInputCh)
@@ -449,7 +449,7 @@ func TestTextInputHideMsg_ClearsState(t *testing.T) {
 
 	updated, _ := m.Update(textInputHideMsg{})
 	model := updated.(inlineBubbleModel)
-	assert.False(t, model.textInputActive)
+	assert.Equal(t, inputBarDisabled, model.inputBarMode)
 	assert.Empty(t, model.textInput.Value())
 	assert.False(t, model.textInput.Focused())
 	assert.Nil(t, model.textInputCh)
@@ -500,7 +500,7 @@ func TestView_TextInput_CursorPosition(t *testing.T) {
 	require.NotNil(t, view.Cursor, "cursor should be set for text input")
 	assert.Equal(t, tea.CursorBar, view.Cursor.Shape)
 	assert.True(t, view.Cursor.Blink)
-	assert.Equal(t, 2, view.Cursor.Y, "cursor should be on the input line (row 2)")
+	assert.Equal(t, 1, view.Cursor.Y, "cursor should be on the input line (row 1: separator at 0)")
 	assert.Greater(t, view.Cursor.X, 0, "cursor X should be positive")
 }
 
@@ -510,7 +510,7 @@ func TestView_TextInput_CursorPosition_EmptyBuffer(t *testing.T) {
 
 	view := m.View()
 	require.NotNil(t, view.Cursor)
-	assert.Equal(t, 2, view.Cursor.Y)
+	assert.Equal(t, 1, view.Cursor.Y)
 	xEmpty := view.Cursor.X
 
 	m.textInput.SetValue("abc")

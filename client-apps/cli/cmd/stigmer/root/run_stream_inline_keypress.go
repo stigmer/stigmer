@@ -18,7 +18,7 @@ func (m inlineBubbleModel) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.C
 		return m.handleApprovalKey(msg)
 	}
 
-	if m.textInputActive && m.textInputCh != nil {
+	if m.inputBarMode == inputBarActive && m.textInputCh != nil {
 		return m.handleTextInputKey(msg)
 	}
 
@@ -92,12 +92,23 @@ func (m inlineBubbleModel) handleTextInputKey(msg tea.KeyPressMsg) (tea.Model, t
 }
 
 // handleIdleKey processes keystrokes when no interactive prompt is active.
-// Ctrl+C sends a cancel signal to the event loop.
+// Esc sends an interrupt signal (cancel current execution, transition to
+// follow-up). Ctrl+C sends a cancel signal (exit session entirely).
 func (m inlineBubbleModel) handleIdleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	if msg.String() == "ctrl+c" && m.cancelCh != nil {
-		select {
-		case m.cancelCh <- struct{}{}:
-		default:
+	switch msg.String() {
+	case "esc":
+		if m.interruptCh != nil {
+			select {
+			case m.interruptCh <- struct{}{}:
+			default:
+			}
+		}
+	case "ctrl+c":
+		if m.cancelCh != nil {
+			select {
+			case m.cancelCh <- struct{}{}:
+			default:
+			}
 		}
 	}
 	return m, nil

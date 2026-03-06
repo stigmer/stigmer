@@ -47,6 +47,10 @@ func runInlineFollowUpLoop(
 		var input string
 		if result.followUpInput != "" {
 			input = result.followUpInput
+		} else if cfg.followUpEnabled {
+			// Follow-up was handled inside renderInline (Bubbletea text input);
+			// empty followUpInput means the user cancelled. Exit the loop.
+			return latestExecID, result.phase, result.exitErr
 		} else {
 			var err error
 			input, err = promptFollowUp(cfg.program, cfg.status)
@@ -173,13 +177,15 @@ func readFollowUpInputDirect(status io.Writer) (string, error) {
 // ---------------------------------------------------------------------------
 
 // isFollowUpEligible reports whether the execution outcome allows a follow-up
-// message. Returns true for "completed" and "failed" phases with no exit error.
-// Failed executions allow corrective follow-up (matching TUI behavior where
-// the user can recover from failures by sending corrective instructions).
-// Cancelled executions, stream errors, and unknown phases exit immediately.
+// message. Returns true for "completed", "failed", and "interrupted" phases
+// with no exit error. Failed executions allow corrective follow-up (matching
+// TUI behavior where the user can recover from failures by sending corrective
+// instructions). Interrupted executions allow the user to redirect the agent
+// after pressing Esc. Cancelled executions, stream errors, and unknown phases
+// exit immediately.
 func isFollowUpEligible(phase, exitErr string) bool {
 	if exitErr != "" {
 		return false
 	}
-	return phase == "completed" || phase == "failed"
+	return phase == "completed" || phase == "failed" || phase == "interrupted"
 }

@@ -16,6 +16,18 @@ import (
 // reads are rendered individually via RenderCompact.
 const readGroupThreshold = 3
 
+// inputBarMode controls the persistent input bar at the bottom of the View.
+// The input bar provides a consistent interaction surface: disabled during
+// agent processing ("esc to interrupt"), active during follow-up (text input
+// with cursor). Hidden in non-interactive environments (CI, piped output).
+type inputBarMode int
+
+const (
+	inputBarHidden   inputBarMode = iota // no input bar (CI, non-interactive, legacy)
+	inputBarDisabled                     // visible but inactive ("esc to interrupt")
+	inputBarActive                       // text input active (follow-up mode)
+)
+
 // followUpSepWidth is the fallback separator width used by legacy follow-up
 // paths (direct-write and key-reader) and as a default when terminal width
 // is unknown. The Bubbletea text-input path uses the live terminal width
@@ -89,10 +101,16 @@ type inlineRenderConfig struct {
 	toggleExpandCh <-chan struct{}
 
 	// cancelCh receives a signal when the user presses Ctrl+C during
-	// idle state (agent executing, no interactive prompt). Triggers the
-	// same cancellation logic as context.Done(). nil when Bubbletea does
-	// not own stdin.
+	// idle state (agent executing, no interactive prompt). Triggers
+	// session exit. nil when Bubbletea does not own stdin.
 	cancelCh <-chan struct{}
+
+	// interruptCh receives a signal when the user presses Esc during
+	// idle state (agent executing, no interactive prompt). Cancels the
+	// current execution and transitions to follow-up mode so the user
+	// can send a corrective message. nil when Bubbletea does not own
+	// stdin.
+	interruptCh <-chan struct{}
 
 	// followUpEnabled indicates that renderInline should handle the
 	// follow-up prompt internally after a terminal event, rather than

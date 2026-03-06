@@ -92,6 +92,25 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) renderResult {
 			r.expandMode = !r.expandMode
 			recommitNeeded = true
 
+		case <-cfg.interruptCh:
+			r.stopThinkingSpinner()
+			r.flushPendingReads()
+			r.finishAIStreamIfNeeded()
+			if r.cfg.cancelExecFn != nil {
+				go r.cfg.cancelExecFn()
+			}
+			r.commitToScrollback(committedItem{
+				kind: kindSystemMessage,
+				text: systemMsgStyle.Render("Interrupted"),
+			})
+			if cfg.followUpEnabled {
+				r.activateFollowUp("interrupted", "")
+				cfg.events = nil
+				cfg.subjectUpdate = nil
+				continue
+			}
+			return renderResult{phase: "cancelled", history: r.history}
+
 		case <-cfg.cancelCh:
 			r.stopThinkingSpinner()
 			r.flushPendingReads()

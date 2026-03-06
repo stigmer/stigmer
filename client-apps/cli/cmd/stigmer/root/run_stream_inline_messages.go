@@ -194,3 +194,13 @@ type aiStreamPartialMsg struct {
 // returns "" on the next render, allowing the spinner or other content to
 // take the View() slot.
 type aiStreamHideMsg struct{}
+
+// inputBarModeMsg transitions the persistent input bar between states.
+// Sent by the event loop to control whether the input bar is hidden,
+// disabled (showing "esc to interrupt"), or active (text input with cursor).
+type inputBarModeMsg struct{ mode inputBarMode }
+
+// currentTaskMsg updates the 1-line current task indicator shown above the
+// input bar separator. Extracted from the in_progress TodoItem when the
+// plan changes. An empty task string hides the indicator.
+type currentTaskMsg struct{ task string }
