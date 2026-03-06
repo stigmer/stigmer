@@ -1,6 +1,7 @@
 package root
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 	"testing"
@@ -421,11 +422,7 @@ func TestRenderHistoryBatch_MatchesPerItemOutput(t *testing.T) {
 				if item.kind == kindHeader {
 					b.WriteByte('\n')
 				}
-				needsGap := item.kind == kindHumanMessage ||
-					item.kind == kindSystemMessage ||
-					item.kind == kindSubAgentComplete ||
-					item.kind == kindPhaseChange
-				if needsGap {
+				if needsTrailingGap(item.kind) {
 					b.WriteByte('\n')
 				}
 				first = false
@@ -488,4 +485,88 @@ func TestRenderHistoryBatch_HeaderOnly_NoExtraNewline(t *testing.T) {
 	headerText := renderCommittedItem(items[0], toolrender.CompactOptions{}, false)
 	assert.Equal(t, headerText+"\n", result,
 		"header-only batch should have trailing newline from the gap")
+}
+
+// =============================================================================
+// commitToScrollback / renderHistoryBatch parity
+// =============================================================================
+
+func TestCommitToScrollback_MatchesRecommit(t *testing.T) {
+	items := []committedItem{
+		{kind: kindHeader, header: &sessionHeaderInfo{
+			AgentName: "test-agent", SessionID: "ses-xyz", Subject: "Fix auth", Model: "sonnet-4.6",
+		}},
+		{kind: kindAIMessage, text: "I'll analyze the code and fix the authentication issue."},
+		{kind: kindToolCompact, toolCalls: []toolrender.ToolCallInfo{{
+			Name: "read_file", Args: map[string]interface{}{"path": "auth.go"},
+		}}},
+		{kind: kindToolCompact, toolCalls: []toolrender.ToolCallInfo{{
+			Name: "shell", Args: map[string]interface{}{"command": "go test ./..."}, Status: "completed",
+			Result: "ok pkg/auth 0.1s\nok pkg/user 0.2s\nok pkg/api 0.3s",
+		}}},
+		{kind: kindReadGroup, toolCalls: func() []toolrender.ToolCallInfo {
+			reads := make([]toolrender.ToolCallInfo, 4)
+			for i := range reads {
+				reads[i] = toolrender.ToolCallInfo{
+					Name: "read_file", Status: "completed",
+					Args:   map[string]interface{}{"path": fmt.Sprintf("pkg/auth/handler_%d.go", i)},
+					Result: "package auth\n",
+				}
+			}
+			return reads
+		}()},
+		{kind: kindApproval, action: "approve", toolCalls: []toolrender.ToolCallInfo{{
+			Name: "write_file", Args: map[string]interface{}{"path": "auth.go", "contents": "package auth\n"},
+		}}},
+		{kind: kindHumanMessage, text: "Looks good, continue."},
+		{kind: kindSystemMessage, text: "Session checkpoint saved."},
+		{kind: kindSubAgentStart, text: "● Task: Update tests"},
+		{kind: kindSubAgentComplete, text: "  ✓ Done (3 tools)"},
+		{kind: kindTodoUpdate, text: "Plan:\n  [-] Step one\n  [ ] Step two"},
+		{kind: kindPhaseChange, text: "Execution completed"},
+		{kind: kindText, text: "Error: connection reset"},
+	}
+
+	opts := toolrender.CompactOptions{}
+
+	for _, expanded := range []bool{false, true} {
+		label := "compact"
+		if expanded {
+			label = "expanded"
+		}
+		t.Run(label, func(t *testing.T) {
+			var buf bytes.Buffer
+			r := &inlineRenderer{
+				cfg:        inlineRenderConfig{status: &buf},
+				expandMode: expanded,
+			}
+			for _, item := range items {
+				r.commitToScrollback(item)
+			}
+			liveOutput := buf.String()
+
+			batch := renderHistoryBatch(items, opts, expanded)
+
+			assert.Equal(t, batch+"\n", liveOutput,
+				"live commitToScrollback output should match renderHistoryBatch "+
+					"(plus a trailing newline from the final statusf)")
+		})
+	}
+}
+
+func TestNeedsTrailingGap(t *testing.T) {
+	gapKinds := []committedKind{
+		kindHumanMessage, kindSystemMessage, kindSubAgentComplete, kindPhaseChange,
+	}
+	for _, k := range gapKinds {
+		assert.True(t, needsTrailingGap(k), "expected needsTrailingGap==true for kind %d", k)
+	}
+
+	noGapKinds := []committedKind{
+		kindHeader, kindToolCompact, kindReadGroup, kindApproval,
+		kindAIMessage, kindSubAgentStart, kindTodoUpdate, kindText,
+	}
+	for _, k := range noGapKinds {
+		assert.False(t, needsTrailingGap(k), "expected needsTrailingGap==false for kind %d", k)
+	}
 }

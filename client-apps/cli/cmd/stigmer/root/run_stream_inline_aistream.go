@@ -112,7 +112,6 @@ func (r *inlineRenderer) renderAIStreamEnd(e executiontui.AIStreamEndEvent) {
 			}
 			r.cfg.program.Println(line)
 		}
-		r.cfg.program.Println("")
 		r.cfg.program.Send(aiStreamHideMsg{})
 		r.aiStreamBuffer = ""
 		r.aiStreamPrefix = ""
@@ -147,8 +146,11 @@ func (r *inlineRenderer) renderAIMessage(e executiontui.AIMessageEvent) {
 	text := prefix + formatNonTUIAIText(e.Content)
 
 	if r.cfg.program != nil {
-		r.cfg.program.Println(text)
-		r.cfg.program.Println("")
+		r.commitToScrollback(committedItem{
+			kind:       kindAIMessage,
+			text:       text,
+			subAgentID: e.SubAgentID,
+		})
 		if !r.dataIsTTY {
 			fmt.Fprintf(r.cfg.data, "%s\n\n", text)
 			r.flushData()
@@ -156,14 +158,19 @@ func (r *inlineRenderer) renderAIMessage(e executiontui.AIMessageEvent) {
 	} else {
 		fmt.Fprintf(r.cfg.data, "%s\n\n", text)
 		r.flushData()
+		r.recordToHistory(committedItem{
+			kind:       kindAIMessage,
+			text:       text,
+			subAgentID: e.SubAgentID,
+		})
 	}
-
-	r.recordAIMessage(e.Content, e.SubAgentID)
 }
 
 // finishAIStreamIfNeeded closes an in-progress AI stream when a non-AI
-// event arrives mid-stream. Commits any buffered partial line and a
-// paragraph gap through Bubbletea (when active) or stdout (fallback).
+// event arrives mid-stream. Commits any buffered partial line through
+// Bubbletea (when active) or stdout (fallback). No trailing blank line
+// is emitted — kindAIMessage is not in needsTrailingGap, so the gap
+// (or lack thereof) matches what renderHistoryBatch would produce.
 func (r *inlineRenderer) finishAIStreamIfNeeded() {
 	if !r.inAIStream {
 		return
@@ -177,7 +184,6 @@ func (r *inlineRenderer) finishAIStreamIfNeeded() {
 			}
 			r.cfg.program.Println(line)
 		}
-		r.cfg.program.Println("")
 		r.cfg.program.Send(aiStreamHideMsg{})
 		r.aiStreamBuffer = ""
 		r.aiStreamPrefix = ""
@@ -225,15 +231,14 @@ func (r *inlineRenderer) agentPrefix(subAgentID string) string {
 	return "● "
 }
 
-// recordAIMessage appends a kindAIMessage to history. The text is pre-formatted
-// with prefix and markdown rendering so it looks correct when replayed to stderr
-// via tea.Println during re-commit.
+// recordAIMessage appends a kindAIMessage to history via recordToHistory.
+// The text is pre-formatted with prefix and markdown rendering so it looks
+// correct when replayed to stderr via tea.Println during re-commit.
 func (r *inlineRenderer) recordAIMessage(content string, subAgentID string) {
 	prefix := r.agentPrefix(subAgentID)
-	text := prefix + formatNonTUIAIText(content)
-	r.history = append(r.history, committedItem{
+	r.recordToHistory(committedItem{
 		kind:       kindAIMessage,
-		text:       text,
+		text:       prefix + formatNonTUIAIText(content),
 		subAgentID: subAgentID,
 	})
 }

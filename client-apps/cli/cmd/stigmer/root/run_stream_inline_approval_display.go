@@ -135,19 +135,23 @@ func (r *inlineRenderer) formatCollapsedResult(tc toolrender.ToolCallInfo, actio
 	return result
 }
 
-// printCollapsedResult renders the post-decision compact summary. Applies
-// gutter-wrapping when the tool belongs to a sub-agent. Used by the
-// direct-write fallback and non-interactive paths.
+// printCollapsedResult renders the post-decision compact summary via
+// commitToScrollback. Used by the direct-write fallback and
+// non-interactive paths.
 func (r *inlineRenderer) printCollapsedResult(tc toolrender.ToolCallInfo, action string, subAgentID string) {
-	r.statusf("%s\n", r.formatCollapsedResult(tc, action, subAgentID))
-	r.recordApproval(tc, action, subAgentID)
+	r.commitToScrollback(committedItem{
+		kind:       kindApproval,
+		toolCalls:  []toolrender.ToolCallInfo{tc},
+		action:     action,
+		subAgentID: subAgentID,
+	})
 }
 
-// recordApproval appends a kindApproval item to history. Called from both
-// the direct-write path (printCollapsedResult) and the Bubbletea path
-// (where formatCollapsedResult is used with approvalHideMsg/streamingHideMsg).
+// recordApproval appends a kindApproval item to history via recordToHistory.
+// Called from the Bubbletea path where formatCollapsedResult is used with
+// approvalHideMsg/streamingHideMsg and the display is handled by Bubbletea.
 func (r *inlineRenderer) recordApproval(tc toolrender.ToolCallInfo, action string, subAgentID string) {
-	r.history = append(r.history, committedItem{
+	r.recordToHistory(committedItem{
 		kind:       kindApproval,
 		toolCalls:  []toolrender.ToolCallInfo{tc},
 		action:     action,
