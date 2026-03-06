@@ -1,7 +1,6 @@
 package workflows
 
 import (
-	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"go.temporal.io/sdk/workflow"
 )
 
@@ -12,8 +11,10 @@ import (
 type InvokeAgentExecutionWorkflow interface {
 	// Run invokes an agent execution (Graphton agent creation).
 	//
-	// execution: The execution resource containing spec (agent_id, session_id, message)
-	Run(ctx workflow.Context, execution *agentexecutionv1.AgentExecution) error
+	// input: Slim orchestration coordinates (execution_id, session_id, agent_id,
+	// callback_token). Secrets and large payloads are excluded -- they live in
+	// the ExecutionContext and the persisted AgentExecution, respectively.
+	Run(ctx workflow.Context, input *InvokeAgentExecutionWorkflowInput) error
 }
 
 // InvokeAgentExecutionWorkflowName is the workflow name used for registration.

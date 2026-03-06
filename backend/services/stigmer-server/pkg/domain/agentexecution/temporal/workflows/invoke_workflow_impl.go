@@ -48,50 +48,53 @@ type InvokeAgentExecutionWorkflowImpl struct {
 }
 
 // Run implements InvokeAgentExecutionWorkflow.Run
-func (w *InvokeAgentExecutionWorkflowImpl) Run(ctx workflow.Context, execution *agentexecutionv1.AgentExecution) error {
+func (w *InvokeAgentExecutionWorkflowImpl) Run(ctx workflow.Context, input *InvokeAgentExecutionWorkflowInput) error {
 	logger := workflow.GetLogger(ctx)
-	executionID := execution.GetMetadata().GetId()
+	executionID := input.ExecutionID
 
 	logger.Info("Starting workflow for execution", "execution_id", executionID)
 
 	// Log callback token presence (for async activity completion pattern)
 	// See: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md
-	callbackToken := execution.GetSpec().GetCallbackToken()
+	callbackToken := input.CallbackToken
 	if len(callbackToken) > 0 {
-		logger.Info("📝 Callback token detected - will complete external activity on finish",
+		logger.Info("Callback token detected - will complete external activity on finish",
 			"execution_id", executionID,
 			"token_length", len(callbackToken))
 	}
 
 	// Execute the Graphton flow
-	if err := w.executeGraphtonFlow(ctx, execution); err != nil {
-		logger.Error("❌ Workflow execution failed", "execution_id", executionID, "error", err.Error())
+	if err := w.executeGraphtonFlow(ctx, input); err != nil {
+		logger.Error("Workflow execution failed", "execution_id", executionID, "error", err.Error())
 
-		// Update execution status to FAILED with error details
-		// This handles system errors (workflow type not found, activity registration, etc.)
 		if err := w.updateStatusOnFailure(ctx, executionID, err); err != nil {
-			logger.Error("❌ Failed to update execution status", "error", err.Error())
-			// Continue to return original error even if status update fails
+			logger.Error("Failed to update execution status", "error", err.Error())
 		}
 
 		// Complete external activity with error (if token provided)
 		if len(callbackToken) > 0 {
 			if err := w.completeExternalActivity(ctx, callbackToken, nil, err); err != nil {
-				logger.Error("❌ Failed to complete external activity with error", "error", err.Error())
-				// Continue to return original error even if completion fails
+				logger.Error("Failed to complete external activity with error", "error", err.Error())
 			}
 		}
 
 		return temporal.NewApplicationError("Workflow execution failed", "", err)
 	}
 
-	logger.Info("✅ Workflow completed for execution (status updates were sent progressively via gRPC)", "execution_id", executionID)
+	logger.Info("Workflow completed for execution (status updates were sent progressively via gRPC)", "execution_id", executionID)
 
 	// Complete external activity with success (if token provided)
 	if len(callbackToken) > 0 {
-		// Return the execution as the result
+		// Load the current execution from DB so the external workflow receives
+		// the completion-time state (not a stale creation-time snapshot).
+		execution, err := w.loadExecution(ctx, executionID)
+		if err != nil {
+			logger.Error("Failed to load execution for callback result", "error", err.Error())
+			return err
+		}
+
 		if err := w.completeExternalActivity(ctx, callbackToken, execution, nil); err != nil {
-			logger.Error("❌ Failed to complete external activity with success", "error", err.Error())
+			logger.Error("Failed to complete external activity with success", "error", err.Error())
 			return err
 		}
 	}
@@ -130,12 +133,12 @@ const SignalSubmitApproval = "submitApproval"
 //   - Re-invokes Python activity with (executionID, threadID, decisions)
 //   - Python correlates decisions with pending_approvals from the DB
 //   - Continues until terminal state or max cycles reached
-func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Context, execution *agentexecutionv1.AgentExecution) error {
+func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Context, input *InvokeAgentExecutionWorkflowInput) error {
 	logger := workflow.GetLogger(ctx)
 
-	sessionID := execution.GetSpec().GetSessionId()
-	agentID := execution.GetSpec().GetAgentId()
-	executionID := execution.GetMetadata().GetId()
+	sessionID := input.SessionID
+	agentID := input.AgentID
+	executionID := input.ExecutionID
 
 	// Get activity task queue from workflow memo
 	activityTaskQueue := w.getActivityTaskQueue(ctx)
@@ -149,11 +152,11 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 		return w.wrapActivityError("EnsureThread", err)
 	}
 
-	logger.Info("✅ Thread ensured", "thread_id", threadID)
+	logger.Info("Thread ensured", "thread_id", threadID)
 
 	// Step 1.5: Generate session subject (fire-and-forget, non-blocking)
 	//
-	// Runs in parallel with the main agent execution — uses an economy-tier LLM
+	// Runs in parallel with the main agent execution -- uses an economy-tier LLM
 	// to replace the "Auto-created session" sentinel with a concise, human-readable
 	// title derived from the user's first message and agent context.
 	//
@@ -163,7 +166,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 	workflow.Go(ctx, func(ctx workflow.Context) {
 		subjectActivity := activities.NewGenerateSessionSubjectActivityStub(ctx, activityTaskQueue)
 		if err := subjectActivity.GenerateSessionSubject(executionID); err != nil {
-			logger.Warn("⚠️ Session subject generation failed (non-critical)",
+			logger.Warn("Session subject generation failed (non-critical)",
 				"execution_id", executionID,
 				"error", err.Error())
 		}
@@ -180,7 +183,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 
 	executeGraphtonActivity := activities.NewExecuteGraphtonActivityStub(ctx, activityTaskQueue)
 
-	// Initial execution — no approval decisions on first invocation
+	// Initial execution -- no approval decisions on first invocation
 	finalStatus, err := executeGraphtonActivity.ExecuteGraphton(executionID, threadID, nil)
 	if err != nil {
 		return w.wrapActivityError("ExecuteGraphton", err)
@@ -188,13 +191,13 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 
 	// Defensive null check
 	if finalStatus == nil {
-		logger.Error("❌ ExecuteGraphton returned NULL status", "execution_id", executionID)
+		logger.Error("ExecuteGraphton returned NULL status", "execution_id", executionID)
 		return fmt.Errorf("python activity returned null status - this should never happen")
 	}
 
 	// Diagnostic: log the deserialized activity return value to trace
 	// proto serialization issues between the Python activity and Go workflow.
-	logger.Info("📋 Activity returned status",
+	logger.Info("Activity returned status",
 		"execution_id", executionID,
 		"phase", finalStatus.GetPhase().String(),
 		"phase_value", int32(finalStatus.GetPhase()),
@@ -218,7 +221,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 	for finalStatus.GetPhase() == agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL {
 		approvalCycle++
 		if approvalCycle > MaxApprovalCycles {
-			logger.Error("❌ Max approval cycles reached", "execution_id", executionID, "cycles", approvalCycle)
+			logger.Error("Max approval cycles reached", "execution_id", executionID, "cycles", approvalCycle)
 			return fmt.Errorf("max approval cycles (%d) reached - possible infinite loop", MaxApprovalCycles)
 		}
 
@@ -240,7 +243,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 			firstToolCallId = pendingApprovals[0].GetToolCallId()
 		}
 
-		logger.Info("⏳ Execution waiting for approval",
+		logger.Info("Execution waiting for approval",
 			"execution_id", executionID,
 			"cycle", approvalCycle,
 			"pending_count", signalsNeeded,
@@ -253,13 +256,12 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 		// CLI started listening. By persisting again here, the StreamBroker
 		// broadcasts to any active subscriber, guaranteeing the CLI receives it.
 		if err := w.persistFinalStatus(ctx, executionID, finalStatus); err != nil {
-			logger.Warn("⚠️ Failed to persist WAITING_FOR_APPROVAL status before signal wait (non-fatal)",
+			logger.Warn("Failed to persist WAITING_FOR_APPROVAL status before signal wait (non-fatal)",
 				"execution_id", executionID, "error", err.Error())
-			// Non-fatal: the agent-runner's gRPC update may have already persisted.
 		}
 
 		// Collect all approval signals into a slice of SubmitApprovalInput.
-		// These are forwarded directly to the Python activity — no need to
+		// These are forwarded directly to the Python activity -- no need to
 		// reconstruct the full AgentExecution with embedded decisions.
 		approvalDecisions := make([]*agentexecutionv1.SubmitApprovalInput, 0, signalsNeeded)
 
@@ -269,7 +271,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 				return err
 			}
 
-			logger.Info("✅ Received approval signal",
+			logger.Info("Received approval signal",
 				"execution_id", executionID,
 				"signal_index", i+1,
 				"signals_needed", signalsNeeded,
@@ -280,7 +282,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 
 			// For REJECT, short-circuit: no need to collect more signals.
 			if approvalInput.GetAction() == agentexecutionv1.ApprovalAction_APPROVAL_ACTION_REJECT {
-				logger.Info("🛑 Tool rejected — skipping remaining approvals",
+				logger.Info("Tool rejected -- skipping remaining approvals",
 					"execution_id", executionID,
 					"tool_call_id", approvalInput.GetToolCallId())
 				break
@@ -295,7 +297,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 		// Wrap in ApprovalDecisionList so the Go SDK serialises it as a
 		// proto.Message (json/protobuf encoding) rather than a bare JSON
 		// array (json/plain), which the Python SDK cannot decode.
-		logger.Info("🔄 Re-invoking Graphton with approval decisions",
+		logger.Info("Re-invoking Graphton with approval decisions",
 			"execution_id", executionID,
 			"decisions_collected", len(approvalDecisions))
 
@@ -308,12 +310,12 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 		}
 
 		if finalStatus == nil {
-			logger.Error("❌ ExecuteGraphton returned NULL status after approval", "execution_id", executionID)
+			logger.Error("ExecuteGraphton returned NULL status after approval", "execution_id", executionID)
 			return fmt.Errorf("python activity returned null status after approval - this should never happen")
 		}
 
 		// Diagnostic: log deserialized status after approval re-invocation
-		logger.Info("📋 Activity returned status after approval",
+		logger.Info("Activity returned status after approval",
 			"execution_id", executionID,
 			"phase", finalStatus.GetPhase().String(),
 			"phase_value", int32(finalStatus.GetPhase()),
@@ -323,7 +325,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 			"cycle", approvalCycle)
 	}
 
-	logger.Info("✅ Graphton execution completed - final status received",
+	logger.Info("Graphton execution completed - final status received",
 		"messages", len(finalStatus.GetMessages()),
 		"tool_calls", len(finalStatus.GetToolCalls()),
 		"phase", finalStatus.GetPhase().String(),
@@ -333,17 +335,16 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 	// as a fallback. The primary persistence path is the Python gRPC update_status
 	// call, but if that call failed (transient network issue, server down, etc.),
 	// the error would be silently lost because the activity returned successfully
-	// from Temporal's perspective. This ensures the failed state — including the
-	// error message — is always persisted and broadcast to subscribers.
+	// from Temporal's perspective. This ensures the failed state -- including the
+	// error message -- is always persisted and broadcast to subscribers.
 	if finalStatus.GetPhase() == agentexecutionv1.ExecutionPhase_EXECUTION_FAILED {
-		logger.Warn("Activity returned EXECUTION_FAILED — persisting as fallback",
+		logger.Warn("Activity returned EXECUTION_FAILED -- persisting as fallback",
 			"execution_id", executionID,
 			"error", finalStatus.GetError())
 
 		if err := w.persistFinalStatus(ctx, executionID, finalStatus); err != nil {
 			logger.Error("Failed to persist fallback FAILED status",
 				"execution_id", executionID, "error", err.Error())
-			// Not fatal: the Python gRPC path may have already persisted it.
 		}
 	}
 
@@ -363,13 +364,13 @@ func (w *InvokeAgentExecutionWorkflowImpl) waitForApprovalSignal(ctx workflow.Co
 	// Get signal channel for submitApproval
 	signalChan := workflow.GetSignalChannel(ctx, SignalSubmitApproval)
 
-	logger.Info("⏳ Waiting for submitApproval signal...", "execution_id", executionID)
+	logger.Info("Waiting for submitApproval signal...", "execution_id", executionID)
 
 	// Block until signal received
 	var approvalInput agentexecutionv1.SubmitApprovalInput
 	signalChan.Receive(ctx, &approvalInput)
 
-	logger.Info("📝 Received submitApproval signal",
+	logger.Info("Received submitApproval signal",
 		"execution_id", executionID,
 		"tool_call_id", approvalInput.GetToolCallId(),
 		"action", approvalInput.GetAction().String())
@@ -394,7 +395,6 @@ func (w *InvokeAgentExecutionWorkflowImpl) wrapActivityError(activityName string
 	if errors.As(err, &timeoutErr) {
 		switch timeoutErr.TimeoutType() {
 		case enums.TIMEOUT_TYPE_SCHEDULE_TO_START:
-			// SCHEDULE_TO_START timeout: Worker not available or failed to start
 			return fmt.Errorf(
 				"activity '%s' failed: No worker available to execute activity. "+
 					"This usually means:\n"+
@@ -405,7 +405,6 @@ func (w *InvokeAgentExecutionWorkflowImpl) wrapActivityError(activityName string
 				activityName, err,
 			)
 		case enums.TIMEOUT_TYPE_HEARTBEAT:
-			// HEARTBEAT timeout: Worker died or stopped sending progress
 			return fmt.Errorf(
 				"activity '%s' failed: Activity stopped sending heartbeat (worker may have crashed). "+
 					"Check agent-runner logs for errors. "+
@@ -413,7 +412,6 @@ func (w *InvokeAgentExecutionWorkflowImpl) wrapActivityError(activityName string
 				activityName, err,
 			)
 		case enums.TIMEOUT_TYPE_START_TO_CLOSE:
-			// START_TO_CLOSE timeout: Activity took too long
 			return fmt.Errorf(
 				"activity '%s' failed: Activity execution timed out. "+
 					"The activity started but did not complete within the timeout period. "+
@@ -422,7 +420,6 @@ func (w *InvokeAgentExecutionWorkflowImpl) wrapActivityError(activityName string
 				activityName, err,
 			)
 		default:
-			// Other timeout types
 			return fmt.Errorf(
 				"activity '%s' failed with timeout (type: %s). "+
 					"Check agent-runner logs for details. "+
@@ -510,7 +507,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) updateStatusOnFailure(ctx workflow.Co
 		return err
 	}
 
-	logger.Info("✅ Updated execution status to FAILED", "execution_id", executionID)
+	logger.Info("Updated execution status to FAILED", "execution_id", executionID)
 	return nil
 }
 
@@ -539,10 +536,33 @@ func (w *InvokeAgentExecutionWorkflowImpl) persistFinalStatus(ctx workflow.Conte
 		return err
 	}
 
-	logger.Info("✅ Persisted final status via fallback",
+	logger.Info("Persisted final status via fallback",
 		"execution_id", executionID,
 		"phase", status.GetPhase().String())
 	return nil
+}
+
+// loadExecution loads the current AgentExecution from the store via local activity.
+//
+// Used before completing an external activity (callback token pattern) to ensure
+// the result reflects the completion-time state rather than a stale creation-time
+// snapshot.
+func (w *InvokeAgentExecutionWorkflowImpl) loadExecution(ctx workflow.Context, executionID string) (*agentexecutionv1.AgentExecution, error) {
+	localCtx := workflow.WithLocalActivityOptions(ctx, workflow.LocalActivityOptions{
+		ScheduleToCloseTimeout: 30 * time.Second,
+		RetryPolicy: &temporal.RetryPolicy{
+			MaximumAttempts: 3,
+			InitialInterval: 2 * time.Second,
+		},
+	})
+
+	var execution agentexecutionv1.AgentExecution
+	err := workflow.ExecuteLocalActivity(localCtx, activities.LoadAgentExecutionActivityName, executionID).Get(localCtx, &execution)
+	if err != nil {
+		return nil, fmt.Errorf("load execution %s: %w", executionID, err)
+	}
+
+	return &execution, nil
 }
 
 // completeExternalActivity completes an external Temporal activity using the callback token.
@@ -568,18 +588,18 @@ func (w *InvokeAgentExecutionWorkflowImpl) completeExternalActivity(
 	logger := workflow.GetLogger(ctx)
 
 	if len(callbackToken) == 0 {
-		logger.Warn("⚠️ completeExternalActivity called with empty token - skipping")
+		logger.Warn("completeExternalActivity called with empty token - skipping")
 		return nil
 	}
 
-	logger.Info("📞 Completing external activity via system activity",
+	logger.Info("Completing external activity via system activity",
 		"token_length", len(callbackToken),
 		"has_result", result != nil,
 		"has_error", err != nil)
 
 	// Create activity options with appropriate timeouts
 	activityCtx := workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
-		StartToCloseTimeout: 1 * time.Minute, // System activity should be fast
+		StartToCloseTimeout: 1 * time.Minute,
 		RetryPolicy: &temporal.RetryPolicy{
 			MaximumAttempts: 3,
 			InitialInterval: 1 * time.Second,
@@ -595,11 +615,11 @@ func (w *InvokeAgentExecutionWorkflowImpl) completeExternalActivity(
 
 	completionErr := workflow.ExecuteActivity(activityCtx, activities.CompleteExternalActivityName, input).Get(activityCtx, nil)
 	if completionErr != nil {
-		logger.Error("❌ System activity failed to complete external activity",
+		logger.Error("System activity failed to complete external activity",
 			"error", completionErr.Error())
 		return completionErr
 	}
 
-	logger.Info("✅ External activity completed successfully")
+	logger.Info("External activity completed successfully")
 	return nil
 }
