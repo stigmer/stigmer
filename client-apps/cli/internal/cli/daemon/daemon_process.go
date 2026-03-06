@@ -31,6 +31,12 @@ const (
 	// start is treated as a structural failure (e.g. missing dependency,
 	// bad config) and is not retried.
 	rapidCrashWindow = 5 * time.Second
+
+	// maxUnhealthyChecks is the number of consecutive health-check failures
+	// (process alive but gRPC port not responding) before the daemon kills
+	// the component and attempts a restart. At 10s per check this gives the
+	// component ~30s to recover on its own.
+	maxUnhealthyChecks = 3
 )
 
 // HealthState is written atomically by the daemon process and read by the
@@ -61,6 +67,96 @@ type managedComponent struct {
 	// startFn creates and starts a new instance of this component.
 	// It returns the exec.Cmd so the daemon can track the PID.
 	startFn func() (*exec.Cmd, error)
+
+	// exited is closed when cmd.Wait() returns, confirming the child
+	// has truly terminated and been reaped (no zombie).
+	exited chan struct{}
+
+	// exitErr stores the result of cmd.Wait().
+	exitErr error
+
+	// unhealthyCount tracks consecutive failed gRPC health checks.
+	// Reset to 0 on recovery. Used to escalate to kill-and-restart.
+	unhealthyCount int
+}
+
+// hasExited reports whether the child process has terminated.
+// It is safe to call concurrently and never blocks.
+func (c *managedComponent) hasExited() bool {
+	if c.exited == nil {
+		return true
+	}
+	select {
+	case <-c.exited:
+		return true
+	default:
+		return false
+	}
+}
+
+// waitForExit blocks until the child process terminates, then closes the
+// exited channel so that hasExited returns true. Calling cmd.Wait also
+// reaps the child, preventing zombie accumulation.
+func (c *managedComponent) waitForExit() {
+	c.exitErr = c.cmd.Wait()
+	close(c.exited)
+}
+
+// killAndWait sends SIGTERM and waits for the child to exit. If it does
+// not exit within gracefulStopTimeout, SIGKILL is sent as a last resort.
+func (c *managedComponent) killAndWait() {
+	if c.cmd == nil || c.cmd.Process == nil {
+		return
+	}
+	log.Info().Str("component", c.name).Int("pid", c.cmd.Process.Pid).Msg("Sending SIGTERM for restart")
+	_ = c.cmd.Process.Signal(syscall.SIGTERM)
+	select {
+	case <-c.exited:
+		return
+	case <-time.After(gracefulStopTimeout):
+		log.Warn().Str("component", c.name).Int("pid", c.cmd.Process.Pid).Msg("Graceful stop timed out, sending SIGKILL")
+		_ = c.cmd.Process.Kill()
+		<-c.exited
+	}
+}
+
+// restartComponent stops the old instance (if still running), invokes startFn,
+// and wires up a new waitForExit goroutine. It returns true on success. On
+// failure the component is marked "failed" and the caller should skip it in
+// subsequent health checks.
+func (c *managedComponent) restartComponent() bool {
+	_ = os.Remove(c.pidFile)
+	c.state.RestartCount++
+
+	cmd, err := c.startFn()
+	if err != nil {
+		c.state.State = "failed"
+		c.state.LastError = err.Error()
+		log.Error().Err(err).Str("component", c.name).Msg("Failed to restart component")
+		return false
+	}
+
+	c.cmd = cmd
+	c.exited = make(chan struct{})
+	c.exitErr = nil
+	c.unhealthyCount = 0
+	go c.waitForExit()
+
+	c.state.PID = cmd.Process.Pid
+	c.state.State = "running"
+	c.state.StartedAt = time.Now()
+	c.state.LastError = ""
+
+	if writeErr := os.WriteFile(c.pidFile, []byte(strconv.Itoa(cmd.Process.Pid)), 0644); writeErr != nil {
+		log.Warn().Err(writeErr).Str("component", c.name).Msg("Failed to write PID file after restart")
+	}
+
+	log.Info().
+		Str("component", c.name).
+		Int("pid", cmd.Process.Pid).
+		Int("restart_count", c.state.RestartCount).
+		Msg("Component restarted")
+	return true
 }
 
 // RunDaemonProcess is the entry point for `stigmer internal-daemon`.
@@ -155,6 +251,9 @@ func RunDaemonProcess() error {
 		}
 
 		c.cmd = cmd
+		c.exited = make(chan struct{})
+		go c.waitForExit()
+
 		c.state.PID = cmd.Process.Pid
 		c.state.State = "running"
 		c.state.StartedAt = time.Now()
@@ -191,10 +290,10 @@ func RunDaemonProcess() error {
 		if c.cmd == nil {
 			continue
 		}
-		if !isProcessAlive(c.cmd.Process.Pid) {
+		if c.hasExited() {
 			c.state.State = "failed"
 			c.state.LastError = "crashed during startup"
-			log.Error().Str("component", c.name).Int("pid", c.cmd.Process.Pid).Msg("Component crashed during startup")
+			log.Error().Str("component", c.name).Int("pid", c.state.PID).Msg("Component crashed during startup")
 		}
 	}
 	writeHealthState(dataDir, hs)
@@ -221,10 +320,11 @@ func RunDaemonProcess() error {
 	// Graceful shutdown: stop children in reverse order
 	for i := len(components) - 1; i >= 0; i-- {
 		c := components[i]
-		if c.cmd == nil || !isProcessAlive(c.cmd.Process.Pid) {
+		if c.cmd == nil || c.hasExited() {
 			continue
 		}
-		stopProcess(c.name, c.cmd.Process.Pid)
+		log.Info().Str("component", c.name).Int("pid", c.state.PID).Msg("Stopping component")
+		c.killAndWait()
 		_ = os.Remove(c.pidFile)
 		c.state.State = "stopped"
 	}
@@ -355,9 +455,12 @@ func startChildProcess(bin string, args []string, logDir, name string, env []str
 }
 
 // startChildProcessWithDir starts a child process in the given working directory.
+// Each child is placed in its own process group (Setpgid) so that signals
+// delivered to the daemon's original group do not inadvertently reach children.
 func startChildProcessWithDir(bin string, args []string, dir, logDir, name string, env []string) (*exec.Cmd, error) {
 	cmd := exec.Command(bin, args...)
 	cmd.Env = env
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	if dir != "" {
 		cmd.Dir = dir
 	}
@@ -375,9 +478,6 @@ func startChildProcessWithDir(bin string, args []string, dir, logDir, name strin
 		out.Close()
 		return nil, errors.Wrapf(err, "failed to start %s", name)
 	}
-
-	// Let the file stay open — the child process writes to it.
-	// The OS will close it when the process exits.
 
 	return cmd, nil
 }
@@ -414,71 +514,46 @@ func runHealthMonitor(ctx context.Context, dataDir string, grpcPort int, compone
 					continue
 				}
 
-				alive := isProcessAlive(c.cmd.Process.Pid)
+				if c.hasExited() {
+					// Process is confirmed dead and reaped.
+					log.Warn().Str("component", c.name).Int("pid", c.state.PID).Msg("Component exited, attempting restart")
+					tryRestart(c)
+					continue
+				}
 
-				if alive && c.name == "stigmer-server" {
-					conn, err := net.DialTimeout("tcp", grpcAddr, 500*time.Millisecond)
-					if err != nil {
-						c.state.State = "unhealthy"
-						c.state.LastError = "process alive but gRPC port not responding"
-						log.Warn().Str("component", c.name).Str("addr", grpcAddr).Msg("Process alive but gRPC port not responding")
+				// Process is alive. For stigmer-server, probe the gRPC port.
+				if c.name == "stigmer-server" {
+					conn, dialErr := net.DialTimeout("tcp", grpcAddr, 500*time.Millisecond)
+					if dialErr != nil {
+						c.unhealthyCount++
+						log.Warn().
+							Str("component", c.name).
+							Str("addr", grpcAddr).
+							Int("consecutive_failures", c.unhealthyCount).
+							Msg("gRPC port not responding")
+
+						if c.unhealthyCount >= maxUnhealthyChecks {
+							log.Error().
+								Str("component", c.name).
+								Int("consecutive_failures", c.unhealthyCount).
+								Msg("Unhealthy threshold exceeded, killing component for restart")
+							c.killAndWait()
+							tryRestart(c)
+						} else {
+							c.state.State = "unhealthy"
+							c.state.LastError = "gRPC port not responding"
+						}
 						continue
 					}
 					conn.Close()
-					if c.state.State == "unhealthy" {
+					if c.unhealthyCount > 0 || c.state.State == "unhealthy" {
+						c.unhealthyCount = 0
 						c.state.State = "running"
 						c.state.LastError = ""
 						log.Info().Str("component", c.name).Msg("Component recovered — gRPC port responding again")
 					}
 					continue
 				}
-
-				if alive {
-					continue
-				}
-
-				log.Warn().Str("component", c.name).Int("pid", c.cmd.Process.Pid).Msg("Component is not alive, attempting restart")
-
-				// If the component crashed almost immediately after starting,
-				// it's likely a structural problem that restarts won't fix.
-				if !c.state.StartedAt.IsZero() && time.Since(c.state.StartedAt) < rapidCrashWindow {
-					c.state.State = "failed"
-					c.state.LastError = "crashed immediately after start (likely a configuration or dependency error)"
-					log.Error().
-						Str("component", c.name).
-						Dur("uptime", time.Since(c.state.StartedAt)).
-						Msg("Component crashed too quickly, marking as failed without retry")
-					continue
-				}
-
-				if c.state.RestartCount >= maxRestarts {
-					c.state.State = "failed"
-					c.state.LastError = fmt.Sprintf("exceeded max restarts (%d)", maxRestarts)
-					log.Error().Str("component", c.name).Int("restarts", c.state.RestartCount).Msg("Component exceeded max restarts, marking as failed")
-					continue
-				}
-
-				_ = os.Remove(c.pidFile)
-				c.state.RestartCount++
-
-				cmd, startErr := c.startFn()
-				if startErr != nil {
-					c.state.State = "failed"
-					c.state.LastError = startErr.Error()
-					log.Error().Err(startErr).Str("component", c.name).Msg("Failed to restart component")
-					continue
-				}
-
-				c.cmd = cmd
-				c.state.PID = cmd.Process.Pid
-				c.state.State = "running"
-				c.state.StartedAt = time.Now()
-
-				if err := os.WriteFile(c.pidFile, []byte(strconv.Itoa(cmd.Process.Pid)), 0644); err != nil {
-					log.Warn().Err(err).Str("component", c.name).Msg("Failed to write PID file after restart")
-				}
-
-				log.Info().Str("component", c.name).Int("pid", cmd.Process.Pid).Int("restart_count", c.state.RestartCount).Msg("Component restarted")
 			}
 
 			writeHealthState(dataDir, hs)
@@ -486,34 +561,30 @@ func runHealthMonitor(ctx context.Context, dataDir string, grpcPort int, compone
 	}
 }
 
-// stopProcess sends SIGTERM to a process and waits for it to exit.
-// Falls back to SIGKILL after the graceful timeout.
-func stopProcess(name string, pid int) {
-	process, err := os.FindProcess(pid)
-	if err != nil {
+// tryRestart applies restart-eligibility checks (rapid crash, max restarts)
+// and calls restartComponent if the component is eligible.
+func tryRestart(c *managedComponent) {
+	if !c.state.StartedAt.IsZero() && time.Since(c.state.StartedAt) < rapidCrashWindow {
+		c.state.State = "failed"
+		c.state.LastError = "crashed immediately after start (likely a configuration or dependency error)"
+		log.Error().
+			Str("component", c.name).
+			Dur("uptime", time.Since(c.state.StartedAt)).
+			Msg("Component crashed too quickly, marking as failed without retry")
 		return
 	}
 
-	log.Info().Str("component", name).Int("pid", pid).Msg("Sending SIGTERM")
-	_ = process.Signal(syscall.SIGTERM)
-
-	deadline := time.After(gracefulStopTimeout)
-	tick := time.NewTicker(200 * time.Millisecond)
-	defer tick.Stop()
-
-	for {
-		select {
-		case <-deadline:
-			log.Warn().Str("component", name).Int("pid", pid).Msg("Graceful stop timed out, sending SIGKILL")
-			_ = process.Kill()
-			return
-		case <-tick.C:
-			if !isProcessAlive(pid) {
-				log.Info().Str("component", name).Int("pid", pid).Msg("Component stopped")
-				return
-			}
-		}
+	if c.state.RestartCount >= maxRestarts {
+		c.state.State = "failed"
+		c.state.LastError = fmt.Sprintf("exceeded max restarts (%d)", maxRestarts)
+		log.Error().
+			Str("component", c.name).
+			Int("restarts", c.state.RestartCount).
+			Msg("Component exceeded max restarts, marking as failed")
+		return
 	}
+
+	c.restartComponent()
 }
 
 // writeHealthState atomically writes the health state file.
