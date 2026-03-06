@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/mdrender"
 )
 
 // ---------------------------------------------------------------------------
@@ -27,6 +28,18 @@ import (
 
 func (r *inlineRenderer) renderAIStreamStart(e executiontui.AIStreamStartEvent) {
 	r.finishAIStreamIfNeeded()
+
+	// Emit a leading gap when the previous scrollback item requires one
+	// (e.g. a tool completion). Without this, the first partial content
+	// shown live in Bubbletea's View() appears flush against the tool
+	// block because the transient area bypasses writeToScrollback's gap
+	// logic. Writing the gap here ensures it is visible immediately and
+	// prevents a double gap when commitAIStreamLines later runs
+	// needsLeadingGap (which checks r.lastScrollbackKind).
+	if needsLeadingGap(r.lastScrollbackKind, kindAIStreamLine) {
+		r.statusf("\n")
+		r.lastScrollbackKind = kindAIStreamLine
+	}
 
 	prefix := r.agentPrefix(e.SubAgentID)
 	r.streamedBytes = len(e.Content)
@@ -135,6 +148,19 @@ func (r *inlineRenderer) renderAIStreamEnd(e executiontui.AIStreamEndEvent) {
 	r.inAIStream = false
 	r.streamedBytes = 0
 	r.recordAIMessage(e.Content, e.SubAgentID)
+
+	// During streaming, complete lines are committed as raw text
+	// (kindAIStreamLine). recordAIMessage stores a glamour-rendered
+	// version in history. When the content contains markdown, trigger a
+	// re-commit so the raw scrollback lines are atomically replaced with
+	// the rendered version. This reuses the same re-commit path as the
+	// Ctrl+O expand toggle.
+	// Reset lastScrollbackKind from history so subsequent gap decisions
+	// remain correct after the redraw.
+	if r.cfg.program != nil && mdrender.HasMarkdown(e.Content) {
+		r.lastScrollbackKind = lastKindFromHistory(r.history)
+		r.triggerReCommit()
+	}
 }
 
 func (r *inlineRenderer) renderAIMessage(e executiontui.AIMessageEvent) {
