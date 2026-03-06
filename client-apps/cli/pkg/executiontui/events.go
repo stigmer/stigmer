@@ -207,9 +207,6 @@ type SubAgentStartedEvent struct {
 	ID string
 	// Name is the human-readable sub-agent type (e.g., "researcher", "code_editor").
 	Name string
-	// Input is the full task prompt given to the sub-agent. Shown in the
-	// expanded view of the sub-agent header block.
-	Input string
 	// Description is a concise (3-5 word) summary of the task, extracted
 	// from the task tool's "description" arg via SubAgentExecution.metadata.
 	Description string

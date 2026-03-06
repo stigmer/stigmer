@@ -216,10 +216,20 @@ func (r *inlineRenderer) renderStreamDeltaUncapped(content, newBytes string) {
 // prints the final compact result via commitToScrollback (which appends
 // to history and renders with unified spacing).
 func (r *inlineRenderer) completeStreamingTool(e executiontui.ToolCompletedEvent) {
+	subAgentID := r.streamSubAgentID
 	item := committedItem{
 		kind:       kindToolCompact,
 		toolCalls:  []toolrender.ToolCallInfo{e.ToolCall},
-		subAgentID: r.streamSubAgentID,
+		subAgentID: subAgentID,
+	}
+
+	if r.hasActiveSubAgent(subAgentID) {
+		r.appendToSubAgentBlock(subAgentID, item, true)
+		r.clearStreamingState()
+		if r.cfg.program != nil {
+			r.triggerReCommit()
+		}
+		return
 	}
 
 	if r.cfg.program != nil {

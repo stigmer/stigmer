@@ -69,6 +69,13 @@ type inlineBubbleModel struct {
 	// visible above the input bar. Empty when no plan exists.
 	planDisplay string
 
+	// subAgentActive is true when a sub-agent is running and its live
+	// summary should be shown in View(). Cleared on subAgentHideMsg.
+	subAgentActive    bool
+	subAgentID        string
+	subAgentSubject   string
+	subAgentToolCount int
+
 	// Legacy follow-up state for the promptFollowUpViaKeyReader path
 	// (when Bubbletea does not own stdin). Not used when inputBarMode
 	// is inputBarDisabled or inputBarActive.
@@ -194,6 +201,12 @@ func (m inlineBubbleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.currentTask = msg.task
 		m.planDisplay = msg.planDisplay
 		return m, nil
+	case subAgentShowMsg:
+		return m.handleSubAgentShow(msg)
+	case subAgentUpdateMsg:
+		return m.handleSubAgentUpdate(msg)
+	case subAgentHideMsg:
+		return m.handleSubAgentHide(msg)
 	}
 	return m, nil
 }
@@ -225,6 +238,8 @@ func (m inlineBubbleModel) View() tea.View {
 		content = m.followUpContent
 	case m.aiStreamActive:
 		content = m.aiStreamPartial
+	case m.subAgentActive:
+		content = m.renderSubAgentLine()
 	case !m.spinnerActive:
 		content = ""
 	default:
@@ -310,6 +325,8 @@ func (m inlineBubbleModel) renderTransientContent() string {
 		return formatStreamingView(m.streamingHeader, m.streamingContent, m.streamingSubAgent)
 	case m.aiStreamActive:
 		return m.aiStreamPartial
+	case m.subAgentActive:
+		return m.renderSubAgentLine()
 	case m.spinnerActive:
 		return m.renderSpinnerLine()
 	default:
@@ -563,6 +580,48 @@ func (m inlineBubbleModel) handleAIStreamHide() (tea.Model, tea.Cmd) {
 }
 
 // ---------------------------------------------------------------------------
+// Sub-agent live summary handlers
+// ---------------------------------------------------------------------------
+
+func (m inlineBubbleModel) handleSubAgentShow(msg subAgentShowMsg) (tea.Model, tea.Cmd) {
+	m.subAgentActive = true
+	m.subAgentID = msg.id
+	m.subAgentSubject = msg.subject
+	m.subAgentToolCount = 0
+	return m, nil
+}
+
+func (m inlineBubbleModel) handleSubAgentUpdate(msg subAgentUpdateMsg) (tea.Model, tea.Cmd) {
+	if msg.id == m.subAgentID {
+		m.subAgentToolCount = msg.toolCount
+	}
+	return m, nil
+}
+
+func (m inlineBubbleModel) handleSubAgentHide(msg subAgentHideMsg) (tea.Model, tea.Cmd) {
+	if msg.id == m.subAgentID {
+		m.subAgentActive = false
+		m.subAgentID = ""
+		m.subAgentSubject = ""
+		m.subAgentToolCount = 0
+	}
+	return m, nil
+}
+
+// renderSubAgentLine returns the live sub-agent running summary.
+//
+//	"● Task: Explore CLI rendering code … (3 tools)"
+func (m inlineBubbleModel) renderSubAgentLine() string {
+	label := m.subAgentSubject
+	if label == "" {
+		label = "running"
+	}
+	return fmt.Sprintf("%s %s: %s %s (%d tools)",
+		toolrender.BulletGreen("●"), toolrender.LabelBold("Task"),
+		label, systemMsgStyle.Render("…"), m.subAgentToolCount)
+}
+
+// ---------------------------------------------------------------------------
 // Text input update handlers
 // ---------------------------------------------------------------------------
 
@@ -624,6 +683,8 @@ func (m inlineBubbleModel) handleReCommit(msg reCommitMsg) (tea.Model, tea.Cmd) 
 	m.aiStreamPartial = ""
 	m.followUpActive = false
 	m.followUpContent = ""
+	// Sub-agent live summary is not cleared — if a sub-agent is still
+	// running after re-commit, its summary reappears in View().
 	return m, buildReCommitCmd(msg.rendered)
 }
 

@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
 )
 
@@ -132,8 +133,6 @@ func TestRenderCommittedItem_TextKinds(t *testing.T) {
 		{"AIMessage", kindAIMessage},
 		{"HumanMessage", kindHumanMessage},
 		{"SystemMessage", kindSystemMessage},
-		{"SubAgentStart", kindSubAgentStart},
-		{"SubAgentComplete", kindSubAgentComplete},
 		{"PhaseChange", kindPhaseChange},
 		{"Text", kindText},
 	}
@@ -393,8 +392,15 @@ func TestRenderHistoryBatch_MatchesPerItemOutput(t *testing.T) {
 		}}},
 		{kind: kindHumanMessage, text: "Looks good, continue."},
 		{kind: kindSystemMessage, text: "Session checkpoint saved."},
-		{kind: kindSubAgentStart, text: "● Task: Update tests"},
-		{kind: kindSubAgentComplete, text: "  ✓ Done (3 tools)"},
+		{kind: kindSubAgentBlock, saBlock: &subAgentBlock{
+			id: "sa-1", name: "researcher", subject: "Update tests",
+			status: "completed", toolCount: 3,
+			children: []committedItem{
+				{kind: kindToolCompact, toolCalls: []toolrender.ToolCallInfo{{
+					Name: "read_file", Args: map[string]interface{}{"path": "test.go"},
+				}}, subAgentID: "sa-1"},
+			},
+		}},
 		{kind: kindPhaseChange, text: "Execution completed"},
 		{kind: kindText, text: "Error: connection reset"},
 	}
@@ -524,8 +530,15 @@ func TestCommitToScrollback_MatchesRecommit(t *testing.T) {
 		}}},
 		{kind: kindHumanMessage, text: "Looks good, continue."},
 		{kind: kindSystemMessage, text: "Session checkpoint saved."},
-		{kind: kindSubAgentStart, text: "● Task: Update tests"},
-		{kind: kindSubAgentComplete, text: "  ✓ Done (3 tools)"},
+		{kind: kindSubAgentBlock, saBlock: &subAgentBlock{
+			id: "sa-1", name: "researcher", subject: "Update tests",
+			status: "completed", toolCount: 3,
+			children: []committedItem{
+				{kind: kindToolCompact, toolCalls: []toolrender.ToolCallInfo{{
+					Name: "read_file", Args: map[string]interface{}{"path": "test.go"},
+				}}, subAgentID: "sa-1"},
+			},
+		}},
 		{kind: kindTodoUpdate, text: "Plan:\n  [-] Step one\n  [ ] Step two"},
 		{kind: kindPhaseChange, text: "Execution completed"},
 		{kind: kindText, text: "Error: connection reset"},
@@ -562,7 +575,7 @@ func TestNeedsTrailingGap(t *testing.T) {
 	// Default-true: most kinds get a trailing gap for consistent spacing.
 	gapKinds := []committedKind{
 		kindAIMessage, kindHumanMessage, kindSystemMessage,
-		kindSubAgentComplete, kindSubAgentStart, kindPhaseChange,
+		kindSubAgentBlock, kindPhaseChange,
 		kindApproval, kindText,
 	}
 	for _, k := range gapKinds {
@@ -701,4 +714,194 @@ func TestCommitStreamEndGap(t *testing.T) {
 		"commitStreamEndGap should set lastScrollbackKind to kindAIMessage")
 	assert.Equal(t, "\n", buf.String(),
 		"commitStreamEndGap should emit trailing gap for kindAIMessage")
+}
+
+// =============================================================================
+// Sub-agent block rendering
+// =============================================================================
+
+func TestRenderSubAgentBlockItem_Collapsed(t *testing.T) {
+	block := &subAgentBlock{
+		id: "sa-1", name: "researcher", subject: "Explore CLI rendering",
+		status: "completed", toolCount: 5,
+	}
+	item := committedItem{kind: kindSubAgentBlock, saBlock: block}
+
+	result := renderCommittedItem(item, toolrender.CompactOptions{}, false)
+
+	assert.Contains(t, result, "Task")
+	assert.Contains(t, result, "Explore CLI rendering")
+	assert.Contains(t, result, "✓ Done")
+	assert.Contains(t, result, "5 tools")
+	assert.NotContains(t, result, "│", "collapsed view should not show gutter-wrapped children")
+}
+
+func TestRenderSubAgentBlockItem_Collapsed_Failed(t *testing.T) {
+	block := &subAgentBlock{
+		id: "sa-1", name: "researcher", subject: "Fix auth tests",
+		status: "failed", toolCount: 3,
+	}
+	item := committedItem{kind: kindSubAgentBlock, saBlock: block}
+
+	result := renderCommittedItem(item, toolrender.CompactOptions{}, false)
+
+	assert.Contains(t, result, "✗ Failed")
+	assert.Contains(t, result, "3 tools")
+}
+
+func TestRenderSubAgentBlockItem_Expanded_ShowsChildren(t *testing.T) {
+	block := &subAgentBlock{
+		id: "sa-1", name: "researcher", subject: "Explore CLI rendering",
+		status: "completed", toolCount: 2,
+		children: []committedItem{
+			{kind: kindToolCompact, subAgentID: "sa-1", toolCalls: []toolrender.ToolCallInfo{{
+				Name: "read_file", Args: map[string]interface{}{"path": "main.go"},
+			}}},
+			{kind: kindToolCompact, subAgentID: "sa-1", toolCalls: []toolrender.ToolCallInfo{{
+				Name: "shell", Args: map[string]interface{}{"command": "ls"},
+			}}},
+		},
+	}
+	item := committedItem{kind: kindSubAgentBlock, saBlock: block}
+
+	result := renderCommittedItem(item, toolrender.CompactOptions{}, true)
+
+	assert.Contains(t, result, "Task")
+	assert.Contains(t, result, "Explore CLI rendering")
+	assert.Contains(t, result, "│", "expanded view should show gutter-wrapped children")
+	assert.Contains(t, result, "main.go")
+	assert.Contains(t, result, "✓ Done")
+}
+
+func TestRenderSubAgentBlockItem_NilBlock(t *testing.T) {
+	item := committedItem{kind: kindSubAgentBlock}
+	result := renderCommittedItem(item, toolrender.CompactOptions{}, false)
+	assert.Equal(t, "", result)
+}
+
+func TestRenderSubAgentBlockItem_FallbackToName(t *testing.T) {
+	block := &subAgentBlock{
+		id: "sa-1", name: "code_editor", subject: "",
+		status: "completed", toolCount: 1,
+	}
+	item := committedItem{kind: kindSubAgentBlock, saBlock: block}
+
+	result := renderCommittedItem(item, toolrender.CompactOptions{}, false)
+	assert.Contains(t, result, "code_editor")
+}
+
+// =============================================================================
+// Sub-agent block event routing
+// =============================================================================
+
+func TestAppendToSubAgentBlock_ToolCompletion(t *testing.T) {
+	var buf bytes.Buffer
+	r := &inlineRenderer{
+		cfg:             inlineRenderConfig{status: &buf},
+		activeSubAgents: make(map[string]*subAgentBlock),
+	}
+
+	block := &subAgentBlock{id: "sa-1", name: "researcher", subject: "test"}
+	r.activeSubAgents["sa-1"] = block
+
+	item := committedItem{
+		kind:       kindToolCompact,
+		subAgentID: "sa-1",
+		toolCalls:  []toolrender.ToolCallInfo{{Name: "read_file"}},
+	}
+	r.appendToSubAgentBlock("sa-1", item, true)
+
+	assert.Len(t, block.children, 1)
+	assert.Equal(t, 1, block.toolCount)
+	assert.Equal(t, "", buf.String(), "should not write to scrollback")
+}
+
+func TestAppendToSubAgentBlock_AIMessage(t *testing.T) {
+	var buf bytes.Buffer
+	r := &inlineRenderer{
+		cfg:             inlineRenderConfig{status: &buf},
+		activeSubAgents: make(map[string]*subAgentBlock),
+	}
+
+	block := &subAgentBlock{id: "sa-1", name: "researcher", subject: "test"}
+	r.activeSubAgents["sa-1"] = block
+
+	item := committedItem{
+		kind:       kindAIMessage,
+		text:       "intermediate reasoning",
+		subAgentID: "sa-1",
+	}
+	r.appendToSubAgentBlock("sa-1", item, false)
+
+	assert.Len(t, block.children, 1)
+	assert.Equal(t, 0, block.toolCount, "AI messages should not increment tool count")
+}
+
+func TestFlushPendingReads_RoutesToSubAgentBlock(t *testing.T) {
+	var buf bytes.Buffer
+	r := &inlineRenderer{
+		cfg:             inlineRenderConfig{status: &buf},
+		activeSubAgents: make(map[string]*subAgentBlock),
+	}
+
+	block := &subAgentBlock{id: "sa-1", name: "researcher", subject: "test"}
+	r.activeSubAgents["sa-1"] = block
+
+	for i := 0; i < 3; i++ {
+		r.pendingReads = append(r.pendingReads, pendingRead{
+			tc:         toolrender.ToolCallInfo{Name: "read_file", Args: map[string]interface{}{"path": fmt.Sprintf("f%d.go", i)}},
+			subAgentID: "sa-1",
+		})
+	}
+	r.flushPendingReads()
+
+	assert.Len(t, block.children, 1, "reads should be grouped as single child")
+	assert.Equal(t, 3, block.toolCount)
+	assert.Equal(t, "", buf.String(), "should not write to scrollback")
+}
+
+func TestHasActiveSubAgent(t *testing.T) {
+	r := &inlineRenderer{
+		activeSubAgents: make(map[string]*subAgentBlock),
+	}
+
+	assert.False(t, r.hasActiveSubAgent(""), "empty ID should return false")
+	assert.False(t, r.hasActiveSubAgent("sa-1"), "unknown ID should return false")
+
+	r.activeSubAgents["sa-1"] = &subAgentBlock{id: "sa-1"}
+	assert.True(t, r.hasActiveSubAgent("sa-1"), "active ID should return true")
+}
+
+func TestRenderToolCompleted_RoutesToBlock(t *testing.T) {
+	var buf bytes.Buffer
+	r := &inlineRenderer{
+		cfg:             inlineRenderConfig{status: &buf},
+		activeSubAgents: make(map[string]*subAgentBlock),
+	}
+
+	block := &subAgentBlock{id: "sa-1", name: "researcher", subject: "test"}
+	r.activeSubAgents["sa-1"] = block
+
+	r.renderToolCompleted(executiontui.ToolCompletedEvent{
+		SubAgentID: "sa-1",
+		ToolCall:   toolrender.ToolCallInfo{Name: "shell", Args: map[string]interface{}{"command": "ls"}},
+	})
+
+	assert.Len(t, block.children, 1)
+	assert.Equal(t, 1, block.toolCount)
+	assert.Equal(t, "", buf.String(), "sub-agent tool should not write to scrollback")
+}
+
+func TestRenderToolCompleted_NoBlock_WritesToScrollback(t *testing.T) {
+	var buf bytes.Buffer
+	r := &inlineRenderer{
+		cfg:             inlineRenderConfig{status: &buf},
+		activeSubAgents: make(map[string]*subAgentBlock),
+	}
+
+	r.renderToolCompleted(executiontui.ToolCompletedEvent{
+		ToolCall: toolrender.ToolCallInfo{Name: "shell", Args: map[string]interface{}{"command": "ls"}},
+	})
+
+	assert.NotEqual(t, "", buf.String(), "non-sub-agent tool should write to scrollback")
 }

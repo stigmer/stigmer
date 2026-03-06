@@ -1,6 +1,7 @@
 package root
 
 import (
+	"fmt"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -107,19 +108,18 @@ func renderHistoryBatch(items []committedItem, opts toolrender.CompactOptions, e
 type committedKind int
 
 const (
-	kindHeader          committedKind = iota // session header panel (mutable subject)
-	kindToolCompact                          // single tool call completion
-	kindReadGroup                            // grouped read completions (>= readGroupThreshold)
-	kindApproval                             // post-approval collapsed result
-	kindAIMessage                            // complete AI message (main or sub-agent)
-	kindHumanMessage                         // styled human/user message
-	kindSystemMessage                        // system message (dimmed)
-	kindSubAgentStart                        // sub-agent lifecycle: started
-	kindSubAgentComplete                     // sub-agent lifecycle: completed/failed
-	kindTodoUpdate                           // plan/todo list snapshot
-	kindPhaseChange                          // execution phase transition
-	kindText                                 // generic pre-rendered text
-	kindAIStreamLine                         // single line committed during AI streaming (not stored in history)
+	kindHeader        committedKind = iota // session header panel (mutable subject)
+	kindToolCompact                        // single tool call completion
+	kindReadGroup                          // grouped read completions (>= readGroupThreshold)
+	kindApproval                           // post-approval collapsed result
+	kindAIMessage                          // complete AI message (main or sub-agent)
+	kindHumanMessage                       // styled human/user message
+	kindSystemMessage                      // system message (dimmed)
+	kindSubAgentBlock                      // collapsed sub-agent block (aggregate of internal events)
+	kindTodoUpdate                         // plan/todo list snapshot
+	kindPhaseChange                        // execution phase transition
+	kindText                               // generic pre-rendered text
+	kindAIStreamLine                       // single line committed during AI streaming (not stored in history)
 )
 
 // lastKindFromHistory returns the committedKind of the last non-empty
@@ -164,6 +164,11 @@ type committedItem struct {
 	// updated when the backend resolves the session subject.
 	header *sessionHeaderInfo
 
+	// saBlock holds the sub-agent aggregate for kindSubAgentBlock items.
+	// Contains the sub-agent's identity, status, and all internal events
+	// (children) for collapsed/expanded rendering.
+	saBlock *subAgentBlock
+
 	// action is the approval decision string ("approve", "skip", "reject")
 	// for kindApproval items.
 	action string
@@ -187,6 +192,8 @@ func renderCommittedItem(item committedItem, opts toolrender.CompactOptions, exp
 		return renderReadGroupItem(item, opts, expanded)
 	case kindApproval:
 		return renderApprovalItem(item, opts)
+	case kindSubAgentBlock:
+		return renderSubAgentBlockItem(item, opts, expanded)
 	case kindTodoUpdate:
 		// The plan is rendered exclusively in the composed View() (via
 		// planDisplay) so it is always visible above the input bar. Skip
@@ -271,6 +278,76 @@ func renderApprovalItem(item committedItem, opts toolrender.CompactOptions) stri
 		result = toolrender.GutterWrap(result)
 	}
 	return result
+}
+
+// renderSubAgentBlockItem renders a completed sub-agent block.
+//
+// Collapsed (expanded == false): single summary line with status and tool count.
+//
+//	"● Task: Explore CLI rendering code ✓ Done (5 tools)"
+//	"● Task: Fix auth tests ✗ Failed (3 tools)"
+//
+// Expanded (expanded == true): header + gutter-wrapped children + footer.
+//
+//	"● Task: Explore CLI rendering code"
+//	"  │ ● Read(file1.go)"
+//	"  │     Read 125 lines"
+//	"  │ ..."
+//	"  ✓ Done (5 tools)"
+func renderSubAgentBlockItem(item committedItem, opts toolrender.CompactOptions, expanded bool) string {
+	block := item.saBlock
+	if block == nil {
+		return ""
+	}
+
+	label := block.subject
+	if label == "" {
+		label = block.name
+	}
+
+	header := fmt.Sprintf("%s %s: %s",
+		toolrender.BulletGreen("●"), toolrender.LabelBold("Task"), label)
+
+	if !expanded {
+		return renderSubAgentCollapsed(header, block)
+	}
+	return renderSubAgentExpanded(header, block, opts)
+}
+
+func renderSubAgentCollapsed(header string, block *subAgentBlock) string {
+	var suffix string
+	if block.status == "failed" {
+		suffix = fmt.Sprintf("✗ Failed (%d tools)", block.toolCount)
+	} else {
+		suffix = fmt.Sprintf("✓ Done (%d tools)", block.toolCount)
+	}
+	return header + " " + suffix
+}
+
+func renderSubAgentExpanded(header string, block *subAgentBlock, opts toolrender.CompactOptions) string {
+	var b strings.Builder
+	b.WriteString(header)
+
+	for _, child := range block.children {
+		text := renderCommittedItem(child, opts, true)
+		if text == "" {
+			continue
+		}
+		guttered := toolrender.GutterWrap(text)
+		b.WriteByte('\n')
+		b.WriteString(guttered)
+	}
+
+	var footer string
+	if block.status == "failed" {
+		footer = fmt.Sprintf("  ✗ Failed (%d tools)", block.toolCount)
+	} else {
+		footer = fmt.Sprintf("  ✓ Done (%d tools)", block.toolCount)
+	}
+	b.WriteByte('\n')
+	b.WriteString(footer)
+
+	return b.String()
 }
 
 // triggerReCommit pre-renders the full history into a single string and

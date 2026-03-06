@@ -136,27 +136,39 @@ func (r *inlineRenderer) formatCollapsedResult(tc toolrender.ToolCallInfo, actio
 }
 
 // printCollapsedResult renders the post-decision compact summary via
-// commitToScrollback. Used by the direct-write fallback and
-// non-interactive paths.
+// commitToScrollback. When the tool belongs to an active sub-agent block,
+// the item is appended to the block's children instead. Used by the
+// direct-write fallback and non-interactive paths.
 func (r *inlineRenderer) printCollapsedResult(tc toolrender.ToolCallInfo, action string, subAgentID string) {
-	r.commitToScrollback(committedItem{
+	item := committedItem{
 		kind:       kindApproval,
 		toolCalls:  []toolrender.ToolCallInfo{tc},
 		action:     action,
 		subAgentID: subAgentID,
-	})
+	}
+	if r.hasActiveSubAgent(subAgentID) {
+		r.appendToSubAgentBlock(subAgentID, item, true)
+	} else {
+		r.commitToScrollback(item)
+	}
 }
 
 // recordApproval appends a kindApproval item to history via recordToHistory.
-// Called from the Bubbletea path where formatCollapsedResult is used with
-// approvalHideMsg/streamingHideMsg and the display is handled by Bubbletea.
+// When the tool belongs to an active sub-agent block, the item is appended
+// to the block's children instead. Called from the Bubbletea path where
+// formatCollapsedResult is used with approvalHideMsg/streamingHideMsg.
 func (r *inlineRenderer) recordApproval(tc toolrender.ToolCallInfo, action string, subAgentID string) {
-	r.recordToHistory(committedItem{
+	item := committedItem{
 		kind:       kindApproval,
 		toolCalls:  []toolrender.ToolCallInfo{tc},
 		action:     action,
 		subAgentID: subAgentID,
-	})
+	}
+	if r.hasActiveSubAgent(subAgentID) {
+		r.appendToSubAgentBlock(subAgentID, item, true)
+	} else {
+		r.recordToHistory(item)
+	}
 }
 
 // trackSuppression records the tool call ID for ToolCompletedEvent

@@ -54,6 +54,7 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) renderResult {
 			PlatformDir:       cfg.platformDir,
 		},
 		suppressedToolIDs: make(map[string]bool),
+		activeSubAgents:   make(map[string]*subAgentBlock),
 		thinkTimer:        thinkTimer,
 		history:           initialHistory,
 	}
@@ -270,7 +271,7 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 	// ToolStreamDeltaEvent. Erases the streaming content and prints the
 	// final compact result. This interception runs before the main switch
 	// so the completion never reaches renderToolCompleted.
-	if e, ok := event.(executiontui.ToolCompletedEvent); ok && e.ToolCallID == r.activeStreamToolID {
+	if e, ok := event.(executiontui.ToolCompletedEvent); ok && r.activeStreamToolID != "" && e.ToolCallID == r.activeStreamToolID {
 		r.flushPendingReads()
 		r.completeStreamingTool(e)
 		return false, "", ""
@@ -328,10 +329,10 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 		return false, "", ""
 	}
 
-	// Sub-agent AI messages are intermediate reasoning — render on stderr
-	// with gutter prefix instead of stdout. We suppress Start/Delta and
-	// emit the full content on End/Message to avoid character-by-character
-	// streaming with per-line gutter insertion.
+	// Sub-agent AI messages are intermediate reasoning. When a sub-agent
+	// block is active, they are buffered in the block's children for
+	// expanded-mode rendering. Start/Delta events are suppressed; only
+	// the complete content (End/Message) is captured.
 	if e, ok := event.(executiontui.AIStreamStartEvent); ok && e.SubAgentID != "" {
 		return false, "", ""
 	}
@@ -342,7 +343,15 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 		r.flushPendingReads()
 		r.finishAIStreamIfNeeded()
 		if e.Content != "" {
-			r.statusf("%s\n", toolrender.GutterWrap(e.Content))
+			if r.hasActiveSubAgent(e.SubAgentID) {
+				r.appendToSubAgentBlock(e.SubAgentID, committedItem{
+					kind:       kindAIMessage,
+					text:       e.Content,
+					subAgentID: e.SubAgentID,
+				}, false)
+			} else {
+				r.statusf("%s\n", toolrender.GutterWrap(e.Content))
+			}
 		}
 		return false, "", ""
 	}
@@ -350,7 +359,15 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 		r.flushPendingReads()
 		r.finishAIStreamIfNeeded()
 		if e.Content != "" {
-			r.statusf("%s\n", toolrender.GutterWrap(e.Content))
+			if r.hasActiveSubAgent(e.SubAgentID) {
+				r.appendToSubAgentBlock(e.SubAgentID, committedItem{
+					kind:       kindAIMessage,
+					text:       e.Content,
+					subAgentID: e.SubAgentID,
+				}, false)
+			} else {
+				r.statusf("%s\n", toolrender.GutterWrap(e.Content))
+			}
 		}
 		return false, "", ""
 	}
