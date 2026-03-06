@@ -11,7 +11,7 @@ import (
 // AI message rendering
 //
 // When a Bubbletea program is active, AI text is routed entirely through
-// Bubbletea: complete lines are committed to scrollback via program.Println,
+// Bubbletea: complete lines are committed to scrollback via writeToScrollback,
 // and the partial (incomplete) line is shown live in View() via
 // aiStreamPartialMsg. This keeps Bubbletea's cursor tracking in sync and
 // eliminates the class of bugs caused by mixing direct stdout writes with
@@ -110,10 +110,10 @@ func (r *inlineRenderer) renderAIStreamEnd(e executiontui.AIStreamEndEvent) {
 			if r.aiStreamPrefix != "" {
 				line = r.aiStreamPrefix + line
 			}
-			r.cfg.program.Println(line)
+			r.writeToScrollback(kindAIStreamLine, line)
 		}
 		r.cfg.program.Send(aiStreamHideMsg{})
-		r.cfg.program.Println("")
+		r.commitStreamEndGap()
 		r.aiStreamBuffer = ""
 		r.aiStreamPrefix = ""
 
@@ -169,9 +169,8 @@ func (r *inlineRenderer) renderAIMessage(e executiontui.AIMessageEvent) {
 
 // finishAIStreamIfNeeded closes an in-progress AI stream when a non-AI
 // event arrives mid-stream. Commits any buffered partial line through
-// Bubbletea (when active) or stdout (fallback). A trailing blank line
-// is emitted to match the gap that commitToScrollback produces for
-// kindAIMessage (via needsTrailingGap).
+// writeToScrollback and emits the trailing gap that kindAIMessage would
+// produce (via commitStreamEndGap).
 func (r *inlineRenderer) finishAIStreamIfNeeded() {
 	if !r.inAIStream {
 		return
@@ -183,10 +182,10 @@ func (r *inlineRenderer) finishAIStreamIfNeeded() {
 			if r.aiStreamPrefix != "" {
 				line = r.aiStreamPrefix + line
 			}
-			r.cfg.program.Println(line)
+			r.writeToScrollback(kindAIStreamLine, line)
 		}
 		r.cfg.program.Send(aiStreamHideMsg{})
-		r.cfg.program.Println("")
+		r.commitStreamEndGap()
 		r.aiStreamBuffer = ""
 		r.aiStreamPrefix = ""
 
@@ -205,7 +204,7 @@ func (r *inlineRenderer) finishAIStreamIfNeeded() {
 
 // commitAIStreamLines scans the AI stream buffer for complete lines
 // (terminated by \n) and commits each one to terminal scrollback via
-// program.Println. The bullet prefix is applied to the first line only.
+// writeToScrollback. The bullet prefix is applied to the first line only.
 // The remaining partial line stays in the buffer for View() display.
 func (r *inlineRenderer) commitAIStreamLines() {
 	for {
@@ -218,7 +217,7 @@ func (r *inlineRenderer) commitAIStreamLines() {
 			line = r.aiStreamPrefix + line
 			r.aiStreamPrefix = ""
 		}
-		r.cfg.program.Println(line)
+		r.writeToScrollback(kindAIStreamLine, line)
 		r.aiStreamBuffer = r.aiStreamBuffer[idx+1:]
 	}
 }

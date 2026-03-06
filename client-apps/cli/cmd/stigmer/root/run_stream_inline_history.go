@@ -11,7 +11,7 @@ import (
 
 // needsTrailingGap reports whether a committed item kind requires a blank-line
 // gap after it. Used by both renderHistoryBatch (recommit) and
-// commitToScrollback (live) so that both codepaths produce identical spacing.
+// writeToScrollback (live) so that both codepaths produce identical spacing.
 //
 // Default is true (safe-by-default spacing). Only items that should stack
 // tightly opt out. This avoids the pattern where a new kind silently gets
@@ -20,11 +20,16 @@ func needsTrailingGap(kind committedKind) bool {
 	switch kind {
 	case kindHeader:
 		// Header has its own gap via a separate check in renderHistoryBatch
-		// and commitToScrollback. Including it here would double the gap.
+		// and writeToScrollback. Including it here would double the gap.
 		return false
 	case kindToolCompact, kindReadGroup:
 		// Tool operations stack densely — consecutive reads, shell calls,
 		// etc. look best without blank lines between them.
+		return false
+	case kindAIStreamLine:
+		// Individual streaming lines stack tightly within one AI message.
+		// The trailing gap for the message as a whole is emitted after the
+		// stream ends (using kindAIMessage's trailing-gap rule).
 		return false
 	case kindTodoUpdate:
 		// Rendered exclusively in the composed View(); never appears in
@@ -32,6 +37,27 @@ func needsTrailingGap(kind committedKind) bool {
 		return false
 	}
 	return true
+}
+
+// needsLeadingGap reports whether a blank-line gap should be inserted
+// before the current item based on what was last written to scrollback.
+//
+// Rule: after a dense-stacking block (tools, reads), add a blank line
+// before any non-dense item. This gives visual separation between a
+// cluster of tool completions and the next AI message or system event
+// without breaking the tight stacking between consecutive tools.
+//
+// Used by both writeToScrollback (live) and renderHistoryBatch (recommit).
+func needsLeadingGap(prev, current committedKind) bool {
+	switch prev {
+	case kindToolCompact, kindReadGroup:
+		switch current {
+		case kindToolCompact, kindReadGroup:
+			return false
+		}
+		return true
+	}
+	return false
 }
 
 // renderHistoryBatch renders all history items into a single string for
@@ -49,6 +75,7 @@ func renderHistoryBatch(items []committedItem, opts toolrender.CompactOptions, e
 	}
 	var b strings.Builder
 	first := true
+	var lastKind committedKind
 	for _, item := range items {
 		text := renderCommittedItem(item, opts, expanded)
 		if text == "" {
@@ -56,6 +83,9 @@ func renderHistoryBatch(items []committedItem, opts toolrender.CompactOptions, e
 		}
 		if !first {
 			b.WriteByte('\n')
+			if needsLeadingGap(lastKind, item.kind) {
+				b.WriteByte('\n')
+			}
 		}
 		b.WriteString(text)
 		if item.kind == kindHeader {
@@ -64,6 +94,7 @@ func renderHistoryBatch(items []committedItem, opts toolrender.CompactOptions, e
 		if needsTrailingGap(item.kind) {
 			b.WriteByte('\n')
 		}
+		lastKind = item.kind
 		first = false
 	}
 	return b.String()
@@ -88,7 +119,21 @@ const (
 	kindTodoUpdate                           // plan/todo list snapshot
 	kindPhaseChange                          // execution phase transition
 	kindText                                 // generic pre-rendered text
+	kindAIStreamLine                         // single line committed during AI streaming (not stored in history)
 )
+
+// lastKindFromHistory returns the committedKind of the last non-empty
+// item in history. Used to initialize lastScrollbackKind when resuming
+// a session so that gap decisions for the first new item are correct.
+func lastKindFromHistory(items []committedItem) committedKind {
+	for i := len(items) - 1; i >= 0; i-- {
+		if items[i].kind == kindTodoUpdate {
+			continue
+		}
+		return items[i].kind
+	}
+	return 0
+}
 
 // committedItem represents one logical unit of output that was committed
 // to terminal scrollback via tea.Println. Stored in the renderer's history
@@ -265,11 +310,6 @@ const clearAndHome = "\033[2J\033[1;1H\033[3J"
 // raw mode \n is a bare line-feed — it moves the cursor down without
 // returning to column 0. The explicit \r ensures each line starts at
 // the left margin.
-//
-// This approach eliminates the timing flaw in the previous
-// ClearScreen+Println pattern where clearScreen() only marked internal
-// state while insertAbove() wrote directly using stale cellbuf
-// dimensions.
 func buildReCommitCmd(rendered string) tea.Cmd {
 	safe := strings.ReplaceAll(rendered, "\n", "\r\n")
 	payload := clearAndHome + safe
