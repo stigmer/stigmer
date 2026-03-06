@@ -54,6 +54,13 @@ func (s *Supervisor) Stop() {
 
 // run is the main supervisor loop
 func (s *Supervisor) run() {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error().Interface("panic", r).Msg("Supervisor goroutine panicked — restarting supervisor loop")
+			go s.run()
+		}
+	}()
+
 	ticker := time.NewTicker(s.healthCheckInterval)
 	defer ticker.Stop()
 

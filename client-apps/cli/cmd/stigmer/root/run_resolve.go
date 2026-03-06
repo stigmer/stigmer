@@ -6,41 +6,62 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/reference"
 	"google.golang.org/grpc"
 )
 
-// connectToBackend connects to the backend and returns the connection and organization ID
+// connectToBackend connects to the backend and returns the connection and organization ID.
+// For local backend, it ensures the daemon is running before connecting and
+// retries transient connection failures with backoff.
 func connectToBackend(orgOverride string) (*grpc.ClientConn, string, error) {
-	// Load backend configuration
 	cfg, err := config.Load()
 	if err != nil {
 		climsg.Error("Failed to load configuration: %s", err)
 		return nil, "", err
 	}
 
-	// Determine organization ID
 	orgID := resolveOrgID(orgOverride, cfg)
 	if orgID == "" {
 		printOrgNotSetError()
 		return nil, "", fmt.Errorf("organization not set")
 	}
 
-	// Connect to backend
-	conn, err := backend.NewConnection()
-	if err != nil {
-		climsg.Error("Failed to connect to backend: %s", err)
-		return nil, "", err
+	if cfg.Backend.Type == config.BackendTypeLocal {
+		dataDir, err := config.GetDataDir()
+		if err != nil {
+			return nil, "", errors.Wrap(err, "failed to get data directory")
+		}
+		if err := daemon.EnsureRunning(dataDir); err != nil {
+			return nil, "", errors.Wrap(err, "failed to start daemon")
+		}
 	}
 
-	return conn, orgID, nil
+	const maxAttempts = 3
+	const retryDelay = 2 * time.Second
+
+	var conn *grpc.ClientConn
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		conn, err = backend.NewConnection()
+		if err == nil {
+			return conn, orgID, nil
+		}
+		if attempt < maxAttempts {
+			log.Debug().Err(err).Int("attempt", attempt).Msg("Connection failed, retrying")
+			time.Sleep(retryDelay)
+		}
+	}
+
+	climsg.Error("Failed to connect to backend: %s", err)
+	return nil, "", err
 }
 
 // resolveOrgID determines the organization ID from override or config context.

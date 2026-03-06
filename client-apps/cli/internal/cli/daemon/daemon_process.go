@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -205,7 +206,7 @@ func RunDaemonProcess() error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		runHealthMonitor(ctx, dataDir, components, hs, temporalManager)
+		runHealthMonitor(ctx, dataDir, grpcPort, components, hs, temporalManager)
 	}()
 
 	// Wait for shutdown signal
@@ -383,9 +384,11 @@ func startChildProcessWithDir(bin string, args []string, dir, logDir, name strin
 
 // runHealthMonitor periodically checks component health and restarts crashed ones.
 // temporalMgr may be nil when Temporal is external (unmanaged).
-func runHealthMonitor(ctx context.Context, dataDir string, components []*managedComponent, hs *HealthState, temporalMgr *temporal.Manager) {
+func runHealthMonitor(ctx context.Context, dataDir string, grpcPort int, components []*managedComponent, hs *HealthState, temporalMgr *temporal.Manager) {
 	ticker := time.NewTicker(healthCheckInterval)
 	defer ticker.Stop()
+
+	grpcAddr := fmt.Sprintf("localhost:%d", grpcPort)
 
 	for {
 		select {
@@ -411,7 +414,26 @@ func runHealthMonitor(ctx context.Context, dataDir string, components []*managed
 					continue
 				}
 
-				if isProcessAlive(c.cmd.Process.Pid) {
+				alive := isProcessAlive(c.cmd.Process.Pid)
+
+				if alive && c.name == "stigmer-server" {
+					conn, err := net.DialTimeout("tcp", grpcAddr, 500*time.Millisecond)
+					if err != nil {
+						c.state.State = "unhealthy"
+						c.state.LastError = "process alive but gRPC port not responding"
+						log.Warn().Str("component", c.name).Str("addr", grpcAddr).Msg("Process alive but gRPC port not responding")
+						continue
+					}
+					conn.Close()
+					if c.state.State == "unhealthy" {
+						c.state.State = "running"
+						c.state.LastError = ""
+						log.Info().Str("component", c.name).Msg("Component recovered — gRPC port responding again")
+					}
+					continue
+				}
+
+				if alive {
 					continue
 				}
 

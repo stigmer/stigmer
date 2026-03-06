@@ -115,8 +115,13 @@ func createBasicHealthState(dataDir string, daemonPID int) *daemon.HealthState {
 		}
 	}
 
-	hs.Components["stigmer-server"] = &daemon.ComponentState{
-		State: "running",
+	serverAddr := fmt.Sprintf("localhost:%d", daemon.DaemonPort)
+	serverConn, serverErr := net.DialTimeout("tcp", serverAddr, 200*time.Millisecond)
+	if serverErr != nil {
+		hs.Components["stigmer-server"] = &daemon.ComponentState{State: "unhealthy"}
+	} else {
+		serverConn.Close()
+		hs.Components["stigmer-server"] = &daemon.ComponentState{State: "running"}
 	}
 
 	if wfPID, err := daemon.GetWorkflowRunnerPID(dataDir); err == nil {
