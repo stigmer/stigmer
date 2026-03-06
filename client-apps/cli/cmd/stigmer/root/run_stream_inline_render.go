@@ -312,7 +312,7 @@ func (r *inlineRenderer) hasActiveSubAgent(subAgentID string) bool {
 // byte-for-byte identical to what renderHistoryBatch would produce.
 func (r *inlineRenderer) commitToScrollback(item committedItem) {
 	r.history = append(r.history, item)
-	text := renderCommittedItem(item, r.compactOpts, r.expandMode)
+	text := renderCommittedItem(item, r.compactOpts, r.expandMode, r.expandHintEnabled())
 	r.writeToScrollback(item.kind, text)
 }
 

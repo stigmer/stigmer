@@ -131,7 +131,7 @@ func (r *inlineRenderer) handleInteractiveApproval(
 		expanded := r.buildFullExpandedView(tc, width)
 		var reCommitPayload string
 		if contentStreamed {
-			rendered := renderHistoryBatch(r.history, r.compactOpts, r.expandMode)
+			rendered := renderHistoryBatch(r.history, r.compactOpts, r.expandMode, r.expandHintEnabled())
 			trimmed := strings.TrimRight(expanded, "\n")
 			if rendered != "" {
 				reCommitPayload = rendered + "\n" + trimmed

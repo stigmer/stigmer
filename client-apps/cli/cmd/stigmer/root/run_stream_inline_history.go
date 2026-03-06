@@ -70,7 +70,7 @@ func needsLeadingGap(prev, current committedKind) bool {
 // The header item (kindHeader) gets an extra trailing newline to produce
 // a blank-line gap between the panel and the first content item, matching
 // the spacing of the initial render (commitToScrollback + blank line).
-func renderHistoryBatch(items []committedItem, opts toolrender.CompactOptions, expanded bool) string {
+func renderHistoryBatch(items []committedItem, opts toolrender.CompactOptions, expanded bool, showExpandHint bool) string {
 	if len(items) == 0 {
 		return ""
 	}
@@ -78,7 +78,7 @@ func renderHistoryBatch(items []committedItem, opts toolrender.CompactOptions, e
 	first := true
 	var lastKind committedKind
 	for _, item := range items {
-		text := renderCommittedItem(item, opts, expanded)
+		text := renderCommittedItem(item, opts, expanded, showExpandHint)
 		if text == "" {
 			continue
 		}
@@ -182,18 +182,34 @@ type committedItem struct {
 // completions and read groups use their expanded renderers (full output,
 // no truncation). Mode-invariant items (AI messages, system messages,
 // lifecycle events) are unaffected by the expanded flag.
-func renderCommittedItem(item committedItem, opts toolrender.CompactOptions, expanded bool) string {
+//
+// When showExpandHint is true and the item is in compact mode, a dim
+// "(ctrl+o to expand)" suffix is appended to the first line of expandable
+// items (tools, read groups, sub-agent blocks).
+func renderCommittedItem(item committedItem, opts toolrender.CompactOptions, expanded bool, showExpandHint bool) string {
 	switch item.kind {
 	case kindHeader:
 		return renderHeaderItem(item, expanded)
 	case kindToolCompact:
-		return renderToolCompactItem(item, opts, expanded)
+		text := renderToolCompactItem(item, opts, expanded)
+		if !expanded && showExpandHint && text != "" {
+			text = appendExpandHint(text)
+		}
+		return text
 	case kindReadGroup:
-		return renderReadGroupItem(item, opts, expanded)
+		text := renderReadGroupItem(item, opts, expanded)
+		if !expanded && showExpandHint && text != "" {
+			text = appendExpandHint(text)
+		}
+		return text
 	case kindApproval:
 		return renderApprovalItem(item, opts)
 	case kindSubAgentBlock:
-		return renderSubAgentBlockItem(item, opts, expanded)
+		text := renderSubAgentBlockItem(item, opts, expanded)
+		if !expanded && showExpandHint && text != "" {
+			text = appendExpandHint(text)
+		}
+		return text
 	case kindTodoUpdate:
 		// The plan is rendered exclusively in the composed View() (via
 		// planDisplay) so it is always visible above the input bar. Skip
@@ -329,7 +345,7 @@ func renderSubAgentExpanded(header string, block *subAgentBlock, opts toolrender
 	b.WriteString(header)
 
 	for _, child := range block.children {
-		text := renderCommittedItem(child, opts, true)
+		text := renderCommittedItem(child, opts, true, false)
 		if text == "" {
 			continue
 		}
@@ -350,6 +366,23 @@ func renderSubAgentExpanded(header string, block *subAgentBlock, opts toolrender
 	return b.String()
 }
 
+// expandHintSuffix is the dim "(ctrl+o to expand)" text appended to the
+// first line of expandable items in compact mode.
+var expandHintSuffix = " " + expandHintStyle.Render("(ctrl+o to expand)")
+
+// appendExpandHint appends the expand-hint suffix to the first line of
+// the rendered text. For multi-line output (read groups, expanded tools),
+// only the header line receives the hint.
+func appendExpandHint(text string) string {
+	if text == "" {
+		return text
+	}
+	if idx := strings.IndexByte(text, '\n'); idx >= 0 {
+		return text[:idx] + expandHintSuffix + text[idx:]
+	}
+	return text + expandHintSuffix
+}
+
 // triggerReCommit pre-renders the full history into a single string and
 // sends it to the Bubbletea model. The model issues a tea.Raw write
 // followed by tea.ClearScreen to atomically replace terminal content.
@@ -358,7 +391,7 @@ func (r *inlineRenderer) triggerReCommit() {
 	if r.cfg.program == nil {
 		return
 	}
-	rendered := renderHistoryBatch(r.history, r.compactOpts, r.expandMode)
+	rendered := renderHistoryBatch(r.history, r.compactOpts, r.expandMode, r.expandHintEnabled())
 	r.cfg.program.Send(reCommitMsg{rendered: rendered})
 }
 

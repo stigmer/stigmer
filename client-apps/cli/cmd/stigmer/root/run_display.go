@@ -80,6 +80,12 @@ var followUpHintStyle = lipgloss.NewStyle().
 	Foreground(lipgloss.Color("8")).
 	Italic(true)
 
+// expandHintStyle renders the "(ctrl+o to expand)" hint appended to compact
+// tool lines. Uses the same dim color as toolrender.dimStyle so the hint
+// blends with existing parenthetical metadata like "(43 lines)".
+var expandHintStyle = lipgloss.NewStyle().
+	Foreground(lipgloss.Color("8"))
+
 // formatHumanMessage formats a user message with highlighted styling for
 // display in both streaming and non-streaming rendering paths.
 func formatHumanMessage(content string) string {
