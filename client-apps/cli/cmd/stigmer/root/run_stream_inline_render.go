@@ -227,26 +227,32 @@ func (r *inlineRenderer) flushPendingReads() {
 // ---------------------------------------------------------------------------
 
 // commitToScrollback appends an item to the history buffer and writes it
-// to terminal scrollback with the same spacing that renderHistoryBatch
-// would produce. This is the single source of truth for live-path spacing,
-// ensuring that incrementally-committed output is byte-for-byte identical
-// to what a subsequent recommit would render.
-//
-// Multi-line items (kindToolCompact, kindReadGroup) already carry a
-// trailing \n inside their rendered text (from renderToolCompactItem /
-// renderReadGroupItem). Combined with Println's implicit newline, this
-// produces the blank-line gap that renderHistoryBatch creates via the
-// inter-item \n + trailing \n.
+// to terminal scrollback via writeToScrollback. The rendered text and gap
+// logic are handled by writeToScrollback, ensuring live output is
+// byte-for-byte identical to what renderHistoryBatch would produce.
 func (r *inlineRenderer) commitToScrollback(item committedItem) {
 	r.history = append(r.history, item)
 	text := renderCommittedItem(item, r.compactOpts, r.expandMode)
+	r.writeToScrollback(item.kind, text)
+}
+
+// writeToScrollback writes a single rendered text block to terminal
+// scrollback with transition-aware gap logic. Every visible write to
+// scrollback — whether from a history-tracked item or a transient
+// streaming line — must go through this method so that spacing between
+// live output and recommit output stays identical.
+func (r *inlineRenderer) writeToScrollback(kind committedKind, text string) {
 	if text == "" {
 		return
 	}
-	r.statusf("%s\n", text)
-	if item.kind == kindHeader || needsTrailingGap(item.kind) {
+	if needsLeadingGap(r.lastScrollbackKind, kind) {
 		r.statusf("\n")
 	}
+	r.statusf("%s\n", text)
+	if kind == kindHeader || needsTrailingGap(kind) {
+		r.statusf("\n")
+	}
+	r.lastScrollbackKind = kind
 }
 
 // recordToHistory appends an item to the history buffer without writing
@@ -255,6 +261,17 @@ func (r *inlineRenderer) commitToScrollback(item committedItem) {
 // history record is needed for future recommits.
 func (r *inlineRenderer) recordToHistory(item committedItem) {
 	r.history = append(r.history, item)
+}
+
+// commitStreamEndGap emits the trailing blank-line gap that a completed
+// AI message would produce (via needsTrailingGap(kindAIMessage)) and
+// updates lastScrollbackKind to kindAIMessage. Called at AI stream end
+// so that the next item sees the correct predecessor kind.
+func (r *inlineRenderer) commitStreamEndGap() {
+	if needsTrailingGap(kindAIMessage) {
+		r.statusf("\n")
+	}
+	r.lastScrollbackKind = kindAIMessage
 }
 
 func (r *inlineRenderer) statusf(format string, args ...interface{}) {

@@ -409,6 +409,7 @@ func TestRenderHistoryBatch_MatchesPerItemOutput(t *testing.T) {
 		t.Run(label, func(t *testing.T) {
 			var b strings.Builder
 			first := true
+			var lastKind committedKind
 			for _, item := range items {
 				text := renderCommittedItem(item, opts, expanded)
 				if text == "" {
@@ -416,6 +417,9 @@ func TestRenderHistoryBatch_MatchesPerItemOutput(t *testing.T) {
 				}
 				if !first {
 					b.WriteByte('\n')
+					if needsLeadingGap(lastKind, item.kind) {
+						b.WriteByte('\n')
+					}
 				}
 				b.WriteString(text)
 				if item.kind == kindHeader {
@@ -424,6 +428,7 @@ func TestRenderHistoryBatch_MatchesPerItemOutput(t *testing.T) {
 				if needsTrailingGap(item.kind) {
 					b.WriteByte('\n')
 				}
+				lastKind = item.kind
 				first = false
 			}
 			expected := b.String()
@@ -566,9 +571,134 @@ func TestNeedsTrailingGap(t *testing.T) {
 
 	// Explicit opt-outs only.
 	noGapKinds := []committedKind{
-		kindHeader, kindToolCompact, kindReadGroup, kindTodoUpdate,
+		kindHeader, kindToolCompact, kindReadGroup, kindTodoUpdate, kindAIStreamLine,
 	}
 	for _, k := range noGapKinds {
 		assert.False(t, needsTrailingGap(k), "expected needsTrailingGap==false for kind %d", k)
 	}
+}
+
+func TestNeedsLeadingGap(t *testing.T) {
+	tests := []struct {
+		name     string
+		prev     committedKind
+		current  committedKind
+		expected bool
+	}{
+		{"tool→tool: no gap", kindToolCompact, kindToolCompact, false},
+		{"tool→readGroup: no gap", kindToolCompact, kindReadGroup, false},
+		{"readGroup→tool: no gap", kindReadGroup, kindToolCompact, false},
+		{"readGroup→readGroup: no gap", kindReadGroup, kindReadGroup, false},
+		{"tool→AIMessage: gap", kindToolCompact, kindAIMessage, true},
+		{"tool→text: gap", kindToolCompact, kindText, true},
+		{"tool→approval: gap", kindToolCompact, kindApproval, true},
+		{"readGroup→AIMessage: gap", kindReadGroup, kindAIMessage, true},
+		{"readGroup→approval: gap", kindReadGroup, kindApproval, true},
+		{"readGroup→AIStreamLine: gap", kindReadGroup, kindAIStreamLine, true},
+		{"AIMessage→tool: no gap", kindAIMessage, kindToolCompact, false},
+		{"AIMessage→AIMessage: no gap", kindAIMessage, kindAIMessage, false},
+		{"header→AIMessage: no gap", kindHeader, kindAIMessage, false},
+		{"text→tool: no gap", kindText, kindToolCompact, false},
+		{"zero→tool: no gap", 0, kindToolCompact, false},
+		{"zero→AIMessage: no gap", 0, kindAIMessage, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, needsLeadingGap(tt.prev, tt.current))
+		})
+	}
+}
+
+func TestLastKindFromHistory(t *testing.T) {
+	t.Run("empty", func(t *testing.T) {
+		assert.Equal(t, committedKind(0), lastKindFromHistory(nil))
+	})
+	t.Run("single item", func(t *testing.T) {
+		items := []committedItem{{kind: kindHeader}}
+		assert.Equal(t, kindHeader, lastKindFromHistory(items))
+	})
+	t.Run("skips trailing todoUpdate", func(t *testing.T) {
+		items := []committedItem{
+			{kind: kindAIMessage, text: "msg"},
+			{kind: kindTodoUpdate, text: "plan"},
+		}
+		assert.Equal(t, kindAIMessage, lastKindFromHistory(items))
+	})
+	t.Run("all todoUpdates", func(t *testing.T) {
+		items := []committedItem{
+			{kind: kindTodoUpdate, text: "plan1"},
+			{kind: kindTodoUpdate, text: "plan2"},
+		}
+		assert.Equal(t, committedKind(0), lastKindFromHistory(items))
+	})
+	t.Run("returns last non-todo", func(t *testing.T) {
+		items := []committedItem{
+			{kind: kindHeader},
+			{kind: kindToolCompact},
+			{kind: kindTodoUpdate},
+		}
+		assert.Equal(t, kindToolCompact, lastKindFromHistory(items))
+	})
+}
+
+func TestRenderHistoryBatch_LeadingGapAfterTools(t *testing.T) {
+	items := []committedItem{
+		{kind: kindToolCompact, toolCalls: []toolrender.ToolCallInfo{{
+			Name: "read_file", Args: map[string]interface{}{"path": "a.go"},
+		}}},
+		{kind: kindToolCompact, toolCalls: []toolrender.ToolCallInfo{{
+			Name: "read_file", Args: map[string]interface{}{"path": "b.go"},
+		}}},
+		{kind: kindAIMessage, text: "Here is my analysis."},
+	}
+	result := renderHistoryBatch(items, toolrender.CompactOptions{}, false)
+
+	tool1 := renderCommittedItem(items[0], toolrender.CompactOptions{}, false)
+	tool2 := renderCommittedItem(items[1], toolrender.CompactOptions{}, false)
+
+	assert.Contains(t, result, tool1+"\n"+tool2,
+		"consecutive tools should stack tightly")
+	assert.Contains(t, result, tool2+"\n\nHere is my analysis.",
+		"a blank line should separate tools from the following AI message")
+}
+
+func TestWriteToScrollback_TracksLastKind(t *testing.T) {
+	var buf bytes.Buffer
+	r := &inlineRenderer{
+		cfg: inlineRenderConfig{status: &buf},
+	}
+
+	r.writeToScrollback(kindToolCompact, "tool output")
+	assert.Equal(t, kindToolCompact, r.lastScrollbackKind)
+
+	r.writeToScrollback(kindAIStreamLine, "stream line")
+	assert.Equal(t, kindAIStreamLine, r.lastScrollbackKind)
+
+	r.writeToScrollback(kindAIMessage, "full message")
+	assert.Equal(t, kindAIMessage, r.lastScrollbackKind)
+}
+
+func TestWriteToScrollback_EmptyTextNoOp(t *testing.T) {
+	var buf bytes.Buffer
+	r := &inlineRenderer{
+		cfg:                inlineRenderConfig{status: &buf},
+		lastScrollbackKind: kindToolCompact,
+	}
+	r.writeToScrollback(kindAIMessage, "")
+	assert.Equal(t, kindToolCompact, r.lastScrollbackKind,
+		"empty text should not update lastScrollbackKind")
+	assert.Equal(t, "", buf.String())
+}
+
+func TestCommitStreamEndGap(t *testing.T) {
+	var buf bytes.Buffer
+	r := &inlineRenderer{
+		cfg:                inlineRenderConfig{status: &buf},
+		lastScrollbackKind: kindAIStreamLine,
+	}
+	r.commitStreamEndGap()
+	assert.Equal(t, kindAIMessage, r.lastScrollbackKind,
+		"commitStreamEndGap should set lastScrollbackKind to kindAIMessage")
+	assert.Equal(t, "\n", buf.String(),
+		"commitStreamEndGap should emit trailing gap for kindAIMessage")
 }

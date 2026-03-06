@@ -59,9 +59,10 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) renderResult {
 	if isNewSession {
 		header := renderHeaderItem(initialHistory[0], false)
 		if header != "" {
-			r.statusf("%s\n", header)
-			r.statusf("\n")
+			r.writeToScrollback(kindHeader, header)
 		}
+	} else {
+		r.lastScrollbackKind = lastKindFromHistory(initialHistory)
 	}
 
 	for {

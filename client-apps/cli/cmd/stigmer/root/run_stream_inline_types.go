@@ -169,7 +169,7 @@ type inlineRenderer struct {
 
 	// aiStreamBuffer holds the partial (incomplete) line being accumulated
 	// during AI streaming via Bubbletea. Complete lines are committed via
-	// program.Println as each newline arrives; the remaining bytes stay
+	// writeToScrollback as each newline arrives; the remaining bytes stay
 	// here until the next newline or stream end.
 	aiStreamBuffer string
 
@@ -235,10 +235,16 @@ type inlineRenderer struct {
 	expandMode bool
 
 	// history records every item committed to terminal scrollback via
-	// statusf/Println. Used by the clear+re-commit mechanism to
+	// writeToScrollback. Used by the clear+re-commit mechanism to
 	// reconstruct the full session display when the subject resolves or
 	// the user toggles expand/collapse mode via Ctrl+O.
 	history []committedItem
+
+	// lastScrollbackKind tracks the committedKind of the most recent
+	// write to terminal scrollback. Used by writeToScrollback to decide
+	// whether a leading gap is needed before the next item (e.g.,
+	// transitioning from a dense tool block to an AI message).
+	lastScrollbackKind committedKind
 
 	// followUpInputCh receives the user's follow-up input from the
 	// Bubbletea model's text input handler. nil until the renderer
