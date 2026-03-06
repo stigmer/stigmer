@@ -253,13 +253,11 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 
 		// --- Step 1: Track tool call state transitions ---
 		//
-		// Builds the toolCallStates map WITHOUT emitting events yet.
-		// emitMessageEvents uses this map to suppress MESSAGE_TOOL entries
-		// for tool calls the state tracker owns. Tool events are collected
-		// in a slice and emitted AFTER message events so that AIStreamEnd
-		// reaches the renderer before ToolCompleted — preventing the
-		// renderer's finishAIStreamIfNeeded from resetting streamedBytes
-		// before the stream-end handler runs.
+		// Builds the toolCallStates map and collects tool state-transition
+		// events (ToolRunning, ToolCompleted, etc.) WITHOUT emitting them.
+		// These events are indexed by tool call ID so that emitMessageEvents
+		// can emit each one at the chronological position of its matching
+		// MESSAGE_TOOL entry in the messages list.
 		var toolEvents []executiontui.Event
 		toolCallStates, toolCallResults, toolEvents = trackToolCallStates(
 			execution.Status.ToolCalls,
@@ -267,14 +265,31 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 			toolCallResults,
 			"",
 		)
+		pendingToolEvents := buildToolEventMap(toolEvents)
 
-		// --- Step 1b: Convert new messages to events (emitted first) ---
+		// --- Step 1b: Convert new messages to events ---
+		//
+		// Tool events whose tool call ID matches a MESSAGE_TOOL entry are
+		// emitted inline at that message's position, preserving chronological
+		// order. The AIStreamEnd → ToolCompleted ordering constraint is
+		// naturally satisfied because the AI message always precedes its
+		// tool result messages in the backend's list.
 		displayedCount, inStream = emitMessageEvents(
-			cfg.events, messages, displayedCount, inStream, toolCallStates,
+			cfg.events, messages, displayedCount, inStream,
+			toolCallStates, pendingToolEvents,
 		)
 
-		// --- Step 1c: Emit queued tool events ---
+		// --- Step 1c: Emit orphan tool events ---
+		//
+		// Tool events that had no matching MESSAGE_TOOL (e.g., a tool just
+		// entered RUNNING but hasn't produced a result message yet, or a
+		// streaming delta for an in-progress tool) are emitted after all
+		// message events, preserving the original order from
+		// trackToolCallStates.
 		for _, ev := range toolEvents {
+			if _, pending := pendingToolEvents[toolEventID(ev)]; !pending {
+				continue
+			}
 			if !trySendEvent(ctx, cfg.events, ev) {
 				return
 			}
@@ -396,17 +411,25 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 // emitMessageEvents converts new proto messages to TUI events and sends them
 // over the channel. It returns the updated displayedCount and inStream state.
 //
-// trackedTools is the toolCallStates map from trackToolCallStates, which runs
-// first (map-building only, no emission). MESSAGE_TOOL entries whose tool call
-// ID appears in this map are suppressed — the state tracker owns their visual
-// representation via stateful tool blocks, and emitting a duplicate
-// ToolResultEvent would create a second block in the TUI.
+// trackedTools is the toolCallStates map from trackToolCallStates (all tool
+// call IDs ever seen, regardless of state). MESSAGE_TOOL entries whose tool
+// call ID appears in this map are owned by the state tracker — they are not
+// emitted as ToolResultEvent (which would create a duplicate block).
+//
+// pendingToolEvents is a map of tool call ID → tool event built from the
+// current snapshot's trackToolCallStates output. When a tracked MESSAGE_TOOL
+// is encountered, the matching tool event is emitted at that position in the
+// message stream (preserving chronological order) and removed from the map.
+// After this function returns, any events remaining in pendingToolEvents are
+// "orphans" — tool events with no corresponding MESSAGE_TOOL yet (e.g.,
+// ToolRunningEvent for a tool that hasn't produced a result message).
 func emitMessageEvents(
 	events chan<- executiontui.Event,
 	messages []*agentexecutionv1.AgentMessage,
 	displayedCount int,
 	inStream bool,
 	trackedTools map[string]string,
+	pendingToolEvents map[string]executiontui.Event,
 ) (int, bool) {
 	// Phase 1: Handle in-progress streaming AI message.
 	if inStream && displayedCount < len(messages) {
@@ -441,12 +464,12 @@ func emitMessageEvents(
 			continue
 		}
 
-		// Suppress MESSAGE_TOOL messages for tool calls owned by the state
-		// tracker. The tracker creates stateful blocks (with lifecycle badges)
-		// for these tools — emitting a ToolResultEvent here would create a
-		// duplicate block. Ownership is determined by identity (tool call ID
-		// in the tracked map), not by status.
+		// For tracked MESSAGE_TOOL messages: emit the matching tool event
+		// at this chronological position instead of the raw ToolResultEvent.
+		// This preserves the message-list ordering so tool completions
+		// appear between the correct AI messages in the live TUI.
 		if isTrackedToolMessage(msg, trackedTools) {
+			emitMatchedToolEvents(events, msg, pendingToolEvents)
 			displayedCount++
 			continue
 		}
@@ -646,6 +669,59 @@ func isTrackedToolMessage(msg *agentexecutionv1.AgentMessage, trackedTools map[s
 		}
 	}
 	return false
+}
+
+// buildToolEventMap indexes a slice of tool events by their tool call ID for
+// O(1) lookup during message interleaving. Each tool call produces at most one
+// event per snapshot, so the map is 1:1.
+func buildToolEventMap(events []executiontui.Event) map[string]executiontui.Event {
+	m := make(map[string]executiontui.Event, len(events))
+	for _, ev := range events {
+		if id := toolEventID(ev); id != "" {
+			m[id] = ev
+		}
+	}
+	return m
+}
+
+// toolEventID extracts the tool call ID from a tool-lifecycle event.
+// Returns "" for non-tool events (which should never appear in the slice
+// returned by trackToolCallStates, but is defensive).
+func toolEventID(ev executiontui.Event) string {
+	switch e := ev.(type) {
+	case executiontui.ToolRunningEvent:
+		return e.ToolCallID
+	case executiontui.ToolCompletedEvent:
+		return e.ToolCallID
+	case executiontui.ToolWaitingApprovalEvent:
+		return e.ToolCallID
+	case executiontui.ToolStreamDeltaEvent:
+		return e.ToolCallID
+	}
+	return ""
+}
+
+// emitMatchedToolEvents finds tool events whose IDs match the MESSAGE_TOOL's
+// embedded tool calls and emits them at the current message position. Consumed
+// events are removed from pending so they are not re-emitted as orphans.
+//
+// If no matching event exists (the tool's state transition was already emitted
+// in a previous snapshot), the message is silently consumed — exactly the same
+// as the old "suppress tracked MESSAGE_TOOL" behavior.
+func emitMatchedToolEvents(
+	events chan<- executiontui.Event,
+	msg *agentexecutionv1.AgentMessage,
+	pending map[string]executiontui.Event,
+) {
+	for _, tc := range msg.ToolCalls {
+		if tc.Id == "" {
+			continue
+		}
+		if ev, ok := pending[tc.Id]; ok {
+			events <- ev
+			delete(pending, tc.Id)
+		}
+	}
 }
 
 // todoFingerprint captures the comparable state of a single todo item for
