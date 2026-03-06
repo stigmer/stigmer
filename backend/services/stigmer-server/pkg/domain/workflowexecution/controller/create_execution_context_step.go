@@ -128,6 +128,20 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*workf
 		Int("data_entries", len(merged)).
 		Msg("Successfully created execution context")
 
+	// 7. Clear runtime_env from the execution now that it has been consumed.
+	// runtime_env is a transient creation-time input; its contents are now
+	// materialized in the ExecutionContext. Clearing it ensures secrets never
+	// appear in the persisted execution or in Temporal workflow history.
+	if execution.GetSpec() != nil && len(execution.GetSpec().GetRuntimeEnv()) > 0 {
+		log.Debug().
+			Str("execution_id", executionID).
+			Int("cleared_entries", len(execution.GetSpec().GetRuntimeEnv())).
+			Msg("Clearing runtime_env from execution (consumed into ExecutionContext)")
+
+		execution.Spec.RuntimeEnv = nil
+		ctx.SetNewState(execution)
+	}
+
 	return nil
 }
 
