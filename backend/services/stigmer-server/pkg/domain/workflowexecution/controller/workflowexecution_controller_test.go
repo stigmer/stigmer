@@ -32,7 +32,7 @@ func contextWithWorkflowKind() context.Context {
 
 // setupTestController creates a test controller with necessary dependencies
 func setupTestController(t *testing.T) (*WorkflowExecutionController, store.Store) {
-	// Create temporary BadgerDB store
+	// Create temporary SQLite store
 	store, err := sqlite.NewStore(t.TempDir() + "/test.sqlite")
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)

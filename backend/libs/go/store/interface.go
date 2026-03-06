@@ -112,7 +112,7 @@ type Store interface {
 	// DeleteResourcesByIdPrefix removes all resources of a given kind whose ID
 	// starts with the specified prefix.
 	//
-	// Deprecated: This method exists for backward compatibility with BadgerDB-style
+	// Deprecated: This method exists for backward compatibility with legacy prefix-based
 	// key patterns. New code should use the audit-specific methods instead.
 	// This will be removed in a future version.
 	//

@@ -21,7 +21,7 @@ Following the same pattern as Agent controller:
 type EnvironmentController struct {
     environmentv1.UnimplementedEnvironmentCommandControllerServer
     environmentv1.UnimplementedEnvironmentQueryControllerServer
-    store *badger.Store
+    store store.Store
 }
 ```
 
@@ -56,7 +56,7 @@ All steps are reusable from `backend/libs/go/grpc/request/pipeline/steps/`:
 - **CheckDuplicateStep** - Prevents duplicate slugs
 - **BuildNewStateStep** - Sets ID, timestamps, audit fields for create
 - **BuildUpdateStateStep** - Merges spec, updates timestamps for update
-- **PersistStep** - Saves resource to BadgerDB
+- **PersistStep** - Saves resource to SQLite
 - **LoadExistingStep** - Loads resource for update
 - **LoadExistingForDeleteStep** - Loads resource before deletion
 - **LoadTargetStep** - Loads resource for get operations
@@ -100,7 +100,7 @@ Unlike Agent controller (which has `CreateDefaultInstanceStep` and `UpdateAgentS
 
 ### No Dependencies on Other Services
 
-Environment controller only depends on BadgerDB store - no downstream clients needed (unlike Agent which depends on AgentInstance client).
+Environment controller only depends on the SQLite store - no downstream clients needed (unlike Agent which depends on AgentInstance client).
 
 ## Testing
 

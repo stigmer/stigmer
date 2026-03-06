@@ -501,7 +501,7 @@ for {
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm text-muted-foreground/80">
           <span>Temporal Workflows</span>
           <span className="text-muted-foreground/40">•</span>
-          <span>SQLite/BadgerDB</span>
+          <span>SQLite</span>
           <span className="text-muted-foreground/40">•</span>
           <span>Public Proto Contracts</span>
         </div>

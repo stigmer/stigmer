@@ -16,7 +16,7 @@ import (
 //
 // Pipeline (Stigmer OSS - simplified from Cloud):
 // - ValidateProto: Validates buf.validate constraints on SessionId
-// - LoadTarget: Loads session from BadgerDB by ID, returns NotFound if missing
+// - LoadTarget: Loads session from SQLite by ID, returns NotFound if missing
 //
 // Note: Compared to Stigmer Cloud, OSS excludes:
 // - ExtractResourceId step (not needed - ID is already in SessionId.value)

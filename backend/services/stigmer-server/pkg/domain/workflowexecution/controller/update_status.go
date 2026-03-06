@@ -248,7 +248,7 @@ func (s *PersistExecutionStep) Execute(ctx *pipeline.RequestContext[*workflowexe
 // This implements the "Daemon (Streaming): Pushes message to active Go Channels" step
 // from ADR 011 Write Path.
 //
-// After persisting to BadgerDB, the daemon must push updates to in-memory channels
+// After persisting to SQLite, the daemon must push updates to in-memory channels
 // so that Subscribe() streams can receive updates in real-time without polling.
 type BroadcastToStreamsStep struct {
 	broker *StreamBroker

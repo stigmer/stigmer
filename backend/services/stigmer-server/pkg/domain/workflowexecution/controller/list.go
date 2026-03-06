@@ -18,7 +18,7 @@ import (
 // - Support filtering by workflow_instance_id, phase, etc.
 //
 // For OSS (local single-user environment):
-// - Returns all executions from BadgerDB
+// - Returns all executions from SQLite
 // - No authorization filtering (single user)
 // - No pagination (acceptable for local usage)
 //
