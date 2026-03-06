@@ -83,9 +83,11 @@ func (r *inlineRenderer) renderPhaseChange(e executiontui.PhaseChangeEvent) {
 }
 
 func (r *inlineRenderer) renderTodoUpdate(e executiontui.TodoUpdateEvent) {
-	var b strings.Builder
+	var historyBuf strings.Builder
+	var displayBuf strings.Builder
 	var currentTask string
-	b.WriteString("Plan:")
+
+	historyBuf.WriteString("Plan:")
 	for _, todo := range e.Todos {
 		var marker string
 		switch todo.Status {
@@ -101,27 +103,39 @@ func (r *inlineRenderer) renderTodoUpdate(e executiontui.TodoUpdateEvent) {
 		default:
 			marker = "[ ]"
 		}
-		fmt.Fprintf(&b, "\n  %s %s", marker, todo.Content)
+		fmt.Fprintf(&historyBuf, "\n  %s %s", marker, todo.Content)
+
+		if displayBuf.Len() > 0 {
+			displayBuf.WriteByte('\n')
+		}
+		fmt.Fprintf(&displayBuf, "  %s %s", marker, todo.Content)
 	}
 
 	if r.cfg.program != nil {
-		r.cfg.program.Send(currentTaskMsg{task: currentTask})
+		r.cfg.program.Send(currentTaskMsg{
+			task:        currentTask,
+			planDisplay: displayBuf.String(),
+		})
 	}
 
-	newItem := committedItem{kind: kindTodoUpdate, text: b.String()}
+	newItem := committedItem{kind: kindTodoUpdate, text: historyBuf.String()}
 
-	// In-place update: replace the most recent kindTodoUpdate in history
-	// and re-render via triggerReCommit to avoid accumulating stale plan
-	// snapshots in scrollback.
+	// The plan is rendered exclusively in the composed View() (via
+	// planDisplay) so it is always visible above the input bar. It is
+	// NOT written to scrollback — that would create a duplicate since
+	// the composed view already shows the live plan.
+	//
+	// The history entry is kept so the plan survives across follow-up
+	// iterations (initialHistory carries over). renderCommittedItem
+	// returns "" for kindTodoUpdate so re-commits skip it.
 	for i := len(r.history) - 1; i >= 0; i-- {
 		if r.history[i].kind == kindTodoUpdate {
 			r.history[i] = newItem
-			r.triggerReCommit()
 			return
 		}
 	}
 
-	r.commitToScrollback(newItem)
+	r.recordToHistory(newItem)
 }
 
 func (r *inlineRenderer) renderSubAgentStarted(e executiontui.SubAgentStartedEvent) {

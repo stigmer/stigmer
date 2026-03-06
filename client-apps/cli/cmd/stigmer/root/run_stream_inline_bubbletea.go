@@ -61,10 +61,13 @@ type inlineBubbleModel struct {
 	// inputBarHidden for non-interactive environments.
 	inputBarMode inputBarMode
 
-	// currentTask holds the content of the in_progress todo item, shown
-	// as a 1-line indicator above the input bar separator. Empty when no
-	// task is in progress.
+	// currentTask holds the content of the first in_progress todo item.
 	currentTask string
+
+	// planDisplay holds the full formatted plan (all items with status
+	// markers) rendered in the composed View() so the plan is always
+	// visible above the input bar. Empty when no plan exists.
+	planDisplay string
 
 	// Legacy follow-up state for the promptFollowUpViaKeyReader path
 	// (when Bubbletea does not own stdin). Not used when inputBarMode
@@ -189,6 +192,7 @@ func (m inlineBubbleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleInputBarMode(msg)
 	case currentTaskMsg:
 		m.currentTask = msg.task
+		m.planDisplay = msg.planDisplay
 		return m, nil
 	}
 	return m, nil
@@ -244,12 +248,17 @@ func (m inlineBubbleModel) View() tea.View {
 func (m inlineBubbleModel) renderComposedView() tea.View {
 	var parts []string
 
+	hasTransient := false
 	if transient := m.renderTransientContent(); transient != "" {
 		parts = append(parts, transient)
+		hasTransient = true
 	}
 
-	if m.currentTask != "" && !m.approvalActive {
-		parts = append(parts, systemMsgStyle.Render("  [-] "+m.currentTask))
+	if m.planDisplay != "" && !m.approvalActive {
+		if hasTransient {
+			parts = append(parts, "")
+		}
+		parts = append(parts, systemMsgStyle.Render(m.planDisplay))
 	}
 
 	parts = append(parts, m.renderSeparatorLine())
@@ -570,14 +579,15 @@ func (m inlineBubbleModel) handleTextInputStart(msg textInputStartMsg) (tea.Mode
 }
 
 // handleTextInputHide transitions the input bar back to disabled mode after
-// the user submits or cancels follow-up input. Clears the current task
-// indicator since a new execution is about to start.
+// the user submits or cancels follow-up input. Clears the plan display and
+// current task since a new execution is about to start.
 func (m inlineBubbleModel) handleTextInputHide(msg textInputHideMsg) (tea.Model, tea.Cmd) {
 	m.inputBarMode = inputBarDisabled
 	m.textInput.Blur()
 	m.textInput.Reset()
 	m.textInputCh = nil
 	m.currentTask = ""
+	m.planDisplay = ""
 	if msg.styledMessage != "" {
 		return m, tea.Println(strings.TrimRight(msg.styledMessage, "\n"))
 	}
@@ -599,10 +609,10 @@ func (m inlineBubbleModel) handleInputBarMode(msg inputBarModeMsg) (tea.Model, t
 // Re-commit handler
 // ---------------------------------------------------------------------------
 
-// handleReCommit clears all active visual states so View() returns ""
-// during the renderer flush that follows the Raw write. Without this,
-// stale streaming/approval/spinner content would be rendered on top of
-// the freshly-written history.
+// handleReCommit clears all active visual states so View() returns only
+// the persistent UI (plan + separator + hint) during the renderer flush
+// that follows the Raw write. Without this, stale streaming/approval/spinner
+// content would be rendered on top of the freshly-written history.
 func (m inlineBubbleModel) handleReCommit(msg reCommitMsg) (tea.Model, tea.Cmd) {
 	m.spinnerActive = false
 	m.streamingActive = false
