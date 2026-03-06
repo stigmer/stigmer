@@ -107,8 +107,30 @@ func ResolveEnvForDiscovery(server *mcpserverv1.McpServer, cfg *config.Config) *
 // Credential values are marked with IsSecret: true so the backend encrypts
 // them at rest and redacts them in logs.
 func ResolveWellKnownEnv(cfg *config.Config) envfile.EnvMap {
+	return resolveWellKnownEnvFiltered(cfg, nil)
+}
+
+// ResolveWellKnownEnvScoped resolves well-known environment variables, but
+// only those that appear in requiredVars. This prevents injecting credentials
+// into executions that don't need them (e.g. GITHUB_TOKEN into an agent
+// whose env_spec only declares STIGMER_SERVER_ADDRESS).
+//
+// Semantics match ResolveWellKnownEnv: shell env wins, empty values are
+// skipped, and credentials are marked as secrets.
+func ResolveWellKnownEnvScoped(cfg *config.Config, requiredVars map[string]bool) envfile.EnvMap {
+	return resolveWellKnownEnvFiltered(cfg, requiredVars)
+}
+
+// resolveWellKnownEnvFiltered is the shared implementation for both
+// ResolveWellKnownEnv and ResolveWellKnownEnvScoped. When filter is nil,
+// all well-known vars are resolved; when non-nil, only vars in the filter
+// set are resolved.
+func resolveWellKnownEnvFiltered(cfg *config.Config, filter map[string]bool) envfile.EnvMap {
 	result := make(envfile.EnvMap)
 	for _, name := range wellKnownVars {
+		if filter != nil && !filter[name] {
+			continue
+		}
 		if os.Getenv(name) != "" {
 			continue
 		}
