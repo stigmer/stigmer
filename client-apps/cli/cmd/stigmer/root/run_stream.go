@@ -144,9 +144,9 @@ func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFun
 		},
 	}
 
-	latestExecID, phase, exitErr := runInlineFollowUpLoop(streamCtx, cfg, followUpFn, executionID)
+	latestExecID, phase, exitErr, activeProgram := runInlineFollowUpLoop(streamCtx, cfg, followUpFn, executionID)
 
-	stopInlineProgram(program)
+	stopInlineProgram(activeProgram)
 	streamCancel()
 
 	return streamAgentEpilogue(sessionID, latestExecID, phase, exitErr, conn)

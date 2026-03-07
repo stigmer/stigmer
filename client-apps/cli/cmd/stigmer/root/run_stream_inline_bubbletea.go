@@ -61,9 +61,15 @@ type inlineBubbleModel struct {
 	// inputBarHidden for non-interactive environments.
 	inputBarMode inputBarMode
 
-	// currentTask holds the content of the first in_progress todo item,
-	// displayed as a single line above the separator in the composed View().
-	currentTask string
+	// currentTask holds the content of the first in_progress todo item.
+	// todoTotal and todoCompleted provide summary counts for the plan
+	// progress indicator shown above the separator in the composed View().
+	// expandMode suppresses the plan section in View() when the full plan
+	// is already visible in scrollback.
+	currentTask   string
+	todoTotal     int
+	todoCompleted int
+	expandMode    bool
 
 	// subAgentActive is true when a sub-agent is running and its live
 	// summary should be shown in View(). Cleared on subAgentHideMsg.
@@ -193,6 +199,8 @@ func (m inlineBubbleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleInputBarMode(msg)
 	case currentTaskMsg:
 		m.currentTask = msg.task
+		m.todoTotal = msg.todoTotal
+		m.todoCompleted = msg.todoCompleted
 		return m, nil
 	case subAgentShowMsg:
 		return m.handleSubAgentShow(msg)
@@ -250,6 +258,7 @@ func (m inlineBubbleModel) View() tea.View {
 //
 //	[transient content]                      (optional: spinner/streaming/approval/AI)
 //	  [-] Current task description           (optional: in_progress todo)
+//	  Plan: 2/5 todos completed (ctrl+o …)  (optional: plan summary)
 //	──────────────────────────── (full width)
 //	> user input / esc to interrupt          (input area)
 //	  enter send · ctrl+c exit               (hint, active mode only)
@@ -262,11 +271,16 @@ func (m inlineBubbleModel) renderComposedView() tea.View {
 		hasTransient = true
 	}
 
-	if m.currentTask != "" && !m.approvalActive {
+	if m.todoTotal > 0 && !m.approvalActive && !m.expandMode {
 		if hasTransient {
 			parts = append(parts, "")
 		}
-		parts = append(parts, systemMsgStyle.Render("  [-] "+m.currentTask))
+		if m.currentTask != "" {
+			parts = append(parts, systemMsgStyle.Render("  [-] "+m.currentTask))
+		}
+		summary := fmt.Sprintf("  Plan: %d/%d todos completed", m.todoCompleted, m.todoTotal)
+		summary += " " + expandHintStyle.Render("(ctrl+o to expand)")
+		parts = append(parts, systemMsgStyle.Render(summary))
 	}
 
 	parts = append(parts, m.renderSeparatorLine())
@@ -633,6 +647,8 @@ func (m inlineBubbleModel) handleTextInputHide(msg textInputHideMsg) (tea.Model,
 	m.textInput.Reset()
 	m.textInputCh = nil
 	m.currentTask = ""
+	m.todoTotal = 0
+	m.todoCompleted = 0
 	if msg.styledMessage != "" {
 		return m, tea.Println(strings.TrimRight(msg.styledMessage, "\n"))
 	}

@@ -76,7 +76,7 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) renderResult {
 			r.stopThinkingSpinner()
 			r.flushPendingReads()
 			r.statusf("Stream cancelled\n")
-			return renderResult{exitErr: "context cancelled", history: r.history}
+			return renderResult{exitErr: "context cancelled", history: r.history, program: r.cfg.program}
 
 		case subject, ok := <-cfg.subjectUpdate:
 			if ok && subject != "" {
@@ -113,7 +113,7 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) renderResult {
 				cfg.subjectUpdate = nil
 				continue
 			}
-			return renderResult{phase: "cancelled", history: r.history}
+			return renderResult{phase: "cancelled", history: r.history, program: r.cfg.program}
 
 		case <-cfg.cancelCh:
 			r.stopThinkingSpinner()
@@ -125,7 +125,7 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) renderResult {
 			if r.cfg.sessionID != "" {
 				r.statusf("Resume later with: stigmer run %s\n", r.cfg.sessionID)
 			}
-			return renderResult{phase: "cancelled", history: r.history}
+			return renderResult{phase: "cancelled", history: r.history, program: r.cfg.program}
 
 		case event, ok := <-cfg.events:
 			r.stopThinkingSpinner()
@@ -133,7 +133,7 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) renderResult {
 
 			if !ok {
 				r.flushPendingReads()
-				return renderResult{history: r.history}
+				return renderResult{history: r.history, program: r.cfg.program}
 			}
 
 			done, p, e := r.handleEvent(ctx, event)
@@ -144,7 +144,7 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) renderResult {
 					cfg.subjectUpdate = nil
 					continue
 				}
-				return renderResult{phase: p, exitErr: e, history: r.history}
+				return renderResult{phase: p, exitErr: e, history: r.history, program: r.cfg.program}
 			}
 			r.resetThinkTimer()
 
@@ -229,6 +229,7 @@ func (r *inlineRenderer) completeFollowUp(input string) renderResult {
 			phase:   r.donePhase,
 			exitErr: r.doneExitErr,
 			history: r.history,
+			program: r.cfg.program,
 		}
 	}
 
@@ -245,6 +246,7 @@ func (r *inlineRenderer) completeFollowUp(input string) renderResult {
 		exitErr:       r.doneExitErr,
 		history:       r.history,
 		followUpInput: input,
+		program:       r.cfg.program,
 	}
 }
 

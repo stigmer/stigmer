@@ -47,6 +47,12 @@ type renderResult struct {
 	exitErr       string
 	history       []committedItem
 	followUpInput string
+
+	// program is the Bubbletea Program that was active when renderInline
+	// returned. May differ from the cfg.program that was passed in when
+	// performReCommit created replacement programs during the session.
+	// Callers must use this reference (not the original) for cleanup.
+	program *tea.Program
 }
 
 // inlineRenderConfig configures the inline (non-TUI) event renderer.
@@ -287,6 +293,11 @@ type inlineRenderer struct {
 	// trackedCurrentTask mirrors the model's currentTask field so the
 	// renderer can transfer it to a new program during re-commit.
 	trackedCurrentTask string
+
+	// trackedTodoTotal and trackedTodoCompleted mirror the model's plan
+	// progress counts so the renderer can transfer them during re-commit.
+	trackedTodoTotal     int
+	trackedTodoCompleted int
 
 	// trackedInputBarMode mirrors the model's inputBarMode so the
 	// renderer can transfer it to a new program during re-commit.

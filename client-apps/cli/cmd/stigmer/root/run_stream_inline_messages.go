@@ -176,12 +176,15 @@ type aiStreamHideMsg struct{}
 // disabled (showing "esc to interrupt"), or active (text input with cursor).
 type inputBarModeMsg struct{ mode inputBarMode }
 
-// currentTaskMsg updates the current task indicator shown as a single line
-// above the input bar separator. task is the content of the first
-// in_progress todo item. The full plan is stored in history and rendered
+// currentTaskMsg updates the plan progress indicator shown above the
+// input bar separator. task is the content of the first in_progress todo
+// item (empty when all are done). todoTotal and todoCompleted provide
+// the summary counts. The full plan is stored in history and rendered
 // in scrollback when expanded mode is active (Ctrl+O).
 type currentTaskMsg struct {
-	task string
+	task          string
+	todoTotal     int
+	todoCompleted int
 }
 
 // subAgentShowMsg activates the live sub-agent running summary in View().

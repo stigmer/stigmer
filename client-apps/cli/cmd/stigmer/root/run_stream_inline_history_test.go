@@ -509,36 +509,27 @@ func TestCommitToScrollback_MatchesRecommit(t *testing.T) {
 				}}, subAgentID: "sa-1"},
 			},
 		}},
-		{kind: kindTodoUpdate, text: "Plan:\n  [-] Step one\n  [ ] Step two"},
+		{kind: kindTodoUpdate, text: "Plan:\n  [-] Step one\n  [ ] Step two", todoTotal: 2, todoCompleted: 0},
 		{kind: kindPhaseChange, text: "Execution completed"},
 		{kind: kindText, text: "Error: connection reset"},
 	}
 
 	opts := toolrender.CompactOptions{}
 
-	for _, expanded := range []bool{false, true} {
-		label := "compact"
-		if expanded {
-			label = "expanded"
-		}
-		t.Run(label, func(t *testing.T) {
-			var buf bytes.Buffer
-			r := &inlineRenderer{
-				cfg:        inlineRenderConfig{status: &buf},
-				expandMode: expanded,
-			}
-			for _, item := range items {
-				r.commitToScrollback(item)
-			}
-			liveOutput := buf.String()
+	t.Run("compact", func(t *testing.T) {
+		batch := renderHistoryBatch(items, opts, false, false)
+		assert.NotContains(t, batch, "Plan:",
+			"compact re-commit should not include plan (shown in View() only)")
+	})
 
-			batch := renderHistoryBatch(items, opts, expanded, false)
-
-			assert.Equal(t, batch+"\n", liveOutput,
-				"live commitToScrollback output should match renderHistoryBatch "+
-					"(plus a trailing newline from the final statusf)")
-		})
-	}
+	t.Run("expanded", func(t *testing.T) {
+		batch := renderHistoryBatch(items, opts, true, false)
+		assert.Contains(t, batch, "Plan:\n  [-] Step one\n  [ ] Step two",
+			"expanded re-commit should contain the full plan")
+		assert.True(t,
+			strings.Index(batch, "Error: connection reset") < strings.Index(batch, "Plan:\n  [-]"),
+			"plan should appear after all other items in expanded re-commit")
+	})
 }
 
 func TestNeedsTrailingGap(t *testing.T) {
