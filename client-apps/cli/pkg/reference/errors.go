@@ -18,6 +18,13 @@ var (
 
 	// ErrOrgRequired indicates a slug-only reference was provided without a context organization.
 	ErrOrgRequired = errors.New("organization required for slug-only reference")
+
+	// ErrIncompleteID indicates a resource ID has the correct prefix but an
+	// invalid ULID body (wrong length or characters).
+	ErrIncompleteID = errors.New("incomplete resource ID")
+
+	// ErrNotResourceID indicates the value does not match any known resource ID prefix.
+	ErrNotResourceID = errors.New("not a resource ID")
 )
 
 // ParseError provides context about a reference parsing failure.

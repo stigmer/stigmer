@@ -220,7 +220,7 @@ func TestFormatRecentSessionsSection_BasicEntries(t *testing.T) {
 	assert.Contains(t, result, "Add feature")
 	assert.Contains(t, result, "ses-bbb")
 	assert.Contains(t, result, "└")
-	assert.Contains(t, result, "stigmer run <session-id>")
+	assert.Contains(t, result, "stigmer resume <session-id>")
 }
 
 func TestFormatRecentSessionsSection_CapsAtMax(t *testing.T) {
@@ -442,7 +442,7 @@ func TestFormatRecentSessionsForWidth_FitsInWidth(t *testing.T) {
 
 	assert.Contains(t, result, "Recent sessions")
 	assert.Contains(t, result, "└")
-	assert.Contains(t, result, "stigmer run")
+	assert.Contains(t, result, "stigmer resume")
 }
 
 func TestFormatRecentSessionsForWidth_TruncatesLongSubject(t *testing.T) {

@@ -143,41 +143,37 @@ stigmer delete agent my-agent --force
 
 ### run - Execute Agents and Workflows
 
-Execute an agent or workflow with optional parameters.
+Execute an agent or workflow. The `run` command supports three forms:
 
 ```bash
-# Run by slug
+# Browse agents interactively (no arguments)
+stigmer run
+
+# Smart resolution — resolves as agent by default, falls back to interactive search
+stigmer run my-agent
+stigmer run acme-corp/code-reviewer
+stigmer run agt_01kewqjbtdy0w4d14bnhhy4yc2
+
+# Explicit type + reference (backward-compatible)
 stigmer run agent my-agent
 stigmer run workflow my-workflow
 
 # Run with initial message
-stigmer run agent my-agent -m "Review this code"
+stigmer run my-agent -m "Review this code"
 stigmer run workflow my-wf --message "Deploy to production"
 
-# Run by resource ID
-stigmer run agent agt_abc123
-
-# Run with org/slug format
-stigmer run agent acme-corp/code-reviewer
-
-# Run without streaming logs
-stigmer run agent my-agent --no-follow
-
 # Run with environment variables
-stigmer run agent my-agent --env API_URL=https://api.example.com
-stigmer run agent my-agent --env DEBUG=true --env TIMEOUT=30
+stigmer run my-agent --env API_URL=https://api.example.com
+stigmer run my-agent --env DEBUG=true --env TIMEOUT=30
 
 # Run with secrets (encrypted)
-stigmer run agent my-agent --secret API_KEY=sk_live_xxx
+stigmer run my-agent --secret API_KEY=sk_live_xxx
 
-# Run with environment file
-stigmer run agent my-agent --env-file .env
-
-# Run with secret file
-stigmer run agent my-agent --secret-file .env.secrets
+# Run with environment and secret files
+stigmer run my-agent --env-file .env --secret-file .env.secrets
 
 # Combine env files and inline overrides
-stigmer run agent my-agent --env-file .env --secret-file .env.secrets --env DEBUG=true
+stigmer run my-agent --env-file .env --secret-file .env.secrets --env DEBUG=true
 ```
 
 **Flags:**
@@ -186,13 +182,34 @@ stigmer run agent my-agent --env-file .env --secret-file .env.secrets --env DEBU
 - `--secret`: Secret environment variable (KEY=VALUE, repeatable, encrypted)
 - `--env-file`: Load environment from file (repeatable)
 - `--secret-file`: Load secrets from file (repeatable, all values encrypted)
-- `--follow`: Stream execution logs in real-time (default: true)
+- `--detach`: Start execution and return immediately without streaming
+- `--download DIR`: Download artifacts to directory when complete
+- `-w, --workspace`: Workspace source (URL or path, repeatable)
 - `--org`: Organization ID override
 
 **Environment Variable Precedence** (highest to lowest):
 1. `--env` and `--secret` flags (inline values)
 2. Later `--env-file` and `--secret-file` flags
 3. Earlier `--env-file` and `--secret-file` flags
+
+### resume - Resume an Existing Session
+
+Re-open a session to continue a conversation or re-attach to a running execution.
+
+```bash
+# Browse recent sessions interactively
+stigmer resume
+
+# Resume a specific session by ID
+stigmer resume ses-01abc123xyz456789012345678
+
+# Search sessions by subject
+stigmer resume "deploy staging"
+```
+
+**Flags:**
+- `-v, --verbose`: Show all execution events
+- `--org`: Organization ID override
 
 ### search - Search Resources
 
@@ -331,7 +348,7 @@ cd my-project
 
 # After creation:
 stigmer apply
-stigmer run agent <agent-name>
+stigmer run <agent-name>
 ```
 
 ## Shell Completion
@@ -393,7 +410,7 @@ stigmer server
 stigmer apply
 
 # 4. Run an agent or workflow
-stigmer run agent <agent-name>
+stigmer run <agent-name>
 ```
 
 ### Option 2: Apply Individual Resources
@@ -407,7 +424,7 @@ stigmer apply -f agent.yaml
 stigmer apply -f workflow.yaml
 
 # 3. Run
-stigmer run agent my-agent
+stigmer run my-agent
 ```
 
 ## Migration from Old Commands
@@ -423,8 +440,9 @@ stigmer run agent my-agent
 | `stigmer workflow list` | `stigmer list workflows` |
 | `stigmer agent delete <id>` | `stigmer delete agent <id>` |
 | `stigmer workflow delete <id>` | `stigmer delete workflow <id>` |
-| `stigmer agent run <id>` | `stigmer run agent <id>` |
+| `stigmer agent run <id>` | `stigmer run <id>` or `stigmer run agent <id>` |
 | `stigmer workflow run <id>` | `stigmer run workflow <id>` |
+| `stigmer run ses-xxx` | `stigmer resume ses-xxx` |
 | `stigmer skill push` | `stigmer push skill` |
 | `stigmer agent search "query"` | `stigmer search agents "query"` |
 | `stigmer workflow search "query"` | `stigmer search workflows "query"` |

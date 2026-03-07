@@ -69,7 +69,7 @@ func classifyStreamError(err error, sessionID string) *streamError {
 	}
 
 	if sessionID != "" {
-		message += fmt.Sprintf("\nRe-attach to this session: stigmer run %s", sessionID)
+		message += fmt.Sprintf("\nRe-attach to this session: stigmer resume %s", sessionID)
 	}
 
 	return &streamError{message: message, cause: err}
@@ -846,7 +846,7 @@ func emitAndWaitApproval(
 
 		msg := fmt.Sprintf("Failed to submit approval after %d attempts", approvalRetryMaxAttempts)
 		if cfg.sessionID != "" {
-			msg += fmt.Sprintf(". Re-attach to retry: stigmer run %s", cfg.sessionID)
+			msg += fmt.Sprintf(". Re-attach to retry: stigmer resume %s", cfg.sessionID)
 		}
 
 		trySendEvent(ctx, cfg.events, executiontui.StreamErrorEvent{
