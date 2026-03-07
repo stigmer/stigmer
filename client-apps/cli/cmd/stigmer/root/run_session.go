@@ -5,6 +5,7 @@ import (
 	"os"
 	"slices"
 
+	tea "charm.land/bubbletea/v2"
 	"github.com/pkg/errors"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/embedded"
@@ -151,6 +152,19 @@ func resumeSession(sessionID string, headerInfo sessionHeaderInfo, orgID string,
 
 		program := startInlineProgram(os.Stderr, toggleExpandCh, cancelCh, interruptCh)
 
+		var programFactory func(func(*inlineBubbleModel)) *tea.Program
+		if program != nil {
+			programFactory = func(initModel func(*inlineBubbleModel)) *tea.Program {
+				m := newInlineBubbleModelWithChannels(toggleExpandCh, cancelCh, interruptCh)
+				if initModel != nil {
+					initModel(&m)
+				}
+				p := tea.NewProgram(m, tea.WithOutput(os.Stderr))
+				go func() { _, _ = p.Run() }()
+				return p
+			}
+		}
+
 		sbRoot, pfDir := sessionPaths(sessionID)
 
 		cfg := inlineRenderConfig{
@@ -165,6 +179,7 @@ func resumeSession(sessionID string, headerInfo sessionHeaderInfo, orgID string,
 			platformDir:       pfDir,
 			headerInfo:        headerInfo,
 			program:           program,
+			programFactory:    programFactory,
 			toggleExpandCh:    toggleExpandCh,
 			cancelCh:          cancelCh,
 			interruptCh:       interruptCh,

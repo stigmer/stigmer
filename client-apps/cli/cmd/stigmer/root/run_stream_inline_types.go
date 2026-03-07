@@ -69,6 +69,12 @@ type inlineRenderConfig struct {
 	// output falls back to direct writes on the status writer.
 	program *tea.Program
 
+	// programFactory creates a fresh Bubbletea program with the same
+	// channels and output writer. The initModel callback pre-loads model
+	// state (plan, input bar, approval) before the program starts.
+	// nil when program is nil (non-TTY).
+	programFactory func(initModel func(*inlineBubbleModel)) *tea.Program
+
 	// suppressHumanEcho skips the next HumanMessageEvent rendering. Set by
 	// the follow-up loop after local echo to prevent duplicate display when
 	// the backend echoes the same message.
@@ -277,6 +283,19 @@ type inlineRenderer struct {
 	// whether a leading gap is needed before the next item (e.g.,
 	// transitioning from a dense tool block to an AI message).
 	lastScrollbackKind committedKind
+
+	// trackedCurrentTask mirrors the model's currentTask field so the
+	// renderer can transfer it to a new program during re-commit.
+	trackedCurrentTask string
+
+	// trackedInputBarMode mirrors the model's inputBarMode so the
+	// renderer can transfer it to a new program during re-commit.
+	trackedInputBarMode inputBarMode
+
+	// followUpSendCh is the send-only end of the follow-up input channel.
+	// Stored so performReCommit can transfer it to the new program's model.
+	// nil when not in follow-up mode.
+	followUpSendCh chan<- string
 
 	// followUpInputCh receives the user's follow-up input from the
 	// Bubbletea model's text input handler. nil until the renderer

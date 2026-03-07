@@ -89,7 +89,6 @@ func (r *inlineRenderer) renderPhaseChange(e executiontui.PhaseChangeEvent) {
 
 func (r *inlineRenderer) renderTodoUpdate(e executiontui.TodoUpdateEvent) {
 	var historyBuf strings.Builder
-	var displayBuf strings.Builder
 	var currentTask string
 
 	historyBuf.WriteString("Plan:")
@@ -109,30 +108,15 @@ func (r *inlineRenderer) renderTodoUpdate(e executiontui.TodoUpdateEvent) {
 			marker = "[ ]"
 		}
 		fmt.Fprintf(&historyBuf, "\n  %s %s", marker, todo.Content)
-
-		if displayBuf.Len() > 0 {
-			displayBuf.WriteByte('\n')
-		}
-		fmt.Fprintf(&displayBuf, "  %s %s", marker, todo.Content)
 	}
 
+	r.trackedCurrentTask = currentTask
 	if r.cfg.program != nil {
-		r.cfg.program.Send(currentTaskMsg{
-			task:        currentTask,
-			planDisplay: displayBuf.String(),
-		})
+		r.cfg.program.Send(currentTaskMsg{task: currentTask})
 	}
 
 	newItem := committedItem{kind: kindTodoUpdate, text: historyBuf.String()}
 
-	// The plan is rendered exclusively in the composed View() (via
-	// planDisplay) so it is always visible above the input bar. It is
-	// NOT written to scrollback — that would create a duplicate since
-	// the composed view already shows the live plan.
-	//
-	// The history entry is kept so the plan survives across follow-up
-	// iterations (initialHistory carries over). renderCommittedItem
-	// returns "" for kindTodoUpdate so re-commits skip it.
 	for i := len(r.history) - 1; i >= 0; i-- {
 		if r.history[i].kind == kindTodoUpdate {
 			r.history[i] = newItem

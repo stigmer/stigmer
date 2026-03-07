@@ -192,6 +192,7 @@ func (r *inlineRenderer) activateFollowUp(phase, exitErr string) {
 
 	inputCh := make(chan string, 1)
 	r.followUpInputCh = inputCh
+	r.followUpSendCh = inputCh
 	r.cfg.program.Send(textInputStartMsg{inputCh: inputCh})
 }
 
@@ -405,7 +406,7 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 		r.flushPendingReads()
 	case executiontui.AIStreamDeltaEvent, executiontui.AIStreamEndEvent:
 	case executiontui.TodoUpdateEvent:
-		// Todo updates only affect the composed View() (planDisplay) and
+		// Todo updates only affect the composed View() (currentTask) and
 		// produce no scrollback output. They must not interrupt an active
 		// AI stream — doing so prematurely closes the stream, causing
 		// subsequent deltas to be silently dropped and the AI message to

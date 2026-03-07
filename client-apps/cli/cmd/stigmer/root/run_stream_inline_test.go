@@ -384,9 +384,9 @@ func TestInlineRenderer_TodoUpdate_RecordedInHistory(t *testing.T) {
 		status:            &stderr,
 	})
 
-	// Plan is rendered exclusively in the composed View() (via planDisplay),
-	// NOT in scrollback. Verify it is recorded in history for follow-up
-	// iteration carry-over.
+	// Plan is shown as a single-line currentTask in the composed View().
+	// In expanded mode the full plan renders in scrollback. Verify it
+	// is recorded in history for follow-up iteration carry-over.
 	var found bool
 	for _, item := range result.history {
 		if item.kind == kindTodoUpdate {
