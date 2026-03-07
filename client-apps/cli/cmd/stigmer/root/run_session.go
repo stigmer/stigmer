@@ -185,9 +185,9 @@ func resumeSession(sessionID string, headerInfo sessionHeaderInfo, orgID string,
 			interruptCh:       interruptCh,
 			followUpEnabled:   toggleExpandCh != nil && followUpFn != nil,
 		}
-		finalExecID, _, exitErr := runInlineFollowUpLoop(streamCtx, cfg, followUpFn, latestExecID)
+		finalExecID, _, exitErr, activeProgram := runInlineFollowUpLoop(streamCtx, cfg, followUpFn, latestExecID)
 
-		stopInlineProgram(program)
+		stopInlineProgram(activeProgram)
 		streamCancel()
 
 		if exitErr != "" {

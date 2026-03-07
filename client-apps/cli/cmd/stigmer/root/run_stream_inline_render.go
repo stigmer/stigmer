@@ -90,6 +90,7 @@ func (r *inlineRenderer) renderPhaseChange(e executiontui.PhaseChangeEvent) {
 func (r *inlineRenderer) renderTodoUpdate(e executiontui.TodoUpdateEvent) {
 	var historyBuf strings.Builder
 	var currentTask string
+	var completed int
 
 	historyBuf.WriteString("Plan:")
 	for _, todo := range e.Todos {
@@ -97,6 +98,7 @@ func (r *inlineRenderer) renderTodoUpdate(e executiontui.TodoUpdateEvent) {
 		switch todo.Status {
 		case "completed":
 			marker = "[x]"
+			completed++
 		case "in_progress":
 			marker = "[-]"
 			if currentTask == "" {
@@ -111,11 +113,22 @@ func (r *inlineRenderer) renderTodoUpdate(e executiontui.TodoUpdateEvent) {
 	}
 
 	r.trackedCurrentTask = currentTask
+	r.trackedTodoTotal = len(e.Todos)
+	r.trackedTodoCompleted = completed
 	if r.cfg.program != nil {
-		r.cfg.program.Send(currentTaskMsg{task: currentTask})
+		r.cfg.program.Send(currentTaskMsg{
+			task:          currentTask,
+			todoTotal:     len(e.Todos),
+			todoCompleted: completed,
+		})
 	}
 
-	newItem := committedItem{kind: kindTodoUpdate, text: historyBuf.String()}
+	newItem := committedItem{
+		kind:          kindTodoUpdate,
+		text:          historyBuf.String(),
+		todoTotal:     len(e.Todos),
+		todoCompleted: completed,
+	}
 
 	for i := len(r.history) - 1; i >= 0; i-- {
 		if r.history[i].kind == kindTodoUpdate {

@@ -70,6 +70,10 @@ func needsLeadingGap(prev, current committedKind) bool {
 // The header item (kindHeader) gets an extra trailing newline to produce
 // a blank-line gap between the panel and the first content item, matching
 // the spacing of the initial render (commitToScrollback + blank line).
+//
+// kindTodoUpdate items are deferred and rendered at the very end so the
+// plan always appears below all messages/tool output regardless of when
+// the first todo event arrived in the session.
 func renderHistoryBatch(items []committedItem, opts toolrender.CompactOptions, expanded bool, showExpandHint bool) string {
 	if len(items) == 0 {
 		return ""
@@ -77,26 +81,47 @@ func renderHistoryBatch(items []committedItem, opts toolrender.CompactOptions, e
 	var b strings.Builder
 	first := true
 	var lastKind committedKind
-	for _, item := range items {
-		text := renderCommittedItem(item, opts, expanded, showExpandHint)
+	var deferredTodo *committedItem
+	for i := range items {
+		if items[i].kind == kindTodoUpdate {
+			deferredTodo = &items[i]
+			continue
+		}
+		text := renderCommittedItem(items[i], opts, expanded, showExpandHint)
 		if text == "" {
 			continue
 		}
 		if !first {
 			b.WriteByte('\n')
-			if needsLeadingGap(lastKind, item.kind) {
+			if needsLeadingGap(lastKind, items[i].kind) {
 				b.WriteByte('\n')
 			}
 		}
 		b.WriteString(text)
-		if item.kind == kindHeader {
+		if items[i].kind == kindHeader {
 			b.WriteByte('\n')
 		}
-		if needsTrailingGap(item.kind) {
+		if needsTrailingGap(items[i].kind) {
 			b.WriteByte('\n')
 		}
-		lastKind = item.kind
+		lastKind = items[i].kind
 		first = false
+	}
+	if deferredTodo != nil {
+		text := renderCommittedItem(*deferredTodo, opts, expanded, showExpandHint)
+		if text != "" {
+			if !first {
+				b.WriteByte('\n')
+				if needsLeadingGap(lastKind, deferredTodo.kind) {
+					b.WriteByte('\n')
+				}
+			}
+			b.WriteString(text)
+			if needsTrailingGap(deferredTodo.kind) {
+				b.WriteByte('\n')
+			}
+			first = false
+		}
 	}
 	return b.String()
 }
@@ -172,6 +197,12 @@ type committedItem struct {
 	// action is the approval decision string ("approve", "skip", "reject")
 	// for kindApproval items.
 	action string
+
+	// todoTotal and todoCompleted track plan progress for kindTodoUpdate
+	// items. When todoCompleted == todoTotal (all done), the expanded
+	// renderer shows a compact summary instead of the full item list.
+	todoTotal     int
+	todoCompleted int
 }
 
 // renderCommittedItem re-renders a history item to its display string.
@@ -417,6 +448,9 @@ func (r *inlineRenderer) performReCommit() {
 
 	r.cfg.program = r.cfg.programFactory(func(m *inlineBubbleModel) {
 		m.currentTask = r.trackedCurrentTask
+		m.todoTotal = r.trackedTodoTotal
+		m.todoCompleted = r.trackedTodoCompleted
+		m.expandMode = r.expandMode
 		m.termWidth = termctl.Width(r.cfg.status, 80)
 		if r.followUpSendCh != nil {
 			m.inputBarMode = inputBarActive
@@ -457,6 +491,9 @@ func (r *inlineRenderer) performReCommitWithApproval(
 
 	r.cfg.program = r.cfg.programFactory(func(m *inlineBubbleModel) {
 		m.currentTask = r.trackedCurrentTask
+		m.todoTotal = r.trackedTodoTotal
+		m.todoCompleted = r.trackedTodoCompleted
+		m.expandMode = r.expandMode
 		m.termWidth = termctl.Width(r.cfg.status, 80)
 		m.approvalActive = true
 		m.approvalContent = question + "\n"
