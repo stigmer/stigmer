@@ -3383,8 +3383,8 @@ class TestToolApprovalDecision:
         # Should restore to IN_PROGRESS, not FAILED
         assert status_builder_waiting_approval.current_status.phase == ExecutionPhase.EXECUTION_IN_PROGRESS
     
-    def test_reject_action_sets_failed_status(self, status_builder_waiting_approval):
-        """Test that REJECT sets TOOL_CALL_FAILED status."""
+    def test_reject_action_sets_skipped_status(self, status_builder_waiting_approval):
+        """Test that REJECT sets TOOL_CALL_SKIPPED status (non-terminal, agent re-evaluates)."""
         from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
         from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
         
@@ -3395,11 +3395,11 @@ class TestToolApprovalDecision:
         )
         
         tool_call = status_builder_waiting_approval.current_status.tool_calls[0]
-        assert tool_call.status == ToolCallStatus.TOOL_CALL_FAILED
-        assert "rejected" in tool_call.error.lower()
+        assert tool_call.status == ToolCallStatus.TOOL_CALL_SKIPPED
+        assert "REJECTED" in tool_call.result
     
-    def test_reject_action_fails_execution(self, status_builder_waiting_approval):
-        """Test that REJECT sets execution phase to FAILED."""
+    def test_reject_action_continues_execution(self, status_builder_waiting_approval):
+        """Test that REJECT restores execution phase to IN_PROGRESS (non-terminal)."""
         from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
         from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase
         
@@ -3409,8 +3409,7 @@ class TestToolApprovalDecision:
             approved_by="user-123",
         )
         
-        # Should be FAILED, not IN_PROGRESS
-        assert status_builder_waiting_approval.current_status.phase == ExecutionPhase.EXECUTION_FAILED
+        assert status_builder_waiting_approval.current_status.phase == ExecutionPhase.EXECUTION_IN_PROGRESS
     
     def test_decision_records_approved_by_and_timestamp(self, status_builder_waiting_approval):
         """Test that decision records who approved and when."""
