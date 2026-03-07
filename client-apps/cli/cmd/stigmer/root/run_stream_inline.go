@@ -123,7 +123,7 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) renderResult {
 			}
 			r.statusf("\nSession ended by user\n")
 			if r.cfg.sessionID != "" {
-				r.statusf("Resume later with: stigmer run %s\n", r.cfg.sessionID)
+				r.statusf("Resume later with: stigmer resume %s\n", r.cfg.sessionID)
 			}
 			return renderResult{phase: "cancelled", history: r.history, program: r.cfg.program}
 

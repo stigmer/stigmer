@@ -1244,7 +1244,7 @@ func TestClassifyStreamError_WithSessionID_IncludesReattach(t *testing.T) {
 	err := status.Error(codes.Unavailable, "transport closing")
 	se := classifyStreamError(err, "ses-abc123")
 
-	if !strings.Contains(se.Error(), "stigmer run ses-abc123") {
+	if !strings.Contains(se.Error(), "stigmer resume ses-abc123") {
 		t.Errorf("expected re-attach instructions with session ID, got %q", se.Error())
 	}
 }
@@ -1253,7 +1253,7 @@ func TestClassifyStreamError_WithoutSessionID_NoReattach(t *testing.T) {
 	err := status.Error(codes.Unavailable, "transport closing")
 	se := classifyStreamError(err, "")
 
-	if strings.Contains(se.Error(), "stigmer run") {
+	if strings.Contains(se.Error(), "stigmer resume") {
 		t.Errorf("expected no re-attach instructions without session ID, got %q", se.Error())
 	}
 }
@@ -1264,7 +1264,7 @@ func TestClassifyStreamError_EOF_WithSessionID(t *testing.T) {
 	if !strings.Contains(se.Error(), "Server closed the connection unexpectedly") {
 		t.Errorf("expected EOF message, got %q", se.Error())
 	}
-	if !strings.Contains(se.Error(), "stigmer run ses-xyz789") {
+	if !strings.Contains(se.Error(), "stigmer resume ses-xyz789") {
 		t.Errorf("expected re-attach instructions, got %q", se.Error())
 	}
 }
