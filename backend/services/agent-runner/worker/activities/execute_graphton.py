@@ -498,22 +498,44 @@ async def _auto_publish_written_files(
     # Normalise: strip leading slashes so paths are workspace-relative.
     normalised = [p.lstrip("/") for p in written_paths]
 
-    # Compute common prefix directory across ALL paths.
+    # Single file — publish as an individual file artifact regardless of
+    # depth.  Wrapping it in a directory artifact named after the parent
+    # causes nested-directory collisions when --output already points at
+    # that same parent (e.g. mcp-servers/mcp-servers/planton.yaml).
     if len(normalised) == 1:
-        sole_path = PurePosixPath(normalised[0])
-        if len(sole_path.parts) > 1:
-            common_dir = str(sole_path.parent)
-        else:
-            common_dir = None
-    else:
+        rel_path = normalised[0]
+        file_name = PurePosixPath(rel_path).name
         try:
-            common = posixpath.commonpath(normalised)
-        except ValueError:
-            common = ""
-        if common and common != ".":
-            common_dir = common
-        else:
-            common_dir = None
+            artifact = await publish_artifact(
+                sandbox=sandbox,
+                storage=storage,
+                execution_id=execution_id,
+                path=rel_path,
+                name=file_name,
+                local_root=local_root,
+            )
+            status_builder.add_artifact(artifact)
+            logger.info(
+                f"[AUTO_PUBLISH] execution={execution_id} — "
+                f"published file '{rel_path}' as artifact '{file_name}'"
+            )
+            return 1
+        except Exception as e:
+            logger.warning(
+                f"[AUTO_PUBLISH] execution={execution_id} — "
+                f"failed to publish file '{rel_path}': {e}"
+            )
+            return 0
+
+    # Compute common prefix directory across ALL paths.
+    try:
+        common = posixpath.commonpath(normalised)
+    except ValueError:
+        common = ""
+    if common and common != ".":
+        common_dir = common
+    else:
+        common_dir = None
 
     artifacts_published = 0
 

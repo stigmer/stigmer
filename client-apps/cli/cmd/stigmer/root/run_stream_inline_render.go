@@ -89,8 +89,8 @@ func (r *inlineRenderer) renderPhaseChange(e executiontui.PhaseChangeEvent) {
 
 func (r *inlineRenderer) renderTodoUpdate(e executiontui.TodoUpdateEvent) {
 	var historyBuf strings.Builder
-	var displayBuf strings.Builder
 	var currentTask string
+	var completed int
 
 	historyBuf.WriteString("Plan:")
 	for _, todo := range e.Todos {
@@ -98,6 +98,7 @@ func (r *inlineRenderer) renderTodoUpdate(e executiontui.TodoUpdateEvent) {
 		switch todo.Status {
 		case "completed":
 			marker = "[x]"
+			completed++
 		case "in_progress":
 			marker = "[-]"
 			if currentTask == "" {
@@ -109,30 +110,26 @@ func (r *inlineRenderer) renderTodoUpdate(e executiontui.TodoUpdateEvent) {
 			marker = "[ ]"
 		}
 		fmt.Fprintf(&historyBuf, "\n  %s %s", marker, todo.Content)
-
-		if displayBuf.Len() > 0 {
-			displayBuf.WriteByte('\n')
-		}
-		fmt.Fprintf(&displayBuf, "  %s %s", marker, todo.Content)
 	}
 
+	r.trackedCurrentTask = currentTask
+	r.trackedTodoTotal = len(e.Todos)
+	r.trackedTodoCompleted = completed
 	if r.cfg.program != nil {
 		r.cfg.program.Send(currentTaskMsg{
-			task:        currentTask,
-			planDisplay: displayBuf.String(),
+			task:          currentTask,
+			todoTotal:     len(e.Todos),
+			todoCompleted: completed,
 		})
 	}
 
-	newItem := committedItem{kind: kindTodoUpdate, text: historyBuf.String()}
+	newItem := committedItem{
+		kind:          kindTodoUpdate,
+		text:          historyBuf.String(),
+		todoTotal:     len(e.Todos),
+		todoCompleted: completed,
+	}
 
-	// The plan is rendered exclusively in the composed View() (via
-	// planDisplay) so it is always visible above the input bar. It is
-	// NOT written to scrollback — that would create a duplicate since
-	// the composed view already shows the live plan.
-	//
-	// The history entry is kept so the plan survives across follow-up
-	// iterations (initialHistory carries over). renderCommittedItem
-	// returns "" for kindTodoUpdate so re-commits skip it.
 	for i := len(r.history) - 1; i >= 0; i-- {
 		if r.history[i].kind == kindTodoUpdate {
 			r.history[i] = newItem
@@ -312,7 +309,7 @@ func (r *inlineRenderer) hasActiveSubAgent(subAgentID string) bool {
 // byte-for-byte identical to what renderHistoryBatch would produce.
 func (r *inlineRenderer) commitToScrollback(item committedItem) {
 	r.history = append(r.history, item)
-	text := renderCommittedItem(item, r.compactOpts, r.expandMode)
+	text := renderCommittedItem(item, r.compactOpts, r.expandMode, r.expandHintEnabled())
 	r.writeToScrollback(item.kind, text)
 }
 

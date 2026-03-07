@@ -604,23 +604,11 @@ func TestInlineBubbleModel_ApprovalShow_ClearsStreamingState(t *testing.T) {
 	}
 }
 
-// TestInlineBubbleModel_ApprovalStart_ReCommitForStreamedContent verifies
-// the fix for the duplicate Write block bug (DD-001 amendment, Session 9).
-//
-// When a streaming tool transitions to approval, the event loop builds a
-// re-commit payload (history + expanded content) and sets it on
-// approvalStartMsg.reCommitPayload. The model handler must return
-// buildReCommitCmd (ClearScreen + eraseScrollback + payload) instead of
-// bare tea.Println, avoiding the insertAbove stale-cellbuf race that
-// pushes stale streaming content into scrollback.
-//
-// Sequence:
-//
-//	streamingShowMsg  -> streaming active, View() shows content
-//	streamingUpdateMsg -> content accumulated
-//	approvalStartMsg{reCommitPayload: ...} -> approval active,
-//	    returns buildReCommitCmd (not tea.Println)
-func TestInlineBubbleModel_ApprovalStart_ReCommitForStreamedContent(t *testing.T) {
+// TestInlineBubbleModel_ApprovalStart_ClearsStreamingState verifies that
+// approvalStartMsg clears all streaming state when activating approval.
+// The re-commit for streaming→approval transitions is now handled by
+// performReCommitWithApproval in the renderer, not by the model.
+func TestInlineBubbleModel_ApprovalStart_ClearsStreamingState(t *testing.T) {
 	m := newInlineBubbleModel()
 
 	shown, _ := m.Update(streamingShowMsg{
@@ -633,16 +621,12 @@ func TestInlineBubbleModel_ApprovalStart_ReCommitForStreamedContent(t *testing.T
 	if !model.streamingActive {
 		t.Fatal("precondition: streaming should be active")
 	}
-	if model.streamingCommittedLen == 0 {
-		t.Fatal("precondition: content should have been committed to scrollback")
-	}
 
 	decisionCh := make(chan approvalDecision, 1)
-	payload := "● AI message\n─── sep ───\n● Write(config.go)\napiVersion: v1\n─── sep ───"
 	approved, cmd := updated.Update(approvalStartMsg{
+		expandedContent: "─── sep ───\n● Write(config.go)\ncontent\n─── sep ───",
 		question:        "Do you want to create config.go?",
 		decisionCh:      decisionCh,
-		reCommitPayload: payload,
 	})
 	model = approved.(inlineBubbleModel)
 	if !model.approvalActive {
@@ -655,22 +639,18 @@ func TestInlineBubbleModel_ApprovalStart_ReCommitForStreamedContent(t *testing.T
 		t.Error("approvalStartMsg should clear aiStreamActive")
 	}
 	if cmd == nil {
-		t.Fatal("approvalStartMsg with reCommitPayload should return a Cmd")
+		t.Fatal("approvalStartMsg with expandedContent should return a Println Cmd")
 	}
 
 	approvalView := model.View().Content
 	if !strings.Contains(approvalView, "Do you want to create config.go?") {
 		t.Errorf("View() should show approval question, got %q", approvalView)
 	}
-	if strings.Contains(approvalView, "apiVersion") {
-		t.Error("View() should not contain streaming content after approval transition")
-	}
 }
 
-// TestInlineBubbleModel_ApprovalStart_FallsBackToPrintln verifies that when
-// reCommitPayload is empty (non-streaming approval), the handler falls back
-// to the tea.Println path for expandedContent.
-func TestInlineBubbleModel_ApprovalStart_FallsBackToPrintln(t *testing.T) {
+// TestInlineBubbleModel_ApprovalStart_PrintlnForExpandedContent verifies
+// that approvalStartMsg uses tea.Println for expandedContent.
+func TestInlineBubbleModel_ApprovalStart_PrintlnForExpandedContent(t *testing.T) {
 	m := newInlineBubbleModel()
 	decisionCh := make(chan approvalDecision, 1)
 	_, cmd := m.Update(approvalStartMsg{
@@ -683,9 +663,9 @@ func TestInlineBubbleModel_ApprovalStart_FallsBackToPrintln(t *testing.T) {
 	}
 }
 
-// TestInlineBubbleModel_ApprovalShow_ReCommitForStreamedContent verifies
-// the re-commit path for the legacy approvalShowMsg (PromptKeyOnly path).
-func TestInlineBubbleModel_ApprovalShow_ReCommitForStreamedContent(t *testing.T) {
+// TestInlineBubbleModel_ApprovalShow_PrintlnForExpandedContent verifies
+// that the legacy approvalShowMsg uses tea.Println for expandedContent.
+func TestInlineBubbleModel_ApprovalShow_PrintlnForExpandedContent(t *testing.T) {
 	m := newInlineBubbleModel()
 
 	shown, _ := m.Update(streamingShowMsg{
@@ -694,10 +674,9 @@ func TestInlineBubbleModel_ApprovalShow_ReCommitForStreamedContent(t *testing.T)
 	})
 	updated, _ := shown.Update(streamingUpdateMsg{content: "apiVersion: v1\n"})
 
-	payload := "history\n─── sep ───\n● Write(config.go)\napiVersion: v1\n─── sep ───"
 	approved, cmd := updated.Update(approvalShowMsg{
+		expandedContent: "─── sep ───\n● Write(config.go)\napiVersion: v1\n─── sep ───",
 		question:        "Do you want to create config.go?",
-		reCommitPayload: payload,
 	})
 	model := approved.(inlineBubbleModel)
 	if !model.approvalActive {
@@ -707,7 +686,7 @@ func TestInlineBubbleModel_ApprovalShow_ReCommitForStreamedContent(t *testing.T)
 		t.Error("approvalShowMsg should clear streamingActive")
 	}
 	if cmd == nil {
-		t.Fatal("approvalShowMsg with reCommitPayload should return a Cmd")
+		t.Fatal("approvalShowMsg with expandedContent should return a Println Cmd")
 	}
 }
 

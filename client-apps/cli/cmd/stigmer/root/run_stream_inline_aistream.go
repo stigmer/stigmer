@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/mdrender"
 )
 
 // ---------------------------------------------------------------------------
@@ -27,6 +28,18 @@ import (
 
 func (r *inlineRenderer) renderAIStreamStart(e executiontui.AIStreamStartEvent) {
 	r.finishAIStreamIfNeeded()
+
+	// Emit a leading gap when the previous scrollback item requires one
+	// (e.g. a tool completion). Without this, the first partial content
+	// shown live in Bubbletea's View() appears flush against the tool
+	// block because the transient area bypasses writeToScrollback's gap
+	// logic. Writing the gap here ensures it is visible immediately and
+	// prevents a double gap when commitAIStreamLines later runs
+	// needsLeadingGap (which checks r.lastScrollbackKind).
+	if needsLeadingGap(r.lastScrollbackKind, kindAIStreamLine) {
+		r.statusf("\n")
+		r.lastScrollbackKind = kindAIStreamLine
+	}
 
 	prefix := r.agentPrefix(e.SubAgentID)
 	r.streamedBytes = len(e.Content)
@@ -91,6 +104,17 @@ func (r *inlineRenderer) renderAIStreamEnd(e executiontui.AIStreamEndEvent) {
 		r.streamedBytes = 0
 		if e.Content != "" {
 			r.recordAIMessage(e.Content, e.SubAgentID)
+			// The stream was interrupted by an earlier event (e.g., a
+			// non-AI event called finishAIStreamIfNeeded). Content between
+			// the interruption and this end event was never written to
+			// scrollback. Trigger a re-commit so the full AI message
+			// (now in history via recordAIMessage) replaces the truncated
+			// scrollback output.
+			if r.cfg.program != nil {
+				r.pendingReCommit = false
+				r.lastScrollbackKind = lastKindFromHistory(r.history)
+				r.triggerReCommit()
+			}
 		}
 		return
 	}
@@ -135,6 +159,20 @@ func (r *inlineRenderer) renderAIStreamEnd(e executiontui.AIStreamEndEvent) {
 	r.inAIStream = false
 	r.streamedBytes = 0
 	r.recordAIMessage(e.Content, e.SubAgentID)
+
+	// During streaming, complete lines are committed as raw text
+	// (kindAIStreamLine). recordAIMessage stores a glamour-rendered
+	// version in history. Trigger a re-commit when:
+	//  - The content contains markdown (replace raw lines with rendered)
+	//  - A deferred re-commit is pending (Ctrl+O pressed during stream)
+	// Both conditions are handled by a single re-commit; clear the
+	// pending flag first to avoid a second re-commit from the event loop.
+	needsReCommit := r.pendingReCommit
+	r.pendingReCommit = false
+	if r.cfg.program != nil && (mdrender.HasMarkdown(e.Content) || needsReCommit) {
+		r.lastScrollbackKind = lastKindFromHistory(r.history)
+		r.triggerReCommit()
+	}
 }
 
 func (r *inlineRenderer) renderAIMessage(e executiontui.AIMessageEvent) {

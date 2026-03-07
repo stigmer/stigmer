@@ -30,18 +30,11 @@ type spinnerTickMsg struct{}
 // constrained by terminal height. Only the question line lives in View(),
 // keeping the interactive region small (question + menu ≈ 6 rows).
 //
-// When reCommitPayload is non-empty, the handler uses buildReCommitCmd
-// (Raw clear+content followed by ClearScreen state reset) instead of
-// tea.Println. This avoids the insertAbove stale-cellbuf race that
-// occurs when transitioning from a tall streaming View() to the approval
-// panel (see DD-001).
-//
 // Used by the legacy PromptKeyOnly path when Bubbletea does not own stdin.
 // The channel-based stdin path uses approvalStartMsg.
 type approvalShowMsg struct {
 	expandedContent string // full content for tea.Println (scrollback)
 	question        string // question line for View()
-	reCommitPayload string // when non-empty, use re-commit instead of Println
 }
 
 // approvalSelectMsg updates the menu selection index. Sent by the legacy
@@ -67,12 +60,6 @@ type approvalHideMsg struct {
 // file content is always visible regardless of terminal height. Only the
 // question line lives in View(), keeping the interactive region small.
 //
-// When reCommitPayload is non-empty, the handler uses buildReCommitCmd
-// (Raw clear+content followed by ClearScreen state reset) instead of
-// tea.Println. This avoids the insertAbove stale-cellbuf race that
-// occurs when transitioning from a tall streaming View() to the approval
-// panel (see DD-001).
-//
 // The event loop creates the channel, sends this message, then blocks on
 // the channel. handleKeyPress routes arrow/enter/esc keys to the channel
 // when approvalActive is true.
@@ -80,7 +67,6 @@ type approvalStartMsg struct {
 	expandedContent string // full content for tea.Println (scrollback)
 	question        string // question line for View()
 	decisionCh      chan<- approvalDecision
-	reCommitPayload string // when non-empty, use re-commit instead of Println
 }
 
 // approvalDecision carries the user's approval choice from the model back
@@ -170,16 +156,6 @@ type followUpHideMsg struct {
 	styledMessage string
 }
 
-// reCommitMsg carries a pre-rendered string of the full session history.
-// The renderer owns rendering (via renderHistoryBatch); the model issues
-// tea.Raw (clear + content) followed by tea.ClearScreen (renderer state
-// reset). The Raw write goes to Bubbletea's outputBuf which flushes
-// before the renderer, guaranteeing the terminal is cleared and content
-// is written atomically before View() is re-rendered.
-type reCommitMsg struct {
-	rendered string
-}
-
 // aiStreamPartialMsg updates the partial (incomplete) line shown in View()
 // during AI text streaming. Sent on every delta so the user sees
 // character-level feedback. View() renders this as the live typing line
@@ -200,14 +176,15 @@ type aiStreamHideMsg struct{}
 // disabled (showing "esc to interrupt"), or active (text input with cursor).
 type inputBarModeMsg struct{ mode inputBarMode }
 
-// currentTaskMsg updates the plan display and current task indicator shown
-// above the input bar separator. planDisplay is the full formatted plan
-// (all items with markers) rendered in the composed view so the plan is
-// always visible. task is the content of the first in_progress item,
-// retained for potential future use (e.g. title bar).
+// currentTaskMsg updates the plan progress indicator shown above the
+// input bar separator. task is the content of the first in_progress todo
+// item (empty when all are done). todoTotal and todoCompleted provide
+// the summary counts. The full plan is stored in history and rendered
+// in scrollback when expanded mode is active (Ctrl+O).
 type currentTaskMsg struct {
-	task        string
-	planDisplay string
+	task          string
+	todoTotal     int
+	todoCompleted int
 }
 
 // subAgentShowMsg activates the live sub-agent running summary in View().

@@ -62,12 +62,14 @@ type inlineBubbleModel struct {
 	inputBarMode inputBarMode
 
 	// currentTask holds the content of the first in_progress todo item.
-	currentTask string
-
-	// planDisplay holds the full formatted plan (all items with status
-	// markers) rendered in the composed View() so the plan is always
-	// visible above the input bar. Empty when no plan exists.
-	planDisplay string
+	// todoTotal and todoCompleted provide summary counts for the plan
+	// progress indicator shown above the separator in the composed View().
+	// expandMode suppresses the plan section in View() when the full plan
+	// is already visible in scrollback.
+	currentTask   string
+	todoTotal     int
+	todoCompleted int
+	expandMode    bool
 
 	// subAgentActive is true when a sub-agent is running and its live
 	// summary should be shown in View(). Cleared on subAgentHideMsg.
@@ -193,13 +195,12 @@ func (m inlineBubbleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleFollowUpShow(msg)
 	case followUpHideMsg:
 		return m.handleFollowUpHide(msg)
-	case reCommitMsg:
-		return m.handleReCommit(msg)
 	case inputBarModeMsg:
 		return m.handleInputBarMode(msg)
 	case currentTaskMsg:
 		m.currentTask = msg.task
-		m.planDisplay = msg.planDisplay
+		m.todoTotal = msg.todoTotal
+		m.todoCompleted = msg.todoCompleted
 		return m, nil
 	case subAgentShowMsg:
 		return m.handleSubAgentShow(msg)
@@ -212,7 +213,7 @@ func (m inlineBubbleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m inlineBubbleModel) View() tea.View {
-	// New path: composed layout with persistent input bar.
+	// Composed layout with persistent input bar.
 	if m.inputBarMode != inputBarHidden {
 		return m.renderComposedView()
 	}
@@ -257,6 +258,7 @@ func (m inlineBubbleModel) View() tea.View {
 //
 //	[transient content]                      (optional: spinner/streaming/approval/AI)
 //	  [-] Current task description           (optional: in_progress todo)
+//	  Plan: 2/5 todos completed (ctrl+o …)  (optional: plan summary)
 //	──────────────────────────── (full width)
 //	> user input / esc to interrupt          (input area)
 //	  enter send · ctrl+c exit               (hint, active mode only)
@@ -269,11 +271,16 @@ func (m inlineBubbleModel) renderComposedView() tea.View {
 		hasTransient = true
 	}
 
-	if m.planDisplay != "" && !m.approvalActive {
+	if m.todoTotal > 0 && !m.approvalActive && !m.expandMode {
 		if hasTransient {
 			parts = append(parts, "")
 		}
-		parts = append(parts, systemMsgStyle.Render(m.planDisplay))
+		if m.currentTask != "" {
+			parts = append(parts, systemMsgStyle.Render("  [-] "+m.currentTask))
+		}
+		summary := fmt.Sprintf("  Plan: %d/%d todos completed", m.todoCompleted, m.todoTotal)
+		summary += " " + expandHintStyle.Render("(ctrl+o to expand)")
+		parts = append(parts, systemMsgStyle.Render(summary))
 	}
 
 	parts = append(parts, m.renderSeparatorLine())
@@ -414,9 +421,6 @@ func (m inlineBubbleModel) handleApprovalStart(msg approvalStartMsg) (tea.Model,
 	m.aiStreamActive = false
 	m.aiStreamPartial = ""
 
-	if msg.reCommitPayload != "" {
-		return m, buildReCommitCmd(msg.reCommitPayload)
-	}
 	var cmds []tea.Cmd
 	if msg.expandedContent != "" {
 		cmds = append(cmds, tea.Println(strings.TrimRight(msg.expandedContent, "\n")))
@@ -439,9 +443,6 @@ func (m inlineBubbleModel) handleApprovalShow(msg approvalShowMsg) (tea.Model, t
 	m.aiStreamActive = false
 	m.aiStreamPartial = ""
 
-	if msg.reCommitPayload != "" {
-		return m, buildReCommitCmd(msg.reCommitPayload)
-	}
 	var cmds []tea.Cmd
 	if msg.expandedContent != "" {
 		cmds = append(cmds, tea.Println(strings.TrimRight(msg.expandedContent, "\n")))
@@ -638,15 +639,16 @@ func (m inlineBubbleModel) handleTextInputStart(msg textInputStartMsg) (tea.Mode
 }
 
 // handleTextInputHide transitions the input bar back to disabled mode after
-// the user submits or cancels follow-up input. Clears the plan display and
-// current task since a new execution is about to start.
+// the user submits or cancels follow-up input. Clears the current task
+// since a new execution is about to start.
 func (m inlineBubbleModel) handleTextInputHide(msg textInputHideMsg) (tea.Model, tea.Cmd) {
 	m.inputBarMode = inputBarDisabled
 	m.textInput.Blur()
 	m.textInput.Reset()
 	m.textInputCh = nil
 	m.currentTask = ""
-	m.planDisplay = ""
+	m.todoTotal = 0
+	m.todoCompleted = 0
 	if msg.styledMessage != "" {
 		return m, tea.Println(strings.TrimRight(msg.styledMessage, "\n"))
 	}
@@ -662,30 +664,6 @@ func (m inlineBubbleModel) handleInputBarMode(msg inputBarModeMsg) (tea.Model, t
 		m.textInputCh = nil
 	}
 	return m, nil
-}
-
-// ---------------------------------------------------------------------------
-// Re-commit handler
-// ---------------------------------------------------------------------------
-
-// handleReCommit clears all active visual states so View() returns only
-// the persistent UI (plan + separator + hint) during the renderer flush
-// that follows the Raw write. Without this, stale streaming/approval/spinner
-// content would be rendered on top of the freshly-written history.
-func (m inlineBubbleModel) handleReCommit(msg reCommitMsg) (tea.Model, tea.Cmd) {
-	m.spinnerActive = false
-	m.streamingActive = false
-	m.streamingHeader = ""
-	m.streamingContent = ""
-	m.streamingProgressive = false
-	m.streamingCommittedLen = 0
-	m.aiStreamActive = false
-	m.aiStreamPartial = ""
-	m.followUpActive = false
-	m.followUpContent = ""
-	// Sub-agent live summary is not cleared — if a sub-agent is still
-	// running after re-commit, its summary reappears in View().
-	return m, buildReCommitCmd(msg.rendered)
 }
 
 // ---------------------------------------------------------------------------

@@ -92,6 +92,19 @@ func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFun
 
 	program := startInlineProgram(statusW, toggleExpandCh, cancelCh, interruptCh)
 
+	var programFactory func(func(*inlineBubbleModel)) *tea.Program
+	if program != nil {
+		programFactory = func(initModel func(*inlineBubbleModel)) *tea.Program {
+			m := newInlineBubbleModelWithChannels(toggleExpandCh, cancelCh, interruptCh)
+			if initModel != nil {
+				initModel(&m)
+			}
+			p := tea.NewProgram(m, tea.WithOutput(statusW))
+			go func() { _, _ = p.Run() }()
+			return p
+		}
+	}
+
 	var subjectUpdate chan string
 	if sessionID != "" && headerInfo.Subject == "" {
 		subjectUpdate = make(chan string, 1)
@@ -118,6 +131,7 @@ func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFun
 		sandboxRoot:       sbRoot,
 		platformDir:       pfDir,
 		program:           program,
+		programFactory:    programFactory,
 		headerInfo:        headerInfo,
 		subjectUpdate:     subjectUpdate,
 		recentSessionsCh:  recentSessionsCh,
@@ -130,9 +144,9 @@ func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFun
 		},
 	}
 
-	latestExecID, phase, exitErr := runInlineFollowUpLoop(streamCtx, cfg, followUpFn, executionID)
+	latestExecID, phase, exitErr, activeProgram := runInlineFollowUpLoop(streamCtx, cfg, followUpFn, executionID)
 
-	stopInlineProgram(program)
+	stopInlineProgram(activeProgram)
 	streamCancel()
 
 	return streamAgentEpilogue(sessionID, latestExecID, phase, exitErr, conn)

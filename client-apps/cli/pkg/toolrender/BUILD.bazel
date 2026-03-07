@@ -10,6 +10,7 @@ go_library(
         "render.go",
         "render_approval.go",
         "render_compact.go",
+        "render_expandable.go",
         "render_expanded.go",
         "render_known.go",
     ],
@@ -34,8 +35,13 @@ go_test(
         "hyperlink_test.go",
         "render_approval_test.go",
         "render_compact_test.go",
+        "render_expandable_test.go",
         "render_expanded_test.go",
         "render_test.go",
     ],
     embed = [":toolrender"],
+    deps = [
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+    ],
 )

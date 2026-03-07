@@ -3,7 +3,6 @@ package root
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
@@ -129,17 +128,13 @@ func (r *inlineRenderer) handleInteractiveApproval(
 
 	if r.cfg.program != nil {
 		expanded := r.buildFullExpandedView(tc, width)
-		var reCommitPayload string
 		if contentStreamed {
-			rendered := renderHistoryBatch(r.history, r.compactOpts, r.expandMode)
-			trimmed := strings.TrimRight(expanded, "\n")
-			if rendered != "" {
-				reCommitPayload = rendered + "\n" + trimmed
-			} else {
-				reCommitPayload = trimmed
-			}
+			decisionCh := make(chan approvalDecision, 1)
+			r.performReCommitWithApproval(expanded, question, decisionCh, 0)
+			r.waitForApprovalDecision(ctx, e, tc, subAgentID, expanded, question, decisionCh)
+			return
 		}
-		r.promptApprovalViaBubbletea(ctx, e, tc, subAgentID, expanded, question, reCommitPayload, opts)
+		r.promptApprovalViaBubbletea(ctx, e, tc, subAgentID, expanded, question, opts)
 		return
 	}
 
@@ -171,11 +166,6 @@ func (r *inlineRenderer) erasePreApprovalContent(
 // promptApprovalViaBubbletea renders the approval panel through View()
 // and collects the user's decision.
 //
-// When reCommitPayload is non-empty (streaming→approval transition), the
-// message carries it instead of expandedContent. The model handler uses
-// buildReCommitCmd to atomically clear + replay, avoiding the insertAbove
-// stale-cellbuf race (see DD-001).
-//
 // When Bubbletea owns stdin (cancelCh is non-nil), the model receives
 // keystrokes as tea.KeyPressMsg and delivers the decision via a channel.
 // When stdin is external (legacy path), PromptKeyOnly reads keys
@@ -185,40 +175,66 @@ func (r *inlineRenderer) promptApprovalViaBubbletea(
 	e executiontui.ApprovalNeededEvent,
 	tc toolrender.ToolCallInfo,
 	subAgentID string,
-	expanded, question, reCommitPayload string,
+	expanded, question string,
 	opts approval.Options,
 ) {
 	if r.cfg.cancelCh != nil {
-		r.promptApprovalViaChannel(ctx, e, tc, subAgentID, expanded, question, reCommitPayload)
+		r.promptApprovalViaChannel(ctx, e, tc, subAgentID, expanded, question)
 		return
 	}
-	r.promptApprovalViaKeyReader(ctx, e, tc, subAgentID, expanded, question, reCommitPayload, opts)
+	r.promptApprovalViaKeyReader(ctx, e, tc, subAgentID, expanded, question, opts)
 }
 
 // promptApprovalViaChannel uses the channel-based flow when Bubbletea
 // owns stdin. Sends approvalStartMsg with a decision channel, then
 // blocks until the model delivers a decision via handleApprovalKey.
+//
+// While waiting for the decision, it also listens on toggleExpandCh so
+// Ctrl+O can refresh the scrollback in expand/collapse mode without
+// disrupting the approval prompt (via performReCommitWithApproval).
 func (r *inlineRenderer) promptApprovalViaChannel(
 	_ context.Context,
 	e executiontui.ApprovalNeededEvent,
 	tc toolrender.ToolCallInfo,
 	subAgentID string,
-	expanded, question, reCommitPayload string,
+	expanded, question string,
 ) {
 	decisionCh := make(chan approvalDecision, 1)
 
 	msg := approvalStartMsg{
-		question:   question,
-		decisionCh: decisionCh,
-	}
-	if reCommitPayload != "" {
-		msg.reCommitPayload = reCommitPayload
-	} else {
-		msg.expandedContent = expanded
+		expandedContent: expanded,
+		question:        question,
+		decisionCh:      decisionCh,
 	}
 	r.cfg.program.Send(msg)
 
-	d := <-decisionCh
+	r.waitForApprovalDecision(nil, e, tc, subAgentID, expanded, question, decisionCh)
+}
+
+// waitForApprovalDecision blocks until the user makes an approval decision,
+// while also handling Ctrl+O toggles via performReCommitWithApproval. Shared
+// by both the direct re-commit path (contentStreamed) and the normal channel
+// path.
+func (r *inlineRenderer) waitForApprovalDecision(
+	_ context.Context,
+	e executiontui.ApprovalNeededEvent,
+	tc toolrender.ToolCallInfo,
+	subAgentID string,
+	expanded, question string,
+	decisionCh chan approvalDecision,
+) {
+	var d approvalDecision
+	for {
+		select {
+		case d = <-decisionCh:
+			goto decided
+		case <-r.cfg.toggleExpandCh:
+			r.expandMode = !r.expandMode
+			decisionCh = make(chan approvalDecision, 1)
+			r.performReCommitWithApproval(expanded, question, decisionCh, 0)
+		}
+	}
+decided:
 
 	if d.err != nil {
 		r.cfg.program.Send(approvalHideMsg{})
@@ -248,16 +264,12 @@ func (r *inlineRenderer) promptApprovalViaKeyReader(
 	e executiontui.ApprovalNeededEvent,
 	tc toolrender.ToolCallInfo,
 	subAgentID string,
-	expanded, question, reCommitPayload string,
+	expanded, question string,
 	opts approval.Options,
 ) {
 	msg := approvalShowMsg{
-		question: question,
-	}
-	if reCommitPayload != "" {
-		msg.reCommitPayload = reCommitPayload
-	} else {
-		msg.expandedContent = expanded
+		expandedContent: expanded,
+		question:        question,
 	}
 	r.cfg.program.Send(msg)
 

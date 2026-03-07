@@ -76,7 +76,7 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) renderResult {
 			r.stopThinkingSpinner()
 			r.flushPendingReads()
 			r.statusf("Stream cancelled\n")
-			return renderResult{exitErr: "context cancelled", history: r.history}
+			return renderResult{exitErr: "context cancelled", history: r.history, program: r.cfg.program}
 
 		case subject, ok := <-cfg.subjectUpdate:
 			if ok && subject != "" {
@@ -113,7 +113,7 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) renderResult {
 				cfg.subjectUpdate = nil
 				continue
 			}
-			return renderResult{phase: "cancelled", history: r.history}
+			return renderResult{phase: "cancelled", history: r.history, program: r.cfg.program}
 
 		case <-cfg.cancelCh:
 			r.stopThinkingSpinner()
@@ -125,7 +125,7 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) renderResult {
 			if r.cfg.sessionID != "" {
 				r.statusf("Resume later with: stigmer run %s\n", r.cfg.sessionID)
 			}
-			return renderResult{phase: "cancelled", history: r.history}
+			return renderResult{phase: "cancelled", history: r.history, program: r.cfg.program}
 
 		case event, ok := <-cfg.events:
 			r.stopThinkingSpinner()
@@ -133,7 +133,7 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) renderResult {
 
 			if !ok {
 				r.flushPendingReads()
-				return renderResult{history: r.history}
+				return renderResult{history: r.history, program: r.cfg.program}
 			}
 
 			done, p, e := r.handleEvent(ctx, event)
@@ -144,9 +144,19 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) renderResult {
 					cfg.subjectUpdate = nil
 					continue
 				}
-				return renderResult{phase: p, exitErr: e, history: r.history}
+				return renderResult{phase: p, exitErr: e, history: r.history, program: r.cfg.program}
 			}
 			r.resetThinkTimer()
+
+			// After the event is fully processed, check whether a
+			// deferred re-commit can now fire. The AI stream may have
+			// ended inside handleEvent (AIStreamEnd or a non-AI event
+			// that called finishAIStreamIfNeeded), making the deferred
+			// re-commit safe to execute.
+			if r.pendingReCommit && !r.inAIStream {
+				r.pendingReCommit = false
+				recommitNeeded = true
+			}
 
 		case input := <-r.followUpInputCh:
 			return r.completeFollowUp(strings.TrimSpace(input))
@@ -160,7 +170,11 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) renderResult {
 		// other ready channels before issuing a single triggerReCommit.
 		if recommitNeeded {
 			r.drainRecommitTriggers(&cfg)
-			r.triggerReCommit()
+			if r.inAIStream {
+				r.pendingReCommit = true
+			} else {
+				r.triggerReCommit()
+			}
 		}
 	}
 }
@@ -178,6 +192,7 @@ func (r *inlineRenderer) activateFollowUp(phase, exitErr string) {
 
 	inputCh := make(chan string, 1)
 	r.followUpInputCh = inputCh
+	r.followUpSendCh = inputCh
 	r.cfg.program.Send(textInputStartMsg{inputCh: inputCh})
 }
 
@@ -214,6 +229,7 @@ func (r *inlineRenderer) completeFollowUp(input string) renderResult {
 			phase:   r.donePhase,
 			exitErr: r.doneExitErr,
 			history: r.history,
+			program: r.cfg.program,
 		}
 	}
 
@@ -230,6 +246,7 @@ func (r *inlineRenderer) completeFollowUp(input string) renderResult {
 		exitErr:       r.doneExitErr,
 		history:       r.history,
 		followUpInput: input,
+		program:       r.cfg.program,
 	}
 }
 
@@ -390,6 +407,12 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 	case executiontui.AIStreamStartEvent:
 		r.flushPendingReads()
 	case executiontui.AIStreamDeltaEvent, executiontui.AIStreamEndEvent:
+	case executiontui.TodoUpdateEvent:
+		// Todo updates only affect the composed View() (currentTask) and
+		// produce no scrollback output. They must not interrupt an active
+		// AI stream — doing so prematurely closes the stream, causing
+		// subsequent deltas to be silently dropped and the AI message to
+		// appear truncated on screen.
 	default:
 		r.finishAIStreamIfNeeded()
 		r.flushPendingReads()

@@ -27,35 +27,41 @@ import (
 // loop stays active during the prompt, so Ctrl+O toggles work immediately.
 // When false, the legacy promptFollowUp paths handle input externally.
 //
-// Returns the latest execution ID, final phase, and exit error so the caller
-// can fetch the correct execution for the epilogue summary.
+// Returns the latest execution ID, final phase, exit error, and the active
+// Bubbletea program so the caller can stop the correct instance. The program
+// may differ from the one originally passed in cfg when performReCommit
+// created replacement programs during the session.
 func runInlineFollowUpLoop(
 	ctx context.Context,
 	cfg inlineRenderConfig,
 	followUpFn executiontui.FollowUpFn,
 	executionID string,
-) (latestExecID string, phase string, exitErr string) {
+) (latestExecID string, phase string, exitErr string, latestProgram *tea.Program) {
 	latestExecID = executionID
+	latestProgram = cfg.program
 
 	for {
 		result := renderInline(ctx, cfg)
 
+		if result.program != nil {
+			cfg.program = result.program
+			latestProgram = result.program
+		}
+
 		if followUpFn == nil || !isFollowUpEligible(result.phase, result.exitErr) {
-			return latestExecID, result.phase, result.exitErr
+			return latestExecID, result.phase, result.exitErr, latestProgram
 		}
 
 		var input string
 		if result.followUpInput != "" {
 			input = result.followUpInput
 		} else if cfg.followUpEnabled {
-			// Follow-up was handled inside renderInline (Bubbletea text input);
-			// empty followUpInput means the user cancelled. Exit the loop.
-			return latestExecID, result.phase, result.exitErr
+			return latestExecID, result.phase, result.exitErr, latestProgram
 		} else {
 			var err error
 			input, err = promptFollowUp(cfg.program, cfg.status)
 			if err != nil || input == "" {
-				return latestExecID, result.phase, result.exitErr
+				return latestExecID, result.phase, result.exitErr, latestProgram
 			}
 			result.history = append(result.history, committedItem{
 				kind: kindHumanMessage,
@@ -69,7 +75,7 @@ func runInlineFollowUpLoop(
 		followUp, err := followUpFn(input)
 		if err != nil {
 			fmt.Fprintf(cfg.status, "Error: follow-up failed: %s\n", err)
-			return latestExecID, result.phase, result.exitErr
+			return latestExecID, result.phase, result.exitErr, latestProgram
 		}
 
 		latestExecID = followUp.ExecutionID
