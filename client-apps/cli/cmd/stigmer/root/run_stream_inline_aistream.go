@@ -104,6 +104,17 @@ func (r *inlineRenderer) renderAIStreamEnd(e executiontui.AIStreamEndEvent) {
 		r.streamedBytes = 0
 		if e.Content != "" {
 			r.recordAIMessage(e.Content, e.SubAgentID)
+			// The stream was interrupted by an earlier event (e.g., a
+			// non-AI event called finishAIStreamIfNeeded). Content between
+			// the interruption and this end event was never written to
+			// scrollback. Trigger a re-commit so the full AI message
+			// (now in history via recordAIMessage) replaces the truncated
+			// scrollback output.
+			if r.cfg.program != nil {
+				r.pendingReCommit = false
+				r.lastScrollbackKind = lastKindFromHistory(r.history)
+				r.triggerReCommit()
+			}
 		}
 		return
 	}
@@ -151,13 +162,14 @@ func (r *inlineRenderer) renderAIStreamEnd(e executiontui.AIStreamEndEvent) {
 
 	// During streaming, complete lines are committed as raw text
 	// (kindAIStreamLine). recordAIMessage stores a glamour-rendered
-	// version in history. When the content contains markdown, trigger a
-	// re-commit so the raw scrollback lines are atomically replaced with
-	// the rendered version. This reuses the same re-commit path as the
-	// Ctrl+O expand toggle.
-	// Reset lastScrollbackKind from history so subsequent gap decisions
-	// remain correct after the redraw.
-	if r.cfg.program != nil && mdrender.HasMarkdown(e.Content) {
+	// version in history. Trigger a re-commit when:
+	//  - The content contains markdown (replace raw lines with rendered)
+	//  - A deferred re-commit is pending (Ctrl+O pressed during stream)
+	// Both conditions are handled by a single re-commit; clear the
+	// pending flag first to avoid a second re-commit from the event loop.
+	needsReCommit := r.pendingReCommit
+	r.pendingReCommit = false
+	if r.cfg.program != nil && (mdrender.HasMarkdown(e.Content) || needsReCommit) {
 		r.lastScrollbackKind = lastKindFromHistory(r.history)
 		r.triggerReCommit()
 	}

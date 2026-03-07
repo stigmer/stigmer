@@ -257,6 +257,15 @@ type inlineRenderer struct {
 	// during clear+re-commit.
 	expandMode bool
 
+	// pendingReCommit is set when a re-commit trigger (Ctrl+O, subject
+	// update, recent sessions) fires during an active AI stream. The
+	// re-commit is deferred because AI stream lines are not stored in
+	// history — a re-commit during streaming would lose them. The flag
+	// is checked after each handleEvent call and inside renderAIStreamEnd;
+	// when the AI stream ends and pendingReCommit is true, the deferred
+	// re-commit fires with the full history (including the final AI message).
+	pendingReCommit bool
+
 	// history records every item committed to terminal scrollback via
 	// writeToScrollback. Used by the clear+re-commit mechanism to
 	// reconstruct the full session display when the subject resolves or
