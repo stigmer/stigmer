@@ -2,11 +2,13 @@ package root
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/panel"
 )
@@ -338,31 +340,46 @@ func resolveFailureError(execution *agentexecutionv1.AgentExecution) string {
 	return "Execution failed (error details unavailable — check execution logs)"
 }
 
-// displaySessionExitLine prints a single-line summary after the TUI exits
-// for a completed session. Replaces the verbose multi-line panel.
+// displaySessionExitLine prints a compact summary after streaming ends for a
+// session-based command. The status line uses climsg for colored output on
+// stderr, followed by a copy-pasteable resume command.
 func displaySessionExitLine(sessionID string, exec *agentexecutionv1.AgentExecution) {
-	fmt.Println()
+	fmt.Fprintln(os.Stderr)
 	phase := exec.GetStatus().GetPhase()
 	duration := parseDuration(exec.GetStatus().GetStartedAt(), exec.GetStatus().GetCompletedAt())
 
 	switch phase {
 	case agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED:
 		if duration > 0 {
-			fmt.Printf("Session %s completed (%s)\n", sessionID, duration.Round(time.Second))
+			climsg.Success("Completed (%s)", duration.Round(time.Second))
 		} else {
-			fmt.Printf("Session %s completed\n", sessionID)
+			climsg.Success("Completed")
 		}
 	case agentexecutionv1.ExecutionPhase_EXECUTION_FAILED:
-		errMsg := resolveFailureError(exec)
-		fmt.Printf("Session %s failed: %s\n", sessionID, errMsg)
+		climsg.Error("Failed: %s", resolveFailureError(exec))
 	case agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED:
-		fmt.Printf("Session %s cancelled\n", sessionID)
+		climsg.Warning("Cancelled")
 	case agentexecutionv1.ExecutionPhase_EXECUTION_TERMINATED:
-		fmt.Printf("Session %s terminated\n", sessionID)
+		climsg.Warning("Terminated")
 	default:
-		fmt.Printf("Session %s exited (%s)\n", sessionID, mapPhaseToString(phase))
+		climsg.Warning("Exited (%s)", mapPhaseToString(phase))
 	}
-	flushStdout()
+
+	verb := sessionResumeVerb(phase)
+	fmt.Fprintf(os.Stderr, "\n  %s  stigmer run %s\n", verb, sessionID)
+}
+
+// sessionResumeVerb returns a human-friendly label for the resume command
+// based on the execution phase.
+func sessionResumeVerb(phase agentexecutionv1.ExecutionPhase) string {
+	switch phase {
+	case agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED:
+		return "To continue:"
+	case agentexecutionv1.ExecutionPhase_EXECUTION_FAILED:
+		return "To retry:   "
+	default:
+		return "To resume:  "
+	}
 }
 
 // displaySessionDetachLine prints a single-line detach notice with
