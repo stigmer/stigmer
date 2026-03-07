@@ -146,24 +146,6 @@ func TestRenderCommittedItem_TextKinds(t *testing.T) {
 	}
 }
 
-func TestBuildReCommitCmd_ProducesCmd(t *testing.T) {
-	items := []committedItem{
-		{kind: kindHeader, header: &sessionHeaderInfo{SessionID: "ses-1"}},
-		{kind: kindText, text: "some output"},
-		{kind: kindToolCompact, toolCalls: []toolrender.ToolCallInfo{
-			{Name: "read_file", Args: map[string]interface{}{"path": "f.go"}},
-		}},
-	}
-	rendered := renderHistoryBatch(items, toolrender.CompactOptions{}, false, false)
-	cmd := buildReCommitCmd(rendered)
-	assert.NotNil(t, cmd)
-}
-
-func TestBuildReCommitCmd_EmptyHistory(t *testing.T) {
-	cmd := buildReCommitCmd("")
-	assert.NotNil(t, cmd)
-}
-
 func TestRenderCommittedItem_Header_SubjectMutation(t *testing.T) {
 	info := sessionHeaderInfo{
 		SessionID: "ses-abc123",
@@ -293,18 +275,6 @@ func TestRenderCommittedItem_Expanded_ApprovalUnchanged(t *testing.T) {
 	compact := renderCommittedItem(item, toolrender.CompactOptions{}, false, false)
 	expanded := renderCommittedItem(item, toolrender.CompactOptions{}, true, false)
 	assert.Equal(t, compact, expanded)
-}
-
-func TestBuildReCommitCmd_Expanded_ProducesCmd(t *testing.T) {
-	items := []committedItem{
-		{kind: kindHeader, header: &sessionHeaderInfo{SessionID: "ses-1"}},
-		{kind: kindToolCompact, toolCalls: []toolrender.ToolCallInfo{
-			{Name: "shell", Args: map[string]interface{}{"command": "ls"}, Status: "completed", Result: "a\nb\nc\nd\ne"},
-		}},
-	}
-	rendered := renderHistoryBatch(items, toolrender.CompactOptions{}, true, false)
-	cmd := buildReCommitCmd(rendered)
-	assert.NotNil(t, cmd)
 }
 
 // =============================================================================
@@ -576,7 +546,7 @@ func TestNeedsTrailingGap(t *testing.T) {
 	gapKinds := []committedKind{
 		kindAIMessage, kindHumanMessage, kindSystemMessage,
 		kindSubAgentBlock, kindPhaseChange,
-		kindApproval, kindText,
+		kindApproval, kindText, kindTodoUpdate,
 	}
 	for _, k := range gapKinds {
 		assert.True(t, needsTrailingGap(k), "expected needsTrailingGap==true for kind %d", k)
@@ -584,7 +554,7 @@ func TestNeedsTrailingGap(t *testing.T) {
 
 	// Explicit opt-outs only.
 	noGapKinds := []committedKind{
-		kindHeader, kindToolCompact, kindReadGroup, kindTodoUpdate, kindAIStreamLine,
+		kindHeader, kindToolCompact, kindReadGroup, kindAIStreamLine,
 	}
 	for _, k := range noGapKinds {
 		assert.False(t, needsTrailingGap(k), "expected needsTrailingGap==false for kind %d", k)

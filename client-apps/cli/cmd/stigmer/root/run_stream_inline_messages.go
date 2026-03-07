@@ -30,18 +30,11 @@ type spinnerTickMsg struct{}
 // constrained by terminal height. Only the question line lives in View(),
 // keeping the interactive region small (question + menu ≈ 6 rows).
 //
-// When reCommitPayload is non-empty, the handler uses buildReCommitCmd
-// (Raw → ClearScreen → Println → reCommitDoneMsg) instead of bare
-// tea.Println. This avoids the insertAbove stale-cellbuf race that
-// occurs when transitioning from a tall streaming View() to the approval
-// panel (see DD-001).
-//
 // Used by the legacy PromptKeyOnly path when Bubbletea does not own stdin.
 // The channel-based stdin path uses approvalStartMsg.
 type approvalShowMsg struct {
 	expandedContent string // full content for tea.Println (scrollback)
 	question        string // question line for View()
-	reCommitPayload string // when non-empty, use re-commit instead of Println
 }
 
 // approvalSelectMsg updates the menu selection index. Sent by the legacy
@@ -67,12 +60,6 @@ type approvalHideMsg struct {
 // file content is always visible regardless of terminal height. Only the
 // question line lives in View(), keeping the interactive region small.
 //
-// When reCommitPayload is non-empty, the handler uses buildReCommitCmd
-// (Raw → ClearScreen → Println → reCommitDoneMsg) instead of bare
-// tea.Println. This avoids the insertAbove stale-cellbuf race that
-// occurs when transitioning from a tall streaming View() to the approval
-// panel (see DD-001).
-//
 // The event loop creates the channel, sends this message, then blocks on
 // the channel. handleKeyPress routes arrow/enter/esc keys to the channel
 // when approvalActive is true.
@@ -80,7 +67,6 @@ type approvalStartMsg struct {
 	expandedContent string // full content for tea.Println (scrollback)
 	question        string // question line for View()
 	decisionCh      chan<- approvalDecision
-	reCommitPayload string // when non-empty, use re-commit instead of Println
 }
 
 // approvalDecision carries the user's approval choice from the model back
@@ -88,15 +74,6 @@ type approvalStartMsg struct {
 type approvalDecision struct {
 	action approval.Action
 	err    error
-}
-
-// approvalReRenderMsg replays the scrollback content (history + expanded
-// tool view) without resetting approval state. Sent when Ctrl+O is pressed
-// during an active approval prompt — the event loop rebuilds the
-// reCommitPayload with the new expand mode and sends this message so the
-// terminal is refreshed while the question and menu selection are preserved.
-type approvalReRenderMsg struct {
-	reCommitPayload string
 }
 
 // textInputStartMsg activates the text input mode for follow-up prompts.
@@ -179,24 +156,6 @@ type followUpHideMsg struct {
 	styledMessage string
 }
 
-// reCommitMsg carries a pre-rendered string of the full session history.
-// The renderer owns rendering (via renderHistoryBatch); the model issues
-// a renderer-aware sequence: Raw(clearAndHome) → ClearScreen → Println →
-// reCommitDoneMsg. The Raw write clears the terminal, ClearScreen resets
-// the renderer's cursor tracking, Println writes history through the
-// renderer's tracked path, and reCommitDoneMsg re-enables View().
-type reCommitMsg struct {
-	rendered string
-}
-
-// reCommitDoneMsg is the final step of a re-commit sequence. By this
-// point the terminal has been cleared (tea.Raw), the renderer's cursor
-// tracking has been reset (tea.ClearScreen), and the history has been
-// written through the renderer (tea.Println). The handler clears the
-// reCommitPending flag so View() renders the composed view (input bar,
-// approval menu, etc.) at the correct tracked position below the history.
-type reCommitDoneMsg struct{}
-
 // aiStreamPartialMsg updates the partial (incomplete) line shown in View()
 // during AI text streaming. Sent on every delta so the user sees
 // character-level feedback. View() renders this as the live typing line
@@ -217,14 +176,12 @@ type aiStreamHideMsg struct{}
 // disabled (showing "esc to interrupt"), or active (text input with cursor).
 type inputBarModeMsg struct{ mode inputBarMode }
 
-// currentTaskMsg updates the plan display and current task indicator shown
-// above the input bar separator. planDisplay is the full formatted plan
-// (all items with markers) rendered in the composed view so the plan is
-// always visible. task is the content of the first in_progress item,
-// retained for potential future use (e.g. title bar).
+// currentTaskMsg updates the current task indicator shown as a single line
+// above the input bar separator. task is the content of the first
+// in_progress todo item. The full plan is stored in history and rendered
+// in scrollback when expanded mode is active (Ctrl+O).
 type currentTaskMsg struct {
-	task        string
-	planDisplay string
+	task string
 }
 
 // subAgentShowMsg activates the live sub-agent running summary in View().

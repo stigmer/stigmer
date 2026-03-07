@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	tea "charm.land/bubbletea/v2"
-
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/panel"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/termctl"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
 )
 
@@ -33,9 +32,10 @@ func needsTrailingGap(kind committedKind) bool {
 		// stream ends (using kindAIMessage's trailing-gap rule).
 		return false
 	case kindTodoUpdate:
-		// Rendered exclusively in the composed View(); never appears in
-		// scrollback, so trailing gap is irrelevant.
-		return false
+		// In expanded mode the plan appears in scrollback and needs a
+		// trailing gap. In collapsed mode renderCommittedItem returns ""
+		// so the gap is never emitted regardless of this value.
+		return true
 	}
 	return true
 }
@@ -211,9 +211,9 @@ func renderCommittedItem(item committedItem, opts toolrender.CompactOptions, exp
 		}
 		return text
 	case kindTodoUpdate:
-		// The plan is rendered exclusively in the composed View() (via
-		// planDisplay) so it is always visible above the input bar. Skip
-		// it during re-commits to avoid duplication in scrollback.
+		if expanded {
+			return item.text
+		}
 		return ""
 	default:
 		return item.text
@@ -383,58 +383,84 @@ func appendExpandHint(text string) string {
 	return text + expandHintSuffix
 }
 
-// triggerReCommit pre-renders the full history into a single string and
-// sends it to the Bubbletea model via reCommitMsg. The model issues a
-// renderer-aware sequence (Raw → ClearScreen → Println → reCommitDoneMsg)
-// to atomically replace terminal content. No-op when no program is
-// active (non-TTY, tests).
+// triggerReCommit stops the current Bubbletea program, clears the terminal,
+// rewrites history directly, and starts a fresh program. No-op when no
+// program or factory is active (non-TTY, tests).
 func (r *inlineRenderer) triggerReCommit() {
-	if r.cfg.program == nil {
-		return
-	}
-	rendered := renderHistoryBatch(r.history, r.compactOpts, r.expandMode, r.expandHintEnabled())
-	r.cfg.program.Send(reCommitMsg{rendered: rendered})
+	r.performReCommit()
 }
 
-// clearAndHome is the escape sequence prefix written via tea.Raw during
-// re-commit. It clears the visible screen, moves the cursor to row 1
-// col 1, then erases saved scrollback lines.
-//
-// The ordering (\033[2J → \033[1;1H → \033[3J) matters: modern terminals
-// (iTerm2, macOS Terminal, Ghostty) push visible content into scrollback
-// on \033[2J rather than truly erasing it. \033[3J must follow to wipe
-// that pushed content, otherwise duplicates survive in scrollback.
+// clearAndHome is the escape sequence that clears the visible screen, moves
+// the cursor to row 1 col 1, then erases saved scrollback lines.
 const clearAndHome = "\033[2J\033[1;1H\033[3J"
 
-// buildReCommitCmd returns a tea.Sequence that atomically clears the
-// terminal and writes the pre-rendered history, followed by a
-// reCommitDoneMsg that signals the model to restore View() rendering.
-//
-// Sequence:
-//  1. tea.Raw(clearAndHome) — physically clears the visible screen,
-//     scrollback buffer, and moves the cursor to (1,1).
-//  2. tea.ClearScreen — resets the renderer's internal cursor tracking
-//     to (0,0) and marks the screen buffer for a full redraw.
-//  3. tea.Println(history) — writes the rendered history through the
-//     renderer's tracked path (insertAbove). Because reCommitPending
-//     is still true at this point, View() returns "" and the renderer
-//     writes only the history content with no view interference.
-//  4. reCommitDoneMsg — clears reCommitPending so View() renders the
-//     composed view (input bar / "esc to interrupt") at the correct
-//     tracked position below the history.
-//
-// This approach keeps the renderer's cursor tracking in sync for all
-// modes (execution, follow-up, approval). The previous tea.Raw-only
-// path for execution mode caused cursor desync — the renderer wrote
-// View() at its stale tracked position instead of below the history.
-func buildReCommitCmd(rendered string) tea.Cmd {
-	cmds := []tea.Cmd{
-		tea.Raw(clearAndHome),
-		tea.ClearScreen,
+// performReCommit replaces the broken tea.Raw+ClearScreen approach with a
+// synchronous program-restart. The old program is stopped, history is
+// written directly to the terminal (no Bubbletea involved), and a fresh
+// program is started with the necessary state pre-loaded.
+func (r *inlineRenderer) performReCommit() {
+	if r.cfg.program == nil || r.cfg.programFactory == nil {
+		return
 	}
+
+	r.cfg.program.Quit()
+	r.cfg.program.Wait()
+
+	rendered := renderHistoryBatch(
+		r.history, r.compactOpts, r.expandMode, r.expandHintEnabled(),
+	)
+	payload := clearAndHome
 	if rendered != "" {
-		cmds = append(cmds, tea.Println(rendered))
+		payload += rendered + "\n"
 	}
-	cmds = append(cmds, func() tea.Msg { return reCommitDoneMsg{} })
-	return tea.Sequence(cmds...)
+	fmt.Fprint(r.cfg.status, payload)
+
+	r.cfg.program = r.cfg.programFactory(func(m *inlineBubbleModel) {
+		m.currentTask = r.trackedCurrentTask
+		m.termWidth = termctl.Width(r.cfg.status, 80)
+		if r.followUpSendCh != nil {
+			m.inputBarMode = inputBarActive
+			m.textInputCh = r.followUpSendCh
+			m.textInput = newFollowUpTextInput()
+			m.textInput.Focus()
+		}
+	})
+}
+
+// performReCommitWithApproval is like performReCommit but also writes an
+// expanded tool view after the history and pre-loads approval state into
+// the new program so the approval prompt continues seamlessly.
+func (r *inlineRenderer) performReCommitWithApproval(
+	expandedView, question string,
+	decisionCh chan<- approvalDecision,
+	selected int,
+) {
+	if r.cfg.program == nil || r.cfg.programFactory == nil {
+		return
+	}
+
+	r.cfg.program.Quit()
+	r.cfg.program.Wait()
+
+	rendered := renderHistoryBatch(
+		r.history, r.compactOpts, r.expandMode, r.expandHintEnabled(),
+	)
+	payload := clearAndHome
+	if rendered != "" {
+		payload += rendered + "\n"
+	}
+	trimmed := strings.TrimRight(expandedView, "\n")
+	if trimmed != "" {
+		payload += trimmed + "\n"
+	}
+	fmt.Fprint(r.cfg.status, payload)
+
+	r.cfg.program = r.cfg.programFactory(func(m *inlineBubbleModel) {
+		m.currentTask = r.trackedCurrentTask
+		m.termWidth = termctl.Width(r.cfg.status, 80)
+		m.approvalActive = true
+		m.approvalContent = question + "\n"
+		m.approvalDecisionCh = decisionCh
+		m.approvalSelected = selected
+	})
 }
