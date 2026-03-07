@@ -47,6 +47,12 @@ type renderResult struct {
 	exitErr       string
 	history       []committedItem
 	followUpInput string
+
+	// program is the Bubbletea Program that was active when renderInline
+	// returned. May differ from the cfg.program that was passed in when
+	// performReCommit created replacement programs during the session.
+	// Callers must use this reference (not the original) for cleanup.
+	program *tea.Program
 }
 
 // inlineRenderConfig configures the inline (non-TUI) event renderer.
@@ -68,6 +74,12 @@ type inlineRenderConfig struct {
 	// tracks stderr row positions accurately. When nil (unit tests, non-TTY),
 	// output falls back to direct writes on the status writer.
 	program *tea.Program
+
+	// programFactory creates a fresh Bubbletea program with the same
+	// channels and output writer. The initModel callback pre-loads model
+	// state (plan, input bar, approval) before the program starts.
+	// nil when program is nil (non-TTY).
+	programFactory func(initModel func(*inlineBubbleModel)) *tea.Program
 
 	// suppressHumanEcho skips the next HumanMessageEvent rendering. Set by
 	// the follow-up loop after local echo to prevent duplicate display when
@@ -257,6 +269,15 @@ type inlineRenderer struct {
 	// during clear+re-commit.
 	expandMode bool
 
+	// pendingReCommit is set when a re-commit trigger (Ctrl+O, subject
+	// update, recent sessions) fires during an active AI stream. The
+	// re-commit is deferred because AI stream lines are not stored in
+	// history — a re-commit during streaming would lose them. The flag
+	// is checked after each handleEvent call and inside renderAIStreamEnd;
+	// when the AI stream ends and pendingReCommit is true, the deferred
+	// re-commit fires with the full history (including the final AI message).
+	pendingReCommit bool
+
 	// history records every item committed to terminal scrollback via
 	// writeToScrollback. Used by the clear+re-commit mechanism to
 	// reconstruct the full session display when the subject resolves or
@@ -269,6 +290,24 @@ type inlineRenderer struct {
 	// transitioning from a dense tool block to an AI message).
 	lastScrollbackKind committedKind
 
+	// trackedCurrentTask mirrors the model's currentTask field so the
+	// renderer can transfer it to a new program during re-commit.
+	trackedCurrentTask string
+
+	// trackedTodoTotal and trackedTodoCompleted mirror the model's plan
+	// progress counts so the renderer can transfer them during re-commit.
+	trackedTodoTotal     int
+	trackedTodoCompleted int
+
+	// trackedInputBarMode mirrors the model's inputBarMode so the
+	// renderer can transfer it to a new program during re-commit.
+	trackedInputBarMode inputBarMode
+
+	// followUpSendCh is the send-only end of the follow-up input channel.
+	// Stored so performReCommit can transfer it to the new program's model.
+	// nil when not in follow-up mode.
+	followUpSendCh chan<- string
+
 	// followUpInputCh receives the user's follow-up input from the
 	// Bubbletea model's text input handler. nil until the renderer
 	// enters follow-up mode after an eligible terminal event.
@@ -279,4 +318,11 @@ type inlineRenderer struct {
 	// renderResult when the follow-up completes or is cancelled.
 	donePhase   string
 	doneExitErr string
+}
+
+// expandHintEnabled reports whether the "(ctrl+o to expand)" hint should
+// be shown on compact tool lines. True only when Bubbletea owns stdin
+// and the Ctrl+O toggle is available (TTY mode).
+func (r *inlineRenderer) expandHintEnabled() bool {
+	return r.cfg.toggleExpandCh != nil
 }

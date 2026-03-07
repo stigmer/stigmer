@@ -112,7 +112,7 @@ func BenchmarkRenderCommittedItem_Header(b *testing.B) {
 	opts := toolrender.CompactOptions{}
 	b.ResetTimer()
 	for range b.N {
-		renderCommittedItem(item, opts, false)
+		renderCommittedItem(item, opts, false, false)
 	}
 }
 
@@ -121,7 +121,7 @@ func BenchmarkRenderCommittedItem_ToolCompact(b *testing.B) {
 	opts := toolrender.CompactOptions{}
 	b.ResetTimer()
 	for range b.N {
-		renderCommittedItem(item, opts, false)
+		renderCommittedItem(item, opts, false, false)
 	}
 }
 
@@ -130,7 +130,7 @@ func BenchmarkRenderCommittedItem_ToolExpanded(b *testing.B) {
 	opts := toolrender.CompactOptions{}
 	b.ResetTimer()
 	for range b.N {
-		renderCommittedItem(item, opts, true)
+		renderCommittedItem(item, opts, true, false)
 	}
 }
 
@@ -139,7 +139,7 @@ func BenchmarkRenderCommittedItem_ReadGroup(b *testing.B) {
 	opts := toolrender.CompactOptions{}
 	b.ResetTimer()
 	for range b.N {
-		renderCommittedItem(item, opts, false)
+		renderCommittedItem(item, opts, false, false)
 	}
 }
 
@@ -148,7 +148,7 @@ func BenchmarkRenderCommittedItem_ReadGroupExpanded(b *testing.B) {
 	opts := toolrender.CompactOptions{}
 	b.ResetTimer()
 	for range b.N {
-		renderCommittedItem(item, opts, true)
+		renderCommittedItem(item, opts, true, false)
 	}
 }
 
@@ -157,7 +157,7 @@ func BenchmarkRenderCommittedItem_Approval(b *testing.B) {
 	opts := toolrender.CompactOptions{}
 	b.ResetTimer()
 	for range b.N {
-		renderCommittedItem(item, opts, false)
+		renderCommittedItem(item, opts, false, false)
 	}
 }
 
@@ -166,7 +166,7 @@ func BenchmarkRenderCommittedItem_Text(b *testing.B) {
 	opts := toolrender.CompactOptions{}
 	b.ResetTimer()
 	for range b.N {
-		renderCommittedItem(item, opts, false)
+		renderCommittedItem(item, opts, false, false)
 	}
 }
 
@@ -181,12 +181,28 @@ func BenchmarkRenderHistoryBatch(b *testing.B) {
 		opts := toolrender.CompactOptions{}
 		b.Run(fmt.Sprintf("compact_%d", size), func(b *testing.B) {
 			for range b.N {
-				renderHistoryBatch(items, opts, false)
+				renderHistoryBatch(items, opts, false, false)
 			}
 		})
 		b.Run(fmt.Sprintf("expanded_%d", size), func(b *testing.B) {
 			for range b.N {
-				renderHistoryBatch(items, opts, true)
+				renderHistoryBatch(items, opts, true, false)
+			}
+		})
+	}
+}
+
+// =============================================================================
+// Batch rendering with expand hint — measures overhead of hint appending.
+// =============================================================================
+
+func BenchmarkRenderHistoryBatch_WithExpandHint(b *testing.B) {
+	for _, size := range []int{100, 500} {
+		items := buildRealisticHistory(size)
+		opts := toolrender.CompactOptions{}
+		b.Run(fmt.Sprintf("compact_hint_%d", size), func(b *testing.B) {
+			for range b.N {
+				renderHistoryBatch(items, opts, false, true)
 			}
 		})
 	}
@@ -202,7 +218,7 @@ func BenchmarkRenderHistoryBatch_Allocs(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for range b.N {
-		_ = renderHistoryBatch(items, opts, false)
+		_ = renderHistoryBatch(items, opts, false, false)
 	}
 }
 
@@ -219,7 +235,7 @@ func BenchmarkRenderHistoryBatch_BuilderGrowth(b *testing.B) {
 	var sink strings.Builder
 	for range b.N {
 		sink.Reset()
-		result := renderHistoryBatch(items, opts, false)
+		result := renderHistoryBatch(items, opts, false, false)
 		sink.WriteString(result)
 	}
 }

@@ -145,7 +145,7 @@ func TestFollowUpLoop_NilFollowUpFn_ReturnImmediately(t *testing.T) {
 		status:            io.Discard,
 	}
 
-	execID, phase, exitErr := runInlineFollowUpLoop(context.Background(), cfg, nil, "exec-1")
+	execID, phase, exitErr, _ := runInlineFollowUpLoop(context.Background(), cfg, nil, "exec-1")
 
 	if execID != "exec-1" {
 		t.Errorf("expected execID=exec-1, got %q", execID)
@@ -175,7 +175,7 @@ func TestFollowUpLoop_NonEligiblePhase_ReturnImmediately(t *testing.T) {
 		status:            io.Discard,
 	}
 
-	_, phase, _ := runInlineFollowUpLoop(context.Background(), cfg, mockFollowUp, "exec-1")
+	_, phase, _, _ := runInlineFollowUpLoop(context.Background(), cfg, mockFollowUp, "exec-1")
 
 	if phase != "cancelled" {
 		t.Errorf("expected phase=cancelled, got %q", phase)
@@ -202,7 +202,7 @@ func TestFollowUpLoop_EmptyInput_ExitsLoop(t *testing.T) {
 		status:            io.Discard,
 	}
 
-	_, phase, _ := runInlineFollowUpLoop(context.Background(), cfg, mockFollowUp, "exec-1")
+	_, phase, _, _ := runInlineFollowUpLoop(context.Background(), cfg, mockFollowUp, "exec-1")
 
 	if phase != "completed" {
 		t.Errorf("expected phase=completed, got %q", phase)
@@ -229,7 +229,7 @@ func TestFollowUpLoop_FollowUpError_ExitsLoop(t *testing.T) {
 		status:            &statusBuf,
 	}
 
-	execID, _, _ := runInlineFollowUpLoop(context.Background(), cfg, mockFollowUp, "exec-1")
+	execID, _, _, _ := runInlineFollowUpLoop(context.Background(), cfg, mockFollowUp, "exec-1")
 
 	if execID != "exec-1" {
 		t.Errorf("expected original execID on error, got %q", execID)
@@ -276,7 +276,7 @@ func TestFollowUpLoop_SuccessfulFollowUp_RendersSecondExecution(t *testing.T) {
 		status:            io.Discard,
 	}
 
-	execID, phase, exitErr := runInlineFollowUpLoop(context.Background(), cfg, mockFollowUp, "exec-1")
+	execID, phase, exitErr, _ := runInlineFollowUpLoop(context.Background(), cfg, mockFollowUp, "exec-1")
 
 	if execID != "exec-2" {
 		t.Errorf("expected latestExecID=exec-2, got %q", execID)

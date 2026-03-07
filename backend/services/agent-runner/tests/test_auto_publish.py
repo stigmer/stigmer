@@ -4,7 +4,7 @@ Tests cover:
 - No-op when no file-modifying tool calls exist
 - No-op when file-modifying tool calls are not COMPLETED
 - Single file auto-publish (root-level file)
-- Single file auto-publish (file inside a subdirectory -> publishes parent dir)
+- Single file auto-publish (file inside a subdirectory -> publishes as file)
 - Multiple files in the same directory -> publishes the common parent directory
 - Multiple files in different directories -> publishes each file individually
 - Graceful handling of publish_artifact failures (logs warning, doesn't crash)
@@ -159,12 +159,12 @@ class TestAutoPublishWrittenFiles:
         status_builder.add_artifact.assert_called_once_with(mock_artifact)
 
     @pytest.mark.asyncio
-    async def test_single_file_in_subdir_publishes_parent_dir(self):
-        """A single file inside a subdirectory publishes the parent directory."""
+    async def test_single_file_in_subdir_publishes_as_file(self):
+        """A single file inside a subdirectory is published as a file artifact."""
         tool_calls = [
             _make_tool_call("write", path="my-skill/SKILL.md"),
         ]
-        mock_artifact = _make_artifact("my-skill")
+        mock_artifact = _make_artifact("SKILL.md")
         status_builder = MagicMock()
         logger = logging.getLogger("test")
 
@@ -186,8 +186,8 @@ class TestAutoPublishWrittenFiles:
         assert count == 1
         mock_publish.assert_called_once()
         call_kwargs = mock_publish.call_args
-        assert call_kwargs.kwargs["path"] == "my-skill"
-        assert call_kwargs.kwargs["name"] == "my-skill"
+        assert call_kwargs.kwargs["path"] == "my-skill/SKILL.md"
+        assert call_kwargs.kwargs["name"] == "SKILL.md"
         status_builder.add_artifact.assert_called_once_with(mock_artifact)
 
     @pytest.mark.asyncio
@@ -261,7 +261,7 @@ class TestAutoPublishWrittenFiles:
         tool_calls = [
             _make_tool_call("write", path="/my-skill/SKILL.md"),
         ]
-        mock_artifact = _make_artifact("my-skill")
+        mock_artifact = _make_artifact("SKILL.md")
         status_builder = MagicMock()
         logger = logging.getLogger("test")
 
@@ -282,7 +282,7 @@ class TestAutoPublishWrittenFiles:
 
         assert count == 1
         call_kwargs = mock_publish.call_args
-        assert call_kwargs.kwargs["path"] == "my-skill"
+        assert call_kwargs.kwargs["path"] == "my-skill/SKILL.md"
 
     @pytest.mark.asyncio
     async def test_publish_failure_is_non_fatal(self):
@@ -320,7 +320,7 @@ class TestAutoPublishWrittenFiles:
         tool_calls = [
             _make_tool_call("write_file", path="skill/SKILL.md"),
         ]
-        mock_artifact = _make_artifact("skill")
+        mock_artifact = _make_artifact("SKILL.md")
         status_builder = MagicMock()
         logger = logging.getLogger("test")
 
@@ -341,7 +341,7 @@ class TestAutoPublishWrittenFiles:
 
         assert count == 1
         call_kwargs = mock_publish.call_args
-        assert call_kwargs.kwargs["path"] == "skill"
+        assert call_kwargs.kwargs["path"] == "skill/SKILL.md"
 
     @pytest.mark.asyncio
     async def test_empty_path_in_args_is_skipped(self):
@@ -406,7 +406,7 @@ class TestAutoPublishWrittenFiles:
         tool_calls = [
             _make_tool_call("edit", path="my-skill/SKILL.md"),
         ]
-        mock_artifact = _make_artifact("my-skill")
+        mock_artifact = _make_artifact("SKILL.md")
         status_builder = MagicMock()
         logger = logging.getLogger("test")
 
@@ -427,8 +427,8 @@ class TestAutoPublishWrittenFiles:
 
         assert count == 1
         call_kwargs = mock_publish.call_args
-        assert call_kwargs.kwargs["path"] == "my-skill"
-        assert call_kwargs.kwargs["name"] == "my-skill"
+        assert call_kwargs.kwargs["path"] == "my-skill/SKILL.md"
+        assert call_kwargs.kwargs["name"] == "SKILL.md"
         status_builder.add_artifact.assert_called_once_with(mock_artifact)
 
     @pytest.mark.asyncio
@@ -437,7 +437,7 @@ class TestAutoPublishWrittenFiles:
         tool_calls = [
             _make_tool_call("edit_file", path="config/settings.yaml"),
         ]
-        mock_artifact = _make_artifact("config")
+        mock_artifact = _make_artifact("settings.yaml")
         status_builder = MagicMock()
         logger = logging.getLogger("test")
 
@@ -458,7 +458,7 @@ class TestAutoPublishWrittenFiles:
 
         assert count == 1
         call_kwargs = mock_publish.call_args
-        assert call_kwargs.kwargs["path"] == "config"
+        assert call_kwargs.kwargs["path"] == "config/settings.yaml"
         status_builder.add_artifact.assert_called_once_with(mock_artifact)
 
     @pytest.mark.asyncio

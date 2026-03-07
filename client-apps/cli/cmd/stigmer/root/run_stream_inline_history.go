@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	tea "charm.land/bubbletea/v2"
-
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/panel"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/termctl"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
 )
 
@@ -33,9 +32,10 @@ func needsTrailingGap(kind committedKind) bool {
 		// stream ends (using kindAIMessage's trailing-gap rule).
 		return false
 	case kindTodoUpdate:
-		// Rendered exclusively in the composed View(); never appears in
-		// scrollback, so trailing gap is irrelevant.
-		return false
+		// In expanded mode the plan appears in scrollback and needs a
+		// trailing gap. In collapsed mode renderCommittedItem returns ""
+		// so the gap is never emitted regardless of this value.
+		return true
 	}
 	return true
 }
@@ -70,33 +70,58 @@ func needsLeadingGap(prev, current committedKind) bool {
 // The header item (kindHeader) gets an extra trailing newline to produce
 // a blank-line gap between the panel and the first content item, matching
 // the spacing of the initial render (commitToScrollback + blank line).
-func renderHistoryBatch(items []committedItem, opts toolrender.CompactOptions, expanded bool) string {
+//
+// kindTodoUpdate items are deferred and rendered at the very end so the
+// plan always appears below all messages/tool output regardless of when
+// the first todo event arrived in the session.
+func renderHistoryBatch(items []committedItem, opts toolrender.CompactOptions, expanded bool, showExpandHint bool) string {
 	if len(items) == 0 {
 		return ""
 	}
 	var b strings.Builder
 	first := true
 	var lastKind committedKind
-	for _, item := range items {
-		text := renderCommittedItem(item, opts, expanded)
+	var deferredTodo *committedItem
+	for i := range items {
+		if items[i].kind == kindTodoUpdate {
+			deferredTodo = &items[i]
+			continue
+		}
+		text := renderCommittedItem(items[i], opts, expanded, showExpandHint)
 		if text == "" {
 			continue
 		}
 		if !first {
 			b.WriteByte('\n')
-			if needsLeadingGap(lastKind, item.kind) {
+			if needsLeadingGap(lastKind, items[i].kind) {
 				b.WriteByte('\n')
 			}
 		}
 		b.WriteString(text)
-		if item.kind == kindHeader {
+		if items[i].kind == kindHeader {
 			b.WriteByte('\n')
 		}
-		if needsTrailingGap(item.kind) {
+		if needsTrailingGap(items[i].kind) {
 			b.WriteByte('\n')
 		}
-		lastKind = item.kind
+		lastKind = items[i].kind
 		first = false
+	}
+	if deferredTodo != nil {
+		text := renderCommittedItem(*deferredTodo, opts, expanded, showExpandHint)
+		if text != "" {
+			if !first {
+				b.WriteByte('\n')
+				if needsLeadingGap(lastKind, deferredTodo.kind) {
+					b.WriteByte('\n')
+				}
+			}
+			b.WriteString(text)
+			if needsTrailingGap(deferredTodo.kind) {
+				b.WriteByte('\n')
+			}
+			first = false
+		}
 	}
 	return b.String()
 }
@@ -172,6 +197,12 @@ type committedItem struct {
 	// action is the approval decision string ("approve", "skip", "reject")
 	// for kindApproval items.
 	action string
+
+	// todoTotal and todoCompleted track plan progress for kindTodoUpdate
+	// items. When todoCompleted == todoTotal (all done), the expanded
+	// renderer shows a compact summary instead of the full item list.
+	todoTotal     int
+	todoCompleted int
 }
 
 // renderCommittedItem re-renders a history item to its display string.
@@ -182,22 +213,38 @@ type committedItem struct {
 // completions and read groups use their expanded renderers (full output,
 // no truncation). Mode-invariant items (AI messages, system messages,
 // lifecycle events) are unaffected by the expanded flag.
-func renderCommittedItem(item committedItem, opts toolrender.CompactOptions, expanded bool) string {
+//
+// When showExpandHint is true and the item is in compact mode, a dim
+// "(ctrl+o to expand)" suffix is appended to the first line of expandable
+// items (tools, read groups, sub-agent blocks).
+func renderCommittedItem(item committedItem, opts toolrender.CompactOptions, expanded bool, showExpandHint bool) string {
 	switch item.kind {
 	case kindHeader:
 		return renderHeaderItem(item, expanded)
 	case kindToolCompact:
-		return renderToolCompactItem(item, opts, expanded)
+		text := renderToolCompactItem(item, opts, expanded)
+		if !expanded && showExpandHint && text != "" && len(item.toolCalls) > 0 && toolrender.IsExpandable(item.toolCalls[0]) {
+			text = appendExpandHint(text)
+		}
+		return text
 	case kindReadGroup:
-		return renderReadGroupItem(item, opts, expanded)
+		text := renderReadGroupItem(item, opts, expanded)
+		if !expanded && showExpandHint && text != "" && toolrender.IsReadGroupExpandable(item.toolCalls) {
+			text = appendExpandHint(text)
+		}
+		return text
 	case kindApproval:
 		return renderApprovalItem(item, opts)
 	case kindSubAgentBlock:
-		return renderSubAgentBlockItem(item, opts, expanded)
+		text := renderSubAgentBlockItem(item, opts, expanded)
+		if !expanded && showExpandHint && text != "" && item.saBlock != nil && len(item.saBlock.children) > 0 {
+			text = appendExpandHint(text)
+		}
+		return text
 	case kindTodoUpdate:
-		// The plan is rendered exclusively in the composed View() (via
-		// planDisplay) so it is always visible above the input bar. Skip
-		// it during re-commits to avoid duplication in scrollback.
+		if expanded {
+			return item.text
+		}
 		return ""
 	default:
 		return item.text
@@ -329,7 +376,7 @@ func renderSubAgentExpanded(header string, block *subAgentBlock, opts toolrender
 	b.WriteString(header)
 
 	for _, child := range block.children {
-		text := renderCommittedItem(child, opts, true)
+		text := renderCommittedItem(child, opts, true, false)
 		if text == "" {
 			continue
 		}
@@ -350,49 +397,107 @@ func renderSubAgentExpanded(header string, block *subAgentBlock, opts toolrender
 	return b.String()
 }
 
-// triggerReCommit pre-renders the full history into a single string and
-// sends it to the Bubbletea model. The model issues a tea.Raw write
-// followed by tea.ClearScreen to atomically replace terminal content.
-// No-op when no program is active (non-TTY, tests).
-func (r *inlineRenderer) triggerReCommit() {
-	if r.cfg.program == nil {
-		return
+// expandHintSuffix is the dim "(ctrl+o to expand)" text appended to the
+// first line of expandable items in compact mode.
+var expandHintSuffix = " " + expandHintStyle.Render("(ctrl+o to expand)")
+
+// appendExpandHint appends the expand-hint suffix to the first line of
+// the rendered text. For multi-line output (read groups, expanded tools),
+// only the header line receives the hint.
+func appendExpandHint(text string) string {
+	if text == "" {
+		return text
 	}
-	rendered := renderHistoryBatch(r.history, r.compactOpts, r.expandMode)
-	r.cfg.program.Send(reCommitMsg{rendered: rendered})
+	if idx := strings.IndexByte(text, '\n'); idx >= 0 {
+		return text[:idx] + expandHintSuffix + text[idx:]
+	}
+	return text + expandHintSuffix
 }
 
-// clearAndHome is the escape sequence prefix written via tea.Raw during
-// re-commit. It clears the visible screen, moves the cursor to row 1
-// col 1, then erases saved scrollback lines.
-//
-// The ordering (\033[2J → \033[1;1H → \033[3J) matters: modern terminals
-// (iTerm2, macOS Terminal, Ghostty) push visible content into scrollback
-// on \033[2J rather than truly erasing it. \033[3J must follow to wipe
-// that pushed content, otherwise duplicates survive in scrollback.
+// triggerReCommit stops the current Bubbletea program, clears the terminal,
+// rewrites history directly, and starts a fresh program. No-op when no
+// program or factory is active (non-TTY, tests).
+func (r *inlineRenderer) triggerReCommit() {
+	r.performReCommit()
+}
+
+// clearAndHome is the escape sequence that clears the visible screen, moves
+// the cursor to row 1 col 1, then erases saved scrollback lines.
 const clearAndHome = "\033[2J\033[1;1H\033[3J"
 
-// buildReCommitCmd returns a tea.Sequence that atomically clears the
-// terminal and writes the pre-rendered history via tea.Raw, then resets
-// the renderer's internal state via tea.ClearScreen.
-//
-// tea.Raw writes to Bubbletea's outputBuf, which is flushed to the
-// terminal BEFORE the renderer's cellbuf flush on each tick. This
-// guarantees the clear sequences and content reach the terminal before
-// the renderer attempts to render View(). The subsequent ClearScreen
-// resets the renderer's internal cursor and erase flags so the next
-// flush correctly positions the View() output below the Raw content.
-//
-// The rendered content's \n line breaks are replaced with \r\n because
-// Bubbletea puts the terminal in raw mode (OPOST/ONLCR disabled). In
-// raw mode \n is a bare line-feed — it moves the cursor down without
-// returning to column 0. The explicit \r ensures each line starts at
-// the left margin.
-func buildReCommitCmd(rendered string) tea.Cmd {
-	safe := strings.ReplaceAll(rendered, "\n", "\r\n")
-	payload := clearAndHome + safe
-	if rendered != "" {
-		payload += "\r\n"
+// performReCommit replaces the broken tea.Raw+ClearScreen approach with a
+// synchronous program-restart. The old program is stopped, history is
+// written directly to the terminal (no Bubbletea involved), and a fresh
+// program is started with the necessary state pre-loaded.
+func (r *inlineRenderer) performReCommit() {
+	if r.cfg.program == nil || r.cfg.programFactory == nil {
+		return
 	}
-	return tea.Sequence(tea.Raw(payload), tea.ClearScreen)
+
+	r.cfg.program.Quit()
+	r.cfg.program.Wait()
+
+	rendered := renderHistoryBatch(
+		r.history, r.compactOpts, r.expandMode, r.expandHintEnabled(),
+	)
+	payload := clearAndHome
+	if rendered != "" {
+		payload += rendered + "\n"
+	}
+	fmt.Fprint(r.cfg.status, payload)
+
+	r.cfg.program = r.cfg.programFactory(func(m *inlineBubbleModel) {
+		m.currentTask = r.trackedCurrentTask
+		m.todoTotal = r.trackedTodoTotal
+		m.todoCompleted = r.trackedTodoCompleted
+		m.expandMode = r.expandMode
+		m.termWidth = termctl.Width(r.cfg.status, 80)
+		if r.followUpSendCh != nil {
+			m.inputBarMode = inputBarActive
+			m.textInputCh = r.followUpSendCh
+			m.textInput = newFollowUpTextInput()
+			m.textInput.Focus()
+		}
+	})
+}
+
+// performReCommitWithApproval is like performReCommit but also writes an
+// expanded tool view after the history and pre-loads approval state into
+// the new program so the approval prompt continues seamlessly.
+func (r *inlineRenderer) performReCommitWithApproval(
+	expandedView, question string,
+	decisionCh chan<- approvalDecision,
+	selected int,
+) {
+	if r.cfg.program == nil || r.cfg.programFactory == nil {
+		return
+	}
+
+	r.cfg.program.Quit()
+	r.cfg.program.Wait()
+
+	rendered := renderHistoryBatch(
+		r.history, r.compactOpts, r.expandMode, r.expandHintEnabled(),
+	)
+	payload := clearAndHome
+	if rendered != "" {
+		payload += rendered + "\n"
+	}
+	trimmed := strings.TrimRight(expandedView, "\n")
+	if trimmed != "" {
+		payload += trimmed + "\n"
+	}
+	fmt.Fprint(r.cfg.status, payload)
+
+	r.cfg.program = r.cfg.programFactory(func(m *inlineBubbleModel) {
+		m.currentTask = r.trackedCurrentTask
+		m.todoTotal = r.trackedTodoTotal
+		m.todoCompleted = r.trackedTodoCompleted
+		m.expandMode = r.expandMode
+		m.termWidth = termctl.Width(r.cfg.status, 80)
+		m.approvalActive = true
+		m.approvalContent = question + "\n"
+		m.approvalDecisionCh = decisionCh
+		m.approvalSelected = selected
+	})
 }

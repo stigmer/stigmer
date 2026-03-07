@@ -100,126 +100,161 @@ func displayExecutionResult(exec *agentexecutionv1.AgentExecution) {
 	fmt.Println()
 }
 
-// downloadArtifacts downloads all artifacts to the specified directory.
+// artifactResult holds metadata about a downloaded artifact for summary display.
+type artifactResult struct {
+	Name      string
+	Size      int64
+	FileCount int // > 0 for directory artifacts
+}
+
+// downloadArtifacts downloads all artifacts to the specified directory and
+// prints a compact summary. Single artifacts get one line; multiple artifacts
+// get a header followed by indented entries.
 func downloadArtifacts(exec *agentexecutionv1.AgentExecution, downloadDir string, conn *grpc.ClientConn) error {
-	// Create download directory if it doesn't exist
 	if err := os.MkdirAll(downloadDir, 0755); err != nil {
 		return errors.Wrap(err, "failed to create download directory")
 	}
 
 	artifacts := exec.GetStatus().GetArtifacts()
-	climsg.Info("Downloading %d artifact(s) to %s...", len(artifacts), downloadDir)
-	fmt.Println()
+	results := make([]artifactResult, 0, len(artifacts))
 
 	for _, artifact := range artifacts {
-		if err := downloadArtifact(exec.Metadata.Id, artifact, downloadDir, conn); err != nil {
+		result, err := downloadArtifact(exec.Metadata.Id, artifact, downloadDir, conn)
+		if err != nil {
 			return errors.Wrapf(err, "failed to download %s", artifact.GetName())
 		}
+		results = append(results, result)
 	}
 
-	climsg.Success("All artifacts downloaded")
-	fmt.Println()
+	displayArtifactSummary(results, downloadDir)
 	return nil
 }
 
-// downloadArtifact downloads a single artifact.
+// displayArtifactSummary prints a compact summary of downloaded artifacts.
+func displayArtifactSummary(results []artifactResult, downloadDir string) {
+	if len(results) == 0 {
+		return
+	}
+
+	if len(results) == 1 {
+		r := results[0]
+		climsg.Success("Saved %s (%s)", r.Name, formatFileSize(r.Size))
+		return
+	}
+
+	climsg.Success("Saved %d artifact(s) to %s", len(results), downloadDir)
+	for _, r := range results {
+		if r.FileCount > 0 {
+			climsg.Info("  %s/ (%s, %d files)", r.Name, formatFileSize(r.Size), r.FileCount)
+		} else {
+			climsg.Info("  %s (%s)", r.Name, formatFileSize(r.Size))
+		}
+	}
+}
+
+// downloadArtifact downloads a single artifact and returns metadata for the
+// summary display. No per-artifact output is printed; the caller handles that.
 //
 // For directory artifacts (kind=DIRECTORY), the server stores the content as a
-// ZIP archive.  This function detects directory artifacts, downloads the ZIP,
+// ZIP archive. This function detects directory artifacts, downloads the ZIP,
 // and extracts it to downloadDir/artifact.Name/ so that internal directory
 // structure (e.g. references/) is preserved on the user's filesystem.
 //
 // For file artifacts, the content is saved directly as downloadDir/artifact.Name.
-func downloadArtifact(executionID string, artifact *agentexecutionv1.ExecutionArtifact, downloadDir string, conn *grpc.ClientConn) error {
+func downloadArtifact(executionID string, artifact *agentexecutionv1.ExecutionArtifact, downloadDir string, conn *grpc.ClientConn) (artifactResult, error) {
 	// Always refresh the download URL via gRPC. The cached URL in the execution
 	// status may use a Docker-internal hostname (host.docker.internal) that is
 	// inappropriate for CLI-side HTTP requests. The server generates a fresh URL
 	// using the host-appropriate base address (e.g., localhost).
 	downloadURL, _, err := execution.GetArtifactDownloadURL(conn, executionID, artifact.GetStorageKey())
 	if err != nil {
-		// Fall back to cached URL if gRPC refresh fails
 		downloadURL = artifact.GetDownloadUrl()
 		if downloadURL == "" {
-			return errors.Wrap(err, "failed to get download URL")
+			return artifactResult{}, errors.Wrap(err, "failed to get download URL")
 		}
 	}
 
-	climsg.Info("  Downloading %s...", artifact.GetName())
-
-	// Download content
 	resp, err := http.Get(downloadURL)
 	if err != nil {
-		return errors.Wrap(err, "HTTP request failed")
+		return artifactResult{}, errors.Wrap(err, "HTTP request failed")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
+		return artifactResult{}, fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
 	}
 
-	// Directory artifacts are stored as ZIP archives.  Extract them to
-	// preserve internal directory structure (e.g. SKILL.md + references/).
+	name := artifact.GetName()
+
 	if artifact.GetKind() == agentexecutionv1.ExecutionArtifactKind_EXECUTION_ARTIFACT_KIND_DIRECTORY {
-		return downloadDirectoryArtifact(resp.Body, artifact.GetName(), downloadDir)
+		size, fileCount, err := downloadDirectoryArtifact(resp.Body, name, downloadDir)
+		if err != nil {
+			return artifactResult{}, err
+		}
+		return artifactResult{Name: name, Size: size, FileCount: fileCount}, nil
 	}
 
-	return downloadFileArtifact(resp.Body, artifact.GetName(), downloadDir)
+	size, err := downloadFileArtifact(resp.Body, name, downloadDir)
+	if err != nil {
+		return artifactResult{}, err
+	}
+	return artifactResult{Name: name, Size: size}, nil
 }
 
-// downloadFileArtifact saves a single-file artifact to downloadDir/name.
-func downloadFileArtifact(body io.Reader, name, downloadDir string) error {
+// downloadFileArtifact saves a single-file artifact to downloadDir/name and
+// returns the number of bytes written.
+func downloadFileArtifact(body io.Reader, name, downloadDir string) (int64, error) {
 	destPath := filepath.Join(downloadDir, name)
 
 	if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
-		return errors.Wrap(err, "failed to create parent directory")
+		return 0, errors.Wrap(err, "failed to create parent directory")
 	}
 
 	out, err := os.Create(destPath)
 	if err != nil {
-		return errors.Wrap(err, "failed to create file")
+		return 0, errors.Wrap(err, "failed to create file")
 	}
 	defer out.Close()
 
 	written, err := io.Copy(out, body)
 	if err != nil {
-		return errors.Wrap(err, "failed to write file")
+		return 0, errors.Wrap(err, "failed to write file")
 	}
 
-	climsg.Success("  Downloaded %s (%s)", name, formatFileSize(written))
-	return nil
+	return written, nil
 }
 
 // downloadDirectoryArtifact extracts a ZIP-archived directory artifact to
-// downloadDir/name/, preserving the internal directory structure.
-func downloadDirectoryArtifact(body io.Reader, name, downloadDir string) error {
+// downloadDir/name/, preserving the internal directory structure. Returns the
+// total uncompressed size and file count.
+func downloadDirectoryArtifact(body io.Reader, name, downloadDir string) (int64, int, error) {
 	// Read the entire ZIP into memory so we can use archive/zip.NewReader
 	// (which requires io.ReaderAt + size).  Artifact ZIPs are small (tens of
 	// KB for skill packages) so this is safe.
 	data, err := io.ReadAll(body)
 	if err != nil {
-		return errors.Wrap(err, "failed to read artifact content")
+		return 0, 0, errors.Wrap(err, "failed to read artifact content")
 	}
 
 	reader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
-		return errors.Wrap(err, "failed to open ZIP archive")
+		return 0, 0, errors.Wrap(err, "failed to open ZIP archive")
 	}
 
 	destDir := filepath.Join(downloadDir, name)
 	if err := os.MkdirAll(destDir, 0755); err != nil {
-		return errors.Wrap(err, "failed to create artifact directory")
+		return 0, 0, errors.Wrap(err, "failed to create artifact directory")
 	}
 
 	var totalBytes int64
 	for _, f := range reader.File {
 		if err := extractZipEntry(f, destDir); err != nil {
-			return errors.Wrapf(err, "failed to extract %s", f.Name)
+			return 0, 0, errors.Wrapf(err, "failed to extract %s", f.Name)
 		}
 		totalBytes += int64(f.UncompressedSize64)
 	}
 
-	climsg.Success("  Extracted %s/ (%s, %d files)", name, formatFileSize(totalBytes), len(reader.File))
-	return nil
+	return totalBytes, len(reader.File), nil
 }
 
 // extractZipEntry extracts a single entry from a ZIP archive into destDir.
