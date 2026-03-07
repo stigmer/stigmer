@@ -689,6 +689,34 @@ func TestExpandedApprovalContent_Shell(t *testing.T) {
 	assertContains(t, result, "ok  pkg/foo")
 }
 
+func TestExpandedApprovalContent_ShellPreApproval(t *testing.T) {
+	longCmd := "cd /Users/suresh/scm/github.com/plantonhq/agent-fleet && bash tools/00_onboard-planton-mcp-server.sh"
+	tc := ToolCallInfo{
+		Name:   "shell",
+		Args:   map[string]interface{}{"command": longCmd},
+		Status: "waiting_approval",
+	}
+	result := ExpandedApprovalContent(tc)
+
+	if result != longCmd {
+		t.Errorf("pre-approval shell should show full command from args, got: %q", result)
+	}
+}
+
+func TestExpandedApprovalContent_ExecutePreApproval(t *testing.T) {
+	cmd := "echo hello && echo world"
+	tc := ToolCallInfo{
+		Name:   "execute",
+		Args:   map[string]interface{}{"command": cmd},
+		Status: "waiting_approval",
+	}
+	result := ExpandedApprovalContent(tc)
+
+	if result != cmd {
+		t.Errorf("pre-approval execute should show full command from args, got: %q", result)
+	}
+}
+
 func TestExpandedApprovalContent_UnknownTool(t *testing.T) {
 	tc := ToolCallInfo{
 		Name: "custom_deploy",
@@ -696,12 +724,11 @@ func TestExpandedApprovalContent_UnknownTool(t *testing.T) {
 	}
 	result := ExpandedApprovalContent(tc)
 
-	if result != "production" {
-		t.Errorf("expected largest arg value, got: %q", result)
-	}
+	assertContains(t, result, "target")
+	assertContains(t, result, "production")
 }
 
-func TestExpandedApprovalContent_MCPToolSelectsLargestArg(t *testing.T) {
+func TestExpandedApprovalContent_MCPToolShowsAllArgs(t *testing.T) {
 	tc := ToolCallInfo{
 		Name: "WriteFile",
 		Args: map[string]interface{}{
@@ -711,11 +738,39 @@ func TestExpandedApprovalContent_MCPToolSelectsLargestArg(t *testing.T) {
 	}
 	result := ExpandedApprovalContent(tc)
 
-	if !strings.Contains(result, "apiVersion") {
-		t.Errorf("expected largest arg (content) to be selected, got: %q", result)
+	assertContains(t, result, "apiVersion")
+	assertContains(t, result, "path")
+	assertContains(t, result, "/tmp/config.yaml")
+	assertContains(t, result, "kind: ConfigMap")
+}
+
+func TestExpandedApprovalContent_MCPToolMultipleShortArgs(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "planton/deploy_service",
+		Args: map[string]interface{}{
+			"org":    "default",
+			"target": "production",
+			"env":    "us-east-1",
+		},
 	}
-	if result == "/tmp/config.yaml" {
-		t.Error("should not select short path arg over longer content arg")
+	result := ExpandedApprovalContent(tc)
+
+	assertContains(t, result, "org")
+	assertContains(t, result, "default")
+	assertContains(t, result, "target")
+	assertContains(t, result, "production")
+	assertContains(t, result, "env")
+	assertContains(t, result, "us-east-1")
+}
+
+func TestExpandedApprovalContent_MCPToolNoArgs(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "planton/list_resources",
+	}
+	result := ExpandedApprovalContent(tc)
+
+	if result != "" {
+		t.Errorf("expected empty for no args, got: %q", result)
 	}
 }
 
