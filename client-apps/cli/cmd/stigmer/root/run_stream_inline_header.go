@@ -25,7 +25,7 @@ type sessionHeaderInfo struct {
 	Workspaces []string
 
 	// IsResumed is true when the user opened an existing session via
-	// "stigmer run <session-id>". Resumed sessions skip the greeting
+	// "stigmer resume <session-id>". Resumed sessions skip the greeting
 	// and recent sessions section to keep the header compact.
 	IsResumed bool
 
@@ -212,7 +212,7 @@ func formatRecentSessionsSection(sessions []recentSession) string {
 	}
 
 	lines = append(lines, "")
-	lines = append(lines, dim.Render("Resume: stigmer run <session-id>"))
+	lines = append(lines, dim.Render("Resume: stigmer resume <session-id>"))
 
 	return strings.Join(lines, "\n")
 }
@@ -347,7 +347,7 @@ func formatRecentSessionsForWidth(sessions []recentSession, width int) string {
 	}
 
 	lines = append(lines, "")
-	resumeHint := "Resume: stigmer run <session-id>"
+	resumeHint := "Resume: stigmer resume <session-id>"
 	lines = append(lines, dim.Render(truncateStr(resumeHint, width)))
 
 	return strings.Join(lines, "\n")

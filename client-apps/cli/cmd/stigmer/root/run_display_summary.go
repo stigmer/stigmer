@@ -366,7 +366,7 @@ func displaySessionExitLine(sessionID string, exec *agentexecutionv1.AgentExecut
 	}
 
 	verb := sessionResumeVerb(phase)
-	fmt.Fprintf(os.Stderr, "\n  %s  stigmer run %s\n", verb, sessionID)
+	fmt.Fprintf(os.Stderr, "\n  %s  stigmer resume %s\n", verb, sessionID)
 }
 
 // sessionResumeVerb returns a human-friendly label for the resume command
@@ -386,7 +386,7 @@ func sessionResumeVerb(phase agentexecutionv1.ExecutionPhase) string {
 // a copy-paste-ready re-attach command.
 func displaySessionDetachLine(sessionID string) {
 	fmt.Println()
-	fmt.Printf("Detached from %s (still running) — stigmer run %s to re-attach\n", sessionID, sessionID)
+	fmt.Printf("Detached from %s (still running) — stigmer resume %s to re-attach\n", sessionID, sessionID)
 	flushStdout()
 }
 

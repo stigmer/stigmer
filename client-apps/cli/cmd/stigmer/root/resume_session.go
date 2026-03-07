@@ -19,7 +19,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-// executeRunSession handles the single-arg `stigmer run ses-xxx` path.
+// executeRunSession handles the `stigmer resume ses-xxx` path.
 // It connects to the backend and delegates to openSession.
 func executeRunSession(sessionID, orgOverride string, verbose bool, outputMode OutputMode) error {
 	sp := spinner.New(os.Stderr)

@@ -14,7 +14,6 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/envfile"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpserver"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/reference"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
 )
 
@@ -50,41 +49,35 @@ func sessionPaths(sessionID string) (sandboxRoot, platformDir string) {
 	return
 }
 
-// NewRunCommand creates the unified run command for executing agents and workflows.
+// NewRunCommand creates the run command for executing agents and workflows.
 func NewRunCommand() *cobra.Command {
 	var opts runOptions
 
 	cmd := &cobra.Command{
-		Use:   "run {<type> <name-or-id> | <session-id>}",
-		Short: "Execute an agent or workflow, or re-open a session",
-		Long: `Execute a resource by type and name or ID, or re-open an existing session.
+		Use:   "run [agent-ref | <type> <name-or-id>]",
+		Short: "Execute an agent or workflow",
+		Long: `Execute an agent or workflow by reference, or browse agents interactively.
 
 USAGE FORMS:
 
-  stigmer run <type> <name-or-id>     Start a new execution
-  stigmer run <session-id>            Re-open an existing session
+  stigmer run                         Browse and select an agent interactively
+  stigmer run <agent-ref>             Resolve agent by slug, org/slug, or ID
+  stigmer run <type> <name-or-id>     Explicit type + reference (backward-compatible)
 
-The type can be specified using any alias:
-  - agent, agt, agents
-  - workflow, wf, workflows
+The single-argument form resolves agents by default. If the reference does
+not match an agent exactly, an interactive search picker is shown.
 
-The reference can be:
-  - Resource ID (e.g., agt_abc123, wfl_xyz789)
-  - Slug (e.g., my-agent)
-  - Org/slug (e.g., acme-corp/my-agent)
+For workflows, use the explicit two-argument form:
+  stigmer run workflow <name-or-id>
 
-A session ID (ses-xxx) re-opens that session: if the latest execution is
-still running, you re-attach to the live stream; if it has completed, you
-see the full conversation and can send follow-up messages to continue.
-
-By default, the command streams execution updates in real-time, handles
-approval prompts interactively, and returns when the execution completes.
+To resume a session, use the dedicated resume command:
+  stigmer resume <session-id>
 
 ENVIRONMENT VARIABLES:
 
   --env KEY=VALUE         Runtime environment variable (can be repeated)
   --secret KEY=VALUE      Secret environment variable (can be repeated, encrypted)
-  
+
   --env-file PATH         Load environment from file (can be repeated)
   --secret-file PATH      Load secrets from file (can be repeated, all values encrypted)
 
@@ -121,91 +114,63 @@ OTHER OPTIONS:
   --message, -m:  Initial prompt to send to the agent/workflow
   --detach:       Start execution and return immediately without streaming
   --download DIR: Download artifacts to directory when complete`,
-		Example: `  # Re-open an existing session
-  stigmer run ses-01abc123xyz456
+		Example: `  # Browse agents interactively
+  stigmer run
 
-  # Run an agent by name (streams by default)
+  # Run an agent by slug (agent is the default type)
+  stigmer run my-agent
+  stigmer run acme-corp/code-reviewer
+
+  # Run an agent by ID
+  stigmer run agt_01kewqjbtdy0w4d14bnhhy4yc2
+
+  # Search agents interactively with initial query
+  stigmer run deploy
+
+  # Explicit type + reference (backward-compatible)
   stigmer run agent my-agent
-
-  # Run a workflow with a message
   stigmer run workflow my-wf --message "Process the data"
-  stigmer run workflow my-wf -m "Deploy to production"
 
-  # Run by resource ID
-  stigmer run agent agt_01kewqjbtdy0w4d14bnhhy4yc2
-  stigmer run workflow wfl_01abc123xyz456
-
-  # Run with org/slug format
-  stigmer run agent acme-corp/code-reviewer
+  # Run with a message
+  stigmer run my-agent -m "Review this code"
 
   # Start execution and return immediately (fire-and-forget)
-  stigmer run agent my-agent --detach
+  stigmer run my-agent --detach
 
   # Run with environment variables
-  stigmer run agent my-agent --env API_URL=https://api.example.com --env DEBUG=true
+  stigmer run my-agent --env API_URL=https://api.example.com --env DEBUG=true
 
   # Run with secrets (encrypted)
-  stigmer run agent my-agent --secret API_KEY=sk_live_xxx
+  stigmer run my-agent --secret API_KEY=sk_live_xxx
 
-  # Run with environment file
-  stigmer run agent my-agent --env-file .env
-
-  # Run with secret file
-  stigmer run agent my-agent --secret-file .env.secrets
-
-  # Combine env files and inline overrides
-  stigmer run agent my-agent --env-file .env --secret-file .env.secrets --env DEBUG=true
+  # Run with environment and secret files
+  stigmer run my-agent --env-file .env --secret-file .env.secrets
 
   # Run with file attachments
-  stigmer run agent data-analyzer --attach ./data.csv --attach ./config.yaml -m "Analyze"
+  stigmer run data-analyzer --attach ./data.csv -m "Analyze"
 
-  # Stream execution and download artifacts when complete
-  stigmer run agent report-generator --attach ./data.csv --download ./results
+  # Run with a git workspace
+  stigmer run code-reviewer --workspace https://github.com/acme/app -m "Review"
 
-  # Run with a git workspace (agent clones and operates on the repo)
-  stigmer run agent code-reviewer --workspace https://github.com/acme/app -m "Review this repo"
-
-  # Run with a specific branch
-  stigmer run agent code-reviewer --workspace https://github.com/acme/app --branch feature/auth
-
-  # Run with a local workspace (agent operates directly on your files)
-  stigmer run agent code-reviewer -w . -m "Review my project"
-  stigmer run agent refactorer -w ~/projects/my-app -m "Refactor the auth module"
-
-  # Run with multiple workspaces (multi-root)
-  stigmer run agent code-reviewer -w ./frontend -w ./backend -m "Review both"
-
-  # Override organization
-  stigmer run agent my-agent --org acme-corp
+  # Run with a local workspace
+  stigmer run code-reviewer -w . -m "Review my project"
 
   # Stream events as JSON for scripting
-  stigmer run agent my-agent --json | jq '.payload.content'
-
-  # Pipe output (auto-detects non-TTY, uses inline mode)
-  stigmer run agent my-agent -m "explain this" | cat`,
-		Args: func(cmd *cobra.Command, args []string) error {
-			if len(args) == 1 {
-				if !reference.IsSessionID(args[0]) {
-					return fmt.Errorf("single argument must be a session ID (ses-xxx); for agents use: stigmer run agent <name>")
-				}
-				return nil
-			}
-			if len(args) == 2 {
-				return nil
-			}
-			return fmt.Errorf("accepts 1 or 2 args, received %d", len(args))
-		},
+  stigmer run my-agent --json | jq '.payload.content'`,
+		Args: cobra.RangeArgs(0, 2),
 		Run: func(cmd *cobra.Command, args []string) {
 			opts.OrgOverride = GetOrgFlag(cmd)
 			outputMode := resolveOutputMode(opts.outputModeFlags)
-			if len(args) == 1 {
-				err := executeRunSession(args[0], opts.OrgOverride, opts.Verbose, outputMode)
-				clierr.Handle(err)
-				return
+			switch len(args) {
+			case 0:
+				clierr.Handle(executeRunInteractive(opts, outputMode))
+			case 1:
+				clierr.Handle(executeRunSmart(args[0], opts, outputMode))
+			case 2:
+				opts.TypeArg = args[0]
+				opts.Reference = args[1]
+				clierr.Handle(executeRun(opts, outputMode))
 			}
-			opts.TypeArg = args[0]
-			opts.Reference = args[1]
-			clierr.Handle(executeRun(opts, outputMode))
 		},
 	}
 
