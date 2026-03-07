@@ -691,23 +691,11 @@ func (m inlineBubbleModel) handleInputBarMode(msg inputBarModeMsg) (tea.Model, t
 
 // handleReCommit clears all active visual states and starts a re-commit.
 //
-// Two strategies depending on whether a follow-up text input is active:
-//
-// Execution mode (inputBarActive == false): uses the two-phase tea.Raw
-// approach. Phase 1 sets reCommitPending so View() returns empty while
-// tea.Raw rewrites the terminal. Phase 2 (reCommitDoneMsg) restores
-// View(). The tea.Raw write desyncs the renderer's cursor tracking, but
-// this is acceptable because the view is small ("esc to interrupt") and
-// the desync is corrected on the next full re-commit or resize.
-//
-// Follow-up mode (inputBarActive == true): uses renderer-aware operations
-// (ClearScreen + Println) instead of tea.Raw. The tea.Raw approach
-// permanently desyncs the renderer's relative cursor tracking, which
-// causes the composed view (separator + text input + hint) to be written
-// at a stale terminal position — making the entire input bar invisible.
-// The renderer-aware path keeps cursor tracking in sync: ClearScreen
-// resets tracking to (0,0), reCommitDoneMsg lets View() render the input
-// bar there, then Println/insertAbove pushes it to the bottom.
+// Uses the unified renderer-aware buildReCommitCmd for all modes:
+// Raw(clearAndHome) → ClearScreen → Println(history) → reCommitDoneMsg.
+// This keeps the renderer's cursor tracking in sync so the composed
+// View() (input bar, approval menu, "esc to interrupt") always appears
+// at the correct position below the history.
 func (m inlineBubbleModel) handleReCommit(msg reCommitMsg) (tea.Model, tea.Cmd) {
 	m.spinnerActive = false
 	m.streamingActive = false
@@ -723,16 +711,14 @@ func (m inlineBubbleModel) handleReCommit(msg reCommitMsg) (tea.Model, tea.Cmd) 
 	// Sub-agent live summary is not cleared — if a sub-agent is still
 	// running after re-commit, its summary reappears in View().
 
-	if m.inputBarMode == inputBarActive {
-		return m, buildFollowUpReCommitCmd(msg.rendered)
-	}
 	return m, buildReCommitCmd(msg.rendered)
 }
 
-// handleReCommitDone is phase 2 of the re-commit. The tea.Raw write has
-// completed and the terminal shows the updated history with the cursor
-// at the bottom. Clearing reCommitPending lets View() produce the
-// composed view again; the renderer writes it fresh below the history.
+// handleReCommitDone is the final phase of the re-commit. The terminal
+// has been cleared, the renderer reset, and the history written via
+// tea.Println. Clearing reCommitPending lets View() produce the composed
+// view; the renderer writes it at the correct tracked position below
+// the history.
 func (m inlineBubbleModel) handleReCommitDone(_ reCommitDoneMsg) (tea.Model, tea.Cmd) {
 	m.reCommitPending = false
 	return m, nil

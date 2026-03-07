@@ -1218,3 +1218,156 @@ func TestInlineRenderer_ToggleExpandCh_FlipsMode(t *testing.T) {
 		t.Errorf("after toggle, second tool should render expanded with full output, got: %q", out)
 	}
 }
+
+// =============================================================================
+// TodoUpdateEvent During AI Stream — Must Not Truncate
+// =============================================================================
+
+// Verifies that a TodoUpdateEvent arriving during an active AI stream does NOT
+// truncate the stream. The AI stream must continue uninterrupted: subsequent
+// deltas are processed and the full content is recorded in history.
+func TestInlineRenderer_TodoDuringAIStream_NoTruncation(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 16)
+
+	go feedEvents(events,
+		executiontui.AIStreamStartEvent{Content: "First part"},
+		executiontui.AIStreamDeltaEvent{Content: "First part of the response"},
+		executiontui.TodoUpdateEvent{Todos: []executiontui.TodoItem{
+			{ID: "1", Content: "Analyze code", Status: "in_progress"},
+		}},
+		executiontui.AIStreamDeltaEvent{Content: "First part of the response. Second part after todo."},
+		executiontui.AIStreamEndEvent{Content: "First part of the response. Second part after todo."},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	result := renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	out := stdout.String()
+	if !strings.Contains(out, "Second part after todo") {
+		t.Errorf("AI content after TodoUpdate should not be truncated, stdout: %q", out)
+	}
+
+	var hasAIMessage bool
+	for _, item := range result.history {
+		if item.kind == kindAIMessage && strings.Contains(item.text, "Second part after todo") {
+			hasAIMessage = true
+			break
+		}
+	}
+	if !hasAIMessage {
+		t.Error("history should contain the full AI message including content after todo")
+	}
+
+	var hasTodo bool
+	for _, item := range result.history {
+		if item.kind == kindTodoUpdate {
+			hasTodo = true
+			break
+		}
+	}
+	if !hasTodo {
+		t.Error("history should contain the todo update")
+	}
+}
+
+// =============================================================================
+// Deferred Re-commit During AI Streaming
+// =============================================================================
+
+// Verifies that a Ctrl+O toggle during an active AI stream sets
+// pendingReCommit instead of triggering an immediate re-commit, and that
+// the deferred re-commit fires after the stream ends.
+func TestInlineRenderer_DeferredReCommitDuringAIStream(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 16)
+	toggleCh := make(chan struct{})
+
+	go func() {
+		events <- executiontui.AIStreamStartEvent{Content: "Hello"}
+		events <- executiontui.AIStreamDeltaEvent{Content: "Hello world"}
+		toggleCh <- struct{}{}
+		events <- executiontui.AIStreamDeltaEvent{Content: "Hello world, more content"}
+		events <- executiontui.AIStreamEndEvent{Content: "Hello world, more content."}
+		events <- executiontui.DoneEvent{Phase: "completed"}
+		close(events)
+	}()
+
+	result := renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+		toggleExpandCh:    toggleCh,
+	})
+
+	out := stdout.String()
+	if !strings.Contains(out, "more content") {
+		t.Errorf("AI stream content after Ctrl+O should not be lost, stdout: %q", out)
+	}
+
+	var hasAIMessage bool
+	for _, item := range result.history {
+		if item.kind == kindAIMessage && strings.Contains(item.text, "more content") {
+			hasAIMessage = true
+			break
+		}
+	}
+	if !hasAIMessage {
+		t.Error("history should contain the full AI message after deferred re-commit")
+	}
+}
+
+// =============================================================================
+// AIStreamEnd Recovery Re-commit After Interrupted Stream
+// =============================================================================
+
+// Verifies that when a non-AI event (e.g., a tool completion) interrupts an
+// active AI stream and then AIStreamEnd arrives, the full AI content is
+// recorded in history. The interrupted stream's content should be recoverable.
+func TestInlineRenderer_AIStreamEnd_RecoveryAfterInterruption(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 16)
+
+	go feedEvents(events,
+		executiontui.AIStreamStartEvent{Content: "Analyzing"},
+		executiontui.AIStreamDeltaEvent{Content: "Analyzing the codebase"},
+		executiontui.ToolCompletedEvent{
+			ToolCallID: "tc-1",
+			ToolCall: toolrender.ToolCallInfo{
+				Name:   "get_mcp_server",
+				Status: "completed",
+				Result: "ok",
+				Args:   map[string]interface{}{"name": "test"},
+			},
+		},
+		executiontui.AIStreamEndEvent{Content: "Analyzing the codebase for issues."},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	result := renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	var hasFullAI bool
+	for _, item := range result.history {
+		if item.kind == kindAIMessage && strings.Contains(item.text, "for issues") {
+			hasFullAI = true
+			break
+		}
+	}
+	if !hasFullAI {
+		t.Error("history should contain the full AI message content from AIStreamEnd, including text after interruption")
+	}
+}

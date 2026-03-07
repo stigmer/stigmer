@@ -86,7 +86,7 @@ func TestIsExpandable_ShellTool_LineCount(t *testing.T) {
 	for _, name := range shellTools {
 		t.Run(name, func(t *testing.T) {
 			tests := []struct {
-				lines    int
+				lines      int
 				expandable bool
 			}{
 				{0, false},
@@ -129,7 +129,7 @@ func TestIsExpandable_ShellTool_EmptyResult_NotExpandable(t *testing.T) {
 
 func TestIsExpandable_ThinkTool_LineCount(t *testing.T) {
 	tests := []struct {
-		lines     int
+		lines      int
 		expandable bool
 	}{
 		{0, false},
@@ -231,7 +231,7 @@ func TestIsExpandable_DiscoveryTools_NotExpandableWhenOnlyWhitespace(t *testing.
 
 func TestIsExpandable_UnknownTool_LineCount(t *testing.T) {
 	tests := []struct {
-		lines     int
+		lines      int
 		expandable bool
 	}{
 		{0, false},
@@ -465,7 +465,7 @@ func TestIsReadGroupExpandable_Threshold(t *testing.T) {
 		}
 	}
 	tests := []struct {
-		count     int
+		count      int
 		expandable bool
 	}{
 		{0, false},

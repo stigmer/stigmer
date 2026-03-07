@@ -384,9 +384,10 @@ func appendExpandHint(text string) string {
 }
 
 // triggerReCommit pre-renders the full history into a single string and
-// sends it to the Bubbletea model. The model issues a tea.Raw write
-// followed by tea.ClearScreen to atomically replace terminal content.
-// No-op when no program is active (non-TTY, tests).
+// sends it to the Bubbletea model via reCommitMsg. The model issues a
+// renderer-aware sequence (Raw → ClearScreen → Println → reCommitDoneMsg)
+// to atomically replace terminal content. No-op when no program is
+// active (non-TTY, tests).
 func (r *inlineRenderer) triggerReCommit() {
 	if r.cfg.program == nil {
 		return
@@ -406,65 +407,34 @@ func (r *inlineRenderer) triggerReCommit() {
 const clearAndHome = "\033[2J\033[1;1H\033[3J"
 
 // buildReCommitCmd returns a tea.Sequence that atomically clears the
-// terminal and writes the pre-rendered history via tea.Raw, followed by
-// a reCommitDoneMsg that signals the model to restore View() rendering.
-//
-// Two-phase design:
-//
-// Phase 1: The calling handler sets reCommitPending = true so View()
-// returns empty. This prevents the renderer from issuing cursor
-// movements (relative to its stale tracked position) while tea.Raw
-// rewrites the terminal. The Raw payload clears the screen and writes
-// history; the cursor ends up at the bottom of the history content.
-//
-// Phase 2: reCommitDoneMsg clears reCommitPending. The renderer sees a
-// transition from empty to the composed view and writes it fresh at the
-// current cursor position — placing the input bar right below the
-// history, which is the correct location.
-//
-// The rendered content's \n line breaks are replaced with \r\n because
-// Bubbletea puts the terminal in raw mode (OPOST/ONLCR disabled). In
-// raw mode \n is a bare line-feed — it moves the cursor down without
-// returning to column 0. The explicit \r ensures each line starts at
-// the left margin.
-func buildReCommitCmd(rendered string) tea.Cmd {
-	safe := strings.ReplaceAll(rendered, "\n", "\r\n")
-	payload := clearAndHome + safe
-	if rendered != "" {
-		payload += "\r\n"
-	}
-	return tea.Sequence(
-		tea.Raw(payload),
-		func() tea.Msg { return reCommitDoneMsg{} },
-	)
-}
-
-// buildFollowUpReCommitCmd returns a command sequence for re-committing
-// history while a follow-up text input is active. Unlike buildReCommitCmd
-// which uses tea.Raw (fast but desyncs the renderer's cursor tracking),
-// this uses renderer-aware operations so the input bar remains visible
-// and the cursor is correctly positioned.
+// terminal and writes the pre-rendered history, followed by a
+// reCommitDoneMsg that signals the model to restore View() rendering.
 //
 // Sequence:
-//  1. tea.Raw(clearAndHome) — physically clears the terminal and scrollback.
-//  2. tea.ClearScreen — resets the renderer's internal position to (0,0)
-//     and marks the screen buffer for a full redraw.
-//  3. reCommitDoneMsg — clears reCommitPending so View() renders the input
-//     bar at (0,0). The renderer writes it at the correct tracked position.
-//  4. tea.Println(history) — calls insertAbove which inserts the history
-//     content above the view, pushing the input bar to the bottom. The
-//     renderer's position tracking is updated by insertAbove.
+//  1. tea.Raw(clearAndHome) — physically clears the visible screen,
+//     scrollback buffer, and moves the cursor to (1,1).
+//  2. tea.ClearScreen — resets the renderer's internal cursor tracking
+//     to (0,0) and marks the screen buffer for a full redraw.
+//  3. tea.Println(history) — writes the rendered history through the
+//     renderer's tracked path (insertAbove). Because reCommitPending
+//     is still true at this point, View() returns "" and the renderer
+//     writes only the history content with no view interference.
+//  4. reCommitDoneMsg — clears reCommitPending so View() renders the
+//     composed view (input bar / "esc to interrupt") at the correct
+//     tracked position below the history.
 //
-// Result: history fills the terminal with the input bar at the bottom,
-// and the renderer's cursor tracking is in sync for subsequent renders.
-func buildFollowUpReCommitCmd(rendered string) tea.Cmd {
+// This approach keeps the renderer's cursor tracking in sync for all
+// modes (execution, follow-up, approval). The previous tea.Raw-only
+// path for execution mode caused cursor desync — the renderer wrote
+// View() at its stale tracked position instead of below the history.
+func buildReCommitCmd(rendered string) tea.Cmd {
 	cmds := []tea.Cmd{
 		tea.Raw(clearAndHome),
 		tea.ClearScreen,
-		func() tea.Msg { return reCommitDoneMsg{} },
 	}
 	if rendered != "" {
 		cmds = append(cmds, tea.Println(rendered))
 	}
+	cmds = append(cmds, func() tea.Msg { return reCommitDoneMsg{} })
 	return tea.Sequence(cmds...)
 }

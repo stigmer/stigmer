@@ -31,7 +31,7 @@ type spinnerTickMsg struct{}
 // keeping the interactive region small (question + menu ≈ 6 rows).
 //
 // When reCommitPayload is non-empty, the handler uses buildReCommitCmd
-// (Raw clear+content followed by ClearScreen state reset) instead of
+// (Raw → ClearScreen → Println → reCommitDoneMsg) instead of bare
 // tea.Println. This avoids the insertAbove stale-cellbuf race that
 // occurs when transitioning from a tall streaming View() to the approval
 // panel (see DD-001).
@@ -68,7 +68,7 @@ type approvalHideMsg struct {
 // question line lives in View(), keeping the interactive region small.
 //
 // When reCommitPayload is non-empty, the handler uses buildReCommitCmd
-// (Raw clear+content followed by ClearScreen state reset) instead of
+// (Raw → ClearScreen → Println → reCommitDoneMsg) instead of bare
 // tea.Println. This avoids the insertAbove stale-cellbuf race that
 // occurs when transitioning from a tall streaming View() to the approval
 // panel (see DD-001).
@@ -181,22 +181,20 @@ type followUpHideMsg struct {
 
 // reCommitMsg carries a pre-rendered string of the full session history.
 // The renderer owns rendering (via renderHistoryBatch); the model issues
-// tea.Raw (clear + content) followed by tea.ClearScreen (renderer state
-// reset). The Raw write goes to Bubbletea's outputBuf which flushes
-// before the renderer, guaranteeing the terminal is cleared and content
-// is written atomically before View() is re-rendered.
+// a renderer-aware sequence: Raw(clearAndHome) → ClearScreen → Println →
+// reCommitDoneMsg. The Raw write clears the terminal, ClearScreen resets
+// the renderer's cursor tracking, Println writes history through the
+// renderer's tracked path, and reCommitDoneMsg re-enables View().
 type reCommitMsg struct {
 	rendered string
 }
 
-// reCommitDoneMsg is the phase-2 signal of a re-commit. Phase 1
-// (handleReCommit) suppresses View() and writes history via tea.Raw.
-// When this message arrives, the Raw write is complete and the cursor
-// sits at the end of the history. The handler clears the suppression
-// flag so View() renders normally — the renderer sees a transition from
-// empty to non-empty and writes the composed view at the current cursor
-// position (bottom of history), placing the input bar where the user
-// expects it.
+// reCommitDoneMsg is the final step of a re-commit sequence. By this
+// point the terminal has been cleared (tea.Raw), the renderer's cursor
+// tracking has been reset (tea.ClearScreen), and the history has been
+// written through the renderer (tea.Println). The handler clears the
+// reCommitPending flag so View() renders the composed view (input bar,
+// approval menu, etc.) at the correct tracked position below the history.
 type reCommitDoneMsg struct{}
 
 // aiStreamPartialMsg updates the partial (incomplete) line shown in View()
