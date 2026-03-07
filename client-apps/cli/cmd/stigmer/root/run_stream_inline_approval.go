@@ -198,6 +198,10 @@ func (r *inlineRenderer) promptApprovalViaBubbletea(
 // promptApprovalViaChannel uses the channel-based flow when Bubbletea
 // owns stdin. Sends approvalStartMsg with a decision channel, then
 // blocks until the model delivers a decision via handleApprovalKey.
+//
+// While waiting for the decision, it also listens on toggleExpandCh so
+// Ctrl+O can refresh the scrollback in expand/collapse mode without
+// disrupting the approval prompt.
 func (r *inlineRenderer) promptApprovalViaChannel(
 	_ context.Context,
 	e executiontui.ApprovalNeededEvent,
@@ -218,7 +222,25 @@ func (r *inlineRenderer) promptApprovalViaChannel(
 	}
 	r.cfg.program.Send(msg)
 
-	d := <-decisionCh
+	var d approvalDecision
+	for {
+		select {
+		case d = <-decisionCh:
+			goto decided
+		case <-r.cfg.toggleExpandCh:
+			r.expandMode = !r.expandMode
+			rendered := renderHistoryBatch(r.history, r.compactOpts, r.expandMode, r.expandHintEnabled())
+			trimmed := strings.TrimRight(expanded, "\n")
+			payload := rendered
+			if payload != "" {
+				payload += "\n" + trimmed
+			} else {
+				payload = trimmed
+			}
+			r.cfg.program.Send(approvalReRenderMsg{reCommitPayload: payload})
+		}
+	}
+decided:
 
 	if d.err != nil {
 		r.cfg.program.Send(approvalHideMsg{})

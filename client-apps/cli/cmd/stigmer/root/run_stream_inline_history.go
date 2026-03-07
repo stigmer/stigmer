@@ -192,13 +192,13 @@ func renderCommittedItem(item committedItem, opts toolrender.CompactOptions, exp
 		return renderHeaderItem(item, expanded)
 	case kindToolCompact:
 		text := renderToolCompactItem(item, opts, expanded)
-		if !expanded && showExpandHint && text != "" {
+		if !expanded && showExpandHint && text != "" && len(item.toolCalls) > 0 && toolrender.IsExpandable(item.toolCalls[0]) {
 			text = appendExpandHint(text)
 		}
 		return text
 	case kindReadGroup:
 		text := renderReadGroupItem(item, opts, expanded)
-		if !expanded && showExpandHint && text != "" {
+		if !expanded && showExpandHint && text != "" && toolrender.IsReadGroupExpandable(item.toolCalls) {
 			text = appendExpandHint(text)
 		}
 		return text
@@ -206,7 +206,7 @@ func renderCommittedItem(item committedItem, opts toolrender.CompactOptions, exp
 		return renderApprovalItem(item, opts)
 	case kindSubAgentBlock:
 		text := renderSubAgentBlockItem(item, opts, expanded)
-		if !expanded && showExpandHint && text != "" {
+		if !expanded && showExpandHint && text != "" && item.saBlock != nil && len(item.saBlock.children) > 0 {
 			text = appendExpandHint(text)
 		}
 		return text
@@ -406,15 +406,21 @@ func (r *inlineRenderer) triggerReCommit() {
 const clearAndHome = "\033[2J\033[1;1H\033[3J"
 
 // buildReCommitCmd returns a tea.Sequence that atomically clears the
-// terminal and writes the pre-rendered history via tea.Raw, then resets
-// the renderer's internal state via tea.ClearScreen.
+// terminal and writes the pre-rendered history via tea.Raw, followed by
+// a reCommitDoneMsg that signals the model to restore View() rendering.
 //
-// tea.Raw writes to Bubbletea's outputBuf, which is flushed to the
-// terminal BEFORE the renderer's cellbuf flush on each tick. This
-// guarantees the clear sequences and content reach the terminal before
-// the renderer attempts to render View(). The subsequent ClearScreen
-// resets the renderer's internal cursor and erase flags so the next
-// flush correctly positions the View() output below the Raw content.
+// Two-phase design:
+//
+// Phase 1: The calling handler sets reCommitPending = true so View()
+// returns empty. This prevents the renderer from issuing cursor
+// movements (relative to its stale tracked position) while tea.Raw
+// rewrites the terminal. The Raw payload clears the screen and writes
+// history; the cursor ends up at the bottom of the history content.
+//
+// Phase 2: reCommitDoneMsg clears reCommitPending. The renderer sees a
+// transition from empty to the composed view and writes it fresh at the
+// current cursor position — placing the input bar right below the
+// history, which is the correct location.
 //
 // The rendered content's \n line breaks are replaced with \r\n because
 // Bubbletea puts the terminal in raw mode (OPOST/ONLCR disabled). In
@@ -427,5 +433,8 @@ func buildReCommitCmd(rendered string) tea.Cmd {
 	if rendered != "" {
 		payload += "\r\n"
 	}
-	return tea.Sequence(tea.Raw(payload), tea.ClearScreen)
+	return tea.Sequence(
+		tea.Raw(payload),
+		func() tea.Msg { return reCommitDoneMsg{} },
+	)
 }
