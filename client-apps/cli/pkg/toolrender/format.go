@@ -148,6 +148,52 @@ func formatInputArgs(args map[string]interface{}, max int) string {
 	return b.String()
 }
 
+// formatExpandedArgs formats all tool arguments for the expanded approval view.
+// Unlike formatInputArgs (which truncates for compact display), this shows
+// every arg in full so the user can see exactly what they are approving.
+//
+// Short scalar values are shown inline:
+//
+//	org: "default"
+//	count: 42
+//
+// Multi-line or long string values are shown with the key on its own line
+// followed by the full value:
+//
+//	content:
+//	apiVersion: v1
+//	kind: ConfigMap
+//	metadata:
+//	  name: my-config
+func formatExpandedArgs(args map[string]interface{}) string {
+	if len(args) == 0 {
+		return ""
+	}
+
+	keys := make([]string, 0, len(args))
+	for k := range args {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	var b strings.Builder
+	for i, k := range keys {
+		if i > 0 {
+			b.WriteByte('\n')
+		}
+		v := args[k]
+		s := formatArgValue(v)
+		if strings.Contains(s, "\n") || len(s) > inputArgPlaceholderLen {
+			b.WriteString(k + ":\n" + s)
+		} else if _, ok := v.(string); ok {
+			b.WriteString(fmt.Sprintf("%s: %q", k, s))
+		} else {
+			b.WriteString(k + ": " + s)
+		}
+	}
+	return b.String()
+}
+
 // formatKeyValue renders a single key-value pair for the compact input arg
 // display. String values are quoted; large strings get a size placeholder.
 func formatKeyValue(key string, val interface{}) string {

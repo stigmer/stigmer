@@ -142,13 +142,21 @@ func ExpandedApprovalHeader(tc ToolCallInfo, opts CompactOptions) string {
 	}
 }
 
-// ExpandedApprovalContent extracts the full display content for a tool call.
-// For write/edit tools this is the file content from args; for shell tools
-// this is the command; for read/discovery tools this is the result.
+// ExpandedApprovalContent extracts the full display content for a tool call,
+// designed to give the user complete visibility into what they are approving.
 //
-// For unknown/MCP tools, the largest arg value is returned. This heuristic
-// reliably selects file content over short metadata (paths, names) because
-// the content body is always the largest argument by character count.
+// For write/edit tools this is the file content from args. For shell tools
+// this is the full command (pre-approval) or the result (post-execution).
+// For read/discovery tools this is the result.
+//
+// Shell tools receive special handling: when Result is empty (pre-approval
+// state), the full command text from args is returned so the user can see
+// exactly what will be executed before making an approval decision. This
+// mirrors how write tools show their full file content in the expanded view.
+//
+// For unknown/MCP tools, all arguments are formatted as key-value pairs
+// without truncation so the user can see every parameter being passed. This
+// ensures full transparency for approval decisions on third-party tools.
 //
 // This is the public interface to resolveDisplayContent — the command layer
 // needs it to build the expanded approval view but cannot access the private
@@ -156,9 +164,13 @@ func ExpandedApprovalHeader(tc ToolCallInfo, opts CompactOptions) string {
 func ExpandedApprovalContent(tc ToolCallInfo) string {
 	info, known := toolDisplayMap[tc.Name]
 	if !known {
-		return extractLargestArg(tc.Args)
+		return formatExpandedArgs(tc.Args)
 	}
-	return resolveDisplayContent(tc, info)
+	content := resolveDisplayContent(tc, info)
+	if content == "" && isShellLabel(info.label) {
+		return extractPrimaryArgWithFallbacks(tc.Args, info.primaryField, info.fallbackFields)
+	}
+	return content
 }
 
 // ShouldSuppressCompletion reports whether the ToolCompletedEvent for an
