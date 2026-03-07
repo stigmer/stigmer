@@ -206,7 +206,7 @@ func (r *inlineRenderer) renderStreamError(e executiontui.StreamErrorEvent) {
 	r.finishAIStreamIfNeeded()
 	var text string
 	if r.cfg.sessionID != "" {
-		text = fmt.Sprintf("Error: %s\n   Re-attach with: stigmer run %s", e.Err.Error(), r.cfg.sessionID)
+		text = fmt.Sprintf("Error: %s\n   Re-attach with: stigmer resume %s", e.Err.Error(), r.cfg.sessionID)
 	} else {
 		text = fmt.Sprintf("Error: %s", e.Err.Error())
 	}

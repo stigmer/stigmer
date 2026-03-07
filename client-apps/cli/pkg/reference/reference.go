@@ -219,6 +219,59 @@ func IsProjectID(ref string) bool {
 	return isResourceIDWithKind(ref, apiresourcekind.ApiResourceKind_project)
 }
 
+// ulidLength is the expected length of a ULID string (26 Crockford base-32 chars).
+const ulidLength = 26
+
+// ValidateResourceID checks that ref is a syntactically complete resource ID:
+// a known kind prefix, a separator (_ or -), and a 26-character ULID body.
+// Returns nil if valid, ErrNotResourceID if no prefix matches, or
+// ErrIncompleteID if the prefix matches but the body is wrong.
+func ValidateResourceID(ref string) error {
+	_, err := ResourceIDKind(ref)
+	return err
+}
+
+// ResourceIDKind returns the ApiResourceKind for a well-formed resource ID.
+// It validates both the prefix and the ULID body length. Use this in
+// resolution chains to determine which domain the ID belongs to.
+func ResourceIDKind(ref string) (apiresourcekind.ApiResourceKind, error) {
+	for kind := range apiresourcekind.ApiResourceKind_name {
+		k := apiresourcekind.ApiResourceKind(kind)
+		if k == apiresourcekind.ApiResourceKind_api_resource_kind_unknown {
+			continue
+		}
+		prefix, err := apiresource.GetIdPrefix(k)
+		if err != nil || prefix == "" {
+			continue
+		}
+		for _, sep := range []string{"_", "-"} {
+			pfx := prefix + sep
+			if !strings.HasPrefix(ref, pfx) {
+				continue
+			}
+			body := ref[len(pfx):]
+			if len(body) != ulidLength {
+				return 0, newParseError(ref,
+					"incomplete resource ID: expected 26-character ULID after prefix",
+					ErrIncompleteID)
+			}
+			return k, nil
+		}
+	}
+	if isUUID(ref) {
+		return apiresourcekind.ApiResourceKind_api_resource_kind_unknown, nil
+	}
+	return 0, newParseError(ref, "not a recognized resource ID", ErrNotResourceID)
+}
+
+// HasResourceIDPrefix returns true if ref starts with any known resource ID
+// prefix followed by _ or -. Unlike ValidateResourceID, it does not check
+// the ULID body length — use this to detect intent, then ValidateResourceID
+// to enforce completeness.
+func HasResourceIDPrefix(ref string) bool {
+	return isResourceID(ref)
+}
+
 // isUUID checks if a string looks like a UUID (8-4-4-4-12 format).
 func isUUID(s string) bool {
 	if len(s) != 36 {

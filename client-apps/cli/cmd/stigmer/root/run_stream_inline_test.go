@@ -438,7 +438,7 @@ func TestInlineRenderer_StreamError_ReturnsError(t *testing.T) {
 	if result.exitErr != "connection lost" {
 		t.Errorf("expected error 'connection lost', got %q", result.exitErr)
 	}
-	if !strings.Contains(stderr.String(), "Re-attach with: stigmer run ses-abc") {
+	if !strings.Contains(stderr.String(), "Re-attach with: stigmer resume ses-abc") {
 		t.Errorf("should show re-attach hint, got: %q", stderr.String())
 	}
 }
