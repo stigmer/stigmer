@@ -658,6 +658,21 @@ func TestInlineBubbleModel_ApprovalStart_ReCommitForStreamedContent(t *testing.T
 		t.Fatal("approvalStartMsg with reCommitPayload should return a Cmd")
 	}
 
+	if !model.reCommitPending {
+		t.Error("reCommitPending should be true during phase 1 of re-commit")
+	}
+	phase1View := model.View().Content
+	if phase1View != "" {
+		t.Errorf("View() should be empty during re-commit phase 1, got %q", phase1View)
+	}
+
+	// Phase 2: reCommitDoneMsg clears the pending flag so View() renders.
+	done, _ := approved.Update(reCommitDoneMsg{})
+	model = done.(inlineBubbleModel)
+	if model.reCommitPending {
+		t.Error("reCommitPending should be false after reCommitDoneMsg")
+	}
+
 	approvalView := model.View().Content
 	if !strings.Contains(approvalView, "Do you want to create config.go?") {
 		t.Errorf("View() should show approval question, got %q", approvalView)

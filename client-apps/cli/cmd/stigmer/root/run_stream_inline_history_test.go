@@ -932,11 +932,15 @@ func TestAppendExpandHint_EmptyString(t *testing.T) {
 }
 
 func TestRenderCommittedItem_ExpandHint_ToolCompact(t *testing.T) {
+	// shell with 5+ lines is expandable per IsExpandable
+	shellResult := strings.Join([]string{"line1", "line2", "line3", "line4", "line5"}, "\n")
 	item := committedItem{
 		kind: kindToolCompact,
 		toolCalls: []toolrender.ToolCallInfo{{
-			Name: "read_file",
-			Args: map[string]interface{}{"path": "main.go"},
+			Name:   "shell",
+			Args:   map[string]interface{}{"command": "ls -la"},
+			Status: "completed",
+			Result: shellResult,
 		}},
 	}
 
@@ -947,8 +951,22 @@ func TestRenderCommittedItem_ExpandHint_ToolCompact(t *testing.T) {
 	assert.NotContains(t, withoutHint, "ctrl+o to expand")
 }
 
+func TestRenderCommittedItem_NoExpandHint_ToolCompact_ReadFile(t *testing.T) {
+	// read_file is NOT expandable per IsExpandable; hint should not show even with showExpandHint=true
+	item := committedItem{
+		kind: kindToolCompact,
+		toolCalls: []toolrender.ToolCallInfo{{
+			Name: "read_file",
+			Args: map[string]interface{}{"path": "main.go"},
+		}},
+	}
+	result := renderCommittedItem(item, toolrender.CompactOptions{}, false, true)
+	assert.NotContains(t, result, "ctrl+o to expand")
+}
+
 func TestRenderCommittedItem_ExpandHint_ReadGroup(t *testing.T) {
-	reads := make([]toolrender.ToolCallInfo, readGroupThreshold)
+	// IsReadGroupExpandable returns true when len(reads) > maxVisibleInGroup+1 (i.e. 5+)
+	reads := make([]toolrender.ToolCallInfo, 5)
 	for i := range reads {
 		reads[i] = toolrender.ToolCallInfo{
 			Name:   "read_file",
@@ -967,15 +985,45 @@ func TestRenderCommittedItem_ExpandHint_ReadGroup(t *testing.T) {
 		"hint should appear on the read group header line")
 }
 
+func TestRenderCommittedItem_NoExpandHint_ReadGroup_ThreeEntries(t *testing.T) {
+	// 3 entries: len(reads) <= maxVisibleInGroup+1, so IsReadGroupExpandable is false
+	reads := make([]toolrender.ToolCallInfo, 3)
+	for i := range reads {
+		reads[i] = toolrender.ToolCallInfo{
+			Name:   "read_file",
+			Args:   map[string]interface{}{"path": fmt.Sprintf("file_%d.go", i)},
+			Status: "completed",
+			Result: "content\n",
+		}
+	}
+	item := committedItem{kind: kindReadGroup, toolCalls: reads}
+	result := renderCommittedItem(item, toolrender.CompactOptions{}, false, true)
+	assert.NotContains(t, result, "ctrl+o to expand")
+}
+
 func TestRenderCommittedItem_ExpandHint_SubAgentBlock(t *testing.T) {
+	// hint shows when len(item.saBlock.children) > 0
 	block := &subAgentBlock{
 		id: "sa-1", name: "researcher", subject: "Explore CLI code",
 		status: "completed", toolCount: 5,
+		children: []committedItem{{kind: kindToolCompact, toolCalls: []toolrender.ToolCallInfo{}}},
 	}
 	item := committedItem{kind: kindSubAgentBlock, saBlock: block}
 
 	withHint := renderCommittedItem(item, toolrender.CompactOptions{}, false, true)
 	assert.Contains(t, withHint, "ctrl+o to expand")
+}
+
+func TestRenderCommittedItem_NoExpandHint_SubAgentBlock_EmptyChildren(t *testing.T) {
+	// hint does NOT show when len(item.saBlock.children) == 0
+	block := &subAgentBlock{
+		id: "sa-1", name: "researcher", subject: "Explore CLI code",
+		status: "completed", toolCount: 5,
+		children: nil,
+	}
+	item := committedItem{kind: kindSubAgentBlock, saBlock: block}
+	result := renderCommittedItem(item, toolrender.CompactOptions{}, false, true)
+	assert.NotContains(t, result, "ctrl+o to expand")
 }
 
 func TestRenderCommittedItem_NoHintWhenExpanded(t *testing.T) {
@@ -1035,12 +1083,15 @@ func TestExpandHintEnabled(t *testing.T) {
 }
 
 func TestRenderHistoryBatch_WithExpandHint(t *testing.T) {
+	multiLine := strings.Join([]string{"l1", "l2", "l3", "l4", "l5"}, "\n")
 	items := []committedItem{
 		{kind: kindToolCompact, toolCalls: []toolrender.ToolCallInfo{{
-			Name: "read_file", Args: map[string]interface{}{"path": "a.go"},
+			Name: "shell", Args: map[string]interface{}{"command": "ls"},
+			Status: "completed", Result: multiLine,
 		}}},
 		{kind: kindToolCompact, toolCalls: []toolrender.ToolCallInfo{{
-			Name: "read_file", Args: map[string]interface{}{"path": "b.go"},
+			Name: "shell", Args: map[string]interface{}{"command": "pwd"},
+			Status: "completed", Result: multiLine,
 		}}},
 	}
 
@@ -1059,10 +1110,12 @@ func TestCommitToScrollback_WithExpandHint(t *testing.T) {
 		activeSubAgents: make(map[string]*subAgentBlock),
 	}
 
+	multiLine := strings.Join([]string{"l1", "l2", "l3", "l4", "l5"}, "\n")
 	item := committedItem{
 		kind: kindToolCompact,
 		toolCalls: []toolrender.ToolCallInfo{{
-			Name: "read_file", Args: map[string]interface{}{"path": "main.go"},
+			Name: "shell", Args: map[string]interface{}{"command": "ls"},
+			Status: "completed", Result: multiLine,
 		}},
 	}
 	r.commitToScrollback(item)

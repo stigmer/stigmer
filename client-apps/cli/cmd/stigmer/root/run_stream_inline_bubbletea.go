@@ -94,6 +94,13 @@ type inlineBubbleModel struct {
 	// the input bar.
 	termWidth int
 
+	// reCommitPending suppresses View() output during the first phase of a
+	// re-commit. While true, View() returns an empty tea.View so the
+	// renderer's internal cursor tracking is not disturbed by the concurrent
+	// tea.Raw write that clears and rewrites the terminal. The flag is set
+	// by handleReCommit and cleared by handleReCommitDone (phase 2).
+	reCommitPending bool
+
 	// Channels for communicating with the event loop goroutine. Set during
 	// model initialization when Bubbletea owns stdin. nil otherwise.
 	toggleExpandCh chan<- struct{}
@@ -195,6 +202,10 @@ func (m inlineBubbleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleFollowUpHide(msg)
 	case reCommitMsg:
 		return m.handleReCommit(msg)
+	case reCommitDoneMsg:
+		return m.handleReCommitDone(msg)
+	case approvalReRenderMsg:
+		return m.handleApprovalReRender(msg)
 	case inputBarModeMsg:
 		return m.handleInputBarMode(msg)
 	case currentTaskMsg:
@@ -212,6 +223,14 @@ func (m inlineBubbleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m inlineBubbleModel) View() tea.View {
+	// During a re-commit, tea.Raw is writing directly to the terminal.
+	// Return empty so the renderer's cursor tracking is not disturbed.
+	// Phase 2 (reCommitDoneMsg) clears this flag and the renderer
+	// writes the composed view fresh at the current cursor position.
+	if m.reCommitPending {
+		return tea.NewView("")
+	}
+
 	// New path: composed layout with persistent input bar.
 	if m.inputBarMode != inputBarHidden {
 		return m.renderComposedView()
@@ -415,6 +434,7 @@ func (m inlineBubbleModel) handleApprovalStart(msg approvalStartMsg) (tea.Model,
 	m.aiStreamPartial = ""
 
 	if msg.reCommitPayload != "" {
+		m.reCommitPending = true
 		return m, buildReCommitCmd(msg.reCommitPayload)
 	}
 	var cmds []tea.Cmd
@@ -440,6 +460,7 @@ func (m inlineBubbleModel) handleApprovalShow(msg approvalShowMsg) (tea.Model, t
 	m.aiStreamPartial = ""
 
 	if msg.reCommitPayload != "" {
+		m.reCommitPending = true
 		return m, buildReCommitCmd(msg.reCommitPayload)
 	}
 	var cmds []tea.Cmd
@@ -668,10 +689,13 @@ func (m inlineBubbleModel) handleInputBarMode(msg inputBarModeMsg) (tea.Model, t
 // Re-commit handler
 // ---------------------------------------------------------------------------
 
-// handleReCommit clears all active visual states so View() returns only
-// the persistent UI (plan + separator + hint) during the renderer flush
-// that follows the Raw write. Without this, stale streaming/approval/spinner
-// content would be rendered on top of the freshly-written history.
+// handleReCommit clears all active visual states and starts a two-phase
+// re-commit. Phase 1 (this handler) sets reCommitPending so View()
+// returns empty — preventing the renderer from issuing stale cursor
+// movements while tea.Raw rewrites the terminal. Phase 2
+// (handleReCommitDone) clears the flag; the renderer sees the transition
+// from empty to the composed view and writes it fresh at the current
+// cursor position (bottom of history), preserving the input bar.
 func (m inlineBubbleModel) handleReCommit(msg reCommitMsg) (tea.Model, tea.Cmd) {
 	m.spinnerActive = false
 	m.streamingActive = false
@@ -683,9 +707,29 @@ func (m inlineBubbleModel) handleReCommit(msg reCommitMsg) (tea.Model, tea.Cmd) 
 	m.aiStreamPartial = ""
 	m.followUpActive = false
 	m.followUpContent = ""
+	m.reCommitPending = true
 	// Sub-agent live summary is not cleared — if a sub-agent is still
 	// running after re-commit, its summary reappears in View().
 	return m, buildReCommitCmd(msg.rendered)
+}
+
+// handleReCommitDone is phase 2 of the re-commit. The tea.Raw write has
+// completed and the terminal shows the updated history with the cursor
+// at the bottom. Clearing reCommitPending lets View() produce the
+// composed view again; the renderer writes it fresh below the history.
+func (m inlineBubbleModel) handleReCommitDone(_ reCommitDoneMsg) (tea.Model, tea.Cmd) {
+	m.reCommitPending = false
+	return m, nil
+}
+
+// handleApprovalReRender refreshes the scrollback after an expand toggle
+// during an active approval prompt. Unlike handleReCommit, it does NOT
+// clear any transient state — the approval question, menu selection, and
+// decision channel all remain intact so the user can continue approving.
+// It uses the same two-phase approach to preserve the approval panel.
+func (m inlineBubbleModel) handleApprovalReRender(msg approvalReRenderMsg) (tea.Model, tea.Cmd) {
+	m.reCommitPending = true
+	return m, buildReCommitCmd(msg.reCommitPayload)
 }
 
 // ---------------------------------------------------------------------------

@@ -90,6 +90,15 @@ type approvalDecision struct {
 	err    error
 }
 
+// approvalReRenderMsg replays the scrollback content (history + expanded
+// tool view) without resetting approval state. Sent when Ctrl+O is pressed
+// during an active approval prompt — the event loop rebuilds the
+// reCommitPayload with the new expand mode and sends this message so the
+// terminal is refreshed while the question and menu selection are preserved.
+type approvalReRenderMsg struct {
+	reCommitPayload string
+}
+
 // textInputStartMsg activates the text input mode for follow-up prompts.
 // The follow-up loop creates the channel, sends this message, then blocks
 // on the channel. View() renders the prompt dynamically using model state
@@ -179,6 +188,16 @@ type followUpHideMsg struct {
 type reCommitMsg struct {
 	rendered string
 }
+
+// reCommitDoneMsg is the phase-2 signal of a re-commit. Phase 1
+// (handleReCommit) suppresses View() and writes history via tea.Raw.
+// When this message arrives, the Raw write is complete and the cursor
+// sits at the end of the history. The handler clears the suppression
+// flag so View() renders normally — the renderer sees a transition from
+// empty to non-empty and writes the composed view at the current cursor
+// position (bottom of history), placing the input bar where the user
+// expects it.
+type reCommitDoneMsg struct{}
 
 // aiStreamPartialMsg updates the partial (incomplete) line shown in View()
 // during AI text streaming. Sent on every delta so the user sees
