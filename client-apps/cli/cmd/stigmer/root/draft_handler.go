@@ -38,8 +38,8 @@ func registerDraftFlags(cmd *cobra.Command, opts *draftOptions, resourceType str
 	registerOutputModeFlags(cmd, &opts.outputModeFlags)
 	cmd.MarkFlagRequired("message")
 
-	cmd.Flags().StringVarP(&opts.OutputDir, "output", "o", ".",
-		fmt.Sprintf("directory to save the generated %s", resourceType))
+	cmd.Flags().StringVarP(&opts.OutputDir, "output", "o", "",
+		"directory to save generated artifacts (default: current directory when no workspace is used)")
 
 	cmd.Flags().StringVar(&opts.Model, "model", "",
 		"LLM model to use (e.g., claude-sonnet-4-20250514)")
@@ -50,8 +50,14 @@ func registerDraftFlags(cmd *cobra.Command, opts *draftOptions, resourceType str
 
 // executeDraft is the unified handler for all draft subcommands. It uses the
 // shared preparation and agent execution layers, adding draft-specific
-// behavior: the agent is a hardcoded system agent, and artifacts are always
-// downloaded on completion (unless --detach).
+// behavior: the agent is a hardcoded system agent, and artifacts are
+// downloaded on completion only when needed.
+//
+// Download logic:
+//   - --detach: no download (execution is backgrounded)
+//   - --output set explicitly: always download to that directory
+//   - local workspaces present: skip download (agent writes directly to disk)
+//   - otherwise: download to current directory (backward compatible default)
 func executeDraft(cfg draftConfig, opts draftOptions) error {
 	sp := spinner.New(os.Stderr)
 	sp.Start("Preparing...")
@@ -88,8 +94,13 @@ func executeDraft(cfg draftConfig, opts draftOptions) error {
 	}
 
 	downloadDir := opts.OutputDir
-	if opts.Detach {
+	switch {
+	case opts.Detach:
 		downloadDir = ""
+	case downloadDir == "" && len(localWorkspaceRoots(prep.WorkspaceEntries)) > 0:
+		// Agent writes directly to local workspaces; artifact download is redundant.
+	case downloadDir == "":
+		downloadDir = "."
 	}
 
 	return executeResolvedAgent(resolvedAgentExecInput{
