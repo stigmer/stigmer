@@ -308,7 +308,7 @@ func renderCompactRead(tc ToolCallInfo, info toolDisplayInfo, opts CompactOption
 	header := fmt.Sprintf("%s %s(%s)", bulletStyle.Render("●"), labelStyle.Render("Read"), displayPath)
 
 	if errMsg := toolCallError(tc); errMsg != "" {
-		return header + "\n" + dimStyle.Render("    ✗ "+truncate(errMsg, 60))
+		return header + "\n" + dimStyle.Render("    ✗ "+truncate(errMsg, maxErrorDisplayLen))
 	}
 
 	lineCount := countLines(tc.Result)
@@ -337,7 +337,7 @@ func renderCompactWrite(tc ToolCallInfo, info toolDisplayInfo, opts CompactOptio
 		if errMsg == "" {
 			errMsg = "failed"
 		}
-		return header + "\n" + dimStyle.Render("    ✗ "+truncate(errMsg, 60))
+		return header + "\n" + dimStyle.Render("    ✗ "+truncate(errMsg, maxErrorDisplayLen))
 	}
 
 	content := resolveDisplayContent(tc, info)
@@ -371,7 +371,7 @@ func renderCompactShell(tc ToolCallInfo, info toolDisplayInfo, opts CompactOptio
 		if errMsg == "" {
 			errMsg = "failed"
 		}
-		return header + "\n" + dimStyle.Render("    ✗ "+truncate(errMsg, 60))
+		return header + "\n" + dimStyle.Render("    ✗ "+truncate(errMsg, maxErrorDisplayLen))
 	}
 
 	content := resolveDisplayContent(tc, info)
@@ -429,7 +429,7 @@ func renderCompactDiscovery(tc ToolCallInfo, info toolDisplayInfo, opts CompactO
 		if errMsg == "" {
 			errMsg = "failed"
 		}
-		return header + "\n" + dimStyle.Render("    ✗ "+truncate(errMsg, 60))
+		return header + "\n" + dimStyle.Render("    ✗ "+truncate(errMsg, maxErrorDisplayLen))
 	}
 
 	content := resolveDisplayContent(tc, info)
@@ -465,7 +465,7 @@ func renderCompactDelete(tc ToolCallInfo, info toolDisplayInfo, opts CompactOpti
 		if errMsg == "" {
 			errMsg = "failed"
 		}
-		return header + "\n" + dimStyle.Render("    ✗ "+truncate(errMsg, 60))
+		return header + "\n" + dimStyle.Render("    ✗ "+truncate(errMsg, maxErrorDisplayLen))
 	}
 
 	return header + "\n" + dimStyle.Render("    Deleted")
@@ -494,7 +494,7 @@ func renderCompactThink(tc ToolCallInfo, info toolDisplayInfo, opts CompactOptio
 		if errMsg == "" {
 			errMsg = "failed"
 		}
-		return header + "\n" + dimStyle.Render("    ✗ "+truncate(errMsg, 60))
+		return header + "\n" + dimStyle.Render("    ✗ "+truncate(errMsg, maxErrorDisplayLen))
 	}
 
 	content := extractPrimaryArgWithFallbacks(tc.Args, info.contentArgField, info.contentArgFallbacks)
@@ -594,7 +594,7 @@ func buildUnknownWithError(header string, args map[string]interface{}, errMsg st
 	}
 
 	b.WriteByte('\n')
-	b.WriteString(dimStyle.Render("    ✗ " + truncate(errMsg, 60)))
+	b.WriteString(dimStyle.Render("    ✗ " + truncate(errMsg, maxErrorDisplayLen)))
 	return b.String()
 }
 
@@ -685,6 +685,12 @@ func discoverySummary(label string, count int) string {
 		return fmt.Sprintf("Found %d matches", count)
 	}
 }
+
+// maxErrorDisplayLen is the maximum character length for error messages in
+// compact tool displays. Error text exceeding this length is truncated with
+// "..." by truncate(). Used by isErrorExpandable to determine whether
+// expanding would reveal more error content.
+const maxErrorDisplayLen = 60
 
 // resultErrorPrefix is the prefix the backend's enrich_error_message uses to
 // mark tool results that contain error information. When a tool catches an

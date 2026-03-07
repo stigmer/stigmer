@@ -438,3 +438,33 @@ func buildReCommitCmd(rendered string) tea.Cmd {
 		func() tea.Msg { return reCommitDoneMsg{} },
 	)
 }
+
+// buildFollowUpReCommitCmd returns a command sequence for re-committing
+// history while a follow-up text input is active. Unlike buildReCommitCmd
+// which uses tea.Raw (fast but desyncs the renderer's cursor tracking),
+// this uses renderer-aware operations so the input bar remains visible
+// and the cursor is correctly positioned.
+//
+// Sequence:
+//  1. tea.Raw(clearAndHome) — physically clears the terminal and scrollback.
+//  2. tea.ClearScreen — resets the renderer's internal position to (0,0)
+//     and marks the screen buffer for a full redraw.
+//  3. reCommitDoneMsg — clears reCommitPending so View() renders the input
+//     bar at (0,0). The renderer writes it at the correct tracked position.
+//  4. tea.Println(history) — calls insertAbove which inserts the history
+//     content above the view, pushing the input bar to the bottom. The
+//     renderer's position tracking is updated by insertAbove.
+//
+// Result: history fills the terminal with the input bar at the bottom,
+// and the renderer's cursor tracking is in sync for subsequent renders.
+func buildFollowUpReCommitCmd(rendered string) tea.Cmd {
+	cmds := []tea.Cmd{
+		tea.Raw(clearAndHome),
+		tea.ClearScreen,
+		func() tea.Msg { return reCommitDoneMsg{} },
+	}
+	if rendered != "" {
+		cmds = append(cmds, tea.Println(rendered))
+	}
+	return tea.Sequence(cmds...)
+}

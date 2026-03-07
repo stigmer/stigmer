@@ -21,10 +21,10 @@ func lineN(n int) string {
 }
 
 // =============================================================================
-// IsExpandable: Read tools always non-expandable
+// IsExpandable: Read tools non-expandable for success content
 // =============================================================================
 
-func TestIsExpandable_ReadTools_AlwaysFalse(t *testing.T) {
+func TestIsExpandable_ReadTools_SuccessNotExpandable(t *testing.T) {
 	readTools := []string{"read", "read_file"}
 	for _, name := range readTools {
 		t.Run(name, func(t *testing.T) {
@@ -34,16 +34,16 @@ func TestIsExpandable_ReadTools_AlwaysFalse(t *testing.T) {
 				Status: "completed",
 				Result: lineN(100), // lots of content
 			}
-			assert.False(t, IsExpandable(tc), "read tools must never be expandable")
+			assert.False(t, IsExpandable(tc), "read success content is never expandable (compact shows line count)")
 		})
 	}
 }
 
 // =============================================================================
-// IsExpandable: Write/Edit tools always non-expandable
+// IsExpandable: Write/Edit tools non-expandable for success content
 // =============================================================================
 
-func TestIsExpandable_WriteEditTools_AlwaysFalse(t *testing.T) {
+func TestIsExpandable_WriteEditTools_SuccessNotExpandable(t *testing.T) {
 	tools := []string{"write", "write_file", "create_file", "overwrite_file", "edit", "edit_file"}
 	for _, name := range tools {
 		t.Run(name, func(t *testing.T) {
@@ -53,16 +53,16 @@ func TestIsExpandable_WriteEditTools_AlwaysFalse(t *testing.T) {
 				Status: "completed",
 				Result: "ok",
 			}
-			assert.False(t, IsExpandable(tc), "%s must never be expandable", name)
+			assert.False(t, IsExpandable(tc), "%s success content is never expandable", name)
 		})
 	}
 }
 
 // =============================================================================
-// IsExpandable: Delete tool always non-expandable
+// IsExpandable: Delete tool non-expandable for success content
 // =============================================================================
 
-func TestIsExpandable_DeleteTool_AlwaysFalse(t *testing.T) {
+func TestIsExpandable_DeleteTool_SuccessNotExpandable(t *testing.T) {
 	tools := []string{"delete_file", "remove_file"}
 	for _, name := range tools {
 		t.Run(name, func(t *testing.T) {
@@ -72,7 +72,7 @@ func TestIsExpandable_DeleteTool_AlwaysFalse(t *testing.T) {
 				Status: "completed",
 				Result: "deleted",
 			}
-			assert.False(t, IsExpandable(tc), "%s must never be expandable", name)
+			assert.False(t, IsExpandable(tc), "%s success content is never expandable", name)
 		})
 	}
 }
@@ -267,10 +267,10 @@ func TestIsExpandable_UnknownTool_EmptyResult_NotExpandable(t *testing.T) {
 }
 
 // =============================================================================
-// IsExpandable: Failed tools always non-expandable
+// IsExpandable: Short errors are non-expandable (error fits within display cap)
 // =============================================================================
 
-func TestIsExpandable_FailedTools_AlwaysFalse(t *testing.T) {
+func TestIsExpandable_ShortErrors_NotExpandable(t *testing.T) {
 	tests := []struct {
 		name string
 		tc   ToolCallInfo
@@ -329,17 +329,124 @@ func TestIsExpandable_FailedTools_AlwaysFalse(t *testing.T) {
 			},
 		},
 		{
-			"unknown_tool_result_error_prefix",
+			"unknown_tool_result_error_prefix_short",
 			ToolCallInfo{
 				Name:   "mcp_tool",
 				Status: "completed",
 				Result: "Error: MCP server not found",
 			},
 		},
+		{
+			"read_short_error",
+			ToolCallInfo{
+				Name:   "read",
+				Args:   map[string]interface{}{"path": "missing.go"},
+				Status: "completed",
+				Result: "Error: file not found",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.False(t, IsExpandable(tt.tc), "failed/errored tools must never be expandable")
+			assert.False(t, IsExpandable(tt.tc), "short errors should not be expandable")
+		})
+	}
+}
+
+// =============================================================================
+// IsExpandable: Long/multi-line errors ARE expandable
+// =============================================================================
+
+func TestIsExpandable_LongErrors_Expandable(t *testing.T) {
+	longErr := strings.Repeat("x", maxErrorDisplayLen+1)
+	multiLineResult := "Error: MCP server 'planton' in org 'default' not found\nVerify the server slug and organization.\nRun 'stigmer discover' to list available servers."
+
+	tests := []struct {
+		name string
+		tc   ToolCallInfo
+	}{
+		{
+			"shell_long_error_field",
+			ToolCallInfo{
+				Name:   "shell",
+				Args:   map[string]interface{}{"command": "go build"},
+				Status: "failed",
+				Error:  longErr,
+			},
+		},
+		{
+			"read_long_error",
+			ToolCallInfo{
+				Name:   "read",
+				Args:   map[string]interface{}{"path": "x.go"},
+				Status: "completed",
+				Result: "Error: " + longErr,
+			},
+		},
+		{
+			"write_long_error_field",
+			ToolCallInfo{
+				Name:   "write",
+				Args:   map[string]interface{}{"path": "x.go"},
+				Status: "failed",
+				Error:  longErr,
+			},
+		},
+		{
+			"delete_long_error_field",
+			ToolCallInfo{
+				Name:   "delete_file",
+				Args:   map[string]interface{}{"path": "x.go"},
+				Status: "failed",
+				Error:  longErr,
+			},
+		},
+		{
+			"discovery_long_error_field",
+			ToolCallInfo{
+				Name:   "glob",
+				Args:   map[string]interface{}{"pattern": "*.go"},
+				Status: "failed",
+				Error:  longErr,
+			},
+		},
+		{
+			"think_long_error_field",
+			ToolCallInfo{
+				Name:   "think",
+				Args:   map[string]interface{}{"thought": "x"},
+				Status: "failed",
+				Error:  longErr,
+			},
+		},
+		{
+			"unknown_long_error_field",
+			ToolCallInfo{
+				Name:   "mcp_tool",
+				Error:  longErr,
+				Result: lineN(20),
+			},
+		},
+		{
+			"unknown_result_error_multiline",
+			ToolCallInfo{
+				Name:   "mcp_tool",
+				Status: "completed",
+				Result: multiLineResult,
+			},
+		},
+		{
+			"unknown_result_error_long_single_line",
+			ToolCallInfo{
+				Name:   "mcp_tool",
+				Status: "completed",
+				Result: "Error: " + longErr,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.True(t, IsExpandable(tt.tc), "long/multi-line errors should be expandable")
 		})
 	}
 }

@@ -689,13 +689,25 @@ func (m inlineBubbleModel) handleInputBarMode(msg inputBarModeMsg) (tea.Model, t
 // Re-commit handler
 // ---------------------------------------------------------------------------
 
-// handleReCommit clears all active visual states and starts a two-phase
-// re-commit. Phase 1 (this handler) sets reCommitPending so View()
-// returns empty — preventing the renderer from issuing stale cursor
-// movements while tea.Raw rewrites the terminal. Phase 2
-// (handleReCommitDone) clears the flag; the renderer sees the transition
-// from empty to the composed view and writes it fresh at the current
-// cursor position (bottom of history), preserving the input bar.
+// handleReCommit clears all active visual states and starts a re-commit.
+//
+// Two strategies depending on whether a follow-up text input is active:
+//
+// Execution mode (inputBarActive == false): uses the two-phase tea.Raw
+// approach. Phase 1 sets reCommitPending so View() returns empty while
+// tea.Raw rewrites the terminal. Phase 2 (reCommitDoneMsg) restores
+// View(). The tea.Raw write desyncs the renderer's cursor tracking, but
+// this is acceptable because the view is small ("esc to interrupt") and
+// the desync is corrected on the next full re-commit or resize.
+//
+// Follow-up mode (inputBarActive == true): uses renderer-aware operations
+// (ClearScreen + Println) instead of tea.Raw. The tea.Raw approach
+// permanently desyncs the renderer's relative cursor tracking, which
+// causes the composed view (separator + text input + hint) to be written
+// at a stale terminal position — making the entire input bar invisible.
+// The renderer-aware path keeps cursor tracking in sync: ClearScreen
+// resets tracking to (0,0), reCommitDoneMsg lets View() render the input
+// bar there, then Println/insertAbove pushes it to the bottom.
 func (m inlineBubbleModel) handleReCommit(msg reCommitMsg) (tea.Model, tea.Cmd) {
 	m.spinnerActive = false
 	m.streamingActive = false
@@ -710,6 +722,10 @@ func (m inlineBubbleModel) handleReCommit(msg reCommitMsg) (tea.Model, tea.Cmd) 
 	m.reCommitPending = true
 	// Sub-agent live summary is not cleared — if a sub-agent is still
 	// running after re-commit, its summary reappears in View().
+
+	if m.inputBarMode == inputBarActive {
+		return m, buildFollowUpReCommitCmd(msg.rendered)
+	}
 	return m, buildReCommitCmd(msg.rendered)
 }
 
