@@ -510,7 +510,8 @@ func newFollowUpTestConfig(
 		tea.WithOutput(io.Discard),
 		tea.WithInput(nil),
 	)
-	go func() { _, _ = p.Run() }()
+	mp := newManagedProgram(p, io.Discard)
+	mp.runAndMonitor()
 
 	if toggleExpandCh == nil {
 		toggleExpandCh = make(chan struct{}, 1)
@@ -522,13 +523,13 @@ func newFollowUpTestConfig(
 		prompter:          approval.NewInteractivePrompter(),
 		data:              io.Discard,
 		status:            io.Discard,
-		program:           p,
+		program:           mp,
 		followUpEnabled:   true,
 		toggleExpandCh:    toggleExpandCh,
 	}
 	cleanup = func() {
-		p.Quit()
-		p.Wait()
+		mp.Quit()
+		mp.Wait(2 * time.Second)
 	}
 	return cfg, capturedCh, cleanup
 }

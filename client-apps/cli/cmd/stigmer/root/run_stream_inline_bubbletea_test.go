@@ -952,13 +952,14 @@ func TestStatusf_ProgramPrintln_WhenProgramPresent(t *testing.T) {
 		tea.WithInput(nil),
 	)
 
-	go func() { _, _ = p.Run() }()
+	mp := newManagedProgram(p, &output)
+	mp.runAndMonitor()
 	time.Sleep(50 * time.Millisecond)
 
 	r := &inlineRenderer{
 		cfg: inlineRenderConfig{
 			status:  &output,
-			program: p,
+			program: mp,
 		},
 		suppressedToolIDs: make(map[string]bool),
 	}
@@ -968,8 +969,8 @@ func TestStatusf_ProgramPrintln_WhenProgramPresent(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	p.Quit()
-	p.Wait()
+	mp.Quit()
+	mp.Wait(2 * time.Second)
 
 	got := output.String()
 	if !strings.Contains(got, "hello from println") {
