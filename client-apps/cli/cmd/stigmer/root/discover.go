@@ -66,7 +66,7 @@ Examples:
   stigmer discover mcp-server github
 
   # Discover by org/slug
-  stigmer discover mcp-server stigmer/stigmer-mcp-server
+  stigmer discover mcp-server stigmer/mcp-server-stigmer
 
   # Pass required credentials via --env
   stigmer discover mcp-server planton-cloud --env PLANTON_API_KEY=pk-xxx

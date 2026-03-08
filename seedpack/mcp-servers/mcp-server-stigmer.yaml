@@ -1,7 +1,7 @@
 apiVersion: agentic.stigmer.ai/v1
 kind: McpServer
 metadata:
-  name: stigmer-mcp-server
+  name: mcp-server-stigmer
   labels:
     stigmer.ai/system: "true"
 spec:
@@ -13,7 +13,7 @@ spec:
     command: "go"
     args:
       - "run"
-      - "github.com/stigmer/stigmer/mcp-server/cmd/mcp-server-stigmer@v0.0.18"
+      - "github.com/stigmer/stigmer/mcp-server/cmd/mcp-server-stigmer@v0.0.26"
   env_spec:
     data:
       STIGMER_SERVER_ADDRESS:
