@@ -77,6 +77,31 @@ from worker.workspace import (
 )
 
 
+def _slim_status_for_temporal(status: AgentExecutionStatus) -> AgentExecutionStatus:
+    """Build a slim copy of the status for the Temporal activity return value.
+
+    The full status (messages, tool_calls, sub_agent_executions, etc.) is
+    already persisted to the database via progressive gRPC updates during
+    execution.  Returning only the workflow-critical fields keeps the
+    Temporal payload well under the ~2 MB limit.
+
+    Kept: phase, pending_approvals, error, usage, started_at, completed_at.
+    Stripped: messages, tool_calls, sub_agent_executions, todos, artifacts,
+              context_info, resolved_context, callback_token.
+    """
+    slim = AgentExecutionStatus(
+        phase=status.phase,
+        error=status.error,
+        started_at=status.started_at,
+        completed_at=status.completed_at,
+    )
+    for pa in status.pending_approvals:
+        slim.pending_approvals.append(pa)
+    if status.HasField("usage"):
+        slim.usage.CopyFrom(status.usage)
+    return slim
+
+
 class SetupTimer:
     """Lightweight timer for measuring and logging setup phase durations.
     
@@ -1038,8 +1063,8 @@ async def execute_graphton(
         except Exception as update_error:
             activity_logger.error(f"Failed to update status after system error: {update_error}")
         
-        # Return failed status to workflow
-        return failed_status
+        # Return slim status to workflow (full status already persisted via gRPC above)
+        return _slim_status_for_temporal(failed_status)
 
 
 async def _execute_graphton_impl(
@@ -2814,8 +2839,8 @@ async def _execute_graphton_impl(
                 f"⏸️ Returning PAUSED status to workflow for execution {execution_id}"
             )
             
-            # Return paused status to workflow
-            return status_builder.current_status
+            # Return slim status to workflow (full status already persisted via gRPC above)
+            return _slim_status_for_temporal(status_builder.current_status)
         except TimeoutError:
             # ─────────────────────────────────────────────────────────────────────────────
             # Stall Detection: No events received within the stall timeout window.
@@ -2863,7 +2888,7 @@ async def _execute_graphton_impl(
             except Exception as update_err:
                 activity_logger.warning(f"[STALL] Failed to send status update: {update_err}")
             
-            return status_builder.current_status
+            return _slim_status_for_temporal(status_builder.current_status)
         finally:
             # Always cancel the background heartbeat task — whether the stream
             # completed normally, was paused (CancelledError), or raised an error.
@@ -3162,7 +3187,7 @@ async def _execute_graphton_impl(
         activity_logger.info("=" * 80)
         
         activity_logger.info(
-            "✅ ExecuteGraphton completed - returning status to workflow for persistence"
+            "✅ ExecuteGraphton completed - returning slim status to workflow"
         )
         
         # Verify status is not None before returning
@@ -3170,14 +3195,8 @@ async def _execute_graphton_impl(
             activity_logger.error(f"❌ CRITICAL: current_status is None for execution {execution_id}")
             raise RuntimeError("Status builder returned None - this should never happen")
         
-        activity_logger.info(
-            f"✅ Returning AgentExecutionStatus to workflow: "
-            f"type={type(status_builder.current_status).__name__}, "
-            f"is_none={status_builder.current_status is None}"
-        )
-        
-        # Return final status to workflow (workflow will call Java persistence activity)
-        return status_builder.current_status
+        # Return slim status to workflow (full status already persisted via gRPC above)
+        return _slim_status_for_temporal(status_builder.current_status)
     
     except Exception as e:
         # Capture the full exception context for diagnostics.  str(e) alone
@@ -3278,8 +3297,8 @@ async def _execute_graphton_impl(
             f"type={type(failed_status).__name__}"
         )
         
-        # Return failed status to workflow (already persisted via gRPC above)
-        return failed_status
+        # Return slim status to workflow (full status already persisted via gRPC above)
+        return _slim_status_for_temporal(failed_status)
     
     finally:
         # Clean up checkpointer resources (SQLite connection, MongoDB client, etc.)

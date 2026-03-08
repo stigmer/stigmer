@@ -207,15 +207,14 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 		return fmt.Errorf("python activity returned null status - this should never happen")
 	}
 
-	// Diagnostic: log the deserialized activity return value to trace
-	// proto serialization issues between the Python activity and Go workflow.
-	logger.Info("Activity returned status",
+	// Diagnostic: log the deserialized activity return value.
+	// Note: messages and tool_calls are intentionally omitted from the slim
+	// return payload (they're already persisted to DB via gRPC during execution).
+	logger.Info("Activity returned slim status",
 		"execution_id", executionID,
 		"phase", finalStatus.GetPhase().String(),
 		"phase_value", int32(finalStatus.GetPhase()),
-		"pending_approvals", len(finalStatus.GetPendingApprovals()),
-		"messages", len(finalStatus.GetMessages()),
-		"tool_calls", len(finalStatus.GetToolCalls()))
+		"pending_approvals", len(finalStatus.GetPendingApprovals()))
 
 	// Step 3: HITL Approval Loop (Batch Approval)
 	//
@@ -326,21 +325,18 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 			return fmt.Errorf("python activity returned null status after approval - this should never happen")
 		}
 
-		// Diagnostic: log deserialized status after approval re-invocation
-		logger.Info("Activity returned status after approval",
+		// Diagnostic: log deserialized slim status after approval re-invocation
+		logger.Info("Activity returned slim status after approval",
 			"execution_id", executionID,
 			"phase", finalStatus.GetPhase().String(),
 			"phase_value", int32(finalStatus.GetPhase()),
 			"pending_approvals", len(finalStatus.GetPendingApprovals()),
-			"messages", len(finalStatus.GetMessages()),
-			"tool_calls", len(finalStatus.GetToolCalls()),
 			"cycle", approvalCycle)
 	}
 
-	logger.Info("Graphton execution completed - final status received",
-		"messages", len(finalStatus.GetMessages()),
-		"tool_calls", len(finalStatus.GetToolCalls()),
+	logger.Info("Graphton execution completed - final slim status received",
 		"phase", finalStatus.GetPhase().String(),
+		"pending_approvals", len(finalStatus.GetPendingApprovals()),
 		"approval_cycles", approvalCycle)
 
 	// Defense-in-depth: If the Python activity returned FAILED status, persist it
