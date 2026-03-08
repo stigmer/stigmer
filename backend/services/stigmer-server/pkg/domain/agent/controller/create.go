@@ -29,9 +29,10 @@ const (
 // 3. CheckDuplicate - Verify no duplicate exists
 // 4. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
 // 5. NormalizeReferences - Resolve empty org in cross-references (skill_refs, mcp_server_usages, etc.)
-// 6. Persist - Save agent to repository
-// 7. CreateDefaultInstance - Create default agent instance
-// 8. UpdateAgentStatusWithDefaultInstance - Update agent status with default_instance_id
+// 6. MergeMcpServerEnvSpecs - Merge env_spec entries from referenced MCP servers into agent
+// 7. Persist - Save agent to repository
+// 8. CreateDefaultInstance - Create default agent instance
+// 9. UpdateAgentStatusWithDefaultInstance - Update agent status with default_instance_id
 //
 // Note: Compared to Stigmer Cloud, OSS excludes:
 // - Authorize step (no multi-tenant auth in OSS)
@@ -60,7 +61,8 @@ func (c *AgentController) buildCreatePipeline() *pipeline.Pipeline[*agentv1.Agen
 		AddStep(steps.NewCheckDuplicateStep[*agentv1.Agent](c.store)).                           // 3. Check duplicate
 		AddStep(steps.NewBuildNewStateStep[*agentv1.Agent]()).                                   // 4. Build new state
 		AddStep(steps.NewNormalizeReferencesStep[*agentv1.Agent]()).                             // 5. Normalize cross-references
-		AddStep(steps.NewPersistStep[*agentv1.Agent](c.store)).                                  // 6. Persist agent
+		AddStep(newMergeMcpServerEnvSpecsStep(c.store)).                                         // 6. Merge MCP server env_specs
+		AddStep(steps.NewPersistStep[*agentv1.Agent](c.store)).                                  // 7. Persist agent
 		AddStep(newCreateDefaultInstanceStep(c.agentInstanceClient)).                            // 6. Create default instance
 		AddStep(newUpdateAgentStatusWithDefaultInstanceStep(c.store)).                           // 7. Update status
 		AddStep(steps.NewIndexSearchStep[*agentv1.Agent](c.store, &extractor.AgentExtractor{})). // 8. Update search index
