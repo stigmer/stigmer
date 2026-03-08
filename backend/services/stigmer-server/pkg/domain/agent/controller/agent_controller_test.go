@@ -580,6 +580,74 @@ func TestAgentController_MergeMcpServerEnvSpecs(t *testing.T) {
 		}
 	})
 
+	t.Run("merges env_spec when mcp_server_ref omits org", func(t *testing.T) {
+		mcpServer := &mcpserverv1.McpServer{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "McpServer",
+			Metadata: &apiresource.ApiResourceMetadata{
+				Id:   "mcp-no-org-ref",
+				Name: "No Org Ref MCP",
+				Slug: "no-org-ref-mcp",
+				Org:  "test-org",
+			},
+			Spec: &mcpserverv1.McpServerSpec{
+				Description: "MCP server for org fallback testing",
+				EnvSpec: &environmentv1.EnvironmentSpec{
+					Data: map[string]*environmentv1.EnvironmentValue{
+						"FALLBACK_KEY": {
+							Description: "Resolved via agent org fallback",
+							IsSecret:    true,
+						},
+					},
+				},
+			},
+		}
+		if err := store.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_mcp_server, "mcp-no-org-ref", mcpServer); err != nil {
+			t.Fatalf("failed to save MCP server: %v", err)
+		}
+
+		agent := &agentv1.Agent{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "Agent",
+			Metadata: &apiresource.ApiResourceMetadata{
+				Name: "Org Fallback Agent",
+				Org:  "test-org",
+			},
+			Spec: &agentv1.AgentSpec{
+				Description:  "Agent with mcp_server_ref that omits org",
+				Instructions: "You are a helpful agent.",
+				McpServerUsages: []*agentv1.McpServerUsage{
+					{
+						McpServerRef: &apiresource.ApiResourceReference{
+							Kind: apiresourcekind.ApiResourceKind_mcp_server,
+							Slug: "no-org-ref-mcp",
+						},
+					},
+				},
+			},
+		}
+
+		created, err := controller.Create(contextWithAgentKind(), agent)
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		envData := created.GetSpec().GetEnvSpec().GetData()
+		if envData == nil {
+			t.Fatal("Expected env_spec.data to be populated via org fallback, got nil")
+		}
+		if len(envData) != 1 {
+			t.Fatalf("Expected 1 env var, got %d", len(envData))
+		}
+		if fallbackKey, ok := envData["FALLBACK_KEY"]; !ok {
+			t.Error("Expected FALLBACK_KEY in env_spec.data")
+		} else {
+			if !fallbackKey.IsSecret {
+				t.Error("Expected FALLBACK_KEY.is_secret to be true")
+			}
+		}
+	})
+
 	t.Run("update also merges MCP env specs", func(t *testing.T) {
 		mcpServer := &mcpserverv1.McpServer{
 			ApiVersion: "agentic.stigmer.ai/v1",
