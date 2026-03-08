@@ -110,7 +110,7 @@ All spec fields are defined by `McpServerSpec` in `ai/stigmer/agentic/mcpserver/
 | `spec.tags` | No | Categorization tags for marketplace discoverability. Use lowercase, hyphenated values. Tags here are separate from `metadata.tags` — these describe the server's domain and capabilities. |
 | `spec.stdio` | Conditionally required | Configuration for a subprocess-based server. Exactly one of `stdio` or `http` must be specified. See [server-types.md](server-types.md). |
 | `spec.http` | Conditionally required | Configuration for an HTTP-based server. Exactly one of `stdio` or `http` must be specified. See [server-types.md](server-types.md). |
-| `spec.default_enabled_tools` | No | Tools enabled from this server by default. Empty list = all tools are enabled. Agents can restrict further via `enabled_tools` in `mcp_server_usages`. Tool names must match exactly what the server reports via `tools/list`. |
+| `spec.default_enabled_tools` | No | Tools enabled from this server by default. Empty list = all tools are enabled. Agents can restrict further via `enabled_tools` in `mcp_server_usages`. Tool names must match exactly what the server reports via `tools/list`. **Only names from `discovered_capabilities.tools` are valid — never include names from `discovered_capabilities.resource_templates`.** |
 | `spec.env_spec` | No | Required environment variables (schema only). Actual values are provided at runtime via the AgentInstance's environment binding. See [Environment Specification](#environment-specification). |
 | `spec.default_tool_approvals` | No | Tools that require user approval by default for all agents using this server. The base layer of the approval policy chain. See [tool-approval-policies.md](tool-approval-policies.md). |
 

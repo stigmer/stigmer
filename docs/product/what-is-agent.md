@@ -196,6 +196,8 @@ spec:
 
 The `enabled_tools` list defines the maximum tool set for this agent. Sub-agents can only use a subset—they cannot expand their access beyond what the parent grants. The `tool_approval_overrides` field adds human-in-the-loop checkpoints for specific tools.
 
+> **Important**: `enabled_tools` must only contain names from the MCP server's `discovered_capabilities.tools` list (callable actions). MCP servers may also expose `resource_templates` (read-only data endpoints), but resource template names must never appear in `enabled_tools` — they are not callable tools and including them causes a fatal runtime error.
+
 ### 3. Skills (Knowledge)
 
 Skills are reusable packages of domain knowledge. A skill contains a `SKILL.md` document—guidelines, workflows, reference material—that gets injected into the agent's context at runtime.

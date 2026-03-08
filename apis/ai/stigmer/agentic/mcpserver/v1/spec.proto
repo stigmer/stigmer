@@ -45,6 +45,9 @@ message McpServerSpec {
   // Empty list means all tools are enabled by default.
   // When specified, only these tools will be available unless overridden in McpServerUsage.
   // Tool names must match exactly what the MCP server reports via tools/list.
+  // IMPORTANT: Only names from `discovered_capabilities.tools` are valid here.
+  // Do NOT include names from `discovered_capabilities.resource_templates` —
+  // resource templates are read-only data endpoints, not callable tools.
   // Examples: ["create_pull_request", "search_code", "get_file_contents"]
   repeated string default_enabled_tools = 7;
 

@@ -31,6 +31,7 @@ Run through this list before applying an Agent YAML with `stigmer apply -f`.
 
 - [ ] MCP server slugs are unique within `mcp_server_usages` (no duplicate references)
 - [ ] `enabled_tools` contain tool names that actually exist on the referenced MCP server
+- [ ] `enabled_tools` contain **only** names from `discovered_capabilities.tools` — never from `discovered_capabilities.resource_templates` (resource templates are data endpoints, not callable tools)
 - [ ] `tool_approval_overrides` use exact, case-sensitive tool names matching the MCP server's `tools/list`
 
 ### Sub-Agents
@@ -146,6 +147,24 @@ mcp_server_usages:
       slug: github
     enabled_tools: [search_code, create_pr]
 ```
+
+### Putting MCP resource templates in `enabled_tools`
+
+MCP servers expose two types of capabilities: **tools** (callable actions) and **resource templates** (read-only data endpoints). Only tool names belong in `enabled_tools`. Resource template names (from `discovered_capabilities.resource_templates`) must never be included — they cause a fatal runtime error (`Tool not found in cache`).
+
+```yaml
+# Wrong — cloud_resource_schema is a resource template, not a tool
+enabled_tools:
+  - search_code
+  - cloud_resource_schema   # FATAL: this is a resource template
+
+# Correct — only tool names from discovered_capabilities.tools
+enabled_tools:
+  - search_code
+  - get_cloud_resource
+```
+
+When inspecting `stigmer get mcp-server <slug> -oyaml`, check `status.discovered_capabilities` carefully — `tools` and `resource_templates` are separate lists. Only use names from the `tools` list.
 
 ### Guessing resource references
 
