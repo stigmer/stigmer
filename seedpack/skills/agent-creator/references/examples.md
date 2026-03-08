@@ -1,19 +1,13 @@
 # Agent YAML Examples
 
-Complete, annotated examples. All are valid and can be applied with `stigmer apply -f`.
-
-## Table of Contents
-1. [Minimal Agent](#1-minimal-agent)
-2. [Agent with Skills](#2-agent-with-skills)
-3. [Agent with MCP Servers](#3-agent-with-mcp-servers)
-4. [Agent with HITL Approval](#4-agent-with-hitl-approval)
-5. [Agent with Sub-Agents](#5-agent-with-sub-agents)
-6. [Full-Featured Agent](#6-full-featured-agent)
-7. [Public Marketplace Agent](#7-public-marketplace-agent)
+Ready-to-apply examples from minimal to full-featured.
+All examples use valid field values and follow the production authoring rules.
 
 ---
 
-## 1. Minimal Agent
+## 1 — Minimal Agent
+
+The simplest valid agent: metadata, description, and instructions.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -22,21 +16,65 @@ metadata:
   name: simple-assistant
   org: default
 spec:
-  description: "A helpful assistant that answers questions clearly and concisely."
+  description: "A conversational assistant that answers questions clearly and concisely."
   instructions: |
     You are a helpful assistant. Answer questions clearly and concisely.
-    When you are unsure, say so rather than guessing.
+    If you are unsure, say so rather than guessing.
 ```
 
-**Notes**: `org: default` is the auto-created org on a local server. Omit `org` if
-running inside a Stigmer project (`stigmer apply -f`).
+Apply and run:
+```bash
+stigmer apply -f simple-assistant.yaml
+stigmer run simple-assistant "What is Stigmer?"
+```
 
 ---
 
-## 2. Agent with Skills
+## 2 — Agent with MCP Server
 
-Skills provide injected domain knowledge. References are relative (no `org` =
-resolved from `metadata.org`).
+An agent that uses a GitHub MCP server. Note how tool names come from
+`stigmer get mcp-server github --output yaml` → `status.discovered_capabilities`.
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: github-assistant
+  org: acme-corp
+  labels:
+    team: engineering
+  tags:
+    - github
+    - code
+spec:
+  description: "Helps with GitHub operations: searching code, creating PRs, and managing issues."
+  instructions: |
+    You help developers with GitHub tasks. You can search code,
+    read files, create pull requests, and manage issues.
+
+    Always confirm repository and branch before making changes.
+    Summarize every PR you create with a clear title and description.
+  mcp_server_usages:
+    - mcp_server_ref:
+        kind: mcp_server
+        slug: github
+      enabled_tools:
+        - search_code
+        - get_file_contents
+        - create_pull_request
+        - create_issue
+  env_spec:
+    data:
+      GITHUB_TOKEN:
+        description: "GitHub personal access token with repo and read:org scopes"
+        is_secret: true
+```
+
+---
+
+## 3 — Agent with Skills
+
+An agent that references skills for specialized knowledge.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -48,310 +86,296 @@ metadata:
     - code-review
     - security
 spec:
-  description: "Reviews code for quality, security vulnerabilities, and best practices."
+  description: "Reviews code changes for quality, security vulnerabilities, and adherence to company standards."
   instructions: |
-    You are a code review assistant for Acme Corp.
-    For every review:
-    1. Check for security vulnerabilities (injection, auth, secrets in code)
-    2. Evaluate code quality and adherence to the company style guide
-    3. Identify performance bottlenecks
-    4. Suggest specific, actionable improvements with code examples
+    You are an expert code reviewer. For every review:
+
+    1. Identify security vulnerabilities (injection, auth issues, secrets in code)
+    2. Evaluate code quality and style guide adherence
+    3. Flag performance bottlenecks
+    4. Provide specific, actionable improvement suggestions
+
+    Be constructive. Acknowledge what is done well before critiquing.
   skill_refs:
     - kind: skill
-      slug: code-analysis        # discovered via: get_skill(org="acme-corp", slug="code-analysis")
-    - kind: skill
       slug: company-style-guide
-      version: stable            # pin to stable tag for reproducible behavior
+    - kind: skill
+      slug: security-review-checklist
+      version: stable
 ```
 
 ---
 
-## 3. Agent with MCP Servers
+## 4 — Agent with Tool Approval Overrides (HITL)
 
-Tool names come from `status.discovered_capabilities.tools[*].name` on the
-McpServer resource. Empty `enabled_tools` inherits the server's defaults.
+An agent that requires human approval for destructive operations.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
-  name: github-assistant
+  name: database-manager
   org: acme-corp
-  labels:
-    team: engineering
+  tags:
+    - database
+    - sql
 spec:
-  description: "Assists with GitHub operations: code search, PR management, and issue tracking."
+  description: "Manages PostgreSQL databases: queries, schema inspection, and controlled data operations."
   instructions: |
-    You help developers with GitHub tasks.
-    - Search for code patterns across repositories using search_code
-    - Create pull requests with clear titles, descriptions, and linked issues
-    - Manage issues: create, label, and close them
-    Always confirm the target repository before taking any action.
+    You manage PostgreSQL databases for the engineering team.
+
+    You can run SELECT queries freely. For any write operation
+    (INSERT, UPDATE, DELETE, DROP), always confirm the intent
+    with the user before executing.
   mcp_server_usages:
     - mcp_server_ref:
         kind: mcp_server
-        slug: github              # discovered via: get_mcp_server(org="acme-corp", slug="github")
-      enabled_tools:              # only what this agent actually needs
-        - search_code
-        - create_pr
-        - get_file
-        - create_issue
-        - close_issue
-```
-
----
-
-## 4. Agent with HITL Approval
-
-Add approval checkpoints for destructive or sensitive actions.
-
-```yaml
-apiVersion: agentic.stigmer.ai/v1
-kind: Agent
-metadata:
-  name: deployment-bot
-  org: acme-corp
-  labels:
-    team: devops
-spec:
-  description: "Deploys applications to Kubernetes with human approval for production changes."
-  instructions: |
-    You automate Kubernetes deployments for Acme Corp.
-    Always verify the target environment (staging vs production) before any deploy.
-    Require explicit user confirmation before deploying to production.
-    After every deployment, monitor pod status and report success or failure.
-  mcp_server_usages:
-    - mcp_server_ref:
-        kind: mcp_server
-        slug: kubernetes
+        slug: postgres
       enabled_tools:
-        - deploy_app
-        - rollback_deployment
-        - get_pod_status
-        - scale_deployment
+        - execute_query
+        - list_tables
+        - describe_table
+        - execute_write
       tool_approval_overrides:
-        - tool_name: deploy_app              # exact name from discovered_capabilities
+        - tool_name: execute_write
           requires_approval: true
-          message: "Deploy {{args.app_name}} to {{args.environment}}"
-        - tool_name: scale_deployment
-          requires_approval: true
-          message: "Scale {{args.app_name}} to {{args.replicas}} replicas in {{args.environment}}"
-        - tool_name: rollback_deployment
-          requires_approval: false           # trusted — always safe to roll back
+          message: "Execute write query: {{args.query}}"
+  env_spec:
+    data:
+      DATABASE_URL:
+        description: "PostgreSQL connection URL (e.g., postgres://user:pass@host/db)"
+        is_secret: true
 ```
 
 ---
 
-## 5. Agent with Sub-Agents
+## 5 — Agent with Sub-Agents
 
-Sub-agents must only use tools the parent already has. Names are unique within the parent.
+A parent agent that delegates specialized tasks. Sub-agent tool access is
+restricted to subsets of the parent's enabled tools.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
-  name: engineering-lead
+  name: engineering-coordinator
   org: acme-corp
+  tags:
+    - engineering
+    - multi-agent
 spec:
-  description: "Coordinates engineering tasks by delegating to specialized sub-agents."
+  description: "Coordinates engineering tasks by delegating to specialized code-review and PR-creation sub-agents."
   instructions: |
-    You coordinate engineering work. Use sub-agents for specialized tasks:
-    - Delegate code reviews to the code-reviewer sub-agent
-    - Delegate PR creation to the pr-creator sub-agent
-    Handle questions about architecture or process yourself.
-    Always summarize sub-agent results before presenting to the user.
+    You coordinate engineering work. Route tasks to the right sub-agent:
+
+    - Code reviews → code-reviewer sub-agent
+    - Pull request creation → pr-creator sub-agent
+
+    After a sub-agent completes its task, summarize the outcome
+    and ask the user for next steps.
   mcp_server_usages:
     - mcp_server_ref:
         kind: mcp_server
         slug: github
       enabled_tools:
-        - search_code     # available to parent and any sub-agent that requests it
-        - create_pr       # parent has this; sub-agents can selectively request it
-        - get_file
+        - search_code
+        - get_file_contents
+        - create_pull_request
         - create_issue
   sub_agents:
     - name: code-reviewer
-      description: "Reviews code diffs for quality, security, and style. Triggered on review requests."
+      description: "Reviews code changes for quality, security, and best practices."
       instructions: |
         You review code changes. Focus on:
-        - Security vulnerabilities (injections, auth flaws, exposed secrets)
-        - Code quality and performance
-        - Adherence to company standards
-        Provide specific, line-level feedback with actionable suggestions.
-      mcp_access:
-        - mcp_server: github           # slug only; must be in parent's mcp_server_usages
-          enabled_tools:               # strict subset of parent's tools for this server
-            - search_code
-            - get_file
-      skill_refs:                      # sub-agent skills are independent of parent
-        - kind: skill
-          slug: security-checklist
-
-    - name: pr-creator
-      description: "Creates pull requests with clear titles and descriptions. Triggered when code is ready."
-      instructions: |
-        You create pull requests. Always include:
-        - A concise title (imperative mood, ≤ 72 chars)
-        - A description with: what changed, why, and how to test
-        - Links to related issues
+        - Security vulnerabilities (OWASP top 10)
+        - Code quality and readability
+        - Test coverage gaps
+        Provide specific, line-referenced feedback.
       mcp_access:
         - mcp_server: github
           enabled_tools:
-            - create_pr
-            - get_file
+            - search_code
+            - get_file_contents
+      skill_refs:
+        - kind: skill
+          slug: security-review-checklist
+
+    - name: pr-creator
+      description: "Creates well-structured pull requests with clear titles and descriptions."
+      instructions: |
+        You create pull requests. Always include:
+        - A clear, imperative title (≤ 72 chars)
+        - A description explaining the why, not just the what
+        - A testing checklist
+      mcp_access:
+        - mcp_server: github
+          enabled_tools:
+            - create_pull_request
+            - get_file_contents
 ```
 
 ---
 
-## 6. Full-Featured Agent
+## 6 — Full-Featured Production Agent
 
-All capabilities combined: MCP servers, approvals, skills, sub-agents, env_spec.
+All features: MCP servers, approval overrides, skills, sub-agents, env vars,
+and marketplace metadata.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
-  name: platform-engineer
+  name: deployment-assistant
   org: acme-corp
+  visibility: visibility_private
   labels:
-    team: platform
+    team: devops
     environment: production
   tags:
     - deployment
     - kubernetes
     - automation
 spec:
-  description: "Automates platform engineering tasks with approval controls and specialized sub-agents."
-  icon_url: "https://cdn.acme-corp.com/icons/platform-bot.svg"
+  description: "Automates Kubernetes deployment workflows with human-in-the-loop approval for destructive operations."
+  icon_url: "https://assets.acme-corp.example.com/icons/deploy.svg"
   instructions: |
-    You are the platform engineering assistant for Acme Corp.
-    You manage infrastructure, deployments, and incident response.
+    You are a deployment automation assistant for Acme Corp.
 
-    Responsibilities:
-    - Deploy and scale applications on Kubernetes
-    - Review infrastructure changes for safety
-    - Respond to incidents with rollbacks and scaling
-    - Report all actions to Slack
+    Your responsibilities:
+    - Review deployment configurations before applying
+    - Execute deployments to Kubernetes clusters
+    - Monitor rollout health and surface issues
+    - Initiate rollbacks on failure
 
-    Delegation:
-    - Health monitoring → health-checker sub-agent
-    - Code analysis before deployments → code-reviewer sub-agent
-    Handle coordination and decision-making yourself.
+    Rules:
+    - Always state the target environment before any deployment
+    - Require explicit confirmation for production deployments
+    - Never skip health checks after rollout
+
   mcp_server_usages:
-    - mcp_server_ref:
-        kind: mcp_server
-        slug: kubernetes
-      enabled_tools:
-        - deploy_app
-        - rollback_deployment
-        - get_pod_status
-        - scale_deployment
-        - get_logs
-      tool_approval_overrides:
-        - tool_name: deploy_app
-          requires_approval: true
-          message: "Deploy {{args.app_name}} v{{args.version}} → {{args.environment}}"
-        - tool_name: scale_deployment
-          requires_approval: true
-          message: "Scale {{args.app_name}}: {{args.current_replicas}} → {{args.replicas}}"
     - mcp_server_ref:
         kind: mcp_server
         slug: github
       enabled_tools:
+        - get_file_contents
+        - create_pull_request
         - search_code
-        - get_file
-        - create_issue
+
     - mcp_server_ref:
         kind: mcp_server
-        slug: slack
+        slug: kubernetes
       enabled_tools:
-        - send_message
+        - deploy_application
+        - rollback_deployment
+        - get_pod_status
+        - get_deployment_logs
+      tool_approval_overrides:
+        - tool_name: deploy_application
+          requires_approval: true
+          message: "Deploy {{args.app_name}} to {{args.environment}}"
+        - tool_name: rollback_deployment
+          requires_approval: true
+          message: "Rollback {{args.app_name}} in {{args.environment}}"
+
   skill_refs:
     - kind: skill
-      slug: kubernetes-runbook
-      version: stable
+      slug: kubernetes-best-practices
     - kind: skill
-      slug: incident-response-playbook
+      slug: company-deployment-procedures
+      version: stable
+
   env_spec:
     data:
-      K8S_CLUSTER_URL:
-        description: "Kubernetes API server URL"
-        is_secret: false
-      SLACK_CHANNEL:
-        description: "Default Slack channel for notifications"
-        is_secret: false
-      PAGERDUTY_TOKEN:
-        description: "PagerDuty API token for incident creation"
+      GITHUB_TOKEN:
+        description: "GitHub PAT with repo scope"
         is_secret: true
+      KUBERNETES_CLUSTER_URL:
+        description: "Target Kubernetes API server URL"
+        is_secret: false
+      KUBERNETES_TOKEN:
+        description: "Service account token for cluster access"
+        is_secret: true
+
   sub_agents:
-    - name: health-checker
-      description: "Monitors pod health and logs after deployments. Triggered automatically post-deploy."
+    - name: health-monitor
+      description: "Monitors deployment health after rollout and reports pod status."
       instructions: |
-        You monitor Kubernetes deployments after rollout.
-        Check pod status, recent logs, and readiness probes.
-        Report any CrashLoopBackOff, OOMKilled, or pending pods immediately.
+        You monitor Kubernetes deployments after rollout. Check pod status,
+        recent logs, and readiness probes. Report clearly: success, degraded,
+        or failed, with evidence.
       mcp_access:
         - mcp_server: kubernetes
           enabled_tools:
             - get_pod_status
-            - get_logs
-
-    - name: code-reviewer
-      description: "Reviews infrastructure code (Helm charts, Dockerfiles) for security issues."
-      instructions: |
-        You review infrastructure-as-code changes.
-        Focus on: exposed secrets, overly permissive RBAC, insecure base images,
-        missing resource limits, and compliance with Acme Corp infra standards.
-      mcp_access:
-        - mcp_server: github
-          enabled_tools:
-            - search_code
-            - get_file
-      skill_refs:
-        - kind: skill
-          slug: infrastructure-security-checklist
+            - get_deployment_logs
 ```
 
 ---
 
-## 7. Public Marketplace Agent
+## 7 — Public Marketplace Agent
 
-Published to the marketplace; uses explicit `org` in all references.
+An agent published to the marketplace. Uses absolute `org` references so other
+organizations can reference its skills and servers.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
-  name: research-assistant
+  name: web-research-assistant
   org: acme-corp
-  visibility: visibility_public    # marketplace publishing
+  visibility: visibility_public
   labels:
     category: productivity
   tags:
     - research
-    - web-search
+    - web
     - summarization
 spec:
   description: "Searches the web and synthesizes cited summaries for research tasks."
-  icon_url: "https://cdn.acme-corp.com/icons/research.svg"
+  icon_url: "https://assets.acme-corp.example.com/icons/research.svg"
   instructions: |
     You are a research assistant. For every research request:
-    1. Search the web for relevant, authoritative sources
-    2. Read the most relevant pages in full
-    3. Synthesize findings into a clear, structured summary
-    4. Cite every claim with the source URL
-    5. Note areas of uncertainty or conflicting information
+
+    1. Search the web with 2-3 targeted queries
+    2. Read the most relevant pages
+    3. Synthesize findings into a structured summary
+    4. Always include source URLs
+    5. Flag conflicting information or areas of uncertainty
+
+    Do not present opinions as facts.
+
   mcp_server_usages:
     - mcp_server_ref:
-        org: acme-corp              # explicit org for marketplace agent
+        org: acme-corp
         kind: mcp_server
         slug: web-search
       enabled_tools:
         - search
         - fetch_page
+
   skill_refs:
-    - org: acme-corp                # explicit org for marketplace agent
+    - org: acme-corp
       kind: skill
       slug: research-methodology
       version: stable
+```
+
+---
+
+## Discovery workflow (always run before authoring)
+
+```bash
+# 1. Find MCP servers
+stigmer search mcp-server "github"
+stigmer get mcp-server github --output yaml   # see discovered tools
+
+# 2. Find skills
+stigmer search skill "code review"
+stigmer get skill code-review-checklist --output yaml
+
+# 3. Apply your agent
+stigmer apply -f my-agent.yaml
+
+# 4. Test it
+stigmer run my-agent "Hello, what can you do?"
 ```
