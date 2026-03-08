@@ -11,10 +11,10 @@ import logging
 from typing import Any
 
 from langchain_anthropic import ChatAnthropic
-from pydantic import PrivateAttr
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
+from pydantic import PrivateAttr
 
 from graphton.core.model_registry import ModelRegistry
 
