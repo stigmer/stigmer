@@ -61,6 +61,15 @@ test: ## Run all unit tests
 test-e2e: ## Run E2E tests (requires running stigmer server + ollama)
 	cd test/e2e && go test -v -tags=e2e -timeout 60s ./...
 
+# ─── Tidy ────────────────────────────────────
+
+.PHONY: tidy
+tidy: ## Run go mod tidy on all Go modules
+	@for mod in $(GO_MODULES); do \
+		echo "go mod tidy   $$mod"; \
+		(cd $$mod && go mod tidy) || exit 1; \
+	done
+
 # ─── Lint ─────────────────────────────────────
 
 .PHONY: lint check
@@ -75,7 +84,7 @@ lint: ## Run all linters and type checks
 	@cd $(AGENT_RUNNER_DIR) && poetry install --no-interaction --quiet && \
 		poetry run mypy grpc_client/ worker/ --show-error-codes
 
-check: lint build test ## Run full CI gate locally
+check: tidy lint build test ## Run full CI gate locally
 
 # ─── Dependencies ─────────────────────────────
 
