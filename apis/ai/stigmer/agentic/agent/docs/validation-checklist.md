@@ -4,7 +4,7 @@ Pre-apply checklist and known pitfalls when authoring Agent YAML files.
 
 ## Pre-Apply Checklist
 
-Run through this list before applying an Agent YAML with `stigmer agent apply`.
+Run through this list before applying an Agent YAML with `stigmer apply -f`.
 
 ### Required Fields
 
@@ -25,7 +25,7 @@ Run through this list before applying an Agent YAML with `stigmer agent apply`.
 - [ ] All `mcp_server_ref` entries use `kind: mcp_server` (lowercase string, not `kind: 44`)
 - [ ] All `org` values in references (if set) are valid organization identifiers — omit `org` for same-org references
 - [ ] All `slug` values are lowercase alphanumeric with hyphens, start with a letter, 1-63 characters
-- [ ] All referenced MCP servers and skills actually exist — query with `stigmer mcp-server get <slug>` or `stigmer skill get <slug>` before referencing
+- [ ] All referenced MCP servers and skills actually exist — query with `stigmer get mcp-server <slug>` or `stigmer get skill <slug>` before referencing
 
 ### MCP Server Usages
 
@@ -153,8 +153,8 @@ Never write `slug: github` without verifying the MCP server exists. References t
 
 ```bash
 # Verify before referencing
-stigmer mcp-server get github
-stigmer skill get code-review-best-practices
+stigmer get mcp-server github
+stigmer get skill code-review-best-practices
 ```
 
 ### Missing required fields in references

@@ -47,5 +47,5 @@ spec:
 #
 # This is Project Track - SDK synthesis with automatic reconciliation.
 # For quick experiments with individual resources, use Atomic Track:
-#   stigmer agent apply agent.yaml
-#   stigmer workflow apply workflow.yaml
+#   stigmer apply -f agent.yaml
+#   stigmer apply -f workflow.yaml

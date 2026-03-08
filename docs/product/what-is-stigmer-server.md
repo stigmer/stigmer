@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-Stigmer Server is the API backbone of the Stigmer platform. It is the gRPC server the CLI talks to when you run `stigmer apply`, `stigmer run`, or `stigmer agent list`. It stores every resource, validates every request, triggers executions via Temporal, supervises the execution workers, and streams live execution status back to callers.
+Stigmer Server is the API backbone of the Stigmer platform. It is the gRPC server the CLI talks to when you run `stigmer apply`, `stigmer run`, or `stigmer list agents`. It stores every resource, validates every request, triggers executions via Temporal, supervises the execution workers, and streams live execution status back to callers.
 
 There are two implementations of this component:
 

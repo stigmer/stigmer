@@ -131,28 +131,28 @@ Status is system-managed and must never be set by users in YAML.
 
 ```bash
 # Apply (create or update) an agent from a YAML file
-stigmer agent apply agent.yaml
+stigmer apply -f agent.yaml
 
 # Validate without applying
-stigmer agent apply agent.yaml --dry-run
+stigmer apply -f agent.yaml --dry-run
 
 # List all agents
-stigmer agent list
+stigmer list agents
 
 # List agents from a specific organization
-stigmer agent list --org acme-corp
+stigmer list agents --org acme-corp
 
 # Search for agents by text
-stigmer agent search "code review"
+stigmer search agents "code review"
 
 # Get agent details (table format)
-stigmer agent get my-agent
+stigmer get agent my-agent
 
 # Get agent details as YAML
-stigmer agent get my-agent --output yaml
+stigmer get agent my-agent --output yaml
 
 # Delete an agent
-stigmer agent delete my-agent
+stigmer delete agent my-agent
 ```
 
 ## Related Documentation

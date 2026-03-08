@@ -30,8 +30,8 @@ Stigmer provides two deployment modes:
 Deploy individual resources directly from YAML files:
 
 ```bash
-stigmer agent apply agent.yaml
-stigmer workflow apply workflow.yaml
+stigmer apply -f agent.yaml
+stigmer apply -f workflow.yaml
 ```
 
 **Use when:**
@@ -751,9 +751,9 @@ my-resources/
 ```
 
 ```bash
-stigmer agent apply agent-support.yaml
-stigmer agent apply agent-sales.yaml
-stigmer workflow apply workflow-onboarding.yaml
+stigmer apply -f agent-support.yaml
+stigmer apply -f agent-sales.yaml
+stigmer apply -f workflow-onboarding.yaml
 # Manual cleanup when removing resources
 ```
 

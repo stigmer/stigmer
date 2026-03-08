@@ -87,7 +87,7 @@ This is intentional for forward-compatibility: MCP servers can add or remove too
 
 Verify tool names by querying the MCP server before writing overrides:
 ```bash
-stigmer mcp-server get github --output yaml
+stigmer get mcp-server github --output yaml
 ```
 
 ## Tool Approval Policy Chain
