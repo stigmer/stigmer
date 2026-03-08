@@ -21,18 +21,17 @@ type draftConfig struct {
 
 // draftOptions contains the draft-specific flags plus the shared agent
 // execution flags. The embedded agentExecFlags provide workspace, env,
-// detach, and all other options that `stigmer run agent` supports.
+// model, auto-approve, detach, and all other options that `stigmer run
+// agent` supports.
 type draftOptions struct {
 	agentExecFlags
 	outputModeFlags
-	OutputDir   string
-	Model       string
-	AutoApprove bool
+	OutputDir string
 }
 
-// registerDraftFlags registers all draft flags: the shared agent execution
-// flags plus the draft-specific ones (--output, --model, --auto-approve).
-// The --message flag is marked as required for draft commands.
+// registerDraftFlags registers draft-specific flags on top of the shared
+// agent execution flags. The --message flag is marked as required for draft
+// commands. Model and auto-approve are inherited from agentExecFlags.
 func registerDraftFlags(cmd *cobra.Command, opts *draftOptions, resourceType string) {
 	registerAgentExecFlags(cmd, &opts.agentExecFlags)
 	registerOutputModeFlags(cmd, &opts.outputModeFlags)
@@ -40,12 +39,6 @@ func registerDraftFlags(cmd *cobra.Command, opts *draftOptions, resourceType str
 
 	cmd.Flags().StringVarP(&opts.OutputDir, "output", "o", "",
 		"directory to save generated artifacts (default: current directory when no workspace is used)")
-
-	cmd.Flags().StringVar(&opts.Model, "model", "",
-		"LLM model to use (e.g., claude-sonnet-4-20250514)")
-
-	cmd.Flags().BoolVar(&opts.AutoApprove, "auto-approve", false,
-		"automatically approve all tool executions without prompting (bypasses approval policies)")
 }
 
 // executeDraft is the unified handler for all draft subcommands. It uses the
@@ -109,8 +102,8 @@ func executeDraft(cfg draftConfig, opts draftOptions) error {
 		RuntimeEnv:       prep.RuntimeEnv,
 		AttachResult:     &prep.AttachResult,
 		WorkspaceEntries: prep.WorkspaceEntries,
-		Model:            opts.Model,
-		AutoApproveAll:   opts.AutoApprove,
+		Model:            prep.Model,
+		AutoApproveAll:   prep.AutoApproveAll,
 		Detach:           prep.Detach,
 		DownloadDir:      downloadDir,
 		OrgID:            prep.OrgID,

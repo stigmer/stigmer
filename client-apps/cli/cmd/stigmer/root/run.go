@@ -109,6 +109,11 @@ OUTPUT MODES:
   Output streams inline to the terminal by default.
   Use --json for machine-readable output in scripts and CI.
 
+EXECUTION OPTIONS:
+
+  --model MODEL:    LLM model to use (e.g., claude-sonnet-4-20250514)
+  --auto-approve:   Automatically approve all tool executions without prompting
+
 OTHER OPTIONS:
 
   --message, -m:  Initial prompt to send to the agent/workflow
@@ -154,6 +159,12 @@ OTHER OPTIONS:
 
   # Run with a local workspace
   stigmer run code-reviewer -w . -m "Review my project"
+
+  # Run with a specific model
+  stigmer run my-agent --model claude-opus-4.6 -m "Analyze"
+
+  # Run with auto-approval for all tool executions
+  stigmer run my-agent --auto-approve -m "Deploy to staging"
 
   # Stream events as JSON for scripting
   stigmer run my-agent --json | jq '.payload.content'`,
@@ -282,6 +293,8 @@ func routeRun(info *types.TypeInfo, ref, downloadDir string, prep *preparedAgent
 			RuntimeEnv:       runtimeEnv,
 			AttachResult:     &prep.AttachResult,
 			WorkspaceEntries: prep.WorkspaceEntries,
+			Model:            prep.Model,
+			AutoApproveAll:   prep.AutoApproveAll,
 			Detach:           prep.Detach,
 			DownloadDir:      downloadDir,
 			OrgID:            prep.OrgID,
