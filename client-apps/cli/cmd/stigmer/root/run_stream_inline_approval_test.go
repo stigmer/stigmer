@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
@@ -533,15 +532,12 @@ func TestHandleApproval_UnexpectedError_AutoSkips(t *testing.T) {
 	}
 }
 
-func TestHandleApproval_SessionExit_CancelsAndExits(t *testing.T) {
+func TestHandleApproval_SessionExit_SkipsAndExits(t *testing.T) {
 	prompter := &mockPrompter{err: approval.ErrSessionExit}
 	r, _, stderr, responses := newApprovalTestRenderer(prompter, approval.ActionUnspecified)
 	tc := writeToolCall()
 	r.waitingApproval = &waitingApprovalState{tc: tc}
 	r.cfg.sessionID = "ses-test123"
-
-	cancelDone := make(chan struct{})
-	r.cfg.cancelExecFn = func() { close(cancelDone) }
 
 	r.handleApproval(context.Background(), executiontui.ApprovalNeededEvent{
 		ToolCallID: "tc-1",
@@ -554,12 +550,6 @@ func TestHandleApproval_SessionExit_CancelsAndExits(t *testing.T) {
 	}
 	if !r.exitRequested {
 		t.Error("session exit should set exitRequested")
-	}
-
-	select {
-	case <-cancelDone:
-	case <-time.After(time.Second):
-		t.Error("cancelExecFn was not called within timeout")
 	}
 
 	output := stripANSIApproval(stderr.String())

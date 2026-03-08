@@ -118,9 +118,6 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) renderResult {
 		case <-cfg.cancelCh:
 			r.stopThinkingSpinner()
 			r.flushPendingReads()
-			if r.cfg.cancelExecFn != nil {
-				go r.cfg.cancelExecFn()
-			}
 			r.statusf("\nSession ended by user\n")
 			if r.cfg.sessionID != "" {
 				r.statusf("Resume later with: stigmer resume %s\n", r.cfg.sessionID)

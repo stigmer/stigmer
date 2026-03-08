@@ -115,8 +115,10 @@ type inlineRenderConfig struct {
 	toggleExpandCh <-chan struct{}
 
 	// cancelCh receives a signal when the user presses Ctrl+C during
-	// idle state (agent executing, no interactive prompt). Triggers
-	// session exit. nil when Bubbletea does not own stdin.
+	// idle state (agent executing, no interactive prompt). Detaches from
+	// the session without cancelling the backend execution, which
+	// continues running and can be resumed later. nil when Bubbletea
+	// does not own stdin.
 	cancelCh <-chan struct{}
 
 	// interruptCh receives a signal when the user presses Esc during

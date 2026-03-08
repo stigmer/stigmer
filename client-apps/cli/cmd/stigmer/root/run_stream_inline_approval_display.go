@@ -227,15 +227,13 @@ func (r *inlineRenderer) handlePromptErrorAfterHide(e executiontui.ApprovalNeede
 
 // handleSessionExit performs a clean session exit when the user presses
 // Ctrl+C at an approval prompt. It unblocks the stream goroutine with a
-// skip response, fires backend cancellation in a goroutine (so the CLI
-// exits immediately), and sets exitRequested so renderInline terminates.
+// skip response and sets exitRequested so renderInline terminates. The
+// backend execution is not cancelled -- it continues running and can be
+// resumed later.
 func (r *inlineRenderer) handleSessionExit(e executiontui.ApprovalNeededEvent) {
 	r.cfg.approvalResponses <- executiontui.ApprovalResponse{
 		Action:     "skip",
 		ToolCallID: e.ToolCallID,
-	}
-	if r.cfg.cancelExecFn != nil {
-		go r.cfg.cancelExecFn()
 	}
 	r.statusf("\nSession ended by user\n")
 	if r.cfg.sessionID != "" {
