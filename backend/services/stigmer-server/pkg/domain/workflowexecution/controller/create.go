@@ -66,18 +66,18 @@ func (c *WorkflowExecutionController) buildCreatePipeline() *pipeline.Pipeline[*
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*workflowexecutionv1.WorkflowExecution]("workflowexecution-create").
-		AddStep(steps.NewValidateProtoStep[*workflowexecutionv1.WorkflowExecution]()).         // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*workflowexecutionv1.WorkflowExecution]()).           // 2. Resolve slug
-		AddStep(newValidateWorkflowOrInstanceStep()).                                          // 3. Validate workflow_id OR workflow_instance_id
-		AddStep(newCreateDefaultInstanceIfNeededStep(c.workflowInstanceClient, c.store)).      // 4. Create default instance if needed
-		AddStep(steps.NewCheckDuplicateStep[*workflowexecutionv1.WorkflowExecution](c.store)). // 5. Check duplicate
-		AddStep(steps.NewBuildNewStateStep[*workflowexecutionv1.WorkflowExecution]()).         // 6. Build new state
-		AddStep(steps.NewNormalizeReferencesStep[*workflowexecutionv1.WorkflowExecution]()).   // 7. Normalize cross-references
-		AddStep(newSetInitialPhaseStep()).                                                     // 8. Set phase to PENDING
-		AddStep(c.newCreateExecutionContextStep()).                                            // 9. Create ExecutionContext with merged environment
-		AddStep(steps.NewPersistStep[*workflowexecutionv1.WorkflowExecution](c.store)).                                                     // 10. Persist execution
+		AddStep(steps.NewValidateProtoStep[*workflowexecutionv1.WorkflowExecution]()).                                               // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*workflowexecutionv1.WorkflowExecution]()).                                                 // 2. Resolve slug
+		AddStep(newValidateWorkflowOrInstanceStep()).                                                                                // 3. Validate workflow_id OR workflow_instance_id
+		AddStep(newCreateDefaultInstanceIfNeededStep(c.workflowInstanceClient, c.store)).                                            // 4. Create default instance if needed
+		AddStep(steps.NewCheckDuplicateStep[*workflowexecutionv1.WorkflowExecution](c.store)).                                       // 5. Check duplicate
+		AddStep(steps.NewBuildNewStateStep[*workflowexecutionv1.WorkflowExecution]()).                                               // 6. Build new state
+		AddStep(steps.NewNormalizeReferencesStep[*workflowexecutionv1.WorkflowExecution]()).                                         // 7. Normalize cross-references
+		AddStep(newSetInitialPhaseStep()).                                                                                           // 8. Set phase to PENDING
+		AddStep(c.newCreateExecutionContextStep()).                                                                                  // 9. Create ExecutionContext with merged environment
+		AddStep(steps.NewPersistStep[*workflowexecutionv1.WorkflowExecution](c.store)).                                              // 10. Persist execution
 		AddStep(steps.NewIndexSearchStep[*workflowexecutionv1.WorkflowExecution](c.store, &extractor.WorkflowExecutionExtractor{})). // 11. Update search index
-		AddStep(c.newStartWorkflowStep()).                                                                                             // 12. Start Temporal workflow
+		AddStep(c.newStartWorkflowStep()).                                                                                           // 12. Start Temporal workflow
 		Build()
 }
 

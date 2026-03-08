@@ -498,4 +498,3 @@ func normalizeScore(bm25Score float64) float32 {
 	}
 	return score
 }
-

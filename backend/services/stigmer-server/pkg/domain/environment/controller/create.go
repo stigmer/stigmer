@@ -40,11 +40,11 @@ func (c *EnvironmentController) buildCreatePipeline() *pipeline.Pipeline[*enviro
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*environmentv1.Environment]("environment-create").
-		AddStep(steps.NewValidateProtoStep[*environmentv1.Environment]()).         // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*environmentv1.Environment]()).           // 2. Resolve slug
-		AddStep(steps.NewCheckDuplicateStep[*environmentv1.Environment](c.store)). // 3. Check duplicate
-		AddStep(steps.NewBuildNewStateStep[*environmentv1.Environment]()).         // 4. Build new state
-		AddStep(steps.NewPersistStep[*environmentv1.Environment](c.store)).                                             // 5. Persist environment
+		AddStep(steps.NewValidateProtoStep[*environmentv1.Environment]()).                                         // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*environmentv1.Environment]()).                                           // 2. Resolve slug
+		AddStep(steps.NewCheckDuplicateStep[*environmentv1.Environment](c.store)).                                 // 3. Check duplicate
+		AddStep(steps.NewBuildNewStateStep[*environmentv1.Environment]()).                                         // 4. Build new state
+		AddStep(steps.NewPersistStep[*environmentv1.Environment](c.store)).                                        // 5. Persist environment
 		AddStep(steps.NewIndexSearchStep[*environmentv1.Environment](c.store, &extractor.EnvironmentExtractor{})). // 6. Update search index
 		Build()
 }

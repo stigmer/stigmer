@@ -52,12 +52,12 @@ func (c *ProjectController) Create(ctx context.Context, project *projectv1.Proje
 // by the apiresource interceptor and injected into request context.
 func (c *ProjectController) buildCreatePipeline() *pipeline.Pipeline[*projectv1.Project] {
 	return pipeline.NewPipeline[*projectv1.Project]("project-create").
-		AddStep(steps.NewValidateProtoStep[*projectv1.Project]()).         // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*projectv1.Project]()).           // 2. Resolve slug
-		AddStep(steps.NewCheckDuplicateStep[*projectv1.Project](c.store)). // 3. Check duplicate
-		AddStep(steps.NewBuildNewStateStep[*projectv1.Project]()).         // 4. Build new state
-		AddStep(steps.NewNormalizeReferencesStep[*projectv1.Project]()).   // 5. Normalize cross-references
-		AddStep(steps.NewPersistStep[*projectv1.Project](c.store)).                                     // 6. Persist project
+		AddStep(steps.NewValidateProtoStep[*projectv1.Project]()).                                     // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*projectv1.Project]()).                                       // 2. Resolve slug
+		AddStep(steps.NewCheckDuplicateStep[*projectv1.Project](c.store)).                             // 3. Check duplicate
+		AddStep(steps.NewBuildNewStateStep[*projectv1.Project]()).                                     // 4. Build new state
+		AddStep(steps.NewNormalizeReferencesStep[*projectv1.Project]()).                               // 5. Normalize cross-references
+		AddStep(steps.NewPersistStep[*projectv1.Project](c.store)).                                    // 6. Persist project
 		AddStep(steps.NewIndexSearchStep[*projectv1.Project](c.store, &extractor.ProjectExtractor{})). // 7. Update search index
 		Build()
 }

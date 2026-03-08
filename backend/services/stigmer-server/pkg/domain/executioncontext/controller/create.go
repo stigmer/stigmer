@@ -46,12 +46,12 @@ func (c *ExecutionContextController) buildCreatePipeline() *pipeline.Pipeline[*e
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*executioncontextv1.ExecutionContext]("execution-context-create").
-		AddStep(steps.NewValidateProtoStep[*executioncontextv1.ExecutionContext]()).         // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*executioncontextv1.ExecutionContext]()).           // 2. Resolve slug
-		AddStep(steps.NewCheckDuplicateStep[*executioncontextv1.ExecutionContext](c.store)). // 3. Check duplicate
-		AddStep(steps.NewBuildNewStateStep[*executioncontextv1.ExecutionContext]()).         // 4. Build new state
-		AddStep(steps.NewNormalizeReferencesStep[*executioncontextv1.ExecutionContext]()).   // 5. Normalize cross-references
-		AddStep(steps.NewPersistStep[*executioncontextv1.ExecutionContext](c.store)).                                                     // 6. Persist
+		AddStep(steps.NewValidateProtoStep[*executioncontextv1.ExecutionContext]()).                                              // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*executioncontextv1.ExecutionContext]()).                                                // 2. Resolve slug
+		AddStep(steps.NewCheckDuplicateStep[*executioncontextv1.ExecutionContext](c.store)).                                      // 3. Check duplicate
+		AddStep(steps.NewBuildNewStateStep[*executioncontextv1.ExecutionContext]()).                                              // 4. Build new state
+		AddStep(steps.NewNormalizeReferencesStep[*executioncontextv1.ExecutionContext]()).                                        // 5. Normalize cross-references
+		AddStep(steps.NewPersistStep[*executioncontextv1.ExecutionContext](c.store)).                                             // 6. Persist
 		AddStep(steps.NewIndexSearchStep[*executioncontextv1.ExecutionContext](c.store, &extractor.ExecutionContextExtractor{})). // 7. Update search index
 		Build()
 }

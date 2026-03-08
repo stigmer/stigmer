@@ -54,7 +54,7 @@ func (c *EnvironmentController) buildDeletePipeline() *pipeline.Pipeline[*apires
 	return pipeline.NewPipeline[*apiresource.ApiResourceDeleteInput]("environment-delete").
 		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceDeleteInput]()).                                            // 1. Validate field constraints
 		AddStep(steps.NewLoadExistingForDeleteStep[*apiresource.ApiResourceDeleteInput, *environmentv1.Environment](c.store)). // 2. Load environment
-		AddStep(steps.NewDeleteResourceStep[*apiresource.ApiResourceDeleteInput](c.store)).        // 3. Delete from database
-		AddStep(steps.NewDeleteSearchIndexStep[*apiresource.ApiResourceDeleteInput](c.store)). // 4. Remove from search index
+		AddStep(steps.NewDeleteResourceStep[*apiresource.ApiResourceDeleteInput](c.store)).                                    // 3. Delete from database
+		AddStep(steps.NewDeleteSearchIndexStep[*apiresource.ApiResourceDeleteInput](c.store)).                                 // 4. Remove from search index
 		Build()
 }

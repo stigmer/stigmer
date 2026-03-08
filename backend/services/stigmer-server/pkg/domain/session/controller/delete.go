@@ -54,7 +54,7 @@ func (c *SessionController) buildDeletePipeline() *pipeline.Pipeline[*sessionv1.
 		AddStep(steps.NewValidateProtoStep[*sessionv1.SessionId]()).                                    // 1. Validate field constraints
 		AddStep(steps.NewExtractResourceIdStep[*sessionv1.SessionId]()).                                // 2. Extract ID from wrapper
 		AddStep(steps.NewLoadExistingForDeleteStep[*sessionv1.SessionId, *sessionv1.Session](c.store)). // 3. Load session
-		AddStep(steps.NewDeleteResourceStep[*sessionv1.SessionId](c.store)).        // 4. Delete from database
-		AddStep(steps.NewDeleteSearchIndexStep[*sessionv1.SessionId](c.store)). // 5. Remove from search index
+		AddStep(steps.NewDeleteResourceStep[*sessionv1.SessionId](c.store)).                            // 4. Delete from database
+		AddStep(steps.NewDeleteSearchIndexStep[*sessionv1.SessionId](c.store)).                         // 5. Remove from search index
 		Build()
 }
