@@ -93,7 +93,8 @@ func (m inlineBubbleModel) handleTextInputKey(msg tea.KeyPressMsg) (tea.Model, t
 
 // handleIdleKey processes keystrokes when no interactive prompt is active.
 // Esc sends an interrupt signal (cancel current execution, transition to
-// follow-up). Ctrl+C sends a cancel signal (exit session entirely).
+// follow-up). Ctrl+C detaches from the session without cancelling the
+// backend execution.
 func (m inlineBubbleModel) handleIdleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "esc":
