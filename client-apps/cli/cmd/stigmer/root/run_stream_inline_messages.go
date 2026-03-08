@@ -209,3 +209,19 @@ type subAgentUpdateMsg struct {
 type subAgentHideMsg struct {
 	id string
 }
+
+// subAgentActivityMsg updates the activity label on the running sub-agent
+// line in View(). Sent by the event loop when a sub-agent's AI begins
+// streaming (activity="Thinking"), a tool starts running (activity=tool
+// name), or the current phase ends (activity="" reverts to "Working").
+// The model resets the elapsed timer on each activity change so the user
+// sees per-phase durations.
+type subAgentActivityMsg struct {
+	id       string
+	activity string
+}
+
+// subAgentTickMsg is the self-propagating tick that advances the sub-agent
+// spinner frame. Analogous to spinnerTickMsg but fully independent — it
+// uses its own model fields and terminates when subAgentActive is false.
+type subAgentTickMsg struct{}
