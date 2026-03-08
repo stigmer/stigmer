@@ -455,7 +455,7 @@ The agent will use the GitHub MCP server to fetch issues and respond.
 ## List Agents
 
 ```bash
-stigmer agent list
+stigmer list agents
 ```
 
 **Output**:
@@ -467,7 +467,7 @@ agt-abc123        support-bot   2026-01-18 10:30:00
 ## View Agent Details
 
 ```bash
-stigmer agent get support-bot
+stigmer get agent support-bot
 ```
 
 ## Create a Workflow

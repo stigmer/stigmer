@@ -107,7 +107,7 @@ spec:
 #   stigmer backend set local
 #   stigmer apply
 #   # Resources deployed to local SQLite backend
-#   # Test with: stigmer workflow run notification-delivery
+#   # Test with: stigmer run workflow notification-delivery
 #
 # Staging Environment:
 #   stigmer apply --org platform-staging

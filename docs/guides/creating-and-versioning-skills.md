@@ -306,7 +306,7 @@ skills:
 ### List Skills
 
 ```bash
-stigmer skill list
+stigmer list skills
 ```
 
 **Output**:
@@ -320,7 +320,7 @@ validator     org       my-org    v1.0     def456789...   2026-01-23 16:45
 ### Get Skill Details
 
 ```bash
-stigmer skill get calculator
+stigmer get skill calculator
 ```
 
 **Output**:
@@ -354,7 +354,7 @@ stigmer skill versions calculator
 ### Delete Skill
 
 ```bash
-stigmer skill delete calculator
+stigmer delete skill calculator
 ```
 
 **Warning**: This deletes the skill from the main collection but preserves audit history.
@@ -510,7 +510,7 @@ stigmer apply
 
 **Issue**: Agent uses wrong version
 - **Check**: Agent YAML `version` field
-- **Verify**: `stigmer skill get <name>` shows expected version
+- **Verify**: `stigmer get skill <name>` shows expected version
 - **Solution**: Use exact hash for production
 
 **Issue**: Tag doesn't update

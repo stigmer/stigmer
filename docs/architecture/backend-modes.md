@@ -541,7 +541,7 @@ if c.isCloud {
 
 1. **Auto-start for other commands**
    - `stigmer run` (workflow execution)
-   - `stigmer agent list` (agent queries)
+   - `stigmer list agents` (agent queries)
    - Any command requiring backend connection
 
 2. **Daemon health monitoring**

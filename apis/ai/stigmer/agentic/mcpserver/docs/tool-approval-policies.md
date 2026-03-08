@@ -174,7 +174,7 @@ default_tool_approvals:
 Always verify tool names against the server before writing approval policies:
 ```bash
 stigmer discover mcp-server github
-stigmer mcp-server get github --output yaml
+stigmer get mcp-server github --output yaml
 # Check status.discovered_capabilities.tools[*].name
 ```
 
