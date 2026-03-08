@@ -149,7 +149,7 @@ func resolveApplyOrganization(cfg *config.Config, proj *projectv1.Project, overr
 		"Specify organization in one of these ways:\n" +
 		"  1. Set metadata.org in stigmer.yaml\n" +
 		"  2. Use --org flag: stigmer apply --org <org-id>\n" +
-		"  3. Set context: stigmer context set --org <org-id>")
+		"  3. Set context: stigmer config context set --org <org-id>")
 }
 
 func buildAtomicTrackResult() *clioutput.CommandResult {

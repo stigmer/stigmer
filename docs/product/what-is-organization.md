@@ -109,7 +109,7 @@ When you first start the Stigmer server, the seedpack bootstraps a built-in orga
 
 ```bash
 # After first server start, org context is set automatically
-stigmer context show
+stigmer config context show
 # Organization: default
 
 # All commands target the active org
@@ -124,7 +124,7 @@ The organization model is the same regardless of backend type (local or cloud). 
 3. `context.organization` in `~/.stigmer/config.yaml`
 4. Error if none of the above is set
 
-Switch the active organization with `stigmer context set --org <slug>`.
+Switch the active organization with `stigmer config context set --org <slug>`.
 
 ---
 

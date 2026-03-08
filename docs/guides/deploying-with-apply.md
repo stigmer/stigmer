@@ -204,7 +204,7 @@ The apply command automatically works with your current backend mode:
 
 ```bash
 # Set to local mode
-stigmer backend set local
+stigmer config backend set local
 
 # Apply (connects to localhost:50051)
 stigmer apply
@@ -216,7 +216,7 @@ Resources deployed to local SQLite database.
 
 ```bash
 # Switch to cloud
-stigmer backend set cloud
+stigmer config backend set cloud
 
 # Apply (connects to api.stigmer.ai:443)
 stigmer apply
@@ -451,7 +451,7 @@ Your main.go must import at least one Stigmer SDK package.
 ```bash
 $ stigmer apply
 Error: organization not set. Specify in Stigmer.yaml, use --org flag, or run:
-  stigmer context set --org <org-id>
+  stigmer config context set --org <org-id>
 ```
 
 ### Synthesis Failed
@@ -537,7 +537,7 @@ stigmer apply
 
 ```bash
 # Check backend status
-stigmer backend status
+stigmer config backend status
 
 # Start if needed
 stigmer server
@@ -667,8 +667,8 @@ stigmer.Run(func(ctx *stigmer.Context) error {
 ```
 
 What changes:
-- **Local mode**: `stigmer backend set local` → Deploys to localhost SQLite database
-- **Cloud mode**: `stigmer backend set cloud` → Deploys to Stigmer Cloud
+- **Local mode**: `stigmer config backend set local` → Deploys to localhost SQLite database
+- **Cloud mode**: `stigmer config backend set cloud` → Deploys to Stigmer Cloud
 
 The apply command automatically detects the current backend and connects appropriately.
 

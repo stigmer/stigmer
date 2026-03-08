@@ -15,12 +15,12 @@ stigmer <verb> <type> [args] [flags]
 
 ## Resource Types
 
-Use `stigmer resources` to see all available types and their supported verbs:
+Use `stigmer list types` to see all available types and their supported verbs:
 
 ```bash
-stigmer resources                    # Show all resource types
-stigmer resources --verb run         # Show types that support 'run'
-stigmer resources --output yaml      # Output as YAML
+stigmer list types                    # Show all resource types
+stigmer list types --verb run         # Show types that support 'run'
+stigmer list types --output yaml      # Output as YAML
 ```
 
 | Type | Aliases | Supported Verbs |
@@ -320,13 +320,13 @@ stigmer server logs --tail 100
 
 ```bash
 # Show current backend (local/cloud)
-stigmer backend status
+stigmer config backend status
 
 # Switch to local backend
-stigmer backend set local
+stigmer config backend set local
 
 # Switch to cloud backend
-stigmer backend set cloud
+stigmer config backend set cloud
 ```
 
 ## Project Scaffolding

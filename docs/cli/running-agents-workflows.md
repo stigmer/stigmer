@@ -465,7 +465,7 @@ stigmer run $AGENT_ID
 **3. Set org context for local development:**
 ```bash
 # Set default org
-stigmer context set --org acme-corp
+stigmer config context set --org acme-corp
 
 # Now slug-only works
 stigmer run deploy-pipeline  # → acme-corp/deploy-pipeline
@@ -507,7 +507,7 @@ Possible reasons:
 **Solutions:**
 - Check resource name spelling
 - Run `stigmer apply` to deploy resources
-- Verify organization context: `stigmer context`
+- Verify organization context: `stigmer config context show`
 
 ### Invalid Runtime Environment
 
@@ -679,8 +679,8 @@ stigmer run my-agent
 **Solution:** Check organization context:
 
 ```bash
-stigmer context
-stigmer context set --org <org-id>
+stigmer config context show
+stigmer config context set --org <org-id>
 
 # Or override per-command
 stigmer run my-agent --org <org-id>
