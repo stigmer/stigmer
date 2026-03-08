@@ -1,229 +1,285 @@
-# McpServer Schema Reference
+# McpServer YAML Schema Reference
 
-Complete field reference derived from `ai/stigmer/agentic/mcpserver/v1/spec.proto` and `status.proto`.
+Complete field reference for the `agentic.stigmer.ai/v1` McpServer resource.
+Source of truth: protos in `ai/stigmer/agentic/mcpserver/v1/`.
+
+## Table of Contents
+1. [Top-Level Structure](#top-level-structure)
+2. [Metadata Fields](#metadata-fields)
+3. [Spec Fields](#spec-fields)
+4. [Server Types: stdio vs http](#server-types)
+5. [Environment Spec](#environment-spec)
+6. [Default Enabled Tools](#default-enabled-tools)
+7. [Default Tool Approvals](#default-tool-approvals)
+8. [Status Fields (system-managed)](#status-fields)
+
+---
 
 ## Top-Level Structure
 
 ```yaml
-apiVersion: agentic.stigmer.ai/v1   # exact string — no variation allowed
-kind: McpServer                      # PascalCase — must be exact
-metadata: ...                        # See Metadata section
-spec: ...                            # See Spec section
-# status — NEVER set by users; system-managed only
+apiVersion: agentic.stigmer.ai/v1   # REQUIRED — exact string, validated by proto
+kind: McpServer                      # REQUIRED — exact string, PascalCase
+metadata: ...                        # REQUIRED
+spec: ...                            # REQUIRED
+# status: omit entirely or leave as {}  — system-managed, never set by users
 ```
+
+| Field | Required | Constraint |
+|---|---|---|
+| `apiVersion` | Yes | Must be exactly `agentic.stigmer.ai/v1` |
+| `kind` | Yes | Must be exactly `McpServer` (PascalCase) |
+| `metadata` | Yes | See [Metadata Fields](#metadata-fields) |
+| `spec` | Yes | See [Spec Fields](#spec-fields) |
+| `status` | Never set | System-managed; omit or leave `{}` |
+
+---
 
 ## Metadata Fields
 
-| Field | Required | Notes |
+Defined by `ApiResourceMetadata` in `ai/stigmer/commons/apiresource/metadata.proto`.
+
+| Field | Required | Description |
 |---|---|---|
-| `name` | **Yes** | Human-readable display name. Auto-generates `slug` if omitted. |
-| `slug` | No | URL-safe identifier. Pattern: `^[a-z][a-z0-9-]*$`, 1–63 chars. Agents reference by this slug. If omitted, derived from `name`. |
-| `org` | Recommended | Organization that owns this resource. Defaults to context org if omitted. Required in cloud mode. |
-| `visibility` | No | `visibility_private` (default) or `visibility_public` (marketplace). |
-| `labels` | No | Key-value map for filtering (e.g., `category: database`). |
-| `annotations` | No | Key-value map for non-filtering metadata (e.g., `docs-url: "https://..."`). |
-| `tags` | No | String array for categorization/search. |
-| `id`, `version` | Never | System-generated. Never set by users. |
-
-### Slug validation rules (enforced)
-- Lowercase alphanumeric and hyphens only
-- Must start with a letter
-- 1–63 characters
-
-```yaml
-# Valid slugs
-slug: github
-slug: my-postgres-db
-slug: internal-kb-v2
-
-# Invalid — will fail validation
-slug: GitHub          # uppercase
-slug: my_db           # underscores
-slug: 123-server      # starts with digit
-```
+| `metadata.name` | Yes | Human-readable name (e.g., `"GitHub MCP Server"` or `"github"`). Used to auto-generate slug if omitted. |
+| `metadata.slug` | No | URL-friendly identifier. Auto-generated from name if omitted. Format: `^[a-z][a-z0-9-]*$`, 1–63 chars. **This is what agents use in `mcp_server_ref.slug`.** |
+| `metadata.id` | No | System-generated. Never set by users. |
+| `metadata.org` | Recommended | Organization owning this resource. Required in cloud mode. Resolved from CLI context if omitted. |
+| `metadata.visibility` | No | `visibility_private` (default): org-only access. `visibility_public`: marketplace (any org can reference). |
+| `metadata.labels` | No | Key-value pairs for filtering (e.g., `category: vcs`). |
+| `metadata.annotations` | No | Key-value pairs for additional metadata not used for filtering (e.g., `docs-url: "https://..."`). |
+| `metadata.tags` | No | String array for search/categorization. |
 
 ### Visibility
 
 ```yaml
+# Private (default) — only org members can access
 metadata:
-  visibility: visibility_private   # only your org (default)
-  visibility: visibility_public    # discoverable by any org (marketplace)
+  visibility: visibility_private
+
+# Public — any org can discover and reference this server (marketplace)
+metadata:
+  visibility: visibility_public
 ```
+
+### Slug Rules
+
+- Lowercase alphanumeric and hyphens only: `github`, `my-db-v2`
+- Starts with a letter (not digit or hyphen)
+- 1–63 characters
+- **No underscores**: `github_mcp` is invalid; use `github-mcp`
+- This slug is used in: `mcp_server_ref.slug` in Agent YAML and `mcp_access.mcp_server` in sub-agents
 
 ---
 
 ## Spec Fields
 
-| Field | Required | Notes |
+| Field | Required | Description |
 |---|---|---|
-| `description` | Recommended | Shown in marketplace and UI. Explain what the server does. |
-| `icon_url` | No | Publicly accessible SVG/PNG/JPEG URL. |
-| `tags` | No | Domain tags (lowercase, hyphenated). Separate from `metadata.tags`. |
-| `stdio` | **One required** | Subprocess server config. See below. |
-| `http` | **One required** | HTTP server config. See below. |
-| `default_enabled_tools` | No | Tool gate. Empty = all tools. Names must match server's `tools/list` exactly (case-sensitive). |
-| `env_spec` | No | Credential contract. Schema only — no secret values here. |
-| `default_tool_approvals` | No | Base-layer HITL approval policies. |
-
-**Constraint:** exactly one of `stdio` or `http` must be present (`oneof server_type` with `required` validation). Omitting both or providing both fails validation.
+| `spec.description` | Recommended | What the server does and primary use cases. Shown in marketplace and agent config UI. |
+| `spec.icon_url` | No | Public image URL (SVG/PNG/JPEG) for marketplace display. |
+| `spec.tags` | No | Categorization tags for marketplace. Separate from `metadata.tags`. Use lowercase hyphenated values. |
+| `spec.stdio` | Conditionally | stdio transport config. Exactly one of `stdio` or `http` required. |
+| `spec.http` | Conditionally | HTTP transport config. Exactly one of `stdio` or `http` required. |
+| `spec.default_enabled_tools` | No | Default tool whitelist. Empty = all tools enabled. See [Default Enabled Tools](#default-enabled-tools). |
+| `spec.env_spec` | No | Environment variable schema (not values). See [Environment Spec](#environment-spec). |
+| `spec.default_tool_approvals` | No | Tools requiring approval by default. See [Default Tool Approvals](#default-tool-approvals). |
 
 ---
 
-## stdio Config
+## Server Types
 
-`StdioServerConfig` — spawns a subprocess; communicates over stdin/stdout.
+**Exactly one** of `stdio` or `http` must be specified in `spec`. This is a proto `oneof` with `required` validation — omitting both or specifying both fails validation.
 
-| Field | Required | Notes |
-|---|---|---|
-| `command` | **Yes** | Binary name (resolved via PATH) or absolute path. Examples: `npx`, `python`, `node`, `./my-server`. |
-| `args` | No | Arguments passed to the command. Order matters. |
-| `working_dir` | No | Working directory. Use absolute paths for reliability. Inherits agent runner's cwd if omitted. |
+### stdio — Subprocess Transport
+
+Use for: Node.js (`npx`), Python modules, Go binaries, any CLI-based MCP server. **Most common type.**
 
 ```yaml
 spec:
   stdio:
-    command: npx
-    args: ["-y", "@modelcontextprotocol/server-github"]
+    command: npx                               # REQUIRED — executable name or path
+    args: ["-y", "@modelcontextprotocol/server-github"]  # optional
+    working_dir: /opt/my-server                # optional — use absolute paths
 ```
 
-**Credential delivery:** env vars injected automatically from AgentInstance's environment binding. Declare them in `env_spec`.
-
----
-
-## http Config
-
-`HttpServerConfig` — connects to an already-running HTTP + SSE service.
-
-| Field | Required | Notes |
+| Field | Required | Description |
 |---|---|---|
-| `url` | **Yes** | Valid HTTP/HTTPS URL (validated by buf.validate). |
-| `headers` | No | HTTP headers sent with every request. Values support `${VAR_NAME}` substitution. |
-| `query_params` | No | Query parameters. Values support `${VAR_NAME}` substitution. |
-| `timeout_seconds` | No | 0–300 seconds. Default: 30. 0 = use default. |
+| `command` | Yes | Executable to run: `npx`, `python`, `node`, `./binary`, absolute path. |
+| `args` | No | Arguments list. Order matters. |
+| `working_dir` | No | Working directory. Use absolute paths. Inherits agent runner's directory if omitted. |
+
+**Credential injection:** Environment variables from AgentInstance's environment binding are passed to the subprocess automatically. Declare them in `env_spec`.
+
+**Common patterns:**
+```yaml
+# Node.js via npx
+stdio:
+  command: npx
+  args: ["-y", "@modelcontextprotocol/server-github"]
+
+# Python module
+stdio:
+  command: python
+  args: ["-m", "mcp_server_sqlite", "--db-path", "/data/db.sqlite"]
+
+# Pinned version
+stdio:
+  command: npx
+  args: ["-y", "@modelcontextprotocol/server-github@1.2.3"]
+
+# Custom binary
+stdio:
+  command: ./mcp-server
+  working_dir: /opt/my-mcp-server
+  args: ["--config", "config.yaml"]
+```
+
+### http — Remote Service Transport
+
+Use for: Hosted/managed MCP services, servers shared across many concurrent agents, servers behind an API gateway.
 
 ```yaml
 spec:
   http:
-    url: "https://mcp.example.com/v1"
+    url: "https://mcp.example.com/v1"          # REQUIRED — valid http/https URL
     headers:
-      Authorization: "Bearer ${API_TOKEN}"
-      X-Tenant-ID: "${TENANT_ID}"
-    timeout_seconds: 60
+      Authorization: "Bearer ${API_TOKEN}"     # ${VAR_NAME} for env var substitution
+      X-API-Version: "2024-01"
+    query_params:
+      region: "${AWS_REGION}"
+    timeout_seconds: 45                        # 0–300, default 30
 ```
 
-**Placeholder syntax in HTTP config:**
-- `${VAR_NAME}` — resolved from AgentInstance environment at request time
-- Do NOT use `{{args.field}}` in headers/params (that syntax is only for approval messages)
+| Field | Required | Description |
+|---|---|---|
+| `url` | Yes | Valid HTTP/HTTPS URL. Validated by `buf.validate.field.string.uri`. |
+| `headers` | No | HTTP headers. Values support `${VAR_NAME}` env var substitution. |
+| `query_params` | No | Query parameters. Values support `${VAR_NAME}` substitution. |
+| `timeout_seconds` | No | 0–300 seconds. Default 30. Set higher for long-running operations. |
+
+**⚠ Syntax distinction — do not confuse:**
+
+| Syntax | Used In | Resolved By |
+|---|---|---|
+| `${VAR_NAME}` | HTTP `headers` and `query_params` values | Agent runner at request time, from AgentInstance environment |
+| `{{args.field}}` | Approval message templates | Approval engine at tool call time, from tool arguments |
 
 ---
 
-## env_spec
+## Environment Spec
 
-Declares required environment variables as a schema contract. Values are populated at runtime by the AgentInstance's environment binding.
+`env_spec` declares **what** credentials the server needs — not the actual values. Values are provided at runtime via the AgentInstance's environment binding.
 
 ```yaml
 spec:
   env_spec:
     data:
       GITHUB_TOKEN:
-        description: "GitHub PAT with repo and read:org scopes"
-        is_secret: true       # encrypted at rest, redacted in logs
+        description: "GitHub personal access token with repo and read:org scopes"
+        is_secret: true
+        # value: ""  ← always leave empty in McpServer spec
       GITHUB_OWNER:
-        description: "Default org or username (e.g., acme-corp)"
-        is_secret: false      # plaintext, visible in audit logs
+        description: "Default GitHub org or username (e.g., acme-corp)"
+        is_secret: false
 ```
 
-| Subfield | Notes |
+`EnvironmentValue` fields (from `ai/stigmer/agentic/environment/v1/spec.proto`):
+
+| Field | Description |
 |---|---|
-| `description` | Required for usability — explains the required format and permissions. Be specific. |
-| `is_secret` | `true` for tokens/keys/passwords. `false` for regions, IDs, non-sensitive config. |
-| `value` | **Never pre-fill secrets here.** Leave empty; values come from AgentInstance at runtime. |
+| `is_secret` | `true`: encrypted at rest, redacted in logs. `false`: plaintext, visible in audit logs. |
+| `description` | Shown in UI during AgentInstance setup. Be specific about format and required permissions. |
+| `value` | **Leave empty in McpServer spec.** Actual values are provided via AgentInstance environment. |
+
+**Rules:**
+- Never pre-fill `value` for secrets in the spec (never commit credentials to version control)
+- Non-secret shared defaults (e.g., `LOG_LEVEL: info`) may include a `value`
+- For HTTP servers: every `${VAR_NAME}` in headers/params must have a corresponding `env_spec` entry
 
 ---
 
-## default_enabled_tools
+## Default Enabled Tools
 
-Platform-level tool gate. Agents can restrict further but cannot expand beyond this list.
+`default_enabled_tools` is the **platform-level tool ceiling** — the maximum set agents can use. Agents can restrict further but cannot expand beyond it.
 
 ```yaml
 spec:
   default_enabled_tools:
-    - execute_query       # tool names must match tools/list exactly
-    - list_tables
-    - describe_table
-    # drop_table omitted — too destructive for defaults
+    - search_code
+    - get_file_contents
+    - list_issues
+    - create_pull_request
+    # delete_repository intentionally omitted — too destructive for defaults
 ```
 
-- Empty list = all tools enabled (agents then restrict via `enabled_tools`)
-- Non-empty list = agents can only use a subset of this list
-- Tool names are case-sensitive; typos silently make the tool invisible
-- **Always verify tool names via** `stigmer discover mcp-server <slug>` before populating
+**Rules:**
+- Empty list = all tools enabled (agents restrict as needed)
+- Non-empty list = whitelist; unlisted tools are unavailable to all agents
+- Tool names must be **exact, case-sensitive** matches against `tools/list` from the server
+- Unverified names are silently ignored (no error, tool just won't appear)
+
+**Override chain:**
+
+| Layer | Field | Who Sets |
+|---|---|---|
+| McpServer (ceiling) | `spec.default_enabled_tools` | McpServer author |
+| Agent (restriction) | `mcp_server_usages[].enabled_tools` | Agent author |
 
 ---
 
-## default_tool_approvals
+## Default Tool Approvals
 
-Base-layer HITL approval policies. Every agent using this server inherits these unless overridden.
+`default_tool_approvals` defines which tools require human approval before execution. Applied to **all** agents using this server. Agents can override per-tool.
 
 ```yaml
 spec:
   default_tool_approvals:
-    - tool_name: delete_repository       # exact name from tools/list (case-sensitive)
+    - tool_name: delete_repository
       message: "Delete repository: {{args.repo}}"
     - tool_name: force_push
       message: "Force push to {{args.branch}} on {{args.repo}}"
-    - tool_name: drop_table
-      message: "Drop table {{args.table_name}} in {{args.database}}"
+    - tool_name: merge_pull_request
+      message: "Merge PR #{{args.pull_number}} in {{args.repo}}"
 ```
 
-### ToolApprovalPolicy fields
+`ToolApprovalPolicy` fields:
 
-| Field | Required | Notes |
+| Field | Required | Description |
 |---|---|---|
-| `tool_name` | **Yes** | Exact tool name (case-sensitive). Minimum 1 char. Typos silently ignored — no approval applied. |
-| `message` | No | Approval prompt shown to user. `{{args.field}}` placeholders resolved from tool call arguments. `{{tool_name}}` also available. If empty, system generates: `"Execute tool: {tool_name}"`. Keep under 100 chars. |
+| `tool_name` | Yes | Exact tool name (case-sensitive). Silent failure if name doesn't match. Min 1 char. |
+| `message` | No | Approval prompt shown to user. Supports `{{args.field}}` and `{{tool_name}}`. Auto-generated as `"Execute tool: {tool_name}"` if empty. |
 
-### Message template placeholders
+**Message template guidelines:**
+- Use `{{args.field_name}}` — filled from actual tool call arguments at runtime
+- Missing args replaced with `<unknown>`
+- Be specific and action-oriented: "Delete repository: {{args.repo}}" not "Perform delete"
+- Keep under 100 characters
 
-| Syntax | Source | Context |
-|---|---|---|
-| `{{args.field_name}}` | Tool call arguments | Missing args → `<unknown>` |
-| `{{tool_name}}` | Tool name | Always available |
-
-**Correct:** `"Delete {{args.path}} from {{args.repository}}"`
-**Wrong:** `"Delete ${args.path}"` — do not use `${}` in approval messages
-
-### Approval policy chain (priority, lowest to highest)
-
-1. `McpServer.default_tool_approvals` — baseline for all agents
-2. `Agent.McpServerUsage.tool_approval_overrides` — per-agent add/remove
-3. `AgentExecution.auto_approve_all: true` — runtime bypass (trusted pipelines)
+**Three-layer approval chain:**
+```
+McpServer.default_tool_approvals  (base — all agents)
+        ↓ overridden by
+Agent.tool_approval_overrides     (per-agent — can add/remove)
+        ↓ overridden by
+AgentExecution.auto_approve_all   (runtime bypass — trusted pipelines)
+```
 
 ---
 
-## Status Fields (system-managed, never set by users)
+## Status Fields
 
-| Field | Notes |
+**Never set by users.** Populated by the platform after `stigmer apply`.
+
+| Field | Description |
 |---|---|
 | `status.validation_state` | `valid`, `invalid`, or `validation_state_unspecified` |
-| `status.validation_message` | Error details when `invalid` |
-| `status.discovered_capabilities.tools[*].name` | **Authoritative tool names** — copy these for `default_enabled_tools` and `default_tool_approvals.tool_name` |
-| `status.discovered_capabilities.tools[*].input_schema.properties` | Valid `{{args.field}}` names for approval messages |
-| `status.audit` | Creation/modification audit trail |
+| `status.validation_message` | Why definition is invalid (populated only for `invalid`). |
+| `status.discovered_capabilities` | Tools/resources from `stigmer discover mcp-server <slug>`. |
+| `status.audit` | Standard audit trail (created_by, created_at, updated_by, updated_at). |
 
----
-
-## Validation Rules Summary
-
-| Rule | Value |
-|---|---|
-| `apiVersion` | Must be exactly `agentic.stigmer.ai/v1` |
-| `kind` | Must be exactly `McpServer` (PascalCase) |
-| `server_type` | Exactly one of `stdio` or `http` — required by oneof |
-| `stdio.command` | Required when `stdio` is specified |
-| `http.url` | Required, must be valid HTTP/HTTPS URI |
-| `http.timeout_seconds` | 0–300 inclusive |
-| `slug` | `^[a-z][a-z0-9-]*$`, 1–63 chars |
-| Tool names | Case-sensitive, must match `tools/list` (typos silently ignored) |
-| Secret values in spec | Never — schema only, values come from AgentInstance |
-| Status fields | Never set by users |
+Run after apply to check:
+```bash
+stigmer get mcp-server <slug> --output yaml
+# Check status.validation_state and status.discovered_capabilities
+```

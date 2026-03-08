@@ -323,6 +323,17 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 		return false, "", ""
 	}
 
+	// Forward sub-agent tool running as a live activity update. Placed
+	// after pre-approval streaming (which handles streaming write/edit)
+	// and after read/think suppression, so only non-streaming, non-read,
+	// non-think sub-agent tools (shell, search, list, etc.) reach here.
+	if e, ok := event.(executiontui.ToolRunningEvent); ok && e.SubAgentID != "" && r.hasActiveSubAgent(e.SubAgentID) {
+		if r.cfg.program != nil {
+			r.cfg.program.Send(subAgentActivityMsg{id: e.SubAgentID, activity: e.ToolCall.Name})
+		}
+		return false, "", ""
+	}
+
 	// Suppress the parent "task" tool's running/completed events. The
 	// SubAgentStarted/Completed lifecycle events handle the header and
 	// footer with richer data. Flush pending reads first — a top-level
@@ -351,6 +362,9 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 	// expanded-mode rendering. Start/Delta events are suppressed; only
 	// the complete content (End/Message) is captured.
 	if e, ok := event.(executiontui.AIStreamStartEvent); ok && e.SubAgentID != "" {
+		if r.cfg.program != nil && r.hasActiveSubAgent(e.SubAgentID) {
+			r.cfg.program.Send(subAgentActivityMsg{id: e.SubAgentID, activity: "Thinking"})
+		}
 		return false, "", ""
 	}
 	if e, ok := event.(executiontui.AIStreamDeltaEvent); ok && e.SubAgentID != "" {
@@ -370,6 +384,9 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 				r.statusf("%s\n", toolrender.GutterWrap(e.Content))
 			}
 		}
+		if r.cfg.program != nil && r.hasActiveSubAgent(e.SubAgentID) {
+			r.cfg.program.Send(subAgentActivityMsg{id: e.SubAgentID, activity: ""})
+		}
 		return false, "", ""
 	}
 	if e, ok := event.(executiontui.AIMessageEvent); ok && e.SubAgentID != "" {
@@ -385,6 +402,9 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 			} else {
 				r.statusf("%s\n", toolrender.GutterWrap(e.Content))
 			}
+		}
+		if r.cfg.program != nil && r.hasActiveSubAgent(e.SubAgentID) {
+			r.cfg.program.Send(subAgentActivityMsg{id: e.SubAgentID, activity: ""})
 		}
 		return false, "", ""
 	}

@@ -38,6 +38,9 @@ func (r *inlineRenderer) renderToolCompleted(e executiontui.ToolCompletedEvent) 
 	}
 	if r.hasActiveSubAgent(e.SubAgentID) {
 		r.appendToSubAgentBlock(e.SubAgentID, item, true)
+		if r.cfg.program != nil {
+			r.cfg.program.Send(subAgentActivityMsg{id: e.SubAgentID, activity: ""})
+		}
 	} else {
 		r.commitToScrollback(item)
 	}
