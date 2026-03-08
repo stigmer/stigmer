@@ -193,7 +193,7 @@ stigmer draft skill \
   --attach "$WHAT_IS_MCP_SERVER_DOC" \
   --output "$SKILLS_DIR" \
   --env "OUTPUT_DIR=seedpack/skills" \
-  --model claude-sonnet-4.6 \
+  --model claude-opus-4.6 \
   -m "$(cat "${_MSG_FILE}")"
 
 readonly GENERATED_DIR="${SKILLS_DIR}/${SKILL_NAME}"
