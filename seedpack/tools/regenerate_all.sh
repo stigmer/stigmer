@@ -9,6 +9,7 @@
 #   01  Vendor upstream skills (standalone — brings in skill-creator source)
 #   02  Draft agent-creator skill       (uses proto schemas only)
 #   03  Draft mcp-server-creator skill  (uses proto schemas only)
+#   04  Generate mcp-server-stigmer approval policy (uses discovered tools)
 #
 # NOTE: The following agents are hand-maintained and NOT regenerated:
 #   - skill-creator agent        (agents/skill-creator.yaml)
@@ -83,6 +84,7 @@ fi
 
 run_script "${SCRIPT_DIR}/02_draft-agent-creator-skill.sh"
 run_script "${SCRIPT_DIR}/03_draft-mcp-server-creator-skill.sh"
+run_script "${SCRIPT_DIR}/04_generate-approval-policy.sh"
 
 echo ""
 echo "================================================================="
