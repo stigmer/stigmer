@@ -64,7 +64,7 @@ stigmer context show
 stigmer context set --org acme-corp
 
 # Override for a single command (does not change saved context)
-stigmer agent list --org acme-corp
+stigmer list agents --org acme-corp
 ```
 
 The `--org` flag is a global persistent flag available on all commands.

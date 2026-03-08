@@ -182,8 +182,8 @@ Deleting an organization cascades to **all resources** under it — agents, work
 
 ```bash
 # Verify contents before deleting
-stigmer agent list --org my-org
-stigmer workflow list --org my-org
+stigmer list agents --org my-org
+stigmer list workflows --org my-org
 
 # Then delete
 stigmer org delete my-org

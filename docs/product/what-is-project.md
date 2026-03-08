@@ -23,11 +23,11 @@ In both tracks, the project stores only *references* to its members (an `org/kin
 When a team builds an agent system—say, a code review fleet with three agents, a GitHub MCP server, and a shared style-guide skill—they apply each resource individually:
 
 ```bash
-stigmer agent apply code-reviewer.yaml
-stigmer agent apply security-scanner.yaml
-stigmer agent apply pr-summarizer.yaml
-stigmer mcp-server apply github.yaml
-stigmer skill apply style-guide.yaml
+stigmer apply -f code-reviewer.yaml
+stigmer apply -f security-scanner.yaml
+stigmer apply -f pr-summarizer.yaml
+stigmer apply -f github.yaml
+stigmer apply -f style-guide.yaml
 ```
 
 This works initially. It breaks down as the system evolves.

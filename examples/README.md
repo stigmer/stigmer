@@ -30,8 +30,8 @@ An automated code review workflow that:
 
 **Usage**:
 ```bash
-stigmer workflow apply examples/workflows/pr-review.yaml
-stigmer workflow run pr-review-workflow
+stigmer apply -f examples/workflows/pr-review.yaml
+stigmer run workflow pr-review-workflow
 ```
 
 ### Hello World Workflow (`workflows/hello-world.yaml`)
@@ -40,8 +40,8 @@ A minimal starter workflow demonstrating basic workflow structure.
 
 **Usage**:
 ```bash
-stigmer workflow apply examples/workflows/hello-world.yaml
-stigmer workflow run hello-world
+stigmer apply -f examples/workflows/hello-world.yaml
+stigmer run workflow hello-world
 ```
 
 ### Multi-Step Workflow (`workflows/multi-step.yaml`)
@@ -54,8 +54,8 @@ A comprehensive example demonstrating:
 
 **Usage**:
 ```bash
-stigmer workflow apply examples/workflows/multi-step.yaml
-stigmer workflow run multi-step-example
+stigmer apply -f examples/workflows/multi-step.yaml
+stigmer run workflow multi-step-example
 ```
 
 ## Skills

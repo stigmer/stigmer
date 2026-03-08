@@ -91,13 +91,13 @@ Run `stigmer discover mcp-server` locally whenever you want to refresh discovere
 
 ```bash
 # Step 1: Apply or create the McpServer definition
-stigmer mcp-server apply mcpserver.yaml
+stigmer apply -f mcpserver.yaml
 
 # Step 2: Run discovery — connects to the server locally and caches results
 stigmer discover mcp-server github
 
 # Step 3: Inspect the discovered tools
-stigmer mcp-server get github --output yaml
+stigmer get mcp-server github --output yaml
 # Look at status.discovered_capabilities
 ```
 
@@ -137,7 +137,7 @@ Discovery is a snapshot, not a live view. Re-run it when:
 stigmer discover mcp-server github
 
 # Confirm the tools list is current
-stigmer mcp-server get github --output yaml
+stigmer get mcp-server github --output yaml
 ```
 
 ## Using Discovered Tool Names
@@ -188,7 +188,7 @@ First-party servers (like `stigmer-mcp-server`) have their capabilities pre-popu
 
 ```bash
 # Check capabilities for the built-in stigmer MCP server
-stigmer mcp-server get stigmer-mcp-server --output yaml
+stigmer get mcp-server stigmer-mcp-server --output yaml
 # status.discovered_capabilities.discovered_by: seedpack
 ```
 

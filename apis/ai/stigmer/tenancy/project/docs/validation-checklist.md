@@ -123,12 +123,12 @@ Deleting a project removes only the project resource itself. Member resources ar
 stigmer project delete my-project
 
 # Member agents, MCP servers, and skills still exist
-stigmer agent list   # they are still there
+stigmer list agents   # they are still there
 ```
 
 To delete member resources, either:
 1. Remove their YAML files (declarative) or stop emitting them (SDK) and re-apply the project — orphan pruning will delete them.
-2. Delete them individually with `stigmer agent delete <slug>`, etc.
+2. Delete them individually with `stigmer delete agent <slug>`, etc.
 
 ### SDK entry point not emitting to stdout
 

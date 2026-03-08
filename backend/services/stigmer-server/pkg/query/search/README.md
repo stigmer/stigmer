@@ -154,10 +154,10 @@ CREATE VIRTUAL TABLE search_index USING fts5(
 
 ```bash
 # List agents in current org
-stigmer agent list
+stigmer list agents
 
 # Search agents
-stigmer agent search "kubernetes"
+stigmer search agents "kubernetes"
 
 # Discover across all kinds
 stigmer discover "code review"

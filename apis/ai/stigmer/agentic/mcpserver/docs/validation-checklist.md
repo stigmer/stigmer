@@ -4,7 +4,7 @@ Pre-apply checklist and known pitfalls when authoring McpServer YAML files.
 
 ## Pre-Apply Checklist
 
-Run through this list before applying an McpServer YAML with `stigmer mcp-server apply`.
+Run through this list before applying an McpServer YAML with `stigmer apply -f`.
 
 ### Required Fields
 
@@ -157,9 +157,9 @@ default_enabled_tools:
   - GetFileContents    # should be get_file_contents?
 
 # Correct workflow — always discover first
-# 1. stigmer mcp-server apply mcpserver.yaml
+# 1. stigmer apply -f mcpserver.yaml
 # 2. stigmer discover mcp-server github
-# 3. stigmer mcp-server get github --output yaml   <- copy names from here
+# 3. stigmer get mcp-server github --output yaml   <- copy names from here
 default_enabled_tools:
   - search_code
   - get_file_contents
@@ -242,9 +242,9 @@ After applying a new or updated McpServer, the `status.discovered_capabilities` 
 
 ```bash
 # Always run this after apply
-stigmer mcp-server apply mcpserver.yaml
+stigmer apply -f mcpserver.yaml
 stigmer discover mcp-server <slug>
 
 # Verify
-stigmer mcp-server get <slug> --output yaml
+stigmer get mcp-server <slug> --output yaml
 ```
