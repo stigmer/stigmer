@@ -11,6 +11,7 @@ import logging
 from typing import Any
 
 from langchain_anthropic import ChatAnthropic
+from pydantic import PrivateAttr
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
@@ -40,9 +41,9 @@ ANTHROPIC_DEFAULTS = {
 # Claude may use fewer tokens than the budget, especially for simpler tasks.
 DEFAULT_THINKING_BUDGET = 10_000
 
-# Effort level for Anthropic's adaptive extended thinking (Opus 4.6+).
-# Controls how deeply the model reasons before responding.
-# Valid values: "low", "medium", "high".
+# Effort level for Anthropic's adaptive thinking (Opus 4.6, Sonnet 4.6).
+# Passed via ``output_config.effort`` in the API request.
+# Valid values: "low", "medium", "high", "max" (max is Opus 4.6 only).
 DEFAULT_THINKING_EFFORT = "medium"
 
 OLLAMA_DEFAULTS = {
@@ -52,21 +53,22 @@ OLLAMA_DEFAULTS = {
 
 
 class _EagerToolStreamingChatAnthropic(ChatAnthropic):  # type: ignore[override]
-    """ChatAnthropic subclass that enables fine-grained tool streaming.
+    """ChatAnthropic subclass that patches the API payload for features not yet
+    exposed by langchain-anthropic (as of 1.3.3).
 
-    Anthropic's API buffers tool-argument tokens for JSON validation by default,
-    which delays ``input_json_delta`` events by 15–30 s for large tool inputs
-    (e.g. file bodies in write tools).  Setting ``eager_input_streaming: true``
-    on each tool definition disables this buffering so argument tokens stream
-    in real-time — matching the behavior of thinking tokens.
+    Injected patches:
+        1. ``eager_input_streaming: true`` on each tool definition — disables
+           Anthropic's argument-buffering so tool-argument tokens stream in
+           real-time.
+        2. ``output_config.effort`` — controls how aggressively Claude spends
+           tokens (required for adaptive thinking on Opus 4.6 / Sonnet 4.6).
 
-    This subclass injects the flag at the API payload level because
-    langchain-anthropic (as of 1.3.3) does not expose it through
-    ``bind_tools()`` or ``_ANTHROPIC_EXTRA_FIELDS``.  Once upstream support
-    lands, this subclass can be removed and replaced with plain ChatAnthropic.
-
-    See: https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/fine-grained-tool-streaming
+    See:
+        - https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/fine-grained-tool-streaming
+        - https://docs.anthropic.com/en/docs/build-with-claude/effort
     """
+
+    _effort: str | None = PrivateAttr(default=None)
 
     def _get_request_payload(
         self,
@@ -79,6 +81,8 @@ class _EagerToolStreamingChatAnthropic(ChatAnthropic):  # type: ignore[override]
         for tool in payload.get("tools", ()):
             if isinstance(tool, dict) and "input_schema" in tool:
                 tool["eager_input_streaming"] = True
+        if self._effort is not None:
+            payload["output_config"] = {"effort": self._effort}
         return payload
 
 
@@ -220,6 +224,7 @@ def parse_model_string(
         # Anthropic's API rejects temperature and top_k when thinking is active,
         # so we strip those parameters.  If the caller already supplied an
         # explicit ``thinking`` config via model_kwargs, we respect it.
+        effort: str | None = None
         if metadata.supports_thinking and "thinking" not in model_params:
             model_params["thinking"] = {
                 "type": "enabled",
@@ -233,10 +238,8 @@ def parse_model_string(
                 del model_params["temperature"]
             model_params.pop("top_k", None)
         elif metadata.supports_adaptive_thinking and "thinking" not in model_params:
-            model_params["thinking"] = {
-                "type": "adaptive",
-                "effort": DEFAULT_THINKING_EFFORT,
-            }
+            model_params["thinking"] = {"type": "adaptive"}
+            effort = DEFAULT_THINKING_EFFORT
             if "temperature" in model_params:
                 logger.warning(
                     "Removing temperature=%s (incompatible with extended thinking)",
@@ -245,10 +248,13 @@ def parse_model_string(
                 del model_params["temperature"]
             model_params.pop("top_k", None)
         
-        return _EagerToolStreamingChatAnthropic(
+        instance = _EagerToolStreamingChatAnthropic(
             model=api_model_id,  # type: ignore[call-arg]
             **model_params,
         )
+        if effort is not None:
+            instance._effort = effort
+        return instance
     
     # Parse OpenAI models
     elif provider == "openai":
