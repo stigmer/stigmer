@@ -7,7 +7,7 @@
     "commit_sha": "1ed29a03dc852d30fa6ef2ca53a67dc2c2c2c563",
     "subdir": "skills/skill-creator"
   },
-  "vendored_at": "2026-02-28T20:57:18Z",
+  "vendored_at": "2026-03-08T04:52:15Z",
   "vendored_by": "vendor_skill.sh",
   "content_digest": "sha256:891eb907f2adf5c11dbe6cb58e3990e8b263cebbd05ddc19accd544c5437d9cb",
   "files": [
