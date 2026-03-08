@@ -58,10 +58,10 @@ On first `stigmer server start`, the CLI bootstraps a `default` organization fro
 
 ```bash
 # See the active organization
-stigmer context show
+stigmer config context show
 
 # Switch to a different organization
-stigmer context set --org acme-corp
+stigmer config context set --org acme-corp
 
 # Override for a single command (does not change saved context)
 stigmer list agents --org acme-corp
@@ -322,8 +322,8 @@ stigmer config set execution.mode sandbox
 stigmer config path
 
 # View and switch org context
-stigmer context show
-stigmer context set --org acme-corp
+stigmer config context show
+stigmer config context set --org acme-corp
 ```
 
 ---
@@ -372,7 +372,7 @@ env | grep STIGMER_
 stigmer config list
 
 # Check active context
-stigmer context show
+stigmer config context show
 ```
 
 ### "My config file changes are not working"

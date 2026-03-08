@@ -17,14 +17,17 @@ func NewConfigCommand() *cobra.Command {
 		Short: "Manage Stigmer CLI configuration",
 		Long: `Manage Stigmer CLI configuration stored at ~/.stigmer/config.yaml
 
+Includes backend selection (local vs cloud), organization context,
+and key-value settings for execution, LLM, and Temporal.
+
 The configuration supports three levels of priority:
   1. CLI flags (highest priority)
-  2. Environment variables  
-  3. Config file (lowest priority)
-
-Use these commands to manage persistent config file settings.`,
+  2. Environment variables
+  3. Config file (lowest priority)`,
 	}
 
+	cmd.AddCommand(NewBackendCommand())
+	cmd.AddCommand(NewContextCommand())
 	cmd.AddCommand(newConfigGetCommand())
 	cmd.AddCommand(newConfigSetCommand())
 	cmd.AddCommand(newConfigListCommand())

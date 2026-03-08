@@ -25,6 +25,7 @@ import (
 func NewListCommand() *cobra.Command {
 	var outputFormat string
 	var limit int32
+	var verbFilter string
 
 	cmd := &cobra.Command{
 		Use:   "list <type>",
@@ -32,6 +33,7 @@ func NewListCommand() *cobra.Command {
 		Long: `List all resources of a given type.
 
 The type can be specified using any alias:
+  - types, type              (available resource types)
   - organizations, organization, org
   - agents, agent, agt
   - workflows, workflow, wf
@@ -42,20 +44,14 @@ The type can be specified using any alias:
   - sessions, session, ses
 
 Both singular and plural forms are accepted.`,
-		Example: `  # List all organizations
-  stigmer list organizations
+		Example: `  # List available resource types
+  stigmer list types
+
+  # List types that support the "run" verb
+  stigmer list types --verb run
 
   # List all agents
   stigmer list agents
-
-  # List workflows (singular works too)
-  stigmer list workflow
-
-  # List recent sessions
-  stigmer list sessions
-
-  # List recent executions
-  stigmer list executions
 
   # List with limit
   stigmer list agents --limit 10
@@ -69,6 +65,7 @@ Both singular and plural forms are accepted.`,
 				OrgOverride:  GetOrgFlag(cmd),
 				OutputFormat: outputFormat,
 				Limit:        limit,
+				VerbFilter:   verbFilter,
 			})
 			clierr.Handle(err)
 		},
@@ -76,6 +73,7 @@ Both singular and plural forms are accepted.`,
 
 	cmd.Flags().StringVarP(&outputFormat, "output", "o", "table", "output format: table, yaml, json")
 	cmd.Flags().Int32Var(&limit, "limit", 50, "maximum number of results")
+	cmd.Flags().StringVar(&verbFilter, "verb", "", "filter to types supporting this verb (only for 'list types')")
 
 	return cmd
 }
@@ -86,6 +84,13 @@ type listOptions struct {
 	OrgOverride  string
 	OutputFormat string
 	Limit        int32
+	VerbFilter   string
+}
+
+// isTypesType checks if the type arg refers to the meta-listing of resource types.
+func isTypesType(typeArg string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(typeArg))
+	return normalized == "type" || normalized == "types"
 }
 
 // isExecutionType checks if the type arg refers to executions.
@@ -109,6 +114,11 @@ func isOrganizationType(typeArg string) bool {
 
 // executeList lists resources of a given type.
 func executeList(opts listOptions) error {
+	// Special case: "types" lists available resource types from the local registry.
+	if isTypesType(opts.TypeArg) {
+		return executeListTypes(opts.VerbFilter, opts.OutputFormat)
+	}
+
 	// Special case: Executions don't go through the registry
 	// They use their own AgentExecutionQueryController.list() RPC
 	if isExecutionType(opts.TypeArg) {
@@ -129,7 +139,7 @@ func executeList(opts listOptions) error {
 	reg := types.DefaultRegistry()
 	info, ok := reg.GetByAlias(opts.TypeArg)
 	if !ok {
-		return fmt.Errorf("unknown resource type: %s\n\nAvailable types: organizations, agents, workflows, mcpservers, projects, skills, executions, sessions", opts.TypeArg)
+		return fmt.Errorf("unknown resource type: %s\n\nAvailable types: types, organizations, agents, workflows, mcpservers, projects, skills, executions, sessions", opts.TypeArg)
 	}
 
 	// Step 2: Check verb support

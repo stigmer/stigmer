@@ -537,7 +537,7 @@ The agent can reference secrets using `${secrets.GITHUB_TOKEN}`.
 ## Check Backend Status
 
 ```bash
-stigmer backend status
+stigmer config backend status
 ```
 
 **Output**:

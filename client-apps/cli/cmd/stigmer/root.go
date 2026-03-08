@@ -70,13 +70,8 @@ func init() {
 	rootCmd.AddCommand(withGroup(root.NewMCPServerCommand(), "server"))
 
 	// Configuration
-	rootCmd.AddCommand(withGroup(root.NewBackendCommand(), "config"))
-	rootCmd.AddCommand(withGroup(root.NewContextCommand(), "config"))
 	rootCmd.AddCommand(withGroup(root.NewConfigCommand(), "config"))
-	rootCmd.AddCommand(withGroup(root.NewResourcesCommand(), "config"))
 	rootCmd.AddCommand(withGroup(root.NewCompletionCommand(), "config"))
-	rootCmd.AddCommand(withGroup(root.NewFixCommand(), "config"))
-	rootCmd.AddCommand(withGroup(root.NewDoctorCommand(), "config"))
 
 	// Hidden internal commands (no group needed)
 	rootCmd.AddCommand(root.NewInternalServerCommand())

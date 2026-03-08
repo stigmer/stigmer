@@ -102,7 +102,7 @@ func TestResolveApplyOrganization_NoOrgAnywhere(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "organization not set")
 	assert.Contains(t, err.Error(), "--org flag")
-	assert.Contains(t, err.Error(), "stigmer context set --org")
+	assert.Contains(t, err.Error(), "stigmer config context set --org")
 }
 
 func TestResolveApplyOrganization_CloudModeNoOrgAnywhere(t *testing.T) {

@@ -86,7 +86,7 @@ Examples:
 // applyCLIConfigDefaults fills MCP config fields from ~/.stigmer/config.yaml
 // when the corresponding environment variables are not set. This bridges the
 // CLI's backend configuration into the MCP server so that users who have
-// already authenticated via "stigmer backend" get a zero-config experience.
+// already authenticated via "stigmer config backend" get a zero-config experience.
 //
 // Precedence: CLI flags > env vars > CLI config > MCP defaults.
 // This function covers the "CLI config" layer; env vars are already applied
