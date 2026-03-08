@@ -56,10 +56,17 @@ func (s *mergeMcpServerEnvSpecsStep) Execute(ctx *pipeline.RequestContext[*agent
 	mcpEnvVars := make(map[string]*environmentv1.EnvironmentValue)
 	for _, usage := range usages {
 		ref := usage.GetMcpServerRef()
-		org := ref.GetOrg()
-		slug := ref.GetSlug()
 
-		if org == "" || slug == "" {
+		slug := ref.GetSlug()
+		if slug == "" {
+			continue
+		}
+
+		org := ref.GetOrg()
+		if org == "" {
+			org = agent.GetMetadata().GetOrg()
+		}
+		if org == "" {
 			continue
 		}
 
