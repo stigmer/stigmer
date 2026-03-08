@@ -152,16 +152,17 @@ func resumeSession(sessionID string, headerInfo sessionHeaderInfo, orgID string,
 
 		program := startInlineProgram(os.Stderr, toggleExpandCh, cancelCh, interruptCh)
 
-		var programFactory func(func(*inlineBubbleModel)) *tea.Program
+		var programFactory func(func(*inlineBubbleModel)) *managedProgram
 		if program != nil {
-			programFactory = func(initModel func(*inlineBubbleModel)) *tea.Program {
+			programFactory = func(initModel func(*inlineBubbleModel)) *managedProgram {
 				m := newInlineBubbleModelWithChannels(toggleExpandCh, cancelCh, interruptCh)
 				if initModel != nil {
 					initModel(&m)
 				}
 				p := tea.NewProgram(m, tea.WithOutput(os.Stderr))
-				go func() { _, _ = p.Run() }()
-				return p
+				mp := newManagedProgram(p, os.Stderr)
+				mp.runAndMonitor()
+				return mp
 			}
 		}
 
