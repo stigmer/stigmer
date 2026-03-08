@@ -61,6 +61,7 @@ func (c *ProjectController) buildDeletePipeline() *pipeline.Pipeline[*projectv1.
 		AddStep(steps.NewValidateProtoStep[*projectv1.ProjectId]()).                                    // 1. Validate field constraints
 		AddStep(steps.NewExtractResourceIdStep[*projectv1.ProjectId]()).                                // 2. Extract ID from wrapper
 		AddStep(steps.NewLoadExistingForDeleteStep[*projectv1.ProjectId, *projectv1.Project](c.store)). // 3. Load project
-		AddStep(steps.NewDeleteResourceStep[*projectv1.ProjectId](c.store)).                            // 4. Delete from database
+		AddStep(steps.NewDeleteResourceStep[*projectv1.ProjectId](c.store)).        // 4. Delete from database
+		AddStep(steps.NewDeleteSearchIndexStep[*projectv1.ProjectId](c.store)). // 5. Remove from search index
 		Build()
 }

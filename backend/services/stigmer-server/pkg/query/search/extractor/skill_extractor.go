@@ -29,6 +29,11 @@ func (e *SkillExtractor) Kind() apiresourcekind.ApiResourceKind {
 	return apiresourcekind.ApiResourceKind_skill
 }
 
+// NewEmptyProto returns a new zero-value Skill proto.
+func (e *SkillExtractor) NewEmptyProto() proto.Message {
+	return &skillv1.Skill{}
+}
+
 // GetSearchSummary extracts the display summary for search results.
 // Returns spec.description.
 func (e *SkillExtractor) GetSearchSummary(resource proto.Message) string {

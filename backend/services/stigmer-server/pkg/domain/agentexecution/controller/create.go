@@ -23,6 +23,7 @@ import (
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/session"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/extractor"
 	"google.golang.org/grpc/codes"
 )
 
@@ -79,8 +80,9 @@ func (c *AgentExecutionController) buildCreatePipeline() *pipeline.Pipeline[*age
 		AddStep(newSetInitialPhaseStep()).                                                            // 7. Set phase to PENDING
 		AddStep(c.newCreateExecutionContextStep()).                                                   // 8. Create ExecutionContext with merged environment
 		AddStep(c.newProcessAttachmentsStep()).                                                       // 9. Process attachments (upload large files to storage)
-		AddStep(steps.NewPersistStep[*agentexecutionv1.AgentExecution](c.store)).                     // 9. Persist execution
-		AddStep(c.newStartWorkflowStep()).                                                            // 10. Start Temporal workflow
+		AddStep(steps.NewPersistStep[*agentexecutionv1.AgentExecution](c.store)).                                                 // 9. Persist execution
+		AddStep(steps.NewIndexSearchStep[*agentexecutionv1.AgentExecution](c.store, &extractor.AgentExecutionExtractor{})). // 10. Update search index
+		AddStep(c.newStartWorkflowStep()).                                                                                    // 11. Start Temporal workflow
 		Build()
 }
 

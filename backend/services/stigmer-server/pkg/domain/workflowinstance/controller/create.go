@@ -11,6 +11,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflow"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/extractor"
 )
 
 // Context keys for inter-step communication
@@ -67,7 +68,8 @@ func (c *WorkflowInstanceController) buildCreatePipeline() *pipeline.Pipeline[*w
 		AddStep(steps.NewCheckDuplicateStep[*workflowinstancev1.WorkflowInstance](c.store)). // 5. Check duplicate
 		AddStep(steps.NewBuildNewStateStep[*workflowinstancev1.WorkflowInstance]()).         // 6. Build new state
 		AddStep(steps.NewNormalizeReferencesStep[*workflowinstancev1.WorkflowInstance]()).   // 7. Normalize cross-references
-		AddStep(steps.NewPersistStep[*workflowinstancev1.WorkflowInstance](c.store)).        // 8. Persist workflow instance
+		AddStep(steps.NewPersistStep[*workflowinstancev1.WorkflowInstance](c.store)).                                                 // 8. Persist workflow instance
+		AddStep(steps.NewIndexSearchStep[*workflowinstancev1.WorkflowInstance](c.store, &extractor.WorkflowInstanceExtractor{})). // 9. Update search index
 		Build()
 }
 

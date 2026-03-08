@@ -20,13 +20,17 @@ import (
 //
 // Slim-Payload Pattern (Input + Output):
 // Input:  The activity receives only an executionID (not the full AgentExecution
-//         proto) and hydrates it from the database.
+//
+//	proto) and hydrates it from the database.
+//
 // Output: The activity returns a slim AgentExecutionStatus containing only
-//         workflow-critical fields: phase, pending_approvals, error, usage,
-//         started_at, and completed_at.  Heavy fields (messages, tool_calls,
-//         sub_agent_executions, todos, artifacts, context_info) are omitted
-//         because they are already persisted to the database via progressive
-//         gRPC updates during execution.
+//
+//	workflow-critical fields: phase, pending_approvals, error, usage,
+//	started_at, and completed_at.  Heavy fields (messages, tool_calls,
+//	sub_agent_executions, todos, artifacts, context_info) are omitted
+//	because they are already persisted to the database via progressive
+//	gRPC updates during execution.
+//
 // This keeps both input and output payloads well under Temporal's ~2 MB limit.
 //
 // Polyglot Pattern:

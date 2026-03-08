@@ -28,6 +28,11 @@ func (e *WorkflowExtractor) Kind() apiresourcekind.ApiResourceKind {
 	return apiresourcekind.ApiResourceKind_workflow
 }
 
+// NewEmptyProto returns a new zero-value Workflow proto.
+func (e *WorkflowExtractor) NewEmptyProto() proto.Message {
+	return &workflowv1.Workflow{}
+}
+
 // GetSearchSummary extracts the display summary for search results.
 // Returns spec.description.
 func (e *WorkflowExtractor) GetSearchSummary(resource proto.Message) string {

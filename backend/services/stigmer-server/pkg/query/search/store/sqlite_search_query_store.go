@@ -9,10 +9,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/proto"
 
-	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
-	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
-	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
-	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	searchv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/search/v1"
 	libstore "github.com/stigmer/stigmer/backend/libs/go/store"
@@ -336,16 +332,21 @@ func (s *SQLiteSearchQueryStore) loadAndConvertResource(
 	return ext.ToSearchResult(msg, score), nil
 }
 
-// createProtoForKind creates a new empty proto message for the given kind.
+// createProtoForKind creates a new empty proto message for the given kind
+// by delegating to the extractor registered for that kind.
 func (s *SQLiteSearchQueryStore) createProtoForKind(kind apiresourcekind.ApiResourceKind) (proto.Message, error) {
-	msg := createEmptyProtoForKind(kind)
-	if msg == nil {
+	ext, err := s.registry.GetExtractor(kind)
+	if err != nil {
 		return nil, fmt.Errorf("unsupported kind: %s", kind)
 	}
-	return msg, nil
+	return ext.NewEmptyProto(), nil
 }
 
 // RebuildIndex rebuilds the FTS5 search index from the resources table.
+//
+// This is resilient: if indexing a particular kind fails, it logs a warning
+// and continues with remaining kinds. A combined error is returned at the end
+// so callers can see which kinds failed, but all valid kinds are still indexed.
 func (s *SQLiteSearchQueryStore) RebuildIndex(ctx context.Context) (int, error) {
 	log.Info().Msg("Rebuilding search index...")
 
@@ -355,15 +356,23 @@ func (s *SQLiteSearchQueryStore) RebuildIndex(ctx context.Context) (int, error) 
 	}
 
 	var totalIndexed int
+	var indexErrors []string
 
-	// Index each searchable kind
+	// Index each searchable kind, continuing on per-kind failures
 	for _, kind := range s.registry.SupportedKinds() {
 		count, err := s.indexKind(ctx, kind)
 		if err != nil {
-			return totalIndexed, fmt.Errorf("index %s: %w", kind, err)
+			log.Warn().Err(err).Str("kind", kind.String()).Msg("Failed to index kind (continuing with remaining kinds)")
+			indexErrors = append(indexErrors, fmt.Sprintf("%s: %v", kind, err))
+			continue
 		}
 		totalIndexed += count
 		log.Info().Str("kind", kind.String()).Int("count", count).Msg("Indexed resources")
+	}
+
+	if len(indexErrors) > 0 {
+		log.Warn().Int("total", totalIndexed).Int("failed_kinds", len(indexErrors)).Msg("Search index rebuild completed with errors")
+		return totalIndexed, fmt.Errorf("failed to index %d kind(s): %s", len(indexErrors), strings.Join(indexErrors, "; "))
 	}
 
 	log.Info().Int("total", totalIndexed).Msg("Search index rebuild complete")
@@ -384,11 +393,8 @@ func (s *SQLiteSearchQueryStore) indexKind(ctx context.Context, kind apiresource
 		return 0, fmt.Errorf("list resources: %w", err)
 	}
 
-	// Create proto message for unmarshaling
-	protoMsg := createEmptyProtoForKind(kind)
-	if protoMsg == nil {
-		return 0, fmt.Errorf("cannot create proto for kind: %s", kind)
-	}
+	// Create proto message for unmarshaling via the extractor
+	protoMsg := ext.NewEmptyProto()
 
 	var count int
 	for _, data := range dataList {
@@ -493,19 +499,3 @@ func normalizeScore(bm25Score float64) float32 {
 	return score
 }
 
-// createEmptyProtoForKind creates a new empty proto message for the given kind.
-// This is used during index rebuild to unmarshal resources.
-func createEmptyProtoForKind(kind apiresourcekind.ApiResourceKind) proto.Message {
-	switch kind {
-	case apiresourcekind.ApiResourceKind_agent:
-		return &agentv1.Agent{}
-	case apiresourcekind.ApiResourceKind_skill:
-		return &skillv1.Skill{}
-	case apiresourcekind.ApiResourceKind_mcp_server:
-		return &mcpserverv1.McpServer{}
-	case apiresourcekind.ApiResourceKind_workflow:
-		return &workflowv1.Workflow{}
-	default:
-		return nil
-	}
-}
