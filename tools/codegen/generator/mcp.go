@@ -381,10 +381,9 @@ func (m *mcpGen) expandedConfigField(cfg *TaskConfigSchema) *mcpInputField {
 	desc := sanitizeDescription(cfg.Description)
 	shortDesc := fmt.Sprintf("Required when kind='%s'. %s", fieldName, desc)
 
-	schemaTag := fmt.Sprintf("description=%s",
-		strings.ReplaceAll(
-			strings.ReplaceAll(shortDesc, "`", "'"),
-			`"`, "'"))
+	schemaTag := strings.ReplaceAll(
+		strings.ReplaceAll(shortDesc, "`", "'"),
+		`"`, "'")
 
 	return &mcpInputField{
 		goName:           toPascalCase(fieldName),
@@ -429,30 +428,32 @@ func (m *mcpGen) buildJsonTag(f *FieldSchema) string {
 }
 
 func (m *mcpGen) buildJsonSchemaTag(f *FieldSchema) string {
-	var parts []string
-	if f.Required {
-		parts = append(parts, "required")
+	// google/jsonschema-go v0.4.2 treats the entire jsonschema tag value as
+	// a plain description string. Structured prefixes like "required",
+	// "enum=", or "description=" are not supported and will cause a panic.
+	// Required is inferred automatically from the json tag (no omitempty = required).
+	desc := f.Description
+	if desc == "" {
+		return ""
 	}
+
+	desc = strings.ReplaceAll(desc, "\n", " ")
+	for strings.Contains(desc, "  ") {
+		desc = strings.ReplaceAll(desc, "  ", " ")
+	}
+	desc = strings.TrimSpace(desc)
+	desc = strings.ReplaceAll(desc, "`", "'")
+	desc = strings.ReplaceAll(desc, `"`, "'")
 
 	enumVals := f.Type.EnumValues
 	if len(enumVals) == 0 && f.Validation != nil {
 		enumVals = f.Validation.Enum
 	}
 	if len(enumVals) > 0 {
-		parts = append(parts, "enum="+strings.Join(enumVals, "|"))
+		desc += " Allowed values: " + strings.Join(enumVals, ", ") + "."
 	}
 
-	if f.Description != "" {
-		desc := strings.ReplaceAll(f.Description, "\n", " ")
-		for strings.Contains(desc, "  ") {
-			desc = strings.ReplaceAll(desc, "  ", " ")
-		}
-		desc = strings.TrimSpace(desc)
-		desc = strings.ReplaceAll(desc, "`", "'")
-		desc = strings.ReplaceAll(desc, `"`, "'")
-		parts = append(parts, "description="+desc)
-	}
-	return strings.Join(parts, ",")
+	return desc
 }
 
 // --------------------------------------------------------------------
@@ -548,17 +549,17 @@ func (m *mcpGen) genStruct(w *bytes.Buffer, it *mcpInputType) {
 
 	if it.isTopLevel {
 		fmt.Fprintf(w, "\t// Human-readable name of the resource.\n")
-		fmt.Fprintf(w, "\tName string `json:\"name\" jsonschema:\"required,description=Human-readable name of the resource.\"`\n")
+		fmt.Fprintf(w, "\tName string `json:\"name\" jsonschema:\"Human-readable name of the resource.\"`\n")
 		fmt.Fprintf(w, "\t// URL-friendly identifier (lowercase alphanumeric with hyphens). Auto-generated from name if omitted.\n")
-		fmt.Fprintf(w, "\tSlug string `json:\"slug,omitempty\" jsonschema:\"description=URL-friendly identifier (lowercase alphanumeric with hyphens). Auto-generated from name if omitted.\"`\n")
+		fmt.Fprintf(w, "\tSlug string `json:\"slug,omitempty\" jsonschema:\"URL-friendly identifier (lowercase alphanumeric with hyphens). Auto-generated from name if omitted.\"`\n")
 		fmt.Fprintf(w, "\t// Organization that owns this resource (e.g. acme).\n")
-		fmt.Fprintf(w, "\tOrg string `json:\"org\" jsonschema:\"required,description=Organization that owns this resource (e.g. acme).\"`\n")
+		fmt.Fprintf(w, "\tOrg string `json:\"org\" jsonschema:\"Organization that owns this resource (e.g. acme).\"`\n")
 		fmt.Fprintf(w, "\t// Resource visibility: PRIVATE (default) or PUBLIC.\n")
-		fmt.Fprintf(w, "\tVisibility string `json:\"visibility,omitempty\" jsonschema:\"description=Resource visibility: PRIVATE (default) or PUBLIC.\"`\n")
+		fmt.Fprintf(w, "\tVisibility string `json:\"visibility,omitempty\" jsonschema:\"Resource visibility: PRIVATE (default) or PUBLIC.\"`\n")
 		fmt.Fprintf(w, "\t// Key-value labels for organization and filtering.\n")
-		fmt.Fprintf(w, "\tLabels map[string]string `json:\"labels,omitempty\" jsonschema:\"description=Key-value labels for organization and filtering.\"`\n")
+		fmt.Fprintf(w, "\tLabels map[string]string `json:\"labels,omitempty\" jsonschema:\"Key-value labels for organization and filtering.\"`\n")
 		fmt.Fprintf(w, "\t// Tags for categorization and discovery.\n")
-		fmt.Fprintf(w, "\tTags []string `json:\"tags,omitempty\" jsonschema:\"description=Tags for categorization and discovery.\"`\n\n")
+		fmt.Fprintf(w, "\tTags []string `json:\"tags,omitempty\" jsonschema:\"Tags for categorization and discovery.\"`\n\n")
 	}
 
 	for _, f := range it.fields {
