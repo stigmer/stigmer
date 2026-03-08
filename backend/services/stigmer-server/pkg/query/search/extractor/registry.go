@@ -148,11 +148,21 @@ func (r *SearchableResourceRegistry) ValidateExpectedKinds() {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
+	// All resource kinds with not_search_indexed: false in the proto enum.
 	expectedKinds := []apiresourcekind.ApiResourceKind{
+		apiresourcekind.ApiResourceKind_organization,
 		apiresourcekind.ApiResourceKind_agent,
+		apiresourcekind.ApiResourceKind_agent_execution,
+		apiresourcekind.ApiResourceKind_session,
 		apiresourcekind.ApiResourceKind_skill,
 		apiresourcekind.ApiResourceKind_mcp_server,
+		apiresourcekind.ApiResourceKind_agent_instance,
 		apiresourcekind.ApiResourceKind_workflow,
+		apiresourcekind.ApiResourceKind_workflow_instance,
+		apiresourcekind.ApiResourceKind_workflow_execution,
+		apiresourcekind.ApiResourceKind_environment,
+		apiresourcekind.ApiResourceKind_execution_context,
+		apiresourcekind.ApiResourceKind_project,
 	}
 
 	var missing []string

@@ -6,6 +6,7 @@ import (
 	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/project/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/extractor"
 )
 
 // Create creates a new project using the pipeline framework.
@@ -56,6 +57,7 @@ func (c *ProjectController) buildCreatePipeline() *pipeline.Pipeline[*projectv1.
 		AddStep(steps.NewCheckDuplicateStep[*projectv1.Project](c.store)). // 3. Check duplicate
 		AddStep(steps.NewBuildNewStateStep[*projectv1.Project]()).         // 4. Build new state
 		AddStep(steps.NewNormalizeReferencesStep[*projectv1.Project]()).   // 5. Normalize cross-references
-		AddStep(steps.NewPersistStep[*projectv1.Project](c.store)).        // 6. Persist project
+		AddStep(steps.NewPersistStep[*projectv1.Project](c.store)).                                     // 6. Persist project
+		AddStep(steps.NewIndexSearchStep[*projectv1.Project](c.store, &extractor.ProjectExtractor{})). // 7. Update search index
 		Build()
 }

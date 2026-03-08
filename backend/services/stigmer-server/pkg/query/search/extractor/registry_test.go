@@ -19,6 +19,10 @@ func (m *mockExtractor) Kind() apiresourcekind.ApiResourceKind {
 	return m.kind
 }
 
+func (m *mockExtractor) NewEmptyProto() proto.Message {
+	return nil
+}
+
 func (m *mockExtractor) GetSearchSummary(resource proto.Message) string {
 	return "mock summary"
 }
@@ -160,11 +164,24 @@ func TestSearchableResourceRegistry_Size(t *testing.T) {
 func TestSearchableResourceRegistry_ValidateExpectedKinds_AllPresent(t *testing.T) {
 	registry := newTestRegistry()
 
-	// Register all expected kinds
-	registry.extractors[apiresourcekind.ApiResourceKind_agent] = &mockExtractor{kind: apiresourcekind.ApiResourceKind_agent}
-	registry.extractors[apiresourcekind.ApiResourceKind_skill] = &mockExtractor{kind: apiresourcekind.ApiResourceKind_skill}
-	registry.extractors[apiresourcekind.ApiResourceKind_mcp_server] = &mockExtractor{kind: apiresourcekind.ApiResourceKind_mcp_server}
-	registry.extractors[apiresourcekind.ApiResourceKind_workflow] = &mockExtractor{kind: apiresourcekind.ApiResourceKind_workflow}
+	// Register all expected kinds (matching not_search_indexed: false in proto)
+	for _, kind := range []apiresourcekind.ApiResourceKind{
+		apiresourcekind.ApiResourceKind_organization,
+		apiresourcekind.ApiResourceKind_agent,
+		apiresourcekind.ApiResourceKind_agent_execution,
+		apiresourcekind.ApiResourceKind_session,
+		apiresourcekind.ApiResourceKind_skill,
+		apiresourcekind.ApiResourceKind_mcp_server,
+		apiresourcekind.ApiResourceKind_agent_instance,
+		apiresourcekind.ApiResourceKind_workflow,
+		apiresourcekind.ApiResourceKind_workflow_instance,
+		apiresourcekind.ApiResourceKind_workflow_execution,
+		apiresourcekind.ApiResourceKind_environment,
+		apiresourcekind.ApiResourceKind_execution_context,
+		apiresourcekind.ApiResourceKind_project,
+	} {
+		registry.extractors[kind] = &mockExtractor{kind: kind}
+	}
 
 	// Should not panic
 	registry.ValidateExpectedKinds()

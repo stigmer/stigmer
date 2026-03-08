@@ -27,6 +27,11 @@ func (e *OrganizationExtractor) Kind() apiresourcekind.ApiResourceKind {
 	return apiresourcekind.ApiResourceKind_organization
 }
 
+// NewEmptyProto returns a new zero-value Organization proto.
+func (e *OrganizationExtractor) NewEmptyProto() proto.Message {
+	return &organizationv1.Organization{}
+}
+
 // GetSearchSummary extracts the display summary for search results.
 // Returns spec.description.
 func (e *OrganizationExtractor) GetSearchSummary(resource proto.Message) string {

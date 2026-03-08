@@ -39,22 +39,23 @@ import (
 // extractors that know how to extract relevant data from each resource type's
 // specific structure.
 //
-// Each searchable resource kind (agent, skill, mcp_server, workflow) has a
-// corresponding extractor implementation registered with the SearchableResourceRegistry.
+// Each searchable resource kind has a corresponding extractor implementation
+// registered with the SearchableResourceRegistry.
 type SearchableExtractor interface {
 	// Kind returns the API resource kind this extractor handles.
 	// This is used by SearchableResourceRegistry to map resource kinds to extractors.
 	// Each kind should have exactly one extractor.
 	Kind() apiresourcekind.ApiResourceKind
 
+	// NewEmptyProto returns a new zero-value protobuf message of the type this
+	// extractor handles. Used by RebuildIndex to unmarshal resources from the
+	// store without maintaining a separate kind-to-proto mapping.
+	NewEmptyProto() proto.Message
+
 	// GetSearchSummary extracts the display summary for search results.
 	//
 	// This is the description shown in search result listings. The source
-	// field varies by resource type:
-	//   - Agent: spec.description (or spec.instructions as fallback)
-	//   - Skill: spec.description
-	//   - McpServer: spec.description
-	//   - Workflow: spec.description
+	// field varies by resource type (e.g., spec.description, spec.subject).
 	//
 	// Note: Truncation for display is a presentation concern handled by the
 	// CLI or UI, not here. Return the full description.

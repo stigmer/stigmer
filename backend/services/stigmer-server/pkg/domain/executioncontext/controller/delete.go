@@ -59,6 +59,7 @@ func (c *ExecutionContextController) buildDeletePipeline() *pipeline.Pipeline[*a
 	return pipeline.NewPipeline[*apiresource.ApiResourceDeleteInput]("execution-context-delete").
 		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceDeleteInput]()).                                                      // 1. Validate field constraints
 		AddStep(steps.NewLoadExistingForDeleteStep[*apiresource.ApiResourceDeleteInput, *executioncontextv1.ExecutionContext](c.store)). // 2. Load execution context
-		AddStep(steps.NewDeleteResourceStep[*apiresource.ApiResourceDeleteInput](c.store)).                                              // 3. Delete from database
+		AddStep(steps.NewDeleteResourceStep[*apiresource.ApiResourceDeleteInput](c.store)).        // 3. Delete from database
+		AddStep(steps.NewDeleteSearchIndexStep[*apiresource.ApiResourceDeleteInput](c.store)). // 4. Remove from search index
 		Build()
 }

@@ -29,6 +29,11 @@ func (e *McpServerExtractor) Kind() apiresourcekind.ApiResourceKind {
 	return apiresourcekind.ApiResourceKind_mcp_server
 }
 
+// NewEmptyProto returns a new zero-value McpServer proto.
+func (e *McpServerExtractor) NewEmptyProto() proto.Message {
+	return &mcpserverv1.McpServer{}
+}
+
 // GetSearchSummary extracts the display summary for search results.
 // Returns spec.description.
 func (e *McpServerExtractor) GetSearchSummary(resource proto.Message) string {
