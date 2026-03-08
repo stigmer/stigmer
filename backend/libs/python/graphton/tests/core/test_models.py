@@ -54,13 +54,14 @@ class TestNativeThinkingConfig:
         assert thinking is None, f"{model_name} should NOT have thinking enabled"
 
     def test_adaptive_thinking_for_opus_4_6(self):
-        """Test that Opus 4.6 gets adaptive thinking configuration."""
+        """Test that Opus 4.6 gets adaptive thinking with effort in output_config."""
         model = parse_model_string("claude-opus-4.6")
         assert isinstance(model, ChatAnthropic)
         thinking = getattr(model, "thinking", None)
         assert thinking is not None, "Opus 4.6 should have thinking enabled"
         assert thinking["type"] == "adaptive"
-        assert thinking["effort"] == DEFAULT_THINKING_EFFORT
+        assert "effort" not in thinking, "effort must not be inside thinking dict"
+        assert model._effort == DEFAULT_THINKING_EFFORT
 
     def test_adaptive_thinking_strips_temperature(self):
         """Test that temperature is stripped when adaptive thinking is auto-enabled."""
