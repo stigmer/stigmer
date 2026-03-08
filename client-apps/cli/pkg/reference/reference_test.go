@@ -57,36 +57,36 @@ func TestParse(t *testing.T) {
 		},
 
 		// Resource IDs - using prefixes from ApiResourceKind enum
-		// Format: prefix + separator (underscore or hyphen) + ULID
+		// Format: prefix + separator (underscore or hyphen) + 26-char ULID
 		{
 			name: "agent ID with underscore",
-			ref:  "agt_abc123",
-			want: &ParsedReference{IsID: true, ID: "agt_abc123"},
+			ref:  "agt_01ARZ3NDEKTSV4RRFFQ69G5FAV",
+			want: &ParsedReference{IsID: true, ID: "agt_01ARZ3NDEKTSV4RRFFQ69G5FAV"},
 		},
 		{
 			name: "agent ID with hyphen",
-			ref:  "agt-abc123",
-			want: &ParsedReference{IsID: true, ID: "agt-abc123"},
+			ref:  "agt-01ARZ3NDEKTSV4RRFFQ69G5FAV",
+			want: &ParsedReference{IsID: true, ID: "agt-01ARZ3NDEKTSV4RRFFQ69G5FAV"},
 		},
 		{
 			name: "workflow ID with underscore",
-			ref:  "wfl_xyz789",
-			want: &ParsedReference{IsID: true, ID: "wfl_xyz789"},
+			ref:  "wfl_01ARZ3NDEKTSV4RRFFQ69G5FAV",
+			want: &ParsedReference{IsID: true, ID: "wfl_01ARZ3NDEKTSV4RRFFQ69G5FAV"},
 		},
 		{
 			name: "workflow ID with hyphen",
-			ref:  "wfl-xyz789",
-			want: &ParsedReference{IsID: true, ID: "wfl-xyz789"},
+			ref:  "wfl-01ARZ3NDEKTSV4RRFFQ69G5FAV",
+			want: &ParsedReference{IsID: true, ID: "wfl-01ARZ3NDEKTSV4RRFFQ69G5FAV"},
 		},
 		{
 			name: "mcp server ID with underscore",
-			ref:  "mcp_github-server",
-			want: &ParsedReference{IsID: true, ID: "mcp_github-server"},
+			ref:  "mcp_01ARZ3NDEKTSV4RRFFQ69G5FAV",
+			want: &ParsedReference{IsID: true, ID: "mcp_01ARZ3NDEKTSV4RRFFQ69G5FAV"},
 		},
 		{
 			name: "mcp server ID with hyphen",
-			ref:  "mcp-github-server",
-			want: &ParsedReference{IsID: true, ID: "mcp-github-server"},
+			ref:  "mcp-01ARZ3NDEKTSV4RRFFQ69G5FAV",
+			want: &ParsedReference{IsID: true, ID: "mcp-01ARZ3NDEKTSV4RRFFQ69G5FAV"},
 		},
 		{
 			name: "UUID format",
@@ -95,63 +95,83 @@ func TestParse(t *testing.T) {
 		},
 		{
 			name: "agent execution ID with underscore",
-			ref:  "aex_run123",
-			want: &ParsedReference{IsID: true, ID: "aex_run123"},
+			ref:  "aex_01ARZ3NDEKTSV4RRFFQ69G5FAV",
+			want: &ParsedReference{IsID: true, ID: "aex_01ARZ3NDEKTSV4RRFFQ69G5FAV"},
 		},
 		{
 			name: "agent execution ID with hyphen",
-			ref:  "aex-run123",
-			want: &ParsedReference{IsID: true, ID: "aex-run123"},
+			ref:  "aex-01ARZ3NDEKTSV4RRFFQ69G5FAV",
+			want: &ParsedReference{IsID: true, ID: "aex-01ARZ3NDEKTSV4RRFFQ69G5FAV"},
 		},
 		{
 			name: "workflow execution ID with underscore",
-			ref:  "wex_run456",
-			want: &ParsedReference{IsID: true, ID: "wex_run456"},
+			ref:  "wex_01ARZ3NDEKTSV4RRFFQ69G5FAV",
+			want: &ParsedReference{IsID: true, ID: "wex_01ARZ3NDEKTSV4RRFFQ69G5FAV"},
 		},
 		{
 			name: "workflow execution ID with hyphen",
-			ref:  "wex-run456",
-			want: &ParsedReference{IsID: true, ID: "wex-run456"},
+			ref:  "wex-01ARZ3NDEKTSV4RRFFQ69G5FAV",
+			want: &ParsedReference{IsID: true, ID: "wex-01ARZ3NDEKTSV4RRFFQ69G5FAV"},
 		},
 		{
 			name: "skill ID with underscore",
-			ref:  "skl_abc",
-			want: &ParsedReference{IsID: true, ID: "skl_abc"},
+			ref:  "skl_01ARZ3NDEKTSV4RRFFQ69G5FAV",
+			want: &ParsedReference{IsID: true, ID: "skl_01ARZ3NDEKTSV4RRFFQ69G5FAV"},
 		},
 		{
 			name: "skill ID with hyphen",
-			ref:  "skl-abc",
-			want: &ParsedReference{IsID: true, ID: "skl-abc"},
+			ref:  "skl-01ARZ3NDEKTSV4RRFFQ69G5FAV",
+			want: &ParsedReference{IsID: true, ID: "skl-01ARZ3NDEKTSV4RRFFQ69G5FAV"},
 		},
 		{
 			name: "agent instance ID with underscore",
-			ref:  "ain_inst1",
-			want: &ParsedReference{IsID: true, ID: "ain_inst1"},
+			ref:  "ain_01ARZ3NDEKTSV4RRFFQ69G5FAV",
+			want: &ParsedReference{IsID: true, ID: "ain_01ARZ3NDEKTSV4RRFFQ69G5FAV"},
 		},
 		{
 			name: "agent instance ID with hyphen",
-			ref:  "ain-inst1",
-			want: &ParsedReference{IsID: true, ID: "ain-inst1"},
+			ref:  "ain-01ARZ3NDEKTSV4RRFFQ69G5FAV",
+			want: &ParsedReference{IsID: true, ID: "ain-01ARZ3NDEKTSV4RRFFQ69G5FAV"},
 		},
 		{
 			name: "workflow instance ID with underscore",
-			ref:  "win_inst2",
-			want: &ParsedReference{IsID: true, ID: "win_inst2"},
+			ref:  "win_01ARZ3NDEKTSV4RRFFQ69G5FAV",
+			want: &ParsedReference{IsID: true, ID: "win_01ARZ3NDEKTSV4RRFFQ69G5FAV"},
 		},
 		{
 			name: "workflow instance ID with hyphen",
-			ref:  "win-inst2",
-			want: &ParsedReference{IsID: true, ID: "win-inst2"},
+			ref:  "win-01ARZ3NDEKTSV4RRFFQ69G5FAV",
+			want: &ParsedReference{IsID: true, ID: "win-01ARZ3NDEKTSV4RRFFQ69G5FAV"},
 		},
 		{
 			name: "session ID with underscore",
-			ref:  "ses_session123",
-			want: &ParsedReference{IsID: true, ID: "ses_session123"},
+			ref:  "ses_01ARZ3NDEKTSV4RRFFQ69G5FAV",
+			want: &ParsedReference{IsID: true, ID: "ses_01ARZ3NDEKTSV4RRFFQ69G5FAV"},
 		},
 		{
 			name: "environment ID with underscore",
-			ref:  "env_myenv",
-			want: &ParsedReference{IsID: true, ID: "env_myenv"},
+			ref:  "env_01ARZ3NDEKTSV4RRFFQ69G5FAV",
+			want: &ParsedReference{IsID: true, ID: "env_01ARZ3NDEKTSV4RRFFQ69G5FAV"},
+		},
+
+		// Slugs that happen to start with a known ID prefix should be treated as slugs, not IDs
+		{
+			name:       "mcp-prefixed slug treated as slug",
+			ref:        "mcp-server-stigmer",
+			contextOrg: "default",
+			want:       &ParsedReference{Org: "default", Slug: "mcp-server-stigmer"},
+		},
+		{
+			name:       "env-prefixed slug treated as slug",
+			ref:        "env-production",
+			contextOrg: "my-org",
+			want:       &ParsedReference{Org: "my-org", Slug: "env-production"},
+		},
+		{
+			name:       "incomplete ID prefix treated as slug",
+			ref:        "agt_short",
+			contextOrg: "my-org",
+			want:       &ParsedReference{Org: "my-org", Slug: "agt_short"},
 		},
 
 		// Edge cases
