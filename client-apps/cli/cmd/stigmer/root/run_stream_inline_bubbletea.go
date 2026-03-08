@@ -78,6 +78,16 @@ type inlineBubbleModel struct {
 	subAgentSubject   string
 	subAgentToolCount int
 
+	// subAgentActivity is the current phase label for the running sub-agent
+	// (e.g. "Thinking", "Grep", "Shell"). Empty string renders as "Working".
+	subAgentActivity string
+
+	// subAgentSpinnerFrame and subAgentSpinnerStart drive the independent
+	// spinner animation on the sub-agent line. The tick chain is started by
+	// handleSubAgentShow and terminates when subAgentActive becomes false.
+	subAgentSpinnerFrame int
+	subAgentSpinnerStart time.Time
+
 	// Legacy follow-up state for the promptFollowUpViaKeyReader path
 	// (when Bubbletea does not own stdin). Not used when inputBarMode
 	// is inputBarDisabled or inputBarActive.
@@ -208,6 +218,10 @@ func (m inlineBubbleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleSubAgentUpdate(msg)
 	case subAgentHideMsg:
 		return m.handleSubAgentHide(msg)
+	case subAgentActivityMsg:
+		return m.handleSubAgentActivity(msg)
+	case subAgentTickMsg:
+		return m.handleSubAgentTick()
 	}
 	return m, nil
 }
@@ -589,7 +603,10 @@ func (m inlineBubbleModel) handleSubAgentShow(msg subAgentShowMsg) (tea.Model, t
 	m.subAgentID = msg.id
 	m.subAgentSubject = msg.subject
 	m.subAgentToolCount = 0
-	return m, nil
+	m.subAgentActivity = ""
+	m.subAgentSpinnerFrame = 0
+	m.subAgentSpinnerStart = time.Now()
+	return m, nextSubAgentTick()
 }
 
 func (m inlineBubbleModel) handleSubAgentUpdate(msg subAgentUpdateMsg) (tea.Model, tea.Cmd) {
@@ -605,21 +622,68 @@ func (m inlineBubbleModel) handleSubAgentHide(msg subAgentHideMsg) (tea.Model, t
 		m.subAgentID = ""
 		m.subAgentSubject = ""
 		m.subAgentToolCount = 0
+		m.subAgentActivity = ""
+		m.subAgentSpinnerFrame = 0
 	}
 	return m, nil
 }
 
-// renderSubAgentLine returns the live sub-agent running summary.
+func (m inlineBubbleModel) handleSubAgentActivity(msg subAgentActivityMsg) (tea.Model, tea.Cmd) {
+	if msg.id == m.subAgentID {
+		m.subAgentActivity = msg.activity
+		m.subAgentSpinnerStart = time.Now()
+	}
+	return m, nil
+}
+
+func (m inlineBubbleModel) handleSubAgentTick() (tea.Model, tea.Cmd) {
+	if !m.subAgentActive {
+		return m, nil
+	}
+	m.subAgentSpinnerFrame++
+	return m, nextSubAgentTick()
+}
+
+// nextSubAgentTick returns a Cmd that produces a subAgentTickMsg after one
+// frame interval, continuing the tick chain independently of the main
+// thinking spinner.
+func nextSubAgentTick() tea.Cmd {
+	return tea.Tick(spinner.FrameInterval, func(time.Time) tea.Msg {
+		return subAgentTickMsg{}
+	})
+}
+
+// renderSubAgentLine returns the live sub-agent running summary with an
+// animated spinner and activity label.
 //
-//	"● Task: Explore CLI rendering code … (3 tools)"
+//	"● Task: Explore CLI rendering code (3 tools)"
+//	"  ⠋ Thinking… (5s)"
 func (m inlineBubbleModel) renderSubAgentLine() string {
 	label := m.subAgentSubject
 	if label == "" {
 		label = "running"
 	}
-	return fmt.Sprintf("%s %s: %s %s (%d tools)",
-		toolrender.BulletGreen("●"), toolrender.LabelBold("Task"),
-		label, systemMsgStyle.Render("…"), m.subAgentToolCount)
+
+	header := fmt.Sprintf("%s %s: %s",
+		toolrender.BulletGreen("●"), toolrender.LabelBold("Task"), label)
+	if m.subAgentToolCount > 0 {
+		header += fmt.Sprintf(" (%d tools)", m.subAgentToolCount)
+	}
+
+	frame := spinner.Frames[m.subAgentSpinnerFrame%len(spinner.Frames)]
+	elapsed := spinner.FormatElapsed(time.Since(m.subAgentSpinnerStart))
+
+	activityLabel := "Working"
+	if m.subAgentActivity != "" {
+		activityLabel = m.subAgentActivity
+	}
+
+	activity := fmt.Sprintf("  %s %s", frame, systemMsgStyle.Render(activityLabel+"…"))
+	if elapsed != "" {
+		activity += " " + elapsed
+	}
+
+	return header + "\n" + activity
 }
 
 // ---------------------------------------------------------------------------

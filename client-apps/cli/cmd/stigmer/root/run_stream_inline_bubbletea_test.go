@@ -986,3 +986,184 @@ func TestStatusf_ProgramPrintln_WhenProgramPresent(t *testing.T) {
 		t.Errorf("'hello from println' should appear before 'second line' in output: %q", got)
 	}
 }
+
+// =============================================================================
+// Sub-agent activity and spinner tests
+// =============================================================================
+
+func TestSubAgentShow_StartsTickChainAndInitializesActivity(t *testing.T) {
+	m := newInlineBubbleModel()
+	updated, cmd := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search code"})
+	model := updated.(inlineBubbleModel)
+
+	if !model.subAgentActive {
+		t.Error("subAgentActive should be true")
+	}
+	if model.subAgentActivity != "" {
+		t.Errorf("subAgentActivity should be empty, got %q", model.subAgentActivity)
+	}
+	if model.subAgentSpinnerFrame != 0 {
+		t.Errorf("subAgentSpinnerFrame should be 0, got %d", model.subAgentSpinnerFrame)
+	}
+	if model.subAgentSpinnerStart.IsZero() {
+		t.Error("subAgentSpinnerStart should be set")
+	}
+	if cmd == nil {
+		t.Error("handleSubAgentShow should return a tick Cmd")
+	}
+}
+
+func TestSubAgentHide_ClearsActivityAndStopsTickChain(t *testing.T) {
+	m := newInlineBubbleModel()
+	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search code"})
+	model := updated.(inlineBubbleModel)
+
+	updated, cmd := model.Update(subAgentHideMsg{id: "sa-1"})
+	model = updated.(inlineBubbleModel)
+
+	if model.subAgentActive {
+		t.Error("subAgentActive should be false after hide")
+	}
+	if model.subAgentActivity != "" {
+		t.Errorf("subAgentActivity should be empty after hide, got %q", model.subAgentActivity)
+	}
+	if model.subAgentSpinnerFrame != 0 {
+		t.Errorf("subAgentSpinnerFrame should be 0 after hide, got %d", model.subAgentSpinnerFrame)
+	}
+	if cmd != nil {
+		t.Error("handleSubAgentHide should return nil Cmd")
+	}
+}
+
+func TestSubAgentActivity_SetsLabelAndResetsTimer(t *testing.T) {
+	m := newInlineBubbleModel()
+	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search code"})
+	model := updated.(inlineBubbleModel)
+
+	before := model.subAgentSpinnerStart
+	time.Sleep(time.Millisecond)
+
+	updated, cmd := model.Update(subAgentActivityMsg{id: "sa-1", activity: "Grep"})
+	model = updated.(inlineBubbleModel)
+
+	if model.subAgentActivity != "Grep" {
+		t.Errorf("subAgentActivity should be 'Grep', got %q", model.subAgentActivity)
+	}
+	if !model.subAgentSpinnerStart.After(before) {
+		t.Error("subAgentSpinnerStart should be reset after activity change")
+	}
+	if cmd != nil {
+		t.Error("handleSubAgentActivity should return nil Cmd")
+	}
+}
+
+func TestSubAgentActivity_IgnoresMismatchedID(t *testing.T) {
+	m := newInlineBubbleModel()
+	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search code"})
+	model := updated.(inlineBubbleModel)
+
+	updated, _ = model.Update(subAgentActivityMsg{id: "sa-other", activity: "Shell"})
+	model = updated.(inlineBubbleModel)
+
+	if model.subAgentActivity != "" {
+		t.Errorf("subAgentActivity should remain empty for mismatched ID, got %q", model.subAgentActivity)
+	}
+}
+
+func TestSubAgentTick_AdvancesFrameWhenActive(t *testing.T) {
+	m := newInlineBubbleModel()
+	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search"})
+	model := updated.(inlineBubbleModel)
+
+	updated, cmd := model.Update(subAgentTickMsg{})
+	model = updated.(inlineBubbleModel)
+
+	if model.subAgentSpinnerFrame != 1 {
+		t.Errorf("subAgentSpinnerFrame should be 1, got %d", model.subAgentSpinnerFrame)
+	}
+	if cmd == nil {
+		t.Error("handleSubAgentTick should return next tick Cmd when active")
+	}
+}
+
+func TestSubAgentTick_TerminatesWhenInactive(t *testing.T) {
+	m := newInlineBubbleModel()
+	// Not active — tick should terminate
+	_, cmd := m.Update(subAgentTickMsg{})
+	if cmd != nil {
+		t.Error("handleSubAgentTick should return nil when subAgentActive is false")
+	}
+}
+
+func TestRenderSubAgentLine_ContainsSpinnerFrameAndActivity(t *testing.T) {
+	m := newInlineBubbleModel()
+	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Explore CLI"})
+	model := updated.(inlineBubbleModel)
+	model.subAgentActivity = "Thinking"
+
+	line := model.renderSubAgentLine()
+
+	if !strings.Contains(line, "Explore CLI") {
+		t.Errorf("renderSubAgentLine should contain subject, got %q", line)
+	}
+	if !strings.Contains(line, "Thinking") {
+		t.Errorf("renderSubAgentLine should contain activity label, got %q", line)
+	}
+	if !strings.Contains(line, "\n") {
+		t.Errorf("renderSubAgentLine should be two lines (contain newline), got %q", line)
+	}
+}
+
+func TestRenderSubAgentLine_DefaultActivityIsWorking(t *testing.T) {
+	m := newInlineBubbleModel()
+	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search"})
+	model := updated.(inlineBubbleModel)
+
+	line := model.renderSubAgentLine()
+
+	if !strings.Contains(line, "Working") {
+		t.Errorf("renderSubAgentLine should show 'Working' when activity is empty, got %q", line)
+	}
+}
+
+func TestRenderSubAgentLine_ShowsToolCountWhenPositive(t *testing.T) {
+	m := newInlineBubbleModel()
+	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search"})
+	model := updated.(inlineBubbleModel)
+	model.subAgentToolCount = 5
+
+	line := model.renderSubAgentLine()
+
+	if !strings.Contains(line, "(5 tools)") {
+		t.Errorf("renderSubAgentLine should show tool count, got %q", line)
+	}
+}
+
+func TestRenderSubAgentLine_HidesToolCountWhenZero(t *testing.T) {
+	m := newInlineBubbleModel()
+	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search"})
+	model := updated.(inlineBubbleModel)
+
+	line := model.renderSubAgentLine()
+
+	if strings.Contains(line, "tools)") {
+		t.Errorf("renderSubAgentLine should not show tool count when zero, got %q", line)
+	}
+}
+
+func TestView_SubAgentActiveShowsActivityNotSpinner(t *testing.T) {
+	m := newInlineBubbleModel()
+	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search"})
+	model := updated.(inlineBubbleModel)
+	model.spinnerActive = true
+	model.spinnerLabel = "Thinking..."
+
+	v := model.View()
+
+	if !strings.Contains(v.Content, "Task") {
+		t.Error("View() should show sub-agent line when subAgentActive")
+	}
+	if strings.Contains(v.Content, "Thinking...") {
+		t.Error("View() should NOT show main spinner when subAgentActive")
+	}
+}
