@@ -1,203 +1,149 @@
-# Agent Integration Guide
+# Agent Integration Reference
 
-How agents reference McpServers, restrict tools, customize approval policies, and grant sub-agent access.
+How agents reference McpServers, the tool approval policy chain, sub-agent access, and the full runtime resolution flow.
 
-Source: `ai/stigmer/agentic/agent/v1/spec.proto` — `McpServerUsage`, `ToolApprovalOverride`, `McpAccess`.
+## McpServerUsage in Agent Spec
 
-## Table of Contents
-1. [Basic Reference Pattern](#basic-reference-pattern)
-2. [McpServerUsage Fields](#mcpserverusage-fields)
-3. [Tool Restriction (enabled_tools)](#tool-restriction)
-4. [Tool Approval Overrides](#tool-approval-overrides)
-5. [Sub-Agent Access](#sub-agent-access)
-6. [Runtime Resolution Flow](#runtime-resolution-flow)
-
----
-
-## Basic Reference Pattern
-
-Reference a McpServer from an Agent using its `slug` (the URL-friendly identifier):
+Agents declare MCP server usage via `spec.mcp_server_usages`:
 
 ```yaml
-apiVersion: agentic.stigmer.ai/v1
-kind: Agent
-metadata:
-  name: code-reviewer
-  org: acme-corp
+# In Agent spec
 spec:
-  instructions: "You are a code review assistant..."
   mcp_server_usages:
     - mcp_server_ref:
-        kind: mcp_server        # always mcp_server (snake_case) in ref
-        slug: github            # matches McpServer metadata.slug
-      enabled_tools:
+        kind: mcp_server           # snake_case (NOT McpServer)
+        slug: github               # matches McpServer metadata.slug
+      enabled_tools:               # optional — subset of default_enabled_tools
         - search_code
         - get_file_contents
         - create_pull_request
+      tool_approval_overrides:     # optional — per-agent customization
+        - tool_name: delete_repository
+          requires_approval: true
+          message: "Delete repository: {{args.repo_name}}"
 ```
 
-**Cross-org reference** (referencing a public/marketplace server):
-```yaml
-    - mcp_server_ref:
-        org: stigmer            # publisher org
-        kind: mcp_server
-        slug: github
-```
-
-**Note:** `kind: McpServer` (PascalCase) is used in the McpServer resource itself.
-`kind: mcp_server` (snake_case) is used in `ApiResourceReference` within Agent YAML.
-Both are correct for their respective contexts.
-
----
-
-## McpServerUsage Fields
+### McpServerUsage Fields
 
 | Field | Required | Description |
 |---|---|---|
-| `mcp_server_ref` | Yes | Reference to the McpServer resource. `kind` must be `mcp_server`. |
-| `enabled_tools` | No | Tools the agent can use. Empty = use McpServer's `default_enabled_tools` (or all if not set). Must be a subset of the McpServer's `default_enabled_tools`. |
-| `tool_approval_overrides` | No | Per-agent approval policy customization. Overrides McpServer defaults. |
+| `mcp_server_ref` | Yes | Reference with `kind: mcp_server` and `slug`. Add `org` for cross-org references. |
+| `enabled_tools` | No | Tools to enable. Empty = use McpServer's `default_enabled_tools` (or all if not set). Cannot expand beyond McpServer's gate. |
+| `tool_approval_overrides` | No | Per-agent approval policy customization (see below). |
 
-The `mcp_server_ref.slug` must be **unique** within a single agent's `mcp_server_usages` — you cannot reference the same McpServer twice.
+The `mcp_server_ref.slug` must be **unique** within a single agent's `mcp_server_usages`.
 
----
-
-## Tool Restriction
-
-`enabled_tools` defines the maximum tool set for this agent from this server.
+### Reference Format
 
 ```yaml
-# Agent restricts to only read-only tools from GitHub
-mcp_server_usages:
-  - mcp_server_ref:
-      kind: mcp_server
-      slug: github
-    enabled_tools:
-      - search_code
-      - get_file_contents
-      - list_issues
-      # merge_pull_request, delete_repository, etc. are excluded
+# Relative reference (recommended) — org resolved from agent's metadata.org
+mcp_server_ref:
+  kind: mcp_server
+  slug: github
 
-# Agent uses all of McpServer's default_enabled_tools (most common)
-mcp_server_usages:
-  - mcp_server_ref:
-      kind: mcp_server
-      slug: github
-    # no enabled_tools — inherits McpServer's default_enabled_tools
+# Absolute reference — for cross-org or marketplace servers
+mcp_server_ref:
+  org: stigmer
+  kind: mcp_server
+  slug: github
 ```
 
-**Tool availability chain:**
+Canonical format: `org/slug` (e.g., `stigmer/github`, `acme-corp/internal-db`).
 
-| Layer | Control |
+## Three-Layer Approval Policy Chain
+
+Approval policies resolve in order of increasing priority:
+
+```
+McpServer.default_tool_approvals          ← base layer (all agents)
+        │
+        ▼ overrides
+Agent.McpServerUsage.tool_approval_overrides  ← per-agent layer
+        │
+        ▼ overrides
+AgentExecution.auto_approve_all           ← runtime bypass
+```
+
+| Priority | Source | Scope |
+|---|---|---|
+| 1 (lowest) | `McpServer.default_tool_approvals` | All agents using this server |
+| 2 | `Agent.tool_approval_overrides` | Single agent |
+| 3 (highest) | `AgentExecution.auto_approve_all` | Single execution (runtime) |
+
+### ToolApprovalOverride Fields
+
+| Field | Required | Description |
+|---|---|---|
+| `tool_name` | Yes | Exact tool name (case-sensitive) |
+| `requires_approval` | Yes | `true` = requires approval; `false` = no approval (overrides McpServer default) |
+| `message` | No | Custom approval prompt. If empty: inherits McpServer message or auto-generates. |
+
+### Override Examples
+
+**Trusted agent — disable McpServer defaults:**
+```yaml
+tool_approval_overrides:
+  - tool_name: delete_repository
+    requires_approval: false
+  - tool_name: force_push
+    requires_approval: false
+```
+
+**Stricter agent — add approvals McpServer doesn't require:**
+```yaml
+tool_approval_overrides:
+  - tool_name: send_email
+    requires_approval: true
+    message: "Send email to {{args.recipient}}: {{args.subject}}"
+  - tool_name: create_ticket
+    requires_approval: true
+    message: "Create support ticket for customer"
+```
+
+## Sub-Agent MCP Access
+
+Sub-agents can only access MCP servers the parent has in `mcp_server_usages`. Access is granted via `mcp_access`:
+
+```yaml
+sub_agents:
+  - name: code-reviewer
+    description: "Reviews code changes"
+    instructions: "You review code changes for quality..."
+    mcp_access:
+      - mcp_server: github         # slug from parent's mcp_server_usages
+        enabled_tools:             # subset of parent's enabled_tools
+          - search_code
+          - get_file
+```
+
+| McpAccess Field | Description |
 |---|---|
-| McpServer `default_enabled_tools` | Platform ceiling — agents can only restrict, not expand |
-| Agent `enabled_tools` | Agent-level restriction (subset of McpServer defaults) |
-| Sub-agent `mcp_access.enabled_tools` | Sub-agent restriction (subset of agent's enabled_tools) |
-
----
-
-## Tool Approval Overrides
-
-Agents can add or remove approval requirements from the McpServer's defaults.
-
-```yaml
-mcp_server_usages:
-  - mcp_server_ref:
-      kind: mcp_server
-      slug: github
-    tool_approval_overrides:
-      # Remove approval for merge_pull_request (trusted deployment agent)
-      - tool_name: merge_pull_request
-        requires_approval: false
-
-      # Add approval for create_issue (not in McpServer defaults)
-      - tool_name: create_issue
-        requires_approval: true
-        message: "Create GitHub issue: {{args.title}} in {{args.repo}}"
-```
-
-`ToolApprovalOverride` fields:
-
-| Field | Required | Description |
-|---|---|---|
-| `tool_name` | Yes | Exact tool name (case-sensitive). Silent failure if wrong. |
-| `requires_approval` | Yes | `true` = add approval requirement. `false` = remove McpServer default. |
-| `message` | No | Custom prompt. Overrides McpServer default message when `requires_approval: true`. |
-
-**Message inheritance when `requires_approval: true` and no message:**
-1. Uses McpServer's `default_tool_approvals` message for this tool (if exists)
-2. Otherwise auto-generates: `"Execute tool: {tool_name}"`
-
-**The three-layer approval chain:**
-```
-McpServer.default_tool_approvals   ← lowest priority (applies to all agents)
-        ↓ overridden by
-Agent.tool_approval_overrides      ← per-agent customization
-        ↓ overridden by
-AgentExecution.auto_approve_all    ← runtime bypass (trusted pipelines, not set in YAML)
-```
-
----
-
-## Sub-Agent Access
-
-Sub-agents can only access MCP servers declared in the parent agent's `mcp_server_usages`. The slug from `mcp_server_ref` is the identifier used in `mcp_access.mcp_server`.
-
-```yaml
-spec:
-  mcp_server_usages:
-    - mcp_server_ref:
-        kind: mcp_server
-        slug: github         # parent has full access
-      enabled_tools:
-        - search_code
-        - get_file_contents
-        - create_pull_request
-        - merge_pull_request
-
-  sub_agents:
-    - name: code-reviewer
-      description: "Reviews code changes for quality and security"
-      instructions: "You review code changes. Focus on security and best practices..."
-      mcp_access:
-        - mcp_server: github              # matches mcp_server_ref.slug above
-          enabled_tools:
-            - search_code
-            - get_file_contents
-            # create_pull_request and merge_pull_request NOT granted to sub-agent
-
-    - name: release-manager
-      description: "Manages PR merging and releases"
-      instructions: "You manage the release process. Only merge PRs that pass review..."
-      mcp_access:
-        - mcp_server: github
-          # no enabled_tools restriction — gets all of parent's enabled_tools
-```
-
-`McpAccess` fields:
-
-| Field | Required | Description |
-|---|---|---|
-| `mcp_server` | Yes | Slug of the McpServer — must match `mcp_server_ref.slug` from parent's `mcp_server_usages`. |
-| `enabled_tools` | No | Further restriction. Must be a subset of parent's `enabled_tools`. Empty = all of parent's enabled tools. |
-
----
+| `mcp_server` | Slug matching `mcp_server_ref.slug` from parent's usages |
+| `enabled_tools` | Tools for this sub-agent (subset of parent's). Empty = all parent tools. |
 
 ## Runtime Resolution Flow
 
-The Agent YAML contains references, not connections or secrets. Runtime flow:
+1. **Agent** declares `mcp_server_usages` (references only — no secrets)
+2. **AgentInstance** binds Agent to Environment (provides actual credential values)
+3. **Agent Runner** resolves each McpServer ref, retrieves secrets from Environment, starts MCP server process
+4. Tools become available during AgentExecution
 
-```
-Agent YAML (mcp_server_ref) 
-    ↓  resolved by
-AgentInstance (binds Agent + Environment with actual credential values)
-    ↓  used by
-Agent Runner (resolves McpServer spec, injects env vars, starts/connects server)
-    ↓  provides
-Running MCP Server (tools available during AgentExecution)
+The McpServer YAML is **portable and secret-free**. Different AgentInstances bind the same Agent to different environments (staging vs production).
+
+## Post-Apply Workflow
+
+```bash
+# 1. Apply the McpServer
+stigmer apply -f mcpserver.yaml
+
+# 2. Discover tools (connects locally, pushes metadata to platform)
+stigmer discover mcp-server <slug>
+
+# 3. Verify discovered tools
+stigmer get mcp-server <slug> --output yaml
+# Check status.discovered_capabilities.tools[*].name
+
+# 4. Use discovered names in default_enabled_tools, default_tool_approvals, and agent enabled_tools
 ```
 
-This separation means:
-- Agent YAML is portable and contains zero secrets
-- Same Agent + different AgentInstance = different environment (dev vs prod)
-- AgentInstance holds the actual `GITHUB_TOKEN` value — McpServer only declares that it's required
+Discovery runs on the developer's machine — credentials never leave the local environment. Only tool metadata (names, descriptions, schemas) is sent to the platform.
