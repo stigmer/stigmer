@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -65,6 +66,8 @@ func executeFileApply(opts fileApplyOptions) error {
 	if len(applyItems) == 0 {
 		return errors.New("no valid resources found in files")
 	}
+
+	sortItemsByApplyOrder(applyItems)
 
 	fctx := &fileApplyContext{
 		dryRun:   opts.DryRun,
@@ -127,6 +130,40 @@ type applyItem struct {
 	kind       string
 	typeInfo   *types.TypeInfo
 	rawContent []byte
+}
+
+// applyKindOrder defines the apply priority for resource kinds.
+// Resources are applied in ascending order of priority value so that
+// dependencies are created before the resources that reference them.
+//
+// Dependency graph for apply ordering:
+//
+//	Organization (0) ← MCP Server (1) ← Agent (2) ← Workflow (3)
+//	                    Skill is pushed in a separate phase before YAML
+//	                    resources and does not appear here.
+var applyKindOrder = map[apiresourcekind.ApiResourceKind]int{
+	apiresourcekind.ApiResourceKind_organization: 0,
+	apiresourcekind.ApiResourceKind_mcp_server:   1,
+	apiresourcekind.ApiResourceKind_agent:        2,
+	apiresourcekind.ApiResourceKind_workflow:      3,
+}
+
+// sortItemsByApplyOrder sorts applyItems so that dependency-providing kinds
+// (MCP servers) are applied before the kinds that consume them (agents,
+// workflows). Items of the same kind retain their original relative order
+// (stable sort).
+func sortItemsByApplyOrder(items []applyItem) {
+	sort.SliceStable(items, func(i, j int) bool {
+		pi, oki := applyKindOrder[items[i].typeInfo.ProtoKind]
+		pj, okj := applyKindOrder[items[j].typeInfo.ProtoKind]
+		if !oki {
+			pi = 99
+		}
+		if !okj {
+			pj = 99
+		}
+		return pi < pj
+	})
 }
 
 func resolveApplyFiles(path string) ([]string, error) {

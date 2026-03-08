@@ -62,6 +62,8 @@ func executeDeclarativeApply(detectResult *project.DetectResult, opts projectApp
 		}
 	}
 
+	sortItemsByApplyOrder(items)
+
 	climsg.Info("Found %d resource(s) in %d file(s), %d skill(s)",
 		len(items), len(resourceFiles), len(skillDirs))
 
