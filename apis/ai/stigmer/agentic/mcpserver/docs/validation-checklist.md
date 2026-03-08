@@ -36,6 +36,7 @@ Run through this list before applying an McpServer YAML with `stigmer apply -f`.
 ### Tool Names
 
 - [ ] All tool names in `spec.default_enabled_tools` have been verified against the server's `tools/list` (run `stigmer discover mcp-server <slug>`)
+- [ ] `default_enabled_tools` contains **only** names from `discovered_capabilities.tools` — never from `discovered_capabilities.resource_templates` (resource templates are data endpoints, not callable tools)
 - [ ] All `tool_name` values in `spec.default_tool_approvals` match exactly (case-sensitive) what the server reports — typos are silently ignored
 
 ### YAML Syntax

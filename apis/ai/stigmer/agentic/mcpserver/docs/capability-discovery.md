@@ -27,6 +27,11 @@ For most McpServers, discovery is done via the CLI.
 
 Defined in `ai/stigmer/agentic/mcpserver/v1/status.proto`.
 
+> **CRITICAL — Tools vs Resource Templates**: `discovered_capabilities` contains two separate lists that serve fundamentally different purposes:
+>
+> - **`tools`** — callable actions (e.g., `search_code`, `create_pr`). These are the **only** names valid for use in `default_enabled_tools`, agent `enabled_tools`, and `tool_approval_overrides`.
+> - **`resource_templates`** — read-only data endpoints accessed by URI (e.g., `cloud-resource-schema://{kind}`). These are **not** callable tools. Resource template names must **never** appear in `enabled_tools` or `default_enabled_tools` — doing so causes a fatal runtime error.
+
 ```yaml
 status:
   discovered_capabilities:
@@ -142,7 +147,9 @@ stigmer get mcp-server github --output yaml
 
 ## Using Discovered Tool Names
 
-The `discovered_capabilities.tools[*].name` values are the **authoritative source** for tool names. Copy them exactly when writing:
+The `discovered_capabilities.tools[*].name` values are the **authoritative source** for tool names. Copy them exactly when writing.
+
+> **Warning**: Only names from `discovered_capabilities.tools` are valid for `enabled_tools` and `default_enabled_tools`. Names from `discovered_capabilities.resource_templates` must **never** be used in these fields — resource templates are data endpoints, not callable tools. Including a resource template name in `enabled_tools` causes a fatal runtime error (`Tool not found in cache`).
 
 **`spec.default_enabled_tools`:**
 ```yaml

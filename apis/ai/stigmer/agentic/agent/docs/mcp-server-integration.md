@@ -35,7 +35,7 @@ Defined by `McpServerUsage` in `ai/stigmer/agentic/agent/v1/spec.proto`.
 | Field | Required | Description |
 |---|---|---|
 | `mcp_server_ref` | Yes | Reference to a McpServer resource. Must have `kind: mcp_server`. See [resource-references.md](resource-references.md). |
-| `enabled_tools` | No | Tools to enable from this MCP server. Empty list = use the McpServer's `default_enabled_tools` (or all tools if not set). Tool names must match exactly what the MCP server reports via `tools/list`. |
+| `enabled_tools` | No | Tools to enable from this MCP server. Empty list = use the McpServer's `default_enabled_tools` (or all tools if not set). Tool names must match exactly what the MCP server reports via `tools/list`. **Only names from `discovered_capabilities.tools` are valid here — never include names from `discovered_capabilities.resource_templates` (resource templates are read-only data endpoints, not callable tools; including them causes a fatal runtime error).** |
 | `tool_approval_overrides` | No | Per-agent approval policy customization (see below). |
 
 The `mcp_server_ref.slug` from each entry must be **unique** within a single agent's `mcp_server_usages`. You cannot reference the same MCP server twice.

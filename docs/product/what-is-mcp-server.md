@@ -272,6 +272,8 @@ stigmer get mcp-server github
 
 Once discovered, tool names appear in the Stigmer UI and CLI. You can reference them confidently in `default_enabled_tools` and `default_tool_approvals` without guessing.
 
+> **Tools vs Resource Templates**: Discovery populates two separate lists within `discovered_capabilities`: **`tools`** (callable actions) and **`resource_templates`** (read-only data endpoints). Only names from the `tools` list may be used in `default_enabled_tools`, `default_tool_approvals`, and agent `enabled_tools`. Resource template names must never appear in these fields — they serve a different purpose (data access via URI) and including them causes a fatal runtime error.
+
 ---
 
 ## How MCP Servers Are Versioned and Shared
