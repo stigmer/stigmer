@@ -71,7 +71,7 @@ Stigmer gives MCP server integrations the same treatment Kubernetes gave to work
 
 ```bash
 # Apply the integration template
-stigmer mcp-server apply github.yaml
+stigmer apply -f github.yaml
 
 # Run discovery to populate tool metadata
 stigmer discover mcp-server github
@@ -260,13 +260,13 @@ There are three discovery sources:
 
 ```bash
 # 1. Apply the McpServer
-stigmer mcp-server apply github.yaml
+stigmer apply -f github.yaml
 
 # 2. Discover its tools
 stigmer discover mcp-server github
 
 # 3. See what was discovered
-stigmer mcp-server get github
+stigmer get mcp-server github
 # status.discovered_capabilities.tools now lists all tool names and descriptions
 ```
 
@@ -364,16 +364,16 @@ spec:
 EOF
 
 # 2. Apply it
-stigmer mcp-server apply github.yaml
+stigmer apply -f github.yaml
 
 # 3. Discover its tools
 stigmer discover mcp-server github
 
 # 4. See what tools are available
-stigmer mcp-server get github
+stigmer get mcp-server github
 
 # 5. Reference it from an agent
-stigmer agent list   # then edit your agent YAML to add mcp_server_usages
+stigmer list agents   # then edit your agent YAML to add mcp_server_usages
 ```
 
 ---

@@ -106,7 +106,7 @@ stigmer apply
 ✅ Successfully applied 1 resource(s)
 
 ℹ Next steps:
-ℹ   - View agents: stigmer agent list
+ℹ   - View agents: stigmer list agents
 ℹ   - Update and redeploy: edit code and run 'stigmer apply' again
 ```
 

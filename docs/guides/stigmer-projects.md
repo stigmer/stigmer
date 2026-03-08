@@ -52,13 +52,13 @@ This last point is crucial - **reconciliation** means your backend always matche
 **Without projects (Atomic Track):**
 ```bash
 # Manual resource management
-stigmer agent apply agent1.yaml
-stigmer agent apply agent2.yaml
-stigmer workflow apply workflow1.yaml
+stigmer apply -f agent1.yaml
+stigmer apply -f agent2.yaml
+stigmer apply -f workflow1.yaml
 
 # Later... remove agent1
 # Must manually delete:
-stigmer agent delete agent1
+stigmer delete agent agent1
 
 # Easy to forget, leads to orphaned resources
 ```
@@ -134,8 +134,8 @@ Stigmer provides two deployment modes optimized for different use cases.
 flowchart TB
     subgraph atomic [Atomic Track - Quick Experiments]
         A1[Individual YAML files]
-        A2[stigmer agent apply agent.yaml]
-        A3[stigmer workflow apply workflow.yaml]
+        A2["stigmer apply -f agent.yaml"]
+        A3["stigmer apply -f workflow.yaml"]
         A4[Manual lifecycle management]
         A1 --> A2
         A1 --> A3
@@ -908,8 +908,8 @@ No stigmer.yaml found - Atomic Track mode
 
 This directory is not a Stigmer project. You are in Atomic Track mode,
 where resources are deployed individually:
-  stigmer agent apply agent.yaml
-  stigmer workflow apply workflow.yaml
+  stigmer apply -f agent.yaml
+  stigmer apply -f workflow.yaml
 
 To create a project, add a stigmer.yaml file:
   apiVersion: tenancy.stigmer.ai/v1
@@ -1056,8 +1056,8 @@ stigmer apply
 # ✓ Successfully applied 3 resource(s)
 
 # 5. Test deployed resources
-stigmer agent run support-bot "Test query"
-stigmer workflow run ticket-triage
+stigmer run agent support-bot "Test query"
+stigmer run workflow ticket-triage
 ```
 
 **Red-green-refactor cycle:**
@@ -1294,10 +1294,10 @@ func main() {
 
 ```bash
 # List all agents
-stigmer agent list > agents.txt
+stigmer list agents > agents.txt
 
 # List all workflows
-stigmer workflow list > workflows.txt
+stigmer list workflows > workflows.txt
 
 # Document what you have
 ```
@@ -1389,11 +1389,11 @@ stigmer apply
 
 ```bash
 # Check deployed resources
-stigmer agent list
-stigmer workflow list
+stigmer list agents
+stigmer list workflows
 
 # Test functionality
-stigmer agent run support-bot "test query"
+stigmer run agent support-bot "test query"
 ```
 
 **Step 9: Clean up old YAML files**
@@ -1413,19 +1413,19 @@ If migration doesn't go as planned:
 
 ```bash
 # You kept the YAML files, right?
-stigmer agent apply support-bot.yaml
-stigmer workflow apply ticket-workflow.yaml
+stigmer apply -f support-bot.yaml
+stigmer apply -f ticket-workflow.yaml
 ```
 
 **Option 2: Delete project resources**
 
 ```bash
 # Delete all project-deployed resources
-stigmer agent delete support-bot
-stigmer workflow delete ticket-workflow
+stigmer delete agent support-bot
+stigmer delete workflow ticket-workflow
 
 # Redeploy from YAML
-stigmer agent apply support-bot.yaml
+stigmer apply -f support-bot.yaml
 ```
 
 **Best practice:** Keep original YAML files until Project Track is proven stable.

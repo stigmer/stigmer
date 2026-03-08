@@ -20,7 +20,7 @@ spec:
 
 After applying, run discovery to populate tool metadata:
 ```bash
-stigmer mcp-server apply mcpserver.yaml
+stigmer apply -f mcpserver.yaml
 stigmer discover mcp-server github
 ```
 

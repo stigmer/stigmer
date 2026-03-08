@@ -112,7 +112,7 @@ spec:
        - Which tools are enabled by default and which require approval
        - Any environment variables the user must provide
        - Any tool names that are unverified pending discovery
-       - How to apply: `stigmer mcp-server apply $OUTPUT_DIR/<server-name>.yaml`
+       - How to apply: `stigmer apply -f $OUTPUT_DIR/<server-name>.yaml`
        - How agents reference it via `mcp_server_usages` — read
          `references/agent-integration.md` for the full pattern and include
          a concrete snippet showing `mcp_server_ref` with the new server's

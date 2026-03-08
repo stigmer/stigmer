@@ -314,7 +314,7 @@ stigmer apply -f my-agent.yaml
 stigmer run my-assistant "What is an agent in Stigmer?"
 
 # 4. See all your agents
-stigmer agent list
+stigmer list agents
 ```
 
 ---

@@ -113,7 +113,7 @@ stigmer context show
 # Organization: default
 
 # All commands target the active org
-stigmer agent list          # lists agents in org: default
+stigmer list agents          # lists agents in org: default
 stigmer run my-agent "..."  # runs an agent in org: default
 ```
 
@@ -228,7 +228,7 @@ Without organizations, there is no trusted identity to publish from and no way t
 | Resources in a flat global namespace | Every resource owned by an org; no accidental sharing |
 | Credentials owned by individuals | Credentials scoped to an org; survive team changes |
 | No team-level audit trail | Every change linked to an org, member, and timestamp |
-| Discovery is word-of-mouth | Org slug is a stable discovery coordinate; `stigmer agent list --org acme-corp` |
+| Discovery is word-of-mouth | Org slug is a stable discovery coordinate; `stigmer list agents --org acme-corp` |
 | No marketplace identity | Public resources published under a verified org slug |
 | Manual platform integration | `platform_managed` mode lets external platforms provision orgs programmatically |
 
@@ -258,7 +258,7 @@ stigmer org list
 stigmer org get acme-corp --output yaml
 
 # 5. Create resources inside it
-stigmer agent apply agent.yaml   # where agent.yaml has metadata.org: acme-corp
+stigmer apply -f agent.yaml   # where agent.yaml has metadata.org: acme-corp
 ```
 
 ---

@@ -297,7 +297,7 @@ stigmer workflow resume exec-abc123
 
 ### Check workflow status
 ```bash
-stigmer workflow get exec-abc123
+stigmer get workflow exec-abc123
 # Shows phase: PAUSED
 ```
 

@@ -203,7 +203,7 @@ The `validation_state` field tells you whether the McpServer definition is struc
 
 Check status after applying:
 ```bash
-stigmer mcp-server get github --output yaml
+stigmer get mcp-server github --output yaml
 # Look at status.validation_state and status.validation_message
 ```
 
@@ -211,25 +211,25 @@ stigmer mcp-server get github --output yaml
 
 ```bash
 # Apply (create or update) an McpServer from a YAML file
-stigmer mcp-server apply mcpserver.yaml
+stigmer apply -f mcpserver.yaml
 
 # Validate without applying
-stigmer mcp-server apply mcpserver.yaml --dry-run
+stigmer apply -f mcpserver.yaml --dry-run
 
 # List all MCP servers
-stigmer mcp-server list
+stigmer list mcp-server
 
 # List MCP servers from a specific organization
-stigmer mcp-server list --org acme-corp
+stigmer list mcp-server --org acme-corp
 
 # Get MCP server details (table format)
-stigmer mcp-server get github
+stigmer get mcp-server github
 
 # Get MCP server details as YAML (includes status and discovered capabilities)
-stigmer mcp-server get github --output yaml
+stigmer get mcp-server github --output yaml
 
 # Delete an MCP server
-stigmer mcp-server delete github
+stigmer delete mcp-server github
 
 # Discover and cache the server's tools and resource templates
 stigmer discover mcp-server github

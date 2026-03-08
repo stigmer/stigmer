@@ -733,10 +733,10 @@ stigmer org join acme-corp
 **Solution:** Verify org and slug
 ```bash
 # List resources in org
-stigmer agent list --org stigmer
+stigmer list agents --org stigmer
 
 # Check exact slug
-stigmer agent get stigmer/code-reviewer
+stigmer get agent stigmer/code-reviewer
 ```
 
 ## Future Enhancements
