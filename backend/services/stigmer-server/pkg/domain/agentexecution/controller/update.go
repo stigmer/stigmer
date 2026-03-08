@@ -6,6 +6,7 @@ import (
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/extractor"
 )
 
 // Update updates an existing agent execution using the pipeline framework
@@ -44,6 +45,7 @@ func (c *AgentExecutionController) buildUpdatePipeline() *pipeline.Pipeline[*age
 		AddStep(steps.NewLoadExistingStep[*agentexecutionv1.AgentExecution](c.store)). // 3. Load existing
 		AddStep(steps.NewBuildUpdateStateStep[*agentexecutionv1.AgentExecution]()).    // 4. Build updated state
 		AddStep(steps.NewNormalizeReferencesStep[*agentexecutionv1.AgentExecution]()). // 5. Normalize cross-references
-		AddStep(steps.NewPersistStep[*agentexecutionv1.AgentExecution](c.store)).      // 6. Persist
+		AddStep(steps.NewPersistStep[*agentexecutionv1.AgentExecution](c.store)).                                                 // 6. Persist
+		AddStep(steps.NewIndexSearchStep[*agentexecutionv1.AgentExecution](c.store, &extractor.AgentExecutionExtractor{})). // 7. Update search index
 		Build()
 }

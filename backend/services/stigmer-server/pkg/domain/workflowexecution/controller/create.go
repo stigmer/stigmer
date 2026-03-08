@@ -16,6 +16,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/extractor"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -74,8 +75,9 @@ func (c *WorkflowExecutionController) buildCreatePipeline() *pipeline.Pipeline[*
 		AddStep(steps.NewNormalizeReferencesStep[*workflowexecutionv1.WorkflowExecution]()).   // 7. Normalize cross-references
 		AddStep(newSetInitialPhaseStep()).                                                     // 8. Set phase to PENDING
 		AddStep(c.newCreateExecutionContextStep()).                                            // 9. Create ExecutionContext with merged environment
-		AddStep(steps.NewPersistStep[*workflowexecutionv1.WorkflowExecution](c.store)).        // 10. Persist execution
-		AddStep(c.newStartWorkflowStep()).                                                     // 9. Start Temporal workflow
+		AddStep(steps.NewPersistStep[*workflowexecutionv1.WorkflowExecution](c.store)).                                                     // 10. Persist execution
+		AddStep(steps.NewIndexSearchStep[*workflowexecutionv1.WorkflowExecution](c.store, &extractor.WorkflowExecutionExtractor{})). // 11. Update search index
+		AddStep(c.newStartWorkflowStep()).                                                                                             // 12. Start Temporal workflow
 		Build()
 }
 

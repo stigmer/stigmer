@@ -6,6 +6,7 @@ import (
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/extractor"
 )
 
 // Update updates an existing workflow execution using the pipeline framework
@@ -46,6 +47,7 @@ func (c *WorkflowExecutionController) buildUpdatePipeline() *pipeline.Pipeline[*
 		AddStep(steps.NewLoadExistingStep[*workflowexecutionv1.WorkflowExecution](c.store)). // 3. Load existing execution
 		AddStep(steps.NewBuildUpdateStateStep[*workflowexecutionv1.WorkflowExecution]()).    // 4. Build updated state
 		AddStep(steps.NewNormalizeReferencesStep[*workflowexecutionv1.WorkflowExecution]()). // 5. Normalize cross-references
-		AddStep(steps.NewPersistStep[*workflowexecutionv1.WorkflowExecution](c.store)).      // 6. Persist execution
+		AddStep(steps.NewPersistStep[*workflowexecutionv1.WorkflowExecution](c.store)).                                                     // 6. Persist execution
+		AddStep(steps.NewIndexSearchStep[*workflowexecutionv1.WorkflowExecution](c.store, &extractor.WorkflowExecutionExtractor{})). // 7. Update search index
 		Build()
 }

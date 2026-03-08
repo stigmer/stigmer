@@ -30,6 +30,11 @@ func (e *AgentExtractor) Kind() apiresourcekind.ApiResourceKind {
 	return apiresourcekind.ApiResourceKind_agent
 }
 
+// NewEmptyProto returns a new zero-value Agent proto.
+func (e *AgentExtractor) NewEmptyProto() proto.Message {
+	return &agentv1.Agent{}
+}
+
 // GetSearchSummary extracts the display summary for search results.
 // Returns spec.description if available, otherwise spec.instructions.
 func (e *AgentExtractor) GetSearchSummary(resource proto.Message) string {

@@ -6,6 +6,7 @@ import (
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/extractor"
 )
 
 // Create creates a new session using the pipeline framework
@@ -49,6 +50,7 @@ func (c *SessionController) buildCreatePipeline() *pipeline.Pipeline[*sessionv1.
 		AddStep(steps.NewCheckDuplicateStep[*sessionv1.Session](c.store)). // 3. Check duplicate
 		AddStep(steps.NewBuildNewStateStep[*sessionv1.Session]()).         // 4. Build new state
 		AddStep(steps.NewNormalizeReferencesStep[*sessionv1.Session]()).   // 5. Normalize cross-references
-		AddStep(steps.NewPersistStep[*sessionv1.Session](c.store)).        // 6. Persist session
+		AddStep(steps.NewPersistStep[*sessionv1.Session](c.store)).                                     // 6. Persist session
+		AddStep(steps.NewIndexSearchStep[*sessionv1.Session](c.store, &extractor.SessionExtractor{})). // 7. Update search index
 		Build()
 }
