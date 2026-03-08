@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/pkg/errors"
@@ -92,16 +93,17 @@ func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFun
 
 	program := startInlineProgram(statusW, toggleExpandCh, cancelCh, interruptCh)
 
-	var programFactory func(func(*inlineBubbleModel)) *tea.Program
+	var programFactory func(func(*inlineBubbleModel)) *managedProgram
 	if program != nil {
-		programFactory = func(initModel func(*inlineBubbleModel)) *tea.Program {
+		programFactory = func(initModel func(*inlineBubbleModel)) *managedProgram {
 			m := newInlineBubbleModelWithChannels(toggleExpandCh, cancelCh, interruptCh)
 			if initModel != nil {
 				initModel(&m)
 			}
 			p := tea.NewProgram(m, tea.WithOutput(statusW))
-			go func() { _, _ = p.Run() }()
-			return p
+			mp := newManagedProgram(p, statusW)
+			mp.runAndMonitor()
+			return mp
 		}
 	}
 
@@ -152,14 +154,20 @@ func streamAgentInline(streamCtx context.Context, streamCancel context.CancelFun
 	return streamAgentEpilogue(sessionID, latestExecID, phase, exitErr, conn)
 }
 
-// startInlineProgram creates and starts a Bubbletea Program in inline mode
-// for row-tracked stderr rendering. Returns nil when the writer is not a
-// terminal (CI, piped output) — the renderer falls back to direct writes.
+// startInlineProgram creates and starts a managed Bubbletea Program in
+// inline mode for row-tracked stderr rendering. Returns nil when the writer
+// is not a terminal (CI, piped output) — the renderer falls back to direct
+// writes.
 //
 // When the channel arguments are non-nil, the model is wired to the event
 // loop via channels and Bubbletea owns stdin (raw mode). When nil, stdin
 // is not connected and input is handled externally.
-func startInlineProgram(statusW io.Writer, toggleCh, cancelCh, interruptCh chan struct{}) *tea.Program {
+//
+// The returned *managedProgram monitors the underlying tea.Program's Run()
+// goroutine. If Run() exits unexpectedly (e.g., terminal resize edge case),
+// subsequent Println calls degrade to direct writes on statusW and Send
+// calls become no-ops — the rendering pipeline never goes dark.
+func startInlineProgram(statusW io.Writer, toggleCh, cancelCh, interruptCh chan struct{}) *managedProgram {
 	if !termctl.IsSupported(statusW) {
 		return nil
 	}
@@ -175,18 +183,20 @@ func startInlineProgram(statusW io.Writer, toggleCh, cancelCh, interruptCh chan 
 	}
 
 	p := tea.NewProgram(model, opts...)
-	go func() { _, _ = p.Run() }()
-	return p
+	mp := newManagedProgram(p, statusW)
+	mp.runAndMonitor()
+	return mp
 }
 
-// stopInlineProgram sends Quit to the Program and waits for it to exit.
-// Safe to call with nil (non-TTY path).
-func stopInlineProgram(p *tea.Program) {
-	if p == nil {
+// stopInlineProgram sends Quit to the managed program and waits for it
+// to exit. Safe to call with nil (non-TTY path). Uses a generous timeout
+// to avoid blocking indefinitely on a stuck program at session end.
+func stopInlineProgram(mp *managedProgram) {
+	if mp == nil {
 		return
 	}
-	p.Quit()
-	p.Wait()
+	mp.Quit()
+	mp.Wait(5 * time.Second)
 }
 
 // streamAgentJSON renders events as newline-delimited JSON on stdout.

@@ -3,6 +3,7 @@ package root
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/panel"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/termctl"
@@ -435,7 +436,7 @@ func (r *inlineRenderer) performReCommit() {
 	}
 
 	r.cfg.program.Quit()
-	r.cfg.program.Wait()
+	r.cfg.program.Wait(2 * time.Second)
 
 	rendered := renderHistoryBatch(
 		r.history, r.compactOpts, r.expandMode, r.expandHintEnabled(),
@@ -474,7 +475,7 @@ func (r *inlineRenderer) performReCommitWithApproval(
 	}
 
 	r.cfg.program.Quit()
-	r.cfg.program.Wait()
+	r.cfg.program.Wait(2 * time.Second)
 
 	rendered := renderHistoryBatch(
 		r.history, r.compactOpts, r.expandMode, r.expandHintEnabled(),

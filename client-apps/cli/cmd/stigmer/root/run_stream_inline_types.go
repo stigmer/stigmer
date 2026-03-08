@@ -4,8 +4,6 @@ import (
 	"io"
 	"time"
 
-	tea "charm.land/bubbletea/v2"
-
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
@@ -48,11 +46,12 @@ type renderResult struct {
 	history       []committedItem
 	followUpInput string
 
-	// program is the Bubbletea Program that was active when renderInline
-	// returned. May differ from the cfg.program that was passed in when
-	// performReCommit created replacement programs during the session.
-	// Callers must use this reference (not the original) for cleanup.
-	program *tea.Program
+	// program is the managed Bubbletea Program that was active when
+	// renderInline returned. May differ from the cfg.program that was
+	// passed in when performReCommit created replacement programs during
+	// the session. Callers must use this reference (not the original)
+	// for cleanup.
+	program *managedProgram
 }
 
 // inlineRenderConfig configures the inline (non-TUI) event renderer.
@@ -69,17 +68,18 @@ type inlineRenderConfig struct {
 	platformDir       string   // session platform dir for .stigmer/ virtual mount
 	cancelExecFn      func()   // cancels the current backend execution; nil-safe
 
-	// program is the Bubbletea Program running alongside the event loop. When
-	// non-nil, status output is routed through program.Println so Bubbletea
-	// tracks stderr row positions accurately. When nil (unit tests, non-TTY),
-	// output falls back to direct writes on the status writer.
-	program *tea.Program
+	// program is the managed Bubbletea Program running alongside the event
+	// loop. When non-nil, status output is routed through program.Println
+	// so Bubbletea tracks stderr row positions accurately. When nil (unit
+	// tests, non-TTY), output falls back to direct writes on the status
+	// writer.
+	program *managedProgram
 
-	// programFactory creates a fresh Bubbletea program with the same
-	// channels and output writer. The initModel callback pre-loads model
-	// state (plan, input bar, approval) before the program starts.
+	// programFactory creates a fresh managed Bubbletea program with the
+	// same channels and output writer. The initModel callback pre-loads
+	// model state (plan, input bar, approval) before the program starts.
 	// nil when program is nil (non-TTY).
-	programFactory func(initModel func(*inlineBubbleModel)) *tea.Program
+	programFactory func(initModel func(*inlineBubbleModel)) *managedProgram
 
 	// suppressHumanEcho skips the next HumanMessageEvent rendering. Set by
 	// the follow-up loop after local echo to prevent duplicate display when

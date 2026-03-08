@@ -8,8 +8,6 @@ import (
 	"os"
 	"strings"
 
-	tea "charm.land/bubbletea/v2"
-
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/termctl"
 )
@@ -36,7 +34,7 @@ func runInlineFollowUpLoop(
 	cfg inlineRenderConfig,
 	followUpFn executiontui.FollowUpFn,
 	executionID string,
-) (latestExecID string, phase string, exitErr string, latestProgram *tea.Program) {
+) (latestExecID string, phase string, exitErr string, latestProgram *managedProgram) {
 	latestExecID = executionID
 	latestProgram = cfg.program
 
@@ -96,7 +94,7 @@ func runInlineFollowUpLoop(
 // When Bubbletea owns stdin (cfg.followUpEnabled), the follow-up prompt is
 // handled inside renderInline's event loop instead, so this function is not
 // called on that path.
-func promptFollowUp(program *tea.Program, status io.Writer) (string, error) {
+func promptFollowUp(program *managedProgram, status io.Writer) (string, error) {
 	if program != nil {
 		return promptFollowUpViaKeyReader(program)
 	}
@@ -106,7 +104,7 @@ func promptFollowUp(program *tea.Program, status io.Writer) (string, error) {
 // promptFollowUpViaKeyReader renders the prompt via Bubbletea's View(), reads
 // a line from stdin via readStdinLine, then hides the prompt and commits the
 // styled human message. Legacy path when Bubbletea doesn't own stdin.
-func promptFollowUpViaKeyReader(program *tea.Program) (string, error) {
+func promptFollowUpViaKeyReader(program *managedProgram) (string, error) {
 	program.Send(followUpShowMsg{content: formatFollowUpPrompt()})
 
 	input, err := readStdinLine()

@@ -79,16 +79,16 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) renderResult {
 			return renderResult{exitErr: "context cancelled", history: r.history, program: r.cfg.program}
 
 		case subject, ok := <-cfg.subjectUpdate:
+			cfg.subjectUpdate = nil
 			if ok && subject != "" {
 				r.history[0].header.Subject = subject
-				cfg.subjectUpdate = nil
 				recommitNeeded = true
 			}
 
 		case sessions, ok := <-cfg.recentSessionsCh:
+			cfg.recentSessionsCh = nil
 			if ok && len(sessions) > 0 {
 				r.history[0].header.RecentSessions = sessions
-				cfg.recentSessionsCh = nil
 				recommitNeeded = true
 			}
 
@@ -204,14 +204,14 @@ func (r *inlineRenderer) drainRecommitTriggers(cfg *inlineRenderConfig) {
 	for {
 		select {
 		case subject, ok := <-cfg.subjectUpdate:
+			cfg.subjectUpdate = nil
 			if ok && subject != "" {
 				r.history[0].header.Subject = subject
-				cfg.subjectUpdate = nil
 			}
 		case sessions, ok := <-cfg.recentSessionsCh:
+			cfg.recentSessionsCh = nil
 			if ok && len(sessions) > 0 {
 				r.history[0].header.RecentSessions = sessions
-				cfg.recentSessionsCh = nil
 			}
 		default:
 			return
