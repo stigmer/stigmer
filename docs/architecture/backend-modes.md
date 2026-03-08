@@ -270,7 +270,7 @@ Enter your credentials:
 **Then configure organization:**
 
 ```bash
-$ stigmer context set --org acme-corp
+$ stigmer config context set --org acme-corp
 ✓ Organization set: acme-corp
 
 $ stigmer apply  # Now uses cloud backend
@@ -339,7 +339,7 @@ backend:
 $ stigmer login
 
 # 2. Set organization
-$ stigmer context set --org acme-corp
+$ stigmer config context set --org acme-corp
 
 # 3. Deploy (now uses cloud backend)
 $ stigmer apply
@@ -367,16 +367,16 @@ $ stigmer apply
 
 ```bash
 # Use local backend even if logged in
-$ stigmer backend set local
+$ stigmer config backend set local
 
 # Use cloud backend
-$ stigmer backend set cloud
+$ stigmer config backend set cloud
 ```
 
 **Check current backend:**
 
 ```bash
-$ stigmer backend status
+$ stigmer config backend status
 
 Current backend: local
 Database: ~/.stigmer/data/stigmer.db

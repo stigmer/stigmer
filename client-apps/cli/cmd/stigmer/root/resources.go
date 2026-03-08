@@ -9,8 +9,6 @@ import (
 	"text/tabwriter"
 
 	"github.com/pkg/errors"
-	"github.com/spf13/cobra"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
 	"gopkg.in/yaml.v3"
 )
@@ -26,63 +24,14 @@ type ResourceInfo struct {
 	Verbs       []string `json:"verbs" yaml:"verbs"`
 }
 
-// resourcesOptions contains options for the resources command.
-type resourcesOptions struct {
-	VerbFilter   string
-	OutputFormat string
-}
-
-// NewResourcesCommand creates the resources discovery command.
-func NewResourcesCommand() *cobra.Command {
-	var verbFilter string
-	var outputFormat string
-
-	cmd := &cobra.Command{
-		Use:   "resources",
-		Short: "List available resource types and their supported verbs",
-		Long: `Display all resource types available in the Stigmer CLI.
-
-Shows each resource type along with:
-  - Accepted aliases (short forms, plural forms)
-  - Supported verbs (apply, get, list, delete, run, etc.)
-
-Use this command to discover what resources you can manage and
-which operations are available for each type.`,
-		Example: `  # List all resource types
-  stigmer resources
-
-  # Show only types that support the "run" verb
-  stigmer resources --verb run
-
-  # Output as JSON for scripting
-  stigmer resources --output json
-
-  # Output as YAML
-  stigmer resources --output yaml`,
-		Args: cobra.NoArgs,
-		Run: func(cmd *cobra.Command, args []string) {
-			err := executeResources(resourcesOptions{
-				VerbFilter:   verbFilter,
-				OutputFormat: outputFormat,
-			})
-			clierr.Handle(err)
-		},
-	}
-
-	cmd.Flags().StringVar(&verbFilter, "verb", "", "filter to types supporting this verb")
-	cmd.Flags().StringVarP(&outputFormat, "output", "o", "table", "output format: table, yaml, json")
-
-	return cmd
-}
-
-// executeResources implements the resources command logic.
-func executeResources(opts resourcesOptions) error {
-	resources, err := collectResources(opts.VerbFilter)
+// executeListTypes implements the "list types" logic, reused by the list command.
+func executeListTypes(verbFilter, outputFormat string) error {
+	resources, err := collectResources(verbFilter)
 	if err != nil {
 		return err
 	}
 
-	return displayResources(resources, opts.OutputFormat)
+	return displayResources(resources, outputFormat)
 }
 
 // collectResources gathers resource info from the registry with optional verb filtering.

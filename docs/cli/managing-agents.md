@@ -518,7 +518,7 @@ Set a default organization for all commands:
 
 ```bash
 # Set organization context
-stigmer context set --org acme-corp
+stigmer config context set --org acme-corp
 
 # Now commands use this org by default
 stigmer list agents  # Lists from acme-corp
@@ -527,7 +527,7 @@ stigmer list agents  # Lists from acme-corp
 Check current context:
 
 ```bash
-stigmer context
+stigmer config context show
 ```
 
 Override per-command:

@@ -366,7 +366,7 @@ func autoSetOrgContext(cfg *config.Config) {
 			climsg.Info("  - %s", org.GetMetadata().GetSlug())
 		}
 		climsg.Info("")
-		climsg.Info("Run: stigmer context set --org <slug>")
+		climsg.Info("Run: stigmer config context set --org <slug>")
 	}
 }
 

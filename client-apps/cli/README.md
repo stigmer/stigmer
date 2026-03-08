@@ -69,7 +69,7 @@ stigmer server start
 ### Switch to Cloud Backend (Future)
 
 ```bash
-stigmer backend set cloud
+stigmer config backend set cloud
 stigmer login
 ```
 
@@ -87,9 +87,9 @@ stigmer server start        # Start (idempotent - restarts if already running)
 ### Backend Configuration
 
 ```bash
-stigmer backend status      # Show current backend (local/cloud)
-stigmer backend set local   # Switch to local mode
-stigmer backend set cloud   # Switch to cloud mode
+stigmer config backend status      # Show current backend (local/cloud)
+stigmer config backend set local   # Switch to local mode
+stigmer config backend set cloud   # Switch to cloud mode
 ```
 
 ## Configuration

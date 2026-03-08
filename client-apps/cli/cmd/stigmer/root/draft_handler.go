@@ -130,7 +130,7 @@ func displayDraftAgentNotFoundError(agentName, orgID string) {
 	climsg.Info("")
 	climsg.Info("Troubleshooting:")
 	climsg.Info("  1. Verify agents exist:  stigmer list agents")
-	climsg.Info("  2. Check active org:     stigmer context show")
+	climsg.Info("  2. Check active org:     stigmer config context show")
 	climsg.Info("  3. Re-bootstrap:         stigmer server reset && stigmer server")
 	fmt.Println()
 }
