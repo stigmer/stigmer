@@ -62,7 +62,7 @@ Command-line interface (`cmd/stigmer/main.go`):
 - `stigmer init` - Initialize local backend
 - `stigmer agent create/list/execute`
 - `stigmer workflow create/list/execute`
-- `stigmer backend status/switch`
+- `stigmer config backend status/set`
 - `stigmer version`
 
 ### 5. Documentation ✅

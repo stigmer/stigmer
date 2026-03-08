@@ -78,7 +78,7 @@ func printOrgNotSetError() {
 	climsg.Error("Organization not set")
 	climsg.Info("")
 	climsg.Info("Set organization with:")
-	climsg.Info("  stigmer context set --org <org-id>")
+	climsg.Info("  stigmer config context set --org <org-id>")
 	climsg.Info("")
 	climsg.Info("Or use --org flag:")
 	climsg.Info("  stigmer run --org <org-id>")

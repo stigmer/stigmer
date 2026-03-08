@@ -58,8 +58,8 @@ func newContextSetCommand() *cobra.Command {
 
 The --org flag sets the active organization. The CLI validates that the
 organization exists on the server before saving.`,
-		Example: `  stigmer context set --org my-org
-  stigmer context set --org default`,
+		Example: `  stigmer config context set --org my-org
+  stigmer config context set --org default`,
 		Run: func(cmd *cobra.Command, args []string) {
 			handleContextSet(orgSlug, resolveResultFormat(jsonOutput, quietOutput))
 		},

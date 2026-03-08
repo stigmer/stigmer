@@ -315,7 +315,7 @@ Source Metadata:
 
 ### Backend Mode
 
-Skills are uploaded to your active backend. The organization is resolved from the CLI context (see `stigmer context show`), or overridden with the `--org` flag:
+Skills are uploaded to your active backend. The organization is resolved from the CLI context (see `stigmer config context show`), or overridden with the `--org` flag:
 
 ```bash
 # Uses the active organization from context

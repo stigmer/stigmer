@@ -80,5 +80,5 @@ func resolveOrganization(cfg *config.Config, orgOverride string) (string, error)
 		return ctxOrg, nil
 	}
 
-	return "", fmt.Errorf("organization not set\n\nUse --org flag or run: stigmer context set --org <org-id>")
+	return "", fmt.Errorf("organization not set\n\nUse --org flag or run: stigmer config context set --org <org-id>")
 }

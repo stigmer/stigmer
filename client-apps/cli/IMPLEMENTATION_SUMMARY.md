@@ -77,9 +77,9 @@ stigmer init  # Create config, start daemon
 
 **Backend Management** (`backend.go`):
 ```bash
-stigmer backend status       # Show current backend
-stigmer backend set local    # Switch to local
-stigmer backend set cloud    # Switch to cloud
+stigmer config backend status       # Show current backend
+stigmer config backend set local    # Switch to local
+stigmer config backend set cloud    # Switch to cloud
 ```
 
 **Agent Operations** (`agent.go`):
@@ -139,7 +139,7 @@ client-apps/cli/
 │   └── root/
 │       ├── init.go                # stigmer init
 │       ├── local.go               # stigmer local *
-│       ├── backend.go             # stigmer backend *
+│       ├── backend.go             # stigmer config backend *
 │       ├── agent.go               # stigmer agent *
 │       ├── workflow.go            # stigmer workflow *
 │       └── version.go             # stigmer version
@@ -180,7 +180,7 @@ client-apps/cli/
 - CLI is thin client - just gRPC calls
 
 **3. Pulumi-Inspired Backend Switching**
-- `stigmer backend set local|cloud`
+- `stigmer config backend set local|cloud`
 - Seamless switching without code changes
 - Config-driven, not environment variables
 
@@ -265,9 +265,9 @@ Once build succeeds:
 
 2. **Test Backend Switching**:
    ```bash
-   stigmer backend status
-   stigmer backend set cloud
-   stigmer backend set local
+   stigmer config backend status
+   stigmer config backend set cloud
+   stigmer config backend set local
    ```
 
 3. **Integration Test**:
