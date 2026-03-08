@@ -15,25 +15,33 @@ import (
 // 2. Fetches Agent configuration via gRPC chain resolution
 // 3. Creates Graphton agent at runtime using create_deep_agent()
 // 4. Invokes agent with thread_id for state persistence
-// 5. Builds status locally during execution (messages, tool_calls, phase)
-// 6. Returns final status to workflow for observability
+// 5. Sends progressive status updates to DB via gRPC during execution
+// 6. Returns a slim status summary to the workflow
 //
-// Slim-Payload Pattern:
-// The activity receives only an executionID (not the full AgentExecution proto)
-// and hydrates it from the database.  This keeps Temporal activity payloads
-// small and bounded, avoiding the ~2 MB payload limit as status grows.
+// Slim-Payload Pattern (Input + Output):
+// Input:  The activity receives only an executionID (not the full AgentExecution
+//         proto) and hydrates it from the database.
+// Output: The activity returns a slim AgentExecutionStatus containing only
+//         workflow-critical fields: phase, pending_approvals, error, usage,
+//         started_at, and completed_at.  Heavy fields (messages, tool_calls,
+//         sub_agent_executions, todos, artifacts, context_info) are omitted
+//         because they are already persisted to the database via progressive
+//         gRPC updates during execution.
+// This keeps both input and output payloads well under Temporal's ~2 MB limit.
 //
 // Polyglot Pattern:
-// - Python activity builds the status locally
-// - Returns status to workflow
-// - Workflow calls Go persistence activity (separate task queue)
+// - Python activity sends real-time status to DB via gRPC
+// - Returns slim summary to workflow for orchestration decisions
 //
 // Graphton agents support thread-based state persistence via LangGraph.
 type ExecuteGraphtonActivity interface {
-	// ExecuteGraphton executes a Graphton agent and returns final status.
+	// ExecuteGraphton executes a Graphton agent and returns a slim status summary.
 	//
-	// Polyglot workflow pattern: Python activity fetches execution from DB,
-	// returns status to Go workflow for orchestration.
+	// The returned AgentExecutionStatus contains only workflow-critical fields
+	// (phase, pending_approvals, error, usage, timestamps).  Heavy fields like
+	// messages and tool_calls are already in the database from progressive gRPC
+	// updates sent during execution and are intentionally omitted to stay under
+	// Temporal's payload size limit.
 	//
 	// executionID: The AgentExecution ID to fetch and execute
 	// threadID: The LangGraph thread ID for conversation state persistence
@@ -42,7 +50,7 @@ type ExecuteGraphtonActivity interface {
 	//   a bare slice is not a proto.Message so the SDK would fall back to
 	//   json/plain encoding, which the Python worker cannot decode.
 	//
-	// Returns: Final execution status with messages, tool_calls, phase, etc.
+	// Returns: Slim execution status (phase, pending_approvals, error, usage).
 	ExecuteGraphton(executionID string, threadID string, approvalDecisions *agentexecutionv1.ApprovalDecisionList) (*agentexecutionv1.AgentExecutionStatus, error)
 }
 
