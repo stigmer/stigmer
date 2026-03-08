@@ -2,19 +2,39 @@ package root
 
 import (
 	"encoding/json"
+	"fmt"
+	"net"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
 )
 
 func init() {
 	color.NoColor = true
+}
+
+func daemonPortInUse() bool {
+	conn, err := net.DialTimeout("tcp", fmt.Sprintf("localhost:%d", daemon.DaemonPort), 500*time.Millisecond)
+	if err != nil {
+		return false
+	}
+	conn.Close()
+	return true
+}
+
+func skipIfDaemonRunning(t *testing.T) {
+	t.Helper()
+	if daemonPortInUse() {
+		t.Skipf("skipping: stigmer daemon is already running on port %d", daemon.DaemonPort)
+	}
 }
 
 // localAnthropicConfig returns a config with a non-Ollama LLM provider,
@@ -199,6 +219,7 @@ func TestJSONOutput_WarningPaths(t *testing.T) {
 		handler        func()
 		wantStatus     string
 		wantMsgContain string
+		needsNoDaemon  bool
 	}{
 		{
 			name:           "server stop not running",
@@ -206,6 +227,7 @@ func TestJSONOutput_WarningPaths(t *testing.T) {
 			handler:        func() { handleServerStop(clioutput.FormatJSON) },
 			wantStatus:     "warning",
 			wantMsgContain: "not running",
+			needsNoDaemon:  true,
 		},
 		{
 			name:           "server status not running",
@@ -213,6 +235,7 @@ func TestJSONOutput_WarningPaths(t *testing.T) {
 			handler:        func() { handleServerStatus(clioutput.FormatJSON) },
 			wantStatus:     "warning",
 			wantMsgContain: "not running",
+			needsNoDaemon:  true,
 		},
 		{
 			name:           "llm list non-ollama provider",
@@ -232,6 +255,9 @@ func TestJSONOutput_WarningPaths(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.needsNoDaemon {
+				skipIfDaemonRunning(t)
+			}
 			setupTestHome(t, tt.config)
 
 			stdout := captureStdout(t, tt.handler)
@@ -254,23 +280,27 @@ func TestJSONOutput_WarningPaths(t *testing.T) {
 
 func TestQuietOutput_StdoutIsEmpty(t *testing.T) {
 	tests := []struct {
-		name    string
-		config  string
-		handler func()
+		name          string
+		config        string
+		handler       func()
+		needsNoDaemon bool
 	}{
-		{"config list", localAnthropicConfig(), func() { handleConfigList(clioutput.FormatQuiet) }},
-		{"config set", localAnthropicConfig(), func() { handleConfigSet("llm.model", "claude-sonnet-4.5", clioutput.FormatQuiet) }},
-		{"backend status", localAnthropicConfig(), func() { handleBackendStatus(clioutput.FormatQuiet) }},
-		{"backend set local", localAnthropicConfig(), func() { handleBackendSet("local", clioutput.FormatQuiet) }},
-		{"llm status", localAnthropicConfig(), func() { handleLLMStatus(clioutput.FormatQuiet) }},
-		{"server stop not running", localAnthropicConfig(), func() { handleServerStop(clioutput.FormatQuiet) }},
-		{"server status not running", localAnthropicConfig(), func() { handleServerStatus(clioutput.FormatQuiet) }},
-		{"llm list non-ollama", localAnthropicConfig(), func() { handleLLMList(clioutput.FormatQuiet) }},
-		{"llm pull non-ollama", localAnthropicConfig(), func() { handleLLMPull("test-model", clioutput.FormatQuiet) }},
+		{"config list", localAnthropicConfig(), func() { handleConfigList(clioutput.FormatQuiet) }, false},
+		{"config set", localAnthropicConfig(), func() { handleConfigSet("llm.model", "claude-sonnet-4.5", clioutput.FormatQuiet) }, false},
+		{"backend status", localAnthropicConfig(), func() { handleBackendStatus(clioutput.FormatQuiet) }, false},
+		{"backend set local", localAnthropicConfig(), func() { handleBackendSet("local", clioutput.FormatQuiet) }, false},
+		{"llm status", localAnthropicConfig(), func() { handleLLMStatus(clioutput.FormatQuiet) }, false},
+		{"server stop not running", localAnthropicConfig(), func() { handleServerStop(clioutput.FormatQuiet) }, true},
+		{"server status not running", localAnthropicConfig(), func() { handleServerStatus(clioutput.FormatQuiet) }, true},
+		{"llm list non-ollama", localAnthropicConfig(), func() { handleLLMList(clioutput.FormatQuiet) }, false},
+		{"llm pull non-ollama", localAnthropicConfig(), func() { handleLLMPull("test-model", clioutput.FormatQuiet) }, false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.needsNoDaemon {
+				skipIfDaemonRunning(t)
+			}
 			setupTestHome(t, tt.config)
 
 			stdout := captureStdout(t, tt.handler)
