@@ -41,7 +41,7 @@ func (c *AgentExecutionController) buildDeletePipeline() *pipeline.Pipeline[*api
 		AddStep(steps.NewValidateProtoStep[*apiresource.ApiResourceId]()).                                                  // 1. Validate input
 		AddStep(steps.NewExtractResourceIdStep[*apiresource.ApiResourceId]()).                                              // 2. Extract ID from wrapper
 		AddStep(steps.NewLoadExistingForDeleteStep[*apiresource.ApiResourceId, *agentexecutionv1.AgentExecution](c.store)). // 3. Load existing
-		AddStep(steps.NewDeleteResourceStep[*apiresource.ApiResourceId](c.store)).        // 4. Delete from database
-		AddStep(steps.NewDeleteSearchIndexStep[*apiresource.ApiResourceId](c.store)). // 5. Remove from search index
+		AddStep(steps.NewDeleteResourceStep[*apiresource.ApiResourceId](c.store)).                                          // 4. Delete from database
+		AddStep(steps.NewDeleteSearchIndexStep[*apiresource.ApiResourceId](c.store)).                                       // 5. Remove from search index
 		Build()
 }

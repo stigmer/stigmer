@@ -109,4 +109,3 @@ func TestNormalizeScore(t *testing.T) {
 		})
 	}
 }
-

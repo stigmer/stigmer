@@ -39,11 +39,11 @@ func (c *SessionController) buildUpdatePipeline() *pipeline.Pipeline[*sessionv1.
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*sessionv1.Session]("session-update").
-		AddStep(steps.NewValidateProtoStep[*sessionv1.Session]()).       // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*sessionv1.Session]()).         // 2. Resolve slug
-		AddStep(steps.NewLoadExistingStep[*sessionv1.Session](c.store)). // 3. Load existing session
-		AddStep(steps.NewBuildUpdateStateStep[*sessionv1.Session]()).    // 4. Build updated state
-		AddStep(steps.NewPersistStep[*sessionv1.Session](c.store)).                                     // 5. Persist session
+		AddStep(steps.NewValidateProtoStep[*sessionv1.Session]()).                                     // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*sessionv1.Session]()).                                       // 2. Resolve slug
+		AddStep(steps.NewLoadExistingStep[*sessionv1.Session](c.store)).                               // 3. Load existing session
+		AddStep(steps.NewBuildUpdateStateStep[*sessionv1.Session]()).                                  // 4. Build updated state
+		AddStep(steps.NewPersistStep[*sessionv1.Session](c.store)).                                    // 5. Persist session
 		AddStep(steps.NewIndexSearchStep[*sessionv1.Session](c.store, &extractor.SessionExtractor{})). // 6. Update search index
 		Build()
 }

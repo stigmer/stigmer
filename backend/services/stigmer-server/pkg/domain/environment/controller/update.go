@@ -39,12 +39,12 @@ func (c *EnvironmentController) buildUpdatePipeline() *pipeline.Pipeline[*enviro
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*environmentv1.Environment]("environment-update").
-		AddStep(steps.NewValidateProtoStep[*environmentv1.Environment]()).       // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*environmentv1.Environment]()).         // 2. Resolve slug
-		AddStep(steps.NewLoadExistingStep[*environmentv1.Environment](c.store)). // 3. Load existing environment
-		AddStep(steps.NewBuildUpdateStateStep[*environmentv1.Environment]()).    // 4. Build updated state
-		AddStep(steps.NewNormalizeReferencesStep[*environmentv1.Environment]()). // 5. Normalize cross-references
-		AddStep(steps.NewPersistStep[*environmentv1.Environment](c.store)).                                             // 6. Persist environment
+		AddStep(steps.NewValidateProtoStep[*environmentv1.Environment]()).                                         // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*environmentv1.Environment]()).                                           // 2. Resolve slug
+		AddStep(steps.NewLoadExistingStep[*environmentv1.Environment](c.store)).                                   // 3. Load existing environment
+		AddStep(steps.NewBuildUpdateStateStep[*environmentv1.Environment]()).                                      // 4. Build updated state
+		AddStep(steps.NewNormalizeReferencesStep[*environmentv1.Environment]()).                                   // 5. Normalize cross-references
+		AddStep(steps.NewPersistStep[*environmentv1.Environment](c.store)).                                        // 6. Persist environment
 		AddStep(steps.NewIndexSearchStep[*environmentv1.Environment](c.store, &extractor.EnvironmentExtractor{})). // 7. Update search index
 		Build()
 }

@@ -40,12 +40,12 @@ func (c *AgentExecutionController) Update(ctx context.Context, execution *agente
 // buildUpdatePipeline constructs the pipeline for agent execution updates
 func (c *AgentExecutionController) buildUpdatePipeline() *pipeline.Pipeline[*agentexecutionv1.AgentExecution] {
 	return pipeline.NewPipeline[*agentexecutionv1.AgentExecution]("agent-execution-update").
-		AddStep(steps.NewValidateProtoStep[*agentexecutionv1.AgentExecution]()).       // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*agentexecutionv1.AgentExecution]()).         // 2. Resolve slug
-		AddStep(steps.NewLoadExistingStep[*agentexecutionv1.AgentExecution](c.store)). // 3. Load existing
-		AddStep(steps.NewBuildUpdateStateStep[*agentexecutionv1.AgentExecution]()).    // 4. Build updated state
-		AddStep(steps.NewNormalizeReferencesStep[*agentexecutionv1.AgentExecution]()). // 5. Normalize cross-references
-		AddStep(steps.NewPersistStep[*agentexecutionv1.AgentExecution](c.store)).                                                 // 6. Persist
+		AddStep(steps.NewValidateProtoStep[*agentexecutionv1.AgentExecution]()).                                            // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*agentexecutionv1.AgentExecution]()).                                              // 2. Resolve slug
+		AddStep(steps.NewLoadExistingStep[*agentexecutionv1.AgentExecution](c.store)).                                      // 3. Load existing
+		AddStep(steps.NewBuildUpdateStateStep[*agentexecutionv1.AgentExecution]()).                                         // 4. Build updated state
+		AddStep(steps.NewNormalizeReferencesStep[*agentexecutionv1.AgentExecution]()).                                      // 5. Normalize cross-references
+		AddStep(steps.NewPersistStep[*agentexecutionv1.AgentExecution](c.store)).                                           // 6. Persist
 		AddStep(steps.NewIndexSearchStep[*agentexecutionv1.AgentExecution](c.store, &extractor.AgentExecutionExtractor{})). // 7. Update search index
 		Build()
 }

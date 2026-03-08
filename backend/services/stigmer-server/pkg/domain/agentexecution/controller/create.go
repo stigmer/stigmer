@@ -70,19 +70,19 @@ func (c *AgentExecutionController) Create(ctx context.Context, execution *agente
 // buildCreatePipeline constructs the pipeline for agent execution creation
 func (c *AgentExecutionController) buildCreatePipeline() *pipeline.Pipeline[*agentexecutionv1.AgentExecution] {
 	return pipeline.NewPipeline[*agentexecutionv1.AgentExecution]("agent-execution-create").
-		AddStep(steps.NewValidateProtoStep[*agentexecutionv1.AgentExecution]()).                      // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*agentexecutionv1.AgentExecution]()).                        // 2. Resolve slug
-		AddStep(newValidateSessionOrAgentStep()).                                                     // 3. Validate session_id OR agent_id
-		AddStep(steps.NewBuildNewStateStep[*agentexecutionv1.AgentExecution]()).                      // 4. Build new state
-		AddStep(steps.NewNormalizeReferencesStep[*agentexecutionv1.AgentExecution]()).                // 5. Normalize cross-references
-		AddStep(newCreateDefaultInstanceIfNeededStep(c.agentClient, c.agentInstanceClient, c.store)). // 6. Create default instance if needed
-		AddStep(newCreateSessionIfNeededStep(c.agentClient, c.sessionClient)).                        // 6. Create session if needed
-		AddStep(newSetInitialPhaseStep()).                                                            // 7. Set phase to PENDING
-		AddStep(c.newCreateExecutionContextStep()).                                                   // 8. Create ExecutionContext with merged environment
-		AddStep(c.newProcessAttachmentsStep()).                                                       // 9. Process attachments (upload large files to storage)
-		AddStep(steps.NewPersistStep[*agentexecutionv1.AgentExecution](c.store)).                                                 // 9. Persist execution
+		AddStep(steps.NewValidateProtoStep[*agentexecutionv1.AgentExecution]()).                                            // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*agentexecutionv1.AgentExecution]()).                                              // 2. Resolve slug
+		AddStep(newValidateSessionOrAgentStep()).                                                                           // 3. Validate session_id OR agent_id
+		AddStep(steps.NewBuildNewStateStep[*agentexecutionv1.AgentExecution]()).                                            // 4. Build new state
+		AddStep(steps.NewNormalizeReferencesStep[*agentexecutionv1.AgentExecution]()).                                      // 5. Normalize cross-references
+		AddStep(newCreateDefaultInstanceIfNeededStep(c.agentClient, c.agentInstanceClient, c.store)).                       // 6. Create default instance if needed
+		AddStep(newCreateSessionIfNeededStep(c.agentClient, c.sessionClient)).                                              // 6. Create session if needed
+		AddStep(newSetInitialPhaseStep()).                                                                                  // 7. Set phase to PENDING
+		AddStep(c.newCreateExecutionContextStep()).                                                                         // 8. Create ExecutionContext with merged environment
+		AddStep(c.newProcessAttachmentsStep()).                                                                             // 9. Process attachments (upload large files to storage)
+		AddStep(steps.NewPersistStep[*agentexecutionv1.AgentExecution](c.store)).                                           // 9. Persist execution
 		AddStep(steps.NewIndexSearchStep[*agentexecutionv1.AgentExecution](c.store, &extractor.AgentExecutionExtractor{})). // 10. Update search index
-		AddStep(c.newStartWorkflowStep()).                                                                                    // 11. Start Temporal workflow
+		AddStep(c.newStartWorkflowStep()).                                                                                  // 11. Start Temporal workflow
 		Build()
 }
 

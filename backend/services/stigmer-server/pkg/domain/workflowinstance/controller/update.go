@@ -32,12 +32,12 @@ func (c *WorkflowInstanceController) Update(ctx context.Context, instance *workf
 // buildUpdatePipeline constructs the pipeline for workflow instance update
 func (c *WorkflowInstanceController) buildUpdatePipeline() *pipeline.Pipeline[*workflowinstancev1.WorkflowInstance] {
 	return pipeline.NewPipeline[*workflowinstancev1.WorkflowInstance]("workflow-instance-update").
-		AddStep(steps.NewValidateProtoStep[*workflowinstancev1.WorkflowInstance]()).       // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*workflowinstancev1.WorkflowInstance]()).         // 2. Resolve slug
-		AddStep(steps.NewLoadExistingStep[*workflowinstancev1.WorkflowInstance](c.store)). // 3. Load existing instance
-		AddStep(steps.NewBuildUpdateStateStep[*workflowinstancev1.WorkflowInstance]()).    // 4. Build updated state (merge spec, preserve status, update audit)
-		AddStep(steps.NewNormalizeReferencesStep[*workflowinstancev1.WorkflowInstance]()). // 5. Normalize cross-references
-		AddStep(steps.NewPersistStep[*workflowinstancev1.WorkflowInstance](c.store)).                                                 // 6. Persist workflow instance
+		AddStep(steps.NewValidateProtoStep[*workflowinstancev1.WorkflowInstance]()).                                              // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*workflowinstancev1.WorkflowInstance]()).                                                // 2. Resolve slug
+		AddStep(steps.NewLoadExistingStep[*workflowinstancev1.WorkflowInstance](c.store)).                                        // 3. Load existing instance
+		AddStep(steps.NewBuildUpdateStateStep[*workflowinstancev1.WorkflowInstance]()).                                           // 4. Build updated state (merge spec, preserve status, update audit)
+		AddStep(steps.NewNormalizeReferencesStep[*workflowinstancev1.WorkflowInstance]()).                                        // 5. Normalize cross-references
+		AddStep(steps.NewPersistStep[*workflowinstancev1.WorkflowInstance](c.store)).                                             // 6. Persist workflow instance
 		AddStep(steps.NewIndexSearchStep[*workflowinstancev1.WorkflowInstance](c.store, &extractor.WorkflowInstanceExtractor{})). // 7. Update search index
 		Build()
 }

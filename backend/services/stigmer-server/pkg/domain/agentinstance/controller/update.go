@@ -39,12 +39,12 @@ func (c *AgentInstanceController) buildUpdatePipeline() *pipeline.Pipeline[*agen
 	// api_resource_kind is automatically extracted from proto service descriptor
 	// by the apiresource interceptor and injected into request context
 	return pipeline.NewPipeline[*agentinstancev1.AgentInstance]("agent-instance-update").
-		AddStep(steps.NewValidateProtoStep[*agentinstancev1.AgentInstance]()).       // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*agentinstancev1.AgentInstance]()).         // 2. Resolve slug
-		AddStep(steps.NewLoadExistingStep[*agentinstancev1.AgentInstance](c.store)). // 3. Load existing instance
-		AddStep(steps.NewBuildUpdateStateStep[*agentinstancev1.AgentInstance]()).    // 4. Build updated state
-		AddStep(steps.NewNormalizeReferencesStep[*agentinstancev1.AgentInstance]()). // 5. Normalize cross-references
-		AddStep(steps.NewPersistStep[*agentinstancev1.AgentInstance](c.store)).                                             // 6. Persist instance
+		AddStep(steps.NewValidateProtoStep[*agentinstancev1.AgentInstance]()).                                           // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*agentinstancev1.AgentInstance]()).                                             // 2. Resolve slug
+		AddStep(steps.NewLoadExistingStep[*agentinstancev1.AgentInstance](c.store)).                                     // 3. Load existing instance
+		AddStep(steps.NewBuildUpdateStateStep[*agentinstancev1.AgentInstance]()).                                        // 4. Build updated state
+		AddStep(steps.NewNormalizeReferencesStep[*agentinstancev1.AgentInstance]()).                                     // 5. Normalize cross-references
+		AddStep(steps.NewPersistStep[*agentinstancev1.AgentInstance](c.store)).                                          // 6. Persist instance
 		AddStep(steps.NewIndexSearchStep[*agentinstancev1.AgentInstance](c.store, &extractor.AgentInstanceExtractor{})). // 7. Update search index
 		Build()
 }
