@@ -30,20 +30,25 @@ type ParsedReference struct {
 // Parse parses a resource reference string into its components.
 //
 // The function handles multiple reference formats:
-//   - Resource IDs: Detected by prefix from ApiResourceKind enum (e.g., agt_, agt-, mcp_, mcp-)
+//   - Resource IDs: prefix + separator + 26-char ULID (e.g., agt_01ARZ3NDEKTSV4RRFFQ69G5FAV), or UUID
 //   - org/slug: Explicit organization and slug
 //   - org/slug@version: With version suffix
 //   - slug: Slug-only, requires contextOrg to be provided
+//
+// Resource ID detection is strict: the body after the prefix must be exactly 26 characters
+// (ULID length). This prevents slugs like "mcp-server-stigmer" from being misidentified
+// as resource IDs just because they start with a known prefix.
 //
 // The contextOrg parameter provides the default organization for slug-only references.
 // If contextOrg is empty and a slug-only reference is provided, ErrOrgRequired is returned.
 //
 // Examples:
 //
-//	Parse("stigmer/web-search", "")       // org=stigmer, slug=web-search
-//	Parse("web-search", "my-org")         // org=my-org, slug=web-search
-//	Parse("agt_abc123", "")               // IsID=true, ID=agt_abc123
-//	Parse("stigmer/skill@v1.0", "")       // org=stigmer, slug=skill, version=v1.0
+//	Parse("stigmer/web-search", "")                        // org=stigmer, slug=web-search
+//	Parse("web-search", "my-org")                          // org=my-org, slug=web-search
+//	Parse("agt_01ARZ3NDEKTSV4RRFFQ69G5FAV", "")           // IsID=true
+//	Parse("stigmer/skill@v1.0", "")                        // org=stigmer, slug=skill, version=v1.0
+//	Parse("mcp-server-stigmer", "default")                 // org=default, slug=mcp-server-stigmer
 func Parse(ref string, contextOrg string) (*ParsedReference, error) {
 	ref = strings.TrimSpace(ref)
 
@@ -51,8 +56,10 @@ func Parse(ref string, contextOrg string) (*ParsedReference, error) {
 		return nil, newParseError("", "reference string is empty", ErrEmptyReference)
 	}
 
-	// Check if this is a resource ID
-	if isResourceID(ref) {
+	// Check if this is a fully valid resource ID (prefix + separator + 26-char ULID, or UUID).
+	// We use strict validation here to avoid misidentifying slugs that happen to
+	// start with a known prefix (e.g., "mcp-server-stigmer" starts with "mcp-").
+	if ValidateResourceID(ref) == nil {
 		return &ParsedReference{
 			IsID: true,
 			ID:   ref,
