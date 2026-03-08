@@ -148,9 +148,10 @@ release: ## Tag and push a release (usage: make release [bump=patch|minor|major]
 		echo "error: tag $$NEW_TAG already exists" && exit 1; \
 	fi; \
 	echo "$$LATEST_TAG -> $$NEW_TAG"; \
+	git tag -a "apis/stubs/go/$$NEW_TAG" -m "Release apis/stubs/go $$NEW_TAG"; \
 	git tag -a "$$NEW_TAG" -m "Release $$NEW_TAG"; \
 	git tag -a "mcp-server/$$NEW_TAG" -m "Release mcp-server $$NEW_TAG"; \
-	git push origin "$$NEW_TAG" "mcp-server/$$NEW_TAG"
+	git push origin "apis/stubs/go/$$NEW_TAG" "$$NEW_TAG" "mcp-server/$$NEW_TAG"
 
 protos-release: ## Publish protos to Buf, then tag release
 	$(MAKE) -C apis release
