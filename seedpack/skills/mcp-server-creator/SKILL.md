@@ -1,194 +1,147 @@
 ---
 name: mcp-server-creator
 description: >
-  Creates and validates Stigmer McpServer YAML files conforming to the
-  agentic.stigmer.ai/v1 API. Use this skill when a user wants to:
-  - Create a new McpServer resource for any external tool integration
-    (GitHub, Slack, PostgreSQL, custom HTTP services, etc.)
-  - Configure tool availability (default_enabled_tools) or approval policies
-    (default_tool_approvals) for an existing or new McpServer
-  - Understand how an MCP server connects to agents via mcp_server_usages
-  - Validate or troubleshoot an existing McpServer YAML
-  This skill covers both stdio (subprocess) and http (remote service) transport types.
+  Create valid, production-quality Stigmer McpServer YAML files conforming to the
+  agentic.stigmer.ai/v1 API. Use this skill when users want to: (1) create a new
+  McpServer resource for connecting agents to external tools (GitHub, Slack, databases,
+  custom APIs), (2) configure MCP server transport (stdio subprocess or HTTP endpoint),
+  (3) declare environment variable requirements and credential contracts, (4) set default
+  tool gates and approval policies for human-in-the-loop safety, (5) understand how agents
+  reference McpServers via mcp_server_usages. Triggers on requests mentioning MCP server,
+  McpServer, tool integration, or connecting an agent to an external service.
 ---
 
 # MCP Server Creator
 
-Produces valid, production-quality `agentic.stigmer.ai/v1` McpServer YAML files.
+Create valid `agentic.stigmer.ai/v1` McpServer YAML resources. Follow the six-step
+workflow below in order for every McpServer creation request.
 
-## Workflow
+## Step 1 — Understand the MCP Server
 
-Follow these six steps in order. Never skip step 5 (validation).
+Before writing any YAML, gather these details from the user:
 
-### Step 1 — Understand the Integration
+1. **External system** — What does the MCP server connect to? (GitHub, Slack, a database, a custom API, etc.)
+2. **Server type** — Is it a CLI tool started as a subprocess (`stdio`) or a remote HTTP service (`http`)?
+   - If the user mentions `npx`, `python -m`, `uvx`, a Go binary, or any CLI command → `stdio`
+   - If the user mentions a URL, hosted service, or API gateway → `http`
+   - When in doubt, default to `stdio` — the vast majority of MCP servers use it
+3. **Credentials** — What environment variables does the server need? Which are secrets?
+4. **Tools** — What tools should be enabled by default? Which tools are destructive and need approval?
+5. **Ownership** — What organization owns this server? Should it be public (marketplace) or private?
 
-Before writing any YAML, gather:
+If the user has already provided sufficient context, proceed directly. Do not ask questions
+the user has already answered.
 
-1. **External system**: What does this MCP server connect to? (GitHub, Slack, a database, an internal API?)
-2. **Transport type**: Is this a CLI-based server started as a subprocess (`stdio`), or a remote service already running over the network (`http`)?
-   - Default to `stdio` for any `npx`, `python -m`, or binary-based server
-   - Use `http` only for services with a persistent HTTP endpoint
-3. **Credentials**: What API keys, tokens, or connection strings does it need?
-   - Which are secret (encrypted, redacted in logs)?
-   - Which are non-secret configuration values?
-4. **Tools**: Does the user know which tools the server exposes? (If not, they can discover them after applying)
-5. **Safety constraints**: Are there destructive operations that should require human approval by default?
-6. **Scope**: Is this for the user's org only (`visibility_private`) or for the marketplace (`visibility_public`)?
+## Step 2 — Choose the Server Type
 
-Ask only the questions needed to fill gaps. If the user says "create a GitHub MCP server," you already know enough to write a solid first draft.
+Exactly one of `stdio` or `http` must be specified. This is a proto `oneof` with `required` validation — omitting both or specifying both fails.
 
-### Step 2 — Choose the Right Server Type
-
-**Use `stdio`** (most common) when:
-- The server is a Node.js package: `npx @modelcontextprotocol/server-github`
-- The server is a Python module: `python -m mcp_server_sqlite`
-- The server is a compiled binary on disk
-- The server is for local or single-agent use
-
-**Use `http`** when:
-- There is already a running service with an HTTP endpoint
-- The service is shared across many concurrent agents
-- The server is behind an API gateway or reverse proxy
-
-### Step 3 — Draft the YAML
-
-Use `references/schema.md` for the full field reference. Key rules:
-
-**Top-level (always):**
+**Use `stdio`** (most common) for subprocess-based servers:
 ```yaml
-apiVersion: agentic.stigmer.ai/v1
-kind: McpServer          # exact PascalCase — never mcpserver, mcp_server, etc.
-metadata:
-  name: <human-readable-name>
-  org: default           # or explicit org slug — required for cloud
 spec:
-  description: "<what it does and why>"
-  stdio: ...             # exactly one of stdio or http
+  stdio:
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-github"]
 ```
 
-**env_spec — schema only, never values for secrets:**
+**Use `http`** for remote/managed services:
 ```yaml
-env_spec:
-  data:
-    MY_TOKEN:
-      description: "Token with X scope"
-      is_secret: true    # encrypted, redacted in logs
-    MY_REGION:
-      description: "AWS region (e.g., us-east-1)"
-      is_secret: false   # plaintext
+spec:
+  http:
+    url: "https://mcp.example.com/v1"
+    headers:
+      Authorization: "Bearer ${API_TOKEN}"
+    timeout_seconds: 45
 ```
 
-**default_enabled_tools — only if you know real tool names:**
+For field details, see [references/schema.md](references/schema.md).
+
+## Step 3 — Configure Environment Variables
+
+Declare every environment variable in `env_spec.data`. For each variable:
+- Set `is_secret: true` for API tokens, passwords, private keys
+- Set `is_secret: false` for regions, org names, URLs, feature flags
+- Write a `description` that specifies required permissions/format
+- **Never pre-fill `value` for secrets** — values are provided at runtime via AgentInstance
+
 ```yaml
-default_enabled_tools:
-  - search_code          # must match tools/list output exactly
-  - get_file_contents
+spec:
+  env_spec:
+    data:
+      GITHUB_TOKEN:
+        description: "GitHub personal access token with repo and read:org scopes"
+        is_secret: true
+      GITHUB_OWNER:
+        description: "Default GitHub organization or username"
+        is_secret: false
 ```
 
-**default_tool_approvals — for destructive or sensitive operations:**
-```yaml
-default_tool_approvals:
-  - tool_name: delete_repository
-    message: "Delete repository: {{args.repo}}"    # {{args.field}} syntax
-```
+For HTTP servers, ensure every `${VAR_NAME}` in headers/query_params has a matching `env_spec` entry.
 
-**HTTP servers — use `${VAR_NAME}` for env var substitution (not `{{}}`):**
-```yaml
-http:
-  url: "https://api.example.com/mcp"
-  headers:
-    Authorization: "Bearer ${API_TOKEN}"     # ${VAR} — resolved from AgentInstance env
-```
+## Step 4 — Set Default Tools and Approval Policies
 
-See `references/examples.md` for complete annotated examples for every pattern.
+### Default Enabled Tools
+Use `default_enabled_tools` to gate which tools are available by default. Empty = all tools enabled. Agents can only restrict further, never expand beyond this list.
 
-### Step 4 — Configure Tool Safety
+### Default Tool Approvals
+Use `default_tool_approvals` for destructive or sensitive operations. Each entry needs:
+- `tool_name` — exact name from the server's `tools/list` (case-sensitive)
+- `message` — approval prompt with `{{args.field}}` placeholders for context
 
-Help the user decide what goes in `default_tool_approvals`:
+**Tool names must be verified, not guessed.** If the user doesn't know exact tool names, recommend running `stigmer discover mcp-server <slug>` after applying, then updating the YAML with discovered names.
 
-- **Destructive operations** (delete, drop, truncate, force-push): always require approval
-- **Irreversible communications** (send email, post message): usually require approval
-- **Read-only operations** (search, get, list, describe): approval is usually unnecessary
-- **Write operations that can be reviewed** (create PR, create issue): judgment call
+For the approval policy chain and message template syntax, see [references/agent-integration.md](references/agent-integration.md).
 
-For the approval `message`:
-- Use `{{args.field_name}}` to show actual argument values at approval time
-- Check the tool's `input_schema.properties` keys (from discovery) for valid field names
-- Keep under 100 characters
-- Use action verbs: "Delete", "Send", "Execute", "Create"
+## Step 5 — Validate the YAML
 
-If the user doesn't know exact tool names yet, write the YAML with a placeholder note and remind them to run discovery.
+Before presenting the final YAML, verify every rule in [references/validation.md](references/validation.md). Critical checks:
 
-### Step 5 — Validate (Always)
+1. `apiVersion` is exactly `agentic.stigmer.ai/v1`
+2. `kind` is exactly `McpServer` (PascalCase)
+3. `metadata.name` is present
+4. Exactly one of `spec.stdio` or `spec.http` is specified
+5. `spec.stdio.command` is present (for stdio servers)
+6. `spec.http.url` is a valid HTTP/HTTPS URL (for http servers)
+7. No `status` fields are set (system-managed)
+8. No secret values pre-filled in `env_spec`
+9. Slug format: `^[a-z][a-z0-9-]*$`, 1–63 chars (if specified)
+10. `${VAR_NAME}` syntax in HTTP headers/params (not `{{}}`)
+11. `{{args.field}}` syntax in approval messages (not `${}`)
 
-Before presenting the final YAML, verify every item in `references/validation-checklist.md`.
+## Step 6 — Explain Agent Integration
 
-**The seven critical checks:**
-1. `apiVersion: agentic.stigmer.ai/v1` — exact string
-2. `kind: McpServer` — PascalCase exactly
-3. Exactly one of `stdio` or `http` in `spec`
-4. No secret values pre-filled in `env_spec`
-5. No `status` fields set by the user
-6. `${VAR_NAME}` only in HTTP headers/params; `{{args.field}}` only in approval messages
-7. Tool names flagged as unverified if not confirmed from `tools/list`
-
-### Step 6 — Explain Agent Integration
-
-After delivering the McpServer YAML, explain how an agent references it:
+After delivering the McpServer YAML, explain how agents reference it:
 
 ```yaml
-# In Agent spec — referencing the McpServer by slug
+# In an Agent spec
 spec:
   mcp_server_usages:
     - mcp_server_ref:
-        kind: mcp_server     # snake_case in references (different from resource kind)
-        slug: github         # matches McpServer metadata.slug
-      enabled_tools:         # optional — restricts agent to subset of default_enabled_tools
-        - search_code
-        - get_file_contents
-      tool_approval_overrides:  # optional — per-agent approval customization
-        - tool_name: merge_pull_request
-          requires_approval: false   # trust this agent
+        kind: mcp_server
+        slug: <mcpserver-slug>    # matches the McpServer's metadata.slug
+      enabled_tools:              # optional — subset of default_enabled_tools
+        - tool_one
+        - tool_two
+      tool_approval_overrides:    # optional — per-agent customization
+        - tool_name: dangerous_tool
+          requires_approval: true
+          message: "Custom approval message"
 ```
 
-And give the CLI commands to complete the workflow:
-```bash
-# 1. Apply the McpServer
-stigmer apply -f mcpserver.yaml
+Key points to convey:
+- The McpServer contains no secrets — credentials come from AgentInstance's environment binding
+- Agents reference by `org/slug` — slug is auto-generated from `metadata.name` if not set
+- The three-layer approval chain: McpServer defaults → Agent overrides → Execution bypass
+- After applying, run `stigmer discover mcp-server <slug>` to populate tool metadata
+- In references, use `kind: mcp_server` (snake_case), not `kind: McpServer` (PascalCase)
 
-# 2. Discover tools (populates status.discovered_capabilities)
-stigmer discover mcp-server <slug>
-
-# 3. Verify — check validation_state and tool names
-stigmer get mcp-server <slug> --output yaml
-```
-
----
+For complete agent integration details, see [references/agent-integration.md](references/agent-integration.md).
 
 ## Reference Files
 
-Load these when you need detailed information:
-
-- **`references/schema.md`** — Complete field reference for every McpServer field, derived from the proto definitions. Load when you need precise field constraints, allowed values, or details about stdio vs http config.
-
-- **`references/examples.md`** — Annotated YAML examples from minimal to marketplace-ready (GitHub, PostgreSQL, Slack, HTTP service, multi-tenant). Load when constructing a YAML or when the user asks for an example to start from.
-
-- **`references/agent-integration.md`** — How agents reference McpServers via `mcp_server_usages`, how `enabled_tools` restricts tool access, how `tool_approval_overrides` customizes the approval chain, and how sub-agents get scoped MCP access. Load when the user asks about agent-side configuration after creating the McpServer.
-
-- **`references/validation-checklist.md`** — Pre-apply checklist and detailed pitfall explanations (wrong kind case, both/neither server types, syntax confusion, silent tool name failures). Load during step 5 validation or when debugging a broken YAML.
-
----
-
-## Key Constraints Summary
-
-| Rule | Detail |
-|---|---|
-| `apiVersion` | Must be exactly `agentic.stigmer.ai/v1` |
-| `kind` | Must be exactly `McpServer` |
-| Server type | Exactly one of `stdio` or `http` — proto `oneof required` |
-| Slug format | `^[a-z][a-z0-9-]*$`, 1–63 chars — no underscores, no uppercase |
-| Secret values | Never pre-fill in McpServer spec — values belong in AgentInstance |
-| Tool names | Case-sensitive, must match `tools/list` exactly — silent ignore if wrong |
-| HTTP env vars | `${VAR_NAME}` syntax in headers/params |
-| Approval messages | `{{args.field}}` syntax — not `${}` |
-| Status fields | Never set by users |
+| File | When to Read |
+|------|-------------|
+| [references/schema.md](references/schema.md) | Need field-level details for any McpServer spec field |
+| [references/examples.md](references/examples.md) | Need complete YAML examples (minimal → marketplace-ready) |
+| [references/validation.md](references/validation.md) | Need the full validation checklist before presenting YAML |
+| [references/agent-integration.md](references/agent-integration.md) | Need to explain how agents reference McpServers, tool approval chain, or sub-agent access |

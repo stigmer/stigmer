@@ -1,20 +1,8 @@
 # McpServer YAML Examples
 
-Annotated examples from minimal to marketplace-ready. All are valid and can be applied directly.
+Complete examples from minimal to marketplace-ready. All examples use valid field values.
 
-## Table of Contents
-1. [Minimal stdio server](#minimal-stdio-server)
-2. [stdio with credentials](#stdio-with-credentials)
-3. [stdio with tool restrictions and approvals](#stdio-with-tool-restrictions-and-approvals)
-4. [HTTP server with authentication](#http-server-with-authentication)
-5. [HTTP multi-tenant service](#http-multi-tenant-service)
-6. [Marketplace-ready public server](#marketplace-ready-public-server)
-
----
-
-## Minimal stdio Server
-
-Smallest valid McpServer — enough to reference from an agent immediately.
+## Minimal Stdio Server
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -28,24 +16,13 @@ spec:
     args: ["-y", "@modelcontextprotocol/server-github"]
 ```
 
-**After applying:**
-```bash
-stigmer apply -f mcpserver.yaml
-stigmer discover mcp-server github   # populate tool names
-```
-
----
-
-## stdio with Credentials
-
-Standard pattern: declare required environment variables without values. Values are provided via AgentInstance at runtime.
+## Stdio Server with Environment Variables
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
 kind: McpServer
 metadata:
   name: github
-  org: acme-corp
   tags:
     - git
     - vcs
@@ -59,52 +36,13 @@ spec:
     data:
       GITHUB_TOKEN:
         description: "GitHub personal access token with repo and read:org scopes"
-        is_secret: true       # encrypted at rest, redacted in logs
+        is_secret: true
       GITHUB_OWNER:
         description: "Default GitHub organization or username (e.g., acme-corp)"
-        is_secret: false      # plaintext, visible in audit logs
+        is_secret: false
 ```
 
----
-
-## stdio with Tool Restrictions and Approvals
-
-Database server: dangerous tools excluded from defaults, sensitive ops require approval.
-
-```yaml
-apiVersion: agentic.stigmer.ai/v1
-kind: McpServer
-metadata:
-  name: postgres
-  org: acme-corp
-  labels:
-    category: database
-  tags:
-    - database
-    - sql
-    - postgresql
-spec:
-  description: "PostgreSQL MCP server for database queries and schema inspection"
-  stdio:
-    command: python
-    args: ["-m", "mcp_server_postgres"]
-  default_enabled_tools:
-    - execute_query
-    - list_tables
-    - describe_table
-    - list_schemas
-    # execute_ddl and drop_table intentionally omitted — use default_tool_approvals if needed
-  default_tool_approvals:
-    - tool_name: execute_query
-      message: "Execute SQL query on {{args.database}}: {{args.query}}"
-  env_spec:
-    data:
-      POSTGRES_URL:
-        description: "PostgreSQL connection URL (postgres://user:pass@host/dbname)"
-        is_secret: true
-```
-
-**Complete GitHub example with approval policies:**
+## Stdio Server with Tool Gates and Approval Policies
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -112,8 +50,6 @@ kind: McpServer
 metadata:
   name: github
   org: acme-corp
-  labels:
-    category: vcs
   tags:
     - git
     - vcs
@@ -137,8 +73,6 @@ spec:
       message: "Merge PR #{{args.pull_number}} in {{args.repo}}"
     - tool_name: delete_repository
       message: "Delete repository: {{args.repo}}"
-    - tool_name: add_collaborator
-      message: "Add {{args.username}} as {{args.permission}} collaborator to {{args.repo}}"
     - tool_name: force_push
       message: "Force push to {{args.branch}} on {{args.repo}}"
   env_spec:
@@ -148,27 +82,66 @@ spec:
         is_secret: true
 ```
 
----
+## Database Server with Restricted Defaults
 
-## HTTP Server with Authentication
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: postgres
+  labels:
+    category: database
+  tags:
+    - database
+    - sql
+    - postgresql
+spec:
+  description: "PostgreSQL MCP server for database queries and schema inspection"
+  stdio:
+    command: python
+    args: ["-m", "mcp_server_postgres"]
+  default_enabled_tools:
+    - execute_query
+    - list_tables
+    - describe_table
+    - list_schemas
+  env_spec:
+    data:
+      POSTGRES_URL:
+        description: "PostgreSQL connection URL (postgres://user:pass@host/db)"
+        is_secret: true
+```
 
-Remote MCP service over HTTPS with bearer token header.
+## Python Module Server
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: sqlite
+spec:
+  description: "SQLite MCP server for local database queries"
+  stdio:
+    command: python
+    args: ["-m", "mcp_server_sqlite", "--db-path", "/data/db.sqlite"]
+```
+
+## HTTP Server with Header Authentication
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
 kind: McpServer
 metadata:
   name: web-search
-  org: acme-corp
   tags:
     - search
     - web
 spec:
-  description: "Web search MCP service — full-text search and page retrieval"
+  description: "Web search MCP service for full-text search and page retrieval"
   http:
     url: "https://mcp.example.com/search/v1"
     headers:
-      Authorization: "Bearer ${SEARCH_API_TOKEN}"  # ${VAR} resolved from AgentInstance env
+      Authorization: "Bearer ${SEARCH_API_TOKEN}"
       X-API-Version: "2024-01"
     timeout_seconds: 45
   env_spec:
@@ -178,11 +151,7 @@ spec:
         is_secret: true
 ```
 
----
-
-## HTTP Multi-Tenant Service
-
-Hosted service routing requests per-tenant via headers and query params.
+## HTTP Server with Multi-Tenant Routing
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -200,7 +169,6 @@ spec:
     headers:
       Authorization: "Bearer ${KB_SERVICE_TOKEN}"
       X-Tenant-ID: "${TENANT_ID}"
-      X-Environment: "${DEPLOY_ENV}"
     query_params:
       version: "v2"
     timeout_seconds: 30
@@ -217,33 +185,26 @@ spec:
       TENANT_ID:
         description: "Tenant identifier for request routing (e.g., acme-corp)"
         is_secret: false
-      DEPLOY_ENV:
-        description: "Deployment environment: production, staging, or development"
-        is_secret: false
 ```
 
----
-
-## Marketplace-Ready Public Server
-
-Fully-featured server publishable to the Stigmer marketplace. Designed for use by any organization.
+## Public Marketplace Server (Full-Featured)
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
 kind: McpServer
 metadata:
-  name: slack
+  name: Slack
   org: stigmer
-  visibility: visibility_public        # any org can reference this server
+  visibility: visibility_public
   labels:
     category: communication
+    tier: production
   annotations:
     docs-url: "https://github.com/modelcontextprotocol/servers/tree/main/src/slack"
     support-url: "https://github.com/stigmer/stigmer/issues"
   tags:
     - slack
     - messaging
-    - notifications
     - communication
 spec:
   description: "Slack MCP server for channel messaging, search, and workspace management"
@@ -251,7 +212,6 @@ spec:
   tags:
     - slack
     - messaging
-    - communication
   stdio:
     command: npx
     args: ["-y", "@modelcontextprotocol/server-slack"]
@@ -274,16 +234,15 @@ spec:
   env_spec:
     data:
       SLACK_BOT_TOKEN:
-        description: "Slack Bot User OAuth Token (xoxb-...) with channels:read, chat:write, and search:read scopes"
+        description: "Slack Bot User OAuth Token (xoxb-...) with channels:read, chat:write, search:read scopes"
         is_secret: true
       SLACK_TEAM_ID:
         description: "Slack workspace team ID (e.g., T01234567)"
         is_secret: false
 ```
 
-**Marketplace server checklist:**
-- `metadata.org` explicitly set to publishing org
-- `metadata.visibility: visibility_public`
-- `metadata.annotations` with `docs-url` and `support-url`
-- `env_spec` descriptions are precise — external users need to know exact credentials and required permissions
-- `spec.icon_url` set for marketplace display
+Marketplace characteristics:
+- `metadata.org` set to the publishing organization
+- `metadata.visibility: visibility_public` — any org can reference it
+- `metadata.annotations` include support/documentation URLs
+- `env_spec` descriptions precise enough for external users
