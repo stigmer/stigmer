@@ -6,6 +6,7 @@ import (
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/extractor"
 )
 
 // Update updates an existing session using the pipeline framework
@@ -42,6 +43,7 @@ func (c *SessionController) buildUpdatePipeline() *pipeline.Pipeline[*sessionv1.
 		AddStep(steps.NewResolveSlugStep[*sessionv1.Session]()).         // 2. Resolve slug
 		AddStep(steps.NewLoadExistingStep[*sessionv1.Session](c.store)). // 3. Load existing session
 		AddStep(steps.NewBuildUpdateStateStep[*sessionv1.Session]()).    // 4. Build updated state
-		AddStep(steps.NewPersistStep[*sessionv1.Session](c.store)).      // 5. Persist session
+		AddStep(steps.NewPersistStep[*sessionv1.Session](c.store)).                                     // 5. Persist session
+		AddStep(steps.NewIndexSearchStep[*sessionv1.Session](c.store, &extractor.SessionExtractor{})). // 6. Update search index
 		Build()
 }

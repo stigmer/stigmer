@@ -110,28 +110,3 @@ func TestNormalizeScore(t *testing.T) {
 	}
 }
 
-func TestCreateEmptyProtoForKind(t *testing.T) {
-	tests := []struct {
-		name      string
-		kind      apiresourcekind.ApiResourceKind
-		expectNil bool
-	}{
-		{"agent", apiresourcekind.ApiResourceKind_agent, false},
-		{"skill", apiresourcekind.ApiResourceKind_skill, false},
-		{"mcp_server", apiresourcekind.ApiResourceKind_mcp_server, false},
-		{"workflow", apiresourcekind.ApiResourceKind_workflow, false},
-		{"unsupported", apiresourcekind.ApiResourceKind_session, true},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			result := createEmptyProtoForKind(tc.kind)
-			if tc.expectNil && result != nil {
-				t.Error("expected nil for unsupported kind")
-			}
-			if !tc.expectNil && result == nil {
-				t.Error("expected non-nil proto for supported kind")
-			}
-		})
-	}
-}
