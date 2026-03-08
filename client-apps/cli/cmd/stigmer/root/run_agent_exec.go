@@ -37,6 +37,8 @@ type agentExecFlags struct {
 	EnvFileFlags    []string
 	SecretFlags     []string
 	SecretFileFlags []string
+	Model           string
+	AutoApproveAll  bool
 }
 
 // registerAgentExecFlags registers the flags shared by every agent-execution
@@ -78,6 +80,12 @@ func registerAgentExecFlags(cmd *cobra.Command, f *agentExecFlags) {
 
 	cmd.Flags().StringArrayVar(&f.SecretFileFlags, "secret-file", []string{},
 		"load secrets from file (can be repeated, all values encrypted)")
+
+	cmd.Flags().StringVar(&f.Model, "model", "",
+		"LLM model to use (e.g., claude-sonnet-4-20250514)")
+
+	cmd.Flags().BoolVar(&f.AutoApproveAll, "auto-approve", false,
+		"automatically approve all tool executions without prompting (bypasses approval policies)")
 }
 
 // ---------------------------------------------------------------------------
@@ -100,10 +108,12 @@ type preparedAgentExec struct {
 	OrgID            string
 	AttachResult     AttachmentResult
 
-	Message    string
-	Detach     bool
-	Verbose    bool
-	OutputMode OutputMode
+	Message        string
+	Detach         bool
+	Verbose        bool
+	OutputMode     OutputMode
+	Model          string
+	AutoApproveAll bool
 }
 
 // prepareAgentExec validates the common flags, resolves environment variables,
@@ -175,6 +185,8 @@ func prepareAgentExec(flags agentExecFlags, sp *spinner.Spinner) (*preparedAgent
 		Message:          flags.Message,
 		Detach:           flags.Detach,
 		Verbose:          flags.Verbose,
+		Model:            flags.Model,
+		AutoApproveAll:   flags.AutoApproveAll,
 	}, nil
 }
 
