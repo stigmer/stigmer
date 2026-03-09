@@ -145,7 +145,7 @@ var applyKindOrder = map[apiresourcekind.ApiResourceKind]int{
 	apiresourcekind.ApiResourceKind_organization: 0,
 	apiresourcekind.ApiResourceKind_mcp_server:   1,
 	apiresourcekind.ApiResourceKind_agent:        2,
-	apiresourcekind.ApiResourceKind_workflow:      3,
+	apiresourcekind.ApiResourceKind_workflow:     3,
 }
 
 // sortItemsByApplyOrder sorts applyItems so that dependency-providing kinds
