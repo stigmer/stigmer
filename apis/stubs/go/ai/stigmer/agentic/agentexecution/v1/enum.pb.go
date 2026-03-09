@@ -394,6 +394,22 @@ func (TodoStatus) EnumDescriptor() ([]byte, []int) {
 }
 
 // SubAgentStatus defines the status of a sub-agent execution.
+//
+// Status Transitions:
+//
+// Normal flow:
+// SUB_AGENT_PENDING → SUB_AGENT_IN_PROGRESS → SUB_AGENT_COMPLETED
+//
+// Failure flow:
+// SUB_AGENT_IN_PROGRESS → SUB_AGENT_FAILED
+//
+// Cancellation flow (parent cancelled while sub-agent active):
+// SUB_AGENT_IN_PROGRESS → SUB_AGENT_CANCELLED
+//
+// Terminal States:
+// - SUB_AGENT_COMPLETED: Sub-agent finished successfully
+// - SUB_AGENT_FAILED: Sub-agent encountered an error
+// - SUB_AGENT_CANCELLED: Parent execution was cancelled while sub-agent was active
 type SubAgentStatus int32
 
 const (
@@ -402,6 +418,18 @@ const (
 	SubAgentStatus_SUB_AGENT_IN_PROGRESS        SubAgentStatus = 2 // Currently executing
 	SubAgentStatus_SUB_AGENT_COMPLETED          SubAgentStatus = 3 // Successfully completed
 	SubAgentStatus_SUB_AGENT_FAILED             SubAgentStatus = 4 // Failed with error
+	// Parent execution was cancelled while this sub-agent was active.
+	//
+	// When a parent execution is cancelled (via user action or system timeout),
+	// all active sub-agents transition to this terminal state. This prevents
+	// sub-agents from remaining in IN_PROGRESS indefinitely in persisted status.
+	//
+	// When this status is reached:
+	// - completed_at timestamp is set
+	// - error field contains: "Cancelled: parent execution was cancelled"
+	//
+	// @since Sub-Agent Execution Streamline
+	SubAgentStatus_SUB_AGENT_CANCELLED SubAgentStatus = 5
 )
 
 // Enum value maps for SubAgentStatus.
@@ -412,6 +440,7 @@ var (
 		2: "SUB_AGENT_IN_PROGRESS",
 		3: "SUB_AGENT_COMPLETED",
 		4: "SUB_AGENT_FAILED",
+		5: "SUB_AGENT_CANCELLED",
 	}
 	SubAgentStatus_value = map[string]int32{
 		"SUB_AGENT_STATUS_UNSPECIFIED": 0,
@@ -419,6 +448,7 @@ var (
 		"SUB_AGENT_IN_PROGRESS":        2,
 		"SUB_AGENT_COMPLETED":          3,
 		"SUB_AGENT_FAILED":             4,
+		"SUB_AGENT_CANCELLED":          5,
 	}
 )
 
@@ -538,13 +568,14 @@ const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
 	"\fTODO_PENDING\x10\x01\x12\x14\n" +
 	"\x10TODO_IN_PROGRESS\x10\x02\x12\x12\n" +
 	"\x0eTODO_COMPLETED\x10\x03\x12\x12\n" +
-	"\x0eTODO_CANCELLED\x10\x04*\x93\x01\n" +
+	"\x0eTODO_CANCELLED\x10\x04*\xac\x01\n" +
 	"\x0eSubAgentStatus\x12 \n" +
 	"\x1cSUB_AGENT_STATUS_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11SUB_AGENT_PENDING\x10\x01\x12\x19\n" +
 	"\x15SUB_AGENT_IN_PROGRESS\x10\x02\x12\x17\n" +
 	"\x13SUB_AGENT_COMPLETED\x10\x03\x12\x14\n" +
-	"\x10SUB_AGENT_FAILED\x10\x04*\x89\x01\n" +
+	"\x10SUB_AGENT_FAILED\x10\x04\x12\x17\n" +
+	"\x13SUB_AGENT_CANCELLED\x10\x05*\x89\x01\n" +
 	"\x15ExecutionArtifactKind\x12'\n" +
 	"#EXECUTION_ARTIFACT_KIND_UNSPECIFIED\x10\x00\x12 \n" +
 	"\x1cEXECUTION_ARTIFACT_KIND_FILE\x10\x01\x12%\n" +

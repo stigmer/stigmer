@@ -480,12 +480,28 @@ message SubAgentExecution {
   // Display Metadata
   // ─────────────────────────────────────────────────────────────────────────────
 
-  // Concise, human-readable summary of the sub-agent's task (3-7 words).
-  // Generated server-side by an economy-tier LLM from the input prompt,
-  // following the same pattern as session subject generation.
-  // Used as the primary display label in collapsed UI views.
-  // Examples: "Explore CLI rendering", "Fix auth middleware tests"
+  // Concise, human-readable summary of the sub-agent's task (3-10 words).
+  // Populated directly from the task tool's `description` argument — the short
+  // label the invoking LLM provides when calling the "task" tool. No server-side
+  // LLM generation; available instantly when the sub-agent starts.
+  // Used as the primary display label in collapsed and expanded UI views.
+  // Examples: "Explore CLI rendering code", "Fix auth middleware tests"
   string subject = 13;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Pending Approvals (Sub-Agent Scope)
+  //
+  // When a sub-agent's tool requires approval, the PendingApproval is surfaced
+  // both here (sub-agent scope) and at the parent AgentExecutionStatus level
+  // (top-level visibility). This field provides sub-agent-level isolation so
+  // consumers querying a single sub-agent can determine its approval state
+  // without scanning the parent's pending_approvals list.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Approval requests pending within this sub-agent's tool calls.
+  // Also surfaced at parent AgentExecutionStatus.pending_approvals for
+  // top-level visibility. Cleared when the approval is resolved.
+  repeated PendingApproval pending_approvals = 14;
 }
 
 // UsageMetrics tracks token consumption and LLM resource usage.
