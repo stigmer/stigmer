@@ -1672,6 +1672,202 @@ class TestSubAgentInternals:
         assert context is status_builder.current_status
         assert sub_agent is None
 
+    @pytest.mark.asyncio
+    async def test_task_tool_subject_from_description_arg(self, status_builder):
+        """subject is populated directly from the task tool's description arg (DD-02)."""
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": "task-desc-1",
+            "data": {
+                "input": {
+                    "subagent_type": "code_editor",
+                    "description": "Explore CLI rendering code",
+                    "input": "Find all files related to sub-agent rendering in the CLI...",
+                }
+            },
+            "metadata": {},
+        })
+
+        sub_agent = status_builder.current_status.sub_agent_executions[0]
+        assert sub_agent.subject == "Explore CLI rendering code"
+        assert sub_agent.input == "Find all files related to sub-agent rendering in the CLI..."
+        assert sub_agent.name == "code_editor"
+
+    @pytest.mark.asyncio
+    async def test_task_tool_empty_subject_when_no_description(self, status_builder):
+        """subject is empty when description arg is absent (DD-04: no fallbacks)."""
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": "task-no-desc",
+            "data": {
+                "input": {
+                    "subagent_type": "researcher",
+                    "input": "Research something complex",
+                }
+            },
+            "metadata": {},
+        })
+
+        sub_agent = status_builder.current_status.sub_agent_executions[0]
+        assert sub_agent.subject == ""
+
+    @pytest.mark.asyncio
+    async def test_task_tool_no_metadata_struct(self, status_builder):
+        """metadata is not populated — description lives on subject, not in a Struct."""
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": "task-meta-check",
+            "data": {
+                "input": {
+                    "subagent_type": "helper",
+                    "description": "Some task label",
+                    "input": "Do something",
+                }
+            },
+            "metadata": {},
+        })
+
+        sub_agent = status_builder.current_status.sub_agent_executions[0]
+        assert not sub_agent.HasField("metadata")
+
+    @pytest.mark.asyncio
+    async def test_sync_sub_agent_pending_approvals(self, status_builder):
+        """PendingApproval is dual-surfaced onto the owning SubAgentExecution."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+
+        sub_agent_run_id = "task-approval-sync"
+        namespace = f"agent_node:{sub_agent_run_id}"
+        tool_run_id = "write-tool-1"
+
+        # Start sub-agent
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": sub_agent_run_id,
+            "data": {
+                "input": {
+                    "subagent_type": "code_editor",
+                    "description": "Fix the bug",
+                    "input": "Fix the bug in main.py",
+                }
+            },
+            "metadata": {},
+        })
+
+        # Sub-agent tool call
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "write_file",
+            "run_id": tool_run_id,
+            "data": {"input": {"path": "/tmp/fix.py", "content": "fixed"}},
+            "metadata": {"langgraph_checkpoint_ns": namespace},
+        })
+
+        # Simulate what execute_graphton.py does after interrupt capture:
+        # set parent-level pending_approvals, then call sync.
+        pa = PendingApproval(
+            tool_call_id=tool_run_id,
+            tool_name="write_file",
+            message="Approve write_file?",
+            from_sub_agent=True,
+            sub_agent_name="code_editor",
+        )
+        status_builder.current_status.pending_approvals.append(pa)
+        status_builder.sync_sub_agent_pending_approvals()
+
+        # Verify dual-surfacing
+        sub_agent = status_builder.current_status.sub_agent_executions[0]
+        assert len(sub_agent.pending_approvals) == 1
+        sa_pa = sub_agent.pending_approvals[0]
+        assert sa_pa.tool_call_id == tool_run_id
+        assert sa_pa.tool_name == "write_file"
+        assert sa_pa.child_agent_execution_id == sub_agent_run_id
+
+        # Parent-level PA also has child_agent_execution_id set
+        parent_pa = status_builder.current_status.pending_approvals[0]
+        assert parent_pa.child_agent_execution_id == sub_agent_run_id
+
+    @pytest.mark.asyncio
+    async def test_sync_skips_main_agent_approvals(self, status_builder):
+        """Main-agent PendingApprovals are not duplicated onto any sub-agent."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+
+        # Start sub-agent (so there's at least one to check)
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": "task-skip-main",
+            "data": {
+                "input": {
+                    "subagent_type": "helper",
+                    "input": "help me",
+                }
+            },
+            "metadata": {},
+        })
+
+        pa = PendingApproval(
+            tool_call_id="main-tool-1",
+            tool_name="delete_file",
+            from_sub_agent=False,
+        )
+        status_builder.current_status.pending_approvals.append(pa)
+        status_builder.sync_sub_agent_pending_approvals()
+
+        sub_agent = status_builder.current_status.sub_agent_executions[0]
+        assert len(sub_agent.pending_approvals) == 0
+
+    @pytest.mark.asyncio
+    async def test_clear_pending_approval_clears_sub_agent(self, status_builder):
+        """clear_pending_approval also empties SubAgentExecution.pending_approvals."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+
+        sub_agent_run_id = "task-clear-test"
+        namespace = f"agent_node:{sub_agent_run_id}"
+        tool_run_id = "tool-clear-1"
+
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": sub_agent_run_id,
+            "data": {
+                "input": {
+                    "subagent_type": "code_editor",
+                    "input": "edit code",
+                }
+            },
+            "metadata": {},
+        })
+
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "write_file",
+            "run_id": tool_run_id,
+            "data": {"input": {"path": "/tmp/x.py", "content": "x"}},
+            "metadata": {"langgraph_checkpoint_ns": namespace},
+        })
+
+        pa = PendingApproval(
+            tool_call_id=tool_run_id,
+            tool_name="write_file",
+            from_sub_agent=True,
+            sub_agent_name="code_editor",
+        )
+        status_builder.current_status.pending_approvals.append(pa)
+        status_builder.sync_sub_agent_pending_approvals()
+
+        sub_agent = status_builder.current_status.sub_agent_executions[0]
+        assert len(sub_agent.pending_approvals) == 1
+
+        # Now clear
+        status_builder.clear_pending_approval()
+
+        assert len(status_builder.current_status.pending_approvals) == 0
+        assert len(sub_agent.pending_approvals) == 0
+
 
 # =============================================================================
 # Tests for Namespace Registration Strategies (Strategy 4 + diagnostics)
