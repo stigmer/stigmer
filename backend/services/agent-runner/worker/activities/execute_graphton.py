@@ -3092,7 +3092,9 @@ async def _execute_graphton_impl(
                         # Populate the repeated field with all pending approvals
                         del status_builder.current_status.pending_approvals[:]
                         status_builder.current_status.pending_approvals.extend(pending_approvals)
-                        
+
+                        status_builder.sync_sub_agent_pending_approvals()
+
                         activity_logger.info(
                             f"[INTERRUPT_CAPTURE] execution={execution_id} "
                             f"captured {len(pending_approvals)} pending interrupt(s): "
