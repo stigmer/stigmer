@@ -1010,14 +1010,19 @@ type SubAgentExecution struct {
 	// Captures only this sub-agent's direct LLM calls.
 	// Isolated from main agent and other sub-agents for accurate cost attribution.
 	Usage *UsageMetrics `protobuf:"bytes,12,opt,name=usage,proto3" json:"usage,omitempty"`
-	// Concise, human-readable summary of the sub-agent's task (3-7 words).
-	// Generated server-side by an economy-tier LLM from the input prompt,
-	// following the same pattern as session subject generation.
-	// Used as the primary display label in collapsed UI views.
-	// Examples: "Explore CLI rendering", "Fix auth middleware tests"
-	Subject       string `protobuf:"bytes,13,opt,name=subject,proto3" json:"subject,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// Concise, human-readable summary of the sub-agent's task (3-10 words).
+	// Populated directly from the task tool's `description` argument — the short
+	// label the invoking LLM provides when calling the "task" tool. No server-side
+	// LLM generation; available instantly when the sub-agent starts.
+	// Used as the primary display label in collapsed and expanded UI views.
+	// Examples: "Explore CLI rendering code", "Fix auth middleware tests"
+	Subject string `protobuf:"bytes,13,opt,name=subject,proto3" json:"subject,omitempty"`
+	// Approval requests pending within this sub-agent's tool calls.
+	// Also surfaced at parent AgentExecutionStatus.pending_approvals for
+	// top-level visibility. Cleared when the approval is resolved.
+	PendingApprovals []*PendingApproval `protobuf:"bytes,14,rep,name=pending_approvals,json=pendingApprovals,proto3" json:"pending_approvals,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *SubAgentExecution) Reset() {
@@ -1139,6 +1144,13 @@ func (x *SubAgentExecution) GetSubject() string {
 		return x.Subject
 	}
 	return ""
+}
+
+func (x *SubAgentExecution) GetPendingApprovals() []*PendingApproval {
+	if x != nil {
+		return x.PendingApprovals
+	}
+	return nil
 }
 
 // UsageMetrics tracks token consumption and LLM resource usage.
@@ -2263,7 +2275,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x0fcomponent_group\x18\x02 \x01(\tR\x0ecomponentGroup\x12\x1f\n" +
 	"\vlayout_hint\x18\x03 \x01(\tR\n" +
 	"layoutHint\x123\n" +
-	"\bmetadata\x18\x04 \x01(\v2\x17.google.protobuf.StructR\bmetadata\"\xcd\x04\n" +
+	"\bmetadata\x18\x04 \x01(\v2\x17.google.protobuf.StructR\bmetadata\"\xb1\x05\n" +
 	"\x11SubAgentExecution\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
@@ -2280,7 +2292,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	" \x03(\v2..ai.stigmer.agentic.agentexecution.v1.ToolCallR\ttoolCalls\x12N\n" +
 	"\bmessages\x18\v \x03(\v22.ai.stigmer.agentic.agentexecution.v1.AgentMessageR\bmessages\x12H\n" +
 	"\x05usage\x18\f \x01(\v22.ai.stigmer.agentic.agentexecution.v1.UsageMetricsR\x05usage\x12\x18\n" +
-	"\asubject\x18\r \x01(\tR\asubject\"\xce\x01\n" +
+	"\asubject\x18\r \x01(\tR\asubject\x12b\n" +
+	"\x11pending_approvals\x18\x0e \x03(\v25.ai.stigmer.agentic.agentexecution.v1.PendingApprovalR\x10pendingApprovals\"\xce\x01\n" +
 	"\fUsageMetrics\x12#\n" +
 	"\rprompt_tokens\x18\x01 \x01(\x05R\fpromptTokens\x12+\n" +
 	"\x11completion_tokens\x18\x02 \x01(\x05R\x10completionTokens\x12!\n" +
@@ -2425,17 +2438,18 @@ var file_ai_stigmer_agentic_agentexecution_v1_api_proto_depIdxs = []int32{
 	5,  // 25: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.tool_calls:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCall
 	4,  // 26: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.messages:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentMessage
 	8,  // 27: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.usage:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageMetrics
-	17, // 28: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.mcp_servers:type_name -> ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntry
-	11, // 29: ai.stigmer.agentic.agentexecution.v1.ContextInfo.summarization_events:type_name -> ai.stigmer.agentic.agentexecution.v1.SummarizationEvent
-	27, // 30: ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact.kind:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactKind
-	14, // 31: ai.stigmer.agentic.agentexecution.v1.ChildApprovalNotification.pending_approvals:type_name -> ai.stigmer.agentic.agentexecution.v1.PendingApproval
-	3,  // 32: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoItem
-	10, // 33: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.McpServerResolutionStatus
-	34, // [34:34] is the sub-list for method output_type
-	34, // [34:34] is the sub-list for method input_type
-	34, // [34:34] is the sub-list for extension type_name
-	34, // [34:34] is the sub-list for extension extendee
-	0,  // [0:34] is the sub-list for field type_name
+	14, // 28: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.pending_approvals:type_name -> ai.stigmer.agentic.agentexecution.v1.PendingApproval
+	17, // 29: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.mcp_servers:type_name -> ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntry
+	11, // 30: ai.stigmer.agentic.agentexecution.v1.ContextInfo.summarization_events:type_name -> ai.stigmer.agentic.agentexecution.v1.SummarizationEvent
+	27, // 31: ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact.kind:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactKind
+	14, // 32: ai.stigmer.agentic.agentexecution.v1.ChildApprovalNotification.pending_approvals:type_name -> ai.stigmer.agentic.agentexecution.v1.PendingApproval
+	3,  // 33: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoItem
+	10, // 34: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.McpServerResolutionStatus
+	35, // [35:35] is the sub-list for method output_type
+	35, // [35:35] is the sub-list for method input_type
+	35, // [35:35] is the sub-list for extension type_name
+	35, // [35:35] is the sub-list for extension extendee
+	0,  // [0:35] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_api_proto_init() }

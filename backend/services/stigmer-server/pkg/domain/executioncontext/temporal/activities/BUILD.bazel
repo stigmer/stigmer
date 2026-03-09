@@ -2,9 +2,7 @@ load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "activities",
-    srcs = [
-        "delete_execution_context.go",
-    ],
+    srcs = ["delete_execution_context.go"],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/executioncontext/temporal/activities",
     visibility = ["//visibility:public"],
     deps = [

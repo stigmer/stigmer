@@ -179,12 +179,41 @@ enum TodoStatus {
 }
 
 // SubAgentStatus defines the status of a sub-agent execution.
+//
+// Status Transitions:
+//
+// Normal flow:
+// SUB_AGENT_PENDING → SUB_AGENT_IN_PROGRESS → SUB_AGENT_COMPLETED
+//
+// Failure flow:
+// SUB_AGENT_IN_PROGRESS → SUB_AGENT_FAILED
+//
+// Cancellation flow (parent cancelled while sub-agent active):
+// SUB_AGENT_IN_PROGRESS → SUB_AGENT_CANCELLED
+//
+// Terminal States:
+// - SUB_AGENT_COMPLETED: Sub-agent finished successfully
+// - SUB_AGENT_FAILED: Sub-agent encountered an error
+// - SUB_AGENT_CANCELLED: Parent execution was cancelled while sub-agent was active
 enum SubAgentStatus {
   SUB_AGENT_STATUS_UNSPECIFIED = 0;
   SUB_AGENT_PENDING = 1; // Waiting to start
   SUB_AGENT_IN_PROGRESS = 2; // Currently executing
   SUB_AGENT_COMPLETED = 3; // Successfully completed
   SUB_AGENT_FAILED = 4; // Failed with error
+
+  // Parent execution was cancelled while this sub-agent was active.
+  //
+  // When a parent execution is cancelled (via user action or system timeout),
+  // all active sub-agents transition to this terminal state. This prevents
+  // sub-agents from remaining in IN_PROGRESS indefinitely in persisted status.
+  //
+  // When this status is reached:
+  // - completed_at timestamp is set
+  // - error field contains: "Cancelled: parent execution was cancelled"
+  //
+  // @since Sub-Agent Execution Streamline
+  SUB_AGENT_CANCELLED = 5;
 }
 
 // ExecutionArtifactKind defines the type of artifact published by an agent.

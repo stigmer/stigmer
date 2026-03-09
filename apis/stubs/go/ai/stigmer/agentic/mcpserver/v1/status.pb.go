@@ -241,6 +241,23 @@ func (x *McpServerStatus) GetAudit() *apiresource.ApiResourceAudit {
 // MCP server. This is a point-in-time snapshot — the server's actual capabilities
 // may change if tools are added or removed.
 //
+// IMPORTANT — Tools vs Resource Templates:
+// These are two fundamentally different MCP capability types:
+//
+//   - tools: Callable actions the agent can invoke (e.g., search_code, create_pr).
+//     These are the ONLY names valid for use in Agent `enabled_tools`,
+//     McpServer `default_enabled_tools`, and `tool_approval_overrides`.
+//
+//   - resource_templates: Read-only data endpoints accessed by URI template
+//     (e.g., cloud-resource-schema://{kind}). These are NOT callable tools.
+//     Resource template names must NEVER appear in `enabled_tools` or
+//     `default_enabled_tools` — doing so causes a fatal runtime error because
+//     the agent-runner cannot find them in the tools registry.
+//
+// When authoring Agent YAML, always select tool names from `tools` only.
+// Resource templates serve a different purpose (data discovery) and are
+// accessed through MCP resource reads, not tool calls.
+//
 // Populated by:
 // - Seedpack bootstrap (built-in servers with known, stable tool sets)
 // - CLI discovery (`stigmer discover mcp-server <name>`)
@@ -248,8 +265,13 @@ func (x *McpServerStatus) GetAudit() *apiresource.ApiResourceAudit {
 type DiscoveredCapabilities struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Tools reported by the MCP server via tools/list.
+	// These are callable actions. Only names from this list may be used in
+	// Agent `enabled_tools` and McpServer `default_enabled_tools`.
 	Tools []*DiscoveredTool `protobuf:"bytes,1,rep,name=tools,proto3" json:"tools,omitempty"`
 	// Resource templates reported by the MCP server via resources/templates/list.
+	// These are read-only data endpoints, NOT callable tools.
+	// Resource template names must NOT be placed in `enabled_tools` —
+	// they are accessed via MCP resource reads, not tool invocations.
 	ResourceTemplates []*DiscoveredResourceTemplate `protobuf:"bytes,2,rep,name=resource_templates,json=resourceTemplates,proto3" json:"resource_templates,omitempty"`
 	// When this snapshot was captured.
 	LastDiscoveredAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=last_discovered_at,json=lastDiscoveredAt,proto3" json:"last_discovered_at,omitempty"`

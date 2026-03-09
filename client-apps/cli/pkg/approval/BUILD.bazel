@@ -18,7 +18,7 @@ go_library(
     deps = [
         "//client-apps/cli/pkg/display",
         "//client-apps/cli/pkg/termctl",
-        "@land_charm_bubbles_v2//textinput:textinput",
+        "@land_charm_bubbles_v2//textinput",
         "@land_charm_bubbletea_v2//:bubbletea",
         "@land_charm_lipgloss_v2//:lipgloss",
         "@org_golang_x_term//:term",

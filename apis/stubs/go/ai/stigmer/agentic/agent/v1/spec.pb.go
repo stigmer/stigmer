@@ -293,7 +293,12 @@ type McpServerUsage struct {
 	// Tools to enable from this MCP server for this Agent.
 	// This defines the maximum tool set - SubAgents can only restrict further.
 	// Empty list = use McpServer's default_enabled_tools (or all if not specified).
+	//
 	// Tool names must match exactly what the MCP server reports via tools/list.
+	// IMPORTANT: Only names from `discovered_capabilities.tools` are valid here.
+	// Do NOT include names from `discovered_capabilities.resource_templates` —
+	// resource templates are read-only data endpoints, not callable tools.
+	// Including a resource template name here causes a fatal runtime error.
 	EnabledTools []string `protobuf:"bytes,2,rep,name=enabled_tools,json=enabledTools,proto3" json:"enabled_tools,omitempty"`
 	// Override approval requirements for specific tools.
 	//
@@ -402,6 +407,7 @@ type McpAccess struct {
 	// Tools this SubAgent can use from this MCP server.
 	// Must be a subset of the parent's enabled_tools for this server.
 	// Empty list = all tools that parent has enabled (no additional restriction).
+	// Only MCP tool names are valid — never include resource template names.
 	EnabledTools  []string `protobuf:"bytes,2,rep,name=enabled_tools,json=enabledTools,proto3" json:"enabled_tools,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

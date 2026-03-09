@@ -164,7 +164,7 @@ class ComponentMetadata(_message.Message):
     def __init__(self, component_type: _Optional[str] = ..., component_group: _Optional[str] = ..., layout_hint: _Optional[str] = ..., metadata: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...) -> None: ...
 
 class SubAgentExecution(_message.Message):
-    __slots__ = ("id", "name", "input", "output", "status", "started_at", "completed_at", "error", "metadata", "tool_calls", "messages", "usage", "subject")
+    __slots__ = ("id", "name", "input", "output", "status", "started_at", "completed_at", "error", "metadata", "tool_calls", "messages", "usage", "subject", "pending_approvals")
     ID_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
     INPUT_FIELD_NUMBER: _ClassVar[int]
@@ -178,6 +178,7 @@ class SubAgentExecution(_message.Message):
     MESSAGES_FIELD_NUMBER: _ClassVar[int]
     USAGE_FIELD_NUMBER: _ClassVar[int]
     SUBJECT_FIELD_NUMBER: _ClassVar[int]
+    PENDING_APPROVALS_FIELD_NUMBER: _ClassVar[int]
     id: str
     name: str
     input: str
@@ -191,7 +192,8 @@ class SubAgentExecution(_message.Message):
     messages: _containers.RepeatedCompositeFieldContainer[AgentMessage]
     usage: UsageMetrics
     subject: str
-    def __init__(self, id: _Optional[str] = ..., name: _Optional[str] = ..., input: _Optional[str] = ..., output: _Optional[str] = ..., status: _Optional[_Union[_enum_pb2.SubAgentStatus, str]] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., error: _Optional[str] = ..., metadata: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., tool_calls: _Optional[_Iterable[_Union[ToolCall, _Mapping]]] = ..., messages: _Optional[_Iterable[_Union[AgentMessage, _Mapping]]] = ..., usage: _Optional[_Union[UsageMetrics, _Mapping]] = ..., subject: _Optional[str] = ...) -> None: ...
+    pending_approvals: _containers.RepeatedCompositeFieldContainer[PendingApproval]
+    def __init__(self, id: _Optional[str] = ..., name: _Optional[str] = ..., input: _Optional[str] = ..., output: _Optional[str] = ..., status: _Optional[_Union[_enum_pb2.SubAgentStatus, str]] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., error: _Optional[str] = ..., metadata: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., tool_calls: _Optional[_Iterable[_Union[ToolCall, _Mapping]]] = ..., messages: _Optional[_Iterable[_Union[AgentMessage, _Mapping]]] = ..., usage: _Optional[_Union[UsageMetrics, _Mapping]] = ..., subject: _Optional[str] = ..., pending_approvals: _Optional[_Iterable[_Union[PendingApproval, _Mapping]]] = ...) -> None: ...
 
 class UsageMetrics(_message.Message):
     __slots__ = ("prompt_tokens", "completion_tokens", "total_tokens", "llm_call_count", "primary_model")
