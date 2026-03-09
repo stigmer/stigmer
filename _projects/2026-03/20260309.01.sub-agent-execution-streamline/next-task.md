@@ -68,10 +68,10 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-09 10:54
-**Current Task**: PR1 COMPLETE. Next: PR2 or PR3 or PR4 (can run in parallel)
-**Status**: PR1 committed and ready
+**Current Task**: PR1 COMPLETE, PR2 COMPLETE. Next: PR3 or PR4 (can run in parallel)
+**Status**: PR1 and PR2 committed and ready
 
-## Session Progress (2026-03-10)
+## Session Progress (2026-03-10, Session 1)
 
 - Approved T01 plan, began PR1 execution
 - Implemented proto changes: updated `subject` docs, added `pending_approvals` field 14, added `SUB_AGENT_CANCELLED = 5`
@@ -79,19 +79,30 @@ When starting a new session:
 - Recorded design decisions DD-01 through DD-04
 - Updated T01 plan: Gap 2 dropped, Gap 1 annotated, PR sequence revised, success criteria updated
 
+## Session Progress (2026-03-10, Session 2)
+
+- Implemented PR2: subject simplification + pending approvals dual-surfacing
+- Deleted `_generate_sub_agent_subject()` and all supporting code (~95 lines)
+- Simplified `_handle_sub_agent_start`: sync, subject from description arg, no metadata Struct
+- Added `sync_sub_agent_pending_approvals()` for dual-surfacing with `child_agent_execution_id`
+- Updated `clear_pending_approval()` and `_remove_from_pending()` to propagate to sub-agents
+- Resolved `_run_id_aliases` in removal for reconciliation-path tool calls
+- Added 6 new tests; committed as `ef04bf08`
+
 ## Next Steps
 
-1. **PR2** (Runner): Remove `_generate_sub_agent_subject()` LLM call, populate `subject` from `tool_args.get("description", "")`, populate sub-agent `pending_approvals`
-2. **PR3** (Runner): Namespace robustness, late event handling, cancellation propagation
-3. **PR4** (CLI): Rename "Task" to "Sub-agent", remove fallback code, show sub-agent approvals, typed status enum
-4. PR2, PR3, PR4 can run in parallel after PR1
+1. **PR3** (Runner): Namespace robustness, late event handling, cancellation propagation, end-event guard
+2. **PR4** (CLI): Rename "Task" to "Sub-agent", remove fallback code, show sub-agent approvals, typed status enum
+3. PR3 and PR4 can run in parallel
 
 ## Context for Resume
 
 - Design decisions are in `design-decisions/DD-01` through `DD-04` — read before starting any downstream PR
-- The `subject` field name is preserved (not renamed to `description`) — only the population mechanism changes
-- BUILD.bazel files and non-agentexecution stubs were regenerated as collateral from `make build`
-- Session checkpoint at `checkpoints/2026-03-10-session-1.md`
+- The `subject` field name is preserved (not renamed to `description`) — population mechanism now uses description arg directly
+- `_handle_sub_agent_start` is now sync (not async) — dispatch handles this via `inspect.isawaitable`
+- `sync_sub_agent_pending_approvals()` sets `child_agent_execution_id` BEFORE protobuf append (copy semantics)
+- `_remove_from_pending` resolves `_run_id_aliases` for reconciliation-path tool calls where ToolCall.id is a temp_id
+- Session checkpoint at `checkpoints/2026-03-10-session-2.md`
 
 ## Quick Resume
 
@@ -101,7 +112,6 @@ To continue this project, drag this file into chat:
 ## Quick Commands
 
 After loading context:
-- "Start PR2" - Begin runner changes
 - "Start PR3" - Begin namespace robustness
 - "Start PR4" - Begin CLI changes
 - "Show project status" - Get overview of progress
