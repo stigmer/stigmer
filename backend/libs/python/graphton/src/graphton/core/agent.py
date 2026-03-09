@@ -454,14 +454,24 @@ def create_deep_agent(
             )
             mcp_middleware._deferred_loading = False
         
-        # Generate tool wrappers for all requested tools
-        # Use approval-aware wrappers when approval_checker is provided (HITL flow)
-        # Otherwise use standard wrappers for backward compatibility
+        # Generate tool wrappers for requested tools that are actually available.
+        # Tools listed in enabled_tools may not exist on the MCP server at runtime
+        # (e.g., the server was updated, or resource template names were mistakenly
+        # included). Skip missing tools with a warning instead of crashing.
         mcp_tool_wrappers: list[BaseTool] = []
+        skipped_tools: list[str] = []
         for server_name, tool_names in mcp_tools.items():
             for tool_name in tool_names:
+                if tool_name not in mcp_middleware._tools_cache:
+                    skipped_tools.append(tool_name)
+                    logger.warning(
+                        f"Skipping tool '{tool_name}' from server '{server_name}': "
+                        f"not found in MCP server's tools list. This may indicate "
+                        f"a resource template name was included in enabled_tools, "
+                        f"or the tool was removed from the server."
+                    )
+                    continue
                 if approval_checker is not None:
-                    # HITL approval flow: use approval-aware wrappers
                     wrapper = create_approval_aware_tool_wrapper(
                         tool_name=tool_name,
                         middleware_instance=mcp_middleware,
@@ -469,9 +479,13 @@ def create_deep_agent(
                         mcp_server_name=server_name,
                     )
                 else:
-                    # Standard flow: use regular wrappers
                     wrapper = create_tool_wrapper(tool_name, mcp_middleware)
                 mcp_tool_wrappers.append(wrapper)  # type: ignore[arg-type]
+        if skipped_tools:
+            logger.warning(
+                f"Skipped {len(skipped_tools)} unavailable tool(s): {skipped_tools}. "
+                f"Agent will proceed with {len(mcp_tool_wrappers)} available tool(s)."
+            )
         
         # Add MCP tools and middleware to the agent
         tools_list.extend(mcp_tool_wrappers)
