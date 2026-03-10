@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-09 10:54
-**Current Task**: PR1 COMPLETE, PR2 COMPLETE, PR3 COMPLETE. Next: PR4 (CLI changes)
-**Status**: PR1, PR2, and PR3 committed and ready
+**Current Task**: PR1 COMPLETE, PR2 COMPLETE, PR3 COMPLETE, PR4 COMPLETE. Next: PR5 (Tests)
+**Status**: PR1–PR4 committed and ready
 
 ## Session Progress (2026-03-10, Session 1)
 
@@ -102,8 +102,7 @@ When starting a new session:
 
 ## Next Steps
 
-1. **PR4** (CLI): Rename "Task" to "Sub-agent", remove fallback code, show sub-agent output, show sub-agent input, show sub-agent in approvals, typed status enum
-2. **PR5** (Tests): Integration/end-to-end tests for concurrent sub-agents, approval flow, output rendering, cancellation
+1. **PR5** (Tests): Integration/end-to-end tests for concurrent sub-agents, approval flow, output rendering, cancellation
 
 ## Context for Resume
 
@@ -115,7 +114,19 @@ When starting a new session:
 - **PR3**: `_completed_sub_agents` holds completed sub-agents; namespace mappings are preserved (NOT deleted on completion); `_get_execution_context` checks `_completed_sub_agents` as fallback for late events
 - **PR3**: `finalize_active_sub_agents(status, error)` transitions all active sub-agents to a terminal state — called from error/stall handlers but NOT from the pause (CancelledError) handler (pause leaves sub-agents as IN_PROGRESS — resume-path reconstruction deferred)
 - **PR3**: The CancelledError handler in `execute_graphton.py` is a PAUSE, not a cancellation — no separate cancel code path exists at the activity level
-- Session checkpoint at `checkpoints/2026-03-10-session-3.md`
+- **PR4**: "Task" label renamed to "Sub-agent" across all CLI render paths (DD-03); all subject fallback chains removed (DD-04); `SubAgentCompletedEvent.Status` is now `agentexecutionv1.SubAgentStatus` enum (not string); `SubAgentStartedEvent` carries `Input` field; sub-agent output rendered in collapsed and expanded views; approval prompts prefixed with sub-agent name; `Truncate()` and `DimText()` exported from `toolrender`
+- Session checkpoint at `checkpoints/2026-03-10-session-4.md`
+
+## Session Progress (2026-03-10, Session 4)
+
+- Implemented PR4: CLI sub-agent rendering improvements (all 5 gaps)
+- **Gap 1 (DD-03 + DD-04)**: Renamed "Task" → "Sub-agent" in all render paths; removed metadata/name fallback chains for subject
+- **Gap 11**: `SubAgentCompletedEvent.Status` and `subAgentBlock.status` changed from `string` to `agentexecutionv1.SubAgentStatus` enum; added `SUB_AGENT_CANCELLED` rendering; JSON renderer calls `.String()`
+- **Gap 6**: Added `Input` to `SubAgentStartedEvent` and `subAgentBlock`; rendered as dimmed "Prompt: ..." in expanded view; exported `Truncate()` and `DimText()` from `toolrender`
+- **Gap 3**: `block.output` rendered in expanded view ("Result: ...") and collapsed view (dim suffix)
+- **Gap 5**: Approval prompts prefixed with `Sub-agent 'name':` when from sub-agent
+- Updated 17 test assertions across 5 test files; full build and tests pass
+- Session checkpoint: `checkpoints/2026-03-10-session-4.md`
 
 ## Quick Resume
 

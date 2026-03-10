@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 
+	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
@@ -144,27 +145,24 @@ func (r *inlineRenderer) renderTodoUpdate(e executiontui.TodoUpdateEvent) {
 }
 
 func (r *inlineRenderer) renderSubAgentStarted(e executiontui.SubAgentStartedEvent) {
-	subject := e.Description
-	if subject == "" {
-		subject = e.Name
-	}
 	block := &subAgentBlock{
 		id:      e.ID,
 		name:    e.Name,
-		subject: subject,
-		status:  "running",
+		subject: e.Description,
+		input:   e.Input,
+		status:  agentexecutionv1.SubAgentStatus_SUB_AGENT_IN_PROGRESS,
 	}
 	r.activeSubAgents[e.ID] = block
 
 	if r.cfg.program != nil {
 		r.cfg.program.Send(subAgentShowMsg{
 			id:      e.ID,
-			subject: subject,
+			subject: e.Description,
 		})
 	} else {
 		r.statusf("%s %s: %s %s\n",
-			toolrender.BulletGreen("●"), toolrender.LabelBold("Task"),
-			subject, "…")
+			toolrender.BulletGreen("●"), toolrender.LabelBold("Sub-agent"),
+			e.Description, "…")
 	}
 }
 

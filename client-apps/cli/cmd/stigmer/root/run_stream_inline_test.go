@@ -9,6 +9,7 @@ import (
 
 	"github.com/charmbracelet/x/ansi"
 
+	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
@@ -275,7 +276,7 @@ func TestInlineRenderer_SubAgentLifecycle(t *testing.T) {
 
 	go feedEvents(events,
 		executiontui.SubAgentStartedEvent{ID: "sa-1", Name: "researcher", Description: "find docs"},
-		executiontui.SubAgentCompletedEvent{ID: "sa-1", Status: "completed", ToolCount: 3},
+		executiontui.SubAgentCompletedEvent{ID: "sa-1", Status: agentexecutionv1.SubAgentStatus_SUB_AGENT_COMPLETED, ToolCount: 3},
 		executiontui.DoneEvent{Phase: "completed"},
 	)
 
@@ -287,8 +288,8 @@ func TestInlineRenderer_SubAgentLifecycle(t *testing.T) {
 		status:            &stderr,
 	})
 
-	if !strings.Contains(stderr.String(), "Task") || !strings.Contains(stderr.String(), "find docs") {
-		t.Errorf("sub-agent start should appear on stderr with Task label, got: %q", stderr.String())
+	if !strings.Contains(stderr.String(), "Sub-agent") || !strings.Contains(stderr.String(), "find docs") {
+		t.Errorf("sub-agent start should appear on stderr with Sub-agent label, got: %q", stderr.String())
 	}
 	if !strings.Contains(stderr.String(), "✓") {
 		t.Errorf("sub-agent completion should show badge on stderr, got: %q", stderr.String())
@@ -309,7 +310,7 @@ func TestInlineRenderer_SubAgentToolsCollapsed(t *testing.T) {
 			SubAgentID: "sa-1",
 			ToolCall:   toolrender.ToolCallInfo{Name: "shell", Args: map[string]interface{}{"command": "ls"}},
 		},
-		executiontui.SubAgentCompletedEvent{ID: "sa-1", Status: "completed", ToolCount: 2},
+		executiontui.SubAgentCompletedEvent{ID: "sa-1", Status: agentexecutionv1.SubAgentStatus_SUB_AGENT_COMPLETED, ToolCount: 2},
 		executiontui.DoneEvent{Phase: "completed"},
 	)
 

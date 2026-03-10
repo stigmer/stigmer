@@ -150,7 +150,7 @@ func handleJSONEvent(enc *json.Encoder, cfg jsonRenderConfig, event executiontui
 	case executiontui.SubAgentCompletedEvent:
 		writeJSONEvent(enc, "sub_agent_completed", map[string]any{
 			"id":         e.ID,
-			"status":     e.Status,
+			"status":     e.Status.String(),
 			"tool_count": e.ToolCount,
 			"output":     e.Output,
 		})

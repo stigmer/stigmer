@@ -488,3 +488,15 @@ func firstNonEmptyLine(s string) string {
 	}
 	return ""
 }
+
+// Truncate shortens a plain-text string to maxLen characters, appending "..."
+// if truncated. Exported wrapper around the internal truncate function for use
+// by the command layer.
+func Truncate(s string, maxLen int) string {
+	return truncate(s, maxLen)
+}
+
+// DimText renders text with dim styling (foreground color 8).
+func DimText(s string) string {
+	return dimStyle.Render(s)
+}
