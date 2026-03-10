@@ -2075,6 +2075,136 @@ class TestSubAgentInternals:
         assert len(status_builder._completed_sub_agents) == 0
         assert len(status_builder.current_status.sub_agent_executions) == 0
 
+    # ── write_todos namespace isolation ──────────────────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_sub_agent_write_todos_does_not_update_main_todos(self, status_builder):
+        """Sub-agent write_todos must not pollute the parent execution's todo list.
+
+        write_todos is a PLANNING_TOOL handled before regular namespace routing.
+        When a sub-agent calls it, the status_builder must detect the sub-agent
+        namespace and skip _update_todos() entirely.
+        """
+        sub_agent_run_id = "task-run-todo-isolation"
+        namespace = f"agent_node:{sub_agent_run_id}"
+
+        # Create sub-agent via task tool
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": sub_agent_run_id,
+            "data": {
+                "input": {
+                    "subagent_type": "code_editor",
+                    "description": "Fix the bug",
+                }
+            },
+            "metadata": {},
+        })
+
+        # Send a non-planning tool from the sub-agent namespace first so the
+        # namespace is registered (simulates the normal event ordering where
+        # AI messages or tool calls precede write_todos).
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "read_file",
+            "run_id": "sub-tool-pre-todo",
+            "data": {"input": {"path": "/tmp/test.txt"}},
+            "metadata": {"langgraph_checkpoint_ns": namespace},
+        })
+
+        # Sub-agent calls write_todos from its namespace
+        with patch.object(status_builder, "_update_todos") as mock_update:
+            await status_builder.process_event({
+                "event": "on_tool_start",
+                "name": "write_todos",
+                "run_id": "write-todos-sub-1",
+                "data": {
+                    "input": {
+                        "todos": [
+                            {"id": "t1", "content": "Sub step 1", "status": "pending"},
+                            {"id": "t2", "content": "Sub step 2", "status": "in_progress"},
+                        ]
+                    }
+                },
+                "metadata": {"langgraph_checkpoint_ns": namespace},
+            })
+            mock_update.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_main_agent_write_todos_updates_todos(self, status_builder):
+        """Main agent write_todos must still update the execution's todo list.
+
+        Regression guard: the sub-agent guard added for namespace isolation
+        must not interfere with the normal main-agent write_todos flow.
+        """
+        with patch.object(status_builder, "_update_todos") as mock_update:
+            await status_builder.process_event({
+                "event": "on_tool_start",
+                "name": "write_todos",
+                "run_id": "write-todos-main-1",
+                "data": {
+                    "input": {
+                        "todos": [
+                            {"id": "t1", "content": "Main step 1", "status": "pending"},
+                        ]
+                    }
+                },
+                "metadata": {},
+            })
+            mock_update.assert_called_once_with(
+                [{"id": "t1", "content": "Main step 1", "status": "pending"}]
+            )
+
+    @pytest.mark.asyncio
+    async def test_sub_agent_write_todos_first_event_namespace_registration(
+        self, status_builder
+    ):
+        """write_todos as the first event from a sub-agent namespace must still
+        be correctly identified as a sub-agent event.
+
+        The namespace registration was moved before the PLANNING_TOOLS handler
+        specifically so that even when write_todos is the first event carrying
+        a sub-agent namespace, the namespace is registered and
+        _get_execution_context can resolve it.
+        """
+        sub_agent_run_id = "task-run-todo-first"
+        namespace = f"agent_node:{sub_agent_run_id}"
+
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": sub_agent_run_id,
+            "data": {
+                "input": {
+                    "subagent_type": "researcher",
+                    "description": "Research topic",
+                }
+            },
+            "metadata": {},
+        })
+
+        # write_todos is the FIRST event from this namespace — no prior tool
+        # calls or AI messages have registered it yet.
+        with patch.object(status_builder, "_update_todos") as mock_update:
+            await status_builder.process_event({
+                "event": "on_tool_start",
+                "name": "write_todos",
+                "run_id": "write-todos-first-event",
+                "data": {
+                    "input": {
+                        "todos": [
+                            {"id": "t1", "content": "Step 1", "status": "pending"},
+                        ]
+                    }
+                },
+                "metadata": {"langgraph_checkpoint_ns": namespace},
+            })
+            mock_update.assert_not_called()
+
+        # Verify the namespace was registered as a side effect
+        assert namespace in status_builder._namespace_to_sub_agent_id
+
 
 # =============================================================================
 # Sub-Agent Scenario Tests (PR5 — multi-step interaction coverage)
