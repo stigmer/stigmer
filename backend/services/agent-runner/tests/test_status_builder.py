@@ -2127,7 +2127,8 @@ class TestSubAgentScenarios:
 
         sa = status_builder.current_status.sub_agent_executions[0]
         assert sa.status == SubAgentStatus.SUB_AGENT_IN_PROGRESS
-        assert sa.subject == "Apply hotfix"
+        assert sa.subject == ""
+        assert sa.input == "Apply hotfix"
 
         # 2. Sub-agent's tool call (routed via namespace)
         await status_builder.process_event({
