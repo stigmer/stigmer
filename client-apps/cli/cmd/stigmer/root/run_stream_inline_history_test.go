@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/charmbracelet/x/ansi"
 	"github.com/stretchr/testify/assert"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
@@ -753,6 +754,90 @@ func TestRenderSubAgentBlockItem_EmptySubject(t *testing.T) {
 	assert.Contains(t, result, "✓ Done")
 	assert.NotContains(t, result, "code_editor",
 		"empty subject should display empty — no fallback to name (DD-04)")
+}
+
+func TestRenderSubAgentBlockItem_Collapsed_Cancelled(t *testing.T) {
+	block := &subAgentBlock{
+		id: "sa-1", name: "deployer", subject: "Deploy to staging",
+		status: agentexecutionv1.SubAgentStatus_SUB_AGENT_CANCELLED, toolCount: 2,
+	}
+	item := committedItem{kind: kindSubAgentBlock, saBlock: block}
+
+	result := renderCommittedItem(item, toolrender.CompactOptions{}, false, false)
+
+	assert.Contains(t, result, "⊘ Cancelled")
+	assert.Contains(t, result, "2 tools")
+	assert.NotContains(t, result, "✓ Done")
+	assert.NotContains(t, result, "✗ Failed")
+}
+
+func TestRenderSubAgentBlockItem_Collapsed_WithOutput(t *testing.T) {
+	block := &subAgentBlock{
+		id: "sa-1", name: "researcher", subject: "Explore codebase",
+		status:    agentexecutionv1.SubAgentStatus_SUB_AGENT_COMPLETED,
+		toolCount: 3,
+		output:    "Found 12 relevant files across 4 packages",
+	}
+	item := committedItem{kind: kindSubAgentBlock, saBlock: block}
+
+	result := renderCommittedItem(item, toolrender.CompactOptions{}, false, false)
+	stripped := ansi.Strip(result)
+
+	assert.Contains(t, stripped, "Found 12 relevant files")
+	assert.Contains(t, result, "✓ Done")
+}
+
+func TestRenderSubAgentBlockItem_Expanded_WithInputAndOutput(t *testing.T) {
+	block := &subAgentBlock{
+		id: "sa-1", name: "researcher", subject: "Explore CLI rendering",
+		status:    agentexecutionv1.SubAgentStatus_SUB_AGENT_COMPLETED,
+		toolCount: 1,
+		input:     "Find all files related to sub-agent rendering in the CLI",
+		output:    "Found 12 files handling sub-agent rendering",
+		children: []committedItem{
+			{kind: kindToolCompact, subAgentID: "sa-1", toolCalls: []toolrender.ToolCallInfo{{
+				Name: "grep", Args: map[string]interface{}{"pattern": "SubAgent"},
+			}}},
+		},
+	}
+	item := committedItem{kind: kindSubAgentBlock, saBlock: block}
+
+	result := renderCommittedItem(item, toolrender.CompactOptions{}, true, false)
+	stripped := ansi.Strip(result)
+
+	assert.Contains(t, stripped, "Prompt:")
+	assert.Contains(t, stripped, "sub-agent rendering")
+	assert.Contains(t, stripped, "Result:")
+	assert.Contains(t, stripped, "Found 12 files")
+	assert.Contains(t, result, "│")
+	assert.Contains(t, result, "✓ Done")
+
+	promptIdx := strings.Index(stripped, "Prompt:")
+	grepIdx := strings.Index(stripped, "SubAgent")
+	resultIdx := strings.Index(stripped, "Result:")
+	assert.True(t, promptIdx < grepIdx, "Prompt should appear before children")
+	assert.True(t, grepIdx < resultIdx, "Result should appear after children")
+}
+
+func TestRenderSubAgentBlockItem_Expanded_Cancelled(t *testing.T) {
+	block := &subAgentBlock{
+		id: "sa-1", name: "deployer", subject: "Deploy to staging",
+		status:    agentexecutionv1.SubAgentStatus_SUB_AGENT_CANCELLED,
+		toolCount: 1,
+		children: []committedItem{
+			{kind: kindToolCompact, subAgentID: "sa-1", toolCalls: []toolrender.ToolCallInfo{{
+				Name: "kubectl_apply", Args: map[string]interface{}{"manifest": "deploy.yaml"},
+			}}},
+		},
+	}
+	item := committedItem{kind: kindSubAgentBlock, saBlock: block}
+
+	result := renderCommittedItem(item, toolrender.CompactOptions{}, true, false)
+
+	assert.Contains(t, result, "⊘ Cancelled")
+	assert.Contains(t, result, "│")
+	assert.NotContains(t, result, "✓ Done")
+	assert.NotContains(t, result, "✗ Failed")
 }
 
 // =============================================================================

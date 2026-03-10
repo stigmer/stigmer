@@ -360,6 +360,112 @@ func TestInlineRenderer_SubAgentToolsCollapsed(t *testing.T) {
 	}
 }
 
+func TestInlineRenderer_SubAgentFailure(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 10)
+
+	go feedEvents(events,
+		executiontui.SubAgentStartedEvent{ID: "sa-fail", Name: "deployer", Description: "deploy service"},
+		executiontui.ToolCompletedEvent{
+			SubAgentID: "sa-fail",
+			ToolCall:   toolrender.ToolCallInfo{Name: "kubectl_apply", Args: map[string]interface{}{"manifest": "deploy.yaml"}},
+		},
+		executiontui.SubAgentCompletedEvent{ID: "sa-fail", Status: agentexecutionv1.SubAgentStatus_SUB_AGENT_FAILED, ToolCount: 1},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	result := renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	output := stderr.String()
+	if !strings.Contains(output, "✗ Failed") {
+		t.Errorf("failed sub-agent should show Failed badge, got: %q", output)
+	}
+
+	found := false
+	for _, item := range result.history {
+		if item.kind == kindSubAgentBlock {
+			found = true
+			if item.saBlock.status != agentexecutionv1.SubAgentStatus_SUB_AGENT_FAILED {
+				t.Errorf("expected SUB_AGENT_FAILED status, got %v", item.saBlock.status)
+			}
+			break
+		}
+	}
+	if !found {
+		t.Error("history should contain a kindSubAgentBlock item")
+	}
+}
+
+func TestInlineRenderer_SubAgentCancelled(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 10)
+
+	go feedEvents(events,
+		executiontui.SubAgentStartedEvent{ID: "sa-cancel", Name: "reviewer", Description: "review PR"},
+		executiontui.SubAgentCompletedEvent{ID: "sa-cancel", Status: agentexecutionv1.SubAgentStatus_SUB_AGENT_CANCELLED, ToolCount: 0},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	output := stderr.String()
+	if !strings.Contains(output, "⊘ Cancelled") {
+		t.Errorf("cancelled sub-agent should show Cancelled badge, got: %q", output)
+	}
+}
+
+func TestInlineRenderer_SubAgentWithOutput(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 10)
+
+	go feedEvents(events,
+		executiontui.SubAgentStartedEvent{ID: "sa-out", Name: "researcher", Description: "explore code"},
+		executiontui.ToolCompletedEvent{
+			SubAgentID: "sa-out",
+			ToolCall:   toolrender.ToolCallInfo{Name: "grep", Args: map[string]interface{}{"pattern": "SubAgent"}},
+		},
+		executiontui.SubAgentCompletedEvent{
+			ID: "sa-out", Status: agentexecutionv1.SubAgentStatus_SUB_AGENT_COMPLETED,
+			ToolCount: 1, Output: "Found 12 relevant files",
+		},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	result := renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	found := false
+	for _, item := range result.history {
+		if item.kind == kindSubAgentBlock {
+			found = true
+			if item.saBlock.output != "Found 12 relevant files" {
+				t.Errorf("expected output to be captured, got %q", item.saBlock.output)
+			}
+			break
+		}
+	}
+	if !found {
+		t.Error("history should contain a kindSubAgentBlock item")
+	}
+}
+
 // =============================================================================
 // Todo Update
 // =============================================================================

@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-09 10:54
-**Current Task**: PR1 COMPLETE, PR2 COMPLETE, PR3 COMPLETE, PR4 COMPLETE. Next: PR5 (Tests)
-**Status**: PR1–PR4 committed and ready
+**Current Task**: PR1 COMPLETE, PR2 COMPLETE, PR3 COMPLETE, PR4 COMPLETE, PR5 COMPLETE
+**Status**: All PRs complete — ready for final review and merge
 
 ## Session Progress (2026-03-10, Session 1)
 
@@ -100,9 +100,21 @@ When starting a new session:
 - Added 7 new tests; all 242 tests pass
 - Two architectural decisions made: Option B for pause handling (leave IN_PROGRESS), Option A for drop-vs-misattribute (keep misattribute with warning)
 
+## Session Progress (2026-03-10, Session 5)
+
+- Implemented PR5: sub-agent test coverage completion (15 new tests)
+- **Python** (4 scenario tests): approval lifecycle round-trip, concurrent interleaved events, finalization with approvals, run_id alias resolution
+- **Go history** (4 tests): cancelled collapsed/expanded, output collapsed, input+output expanded with ordering
+- **Go approval** (1 test): sub-agent name prefix in prompt
+- **Go JSON** (3 tests): started/completed payload field assertions, cancelled status string
+- **Go pipeline** (3 tests): failure/cancellation/output end-to-end rendering
+- All 246 Python tests pass, full Go CLI root package passes
+- Session checkpoint: `checkpoints/2026-03-10-session-5.md`
+
 ## Next Steps
 
-1. **PR5** (Tests): Integration/end-to-end tests for concurrent sub-agents, approval flow, output rendering, cancellation
+1. All 5 PRs are complete — project ready for final review and merge
+2. Optional: create GitHub PR via `@create-stigmer-oss-pull-request`
 
 ## Context for Resume
 
@@ -116,6 +128,7 @@ When starting a new session:
 - **PR3**: The CancelledError handler in `execute_graphton.py` is a PAUSE, not a cancellation — no separate cancel code path exists at the activity level
 - **PR4**: "Task" label renamed to "Sub-agent" across all CLI render paths (DD-03); all subject fallback chains removed (DD-04); `SubAgentCompletedEvent.Status` is now `agentexecutionv1.SubAgentStatus` enum (not string); `SubAgentStartedEvent` carries `Input` field; sub-agent output rendered in collapsed and expanded views; approval prompts prefixed with sub-agent name; `Truncate()` and `DimText()` exported from `toolrender`
 - Session checkpoint at `checkpoints/2026-03-10-session-4.md`
+- **PR5**: 15 new tests added across Python and Go; all suites green; session checkpoint at `checkpoints/2026-03-10-session-5.md`
 
 ## Session Progress (2026-03-10, Session 4)
 
