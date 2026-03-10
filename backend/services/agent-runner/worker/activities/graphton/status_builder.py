@@ -241,7 +241,12 @@ class StatusBuilder:
         # Track active sub-agent executions by their run_id
         # Key: run_id (from task tool), Value: SubAgentExecution proto
         self._active_sub_agents: dict[str, SubAgentExecution] = {}
-        
+
+        # Completed sub-agent executions, moved here from _active_sub_agents
+        # on completion.  Namespace mappings are preserved so late-arriving
+        # events from LangGraph still route to the correct proto.
+        self._completed_sub_agents: dict[str, SubAgentExecution] = {}
+
         # Map namespace to sub-agent run_id for event routing
         # Key: namespace string, Value: sub-agent run_id
         self._namespace_to_sub_agent_id: dict[str, str] = {}
@@ -2354,10 +2359,21 @@ class StatusBuilder:
         
         # Try to find matching sub-agent by namespace
         sub_agent_id = self._namespace_to_sub_agent_id.get(namespace)
-        if sub_agent_id and sub_agent_id in self._active_sub_agents:
-            sub_agent = self._active_sub_agents[sub_agent_id]
-            return sub_agent, sub_agent
-        
+        if sub_agent_id:
+            if sub_agent_id in self._active_sub_agents:
+                return self._active_sub_agents[sub_agent_id], self._active_sub_agents[sub_agent_id]
+
+            # Late-arriving event: the sub-agent already completed but
+            # LangGraph emitted one more event (e.g. on_chat_model_end
+            # finalizing a message that was streamed before completion).
+            if sub_agent_id in self._completed_sub_agents:
+                self.logger.debug(
+                    f"[SUBAGENT] execution={self.execution_id} "
+                    f"late event routed to completed sub-agent={sub_agent_id} "
+                    f"namespace={namespace}"
+                )
+                return self._completed_sub_agents[sub_agent_id], self._completed_sub_agents[sub_agent_id]
+
         # Namespace not yet registered — fall back to main agent.
         # Single-segment namespaces (no "|") are normal main-agent graph
         # activity (e.g., the tools node).  Only warn for multi-segment
@@ -2545,38 +2561,76 @@ class StatusBuilder:
                 error_message = output_raw.get("error", "") or output_raw.get("message", "Sub-agent failed")
         
         # Find and update the sub-agent execution
+        found = False
         for sub_agent in self.current_status.sub_agent_executions:
             if sub_agent.id == run_id:
+                found = True
                 sub_agent.output = output
                 sub_agent.completed_at = _utc_timestamp(now)
-                
+
                 if is_error:
                     sub_agent.status = SubAgentStatus.SUB_AGENT_FAILED
                     sub_agent.error = error_message
                 else:
                     sub_agent.status = SubAgentStatus.SUB_AGENT_COMPLETED
-                
+
                 self.logger.debug(
                     f"[SUBAGENT] execution={self.execution_id} "
                     f"id={run_id} status={'FAILED' if is_error else 'COMPLETED'}"
                 )
                 break
-        
-        # Cleanup tracking dictionaries
+
+        if not found:
+            self.logger.warning(
+                f"[SUBAGENT] execution={self.execution_id} "
+                f"_handle_sub_agent_end: no SubAgentExecution found for "
+                f"run_id={run_id} "
+                f"known_ids={[sa.id for sa in self.current_status.sub_agent_executions]}"
+            )
+
+        # Move from active to completed (preserving reference for late events).
+        # Namespace mappings are NOT deleted — late-arriving events from
+        # LangGraph can still route to the correct SubAgentExecution.
         if run_id in self._active_sub_agents:
-            del self._active_sub_agents[run_id]
-        
+            self._completed_sub_agents[run_id] = self._active_sub_agents.pop(run_id)
+
         if self._pending_sub_agent_id == run_id:
             self._pending_sub_agent_id = None
-        
-        # Cleanup any namespace mappings pointing to this sub-agent
-        namespaces_to_remove = [
-            ns for ns, sa_id in self._namespace_to_sub_agent_id.items()
-            if sa_id == run_id
-        ]
-        for ns in namespaces_to_remove:
-            del self._namespace_to_sub_agent_id[ns]
-    
+
+        self.force_next_update = True
+
+    def finalize_active_sub_agents(self, status: SubAgentStatus, error: str) -> None:
+        """Transition all active sub-agents to a terminal state.
+
+        Called when the parent execution terminates abnormally (error or stall)
+        to ensure no sub-agent remains stuck in IN_PROGRESS.
+
+        Args:
+            status: Terminal status to assign (typically SUB_AGENT_FAILED or
+                    SUB_AGENT_CANCELLED).
+            error: Explanation of why the sub-agent was terminated.
+        """
+        if not self._active_sub_agents:
+            return
+
+        now = _utc_timestamp()
+        finalized_ids: list[str] = []
+
+        for run_id, sub_agent in list(self._active_sub_agents.items()):
+            sub_agent.status = status
+            sub_agent.error = error
+            sub_agent.completed_at = now
+            self._completed_sub_agents[run_id] = sub_agent
+            finalized_ids.append(run_id)
+
+        self._active_sub_agents.clear()
+
+        self.logger.info(
+            f"[SUBAGENT] execution={self.execution_id} "
+            f"finalized {len(finalized_ids)} active sub-agent(s) "
+            f"-> {SubAgentStatus.Name(status)}: {finalized_ids}"
+        )
+
     # ─────────────────────────────────────────────────────────────────────────────
     # Usage Metrics Builders (Phase 2.4)
     # ─────────────────────────────────────────────────────────────────────────────

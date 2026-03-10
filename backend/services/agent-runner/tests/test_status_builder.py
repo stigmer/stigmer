@@ -1591,10 +1591,10 @@ class TestSubAgentInternals:
 
     @pytest.mark.asyncio
     async def test_namespace_cleanup_on_sub_agent_end(self, status_builder):
-        """Test that namespace mappings are cleaned up when sub-agent ends."""
+        """Completed sub-agents move to _completed; namespace mappings are preserved for late events."""
         sub_agent_run_id = "task-run-cleanup"
         namespace = f"agent_node:{sub_agent_run_id}"
-        
+
         # Start sub-agent
         await status_builder.process_event({
             "event": "on_tool_start",
@@ -1608,7 +1608,7 @@ class TestSubAgentInternals:
             },
             "metadata": {}
         })
-        
+
         # Register namespace via child event
         await status_builder.process_event({
             "event": "on_tool_start",
@@ -1617,11 +1617,11 @@ class TestSubAgentInternals:
             "data": {"input": {"text": "hello"}},
             "metadata": {"langgraph_checkpoint_ns": namespace}
         })
-        
-        # Verify namespace is registered
+
+        # Verify namespace is registered and sub-agent is active
         assert namespace in status_builder._namespace_to_sub_agent_id
         assert sub_agent_run_id in status_builder._active_sub_agents
-        
+
         # End sub-agent
         await status_builder.process_event({
             "event": "on_tool_end",
@@ -1630,10 +1630,13 @@ class TestSubAgentInternals:
             "data": {"output": "done"},
             "metadata": {}
         })
-        
-        # Verify cleanup
-        assert namespace not in status_builder._namespace_to_sub_agent_id
+
+        # Sub-agent moved from active to completed
         assert sub_agent_run_id not in status_builder._active_sub_agents
+        assert sub_agent_run_id in status_builder._completed_sub_agents
+
+        # Namespace mappings preserved for late-arriving event routing
+        assert namespace in status_builder._namespace_to_sub_agent_id
 
     @pytest.mark.asyncio
     async def test_sub_agent_extracts_alternative_arg_names(self, status_builder):
@@ -1868,6 +1871,170 @@ class TestSubAgentInternals:
         assert len(status_builder.current_status.pending_approvals) == 0
         assert len(sub_agent.pending_approvals) == 0
 
+    # ── Gap 8: End-event guard ──────────────────────────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_sub_agent_end_warns_on_unknown_run_id(self, status_builder, caplog):
+        """_handle_sub_agent_end logs a warning when run_id has no matching SubAgentExecution."""
+        import logging
+
+        with caplog.at_level(logging.WARNING, logger="worker.activities.graphton.status_builder"):
+            await status_builder.process_event({
+                "event": "on_tool_end",
+                "name": "task",
+                "run_id": "ghost-run-999",
+                "data": {"output": "irrelevant"},
+                "metadata": {},
+            })
+
+        assert any(
+            "_handle_sub_agent_end" in r.message and "ghost-run-999" in r.message
+            for r in caplog.records
+        )
+
+    @pytest.mark.asyncio
+    async def test_sub_agent_end_forces_status_update(self, status_builder):
+        """Sub-agent completion sets force_next_update so the status push is immediate."""
+        run_id = "task-force-update"
+
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": run_id,
+            "data": {"input": {"subagent_type": "helper", "input": "do stuff"}},
+            "metadata": {},
+        })
+
+        status_builder.force_next_update = False
+
+        await status_builder.process_event({
+            "event": "on_tool_end",
+            "name": "task",
+            "run_id": run_id,
+            "data": {"output": "done"},
+            "metadata": {},
+        })
+
+        assert status_builder.force_next_update is True
+
+    # ── Gap 9: Late event routing ───────────────────────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_late_event_routes_to_completed_sub_agent(self, status_builder):
+        """Events arriving after sub-agent completion route to the completed proto, not main."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SubAgentStatus
+
+        run_id = "task-late-event"
+        namespace = f"agent_node:{run_id}"
+
+        # Start sub-agent
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": run_id,
+            "data": {"input": {"subagent_type": "explorer", "input": "search"}},
+            "metadata": {},
+        })
+
+        # Register a namespace while it's active
+        status_builder._register_sub_agent_namespace(f"{namespace}|tools")
+
+        # Complete the sub-agent
+        await status_builder.process_event({
+            "event": "on_tool_end",
+            "name": "task",
+            "run_id": run_id,
+            "data": {"output": "found it"},
+            "metadata": {},
+        })
+
+        assert run_id not in status_builder._active_sub_agents
+        assert run_id in status_builder._completed_sub_agents
+
+        # Late event with the same namespace root
+        context, sub_agent = status_builder._get_execution_context(f"{namespace}|tools")
+
+        assert sub_agent is not None
+        assert sub_agent.id == run_id
+        assert sub_agent.status == SubAgentStatus.SUB_AGENT_COMPLETED
+
+    @pytest.mark.asyncio
+    async def test_namespace_mappings_preserved_after_completion(self, status_builder):
+        """Namespace -> sub-agent mappings survive sub-agent completion."""
+        run_id = "task-ns-preserve"
+        namespace = f"agent_node:{run_id}"
+
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": run_id,
+            "data": {"input": {"subagent_type": "helper", "input": "x"}},
+            "metadata": {},
+        })
+
+        # Register namespace while active
+        status_builder._register_sub_agent_namespace(f"{namespace}|inner")
+        assert f"{namespace}|inner" in status_builder._namespace_to_sub_agent_id
+
+        # Complete
+        await status_builder.process_event({
+            "event": "on_tool_end",
+            "name": "task",
+            "run_id": run_id,
+            "data": {"output": "ok"},
+            "metadata": {},
+        })
+
+        # Namespace mapping still present
+        assert f"{namespace}|inner" in status_builder._namespace_to_sub_agent_id
+
+    # ── Gap 10: Parent termination propagation ──────────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_finalize_active_sub_agents_marks_terminal(self, status_builder):
+        """finalize_active_sub_agents transitions all active sub-agents to the given terminal status."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SubAgentStatus
+
+        # Start two sub-agents
+        for suffix in ("a", "b"):
+            await status_builder.process_event({
+                "event": "on_tool_start",
+                "name": "task",
+                "run_id": f"task-fin-{suffix}",
+                "data": {"input": {"subagent_type": "worker", "input": f"job {suffix}"}},
+                "metadata": {},
+            })
+
+        assert len(status_builder._active_sub_agents) == 2
+
+        status_builder.finalize_active_sub_agents(
+            SubAgentStatus.SUB_AGENT_FAILED,
+            "Parent execution failed: test error",
+        )
+
+        assert len(status_builder._active_sub_agents) == 0
+        assert len(status_builder._completed_sub_agents) == 2
+
+        for sa in status_builder.current_status.sub_agent_executions:
+            assert sa.status == SubAgentStatus.SUB_AGENT_FAILED
+            assert sa.error == "Parent execution failed: test error"
+            assert sa.completed_at != ""
+
+    @pytest.mark.asyncio
+    async def test_finalize_active_sub_agents_noop_when_empty(self, status_builder):
+        """finalize_active_sub_agents is a safe no-op when no sub-agents are active."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SubAgentStatus
+
+        assert len(status_builder._active_sub_agents) == 0
+
+        status_builder.finalize_active_sub_agents(
+            SubAgentStatus.SUB_AGENT_FAILED,
+            "should not matter",
+        )
+
+        assert len(status_builder._completed_sub_agents) == 0
+        assert len(status_builder.current_status.sub_agent_executions) == 0
+
 
 # =============================================================================
 # Tests for Namespace Registration Strategies (Strategy 4 + diagnostics)
@@ -2028,6 +2195,40 @@ class TestNamespaceRegistrationStrategies:
 
         # Still not registered, but _warned_namespaces only has it once
         assert ns not in status_builder._namespace_to_sub_agent_id
+
+    # ── Gap 7: Concurrent sub-agent namespace failure ───────────────────────
+
+    @pytest.mark.asyncio
+    async def test_concurrent_sub_agents_unresolvable_namespace_falls_to_main(self, status_builder):
+        """With 2+ active sub-agents, an unresolvable namespace falls through to main agent context."""
+        # Start two sub-agents
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": "sa-concurrent-1",
+            "data": {"input": {"subagent_type": "a", "input": "x"}},
+            "metadata": {},
+        })
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": "sa-concurrent-2",
+            "data": {"input": {"subagent_type": "b", "input": "y"}},
+            "metadata": {},
+        })
+
+        # Consume _pending_sub_agent_id so Strategy 3 cannot apply
+        status_builder._register_sub_agent_namespace("consume:root|node")
+        assert status_builder._pending_sub_agent_id is None
+        assert len(status_builder._active_sub_agents) == 2
+
+        # An ambiguous namespace that no strategy can resolve
+        ambiguous_ns = "alien-root:zzz|deep|nested"
+        context, sub_agent = status_builder._get_execution_context(ambiguous_ns)
+
+        # Falls through to main agent — known limitation with concurrent sub-agents
+        assert context is status_builder.current_status
+        assert sub_agent is None
 
 
 # =============================================================================
