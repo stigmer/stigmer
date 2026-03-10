@@ -2440,7 +2440,7 @@ class TestNamespaceRegistrationStrategies:
         """Strategy 4 maps a different-root namespace to the sole active sub-agent."""
         run_id = "sa-sole-001"
 
-        # Start sub-agent (sets _pending_sub_agent_id)
+        # Start sub-agent (enqueues in _pending_sub_agent_ids)
         await status_builder.process_event({
             "event": "on_tool_start",
             "name": "task",
@@ -2459,7 +2459,7 @@ class TestNamespaceRegistrationStrategies:
             "metadata": {"langgraph_checkpoint_ns": first_ns}
         })
         assert first_ns in status_builder._namespace_to_sub_agent_id
-        assert status_builder._pending_sub_agent_id is None  # consumed
+        assert status_builder._pending_sub_agent_ids == []  # consumed
 
         # Second namespace with a DIFFERENT root — Strategy 4 should handle it
         second_ns = "root-beta:bbb|child-2"
@@ -2523,7 +2523,7 @@ class TestNamespaceRegistrationStrategies:
             "data": {"input": {"subagent_type": "a", "input": "x"}},
             "metadata": {}
         })
-        # Start second sub-agent (overwrites _pending_sub_agent_id)
+        # Start second sub-agent (appends to _pending_sub_agent_ids queue)
         await status_builder.process_event({
             "event": "on_tool_start",
             "name": "task",
@@ -2532,13 +2532,15 @@ class TestNamespaceRegistrationStrategies:
             "metadata": {}
         })
 
-        # Consume _pending_sub_agent_id via a first multi-segment namespace
-        status_builder._register_sub_agent_namespace("consume-root:ccc|node-c")
-        assert status_builder._pending_sub_agent_id is None
+        # Consume both pending sub-agents via FIFO causal correlation
+        status_builder._register_sub_agent_namespace("consume-root-1:ccc|node-c")
+        status_builder._register_sub_agent_namespace("consume-root-2:ddd|node-d")
+        assert status_builder._pending_sub_agent_ids == []
 
         assert len(status_builder._active_sub_agents) == 2
 
         # Ambiguous namespace — cannot be resolved with 2 active sub-agents
+        # (both pending sub-agents already consumed, and root doesn't match)
         ambiguous_ns = "unknown-root:zzz|node-x"
         status_builder._register_sub_agent_namespace(ambiguous_ns)
 
@@ -2563,9 +2565,10 @@ class TestNamespaceRegistrationStrategies:
             "metadata": {}
         })
 
-        # Consume pending
-        status_builder._register_sub_agent_namespace("consume:root|node")
-        assert status_builder._pending_sub_agent_id is None
+        # Consume both pending sub-agents via FIFO causal correlation
+        status_builder._register_sub_agent_namespace("consume-root-1:root|node")
+        status_builder._register_sub_agent_namespace("consume-root-2:root2|node")
+        assert status_builder._pending_sub_agent_ids == []
 
         ns = "dedup-root:qqq|child"
 
@@ -2602,9 +2605,10 @@ class TestNamespaceRegistrationStrategies:
             "metadata": {},
         })
 
-        # Consume _pending_sub_agent_id so Strategy 3 cannot apply
-        status_builder._register_sub_agent_namespace("consume:root|node")
-        assert status_builder._pending_sub_agent_id is None
+        # Consume both pending sub-agents via FIFO causal correlation
+        status_builder._register_sub_agent_namespace("consume-root-1:root|node")
+        status_builder._register_sub_agent_namespace("consume-root-2:root2|node")
+        assert status_builder._pending_sub_agent_ids == []
         assert len(status_builder._active_sub_agents) == 2
 
         # An ambiguous namespace that no strategy can resolve
@@ -2614,6 +2618,191 @@ class TestNamespaceRegistrationStrategies:
         # Falls through to main agent — known limitation with concurrent sub-agents
         assert context is status_builder.current_status
         assert sub_agent is None
+
+
+# =============================================================================
+# Tests for Concurrent Sub-Agent Namespace Registration (FIFO Queue)
+# =============================================================================
+
+
+class TestConcurrentSubAgentNamespaceRegistration:
+    """Tests for FIFO queue-based causal correlation with concurrent sub-agents.
+
+    When multiple sub-agents launch in parallel, _pending_sub_agent_ids holds
+    them in FIFO order.  Strategy 3 pops from the front, mapping each first
+    namespace to the earliest pending sub-agent.  Strategy 1 (root-prefix)
+    handles subsequent namespaces from the same sub-agent.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _patch_subject_gen(self):
+        """Patch LLM-based subject generation for all tests in this class."""
+        with patch(
+            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            new_callable=AsyncMock,
+            return_value="",
+        ):
+            yield
+
+    @pytest.mark.asyncio
+    async def test_fifo_causal_correlation_maps_all_four(self, status_builder):
+        """Start 4 sub-agents, send 4 distinct namespaces — all map via Strategy 3 FIFO."""
+        sa_ids = ["sa-fifo-1", "sa-fifo-2", "sa-fifo-3", "sa-fifo-4"]
+
+        for sa_id in sa_ids:
+            await status_builder.process_event({
+                "event": "on_tool_start",
+                "name": "task",
+                "run_id": sa_id,
+                "data": {"input": {"subagent_type": "worker", "description": f"do {sa_id}"}},
+                "metadata": {},
+            })
+
+        assert len(status_builder._active_sub_agents) == 4
+        assert status_builder._pending_sub_agent_ids == sa_ids
+
+        namespaces = [
+            "root-a:aaa|child",
+            "root-b:bbb|child",
+            "root-c:ccc|child",
+            "root-d:ddd|child",
+        ]
+        for ns in namespaces:
+            status_builder._register_sub_agent_namespace(ns)
+
+        assert status_builder._pending_sub_agent_ids == []
+
+        for ns, sa_id in zip(namespaces, sa_ids):
+            assert status_builder._namespace_to_sub_agent_id[ns] == sa_id
+
+    @pytest.mark.asyncio
+    async def test_fifo_tool_calls_routed_to_correct_sub_agents(self, status_builder):
+        """4 concurrent sub-agents: tool calls with distinct namespaces route correctly."""
+        sa_ids = ["sa-route-1", "sa-route-2", "sa-route-3", "sa-route-4"]
+        ns_roots = ["root-1:aaa", "root-2:bbb", "root-3:ccc", "root-4:ddd"]
+
+        for sa_id in sa_ids:
+            await status_builder.process_event({
+                "event": "on_tool_start",
+                "name": "task",
+                "run_id": sa_id,
+                "data": {"input": {"subagent_type": "worker", "description": f"do {sa_id}"}},
+                "metadata": {},
+            })
+
+        for i, (sa_id, ns_root) in enumerate(zip(sa_ids, ns_roots)):
+            await status_builder.process_event({
+                "event": "on_tool_start",
+                "name": "read_file",
+                "run_id": f"tool-{i}",
+                "data": {"input": {"path": f"/tmp/{i}.py"}},
+                "metadata": {"langgraph_checkpoint_ns": f"{ns_root}|child"},
+            })
+
+        assert len(status_builder.current_status.tool_calls) == 0
+
+        for sa_id in sa_ids:
+            sa = status_builder._active_sub_agents[sa_id]
+            assert len(sa.tool_calls) == 1
+            assert sa.tool_calls[0].name == "read_file"
+
+    @pytest.mark.asyncio
+    async def test_root_prefix_cascading_after_fifo(self, status_builder):
+        """After FIFO maps first namespace, subsequent same-root namespaces use Strategy 1."""
+        sa_ids = ["sa-cascade-1", "sa-cascade-2"]
+
+        for sa_id in sa_ids:
+            await status_builder.process_event({
+                "event": "on_tool_start",
+                "name": "task",
+                "run_id": sa_id,
+                "data": {"input": {"subagent_type": "worker", "description": f"do {sa_id}"}},
+                "metadata": {},
+            })
+
+        status_builder._register_sub_agent_namespace("root-x:aaa|first-child")
+        status_builder._register_sub_agent_namespace("root-y:bbb|first-child")
+        assert status_builder._pending_sub_agent_ids == []
+
+        assert status_builder._namespace_to_sub_agent_id["root-x:aaa|first-child"] == "sa-cascade-1"
+        assert status_builder._namespace_to_sub_agent_id["root-y:bbb|first-child"] == "sa-cascade-2"
+
+        status_builder._register_sub_agent_namespace("root-x:aaa|second-child|deeper")
+        status_builder._register_sub_agent_namespace("root-y:bbb|second-child|deeper")
+
+        assert status_builder._namespace_to_sub_agent_id["root-x:aaa|second-child|deeper"] == "sa-cascade-1"
+        assert status_builder._namespace_to_sub_agent_id["root-y:bbb|second-child|deeper"] == "sa-cascade-2"
+
+    @pytest.mark.asyncio
+    async def test_handle_sub_agent_end_removes_from_pending_queue(self, status_builder):
+        """Sub-agent that ends before namespace registration is removed from the queue."""
+        sa_ids = ["sa-end-1", "sa-end-2", "sa-end-3"]
+
+        for sa_id in sa_ids:
+            await status_builder.process_event({
+                "event": "on_tool_start",
+                "name": "task",
+                "run_id": sa_id,
+                "data": {"input": {"subagent_type": "worker", "description": f"do {sa_id}"}},
+                "metadata": {},
+            })
+
+        assert status_builder._pending_sub_agent_ids == sa_ids
+
+        await status_builder.process_event({
+            "event": "on_tool_end",
+            "name": "task",
+            "run_id": "sa-end-2",
+            "data": {"output": "done early"},
+            "metadata": {},
+        })
+
+        assert status_builder._pending_sub_agent_ids == ["sa-end-1", "sa-end-3"]
+
+    @pytest.mark.asyncio
+    async def test_early_reconciliation_no_cross_contamination(self, status_builder):
+        """Two sub-agents emit same tool name — early reconciliation matches correct sub-agent."""
+        sa_ids = ["sa-recon-1", "sa-recon-2"]
+        ns_map = {"sa-recon-1": "root-r1:aaa|child", "sa-recon-2": "root-r2:bbb|child"}
+
+        for sa_id in sa_ids:
+            await status_builder.process_event({
+                "event": "on_tool_start",
+                "name": "task",
+                "run_id": sa_id,
+                "data": {"input": {"subagent_type": "worker", "description": f"do {sa_id}"}},
+                "metadata": {},
+            })
+
+        for sa_id, ns in ns_map.items():
+            status_builder._register_sub_agent_namespace(ns)
+
+        sa1 = status_builder._active_sub_agents["sa-recon-1"]
+        sa2 = status_builder._active_sub_agents["sa-recon-2"]
+
+        status_builder._create_early_tool_call(
+            "read_file", "use-1", "ns-1", ns_map["sa-recon-1"],
+        )
+        status_builder._create_early_tool_call(
+            "read_file", "use-2", "ns-2", ns_map["sa-recon-2"],
+        )
+
+        assert len(sa1.tool_calls) == 1
+        assert len(sa2.tool_calls) == 1
+
+        reconciled = status_builder._reconcile_early_tool_call(
+            "read_file", "real-run-2", {"path": "/b"}, ns_map["sa-recon-2"],
+        )
+        assert reconciled is not None
+        assert reconciled is sa2.tool_calls[0]
+
+        reconciled = status_builder._reconcile_early_tool_call(
+            "read_file", "real-run-1", {"path": "/a"}, ns_map["sa-recon-1"],
+        )
+        assert reconciled is not None
+        assert reconciled is sa1.tool_calls[0]
+
+        assert len(status_builder._early_tool_call_queue) == 0
 
 
 # =============================================================================
