@@ -496,6 +496,15 @@ func Truncate(s string, maxLen int) string {
 	return truncate(s, maxLen)
 }
 
+// FirstLine returns the first line of s, stripping any trailing newline.
+// If s contains no newlines, it is returned unchanged.
+func FirstLine(s string) string {
+	if i := strings.IndexByte(s, '\n'); i >= 0 {
+		return s[:i]
+	}
+	return s
+}
+
 // DimText renders text with dim styling (foreground color 8).
 func DimText(s string) string {
 	return dimStyle.Render(s)

@@ -38,11 +38,14 @@ from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ToolCallStatus,
 )
 from google.protobuf.struct_pb2 import Struct
+from graphton.core import ModelRegistry
 from graphton.core.backends.platform_mount import (
     humanize_platform_refs,
     resolve_display_env_vars,
 )
+from graphton.core.models import parse_model_string
 from graphton.core.summarization_callback import SummarizationEventData
+from langchain_core.messages import HumanMessage, SystemMessage
 
 from worker.activities.graphton.approval_policy import (
     ApprovalConfig,
@@ -51,8 +54,102 @@ from worker.activities.graphton.approval_policy import (
     resolve_tool_approval,
 )
 from worker.component_type_inference import infer_component_type
+from worker.config import Config
 
 _logger = logging.getLogger(__name__)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Sub-Agent Subject Generation
+#
+# Generates a concise task title for sub-agent executions using an economy-tier
+# LLM. Follows the same pattern as session subject generation in
+# generate_session_subject.py.
+# ─────────────────────────────────────────────────────────────────────────────
+
+_MAX_SUBJECT_LENGTH = 50
+
+_SUBJECT_SYSTEM_PROMPT = """\
+You are a task title generator. Given a task description delegated to a \
+sub-agent, produce a concise task title.
+
+Rules:
+- 3 to 7 words, maximum 50 characters
+- Capture the core intent of the task
+- Be specific (e.g. "Fix auth middleware tests" not "Fix tests")
+- No filler words ("help with", "please", "I need")
+- No quotes, no punctuation at the end
+- Output ONLY the title, nothing else"""
+
+
+async def _generate_sub_agent_subject(
+    input_text: str,
+    sub_agent_name: str,
+) -> str:
+    """Generate a concise task title for a sub-agent from its input prompt.
+
+    Uses ``ModelRegistry.get_summarization_model()`` to select the cheapest
+    available model (claude-haiku-4.5 / gpt-4o-mini / same model for Ollama),
+    keeping costs negligible even with many sub-agent invocations per execution.
+
+    Returns the generated subject (stripped, truncated to 50 chars), or an
+    empty string on any failure so callers can fall back gracefully.
+    """
+    if not input_text:
+        return ""
+
+    try:
+        worker_config = Config.load_from_env()
+        economy_model = ModelRegistry.get_summarization_model(
+            worker_config.llm.model_name
+        )
+
+        llm_kwargs: dict = {}
+        if worker_config.llm.provider == "ollama":
+            llm_kwargs["base_url"] = worker_config.llm.base_url
+        elif worker_config.llm.provider in ("anthropic", "openai"):
+            llm_kwargs["api_key"] = worker_config.llm.api_key
+
+        model = parse_model_string(
+            economy_model,
+            max_tokens=100,
+            temperature=0.7,
+            **llm_kwargs,
+        )
+
+        truncated_input = input_text[:2000] if len(input_text) > 2000 else input_text
+
+        user_prompt = (
+            f'Sub-agent type: {sub_agent_name}\n\n'
+            f'Task description:\n"{truncated_input}"\n\n'
+            f'Generate the title:'
+        )
+
+        response = await model.ainvoke([
+            SystemMessage(content=_SUBJECT_SYSTEM_PROMPT),
+            HumanMessage(content=user_prompt),
+        ])
+
+        content = response.content
+        if not isinstance(content, str):
+            content = (
+                "".join(str(part) for part in content)
+                if isinstance(content, list)
+                else str(content)
+            )
+        subject = content.strip().strip('"').strip("'")
+
+        if subject and len(subject) > _MAX_SUBJECT_LENGTH:
+            subject = subject[:_MAX_SUBJECT_LENGTH - 3] + "..."
+
+        return subject or ""
+
+    except Exception:
+        _logger.debug(
+            "Sub-agent subject generation failed (non-critical), "
+            "falling back to empty subject",
+            exc_info=True,
+        )
+        return ""
 
 
 # Planning tools that update execution state without UI display
@@ -2491,11 +2588,12 @@ class StatusBuilder:
                 f"pending={self._pending_sub_agent_id}"
             )
     
-    def _handle_sub_agent_start(self, event: dict[str, Any], tool_args: dict[str, Any], run_id: str) -> None:
+    async def _handle_sub_agent_start(self, event: dict[str, Any], tool_args: dict[str, Any], run_id: str) -> None:
         """Handle task tool invocation — creates SubAgentExecution.
 
-        The ``subject`` is populated directly from ``tool_args["description"]``
-        (the concise label the invoking LLM already provided).  See DD-02.
+        In deepagents' task tool, ``description`` is the full task prompt (the
+        only text parameter alongside ``subagent_type``).  We map it to
+        ``input`` and generate a concise ``subject`` via an economy-tier LLM.
 
         Args:
             event: The on_tool_start event dictionary.
@@ -2503,8 +2601,14 @@ class StatusBuilder:
             run_id: The run_id for this tool invocation.
         """
         sub_agent_name = tool_args.get("subagent_type", "") or tool_args.get("agent_type", "") or "unknown"
-        sub_agent_input = tool_args.get("input", "") or tool_args.get("task", "") or tool_args.get("prompt", "")
-        subject = tool_args.get("description", "")
+        # deepagents' task tool uses "description" as the full task prompt
+        sub_agent_input = (
+            tool_args.get("description", "")
+            or tool_args.get("input", "")
+            or tool_args.get("task", "")
+            or tool_args.get("prompt", "")
+        )
+        subject = await _generate_sub_agent_subject(sub_agent_input, sub_agent_name)
 
         now = datetime.utcnow()
         sub_agent = SubAgentExecution(

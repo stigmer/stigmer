@@ -154,15 +154,16 @@ func (r *inlineRenderer) renderSubAgentStarted(e executiontui.SubAgentStartedEve
 	}
 	r.activeSubAgents[e.ID] = block
 
+	truncatedSubject := toolrender.Truncate(toolrender.FirstLine(e.Description), 80)
 	if r.cfg.program != nil {
 		r.cfg.program.Send(subAgentShowMsg{
 			id:      e.ID,
-			subject: e.Description,
+			subject: truncatedSubject,
 		})
 	} else {
 		r.statusf("%s %s: %s %s\n",
 			toolrender.BulletGreen("●"), toolrender.LabelBold("Sub-agent"),
-			e.Description, "…")
+			truncatedSubject, "…")
 	}
 }
 

@@ -349,8 +349,9 @@ func renderSubAgentBlockItem(item committedItem, opts toolrender.CompactOptions,
 		return ""
 	}
 
+	subject := toolrender.Truncate(toolrender.FirstLine(block.subject), 80)
 	header := fmt.Sprintf("%s %s: %s",
-		toolrender.BulletGreen("●"), toolrender.LabelBold("Sub-agent"), block.subject)
+		toolrender.BulletGreen("●"), toolrender.LabelBold("Sub-agent"), subject)
 
 	if !expanded {
 		return renderSubAgentCollapsed(header, block)
