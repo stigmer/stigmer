@@ -348,11 +348,12 @@ class StatusBuilder:
         # Key: namespace string, Value: sub-agent run_id
         self._namespace_to_sub_agent_id: dict[str, str] = {}
         
-        # Causal namespace registration: when a "task" tool starts, we record
-        # its sub-agent ID here.  The next unregistered multi-segment namespace
-        # (indicating a nested sub-graph) is associated with this sub-agent.
-        # Consumed (set to None) once the first namespace is registered.
-        self._pending_sub_agent_id: str | None = None
+        # Causal namespace registration: when "task" tools start, we record
+        # their sub-agent IDs in FIFO order.  The next unregistered multi-segment
+        # namespace (indicating a nested sub-graph) is associated with the
+        # front-of-queue sub-agent.  Supports concurrent sub-agent launches
+        # where multiple task tools start before any child events arrive.
+        self._pending_sub_agent_ids: list[str] = []
         
         # Namespaces already warned about (deduplication — log once per namespace)
         self._warned_namespaces: set[str] = set()
@@ -466,8 +467,11 @@ class StatusBuilder:
         # name instead of the "Thinking…" idle indicator.  The queue holds temp
         # IDs in FIFO order; on_tool_start pops the first match and reconciles
         # (updating args, registering the real run_id as an alias).
+        # Each entry is (temp_id, sub_agent_id_or_None) so reconciliation
+        # matches within the correct execution context and avoids
+        # cross-contamination between concurrent sub-agents.
         # ─────────────────────────────────────────────────────────────────────────
-        self._early_tool_call_queue: list[str] = []
+        self._early_tool_call_queue: list[tuple[str, str | None]] = []
         
         # ─────────────────────────────────────────────────────────────────────
         # Tool Input Streaming (Live Argument Generation)
@@ -1575,7 +1579,8 @@ class StatusBuilder:
             self.current_status.messages.append(tool_message)
             self.current_status.tool_calls.append(tool_call)
 
-        self._early_tool_call_queue.append(temp_id)
+        sa_id = sub_agent.id if sub_agent else None
+        self._early_tool_call_queue.append((temp_id, sa_id))
         self._tool_start_times[temp_id] = now
 
         self._tool_input_active_tc[ns_key] = temp_id
@@ -1592,17 +1597,26 @@ class StatusBuilder:
     ) -> ToolCall | None:
         """Match an ``on_tool_start`` event to an early-created ToolCall.
 
-        Pops the first queued temp-ID whose ToolCall name matches
-        *tool_name*.  If found, the existing ToolCall is updated in place
-        (args populated, ``is_streaming`` cleared) and the real *run_id*
-        is registered as an alias so that downstream handlers
-        (``on_tool_end``, ``tool_progress``) resolve to the same proto.
+        Pops the first queued entry whose ToolCall name matches *tool_name*
+        and whose sub-agent context matches the current namespace.  This
+        prevents cross-contamination when concurrent sub-agents invoke the
+        same tool (e.g., two sub-agents both calling ``read_file``).
+
+        If found, the existing ToolCall is updated in place (args populated,
+        ``is_streaming`` cleared) and the real *run_id* is registered as an
+        alias so that downstream handlers (``on_tool_end``, ``tool_progress``)
+        resolve to the same proto.
 
         Returns the reconciled ToolCall, or ``None`` if no match exists.
         """
-        for idx, temp_id in enumerate(self._early_tool_call_queue):
+        _, sub_agent = self._get_execution_context(namespace)
+        sa_id = sub_agent.id if sub_agent else None
+
+        for idx, (temp_id, queued_sa_id) in enumerate(self._early_tool_call_queue):
             existing = self._find_tool_call_by_id(temp_id)
             if existing is None or existing.name != tool_name:
+                continue
+            if queued_sa_id != sa_id:
                 continue
 
             self._early_tool_call_queue.pop(idx)
@@ -2499,11 +2513,12 @@ class StatusBuilder:
         2. **Substring matching** (legacy): Checks if any active sub-agent's
            run_id appears in the namespace string.
         
-        3. **Causal correlation**: When a "task" tool starts a sub-agent,
-           ``_pending_sub_agent_id`` is set.  The first unregistered
-           multi-segment namespace is associated with that pending sub-agent.
-           This handles the common case where LangGraph checkpoint UUIDs
-           differ from the task tool's event run_id.
+        3. **Causal correlation**: When "task" tools start sub-agents,
+           their IDs are appended to ``_pending_sub_agent_ids`` (FIFO).
+           The first unregistered multi-segment namespace is associated
+           with the front-of-queue sub-agent.  This handles the common
+           case where LangGraph checkpoint UUIDs differ from the task
+           tool's event run_id, including concurrent sub-agent launches.
         
         4. **Sole-active-agent fallback**: When exactly one sub-agent is
            active, all multi-segment namespaces must originate from it
@@ -2551,11 +2566,11 @@ class StatusBuilder:
         # Strategy 3: causal correlation with pending sub-agent.
         # Only for multi-segment namespaces — single-segment namespaces are
         # from the main agent's graph nodes, not from sub-agents.
-        if is_multi_segment and self._pending_sub_agent_id:
-            sub_agent_id = self._pending_sub_agent_id
+        if is_multi_segment and self._pending_sub_agent_ids:
+            sub_agent_id = self._pending_sub_agent_ids[0]
             if sub_agent_id in self._active_sub_agents:
                 self._namespace_to_sub_agent_id[namespace] = sub_agent_id
-                self._pending_sub_agent_id = None
+                self._pending_sub_agent_ids.pop(0)
                 self.logger.info(
                     f"[SUBAGENT] Causal registration: namespace={namespace} "
                     f"-> sub_agent={sub_agent_id}"
@@ -2585,7 +2600,7 @@ class StatusBuilder:
                 f"execution={self.execution_id} "
                 f"namespace={namespace} "
                 f"active_sub_agents={list(self._active_sub_agents.keys())} "
-                f"pending={self._pending_sub_agent_id}"
+                f"pending={self._pending_sub_agent_ids}"
             )
     
     async def _handle_sub_agent_start(self, event: dict[str, Any], tool_args: dict[str, Any], run_id: str) -> None:
@@ -2628,9 +2643,10 @@ class StatusBuilder:
         self.current_status.sub_agent_executions.append(sub_agent)
         self._active_sub_agents[run_id] = self.current_status.sub_agent_executions[-1]
 
-        # Mark as pending for causal namespace registration.
-        # The next multi-segment namespace will be associated with this sub-agent.
-        self._pending_sub_agent_id = run_id
+        # Enqueue for causal namespace registration.
+        # The next unregistered multi-segment namespace will be associated
+        # with the front-of-queue sub-agent (FIFO for concurrent launches).
+        self._pending_sub_agent_ids.append(run_id)
 
         self.force_next_update = True
 
@@ -2698,8 +2714,8 @@ class StatusBuilder:
         if run_id in self._active_sub_agents:
             self._completed_sub_agents[run_id] = self._active_sub_agents.pop(run_id)
 
-        if self._pending_sub_agent_id == run_id:
-            self._pending_sub_agent_id = None
+        if run_id in self._pending_sub_agent_ids:
+            self._pending_sub_agent_ids.remove(run_id)
 
         self.force_next_update = True
 
