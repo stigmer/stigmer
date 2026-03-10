@@ -503,6 +503,29 @@ func TestHandleApproval_SubAgentGutterWrapped(t *testing.T) {
 	}
 }
 
+func TestHandleApproval_SubAgentNameInPrompt(t *testing.T) {
+	prompter := &mockPrompter{decision: &approval.Decision{Action: approval.ActionApprove}}
+	r, _, stderr, responses := newApprovalTestRenderer(prompter, approval.ActionUnspecified)
+	tc := writeToolCall()
+	r.waitingApproval = &waitingApprovalState{
+		tc:         tc,
+		subAgentID: "sa-1",
+	}
+
+	r.handleApproval(context.Background(), executiontui.ApprovalNeededEvent{
+		ToolCallID:   "tc-1",
+		ToolName:     "write_file",
+		FromSubAgent: true,
+		SubAgentName: "code-reviewer",
+	})
+	<-responses
+
+	output := stderr.String()
+	if !strings.Contains(output, "Sub-agent 'code-reviewer'") {
+		t.Errorf("sub-agent approval should include sub-agent name prefix, got:\n%s", output)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Prompt error fallback
 // ---------------------------------------------------------------------------

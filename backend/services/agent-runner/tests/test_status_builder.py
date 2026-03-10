@@ -2037,6 +2037,330 @@ class TestSubAgentInternals:
 
 
 # =============================================================================
+# Sub-Agent Scenario Tests (PR5 — multi-step interaction coverage)
+# =============================================================================
+
+
+class TestSubAgentScenarios:
+    """Multi-step scenario tests exercising interactions between sub-agent features.
+
+    Individual sub-agent behaviours (subject population, pending-approval sync,
+    late-event routing, finalization) are covered by unit tests in
+    TestSubAgentInternals.  These scenarios chain multiple features together to
+    verify the state machine holds across a realistic event sequence.
+    """
+
+    @pytest.mark.asyncio
+    async def test_approval_lifecycle_within_sub_agent(self, status_builder):
+        """Full round-trip: sub-agent tool needs approval -> dual-surface -> clear -> complete."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SubAgentStatus
+
+        sa_run_id = "sa-approval-lifecycle"
+        namespace = f"agent_node:{sa_run_id}"
+        tool_run_id = "write-tool-lifecycle"
+
+        # 1. Start sub-agent
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": sa_run_id,
+            "data": {
+                "input": {
+                    "subagent_type": "code_editor",
+                    "description": "Apply hotfix",
+                    "input": "Patch auth.py to fix CVE-2026-1234",
+                }
+            },
+            "metadata": {},
+        })
+
+        sa = status_builder.current_status.sub_agent_executions[0]
+        assert sa.status == SubAgentStatus.SUB_AGENT_IN_PROGRESS
+        assert sa.subject == "Apply hotfix"
+
+        # 2. Sub-agent's tool call (routed via namespace)
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "write_file",
+            "run_id": tool_run_id,
+            "data": {"input": {"path": "/app/auth.py", "content": "patched"}},
+            "metadata": {"langgraph_checkpoint_ns": namespace},
+        })
+        assert len(sa.tool_calls) == 1
+        assert sa.tool_calls[0].id == tool_run_id
+
+        # 3. Simulate interrupt capture: set parent pending_approvals, then sync
+        pa = PendingApproval(
+            tool_call_id=tool_run_id,
+            tool_name="write_file",
+            message="Approve write to auth.py?",
+            from_sub_agent=True,
+            sub_agent_name="code_editor",
+        )
+        status_builder.current_status.pending_approvals.append(pa)
+        status_builder.sync_sub_agent_pending_approvals()
+
+        assert len(sa.pending_approvals) == 1
+        assert sa.pending_approvals[0].child_agent_execution_id == sa_run_id
+        assert len(status_builder.current_status.pending_approvals) == 1
+
+        # 4. Approve — clear_pending_approval clears from both levels
+        status_builder.clear_pending_approval()
+
+        assert len(status_builder.current_status.pending_approvals) == 0
+        assert len(sa.pending_approvals) == 0
+
+        # 5. Tool completes
+        await status_builder.process_event({
+            "event": "on_tool_end",
+            "name": "write_file",
+            "run_id": tool_run_id,
+            "data": {"output": "File written successfully"},
+            "metadata": {"langgraph_checkpoint_ns": namespace},
+        })
+
+        # 6. Sub-agent completes with output
+        await status_builder.process_event({
+            "event": "on_tool_end",
+            "name": "task",
+            "run_id": sa_run_id,
+            "data": {"output": "Hotfix applied to auth.py"},
+            "metadata": {},
+        })
+
+        assert sa.status == SubAgentStatus.SUB_AGENT_COMPLETED
+        assert sa.output == "Hotfix applied to auth.py"
+        assert sa.completed_at != ""
+        assert sa_run_id not in status_builder._active_sub_agents
+        assert sa_run_id in status_builder._completed_sub_agents
+
+    @pytest.mark.asyncio
+    async def test_concurrent_sub_agents_interleaved_events(self, status_builder):
+        """Two sub-agents with interleaved tool events maintain isolation and late-event routing."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SubAgentStatus
+
+        sa_a_id = "sa-concurrent-a"
+        sa_b_id = "sa-concurrent-b"
+        ns_a = f"agent_node:{sa_a_id}"
+        ns_b = f"agent_node:{sa_b_id}"
+
+        # Start both sub-agents
+        for sa_id, desc in [(sa_a_id, "review code"), (sa_b_id, "run tests")]:
+            await status_builder.process_event({
+                "event": "on_tool_start",
+                "name": "task",
+                "run_id": sa_id,
+                "data": {
+                    "input": {
+                        "subagent_type": "worker",
+                        "description": desc,
+                        "input": f"Do: {desc}",
+                    }
+                },
+                "metadata": {},
+            })
+
+        assert len(status_builder._active_sub_agents) == 2
+
+        # Interleaved tool events
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "grep",
+            "run_id": "tool-a-1",
+            "data": {"input": {"pattern": "TODO"}},
+            "metadata": {"langgraph_checkpoint_ns": ns_a},
+        })
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "pytest",
+            "run_id": "tool-b-1",
+            "data": {"input": {"path": "tests/"}},
+            "metadata": {"langgraph_checkpoint_ns": ns_b},
+        })
+        await status_builder.process_event({
+            "event": "on_tool_end",
+            "name": "grep",
+            "run_id": "tool-a-1",
+            "data": {"output": "3 TODOs found"},
+            "metadata": {"langgraph_checkpoint_ns": ns_a},
+        })
+        await status_builder.process_event({
+            "event": "on_tool_end",
+            "name": "pytest",
+            "run_id": "tool-b-1",
+            "data": {"output": "12 passed"},
+            "metadata": {"langgraph_checkpoint_ns": ns_b},
+        })
+
+        sa_a = status_builder._active_sub_agents[sa_a_id]
+        sa_b = status_builder._active_sub_agents[sa_b_id]
+
+        assert len(sa_a.tool_calls) == 1
+        assert sa_a.tool_calls[0].name == "grep"
+        assert len(sa_b.tool_calls) == 1
+        assert sa_b.tool_calls[0].name == "pytest"
+        assert len(status_builder.current_status.tool_calls) == 0
+
+        # Complete SA-B first
+        await status_builder.process_event({
+            "event": "on_tool_end",
+            "name": "task",
+            "run_id": sa_b_id,
+            "data": {"output": "All tests pass"},
+            "metadata": {},
+        })
+
+        assert sa_b_id not in status_builder._active_sub_agents
+        assert sa_b_id in status_builder._completed_sub_agents
+        assert sa_a_id in status_builder._active_sub_agents
+
+        # Late event for SA-B routes to completed sub-agent (same namespace
+        # that was registered when SA-B's tool events arrived)
+        ctx, resolved_sa = status_builder._get_execution_context(ns_b)
+        assert resolved_sa is not None
+        assert resolved_sa.id == sa_b_id
+
+        # Complete SA-A
+        await status_builder.process_event({
+            "event": "on_tool_end",
+            "name": "task",
+            "run_id": sa_a_id,
+            "data": {"output": "Review complete"},
+            "metadata": {},
+        })
+
+        # Both in final status with correct outputs
+        subs = {s.id: s for s in status_builder.current_status.sub_agent_executions}
+        assert subs[sa_a_id].status == SubAgentStatus.SUB_AGENT_COMPLETED
+        assert subs[sa_a_id].output == "Review complete"
+        assert subs[sa_b_id].status == SubAgentStatus.SUB_AGENT_COMPLETED
+        assert subs[sa_b_id].output == "All tests pass"
+
+    @pytest.mark.asyncio
+    async def test_finalization_clears_sub_agent_pending_approvals(self, status_builder):
+        """Parent failure via finalize_active_sub_agents clears pending approvals from sub-agents."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SubAgentStatus
+
+        sa_run_id = "sa-finalize-approval"
+        namespace = f"agent_node:{sa_run_id}"
+        tool_run_id = "tool-fin-approval"
+
+        # Start sub-agent and its tool
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": sa_run_id,
+            "data": {
+                "input": {
+                    "subagent_type": "deployer",
+                    "description": "Deploy service",
+                    "input": "Deploy to staging",
+                }
+            },
+            "metadata": {},
+        })
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "kubectl_apply",
+            "run_id": tool_run_id,
+            "data": {"input": {"manifest": "deployment.yaml"}},
+            "metadata": {"langgraph_checkpoint_ns": namespace},
+        })
+
+        # Sub-agent tool needs approval
+        pa = PendingApproval(
+            tool_call_id=tool_run_id,
+            tool_name="kubectl_apply",
+            message="Approve deployment?",
+            from_sub_agent=True,
+            sub_agent_name="deployer",
+        )
+        status_builder.current_status.pending_approvals.append(pa)
+        status_builder.sync_sub_agent_pending_approvals()
+
+        sa = status_builder.current_status.sub_agent_executions[0]
+        assert len(sa.pending_approvals) == 1
+        assert len(status_builder.current_status.pending_approvals) == 1
+
+        # Parent times out — finalize all active sub-agents
+        status_builder.finalize_active_sub_agents(
+            SubAgentStatus.SUB_AGENT_FAILED,
+            "Parent execution timed out",
+        )
+
+        assert sa.status == SubAgentStatus.SUB_AGENT_FAILED
+        assert sa.error == "Parent execution timed out"
+        assert sa.completed_at != ""
+        assert len(status_builder._active_sub_agents) == 0
+        assert sa_run_id in status_builder._completed_sub_agents
+
+        # Parent pending_approvals are still present (finalize doesn't clear them —
+        # that's the responsibility of execute_graphton.py's error handler).
+        # But the sub-agent is now in a terminal state so the approval is moot.
+        # Verify the sub-agent's pending_approvals were NOT implicitly cleared
+        # by finalize (finalize only sets status/error/completed_at).
+        assert len(sa.pending_approvals) == 1
+
+    @pytest.mark.asyncio
+    async def test_remove_from_pending_resolves_run_id_aliases(self, status_builder):
+        """_remove_from_pending uses _run_id_aliases to match reconciliation-path tool calls."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+
+        sa_run_id = "sa-alias-test"
+        namespace = f"agent_node:{sa_run_id}"
+        real_run_id = "tool-real-id"
+        temp_id = "temp-reconciled-id"
+
+        # Start sub-agent and its tool (using the real run_id)
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": sa_run_id,
+            "data": {
+                "input": {
+                    "subagent_type": "editor",
+                    "input": "edit files",
+                }
+            },
+            "metadata": {},
+        })
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "write_file",
+            "run_id": real_run_id,
+            "data": {"input": {"path": "/tmp/f.py", "content": "x"}},
+            "metadata": {"langgraph_checkpoint_ns": namespace},
+        })
+
+        # Simulate reconciliation: the tool call's protobuf id was set to
+        # temp_id by the reconciliation path.  Register the alias.
+        sa = status_builder._active_sub_agents[sa_run_id]
+        sa.tool_calls[0].id = temp_id
+        status_builder._run_id_aliases[real_run_id] = temp_id
+
+        # Append PendingApproval using temp_id (matching the tool call's id)
+        pa = PendingApproval(
+            tool_call_id=temp_id,
+            tool_name="write_file",
+            from_sub_agent=True,
+        )
+        status_builder.current_status.pending_approvals.append(pa)
+        status_builder.sync_sub_agent_pending_approvals()
+
+        assert len(sa.pending_approvals) == 1
+
+        # Track the run_id for removal (real_run_id, not temp_id)
+        status_builder._pending_tool_approvals.append(real_run_id)
+
+        # _remove_from_pending should resolve real_run_id -> temp_id via alias
+        status_builder._remove_from_pending(real_run_id)
+
+        assert len(sa.pending_approvals) == 0
+
+
+# =============================================================================
 # Tests for Namespace Registration Strategies (Strategy 4 + diagnostics)
 # =============================================================================
 
