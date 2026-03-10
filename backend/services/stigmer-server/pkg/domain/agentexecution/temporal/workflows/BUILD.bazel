@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "invoke_workflow.go",
         "invoke_workflow_impl.go",
+        "workflow_input.go",
     ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal/workflows",
     visibility = ["//visibility:public"],

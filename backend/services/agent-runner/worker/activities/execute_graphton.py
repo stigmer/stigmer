@@ -15,6 +15,7 @@ from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
 )
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ExecutionPhase,
+    SubAgentStatus,
     ToolCallStatus,
 )
 from ai.stigmer.agentic.agentexecution.v1.io_pb2 import (
@@ -2858,7 +2859,12 @@ async def _execute_graphton_impl(
             activity_logger.error(
                 f"⏱️ [STALL] execution={execution_id} — {stall_msg}"
             )
-            
+
+            status_builder.finalize_active_sub_agents(
+                SubAgentStatus.SUB_AGENT_FAILED,
+                "Parent execution stalled — no events received",
+            )
+
             # Finalize any accumulated data before reporting failure
             status_builder.finalize_context_info()
             
@@ -3092,7 +3098,9 @@ async def _execute_graphton_impl(
                         # Populate the repeated field with all pending approvals
                         del status_builder.current_status.pending_approvals[:]
                         status_builder.current_status.pending_approvals.extend(pending_approvals)
-                        
+
+                        status_builder.sync_sub_agent_pending_approvals()
+
                         activity_logger.info(
                             f"[INTERRUPT_CAPTURE] execution={execution_id} "
                             f"captured {len(pending_approvals)} pending interrupt(s): "
@@ -3228,9 +3236,14 @@ async def _execute_graphton_impl(
         # Check if status_builder was initialized before the error occurred
         # If not, create a minimal failed status (handles early failures like attachment injection)
         if status_builder is not None:
+            status_builder.finalize_active_sub_agents(
+                SubAgentStatus.SUB_AGENT_FAILED,
+                f"Parent execution failed: {error_message}",
+            )
+
             # Use status_builder for rich error reporting
             status_builder.current_status.messages.append(error_msg)
-            
+
             # Finalize context info before returning (Phase 3)
             # Even on failure, we want to capture any context tracking data
             status_builder.finalize_context_info()

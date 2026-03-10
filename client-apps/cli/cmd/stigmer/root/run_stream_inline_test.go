@@ -9,6 +9,7 @@ import (
 
 	"github.com/charmbracelet/x/ansi"
 
+	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
@@ -275,7 +276,7 @@ func TestInlineRenderer_SubAgentLifecycle(t *testing.T) {
 
 	go feedEvents(events,
 		executiontui.SubAgentStartedEvent{ID: "sa-1", Name: "researcher", Description: "find docs"},
-		executiontui.SubAgentCompletedEvent{ID: "sa-1", Status: "completed", ToolCount: 3},
+		executiontui.SubAgentCompletedEvent{ID: "sa-1", Status: agentexecutionv1.SubAgentStatus_SUB_AGENT_COMPLETED, ToolCount: 3},
 		executiontui.DoneEvent{Phase: "completed"},
 	)
 
@@ -287,8 +288,8 @@ func TestInlineRenderer_SubAgentLifecycle(t *testing.T) {
 		status:            &stderr,
 	})
 
-	if !strings.Contains(stderr.String(), "Task") || !strings.Contains(stderr.String(), "find docs") {
-		t.Errorf("sub-agent start should appear on stderr with Task label, got: %q", stderr.String())
+	if !strings.Contains(stderr.String(), "Sub-agent") || !strings.Contains(stderr.String(), "find docs") {
+		t.Errorf("sub-agent start should appear on stderr with Sub-agent label, got: %q", stderr.String())
 	}
 	if !strings.Contains(stderr.String(), "✓") {
 		t.Errorf("sub-agent completion should show badge on stderr, got: %q", stderr.String())
@@ -309,7 +310,7 @@ func TestInlineRenderer_SubAgentToolsCollapsed(t *testing.T) {
 			SubAgentID: "sa-1",
 			ToolCall:   toolrender.ToolCallInfo{Name: "shell", Args: map[string]interface{}{"command": "ls"}},
 		},
-		executiontui.SubAgentCompletedEvent{ID: "sa-1", Status: "completed", ToolCount: 2},
+		executiontui.SubAgentCompletedEvent{ID: "sa-1", Status: agentexecutionv1.SubAgentStatus_SUB_AGENT_COMPLETED, ToolCount: 2},
 		executiontui.DoneEvent{Phase: "completed"},
 	)
 
@@ -350,6 +351,112 @@ func TestInlineRenderer_SubAgentToolsCollapsed(t *testing.T) {
 			}
 			if len(item.saBlock.children) != 2 {
 				t.Errorf("expected 2 children, got %d", len(item.saBlock.children))
+			}
+			break
+		}
+	}
+	if !found {
+		t.Error("history should contain a kindSubAgentBlock item")
+	}
+}
+
+func TestInlineRenderer_SubAgentFailure(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 10)
+
+	go feedEvents(events,
+		executiontui.SubAgentStartedEvent{ID: "sa-fail", Name: "deployer", Description: "deploy service"},
+		executiontui.ToolCompletedEvent{
+			SubAgentID: "sa-fail",
+			ToolCall:   toolrender.ToolCallInfo{Name: "kubectl_apply", Args: map[string]interface{}{"manifest": "deploy.yaml"}},
+		},
+		executiontui.SubAgentCompletedEvent{ID: "sa-fail", Status: agentexecutionv1.SubAgentStatus_SUB_AGENT_FAILED, ToolCount: 1},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	result := renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	output := stderr.String()
+	if !strings.Contains(output, "✗ Failed") {
+		t.Errorf("failed sub-agent should show Failed badge, got: %q", output)
+	}
+
+	found := false
+	for _, item := range result.history {
+		if item.kind == kindSubAgentBlock {
+			found = true
+			if item.saBlock.status != agentexecutionv1.SubAgentStatus_SUB_AGENT_FAILED {
+				t.Errorf("expected SUB_AGENT_FAILED status, got %v", item.saBlock.status)
+			}
+			break
+		}
+	}
+	if !found {
+		t.Error("history should contain a kindSubAgentBlock item")
+	}
+}
+
+func TestInlineRenderer_SubAgentCancelled(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 10)
+
+	go feedEvents(events,
+		executiontui.SubAgentStartedEvent{ID: "sa-cancel", Name: "reviewer", Description: "review PR"},
+		executiontui.SubAgentCompletedEvent{ID: "sa-cancel", Status: agentexecutionv1.SubAgentStatus_SUB_AGENT_CANCELLED, ToolCount: 0},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	output := stderr.String()
+	if !strings.Contains(output, "⊘ Cancelled") {
+		t.Errorf("cancelled sub-agent should show Cancelled badge, got: %q", output)
+	}
+}
+
+func TestInlineRenderer_SubAgentWithOutput(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 10)
+
+	go feedEvents(events,
+		executiontui.SubAgentStartedEvent{ID: "sa-out", Name: "researcher", Description: "explore code"},
+		executiontui.ToolCompletedEvent{
+			SubAgentID: "sa-out",
+			ToolCall:   toolrender.ToolCallInfo{Name: "grep", Args: map[string]interface{}{"pattern": "SubAgent"}},
+		},
+		executiontui.SubAgentCompletedEvent{
+			ID: "sa-out", Status: agentexecutionv1.SubAgentStatus_SUB_AGENT_COMPLETED,
+			ToolCount: 1, Output: "Found 12 relevant files",
+		},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	result := renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	found := false
+	for _, item := range result.history {
+		if item.kind == kindSubAgentBlock {
+			found = true
+			if item.saBlock.output != "Found 12 relevant files" {
+				t.Errorf("expected output to be captured, got %q", item.saBlock.output)
 			}
 			break
 		}
