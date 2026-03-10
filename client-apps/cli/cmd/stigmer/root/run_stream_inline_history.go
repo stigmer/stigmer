@@ -369,11 +369,7 @@ func renderSubAgentCollapsed(header string, block *subAgentBlock) string {
 	default:
 		suffix = fmt.Sprintf("✓ Done (%d tools)", block.toolCount)
 	}
-	line := header + " " + suffix
-	if block.output != "" {
-		line += " " + toolrender.DimText("— "+toolrender.Truncate(block.output, 60))
-	}
-	return line
+	return header + " " + suffix
 }
 
 func renderSubAgentExpanded(header string, block *subAgentBlock, opts toolrender.CompactOptions) string {
