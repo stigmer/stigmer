@@ -370,16 +370,12 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 	if e, ok := event.(executiontui.AIStreamEndEvent); ok && e.SubAgentID != "" {
 		r.flushPendingReads()
 		r.finishAIStreamIfNeeded()
-		if e.Content != "" {
-			if r.hasActiveSubAgent(e.SubAgentID) {
-				r.appendToSubAgentBlock(e.SubAgentID, committedItem{
-					kind:       kindAIMessage,
-					text:       e.Content,
-					subAgentID: e.SubAgentID,
-				}, false)
-			} else {
-				r.statusf("%s\n", toolrender.GutterWrap(e.Content))
-			}
+		if e.Content != "" && r.hasActiveSubAgent(e.SubAgentID) {
+			r.appendToSubAgentBlock(e.SubAgentID, committedItem{
+				kind:       kindAIMessage,
+				text:       e.Content,
+				subAgentID: e.SubAgentID,
+			}, false)
 		}
 		if r.cfg.program != nil && r.hasActiveSubAgent(e.SubAgentID) {
 			r.cfg.program.Send(subAgentActivityMsg{id: e.SubAgentID, activity: ""})
@@ -389,16 +385,12 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 	if e, ok := event.(executiontui.AIMessageEvent); ok && e.SubAgentID != "" {
 		r.flushPendingReads()
 		r.finishAIStreamIfNeeded()
-		if e.Content != "" {
-			if r.hasActiveSubAgent(e.SubAgentID) {
-				r.appendToSubAgentBlock(e.SubAgentID, committedItem{
-					kind:       kindAIMessage,
-					text:       e.Content,
-					subAgentID: e.SubAgentID,
-				}, false)
-			} else {
-				r.statusf("%s\n", toolrender.GutterWrap(e.Content))
-			}
+		if e.Content != "" && r.hasActiveSubAgent(e.SubAgentID) {
+			r.appendToSubAgentBlock(e.SubAgentID, committedItem{
+				kind:       kindAIMessage,
+				text:       e.Content,
+				subAgentID: e.SubAgentID,
+			}, false)
 		}
 		if r.cfg.program != nil && r.hasActiveSubAgent(e.SubAgentID) {
 			r.cfg.program.Send(subAgentActivityMsg{id: e.SubAgentID, activity: ""})

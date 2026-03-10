@@ -996,17 +996,18 @@ func TestSubAgentShow_StartsTickChainAndInitializesActivity(t *testing.T) {
 	updated, cmd := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search code"})
 	model := updated.(inlineBubbleModel)
 
-	if !model.subAgentActive {
-		t.Error("subAgentActive should be true")
+	if len(model.activeSubAgentEntries) != 1 {
+		t.Fatalf("expected 1 active entry, got %d", len(model.activeSubAgentEntries))
 	}
-	if model.subAgentActivity != "" {
-		t.Errorf("subAgentActivity should be empty, got %q", model.subAgentActivity)
+	e := model.activeSubAgentEntries[0]
+	if e.activity != "" {
+		t.Errorf("activity should be empty, got %q", e.activity)
 	}
 	if model.subAgentSpinnerFrame != 0 {
 		t.Errorf("subAgentSpinnerFrame should be 0, got %d", model.subAgentSpinnerFrame)
 	}
-	if model.subAgentSpinnerStart.IsZero() {
-		t.Error("subAgentSpinnerStart should be set")
+	if e.spinnerStart.IsZero() {
+		t.Error("spinnerStart should be set")
 	}
 	if cmd == nil {
 		t.Error("handleSubAgentShow should return a tick Cmd")
@@ -1021,11 +1022,8 @@ func TestSubAgentHide_ClearsActivityAndStopsTickChain(t *testing.T) {
 	updated, cmd := model.Update(subAgentHideMsg{id: "sa-1"})
 	model = updated.(inlineBubbleModel)
 
-	if model.subAgentActive {
-		t.Error("subAgentActive should be false after hide")
-	}
-	if model.subAgentActivity != "" {
-		t.Errorf("subAgentActivity should be empty after hide, got %q", model.subAgentActivity)
+	if len(model.activeSubAgentEntries) != 0 {
+		t.Errorf("activeSubAgentEntries should be empty after hide, got %d", len(model.activeSubAgentEntries))
 	}
 	if model.subAgentSpinnerFrame != 0 {
 		t.Errorf("subAgentSpinnerFrame should be 0 after hide, got %d", model.subAgentSpinnerFrame)
@@ -1040,17 +1038,17 @@ func TestSubAgentActivity_SetsLabelAndResetsTimer(t *testing.T) {
 	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search code"})
 	model := updated.(inlineBubbleModel)
 
-	before := model.subAgentSpinnerStart
+	before := model.activeSubAgentEntries[0].spinnerStart
 	time.Sleep(time.Millisecond)
 
 	updated, cmd := model.Update(subAgentActivityMsg{id: "sa-1", activity: "Grep"})
 	model = updated.(inlineBubbleModel)
 
-	if model.subAgentActivity != "Grep" {
-		t.Errorf("subAgentActivity should be 'Grep', got %q", model.subAgentActivity)
+	if model.activeSubAgentEntries[0].activity != "Grep" {
+		t.Errorf("activity should be 'Grep', got %q", model.activeSubAgentEntries[0].activity)
 	}
-	if !model.subAgentSpinnerStart.After(before) {
-		t.Error("subAgentSpinnerStart should be reset after activity change")
+	if !model.activeSubAgentEntries[0].spinnerStart.After(before) {
+		t.Error("spinnerStart should be reset after activity change")
 	}
 	if cmd != nil {
 		t.Error("handleSubAgentActivity should return nil Cmd")
@@ -1065,8 +1063,8 @@ func TestSubAgentActivity_IgnoresMismatchedID(t *testing.T) {
 	updated, _ = model.Update(subAgentActivityMsg{id: "sa-other", activity: "Shell"})
 	model = updated.(inlineBubbleModel)
 
-	if model.subAgentActivity != "" {
-		t.Errorf("subAgentActivity should remain empty for mismatched ID, got %q", model.subAgentActivity)
+	if model.activeSubAgentEntries[0].activity != "" {
+		t.Errorf("activity should remain empty for mismatched ID, got %q", model.activeSubAgentEntries[0].activity)
 	}
 }
 
@@ -1088,10 +1086,9 @@ func TestSubAgentTick_AdvancesFrameWhenActive(t *testing.T) {
 
 func TestSubAgentTick_TerminatesWhenInactive(t *testing.T) {
 	m := newInlineBubbleModel()
-	// Not active — tick should terminate
 	_, cmd := m.Update(subAgentTickMsg{})
 	if cmd != nil {
-		t.Error("handleSubAgentTick should return nil when subAgentActive is false")
+		t.Error("handleSubAgentTick should return nil when no sub-agents are active")
 	}
 }
 
@@ -1099,7 +1096,7 @@ func TestRenderSubAgentLine_ContainsSpinnerFrameAndActivity(t *testing.T) {
 	m := newInlineBubbleModel()
 	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Explore CLI"})
 	model := updated.(inlineBubbleModel)
-	model.subAgentActivity = "Thinking"
+	model.activeSubAgentEntries[0].activity = "Thinking"
 
 	line := model.renderSubAgentLine()
 
@@ -1130,7 +1127,7 @@ func TestRenderSubAgentLine_ShowsToolCountWhenPositive(t *testing.T) {
 	m := newInlineBubbleModel()
 	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search"})
 	model := updated.(inlineBubbleModel)
-	model.subAgentToolCount = 5
+	model.activeSubAgentEntries[0].toolCount = 5
 
 	line := model.renderSubAgentLine()
 
@@ -1161,9 +1158,66 @@ func TestView_SubAgentActiveShowsActivityNotSpinner(t *testing.T) {
 	v := model.View()
 
 	if !strings.Contains(v.Content, "Sub-agent") {
-		t.Error("View() should show sub-agent line when subAgentActive")
+		t.Error("View() should show sub-agent line when sub-agents are active")
 	}
 	if strings.Contains(v.Content, "Thinking...") {
-		t.Error("View() should NOT show main spinner when subAgentActive")
+		t.Error("View() should NOT show main spinner when sub-agents are active")
+	}
+}
+
+func TestSubAgentShow_MultipleParallelSubAgents(t *testing.T) {
+	m := newInlineBubbleModel()
+
+	updated, cmd1 := m.Update(subAgentShowMsg{id: "sa-1", subject: "Scan deps"})
+	model := updated.(inlineBubbleModel)
+	if cmd1 == nil {
+		t.Error("first show should start tick chain")
+	}
+
+	updated, cmd2 := model.Update(subAgentShowMsg{id: "sa-2", subject: "Extract service"})
+	model = updated.(inlineBubbleModel)
+	if cmd2 != nil {
+		t.Error("second show should not start another tick chain")
+	}
+
+	if len(model.activeSubAgentEntries) != 2 {
+		t.Fatalf("expected 2 active entries, got %d", len(model.activeSubAgentEntries))
+	}
+
+	line := model.renderSubAgentLine()
+	if !strings.Contains(line, "Scan deps") {
+		t.Errorf("stacked view should contain first subject, got %q", line)
+	}
+	if !strings.Contains(line, "Extract service") {
+		t.Errorf("stacked view should contain second subject, got %q", line)
+	}
+}
+
+func TestSubAgentHide_PartialRemoval(t *testing.T) {
+	m := newInlineBubbleModel()
+
+	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "First"})
+	model := updated.(inlineBubbleModel)
+	updated, _ = model.Update(subAgentShowMsg{id: "sa-2", subject: "Second"})
+	model = updated.(inlineBubbleModel)
+	updated, _ = model.Update(subAgentShowMsg{id: "sa-3", subject: "Third"})
+	model = updated.(inlineBubbleModel)
+
+	updated, _ = model.Update(subAgentHideMsg{id: "sa-2"})
+	model = updated.(inlineBubbleModel)
+
+	if len(model.activeSubAgentEntries) != 2 {
+		t.Fatalf("expected 2 remaining entries, got %d", len(model.activeSubAgentEntries))
+	}
+	if model.activeSubAgentEntries[0].id != "sa-1" || model.activeSubAgentEntries[1].id != "sa-3" {
+		t.Errorf("wrong entries remaining: %v", model.activeSubAgentEntries)
+	}
+
+	line := model.renderSubAgentLine()
+	if !strings.Contains(line, "First") || !strings.Contains(line, "Third") {
+		t.Errorf("stacked view should contain remaining subjects, got %q", line)
+	}
+	if strings.Contains(line, "Second") {
+		t.Error("stacked view should not contain removed subject")
 	}
 }

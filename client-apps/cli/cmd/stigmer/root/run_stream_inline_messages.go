@@ -223,5 +223,5 @@ type subAgentActivityMsg struct {
 
 // subAgentTickMsg is the self-propagating tick that advances the sub-agent
 // spinner frame. Analogous to spinnerTickMsg but fully independent — it
-// uses its own model fields and terminates when subAgentActive is false.
+// uses its own model fields and terminates when activeSubAgentEntries is empty.
 type subAgentTickMsg struct{}

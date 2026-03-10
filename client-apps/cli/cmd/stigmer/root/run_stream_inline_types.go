@@ -155,6 +155,17 @@ type waitingApprovalState struct {
 	streamedRows    int  // total display rows of streamed content
 }
 
+// subAgentDisplayEntry holds per-sub-agent display state for the live
+// stacked view in Bubbletea. Multiple entries are rendered simultaneously
+// when parallel sub-agents are active.
+type subAgentDisplayEntry struct {
+	id           string
+	subject      string
+	toolCount    int
+	activity     string
+	spinnerStart time.Time
+}
+
 // subAgentBlock is the aggregate for a single sub-agent execution. It buffers
 // all internal events (tool completions, AI messages, read groups, approvals)
 // while the sub-agent runs and is committed as a single kindSubAgentBlock

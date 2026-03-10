@@ -783,7 +783,8 @@ func TestRenderSubAgentBlockItem_Collapsed_WithOutput(t *testing.T) {
 	result := renderCommittedItem(item, toolrender.CompactOptions{}, false, false)
 	stripped := ansi.Strip(result)
 
-	assert.Contains(t, stripped, "Found 12 relevant files")
+	assert.NotContains(t, stripped, "Found 12 relevant files",
+		"collapsed view should not show output")
 	assert.Contains(t, result, "✓ Done")
 }
 

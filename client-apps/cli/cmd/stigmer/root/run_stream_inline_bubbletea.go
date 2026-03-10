@@ -71,22 +71,16 @@ type inlineBubbleModel struct {
 	todoCompleted int
 	expandMode    bool
 
-	// subAgentActive is true when a sub-agent is running and its live
-	// summary should be shown in View(). Cleared on subAgentHideMsg.
-	subAgentActive    bool
-	subAgentID        string
-	subAgentSubject   string
-	subAgentToolCount int
+	// activeSubAgentEntries holds the display state for all currently
+	// running sub-agents. The live View() renders a stacked list (one
+	// entry per sub-agent) so all parallel sub-agents are visible
+	// simultaneously. Empty slice means no sub-agent is active.
+	activeSubAgentEntries []subAgentDisplayEntry
 
-	// subAgentActivity is the current phase label for the running sub-agent
-	// (e.g. "Thinking", "Grep", "Shell"). Empty string renders as "Working".
-	subAgentActivity string
-
-	// subAgentSpinnerFrame and subAgentSpinnerStart drive the independent
-	// spinner animation on the sub-agent line. The tick chain is started by
-	// handleSubAgentShow and terminates when subAgentActive becomes false.
+	// subAgentSpinnerFrame drives the shared spinner animation across
+	// all active sub-agent lines. The tick chain is started by the first
+	// handleSubAgentShow and terminates when the slice becomes empty.
 	subAgentSpinnerFrame int
-	subAgentSpinnerStart time.Time
 
 	// Legacy follow-up state for the promptFollowUpViaKeyReader path
 	// (when Bubbletea does not own stdin). Not used when inputBarMode
@@ -253,7 +247,7 @@ func (m inlineBubbleModel) View() tea.View {
 		content = m.followUpContent
 	case m.aiStreamActive:
 		content = m.aiStreamPartial
-	case m.subAgentActive:
+	case len(m.activeSubAgentEntries) > 0:
 		content = m.renderSubAgentLine()
 	case !m.spinnerActive:
 		content = ""
@@ -346,7 +340,7 @@ func (m inlineBubbleModel) renderTransientContent() string {
 		return formatStreamingView(m.streamingHeader, m.streamingContent, m.streamingSubAgent)
 	case m.aiStreamActive:
 		return m.aiStreamPartial
-	case m.subAgentActive:
+	case len(m.activeSubAgentEntries) > 0:
 		return m.renderSubAgentLine()
 	case m.spinnerActive:
 		return m.renderSpinnerLine()
@@ -599,45 +593,55 @@ func (m inlineBubbleModel) handleAIStreamHide() (tea.Model, tea.Cmd) {
 // ---------------------------------------------------------------------------
 
 func (m inlineBubbleModel) handleSubAgentShow(msg subAgentShowMsg) (tea.Model, tea.Cmd) {
-	m.subAgentActive = true
-	m.subAgentID = msg.id
-	m.subAgentSubject = msg.subject
-	m.subAgentToolCount = 0
-	m.subAgentActivity = ""
-	m.subAgentSpinnerFrame = 0
-	m.subAgentSpinnerStart = time.Now()
-	return m, nextSubAgentTick()
+	wasEmpty := len(m.activeSubAgentEntries) == 0
+	m.activeSubAgentEntries = append(m.activeSubAgentEntries, subAgentDisplayEntry{
+		id:           msg.id,
+		subject:      msg.subject,
+		spinnerStart: time.Now(),
+	})
+	if wasEmpty {
+		m.subAgentSpinnerFrame = 0
+		return m, nextSubAgentTick()
+	}
+	return m, nil
 }
 
 func (m inlineBubbleModel) handleSubAgentUpdate(msg subAgentUpdateMsg) (tea.Model, tea.Cmd) {
-	if msg.id == m.subAgentID {
-		m.subAgentToolCount = msg.toolCount
+	for i := range m.activeSubAgentEntries {
+		if m.activeSubAgentEntries[i].id == msg.id {
+			m.activeSubAgentEntries[i].toolCount = msg.toolCount
+			break
+		}
 	}
 	return m, nil
 }
 
 func (m inlineBubbleModel) handleSubAgentHide(msg subAgentHideMsg) (tea.Model, tea.Cmd) {
-	if msg.id == m.subAgentID {
-		m.subAgentActive = false
-		m.subAgentID = ""
-		m.subAgentSubject = ""
-		m.subAgentToolCount = 0
-		m.subAgentActivity = ""
+	for i, e := range m.activeSubAgentEntries {
+		if e.id == msg.id {
+			m.activeSubAgentEntries = append(m.activeSubAgentEntries[:i], m.activeSubAgentEntries[i+1:]...)
+			break
+		}
+	}
+	if len(m.activeSubAgentEntries) == 0 {
 		m.subAgentSpinnerFrame = 0
 	}
 	return m, nil
 }
 
 func (m inlineBubbleModel) handleSubAgentActivity(msg subAgentActivityMsg) (tea.Model, tea.Cmd) {
-	if msg.id == m.subAgentID {
-		m.subAgentActivity = msg.activity
-		m.subAgentSpinnerStart = time.Now()
+	for i := range m.activeSubAgentEntries {
+		if m.activeSubAgentEntries[i].id == msg.id {
+			m.activeSubAgentEntries[i].activity = msg.activity
+			m.activeSubAgentEntries[i].spinnerStart = time.Now()
+			break
+		}
 	}
 	return m, nil
 }
 
 func (m inlineBubbleModel) handleSubAgentTick() (tea.Model, tea.Cmd) {
-	if !m.subAgentActive {
+	if len(m.activeSubAgentEntries) == 0 {
 		return m, nil
 	}
 	m.subAgentSpinnerFrame++
@@ -654,37 +658,39 @@ func nextSubAgentTick() tea.Cmd {
 }
 
 // renderSubAgentLine returns the live sub-agent running summary with an
-// animated spinner and activity label.
+// animated spinner and activity label. When multiple sub-agents are active,
+// each gets its own two-line block, producing a stacked view:
 //
-//	"● Task: Explore CLI rendering code (3 tools)"
+//	"● Sub-agent: Scan auth0-webhooks dependencies (12 tools)"
+//	"  ⠋ Grep… (3s)"
+//	"● Sub-agent: Scan agent-runner dependencies (8 tools)"
 //	"  ⠋ Thinking… (5s)"
 func (m inlineBubbleModel) renderSubAgentLine() string {
-	label := m.subAgentSubject
-	if label == "" {
-		label = "running"
-	}
-	label = toolrender.Truncate(toolrender.FirstLine(label), 80)
-
-	header := fmt.Sprintf("%s %s: %s",
-		toolrender.BulletGreen("●"), toolrender.LabelBold("Sub-agent"), label)
-	if m.subAgentToolCount > 0 {
-		header += fmt.Sprintf(" (%d tools)", m.subAgentToolCount)
-	}
-
 	frame := spinner.Frames[m.subAgentSpinnerFrame%len(spinner.Frames)]
-	elapsed := spinner.FormatElapsed(time.Since(m.subAgentSpinnerStart))
+	lines := make([]string, 0, len(m.activeSubAgentEntries))
+	for _, e := range m.activeSubAgentEntries {
+		label := toolrender.Truncate(toolrender.FirstLine(e.subject), 80)
+		if label == "" {
+			label = "running"
+		}
+		header := fmt.Sprintf("%s %s: %s",
+			toolrender.BulletGreen("●"), toolrender.LabelBold("Sub-agent"), label)
+		if e.toolCount > 0 {
+			header += fmt.Sprintf(" (%d tools)", e.toolCount)
+		}
 
-	activityLabel := "Working"
-	if m.subAgentActivity != "" {
-		activityLabel = m.subAgentActivity
+		activityLabel := "Working"
+		if e.activity != "" {
+			activityLabel = e.activity
+		}
+		elapsed := spinner.FormatElapsed(time.Since(e.spinnerStart))
+		activity := fmt.Sprintf("  %s %s", frame, systemMsgStyle.Render(activityLabel+"…"))
+		if elapsed != "" {
+			activity += " " + elapsed
+		}
+		lines = append(lines, header+"\n"+activity)
 	}
-
-	activity := fmt.Sprintf("  %s %s", frame, systemMsgStyle.Render(activityLabel+"…"))
-	if elapsed != "" {
-		activity += " " + elapsed
-	}
-
-	return header + "\n" + activity
+	return strings.Join(lines, "\n")
 }
 
 // ---------------------------------------------------------------------------
