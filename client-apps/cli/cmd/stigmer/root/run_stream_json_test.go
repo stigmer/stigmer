@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
@@ -96,7 +97,7 @@ func TestJSONRenderer_AllEventTypes_ProduceCorrectTypes(t *testing.T) {
 		executiontui.SystemMessageEvent{Content: "note"},
 		executiontui.PhaseChangeEvent{Phase: "in_progress", Previous: "pending"},
 		executiontui.SubAgentStartedEvent{ID: "sa-1", Name: "researcher"},
-		executiontui.SubAgentCompletedEvent{ID: "sa-1", Status: "completed", ToolCount: 2},
+		executiontui.SubAgentCompletedEvent{ID: "sa-1", Status: agentexecutionv1.SubAgentStatus_SUB_AGENT_COMPLETED, ToolCount: 2},
 		executiontui.TodoUpdateEvent{Todos: []executiontui.TodoItem{{ID: "1", Content: "task", Status: "pending"}}},
 		executiontui.DoneEvent{Phase: "completed"},
 	)
@@ -374,5 +375,130 @@ func TestJSONRenderer_ContextCancelled(t *testing.T) {
 	parsed := parseNDJSON(t, stdout.String())
 	if len(parsed) != 1 || parsed[0].Type != "error" {
 		t.Errorf("should emit error event on cancel, got %v", parsed)
+	}
+}
+
+// =============================================================================
+// Sub-agent event payloads
+// =============================================================================
+
+func TestJSONRenderer_SubAgentStartedPayload(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 10)
+
+	go feedEvents(events,
+		executiontui.SubAgentStartedEvent{
+			ID:          "sa-payload-1",
+			Name:        "researcher",
+			Description: "Explore codebase structure",
+		},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	renderJSON(context.Background(), jsonRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	parsed := parseNDJSON(t, stdout.String())
+	if len(parsed) < 2 {
+		t.Fatalf("expected at least 2 events, got %d", len(parsed))
+	}
+
+	evt := parsed[0]
+	if evt.Type != "sub_agent_started" {
+		t.Fatalf("expected sub_agent_started, got %q", evt.Type)
+	}
+	if evt.Payload["id"] != "sa-payload-1" {
+		t.Errorf("id: expected sa-payload-1, got %v", evt.Payload["id"])
+	}
+	if evt.Payload["name"] != "researcher" {
+		t.Errorf("name: expected researcher, got %v", evt.Payload["name"])
+	}
+	if evt.Payload["description"] != "Explore codebase structure" {
+		t.Errorf("description: expected 'Explore codebase structure', got %v", evt.Payload["description"])
+	}
+	if evt.Timestamp == "" {
+		t.Error("timestamp should be present")
+	}
+}
+
+func TestJSONRenderer_SubAgentCompletedPayload(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 10)
+
+	go feedEvents(events,
+		executiontui.SubAgentCompletedEvent{
+			ID:        "sa-payload-2",
+			Status:    agentexecutionv1.SubAgentStatus_SUB_AGENT_COMPLETED,
+			ToolCount: 5,
+			Output:    "Found 12 relevant files across 4 packages",
+		},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	renderJSON(context.Background(), jsonRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	parsed := parseNDJSON(t, stdout.String())
+	if len(parsed) < 2 {
+		t.Fatalf("expected at least 2 events, got %d", len(parsed))
+	}
+
+	evt := parsed[0]
+	if evt.Type != "sub_agent_completed" {
+		t.Fatalf("expected sub_agent_completed, got %q", evt.Type)
+	}
+	if evt.Payload["id"] != "sa-payload-2" {
+		t.Errorf("id: expected sa-payload-2, got %v", evt.Payload["id"])
+	}
+	if evt.Payload["status"] != "SUB_AGENT_COMPLETED" {
+		t.Errorf("status: expected SUB_AGENT_COMPLETED, got %v", evt.Payload["status"])
+	}
+	if tc, ok := evt.Payload["tool_count"].(float64); !ok || int(tc) != 5 {
+		t.Errorf("tool_count: expected 5, got %v", evt.Payload["tool_count"])
+	}
+	if evt.Payload["output"] != "Found 12 relevant files across 4 packages" {
+		t.Errorf("output mismatch, got %v", evt.Payload["output"])
+	}
+}
+
+func TestJSONRenderer_SubAgentCompletedPayload_Cancelled(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 10)
+
+	go feedEvents(events,
+		executiontui.SubAgentCompletedEvent{
+			ID:        "sa-payload-3",
+			Status:    agentexecutionv1.SubAgentStatus_SUB_AGENT_CANCELLED,
+			ToolCount: 2,
+		},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	renderJSON(context.Background(), jsonRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	parsed := parseNDJSON(t, stdout.String())
+	if len(parsed) < 2 {
+		t.Fatalf("expected at least 2 events, got %d", len(parsed))
+	}
+
+	evt := parsed[0]
+	if evt.Type != "sub_agent_completed" {
+		t.Fatalf("expected sub_agent_completed, got %q", evt.Type)
+	}
+	if evt.Payload["status"] != "SUB_AGENT_CANCELLED" {
+		t.Errorf("status: expected SUB_AGENT_CANCELLED, got %v", evt.Payload["status"])
 	}
 }

@@ -1160,7 +1160,7 @@ func TestView_SubAgentActiveShowsActivityNotSpinner(t *testing.T) {
 
 	v := model.View()
 
-	if !strings.Contains(v.Content, "Task") {
+	if !strings.Contains(v.Content, "Sub-agent") {
 		t.Error("View() should show sub-agent line when subAgentActive")
 	}
 	if strings.Contains(v.Content, "Thinking...") {

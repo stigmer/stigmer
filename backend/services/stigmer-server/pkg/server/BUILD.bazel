@@ -52,6 +52,8 @@ go_library(
         "//backend/services/stigmer-server/pkg/domain/workflowinstance/controller",
         "//backend/services/stigmer-server/pkg/downstream/agent",
         "//backend/services/stigmer-server/pkg/downstream/agentinstance",
+        "//backend/services/stigmer-server/pkg/downstream/environment",
+        "//backend/services/stigmer-server/pkg/downstream/executioncontext",
         "//backend/services/stigmer-server/pkg/downstream/mcpserver",
         "//backend/services/stigmer-server/pkg/downstream/session",
         "//backend/services/stigmer-server/pkg/downstream/skill",

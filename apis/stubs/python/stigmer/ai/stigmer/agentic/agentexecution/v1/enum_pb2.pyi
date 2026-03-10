@@ -49,6 +49,7 @@ class SubAgentStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     SUB_AGENT_IN_PROGRESS: _ClassVar[SubAgentStatus]
     SUB_AGENT_COMPLETED: _ClassVar[SubAgentStatus]
     SUB_AGENT_FAILED: _ClassVar[SubAgentStatus]
+    SUB_AGENT_CANCELLED: _ClassVar[SubAgentStatus]
 
 class ExecutionArtifactKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -86,6 +87,7 @@ SUB_AGENT_PENDING: SubAgentStatus
 SUB_AGENT_IN_PROGRESS: SubAgentStatus
 SUB_AGENT_COMPLETED: SubAgentStatus
 SUB_AGENT_FAILED: SubAgentStatus
+SUB_AGENT_CANCELLED: SubAgentStatus
 EXECUTION_ARTIFACT_KIND_UNSPECIFIED: ExecutionArtifactKind
 EXECUTION_ARTIFACT_KIND_FILE: ExecutionArtifactKind
 EXECUTION_ARTIFACT_KIND_DIRECTORY: ExecutionArtifactKind

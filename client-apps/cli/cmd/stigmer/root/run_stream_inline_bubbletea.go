@@ -665,7 +665,7 @@ func (m inlineBubbleModel) renderSubAgentLine() string {
 	}
 
 	header := fmt.Sprintf("%s %s: %s",
-		toolrender.BulletGreen("●"), toolrender.LabelBold("Task"), label)
+		toolrender.BulletGreen("●"), toolrender.LabelBold("Sub-agent"), label)
 	if m.subAgentToolCount > 0 {
 		header += fmt.Sprintf(" (%d tools)", m.subAgentToolCount)
 	}

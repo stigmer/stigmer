@@ -1,6 +1,9 @@
 package executiontui
 
-import "github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
+import (
+	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
+)
 
 // Event is the interface for all events sent from the gRPC stream goroutine
 // to the rendering consumer via the events channel. Each concrete type
@@ -207,20 +210,24 @@ type SubAgentStartedEvent struct {
 	ID string
 	// Name is the human-readable sub-agent type (e.g., "researcher", "code_editor").
 	Name string
-	// Description is a concise (3-5 word) summary of the task, extracted
-	// from the task tool's "description" arg via SubAgentExecution.metadata.
+	// Description is the sub-agent's display label, populated directly from
+	// SubAgentExecution.subject (which is set from the task tool's
+	// "description" arg by the runner).
 	Description string
+	// Input is the full task prompt that tells the sub-agent what to do.
+	// Shown in expanded view so the user can see what was delegated.
+	Input string
 }
 
 func (SubAgentStartedEvent) isEvent() {}
 
 // SubAgentCompletedEvent signals that a sub-agent execution has reached a
-// terminal status (completed or failed).
+// terminal status (completed, failed, or cancelled).
 type SubAgentCompletedEvent struct {
 	// ID is the sub-agent execution identifier (matches SubAgentStartedEvent.ID).
 	ID string
-	// Status is the terminal status string: "completed" or "failed".
-	Status string
+	// Status is the terminal SubAgentStatus proto enum value.
+	Status agentexecutionv1.SubAgentStatus
 	// ToolCount is the final number of tool calls made by this sub-agent.
 	ToolCount int
 	// Output is the sub-agent's result summary. Only populated on success.

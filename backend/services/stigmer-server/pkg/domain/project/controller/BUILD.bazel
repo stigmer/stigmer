@@ -21,6 +21,7 @@ go_library(
         "//backend/libs/go/grpc/request/pipeline/steps",
         "//backend/libs/go/store",
         "//backend/services/stigmer-server/pkg/domain/project/reconcile",
+        "//backend/services/stigmer-server/pkg/query/search/extractor",
         "@com_github_rs_zerolog//log",
     ],
 )

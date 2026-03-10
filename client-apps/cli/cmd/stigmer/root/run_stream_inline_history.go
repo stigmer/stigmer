@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/panel"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/termctl"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
@@ -348,13 +349,8 @@ func renderSubAgentBlockItem(item committedItem, opts toolrender.CompactOptions,
 		return ""
 	}
 
-	label := block.subject
-	if label == "" {
-		label = block.name
-	}
-
 	header := fmt.Sprintf("%s %s: %s",
-		toolrender.BulletGreen("●"), toolrender.LabelBold("Task"), label)
+		toolrender.BulletGreen("●"), toolrender.LabelBold("Sub-agent"), block.subject)
 
 	if !expanded {
 		return renderSubAgentCollapsed(header, block)
@@ -364,17 +360,30 @@ func renderSubAgentBlockItem(item committedItem, opts toolrender.CompactOptions,
 
 func renderSubAgentCollapsed(header string, block *subAgentBlock) string {
 	var suffix string
-	if block.status == "failed" {
+	switch block.status {
+	case agentexecutionv1.SubAgentStatus_SUB_AGENT_FAILED:
 		suffix = fmt.Sprintf("✗ Failed (%d tools)", block.toolCount)
-	} else {
+	case agentexecutionv1.SubAgentStatus_SUB_AGENT_CANCELLED:
+		suffix = fmt.Sprintf("⊘ Cancelled (%d tools)", block.toolCount)
+	default:
 		suffix = fmt.Sprintf("✓ Done (%d tools)", block.toolCount)
 	}
-	return header + " " + suffix
+	line := header + " " + suffix
+	if block.output != "" {
+		line += " " + toolrender.DimText("— "+toolrender.Truncate(block.output, 60))
+	}
+	return line
 }
 
 func renderSubAgentExpanded(header string, block *subAgentBlock, opts toolrender.CompactOptions) string {
 	var b strings.Builder
 	b.WriteString(header)
+
+	if block.input != "" {
+		prompt := toolrender.GutterWrap(toolrender.DimText("Prompt: " + toolrender.Truncate(block.input, 120)))
+		b.WriteByte('\n')
+		b.WriteString(prompt)
+	}
 
 	for _, child := range block.children {
 		text := renderCommittedItem(child, opts, true, false)
@@ -386,10 +395,19 @@ func renderSubAgentExpanded(header string, block *subAgentBlock, opts toolrender
 		b.WriteString(guttered)
 	}
 
+	if block.output != "" {
+		result := toolrender.GutterWrap(toolrender.DimText("Result: " + toolrender.Truncate(block.output, 120)))
+		b.WriteByte('\n')
+		b.WriteString(result)
+	}
+
 	var footer string
-	if block.status == "failed" {
+	switch block.status {
+	case agentexecutionv1.SubAgentStatus_SUB_AGENT_FAILED:
 		footer = fmt.Sprintf("  ✗ Failed (%d tools)", block.toolCount)
-	} else {
+	case agentexecutionv1.SubAgentStatus_SUB_AGENT_CANCELLED:
+		footer = fmt.Sprintf("  ⊘ Cancelled (%d tools)", block.toolCount)
+	default:
 		footer = fmt.Sprintf("  ✓ Done (%d tools)", block.toolCount)
 	}
 	b.WriteByte('\n')

@@ -146,13 +146,13 @@ func RenderCompactRunning(tc ToolCallInfo, opts CompactOptions) string {
 			dimStyle.Render("…"))
 	}
 
-	if info.label == "Task" {
+	if info.label == "Sub-agent" {
 		desc := extractPrimaryArgWithFallbacks(tc.Args, info.primaryField, info.fallbackFields)
 		if desc == "" {
 			desc = "running"
 		}
 		return fmt.Sprintf("%s %s: %s %s",
-			bulletStyle.Render("●"), labelStyle.Render("Task"),
+			bulletStyle.Render("●"), labelStyle.Render("Sub-agent"),
 			truncate(desc, 60), dimStyle.Render("…"))
 	}
 
@@ -243,17 +243,17 @@ func isPatternBasedLabel(label string) bool {
 func hasCompactRenderer(info toolDisplayInfo) bool {
 	switch info.label {
 	case "Read", "Write", "Create", "Edit", "Shell", "Execute",
-		"List", "Find", "Search", "Delete", "Thinking", "Task":
+		"List", "Find", "Search", "Delete", "Thinking", "Sub-agent":
 		return true
 	}
 	return false
 }
 
 // IsTaskTool reports whether toolName represents a sub-agent task tool.
-// Derived from toolDisplayMap entries whose label is "Task".
+// Derived from toolDisplayMap entries whose label is "Sub-agent".
 func IsTaskTool(toolName string) bool {
 	info, ok := toolDisplayMap[toolName]
-	return ok && info.label == "Task"
+	return ok && info.label == "Sub-agent"
 }
 
 // GutterWidth returns the visible character width of the gutter prefix
