@@ -602,10 +602,26 @@ class StatusBuilder:
                 )
             return
         self.tool_call_fingerprints.add(fingerprint)
-        
+
+        # Register namespace early — before any special-case handlers — so
+        # that PLANNING_TOOLS and task-tool handlers can distinguish sub-agent
+        # events from main-agent events via _get_execution_context().
+        # _register_sub_agent_namespace is idempotent (returns immediately
+        # for already-registered or single-segment namespaces).
+        if namespace:
+            self._register_sub_agent_namespace(namespace)
+
         # Handle planning tools
         if tool_name in PLANNING_TOOLS:
             if tool_name == "write_todos":
+                _, sub_agent = self._get_execution_context(namespace)
+                if sub_agent is not None:
+                    self.logger.debug(
+                        f"[PLANNING] execution={self.execution_id} "
+                        f"skipping sub-agent write_todos "
+                        f"(sub_agent_id={sub_agent.id})"
+                    )
+                    return
                 todos_data = tool_args.get("todos", [])
                 if todos_data:
                     self._update_todos(todos_data)
@@ -617,10 +633,6 @@ class StatusBuilder:
         if tool_name == "task":
             await self._handle_sub_agent_start(event, tool_args, run_id)
             return  # Don't create regular ToolCall for task tool
-        
-        # Try to register namespace for event routing (for sub-agent child events)
-        if namespace:
-            self._register_sub_agent_namespace(namespace)
         
         # ─────────────────────────────────────────────────────────────────────
         # Early Tool Call Reconciliation (Live Write Streaming UX)

@@ -474,7 +474,11 @@ func (r *inlineRenderer) performReCommit() {
 			m.textInput = newFollowUpTextInput()
 			m.textInput.Focus()
 		}
+		r.transferSubAgentEntries(m)
 	})
+	if len(r.activeSubAgents) > 0 {
+		r.cfg.program.Send(subAgentTickMsg{})
+	}
 }
 
 // performReCommitWithApproval is like performReCommit but also writes an
@@ -515,5 +519,33 @@ func (r *inlineRenderer) performReCommitWithApproval(
 		m.approvalContent = question + "\n"
 		m.approvalDecisionCh = decisionCh
 		m.approvalSelected = selected
+		r.transferSubAgentEntries(m)
 	})
+	if len(r.activeSubAgents) > 0 {
+		r.cfg.program.Send(subAgentTickMsg{})
+	}
+}
+
+// transferSubAgentEntries populates the new Bubbletea model's live sub-agent
+// display entries from the renderer's activeSubAgents map. Called inside
+// performReCommit and performReCommitWithApproval so that a screen re-draw
+// does not cause running sub-agent spinners to vanish.
+//
+// The activity label resets to empty (renders as "Working" by default) and
+// spinnerStart resets to now — both are acceptable because the screen was
+// just cleared and the next sub-agent event will update them.
+func (r *inlineRenderer) transferSubAgentEntries(m *inlineBubbleModel) {
+	if len(r.activeSubAgents) == 0 {
+		return
+	}
+	now := time.Now()
+	for id, block := range r.activeSubAgents {
+		m.activeSubAgentEntries = append(m.activeSubAgentEntries, subAgentDisplayEntry{
+			id:           id,
+			subject:      block.subject,
+			toolCount:    block.toolCount,
+			spinnerStart: now,
+		})
+	}
+	m.subAgentSpinnerFrame = 0
 }

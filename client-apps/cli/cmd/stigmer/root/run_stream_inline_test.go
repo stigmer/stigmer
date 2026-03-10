@@ -1478,3 +1478,128 @@ func TestInlineRenderer_AIStreamEnd_RecoveryAfterInterruption(t *testing.T) {
 		t.Error("history should contain the full AI message content from AIStreamEnd, including text after interruption")
 	}
 }
+
+// =============================================================================
+// Re-Commit Preserves Active Sub-Agent Display Entries
+// =============================================================================
+
+// Verifies that transferSubAgentEntries populates the Bubbletea model's
+// display entries from the renderer's activeSubAgents map. This is the
+// core mechanism that keeps sub-agent spinners visible across re-commits.
+func TestTransferSubAgentEntries(t *testing.T) {
+	r := &inlineRenderer{
+		activeSubAgents: map[string]*subAgentBlock{
+			"sa-1": {id: "sa-1", subject: "Scan dependencies", toolCount: 5},
+			"sa-2": {id: "sa-2", subject: "Fix auth tests", toolCount: 12},
+		},
+	}
+
+	m := &inlineBubbleModel{}
+	r.transferSubAgentEntries(m)
+
+	if len(m.activeSubAgentEntries) != 2 {
+		t.Fatalf("expected 2 entries, got %d", len(m.activeSubAgentEntries))
+	}
+
+	found := map[string]subAgentDisplayEntry{}
+	for _, e := range m.activeSubAgentEntries {
+		found[e.id] = e
+	}
+
+	if e, ok := found["sa-1"]; !ok {
+		t.Error("missing entry for sa-1")
+	} else {
+		if e.subject != "Scan dependencies" {
+			t.Errorf("sa-1 subject = %q, want %q", e.subject, "Scan dependencies")
+		}
+		if e.toolCount != 5 {
+			t.Errorf("sa-1 toolCount = %d, want 5", e.toolCount)
+		}
+		if e.spinnerStart.IsZero() {
+			t.Error("sa-1 spinnerStart should be set")
+		}
+	}
+
+	if e, ok := found["sa-2"]; !ok {
+		t.Error("missing entry for sa-2")
+	} else {
+		if e.subject != "Fix auth tests" {
+			t.Errorf("sa-2 subject = %q, want %q", e.subject, "Fix auth tests")
+		}
+		if e.toolCount != 12 {
+			t.Errorf("sa-2 toolCount = %d, want 12", e.toolCount)
+		}
+	}
+
+	if m.subAgentSpinnerFrame != 0 {
+		t.Errorf("spinnerFrame should be reset to 0, got %d", m.subAgentSpinnerFrame)
+	}
+}
+
+// Verifies that transferSubAgentEntries is a no-op when no sub-agents are active.
+func TestTransferSubAgentEntries_Empty(t *testing.T) {
+	r := &inlineRenderer{
+		activeSubAgents: map[string]*subAgentBlock{},
+	}
+
+	m := &inlineBubbleModel{subAgentSpinnerFrame: 42}
+	r.transferSubAgentEntries(m)
+
+	if len(m.activeSubAgentEntries) != 0 {
+		t.Errorf("expected 0 entries, got %d", len(m.activeSubAgentEntries))
+	}
+	if m.subAgentSpinnerFrame != 42 {
+		t.Errorf("spinnerFrame should be unchanged, got %d", m.subAgentSpinnerFrame)
+	}
+}
+
+// Verifies that a Ctrl+O re-commit while sub-agents are active does not
+// break sub-agent completion rendering. After the re-commit, sub-agent
+// completed events should still produce correct scrollback output.
+func TestInlineRenderer_ReCommitPreservesSubAgentDisplay(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 16)
+	toggleCh := make(chan struct{})
+
+	go func() {
+		events <- executiontui.SubAgentStartedEvent{ID: "sa-1", Name: "scanner", Description: "Scan infra deps"}
+		events <- executiontui.SubAgentStartedEvent{ID: "sa-2", Name: "scanner", Description: "Scan auth deps"}
+		toggleCh <- struct{}{}
+		events <- executiontui.SubAgentCompletedEvent{
+			ID: "sa-1", Status: agentexecutionv1.SubAgentStatus_SUB_AGENT_COMPLETED, ToolCount: 4,
+		}
+		events <- executiontui.SubAgentCompletedEvent{
+			ID: "sa-2", Status: agentexecutionv1.SubAgentStatus_SUB_AGENT_COMPLETED, ToolCount: 7,
+		}
+		events <- executiontui.DoneEvent{Phase: "completed"}
+		close(events)
+	}()
+
+	result := renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+		toggleExpandCh:    toggleCh,
+	})
+
+	out := stderr.String()
+	stripped := ansi.Strip(out)
+	if !strings.Contains(stripped, "Scan infra deps") {
+		t.Errorf("sa-1 subject should appear after re-commit, stderr: %q", stripped)
+	}
+	if !strings.Contains(stripped, "Scan auth deps") {
+		t.Errorf("sa-2 subject should appear after re-commit, stderr: %q", stripped)
+	}
+
+	var subAgentBlocks int
+	for _, item := range result.history {
+		if item.kind == kindSubAgentBlock {
+			subAgentBlocks++
+		}
+	}
+	if subAgentBlocks != 2 {
+		t.Errorf("expected 2 sub-agent blocks in history, got %d", subAgentBlocks)
+	}
+}
