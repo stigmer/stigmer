@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-09 10:54
-**Current Task**: PR1 COMPLETE, PR2 COMPLETE. Next: PR3 or PR4 (can run in parallel)
-**Status**: PR1 and PR2 committed and ready
+**Current Task**: PR1 COMPLETE, PR2 COMPLETE, PR3 COMPLETE. Next: PR4 (CLI changes)
+**Status**: PR1, PR2, and PR3 committed and ready
 
 ## Session Progress (2026-03-10, Session 1)
 
@@ -89,11 +89,21 @@ When starting a new session:
 - Resolved `_run_id_aliases` in removal for reconciliation-path tool calls
 - Added 6 new tests; committed as `ef04bf08`
 
+## Session Progress (2026-03-10, Session 3)
+
+- Implemented PR3: sub-agent lifecycle hardening (Gaps 7, 8, 9, 10)
+- **Gap 8 (end-event guard)**: Added `found` flag + warning in `_handle_sub_agent_end` when no SubAgentExecution matches; added `force_next_update = True` for immediate status push on completion
+- **Gap 9 (late event routing)**: Added `_completed_sub_agents` dict; `_handle_sub_agent_end` now moves sub-agents from `_active` to `_completed` instead of deleting; namespace mappings preserved; `_get_execution_context` falls back to completed sub-agents for late events
+- **Gap 10 (parent termination propagation)**: Added `finalize_active_sub_agents(status, error)` method; called from `except TimeoutError` and `except Exception` handlers in `execute_graphton.py` with `SUB_AGENT_FAILED`
+- **Gap 7 (namespace observability)**: Added test documenting concurrent sub-agent failure mode where unresolvable namespaces fall through to main agent
+- Updated existing `test_namespace_cleanup_on_sub_agent_end` to assert new behavior (namespace preservation + completed dict)
+- Added 7 new tests; all 242 tests pass
+- Two architectural decisions made: Option B for pause handling (leave IN_PROGRESS), Option A for drop-vs-misattribute (keep misattribute with warning)
+
 ## Next Steps
 
-1. **PR3** (Runner): Namespace robustness, late event handling, cancellation propagation, end-event guard
-2. **PR4** (CLI): Rename "Task" to "Sub-agent", remove fallback code, show sub-agent approvals, typed status enum
-3. PR3 and PR4 can run in parallel
+1. **PR4** (CLI): Rename "Task" to "Sub-agent", remove fallback code, show sub-agent output, show sub-agent input, show sub-agent in approvals, typed status enum
+2. **PR5** (Tests): Integration/end-to-end tests for concurrent sub-agents, approval flow, output rendering, cancellation
 
 ## Context for Resume
 
@@ -102,7 +112,10 @@ When starting a new session:
 - `_handle_sub_agent_start` is now sync (not async) — dispatch handles this via `inspect.isawaitable`
 - `sync_sub_agent_pending_approvals()` sets `child_agent_execution_id` BEFORE protobuf append (copy semantics)
 - `_remove_from_pending` resolves `_run_id_aliases` for reconciliation-path tool calls where ToolCall.id is a temp_id
-- Session checkpoint at `checkpoints/2026-03-10-session-2.md`
+- **PR3**: `_completed_sub_agents` holds completed sub-agents; namespace mappings are preserved (NOT deleted on completion); `_get_execution_context` checks `_completed_sub_agents` as fallback for late events
+- **PR3**: `finalize_active_sub_agents(status, error)` transitions all active sub-agents to a terminal state — called from error/stall handlers but NOT from the pause (CancelledError) handler (pause leaves sub-agents as IN_PROGRESS — resume-path reconstruction deferred)
+- **PR3**: The CancelledError handler in `execute_graphton.py` is a PAUSE, not a cancellation — no separate cancel code path exists at the activity level
+- Session checkpoint at `checkpoints/2026-03-10-session-3.md`
 
 ## Quick Resume
 
@@ -112,7 +125,6 @@ To continue this project, drag this file into chat:
 ## Quick Commands
 
 After loading context:
-- "Start PR3" - Begin namespace robustness
 - "Start PR4" - Begin CLI changes
 - "Show project status" - Get overview of progress
 
