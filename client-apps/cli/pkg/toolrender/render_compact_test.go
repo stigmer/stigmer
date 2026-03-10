@@ -2477,10 +2477,10 @@ func TestRenderCompact_Think_NoEmojiBadge(t *testing.T) {
 }
 
 // =============================================================================
-// RenderCompact — Task tool still falls back to RenderWithBadge
+// RenderCompact — Sub-agent tool still falls back to RenderWithBadge
 // =============================================================================
 
-func TestRenderCompact_Task_FallsBackToLegacy(t *testing.T) {
+func TestRenderCompact_SubAgent_FallsBackToLegacy(t *testing.T) {
 	tc := ToolCallInfo{
 		Name:   "task",
 		Args:   map[string]interface{}{"description": "Explore CLI rendering"},
@@ -2490,7 +2490,7 @@ func TestRenderCompact_Task_FallsBackToLegacy(t *testing.T) {
 	opts := CompactOptions{HyperlinksEnabled: false}
 
 	got := RenderCompact(tc, opts)
-	assertContains(t, got, "Task")
+	assertContains(t, got, "Sub-agent")
 }
 
 // =============================================================================
@@ -2614,14 +2614,14 @@ func TestRenderCompactRunning_Task_CompactFormat(t *testing.T) {
 	plain := stripANSI(got)
 
 	assertContains(t, got, "●")
-	assertContains(t, got, "Task")
+	assertContains(t, got, "Sub-agent")
 	assertContains(t, got, "Explore code")
 	assertContains(t, got, "…")
 	assertNotContains(t, got, "🔀")
 	assertNotContains(t, got, "⏳")
 
-	if !strings.Contains(plain, "Task: Explore code") {
-		t.Errorf("expected 'Task: Explore code' format, got:\n  %q", plain)
+	if !strings.Contains(plain, "Sub-agent: Explore code") {
+		t.Errorf("expected 'Sub-agent: Explore code' format, got:\n  %q", plain)
 	}
 }
 
@@ -2708,7 +2708,7 @@ func TestHasCompactRenderer_AllKnownLabels(t *testing.T) {
 		"Read", "Write", "Create", "Edit",
 		"Shell", "Execute",
 		"List", "Find", "Search",
-		"Delete", "Thinking", "Task",
+		"Delete", "Thinking", "Sub-agent",
 	}
 	for _, label := range compactLabels {
 		info := toolDisplayInfo{label: label}
@@ -2718,10 +2718,10 @@ func TestHasCompactRenderer_AllKnownLabels(t *testing.T) {
 	}
 }
 
-func TestHasCompactRenderer_TaskReturnsTrue(t *testing.T) {
-	info := toolDisplayInfo{label: "Task"}
+func TestHasCompactRenderer_SubAgentReturnsTrue(t *testing.T) {
+	info := toolDisplayInfo{label: "Sub-agent"}
 	if !hasCompactRenderer(info) {
-		t.Error("hasCompactRenderer(Task) = false, want true — Task has visual representation via lifecycle events")
+		t.Error("hasCompactRenderer(Sub-agent) = false, want true — Sub-agent has visual representation via lifecycle events")
 	}
 }
 
@@ -2941,7 +2941,7 @@ func TestGutterWrap_WithRenderReadGroup(t *testing.T) {
 }
 
 // =============================================================================
-// RenderCompactRunning — Task tool format
+// RenderCompactRunning — Sub-agent tool format
 // =============================================================================
 
 func TestRenderCompactRunning_Task_EmptyDescription(t *testing.T) {
@@ -2954,12 +2954,12 @@ func TestRenderCompactRunning_Task_EmptyDescription(t *testing.T) {
 	got := RenderCompactRunning(tc, opts)
 	plain := stripANSI(got)
 
-	assertContains(t, got, "Task")
+	assertContains(t, got, "Sub-agent")
 	assertContains(t, got, "running")
 	assertContains(t, got, "…")
 
-	if !strings.Contains(plain, "Task: running") {
-		t.Errorf("expected 'Task: running' fallback, got:\n  %q", plain)
+	if !strings.Contains(plain, "Sub-agent: running") {
+		t.Errorf("expected 'Sub-agent: running' fallback, got:\n  %q", plain)
 	}
 }
 
@@ -2991,9 +2991,9 @@ func TestBulletGreen_RendersBullet(t *testing.T) {
 }
 
 func TestLabelBold_RendersLabel(t *testing.T) {
-	got := LabelBold("Task")
-	if stripANSI(got) != "Task" {
-		t.Errorf("expected 'Task', got %q", stripANSI(got))
+	got := LabelBold("Sub-agent")
+	if stripANSI(got) != "Sub-agent" {
+		t.Errorf("expected 'Sub-agent', got %q", stripANSI(got))
 	}
 }
 

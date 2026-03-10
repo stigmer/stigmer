@@ -125,6 +125,9 @@ func (r *inlineRenderer) handleInteractiveApproval(
 	r.erasePreApprovalContent(contentStreamed, streamedRows, canCollapse)
 
 	question := toolrender.ApprovalQuestion(tc)
+	if e.FromSubAgent && e.SubAgentName != "" {
+		question = fmt.Sprintf("Sub-agent '%s': %s", e.SubAgentName, question)
+	}
 
 	if r.cfg.program != nil {
 		expanded := r.buildFullExpandedView(tc, width)

@@ -46,26 +46,17 @@ func emitSubAgentEvents(
 			}
 			trackers[sa.Id] = tracker
 
-			desc := sa.GetSubject()
-			if desc == "" {
-				if sa.Metadata != nil {
-					if v, ok := sa.Metadata.Fields["description"]; ok {
-						desc = v.GetStringValue()
-					}
-				}
-			}
-
 			events <- executiontui.SubAgentStartedEvent{
 				ID:          sa.Id,
 				Name:        sa.Name,
-				Description: desc,
+				Description: sa.GetSubject(),
+				Input:       sa.Input,
 			}
 
 			log.Debug().
 				Str("sub_agent_id", sa.Id).
 				Str("name", sa.Name).
 				Str("subject", sa.GetSubject()).
-				Str("description", desc).
 				Bool("has_input", sa.Input != "").
 				Msg("[stream] new sub-agent execution detected")
 		}
@@ -85,19 +76,15 @@ func emitSubAgentEvents(
 
 		if !tracker.completed && isTerminalSubAgentStatus(sa.Status) {
 			tracker.completed = true
-			status := "completed"
-			if sa.Status == agentexecutionv1.SubAgentStatus_SUB_AGENT_FAILED {
-				status = "failed"
-			}
 			events <- executiontui.SubAgentCompletedEvent{
 				ID:        sa.Id,
-				Status:    status,
+				Status:    sa.Status,
 				ToolCount: len(sa.ToolCalls),
 				Output:    sa.Output,
 			}
 			log.Debug().
 				Str("sub_agent_id", sa.Id).
-				Str("status", status).
+				Str("status", sa.Status.String()).
 				Int("tool_count", len(sa.ToolCalls)).
 				Msg("[stream] sub-agent execution completed")
 		}
@@ -110,7 +97,8 @@ func emitSubAgentEvents(
 // a terminal (finished) state.
 func isTerminalSubAgentStatus(s agentexecutionv1.SubAgentStatus) bool {
 	return s == agentexecutionv1.SubAgentStatus_SUB_AGENT_COMPLETED ||
-		s == agentexecutionv1.SubAgentStatus_SUB_AGENT_FAILED
+		s == agentexecutionv1.SubAgentStatus_SUB_AGENT_FAILED ||
+		s == agentexecutionv1.SubAgentStatus_SUB_AGENT_CANCELLED
 }
 
 // emitSubAgentMessageEvents processes new messages from a sub-agent and emits

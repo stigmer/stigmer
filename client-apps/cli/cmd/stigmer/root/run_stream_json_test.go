@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
@@ -96,7 +97,7 @@ func TestJSONRenderer_AllEventTypes_ProduceCorrectTypes(t *testing.T) {
 		executiontui.SystemMessageEvent{Content: "note"},
 		executiontui.PhaseChangeEvent{Phase: "in_progress", Previous: "pending"},
 		executiontui.SubAgentStartedEvent{ID: "sa-1", Name: "researcher"},
-		executiontui.SubAgentCompletedEvent{ID: "sa-1", Status: "completed", ToolCount: 2},
+		executiontui.SubAgentCompletedEvent{ID: "sa-1", Status: agentexecutionv1.SubAgentStatus_SUB_AGENT_COMPLETED, ToolCount: 2},
 		executiontui.TodoUpdateEvent{Todos: []executiontui.TodoItem{{ID: "1", Content: "task", Status: "pending"}}},
 		executiontui.DoneEvent{Phase: "completed"},
 	)

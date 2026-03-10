@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
 )
@@ -364,7 +365,7 @@ func TestRenderHistoryBatch_MatchesPerItemOutput(t *testing.T) {
 		{kind: kindSystemMessage, text: "Session checkpoint saved."},
 		{kind: kindSubAgentBlock, saBlock: &subAgentBlock{
 			id: "sa-1", name: "researcher", subject: "Update tests",
-			status: "completed", toolCount: 3,
+			status: agentexecutionv1.SubAgentStatus_SUB_AGENT_COMPLETED, toolCount: 3,
 			children: []committedItem{
 				{kind: kindToolCompact, toolCalls: []toolrender.ToolCallInfo{{
 					Name: "read_file", Args: map[string]interface{}{"path": "test.go"},
@@ -502,7 +503,7 @@ func TestCommitToScrollback_MatchesRecommit(t *testing.T) {
 		{kind: kindSystemMessage, text: "Session checkpoint saved."},
 		{kind: kindSubAgentBlock, saBlock: &subAgentBlock{
 			id: "sa-1", name: "researcher", subject: "Update tests",
-			status: "completed", toolCount: 3,
+			status: agentexecutionv1.SubAgentStatus_SUB_AGENT_COMPLETED, toolCount: 3,
 			children: []committedItem{
 				{kind: kindToolCompact, toolCalls: []toolrender.ToolCallInfo{{
 					Name: "read_file", Args: map[string]interface{}{"path": "test.go"},
@@ -684,13 +685,13 @@ func TestCommitStreamEndGap(t *testing.T) {
 func TestRenderSubAgentBlockItem_Collapsed(t *testing.T) {
 	block := &subAgentBlock{
 		id: "sa-1", name: "researcher", subject: "Explore CLI rendering",
-		status: "completed", toolCount: 5,
+		status: agentexecutionv1.SubAgentStatus_SUB_AGENT_COMPLETED, toolCount: 5,
 	}
 	item := committedItem{kind: kindSubAgentBlock, saBlock: block}
 
 	result := renderCommittedItem(item, toolrender.CompactOptions{}, false, false)
 
-	assert.Contains(t, result, "Task")
+	assert.Contains(t, result, "Sub-agent")
 	assert.Contains(t, result, "Explore CLI rendering")
 	assert.Contains(t, result, "✓ Done")
 	assert.Contains(t, result, "5 tools")
@@ -700,7 +701,7 @@ func TestRenderSubAgentBlockItem_Collapsed(t *testing.T) {
 func TestRenderSubAgentBlockItem_Collapsed_Failed(t *testing.T) {
 	block := &subAgentBlock{
 		id: "sa-1", name: "researcher", subject: "Fix auth tests",
-		status: "failed", toolCount: 3,
+		status: agentexecutionv1.SubAgentStatus_SUB_AGENT_FAILED, toolCount: 3,
 	}
 	item := committedItem{kind: kindSubAgentBlock, saBlock: block}
 
@@ -713,7 +714,7 @@ func TestRenderSubAgentBlockItem_Collapsed_Failed(t *testing.T) {
 func TestRenderSubAgentBlockItem_Expanded_ShowsChildren(t *testing.T) {
 	block := &subAgentBlock{
 		id: "sa-1", name: "researcher", subject: "Explore CLI rendering",
-		status: "completed", toolCount: 2,
+		status: agentexecutionv1.SubAgentStatus_SUB_AGENT_COMPLETED, toolCount: 2,
 		children: []committedItem{
 			{kind: kindToolCompact, subAgentID: "sa-1", toolCalls: []toolrender.ToolCallInfo{{
 				Name: "read_file", Args: map[string]interface{}{"path": "main.go"},
@@ -727,7 +728,7 @@ func TestRenderSubAgentBlockItem_Expanded_ShowsChildren(t *testing.T) {
 
 	result := renderCommittedItem(item, toolrender.CompactOptions{}, true, false)
 
-	assert.Contains(t, result, "Task")
+	assert.Contains(t, result, "Sub-agent")
 	assert.Contains(t, result, "Explore CLI rendering")
 	assert.Contains(t, result, "│", "expanded view should show gutter-wrapped children")
 	assert.Contains(t, result, "main.go")
@@ -740,15 +741,18 @@ func TestRenderSubAgentBlockItem_NilBlock(t *testing.T) {
 	assert.Equal(t, "", result)
 }
 
-func TestRenderSubAgentBlockItem_FallbackToName(t *testing.T) {
+func TestRenderSubAgentBlockItem_EmptySubject(t *testing.T) {
 	block := &subAgentBlock{
 		id: "sa-1", name: "code_editor", subject: "",
-		status: "completed", toolCount: 1,
+		status: agentexecutionv1.SubAgentStatus_SUB_AGENT_COMPLETED, toolCount: 1,
 	}
 	item := committedItem{kind: kindSubAgentBlock, saBlock: block}
 
 	result := renderCommittedItem(item, toolrender.CompactOptions{}, false, false)
-	assert.Contains(t, result, "code_editor")
+	assert.Contains(t, result, "Sub-agent")
+	assert.Contains(t, result, "✓ Done")
+	assert.NotContains(t, result, "code_editor",
+		"empty subject should display empty — no fallback to name (DD-04)")
 }
 
 // =============================================================================
@@ -966,7 +970,7 @@ func TestRenderCommittedItem_ExpandHint_SubAgentBlock(t *testing.T) {
 	// hint shows when len(item.saBlock.children) > 0
 	block := &subAgentBlock{
 		id: "sa-1", name: "researcher", subject: "Explore CLI code",
-		status: "completed", toolCount: 5,
+		status: agentexecutionv1.SubAgentStatus_SUB_AGENT_COMPLETED, toolCount: 5,
 		children: []committedItem{{kind: kindToolCompact, toolCalls: []toolrender.ToolCallInfo{}}},
 	}
 	item := committedItem{kind: kindSubAgentBlock, saBlock: block}
@@ -979,7 +983,7 @@ func TestRenderCommittedItem_NoExpandHint_SubAgentBlock_EmptyChildren(t *testing
 	// hint does NOT show when len(item.saBlock.children) == 0
 	block := &subAgentBlock{
 		id: "sa-1", name: "researcher", subject: "Explore CLI code",
-		status: "completed", toolCount: 5,
+		status: agentexecutionv1.SubAgentStatus_SUB_AGENT_COMPLETED, toolCount: 5,
 		children: nil,
 	}
 	item := committedItem{kind: kindSubAgentBlock, saBlock: block}

@@ -169,7 +169,7 @@ var toolDisplayMap = map[string]toolDisplayInfo{
 
 	"think": {label: "Thinking", preview: previewFileContent, contentSource: contentSourceInput, contentArgField: "thought"},
 
-	"task": {label: "Task", primaryField: "description", fallbackFields: []string{"prompt"}},
+	"task": {label: "Sub-agent", primaryField: "description", fallbackFields: []string{"prompt"}},
 }
 
 // Styles for tool call rendering.

@@ -4,6 +4,7 @@ import (
 	"io"
 	"time"
 
+	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/executiontui"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/toolrender"
@@ -162,11 +163,12 @@ type waitingApprovalState struct {
 type subAgentBlock struct {
 	id        string
 	name      string
-	subject   string          // short display label (from SubAgentStartedEvent.Description)
-	status    string          // "running", "completed", "failed"
-	children  []committedItem // internal tool calls, AI messages, read groups
-	toolCount int             // running count of tool completions inside this sub-agent
-	output    string          // final result (from SubAgentCompletedEvent.Output)
+	subject   string                          // short display label (from SubAgentStartedEvent.Description)
+	input     string                          // full task prompt (shown in expanded view)
+	status    agentexecutionv1.SubAgentStatus // lifecycle state (IN_PROGRESS while running)
+	children  []committedItem                 // internal tool calls, AI messages, read groups
+	toolCount int                             // running count of tool completions inside this sub-agent
+	output    string                          // final result (from SubAgentCompletedEvent.Output)
 }
 
 // inlineRenderer consumes execution events and renders them to the terminal
