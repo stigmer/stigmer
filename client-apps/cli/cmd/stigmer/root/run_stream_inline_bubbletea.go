@@ -663,6 +663,7 @@ func (m inlineBubbleModel) renderSubAgentLine() string {
 	if label == "" {
 		label = "running"
 	}
+	label = toolrender.Truncate(toolrender.FirstLine(label), 80)
 
 	header := fmt.Sprintf("%s %s: %s",
 		toolrender.BulletGreen("●"), toolrender.LabelBold("Sub-agent"), label)

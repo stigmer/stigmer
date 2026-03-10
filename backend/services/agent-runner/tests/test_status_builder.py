@@ -13,7 +13,7 @@ Tests cover:
 
 from datetime import datetime, timedelta
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
@@ -1173,6 +1173,16 @@ class TestSubAgentInternals:
     - Sub-agent lifecycle: IN_PROGRESS -> COMPLETED/FAILED
     """
 
+    @pytest.fixture(autouse=True)
+    def _patch_subject_gen(self):
+        """Patch LLM-based subject generation for all tests in this class."""
+        with patch(
+            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            new_callable=AsyncMock,
+            return_value="",
+        ):
+            yield
+
     @pytest.mark.asyncio
     async def test_task_tool_creates_sub_agent_execution(self, status_builder):
         """Test that 'task' tool invocation creates SubAgentExecution."""
@@ -1186,7 +1196,7 @@ class TestSubAgentInternals:
             "data": {
                 "input": {
                     "subagent_type": "code_editor",
-                    "input": "Fix the bug in main.py"
+                    "description": "Fix the bug in main.py"
                 }
             },
             "metadata": {}
@@ -1217,7 +1227,7 @@ class TestSubAgentInternals:
             "data": {
                 "input": {
                     "subagent_type": "researcher",
-                    "task": "Research the topic"
+                    "description": "Research the topic"
                 }
             },
             "metadata": {}
@@ -1676,30 +1686,61 @@ class TestSubAgentInternals:
         assert sub_agent is None
 
     @pytest.mark.asyncio
-    async def test_task_tool_subject_from_description_arg(self, status_builder):
-        """subject is populated directly from the task tool's description arg (DD-02)."""
-        await status_builder.process_event({
-            "event": "on_tool_start",
-            "name": "task",
-            "run_id": "task-desc-1",
-            "data": {
-                "input": {
-                    "subagent_type": "code_editor",
-                    "description": "Explore CLI rendering code",
-                    "input": "Find all files related to sub-agent rendering in the CLI...",
-                }
-            },
-            "metadata": {},
-        })
+    async def test_task_tool_description_mapped_to_input(self, status_builder):
+        """description arg (deepagents' full prompt) is mapped to input field."""
+        with patch(
+            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            new_callable=AsyncMock,
+            return_value="Scan workflow dependencies",
+        ):
+            await status_builder.process_event({
+                "event": "on_tool_start",
+                "name": "task",
+                "run_id": "task-desc-1",
+                "data": {
+                    "input": {
+                        "subagent_type": "general-purpose",
+                        "description": "Scan all workflow-runner files and extract infrastructure dependencies...",
+                    }
+                },
+                "metadata": {},
+            })
 
         sub_agent = status_builder.current_status.sub_agent_executions[0]
-        assert sub_agent.subject == "Explore CLI rendering code"
-        assert sub_agent.input == "Find all files related to sub-agent rendering in the CLI..."
-        assert sub_agent.name == "code_editor"
+        assert sub_agent.input == "Scan all workflow-runner files and extract infrastructure dependencies..."
+        assert sub_agent.name == "general-purpose"
+
+    @pytest.mark.asyncio
+    async def test_task_tool_subject_generated_via_llm(self, status_builder):
+        """subject is generated from description via economy-tier LLM."""
+        with patch(
+            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            new_callable=AsyncMock,
+            return_value="Scan workflow dependencies",
+        ) as mock_gen:
+            await status_builder.process_event({
+                "event": "on_tool_start",
+                "name": "task",
+                "run_id": "task-gen-1",
+                "data": {
+                    "input": {
+                        "subagent_type": "general-purpose",
+                        "description": "Scan all workflow-runner files and extract infrastructure dependencies...",
+                    }
+                },
+                "metadata": {},
+            })
+
+        sub_agent = status_builder.current_status.sub_agent_executions[0]
+        assert sub_agent.subject == "Scan workflow dependencies"
+        mock_gen.assert_called_once_with(
+            "Scan all workflow-runner files and extract infrastructure dependencies...",
+            "general-purpose",
+        )
 
     @pytest.mark.asyncio
     async def test_task_tool_empty_subject_when_no_description(self, status_builder):
-        """subject is empty when description arg is absent (DD-04: no fallbacks)."""
+        """subject is empty when description arg is absent (LLM receives empty input)."""
         await status_builder.process_event({
             "event": "on_tool_start",
             "name": "task",
@@ -1707,7 +1748,6 @@ class TestSubAgentInternals:
             "data": {
                 "input": {
                     "subagent_type": "researcher",
-                    "input": "Research something complex",
                 }
             },
             "metadata": {},
@@ -1715,10 +1755,11 @@ class TestSubAgentInternals:
 
         sub_agent = status_builder.current_status.sub_agent_executions[0]
         assert sub_agent.subject == ""
+        assert sub_agent.input == ""
 
     @pytest.mark.asyncio
     async def test_task_tool_no_metadata_struct(self, status_builder):
-        """metadata is not populated — description lives on subject, not in a Struct."""
+        """metadata is not populated — description goes to input, subject via LLM."""
         await status_builder.process_event({
             "event": "on_tool_start",
             "name": "task",
@@ -1727,7 +1768,6 @@ class TestSubAgentInternals:
                 "input": {
                     "subagent_type": "helper",
                     "description": "Some task label",
-                    "input": "Do something",
                 }
             },
             "metadata": {},
@@ -2049,6 +2089,16 @@ class TestSubAgentScenarios:
     TestSubAgentInternals.  These scenarios chain multiple features together to
     verify the state machine holds across a realistic event sequence.
     """
+
+    @pytest.fixture(autouse=True)
+    def _patch_subject_gen(self):
+        """Patch LLM-based subject generation for all tests in this class."""
+        with patch(
+            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            new_callable=AsyncMock,
+            return_value="",
+        ):
+            yield
 
     @pytest.mark.asyncio
     async def test_approval_lifecycle_within_sub_agent(self, status_builder):
@@ -2374,6 +2424,16 @@ class TestNamespaceRegistrationStrategies:
     to it without ambiguity.
     """
 
+    @pytest.fixture(autouse=True)
+    def _patch_subject_gen(self):
+        """Patch LLM-based subject generation for all tests in this class."""
+        with patch(
+            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            new_callable=AsyncMock,
+            return_value="",
+        ):
+            yield
+
     @pytest.mark.asyncio
     async def test_sole_active_agent_fallback_registers_different_root(self, status_builder):
         """Strategy 4 maps a different-root namespace to the sole active sub-agent."""
@@ -2569,6 +2629,16 @@ class TestUsageMetrics:
     - Sub-agent usage tracked in sub_agent.usage (isolated from main)
     - Progressive updates during streaming (not just at end)
     """
+
+    @pytest.fixture(autouse=True)
+    def _patch_subject_gen(self):
+        """Patch LLM-based subject generation for all tests in this class."""
+        with patch(
+            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            new_callable=AsyncMock,
+            return_value="",
+        ):
+            yield
 
     @pytest.mark.asyncio
     async def test_usage_metrics_updated_on_chat_model_end(self, status_builder):
