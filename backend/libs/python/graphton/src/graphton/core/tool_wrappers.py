@@ -785,6 +785,13 @@ def _check_and_handle_approval(
     if approval_checker is None:
         return None
     
+    context_info = f"sub_agent={sub_agent_name}" if from_sub_agent else "main_agent"
+    logger.info(
+        f"[DIAG] _check_and_handle_approval entered: "
+        f"tool={tool_name} from_sub_agent={from_sub_agent} "
+        f"sub_agent_name={sub_agent_name} run_id={run_id} context={context_info}"
+    )
+    
     requirement = approval_checker(tool_name, tool_args)
     
     if not requirement.requires_approval:
@@ -793,7 +800,6 @@ def _check_and_handle_approval(
     # Determine effective MCP server (use requirement's if available, else parameter)
     effective_server = requirement.mcp_server or mcp_server
     
-    context_info = f"sub_agent={sub_agent_name}" if from_sub_agent else "main_agent"
     logger.info(
         f"🔐 Tool '{tool_name}' requires approval "
         f"(source={requirement.source}, server={effective_server}, context={context_info})"

@@ -328,6 +328,26 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 		// Previously this ran after approval handling, which suppressed the
 		// phase change and left the header stuck on "in_progress".
 		if execution.Status.Phase != lastPhase {
+			// Approval cycle detection: when the execution transitions
+			// through IN_PROGRESS back to WAITING_FOR_APPROVAL, the
+			// backend has re-entered the approval loop (e.g. because
+			// a sub-agent restart produced the same tool calls).
+			// Clear promptedIDs so the CLI re-prompts for the new
+			// batch instead of silently skipping them — which would
+			// cause a permanent deadlock.
+			if execution.Status.Phase == agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL &&
+				lastPhase == agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS {
+				if len(promptedIDs) > 0 {
+					log.Debug().
+						Str("execution_id", cfg.executionID).
+						Int("cleared_count", len(promptedIDs)).
+						Msg("[stream] approval cycle detected — clearing promptedIDs for new approval round")
+					for k := range promptedIDs {
+						delete(promptedIDs, k)
+					}
+				}
+			}
+
 			if !trySendEvent(ctx, cfg.events, executiontui.PhaseChangeEvent{
 				Phase:    mapPhaseToString(execution.Status.Phase),
 				Previous: mapPhaseToString(lastPhase),

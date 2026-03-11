@@ -400,13 +400,53 @@ def create_deep_agent(
             "present" if summarization_callback is not None else "none",
         )
     
-    # Transform subagents to DeepAgents format if provided
-    # DeepAgents SubAgent type expects 'system_prompt' key (matching our format)
+    # Transform subagents to DeepAgents format if provided.
+    #
+    # When a checkpointer AND approval_checker are both available, custom
+    # sub-agents are compiled with their own MemorySaver and wrapped in
+    # InterruptProxyRunnable.  This ensures ALL sub-agent tool interrupts
+    # are captured (not just the first) and correctly proxied to the parent
+    # graph for user approval.  Without this, deepagents compiles custom
+    # sub-agents with checkpointer=False, which causes GraphInterrupt to
+    # propagate as a raw exception — only one interrupt survives, and the
+    # sub-agent can never be resumed, leading to approval deadlocks.
+    #
+    # Sub-agents passed as CompiledSubAgent (with 'runnable' key) are used
+    # by deepagents as-is, bypassing its internal compilation.
     transformed_subagents = None
     if subagents is not None:
-        # DeepAgents format matches ours, just pass through
-        # No transformation needed except ensuring it's properly formatted
-        transformed_subagents = subagents
+        if checkpointer is not None and approval_checker is not None:
+            from graphton.core.interrupt_proxy import compile_subagent_with_proxy
+            
+            compiled_subagents = []
+            for sa in subagents:
+                if "runnable" in sa:
+                    compiled_subagents.append(sa)
+                    continue
+                
+                sa_tools = sa.get("tools", list(tools or []))
+                sa_name = sa.get("name", "unnamed")
+                sa_desc = sa.get("description", f"Sub-agent: {sa_name}")
+                sa_prompt = sa.get("system_prompt", "")
+                sa_middleware = list(sa.get("middleware", []))
+                
+                compiled_sa = compile_subagent_with_proxy(
+                    model=model_instance,
+                    tools=sa_tools,
+                    system_prompt=sa_prompt,
+                    name=sa_name,
+                    description=sa_desc,
+                    middleware=sa_middleware,
+                )
+                compiled_subagents.append(compiled_sa)
+            
+            transformed_subagents = compiled_subagents
+            logger.info(
+                "Compiled %d sub-agent(s) with InterruptProxy for HITL approval",
+                len(compiled_subagents),
+            )
+        else:
+            transformed_subagents = subagents
     
     # MCP integration (Universal Authentication Framework)
     if mcp_servers and mcp_tools:
