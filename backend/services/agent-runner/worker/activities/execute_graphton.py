@@ -3038,30 +3038,51 @@ async def _execute_graphton_impl(
                         message = intr_value.get("message", "") if isinstance(intr_value, dict) else ""
                         from_sub_agent = intr_value.get("from_sub_agent", False) if isinstance(intr_value, dict) else False
                         sub_agent_name = intr_value.get("sub_agent_name", "") if isinstance(intr_value, dict) else ""
+                        intr_run_id = intr_value.get("run_id", "") if isinstance(intr_value, dict) else ""
                         
-                        # Match interrupt to a tool call by tool_name + WAITING_APPROVAL
-                        # status. Track already-matched IDs to handle multiple calls to
-                        # the same tool (e.g., two writes to different files).
-                        #
-                        # Alias-aware matching: the interrupt payload uses the canonical
-                        # tool name (e.g. "write") while the tool call may have been
-                        # registered under an alias (e.g. "write_file").  Resolve both
-                        # sides to canonical names before comparing.
                         matched_tool_call_id = ""
-                        for tc in status_builder.current_status.tool_calls:
-                            tc_canonical = resolve_platform_tool_name(tc.name)
-                            if (
-                                (tc.name == tool_name or tc_canonical == tool_name)
-                                and tc.status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
-                                and tc.id not in matched_tc_ids
-                            ):
-                                matched_tool_call_id = tc.id
-                                matched_tc_ids.add(tc.id)
-                                break
                         
+                        # Prefer direct run_id-based matching: the interrupt
+                        # payload carries the LangGraph run_id which maps to
+                        # the early-toolu_... tool_call_id via _run_id_aliases.
+                        if intr_run_id:
+                            resolved = status_builder._run_id_aliases.get(intr_run_id, intr_run_id)
+                            if resolved not in matched_tc_ids:
+                                matched_tool_call_id = resolved
+                                matched_tc_ids.add(resolved)
+                        
+                        # Fallback: name-based matching scoped by from_sub_agent
+                        # to prevent cross-level mismatches. When from_sub_agent
+                        # is True, search sub-agent tool calls first; when False,
+                        # search only top-level tool calls.
                         if not matched_tool_call_id:
-                            for sa in status_builder.current_status.sub_agent_executions:
-                                for tc in sa.tool_calls:
+                            if from_sub_agent:
+                                for sa in status_builder.current_status.sub_agent_executions:
+                                    for tc in sa.tool_calls:
+                                        tc_canonical = resolve_platform_tool_name(tc.name)
+                                        if (
+                                            (tc.name == tool_name or tc_canonical == tool_name)
+                                            and tc.status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
+                                            and tc.id not in matched_tc_ids
+                                        ):
+                                            matched_tool_call_id = tc.id
+                                            matched_tc_ids.add(tc.id)
+                                            break
+                                    if matched_tool_call_id:
+                                        break
+                                if not matched_tool_call_id:
+                                    for tc in status_builder.current_status.tool_calls:
+                                        tc_canonical = resolve_platform_tool_name(tc.name)
+                                        if (
+                                            (tc.name == tool_name or tc_canonical == tool_name)
+                                            and tc.status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
+                                            and tc.id not in matched_tc_ids
+                                        ):
+                                            matched_tool_call_id = tc.id
+                                            matched_tc_ids.add(tc.id)
+                                            break
+                            else:
+                                for tc in status_builder.current_status.tool_calls:
                                     tc_canonical = resolve_platform_tool_name(tc.name)
                                     if (
                                         (tc.name == tool_name or tc_canonical == tool_name)
@@ -3071,8 +3092,6 @@ async def _execute_graphton_impl(
                                         matched_tool_call_id = tc.id
                                         matched_tc_ids.add(tc.id)
                                         break
-                                if matched_tool_call_id:
-                                    break
                         
                         # Create args preview via StatusBuilder's sanitiser
                         args_preview = status_builder._create_args_preview(tool_args)
@@ -3105,7 +3124,7 @@ async def _execute_graphton_impl(
                             f"[INTERRUPT_CAPTURE] execution={execution_id} "
                             f"captured {len(pending_approvals)} pending interrupt(s): "
                             + ", ".join(
-                                f"tool={pa.tool_name} interrupt_id={pa.interrupt_id}"
+                                f"tool={pa.tool_name} tc_id={pa.tool_call_id} interrupt_id={pa.interrupt_id}"
                                 for pa in pending_approvals
                             )
                         )

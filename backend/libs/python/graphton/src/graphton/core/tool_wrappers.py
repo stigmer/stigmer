@@ -47,6 +47,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from langchain_core.callbacks import dispatch_custom_event
+from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 
 from graphton.core.error_hints import enrich_error_message
@@ -323,7 +324,7 @@ def create_approval_aware_tool_wrapper(
     
     # Create the approval-aware wrapper function
     @tool
-    async def approval_wrapper(**kwargs: Any) -> Any:  # noqa: ANN401
+    async def approval_wrapper(config: RunnableConfig, **kwargs: Any) -> Any:  # noqa: ANN401
         """Auto-generated approval-aware wrapper for MCP tool.
         
         This wrapper:
@@ -344,6 +345,8 @@ def create_approval_aware_tool_wrapper(
                 logger.debug(f"Unwrapping 'kwargs' key for '{tool_name}'")
                 actual_args = kwargs['kwargs']
         
+        tool_run_id = str(config.get("run_id", "")) if config else ""
+        
         # Check if approval is required using the shared approval handler
         # This handles interrupt/resume for HITL flow
         is_sub_agent = bool(sub_agent_name)
@@ -354,6 +357,7 @@ def create_approval_aware_tool_wrapper(
             mcp_server=mcp_server_name,
             from_sub_agent=is_sub_agent,
             sub_agent_name=sub_agent_name if is_sub_agent else "",
+            run_id=tool_run_id,
         )
         if skip_result is not None:
             return skip_result
@@ -728,6 +732,7 @@ def _check_and_handle_approval(
     mcp_server: str = "__platform__",
     from_sub_agent: bool = False,
     sub_agent_name: str = "",
+    run_id: str = "",
 ) -> str | None:
     """Unified approval handling for both MCP and platform tools.
     
@@ -747,6 +752,9 @@ def _check_and_handle_approval(
             Use "__platform__" for platform/sandbox tools.
         from_sub_agent: True if this tool is being invoked by a sub-agent.
         sub_agent_name: Name of the sub-agent if from_sub_agent is True.
+        run_id: LangGraph run_id for this tool invocation. Used by the
+            interrupt capture to directly match this interrupt to the correct
+            ToolCall via _run_id_aliases, avoiding fragile name-based matching.
         
     Returns:
         - None: No approval needed OR user approved - proceed with execution
@@ -812,6 +820,7 @@ def _check_and_handle_approval(
         "source": requirement.source,
         "from_sub_agent": from_sub_agent,
         "sub_agent_name": sub_agent_name if from_sub_agent else "",
+        "run_id": run_id,
     }
     
     logger.info(
@@ -921,7 +930,7 @@ def _create_read_tool(
         @tool decorated function for reading files
     """
     @tool
-    async def read(path: str, offset: int = 0, limit: int = 0) -> str:
+    async def read(config: RunnableConfig, path: str, offset: int = 0, limit: int = 0) -> str:
         """Read file contents from the workspace.
 
         Args:
@@ -936,8 +945,9 @@ def _create_read_tool(
             line range with a position header.
         """
         tool_args = {"path": path}
+        tool_run_id = str(config.get("run_id", "")) if config else ""
 
-        skip_result = _check_and_handle_approval("read", tool_args, approval_checker)
+        skip_result = _check_and_handle_approval("read", tool_args, approval_checker, run_id=tool_run_id)
         if skip_result is not None:
             return skip_result
 
@@ -1032,7 +1042,7 @@ def _create_write_tool(
         @tool decorated function for writing files
     """
     @tool
-    async def write(path: str, content: str) -> str:
+    async def write(config: RunnableConfig, path: str, content: str) -> str:
         """Write content to a file in the workspace.
         
         Args:
@@ -1043,9 +1053,10 @@ def _create_write_tool(
             Confirmation message
         """
         tool_args = {"path": path, "content": content}
+        tool_run_id = str(config.get("run_id", "")) if config else ""
         
         # Check approval (write typically requires approval)
-        skip_result = _check_and_handle_approval("write", tool_args, approval_checker)
+        skip_result = _check_and_handle_approval("write", tool_args, approval_checker, run_id=tool_run_id)
         if skip_result is not None:
             return skip_result
         
@@ -1123,7 +1134,7 @@ def _create_execute_tool(
     _supports_streaming = callable(getattr(backend, "execute_streaming", None))
 
     @tool
-    async def execute(command: str, timeout: int = 120) -> str:
+    async def execute(config: RunnableConfig, command: str, timeout: int = 120) -> str:
         """Execute a shell command in the workspace.
         
         Args:
@@ -1134,9 +1145,10 @@ def _create_execute_tool(
             Command output (stdout + stderr combined)
         """
         tool_args = {"command": command, "timeout": timeout}
+        tool_run_id = str(config.get("run_id", "")) if config else ""
         
         # Check approval (execute typically requires approval)
-        skip_result = _check_and_handle_approval("execute", tool_args, approval_checker)
+        skip_result = _check_and_handle_approval("execute", tool_args, approval_checker, run_id=tool_run_id)
         if skip_result is not None:
             return skip_result
         
@@ -1194,7 +1206,7 @@ def _create_edit_tool(
         @tool decorated function for editing files
     """
     @tool
-    async def edit(path: str, old_text: str, new_text: str) -> str:
+    async def edit(config: RunnableConfig, path: str, old_text: str, new_text: str) -> str:
         """Edit a file by replacing text.
         
         Finds the first occurrence of old_text in the file and replaces it
@@ -1213,9 +1225,10 @@ def _create_edit_tool(
             RuntimeError: If file operations fail
         """
         tool_args = {"path": path, "old_text": old_text, "new_text": new_text}
+        tool_run_id = str(config.get("run_id", "")) if config else ""
         
         # Check approval (edit is dangerous - requires approval by default)
-        skip_result = _check_and_handle_approval("edit", tool_args, approval_checker)
+        skip_result = _check_and_handle_approval("edit", tool_args, approval_checker, run_id=tool_run_id)
         if skip_result is not None:
             return skip_result
         
