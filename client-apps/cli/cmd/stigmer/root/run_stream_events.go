@@ -94,8 +94,11 @@ func trySendEvent(ctx context.Context, ch chan<- executiontui.Event, event execu
 //
 //   - Retryable: Unavailable, DeadlineExceeded, ResourceExhausted, Aborted,
 //     Internal, Unknown — transient server/network conditions.
+//   - Retryable (conditional): FailedPrecondition with "no pending approvals"
+//     — transient DB consistency lag where pending_approvals has not yet been
+//     persisted by the Python activity.
 //   - Non-retryable: NotFound, InvalidArgument, PermissionDenied,
-//     Unauthenticated, FailedPrecondition, AlreadyExists, Canceled —
+//     Unauthenticated, other FailedPrecondition, AlreadyExists, Canceled —
 //     permanent conditions that won't change on retry.
 //
 // Non-gRPC errors (raw network/io) default to retryable since they are
@@ -112,6 +115,11 @@ func isRetryableSubmitError(err error) bool {
 			case codes.Unavailable, codes.DeadlineExceeded, codes.ResourceExhausted,
 				codes.Aborted, codes.Internal, codes.Unknown:
 				return true
+			case codes.FailedPrecondition:
+				// "no pending approvals" is a transient race — the DB has not
+				// yet received the pending_approvals written by the Python
+				// activity. Retrying gives the DB time to catch up.
+				return strings.Contains(st.Message(), "no pending approvals")
 			default:
 				return false
 			}

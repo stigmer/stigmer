@@ -210,42 +210,42 @@ func (s *validateApprovalStep) Execute(ctx *pipeline.RequestContext[*agentexecut
 		)
 	}
 
-	// Validate tool_call_id against pending_approvals.
-	// pending_approvals (repeated) is the sole source of truth.
+	// Best-effort validation of tool_call_id against pending_approvals.
+	// The DB is an eventually-consistent read model; the Temporal workflow
+	// holds the actual source of truth. When pending_approvals is empty due
+	// to DB consistency lag, we proceed to signal the workflow rather than
+	// rejecting the request — the Python activity will correlate the decision
+	// against the actual LangGraph interrupts.
 	pendingApprovals := execution.GetStatus().GetPendingApprovals()
 
 	if len(pendingApprovals) == 0 {
-		log.Debug().
+		log.Warn().
 			Str("execution_id", executionID).
-			Msg("No pending approvals on execution")
-		return grpclib.FailedPreconditionError(
-			"execution %s has no pending approvals",
-			executionID,
-		)
-	}
-
-	// tool_call_id must match ANY entry in pending_approvals
-	found := false
-	for _, pa := range pendingApprovals {
-		if pa.GetToolCallId() == requestedToolCallId {
-			found = true
-			break
-		}
-	}
-	if !found {
-		validIDs := make([]string, 0, len(pendingApprovals))
+			Str("tool_call_id", requestedToolCallId).
+			Msg("pending_approvals empty in DB but phase is WAITING_FOR_APPROVAL -- proceeding with signal (DB consistency lag)")
+	} else {
+		found := false
 		for _, pa := range pendingApprovals {
-			validIDs = append(validIDs, pa.GetToolCallId())
+			if pa.GetToolCallId() == requestedToolCallId {
+				found = true
+				break
+			}
 		}
-		log.Debug().
-			Str("execution_id", executionID).
-			Str("requested_tool_call_id", requestedToolCallId).
-			Strs("valid_tool_call_ids", validIDs).
-			Msg("Tool call ID not found in pending_approvals")
-		return grpclib.InvalidArgumentError(
-			"tool_call_id %s not found in pending_approvals for execution %s",
-			requestedToolCallId, executionID,
-		)
+		if !found {
+			validIDs := make([]string, 0, len(pendingApprovals))
+			for _, pa := range pendingApprovals {
+				validIDs = append(validIDs, pa.GetToolCallId())
+			}
+			log.Debug().
+				Str("execution_id", executionID).
+				Str("requested_tool_call_id", requestedToolCallId).
+				Strs("valid_tool_call_ids", validIDs).
+				Msg("Tool call ID not found in pending_approvals")
+			return grpclib.InvalidArgumentError(
+				"tool_call_id %s not found in pending_approvals for execution %s",
+				requestedToolCallId, executionID,
+			)
+		}
 	}
 
 	log.Debug().
