@@ -1044,14 +1044,24 @@ func TestSubAgentActivity_SetsLabelWithoutResettingTimer(t *testing.T) {
 	updated, cmd := model.Update(subAgentActivityMsg{id: "sa-1", activity: "Grep"})
 	model = updated.(inlineBubbleModel)
 
-	if model.activeSubAgentEntries[0].activity != "Grep" {
-		t.Errorf("activity should be 'Grep', got %q", model.activeSubAgentEntries[0].activity)
+	if model.activeSubAgentEntries[0].pendingActivity != "Grep" {
+		t.Errorf("pendingActivity should be 'Grep', got %q", model.activeSubAgentEntries[0].pendingActivity)
+	}
+	if model.activeSubAgentEntries[0].activity != "" {
+		t.Errorf("display activity should remain empty until tick, got %q", model.activeSubAgentEntries[0].activity)
 	}
 	if model.activeSubAgentEntries[0].spinnerStart != before {
 		t.Error("spinnerStart should NOT be reset on activity change (avoids elapsed time jumps)")
 	}
 	if cmd != nil {
 		t.Error("handleSubAgentActivity should return nil Cmd")
+	}
+
+	// After a tick, pendingActivity should be copied to the display field.
+	updated, _ = model.Update(subAgentTickMsg{})
+	model = updated.(inlineBubbleModel)
+	if model.activeSubAgentEntries[0].activity != "Grep" {
+		t.Errorf("activity should be 'Grep' after tick, got %q", model.activeSubAgentEntries[0].activity)
 	}
 }
 
@@ -1063,8 +1073,8 @@ func TestSubAgentActivity_IgnoresMismatchedID(t *testing.T) {
 	updated, _ = model.Update(subAgentActivityMsg{id: "sa-other", activity: "Shell"})
 	model = updated.(inlineBubbleModel)
 
-	if model.activeSubAgentEntries[0].activity != "" {
-		t.Errorf("activity should remain empty for mismatched ID, got %q", model.activeSubAgentEntries[0].activity)
+	if model.activeSubAgentEntries[0].pendingActivity != "" {
+		t.Errorf("pendingActivity should remain empty for mismatched ID, got %q", model.activeSubAgentEntries[0].pendingActivity)
 	}
 }
 
@@ -1075,6 +1085,8 @@ func TestSubAgentTick_AdvancesFrameAndCachesElapsed(t *testing.T) {
 
 	// Force spinnerStart far enough in the past to produce a non-empty elapsed string.
 	model.activeSubAgentEntries[0].spinnerStart = time.Now().Add(-5 * time.Second)
+	model.activeSubAgentEntries[0].pendingActivity = "Grep"
+	model.activeSubAgentEntries[0].pendingToolCount = 7
 
 	updated, cmd := model.Update(subAgentTickMsg{})
 	model = updated.(inlineBubbleModel)
@@ -1087,6 +1099,12 @@ func TestSubAgentTick_AdvancesFrameAndCachesElapsed(t *testing.T) {
 	}
 	if model.activeSubAgentEntries[0].elapsedStr == "" {
 		t.Error("handleSubAgentTick should cache elapsedStr for the entry")
+	}
+	if model.activeSubAgentEntries[0].activity != "Grep" {
+		t.Errorf("tick should copy pendingActivity to activity, got %q", model.activeSubAgentEntries[0].activity)
+	}
+	if model.activeSubAgentEntries[0].toolCount != 7 {
+		t.Errorf("tick should copy pendingToolCount to toolCount, got %d", model.activeSubAgentEntries[0].toolCount)
 	}
 }
 
@@ -1311,5 +1329,124 @@ func TestSubAgentHide_PartialRemoval(t *testing.T) {
 	}
 	if strings.Contains(line, "Second") {
 		t.Error("stacked view should not contain removed subject")
+	}
+}
+
+// =============================================================================
+// Double-buffer pending field tests
+// =============================================================================
+
+func TestSubAgentUpdate_WritesPendingNotDisplay(t *testing.T) {
+	m := newInlineBubbleModel()
+	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search"})
+	model := updated.(inlineBubbleModel)
+
+	updated, _ = model.Update(subAgentUpdateMsg{id: "sa-1", toolCount: 5})
+	model = updated.(inlineBubbleModel)
+
+	if model.activeSubAgentEntries[0].pendingToolCount != 5 {
+		t.Errorf("pendingToolCount should be 5, got %d", model.activeSubAgentEntries[0].pendingToolCount)
+	}
+	if model.activeSubAgentEntries[0].toolCount != 0 {
+		t.Errorf("display toolCount should remain 0 until tick, got %d", model.activeSubAgentEntries[0].toolCount)
+	}
+
+	// After tick, pending should be copied to display.
+	updated, _ = model.Update(subAgentTickMsg{})
+	model = updated.(inlineBubbleModel)
+	if model.activeSubAgentEntries[0].toolCount != 5 {
+		t.Errorf("display toolCount should be 5 after tick, got %d", model.activeSubAgentEntries[0].toolCount)
+	}
+}
+
+func TestSubAgentActivity_WritesPendingNotDisplay(t *testing.T) {
+	m := newInlineBubbleModel()
+	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search"})
+	model := updated.(inlineBubbleModel)
+
+	updated, _ = model.Update(subAgentActivityMsg{id: "sa-1", activity: "Shell"})
+	model = updated.(inlineBubbleModel)
+
+	if model.activeSubAgentEntries[0].pendingActivity != "Shell" {
+		t.Errorf("pendingActivity should be 'Shell', got %q", model.activeSubAgentEntries[0].pendingActivity)
+	}
+	if model.activeSubAgentEntries[0].activity != "" {
+		t.Errorf("display activity should remain empty until tick, got %q", model.activeSubAgentEntries[0].activity)
+	}
+
+	// After tick, pending should be copied to display.
+	updated, _ = model.Update(subAgentTickMsg{})
+	model = updated.(inlineBubbleModel)
+	if model.activeSubAgentEntries[0].activity != "Shell" {
+		t.Errorf("display activity should be 'Shell' after tick, got %q", model.activeSubAgentEntries[0].activity)
+	}
+}
+
+// =============================================================================
+// Atomic sub-agent completion tests
+// =============================================================================
+
+func TestSubAgentCompleteMsg_AtomicHideAndPrintln(t *testing.T) {
+	m := newInlineBubbleModel()
+
+	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Scan deps"})
+	model := updated.(inlineBubbleModel)
+	updated, _ = model.Update(subAgentShowMsg{id: "sa-2", subject: "Check config"})
+	model = updated.(inlineBubbleModel)
+
+	if len(model.activeSubAgentEntries) != 2 {
+		t.Fatalf("precondition: expected 2 entries, got %d", len(model.activeSubAgentEntries))
+	}
+
+	updated, cmd := model.Update(subAgentCompleteMsg{
+		id:              "sa-1",
+		scrollbackLines: "● Sub-agent: Scan deps ✓ Done (3 tools)",
+	})
+	model = updated.(inlineBubbleModel)
+
+	if len(model.activeSubAgentEntries) != 1 {
+		t.Fatalf("expected 1 remaining entry after complete, got %d", len(model.activeSubAgentEntries))
+	}
+	if model.activeSubAgentEntries[0].id != "sa-2" {
+		t.Errorf("remaining entry should be sa-2, got %q", model.activeSubAgentEntries[0].id)
+	}
+	if cmd == nil {
+		t.Fatal("subAgentCompleteMsg with scrollback content should return a Println Cmd")
+	}
+}
+
+func TestSubAgentCompleteMsg_NoCmdWhenNoScrollback(t *testing.T) {
+	m := newInlineBubbleModel()
+	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search"})
+	model := updated.(inlineBubbleModel)
+
+	updated, cmd := model.Update(subAgentCompleteMsg{id: "sa-1"})
+	model = updated.(inlineBubbleModel)
+
+	if len(model.activeSubAgentEntries) != 0 {
+		t.Errorf("entry should be removed, got %d", len(model.activeSubAgentEntries))
+	}
+	if cmd != nil {
+		t.Error("subAgentCompleteMsg without scrollback should return nil Cmd")
+	}
+}
+
+func TestSubAgentCompleteMsg_ResetsSpinnerWhenLastAgent(t *testing.T) {
+	m := newInlineBubbleModel()
+	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search"})
+	model := updated.(inlineBubbleModel)
+
+	// Advance spinner frame.
+	updated, _ = model.Update(subAgentTickMsg{})
+	model = updated.(inlineBubbleModel)
+	if model.subAgentSpinnerFrame == 0 {
+		t.Fatal("precondition: spinner frame should have advanced")
+	}
+
+	updated, _ = model.Update(subAgentCompleteMsg{id: "sa-1", scrollbackLines: "done"})
+	model = updated.(inlineBubbleModel)
+
+	if model.subAgentSpinnerFrame != 0 {
+		t.Errorf("spinner frame should reset to 0 when last agent completes, got %d", model.subAgentSpinnerFrame)
 	}
 }

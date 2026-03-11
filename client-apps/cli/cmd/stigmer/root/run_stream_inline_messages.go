@@ -221,6 +221,17 @@ type subAgentActivityMsg struct {
 	activity string
 }
 
+// subAgentCompleteMsg atomically removes a sub-agent from the live View()
+// and commits its scrollback content in a single Update() call. This
+// eliminates the two-frame glitch where the old subAgentHideMsg path
+// would show the completion in scrollback (via Println) while the live
+// entry was still visible in View() for one frame before the separate
+// Hide message removed it.
+type subAgentCompleteMsg struct {
+	id              string
+	scrollbackLines string
+}
+
 // subAgentTickMsg is the self-propagating tick that advances the sub-agent
 // spinner frame. Analogous to spinnerTickMsg but fully independent — it
 // uses its own model fields and terminates when activeSubAgentEntries is empty.
