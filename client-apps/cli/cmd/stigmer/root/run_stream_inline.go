@@ -146,11 +146,10 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) renderResult {
 			r.resetThinkTimer()
 
 			// After the event is fully processed, check whether a
-			// deferred re-commit can now fire. The AI stream may have
-			// ended inside handleEvent (AIStreamEnd or a non-AI event
-			// that called finishAIStreamIfNeeded), making the deferred
-			// re-commit safe to execute.
-			if r.pendingReCommit && !r.inAIStream {
+			// deferred re-commit can now fire. The AI stream or active
+			// sub-agents may have ended inside handleEvent, making the
+			// deferred re-commit safe to execute.
+			if r.pendingReCommit && !r.inAIStream && len(r.activeSubAgents) == 0 {
 				r.pendingReCommit = false
 				recommitNeeded = true
 			}
@@ -167,7 +166,7 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) renderResult {
 		// other ready channels before issuing a single triggerReCommit.
 		if recommitNeeded {
 			r.drainRecommitTriggers(&cfg)
-			if r.inAIStream {
+			if r.inAIStream || len(r.activeSubAgents) > 0 {
 				r.pendingReCommit = true
 			} else {
 				r.triggerReCommit()
