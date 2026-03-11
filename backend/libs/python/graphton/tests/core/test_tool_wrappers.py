@@ -1725,3 +1725,96 @@ class TestPlatformToolApprovalIntegration:
         
         # Interrupt should never be called for safe tools without approval_checker
         mock_interrupt.assert_not_called()
+
+
+class TestPlatformToolSubAgentContext:
+    """Tests for platform tools carrying sub-agent context in interrupt payloads.
+
+    When platform tools (execute, write, edit, read) are created with
+    sub_agent_name, their interrupt payloads must set from_sub_agent=True
+    so Phase 2 interrupt matching succeeds for sub-agent tool calls.
+    """
+
+    @pytest.fixture
+    def mock_backend(self):
+        """Create a complete mock backend."""
+        backend = MagicMock()
+        backend.read.return_value = "file content"
+        backend.write.return_value = None
+        result = MagicMock(stdout="output", stderr="", exit_code=0)
+        backend.execute.return_value = result
+        return backend
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("tool_name", ["execute", "write", "edit", "read"])
+    async def test_sub_agent_platform_tool_interrupt_has_from_sub_agent_true(
+        self, mock_backend, tool_name,
+    ):
+        """Platform tools created with sub_agent_name set from_sub_agent=True."""
+        def checker(name: str, args: dict) -> ApprovalRequirement:
+            return ApprovalRequirement(requires_approval=True, message="Confirm?")
+
+        tools = create_platform_tool_wrappers(
+            mock_backend,
+            approval_checker=checker,
+            sub_agent_name="code-reviewer",
+        )
+        tool_dict = {getattr(t, "name", ""): t for t in tools}
+
+        invoke_args = {
+            "execute": {"command": "ls"},
+            "write": {"path": "f.txt", "content": "hi"},
+            "edit": {"path": "f.txt", "old_text": "file content", "new_text": "new"},
+            "read": {"path": "f.txt"},
+        }
+
+        with patch("langgraph.types.interrupt") as mock_interrupt:
+            mock_interrupt.return_value = {"action": "approve"}
+            await tool_dict[tool_name].ainvoke(invoke_args[tool_name])
+
+        call_args = mock_interrupt.call_args[0][0]
+        assert call_args["from_sub_agent"] is True
+        assert call_args["sub_agent_name"] == "code-reviewer"
+
+    @pytest.mark.asyncio
+    async def test_parent_agent_platform_tool_interrupt_has_from_sub_agent_false(
+        self, mock_backend,
+    ):
+        """Platform tools without sub_agent_name keep from_sub_agent=False."""
+        def checker(name: str, args: dict) -> ApprovalRequirement:
+            return ApprovalRequirement(requires_approval=True, message="Confirm?")
+
+        tools = create_platform_tool_wrappers(
+            mock_backend,
+            approval_checker=checker,
+        )
+        tool_dict = {getattr(t, "name", ""): t for t in tools}
+
+        with patch("langgraph.types.interrupt") as mock_interrupt:
+            mock_interrupt.return_value = {"action": "approve"}
+            await tool_dict["execute"].ainvoke({"command": "ls"})
+
+        call_args = mock_interrupt.call_args[0][0]
+        assert call_args["from_sub_agent"] is False
+        assert call_args["sub_agent_name"] == ""
+
+    @pytest.mark.asyncio
+    async def test_alias_tools_inherit_sub_agent_context(self, mock_backend):
+        """Alias tools (read_file, write_file, edit_file) also carry sub-agent context."""
+        def checker(name: str, args: dict) -> ApprovalRequirement:
+            return ApprovalRequirement(requires_approval=True, message="Confirm?")
+
+        tools = create_platform_tool_wrappers(
+            mock_backend,
+            approval_checker=checker,
+            sub_agent_name="shell-agent",
+        )
+        tool_dict = {getattr(t, "name", ""): t for t in tools}
+
+        with patch("langgraph.types.interrupt") as mock_interrupt:
+            mock_interrupt.return_value = {"action": "approve"}
+            await tool_dict["write_file"].ainvoke({"path": "f.txt", "content": "hi"})
+
+        call_args = mock_interrupt.call_args[0][0]
+        assert call_args["from_sub_agent"] is True
+        assert call_args["sub_agent_name"] == "shell-agent"

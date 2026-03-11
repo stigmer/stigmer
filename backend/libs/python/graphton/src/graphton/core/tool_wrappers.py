@@ -590,6 +590,7 @@ def _register_alias(
     backend: Any,  # noqa: ANN401
     approval_checker: Callable[[str, dict[str, Any]], ApprovalRequirement] | None,
     tools: list[Callable[..., Any]],
+    sub_agent_name: str = "",
 ) -> None:
     """Register a tool alias that redirects the LLM to the canonical name.
 
@@ -599,7 +600,7 @@ def _register_alias(
     implementation even when the LLM (or deepagents middleware) uses the _file
     suffixed name.
     """
-    alias_tool = factory(backend, approval_checker)
+    alias_tool = factory(backend, approval_checker, sub_agent_name=sub_agent_name)
     alias_tool.name = alias_name  # type: ignore[attr-defined]
     alias_tool.description = _ALIAS_DESCRIPTION_TEMPLATE.format(  # type: ignore[attr-defined]
         canonical=canonical_name,
@@ -610,6 +611,7 @@ def _register_alias(
 def create_platform_tool_wrappers(
     backend: Any,  # noqa: ANN401
     approval_checker: Callable[[str, dict[str, Any]], ApprovalRequirement] | None = None,
+    sub_agent_name: str = "",
 ) -> list[Callable[..., Any]]:
     """Create approval-aware wrappers for platform tools (sandbox/filesystem tools).
     
@@ -668,7 +670,7 @@ def create_platform_tool_wrappers(
     # =========================================================================
     
     # read: Read file contents
-    tools.append(_create_read_tool(backend, approval_checker))
+    tools.append(_create_read_tool(backend, approval_checker, sub_agent_name=sub_agent_name))
     
     # ls: List directory contents
     tools.append(_create_ls_tool(backend))
@@ -687,13 +689,13 @@ def create_platform_tool_wrappers(
     # =========================================================================
     
     # write: Write content to file
-    tools.append(_create_write_tool(backend, approval_checker))
+    tools.append(_create_write_tool(backend, approval_checker, sub_agent_name=sub_agent_name))
     
     # edit: Edit file by replacing text
-    tools.append(_create_edit_tool(backend, approval_checker))
+    tools.append(_create_edit_tool(backend, approval_checker, sub_agent_name=sub_agent_name))
     
     # execute: Execute shell commands
-    tools.append(_create_execute_tool(backend, approval_checker))
+    tools.append(_create_execute_tool(backend, approval_checker, sub_agent_name=sub_agent_name))
     
     # =========================================================================
     # Aliases matching deepagents tool names (read_file, write_file, edit_file)
@@ -712,9 +714,9 @@ def create_platform_tool_wrappers(
     # Alias descriptions are set to redirect the LLM toward the canonical name
     # so it does not waste turns deliberating between duplicate tools.
     
-    _register_alias(_create_read_tool, "read_file", "read", backend, approval_checker, tools)
-    _register_alias(_create_write_tool, "write_file", "write", backend, approval_checker, tools)
-    _register_alias(_create_edit_tool, "edit_file", "edit", backend, approval_checker, tools)
+    _register_alias(_create_read_tool, "read_file", "read", backend, approval_checker, tools, sub_agent_name=sub_agent_name)
+    _register_alias(_create_write_tool, "write_file", "write", backend, approval_checker, tools, sub_agent_name=sub_agent_name)
+    _register_alias(_create_edit_tool, "edit_file", "edit", backend, approval_checker, tools, sub_agent_name=sub_agent_name)
     
     tool_names = [getattr(t, 'name', 'unknown') for t in tools]
     logger.info(
@@ -919,16 +921,22 @@ def _apply_line_range(content: str, offset: int, limit: int) -> str:
 def _create_read_tool(
     backend: Any,  # noqa: ANN401
     approval_checker: Callable[[str, dict[str, Any]], ApprovalRequirement] | None = None,
+    sub_agent_name: str = "",
 ) -> Callable[..., Any]:
     """Create approval-aware read tool wrapper.
 
     Args:
         backend: Backend instance with read() method
         approval_checker: Optional approval checker
+        sub_agent_name: If non-empty, marks interrupt payloads with
+            ``from_sub_agent=True`` so Phase 2 matching works correctly.
 
     Returns:
         @tool decorated function for reading files
     """
+    _is_sub_agent = bool(sub_agent_name)
+    _sub_agent_name = sub_agent_name
+
     @tool
     async def read(config: RunnableConfig, path: str, offset: int = 0, limit: int = 0) -> str:
         """Read file contents from the workspace.
@@ -947,7 +955,12 @@ def _create_read_tool(
         tool_args = {"path": path}
         tool_run_id = str(config.get("run_id", "")) if config else ""
 
-        skip_result = _check_and_handle_approval("read", tool_args, approval_checker, run_id=tool_run_id)
+        skip_result = _check_and_handle_approval(
+            "read", tool_args, approval_checker,
+            from_sub_agent=_is_sub_agent,
+            sub_agent_name=_sub_agent_name,
+            run_id=tool_run_id,
+        )
         if skip_result is not None:
             return skip_result
 
@@ -1031,16 +1044,22 @@ async def _stream_write_content(content: str) -> None:
 def _create_write_tool(
     backend: Any,  # noqa: ANN401
     approval_checker: Callable[[str, dict[str, Any]], ApprovalRequirement] | None = None,
+    sub_agent_name: str = "",
 ) -> Callable[..., Any]:
     """Create approval-aware write tool wrapper.
     
     Args:
         backend: Backend instance with write() method
         approval_checker: Optional approval checker
+        sub_agent_name: If non-empty, marks interrupt payloads with
+            ``from_sub_agent=True`` so Phase 2 matching works correctly.
         
     Returns:
         @tool decorated function for writing files
     """
+    _is_sub_agent = bool(sub_agent_name)
+    _sub_agent_name = sub_agent_name
+
     @tool
     async def write(config: RunnableConfig, path: str, content: str) -> str:
         """Write content to a file in the workspace.
@@ -1055,8 +1074,12 @@ def _create_write_tool(
         tool_args = {"path": path, "content": content}
         tool_run_id = str(config.get("run_id", "")) if config else ""
         
-        # Check approval (write typically requires approval)
-        skip_result = _check_and_handle_approval("write", tool_args, approval_checker, run_id=tool_run_id)
+        skip_result = _check_and_handle_approval(
+            "write", tool_args, approval_checker,
+            from_sub_agent=_is_sub_agent,
+            sub_agent_name=_sub_agent_name,
+            run_id=tool_run_id,
+        )
         if skip_result is not None:
             return skip_result
         
@@ -1116,6 +1139,7 @@ def _format_shell_failure(exit_code: int, stdout: str, stderr: str) -> str:
 def _create_execute_tool(
     backend: Any,  # noqa: ANN401
     approval_checker: Callable[[str, dict[str, Any]], ApprovalRequirement] | None = None,
+    sub_agent_name: str = "",
 ) -> Callable[..., Any]:
     """Create approval-aware execute tool wrapper.
 
@@ -1127,11 +1151,15 @@ def _create_execute_tool(
     Args:
         backend: Backend instance with execute() method
         approval_checker: Optional approval checker
+        sub_agent_name: If non-empty, marks interrupt payloads with
+            ``from_sub_agent=True`` so Phase 2 matching works correctly.
 
     Returns:
         @tool decorated function for executing shell commands
     """
     _supports_streaming = callable(getattr(backend, "execute_streaming", None))
+    _is_sub_agent = bool(sub_agent_name)
+    _sub_agent_name = sub_agent_name
 
     @tool
     async def execute(config: RunnableConfig, command: str, timeout: int = 120) -> str:
@@ -1147,8 +1175,12 @@ def _create_execute_tool(
         tool_args = {"command": command, "timeout": timeout}
         tool_run_id = str(config.get("run_id", "")) if config else ""
         
-        # Check approval (execute typically requires approval)
-        skip_result = _check_and_handle_approval("execute", tool_args, approval_checker, run_id=tool_run_id)
+        skip_result = _check_and_handle_approval(
+            "execute", tool_args, approval_checker,
+            from_sub_agent=_is_sub_agent,
+            sub_agent_name=_sub_agent_name,
+            run_id=tool_run_id,
+        )
         if skip_result is not None:
             return skip_result
         
@@ -1190,6 +1222,7 @@ def _create_execute_tool(
 def _create_edit_tool(
     backend: Any,  # noqa: ANN401
     approval_checker: Callable[[str, dict[str, Any]], ApprovalRequirement] | None = None,
+    sub_agent_name: str = "",
 ) -> Callable[..., Any]:
     """Create approval-aware edit tool wrapper.
     
@@ -1201,10 +1234,15 @@ def _create_edit_tool(
     Args:
         backend: Backend instance with read() and write() methods
         approval_checker: Optional approval checker
+        sub_agent_name: If non-empty, marks interrupt payloads with
+            ``from_sub_agent=True`` so Phase 2 matching works correctly.
         
     Returns:
         @tool decorated function for editing files
     """
+    _is_sub_agent = bool(sub_agent_name)
+    _sub_agent_name = sub_agent_name
+
     @tool
     async def edit(config: RunnableConfig, path: str, old_text: str, new_text: str) -> str:
         """Edit a file by replacing text.
@@ -1227,8 +1265,12 @@ def _create_edit_tool(
         tool_args = {"path": path, "old_text": old_text, "new_text": new_text}
         tool_run_id = str(config.get("run_id", "")) if config else ""
         
-        # Check approval (edit is dangerous - requires approval by default)
-        skip_result = _check_and_handle_approval("edit", tool_args, approval_checker, run_id=tool_run_id)
+        skip_result = _check_and_handle_approval(
+            "edit", tool_args, approval_checker,
+            from_sub_agent=_is_sub_agent,
+            sub_agent_name=_sub_agent_name,
+            run_id=tool_run_id,
+        )
         if skip_result is not None:
             return skip_result
         

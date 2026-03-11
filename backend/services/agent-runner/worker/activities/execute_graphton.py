@@ -112,9 +112,16 @@ def _try_enrich_phase1_entry(
     """Fallback enrichment when the interrupt could not be matched by run_id or name.
 
     Searches ``current_status.pending_approvals`` for a Phase 1 entry that
-    matches ``tool_name`` + ``from_sub_agent`` and does not already have an
-    ``interrupt_id``.  If found, sets the ``interrupt_id`` on that entry and
-    returns True.
+    matches ``tool_name`` and does not already have an ``interrupt_id``.
+
+    Two passes:
+      1. Strict — matches ``tool_name`` + ``from_sub_agent``.
+      2. Relaxed — matches ``tool_name`` only, ignoring ``from_sub_agent``.
+         This handles the case where the interrupt payload carries
+         ``from_sub_agent=False`` but Phase 1 correctly recorded ``True``
+         (or vice-versa due to legacy wrappers).
+
+    If found, sets the ``interrupt_id`` on that entry and returns True.
 
     This handles the case where the interrupt-to-tool-call matching (run_id or
     scoped name search) fails — typically because the sub-agent's tool call
@@ -123,12 +130,18 @@ def _try_enrich_phase1_entry(
     "clear" sentinel in the controller merge logic), we preserve the Phase 1
     entry's valid ``tool_call_id`` and graft the ``interrupt_id`` onto it.
     """
+    # Pass 1: strict match (tool_name + from_sub_agent)
     for pa in status_builder.current_status.pending_approvals:
         if (
             pa.tool_name == tool_name
             and pa.from_sub_agent == from_sub_agent
             and not pa.interrupt_id
         ):
+            pa.interrupt_id = interrupt_id
+            return True
+    # Pass 2: relaxed match (tool_name only, ignore from_sub_agent)
+    for pa in status_builder.current_status.pending_approvals:
+        if pa.tool_name == tool_name and not pa.interrupt_id:
             pa.interrupt_id = interrupt_id
             return True
     return False
@@ -2365,37 +2378,87 @@ async def _execute_graphton_impl(
             
             pending_approvals = list(execution.status.pending_approvals)
             resume_dict: dict[str, dict[str, str]] = {}
+            needs_interrupt_discovery: list[tuple[PendingApproval, dict[str, str]]] = []
+            loop_aborted = False
             
             for pa in pending_approvals:
                 decision = decisions_by_tool_call.get(pa.tool_call_id)
                 if not decision:
-                    # No decision for this pending approval — shouldn't happen
-                    # because the workflow collects all signals before re-invoking,
-                    # but handle gracefully.
                     activity_logger.warning(
                         f"⚠️ pending_approvals entry tool_call_id={pa.tool_call_id} "
                         f"has no matching approval_decision. Skipping batch resume."
                     )
-                    resume_dict = {}
+                    loop_aborted = True
                     break
                 
                 action_str = _action_map.get(decision.action, "unknown")
-                decision_value = {"action": action_str}
+                decision_value: dict[str, str] = {"action": action_str}
                 if decision.comment:
                     decision_value["comment"] = decision.comment
                 
                 if pa.interrupt_id:
-                    # Batch path: map interrupt_id → decision
                     resume_dict[pa.interrupt_id] = decision_value
                 else:
-                    # Legacy entry without interrupt_id — fall back to single-
-                    # decision resume below.
+                    needs_interrupt_discovery.append((pa, decision_value))
+            
+            if loop_aborted:
+                resume_dict = {}
+            
+            # Defense-in-depth: when Phase 2 enrichment failed to populate
+            # interrupt_id (e.g., legacy from_sub_agent mismatch), query the
+            # graph checkpoint to discover the actual interrupt IDs.
+            if not loop_aborted and needs_interrupt_discovery:
+                try:
+                    graph_state = await agent_graph.aget_state(
+                        cast(RunnableConfig, config)
+                    )
+                    if graph_state and graph_state.interrupts:
+                        consumed_ids = set(resume_dict.keys())
+                        available_interrupts = [
+                            i for i in graph_state.interrupts
+                            if i.id not in consumed_ids
+                        ]
+                        for pa, dv in needs_interrupt_discovery:
+                            matched_intr = None
+                            for intr in available_interrupts:
+                                intr_value = intr.value if hasattr(intr, "value") else {}
+                                intr_tool = (
+                                    intr_value.get("tool_name", "")
+                                    if isinstance(intr_value, dict) else ""
+                                )
+                                if intr_tool == pa.tool_name:
+                                    matched_intr = intr
+                                    break
+                            if not matched_intr and len(available_interrupts) == 1 and len(needs_interrupt_discovery) == 1:
+                                matched_intr = available_interrupts[0]
+                            if matched_intr:
+                                resume_dict[matched_intr.id] = dv
+                                available_interrupts.remove(matched_intr)
+                                activity_logger.info(
+                                    f"[RESUME_FALLBACK] Discovered interrupt_id="
+                                    f"{matched_intr.id} for tool={pa.tool_name} "
+                                    f"tc_id={pa.tool_call_id} via graph checkpoint"
+                                )
+                            else:
+                                activity_logger.warning(
+                                    f"⚠️ [RESUME_FALLBACK] Cannot discover interrupt_id "
+                                    f"for tool={pa.tool_name} tc_id={pa.tool_call_id}. "
+                                    f"Clearing resume_dict."
+                                )
+                                resume_dict = {}
+                                break
+                    else:
+                        activity_logger.warning(
+                            "[RESUME_FALLBACK] No interrupts in graph checkpoint. "
+                            "Clearing resume_dict."
+                        )
+                        resume_dict = {}
+                except Exception as e:
                     activity_logger.warning(
-                        f"⚠️ pending_approvals entry tool_call_id={pa.tool_call_id} "
-                        f"has no interrupt_id. Falling back to single resume."
+                        f"[RESUME_FALLBACK] Failed to query graph state for "
+                        f"interrupt discovery: {e}. Clearing resume_dict."
                     )
                     resume_dict = {}
-                    break
             
             if resume_dict:
                 is_resume_from_approval = True
@@ -3134,6 +3197,24 @@ async def _execute_graphton_impl(
                                         matched_tool_call_id = tc.id
                                         matched_tc_ids.add(tc.id)
                                         break
+                                # Defense-in-depth: the interrupt payload may
+                                # say from_sub_agent=False even though the tool
+                                # actually belongs to a sub-agent (legacy
+                                # wrappers).  Search sub-agent tool calls too.
+                                if not matched_tool_call_id:
+                                    for sa in status_builder.current_status.sub_agent_executions:
+                                        for tc in sa.tool_calls:
+                                            tc_canonical = resolve_platform_tool_name(tc.name)
+                                            if (
+                                                (tc.name == tool_name or tc_canonical == tool_name)
+                                                and tc.status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
+                                                and tc.id not in matched_tc_ids
+                                            ):
+                                                matched_tool_call_id = tc.id
+                                                matched_tc_ids.add(tc.id)
+                                                break
+                                        if matched_tool_call_id:
+                                            break
 
                         # ── Merge strategy: enrich Phase 1 entries, never degrade ──
                         #

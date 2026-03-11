@@ -120,26 +120,19 @@ async def transform_sub_agents(
             log.error(f"Failed to fetch skills for subagents: {e}")
             # Continue without skills - graceful degradation
     
-    # Create platform tools once and share across all subagents.
-    # These give every subagent filesystem access (read, write, ls, glob,
-    # grep) and shell execution — matching the general-purpose subagent
-    # that deepagents auto-creates from the parent's tool list.
-    platform_tools: list[BaseTool] = []
+    # Create sandbox backend once (shared across sub-agents).  Platform tool
+    # wrappers are created per-subagent inside _transform_single_subagent so
+    # that each wrapper's interrupt payload carries the correct sub_agent_name,
+    # enabling Phase 2 interrupt matching to work for sub-agent tools.
+    sandbox_backend: Any = None
     if sandbox_config:
         try:
             from graphton.core.sandbox_factory import create_sandbox_backend
-            from graphton.core.tool_wrappers import create_platform_tool_wrappers
 
             sandbox_backend = create_sandbox_backend(sandbox_config)
-            platform_tools = create_platform_tool_wrappers(  # type: ignore[assignment]
-                backend=sandbox_backend,
-                approval_checker=approval_checker,
-            )
-            log.info(
-                f"Created {len(platform_tools)} platform tool(s) for sub-agents"
-            )
+            log.info("Created sandbox backend for sub-agent platform tools")
         except Exception as e:
-            log.error(f"Failed to create platform tools for sub-agents: {e}")
+            log.error(f"Failed to create sandbox backend for sub-agents: {e}")
 
     # Transform each subagent
     transformed_subagents = []
@@ -154,7 +147,7 @@ async def transform_sub_agents(
                 skills_by_id=skills_by_id,
                 skill_paths=skill_paths,
                 skill_writer_class=skill_writer_class,
-                platform_tools=platform_tools,
+                sandbox_backend=sandbox_backend,
                 approval_checker=approval_checker,
                 log=log,
             )
@@ -292,7 +285,7 @@ async def _transform_single_subagent(
     skills_by_id: dict[str, Any],
     skill_paths: dict[str, str],
     skill_writer_class: Any,  # SkillWriter class (typed as Any to avoid circular import)
-    platform_tools: list[BaseTool],
+    sandbox_backend: Any,  # noqa: ANN401
     approval_checker: Callable[[str, dict[str, Any]], Any] | None,
     log: logging.Logger,
 ) -> dict[str, Any] | None:
@@ -306,8 +299,9 @@ async def _transform_single_subagent(
         skills_by_id: Pre-fetched skills by ID
         skill_paths: Skill paths in sandbox
         skill_writer_class: SkillWriter class for prompt generation
-        platform_tools: Platform tools (filesystem + execute) to include
-            in every subagent's tool set.
+        sandbox_backend: Pre-created sandbox backend instance (shared) used
+            to create per-subagent platform tools.  May be None when no
+            sandbox is configured.
         approval_checker: Optional approval checker for HITL
         log: Logger instance
         
@@ -346,10 +340,19 @@ async def _transform_single_subagent(
             )
     
     # Build the combined tool set: platform tools first, then MCP tools.
-    # Platform tools are always included so that every subagent has
-    # filesystem access and shell execution.  MCP tools are added on top
-    # based on the subagent's McpAccess grants.
-    tools: list[BaseTool] = list(platform_tools)
+    # Platform tools are created per-subagent so each wrapper's interrupt
+    # payload carries the correct sub_agent_name (required for Phase 2
+    # interrupt matching).  MCP tools are added on top based on the
+    # subagent's McpAccess grants.
+    tools: list[BaseTool] = []
+    if sandbox_backend is not None:
+        from graphton.core.tool_wrappers import create_platform_tool_wrappers
+
+        tools = list(create_platform_tool_wrappers(  # type: ignore[assignment]
+            backend=sandbox_backend,
+            approval_checker=approval_checker,
+            sub_agent_name=name,
+        ))
 
     if sub_agent.mcp_access:
         filtered_servers, filtered_tools = _filter_mcp_for_subagent(
@@ -367,6 +370,7 @@ async def _transform_single_subagent(
                     mcp_tools=filtered_tools,
                     approval_checker=approval_checker,
                     log=log,
+                    sub_agent_name=name,
                 )
                 tools.extend(mcp_tools)
                 log.debug(
@@ -503,6 +507,7 @@ async def _create_subagent_mcp_tools(
     mcp_tools: dict[str, list[str]],
     approval_checker: Callable[[str, dict[str, Any]], Any] | None,
     log: logging.Logger,
+    sub_agent_name: str = "",
 ) -> list[BaseTool]:
     """Create MCP tool wrappers for a subagent.
     
@@ -514,6 +519,9 @@ async def _create_subagent_mcp_tools(
         mcp_tools: Filtered tool names per server for this subagent
         approval_checker: Optional approval checker for HITL
         log: Logger instance
+        sub_agent_name: Name of the owning sub-agent. Threaded into
+            ``create_approval_aware_tool_wrapper`` so the interrupt
+            payload carries ``from_sub_agent=True``.
         
     Returns:
         List of BaseTool wrappers for the subagent
@@ -547,12 +555,12 @@ async def _create_subagent_mcp_tools(
         for tool_name in tool_names:
             try:
                 if approval_checker is not None:
-                    # HITL approval flow: use approval-aware wrappers
                     wrapper = create_approval_aware_tool_wrapper(
                         tool_name=tool_name,
                         middleware_instance=mcp_middleware,
                         approval_checker=approval_checker,
                         mcp_server_name=server_name,
+                        sub_agent_name=sub_agent_name,
                     )
                 else:
                     # Standard flow: use regular wrappers
