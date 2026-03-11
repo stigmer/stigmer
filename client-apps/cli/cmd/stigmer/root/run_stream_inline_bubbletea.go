@@ -230,7 +230,12 @@ func (m inlineBubbleModel) View() tea.View {
 	var content string
 	switch {
 	case m.approvalActive:
-		content = m.approvalContent + approval.RenderMenu(m.approvalSelected, true)
+		approvalView := m.approvalContent + approval.RenderMenu(m.approvalSelected, true)
+		if len(m.activeSubAgentEntries) > 0 {
+			content = m.renderSubAgentLine() + "\n\n" + approvalView
+		} else {
+			content = approvalView
+		}
 	case m.streamingActive:
 		if m.streamingProgressive {
 			partial := m.streamingContent
@@ -325,10 +330,18 @@ func (m inlineBubbleModel) renderComposedView() tea.View {
 // renderTransientContent returns the current transient content string for
 // the top section of the composed View(). Returns "" when no transient
 // content is active.
+//
+// When an approval prompt is active alongside running sub-agents, both are
+// rendered: the sub-agent stacked view appears above the approval panel so
+// the user retains visual context about all parallel work while deciding.
 func (m inlineBubbleModel) renderTransientContent() string {
 	switch {
 	case m.approvalActive:
-		return m.approvalContent + approval.RenderMenu(m.approvalSelected, true)
+		approvalView := m.approvalContent + approval.RenderMenu(m.approvalSelected, true)
+		if len(m.activeSubAgentEntries) > 0 {
+			return m.renderSubAgentLine() + "\n\n" + approvalView
+		}
+		return approvalView
 	case m.streamingActive:
 		if m.streamingProgressive {
 			partial := m.streamingContent
