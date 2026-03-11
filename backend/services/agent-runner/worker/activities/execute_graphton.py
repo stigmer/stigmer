@@ -103,6 +103,37 @@ def _slim_status_for_temporal(status: AgentExecutionStatus) -> AgentExecutionSta
     return slim
 
 
+def _try_enrich_phase1_entry(
+    status_builder: StatusBuilder,
+    tool_name: str,
+    from_sub_agent: bool,
+    interrupt_id: str,
+) -> bool:
+    """Fallback enrichment when the interrupt could not be matched by run_id or name.
+
+    Searches ``current_status.pending_approvals`` for a Phase 1 entry that
+    matches ``tool_name`` + ``from_sub_agent`` and does not already have an
+    ``interrupt_id``.  If found, sets the ``interrupt_id`` on that entry and
+    returns True.
+
+    This handles the case where the interrupt-to-tool-call matching (run_id or
+    scoped name search) fails — typically because the sub-agent's tool call
+    wasn't reachable via the standard matching paths.  Rather than creating a
+    degraded PendingApproval with empty ``tool_call_id`` (which triggers the
+    "clear" sentinel in the controller merge logic), we preserve the Phase 1
+    entry's valid ``tool_call_id`` and graft the ``interrupt_id`` onto it.
+    """
+    for pa in status_builder.current_status.pending_approvals:
+        if (
+            pa.tool_name == tool_name
+            and pa.from_sub_agent == from_sub_agent
+            and not pa.interrupt_id
+        ):
+            pa.interrupt_id = interrupt_id
+            return True
+    return False
+
+
 class SetupTimer:
     """Lightweight timer for measuring and logging setup phase durations.
     
@@ -3028,9 +3059,20 @@ async def _execute_graphton_impl(
                 )
                 
                 if graph_state and graph_state.interrupts:
-                    pending_approvals = []
+                    phase1_count = len(status_builder.current_status.pending_approvals)
+                    enriched_count = 0
+                    added_count = 0
+                    skipped_count = 0
+
+                    # Index Phase 1 entries by tool_call_id for O(1) lookup
+                    phase1_by_tc_id: dict[str, PendingApproval] = {
+                        pa.tool_call_id: pa
+                        for pa in status_builder.current_status.pending_approvals
+                        if pa.tool_call_id
+                    }
+
                     matched_tc_ids: set[str] = set()
-                    
+
                     for intr in graph_state.interrupts:
                         intr_value = intr.value if hasattr(intr, "value") else {}
                         tool_name = intr_value.get("tool_name", "") if isinstance(intr_value, dict) else ""
@@ -3039,9 +3081,9 @@ async def _execute_graphton_impl(
                         from_sub_agent = intr_value.get("from_sub_agent", False) if isinstance(intr_value, dict) else False
                         sub_agent_name = intr_value.get("sub_agent_name", "") if isinstance(intr_value, dict) else ""
                         intr_run_id = intr_value.get("run_id", "") if isinstance(intr_value, dict) else ""
-                        
+
                         matched_tool_call_id = ""
-                        
+
                         # Prefer direct run_id-based matching: the interrupt
                         # payload carries the LangGraph run_id which maps to
                         # the early-toolu_... tool_call_id via _run_id_aliases.
@@ -3050,7 +3092,7 @@ async def _execute_graphton_impl(
                             if resolved not in matched_tc_ids:
                                 matched_tool_call_id = resolved
                                 matched_tc_ids.add(resolved)
-                        
+
                         # Fallback: name-based matching scoped by from_sub_agent
                         # to prevent cross-level mismatches. When from_sub_agent
                         # is True, search sub-agent tool calls first; when False,
@@ -3092,42 +3134,85 @@ async def _execute_graphton_impl(
                                         matched_tool_call_id = tc.id
                                         matched_tc_ids.add(tc.id)
                                         break
-                        
+
+                        # ── Merge strategy: enrich Phase 1 entries, never degrade ──
+                        #
+                        # Phase 1 (_populate_pending_approval) already created
+                        # entries with valid tool_call_id during streaming.  This
+                        # capture only adds the interrupt_id that LangGraph
+                        # assigned after the stream ended.
+                        #
+                        # If matching failed (empty tool_call_id), fall back to
+                        # enriching a Phase 1 entry by tool_name + from_sub_agent.
+                        # Never create a PendingApproval with empty tool_call_id —
+                        # that would trigger the "clear" sentinel in the
+                        # controller/Temporal merge logic and wipe the DB.
+
+                        if not matched_tool_call_id:
+                            fallback_enriched = _try_enrich_phase1_entry(
+                                status_builder, tool_name, from_sub_agent, intr.id,
+                            )
+                            if fallback_enriched:
+                                enriched_count += 1
+                                activity_logger.info(
+                                    f"[INTERRUPT_CAPTURE] execution={execution_id} "
+                                    f"interrupt {intr.id} tool={tool_name} "
+                                    f"from_sub_agent={from_sub_agent} — "
+                                    f"enriched Phase 1 entry via tool_name fallback"
+                                )
+                            else:
+                                skipped_count += 1
+                                activity_logger.warning(
+                                    f"[INTERRUPT_CAPTURE] execution={execution_id} "
+                                    f"cannot match interrupt {intr.id} tool={tool_name} "
+                                    f"from_sub_agent={from_sub_agent} to any tool call — "
+                                    f"Phase 1 entries preserved"
+                                )
+                            continue
+
                         # Create args preview via StatusBuilder's sanitiser
                         args_preview = status_builder._create_args_preview(tool_args)
-                        
+
                         display_message = humanize_platform_refs(message)
                         display_message = resolve_display_env_vars(
                             display_message, merged_env_vars, secret_keys,
                         )
 
-                        pa = PendingApproval(
-                            tool_call_id=matched_tool_call_id,
-                            tool_name=tool_name,
-                            message=display_message,
-                            args_preview=args_preview,
-                            requested_at=_utc_timestamp(),
-                            from_sub_agent=from_sub_agent,
-                            sub_agent_name=sub_agent_name,
-                            interrupt_id=intr.id,
-                        )
-                        pending_approvals.append(pa)
-                    
-                    if pending_approvals:
-                        # Populate the repeated field with all pending approvals
-                        del status_builder.current_status.pending_approvals[:]
-                        status_builder.current_status.pending_approvals.extend(pending_approvals)
-
-                        status_builder.sync_sub_agent_pending_approvals()
-
-                        activity_logger.info(
-                            f"[INTERRUPT_CAPTURE] execution={execution_id} "
-                            f"captured {len(pending_approvals)} pending interrupt(s): "
-                            + ", ".join(
-                                f"tool={pa.tool_name} tc_id={pa.tool_call_id} interrupt_id={pa.interrupt_id}"
-                                for pa in pending_approvals
+                        if matched_tool_call_id in phase1_by_tc_id:
+                            # Enrich the existing Phase 1 entry with interrupt_id
+                            existing_pa = phase1_by_tc_id[matched_tool_call_id]
+                            existing_pa.interrupt_id = intr.id
+                            enriched_count += 1
+                        else:
+                            # Genuinely new entry (not in Phase 1) with a valid
+                            # tool_call_id — append without destroying existing.
+                            pa = PendingApproval(
+                                tool_call_id=matched_tool_call_id,
+                                tool_name=tool_name,
+                                message=display_message,
+                                args_preview=args_preview,
+                                requested_at=_utc_timestamp(),
+                                from_sub_agent=from_sub_agent,
+                                sub_agent_name=sub_agent_name,
+                                interrupt_id=intr.id,
                             )
+                            status_builder.current_status.pending_approvals.append(pa)
+                            added_count += 1
+
+                    status_builder.sync_sub_agent_pending_approvals()
+
+                    final_count = len(status_builder.current_status.pending_approvals)
+                    activity_logger.info(
+                        f"[INTERRUPT_CAPTURE] execution={execution_id} "
+                        f"phase1={phase1_count} enriched={enriched_count} "
+                        f"added={added_count} skipped={skipped_count} "
+                        f"final={final_count}: "
+                        + ", ".join(
+                            f"tool={pa.tool_name} tc_id={pa.tool_call_id} "
+                            f"interrupt_id={pa.interrupt_id}"
+                            for pa in status_builder.current_status.pending_approvals
                         )
+                    )
                 else:
                     activity_logger.debug(
                         f"[INTERRUPT_CAPTURE] execution={execution_id} "

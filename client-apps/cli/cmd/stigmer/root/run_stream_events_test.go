@@ -1599,3 +1599,80 @@ func TestBridgeIntegration_MultiSnapshot(t *testing.T) {
 		t.Errorf("displayedCount = %d, want 3", displayedCount)
 	}
 }
+
+// =============================================================================
+// hasUsableApproval Tests
+// =============================================================================
+
+func TestHasUsableApproval_Empty(t *testing.T) {
+	prompted := map[string]bool{}
+	if hasUsableApproval(nil, prompted) {
+		t.Error("expected false for nil approvals")
+	}
+	if hasUsableApproval([]*agentexecutionv1.PendingApproval{}, prompted) {
+		t.Error("expected false for empty approvals")
+	}
+}
+
+func TestHasUsableApproval_DegradedEntries(t *testing.T) {
+	approvals := []*agentexecutionv1.PendingApproval{
+		{ToolName: "execute"},
+		{ToolName: "write_file", InterruptId: ""},
+	}
+	prompted := map[string]bool{}
+	if hasUsableApproval(approvals, prompted) {
+		t.Error("expected false when all entries have empty tool_call_id and interrupt_id")
+	}
+}
+
+func TestHasUsableApproval_ValidToolCallId(t *testing.T) {
+	approvals := []*agentexecutionv1.PendingApproval{
+		{ToolCallId: "tc-123", ToolName: "execute"},
+	}
+	prompted := map[string]bool{}
+	if !hasUsableApproval(approvals, prompted) {
+		t.Error("expected true when entry has valid tool_call_id")
+	}
+}
+
+func TestHasUsableApproval_ValidInterruptId(t *testing.T) {
+	approvals := []*agentexecutionv1.PendingApproval{
+		{ToolName: "execute", InterruptId: "intr-001"},
+	}
+	prompted := map[string]bool{}
+	if !hasUsableApproval(approvals, prompted) {
+		t.Error("expected true when entry has valid interrupt_id")
+	}
+}
+
+func TestHasUsableApproval_AlreadyPrompted(t *testing.T) {
+	approvals := []*agentexecutionv1.PendingApproval{
+		{ToolCallId: "tc-123", ToolName: "execute"},
+	}
+	prompted := map[string]bool{"tc-123": true}
+	if hasUsableApproval(approvals, prompted) {
+		t.Error("expected false when the only usable entry is already prompted")
+	}
+}
+
+func TestHasUsableApproval_MixedDegradedAndValid(t *testing.T) {
+	approvals := []*agentexecutionv1.PendingApproval{
+		{ToolName: "execute"},
+		{ToolCallId: "tc-456", ToolName: "write_file"},
+	}
+	prompted := map[string]bool{}
+	if !hasUsableApproval(approvals, prompted) {
+		t.Error("expected true when at least one entry has a valid key")
+	}
+}
+
+func TestHasUsableApproval_MixedPromptedAndUnprompted(t *testing.T) {
+	approvals := []*agentexecutionv1.PendingApproval{
+		{ToolCallId: "tc-prompted", ToolName: "execute"},
+		{ToolCallId: "tc-new", ToolName: "write_file"},
+	}
+	prompted := map[string]bool{"tc-prompted": true}
+	if !hasUsableApproval(approvals, prompted) {
+		t.Error("expected true when one entry is unprompted with valid key")
+	}
+}

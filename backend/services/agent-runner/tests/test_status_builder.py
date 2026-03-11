@@ -6739,3 +6739,132 @@ class TestPartialJsonHelpers:
     def test_unescape_incomplete_unicode(self):
         from worker.activities.graphton.status_builder import _json_unescape_partial
         assert _json_unescape_partial("caf\\u00") == "caf"
+
+
+# =============================================================================
+# _try_enrich_phase1_entry Tests
+# =============================================================================
+
+
+class TestTryEnrichPhase1Entry:
+    """Tests for the post-stream interrupt capture fallback enrichment."""
+
+    @pytest.fixture
+    def status_builder(self, mock_initial_status):
+        sb = StatusBuilder(
+            execution_id="test-enrich",
+            initial_status=mock_initial_status,
+        )
+        return sb
+
+    def test_enriches_matching_entry(self, status_builder):
+        """When a Phase 1 entry matches tool_name + from_sub_agent, its
+        interrupt_id is set and the function returns True."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+        from worker.activities.execute_graphton import _try_enrich_phase1_entry
+
+        pa = PendingApproval(
+            tool_call_id="early-toolu_abc123",
+            tool_name="execute",
+            message="Run script?",
+            from_sub_agent=True,
+            sub_agent_name="validator",
+        )
+        status_builder.current_status.pending_approvals.append(pa)
+
+        result = _try_enrich_phase1_entry(
+            status_builder, "execute", True, "intr-001",
+        )
+
+        assert result is True
+        assert status_builder.current_status.pending_approvals[0].interrupt_id == "intr-001"
+        assert status_builder.current_status.pending_approvals[0].tool_call_id == "early-toolu_abc123"
+
+    def test_skips_entry_with_existing_interrupt_id(self, status_builder):
+        """Entries that already have an interrupt_id are not overwritten."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+        from worker.activities.execute_graphton import _try_enrich_phase1_entry
+
+        pa = PendingApproval(
+            tool_call_id="early-toolu_abc123",
+            tool_name="execute",
+            message="Run script?",
+            from_sub_agent=True,
+            interrupt_id="existing-intr",
+        )
+        status_builder.current_status.pending_approvals.append(pa)
+
+        result = _try_enrich_phase1_entry(
+            status_builder, "execute", True, "new-intr",
+        )
+
+        assert result is False
+        assert status_builder.current_status.pending_approvals[0].interrupt_id == "existing-intr"
+
+    def test_no_match_returns_false(self, status_builder):
+        """Returns False when no Phase 1 entry matches the criteria."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+        from worker.activities.execute_graphton import _try_enrich_phase1_entry
+
+        pa = PendingApproval(
+            tool_call_id="early-toolu_abc123",
+            tool_name="read_file",
+            message="Read file?",
+            from_sub_agent=False,
+        )
+        status_builder.current_status.pending_approvals.append(pa)
+
+        result = _try_enrich_phase1_entry(
+            status_builder, "execute", True, "intr-001",
+        )
+
+        assert result is False
+        assert status_builder.current_status.pending_approvals[0].interrupt_id == ""
+
+    def test_matches_from_sub_agent_flag(self, status_builder):
+        """A main-agent entry is not matched when from_sub_agent=True."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+        from worker.activities.execute_graphton import _try_enrich_phase1_entry
+
+        pa = PendingApproval(
+            tool_call_id="early-toolu_abc123",
+            tool_name="execute",
+            message="Run command?",
+            from_sub_agent=False,
+        )
+        status_builder.current_status.pending_approvals.append(pa)
+
+        result = _try_enrich_phase1_entry(
+            status_builder, "execute", True, "intr-001",
+        )
+
+        assert result is False
+
+    def test_preserves_tool_call_id(self, status_builder):
+        """Enrichment must never overwrite the existing tool_call_id."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+        from worker.activities.execute_graphton import _try_enrich_phase1_entry
+
+        original_tc_id = "early-toolu_preserve_me"
+        pa = PendingApproval(
+            tool_call_id=original_tc_id,
+            tool_name="execute",
+            from_sub_agent=True,
+        )
+        status_builder.current_status.pending_approvals.append(pa)
+
+        _try_enrich_phase1_entry(
+            status_builder, "execute", True, "intr-001",
+        )
+
+        assert status_builder.current_status.pending_approvals[0].tool_call_id == original_tc_id
+
+    def test_empty_pending_approvals_returns_false(self, status_builder):
+        """Returns False when there are no Phase 1 entries at all."""
+        from worker.activities.execute_graphton import _try_enrich_phase1_entry
+
+        result = _try_enrich_phase1_entry(
+            status_builder, "execute", True, "intr-001",
+        )
+
+        assert result is False
