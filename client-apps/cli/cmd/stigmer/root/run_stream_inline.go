@@ -282,8 +282,8 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 	}
 	// Suppress ToolCompletedEvent for tools whose outcome was already
 	// rendered by the approval collapse (write/edit/delete). Shell
-	// completions are NOT suppressed — their output is the only way to
-	// see shell results until Phase 3.4 enables streaming.
+	// completions are NOT suppressed — their output is rendered via
+	// post-approval streaming (ToolStreamDeltaEvent pipeline).
 	if e, ok := event.(executiontui.ToolCompletedEvent); ok && r.suppressedToolIDs[e.ToolCallID] {
 		r.flushPendingReads()
 		delete(r.suppressedToolIDs, e.ToolCallID)

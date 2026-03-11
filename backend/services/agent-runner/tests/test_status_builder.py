@@ -6012,6 +6012,81 @@ class TestRunIdAliasResolution:
         assert mock_initial_status.tool_calls[0].is_streaming is True
 
     @pytest.mark.asyncio
+    async def test_tool_progress_first_chunk_forces_update(self, mock_initial_status):
+        """First tool_progress chunk for a tool sets force_next_update=True."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ToolCall
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
+        from google.protobuf.struct_pb2 import Struct
+
+        original_run_id = "orig-force-1"
+        args = Struct()
+        args.update({"command": "ls -la"})
+        existing_tc = ToolCall(
+            id=original_run_id,
+            name="execute",
+            args=args,
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+        )
+        mock_initial_status.tool_calls.append(existing_tc)
+
+        builder = StatusBuilder("exec-force-1", mock_initial_status)
+        builder.populate_fingerprints_from_existing_tool_calls()
+        builder.force_next_update = False
+
+        await builder.process_event({
+            "event": "on_custom_event",
+            "name": "tool_progress",
+            "run_id": original_run_id,
+            "data": {"chunk": "first chunk\n"},
+        })
+
+        assert builder.force_next_update is True
+
+    @pytest.mark.asyncio
+    async def test_tool_progress_subsequent_chunk_does_not_force_update(self, mock_initial_status):
+        """Subsequent tool_progress chunks do NOT set force_next_update (is_streaming already True)."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ToolCall
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
+        from google.protobuf.struct_pb2 import Struct
+
+        original_run_id = "orig-force-2"
+        args = Struct()
+        args.update({"command": "ls -la"})
+        existing_tc = ToolCall(
+            id=original_run_id,
+            name="execute",
+            args=args,
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+        )
+        mock_initial_status.tool_calls.append(existing_tc)
+
+        builder = StatusBuilder("exec-force-2", mock_initial_status)
+        builder.populate_fingerprints_from_existing_tool_calls()
+
+        # First tool_progress (sets force_next_update=True, is_streaming=True)
+        await builder.process_event({
+            "event": "on_custom_event",
+            "name": "tool_progress",
+            "run_id": original_run_id,
+            "data": {"chunk": "first chunk\n"},
+        })
+        assert builder.force_next_update is True
+        assert mock_initial_status.tool_calls[0].is_streaming is True
+
+        # Reset force_next_update
+        builder.force_next_update = False
+
+        # Second tool_progress (is_streaming already True -> should NOT set force_next_update)
+        await builder.process_event({
+            "event": "on_custom_event",
+            "name": "tool_progress",
+            "run_id": original_run_id,
+            "data": {"chunk": "second chunk\n"},
+        })
+
+        assert builder.force_next_update is False
+
+    @pytest.mark.asyncio
     async def test_no_alias_when_run_id_matches_existing(self, mock_initial_status):
         """No alias is recorded when the new run_id happens to match the
         existing tool call id (edge case: same run_id across invocations)."""

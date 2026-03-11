@@ -800,9 +800,14 @@ class StatusBuilder:
             )
             return
         
+        was_streaming = tool_call.is_streaming
+
         tool_call.result += chunk
         tool_call.is_streaming = True
-        
+
+        if not was_streaming:
+            self.force_next_update = True
+
         self.logger.debug(
             f"[TOOL_PROGRESS] execution={self.execution_id} "
             f"run_id={run_id} resolved_id={resolved_id} "

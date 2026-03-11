@@ -1107,14 +1107,21 @@ def _create_execute_tool(
     approval_checker: Callable[[str, dict[str, Any]], ApprovalRequirement] | None = None,
 ) -> Callable[..., Any]:
     """Create approval-aware execute tool wrapper.
-    
+
+    When the backend supports ``execute_streaming()``, output is streamed
+    live via ``tool_progress`` events as each line arrives from the
+    subprocess.  Otherwise falls back to the sync ``execute()`` call
+    (output appears all-at-once on completion).
+
     Args:
         backend: Backend instance with execute() method
         approval_checker: Optional approval checker
-        
+
     Returns:
         @tool decorated function for executing shell commands
     """
+    _supports_streaming = callable(getattr(backend, "execute_streaming", None))
+
     @tool
     async def execute(command: str, timeout: int = 120) -> str:
         """Execute a shell command in the workspace.
@@ -1133,20 +1140,25 @@ def _create_execute_tool(
         if skip_result is not None:
             return skip_result
         
-        # Execute the command
         try:
             logger.info(f"🔧 Executing command: {command[:100]}...")
             
-            # Emit progress event so the UI shows the command being executed.
-            # dispatch_custom_event inherits the current tool's run_id, which
-            # the StatusBuilder uses to correlate with the correct ToolCall.
             dispatch_custom_event(
                 "tool_progress",
                 {"chunk": f"$ {command}\n"},
             )
-            
-            result = backend.execute(command, timeout=timeout)
-            
+
+            if _supports_streaming:
+                result = await backend.execute_streaming(
+                    command,
+                    timeout=timeout,
+                    on_chunk=lambda chunk: dispatch_custom_event(
+                        "tool_progress", {"chunk": chunk},
+                    ),
+                )
+            else:
+                result = backend.execute(command, timeout=timeout)
+
             if result.exit_code == 0:
                 logger.info("✅ Command completed successfully")
                 return _format_shell_success(result.stdout, result.stderr)

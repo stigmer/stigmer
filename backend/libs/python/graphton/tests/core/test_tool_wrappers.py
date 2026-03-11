@@ -1168,7 +1168,7 @@ class TestExecuteToolWrapper:
 
     @pytest.fixture
     def mock_backend(self):
-        backend = MagicMock()
+        backend = MagicMock(spec=["execute"])
         result = MagicMock()
         result.stdout = "command output"
         result.stderr = ""
@@ -1209,6 +1209,85 @@ class TestExecuteToolWrapper:
         
         mock_interrupt.assert_called_once()
         assert result == "command output"
+
+    @pytest.mark.asyncio
+    async def test_uses_streaming_when_available(self):
+        """Test that execute uses streaming when backend supports it."""
+        backend = MagicMock()
+        result = MagicMock()
+        result.stdout = "streamed output"
+        result.stderr = ""
+        result.exit_code = 0
+        backend.execute_streaming = AsyncMock(return_value=result)
+        backend.execute = MagicMock()
+
+        tool = _create_execute_tool(backend)
+        await tool.ainvoke({"command": "ls"})
+
+        backend.execute_streaming.assert_called_once()
+        backend.execute.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_falls_back_to_sync_when_no_streaming(self):
+        """Test that execute falls back to sync when no execute_streaming."""
+        backend = MagicMock(spec=["execute"])
+        result = MagicMock()
+        result.stdout = "command output"
+        result.stderr = ""
+        result.exit_code = 0
+        backend.execute.return_value = result
+
+        tool = _create_execute_tool(backend)
+        await tool.ainvoke({"command": "ls"})
+
+        backend.execute.assert_called_once_with("ls", timeout=120)
+
+    @pytest.mark.asyncio
+    async def test_streaming_emits_tool_progress_for_each_chunk(self):
+        """Test that streaming path emits tool_progress for command prompt and each chunk."""
+
+        async def streaming_side_effect(command, timeout=120, on_chunk=None):
+            if on_chunk:
+                on_chunk("output line 1\n")
+                on_chunk("output line 2\n")
+            result = MagicMock()
+            result.exit_code = 0
+            result.stdout = "output line 1\noutput line 2\n"
+            result.stderr = ""
+            return result
+
+        backend = MagicMock()
+        backend.execute_streaming = AsyncMock(side_effect=streaming_side_effect)
+
+        with patch(
+            "graphton.core.tool_wrappers.dispatch_custom_event"
+        ) as mock_dispatch:
+            tool = _create_execute_tool(backend)
+            await tool.ainvoke({"command": "echo hello"})
+
+        mock_dispatch.assert_any_call("tool_progress", {"chunk": "$ echo hello\n"})
+        mock_dispatch.assert_any_call(
+            "tool_progress", {"chunk": "output line 1\n"}
+        )
+        mock_dispatch.assert_any_call(
+            "tool_progress", {"chunk": "output line 2\n"}
+        )
+        assert mock_dispatch.call_count >= 3
+
+    @pytest.mark.asyncio
+    async def test_streaming_failure_exit_code(self):
+        """Test that streaming path returns failure message on non-zero exit code."""
+        backend = MagicMock()
+        result = MagicMock()
+        result.stdout = ""
+        result.stderr = "error"
+        result.exit_code = 1
+        backend.execute_streaming = AsyncMock(return_value=result)
+
+        tool = _create_execute_tool(backend)
+        result_str = await tool.ainvoke({"command": "false"})
+
+        assert "Command failed" in result_str
 
 
 # =============================================================================
@@ -1281,7 +1360,7 @@ class TestExecuteToolOutputFormat:
 
     @staticmethod
     def _make_backend(stdout="", stderr="", exit_code=0):
-        backend = MagicMock()
+        backend = MagicMock(spec=["execute"])
         result = MagicMock()
         result.stdout = stdout
         result.stderr = stderr
