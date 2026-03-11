@@ -2040,9 +2040,10 @@ class StatusBuilder:
         # Create args preview (sanitized JSON for UI display)
         args_preview = self._create_args_preview(tool_args)
         
-        # Build a PendingApproval proto for this tool (interrupt_id is not yet
-        # known — it will be set post-stream when we query the graph state).
-        _pending = PendingApproval(  # noqa: F841
+        # Build a PendingApproval proto and append to the status immediately
+        # so that progressive gRPC updates include it.  The interrupt_id is
+        # left empty — the post-stream interrupt capture enriches it later.
+        pa = PendingApproval(
             tool_call_id=run_id,
             tool_name=tool_name,
             message=approval_message,
@@ -2051,6 +2052,7 @@ class StatusBuilder:
             from_sub_agent=from_sub_agent,
             sub_agent_name=sub_agent_name,
         )
+        self.current_status.pending_approvals.append(pa)
         
         # Save current phase (only on the FIRST pending approval) and
         # transition to WAITING_FOR_APPROVAL
@@ -2061,13 +2063,19 @@ class StatusBuilder:
         # Track pending approval state
         self._pending_tool_approvals.append(run_id)
         
+        if from_sub_agent:
+            self.sync_sub_agent_pending_approvals()
+        
+        self.force_next_update = True
+        
         context_info = f"sub_agent={sub_agent_name}" if from_sub_agent else "main_agent"
         pending_count = len(self._pending_tool_approvals)
         self.logger.info(
             f"[APPROVAL] execution={self.execution_id} "
             f"tool={tool_name} run_id={run_id} "
             f"status=WAITING_APPROVAL context={context_info} "
-            f"pending_count={pending_count}"
+            f"pending_count={pending_count} "
+            f"pending_approvals_proto={len(self.current_status.pending_approvals)}"
         )
     
     def set_tool_approval_decision(
@@ -2183,7 +2191,8 @@ class StatusBuilder:
         If no more pending approvals remain after removal, clear the overall
         pending state and restore the execution phase.
 
-        Also removes the matching ``PendingApproval`` from the owning
+        Also removes the matching ``PendingApproval`` from both
+        ``current_status.pending_approvals`` and the owning
         ``SubAgentExecution.pending_approvals`` (dual-surfacing cleanup).
         Resolves through ``_run_id_aliases`` so reconciliation-path tool calls
         (where ``ToolCall.id`` is a temp_id) are matched correctly.
@@ -2195,6 +2204,12 @@ class StatusBuilder:
             # differ from run_id when the reconciliation path assigned a
             # temp_id.  Resolve through the alias map.
             tc_id = self._run_id_aliases.get(run_id, run_id)
+
+            for i, pa in enumerate(self.current_status.pending_approvals):
+                if pa.tool_call_id == tc_id:
+                    del self.current_status.pending_approvals[i]
+                    break
+
             for sa in self.current_status.sub_agent_executions:
                 for i, pa in enumerate(sa.pending_approvals):
                     if pa.tool_call_id == tc_id:
@@ -2319,7 +2334,19 @@ class StatusBuilder:
         Populate pending approval tracking and update execution phase.
         
         This is called after the ToolCall has already been created with
-        WAITING_APPROVAL status. It handles the execution-level state updates.
+        WAITING_APPROVAL status. It handles the execution-level state updates:
+        
+        1. Saves the pre-approval phase and transitions to WAITING_FOR_APPROVAL
+        2. Creates a PendingApproval proto and appends to current_status
+        3. Syncs sub-agent pending approvals for dual-surface display
+        4. Sets force_next_update so the next progressive gRPC push includes
+           the PendingApproval — preventing a race where the CLI sees
+           phase=WAITING but empty pending_approvals before the post-stream
+           interrupt capture runs.
+        
+        The interrupt_id is left empty here; the post-stream interrupt capture
+        in execute_graphton.py replaces these entries with enriched versions
+        that include the LangGraph-assigned interrupt_id.
         
         Unlike set_tool_waiting_approval(), this does not need to find and
         update the ToolCall (already done during creation).
@@ -2345,11 +2372,37 @@ class StatusBuilder:
         # Track pending approval state
         self._pending_tool_approvals.append(run_id)
         
+        # Resolve tool_call_id: in the reconciliation path the alias maps
+        # run_id → temp_id (the ToolCall.id).  In the normal path run_id
+        # IS the ToolCall.id.
+        tc_id = self._run_id_aliases.get(run_id, run_id)
+        
+        args_preview = self._create_args_preview(tool_args)
+        
+        pa = PendingApproval(
+            tool_call_id=tc_id,
+            tool_name=tool_name,
+            message=approval_message,
+            args_preview=args_preview,
+            requested_at=_utc_timestamp(),
+            from_sub_agent=from_sub_agent,
+            sub_agent_name=sub_agent_name,
+        )
+        self.current_status.pending_approvals.append(pa)
+        
+        if from_sub_agent:
+            self.sync_sub_agent_pending_approvals()
+        
+        self.force_next_update = True
+        
         context_info = f"sub_agent={sub_agent_name}" if from_sub_agent else "main_agent"
+        pending_count = len(self._pending_tool_approvals)
         self.logger.info(
             f"[APPROVAL] execution={self.execution_id} "
-            f"tool={tool_name} run_id={run_id} "
-            f"status=WAITING_APPROVAL context={context_info}"
+            f"tool={tool_name} run_id={run_id} tc_id={tc_id} "
+            f"status=WAITING_APPROVAL context={context_info} "
+            f"pending_count={pending_count} "
+            f"pending_approvals_proto={len(self.current_status.pending_approvals)}"
         )
     
     def _find_tool_call_by_id(self, run_id: str) -> ToolCall | None:
