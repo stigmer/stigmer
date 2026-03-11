@@ -109,7 +109,7 @@ func isTerminalSubAgentStatus(s agentexecutionv1.SubAgentStatus) bool {
 // mirroring the top-level emitMessageEvents pattern. This ensures the TUI
 // shows sub-agent AI responses as they generate rather than waiting for the
 // full message to finalize — which previously caused a dead zone where no
-// events flowed and the TUI showed "Thinking..." indefinitely.
+// events flowed and the TUI showed "Planning next moves..." indefinitely.
 //
 // Sub-agent tool results are handled by trackToolCallStates (stateful
 // tool blocks), so MESSAGE_TOOL entries are skipped. Human and system messages
