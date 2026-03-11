@@ -111,10 +111,23 @@ When starting a new session:
 - All 246 Python tests pass, full Go CLI root package passes
 - Session checkpoint: `checkpoints/2026-03-10-session-5.md`
 
+## Session Progress (2026-03-11, Session 1)
+
+- Investigated and fixed sub-agent display flickering during parallel execution
+- Root cause: Bubbletea View() region volatility — elapsed time resets, 80ms tick rate for 14+ line display, live `time.Since()` in render defeating diff optimization
+- Confirmed NO full re-commits happen during sub-agent execution with non-streaming tools (thorough code trace of all `triggerReCommit` paths)
+- **Fix 1**: Removed `spinnerStart` reset in `handleSubAgentActivity` — elapsed now tracks total sub-agent runtime
+- **Fix 2**: Introduced `subAgentTickInterval = 150ms` (vs 80ms main spinner) — cuts redraws by ~47%
+- **Fix 3**: Added `elapsedStr` field cached per tick in `handleSubAgentTick` — View() content stable between ticks
+- Updated 3 tests, added 1 new test; all tests pass
+- Committed as `443756fb`
+- Changelog: `2026-03-11-062209-fix-sub-agent-display-flickering`
+
 ## Next Steps
 
 1. All 5 PRs are complete — project ready for final review and merge
-2. Optional: create GitHub PR via `@create-stigmer-oss-pull-request`
+2. Sub-agent display flickering fix committed (post-PR polish)
+3. Optional: create GitHub PR via `@create-stigmer-oss-pull-request`
 
 ## Context for Resume
 
