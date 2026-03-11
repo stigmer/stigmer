@@ -164,6 +164,7 @@ type subAgentDisplayEntry struct {
 	toolCount    int
 	activity     string
 	spinnerStart time.Time
+	elapsedStr   string // cached elapsed display; updated only on tick to reduce View() diff surface
 }
 
 // subAgentBlock is the aggregate for a single sub-agent execution. It buffers

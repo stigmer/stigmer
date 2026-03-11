@@ -633,7 +633,6 @@ func (m inlineBubbleModel) handleSubAgentActivity(msg subAgentActivityMsg) (tea.
 	for i := range m.activeSubAgentEntries {
 		if m.activeSubAgentEntries[i].id == msg.id {
 			m.activeSubAgentEntries[i].activity = msg.activity
-			m.activeSubAgentEntries[i].spinnerStart = time.Now()
 			break
 		}
 	}
@@ -645,14 +644,25 @@ func (m inlineBubbleModel) handleSubAgentTick() (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	m.subAgentSpinnerFrame++
+	now := time.Now()
+	for i := range m.activeSubAgentEntries {
+		m.activeSubAgentEntries[i].elapsedStr = spinner.FormatElapsed(now.Sub(m.activeSubAgentEntries[i].spinnerStart))
+	}
 	return m, nextSubAgentTick()
 }
 
+// subAgentTickInterval controls the refresh rate of the stacked sub-agent
+// display. Slower than the main thinking spinner (80ms) because the
+// sub-agent view spans many more terminal lines (~2 per active agent plus
+// plan/separator/input bar). Reducing the redraw frequency from ~12.5/s to
+// ~6.7/s significantly cuts terminal write volume and visible flicker.
+const subAgentTickInterval = 150 * time.Millisecond
+
 // nextSubAgentTick returns a Cmd that produces a subAgentTickMsg after one
-// frame interval, continuing the tick chain independently of the main
-// thinking spinner.
+// sub-agent tick interval, continuing the tick chain independently of the
+// main thinking spinner.
 func nextSubAgentTick() tea.Cmd {
-	return tea.Tick(spinner.FrameInterval, func(time.Time) tea.Msg {
+	return tea.Tick(subAgentTickInterval, func(time.Time) tea.Msg {
 		return subAgentTickMsg{}
 	})
 }
@@ -683,10 +693,9 @@ func (m inlineBubbleModel) renderSubAgentLine() string {
 		if e.activity != "" {
 			activityLabel = e.activity
 		}
-		elapsed := spinner.FormatElapsed(time.Since(e.spinnerStart))
 		activity := fmt.Sprintf("  %s %s", frame, systemMsgStyle.Render(activityLabel+"…"))
-		if elapsed != "" {
-			activity += " " + elapsed
+		if e.elapsedStr != "" {
+			activity += " " + e.elapsedStr
 		}
 		lines = append(lines, header+"\n"+activity)
 	}

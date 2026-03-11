@@ -1033,7 +1033,7 @@ func TestSubAgentHide_ClearsActivityAndStopsTickChain(t *testing.T) {
 	}
 }
 
-func TestSubAgentActivity_SetsLabelAndResetsTimer(t *testing.T) {
+func TestSubAgentActivity_SetsLabelWithoutResettingTimer(t *testing.T) {
 	m := newInlineBubbleModel()
 	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search code"})
 	model := updated.(inlineBubbleModel)
@@ -1047,8 +1047,8 @@ func TestSubAgentActivity_SetsLabelAndResetsTimer(t *testing.T) {
 	if model.activeSubAgentEntries[0].activity != "Grep" {
 		t.Errorf("activity should be 'Grep', got %q", model.activeSubAgentEntries[0].activity)
 	}
-	if !model.activeSubAgentEntries[0].spinnerStart.After(before) {
-		t.Error("spinnerStart should be reset after activity change")
+	if model.activeSubAgentEntries[0].spinnerStart != before {
+		t.Error("spinnerStart should NOT be reset on activity change (avoids elapsed time jumps)")
 	}
 	if cmd != nil {
 		t.Error("handleSubAgentActivity should return nil Cmd")
@@ -1068,10 +1068,13 @@ func TestSubAgentActivity_IgnoresMismatchedID(t *testing.T) {
 	}
 }
 
-func TestSubAgentTick_AdvancesFrameWhenActive(t *testing.T) {
+func TestSubAgentTick_AdvancesFrameAndCachesElapsed(t *testing.T) {
 	m := newInlineBubbleModel()
 	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search"})
 	model := updated.(inlineBubbleModel)
+
+	// Force spinnerStart far enough in the past to produce a non-empty elapsed string.
+	model.activeSubAgentEntries[0].spinnerStart = time.Now().Add(-5 * time.Second)
 
 	updated, cmd := model.Update(subAgentTickMsg{})
 	model = updated.(inlineBubbleModel)
@@ -1081,6 +1084,9 @@ func TestSubAgentTick_AdvancesFrameWhenActive(t *testing.T) {
 	}
 	if cmd == nil {
 		t.Error("handleSubAgentTick should return next tick Cmd when active")
+	}
+	if model.activeSubAgentEntries[0].elapsedStr == "" {
+		t.Error("handleSubAgentTick should cache elapsedStr for the entry")
 	}
 }
 
@@ -1145,6 +1151,25 @@ func TestRenderSubAgentLine_HidesToolCountWhenZero(t *testing.T) {
 
 	if strings.Contains(line, "tools)") {
 		t.Errorf("renderSubAgentLine should not show tool count when zero, got %q", line)
+	}
+}
+
+func TestRenderSubAgentLine_UsesCachedElapsedStr(t *testing.T) {
+	m := newInlineBubbleModel()
+	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search"})
+	model := updated.(inlineBubbleModel)
+
+	// Before any tick, elapsedStr is empty — no elapsed should appear.
+	line := model.renderSubAgentLine()
+	if strings.Contains(line, "(") && strings.Contains(line, "s)") {
+		t.Errorf("renderSubAgentLine should not show elapsed before first tick, got %q", line)
+	}
+
+	// Set cached elapsed and verify it appears.
+	model.activeSubAgentEntries[0].elapsedStr = "(12s)"
+	line = model.renderSubAgentLine()
+	if !strings.Contains(line, "(12s)") {
+		t.Errorf("renderSubAgentLine should use cached elapsedStr, got %q", line)
 	}
 }
 
