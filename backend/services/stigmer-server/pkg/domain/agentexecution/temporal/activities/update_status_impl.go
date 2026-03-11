@@ -113,6 +113,22 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 		status.Todos = statusUpdates.Todos
 	}
 
+	// Pending approvals: merge using the same convention as the controller handler.
+	// Non-empty list with a real tool_call_id => replace; empty tool_call_id => clear;
+	// absent (len 0) => preserve existing.
+	if len(statusUpdates.GetPendingApprovals()) > 0 {
+		if statusUpdates.GetPendingApprovals()[0].GetToolCallId() != "" {
+			log.Debug().
+				Int("old_count", len(status.GetPendingApprovals())).
+				Int("new_count", len(statusUpdates.GetPendingApprovals())).
+				Msg("Replacing pending_approvals")
+			status.PendingApprovals = statusUpdates.PendingApprovals
+		} else {
+			log.Debug().Msg("Clearing pending_approvals")
+			status.PendingApprovals = nil
+		}
+	}
+
 	// Phase: Update if provided
 	if statusUpdates.Phase != agentexecutionv1.ExecutionPhase_EXECUTION_PHASE_UNSPECIFIED {
 		log.Debug().
