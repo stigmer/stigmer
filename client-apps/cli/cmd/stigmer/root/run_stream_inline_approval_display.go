@@ -3,6 +3,7 @@ package root
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
@@ -223,6 +224,24 @@ func (r *inlineRenderer) handlePromptErrorAfterHide(e executiontui.ApprovalNeede
 		ToolCallID: e.ToolCallID,
 	}
 	r.waitingApproval = nil
+}
+
+// prefixSubAgentQuestion prepends the sub-agent's subject to an approval
+// question so the user can tell which sub-agent is requesting approval.
+// The subject is looked up from the active sub-agent block (populated by
+// SubAgentStartedEvent). When the block is not found or the subject is
+// empty, the question is returned unchanged — showing nothing is better
+// than showing a generic type name like "general-purpose".
+func (r *inlineRenderer) prefixSubAgentQuestion(subAgentID, question string) string {
+	if subAgentID == "" {
+		return question
+	}
+	block, ok := r.activeSubAgents[subAgentID]
+	if !ok || block.subject == "" {
+		return question
+	}
+	subject := toolrender.Truncate(toolrender.FirstLine(block.subject), 60)
+	return fmt.Sprintf("Sub-agent '%s': %s", subject, question)
 }
 
 // handleSessionExit performs a clean session exit when the user presses

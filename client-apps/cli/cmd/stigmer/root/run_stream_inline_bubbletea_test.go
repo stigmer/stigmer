@@ -1218,6 +1218,73 @@ func TestSubAgentShow_MultipleParallelSubAgents(t *testing.T) {
 	}
 }
 
+func TestView_ApprovalWithSubAgentsShowsBoth(t *testing.T) {
+	m := newInlineBubbleModel()
+
+	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Scan deps"})
+	model := updated.(inlineBubbleModel)
+	updated, _ = model.Update(subAgentShowMsg{id: "sa-2", subject: "Check config"})
+	model = updated.(inlineBubbleModel)
+
+	model.approvalActive = true
+	model.approvalContent = "Do you want to execute grep?\n"
+	model.approvalSelected = 0
+
+	v := model.View()
+
+	if !strings.Contains(v.Content, "Scan deps") {
+		t.Error("View() should show sub-agent lines during approval")
+	}
+	if !strings.Contains(v.Content, "Check config") {
+		t.Error("View() should show all sub-agent lines during approval")
+	}
+	if !strings.Contains(v.Content, "Do you want to execute grep?") {
+		t.Error("View() should show approval question during approval")
+	}
+
+	subAgentIdx := strings.Index(v.Content, "Scan deps")
+	approvalIdx := strings.Index(v.Content, "Do you want to execute grep?")
+	if subAgentIdx > approvalIdx {
+		t.Error("sub-agent lines should appear before the approval question")
+	}
+}
+
+func TestView_ApprovalWithoutSubAgentsShowsOnlyApproval(t *testing.T) {
+	m := newInlineBubbleModel()
+	m.approvalActive = true
+	m.approvalContent = "Do you want to execute grep?\n"
+
+	v := m.View()
+
+	if !strings.Contains(v.Content, "Do you want to execute grep?") {
+		t.Error("View() should show approval question")
+	}
+	if strings.Contains(v.Content, "Sub-agent") {
+		t.Error("View() should not contain sub-agent lines when none are active")
+	}
+}
+
+func TestRenderTransientContent_ApprovalWithSubAgents(t *testing.T) {
+	m := newInlineBubbleModel()
+	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Explore CLI"})
+	model := updated.(inlineBubbleModel)
+
+	model.approvalActive = true
+	model.approvalContent = "Execute shell?\n"
+
+	content := model.renderTransientContent()
+
+	if !strings.Contains(content, "Explore CLI") {
+		t.Errorf("transient content should include sub-agent line, got %q", content)
+	}
+	if !strings.Contains(content, "Execute shell?") {
+		t.Errorf("transient content should include approval question, got %q", content)
+	}
+	if !strings.Contains(content, "\n\n") {
+		t.Error("sub-agent lines and approval should be separated by a blank line")
+	}
+}
+
 func TestSubAgentHide_PartialRemoval(t *testing.T) {
 	m := newInlineBubbleModel()
 

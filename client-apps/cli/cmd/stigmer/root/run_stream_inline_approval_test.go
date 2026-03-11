@@ -30,6 +30,7 @@ func newApprovalTestRenderer(prompter approval.Prompter, defaultAction approval.
 			HyperlinksEnabled: false,
 		},
 		suppressedToolIDs: make(map[string]bool),
+		activeSubAgents:   make(map[string]*subAgentBlock),
 	}
 	return r, &stdout, &stderr, responses
 }
@@ -503,7 +504,7 @@ func TestHandleApproval_SubAgentGutterWrapped(t *testing.T) {
 	}
 }
 
-func TestHandleApproval_SubAgentNameInPrompt(t *testing.T) {
+func TestHandleApproval_SubAgentSubjectInPrompt(t *testing.T) {
 	prompter := &mockPrompter{decision: &approval.Decision{Action: approval.ActionApprove}}
 	r, _, stderr, responses := newApprovalTestRenderer(prompter, approval.ActionUnspecified)
 	tc := writeToolCall()
@@ -511,18 +512,49 @@ func TestHandleApproval_SubAgentNameInPrompt(t *testing.T) {
 		tc:         tc,
 		subAgentID: "sa-1",
 	}
+	r.activeSubAgents["sa-1"] = &subAgentBlock{
+		id:      "sa-1",
+		name:    "general-purpose",
+		subject: "Scan auth0-webhook dependencies",
+	}
 
 	r.handleApproval(context.Background(), executiontui.ApprovalNeededEvent{
 		ToolCallID:   "tc-1",
 		ToolName:     "write_file",
 		FromSubAgent: true,
-		SubAgentName: "code-reviewer",
+		SubAgentName: "general-purpose",
 	})
 	<-responses
 
 	output := stderr.String()
-	if !strings.Contains(output, "Sub-agent 'code-reviewer'") {
-		t.Errorf("sub-agent approval should include sub-agent name prefix, got:\n%s", output)
+	if !strings.Contains(output, "Sub-agent 'Scan auth0-webhook dependencies'") {
+		t.Errorf("sub-agent approval should include subject prefix, got:\n%s", output)
+	}
+	if strings.Contains(output, "general-purpose") {
+		t.Errorf("sub-agent approval should NOT show type name, got:\n%s", output)
+	}
+}
+
+func TestHandleApproval_SubAgentNoBlockFallback(t *testing.T) {
+	prompter := &mockPrompter{decision: &approval.Decision{Action: approval.ActionApprove}}
+	r, _, stderr, responses := newApprovalTestRenderer(prompter, approval.ActionUnspecified)
+	tc := writeToolCall()
+	r.waitingApproval = &waitingApprovalState{
+		tc:         tc,
+		subAgentID: "sa-unknown",
+	}
+
+	r.handleApproval(context.Background(), executiontui.ApprovalNeededEvent{
+		ToolCallID:   "tc-1",
+		ToolName:     "write_file",
+		FromSubAgent: true,
+		SubAgentName: "general-purpose",
+	})
+	<-responses
+
+	output := stderr.String()
+	if strings.Contains(output, "Sub-agent") {
+		t.Errorf("approval without matching block should show no sub-agent prefix, got:\n%s", output)
 	}
 }
 
