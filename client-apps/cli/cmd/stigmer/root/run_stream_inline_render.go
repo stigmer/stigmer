@@ -184,6 +184,7 @@ func (r *inlineRenderer) renderSubAgentCompleted(e executiontui.SubAgentComplete
 		saBlock: block,
 	})
 	delete(r.activeSubAgents, e.ID)
+	r.completedSubAgentIDs[e.ID] = true
 
 	if r.cfg.program != nil {
 		r.cfg.program.Send(subAgentHideMsg{id: e.ID})
