@@ -799,6 +799,167 @@ func TestExpandedApprovalContent_Empty(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// ExpandedApprovalContent — edit tool diff view
+// ---------------------------------------------------------------------------
+
+func TestExpandedApprovalContent_EditShowsDiff(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "edit",
+		Args: map[string]interface{}{
+			"path":     "config.yaml",
+			"old_text": "port: 8080\nhost: localhost\n",
+			"new_text": "port: 9090\nhost: localhost\nbind: 0.0.0.0\n",
+		},
+		Status: "waiting_approval",
+	}
+	result := ExpandedApprovalContent(tc)
+	plain := stripANSI(result)
+
+	assertContains(t, result, "-port: 8080")
+	assertContains(t, result, "+port: 9090")
+	assertContains(t, result, "+bind: 0.0.0.0")
+	assertContains(t, result, " host: localhost")
+
+	if !strings.Contains(plain, "@@") {
+		t.Error("expected hunk markers in edit diff")
+	}
+}
+
+func TestExpandedApprovalContent_EditFileShowsDiff(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "edit_file",
+		Args: map[string]interface{}{
+			"path":       "main.go",
+			"old_string": "fmt.Println(\"old\")\n",
+			"new_string": "fmt.Println(\"new\")\n",
+		},
+		Status: "waiting_approval",
+	}
+	result := ExpandedApprovalContent(tc)
+
+	assertContains(t, result, "-fmt.Println(\"old\")")
+	assertContains(t, result, "+fmt.Println(\"new\")")
+}
+
+func TestExpandedApprovalContent_EditFallbackWithoutOldText(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "edit",
+		Args: map[string]interface{}{
+			"path":     "main.go",
+			"new_text": "fmt.Println(\"hello\")",
+		},
+		Status: "waiting_approval",
+	}
+	result := ExpandedApprovalContent(tc)
+
+	assertContains(t, result, "fmt.Println")
+	assertNotContains(t, result, "@@")
+}
+
+func TestExpandedApprovalContentWithExisting_WriteDiff(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "write_file",
+		Args: map[string]interface{}{
+			"path":     "config.yaml",
+			"contents": "port: 9090\nhost: localhost\n",
+		},
+		Status: "waiting_approval",
+	}
+	existing := "port: 8080\nhost: localhost\n"
+
+	result := ExpandedApprovalContentWithExisting(tc, existing)
+
+	assertContains(t, result, "-port: 8080")
+	assertContains(t, result, "+port: 9090")
+	assertContains(t, result, " host: localhost")
+}
+
+func TestExpandedApprovalContentWithExisting_EmptyExisting(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "write_file",
+		Args: map[string]interface{}{
+			"path":     "new.go",
+			"contents": "package new\n",
+		},
+		Status: "waiting_approval",
+	}
+	result := ExpandedApprovalContentWithExisting(tc, "")
+
+	assertContains(t, result, "package new")
+	assertNotContains(t, result, "@@")
+}
+
+// ---------------------------------------------------------------------------
+// RenderApprovalResult — collapsed diff preview
+// ---------------------------------------------------------------------------
+
+func TestRenderApprovalResult_EditWithDiffPreview(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "edit",
+		Args: map[string]interface{}{
+			"path":     "config.yaml",
+			"old_text": "port: 8080\n",
+			"new_text": "port: 9090\n",
+		},
+		Status: "waiting_approval",
+	}
+	result := stripANSI(RenderApprovalResult(tc, "approve", CompactOptions{}))
+
+	assertContains(t, result, "Edit(config.yaml)")
+	assertContains(t, result, "-port: 8080")
+	assertContains(t, result, "+port: 9090")
+}
+
+func TestRenderApprovalResult_EditWithoutOldTextFallback(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "edit",
+		Args: map[string]interface{}{
+			"path":     "main.go",
+			"new_text": "fmt.Println(\"hello\")",
+		},
+		Status: "waiting_approval",
+	}
+	result := stripANSI(RenderApprovalResult(tc, "approve", CompactOptions{}))
+
+	assertContains(t, result, "fmt.Println")
+	assertNotContains(t, result, "@@")
+}
+
+func TestRenderApprovalResultWithOldContent_WriteDiffPreview(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "write_file",
+		Args: map[string]interface{}{
+			"path":     "config.yaml",
+			"contents": "port: 9090\nhost: localhost\n",
+		},
+		Status: "waiting_approval",
+	}
+	oldContent := "port: 8080\nhost: localhost\n"
+
+	result := stripANSI(RenderApprovalResultWithOldContent(tc, "approve", oldContent, CompactOptions{}))
+
+	assertContains(t, result, "Write(config.yaml)")
+	assertContains(t, result, "-port: 8080")
+	assertContains(t, result, "+port: 9090")
+}
+
+func TestRenderApprovalResultWithOldContent_EmptyOldFallback(t *testing.T) {
+	tc := ToolCallInfo{
+		Name: "write_file",
+		Args: map[string]interface{}{
+			"path":     "new.go",
+			"contents": "package new\n",
+		},
+		Status: "waiting_approval",
+	}
+	result := stripANSI(RenderApprovalResultWithOldContent(tc, "approve", "", CompactOptions{}))
+
+	assertContains(t, result, "Write(new.go)")
+	assertContains(t, result, "package new")
+	assertNotContains(t, result, "@@")
+}
+
+// ---------------------------------------------------------------------------
 // ShouldSuppressCompletion
 // ---------------------------------------------------------------------------
 

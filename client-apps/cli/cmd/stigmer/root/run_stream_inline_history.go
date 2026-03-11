@@ -200,6 +200,13 @@ type committedItem struct {
 	// for kindApproval items.
 	action string
 
+	// existingContent is the file content read from disk before a write
+	// tool overwrites it. Stored so that history re-renders of
+	// kindApproval items can show a diff preview for write tools. Empty
+	// when the file didn't exist, wasn't readable, or the tool is not a
+	// write tool.
+	existingContent string
+
 	// todoTotal and todoCompleted track plan progress for kindTodoUpdate
 	// items. When todoCompleted == todoTotal (all done), the expanded
 	// renderer shows a compact summary instead of the full item list.
@@ -322,7 +329,13 @@ func renderApprovalItem(item committedItem, opts toolrender.CompactOptions) stri
 	if len(item.toolCalls) == 0 {
 		return ""
 	}
-	result := toolrender.RenderApprovalResult(item.toolCalls[0], item.action, opts)
+	tc := item.toolCalls[0]
+	var result string
+	if item.existingContent != "" && toolrender.IsWriteTool(tc.Name) {
+		result = toolrender.RenderApprovalResultWithOldContent(tc, item.action, item.existingContent, opts)
+	} else {
+		result = toolrender.RenderApprovalResult(tc, item.action, opts)
+	}
 	if item.subAgentID != "" {
 		result = toolrender.GutterWrap(result)
 	}

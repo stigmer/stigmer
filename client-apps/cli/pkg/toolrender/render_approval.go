@@ -67,11 +67,64 @@ func RenderApprovalResult(tc ToolCallInfo, action string, opts CompactOptions) s
 		return result
 	}
 
-	preview := formatApprovalPreview(resolveDisplayContent(tc, info))
+	preview := resolveApprovalPreview(tc, info, "")
 	if preview != "" {
 		result += "\n" + preview
 	}
 	return result
+}
+
+// RenderApprovalResultWithOldContent renders the collapsed post-decision
+// approval result for a write tool where the existing file content is known.
+// When oldContent is non-empty, the preview shows a unified diff instead of
+// the raw new content. When oldContent is empty, falls back to standard
+// behavior (raw content preview).
+func RenderApprovalResultWithOldContent(tc ToolCallInfo, action string, oldContent string, opts CompactOptions) string {
+	info, known := toolDisplayMap[tc.Name]
+	if !known || oldContent == "" {
+		return RenderApprovalResult(tc, action, opts)
+	}
+
+	header := renderApprovalHeader(tc, info, action, opts)
+	connector := buildApprovalConnector(action, approvedSummary(tc, info), tc)
+	result := header + "\n" + connector
+
+	if !shouldShowApprovalPreview(action, info.label) {
+		return result
+	}
+
+	preview := resolveApprovalPreview(tc, info, oldContent)
+	if preview != "" {
+		result += "\n" + preview
+	}
+	return result
+}
+
+// resolveApprovalPreview returns the styled preview content for a collapsed
+// approval result. For edit tools (when old_text is available in args) and
+// write tools (when oldContent is provided), it returns a diff preview.
+// Otherwise falls back to the standard raw content preview.
+func resolveApprovalPreview(tc ToolCallInfo, info toolDisplayInfo, oldContent string) string {
+	if info.label == "Edit" {
+		oldText := extractPrimaryArgWithFallbacks(tc.Args, "old_text", []string{"old_string"})
+		newText := extractPrimaryArgWithFallbacks(tc.Args, info.contentArgField, info.contentArgFallbacks)
+		if oldText != "" && newText != "" {
+			if preview := FormatDiffPreview(oldText, newText, maxApprovalPreviewLines); preview != "" {
+				return preview
+			}
+		}
+	}
+
+	if info.label == "Write" && oldContent != "" {
+		newContent := resolveDisplayContent(tc, info)
+		if newContent != "" {
+			if preview := FormatDiffPreview(oldContent, newContent, maxApprovalPreviewLines); preview != "" {
+				return preview
+			}
+		}
+	}
+
+	return formatApprovalPreview(resolveDisplayContent(tc, info))
 }
 
 // ApprovalSeparator returns a dim horizontal separator spanning the given
@@ -145,6 +198,10 @@ func ExpandedApprovalHeader(tc ToolCallInfo, opts CompactOptions) string {
 // ExpandedApprovalContent extracts the full display content for a tool call,
 // designed to give the user complete visibility into what they are approving.
 //
+// For edit tools, a unified diff between old_text and new_text is returned
+// so the user can see exactly what lines are being changed. When old_text
+// is not available in the args, it falls back to showing new_text as-is.
+//
 // For write/edit tools this is the file content from args. For shell tools
 // this is the full command (pre-approval) or the result (post-execution).
 // For read/discovery tools this is the result.
@@ -166,11 +223,51 @@ func ExpandedApprovalContent(tc ToolCallInfo) string {
 	if !known {
 		return formatExpandedArgs(tc.Args)
 	}
+
+	if info.label == "Edit" {
+		oldText := extractPrimaryArgWithFallbacks(tc.Args, "old_text", []string{"old_string"})
+		newText := extractPrimaryArgWithFallbacks(tc.Args, info.contentArgField, info.contentArgFallbacks)
+		if oldText != "" && newText != "" {
+			if diff := FormatDiff(oldText, newText); diff != "" {
+				return diff
+			}
+		}
+	}
+
 	content := resolveDisplayContent(tc, info)
 	if content == "" && isShellLabel(info.label) {
 		return extractPrimaryArgWithFallbacks(tc.Args, info.primaryField, info.fallbackFields)
 	}
 	return content
+}
+
+// ExpandedApprovalContentWithExisting returns the expanded approval content
+// for a tool call, using the provided existingContent as the "old" side of
+// a diff when the tool is a write tool (overwriting an existing file).
+//
+// This is used by the TUI layer for write tools where the existing file
+// content has been read from the local filesystem. When existingContent is
+// empty, falls back to the standard ExpandedApprovalContent behavior.
+func ExpandedApprovalContentWithExisting(tc ToolCallInfo, existingContent string) string {
+	if existingContent == "" {
+		return ExpandedApprovalContent(tc)
+	}
+
+	info, known := toolDisplayMap[tc.Name]
+	if !known {
+		return ExpandedApprovalContent(tc)
+	}
+
+	if info.label == "Write" {
+		newContent := resolveDisplayContent(tc, info)
+		if newContent != "" {
+			if diff := FormatDiff(existingContent, newContent); diff != "" {
+				return diff
+			}
+		}
+	}
+
+	return ExpandedApprovalContent(tc)
 }
 
 // ShouldSuppressCompletion reports whether the ToolCompletedEvent for an

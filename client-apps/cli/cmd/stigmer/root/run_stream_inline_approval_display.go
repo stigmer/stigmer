@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
@@ -65,7 +67,7 @@ func (r *inlineRenderer) buildExpandedView(tc toolrender.ToolCallInfo, width, ma
 	b.WriteString(header)
 	b.WriteByte('\n')
 
-	content := toolrender.ExpandedApprovalContent(tc)
+	content := r.resolveExpandedContent(tc)
 	if content != "" {
 		maxWidth := width - 1
 		if maxWidth < 20 {
@@ -100,7 +102,7 @@ func (r *inlineRenderer) buildFullExpandedView(tc toolrender.ToolCallInfo, width
 	b.WriteString(header)
 	b.WriteByte('\n')
 
-	content := toolrender.ExpandedApprovalContent(tc)
+	content := r.resolveExpandedContent(tc)
 	if content != "" {
 		b.WriteString(content)
 		if !strings.HasSuffix(content, "\n") {
@@ -112,6 +114,58 @@ func (r *inlineRenderer) buildFullExpandedView(tc toolrender.ToolCallInfo, width
 	b.WriteByte('\n')
 
 	return b.String()
+}
+
+// resolveExpandedContent returns the content for the expanded approval view.
+// For write tools (not create), it attempts to read the existing file from
+// disk to show a diff. The resolved existing content is stored in
+// waitingApprovalState for reuse in the collapsed result. For all other tools
+// (including edit tools, where old_text is already in args), delegates to
+// the standard ExpandedApprovalContent.
+func (r *inlineRenderer) resolveExpandedContent(tc toolrender.ToolCallInfo) string {
+	if toolrender.IsWriteTool(tc.Name) && !toolrender.IsCreateTool(tc.Name) {
+		existing := r.resolveAndReadExistingFile(tc)
+		if r.waitingApproval != nil {
+			r.waitingApproval.existingContent = existing
+		}
+		if existing != "" {
+			return toolrender.ExpandedApprovalContentWithExisting(tc, existing)
+		}
+	}
+	return toolrender.ExpandedApprovalContent(tc)
+}
+
+// resolveAndReadExistingFile extracts the file path from a write tool's args,
+// resolves it to an absolute path using workspace roots and sandbox root, and
+// reads the file contents. Returns empty string on any failure (missing path,
+// unresolvable path, read error, new file). This keeps file I/O in the TUI
+// layer while toolrender stays pure.
+func (r *inlineRenderer) resolveAndReadExistingFile(tc toolrender.ToolCallInfo) string {
+	relPath := toolrender.ToolFilePath(tc)
+	if relPath == "" {
+		return ""
+	}
+
+	absPath := r.resolveAbsolutePath(relPath)
+	if absPath == "" {
+		return ""
+	}
+
+	data, err := os.ReadFile(absPath)
+	if err != nil {
+		return ""
+	}
+	return string(data)
+}
+
+// resolveAbsolutePath resolves a relative file path to an absolute path using
+// workspace roots and sandbox root. Tries the toolrender resolution strategy
+// first (which includes stat-probing); for absolute paths, returns as-is.
+func (r *inlineRenderer) resolveAbsolutePath(path string) string {
+	if filepath.IsAbs(path) {
+		return path
+	}
+	return toolrender.ResolveFilePath(path, r.compactOpts)
 }
 
 // promptForDecision calls the prompter and returns the decision with line
@@ -129,7 +183,12 @@ func (r *inlineRenderer) promptForDecision(ctx context.Context, opts approval.Op
 // without printing it. Used by the Bubbletea path where the result is
 // committed via tea.Println through the approvalHideMsg Cmd.
 func (r *inlineRenderer) formatCollapsedResult(tc toolrender.ToolCallInfo, action string, subAgentID string) string {
-	result := toolrender.RenderApprovalResult(tc, action, r.compactOpts)
+	var result string
+	if r.waitingApproval != nil && r.waitingApproval.existingContent != "" && toolrender.IsWriteTool(tc.Name) {
+		result = toolrender.RenderApprovalResultWithOldContent(tc, action, r.waitingApproval.existingContent, r.compactOpts)
+	} else {
+		result = toolrender.RenderApprovalResult(tc, action, r.compactOpts)
+	}
 	if subAgentID != "" {
 		result = toolrender.GutterWrap(result)
 	}
@@ -146,6 +205,9 @@ func (r *inlineRenderer) printCollapsedResult(tc toolrender.ToolCallInfo, action
 		toolCalls:  []toolrender.ToolCallInfo{tc},
 		action:     action,
 		subAgentID: subAgentID,
+	}
+	if r.waitingApproval != nil {
+		item.existingContent = r.waitingApproval.existingContent
 	}
 	if r.hasActiveSubAgent(subAgentID) {
 		r.appendToSubAgentBlock(subAgentID, item, true)
@@ -164,6 +226,9 @@ func (r *inlineRenderer) recordApproval(tc toolrender.ToolCallInfo, action strin
 		toolCalls:  []toolrender.ToolCallInfo{tc},
 		action:     action,
 		subAgentID: subAgentID,
+	}
+	if r.waitingApproval != nil {
+		item.existingContent = r.waitingApproval.existingContent
 	}
 	if r.hasActiveSubAgent(subAgentID) {
 		r.appendToSubAgentBlock(subAgentID, item, true)
