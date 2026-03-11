@@ -832,6 +832,24 @@ func buildHyperlinkedPath(path string, opts CompactOptions) string {
 	return FileHyperlink(path, absPath, true)
 }
 
+// ResolveFilePath resolves a tool's file path to an absolute filesystem path
+// using workspace roots, platform dir, and sandbox root. Returns the absolute
+// path when resolution succeeds, or empty string on failure. For paths that
+// are already absolute, returns them unchanged.
+//
+// This is the public interface to the workspace path resolution strategy,
+// used by the TUI layer for reading existing file content (e.g., for diff
+// computation on write tools).
+func ResolveFilePath(path string, opts CompactOptions) string {
+	if path == "" {
+		return ""
+	}
+	if filepath.IsAbs(path) {
+		return path
+	}
+	return resolveWorkspacePath(path, opts)
+}
+
 // resolveWorkspacePath resolves a relative path to an absolute filesystem path
 // using a layered strategy:
 //

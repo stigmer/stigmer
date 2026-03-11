@@ -151,8 +151,9 @@ type pendingRead struct {
 type waitingApprovalState struct {
 	tc              toolrender.ToolCallInfo
 	subAgentID      string
-	contentStreamed bool // content was shown via ToolStreamDeltaEvent
-	streamedRows    int  // total display rows of streamed content
+	contentStreamed bool   // content was shown via ToolStreamDeltaEvent
+	streamedRows    int    // total display rows of streamed content
+	existingContent string // for write tools: content read from disk before overwrite
 }
 
 // subAgentDisplayEntry holds per-sub-agent display state for the live
