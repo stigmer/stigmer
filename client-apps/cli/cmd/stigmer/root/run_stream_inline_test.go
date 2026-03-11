@@ -1512,9 +1512,6 @@ func TestTransferSubAgentEntries(t *testing.T) {
 		if e.subject != "Scan dependencies" {
 			t.Errorf("sa-1 subject = %q, want %q", e.subject, "Scan dependencies")
 		}
-		if e.toolCount != 5 {
-			t.Errorf("sa-1 toolCount = %d, want 5", e.toolCount)
-		}
 		if e.spinnerStart.IsZero() {
 			t.Error("sa-1 spinnerStart should be set")
 		}
@@ -1525,9 +1522,6 @@ func TestTransferSubAgentEntries(t *testing.T) {
 	} else {
 		if e.subject != "Fix auth tests" {
 			t.Errorf("sa-2 subject = %q, want %q", e.subject, "Fix auth tests")
-		}
-		if e.toolCount != 12 {
-			t.Errorf("sa-2 toolCount = %d, want 12", e.toolCount)
 		}
 	}
 
