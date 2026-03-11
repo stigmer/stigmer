@@ -487,3 +487,342 @@ class TestInitialization:
         middleware = ContextSummarizationMiddleware(config=disabled_config)
         
         assert middleware.config.enabled is False
+
+
+# =============================================================================
+# Sub-Agent Propagation Tests
+# =============================================================================
+
+
+class TestSubAgentSummarizationPropagation:
+    """Test that create_deep_agent() propagates summarization middleware to sub-agents."""
+
+    @pytest.fixture
+    def summarization_config(self):
+        return SummarizationConfig.for_model("claude-sonnet-4.5")
+
+    @pytest.fixture
+    def subagents(self):
+        return [
+            {
+                "name": "researcher",
+                "description": "Research sub-agent",
+                "system_prompt": "You research things.",
+                "tools": [],
+            },
+            {
+                "name": "writer",
+                "description": "Writer sub-agent",
+                "system_prompt": "You write things.",
+                "tools": [],
+            },
+        ]
+
+    @patch("graphton.core.agent.deepagents_create_deep_agent")
+    @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
+    @patch("graphton.core.agent.parse_model_string")
+    def test_hitl_path_injects_summarization_middleware(
+        self,
+        mock_parse_model,
+        mock_compile_proxy,
+        mock_deepagents_create,
+        summarization_config,
+        subagents,
+    ):
+        """HITL path: each sub-agent receives ContextSummarizationMiddleware."""
+        from graphton.core.agent import create_deep_agent
+
+        mock_model = MagicMock()
+        mock_parse_model.return_value = mock_model
+        mock_compile_proxy.return_value = {
+            "name": "test",
+            "description": "test",
+            "runnable": MagicMock(),
+        }
+        mock_graph = MagicMock()
+        mock_graph.with_config.return_value = mock_graph
+        mock_deepagents_create.return_value = mock_graph
+
+        create_deep_agent(
+            model="claude-sonnet-4.5",
+            system_prompt="Test prompt",
+            subagents=subagents,
+            checkpointer=MagicMock(),
+            approval_checker=MagicMock(),
+            summarization_config=summarization_config,
+        )
+
+        assert mock_compile_proxy.call_count == 2
+
+        for call in mock_compile_proxy.call_args_list:
+            mw_list = call.kwargs.get("middleware") or call[1].get("middleware", [])
+            summarization_mws = [
+                m for m in mw_list
+                if isinstance(m, ContextSummarizationMiddleware)
+            ]
+            assert len(summarization_mws) == 1
+            assert summarization_mws[0].config == summarization_config
+            assert summarization_mws[0]._callback is None
+
+    @patch("graphton.core.agent.deepagents_create_deep_agent")
+    @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
+    @patch("graphton.core.agent.parse_model_string")
+    def test_hitl_path_distinct_middleware_instances(
+        self,
+        mock_parse_model,
+        mock_compile_proxy,
+        mock_deepagents_create,
+        summarization_config,
+        subagents,
+    ):
+        """HITL path: each sub-agent gets its own middleware instance (not shared)."""
+        from graphton.core.agent import create_deep_agent
+
+        mock_model = MagicMock()
+        mock_parse_model.return_value = mock_model
+        mock_compile_proxy.return_value = {
+            "name": "test",
+            "description": "test",
+            "runnable": MagicMock(),
+        }
+        mock_graph = MagicMock()
+        mock_graph.with_config.return_value = mock_graph
+        mock_deepagents_create.return_value = mock_graph
+
+        create_deep_agent(
+            model="claude-sonnet-4.5",
+            system_prompt="Test prompt",
+            subagents=subagents,
+            checkpointer=MagicMock(),
+            approval_checker=MagicMock(),
+            summarization_config=summarization_config,
+        )
+
+        instances = []
+        for call in mock_compile_proxy.call_args_list:
+            mw_list = call.kwargs.get("middleware") or call[1].get("middleware", [])
+            for m in mw_list:
+                if isinstance(m, ContextSummarizationMiddleware):
+                    instances.append(m)
+
+        assert len(instances) == 2
+        assert instances[0] is not instances[1]
+
+    @patch("graphton.core.agent.deepagents_create_deep_agent")
+    @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
+    @patch("graphton.core.agent.parse_model_string")
+    def test_hitl_path_skips_precompiled_subagents(
+        self,
+        mock_parse_model,
+        mock_compile_proxy,
+        mock_deepagents_create,
+        summarization_config,
+    ):
+        """HITL path: pre-compiled sub-agents (with 'runnable' key) are not modified."""
+        from graphton.core.agent import create_deep_agent
+
+        mock_model = MagicMock()
+        mock_parse_model.return_value = mock_model
+        mock_graph = MagicMock()
+        mock_graph.with_config.return_value = mock_graph
+        mock_deepagents_create.return_value = mock_graph
+
+        precompiled = {
+            "name": "pre",
+            "description": "pre",
+            "system_prompt": "Pre-compiled prompt",
+            "runnable": MagicMock(),
+        }
+        create_deep_agent(
+            model="claude-sonnet-4.5",
+            system_prompt="Test prompt",
+            subagents=[precompiled],
+            checkpointer=MagicMock(),
+            approval_checker=MagicMock(),
+            summarization_config=summarization_config,
+        )
+
+        mock_compile_proxy.assert_not_called()
+
+    @patch("graphton.core.agent.deepagents_create_deep_agent")
+    @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
+    @patch("graphton.core.agent.parse_model_string")
+    def test_hitl_path_no_injection_when_disabled(
+        self,
+        mock_parse_model,
+        mock_compile_proxy,
+        mock_deepagents_create,
+        subagents,
+    ):
+        """HITL path: disabled summarization config does not inject middleware."""
+        from graphton.core.agent import create_deep_agent
+
+        mock_model = MagicMock()
+        mock_parse_model.return_value = mock_model
+        mock_compile_proxy.return_value = {
+            "name": "test",
+            "description": "test",
+            "runnable": MagicMock(),
+        }
+        mock_graph = MagicMock()
+        mock_graph.with_config.return_value = mock_graph
+        mock_deepagents_create.return_value = mock_graph
+
+        create_deep_agent(
+            model="claude-sonnet-4.5",
+            system_prompt="Test prompt",
+            subagents=subagents,
+            checkpointer=MagicMock(),
+            approval_checker=MagicMock(),
+            summarization_config=SummarizationConfig.disabled(),
+        )
+
+        for call in mock_compile_proxy.call_args_list:
+            mw_list = call.kwargs.get("middleware") or call[1].get("middleware", [])
+            summarization_mws = [
+                m for m in mw_list
+                if isinstance(m, ContextSummarizationMiddleware)
+            ]
+            assert len(summarization_mws) == 0
+
+    @patch("graphton.core.agent.deepagents_create_deep_agent")
+    @patch("graphton.core.agent.parse_model_string")
+    def test_non_hitl_path_injects_summarization_middleware(
+        self,
+        mock_parse_model,
+        mock_deepagents_create,
+        summarization_config,
+        subagents,
+    ):
+        """Non-HITL path: sub-agent dicts get middleware key with summarization."""
+        from graphton.core.agent import create_deep_agent
+
+        mock_model = MagicMock()
+        mock_parse_model.return_value = mock_model
+        mock_graph = MagicMock()
+        mock_graph.with_config.return_value = mock_graph
+        mock_deepagents_create.return_value = mock_graph
+
+        create_deep_agent(
+            model="claude-sonnet-4.5",
+            system_prompt="Test prompt",
+            subagents=subagents,
+            checkpointer=None,
+            approval_checker=None,
+            summarization_config=summarization_config,
+        )
+
+        call_kwargs = mock_deepagents_create.call_args
+        passed_subagents = call_kwargs.kwargs.get("subagents") or call_kwargs[1].get("subagents", [])
+
+        assert len(passed_subagents) == 2
+        for sa in passed_subagents:
+            mw_list = sa.get("middleware", [])
+            summarization_mws = [
+                m for m in mw_list
+                if isinstance(m, ContextSummarizationMiddleware)
+            ]
+            assert len(summarization_mws) == 1
+            assert summarization_mws[0].config == summarization_config
+            assert summarization_mws[0]._callback is None
+
+    @patch("graphton.core.agent.deepagents_create_deep_agent")
+    @patch("graphton.core.agent.parse_model_string")
+    def test_non_hitl_path_does_not_mutate_original(
+        self,
+        mock_parse_model,
+        mock_deepagents_create,
+        summarization_config,
+        subagents,
+    ):
+        """Non-HITL path: original subagent dicts are not mutated."""
+        from graphton.core.agent import create_deep_agent
+
+        mock_model = MagicMock()
+        mock_parse_model.return_value = mock_model
+        mock_graph = MagicMock()
+        mock_graph.with_config.return_value = mock_graph
+        mock_deepagents_create.return_value = mock_graph
+
+        create_deep_agent(
+            model="claude-sonnet-4.5",
+            system_prompt="Test prompt",
+            subagents=subagents,
+            checkpointer=None,
+            approval_checker=None,
+            summarization_config=summarization_config,
+        )
+
+        for sa in subagents:
+            assert "middleware" not in sa
+
+    @patch("graphton.core.agent.deepagents_create_deep_agent")
+    @patch("graphton.core.agent.parse_model_string")
+    def test_non_hitl_path_skips_precompiled(
+        self,
+        mock_parse_model,
+        mock_deepagents_create,
+        summarization_config,
+    ):
+        """Non-HITL path: pre-compiled sub-agents are passed through unchanged."""
+        from graphton.core.agent import create_deep_agent
+
+        mock_model = MagicMock()
+        mock_parse_model.return_value = mock_model
+        mock_graph = MagicMock()
+        mock_graph.with_config.return_value = mock_graph
+        mock_deepagents_create.return_value = mock_graph
+
+        precompiled = {
+            "name": "pre",
+            "description": "pre",
+            "system_prompt": "Pre-compiled prompt",
+            "runnable": MagicMock(),
+        }
+        create_deep_agent(
+            model="claude-sonnet-4.5",
+            system_prompt="Test prompt",
+            subagents=[precompiled],
+            checkpointer=None,
+            approval_checker=None,
+            summarization_config=summarization_config,
+        )
+
+        call_kwargs = mock_deepagents_create.call_args
+        passed_subagents = call_kwargs.kwargs.get("subagents") or call_kwargs[1].get("subagents", [])
+
+        assert len(passed_subagents) == 1
+        assert "runnable" in passed_subagents[0]
+        assert "middleware" not in passed_subagents[0]
+
+    @patch("graphton.core.agent.deepagents_create_deep_agent")
+    @patch("graphton.core.agent.parse_model_string")
+    def test_non_hitl_path_no_injection_when_disabled(
+        self,
+        mock_parse_model,
+        mock_deepagents_create,
+        subagents,
+    ):
+        """Non-HITL path: disabled config passes subagents unchanged."""
+        from graphton.core.agent import create_deep_agent
+
+        mock_model = MagicMock()
+        mock_parse_model.return_value = mock_model
+        mock_graph = MagicMock()
+        mock_graph.with_config.return_value = mock_graph
+        mock_deepagents_create.return_value = mock_graph
+
+        create_deep_agent(
+            model="claude-sonnet-4.5",
+            system_prompt="Test prompt",
+            subagents=subagents,
+            checkpointer=None,
+            approval_checker=None,
+            summarization_config=SummarizationConfig.disabled(),
+        )
+
+        call_kwargs = mock_deepagents_create.call_args
+        passed_subagents = call_kwargs.kwargs.get("subagents") or call_kwargs[1].get("subagents", [])
+
+        for sa in passed_subagents:
+            assert "middleware" not in sa

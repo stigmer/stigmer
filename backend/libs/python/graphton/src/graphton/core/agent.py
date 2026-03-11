@@ -430,6 +430,20 @@ def create_deep_agent(
                 sa_prompt = sa.get("system_prompt", "")
                 sa_middleware = list(sa.get("middleware", []))
                 
+                if summarization_config is not None and summarization_config.enabled:
+                    from graphton.core.summarization_middleware import ContextSummarizationMiddleware
+                    sa_middleware.insert(0, ContextSummarizationMiddleware(
+                        config=summarization_config,
+                        callback=None,
+                    ))
+                    logger.info(
+                        "Injected summarization middleware into sub-agent '%s' "
+                        "(trigger=%d, target=%d)",
+                        sa_name,
+                        summarization_config.trigger_threshold,
+                        summarization_config.target_tokens,
+                    )
+                
                 compiled_sa = compile_subagent_with_proxy(
                     model=model_instance,
                     tools=sa_tools,
@@ -446,7 +460,32 @@ def create_deep_agent(
                 len(compiled_subagents),
             )
         else:
-            transformed_subagents = subagents
+            if summarization_config is not None and summarization_config.enabled:
+                from graphton.core.summarization_middleware import ContextSummarizationMiddleware
+                
+                augmented_subagents = []
+                for sa in subagents:
+                    if "runnable" in sa:
+                        augmented_subagents.append(sa)
+                        continue
+                    sa_copy = dict(sa)
+                    sa_mw = list(sa_copy.get("middleware", []))
+                    sa_mw.insert(0, ContextSummarizationMiddleware(
+                        config=summarization_config,
+                        callback=None,
+                    ))
+                    sa_copy["middleware"] = sa_mw
+                    augmented_subagents.append(sa_copy)
+                transformed_subagents = augmented_subagents
+                logger.info(
+                    "Injected summarization middleware into %d sub-agent(s) "
+                    "(non-HITL path, trigger=%d, target=%d)",
+                    len(augmented_subagents),
+                    summarization_config.trigger_threshold,
+                    summarization_config.target_tokens,
+                )
+            else:
+                transformed_subagents = subagents
     
     # MCP integration (Universal Authentication Framework)
     if mcp_servers and mcp_tools:
