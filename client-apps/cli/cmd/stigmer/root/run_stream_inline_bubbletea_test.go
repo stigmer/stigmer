@@ -49,14 +49,14 @@ func TestInlineBubbleModel_Update_PassThrough(t *testing.T) {
 
 func TestInlineBubbleModel_SpinnerStart_ActivatesAndReturnsTick(t *testing.T) {
 	m := newInlineBubbleModel()
-	updated, cmd := m.Update(spinnerStartMsg{label: "Thinking..."})
+	updated, cmd := m.Update(spinnerStartMsg{label: "Planning next moves..."})
 
 	model := updated.(inlineBubbleModel)
 	if !model.spinnerActive {
 		t.Error("spinnerStartMsg should set spinnerActive=true")
 	}
-	if model.spinnerLabel != "Thinking..." {
-		t.Errorf("expected label 'Thinking...', got %q", model.spinnerLabel)
+	if model.spinnerLabel != "Planning next moves..." {
+		t.Errorf("expected label 'Planning next moves...', got %q", model.spinnerLabel)
 	}
 	if model.spinnerFrame != 0 {
 		t.Errorf("expected frame 0 on start, got %d", model.spinnerFrame)
@@ -68,7 +68,7 @@ func TestInlineBubbleModel_SpinnerStart_ActivatesAndReturnsTick(t *testing.T) {
 
 func TestInlineBubbleModel_SpinnerStop_Deactivates(t *testing.T) {
 	m := newInlineBubbleModel()
-	started, _ := m.Update(spinnerStartMsg{label: "Thinking..."})
+	started, _ := m.Update(spinnerStartMsg{label: "Planning next moves..."})
 	stopped, cmd := started.Update(spinnerStopMsg{})
 
 	model := stopped.(inlineBubbleModel)
@@ -82,7 +82,7 @@ func TestInlineBubbleModel_SpinnerStop_Deactivates(t *testing.T) {
 
 func TestInlineBubbleModel_SpinnerTick_AdvancesFrame(t *testing.T) {
 	m := newInlineBubbleModel()
-	started, _ := m.Update(spinnerStartMsg{label: "Thinking..."})
+	started, _ := m.Update(spinnerStartMsg{label: "Planning next moves..."})
 
 	ticked, cmd := started.Update(spinnerTickMsg{})
 	model := ticked.(inlineBubbleModel)
@@ -115,14 +115,14 @@ func TestInlineBubbleModel_SpinnerTick_StopsWhenInactive(t *testing.T) {
 
 func TestInlineBubbleModel_View_SpinnerActive(t *testing.T) {
 	m := newInlineBubbleModel()
-	started, _ := m.Update(spinnerStartMsg{label: "Thinking..."})
+	started, _ := m.Update(spinnerStartMsg{label: "Planning next moves..."})
 	model := started.(inlineBubbleModel)
 
 	v := model.View().Content
 	if v == "" {
 		t.Fatal("View() should return non-empty string when spinner is active")
 	}
-	if !strings.Contains(v, "Thinking...") {
+	if !strings.Contains(v, "Planning next moves...") {
 		t.Errorf("View() should contain the label, got %q", v)
 	}
 	if !strings.Contains(v, "⠋") {
@@ -148,13 +148,13 @@ func TestInlineBubbleModel_SpinnerStart_ResetsFrame(t *testing.T) {
 		t.Fatalf("expected frame 2 before restart, got %d", model.spinnerFrame)
 	}
 
-	restarted, _ := ticked2.Update(spinnerStartMsg{label: "Thinking..."})
+	restarted, _ := ticked2.Update(spinnerStartMsg{label: "Planning next moves..."})
 	restartedModel := restarted.(inlineBubbleModel)
 	if restartedModel.spinnerFrame != 0 {
 		t.Errorf("spinnerStartMsg should reset frame to 0, got %d", restartedModel.spinnerFrame)
 	}
-	if restartedModel.spinnerLabel != "Thinking..." {
-		t.Errorf("expected label 'Thinking...' after restart, got %q", restartedModel.spinnerLabel)
+	if restartedModel.spinnerLabel != "Planning next moves..." {
+		t.Errorf("expected label 'Planning next moves...' after restart, got %q", restartedModel.spinnerLabel)
 	}
 }
 
@@ -253,12 +253,12 @@ func TestInlineBubbleModel_View_ApprovalActive_ShowsQuestionAndMenu(t *testing.T
 
 func TestInlineBubbleModel_View_ApprovalPriorityOverSpinner(t *testing.T) {
 	m := newInlineBubbleModel()
-	started, _ := m.Update(spinnerStartMsg{label: "Thinking..."})
+	started, _ := m.Update(spinnerStartMsg{label: "Planning next moves..."})
 	shown, _ := started.Update(approvalShowMsg{question: "approval question"})
 	model := shown.(inlineBubbleModel)
 
 	v := model.View().Content
-	if strings.Contains(v, "Thinking...") {
+	if strings.Contains(v, "Planning next moves...") {
 		t.Error("approval panel should take priority over spinner in View()")
 	}
 	if !strings.Contains(v, "approval question") {
@@ -268,7 +268,7 @@ func TestInlineBubbleModel_View_ApprovalPriorityOverSpinner(t *testing.T) {
 
 func TestInlineBubbleModel_ApprovalHide_ResumesSpinner(t *testing.T) {
 	m := newInlineBubbleModel()
-	started, _ := m.Update(spinnerStartMsg{label: "Thinking..."})
+	started, _ := m.Update(spinnerStartMsg{label: "Planning next moves..."})
 	shown, _ := started.Update(approvalShowMsg{question: "content"})
 	hidden, _ := shown.Update(approvalHideMsg{})
 	model := hidden.(inlineBubbleModel)
@@ -692,12 +692,12 @@ func TestInlineBubbleModel_ApprovalShow_PrintlnForExpandedContent(t *testing.T) 
 
 func TestInlineBubbleModel_View_StreamingPriorityOverSpinner(t *testing.T) {
 	m := newInlineBubbleModel()
-	started, _ := m.Update(spinnerStartMsg{label: "Thinking..."})
+	started, _ := m.Update(spinnerStartMsg{label: "Planning next moves..."})
 	streamed, _ := started.Update(streamingShowMsg{header: "streaming\n"})
 	model := streamed.(inlineBubbleModel)
 
 	v := model.View().Content
-	if strings.Contains(v, "Thinking...") {
+	if strings.Contains(v, "Planning next moves...") {
 		t.Error("streaming should take priority over spinner in View()")
 	}
 	if !strings.Contains(v, "streaming") {
@@ -775,12 +775,12 @@ func TestInlineBubbleModel_View_FollowUpActive_ShowsPrompt(t *testing.T) {
 
 func TestInlineBubbleModel_View_FollowUpPriorityOverSpinner(t *testing.T) {
 	m := newInlineBubbleModel()
-	started, _ := m.Update(spinnerStartMsg{label: "Thinking..."})
+	started, _ := m.Update(spinnerStartMsg{label: "Planning next moves..."})
 	shown, _ := started.Update(followUpShowMsg{content: "follow-up prompt"})
 	model := shown.(inlineBubbleModel)
 
 	v := model.View().Content
-	if strings.Contains(v, "Thinking...") {
+	if strings.Contains(v, "Planning next moves...") {
 		t.Error("follow-up prompt should take priority over spinner in View()")
 	}
 	if !strings.Contains(v, "follow-up prompt") {
@@ -1125,14 +1125,14 @@ func TestView_SubAgentActiveShowsActivityNotSpinner(t *testing.T) {
 	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search"})
 	model := updated.(inlineBubbleModel)
 	model.spinnerActive = true
-	model.spinnerLabel = "Thinking..."
+	model.spinnerLabel = "Planning next moves..."
 
 	v := model.View()
 
 	if !strings.Contains(v.Content, "Sub-agent") {
 		t.Error("View() should show sub-agent line when sub-agents are active")
 	}
-	if strings.Contains(v.Content, "Thinking...") {
+	if strings.Contains(v.Content, "Planning next moves...") {
 		t.Error("View() should NOT show main spinner when sub-agents are active")
 	}
 }

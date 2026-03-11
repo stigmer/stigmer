@@ -17,7 +17,7 @@ func (r *inlineRenderer) startThinkingSpinner() {
 		return
 	}
 	if r.cfg.program != nil {
-		r.cfg.program.Send(spinnerStartMsg{label: "Thinking..."})
+		r.cfg.program.Send(spinnerStartMsg{label: "Planning next moves..."})
 	}
 }
 
