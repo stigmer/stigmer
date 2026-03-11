@@ -331,9 +331,6 @@ func (r *inlineRenderer) finalizeApprovalViaBubbletea(
 		r.trackSuppression(e.ToolCallID, tc.Name, action)
 		r.triggerReCommit()
 	}
-	if subAgentID != "" && r.hasActiveSubAgent(subAgentID) {
-		r.cfg.program.Send(subAgentActivityMsg{id: subAgentID, activity: ""})
-	}
 }
 
 // promptApprovalDirect is the direct-write fallback used when no

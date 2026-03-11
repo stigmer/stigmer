@@ -543,7 +543,6 @@ func (r *inlineRenderer) transferSubAgentEntries(m *inlineBubbleModel) {
 		m.activeSubAgentEntries = append(m.activeSubAgentEntries, subAgentDisplayEntry{
 			id:           id,
 			subject:      block.subject,
-			toolCount:    block.toolCount,
 			spinnerStart: now,
 		})
 	}

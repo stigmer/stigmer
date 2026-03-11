@@ -991,7 +991,7 @@ func TestStatusf_ProgramPrintln_WhenProgramPresent(t *testing.T) {
 // Sub-agent activity and spinner tests
 // =============================================================================
 
-func TestSubAgentShow_StartsTickChainAndInitializesActivity(t *testing.T) {
+func TestSubAgentShow_StartsTickChainAndInitializesEntry(t *testing.T) {
 	m := newInlineBubbleModel()
 	updated, cmd := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search code"})
 	model := updated.(inlineBubbleModel)
@@ -1000,9 +1000,6 @@ func TestSubAgentShow_StartsTickChainAndInitializesActivity(t *testing.T) {
 		t.Fatalf("expected 1 active entry, got %d", len(model.activeSubAgentEntries))
 	}
 	e := model.activeSubAgentEntries[0]
-	if e.activity != "" {
-		t.Errorf("activity should be empty, got %q", e.activity)
-	}
 	if model.subAgentSpinnerFrame != 0 {
 		t.Errorf("subAgentSpinnerFrame should be 0, got %d", model.subAgentSpinnerFrame)
 	}
@@ -1014,7 +1011,7 @@ func TestSubAgentShow_StartsTickChainAndInitializesActivity(t *testing.T) {
 	}
 }
 
-func TestSubAgentHide_ClearsActivityAndStopsTickChain(t *testing.T) {
+func TestSubAgentHide_RemovesEntryAndStopsTickChain(t *testing.T) {
 	m := newInlineBubbleModel()
 	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search code"})
 	model := updated.(inlineBubbleModel)
@@ -1033,60 +1030,12 @@ func TestSubAgentHide_ClearsActivityAndStopsTickChain(t *testing.T) {
 	}
 }
 
-func TestSubAgentActivity_SetsLabelWithoutResettingTimer(t *testing.T) {
-	m := newInlineBubbleModel()
-	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search code"})
-	model := updated.(inlineBubbleModel)
-
-	before := model.activeSubAgentEntries[0].spinnerStart
-	time.Sleep(time.Millisecond)
-
-	updated, cmd := model.Update(subAgentActivityMsg{id: "sa-1", activity: "Grep"})
-	model = updated.(inlineBubbleModel)
-
-	if model.activeSubAgentEntries[0].pendingActivity != "Grep" {
-		t.Errorf("pendingActivity should be 'Grep', got %q", model.activeSubAgentEntries[0].pendingActivity)
-	}
-	if model.activeSubAgentEntries[0].activity != "" {
-		t.Errorf("display activity should remain empty until tick, got %q", model.activeSubAgentEntries[0].activity)
-	}
-	if model.activeSubAgentEntries[0].spinnerStart != before {
-		t.Error("spinnerStart should NOT be reset on activity change (avoids elapsed time jumps)")
-	}
-	if cmd != nil {
-		t.Error("handleSubAgentActivity should return nil Cmd")
-	}
-
-	// After a tick, pendingActivity should be copied to the display field.
-	updated, _ = model.Update(subAgentTickMsg{})
-	model = updated.(inlineBubbleModel)
-	if model.activeSubAgentEntries[0].activity != "Grep" {
-		t.Errorf("activity should be 'Grep' after tick, got %q", model.activeSubAgentEntries[0].activity)
-	}
-}
-
-func TestSubAgentActivity_IgnoresMismatchedID(t *testing.T) {
-	m := newInlineBubbleModel()
-	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search code"})
-	model := updated.(inlineBubbleModel)
-
-	updated, _ = model.Update(subAgentActivityMsg{id: "sa-other", activity: "Shell"})
-	model = updated.(inlineBubbleModel)
-
-	if model.activeSubAgentEntries[0].pendingActivity != "" {
-		t.Errorf("pendingActivity should remain empty for mismatched ID, got %q", model.activeSubAgentEntries[0].pendingActivity)
-	}
-}
-
 func TestSubAgentTick_AdvancesFrameAndCachesElapsed(t *testing.T) {
 	m := newInlineBubbleModel()
 	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search"})
 	model := updated.(inlineBubbleModel)
 
-	// Force spinnerStart far enough in the past to produce a non-empty elapsed string.
 	model.activeSubAgentEntries[0].spinnerStart = time.Now().Add(-5 * time.Second)
-	model.activeSubAgentEntries[0].pendingActivity = "Grep"
-	model.activeSubAgentEntries[0].pendingToolCount = 7
 
 	updated, cmd := model.Update(subAgentTickMsg{})
 	model = updated.(inlineBubbleModel)
@@ -1100,12 +1049,6 @@ func TestSubAgentTick_AdvancesFrameAndCachesElapsed(t *testing.T) {
 	if model.activeSubAgentEntries[0].elapsedStr == "" {
 		t.Error("handleSubAgentTick should cache elapsedStr for the entry")
 	}
-	if model.activeSubAgentEntries[0].activity != "Grep" {
-		t.Errorf("tick should copy pendingActivity to activity, got %q", model.activeSubAgentEntries[0].activity)
-	}
-	if model.activeSubAgentEntries[0].toolCount != 7 {
-		t.Errorf("tick should copy pendingToolCount to toolCount, got %d", model.activeSubAgentEntries[0].toolCount)
-	}
 }
 
 func TestSubAgentTick_TerminatesWhenInactive(t *testing.T) {
@@ -1116,19 +1059,18 @@ func TestSubAgentTick_TerminatesWhenInactive(t *testing.T) {
 	}
 }
 
-func TestRenderSubAgentLine_ContainsSpinnerFrameAndActivity(t *testing.T) {
+func TestRenderSubAgentLine_ContainsSubjectAndWorking(t *testing.T) {
 	m := newInlineBubbleModel()
 	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Explore CLI"})
 	model := updated.(inlineBubbleModel)
-	model.activeSubAgentEntries[0].activity = "Thinking"
 
 	line := model.renderSubAgentLine()
 
 	if !strings.Contains(line, "Explore CLI") {
 		t.Errorf("renderSubAgentLine should contain subject, got %q", line)
 	}
-	if !strings.Contains(line, "Thinking") {
-		t.Errorf("renderSubAgentLine should contain activity label, got %q", line)
+	if !strings.Contains(line, "Working") {
+		t.Errorf("renderSubAgentLine should always show 'Working' label, got %q", line)
 	}
 	if !strings.Contains(line, "\n") {
 		t.Errorf("renderSubAgentLine should be two lines (contain newline), got %q", line)
@@ -1147,20 +1089,7 @@ func TestRenderSubAgentLine_DefaultActivityIsWorking(t *testing.T) {
 	}
 }
 
-func TestRenderSubAgentLine_ShowsToolCountWhenPositive(t *testing.T) {
-	m := newInlineBubbleModel()
-	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search"})
-	model := updated.(inlineBubbleModel)
-	model.activeSubAgentEntries[0].toolCount = 5
-
-	line := model.renderSubAgentLine()
-
-	if !strings.Contains(line, "(5 tools)") {
-		t.Errorf("renderSubAgentLine should show tool count, got %q", line)
-	}
-}
-
-func TestRenderSubAgentLine_HidesToolCountWhenZero(t *testing.T) {
+func TestRenderSubAgentLine_DoesNotShowToolCount(t *testing.T) {
 	m := newInlineBubbleModel()
 	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search"})
 	model := updated.(inlineBubbleModel)
@@ -1168,7 +1097,7 @@ func TestRenderSubAgentLine_HidesToolCountWhenZero(t *testing.T) {
 	line := model.renderSubAgentLine()
 
 	if strings.Contains(line, "tools)") {
-		t.Errorf("renderSubAgentLine should not show tool count when zero, got %q", line)
+		t.Errorf("renderSubAgentLine should not show tool count in live view, got %q", line)
 	}
 }
 
@@ -1329,56 +1258,6 @@ func TestSubAgentHide_PartialRemoval(t *testing.T) {
 	}
 	if strings.Contains(line, "Second") {
 		t.Error("stacked view should not contain removed subject")
-	}
-}
-
-// =============================================================================
-// Double-buffer pending field tests
-// =============================================================================
-
-func TestSubAgentUpdate_WritesPendingNotDisplay(t *testing.T) {
-	m := newInlineBubbleModel()
-	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search"})
-	model := updated.(inlineBubbleModel)
-
-	updated, _ = model.Update(subAgentUpdateMsg{id: "sa-1", toolCount: 5})
-	model = updated.(inlineBubbleModel)
-
-	if model.activeSubAgentEntries[0].pendingToolCount != 5 {
-		t.Errorf("pendingToolCount should be 5, got %d", model.activeSubAgentEntries[0].pendingToolCount)
-	}
-	if model.activeSubAgentEntries[0].toolCount != 0 {
-		t.Errorf("display toolCount should remain 0 until tick, got %d", model.activeSubAgentEntries[0].toolCount)
-	}
-
-	// After tick, pending should be copied to display.
-	updated, _ = model.Update(subAgentTickMsg{})
-	model = updated.(inlineBubbleModel)
-	if model.activeSubAgentEntries[0].toolCount != 5 {
-		t.Errorf("display toolCount should be 5 after tick, got %d", model.activeSubAgentEntries[0].toolCount)
-	}
-}
-
-func TestSubAgentActivity_WritesPendingNotDisplay(t *testing.T) {
-	m := newInlineBubbleModel()
-	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search"})
-	model := updated.(inlineBubbleModel)
-
-	updated, _ = model.Update(subAgentActivityMsg{id: "sa-1", activity: "Shell"})
-	model = updated.(inlineBubbleModel)
-
-	if model.activeSubAgentEntries[0].pendingActivity != "Shell" {
-		t.Errorf("pendingActivity should be 'Shell', got %q", model.activeSubAgentEntries[0].pendingActivity)
-	}
-	if model.activeSubAgentEntries[0].activity != "" {
-		t.Errorf("display activity should remain empty until tick, got %q", model.activeSubAgentEntries[0].activity)
-	}
-
-	// After tick, pending should be copied to display.
-	updated, _ = model.Update(subAgentTickMsg{})
-	model = updated.(inlineBubbleModel)
-	if model.activeSubAgentEntries[0].activity != "Shell" {
-		t.Errorf("display activity should be 'Shell' after tick, got %q", model.activeSubAgentEntries[0].activity)
 	}
 }
 

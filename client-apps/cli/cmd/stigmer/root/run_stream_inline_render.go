@@ -39,9 +39,6 @@ func (r *inlineRenderer) renderToolCompleted(e executiontui.ToolCompletedEvent) 
 	}
 	if r.hasActiveSubAgent(e.SubAgentID) {
 		r.appendToSubAgentBlock(e.SubAgentID, item, true)
-		if r.cfg.program != nil {
-			r.cfg.program.Send(subAgentActivityMsg{id: e.SubAgentID, activity: ""})
-		}
 	} else {
 		r.commitToScrollback(item)
 	}
@@ -280,7 +277,6 @@ func (r *inlineRenderer) flushPendingReads() {
 	if block, ok := r.activeSubAgents[subAgentID]; ok && subAgentID != "" {
 		block.children = append(block.children, item)
 		block.toolCount += len(tcs)
-		r.sendSubAgentUpdate(block)
 	} else {
 		r.commitToScrollback(item)
 	}
@@ -293,8 +289,8 @@ func (r *inlineRenderer) flushPendingReads() {
 
 // appendToSubAgentBlock adds a committed item to the active sub-agent block's
 // children and increments the tool count when the item represents a tool
-// completion. Sends a subAgentUpdateMsg to Bubbletea to refresh the live
-// summary. No-op if no active block matches subAgentID.
+// completion. The tool count is tracked on the block for the scrollback
+// summary but is not pushed to the live Bubbletea view.
 func (r *inlineRenderer) appendToSubAgentBlock(subAgentID string, item committedItem, isTool bool) {
 	block, ok := r.activeSubAgents[subAgentID]
 	if !ok {
@@ -303,18 +299,6 @@ func (r *inlineRenderer) appendToSubAgentBlock(subAgentID string, item committed
 	block.children = append(block.children, item)
 	if isTool {
 		block.toolCount++
-		r.sendSubAgentUpdate(block)
-	}
-}
-
-// sendSubAgentUpdate sends a subAgentUpdateMsg to the Bubbletea program
-// with the current tool count. No-op when no program is active.
-func (r *inlineRenderer) sendSubAgentUpdate(block *subAgentBlock) {
-	if r.cfg.program != nil {
-		r.cfg.program.Send(subAgentUpdateMsg{
-			id:        block.id,
-			toolCount: block.toolCount,
-		})
 	}
 }
 

@@ -195,30 +195,11 @@ type subAgentShowMsg struct {
 	subject string
 }
 
-// subAgentUpdateMsg updates the running tool count for the live sub-agent
-// summary in View(). Sent each time a tool completion is routed to the
-// active sub-agent block's children.
-type subAgentUpdateMsg struct {
-	id        string
-	toolCount int
-}
-
 // subAgentHideMsg clears the live sub-agent summary from View(). Sent
 // when a SubAgentCompletedEvent is processed and the finalized block
 // is committed to scrollback.
 type subAgentHideMsg struct {
 	id string
-}
-
-// subAgentActivityMsg updates the activity label on the running sub-agent
-// line in View(). Sent by the event loop when a sub-agent's AI begins
-// streaming (activity="Thinking"), a tool starts running (activity=tool
-// name), or the current phase ends (activity="" reverts to "Working").
-// The model resets the elapsed timer on each activity change so the user
-// sees per-phase durations.
-type subAgentActivityMsg struct {
-	id       string
-	activity string
 }
 
 // subAgentCompleteMsg atomically removes a sub-agent from the live View()
