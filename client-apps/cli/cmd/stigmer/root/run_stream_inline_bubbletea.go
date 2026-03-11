@@ -212,6 +212,8 @@ func (m inlineBubbleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleSubAgentUpdate(msg)
 	case subAgentHideMsg:
 		return m.handleSubAgentHide(msg)
+	case subAgentCompleteMsg:
+		return m.handleSubAgentComplete(msg)
 	case subAgentActivityMsg:
 		return m.handleSubAgentActivity(msg)
 	case subAgentTickMsg:
@@ -622,7 +624,7 @@ func (m inlineBubbleModel) handleSubAgentShow(msg subAgentShowMsg) (tea.Model, t
 func (m inlineBubbleModel) handleSubAgentUpdate(msg subAgentUpdateMsg) (tea.Model, tea.Cmd) {
 	for i := range m.activeSubAgentEntries {
 		if m.activeSubAgentEntries[i].id == msg.id {
-			m.activeSubAgentEntries[i].toolCount = msg.toolCount
+			m.activeSubAgentEntries[i].pendingToolCount = msg.toolCount
 			break
 		}
 	}
@@ -642,10 +644,30 @@ func (m inlineBubbleModel) handleSubAgentHide(msg subAgentHideMsg) (tea.Model, t
 	return m, nil
 }
 
+// handleSubAgentComplete atomically removes a sub-agent from the live
+// View() and commits its scrollback content via tea.Println in a single
+// Update() call. This eliminates the two-frame glitch that occurred when
+// the renderer sent a separate Println + subAgentHideMsg pair.
+func (m inlineBubbleModel) handleSubAgentComplete(msg subAgentCompleteMsg) (tea.Model, tea.Cmd) {
+	for i, e := range m.activeSubAgentEntries {
+		if e.id == msg.id {
+			m.activeSubAgentEntries = append(m.activeSubAgentEntries[:i], m.activeSubAgentEntries[i+1:]...)
+			break
+		}
+	}
+	if len(m.activeSubAgentEntries) == 0 {
+		m.subAgentSpinnerFrame = 0
+	}
+	if msg.scrollbackLines != "" {
+		return m, tea.Println(msg.scrollbackLines)
+	}
+	return m, nil
+}
+
 func (m inlineBubbleModel) handleSubAgentActivity(msg subAgentActivityMsg) (tea.Model, tea.Cmd) {
 	for i := range m.activeSubAgentEntries {
 		if m.activeSubAgentEntries[i].id == msg.id {
-			m.activeSubAgentEntries[i].activity = msg.activity
+			m.activeSubAgentEntries[i].pendingActivity = msg.activity
 			break
 		}
 	}
@@ -659,7 +681,10 @@ func (m inlineBubbleModel) handleSubAgentTick() (tea.Model, tea.Cmd) {
 	m.subAgentSpinnerFrame++
 	now := time.Now()
 	for i := range m.activeSubAgentEntries {
-		m.activeSubAgentEntries[i].elapsedStr = spinner.FormatElapsed(now.Sub(m.activeSubAgentEntries[i].spinnerStart))
+		e := &m.activeSubAgentEntries[i]
+		e.activity = e.pendingActivity
+		e.toolCount = e.pendingToolCount
+		e.elapsedStr = spinner.FormatElapsed(now.Sub(e.spinnerStart))
 	}
 	return m, nextSubAgentTick()
 }

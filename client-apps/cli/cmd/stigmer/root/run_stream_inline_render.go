@@ -179,15 +179,41 @@ func (r *inlineRenderer) renderSubAgentCompleted(e executiontui.SubAgentComplete
 		block.toolCount = e.ToolCount
 	}
 
-	r.commitToScrollback(committedItem{
+	item := committedItem{
 		kind:    kindSubAgentBlock,
 		saBlock: block,
-	})
+	}
+
 	delete(r.activeSubAgents, e.ID)
 	r.completedSubAgentIDs[e.ID] = true
 
 	if r.cfg.program != nil {
-		r.cfg.program.Send(subAgentHideMsg{id: e.ID})
+		// Pre-render scrollback text with gap logic so the Bubbletea
+		// model can remove the live entry and commit to scrollback in
+		// a single Update() call (atomic transition, no flicker).
+		text := renderCommittedItem(item, r.compactOpts, r.expandMode, r.expandHintEnabled())
+		r.history = append(r.history, item)
+
+		var scrollback string
+		if text != "" {
+			var sb strings.Builder
+			if needsLeadingGap(r.lastScrollbackKind, item.kind) {
+				sb.WriteByte('\n')
+			}
+			sb.WriteString(text)
+			if item.kind == kindHeader || needsTrailingGap(item.kind) {
+				sb.WriteByte('\n')
+			}
+			scrollback = sb.String()
+		}
+		r.lastScrollbackKind = item.kind
+
+		r.cfg.program.Send(subAgentCompleteMsg{
+			id:              e.ID,
+			scrollbackLines: scrollback,
+		})
+	} else {
+		r.commitToScrollback(item)
 	}
 }
 

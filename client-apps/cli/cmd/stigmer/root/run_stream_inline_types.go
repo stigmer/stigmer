@@ -158,13 +158,26 @@ type waitingApprovalState struct {
 // subAgentDisplayEntry holds per-sub-agent display state for the live
 // stacked view in Bubbletea. Multiple entries are rendered simultaneously
 // when parallel sub-agents are active.
+//
+// Display fields (toolCount, activity, elapsedStr) are read by
+// renderSubAgentLine() and written only by handleSubAgentTick. Event
+// handlers write to the corresponding pending* shadow fields instead.
+// This double-buffering ensures View() output is byte-for-byte stable
+// between ticks, so Bubbletea skips terminal writes for intermediate
+// events and only redraws at the tick interval (~150ms).
 type subAgentDisplayEntry struct {
 	id           string
 	subject      string
-	toolCount    int
-	activity     string
 	spinnerStart time.Time
-	elapsedStr   string // cached elapsed display; updated only on tick to reduce View() diff surface
+
+	// Display fields — read by renderSubAgentLine(), written only by tick.
+	toolCount  int
+	activity   string
+	elapsedStr string
+
+	// Pending fields — written by event handlers, copied to display by tick.
+	pendingToolCount int
+	pendingActivity  string
 }
 
 // subAgentBlock is the aggregate for a single sub-agent execution. It buffers
