@@ -367,11 +367,12 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 		// --- Step 3b: Defense-in-depth approval detection ---
 		//
 		// When the execution is WAITING_FOR_APPROVAL but pending_approvals is
-		// empty (backend snapshot timing: write-ordering or replication lag
-		// between MongoDB and Redis), fall back to scanning tool call statuses.
-		// This ensures the approval prompt appears on re-attach even when the
-		// backend's initial snapshot omits pending_approvals.
-		if len(execution.Status.GetPendingApprovals()) == 0 &&
+		// empty or contains only unusable entries (both tool_call_id and
+		// interrupt_id are empty), fall back to scanning tool call statuses.
+		// This ensures the approval prompt appears even when the backend's
+		// post-stream interrupt capture produced degraded PendingApproval
+		// entries, or on re-attach when the snapshot omits pending_approvals.
+		if !hasUsableApproval(execution.Status.GetPendingApprovals(), promptedIDs) &&
 			execution.Status.Phase == agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL {
 			unprompted := findAllUnpromptedApprovals(
 				execution.Status.ToolCalls,
@@ -927,4 +928,20 @@ func approvalDedupKey(pa *agentexecutionv1.PendingApproval) string {
 		return id
 	}
 	return ""
+}
+
+// hasUsableApproval returns true if at least one PendingApproval in the slice
+// has a non-empty dedup key (tool_call_id or interrupt_id) that has not already
+// been prompted.  When every entry is degraded (empty key) or already prompted,
+// this returns false so the caller can fall back to the tool-call status scan.
+func hasUsableApproval(
+	approvals []*agentexecutionv1.PendingApproval,
+	promptedIDs map[string]bool,
+) bool {
+	for _, pa := range approvals {
+		if key := approvalDedupKey(pa); key != "" && !promptedIDs[key] {
+			return true
+		}
+	}
+	return false
 }
