@@ -2740,8 +2740,8 @@ async def _execute_graphton_impl(
         #
         # During astream_events(), heartbeats are only sent when events arrive.
         # But when the LLM is "thinking" (processing a long prompt before generating
-        # output), no events are emitted — this gap can exceed the 30-second Temporal
-        # heartbeat timeout, causing Temporal to kill the activity.
+        # output), no events are emitted — this gap can exceed the Temporal heartbeat
+        # timeout, causing Temporal to kill the activity.
         #
         # This background task sends heartbeats at a fixed 10-second interval,
         # independent of event arrival. It runs concurrently with the event stream
@@ -2749,9 +2749,11 @@ async def _execute_graphton_impl(
         # ─────────────────────────────────────────────────────────────────────────────
         async def _background_heartbeat() -> None:
             """Send periodic heartbeats to Temporal, independent of event stream."""
-            background_heartbeat_interval = 10.0  # seconds (well within 30s timeout)
+            background_heartbeat_interval = 10.0  # seconds (well within 120s timeout)
+            hb_count = 0
             while True:
                 await asyncio.sleep(background_heartbeat_interval)
+                hb_count += 1
                 try:
                     activity.heartbeat({
                         "thread_id": thread_id,
@@ -2762,10 +2764,18 @@ async def _execute_graphton_impl(
                         "phase": status_builder.current_status.phase,
                         "source": "background",
                     })
-                except Exception as hb_err:
-                    # Heartbeat failure is not critical — log at debug level and continue.
-                    # The in-loop heartbeat (when events arrive) provides redundancy.
-                    activity_logger.debug(f"Background heartbeat failed: {hb_err}")
+                    activity_logger.info(
+                        f"[HEARTBEAT] execution={execution_id} "
+                        f"seq={hb_count} events={events_processed} "
+                        f"source=background"
+                    )
+                except BaseException as hb_err:
+                    activity_logger.info(
+                        f"[HEARTBEAT] execution={execution_id} "
+                        f"seq={hb_count} failed: {type(hb_err).__name__}: {hb_err}"
+                    )
+                    if isinstance(hb_err, (asyncio.CancelledError, KeyboardInterrupt)):
+                        raise
         
         # ─────────────────────────────────────────────────────────────────────────────
         # Stall Detection Timeout

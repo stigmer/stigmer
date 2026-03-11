@@ -1,6 +1,7 @@
 """Temporal worker for agent-runner service."""
 
 import logging
+from datetime import timedelta
 
 import redis
 from temporalio.client import Client
@@ -148,6 +149,7 @@ class AgentRunner:
                 generate_session_subject,
             ],
             max_concurrent_activities=self.config.max_concurrency,
+            max_heartbeat_throttle_interval=timedelta(seconds=10),
         )
         
         self.logger.info(
