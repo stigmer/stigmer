@@ -2408,11 +2408,27 @@ async def _execute_graphton_impl(
             # interrupt_id (e.g., legacy from_sub_agent mismatch), query the
             # graph checkpoint to discover the actual interrupt IDs.
             if not loop_aborted and needs_interrupt_discovery:
+                activity_logger.info(
+                    f"[DIAG] Resume path: {len(needs_interrupt_discovery)} "
+                    f"pending approval(s) need interrupt discovery: "
+                    + ", ".join(
+                        f"tool={pa.tool_name} tc_id={pa.tool_call_id}"
+                        for pa, _ in needs_interrupt_discovery
+                    )
+                )
                 try:
                     graph_state = await agent_graph.aget_state(
                         cast(RunnableConfig, config)
                     )
                     if graph_state and graph_state.interrupts:
+                        activity_logger.info(
+                            f"[DIAG] Resume path: {len(graph_state.interrupts)} "
+                            f"interrupt(s) in graph state: "
+                            + ", ".join(
+                                f"id={i.id} tool={i.value.get('tool_name', '') if isinstance(i.value, dict) else ''}"
+                                for i in graph_state.interrupts
+                            )
+                        )
                         consumed_ids = set(resume_dict.keys())
                         available_interrupts = [
                             i for i in graph_state.interrupts
@@ -2441,24 +2457,23 @@ async def _execute_graphton_impl(
                                 )
                             else:
                                 activity_logger.warning(
-                                    f"⚠️ [RESUME_FALLBACK] Cannot discover interrupt_id "
+                                    f"⚠️ [RESUME_PARTIAL] Cannot discover interrupt_id "
                                     f"for tool={pa.tool_name} tc_id={pa.tool_call_id}. "
-                                    f"Clearing resume_dict."
+                                    f"Skipping — partial resume will proceed with "
+                                    f"{len(resume_dict)} resolved interrupt(s)."
                                 )
-                                resume_dict = {}
-                                break
                     else:
                         activity_logger.warning(
                             "[RESUME_FALLBACK] No interrupts in graph checkpoint. "
-                            "Clearing resume_dict."
+                            "Proceeding with %d already-resolved interrupt(s).",
+                            len(resume_dict),
                         )
-                        resume_dict = {}
                 except Exception as e:
                     activity_logger.warning(
                         f"[RESUME_FALLBACK] Failed to query graph state for "
-                        f"interrupt discovery: {e}. Clearing resume_dict."
+                        f"interrupt discovery: {e}. Proceeding with "
+                        f"{len(resume_dict)} already-resolved interrupt(s)."
                     )
-                    resume_dict = {}
             
             if resume_dict:
                 is_resume_from_approval = True
@@ -2507,12 +2522,18 @@ async def _execute_graphton_impl(
             decisions_by_tc = {d.tool_call_id: d for d in approval_decisions}
             
             reconciled_count = 0
-            for tc in status_builder.current_status.tool_calls:
+            
+            def _reconcile_tool_call(tc: Any, context: str) -> bool:
+                """Update a single tool call from WAITING_APPROVAL to its post-decision status.
+                
+                Returns True if the tool call was reconciled.
+                """
+                nonlocal reconciled_count
                 if tc.status != ToolCallStatus.TOOL_CALL_WAITING_APPROVAL:
-                    continue
+                    return False
                 decision = decisions_by_tc.get(tc.id)
                 if decision is None:
-                    continue
+                    return False
                 new_status = _approval_to_tool_status.get(
                     decision.action, ToolCallStatus.TOOL_CALL_RUNNING
                 )
@@ -2524,9 +2545,17 @@ async def _execute_graphton_impl(
                 reconciled_count += 1
                 activity_logger.info(
                     f"[RESUME_RECONCILE] execution={execution_id} "
-                    f"tool_call={tc.id} name={tc.name} "
+                    f"tool_call={tc.id} name={tc.name} context={context} "
                     f"WAITING_APPROVAL -> {ToolCallStatus.Name(new_status)}"
                 )
+                return True
+            
+            for tc in status_builder.current_status.tool_calls:
+                _reconcile_tool_call(tc, context="top-level")
+            
+            for sa in status_builder.current_status.sub_agent_executions:
+                for tc in sa.tool_calls:
+                    _reconcile_tool_call(tc, context=f"sub-agent:{sa.name}")
             
             # Auto-skip remaining WAITING_APPROVAL tools when a REJECT was
             # in the batch.  The Go workflow short-circuits signal collection
@@ -2537,9 +2566,9 @@ async def _execute_graphton_impl(
                 for d in approval_decisions
             )
             if has_reject:
-                for tc in status_builder.current_status.tool_calls:
+                def _auto_skip_tool_call(tc: Any, context: str) -> None:
                     if tc.status != ToolCallStatus.TOOL_CALL_WAITING_APPROVAL:
-                        continue
+                        return
                     tc.status = ToolCallStatus.TOOL_CALL_SKIPPED
                     tc.approval_action = ApprovalAction.APPROVAL_ACTION_SKIP
                     tc.approval_decided_at = _utc_timestamp()
@@ -2549,9 +2578,15 @@ async def _execute_graphton_impl(
                     )
                     activity_logger.info(
                         f"[RESUME_RECONCILE] execution={execution_id} "
-                        f"tool_call={tc.id} name={tc.name} "
+                        f"tool_call={tc.id} name={tc.name} context={context} "
                         f"WAITING_APPROVAL -> TOOL_CALL_SKIPPED (auto-skip after reject)"
                     )
+                
+                for tc in status_builder.current_status.tool_calls:
+                    _auto_skip_tool_call(tc, context="top-level")
+                for sa in status_builder.current_status.sub_agent_executions:
+                    for tc in sa.tool_calls:
+                        _auto_skip_tool_call(tc, context=f"sub-agent:{sa.name}")
             
             # Clear stale pending_approvals — they are no longer pending
             del status_builder.current_status.pending_approvals[:]
@@ -3122,6 +3157,19 @@ async def _execute_graphton_impl(
                 )
                 
                 if graph_state and graph_state.interrupts:
+                    # ── Diagnostic: log every raw interrupt before matching ──
+                    for _diag_idx, _diag_intr in enumerate(graph_state.interrupts):
+                        _diag_val = _diag_intr.value if hasattr(_diag_intr, "value") else {}
+                        activity_logger.info(
+                            f"[DIAG] Raw interrupt [{_diag_idx}]: "
+                            f"id={_diag_intr.id} "
+                            f"tool_name={_diag_val.get('tool_name', '') if isinstance(_diag_val, dict) else ''} "
+                            f"from_sub_agent={_diag_val.get('from_sub_agent', False) if isinstance(_diag_val, dict) else False} "
+                            f"sub_agent_name={_diag_val.get('sub_agent_name', '') if isinstance(_diag_val, dict) else ''} "
+                            f"run_id={_diag_val.get('run_id', '') if isinstance(_diag_val, dict) else ''} "
+                            f"value_type={type(_diag_val).__name__}"
+                        )
+
                     phase1_count = len(status_builder.current_status.pending_approvals)
                     enriched_count = 0
                     added_count = 0
