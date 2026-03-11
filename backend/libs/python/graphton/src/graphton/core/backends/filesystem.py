@@ -13,11 +13,12 @@ Virtual platform mount (AD-01 v3):
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import subprocess
 import sys
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -349,19 +350,7 @@ class FilesystemBackend:
         self._invalidate_cache()
 
         try:
-            env = {**os.environ, "PYTHONUNBUFFERED": "1"}
-
-            # Ensure the managed Python is first on PATH so skill scripts
-            # use the same Python (and installed packages) as the agent-runner.
-            managed_bin = str(Path(sys.executable).parent)
-            current_path = env.get("PATH", "")
-            if managed_bin not in current_path.split(os.pathsep):
-                env["PATH"] = f"{managed_bin}{os.pathsep}{current_path}"
-
-            if self._env_vars:
-                env.update(self._env_vars)
-            if self._platform_root is not None:
-                env[STIGMER_PLATFORM_DIR_ENV] = str(self._platform_root)
+            env = self._build_execute_env()
 
             result = subprocess.run(
                 command,
@@ -396,6 +385,131 @@ class FilesystemBackend:
                 stdout="",
                 stderr=f"Command execution failed: {type(e).__name__}: {e}",
             )
+
+    async def execute_streaming(
+        self,
+        command: str,
+        timeout: int = 120,
+        on_chunk: Callable[[str], None] | None = None,
+    ) -> ExecutionResult:
+        """Execute shell command with live output streaming.
+
+        Runs the command asynchronously and invokes *on_chunk* for each
+        line of output as it arrives from stdout and stderr.  Both streams
+        are read concurrently so the caller sees a natural interleaving
+        (identical to a real terminal).
+
+        The *on_chunk* callback is invoked synchronously from within the
+        event loop — keep it lightweight (e.g. ``dispatch_custom_event``).
+        The backend itself has no knowledge of LangGraph; the caller
+        decides what to do with each chunk.
+
+        After the process terminates, the method returns an
+        ``ExecutionResult`` with separated stdout/stderr (same contract
+        as :meth:`execute`) so the final formatted result is identical.
+
+        Falls back to :meth:`execute` via ``asyncio.to_thread`` when the
+        subprocess cannot be created (e.g. platform restrictions).
+
+        Args:
+            command: Shell command to execute.
+            timeout: Command timeout in seconds (defaults to 120).
+            on_chunk: Called with each line of output (stdout or stderr)
+                as it is produced.  ``None`` disables streaming callbacks
+                (the method still returns the full result).
+
+        Returns:
+            ExecutionResult with exit code, stdout, and stderr.
+        """
+        self._invalidate_cache()
+
+        env = self._build_execute_env()
+
+        try:
+            process = await asyncio.create_subprocess_shell(
+                command,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                cwd=self.root_dir,
+                env=env,
+            )
+        except OSError as exc:
+            logger.warning(
+                "execute_streaming: subprocess creation failed, "
+                "falling back to sync execute: %s", exc,
+            )
+            return await asyncio.to_thread(self.execute, command, timeout)
+
+        stdout_lines: list[str] = []
+        stderr_lines: list[str] = []
+
+        async def _read_stream(
+            stream: asyncio.StreamReader,
+            collector: list[str],
+        ) -> None:
+            async for raw_line in stream:
+                line = raw_line.decode("utf-8", errors="replace")
+                collector.append(line)
+                if on_chunk is not None:
+                    on_chunk(line)
+
+        try:
+            await asyncio.wait_for(
+                asyncio.gather(
+                    _read_stream(process.stdout, stdout_lines),
+                    _read_stream(process.stderr, stderr_lines),
+                ),
+                timeout=timeout,
+            )
+            await process.wait()
+        except asyncio.TimeoutError:
+            process.kill()
+            await process.wait()
+            stdout = "".join(stdout_lines)
+            stderr_text = "".join(stderr_lines)
+            error_msg = f"Command timed out after {timeout} seconds"
+            return ExecutionResult(
+                exit_code=124,
+                stdout=stdout,
+                stderr=(
+                    f"{stderr_text}\n{error_msg}"
+                    if stderr_text
+                    else error_msg
+                ),
+            )
+        except Exception as exc:
+            try:
+                process.kill()
+            except ProcessLookupError:
+                pass
+            await process.wait()
+            return ExecutionResult(
+                exit_code=1,
+                stdout="".join(stdout_lines),
+                stderr=f"Command execution failed: {type(exc).__name__}: {exc}",
+            )
+
+        return ExecutionResult(
+            exit_code=process.returncode or 0,
+            stdout="".join(stdout_lines),
+            stderr="".join(stderr_lines),
+        )
+
+    def _build_execute_env(self) -> dict[str, str]:
+        """Build the environment dict shared by execute() and execute_streaming()."""
+        env = {**os.environ, "PYTHONUNBUFFERED": "1"}
+
+        managed_bin = str(Path(sys.executable).parent)
+        current_path = env.get("PATH", "")
+        if managed_bin not in current_path.split(os.pathsep):
+            env["PATH"] = f"{managed_bin}{os.pathsep}{current_path}"
+
+        if self._env_vars:
+            env.update(self._env_vars)
+        if self._platform_root is not None:
+            env[STIGMER_PLATFORM_DIR_ENV] = str(self._platform_root)
+
+        return env
 
     # -- File operations -------------------------------------------------------
 

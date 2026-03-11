@@ -1409,3 +1409,103 @@ class TestAllowedRootsPathRewriting:
             allowed_roots={"project": str(project_dir)},
         )
         assert sb.read_file("root_file.txt") == "root"
+
+
+# =============================================================================
+# execute_streaming
+# =============================================================================
+
+
+class TestExecuteStreaming:
+    """Tests for FilesystemBackend.execute_streaming() async method."""
+
+    @pytest.mark.asyncio
+    async def test_streaming_echo_collects_stdout(
+        self, sandbox: FilesystemBackend,
+    ) -> None:
+        result = await sandbox.execute_streaming("echo hello")
+        assert result.stdout == "hello\n"
+        assert result.exit_code == 0
+
+    @pytest.mark.asyncio
+    async def test_streaming_on_chunk_receives_lines(
+        self, sandbox: FilesystemBackend,
+    ) -> None:
+        chunks: list[str] = []
+
+        def on_chunk(line: str) -> None:
+            chunks.append(line)
+
+        await sandbox.execute_streaming(
+            "printf 'line1\\nline2\\n'",
+            on_chunk=on_chunk,
+        )
+        assert chunks == ["line1\n", "line2\n"]
+
+    @pytest.mark.asyncio
+    async def test_streaming_stderr_captured(
+        self, sandbox: FilesystemBackend,
+    ) -> None:
+        result = await sandbox.execute_streaming("echo err >&2")
+        assert "err" in result.stderr
+        assert result.exit_code == 0
+
+    @pytest.mark.asyncio
+    async def test_streaming_interleaved_stdout_stderr(
+        self, sandbox: FilesystemBackend,
+    ) -> None:
+        result = await sandbox.execute_streaming(
+            "echo out; echo err >&2",
+        )
+        assert "out" in result.stdout
+        assert "err" in result.stderr
+        assert result.exit_code == 0
+
+    @pytest.mark.asyncio
+    async def test_streaming_nonzero_exit_code(
+        self, sandbox: FilesystemBackend,
+    ) -> None:
+        result = await sandbox.execute_streaming("exit 42")
+        assert result.exit_code == 42
+
+    @pytest.mark.asyncio
+    async def test_streaming_timeout_kills_process(
+        self, sandbox: FilesystemBackend,
+    ) -> None:
+        result = await sandbox.execute_streaming(
+            "sleep 60",
+            timeout=1,
+        )
+        assert result.exit_code == 124
+        assert "timed out" in result.stderr
+
+    @pytest.mark.asyncio
+    async def test_streaming_without_on_chunk(
+        self, sandbox: FilesystemBackend,
+    ) -> None:
+        result = await sandbox.execute_streaming("echo hello", on_chunk=None)
+        assert result.stdout == "hello\n"
+        assert result.exit_code == 0
+
+    @pytest.mark.asyncio
+    async def test_streaming_invalidates_cache(
+        self, cache_sandbox: FilesystemBackend,
+    ) -> None:
+        cache_sandbox.list_files(".")
+        assert cache_sandbox._dir_cache
+
+        await cache_sandbox.execute_streaming("touch new_via_stream.txt")
+        assert not cache_sandbox._dir_cache
+
+        entries = cache_sandbox.list_files(".")
+        assert "new_via_stream.txt" in entries
+
+    @pytest.mark.asyncio
+    async def test_streaming_env_vars_passed(self, tmp_path: Path) -> None:
+        sb = FilesystemBackend(
+            root_dir=tmp_path,
+            env_vars={"MY_VAR": "hello"},
+        )
+        result = await sb.execute_streaming("echo $MY_VAR")
+        assert "hello" in result.stdout
+        assert result.exit_code == 0
