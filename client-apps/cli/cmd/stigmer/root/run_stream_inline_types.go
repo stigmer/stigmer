@@ -274,6 +274,12 @@ type inlineRenderer struct {
 	// committed as kindSubAgentBlock and removed from the map.
 	activeSubAgents map[string]*subAgentBlock
 
+	// completedSubAgentIDs tracks sub-agent IDs whose blocks have been
+	// committed to scrollback. Late-arriving tool events from subsequent
+	// stream updates are suppressed so they don't leak as standalone
+	// gutter-wrapped items below the collapsed sub-agent line.
+	completedSubAgentIDs map[string]bool
+
 	// exitRequested is set by handleSessionExit when the user presses
 	// Ctrl+C at an approval prompt. Checked after handleApproval returns
 	// to terminate the render loop with a "cancelled" phase.

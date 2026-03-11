@@ -712,7 +712,7 @@ func (m inlineBubbleModel) renderSubAgentLine() string {
 		}
 		lines = append(lines, header+"\n"+activity)
 	}
-	return strings.Join(lines, "\n")
+	return strings.Join(lines, "\n\n")
 }
 
 // ---------------------------------------------------------------------------

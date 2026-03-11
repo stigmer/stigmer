@@ -53,8 +53,9 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) renderResult {
 			SandboxRoot:       cfg.sandboxRoot,
 			PlatformDir:       cfg.platformDir,
 		},
-		suppressedToolIDs: make(map[string]bool),
-		activeSubAgents:   make(map[string]*subAgentBlock),
+		suppressedToolIDs:    make(map[string]bool),
+		activeSubAgents:      make(map[string]*subAgentBlock),
+		completedSubAgentIDs: make(map[string]bool),
 		thinkTimer:        thinkTimer,
 		history:           initialHistory,
 	}
@@ -266,6 +267,14 @@ func (r *inlineRenderer) completeFollowUp(input string) renderResult {
 //     reasoning, not the final agent response. They render on stderr with
 //     gutter prefix instead of stdout.
 func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Event) (done bool, phase string, exitErr string) {
+	// Suppress all events for sub-agents whose blocks have already been
+	// committed to scrollback. Late-arriving tool and message events from
+	// subsequent stream updates would otherwise render as standalone
+	// gutter-wrapped items below the collapsed sub-agent line.
+	if id := eventSubAgentID(event); id != "" && r.completedSubAgentIDs[id] {
+		return false, "", ""
+	}
+
 	// Buffer read completions for consecutive-event grouping.
 	if e, ok := event.(executiontui.ToolCompletedEvent); ok && toolrender.IsReadTool(e.ToolCall.Name) {
 		r.pendingReads = append(r.pendingReads, pendingRead{tc: e.ToolCall, subAgentID: e.SubAgentID})
@@ -464,4 +473,29 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 		return true, "", e.Err.Error()
 	}
 	return false, "", ""
+}
+
+// eventSubAgentID extracts the SubAgentID from events that carry one.
+// Returns "" for event types that have no sub-agent context.
+func eventSubAgentID(event executiontui.Event) string {
+	switch e := event.(type) {
+	case executiontui.ToolCompletedEvent:
+		return e.SubAgentID
+	case executiontui.ToolRunningEvent:
+		return e.SubAgentID
+	case executiontui.ToolWaitingApprovalEvent:
+		return e.SubAgentID
+	case executiontui.ToolStreamDeltaEvent:
+		return e.SubAgentID
+	case executiontui.AIMessageEvent:
+		return e.SubAgentID
+	case executiontui.AIStreamStartEvent:
+		return e.SubAgentID
+	case executiontui.AIStreamDeltaEvent:
+		return e.SubAgentID
+	case executiontui.AIStreamEndEvent:
+		return e.SubAgentID
+	default:
+		return ""
+	}
 }
