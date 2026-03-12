@@ -36,7 +36,7 @@ class AgentConfig(BaseModel):
         sandbox_config: Optional dict configuring sandbox backend for terminal execution.
             When provided, enables the 'execute' tool for running shell commands.
             Format: {"type": "filesystem", "root_dir": "/workspace"}
-        recursion_limit: Maximum recursion depth (default: 100)
+        recursion_limit: Maximum recursion depth (default: 1000)
         max_tokens: Override default max_tokens for the model
         temperature: Override default temperature for the model
         subagents: Optional list of sub-agent specifications for task delegation
@@ -76,7 +76,7 @@ class AgentConfig(BaseModel):
     middleware: Sequence[Any] | None = None
     context_schema: type[Any] | None = None
     sandbox_config: dict[str, Any] | None = None
-    recursion_limit: int = 100
+    recursion_limit: int = 1000
     max_tokens: int | None = None
     temperature: float | None = None
     auto_enhance_prompt: bool = True
@@ -179,7 +179,7 @@ class AgentConfig(BaseModel):
     def validate_recursion_limit(cls, v: int) -> int:
         """Validate recursion limit is reasonable.
         
-        The platform default is 100 for the top-level graph (~50 model+tool
+        The platform default is 1000 for the top-level graph (~166 model+tool
         rounds in LangGraph super-step terms). LangGraph's
         DEFAULT_RECURSION_LIMIT is 10,000 (as of langgraph 1.0.x), which
         applies to sub-agent graphs by default. Values above 5000 are
@@ -207,7 +207,7 @@ class AgentConfig(BaseModel):
             warnings.warn(
                 f"recursion_limit of {v} is very high. This may cause long "
                 "execution times or mask infinite loops. Consider values "
-                "between 50-500 for most agents. The platform default is 100.",
+                "between 50-5000 for most agents. The platform default is 1000.",
                 UserWarning,
                 stacklevel=2,
             )
