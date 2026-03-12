@@ -6868,3 +6868,156 @@ class TestTryEnrichPhase1Entry:
         )
 
         assert result is False
+
+
+# =============================================================================
+# Sub-Agent Subject Deduplication
+# =============================================================================
+
+
+class TestSubAgentSubjectDeduplication:
+    """Tests for subject deduplication when multiple sub-agents share the same
+    generated subject.  The first occurrence keeps its original text; subsequent
+    duplicates get a numeric suffix like ' (2)', ' (3)', etc."""
+
+    @staticmethod
+    def _make_task_event(run_id: str, description: str = "do something") -> dict:
+        return {
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": run_id,
+            "data": {
+                "input": {
+                    "subagent_type": "general",
+                    "description": description,
+                }
+            },
+            "metadata": {},
+        }
+
+    @pytest.mark.asyncio
+    async def test_first_subject_unchanged(self, status_builder):
+        """First sub-agent with a given subject keeps it as-is."""
+        with patch(
+            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            new_callable=AsyncMock,
+            return_value="Research protobuf defs",
+        ):
+            await status_builder.process_event(
+                self._make_task_event("run-1", "task A")
+            )
+
+        sa = status_builder.current_status.sub_agent_executions[0]
+        assert sa.subject == "Research protobuf defs"
+
+    @pytest.mark.asyncio
+    async def test_duplicate_subject_gets_suffix(self, status_builder):
+        """Second sub-agent with the same subject gets ' (2)' appended."""
+        with patch(
+            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            new_callable=AsyncMock,
+            return_value="Research protobuf defs",
+        ):
+            await status_builder.process_event(
+                self._make_task_event("run-1", "task A")
+            )
+            await status_builder.process_event(
+                self._make_task_event("run-2", "task B")
+            )
+
+        subjects = [
+            sa.subject
+            for sa in status_builder.current_status.sub_agent_executions
+        ]
+        assert subjects == [
+            "Research protobuf defs",
+            "Research protobuf defs (2)",
+        ]
+
+    @pytest.mark.asyncio
+    async def test_triple_duplicate_increments(self, status_builder):
+        """Third duplicate gets ' (3)'."""
+        with patch(
+            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            new_callable=AsyncMock,
+            return_value="Find YAML examples",
+        ):
+            for i in range(3):
+                await status_builder.process_event(
+                    self._make_task_event(f"run-{i}", f"task {i}")
+                )
+
+        subjects = [
+            sa.subject
+            for sa in status_builder.current_status.sub_agent_executions
+        ]
+        assert subjects == [
+            "Find YAML examples",
+            "Find YAML examples (2)",
+            "Find YAML examples (3)",
+        ]
+
+    @pytest.mark.asyncio
+    async def test_different_subjects_not_affected(self, status_builder):
+        """Distinct subjects are stored without any suffix."""
+        subjects_to_return = iter(["Analyze CLI code", "Review backend tests"])
+        with patch(
+            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            new_callable=AsyncMock,
+            side_effect=lambda *_args, **_kw: next(subjects_to_return),
+        ):
+            await status_builder.process_event(
+                self._make_task_event("run-1", "task A")
+            )
+            await status_builder.process_event(
+                self._make_task_event("run-2", "task B")
+            )
+
+        subjects = [
+            sa.subject
+            for sa in status_builder.current_status.sub_agent_executions
+        ]
+        assert subjects == ["Analyze CLI code", "Review backend tests"]
+
+    @pytest.mark.asyncio
+    async def test_dedup_respects_max_subject_length(self, status_builder):
+        """A long subject is truncated so the suffix still fits within 50 chars."""
+        from worker.activities.graphton.status_builder import _MAX_SUBJECT_LENGTH
+
+        long_subject = "A" * _MAX_SUBJECT_LENGTH
+        with patch(
+            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            new_callable=AsyncMock,
+            return_value=long_subject,
+        ):
+            await status_builder.process_event(
+                self._make_task_event("run-1", "task A")
+            )
+            await status_builder.process_event(
+                self._make_task_event("run-2", "task B")
+            )
+
+        second_subject = status_builder.current_status.sub_agent_executions[1].subject
+        assert second_subject.endswith(" (2)")
+        assert len(second_subject) <= _MAX_SUBJECT_LENGTH
+
+    @pytest.mark.asyncio
+    async def test_empty_subject_skips_dedup(self, status_builder):
+        """Empty subjects (generation failures) are not deduplicated."""
+        with patch(
+            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            new_callable=AsyncMock,
+            return_value="",
+        ):
+            await status_builder.process_event(
+                self._make_task_event("run-1", "task A")
+            )
+            await status_builder.process_event(
+                self._make_task_event("run-2", "task B")
+            )
+
+        subjects = [
+            sa.subject
+            for sa in status_builder.current_status.sub_agent_executions
+        ]
+        assert subjects == ["", ""]
