@@ -6,35 +6,37 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: in-progress (1 of 5 PRs complete)
-- **Last Session**: March 12, 2026 — Completed PR3 (Recursion Limit Fix)
+- **Status**: in-progress (2 of 5 PRs complete)
+- **Last Session**: March 12, 2026 (Session 2) — Completed PR1 (Loop Detection Middleware Fix)
 - **Active Task**: T01 — Agent Execution Consistency Guardrails
-- **Committed**: `0a4fb06a` on `fix/sub-agent-timer-and-tool-count`
+- **Committed**: PR3 at `0a4fb06a`, PR1 pending commit on `fix/sub-agent-timer-and-tool-count`
 
-## Session Progress (2026-03-12)
+## Session Progress (2026-03-12, Session 2)
 
-- Completed PR3: Removed two `recursion_limit=1000` overrides from `execute_graphton.py`, restoring graphton's intended default of 100
-- Added `GraphRecursionError` handler with user-friendly "send another message to continue" UX
-- Fixed stale docstrings and Cursor rule examples referencing 1000
-- Added observability log for effective recursion_limit at agent startup
-- Updated 4 unit tests; all tests passing
-- Conducted industry comparison (Cursor, Claude Code, OpenAI Agents SDK) to validate the 100 limit
-- Created changelog entry: `_changelog/2026-03/2026-03-12-105522-fix-recursion-limit-10x-inflation.md`
+- Completed PR1: Replaced dead `aafter_step()` with working two-hook architecture
+- Added `aafter_model()` detection hook — tracks tool call signatures, injects SystemMessage interventions
+- Added `awrap_tool_call()` enforcement hook — blocks tool execution at total threshold via ToolMessage short-circuit
+- Removed dead `aafter_step()` method entirely
+- Enhanced `aafter_agent()` stats logging (unique signatures count)
+- Created test suite: 46 tests in 10 classes, all passing
+- Verified LangGraph factory detects and registers both new hooks
+- Key discovery: `aafter_model` cannot prevent tool execution for the current turn (routing checks last AIMessage, not last message) — solved via `awrap_tool_call`
+- Created changelog entry: `_changelog/2026-03/2026-03-12-111751-fix-loop-detection-middleware-dead-code.md`
 
 ## Next Steps
 
-1. **PR1: Fix LoopDetectionMiddleware** — Move detection logic from dead `aafter_step` to `aafter_model` hook. Highest-leverage fix for preventing self-improvement loops. File: `backend/libs/python/graphton/src/graphton/core/loop_detection.py`
-2. **PR2: Fix ContextSummarizationMiddleware** — Add `aafter_model` mid-execution token check. Prevents context overflow. Similar pattern to PR1. File: `backend/libs/python/graphton/src/graphton/core/summarization_middleware.py`
-3. **PR5: Fix Premature Execution Completion** — Check for active sub-agents before setting `EXECUTION_COMPLETED`. Cancel in-flight sub-agents with clear status. File: `execute_graphton.py`
-4. **PR4: Fix Sub-Agent Completion UX** — Make completion visible before spinner vanishes. Go CLI Bubbletea work. Files: `run_stream_inline_bubbletea.go`, `run_stream_inline_render.go`
+1. **PR2: Fix ContextSummarizationMiddleware** — Add `aafter_model` mid-execution token check. Prevents context overflow. Same dead `aafter_step` pattern as PR1. File: `backend/libs/python/graphton/src/graphton/core/summarization_middleware.py`
+2. **PR5: Fix Premature Execution Completion** — Check for active sub-agents before setting `EXECUTION_COMPLETED`. Cancel in-flight sub-agents with clear status. File: `execute_graphton.py`
+3. **PR4: Fix Sub-Agent Completion UX** — Make completion visible before spinner vanishes. Go CLI Bubbletea work. Files: `run_stream_inline_bubbletea.go`, `run_stream_inline_render.go`
 
 ## Context for Resume
 
 - The plan is in `tasks/T01_0_plan.md` — DO NOT edit it
 - Design decision for recursion limit value documented in `design-decisions/001-recursion-limit-value.md`
-- Session notes in `checkpoints/2026-03-12-session-1.md`
+- Session notes in `checkpoints/2026-03-12-session-1.md` (PR3) and `checkpoints/2026-03-12-session-2.md` (PR1)
 - The user operates under the **Architect Role** (`_roles/001_architect.md`): high-quality code, challenge assumptions, pause on surprises, collaborate on decisions
 - User explicitly wants: no complacency, no technical debt, pause and collaborate on architectural decisions, challenge when something doesn't align with platform quality
+- PR1 plan with research findings and accepted decisions is in `.cursor/plans/pr1_loop_detection_fix_b21345e6.plan.md`
 
 ## Project: 20260312.01.agent-execution-consistency-guardrails
 
@@ -47,7 +49,7 @@ Drop this file into your conversation to quickly resume work on this project.
 | PR | Description | Status | Commit |
 |----|-------------|--------|--------|
 | PR3 | Recursion Limit Fix | **DONE** | `0a4fb06a` |
-| PR1 | Loop Detection Middleware Fix | PENDING | — |
+| PR1 | Loop Detection Middleware Fix | **DONE** | pending commit |
 | PR2 | Mid-Execution Summarization | PENDING | — |
 | PR5 | Premature Completion Fix | PENDING | — |
 | PR4 | Sub-Agent Completion UX | PENDING | — |
@@ -56,7 +58,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### 1. Latest Checkpoint
 ```
-_projects/2026-03/20260312.01.agent-execution-consistency-guardrails/checkpoints/2026-03-12-session-1.md
+_projects/2026-03/20260312.01.agent-execution-consistency-guardrails/checkpoints/2026-03-12-session-2.md
 ```
 
 ### 2. Current Task Plan
@@ -95,14 +97,13 @@ _projects/2026-03/20260312.01.agent-execution-consistency-guardrails/design-deci
 
 This project was born from a production incident analysis on 2026-03-12. Key verified findings:
 
-### Finding 1: `aafter_step` Does Not Exist in AgentMiddleware
-- Both `LoopDetectionMiddleware` and `ContextSummarizationMiddleware` implement `aafter_step()`
+### Finding 1: `aafter_step` Does Not Exist in AgentMiddleware — **FIXED in PR1**
+- ~~Both `LoopDetectionMiddleware` and `ContextSummarizationMiddleware` implement `aafter_step()`~~
+- **Fixed (LoopDetection)**: Replaced with `aafter_model` (detection) + `awrap_tool_call` (enforcement)
+- **Still broken (Summarization)**: `ContextSummarizationMiddleware.aafter_step()` is still dead code — PR2 target
 - LangChain's `AgentMiddleware` base class only supports: `abefore_agent`, `abefore_model`, `aafter_model`, `aafter_agent`, `awrap_model_call`, `awrap_tool_call`
-- This was verified via runtime introspection of the installed `langchain` package
-- All logic in `aafter_step()` is dead code — never called
 
 ### Finding 2: Recursion Limit Inflation — **FIXED in PR3**
-- ~~`execute_graphton.py` overrides to `1000` in TWO places (lines 2288 and 2324)~~
 - **Fixed**: Both overrides removed. Graphton's default of 100 is now the single source of truth.
 - **Added**: `GraphRecursionError` handler for graceful degradation.
 
@@ -113,6 +114,11 @@ This project was born from a production incident analysis on 2026-03-12. Key ver
 ### Finding 4: Premature Completion
 - `execute_graphton.py` sets `EXECUTION_COMPLETED` without checking for active sub-agents
 - `finalize_active_sub_agents()` exists but is only called in error handlers
+
+### Key Discovery from PR1 Implementation
+- `aafter_model` cannot prevent tool execution for the current turn — the routing edge (`_make_model_to_tools_edge`) checks the last AIMessage, not the last message in state
+- `awrap_tool_call` provides true enforcement by intercepting individual tool calls before execution
+- This two-hook pattern (detection in `aafter_model`, enforcement in `awrap_tool_call`) may also be useful for PR2
 
 ### Related Prior Work
 - Project `20260309.01.sub-agent-execution-streamline` (COMPLETED)
@@ -125,9 +131,9 @@ This project was born from a production incident analysis on 2026-03-12. Key ver
 ## Quick Commands
 
 After loading context:
-- "Start PR1" — Begin with loop detection middleware fix (highest impact, recommended next)
-- "Start PR2" — Begin with mid-execution summarization
+- "Start PR2" — Begin with mid-execution summarization (recommended next, same pattern as PR1)
 - "Start PR5" — Begin with premature completion fix (stays in execute_graphton.py)
+- "Start PR4" — Begin with sub-agent completion UX (Go CLI Bubbletea)
 - "Show project status" — Get overview of progress
 
 ---
