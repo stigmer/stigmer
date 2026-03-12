@@ -236,6 +236,23 @@ type SubAgentCompletedEvent struct {
 
 func (SubAgentCompletedEvent) isEvent() {}
 
+// ContextCompactedEvent signals that context compaction (summarization)
+// occurred during execution. Emitted when the bridge layer detects a new
+// SummarizationEvent in the streamed ContextInfo. The renderer produces a
+// dimmed system line in scrollback (e.g., "Context compacted: 180K → 80K
+// tokens (57% reduction)").
+type ContextCompactedEvent struct {
+	Source           string  // "graph_start" or "mid_execution"
+	TokensBefore     int32
+	TokensAfter      int32
+	CompressionRatio float32
+	DurationMs       int32
+	MessagesBefore   int32
+	MessagesAfter    int32
+}
+
+func (ContextCompactedEvent) isEvent() {}
+
 // ApprovalResponse carries the user's approval decision back to the gRPC
 // goroutine. Action is one of "approve", "skip", "reject". Comment is an
 // optional reason (currently unused; reserved for future rejection reasons).

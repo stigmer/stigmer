@@ -225,3 +225,17 @@ enum ExecutionArtifactKind {
   EXECUTION_ARTIFACT_KIND_FILE = 1; // Single file
   EXECUTION_ARTIFACT_KIND_DIRECTORY = 2; // Directory (stored as ZIP)
 }
+
+// SummarizationSource identifies what triggered a context summarization event.
+//
+// Context summarization can be triggered at two points during execution:
+// - At graph start, when resuming a conversation that already exceeds the threshold
+// - Mid-execution, when accumulated tool responses push context past the threshold
+//
+// This distinction enables the CLI to render appropriate notifications and
+// allows monitoring to track compaction frequency by trigger type.
+enum SummarizationSource {
+  SUMMARIZATION_SOURCE_UNSPECIFIED = 0;
+  graph_start = 1;     // Triggered at the start of a graph invocation (abefore_agent)
+  mid_execution = 2;   // Triggered mid-execution before a model call (awrap_model_call)
+}

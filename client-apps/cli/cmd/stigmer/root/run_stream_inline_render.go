@@ -72,6 +72,18 @@ func (r *inlineRenderer) renderSystemMessage(e executiontui.SystemMessageEvent) 
 	})
 }
 
+func (r *inlineRenderer) renderContextCompacted(e executiontui.ContextCompactedEvent) {
+	reductionPct := e.CompressionRatio * 100
+	text := fmt.Sprintf(
+		"Context compacted: %dK → %dK tokens (%.0f%% reduction)",
+		e.TokensBefore/1000, e.TokensAfter/1000, reductionPct,
+	)
+	r.commitToScrollback(committedItem{
+		kind: kindSystemMessage,
+		text: systemMsgStyle.Render(text),
+	})
+}
+
 func (r *inlineRenderer) renderPhaseChange(e executiontui.PhaseChangeEvent) {
 	r.phase = e.Phase
 	var text string

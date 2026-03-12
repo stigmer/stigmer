@@ -23,6 +23,7 @@ from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
     UsageMetrics,
 )
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType, ToolCallStatus
+from graphton.core.summarization_callback import SOURCE_GRAPH_START, SOURCE_MID_EXECUTION
 
 from worker.activities.graphton.status_builder import StatusBuilder
 
@@ -5614,12 +5615,14 @@ class TestContextManagementTracking:
             summarization_model="claude-haiku-4",
             messages_before=50,
             messages_after=10,
+            source=SOURCE_MID_EXECUTION,
         )
         
         status_builder.on_summarization_complete(event)
         
-        assert len(status_builder._summarization_events) == 1
-        recorded = status_builder._summarization_events[0]
+        events = status_builder._context_info.summarization_events
+        assert len(events) == 1
+        recorded = events[0]
         assert recorded.tokens_before == 185000
         assert recorded.tokens_after == 80000
         assert recorded.compression_ratio == pytest.approx(0.57, rel=0.01)
@@ -5627,7 +5630,7 @@ class TestContextManagementTracking:
         assert recorded.summarization_model == "claude-haiku-4"
         assert recorded.messages_before == 50
         assert recorded.messages_after == 10
-        assert recorded.timestamp != ""  # Should have timestamp
+        assert recorded.timestamp != ""
     
     def test_on_summarization_complete_updates_token_count(self, status_builder):
         """Test that on_summarization_complete updates current token count."""
@@ -5648,13 +5651,12 @@ class TestContextManagementTracking:
             summarization_model="claude-haiku-4",
             messages_before=50,
             messages_after=10,
+            source=SOURCE_GRAPH_START,
         )
         
         status_builder.on_summarization_complete(event)
         
-        # Token count should be updated to tokens_after
         assert status_builder._context_info.current_token_count == 80000
-        # Utilization should be recalculated: 80000/200000 = 40%
         assert status_builder._context_info.utilization_percent == 40.0
     
     def test_on_summarization_complete_without_init_is_noop(self, status_builder):
@@ -5669,13 +5671,12 @@ class TestContextManagementTracking:
             summarization_model="claude-haiku-4",
             messages_before=50,
             messages_after=10,
+            source=SOURCE_MID_EXECUTION,
         )
         
-        # Should not raise
         status_builder.on_summarization_complete(event)
         
-        # No events should be recorded
-        assert len(status_builder._summarization_events) == 0
+        assert status_builder._context_info is None
     
     def test_finalize_context_info_copies_to_status(self, status_builder):
         """Test that finalize_context_info copies context info to status proto."""
@@ -5704,7 +5705,6 @@ class TestContextManagementTracking:
         from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ContextInfo
         from graphton.core.summarization_callback import SummarizationEventData
         
-        # Need real proto for CopyFrom
         status_builder.current_status.context_info = ContextInfo()
         
         status_builder.initialize_context_info(
@@ -5714,7 +5714,6 @@ class TestContextManagementTracking:
             enabled=True,
         )
         
-        # Add two summarization events
         event1 = SummarizationEventData(
             tokens_before=185000,
             tokens_after=80000,
@@ -5723,6 +5722,7 @@ class TestContextManagementTracking:
             summarization_model="claude-haiku-4",
             messages_before=50,
             messages_after=10,
+            source=SOURCE_GRAPH_START,
         )
         event2 = SummarizationEventData(
             tokens_before=180000,
@@ -5732,6 +5732,7 @@ class TestContextManagementTracking:
             summarization_model="claude-haiku-4",
             messages_before=45,
             messages_after=8,
+            source=SOURCE_MID_EXECUTION,
         )
         
         status_builder.on_summarization_complete(event1)
@@ -5750,6 +5751,134 @@ class TestContextManagementTracking:
         
         # Context info should not be populated (MagicMock)
         # Just verify no exception was raised
+    
+    def test_on_summarization_complete_maps_source_to_proto_enum(self, status_builder):
+        """Test that source strings are mapped to the correct proto enum values."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SummarizationSource
+        from graphton.core.summarization_callback import SummarizationEventData
+        
+        status_builder.initialize_context_info(
+            context_window_limit=200000,
+            trigger_threshold=180000,
+            target_tokens=160000,
+            enabled=True,
+        )
+        
+        graph_start_event = SummarizationEventData(
+            tokens_before=185000,
+            tokens_after=80000,
+            compression_ratio=0.57,
+            duration_ms=2500,
+            summarization_model="claude-haiku-4",
+            messages_before=50,
+            messages_after=10,
+            source=SOURCE_GRAPH_START,
+        )
+        mid_execution_event = SummarizationEventData(
+            tokens_before=170000,
+            tokens_after=70000,
+            compression_ratio=0.59,
+            duration_ms=2100,
+            summarization_model="claude-haiku-4",
+            messages_before=40,
+            messages_after=8,
+            source=SOURCE_MID_EXECUTION,
+        )
+        
+        status_builder.on_summarization_complete(graph_start_event)
+        status_builder.on_summarization_complete(mid_execution_event)
+        
+        events = status_builder._context_info.summarization_events
+        assert events[0].source == SummarizationSource.graph_start
+        assert events[1].source == SummarizationSource.mid_execution
+    
+    def test_on_summarization_complete_unknown_source_maps_to_unspecified(self, status_builder):
+        """Test that an unrecognized source string falls back to UNSPECIFIED."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SummarizationSource
+        from graphton.core.summarization_callback import SummarizationEventData
+        
+        status_builder.initialize_context_info(
+            context_window_limit=200000,
+            trigger_threshold=180000,
+            target_tokens=160000,
+            enabled=True,
+        )
+        
+        event = SummarizationEventData(
+            tokens_before=185000,
+            tokens_after=80000,
+            compression_ratio=0.57,
+            duration_ms=2500,
+            summarization_model="claude-haiku-4",
+            messages_before=50,
+            messages_after=10,
+            source="some_future_trigger",
+        )
+        
+        status_builder.on_summarization_complete(event)
+        
+        recorded = status_builder._context_info.summarization_events[0]
+        assert recorded.source == SummarizationSource.SUMMARIZATION_SOURCE_UNSPECIFIED
+    
+    def test_on_summarization_complete_syncs_to_current_status_immediately(self, status_builder):
+        """Test that compaction events are visible in current_status without finalize."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ContextInfo
+        from graphton.core.summarization_callback import SummarizationEventData
+        
+        status_builder.current_status.context_info = ContextInfo()
+        
+        status_builder.initialize_context_info(
+            context_window_limit=200000,
+            trigger_threshold=180000,
+            target_tokens=160000,
+            enabled=True,
+        )
+        
+        event = SummarizationEventData(
+            tokens_before=185000,
+            tokens_after=80000,
+            compression_ratio=0.57,
+            duration_ms=2500,
+            summarization_model="claude-haiku-4",
+            messages_before=50,
+            messages_after=10,
+            source=SOURCE_MID_EXECUTION,
+        )
+        
+        status_builder.on_summarization_complete(event)
+        
+        streamed_events = status_builder.current_status.context_info.summarization_events
+        assert len(streamed_events) == 1
+        assert streamed_events[0].tokens_before == 185000
+        assert streamed_events[0].tokens_after == 80000
+    
+    def test_on_summarization_complete_sets_force_next_update(self, status_builder):
+        """Test that compaction sets force_next_update for immediate gRPC push."""
+        from graphton.core.summarization_callback import SummarizationEventData
+        
+        status_builder.initialize_context_info(
+            context_window_limit=200000,
+            trigger_threshold=180000,
+            target_tokens=160000,
+            enabled=True,
+        )
+        
+        assert not status_builder.force_next_update
+        
+        event = SummarizationEventData(
+            tokens_before=185000,
+            tokens_after=80000,
+            compression_ratio=0.57,
+            duration_ms=2500,
+            summarization_model="claude-haiku-4",
+            messages_before=50,
+            messages_after=10,
+            source=SOURCE_GRAPH_START,
+        )
+        
+        status_builder.on_summarization_complete(event)
+        
+        assert status_builder.force_next_update is True
     
     def test_multiple_token_count_updates(self, status_builder):
         """Test multiple token count updates track correctly."""

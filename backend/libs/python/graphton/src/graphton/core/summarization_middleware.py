@@ -66,6 +66,8 @@ from graphton.core.message_utils import (
     serialize_running_summary,
 )
 from graphton.core.summarization_callback import (
+    SOURCE_GRAPH_START,
+    SOURCE_MID_EXECUTION,
     SummarizationCallback,
     SummarizationEventData,
 )
@@ -293,9 +295,9 @@ class ContextSummarizationMiddleware(AgentMiddleware):
                         summarization_model=self.config.summarization_model,
                         messages_before=messages_before,
                         messages_after=len(summarized_messages),
+                        source=SOURCE_GRAPH_START,
                     )
                     self._callback.on_summarization_complete(event)
-                    # Also report the updated token count
                     self._callback.on_token_count_updated(new_token_count)
                 except Exception as e:
                     logger.warning(
@@ -405,6 +407,7 @@ class ContextSummarizationMiddleware(AgentMiddleware):
                         summarization_model=self.config.summarization_model,
                         messages_before=len(messages),
                         messages_after=len(compacted_messages),
+                        source=SOURCE_MID_EXECUTION,
                     )
                     self._callback.on_summarization_complete(event)
                     self._callback.on_token_count_updated(new_token_count)

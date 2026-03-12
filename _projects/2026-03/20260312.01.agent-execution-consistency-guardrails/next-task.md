@@ -6,26 +6,26 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: ALL 5 PRs + D1/D2 COMPLETE — deferred recursion limit enhancements done
-- **Last Session**: March 12, 2026 (Session 6) — Completed D1 (proto configurability) + D2 (execution budget warning)
+- **Status**: ALL 5 PRs + D1–D4 COMPLETE — compaction UX notifications done
+- **Last Session**: March 12, 2026 (Session 7) — Completed D3 (compaction backend + proto) + D4 (CLI compaction rendering)
 - **Active Task**: T01 — Agent Execution Consistency Guardrails (deferred follow-ups)
-- **Committed**: PR3 at `0a4fb06a`, PR1/PR2/PR5 on `fix/sub-agent-timer-and-tool-count`, PR4 at `28e94919`, D1+D2 pending commit
+- **Committed**: PR3 at `0a4fb06a`, PR1/PR2/PR5 on `fix/sub-agent-timer-and-tool-count`, PR4 at `28e94919`, D1–D4 pending commit
 
-## Session Progress (2026-03-12, Session 6)
+## Session Progress (2026-03-12, Session 7)
 
-- Completed D2 (PR6): New `ExecutionBudgetMiddleware` in graphton — injects wrap-up SystemMessage at ~80% of recursion limit
-- Completed D1 (PR7): Added `max_tool_rounds` field to `ExecutionConfig` proto — per-execution recursion limit configurability
-- Created comprehensive deferred items inventory (D1–D10) across all 5 sessions
-- Design decision: `max_tool_rounds` naming chosen over `max_tool_calls` (ambiguous with parallel calls) and `recursion_limit` (implementation leak)
-- Design decision: Separate `ExecutionBudgetMiddleware` from `LoopDetectionMiddleware` — resource management vs behavioral pattern detection
-- 14 files changed (2 new, 12 modified), ~600 insertions
-- 107 tests passing across 3 test files (39 new execution budget + 10 new recursion limit + 58 existing)
-- Plan document: `.cursor/plans/recursion_limit_enhancements_544f1f1b.plan.md`
+- Completed D3: Added `SummarizationSource` enum to proto, `source` field to `SummarizationEvent` and `SummarizationEventData`
+- Completed D3: StatusBuilder consolidation — `_context_info` as single source of truth, `_sync_context_info()`, `force_next_update` for immediate gRPC delivery
+- Completed D3: Proto-derived mapping via `SummarizationSource.Value()`, graphton proto boundary preserved with string constants
+- Completed D4: `ContextCompactedEvent` type, count-based dedup detection, `renderContextCompacted()` dimmed system line
+- Completed D4: JSON `context_compacted` event type for structured output
+- Design decision: Graphton remains proto-free; string constants in `summarization_callback.py` bridge the boundary
+- Design decision: Lowercase proto enum values (`graph_start`, `mid_execution`) per user directive
+- 22 files changed, ~544 insertions, all tests passing
 
 ## Next Steps
 
-1. **Final review** — All 5 PRs + D1/D2 are complete; review the full changeset across the branch
-2. **Deferred follow-ups** — Pick from the remaining inventory below (D3–D10)
+1. **Deferred follow-ups** — Pick from the remaining inventory below (D5–D10)
+2. **Top candidates**: D5 (EXECUTION_TERMINATED proto phase) for cleaner failure UX
 
 ## All Deferred Follow-Ups
 
@@ -41,15 +41,15 @@ Complete inventory of items intentionally deferred during the 5-PR project. Grou
 - **D1**: Added `int32 max_tool_rounds = 3` to `ExecutionConfig` proto. Mapping: `recursion_limit = max_tool_rounds * 2`. Default 0 = platform default (50 rounds / 100 super-steps). Range: 10–250 rounds, clamped with warning. Orchestrator reads and passes to `create_deep_agent()`.
 - **D2**: New `ExecutionBudgetMiddleware` in graphton. Tracks model rounds via `aafter_model`, injects a single SystemMessage at ~80% of budget telling the model to wrap up. Separate from `LoopDetectionMiddleware` (resource management vs behavioral detection). 39 tests.
 
-### From PR2 / Session 3: Compaction UX Notifications
+### From PR2 / Session 3: Compaction UX Notifications — **DONE (Session 7)**
 
-| # | Item | Scope | Files |
-|---|------|-------|-------|
-| D3 | User-Visible Compaction Notification (StatusBuilder + gRPC) | Python + Proto | `summarization_callback.py`, `status_builder.py`, `SummarizationEvent` proto |
-| D4 | CLI Compaction Notification Rendering (Bubbletea) | Go CLI | `run_stream_inline_bubbletea.go` and related render files |
+| # | Item | Status | Commit |
+|---|------|--------|--------|
+| D3 | User-Visible Compaction Notification (StatusBuilder + gRPC) | **DONE** | pending |
+| D4 | CLI Compaction Notification Rendering | **DONE** | pending |
 
-- **D3**: Add `source: str` field to `SummarizationEventData` in `summarization_callback.py` (values: `"graph_start"`, `"mid_execution"`) so StatusBuilder can distinguish compaction triggers. In `StatusBuilder.on_summarization_complete()`, call `self._force_next_update()` for immediate CLI delivery. Proto `SummarizationEvent` may need a `source` field.
-- **D4**: Detect new `SummarizationEvent` entries in the streamed `ContextInfo`. Render notification: "Context compacted: 180K -> 120K tokens (33% reduction)". Consider visual treatment: dimmed system line in scrollback, or transient status indicator.
+- **D3**: Added `SummarizationSource` enum to proto (`graph_start`, `mid_execution`), `source` field to `SummarizationEvent` proto and `SummarizationEventData` dataclass. StatusBuilder uses `SummarizationSource.Value()` for enum-derived mapping. `_sync_context_info()` + `force_next_update` for immediate gRPC delivery. Graphton proto boundary preserved — string constants bridge it.
+- **D4**: `ContextCompactedEvent` type, count-based dedup in `streamToEvents`, `mapSummarizationSource()` converter, dimmed system line: "Context compacted: 185K → 80K tokens (57% reduction)". JSON mode outputs `context_compacted` event. All tests passing.
 
 ### From PR5 / Session 4: Execution Status Refinement
 
@@ -80,8 +80,7 @@ Complete inventory of items intentionally deferred during the 5-PR project. Grou
 
 - The plan is in `tasks/T01_0_plan.md` — DO NOT edit it
 - Design decision for recursion limit value documented in `design-decisions/001-recursion-limit-value.md`
-- Session notes in `checkpoints/2026-03-12-session-{1..6}.md` (PR3, PR1, PR2, PR5, PR4, D1+D2)
-- D1+D2 plan: `.cursor/plans/recursion_limit_enhancements_544f1f1b.plan.md`
+- Session notes in `checkpoints/2026-03-12-session-{1..7}.md` (PR3, PR1, PR2, PR5, PR4, D1+D2, D3+D4)
 - The user operates under the **Architect Role** (`_roles/001_architect.md`): high-quality code, challenge assumptions, pause on surprises, collaborate on decisions
 - User explicitly wants: no complacency, no technical debt, pause and collaborate on architectural decisions, challenge when something doesn't align with platform quality
 - Key files from D1+D2:
@@ -108,6 +107,8 @@ Complete inventory of items intentionally deferred during the 5-PR project. Grou
 | PR4 | Sub-Agent Completion UX | **DONE** | `28e94919` |
 | PR6 (D2) | Execution Budget Middleware | **DONE** | pending commit |
 | PR7 (D1) | `max_tool_rounds` Proto Configurability | **DONE** | pending commit |
+| PR8 (D3) | Compaction Notification (Backend + Proto) | **DONE** | pending commit |
+| PR9 (D4) | CLI Compaction Rendering | **DONE** | pending commit |
 
 ## Essential Files to Review
 
@@ -201,7 +202,7 @@ This project was born from a production incident analysis on 2026-03-12. Key ver
 After loading context:
 - "Show project status" — Get overview of progress
 - ~~"Work on D1+D2"~~ — DONE (Session 6)
-- "Work on D3+D4" — Compaction UX notifications (StatusBuilder + CLI)
+- ~~"Work on D3+D4"~~ — DONE (Session 7)
 - "Work on D5" — EXECUTION_TERMINATED proto phase
 - "Show all deferred items" — Review the full D1–D10 inventory
 
