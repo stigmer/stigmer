@@ -6,21 +6,20 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: ALL 5 PRs + D1–D5 COMPLETE — EXECUTION_TERMINATED phase done
-- **Last Session**: March 12, 2026 (Session 8) — Completed D5 (EXECUTION_TERMINATED as platform-initiated stop)
+- **Status**: ALL 5 PRs + D1–D5 + D11 COMPLETE — Checkpoint validation done
+- **Last Session**: March 12, 2026 (Session 9) — Completed D11 (Post-Stream Checkpoint Validation)
 - **Active Task**: T01 — Agent Execution Consistency Guardrails (deferred follow-ups)
-- **Committed**: PR3 at `0a4fb06a`, PR1/PR2/PR5 on `fix/sub-agent-timer-and-tool-count`, PR4 at `28e94919`, D1–D5 pending commit
+- **Committed**: PR3 at `0a4fb06a`, PR1/PR2/PR5 on `fix/sub-agent-timer-and-tool-count`, PR4 at `28e94919`, D1–D5 pending commit, D11 pending commit
 
-## Session Progress (2026-03-12, Session 8)
+## Session Progress (2026-03-12, Session 9)
 
-- Completed D5: Broadened `EXECUTION_TERMINATED` from "force-kill only" to "platform-initiated stop"
-- Updated proto comment and header: two trigger paths (internal stall/budget, external Terminate RPC), three-way taxonomy (FAILED/TERMINATED/CANCELLED)
-- Stall timeout: `EXECUTION_FAILED` → `EXECUTION_TERMINATED`, sub-agents from `SUB_AGENT_FAILED` → `SUB_AGENT_CANCELLED`
-- Recursion limit: `EXECUTION_FAILED` → `EXECUTION_TERMINATED`
-- Fixed 4 CLI gaps: `renderPhaseChange`, `displayAgentPhaseChange`, `displaySessionExitLine` reason, `isFollowUpEligible`
-- Design decision: Option A (broaden phase semantics) over Option B (error_code metadata) — phase-level distinction gives immediate UX value (yellow vs red)
-- Design decision: Orphaned sub-agents remain EXECUTION_FAILED (silent crash is "something broke," not "platform stopped it")
-- 7 files changed, ~47 insertions, all tests passing
+- Completed D11: Post-Stream Checkpoint Validation — validates StatusBuilder's stream-derived state against the LangGraph checkpoint's ground truth after every execution
+- Created `checkpoint_validator.py` — pure validation module with V1 (graph termination), V2 (unmatched tool calls), V3 (sub-agent cross-reference), V4 (AI message count canary)
+- Added `finalize_sub_agents_from_checkpoint_validation()` to StatusBuilder — checkpoint-aware finalization that marks missed-event sub-agents as COMPLETED instead of FAILED
+- Refactored `execute_graphton.py` post-stream flow: unconditional `aget_state()`, checkpoint validation, consolidated interrupt capture (reuses same `graph_state`), checkpoint-validated phase decision
+- `has_orphaned_sub_agents` retained as defense-in-depth fallback (fires only when checkpoint query fails)
+- 25 tests across 8 test classes, all passing; 284 existing tests unaffected
+- 5 files changed: 1 new module, 1 new test file, 3 modified
 
 ## Next Steps
 
@@ -59,6 +58,14 @@ Complete inventory of items intentionally deferred during the 5-PR project. Grou
 
 - **D5**: Broadened `EXECUTION_TERMINATED` from "force-kill only" to "platform-initiated stop." Stall timeout and recursion limit now set `EXECUTION_TERMINATED` (was `EXECUTION_FAILED`). Proto comment updated with two trigger paths (internal/external) and three-way taxonomy (FAILED/TERMINATED/CANCELLED). Fixed 4 CLI gaps: `renderPhaseChange`, `displayAgentPhaseChange`, `displaySessionExitLine` reason, `isFollowUpEligible`. All tests passing.
 
+### Architectural: Checkpoint Validation — **DONE (Session 9)**
+
+| # | Item | Status | Commit |
+|---|------|--------|--------|
+| D11 | Post-Stream Checkpoint Validation | **DONE** | pending |
+
+- **D11**: New architectural layer that validates StatusBuilder's stream-derived state against the LangGraph checkpoint after every execution. Created `checkpoint_validator.py` with V1–V4 validations. Unconditional `aget_state()`, consolidated interrupt capture (reuses same `graph_state`), checkpoint-validated phase decision with `has_orphaned_sub_agents` as defense-in-depth fallback. Sub-agents that completed but whose events were missed are now correctly marked COMPLETED. 25 tests, all passing.
+
 ### From PR4 / Session 5: Sub-Agent UX Edge Case
 
 | # | Item | Scope | Files |
@@ -80,7 +87,7 @@ Complete inventory of items intentionally deferred during the 5-PR project. Grou
 
 - The plan is in `tasks/T01_0_plan.md` — DO NOT edit it
 - Design decision for recursion limit value documented in `design-decisions/001-recursion-limit-value.md`
-- Session notes in `checkpoints/2026-03-12-session-{1..8}.md` (PR3, PR1, PR2, PR5, PR4, D1+D2, D3+D4, D5)
+- Session notes in `checkpoints/2026-03-12-session-{1..9}.md` (PR3, PR1, PR2, PR5, PR4, D1+D2, D3+D4, D5, D11)
 - The user operates under the **Architect Role** (`_roles/001_architect.md`): high-quality code, challenge assumptions, pause on surprises, collaborate on decisions
 - User explicitly wants: no complacency, no technical debt, pause and collaborate on architectural decisions, challenge when something doesn't align with platform quality
 - Key files from D1+D2:
@@ -110,6 +117,7 @@ Complete inventory of items intentionally deferred during the 5-PR project. Grou
 | PR8 (D3) | Compaction Notification (Backend + Proto) | **DONE** | pending commit |
 | PR9 (D4) | CLI Compaction Rendering | **DONE** | pending commit |
 | PR10 (D5) | EXECUTION_TERMINATED Phase | **DONE** | pending commit |
+| PR11 (D11) | Post-Stream Checkpoint Validation | **DONE** | pending commit |
 
 ## Essential Files to Review
 

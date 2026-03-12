@@ -3242,13 +3242,91 @@ async def _execute_graphton_impl(
         status_builder.finalize_context_info()
         
         # ─────────────────────────────────────────────────────────────────────────────
+        # Post-Stream Checkpoint Query
+        #
+        # Query the LangGraph checkpoint unconditionally.  The checkpoint is the
+        # authoritative record of what actually happened during execution —
+        # StatusBuilder's view is derived from stream events and can diverge.
+        #
+        # The graph_state is used for:
+        #   1. Checkpoint validation — cross-references stream-derived state
+        #      against the checkpoint's ground truth (messages, tool completion,
+        #      graph termination status).
+        #   2. Interrupt capture — discovers pending interrupts when the phase
+        #      is WAITING_FOR_APPROVAL (batch approval support).
+        #
+        # Cost: single MongoDB/SQLite document lookup by thread_id (<10ms).
+        # ─────────────────────────────────────────────────────────────────────────────
+        graph_state = None
+        try:
+            graph_state = await agent_graph.aget_state(
+                cast(RunnableConfig, config)
+            )
+        except Exception as state_err:
+            activity_logger.warning(
+                f"[CHECKPOINT_QUERY] execution={execution_id} — "
+                f"aget_state() failed (non-fatal, validation skipped): "
+                f"{state_err}"
+            )
+
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Post-Stream Checkpoint Validation
+        #
+        # Validates StatusBuilder's stream-derived state against the checkpoint's
+        # ground truth.  Detects:
+        #   V1: Graph has pending nodes but stream ended (abnormal termination)
+        #   V2: Tool calls requested by the model that never completed
+        #   V3: Sub-agent completion mismatch between checkpoint and StatusBuilder
+        #   V4: AI message count divergence (canary for systematic event loss)
+        #
+        # The validation result drives the phase decision below, replacing the
+        # stream-only has_orphaned_sub_agents check with checkpoint-verified logic.
+        # ─────────────────────────────────────────────────────────────────────────────
+        from worker.activities.graphton.checkpoint_validator import (
+            build_error_from_validation,
+            validate_against_checkpoint,
+        )
+
+        status_ai_message_count = sum(
+            1
+            for m in status_builder.current_status.messages
+            if m.type == MessageType.MESSAGE_AI
+        )
+
+        validation = validate_against_checkpoint(
+            graph_state=graph_state,
+            active_sub_agent_count=len(status_builder._active_sub_agents),
+            status_ai_message_count=status_ai_message_count,
+            execution_phase=status_builder.current_status.phase,
+            waiting_for_approval_phase=ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+            paused_phase=ExecutionPhase.EXECUTION_PAUSED,
+        )
+
+        for d in validation.discrepancies:
+            log_fn = (
+                activity_logger.error
+                if d.severity == "error"
+                else activity_logger.warning
+            )
+            log_fn(
+                f"[CHECKPOINT_VALIDATION] execution={execution_id} "
+                f"{d.category}: {d.description}"
+            )
+
+        if not validation.discrepancies:
+            activity_logger.info(
+                f"[CHECKPOINT_VALIDATION] execution={execution_id} — "
+                f"all checks passed"
+            )
+
+        # ─────────────────────────────────────────────────────────────────────────────
         # Post-Stream Interrupt Capture (Batch Approval — Multiple Interrupts)
         #
         # When the event stream ends because of interrupt() calls, LangGraph has
-        # already checkpointed the graph state with pending interrupts.  We query
-        # the graph state to discover ALL pending interrupts (there may be more
-        # than one when the LLM issued multiple tool calls that each require
-        # approval).
+        # already checkpointed the graph state with pending interrupts.  We use
+        # the graph_state already fetched above to discover ALL pending interrupts
+        # (there may be more than one when the LLM issued multiple tool calls
+        # that each require approval).
         #
         # For every interrupt we build a PendingApproval proto with the
         # LangGraph-assigned interrupt_id.  This enables the resume logic to
@@ -3257,10 +3335,6 @@ async def _execute_graphton_impl(
         # ─────────────────────────────────────────────────────────────────────────────
         if status_builder.current_status.phase == ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL:
             try:
-                graph_state = await agent_graph.aget_state(
-                    cast(RunnableConfig, config)
-                )
-                
                 if graph_state and graph_state.interrupts:
                     # ── Diagnostic: log every raw interrupt before matching ──
                     for _diag_idx, _diag_intr in enumerate(graph_state.interrupts):
@@ -3463,22 +3537,26 @@ async def _execute_graphton_impl(
                 )
         
         # ─────────────────────────────────────────────────────────────────────────────
-        # Post-Stream Reconciliation: Determine final phase
+        # Post-Stream Phase Decision: Checkpoint-Validated
         #
         # The event stream can end for several reasons:
         #   1. Normal completion — LLM produced a final response, no more work.
         #   2. HITL interrupt — graph paused at checkpoint for approval.
         #   3. Graceful pause — user requested pause, handled above.
-        #   4. Abnormal termination — graph crashed internally (context overflow,
-        #      unhandled exception in a node) and the stream ended *without*
-        #      raising an exception.  In this case, sub-agents may still be
-        #      tracked as IN_PROGRESS even though nothing is actually running.
+        #   4. Abnormal termination — graph crashed internally and the stream
+        #      ended without raising an exception.
+        #   5. Missed events — sub-agents completed in the graph but
+        #      StatusBuilder missed the on_tool_end events.
         #
-        # Cases 2 and 3 are already handled (phase was set during processing).
-        # Case 4 is detected by checking for orphaned sub-agents: in a healthy
-        # execution, all sub-agents complete before the stream ends because they
-        # are synchronous subgraphs.  Active sub-agents at stream end always
-        # indicate abnormal termination.
+        # Cases 2 and 3 are handled by phase checks (set during processing).
+        # Cases 4 and 5 are distinguished by checkpoint validation:
+        #   - validation.has_errors → case 4 (confirmed abnormal termination)
+        #   - validation.missed_event_count > 0 without errors → case 5
+        #     (execution completed normally, StatusBuilder just missed events)
+        #
+        # Defense-in-depth: if aget_state() failed (graph_state=None),
+        # validation produces a warning (no errors).  The fallback
+        # has_orphaned_sub_agents check catches any remaining discrepancies.
         # ─────────────────────────────────────────────────────────────────────────────
         current_phase = status_builder.current_status.phase
         
@@ -3492,29 +3570,65 @@ async def _execute_graphton_impl(
                 f"Stream ended with PAUSED phase for execution {execution_id}. "
                 f"Not setting COMPLETED — execution is paused at checkpoint."
             )
+        elif validation.has_errors:
+            activity_logger.error(
+                f"[CHECKPOINT_VALIDATION] execution={execution_id} — "
+                f"Checkpoint confirms abnormal termination. "
+                f"Errors: {[d.description for d in validation.discrepancies if d.severity == 'error']}"
+            )
+            finalized_count = (
+                status_builder.finalize_sub_agents_from_checkpoint_validation(
+                    missed_event_count=validation.missed_event_count,
+                    confirmed_orphan_count=validation.confirmed_orphan_count,
+                    error_context=(
+                        "Checkpoint validation: execution terminated abnormally"
+                    ),
+                )
+            )
+            status_builder.current_status.phase = ExecutionPhase.EXECUTION_FAILED
+            status_builder.current_status.error = build_error_from_validation(
+                validation
+            )
+            activity_logger.info(
+                f"[CHECKPOINT_VALIDATION] execution={execution_id} — "
+                f"Finalized {finalized_count} sub-agent(s), "
+                f"phase set to EXECUTION_FAILED."
+            )
+        elif validation.missed_event_count > 0:
+            activity_logger.info(
+                f"[CHECKPOINT_VALIDATION] execution={execution_id} — "
+                f"Checkpoint confirms {validation.missed_event_count} "
+                f"sub-agent(s) completed (StatusBuilder missed events). "
+                f"Execution completed normally."
+            )
+            status_builder.finalize_sub_agents_from_checkpoint_validation(
+                missed_event_count=validation.missed_event_count,
+                confirmed_orphan_count=0,
+                error_context="",
+            )
+            status_builder.current_status.phase = ExecutionPhase.EXECUTION_COMPLETED
         elif status_builder.has_orphaned_sub_agents:
             diag = status_builder.get_orphaned_sub_agents_diagnostic()
             activity_logger.error(
-                f"[RECONCILIATION] execution={execution_id} — Stream ended normally "
-                f"but {diag['total']} sub-agent(s) are still IN_PROGRESS "
-                f"(zero-message={diag['zero_message_count']}, "
-                f"mid-execution={diag['mid_execution_count']}). "
-                f"Marking execution as FAILED. Details: {diag}"
+                f"[RECONCILIATION] execution={execution_id} — "
+                f"Checkpoint validation found no errors but StatusBuilder "
+                f"still tracks {diag['total']} active sub-agent(s) "
+                f"(checkpoint query may have failed). "
+                f"Falling back to stream-derived reconciliation. "
+                f"Details: {diag}"
             )
-            finalized_count = status_builder.finalize_active_sub_agents_differentiated(
-                error_context="Parent execution terminated abnormally"
+            finalized_count = (
+                status_builder.finalize_active_sub_agents_differentiated(
+                    error_context="Parent execution terminated abnormally"
+                )
             )
             status_builder.current_status.phase = ExecutionPhase.EXECUTION_FAILED
             status_builder.current_status.error = (
-                f"Execution terminated with {diag['total']} sub-agent(s) still in progress "
+                f"Execution terminated with {diag['total']} sub-agent(s) "
+                f"still in progress "
                 f"({diag['zero_message_count']} never started, "
                 f"{diag['mid_execution_count']} mid-execution). "
                 f"The graph ended without producing a final response."
-            )
-            activity_logger.info(
-                f"[RECONCILIATION] execution={execution_id} — "
-                f"Finalized {finalized_count} orphaned sub-agent(s), "
-                f"phase set to EXECUTION_FAILED."
             )
         else:
             status_builder.current_status.phase = ExecutionPhase.EXECUTION_COMPLETED
