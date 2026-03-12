@@ -544,20 +544,20 @@ func (r *inlineRenderer) performReCommitWithApproval(
 // performReCommit and performReCommitWithApproval so that a screen re-draw
 // does not cause running sub-agent spinners to vanish.
 //
-// The activity label resets to empty (renders as "Working" by default) and
-// spinnerStart resets to now — both are acceptable because the screen was
-// just cleared and the next sub-agent event will update them.
+// startedAt from the block is preserved so the elapsed timer continues
+// from the real sub-agent start time rather than resetting on every
+// re-commit. toolCount is also carried over so the live display stays
+// accurate across re-draws.
 func (r *inlineRenderer) transferSubAgentEntries(m *inlineBubbleModel) {
 	if len(r.activeSubAgents) == 0 {
 		return
 	}
-	now := time.Now()
 	for id, block := range r.activeSubAgents {
 		m.activeSubAgentEntries = append(m.activeSubAgentEntries, subAgentDisplayEntry{
 			id:           id,
 			subject:      block.subject,
-			spinnerStart: now,
+			spinnerStart: block.startedAt,
+			toolCount:    block.toolCount,
 		})
 	}
-	m.subAgentSpinnerFrame = 0
 }

@@ -160,18 +160,18 @@ type waitingApprovalState struct {
 // stacked view in Bubbletea. Multiple entries are rendered simultaneously
 // when parallel sub-agents are active.
 //
-// The live view is intentionally static: it shows only "Working..." with
-// an animated spinner and elapsed time. No tool counts, activity labels,
-// or other volatile state is displayed while the sub-agent runs. This
-// eliminates content volatility in View() entirely — only the spinner
-// frame and elapsed string change, both written exclusively by the tick
-// handler. Detailed status (tool count, children, output) appears in the
-// scrollback line after the sub-agent completes.
+// The live view shows "Working…" with an animated spinner, elapsed time,
+// and a running tool count. spinnerStart and toolCount are preserved
+// across re-commits via transferSubAgentEntries so the display stays
+// consistent through screen redraws. Only the spinner frame, elapsed
+// string, and tool count change — the first two via the tick handler,
+// the last via subAgentToolCountMsg on each tool completion.
 type subAgentDisplayEntry struct {
 	id           string
 	subject      string
 	spinnerStart time.Time
 	elapsedStr   string
+	toolCount    int
 }
 
 // subAgentBlock is the aggregate for a single sub-agent execution. It buffers
@@ -184,6 +184,7 @@ type subAgentBlock struct {
 	name      string
 	subject   string                          // short display label (from SubAgentStartedEvent.Description)
 	input     string                          // full task prompt (shown in expanded view)
+	startedAt time.Time                       // wall-clock time the sub-agent started; survives re-commits
 	status    agentexecutionv1.SubAgentStatus // lifecycle state (IN_PROGRESS while running)
 	children  []committedItem                 // internal tool calls, AI messages, read groups
 	toolCount int                             // running count of tool completions inside this sub-agent

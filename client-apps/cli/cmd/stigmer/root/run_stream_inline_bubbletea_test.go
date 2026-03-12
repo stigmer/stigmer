@@ -1089,15 +1089,62 @@ func TestRenderSubAgentLine_DefaultActivityIsWorking(t *testing.T) {
 	}
 }
 
-func TestRenderSubAgentLine_DoesNotShowToolCount(t *testing.T) {
+func TestRenderSubAgentLine_OmitsToolCountWhenZero(t *testing.T) {
 	m := newInlineBubbleModel()
 	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search"})
 	model := updated.(inlineBubbleModel)
 
 	line := model.renderSubAgentLine()
 
-	if strings.Contains(line, "tools)") {
-		t.Errorf("renderSubAgentLine should not show tool count in live view, got %q", line)
+	if strings.Contains(line, "tools") {
+		t.Errorf("renderSubAgentLine should not show tool count when zero, got %q", line)
+	}
+}
+
+func TestRenderSubAgentLine_ShowsToolCountWhenPositive(t *testing.T) {
+	m := newInlineBubbleModel()
+	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search"})
+	model := updated.(inlineBubbleModel)
+	model.activeSubAgentEntries[0].toolCount = 5
+
+	line := model.renderSubAgentLine()
+
+	if !strings.Contains(line, "5 tools") {
+		t.Errorf("renderSubAgentLine should show '5 tools' when toolCount=5, got %q", line)
+	}
+}
+
+func TestHandleSubAgentToolCount_UpdatesMatchingEntry(t *testing.T) {
+	m := newInlineBubbleModel()
+	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "First"})
+	model := updated.(inlineBubbleModel)
+	updated, _ = model.Update(subAgentShowMsg{id: "sa-2", subject: "Second"})
+	model = updated.(inlineBubbleModel)
+
+	updated, cmd := model.Update(subAgentToolCountMsg{id: "sa-2", count: 3})
+	model = updated.(inlineBubbleModel)
+
+	if model.activeSubAgentEntries[0].toolCount != 0 {
+		t.Errorf("sa-1 toolCount should remain 0, got %d", model.activeSubAgentEntries[0].toolCount)
+	}
+	if model.activeSubAgentEntries[1].toolCount != 3 {
+		t.Errorf("sa-2 toolCount should be 3, got %d", model.activeSubAgentEntries[1].toolCount)
+	}
+	if cmd != nil {
+		t.Error("handleSubAgentToolCount should return nil Cmd")
+	}
+}
+
+func TestHandleSubAgentToolCount_NoOpForUnknownID(t *testing.T) {
+	m := newInlineBubbleModel()
+	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search"})
+	model := updated.(inlineBubbleModel)
+
+	updated, _ = model.Update(subAgentToolCountMsg{id: "sa-unknown", count: 7})
+	model = updated.(inlineBubbleModel)
+
+	if model.activeSubAgentEntries[0].toolCount != 0 {
+		t.Errorf("toolCount should remain 0 for non-matching ID, got %d", model.activeSubAgentEntries[0].toolCount)
 	}
 }
 

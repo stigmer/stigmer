@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
@@ -143,11 +144,12 @@ func (r *inlineRenderer) renderTodoUpdate(e executiontui.TodoUpdateEvent) {
 
 func (r *inlineRenderer) renderSubAgentStarted(e executiontui.SubAgentStartedEvent) {
 	block := &subAgentBlock{
-		id:      e.ID,
-		name:    e.Name,
-		subject: e.Description,
-		input:   e.Input,
-		status:  agentexecutionv1.SubAgentStatus_SUB_AGENT_IN_PROGRESS,
+		id:        e.ID,
+		name:      e.Name,
+		subject:   e.Description,
+		input:     e.Input,
+		startedAt: time.Now(),
+		status:    agentexecutionv1.SubAgentStatus_SUB_AGENT_IN_PROGRESS,
 	}
 	r.activeSubAgents[e.ID] = block
 
@@ -277,6 +279,9 @@ func (r *inlineRenderer) flushPendingReads() {
 	if block, ok := r.activeSubAgents[subAgentID]; ok && subAgentID != "" {
 		block.children = append(block.children, item)
 		block.toolCount += len(tcs)
+		if r.cfg.program != nil {
+			r.cfg.program.Send(subAgentToolCountMsg{id: subAgentID, count: block.toolCount})
+		}
 	} else {
 		r.commitToScrollback(item)
 	}
@@ -289,8 +294,8 @@ func (r *inlineRenderer) flushPendingReads() {
 
 // appendToSubAgentBlock adds a committed item to the active sub-agent block's
 // children and increments the tool count when the item represents a tool
-// completion. The tool count is tracked on the block for the scrollback
-// summary but is not pushed to the live Bubbletea view.
+// completion. The updated count is pushed to the live Bubbletea view via
+// subAgentToolCountMsg so the user sees progress while the sub-agent runs.
 func (r *inlineRenderer) appendToSubAgentBlock(subAgentID string, item committedItem, isTool bool) {
 	block, ok := r.activeSubAgents[subAgentID]
 	if !ok {
@@ -299,6 +304,9 @@ func (r *inlineRenderer) appendToSubAgentBlock(subAgentID string, item committed
 	block.children = append(block.children, item)
 	if isTool {
 		block.toolCount++
+		if r.cfg.program != nil {
+			r.cfg.program.Send(subAgentToolCountMsg{id: subAgentID, count: block.toolCount})
+		}
 	}
 }
 
