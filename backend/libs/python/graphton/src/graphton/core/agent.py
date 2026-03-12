@@ -725,27 +725,24 @@ def create_deep_agent(
         backend=deepagents_backend,
     )
     
-    # Apply recursion limit to the top-level graph (only when explicitly set).
+    # Apply recursion limit to the top-level graph.
     #
-    # When recursion_limit is None (default), no override is applied and
-    # the graph runs with the framework's own default.  Loop detection
-    # middleware is the primary safety mechanism.
+    # When recursion_limit is None (default), we set a very high value
+    # (10,000,000) to be effectively unlimited.  We MUST explicitly call
+    # with_config because deepagents internally sets its own recursion_limit
+    # which would otherwise apply a much lower ceiling.
     #
-    # When a concrete limit is provided (e.g. from max_tool_rounds), it is
-    # applied via with_config.  LangGraph's merge_configs strips values
-    # equal to DEFAULT_RECURSION_LIMIT (10,000), so avoid that exact value.
-    if recursion_limit is not None:
-        configured_agent = agent.with_config({"recursion_limit": recursion_limit})
-        logger.info(
-            "Graphton agent configured: recursion_limit=%d",
-            recursion_limit,
-        )
-    else:
-        configured_agent = agent
-        logger.info(
-            "Graphton agent configured: recursion_limit=unlimited "
-            "(loop detection is primary safety)",
-        )
+    # LangGraph's merge_configs strips values equal to
+    # DEFAULT_RECURSION_LIMIT (10,000), so we avoid that exact value.
+    # 10,000,000 is not equal to 10,000 and will be preserved.
+    _UNLIMITED = 10_000_000
+    effective_limit = recursion_limit if recursion_limit is not None else _UNLIMITED
+    configured_agent = agent.with_config({"recursion_limit": effective_limit})
+    logger.info(
+        "Graphton agent configured: recursion_limit=%d%s",
+        effective_limit,
+        " (unlimited)" if recursion_limit is None else "",
+    )
     
     return configured_agent  # type: ignore[no-any-return]
 
