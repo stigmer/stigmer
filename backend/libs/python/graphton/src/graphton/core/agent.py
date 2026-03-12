@@ -451,7 +451,9 @@ def create_deep_agent(
                 sa_middleware = list(sa.get("middleware", []))
                 
                 if summarization_config is not None and summarization_config.enabled:
-                    from graphton.core.summarization_middleware import ContextSummarizationMiddleware
+                    from graphton.core.summarization_middleware import (
+                        ContextSummarizationMiddleware,
+                    )
                     sa_middleware.insert(0, ContextSummarizationMiddleware(
                         config=summarization_config,
                         callback=None,

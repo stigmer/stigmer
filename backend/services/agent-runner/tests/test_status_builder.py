@@ -1999,36 +1999,6 @@ class TestSubAgentInternals:
         assert sub_agent.id == run_id
         assert sub_agent.status == SubAgentStatus.SUB_AGENT_COMPLETED
 
-    @pytest.mark.asyncio
-    async def test_namespace_mappings_preserved_after_completion(self, status_builder):
-        """Namespace -> sub-agent mappings survive sub-agent completion."""
-        run_id = "task-ns-preserve"
-        namespace = f"agent_node:{run_id}"
-
-        await status_builder.process_event({
-            "event": "on_tool_start",
-            "name": "task",
-            "run_id": run_id,
-            "data": {"input": {"subagent_type": "helper", "input": "x"}},
-            "metadata": {},
-        })
-
-        # Register namespace while active
-        status_builder._register_sub_agent_namespace(f"{namespace}|inner")
-        assert f"{namespace}|inner" in status_builder._namespace_to_sub_agent_id
-
-        # Complete
-        await status_builder.process_event({
-            "event": "on_tool_end",
-            "name": "task",
-            "run_id": run_id,
-            "data": {"output": "ok"},
-            "metadata": {},
-        })
-
-        # Namespace mapping still present
-        assert f"{namespace}|inner" in status_builder._namespace_to_sub_agent_id
-
     # ── Gap 10: Parent termination propagation ──────────────────────────────
 
     @pytest.mark.asyncio
@@ -4024,22 +3994,6 @@ class TestPlatformToolApprovalDefaults:
         # Non-platform tools
         assert is_platform_tool("delete_repository") is False
         assert is_platform_tool("send_email") is False
-    
-    def test_get_platform_tool_names_helper(self):
-        """Test get_platform_tool_names() helper function."""
-        from worker.activities.graphton.approval_policy import get_platform_tool_names
-        
-        names = get_platform_tool_names()
-        
-        assert "read" in names
-        assert "write" in names
-        assert "edit" in names
-        assert "execute" in names
-        assert "ls" in names
-        assert "glob" in names
-        assert "grep" in names
-        assert "think" in names
-        assert len(names) == 8
 
 
 # =============================================================================
@@ -4100,122 +4054,6 @@ class TestApprovalConfig:
         
         result = config.get_default_policies_for_tool("unknown_tool")
         assert result == []
-
-
-# =============================================================================
-# Tests for Tool Waiting Approval (HITL Phase 2)
-# =============================================================================
-
-
-class TestToolWaitingApproval:
-    """Tests for set_tool_waiting_approval method."""
-    
-    @pytest.fixture
-    def status_builder_with_approval(self, mock_initial_status):
-        """Create StatusBuilder with a tool call already added."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ToolCall
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase, ToolCallStatus
-        
-        mock_initial_status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS
-        
-        builder = StatusBuilder(
-            execution_id="test-execution-approval",
-            initial_status=mock_initial_status
-        )
-        
-        # Add a tool call to work with
-        tool_call = ToolCall(
-            id="tool-run-123",
-            name="delete_repository",
-            status=ToolCallStatus.TOOL_CALL_RUNNING,
-        )
-        mock_initial_status.tool_calls.append(tool_call)
-        
-        return builder
-    
-    def test_set_tool_waiting_approval_updates_status(self, status_builder_with_approval):
-        """Test that set_tool_waiting_approval updates tool call status."""
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
-        
-        status_builder_with_approval.set_tool_waiting_approval(
-            run_id="tool-run-123",
-            tool_name="delete_repository",
-            tool_args={"repo": "my-repo"},
-            approval_message="Delete repo: my-repo",
-        )
-        
-        tool_call = status_builder_with_approval.current_status.tool_calls[0]
-        assert tool_call.status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
-        assert tool_call.requires_approval is True
-    
-    def test_set_tool_waiting_approval_tracks_pending(self, status_builder_with_approval):
-        """Test that pending approval is tracked in _pending_tool_approvals."""
-        status_builder_with_approval.set_tool_waiting_approval(
-            run_id="tool-run-123",
-            tool_name="delete_repository",
-            tool_args={"repo": "my-repo"},
-            approval_message="Delete repo: my-repo",
-        )
-        
-        assert "tool-run-123" in status_builder_with_approval._pending_tool_approvals
-    
-    def test_set_tool_waiting_approval_sets_execution_phase(self, status_builder_with_approval):
-        """Test that execution phase is updated to WAITING_FOR_APPROVAL."""
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase
-        
-        status_builder_with_approval.set_tool_waiting_approval(
-            run_id="tool-run-123",
-            tool_name="delete_repository",
-            tool_args={},
-            approval_message="Delete repo",
-        )
-        
-        assert status_builder_with_approval.current_status.phase == ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
-    
-    def test_set_tool_waiting_approval_sets_timestamps(self, status_builder_with_approval):
-        """Test that approval timestamps are set correctly."""
-        status_builder_with_approval.set_tool_waiting_approval(
-            run_id="tool-run-123",
-            tool_name="delete_repository",
-            tool_args={},
-            approval_message="Delete repo",
-        )
-        
-        tool_call = status_builder_with_approval.current_status.tool_calls[0]
-        
-        # Tool call should have timestamp set
-        assert tool_call.approval_requested_at != ""
-        # Timestamps should be ISO 8601 format
-        assert "T" in tool_call.approval_requested_at
-    
-    def test_set_tool_waiting_approval_from_sub_agent(self, status_builder_with_approval):
-        """Test that sub-agent flag is set correctly."""
-        status_builder_with_approval.set_tool_waiting_approval(
-            run_id="tool-run-123",
-            tool_name="delete_repository",
-            tool_args={},
-            approval_message="Delete repo",
-            from_sub_agent=True,
-            sub_agent_name="code-reviewer",
-        )
-        
-        # Verify tracked in pending list
-        assert "tool-run-123" in status_builder_with_approval._pending_tool_approvals
-    
-    def test_set_tool_waiting_approval_args_preview(self, status_builder_with_approval):
-        """Test that set_tool_waiting_approval tracks pending state."""
-        status_builder_with_approval.set_tool_waiting_approval(
-            run_id="tool-run-123",
-            tool_name="delete_repository",
-            tool_args={"repo": "my-repo", "force": True},
-            approval_message="Delete repo",
-        )
-        
-        # Verify pending approval state tracked internally
-        assert "tool-run-123" in status_builder_with_approval._pending_tool_approvals
-        # Phase should be WAITING_FOR_APPROVAL
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase
-        assert status_builder_with_approval.current_status.phase == ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
 
 
 # =============================================================================
@@ -4394,170 +4232,6 @@ class TestToolCallArgsHumanization:
 
 
 # =============================================================================
-# Tests for Tool Approval Decision (HITL Phase 2)
-# =============================================================================
-
-
-class TestToolApprovalDecision:
-    """Tests for set_tool_approval_decision method."""
-    
-    @pytest.fixture
-    def status_builder_waiting_approval(self, mock_initial_status):
-        """Create StatusBuilder with a tool in WAITING_APPROVAL state."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval, ToolCall
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase, ToolCallStatus
-        
-        mock_initial_status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS
-        
-        builder = StatusBuilder(
-            execution_id="test-execution-decision",
-            initial_status=mock_initial_status
-        )
-        
-        # Add a tool call in WAITING_APPROVAL state
-        tool_call = ToolCall(
-            id="tool-run-456",
-            name="delete_repository",
-            status=ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-            requires_approval=True,
-            approval_message="Delete repo: my-repo",
-        )
-        mock_initial_status.tool_calls.append(tool_call)
-        
-        # Set up pending state using the plural tracking list
-        builder._pending_tool_approvals = ["tool-run-456"]
-        builder._saved_phase_before_approval = ExecutionPhase.EXECUTION_IN_PROGRESS
-        builder.current_status.pending_approvals.append(PendingApproval(
-            tool_call_id="tool-run-456",
-            tool_name="delete_repository",
-        ))
-        builder.current_status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
-        
-        return builder
-    
-    def test_approve_action_clears_pending_state(self, status_builder_waiting_approval):
-        """Test that APPROVE clears pending state and restores phase."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase
-        
-        status_builder_waiting_approval.set_tool_approval_decision(
-            run_id="tool-run-456",
-            action=ApprovalAction.APPROVAL_ACTION_APPROVE,
-            approved_by="user-123",
-        )
-        
-        # Pending state should be cleared
-        assert len(status_builder_waiting_approval._pending_tool_approvals) == 0
-        # Phase should be restored
-        assert status_builder_waiting_approval.current_status.phase == ExecutionPhase.EXECUTION_IN_PROGRESS
-    
-    def test_approve_action_records_decision(self, status_builder_waiting_approval):
-        """Test that APPROVE records the decision on the tool call."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
-        
-        status_builder_waiting_approval.set_tool_approval_decision(
-            run_id="tool-run-456",
-            action=ApprovalAction.APPROVAL_ACTION_APPROVE,
-            approved_by="user-123",
-        )
-        
-        tool_call = status_builder_waiting_approval.current_status.tool_calls[0]
-        assert tool_call.approval_action == ApprovalAction.APPROVAL_ACTION_APPROVE
-        assert tool_call.approved_by == "user-123"
-        assert tool_call.approval_decided_at != ""
-    
-    def test_skip_action_sets_skipped_status(self, status_builder_waiting_approval):
-        """Test that SKIP sets TOOL_CALL_SKIPPED status."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
-        
-        status_builder_waiting_approval.set_tool_approval_decision(
-            run_id="tool-run-456",
-            action=ApprovalAction.APPROVAL_ACTION_SKIP,
-            approved_by="user-123",
-        )
-        
-        tool_call = status_builder_waiting_approval.current_status.tool_calls[0]
-        assert tool_call.status == ToolCallStatus.TOOL_CALL_SKIPPED
-        assert "skipped by user" in tool_call.result
-    
-    def test_skip_action_continues_execution(self, status_builder_waiting_approval):
-        """Test that SKIP restores execution phase (not FAILED)."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase
-        
-        status_builder_waiting_approval.set_tool_approval_decision(
-            run_id="tool-run-456",
-            action=ApprovalAction.APPROVAL_ACTION_SKIP,
-            approved_by="user-123",
-        )
-        
-        # Should restore to IN_PROGRESS, not FAILED
-        assert status_builder_waiting_approval.current_status.phase == ExecutionPhase.EXECUTION_IN_PROGRESS
-    
-    def test_reject_action_sets_skipped_status(self, status_builder_waiting_approval):
-        """Test that REJECT sets TOOL_CALL_SKIPPED status (non-terminal, agent re-evaluates)."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
-        
-        status_builder_waiting_approval.set_tool_approval_decision(
-            run_id="tool-run-456",
-            action=ApprovalAction.APPROVAL_ACTION_REJECT,
-            approved_by="user-123",
-        )
-        
-        tool_call = status_builder_waiting_approval.current_status.tool_calls[0]
-        assert tool_call.status == ToolCallStatus.TOOL_CALL_SKIPPED
-        assert "REJECTED" in tool_call.result
-    
-    def test_reject_action_continues_execution(self, status_builder_waiting_approval):
-        """Test that REJECT restores execution phase to IN_PROGRESS (non-terminal)."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase
-        
-        status_builder_waiting_approval.set_tool_approval_decision(
-            run_id="tool-run-456",
-            action=ApprovalAction.APPROVAL_ACTION_REJECT,
-            approved_by="user-123",
-        )
-        
-        assert status_builder_waiting_approval.current_status.phase == ExecutionPhase.EXECUTION_IN_PROGRESS
-    
-    def test_decision_records_approved_by_and_timestamp(self, status_builder_waiting_approval):
-        """Test that decision records who approved and when."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
-        
-        status_builder_waiting_approval.set_tool_approval_decision(
-            run_id="tool-run-456",
-            action=ApprovalAction.APPROVAL_ACTION_APPROVE,
-            approved_by="admin-user-999",
-        )
-        
-        tool_call = status_builder_waiting_approval.current_status.tool_calls[0]
-        assert tool_call.approved_by == "admin-user-999"
-        assert tool_call.approval_decided_at != ""
-        # Should be ISO 8601 format
-        assert "T" in tool_call.approval_decided_at
-    
-    def test_decision_clears_pending_approvals_proto(self, status_builder_waiting_approval):
-        """Test that decision clears the pending_approvals proto field."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
-        
-        # Verify pending_approvals is set before
-        assert len(status_builder_waiting_approval.current_status.pending_approvals) > 0
-        assert status_builder_waiting_approval.current_status.pending_approvals[0].tool_call_id == "tool-run-456"
-        
-        status_builder_waiting_approval.set_tool_approval_decision(
-            run_id="tool-run-456",
-            action=ApprovalAction.APPROVAL_ACTION_APPROVE,
-            approved_by="user-123",
-        )
-        
-        # pending_approvals should be cleared
-        assert len(status_builder_waiting_approval.current_status.pending_approvals) == 0
-
-
-# =============================================================================
 # Phase 5.4: Approval Resumption Verification Tests
 #
 # These tests verify that pending_approvals is properly cleared after each
@@ -4606,73 +4280,6 @@ class TestPhase54ApprovalClearing:
         builder.current_status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
         
         return builder
-    
-    def test_approve_clears_pending_approvals_completely(self, status_builder_with_pending_approval):
-        """Phase 5.4: Verify APPROVE action clears all pending_approvals fields."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
-        
-        # Verify pending_approvals is set before
-        assert len(status_builder_with_pending_approval.current_status.pending_approvals) == 1
-        pa = status_builder_with_pending_approval.current_status.pending_approvals[0]
-        assert pa.tool_call_id == "tool-run-phase54"
-        assert pa.tool_name == "dangerous_operation"
-        assert pa.message == "Execute dangerous operation?"
-        assert pa.args_preview == '{"target": "production"}'
-        assert pa.requested_at == "2026-01-30T12:00:00Z"
-        
-        # Execute APPROVE decision
-        status_builder_with_pending_approval.set_tool_approval_decision(
-            run_id="tool-run-phase54",
-            action=ApprovalAction.APPROVAL_ACTION_APPROVE,
-            approved_by="user-123",
-        )
-        
-        # Verify pending_approvals is cleared
-        assert len(status_builder_with_pending_approval.current_status.pending_approvals) == 0
-        
-        # Verify internal tracking state is also cleared
-        assert len(status_builder_with_pending_approval._pending_tool_approvals) == 0
-    
-    def test_skip_clears_pending_approvals_completely(self, status_builder_with_pending_approval):
-        """Phase 5.4: Verify SKIP action clears all pending_approvals fields."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
-        
-        # Verify pending_approvals is set before
-        assert len(status_builder_with_pending_approval.current_status.pending_approvals) > 0
-        
-        # Execute SKIP decision
-        status_builder_with_pending_approval.set_tool_approval_decision(
-            run_id="tool-run-phase54",
-            action=ApprovalAction.APPROVAL_ACTION_SKIP,
-            approved_by="user-123",
-        )
-        
-        # Verify pending_approvals is cleared
-        assert len(status_builder_with_pending_approval.current_status.pending_approvals) == 0
-        
-        # Verify internal tracking state is also cleared
-        assert len(status_builder_with_pending_approval._pending_tool_approvals) == 0
-    
-    def test_reject_clears_pending_approvals_completely(self, status_builder_with_pending_approval):
-        """Phase 5.4: Verify REJECT action clears all pending_approvals fields."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
-        
-        # Verify pending_approvals is set before
-        assert len(status_builder_with_pending_approval.current_status.pending_approvals) > 0
-        
-        # Execute REJECT decision
-        status_builder_with_pending_approval.set_tool_approval_decision(
-            run_id="tool-run-phase54",
-            action=ApprovalAction.APPROVAL_ACTION_REJECT,
-            approved_by="user-123",
-        )
-        
-        # Verify pending_approvals is cleared even on REJECT
-        # This is important: REJECT should still clear pending state
-        assert len(status_builder_with_pending_approval.current_status.pending_approvals) == 0
-        
-        # Verify internal tracking state is also cleared
-        assert len(status_builder_with_pending_approval._pending_tool_approvals) == 0
     
     def test_clear_pending_approval_restores_saved_phase(self, status_builder_with_pending_approval):
         """Phase 5.4: Verify clear_pending_approval restores the saved phase."""
@@ -6890,6 +6497,7 @@ class TestTryEnrichPhase1Entry:
         """When a Phase 1 entry matches tool_name + from_sub_agent, its
         interrupt_id is set and the function returns True."""
         from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+
         from worker.activities.execute_graphton import _try_enrich_phase1_entry
 
         pa = PendingApproval(
@@ -6912,6 +6520,7 @@ class TestTryEnrichPhase1Entry:
     def test_skips_entry_with_existing_interrupt_id(self, status_builder):
         """Entries that already have an interrupt_id are not overwritten."""
         from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+
         from worker.activities.execute_graphton import _try_enrich_phase1_entry
 
         pa = PendingApproval(
@@ -6933,6 +6542,7 @@ class TestTryEnrichPhase1Entry:
     def test_no_match_returns_false(self, status_builder):
         """Returns False when no Phase 1 entry matches the criteria."""
         from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+
         from worker.activities.execute_graphton import _try_enrich_phase1_entry
 
         pa = PendingApproval(
@@ -6953,6 +6563,7 @@ class TestTryEnrichPhase1Entry:
     def test_matches_from_sub_agent_flag(self, status_builder):
         """A main-agent entry is not matched when from_sub_agent=True."""
         from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+
         from worker.activities.execute_graphton import _try_enrich_phase1_entry
 
         pa = PendingApproval(
@@ -6972,6 +6583,7 @@ class TestTryEnrichPhase1Entry:
     def test_preserves_tool_call_id(self, status_builder):
         """Enrichment must never overwrite the existing tool_call_id."""
         from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+
         from worker.activities.execute_graphton import _try_enrich_phase1_entry
 
         original_tc_id = "early-toolu_preserve_me"
@@ -7260,7 +6872,7 @@ class TestOrphanedSubAgentDetection:
     @pytest.mark.asyncio
     async def test_diagnostic_mixed(self, status_builder):
         """Mix of zero-message and mid-execution sub-agents."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage, ToolCall
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ToolCall
 
         await status_builder.process_event(self._make_task_start_event("sa-zero", "task alpha"))
         await status_builder.process_event(self._make_task_start_event("sa-mid", "task beta"))

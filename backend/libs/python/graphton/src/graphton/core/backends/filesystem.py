@@ -462,7 +462,7 @@ class FilesystemBackend:
                 timeout=timeout,
             )
             await process.wait()
-        except asyncio.TimeoutError:
+        except TimeoutError:
             process.kill()
             await process.wait()
             stdout = "".join(stdout_lines)

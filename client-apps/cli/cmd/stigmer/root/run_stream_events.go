@@ -198,16 +198,16 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 	defer close(cfg.events)
 
 	var (
-		displayedCount          int
-		inStream                bool
-		humanMessageEmitted     bool
-		lastPhase               agentexecutionv1.ExecutionPhase
-		promptedIDs             = make(map[string]bool)
-		toolCallStates          = make(map[string]string)           // toolCallID -> last known status string
-		toolCallResults         = make(map[string]string)           // toolCallID -> last known result content (for streaming delta detection)
-		subAgentTrackers        = make(map[string]*subAgentTracker) // subAgentID -> per-sub-agent state
-		prevTodos               = make(map[string]todoFingerprint)  // todoID -> {content, status} for change detection
-		seenSummarizationCount  int                                 // count-based tracking for compaction events
+		displayedCount         int
+		inStream               bool
+		humanMessageEmitted    bool
+		lastPhase              agentexecutionv1.ExecutionPhase
+		promptedIDs            = make(map[string]bool)
+		toolCallStates         = make(map[string]string)           // toolCallID -> last known status string
+		toolCallResults        = make(map[string]string)           // toolCallID -> last known result content (for streaming delta detection)
+		subAgentTrackers       = make(map[string]*subAgentTracker) // subAgentID -> per-sub-agent state
+		prevTodos              = make(map[string]todoFingerprint)  // todoID -> {content, status} for change detection
+		seenSummarizationCount int                                 // count-based tracking for compaction events
 	)
 
 	for {

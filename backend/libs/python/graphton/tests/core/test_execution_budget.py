@@ -15,14 +15,13 @@ import pytest
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from graphton.core.execution_budget import (
-    ExecutionBudgetMiddleware,
     _DEFAULT_RECURSION_LIMIT,
     _DEFAULT_WARNING_PCT,
     _MAX_WARNING_PCT,
     _MIN_ROUNDS_BEFORE_WARNING,
     _MIN_WARNING_PCT,
+    ExecutionBudgetMiddleware,
 )
-
 
 # =============================================================================
 # Fixtures

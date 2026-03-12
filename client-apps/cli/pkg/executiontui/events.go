@@ -242,7 +242,7 @@ func (SubAgentCompletedEvent) isEvent() {}
 // dimmed system line in scrollback (e.g., "Context compacted: 180K → 80K
 // tokens (57% reduction)").
 type ContextCompactedEvent struct {
-	Source           string  // "graph_start" or "mid_execution"
+	Source           string // "graph_start" or "mid_execution"
 	TokensBefore     int32
 	TokensAfter      int32
 	CompressionRatio float32

@@ -10,7 +10,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 from daytona import SandboxState
 
-from worker.config import ExecutionMode
 from worker.sandbox_manager import (
     DAYTONA_WORKSPACE_MOUNT_PATH,
     SandboxManager,
@@ -54,7 +53,6 @@ def _make_manager(
 ) -> SandboxManager:
     """Build a SandboxManager with a pre-configured mock Daytona client."""
     mgr = SandboxManager(
-        execution_mode=ExecutionMode.LOCAL,
         daytona_api_key=api_key,
         volume_id=volume_id,
     )

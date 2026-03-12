@@ -14,7 +14,6 @@ Tests cover:
 from types import SimpleNamespace
 from typing import Any
 
-import pytest
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 
 from worker.activities.graphton.checkpoint_validator import (

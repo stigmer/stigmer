@@ -10,11 +10,13 @@ from typing import Any, cast
 
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
     AgentExecutionStatus,
+    AgentMessage,
     ApprovalAction,
     PendingApproval,
 )
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ExecutionPhase,
+    MessageType,
     SubAgentStatus,
     ToolCallStatus,
 )
@@ -75,6 +77,15 @@ from worker.workspace import (
     WorkspaceProvisioner,
     WorkspaceProvisionError,
     initialize_workspace,
+)
+from worker.workspace.tree import (
+    TREE_DEFAULT_MAX_ENTRIES as _TREE_MAX_ENTRIES,
+)
+from worker.workspace.tree import (
+    build_directory_tree as _build_directory_tree,
+)
+from worker.workspace.tree import (
+    human_size as _human_size,
 )
 
 
@@ -833,20 +844,6 @@ def _format_entry_description(result: ProvisionResult) -> str:
     return result.workspace_description
 
 
-# Tree-building utilities live in worker.workspace.tree.  Module-level
-# aliases preserve backward compatibility for in-module callers and tests
-# that import the private names from this module.
-from worker.workspace.tree import (  # noqa: E402
-    TREE_DEFAULT_MAX_ENTRIES as _TREE_MAX_ENTRIES,
-)
-from worker.workspace.tree import (  # noqa: E402
-    build_directory_tree as _build_directory_tree,
-)
-from worker.workspace.tree import (  # noqa: E402
-    human_size as _human_size,
-)
-
-
 def build_referenced_files_prompt_section(
     workspace_file_refs: list[str],
     workspace_root: str,
@@ -1078,8 +1075,7 @@ async def execute_graphton(
         # Create minimal failed status for system errors
         # This handles cases where status_builder was never initialized
 
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
+
         
         failed_status = AgentExecutionStatus(
             phase=ExecutionPhase.EXECUTION_FAILED,
@@ -1221,11 +1217,10 @@ async def _execute_graphton_impl(
     
     agent_id = execution.spec.agent_id
     user_message = execution.spec.message
-    session_id_from_spec = execution.spec.session_id
     
     activity_logger.info(
         f"Execution parameters: agent_id={agent_id}, "
-        f"session_id='{session_id_from_spec}' (empty={not session_id_from_spec})"
+        f"session_id='{execution.spec.session_id}' (empty={not execution.spec.session_id})"
     )
     
     heartbeat_during_setup("execution_fetch", {
@@ -1395,18 +1390,18 @@ async def _execute_graphton_impl(
         # 0 = use platform default (graphton's 100 = ~50 rounds).
         # Non-zero values are clamped to 10–250 rounds (20–500 super-steps).
         # ─────────────────────────────────────────────────────────────────────────────
-        _MIN_TOOL_ROUNDS = 10
-        _MAX_TOOL_ROUNDS = 250
+        min_tool_rounds = 10
+        max_tool_rounds = 250
         recursion_limit = None  # None = use graphton default (100)
         if (execution.spec.HasField("execution_config")
                 and execution.spec.execution_config.max_tool_rounds > 0):
             requested_rounds = execution.spec.execution_config.max_tool_rounds
-            clamped_rounds = max(_MIN_TOOL_ROUNDS, min(_MAX_TOOL_ROUNDS, requested_rounds))
+            clamped_rounds = max(min_tool_rounds, min(max_tool_rounds, requested_rounds))
             if clamped_rounds != requested_rounds:
                 activity_logger.warning(
                     "max_tool_rounds=%d clamped to %d (valid range: %d-%d)",
                     requested_rounds, clamped_rounds,
-                    _MIN_TOOL_ROUNDS, _MAX_TOOL_ROUNDS,
+                    min_tool_rounds, max_tool_rounds,
                 )
             recursion_limit = clamped_rounds * 2
             activity_logger.info(
@@ -1426,11 +1421,11 @@ async def _execute_graphton_impl(
         # Initialize sandbox manager (cloud mode only).
         sandbox_manager = None
         if worker_config.mode != "local":
-            api_key = os.environ.get("DAYTONA_API_KEY")
-            if not api_key:
+            daytona_api_key = os.environ.get("DAYTONA_API_KEY")
+            if not daytona_api_key:
                 raise ValueError("DAYTONA_API_KEY environment variable required for cloud mode")
             sandbox_manager = SandboxManager(
-                daytona_api_key=api_key,
+                daytona_api_key=daytona_api_key,
                 volume_id=get_daytona_volume_id(),
             )
             if snapshot_id := sandbox_config.get("snapshot_id"):
@@ -2191,7 +2186,7 @@ async def _execute_graphton_impl(
         # early resolve is kept only so we can log the resolved API model ID and
         # include it in heartbeats.
         # ─────────────────────────────────────────────────────────────────────────────
-        api_model_id, _resolved_metadata = ModelRegistry.resolve_or_passthrough(
+        api_model_id, _ = ModelRegistry.resolve_or_passthrough(
             model_name,
             provider=worker_config.llm.provider,
         )
@@ -2726,8 +2721,7 @@ async def _execute_graphton_impl(
         # system message so the UI can render a "Resuming..." indicator.
         # ─────────────────────────────────────────────────────────────────────────────
         if is_resume_from_approval:
-            from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
-            from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
+
             
             resume_msg = AgentMessage(
                 type=MessageType.MESSAGE_SYSTEM,
@@ -2986,8 +2980,7 @@ async def _execute_graphton_impl(
             
             # Add message indicating pause
 
-            from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
-            from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
+
             
             pause_msg = AgentMessage(
                 type=MessageType.MESSAGE_SYSTEM,
@@ -3040,8 +3033,7 @@ async def _execute_graphton_impl(
             # Finalize any accumulated data before reporting termination
             status_builder.finalize_context_info()
             
-            from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
-            from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
+
             
             stall_error_msg = AgentMessage(
                 type=MessageType.MESSAGE_SYSTEM,
@@ -3098,8 +3090,7 @@ async def _execute_graphton_impl(
 
                 status_builder.finalize_context_info()
 
-                from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
-                from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
+
 
                 limit_error_msg = AgentMessage(
                     type=MessageType.MESSAGE_SYSTEM,
@@ -3162,8 +3153,6 @@ async def _execute_graphton_impl(
         # always an error (some executions don't produce artifacts), but it helps
         # when debugging "where did my files go?" issues.
         # ─────────────────────────────────────────────────────────────────────────────
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
-
         messages = status_builder.current_status.messages
         if messages:
             last_message = messages[-1]
@@ -3681,11 +3670,6 @@ async def _execute_graphton_impl(
             "✅ ExecuteGraphton completed - returning slim status to workflow"
         )
         
-        # Verify status is not None before returning
-        if status_builder.current_status is None:
-            activity_logger.error(f"❌ CRITICAL: current_status is None for execution {execution_id}")
-            raise RuntimeError("Status builder returned None - this should never happen")
-        
         # Return slim status to workflow (full status already persisted via gRPC above)
         return _slim_status_for_temporal(status_builder.current_status)
     
@@ -3707,8 +3691,7 @@ async def _execute_graphton_impl(
         
         # Import required types for error message
 
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
+
         
         error_msg = AgentMessage(
             type=MessageType.MESSAGE_SYSTEM,
@@ -3754,11 +3737,6 @@ async def _execute_graphton_impl(
             )
         
         activity_logger.info(f"Execution {execution_id} phase set to FAILED - returning error status to workflow")
-        
-        # Verify status is not None before returning
-        if failed_status is None:
-            activity_logger.error(f"❌ CRITICAL: failed_status is None in error handler for execution {execution_id}")
-            raise RuntimeError("Failed status is None in error handler - this should never happen")
         
         # Send failed status update via gRPC with retry
         # This is critical for data persistence - use retry to handle transient failures

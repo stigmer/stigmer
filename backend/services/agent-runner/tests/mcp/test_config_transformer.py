@@ -15,10 +15,10 @@ import pytest
 
 from worker.mcp.config_transformer import (
     McpConfigResult,
-    resolve_placeholders,
     transform_all_mcp_configs,
     transform_mcp_config,
 )
+from worker.mcp.placeholder_resolver import resolve_placeholders
 
 # =============================================================================
 # Fixtures

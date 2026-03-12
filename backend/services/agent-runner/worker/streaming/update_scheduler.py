@@ -356,14 +356,3 @@ class StreamingUpdateScheduler:
             Number of events processed since the last update.
         """
         return events_processed - self._last_update_events
-    
-    def reset(self) -> None:
-        """Reset the scheduler to initial state.
-        
-        This can be used to restart tracking, for example when
-        beginning a new execution phase.
-        """
-        self._last_update_time = time.monotonic()
-        self._last_update_events = 0
-        self._last_reason = UpdateReason.NONE
-        self._first_check = True
