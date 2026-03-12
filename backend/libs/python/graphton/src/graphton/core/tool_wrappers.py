@@ -214,7 +214,8 @@ def create_tool_wrapper(
             logger.debug(f"Calling mcp_tool.ainvoke() for '{tool_name}'")
             result = await mcp_tool.ainvoke(actual_args)
             logger.debug(f"MCP tool '{tool_name}' returned successfully")
-            return result
+            result_str = result if isinstance(result, str) else str(result)
+            return truncate_tool_output(result_str, tool_name)
         except Exception as e:
             cause = _unwrap_exception(e)
             logger.warning(
@@ -377,7 +378,8 @@ def create_approval_aware_tool_wrapper(
             logger.info(f"Executing MCP tool '{tool_name}'")
             result = await mcp_tool.ainvoke(actual_args)
             logger.info(f"MCP tool '{tool_name}' completed successfully")
-            return result
+            result_str = result if isinstance(result, str) else str(result)
+            return truncate_tool_output(result_str, tool_name)
         except Exception as e:
             cause = _unwrap_exception(e)
             logger.warning(
@@ -774,6 +776,97 @@ def _check_and_handle_approval(
         return reject_message
 
 
+# =============================================================================
+# Tool Output Size Limits
+# =============================================================================
+#
+# LLMs do not benefit from unbounded tool output.  A `find` returning 47,000
+# file paths or a `read` dumping a 2 MB log is noise, not signal.  These
+# constants define a hard ceiling on what any single tool result may inject
+# into the model's context window.
+#
+# The limit is expressed in characters (not tokens) because character length
+# is available without calling a tokenizer, and the ratio of ~4 chars/token
+# is stable enough for a safety threshold.
+#
+# Budget arithmetic (200K-token context window):
+#   120,000 chars ≈ 30,000 tokens ≈ 15% of window per tool result.
+#   Four parallel tool calls at max output ≈ 60% of window, leaving
+#   room for system prompt, conversation history, and model response.
+
+_MAX_TOOL_OUTPUT_CHARS: int = 120_000
+"""Maximum characters returned by a single tool call to the LLM."""
+
+_TRUNCATION_HEAD_LINES: int = 500
+"""Lines kept from the beginning of truncated output."""
+
+_TRUNCATION_TAIL_LINES: int = 100
+"""Lines kept from the end of truncated output."""
+
+
+def truncate_tool_output(
+    output: str,
+    tool_name: str,
+    *,
+    max_chars: int = _MAX_TOOL_OUTPUT_CHARS,
+    head_lines: int = _TRUNCATION_HEAD_LINES,
+    tail_lines: int = _TRUNCATION_TAIL_LINES,
+) -> str:
+    """Truncate tool output that exceeds the LLM context budget.
+
+    When *output* fits within *max_chars* it is returned unchanged (fast
+    path, no allocation).  Otherwise the text is split into lines and a
+    head + tail window is returned with an informative notice in between.
+
+    The notice tells the model how much was truncated and suggests
+    strategies to narrow the query — the same behaviour an experienced
+    developer uses when faced with overwhelming terminal output.
+
+    Args:
+        output: Raw tool result string.
+        tool_name: Name of the tool that produced the output (for logging).
+        max_chars: Character ceiling.  Defaults to ``_MAX_TOOL_OUTPUT_CHARS``.
+        head_lines: Lines to keep from the beginning.
+        tail_lines: Lines to keep from the end.
+
+    Returns:
+        The original *output* if it fits, otherwise a truncated version
+        with a structured notice in the middle.
+    """
+    if len(output) <= max_chars:
+        return output
+
+    lines = output.splitlines(keepends=True)
+    total_lines = len(lines)
+
+    kept_head = lines[:head_lines]
+    kept_tail = lines[-tail_lines:] if tail_lines and total_lines > head_lines + tail_lines else []
+    omitted = total_lines - len(kept_head) - len(kept_tail)
+
+    notice = (
+        "\n--- OUTPUT TRUNCATED ---\n"
+        f"Total output: {len(output):,} characters (~{total_lines:,} lines)\n"
+        f"Showing: first {len(kept_head)} lines + last {len(kept_tail)} lines\n"
+        f"Omitted: ~{omitted:,} lines from middle\n"
+        "To see specific results, narrow your search with more specific filters,\n"
+        "use grep with targeted patterns, or read specific files directly.\n"
+        "--- END TRUNCATION NOTICE ---\n\n"
+    )
+
+    logger.warning(
+        "[TRUNCATED] tool=%s original_chars=%d original_lines=%d "
+        "truncated_chars=%d head_lines=%d tail_lines=%d",
+        tool_name,
+        len(output),
+        total_lines,
+        max_chars,
+        len(kept_head),
+        len(kept_tail),
+    )
+
+    return "".join(kept_head) + notice + "".join(kept_tail)
+
+
 def _apply_line_range(content: str, offset: int, limit: int) -> str:
     """Slice file content to a line range and prepend a position header.
 
@@ -864,7 +957,8 @@ def _create_read_tool(
             logger.info(
                 "GRAPHTON read tool succeeded for path: %s (%d chars)", path, len(result),
             )
-            return _apply_line_range(result, offset, limit)
+            ranged = _apply_line_range(result, offset, limit)
+            return truncate_tool_output(ranged, "read")
         except Exception as e:
             logger.warning(f"⚠️  read tool failed for '{path}': {e}")
             return enrich_error_message("read", str(e))
@@ -1009,10 +1103,13 @@ def _format_shell_success(stdout: str, stderr: str) -> str:
     """Format shell output for a successful command (exit code 0).
 
     Returns just the raw output with no labels or metadata -- the same
-    experience a human gets running a command in a terminal.
+    experience a human gets running a command in a terminal.  Output that
+    exceeds ``_MAX_TOOL_OUTPUT_CHARS`` is truncated with a head+tail
+    window so the model can refine its approach.
     """
     parts = [s for s in (stdout, stderr) if s]
-    return "\n".join(parts) if parts else "(no output)"
+    raw = "\n".join(parts) if parts else "(no output)"
+    return truncate_tool_output(raw, "execute")
 
 
 def _format_shell_failure(exit_code: int, stdout: str, stderr: str) -> str:
@@ -1020,14 +1117,17 @@ def _format_shell_failure(exit_code: int, stdout: str, stderr: str) -> str:
 
     Surfaces the exit code prominently followed by stderr (the error) and
     then stdout (if any).  The LLM uses the exit code to reason about
-    retries, so it must remain in the returned string.
+    retries, so it must remain in the returned string.  Output that
+    exceeds ``_MAX_TOOL_OUTPUT_CHARS`` is truncated with a head+tail
+    window.
     """
     lines = [f"Command failed (exit code {exit_code})"]
     if stderr:
         lines.append(stderr)
     if stdout:
         lines.append(stdout)
-    return "\n".join(lines) if len(lines) > 1 else lines[0]
+    raw = "\n".join(lines) if len(lines) > 1 else lines[0]
+    return truncate_tool_output(raw, "execute")
 
 
 def _create_execute_tool(
@@ -1312,7 +1412,7 @@ def _create_glob_tool(
                 return f"No files matching pattern '{pattern}'"
             
             logger.debug(f"✅ Found {len(matches)} files matching '{pattern}'")
-            return "\n".join(sorted(matches))
+            return truncate_tool_output("\n".join(sorted(matches)), "glob")
         except Exception as e:
             logger.warning(f"⚠️  glob tool failed for pattern '{pattern}': {e}")
             return enrich_error_message("glob", str(e))
@@ -1422,7 +1522,7 @@ def _create_grep_tool(
             )
             logger.debug(f"✅ {summary}")
             
-            return f"{summary}\n\n" + "\n".join(results)
+            return truncate_tool_output(f"{summary}\n\n" + "\n".join(results), "grep")
         except Exception as e:
             logger.warning(f"⚠️  grep tool failed for pattern '{pattern}': {e}")
             return enrich_error_message("grep", str(e))

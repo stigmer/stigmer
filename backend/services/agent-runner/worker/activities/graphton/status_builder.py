@@ -176,6 +176,12 @@ PLANNING_TOOLS = {
     'write_todos',
 }
 
+# Maximum characters for tool_call.result in the status proto payload.
+# This is a display/transport concern — the gRPC Temporal update must fit
+# within message-size limits.  The LLM context has its own independent cap
+# (see graphton.core.tool_wrappers._MAX_TOOL_OUTPUT_CHARS).
+_MAX_STATUS_RESULT_CHARS: int = 50_000
+
 # Maps tool names to the arg field(s) that contain the bulk displayable content
 # (ordered by priority).  Used by the input-streaming extractor to pull clean
 # content from the accumulating partial JSON and pipe it into tool_call.result.
@@ -828,7 +834,12 @@ class StatusBuilder:
         
         was_streaming = tool_call.is_streaming
 
-        tool_call.result += chunk
+        current_len = len(tool_call.result)
+        if current_len < _MAX_STATUS_RESULT_CHARS:
+            remaining = _MAX_STATUS_RESULT_CHARS - current_len
+            tool_call.result += chunk[:remaining]
+            if len(chunk) > remaining:
+                tool_call.result += "\n[output truncated for display]"
         tool_call.is_streaming = True
 
         if not was_streaming:
@@ -871,6 +882,11 @@ class StatusBuilder:
 
         if tool_name in _READ_ONLY_TOOLS:
             persisted_result = f"[content omitted - {len(tool_result_content)} chars]"
+        elif len(tool_result_content) > _MAX_STATUS_RESULT_CHARS:
+            persisted_result = (
+                tool_result_content[:_MAX_STATUS_RESULT_CHARS]
+                + "\n[output truncated for display]"
+            )
         else:
             persisted_result = tool_result_content
 
