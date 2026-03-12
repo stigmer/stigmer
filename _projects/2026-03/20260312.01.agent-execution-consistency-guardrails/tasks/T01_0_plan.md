@@ -253,6 +253,27 @@ PR5 (Premature Completion) ── depends on status_builder (already exists)
 
 ---
 
+## Deferred Follow-Ups (from PR2, Session 3)
+
+These items were identified during PR2 implementation and intentionally deferred to keep the middleware PR focused. They enable user-visible compaction notifications (similar to Cursor's "Auto-condensed conversation" indicator).
+
+### Follow-Up A: SummarizationEventData `source` field + StatusBuilder immediate push
+
+- Add `source: str` field to `SummarizationEventData` in `summarization_callback.py` (values: `"graph_start"`, `"mid_execution"`) so StatusBuilder can distinguish compaction triggers
+- In `StatusBuilder.on_summarization_complete()`, call `self._force_next_update()` after recording the event so the CLI receives it immediately
+- Proto `SummarizationEvent` may need a `source` field to carry this through gRPC
+- **Files**: `backend/libs/python/graphton/src/graphton/core/summarization_callback.py`, `backend/services/agent-runner/worker/activities/graphton/status_builder.py`
+
+### Follow-Up B: CLI Compaction Notification Rendering (Bubbletea)
+
+- Detect new `SummarizationEvent` entries in the streamed `ContextInfo`
+- Render a brief, informative notification (e.g., "Context compacted: 180K -> 120K tokens (33% reduction)")
+- Consider visual treatment: dimmed system line in scrollback, or transient status indicator
+- **Files**: `client-apps/cli/cmd/stigmer/root/run_stream_inline_bubbletea.go` and related render files
+- Naturally aligns with PR4 (Sub-Agent Completion UX) or could be a standalone follow-up PR
+
+---
+
 ## Comparison: Why Cursor/Claude Code Feel Smooth
 
 | Aspect | Cursor/Claude Code | Stigmer Today | Stigmer After This Project |

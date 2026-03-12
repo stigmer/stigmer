@@ -6,34 +6,51 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: in-progress (2 of 5 PRs complete)
-- **Last Session**: March 12, 2026 (Session 2) — Completed PR1 (Loop Detection Middleware Fix)
+- **Status**: in-progress (3 of 5 PRs complete)
+- **Last Session**: March 12, 2026 (Session 3) — Completed PR2 (Mid-Execution Context Compaction)
 - **Active Task**: T01 — Agent Execution Consistency Guardrails
-- **Committed**: PR3 at `0a4fb06a`, PR1 pending commit on `fix/sub-agent-timer-and-tool-count`
+- **Committed**: PR3 at `0a4fb06a`, PR1 pending commit on `fix/sub-agent-timer-and-tool-count`, PR2 pending commit
 
-## Session Progress (2026-03-12, Session 2)
+## Session Progress (2026-03-12, Session 3)
 
-- Completed PR1: Replaced dead `aafter_step()` with working two-hook architecture
-- Added `aafter_model()` detection hook — tracks tool call signatures, injects SystemMessage interventions
-- Added `awrap_tool_call()` enforcement hook — blocks tool execution at total threshold via ToolMessage short-circuit
-- Removed dead `aafter_step()` method entirely
-- Enhanced `aafter_agent()` stats logging (unique signatures count)
-- Created test suite: 46 tests in 10 classes, all passing
-- Verified LangGraph factory detects and registers both new hooks
-- Key discovery: `aafter_model` cannot prevent tool execution for the current turn (routing checks last AIMessage, not last message) — solved via `awrap_tool_call`
-- Created changelog entry: `_changelog/2026-03/2026-03-12-111751-fix-loop-detection-middleware-dead-code.md`
+- Completed PR2: Claude Code-inspired mid-execution context compaction
+- Added `awrap_model_call()` — Layer A primary compaction: counts tokens, triggers LangMem summarization when above trigger_threshold, passes compacted request via `dataclasses.replace()`
+- Added `aafter_model()` — Layer B monitoring: reports state tokens via callback, injects emergency SystemMessage when compaction failed AND tokens >= overflow_threshold (95% of context window)
+- Added `awrap_tool_call()` — Layer B enforcement: blocks tool execution when `_overflow_imminent` flag is set after emergency warning
+- Removed dead `aafter_step()` method entirely (same pattern as PR1)
+- Added `context_window_tokens` field + `overflow_threshold` property to `SummarizationConfig`
+- Updated `abefore_agent` to reset compaction state, `aafter_agent` to log compaction stats
+- Created comprehensive test suite: 26 new tests in 4 classes (TestAwrapModelCall, TestAafterModel, TestAwrapToolCallSummarization, TestCompactionLifecycle), all passing
+- Added 2 integration tests for full compaction lifecycle with callbacks
+- Verified LangGraph factory auto-detects all three new hooks
+- Plan document: `.cursor/plans/pr2_summarization_overflow_brake_2ae56946.plan.md`
 
 ## Next Steps
 
-1. **PR2: Fix ContextSummarizationMiddleware** — Add `aafter_model` mid-execution token check. Prevents context overflow. Same dead `aafter_step` pattern as PR1. File: `backend/libs/python/graphton/src/graphton/core/summarization_middleware.py`
-2. **PR5: Fix Premature Execution Completion** — Check for active sub-agents before setting `EXECUTION_COMPLETED`. Cancel in-flight sub-agents with clear status. File: `execute_graphton.py`
-3. **PR4: Fix Sub-Agent Completion UX** — Make completion visible before spinner vanishes. Go CLI Bubbletea work. Files: `run_stream_inline_bubbletea.go`, `run_stream_inline_render.go`
+1. **PR5: Fix Premature Execution Completion** — Check for active sub-agents before setting `EXECUTION_COMPLETED`. Cancel in-flight sub-agents with clear status. File: `execute_graphton.py`
+2. **PR4: Fix Sub-Agent Completion UX** — Make completion visible before spinner vanishes. Go CLI Bubbletea work. Files: `run_stream_inline_bubbletea.go`, `run_stream_inline_render.go`
+
+## Deferred Follow-Ups (from PR2)
+
+These items were intentionally deferred from PR2 to keep it focused on the middleware:
+
+### 1. User-Visible Compaction Notification (StatusBuilder + gRPC)
+- Add `source: str` field to `SummarizationEventData` in `summarization_callback.py` (values: `"graph_start"`, `"mid_execution"`)
+- In `StatusBuilder.on_summarization_complete()`, call `self._force_next_update()` for immediate CLI delivery
+- Proto `SummarizationEvent` may need a `source` field
+- **Where**: `backend/services/agent-runner/worker/activities/graphton/status_builder.py`
+
+### 2. CLI Compaction Notification Rendering (Bubbletea)
+- Detect new `SummarizationEvent` entries in the streamed `ContextInfo`
+- Render notification: "Context compacted: 180K -> 120K tokens (33% reduction)"
+- **Where**: `client-apps/cli/cmd/stigmer/root/run_stream_inline_bubbletea.go`
+- Naturally aligns with PR4 (Sub-Agent Completion UX) or could be a standalone follow-up
 
 ## Context for Resume
 
 - The plan is in `tasks/T01_0_plan.md` — DO NOT edit it
 - Design decision for recursion limit value documented in `design-decisions/001-recursion-limit-value.md`
-- Session notes in `checkpoints/2026-03-12-session-1.md` (PR3) and `checkpoints/2026-03-12-session-2.md` (PR1)
+- Session notes in `checkpoints/2026-03-12-session-1.md` (PR3), `checkpoints/2026-03-12-session-2.md` (PR1), and `checkpoints/2026-03-12-session-3.md` (PR2)
 - The user operates under the **Architect Role** (`_roles/001_architect.md`): high-quality code, challenge assumptions, pause on surprises, collaborate on decisions
 - User explicitly wants: no complacency, no technical debt, pause and collaborate on architectural decisions, challenge when something doesn't align with platform quality
 - PR1 plan with research findings and accepted decisions is in `.cursor/plans/pr1_loop_detection_fix_b21345e6.plan.md`
@@ -50,7 +67,7 @@ Drop this file into your conversation to quickly resume work on this project.
 |----|-------------|--------|--------|
 | PR3 | Recursion Limit Fix | **DONE** | `0a4fb06a` |
 | PR1 | Loop Detection Middleware Fix | **DONE** | pending commit |
-| PR2 | Mid-Execution Summarization | PENDING | — |
+| PR2 | Mid-Execution Context Compaction | **DONE** | pending commit |
 | PR5 | Premature Completion Fix | PENDING | — |
 | PR4 | Sub-Agent Completion UX | PENDING | — |
 
@@ -58,7 +75,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### 1. Latest Checkpoint
 ```
-_projects/2026-03/20260312.01.agent-execution-consistency-guardrails/checkpoints/2026-03-12-session-2.md
+_projects/2026-03/20260312.01.agent-execution-consistency-guardrails/checkpoints/2026-03-12-session-3.md
 ```
 
 ### 2. Current Task Plan
@@ -97,10 +114,10 @@ _projects/2026-03/20260312.01.agent-execution-consistency-guardrails/design-deci
 
 This project was born from a production incident analysis on 2026-03-12. Key verified findings:
 
-### Finding 1: `aafter_step` Does Not Exist in AgentMiddleware — **FIXED in PR1**
+### Finding 1: `aafter_step` Does Not Exist in AgentMiddleware — **FIXED in PR1 + PR2**
 - ~~Both `LoopDetectionMiddleware` and `ContextSummarizationMiddleware` implement `aafter_step()`~~
-- **Fixed (LoopDetection)**: Replaced with `aafter_model` (detection) + `awrap_tool_call` (enforcement)
-- **Still broken (Summarization)**: `ContextSummarizationMiddleware.aafter_step()` is still dead code — PR2 target
+- **Fixed (LoopDetection, PR1)**: Replaced with `aafter_model` (detection) + `awrap_tool_call` (enforcement)
+- **Fixed (Summarization, PR2)**: Replaced with `awrap_model_call` (Layer A compaction) + `aafter_model` + `awrap_tool_call` (Layer B emergency brake). Dead `aafter_step()` removed.
 - LangChain's `AgentMiddleware` base class only supports: `abefore_agent`, `abefore_model`, `aafter_model`, `aafter_agent`, `awrap_model_call`, `awrap_tool_call`
 
 ### Finding 2: Recursion Limit Inflation — **FIXED in PR3**
@@ -131,10 +148,10 @@ This project was born from a production incident analysis on 2026-03-12. Key ver
 ## Quick Commands
 
 After loading context:
-- "Start PR2" — Begin with mid-execution summarization (recommended next, same pattern as PR1)
-- "Start PR5" — Begin with premature completion fix (stays in execute_graphton.py)
+- "Start PR5" — Begin with premature completion fix (recommended next, stays in execute_graphton.py)
 - "Start PR4" — Begin with sub-agent completion UX (Go CLI Bubbletea)
 - "Show project status" — Get overview of progress
+- "Work on deferred items" — StatusBuilder + CLI compaction notifications
 
 ---
 
