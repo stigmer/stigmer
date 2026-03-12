@@ -176,9 +176,10 @@ class AgentConfig(BaseModel):
     def validate_recursion_limit(cls, v: int) -> int:
         """Validate recursion limit is reasonable.
         
-        The platform standard is 1000 for the top-level graph. LangGraph's
+        The platform default is 100 for the top-level graph (~50 model+tool
+        rounds in LangGraph super-step terms). LangGraph's
         DEFAULT_RECURSION_LIMIT is 10,000 (as of langgraph 1.0.x), which
-        applies to subagent graphs by default. Values above 5000 are
+        applies to sub-agent graphs by default. Values above 5000 are
         flagged as potentially problematic since they indicate either an
         agent that may run unchecked for a very long time, or a
         misconfiguration.
@@ -196,14 +197,14 @@ class AgentConfig(BaseModel):
         if v <= 0:
             raise ValueError(
                 f"recursion_limit must be positive, got {v}. "
-                "Recommended range: 50-2000 depending on agent complexity."
+                "Recommended range: 50-500 depending on agent complexity."
             )
         if v > 5000:
             import warnings
             warnings.warn(
                 f"recursion_limit of {v} is very high. This may cause long "
                 "execution times or mask infinite loops. Consider values "
-                "between 50-2000 for most agents. The platform standard is 1000.",
+                "between 50-500 for most agents. The platform default is 100.",
                 UserWarning,
                 stacklevel=2,
             )

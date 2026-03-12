@@ -627,7 +627,6 @@ agent_graph = create_deep_agent(
     model="claude-sonnet-4.5",
     system_prompt=enhanced_prompt,
     sandbox_config=sandbox_config,
-    recursion_limit=1000,
 )
 ```
 

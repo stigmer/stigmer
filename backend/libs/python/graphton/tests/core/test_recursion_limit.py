@@ -24,18 +24,18 @@ class TestRecursionLimitValidator:
     """Tests for recursion_limit validation in AgentConfig."""
 
     def test_valid_recursion_limit(self):
-        """Test that standard platform value (1000) is accepted without warning."""
+        """Test that platform default (100) is accepted without warning."""
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             config = AgentConfig(
                 model="gpt-4",
                 system_prompt="Test assistant.",
-                recursion_limit=1000,
+                recursion_limit=100,
             )
             recursion_warnings = [
                 x for x in w if "recursion_limit" in str(x.message)
             ]
-            assert config.recursion_limit == 1000
+            assert config.recursion_limit == 100
             assert len(recursion_warnings) == 0
 
     def test_low_recursion_limit(self):
@@ -173,10 +173,10 @@ class TestAgentCreation:
         create_deep_agent(
             model="gpt-4",
             system_prompt="Test assistant.",
-            recursion_limit=1000,
+            recursion_limit=100,
         )
 
-        mock_agent.with_config.assert_called_once_with({"recursion_limit": 1000})
+        mock_agent.with_config.assert_called_once_with({"recursion_limit": 100})
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
     @patch("graphton.core.agent.parse_model_string")
@@ -319,21 +319,21 @@ class TestRecursionLimitMergeConfigs:
     These tests document the known behavior where LangGraph's merge_configs
     has special handling for recursion_limit. The exact behavior depends on
     the langgraph version (DEFAULT_RECURSION_LIMIT changed from 25 to 10,000
-    in langgraph 1.0.8). Our platform value of 1000 is preserved in all
+    in langgraph 1.0.8). Our platform default of 100 is preserved in all
     versions because it is never equal to either default.
     """
 
     def test_platform_value_preserved(self):
-        """Verify recursion_limit=1000 survives LangGraph's merge_configs.
+        """Verify recursion_limit=100 survives LangGraph's merge_configs.
 
-        This is the most important test: the platform's standard value of
-        1000 must be preserved regardless of what DEFAULT_RECURSION_LIMIT is.
+        This is the most important test: the platform's default value of
+        100 must be preserved regardless of what DEFAULT_RECURSION_LIMIT is.
         """
         from langgraph._internal._config import merge_configs
 
-        result = merge_configs({"configurable": {}}, {"recursion_limit": 1000})
-        assert result.get("recursion_limit") == 1000, (
-            "recursion_limit=1000 must be preserved by merge_configs "
+        result = merge_configs({"configurable": {}}, {"recursion_limit": 100})
+        assert result.get("recursion_limit") == 100, (
+            "recursion_limit=100 must be preserved by merge_configs "
             "(only DEFAULT_RECURSION_LIMIT is stripped)"
         )
 

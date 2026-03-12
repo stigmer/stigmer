@@ -2093,22 +2093,13 @@ async def _execute_graphton_impl(
 
         enhanced_system_prompt += (
             "\n\n## Sub-agent delegation rules\n\n"
-            "### Concurrency limit\n\n"
-            "Do NOT spawn more than 4 sub-agents concurrently. If you need "
-            "to explore more than 4 areas, batch them: launch the first 4, "
-            "wait for results, then launch more if needed.\n\n"
-            "### When NOT to delegate\n\n"
             "- **Read files directly.** When you need the contents of a file, "
             "use the `read` tool yourself. Do not delegate file reading to "
             "sub-agents via the `task` tool. You need raw file contents in "
             "your own context to reason about them accurately.\n"
-            "- **Single-step lookups.** Use `grep`, `glob`, `search`, or "
-            "`read` directly for simple searches across 1-2 files. Only "
-            "delegate when the task requires multi-step exploration.\n"
             "- Sub-agents are for **multi-step, independent tasks** that "
             "produce a deliverable (analysis, synthesis, generated content). "
-            "They are not for fetching data that you will process yourself.\n\n"
-            "### Delegation best practices\n\n"
+            "They are not for fetching data that you will process yourself.\n"
             "- When delegating to a sub-agent, specify the analysis or "
             "deliverable you need — not \"read these files and give me the "
             "contents.\"\n"
@@ -2275,12 +2266,19 @@ async def _execute_graphton_impl(
         
         # Create Graphton agent.
         #
-        # Recursion limit: 1000 for the top-level graph. deepagents 0.4.x
-        # uses langchain's create_agent() which defaults subagent graphs to
-        # DEFAULT_RECURSION_LIMIT (10,000 in langgraph 1.0.x). This gives
-        # subagents generous room while the top-level graph is capped at 1000.
+        # Recursion limit: graphton's default (100) applies via with_config()
+        # at graph compilation time. This gives the main agent ~50 model+tool
+        # rounds — 2x Cursor's 25-tool-call limit, well within Claude Code's
+        # recommended range for complex sub-agent workflows (40-200+ turns).
+        # Sub-agent graphs use deepagents' DEFAULT_RECURSION_LIMIT (10,000 in
+        # langgraph 1.0.x), giving them generous room independently.
         # Graphton's loop detection middleware provides additional protection
         # against infinite loops via pattern-based intervention.
+        #
+        # The orchestrator intentionally does NOT override graphton's default.
+        # Graphton (the domain library) owns the agent execution semantics;
+        # execute_graphton (the orchestrator) should not second-guess them
+        # unless there is a per-execution override from the user.
         #
         # Sandbox tools: graphton creates platform tool wrappers (read, write,
         # edit, execute, ls, glob, grep) backed by the sandbox. deepagents also
@@ -2294,7 +2292,6 @@ async def _execute_graphton_impl(
             tools=None,
             subagents=transformed_subagents,
             sandbox_config=sandbox_config_for_agent,
-            recursion_limit=1000,
             checkpointer=checkpointer,
             approval_checker=approval_checker,
             summarization_config=summarization_config,
@@ -2322,15 +2319,12 @@ async def _execute_graphton_impl(
         
         # Prepare config with thread_id for state persistence.
         #
-        # recursion_limit is set here as defense-in-depth. The primary limit
-        # is applied via graphton's with_config() during agent creation, but
-        # setting it at invoke-time ensures the limit is enforced even if the
-        # graph's default config is somehow lost during config merging.
-        # Note: LangGraph's merge_configs strips recursion_limit values equal
-        # to DEFAULT_RECURSION_LIMIT (10,000), but 1000 != 10,000 so this
-        # value is preserved.
+        # recursion_limit is NOT set here. The single source of truth is
+        # graphton's with_config({"recursion_limit": N}) applied at graph
+        # compilation time. LangGraph's merge_configs preserves non-default
+        # values (100 != DEFAULT_RECURSION_LIMIT of 10,000), so the compiled
+        # limit survives config merging without an invoke-time override.
         config = {
-            "recursion_limit": 1000,
             "configurable": {
                 "thread_id": thread_id,
                 "org": execution.metadata.org,
@@ -3043,6 +3037,67 @@ async def _execute_graphton_impl(
                 activity_logger.warning(f"[STALL] Failed to send status update: {update_err}")
             
             return _slim_status_for_temporal(status_builder.current_status)
+        except Exception as stream_err:
+            # ─────────────────────────────────────────────────────────────────────────────
+            # Tool-Call Limit: LangGraph's recursion_limit reached.
+            #
+            # The agent exhausted its tool-call budget (graphton default: 100
+            # super-steps ≈ 50 model+tool rounds).  This is a planned boundary,
+            # not a crash.  The user can send another message to continue.
+            #
+            # We catch this via type-name check rather than importing at module
+            # level, consistent with the lazy-import pattern used throughout
+            # this file.  GraphRecursionError is a subclass of Exception.
+            # ─────────────────────────────────────────────────────────────────────────────
+            if type(stream_err).__name__ == "GraphRecursionError":
+                limit_msg = (
+                    f"Agent reached the tool-call limit after processing "
+                    f"{events_processed} events. "
+                    f"Send another message to continue."
+                )
+                activity_logger.warning(
+                    f"🔄 [RECURSION_LIMIT] execution={execution_id} — {limit_msg} "
+                    f"(detail: {stream_err})"
+                )
+
+                status_builder.finalize_active_sub_agents(
+                    SubAgentStatus.SUB_AGENT_CANCELLED,
+                    "Parent execution reached tool-call limit",
+                )
+
+                status_builder.finalize_context_info()
+
+                from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
+                from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
+
+                limit_error_msg = AgentMessage(
+                    type=MessageType.MESSAGE_SYSTEM,
+                    content=(
+                        "🔄 The agent reached the tool-call limit for this message. "
+                        "Work completed so far has been saved. "
+                        "Send another message to continue where the agent left off."
+                    ),
+                    timestamp=_utc_timestamp(),
+                )
+                status_builder.current_status.messages.append(limit_error_msg)
+                status_builder.current_status.phase = ExecutionPhase.EXECUTION_FAILED
+                status_builder.current_status.error = limit_msg
+
+                try:
+                    activity_logger.info("📤 [RECURSION_LIMIT] Sending FAILED status update")
+                    await execution_client.update_status(
+                        execution_id=execution_id,
+                        status=status_builder.current_status,
+                    )
+                except Exception as update_err:
+                    activity_logger.warning(
+                        f"[RECURSION_LIMIT] Failed to send status update: {update_err}"
+                    )
+
+                return _slim_status_for_temporal(status_builder.current_status)
+
+            # Not a GraphRecursionError — re-raise for the outer handler.
+            raise
         finally:
             # Always cancel the background heartbeat task — whether the stream
             # completed normally, was paused (CancelledError), or raised an error.
