@@ -246,15 +246,17 @@ func (m inlineBubbleModel) View() tea.View {
 		}
 	case m.streamingActive:
 		if m.streamingProgressive {
-			partial := m.streamingContent
-			if m.streamingSubAgent != "" && partial != "" {
-				partial = toolrender.GutterWrap(partial)
+			content = m.streamingContent
+			if m.streamingSubAgent != "" && content != "" {
+				content = toolrender.GutterWrap(content)
 			}
-			content = partial
 		} else {
 			content = formatStreamingView(
 				m.streamingHeader, m.streamingContent, m.streamingSubAgent,
 			)
+		}
+		if subAgentView := m.renderSubAgentLine(); subAgentView != "" {
+			content = subAgentView + "\n\n" + content
 		}
 	case m.followUpActive:
 		content = m.followUpContent
@@ -344,9 +346,9 @@ func (m inlineBubbleModel) renderComposedView() tea.View {
 // content is active.
 //
 // Sub-agent status lines (both active spinners and recently-completed
-// indicators) are shown above the primary content for approval and AI
-// stream cases. This ensures sub-agent completion is visible even when
-// the main agent is streaming its response.
+// indicators) are shown above the primary content for approval, tool
+// streaming, and AI stream cases. This ensures sub-agent completion is
+// visible even when the main agent is streaming its response.
 func (m inlineBubbleModel) renderTransientContent() string {
 	switch {
 	case m.approvalActive:
@@ -356,14 +358,19 @@ func (m inlineBubbleModel) renderTransientContent() string {
 		}
 		return approvalView
 	case m.streamingActive:
+		var streamView string
 		if m.streamingProgressive {
-			partial := m.streamingContent
-			if m.streamingSubAgent != "" && partial != "" {
-				partial = toolrender.GutterWrap(partial)
+			streamView = m.streamingContent
+			if m.streamingSubAgent != "" && streamView != "" {
+				streamView = toolrender.GutterWrap(streamView)
 			}
-			return partial
+		} else {
+			streamView = formatStreamingView(m.streamingHeader, m.streamingContent, m.streamingSubAgent)
 		}
-		return formatStreamingView(m.streamingHeader, m.streamingContent, m.streamingSubAgent)
+		if subAgentView := m.renderSubAgentLine(); subAgentView != "" {
+			return subAgentView + "\n\n" + streamView
+		}
+		return streamView
 	case m.aiStreamActive:
 		if subAgentView := m.renderSubAgentLine(); subAgentView != "" {
 			return subAgentView + "\n\n" + m.aiStreamPartial
