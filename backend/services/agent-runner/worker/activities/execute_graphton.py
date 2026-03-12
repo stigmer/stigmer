@@ -3033,11 +3033,11 @@ async def _execute_graphton_impl(
             )
 
             status_builder.finalize_active_sub_agents(
-                SubAgentStatus.SUB_AGENT_FAILED,
+                SubAgentStatus.SUB_AGENT_CANCELLED,
                 "Parent execution stalled — no events received",
             )
 
-            # Finalize any accumulated data before reporting failure
+            # Finalize any accumulated data before reporting termination
             status_builder.finalize_context_info()
             
             from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
@@ -3053,12 +3053,12 @@ async def _execute_graphton_impl(
                 timestamp=_utc_timestamp(),
             )
             status_builder.current_status.messages.append(stall_error_msg)
-            status_builder.current_status.phase = ExecutionPhase.EXECUTION_FAILED
+            status_builder.current_status.phase = ExecutionPhase.EXECUTION_TERMINATED
             status_builder.current_status.error = stall_msg
             
             # Best-effort status persistence
             try:
-                activity_logger.info("📤 [STALL] Sending FAILED status update")
+                activity_logger.info("📤 [STALL] Sending TERMINATED status update")
                 await execution_client.update_status(
                     execution_id=execution_id,
                     status=status_builder.current_status,
@@ -3111,11 +3111,11 @@ async def _execute_graphton_impl(
                     timestamp=_utc_timestamp(),
                 )
                 status_builder.current_status.messages.append(limit_error_msg)
-                status_builder.current_status.phase = ExecutionPhase.EXECUTION_FAILED
+                status_builder.current_status.phase = ExecutionPhase.EXECUTION_TERMINATED
                 status_builder.current_status.error = limit_msg
 
                 try:
-                    activity_logger.info("📤 [RECURSION_LIMIT] Sending FAILED status update")
+                    activity_logger.info("📤 [RECURSION_LIMIT] Sending TERMINATED status update")
                     await execution_client.update_status(
                         execution_id=execution_id,
                         status=status_builder.current_status,

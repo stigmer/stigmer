@@ -186,10 +186,11 @@ func readFollowUpInputDirect(status io.Writer) (string, error) {
 // TUI behavior where the user can recover from failures by sending corrective
 // instructions). Interrupted executions allow the user to redirect the agent
 // after pressing Esc. Cancelled executions, stream errors, and unknown phases
-// exit immediately.
+// exit immediately. Terminated executions (stall, budget limit) are eligible
+// because the checkpoint is valid and the user can continue.
 func isFollowUpEligible(phase, exitErr string) bool {
 	if exitErr != "" {
 		return false
 	}
-	return phase == "completed" || phase == "failed" || phase == "interrupted"
+	return phase == "completed" || phase == "failed" || phase == "terminated" || phase == "interrupted"
 }
