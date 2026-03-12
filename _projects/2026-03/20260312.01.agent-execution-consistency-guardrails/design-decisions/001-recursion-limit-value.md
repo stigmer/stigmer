@@ -50,8 +50,9 @@ behavioral safety mechanism. Per-execution limits can be set via
 
 ### What Happens When `recursion_limit=None`
 
-- `create_deep_agent()` does **not** call `with_config({"recursion_limit": ...})`
-- LangGraph's own `DEFAULT_RECURSION_LIMIT` (10,000) applies as the framework ceiling
+- `create_deep_agent()` calls `with_config({"recursion_limit": 10_000_000})`
+- This explicit override is necessary because deepagents internally sets its own
+  recursion_limit; skipping `with_config` would inherit a much lower ceiling
 - `ExecutionBudgetMiddleware` is **not injected** (no limit to warn about)
 - This also reduces per-round super-step cost by one (one fewer after_model node)
 

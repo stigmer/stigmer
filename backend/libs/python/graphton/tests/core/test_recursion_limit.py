@@ -120,8 +120,12 @@ class TestAgentCreation:
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
     @patch("graphton.core.agent.parse_model_string")
-    def test_default_none_skips_with_config(self, mock_parse, mock_create):
-        """Verify recursion_limit=None (default) does NOT call with_config."""
+    def test_default_none_uses_unlimited(self, mock_parse, mock_create):
+        """Verify recursion_limit=None (default) sets 10M (effectively unlimited).
+
+        We must always call with_config because deepagents internally sets
+        its own recursion_limit which would otherwise impose a lower ceiling.
+        """
         from graphton import create_deep_agent
 
         mock_model = MagicMock()
@@ -135,7 +139,7 @@ class TestAgentCreation:
             system_prompt="Test assistant.",
         )
 
-        mock_agent.with_config.assert_not_called()
+        mock_agent.with_config.assert_called_once_with({"recursion_limit": 10_000_000})
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
     @patch("graphton.core.agent.parse_model_string")

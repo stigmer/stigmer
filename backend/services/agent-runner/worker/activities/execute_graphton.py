@@ -2348,8 +2348,8 @@ async def _execute_graphton_impl(
         # recursion_limit is NOT set here. It is applied at graph compilation
         # time via graphton's with_config({"recursion_limit": N}). The value
         # comes from ExecutionConfig.max_tool_rounds (converted above, ×6) or
-        # None (unlimited).  When None, graphton skips the with_config call
-        # entirely.  LangGraph's merge_configs preserves non-default values.
+        # None (unlimited → 10M internally).  LangGraph's merge_configs
+        # preserves non-default values.
         config = {
             "configurable": {
                 "thread_id": thread_id,
@@ -3064,8 +3064,9 @@ async def _execute_graphton_impl(
             # ─────────────────────────────────────────────────────────────────────────────
             # Tool-Call Limit: LangGraph's recursion_limit reached.
             #
-            # The agent exhausted its tool-call budget (default: 100 super-steps
-            # ≈ 50 model+tool rounds, configurable via max_tool_rounds).
+            # The agent exhausted its super-step budget.  By default the limit
+            # is effectively unlimited (10M); this fires only when
+            # max_tool_rounds is explicitly set in ExecutionConfig.
             # ExecutionBudgetMiddleware injected a wrap-up SystemMessage at
             # ~80% of the budget; this handler fires at 100%.
             #
