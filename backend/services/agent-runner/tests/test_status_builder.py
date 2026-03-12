@@ -7021,3 +7021,225 @@ class TestSubAgentSubjectDeduplication:
             for sa in status_builder.current_status.sub_agent_executions
         ]
         assert subjects == ["", ""]
+
+
+# =============================================================================
+# Tests for orphaned sub-agent detection and differentiated finalization (PR5)
+# =============================================================================
+
+
+class TestOrphanedSubAgentDetection:
+    """Tests for has_orphaned_sub_agents, diagnostic info, and differentiated finalization.
+
+    These verify that the StatusBuilder can detect sub-agents left in
+    IN_PROGRESS after the event stream ends, report structured diagnostics,
+    and finalize them with the correct differentiated statuses.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _patch_subject_gen(self):
+        with patch(
+            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            new_callable=AsyncMock,
+            return_value="",
+        ):
+            yield
+
+    def _make_task_start_event(self, run_id: str, description: str = "do work") -> dict:
+        return {
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": run_id,
+            "data": {
+                "input": {
+                    "subagent_type": "code_editor",
+                    "description": description,
+                }
+            },
+            "metadata": {},
+        }
+
+    def _make_task_end_event(self, run_id: str, output: str = "done") -> dict:
+        return {
+            "event": "on_tool_end",
+            "name": "task",
+            "run_id": run_id,
+            "data": {"output": output},
+            "metadata": {},
+        }
+
+    # ── has_orphaned_sub_agents ──────────────────────────────────────────────
+
+    def test_no_orphans_when_empty(self, status_builder):
+        """No sub-agents at all → no orphans."""
+        assert status_builder.has_orphaned_sub_agents is False
+
+    @pytest.mark.asyncio
+    async def test_no_orphans_after_all_completed(self, status_builder):
+        """All sub-agents completed → no orphans."""
+        await status_builder.process_event(self._make_task_start_event("sa-1"))
+        await status_builder.process_event(self._make_task_end_event("sa-1"))
+
+        assert status_builder.has_orphaned_sub_agents is False
+
+    @pytest.mark.asyncio
+    async def test_orphans_detected_when_active(self, status_builder):
+        """Sub-agents still active → orphans detected."""
+        await status_builder.process_event(self._make_task_start_event("sa-1"))
+
+        assert status_builder.has_orphaned_sub_agents is True
+
+    @pytest.mark.asyncio
+    async def test_orphans_detected_mixed_completed_and_active(self, status_builder):
+        """One completed + one active → still has orphans."""
+        await status_builder.process_event(self._make_task_start_event("sa-1", "first task"))
+        await status_builder.process_event(self._make_task_end_event("sa-1"))
+        await status_builder.process_event(self._make_task_start_event("sa-2", "second task"))
+
+        assert status_builder.has_orphaned_sub_agents is True
+
+    # ── get_orphaned_sub_agents_diagnostic ───────────────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_diagnostic_zero_message_sub_agent(self, status_builder):
+        """Sub-agent with no messages/tool calls is classified as zero-message."""
+        await status_builder.process_event(self._make_task_start_event("sa-1"))
+
+        diag = status_builder.get_orphaned_sub_agents_diagnostic()
+        assert diag["total"] == 1
+        assert diag["zero_message_count"] == 1
+        assert diag["mid_execution_count"] == 0
+        assert len(diag["zero_message"]) == 1
+        assert diag["zero_message"][0]["run_id"] == "sa-1"
+
+    @pytest.mark.asyncio
+    async def test_diagnostic_mid_execution_sub_agent(self, status_builder):
+        """Sub-agent with messages is classified as mid-execution."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
+
+        await status_builder.process_event(self._make_task_start_event("sa-1"))
+        sub_agent = status_builder._active_sub_agents["sa-1"]
+        sub_agent.messages.append(AgentMessage(content="working..."))
+
+        diag = status_builder.get_orphaned_sub_agents_diagnostic()
+        assert diag["total"] == 1
+        assert diag["zero_message_count"] == 0
+        assert diag["mid_execution_count"] == 1
+        assert diag["mid_execution"][0]["run_id"] == "sa-1"
+        assert diag["mid_execution"][0]["message_count"] == 1
+
+    @pytest.mark.asyncio
+    async def test_diagnostic_mixed(self, status_builder):
+        """Mix of zero-message and mid-execution sub-agents."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage, ToolCall
+
+        await status_builder.process_event(self._make_task_start_event("sa-zero", "task alpha"))
+        await status_builder.process_event(self._make_task_start_event("sa-mid", "task beta"))
+
+        mid_agent = status_builder._active_sub_agents["sa-mid"]
+        mid_agent.tool_calls.append(ToolCall(name="read_file"))
+
+        diag = status_builder.get_orphaned_sub_agents_diagnostic()
+        assert diag["total"] == 2
+        assert diag["zero_message_count"] == 1
+        assert diag["mid_execution_count"] == 1
+
+    # ── finalize_active_sub_agents_differentiated ────────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_differentiated_finalize_zero_message_gets_cancelled(self, status_builder):
+        """Zero-message sub-agents receive SUB_AGENT_CANCELLED."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SubAgentStatus
+
+        await status_builder.process_event(self._make_task_start_event("sa-1"))
+
+        count = status_builder.finalize_active_sub_agents_differentiated(
+            error_context="Parent execution terminated abnormally"
+        )
+
+        assert count == 1
+        sa = status_builder._completed_sub_agents["sa-1"]
+        assert sa.status == SubAgentStatus.SUB_AGENT_CANCELLED
+        assert "never began execution" in sa.error
+        assert status_builder.has_orphaned_sub_agents is False
+
+    @pytest.mark.asyncio
+    async def test_differentiated_finalize_mid_execution_gets_failed(self, status_builder):
+        """Mid-execution sub-agents receive SUB_AGENT_FAILED."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SubAgentStatus
+
+        await status_builder.process_event(self._make_task_start_event("sa-1"))
+        status_builder._active_sub_agents["sa-1"].messages.append(
+            AgentMessage(content="I found the issue")
+        )
+
+        count = status_builder.finalize_active_sub_agents_differentiated(
+            error_context="Parent execution terminated abnormally"
+        )
+
+        assert count == 1
+        sa = status_builder._completed_sub_agents["sa-1"]
+        assert sa.status == SubAgentStatus.SUB_AGENT_FAILED
+        assert "was running" in sa.error
+        assert status_builder.has_orphaned_sub_agents is False
+
+    @pytest.mark.asyncio
+    async def test_differentiated_finalize_mixed(self, status_builder):
+        """Mixed finalization: zero-message → CANCELLED, mid-execution → FAILED."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SubAgentStatus
+
+        await status_builder.process_event(self._make_task_start_event("sa-zero", "task alpha"))
+        await status_builder.process_event(self._make_task_start_event("sa-mid", "task beta"))
+        status_builder._active_sub_agents["sa-mid"].messages.append(
+            AgentMessage(content="working")
+        )
+
+        count = status_builder.finalize_active_sub_agents_differentiated(
+            error_context="Parent terminated"
+        )
+
+        assert count == 2
+        assert status_builder._completed_sub_agents["sa-zero"].status == SubAgentStatus.SUB_AGENT_CANCELLED
+        assert status_builder._completed_sub_agents["sa-mid"].status == SubAgentStatus.SUB_AGENT_FAILED
+        assert status_builder.has_orphaned_sub_agents is False
+
+    @pytest.mark.asyncio
+    async def test_differentiated_finalize_noop_when_no_active(self, status_builder):
+        """No active sub-agents → finalize returns 0 and is a no-op."""
+        count = status_builder.finalize_active_sub_agents_differentiated(
+            error_context="test"
+        )
+        assert count == 0
+
+    @pytest.mark.asyncio
+    async def test_differentiated_finalize_sets_completed_at(self, status_builder):
+        """Finalized sub-agents receive a completed_at timestamp."""
+        await status_builder.process_event(self._make_task_start_event("sa-1"))
+
+        status_builder.finalize_active_sub_agents_differentiated(
+            error_context="test"
+        )
+
+        sa = status_builder._completed_sub_agents["sa-1"]
+        assert sa.completed_at != ""
+
+    # ── Regression: original finalize_active_sub_agents still works ──────────
+
+    @pytest.mark.asyncio
+    async def test_original_finalize_applies_uniform_status(self, status_builder):
+        """The original finalize method still applies a single status to all."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SubAgentStatus
+
+        await status_builder.process_event(self._make_task_start_event("sa-1", "task alpha"))
+        await status_builder.process_event(self._make_task_start_event("sa-2", "task beta"))
+
+        status_builder.finalize_active_sub_agents(
+            SubAgentStatus.SUB_AGENT_FAILED,
+            "stall detected"
+        )
+
+        assert status_builder._completed_sub_agents["sa-1"].status == SubAgentStatus.SUB_AGENT_FAILED
+        assert status_builder._completed_sub_agents["sa-2"].status == SubAgentStatus.SUB_AGENT_FAILED
+        assert status_builder.has_orphaned_sub_agents is False

@@ -3431,17 +3431,24 @@ async def _execute_graphton_impl(
                     f"failed to capture interrupt IDs from graph state: {capture_err}."
                 )
         
-        # Determine final phase based on current state.
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Post-Stream Reconciliation: Determine final phase
         #
-        # When LangGraph's interrupt() is called (HITL approval), the event stream
-        # ends naturally — the graph pauses at a checkpoint, producing no more events.
-        # The status_builder will have already set the phase to WAITING_FOR_APPROVAL
-        # during event processing. We must NOT overwrite that phase with COMPLETED,
-        # because the Temporal workflow uses the returned phase to decide whether to
-        # enter the HITL approval loop.
+        # The event stream can end for several reasons:
+        #   1. Normal completion — LLM produced a final response, no more work.
+        #   2. HITL interrupt — graph paused at checkpoint for approval.
+        #   3. Graceful pause — user requested pause, handled above.
+        #   4. Abnormal termination — graph crashed internally (context overflow,
+        #      unhandled exception in a node) and the stream ended *without*
+        #      raising an exception.  In this case, sub-agents may still be
+        #      tracked as IN_PROGRESS even though nothing is actually running.
         #
-        # Similarly, if the phase is PAUSED (set during graceful cancellation handling
-        # above), we must preserve it.
+        # Cases 2 and 3 are already handled (phase was set during processing).
+        # Case 4 is detected by checking for orphaned sub-agents: in a healthy
+        # execution, all sub-agents complete before the stream ends because they
+        # are synchronous subgraphs.  Active sub-agents at stream end always
+        # indicate abnormal termination.
+        # ─────────────────────────────────────────────────────────────────────────────
         current_phase = status_builder.current_status.phase
         
         if current_phase == ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL:
@@ -3453,6 +3460,30 @@ async def _execute_graphton_impl(
             activity_logger.info(
                 f"Stream ended with PAUSED phase for execution {execution_id}. "
                 f"Not setting COMPLETED — execution is paused at checkpoint."
+            )
+        elif status_builder.has_orphaned_sub_agents:
+            diag = status_builder.get_orphaned_sub_agents_diagnostic()
+            activity_logger.error(
+                f"[RECONCILIATION] execution={execution_id} — Stream ended normally "
+                f"but {diag['total']} sub-agent(s) are still IN_PROGRESS "
+                f"(zero-message={diag['zero_message_count']}, "
+                f"mid-execution={diag['mid_execution_count']}). "
+                f"Marking execution as FAILED. Details: {diag}"
+            )
+            finalized_count = status_builder.finalize_active_sub_agents_differentiated(
+                error_context="Parent execution terminated abnormally"
+            )
+            status_builder.current_status.phase = ExecutionPhase.EXECUTION_FAILED
+            status_builder.current_status.error = (
+                f"Execution terminated with {diag['total']} sub-agent(s) still in progress "
+                f"({diag['zero_message_count']} never started, "
+                f"{diag['mid_execution_count']} mid-execution). "
+                f"The graph ended without producing a final response."
+            )
+            activity_logger.info(
+                f"[RECONCILIATION] execution={execution_id} — "
+                f"Finalized {finalized_count} orphaned sub-agent(s), "
+                f"phase set to EXECUTION_FAILED."
             )
         else:
             status_builder.current_status.phase = ExecutionPhase.EXECUTION_COMPLETED
