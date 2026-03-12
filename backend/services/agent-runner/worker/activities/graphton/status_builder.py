@@ -74,9 +74,15 @@ sub-agent, produce a concise task title.
 
 Rules:
 - 3 to 7 words, maximum 50 characters
-- Capture the core intent of the task
+- Lead with the most specific differentiator — the directory, file, module, \
+or unique aspect. Put shared/common context last.
+  Good: "apis/ protobuf Cloud Resource types"
+  Bad:  "Research Cloud Resource protobuf definitions"
+- If the description mentions a specific path or directory, include it
 - Be specific (e.g. "Fix auth middleware tests" not "Fix tests")
-- No filler words ("help with", "please", "I need")
+- No filler words ("help with", "please", "I need", "research", "explore")
+- The title MUST be unique — it must NOT duplicate any of the existing titles \
+listed below. Focus on what makes THIS task different from the others.
 - No quotes, no punctuation at the end
 - Output ONLY the title, nothing else"""
 
@@ -84,12 +90,17 @@ Rules:
 async def _generate_sub_agent_subject(
     input_text: str,
     sub_agent_name: str,
+    existing_subjects: list[str] | None = None,
 ) -> str:
     """Generate a concise task title for a sub-agent from its input prompt.
 
     Uses ``ModelRegistry.get_summarization_model()`` to select the cheapest
     available model (claude-haiku-4.5 / gpt-4o-mini / same model for Ollama),
     keeping costs negligible even with many sub-agent invocations per execution.
+
+    When *existing_subjects* is provided (non-empty), the LLM is instructed to
+    produce a title that does not duplicate any of them, ensuring visual
+    differentiation in the UI.
 
     Returns the generated subject (stripped, truncated to 50 chars), or an
     empty string on any failure so callers can fall back gracefully.
@@ -118,8 +129,16 @@ async def _generate_sub_agent_subject(
 
         truncated_input = input_text[:2000] if len(input_text) > 2000 else input_text
 
+        existing_block = ""
+        if existing_subjects:
+            titles = "\n".join(f"- {s}" for s in existing_subjects)
+            existing_block = (
+                f"\nExisting titles (do NOT repeat these):\n{titles}\n"
+            )
+
         user_prompt = (
-            f'Sub-agent type: {sub_agent_name}\n\n'
+            f'Sub-agent type: {sub_agent_name}\n'
+            f'{existing_block}\n'
             f'Task description:\n"{truncated_input}"\n\n'
             f'Generate the title:'
         )
@@ -354,6 +373,10 @@ class StatusBuilder:
         # front-of-queue sub-agent.  Supports concurrent sub-agent launches
         # where multiple task tools start before any child events arrive.
         self._pending_sub_agent_ids: list[str] = []
+        
+        # Subject deduplication: tracks how many times each subject has been
+        # assigned so duplicate subjects get a numeric suffix (e.g., "(2)").
+        self._subject_counts: dict[str, int] = {}
         
         # Namespaces already warned about (deduplication — log once per namespace)
         self._warned_namespaces: set[str] = set()
@@ -2693,7 +2716,19 @@ class StatusBuilder:
             or tool_args.get("task", "")
             or tool_args.get("prompt", "")
         )
-        subject = await _generate_sub_agent_subject(sub_agent_input, sub_agent_name)
+        existing = list(self._subject_counts.keys())
+        subject = await _generate_sub_agent_subject(
+            sub_agent_input, sub_agent_name, existing_subjects=existing,
+        )
+
+        if subject:
+            count = self._subject_counts.get(subject, 0) + 1
+            self._subject_counts[subject] = count
+            if count > 1:
+                suffix = f" ({count})"
+                max_base = _MAX_SUBJECT_LENGTH - len(suffix)
+                base = subject[:max_base] if len(subject) > max_base else subject
+                subject = base + suffix
 
         now = datetime.utcnow()
         sub_agent = SubAgentExecution(
