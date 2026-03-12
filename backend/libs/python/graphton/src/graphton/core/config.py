@@ -76,7 +76,7 @@ class AgentConfig(BaseModel):
     middleware: Sequence[Any] | None = None
     context_schema: type[Any] | None = None
     sandbox_config: dict[str, Any] | None = None
-    recursion_limit: int = 6000
+    recursion_limit: int | None = None
     max_tokens: int | None = None
     temperature: float | None = None
     auto_enhance_prompt: bool = True
@@ -176,39 +176,28 @@ class AgentConfig(BaseModel):
     
     @field_validator("recursion_limit")
     @classmethod
-    def validate_recursion_limit(cls, v: int) -> int:
+    def validate_recursion_limit(cls, v: int | None) -> int | None:
         """Validate recursion limit is reasonable.
         
-        The platform default is 6000 super-steps for the top-level graph.
-        LangGraph's DEFAULT_RECURSION_LIMIT is 10,000 (as of langgraph
-        1.0.x), which applies to sub-agent graphs by default.  Values
-        above 30,000 are flagged as potentially problematic since they
-        indicate either an agent that may run unchecked for a very long
-        time, or a misconfiguration.
+        ``None`` (default) means unlimited — loop detection middleware is
+        the primary safety mechanism.  When a positive integer is provided,
+        LangGraph enforces it as a hard super-step ceiling.
         
         Args:
-            v: Recursion limit value
+            v: Recursion limit value, or None for unlimited.
             
         Returns:
-            Validated recursion limit
+            Validated recursion limit (or None).
             
         Raises:
-            ValueError: If recursion limit is invalid
+            ValueError: If recursion limit is zero or negative.
         
         """
+        if v is None:
+            return v
         if v <= 0:
             raise ValueError(
-                f"recursion_limit must be positive, got {v}. "
-                "Recommended range: 50-500 depending on agent complexity."
-            )
-        if v > 30000:
-            import warnings
-            warnings.warn(
-                f"recursion_limit of {v} is very high. This may cause long "
-                "execution times or mask infinite loops. Consider values "
-                "between 60-30000 for most agents. The platform default is 6000.",
-                UserWarning,
-                stacklevel=2,
+                f"recursion_limit must be positive or None (unlimited), got {v}."
             )
         return v
     

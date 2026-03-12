@@ -1,88 +1,81 @@
 # Design Decision 001: Recursion Limit Value
 
 **Date**: 2026-03-12
-**Status**: Revised (Session 8)
+**Status**: Revised (Session 9 — Unlimited by Default)
 **Decided by**: User + AI (collaborative)
 
 ## Context
 
-The orchestrator (`execute_graphton.py`) was overriding graphton's default `recursion_limit` of 100 with 1000 in two places. We needed to decide what the correct default should be.
+The original "Agent Execution Consistency Guardrails" project reduced the
+recursion limit from 1000 to 100 super-steps. Successive sessions discovered
+the actual per-round cost was much higher than estimated, and even 6000
+super-steps proved insufficient for complex agent tasks. The fundamental
+insight: **loop detection middleware is a better safety mechanism than a
+hard recursion limit.**
 
 ### Revision History
 
-**Session 7**: Discovered that ~2 super-steps/round was wrong; the actual ratio is
-~6 due to middleware nodes. Updated default from 100 → 1000.
-
-**Session 8**: Production testing revealed that 1000 super-steps was still
-insufficient — the active middleware stack (enabled by the guardrails project
-itself) consumes significantly more super-steps per round than the mock-tested
-~6. Each middleware hook is a separate LangGraph graph node, and with loop
-detection, context summarization, and execution budget middleware all active,
-the per-round cost is substantially higher. The default has been increased to
-**6000 super-steps** to provide a generous budget for long-running agent tasks.
-Loop detection middleware is the primary behavioral safety mechanism; the
-recursion limit serves as a hard cost ceiling.
+- **Session 7**: Fixed ~2 → ~6 super-steps/round ratio, set default to 1000
+- **Session 8**: Production testing showed 1000 was still too low, increased to 6000
+- **Session 9**: Even 6000 was insufficient (3990 events consumed). Switched to
+  **unlimited by default**, with loop detection as the primary safety mechanism.
 
 ## Decision
 
-**Use graphton's default of 6000 super-steps.** Do not override from the orchestrator.
+**Default `recursion_limit` is `None` (unlimited).** No artificial super-step
+ceiling is imposed by graphton. Loop detection middleware is the primary
+behavioral safety mechanism. Per-execution limits can be set via
+`max_tool_rounds` in `ExecutionConfig`.
 
 ## Rationale
 
-### Super-step Cost
+### Why Unlimited
 
-Each model-tool round consumes multiple LangGraph super-steps because every
-middleware hook is implemented as a separate graph node:
+1. **The recursion limit kept being too low.** We went from 100 → 1000 → 6000,
+   and each time production executions hit the ceiling. The per-round super-step
+   cost is not a fixed constant — it depends on the active middleware stack and
+   varies between mock tests and production.
 
-| Node | Source |
-|------|--------|
-| `before_model` (SummarizationMiddleware) | middleware hook |
-| `model` | core agent |
-| `after_model` (ContextSummarizationMiddleware) | middleware hook |
-| `after_model` (LoopDetectionMiddleware) | middleware hook |
-| `after_model` (ExecutionBudgetMiddleware) | middleware hook |
-| `tools` | core agent |
+2. **Loop detection is a better safety mechanism.** It catches *behavior*
+   (repetitive patterns: 7 consecutive / 20 total duplicate tool calls) rather
+   than counting opaque super-steps. A stuck agent loops; a productive agent
+   making many tool calls should not be killed.
 
-The minimum cost is ~6 super-steps per round, but in practice the cost is
-higher due to additional internal graph transitions. The exact ratio depends
-on the active middleware stack and is not a fixed constant.
+3. **Industry precedent.** Claude Code has no limit. Cursor's long-running
+   agents run unbounded. The trend is toward letting agents run until the task
+   completes or the user intervenes.
 
-Additionally, ~9+ super-steps are consumed at startup/shutdown by
-`before_agent` and `after_agent` hooks from various middleware.
+4. **Per-execution override exists.** `max_tool_rounds` in `ExecutionConfig`
+   allows per-execution limits when needed (e.g. cost-sensitive deployments).
 
-### Industry Comparison
+### What Happens When `recursion_limit=None`
 
-| Product | Limit | Unit | Effective Rounds |
-|---------|-------|------|------------------|
-| Cursor | 25 (default), unlimited (long-running) | tool calls/message | 25+ |
-| Claude Code | Unlimited (scripted) | — | — |
-| OpenAI Agents SDK | 10 | turns (default) | 10 |
-| **Stigmer (new)** | **6000** | **super-steps** | **varies by middleware** |
+- `create_deep_agent()` does **not** call `with_config({"recursion_limit": ...})`
+- LangGraph's own `DEFAULT_RECURSION_LIMIT` (10,000) applies as the framework ceiling
+- `ExecutionBudgetMiddleware` is **not injected** (no limit to warn about)
+- This also reduces per-round super-step cost by one (one fewer after_model node)
 
-### Why 6000
+### What Happens When `max_tool_rounds` Is Set
 
-- Generous enough for complex, long-running agent tasks
-- Matches the pre-guardrails effective capacity (when middleware was dead code,
-  1000 super-steps at ~3 steps/round ≈ 333 rounds; with active middleware,
-  6000 super-steps provides comparable headroom)
-- Sub-agent graphs use deepagents' `DEFAULT_RECURSION_LIMIT` (10,000)
-  independently, so the main agent's limit doesn't constrain sub-agents
-- Loop detection middleware is the primary behavioral safety — it catches
-  repetitive patterns regardless of the recursion budget
-- Execution budget middleware warns at ~80%, giving the model time to wrap up
+- Orchestrator computes `recursion_limit = max_tool_rounds × 6`
+- `create_deep_agent()` calls `with_config({"recursion_limit": N})`
+- `ExecutionBudgetMiddleware` IS injected with the explicit limit
+- Warning fires at ~80% of the budget
 
 ## Configurability
 
-`max_tool_rounds` is available in `ExecutionConfig` proto, allowing per-execution
-overrides. The conversion formula is `recursion_limit = max_tool_rounds × 6`.
-Valid range: 10–1000 rounds (60–6000 super-steps). The default of 6000 is
-fixed in graphton; the orchestrator can override only when the user explicitly
-requests it.
+`max_tool_rounds` in `ExecutionConfig` proto allows per-execution overrides:
+
+- `0` (default) = unlimited
+- `10–1000` = explicit limit, converted to `recursion_limit = rounds × 6`
+
+The conversion formula `× 6` is a floor estimate; actual cost per round
+may be higher depending on the middleware stack.
 
 ## Consequences
 
-- All agent executions bounded at 6000 super-steps per user message
-- Loop detection middleware (7 consecutive / 20 total) is the primary behavioral safety
-- Execution budget warning fires at ~80% of the budget, giving the model time to wrap up
-- The recursion limit is the hard ceiling for cost protection
-- Value can be tuned based on observed usage patterns
+- Agent executions run until task completion or loop detection
+- No more premature `GraphRecursionError` kills
+- Loop detection (7 consecutive / 20 total) is the primary behavioral safety
+- Per-execution `max_tool_rounds` provides opt-in cost ceiling when needed
+- ExecutionBudgetMiddleware is skipped entirely in unlimited mode, reducing overhead

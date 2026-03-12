@@ -38,7 +38,7 @@ Complete inventory of items intentionally deferred during the 5-PR project. Grou
 | D1 | `max_tool_rounds` in `ExecutionConfig` proto | **DONE** | pending |
 | D2 | `ExecutionBudgetMiddleware` — 80% wrap-up warning | **DONE** | pending |
 
-- **D1**: Added `int32 max_tool_rounds = 3` to `ExecutionConfig` proto. Mapping: `recursion_limit = max_tool_rounds × 6`. Default 0 = platform default (6000 super-steps). Range: 10–1000 rounds (60–6000 super-steps), clamped with warning. Orchestrator reads and passes to `create_deep_agent()`.
+- **D1**: Added `int32 max_tool_rounds = 3` to `ExecutionConfig` proto. Mapping: `recursion_limit = max_tool_rounds × 6`. Default 0 = unlimited (loop detection is primary safety). Range when set: 10–1000 rounds (60–6000 super-steps), clamped with warning. Orchestrator reads and passes to `create_deep_agent()`.
 - **D2**: New `ExecutionBudgetMiddleware` in graphton. Tracks model rounds via `aafter_model`, injects a single SystemMessage at ~80% of budget telling the model to wrap up. Separate from `LoopDetectionMiddleware` (resource management vs behavioral detection). 39 tests.
 
 ### From PR2 / Session 3: Compaction UX Notifications — **DONE (Session 7)**

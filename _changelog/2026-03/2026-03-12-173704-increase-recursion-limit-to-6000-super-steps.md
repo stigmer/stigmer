@@ -1,87 +1,91 @@
-# Fix Recursion Limit: Increase to 6000 Super-steps
+# Make Recursion Limit Unlimited by Default
 
 **Date**: March 12, 2026
 
 ## Summary
 
-Increased the LangGraph recursion limit default to 6000 super-steps. The
-previous value of 1000 (set in Session 7) was still insufficient because
-the active middleware stack — enabled by the guardrails project itself —
-consumes significantly more super-steps per round than the mock-tested ~6.
-Loop detection middleware is the primary behavioral safety mechanism; the
-recursion limit serves as a hard cost ceiling.
+Changed the default recursion limit from a fixed value (6000 super-steps)
+to unlimited (`None`). Loop detection middleware is now the sole behavioral
+safety mechanism. The `ExecutionBudgetMiddleware` is only injected when
+an explicit limit is set via `max_tool_rounds`. This eliminates premature
+agent termination from `GraphRecursionError` while reducing per-round
+super-step cost.
 
 ## Problem Statement
 
-After the Session 7 fix (100 → 1000 super-steps), production testing
-revealed agents were still hitting the recursion limit prematurely. An
-execution that completed 79 tool calls was terminated at "300 events",
-despite the 1000 super-step limit being active.
+Successive attempts to find the "right" recursion limit failed:
+- 100 super-steps: agents died after ~16 rounds
+- 1000 super-steps: agents died after ~50-80 rounds
+- 6000 super-steps: agent still hit the limit at 3990 events
 
-### Root Cause
+The per-round super-step cost is not a fixed constant — it depends on the
+active middleware stack and varies between mock tests and production. Any
+fixed limit was either too restrictive for complex tasks or required
+constant tuning.
 
-The per-round super-step cost in production is higher than the ~6 measured
-in mock tests. Each middleware hook is a separate LangGraph graph node,
-and with loop detection, context summarization, and execution budget
-middleware all active, the actual cost per round is substantially higher.
-Before the guardrails project, these middleware were dead code (using
-invalid hook names), so the pre-project 1000 super-step limit afforded
-~333 rounds. With working middleware, the same 1000 super-steps only
-provided ~50-80 rounds.
+### Pain Points
+
+- Complex tasks (e.g. multi-step skill creation) consistently hit the limit
+- Each increase required code changes across 7+ files and test updates
+- The recursion limit was fighting against productive work, not just loops
 
 ## Solution
 
-Set the default recursion limit to 6000 super-steps to provide a generous
-budget for complex, long-running tasks. Loop detection middleware (7
-consecutive / 20 total duplicate patterns) is the primary behavioral safety
-mechanism. The execution budget middleware warns at ~80% of the budget.
+Make `recursion_limit=None` the default, meaning "no artificial limit".
+Loop detection middleware (7 consecutive / 20 total duplicate patterns)
+catches stuck agents regardless of super-step count. Per-execution limits
+remain available via `max_tool_rounds` in `ExecutionConfig` proto.
 
 ## Implementation Details
 
-### Files Changed (9 files, 142 insertions, 126 deletions)
+### Behavioral Change
 
-**Source code (4 files):**
-- `graphton/core/agent.py` — Default `recursion_limit`: 1000 → 6000
-- `graphton/core/execution_budget.py` — Default: 1000 → 6000, updated docstrings
-- `graphton/core/config.py` — `AgentConfig` default: 1000 → 6000, warning threshold: >5000 → >30000
-- `execute_graphton.py` — max_tool_rounds cap: 500 → 1000, default reference updated
+| Scenario | Before | After |
+|----------|--------|-------|
+| Default execution | 6000 super-step ceiling | Unlimited (framework default) |
+| `max_tool_rounds` set | `rounds × 6` super-steps | Same — explicit limit applied |
+| ExecutionBudgetMiddleware | Always injected | Only when limit is set |
+| Loop detection | Active | Active (unchanged) |
 
-**Proto (1 file):**
-- `spec.proto` — `max_tool_rounds` comments rewritten: added Conversion section
-  explaining super-steps, updated formula (×2 → ×6), default (100 → 6000),
-  valid range (10–250 → 10–1000 rounds), and safety philosophy
+### Files Changed
 
-**Tests (2 files):**
-- `test_execution_budget.py` — Fixtures use 6000, warning round recalculated
-  (132 → 800 for 80%, 149 → 900 for 90%), "very large" test uses 30000
-- `test_recursion_limit.py` — Platform default tests use 6000, validation
-  boundary tests updated (5000/5001 → 30000/30001), max tool rounds mapping
-  updated (3000 → 6000)
+**Source code:**
+- `graphton/core/agent.py` — `recursion_limit: int | None = None`; skip
+  `with_config` and `ExecutionBudgetMiddleware` when None
+- `graphton/core/config.py` — `AgentConfig` default to None; simplified validator
+- `graphton/core/execution_budget.py` — Updated module docstring
+- `execute_graphton.py` — Comments updated for unlimited default
 
-**Documentation (2 files):**
-- `design-decisions/001-recursion-limit-value.md` — Session 8 revision
-- `next-task.md` — D1 description updated
+**Proto:**
+- `spec.proto` — `max_tool_rounds` comments: "0 = unlimited"
+
+**Tests:**
+- `test_recursion_limit.py` — New tests for None default: `test_default_is_none`,
+  `test_default_none_skips_with_config`, removed warning threshold tests
+- `test_execution_budget.py` — Unchanged (tests explicit limits, still valid)
+
+**Documentation:**
+- `design-decisions/001-recursion-limit-value.md` — Session 9 revision
 
 ## Benefits
 
-- Generous budget for complex agent tasks (comparable to pre-guardrails capacity)
-- Loop detection is the primary safety — catches repetitive patterns regardless of budget
-- Execution budget warning fires at ~80%, giving the model time to wrap up
-- Proto comments now accurately document the conversion formula and defaults
+- No more premature agent termination from `GraphRecursionError`
+- One fewer middleware hook per round in unlimited mode (lower overhead)
+- Loop detection is the right abstraction for safety — catches behavior, not counts
+- Per-execution `max_tool_rounds` available when cost ceiling is needed
 
 ## Impact
 
-- **All agent executions**: Immediately benefit from the increased limit
-- **Long-running tasks**: Can complete complex multi-step workflows without premature termination
-- **Proto API documentation**: Now reflects accurate conversion formula and safety philosophy
+- **All agent executions**: Run until task completion or loop detection
+- **Complex tasks**: No longer constrained by arbitrary super-step ceiling
+- **Per-round cost**: Slightly lower (one fewer after_model node when unlimited)
 
 ## Related Work
 
-- Follows from Session 7 fix (100 → 1000 super-steps, commit `732efd40`)
+- Follows from Session 7 (100→1000) and Session 8 (1000→6000) fixes
 - Part of "Agent Execution Consistency Guardrails" project (20260312.01)
-- Loop detection middleware (added in same project) is the primary behavioral safety
+- Loop detection middleware is the cornerstone safety mechanism
 
 ---
 
 **Status**: ✅ Production Ready
-**Timeline**: Investigation + fix completed in same session

@@ -245,6 +245,6 @@ enum ExecutionArtifactKind {
 // allows monitoring to track compaction frequency by trigger type.
 enum SummarizationSource {
   SUMMARIZATION_SOURCE_UNSPECIFIED = 0;
-  graph_start = 1;     // Triggered at the start of a graph invocation (abefore_agent)
-  mid_execution = 2;   // Triggered mid-execution before a model call (awrap_model_call)
+  graph_start = 1; // Triggered at the start of a graph invocation (abefore_agent)
+  mid_execution = 2; // Triggered mid-execution before a model call (awrap_model_call)
 }

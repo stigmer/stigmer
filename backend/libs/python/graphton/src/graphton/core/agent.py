@@ -41,7 +41,7 @@ def create_deep_agent(
     middleware: Sequence[Any] | None = None,
     context_schema: type[Any] | None = None,
     sandbox_config: dict[str, Any] | None = None,
-    recursion_limit: int = 6000,
+    recursion_limit: int | None = None,
     max_tokens: int | None = None,
     temperature: float | None = None,
     auto_enhance_prompt: bool = True,
@@ -111,8 +111,10 @@ def create_deep_agent(
             Supported types: filesystem (file ops only), modal, runloop, daytona, harbor.
             Note: 'filesystem' type provides file operations but execute tool returns error.
             If not provided, uses default ephemeral state backend.
-        recursion_limit: Maximum recursion depth for the agent (default: 100).
-            This prevents infinite loops in agent reasoning.
+        recursion_limit: Maximum super-steps for the agent graph.  ``None``
+            (default) means unlimited — the agent runs until loop detection
+            or the task completes.  When set to a positive integer, LangGraph
+            raises ``GraphRecursionError`` if that many super-steps are used.
         max_tokens: Override default max_tokens for the model. Defaults depend on
             the model provider (Anthropic: 20000, OpenAI: model default).
         temperature: Override default temperature for the model. Higher values
@@ -148,8 +150,9 @@ def create_deep_agent(
             runaway agents. Should be higher than consecutive_threshold.
             Set higher (25-50) for complex tasks, lower (10-15) for simple ones.
         budget_warning_pct: Percentage of the recursion limit at which the model
-            receives a SystemMessage asking it to wrap up (default: 80). Must be
-            between 50 and 95. At 80% of the estimated budget, the model is told
+            receives a SystemMessage asking it to wrap up (default: 80).  Only
+            applies when ``recursion_limit`` is set. Must be between 50 and 95.
+            At 80% of the estimated budget, the model is told
             to prioritise completing its current task and summarising remaining work.
             This turns the hard GraphRecursionError into graceful degradation.
         checkpointer: Optional LangGraph checkpointer for interrupt/resume support.
@@ -181,7 +184,7 @@ def create_deep_agent(
         A compiled LangGraph agent ready to invoke with messages.
     
     Raises:
-        ValueError: If system_prompt is empty or recursion_limit is invalid
+        ValueError: If system_prompt is empty or configuration is invalid
         ValueError: If model string is invalid or unsupported
         ValueError: If MCP configuration is invalid or incomplete
     
@@ -201,7 +204,7 @@ def create_deep_agent(
         ...     system_prompt="You are a code reviewer.",
         ...     temperature=0.3,
         ...     max_tokens=5000,
-        ...     recursion_limit=50,
+        ...     recursion_limit=300,
         ... )
         
         Agent with model instance (advanced):
@@ -389,15 +392,16 @@ def create_deep_agent(
     )
     middleware_list.append(loop_detection)
     
-    # Auto-inject execution budget middleware to warn the model before it
-    # hits the hard GraphRecursionError.  At ~80 % of the estimated budget
-    # (configurable via budget_warning_pct) a SystemMessage is injected
-    # asking the model to prioritise wrapping up.
-    execution_budget = ExecutionBudgetMiddleware(
-        recursion_limit=recursion_limit,
-        warning_pct=budget_warning_pct,
-    )
-    middleware_list.append(execution_budget)
+    # Auto-inject execution budget middleware when a concrete recursion_limit
+    # is set.  When unlimited (None), there is no budget to warn about and
+    # skipping the middleware also removes one after_model graph node per
+    # round, reducing per-round super-step cost.
+    if recursion_limit is not None:
+        execution_budget = ExecutionBudgetMiddleware(
+            recursion_limit=recursion_limit,
+            warning_pct=budget_warning_pct,
+        )
+        middleware_list.append(execution_budget)
     
     # Auto-inject summarization middleware if configured
     # This manages context window size by summarizing conversation history
@@ -721,22 +725,27 @@ def create_deep_agent(
         backend=deepagents_backend,
     )
     
-    # Apply recursion limit to the top-level graph.
+    # Apply recursion limit to the top-level graph (only when explicitly set).
     #
-    # This overrides deepagents' internal default with graphton's configured
-    # value (default: 6000 super-steps).  The actual number of model-tool
-    # rounds this affords depends on the active middleware stack — each
-    # middleware hook is a separate graph node consuming one super-step.
+    # When recursion_limit is None (default), no override is applied and
+    # the graph runs with the framework's own default.  Loop detection
+    # middleware is the primary safety mechanism.
     #
-    # LangGraph's merge_configs strips recursion_limit values equal to
-    # DEFAULT_RECURSION_LIMIT (10,000), treating them as "no override".
-    # Values != 10,000 (like our 6000) are preserved and take effect.
-    configured_agent = agent.with_config({"recursion_limit": recursion_limit})
-    
-    logger.info(
-        "Graphton agent configured: recursion_limit=%d",
-        recursion_limit,
-    )
+    # When a concrete limit is provided (e.g. from max_tool_rounds), it is
+    # applied via with_config.  LangGraph's merge_configs strips values
+    # equal to DEFAULT_RECURSION_LIMIT (10,000), so avoid that exact value.
+    if recursion_limit is not None:
+        configured_agent = agent.with_config({"recursion_limit": recursion_limit})
+        logger.info(
+            "Graphton agent configured: recursion_limit=%d",
+            recursion_limit,
+        )
+    else:
+        configured_agent = agent
+        logger.info(
+            "Graphton agent configured: recursion_limit=unlimited "
+            "(loop detection is primary safety)",
+        )
     
     return configured_agent  # type: ignore[no-any-return]
 
