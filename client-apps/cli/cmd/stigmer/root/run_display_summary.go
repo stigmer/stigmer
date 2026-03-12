@@ -360,7 +360,7 @@ func displaySessionExitLine(sessionID string, exec *agentexecutionv1.AgentExecut
 	case agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED:
 		climsg.Warning("Cancelled")
 	case agentexecutionv1.ExecutionPhase_EXECUTION_TERMINATED:
-		climsg.Warning("Terminated")
+		climsg.Warning("Stopped: %s", resolveFailureError(exec))
 	default:
 		climsg.Warning("Exited (%s)", mapPhaseToString(phase))
 	}

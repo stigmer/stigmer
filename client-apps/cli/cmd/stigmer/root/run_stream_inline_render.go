@@ -90,6 +90,8 @@ func (r *inlineRenderer) renderPhaseChange(e executiontui.PhaseChangeEvent) {
 	switch e.Phase {
 	case "failed":
 		text = "Execution failed"
+	case "terminated":
+		text = "Execution stopped"
 	case "cancelled":
 		text = "Execution cancelled"
 	default:

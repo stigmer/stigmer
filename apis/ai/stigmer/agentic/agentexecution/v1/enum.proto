@@ -12,6 +12,9 @@ package ai.stigmer.agentic.agentexecution.v1;
 // Failure flow:
 // EXECUTION_PENDING → EXECUTION_IN_PROGRESS → EXECUTION_FAILED
 //
+// Termination flow (platform-initiated stop):
+// EXECUTION_IN_PROGRESS → EXECUTION_TERMINATED
+//
 // Approval flow (HITL):
 // EXECUTION_IN_PROGRESS → EXECUTION_WAITING_FOR_APPROVAL → EXECUTION_IN_PROGRESS
 //
@@ -20,8 +23,9 @@ package ai.stigmer.agentic.agentexecution.v1;
 //
 // Terminal States:
 // - EXECUTION_COMPLETED: Agent finished successfully
-// - EXECUTION_FAILED: Agent encountered an error
-// - EXECUTION_CANCELLED: Agent was stopped by user or system
+// - EXECUTION_FAILED: Agent encountered an unexpected error
+// - EXECUTION_TERMINATED: Platform stopped the agent (stall, budget, or force-kill)
+// - EXECUTION_CANCELLED: User gracefully stopped the agent
 //
 // Non-Terminal States:
 // - EXECUTION_WAITING_FOR_APPROVAL: Awaiting user approval for tool
@@ -34,31 +38,36 @@ enum ExecutionPhase {
   EXECUTION_FAILED = 4; // Failed with error
   EXECUTION_CANCELLED = 5; // Cancelled by user
 
-  // Execution was force-stopped immediately.
+  // Execution was stopped by the platform.
   //
-  // Unlike CANCELLED (graceful stop with cleanup opportunity), TERMINATED
-  // means the execution was killed immediately without giving the agent
-  // a chance to checkpoint. This is used for stuck or unresponsive agents.
+  // Unlike CANCELLED (user-initiated graceful stop) and FAILED (unexpected
+  // error), TERMINATED means the platform intentionally stopped this
+  // execution — either via automated safety mechanisms or user-initiated
+  // force-kill.
   //
-  // Terminal state - execution will not change phases again.
+  // Terminal state — execution will not change phases again.
   //
   // When this phase is reached:
   // - completed_at timestamp is set
-  // - error field may contain termination reason
-  // - LangGraph checkpoint may be incomplete (no graceful save)
+  // - error field contains the termination reason
+  //
+  // Trigger paths:
+  // - Internal (activity-level): stall timeout (agent unresponsive),
+  //   tool-call budget exhausted (GraphRecursionError). LangGraph
+  //   checkpoint is valid; the user can continue via follow-up message.
+  // - External (Terminate RPC): user or system force-kills the Temporal
+  //   workflow. LangGraph checkpoint may be incomplete.
   //
   // Use Cases:
+  // - Agent stalled — no events for the configured timeout
+  // - Agent exhausted its tool-call budget (recursion limit)
   // - Force-stop stuck agents that don't respond to cancellation
-  // - Emergency stop for agents in infinite loops
   // - Kill agents consuming excessive resources
   //
-  // Terminated vs Cancelled:
-  // - Terminated: Immediate kill, no checkpoint, use when agent is unresponsive
-  // - Cancelled: Graceful stop, checkpoint saved, use when you want controlled shutdown
-  //
-  // Recovery:
-  // - Terminated executions CANNOT be recovered (incomplete checkpoint)
-  // - Use terminate only when cancel doesn't work
+  // Terminated vs Cancelled vs Failed:
+  // - Terminated: Platform stopped it (automated or force-kill)
+  // - Cancelled: User gracefully stopped it (checkpoint saved)
+  // - Failed: Something broke unexpectedly (exception, crash)
   //
   // @since Agent Execution Lifecycle
   EXECUTION_TERMINATED = 8;

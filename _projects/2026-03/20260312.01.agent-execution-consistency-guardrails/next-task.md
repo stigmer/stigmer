@@ -6,26 +6,26 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: ALL 5 PRs + D1–D4 COMPLETE — compaction UX notifications done
-- **Last Session**: March 12, 2026 (Session 7) — Completed D3 (compaction backend + proto) + D4 (CLI compaction rendering)
+- **Status**: ALL 5 PRs + D1–D5 COMPLETE — EXECUTION_TERMINATED phase done
+- **Last Session**: March 12, 2026 (Session 8) — Completed D5 (EXECUTION_TERMINATED as platform-initiated stop)
 - **Active Task**: T01 — Agent Execution Consistency Guardrails (deferred follow-ups)
-- **Committed**: PR3 at `0a4fb06a`, PR1/PR2/PR5 on `fix/sub-agent-timer-and-tool-count`, PR4 at `28e94919`, D1–D4 pending commit
+- **Committed**: PR3 at `0a4fb06a`, PR1/PR2/PR5 on `fix/sub-agent-timer-and-tool-count`, PR4 at `28e94919`, D1–D5 pending commit
 
-## Session Progress (2026-03-12, Session 7)
+## Session Progress (2026-03-12, Session 8)
 
-- Completed D3: Added `SummarizationSource` enum to proto, `source` field to `SummarizationEvent` and `SummarizationEventData`
-- Completed D3: StatusBuilder consolidation — `_context_info` as single source of truth, `_sync_context_info()`, `force_next_update` for immediate gRPC delivery
-- Completed D3: Proto-derived mapping via `SummarizationSource.Value()`, graphton proto boundary preserved with string constants
-- Completed D4: `ContextCompactedEvent` type, count-based dedup detection, `renderContextCompacted()` dimmed system line
-- Completed D4: JSON `context_compacted` event type for structured output
-- Design decision: Graphton remains proto-free; string constants in `summarization_callback.py` bridge the boundary
-- Design decision: Lowercase proto enum values (`graph_start`, `mid_execution`) per user directive
-- 22 files changed, ~544 insertions, all tests passing
+- Completed D5: Broadened `EXECUTION_TERMINATED` from "force-kill only" to "platform-initiated stop"
+- Updated proto comment and header: two trigger paths (internal stall/budget, external Terminate RPC), three-way taxonomy (FAILED/TERMINATED/CANCELLED)
+- Stall timeout: `EXECUTION_FAILED` → `EXECUTION_TERMINATED`, sub-agents from `SUB_AGENT_FAILED` → `SUB_AGENT_CANCELLED`
+- Recursion limit: `EXECUTION_FAILED` → `EXECUTION_TERMINATED`
+- Fixed 4 CLI gaps: `renderPhaseChange`, `displayAgentPhaseChange`, `displaySessionExitLine` reason, `isFollowUpEligible`
+- Design decision: Option A (broaden phase semantics) over Option B (error_code metadata) — phase-level distinction gives immediate UX value (yellow vs red)
+- Design decision: Orphaned sub-agents remain EXECUTION_FAILED (silent crash is "something broke," not "platform stopped it")
+- 7 files changed, ~47 insertions, all tests passing
 
 ## Next Steps
 
-1. **Deferred follow-ups** — Pick from the remaining inventory below (D5–D10)
-2. **Top candidates**: D5 (EXECUTION_TERMINATED proto phase) for cleaner failure UX
+1. **Deferred follow-ups** — Pick from the remaining inventory below (D6–D10)
+2. **Top candidates**: D9 (SystemMessage interleaving validation) or D10 (pre-existing integration test failures) for codebase hygiene
 
 ## All Deferred Follow-Ups
 
@@ -51,13 +51,13 @@ Complete inventory of items intentionally deferred during the 5-PR project. Grou
 - **D3**: Added `SummarizationSource` enum to proto (`graph_start`, `mid_execution`), `source` field to `SummarizationEvent` proto and `SummarizationEventData` dataclass. StatusBuilder uses `SummarizationSource.Value()` for enum-derived mapping. `_sync_context_info()` + `force_next_update` for immediate gRPC delivery. Graphton proto boundary preserved — string constants bridge it.
 - **D4**: `ContextCompactedEvent` type, count-based dedup in `streamToEvents`, `mapSummarizationSource()` converter, dimmed system line: "Context compacted: 185K → 80K tokens (57% reduction)". JSON mode outputs `context_compacted` event. All tests passing.
 
-### From PR5 / Session 4: Execution Status Refinement
+### From PR5 / Session 4: Execution Status Refinement — **DONE (Session 8)**
 
-| # | Item | Scope | Files |
-|---|------|-------|-------|
-| D5 | New `EXECUTION_TERMINATED` proto phase | Proto + Python | `ExecutionPhase` proto enum, `execute_graphton.py` |
+| # | Item | Status | Commit |
+|---|------|--------|--------|
+| D5 | `EXECUTION_TERMINATED` as platform-initiated stop | **DONE** | pending |
 
-- **D5**: Better UX differentiation between "agent was stopped" vs "something broke". Currently both reuse `EXECUTION_FAILED`. A dedicated `EXECUTION_TERMINATED` phase would carry richer meaning to the CLI.
+- **D5**: Broadened `EXECUTION_TERMINATED` from "force-kill only" to "platform-initiated stop." Stall timeout and recursion limit now set `EXECUTION_TERMINATED` (was `EXECUTION_FAILED`). Proto comment updated with two trigger paths (internal/external) and three-way taxonomy (FAILED/TERMINATED/CANCELLED). Fixed 4 CLI gaps: `renderPhaseChange`, `displayAgentPhaseChange`, `displaySessionExitLine` reason, `isFollowUpEligible`. All tests passing.
 
 ### From PR4 / Session 5: Sub-Agent UX Edge Case
 
@@ -80,7 +80,7 @@ Complete inventory of items intentionally deferred during the 5-PR project. Grou
 
 - The plan is in `tasks/T01_0_plan.md` — DO NOT edit it
 - Design decision for recursion limit value documented in `design-decisions/001-recursion-limit-value.md`
-- Session notes in `checkpoints/2026-03-12-session-{1..7}.md` (PR3, PR1, PR2, PR5, PR4, D1+D2, D3+D4)
+- Session notes in `checkpoints/2026-03-12-session-{1..8}.md` (PR3, PR1, PR2, PR5, PR4, D1+D2, D3+D4, D5)
 - The user operates under the **Architect Role** (`_roles/001_architect.md`): high-quality code, challenge assumptions, pause on surprises, collaborate on decisions
 - User explicitly wants: no complacency, no technical debt, pause and collaborate on architectural decisions, challenge when something doesn't align with platform quality
 - Key files from D1+D2:
@@ -109,12 +109,13 @@ Complete inventory of items intentionally deferred during the 5-PR project. Grou
 | PR7 (D1) | `max_tool_rounds` Proto Configurability | **DONE** | pending commit |
 | PR8 (D3) | Compaction Notification (Backend + Proto) | **DONE** | pending commit |
 | PR9 (D4) | CLI Compaction Rendering | **DONE** | pending commit |
+| PR10 (D5) | EXECUTION_TERMINATED Phase | **DONE** | pending commit |
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-_projects/2026-03/20260312.01.agent-execution-consistency-guardrails/checkpoints/2026-03-12-session-6.md
+_projects/2026-03/20260312.01.agent-execution-consistency-guardrails/checkpoints/2026-03-12-session-8.md
 ```
 
 ### 2. Current Task Plan
@@ -203,8 +204,8 @@ After loading context:
 - "Show project status" — Get overview of progress
 - ~~"Work on D1+D2"~~ — DONE (Session 6)
 - ~~"Work on D3+D4"~~ — DONE (Session 7)
-- "Work on D5" — EXECUTION_TERMINATED proto phase
-- "Show all deferred items" — Review the full D1–D10 inventory
+- ~~"Work on D5"~~ — DONE (Session 8)
+- "Show all deferred items" — Review the full D6–D10 inventory
 
 ---
 
