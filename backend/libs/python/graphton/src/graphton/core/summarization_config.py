@@ -51,20 +51,29 @@ class SummarizationConfig:
     
     Attributes:
         enabled: Whether summarization is active. When False, middleware is a no-op.
+        context_window_tokens: Total context window size for the model in tokens.
+            Used to derive the emergency overflow threshold.
         trigger_threshold: Token count at which summarization is triggered (~90% of context).
         target_tokens: Target token count after summarization (~80% of context).
         max_summary_tokens: Maximum tokens allocated for the summary itself.
         summarization_model: Model ID to use for summarization (economy-tier recommended).
         token_counter_method: Strategy for counting tokens (provider-specific).
     
+    Properties:
+        overflow_threshold: 95% of context_window_tokens. Emergency brake engages
+            above this level when mid-execution compaction has failed.
+    
     Example:
         >>> # Using the factory method (recommended)
         >>> config = SummarizationConfig.for_model("claude-sonnet-4.5")
+        >>> print(config.overflow_threshold)
+        190000
         >>> 
         >>> # Manual configuration (for advanced use cases)
         >>> from graphton.core.model_registry import TokenCounterMethod
         >>> config = SummarizationConfig(
         ...     enabled=True,
+        ...     context_window_tokens=200000,
         ...     trigger_threshold=180000,
         ...     target_tokens=160000,
         ...     max_summary_tokens=2000,
@@ -75,11 +84,26 @@ class SummarizationConfig:
     """
     
     enabled: bool
+    context_window_tokens: int
     trigger_threshold: int
     target_tokens: int
     max_summary_tokens: int
     summarization_model: str
     token_counter_method: TokenCounterMethod
+    
+    @property
+    def overflow_threshold(self) -> int:
+        """Token count at which the emergency brake blocks tool execution.
+        
+        Computed as 95% of the model's context window. This threshold is only
+        relevant when mid-execution compaction via ``awrap_model_call`` has
+        failed — it prevents the model from receiving a prompt that exceeds
+        the API limit.
+        
+        Returns:
+            95% of context_window_tokens, or 0 if disabled/unknown.
+        """
+        return int(self.context_window_tokens * 0.95)
     
     @classmethod
     def for_model(
@@ -183,6 +207,7 @@ class SummarizationConfig:
         # Build config with validated values
         config = cls(
             enabled=enabled,
+            context_window_tokens=metadata.context_window_tokens,
             trigger_threshold=trigger_threshold,
             target_tokens=target_tokens,
             max_summary_tokens=max_summary_tokens,
@@ -192,10 +217,13 @@ class SummarizationConfig:
         
         logger.info(
             "Created SummarizationConfig for model '%s': "
-            "trigger=%d, target=%d, max_summary=%d, summarizer='%s'",
+            "context_window=%d, trigger=%d, target=%d, overflow=%d, "
+            "max_summary=%d, summarizer='%s'",
             model_id,
+            config.context_window_tokens,
             config.trigger_threshold,
             config.target_tokens,
+            config.overflow_threshold,
             config.max_summary_tokens,
             config.summarization_model,
         )
@@ -223,6 +251,7 @@ class SummarizationConfig:
         
         return cls(
             enabled=False,
+            context_window_tokens=0,
             trigger_threshold=0,
             target_tokens=0,
             max_summary_tokens=0,
@@ -256,8 +285,10 @@ class SummarizationConfig:
         return (
             f"SummarizationConfig("
             f"enabled={self.enabled}, "
+            f"context_window={self.context_window_tokens}, "
             f"trigger={self.trigger_threshold}, "
             f"target={self.target_tokens}, "
+            f"overflow={self.overflow_threshold}, "
             f"max_summary={self.max_summary_tokens}, "
             f"model='{self.summarization_model}'"
             f")"
