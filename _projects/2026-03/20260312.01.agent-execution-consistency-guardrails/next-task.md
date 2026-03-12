@@ -6,53 +6,90 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: ALL 5 PRs COMPLETE — ready for final review and merge
-- **Last Session**: March 12, 2026 (Session 5) — Completed PR4 (Sub-Agent Completion UX)
-- **Active Task**: T01 — Agent Execution Consistency Guardrails
-- **Committed**: PR3 at `0a4fb06a`, PR1/PR2/PR5 committed on `fix/sub-agent-timer-and-tool-count`, PR4 pending commit
+- **Status**: ALL 5 PRs + D1/D2 COMPLETE — deferred recursion limit enhancements done
+- **Last Session**: March 12, 2026 (Session 6) — Completed D1 (proto configurability) + D2 (execution budget warning)
+- **Active Task**: T01 — Agent Execution Consistency Guardrails (deferred follow-ups)
+- **Committed**: PR3 at `0a4fb06a`, PR1/PR2/PR5 on `fix/sub-agent-timer-and-tool-count`, PR4 at `28e94919`, D1+D2 pending commit
 
-## Session Progress (2026-03-12, Session 5)
+## Session Progress (2026-03-12, Session 6)
 
-- Completed PR4: Fix Sub-Agent Completion UX — make sub-agent completion visible before spinner vanishes
-- Two complementary fixes: (1) staged dismissal with 1.5s completion indicator, (2) sub-agent status visible alongside AI stream
-- Added `completedSubAgentEntries` list with `subAgentDismissMsg` timed auto-dismiss
-- Fixed priority cascade in both `renderTransientContent()` and legacy `View()` — sub-agents now render above AI stream content (same pattern as existing approval case)
-- Added `formatSubAgentCompletionLine()` in renderer — generates pre-styled display line using same visual language as scrollback (checkmark/X/cancel)
-- Modified `renderSubAgentLine()` to render completed entries (static) above active entries (animated spinner)
-- 5 files changed, 397 insertions, 55 deletions
-- 28 tests passing (16 new, 3 rewritten, 9 existing unchanged)
-- Plan document: `.cursor/plans/pr4_sub-agent_completion_ux_b34b1a7e.plan.md`
+- Completed D2 (PR6): New `ExecutionBudgetMiddleware` in graphton — injects wrap-up SystemMessage at ~80% of recursion limit
+- Completed D1 (PR7): Added `max_tool_rounds` field to `ExecutionConfig` proto — per-execution recursion limit configurability
+- Created comprehensive deferred items inventory (D1–D10) across all 5 sessions
+- Design decision: `max_tool_rounds` naming chosen over `max_tool_calls` (ambiguous with parallel calls) and `recursion_limit` (implementation leak)
+- Design decision: Separate `ExecutionBudgetMiddleware` from `LoopDetectionMiddleware` — resource management vs behavioral pattern detection
+- 14 files changed (2 new, 12 modified), ~600 insertions
+- 107 tests passing across 3 test files (39 new execution budget + 10 new recursion limit + 58 existing)
+- Plan document: `.cursor/plans/recursion_limit_enhancements_544f1f1b.plan.md`
 
 ## Next Steps
 
-1. **Commit PR4** — Stage and commit the Go CLI changes
-2. **Final review** — All 5 PRs are complete; review the full changeset across the branch
-3. **Deferred follow-ups** — Compaction notification (from PR2) can be addressed as a separate project
+1. **Final review** — All 5 PRs + D1/D2 are complete; review the full changeset across the branch
+2. **Deferred follow-ups** — Pick from the remaining inventory below (D3–D10)
 
-## Deferred Follow-Ups (from PR2)
+## All Deferred Follow-Ups
 
-These items were intentionally deferred from PR2 to keep it focused on the middleware:
+Complete inventory of items intentionally deferred during the 5-PR project. Grouped by origin PR and ordered by priority within each group.
 
-### 1. User-Visible Compaction Notification (StatusBuilder + gRPC)
-- Add `source: str` field to `SummarizationEventData` in `summarization_callback.py` (values: `"graph_start"`, `"mid_execution"`)
-- In `StatusBuilder.on_summarization_complete()`, call `self._force_next_update()` for immediate CLI delivery
-- Proto `SummarizationEvent` may need a `source` field
-- **Where**: `backend/services/agent-runner/worker/activities/graphton/status_builder.py`
+### From PR3 / Session 1: Recursion Limit Configurability — **DONE (Session 6)**
 
-### 2. CLI Compaction Notification Rendering (Bubbletea)
-- Detect new `SummarizationEvent` entries in the streamed `ContextInfo`
-- Render notification: "Context compacted: 180K -> 120K tokens (33% reduction)"
-- **Where**: `client-apps/cli/cmd/stigmer/root/run_stream_inline_bubbletea.go`
-- Naturally aligns with PR4 (Sub-Agent Completion UX) or could be a standalone follow-up
+| # | Item | Status | Commit |
+|---|------|--------|--------|
+| D1 | `max_tool_rounds` in `ExecutionConfig` proto | **DONE** | pending |
+| D2 | `ExecutionBudgetMiddleware` — 80% wrap-up warning | **DONE** | pending |
+
+- **D1**: Added `int32 max_tool_rounds = 3` to `ExecutionConfig` proto. Mapping: `recursion_limit = max_tool_rounds * 2`. Default 0 = platform default (50 rounds / 100 super-steps). Range: 10–250 rounds, clamped with warning. Orchestrator reads and passes to `create_deep_agent()`.
+- **D2**: New `ExecutionBudgetMiddleware` in graphton. Tracks model rounds via `aafter_model`, injects a single SystemMessage at ~80% of budget telling the model to wrap up. Separate from `LoopDetectionMiddleware` (resource management vs behavioral detection). 39 tests.
+
+### From PR2 / Session 3: Compaction UX Notifications
+
+| # | Item | Scope | Files |
+|---|------|-------|-------|
+| D3 | User-Visible Compaction Notification (StatusBuilder + gRPC) | Python + Proto | `summarization_callback.py`, `status_builder.py`, `SummarizationEvent` proto |
+| D4 | CLI Compaction Notification Rendering (Bubbletea) | Go CLI | `run_stream_inline_bubbletea.go` and related render files |
+
+- **D3**: Add `source: str` field to `SummarizationEventData` in `summarization_callback.py` (values: `"graph_start"`, `"mid_execution"`) so StatusBuilder can distinguish compaction triggers. In `StatusBuilder.on_summarization_complete()`, call `self._force_next_update()` for immediate CLI delivery. Proto `SummarizationEvent` may need a `source` field.
+- **D4**: Detect new `SummarizationEvent` entries in the streamed `ContextInfo`. Render notification: "Context compacted: 180K -> 120K tokens (33% reduction)". Consider visual treatment: dimmed system line in scrollback, or transient status indicator.
+
+### From PR5 / Session 4: Execution Status Refinement
+
+| # | Item | Scope | Files |
+|---|------|-------|-------|
+| D5 | New `EXECUTION_TERMINATED` proto phase | Proto + Python | `ExecutionPhase` proto enum, `execute_graphton.py` |
+
+- **D5**: Better UX differentiation between "agent was stopped" vs "something broke". Currently both reuse `EXECUTION_FAILED`. A dedicated `EXECUTION_TERMINATED` phase would carry richer meaning to the CLI.
+
+### From PR4 / Session 5: Sub-Agent UX Edge Case
+
+| # | Item | Scope | Files |
+|---|------|-------|-------|
+| D6 | `streamingActive` case showing sub-agents | Go CLI | `run_stream_inline_bubbletea.go` |
+
+- **D6**: The tool output streaming priority case doesn't show sub-agents alongside. Less common scenario (only when tool output is actively streaming while sub-agents are running). Low priority.
+
+### Softer / Future Enhancement Items
+
+| # | Item | Origin | Notes |
+|---|------|--------|-------|
+| D7 | Rehydration after compaction | PR2 / Session 3 | Claude Code restores recent files, todos, continuation instructions post-compaction. Our LangMem summarization preserves some context, but structured rehydration could be a future enhancement. |
+| D8 | Incomplete todos as abnormal termination signal | PR5 / Session 4 | Using pending todos alongside orphaned sub-agents. Deferred — orphaned sub-agents is the stronger and more reliable signal. |
+| D9 | SystemMessage interleaving validation | PR1 / Session 2 | When `aafter_model` injects a SystemMessage between AIMessage and ToolMessages, validate compatibility with StatusBuilder message parsing and summarization middleware token counting. |
+| D10 | Pre-existing integration test failures | PR2 / Session 3 | 3 tests in integration suite have pre-existing issues (module-level patching of `summarize_messages`, incorrect token count assumptions). Cleanup pass needed. |
 
 ## Context for Resume
 
 - The plan is in `tasks/T01_0_plan.md` — DO NOT edit it
 - Design decision for recursion limit value documented in `design-decisions/001-recursion-limit-value.md`
-- Session notes in `checkpoints/2026-03-12-session-1.md` (PR3), `checkpoints/2026-03-12-session-2.md` (PR1), `checkpoints/2026-03-12-session-3.md` (PR2), `checkpoints/2026-03-12-session-4.md` (PR5), and `checkpoints/2026-03-12-session-5.md` (PR4)
+- Session notes in `checkpoints/2026-03-12-session-{1..6}.md` (PR3, PR1, PR2, PR5, PR4, D1+D2)
+- D1+D2 plan: `.cursor/plans/recursion_limit_enhancements_544f1f1b.plan.md`
 - The user operates under the **Architect Role** (`_roles/001_architect.md`): high-quality code, challenge assumptions, pause on surprises, collaborate on decisions
 - User explicitly wants: no complacency, no technical debt, pause and collaborate on architectural decisions, challenge when something doesn't align with platform quality
-- PR4 plan with design rationale is in `.cursor/plans/pr4_sub-agent_completion_ux_b34b1a7e.plan.md`
+- Key files from D1+D2:
+  - `backend/libs/python/graphton/src/graphton/core/execution_budget.py` (new — middleware)
+  - `backend/libs/python/graphton/src/graphton/core/config.py` (`budget_warning_pct` validation)
+  - `backend/libs/python/graphton/src/graphton/core/agent.py` (wiring)
+  - `apis/ai/stigmer/agentic/agentexecution/v1/spec.proto` (`max_tool_rounds` field)
+  - `backend/services/agent-runner/worker/activities/execute_graphton.py` (orchestrator)
 
 ## Project: 20260312.01.agent-execution-consistency-guardrails
 
@@ -68,13 +105,15 @@ These items were intentionally deferred from PR2 to keep it focused on the middl
 | PR1 | Loop Detection Middleware Fix | **DONE** | `adc43ff1` |
 | PR2 | Mid-Execution Context Compaction | **DONE** | `12e05d2e` |
 | PR5 | Premature Completion Fix | **DONE** | `5d147959` |
-| PR4 | Sub-Agent Completion UX | **DONE** | pending commit |
+| PR4 | Sub-Agent Completion UX | **DONE** | `28e94919` |
+| PR6 (D2) | Execution Budget Middleware | **DONE** | pending commit |
+| PR7 (D1) | `max_tool_rounds` Proto Configurability | **DONE** | pending commit |
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-_projects/2026-03/20260312.01.agent-execution-consistency-guardrails/checkpoints/2026-03-12-session-5.md
+_projects/2026-03/20260312.01.agent-execution-consistency-guardrails/checkpoints/2026-03-12-session-6.md
 ```
 
 ### 2. Current Task Plan
@@ -161,7 +200,10 @@ This project was born from a production incident analysis on 2026-03-12. Key ver
 
 After loading context:
 - "Show project status" — Get overview of progress
-- "Work on deferred items" — StatusBuilder + CLI compaction notifications
+- ~~"Work on D1+D2"~~ — DONE (Session 6)
+- "Work on D3+D4" — Compaction UX notifications (StatusBuilder + CLI)
+- "Work on D5" — EXECUTION_TERMINATED proto phase
+- "Show all deferred items" — Review the full D1–D10 inventory
 
 ---
 

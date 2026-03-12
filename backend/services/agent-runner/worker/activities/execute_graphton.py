@@ -1387,6 +1387,34 @@ async def _execute_graphton_impl(
                 + (f", target_override={target_override}" if target_override else "")
             )
         
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Compute recursion_limit from ExecutionConfig.max_tool_rounds (if set).
+        #
+        # max_tool_rounds is the user-facing unit (model→tools cycles).
+        # LangGraph's recursion_limit counts super-steps (~2 per round).
+        # 0 = use platform default (graphton's 100 = ~50 rounds).
+        # Non-zero values are clamped to 10–250 rounds (20–500 super-steps).
+        # ─────────────────────────────────────────────────────────────────────────────
+        _MIN_TOOL_ROUNDS = 10
+        _MAX_TOOL_ROUNDS = 250
+        recursion_limit = None  # None = use graphton default (100)
+        if (execution.spec.HasField("execution_config")
+                and execution.spec.execution_config.max_tool_rounds > 0):
+            requested_rounds = execution.spec.execution_config.max_tool_rounds
+            clamped_rounds = max(_MIN_TOOL_ROUNDS, min(_MAX_TOOL_ROUNDS, requested_rounds))
+            if clamped_rounds != requested_rounds:
+                activity_logger.warning(
+                    "max_tool_rounds=%d clamped to %d (valid range: %d-%d)",
+                    requested_rounds, clamped_rounds,
+                    _MIN_TOOL_ROUNDS, _MAX_TOOL_ROUNDS,
+                )
+            recursion_limit = clamped_rounds * 2
+            activity_logger.info(
+                "Recursion limit from execution config: max_tool_rounds=%d "
+                "-> recursion_limit=%d",
+                clamped_rounds, recursion_limit,
+            )
+        
         # Get sandbox configuration from worker config
         setup_timer.start("sandbox")
         sandbox_config = worker_config.get_sandbox_config(session_id=session_id)
@@ -2267,24 +2295,23 @@ async def _execute_graphton_impl(
         # Create Graphton agent.
         #
         # Recursion limit: graphton's default (100) applies via with_config()
-        # at graph compilation time. This gives the main agent ~50 model+tool
-        # rounds — 2x Cursor's 25-tool-call limit, well within Claude Code's
-        # recommended range for complex sub-agent workflows (40-200+ turns).
-        # Sub-agent graphs use deepagents' DEFAULT_RECURSION_LIMIT (10,000 in
-        # langgraph 1.0.x), giving them generous room independently.
-        # Graphton's loop detection middleware provides additional protection
-        # against infinite loops via pattern-based intervention.
+        # at graph compilation time unless overridden by the user via
+        # ExecutionConfig.max_tool_rounds.  The default gives the main agent
+        # ~50 model+tool rounds — 2x Cursor's 25-tool-call limit, well
+        # within Claude Code's range for complex sub-agent workflows.
+        # Sub-agent graphs use deepagents' DEFAULT_RECURSION_LIMIT (10,000),
+        # giving them generous room independently.
         #
-        # The orchestrator intentionally does NOT override graphton's default.
-        # Graphton (the domain library) owns the agent execution semantics;
-        # execute_graphton (the orchestrator) should not second-guess them
-        # unless there is a per-execution override from the user.
+        # Graphton's ExecutionBudgetMiddleware injects a wrap-up SystemMessage
+        # at ~80 % of the budget, and LoopDetectionMiddleware provides
+        # pattern-based intervention.  The hard stop at 100 % is LangGraph's
+        # GraphRecursionError, handled below.
         #
         # Sandbox tools: graphton creates platform tool wrappers (read, write,
         # edit, execute, ls, glob, grep) backed by the sandbox. deepagents also
         # creates in-memory filesystem tools (read_file, write_file, edit_file)
         # via its FilesystemMiddleware. Both sets coexist in the tool registry.
-        agent_graph = create_deep_agent(
+        agent_kwargs: dict[str, Any] = dict(
             model=model_name,
             system_prompt=enhanced_system_prompt,
             mcp_servers=mcp_servers_config if mcp_servers_config else None,
@@ -2298,6 +2325,9 @@ async def _execute_graphton_impl(
             summarization_callback=status_builder,
             **llm_kwargs,
         )
+        if recursion_limit is not None:
+            agent_kwargs["recursion_limit"] = recursion_limit
+        agent_graph = create_deep_agent(**agent_kwargs)
         
         activity_logger.info(f"Graphton agent created successfully with {'new' if is_new_sandbox else 'reused'} sandbox")
         
@@ -2319,11 +2349,11 @@ async def _execute_graphton_impl(
         
         # Prepare config with thread_id for state persistence.
         #
-        # recursion_limit is NOT set here. The single source of truth is
-        # graphton's with_config({"recursion_limit": N}) applied at graph
-        # compilation time. LangGraph's merge_configs preserves non-default
-        # values (100 != DEFAULT_RECURSION_LIMIT of 10,000), so the compiled
-        # limit survives config merging without an invoke-time override.
+        # recursion_limit is NOT set here. It is applied at graph compilation
+        # time via graphton's with_config({"recursion_limit": N}). The value
+        # comes from ExecutionConfig.max_tool_rounds (converted above) or
+        # graphton's default of 100.  LangGraph's merge_configs preserves
+        # non-default values, so the compiled limit survives config merging.
         config = {
             "configurable": {
                 "thread_id": thread_id,
@@ -3041,9 +3071,10 @@ async def _execute_graphton_impl(
             # ─────────────────────────────────────────────────────────────────────────────
             # Tool-Call Limit: LangGraph's recursion_limit reached.
             #
-            # The agent exhausted its tool-call budget (graphton default: 100
-            # super-steps ≈ 50 model+tool rounds).  This is a planned boundary,
-            # not a crash.  The user can send another message to continue.
+            # The agent exhausted its tool-call budget (default: 100 super-steps
+            # ≈ 50 model+tool rounds, configurable via max_tool_rounds).
+            # ExecutionBudgetMiddleware injected a wrap-up SystemMessage at
+            # ~80% of the budget; this handler fires at 100%.
             #
             # We catch this via type-name check rather than importing at module
             # level, consistent with the lazy-import pattern used throughout

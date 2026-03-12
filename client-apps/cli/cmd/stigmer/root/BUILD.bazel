@@ -84,6 +84,7 @@ go_library(
         "server_status.go",
         "validate.go",
         "verb_helpers.go",
+        "version.go",
     ],
     importpath = "github.com/stigmer/stigmer/client-apps/cli/cmd/stigmer/root",
     visibility = ["//visibility:public"],
