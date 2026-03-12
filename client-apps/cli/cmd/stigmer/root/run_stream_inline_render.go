@@ -188,8 +188,8 @@ func (r *inlineRenderer) renderSubAgentCompleted(e executiontui.SubAgentComplete
 
 	if r.cfg.program != nil {
 		// Pre-render scrollback text with gap logic so the Bubbletea
-		// model can remove the live entry and commit to scrollback in
-		// a single Update() call (atomic transition, no flicker).
+		// model can show a brief completion indicator before committing
+		// to scrollback via the staged dismissal path.
 		text := renderCommittedItem(item, r.compactOpts, r.expandMode, r.expandHintEnabled())
 		r.history = append(r.history, item)
 
@@ -207,13 +207,36 @@ func (r *inlineRenderer) renderSubAgentCompleted(e executiontui.SubAgentComplete
 		}
 		r.lastScrollbackKind = item.kind
 
+		subject := toolrender.Truncate(toolrender.FirstLine(block.subject), 80)
+		displayLine := formatSubAgentCompletionLine(subject, block.status, block.toolCount)
+
 		r.cfg.program.Send(subAgentCompleteMsg{
 			id:              e.ID,
+			displayLine:     displayLine,
 			scrollbackLines: scrollback,
 		})
 	} else {
 		r.commitToScrollback(item)
 	}
+}
+
+// formatSubAgentCompletionLine builds the pre-styled single-line summary
+// shown in the live View() during the completion visible window. Uses the
+// same visual language as the scrollback collapsed rendering so the
+// transition from live indicator to scrollback is seamless.
+func formatSubAgentCompletionLine(subject string, status agentexecutionv1.SubAgentStatus, toolCount int) string {
+	header := fmt.Sprintf("%s %s: %s",
+		toolrender.BulletGreen("●"), toolrender.LabelBold("Sub-agent"), subject)
+	var suffix string
+	switch status {
+	case agentexecutionv1.SubAgentStatus_SUB_AGENT_FAILED:
+		suffix = fmt.Sprintf("✗ Failed (%d tools)", toolCount)
+	case agentexecutionv1.SubAgentStatus_SUB_AGENT_CANCELLED:
+		suffix = fmt.Sprintf("⊘ Cancelled (%d tools)", toolCount)
+	default:
+		suffix = fmt.Sprintf("✓ Done (%d tools)", toolCount)
+	}
+	return header + " " + suffix
 }
 
 // ---------------------------------------------------------------------------
