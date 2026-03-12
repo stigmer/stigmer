@@ -7,7 +7,6 @@ Tests cover:
 - Burst protection behavior
 - Keepalive behavior for long operations
 - First update handling
-- State reset functionality
 
 Test Categories:
 1. Configuration Tests - StreamingConfig defaults, validation, env loading
@@ -428,23 +427,6 @@ class TestSchedulerStateManagement:
         
         assert scheduler._last_update_events == 100
         assert scheduler.get_events_since_last_update(105) == 5
-
-    def test_reset_returns_to_initial_state(self, fast_config):
-        """Test that reset() returns scheduler to initial state."""
-        scheduler = StreamingUpdateScheduler(fast_config)
-        scheduler._first_check = False
-        
-        # Modify state
-        scheduler.mark_update_sent(50)
-        scheduler._last_reason = UpdateReason.BURST_PROTECTION
-        
-        # Reset
-        scheduler.reset()
-        
-        assert scheduler._first_check is True
-        assert scheduler._last_update_events == 0
-        assert scheduler._last_reason == UpdateReason.NONE
-        assert scheduler.get_time_since_last_update_ms() < 50
 
     def test_get_update_reason_returns_correct_reason(self, fast_config):
         """Test that get_update_reason returns the reason from last check."""

@@ -19,7 +19,6 @@ from langgraph.prebuilt.tool_node import ToolCallRequest
 
 from graphton.core.loop_detection import LoopDetectionMiddleware
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================
