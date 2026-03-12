@@ -1386,13 +1386,14 @@ async def _execute_graphton_impl(
         # Compute recursion_limit from ExecutionConfig.max_tool_rounds (if set).
         #
         # max_tool_rounds is the user-facing unit (model→tools cycles).
-        # LangGraph's recursion_limit counts super-steps (~2 per round).
-        # 0 = use platform default (graphton's 100 = ~50 rounds).
-        # Non-zero values are clamped to 10–250 rounds (20–500 super-steps).
+        # LangGraph's recursion_limit counts super-steps (~6 per round due to
+        # middleware graph nodes: before_model, model, 3× after_model, tools).
+        # 0 = use platform default (graphton's 1000 = ~166 rounds).
+        # Non-zero values are clamped to 10–500 rounds (60–3000 super-steps).
         # ─────────────────────────────────────────────────────────────────────────────
         min_tool_rounds = 10
-        max_tool_rounds = 250
-        recursion_limit = None  # None = use graphton default (100)
+        max_tool_rounds = 500
+        recursion_limit = None  # None = use graphton default (1000)
         if (execution.spec.HasField("execution_config")
                 and execution.spec.execution_config.max_tool_rounds > 0):
             requested_rounds = execution.spec.execution_config.max_tool_rounds
@@ -1403,7 +1404,7 @@ async def _execute_graphton_impl(
                     requested_rounds, clamped_rounds,
                     min_tool_rounds, max_tool_rounds,
                 )
-            recursion_limit = clamped_rounds * 2
+            recursion_limit = clamped_rounds * 6
             activity_logger.info(
                 "Recursion limit from execution config: max_tool_rounds=%d "
                 "-> recursion_limit=%d",
@@ -2289,11 +2290,11 @@ async def _execute_graphton_impl(
         
         # Create Graphton agent.
         #
-        # Recursion limit: graphton's default (100) applies via with_config()
+        # Recursion limit: graphton's default (1000) applies via with_config()
         # at graph compilation time unless overridden by the user via
         # ExecutionConfig.max_tool_rounds.  The default gives the main agent
-        # ~50 model+tool rounds — 2x Cursor's 25-tool-call limit, well
-        # within Claude Code's range for complex sub-agent workflows.
+        # ~166 model+tool rounds (~4 min).  Loop detection middleware is the
+        # primary behavioral safety; the recursion limit is the cost ceiling.
         # Sub-agent graphs use deepagents' DEFAULT_RECURSION_LIMIT (10,000),
         # giving them generous room independently.
         #
@@ -2346,8 +2347,8 @@ async def _execute_graphton_impl(
         #
         # recursion_limit is NOT set here. It is applied at graph compilation
         # time via graphton's with_config({"recursion_limit": N}). The value
-        # comes from ExecutionConfig.max_tool_rounds (converted above) or
-        # graphton's default of 100.  LangGraph's merge_configs preserves
+        # comes from ExecutionConfig.max_tool_rounds (converted above, ×6) or
+        # graphton's default of 1000.  LangGraph's merge_configs preserves
         # non-default values, so the compiled limit survives config merging.
         config = {
             "configurable": {

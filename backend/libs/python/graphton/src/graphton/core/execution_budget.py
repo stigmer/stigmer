@@ -17,16 +17,17 @@ can wrap up gracefully instead of being hard-killed by GraphRecursionError.
 Budget estimation
 -----------------
 LangGraph's ``recursion_limit`` counts *super-steps* (individual node
-executions).  A typical model→tools cycle is ~2 super-steps.  The middleware
-counts ``aafter_model`` invocations, which correspond to model rounds.  The
-warning threshold is derived as::
+executions).  Each model→tools cycle consumes ~6 super-steps due to
+middleware graph nodes (before_model, model, 3× after_model, tools).
+The middleware counts ``aafter_model`` invocations, which correspond to
+model rounds.  The warning threshold is derived as::
 
-    warning_round = recursion_limit * warning_pct // 200
+    warning_round = recursion_limit * warning_pct // 600
 
-For the platform default (``recursion_limit=100``, ``warning_pct=80``) this
-fires at model round 40 (~80 super-steps).  The mapping is approximate —
-rounds without tool calls consume only 1 super-step — but the 80 % threshold
-is deliberately soft so ±a few steps is acceptable.
+For the platform default (``recursion_limit=1000``, ``warning_pct=80``) this
+fires at model round 133 (~798 super-steps).  The mapping is approximate —
+startup/shutdown overhead consumes ~9 additional steps — but the 80 %
+threshold is deliberately soft so ±a few steps is acceptable.
 """
 
 import logging
@@ -38,7 +39,7 @@ from langgraph.runtime import Runtime
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_RECURSION_LIMIT = 100
+_DEFAULT_RECURSION_LIMIT = 1000
 _DEFAULT_WARNING_PCT = 80
 _MIN_WARNING_PCT = 50
 _MAX_WARNING_PCT = 95
@@ -60,14 +61,14 @@ class ExecutionBudgetMiddleware(AgentMiddleware):
     Example::
 
         >>> middleware = ExecutionBudgetMiddleware(
-        ...     recursion_limit=100,
+        ...     recursion_limit=1000,
         ...     warning_pct=80,
         ... )
         >>> # Auto-injected in create_deep_agent() by default
 
     Args:
         recursion_limit: The LangGraph recursion_limit applied to the graph.
-            Used to compute the warning threshold.  Default: 100.
+            Used to compute the warning threshold.  Default: 1000.
         warning_pct: Percentage of the budget at which to inject the warning
             SystemMessage.  Must be between 50 and 95.  Default: 80.
     """
@@ -113,20 +114,21 @@ class ExecutionBudgetMiddleware(AgentMiddleware):
     def _compute_warning_round(recursion_limit: int, warning_pct: int) -> int:
         """Derive the model-round at which to fire the budget warning.
 
-        Each model-tool cycle is approximately 2 LangGraph super-steps, so
-        the estimated total model rounds is ``recursion_limit // 2``.  The
+        Each model-tool cycle consumes ~6 LangGraph super-steps (due to
+        middleware nodes: before_model, model, 3× after_model, tools), so
+        the estimated total model rounds is ``recursion_limit // 6``.  The
         warning fires at ``warning_pct`` percent of that estimate.
 
         Returns at least ``_MIN_ROUNDS_BEFORE_WARNING`` to avoid warning on
         trivially small limits where the agent barely has room to start.
         """
-        estimated_total_rounds = recursion_limit // 2
+        estimated_total_rounds = recursion_limit // 6
         threshold = estimated_total_rounds * warning_pct // 100
         return max(threshold, _MIN_ROUNDS_BEFORE_WARNING)
 
     def _create_budget_warning_message(self) -> SystemMessage:
         """Build the SystemMessage injected at the warning threshold."""
-        estimated_total = self.recursion_limit // 2
+        estimated_total = self.recursion_limit // 6
         remaining = max(estimated_total - self._model_round_count, 0)
         return SystemMessage(
             content=(
@@ -173,7 +175,7 @@ class ExecutionBudgetMiddleware(AgentMiddleware):
         if self._model_round_count >= self._warning_round:
             self._warned = True
 
-            estimated_total = self.recursion_limit // 2
+            estimated_total = self.recursion_limit // 6
             logger.warning(
                 "EXECUTION BUDGET WARNING: model round %d of ~%d "
                 "(~%d%% of recursion_limit=%d used). "
@@ -195,7 +197,7 @@ class ExecutionBudgetMiddleware(AgentMiddleware):
         runtime: Runtime[None] | dict[str, Any],
     ) -> dict[str, Any] | None:
         """Log budget usage stats at the end of execution."""
-        estimated_total = self.recursion_limit // 2
+        estimated_total = self.recursion_limit // 6
         pct_used = (
             (self._model_round_count * 100 // estimated_total)
             if estimated_total > 0

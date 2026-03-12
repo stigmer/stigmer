@@ -30,20 +30,20 @@ from graphton.core.execution_budget import (
 
 @pytest.fixture
 def middleware():
-    """Default middleware with platform defaults (limit=100, warning=80%)."""
-    return ExecutionBudgetMiddleware(recursion_limit=100, warning_pct=80)
+    """Default middleware with platform defaults (limit=1000, warning=80%)."""
+    return ExecutionBudgetMiddleware(recursion_limit=1000, warning_pct=80)
 
 
 @pytest.fixture
 def small_budget():
     """Middleware with a very small recursion limit for fast threshold tests."""
-    return ExecutionBudgetMiddleware(recursion_limit=20, warning_pct=80)
+    return ExecutionBudgetMiddleware(recursion_limit=60, warning_pct=80)
 
 
 @pytest.fixture
 def high_threshold():
     """Middleware with 90% warning for late-warning tests."""
-    return ExecutionBudgetMiddleware(recursion_limit=100, warning_pct=90)
+    return ExecutionBudgetMiddleware(recursion_limit=1000, warning_pct=90)
 
 
 def _make_state(messages: list | None = None) -> dict:
@@ -98,9 +98,10 @@ class TestConstructor:
 
 
 class TestComputeWarningRound:
-    def test_default_100_at_80pct(self):
-        result = ExecutionBudgetMiddleware._compute_warning_round(100, 80)
-        assert result == 40
+    def test_default_1000_at_80pct(self):
+        # 1000 // 6 = 166 estimated rounds, 166 * 80 // 100 = 132
+        result = ExecutionBudgetMiddleware._compute_warning_round(1000, 80)
+        assert result == 132
 
     def test_small_limit_respects_minimum(self):
         """Very small limits should still have a minimum warning round."""
@@ -108,20 +109,24 @@ class TestComputeWarningRound:
         assert result == _MIN_ROUNDS_BEFORE_WARNING
 
     def test_limit_200_at_80pct(self):
+        # 200 // 6 = 33 estimated rounds, 33 * 80 // 100 = 26
         result = ExecutionBudgetMiddleware._compute_warning_round(200, 80)
-        assert result == 80
+        assert result == 26
 
     def test_limit_100_at_90pct(self):
+        # 100 // 6 = 16 estimated rounds, 16 * 90 // 100 = 14
         result = ExecutionBudgetMiddleware._compute_warning_round(100, 90)
-        assert result == 45
+        assert result == 14
 
     def test_limit_100_at_50pct(self):
+        # 100 // 6 = 16 estimated rounds, 16 * 50 // 100 = 8
         result = ExecutionBudgetMiddleware._compute_warning_round(100, 50)
-        assert result == 25
+        assert result == 8
 
     def test_limit_10_at_80pct(self):
+        # 10 // 6 = 1 estimated round, 1 * 80 // 100 = 0, clamped to minimum
         result = ExecutionBudgetMiddleware._compute_warning_round(10, 80)
-        assert result == max(4, _MIN_ROUNDS_BEFORE_WARNING)
+        assert result == _MIN_ROUNDS_BEFORE_WARNING
 
     def test_always_at_least_minimum(self):
         """Even with limit=1 and low pct, the floor is respected."""
@@ -144,9 +149,10 @@ class TestCreateBudgetWarningMessage:
         assert "80%" in msg.content
 
     def test_contains_remaining_rounds(self, middleware):
-        middleware._model_round_count = 40
+        # estimated_total = 1000 // 6 = 166, remaining = 166 - 132 = 34
+        middleware._model_round_count = 132
         msg = middleware._create_budget_warning_message()
-        assert "~10 rounds remaining" in msg.content
+        assert "~34 rounds remaining" in msg.content
 
     def test_contains_wrap_up_guidance(self, middleware):
         msg = middleware._create_budget_warning_message()
@@ -236,20 +242,20 @@ class TestAafterModel:
         assert "step limit" in msg.content
         assert "Summarize results" in msg.content
 
-    async def test_default_warning_at_round_40(self, middleware):
-        """With limit=100 and pct=80, warning fires at round 40."""
-        assert middleware._warning_round == 40
+    async def test_default_warning_at_round_132(self, middleware):
+        """With limit=1000 and pct=80, warning fires at round 132."""
+        assert middleware._warning_round == 132
 
-        for i in range(39):
+        for i in range(131):
             result = await middleware.aafter_model(_make_state(), runtime={})
             assert result is None, f"Early warning at round {i + 1}"
 
         result = await middleware.aafter_model(_make_state(), runtime={})
         assert result is not None
-        assert middleware._model_round_count == 40
+        assert middleware._model_round_count == 132
 
     async def test_small_budget_warning(self, small_budget):
-        """With limit=20, warning fires at round 8 (20//2 * 80//100 = 8)."""
+        """With limit=60, warning fires at round 8 (60//6 * 80//100 = 8)."""
         assert small_budget._warning_round == 8
 
         for _ in range(7):
@@ -261,16 +267,16 @@ class TestAafterModel:
         assert small_budget._model_round_count == 8
 
     async def test_high_threshold_warning(self, high_threshold):
-        """With limit=100 and pct=90, warning fires at round 45."""
-        assert high_threshold._warning_round == 45
+        """With limit=1000 and pct=90, warning fires at round 149."""
+        assert high_threshold._warning_round == 149
 
-        for _ in range(44):
+        for _ in range(148):
             result = await high_threshold.aafter_model(_make_state(), runtime={})
             assert result is None
 
         result = await high_threshold.aafter_model(_make_state(), runtime={})
         assert result is not None
-        assert high_threshold._model_round_count == 45
+        assert high_threshold._model_round_count == 149
 
 
 # =============================================================================
@@ -351,8 +357,9 @@ class TestEdgeCases:
 
     async def test_very_large_recursion_limit(self):
         """Large limits produce proportionally large warning rounds."""
-        mw = ExecutionBudgetMiddleware(recursion_limit=1000, warning_pct=80)
-        assert mw._warning_round == 400
+        # 6000 // 6 = 1000 estimated rounds, 1000 * 80 // 100 = 800
+        mw = ExecutionBudgetMiddleware(recursion_limit=6000, warning_pct=80)
+        assert mw._warning_round == 800
 
     async def test_remaining_rounds_never_negative(self, middleware):
         """If model_round_count exceeds estimate, remaining is clamped to 0."""
