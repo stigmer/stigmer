@@ -17,6 +17,7 @@ from langchain_core.tools import BaseTool
 from langgraph.graph.state import CompiledStateGraph
 from pydantic import ValidationError
 
+from graphton.core.execution_budget import ExecutionBudgetMiddleware
 from graphton.core.loop_detection import LoopDetectionMiddleware
 from graphton.core.models import parse_model_string
 from graphton.core.prompt_enhancement import enhance_user_instructions
@@ -50,6 +51,9 @@ def create_deep_agent(
     loop_history_size: int = 20,
     loop_consecutive_threshold: int = 7,
     loop_total_threshold: int = 20,
+    # Execution budget warning — percentage of recursion limit at which
+    # the model receives a wrap-up SystemMessage (default: 80).
+    budget_warning_pct: int = 80,
     # Checkpointer for interrupt/resume support (HITL approval flow)
     checkpointer: "BaseCheckpointSaver | None" = None,
     # Approval checker for HITL tool approval (optional)
@@ -143,6 +147,11 @@ def create_deep_agent(
             forcing graceful stop (default: 20). This is the hard limit that prevents
             runaway agents. Should be higher than consecutive_threshold.
             Set higher (25-50) for complex tasks, lower (10-15) for simple ones.
+        budget_warning_pct: Percentage of the recursion limit at which the model
+            receives a SystemMessage asking it to wrap up (default: 80). Must be
+            between 50 and 95. At 80% of the estimated budget, the model is told
+            to prioritise completing its current task and summarising remaining work.
+            This turns the hard GraphRecursionError into graceful degradation.
         checkpointer: Optional LangGraph checkpointer for interrupt/resume support.
             Required for HITL (human-in-the-loop) approval flow where tool execution
             can be paused for user approval. Supports MemorySaver for testing or
@@ -320,6 +329,7 @@ def create_deep_agent(
             loop_history_size=loop_history_size,
             loop_consecutive_threshold=loop_consecutive_threshold,
             loop_total_threshold=loop_total_threshold,
+            budget_warning_pct=budget_warning_pct,
             checkpointer=checkpointer,
         )
     except ValidationError as e:
@@ -378,6 +388,16 @@ def create_deep_agent(
         enabled=True,
     )
     middleware_list.append(loop_detection)
+    
+    # Auto-inject execution budget middleware to warn the model before it
+    # hits the hard GraphRecursionError.  At ~80 % of the estimated budget
+    # (configurable via budget_warning_pct) a SystemMessage is injected
+    # asking the model to prioritise wrapping up.
+    execution_budget = ExecutionBudgetMiddleware(
+        recursion_limit=recursion_limit,
+        warning_pct=budget_warning_pct,
+    )
+    middleware_list.append(execution_budget)
     
     # Auto-inject summarization middleware if configured
     # This manages context window size by summarizing conversation history

@@ -6,6 +6,8 @@ Verifies:
 - Config validator thresholds are correct
 - Sandbox platform tools are created when sandbox_config is provided
 - recursion_limit value is preserved through LangGraph's merge_configs
+- Custom recursion_limit flows through create_deep_agent to with_config
+- budget_warning_pct validation in AgentConfig
 """
 
 import warnings
@@ -379,3 +381,163 @@ class TestRecursionLimitMergeConfigs:
                 f"recursion_limit={value} should be preserved "
                 f"(DEFAULT_RECURSION_LIMIT={DEFAULT_RECURSION_LIMIT})"
             )
+
+
+# =============================================================================
+# TestCustomRecursionLimit - Custom recursion_limit via create_deep_agent
+# =============================================================================
+
+
+class TestCustomRecursionLimit:
+    """Tests for passing custom recursion_limit through create_deep_agent.
+
+    This verifies the D1 flow: ExecutionConfig.max_tool_rounds is converted
+    to recursion_limit in the orchestrator and passed to create_deep_agent(),
+    which applies it via with_config().
+    """
+
+    @patch("graphton.core.agent.deepagents_create_deep_agent")
+    @patch("graphton.core.agent.parse_model_string")
+    def test_custom_limit_applied_via_with_config(self, mock_parse, mock_create):
+        """Custom recursion_limit is forwarded to with_config."""
+        from graphton import create_deep_agent
+
+        mock_model = MagicMock()
+        mock_parse.return_value = mock_model
+        mock_agent = MagicMock()
+        mock_agent.with_config.return_value = mock_agent
+        mock_create.return_value = mock_agent
+
+        create_deep_agent(
+            model="gpt-4",
+            system_prompt="Test assistant.",
+            recursion_limit=200,
+        )
+
+        mock_agent.with_config.assert_called_once_with({"recursion_limit": 200})
+
+    @patch("graphton.core.agent.deepagents_create_deep_agent")
+    @patch("graphton.core.agent.parse_model_string")
+    def test_max_tool_rounds_mapping(self, mock_parse, mock_create):
+        """Simulates the orchestrator's max_tool_rounds -> recursion_limit mapping.
+
+        max_tool_rounds=75 -> recursion_limit=150 (75 * 2).
+        """
+        from graphton import create_deep_agent
+
+        mock_model = MagicMock()
+        mock_parse.return_value = mock_model
+        mock_agent = MagicMock()
+        mock_agent.with_config.return_value = mock_agent
+        mock_create.return_value = mock_agent
+
+        recursion_limit = 75 * 2  # max_tool_rounds=75
+        create_deep_agent(
+            model="gpt-4",
+            system_prompt="Test assistant.",
+            recursion_limit=recursion_limit,
+        )
+
+        mock_agent.with_config.assert_called_once_with({"recursion_limit": 150})
+
+    @patch("graphton.core.agent.deepagents_create_deep_agent")
+    @patch("graphton.core.agent.parse_model_string")
+    def test_minimum_tool_rounds_mapping(self, mock_parse, mock_create):
+        """Simulates minimum max_tool_rounds=10 -> recursion_limit=20."""
+        from graphton import create_deep_agent
+
+        mock_model = MagicMock()
+        mock_parse.return_value = mock_model
+        mock_agent = MagicMock()
+        mock_agent.with_config.return_value = mock_agent
+        mock_create.return_value = mock_agent
+
+        create_deep_agent(
+            model="gpt-4",
+            system_prompt="Test assistant.",
+            recursion_limit=20,
+        )
+
+        mock_agent.with_config.assert_called_once_with({"recursion_limit": 20})
+
+    @patch("graphton.core.agent.deepagents_create_deep_agent")
+    @patch("graphton.core.agent.parse_model_string")
+    def test_maximum_tool_rounds_mapping(self, mock_parse, mock_create):
+        """Simulates maximum max_tool_rounds=250 -> recursion_limit=500."""
+        from graphton import create_deep_agent
+
+        mock_model = MagicMock()
+        mock_parse.return_value = mock_model
+        mock_agent = MagicMock()
+        mock_agent.with_config.return_value = mock_agent
+        mock_create.return_value = mock_agent
+
+        create_deep_agent(
+            model="gpt-4",
+            system_prompt="Test assistant.",
+            recursion_limit=500,
+        )
+
+        mock_agent.with_config.assert_called_once_with({"recursion_limit": 500})
+
+
+# =============================================================================
+# TestBudgetWarningPctValidator - budget_warning_pct in AgentConfig
+# =============================================================================
+
+
+class TestBudgetWarningPctValidator:
+    """Tests for budget_warning_pct validation in AgentConfig."""
+
+    def test_default_budget_warning_pct(self):
+        """Default budget_warning_pct is 80."""
+        config = AgentConfig(
+            model="gpt-4",
+            system_prompt="Test assistant.",
+        )
+        assert config.budget_warning_pct == 80
+
+    def test_valid_custom_pct(self):
+        """Custom budget_warning_pct within range is accepted."""
+        config = AgentConfig(
+            model="gpt-4",
+            system_prompt="Test assistant.",
+            budget_warning_pct=90,
+        )
+        assert config.budget_warning_pct == 90
+
+    def test_pct_below_50_raises(self):
+        """budget_warning_pct below 50 is rejected."""
+        with pytest.raises(ValueError, match="budget_warning_pct must be between"):
+            AgentConfig(
+                model="gpt-4",
+                system_prompt="Test assistant.",
+                budget_warning_pct=49,
+            )
+
+    def test_pct_above_95_raises(self):
+        """budget_warning_pct above 95 is rejected."""
+        with pytest.raises(ValueError, match="budget_warning_pct must be between"):
+            AgentConfig(
+                model="gpt-4",
+                system_prompt="Test assistant.",
+                budget_warning_pct=96,
+            )
+
+    def test_pct_at_boundary_50(self):
+        """budget_warning_pct=50 is accepted (lower boundary)."""
+        config = AgentConfig(
+            model="gpt-4",
+            system_prompt="Test assistant.",
+            budget_warning_pct=50,
+        )
+        assert config.budget_warning_pct == 50
+
+    def test_pct_at_boundary_95(self):
+        """budget_warning_pct=95 is accepted (upper boundary)."""
+        config = AgentConfig(
+            model="gpt-4",
+            system_prompt="Test assistant.",
+            budget_warning_pct=95,
+        )
+        assert config.budget_warning_pct == 95

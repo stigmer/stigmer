@@ -86,6 +86,9 @@ class AgentConfig(BaseModel):
     loop_history_size: int = 20
     loop_consecutive_threshold: int = 7
     loop_total_threshold: int = 20
+    # Execution budget warning — percentage of recursion limit at which the
+    # model is asked to wrap up (injected via ExecutionBudgetMiddleware).
+    budget_warning_pct: int = 80
     # Checkpointer for interrupt/resume support (HITL approval flow)
     checkpointer: Any | None = None  # Type is BaseCheckpointSaver but using Any for flexibility
     
@@ -450,6 +453,29 @@ class AgentConfig(BaseModel):
                 "The agent may waste resources on futile retries. Recommended range: 10-50.",
                 UserWarning,
                 stacklevel=2
+            )
+        return v
+    
+    @field_validator("budget_warning_pct")
+    @classmethod
+    def validate_budget_warning_pct(cls, v: int) -> int:
+        """Validate budget warning percentage is in a useful range.
+        
+        Args:
+            v: Warning percentage value
+            
+        Returns:
+            Validated warning percentage
+            
+        Raises:
+            ValueError: If value is outside the 50-95 range
+        
+        """
+        if v < 50 or v > 95:
+            raise ValueError(
+                f"budget_warning_pct must be between 50 and 95, got {v}. "
+                "Values below 50 warn too early; values above 95 leave no "
+                "room for the model to wrap up."
             )
         return v
     
