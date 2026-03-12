@@ -3246,7 +3246,7 @@ async def _execute_graphton_impl(
         #
         # Cost: single MongoDB/SQLite document lookup by thread_id (<10ms).
         # ─────────────────────────────────────────────────────────────────────────────
-        graph_state = None
+        graph_state = None  # type: ignore[assignment]
         try:
             graph_state = await agent_graph.aget_state(
                 cast(RunnableConfig, config)
@@ -3430,7 +3430,7 @@ async def _execute_graphton_impl(
                                                 matched_tc_ids.add(tc.id)
                                                 break
                                         if matched_tool_call_id:
-                                            break
+                                            break  # type: ignore[unreachable]
 
                         # ── Merge strategy: enrich Phase 1 entries, never degrade ──
                         #

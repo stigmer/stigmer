@@ -348,7 +348,7 @@ async def _transform_single_subagent(
     if sandbox_backend is not None:
         from graphton.core.tool_wrappers import create_platform_tool_wrappers
 
-        tools = list(create_platform_tool_wrappers(  # type: ignore[assignment]
+        tools = list(create_platform_tool_wrappers(  # type: ignore[arg-type]
             backend=sandbox_backend,
             approval_checker=approval_checker,
             sub_agent_name=name,

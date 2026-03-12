@@ -1737,6 +1737,7 @@ class TestSubAgentInternals:
         mock_gen.assert_called_once_with(
             "Scan all workflow-runner files and extract infrastructure dependencies...",
             "general-purpose",
+            existing_subjects=[],
         )
 
     @pytest.mark.asyncio
@@ -6561,7 +6562,7 @@ class TestTryEnrichPhase1Entry:
         assert status_builder.current_status.pending_approvals[0].interrupt_id == ""
 
     def test_matches_from_sub_agent_flag(self, status_builder):
-        """A main-agent entry is not matched when from_sub_agent=True."""
+        """Relaxed pass enriches main-agent entry even when from_sub_agent differs."""
         from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
 
         from worker.activities.execute_graphton import _try_enrich_phase1_entry
@@ -6578,7 +6579,8 @@ class TestTryEnrichPhase1Entry:
             status_builder, "execute", True, "intr-001",
         )
 
-        assert result is False
+        assert result is True
+        assert pa.interrupt_id == "intr-001"
 
     def test_preserves_tool_call_id(self, status_builder):
         """Enrichment must never overwrite the existing tool_call_id."""
