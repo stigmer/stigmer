@@ -41,7 +41,7 @@ def create_deep_agent(
     middleware: Sequence[Any] | None = None,
     context_schema: type[Any] | None = None,
     sandbox_config: dict[str, Any] | None = None,
-    recursion_limit: int = 1000,
+    recursion_limit: int = 6000,
     max_tokens: int | None = None,
     temperature: float | None = None,
     auto_enhance_prompt: bool = True,
@@ -724,15 +724,13 @@ def create_deep_agent(
     # Apply recursion limit to the top-level graph.
     #
     # This overrides deepagents' internal default with graphton's configured
-    # value (default: 1000 → ~166 model-tool rounds).
-    #
-    # Each model-tool round consumes ~6 LangGraph super-steps due to
-    # middleware graph nodes (before_model, model, 3× after_model, tools).
-    # The ratio is NOT 2:1 as LangGraph's plain agent would suggest.
+    # value (default: 6000 super-steps).  The actual number of model-tool
+    # rounds this affords depends on the active middleware stack — each
+    # middleware hook is a separate graph node consuming one super-step.
     #
     # LangGraph's merge_configs strips recursion_limit values equal to
     # DEFAULT_RECURSION_LIMIT (10,000), treating them as "no override".
-    # Values != 10,000 (like our 1000) are preserved and take effect.
+    # Values != 10,000 (like our 6000) are preserved and take effect.
     configured_agent = agent.with_config({"recursion_limit": recursion_limit})
     
     logger.info(

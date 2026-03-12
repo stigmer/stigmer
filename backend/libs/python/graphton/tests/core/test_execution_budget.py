@@ -30,8 +30,8 @@ from graphton.core.execution_budget import (
 
 @pytest.fixture
 def middleware():
-    """Default middleware with platform defaults (limit=1000, warning=80%)."""
-    return ExecutionBudgetMiddleware(recursion_limit=1000, warning_pct=80)
+    """Default middleware with platform defaults (limit=6000, warning=80%)."""
+    return ExecutionBudgetMiddleware(recursion_limit=6000, warning_pct=80)
 
 
 @pytest.fixture
@@ -43,7 +43,7 @@ def small_budget():
 @pytest.fixture
 def high_threshold():
     """Middleware with 90% warning for late-warning tests."""
-    return ExecutionBudgetMiddleware(recursion_limit=1000, warning_pct=90)
+    return ExecutionBudgetMiddleware(recursion_limit=6000, warning_pct=90)
 
 
 def _make_state(messages: list | None = None) -> dict:
@@ -98,10 +98,10 @@ class TestConstructor:
 
 
 class TestComputeWarningRound:
-    def test_default_1000_at_80pct(self):
-        # 1000 // 6 = 166 estimated rounds, 166 * 80 // 100 = 132
-        result = ExecutionBudgetMiddleware._compute_warning_round(1000, 80)
-        assert result == 132
+    def test_default_6000_at_80pct(self):
+        # 6000 // 6 = 1000 estimated rounds, 1000 * 80 // 100 = 800
+        result = ExecutionBudgetMiddleware._compute_warning_round(6000, 80)
+        assert result == 800
 
     def test_small_limit_respects_minimum(self):
         """Very small limits should still have a minimum warning round."""
@@ -149,10 +149,10 @@ class TestCreateBudgetWarningMessage:
         assert "80%" in msg.content
 
     def test_contains_remaining_rounds(self, middleware):
-        # estimated_total = 1000 // 6 = 166, remaining = 166 - 132 = 34
-        middleware._model_round_count = 132
+        # estimated_total = 6000 // 6 = 1000, remaining = 1000 - 800 = 200
+        middleware._model_round_count = 800
         msg = middleware._create_budget_warning_message()
-        assert "~34 rounds remaining" in msg.content
+        assert "~200 rounds remaining" in msg.content
 
     def test_contains_wrap_up_guidance(self, middleware):
         msg = middleware._create_budget_warning_message()
@@ -242,17 +242,17 @@ class TestAafterModel:
         assert "step limit" in msg.content
         assert "Summarize results" in msg.content
 
-    async def test_default_warning_at_round_132(self, middleware):
-        """With limit=1000 and pct=80, warning fires at round 132."""
-        assert middleware._warning_round == 132
+    async def test_default_warning_at_round_800(self, middleware):
+        """With limit=6000 and pct=80, warning fires at round 800."""
+        assert middleware._warning_round == 800
 
-        for i in range(131):
+        for i in range(799):
             result = await middleware.aafter_model(_make_state(), runtime={})
             assert result is None, f"Early warning at round {i + 1}"
 
         result = await middleware.aafter_model(_make_state(), runtime={})
         assert result is not None
-        assert middleware._model_round_count == 132
+        assert middleware._model_round_count == 800
 
     async def test_small_budget_warning(self, small_budget):
         """With limit=60, warning fires at round 8 (60//6 * 80//100 = 8)."""
@@ -267,16 +267,16 @@ class TestAafterModel:
         assert small_budget._model_round_count == 8
 
     async def test_high_threshold_warning(self, high_threshold):
-        """With limit=1000 and pct=90, warning fires at round 149."""
-        assert high_threshold._warning_round == 149
+        """With limit=6000 and pct=90, warning fires at round 900."""
+        assert high_threshold._warning_round == 900
 
-        for _ in range(148):
+        for _ in range(899):
             result = await high_threshold.aafter_model(_make_state(), runtime={})
             assert result is None
 
         result = await high_threshold.aafter_model(_make_state(), runtime={})
         assert result is not None
-        assert high_threshold._model_round_count == 149
+        assert high_threshold._model_round_count == 900
 
 
 # =============================================================================
@@ -357,12 +357,12 @@ class TestEdgeCases:
 
     async def test_very_large_recursion_limit(self):
         """Large limits produce proportionally large warning rounds."""
-        # 6000 // 6 = 1000 estimated rounds, 1000 * 80 // 100 = 800
-        mw = ExecutionBudgetMiddleware(recursion_limit=6000, warning_pct=80)
-        assert mw._warning_round == 800
+        # 30000 // 6 = 5000 estimated rounds, 5000 * 80 // 100 = 4000
+        mw = ExecutionBudgetMiddleware(recursion_limit=30000, warning_pct=80)
+        assert mw._warning_round == 4000
 
     async def test_remaining_rounds_never_negative(self, middleware):
         """If model_round_count exceeds estimate, remaining is clamped to 0."""
-        middleware._model_round_count = 999
+        middleware._model_round_count = 9999
         msg = middleware._create_budget_warning_message()
         assert "~0 rounds remaining" in msg.content

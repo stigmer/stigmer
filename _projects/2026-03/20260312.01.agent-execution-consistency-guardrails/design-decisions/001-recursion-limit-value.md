@@ -1,83 +1,88 @@
 # Design Decision 001: Recursion Limit Value
 
 **Date**: 2026-03-12
-**Status**: Revised
+**Status**: Revised (Session 8)
 **Decided by**: User + AI (collaborative)
 
 ## Context
 
 The orchestrator (`execute_graphton.py`) was overriding graphton's default `recursion_limit` of 100 with 1000 in two places. We needed to decide what the correct default should be.
 
-### Revision (2026-03-12, Session 7)
+### Revision History
 
-The original decision assumed ~2 super-steps per model-tool round. Empirical
-testing revealed the actual ratio is **~6 super-steps per round** due to
-middleware graph nodes (before_model, model, 3× after_model, tools). This
-meant `recursion_limit=100` only allowed ~16 model rounds — far fewer than
-the intended ~50.
+**Session 7**: Discovered that ~2 super-steps/round was wrong; the actual ratio is
+~6 due to middleware nodes. Updated default from 100 → 1000.
 
-The default has been set to **1000 super-steps (~166 model-tool rounds)** —
-matching DeepAgents' own default. This is deliberately generous; loop
-detection middleware and execution budget warnings are now the primary
-behavioral safety mechanisms. The recursion limit serves as a hard cost
-ceiling. The value can be tuned down based on observed usage patterns.
+**Session 8**: Production testing revealed that 1000 super-steps was still
+insufficient — the active middleware stack (enabled by the guardrails project
+itself) consumes significantly more super-steps per round than the mock-tested
+~6. Each middleware hook is a separate LangGraph graph node, and with loop
+detection, context summarization, and execution budget middleware all active,
+the per-round cost is substantially higher. The default has been increased to
+**6000 super-steps** to provide a generous budget for long-running agent tasks.
+Loop detection middleware is the primary behavioral safety mechanism; the
+recursion limit serves as a hard cost ceiling.
 
 ## Decision
 
-**Use graphton's default of 1000 super-steps (~166 model+tool rounds).** Do not override from the orchestrator.
+**Use graphton's default of 6000 super-steps.** Do not override from the orchestrator.
 
 ## Rationale
 
-### Super-step Ratio
+### Super-step Cost
 
-Each model-tool round consumes ~6 LangGraph super-steps:
+Each model-tool round consumes multiple LangGraph super-steps because every
+middleware hook is implemented as a separate graph node:
 
-| Node | Count per round | Source |
-|------|----------------|--------|
-| `before_model` (SummarizationMiddleware) | 1 | middleware hook |
-| `model` | 1 | core agent |
-| `after_model` (ContextSummarizationMiddleware) | 1 | middleware hook |
-| `after_model` (LoopDetectionMiddleware) | 1 | middleware hook |
-| `after_model` (ExecutionBudgetMiddleware) | 1 | middleware hook |
-| `tools` | 1 | core agent |
-| **Total** | **~6** | |
+| Node | Source |
+|------|--------|
+| `before_model` (SummarizationMiddleware) | middleware hook |
+| `model` | core agent |
+| `after_model` (ContextSummarizationMiddleware) | middleware hook |
+| `after_model` (LoopDetectionMiddleware) | middleware hook |
+| `after_model` (ExecutionBudgetMiddleware) | middleware hook |
+| `tools` | core agent |
 
-Additionally, ~9 super-steps are consumed at startup/shutdown by `before_agent`
-and `after_agent` hooks from various middleware, but these are one-time costs.
+The minimum cost is ~6 super-steps per round, but in practice the cost is
+higher due to additional internal graph transitions. The exact ratio depends
+on the active middleware stack and is not a fixed constant.
+
+Additionally, ~9+ super-steps are consumed at startup/shutdown by
+`before_agent` and `after_agent` hooks from various middleware.
 
 ### Industry Comparison
 
 | Product | Limit | Unit | Effective Rounds |
 |---------|-------|------|------------------|
-| Cursor | 25 | tool calls/message | 25 |
+| Cursor | 25 (default), unlimited (long-running) | tool calls/message | 25+ |
 | Claude Code | Unlimited (scripted) | — | — |
 | OpenAI Agents SDK | 10 | turns (default) | 10 |
-| **Stigmer (new)** | **1000** | **super-steps** | **~166** |
+| **Stigmer (new)** | **6000** | **super-steps** | **varies by middleware** |
 
-### Why 1000
+### Why 6000
 
-- ~166 model-tool rounds — matches DeepAgents' default of 1000 super-steps
-- Well within Claude Code's recommended range for complex tasks (40-200+ turns)
-- Sub-agent graphs use deepagents' `DEFAULT_RECURSION_LIMIT` (10,000) independently, so the main agent's limit doesn't constrain sub-agents
-- Graphton's loop detection middleware provides additional behavioral protection
-
-### Why NOT 6000+ (1000+ rounds)
-
-- 6000 super-steps ≈ ~1000 model-tool rounds (~25 min) — beyond practical single-message tasks
-- Even with loop detection, varied unproductive work could burn significant LLM cost
-- Can be revisited once usage patterns are observed
+- Generous enough for complex, long-running agent tasks
+- Matches the pre-guardrails effective capacity (when middleware was dead code,
+  1000 super-steps at ~3 steps/round ≈ 333 rounds; with active middleware,
+  6000 super-steps provides comparable headroom)
+- Sub-agent graphs use deepagents' `DEFAULT_RECURSION_LIMIT` (10,000)
+  independently, so the main agent's limit doesn't constrain sub-agents
+- Loop detection middleware is the primary behavioral safety — it catches
+  repetitive patterns regardless of the recursion budget
+- Execution budget middleware warns at ~80%, giving the model time to wrap up
 
 ## Configurability
 
 `max_tool_rounds` is available in `ExecutionConfig` proto, allowing per-execution
 overrides. The conversion formula is `recursion_limit = max_tool_rounds × 6`.
-The default of 1000 is fixed in graphton; the orchestrator can override only
-when the user explicitly requests it.
+Valid range: 10–1000 rounds (60–6000 super-steps). The default of 6000 is
+fixed in graphton; the orchestrator can override only when the user explicitly
+requests it.
 
 ## Consequences
 
-- All agent executions bounded at ~166 model-tool rounds per user message (~4 min)
+- All agent executions bounded at 6000 super-steps per user message
 - Loop detection middleware (7 consecutive / 20 total) is the primary behavioral safety
-- Execution budget warning fires at ~80% (~133 rounds), giving the model time to wrap up
+- Execution budget warning fires at ~80% of the budget, giving the model time to wrap up
 - The recursion limit is the hard ceiling for cost protection
-- Value can be tuned down based on observed usage patterns
+- Value can be tuned based on observed usage patterns
