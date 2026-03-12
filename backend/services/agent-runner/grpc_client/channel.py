@@ -30,11 +30,21 @@ from worker.config import Config
 # Client keepalive_time_ms must be >= server MinTime (5s) to avoid GOAWAY.
 # We use 10s (comfortably above 5s) so the client detects dead connections
 # within 10s + 5s = 15s, well under the 30s Temporal heartbeat budget.
+#
+# Message size: 16 MiB, raised from the 4 MiB gRPC default.  Agent
+# execution status updates can legitimately exceed 4 MiB when many tool
+# results accumulate (even with display-level truncation in StatusBuilder).
+# 16 MiB matches common gRPC deployment practices and provides headroom
+# without being dangerously permissive.
+_MAX_MESSAGE_BYTES: int = 16 * 1024 * 1024
+
 KEEPALIVE_CHANNEL_OPTIONS: list[tuple[str, int]] = [
     ("grpc.keepalive_time_ms", 10_000),
     ("grpc.keepalive_timeout_ms", 5_000),
     ("grpc.keepalive_permit_without_calls", 0),
     ("grpc.http2.max_pings_without_data", 0),
+    ("grpc.max_send_message_length", _MAX_MESSAGE_BYTES),
+    ("grpc.max_receive_message_length", _MAX_MESSAGE_BYTES),
 ]
 
 
