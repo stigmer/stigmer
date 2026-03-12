@@ -3045,7 +3045,7 @@ class StatusBuilder:
             summarization_model=event.summarization_model,
             messages_before=event.messages_before,
             messages_after=event.messages_after,
-            source=proto_source,
+            source=proto_source,  # type: ignore[arg-type]
         )
         self._context_info.summarization_events.append(proto_event)
         

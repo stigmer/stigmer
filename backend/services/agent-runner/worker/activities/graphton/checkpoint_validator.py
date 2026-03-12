@@ -92,7 +92,7 @@ def _extract_tool_call_sets(
                     tc_id = tc.get("id", "")
                     tc_name = tc.get("name", "")
                 else:
-                    tc_id = getattr(tc, "id", "")
+                    tc_id = getattr(tc, "id", "")  # type: ignore[unreachable]
                     tc_name = getattr(tc, "name", "")
                 if tc_id:
                     requested[tc_id] = tc_name
