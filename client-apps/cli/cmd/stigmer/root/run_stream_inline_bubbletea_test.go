@@ -1544,6 +1544,134 @@ func TestRenderTransientContent_AIStreamWithSubAgents(t *testing.T) {
 }
 
 // =============================================================================
+// Sub-agent visibility during tool output streaming tests
+// =============================================================================
+
+func TestView_StreamingWithActiveSubAgents_ShowsBoth(t *testing.T) {
+	m := newInlineBubbleModel()
+
+	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Check config"})
+	model := updated.(inlineBubbleModel)
+
+	model.streamingActive = true
+	model.streamingHeader = "Reading file: src/config.go"
+	model.streamingContent = "package config\n\nvar Default = Config{}"
+
+	view := model.View()
+	if !strings.Contains(view.Content, "Sub-agent") {
+		t.Error("View should show sub-agent line during tool streaming")
+	}
+	if !strings.Contains(view.Content, "package config") {
+		t.Error("View should show streaming content during tool streaming")
+	}
+	subAgentIdx := strings.Index(view.Content, "Sub-agent")
+	streamIdx := strings.Index(view.Content, "package config")
+	if subAgentIdx > streamIdx {
+		t.Error("sub-agent line should appear before streaming content")
+	}
+}
+
+func TestView_StreamingProgressiveWithActiveSubAgents_ShowsBoth(t *testing.T) {
+	m := newInlineBubbleModel()
+
+	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Validate schema"})
+	model := updated.(inlineBubbleModel)
+
+	model.streamingActive = true
+	model.streamingProgressive = true
+	model.streamingContent = "line 1\nline 2\n"
+
+	view := model.View()
+	if !strings.Contains(view.Content, "Sub-agent") {
+		t.Error("View should show sub-agent line during progressive streaming")
+	}
+	if !strings.Contains(view.Content, "line 1") {
+		t.Error("View should show progressive streaming content")
+	}
+	subAgentIdx := strings.Index(view.Content, "Sub-agent")
+	streamIdx := strings.Index(view.Content, "line 1")
+	if subAgentIdx > streamIdx {
+		t.Error("sub-agent line should appear before progressive streaming content")
+	}
+}
+
+func TestView_StreamingWithCompletedSubAgents_ShowsBoth(t *testing.T) {
+	m := newInlineBubbleModel()
+
+	m.completedSubAgentEntries = []completedSubAgentEntry{
+		{id: "sa-1", displayLine: "● Sub-agent: Scan deps ✓ Done (3 tools)"},
+	}
+	m.streamingActive = true
+	m.streamingHeader = "Reading file: go.mod"
+	m.streamingContent = "module example.com/app"
+
+	view := m.View()
+	if !strings.Contains(view.Content, "✓ Done") {
+		t.Error("View should show completed sub-agent line during streaming")
+	}
+	if !strings.Contains(view.Content, "module example.com/app") {
+		t.Error("View should show streaming content")
+	}
+}
+
+func TestRenderTransientContent_StreamingWithSubAgents(t *testing.T) {
+	m := newInlineBubbleModel()
+
+	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Explore CLI"})
+	model := updated.(inlineBubbleModel)
+
+	model.streamingActive = true
+	model.streamingHeader = "Running grep"
+	model.streamingContent = "match found on line 42"
+
+	content := model.renderTransientContent()
+	if !strings.Contains(content, "Sub-agent") {
+		t.Error("renderTransientContent should include sub-agent lines during streaming")
+	}
+	if !strings.Contains(content, "match found on line 42") {
+		t.Error("renderTransientContent should include streaming content")
+	}
+	if !strings.Contains(content, "\n\n") {
+		t.Error("sub-agent lines and streaming content should be separated by a blank line")
+	}
+}
+
+func TestRenderTransientContent_StreamingProgressiveWithSubAgents(t *testing.T) {
+	m := newInlineBubbleModel()
+
+	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Research"})
+	model := updated.(inlineBubbleModel)
+
+	model.streamingActive = true
+	model.streamingProgressive = true
+	model.streamingContent = "partial output"
+
+	content := model.renderTransientContent()
+	if !strings.Contains(content, "Sub-agent") {
+		t.Error("renderTransientContent should include sub-agent lines during progressive streaming")
+	}
+	if !strings.Contains(content, "partial output") {
+		t.Error("renderTransientContent should include progressive streaming content")
+	}
+}
+
+func TestView_StreamingWithoutSubAgents_Unchanged(t *testing.T) {
+	m := newInlineBubbleModel()
+
+	m.streamingActive = true
+	m.streamingHeader = "Reading file: main.go"
+	m.streamingContent = "package main"
+
+	view := m.View()
+	if !strings.Contains(view.Content, "package main") {
+		t.Error("View should show streaming content when no sub-agents are active")
+	}
+	if strings.Contains(view.Content, "Sub-agent") {
+		t.Error("View should not contain sub-agent lines when none are active")
+	}
+}
+
+// =============================================================================
 // renderSubAgentLine mixed rendering tests
 // =============================================================================
 

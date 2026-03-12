@@ -6,20 +6,19 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: ALL 5 PRs + D1–D5 + D11 COMPLETE — Checkpoint validation done
-- **Last Session**: March 12, 2026 (Session 9) — Completed D11 (Post-Stream Checkpoint Validation)
+- **Status**: ALL 5 PRs + D1–D6 + D11 COMPLETE — Streaming sub-agent visibility done
+- **Last Session**: March 12, 2026 (Session 10) — Completed D6 (Streaming Sub-Agent Visibility)
 - **Active Task**: T01 — Agent Execution Consistency Guardrails (deferred follow-ups)
-- **Committed**: PR3 at `0a4fb06a`, PR1/PR2/PR5 on `fix/sub-agent-timer-and-tool-count`, PR4 at `28e94919`, D1–D5 pending commit, D11 pending commit
+- **Committed**: PR3 at `0a4fb06a`, PR1/PR2/PR5 on `fix/sub-agent-timer-and-tool-count`, PR4 at `28e94919`, D1–D6 + D11 pending commit
 
-## Session Progress (2026-03-12, Session 9)
+## Session Progress (2026-03-12, Session 10)
 
-- Completed D11: Post-Stream Checkpoint Validation — validates StatusBuilder's stream-derived state against the LangGraph checkpoint's ground truth after every execution
-- Created `checkpoint_validator.py` — pure validation module with V1 (graph termination), V2 (unmatched tool calls), V3 (sub-agent cross-reference), V4 (AI message count canary)
-- Added `finalize_sub_agents_from_checkpoint_validation()` to StatusBuilder — checkpoint-aware finalization that marks missed-event sub-agents as COMPLETED instead of FAILED
-- Refactored `execute_graphton.py` post-stream flow: unconditional `aget_state()`, checkpoint validation, consolidated interrupt capture (reuses same `graph_state`), checkpoint-validated phase decision
-- `has_orphaned_sub_agents` retained as defense-in-depth fallback (fires only when checkpoint query fails)
-- 25 tests across 8 test classes, all passing; 284 existing tests unaffected
-- 5 files changed: 1 new module, 1 new test file, 3 modified
+- Completed D6: Show sub-agent status lines alongside tool output streaming in the CLI
+- Updated `streamingActive` case in both `renderTransientContent()` and legacy `View()` to prepend sub-agent lines above streaming content
+- Applied the same `renderSubAgentLine() + "\n\n" + content` pattern established in PR4 for `aiStreamActive` and `approvalActive`
+- Added 6 tests: non-progressive streaming, progressive streaming, completed sub-agents, renderTransientContent (both paths), and regression guard
+- All tests passing (full root package suite)
+- 2 files changed, ~150 insertions
 
 ## Next Steps
 
@@ -66,13 +65,13 @@ Complete inventory of items intentionally deferred during the 5-PR project. Grou
 
 - **D11**: New architectural layer that validates StatusBuilder's stream-derived state against the LangGraph checkpoint after every execution. Created `checkpoint_validator.py` with V1–V4 validations. Unconditional `aget_state()`, consolidated interrupt capture (reuses same `graph_state`), checkpoint-validated phase decision with `has_orphaned_sub_agents` as defense-in-depth fallback. Sub-agents that completed but whose events were missed are now correctly marked COMPLETED. 25 tests, all passing.
 
-### From PR4 / Session 5: Sub-Agent UX Edge Case
+### From PR4 / Session 5: Sub-Agent UX Edge Case — **DONE (Session 10)**
 
-| # | Item | Scope | Files |
-|---|------|-------|-------|
-| D6 | `streamingActive` case showing sub-agents | Go CLI | `run_stream_inline_bubbletea.go` |
+| # | Item | Status | Commit |
+|---|------|--------|--------|
+| D6 | `streamingActive` case showing sub-agents | **DONE** | pending |
 
-- **D6**: The tool output streaming priority case doesn't show sub-agents alongside. Less common scenario (only when tool output is actively streaming while sub-agents are running). Low priority.
+- **D6**: Show sub-agent status lines alongside tool output streaming. Updated `streamingActive` case in both `renderTransientContent()` and legacy `View()` to prepend sub-agent lines using the same pattern as `aiStreamActive` and `approvalActive`. Both progressive and non-progressive streaming paths covered. 6 tests added. All tests passing.
 
 ### Softer / Future Enhancement Items
 
@@ -87,7 +86,7 @@ Complete inventory of items intentionally deferred during the 5-PR project. Grou
 
 - The plan is in `tasks/T01_0_plan.md` — DO NOT edit it
 - Design decision for recursion limit value documented in `design-decisions/001-recursion-limit-value.md`
-- Session notes in `checkpoints/2026-03-12-session-{1..9}.md` (PR3, PR1, PR2, PR5, PR4, D1+D2, D3+D4, D5, D11)
+- Session notes in `checkpoints/2026-03-12-session-{1..10}.md` (PR3, PR1, PR2, PR5, PR4, D1+D2, D3+D4, D5, D11, D6)
 - The user operates under the **Architect Role** (`_roles/001_architect.md`): high-quality code, challenge assumptions, pause on surprises, collaborate on decisions
 - User explicitly wants: no complacency, no technical debt, pause and collaborate on architectural decisions, challenge when something doesn't align with platform quality
 - Key files from D1+D2:
@@ -118,6 +117,7 @@ Complete inventory of items intentionally deferred during the 5-PR project. Grou
 | PR9 (D4) | CLI Compaction Rendering | **DONE** | pending commit |
 | PR10 (D5) | EXECUTION_TERMINATED Phase | **DONE** | pending commit |
 | PR11 (D11) | Post-Stream Checkpoint Validation | **DONE** | pending commit |
+| PR12 (D6) | Streaming Sub-Agent Visibility | **DONE** | pending commit |
 
 ## Essential Files to Review
 
@@ -213,7 +213,8 @@ After loading context:
 - ~~"Work on D1+D2"~~ — DONE (Session 6)
 - ~~"Work on D3+D4"~~ — DONE (Session 7)
 - ~~"Work on D5"~~ — DONE (Session 8)
-- "Show all deferred items" — Review the full D6–D10 inventory
+- ~~"Work on D6"~~ — DONE (Session 10)
+- "Show all deferred items" — Review the full D7–D10 inventory
 
 ---
 
