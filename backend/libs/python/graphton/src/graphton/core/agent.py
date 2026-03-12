@@ -701,12 +701,17 @@ def create_deep_agent(
     
     # Apply recursion limit to the top-level graph.
     #
-    # This overrides deepagents' default of 1000 with graphton's configured
-    # value. Note: LangGraph's merge_configs intentionally strips
+    # This overrides deepagents' internal default with graphton's configured
+    # value (default: 100). LangGraph's merge_configs intentionally strips
     # recursion_limit values that equal DEFAULT_RECURSION_LIMIT (10,000),
-    # treating them as "no override". Values != 10,000 (like our 1000)
+    # treating them as "no override". Values != 10,000 (like our 100)
     # are preserved and take effect at runtime.
     configured_agent = agent.with_config({"recursion_limit": recursion_limit})
+    
+    logger.info(
+        "Graphton agent configured: recursion_limit=%d",
+        recursion_limit,
+    )
     
     return configured_agent  # type: ignore[no-any-return]
 
