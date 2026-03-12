@@ -2950,6 +2950,106 @@ class StatusBuilder:
         )
         return total
 
+    def finalize_sub_agents_from_checkpoint_validation(
+        self,
+        missed_event_count: int,
+        confirmed_orphan_count: int,
+        error_context: str,
+    ) -> int:
+        """Finalize active sub-agents using checkpoint validation results.
+
+        Unlike ``finalize_active_sub_agents_differentiated`` which treats all
+        active sub-agents as failed/cancelled, this method leverages the
+        checkpoint's ground truth to give correct terminal statuses:
+
+        - When the checkpoint confirms ALL task tools completed but
+          StatusBuilder missed the events (``missed_event_count > 0``,
+          ``confirmed_orphan_count == 0``): marks all active sub-agents
+          as ``SUB_AGENT_COMPLETED``.
+        - When ALL active sub-agents are confirmed orphans
+          (``confirmed_orphan_count > 0``, ``missed_event_count == 0``):
+          differentiates as FAILED (mid-execution) or CANCELLED
+          (zero-message), same as ``finalize_active_sub_agents_differentiated``.
+        - Mixed case (both > 0): uses conservative differentiation
+          since we cannot determine which specific sub-agents completed
+          without ID-level mapping between checkpoint tool_call_ids and
+          StatusBuilder run_ids.
+
+        Args:
+            missed_event_count: Sub-agents that completed in the checkpoint
+                but StatusBuilder still considers active.
+            confirmed_orphan_count: Sub-agents incomplete in both checkpoint
+                and StatusBuilder.
+            error_context: High-level description for error messages.
+
+        Returns:
+            Number of sub-agents finalized.
+        """
+        if not self._active_sub_agents:
+            return 0
+
+        now = _utc_timestamp()
+        total = len(self._active_sub_agents)
+
+        if missed_event_count > 0 and confirmed_orphan_count == 0:
+            completed_ids: list[str] = []
+            for run_id, sub_agent in list(self._active_sub_agents.items()):
+                sub_agent.status = SubAgentStatus.SUB_AGENT_COMPLETED
+                sub_agent.completed_at = now
+                self._completed_sub_agents[run_id] = sub_agent
+                completed_ids.append(run_id)
+
+            self._active_sub_agents.clear()
+            self.logger.info(
+                f"[SUBAGENT] execution={self.execution_id} "
+                f"checkpoint confirms {total} sub-agent(s) completed "
+                f"(StatusBuilder missed on_tool_end events): "
+                f"{completed_ids}"
+            )
+        else:
+            cancelled_ids: list[str] = []
+            failed_ids: list[str] = []
+
+            for run_id, sub_agent in list(self._active_sub_agents.items()):
+                has_activity = (
+                    len(sub_agent.messages) > 0
+                    or len(sub_agent.tool_calls) > 0
+                )
+                if has_activity:
+                    sub_agent.status = SubAgentStatus.SUB_AGENT_FAILED
+                    sub_agent.error = (
+                        f"{error_context}: sub-agent was running "
+                        f"({len(sub_agent.messages)} messages, "
+                        f"{len(sub_agent.tool_calls)} tool calls)"
+                    )
+                    failed_ids.append(run_id)
+                else:
+                    sub_agent.status = SubAgentStatus.SUB_AGENT_CANCELLED
+                    sub_agent.error = (
+                        f"{error_context}: sub-agent was spawned but "
+                        f"never began execution"
+                    )
+                    cancelled_ids.append(run_id)
+
+                sub_agent.completed_at = now
+                self._completed_sub_agents[run_id] = sub_agent
+
+            self._active_sub_agents.clear()
+
+            qualifier = (
+                "confirmed orphaned"
+                if missed_event_count == 0
+                else "mixed (some may have completed per checkpoint)"
+            )
+            self.logger.info(
+                f"[SUBAGENT] execution={self.execution_id} "
+                f"finalized {total} {qualifier} sub-agent(s) — "
+                f"CANCELLED (zero-message): {cancelled_ids}, "
+                f"FAILED (mid-execution): {failed_ids}"
+            )
+
+        return total
+
     # ─────────────────────────────────────────────────────────────────────────────
     # Usage Metrics Builders (Phase 2.4)
     # ─────────────────────────────────────────────────────────────────────────────
