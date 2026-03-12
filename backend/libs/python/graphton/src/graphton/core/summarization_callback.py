@@ -50,6 +50,10 @@ class SummarizationEventData:
         summarization_model: Model used for summarization (e.g., "claude-haiku-4.5").
         messages_before: Number of messages before summarization.
         messages_after: Number of messages after summarization.
+        source: What triggered this summarization.
+            "graph_start" for compaction at the beginning of a graph invocation,
+            "mid_execution" for compaction triggered by accumulated context
+            mid-execution.
 
     Example:
         >>> event = SummarizationEventData(
@@ -60,6 +64,7 @@ class SummarizationEventData:
         ...     summarization_model="claude-haiku-4.5",
         ...     messages_before=45,
         ...     messages_after=8,
+        ...     source="mid_execution",
         ... )
         >>> print(f"Reduced {event.tokens_before} to {event.tokens_after}")
         Reduced 150000 to 60000
@@ -73,6 +78,7 @@ class SummarizationEventData:
     summarization_model: str
     messages_before: int
     messages_after: int
+    source: str
 
 
 @runtime_checkable
@@ -144,8 +150,16 @@ class SummarizationCallback(Protocol):
         ...
 
 
+# Source constants — mirror the proto SummarizationSource enum value names.
+# Used by SummarizationMiddleware to set SummarizationEventData.source
+# without depending on proto stubs.
+SOURCE_GRAPH_START: str = "graph_start"
+SOURCE_MID_EXECUTION: str = "mid_execution"
+
 # Module-level exports
 __all__ = [
+    "SOURCE_GRAPH_START",
+    "SOURCE_MID_EXECUTION",
     "SummarizationCallback",
     "SummarizationEventData",
 ]

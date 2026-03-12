@@ -715,6 +715,13 @@ message SummarizationEvent {
   // Number of messages in conversation after summarization.
   // Typically reduced significantly as historical messages are collapsed.
   int32 messages_after = 8;
+
+  // What triggered this summarization event.
+  //
+  // Enables the CLI to distinguish between:
+  // - graph_start: compaction at the beginning of a new invocation
+  // - mid_execution: compaction triggered by accumulated tool responses
+  SummarizationSource source = 9;
 }
 
 // ContextInfo provides visibility into context window utilization.

@@ -213,6 +213,46 @@ func TestInlineRenderer_SystemMessage_GoesToStderr(t *testing.T) {
 	}
 }
 
+func TestInlineRenderer_ContextCompacted_GoesToStderr(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 10)
+
+	go feedEvents(events,
+		executiontui.ContextCompactedEvent{
+			Source:           "mid_execution",
+			TokensBefore:     185000,
+			TokensAfter:      80000,
+			CompressionRatio: 0.57,
+			DurationMs:       2500,
+			MessagesBefore:   50,
+			MessagesAfter:    10,
+		},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	output := stderr.String()
+	if !strings.Contains(output, "Context compacted") {
+		t.Errorf("compaction notification should appear on stderr, got: %q", output)
+	}
+	if !strings.Contains(output, "185K") {
+		t.Errorf("expected tokens_before in K format, got: %q", output)
+	}
+	if !strings.Contains(output, "80K") {
+		t.Errorf("expected tokens_after in K format, got: %q", output)
+	}
+	if !strings.Contains(output, "57%") {
+		t.Errorf("expected compression percentage, got: %q", output)
+	}
+}
+
 // =============================================================================
 // Tool Call Rendering
 // =============================================================================

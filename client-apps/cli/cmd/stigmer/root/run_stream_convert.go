@@ -103,6 +103,19 @@ func mapTodoStatus(status agentexecutionv1.TodoStatus) string {
 	}
 }
 
+// mapSummarizationSource converts a proto SummarizationSource enum to the
+// domain string used by ContextCompactedEvent.
+func mapSummarizationSource(source agentexecutionv1.SummarizationSource) string {
+	switch source {
+	case agentexecutionv1.SummarizationSource_graph_start:
+		return "graph_start"
+	case agentexecutionv1.SummarizationSource_mid_execution:
+		return "mid_execution"
+	default:
+		return "unknown"
+	}
+}
+
 // convertProtoTodos converts a proto todo map to a slice of TUI domain
 // TodoItems. Returns nil for empty or nil maps.
 func convertProtoTodos(todos map[string]*agentexecutionv1.TodoItem) []executiontui.TodoItem {

@@ -439,6 +439,8 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 		r.renderToolWaitingApproval(e)
 	case executiontui.SystemMessageEvent:
 		r.renderSystemMessage(e)
+	case executiontui.ContextCompactedEvent:
+		r.renderContextCompacted(e)
 	case executiontui.PhaseChangeEvent:
 		r.renderPhaseChange(e)
 	case executiontui.ApprovalNeededEvent:

@@ -34,6 +34,7 @@ from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ExecutionPhase,
     MessageType,
     SubAgentStatus,
+    SummarizationSource,
     TodoStatus,
     ToolCallStatus,
 )
@@ -432,8 +433,9 @@ class StatusBuilder:
         # Context info initialized via initialize_context_info()
         self._context_info: ContextInfo | None = None
         
-        # Accumulated summarization events during this execution
-        self._summarization_events: list[SummarizationEvent] = []
+        # Context info is the single source of truth for summarization events.
+        # Events are appended directly to _context_info.summarization_events
+        # (once initialized) and synced to current_status via _sync_context_info().
         
         # ─────────────────────────────────────────────────────────────────────────
         # Run-ID Alias Map (Resume-After-Approval Fix)
@@ -3120,8 +3122,9 @@ class StatusBuilder:
         """
         Callback from SummarizationMiddleware when summarization completes.
         
-        Records the summarization event and updates context info.
-        This is part of the SummarizationCallback protocol.
+        Records the summarization event, syncs context info to the status
+        proto for immediate gRPC delivery, and sets force_next_update so
+        the event loop pushes the update without waiting for the scheduler.
         
         Args:
             event: Immutable data object containing summarization metrics.
@@ -3133,7 +3136,11 @@ class StatusBuilder:
             )
             return
         
-        # Create proto event
+        try:
+            proto_source = SummarizationSource.Value(event.source)
+        except ValueError:
+            proto_source = SummarizationSource.SUMMARIZATION_SOURCE_UNSPECIFIED
+
         timestamp = _utc_timestamp()
         proto_event = SummarizationEvent(
             timestamp=timestamp,
@@ -3144,17 +3151,18 @@ class StatusBuilder:
             summarization_model=event.summarization_model,
             messages_before=event.messages_before,
             messages_after=event.messages_after,
+            source=proto_source,
         )
-        self._summarization_events.append(proto_event)
+        self._context_info.summarization_events.append(proto_event)
         
-        # Update context info with new token count
         self._context_info.current_token_count = event.tokens_after
         self._update_utilization()
+        self._sync_context_info()
+        self.force_next_update = True
         
-        # Structured logging
         self.logger.info(
             f"[CONTEXT] execution={self.execution_id} "
-            f"summarization completed: "
+            f"summarization completed (source={event.source}): "
             f"{event.tokens_before} -> {event.tokens_after} tokens "
             f"({event.compression_ratio * 100:.1f}% reduction), "
             f"duration={event.duration_ms}ms, "
@@ -3198,6 +3206,15 @@ class StatusBuilder:
         else:
             self._context_info.utilization_percent = 0.0
     
+    def _sync_context_info(self) -> None:
+        """Copy the working ``_context_info`` to ``current_status``.
+
+        Safe to call at any time — ``_context_info.summarization_events``
+        is the single source of truth, so repeated calls never duplicate.
+        """
+        if self._context_info is not None:
+            self.current_status.context_info.CopyFrom(self._context_info)
+
     def finalize_context_info(self) -> None:
         """
         Finalize context info and copy to status proto.
@@ -3206,15 +3223,11 @@ class StatusBuilder:
         summarization events, and execution outputs to the status proto.
         """
         if self._context_info is not None:
-            # Copy summarization events to context info
-            for event in self._summarization_events:
-                self._context_info.summarization_events.append(event)
+            self._sync_context_info()
             
-            # Copy context info to status proto
-            self.current_status.context_info.CopyFrom(self._context_info)
-            
-            # Summary log
-            summarization_count = len(self._summarization_events)
+            summarization_count = len(
+                self._context_info.summarization_events,
+            )
             self.logger.info(
                 f"[CONTEXT] execution={self.execution_id} "
                 f"context_info finalized: "

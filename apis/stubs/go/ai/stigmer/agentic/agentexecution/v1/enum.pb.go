@@ -532,6 +532,63 @@ func (ExecutionArtifactKind) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{5}
 }
 
+// SummarizationSource identifies what triggered a context summarization event.
+//
+// Context summarization can be triggered at two points during execution:
+// - At graph start, when resuming a conversation that already exceeds the threshold
+// - Mid-execution, when accumulated tool responses push context past the threshold
+//
+// This distinction enables the CLI to render appropriate notifications and
+// allows monitoring to track compaction frequency by trigger type.
+type SummarizationSource int32
+
+const (
+	SummarizationSource_SUMMARIZATION_SOURCE_UNSPECIFIED SummarizationSource = 0
+	SummarizationSource_graph_start                      SummarizationSource = 1 // Triggered at the start of a graph invocation (abefore_agent)
+	SummarizationSource_mid_execution                    SummarizationSource = 2 // Triggered mid-execution before a model call (awrap_model_call)
+)
+
+// Enum value maps for SummarizationSource.
+var (
+	SummarizationSource_name = map[int32]string{
+		0: "SUMMARIZATION_SOURCE_UNSPECIFIED",
+		1: "graph_start",
+		2: "mid_execution",
+	}
+	SummarizationSource_value = map[string]int32{
+		"SUMMARIZATION_SOURCE_UNSPECIFIED": 0,
+		"graph_start":                      1,
+		"mid_execution":                    2,
+	}
+)
+
+func (x SummarizationSource) Enum() *SummarizationSource {
+	p := new(SummarizationSource)
+	*p = x
+	return p
+}
+
+func (x SummarizationSource) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (SummarizationSource) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[6].Descriptor()
+}
+
+func (SummarizationSource) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[6]
+}
+
+func (x SummarizationSource) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use SummarizationSource.Descriptor instead.
+func (SummarizationSource) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{6}
+}
+
 var File_ai_stigmer_agentic_agentexecution_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
@@ -579,7 +636,11 @@ const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
 	"\x15ExecutionArtifactKind\x12'\n" +
 	"#EXECUTION_ARTIFACT_KIND_UNSPECIFIED\x10\x00\x12 \n" +
 	"\x1cEXECUTION_ARTIFACT_KIND_FILE\x10\x01\x12%\n" +
-	"!EXECUTION_ARTIFACT_KIND_DIRECTORY\x10\x02B\xca\x02\n" +
+	"!EXECUTION_ARTIFACT_KIND_DIRECTORY\x10\x02*_\n" +
+	"\x13SummarizationSource\x12$\n" +
+	" SUMMARIZATION_SOURCE_UNSPECIFIED\x10\x00\x12\x0f\n" +
+	"\vgraph_start\x10\x01\x12\x11\n" +
+	"\rmid_execution\x10\x02B\xca\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\tEnumProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
@@ -594,7 +655,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
+var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
 var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_goTypes = []any{
 	(ExecutionPhase)(0),        // 0: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
 	(MessageType)(0),           // 1: ai.stigmer.agentic.agentexecution.v1.MessageType
@@ -602,6 +663,7 @@ var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_goTypes = []any{
 	(TodoStatus)(0),            // 3: ai.stigmer.agentic.agentexecution.v1.TodoStatus
 	(SubAgentStatus)(0),        // 4: ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
 	(ExecutionArtifactKind)(0), // 5: ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactKind
+	(SummarizationSource)(0),   // 6: ai.stigmer.agentic.agentexecution.v1.SummarizationSource
 }
 var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -621,7 +683,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_enum_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc)),
-			NumEnums:      6,
+			NumEnums:      7,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

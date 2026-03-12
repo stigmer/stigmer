@@ -1676,3 +1676,24 @@ func TestHasUsableApproval_MixedPromptedAndUnprompted(t *testing.T) {
 		t.Error("expected true when one entry is unprompted with valid key")
 	}
 }
+
+// =============================================================================
+// mapSummarizationSource Tests
+// =============================================================================
+
+func TestMapSummarizationSource_AllValues(t *testing.T) {
+	tests := []struct {
+		input agentexecutionv1.SummarizationSource
+		want  string
+	}{
+		{agentexecutionv1.SummarizationSource_graph_start, "graph_start"},
+		{agentexecutionv1.SummarizationSource_mid_execution, "mid_execution"},
+		{agentexecutionv1.SummarizationSource_SUMMARIZATION_SOURCE_UNSPECIFIED, "unknown"},
+	}
+	for _, tt := range tests {
+		got := mapSummarizationSource(tt.input)
+		if got != tt.want {
+			t.Errorf("mapSummarizationSource(%v) = %q, want %q", tt.input, got, tt.want)
+		}
+	}
+}
