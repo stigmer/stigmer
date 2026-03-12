@@ -212,6 +212,8 @@ func (m inlineBubbleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleSubAgentHide(msg)
 	case subAgentCompleteMsg:
 		return m.handleSubAgentComplete(msg)
+	case subAgentToolCountMsg:
+		return m.handleSubAgentToolCount(msg)
 	case subAgentTickMsg:
 		return m.handleSubAgentTick()
 	}
@@ -650,6 +652,16 @@ func (m inlineBubbleModel) handleSubAgentComplete(msg subAgentCompleteMsg) (tea.
 	return m, nil
 }
 
+func (m inlineBubbleModel) handleSubAgentToolCount(msg subAgentToolCountMsg) (tea.Model, tea.Cmd) {
+	for i, e := range m.activeSubAgentEntries {
+		if e.id == msg.id {
+			m.activeSubAgentEntries[i].toolCount = msg.count
+			break
+		}
+	}
+	return m, nil
+}
+
 func (m inlineBubbleModel) handleSubAgentTick() (tea.Model, tea.Cmd) {
 	if len(m.activeSubAgentEntries) == 0 {
 		return m, nil
@@ -683,13 +695,9 @@ func nextSubAgentTick() tea.Cmd {
 // own two-line block, producing a stacked view:
 //
 //	"● Sub-agent: Scan auth0-webhooks dependencies"
-//	"  ⠋ Working… (3s)"
+//	"  ⠋ Working… 3 tools (12s)"
 //	"● Sub-agent: Scan agent-runner dependencies"
 //	"  ⠋ Working… (5s)"
-//
-// The live view is intentionally minimal: a static "Working..." label
-// with spinner animation and elapsed time. Tool counts and activity
-// details appear only in the scrollback line after the sub-agent completes.
 func (m inlineBubbleModel) renderSubAgentLine() string {
 	frame := spinner.Frames[m.subAgentSpinnerFrame%len(spinner.Frames)]
 	lines := make([]string, 0, len(m.activeSubAgentEntries))
@@ -701,6 +709,9 @@ func (m inlineBubbleModel) renderSubAgentLine() string {
 		header := fmt.Sprintf("%s %s: %s",
 			toolrender.BulletGreen("●"), toolrender.LabelBold("Sub-agent"), label)
 		activity := fmt.Sprintf("  %s %s", frame, systemMsgStyle.Render("Working…"))
+		if e.toolCount > 0 {
+			activity += fmt.Sprintf(" %d tools", e.toolCount)
+		}
 		if e.elapsedStr != "" {
 			activity += " " + e.elapsedStr
 		}

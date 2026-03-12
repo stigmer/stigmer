@@ -189,7 +189,7 @@ type currentTaskMsg struct {
 
 // subAgentShowMsg activates the live sub-agent running summary in View().
 // Sent when a SubAgentStartedEvent is processed. The subject is the short
-// display label; View() renders "● Task: subject … (N tools)".
+// display label; View() renders "● Sub-agent: subject".
 type subAgentShowMsg struct {
 	id      string
 	subject string
@@ -211,6 +211,15 @@ type subAgentHideMsg struct {
 type subAgentCompleteMsg struct {
 	id              string
 	scrollbackLines string
+}
+
+// subAgentToolCountMsg updates the live tool count for a running sub-agent.
+// Sent when a tool completion or read group is appended to a sub-agent block.
+// Low frequency (one per tool completion), so it does not introduce content
+// volatility in View().
+type subAgentToolCountMsg struct {
+	id    string
+	count int
 }
 
 // subAgentTickMsg is the self-propagating tick that advances the sub-agent
