@@ -17,17 +17,15 @@ can wrap up gracefully instead of being hard-killed by GraphRecursionError.
 Budget estimation
 -----------------
 LangGraph's ``recursion_limit`` counts *super-steps* (individual node
-executions).  Each model→tools cycle consumes ~6 super-steps due to
-middleware graph nodes (before_model, model, 3× after_model, tools).
-The middleware counts ``aafter_model`` invocations, which correspond to
-model rounds.  The warning threshold is derived as::
+executions).  Each model→tools cycle consumes multiple super-steps because
+every middleware hook is a separate graph node.  The middleware counts
+``aafter_model`` invocations (one per model round) and derives the warning
+threshold from the configured recursion_limit.
 
-    warning_round = recursion_limit * warning_pct // 600
-
-For the platform default (``recursion_limit=6000``, ``warning_pct=80``) this
-fires at model round 800 (~4800 super-steps).  The mapping is approximate —
-startup/shutdown overhead consumes additional steps — but the 80 %
-threshold is deliberately soft so ±a few steps is acceptable.
+This middleware is only injected when ``recursion_limit`` is explicitly set
+(i.e. not ``None``).  When the platform runs in unlimited mode (the
+default), loop detection middleware is the primary safety mechanism and
+this middleware is not needed.
 """
 
 import logging

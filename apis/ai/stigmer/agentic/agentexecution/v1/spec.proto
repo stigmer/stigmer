@@ -274,22 +274,22 @@ message ExecutionConfig {
   // ## Conversion
   //
   // LangGraph's recursion_limit counts "super-steps" — individual graph node
-  // executions.  Each model-tool round consumes ~6 super-steps because every
-  // active middleware hook (before_model, after_model, etc.) is a separate
-  // graph node.  The conversion formula is:
+  // executions.  Each model-tool round consumes multiple super-steps because
+  // every active middleware hook (before_model, after_model, etc.) is a
+  // separate graph node.  The conversion formula is:
   //
   //   recursion_limit = max_tool_rounds × 6
   //
-  // In practice the actual cost per round may be higher depending on the
-  // middleware stack; the ×6 factor is a floor estimate.  Loop detection
-  // middleware is the primary safety mechanism for preventing runaway agents.
+  // The ×6 factor is a floor estimate; actual cost per round depends on the
+  // middleware stack.
   //
   // ## Default Behavior
   //
-  // 0 = use platform default (currently 6000 super-steps).
-  // This provides a generous budget for complex, long-running agent tasks.
-  // Loop detection and execution budget warnings are the primary behavioral
-  // safety mechanisms; the recursion limit serves as a hard cost ceiling.
+  // 0 = unlimited (no artificial recursion limit).
+  // The agent runs until the task completes or loop detection middleware
+  // detects repetitive behavior (7 consecutive / 20 total duplicate
+  // patterns).  This is the recommended default — loop detection is the
+  // primary safety mechanism.
   //
   // ## Valid Range
   //
@@ -300,9 +300,9 @@ message ExecutionConfig {
   //
   // ## User Experience
   //
-  // When the agent reaches the limit, it receives a graceful wrap-up
-  // message at ~80% of the budget and a user-facing "send another message
-  // to continue" prompt at 100%.  This mirrors Cursor's "Continue" pattern.
+  // When a limit IS set and the agent approaches it, a graceful wrap-up
+  // message is injected at ~80% of the budget.  At 100%, the user sees
+  // a "send another message to continue" prompt.
   //
   // @since Recursion Limit Configurability (D1)
   int32 max_tool_rounds = 3;

@@ -2,10 +2,11 @@
 
 Verifies:
 - Agent creation succeeds with deepagents 0.4.x API (no backend parameter)
-- recursion_limit is correctly applied via with_config()
-- Config validator thresholds are correct
+- recursion_limit=None (default) skips with_config override
+- Explicit recursion_limit is applied via with_config()
+- Config validator accepts None and positive integers
 - Sandbox platform tools are created when sandbox_config is provided
-- recursion_limit value is preserved through LangGraph's merge_configs
+- Explicit recursion_limit values are preserved through LangGraph's merge_configs
 - Custom recursion_limit flows through create_deep_agent to with_config
 - budget_warning_pct validation in AgentConfig
 """
@@ -25,35 +26,31 @@ from graphton.core.config import AgentConfig
 class TestRecursionLimitValidator:
     """Tests for recursion_limit validation in AgentConfig."""
 
-    def test_valid_recursion_limit(self):
-        """Test that platform default (6000) is accepted without warning."""
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            config = AgentConfig(
-                model="gpt-4",
-                system_prompt="Test assistant.",
-                recursion_limit=6000,
-            )
-            recursion_warnings = [
-                x for x in w if "recursion_limit" in str(x.message)
-            ]
-            assert config.recursion_limit == 6000
-            assert len(recursion_warnings) == 0
+    def test_default_is_none(self):
+        """Test that the default recursion_limit is None (unlimited)."""
+        config = AgentConfig(
+            model="gpt-4",
+            system_prompt="Test assistant.",
+        )
+        assert config.recursion_limit is None
+
+    def test_explicit_positive_value_accepted(self):
+        """Test that explicit positive values are accepted."""
+        config = AgentConfig(
+            model="gpt-4",
+            system_prompt="Test assistant.",
+            recursion_limit=6000,
+        )
+        assert config.recursion_limit == 6000
 
     def test_low_recursion_limit(self):
-        """Test that low positive values are accepted without warning."""
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            config = AgentConfig(
-                model="gpt-4",
-                system_prompt="Test assistant.",
-                recursion_limit=50,
-            )
-            recursion_warnings = [
-                x for x in w if "recursion_limit" in str(x.message)
-            ]
-            assert config.recursion_limit == 50
-            assert len(recursion_warnings) == 0
+        """Test that low positive values are accepted."""
+        config = AgentConfig(
+            model="gpt-4",
+            system_prompt="Test assistant.",
+            recursion_limit=50,
+        )
+        assert config.recursion_limit == 50
 
     def test_zero_recursion_limit_raises(self):
         """Test that zero recursion_limit raises ValueError."""
@@ -73,50 +70,20 @@ class TestRecursionLimitValidator:
                 recursion_limit=-10,
             )
 
-    def test_very_high_recursion_limit_warns(self):
-        """Test that recursion_limit > 30000 generates a warning."""
+    def test_very_high_value_accepted(self):
+        """Test that very high values are accepted without warning."""
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             config = AgentConfig(
                 model="gpt-4",
                 system_prompt="Test assistant.",
-                recursion_limit=30001,
+                recursion_limit=100000,
             )
             recursion_warnings = [
                 x for x in w if "recursion_limit" in str(x.message)
             ]
-            assert config.recursion_limit == 30001
-            assert len(recursion_warnings) == 1
-            assert "very high" in str(recursion_warnings[0].message)
-
-    def test_boundary_30000_no_warning(self):
-        """Test that recursion_limit=30000 does NOT generate a warning."""
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            config = AgentConfig(
-                model="gpt-4",
-                system_prompt="Test assistant.",
-                recursion_limit=30000,
-            )
-            recursion_warnings = [
-                x for x in w if "recursion_limit" in str(x.message)
-            ]
-            assert config.recursion_limit == 30000
+            assert config.recursion_limit == 100000
             assert len(recursion_warnings) == 0
-
-    def test_boundary_30001_warns(self):
-        """Test that recursion_limit=30001 generates a warning."""
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            AgentConfig(
-                model="gpt-4",
-                system_prompt="Test assistant.",
-                recursion_limit=30001,
-            )
-            recursion_warnings = [
-                x for x in w if "recursion_limit" in str(x.message)
-            ]
-            assert len(recursion_warnings) == 1
 
 
 # =============================================================================
@@ -130,15 +97,7 @@ class TestAgentCreation:
     @patch("graphton.core.agent.deepagents_create_deep_agent")
     @patch("graphton.core.agent.parse_model_string")
     def test_backend_none_without_sandbox(self, mock_parse, mock_create):
-        """Verify backend=None when no sandbox_config is provided.
-
-        Without a sandbox, there is no backend to adapt, so graphton
-        passes ``backend=None`` letting deepagents use its default
-        StateBackend.  When sandbox_config IS provided, graphton wraps
-        the backend in a DeepAgentsBackendAdapter so that deepagents'
-        FilesystemMiddleware recognises the execute capability and does
-        not strip the execute tool.
-        """
+        """Verify backend=None when no sandbox_config is provided."""
         from graphton import create_deep_agent
 
         mock_model = MagicMock()
@@ -150,7 +109,6 @@ class TestAgentCreation:
         create_deep_agent(
             model="gpt-4",
             system_prompt="Test assistant.",
-            recursion_limit=6000,
         )
 
         mock_create.assert_called_once()
@@ -162,8 +120,27 @@ class TestAgentCreation:
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
     @patch("graphton.core.agent.parse_model_string")
-    def test_recursion_limit_applied_via_with_config(self, mock_parse, mock_create):
-        """Verify recursion_limit is applied via with_config on the returned graph."""
+    def test_default_none_skips_with_config(self, mock_parse, mock_create):
+        """Verify recursion_limit=None (default) does NOT call with_config."""
+        from graphton import create_deep_agent
+
+        mock_model = MagicMock()
+        mock_parse.return_value = mock_model
+        mock_agent = MagicMock()
+        mock_agent.with_config.return_value = mock_agent
+        mock_create.return_value = mock_agent
+
+        create_deep_agent(
+            model="gpt-4",
+            system_prompt="Test assistant.",
+        )
+
+        mock_agent.with_config.assert_not_called()
+
+    @patch("graphton.core.agent.deepagents_create_deep_agent")
+    @patch("graphton.core.agent.parse_model_string")
+    def test_explicit_limit_calls_with_config(self, mock_parse, mock_create):
+        """Verify explicit recursion_limit IS applied via with_config."""
         from graphton import create_deep_agent
 
         mock_model = MagicMock()
@@ -301,7 +278,6 @@ class TestSandboxToolCreation:
             model="gpt-4",
             system_prompt="Test assistant.",
             sandbox_config={"type": "filesystem", "root_dir": "/tmp"},
-            # No approval_checker
         )
 
         mock_wrappers.assert_called_once_with(
@@ -319,41 +295,31 @@ class TestRecursionLimitMergeConfigs:
     """Tests verifying LangGraph's merge_configs behavior with recursion_limit.
 
     These tests document the known behavior where LangGraph's merge_configs
-    has special handling for recursion_limit. The exact behavior depends on
-    the langgraph version (DEFAULT_RECURSION_LIMIT changed from 25 to 10,000
-    in langgraph 1.0.8). Our platform default of 1000 is preserved in all
-    versions because it is never equal to either default.
+    has special handling for recursion_limit. Explicit values (from
+    max_tool_rounds) must survive merge_configs to take effect.
     """
 
-    def test_platform_value_preserved(self):
-        """Verify recursion_limit=6000 survives LangGraph's merge_configs.
-
-        This is the most important test: the platform's default value of
-        6000 must be preserved regardless of what DEFAULT_RECURSION_LIMIT is.
-        """
+    def test_explicit_value_preserved(self):
+        """Verify explicit recursion_limit values survive merge_configs."""
         from langgraph._internal._config import merge_configs
 
         result = merge_configs({"configurable": {}}, {"recursion_limit": 6000})
-        assert result.get("recursion_limit") == 6000, (
-            "recursion_limit=6000 must be preserved by merge_configs "
-            "(only DEFAULT_RECURSION_LIMIT is stripped)"
-        )
+        assert result.get("recursion_limit") == 6000
 
     def test_default_recursion_limit_exists(self):
         """Verify DEFAULT_RECURSION_LIMIT is accessible and positive."""
         from langgraph._internal._config import DEFAULT_RECURSION_LIMIT
 
         assert isinstance(DEFAULT_RECURSION_LIMIT, int)
-        assert DEFAULT_RECURSION_LIMIT > 0, (
-            "DEFAULT_RECURSION_LIMIT should be a positive integer"
-        )
+        assert DEFAULT_RECURSION_LIMIT > 0
 
     def test_default_value_is_stripped(self):
         """Document that the default value is stripped by merge_configs.
 
         LangGraph's merge_configs treats the default recursion_limit as
-        'no override' and strips it from the merged config. This is
-        intentional behavior to avoid storing redundant defaults.
+        'no override' and strips it from the merged config. This is why
+        we skip with_config entirely when unlimited (None) — rather than
+        passing DEFAULT_RECURSION_LIMIT which would get stripped.
         """
         from langgraph._internal._config import DEFAULT_RECURSION_LIMIT, merge_configs
 
@@ -361,16 +327,12 @@ class TestRecursionLimitMergeConfigs:
             {"configurable": {}},
             {"recursion_limit": DEFAULT_RECURSION_LIMIT},
         )
-        assert "recursion_limit" not in result, (
-            f"recursion_limit={DEFAULT_RECURSION_LIMIT} (the default) should be "
-            "stripped by merge_configs"
-        )
+        assert "recursion_limit" not in result
 
     def test_non_default_values_preserved(self):
         """Verify that non-default recursion_limit values are preserved."""
         from langgraph._internal._config import DEFAULT_RECURSION_LIMIT, merge_configs
 
-        # Test several values that are NOT the default
         for value in [50, 100, 500, 1000, 6000]:
             if value == DEFAULT_RECURSION_LIMIT:
                 continue

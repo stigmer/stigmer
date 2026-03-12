@@ -1388,12 +1388,12 @@ async def _execute_graphton_impl(
         # max_tool_rounds is the user-facing unit (model→tools cycles).
         # LangGraph's recursion_limit counts super-steps (~6 per round due to
         # middleware graph nodes: before_model, model, 3× after_model, tools).
-        # 0 = use platform default (graphton's 6000 super-steps).
+        # 0 = use platform default (None = unlimited; loop detection is safety).
         # Non-zero values are clamped to 10–1000 rounds (60–6000 super-steps).
         # ─────────────────────────────────────────────────────────────────────────────
         min_tool_rounds = 10
         max_tool_rounds = 1000
-        recursion_limit = None  # None = use graphton default (6000)
+        recursion_limit = None  # None = unlimited (loop detection is primary safety)
         if (execution.spec.HasField("execution_config")
                 and execution.spec.execution_config.max_tool_rounds > 0):
             requested_rounds = execution.spec.execution_config.max_tool_rounds
@@ -2348,8 +2348,8 @@ async def _execute_graphton_impl(
         # recursion_limit is NOT set here. It is applied at graph compilation
         # time via graphton's with_config({"recursion_limit": N}). The value
         # comes from ExecutionConfig.max_tool_rounds (converted above, ×6) or
-        # graphton's default of 6000.  LangGraph's merge_configs preserves
-        # non-default values, so the compiled limit survives config merging.
+        # None (unlimited).  When None, graphton skips the with_config call
+        # entirely.  LangGraph's merge_configs preserves non-default values.
         config = {
             "configurable": {
                 "thread_id": thread_id,
