@@ -140,6 +140,17 @@ func handleJSONEvent(enc *json.Encoder, cfg jsonRenderConfig, event executiontui
 		}
 		writeJSONEvent(enc, "todo_update", map[string]any{"todos": todos})
 
+	case executiontui.ContextCompactedEvent:
+		writeJSONEvent(enc, "context_compacted", map[string]any{
+			"source":            e.Source,
+			"tokens_before":     e.TokensBefore,
+			"tokens_after":      e.TokensAfter,
+			"compression_ratio": e.CompressionRatio,
+			"duration_ms":       e.DurationMs,
+			"messages_before":   e.MessagesBefore,
+			"messages_after":    e.MessagesAfter,
+		})
+
 	case executiontui.SubAgentStartedEvent:
 		writeJSONEvent(enc, "sub_agent_started", map[string]any{
 			"id":          e.ID,

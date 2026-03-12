@@ -355,8 +355,35 @@ type ExecutionConfig struct {
 	// Controls automatic summarization behavior for long-running conversations.
 	// When not specified, defaults are derived from the Model Registry.
 	ContextManagement *ContextManagementConfig `protobuf:"bytes,2,opt,name=context_management,json=contextManagement,proto3" json:"context_management,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Maximum number of model-to-tools reasoning cycles per message.
+	//
+	// Each "round" is one model call followed by tool execution — the atomic
+	// unit of agent progress.  Internally mapped to LangGraph's recursion_limit
+	// (approximately max_tool_rounds * 2 super-steps).
+	//
+	// ## Default Behavior
+	//
+	// 0 = use platform default (currently 50 rounds / 100 super-steps).
+	// This is 2x Cursor's 25-tool-call limit, generous enough for complex
+	// sub-agent workflows while preventing unbounded autonomous execution.
+	//
+	// ## Valid Range
+	//
+	// When set: 10–250 rounds.
+	// Values outside this range are clamped to the nearest bound with a
+	// warning log.  Sub-agent graphs have their own independent recursion
+	// limit (LangGraph default: 10,000) and are not affected by this field.
+	//
+	// ## User Experience
+	//
+	// When the agent reaches the limit, it receives a graceful wrap-up
+	// message at ~80% of the budget and a user-facing "send another message
+	// to continue" prompt at 100%.  This mirrors Cursor's "Continue" pattern.
+	//
+	// @since Recursion Limit Configurability (D1)
+	MaxToolRounds int32 `protobuf:"varint,3,opt,name=max_tool_rounds,json=maxToolRounds,proto3" json:"max_tool_rounds,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ExecutionConfig) Reset() {
@@ -401,6 +428,13 @@ func (x *ExecutionConfig) GetContextManagement() *ContextManagementConfig {
 		return x.ContextManagement
 	}
 	return nil
+}
+
+func (x *ExecutionConfig) GetMaxToolRounds() int32 {
+	if x != nil {
+		return x.MaxToolRounds
+	}
+	return 0
 }
 
 // ContextManagementConfig controls automatic context summarization behavior.
@@ -696,11 +730,12 @@ const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	" \x03(\tR\x11workspaceFileRefs\x1au\n" +
 	"\x0fRuntimeEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12L\n" +
-	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01\"\x9e\x01\n" +
+	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01\"\xc6\x01\n" +
 	"\x0fExecutionConfig\x12\x1d\n" +
 	"\n" +
 	"model_name\x18\x01 \x01(\tR\tmodelName\x12l\n" +
-	"\x12context_management\x18\x02 \x01(\v2=.ai.stigmer.agentic.agentexecution.v1.ContextManagementConfigR\x11contextManagement\"\xcc\x01\n" +
+	"\x12context_management\x18\x02 \x01(\v2=.ai.stigmer.agentic.agentexecution.v1.ContextManagementConfigR\x11contextManagement\x12&\n" +
+	"\x0fmax_tool_rounds\x18\x03 \x01(\x05R\rmaxToolRounds\"\xcc\x01\n" +
 	"\x17ContextManagementConfig\x123\n" +
 	"\x15disable_summarization\x18\x01 \x01(\bR\x14disableSummarization\x12A\n" +
 	"\x18custom_trigger_threshold\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x16customTriggerThreshold\x129\n" +

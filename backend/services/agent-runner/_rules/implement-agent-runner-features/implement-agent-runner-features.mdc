@@ -204,7 +204,7 @@ class AgentClient:
 **Patterns**:
 - Use `create_deep_agent()` from graphton package
 - Pass `sandbox_config` with `sandbox_id` to reuse existing sandbox
-- Set `recursion_limit=1000` for maximum autonomy
+- Use graphton's default recursion_limit (100) — do NOT override it
 - Graphton's loop detection prevents infinite loops
 - Stream events with `astream_events(version="v2")`
 
@@ -222,7 +222,6 @@ agent_graph = create_deep_agent(
         "type": "daytona",
         "sandbox_id": sandbox.id,  # Reuse existing sandbox
     },
-    recursion_limit=1000,
 )
 
 # Stream execution

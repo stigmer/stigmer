@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/charmbracelet/x/ansi"
 	"github.com/stretchr/testify/assert"
@@ -1192,4 +1193,39 @@ func TestCommitToScrollback_NoHintWithoutChannel(t *testing.T) {
 
 	assert.NotContains(t, buf.String(), "ctrl+o to expand",
 		"commitToScrollback should NOT include hint when toggleExpandCh is nil")
+}
+
+// =============================================================================
+// transferSubAgentEntries tests
+// =============================================================================
+
+func TestTransferSubAgentEntries_PreservesStartedAtAndToolCount(t *testing.T) {
+	var buf bytes.Buffer
+	r := &inlineRenderer{
+		cfg:             inlineRenderConfig{status: &buf},
+		activeSubAgents: make(map[string]*subAgentBlock),
+	}
+
+	past := time.Now().Add(-30 * time.Second)
+	r.activeSubAgents["sa-1"] = &subAgentBlock{
+		id:        "sa-1",
+		subject:   "Scan deps",
+		startedAt: past,
+		toolCount: 7,
+		status:    agentexecutionv1.SubAgentStatus_SUB_AGENT_IN_PROGRESS,
+	}
+
+	m := newInlineBubbleModel()
+	r.transferSubAgentEntries(&m)
+
+	if len(m.activeSubAgentEntries) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(m.activeSubAgentEntries))
+	}
+	e := m.activeSubAgentEntries[0]
+	assert.Equal(t, "sa-1", e.id)
+	assert.Equal(t, "Scan deps", e.subject)
+	assert.Equal(t, past, e.spinnerStart,
+		"spinnerStart should be preserved from block.startedAt, not reset to now")
+	assert.Equal(t, 7, e.toolCount,
+		"toolCount should be preserved from the block")
 }

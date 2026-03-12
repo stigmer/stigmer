@@ -198,15 +198,16 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 	defer close(cfg.events)
 
 	var (
-		displayedCount      int
-		inStream            bool
-		humanMessageEmitted bool
-		lastPhase           agentexecutionv1.ExecutionPhase
-		promptedIDs         = make(map[string]bool)
-		toolCallStates      = make(map[string]string)           // toolCallID -> last known status string
-		toolCallResults     = make(map[string]string)           // toolCallID -> last known result content (for streaming delta detection)
-		subAgentTrackers    = make(map[string]*subAgentTracker) // subAgentID -> per-sub-agent state
-		prevTodos           = make(map[string]todoFingerprint)  // todoID -> {content, status} for change detection
+		displayedCount         int
+		inStream               bool
+		humanMessageEmitted    bool
+		lastPhase              agentexecutionv1.ExecutionPhase
+		promptedIDs            = make(map[string]bool)
+		toolCallStates         = make(map[string]string)           // toolCallID -> last known status string
+		toolCallResults        = make(map[string]string)           // toolCallID -> last known result content (for streaming delta detection)
+		subAgentTrackers       = make(map[string]*subAgentTracker) // subAgentID -> per-sub-agent state
+		prevTodos              = make(map[string]todoFingerprint)  // todoID -> {content, status} for change detection
+		seenSummarizationCount int                                 // count-based tracking for compaction events
 	)
 
 	for {
@@ -319,6 +320,30 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 		// into the diff function for executions that never use todos.
 		if todos := execution.Status.GetTodos(); len(todos) > 0 || len(prevTodos) > 0 {
 			prevTodos = emitTodoEvents(cfg.events, todos, prevTodos)
+		}
+
+		// --- Step 1f: Context compaction events ---
+		//
+		// Detect new SummarizationEvent entries in ContextInfo using
+		// count-based tracking. Each new event is emitted as a
+		// ContextCompactedEvent so the TUI can render a notification.
+		if ci := execution.Status.GetContextInfo(); ci != nil {
+			events := ci.GetSummarizationEvents()
+			for i := seenSummarizationCount; i < len(events); i++ {
+				se := events[i]
+				if !trySendEvent(ctx, cfg.events, executiontui.ContextCompactedEvent{
+					Source:           mapSummarizationSource(se.Source),
+					TokensBefore:     se.TokensBefore,
+					TokensAfter:      se.TokensAfter,
+					CompressionRatio: se.CompressionRatio,
+					DurationMs:       se.DurationMs,
+					MessagesBefore:   se.MessagesBefore,
+					MessagesAfter:    se.MessagesAfter,
+				}) {
+					return
+				}
+			}
+			seenSummarizationCount = len(events)
 		}
 
 		// --- Step 2: Phase change events ---

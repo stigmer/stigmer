@@ -1512,6 +1512,12 @@ type SummarizationEvent struct {
 	// Number of messages in conversation after summarization.
 	// Typically reduced significantly as historical messages are collapsed.
 	MessagesAfter int32 `protobuf:"varint,8,opt,name=messages_after,json=messagesAfter,proto3" json:"messages_after,omitempty"`
+	// What triggered this summarization event.
+	//
+	// Enables the CLI to distinguish between:
+	// - graph_start: compaction at the beginning of a new invocation
+	// - mid_execution: compaction triggered by accumulated tool responses
+	Source        SummarizationSource `protobuf:"varint,9,opt,name=source,proto3,enum=ai.stigmer.agentic.agentexecution.v1.SummarizationSource" json:"source,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1600,6 +1606,13 @@ func (x *SummarizationEvent) GetMessagesAfter() int32 {
 		return x.MessagesAfter
 	}
 	return 0
+}
+
+func (x *SummarizationEvent) GetSource() SummarizationSource {
+	if x != nil {
+		return x.Source
+	}
+	return SummarizationSource_SUMMARIZATION_SOURCE_UNSPECIFIED
 }
 
 // ContextInfo provides visibility into context window utilization.
@@ -2312,7 +2325,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x19McpServerResolutionStatus\x12\x1a\n" +
 	"\bresolved\x18\x01 \x01(\bR\bresolved\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12,\n" +
-	"\x12enabled_tool_count\x18\x03 \x01(\x05R\x10enabledToolCount\"\xc9\x02\n" +
+	"\x12enabled_tool_count\x18\x03 \x01(\x05R\x10enabledToolCount\"\x9c\x03\n" +
 	"\x12SummarizationEvent\x12\x1c\n" +
 	"\ttimestamp\x18\x01 \x01(\tR\ttimestamp\x12#\n" +
 	"\rtokens_before\x18\x02 \x01(\x05R\ftokensBefore\x12!\n" +
@@ -2322,7 +2335,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"durationMs\x12/\n" +
 	"\x13summarization_model\x18\x06 \x01(\tR\x12summarizationModel\x12'\n" +
 	"\x0fmessages_before\x18\a \x01(\x05R\x0emessagesBefore\x12%\n" +
-	"\x0emessages_after\x18\b \x01(\x05R\rmessagesAfter\"\xca\x03\n" +
+	"\x0emessages_after\x18\b \x01(\x05R\rmessagesAfter\x12Q\n" +
+	"\x06source\x18\t \x01(\x0e29.ai.stigmer.agentic.agentexecution.v1.SummarizationSourceR\x06source\"\xca\x03\n" +
 	"\vContextInfo\x12.\n" +
 	"\x13current_token_count\x18\x01 \x01(\x05R\x11currentTokenCount\x120\n" +
 	"\x14context_window_limit\x18\x02 \x01(\x05R\x12contextWindowLimit\x12F\n" +
@@ -2407,7 +2421,8 @@ var file_ai_stigmer_agentic_agentexecution_v1_api_proto_goTypes = []any{
 	(*structpb.Struct)(nil),                 // 24: google.protobuf.Struct
 	(ToolCallStatus)(0),                     // 25: ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
 	(SubAgentStatus)(0),                     // 26: ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
-	(ExecutionArtifactKind)(0),              // 27: ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactKind
+	(SummarizationSource)(0),                // 27: ai.stigmer.agentic.agentexecution.v1.SummarizationSource
+	(ExecutionArtifactKind)(0),              // 28: ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactKind
 }
 var file_ai_stigmer_agentic_agentexecution_v1_api_proto_depIdxs = []int32{
 	18, // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecution.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
@@ -2440,16 +2455,17 @@ var file_ai_stigmer_agentic_agentexecution_v1_api_proto_depIdxs = []int32{
 	8,  // 27: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.usage:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageMetrics
 	14, // 28: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.pending_approvals:type_name -> ai.stigmer.agentic.agentexecution.v1.PendingApproval
 	17, // 29: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.mcp_servers:type_name -> ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntry
-	11, // 30: ai.stigmer.agentic.agentexecution.v1.ContextInfo.summarization_events:type_name -> ai.stigmer.agentic.agentexecution.v1.SummarizationEvent
-	27, // 31: ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact.kind:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactKind
-	14, // 32: ai.stigmer.agentic.agentexecution.v1.ChildApprovalNotification.pending_approvals:type_name -> ai.stigmer.agentic.agentexecution.v1.PendingApproval
-	3,  // 33: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoItem
-	10, // 34: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.McpServerResolutionStatus
-	35, // [35:35] is the sub-list for method output_type
-	35, // [35:35] is the sub-list for method input_type
-	35, // [35:35] is the sub-list for extension type_name
-	35, // [35:35] is the sub-list for extension extendee
-	0,  // [0:35] is the sub-list for field type_name
+	27, // 30: ai.stigmer.agentic.agentexecution.v1.SummarizationEvent.source:type_name -> ai.stigmer.agentic.agentexecution.v1.SummarizationSource
+	11, // 31: ai.stigmer.agentic.agentexecution.v1.ContextInfo.summarization_events:type_name -> ai.stigmer.agentic.agentexecution.v1.SummarizationEvent
+	28, // 32: ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact.kind:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactKind
+	14, // 33: ai.stigmer.agentic.agentexecution.v1.ChildApprovalNotification.pending_approvals:type_name -> ai.stigmer.agentic.agentexecution.v1.PendingApproval
+	3,  // 34: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoItem
+	10, // 35: ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.McpServersEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.McpServerResolutionStatus
+	36, // [36:36] is the sub-list for method output_type
+	36, // [36:36] is the sub-list for method input_type
+	36, // [36:36] is the sub-list for extension type_name
+	36, // [36:36] is the sub-list for extension extendee
+	0,  // [0:36] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_api_proto_init() }

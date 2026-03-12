@@ -264,6 +264,34 @@ message ExecutionConfig {
   // Controls automatic summarization behavior for long-running conversations.
   // When not specified, defaults are derived from the Model Registry.
   ContextManagementConfig context_management = 2;
+
+  // Maximum number of model-to-tools reasoning cycles per message.
+  //
+  // Each "round" is one model call followed by tool execution — the atomic
+  // unit of agent progress.  Internally mapped to LangGraph's recursion_limit
+  // (approximately max_tool_rounds * 2 super-steps).
+  //
+  // ## Default Behavior
+  //
+  // 0 = use platform default (currently 50 rounds / 100 super-steps).
+  // This is 2x Cursor's 25-tool-call limit, generous enough for complex
+  // sub-agent workflows while preventing unbounded autonomous execution.
+  //
+  // ## Valid Range
+  //
+  // When set: 10–250 rounds.
+  // Values outside this range are clamped to the nearest bound with a
+  // warning log.  Sub-agent graphs have their own independent recursion
+  // limit (LangGraph default: 10,000) and are not affected by this field.
+  //
+  // ## User Experience
+  //
+  // When the agent reaches the limit, it receives a graceful wrap-up
+  // message at ~80% of the budget and a user-facing "send another message
+  // to continue" prompt at 100%.  This mirrors Cursor's "Continue" pattern.
+  //
+  // @since Recursion Limit Configurability (D1)
+  int32 max_tool_rounds = 3;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

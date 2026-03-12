@@ -11,10 +11,8 @@ from worker.mcp.config_transformer import (
 )
 from worker.mcp.placeholder_resolver import (
     PlaceholderResolutionError,
-    PlaceholderResolutionResult,
     PlaceholderResolver,
     resolve_placeholders,
-    resolve_placeholders_strict,
 )
 
 __all__ = [
@@ -25,7 +23,5 @@ __all__ = [
     # Placeholder resolution
     "PlaceholderResolver",
     "PlaceholderResolutionError",
-    "PlaceholderResolutionResult",
     "resolve_placeholders",
-    "resolve_placeholders_strict",
 ]

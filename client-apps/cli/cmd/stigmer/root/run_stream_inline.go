@@ -56,8 +56,8 @@ func renderInline(ctx context.Context, cfg inlineRenderConfig) renderResult {
 		suppressedToolIDs:    make(map[string]bool),
 		activeSubAgents:      make(map[string]*subAgentBlock),
 		completedSubAgentIDs: make(map[string]bool),
-		thinkTimer:        thinkTimer,
-		history:           initialHistory,
+		thinkTimer:           thinkTimer,
+		history:              initialHistory,
 	}
 
 	if isNewSession {
@@ -439,6 +439,8 @@ func (r *inlineRenderer) handleEvent(ctx context.Context, event executiontui.Eve
 		r.renderToolWaitingApproval(e)
 	case executiontui.SystemMessageEvent:
 		r.renderSystemMessage(e)
+	case executiontui.ContextCompactedEvent:
+		r.renderContextCompacted(e)
 	case executiontui.PhaseChangeEvent:
 		r.renderPhaseChange(e)
 	case executiontui.ApprovalNeededEvent:

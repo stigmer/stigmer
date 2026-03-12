@@ -17,7 +17,6 @@ from uuid import uuid4
 
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
     AgentMessage,
-    ApprovalAction,
     ComponentMetadata,
     ContextInfo,
     ExecutionArtifact,
@@ -34,6 +33,7 @@ from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ExecutionPhase,
     MessageType,
     SubAgentStatus,
+    SummarizationSource,
     TodoStatus,
     ToolCallStatus,
 )
@@ -321,9 +321,6 @@ class StatusBuilder:
         # Track tool calls for deduplication
         self.tool_call_fingerprints: set = set()
         
-        # Namespace mapping for sub-agent tool call routing
-        self.namespace_mapping: dict[str, dict[str, str]] = {}
-        
         # Track AI message generation timing for duration calculation
         # Key: message index in messages list, Value: start timestamp
         self._message_start_times: dict[int, datetime] = {}
@@ -432,8 +429,9 @@ class StatusBuilder:
         # Context info initialized via initialize_context_info()
         self._context_info: ContextInfo | None = None
         
-        # Accumulated summarization events during this execution
-        self._summarization_events: list[SummarizationEvent] = []
+        # Context info is the single source of truth for summarization events.
+        # Events are appended directly to _context_info.summarization_events
+        # (once initialized) and synced to current_status via _sync_context_info().
         
         # ─────────────────────────────────────────────────────────────────────────
         # Run-ID Alias Map (Resume-After-Approval Fix)
@@ -2004,215 +2002,13 @@ class StatusBuilder:
     # ─────────────────────────────────────────────────────────────────────────────
     # Approval State Management (HITL Phase 2)
     #
-    # These methods manage the approval workflow state transitions:
-    # - set_tool_waiting_approval: Tool requires approval → WAITING_APPROVAL
-    # - set_tool_approval_decision: User decision → RUNNING/SKIPPED/FAILED
-    # - clear_pending_approval: Clear pending state and restore phase
+    # Approval-waiting state is set inline by _handle_tool_start_event() and
+    # _reconcile_early_tool_call() at ToolCall creation time.  Approval
+    # decisions are applied inline in execute_graphton.py's resume-after-
+    # approval flow.  The helper methods below manage the pending-approvals
+    # bookkeeping that both paths share.
     # ─────────────────────────────────────────────────────────────────────────────
-    
-    def set_tool_waiting_approval(
-        self,
-        run_id: str,
-        tool_name: str,
-        tool_args: dict[str, Any],
-        approval_message: str,
-        from_sub_agent: bool = False,
-        sub_agent_name: str = "",
-    ) -> None:
-        """
-        Set a tool call to WAITING_APPROVAL status and update execution phase.
-        
-        This method transitions a tool call to the waiting-for-approval state:
-        1. Updates the ToolCall status to WAITING_APPROVAL
-        2. Sets approval-related fields on the ToolCall
-        3. Populates pending_approval on AgentExecutionStatus for UI
-        4. Appends to _pending_tool_approvals list
-        5. Updates execution phase to WAITING_FOR_APPROVAL
-        
-        Multiple tool calls may be pending approval simultaneously when the LLM
-        issues several tool calls in one response that each require approval.
-        Each call to this method appends to the internal list; the post-stream
-        interrupt-capture logic in execute_graphton.py later reconciles these
-        with LangGraph interrupt IDs.
-        
-        Args:
-            run_id: The tool call's run_id (from LangGraph event)
-            tool_name: Name of the tool requiring approval
-            tool_args: Tool arguments dictionary (for args_preview)
-            approval_message: Human-readable message for the approval prompt
-            from_sub_agent: True if this approval bubbles up from a sub-agent
-            sub_agent_name: Name of the sub-agent (when from_sub_agent=True)
-        
-        Note:
-            The tool call must already exist in messages[].tool_calls[] or
-            tool_calls[]. If not found, this method logs a warning and returns.
-        """
-        now = datetime.utcnow()
-        timestamp = _utc_timestamp(now)
-        
-        # Find and update the tool call (handles dual-reference pattern)
-        tool_call = self._find_tool_call_by_id(run_id)
-        if tool_call is None:
-            self.logger.warning(
-                f"[APPROVAL] execution={self.execution_id} "
-                f"tool call {run_id} not found, cannot set waiting approval"
-            )
-            return
-        
-        # Update tool call status and approval fields
-        tool_call.status = ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
-        tool_call.requires_approval = True
-        tool_call.approval_message = approval_message
-        tool_call.approval_requested_at = timestamp
-        
-        # Create args preview (sanitized JSON for UI display)
-        args_preview = self._create_args_preview(tool_args)
-        
-        # Build a PendingApproval proto and append to the status immediately
-        # so that progressive gRPC updates include it.  The interrupt_id is
-        # left empty — the post-stream interrupt capture enriches it later.
-        pa = PendingApproval(
-            tool_call_id=run_id,
-            tool_name=tool_name,
-            message=approval_message,
-            args_preview=args_preview,
-            requested_at=timestamp,
-            from_sub_agent=from_sub_agent,
-            sub_agent_name=sub_agent_name,
-        )
-        self.current_status.pending_approvals.append(pa)
-        
-        # Save current phase (only on the FIRST pending approval) and
-        # transition to WAITING_FOR_APPROVAL
-        if self._saved_phase_before_approval is None:
-            self._saved_phase_before_approval = self.current_status.phase
-        self.current_status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
-        
-        # Track pending approval state
-        self._pending_tool_approvals.append(run_id)
-        
-        if from_sub_agent:
-            self.sync_sub_agent_pending_approvals()
-        
-        self.force_next_update = True
-        
-        context_info = f"sub_agent={sub_agent_name}" if from_sub_agent else "main_agent"
-        pending_count = len(self._pending_tool_approvals)
-        self.logger.info(
-            f"[APPROVAL] execution={self.execution_id} "
-            f"tool={tool_name} run_id={run_id} "
-            f"status=WAITING_APPROVAL context={context_info} "
-            f"pending_count={pending_count} "
-            f"pending_approvals_proto={len(self.current_status.pending_approvals)}"
-        )
-    
-    def set_tool_approval_decision(
-        self,
-        run_id: str,
-        action: ApprovalAction,
-        approved_by: str,
-    ) -> None:
-        """
-        Record approval decision on a tool call and update state accordingly.
-        
-        This method processes the user's approval decision:
-        - APPROVE: Marks tool ready to execute, clears this entry from pending
-        - SKIP: Sets tool to SKIPPED, clears this entry from pending
-        - REJECT: Sets execution to FAILED, clears all pending
-        
-        With batch approval, this method only clears the specific run_id from
-        the pending list. The execution phase remains WAITING_FOR_APPROVAL if
-        other tools still need decisions.  The graph is NOT resumed until ALL
-        pending approvals are resolved (handled by the Temporal workflow).
-        
-        Args:
-            run_id: The tool call's run_id
-            action: User's approval decision (ApprovalAction enum)
-            approved_by: User ID or identifier who made the decision
-        
-        Note:
-            For APPROVE, the caller is responsible for actually resuming tool
-            execution (e.g., via LangGraph interrupt/resume). This method only
-            updates the state to reflect the decision.
-        """
-        if run_id not in self._pending_tool_approvals:
-            self.logger.warning(
-                f"[APPROVAL] execution={self.execution_id} "
-                f"approval decision for {run_id} but not in pending list "
-                f"{self._pending_tool_approvals}"
-            )
-        
-        now = datetime.utcnow()
-        timestamp = _utc_timestamp(now)
-        
-        # Find the tool call
-        tool_call = self._find_tool_call_by_id(run_id)
-        if tool_call is None:
-            self.logger.warning(
-                f"[APPROVAL] execution={self.execution_id} "
-                f"tool call {run_id} not found, cannot record decision"
-            )
-            return
-        
-        # Record the decision on the tool call
-        tool_call.approval_action = action
-        tool_call.approval_decided_at = timestamp
-        tool_call.approved_by = approved_by
-        
-        # Process based on action
-        action_name = ApprovalAction.Name(action)
-        
-        if action == ApprovalAction.APPROVAL_ACTION_APPROVE:
-            # Tool is approved — it will transition to RUNNING when execution
-            # resumes. Keep status as WAITING_APPROVAL until actual execution.
-            # Remove this run_id from pending list.
-            self._remove_from_pending(run_id)
-            self.logger.info(
-                f"[APPROVAL] execution={self.execution_id} "
-                f"run_id={run_id} decision=APPROVE by={approved_by} "
-                f"remaining_pending={len(self._pending_tool_approvals)}"
-            )
-            
-        elif action == ApprovalAction.APPROVAL_ACTION_SKIP:
-            # Tool is skipped — set terminal status and skip message.
-            tool_call.status = ToolCallStatus.TOOL_CALL_SKIPPED
-            tool_call.result = f"Tool '{tool_call.name}' was skipped by user. Please proceed without this operation."
-            tool_call.completed_at = timestamp
-            
-            # Remove this run_id from pending list.
-            self._remove_from_pending(run_id)
-            self.logger.info(
-                f"[APPROVAL] execution={self.execution_id} "
-                f"run_id={run_id} decision=SKIP by={approved_by} "
-                f"remaining_pending={len(self._pending_tool_approvals)}"
-            )
-            
-        elif action == ApprovalAction.APPROVAL_ACTION_REJECT:
-            # Tool is rejected — non-terminal. The agent receives a corrective
-            # message and re-evaluates its approach, just like Skip but with
-            # stronger guidance. Execution continues.
-            tool_call.status = ToolCallStatus.TOOL_CALL_SKIPPED
-            tool_call.result = (
-                f"Tool '{tool_call.name}' was REJECTED by the user. "
-                "The user has explicitly indicated they do not want this operation. "
-                "Do NOT retry this exact operation. "
-                "Re-evaluate your approach and propose an alternative."
-            )
-            tool_call.completed_at = timestamp
-            
-            # Remove this run_id from pending list (restores phase when empty).
-            self._remove_from_pending(run_id)
-            self.logger.info(
-                f"[APPROVAL] execution={self.execution_id} "
-                f"run_id={run_id} decision=REJECT by={approved_by} "
-                f"remaining_pending={len(self._pending_tool_approvals)}"
-            )
-        else:
-            self.logger.warning(
-                f"[APPROVAL] execution={self.execution_id} "
-                f"run_id={run_id} unknown action={action_name}"
-            )
-    
+
     def _remove_from_pending(self, run_id: str) -> None:
         """Remove a single run_id from the pending approvals list.
 
@@ -2824,6 +2620,46 @@ class StatusBuilder:
 
         self.force_next_update = True
 
+    @property
+    def has_orphaned_sub_agents(self) -> bool:
+        """True when sub-agents remain active after the event stream ended."""
+        return bool(self._active_sub_agents)
+
+    def get_orphaned_sub_agents_diagnostic(self) -> dict:
+        """Return structured info about orphaned (still-active) sub-agents.
+
+        Useful for logging and error messages when the graph terminates
+        abnormally while sub-agents are in progress.
+
+        Returns:
+            Dict with ``total``, ``zero_message`` (spawned but never
+            executed), ``mid_execution`` (have messages/tool calls),
+            and per-sub-agent ``details``.
+        """
+        zero_message: list[dict] = []
+        mid_execution: list[dict] = []
+
+        for run_id, sub_agent in self._active_sub_agents.items():
+            has_activity = len(sub_agent.messages) > 0 or len(sub_agent.tool_calls) > 0
+            entry = {
+                "run_id": run_id,
+                "subject": sub_agent.subject,
+                "message_count": len(sub_agent.messages),
+                "tool_call_count": len(sub_agent.tool_calls),
+            }
+            if has_activity:
+                mid_execution.append(entry)
+            else:
+                zero_message.append(entry)
+
+        return {
+            "total": len(self._active_sub_agents),
+            "zero_message_count": len(zero_message),
+            "mid_execution_count": len(mid_execution),
+            "zero_message": zero_message,
+            "mid_execution": mid_execution,
+        }
+
     def finalize_active_sub_agents(self, status: SubAgentStatus, error: str) -> None:
         """Transition all active sub-agents to a terminal state.
 
@@ -2855,6 +2691,158 @@ class StatusBuilder:
             f"finalized {len(finalized_ids)} active sub-agent(s) "
             f"-> {SubAgentStatus.Name(status)}: {finalized_ids}"
         )
+
+    def finalize_active_sub_agents_differentiated(self, error_context: str) -> int:
+        """Transition active sub-agents using differentiated statuses.
+
+        Zero-message sub-agents (spawned but never executed) receive
+        ``SUB_AGENT_CANCELLED``; sub-agents with messages or tool calls
+        (mid-execution) receive ``SUB_AGENT_FAILED``.
+
+        Args:
+            error_context: High-level description of why termination occurred
+                (e.g. "Parent execution terminated abnormally").
+
+        Returns:
+            Number of sub-agents finalized.
+        """
+        if not self._active_sub_agents:
+            return 0
+
+        now = _utc_timestamp()
+        cancelled_ids: list[str] = []
+        failed_ids: list[str] = []
+
+        for run_id, sub_agent in list(self._active_sub_agents.items()):
+            has_activity = len(sub_agent.messages) > 0 or len(sub_agent.tool_calls) > 0
+            if has_activity:
+                sub_agent.status = SubAgentStatus.SUB_AGENT_FAILED
+                sub_agent.error = (
+                    f"{error_context}: sub-agent was running "
+                    f"({len(sub_agent.messages)} messages, "
+                    f"{len(sub_agent.tool_calls)} tool calls)"
+                )
+                failed_ids.append(run_id)
+            else:
+                sub_agent.status = SubAgentStatus.SUB_AGENT_CANCELLED
+                sub_agent.error = (
+                    f"{error_context}: sub-agent was spawned but never began execution"
+                )
+                cancelled_ids.append(run_id)
+
+            sub_agent.completed_at = now
+            self._completed_sub_agents[run_id] = sub_agent
+
+        total = len(self._active_sub_agents)
+        self._active_sub_agents.clear()
+
+        self.logger.info(
+            f"[SUBAGENT] execution={self.execution_id} "
+            f"finalized {total} orphaned sub-agent(s) — "
+            f"CANCELLED (zero-message): {cancelled_ids}, "
+            f"FAILED (mid-execution): {failed_ids}"
+        )
+        return total
+
+    def finalize_sub_agents_from_checkpoint_validation(
+        self,
+        missed_event_count: int,
+        confirmed_orphan_count: int,
+        error_context: str,
+    ) -> int:
+        """Finalize active sub-agents using checkpoint validation results.
+
+        Unlike ``finalize_active_sub_agents_differentiated`` which treats all
+        active sub-agents as failed/cancelled, this method leverages the
+        checkpoint's ground truth to give correct terminal statuses:
+
+        - When the checkpoint confirms ALL task tools completed but
+          StatusBuilder missed the events (``missed_event_count > 0``,
+          ``confirmed_orphan_count == 0``): marks all active sub-agents
+          as ``SUB_AGENT_COMPLETED``.
+        - When ALL active sub-agents are confirmed orphans
+          (``confirmed_orphan_count > 0``, ``missed_event_count == 0``):
+          differentiates as FAILED (mid-execution) or CANCELLED
+          (zero-message), same as ``finalize_active_sub_agents_differentiated``.
+        - Mixed case (both > 0): uses conservative differentiation
+          since we cannot determine which specific sub-agents completed
+          without ID-level mapping between checkpoint tool_call_ids and
+          StatusBuilder run_ids.
+
+        Args:
+            missed_event_count: Sub-agents that completed in the checkpoint
+                but StatusBuilder still considers active.
+            confirmed_orphan_count: Sub-agents incomplete in both checkpoint
+                and StatusBuilder.
+            error_context: High-level description for error messages.
+
+        Returns:
+            Number of sub-agents finalized.
+        """
+        if not self._active_sub_agents:
+            return 0
+
+        now = _utc_timestamp()
+        total = len(self._active_sub_agents)
+
+        if missed_event_count > 0 and confirmed_orphan_count == 0:
+            completed_ids: list[str] = []
+            for run_id, sub_agent in list(self._active_sub_agents.items()):
+                sub_agent.status = SubAgentStatus.SUB_AGENT_COMPLETED
+                sub_agent.completed_at = now
+                self._completed_sub_agents[run_id] = sub_agent
+                completed_ids.append(run_id)
+
+            self._active_sub_agents.clear()
+            self.logger.info(
+                f"[SUBAGENT] execution={self.execution_id} "
+                f"checkpoint confirms {total} sub-agent(s) completed "
+                f"(StatusBuilder missed on_tool_end events): "
+                f"{completed_ids}"
+            )
+        else:
+            cancelled_ids: list[str] = []
+            failed_ids: list[str] = []
+
+            for run_id, sub_agent in list(self._active_sub_agents.items()):
+                has_activity = (
+                    len(sub_agent.messages) > 0
+                    or len(sub_agent.tool_calls) > 0
+                )
+                if has_activity:
+                    sub_agent.status = SubAgentStatus.SUB_AGENT_FAILED
+                    sub_agent.error = (
+                        f"{error_context}: sub-agent was running "
+                        f"({len(sub_agent.messages)} messages, "
+                        f"{len(sub_agent.tool_calls)} tool calls)"
+                    )
+                    failed_ids.append(run_id)
+                else:
+                    sub_agent.status = SubAgentStatus.SUB_AGENT_CANCELLED
+                    sub_agent.error = (
+                        f"{error_context}: sub-agent was spawned but "
+                        f"never began execution"
+                    )
+                    cancelled_ids.append(run_id)
+
+                sub_agent.completed_at = now
+                self._completed_sub_agents[run_id] = sub_agent
+
+            self._active_sub_agents.clear()
+
+            qualifier = (
+                "confirmed orphaned"
+                if missed_event_count == 0
+                else "mixed (some may have completed per checkpoint)"
+            )
+            self.logger.info(
+                f"[SUBAGENT] execution={self.execution_id} "
+                f"finalized {total} {qualifier} sub-agent(s) — "
+                f"CANCELLED (zero-message): {cancelled_ids}, "
+                f"FAILED (mid-execution): {failed_ids}"
+            )
+
+        return total
 
     # ─────────────────────────────────────────────────────────────────────────────
     # Usage Metrics Builders (Phase 2.4)
@@ -3028,8 +3016,9 @@ class StatusBuilder:
         """
         Callback from SummarizationMiddleware when summarization completes.
         
-        Records the summarization event and updates context info.
-        This is part of the SummarizationCallback protocol.
+        Records the summarization event, syncs context info to the status
+        proto for immediate gRPC delivery, and sets force_next_update so
+        the event loop pushes the update without waiting for the scheduler.
         
         Args:
             event: Immutable data object containing summarization metrics.
@@ -3041,7 +3030,11 @@ class StatusBuilder:
             )
             return
         
-        # Create proto event
+        try:
+            proto_source = SummarizationSource.Value(event.source)
+        except ValueError:
+            proto_source = SummarizationSource.SUMMARIZATION_SOURCE_UNSPECIFIED
+
         timestamp = _utc_timestamp()
         proto_event = SummarizationEvent(
             timestamp=timestamp,
@@ -3052,17 +3045,18 @@ class StatusBuilder:
             summarization_model=event.summarization_model,
             messages_before=event.messages_before,
             messages_after=event.messages_after,
+            source=proto_source,  # type: ignore[arg-type]
         )
-        self._summarization_events.append(proto_event)
+        self._context_info.summarization_events.append(proto_event)
         
-        # Update context info with new token count
         self._context_info.current_token_count = event.tokens_after
         self._update_utilization()
+        self._sync_context_info()
+        self.force_next_update = True
         
-        # Structured logging
         self.logger.info(
             f"[CONTEXT] execution={self.execution_id} "
-            f"summarization completed: "
+            f"summarization completed (source={event.source}): "
             f"{event.tokens_before} -> {event.tokens_after} tokens "
             f"({event.compression_ratio * 100:.1f}% reduction), "
             f"duration={event.duration_ms}ms, "
@@ -3106,6 +3100,15 @@ class StatusBuilder:
         else:
             self._context_info.utilization_percent = 0.0
     
+    def _sync_context_info(self) -> None:
+        """Copy the working ``_context_info`` to ``current_status``.
+
+        Safe to call at any time — ``_context_info.summarization_events``
+        is the single source of truth, so repeated calls never duplicate.
+        """
+        if self._context_info is not None:
+            self.current_status.context_info.CopyFrom(self._context_info)
+
     def finalize_context_info(self) -> None:
         """
         Finalize context info and copy to status proto.
@@ -3114,15 +3117,11 @@ class StatusBuilder:
         summarization events, and execution outputs to the status proto.
         """
         if self._context_info is not None:
-            # Copy summarization events to context info
-            for event in self._summarization_events:
-                self._context_info.summarization_events.append(event)
+            self._sync_context_info()
             
-            # Copy context info to status proto
-            self.current_status.context_info.CopyFrom(self._context_info)
-            
-            # Summary log
-            summarization_count = len(self._summarization_events)
+            summarization_count = len(
+                self._context_info.summarization_events,
+            )
             self.logger.info(
                 f"[CONTEXT] execution={self.execution_id} "
                 f"context_info finalized: "
@@ -3167,11 +3166,3 @@ class StatusBuilder:
             f"path={artifact.sandbox_path}"
         )
     
-    def get_artifacts(self) -> list[ExecutionArtifact]:
-        """
-        Get the current list of artifacts.
-        
-        Returns:
-            List of ExecutionArtifact protos published during this execution.
-        """
-        return list(self._artifacts)

@@ -43,6 +43,8 @@ func displayAgentPhaseChange(phase, previousPhase agentexecutionv1.ExecutionPhas
 		climsg.Success("Execution completed")
 	case agentexecutionv1.ExecutionPhase_EXECUTION_FAILED:
 		climsg.Error("Execution failed")
+	case agentexecutionv1.ExecutionPhase_EXECUTION_TERMINATED:
+		climsg.Warning("Execution stopped")
 	case agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED:
 		climsg.Warning("Execution cancelled")
 	case agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL:

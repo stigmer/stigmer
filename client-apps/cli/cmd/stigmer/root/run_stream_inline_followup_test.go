@@ -32,6 +32,12 @@ func TestIsFollowUpEligible_Failed(t *testing.T) {
 	}
 }
 
+func TestIsFollowUpEligible_Terminated(t *testing.T) {
+	if !isFollowUpEligible("terminated", "") {
+		t.Error("expected eligible for terminated phase (checkpoint valid, user can continue)")
+	}
+}
+
 func TestIsFollowUpEligible_Cancelled(t *testing.T) {
 	if isFollowUpEligible("cancelled", "") {
 		t.Error("expected not eligible for cancelled phase")
@@ -51,7 +57,7 @@ func TestIsFollowUpEligible_EmptyPhase(t *testing.T) {
 }
 
 func TestIsFollowUpEligible_OtherPhases(t *testing.T) {
-	phases := []string{"pending", "in_progress", "waiting_for_approval", "terminated", "unknown"}
+	phases := []string{"pending", "in_progress", "waiting_for_approval", "unknown"}
 	for _, p := range phases {
 		if isFollowUpEligible(p, "") {
 			t.Errorf("expected not eligible for phase=%q", p)

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/charmbracelet/x/ansi"
 
@@ -209,6 +210,46 @@ func TestInlineRenderer_SystemMessage_GoesToStderr(t *testing.T) {
 
 	if !strings.Contains(stderr.String(), "system info") {
 		t.Errorf("system message should appear on stderr, got: %q", stderr.String())
+	}
+}
+
+func TestInlineRenderer_ContextCompacted_GoesToStderr(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 10)
+
+	go feedEvents(events,
+		executiontui.ContextCompactedEvent{
+			Source:           "mid_execution",
+			TokensBefore:     185000,
+			TokensAfter:      80000,
+			CompressionRatio: 0.57,
+			DurationMs:       2500,
+			MessagesBefore:   50,
+			MessagesAfter:    10,
+		},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	renderInline(context.Background(), inlineRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		prompter:          approval.NewInteractivePrompter(),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	output := stderr.String()
+	if !strings.Contains(output, "Context compacted") {
+		t.Errorf("compaction notification should appear on stderr, got: %q", output)
+	}
+	if !strings.Contains(output, "185K") {
+		t.Errorf("expected tokens_before in K format, got: %q", output)
+	}
+	if !strings.Contains(output, "80K") {
+		t.Errorf("expected tokens_after in K format, got: %q", output)
+	}
+	if !strings.Contains(output, "57%") {
+		t.Errorf("expected compression percentage, got: %q", output)
 	}
 }
 
@@ -1487,14 +1528,17 @@ func TestInlineRenderer_AIStreamEnd_RecoveryAfterInterruption(t *testing.T) {
 // display entries from the renderer's activeSubAgents map. This is the
 // core mechanism that keeps sub-agent spinners visible across re-commits.
 func TestTransferSubAgentEntries(t *testing.T) {
+	startedAt1 := time.Now().Add(-20 * time.Second)
+	startedAt2 := time.Now().Add(-10 * time.Second)
+
 	r := &inlineRenderer{
 		activeSubAgents: map[string]*subAgentBlock{
-			"sa-1": {id: "sa-1", subject: "Scan dependencies", toolCount: 5},
-			"sa-2": {id: "sa-2", subject: "Fix auth tests", toolCount: 12},
+			"sa-1": {id: "sa-1", subject: "Scan dependencies", toolCount: 5, startedAt: startedAt1},
+			"sa-2": {id: "sa-2", subject: "Fix auth tests", toolCount: 12, startedAt: startedAt2},
 		},
 	}
 
-	m := &inlineBubbleModel{}
+	m := &inlineBubbleModel{subAgentSpinnerFrame: 7}
 	r.transferSubAgentEntries(m)
 
 	if len(m.activeSubAgentEntries) != 2 {
@@ -1512,8 +1556,11 @@ func TestTransferSubAgentEntries(t *testing.T) {
 		if e.subject != "Scan dependencies" {
 			t.Errorf("sa-1 subject = %q, want %q", e.subject, "Scan dependencies")
 		}
-		if e.spinnerStart.IsZero() {
-			t.Error("sa-1 spinnerStart should be set")
+		if e.spinnerStart != startedAt1 {
+			t.Error("sa-1 spinnerStart should be preserved from block.startedAt")
+		}
+		if e.toolCount != 5 {
+			t.Errorf("sa-1 toolCount = %d, want 5", e.toolCount)
 		}
 	}
 
@@ -1523,10 +1570,13 @@ func TestTransferSubAgentEntries(t *testing.T) {
 		if e.subject != "Fix auth tests" {
 			t.Errorf("sa-2 subject = %q, want %q", e.subject, "Fix auth tests")
 		}
+		if e.toolCount != 12 {
+			t.Errorf("sa-2 toolCount = %d, want 12", e.toolCount)
+		}
 	}
 
-	if m.subAgentSpinnerFrame != 0 {
-		t.Errorf("spinnerFrame should be reset to 0, got %d", m.subAgentSpinnerFrame)
+	if m.subAgentSpinnerFrame != 7 {
+		t.Errorf("spinnerFrame should be preserved, got %d", m.subAgentSpinnerFrame)
 	}
 }
 

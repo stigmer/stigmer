@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/approval"
@@ -71,12 +72,26 @@ func (r *inlineRenderer) renderSystemMessage(e executiontui.SystemMessageEvent) 
 	})
 }
 
+func (r *inlineRenderer) renderContextCompacted(e executiontui.ContextCompactedEvent) {
+	reductionPct := e.CompressionRatio * 100
+	text := fmt.Sprintf(
+		"Context compacted: %dK → %dK tokens (%.0f%% reduction)",
+		e.TokensBefore/1000, e.TokensAfter/1000, reductionPct,
+	)
+	r.commitToScrollback(committedItem{
+		kind: kindSystemMessage,
+		text: systemMsgStyle.Render(text),
+	})
+}
+
 func (r *inlineRenderer) renderPhaseChange(e executiontui.PhaseChangeEvent) {
 	r.phase = e.Phase
 	var text string
 	switch e.Phase {
 	case "failed":
 		text = "Execution failed"
+	case "terminated":
+		text = "Execution stopped"
 	case "cancelled":
 		text = "Execution cancelled"
 	default:
@@ -143,11 +158,12 @@ func (r *inlineRenderer) renderTodoUpdate(e executiontui.TodoUpdateEvent) {
 
 func (r *inlineRenderer) renderSubAgentStarted(e executiontui.SubAgentStartedEvent) {
 	block := &subAgentBlock{
-		id:      e.ID,
-		name:    e.Name,
-		subject: e.Description,
-		input:   e.Input,
-		status:  agentexecutionv1.SubAgentStatus_SUB_AGENT_IN_PROGRESS,
+		id:        e.ID,
+		name:      e.Name,
+		subject:   e.Description,
+		input:     e.Input,
+		startedAt: time.Now(),
+		status:    agentexecutionv1.SubAgentStatus_SUB_AGENT_IN_PROGRESS,
 	}
 	r.activeSubAgents[e.ID] = block
 
@@ -186,8 +202,8 @@ func (r *inlineRenderer) renderSubAgentCompleted(e executiontui.SubAgentComplete
 
 	if r.cfg.program != nil {
 		// Pre-render scrollback text with gap logic so the Bubbletea
-		// model can remove the live entry and commit to scrollback in
-		// a single Update() call (atomic transition, no flicker).
+		// model can show a brief completion indicator before committing
+		// to scrollback via the staged dismissal path.
 		text := renderCommittedItem(item, r.compactOpts, r.expandMode, r.expandHintEnabled())
 		r.history = append(r.history, item)
 
@@ -205,13 +221,36 @@ func (r *inlineRenderer) renderSubAgentCompleted(e executiontui.SubAgentComplete
 		}
 		r.lastScrollbackKind = item.kind
 
+		subject := toolrender.Truncate(toolrender.FirstLine(block.subject), 80)
+		displayLine := formatSubAgentCompletionLine(subject, block.status, block.toolCount)
+
 		r.cfg.program.Send(subAgentCompleteMsg{
 			id:              e.ID,
+			displayLine:     displayLine,
 			scrollbackLines: scrollback,
 		})
 	} else {
 		r.commitToScrollback(item)
 	}
+}
+
+// formatSubAgentCompletionLine builds the pre-styled single-line summary
+// shown in the live View() during the completion visible window. Uses the
+// same visual language as the scrollback collapsed rendering so the
+// transition from live indicator to scrollback is seamless.
+func formatSubAgentCompletionLine(subject string, status agentexecutionv1.SubAgentStatus, toolCount int) string {
+	header := fmt.Sprintf("%s %s: %s",
+		toolrender.BulletGreen("●"), toolrender.LabelBold("Sub-agent"), subject)
+	var suffix string
+	switch status {
+	case agentexecutionv1.SubAgentStatus_SUB_AGENT_FAILED:
+		suffix = fmt.Sprintf("✗ Failed (%d tools)", toolCount)
+	case agentexecutionv1.SubAgentStatus_SUB_AGENT_CANCELLED:
+		suffix = fmt.Sprintf("⊘ Cancelled (%d tools)", toolCount)
+	default:
+		suffix = fmt.Sprintf("✓ Done (%d tools)", toolCount)
+	}
+	return header + " " + suffix
 }
 
 // ---------------------------------------------------------------------------
@@ -277,6 +316,9 @@ func (r *inlineRenderer) flushPendingReads() {
 	if block, ok := r.activeSubAgents[subAgentID]; ok && subAgentID != "" {
 		block.children = append(block.children, item)
 		block.toolCount += len(tcs)
+		if r.cfg.program != nil {
+			r.cfg.program.Send(subAgentToolCountMsg{id: subAgentID, count: block.toolCount})
+		}
 	} else {
 		r.commitToScrollback(item)
 	}
@@ -289,8 +331,8 @@ func (r *inlineRenderer) flushPendingReads() {
 
 // appendToSubAgentBlock adds a committed item to the active sub-agent block's
 // children and increments the tool count when the item represents a tool
-// completion. The tool count is tracked on the block for the scrollback
-// summary but is not pushed to the live Bubbletea view.
+// completion. The updated count is pushed to the live Bubbletea view via
+// subAgentToolCountMsg so the user sees progress while the sub-agent runs.
 func (r *inlineRenderer) appendToSubAgentBlock(subAgentID string, item committedItem, isTool bool) {
 	block, ok := r.activeSubAgents[subAgentID]
 	if !ok {
@@ -299,6 +341,9 @@ func (r *inlineRenderer) appendToSubAgentBlock(subAgentID string, item committed
 	block.children = append(block.children, item)
 	if isTool {
 		block.toolCount++
+		if r.cfg.program != nil {
+			r.cfg.program.Send(subAgentToolCountMsg{id: subAgentID, count: block.toolCount})
+		}
 	}
 }
 

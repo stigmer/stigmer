@@ -41,13 +41,22 @@ Example with callback:
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 import time
+from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any
 
-from langchain.agents.middleware.types import AgentMiddleware, AgentState
-from langchain_core.messages import BaseMessage, SystemMessage
+from langchain.agents.middleware.types import (
+    AgentMiddleware,
+    AgentState,
+    ModelRequest,
+    ModelResponse,
+)
+from langchain_core.messages import BaseMessage, SystemMessage, ToolMessage
+from langgraph.prebuilt.tool_node import ToolCallRequest
 from langgraph.runtime import Runtime
+from langgraph.types import Command
 
 from graphton.core.message_utils import (
     create_summary_system_message,
@@ -57,6 +66,8 @@ from graphton.core.message_utils import (
     serialize_running_summary,
 )
 from graphton.core.summarization_callback import (
+    SOURCE_GRAPH_START,
+    SOURCE_MID_EXECUTION,
     SummarizationCallback,
     SummarizationEventData,
 )
@@ -75,30 +86,42 @@ RUNNING_SUMMARY_STATE_KEY = "_context_running_summary"
 
 
 class ContextSummarizationMiddleware(AgentMiddleware):
-    """Middleware for automatic context summarization.
+    """Middleware for automatic context window management.
     
-    This middleware monitors the token count of the conversation and triggers
-    summarization when it exceeds the configured threshold. It follows the
-    same lifecycle pattern as LoopDetectionMiddleware:
+    Implements a two-layer context management strategy inspired by Claude Code:
     
-    - abefore_agent: Check token count, summarize if needed
-    - aafter_step: (Not used currently, reserved for mid-execution summarization)
-    - aafter_agent: Store updated running_summary in state
+    **Layer A -- Auto-compaction** (``awrap_model_call``):
+        Before each model call, counts tokens in the request. When the token
+        count exceeds ``trigger_threshold``, performs LLM-based summarization
+        via LangMem and passes a compacted request to the model. The agent
+        keeps working with a condensed view of the conversation; the raw
+        graph state is untouched (preserving audit/debug capability).
     
-    The middleware uses LangMem's summarize_messages() function with a
-    running summary to avoid re-summarizing already summarized content.
+    **Layer B -- Emergency brake** (``aafter_model`` + ``awrap_tool_call``):
+        Safety net that fires *only* when auto-compaction fails. If compaction
+        raised an exception AND the state token count exceeds
+        ``overflow_threshold`` (95% of context window), injects a warning
+        SystemMessage and blocks subsequent tool execution to prevent the
+        model from receiving a prompt that would exceed the API limit.
+    
+    **Graph-start summarization** (``abefore_agent``):
+        Handles persistent-state-level summarization between graph invocations
+        (for checkpointing). Complementary to ``awrap_model_call`` which only
+        modifies the transient model request.
     
     Note:
-        This class is named ContextSummarizationMiddleware (not SummarizationMiddleware)
-        to avoid name collision with DeepAgents' auto-injected SummarizationMiddleware.
-        Both can coexist in the middleware stack without conflict.
+        This class is named ContextSummarizationMiddleware (not
+        SummarizationMiddleware) to avoid name collision with DeepAgents'
+        auto-injected SummarizationMiddleware.
     
     Attributes:
-        config: SummarizationConfig with thresholds and model settings
-        callback: Optional callback for reporting summarization events
-        _running_summary: LangMem RunningSummary object (persisted in state), or None
-        _summarization_count: Number of times summarization was triggered
-        _last_summarization_time: Timestamp of last summarization
+        config: SummarizationConfig with thresholds and model settings.
+        _callback: Optional callback for reporting summarization events.
+        _running_summary: LangMem RunningSummary, persisted in state.
+        _summarization_count: Graph-start summarizations triggered.
+        _compactions_performed: Mid-execution compactions via awrap_model_call.
+        _compaction_failed: True when the latest compaction attempt raised.
+        _overflow_imminent: True when emergency brake should block tools.
     
     Example:
         >>> from graphton.core.summarization_config import SummarizationConfig
@@ -107,18 +130,6 @@ class ContextSummarizationMiddleware(AgentMiddleware):
         >>> middleware = ContextSummarizationMiddleware(config=config)
         >>> 
         >>> # Middleware is added to middleware_list in create_deep_agent()
-    
-    Example with callback:
-        >>> class StatusBuilder:
-        ...     def on_summarization_complete(self, event):
-        ...         self._events.append(event)
-        ...     def on_token_count_updated(self, count):
-        ...         self._token_count = count
-        >>>
-        >>> middleware = ContextSummarizationMiddleware(
-        ...     config=config,
-        ...     callback=StatusBuilder(),
-        ... )
     
     """
     
@@ -140,18 +151,27 @@ class ContextSummarizationMiddleware(AgentMiddleware):
         self.config = config
         self._callback = callback
         
-        # Per-invocation state
+        # Per-invocation state (reset in abefore_agent)
         self._running_summary: RunningSummary | None = None
         self._summarization_count: int = 0
         self._last_summarization_time: float | None = None
         self._current_token_count: int = 0
         
+        # Mid-execution compaction state (reset in abefore_agent)
+        self._compaction_failed: bool = False
+        self._compactions_performed: int = 0
+        self._overflow_imminent: bool = False
+        self._mid_execution_warning_issued: bool = False
+        
         logger.info(
-            "ContextSummarizationMiddleware initialized: enabled=%s, trigger=%d, "
-            "target=%d, model='%s', callback=%s",
+            "ContextSummarizationMiddleware initialized: enabled=%s, "
+            "context_window=%d, trigger=%d, target=%d, overflow=%d, "
+            "model='%s', callback=%s",
             config.enabled,
+            config.context_window_tokens,
             config.trigger_threshold,
             config.target_tokens,
+            config.overflow_threshold,
             config.summarization_model,
             "present" if callback is not None else "none",
         )
@@ -164,11 +184,11 @@ class ContextSummarizationMiddleware(AgentMiddleware):
         """Check token count and summarize if needed before agent execution.
         
         This is called at the start of each agent invocation. It:
-        1. Loads any existing running_summary from state
-        2. Counts current tokens in the conversation
-        3. Reports token count via callback (if configured)
-        4. If over threshold, triggers summarization
-        5. Reports summarization event via callback (if configured)
+        1. Resets per-invocation tracking state
+        2. Loads any existing running_summary from state
+        3. Counts current tokens in the conversation
+        4. Reports token count via callback (if configured)
+        5. If over threshold, triggers graph-start summarization
         6. Injects summary into messages if summarization occurred
         
         Args:
@@ -182,6 +202,12 @@ class ContextSummarizationMiddleware(AgentMiddleware):
         if not self.config.enabled:
             logger.debug("Summarization disabled, skipping")
             return None
+        
+        # Reset per-invocation state
+        self._compaction_failed = False
+        self._compactions_performed = 0
+        self._overflow_imminent = False
+        self._mid_execution_warning_issued = False
         
         # Load running summary from state if available
         self._load_running_summary_from_state(state)
@@ -269,9 +295,9 @@ class ContextSummarizationMiddleware(AgentMiddleware):
                         summarization_model=self.config.summarization_model,
                         messages_before=messages_before,
                         messages_after=len(summarized_messages),
+                        source=SOURCE_GRAPH_START,
                     )
                     self._callback.on_summarization_complete(event)
-                    # Also report the updated token count
                     self._callback.on_token_count_updated(new_token_count)
                 except Exception as e:
                     logger.warning(
@@ -300,27 +326,205 @@ class ContextSummarizationMiddleware(AgentMiddleware):
             )
             return None
     
-    async def aafter_step(
+    # ------------------------------------------------------------------
+    # Layer A: awrap_model_call -- Mid-execution compaction
+    # ------------------------------------------------------------------
+
+    async def awrap_model_call(
+        self,
+        request: ModelRequest,
+        handler: Callable[[ModelRequest], Awaitable[ModelResponse]],
+    ) -> ModelResponse:
+        """Compact the model's input when context grows too large.
+        
+        Before each model call, counts tokens in ``request.messages``.
+        When the count exceeds ``trigger_threshold``, performs LLM-based
+        summarization via LangMem, creates a compacted request via
+        ``dataclasses.replace()``, and passes it to the handler so the
+        model sees a manageable context.
+        
+        If summarization fails, the original request is forwarded
+        unchanged and ``_compaction_failed`` is set so the emergency
+        brake (Layer B) can activate.
+        """
+        if not self.config.enabled:
+            return await handler(request)
+
+        messages = list(request.messages)
+        token_count = TokenCounter.count_messages(
+            messages, self.config.token_counter_method,
+        )
+        self._current_token_count = token_count
+
+        if self._callback is not None:
+            try:
+                self._callback.on_token_count_updated(token_count)
+            except Exception as e:
+                logger.warning(
+                    "Callback on_token_count_updated failed (%s): %s",
+                    type(e).__name__, e, exc_info=True,
+                )
+
+        if token_count < self.config.trigger_threshold:
+            self._compaction_failed = False
+            return await handler(request)
+
+        logger.info(
+            "awrap_model_call: token count %d >= trigger %d, compacting",
+            token_count, self.config.trigger_threshold,
+        )
+
+        try:
+            tokens_before = token_count
+            start_time = time.time()
+
+            compacted_messages = await self._perform_summarization(messages)
+
+            new_token_count = TokenCounter.count_messages(
+                compacted_messages, self.config.token_counter_method,
+            )
+            compression_ratio = (
+                1 - (new_token_count / tokens_before) if tokens_before > 0 else 0.0
+            )
+            duration_ms = int((time.time() - start_time) * 1000)
+
+            self._compactions_performed += 1
+            self._compaction_failed = False
+            self._current_token_count = new_token_count
+
+            logger.info(
+                "awrap_model_call: compacted %d -> %d tokens (%.1f%% reduction) in %dms",
+                tokens_before, new_token_count, compression_ratio * 100, duration_ms,
+            )
+
+            if self._callback is not None:
+                try:
+                    event = SummarizationEventData(
+                        tokens_before=tokens_before,
+                        tokens_after=new_token_count,
+                        compression_ratio=compression_ratio,
+                        duration_ms=duration_ms,
+                        summarization_model=self.config.summarization_model,
+                        messages_before=len(messages),
+                        messages_after=len(compacted_messages),
+                        source=SOURCE_MID_EXECUTION,
+                    )
+                    self._callback.on_summarization_complete(event)
+                    self._callback.on_token_count_updated(new_token_count)
+                except Exception as e:
+                    logger.warning(
+                        "Callback failed after compaction (%s): %s",
+                        type(e).__name__, e, exc_info=True,
+                    )
+
+            new_request = dataclasses.replace(request, messages=compacted_messages)
+            return await handler(new_request)
+
+        except Exception as e:
+            logger.error(
+                "awrap_model_call: compaction failed (%s): %s — "
+                "forwarding original request",
+                type(e).__name__, e, exc_info=True,
+            )
+            self._compaction_failed = True
+            return await handler(request)
+
+    # ------------------------------------------------------------------
+    # Layer B: aafter_model -- Monitoring + emergency warning
+    # ------------------------------------------------------------------
+
+    async def aafter_model(
         self,
         state: AgentState[Any],
         runtime: Runtime[None] | dict[str, Any],
     ) -> dict[str, Any] | None:
-        """Called after each agent step.
+        """Monitor token count and inject emergency warning when compaction fails.
         
-        Currently not used, but reserved for potential mid-execution
-        summarization in future versions.
+        After each model response, counts tokens in the full graph state
+        and reports them via the callback. If ``_compaction_failed`` is
+        True and the state token count exceeds ``overflow_threshold``,
+        injects a warning SystemMessage and sets ``_overflow_imminent``
+        so that ``awrap_tool_call`` blocks execution.
         
-        Args:
-            state: Current agent state
-            runtime: Runtime context
-        
-        Returns:
-            None (no modifications)
-        
+        During normal operation (compaction succeeds), this hook only
+        reports the token count and returns ``None``.
         """
-        # Reserved for future mid-execution summarization
+        if not self.config.enabled:
+            return None
+
+        messages = state.get("messages", [])
+        if not messages:
+            return None
+
+        state_token_count = TokenCounter.count_messages(
+            messages, self.config.token_counter_method,
+        )
+
+        if self._callback is not None:
+            try:
+                self._callback.on_token_count_updated(state_token_count)
+            except Exception as e:
+                logger.warning(
+                    "Callback on_token_count_updated failed (%s): %s",
+                    type(e).__name__, e, exc_info=True,
+                )
+
+        if (
+            self._compaction_failed
+            and self.config.overflow_threshold > 0
+            and state_token_count >= self.config.overflow_threshold
+        ):
+            logger.warning(
+                "aafter_model: compaction failed AND state tokens %d >= overflow %d — "
+                "injecting emergency warning",
+                state_token_count, self.config.overflow_threshold,
+            )
+            self._overflow_imminent = True
+            self._mid_execution_warning_issued = True
+            warning = self._create_context_warning_message(state_token_count)
+            return {"messages": [warning]}
+
         return None
-    
+
+    # ------------------------------------------------------------------
+    # Layer B: awrap_tool_call -- Emergency brake
+    # ------------------------------------------------------------------
+
+    async def awrap_tool_call(
+        self,
+        request: ToolCallRequest,
+        handler: Callable[[ToolCallRequest], Awaitable[ToolMessage | Command]],
+    ) -> ToolMessage | Command:
+        """Block tool execution when context overflow is imminent.
+        
+        When ``_overflow_imminent`` is True (set by ``aafter_model``
+        after compaction failure + critical token count), returns a
+        ToolMessage without invoking the actual tool, preventing
+        further context growth.
+        """
+        if self._overflow_imminent:
+            tool_call = request.tool_call
+            logger.info(
+                "awrap_tool_call: blocking '%s' (id=%s) — overflow imminent",
+                tool_call.get("name", "unknown"),
+                tool_call.get("id", "?"),
+            )
+            return ToolMessage(
+                content=(
+                    "[Context limit reached: tool execution blocked to prevent "
+                    "context overflow. Context compaction was unable to reduce "
+                    "token count. Conclude your work with the information you have.]"
+                ),
+                tool_call_id=tool_call["id"],
+                name=tool_call.get("name", "unknown"),
+            )
+
+        return await handler(request)
+
+    # ------------------------------------------------------------------
+    # aafter_agent -- Cleanup and summary persistence
+    # ------------------------------------------------------------------
+
     async def aafter_agent(
         self,
         state: AgentState[Any],
@@ -342,17 +546,19 @@ class ContextSummarizationMiddleware(AgentMiddleware):
         if not self.config.enabled:
             return None
         
-        # Log final statistics
-        if self._summarization_count > 0:
-            logger.info(
-                "Summarization middleware summary: %d summarizations, "
-                "last at %s",
-                self._summarization_count,
-                (
-                    time.strftime("%H:%M:%S", time.localtime(self._last_summarization_time))
-                    if self._last_summarization_time else "N/A"
-                ),
-            )
+        logger.info(
+            "Context management summary: "
+            "graph_start_summarizations=%d, "
+            "mid_execution_compactions=%d, "
+            "compaction_failures=%s, "
+            "overflow_warnings=%s, "
+            "final_token_count=%d",
+            self._summarization_count,
+            self._compactions_performed,
+            self._compaction_failed,
+            self._mid_execution_warning_issued,
+            self._current_token_count,
+        )
         
         # Ensure running summary is saved to state
         if self._running_summary is not None:
@@ -361,6 +567,31 @@ class ContextSummarizationMiddleware(AgentMiddleware):
         
         return None
     
+    # ------------------------------------------------------------------
+    # Private helpers -- intervention messages
+    # ------------------------------------------------------------------
+
+    def _create_context_warning_message(self, current_tokens: int) -> SystemMessage:
+        """Create a SystemMessage warning the agent about critical context usage.
+        
+        Injected by ``aafter_model`` when compaction has failed and tokens
+        are at or above the overflow threshold.
+        """
+        max_k = self.config.context_window_tokens // 1000
+        current_k = current_tokens // 1000
+        return SystemMessage(
+            content=(
+                f"CONTEXT WARNING: Context compaction failed and token count is "
+                f"critically high ({current_k}K / {max_k}K tokens). "
+                f"Conclude your work immediately: summarize findings and provide "
+                f"your final answer. Further tool calls will be blocked."
+            ),
+        )
+
+    # ------------------------------------------------------------------
+    # Private helpers -- summarization
+    # ------------------------------------------------------------------
+
     async def _perform_summarization(
         self,
         messages: list[BaseMessage],

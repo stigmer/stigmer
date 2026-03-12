@@ -11,10 +11,7 @@ from_sub_agent metadata.
 
 from unittest.mock import MagicMock
 
-import pytest
-
 from worker.activities.execute_graphton import _try_enrich_phase1_entry
-
 
 # =============================================================================
 # Helpers

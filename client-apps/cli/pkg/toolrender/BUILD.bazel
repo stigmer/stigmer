@@ -3,6 +3,7 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "toolrender",
     srcs = [
+        "diff.go",
         "file_preview.go",
         "format.go",
         "highlight.go",
@@ -22,6 +23,7 @@ go_library(
         "@com_github_alecthomas_chroma_v2//lexers",
         "@com_github_alecthomas_chroma_v2//styles",
         "@com_github_charmbracelet_x_ansi//:ansi",
+        "@com_github_pmezard_go_difflib//difflib",
         "@land_charm_lipgloss_v2//:lipgloss",
         "@org_golang_x_term//:term",
     ],
@@ -30,6 +32,7 @@ go_library(
 go_test(
     name = "toolrender_test",
     srcs = [
+        "diff_test.go",
         "file_preview_test.go",
         "highlight_test.go",
         "hyperlink_test.go",

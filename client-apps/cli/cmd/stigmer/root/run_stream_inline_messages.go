@@ -189,7 +189,7 @@ type currentTaskMsg struct {
 
 // subAgentShowMsg activates the live sub-agent running summary in View().
 // Sent when a SubAgentStartedEvent is processed. The subject is the short
-// display label; View() renders "● Task: subject … (N tools)".
+// display label; View() renders "● Sub-agent: subject".
 type subAgentShowMsg struct {
 	id      string
 	subject string
@@ -202,15 +202,36 @@ type subAgentHideMsg struct {
 	id string
 }
 
-// subAgentCompleteMsg atomically removes a sub-agent from the live View()
-// and commits its scrollback content in a single Update() call. This
-// eliminates the two-frame glitch where the old subAgentHideMsg path
-// would show the completion in scrollback (via Println) while the live
-// entry was still visible in View() for one frame before the separate
-// Hide message removed it.
+// subAgentCompleteMsg transitions a sub-agent from the active spinner view
+// to a brief "completed" indicator in View(). The entry is moved from
+// activeSubAgentEntries to completedSubAgentEntries with the pre-styled
+// displayLine shown for subAgentCompletionVisibleDuration. After the delay,
+// subAgentDismissMsg fires to commit scrollbackLines and remove the entry.
+//
+// When displayLine is empty (fallback), the handler commits scrollbackLines
+// immediately and skips the staged display — preserving the original atomic
+// hide-and-println behavior.
 type subAgentCompleteMsg struct {
 	id              string
-	scrollbackLines string
+	displayLine     string // pre-styled single-line completion summary for live View()
+	scrollbackLines string // pre-rendered scrollback content committed on dismiss
+}
+
+// subAgentDismissMsg fires after the completion indicator has been visible
+// for subAgentCompletionVisibleDuration. The handler commits the deferred
+// scrollback content via tea.Println and removes the entry from
+// completedSubAgentEntries.
+type subAgentDismissMsg struct {
+	id string
+}
+
+// subAgentToolCountMsg updates the live tool count for a running sub-agent.
+// Sent when a tool completion or read group is appended to a sub-agent block.
+// Low frequency (one per tool completion), so it does not introduce content
+// volatility in View().
+type subAgentToolCountMsg struct {
+	id    string
+	count int
 }
 
 // subAgentTickMsg is the self-propagating tick that advances the sub-agent

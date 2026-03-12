@@ -10,11 +10,13 @@ from typing import Any, cast
 
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
     AgentExecutionStatus,
+    AgentMessage,
     ApprovalAction,
     PendingApproval,
 )
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ExecutionPhase,
+    MessageType,
     SubAgentStatus,
     ToolCallStatus,
 )
@@ -75,6 +77,15 @@ from worker.workspace import (
     WorkspaceProvisioner,
     WorkspaceProvisionError,
     initialize_workspace,
+)
+from worker.workspace.tree import (
+    TREE_DEFAULT_MAX_ENTRIES as _TREE_MAX_ENTRIES,
+)
+from worker.workspace.tree import (
+    build_directory_tree as _build_directory_tree,
+)
+from worker.workspace.tree import (
+    human_size as _human_size,
 )
 
 
@@ -833,20 +844,6 @@ def _format_entry_description(result: ProvisionResult) -> str:
     return result.workspace_description
 
 
-# Tree-building utilities live in worker.workspace.tree.  Module-level
-# aliases preserve backward compatibility for in-module callers and tests
-# that import the private names from this module.
-from worker.workspace.tree import (  # noqa: E402
-    TREE_DEFAULT_MAX_ENTRIES as _TREE_MAX_ENTRIES,
-)
-from worker.workspace.tree import (  # noqa: E402
-    build_directory_tree as _build_directory_tree,
-)
-from worker.workspace.tree import (  # noqa: E402
-    human_size as _human_size,
-)
-
-
 def build_referenced_files_prompt_section(
     workspace_file_refs: list[str],
     workspace_root: str,
@@ -1078,8 +1075,7 @@ async def execute_graphton(
         # Create minimal failed status for system errors
         # This handles cases where status_builder was never initialized
 
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
+
         
         failed_status = AgentExecutionStatus(
             phase=ExecutionPhase.EXECUTION_FAILED,
@@ -1221,11 +1217,10 @@ async def _execute_graphton_impl(
     
     agent_id = execution.spec.agent_id
     user_message = execution.spec.message
-    session_id_from_spec = execution.spec.session_id
     
     activity_logger.info(
         f"Execution parameters: agent_id={agent_id}, "
-        f"session_id='{session_id_from_spec}' (empty={not session_id_from_spec})"
+        f"session_id='{execution.spec.session_id}' (empty={not execution.spec.session_id})"
     )
     
     heartbeat_during_setup("execution_fetch", {
@@ -1387,6 +1382,34 @@ async def _execute_graphton_impl(
                 + (f", target_override={target_override}" if target_override else "")
             )
         
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Compute recursion_limit from ExecutionConfig.max_tool_rounds (if set).
+        #
+        # max_tool_rounds is the user-facing unit (model→tools cycles).
+        # LangGraph's recursion_limit counts super-steps (~2 per round).
+        # 0 = use platform default (graphton's 100 = ~50 rounds).
+        # Non-zero values are clamped to 10–250 rounds (20–500 super-steps).
+        # ─────────────────────────────────────────────────────────────────────────────
+        min_tool_rounds = 10
+        max_tool_rounds = 250
+        recursion_limit = None  # None = use graphton default (100)
+        if (execution.spec.HasField("execution_config")
+                and execution.spec.execution_config.max_tool_rounds > 0):
+            requested_rounds = execution.spec.execution_config.max_tool_rounds
+            clamped_rounds = max(min_tool_rounds, min(max_tool_rounds, requested_rounds))
+            if clamped_rounds != requested_rounds:
+                activity_logger.warning(
+                    "max_tool_rounds=%d clamped to %d (valid range: %d-%d)",
+                    requested_rounds, clamped_rounds,
+                    min_tool_rounds, max_tool_rounds,
+                )
+            recursion_limit = clamped_rounds * 2
+            activity_logger.info(
+                "Recursion limit from execution config: max_tool_rounds=%d "
+                "-> recursion_limit=%d",
+                clamped_rounds, recursion_limit,
+            )
+        
         # Get sandbox configuration from worker config
         setup_timer.start("sandbox")
         sandbox_config = worker_config.get_sandbox_config(session_id=session_id)
@@ -1398,11 +1421,11 @@ async def _execute_graphton_impl(
         # Initialize sandbox manager (cloud mode only).
         sandbox_manager = None
         if worker_config.mode != "local":
-            api_key = os.environ.get("DAYTONA_API_KEY")
-            if not api_key:
+            daytona_api_key = os.environ.get("DAYTONA_API_KEY")
+            if not daytona_api_key:
                 raise ValueError("DAYTONA_API_KEY environment variable required for cloud mode")
             sandbox_manager = SandboxManager(
-                daytona_api_key=api_key,
+                daytona_api_key=daytona_api_key,
                 volume_id=get_daytona_volume_id(),
             )
             if snapshot_id := sandbox_config.get("snapshot_id"):
@@ -2093,22 +2116,13 @@ async def _execute_graphton_impl(
 
         enhanced_system_prompt += (
             "\n\n## Sub-agent delegation rules\n\n"
-            "### Concurrency limit\n\n"
-            "Do NOT spawn more than 4 sub-agents concurrently. If you need "
-            "to explore more than 4 areas, batch them: launch the first 4, "
-            "wait for results, then launch more if needed.\n\n"
-            "### When NOT to delegate\n\n"
             "- **Read files directly.** When you need the contents of a file, "
             "use the `read` tool yourself. Do not delegate file reading to "
             "sub-agents via the `task` tool. You need raw file contents in "
             "your own context to reason about them accurately.\n"
-            "- **Single-step lookups.** Use `grep`, `glob`, `search`, or "
-            "`read` directly for simple searches across 1-2 files. Only "
-            "delegate when the task requires multi-step exploration.\n"
             "- Sub-agents are for **multi-step, independent tasks** that "
             "produce a deliverable (analysis, synthesis, generated content). "
-            "They are not for fetching data that you will process yourself.\n\n"
-            "### Delegation best practices\n\n"
+            "They are not for fetching data that you will process yourself.\n"
             "- When delegating to a sub-agent, specify the analysis or "
             "deliverable you need — not \"read these files and give me the "
             "contents.\"\n"
@@ -2172,7 +2186,7 @@ async def _execute_graphton_impl(
         # early resolve is kept only so we can log the resolved API model ID and
         # include it in heartbeats.
         # ─────────────────────────────────────────────────────────────────────────────
-        api_model_id, _resolved_metadata = ModelRegistry.resolve_or_passthrough(
+        api_model_id, _ = ModelRegistry.resolve_or_passthrough(
             model_name,
             provider=worker_config.llm.provider,
         )
@@ -2275,18 +2289,24 @@ async def _execute_graphton_impl(
         
         # Create Graphton agent.
         #
-        # Recursion limit: 1000 for the top-level graph. deepagents 0.4.x
-        # uses langchain's create_agent() which defaults subagent graphs to
-        # DEFAULT_RECURSION_LIMIT (10,000 in langgraph 1.0.x). This gives
-        # subagents generous room while the top-level graph is capped at 1000.
-        # Graphton's loop detection middleware provides additional protection
-        # against infinite loops via pattern-based intervention.
+        # Recursion limit: graphton's default (100) applies via with_config()
+        # at graph compilation time unless overridden by the user via
+        # ExecutionConfig.max_tool_rounds.  The default gives the main agent
+        # ~50 model+tool rounds — 2x Cursor's 25-tool-call limit, well
+        # within Claude Code's range for complex sub-agent workflows.
+        # Sub-agent graphs use deepagents' DEFAULT_RECURSION_LIMIT (10,000),
+        # giving them generous room independently.
+        #
+        # Graphton's ExecutionBudgetMiddleware injects a wrap-up SystemMessage
+        # at ~80 % of the budget, and LoopDetectionMiddleware provides
+        # pattern-based intervention.  The hard stop at 100 % is LangGraph's
+        # GraphRecursionError, handled below.
         #
         # Sandbox tools: graphton creates platform tool wrappers (read, write,
         # edit, execute, ls, glob, grep) backed by the sandbox. deepagents also
         # creates in-memory filesystem tools (read_file, write_file, edit_file)
         # via its FilesystemMiddleware. Both sets coexist in the tool registry.
-        agent_graph = create_deep_agent(
+        agent_kwargs: dict[str, Any] = dict(
             model=model_name,
             system_prompt=enhanced_system_prompt,
             mcp_servers=mcp_servers_config if mcp_servers_config else None,
@@ -2294,13 +2314,15 @@ async def _execute_graphton_impl(
             tools=None,
             subagents=transformed_subagents,
             sandbox_config=sandbox_config_for_agent,
-            recursion_limit=1000,
             checkpointer=checkpointer,
             approval_checker=approval_checker,
             summarization_config=summarization_config,
             summarization_callback=status_builder,
             **llm_kwargs,
         )
+        if recursion_limit is not None:
+            agent_kwargs["recursion_limit"] = recursion_limit
+        agent_graph = create_deep_agent(**agent_kwargs)
         
         activity_logger.info(f"Graphton agent created successfully with {'new' if is_new_sandbox else 'reused'} sandbox")
         
@@ -2322,15 +2344,12 @@ async def _execute_graphton_impl(
         
         # Prepare config with thread_id for state persistence.
         #
-        # recursion_limit is set here as defense-in-depth. The primary limit
-        # is applied via graphton's with_config() during agent creation, but
-        # setting it at invoke-time ensures the limit is enforced even if the
-        # graph's default config is somehow lost during config merging.
-        # Note: LangGraph's merge_configs strips recursion_limit values equal
-        # to DEFAULT_RECURSION_LIMIT (10,000), but 1000 != 10,000 so this
-        # value is preserved.
+        # recursion_limit is NOT set here. It is applied at graph compilation
+        # time via graphton's with_config({"recursion_limit": N}). The value
+        # comes from ExecutionConfig.max_tool_rounds (converted above) or
+        # graphton's default of 100.  LangGraph's merge_configs preserves
+        # non-default values, so the compiled limit survives config merging.
         config = {
-            "recursion_limit": 1000,
             "configurable": {
                 "thread_id": thread_id,
                 "org": execution.metadata.org,
@@ -2702,8 +2721,7 @@ async def _execute_graphton_impl(
         # system message so the UI can render a "Resuming..." indicator.
         # ─────────────────────────────────────────────────────────────────────────────
         if is_resume_from_approval:
-            from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
-            from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
+
             
             resume_msg = AgentMessage(
                 type=MessageType.MESSAGE_SYSTEM,
@@ -2962,8 +2980,7 @@ async def _execute_graphton_impl(
             
             # Add message indicating pause
 
-            from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
-            from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
+
             
             pause_msg = AgentMessage(
                 type=MessageType.MESSAGE_SYSTEM,
@@ -3009,15 +3026,14 @@ async def _execute_graphton_impl(
             )
 
             status_builder.finalize_active_sub_agents(
-                SubAgentStatus.SUB_AGENT_FAILED,
+                SubAgentStatus.SUB_AGENT_CANCELLED,
                 "Parent execution stalled — no events received",
             )
 
-            # Finalize any accumulated data before reporting failure
+            # Finalize any accumulated data before reporting termination
             status_builder.finalize_context_info()
             
-            from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
-            from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
+
             
             stall_error_msg = AgentMessage(
                 type=MessageType.MESSAGE_SYSTEM,
@@ -3029,12 +3045,12 @@ async def _execute_graphton_impl(
                 timestamp=_utc_timestamp(),
             )
             status_builder.current_status.messages.append(stall_error_msg)
-            status_builder.current_status.phase = ExecutionPhase.EXECUTION_FAILED
+            status_builder.current_status.phase = ExecutionPhase.EXECUTION_TERMINATED
             status_builder.current_status.error = stall_msg
             
             # Best-effort status persistence
             try:
-                activity_logger.info("📤 [STALL] Sending FAILED status update")
+                activity_logger.info("📤 [STALL] Sending TERMINATED status update")
                 await execution_client.update_status(
                     execution_id=execution_id,
                     status=status_builder.current_status,
@@ -3043,6 +3059,67 @@ async def _execute_graphton_impl(
                 activity_logger.warning(f"[STALL] Failed to send status update: {update_err}")
             
             return _slim_status_for_temporal(status_builder.current_status)
+        except Exception as stream_err:
+            # ─────────────────────────────────────────────────────────────────────────────
+            # Tool-Call Limit: LangGraph's recursion_limit reached.
+            #
+            # The agent exhausted its tool-call budget (default: 100 super-steps
+            # ≈ 50 model+tool rounds, configurable via max_tool_rounds).
+            # ExecutionBudgetMiddleware injected a wrap-up SystemMessage at
+            # ~80% of the budget; this handler fires at 100%.
+            #
+            # We catch this via type-name check rather than importing at module
+            # level, consistent with the lazy-import pattern used throughout
+            # this file.  GraphRecursionError is a subclass of Exception.
+            # ─────────────────────────────────────────────────────────────────────────────
+            if type(stream_err).__name__ == "GraphRecursionError":
+                limit_msg = (
+                    f"Agent reached the tool-call limit after processing "
+                    f"{events_processed} events. "
+                    f"Send another message to continue."
+                )
+                activity_logger.warning(
+                    f"🔄 [RECURSION_LIMIT] execution={execution_id} — {limit_msg} "
+                    f"(detail: {stream_err})"
+                )
+
+                status_builder.finalize_active_sub_agents(
+                    SubAgentStatus.SUB_AGENT_CANCELLED,
+                    "Parent execution reached tool-call limit",
+                )
+
+                status_builder.finalize_context_info()
+
+
+
+                limit_error_msg = AgentMessage(
+                    type=MessageType.MESSAGE_SYSTEM,
+                    content=(
+                        "🔄 The agent reached the tool-call limit for this message. "
+                        "Work completed so far has been saved. "
+                        "Send another message to continue where the agent left off."
+                    ),
+                    timestamp=_utc_timestamp(),
+                )
+                status_builder.current_status.messages.append(limit_error_msg)
+                status_builder.current_status.phase = ExecutionPhase.EXECUTION_TERMINATED
+                status_builder.current_status.error = limit_msg
+
+                try:
+                    activity_logger.info("📤 [RECURSION_LIMIT] Sending TERMINATED status update")
+                    await execution_client.update_status(
+                        execution_id=execution_id,
+                        status=status_builder.current_status,
+                    )
+                except Exception as update_err:
+                    activity_logger.warning(
+                        f"[RECURSION_LIMIT] Failed to send status update: {update_err}"
+                    )
+
+                return _slim_status_for_temporal(status_builder.current_status)
+
+            # Not a GraphRecursionError — re-raise for the outer handler.
+            raise
         finally:
             # Always cancel the background heartbeat task — whether the stream
             # completed normally, was paused (CancelledError), or raised an error.
@@ -3076,8 +3153,6 @@ async def _execute_graphton_impl(
         # always an error (some executions don't produce artifacts), but it helps
         # when debugging "where did my files go?" issues.
         # ─────────────────────────────────────────────────────────────────────────────
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
-
         messages = status_builder.current_status.messages
         if messages:
             last_message = messages[-1]
@@ -3156,13 +3231,91 @@ async def _execute_graphton_impl(
         status_builder.finalize_context_info()
         
         # ─────────────────────────────────────────────────────────────────────────────
+        # Post-Stream Checkpoint Query
+        #
+        # Query the LangGraph checkpoint unconditionally.  The checkpoint is the
+        # authoritative record of what actually happened during execution —
+        # StatusBuilder's view is derived from stream events and can diverge.
+        #
+        # The graph_state is used for:
+        #   1. Checkpoint validation — cross-references stream-derived state
+        #      against the checkpoint's ground truth (messages, tool completion,
+        #      graph termination status).
+        #   2. Interrupt capture — discovers pending interrupts when the phase
+        #      is WAITING_FOR_APPROVAL (batch approval support).
+        #
+        # Cost: single MongoDB/SQLite document lookup by thread_id (<10ms).
+        # ─────────────────────────────────────────────────────────────────────────────
+        graph_state = None  # type: ignore[assignment]
+        try:
+            graph_state = await agent_graph.aget_state(
+                cast(RunnableConfig, config)
+            )
+        except Exception as state_err:
+            activity_logger.warning(
+                f"[CHECKPOINT_QUERY] execution={execution_id} — "
+                f"aget_state() failed (non-fatal, validation skipped): "
+                f"{state_err}"
+            )
+
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Post-Stream Checkpoint Validation
+        #
+        # Validates StatusBuilder's stream-derived state against the checkpoint's
+        # ground truth.  Detects:
+        #   V1: Graph has pending nodes but stream ended (abnormal termination)
+        #   V2: Tool calls requested by the model that never completed
+        #   V3: Sub-agent completion mismatch between checkpoint and StatusBuilder
+        #   V4: AI message count divergence (canary for systematic event loss)
+        #
+        # The validation result drives the phase decision below, replacing the
+        # stream-only has_orphaned_sub_agents check with checkpoint-verified logic.
+        # ─────────────────────────────────────────────────────────────────────────────
+        from worker.activities.graphton.checkpoint_validator import (
+            build_error_from_validation,
+            validate_against_checkpoint,
+        )
+
+        status_ai_message_count = sum(
+            1
+            for m in status_builder.current_status.messages
+            if m.type == MessageType.MESSAGE_AI
+        )
+
+        validation = validate_against_checkpoint(
+            graph_state=graph_state,
+            active_sub_agent_count=len(status_builder._active_sub_agents),
+            status_ai_message_count=status_ai_message_count,
+            execution_phase=status_builder.current_status.phase,
+            waiting_for_approval_phase=ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+            paused_phase=ExecutionPhase.EXECUTION_PAUSED,
+        )
+
+        for d in validation.discrepancies:
+            log_fn = (
+                activity_logger.error
+                if d.severity == "error"
+                else activity_logger.warning
+            )
+            log_fn(
+                f"[CHECKPOINT_VALIDATION] execution={execution_id} "
+                f"{d.category}: {d.description}"
+            )
+
+        if not validation.discrepancies:
+            activity_logger.info(
+                f"[CHECKPOINT_VALIDATION] execution={execution_id} — "
+                f"all checks passed"
+            )
+
+        # ─────────────────────────────────────────────────────────────────────────────
         # Post-Stream Interrupt Capture (Batch Approval — Multiple Interrupts)
         #
         # When the event stream ends because of interrupt() calls, LangGraph has
-        # already checkpointed the graph state with pending interrupts.  We query
-        # the graph state to discover ALL pending interrupts (there may be more
-        # than one when the LLM issued multiple tool calls that each require
-        # approval).
+        # already checkpointed the graph state with pending interrupts.  We use
+        # the graph_state already fetched above to discover ALL pending interrupts
+        # (there may be more than one when the LLM issued multiple tool calls
+        # that each require approval).
         #
         # For every interrupt we build a PendingApproval proto with the
         # LangGraph-assigned interrupt_id.  This enables the resume logic to
@@ -3171,10 +3324,6 @@ async def _execute_graphton_impl(
         # ─────────────────────────────────────────────────────────────────────────────
         if status_builder.current_status.phase == ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL:
             try:
-                graph_state = await agent_graph.aget_state(
-                    cast(RunnableConfig, config)
-                )
-                
                 if graph_state and graph_state.interrupts:
                     # ── Diagnostic: log every raw interrupt before matching ──
                     for _diag_idx, _diag_intr in enumerate(graph_state.interrupts):
@@ -3281,7 +3430,7 @@ async def _execute_graphton_impl(
                                                 matched_tc_ids.add(tc.id)
                                                 break
                                         if matched_tool_call_id:
-                                            break
+                                            break  # type: ignore[unreachable]
 
                         # ── Merge strategy: enrich Phase 1 entries, never degrade ──
                         #
@@ -3376,17 +3525,28 @@ async def _execute_graphton_impl(
                     f"failed to capture interrupt IDs from graph state: {capture_err}."
                 )
         
-        # Determine final phase based on current state.
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Post-Stream Phase Decision: Checkpoint-Validated
         #
-        # When LangGraph's interrupt() is called (HITL approval), the event stream
-        # ends naturally — the graph pauses at a checkpoint, producing no more events.
-        # The status_builder will have already set the phase to WAITING_FOR_APPROVAL
-        # during event processing. We must NOT overwrite that phase with COMPLETED,
-        # because the Temporal workflow uses the returned phase to decide whether to
-        # enter the HITL approval loop.
+        # The event stream can end for several reasons:
+        #   1. Normal completion — LLM produced a final response, no more work.
+        #   2. HITL interrupt — graph paused at checkpoint for approval.
+        #   3. Graceful pause — user requested pause, handled above.
+        #   4. Abnormal termination — graph crashed internally and the stream
+        #      ended without raising an exception.
+        #   5. Missed events — sub-agents completed in the graph but
+        #      StatusBuilder missed the on_tool_end events.
         #
-        # Similarly, if the phase is PAUSED (set during graceful cancellation handling
-        # above), we must preserve it.
+        # Cases 2 and 3 are handled by phase checks (set during processing).
+        # Cases 4 and 5 are distinguished by checkpoint validation:
+        #   - validation.has_errors → case 4 (confirmed abnormal termination)
+        #   - validation.missed_event_count > 0 without errors → case 5
+        #     (execution completed normally, StatusBuilder just missed events)
+        #
+        # Defense-in-depth: if aget_state() failed (graph_state=None),
+        # validation produces a warning (no errors).  The fallback
+        # has_orphaned_sub_agents check catches any remaining discrepancies.
+        # ─────────────────────────────────────────────────────────────────────────────
         current_phase = status_builder.current_status.phase
         
         if current_phase == ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL:
@@ -3398,6 +3558,66 @@ async def _execute_graphton_impl(
             activity_logger.info(
                 f"Stream ended with PAUSED phase for execution {execution_id}. "
                 f"Not setting COMPLETED — execution is paused at checkpoint."
+            )
+        elif validation.has_errors:
+            activity_logger.error(
+                f"[CHECKPOINT_VALIDATION] execution={execution_id} — "
+                f"Checkpoint confirms abnormal termination. "
+                f"Errors: {[d.description for d in validation.discrepancies if d.severity == 'error']}"
+            )
+            finalized_count = (
+                status_builder.finalize_sub_agents_from_checkpoint_validation(
+                    missed_event_count=validation.missed_event_count,
+                    confirmed_orphan_count=validation.confirmed_orphan_count,
+                    error_context=(
+                        "Checkpoint validation: execution terminated abnormally"
+                    ),
+                )
+            )
+            status_builder.current_status.phase = ExecutionPhase.EXECUTION_FAILED
+            status_builder.current_status.error = build_error_from_validation(
+                validation
+            )
+            activity_logger.info(
+                f"[CHECKPOINT_VALIDATION] execution={execution_id} — "
+                f"Finalized {finalized_count} sub-agent(s), "
+                f"phase set to EXECUTION_FAILED."
+            )
+        elif validation.missed_event_count > 0:
+            activity_logger.info(
+                f"[CHECKPOINT_VALIDATION] execution={execution_id} — "
+                f"Checkpoint confirms {validation.missed_event_count} "
+                f"sub-agent(s) completed (StatusBuilder missed events). "
+                f"Execution completed normally."
+            )
+            status_builder.finalize_sub_agents_from_checkpoint_validation(
+                missed_event_count=validation.missed_event_count,
+                confirmed_orphan_count=0,
+                error_context="",
+            )
+            status_builder.current_status.phase = ExecutionPhase.EXECUTION_COMPLETED
+        elif status_builder.has_orphaned_sub_agents:
+            diag = status_builder.get_orphaned_sub_agents_diagnostic()
+            activity_logger.error(
+                f"[RECONCILIATION] execution={execution_id} — "
+                f"Checkpoint validation found no errors but StatusBuilder "
+                f"still tracks {diag['total']} active sub-agent(s) "
+                f"(checkpoint query may have failed). "
+                f"Falling back to stream-derived reconciliation. "
+                f"Details: {diag}"
+            )
+            finalized_count = (
+                status_builder.finalize_active_sub_agents_differentiated(
+                    error_context="Parent execution terminated abnormally"
+                )
+            )
+            status_builder.current_status.phase = ExecutionPhase.EXECUTION_FAILED
+            status_builder.current_status.error = (
+                f"Execution terminated with {diag['total']} sub-agent(s) "
+                f"still in progress "
+                f"({diag['zero_message_count']} never started, "
+                f"{diag['mid_execution_count']} mid-execution). "
+                f"The graph ended without producing a final response."
             )
         else:
             status_builder.current_status.phase = ExecutionPhase.EXECUTION_COMPLETED
@@ -3450,11 +3670,6 @@ async def _execute_graphton_impl(
             "✅ ExecuteGraphton completed - returning slim status to workflow"
         )
         
-        # Verify status is not None before returning
-        if status_builder.current_status is None:
-            activity_logger.error(f"❌ CRITICAL: current_status is None for execution {execution_id}")
-            raise RuntimeError("Status builder returned None - this should never happen")
-        
         # Return slim status to workflow (full status already persisted via gRPC above)
         return _slim_status_for_temporal(status_builder.current_status)
     
@@ -3476,8 +3691,7 @@ async def _execute_graphton_impl(
         
         # Import required types for error message
 
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
+
         
         error_msg = AgentMessage(
             type=MessageType.MESSAGE_SYSTEM,
@@ -3523,11 +3737,6 @@ async def _execute_graphton_impl(
             )
         
         activity_logger.info(f"Execution {execution_id} phase set to FAILED - returning error status to workflow")
-        
-        # Verify status is not None before returning
-        if failed_status is None:
-            activity_logger.error(f"❌ CRITICAL: failed_status is None in error handler for execution {execution_id}")
-            raise RuntimeError("Failed status is None in error handler - this should never happen")
         
         # Send failed status update via gRPC with retry
         # This is critical for data persistence - use retry to handle transient failures

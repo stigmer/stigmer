@@ -127,15 +127,6 @@ def is_platform_tool(tool_name: str) -> bool:
     return resolve_platform_tool_name(tool_name) in PLATFORM_TOOL_DEFAULTS
 
 
-def get_platform_tool_names() -> list[str]:
-    """Get list of all platform tool names.
-    
-    Returns:
-        List of platform tool names
-    """
-    return list(PLATFORM_TOOL_DEFAULTS.keys())
-
-
 @dataclass
 class ApprovalConfig:
     """

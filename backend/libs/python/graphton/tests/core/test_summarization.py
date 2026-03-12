@@ -508,7 +508,10 @@ class TestSummarizationCallback:
     
     def test_event_data_creation(self):
         """SummarizationEventData can be created with all fields."""
-        from graphton.core.summarization_callback import SummarizationEventData
+        from graphton.core.summarization_callback import (
+            SOURCE_GRAPH_START,
+            SummarizationEventData,
+        )
         
         event = SummarizationEventData(
             tokens_before=150000,
@@ -518,6 +521,7 @@ class TestSummarizationCallback:
             summarization_model="claude-haiku-4",
             messages_before=45,
             messages_after=8,
+            source=SOURCE_GRAPH_START,
         )
         
         assert event.tokens_before == 150000
@@ -527,10 +531,14 @@ class TestSummarizationCallback:
         assert event.summarization_model == "claude-haiku-4"
         assert event.messages_before == 45
         assert event.messages_after == 8
+        assert event.source == SOURCE_GRAPH_START
     
     def test_event_data_is_frozen(self):
         """SummarizationEventData is immutable."""
-        from graphton.core.summarization_callback import SummarizationEventData
+        from graphton.core.summarization_callback import (
+            SOURCE_MID_EXECUTION,
+            SummarizationEventData,
+        )
         
         event = SummarizationEventData(
             tokens_before=100,
@@ -540,6 +548,7 @@ class TestSummarizationCallback:
             summarization_model="test-model",
             messages_before=10,
             messages_after=5,
+            source=SOURCE_MID_EXECUTION,
         )
         
         with pytest.raises(AttributeError):
@@ -571,7 +580,10 @@ class TestSummarizationCallback:
     
     def test_callback_receives_events(self):
         """Callback methods can be called with correct types."""
-        from graphton.core.summarization_callback import SummarizationEventData
+        from graphton.core.summarization_callback import (
+            SOURCE_GRAPH_START,
+            SummarizationEventData,
+        )
         
         received_events = []
         received_counts = []
@@ -593,6 +605,7 @@ class TestSummarizationCallback:
             summarization_model="test",
             messages_before=10,
             messages_after=5,
+            source=SOURCE_GRAPH_START,
         )
         
         callback.on_summarization_complete(event)
