@@ -26,18 +26,18 @@ class TestRecursionLimitValidator:
     """Tests for recursion_limit validation in AgentConfig."""
 
     def test_valid_recursion_limit(self):
-        """Test that platform default (1000) is accepted without warning."""
+        """Test that platform default (6000) is accepted without warning."""
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             config = AgentConfig(
                 model="gpt-4",
                 system_prompt="Test assistant.",
-                recursion_limit=1000,
+                recursion_limit=6000,
             )
             recursion_warnings = [
                 x for x in w if "recursion_limit" in str(x.message)
             ]
-            assert config.recursion_limit == 1000
+            assert config.recursion_limit == 6000
             assert len(recursion_warnings) == 0
 
     def test_low_recursion_limit(self):
@@ -74,44 +74,44 @@ class TestRecursionLimitValidator:
             )
 
     def test_very_high_recursion_limit_warns(self):
-        """Test that recursion_limit > 5000 generates a warning."""
+        """Test that recursion_limit > 30000 generates a warning."""
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             config = AgentConfig(
                 model="gpt-4",
                 system_prompt="Test assistant.",
-                recursion_limit=6000,
+                recursion_limit=30001,
             )
             recursion_warnings = [
                 x for x in w if "recursion_limit" in str(x.message)
             ]
-            assert config.recursion_limit == 6000
+            assert config.recursion_limit == 30001
             assert len(recursion_warnings) == 1
             assert "very high" in str(recursion_warnings[0].message)
 
-    def test_boundary_5000_no_warning(self):
-        """Test that recursion_limit=5000 does NOT generate a warning."""
+    def test_boundary_30000_no_warning(self):
+        """Test that recursion_limit=30000 does NOT generate a warning."""
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             config = AgentConfig(
                 model="gpt-4",
                 system_prompt="Test assistant.",
-                recursion_limit=5000,
+                recursion_limit=30000,
             )
             recursion_warnings = [
                 x for x in w if "recursion_limit" in str(x.message)
             ]
-            assert config.recursion_limit == 5000
+            assert config.recursion_limit == 30000
             assert len(recursion_warnings) == 0
 
-    def test_boundary_5001_warns(self):
-        """Test that recursion_limit=5001 generates a warning."""
+    def test_boundary_30001_warns(self):
+        """Test that recursion_limit=30001 generates a warning."""
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             AgentConfig(
                 model="gpt-4",
                 system_prompt="Test assistant.",
-                recursion_limit=5001,
+                recursion_limit=30001,
             )
             recursion_warnings = [
                 x for x in w if "recursion_limit" in str(x.message)
@@ -150,7 +150,7 @@ class TestAgentCreation:
         create_deep_agent(
             model="gpt-4",
             system_prompt="Test assistant.",
-            recursion_limit=1000,
+            recursion_limit=6000,
         )
 
         mock_create.assert_called_once()
@@ -175,10 +175,10 @@ class TestAgentCreation:
         create_deep_agent(
             model="gpt-4",
             system_prompt="Test assistant.",
-            recursion_limit=1000,
+            recursion_limit=6000,
         )
 
-        mock_agent.with_config.assert_called_once_with({"recursion_limit": 1000})
+        mock_agent.with_config.assert_called_once_with({"recursion_limit": 6000})
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
     @patch("graphton.core.agent.parse_model_string")
@@ -326,16 +326,16 @@ class TestRecursionLimitMergeConfigs:
     """
 
     def test_platform_value_preserved(self):
-        """Verify recursion_limit=1000 survives LangGraph's merge_configs.
+        """Verify recursion_limit=6000 survives LangGraph's merge_configs.
 
         This is the most important test: the platform's default value of
-        1000 must be preserved regardless of what DEFAULT_RECURSION_LIMIT is.
+        6000 must be preserved regardless of what DEFAULT_RECURSION_LIMIT is.
         """
         from langgraph._internal._config import merge_configs
 
-        result = merge_configs({"configurable": {}}, {"recursion_limit": 1000})
-        assert result.get("recursion_limit") == 1000, (
-            "recursion_limit=1000 must be preserved by merge_configs "
+        result = merge_configs({"configurable": {}}, {"recursion_limit": 6000})
+        assert result.get("recursion_limit") == 6000, (
+            "recursion_limit=6000 must be preserved by merge_configs "
             "(only DEFAULT_RECURSION_LIMIT is stripped)"
         )
 
@@ -371,7 +371,7 @@ class TestRecursionLimitMergeConfigs:
         from langgraph._internal._config import DEFAULT_RECURSION_LIMIT, merge_configs
 
         # Test several values that are NOT the default
-        for value in [50, 100, 500, 1000, 2000]:
+        for value in [50, 100, 500, 1000, 6000]:
             if value == DEFAULT_RECURSION_LIMIT:
                 continue
             result = merge_configs(
@@ -463,7 +463,7 @@ class TestCustomRecursionLimit:
     @patch("graphton.core.agent.deepagents_create_deep_agent")
     @patch("graphton.core.agent.parse_model_string")
     def test_maximum_tool_rounds_mapping(self, mock_parse, mock_create):
-        """Simulates maximum max_tool_rounds=500 -> recursion_limit=3000."""
+        """Simulates maximum max_tool_rounds=1000 -> recursion_limit=6000."""
         from graphton import create_deep_agent
 
         mock_model = MagicMock()
@@ -475,10 +475,10 @@ class TestCustomRecursionLimit:
         create_deep_agent(
             model="gpt-4",
             system_prompt="Test assistant.",
-            recursion_limit=3000,
+            recursion_limit=6000,
         )
 
-        mock_agent.with_config.assert_called_once_with({"recursion_limit": 3000})
+        mock_agent.with_config.assert_called_once_with({"recursion_limit": 6000})
 
 
 # =============================================================================

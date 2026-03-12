@@ -76,7 +76,7 @@ class AgentConfig(BaseModel):
     middleware: Sequence[Any] | None = None
     context_schema: type[Any] | None = None
     sandbox_config: dict[str, Any] | None = None
-    recursion_limit: int = 1000
+    recursion_limit: int = 6000
     max_tokens: int | None = None
     temperature: float | None = None
     auto_enhance_prompt: bool = True
@@ -179,13 +179,12 @@ class AgentConfig(BaseModel):
     def validate_recursion_limit(cls, v: int) -> int:
         """Validate recursion limit is reasonable.
         
-        The platform default is 1000 for the top-level graph (~166 model+tool
-        rounds in LangGraph super-step terms). LangGraph's
-        DEFAULT_RECURSION_LIMIT is 10,000 (as of langgraph 1.0.x), which
-        applies to sub-agent graphs by default. Values above 5000 are
-        flagged as potentially problematic since they indicate either an
-        agent that may run unchecked for a very long time, or a
-        misconfiguration.
+        The platform default is 6000 super-steps for the top-level graph.
+        LangGraph's DEFAULT_RECURSION_LIMIT is 10,000 (as of langgraph
+        1.0.x), which applies to sub-agent graphs by default.  Values
+        above 30,000 are flagged as potentially problematic since they
+        indicate either an agent that may run unchecked for a very long
+        time, or a misconfiguration.
         
         Args:
             v: Recursion limit value
@@ -202,12 +201,12 @@ class AgentConfig(BaseModel):
                 f"recursion_limit must be positive, got {v}. "
                 "Recommended range: 50-500 depending on agent complexity."
             )
-        if v > 5000:
+        if v > 30000:
             import warnings
             warnings.warn(
                 f"recursion_limit of {v} is very high. This may cause long "
                 "execution times or mask infinite loops. Consider values "
-                "between 50-5000 for most agents. The platform default is 1000.",
+                "between 60-30000 for most agents. The platform default is 6000.",
                 UserWarning,
                 stacklevel=2,
             )

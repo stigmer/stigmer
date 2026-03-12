@@ -24,9 +24,9 @@ model rounds.  The warning threshold is derived as::
 
     warning_round = recursion_limit * warning_pct // 600
 
-For the platform default (``recursion_limit=1000``, ``warning_pct=80``) this
-fires at model round 133 (~798 super-steps).  The mapping is approximate —
-startup/shutdown overhead consumes ~9 additional steps — but the 80 %
+For the platform default (``recursion_limit=6000``, ``warning_pct=80``) this
+fires at model round 800 (~4800 super-steps).  The mapping is approximate —
+startup/shutdown overhead consumes additional steps — but the 80 %
 threshold is deliberately soft so ±a few steps is acceptable.
 """
 
@@ -39,7 +39,7 @@ from langgraph.runtime import Runtime
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_RECURSION_LIMIT = 1000
+_DEFAULT_RECURSION_LIMIT = 6000
 _DEFAULT_WARNING_PCT = 80
 _MIN_WARNING_PCT = 50
 _MAX_WARNING_PCT = 95
@@ -61,14 +61,14 @@ class ExecutionBudgetMiddleware(AgentMiddleware):
     Example::
 
         >>> middleware = ExecutionBudgetMiddleware(
-        ...     recursion_limit=1000,
+        ...     recursion_limit=6000,
         ...     warning_pct=80,
         ... )
         >>> # Auto-injected in create_deep_agent() by default
 
     Args:
         recursion_limit: The LangGraph recursion_limit applied to the graph.
-            Used to compute the warning threshold.  Default: 1000.
+            Used to compute the warning threshold.  Default: 6000.
         warning_pct: Percentage of the budget at which to inject the warning
             SystemMessage.  Must be between 50 and 95.  Default: 80.
     """
