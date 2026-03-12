@@ -191,6 +191,11 @@ _TOOL_CONTENT_FIELDS: dict[str, list[str]] = {
     "think":          ["thought"],
 }
 
+# Read-only tools whose result content is replaced with a size-only placeholder
+# in the persisted state.  The file path is already in tc.args; full content
+# lives in the LangGraph checkpoint DB if ever needed.
+_READ_ONLY_TOOLS: set[str] = {"read_file"}
+
 # JSON escape → Python character mapping (single-char sequences).
 _JSON_ESCAPES: dict[str, str] = {
     "n": "\n", "t": "\t", "r": "\r",
@@ -863,6 +868,12 @@ class StatusBuilder:
         resolved_id = self._resolve_run_id(run_id)
         
         tool_result_content = self._extract_tool_result_content(tool_result_raw)
+
+        if tool_name in _READ_ONLY_TOOLS:
+            persisted_result = f"[content omitted - {len(tool_result_content)} chars]"
+        else:
+            persisted_result = tool_result_content
+
         now = datetime.utcnow()
         
         # Calculate execution duration if we tracked the start time (Phase 2.2)
@@ -884,7 +895,7 @@ class StatusBuilder:
                     message.tool_calls[0].id == resolved_id):
                     
                     tc = message.tool_calls[0]
-                    tc.result = tool_result_content
+                    tc.result = persisted_result
                     tc.status = ToolCallStatus.TOOL_CALL_COMPLETED
                     tc.completed_at = _utc_timestamp(now)
                     tc.is_streaming = False
@@ -897,7 +908,7 @@ class StatusBuilder:
             # Update in sub-agent's tool_calls list
             for tool_call in sub_agent.tool_calls:
                 if tool_call.id == resolved_id:
-                    tool_call.result = tool_result_content
+                    tool_call.result = persisted_result
                     tool_call.status = ToolCallStatus.TOOL_CALL_COMPLETED
                     tool_call.completed_at = _utc_timestamp(now)
                     tool_call.is_streaming = False
@@ -916,7 +927,7 @@ class StatusBuilder:
                     message.tool_calls[0].id == resolved_id):
                     
                     tc = message.tool_calls[0]
-                    tc.result = tool_result_content
+                    tc.result = persisted_result
                     tc.status = ToolCallStatus.TOOL_CALL_COMPLETED
                     tc.completed_at = _utc_timestamp(now)
                     tc.is_streaming = False
@@ -929,7 +940,7 @@ class StatusBuilder:
             # Update in main agent's tool_calls list
             for tool_call in self.current_status.tool_calls:
                 if tool_call.id == resolved_id:
-                    tool_call.result = tool_result_content
+                    tool_call.result = persisted_result
                     tool_call.status = ToolCallStatus.TOOL_CALL_COMPLETED
                     tool_call.completed_at = _utc_timestamp(now)
                     tool_call.is_streaming = False
