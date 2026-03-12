@@ -2824,6 +2824,46 @@ class StatusBuilder:
 
         self.force_next_update = True
 
+    @property
+    def has_orphaned_sub_agents(self) -> bool:
+        """True when sub-agents remain active after the event stream ended."""
+        return bool(self._active_sub_agents)
+
+    def get_orphaned_sub_agents_diagnostic(self) -> dict:
+        """Return structured info about orphaned (still-active) sub-agents.
+
+        Useful for logging and error messages when the graph terminates
+        abnormally while sub-agents are in progress.
+
+        Returns:
+            Dict with ``total``, ``zero_message`` (spawned but never
+            executed), ``mid_execution`` (have messages/tool calls),
+            and per-sub-agent ``details``.
+        """
+        zero_message: list[dict] = []
+        mid_execution: list[dict] = []
+
+        for run_id, sub_agent in self._active_sub_agents.items():
+            has_activity = len(sub_agent.messages) > 0 or len(sub_agent.tool_calls) > 0
+            entry = {
+                "run_id": run_id,
+                "subject": sub_agent.subject,
+                "message_count": len(sub_agent.messages),
+                "tool_call_count": len(sub_agent.tool_calls),
+            }
+            if has_activity:
+                mid_execution.append(entry)
+            else:
+                zero_message.append(entry)
+
+        return {
+            "total": len(self._active_sub_agents),
+            "zero_message_count": len(zero_message),
+            "mid_execution_count": len(mid_execution),
+            "zero_message": zero_message,
+            "mid_execution": mid_execution,
+        }
+
     def finalize_active_sub_agents(self, status: SubAgentStatus, error: str) -> None:
         """Transition all active sub-agents to a terminal state.
 
@@ -2855,6 +2895,58 @@ class StatusBuilder:
             f"finalized {len(finalized_ids)} active sub-agent(s) "
             f"-> {SubAgentStatus.Name(status)}: {finalized_ids}"
         )
+
+    def finalize_active_sub_agents_differentiated(self, error_context: str) -> int:
+        """Transition active sub-agents using differentiated statuses.
+
+        Zero-message sub-agents (spawned but never executed) receive
+        ``SUB_AGENT_CANCELLED``; sub-agents with messages or tool calls
+        (mid-execution) receive ``SUB_AGENT_FAILED``.
+
+        Args:
+            error_context: High-level description of why termination occurred
+                (e.g. "Parent execution terminated abnormally").
+
+        Returns:
+            Number of sub-agents finalized.
+        """
+        if not self._active_sub_agents:
+            return 0
+
+        now = _utc_timestamp()
+        cancelled_ids: list[str] = []
+        failed_ids: list[str] = []
+
+        for run_id, sub_agent in list(self._active_sub_agents.items()):
+            has_activity = len(sub_agent.messages) > 0 or len(sub_agent.tool_calls) > 0
+            if has_activity:
+                sub_agent.status = SubAgentStatus.SUB_AGENT_FAILED
+                sub_agent.error = (
+                    f"{error_context}: sub-agent was running "
+                    f"({len(sub_agent.messages)} messages, "
+                    f"{len(sub_agent.tool_calls)} tool calls)"
+                )
+                failed_ids.append(run_id)
+            else:
+                sub_agent.status = SubAgentStatus.SUB_AGENT_CANCELLED
+                sub_agent.error = (
+                    f"{error_context}: sub-agent was spawned but never began execution"
+                )
+                cancelled_ids.append(run_id)
+
+            sub_agent.completed_at = now
+            self._completed_sub_agents[run_id] = sub_agent
+
+        total = len(self._active_sub_agents)
+        self._active_sub_agents.clear()
+
+        self.logger.info(
+            f"[SUBAGENT] execution={self.execution_id} "
+            f"finalized {total} orphaned sub-agent(s) — "
+            f"CANCELLED (zero-message): {cancelled_ids}, "
+            f"FAILED (mid-execution): {failed_ids}"
+        )
+        return total
 
     # ─────────────────────────────────────────────────────────────────────────────
     # Usage Metrics Builders (Phase 2.4)
