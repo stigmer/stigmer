@@ -48,6 +48,7 @@ class TestSummarizationMiddlewareLifecycle:
         """Create a test config with low thresholds for testing."""
         return SummarizationConfig(
             enabled=True,
+            context_window_tokens=10000,
             trigger_threshold=100,  # Low for testing
             target_tokens=80,
             max_summary_tokens=50,
@@ -113,14 +114,6 @@ class TestSummarizationMiddlewareLifecycle:
             mock_deserialize.return_value = MagicMock(summary="Previous summary")
             await middleware.abefore_agent(state, mock_runtime)
             mock_deserialize.assert_called_once_with(stored_summary)
-    
-    @pytest.mark.asyncio
-    async def test_aafter_step_returns_none(self, middleware, mock_runtime):
-        """aafter_step is a no-op (reserved for future)."""
-        state = {"messages": [HumanMessage(content="Hello")]}
-        result = await middleware.aafter_step(state, mock_runtime)
-        
-        assert result is None
     
     @pytest.mark.asyncio
     async def test_aafter_agent_disabled(self, mock_runtime):
@@ -321,6 +314,7 @@ class TestErrorHandling:
         """Agent continues if summarization fails."""
         config = SummarizationConfig(
             enabled=True,
+            context_window_tokens=10000,
             trigger_threshold=10,  # Very low to trigger
             target_tokens=8,
             max_summary_tokens=50,
@@ -372,6 +366,7 @@ class TestFullPipelineMocked:
         """Test complete summarization flow with mocked LangMem."""
         config = SummarizationConfig(
             enabled=True,
+            context_window_tokens=10000,
             trigger_threshold=10,
             target_tokens=8,
             max_summary_tokens=50,
@@ -412,6 +407,7 @@ class TestFullPipelineMocked:
         """Test multiple summarization cycles with state persistence."""
         config = SummarizationConfig(
             enabled=True,
+            context_window_tokens=10000,
             trigger_threshold=10,
             target_tokens=8,
             max_summary_tokens=50,
@@ -493,6 +489,7 @@ class TestCallbackIntegration:
         
         config = SummarizationConfig(
             enabled=True,
+            context_window_tokens=100000,
             trigger_threshold=10000,  # High to prevent triggering
             target_tokens=8000,
             max_summary_tokens=50,
@@ -524,6 +521,7 @@ class TestCallbackIntegration:
         
         config = SummarizationConfig(
             enabled=True,
+            context_window_tokens=10000,
             trigger_threshold=10,  # Very low to trigger
             target_tokens=8,
             max_summary_tokens=50,
@@ -575,6 +573,7 @@ class TestCallbackIntegration:
         
         config = SummarizationConfig(
             enabled=True,
+            context_window_tokens=10000,
             trigger_threshold=10,
             target_tokens=8,
             max_summary_tokens=50,
@@ -610,6 +609,7 @@ class TestCallbackIntegration:
         """Test that None callback works (no callback calls)."""
         config = SummarizationConfig(
             enabled=True,
+            context_window_tokens=100000,
             trigger_threshold=10000,  # High to prevent triggering
             target_tokens=8000,
             max_summary_tokens=50,
@@ -625,3 +625,140 @@ class TestCallbackIntegration:
         
         # Below threshold, so no summarization
         assert result is None
+
+
+# =============================================================================
+# Mid-Execution Compaction Integration Tests
+# =============================================================================
+
+
+class TestMidExecutionCompactionIntegration:
+    """Integration tests for the awrap_model_call compaction lifecycle."""
+    
+    @pytest.mark.asyncio
+    async def test_compaction_lifecycle_with_callback(self):
+        """Full lifecycle: awrap_model_call compacts, callback receives events."""
+        from unittest.mock import AsyncMock
+        
+        from langchain.agents.middleware.types import ModelRequest, ModelResponse
+        
+        from graphton.core.summarization_callback import SummarizationEventData
+        
+        received_token_counts: list[int] = []
+        received_events: list[SummarizationEventData] = []
+        
+        class TestCallback:
+            def on_summarization_complete(self, event: SummarizationEventData) -> None:
+                received_events.append(event)
+            
+            def on_token_count_updated(self, token_count: int) -> None:
+                received_token_counts.append(token_count)
+        
+        config = SummarizationConfig(
+            enabled=True,
+            context_window_tokens=10000,
+            trigger_threshold=10,
+            target_tokens=8,
+            max_summary_tokens=50,
+            summarization_model="gpt-4o-mini",
+            token_counter_method=TokenCounterMethod.APPROXIMATE,
+        )
+        middleware = ContextSummarizationMiddleware(config=config, callback=TestCallback())
+        
+        # abefore_agent resets state
+        state: dict[str, Any] = {"messages": [HumanMessage(content="Hello")]}
+        await middleware.abefore_agent(state, {})
+        
+        assert middleware._compaction_failed is False
+        assert middleware._compactions_performed == 0
+        
+        # Mock summarization and trigger awrap_model_call
+        compacted = [SystemMessage(content="Summary"), HumanMessage(content="Recent")]
+        
+        handler = AsyncMock(return_value=ModelResponse(
+            result=[AIMessage(content="I'll help")],
+        ))
+        
+        with patch.object(
+            middleware, '_perform_summarization',
+            return_value=compacted,
+        ):
+            request = ModelRequest(
+                model=MagicMock(),
+                messages=[HumanMessage(content="x" * 200)],
+                tools=[],
+            )
+            await middleware.awrap_model_call(request, handler)
+        
+        # Verify compaction happened
+        assert middleware._compactions_performed == 1
+        assert middleware._compaction_failed is False
+        
+        # Verify callback received events
+        assert len(received_events) == 1
+        assert received_events[0].tokens_before > received_events[0].tokens_after
+        
+        # Verify token count updates (pre-compaction + post-compaction)
+        assert len(received_token_counts) >= 2
+    
+    @pytest.mark.asyncio
+    async def test_emergency_brake_lifecycle_integration(self):
+        """Compaction fails -> aafter_model warns -> awrap_tool_call blocks."""
+        from unittest.mock import AsyncMock
+        
+        from langchain.agents.middleware.types import ModelRequest, ModelResponse
+        from langgraph.prebuilt.tool_node import ToolCallRequest
+        
+        config = SummarizationConfig(
+            enabled=True,
+            context_window_tokens=1000,
+            trigger_threshold=10,
+            target_tokens=8,
+            max_summary_tokens=50,
+            summarization_model="gpt-4o-mini",
+            token_counter_method=TokenCounterMethod.APPROXIMATE,
+        )
+        middleware = ContextSummarizationMiddleware(config=config)
+        
+        # Reset via abefore_agent
+        await middleware.abefore_agent({"messages": []}, {})
+        
+        # Simulate compaction failure in awrap_model_call
+        handler = AsyncMock(return_value=ModelResponse(
+            result=[AIMessage(content="done")],
+        ))
+        with patch.object(
+            middleware, '_perform_summarization',
+            side_effect=RuntimeError("API down"),
+        ):
+            request = ModelRequest(
+                model=MagicMock(),
+                messages=[HumanMessage(content="x" * 200)],
+                tools=[],
+            )
+            await middleware.awrap_model_call(request, handler)
+        
+        assert middleware._compaction_failed is True
+        
+        # aafter_model detects critical state
+        big_state: dict[str, Any] = {
+            "messages": [HumanMessage(content="x" * 4000)],
+        }
+        warning_result = await middleware.aafter_model(big_state, {})
+        
+        assert warning_result is not None
+        assert middleware._overflow_imminent is True
+        
+        # awrap_tool_call blocks execution
+        tool_handler = AsyncMock()
+        tool_request = ToolCallRequest(
+            tool_call={"name": "read_file", "args": {}, "id": "tc1"},
+            tool=None,
+            state={},
+            runtime=MagicMock(),
+        )
+        tool_result = await middleware.awrap_tool_call(tool_request, tool_handler)
+        
+        tool_handler.assert_not_awaited()
+        assert "blocked" in tool_result.content
+        assert tool_result.tool_call_id == "tc1"

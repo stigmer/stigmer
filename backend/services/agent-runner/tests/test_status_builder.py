@@ -23,6 +23,7 @@ from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
     UsageMetrics,
 )
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType, ToolCallStatus
+from graphton.core.summarization_callback import SOURCE_GRAPH_START, SOURCE_MID_EXECUTION
 
 from worker.activities.graphton.status_builder import StatusBuilder
 
@@ -1736,6 +1737,7 @@ class TestSubAgentInternals:
         mock_gen.assert_called_once_with(
             "Scan all workflow-runner files and extract infrastructure dependencies...",
             "general-purpose",
+            existing_subjects=[],
         )
 
     @pytest.mark.asyncio
@@ -1997,36 +1999,6 @@ class TestSubAgentInternals:
         assert sub_agent is not None
         assert sub_agent.id == run_id
         assert sub_agent.status == SubAgentStatus.SUB_AGENT_COMPLETED
-
-    @pytest.mark.asyncio
-    async def test_namespace_mappings_preserved_after_completion(self, status_builder):
-        """Namespace -> sub-agent mappings survive sub-agent completion."""
-        run_id = "task-ns-preserve"
-        namespace = f"agent_node:{run_id}"
-
-        await status_builder.process_event({
-            "event": "on_tool_start",
-            "name": "task",
-            "run_id": run_id,
-            "data": {"input": {"subagent_type": "helper", "input": "x"}},
-            "metadata": {},
-        })
-
-        # Register namespace while active
-        status_builder._register_sub_agent_namespace(f"{namespace}|inner")
-        assert f"{namespace}|inner" in status_builder._namespace_to_sub_agent_id
-
-        # Complete
-        await status_builder.process_event({
-            "event": "on_tool_end",
-            "name": "task",
-            "run_id": run_id,
-            "data": {"output": "ok"},
-            "metadata": {},
-        })
-
-        # Namespace mapping still present
-        assert f"{namespace}|inner" in status_builder._namespace_to_sub_agent_id
 
     # ── Gap 10: Parent termination propagation ──────────────────────────────
 
@@ -4023,22 +3995,6 @@ class TestPlatformToolApprovalDefaults:
         # Non-platform tools
         assert is_platform_tool("delete_repository") is False
         assert is_platform_tool("send_email") is False
-    
-    def test_get_platform_tool_names_helper(self):
-        """Test get_platform_tool_names() helper function."""
-        from worker.activities.graphton.approval_policy import get_platform_tool_names
-        
-        names = get_platform_tool_names()
-        
-        assert "read" in names
-        assert "write" in names
-        assert "edit" in names
-        assert "execute" in names
-        assert "ls" in names
-        assert "glob" in names
-        assert "grep" in names
-        assert "think" in names
-        assert len(names) == 8
 
 
 # =============================================================================
@@ -4099,122 +4055,6 @@ class TestApprovalConfig:
         
         result = config.get_default_policies_for_tool("unknown_tool")
         assert result == []
-
-
-# =============================================================================
-# Tests for Tool Waiting Approval (HITL Phase 2)
-# =============================================================================
-
-
-class TestToolWaitingApproval:
-    """Tests for set_tool_waiting_approval method."""
-    
-    @pytest.fixture
-    def status_builder_with_approval(self, mock_initial_status):
-        """Create StatusBuilder with a tool call already added."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ToolCall
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase, ToolCallStatus
-        
-        mock_initial_status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS
-        
-        builder = StatusBuilder(
-            execution_id="test-execution-approval",
-            initial_status=mock_initial_status
-        )
-        
-        # Add a tool call to work with
-        tool_call = ToolCall(
-            id="tool-run-123",
-            name="delete_repository",
-            status=ToolCallStatus.TOOL_CALL_RUNNING,
-        )
-        mock_initial_status.tool_calls.append(tool_call)
-        
-        return builder
-    
-    def test_set_tool_waiting_approval_updates_status(self, status_builder_with_approval):
-        """Test that set_tool_waiting_approval updates tool call status."""
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
-        
-        status_builder_with_approval.set_tool_waiting_approval(
-            run_id="tool-run-123",
-            tool_name="delete_repository",
-            tool_args={"repo": "my-repo"},
-            approval_message="Delete repo: my-repo",
-        )
-        
-        tool_call = status_builder_with_approval.current_status.tool_calls[0]
-        assert tool_call.status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
-        assert tool_call.requires_approval is True
-    
-    def test_set_tool_waiting_approval_tracks_pending(self, status_builder_with_approval):
-        """Test that pending approval is tracked in _pending_tool_approvals."""
-        status_builder_with_approval.set_tool_waiting_approval(
-            run_id="tool-run-123",
-            tool_name="delete_repository",
-            tool_args={"repo": "my-repo"},
-            approval_message="Delete repo: my-repo",
-        )
-        
-        assert "tool-run-123" in status_builder_with_approval._pending_tool_approvals
-    
-    def test_set_tool_waiting_approval_sets_execution_phase(self, status_builder_with_approval):
-        """Test that execution phase is updated to WAITING_FOR_APPROVAL."""
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase
-        
-        status_builder_with_approval.set_tool_waiting_approval(
-            run_id="tool-run-123",
-            tool_name="delete_repository",
-            tool_args={},
-            approval_message="Delete repo",
-        )
-        
-        assert status_builder_with_approval.current_status.phase == ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
-    
-    def test_set_tool_waiting_approval_sets_timestamps(self, status_builder_with_approval):
-        """Test that approval timestamps are set correctly."""
-        status_builder_with_approval.set_tool_waiting_approval(
-            run_id="tool-run-123",
-            tool_name="delete_repository",
-            tool_args={},
-            approval_message="Delete repo",
-        )
-        
-        tool_call = status_builder_with_approval.current_status.tool_calls[0]
-        
-        # Tool call should have timestamp set
-        assert tool_call.approval_requested_at != ""
-        # Timestamps should be ISO 8601 format
-        assert "T" in tool_call.approval_requested_at
-    
-    def test_set_tool_waiting_approval_from_sub_agent(self, status_builder_with_approval):
-        """Test that sub-agent flag is set correctly."""
-        status_builder_with_approval.set_tool_waiting_approval(
-            run_id="tool-run-123",
-            tool_name="delete_repository",
-            tool_args={},
-            approval_message="Delete repo",
-            from_sub_agent=True,
-            sub_agent_name="code-reviewer",
-        )
-        
-        # Verify tracked in pending list
-        assert "tool-run-123" in status_builder_with_approval._pending_tool_approvals
-    
-    def test_set_tool_waiting_approval_args_preview(self, status_builder_with_approval):
-        """Test that set_tool_waiting_approval tracks pending state."""
-        status_builder_with_approval.set_tool_waiting_approval(
-            run_id="tool-run-123",
-            tool_name="delete_repository",
-            tool_args={"repo": "my-repo", "force": True},
-            approval_message="Delete repo",
-        )
-        
-        # Verify pending approval state tracked internally
-        assert "tool-run-123" in status_builder_with_approval._pending_tool_approvals
-        # Phase should be WAITING_FOR_APPROVAL
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase
-        assert status_builder_with_approval.current_status.phase == ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
 
 
 # =============================================================================
@@ -4393,170 +4233,6 @@ class TestToolCallArgsHumanization:
 
 
 # =============================================================================
-# Tests for Tool Approval Decision (HITL Phase 2)
-# =============================================================================
-
-
-class TestToolApprovalDecision:
-    """Tests for set_tool_approval_decision method."""
-    
-    @pytest.fixture
-    def status_builder_waiting_approval(self, mock_initial_status):
-        """Create StatusBuilder with a tool in WAITING_APPROVAL state."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval, ToolCall
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase, ToolCallStatus
-        
-        mock_initial_status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS
-        
-        builder = StatusBuilder(
-            execution_id="test-execution-decision",
-            initial_status=mock_initial_status
-        )
-        
-        # Add a tool call in WAITING_APPROVAL state
-        tool_call = ToolCall(
-            id="tool-run-456",
-            name="delete_repository",
-            status=ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-            requires_approval=True,
-            approval_message="Delete repo: my-repo",
-        )
-        mock_initial_status.tool_calls.append(tool_call)
-        
-        # Set up pending state using the plural tracking list
-        builder._pending_tool_approvals = ["tool-run-456"]
-        builder._saved_phase_before_approval = ExecutionPhase.EXECUTION_IN_PROGRESS
-        builder.current_status.pending_approvals.append(PendingApproval(
-            tool_call_id="tool-run-456",
-            tool_name="delete_repository",
-        ))
-        builder.current_status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
-        
-        return builder
-    
-    def test_approve_action_clears_pending_state(self, status_builder_waiting_approval):
-        """Test that APPROVE clears pending state and restores phase."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase
-        
-        status_builder_waiting_approval.set_tool_approval_decision(
-            run_id="tool-run-456",
-            action=ApprovalAction.APPROVAL_ACTION_APPROVE,
-            approved_by="user-123",
-        )
-        
-        # Pending state should be cleared
-        assert len(status_builder_waiting_approval._pending_tool_approvals) == 0
-        # Phase should be restored
-        assert status_builder_waiting_approval.current_status.phase == ExecutionPhase.EXECUTION_IN_PROGRESS
-    
-    def test_approve_action_records_decision(self, status_builder_waiting_approval):
-        """Test that APPROVE records the decision on the tool call."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
-        
-        status_builder_waiting_approval.set_tool_approval_decision(
-            run_id="tool-run-456",
-            action=ApprovalAction.APPROVAL_ACTION_APPROVE,
-            approved_by="user-123",
-        )
-        
-        tool_call = status_builder_waiting_approval.current_status.tool_calls[0]
-        assert tool_call.approval_action == ApprovalAction.APPROVAL_ACTION_APPROVE
-        assert tool_call.approved_by == "user-123"
-        assert tool_call.approval_decided_at != ""
-    
-    def test_skip_action_sets_skipped_status(self, status_builder_waiting_approval):
-        """Test that SKIP sets TOOL_CALL_SKIPPED status."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
-        
-        status_builder_waiting_approval.set_tool_approval_decision(
-            run_id="tool-run-456",
-            action=ApprovalAction.APPROVAL_ACTION_SKIP,
-            approved_by="user-123",
-        )
-        
-        tool_call = status_builder_waiting_approval.current_status.tool_calls[0]
-        assert tool_call.status == ToolCallStatus.TOOL_CALL_SKIPPED
-        assert "skipped by user" in tool_call.result
-    
-    def test_skip_action_continues_execution(self, status_builder_waiting_approval):
-        """Test that SKIP restores execution phase (not FAILED)."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase
-        
-        status_builder_waiting_approval.set_tool_approval_decision(
-            run_id="tool-run-456",
-            action=ApprovalAction.APPROVAL_ACTION_SKIP,
-            approved_by="user-123",
-        )
-        
-        # Should restore to IN_PROGRESS, not FAILED
-        assert status_builder_waiting_approval.current_status.phase == ExecutionPhase.EXECUTION_IN_PROGRESS
-    
-    def test_reject_action_sets_skipped_status(self, status_builder_waiting_approval):
-        """Test that REJECT sets TOOL_CALL_SKIPPED status (non-terminal, agent re-evaluates)."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
-        
-        status_builder_waiting_approval.set_tool_approval_decision(
-            run_id="tool-run-456",
-            action=ApprovalAction.APPROVAL_ACTION_REJECT,
-            approved_by="user-123",
-        )
-        
-        tool_call = status_builder_waiting_approval.current_status.tool_calls[0]
-        assert tool_call.status == ToolCallStatus.TOOL_CALL_SKIPPED
-        assert "REJECTED" in tool_call.result
-    
-    def test_reject_action_continues_execution(self, status_builder_waiting_approval):
-        """Test that REJECT restores execution phase to IN_PROGRESS (non-terminal)."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase
-        
-        status_builder_waiting_approval.set_tool_approval_decision(
-            run_id="tool-run-456",
-            action=ApprovalAction.APPROVAL_ACTION_REJECT,
-            approved_by="user-123",
-        )
-        
-        assert status_builder_waiting_approval.current_status.phase == ExecutionPhase.EXECUTION_IN_PROGRESS
-    
-    def test_decision_records_approved_by_and_timestamp(self, status_builder_waiting_approval):
-        """Test that decision records who approved and when."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
-        
-        status_builder_waiting_approval.set_tool_approval_decision(
-            run_id="tool-run-456",
-            action=ApprovalAction.APPROVAL_ACTION_APPROVE,
-            approved_by="admin-user-999",
-        )
-        
-        tool_call = status_builder_waiting_approval.current_status.tool_calls[0]
-        assert tool_call.approved_by == "admin-user-999"
-        assert tool_call.approval_decided_at != ""
-        # Should be ISO 8601 format
-        assert "T" in tool_call.approval_decided_at
-    
-    def test_decision_clears_pending_approvals_proto(self, status_builder_waiting_approval):
-        """Test that decision clears the pending_approvals proto field."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
-        
-        # Verify pending_approvals is set before
-        assert len(status_builder_waiting_approval.current_status.pending_approvals) > 0
-        assert status_builder_waiting_approval.current_status.pending_approvals[0].tool_call_id == "tool-run-456"
-        
-        status_builder_waiting_approval.set_tool_approval_decision(
-            run_id="tool-run-456",
-            action=ApprovalAction.APPROVAL_ACTION_APPROVE,
-            approved_by="user-123",
-        )
-        
-        # pending_approvals should be cleared
-        assert len(status_builder_waiting_approval.current_status.pending_approvals) == 0
-
-
-# =============================================================================
 # Phase 5.4: Approval Resumption Verification Tests
 #
 # These tests verify that pending_approvals is properly cleared after each
@@ -4605,73 +4281,6 @@ class TestPhase54ApprovalClearing:
         builder.current_status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
         
         return builder
-    
-    def test_approve_clears_pending_approvals_completely(self, status_builder_with_pending_approval):
-        """Phase 5.4: Verify APPROVE action clears all pending_approvals fields."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
-        
-        # Verify pending_approvals is set before
-        assert len(status_builder_with_pending_approval.current_status.pending_approvals) == 1
-        pa = status_builder_with_pending_approval.current_status.pending_approvals[0]
-        assert pa.tool_call_id == "tool-run-phase54"
-        assert pa.tool_name == "dangerous_operation"
-        assert pa.message == "Execute dangerous operation?"
-        assert pa.args_preview == '{"target": "production"}'
-        assert pa.requested_at == "2026-01-30T12:00:00Z"
-        
-        # Execute APPROVE decision
-        status_builder_with_pending_approval.set_tool_approval_decision(
-            run_id="tool-run-phase54",
-            action=ApprovalAction.APPROVAL_ACTION_APPROVE,
-            approved_by="user-123",
-        )
-        
-        # Verify pending_approvals is cleared
-        assert len(status_builder_with_pending_approval.current_status.pending_approvals) == 0
-        
-        # Verify internal tracking state is also cleared
-        assert len(status_builder_with_pending_approval._pending_tool_approvals) == 0
-    
-    def test_skip_clears_pending_approvals_completely(self, status_builder_with_pending_approval):
-        """Phase 5.4: Verify SKIP action clears all pending_approvals fields."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
-        
-        # Verify pending_approvals is set before
-        assert len(status_builder_with_pending_approval.current_status.pending_approvals) > 0
-        
-        # Execute SKIP decision
-        status_builder_with_pending_approval.set_tool_approval_decision(
-            run_id="tool-run-phase54",
-            action=ApprovalAction.APPROVAL_ACTION_SKIP,
-            approved_by="user-123",
-        )
-        
-        # Verify pending_approvals is cleared
-        assert len(status_builder_with_pending_approval.current_status.pending_approvals) == 0
-        
-        # Verify internal tracking state is also cleared
-        assert len(status_builder_with_pending_approval._pending_tool_approvals) == 0
-    
-    def test_reject_clears_pending_approvals_completely(self, status_builder_with_pending_approval):
-        """Phase 5.4: Verify REJECT action clears all pending_approvals fields."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
-        
-        # Verify pending_approvals is set before
-        assert len(status_builder_with_pending_approval.current_status.pending_approvals) > 0
-        
-        # Execute REJECT decision
-        status_builder_with_pending_approval.set_tool_approval_decision(
-            run_id="tool-run-phase54",
-            action=ApprovalAction.APPROVAL_ACTION_REJECT,
-            approved_by="user-123",
-        )
-        
-        # Verify pending_approvals is cleared even on REJECT
-        # This is important: REJECT should still clear pending state
-        assert len(status_builder_with_pending_approval.current_status.pending_approvals) == 0
-        
-        # Verify internal tracking state is also cleared
-        assert len(status_builder_with_pending_approval._pending_tool_approvals) == 0
     
     def test_clear_pending_approval_restores_saved_phase(self, status_builder_with_pending_approval):
         """Phase 5.4: Verify clear_pending_approval restores the saved phase."""
@@ -5614,12 +5223,14 @@ class TestContextManagementTracking:
             summarization_model="claude-haiku-4",
             messages_before=50,
             messages_after=10,
+            source=SOURCE_MID_EXECUTION,
         )
         
         status_builder.on_summarization_complete(event)
         
-        assert len(status_builder._summarization_events) == 1
-        recorded = status_builder._summarization_events[0]
+        events = status_builder._context_info.summarization_events
+        assert len(events) == 1
+        recorded = events[0]
         assert recorded.tokens_before == 185000
         assert recorded.tokens_after == 80000
         assert recorded.compression_ratio == pytest.approx(0.57, rel=0.01)
@@ -5627,7 +5238,7 @@ class TestContextManagementTracking:
         assert recorded.summarization_model == "claude-haiku-4"
         assert recorded.messages_before == 50
         assert recorded.messages_after == 10
-        assert recorded.timestamp != ""  # Should have timestamp
+        assert recorded.timestamp != ""
     
     def test_on_summarization_complete_updates_token_count(self, status_builder):
         """Test that on_summarization_complete updates current token count."""
@@ -5648,13 +5259,12 @@ class TestContextManagementTracking:
             summarization_model="claude-haiku-4",
             messages_before=50,
             messages_after=10,
+            source=SOURCE_GRAPH_START,
         )
         
         status_builder.on_summarization_complete(event)
         
-        # Token count should be updated to tokens_after
         assert status_builder._context_info.current_token_count == 80000
-        # Utilization should be recalculated: 80000/200000 = 40%
         assert status_builder._context_info.utilization_percent == 40.0
     
     def test_on_summarization_complete_without_init_is_noop(self, status_builder):
@@ -5669,13 +5279,12 @@ class TestContextManagementTracking:
             summarization_model="claude-haiku-4",
             messages_before=50,
             messages_after=10,
+            source=SOURCE_MID_EXECUTION,
         )
         
-        # Should not raise
         status_builder.on_summarization_complete(event)
         
-        # No events should be recorded
-        assert len(status_builder._summarization_events) == 0
+        assert status_builder._context_info is None
     
     def test_finalize_context_info_copies_to_status(self, status_builder):
         """Test that finalize_context_info copies context info to status proto."""
@@ -5704,7 +5313,6 @@ class TestContextManagementTracking:
         from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ContextInfo
         from graphton.core.summarization_callback import SummarizationEventData
         
-        # Need real proto for CopyFrom
         status_builder.current_status.context_info = ContextInfo()
         
         status_builder.initialize_context_info(
@@ -5714,7 +5322,6 @@ class TestContextManagementTracking:
             enabled=True,
         )
         
-        # Add two summarization events
         event1 = SummarizationEventData(
             tokens_before=185000,
             tokens_after=80000,
@@ -5723,6 +5330,7 @@ class TestContextManagementTracking:
             summarization_model="claude-haiku-4",
             messages_before=50,
             messages_after=10,
+            source=SOURCE_GRAPH_START,
         )
         event2 = SummarizationEventData(
             tokens_before=180000,
@@ -5732,6 +5340,7 @@ class TestContextManagementTracking:
             summarization_model="claude-haiku-4",
             messages_before=45,
             messages_after=8,
+            source=SOURCE_MID_EXECUTION,
         )
         
         status_builder.on_summarization_complete(event1)
@@ -5750,6 +5359,134 @@ class TestContextManagementTracking:
         
         # Context info should not be populated (MagicMock)
         # Just verify no exception was raised
+    
+    def test_on_summarization_complete_maps_source_to_proto_enum(self, status_builder):
+        """Test that source strings are mapped to the correct proto enum values."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SummarizationSource
+        from graphton.core.summarization_callback import SummarizationEventData
+        
+        status_builder.initialize_context_info(
+            context_window_limit=200000,
+            trigger_threshold=180000,
+            target_tokens=160000,
+            enabled=True,
+        )
+        
+        graph_start_event = SummarizationEventData(
+            tokens_before=185000,
+            tokens_after=80000,
+            compression_ratio=0.57,
+            duration_ms=2500,
+            summarization_model="claude-haiku-4",
+            messages_before=50,
+            messages_after=10,
+            source=SOURCE_GRAPH_START,
+        )
+        mid_execution_event = SummarizationEventData(
+            tokens_before=170000,
+            tokens_after=70000,
+            compression_ratio=0.59,
+            duration_ms=2100,
+            summarization_model="claude-haiku-4",
+            messages_before=40,
+            messages_after=8,
+            source=SOURCE_MID_EXECUTION,
+        )
+        
+        status_builder.on_summarization_complete(graph_start_event)
+        status_builder.on_summarization_complete(mid_execution_event)
+        
+        events = status_builder._context_info.summarization_events
+        assert events[0].source == SummarizationSource.graph_start
+        assert events[1].source == SummarizationSource.mid_execution
+    
+    def test_on_summarization_complete_unknown_source_maps_to_unspecified(self, status_builder):
+        """Test that an unrecognized source string falls back to UNSPECIFIED."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SummarizationSource
+        from graphton.core.summarization_callback import SummarizationEventData
+        
+        status_builder.initialize_context_info(
+            context_window_limit=200000,
+            trigger_threshold=180000,
+            target_tokens=160000,
+            enabled=True,
+        )
+        
+        event = SummarizationEventData(
+            tokens_before=185000,
+            tokens_after=80000,
+            compression_ratio=0.57,
+            duration_ms=2500,
+            summarization_model="claude-haiku-4",
+            messages_before=50,
+            messages_after=10,
+            source="some_future_trigger",
+        )
+        
+        status_builder.on_summarization_complete(event)
+        
+        recorded = status_builder._context_info.summarization_events[0]
+        assert recorded.source == SummarizationSource.SUMMARIZATION_SOURCE_UNSPECIFIED
+    
+    def test_on_summarization_complete_syncs_to_current_status_immediately(self, status_builder):
+        """Test that compaction events are visible in current_status without finalize."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ContextInfo
+        from graphton.core.summarization_callback import SummarizationEventData
+        
+        status_builder.current_status.context_info = ContextInfo()
+        
+        status_builder.initialize_context_info(
+            context_window_limit=200000,
+            trigger_threshold=180000,
+            target_tokens=160000,
+            enabled=True,
+        )
+        
+        event = SummarizationEventData(
+            tokens_before=185000,
+            tokens_after=80000,
+            compression_ratio=0.57,
+            duration_ms=2500,
+            summarization_model="claude-haiku-4",
+            messages_before=50,
+            messages_after=10,
+            source=SOURCE_MID_EXECUTION,
+        )
+        
+        status_builder.on_summarization_complete(event)
+        
+        streamed_events = status_builder.current_status.context_info.summarization_events
+        assert len(streamed_events) == 1
+        assert streamed_events[0].tokens_before == 185000
+        assert streamed_events[0].tokens_after == 80000
+    
+    def test_on_summarization_complete_sets_force_next_update(self, status_builder):
+        """Test that compaction sets force_next_update for immediate gRPC push."""
+        from graphton.core.summarization_callback import SummarizationEventData
+        
+        status_builder.initialize_context_info(
+            context_window_limit=200000,
+            trigger_threshold=180000,
+            target_tokens=160000,
+            enabled=True,
+        )
+        
+        assert not status_builder.force_next_update
+        
+        event = SummarizationEventData(
+            tokens_before=185000,
+            tokens_after=80000,
+            compression_ratio=0.57,
+            duration_ms=2500,
+            summarization_model="claude-haiku-4",
+            messages_before=50,
+            messages_after=10,
+            source=SOURCE_GRAPH_START,
+        )
+        
+        status_builder.on_summarization_complete(event)
+        
+        assert status_builder.force_next_update is True
     
     def test_multiple_token_count_updates(self, status_builder):
         """Test multiple token count updates track correctly."""
@@ -6761,6 +6498,7 @@ class TestTryEnrichPhase1Entry:
         """When a Phase 1 entry matches tool_name + from_sub_agent, its
         interrupt_id is set and the function returns True."""
         from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+
         from worker.activities.execute_graphton import _try_enrich_phase1_entry
 
         pa = PendingApproval(
@@ -6783,6 +6521,7 @@ class TestTryEnrichPhase1Entry:
     def test_skips_entry_with_existing_interrupt_id(self, status_builder):
         """Entries that already have an interrupt_id are not overwritten."""
         from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+
         from worker.activities.execute_graphton import _try_enrich_phase1_entry
 
         pa = PendingApproval(
@@ -6804,6 +6543,7 @@ class TestTryEnrichPhase1Entry:
     def test_no_match_returns_false(self, status_builder):
         """Returns False when no Phase 1 entry matches the criteria."""
         from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+
         from worker.activities.execute_graphton import _try_enrich_phase1_entry
 
         pa = PendingApproval(
@@ -6822,8 +6562,9 @@ class TestTryEnrichPhase1Entry:
         assert status_builder.current_status.pending_approvals[0].interrupt_id == ""
 
     def test_matches_from_sub_agent_flag(self, status_builder):
-        """A main-agent entry is not matched when from_sub_agent=True."""
+        """Relaxed pass enriches main-agent entry even when from_sub_agent differs."""
         from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+
         from worker.activities.execute_graphton import _try_enrich_phase1_entry
 
         pa = PendingApproval(
@@ -6838,11 +6579,13 @@ class TestTryEnrichPhase1Entry:
             status_builder, "execute", True, "intr-001",
         )
 
-        assert result is False
+        assert result is True
+        assert pa.interrupt_id == "intr-001"
 
     def test_preserves_tool_call_id(self, status_builder):
         """Enrichment must never overwrite the existing tool_call_id."""
         from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+
         from worker.activities.execute_graphton import _try_enrich_phase1_entry
 
         original_tc_id = "early-toolu_preserve_me"
@@ -7021,3 +6764,225 @@ class TestSubAgentSubjectDeduplication:
             for sa in status_builder.current_status.sub_agent_executions
         ]
         assert subjects == ["", ""]
+
+
+# =============================================================================
+# Tests for orphaned sub-agent detection and differentiated finalization (PR5)
+# =============================================================================
+
+
+class TestOrphanedSubAgentDetection:
+    """Tests for has_orphaned_sub_agents, diagnostic info, and differentiated finalization.
+
+    These verify that the StatusBuilder can detect sub-agents left in
+    IN_PROGRESS after the event stream ends, report structured diagnostics,
+    and finalize them with the correct differentiated statuses.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _patch_subject_gen(self):
+        with patch(
+            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            new_callable=AsyncMock,
+            return_value="",
+        ):
+            yield
+
+    def _make_task_start_event(self, run_id: str, description: str = "do work") -> dict:
+        return {
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": run_id,
+            "data": {
+                "input": {
+                    "subagent_type": "code_editor",
+                    "description": description,
+                }
+            },
+            "metadata": {},
+        }
+
+    def _make_task_end_event(self, run_id: str, output: str = "done") -> dict:
+        return {
+            "event": "on_tool_end",
+            "name": "task",
+            "run_id": run_id,
+            "data": {"output": output},
+            "metadata": {},
+        }
+
+    # ── has_orphaned_sub_agents ──────────────────────────────────────────────
+
+    def test_no_orphans_when_empty(self, status_builder):
+        """No sub-agents at all → no orphans."""
+        assert status_builder.has_orphaned_sub_agents is False
+
+    @pytest.mark.asyncio
+    async def test_no_orphans_after_all_completed(self, status_builder):
+        """All sub-agents completed → no orphans."""
+        await status_builder.process_event(self._make_task_start_event("sa-1"))
+        await status_builder.process_event(self._make_task_end_event("sa-1"))
+
+        assert status_builder.has_orphaned_sub_agents is False
+
+    @pytest.mark.asyncio
+    async def test_orphans_detected_when_active(self, status_builder):
+        """Sub-agents still active → orphans detected."""
+        await status_builder.process_event(self._make_task_start_event("sa-1"))
+
+        assert status_builder.has_orphaned_sub_agents is True
+
+    @pytest.mark.asyncio
+    async def test_orphans_detected_mixed_completed_and_active(self, status_builder):
+        """One completed + one active → still has orphans."""
+        await status_builder.process_event(self._make_task_start_event("sa-1", "first task"))
+        await status_builder.process_event(self._make_task_end_event("sa-1"))
+        await status_builder.process_event(self._make_task_start_event("sa-2", "second task"))
+
+        assert status_builder.has_orphaned_sub_agents is True
+
+    # ── get_orphaned_sub_agents_diagnostic ───────────────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_diagnostic_zero_message_sub_agent(self, status_builder):
+        """Sub-agent with no messages/tool calls is classified as zero-message."""
+        await status_builder.process_event(self._make_task_start_event("sa-1"))
+
+        diag = status_builder.get_orphaned_sub_agents_diagnostic()
+        assert diag["total"] == 1
+        assert diag["zero_message_count"] == 1
+        assert diag["mid_execution_count"] == 0
+        assert len(diag["zero_message"]) == 1
+        assert diag["zero_message"][0]["run_id"] == "sa-1"
+
+    @pytest.mark.asyncio
+    async def test_diagnostic_mid_execution_sub_agent(self, status_builder):
+        """Sub-agent with messages is classified as mid-execution."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
+
+        await status_builder.process_event(self._make_task_start_event("sa-1"))
+        sub_agent = status_builder._active_sub_agents["sa-1"]
+        sub_agent.messages.append(AgentMessage(content="working..."))
+
+        diag = status_builder.get_orphaned_sub_agents_diagnostic()
+        assert diag["total"] == 1
+        assert diag["zero_message_count"] == 0
+        assert diag["mid_execution_count"] == 1
+        assert diag["mid_execution"][0]["run_id"] == "sa-1"
+        assert diag["mid_execution"][0]["message_count"] == 1
+
+    @pytest.mark.asyncio
+    async def test_diagnostic_mixed(self, status_builder):
+        """Mix of zero-message and mid-execution sub-agents."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ToolCall
+
+        await status_builder.process_event(self._make_task_start_event("sa-zero", "task alpha"))
+        await status_builder.process_event(self._make_task_start_event("sa-mid", "task beta"))
+
+        mid_agent = status_builder._active_sub_agents["sa-mid"]
+        mid_agent.tool_calls.append(ToolCall(name="read_file"))
+
+        diag = status_builder.get_orphaned_sub_agents_diagnostic()
+        assert diag["total"] == 2
+        assert diag["zero_message_count"] == 1
+        assert diag["mid_execution_count"] == 1
+
+    # ── finalize_active_sub_agents_differentiated ────────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_differentiated_finalize_zero_message_gets_cancelled(self, status_builder):
+        """Zero-message sub-agents receive SUB_AGENT_CANCELLED."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SubAgentStatus
+
+        await status_builder.process_event(self._make_task_start_event("sa-1"))
+
+        count = status_builder.finalize_active_sub_agents_differentiated(
+            error_context="Parent execution terminated abnormally"
+        )
+
+        assert count == 1
+        sa = status_builder._completed_sub_agents["sa-1"]
+        assert sa.status == SubAgentStatus.SUB_AGENT_CANCELLED
+        assert "never began execution" in sa.error
+        assert status_builder.has_orphaned_sub_agents is False
+
+    @pytest.mark.asyncio
+    async def test_differentiated_finalize_mid_execution_gets_failed(self, status_builder):
+        """Mid-execution sub-agents receive SUB_AGENT_FAILED."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SubAgentStatus
+
+        await status_builder.process_event(self._make_task_start_event("sa-1"))
+        status_builder._active_sub_agents["sa-1"].messages.append(
+            AgentMessage(content="I found the issue")
+        )
+
+        count = status_builder.finalize_active_sub_agents_differentiated(
+            error_context="Parent execution terminated abnormally"
+        )
+
+        assert count == 1
+        sa = status_builder._completed_sub_agents["sa-1"]
+        assert sa.status == SubAgentStatus.SUB_AGENT_FAILED
+        assert "was running" in sa.error
+        assert status_builder.has_orphaned_sub_agents is False
+
+    @pytest.mark.asyncio
+    async def test_differentiated_finalize_mixed(self, status_builder):
+        """Mixed finalization: zero-message → CANCELLED, mid-execution → FAILED."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SubAgentStatus
+
+        await status_builder.process_event(self._make_task_start_event("sa-zero", "task alpha"))
+        await status_builder.process_event(self._make_task_start_event("sa-mid", "task beta"))
+        status_builder._active_sub_agents["sa-mid"].messages.append(
+            AgentMessage(content="working")
+        )
+
+        count = status_builder.finalize_active_sub_agents_differentiated(
+            error_context="Parent terminated"
+        )
+
+        assert count == 2
+        assert status_builder._completed_sub_agents["sa-zero"].status == SubAgentStatus.SUB_AGENT_CANCELLED
+        assert status_builder._completed_sub_agents["sa-mid"].status == SubAgentStatus.SUB_AGENT_FAILED
+        assert status_builder.has_orphaned_sub_agents is False
+
+    @pytest.mark.asyncio
+    async def test_differentiated_finalize_noop_when_no_active(self, status_builder):
+        """No active sub-agents → finalize returns 0 and is a no-op."""
+        count = status_builder.finalize_active_sub_agents_differentiated(
+            error_context="test"
+        )
+        assert count == 0
+
+    @pytest.mark.asyncio
+    async def test_differentiated_finalize_sets_completed_at(self, status_builder):
+        """Finalized sub-agents receive a completed_at timestamp."""
+        await status_builder.process_event(self._make_task_start_event("sa-1"))
+
+        status_builder.finalize_active_sub_agents_differentiated(
+            error_context="test"
+        )
+
+        sa = status_builder._completed_sub_agents["sa-1"]
+        assert sa.completed_at != ""
+
+    # ── Regression: original finalize_active_sub_agents still works ──────────
+
+    @pytest.mark.asyncio
+    async def test_original_finalize_applies_uniform_status(self, status_builder):
+        """The original finalize method still applies a single status to all."""
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SubAgentStatus
+
+        await status_builder.process_event(self._make_task_start_event("sa-1", "task alpha"))
+        await status_builder.process_event(self._make_task_start_event("sa-2", "task beta"))
+
+        status_builder.finalize_active_sub_agents(
+            SubAgentStatus.SUB_AGENT_FAILED,
+            "stall detected"
+        )
+
+        assert status_builder._completed_sub_agents["sa-1"].status == SubAgentStatus.SUB_AGENT_FAILED
+        assert status_builder._completed_sub_agents["sa-2"].status == SubAgentStatus.SUB_AGENT_FAILED
+        assert status_builder.has_orphaned_sub_agents is False

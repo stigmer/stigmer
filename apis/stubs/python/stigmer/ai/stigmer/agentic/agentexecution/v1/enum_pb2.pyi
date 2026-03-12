@@ -56,6 +56,12 @@ class ExecutionArtifactKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     EXECUTION_ARTIFACT_KIND_UNSPECIFIED: _ClassVar[ExecutionArtifactKind]
     EXECUTION_ARTIFACT_KIND_FILE: _ClassVar[ExecutionArtifactKind]
     EXECUTION_ARTIFACT_KIND_DIRECTORY: _ClassVar[ExecutionArtifactKind]
+
+class SummarizationSource(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    SUMMARIZATION_SOURCE_UNSPECIFIED: _ClassVar[SummarizationSource]
+    graph_start: _ClassVar[SummarizationSource]
+    mid_execution: _ClassVar[SummarizationSource]
 EXECUTION_PHASE_UNSPECIFIED: ExecutionPhase
 EXECUTION_PENDING: ExecutionPhase
 EXECUTION_IN_PROGRESS: ExecutionPhase
@@ -91,3 +97,6 @@ SUB_AGENT_CANCELLED: SubAgentStatus
 EXECUTION_ARTIFACT_KIND_UNSPECIFIED: ExecutionArtifactKind
 EXECUTION_ARTIFACT_KIND_FILE: ExecutionArtifactKind
 EXECUTION_ARTIFACT_KIND_DIRECTORY: ExecutionArtifactKind
+SUMMARIZATION_SOURCE_UNSPECIFIED: SummarizationSource
+graph_start: SummarizationSource
+mid_execution: SummarizationSource

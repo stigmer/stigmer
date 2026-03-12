@@ -11,9 +11,7 @@ Tests cover:
 from __future__ import annotations
 
 from worker.activities.execute_graphton import (
-    _build_directory_tree,
     _format_entry_description,
-    _human_size,
     build_referenced_files_prompt_section,
     build_workspace_prompt_section,
 )
@@ -22,6 +20,8 @@ from worker.workspace.provisioner import (
     ProvisionResult,
     SourceType,
 )
+from worker.workspace.tree import build_directory_tree as _build_directory_tree
+from worker.workspace.tree import human_size as _human_size
 
 # =============================================================================
 # Helpers

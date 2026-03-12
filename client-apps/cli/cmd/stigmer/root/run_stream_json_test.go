@@ -502,3 +502,51 @@ func TestJSONRenderer_SubAgentCompletedPayload_Cancelled(t *testing.T) {
 		t.Errorf("status: expected SUB_AGENT_CANCELLED, got %v", evt.Payload["status"])
 	}
 }
+
+// =============================================================================
+// Context Compacted Event
+// =============================================================================
+
+func TestJSONRenderer_ContextCompacted_EmitsCorrectPayload(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	events := make(chan executiontui.Event, 10)
+
+	go feedEvents(events,
+		executiontui.ContextCompactedEvent{
+			Source:           "mid_execution",
+			TokensBefore:     185000,
+			TokensAfter:      80000,
+			CompressionRatio: 0.57,
+			DurationMs:       2500,
+			MessagesBefore:   50,
+			MessagesAfter:    10,
+		},
+		executiontui.DoneEvent{Phase: "completed"},
+	)
+
+	renderJSON(context.Background(), jsonRenderConfig{
+		events:            events,
+		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
+		data:              &stdout,
+		status:            &stderr,
+	})
+
+	parsed := parseNDJSON(t, stdout.String())
+	if len(parsed) < 2 {
+		t.Fatalf("expected at least 2 events, got %d", len(parsed))
+	}
+
+	evt := parsed[0]
+	if evt.Type != "context_compacted" {
+		t.Fatalf("expected context_compacted, got %q", evt.Type)
+	}
+	if evt.Payload["source"] != "mid_execution" {
+		t.Errorf("source: expected mid_execution, got %v", evt.Payload["source"])
+	}
+	if v, ok := evt.Payload["tokens_before"].(float64); !ok || int32(v) != 185000 {
+		t.Errorf("tokens_before: expected 185000, got %v", evt.Payload["tokens_before"])
+	}
+	if v, ok := evt.Payload["tokens_after"].(float64); !ok || int32(v) != 80000 {
+		t.Errorf("tokens_after: expected 80000, got %v", evt.Payload["tokens_after"])
+	}
+}

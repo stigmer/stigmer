@@ -86,6 +86,9 @@ class AgentConfig(BaseModel):
     loop_history_size: int = 20
     loop_consecutive_threshold: int = 7
     loop_total_threshold: int = 20
+    # Execution budget warning — percentage of recursion limit at which the
+    # model is asked to wrap up (injected via ExecutionBudgetMiddleware).
+    budget_warning_pct: int = 80
     # Checkpointer for interrupt/resume support (HITL approval flow)
     checkpointer: Any | None = None  # Type is BaseCheckpointSaver but using Any for flexibility
     
@@ -176,9 +179,10 @@ class AgentConfig(BaseModel):
     def validate_recursion_limit(cls, v: int) -> int:
         """Validate recursion limit is reasonable.
         
-        The platform standard is 1000 for the top-level graph. LangGraph's
+        The platform default is 100 for the top-level graph (~50 model+tool
+        rounds in LangGraph super-step terms). LangGraph's
         DEFAULT_RECURSION_LIMIT is 10,000 (as of langgraph 1.0.x), which
-        applies to subagent graphs by default. Values above 5000 are
+        applies to sub-agent graphs by default. Values above 5000 are
         flagged as potentially problematic since they indicate either an
         agent that may run unchecked for a very long time, or a
         misconfiguration.
@@ -196,14 +200,14 @@ class AgentConfig(BaseModel):
         if v <= 0:
             raise ValueError(
                 f"recursion_limit must be positive, got {v}. "
-                "Recommended range: 50-2000 depending on agent complexity."
+                "Recommended range: 50-500 depending on agent complexity."
             )
         if v > 5000:
             import warnings
             warnings.warn(
                 f"recursion_limit of {v} is very high. This may cause long "
                 "execution times or mask infinite loops. Consider values "
-                "between 50-2000 for most agents. The platform standard is 1000.",
+                "between 50-500 for most agents. The platform default is 100.",
                 UserWarning,
                 stacklevel=2,
             )
@@ -449,6 +453,29 @@ class AgentConfig(BaseModel):
                 "The agent may waste resources on futile retries. Recommended range: 10-50.",
                 UserWarning,
                 stacklevel=2
+            )
+        return v
+    
+    @field_validator("budget_warning_pct")
+    @classmethod
+    def validate_budget_warning_pct(cls, v: int) -> int:
+        """Validate budget warning percentage is in a useful range.
+        
+        Args:
+            v: Warning percentage value
+            
+        Returns:
+            Validated warning percentage
+            
+        Raises:
+            ValueError: If value is outside the 50-95 range
+        
+        """
+        if v < 50 or v > 95:
+            raise ValueError(
+                f"budget_warning_pct must be between 50 and 95, got {v}. "
+                "Values below 50 warn too early; values above 95 leave no "
+                "room for the model to wrap up."
             )
         return v
     

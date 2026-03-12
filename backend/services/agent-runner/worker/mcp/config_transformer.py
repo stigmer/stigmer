@@ -115,32 +115,6 @@ class McpConfigResult:
     tools: dict[str, list[str]]
 
 
-def resolve_placeholders(value: str, env_vars: dict[str, str]) -> str:
-    """Resolve ${VAR_NAME} placeholders in a string.
-    
-    Substitutes placeholders with values from the provided environment
-    variables dictionary. Unresolved placeholders are logged as warnings
-    but left unchanged to allow debugging.
-    
-    This function delegates to PlaceholderResolver for consistent behavior.
-    
-    Args:
-        value: String potentially containing ${VAR_NAME} placeholders.
-        env_vars: Dictionary mapping variable names to their values.
-        
-    Returns:
-        String with placeholders resolved where possible.
-        
-    Examples:
-        >>> resolve_placeholders("Bearer ${TOKEN}", {"TOKEN": "abc123"})
-        'Bearer abc123'
-        
-        >>> resolve_placeholders("Hello ${MISSING}", {})
-        'Hello ${MISSING}'
-    """
-    return _resolver.resolve(value, env_vars)
-
-
 def transform_mcp_config(
     server_slug: str,
     spec: McpServerSpec,
