@@ -77,6 +77,12 @@ type inlineBubbleModel struct {
 	// simultaneously. Empty slice means no sub-agent is active.
 	activeSubAgentEntries []subAgentDisplayEntry
 
+	// completedSubAgentEntries holds recently-completed sub-agents that
+	// are briefly shown with a static status indicator (checkmark, X, or
+	// cancel icon) before being dismissed to scrollback. Entries auto-
+	// dismiss after subAgentCompletionVisibleDuration via subAgentDismissMsg.
+	completedSubAgentEntries []completedSubAgentEntry
+
 	// subAgentSpinnerFrame drives the shared spinner animation across
 	// all active sub-agent lines. The tick chain is started by the first
 	// handleSubAgentShow and terminates when the slice becomes empty.
@@ -212,6 +218,8 @@ func (m inlineBubbleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleSubAgentHide(msg)
 	case subAgentCompleteMsg:
 		return m.handleSubAgentComplete(msg)
+	case subAgentDismissMsg:
+		return m.handleSubAgentDismiss(msg)
 	case subAgentToolCountMsg:
 		return m.handleSubAgentToolCount(msg)
 	case subAgentTickMsg:
@@ -231,7 +239,7 @@ func (m inlineBubbleModel) View() tea.View {
 	switch {
 	case m.approvalActive:
 		approvalView := m.approvalContent + approval.RenderMenu(m.approvalSelected, true)
-		if len(m.activeSubAgentEntries) > 0 {
+		if m.hasSubAgentActivity() {
 			content = m.renderSubAgentLine() + "\n\n" + approvalView
 		} else {
 			content = approvalView
@@ -251,8 +259,12 @@ func (m inlineBubbleModel) View() tea.View {
 	case m.followUpActive:
 		content = m.followUpContent
 	case m.aiStreamActive:
-		content = m.aiStreamPartial
-	case len(m.activeSubAgentEntries) > 0:
+		if subAgentView := m.renderSubAgentLine(); subAgentView != "" {
+			content = subAgentView + "\n\n" + m.aiStreamPartial
+		} else {
+			content = m.aiStreamPartial
+		}
+	case m.hasSubAgentActivity():
 		content = m.renderSubAgentLine()
 	case !m.spinnerActive:
 		content = ""
@@ -331,14 +343,15 @@ func (m inlineBubbleModel) renderComposedView() tea.View {
 // the top section of the composed View(). Returns "" when no transient
 // content is active.
 //
-// When an approval prompt is active alongside running sub-agents, both are
-// rendered: the sub-agent stacked view appears above the approval panel so
-// the user retains visual context about all parallel work while deciding.
+// Sub-agent status lines (both active spinners and recently-completed
+// indicators) are shown above the primary content for approval and AI
+// stream cases. This ensures sub-agent completion is visible even when
+// the main agent is streaming its response.
 func (m inlineBubbleModel) renderTransientContent() string {
 	switch {
 	case m.approvalActive:
 		approvalView := m.approvalContent + approval.RenderMenu(m.approvalSelected, true)
-		if len(m.activeSubAgentEntries) > 0 {
+		if m.hasSubAgentActivity() {
 			return m.renderSubAgentLine() + "\n\n" + approvalView
 		}
 		return approvalView
@@ -352,8 +365,11 @@ func (m inlineBubbleModel) renderTransientContent() string {
 		}
 		return formatStreamingView(m.streamingHeader, m.streamingContent, m.streamingSubAgent)
 	case m.aiStreamActive:
+		if subAgentView := m.renderSubAgentLine(); subAgentView != "" {
+			return subAgentView + "\n\n" + m.aiStreamPartial
+		}
 		return m.aiStreamPartial
-	case len(m.activeSubAgentEntries) > 0:
+	case m.hasSubAgentActivity():
 		return m.renderSubAgentLine()
 	case m.spinnerActive:
 		return m.renderSpinnerLine()
@@ -632,10 +648,15 @@ func (m inlineBubbleModel) handleSubAgentHide(msg subAgentHideMsg) (tea.Model, t
 	return m, nil
 }
 
-// handleSubAgentComplete atomically removes a sub-agent from the live
-// View() and commits its scrollback content via tea.Println in a single
-// Update() call. This eliminates the two-frame glitch that occurred when
-// the renderer sent a separate Println + subAgentHideMsg pair.
+// handleSubAgentComplete transitions a sub-agent from the active spinner
+// view to a brief static completion indicator. The entry is moved from
+// activeSubAgentEntries to completedSubAgentEntries with the pre-styled
+// displayLine. A dismiss timer fires after subAgentCompletionVisibleDuration
+// to commit the scrollback and remove the completed entry.
+//
+// When displayLine is empty (fallback for non-Bubbletea paths), the handler
+// commits scrollbackLines immediately — preserving the original atomic
+// hide-and-println behavior.
 func (m inlineBubbleModel) handleSubAgentComplete(msg subAgentCompleteMsg) (tea.Model, tea.Cmd) {
 	for i, e := range m.activeSubAgentEntries {
 		if e.id == msg.id {
@@ -646,10 +667,46 @@ func (m inlineBubbleModel) handleSubAgentComplete(msg subAgentCompleteMsg) (tea.
 	if len(m.activeSubAgentEntries) == 0 {
 		m.subAgentSpinnerFrame = 0
 	}
+
+	if msg.displayLine != "" {
+		m.completedSubAgentEntries = append(m.completedSubAgentEntries, completedSubAgentEntry{
+			id:              msg.id,
+			displayLine:     msg.displayLine,
+			scrollbackLines: msg.scrollbackLines,
+		})
+		return m, tea.Tick(subAgentCompletionVisibleDuration, func(time.Time) tea.Msg {
+			return subAgentDismissMsg{id: msg.id}
+		})
+	}
+
 	if msg.scrollbackLines != "" {
 		return m, tea.Println(msg.scrollbackLines)
 	}
 	return m, nil
+}
+
+// handleSubAgentDismiss commits the deferred scrollback content for a
+// completed sub-agent and removes it from the live display.
+func (m inlineBubbleModel) handleSubAgentDismiss(msg subAgentDismissMsg) (tea.Model, tea.Cmd) {
+	var scrollback string
+	for i, e := range m.completedSubAgentEntries {
+		if e.id == msg.id {
+			scrollback = e.scrollbackLines
+			m.completedSubAgentEntries = append(m.completedSubAgentEntries[:i], m.completedSubAgentEntries[i+1:]...)
+			break
+		}
+	}
+	if scrollback != "" {
+		return m, tea.Println(scrollback)
+	}
+	return m, nil
+}
+
+// hasSubAgentActivity reports whether any sub-agents are visible in the
+// live view — either actively running or recently completed and awaiting
+// dismissal.
+func (m inlineBubbleModel) hasSubAgentActivity() bool {
+	return len(m.activeSubAgentEntries) > 0 || len(m.completedSubAgentEntries) > 0
 }
 
 func (m inlineBubbleModel) handleSubAgentToolCount(msg subAgentToolCountMsg) (tea.Model, tea.Cmd) {
@@ -681,6 +738,10 @@ func (m inlineBubbleModel) handleSubAgentTick() (tea.Model, tea.Cmd) {
 // ~6.7/s significantly cuts terminal write volume and visible flicker.
 const subAgentTickInterval = 150 * time.Millisecond
 
+// subAgentCompletionVisibleDuration is how long a completed sub-agent
+// indicator stays in the live View() before being dismissed to scrollback.
+const subAgentCompletionVisibleDuration = 1500 * time.Millisecond
+
 // nextSubAgentTick returns a Cmd that produces a subAgentTickMsg after one
 // sub-agent tick interval, continuing the tick chain independently of the
 // main thinking spinner.
@@ -690,33 +751,40 @@ func nextSubAgentTick() tea.Cmd {
 	})
 }
 
-// renderSubAgentLine returns the live sub-agent running summary with an
-// animated spinner. When multiple sub-agents are active, each gets its
-// own two-line block, producing a stacked view:
+// renderSubAgentLine returns the live sub-agent status view. Completed
+// entries (static, single-line with status icon) render first, followed
+// by active entries (animated spinner with elapsed time):
 //
-//	"● Sub-agent: Scan auth0-webhooks dependencies"
+//	"● Sub-agent: Analyze auth flow ✓ Done (5 tools)"     ← completed
+//	"● Sub-agent: Scan agent-runner dependencies"           ← active
 //	"  ⠋ Working… 3 tools (12s)"
-//	"● Sub-agent: Scan agent-runner dependencies"
-//	"  ⠋ Working… (5s)"
 func (m inlineBubbleModel) renderSubAgentLine() string {
-	frame := spinner.Frames[m.subAgentSpinnerFrame%len(spinner.Frames)]
-	lines := make([]string, 0, len(m.activeSubAgentEntries))
-	for _, e := range m.activeSubAgentEntries {
-		label := toolrender.Truncate(toolrender.FirstLine(e.subject), 80)
-		if label == "" {
-			label = "running"
-		}
-		header := fmt.Sprintf("%s %s: %s",
-			toolrender.BulletGreen("●"), toolrender.LabelBold("Sub-agent"), label)
-		activity := fmt.Sprintf("  %s %s", frame, systemMsgStyle.Render("Working…"))
-		if e.toolCount > 0 {
-			activity += fmt.Sprintf(" %d tools", e.toolCount)
-		}
-		if e.elapsedStr != "" {
-			activity += " " + e.elapsedStr
-		}
-		lines = append(lines, header+"\n"+activity)
+	lines := make([]string, 0, len(m.completedSubAgentEntries)+len(m.activeSubAgentEntries))
+
+	for _, e := range m.completedSubAgentEntries {
+		lines = append(lines, e.displayLine)
 	}
+
+	if len(m.activeSubAgentEntries) > 0 {
+		frame := spinner.Frames[m.subAgentSpinnerFrame%len(spinner.Frames)]
+		for _, e := range m.activeSubAgentEntries {
+			label := toolrender.Truncate(toolrender.FirstLine(e.subject), 80)
+			if label == "" {
+				label = "running"
+			}
+			header := fmt.Sprintf("%s %s: %s",
+				toolrender.BulletGreen("●"), toolrender.LabelBold("Sub-agent"), label)
+			activity := fmt.Sprintf("  %s %s", frame, systemMsgStyle.Render("Working…"))
+			if e.toolCount > 0 {
+				activity += fmt.Sprintf(" %d tools", e.toolCount)
+			}
+			if e.elapsedStr != "" {
+				activity += " " + e.elapsedStr
+			}
+			lines = append(lines, header+"\n"+activity)
+		}
+	}
+
 	return strings.Join(lines, "\n\n")
 }
 

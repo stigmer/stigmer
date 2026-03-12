@@ -6,25 +6,28 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: in-progress (4 of 5 PRs complete)
-- **Last Session**: March 12, 2026 (Session 4) — Completed PR5 (Detect Abnormal Graph Termination)
+- **Status**: ALL 5 PRs COMPLETE — ready for final review and merge
+- **Last Session**: March 12, 2026 (Session 5) — Completed PR4 (Sub-Agent Completion UX)
 - **Active Task**: T01 — Agent Execution Consistency Guardrails
-- **Committed**: PR3 at `0a4fb06a`, PR1/PR2/PR5 pending commit on `fix/sub-agent-timer-and-tool-count`
+- **Committed**: PR3 at `0a4fb06a`, PR1/PR2/PR5 committed on `fix/sub-agent-timer-and-tool-count`, PR4 pending commit
 
-## Session Progress (2026-03-12, Session 4)
+## Session Progress (2026-03-12, Session 5)
 
-- Completed PR5: Detect Abnormal Graph Termination and Report Accurate Execution Status
-- Deep investigation into production incident `aex-01kkg22yeeez6579b8mcaz5bwt` (56K lines in `_cursor/data.yaml`) — forensic analysis revealed 9 of 14 sub-agents stuck `IN_PROGRESS` at execution completion, some spawned but never executed (zero messages)
-- Architectural analysis confirmed sub-agent execution model is correct (synchronous subgraphs via `interrupt_proxy.py`). The bug is in the observation layer — `execute_graphton.py` cannot distinguish "graph completed normally" from "graph crashed silently"
-- Added `has_orphaned_sub_agents` property and `get_orphaned_sub_agents_diagnostic()` to `StatusBuilder` — detects active sub-agents after stream ends, reports structured diagnostics (zero-message vs mid-execution classification)
-- Added `finalize_active_sub_agents_differentiated()` to `StatusBuilder` — zero-message sub-agents get `SUB_AGENT_CANCELLED`, mid-execution get `SUB_AGENT_FAILED` (original `finalize_active_sub_agents()` preserved for existing error paths)
-- Replaced blind `EXECUTION_COMPLETED` assignment in `execute_graphton.py` with post-stream reconciliation block — checks for orphaned sub-agents before setting final phase, sets `EXECUTION_FAILED` with descriptive error when orphans detected
-- Added 13 comprehensive tests in `TestOrphanedSubAgentDetection` class: orphan detection, diagnostic classification, differentiated finalization, regression for normal completion
-- Plan document: `.cursor/plans/pr5_execution_termination_297b6f35.plan.md`
+- Completed PR4: Fix Sub-Agent Completion UX — make sub-agent completion visible before spinner vanishes
+- Two complementary fixes: (1) staged dismissal with 1.5s completion indicator, (2) sub-agent status visible alongside AI stream
+- Added `completedSubAgentEntries` list with `subAgentDismissMsg` timed auto-dismiss
+- Fixed priority cascade in both `renderTransientContent()` and legacy `View()` — sub-agents now render above AI stream content (same pattern as existing approval case)
+- Added `formatSubAgentCompletionLine()` in renderer — generates pre-styled display line using same visual language as scrollback (checkmark/X/cancel)
+- Modified `renderSubAgentLine()` to render completed entries (static) above active entries (animated spinner)
+- 5 files changed, 397 insertions, 55 deletions
+- 28 tests passing (16 new, 3 rewritten, 9 existing unchanged)
+- Plan document: `.cursor/plans/pr4_sub-agent_completion_ux_b34b1a7e.plan.md`
 
 ## Next Steps
 
-1. **PR4: Fix Sub-Agent Completion UX** — Make completion visible before spinner vanishes. Go CLI Bubbletea work. Files: `run_stream_inline_bubbletea.go`, `run_stream_inline_render.go`
+1. **Commit PR4** — Stage and commit the Go CLI changes
+2. **Final review** — All 5 PRs are complete; review the full changeset across the branch
+3. **Deferred follow-ups** — Compaction notification (from PR2) can be addressed as a separate project
 
 ## Deferred Follow-Ups (from PR2)
 
@@ -46,10 +49,10 @@ These items were intentionally deferred from PR2 to keep it focused on the middl
 
 - The plan is in `tasks/T01_0_plan.md` — DO NOT edit it
 - Design decision for recursion limit value documented in `design-decisions/001-recursion-limit-value.md`
-- Session notes in `checkpoints/2026-03-12-session-1.md` (PR3), `checkpoints/2026-03-12-session-2.md` (PR1), `checkpoints/2026-03-12-session-3.md` (PR2), and `checkpoints/2026-03-12-session-4.md` (PR5)
+- Session notes in `checkpoints/2026-03-12-session-1.md` (PR3), `checkpoints/2026-03-12-session-2.md` (PR1), `checkpoints/2026-03-12-session-3.md` (PR2), `checkpoints/2026-03-12-session-4.md` (PR5), and `checkpoints/2026-03-12-session-5.md` (PR4)
 - The user operates under the **Architect Role** (`_roles/001_architect.md`): high-quality code, challenge assumptions, pause on surprises, collaborate on decisions
 - User explicitly wants: no complacency, no technical debt, pause and collaborate on architectural decisions, challenge when something doesn't align with platform quality
-- PR5 plan with forensic analysis and architectural decisions is in `.cursor/plans/pr5_execution_termination_297b6f35.plan.md`
+- PR4 plan with design rationale is in `.cursor/plans/pr4_sub-agent_completion_ux_b34b1a7e.plan.md`
 
 ## Project: 20260312.01.agent-execution-consistency-guardrails
 
@@ -62,16 +65,16 @@ These items were intentionally deferred from PR2 to keep it focused on the middl
 | PR | Description | Status | Commit |
 |----|-------------|--------|--------|
 | PR3 | Recursion Limit Fix | **DONE** | `0a4fb06a` |
-| PR1 | Loop Detection Middleware Fix | **DONE** | pending commit |
-| PR2 | Mid-Execution Context Compaction | **DONE** | pending commit |
-| PR5 | Premature Completion Fix | **DONE** | pending commit |
-| PR4 | Sub-Agent Completion UX | PENDING | — |
+| PR1 | Loop Detection Middleware Fix | **DONE** | `adc43ff1` |
+| PR2 | Mid-Execution Context Compaction | **DONE** | `12e05d2e` |
+| PR5 | Premature Completion Fix | **DONE** | `5d147959` |
+| PR4 | Sub-Agent Completion UX | **DONE** | pending commit |
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-_projects/2026-03/20260312.01.agent-execution-consistency-guardrails/checkpoints/2026-03-12-session-4.md
+_projects/2026-03/20260312.01.agent-execution-consistency-guardrails/checkpoints/2026-03-12-session-5.md
 ```
 
 ### 2. Current Task Plan
@@ -120,9 +123,10 @@ This project was born from a production incident analysis on 2026-03-12. Key ver
 - **Fixed**: Both overrides removed. Graphton's default of 100 is now the single source of truth.
 - **Added**: `GraphRecursionError` handler for graceful degradation.
 
-### Finding 3: Sub-Agent UI Priority Cascade
-- `renderTransientContent()` in Bubbletea has priority: `approvalActive > streamingActive > aiStreamActive > activeSubAgentEntries`
-- When AI streaming starts, sub-agent entries become invisible immediately
+### Finding 3: Sub-Agent UI Priority Cascade — **FIXED in PR4**
+- **Fixed**: Sub-agent status lines now render above AI stream content in both `renderTransientContent()` and legacy `View()` paths
+- **Fixed**: Sub-agent completion shows a 1.5s static indicator (checkmark/X/cancel) before dismissing to scrollback
+- Previously: `renderTransientContent()` had priority cascade where `aiStreamActive` hid sub-agent entries entirely
 
 ### Finding 4: Premature Completion — **FIXED in PR5**
 - **Fixed**: Post-stream reconciliation detects orphaned sub-agents and sets `EXECUTION_FAILED` with differentiated sub-agent statuses (CANCELLED for zero-message, FAILED for mid-execution)
@@ -134,6 +138,11 @@ This project was born from a production incident analysis on 2026-03-12. Key ver
 - `aafter_model` cannot prevent tool execution for the current turn — the routing edge (`_make_model_to_tools_edge`) checks the last AIMessage, not the last message in state
 - `awrap_tool_call` provides true enforcement by intercepting individual tool calls before execution
 - This two-hook pattern (detection in `aafter_model`, enforcement in `awrap_tool_call`) may also be useful for PR2
+
+### Key Discovery from PR4 Implementation
+- Bubbletea has TWO rendering paths: legacy `View()` (flat switch) and `renderComposedView()` (uses `renderTransientContent()`). Both must be fixed for any priority cascade change.
+- The approval case already renders sub-agents alongside with `renderSubAgentLine() + "\n\n" + approvalView` — the AI stream fix follows the same pattern.
+- `tea.Tick` is the idiomatic way to implement timers in Bubbletea without goroutines.
 
 ### Key Discovery from PR5 Investigation
 - Sub-agent execution model is architecturally correct: sub-agents are synchronous subgraphs invoked via `interrupt_proxy.py` — their failures propagate to the parent as error ToolMessages, identical to how Cursor handles sub-agents
@@ -151,7 +160,6 @@ This project was born from a production incident analysis on 2026-03-12. Key ver
 ## Quick Commands
 
 After loading context:
-- "Start PR4" — Begin with sub-agent completion UX (Go CLI Bubbletea)
 - "Show project status" — Get overview of progress
 - "Work on deferred items" — StatusBuilder + CLI compaction notifications
 

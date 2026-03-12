@@ -1309,10 +1309,10 @@ func TestSubAgentHide_PartialRemoval(t *testing.T) {
 }
 
 // =============================================================================
-// Atomic sub-agent completion tests
+// Sub-agent completion staged dismissal tests
 // =============================================================================
 
-func TestSubAgentCompleteMsg_AtomicHideAndPrintln(t *testing.T) {
+func TestSubAgentCompleteMsg_TransitionsToCompletedList(t *testing.T) {
 	m := newInlineBubbleModel()
 
 	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Scan deps"})
@@ -1321,27 +1321,62 @@ func TestSubAgentCompleteMsg_AtomicHideAndPrintln(t *testing.T) {
 	model = updated.(inlineBubbleModel)
 
 	if len(model.activeSubAgentEntries) != 2 {
-		t.Fatalf("precondition: expected 2 entries, got %d", len(model.activeSubAgentEntries))
+		t.Fatalf("precondition: expected 2 active entries, got %d", len(model.activeSubAgentEntries))
 	}
 
 	updated, cmd := model.Update(subAgentCompleteMsg{
 		id:              "sa-1",
-		scrollbackLines: "● Sub-agent: Scan deps ✓ Done (3 tools)",
+		displayLine:     "● Sub-agent: Scan deps ✓ Done (3 tools)",
+		scrollbackLines: "scrollback content",
 	})
 	model = updated.(inlineBubbleModel)
 
 	if len(model.activeSubAgentEntries) != 1 {
-		t.Fatalf("expected 1 remaining entry after complete, got %d", len(model.activeSubAgentEntries))
+		t.Fatalf("expected 1 remaining active entry, got %d", len(model.activeSubAgentEntries))
 	}
 	if model.activeSubAgentEntries[0].id != "sa-2" {
-		t.Errorf("remaining entry should be sa-2, got %q", model.activeSubAgentEntries[0].id)
+		t.Errorf("remaining active entry should be sa-2, got %q", model.activeSubAgentEntries[0].id)
+	}
+	if len(model.completedSubAgentEntries) != 1 {
+		t.Fatalf("expected 1 completed entry, got %d", len(model.completedSubAgentEntries))
+	}
+	if model.completedSubAgentEntries[0].id != "sa-1" {
+		t.Errorf("completed entry id = %q, want sa-1", model.completedSubAgentEntries[0].id)
+	}
+	if model.completedSubAgentEntries[0].displayLine != "● Sub-agent: Scan deps ✓ Done (3 tools)" {
+		t.Errorf("completed displayLine mismatch")
+	}
+	if model.completedSubAgentEntries[0].scrollbackLines != "scrollback content" {
+		t.Errorf("completed scrollbackLines mismatch")
 	}
 	if cmd == nil {
-		t.Fatal("subAgentCompleteMsg with scrollback content should return a Println Cmd")
+		t.Fatal("subAgentCompleteMsg with displayLine should return a dismiss timer Cmd")
 	}
 }
 
-func TestSubAgentCompleteMsg_NoCmdWhenNoScrollback(t *testing.T) {
+func TestSubAgentCompleteMsg_FallbackWhenNoDisplayLine(t *testing.T) {
+	m := newInlineBubbleModel()
+	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search"})
+	model := updated.(inlineBubbleModel)
+
+	updated, cmd := model.Update(subAgentCompleteMsg{
+		id:              "sa-1",
+		scrollbackLines: "scrollback",
+	})
+	model = updated.(inlineBubbleModel)
+
+	if len(model.activeSubAgentEntries) != 0 {
+		t.Errorf("active entry should be removed, got %d", len(model.activeSubAgentEntries))
+	}
+	if len(model.completedSubAgentEntries) != 0 {
+		t.Errorf("no completed entry should be created without displayLine, got %d", len(model.completedSubAgentEntries))
+	}
+	if cmd == nil {
+		t.Fatal("fallback path with scrollbackLines should return a Println Cmd")
+	}
+}
+
+func TestSubAgentCompleteMsg_NoCmdWhenNoContent(t *testing.T) {
 	m := newInlineBubbleModel()
 	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search"})
 	model := updated.(inlineBubbleModel)
@@ -1352,8 +1387,11 @@ func TestSubAgentCompleteMsg_NoCmdWhenNoScrollback(t *testing.T) {
 	if len(model.activeSubAgentEntries) != 0 {
 		t.Errorf("entry should be removed, got %d", len(model.activeSubAgentEntries))
 	}
+	if len(model.completedSubAgentEntries) != 0 {
+		t.Errorf("no completed entry should be created, got %d", len(model.completedSubAgentEntries))
+	}
 	if cmd != nil {
-		t.Error("subAgentCompleteMsg without scrollback should return nil Cmd")
+		t.Error("subAgentCompleteMsg without any content should return nil Cmd")
 	}
 }
 
@@ -1362,17 +1400,207 @@ func TestSubAgentCompleteMsg_ResetsSpinnerWhenLastAgent(t *testing.T) {
 	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Search"})
 	model := updated.(inlineBubbleModel)
 
-	// Advance spinner frame.
 	updated, _ = model.Update(subAgentTickMsg{})
 	model = updated.(inlineBubbleModel)
 	if model.subAgentSpinnerFrame == 0 {
 		t.Fatal("precondition: spinner frame should have advanced")
 	}
 
-	updated, _ = model.Update(subAgentCompleteMsg{id: "sa-1", scrollbackLines: "done"})
+	updated, _ = model.Update(subAgentCompleteMsg{
+		id:          "sa-1",
+		displayLine: "● Sub-agent: Search ✓ Done (1 tools)",
+	})
 	model = updated.(inlineBubbleModel)
 
 	if model.subAgentSpinnerFrame != 0 {
-		t.Errorf("spinner frame should reset to 0 when last agent completes, got %d", model.subAgentSpinnerFrame)
+		t.Errorf("spinner frame should reset to 0 when last active agent completes, got %d", model.subAgentSpinnerFrame)
+	}
+}
+
+// =============================================================================
+// Sub-agent dismiss tests
+// =============================================================================
+
+func TestSubAgentDismissMsg_CommitsScrollback(t *testing.T) {
+	m := newInlineBubbleModel()
+
+	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Scan deps"})
+	model := updated.(inlineBubbleModel)
+
+	updated, _ = model.Update(subAgentCompleteMsg{
+		id:              "sa-1",
+		displayLine:     "● Sub-agent: Scan deps ✓ Done (3 tools)",
+		scrollbackLines: "scrollback content",
+	})
+	model = updated.(inlineBubbleModel)
+
+	if len(model.completedSubAgentEntries) != 1 {
+		t.Fatalf("precondition: expected 1 completed entry, got %d", len(model.completedSubAgentEntries))
+	}
+
+	updated, cmd := model.Update(subAgentDismissMsg{id: "sa-1"})
+	model = updated.(inlineBubbleModel)
+
+	if len(model.completedSubAgentEntries) != 0 {
+		t.Errorf("completed entry should be removed after dismiss, got %d", len(model.completedSubAgentEntries))
+	}
+	if cmd == nil {
+		t.Fatal("dismiss with scrollback should return a Println Cmd")
+	}
+}
+
+func TestSubAgentDismissMsg_NoCmdWhenNoScrollback(t *testing.T) {
+	m := newInlineBubbleModel()
+
+	m.completedSubAgentEntries = []completedSubAgentEntry{
+		{id: "sa-1", displayLine: "done"},
+	}
+
+	updated, cmd := m.Update(subAgentDismissMsg{id: "sa-1"})
+	model := updated.(inlineBubbleModel)
+
+	if len(model.completedSubAgentEntries) != 0 {
+		t.Errorf("entry should be removed, got %d", len(model.completedSubAgentEntries))
+	}
+	if cmd != nil {
+		t.Error("dismiss without scrollback should return nil Cmd")
+	}
+}
+
+func TestSubAgentDismissMsg_IgnoresUnknownID(t *testing.T) {
+	m := newInlineBubbleModel()
+
+	m.completedSubAgentEntries = []completedSubAgentEntry{
+		{id: "sa-1", displayLine: "done"},
+	}
+
+	updated, cmd := m.Update(subAgentDismissMsg{id: "sa-unknown"})
+	model := updated.(inlineBubbleModel)
+
+	if len(model.completedSubAgentEntries) != 1 {
+		t.Errorf("existing entry should not be removed, got %d", len(model.completedSubAgentEntries))
+	}
+	if cmd != nil {
+		t.Error("dismiss for unknown ID should return nil Cmd")
+	}
+}
+
+// =============================================================================
+// Sub-agent visibility during AI stream tests
+// =============================================================================
+
+func TestView_AIStreamWithActiveSubAgents_ShowsBoth(t *testing.T) {
+	m := newInlineBubbleModel()
+
+	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Analyze code"})
+	model := updated.(inlineBubbleModel)
+
+	model.aiStreamActive = true
+	model.aiStreamPartial = "The analysis shows..."
+
+	view := model.View()
+	if !strings.Contains(view.Content, "Sub-agent") {
+		t.Error("View should show sub-agent line during AI streaming")
+	}
+	if !strings.Contains(view.Content, "The analysis shows...") {
+		t.Error("View should show AI stream partial during AI streaming")
+	}
+}
+
+func TestView_AIStreamWithCompletedSubAgents_ShowsBoth(t *testing.T) {
+	m := newInlineBubbleModel()
+
+	m.completedSubAgentEntries = []completedSubAgentEntry{
+		{id: "sa-1", displayLine: "● Sub-agent: Scan deps ✓ Done (3 tools)"},
+	}
+	m.aiStreamActive = true
+	m.aiStreamPartial = "Based on the scan..."
+
+	view := m.View()
+	if !strings.Contains(view.Content, "✓ Done") {
+		t.Error("View should show completed sub-agent line during AI streaming")
+	}
+	if !strings.Contains(view.Content, "Based on the scan...") {
+		t.Error("View should show AI stream partial")
+	}
+}
+
+func TestRenderTransientContent_AIStreamWithSubAgents(t *testing.T) {
+	m := newInlineBubbleModel()
+
+	updated, _ := m.Update(subAgentShowMsg{id: "sa-1", subject: "Research"})
+	model := updated.(inlineBubbleModel)
+
+	model.aiStreamActive = true
+	model.aiStreamPartial = "Found results"
+
+	content := model.renderTransientContent()
+	if !strings.Contains(content, "Sub-agent") {
+		t.Error("renderTransientContent should include sub-agent lines during AI stream")
+	}
+	if !strings.Contains(content, "Found results") {
+		t.Error("renderTransientContent should include AI stream partial")
+	}
+}
+
+// =============================================================================
+// renderSubAgentLine mixed rendering tests
+// =============================================================================
+
+func TestRenderSubAgentLine_CompletedOnly(t *testing.T) {
+	m := newInlineBubbleModel()
+	m.completedSubAgentEntries = []completedSubAgentEntry{
+		{id: "sa-1", displayLine: "● Sub-agent: Task A ✓ Done (5 tools)"},
+	}
+
+	result := m.renderSubAgentLine()
+	if !strings.Contains(result, "✓ Done (5 tools)") {
+		t.Errorf("should render completed entry, got %q", result)
+	}
+}
+
+func TestRenderSubAgentLine_MixedActiveAndCompleted(t *testing.T) {
+	m := newInlineBubbleModel()
+	m.completedSubAgentEntries = []completedSubAgentEntry{
+		{id: "sa-1", displayLine: "● Sub-agent: Task A ✓ Done (5 tools)"},
+	}
+
+	updated, _ := m.Update(subAgentShowMsg{id: "sa-2", subject: "Task B"})
+	model := updated.(inlineBubbleModel)
+	model.completedSubAgentEntries = m.completedSubAgentEntries
+
+	result := model.renderSubAgentLine()
+	if !strings.Contains(result, "✓ Done (5 tools)") {
+		t.Error("should contain completed entry")
+	}
+	if !strings.Contains(result, "Task B") {
+		t.Error("should contain active entry")
+	}
+	completedIdx := strings.Index(result, "✓ Done")
+	activeIdx := strings.Index(result, "Task B")
+	if completedIdx > activeIdx {
+		t.Error("completed entries should render before active entries")
+	}
+}
+
+func TestHasSubAgentActivity_BothLists(t *testing.T) {
+	m := newInlineBubbleModel()
+
+	if m.hasSubAgentActivity() {
+		t.Error("should be false when both lists empty")
+	}
+
+	m.completedSubAgentEntries = []completedSubAgentEntry{
+		{id: "sa-1", displayLine: "done"},
+	}
+	if !m.hasSubAgentActivity() {
+		t.Error("should be true when completed entries exist")
+	}
+
+	m.completedSubAgentEntries = nil
+	updated, _ := m.Update(subAgentShowMsg{id: "sa-2", subject: "test"})
+	model := updated.(inlineBubbleModel)
+	if !model.hasSubAgentActivity() {
+		t.Error("should be true when active entries exist")
 	}
 }

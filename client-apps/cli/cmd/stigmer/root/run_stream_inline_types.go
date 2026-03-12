@@ -174,6 +174,17 @@ type subAgentDisplayEntry struct {
 	toolCount    int
 }
 
+// completedSubAgentEntry holds a recently-completed sub-agent that is
+// briefly shown in the live View() before being dismissed to scrollback.
+// Active entries are animated (spinner, elapsed time); completed entries
+// are static (checkmark/status icon) and auto-dismiss after a short delay
+// via subAgentDismissMsg.
+type completedSubAgentEntry struct {
+	id              string // matches the original subAgentDisplayEntry.id
+	displayLine     string // pre-styled single-line summary for live View()
+	scrollbackLines string // pre-rendered scrollback content committed on dismiss
+}
+
 // subAgentBlock is the aggregate for a single sub-agent execution. It buffers
 // all internal events (tool completions, AI messages, read groups, approvals)
 // while the sub-agent runs and is committed as a single kindSubAgentBlock
