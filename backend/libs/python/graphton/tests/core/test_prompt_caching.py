@@ -1,10 +1,11 @@
-"""Unit tests for Anthropic prompt caching (Phase 4).
+"""Unit tests for Anthropic prompt caching (Phase 4A + 4B).
 
 Tests cover:
-- _inject_cache_control: system prompt caching (string, list-of-blocks, None)
-- _inject_cache_control: tool definition caching (non-empty, empty, absent)
-- _inject_cache_control: combined system + tool caching
-- _inject_cache_control: idempotency (existing cache_control not overwritten)
+- _inject_cache_control: Layer 1 — system prompt caching (string, list-of-blocks, None)
+- _inject_cache_control: Layer 2 — tool definition caching (non-empty, empty, absent)
+- _inject_cache_control: Layer 3 — automatic conversation caching (top-level cache_control)
+- _inject_cache_control: combined scenarios across all three layers
+- _inject_cache_control: idempotency (existing markers not overwritten)
 - _EagerToolStreamingChatAnthropic: _prompt_caching flag opt-out
 - _EagerToolStreamingChatAnthropic: integration with _get_request_payload
 """
@@ -169,15 +170,69 @@ class TestInjectCacheControlTools:
 
 
 # =============================================================================
-# _inject_cache_control — combined scenarios
+# _inject_cache_control — Layer 3: automatic conversation caching
+# =============================================================================
+
+
+class TestInjectCacheControlAutomatic:
+    """Tests for the top-level cache_control (automatic conversation caching)."""
+
+    def test_top_level_cache_control_set(self):
+        """The top-level cache_control key is added to the payload."""
+        payload = {"messages": [{"role": "user", "content": "Hello"}]}
+        _inject_cache_control(payload)
+        assert payload["cache_control"] == _CACHE_CONTROL_EPHEMERAL
+
+    def test_existing_top_level_cache_control_preserved(self):
+        """An existing top-level cache_control is not overwritten."""
+        custom_cc = {"type": "ephemeral", "ttl": "1h"}
+        payload = {"cache_control": custom_cc}
+        _inject_cache_control(payload)
+        assert payload["cache_control"] is custom_cc
+
+    def test_empty_payload_gets_cache_control(self):
+        """Even a minimal payload gets the top-level cache_control."""
+        payload: dict = {}
+        _inject_cache_control(payload)
+        assert payload["cache_control"] == _CACHE_CONTROL_EPHEMERAL
+
+    def test_messages_not_modified_by_automatic_caching(self):
+        """Automatic caching operates at the top level, not on message blocks."""
+        messages = [
+            {"role": "user", "content": "Hi"},
+            {"role": "assistant", "content": "Hello!"},
+            {"role": "user", "content": [{"type": "tool_result", "content": "OK"}]},
+        ]
+        payload = {"messages": copy.deepcopy(messages)}
+        _inject_cache_control(payload)
+
+        for msg in payload["messages"]:
+            assert "cache_control" not in msg
+            content = msg.get("content")
+            if isinstance(content, list):
+                for block in content:
+                    if isinstance(block, dict):
+                        assert "cache_control" not in block
+
+    def test_idempotent_across_calls(self):
+        """Multiple calls do not change the result."""
+        payload = {"messages": [{"role": "user", "content": "Hello"}]}
+        _inject_cache_control(payload)
+        first = payload["cache_control"]
+        _inject_cache_control(payload)
+        assert payload["cache_control"] is first
+
+
+# =============================================================================
+# _inject_cache_control — combined scenarios (all three layers)
 # =============================================================================
 
 
 class TestInjectCacheControlCombined:
-    """Tests for combined system + tool caching."""
+    """Tests for combined system + tool + automatic caching."""
 
-    def test_both_system_and_tools_get_markers(self):
-        """Both system prompt and tools receive cache_control in a single call."""
+    def test_all_three_layers_applied(self):
+        """System, tools, and top-level cache_control all receive markers."""
         payload = {
             "system": "You are helpful.",
             "tools": [
@@ -193,9 +248,10 @@ class TestInjectCacheControlCombined:
         assert "cache_control" not in payload["tools"][0]
         assert payload["tools"][1]["cache_control"] == _CACHE_CONTROL_EPHEMERAL
         assert "cache_control" not in payload["messages"][0]
+        assert payload["cache_control"] == _CACHE_CONTROL_EPHEMERAL
 
     def test_messages_never_modified(self):
-        """_inject_cache_control does not touch the messages list."""
+        """_inject_cache_control does not touch individual message dicts."""
         messages = [
             {"role": "user", "content": "Hi"},
             {"role": "assistant", "content": "Hello!"},
@@ -211,7 +267,7 @@ class TestInjectCacheControlCombined:
             assert "cache_control" not in msg
 
     def test_realistic_payload(self):
-        """Simulates a realistic Anthropic API payload with system + tools + messages."""
+        """Simulates a realistic Anthropic API payload with all three cache layers."""
         payload = {
             "model": "claude-sonnet-4-20250514",
             "max_tokens": 20000,
@@ -257,6 +313,7 @@ class TestInjectCacheControlCombined:
         assert payload["tools"][1]["eager_input_streaming"] is True
 
         assert payload["messages"] == original_messages
+        assert payload["cache_control"] == _CACHE_CONTROL_EPHEMERAL
 
 
 # =============================================================================
@@ -354,9 +411,16 @@ class TestGetRequestPayloadIntegration:
         assert len(tools) >= 1
         assert tools[-1].get("cache_control") == _CACHE_CONTROL_EPHEMERAL
 
-    def test_opt_out_skips_cache_control(self, model_no_cache):
-        """With _prompt_caching=False, no cache_control is injected."""
+    def test_payload_has_top_level_cache_control(self, model):
+        """The final payload includes the top-level cache_control for automatic caching."""
+        payload = model._get_request_payload(self._build_input())
+        assert payload.get("cache_control") == _CACHE_CONTROL_EPHEMERAL
+
+    def test_opt_out_skips_all_cache_control(self, model_no_cache):
+        """With _prompt_caching=False, no cache_control is injected anywhere."""
         payload = model_no_cache._get_request_payload(self._build_input())
+
+        assert "cache_control" not in payload
 
         system = payload.get("system")
         if isinstance(system, list):
