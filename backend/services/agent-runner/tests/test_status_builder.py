@@ -16,12 +16,12 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
-    AgentMessage,
+from ai.stigmer.agentic.agentexecution.v1.context_pb2 import (
     ContextInfo,
     ResolvedExecutionContext,
-    UsageMetrics,
 )
+from ai.stigmer.agentic.agentexecution.v1.message_pb2 import AgentMessage
+from ai.stigmer.agentic.agentexecution.v1.usage_pb2 import UsageMetrics
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType, ToolCallStatus
 from graphton.core.summarization_callback import SOURCE_GRAPH_START, SOURCE_MID_EXECUTION
 
@@ -1781,7 +1781,7 @@ class TestSubAgentInternals:
     @pytest.mark.asyncio
     async def test_sync_sub_agent_pending_approvals(self, status_builder):
         """PendingApproval is dual-surfaced onto the owning SubAgentExecution."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+        from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
 
         sub_agent_run_id = "task-approval-sync"
         namespace = f"agent_node:{sub_agent_run_id}"
@@ -1838,7 +1838,7 @@ class TestSubAgentInternals:
     @pytest.mark.asyncio
     async def test_sync_skips_main_agent_approvals(self, status_builder):
         """Main-agent PendingApprovals are not duplicated onto any sub-agent."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+        from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
 
         # Start sub-agent (so there's at least one to check)
         await status_builder.process_event({
@@ -1868,7 +1868,7 @@ class TestSubAgentInternals:
     @pytest.mark.asyncio
     async def test_clear_pending_approval_clears_sub_agent(self, status_builder):
         """clear_pending_approval also empties SubAgentExecution.pending_approvals."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+        from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
 
         sub_agent_run_id = "task-clear-test"
         namespace = f"agent_node:{sub_agent_run_id}"
@@ -2205,7 +2205,7 @@ class TestSubAgentScenarios:
     @pytest.mark.asyncio
     async def test_approval_lifecycle_within_sub_agent(self, status_builder):
         """Full round-trip: sub-agent tool needs approval -> dual-surface -> clear -> complete."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+        from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
         from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SubAgentStatus
 
         sa_run_id = "sa-approval-lifecycle"
@@ -2393,7 +2393,7 @@ class TestSubAgentScenarios:
     @pytest.mark.asyncio
     async def test_finalization_clears_sub_agent_pending_approvals(self, status_builder):
         """Parent failure via finalize_active_sub_agents clears pending approvals from sub-agents."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+        from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
         from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SubAgentStatus
 
         sa_run_id = "sa-finalize-approval"
@@ -2459,7 +2459,7 @@ class TestSubAgentScenarios:
     @pytest.mark.asyncio
     async def test_remove_from_pending_resolves_run_id_aliases(self, status_builder):
         """_remove_from_pending uses _run_id_aliases to match reconciliation-path tool calls."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+        from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
 
         sa_run_id = "sa-alias-test"
         namespace = f"agent_node:{sa_run_id}"
@@ -4246,7 +4246,7 @@ class TestPhase54ApprovalClearing:
     @pytest.fixture
     def status_builder_with_pending_approval(self, mock_initial_status):
         """Create StatusBuilder with full pending_approvals state."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval, ToolCall
+        from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval, ToolCall
         from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase, ToolCallStatus
         
         mock_initial_status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS
@@ -6497,7 +6497,7 @@ class TestTryEnrichPhase1Entry:
     def test_enriches_matching_entry(self, status_builder):
         """When a Phase 1 entry matches tool_name + from_sub_agent, its
         interrupt_id is set and the function returns True."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+        from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
 
         from worker.activities.execute_graphton import _try_enrich_phase1_entry
 
@@ -6520,7 +6520,7 @@ class TestTryEnrichPhase1Entry:
 
     def test_skips_entry_with_existing_interrupt_id(self, status_builder):
         """Entries that already have an interrupt_id are not overwritten."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+        from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
 
         from worker.activities.execute_graphton import _try_enrich_phase1_entry
 
@@ -6542,7 +6542,7 @@ class TestTryEnrichPhase1Entry:
 
     def test_no_match_returns_false(self, status_builder):
         """Returns False when no Phase 1 entry matches the criteria."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+        from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
 
         from worker.activities.execute_graphton import _try_enrich_phase1_entry
 
@@ -6563,7 +6563,7 @@ class TestTryEnrichPhase1Entry:
 
     def test_matches_from_sub_agent_flag(self, status_builder):
         """Relaxed pass enriches main-agent entry even when from_sub_agent differs."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+        from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
 
         from worker.activities.execute_graphton import _try_enrich_phase1_entry
 
@@ -6584,7 +6584,7 @@ class TestTryEnrichPhase1Entry:
 
     def test_preserves_tool_call_id(self, status_builder):
         """Enrichment must never overwrite the existing tool_call_id."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import PendingApproval
+        from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
 
         from worker.activities.execute_graphton import _try_enrich_phase1_entry
 

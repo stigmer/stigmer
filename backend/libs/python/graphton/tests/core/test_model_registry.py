@@ -971,3 +971,63 @@ class TestSupportsThinking:
                 f"{model.model_id} has both supports_thinking and "
                 f"supports_adaptive_thinking set to True"
             )
+
+
+# =============================================================================
+# TestGetByApiModelId - Tests for reverse API model ID lookup (Phase 3)
+# =============================================================================
+
+
+class TestGetByApiModelId:
+    """Tests for ModelRegistry.get_by_api_model_id() reverse lookup."""
+
+    def test_lookup_by_explicit_api_model_id(self):
+        """Explicit api_model_id resolves to the correct entry."""
+        metadata = ModelRegistry.get("claude-sonnet-4.6")
+        if metadata.api_model_id:
+            result = ModelRegistry.get_by_api_model_id(metadata.api_model_id)
+            assert result is not None
+            assert result.model_id == "claude-sonnet-4.6"
+
+    def test_lookup_by_platform_model_id(self):
+        """Platform model_id also resolves via the reverse index."""
+        result = ModelRegistry.get_by_api_model_id("claude-sonnet-4.6")
+        assert result is not None
+        assert result.model_id == "claude-sonnet-4.6"
+
+    def test_lookup_unknown_returns_none(self):
+        """Unknown identifiers return None, not KeyError."""
+        assert ModelRegistry.get_by_api_model_id("nonexistent-model-xyz") is None
+
+    def test_ollama_model_resolves(self):
+        """Ollama models (api_model_id is None) resolve by model_id."""
+        if ModelRegistry.is_registered("qwen2.5-coder:7b"):
+            result = ModelRegistry.get_by_api_model_id("qwen2.5-coder:7b")
+            assert result is not None
+            assert result.provider == "ollama"
+
+    def test_openai_model_resolves(self):
+        """OpenAI platform ID resolves correctly."""
+        result = ModelRegistry.get_by_api_model_id("gpt-4o")
+        assert result is not None
+        assert result.provider == "openai"
+
+    def test_index_is_lazily_built(self):
+        """The reverse index is built once and cached."""
+        ModelRegistry._API_MODEL_ID_INDEX = None
+        _ = ModelRegistry.get_by_api_model_id("gpt-4o")
+        assert ModelRegistry._API_MODEL_ID_INDEX is not None
+        index_id = id(ModelRegistry._API_MODEL_ID_INDEX)
+        _ = ModelRegistry.get_by_api_model_id("gpt-4o")
+        assert id(ModelRegistry._API_MODEL_ID_INDEX) == index_id
+
+    def test_all_models_with_api_model_id_resolvable(self):
+        """Every model with an explicit api_model_id can be found via reverse lookup."""
+        for model in ModelRegistry.list_all():
+            if model.api_model_id:
+                result = ModelRegistry.get_by_api_model_id(model.api_model_id)
+                assert result is not None, (
+                    f"api_model_id '{model.api_model_id}' for '{model.model_id}' "
+                    f"not found via get_by_api_model_id"
+                )
+                assert result.model_id == model.model_id

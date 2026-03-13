@@ -15,20 +15,21 @@ from datetime import datetime
 from typing import Any
 from uuid import uuid4
 
-from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
+from ai.stigmer.agentic.agentexecution.v1.api_pb2 import TodoItem
+from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
+from ai.stigmer.agentic.agentexecution.v1.artifact_pb2 import ExecutionArtifact
+from ai.stigmer.agentic.agentexecution.v1.context_pb2 import (
+    ContextInfo,
+    McpServerResolutionStatus,
+    ResolvedExecutionContext,
+    SummarizationEvent,
+)
+from ai.stigmer.agentic.agentexecution.v1.message_pb2 import (
     AgentMessage,
     ComponentMetadata,
-    ContextInfo,
-    ExecutionArtifact,
-    McpServerResolutionStatus,
-    PendingApproval,
-    ResolvedExecutionContext,
-    SubAgentExecution,
-    SummarizationEvent,
-    TodoItem,
     ToolCall,
-    UsageMetrics,
 )
+from ai.stigmer.agentic.agentexecution.v1.subagent_pb2 import SubAgentExecution
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ExecutionPhase,
     MessageType,
@@ -53,6 +54,7 @@ from worker.activities.graphton.approval_policy import (
     render_approval_message,
     resolve_tool_approval,
 )
+from worker.activities.graphton.usage_tracker import MAIN_SCOPE, UsageTracker
 from worker.component_type_inference import infer_component_type
 from worker.config import Config
 
@@ -351,9 +353,8 @@ class StatusBuilder:
         # Key: run_id, Value: start timestamp
         self._tool_start_times: dict[str, datetime] = {}
         
-        # Track accumulated token usage across all LLM calls in this execution
-        self._total_prompt_tokens: int = 0
-        self._total_completion_tokens: int = 0
+        # NOTE: Token accumulators (_total_prompt_tokens, etc.) removed in
+        # Phase 3; all usage tracking now lives in self._usage_tracker.
         
         # ─────────────────────────────────────────────────────────────────────────
         # Sub-Agent Tracking (Phase 2.3)
@@ -394,23 +395,14 @@ class StatusBuilder:
         self._sub_agent_message_start_times: dict[tuple[str, int], datetime] = {}
         
         # ─────────────────────────────────────────────────────────────────────────
-        # Usage Metrics Tracking (Phase 2.4)
+        # Usage & Cost Tracking (Phase 3)
         #
-        # These structures track LLM call counts and model usage for UsageMetrics.
+        # All token accounting, pricing lookups, per-call metrics, per-model
+        # aggregation, and duration tracking are delegated to UsageTracker.
+        # StatusBuilder routes events to it and calls build_usage_metrics()
+        # to obtain the proto.
         # ─────────────────────────────────────────────────────────────────────────
-        
-        # Main agent LLM call counter
-        self._llm_call_count: int = 0
-        
-        # Primary model name (captured from first LLM response)
-        self._primary_model: str = ""
-        
-        # Per-sub-agent usage tracking
-        # Key: sub_agent_id (run_id), Value: accumulated metrics
-        self._sub_agent_llm_call_count: dict[str, int] = {}
-        self._sub_agent_prompt_tokens: dict[str, int] = {}
-        self._sub_agent_completion_tokens: dict[str, int] = {}
-        self._sub_agent_primary_model: dict[str, str] = {}
+        self._usage_tracker = UsageTracker(execution_id)
         
         # ─────────────────────────────────────────────────────────────────────────
         # Approval State Tracking (HITL — Batch Approval)
@@ -428,6 +420,10 @@ class StatusBuilder:
         # Saved execution phase to restore after approval decision
         # (preserves IN_PROGRESS state when transitioning to WAITING_FOR_APPROVAL)
         self._saved_phase_before_approval: int | None = None
+        
+        # Tracks when the execution entered WAITING_FOR_APPROVAL so we can
+        # compute approval_wait_duration_ms on exit.
+        self._approval_wait_started_at: datetime | None = None
         
         # ─────────────────────────────────────────────────────────────────────────
         # Context Management Tracking (Phase 3)
@@ -892,16 +888,21 @@ class StatusBuilder:
 
         now = datetime.utcnow()
         
-        # Calculate execution duration if we tracked the start time (Phase 2.2)
+        # Calculate execution duration if we tracked the start time
         duration_ms = None
         if run_id in self._tool_start_times:
             start_time = self._tool_start_times.pop(run_id)
             duration_ms = int((now - start_time).total_seconds() * 1000)
         
         # ─────────────────────────────────────────────────────────────────────
-        # Namespace-Based Routing (Phase 2.3): Update in correct execution context
+        # Namespace-Based Routing: Update in correct execution context
         # ─────────────────────────────────────────────────────────────────────
         context, sub_agent = self._get_execution_context(namespace)
+        
+        # Record tool duration in UsageTracker
+        if duration_ms is not None:
+            scope = sub_agent.id if sub_agent else MAIN_SCOPE
+            self._usage_tracker.record_tool_duration(duration_ms, scope)
         
         if sub_agent:
             # Update in sub-agent's messages list
@@ -1233,28 +1234,50 @@ class StatusBuilder:
                 generation_duration_ms = int(duration.total_seconds() * 1000)
                 del self._message_start_times[ai_message_index]
         
-        # Extract usage metadata from LangChain response
-        # LangChain models expose this via usage_metadata attribute on the AIMessage
-        prompt_tokens = 0
-        completion_tokens = 0
-        total_tokens = 0
+        # ─────────────────────────────────────────────────────────────────────────
+        # Extract usage metadata from LangChain response (Phase 3)
+        #
+        # LangChain normalises provider token counts into a unified
+        # ``usage_metadata`` structure:
+        #   input_tokens   — TOTAL input including cache (both providers)
+        #   output_tokens  — output / completion tokens
+        #   input_token_details.cache_creation — Anthropic cache writes
+        #   input_token_details.cache_read     — cache reads (both)
+        #
+        # For cost calculation we need four disjoint buckets:
+        #   regular_input = input_tokens - cache_creation - cache_read
+        # ─────────────────────────────────────────────────────────────────────────
+        total_input_tokens = 0
+        output_tokens = 0
+        cache_creation_tokens = 0
+        cache_read_tokens = 0
         model_name = ""
         
-        # Handle both AIMessage objects and dict representations
         if hasattr(output_data, "usage_metadata") and output_data.usage_metadata:
             usage = output_data.usage_metadata
-            prompt_tokens = getattr(usage, "input_tokens", 0) or 0
-            completion_tokens = getattr(usage, "output_tokens", 0) or 0
-            total_tokens = getattr(usage, "total_tokens", 0) or (prompt_tokens + completion_tokens)
+            total_input_tokens = getattr(usage, "input_tokens", 0) or 0
+            output_tokens = getattr(usage, "output_tokens", 0) or 0
+            details = getattr(usage, "input_token_details", None)
+            if details is not None:
+                if isinstance(details, dict):
+                    cache_creation_tokens = details.get("cache_creation", 0) or 0
+                    cache_read_tokens = details.get("cache_read", 0) or 0
+                else:
+                    cache_creation_tokens = getattr(details, "cache_creation", 0) or 0
+                    cache_read_tokens = getattr(details, "cache_read", 0) or 0
         elif isinstance(output_data, dict):
-            # Some models return usage in dict format
             usage = output_data.get("usage_metadata") or output_data.get("usage", {})
             if usage:
-                prompt_tokens = usage.get("input_tokens", 0) or usage.get("prompt_tokens", 0) or 0
-                completion_tokens = usage.get("output_tokens", 0) or usage.get("completion_tokens", 0) or 0
-                total_tokens = usage.get("total_tokens", 0) or (prompt_tokens + completion_tokens)
+                total_input_tokens = usage.get("input_tokens", 0) or usage.get("prompt_tokens", 0) or 0
+                output_tokens = usage.get("output_tokens", 0) or usage.get("completion_tokens", 0) or 0
+                details = usage.get("input_token_details") or {}
+                cache_creation_tokens = details.get("cache_creation", 0) or 0
+                cache_read_tokens = details.get("cache_read", 0) or 0
         
-        # Extract model name if available
+        # Derive the non-cached regular input (disjoint bucket for cost)
+        regular_input_tokens = max(0, total_input_tokens - cache_creation_tokens - cache_read_tokens)
+        
+        # Extract model name from response_metadata
         if hasattr(output_data, "response_metadata"):
             response_meta = output_data.response_metadata
             if isinstance(response_meta, dict):
@@ -1264,17 +1287,13 @@ class StatusBuilder:
             model_name = response_meta.get("model", "") or response_meta.get("model_name", "")
         
         # ─────────────────────────────────────────────────────────────────────────
-        # Finalize AI message streaming state fields (Phase 2.1)
+        # Finalize AI message streaming state fields
         # ─────────────────────────────────────────────────────────────────────────
         ai_message = messages_list[ai_message_index]
         
-        # Mark streaming complete - UI can now show final content
         ai_message.is_streaming = False
+        ai_message.token_count = total_input_tokens + output_tokens
         
-        # Set per-message token count (this message's tokens, not cumulative)
-        ai_message.token_count = prompt_tokens + completion_tokens
-        
-        # Set generation duration if we tracked the start time
         if generation_duration_ms is not None:
             ai_message.generation_duration_ms = generation_duration_ms
         
@@ -1322,53 +1341,49 @@ class StatusBuilder:
             pass
         
         # ─────────────────────────────────────────────────────────────────────────
-        # Update UsageMetrics (Phase 2.4)
+        # Record usage via UsageTracker (Phase 3)
         #
-        # Accumulate tokens and call counts, then build and assign UsageMetrics proto.
-        # Sub-agent and main agent metrics are tracked separately for accurate attribution.
+        # Delegates all token accounting, pricing lookup, cost computation,
+        # LlmCallMetrics construction, and ModelUsage aggregation to the
+        # tracker.  The returned LlmCallMetrics is used to enrich the
+        # AgentMessage with per-message cost and model fields.
         # ─────────────────────────────────────────────────────────────────────────
-        context_info = ""
-        if sub_agent:
-            # Track sub-agent usage (isolated from main agent)
-            sa_id = sub_agent.id
-            self._sub_agent_llm_call_count[sa_id] = self._sub_agent_llm_call_count.get(sa_id, 0) + 1
-            self._sub_agent_prompt_tokens[sa_id] = self._sub_agent_prompt_tokens.get(sa_id, 0) + prompt_tokens
-            self._sub_agent_completion_tokens[sa_id] = self._sub_agent_completion_tokens.get(sa_id, 0) + completion_tokens
-            
-            # Capture primary model (first model used by this sub-agent)
-            if not self._sub_agent_primary_model.get(sa_id) and model_name:
-                self._sub_agent_primary_model[sa_id] = model_name
-            
-            # Update sub-agent's usage proto progressively
-            sub_agent.usage.CopyFrom(self._build_sub_agent_usage(sa_id))
-            context_info = f"sub_agent={sa_id} "
-        else:
-            # Track main agent usage
-            self._total_prompt_tokens += prompt_tokens
-            self._total_completion_tokens += completion_tokens
-            self._llm_call_count += 1
-            
-            # Capture primary model (first model used by main agent)
-            if not self._primary_model and model_name:
-                self._primary_model = model_name
-            
-            # Update main agent's usage proto progressively
-            self.current_status.usage.CopyFrom(self._build_usage_metrics())
+        scope = sub_agent.id if sub_agent else MAIN_SCOPE
         
-        # Structured logging for observability
-        self.logger.info(
-            f"[USAGE] execution={self.execution_id} {context_info}"
-            f"prompt_tokens={prompt_tokens} "
-            f"completion_tokens={completion_tokens} "
-            f"total_tokens={total_tokens} "
-            f"duration_ms={generation_duration_ms or 'N/A'} "
-            f"model={model_name or 'unknown'} "
-            f"llm_call_count={self._sub_agent_llm_call_count.get(sub_agent.id, 0) if sub_agent else self._llm_call_count}"
+        call_metrics = self._usage_tracker.record_llm_call(
+            model_name=model_name,
+            input_tokens=regular_input_tokens,
+            output_tokens=output_tokens,
+            cache_creation_tokens=cache_creation_tokens,
+            cache_read_tokens=cache_read_tokens,
+            duration_ms=generation_duration_ms,
+            timestamp=_utc_timestamp(),
+            scope=scope,
         )
         
+        # Enrich AgentMessage with per-message cost and model info
+        ai_message.input_tokens = regular_input_tokens
+        ai_message.output_tokens = output_tokens
+        ai_message.cache_read_tokens = cache_read_tokens
+        ai_message.estimated_cost_usd = call_metrics.estimated_cost_usd
+        ai_message.model = model_name
+        
+        # Update the usage proto progressively
+        if sub_agent:
+            sub_agent.usage.CopyFrom(self._usage_tracker.build_usage_metrics(scope))
+        else:
+            self.current_status.usage.CopyFrom(
+                self._usage_tracker.build_usage_metrics(MAIN_SCOPE)
+            )
+        
         self.logger.debug(
-            f"AI message finalized at index {ai_message_index} {context_info}"
-            f"(tokens: {total_tokens}, duration: {generation_duration_ms}ms)"
+            "AI message finalized at index %d scope=%s "
+            "(tokens: %d, cost: $%.6f, duration: %sms)",
+            ai_message_index,
+            scope,
+            total_input_tokens + output_tokens,
+            call_metrics.estimated_cost_usd,
+            generation_duration_ms or "N/A",
         )
     
     # Helper methods
@@ -2086,6 +2101,14 @@ class StatusBuilder:
         for sa in self.current_status.sub_agent_executions:
             del sa.pending_approvals[:]
 
+        # Record approval wait duration before restoring phase
+        if self._approval_wait_started_at is not None:
+            wait_ms = int(
+                (datetime.utcnow() - self._approval_wait_started_at).total_seconds() * 1000
+            )
+            self._usage_tracker.record_approval_wait(wait_ms, MAIN_SCOPE)
+            self._approval_wait_started_at = None
+        
         # Restore phase (default to IN_PROGRESS if not saved)
         if self._saved_phase_before_approval is not None:
             self.current_status.phase = self._saved_phase_before_approval
@@ -2218,6 +2241,7 @@ class StatusBuilder:
         # clear_pending_approval() can restore it correctly.
         if self._saved_phase_before_approval is None:
             self._saved_phase_before_approval = self.current_status.phase
+            self._approval_wait_started_at = datetime.utcnow()
         self.current_status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
         
         # Track pending approval state
@@ -2872,49 +2896,40 @@ class StatusBuilder:
         return total
 
     # ─────────────────────────────────────────────────────────────────────────────
-    # Usage Metrics Builders (Phase 2.4)
+    # Usage Metrics (Phase 3 — delegated to UsageTracker)
     # ─────────────────────────────────────────────────────────────────────────────
     
-    def _build_usage_metrics(self) -> UsageMetrics:
-        """
-        Build UsageMetrics proto for main agent.
-        
-        Creates a UsageMetrics instance containing accumulated token usage
-        and LLM call statistics for the main agent's direct calls.
-        
-        Returns:
-            UsageMetrics proto with current accumulated values
-        """
-        return UsageMetrics(
-            prompt_tokens=self._total_prompt_tokens,
-            completion_tokens=self._total_completion_tokens,
-            total_tokens=self._total_prompt_tokens + self._total_completion_tokens,
-            llm_call_count=self._llm_call_count,
-            primary_model=self._primary_model,
-        )
+    @property
+    def usage_tracker(self) -> UsageTracker:
+        """Expose tracker for external callers that need cost or call count."""
+        return self._usage_tracker
     
-    def _build_sub_agent_usage(self, sub_agent_id: str) -> UsageMetrics:
+    def finalize_usage(self) -> None:
+        """Compute total duration and stamp final usage metrics onto the status.
+
+        Called once when the execution reaches a terminal phase (completed,
+        failed, or cancelled).  Parses the ISO 8601 ``started_at`` /
+        ``completed_at`` timestamps already on the status proto to derive
+        ``total_duration_ms``, then builds the final ``UsageMetrics``.
         """
-        Build UsageMetrics proto for a specific sub-agent.
+        started = self.current_status.started_at
+        completed = self.current_status.completed_at
+        if started and completed:
+            try:
+                t_start = datetime.fromisoformat(started.replace("Z", "+00:00"))
+                t_end = datetime.fromisoformat(completed.replace("Z", "+00:00"))
+                total_ms = int((t_end - t_start).total_seconds() * 1000)
+                self._usage_tracker.set_total_duration(MAIN_SCOPE, max(0, total_ms))
+            except (ValueError, TypeError):
+                pass
         
-        Creates a UsageMetrics instance containing accumulated token usage
-        and LLM call statistics for a sub-agent's direct calls.
-        
-        Args:
-            sub_agent_id: The run_id of the sub-agent
-            
-        Returns:
-            UsageMetrics proto with current accumulated values for the sub-agent
-        """
-        prompt = self._sub_agent_prompt_tokens.get(sub_agent_id, 0)
-        completion = self._sub_agent_completion_tokens.get(sub_agent_id, 0)
-        return UsageMetrics(
-            prompt_tokens=prompt,
-            completion_tokens=completion,
-            total_tokens=prompt + completion,
-            llm_call_count=self._sub_agent_llm_call_count.get(sub_agent_id, 0),
-            primary_model=self._sub_agent_primary_model.get(sub_agent_id, ""),
+        self.current_status.usage.CopyFrom(
+            self._usage_tracker.build_usage_metrics(MAIN_SCOPE)
         )
+        
+        # Also finalize usage for all sub-agents
+        for sa in self.current_status.sub_agent_executions:
+            sa.usage.CopyFrom(self._usage_tracker.build_usage_metrics(sa.id))
     
     # ─────────────────────────────────────────────────────────────────────────────
     # Resolved Execution Context (Phase 2.5)
@@ -3073,13 +3088,25 @@ class StatusBuilder:
             messages_before=event.messages_before,
             messages_after=event.messages_after,
             source=proto_source,  # type: ignore[arg-type]
+            summarization_input_tokens=event.summarization_input_tokens,
+            summarization_output_tokens=event.summarization_output_tokens,
+            summarization_cost_usd=event.summarization_cost_usd,
         )
         self._context_info.summarization_events.append(proto_event)
+        
+        # Record summarization cost in UsageTracker so it flows into
+        # the total estimated_cost_usd.
+        self._usage_tracker.record_summarization(event, MAIN_SCOPE)
         
         self._context_info.current_token_count = event.tokens_after
         self._update_utilization()
         self._sync_context_info()
         self.force_next_update = True
+        
+        # Update the usage proto progressively to reflect the new cost
+        self.current_status.usage.CopyFrom(
+            self._usage_tracker.build_usage_metrics(MAIN_SCOPE)
+        )
         
         self.logger.info(
             f"[CONTEXT] execution={self.execution_id} "
@@ -3087,7 +3114,8 @@ class StatusBuilder:
             f"{event.tokens_before} -> {event.tokens_after} tokens "
             f"({event.compression_ratio * 100:.1f}% reduction), "
             f"duration={event.duration_ms}ms, "
-            f"model={event.summarization_model}"
+            f"model={event.summarization_model}, "
+            f"summarization_cost=${'%.6f' % event.summarization_cost_usd}"
         )
     
     def on_token_count_updated(self, token_count: int) -> None:

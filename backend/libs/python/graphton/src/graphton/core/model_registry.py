@@ -642,6 +642,74 @@ class ModelRegistry:
         ),
     }
     
+    _API_MODEL_ID_INDEX: ClassVar[dict[str, ModelMetadata] | None] = None
+    
+    @classmethod
+    def _ensure_api_model_id_index(cls) -> dict[str, ModelMetadata]:
+        """Build (once) and return the reverse index from API model IDs to metadata.
+        
+        The index maps every identifier a provider might return at runtime
+        back to the canonical ``ModelMetadata``.  Three sources are merged:
+        
+        1. Explicit ``api_model_id`` values (e.g. ``claude-sonnet-4-6``).
+        2. Platform ``model_id`` keys (e.g. ``claude-sonnet-4.6``).
+        3. For entries where ``api_model_id is None`` the ``model_id``
+           doubles as the API identifier (Ollama, some OpenAI models).
+        
+        When a platform ``model_id`` collides with an ``api_model_id`` the
+        explicit ``api_model_id`` wins so the fast-path ``get(model_id)``
+        remains authoritative for platform lookups.
+        """
+        if cls._API_MODEL_ID_INDEX is not None:
+            return cls._API_MODEL_ID_INDEX
+        
+        index: dict[str, ModelMetadata] = {}
+        for metadata in cls._MODELS.values():
+            # Every model_id is also a valid lookup key
+            index[metadata.model_id] = metadata
+            if metadata.api_model_id is not None:
+                # Explicit API ID overrides any collision with model_id
+                index[metadata.api_model_id] = metadata
+        
+        cls._API_MODEL_ID_INDEX = index
+        return index
+    
+    @classmethod
+    def get_by_api_model_id(cls, api_model_id: str) -> ModelMetadata | None:
+        """Look up metadata by the model identifier a provider returns at runtime.
+        
+        Provider responses contain API-level model IDs (e.g.
+        ``claude-sonnet-4-6``, ``gpt-4o-2024-08-06``) rather than
+        platform-canonical IDs (``claude-sonnet-4.6``, ``gpt-4o``).
+        This method resolves either form to the registry entry in O(1)
+        via a lazily-built reverse index.
+        
+        Args:
+            api_model_id: Model identifier from a provider response or
+                a platform-canonical model ID.
+        
+        Returns:
+            The matching ``ModelMetadata``, or ``None`` if no entry
+            matches.
+        
+        Example:
+            >>> # By API model ID
+            >>> m = ModelRegistry.get_by_api_model_id("claude-sonnet-4-6")
+            >>> m.model_id
+            'claude-sonnet-4.6'
+            >>> 
+            >>> # By platform model ID (also works)
+            >>> m = ModelRegistry.get_by_api_model_id("gpt-4o")
+            >>> m.provider
+            'openai'
+            >>> 
+            >>> # Unknown returns None
+            >>> ModelRegistry.get_by_api_model_id("unknown-model-xyz") is None
+            True
+        
+        """
+        return cls._ensure_api_model_id_index().get(api_model_id)
+    
     @classmethod
     def get(cls, model_id: str) -> ModelMetadata:
         """Get metadata for a registered model.

@@ -71,6 +71,7 @@ from graphton.core.summarization_callback import (
     SummarizationCallback,
     SummarizationEventData,
 )
+from graphton.core.model_registry import ModelRegistry
 from graphton.core.token_counter import TokenCounter
 
 if TYPE_CHECKING:
@@ -83,6 +84,31 @@ logger = logging.getLogger(__name__)
 
 # Key for storing running summary in checkpointer state
 RUNNING_SUMMARY_STATE_KEY = "_context_running_summary"
+
+
+class _SummarizationUsageCapture:
+    """Lightweight LangChain callback handler that captures token usage.
+
+    Attached to the summarization model via ``with_config(callbacks=[...])``
+    so that when LangMem internally invokes the model, we can intercept
+    ``on_llm_end`` and extract ``usage_metadata``.
+    """
+
+    def __init__(self) -> None:
+        self.input_tokens: int = 0
+        self.output_tokens: int = 0
+
+    def on_llm_end(self, response: Any, **kwargs: Any) -> None:  # noqa: ANN401
+        for gen_list in getattr(response, "generations", []):
+            for gen in gen_list:
+                msg = getattr(gen, "message", None)
+                if msg is None:
+                    continue
+                usage = getattr(msg, "usage_metadata", None)
+                if usage is None:
+                    continue
+                self.input_tokens += getattr(usage, "input_tokens", 0) or 0
+                self.output_tokens += getattr(usage, "output_tokens", 0) or 0
 
 
 class ContextSummarizationMiddleware(AgentMiddleware):
@@ -162,6 +188,11 @@ class ContextSummarizationMiddleware(AgentMiddleware):
         self._compactions_performed: int = 0
         self._overflow_imminent: bool = False
         self._mid_execution_warning_issued: bool = False
+        
+        # Summarization LLM usage captured from the most recent call
+        self._last_summarization_input_tokens: int = 0
+        self._last_summarization_output_tokens: int = 0
+        self._last_summarization_cost_usd: float = 0.0
         
         logger.info(
             "ContextSummarizationMiddleware initialized: enabled=%s, "
@@ -296,6 +327,9 @@ class ContextSummarizationMiddleware(AgentMiddleware):
                         messages_before=messages_before,
                         messages_after=len(summarized_messages),
                         source=SOURCE_GRAPH_START,
+                        summarization_input_tokens=self._last_summarization_input_tokens,
+                        summarization_output_tokens=self._last_summarization_output_tokens,
+                        summarization_cost_usd=self._last_summarization_cost_usd,
                     )
                     self._callback.on_summarization_complete(event)
                     self._callback.on_token_count_updated(new_token_count)
@@ -408,6 +442,9 @@ class ContextSummarizationMiddleware(AgentMiddleware):
                         messages_before=len(messages),
                         messages_after=len(compacted_messages),
                         source=SOURCE_MID_EXECUTION,
+                        summarization_input_tokens=self._last_summarization_input_tokens,
+                        summarization_output_tokens=self._last_summarization_output_tokens,
+                        summarization_cost_usd=self._last_summarization_cost_usd,
                     )
                     self._callback.on_summarization_complete(event)
                     self._callback.on_token_count_updated(new_token_count)
@@ -608,13 +645,9 @@ class ContextSummarizationMiddleware(AgentMiddleware):
             Exception: If summarization fails completely.
         
         """
-        # Ensure all messages have IDs (LangMem requirement)
         messages_with_ids = ensure_message_ids(messages)
-        
-        # Get summarization model
         model = self._create_summarization_model()
         
-        # Import langmem here to allow graceful failure if not installed
         try:
             from langmem.short_term import summarize_messages
         except ImportError as e:
@@ -623,41 +656,63 @@ class ContextSummarizationMiddleware(AgentMiddleware):
                 "Install with: pip install langmem"
             ) from e
         
-        # Call LangMem summarization
+        # Wrap model with a usage-capturing callback so we can extract
+        # the summarization LLM call's token consumption.
+        usage_capture = _SummarizationUsageCapture()
+        model_with_callback = model.with_config(callbacks=[usage_capture])
+        
         result = summarize_messages(
             messages=messages_with_ids,
             running_summary=self._running_summary,
-            model=model,
+            model=model_with_callback,
             max_tokens=self.config.target_tokens,
             max_tokens_before_summary=self.config.trigger_threshold,
             max_summary_tokens=self.config.max_summary_tokens,
         )
         
-        # Update running summary
+        # Stash captured usage for the event builder to pick up
+        self._last_summarization_input_tokens = usage_capture.input_tokens
+        self._last_summarization_output_tokens = usage_capture.output_tokens
+        self._last_summarization_cost_usd = self._compute_summarization_cost(
+            usage_capture.input_tokens,
+            usage_capture.output_tokens,
+        )
+        
         if hasattr(result, 'running_summary'):
             self._running_summary = result.running_summary
         
-        # Extract summary text
         summary_text = extract_summary_from_result(result)
         
-        # Build the new message list
         new_messages = self._build_summarized_messages(
             original_messages=messages,
             result_messages=getattr(result, 'messages', []),
             summary_text=summary_text,
         )
         
-        # Update internal stats
         self._summarization_count += 1
         self._last_summarization_time = time.time()
         
         logger.debug(
-            "Summarization produced %d messages from %d original",
+            "Summarization produced %d messages from %d original "
+            "(llm_input=%d, llm_output=%d, cost=$%.6f)",
             len(new_messages),
             len(messages),
+            usage_capture.input_tokens,
+            usage_capture.output_tokens,
+            self._last_summarization_cost_usd,
         )
         
         return new_messages
+    
+    def _compute_summarization_cost(
+        self, input_tokens: int, output_tokens: int,
+    ) -> float:
+        """Compute USD cost for a summarization LLM call."""
+        metadata = ModelRegistry.get_or_default(self.config.summarization_model)
+        return (
+            input_tokens * (metadata.input_price_per_million or 0.0)
+            + output_tokens * (metadata.output_price_per_million or 0.0)
+        ) / 1_000_000
     
     def _create_summarization_model(self) -> BaseChatModel:
         """Create the LangChain model instance for summarization.

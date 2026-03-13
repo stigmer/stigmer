@@ -13,90 +13,88 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: In Progress
-- **Last Session**: 2026-03-13 — Phase 2 (Model Pricing Registry) completed
-- **Active Task**: T01 Phases 1-2 complete, Phase 3 next
+- **Last Session**: 2026-03-13 — Phase 3 (Usage Metrics Population Pipeline) completed
+- **Active Task**: Phase 3 complete. Next: Phase 3 Cleanup → Phase 3B → Phase 4
 - **Branch**: `feat/usage-metrics-and-cost-optimization`
 
-## Session Progress (2026-03-13, Session 2)
+## Session Progress (2026-03-13, Session 3)
 
-### Phase 2: Model Pricing Registry — COMPLETED
+### Phase 3: Usage Metrics Population Pipeline — COMPLETED
 
-Extended `ModelMetadata` with cache-aware pricing fields and fixed a unit mislabeling:
+Built the complete runtime pipeline that transforms raw LangGraph events into accurate, cost-enriched usage metrics. Seven steps implemented:
 
-1. **Fixed pricing field naming**: Renamed `input_cost_per_1k` / `output_cost_per_1k` to `input_price_per_million` / `output_price_per_million`. The fields stored per-million-token pricing but the names said "per_1k" — a bug factory for Phase 3 cost calculation. Now the Python field names match the proto `ModelUsage` field names exactly (zero-conversion stamping).
+1. **Investigation spike**: Verified LangChain `usage_metadata` semantics — `input_tokens` is total input (including cached), `input_token_details.cache_creation`/`cache_read` provide the breakdown. Cost formula validated for both Anthropic and OpenAI.
 
-2. **Added cache pricing fields**: Two new fields on `ModelMetadata`:
-   - `cache_creation_price_per_million` — cost to write tokens to provider cache
-   - `cache_read_price_per_million` — cost to read tokens from provider cache
+2. **ModelRegistry reverse lookup**: Added `get_by_api_model_id()` with a lazily-initialized reverse index. Resolves provider API model IDs (e.g., `claude-sonnet-4-6`) to `ModelMetadata` for pricing lookups. O(1) after first call.
 
-3. **Populated cache pricing for all 22 models**:
-   - 8 Anthropic models: cache creation = 1.25x input (5-min ephemeral TTL), cache read = 0.1x input
-   - 7 OpenAI models: cache creation = 1x input (automatic, no write premium), cache read = 0.5x input
-   - 7 Ollama models: None (local, no cost, no caching)
+3. **UsageTracker class** (NEW — `usage_tracker.py`, ~385 lines): Encapsulates all token accounting, pricing lookup, per-call metrics construction, per-model aggregation, duration tracking, and proto assembly. Scope-based isolation (main agent + sub-agents), pricing stamped at call time.
 
-4. **Added 9 new tests** in `TestCachePricing` class — verifying provider-specific multiplier rules, spot-check values, and default behavior for unknown models
+4. **StatusBuilder integration**: Delegated usage tracking from StatusBuilder to UsageTracker. Extracted cache tokens from `usage_metadata.input_token_details`. Enriched `AgentMessage` with `input_tokens`, `output_tokens`, `cache_read_tokens`, `estimated_cost_usd`, `model`. Removed 8 redundant accumulator fields and 2 helper methods.
 
-5. **Updated engineering docs** (`adding-new-models.md`) — renamed field references, added cache pricing to optional fields table and PR checklist, added "Cache Pricing Reference" section
+5. **Duration breakdown**: `llm_duration_ms` from LLM calls, `tool_duration_ms` from tool execution, `approval_wait_duration_ms` from HITL waits, `total_duration_ms` from started_at/completed_at. All tracked per-scope.
 
-### Key Decisions Made
-- **5-minute ephemeral TTL pricing for Anthropic**: Anthropic offers two cache TTLs (5-min at 1.25x, 1-hour at 2.0x). We store the 5-minute pricing as default since that's what `cache_control: {"type": "ephemeral"}` uses, which Phase 4 will implement.
-- **Explicit per-model cache prices over derived multipliers**: Each model entry stores its own cache prices rather than deriving from provider rules. Self-documenting and allows for model-specific exceptions.
-- **Unit alignment between Python and proto**: Both use per-million. `ModelMetadata.input_price_per_million` maps directly to `ModelUsage.input_price_per_million` — same name, same unit.
+6. **Summarization cost capture**: Created `_SummarizationUsageCapture` callback handler to intercept hidden LLM calls in graphton's `_perform_summarization()`. Extended `SummarizationEventData` with `summarization_input_tokens`, `summarization_output_tokens`, `summarization_cost_usd`.
 
-### Files Modified (3 files, +213 -51)
-- `backend/libs/python/graphton/src/graphton/core/model_registry.py` — field rename, new fields, cache pricing data
-- `backend/libs/python/graphton/tests/core/test_model_registry.py` — field rename, 9 new cache pricing tests
-- `docs/engineering/adding-new-models.md` — renamed fields, cache pricing docs, common mistakes
+7. **Tests**: 35 new tests — 23 for UsageTracker, 7 for ModelRegistry reverse lookup, 5 for summarization token capture. All pass.
 
-### Pre-existing Issue Noted
-Tests reference `claude-haiku-4` which does not exist in the registry (only `claude-haiku-4.5` exists). Causes 8 pre-existing test failures across `test_model_registry.py`, `test_summarization_middleware.py`, `test_summarization.py`. Not introduced by Phase 2 work.
+### Discoveries During Phase 3
 
-## Session Progress (2026-03-13, Session 1)
+- **Proto import migration needed**: Phase 1's file split moved messages to separate `_pb2.py` modules but Python imports were never updated. Fixed 3 production files; remaining test imports documented as cleanup task.
+- **LangChain cache semantics verified**: `input_tokens` includes cached tokens (total input). Non-cached regular input = `input_tokens - cache_creation - cache_read`.
+- **StatusBuilder extraction was essential**: At 3,200 lines, adding cost logic directly would have been unmaintainable. UsageTracker provides clean separation.
 
-### Phase 1: Schema Foundation — COMPLETED
+### Files Changed (11 files, +486 -160)
 
-All 6 tasks completed successfully:
+**New**:
+- `backend/services/agent-runner/worker/activities/graphton/usage_tracker.py`
+- `backend/services/agent-runner/tests/test_usage_tracker.py`
 
-1. **File Reorganization**: Split `api.proto` (1084 lines, 16 messages) into 7 focused files within the same `ai.stigmer.agentic.agentexecution.v1` package:
-   - `api.proto` → `AgentExecution`, `AgentExecutionStatus`, `TodoItem` (~230 lines)
-   - `message.proto` → `AgentMessage`, `ToolCall`, `ComponentMetadata`
-   - `subagent.proto` → `SubAgentExecution`
-   - `usage.proto` → `UsageMetrics`, `ModelUsage`, `LlmCallMetrics`
-   - `context.proto` → `ResolvedExecutionContext`, `McpServerResolutionStatus`, `SummarizationEvent`, `ContextInfo`
-   - `approval.proto` → `PendingApproval`, `ChildApprovalNotification`
-   - `artifact.proto` → `ExecutionArtifact`
-   - `ApprovalAction` enum moved to `enum.proto`
-
-2. **New Usage Types**: Added `ModelUsage` (12 fields) and `LlmCallMetrics` (10 fields) to `usage.proto`
-
-3. **Enriched Existing Messages**:
-   - `UsageMetrics`: fields 6-16 (cache tokens, model_breakdown, estimated_cost_usd, tool_result_chars_truncated, llm_calls, 4 duration fields, primary_provider)
-   - `SummarizationEvent`: fields 10-12 (summarization LLM call usage)
-   - `AgentMessage`: fields 9-13 (per-message cost and model)
-   - `ResolvedExecutionContext`: field 4 (excluded_skill_names)
-
-4. **Config & SubAgent**: Added `max_tool_result_chars` (field 4) and `max_cost_usd` (field 5) to `ExecutionConfig`; added `model_override` (field 6) to `SubAgent`
-
-5. **Usage Report Types**: Added 6 request/response messages and 4 supporting types to `io.proto`
-
-6. **RPCs + Build Verification**: Registered 3 RPCs in `query.proto` (getSessionUsageReport, getAgentUsageReport, getOrgUsageReport). `buf build` and `buf lint` pass. `buf breaking --use PACKAGE` passes (FILE-level flags expected due to file reorg).
+**Modified**:
+- `backend/libs/python/graphton/src/graphton/core/model_registry.py`
+- `backend/libs/python/graphton/src/graphton/core/summarization_callback.py`
+- `backend/libs/python/graphton/src/graphton/core/summarization_middleware.py`
+- `backend/libs/python/graphton/tests/core/test_model_registry.py`
+- `backend/libs/python/graphton/tests/core/test_summarization_middleware.py`
+- `backend/services/agent-runner/worker/activities/graphton/status_builder.py`
+- `backend/services/agent-runner/worker/activities/execute_graphton.py`
+- `backend/services/agent-runner/worker/tools/publish_artifact.py`
+- `backend/services/agent-runner/tests/test_status_builder.py`
 
 ## Next Steps
 
-Phase 3 and beyond from the T01 plan:
-1. **Phase 3: Agent-Runner — Populate New Fields** — Extract cache token counts from LangChain `usage_metadata`, look up pricing from Model Registry, compute `estimated_cost_usd`, populate `ModelUsage` and `LlmCallMetrics`, track duration breakdown, implement tool result truncation and cost cap checking
-2. **Phase 4: Agent-Runner — Prompt Caching** — Restructure prompt construction with `cache_control` breakpoints, verify cache hit rates
-3. **Phase 5: Server — Usage Report RPCs** — Implement getSessionUsageReport, getAgentUsageReport, getOrgUsageReport handlers
-4. **Phase 6: CLI — Usage Display & Commands** — Add `stigmer usage` commands
+Pick up in this order:
+
+### Immediate: Phase 3 Cleanup (2-3 hours)
+**Task file**: `tasks/T01_3_cleanup_proto_imports.md`
+
+Fix remaining proto import migration in `test_status_builder.py` (18 inline imports) and `test_git_diff_artifact.py`. Update 12 old StatusBuilder usage tests to use the new UsageTracker-delegated API. This unblocks the full agent-runner test suite.
+
+### Next: Phase 3B — Tool Result Truncation & Cost Cap (1-2 days)
+**Task file**: `tasks/T01_3B_tool_truncation_and_cost_cap.md`
+
+Two runtime optimization features deferred from Phase 3:
+1. Tool result truncation (`max_tool_result_chars`) — prevent oversized tool outputs from inflating context
+2. Cost cap checking (`max_cost_usd`) — stop runaway executions. Warn at 80%, terminate at 100%
+
+Both consume `ExecutionConfig` proto fields from Phase 1 and depend on the running cost tracking from Phase 3.
+
+### Then: Remaining T01 Phases
+3. **Phase 4: Prompt Caching** — Restructure prompt construction with `cache_control` breakpoints
+4. **Phase 5: Server — Usage Report RPCs** — Implement getSessionUsageReport, getAgentUsageReport, getOrgUsageReport
+5. **Phase 6: CLI — Usage Display & Commands** — Add `stigmer usage` commands
+6. **Phase 7: Sub-Agent Model Routing** — Wire `model_override`
 
 ## Context for Resume
-- Proto stubs already regenerated (done before Phase 2)
-- `ModelMetadata` now has 4 pricing fields: `input_price_per_million`, `output_price_per_million`, `cache_creation_price_per_million`, `cache_read_price_per_million` — all matching proto `ModelUsage` field names exactly
-- Phase 3 can now call `ModelRegistry.get_or_default(model_name)` and stamp pricing directly to `ModelUsage` with zero conversion
-- Cost formula: `estimated_cost_usd = (input * input_price + output * output_price + cache_creation * creation_price + cache_read * read_price) / 1_000_000`
-- The `buf breaking` check with `FILE` mode will flag the file reorg as "breaking" — expected and safe. Use `--config '..PACKAGE..'` to verify no wire-level breaking changes.
-- Plan file: `_projects/2026-03/20260313.01.usage-metrics-cost-optimization/tasks/T01_0_plan.md`
-- Phase 2 plan: `.cursor/plans/model_pricing_registry_bb49c144.plan.md`
+
+- `UsageTracker` is in `backend/services/agent-runner/worker/activities/graphton/usage_tracker.py`. StatusBuilder owns it via `self._usage_tracker`.
+- `ModelRegistry.get_by_api_model_id()` resolves provider API model IDs to `ModelMetadata` for pricing. Uses a lazy reverse index.
+- `SummarizationEventData` now carries `summarization_input_tokens`, `summarization_output_tokens`, `summarization_cost_usd`.
+- `_SummarizationUsageCapture` callback handler captures hidden LLM usage from LangMem's `summarize_messages()`.
+- Cost formula: `(regular_input * input_price + output * output_price + cache_creation * creation_price + cache_read * read_price) / 1_000_000`
+- LangChain `input_tokens` = total input (including cached). Regular input = `input_tokens - cache_creation - cache_read`.
+- Proto stubs were regenerated via `make protos`. Python imports in production code are fixed; test imports partially remain on old paths.
+- Phase 3 plan: `.cursor/plans/phase_3_usage_metrics_4044b9fe.plan.md`
+- T01 master plan: `tasks/T01_0_plan.md`
 
 ## Essential Files to Review
 
