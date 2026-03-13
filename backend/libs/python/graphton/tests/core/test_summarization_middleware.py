@@ -84,7 +84,7 @@ class TestModelCreation:
             
             model = middleware._create_summarization_model()
             
-            mock.assert_called_once_with("claude-haiku-4")
+            mock.assert_called_once_with("claude-haiku-4.5")
             assert model == mock_model
 
     def test_create_openai_model_success(self, openai_config):
@@ -123,7 +123,7 @@ class TestModelCreationImportErrors:
         
         with patch.dict('sys.modules', {'langchain_anthropic': None}):
             with pytest.raises(ImportError) as exc_info:
-                middleware._create_anthropic_model("claude-haiku-4")
+                middleware._create_anthropic_model("claude-haiku-4.5")
             
             assert "langchain-anthropic" in str(exc_info.value)
             assert "pip install" in str(exc_info.value)
@@ -256,7 +256,7 @@ class TestSelectRecentMessages:
             trigger_threshold=200,
             target_tokens=100,  # Small target
             max_summary_tokens=20,
-            summarization_model="claude-haiku-4",
+            summarization_model="claude-haiku-4.5",
             token_counter_method=TokenCounterMethod.APPROXIMATE,
         )
         middleware = ContextSummarizationMiddleware(config=config)
@@ -286,7 +286,7 @@ class TestSelectRecentMessages:
             trigger_threshold=200,
             target_tokens=20,  # Very small target
             max_summary_tokens=5,
-            summarization_model="claude-haiku-4",
+            summarization_model="claude-haiku-4.5",
             token_counter_method=TokenCounterMethod.APPROXIMATE,
         )
         middleware = ContextSummarizationMiddleware(config=config)
@@ -309,7 +309,7 @@ class TestSelectRecentMessages:
             trigger_threshold=200,
             target_tokens=100,
             max_summary_tokens=20,
-            summarization_model="claude-haiku-4",
+            summarization_model="claude-haiku-4.5",
             token_counter_method=TokenCounterMethod.APPROXIMATE,
         )
         middleware = ContextSummarizationMiddleware(config=config)
@@ -872,7 +872,7 @@ def _compaction_config(
         trigger_threshold=trigger_threshold,
         target_tokens=target_tokens,
         max_summary_tokens=20,
-        summarization_model="claude-haiku-4",
+        summarization_model="claude-haiku-4.5",
         token_counter_method=TokenCounterMethod.APPROXIMATE,
     )
 
@@ -1016,7 +1016,7 @@ class TestAwrapModelCall:
         event = received_events[0]
         assert event.tokens_before > event.tokens_after
         assert event.compression_ratio > 0
-        assert event.summarization_model == "claude-haiku-4"
+        assert event.summarization_model == "claude-haiku-4.5"
 
     @pytest.mark.asyncio
     async def test_callback_error_does_not_break_compaction(self, config):
@@ -1441,7 +1441,7 @@ class TestSummarizationEventDataExtendedFields:
             tokens_after=5000,
             compression_ratio=0.5,
             duration_ms=1000,
-            summarization_model="claude-haiku-4.5",
+            summarization_model="claude-haiku-4.5.5",
             messages_before=20,
             messages_after=5,
             source="graph_start",
@@ -1459,7 +1459,7 @@ class TestSummarizationEventDataExtendedFields:
             tokens_after=5000,
             compression_ratio=0.5,
             duration_ms=1000,
-            summarization_model="claude-haiku-4.5",
+            summarization_model="claude-haiku-4.5.5",
             messages_before=20,
             messages_after=5,
             source="graph_start",
