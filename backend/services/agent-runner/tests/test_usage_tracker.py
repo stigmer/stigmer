@@ -10,6 +10,7 @@ Tests cover:
 - Unknown model: falls back to defaults, zero pricing = zero cost
 - Summarization: cost included in total
 - build_usage_metrics idempotency (pure read, no side effects)
+- Tool result truncation: record_tool_truncation accumulation + proto field
 """
 
 from __future__ import annotations
@@ -540,3 +541,56 @@ class TestPricingStamped:
         assert m.output_price_per_million > 0
         assert m.cache_creation_price_per_million >= 0
         assert m.cache_read_price_per_million >= 0
+
+
+# ---------------------------------------------------------------------------
+# Tool result truncation (Phase 3B)
+# ---------------------------------------------------------------------------
+
+
+class TestToolTruncation:
+    """Tests for record_tool_truncation and proto field population."""
+
+    def test_single_truncation(self, tracker: UsageTracker):
+        tracker.record_tool_truncation(5_000)
+        usage = tracker.build_usage_metrics()
+        assert usage.tool_result_chars_truncated == 5_000
+
+    def test_multiple_truncations_accumulate(self, tracker: UsageTracker):
+        tracker.record_tool_truncation(3_000)
+        tracker.record_tool_truncation(7_000)
+        tracker.record_tool_truncation(500)
+        usage = tracker.build_usage_metrics()
+        assert usage.tool_result_chars_truncated == 10_500
+
+    def test_no_truncation_defaults_to_zero(self, tracker: UsageTracker):
+        usage = tracker.build_usage_metrics()
+        assert usage.tool_result_chars_truncated == 0
+
+    def test_truncation_scoped_to_main(self, tracker: UsageTracker):
+        tracker.record_tool_truncation(1_000, scope=MAIN_SCOPE)
+        tracker.record_tool_truncation(2_000, scope="sub-agent-1")
+
+        main_usage = tracker.build_usage_metrics(scope=MAIN_SCOPE)
+        sub_usage = tracker.build_usage_metrics(scope="sub-agent-1")
+
+        assert main_usage.tool_result_chars_truncated == 1_000
+        assert sub_usage.tool_result_chars_truncated == 2_000
+
+    def test_truncation_alongside_llm_calls(self, tracker: UsageTracker):
+        """Truncation tracking doesn't interfere with cost tracking."""
+        tracker.record_llm_call(
+            model_name="claude-sonnet-4.6",
+            input_tokens=100,
+            output_tokens=10,
+            cache_creation_tokens=0,
+            cache_read_tokens=0,
+            duration_ms=500,
+            timestamp="2026-03-13T10:00:00Z",
+        )
+        tracker.record_tool_truncation(8_000)
+
+        usage = tracker.build_usage_metrics()
+        assert usage.tool_result_chars_truncated == 8_000
+        assert usage.llm_call_count == 1
+        assert usage.estimated_cost_usd > 0

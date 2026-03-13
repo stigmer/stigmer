@@ -1409,6 +1409,29 @@ async def _execute_graphton_impl(
                 clamped_rounds, recursion_limit,
             )
         
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Extract Phase 3B config: tool truncation + cost cap (from ExecutionConfig).
+        #
+        # max_tool_result_chars: 0 = platform default (30K). Always active.
+        # max_cost_usd: 0.0 = no cap.  When > 0, requires pricing from ModelRegistry.
+        # ─────────────────────────────────────────────────────────────────────────────
+        max_tool_result_chars = 0
+        max_cost_usd = 0.0
+        if execution.spec.HasField("execution_config"):
+            max_tool_result_chars = execution.spec.execution_config.max_tool_result_chars
+            max_cost_usd = execution.spec.execution_config.max_cost_usd
+
+        if max_tool_result_chars > 0:
+            activity_logger.info(
+                "Tool result truncation from execution config: max_chars=%d",
+                max_tool_result_chars,
+            )
+        if max_cost_usd > 0.0:
+            activity_logger.info(
+                "Cost cap from execution config: max_cost_usd=$%.2f",
+                max_cost_usd,
+            )
+
         # Get sandbox configuration from worker config
         setup_timer.start("sandbox")
         sandbox_config = worker_config.get_sandbox_config(session_id=session_id)
@@ -2038,6 +2061,39 @@ async def _execute_graphton_impl(
             enabled=summarization_config.enabled,
         )
         
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Step 5.9: Build cost pricing for cost cap middleware (Phase 3B)
+        #
+        # Extract pricing rates from ModelRegistry for the primary model.
+        # The cost cap middleware uses these for rough cost estimation.
+        # Only built when max_cost_usd > 0 (otherwise no cap middleware).
+        # ─────────────────────────────────────────────────────────────────────────────
+        cost_pricing: dict[str, float] | None = None
+        if max_cost_usd > 0.0:
+            cost_pricing = {
+                "input_price_per_million": model_metadata.input_price_per_million or 0.0,
+                "output_price_per_million": model_metadata.output_price_per_million or 0.0,
+                "cache_read_price_per_million": model_metadata.cache_read_price_per_million or 0.0,
+            }
+            activity_logger.info(
+                "Cost pricing for cap middleware: input=$%.2f/MTok, "
+                "output=$%.2f/MTok, cache_read=$%.2f/MTok",
+                cost_pricing["input_price_per_million"],
+                cost_pricing["output_price_per_million"],
+                cost_pricing["cache_read_price_per_million"],
+            )
+
+        # Build truncation callback to wire middleware → UsageTracker (Phase 3B).
+        # The callback is invoked each time the tool truncation middleware
+        # truncates a tool result, forwarding the character count to the
+        # usage tracker for accumulation in UsageMetrics.tool_result_chars_truncated.
+        from worker.activities.graphton.usage_tracker import MAIN_SCOPE
+
+        def _on_tool_truncation(tool_name: str, chars_truncated: int) -> None:
+            status_builder.usage_tracker.record_tool_truncation(
+                chars_truncated, MAIN_SCOPE,
+            )
+
         # Step 6: Create Graphton agent at runtime with EXISTING sandbox
         # Note: MCP servers are passed if configured, providing external tool access
         setup_timer.start("agent_creation")
@@ -2317,6 +2373,10 @@ async def _execute_graphton_impl(
             approval_checker=approval_checker,
             summarization_config=summarization_config,
             summarization_callback=status_builder,
+            max_tool_result_chars=max_tool_result_chars,
+            tool_truncation_callback=_on_tool_truncation,
+            max_cost_usd=max_cost_usd,
+            cost_pricing=cost_pricing,
             **llm_kwargs,
         )
         if recursion_limit is not None:
