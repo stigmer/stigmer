@@ -17,8 +17,10 @@ from langchain_core.tools import BaseTool
 from langgraph.graph.state import CompiledStateGraph
 from pydantic import ValidationError
 
+from graphton.core.cost_cap import CostCapMiddleware
 from graphton.core.execution_budget import ExecutionBudgetMiddleware
 from graphton.core.loop_detection import LoopDetectionMiddleware
+from graphton.core.tool_truncation import ToolTruncationMiddleware
 from graphton.core.models import parse_model_string
 from graphton.core.prompt_enhancement import enhance_user_instructions
 from graphton.core.think_tool import create_think_tool
@@ -62,6 +64,12 @@ def create_deep_agent(
     summarization_config: "SummarizationConfig | None" = None,
     # Callback for summarization events (Phase 3)
     summarization_callback: "SummarizationCallback | None" = None,
+    # Tool result truncation (Phase 3B)
+    max_tool_result_chars: int = 0,
+    tool_truncation_callback: "Callable[[str, int], None] | None" = None,
+    # Cost cap (Phase 3B)
+    max_cost_usd: float = 0.0,
+    cost_pricing: "dict[str, float] | None" = None,
     **model_kwargs: Any,  # noqa: ANN401
 ) -> CompiledStateGraph:
     """Create a Deep Agent with minimal boilerplate.
@@ -177,6 +185,20 @@ def create_deep_agent(
             - on_summarization_complete(event: SummarizationEventData) -> None
             - on_token_count_updated(token_count: int) -> None
             Used for observability integration (e.g., StatusBuilder in agent-runner).
+        max_tool_result_chars: Maximum characters per tool result before
+            truncation.  0 (default) uses the platform default (30 000 chars
+            ≈ 7 500 tokens).  Always active — protects against context blowup
+            from uncapped MCP tools and large shell output.
+        tool_truncation_callback: Optional callback invoked on each truncation.
+            Receives ``(tool_name: str, chars_truncated: int)``.  Used by
+            agent-runner to accumulate ``UsageMetrics.tool_result_chars_truncated``.
+        max_cost_usd: Maximum estimated cost in USD for this execution.
+            0.0 (default) means no cost cap.  When set, a warning is injected
+            at 80 % of the budget and tools are blocked at 100 %.
+        cost_pricing: Pricing rates for cost cap estimation.  Required when
+            ``max_cost_usd > 0``.  Dict with keys: ``input_price_per_million``,
+            ``output_price_per_million``, and optionally
+            ``cache_read_price_per_million``.
         **model_kwargs: Additional model-specific parameters to pass to the model
             constructor (e.g., top_p, top_k for Anthropic).
     
@@ -403,6 +425,50 @@ def create_deep_agent(
         )
         middleware_list.append(execution_budget)
     
+    # Auto-inject tool truncation middleware (Phase 3B).
+    # Always active — enforces a per-tool-result character ceiling to prevent
+    # context blowup.  max_tool_result_chars=0 means "use platform default
+    # (30K)", not "disable".
+    from graphton.core.tool_truncation import _DEFAULT_MAX_CHARS as _DEFAULT_TRUNCATION
+    effective_max_chars = max_tool_result_chars if max_tool_result_chars > 0 else _DEFAULT_TRUNCATION
+    tool_truncation = ToolTruncationMiddleware(
+        max_chars=effective_max_chars,
+        on_truncation=tool_truncation_callback,
+    )
+    middleware_list.append(tool_truncation)
+    logger.info(
+        "Tool truncation middleware enabled: max_chars=%d%s",
+        effective_max_chars,
+        " (platform default)" if max_tool_result_chars == 0 else "",
+    )
+
+    # Auto-inject cost cap middleware when max_cost_usd is configured (Phase 3B).
+    # Only injected when a positive cost cap is set.  Warns at 80% of the
+    # budget, blocks tools at 100%, and gives the model one final round to
+    # summarise before the graph terminates naturally.
+    if max_cost_usd > 0.0:
+        if not cost_pricing:
+            logger.warning(
+                "max_cost_usd=$%.2f set but no cost_pricing provided — "
+                "cost cap middleware will NOT be injected. "
+                "Provide cost_pricing with input/output rates.",
+                max_cost_usd,
+            )
+        else:
+            cost_cap = CostCapMiddleware(
+                max_cost_usd=max_cost_usd,
+                input_price_per_million=cost_pricing["input_price_per_million"],
+                output_price_per_million=cost_pricing["output_price_per_million"],
+                cache_read_price_per_million=cost_pricing.get(
+                    "cache_read_price_per_million", 0.0,
+                ),
+            )
+            middleware_list.append(cost_cap)
+            logger.info(
+                "Cost cap middleware enabled: max_cost=$%.2f",
+                max_cost_usd,
+            )
+
     # Auto-inject summarization middleware if configured
     # This manages context window size by summarizing conversation history
     # when token count exceeds the model's threshold.

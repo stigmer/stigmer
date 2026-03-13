@@ -95,6 +95,9 @@ class _ScopeState:
     # Summarization cost attributed to this scope
     summarization_cost_usd: float = 0.0
 
+    # Tool result truncation tracking (Phase 3B)
+    tool_chars_truncated: int = 0
+
 
 # ---------------------------------------------------------------------------
 # Public API
@@ -322,6 +325,12 @@ class UsageTracker:
             event, "summarization_cost_usd", 0.0
         )
 
+    # -- Tool truncation recording ---------------------------------------------
+
+    def record_tool_truncation(self, chars_truncated: int, scope: str = MAIN_SCOPE) -> None:
+        """Accumulate characters truncated from tool results."""
+        self._scope(scope).tool_chars_truncated += chars_truncated
+
     # -- Queries --------------------------------------------------------------
 
     def get_estimated_cost(self, scope: str = MAIN_SCOPE) -> float:
@@ -375,6 +384,7 @@ class UsageTracker:
             cache_read_tokens=total_cache_read,
             model_breakdown=model_breakdown,
             estimated_cost_usd=total_cost,
+            tool_result_chars_truncated=state.tool_chars_truncated,
             llm_calls=list(state.llm_calls),
             total_duration_ms=state.total_duration_ms,
             llm_duration_ms=state.llm_duration_ms,
