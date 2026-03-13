@@ -182,8 +182,8 @@ class TestModelRegistryGet:
 
     def test_get_claude_haiku_4(self):
         """Test getting Claude Haiku 4 metadata."""
-        metadata = ModelRegistry.get("claude-haiku-4")
-        assert metadata.model_id == "claude-haiku-4"
+        metadata = ModelRegistry.get("claude-haiku-4.5")
+        assert metadata.model_id == "claude-haiku-4.5"
         assert metadata.cost_tier == CostTier.ECONOMY
 
     def test_get_gpt_4(self):
@@ -296,19 +296,19 @@ class TestModelRegistryGetSummarizationModel:
     """Tests for ModelRegistry.get_summarization_model() method."""
 
     def test_anthropic_uses_haiku(self):
-        """Test that Anthropic models use claude-haiku-4 for summarization."""
+        """Test that Anthropic models use claude-haiku-4.5 for summarization."""
         summarizer = ModelRegistry.get_summarization_model("claude-opus-4")
-        assert summarizer == "claude-haiku-4"
+        assert summarizer == "claude-haiku-4.5"
 
     def test_anthropic_sonnet_uses_haiku(self):
         """Test that Claude Sonnet uses Haiku for summarization."""
         summarizer = ModelRegistry.get_summarization_model("claude-sonnet-4.5")
-        assert summarizer == "claude-haiku-4"
+        assert summarizer == "claude-haiku-4.5"
 
     def test_anthropic_haiku_uses_haiku(self):
         """Test that Claude Haiku uses itself for summarization."""
-        summarizer = ModelRegistry.get_summarization_model("claude-haiku-4")
-        assert summarizer == "claude-haiku-4"
+        summarizer = ModelRegistry.get_summarization_model("claude-haiku-4.5")
+        assert summarizer == "claude-haiku-4.5"
 
     def test_openai_uses_gpt4o_mini(self):
         """Test that OpenAI models use gpt-4o-mini for summarization."""
@@ -358,7 +358,7 @@ class TestModelRegistryListByProvider:
         model_ids = [m.model_id for m in models]
         assert "claude-opus-4" in model_ids
         assert "claude-sonnet-4.5" in model_ids
-        assert "claude-haiku-4" in model_ids
+        assert "claude-haiku-4.5" in model_ids
 
     def test_list_openai_models(self):
         """Test listing all OpenAI models."""
@@ -492,7 +492,7 @@ class TestModelRegistryGetEconomyModels:
         """Test that Claude Haiku models are included."""
         models = ModelRegistry.get_economy_models()
         model_ids = [m.model_id for m in models]
-        assert "claude-haiku-4" in model_ids
+        assert "claude-haiku-4.5" in model_ids
 
     def test_includes_gpt4o_mini(self):
         """Test that GPT-4o Mini is included."""
@@ -679,8 +679,8 @@ class TestModelMetadataGetApiModelId:
 
     def test_anthropic_haiku_returns_api_id(self):
         """Test that Claude Haiku returns its api_model_id."""
-        metadata = ModelRegistry.get("claude-haiku-4")
-        assert metadata.get_api_model_id() == "claude-haiku-4-20250313"
+        metadata = ModelRegistry.get("claude-haiku-4.5")
+        assert metadata.get_api_model_id() == "claude-haiku-4-5-20251001"
 
     def test_anthropic_sonnet_3_5_returns_api_id(self):
         """Test that Claude Sonnet 3.5 returns its api_model_id."""
@@ -792,7 +792,7 @@ class TestModelRegistryResolve:
         expected = {
             "claude-opus-4": "claude-opus-4-20250514",
             "claude-sonnet-4.5": "claude-sonnet-4-5-20250929",
-            "claude-haiku-4": "claude-haiku-4-20250313",
+            "claude-haiku-4.5": "claude-haiku-4-5-20251001",
             "claude-sonnet-3.5": "claude-3-5-sonnet-20241022",
             "claude-haiku-3.5": "claude-3-5-haiku-20241022",
         }
@@ -940,7 +940,7 @@ class TestSupportsThinking:
         )
 
     @pytest.mark.parametrize("model_id", [
-        "claude-haiku-4",
+        "claude-haiku-4.5",
         "claude-sonnet-3.5",
         "claude-haiku-3.5",
     ])

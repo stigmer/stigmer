@@ -650,10 +650,10 @@ def _check_and_handle_approval(
         
     Returns:
         - None: No approval needed OR user approved - proceed with execution
-        - str: Skip message - return this instead of executing the tool
+        - str: Skip/reject message - return this instead of executing the tool.
+            Returned for skip, reject, and unknown actions.
         
     Raises:
-        ToolExecutionRejectedError: If user rejected the tool execution
         RuntimeError: If langgraph is not available for HITL support
         
     Example:

@@ -13,9 +13,41 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: In Progress
-- **Last Session**: 2026-03-14 — Phase 4B completed + full dependency upgrade
-- **Active Task**: Phase 4B complete. Next: fix dep-upgrade test failures → Phase 5 → Phase 6 → Phase 7
+- **Last Session**: 2026-03-14 (Session 8) — Fixed all 30 dep-upgrade test failures
+- **Active Task**: Dep-upgrade test failures fixed. Next: Phase 5 → Phase 6 → Phase 7
 - **Branch**: `feat/usage-metrics-and-cost-optimization`
+
+## Session Progress (2026-03-14, Session 8)
+
+### Fix Dep-Upgrade Test Failures — COMPLETED
+
+Fixed all 30 test failures (originally documented as 14) caused by breaking changes in upgraded dependencies. All fixes are test-only except one production docstring correction. Zero production logic changes.
+
+**Root causes resolved (10 categories):**
+
+1. **`claude-haiku-4` model reference** (10 tests): Replaced with `claude-haiku-4.5`, updated `api_model_id` expectations to `claude-haiku-4-5-20251001`.
+2. **`AIMessage(tool_calls=...)` missing `id`** (4 tests): Added `"id": "call_xxx"` to tool_call dicts.
+3. **`AIMessage(content=None)` invalid** (2 tests): Used `MagicMock(content=None)` to preserve defensive code path testing.
+4. **`SummarizationMiddleware` renamed** (2 tests): Updated imports to `ContextSummarizationMiddleware`.
+5. **`RunningSummary.__init__()` signature** (2 tests): Added `last_summarized_message_id=None`.
+6. **`summarize_messages` mock path + model creation** (4 tests): Changed mock to `langmem.short_term.summarize_messages` AND added `_create_summarization_model` mock (model creation fails before reaching `summarize_messages` without API keys — a surprise not in the original plan).
+7. **Tool wrapper `ainvoke` returns string** (2 tests): Updated assertions to expect string representations.
+8. **Reject/unknown action returns string** (2 tests): Updated tests to assert returned error strings instead of `ToolExecutionRejectedError`.
+9. **Edit tool returns error string** (1 test): Updated test to assert returned error string contains "not found".
+10. **Token counting threshold** (1 test): Used varied content (`"word1 word2 ..."`) instead of repeated `"x"` to reliably exceed threshold.
+
+**Files changed (6 test files, 1 production file):**
+- `tests/core/test_model_registry.py` — 8 tests fixed
+- `tests/core/test_token_counter.py` — 3 tests fixed
+- `tests/core/test_summarization.py` — 8 tests fixed
+- `tests/core/test_summarization_middleware.py` — 1 test fixed (+ 8 fixture model names)
+- `tests/core/test_tool_wrappers.py` — 5 tests fixed
+- `tests/integration/test_summarization_integration.py` — 5 tests fixed
+- `src/graphton/core/tool_wrappers.py` — docstring fix only (removed stale `Raises: ToolExecutionRejectedError`)
+
+**Result: 1155 passed, 1 skipped, 0 failed** (full graphton suite).
+
+---
 
 ## Session Progress (2026-03-14, Session 7)
 
@@ -94,10 +126,7 @@ The dependency upgrades introduced 14 test failures in graphton (agent-runner is
 
 Pick up in this order:
 
-### Immediate: Fix Dep-Upgrade Test Failures (14 graphton tests)
-Fix the 14 test failures caused by breaking changes in upgraded dependencies. Agent-runner is fully green (1198 tests). Categories: claude-haiku-4 references, AIMessage tool_call id requirement, summarize_messages mock path, tool wrapper return type.
-
-### Then: Phase 5 — Server Usage Report RPCs
+### Immediate: Phase 5 — Server Usage Report RPCs
 Implement `GetSessionUsageReport`, `GetAgentUsageReport`, `GetOrgUsageReport` RPCs. Aggregate usage across executions/sessions/agents with time range filtering and pagination.
 
 ### Then: Remaining T01 Phases
@@ -109,7 +138,7 @@ Implement `GetSessionUsageReport`, `GetAgentUsageReport`, `GetOrgUsageReport` RP
 - **Three-layer caching**: `_inject_cache_control()` in `graphton/core/models.py` now has three layers: (1) explicit breakpoint on system prompt, (2) explicit breakpoint on last tool, (3) top-level `cache_control` for automatic conversation caching. All three are idempotent. Opt-out via `model._prompt_caching = False`.
 - **Automatic caching** (Layer 3) uses Anthropic's top-level `cache_control={"type": "ephemeral"}` parameter (requires `anthropic>=0.83.0`). The API automatically places a breakpoint on the last cacheable block and advances it each turn.
 - **OpenAI caching is automatic**: No code needed. 50% discount on cached tokens, prefix matching, no opt-in.
-- **14 failing graphton tests** from dep upgrades need fixing. Agent-runner (1198 tests) is fully green.
+- **All graphton tests green**: 1155 passed, 1 skipped, 0 failed. Dep-upgrade test failures all resolved.
 - **Key dep versions now**: anthropic 0.84.0, deepagents 0.4.10, langchain-core 1.2.19, langgraph 1.1.2, langchain-ollama 1.0.1, langchain-mcp-adapters 0.2.1.
 - 30/30 prompt caching tests pass (Layers 1-3 + integration + opt-out).
 - 1198/1198 agent-runner tests pass.
