@@ -29,18 +29,20 @@ class AgentSpec(_message.Message):
     def __init__(self, description: _Optional[str] = ..., icon_url: _Optional[str] = ..., instructions: _Optional[str] = ..., mcp_server_usages: _Optional[_Iterable[_Union[McpServerUsage, _Mapping]]] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., sub_agents: _Optional[_Iterable[_Union[SubAgent, _Mapping]]] = ..., env_spec: _Optional[_Union[_spec_pb2.EnvironmentSpec, _Mapping]] = ...) -> None: ...
 
 class SubAgent(_message.Message):
-    __slots__ = ("name", "description", "instructions", "mcp_access", "skill_refs")
+    __slots__ = ("name", "description", "instructions", "mcp_access", "skill_refs", "model_override")
     NAME_FIELD_NUMBER: _ClassVar[int]
     DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
     INSTRUCTIONS_FIELD_NUMBER: _ClassVar[int]
     MCP_ACCESS_FIELD_NUMBER: _ClassVar[int]
     SKILL_REFS_FIELD_NUMBER: _ClassVar[int]
+    MODEL_OVERRIDE_FIELD_NUMBER: _ClassVar[int]
     name: str
     description: str
     instructions: str
     mcp_access: _containers.RepeatedCompositeFieldContainer[McpAccess]
     skill_refs: _containers.RepeatedCompositeFieldContainer[_io_pb2.ApiResourceReference]
-    def __init__(self, name: _Optional[str] = ..., description: _Optional[str] = ..., instructions: _Optional[str] = ..., mcp_access: _Optional[_Iterable[_Union[McpAccess, _Mapping]]] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ...) -> None: ...
+    model_override: str
+    def __init__(self, name: _Optional[str] = ..., description: _Optional[str] = ..., instructions: _Optional[str] = ..., mcp_access: _Optional[_Iterable[_Union[McpAccess, _Mapping]]] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., model_override: _Optional[str] = ...) -> None: ...
 
 class McpServerUsage(_message.Message):
     __slots__ = ("mcp_server_ref", "enabled_tools", "tool_approval_overrides")

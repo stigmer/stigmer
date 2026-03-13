@@ -1,4 +1,4 @@
-from ai.stigmer.agentic.agentexecution.v1 import api_pb2 as _api_pb2
+from ai.stigmer.agentic.agentexecution.v1 import approval_pb2 as _approval_pb2
 from ai.stigmer.agentic.workflowexecution.v1 import enum_pb2 as _enum_pb2
 from ai.stigmer.agentic.workflowexecution.v1 import spec_pb2 as _spec_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2 as _metadata_pb2
@@ -46,8 +46,8 @@ class WorkflowExecutionStatus(_message.Message):
     started_at: str
     completed_at: str
     temporal_workflow_id: str
-    pending_approvals: _containers.RepeatedCompositeFieldContainer[_api_pb2.PendingApproval]
-    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., phase: _Optional[_Union[_enum_pb2.ExecutionPhase, str]] = ..., tasks: _Optional[_Iterable[_Union[WorkflowTask, _Mapping]]] = ..., output: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., error: _Optional[str] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., temporal_workflow_id: _Optional[str] = ..., pending_approvals: _Optional[_Iterable[_Union[_api_pb2.PendingApproval, _Mapping]]] = ...) -> None: ...
+    pending_approvals: _containers.RepeatedCompositeFieldContainer[_approval_pb2.PendingApproval]
+    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., phase: _Optional[_Union[_enum_pb2.ExecutionPhase, str]] = ..., tasks: _Optional[_Iterable[_Union[WorkflowTask, _Mapping]]] = ..., output: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., error: _Optional[str] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., temporal_workflow_id: _Optional[str] = ..., pending_approvals: _Optional[_Iterable[_Union[_approval_pb2.PendingApproval, _Mapping]]] = ...) -> None: ...
 
 class WorkflowTask(_message.Message):
     __slots__ = ("task_id", "task_name", "task_type", "input", "output", "status", "started_at", "completed_at", "error", "metadata")

@@ -194,7 +194,18 @@ type SubAgent struct {
 	McpAccess []*McpAccess `protobuf:"bytes,4,rep,name=mcp_access,json=mcpAccess,proto3" json:"mcp_access,omitempty"`
 	// Skill resources for this sub-agent's knowledge.
 	// Skills provide domain-specific knowledge and capabilities.
-	SkillRefs     []*apiresource.ApiResourceReference `protobuf:"bytes,5,rep,name=skill_refs,json=skillRefs,proto3" json:"skill_refs,omitempty"`
+	SkillRefs []*apiresource.ApiResourceReference `protobuf:"bytes,5,rep,name=skill_refs,json=skillRefs,proto3" json:"skill_refs,omitempty"`
+	// Model override for this sub-agent.
+	// When set, this sub-agent uses this model instead of the parent's model.
+	// Enables cost optimization by routing simple sub-agent tasks to cheaper models.
+	//
+	// Examples:
+	//   - Parent uses "claude-sonnet-4" ($3/$15 per MTok)
+	//   - File search sub-agent overrides to "claude-haiku-4" ($0.25/$1.25)
+	//   - Code review sub-agent keeps parent model (leave empty)
+	//
+	// When empty: inherits the parent agent's model (current behavior).
+	ModelOverride string `protobuf:"bytes,6,opt,name=model_override,json=modelOverride,proto3" json:"model_override,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -262,6 +273,13 @@ func (x *SubAgent) GetSkillRefs() []*apiresource.ApiResourceReference {
 		return x.SkillRefs
 	}
 	return nil
+}
+
+func (x *SubAgent) GetModelOverride() string {
+	if x != nil {
+		return x.ModelOverride
+	}
+	return ""
 }
 
 // McpServerUsage declares that this Agent uses a McpServer resource.
@@ -582,7 +600,7 @@ const file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc = "" +
 	"\x0fskill_refs.kind\x123skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43\xe0\x85,+R\tskillRefs\x12D\n" +
 	"\n" +
 	"sub_agents\x18\x06 \x03(\v2%.ai.stigmer.agentic.agent.v1.SubAgentR\tsubAgents\x12M\n" +
-	"\benv_spec\x18\a \x01(\v22.ai.stigmer.agentic.environment.v1.EnvironmentSpecR\aenvSpec\"\xfa\x02\n" +
+	"\benv_spec\x18\a \x01(\v22.ai.stigmer.agentic.environment.v1.EnvironmentSpecR\aenvSpec\"\xa1\x03\n" +
 	"\bSubAgent\x12\x1a\n" +
 	"\x04name\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12+\n" +
@@ -592,7 +610,8 @@ const file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc = "" +
 	"mcp_access\x18\x04 \x03(\v2&.ai.stigmer.agentic.agent.v1.McpAccessR\tmcpAccess\x12\xbb\x01\n" +
 	"\n" +
 	"skill_refs\x18\x05 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBf\xbaH_\x92\x01\\\"Z\xba\x01W\n" +
-	"\x0fskill_refs.kind\x123skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43\xe0\x85,+R\tskillRefs\"\x88\x02\n" +
+	"\x0fskill_refs.kind\x123skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43\xe0\x85,+R\tskillRefs\x12%\n" +
+	"\x0emodel_override\x18\x06 \x01(\tR\rmodelOverride\"\x88\x02\n" +
 	"\x0eMcpServerUsage\x12f\n" +
 	"\x0emcp_server_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\n" +
 	"\xbaH\x03\xc8\x01\x01\xe0\x85,,R\fmcpServerRef\x12#\n" +

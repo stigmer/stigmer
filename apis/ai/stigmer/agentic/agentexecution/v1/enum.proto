@@ -248,3 +248,44 @@ enum SummarizationSource {
   graph_start = 1; // Triggered at the start of a graph invocation (abefore_agent)
   mid_execution = 2; // Triggered mid-execution before a model call (awrap_model_call)
 }
+
+// ApprovalAction represents the user's decision on an approval request.
+//
+// ## Action Semantics
+//
+// - APPROVE: Execute the tool normally, continue execution
+// - SKIP: Return "skipped by user" message to LLM, continue execution
+// - REJECT: Fail the execution immediately with rejection error
+//
+// ## LLM Behavior on Skip
+//
+// When a tool is skipped, the LLM receives a message like:
+// "Tool 'delete_repository' was skipped by user. Please proceed without this operation."
+// This allows the LLM to adapt its plan while preserving execution continuity.
+//
+// ## Usage
+//
+// Used in:
+// - ToolCall.approval_action: Records the decision made
+// - SubmitApprovalInput.action: User's submitted decision
+enum ApprovalAction {
+  // Unspecified action (invalid, should never be used).
+  // SubmitApproval RPC rejects this value.
+  APPROVAL_ACTION_UNSPECIFIED = 0;
+
+  // Execute the tool normally.
+  // Tool transitions from WAITING_APPROVAL to RUNNING, then executes.
+  // Execution phase returns to IN_PROGRESS.
+  APPROVAL_ACTION_APPROVE = 1;
+
+  // Skip tool execution, continue without it.
+  // Tool transitions to SKIPPED status.
+  // LLM receives: "Tool '{name}' was skipped by user. Please proceed without this operation."
+  // Execution continues - this is NOT a failure.
+  APPROVAL_ACTION_SKIP = 2;
+
+  // Reject tool execution, fail the entire execution.
+  // Execution phase transitions to FAILED.
+  // Error message includes rejection reason from user's comment.
+  APPROVAL_ACTION_REJECT = 3;
+}

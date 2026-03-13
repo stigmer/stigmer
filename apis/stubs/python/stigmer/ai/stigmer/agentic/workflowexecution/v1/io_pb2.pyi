@@ -1,6 +1,6 @@
-from ai.stigmer.agentic.agentexecution.v1 import api_pb2 as _api_pb2
-from ai.stigmer.agentic.workflowexecution.v1 import api_pb2 as _api_pb2_1
-from ai.stigmer.agentic.workflowexecution.v1 import enum_pb2 as _enum_pb2
+from ai.stigmer.agentic.agentexecution.v1 import enum_pb2 as _enum_pb2
+from ai.stigmer.agentic.workflowexecution.v1 import api_pb2 as _api_pb2
+from ai.stigmer.agentic.workflowexecution.v1 import enum_pb2 as _enum_pb2_1
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf import struct_pb2 as _struct_pb2
 from google.protobuf.internal import containers as _containers
@@ -46,8 +46,8 @@ class WorkflowExecutionList(_message.Message):
     TOTAL_PAGES_FIELD_NUMBER: _ClassVar[int]
     ENTRIES_FIELD_NUMBER: _ClassVar[int]
     total_pages: int
-    entries: _containers.RepeatedCompositeFieldContainer[_api_pb2_1.WorkflowExecution]
-    def __init__(self, total_pages: _Optional[int] = ..., entries: _Optional[_Iterable[_Union[_api_pb2_1.WorkflowExecution, _Mapping]]] = ...) -> None: ...
+    entries: _containers.RepeatedCompositeFieldContainer[_api_pb2.WorkflowExecution]
+    def __init__(self, total_pages: _Optional[int] = ..., entries: _Optional[_Iterable[_Union[_api_pb2.WorkflowExecution, _Mapping]]] = ...) -> None: ...
 
 class ListWorkflowExecutionsRequest(_message.Message):
     __slots__ = ("page_size", "page_token", "phase", "tags")
@@ -57,9 +57,9 @@ class ListWorkflowExecutionsRequest(_message.Message):
     TAGS_FIELD_NUMBER: _ClassVar[int]
     page_size: int
     page_token: str
-    phase: _enum_pb2.ExecutionPhase
+    phase: _enum_pb2_1.ExecutionPhase
     tags: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, page_size: _Optional[int] = ..., page_token: _Optional[str] = ..., phase: _Optional[_Union[_enum_pb2.ExecutionPhase, str]] = ..., tags: _Optional[_Iterable[str]] = ...) -> None: ...
+    def __init__(self, page_size: _Optional[int] = ..., page_token: _Optional[str] = ..., phase: _Optional[_Union[_enum_pb2_1.ExecutionPhase, str]] = ..., tags: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class ListWorkflowExecutionsByWorkflowRequest(_message.Message):
     __slots__ = ("workflow_id", "page_size", "page_token")
@@ -76,8 +76,8 @@ class WorkflowExecutionUpdateStatusInput(_message.Message):
     EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
     STATUS_FIELD_NUMBER: _ClassVar[int]
     execution_id: str
-    status: _api_pb2_1.WorkflowExecutionStatus
-    def __init__(self, execution_id: _Optional[str] = ..., status: _Optional[_Union[_api_pb2_1.WorkflowExecutionStatus, _Mapping]] = ...) -> None: ...
+    status: _api_pb2.WorkflowExecutionStatus
+    def __init__(self, execution_id: _Optional[str] = ..., status: _Optional[_Union[_api_pb2.WorkflowExecutionStatus, _Mapping]] = ...) -> None: ...
 
 class SubmitWorkflowApprovalInput(_message.Message):
     __slots__ = ("execution_id", "tool_call_id", "action", "comment")
@@ -87,9 +87,9 @@ class SubmitWorkflowApprovalInput(_message.Message):
     COMMENT_FIELD_NUMBER: _ClassVar[int]
     execution_id: str
     tool_call_id: str
-    action: _api_pb2.ApprovalAction
+    action: _enum_pb2.ApprovalAction
     comment: str
-    def __init__(self, execution_id: _Optional[str] = ..., tool_call_id: _Optional[str] = ..., action: _Optional[_Union[_api_pb2.ApprovalAction, str]] = ..., comment: _Optional[str] = ...) -> None: ...
+    def __init__(self, execution_id: _Optional[str] = ..., tool_call_id: _Optional[str] = ..., action: _Optional[_Union[_enum_pb2.ApprovalAction, str]] = ..., comment: _Optional[str] = ...) -> None: ...
 
 class SubscribeWorkflowExecutionRequest(_message.Message):
     __slots__ = ("execution_id",)
@@ -103,9 +103,9 @@ class WorkflowExecutionUpdate(_message.Message):
     EXECUTION_FIELD_NUMBER: _ClassVar[int]
     TASK_FIELD_NUMBER: _ClassVar[int]
     update_type: WorkflowUpdateType
-    execution: _api_pb2_1.WorkflowExecution
-    task: _api_pb2_1.WorkflowTask
-    def __init__(self, update_type: _Optional[_Union[WorkflowUpdateType, str]] = ..., execution: _Optional[_Union[_api_pb2_1.WorkflowExecution, _Mapping]] = ..., task: _Optional[_Union[_api_pb2_1.WorkflowTask, _Mapping]] = ...) -> None: ...
+    execution: _api_pb2.WorkflowExecution
+    task: _api_pb2.WorkflowTask
+    def __init__(self, update_type: _Optional[_Union[WorkflowUpdateType, str]] = ..., execution: _Optional[_Union[_api_pb2.WorkflowExecution, _Mapping]] = ..., task: _Optional[_Union[_api_pb2.WorkflowTask, _Mapping]] = ...) -> None: ...
 
 class CancelWorkflowExecutionInput(_message.Message):
     __slots__ = ("id", "reason")

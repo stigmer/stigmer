@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.workflowexecution.v1;
 
-import "ai/stigmer/agentic/agentexecution/v1/api.proto";
+import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
 import "ai/stigmer/agentic/workflowexecution/v1/api.proto";
 import "ai/stigmer/agentic/workflowexecution/v1/enum.proto";
 import "buf/validate/validate.proto";
