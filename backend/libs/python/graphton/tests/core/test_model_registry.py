@@ -147,8 +147,10 @@ class TestModelMetadataImmutability:
             cost_tier=CostTier.ECONOMY,
         )
         # Check defaults
-        assert metadata.input_cost_per_1k is None
-        assert metadata.output_cost_per_1k is None
+        assert metadata.input_price_per_million is None
+        assert metadata.output_price_per_million is None
+        assert metadata.cache_creation_price_per_million is None
+        assert metadata.cache_read_price_per_million is None
         assert metadata.supports_tool_use is True
         assert metadata.supports_vision is False
         assert metadata.supports_streaming is True
@@ -176,7 +178,7 @@ class TestModelRegistryGet:
         assert metadata.model_id == "claude-opus-4"
         assert metadata.provider == "anthropic"
         assert metadata.cost_tier == CostTier.PREMIUM
-        assert metadata.input_cost_per_1k == 15.0
+        assert metadata.input_price_per_million == 15.0
 
     def test_get_claude_haiku_4(self):
         """Test getting Claude Haiku 4 metadata."""
@@ -205,7 +207,7 @@ class TestModelRegistryGet:
         metadata = ModelRegistry.get("gpt-4o-mini")
         assert metadata.model_id == "gpt-4o-mini"
         assert metadata.cost_tier == CostTier.ECONOMY
-        assert metadata.input_cost_per_1k == 0.15
+        assert metadata.input_price_per_million == 0.15
 
     def test_get_o1(self):
         """Test getting o1 metadata."""
@@ -220,7 +222,7 @@ class TestModelRegistryGet:
         assert metadata.model_id == "qwen2.5-coder:7b"
         assert metadata.provider == "ollama"
         assert metadata.context_window_tokens == 32768
-        assert metadata.input_cost_per_1k is None  # Local model, no cost
+        assert metadata.input_price_per_million is None  # Local model, no cost
 
     def test_get_unknown_model_raises_keyerror(self):
         """Test that getting unknown model raises KeyError."""
@@ -565,18 +567,96 @@ class TestModelMetadataFields:
     def test_ollama_models_have_no_cost(self):
         """Test that Ollama models have no cost (local)."""
         for model in ModelRegistry.list_by_provider("ollama"):
-            assert model.input_cost_per_1k is None, \
+            assert model.input_price_per_million is None, \
                 f"{model.model_id} should have no input cost"
-            assert model.output_cost_per_1k is None, \
+            assert model.output_price_per_million is None, \
                 f"{model.model_id} should have no output cost"
 
     def test_paid_models_have_costs(self):
         """Test that paid models have cost information."""
         for model in ModelRegistry.list_by_provider("anthropic"):
-            assert model.input_cost_per_1k is not None, \
+            assert model.input_price_per_million is not None, \
                 f"{model.model_id} should have input cost"
-            assert model.output_cost_per_1k is not None, \
+            assert model.output_price_per_million is not None, \
                 f"{model.model_id} should have output cost"
+
+
+# =============================================================================
+# TestCachePricing - Tests for cache pricing fields
+# =============================================================================
+
+
+class TestCachePricing:
+    """Tests for cache_creation_price_per_million and cache_read_price_per_million."""
+
+    def test_anthropic_models_have_cache_pricing(self):
+        """Test that all Anthropic models have cache pricing set."""
+        for model in ModelRegistry.list_by_provider("anthropic"):
+            assert model.cache_creation_price_per_million is not None, \
+                f"{model.model_id} should have cache creation price"
+            assert model.cache_read_price_per_million is not None, \
+                f"{model.model_id} should have cache read price"
+
+    def test_openai_models_have_cache_pricing(self):
+        """Test that all OpenAI models have cache pricing set."""
+        for model in ModelRegistry.list_by_provider("openai"):
+            assert model.cache_creation_price_per_million is not None, \
+                f"{model.model_id} should have cache creation price"
+            assert model.cache_read_price_per_million is not None, \
+                f"{model.model_id} should have cache read price"
+
+    def test_ollama_models_have_no_cache_pricing(self):
+        """Test that Ollama models have no cache pricing (local, no provider caching)."""
+        for model in ModelRegistry.list_by_provider("ollama"):
+            assert model.cache_creation_price_per_million is None, \
+                f"{model.model_id} should have no cache creation price"
+            assert model.cache_read_price_per_million is None, \
+                f"{model.model_id} should have no cache read price"
+
+    def test_anthropic_cache_creation_is_1_25x_input(self):
+        """Test that Anthropic cache creation = 1.25x input (5-min ephemeral TTL)."""
+        for model in ModelRegistry.list_by_provider("anthropic"):
+            expected = model.input_price_per_million * 1.25
+            assert model.cache_creation_price_per_million == pytest.approx(expected), \
+                f"{model.model_id}: cache_creation {model.cache_creation_price_per_million} " \
+                f"!= 1.25 * input {expected}"
+
+    def test_anthropic_cache_read_is_0_1x_input(self):
+        """Test that Anthropic cache read = 0.1x input (90% discount)."""
+        for model in ModelRegistry.list_by_provider("anthropic"):
+            expected = model.input_price_per_million * 0.1
+            assert model.cache_read_price_per_million == pytest.approx(expected), \
+                f"{model.model_id}: cache_read {model.cache_read_price_per_million} " \
+                f"!= 0.1 * input {expected}"
+
+    def test_openai_cache_creation_equals_input(self):
+        """Test that OpenAI cache creation = input price (no write premium)."""
+        for model in ModelRegistry.list_by_provider("openai"):
+            assert model.cache_creation_price_per_million == model.input_price_per_million, \
+                f"{model.model_id}: cache_creation {model.cache_creation_price_per_million} " \
+                f"!= input {model.input_price_per_million}"
+
+    def test_openai_cache_read_is_0_5x_input(self):
+        """Test that OpenAI cache read = 0.5x input (50% discount)."""
+        for model in ModelRegistry.list_by_provider("openai"):
+            expected = model.input_price_per_million * 0.5
+            assert model.cache_read_price_per_million == pytest.approx(expected), \
+                f"{model.model_id}: cache_read {model.cache_read_price_per_million} " \
+                f"!= 0.5 * input {expected}"
+
+    def test_specific_sonnet_cache_pricing(self):
+        """Test exact cache pricing values for claude-sonnet-4.5."""
+        metadata = ModelRegistry.get("claude-sonnet-4.5")
+        assert metadata.input_price_per_million == 3.0
+        assert metadata.output_price_per_million == 15.0
+        assert metadata.cache_creation_price_per_million == 3.75
+        assert metadata.cache_read_price_per_million == 0.30
+
+    def test_default_metadata_has_no_cache_pricing(self):
+        """Test that unknown models get None for cache pricing."""
+        metadata = ModelRegistry.get_or_default("unknown-custom-model")
+        assert metadata.cache_creation_price_per_million is None
+        assert metadata.cache_read_price_per_million is None
 
 
 # =============================================================================
