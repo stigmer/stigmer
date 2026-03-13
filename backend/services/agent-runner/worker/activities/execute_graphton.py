@@ -8,18 +8,16 @@ import time
 import traceback
 from typing import Any, cast
 
-from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
-    AgentExecutionStatus,
-    AgentMessage,
-    ApprovalAction,
-    PendingApproval,
-)
+from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentExecutionStatus
+from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
+    ApprovalAction,
     ExecutionPhase,
     MessageType,
     SubAgentStatus,
     ToolCallStatus,
 )
+from ai.stigmer.agentic.agentexecution.v1.message_pb2 import AgentMessage
 from ai.stigmer.agentic.agentexecution.v1.io_pb2 import (
     ApprovalDecisionList,
     SubmitApprovalInput,
@@ -3640,6 +3638,11 @@ async def _execute_graphton_impl(
             status_builder.current_status.phase = ExecutionPhase.EXECUTION_COMPLETED
         
         final_phase_name = ExecutionPhase.Name(status_builder.current_status.phase)
+        
+        # Stamp completed_at and compute final usage metrics (duration, cost)
+        if not status_builder.current_status.completed_at:
+            status_builder.current_status.completed_at = _utc_timestamp()
+        status_builder.finalize_usage()
         
         # Send final status update via gRPC with retry.
         # This is critical for data persistence — use retry to handle transient failures.

@@ -1362,3 +1362,111 @@ class TestCompactionLifecycle:
         result = await middleware.aafter_agent(state, runtime={})
 
         assert result is None
+
+
+# =============================================================================
+# TestSummarizationUsageCapture - Phase 3 token capture tests
+# =============================================================================
+
+
+class TestSummarizationUsageCapture:
+    """Tests for _SummarizationUsageCapture callback handler."""
+
+    def test_captures_usage_from_llm_end(self):
+        """on_llm_end extracts input/output tokens from usage_metadata."""
+        from graphton.core.summarization_middleware import _SummarizationUsageCapture
+
+        capture = _SummarizationUsageCapture()
+
+        msg = MagicMock()
+        msg.usage_metadata = MagicMock(input_tokens=1000, output_tokens=200)
+
+        gen = MagicMock()
+        gen.message = msg
+
+        response = MagicMock()
+        response.generations = [[gen]]
+
+        capture.on_llm_end(response)
+
+        assert capture.input_tokens == 1000
+        assert capture.output_tokens == 200
+
+    def test_accumulates_across_multiple_calls(self):
+        """Multiple on_llm_end calls accumulate tokens."""
+        from graphton.core.summarization_middleware import _SummarizationUsageCapture
+
+        capture = _SummarizationUsageCapture()
+
+        for tokens in [(500, 100), (300, 50)]:
+            msg = MagicMock()
+            msg.usage_metadata = MagicMock(
+                input_tokens=tokens[0], output_tokens=tokens[1],
+            )
+            gen = MagicMock()
+            gen.message = msg
+            response = MagicMock()
+            response.generations = [[gen]]
+            capture.on_llm_end(response)
+
+        assert capture.input_tokens == 800
+        assert capture.output_tokens == 150
+
+    def test_handles_missing_usage_metadata(self):
+        """Gracefully handles responses without usage_metadata."""
+        from graphton.core.summarization_middleware import _SummarizationUsageCapture
+
+        capture = _SummarizationUsageCapture()
+
+        gen = MagicMock()
+        gen.message = MagicMock(usage_metadata=None)
+        response = MagicMock()
+        response.generations = [[gen]]
+
+        capture.on_llm_end(response)
+
+        assert capture.input_tokens == 0
+        assert capture.output_tokens == 0
+
+
+class TestSummarizationEventDataExtendedFields:
+    """Tests for new token/cost fields on SummarizationEventData."""
+
+    def test_default_values(self):
+        """New fields default to zero."""
+        from graphton.core.summarization_callback import SummarizationEventData
+
+        event = SummarizationEventData(
+            tokens_before=10000,
+            tokens_after=5000,
+            compression_ratio=0.5,
+            duration_ms=1000,
+            summarization_model="claude-haiku-4.5",
+            messages_before=20,
+            messages_after=5,
+            source="graph_start",
+        )
+        assert event.summarization_input_tokens == 0
+        assert event.summarization_output_tokens == 0
+        assert event.summarization_cost_usd == 0.0
+
+    def test_explicit_values(self):
+        """New fields can be set explicitly."""
+        from graphton.core.summarization_callback import SummarizationEventData
+
+        event = SummarizationEventData(
+            tokens_before=10000,
+            tokens_after=5000,
+            compression_ratio=0.5,
+            duration_ms=1000,
+            summarization_model="claude-haiku-4.5",
+            messages_before=20,
+            messages_after=5,
+            source="graph_start",
+            summarization_input_tokens=8000,
+            summarization_output_tokens=500,
+            summarization_cost_usd=0.003,
+        )
+        assert event.summarization_input_tokens == 8000
+        assert event.summarization_output_tokens == 500
+        assert event.summarization_cost_usd == 0.003
