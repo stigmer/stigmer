@@ -2345,20 +2345,33 @@ async def _execute_graphton_impl(
         
         # Prepare config with thread_id for state persistence.
         #
-        # recursion_limit is NOT set here. It is applied at graph compilation
-        # time via graphton's with_config({"recursion_limit": N}). The value
-        # comes from ExecutionConfig.max_tool_rounds (converted above, ×6) or
-        # None (unlimited → 10M internally).  LangGraph's merge_configs
-        # preserves non-default values.
+        # recursion_limit is set HERE in the invoke config — this is the
+        # authoritative override.  The invoke config is the LAST config
+        # processed by LangGraph's merge_configs chain, so it takes priority
+        # over any .with_config() bindings (including deepagents' internal
+        # recursion_limit=1000).
+        #
+        # Additionally, LANGGRAPH_DEFAULT_RECURSION_LIMIT=10000000 is set in
+        # the agent-runner environment (daemon_process.go) as a framework-wide
+        # default that also covers subagent graphs.
+        _UNLIMITED_RECURSION = 10_000_000
+        effective_recursion_limit = (
+            recursion_limit if recursion_limit is not None else _UNLIMITED_RECURSION
+        )
         config = {
             "configurable": {
                 "thread_id": thread_id,
                 "org": execution.metadata.org,
             },
+            "recursion_limit": effective_recursion_limit,
         }
         
         activity_logger.info(
-            f"Using thread_id: {thread_id} for Graphton execution {execution_id}"
+            "Using thread_id=%s for Graphton execution %s "
+            "(recursion_limit=%d%s)",
+            thread_id, execution_id,
+            effective_recursion_limit,
+            " [unlimited]" if recursion_limit is None else "",
         )
         
         # ─────────────────────────────────────────────────────────────────────────────
@@ -3081,8 +3094,10 @@ async def _execute_graphton_impl(
                     f"Send another message to continue."
                 )
                 activity_logger.warning(
-                    f"🔄 [RECURSION_LIMIT] execution={execution_id} — {limit_msg} "
-                    f"(detail: {stream_err})"
+                    "[RECURSION_LIMIT] execution=%s events=%d "
+                    "invoke_config_limit=%d original_error=%s",
+                    execution_id, events_processed,
+                    effective_recursion_limit, stream_err,
                 )
 
                 status_builder.finalize_active_sub_agents(
