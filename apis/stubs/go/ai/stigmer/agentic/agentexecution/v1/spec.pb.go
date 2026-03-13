@@ -396,6 +396,27 @@ type ExecutionConfig struct {
 	//
 	// @since Recursion Limit Configurability (D1)
 	MaxToolRounds int32 `protobuf:"varint,3,opt,name=max_tool_rounds,json=maxToolRounds,proto3" json:"max_tool_rounds,omitempty"`
+	// Maximum number of characters for a single tool result before truncation.
+	// When a tool result exceeds this limit, it is truncated and a marker is
+	// appended: "[truncated — result exceeded {limit} chars, ask for specific sections]"
+	//
+	// 0 = use platform default (recommended: 30,000 chars ~ 7,500 tokens).
+	// Set higher for agents that work with large files/outputs.
+	//
+	// Applies to all tool results (shell, read, write, MCP tools).
+	// Does not apply to built-in tools that already manage their output size.
+	MaxToolResultChars int32 `protobuf:"varint,4,opt,name=max_tool_result_chars,json=maxToolResultChars,proto3" json:"max_tool_result_chars,omitempty"`
+	// Maximum estimated cost in USD for this execution.
+	// When the running cost exceeds this limit, the agent receives a
+	// "budget exhausted" message and the execution transitions to TERMINATED.
+	//
+	// 0.0 = no cost cap (default, unlimited).
+	// Recommended: 1.00-5.00 for interactive sessions, 10.00+ for batch workflows.
+	//
+	// Cost is checked after each LLM call using the running total from
+	// UsageMetrics.estimated_cost_usd. When approaching the cap (>80%),
+	// a budget warning is injected into the conversation.
+	MaxCostUsd    float64 `protobuf:"fixed64,5,opt,name=max_cost_usd,json=maxCostUsd,proto3" json:"max_cost_usd,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -447,6 +468,20 @@ func (x *ExecutionConfig) GetContextManagement() *ContextManagementConfig {
 func (x *ExecutionConfig) GetMaxToolRounds() int32 {
 	if x != nil {
 		return x.MaxToolRounds
+	}
+	return 0
+}
+
+func (x *ExecutionConfig) GetMaxToolResultChars() int32 {
+	if x != nil {
+		return x.MaxToolResultChars
+	}
+	return 0
+}
+
+func (x *ExecutionConfig) GetMaxCostUsd() float64 {
+	if x != nil {
+		return x.MaxCostUsd
 	}
 	return 0
 }
@@ -744,12 +779,15 @@ const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	" \x03(\tR\x11workspaceFileRefs\x1au\n" +
 	"\x0fRuntimeEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12L\n" +
-	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01\"\xc6\x01\n" +
+	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01\"\x9b\x02\n" +
 	"\x0fExecutionConfig\x12\x1d\n" +
 	"\n" +
 	"model_name\x18\x01 \x01(\tR\tmodelName\x12l\n" +
 	"\x12context_management\x18\x02 \x01(\v2=.ai.stigmer.agentic.agentexecution.v1.ContextManagementConfigR\x11contextManagement\x12&\n" +
-	"\x0fmax_tool_rounds\x18\x03 \x01(\x05R\rmaxToolRounds\"\xcc\x01\n" +
+	"\x0fmax_tool_rounds\x18\x03 \x01(\x05R\rmaxToolRounds\x121\n" +
+	"\x15max_tool_result_chars\x18\x04 \x01(\x05R\x12maxToolResultChars\x12 \n" +
+	"\fmax_cost_usd\x18\x05 \x01(\x01R\n" +
+	"maxCostUsd\"\xcc\x01\n" +
 	"\x17ContextManagementConfig\x123\n" +
 	"\x15disable_summarization\x18\x01 \x01(\bR\x14disableSummarization\x12A\n" +
 	"\x18custom_trigger_threshold\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x16customTriggerThreshold\x129\n" +

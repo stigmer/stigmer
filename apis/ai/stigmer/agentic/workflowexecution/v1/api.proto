@@ -10,7 +10,7 @@ syntax = "proto3";
 // systems and workflow orchestration capabilities.
 package ai.stigmer.agentic.workflowexecution.v1;
 
-import "ai/stigmer/agentic/agentexecution/v1/api.proto";
+import "ai/stigmer/agentic/agentexecution/v1/approval.proto";
 import "ai/stigmer/agentic/workflowexecution/v1/enum.proto";
 import "ai/stigmer/agentic/workflowexecution/v1/spec.proto";
 import "ai/stigmer/commons/apiresource/metadata.proto";

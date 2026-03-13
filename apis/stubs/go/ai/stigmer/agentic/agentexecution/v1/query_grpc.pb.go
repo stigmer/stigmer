@@ -24,6 +24,9 @@ const (
 	AgentExecutionQueryController_ListBySession_FullMethodName          = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/listBySession"
 	AgentExecutionQueryController_Subscribe_FullMethodName              = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/subscribe"
 	AgentExecutionQueryController_GetArtifactDownloadUrl_FullMethodName = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/getArtifactDownloadUrl"
+	AgentExecutionQueryController_GetSessionUsageReport_FullMethodName  = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/getSessionUsageReport"
+	AgentExecutionQueryController_GetAgentUsageReport_FullMethodName    = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/getAgentUsageReport"
+	AgentExecutionQueryController_GetOrgUsageReport_FullMethodName      = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/getOrgUsageReport"
 )
 
 // AgentExecutionQueryControllerClient is the client API for AgentExecutionQueryController service.
@@ -80,6 +83,22 @@ type AgentExecutionQueryControllerClient interface {
 	//
 	// @since Artifact Lifecycle (Attachments & Artifacts)
 	GetArtifactDownloadUrl(ctx context.Context, in *GetArtifactDownloadUrlRequest, opts ...grpc.CallOption) (*GetArtifactDownloadUrlResponse, error)
+	// Get usage report for a session (all executions in a session).
+	// Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
+	//
+	// Authorization is handled in handler — caller must have can_view on
+	// all executions in the session (same pattern as listBySession).
+	GetSessionUsageReport(ctx context.Context, in *GetSessionUsageReportInput, opts ...grpc.CallOption) (*GetSessionUsageReportOutput, error)
+	// Get usage report for an agent (all sessions for an agent in a time range).
+	// Returns aggregated tokens, cost, and per-session breakdown with pagination.
+	//
+	// Authorization is handled in handler — caller must have can_view on the agent.
+	GetAgentUsageReport(ctx context.Context, in *GetAgentUsageReportInput, opts ...grpc.CallOption) (*GetAgentUsageReportOutput, error)
+	// Get usage report for an organization (all agents in a time range).
+	// Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
+	//
+	// Authorization is handled in handler — caller must be org member.
+	GetOrgUsageReport(ctx context.Context, in *GetOrgUsageReportInput, opts ...grpc.CallOption) (*GetOrgUsageReportOutput, error)
 }
 
 type agentExecutionQueryControllerClient struct {
@@ -149,6 +168,36 @@ func (c *agentExecutionQueryControllerClient) GetArtifactDownloadUrl(ctx context
 	return out, nil
 }
 
+func (c *agentExecutionQueryControllerClient) GetSessionUsageReport(ctx context.Context, in *GetSessionUsageReportInput, opts ...grpc.CallOption) (*GetSessionUsageReportOutput, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetSessionUsageReportOutput)
+	err := c.cc.Invoke(ctx, AgentExecutionQueryController_GetSessionUsageReport_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentExecutionQueryControllerClient) GetAgentUsageReport(ctx context.Context, in *GetAgentUsageReportInput, opts ...grpc.CallOption) (*GetAgentUsageReportOutput, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAgentUsageReportOutput)
+	err := c.cc.Invoke(ctx, AgentExecutionQueryController_GetAgentUsageReport_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentExecutionQueryControllerClient) GetOrgUsageReport(ctx context.Context, in *GetOrgUsageReportInput, opts ...grpc.CallOption) (*GetOrgUsageReportOutput, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetOrgUsageReportOutput)
+	err := c.cc.Invoke(ctx, AgentExecutionQueryController_GetOrgUsageReport_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AgentExecutionQueryControllerServer is the server API for AgentExecutionQueryController service.
 // All implementations should embed UnimplementedAgentExecutionQueryControllerServer
 // for forward compatibility.
@@ -203,6 +252,22 @@ type AgentExecutionQueryControllerServer interface {
 	//
 	// @since Artifact Lifecycle (Attachments & Artifacts)
 	GetArtifactDownloadUrl(context.Context, *GetArtifactDownloadUrlRequest) (*GetArtifactDownloadUrlResponse, error)
+	// Get usage report for a session (all executions in a session).
+	// Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
+	//
+	// Authorization is handled in handler — caller must have can_view on
+	// all executions in the session (same pattern as listBySession).
+	GetSessionUsageReport(context.Context, *GetSessionUsageReportInput) (*GetSessionUsageReportOutput, error)
+	// Get usage report for an agent (all sessions for an agent in a time range).
+	// Returns aggregated tokens, cost, and per-session breakdown with pagination.
+	//
+	// Authorization is handled in handler — caller must have can_view on the agent.
+	GetAgentUsageReport(context.Context, *GetAgentUsageReportInput) (*GetAgentUsageReportOutput, error)
+	// Get usage report for an organization (all agents in a time range).
+	// Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
+	//
+	// Authorization is handled in handler — caller must be org member.
+	GetOrgUsageReport(context.Context, *GetOrgUsageReportInput) (*GetOrgUsageReportOutput, error)
 }
 
 // UnimplementedAgentExecutionQueryControllerServer should be embedded to have
@@ -226,6 +291,15 @@ func (UnimplementedAgentExecutionQueryControllerServer) Subscribe(*AgentExecutio
 }
 func (UnimplementedAgentExecutionQueryControllerServer) GetArtifactDownloadUrl(context.Context, *GetArtifactDownloadUrlRequest) (*GetArtifactDownloadUrlResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetArtifactDownloadUrl not implemented")
+}
+func (UnimplementedAgentExecutionQueryControllerServer) GetSessionUsageReport(context.Context, *GetSessionUsageReportInput) (*GetSessionUsageReportOutput, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSessionUsageReport not implemented")
+}
+func (UnimplementedAgentExecutionQueryControllerServer) GetAgentUsageReport(context.Context, *GetAgentUsageReportInput) (*GetAgentUsageReportOutput, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAgentUsageReport not implemented")
+}
+func (UnimplementedAgentExecutionQueryControllerServer) GetOrgUsageReport(context.Context, *GetOrgUsageReportInput) (*GetOrgUsageReportOutput, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetOrgUsageReport not implemented")
 }
 func (UnimplementedAgentExecutionQueryControllerServer) testEmbeddedByValue() {}
 
@@ -330,6 +404,60 @@ func _AgentExecutionQueryController_GetArtifactDownloadUrl_Handler(srv interface
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentExecutionQueryController_GetSessionUsageReport_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSessionUsageReportInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentExecutionQueryControllerServer).GetSessionUsageReport(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentExecutionQueryController_GetSessionUsageReport_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentExecutionQueryControllerServer).GetSessionUsageReport(ctx, req.(*GetSessionUsageReportInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentExecutionQueryController_GetAgentUsageReport_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAgentUsageReportInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentExecutionQueryControllerServer).GetAgentUsageReport(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentExecutionQueryController_GetAgentUsageReport_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentExecutionQueryControllerServer).GetAgentUsageReport(ctx, req.(*GetAgentUsageReportInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentExecutionQueryController_GetOrgUsageReport_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetOrgUsageReportInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentExecutionQueryControllerServer).GetOrgUsageReport(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentExecutionQueryController_GetOrgUsageReport_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentExecutionQueryControllerServer).GetOrgUsageReport(ctx, req.(*GetOrgUsageReportInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AgentExecutionQueryController_ServiceDesc is the grpc.ServiceDesc for AgentExecutionQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -352,6 +480,18 @@ var AgentExecutionQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getArtifactDownloadUrl",
 			Handler:    _AgentExecutionQueryController_GetArtifactDownloadUrl_Handler,
+		},
+		{
+			MethodName: "getSessionUsageReport",
+			Handler:    _AgentExecutionQueryController_GetSessionUsageReport_Handler,
+		},
+		{
+			MethodName: "getAgentUsageReport",
+			Handler:    _AgentExecutionQueryController_GetAgentUsageReport_Handler,
+		},
+		{
+			MethodName: "getOrgUsageReport",
+			Handler:    _AgentExecutionQueryController_GetOrgUsageReport_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

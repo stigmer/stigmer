@@ -88,4 +88,37 @@ service AgentExecutionQueryController {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "execution_id";
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to download artifact from agent execution";
   }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Usage Report Operations
+  //
+  // These RPCs provide cost and token consumption visibility at session,
+  // agent, and organization levels. All data is derived from AgentExecution
+  // records with different aggregation scopes.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Get usage report for a session (all executions in a session).
+  // Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
+  //
+  // Authorization is handled in handler — caller must have can_view on
+  // all executions in the session (same pattern as listBySession).
+  rpc getSessionUsageReport(GetSessionUsageReportInput) returns (GetSessionUsageReportOutput) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
+
+  // Get usage report for an agent (all sessions for an agent in a time range).
+  // Returns aggregated tokens, cost, and per-session breakdown with pagination.
+  //
+  // Authorization is handled in handler — caller must have can_view on the agent.
+  rpc getAgentUsageReport(GetAgentUsageReportInput) returns (GetAgentUsageReportOutput) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
+
+  // Get usage report for an organization (all agents in a time range).
+  // Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
+  //
+  // Authorization is handled in handler — caller must be org member.
+  rpc getOrgUsageReport(GetOrgUsageReportInput) returns (GetOrgUsageReportOutput) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
 }

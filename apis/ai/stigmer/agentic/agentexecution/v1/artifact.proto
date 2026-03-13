@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agentexecution.v1;
+
+import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
+import "buf/validate/validate.proto";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Execution Artifacts (Artifact Lifecycle)
+//
+// These types support file artifacts from agent executions.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ExecutionArtifact represents a file or directory published by an agent.
+//
+// When an agent creates artifacts that users should download, it calls
+// the publish_artifact tool. This generates a downloadable artifact stored
+// in R2 with a time-limited signed URL.
+//
+// ## Storage
+//
+// Artifacts are stored in R2 under: artifacts/{execution_id}/{filename}
+// Download URLs are pre-signed and expire after a configured period.
+//
+// ## Directory Handling
+//
+// Directories are automatically archived as ZIP files before storage.
+// The kind field indicates DIRECTORY so clients know to extract after download.
+//
+// @since Artifact Lifecycle (Attachments & Artifacts)
+message ExecutionArtifact {
+  // Display name for this artifact.
+  // Example: "generated-skill", "analysis-report"
+  string name = 1;
+
+  // Original path in sandbox where the artifact was created.
+  // Example: "/workspace/my-skill", "/tmp/report.pdf"
+  string sandbox_path = 2;
+
+  // Type of artifact: file or directory.
+  ExecutionArtifactKind kind = 3 [(buf.validate.field).enum.defined_only = true];
+
+  // Total size in bytes.
+  // For directories, this is the ZIP file size.
+  int64 size_bytes = 4;
+
+  // Storage location in R2.
+  // Format: "artifacts/{execution_id}/{filename}"
+  string storage_key = 5;
+
+  // Pre-signed URL for downloading the artifact.
+  // Expires after a configured period (default: 7 days).
+  // Clients can call the refresh endpoint to get a new URL if expired.
+  string download_url = 6;
+
+  // ISO 8601 timestamp when the artifact was created.
+  // Example: "2026-02-13T10:30:00Z"
+  string created_at = 7;
+
+  // ISO 8601 timestamp when the download URL expires.
+  // Example: "2026-02-20T10:30:00Z"
+  string expires_at = 8;
+}

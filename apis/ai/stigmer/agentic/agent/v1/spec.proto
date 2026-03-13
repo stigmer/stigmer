@@ -121,6 +121,18 @@ message SubAgent {
       expression: "this.kind == 43"
     }
   ];
+
+  // Model override for this sub-agent.
+  // When set, this sub-agent uses this model instead of the parent's model.
+  // Enables cost optimization by routing simple sub-agent tasks to cheaper models.
+  //
+  // Examples:
+  //   - Parent uses "claude-sonnet-4" ($3/$15 per MTok)
+  //   - File search sub-agent overrides to "claude-haiku-4" ($0.25/$1.25)
+  //   - Code review sub-agent keeps parent model (leave empty)
+  //
+  // When empty: inherits the parent agent's model (current behavior).
+  string model_override = 6;
 }
 
 // McpServerUsage declares that this Agent uses a McpServer resource.
