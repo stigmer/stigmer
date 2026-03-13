@@ -52,6 +52,9 @@ OLLAMA_DEFAULTS = {
 }
 
 
+_CACHE_CONTROL_EPHEMERAL: dict[str, str] = {"type": "ephemeral"}
+
+
 class _EagerToolStreamingChatAnthropic(ChatAnthropic):  # type: ignore[override]
     """ChatAnthropic subclass that patches the API payload for features not yet
     exposed by langchain-anthropic (as of 1.3.3).
@@ -62,13 +65,18 @@ class _EagerToolStreamingChatAnthropic(ChatAnthropic):  # type: ignore[override]
            real-time.
         2. ``output_config.effort`` — controls how aggressively Claude spends
            tokens (required for adaptive thinking on Opus 4.6 / Sonnet 4.6).
+        3. Prompt caching — injects ``cache_control`` breakpoints on the system
+           prompt and last tool definition so Anthropic caches the static prefix
+           across LLM calls.  Cache reads cost 0.1x; break-even at 2 calls.
 
     See:
         - https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/fine-grained-tool-streaming
         - https://docs.anthropic.com/en/docs/build-with-claude/effort
+        - https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching
     """
 
     _effort: str | None = PrivateAttr(default=None)
+    _prompt_caching: bool = PrivateAttr(default=True)
 
     def _get_request_payload(
         self,
@@ -83,7 +91,41 @@ class _EagerToolStreamingChatAnthropic(ChatAnthropic):  # type: ignore[override]
                 tool["eager_input_streaming"] = True
         if self._effort is not None:
             payload["output_config"] = {"effort": self._effort}
+        if self._prompt_caching:
+            _inject_cache_control(payload)
         return payload
+
+
+def _inject_cache_control(payload: dict) -> None:
+    """Add ``cache_control`` breakpoints to the system prompt and last tool.
+
+    Anthropic's prompt caching uses prefix matching: everything up to and
+    including a ``cache_control`` marker is cached.  Placing markers on the
+    system prompt and the last tool definition caches the entire static
+    prefix (system + tools) that is identical across all LLM calls in a
+    conversation.
+
+    The function mutates *payload* in place.  It is idempotent — if a
+    ``cache_control`` key already exists on a target block, it is not
+    overwritten.
+    """
+    # --- Layer 1: system prompt ---
+    system = payload.get("system")
+    if isinstance(system, str) and system:
+        payload["system"] = [
+            {"type": "text", "text": system, "cache_control": _CACHE_CONTROL_EPHEMERAL},
+        ]
+    elif isinstance(system, list) and system:
+        last_block = system[-1]
+        if isinstance(last_block, dict) and "cache_control" not in last_block:
+            last_block["cache_control"] = _CACHE_CONTROL_EPHEMERAL
+
+    # --- Layer 2: tool definitions ---
+    tools = payload.get("tools")
+    if isinstance(tools, list) and tools:
+        last_tool = tools[-1]
+        if isinstance(last_tool, dict) and "cache_control" not in last_tool:
+            last_tool["cache_control"] = _CACHE_CONTROL_EPHEMERAL
 
 
 def _infer_provider(model_name: str) -> str:
