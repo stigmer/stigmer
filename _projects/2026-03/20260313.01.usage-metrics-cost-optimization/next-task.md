@@ -13,61 +13,49 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: In Progress
-- **Last Session**: 2026-03-13 — Phase 3 (Usage Metrics Population Pipeline) completed
-- **Active Task**: Phase 3 complete. Next: Phase 3 Cleanup → Phase 3B → Phase 4
+- **Last Session**: 2026-03-13 — Phase 3 Cleanup completed
+- **Active Task**: Phase 3 Cleanup complete. Next: Phase 3B → Phase 4
 - **Branch**: `feat/usage-metrics-and-cost-optimization`
 
-## Session Progress (2026-03-13, Session 3)
+## Session Progress (2026-03-13, Session 4)
 
-### Phase 3: Usage Metrics Population Pipeline — COMPLETED
+### Phase 3 Cleanup: Proto Import Migration & Test Updates — COMPLETED
 
-Built the complete runtime pipeline that transforms raw LangGraph events into accurate, cost-enriched usage metrics. Seven steps implemented:
+Fixed all remaining proto import migration issues and test breakage left over from Phase 3's `StatusBuilder` → `UsageTracker` extraction. The full agent-runner test suite is now green (1193 passed, 0 failed).
 
-1. **Investigation spike**: Verified LangChain `usage_metadata` semantics — `input_tokens` is total input (including cached), `input_token_details.cache_creation`/`cache_read` provide the breakdown. Cost formula validated for both Anthropic and OpenAI.
+**What was done (2 files, +46 -143):**
 
-2. **ModelRegistry reverse lookup**: Added `get_by_api_model_id()` with a lazily-initialized reverse index. Resolves provider API model IDs (e.g., `claude-sonnet-4-6`) to `ModelMetadata` for pricing lookups. O(1) after first call.
+1. **Top-level import consolidation** in `test_status_builder.py`: Added `AgentExecutionStatus`, `PendingApproval`, `ToolCall`, `ApprovalAction`, `ExecutionPhase`, `SubAgentStatus` to top-level imports from their correct `_pb2` modules.
 
-3. **UsageTracker class** (NEW — `usage_tracker.py`, ~385 lines): Encapsulates all token accounting, pricing lookup, per-call metrics construction, per-model aggregation, duration tracking, and proto assembly. Scope-based isolation (main agent + sub-agents), pricing stamped at call time.
+2. **Removed 18 inline `api_pb2` imports** across 4 test classes (`TestResumeFromApprovalDetection`, `TestContextManagementTracking`, `TestRunIdAliasResolution`, `TestOrphanedSubAgentDetection`).
 
-4. **StatusBuilder integration**: Delegated usage tracking from StatusBuilder to UsageTracker. Extracted cache tokens from `usage_metadata.input_token_details`. Enriched `AgentMessage` with `input_tokens`, `output_tokens`, `cache_read_tokens`, `estimated_cost_usd`, `model`. Removed 8 redundant accumulator fields and 2 helper methods.
+3. **Fixed 1 wrong module import**: `ToolCall` was imported from `approval_pb2` instead of `message_pb2` in `TestPhase54ApprovalClearing`.
 
-5. **Duration breakdown**: `llm_duration_ms` from LLM calls, `tool_duration_ms` from tool execution, `approval_wait_duration_ms` from HITL waits, `total_duration_ms` from started_at/completed_at. All tracked per-scope.
+4. **Replaced 7 internal field assertions** with public API checks (`_total_prompt_tokens` → `current_status.usage.prompt_tokens`).
 
-6. **Summarization cost capture**: Created `_SummarizationUsageCapture` callback handler to intercept hidden LLM calls in graphton's `_perform_summarization()`. Extended `SummarizationEventData` with `summarization_input_tokens`, `summarization_output_tokens`, `summarization_cost_usd`.
+5. **Deleted 3 obsolete tests** that called removed private methods (`_build_usage_metrics`, `_build_sub_agent_usage`) — covered by 23 existing tests in `test_usage_tracker.py`.
 
-7. **Tests**: 35 new tests — 23 for UsageTracker, 7 for ModelRegistry reverse lookup, 5 for summarization token capture. All pass.
+6. **Fixed 22 mock setups**: `MagicMock()` → `MagicMock(input_token_details=None)` — root cause of 20+ test failures (MagicMock auto-attribute creation defeated the Phase 3 cache token extraction code's `getattr(..., None)` defense, causing a silent `TypeError` that killed `_handle_chat_model_end_event`).
 
-### Discoveries During Phase 3
+7. **Updated 1 test expectation**: `read_file` tool result assertion updated to match `_READ_ONLY_TOOLS` content omission behavior.
 
-- **Proto import migration needed**: Phase 1's file split moved messages to separate `_pb2.py` modules but Python imports were never updated. Fixed 3 production files; remaining test imports documented as cleanup task.
-- **LangChain cache semantics verified**: `input_tokens` includes cached tokens (total input). Non-cached regular input = `input_tokens - cache_creation - cache_read`.
-- **StatusBuilder extraction was essential**: At 3,200 lines, adding cost logic directly would have been unmaintainable. UsageTracker provides clean separation.
+8. **Fixed production code import** in `execute_graphton.py`: `from api_pb2 import ExecutionArtifact` → `from artifact_pb2 import ExecutionArtifact` (inline import at line 930, missed during Phase 3).
 
-### Files Changed (11 files, +486 -160)
+### Discoveries During Phase 3 Cleanup
 
-**New**:
-- `backend/services/agent-runner/worker/activities/graphton/usage_tracker.py`
-- `backend/services/agent-runner/tests/test_usage_tracker.py`
+- **Task file scope was inaccurate**: Task `T01_3_cleanup_proto_imports.md` estimated "12 tests in TestUsageMetrics" needing rewrite. Reality was 10 tests across 4 classes, with the root cause being MagicMock auto-attribute creation rather than removed fields.
+- **`test_git_diff_artifact.py` was already clean**: Task file listed it as needing import fixes, but it had zero `api_pb2` references.
+- **MagicMock defeats `getattr` defaults**: `getattr(MagicMock(), "any_attr", None)` returns a MagicMock (not None), because MagicMock auto-creates attributes on access. Setting explicit `None` on the mock is required.
+
+### Files Changed (2 files, +46 -143)
 
 **Modified**:
-- `backend/libs/python/graphton/src/graphton/core/model_registry.py`
-- `backend/libs/python/graphton/src/graphton/core/summarization_callback.py`
-- `backend/libs/python/graphton/src/graphton/core/summarization_middleware.py`
-- `backend/libs/python/graphton/tests/core/test_model_registry.py`
-- `backend/libs/python/graphton/tests/core/test_summarization_middleware.py`
-- `backend/services/agent-runner/worker/activities/graphton/status_builder.py`
-- `backend/services/agent-runner/worker/activities/execute_graphton.py`
-- `backend/services/agent-runner/worker/tools/publish_artifact.py`
 - `backend/services/agent-runner/tests/test_status_builder.py`
+- `backend/services/agent-runner/worker/activities/execute_graphton.py`
 
 ## Next Steps
 
 Pick up in this order:
-
-### Immediate: Phase 3 Cleanup (2-3 hours)
-**Task file**: `tasks/T01_3_cleanup_proto_imports.md`
-
-Fix remaining proto import migration in `test_status_builder.py` (18 inline imports) and `test_git_diff_artifact.py`. Update 12 old StatusBuilder usage tests to use the new UsageTracker-delegated API. This unblocks the full agent-runner test suite.
 
 ### Next: Phase 3B — Tool Result Truncation & Cost Cap (1-2 days)
 **Task file**: `tasks/T01_3B_tool_truncation_and_cost_cap.md`
@@ -92,8 +80,10 @@ Both consume `ExecutionConfig` proto fields from Phase 1 and depend on the runni
 - `_SummarizationUsageCapture` callback handler captures hidden LLM usage from LangMem's `summarize_messages()`.
 - Cost formula: `(regular_input * input_price + output * output_price + cache_creation * creation_price + cache_read * read_price) / 1_000_000`
 - LangChain `input_tokens` = total input (including cached). Regular input = `input_tokens - cache_creation - cache_read`.
-- Proto stubs were regenerated via `make protos`. Python imports in production code are fixed; test imports partially remain on old paths.
+- Proto stubs were regenerated via `make protos`. All Python imports (production and test) now reference correct `_pb2` modules.
+- All 1193 agent-runner tests pass. No known test debt remaining.
 - Phase 3 plan: `.cursor/plans/phase_3_usage_metrics_4044b9fe.plan.md`
+- Phase 3 Cleanup plan: `.cursor/plans/phase_3_cleanup_a7ef6afe.plan.md`
 - T01 master plan: `tasks/T01_0_plan.md`
 
 ## Essential Files to Review
