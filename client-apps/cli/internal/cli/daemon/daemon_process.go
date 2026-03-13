@@ -445,6 +445,7 @@ func buildAgentRunnerEnv(dataDir string, grpcPort int) []string {
 		fmt.Sprintf("STIGMER_SANDBOX_TTL=%s", os.Getenv("STIGMER_SANDBOX_TTL")),
 		fmt.Sprintf("LOCAL_ARTIFACT_PATH=%s", artifactsDir),
 		fmt.Sprintf("LOCAL_ARTIFACT_SERVE_URL=http://localhost:%d", grpcPort+1),
+		"LANGGRAPH_DEFAULT_RECURSION_LIMIT=10000000",
 	)
 	return env
 }
