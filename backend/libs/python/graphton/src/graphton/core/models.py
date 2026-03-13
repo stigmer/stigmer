@@ -65,9 +65,11 @@ class _EagerToolStreamingChatAnthropic(ChatAnthropic):  # type: ignore[override]
            real-time.
         2. ``output_config.effort`` — controls how aggressively Claude spends
            tokens (required for adaptive thinking on Opus 4.6 / Sonnet 4.6).
-        3. Prompt caching — injects ``cache_control`` breakpoints on the system
-           prompt and last tool definition so Anthropic caches the static prefix
-           across LLM calls.  Cache reads cost 0.1x; break-even at 2 calls.
+        3. Prompt caching — explicit ``cache_control`` breakpoints on the system
+           prompt and last tool definition cache the static prefix; a top-level
+           ``cache_control`` enables automatic conversation caching so the
+           growing message history is incrementally cached across turns.
+           Cache reads cost 0.1x; break-even at 2 calls.
 
     See:
         - https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/fine-grained-tool-streaming
@@ -97,17 +99,27 @@ class _EagerToolStreamingChatAnthropic(ChatAnthropic):  # type: ignore[override]
 
 
 def _inject_cache_control(payload: dict) -> None:
-    """Add ``cache_control`` breakpoints to the system prompt and last tool.
+    """Add prompt-caching directives to an Anthropic API payload.
 
-    Anthropic's prompt caching uses prefix matching: everything up to and
-    including a ``cache_control`` marker is cached.  Placing markers on the
-    system prompt and the last tool definition caches the entire static
-    prefix (system + tools) that is identical across all LLM calls in a
-    conversation.
+    Three layers of caching, each independent:
 
-    The function mutates *payload* in place.  It is idempotent — if a
-    ``cache_control`` key already exists on a target block, it is not
-    overwritten.
+    Layer 1 — **system prompt** (explicit breakpoint): converts a string
+    system prompt to a content-block list and marks the last block.
+
+    Layer 2 — **tool definitions** (explicit breakpoint): marks the last
+    tool definition so the full tool schema prefix is cached.
+
+    Layer 3 — **conversation history** (automatic): sets the top-level
+    ``cache_control`` parameter so Anthropic automatically caches the
+    growing message history and advances the breakpoint each turn.
+
+    Layers 1 and 2 create stable, independent cache entries for content
+    that rarely changes within an execution.  Layer 3 handles the
+    dynamic conversation, where the prefix grows with each model call.
+
+    The function mutates *payload* in place.  It is idempotent — explicit
+    breakpoints are not overwritten, and the top-level key is set only
+    once.
     """
     # --- Layer 1: system prompt ---
     system = payload.get("system")
@@ -126,6 +138,10 @@ def _inject_cache_control(payload: dict) -> None:
         last_tool = tools[-1]
         if isinstance(last_tool, dict) and "cache_control" not in last_tool:
             last_tool["cache_control"] = _CACHE_CONTROL_EPHEMERAL
+
+    # --- Layer 3: automatic conversation caching ---
+    if "cache_control" not in payload:
+        payload["cache_control"] = _CACHE_CONTROL_EPHEMERAL
 
 
 def _infer_provider(model_name: str) -> str:

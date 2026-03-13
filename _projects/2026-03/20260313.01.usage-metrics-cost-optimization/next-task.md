@@ -13,115 +13,107 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: In Progress
-- **Last Session**: 2026-03-13 — Phase 4A completed
-- **Active Task**: Phase 4A complete. Next: Phase 5 → Phase 6 → Phase 7 → Phase 4B
+- **Last Session**: 2026-03-14 — Phase 4B completed + full dependency upgrade
+- **Active Task**: Phase 4B complete. Next: fix dep-upgrade test failures → Phase 5 → Phase 6 → Phase 7
 - **Branch**: `feat/usage-metrics-and-cost-optimization`
 
-## Session Progress (2026-03-13, Session 6)
+## Session Progress (2026-03-14, Session 7)
 
-### Phase 4A: Prompt Caching (System + Tools) — COMPLETED
+### Phase 4B: Automatic Conversation Caching — COMPLETED
 
-Added Anthropic prompt caching by injecting `cache_control: {"type": "ephemeral"}` breakpoints on the system prompt and last tool definition. No prompt restructuring was needed — the original plan's assumption that prompt construction needed restructuring was incorrect. The existing architecture already separates system, tools, and messages into distinct API parameters.
+Enabled Anthropic's automatic conversation caching by upgrading the `anthropic` SDK to 0.84.0 and adding a single top-level `cache_control: {"type": "ephemeral"}` parameter to the API payload. The system automatically manages cache breakpoints for the growing conversation history — placing the breakpoint on the last cacheable block and advancing it each turn.
 
-**Key insight**: The original plan called for "restructuring prompt construction to place static content as a stable prefix." Investigation revealed the Anthropic API payload already has this structure (`system`, `tools`, `messages` are separate parameters). Only additive `cache_control` markers were needed.
+**Key insight**: The original plan called for `AnthropicPromptCachingMiddleware` from langchain-anthropic (manual breakpoints on individual message content blocks). Investigation revealed three reasons not to use it: (1) we already have `_inject_cache_control()` — adding a second caching mechanism in a different layer violates single-responsibility, (2) the middleware has a known open bug (langchain#33709) that breaks model fallback, (3) Anthropic's top-level `cache_control` parameter (new in SDK 0.83.0) is simpler and lets the API manage breakpoint placement automatically.
 
-**What was done (1 modified file, 1 new file, ~30 lines modified, ~300 lines new):**
+**Also discovered**: OpenAI already does prompt caching automatically on every API call with zero code changes (prefix matching, 50% discount, no opt-in). Phase 4B is correctly Anthropic-only because Anthropic is the only provider requiring explicit client-side action.
 
-1. **`_EagerToolStreamingChatAnthropic._get_request_payload()`** (`graphton/core/models.py`): Extended the existing payload-patching method (which already handles eager tool streaming and adaptive thinking effort) to inject `cache_control` markers. Layer 1: system prompt string is converted to a content block list with `cache_control`. Layer 2: last tool definition gets `cache_control`. Both are idempotent (won't overwrite existing markers).
+**Three-layer caching architecture:**
+- Layer 1 (explicit): system prompt — stable, independent cache entry
+- Layer 2 (explicit): last tool definition — stable, independent cache entry
+- Layer 3 (automatic): conversation history — Anthropic manages breakpoint placement, advances each turn
 
-2. **`_inject_cache_control()`** (`graphton/core/models.py`): Pure function that mutates the payload in place. Handles string system prompts, list-of-blocks system prompts, None/empty, and tool definitions. Guarded by `_prompt_caching` private attribute (default True) for testability.
+Uses 3 of 4 Anthropic breakpoint slots (2 explicit + 1 automatic).
 
-3. **Unit tests**: 24 tests covering string/list/None system prompts, tool caching, empty/missing keys, idempotency, opt-out, combined scenarios, and integration through `_get_request_payload()`. All pass.
+**What was done (2 modified files, ~40 lines modified/new production, ~70 lines new tests):**
 
-**Impact**: ~80% savings on the static prefix (system prompt + tool schemas) that is repeated on every LLM call. Break-even at 2 calls; typical executions have 5-15 calls.
+1. **`_inject_cache_control()`** (`graphton/core/models.py`): Added Layer 3 — one line: `payload["cache_control"] = _CACHE_CONTROL_EPHEMERAL`. Idempotent (won't overwrite existing). Updated docstring to document three-layer architecture.
+
+2. **`_EagerToolStreamingChatAnthropic`** (`graphton/core/models.py`): Updated class docstring to mention conversation caching alongside the existing system/tool caching.
+
+3. **Unit tests** (`test_prompt_caching.py`): Added 6 new tests (Layer 3 automatic caching, idempotency, message non-modification, opt-out integration). Updated existing combined tests to verify top-level `cache_control`. Total: 30 tests, all pass.
+
+### Full Dependency Upgrade
+
+Upgraded all AI/LLM dependencies in graphton and agent-runner to latest versions:
+
+- **anthropic**: 0.79.0 → 0.84.0 (enables top-level cache_control)
+- **deepagents**: 0.4.0 → 0.4.10
+- **langchain**: 1.2.10 → 1.2.12
+- **langchain-core**: 1.2.4 → 1.2.19
+- **langchain-anthropic**: 1.3.3 → 1.3.4
+- **langchain-openai**: 1.1.6 → 1.1.11
+- **langchain-ollama**: 0.3.10 → 1.0.1 (major version bump, constraint widened)
+- **langchain-mcp-adapters**: 0.1.14 → 0.2.1 (constraint widened)
+- **langgraph**: 1.0.5 → 1.1.2
+
+Constraint changes in `graphton/pyproject.toml`:
+- `langchain-ollama`: `>=0.2.0,<1.0.0` → `>=1.0.0,<2.0.0`
+- `langchain-mcp-adapters`: `>=0.1.9,<0.2.0` → `>=0.2.0,<0.3.0`
+
+### Dep-Upgrade Test Failures (14 tests, to be fixed separately)
+
+The dependency upgrades introduced 14 test failures in graphton (agent-runner is fully green at 1198 tests). These are all from breaking changes in the upgraded dependencies, NOT from Phase 4B code:
+
+1. **`claude-haiku-4` references** (2 tests): Tests reference a model name that doesn't exist in the registry. Pre-existing issue now surfacing because summarization config returns `claude-haiku-4.5`.
+2. **`AIMessage(tool_calls=...)` requires `id`** (2 tests): `langchain-core` 1.2.19 made `id` mandatory in tool_call dicts.
+3. **`AIMessage(content=None)` invalid** (1 test): langchain-core now requires content to be str or list, not None.
+4. **`summarize_messages` moved in langmem** (4 tests): The mock patch target no longer exists at the expected path.
+5. **Tool wrappers return string** (3 tests): deepagents 0.4.10 changed tool result format from dict to string.
+6. **Token counting threshold** (1 test): Approximate counting result changed slightly.
+7. **Edit tool error** (1 test): Error handling behavior changed.
 
 ### Design Decisions Made
 
-1. **Payload-level patching over middleware**: Consistent with the established `_EagerToolStreamingChatAnthropic._get_request_payload()` pattern. More reliable than middleware (no dependency on deepagents internals).
-2. **Always-on for Anthropic**: Cache write costs 1.25x but reads cost 0.1x. Break-even at 2 calls. Every execution exceeds this. No opt-in needed.
-3. **No public API surface change**: Caching is transparent. `create_deep_agent()` callers don't need to know about it.
-4. **5-minute TTL (default)**: Extended 1h TTL deferred. Can be added later if approval waits cause cache misses.
+1. **Top-level automatic caching over manual message breakpoints**: Anthropic's top-level `cache_control` parameter is simpler (1 line vs 15 lines), lets the API manage breakpoint placement, and avoids navigating nested message content block structures.
+2. **NOT using langchain middleware**: `AnthropicPromptCachingMiddleware` would create two caching mechanisms in two different layers. Our `_inject_cache_control()` approach keeps all caching logic in one function, at one layer.
+3. **Hybrid explicit + automatic**: Explicit breakpoints (Layers 1-2) for stable system/tools content, automatic (Layer 3) for dynamic conversation. Recommended by Anthropic docs.
+4. **OpenAI needs nothing**: OpenAI's automatic prefix caching (50% discount, no opt-in) is already active with zero code changes.
 
 ### Files Changed
 
-**New**:
-- `backend/libs/python/graphton/tests/core/test_prompt_caching.py`
-
 **Modified**:
-- `backend/libs/python/graphton/src/graphton/core/models.py`
+- `backend/libs/python/graphton/pyproject.toml` (constraint widening)
+- `backend/libs/python/graphton/poetry.lock` (full dependency resolution)
+- `backend/libs/python/graphton/src/graphton/core/models.py` (Layer 3 + docstrings)
+- `backend/libs/python/graphton/tests/core/test_prompt_caching.py` (new Layer 3 tests)
+- `backend/services/agent-runner/poetry.lock` (full dependency resolution)
 
 ---
-
-## Session Progress (2026-03-13, Session 5)
-
-### Phase 3B: Tool Result Truncation & Cost Cap — COMPLETED
-
-Implemented two new graphton middlewares for tool result truncation and cost cap enforcement. The original task file incorrectly specified placing both features in `StatusBuilder` (an observer that cannot modify LLM state or control execution flow). During planning, this was identified and corrected — both features were implemented as proper `AgentMiddleware` subclasses following the established pattern of `ExecutionBudgetMiddleware` and `LoopDetectionMiddleware`.
-
-**What was done (4 modified files, 4 new files, +190 lines modified, ~700 lines new):**
-
-1. **`ToolTruncationMiddleware`** (`graphton/core/tool_truncation.py`): Always-active middleware that prefix-truncates tool results exceeding a configurable character limit (default 30K). Covers ALL tools uniformly (platform, MCP, resource) via `awrap_tool_call`. Fires an optional callback for usage metric accumulation. Acts as a "context budget" layer above the existing 120K head+tail truncation in `tool_wrappers.py`.
-
-2. **`CostCapMiddleware`** (`graphton/core/cost_cap.py`): Optional middleware (only when `max_cost_usd > 0`) that tracks running LLM cost via `aafter_model`, injects a warning SystemMessage at 80% of the budget, and blocks all tools at 100% via `awrap_tool_call`. Gives the model one final tool-free round to summarize before the graph terminates naturally. Uses its own running cost total independent of `UsageTracker` (different timing, layer, precision needs).
-
-3. **`create_deep_agent()` wiring** (`graphton/core/agent.py`): Added `max_tool_result_chars`, `tool_truncation_callback`, `max_cost_usd`, and `cost_pricing` parameters. Tool truncation is always injected; cost cap only when configured with pricing.
-
-4. **`UsageTracker` extension** (`usage_tracker.py`): Added `record_tool_truncation()` method and `tool_chars_truncated` field on `_ScopeState`. Wired into `build_usage_metrics()` → `UsageMetrics.tool_result_chars_truncated` (proto field 10, already existed).
-
-5. **`execute_graphton.py` wiring**: Reads `max_tool_result_chars` and `max_cost_usd` from `ExecutionConfig`, builds `cost_pricing` dict from `ModelRegistry`, creates truncation callback wired to `UsageTracker`, and passes all to `create_deep_agent()`.
-
-6. **Unit tests**: 21 tests for `ToolTruncationMiddleware`, 22 for `CostCapMiddleware`, 5 for `UsageTracker.record_tool_truncation`. All 128 middleware tests pass, all 28 usage tracker tests pass.
-
-### Design Decisions Made
-
-1. **Truncation strategy**: Prefix-only for the middleware (context budget layer). `tool_wrappers.py` handles head+tail at 120K (smart formatting layer). Two layers, two purposes.
-2. **Sub-agent cost scope**: Main agent only for Phase 3B. Matches `ExecutionBudgetMiddleware`'s per-graph pattern.
-3. **Tool truncation activation**: Always active with 30K default. `max_tool_result_chars=0` means "use platform default", not "disable".
-4. **Cost cap termination**: Graceful — inject "budget exhausted, summarize" SystemMessage + block tools. One final model call.
-
-### Files Changed
-
-**New**:
-- `backend/libs/python/graphton/src/graphton/core/tool_truncation.py`
-- `backend/libs/python/graphton/src/graphton/core/cost_cap.py`
-- `backend/libs/python/graphton/tests/core/test_tool_truncation.py`
-- `backend/libs/python/graphton/tests/core/test_cost_cap.py`
-
-**Modified**:
-- `backend/libs/python/graphton/src/graphton/core/agent.py`
-- `backend/services/agent-runner/worker/activities/graphton/usage_tracker.py`
-- `backend/services/agent-runner/worker/activities/execute_graphton.py`
-- `backend/services/agent-runner/tests/test_usage_tracker.py`
 
 ## Next Steps
 
 Pick up in this order:
 
-### Next: Phase 5 — Server Usage Report RPCs
+### Immediate: Fix Dep-Upgrade Test Failures (14 graphton tests)
+Fix the 14 test failures caused by breaking changes in upgraded dependencies. Agent-runner is fully green (1198 tests). Categories: claude-haiku-4 references, AIMessage tool_call id requirement, summarize_messages mock path, tool wrapper return type.
+
+### Then: Phase 5 — Server Usage Report RPCs
 Implement `GetSessionUsageReport`, `GetAgentUsageReport`, `GetOrgUsageReport` RPCs. Aggregate usage across executions/sessions/agents with time range filtering and pagination.
 
 ### Then: Remaining T01 Phases
 1. **Phase 6: CLI — Usage Display & Commands** — Add `stigmer usage` commands, per-execution usage summary
 2. **Phase 7: Sub-Agent Model Routing** — Wire `model_override` on `SubAgentDefinition`
-3. **Phase 4B: Incremental Conversation Caching** — Inject `AnthropicPromptCachingMiddleware` from langchain-anthropic to cache conversation history between turns. Lower priority since Phase 4A already captures 80-90% of caching savings. Known issue with model fallback (langchain-ai/langchain#33709) — re-evaluate when that is resolved.
 
 ## Context for Resume
 
-- **Prompt caching** is always-on for Anthropic models via `_EagerToolStreamingChatAnthropic._get_request_payload()`. Injects `cache_control: {"type": "ephemeral"}` on the system prompt (converted from string to content block list) and the last tool definition. Idempotent. Opt-out via `model._prompt_caching = False` (for tests only).
-- **`_inject_cache_control()`** in `graphton/core/models.py` is the pure function that mutates the API payload in place. Handles string/list/None system prompts and empty/missing tool lists.
-- **No restructuring was needed**: The Anthropic API already separates `system`, `tools`, and `messages` into distinct payload parameters. The original plan's assumption about restructuring was wrong.
-- **Phase 4B (deferred)**: Incremental conversation caching via `AnthropicPromptCachingMiddleware` from langchain-anthropic. Independent of Phase 4A. Blocked by langchain-ai/langchain#33709 (breaks model fallback).
-- `ToolTruncationMiddleware` is always injected in `create_deep_agent()`. Default 30K chars. Covers all tools (platform + MCP + resource).
-- `CostCapMiddleware` is only injected when `max_cost_usd > 0` with `cost_pricing` dict from `ModelRegistry`.
-- The truncation callback bridges graphton (library) → agent-runner (service): `_on_tool_truncation` closure in `execute_graphton.py` calls `status_builder.usage_tracker.record_tool_truncation()`.
-- `CostCapMiddleware` tracks its own running cost independently of `UsageTracker` (timing + layer separation).
-- `UsageTracker` is in `backend/services/agent-runner/worker/activities/graphton/usage_tracker.py`. StatusBuilder owns it via `self._usage_tracker`.
-- `ModelRegistry.get_by_api_model_id()` resolves provider API model IDs to `ModelMetadata` for pricing.
-- Cost formula: `(regular_input * input_price + output * output_price + cache_creation * creation_price + cache_read * read_price) / 1_000_000`
-- LangChain `input_tokens` = total input (including cached). Regular input = `input_tokens - cache_creation - cache_read`.
-- All 1193+ agent-runner tests pass. 152 graphton tests pass (128 middleware + 24 prompt caching).
-- Phase 4A plan: `.cursor/plans/phase_4_prompt_caching_adee63e8.plan.md`
-- Phase 3B plan: `.cursor/plans/phase_3b_implementation_4797ea64.plan.md`
+- **Three-layer caching**: `_inject_cache_control()` in `graphton/core/models.py` now has three layers: (1) explicit breakpoint on system prompt, (2) explicit breakpoint on last tool, (3) top-level `cache_control` for automatic conversation caching. All three are idempotent. Opt-out via `model._prompt_caching = False`.
+- **Automatic caching** (Layer 3) uses Anthropic's top-level `cache_control={"type": "ephemeral"}` parameter (requires `anthropic>=0.83.0`). The API automatically places a breakpoint on the last cacheable block and advances it each turn.
+- **OpenAI caching is automatic**: No code needed. 50% discount on cached tokens, prefix matching, no opt-in.
+- **14 failing graphton tests** from dep upgrades need fixing. Agent-runner (1198 tests) is fully green.
+- **Key dep versions now**: anthropic 0.84.0, deepagents 0.4.10, langchain-core 1.2.19, langgraph 1.1.2, langchain-ollama 1.0.1, langchain-mcp-adapters 0.2.1.
+- 30/30 prompt caching tests pass (Layers 1-3 + integration + opt-out).
+- 1198/1198 agent-runner tests pass.
+- Phase 4B plan: `.cursor/plans/phase_4b_conversation_caching_1581cc1e.plan.md`
 - T01 master plan: `tasks/T01_0_plan.md`
 
 ## Essential Files to Review
