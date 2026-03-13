@@ -18,7 +18,7 @@ golden-tests:
 
 # Build Docker image
 docker-build:
-	docker build -t ghcr.io/leftbin/stigmer-cloud/backend/services/workflow-runner:latest .
+	docker build -t ghcr.io/stigmer/stigmer-cloud/backend/services/workflow-runner:latest .
 
 # Clean build artifacts
 clean:

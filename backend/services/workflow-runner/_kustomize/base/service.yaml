@@ -7,12 +7,12 @@ metadata:
     project-planton.org/provisioner: pulumi
     pulumi.project-planton.org/organization: stigmer
     pulumi.project-planton.org/project: stigmer
-    kubernetes.project-planton.org/docker-config-json-file: "~/scm/github.com/leftbin/stigmer-cloud/ops/platform/service-deployments/files/docker-config.ghcr.json"
+    kubernetes.project-planton.org/docker-config-json-file: "~/scm/github.com/stigmer/stigmer-cloud/ops/platform/service-deployments/files/docker-config.ghcr.json"
 spec:
   container:
     app:
       image:
-        repo: ghcr.io/leftbin/stigmer-cloud/backend/services/workflow-runner
+        repo: ghcr.io/stigmer/stigmer-cloud/backend/services/workflow-runner
         #tag: <comes-from-ci-git-commit-sha>
       env:
         variables:
