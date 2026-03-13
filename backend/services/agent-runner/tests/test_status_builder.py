@@ -16,13 +16,21 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentExecutionStatus
+from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
 from ai.stigmer.agentic.agentexecution.v1.context_pb2 import (
     ContextInfo,
     ResolvedExecutionContext,
 )
-from ai.stigmer.agentic.agentexecution.v1.message_pb2 import AgentMessage
+from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
+    ApprovalAction,
+    ExecutionPhase,
+    MessageType,
+    SubAgentStatus,
+    ToolCallStatus,
+)
+from ai.stigmer.agentic.agentexecution.v1.message_pb2 import AgentMessage, ToolCall
 from ai.stigmer.agentic.agentexecution.v1.usage_pb2 import UsageMetrics
-from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType, ToolCallStatus
 from graphton.core.summarization_callback import SOURCE_GRAPH_START, SOURCE_MID_EXECUTION
 
 from worker.activities.graphton.status_builder import StatusBuilder
@@ -176,7 +184,7 @@ class TestChatModelEndEvent:
         
         # Now process the end event with usage metadata
         output = MagicMock()
-        output.usage_metadata = MagicMock()
+        output.usage_metadata = MagicMock(input_token_details=None)
         output.usage_metadata.input_tokens = 100
         output.usage_metadata.output_tokens = 50
         output.usage_metadata.total_tokens = 150
@@ -190,9 +198,9 @@ class TestChatModelEndEvent:
         
         await status_builder.process_event(end_event)
         
-        # Verify cumulative tokens were updated
-        assert status_builder._total_prompt_tokens == 100
-        assert status_builder._total_completion_tokens == 50
+        # Verify usage is populated via the public API
+        assert status_builder.current_status.usage.prompt_tokens == 100
+        assert status_builder.current_status.usage.completion_tokens == 50
 
     @pytest.mark.asyncio
     async def test_extracts_usage_metadata_from_dict(self, status_builder):
@@ -227,8 +235,8 @@ class TestChatModelEndEvent:
         
         await status_builder.process_event(end_event)
         
-        assert status_builder._total_prompt_tokens == 200
-        assert status_builder._total_completion_tokens == 75
+        assert status_builder.current_status.usage.prompt_tokens == 200
+        assert status_builder.current_status.usage.completion_tokens == 75
 
     @pytest.mark.asyncio
     async def test_calculates_generation_duration(self, status_builder):
@@ -275,7 +283,7 @@ class TestChatModelEndEvent:
         })
         
         output1 = MagicMock()
-        output1.usage_metadata = MagicMock()
+        output1.usage_metadata = MagicMock(input_token_details=None)
         output1.usage_metadata.input_tokens = 100
         output1.usage_metadata.output_tokens = 50
         output1.usage_metadata.total_tokens = 150
@@ -297,7 +305,7 @@ class TestChatModelEndEvent:
         })
         
         output2 = MagicMock()
-        output2.usage_metadata = MagicMock()
+        output2.usage_metadata = MagicMock(input_token_details=None)
         output2.usage_metadata.input_tokens = 200
         output2.usage_metadata.output_tokens = 100
         output2.usage_metadata.total_tokens = 300
@@ -310,15 +318,15 @@ class TestChatModelEndEvent:
         })
         
         # Should have cumulative totals
-        assert status_builder._total_prompt_tokens == 300  # 100 + 200
-        assert status_builder._total_completion_tokens == 150  # 50 + 100
+        assert status_builder.current_status.usage.prompt_tokens == 300  # 100 + 200
+        assert status_builder.current_status.usage.completion_tokens == 150  # 50 + 100
 
     @pytest.mark.asyncio
     async def test_handles_missing_ai_message_gracefully(self, status_builder):
         """Test that on_chat_model_end handles missing AI message."""
         # Process end event without any prior stream event
         output = MagicMock()
-        output.usage_metadata = MagicMock()
+        output.usage_metadata = MagicMock(input_token_details=None)
         output.usage_metadata.input_tokens = 100
         output.usage_metadata.output_tokens = 50
         output.usage_metadata.total_tokens = 150
@@ -333,8 +341,8 @@ class TestChatModelEndEvent:
         await status_builder.process_event(end_event)
         
         # Tokens should NOT be accumulated since no message was found
-        assert status_builder._total_prompt_tokens == 0
-        assert status_builder._total_completion_tokens == 0
+        assert status_builder.current_status.usage.prompt_tokens == 0
+        assert status_builder.current_status.usage.completion_tokens == 0
 
     @pytest.mark.asyncio
     async def test_handles_empty_output(self, status_builder):
@@ -393,7 +401,7 @@ class TestEventRouting:
         
         # Verify on_chat_model_end is handled
         output = MagicMock()
-        output.usage_metadata = MagicMock()
+        output.usage_metadata = MagicMock(input_token_details=None)
         output.usage_metadata.input_tokens = 10
         output.usage_metadata.output_tokens = 5
         output.usage_metadata.total_tokens = 15
@@ -406,7 +414,7 @@ class TestEventRouting:
         })
         
         # Verify it was processed (tokens accumulated)
-        assert status_builder._total_prompt_tokens == 10
+        assert status_builder.current_status.usage.prompt_tokens == 10
 
     @pytest.mark.asyncio
     async def test_ignores_unknown_event_types(self, status_builder):
@@ -461,8 +469,8 @@ class TestOpenAIUsageFormat:
         
         await status_builder.process_event(end_event)
         
-        assert status_builder._total_prompt_tokens == 150
-        assert status_builder._total_completion_tokens == 80
+        assert status_builder.current_status.usage.prompt_tokens == 150
+        assert status_builder.current_status.usage.completion_tokens == 80
 
 
 # =============================================================================
@@ -515,7 +523,7 @@ class TestAgentMessageStreamingFields:
         
         # End event should finalize to is_streaming=False
         output = MagicMock()
-        output.usage_metadata = MagicMock()
+        output.usage_metadata = MagicMock(input_token_details=None)
         output.usage_metadata.input_tokens = 100
         output.usage_metadata.output_tokens = 50
         output.usage_metadata.total_tokens = 150
@@ -544,7 +552,7 @@ class TestAgentMessageStreamingFields:
         
         # End event with usage metadata
         output = MagicMock()
-        output.usage_metadata = MagicMock()
+        output.usage_metadata = MagicMock(input_token_details=None)
         output.usage_metadata.input_tokens = 100  # prompt tokens
         output.usage_metadata.output_tokens = 50   # completion tokens
         output.usage_metadata.total_tokens = 150
@@ -578,7 +586,7 @@ class TestAgentMessageStreamingFields:
         
         # End event
         output = MagicMock()
-        output.usage_metadata = MagicMock()
+        output.usage_metadata = MagicMock(input_token_details=None)
         output.usage_metadata.input_tokens = 10
         output.usage_metadata.output_tokens = 5
         output.usage_metadata.total_tokens = 15
@@ -1407,8 +1415,6 @@ class TestSubAgentInternals:
     @pytest.mark.asyncio
     async def test_sub_agent_tool_end_updates_correct_context(self, status_builder):
         """Test that tool end events update the correct sub-agent context."""
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
-        
         sub_agent_run_id = "task-run-end-test"
         namespace = f"agent_node:{sub_agent_run_id}"
         tool_run_id = "tool-end-test"
@@ -1449,7 +1455,7 @@ class TestSubAgentInternals:
         sub_agent = status_builder.current_status.sub_agent_executions[0]
         assert len(sub_agent.tool_calls) == 1
         assert sub_agent.tool_calls[0].status == ToolCallStatus.TOOL_CALL_COMPLETED
-        assert sub_agent.tool_calls[0].result == "file contents"
+        assert sub_agent.tool_calls[0].result == "[content omitted - 13 chars]"
 
     @pytest.mark.asyncio
     async def test_multiple_sub_agents_isolated(self, status_builder):
@@ -1584,7 +1590,7 @@ class TestSubAgentInternals:
         
         # Finalize AI message
         output = MagicMock()
-        output.usage_metadata = MagicMock()
+        output.usage_metadata = MagicMock(input_token_details=None)
         output.usage_metadata.input_tokens = 50
         output.usage_metadata.output_tokens = 25
         output.usage_metadata.total_tokens = 75
@@ -2946,7 +2952,7 @@ class TestUsageMetrics:
         
         # End with usage metadata
         output = MagicMock()
-        output.usage_metadata = MagicMock()
+        output.usage_metadata = MagicMock(input_token_details=None)
         output.usage_metadata.input_tokens = 100
         output.usage_metadata.output_tokens = 50
         output.usage_metadata.total_tokens = 150
@@ -2981,7 +2987,7 @@ class TestUsageMetrics:
             
             # End message
             output = MagicMock()
-            output.usage_metadata = MagicMock()
+            output.usage_metadata = MagicMock(input_token_details=None)
             output.usage_metadata.input_tokens = 10
             output.usage_metadata.output_tokens = 5
             output.usage_metadata.total_tokens = 15
@@ -2995,7 +3001,6 @@ class TestUsageMetrics:
         
         # Verify call count
         assert status_builder.current_status.usage.llm_call_count == 3
-        assert status_builder._llm_call_count == 3
 
     @pytest.mark.asyncio
     async def test_primary_model_captured_from_first_call(self, status_builder):
@@ -3010,7 +3015,7 @@ class TestUsageMetrics:
         })
         
         output = MagicMock()
-        output.usage_metadata = MagicMock()
+        output.usage_metadata = MagicMock(input_token_details=None)
         output.usage_metadata.input_tokens = 10
         output.usage_metadata.output_tokens = 5
         output.usage_metadata.total_tokens = 15
@@ -3037,7 +3042,7 @@ class TestUsageMetrics:
         })
         
         output1 = MagicMock()
-        output1.usage_metadata = MagicMock()
+        output1.usage_metadata = MagicMock(input_token_details=None)
         output1.usage_metadata.input_tokens = 10
         output1.usage_metadata.output_tokens = 5
         output1.usage_metadata.total_tokens = 15
@@ -3059,7 +3064,7 @@ class TestUsageMetrics:
         })
         
         output2 = MagicMock()
-        output2.usage_metadata = MagicMock()
+        output2.usage_metadata = MagicMock(input_token_details=None)
         output2.usage_metadata.input_tokens = 20
         output2.usage_metadata.output_tokens = 10
         output2.usage_metadata.total_tokens = 30
@@ -3087,7 +3092,7 @@ class TestUsageMetrics:
         })
         
         output1 = MagicMock()
-        output1.usage_metadata = MagicMock()
+        output1.usage_metadata = MagicMock(input_token_details=None)
         output1.usage_metadata.input_tokens = 100
         output1.usage_metadata.output_tokens = 50
         output1.usage_metadata.total_tokens = 150
@@ -3109,7 +3114,7 @@ class TestUsageMetrics:
         })
         
         output2 = MagicMock()
-        output2.usage_metadata = MagicMock()
+        output2.usage_metadata = MagicMock(input_token_details=None)
         output2.usage_metadata.input_tokens = 200
         output2.usage_metadata.output_tokens = 100
         output2.usage_metadata.total_tokens = 300
@@ -3139,7 +3144,7 @@ class TestUsageMetrics:
         })
         
         output = MagicMock()
-        output.usage_metadata = MagicMock()
+        output.usage_metadata = MagicMock(input_token_details=None)
         output.usage_metadata.input_tokens = 123
         output.usage_metadata.output_tokens = 456
         output.usage_metadata.total_tokens = 579
@@ -3185,7 +3190,7 @@ class TestUsageMetrics:
         
         # Sub-agent message end
         output = MagicMock()
-        output.usage_metadata = MagicMock()
+        output.usage_metadata = MagicMock(input_token_details=None)
         output.usage_metadata.input_tokens = 200
         output.usage_metadata.output_tokens = 100
         output.usage_metadata.total_tokens = 300
@@ -3221,7 +3226,7 @@ class TestUsageMetrics:
         })
         
         output_main = MagicMock()
-        output_main.usage_metadata = MagicMock()
+        output_main.usage_metadata = MagicMock(input_token_details=None)
         output_main.usage_metadata.input_tokens = 100
         output_main.usage_metadata.output_tokens = 50
         output_main.usage_metadata.total_tokens = 150
@@ -3252,7 +3257,7 @@ class TestUsageMetrics:
         })
         
         output_sub = MagicMock()
-        output_sub.usage_metadata = MagicMock()
+        output_sub.usage_metadata = MagicMock(input_token_details=None)
         output_sub.usage_metadata.input_tokens = 500
         output_sub.usage_metadata.output_tokens = 250
         output_sub.usage_metadata.total_tokens = 750
@@ -3309,7 +3314,7 @@ class TestUsageMetrics:
         })
         
         output = MagicMock()
-        output.usage_metadata = MagicMock()
+        output.usage_metadata = MagicMock(input_token_details=None)
         output.usage_metadata.input_tokens = 50
         output.usage_metadata.output_tokens = 25
         output.usage_metadata.total_tokens = 75
@@ -3327,57 +3332,6 @@ class TestUsageMetrics:
         assert usage.completion_tokens == 25
         assert usage.llm_call_count == 1
         assert usage.primary_model == ""  # Empty, not error
-
-    @pytest.mark.asyncio
-    async def test_build_usage_metrics_helper(self, status_builder):
-        """Test _build_usage_metrics helper method directly."""
-        # Set up internal state
-        status_builder._total_prompt_tokens = 1000
-        status_builder._total_completion_tokens = 500
-        status_builder._llm_call_count = 5
-        status_builder._primary_model = "claude-opus-4"
-        
-        # Call helper
-        usage = status_builder._build_usage_metrics()
-        
-        # Verify
-        assert usage.prompt_tokens == 1000
-        assert usage.completion_tokens == 500
-        assert usage.total_tokens == 1500
-        assert usage.llm_call_count == 5
-        assert usage.primary_model == "claude-opus-4"
-
-    @pytest.mark.asyncio
-    async def test_build_sub_agent_usage_helper(self, status_builder):
-        """Test _build_sub_agent_usage helper method directly."""
-        sub_agent_id = "test-sub-agent"
-        
-        # Set up internal state
-        status_builder._sub_agent_prompt_tokens[sub_agent_id] = 200
-        status_builder._sub_agent_completion_tokens[sub_agent_id] = 100
-        status_builder._sub_agent_llm_call_count[sub_agent_id] = 2
-        status_builder._sub_agent_primary_model[sub_agent_id] = "claude-haiku"
-        
-        # Call helper
-        usage = status_builder._build_sub_agent_usage(sub_agent_id)
-        
-        # Verify
-        assert usage.prompt_tokens == 200
-        assert usage.completion_tokens == 100
-        assert usage.total_tokens == 300
-        assert usage.llm_call_count == 2
-        assert usage.primary_model == "claude-haiku"
-
-    @pytest.mark.asyncio
-    async def test_build_sub_agent_usage_defaults_for_unknown(self, status_builder):
-        """Test _build_sub_agent_usage returns zeros for unknown sub-agent."""
-        usage = status_builder._build_sub_agent_usage("nonexistent-id")
-        
-        assert usage.prompt_tokens == 0
-        assert usage.completion_tokens == 0
-        assert usage.total_tokens == 0
-        assert usage.llm_call_count == 0
-        assert usage.primary_model == ""
 
 
 # =============================================================================
@@ -4246,9 +4200,6 @@ class TestPhase54ApprovalClearing:
     @pytest.fixture
     def status_builder_with_pending_approval(self, mock_initial_status):
         """Create StatusBuilder with full pending_approvals state."""
-        from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval, ToolCall
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase, ToolCallStatus
-        
         mock_initial_status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS
         
         builder = StatusBuilder(
@@ -4284,8 +4235,6 @@ class TestPhase54ApprovalClearing:
     
     def test_clear_pending_approval_restores_saved_phase(self, status_builder_with_pending_approval):
         """Phase 5.4: Verify clear_pending_approval restores the saved phase."""
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase
-        
         # Verify starting state
         assert status_builder_with_pending_approval.current_status.phase == ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
         assert status_builder_with_pending_approval._saved_phase_before_approval == ExecutionPhase.EXECUTION_IN_PROGRESS
@@ -5027,10 +4976,6 @@ class TestResumeFromApprovalDetection:
     
     def test_no_pending_approvals_is_fresh_execution(self):
         """Test that execution without pending_approvals is a fresh start."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
-            AgentExecutionStatus,
-        )
-        
         # Create execution with no pending approvals
         status = AgentExecutionStatus()
         
@@ -5043,12 +4988,6 @@ class TestResumeFromApprovalDetection:
     
     def test_pending_approvals_with_decision_is_resume(self):
         """Test that pending_approvals with decision triggers resume."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
-            AgentExecutionStatus,
-            ApprovalAction,
-            PendingApproval,
-        )
-        
         # Create execution with pending approvals and decision
         status = AgentExecutionStatus()
         status.pending_approvals.append(PendingApproval(
@@ -5078,12 +5017,6 @@ class TestResumeFromApprovalDetection:
     
     def test_pending_approvals_without_decision_is_warning(self):
         """Test that pending_approvals without decision logs warning."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
-            AgentExecutionStatus,
-            ApprovalAction,
-            PendingApproval,
-        )
-        
         # Create execution with pending approvals but NO decision
         status = AgentExecutionStatus()
         status.pending_approvals.append(PendingApproval(
@@ -5109,8 +5042,6 @@ class TestResumeFromApprovalDetection:
     
     def test_approval_action_mapping_to_strings(self):
         """Test that ApprovalAction enum values map correctly to strings."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ApprovalAction
-        
         action_map = {
             ApprovalAction.APPROVAL_ACTION_APPROVE: "approve",
             ApprovalAction.APPROVAL_ACTION_SKIP: "skip",
@@ -5288,8 +5219,6 @@ class TestContextManagementTracking:
     
     def test_finalize_context_info_copies_to_status(self, status_builder):
         """Test that finalize_context_info copies context info to status proto."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ContextInfo
-        
         # Need real proto for CopyFrom
         status_builder.current_status.context_info = ContextInfo()
         
@@ -5310,7 +5239,6 @@ class TestContextManagementTracking:
     
     def test_finalize_context_info_includes_events(self, status_builder):
         """Test that finalize_context_info includes summarization events."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ContextInfo
         from graphton.core.summarization_callback import SummarizationEventData
         
         status_builder.current_status.context_info = ContextInfo()
@@ -5430,7 +5358,6 @@ class TestContextManagementTracking:
     
     def test_on_summarization_complete_syncs_to_current_status_immediately(self, status_builder):
         """Test that compaction events are visible in current_status without finalize."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ContextInfo
         from graphton.core.summarization_callback import SummarizationEventData
         
         status_builder.current_status.context_info = ContextInfo()
@@ -5544,8 +5471,6 @@ class TestRunIdAliasResolution:
         """When a duplicate fingerprint is detected after
         populate_fingerprints_from_existing_tool_calls, the new run_id is
         recorded as an alias for the original tool call id."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ToolCall
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
         from google.protobuf.struct_pb2 import Struct
 
         original_run_id = "original-run-001"
@@ -5583,8 +5508,6 @@ class TestRunIdAliasResolution:
     async def test_tool_end_resolves_alias_to_completed(self, mock_initial_status):
         """on_tool_end with a new (aliased) run_id correctly transitions the
         original tool call from RUNNING to COMPLETED."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage, ToolCall
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType, ToolCallStatus
         from google.protobuf.struct_pb2 import Struct
 
         original_run_id = "orig-run-100"
@@ -5644,8 +5567,6 @@ class TestRunIdAliasResolution:
     async def test_multiple_writes_all_transition_to_completed(self, mock_initial_status):
         """Multiple write tool calls from previous invocations all transition
         to COMPLETED when their resumed on_tool_end events carry new run_ids."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ToolCall
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
         from google.protobuf.struct_pb2 import Struct
 
         files = [
@@ -5707,8 +5628,6 @@ class TestRunIdAliasResolution:
     async def test_tool_progress_resolves_alias(self, mock_initial_status):
         """on_tool_progress with an aliased run_id appends to the correct
         tool call's result."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ToolCall
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
         from google.protobuf.struct_pb2 import Struct
 
         original_run_id = "orig-progress-1"
@@ -5751,8 +5670,6 @@ class TestRunIdAliasResolution:
     @pytest.mark.asyncio
     async def test_tool_progress_first_chunk_forces_update(self, mock_initial_status):
         """First tool_progress chunk for a tool sets force_next_update=True."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ToolCall
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
         from google.protobuf.struct_pb2 import Struct
 
         original_run_id = "orig-force-1"
@@ -5782,8 +5699,6 @@ class TestRunIdAliasResolution:
     @pytest.mark.asyncio
     async def test_tool_progress_subsequent_chunk_does_not_force_update(self, mock_initial_status):
         """Subsequent tool_progress chunks do NOT set force_next_update (is_streaming already True)."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ToolCall
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
         from google.protobuf.struct_pb2 import Struct
 
         original_run_id = "orig-force-2"
@@ -5827,8 +5742,6 @@ class TestRunIdAliasResolution:
     async def test_no_alias_when_run_id_matches_existing(self, mock_initial_status):
         """No alias is recorded when the new run_id happens to match the
         existing tool call id (edge case: same run_id across invocations)."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ToolCall
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
         from google.protobuf.struct_pb2 import Struct
 
         same_run_id = "same-run-999"
@@ -6186,7 +6099,7 @@ class TestLLMStreamIsolation:
     @staticmethod
     def _end_event(run_id: str = "", namespace: str = ""):
         output = MagicMock()
-        output.usage_metadata = MagicMock()
+        output.usage_metadata = MagicMock(input_token_details=None)
         output.usage_metadata.input_tokens = 10
         output.usage_metadata.output_tokens = 5
         output.usage_metadata.total_tokens = 15
@@ -6858,8 +6771,6 @@ class TestOrphanedSubAgentDetection:
     @pytest.mark.asyncio
     async def test_diagnostic_mid_execution_sub_agent(self, status_builder):
         """Sub-agent with messages is classified as mid-execution."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
-
         await status_builder.process_event(self._make_task_start_event("sa-1"))
         sub_agent = status_builder._active_sub_agents["sa-1"]
         sub_agent.messages.append(AgentMessage(content="working..."))
@@ -6874,8 +6785,6 @@ class TestOrphanedSubAgentDetection:
     @pytest.mark.asyncio
     async def test_diagnostic_mixed(self, status_builder):
         """Mix of zero-message and mid-execution sub-agents."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ToolCall
-
         await status_builder.process_event(self._make_task_start_event("sa-zero", "task alpha"))
         await status_builder.process_event(self._make_task_start_event("sa-mid", "task beta"))
 
@@ -6909,9 +6818,6 @@ class TestOrphanedSubAgentDetection:
     @pytest.mark.asyncio
     async def test_differentiated_finalize_mid_execution_gets_failed(self, status_builder):
         """Mid-execution sub-agents receive SUB_AGENT_FAILED."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SubAgentStatus
-
         await status_builder.process_event(self._make_task_start_event("sa-1"))
         status_builder._active_sub_agents["sa-1"].messages.append(
             AgentMessage(content="I found the issue")
@@ -6930,9 +6836,6 @@ class TestOrphanedSubAgentDetection:
     @pytest.mark.asyncio
     async def test_differentiated_finalize_mixed(self, status_builder):
         """Mixed finalization: zero-message → CANCELLED, mid-execution → FAILED."""
-        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentMessage
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SubAgentStatus
-
         await status_builder.process_event(self._make_task_start_event("sa-zero", "task alpha"))
         await status_builder.process_event(self._make_task_start_event("sa-mid", "task beta"))
         status_builder._active_sub_agents["sa-mid"].messages.append(

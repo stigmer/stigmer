@@ -927,7 +927,7 @@ def _generate_git_diff_artifact(
     """
     from datetime import UTC, datetime, timedelta
 
-    from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ExecutionArtifact
+    from ai.stigmer.agentic.agentexecution.v1.artifact_pb2 import ExecutionArtifact
     from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionArtifactKind
 
     if provision_result.source_type != SourceType.GIT_REPO:
