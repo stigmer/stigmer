@@ -105,8 +105,20 @@ class ModelMetadata:
         max_summary_tokens: Maximum tokens allocated for the summary itself
         token_counter_method: Strategy for counting tokens
         cost_tier: Economic classification (economy/standard/premium)
-        input_cost_per_1k: USD per 1,000 input tokens (None for free/local)
-        output_cost_per_1k: USD per 1,000 output tokens (None for free/local)
+        input_price_per_million: USD per 1,000,000 input tokens (None for free/local).
+            Matches ``ModelUsage.input_price_per_million`` proto field.
+        output_price_per_million: USD per 1,000,000 output tokens (None for free/local).
+            Matches ``ModelUsage.output_price_per_million`` proto field.
+        cache_creation_price_per_million: USD per 1,000,000 cache-write tokens
+            (None for free/local or models without provider caching).
+            Anthropic: 1.25x input price (5-minute ephemeral TTL).
+            OpenAI: same as input price (automatic caching, no write premium).
+            Matches ``ModelUsage.cache_creation_price_per_million`` proto field.
+        cache_read_price_per_million: USD per 1,000,000 cache-read tokens
+            (None for free/local or models without provider caching).
+            Anthropic: 0.1x input price (90% discount).
+            OpenAI: 0.5x input price (50% discount).
+            Matches ``ModelUsage.cache_read_price_per_million`` proto field.
         supports_tool_use: Whether the model supports function/tool calling
         supports_vision: Whether the model can process images
         supports_streaming: Whether the model supports streaming responses
@@ -130,8 +142,10 @@ class ModelMetadata:
         ...     max_summary_tokens=2000,
         ...     token_counter_method=TokenCounterMethod.ANTHROPIC_NATIVE,
         ...     cost_tier=CostTier.STANDARD,
-        ...     input_cost_per_1k=3.0,
-        ...     output_cost_per_1k=15.0,
+        ...     input_price_per_million=3.0,
+        ...     output_price_per_million=15.0,
+        ...     cache_creation_price_per_million=3.75,
+        ...     cache_read_price_per_million=0.30,
         ... )
         >>> metadata.context_window_tokens
         200000
@@ -165,8 +179,10 @@ class ModelMetadata:
     # Example: model_id="claude-sonnet-4.5" -> api_model_id="claude-sonnet-4-5-20250929"
     api_model_id: str | None = None
     
-    input_cost_per_1k: float | None = None
-    output_cost_per_1k: float | None = None
+    input_price_per_million: float | None = None
+    output_price_per_million: float | None = None
+    cache_creation_price_per_million: float | None = None
+    cache_read_price_per_million: float | None = None
     
     # Capabilities
     supports_tool_use: bool = True
@@ -272,8 +288,10 @@ class ModelRegistry:
             token_counter_method=TokenCounterMethod.ANTHROPIC_NATIVE,
             cost_tier=CostTier.PREMIUM,
             api_model_id="claude-opus-4-6",
-            input_cost_per_1k=5.0,
-            output_cost_per_1k=25.0,
+            input_price_per_million=5.0,
+            output_price_per_million=25.0,
+            cache_creation_price_per_million=6.25,
+            cache_read_price_per_million=0.50,
             supports_vision=True,
             supports_adaptive_thinking=True,
         ),
@@ -289,8 +307,10 @@ class ModelRegistry:
             token_counter_method=TokenCounterMethod.ANTHROPIC_NATIVE,
             cost_tier=CostTier.STANDARD,
             api_model_id="claude-sonnet-4-6",
-            input_cost_per_1k=3.0,
-            output_cost_per_1k=15.0,
+            input_price_per_million=3.0,
+            output_price_per_million=15.0,
+            cache_creation_price_per_million=3.75,
+            cache_read_price_per_million=0.30,
             supports_vision=True,
             supports_thinking=True,
         ),
@@ -308,8 +328,10 @@ class ModelRegistry:
             token_counter_method=TokenCounterMethod.ANTHROPIC_NATIVE,
             cost_tier=CostTier.PREMIUM,
             api_model_id="claude-opus-4-5-20251101",
-            input_cost_per_1k=5.0,
-            output_cost_per_1k=25.0,
+            input_price_per_million=5.0,
+            output_price_per_million=25.0,
+            cache_creation_price_per_million=6.25,
+            cache_read_price_per_million=0.50,
             supports_vision=True,
             supports_thinking=True,
         ),
@@ -325,8 +347,10 @@ class ModelRegistry:
             token_counter_method=TokenCounterMethod.ANTHROPIC_NATIVE,
             cost_tier=CostTier.STANDARD,
             api_model_id="claude-sonnet-4-5-20250929",
-            input_cost_per_1k=3.0,
-            output_cost_per_1k=15.0,
+            input_price_per_million=3.0,
+            output_price_per_million=15.0,
+            cache_creation_price_per_million=3.75,
+            cache_read_price_per_million=0.30,
             supports_vision=True,
             supports_thinking=True,
         ),
@@ -344,8 +368,10 @@ class ModelRegistry:
             token_counter_method=TokenCounterMethod.ANTHROPIC_NATIVE,
             cost_tier=CostTier.PREMIUM,
             api_model_id="claude-opus-4-20250514",
-            input_cost_per_1k=15.0,
-            output_cost_per_1k=75.0,
+            input_price_per_million=15.0,
+            output_price_per_million=75.0,
+            cache_creation_price_per_million=18.75,
+            cache_read_price_per_million=1.50,
             supports_vision=True,
             supports_thinking=True,
         ),
@@ -361,8 +387,10 @@ class ModelRegistry:
             token_counter_method=TokenCounterMethod.ANTHROPIC_NATIVE,
             cost_tier=CostTier.ECONOMY,
             api_model_id="claude-haiku-4-5-20251001",
-            input_cost_per_1k=1.0,
-            output_cost_per_1k=5.0,
+            input_price_per_million=1.0,
+            output_price_per_million=5.0,
+            cache_creation_price_per_million=1.25,
+            cache_read_price_per_million=0.10,
             supports_vision=True,
         ),
         
@@ -379,8 +407,10 @@ class ModelRegistry:
             token_counter_method=TokenCounterMethod.ANTHROPIC_NATIVE,
             cost_tier=CostTier.STANDARD,
             api_model_id="claude-3-5-sonnet-20241022",
-            input_cost_per_1k=3.0,
-            output_cost_per_1k=15.0,
+            input_price_per_million=3.0,
+            output_price_per_million=15.0,
+            cache_creation_price_per_million=3.75,
+            cache_read_price_per_million=0.30,
             supports_vision=True,
         ),
         "claude-haiku-3.5": ModelMetadata(
@@ -395,8 +425,10 @@ class ModelRegistry:
             token_counter_method=TokenCounterMethod.ANTHROPIC_NATIVE,
             cost_tier=CostTier.ECONOMY,
             api_model_id="claude-3-5-haiku-20241022",
-            input_cost_per_1k=0.80,
-            output_cost_per_1k=4.0,
+            input_price_per_million=0.80,
+            output_price_per_million=4.0,
+            cache_creation_price_per_million=1.00,
+            cache_read_price_per_million=0.08,
             supports_vision=True,
         ),
         
@@ -414,8 +446,10 @@ class ModelRegistry:
             max_summary_tokens=500,
             token_counter_method=TokenCounterMethod.TIKTOKEN_CL100K,
             cost_tier=CostTier.PREMIUM,
-            input_cost_per_1k=30.0,
-            output_cost_per_1k=60.0,
+            input_price_per_million=30.0,
+            output_price_per_million=60.0,
+            cache_creation_price_per_million=30.0,
+            cache_read_price_per_million=15.0,
         ),
         "gpt-4-turbo": ModelMetadata(
             model_id="gpt-4-turbo",
@@ -428,8 +462,10 @@ class ModelRegistry:
             max_summary_tokens=2000,
             token_counter_method=TokenCounterMethod.TIKTOKEN_CL100K,
             cost_tier=CostTier.STANDARD,
-            input_cost_per_1k=10.0,
-            output_cost_per_1k=30.0,
+            input_price_per_million=10.0,
+            output_price_per_million=30.0,
+            cache_creation_price_per_million=10.0,
+            cache_read_price_per_million=5.0,
             supports_vision=True,
         ),
         "gpt-4o": ModelMetadata(
@@ -443,8 +479,10 @@ class ModelRegistry:
             max_summary_tokens=2000,
             token_counter_method=TokenCounterMethod.TIKTOKEN_O200K,
             cost_tier=CostTier.STANDARD,
-            input_cost_per_1k=5.0,
-            output_cost_per_1k=15.0,
+            input_price_per_million=5.0,
+            output_price_per_million=15.0,
+            cache_creation_price_per_million=5.0,
+            cache_read_price_per_million=2.50,
             supports_vision=True,
         ),
         "gpt-4o-mini": ModelMetadata(
@@ -458,8 +496,10 @@ class ModelRegistry:
             max_summary_tokens=2000,
             token_counter_method=TokenCounterMethod.TIKTOKEN_O200K,
             cost_tier=CostTier.ECONOMY,
-            input_cost_per_1k=0.15,
-            output_cost_per_1k=0.60,
+            input_price_per_million=0.15,
+            output_price_per_million=0.60,
+            cache_creation_price_per_million=0.15,
+            cache_read_price_per_million=0.075,
             supports_vision=True,
         ),
         "gpt-3.5-turbo": ModelMetadata(
@@ -473,8 +513,10 @@ class ModelRegistry:
             max_summary_tokens=1000,
             token_counter_method=TokenCounterMethod.TIKTOKEN_CL100K,
             cost_tier=CostTier.ECONOMY,
-            input_cost_per_1k=0.50,
-            output_cost_per_1k=1.50,
+            input_price_per_million=0.50,
+            output_price_per_million=1.50,
+            cache_creation_price_per_million=0.50,
+            cache_read_price_per_million=0.25,
         ),
         "o1": ModelMetadata(
             model_id="o1",
@@ -487,8 +529,10 @@ class ModelRegistry:
             max_summary_tokens=2000,
             token_counter_method=TokenCounterMethod.TIKTOKEN_O200K,
             cost_tier=CostTier.PREMIUM,
-            input_cost_per_1k=15.0,
-            output_cost_per_1k=60.0,
+            input_price_per_million=15.0,
+            output_price_per_million=60.0,
+            cache_creation_price_per_million=15.0,
+            cache_read_price_per_million=7.50,
             supports_tool_use=False,  # o1 has limited tool support
         ),
         "o1-mini": ModelMetadata(
@@ -502,8 +546,10 @@ class ModelRegistry:
             max_summary_tokens=2000,
             token_counter_method=TokenCounterMethod.TIKTOKEN_O200K,
             cost_tier=CostTier.STANDARD,
-            input_cost_per_1k=3.0,
-            output_cost_per_1k=12.0,
+            input_price_per_million=3.0,
+            output_price_per_million=12.0,
+            cache_creation_price_per_million=3.0,
+            cache_read_price_per_million=1.50,
             supports_tool_use=False,  # o1-mini has limited tool support
         ),
         

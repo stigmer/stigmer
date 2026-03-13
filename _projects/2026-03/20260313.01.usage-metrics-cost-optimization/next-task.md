@@ -13,11 +13,45 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: In Progress
-- **Last Session**: 2026-03-13 — Phase 1 (Schema Foundation) completed
-- **Active Task**: T01 Phase 1 complete, Phase 2 next
+- **Last Session**: 2026-03-13 — Phase 2 (Model Pricing Registry) completed
+- **Active Task**: T01 Phases 1-2 complete, Phase 3 next
 - **Branch**: `feat/usage-metrics-and-cost-optimization`
 
-## Session Progress (2026-03-13)
+## Session Progress (2026-03-13, Session 2)
+
+### Phase 2: Model Pricing Registry — COMPLETED
+
+Extended `ModelMetadata` with cache-aware pricing fields and fixed a unit mislabeling:
+
+1. **Fixed pricing field naming**: Renamed `input_cost_per_1k` / `output_cost_per_1k` to `input_price_per_million` / `output_price_per_million`. The fields stored per-million-token pricing but the names said "per_1k" — a bug factory for Phase 3 cost calculation. Now the Python field names match the proto `ModelUsage` field names exactly (zero-conversion stamping).
+
+2. **Added cache pricing fields**: Two new fields on `ModelMetadata`:
+   - `cache_creation_price_per_million` — cost to write tokens to provider cache
+   - `cache_read_price_per_million` — cost to read tokens from provider cache
+
+3. **Populated cache pricing for all 22 models**:
+   - 8 Anthropic models: cache creation = 1.25x input (5-min ephemeral TTL), cache read = 0.1x input
+   - 7 OpenAI models: cache creation = 1x input (automatic, no write premium), cache read = 0.5x input
+   - 7 Ollama models: None (local, no cost, no caching)
+
+4. **Added 9 new tests** in `TestCachePricing` class — verifying provider-specific multiplier rules, spot-check values, and default behavior for unknown models
+
+5. **Updated engineering docs** (`adding-new-models.md`) — renamed field references, added cache pricing to optional fields table and PR checklist, added "Cache Pricing Reference" section
+
+### Key Decisions Made
+- **5-minute ephemeral TTL pricing for Anthropic**: Anthropic offers two cache TTLs (5-min at 1.25x, 1-hour at 2.0x). We store the 5-minute pricing as default since that's what `cache_control: {"type": "ephemeral"}` uses, which Phase 4 will implement.
+- **Explicit per-model cache prices over derived multipliers**: Each model entry stores its own cache prices rather than deriving from provider rules. Self-documenting and allows for model-specific exceptions.
+- **Unit alignment between Python and proto**: Both use per-million. `ModelMetadata.input_price_per_million` maps directly to `ModelUsage.input_price_per_million` — same name, same unit.
+
+### Files Modified (3 files, +213 -51)
+- `backend/libs/python/graphton/src/graphton/core/model_registry.py` — field rename, new fields, cache pricing data
+- `backend/libs/python/graphton/tests/core/test_model_registry.py` — field rename, 9 new cache pricing tests
+- `docs/engineering/adding-new-models.md` — renamed fields, cache pricing docs, common mistakes
+
+### Pre-existing Issue Noted
+Tests reference `claude-haiku-4` which does not exist in the registry (only `claude-haiku-4.5` exists). Causes 8 pre-existing test failures across `test_model_registry.py`, `test_summarization_middleware.py`, `test_summarization.py`. Not introduced by Phase 2 work.
+
+## Session Progress (2026-03-13, Session 1)
 
 ### Phase 1: Schema Foundation — COMPLETED
 
@@ -47,29 +81,22 @@ All 6 tasks completed successfully:
 
 6. **RPCs + Build Verification**: Registered 3 RPCs in `query.proto` (getSessionUsageReport, getAgentUsageReport, getOrgUsageReport). `buf build` and `buf lint` pass. `buf breaking --use PACKAGE` passes (FILE-level flags expected due to file reorg).
 
-### Key Decisions Made
-- **File reorg over sub-packages**: All types stay in the same proto package (DDD aggregate root boundary), split across multiple files for navigability
-- **ModelUsage.input_tokens = non-cached input only**: Follows Anthropic provider convention, creates 4 disjoint token buckets for clean cost math
-- **Usage report RPCs in query.proto**: Data-colocated with the AgentExecution query controller, consistent with listBySession pattern
-- **SubAgent.model_override in agent/v1/spec.proto**: Confirmed as field 6 on SubAgent
-
-### Files Modified (8 modified, 6 new)
-- Modified: `api.proto`, `enum.proto`, `io.proto`, `query.proto`, `spec.proto` (agentexecution), `spec.proto` (agent), `workflowexecution/api.proto`, `workflowexecution/io.proto`
-- New: `message.proto`, `subagent.proto`, `usage.proto`, `context.proto`, `approval.proto`, `artifact.proto`
-
 ## Next Steps
 
-Phase 2 and beyond from the T01 plan:
-1. **Phase 2: Runtime Implementation (Python/agent-runner)** — Populate the new proto fields from LangGraph `on_chat_model_end` events, implement prompt caching, tool result truncation, model routing
-2. **Phase 3: Backend (Go/stigmer-server)** — Implement usage report RPC handlers, aggregate usage data across executions/sessions
-3. **Phase 4: CLI** — Add `stigmer usage` commands for cost visibility
-4. **Regenerate stubs** — Run `buf generate` / stub regeneration before starting Phase 2
+Phase 3 and beyond from the T01 plan:
+1. **Phase 3: Agent-Runner — Populate New Fields** — Extract cache token counts from LangChain `usage_metadata`, look up pricing from Model Registry, compute `estimated_cost_usd`, populate `ModelUsage` and `LlmCallMetrics`, track duration breakdown, implement tool result truncation and cost cap checking
+2. **Phase 4: Agent-Runner — Prompt Caching** — Restructure prompt construction with `cache_control` breakpoints, verify cache hit rates
+3. **Phase 5: Server — Usage Report RPCs** — Implement getSessionUsageReport, getAgentUsageReport, getOrgUsageReport handlers
+4. **Phase 6: CLI — Usage Display & Commands** — Add `stigmer usage` commands
 
 ## Context for Resume
-- The `buf breaking` check with `FILE` mode will flag the file reorg as "breaking" — this is expected and safe. Use `--config '..PACKAGE..'` to verify no actual wire-level breaking changes.
-- `workflowexecution/v1/api.proto` now imports `approval.proto` (was `api.proto`); `workflowexecution/v1/io.proto` now imports `enum.proto` (was `api.proto` — for `ApprovalAction`)
+- Proto stubs already regenerated (done before Phase 2)
+- `ModelMetadata` now has 4 pricing fields: `input_price_per_million`, `output_price_per_million`, `cache_creation_price_per_million`, `cache_read_price_per_million` — all matching proto `ModelUsage` field names exactly
+- Phase 3 can now call `ModelRegistry.get_or_default(model_name)` and stamp pricing directly to `ModelUsage` with zero conversion
+- Cost formula: `estimated_cost_usd = (input * input_price + output * output_price + cache_creation * creation_price + cache_read * read_price) / 1_000_000`
+- The `buf breaking` check with `FILE` mode will flag the file reorg as "breaking" — expected and safe. Use `--config '..PACKAGE..'` to verify no wire-level breaking changes.
 - Plan file: `_projects/2026-03/20260313.01.usage-metrics-cost-optimization/tasks/T01_0_plan.md`
-- Design plan: `.cursor/plans/phase_1_schema_foundation_d775fd3a.plan.md`
+- Phase 2 plan: `.cursor/plans/model_pricing_registry_bb49c144.plan.md`
 
 ## Essential Files to Review
 
