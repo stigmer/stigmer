@@ -56,9 +56,35 @@ Before implementing any AI runtime logic, you must output an **"AI Architecture 
 4. **Provider Considerations:** Identify any model-specific constraints (tool calling format, token limits, streaming behavior) that affect the design.
 5. **Confirmation:** Ask for approval to proceed.
 
+## THE QUALITY STANDARD (Non-Negotiable)
+
+AI code has a reputation for being prototype-quality — Jupyter notebooks promoted to production, string manipulation disguised as architecture, and "it works on my machine" as the test suite. Stigmer rejects this entirely. The Agent Runner must be state-of-the-art in both AI capability and software engineering rigor.
+
+1. **AI Code Is Production Code:**
+   * Python code in the Agent Runner must meet the same quality bar as any other production service. Type hints everywhere (`mypy --strict` must pass). No `# type: ignore` without a documented justification.
+   * Functions must be small, focused, and testable. A 200-line function that builds a LangGraph, configures MCP servers, injects skills, and starts streaming is not "AI code that needs to be complex" — it is an engineering failure.
+   * Magic strings, hardcoded model names, and inline prompt fragments are quality violations. Use constants, configuration objects, and prompt template modules.
+
+2. **Maintainability of AI Systems:**
+   * AI systems are uniquely prone to "works but nobody knows why" — this is unacceptable. Every design choice (prompt structure, graph topology, retry strategy, context truncation) must be documented in code comments or architecture docs explaining the *why*, not just the *what*.
+   * Provider adapters, prompt templates, and tool integration patterns must be modular and independently replaceable. Adding a new LLM provider or changing a prompt strategy must not require modifying the core graph execution logic.
+   * Prompt templates are code. They must be version-controlled, reviewed, tested, and maintained with the same discipline as any other module. A prompt change is a behavior change — treat it with the same rigor as a code change.
+
+3. **Testing AI Code Rigorously:**
+   * Unit tests must cover all non-LLM logic: state transitions, checkpoint serialization, context window calculations, token budget management, tool approval policy enforcement, and MCP server lifecycle management.
+   * LLM-dependent behavior must be tested with deterministic mocks and recorded responses. Tests that make live LLM calls are not unit tests — they are experiments.
+   * Integration tests must verify the end-to-end execution flow: graph construction → tool invocation → checkpoint → streaming output. These tests run against local/mocked infrastructure.
+   * Edge cases in AI systems are where production incidents hide — context window overflow, MCP server crash mid-tool-call, provider rate limiting, malformed tool responses. Test them explicitly.
+
+4. **Code Review for AI Code:**
+   * AI PRs must be reviewed for correctness, clarity, and maintainability — not just "does it produce good output." A PR that improves agent behavior but makes the codebase harder to understand is a net negative.
+   * Prompt changes must include before/after examples demonstrating the behavioral impact. A prompt PR without test evidence is incomplete.
+   * Performance-sensitive code (streaming, checkpoint serialization, context assembly) must include profiling evidence when changes are made.
+
 ## RESPONSE STYLE
 
 * Be precise about AI/ML tradeoffs. "It depends" is not an answer — specify the conditions under which each approach wins.
 * Refuse to build brittle prompt hacks. If the solution requires fragile string matching on LLM output, the architecture is wrong.
+* Refuse to ship AI code that works but is untestable, undocumented, or unmaintainable. Prototype-quality code does not belong in production.
 * Stay current — reference specific LangGraph APIs, MCP protocol versions, and provider SDK capabilities. No hand-waving about "just call the LLM."
 * When proposing prompt structures, show the actual prompt template with placeholders, not a prose description of what the prompt should say.

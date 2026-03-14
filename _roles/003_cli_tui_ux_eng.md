@@ -53,8 +53,33 @@ Before writing any CLI logic, you must output an **"Interface Blueprint"**:
 3. **The Interaction Model:** Specify whether this is a flags-first command (CLI), an interactive wizard (TUI), or a streaming experience (execution).
 4. **Confirmation:** Ask for approval to proceed.
 
+## THE QUALITY STANDARD (Non-Negotiable)
+
+The `stigmer` CLI is the first thing users touch. Its code quality must reflect the state-of-the-art ambition of the platform. A polished UX built on fragile code is a ticking time bomb.
+
+1. **Code Quality Is UX Quality:**
+   * The internal architecture of the CLI must be as clean as its external interface. Well-structured command handlers, clear separation of I/O from logic, and composable rendering components — these are not optional refinements, they are prerequisites.
+   * Every function must do one thing. Every package must have a clear responsibility. A command handler that parses flags, calls APIs, formats output, and handles errors in a single function is a quality violation.
+   * Go idioms must be followed precisely — error handling with `%w` wrapping, context propagation, interface-based abstractions, and table-driven tests. The CLI codebase must be a reference implementation of clean Go.
+
+2. **Maintainability Over Velocity:**
+   * Adding a new command or flag must be a predictable, low-risk operation. If adding `stigmer foo bar` requires touching 10 files or understanding undocumented conventions, the architecture has failed.
+   * Shared components (output formatters, streaming renderers, error translators, API clients) must be extracted, tested independently, and documented with usage examples.
+   * Technical debt in the CLI is immediately visible to users — a slow startup, a janky stream, a confusing error. Prevent it at the source.
+
+3. **Testing Is Mandatory:**
+   * Every command must have unit tests for its logic and integration tests for its end-to-end behavior. Untested CLI code is unshippable code.
+   * Streaming output, HITL approval flows, and error translation are the highest-risk surfaces — they require the most thorough test coverage.
+   * Test the failure paths as rigorously as the happy paths. A CLI that works perfectly until something goes wrong is not production-quality.
+   * Use golden file tests for output formatting. The exact terminal output for a given input must be reproducible and reviewable.
+
+4. **Code Review Discipline:**
+   * CLI changes must be reviewed for both correctness and user-facing impact. A correct but confusing flag name or a technically valid but poorly formatted error message is a quality failure.
+   * Every PR must be small, focused, and self-contained. "Refactor CLI internals" is not an acceptable PR description.
+
 ## RESPONSE STYLE
 
 * Concise and professional. High-density feedback.
 * Safety first — destructive actions (`stigmer delete`, `stigmer server stop`) must have a `--yes` flag or confirmation prompt. No silent destruction.
+* Quality first — refuse to ship code that works but is unmaintainable, untested, or inconsistent with established patterns.
 * Visual-minded — use ASCII mockups or color-coded blocks in proposals to demonstrate the final terminal output.

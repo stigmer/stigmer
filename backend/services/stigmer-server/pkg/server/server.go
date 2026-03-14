@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"syscall"
 
+	"github.com/improbable-eng/grpc-web/go/grpcweb"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
@@ -440,14 +441,40 @@ func Run() error {
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	// Start network server in goroutine
+	// Build the gRPC-Web wrapper so browsers can talk to the API.
+	// The wrapper translates gRPC-Web (HTTP/1.1, application/grpc-web) to
+	// native gRPC calls. CORS is enabled for all origins — in cloud, CORS
+	// is handled at the proxy/CDN layer; here it enables cross-origin
+	// requests from the web console (port 8234 → port 7234).
+	grpcWebWrapper := grpcweb.WrapServer(server.GRPCServer(),
+		grpcweb.WithOriginFunc(func(origin string) bool { return true }),
+		grpcweb.WithWebsockets(true),
+		grpcweb.WithWebsocketOriginFunc(func(r *http.Request) bool { return true }),
+	)
+
+	// Unified HTTP handler that routes between gRPC-Web, native gRPC, and 404.
+	httpHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if grpcWebWrapper.IsGrpcWebRequest(r) || grpcWebWrapper.IsAcceptableGrpcCorsRequest(r) || grpcWebWrapper.IsGrpcWebSocketRequest(r) {
+			grpcWebWrapper.ServeHTTP(w, r)
+			return
+		}
+		if grpclib.IsGRPCRequest(r) {
+			server.GRPCServer().ServeHTTP(w, r)
+			return
+		}
+		http.NotFound(w, r)
+	})
+
+	// Start the unified HTTP server (h2c for HTTP/2 cleartext + HTTP/1.1).
 	go func() {
-		if err := server.Start(cfg.GRPCPort); err != nil {
-			log.Fatal().Err(err).Msg("Failed to start gRPC server")
+		if err := server.StartHTTP(cfg.GRPCPort, httpHandler); err != nil {
+			log.Fatal().Err(err).Msg("Failed to start gRPC+HTTP server")
 		}
 	}()
 
-	log.Info().Int("port", cfg.GRPCPort).Msg("Stigmer Server started successfully")
+	log.Info().
+		Int("port", cfg.GRPCPort).
+		Msg("Stigmer Server started (gRPC + gRPC-Web)")
 
 	// Start HTTP file server for local artifact downloads.
 	// This serves artifact files so the CLI (and other clients) can download them

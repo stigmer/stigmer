@@ -1,0 +1,10 @@
+apiVersion: kubernetes.project-planton.org/v1
+kind: KubernetesDeployment
+metadata:
+  name: stigmer-web
+  env: local
+  labels:
+    pulumi.project-planton.org/stack.name: local.KubernetesDeployment.stigmer-web
+spec:
+  namespace:
+    value: stigmer-local-web

@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/browser"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 )
 
@@ -65,7 +66,7 @@ func Login() (*LoginResult, error) {
 	fmt.Fprintln(os.Stderr, "Opening browser for authentication...")
 	fmt.Fprintf(os.Stderr, "If the browser doesn't open automatically, visit:\n%s\n\n", authURL)
 
-	if err := openBrowser(authURL); err != nil {
+	if err := browser.Open(authURL); err != nil {
 		fmt.Fprintf(os.Stderr, "Could not open browser automatically: %v\n", err)
 		fmt.Fprintln(os.Stderr, "Please open the URL above in your browser.")
 	}

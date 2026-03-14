@@ -6936,3 +6936,142 @@ class TestOrphanedSubAgentDetection:
         assert status_builder._completed_sub_agents["sa-1"].status == SubAgentStatus.SUB_AGENT_FAILED
         assert status_builder._completed_sub_agents["sa-2"].status == SubAgentStatus.SUB_AGENT_FAILED
         assert status_builder.has_orphaned_sub_agents is False
+
+
+# =============================================================================
+# Tests for _READ_ONLY_TOOLS filtering (read tool output omission)
+# =============================================================================
+
+
+class TestReadOnlyToolFiltering:
+    """Verify that read/read_file tool results are replaced with placeholders
+    in the persisted state while other tool results are preserved."""
+
+    @pytest.fixture
+    def status_builder(self, mock_initial_status):
+        return StatusBuilder(
+            execution_id="test-read-filter",
+            initial_status=mock_initial_status,
+        )
+
+    async def _fire_tool_round(self, sb: StatusBuilder, tool_name: str, run_id: str, result: str) -> None:
+        """Helper: emit on_tool_start then on_tool_end for a single tool call."""
+        await sb.process_event({
+            "event": "on_tool_start",
+            "name": tool_name,
+            "run_id": run_id,
+            "data": {"input": {"path": "/tmp/example.txt"}},
+            "metadata": {},
+        })
+        await sb.process_event({
+            "event": "on_tool_end",
+            "name": tool_name,
+            "run_id": run_id,
+            "data": {"output": result},
+            "metadata": {},
+        })
+
+    @pytest.mark.asyncio
+    async def test_read_tool_result_replaced_with_placeholder(self, status_builder):
+        """The canonical 'read' tool result is replaced with a size placeholder."""
+        file_content = "x" * 5000
+        await self._fire_tool_round(status_builder, "read", "read-run-1", file_content)
+
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.result == f"[content omitted - {len(file_content)} chars]"
+
+    @pytest.mark.asyncio
+    async def test_read_file_alias_also_omitted(self, status_builder):
+        """The 'read_file' alias is also filtered."""
+        file_content = "line1\nline2\nline3"
+        await self._fire_tool_round(status_builder, "read_file", "rf-run-1", file_content)
+
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.result == f"[content omitted - {len(file_content)} chars]"
+
+    @pytest.mark.asyncio
+    async def test_non_read_tool_result_preserved(self, status_builder):
+        """Non-read tools keep their full result in the persisted state."""
+        grep_output = "file.py:10: match found"
+        await self._fire_tool_round(status_builder, "grep", "grep-run-1", grep_output)
+
+        tc = status_builder.current_status.tool_calls[0]
+        assert tc.result == grep_output
+
+
+# =============================================================================
+# Tests for finalize_usage on non-happy paths
+# =============================================================================
+
+
+class TestFinalizeUsage:
+    """Verify that finalize_usage() correctly stamps accumulated usage data
+    onto the status proto, including graceful handling of missing timestamps."""
+
+    @pytest.fixture
+    def status_builder(self, mock_initial_status):
+        mock_initial_status.started_at = "2026-03-14T05:42:27.000000Z"
+        mock_initial_status.completed_at = ""
+        return StatusBuilder(
+            execution_id="test-finalize-usage",
+            initial_status=mock_initial_status,
+        )
+
+    def _simulate_llm_call(self, sb: StatusBuilder) -> None:
+        """Record a synthetic LLM call directly on the usage tracker."""
+        sb.usage_tracker.record_llm_call(
+            model_name="claude-sonnet-4-20250514",
+            input_tokens=500,
+            output_tokens=200,
+            cache_creation_tokens=0,
+            cache_read_tokens=0,
+            duration_ms=1200,
+            timestamp="2026-03-14T05:42:30.000000Z",
+        )
+
+    @pytest.mark.asyncio
+    async def test_finalize_usage_stamps_usage_on_status(self, status_builder):
+        """finalize_usage populates model breakdown and token totals."""
+        self._simulate_llm_call(status_builder)
+
+        status_builder.current_status.completed_at = "2026-03-14T05:43:00.000000Z"
+        status_builder.finalize_usage()
+
+        usage = status_builder.current_status.usage
+        assert usage.prompt_tokens == 500
+        assert usage.completion_tokens == 200
+        assert len(usage.model_breakdown) == 1
+        assert usage.model_breakdown[0].model == "claude-sonnet-4-20250514"
+        assert usage.total_duration_ms == 33000
+
+    @pytest.mark.asyncio
+    async def test_finalize_usage_without_completed_at(self, status_builder):
+        """finalize_usage with no completed_at still populates tokens and cost
+        but leaves total_duration_ms at zero (graceful degradation)."""
+        self._simulate_llm_call(status_builder)
+
+        status_builder.finalize_usage()
+
+        usage = status_builder.current_status.usage
+        assert usage.prompt_tokens == 500
+        assert usage.completion_tokens == 200
+        assert len(usage.model_breakdown) == 1
+        assert usage.total_duration_ms == 0
+
+    @pytest.mark.asyncio
+    async def test_finalize_usage_idempotent(self, status_builder):
+        """Calling finalize_usage multiple times produces identical results."""
+        self._simulate_llm_call(status_builder)
+        status_builder.current_status.completed_at = "2026-03-14T05:43:00.000000Z"
+
+        status_builder.finalize_usage()
+        first_snapshot = UsageMetrics()
+        first_snapshot.CopyFrom(status_builder.current_status.usage)
+
+        status_builder.finalize_usage()
+        second_snapshot = status_builder.current_status.usage
+
+        assert first_snapshot.prompt_tokens == second_snapshot.prompt_tokens
+        assert first_snapshot.completion_tokens == second_snapshot.completion_tokens
+        assert first_snapshot.total_duration_ms == second_snapshot.total_duration_ms
+        assert len(first_snapshot.model_breakdown) == len(second_snapshot.model_breakdown)

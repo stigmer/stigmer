@@ -1,0 +1,36 @@
+apiVersion: kubernetes.project-planton.org/v1
+kind: KubernetesDeployment
+metadata:
+  name: stigmer-web
+  org: stigmer
+  labels:
+    project-planton.org/provisioner: pulumi
+    pulumi.project-planton.org/organization: stigmer
+    pulumi.project-planton.org/project: stigmer
+spec:
+  container:
+    app:
+      image:
+        repo: ghcr.io/stigmer/stigmer/client-apps/web
+      # NEXT_PUBLIC_* variables are baked into the JS bundle at Docker build
+      # time via --build-arg. They cannot be overridden at runtime. See the
+      # Dockerfile for available build args.
+      resources:
+        limits:
+          cpu: 100m
+          memory: 64Mi
+        requests:
+          cpu: 10m
+          memory: 16Mi
+      ports:
+        - name: app
+          containerPort: 3000
+          servicePort: 80
+          appProtocol: http
+          networkProtocol: TCP
+          isIngressPort: true
+  availability:
+    minReplicas: 1
+    horizontalPodAutoscaling:
+      isEnabled: false
+  version: main

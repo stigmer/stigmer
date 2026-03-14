@@ -1,0 +1,8 @@
+{
+  "name": "stigmer",
+  "private": true,
+  "workspaces": [
+    "apis/stubs/ts",
+    "client-apps/web"
+  ]
+}

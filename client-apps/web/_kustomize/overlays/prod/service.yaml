@@ -1,0 +1,22 @@
+apiVersion: kubernetes.project-planton.org/v1
+kind: KubernetesDeployment
+metadata:
+  name: stigmer-web
+  env: prod
+  labels:
+    pulumi.project-planton.org/stack.name: prod.KubernetesDeployment.stigmer-web
+spec:
+  namespace:
+    value: stigmer-prod
+  container:
+    app:
+      resources:
+        limits:
+          cpu: 200m
+          memory: 128Mi
+        requests:
+          cpu: 20m
+          memory: 32Mi
+  ingress:
+    enabled: true
+    hostname: stigmer-prod-web.planton.live

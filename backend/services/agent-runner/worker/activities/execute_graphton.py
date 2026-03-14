@@ -3096,6 +3096,11 @@ async def _execute_graphton_impl(
             )
             status_builder.current_status.messages.append(pause_msg)
             
+            # Stamp completed_at and finalize usage so partial cost data is persisted
+            if not status_builder.current_status.completed_at:
+                status_builder.current_status.completed_at = _utc_timestamp()
+            status_builder.finalize_usage()
+            
             # Send paused status update via gRPC (best effort)
             try:
                 activity_logger.info("📤 [PAUSE] Sending PAUSED status update")
@@ -3154,6 +3159,11 @@ async def _execute_graphton_impl(
             status_builder.current_status.messages.append(stall_error_msg)
             status_builder.current_status.phase = ExecutionPhase.EXECUTION_TERMINATED
             status_builder.current_status.error = stall_msg
+            
+            # Stamp completed_at and finalize usage so partial cost data is persisted
+            if not status_builder.current_status.completed_at:
+                status_builder.current_status.completed_at = _utc_timestamp()
+            status_builder.finalize_usage()
             
             # Best-effort status persistence
             try:
@@ -3214,6 +3224,11 @@ async def _execute_graphton_impl(
                 status_builder.current_status.messages.append(limit_error_msg)
                 status_builder.current_status.phase = ExecutionPhase.EXECUTION_TERMINATED
                 status_builder.current_status.error = limit_msg
+
+                # Stamp completed_at and finalize usage so partial cost data is persisted
+                if not status_builder.current_status.completed_at:
+                    status_builder.current_status.completed_at = _utc_timestamp()
+                status_builder.finalize_usage()
 
                 try:
                     activity_logger.info("📤 [RECURSION_LIMIT] Sending TERMINATED status update")
@@ -3831,6 +3846,12 @@ async def _execute_graphton_impl(
             
             status_builder.current_status.phase = ExecutionPhase.EXECUTION_FAILED
             status_builder.current_status.error = error_message
+            
+            # Stamp completed_at and finalize usage so partial cost data is persisted
+            if not status_builder.current_status.completed_at:
+                status_builder.current_status.completed_at = _utc_timestamp()
+            status_builder.finalize_usage()
+            
             failed_status = status_builder.current_status
         else:
             # Early failure before status_builder was created

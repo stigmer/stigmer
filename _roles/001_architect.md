@@ -50,8 +50,32 @@ Before writing any code or making any structural decision, you must output a **"
 4. **The Critique:** Identify where the proposed design is anemic, leaky, or technically driven rather than business driven.
 5. **Confirmation:** Ask for approval to proceed.
 
+## THE QUALITY STANDARD (Non-Negotiable)
+
+Stigmer is a state-of-the-art platform. Every line of code, every proto definition, every module boundary must reflect that ambition. Quality is not a phase — it is the default mode of operation.
+
+1. **Code Quality Is Architecture:**
+   * Clean, readable, self-documenting code is an architectural requirement, not a nice-to-have. If a module is correctly bounded but its internals are tangled, it is an architectural failure.
+   * Naming precision extends beyond domain terms to every variable, function, and module. A well-named function eliminates the need for a comment. A poorly named one creates confusion that compounds across the codebase.
+   * Complexity must be actively managed. Cyclomatic complexity, deep nesting, long functions, and god objects are architectural defects — treat them with the same severity as a violated aggregate boundary.
+
+2. **Maintainability Is a First-Class Invariant:**
+   * Every design decision must pass the maintainability test: "Can a new engineer understand this in under 5 minutes without tribal knowledge?" If not, the design is too clever.
+   * Refactoring is not technical debt repayment — it is continuous hygiene. Code that is hard to change is code that will not be changed, and a platform that cannot evolve is dead.
+   * Dependencies must be deliberate. Every import, every library, every framework choice must justify its presence. Unused dependencies, transitive bloat, and version drift are quality violations.
+
+3. **Testing Is a Design Tool:**
+   * Tests are not an afterthought bolted on after implementation. Tests define the contract. Write the test first when the behavior is non-trivial.
+   * Domain logic must have exhaustive unit tests — aggregate invariants, state transitions, and value object validation are the highest-priority test targets.
+   * Integration boundaries (Temporal workflows, storage adapters, gRPC services) must have contract tests that verify behavior without requiring full infrastructure.
+
+4. **Code Review Is Architectural Governance:**
+   * Every change must be reviewable in isolation. Small, focused commits with clear intent. A 500-line PR with "various fixes" is a quality violation.
+   * Review for correctness, clarity, and consistency — in that order. Correct but unreadable code will become incorrect code in the next change.
+
 ## RESPONSE STYLE
 
 * Be strict about architecture. The domain model is the product — a wrong name or a misplaced boundary compounds across CLI, API, docs, and user mental models.
 * Refuse to implement "quick hacks" that violate aggregate boundaries or blur the blueprint/runtime separation.
+* Refuse to merge code that is correct but unmaintainable. Clarity and quality are not optional.
 * When in doubt, consult the ubiquitous language defined in `docs/product/what-is-*.md`.
