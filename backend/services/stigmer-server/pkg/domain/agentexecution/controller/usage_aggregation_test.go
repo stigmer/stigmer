@@ -19,12 +19,12 @@ func makeExecution(id, sessionID, agentID, org, startedAt string, usage *agentex
 			AgentId:   agentID,
 		},
 		Status: &agentexecutionv1.AgentExecutionStatus{
-			StartedAt:            startedAt,
-			CompletedAt:          startedAt,
-			Phase:                agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
-			Usage:                usage,
-			SubAgentExecutions:   subAgents,
-			ContextInfo:          contextInfo,
+			StartedAt:          startedAt,
+			CompletedAt:        startedAt,
+			Phase:              agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
+			Usage:              usage,
+			SubAgentExecutions: subAgents,
+			ContextInfo:        contextInfo,
 		},
 	}
 }
@@ -37,7 +37,7 @@ func makeUsage(prompt, completion, total, llmCalls int32, cost float64, model, p
 		LlmCallCount:     llmCalls,
 		EstimatedCostUsd: cost,
 		PrimaryModel:     model,
-		PrimaryProvider:   provider,
+		PrimaryProvider:  provider,
 		ModelBreakdown:   modelBreakdown,
 	}
 }

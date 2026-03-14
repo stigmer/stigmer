@@ -148,8 +148,8 @@ func TestFormatDurationBreakdown_LlmOnly(t *testing.T) {
 
 func TestFormatDurationBreakdown_AllComponents(t *testing.T) {
 	usage := &agentexecutionv1.UsageMetrics{
-		LlmDurationMs:         12300,
-		ToolDurationMs:        28100,
+		LlmDurationMs:          12300,
+		ToolDurationMs:         28100,
 		ApprovalWaitDurationMs: 5000,
 	}
 	got := formatDurationBreakdown(usage)

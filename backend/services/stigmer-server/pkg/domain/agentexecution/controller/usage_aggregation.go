@@ -113,18 +113,18 @@ func mergeModelBreakdowns(executions []*agentexecutionv1.AgentExecution) []*agen
 
 func cloneModelUsage(src *agentexecutionv1.ModelUsage) *agentexecutionv1.ModelUsage {
 	return &agentexecutionv1.ModelUsage{
-		Model:                       src.GetModel(),
-		Provider:                    src.GetProvider(),
-		InputTokens:                 src.GetInputTokens(),
-		OutputTokens:                src.GetOutputTokens(),
-		CacheCreationTokens:         src.GetCacheCreationTokens(),
-		CacheReadTokens:             src.GetCacheReadTokens(),
-		CallCount:                   src.GetCallCount(),
-		InputPricePerMillion:        src.GetInputPricePerMillion(),
-		OutputPricePerMillion:       src.GetOutputPricePerMillion(),
+		Model:                        src.GetModel(),
+		Provider:                     src.GetProvider(),
+		InputTokens:                  src.GetInputTokens(),
+		OutputTokens:                 src.GetOutputTokens(),
+		CacheCreationTokens:          src.GetCacheCreationTokens(),
+		CacheReadTokens:              src.GetCacheReadTokens(),
+		CallCount:                    src.GetCallCount(),
+		InputPricePerMillion:         src.GetInputPricePerMillion(),
+		OutputPricePerMillion:        src.GetOutputPricePerMillion(),
 		CacheCreationPricePerMillion: src.GetCacheCreationPricePerMillion(),
-		CacheReadPricePerMillion:    src.GetCacheReadPricePerMillion(),
-		EstimatedCostUsd:            src.GetEstimatedCostUsd(),
+		CacheReadPricePerMillion:     src.GetCacheReadPricePerMillion(),
+		EstimatedCostUsd:             src.GetEstimatedCostUsd(),
 	}
 }
 
@@ -256,9 +256,9 @@ func buildSessionSummary(sessionID string, executions []*agentexecutionv1.AgentE
 		totalCost += executionTotalCost(exec)
 	}
 	return &agentexecutionv1.SessionUsageSummary{
-		SessionId:       sessionID,
-		ExecutionCount:  int32(len(executions)),
-		TotalTokens:     totalTokens,
+		SessionId:        sessionID,
+		ExecutionCount:   int32(len(executions)),
+		TotalTokens:      totalTokens,
 		EstimatedCostUsd: totalCost,
 		FirstExecutionAt: earliestStartedAt(executions),
 		LastExecutionAt:  latestStartedAt(executions),

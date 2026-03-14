@@ -140,14 +140,14 @@ func (s *buildSessionUsageReportStep) Execute(ctx *pipeline.RequestContext[*agen
 	}
 
 	report := &agentexecutionv1.GetSessionUsageReportOutput{
-		SessionId:                  sessionID,
-		ExecutionCount:             int32(len(executions)),
-		TotalUsage:                 aggregateUsageMetrics(executions),
-		Executions:                 summaries,
-		ModelBreakdown:             mergeModelBreakdowns(executions),
+		SessionId:                 sessionID,
+		ExecutionCount:            int32(len(executions)),
+		TotalUsage:                aggregateUsageMetrics(executions),
+		Executions:                summaries,
+		ModelBreakdown:            mergeModelBreakdowns(executions),
 		TotalSummarizationCostUsd: totalSummarizationCost,
-		FirstExecutionAt:           earliestStartedAt(executions),
-		LastExecutionAt:            latestStartedAt(executions),
+		FirstExecutionAt:          earliestStartedAt(executions),
+		LastExecutionAt:           latestStartedAt(executions),
 	}
 
 	ctx.Set(sessionUsageReportKey, report)

@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/rs/zerolog/log"
-	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
@@ -154,14 +154,14 @@ func (s *buildOrgUsageReportStep) Execute(ctx *pipeline.RequestContext[*agentexe
 	}
 
 	report := &agentexecutionv1.GetOrgUsageReportOutput{
-		OrgId:             orgID,
-		TotalAgents:       int32(len(distinctAgentIDs(executions))),
-		TotalSessions:     int32(len(distinctSessionIDs(executions))),
-		TotalExecutions:   int32(len(executions)),
-		TotalCostUsd:      totalCost,
-		ModelBreakdown:    mergeModelBreakdowns(executions),
-		TopAgentsByCost:   topAgentsByCost(agentSummaries, topAgentsLimit),
-		DailyCosts:        buildDailyCostEntries(executions),
+		OrgId:           orgID,
+		TotalAgents:     int32(len(distinctAgentIDs(executions))),
+		TotalSessions:   int32(len(distinctSessionIDs(executions))),
+		TotalExecutions: int32(len(executions)),
+		TotalCostUsd:    totalCost,
+		ModelBreakdown:  mergeModelBreakdowns(executions),
+		TopAgentsByCost: topAgentsByCost(agentSummaries, topAgentsLimit),
+		DailyCosts:      buildDailyCostEntries(executions),
 	}
 
 	ctx.Set(orgUsageReportKey, report)
