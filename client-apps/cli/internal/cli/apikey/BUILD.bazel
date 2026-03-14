@@ -1,0 +1,24 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "apikey",
+    srcs = [
+        "create.go",
+        "delete.go",
+        "display.go",
+        "get.go",
+        "list.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/apikey",
+    visibility = ["//client-apps/cli:__subpackages__"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "//apis/stubs/go/ai/stigmer/iam/apikey/v1:apikey",
+        "//client-apps/cli/pkg/display",
+        "@com_github_fatih_color//:color",
+        "@com_github_pkg_errors//:errors",
+        "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_protobuf//types/known/emptypb",
+        "@org_golang_google_protobuf//types/known/timestamppb",
+    ],
+)

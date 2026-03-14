@@ -34,7 +34,7 @@ type ApiResourceMetadata struct {
 	// System-generated unique identifier.
 	Id string `protobuf:"bytes,3,opt,name=id,proto3" json:"id,omitempty"`
 	// Organization that owns this resource.
-	// In Local Mode: Defaults to "default" org.
+	// In Local Mode: Set by the project manifest (seedpack bootstraps "stigmer" org).
 	// In Cloud Mode: Required and enforced by the Authorization Service.
 	// All resources belong to exactly one organization.
 	Org string `protobuf:"bytes,4,opt,name=org,proto3" json:"org,omitempty"`
