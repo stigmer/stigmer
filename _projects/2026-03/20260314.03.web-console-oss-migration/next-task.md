@@ -20,7 +20,7 @@ Drop this file into your conversation to quickly resume work on this project.
 |------|-------|--------|
 | **T01** | Proto TypeScript Codegen Setup | ✅ DONE |
 | **T02** | Migrate Web Source to Stigmer Repo | ✅ DONE |
-| **T03** | Implement Configurable Auth | ⏸️ TODO |
+| **T03** | Implement Configurable Auth | ✅ DONE |
 | **T04** | Configure Static Export Build | ⏸️ TODO |
 | **T05** | Embed Web UI in stigmer-server | ⏸️ TODO |
 | **T06** | CLI Integration & Polish | ⏸️ TODO |
@@ -119,37 +119,68 @@ Key files for reference during migration:
 - Verified: `npm install` (730 packages, 0 vulnerabilities), dev server starts, app shell renders in browser
 - Created `client-apps/web/README.md`
 
+### T03 Completed: Implement Configurable Auth
+- Created `src/auth/` bounded module — 10 files across 3 directories (`auth/`, `auth/disabled/`, `auth/oidc/`)
+- Core types: `AuthMode`, `AuthUser`, `AuthState`, `AuthConfig` in `types.ts`
+- Config resolution: `config.ts` reads `NEXT_PUBLIC_AUTH_MODE`, defaults to `"disabled"`
+- React context: `context.tsx` (AuthContext) separated from providers to prevent circular imports
+- Public hook: `use-auth.ts` exports `useAuth()` — sole API for auth consumers
+- Token store: `token-store.ts` moved from `src/lib/auth-token.ts` — bridges auth and transport
+- Disabled provider: `disabled/DisabledAuthProvider.tsx` — always-authenticated, no token, no login/logout
+- Auth guard: `AuthGuard.tsx` — uses `useAuth()`, passthrough in disabled mode, spinner + redirect in OIDC mode
+- Top-level provider: `AuthProvider.tsx` — reads config, delegates to mode-specific provider
+- OIDC types: `oidc/types.ts` — interface only (`OidcConfig`), implementation deferred to after T04
+- Barrel export: `index.ts` — defines the module's public API
+- Refactored `Providers.tsx`: `AuthProvider` > `AuthGuard` > `OrgProvider` nesting
+- Updated transport import from `@/lib/auth-token` to `@/auth/token-store`
+- Fixed API URL default from `localhost:8080` to `localhost:7234`
+- Deleted: `useAuthSession.ts`, old `AuthGuard.tsx`, `auth-token.ts`
+- Verified: dev server starts, zero errors, full app shell renders, navigation works
+
 ### Key Decisions Made
 - npm workspaces chosen over Yarn/pnpm (zero extra tooling, built into Node.js)
 - `@connectrpc/connect` NOT declared in `@stigmer/protos` package.json (matches stigmer-cloud pattern; relies on workspace hoisting)
 - Auth stub approach: minimal no-ops in T02, proper configurable auth in T03
 - Dockerfile and _kustomize/ included (single codebase principle — cloud deploys from OSS)
+- `src/auth/` as bounded module — auth types, config, context, providers, hooks, and guard colocated (not scattered across `components/`, `hooks/`, `lib/`)
+- `useAuth()` as sole public API — components never import mode-specific providers or access token store directly
+- Token store as auth-transport bridge — module-level variable, no React context in transport layer
+- `user: null` in disabled mode — no synthetic "Local User" (components handle gracefully)
+- OIDC implementation deferred — interface defined, but actual implementation waits for T04 (static export) to determine client-side vs server-side approach
+- OrgProvider makes real gRPC calls in disabled mode — server has no auth, returns orgs without tokens; error state covers "server not running"
+- Auth mode via `NEXT_PUBLIC_AUTH_MODE` env var — build-time config, extendable to runtime config in T05
 
 ## Current Status
 
 **Created**: 2026-03-14
-**Current Task**: T03 (Implement Configurable Auth)
-**Status**: T01 + T02 complete, T03 ready to start
+**Current Task**: T04 (Configure Static Export Build)
+**Status**: T01 + T02 + T03 complete, T04 ready to start
 
 ## Next Steps
 
-1. **T03**: Implement configurable auth — `useAuth()` hook, `AuthProvider`, runtime config (`disabled` | `oidc`)
-2. **T04**: Configure static export build for Go embedding
-3. **T05**: Embed web UI in stigmer-server via `//go:embed`
+1. **T04**: Configure static export build for Go embedding
+2. **T05**: Embed web UI in stigmer-server via `//go:embed`
+3. **T06**: CLI Integration & Polish
 
 ## Context for Resume
 - Branch: `ref/migrate-web-to-oss`
 - TypeScript codegen is fully working: `make ts-stubs` from `apis/` directory
 - Web app is fully migrated and running: `npm run dev -w client-apps/web` starts on port 3000
-- Auth is stubbed out (no-op) — T03 will implement configurable auth
+- Auth is a bounded module at `src/auth/` with provider-pattern abstraction
+- `useAuth()` is the sole public API for auth consumers
+- Disabled mode is fully implemented (always-authenticated, no token, no redirects)
+- OIDC mode interface is defined (`src/auth/oidc/types.ts`) but implementation is deferred until after T04 decides rendering model
+- Token store (`src/auth/token-store.ts`) bridges auth providers and Connect-RPC transport
+- API URL default fixed from `localhost:8080` to `localhost:7234` (matches stigmer-server gRPC port)
 - `@stigmer/protos` resolves via npm workspace symlink to `apis/stubs/ts/`
 - App shell renders in browser (sidebar, navigation, dashboard cards)
 - API calls fail at runtime (expected — no stigmer-server running)
+- OrgProvider makes real gRPC calls; shows error/retry when server is down (by design)
 - Pre-existing code quality issue noted: all service files use `any` cast for Connect-RPC clients
 
 ## Quick Commands
 
-- "Continue with T03" — Start implementing configurable auth
+- "Continue with T04" — Start configuring static export build
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 
