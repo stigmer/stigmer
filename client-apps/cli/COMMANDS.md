@@ -457,7 +457,7 @@ make build
 make install
 
 # Build, install, and verify (recommended)
-make release-local
+make local
 
 # Run without installing
 make run ARGS="server status"

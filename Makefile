@@ -112,8 +112,8 @@ update-agent-runner-deps: ## Regenerate agent-runner requirements.txt from poetr
 
 DEV_LDFLAGS := -X github.com/stigmer/stigmer/client-apps/cli/embedded/agentrunner.devSourceDir=$(CURDIR)/backend/services/agent-runner
 
-.PHONY: release-local build-release
-release-local: ## Build + install CLI for local development
+.PHONY: local build-release
+local: ## Build + install CLI for local development
 	@rm -f $(HOME)/bin/stigmer /usr/local/bin/stigmer bin/stigmer 2>/dev/null || true
 	@mkdir -p bin $(HOME)/bin
 	@cd client-apps/cli && go build -ldflags '$(DEV_LDFLAGS)' -o ../../bin/stigmer .

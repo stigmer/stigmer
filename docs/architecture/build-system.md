@@ -17,7 +17,7 @@ All production builds use the Go toolchain orchestrated through Make:
 | `make test` | Run unit tests |
 | `make lint` | Run linters |
 | `make protos` | Generate protocol buffer stubs |
-| `make release-local` | Build and install CLI locally |
+| `make local` | Build and install CLI locally |
 
 ### Auxiliary: Bazel
 
@@ -119,7 +119,7 @@ See [go-module-structure.md](go-module-structure.md) for details.
 make build
 
 # Build and install locally
-make release-local
+make local
 
 # Run in development mode
 make dev
