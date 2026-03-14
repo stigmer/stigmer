@@ -436,3 +436,33 @@ class TestEndToEndWithFilesystemBackend:
 
             assert result.exit_code == 0
             assert "Hello from Python!" in result.stdout
+
+
+# ---------------------------------------------------------------------------
+# Also Available section (skill relevance filtering)
+# ---------------------------------------------------------------------------
+
+
+class TestGenerateAlsoAvailableSection:
+    """Tests for SkillWriter.generate_also_available_section()."""
+
+    def test_empty_excluded_names_returns_empty(self):
+        assert SkillWriter.generate_also_available_section([]) == ""
+
+    def test_single_excluded_skill(self):
+        section = SkillWriter.generate_also_available_section(["redis-cache"])
+        assert "### Also Available" in section
+        assert "`redis-cache`" in section
+        assert "SKILL.md" in section
+
+    def test_multiple_excluded_skills(self):
+        section = SkillWriter.generate_also_available_section(
+            ["alpha-skill", "beta-skill", "gamma-skill"],
+        )
+        assert "`alpha-skill`" in section
+        assert "`beta-skill`" in section
+        assert "`gamma-skill`" in section
+
+    def test_activation_guidance_present(self):
+        section = SkillWriter.generate_also_available_section(["any-skill"])
+        assert ".stigmer/skills/<name>/SKILL.md" in section

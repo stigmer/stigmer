@@ -797,6 +797,45 @@ def create_deep_agent(
             "Skipping think tool injection — model has native extended thinking"
         )
 
+    # ── Tool count observability ────────────────────────────────────────
+    # Model tool-selection accuracy degrades with many tools (research
+    # shows notable decline above ~20-25).  Log a warning when the
+    # count is high so operators can tune MCP enabled_tools lists.
+    _TOOL_COUNT_WARNING_THRESHOLD = 25
+    _TOOL_DESC_MAX_CHARS = 500
+
+    total_tool_count = len(tools_list)
+    if total_tool_count > _TOOL_COUNT_WARNING_THRESHOLD:
+        logger.warning(
+            "[TOOL-COUNT] %d tools bound (threshold=%d). "
+            "High tool counts degrade model selection accuracy. "
+            "Consider reducing MCP enabled_tools.",
+            total_tool_count,
+            _TOOL_COUNT_WARNING_THRESHOLD,
+        )
+    logger.info(
+        "[TOOL-COUNT] total=%d (threshold=%d)",
+        total_tool_count,
+        _TOOL_COUNT_WARNING_THRESHOLD,
+    )
+
+    # Cap overly verbose MCP tool descriptions so they don't bloat
+    # the tool-calling payload.  The description remains useful for
+    # the model but stops consuming excessive tokens.
+    truncated_count = 0
+    for tool in tools_list:
+        desc = getattr(tool, "description", None)
+        if desc and len(desc) > _TOOL_DESC_MAX_CHARS:
+            tool.description = desc[:_TOOL_DESC_MAX_CHARS] + "..."  # type: ignore[union-attr]
+            truncated_count += 1
+    if truncated_count:
+        logger.info(
+            "[TOOL-COUNT] Truncated descriptions on %d tool(s) "
+            "exceeding %d chars",
+            truncated_count,
+            _TOOL_DESC_MAX_CHARS,
+        )
+
     # Create the Deep Agent using deepagents library.
     #
     # deepagents 0.4.x internally creates SubAgentMiddleware (with a
