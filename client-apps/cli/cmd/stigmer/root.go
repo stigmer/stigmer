@@ -32,12 +32,17 @@ Run locally or scale to production with Stigmer Cloud.`,
 		} else {
 			zerolog.SetGlobalLevel(zerolog.Disabled)
 		}
+
+		if apiKey, _ := cmd.Flags().GetString("api-key"); apiKey != "" {
+			os.Setenv("STIGMER_API_KEY", apiKey)
+		}
 	},
 }
 
 func init() {
 	rootCmd.PersistentFlags().BoolVarP(&debugMode, "debug", "d", false, "enable debug mode with detailed logs")
 	rootCmd.PersistentFlags().String("org", "", "organization slug (overrides context)")
+	rootCmd.PersistentFlags().String("api-key", "", "API key for cloud authentication (overrides stored token)")
 
 	rootCmd.AddGroup(
 		&cobra.Group{ID: "core", Title: "Core Commands:"},
