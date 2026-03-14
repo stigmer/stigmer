@@ -13,9 +13,44 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: In Progress
-- **Last Session**: 2026-03-14 (Session 9) — Phase 5 Server Usage Report RPCs complete (Go + Java)
-- **Active Task**: Phase 5 complete. Next: Phase 6 → Phase 7
+- **Last Session**: 2026-03-14 (Session 10) — Phase 6 CLI Usage Display & Commands complete
+- **Active Task**: Phase 6 complete. Next: Phase 7 (Sub-Agent Model Routing)
 - **Branch**: `feat/usage-metrics-and-cost-optimization`
+
+## Session Progress (2026-03-14, Session 10)
+
+### Phase 6: CLI Usage Display & Commands — COMPLETED
+
+Implemented per-execution usage enhancement and the `stigmer usage` command with three subcommands (`session`, `agent`, `org`) consuming the RPCs from Phase 5.
+
+**New files (5 source + 4 test):**
+- `usage_format.go` — 12 pure formatting helpers (formatCost, formatCacheHitRate, formatModelLabel, formatDurationBreakdown, formatCostLine, formatDate, formatDateRange, formatShare, formatMillis, formatTokensCompact, writeReportJSON, writeReportYAML)
+- `usage_format_test.go` — 30 unit tests covering all helpers with edge cases
+- `usage.go` — Parent `stigmer usage` command registered under Core Commands
+- `usage_session.go` — `stigmer usage session <session-id>` with model breakdown + per-execution detail tables
+- `usage_session_test.go` — Tests for basic, empty, single-model rendering
+- `usage_agent.go` — `stigmer usage agent <agent-id> [--from/--to]` with summary stats + session table
+- `usage_agent_test.go` — Tests for report rendering + date range formatting
+- `usage_org.go` — `stigmer usage org --from --to [--org]` with model breakdown + top agents + daily trend
+- `usage_org_test.go` — Tests for full, empty, and fallback scenarios
+
+**Modified files (4):**
+- `run_display_summary.go` — Added Model and Cost lines to EXECUTION COMPLETE panel; enhanced session exit line with inline cost (`Completed (30s · $0.074)`)
+- `run_display_summary_test.go` — 3 new tests for panel enhancement (cost with cache, no cost, no cache)
+- `root.go` — Registered `usage` under Core Commands group
+- `BUILD.bazel` — Added all new source/test files + `fatih/color` library dep
+
+**Key design decisions:**
+- All formatting is pure-functional with zero I/O — fully testable
+- Report commands follow the established `search.go` pipeline: args → config → daemon → connect → RPC → render
+- `--output table|json|yaml` for all subcommands; JSON/YAML marshal proto directly
+- No new packages — everything co-located in `root` package
+- Graceful degradation — all display guards on data presence (zero visual regression for old executions)
+- Renamed `renderJSON`/`renderYAML` to `writeReportJSON`/`writeReportYAML` to avoid collision with existing `renderJSON` in `run_stream_json.go`
+
+**Verification:** `go build` clean, full test suite passes (including all new + existing tests)
+
+---
 
 ## Session Progress (2026-03-14, Session 9)
 
@@ -154,18 +189,18 @@ The dependency upgrades introduced 14 test failures in graphton (agent-runner is
 
 Pick up in this order:
 
-### Immediate: Phase 6 — CLI Usage Display & Commands
-Add `stigmer usage` commands and per-execution usage summary display in the CLI. This consumes the RPCs implemented in Phase 5.
-
-### Then: Phase 7 — Sub-Agent Model Routing
+### Immediate: Phase 7 — Sub-Agent Model Routing
 Wire `model_override` on `SubAgentDefinition` to enable per-sub-agent model selection.
 
 ## Context for Resume
 
-- **Phase 5 complete**: All three Usage Report RPCs implemented in both Go and Java. Go build+tests green. Java has pre-existing build failures in unrelated files (WorkflowExecutionSearchableExtractor, SkillPushHandler, etc.) — our new files compile without errors.
+- **Phases 1-6 complete**: Schema, pricing, field population, caching, server RPCs, CLI display & commands all done.
+- **Phase 6 plan file**: `.cursor/plans/cli_usage_phase_6_9fc7721f.plan.md`
 - **Phase 5 plan file**: `.cursor/plans/phase_5_usage_report_rpcs_781e9b31.plan.md`
-- **Aggregation algorithm**: Sub-agent costs are included in execution totals. Model breakdowns merged by (model, provider) key. Date filtering uses ISO 8601 string comparison. All aggregation is shared via pure functions (Go) / stateless service (Java).
-- **Three-layer caching** (Phase 4B): `_inject_cache_control()` in `graphton/core/models.py` has three layers. Opt-out via `model._prompt_caching = False`.
+- **CLI usage commands**: `stigmer usage session|agent|org` — all three subcommands consume gRPC RPCs, support `--output table|json|yaml`, use `display.NewTable()` for rendering.
+- **Panel enhancement**: EXECUTION COMPLETE panel now shows Model + Cost lines; session exit line shows cost inline.
+- **Aggregation algorithm**: Sub-agent costs included in execution totals. Model breakdowns merged by (model, provider) key.
+- **Three-layer caching** (Phase 4B): `_inject_cache_control()` in `graphton/core/models.py`. Opt-out via `model._prompt_caching = False`.
 - **All graphton tests green**: 1155 passed, 1 skipped, 0 failed. 1198/1198 agent-runner tests pass.
 - **Key dep versions**: anthropic 0.84.0, deepagents 0.4.10, langchain-core 1.2.19, langgraph 1.1.2.
 - T01 master plan: `tasks/T01_0_plan.md`

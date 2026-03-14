@@ -398,6 +398,88 @@ func TestParseDuration_NegativeDuration(t *testing.T) {
 }
 
 // =============================================================================
+// buildAgentSummaryContent Usage Cost Tests
+// =============================================================================
+
+func TestBuildAgentSummaryContent_WithUsageCost(t *testing.T) {
+	execution := &agentexecutionv1.AgentExecution{
+		Status: &agentexecutionv1.AgentExecutionStatus{
+			Phase:     agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
+			Messages:  []*agentexecutionv1.AgentMessage{{Content: "done"}},
+			ToolCalls: []*agentexecutionv1.ToolCall{},
+			Usage: &agentexecutionv1.UsageMetrics{
+				PrimaryModel:    "claude-sonnet-4",
+				PrimaryProvider: "anthropic",
+				PromptTokens:    12450,
+				CompletionTokens: 1830,
+				TotalTokens:     14280,
+				EstimatedCostUsd: 0.074,
+				CacheReadTokens:  10200,
+			},
+		},
+	}
+
+	content := buildAgentSummaryContent(execution)
+
+	if !strings.Contains(content, "Model:       claude-sonnet-4 (anthropic)") {
+		t.Error("expected Model line with provider in summary content")
+	}
+	if !strings.Contains(content, "Cost:        $0.074 (82% cached)") {
+		t.Error("expected Cost line with cache rate in summary content")
+	}
+}
+
+func TestBuildAgentSummaryContent_WithUsageNoCost(t *testing.T) {
+	execution := &agentexecutionv1.AgentExecution{
+		Status: &agentexecutionv1.AgentExecutionStatus{
+			Phase:     agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
+			Messages:  []*agentexecutionv1.AgentMessage{{Content: "done"}},
+			ToolCalls: []*agentexecutionv1.ToolCall{},
+			Usage: &agentexecutionv1.UsageMetrics{
+				PrimaryModel: "claude-sonnet-4",
+				PromptTokens: 5000,
+				TotalTokens:  6000,
+			},
+		},
+	}
+
+	content := buildAgentSummaryContent(execution)
+
+	if !strings.Contains(content, "Model:") {
+		t.Error("expected Model line in summary content")
+	}
+	if strings.Contains(content, "Cost:") {
+		t.Error("expected no Cost line when estimated_cost_usd is 0")
+	}
+}
+
+func TestBuildAgentSummaryContent_CacheHitRateDisplay(t *testing.T) {
+	execution := &agentexecutionv1.AgentExecution{
+		Status: &agentexecutionv1.AgentExecutionStatus{
+			Phase:     agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
+			Messages:  []*agentexecutionv1.AgentMessage{},
+			ToolCalls: []*agentexecutionv1.ToolCall{},
+			Usage: &agentexecutionv1.UsageMetrics{
+				PromptTokens:     10000,
+				CompletionTokens: 1000,
+				TotalTokens:      11000,
+				EstimatedCostUsd: 0.05,
+				CacheReadTokens:  0,
+			},
+		},
+	}
+
+	content := buildAgentSummaryContent(execution)
+
+	if !strings.Contains(content, "Cost:        $0.050") {
+		t.Error("expected Cost line without cache rate")
+	}
+	if strings.Contains(content, "cached") {
+		t.Error("expected no 'cached' text when cache_read_tokens is 0")
+	}
+}
+
+// =============================================================================
 // summaryPanelWidth Tests
 // =============================================================================
 
