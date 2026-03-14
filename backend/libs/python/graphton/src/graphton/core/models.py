@@ -109,9 +109,11 @@ def _inject_cache_control(payload: dict) -> None:
     Layer 2 — **tool definitions** (explicit breakpoint): marks the last
     tool definition so the full tool schema prefix is cached.
 
-    Layer 3 — **conversation history** (automatic): sets the top-level
-    ``cache_control`` parameter so Anthropic automatically caches the
-    growing message history and advances the breakpoint each turn.
+    Layer 3 — **conversation history** (automatic): sets ``cache_control``
+    via ``extra_body`` so Anthropic automatically caches the growing
+    message history and advances the breakpoint each turn.  Using
+    ``extra_body`` ensures compatibility with SDK versions that don't
+    expose ``cache_control`` as a first-class kwarg.
 
     Layers 1 and 2 create stable, independent cache entries for content
     that rarely changes within an execution.  Layer 3 handles the
@@ -140,8 +142,11 @@ def _inject_cache_control(payload: dict) -> None:
             last_tool["cache_control"] = _CACHE_CONTROL_EPHEMERAL
 
     # --- Layer 3: automatic conversation caching ---
-    if "cache_control" not in payload:
-        payload["cache_control"] = _CACHE_CONTROL_EPHEMERAL
+    # Use extra_body so this works with anthropic SDK versions that don't yet
+    # expose cache_control as a first-class kwarg on messages.create().
+    extra = payload.setdefault("extra_body", {})
+    if isinstance(extra, dict) and "cache_control" not in extra:
+        extra["cache_control"] = _CACHE_CONTROL_EPHEMERAL
 
 
 def _infer_provider(model_name: str) -> str:
