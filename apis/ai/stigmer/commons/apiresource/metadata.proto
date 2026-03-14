@@ -19,7 +19,7 @@ message ApiResourceMetadata {
   string id = 3;
 
   // Organization that owns this resource.
-  // In Local Mode: Defaults to "default" org.
+  // In Local Mode: Set by the project manifest (seedpack bootstraps "stigmer" org).
   // In Cloud Mode: Required and enforced by the Authorization Service.
   // All resources belong to exactly one organization.
   string org = 4;
