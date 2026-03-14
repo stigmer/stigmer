@@ -5,9 +5,13 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog/log"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -19,6 +23,7 @@ import (
 // Server wraps a gRPC server with lifecycle management and in-process support
 type Server struct {
 	grpcServer       *grpc.Server
+	httpServer       *http.Server
 	listener         net.Listener
 	port             int
 	inProcessEnabled bool
@@ -158,9 +163,61 @@ func (s *Server) Start(port int) error {
 	return nil
 }
 
-// Stop gracefully stops the gRPC server
+// StartHTTP starts a unified HTTP server on the given port that multiplexes
+// native gRPC (HTTP/2) and an arbitrary HTTP handler on the same port.
+//
+// h2c (HTTP/2 cleartext) is used so native gRPC clients can speak HTTP/2
+// without TLS, while HTTP/1.1 clients (e.g. gRPC-Web from browsers) are
+// also accepted.
+//
+// The provided handler receives ALL incoming requests. It is the caller's
+// responsibility to route between gRPC (via s.GRPCServer().ServeHTTP) and
+// other HTTP traffic (e.g. gRPC-Web wrapper, static files).
+//
+// This method blocks until the server is stopped via Stop().
+func (s *Server) StartHTTP(port int, handler http.Handler) error {
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		return fmt.Errorf("failed to listen on port %d: %w", port, err)
+	}
+
+	s.listener = listener
+	s.port = port
+
+	h2cHandler := h2c.NewHandler(handler, &http2.Server{})
+
+	s.httpServer = &http.Server{Handler: h2cHandler}
+
+	log.Info().Int("port", port).Msg("Starting gRPC+HTTP server with h2c")
+
+	if err := s.httpServer.Serve(listener); err != nil && err != http.ErrServerClosed {
+		return fmt.Errorf("failed to serve: %w", err)
+	}
+
+	return nil
+}
+
+// IsGRPCRequest reports whether an HTTP request carries a native gRPC call.
+// Use this in the handler passed to StartHTTP to route gRPC traffic to
+// s.GRPCServer().ServeHTTP.
+func IsGRPCRequest(r *http.Request) bool {
+	return r.ProtoMajor == 2 && strings.HasPrefix(r.Header.Get("Content-Type"), "application/grpc")
+}
+
+// Stop gracefully stops the gRPC server. If the server was started with
+// StartHTTP, the HTTP server is shut down first.
 func (s *Server) Stop() {
 	log.Info().Msg("Stopping gRPC server")
+
+	if s.httpServer != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := s.httpServer.Shutdown(ctx); err != nil {
+			log.Warn().Err(err).Msg("HTTP server shutdown error, forcing close")
+			s.httpServer.Close()
+		}
+	}
+
 	s.grpcServer.GracefulStop()
 }
 

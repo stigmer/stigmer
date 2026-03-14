@@ -22,7 +22,7 @@ Drop this file into your conversation to quickly resume work on this project.
 | **T02** | Migrate Web Source to Stigmer Repo | ✅ DONE |
 | **T03** | Implement Configurable Auth | ✅ DONE |
 | **T04** | Configure Static Export Build | ✅ DONE |
-| **T05** | Embed Web UI in stigmer-server | ⏸️ TODO |
+| **T05** | Embed Web Console in Daemon + gRPC-Web | ✅ DONE |
 | **T06** | CLI Integration & Polish | ⏸️ TODO |
 | **T07** | Build Pipeline & Dev Workflow | ⏸️ TODO |
 
@@ -30,11 +30,14 @@ Drop this file into your conversation to quickly resume work on this project.
 
 - **Embedding**: Static export + `//go:embed` (zero Node.js runtime dependency)
 - **Auth**: Optional, provider-agnostic (`disabled` for local, `oidc` for cloud)
-- **Port**: 8234 for web console
+- **Port**: 8234 for web console, 7234 for API (mirrors cloud topology)
 - **Protos**: TypeScript codegen added to OSS (`apis/buf.gen.ts.yaml`)
 - **Single codebase**: No separate web code in stigmer-cloud
 - **Package manager**: npm workspaces (decided in T02)
 - **Deployment artifacts**: Dockerfile and _kustomize/ kept in OSS (single codebase principle)
+- **gRPC-Web**: Browser → API communication uses gRPC-Web (translated by `improbable-eng/grpc-web` on stigmer-server)
+- **Embed location**: Web console embedded in CLI daemon (not stigmer-server) — cloud topology parity
+- **Build tag**: `embed_webconsole` controls inclusion (lean dev builds, full release builds)
 
 ## Essential Files to Review
 
@@ -163,18 +166,32 @@ Key files for reference during migration:
 - Placeholder params in `generateStaticParams` — Next.js 16 Cache Components rejects empty arrays; `[{ id: "__placeholder__" }]` is the workaround
 - Runtime config deferred to T05 — `NEXT_PUBLIC_*` build-time vars work for both local and cloud
 - `start` script changed to `npx serve out` — `next start` is incompatible with static export
+- Web console embedded in daemon (not stigmer-server) — mirrors cloud where frontend and API are separate services
+- gRPC-Web on stigmer-server using `improbable-eng/grpc-web` — browser cannot speak native gRPC
+- h2c for protocol multiplexing — native gRPC (HTTP/2) and gRPC-Web (HTTP/1.1) on same port
+- CORS allow-all for local dev — cloud handles CORS at proxy/CDN layer
+- In-process goroutine for web server — static file server doesn't warrant subprocess overhead
+- `StartHTTP()` in shared library, gRPC-Web wrapper in stigmer-server — generic vs specific separation
+
+## Session Progress (2026-03-14 — Session 5)
+
+### T05 Completed: Embed Web Console in Daemon with gRPC-Web Backend
+- **gRPC-Web on stigmer-server**: Added `improbable-eng/grpc-web` wrapper with CORS. `StartHTTP()` in shared library uses h2c to multiplex native gRPC and gRPC-Web on port 7234. Zero changes to service controllers or interceptors.
+- **Web console embed package**: Created `client-apps/cli/embedded/webconsole/` — three files: `webconsole.go` (interface), `webconsole_embed.go` (`//go:embed` with build tag), `handler.go` (SPA handler with cache control). Follows the agentrunner embedding pattern.
+- **Daemon integration**: Web console served on port 8234 as in-process goroutine. Registered in `HealthState`. Graceful shutdown on daemon exit. Conditional on `webconsole.IsAvailable()`.
+- **Build coordination**: `make web-console-build` builds web assets and copies to embed location. `make build-release` now includes both `embed_agentrunner` and `embed_webconsole` tags. `.gitignore` excludes build artifacts.
+- **Critical discovery**: gRPC-Web protocol gap — browsers cannot speak native gRPC. This was not covered in the original project plan and required collaborative architectural decision-making.
 
 ## Current Status
 
 **Created**: 2026-03-14
-**Current Task**: T05 (Embed Web UI in stigmer-server)
-**Status**: T01 + T02 + T03 + T04 complete, T05 ready to start
+**Current Task**: T06 (CLI Integration & Polish)
+**Status**: T01 + T02 + T03 + T04 + T05 complete, T06 ready to start
 
 ## Next Steps
 
-1. **T05**: Embed web UI in stigmer-server via `//go:embed`
-2. **T06**: CLI Integration & Polish
-3. **T07**: Build Pipeline & Dev Workflow
+1. **T06**: CLI Integration & Polish
+2. **T07**: Build Pipeline & Dev Workflow
 
 ## Context for Resume
 - Branch: `ref/migrate-web-to-oss`
@@ -183,25 +200,23 @@ Key files for reference during migration:
 - Auth is a bounded module at `src/auth/` with provider-pattern abstraction
 - `useAuth()` is the sole public API for auth consumers
 - Disabled mode is fully implemented (always-authenticated, no token, no redirects)
-- OIDC mode interface is defined (`src/auth/oidc/types.ts`) but implementation is deferred until after T04 decides rendering model
+- OIDC mode interface is defined (`src/auth/oidc/types.ts`) but implementation is deferred
 - Token store (`src/auth/token-store.ts`) bridges auth providers and Connect-RPC transport
-- API URL default fixed from `localhost:8080` to `localhost:7234` (matches stigmer-server gRPC port)
+- API URL default is `localhost:7234` (matches stigmer-server gRPC port)
 - `@stigmer/protos` resolves via npm workspace symlink to `apis/stubs/ts/`
-- App shell renders in browser (sidebar, navigation, dashboard cards)
-- API calls fail at runtime (expected — no stigmer-server running)
-- OrgProvider makes real gRPC calls; shows error/retry when server is down (by design)
-- Pre-existing code quality issue noted: all service files use `any` cast for Connect-RPC clients
 - Static export builds to `out/` directory: `npm run build -w client-apps/web`
 - `next.config.ts` has `output: "export"` — produces static HTML/CSS/JS, no Node.js server
-- Dynamic `[id]` routes use server/client split pattern (server `page.tsx` + colocated client component)
-- `generateStaticParams` returns `[{ id: "__placeholder__" }]` (Next.js 16 rejects empty arrays due to Cache Components)
-- `package.json` `start` script runs `npx serve out` for local static testing
-- Dockerfile still references Yarn and standalone mode — needs rewrite in T05/T07
-- Runtime config deferred to T05 — build-time `NEXT_PUBLIC_*` vars sufficient for now
+- **stigmer-server now supports both native gRPC and gRPC-Web on port 7234** (h2c + improbable-eng/grpc-web)
+- **Web console embedded in CLI daemon** via `client-apps/cli/embedded/webconsole/` (build tag: `embed_webconsole`)
+- **Daemon serves web console on port 8234** as in-process goroutine (conditional on `IsAvailable()`)
+- **`make build-release`** produces binary with both agent-runner and web console embedded
+- **`make web-console-build`** builds web assets and copies to embed location
+- Pre-existing code quality issue noted: all service files use `any` cast for Connect-RPC clients
+- Dockerfile still references Yarn and standalone mode — needs rewrite in T07
 
 ## Quick Commands
 
-- "Continue with T05" — Start embedding web UI in stigmer-server
+- "Continue with T06" — Start CLI integration & polish
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 

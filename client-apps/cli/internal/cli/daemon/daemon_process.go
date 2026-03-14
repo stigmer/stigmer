@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
+	"github.com/stigmer/stigmer/client-apps/cli/embedded/webconsole"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/temporal"
 )
 
@@ -296,6 +298,38 @@ func RunDaemonProcess() error {
 			log.Error().Str("component", c.name).Int("pid", c.state.PID).Msg("Component crashed during startup")
 		}
 	}
+
+	// Start the embedded web console HTTP server if assets are available.
+	// This runs as an in-process goroutine (not a subprocess) because a
+	// static file server is lightweight and cannot crash independently.
+	var webConsoleServer *http.Server
+	if webconsole.IsAvailable() {
+		addr := fmt.Sprintf("127.0.0.1:%d", WebConsolePort)
+		webConsoleServer = &http.Server{
+			Addr:    addr,
+			Handler: webconsole.NewSPAHandler(),
+		}
+
+		go func() {
+			log.Info().
+				Int("port", WebConsolePort).
+				Msg("Starting embedded web console")
+			if err := webConsoleServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				log.Error().Err(err).Msg("Web console HTTP server failed")
+			}
+		}()
+
+		hs.Components["web-console"] = &ComponentState{
+			State:     "running",
+			StartedAt: time.Now(),
+		}
+		log.Info().
+			Int("port", WebConsolePort).
+			Msgf("Web console available at http://localhost:%d", WebConsolePort)
+	} else {
+		log.Debug().Msg("Web console not embedded in this build, skipping")
+	}
+
 	writeHealthState(dataDir, hs)
 
 	// Start health monitoring
@@ -316,6 +350,19 @@ func RunDaemonProcess() error {
 
 	cancel()
 	wg.Wait()
+
+	// Stop the web console HTTP server before stopping child processes.
+	if webConsoleServer != nil {
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		if err := webConsoleServer.Shutdown(shutdownCtx); err != nil {
+			log.Warn().Err(err).Msg("Web console HTTP server shutdown error")
+		}
+		shutdownCancel()
+		if cs := hs.Components["web-console"]; cs != nil {
+			cs.State = "stopped"
+		}
+		log.Info().Msg("Web console HTTP server stopped")
+	}
 
 	// Graceful shutdown: stop children in reverse order
 	for i := len(components) - 1; i >= 0; i-- {

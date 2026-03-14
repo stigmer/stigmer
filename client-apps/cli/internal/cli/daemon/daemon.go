@@ -34,6 +34,10 @@ const (
 	// DaemonPort is the port stigmer-server listens on.
 	DaemonPort = 7234
 
+	// WebConsolePort is the port the embedded web console is served on.
+	// Follows the 7xxx=API, 8xxx=UI convention (Temporal UI is on 8233).
+	WebConsolePort = 8234
+
 	// PIDFileName stores the daemon process's own PID.
 	PIDFileName = "daemon.pid"
 
