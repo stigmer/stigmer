@@ -2032,14 +2032,49 @@ async def _execute_graphton_impl(
                 # Server resolution failed
                 mcp_server_status[slug] = (False, "Server not found or resolution failed", 0)
         
-        # Extract skill names from fetched skill protos
-        skill_names = [s.metadata.name for s in skills] if skills else []
-        
+        # ── Skill relevance filtering ─────────────────────────────────────
+        # When the agent has many skills, low-relevance skills are excluded
+        # from the system prompt to improve signal quality.  Excluded skills
+        # remain on disk and a brief "also available" note is appended so
+        # the agent can still activate them if needed.
+        from worker.activities.graphton.skill_relevance import filter_skills
+
+        all_skill_names = [s.metadata.name for s in skills] if skills else []
+        excluded_skill_names: list[str] = []
+
+        if skills and len(skills) >= 8:
+            filter_result = filter_skills(
+                user_message=user_message,
+                skill_names=[s.metadata.name for s in skills],
+                skill_descriptions=[s.spec.description or "" for s in skills],
+            )
+            if filter_result.excluded_names:
+                included_skills = [skills[i] for i in filter_result.included_indices]
+                excluded_skill_names = filter_result.excluded_names
+                activity_logger.info(
+                    "Skill relevance filter: %d included, %d excluded %s",
+                    len(included_skills),
+                    len(excluded_skill_names),
+                    excluded_skill_names,
+                )
+                # Rebuild the prompt section with only included skills.
+                # Skill paths are already computed for ALL skills (included
+                # and excluded) so the agent can still read excluded skills.
+                skills_prompt_section = SkillWriter.generate_prompt_section(
+                    included_skills, skill_paths,
+                )
+                skills_prompt_section += SkillWriter.generate_also_available_section(
+                    excluded_skill_names,
+                )
+                # Update the name list to reflect what is in the prompt.
+                all_skill_names = [s.metadata.name for s in included_skills]
+
         # Set resolved context on status builder
         status_builder.set_resolved_context(
             environment_keys=list(merged_env_vars.keys()),
             mcp_servers=mcp_server_status,
-            skill_names=skill_names,
+            skill_names=all_skill_names,
+            excluded_skill_names=excluded_skill_names,
         )
         
         # ─────────────────────────────────────────────────────────────────────────────

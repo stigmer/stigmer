@@ -338,3 +338,30 @@ class SkillWriter:
             lines.append("")
 
         return "\n".join(lines)
+
+    @staticmethod
+    def generate_also_available_section(
+        excluded_names: list[str],
+    ) -> str:
+        """Generate a brief note listing skills excluded by relevance filtering.
+
+        The agent can still request these skills by name if it
+        determines they are needed mid-conversation.
+
+        Args:
+            excluded_names: Alphabetically sorted names of excluded skills.
+
+        Returns:
+            Markdown fragment to append after the main skills section,
+            or ``""`` when *excluded_names* is empty.
+        """
+        if not excluded_names:
+            return ""
+
+        names_str = ", ".join(f"`{n}`" for n in excluded_names)
+        return (
+            "\n### Also Available\n\n"
+            f"These skills are installed but were not highlighted above: {names_str}. "
+            "If you determine one of them is relevant to your task, "
+            "read its SKILL.md at `.stigmer/skills/<name>/SKILL.md` to activate it.\n"
+        )

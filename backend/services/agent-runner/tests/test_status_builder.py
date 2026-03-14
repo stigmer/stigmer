@@ -3589,6 +3589,53 @@ class TestResolvedExecutionContext:
         assert "日本語-skill" in ctx.skill_names
         assert "test-skill" in ctx.skill_names
 
+    def test_excluded_skill_names_populated(self, status_builder):
+        """Verify excluded_skill_names captures filtered skills."""
+        status_builder.set_resolved_context(
+            environment_keys=[],
+            mcp_servers={},
+            skill_names=["code-review", "kubernetes-operator"],
+            excluded_skill_names=["redis-cache", "terraform-iac"],
+        )
+
+        ctx = status_builder.current_status.resolved_context
+        assert list(ctx.excluded_skill_names) == ["redis-cache", "terraform-iac"]
+
+    def test_excluded_skill_names_sorted(self, status_builder):
+        """Verify excluded skill names are sorted alphabetically."""
+        status_builder.set_resolved_context(
+            environment_keys=[],
+            mcp_servers={},
+            skill_names=["alpha"],
+            excluded_skill_names=["zeta", "beta", "delta"],
+        )
+
+        ctx = status_builder.current_status.resolved_context
+        assert list(ctx.excluded_skill_names) == ["beta", "delta", "zeta"]
+
+    def test_excluded_skill_names_none_gives_empty(self, status_builder):
+        """Verify None excluded_skill_names produces empty list."""
+        status_builder.set_resolved_context(
+            environment_keys=[],
+            mcp_servers={},
+            skill_names=["code-review"],
+        )
+
+        ctx = status_builder.current_status.resolved_context
+        assert len(ctx.excluded_skill_names) == 0
+
+    def test_excluded_skill_names_empty_list(self, status_builder):
+        """Verify explicit empty list works identically to None."""
+        status_builder.set_resolved_context(
+            environment_keys=[],
+            mcp_servers={},
+            skill_names=["code-review"],
+            excluded_skill_names=[],
+        )
+
+        ctx = status_builder.current_status.resolved_context
+        assert len(ctx.excluded_skill_names) == 0
+
 
 # =============================================================================
 # Tests for Approval Policy Resolution (HITL Phase 2)

@@ -2943,6 +2943,7 @@ class StatusBuilder:
         environment_keys: list[str],
         mcp_servers: dict[str, tuple[bool, str, int]],
         skill_names: list[str],
+        excluded_skill_names: list[str] | None = None,
     ) -> None:
         """
         Set the resolved execution context.
@@ -2960,7 +2961,10 @@ class StatusBuilder:
             mcp_servers: Dict mapping server slug to (resolved, message, enabled_tool_count).
                          resolved=True means server was found and configured successfully.
                          resolved=False means resolution failed (server not found, missing env var).
-            skill_names: Names of skills injected into system prompt.
+            skill_names: Names of skills included in the system prompt.
+            excluded_skill_names: Names of skills that were available but excluded
+                                  by relevance filtering.  ``None`` means no
+                                  filtering was applied.
         
         Note:
             Environment values are intentionally NOT captured for security reasons.
@@ -2970,6 +2974,7 @@ class StatusBuilder:
         resolved_context = ResolvedExecutionContext(
             environment_keys=sorted(environment_keys),  # Sorted for consistent ordering
             skill_names=sorted(skill_names),            # Sorted for consistent ordering
+            excluded_skill_names=sorted(excluded_skill_names or []),
         )
         
         # Build MCP server status map
@@ -2989,11 +2994,13 @@ class StatusBuilder:
         resolved_count = sum(1 for r, _, _ in mcp_servers.values() if r)
         failed_count = len(mcp_servers) - resolved_count
         
+        excluded_count = len(excluded_skill_names) if excluded_skill_names else 0
         self.logger.info(
             f"[CONTEXT] execution={self.execution_id} "
             f"env_keys={len(environment_keys)} "
             f"mcp_servers={len(mcp_servers)} (resolved={resolved_count}, failed={failed_count}) "
-            f"skills={len(skill_names)}"
+            f"skills={len(skill_names)} "
+            f"excluded_skills={excluded_count}"
         )
         
         # Log details at debug level for troubleshooting
