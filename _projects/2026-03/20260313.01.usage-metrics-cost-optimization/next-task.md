@@ -12,10 +12,37 @@ Drop this file into your conversation to quickly resume work on this project.
 **Components**: Proto APIs (agentexecution/v1, session/v1), agent-runner (Python/LangGraph), stigmer-server (Go), CLI (Go)
 
 ## Current State
-- **Status**: Complete (all 9 phases delivered)
-- **Last Session**: 2026-03-14 (Session 13) — Phase 9 Smart Context / Selective Inclusion complete
-- **Active Task**: All phases complete. Project closed.
+- **Status**: Complete (all 9 phases + post-release bug fixes)
+- **Last Session**: 2026-03-14 (Session 14) — Fix usage tracking on non-happy paths + read tool output filtering
+- **Active Task**: All phases complete. Post-release fixes applied.
 - **Branch**: `feat/usage-metrics-and-cost-optimization`
+
+## Session Progress (2026-03-14, Session 14)
+
+### Post-Release Bug Fixes — COMPLETED
+
+Two critical bugs discovered through production observation of a `stigmer draft skill` execution against the Planton monorepo. Both were in the agent-runner Python codebase.
+
+**Bug 1: Usage metrics zero for interrupted executions**
+
+`finalize_usage()` — which stamps accumulated token/cost data from the `UsageTracker` onto the status proto — was only called on the normal completion path. All four non-happy exit paths (pause/cancel, stall timeout, recursion limit, exception) skipped it, producing zero usage data for interrupted executions.
+
+**Fix**: Added `completed_at` stamping + `finalize_usage()` to all four exit paths in `execute_graphton.py`, placed immediately before each `update_status()` gRPC call. Uses the same idempotent two-line pattern as the happy path.
+
+**Bug 2: Read tool results not filtered from execution state**
+
+The `_READ_ONLY_TOOLS` set in `status_builder.py` contained only `{"read_file"}`, but the canonical tool name is `"read"` (set at `tool_wrappers.py:966`). The filter never matched, so all read tool results stored full file contents, inflating the execution state to 22,142 lines.
+
+**Fix**: Added `"read"` to `_READ_ONLY_TOOLS` alongside `"read_file"`.
+
+**Modified files (2 production, 1 test):**
+- `execute_graphton.py` — Added `completed_at` + `finalize_usage()` to pause/cancel, stall timeout, recursion limit, and exception handlers
+- `status_builder.py` — Added `"read"` to `_READ_ONLY_TOOLS` set
+- `test_status_builder.py` — 6 new tests: 3 for read tool output filtering (canonical name, alias, non-read preserved), 3 for `finalize_usage` (stamps usage, graceful without `completed_at`, idempotent)
+
+**Verification:** agent-runner 1243 passed, graphton 1161 passed — zero regressions.
+
+---
 
 ## Session Progress (2026-03-14, Session 13)
 

@@ -202,7 +202,7 @@ _TOOL_CONTENT_FIELDS: dict[str, list[str]] = {
 # Read-only tools whose result content is replaced with a size-only placeholder
 # in the persisted state.  The file path is already in tc.args; full content
 # lives in the LangGraph checkpoint DB if ever needed.
-_READ_ONLY_TOOLS: set[str] = {"read_file"}
+_READ_ONLY_TOOLS: set[str] = {"read", "read_file"}
 
 # JSON escape → Python character mapping (single-char sequences).
 _JSON_ESCAPES: dict[str, str] = {
