@@ -18,11 +18,10 @@ Add timestamps and notes to track your progress.
 **Core Principle:** Organization is a deployment context, not a resource identity field. Resources inherit org from their project manifest. Individual resources should be org-agnostic in their YAML.
 
 **Org Resolution Hierarchy (highest precedence wins):**
-1. CLI flag: `stigmer apply --org <slug>` (overrides everything)
+1. CLI flag: `stigmer apply --org <slug>` (overrides project and context)
 2. Project manifest: `stigmer.yaml` → `metadata.org`
-3. Explicit `metadata.org` on individual resource YAML (author intent, rare)
-4. Active context from `~/.stigmer/config`
-5. Fallback: `"stigmer"` (replaces old `"default"`)
+3. Active context from `~/.stigmer/config` (or `backend.cloud.org_id`)
+4. Error: "organization not set" (no silent fallback — explicit is safer)
 
 **Key Decisions:**
 - Seedpack system org: `stigmer` (same name OSS and Cloud — no migration needed)
@@ -65,35 +64,47 @@ Replace the `default` organization with `stigmer` as the system org in the seedp
 
 ## Task 2: Implement org inheritance in apply flow
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-03-14 07:56
+**Completed**: 2026-03-14
 
-### Scope
-Resources without `metadata.org` should inherit org from the project-level `stigmer.yaml`. Add `--org` CLI flag as an override. This is the core infrastructure work that makes org a contextual concern.
+### Scope (Revised)
+Deep codebase analysis revealed that the core org inheritance mechanism was already
+implemented. The codebase was well-architected for this — `resolveApplyOrganization`
+(flag > project > context > error), `--org` persistent flag, and per-resource org
+injection in appliers were all in place. Task 2 was revised to add diagnostic
+guardrails and seedpack org decoupling rather than re-implementing what existed.
 
-### Subtasks
-- [ ] Locate the `stigmer apply` code path that processes resources
-- [ ] Add `resolveOrg()` function implementing the precedence hierarchy
-- [ ] When a resource has no `metadata.org`, inject it from the project manifest before persistence
-- [ ] Add `--org` flag to `stigmer apply` cobra command
-- [ ] Add `--force-org` flag that overrides even explicit `metadata.org` on resources
-- [ ] Update the seedpack bootstrap call to pass org as a parameter (not hardcoded in YAML)
-- [ ] Add unit tests for org resolution precedence
+### Already Implemented (pre-existing)
+- [x] `--org` persistent flag on root command (`root.go:43`)
+- [x] `resolveApplyOrganization` with precedence: flag > project > context > error (`apply.go:132`)
+- [x] Resource appliers inject org when `metadata.org` is empty (`agent/applier.go:54`)
+- [x] 14 tests covering org resolution precedence (`apply_org_test.go`)
+- [x] Seedpack resources have no explicit `metadata.org`, inheriting from project manifest
 
-### Org Resolution Logic (pseudocode)
-```
-resolveOrg(resource, project, cliFlags):
-  if cliFlags.ForceOrg != "":  return cliFlags.ForceOrg
-  if resource.Metadata.Org != "":  return resource.Metadata.Org
-  if cliFlags.Org != "":  return cliFlags.Org
-  if project.Metadata.Org != "":  return project.Metadata.Org
-  if activeContext.Org != "":  return activeContext.Org
-  return "stigmer"
-```
+### New Work (this session)
+- [x] `warnOrgMismatch` helper warns when a resource has explicit `metadata.org` that
+      differs from the resolved project/context org — catches accidental hardcoded orgs
+      (`apply_file_handlers.go`)
+- [x] Seedpack bootstrap Phase 2 now passes `--org` via `STIGMER_SEEDPACK_ORG` env var
+      (default: `"stigmer"`), decoupling the bootstrap org from embedded YAML (`daemon.go`)
+- [x] 5 new unit tests for `warnOrgMismatch` (`apply_org_test.go`)
 
-### Notes
-- The seedpack is embedded and immutable — org override MUST come from outside the embedded files
-- Server bootstrap should call apply with `Org: server.Config.SeedpackOrg` (defaults to "stigmer")
+### Decisions
+- **Skipped `--force-org`**: Premature. The only use case (agent-fleet's `org: default`)
+  is better fixed by removing the hardcoded org in Task 4. Adding a nuclear override
+  that silently misplaces resources is risky.
+- **Skipped `"stigmer"` fallback**: Error on missing org is safer than silent default.
+  In local mode, `EnsureOrgContext()` auto-sets context after bootstrap. In cloud mode,
+  a `"stigmer"` fallback would be wrong.
+- **Kept resource-level org precedence**: If a resource has explicit `metadata.org`, it
+  is preserved (author intent). The new `warnOrgMismatch` surfaces this visibly instead
+  of letting it pass silently.
+
+### Files Changed
+- `client-apps/cli/cmd/stigmer/root/apply_file_handlers.go` — `warnOrgMismatch` + calls
+- `client-apps/cli/internal/cli/daemon/daemon.go` — `STIGMER_SEEDPACK_ORG` env var
+- `client-apps/cli/cmd/stigmer/root/apply_org_test.go` — 5 new tests
 
 ---
 
@@ -117,27 +128,39 @@ No work required — the convention is to omit `org` when ref and owning resourc
 
 ## Task 4: Update agent-fleet to use planton org
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-03-14 07:56
+**Completed**: 2026-03-14
 
 ### Scope
-Set `planton` as the org in the agent-fleet project manifest. Remove hardcoded `org: default` from individual resources so they inherit from the project.
+Set `planton` as the org in the agent-fleet project manifest. Remove hardcoded `org: default` from individual resources so they inherit from the project. Update all `tools/` draft scripts to ensure regenerated resources also omit hardcoded org.
 
 ### Subtasks
-- [ ] Update `agent-fleet/stigmer.yaml`: add `metadata.org: planton`
-- [ ] Remove `org: default` from `agents/infra-chart-composer.yaml`
-- [ ] Remove `org: default` from `mcp-servers/mcp-server-planton.yaml`
-- [ ] If infra-chart-composer references `mcp-server-stigmer` (from seedpack), add cross-org ref with `org: stigmer`
-- [ ] Verify all `mcp_server_ref` and `skill_refs` use correct org context after inheritance
+- [x] Update `agent-fleet/stigmer.yaml`: add `metadata.org: planton`
+- [x] Remove `org: default` from `agents/infra-chart-composer.yaml`
+- [x] Remove `org: default` from `mcp-servers/mcp-server-planton.yaml`
+- [x] Verified: no cross-org refs needed — agent-fleet agents only reference `mcp-server-planton` (same project), no seedpack resources
+- [x] Verified: `mcp_server_ref` and `skill_refs` use slug-only references — correct under org inheritance
+- [x] Updated all 7 draft script prompts (`00`, `01`, `04`, `06`, `08`, `10`, `12`) with `== ORG PORTABILITY ==` section
+- [x] Updated `tools/rules/generate-stigmer-draft-scripts.mdc` to codify the pattern for future scripts
 
-### Files to Change
-- `agent-fleet/stigmer.yaml` — add org
-- `agent-fleet/agents/infra-chart-composer.yaml` — remove org, verify refs
-- `agent-fleet/mcp-servers/mcp-server-planton.yaml` — remove org
+### Files Changed
+- `agent-fleet/stigmer.yaml` — added `metadata.org: planton`
+- `agent-fleet/agents/infra-chart-composer.yaml` — removed `org: default`
+- `agent-fleet/mcp-servers/mcp-server-planton.yaml` — removed `org: default`
+- `agent-fleet/tools/00_onboard-planton-mcp-server.sh` — added org portability instruction
+- `agent-fleet/tools/01_generate-approval-policy.sh` — added org portability instruction
+- `agent-fleet/tools/04_draft-infra-chart-composer-agent.sh` — added org portability section
+- `agent-fleet/tools/06_draft-cloud-resource-assistant-agent.sh` — added org portability section
+- `agent-fleet/tools/08_draft-stack-job-troubleshooter-agent.sh` — added org portability section
+- `agent-fleet/tools/10_draft-planton-onboarding-guide-agent.sh` — added org portability section
+- `agent-fleet/tools/12_draft-service-pipeline-debugger-agent.sh` — added org portability section
+- `agent-fleet/tools/rules/generate-stigmer-draft-scripts.mdc` — codified org portability in DO NOT list
 
 ### Notes
-- infra-chart-composer uses `mcp-server-planton` which is in the same project (planton org) — no cross-org ref needed
-- If any agent-fleet agent references seedpack resources (mcp-server-stigmer), that IS a cross-org ref
+- No cross-org refs needed: agent-fleet agents only reference `mcp-server-planton` (same project)
+- Skill draft scripts (03, 05, 07, 09, 11) generate SKILL.md files, not resource YAML — no org field to omit
+- The `01_generate-approval-policy.sh` preserves existing metadata, so after removing org from the base YAML, regeneration stays clean
 
 ---
 

@@ -2,38 +2,60 @@
 
 ## Current State
 - **Status**: in-progress
-- **Last Session**: 2026-03-14 — Completed Task 1 (seedpack org rename)
-- **Active Task**: Task 2 — Implement org inheritance in apply flow
+- **Last Session**: 2026-03-14 — Completed Task 4 (agent-fleet org portability)
+- **Active Task**: Task 5 — End-to-end validation
 
 ## Session Progress (2026-03-14)
-- Completed Task 1: Renamed default org to stigmer in seedpack
-- 4 files changed, 0 lines of Go logic modified (purely data + docs)
-- Key finding: the codebase was already well-architected for this change — no hardcoded "default" in Go org-resolution logic
-- All seedpack tests pass (4/4), all CLI project tests pass (105/105)
-- Decision: left doc examples and test fixtures using "default" as arbitrary test data unchanged — these are not system org references
 
-## Files Changed in Task 1
-- `seedpack/organizations/default.yaml` → renamed to `stigmer.yaml`, slug/name/description updated
-- `seedpack/stigmer.yaml` — `org: default` → `org: stigmer`, description "Default" → "System"
-- `seedpack/seedpack_test.go` — expected path updated
-- `apis/ai/stigmer/commons/apiresource/metadata.proto` — org field comment corrected
+### Task 1 (completed earlier)
+- Renamed default org to stigmer in seedpack
+- 4 files changed, 0 lines of Go logic modified (purely data + docs)
+
+### Task 2 (completed earlier)
+- Deep analysis revealed core org inheritance was already implemented (`resolveApplyOrganization`,
+  `--org` flag, per-resource org injection in appliers, 14 existing tests)
+- Revised scope: added diagnostic guardrails instead of re-implementing existing logic
+- Added `warnOrgMismatch` helper to detect accidental hardcoded orgs in resource YAMLs
+- Decoupled seedpack bootstrap org from embedded YAML via `STIGMER_SEEDPACK_ORG` env var
+- Added 5 new unit tests for `warnOrgMismatch`
+
+### Task 4 (completed this session)
+- Added `metadata.org: planton` to `agent-fleet/stigmer.yaml` project manifest
+- Removed `org: default` from `agents/infra-chart-composer.yaml` and `mcp-servers/mcp-server-planton.yaml`
+- Verified no cross-org refs needed (agent-fleet agents only reference `mcp-server-planton`, no seedpack resources)
+- Updated all 7 draft script prompts with `== ORG PORTABILITY ==` instruction to prevent regenerated YAMLs from hardcoding org
+- Updated `tools/rules/generate-stigmer-draft-scripts.mdc` to codify the pattern for future scripts
+- 11 files changed across `plantonhq/agent-fleet`
+
+## Files Changed in Task 4 (agent-fleet repo)
+- `stigmer.yaml` — added `metadata.org: planton`
+- `agents/infra-chart-composer.yaml` — removed `org: default`
+- `mcp-servers/mcp-server-planton.yaml` — removed `org: default`
+- `tools/00_onboard-planton-mcp-server.sh` — org portability instruction
+- `tools/01_generate-approval-policy.sh` — org portability instruction
+- `tools/04_draft-infra-chart-composer-agent.sh` — org portability section
+- `tools/06_draft-cloud-resource-assistant-agent.sh` — org portability section
+- `tools/08_draft-stack-job-troubleshooter-agent.sh` — org portability section
+- `tools/10_draft-planton-onboarding-guide-agent.sh` — org portability section
+- `tools/12_draft-service-pipeline-debugger-agent.sh` — org portability section
+- `tools/rules/generate-stigmer-draft-scripts.mdc` — codified org portability rule
 
 ## Next Steps
-1. **Task 2**: Implement org inheritance in apply flow
-   - Add `resolveOrg()` function with precedence hierarchy
-   - Add `--org` and `--force-org` CLI flags
-   - Inject org from project manifest when resource has no `metadata.org`
-   - Unit tests for org resolution precedence
-2. **Task 3**: Add optional org field to cross-resource reference schemas
-3. **Task 4**: Update agent-fleet to use planton org
+1. ~~Task 2~~: ✅ DONE
+2. ~~Task 3~~: ✅ DONE (already existed)
+3. ~~Task 4~~: ✅ DONE
 4. **Task 5**: End-to-end validation
+   - Start fresh local Stigmer server — verify it bootstraps `stigmer` org
+   - Apply agent-fleet project — verify resources land in `planton` org
+   - Test `--org` override
+   - Verify `stigmer get` round-trip
 
 ## Context for Resume
-- The apply flow already has `resolveApplyOrganization` in `client-apps/cli/cmd/stigmer/root/apply.go` (line 132) — this is the function to extend for Task 2
-- The seedpack bootstrap in `daemon.go` runs two phases: Phase 1 applies orgs via `apply -f`, Phase 2 applies project via `apply --config`
-- `resolveApplyOrganization` priority: `--org` flag > `metadata.org` in stigmer.yaml > CLI context > error (no fallback)
-- Individual resources get org injected via `fctx.orgID` — not read from YAML
-- The `validator.go` already has "stigmer" in reserved project names
+- `resolveApplyOrganization` in `apply.go:132` — priority: `--org` flag > project `metadata.org` > CLI context > error
+- `warnOrgMismatch` in `apply_file_handlers.go` — warns when resource has explicit org different from resolved org
+- Seedpack bootstrap Phase 2 in `daemon.go` now passes `--org` sourced from `STIGMER_SEEDPACK_ORG` (default: `"stigmer"`)
+- Agent-fleet project manifest now has `metadata.org: planton`, individual resources have no `metadata.org` (inherit from project)
+- All draft scripts instruct the AI agent to omit `metadata.org` when regenerating resources
 
 ## Blockers
 None.
@@ -90,7 +112,7 @@ To continue this project, drag this file into chat:
 **Core Principle:** Org is a deployment context, not a resource identity field.
 Resources inherit org from their project manifest. `stigmer` is the system org (replaces `default`).
 
-**Org Resolution Hierarchy:** CLI flag > Project manifest > Resource metadata > Context config > `"stigmer"` fallback
+**Org Resolution Hierarchy:** CLI flag (`--org`) > Project manifest (`stigmer.yaml metadata.org`) > Context config > Error (no silent fallback)
 
 **Key repos involved:**
 - `stigmer/stigmer` — seedpack, CLI apply flow, proto schemas
