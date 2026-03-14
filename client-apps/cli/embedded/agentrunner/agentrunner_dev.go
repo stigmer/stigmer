@@ -36,7 +36,7 @@ func devRepoRoot() string {
 // locateRepoSource finds the agent-runner source directory.
 //
 // Resolution order:
-//  1. devSourceDir — injected via -ldflags by `make release-local`
+//  1. devSourceDir — injected via -ldflags by `make local`
 //  2. Walk up from os.Executable() — works when the binary is inside the repo tree
 //  3. STIGMER_AGENT_RUNNER_SOURCE_DIR env var — manual override
 func locateRepoSource() string {

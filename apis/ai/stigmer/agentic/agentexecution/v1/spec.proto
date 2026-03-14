@@ -306,6 +306,41 @@ message ExecutionConfig {
   //
   // @since Recursion Limit Configurability (D1)
   int32 max_tool_rounds = 3;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Tool Result Truncation
+  //
+  // Prevents context window blow-up from large tool outputs.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Maximum number of characters for a single tool result before truncation.
+  // When a tool result exceeds this limit, it is truncated and a marker is
+  // appended: "[truncated — result exceeded {limit} chars, ask for specific sections]"
+  //
+  // 0 = use platform default (recommended: 30,000 chars ~ 7,500 tokens).
+  // Set higher for agents that work with large files/outputs.
+  //
+  // Applies to all tool results (shell, read, write, MCP tools).
+  // Does not apply to built-in tools that already manage their output size.
+  int32 max_tool_result_chars = 4;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Cost Cap
+  //
+  // Prevents runaway agents from draining API credits.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Maximum estimated cost in USD for this execution.
+  // When the running cost exceeds this limit, the agent receives a
+  // "budget exhausted" message and the execution transitions to TERMINATED.
+  //
+  // 0.0 = no cost cap (default, unlimited).
+  // Recommended: 1.00-5.00 for interactive sessions, 10.00+ for batch workflows.
+  //
+  // Cost is checked after each LLM call using the running total from
+  // UsageMetrics.estimated_cost_usd. When approaching the cap (>80%),
+  // a budget warning is injected into the conversation.
+  double max_cost_usd = 5;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

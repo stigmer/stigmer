@@ -1,0 +1,225 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agentexecution.v1;
+
+import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
+import "buf/validate/validate.proto";
+import "google/protobuf/struct.proto";
+
+// Represents a single message in the agent conversation.
+// Used to track the full conversation flow including user messages,
+// AI responses, and tool execution details.
+message AgentMessage {
+  // Type of message (human, ai, tool, system).
+  MessageType type = 1 [(buf.validate.field).enum.defined_only = true];
+
+  // The text content of the message.
+  string content = 2;
+
+  // ISO 8601 timestamp when the message was created.
+  string timestamp = 3;
+
+  // Tool calls associated with this message (if type == ai and tools were invoked).
+  repeated ToolCall tool_calls = 4;
+
+  // Optional message metadata.
+  google.protobuf.Struct metadata = 5;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Streaming State Fields (Phase 2.1)
+  //
+  // These fields track AI message generation progress and resource usage.
+  // Only meaningful for messages where type == MESSAGE_AI.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // True while the AI is actively generating this message, false when complete.
+  // Enables UI to show typing indicator during streaming and final content when done.
+  // Default (false) indicates either a non-AI message or a completed AI message.
+  bool is_streaming = 6;
+
+  // Total tokens consumed to generate this message (prompt + completion tokens).
+  // Zero until message generation completes, or if token usage is unavailable.
+  // Useful for cost tracking and usage analytics at the message level.
+  int32 token_count = 7;
+
+  // Wall-clock time in milliseconds from first token to completion.
+  // Measured from when streaming begins until on_chat_model_end event.
+  // Zero until message generation completes.
+  int32 generation_duration_ms = 8;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Per-Message Usage & Cost (Usage Metrics Enrichment)
+  //
+  // Enriched token and cost data for the LLM call that generated this message.
+  // Only meaningful for type == MESSAGE_AI.
+  // Enables per-message cost display: "This response cost $0.02"
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Input tokens consumed by the LLM call that generated this message.
+  // Only meaningful for type == MESSAGE_AI. Zero for other message types.
+  int32 input_tokens = 9;
+
+  // Output tokens generated for this message.
+  // Only meaningful for type == MESSAGE_AI. Zero for other message types.
+  int32 output_tokens = 10;
+
+  // Cache read tokens for the LLM call that generated this message.
+  // Non-zero indicates the prompt hit the provider cache, reducing cost.
+  // Only meaningful for type == MESSAGE_AI.
+  int32 cache_read_tokens = 11;
+
+  // Estimated cost in USD for this message's LLM call.
+  // Only meaningful for type == MESSAGE_AI. Zero for other message types.
+  double estimated_cost_usd = 12;
+
+  // Model that generated this message.
+  // Only meaningful for type == MESSAGE_AI.
+  // Useful when model routing is active and different messages may come
+  // from different models within the same execution.
+  // Example: "claude-sonnet-4-20250514"
+  string model = 13;
+}
+
+// Represents a tool call made by the agent during execution.
+message ToolCall {
+  // Unique identifier for this tool call.
+  string id = 1;
+
+  // Name of the tool being called.
+  string name = 2;
+
+  // Arguments passed to the tool (JSON structure).
+  google.protobuf.Struct args = 3;
+
+  // Result returned by the tool (optional, populated after execution).
+  string result = 4;
+
+  // Status of the tool call execution.
+  ToolCallStatus status = 5 [(buf.validate.field).enum.defined_only = true];
+
+  // Optional metadata to guide frontend UI component rendering.
+  // Set by Python worker based on tool name or explicitly by agents.
+  // Example: kubectl_get_pods → component_type="terminal"
+  ComponentMetadata component_metadata = 6;
+
+  // ISO 8601 timestamp when the tool call started.
+  string started_at = 7;
+
+  // ISO 8601 timestamp when the tool call completed or failed.
+  string completed_at = 8;
+
+  // Error message if status == TOOL_CALL_FAILED.
+  string error = 9;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Approval Fields (HITL Phase 1)
+  //
+  // These fields track the approval state for tools that require user consent
+  // before execution. Populated only for tools where approval is configured.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // True if this tool requires approval before execution.
+  // Determined at runtime by merging:
+  //   1. McpServer.default_tool_approvals (platform/org defaults)
+  //   2. McpServerUsage.tool_approval_overrides (agent-specific)
+  //   3. AgentExecutionSpec.auto_approve_all (runtime bypass)
+  //
+  // When true and status == TOOL_CALL_WAITING_APPROVAL, the tool is paused
+  // awaiting user decision via SubmitApproval RPC.
+  bool requires_approval = 10;
+
+  // Human-readable message explaining what approval is being requested.
+  // Populated from ToolApprovalPolicy.message with argument placeholders resolved.
+  //
+  // Examples:
+  //   - "Delete repository: my-important-repo"
+  //   - "Force push to branch: main"
+  //   - "Send email to: customer@example.com"
+  //
+  // If no custom message configured, defaults to: "Execute tool: {tool_name}"
+  string approval_message = 11;
+
+  // ISO 8601 timestamp when approval was requested.
+  // Set when status transitions to TOOL_CALL_WAITING_APPROVAL.
+  // Used for tracking approval latency and potential timeout logic.
+  // Example: "2026-01-30T15:30:00Z"
+  string approval_requested_at = 12;
+
+  // ISO 8601 timestamp when approval decision was made.
+  // Set when user submits APPROVE, SKIP, or REJECT via SubmitApproval.
+  // Example: "2026-01-30T15:32:15Z"
+  string approval_decided_at = 13;
+
+  // User ID of who made the approval decision.
+  // Extracted from authentication context when SubmitApproval is called.
+  // Important for audit trails and accountability.
+  // Example: "usr_abc123xyz"
+  string approved_by = 14;
+
+  // The action taken by the user.
+  // Only populated after approval decision is made (approval_decided_at is set).
+  // Determines how the tool execution proceeds:
+  //   - APPROVE: Tool executes normally
+  //   - SKIP: Tool returns skip message, execution continues
+  //   - REJECT: Execution fails with rejection error
+  ApprovalAction approval_action = 15;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Streaming State Fields
+  //
+  // These fields track tool output generation progress.
+  // Mirrors AgentMessage.is_streaming for consistency.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // True while the tool is actively producing output, false when complete.
+  // Mirrors AgentMessage.is_streaming for consistency.
+  // Enables UI to show live output during long-running tool executions.
+  //
+  // When true, `result` contains partial output accumulated so far.
+  // When false (default), `result` contains the final complete output.
+  // Consumers always read `result` — this flag only signals whether
+  // more content is expected.
+  bool is_streaming = 16;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // MCP Server Origin
+  //
+  // Identifies the MCP server that provides this tool. Empty for built-in
+  // sandbox tools (read, write, shell, etc.). Populated by the worker when
+  // the tool originates from an MCP server configured in the agent's
+  // execution context.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Slug of the MCP server that provides this tool.
+  // Empty for built-in sandbox tools.
+  // Populated by the worker using the mcp_tools_config reverse lookup.
+  //
+  // Examples: "planton-cloud", "github", "slack"
+  //
+  // Used by CLI/UI to render a qualified tool name (e.g., "planton-cloud/search")
+  // so users can distinguish tools with the same name from different servers.
+  string mcp_server_slug = 17;
+}
+
+// Metadata to guide frontend UI component rendering for tool calls.
+// All fields are optional - if not set, frontend uses default rendering logic.
+message ComponentMetadata {
+  // Type of UI component to render for this tool call.
+  // Examples: "terminal", "preview", "form", "approval", "diagram", "progress"
+  // Frontend maps these to React Flow node types (TerminalNode, PreviewNode, etc.).
+  string component_type = 1;
+
+  // Optional group identifier for related tool calls.
+  // Tool calls with the same group_id can be aggregated into a single UI component.
+  // Example: Multiple kubectl commands in a deployment workflow.
+  string component_group = 2;
+
+  // Optional layout hint for canvas positioning.
+  // Examples: "inline", "full-width", "sidebar", "floating"
+  string layout_hint = 3;
+
+  // Flexible metadata for component-specific configuration.
+  // Frontend components can read this for custom behavior.
+  // Example: {"syntax": "yaml", "readonly": true} for file preview
+  google.protobuf.Struct metadata = 4;
+}

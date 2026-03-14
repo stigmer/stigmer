@@ -6,6 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/agent"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/apikey"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpserver"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/project"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/skill"
@@ -229,6 +230,54 @@ func deleteSkill(dctx *deleteContext) error {
 		Field("ID", result.Skill.Metadata.Id).
 		Field("Name", result.Skill.Metadata.Name).
 		Field("Slug", result.Skill.Metadata.Slug)
+	dctx.renderer.Render(out)
+	return nil
+}
+
+func deleteApiKey(dctx *deleteContext) error {
+	keyRes, err := apikey.GetFromBackend(dctx.conn, dctx.ref)
+	if err != nil {
+		return err
+	}
+
+	if !dctx.force {
+		warn := clioutput.Warning("You are about to delete the following API key:")
+		sec := warn.AddSection("")
+		sec.Field("ID", keyRes.GetMetadata().GetId())
+		if keyRes.GetMetadata().GetName() != "" {
+			sec.Field("Name", keyRes.GetMetadata().GetName())
+		}
+		if keyRes.GetSpec().GetFingerprint() != "" {
+			sec.Field("Fingerprint", "***"+keyRes.GetSpec().GetFingerprint())
+		}
+		warn.Hint("This will permanently revoke the API key.")
+		warn.Hint("This action cannot be undone.")
+		dctx.renderer.Render(warn)
+
+		confirmed, err := dctx.confirmer.Confirm("Proceed with deletion? [y/N]")
+		if err != nil {
+			return errors.Wrap(err, "failed to read confirmation")
+		}
+		if !confirmed {
+			fmt.Fprintln(os.Stderr, "Aborted.")
+			return nil
+		}
+	}
+
+	result, err := apikey.Delete(&apikey.DeleteOptions{
+		ApiKeyID: keyRes.GetMetadata().GetId(),
+		Conn:     dctx.conn,
+	})
+	if err != nil {
+		return err
+	}
+
+	out := clioutput.Success("API key deleted successfully")
+	sec := out.AddSection("Deleted API Key")
+	sec.Field("ID", result.ApiKey.GetMetadata().GetId())
+	if result.ApiKey.GetMetadata().GetName() != "" {
+		sec.Field("Name", result.ApiKey.GetMetadata().GetName())
+	}
 	dctx.renderer.Render(out)
 	return nil
 }

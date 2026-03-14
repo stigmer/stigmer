@@ -32,12 +32,17 @@ Run locally or scale to production with Stigmer Cloud.`,
 		} else {
 			zerolog.SetGlobalLevel(zerolog.Disabled)
 		}
+
+		if apiKey, _ := cmd.Flags().GetString("api-key"); apiKey != "" {
+			os.Setenv("STIGMER_API_KEY", apiKey)
+		}
 	},
 }
 
 func init() {
 	rootCmd.PersistentFlags().BoolVarP(&debugMode, "debug", "d", false, "enable debug mode with detailed logs")
 	rootCmd.PersistentFlags().String("org", "", "organization slug (overrides context)")
+	rootCmd.PersistentFlags().String("api-key", "", "API key for cloud authentication (overrides stored token)")
 
 	rootCmd.AddGroup(
 		&cobra.Group{ID: "core", Title: "Core Commands:"},
@@ -50,6 +55,7 @@ func init() {
 	// Core Commands
 	rootCmd.AddCommand(withGroup(root.NewRunCommand(), "core"))
 	rootCmd.AddCommand(withGroup(root.NewResumeCommand(), "core"))
+	rootCmd.AddCommand(withGroup(root.NewUsageCommand(), "core"))
 
 	// Resource Management
 	rootCmd.AddCommand(withGroup(root.NewApplyCommand(), "resource"))
@@ -70,6 +76,8 @@ func init() {
 	rootCmd.AddCommand(withGroup(root.NewMCPServerCommand(), "server"))
 
 	// Configuration
+	rootCmd.AddCommand(withGroup(root.NewAuthCommand(), "config"))
+	rootCmd.AddCommand(withGroup(root.NewApiKeyCommand(), "config"))
 	rootCmd.AddCommand(withGroup(root.NewConfigCommand(), "config"))
 	rootCmd.AddCommand(withGroup(root.NewCompletionCommand(), "config"))
 	rootCmd.AddCommand(withGroup(root.NewVersionCommand(), "config"))

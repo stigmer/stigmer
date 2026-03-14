@@ -62,6 +62,13 @@ class SummarizationSource(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     SUMMARIZATION_SOURCE_UNSPECIFIED: _ClassVar[SummarizationSource]
     graph_start: _ClassVar[SummarizationSource]
     mid_execution: _ClassVar[SummarizationSource]
+
+class ApprovalAction(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    APPROVAL_ACTION_UNSPECIFIED: _ClassVar[ApprovalAction]
+    APPROVAL_ACTION_APPROVE: _ClassVar[ApprovalAction]
+    APPROVAL_ACTION_SKIP: _ClassVar[ApprovalAction]
+    APPROVAL_ACTION_REJECT: _ClassVar[ApprovalAction]
 EXECUTION_PHASE_UNSPECIFIED: ExecutionPhase
 EXECUTION_PENDING: ExecutionPhase
 EXECUTION_IN_PROGRESS: ExecutionPhase
@@ -100,3 +107,7 @@ EXECUTION_ARTIFACT_KIND_DIRECTORY: ExecutionArtifactKind
 SUMMARIZATION_SOURCE_UNSPECIFIED: SummarizationSource
 graph_start: SummarizationSource
 mid_execution: SummarizationSource
+APPROVAL_ACTION_UNSPECIFIED: ApprovalAction
+APPROVAL_ACTION_APPROVE: ApprovalAction
+APPROVAL_ACTION_SKIP: ApprovalAction
+APPROVAL_ACTION_REJECT: ApprovalAction

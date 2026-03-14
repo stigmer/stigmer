@@ -185,9 +185,9 @@ class TestSummarizationTrigger:
         """Integration test: token counting + threshold check."""
         config = SummarizationConfig.for_model("gpt-4")  # 7K threshold
         
-        # Create conversation that's definitely over 7K tokens
-        # ~4 chars per token, so 28K chars = ~7K tokens
-        long_content = "x" * 28000
+        # Varied content to prevent tiktoken merging repeated chars.
+        # Each 5-word segment is ~5 tokens, 2000 segments = ~10K tokens.
+        long_content = " ".join(f"word{i} is test data here" for i in range(2000))
         messages = [HumanMessage(content=long_content)]
         
         token_count = TokenCounter.count_messages(
@@ -392,8 +392,10 @@ class TestFullPipelineMocked:
             HumanMessage(content="Recent message", id="human_2"),
         ]
         
-        with patch(
-            'graphton.core.summarization_middleware.summarize_messages',
+        with patch.object(
+            middleware, '_create_summarization_model', return_value=MagicMock(),
+        ), patch(
+            'langmem.short_term.summarize_messages',
             return_value=mock_result,
         ):
             result = await middleware.abefore_agent(state, {})
@@ -431,8 +433,10 @@ class TestFullPipelineMocked:
             SystemMessage(content="First summary", id="summary_1"),
         ]
         
-        with patch(
-            'graphton.core.summarization_middleware.summarize_messages',
+        with patch.object(
+            middleware1, '_create_summarization_model', return_value=MagicMock(),
+        ), patch(
+            'langmem.short_term.summarize_messages',
             return_value=mock_result1,
         ):
             await middleware1.abefore_agent(state1, {})
@@ -453,10 +457,10 @@ class TestFullPipelineMocked:
             'graphton.core.summarization_middleware.deserialize_running_summary',
             return_value=MagicMock(summary="First summary"),
         ) as mock_deserialize:
-            # Won't trigger summarization but will load state
-            # (need to mock to prevent actual summarization)
-            with patch(
-                'graphton.core.summarization_middleware.summarize_messages',
+            with patch.object(
+                middleware2, '_create_summarization_model', return_value=MagicMock(),
+            ), patch(
+                'langmem.short_term.summarize_messages',
                 return_value=mock_result1,
             ):
                 await middleware2.abefore_agent(state2, {})
@@ -544,8 +548,10 @@ class TestCallbackIntegration:
             SystemMessage(content="Summary", id="summary_1"),
         ]
         
-        with patch(
-            'graphton.core.summarization_middleware.summarize_messages',
+        with patch.object(
+            middleware, '_create_summarization_model', return_value=MagicMock(),
+        ), patch(
+            'langmem.short_term.summarize_messages',
             return_value=mock_result,
         ):
             await middleware.abefore_agent(state, {})
@@ -594,8 +600,10 @@ class TestCallbackIntegration:
             SystemMessage(content="Summary", id="summary_1"),
         ]
         
-        with patch(
-            'graphton.core.summarization_middleware.summarize_messages',
+        with patch.object(
+            middleware, '_create_summarization_model', return_value=MagicMock(),
+        ), patch(
+            'langmem.short_term.summarize_messages',
             return_value=mock_result,
         ):
             # Should not raise, even though callback fails

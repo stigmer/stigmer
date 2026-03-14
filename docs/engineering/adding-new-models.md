@@ -145,8 +145,10 @@ Whether the model can process images.
 | `display_name` | str | model_id | Human-readable name for UI |
 | `max_output_tokens` | int | 4096 | Maximum tokens in single response |
 | `max_summary_tokens` | int | 2000 | Maximum tokens for summaries |
-| `input_cost_per_1k` | float | None | USD per 1,000 input tokens |
-| `output_cost_per_1k` | float | None | USD per 1,000 output tokens |
+| `input_price_per_million` | float | None | USD per 1,000,000 input tokens |
+| `output_price_per_million` | float | None | USD per 1,000,000 output tokens |
+| `cache_creation_price_per_million` | float | None | USD per 1,000,000 cache-write tokens (see Cache Pricing Reference) |
+| `cache_read_price_per_million` | float | None | USD per 1,000,000 cache-read tokens (see Cache Pricing Reference) |
 | `supports_streaming` | bool | True | Whether streaming is supported |
 
 ## Step-by-Step Guide
@@ -184,8 +186,10 @@ Open `backend/libs/python/graphton/src/graphton/core/model_registry.py` and add 
     max_summary_tokens=2000,
     token_counter_method=TokenCounterMethod.ANTHROPIC_NATIVE,
     cost_tier=CostTier.PREMIUM,
-    input_cost_per_1k=20.0,  # Update with actual pricing
-    output_cost_per_1k=100.0,
+    input_price_per_million=20.0,   # Update with actual pricing
+    output_price_per_million=100.0,
+    cache_creation_price_per_million=25.0,   # Anthropic: 1.25x input
+    cache_read_price_per_million=2.0,        # Anthropic: 0.1x input
     supports_vision=True,
 ),
 ```
@@ -256,8 +260,10 @@ When submitting a PR to add a new model, include the following:
 - [ ] Manual verification with real API (if applicable)
 
 ### Optional Fields (if known)
-- [ ] `input_cost_per_1k` documented
-- [ ] `output_cost_per_1k` documented
+- [ ] `input_price_per_million` documented
+- [ ] `output_price_per_million` documented
+- [ ] `cache_creation_price_per_million` documented (see Cache Pricing Reference)
+- [ ] `cache_read_price_per_million` documented (see Cache Pricing Reference)
 - [ ] `max_output_tokens` verified
 ```
 
@@ -268,6 +274,8 @@ When submitting a PR to add a new model, include the following:
 3. **Incorrect threshold ratio**: Not using 90%/80% for trigger/target
 4. **Wrong cost tier**: Marking economy models as standard/premium
 5. **Forgetting vision support**: Many new models support vision
+6. **Wrong pricing unit**: Pricing fields are per **million** tokens, not per thousand. Example: Claude Sonnet input = `3.0` means $3.00/MTok
+7. **Missing cache pricing**: Paid models should include `cache_creation_price_per_million` and `cache_read_price_per_million` (see Cache Pricing Reference)
 
 ## Supported Models Reference
 
@@ -289,6 +297,34 @@ When submitting a PR to add a new model, include the following:
 | | llama3.2:3b | 128K | Economy |
 
 See `model_registry.py` for the complete list.
+
+## Cache Pricing Reference
+
+Cache pricing fields enable accurate cost calculation when provider prompt caching is active.
+All pricing values are in **USD per 1,000,000 tokens** (same unit as `input_price_per_million`).
+
+### Anthropic (5-minute ephemeral TTL)
+
+| Field | Multiplier | Example (Sonnet @ $3/MTok input) |
+|-------|-----------|----------------------------------|
+| `cache_creation_price_per_million` | 1.25x input | $3.75 |
+| `cache_read_price_per_million` | 0.1x input | $0.30 |
+
+Anthropic also offers a 1-hour cache TTL at 2.0x input, but the registry stores 5-minute
+ephemeral pricing since that is the default `cache_control: {"type": "ephemeral"}` mode.
+
+### OpenAI (automatic caching)
+
+| Field | Multiplier | Example (GPT-4o @ $5/MTok input) |
+|-------|-----------|----------------------------------|
+| `cache_creation_price_per_million` | 1.0x input (no write premium) | $5.00 |
+| `cache_read_price_per_million` | 0.5x input | $2.50 |
+
+OpenAI caching is automatic for prompts >= 1024 tokens. No client-side opt-in needed.
+
+### Ollama / Local Models
+
+Set both cache fields to `None`. Local models have no provider caching or cost.
 
 ## Questions?
 

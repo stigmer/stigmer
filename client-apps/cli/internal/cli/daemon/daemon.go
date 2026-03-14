@@ -45,6 +45,8 @@ const (
 
 	seedpackBootstrapFlagFile = ".seedpack-bootstrapped"
 	seedpackSkipEnvVar        = "STIGMER_SKIP_SEEDPACK_BOOTSTRAP"
+	seedpackOrgEnvVar         = "STIGMER_SEEDPACK_ORG"
+	seedpackOrgDefault        = "stigmer"
 )
 
 // StartOptions provides options for starting the daemon.
@@ -606,7 +608,15 @@ func EnsureSeedpackBootstrapped(dataDir string) error {
 	// Phase 2: Apply the project (agents, skills, MCP servers).
 	// Organization YAMLs are skipped by the declarative apply flow, so this
 	// is safe even though the organizations/ directory still exists in tmpDir.
-	cmd := exec.Command(cliBin, "apply", "--config", tmpDir)
+	//
+	// The --org flag overrides stigmer.yaml's metadata.org, allowing the
+	// seedpack org to be controlled externally via STIGMER_SEEDPACK_ORG
+	// without modifying the embedded YAML.
+	seedpackOrg := os.Getenv(seedpackOrgEnvVar)
+	if seedpackOrg == "" {
+		seedpackOrg = seedpackOrgDefault
+	}
+	cmd := exec.Command(cliBin, "apply", "--config", tmpDir, "--org", seedpackOrg)
 	cmd.Env = bootstrapEnv
 	var buf bytes.Buffer
 	if verbose {

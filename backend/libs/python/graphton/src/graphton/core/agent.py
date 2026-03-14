@@ -17,11 +17,13 @@ from langchain_core.tools import BaseTool
 from langgraph.graph.state import CompiledStateGraph
 from pydantic import ValidationError
 
+from graphton.core.cost_cap import CostCapMiddleware
 from graphton.core.execution_budget import ExecutionBudgetMiddleware
 from graphton.core.loop_detection import LoopDetectionMiddleware
 from graphton.core.models import parse_model_string
 from graphton.core.prompt_enhancement import enhance_user_instructions
 from graphton.core.think_tool import create_think_tool
+from graphton.core.tool_truncation import ToolTruncationMiddleware
 
 if TYPE_CHECKING:
     from langgraph.checkpoint.base import BaseCheckpointSaver
@@ -62,6 +64,12 @@ def create_deep_agent(
     summarization_config: "SummarizationConfig | None" = None,
     # Callback for summarization events (Phase 3)
     summarization_callback: "SummarizationCallback | None" = None,
+    # Tool result truncation (Phase 3B)
+    max_tool_result_chars: int = 0,
+    tool_truncation_callback: "Callable[[str, int], None] | None" = None,
+    # Cost cap (Phase 3B)
+    max_cost_usd: float = 0.0,
+    cost_pricing: "dict[str, float] | None" = None,
     **model_kwargs: Any,  # noqa: ANN401
 ) -> CompiledStateGraph:
     """Create a Deep Agent with minimal boilerplate.
@@ -177,6 +185,20 @@ def create_deep_agent(
             - on_summarization_complete(event: SummarizationEventData) -> None
             - on_token_count_updated(token_count: int) -> None
             Used for observability integration (e.g., StatusBuilder in agent-runner).
+        max_tool_result_chars: Maximum characters per tool result before
+            truncation.  0 (default) uses the platform default (30 000 chars
+            ≈ 7 500 tokens).  Always active — protects against context blowup
+            from uncapped MCP tools and large shell output.
+        tool_truncation_callback: Optional callback invoked on each truncation.
+            Receives ``(tool_name: str, chars_truncated: int)``.  Used by
+            agent-runner to accumulate ``UsageMetrics.tool_result_chars_truncated``.
+        max_cost_usd: Maximum estimated cost in USD for this execution.
+            0.0 (default) means no cost cap.  When set, a warning is injected
+            at 80 % of the budget and tools are blocked at 100 %.
+        cost_pricing: Pricing rates for cost cap estimation.  Required when
+            ``max_cost_usd > 0``.  Dict with keys: ``input_price_per_million``,
+            ``output_price_per_million``, and optionally
+            ``cache_read_price_per_million``.
         **model_kwargs: Additional model-specific parameters to pass to the model
             constructor (e.g., top_p, top_k for Anthropic).
     
@@ -403,6 +425,50 @@ def create_deep_agent(
         )
         middleware_list.append(execution_budget)
     
+    # Auto-inject tool truncation middleware (Phase 3B).
+    # Always active — enforces a per-tool-result character ceiling to prevent
+    # context blowup.  max_tool_result_chars=0 means "use platform default
+    # (30K)", not "disable".
+    from graphton.core.tool_truncation import _DEFAULT_MAX_CHARS as _DEFAULT_TRUNCATION
+    effective_max_chars = max_tool_result_chars if max_tool_result_chars > 0 else _DEFAULT_TRUNCATION
+    tool_truncation = ToolTruncationMiddleware(
+        max_chars=effective_max_chars,
+        on_truncation=tool_truncation_callback,
+    )
+    middleware_list.append(tool_truncation)
+    logger.info(
+        "Tool truncation middleware enabled: max_chars=%d%s",
+        effective_max_chars,
+        " (platform default)" if max_tool_result_chars == 0 else "",
+    )
+
+    # Auto-inject cost cap middleware when max_cost_usd is configured (Phase 3B).
+    # Only injected when a positive cost cap is set.  Warns at 80% of the
+    # budget, blocks tools at 100%, and gives the model one final round to
+    # summarise before the graph terminates naturally.
+    if max_cost_usd > 0.0:
+        if not cost_pricing:
+            logger.warning(
+                "max_cost_usd=$%.2f set but no cost_pricing provided — "
+                "cost cap middleware will NOT be injected. "
+                "Provide cost_pricing with input/output rates.",
+                max_cost_usd,
+            )
+        else:
+            cost_cap = CostCapMiddleware(
+                max_cost_usd=max_cost_usd,
+                input_price_per_million=cost_pricing["input_price_per_million"],
+                output_price_per_million=cost_pricing["output_price_per_million"],
+                cache_read_price_per_million=cost_pricing.get(
+                    "cache_read_price_per_million", 0.0,
+                ),
+            )
+            middleware_list.append(cost_cap)
+            logger.info(
+                "Cost cap middleware enabled: max_cost=$%.2f",
+                max_cost_usd,
+            )
+
     # Auto-inject summarization middleware if configured
     # This manages context window size by summarizing conversation history
     # when token count exceeds the model's threshold.
@@ -453,6 +519,36 @@ def create_deep_agent(
                 sa_desc = sa.get("description", f"Sub-agent: {sa_name}")
                 sa_prompt = sa.get("system_prompt", "")
                 sa_middleware = list(sa.get("middleware", []))
+
+                # Resolve per-sub-agent model override.  When the sub-agent
+                # dict carries a "model" key (set by subagent_transformer
+                # from SubAgent.model_override), use it instead of the
+                # parent's model.  Strings are resolved through
+                # parse_model_string() which applies ModelRegistry
+                # resolution, provider inference, and Anthropic thinking
+                # configuration — the same path as the parent model.
+                sa_model_spec = sa.get("model")
+                if sa_model_spec is not None:
+                    if isinstance(sa_model_spec, str):
+                        sa_model = parse_model_string(
+                            model=sa_model_spec,
+                            max_tokens=max_tokens,
+                            temperature=temperature,
+                        )
+                        logger.info(
+                            "Sub-agent '%s' using model override: %s",
+                            sa_name,
+                            sa_model_spec,
+                        )
+                    else:
+                        sa_model = sa_model_spec
+                        logger.info(
+                            "Sub-agent '%s' using pre-built model instance: %s",
+                            sa_name,
+                            type(sa_model_spec).__name__,
+                        )
+                else:
+                    sa_model = model_instance
                 
                 if summarization_config is not None and summarization_config.enabled:
                     from graphton.core.summarization_middleware import (
@@ -471,7 +567,7 @@ def create_deep_agent(
                     )
                 
                 compiled_sa = compile_subagent_with_proxy(
-                    model=model_instance,
+                    model=sa_model,
                     tools=sa_tools,
                     system_prompt=sa_prompt,
                     name=sa_name,
@@ -701,6 +797,45 @@ def create_deep_agent(
             "Skipping think tool injection — model has native extended thinking"
         )
 
+    # ── Tool count observability ────────────────────────────────────────
+    # Model tool-selection accuracy degrades with many tools (research
+    # shows notable decline above ~20-25).  Log a warning when the
+    # count is high so operators can tune MCP enabled_tools lists.
+    tool_count_warning_threshold = 25
+    tool_desc_max_chars = 500
+
+    total_tool_count = len(tools_list)
+    if total_tool_count > tool_count_warning_threshold:
+        logger.warning(
+            "[TOOL-COUNT] %d tools bound (threshold=%d). "
+            "High tool counts degrade model selection accuracy. "
+            "Consider reducing MCP enabled_tools.",
+            total_tool_count,
+            tool_count_warning_threshold,
+        )
+    logger.info(
+        "[TOOL-COUNT] total=%d (threshold=%d)",
+        total_tool_count,
+        tool_count_warning_threshold,
+    )
+
+    # Cap overly verbose MCP tool descriptions so they don't bloat
+    # the tool-calling payload.  The description remains useful for
+    # the model but stops consuming excessive tokens.
+    truncated_count = 0
+    for tool in tools_list:
+        desc = getattr(tool, "description", None)
+        if desc and len(desc) > tool_desc_max_chars:
+            tool.description = desc[:tool_desc_max_chars] + "..."  # type: ignore[union-attr]
+            truncated_count += 1
+    if truncated_count:
+        logger.info(
+            "[TOOL-COUNT] Truncated descriptions on %d tool(s) "
+            "exceeding %d chars",
+            truncated_count,
+            tool_desc_max_chars,
+        )
+
     # Create the Deep Agent using deepagents library.
     #
     # deepagents 0.4.x internally creates SubAgentMiddleware (with a
@@ -735,8 +870,8 @@ def create_deep_agent(
     # LangGraph's merge_configs strips values equal to
     # DEFAULT_RECURSION_LIMIT (10,000), so we avoid that exact value.
     # 10,000,000 is not equal to 10,000 and will be preserved.
-    _UNLIMITED = 10_000_000
-    effective_limit = recursion_limit if recursion_limit is not None else _UNLIMITED
+    unlimited = 10_000_000
+    effective_limit = recursion_limit if recursion_limit is not None else unlimited
     configured_agent = agent.with_config({"recursion_limit": effective_limit})
     logger.info(
         "Graphton agent configured: recursion_limit=%d%s",

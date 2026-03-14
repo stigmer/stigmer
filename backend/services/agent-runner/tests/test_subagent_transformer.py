@@ -38,6 +38,7 @@ def mock_sub_agent():
     sub_agent.instructions = "You are a code review expert. Focus on security issues."
     sub_agent.mcp_access = []
     sub_agent.skill_refs = []
+    sub_agent.model_override = ""
     return sub_agent
 
 
@@ -55,6 +56,7 @@ def mock_sub_agent_with_mcp():
     mcp_access.enabled_tools = ["search_code", "get_file"]
     sub_agent.mcp_access = [mcp_access]
     sub_agent.skill_refs = []
+    sub_agent.model_override = ""
     
     return sub_agent
 
@@ -67,6 +69,7 @@ def mock_sub_agent_with_skills():
     sub_agent.description = "Agent with specialized skills"
     sub_agent.instructions = "You have special capabilities defined by your skills."
     sub_agent.mcp_access = []
+    sub_agent.model_override = ""
     
     # Skill reference
     skill_ref = MagicMock()
@@ -468,6 +471,7 @@ class TestTransformSubAgents:
         sub_agent2.instructions = "You are a research expert."
         sub_agent2.mcp_access = []
         sub_agent2.skill_refs = []
+        sub_agent2.model_override = ""
         
         result = await transform_sub_agents(
             sub_agents=[mock_sub_agent, sub_agent2],
@@ -648,6 +652,7 @@ class TestEdgeCases:
         sub_agent.instructions = "Short instructions here."
         sub_agent.mcp_access = []
         sub_agent.skill_refs = []
+        sub_agent.model_override = ""
         
         result = await transform_sub_agents(
             sub_agents=[sub_agent],
@@ -680,6 +685,7 @@ class TestEdgeCases:
         sub_agent.description = "Test"
         sub_agent.instructions = "Test instructions here."
         sub_agent.skill_refs = []
+        sub_agent.model_override = ""
         
         mcp_access = MagicMock()
         mcp_access.mcp_server = ""  # Empty slug
@@ -701,3 +707,159 @@ class TestEdgeCases:
         assert len(result) == 1
         # Should have no tools since MCP access was invalid
         assert "tools" not in result[0] or len(result[0].get("tools", [])) == 0
+
+
+# =============================================================================
+# Tests for model_override (Phase 7)
+# =============================================================================
+
+
+class TestModelOverride:
+    """Tests for SubAgent.model_override wiring in the transformer."""
+
+    def _make_sub_agent(self, *, model_override: str = "") -> MagicMock:
+        """Helper to create a minimal mock SubAgent with model_override."""
+        sa = MagicMock()
+        sa.name = "fast-searcher"
+        sa.description = "Cheap search sub-agent"
+        sa.instructions = "You are a fast search assistant."
+        sa.mcp_access = []
+        sa.skill_refs = []
+        sa.model_override = model_override
+        return sa
+
+    @pytest.mark.asyncio
+    @patch("graphton.core.model_registry.ModelRegistry")
+    async def test_valid_model_override_adds_model_key(
+        self, mock_registry, mock_skill_client, mock_skill_writer_class
+    ):
+        """Valid model_override is validated and added to the dict."""
+        mock_registry.is_registered.return_value = True
+
+        sa = self._make_sub_agent(model_override="claude-haiku-4.5")
+
+        result = await transform_sub_agents(
+            sub_agents=[sa],
+            parent_mcp_servers={},
+            parent_mcp_tools={},
+            parent_mcp_usages=[],
+            skill_client=mock_skill_client,
+            skill_writer_class=mock_skill_writer_class,
+            skill_writer_kwargs={"backend": MagicMock()},
+            activity_logger=logging.getLogger("test"),
+        )
+
+        assert result is not None
+        assert len(result) == 1
+        assert result[0]["model"] == "claude-haiku-4.5"
+        mock_registry.is_registered.assert_called_with("claude-haiku-4.5")
+
+    @pytest.mark.asyncio
+    async def test_empty_model_override_omits_model_key(
+        self, mock_skill_client, mock_skill_writer_class
+    ):
+        """Empty model_override means no 'model' key — inherits parent."""
+        sa = self._make_sub_agent(model_override="")
+
+        result = await transform_sub_agents(
+            sub_agents=[sa],
+            parent_mcp_servers={},
+            parent_mcp_tools={},
+            parent_mcp_usages=[],
+            skill_client=mock_skill_client,
+            skill_writer_class=mock_skill_writer_class,
+            skill_writer_kwargs={"backend": MagicMock()},
+            activity_logger=logging.getLogger("test"),
+        )
+
+        assert result is not None
+        assert len(result) == 1
+        assert "model" not in result[0]
+
+    @pytest.mark.asyncio
+    @patch("graphton.core.model_registry.ModelRegistry")
+    async def test_invalid_model_override_skips_subagent(
+        self, mock_registry, mock_skill_client, mock_skill_writer_class
+    ):
+        """Unrecognised model_override causes the sub-agent to be skipped."""
+        mock_registry.is_registered.return_value = False
+        mock_registry.get_by_api_model_id.return_value = None
+
+        sa = self._make_sub_agent(model_override="claude-snonet-4")
+
+        result = await transform_sub_agents(
+            sub_agents=[sa],
+            parent_mcp_servers={},
+            parent_mcp_tools={},
+            parent_mcp_usages=[],
+            skill_client=mock_skill_client,
+            skill_writer_class=mock_skill_writer_class,
+            skill_writer_kwargs={"backend": MagicMock()},
+            activity_logger=logging.getLogger("test"),
+        )
+
+        # Sub-agent was the only one and it was skipped -> None
+        assert result is None
+
+    @pytest.mark.asyncio
+    @patch("graphton.core.model_registry.ModelRegistry")
+    async def test_invalid_model_override_does_not_block_other_subagents(
+        self, mock_registry, mock_skill_client, mock_skill_writer_class
+    ):
+        """An invalid model_override on one sub-agent doesn't block others."""
+        # First call for the bad model: not registered, not an API ID.
+        # Second call for the good sub-agent: no model_override, so
+        # ModelRegistry is never consulted.
+        mock_registry.is_registered.return_value = False
+        mock_registry.get_by_api_model_id.return_value = None
+
+        bad_sa = self._make_sub_agent(model_override="nonexistent-model")
+        bad_sa.name = "bad-model-agent"
+
+        good_sa = self._make_sub_agent(model_override="")
+        good_sa.name = "good-agent"
+
+        result = await transform_sub_agents(
+            sub_agents=[bad_sa, good_sa],
+            parent_mcp_servers={},
+            parent_mcp_tools={},
+            parent_mcp_usages=[],
+            skill_client=mock_skill_client,
+            skill_writer_class=mock_skill_writer_class,
+            skill_writer_kwargs={"backend": MagicMock()},
+            activity_logger=logging.getLogger("test"),
+        )
+
+        assert result is not None
+        assert len(result) == 1
+        assert result[0]["name"] == "good-agent"
+        assert "model" not in result[0]
+
+    @pytest.mark.asyncio
+    @patch("graphton.core.model_registry.ModelRegistry")
+    async def test_model_override_validated_via_api_model_id_fallback(
+        self, mock_registry, mock_skill_client, mock_skill_writer_class
+    ):
+        """model_override is accepted when it matches an API model ID."""
+        mock_registry.is_registered.return_value = False
+        mock_metadata = MagicMock()
+        mock_registry.get_by_api_model_id.return_value = mock_metadata
+
+        sa = self._make_sub_agent(
+            model_override="claude-haiku-4-5-20251001"
+        )
+
+        result = await transform_sub_agents(
+            sub_agents=[sa],
+            parent_mcp_servers={},
+            parent_mcp_tools={},
+            parent_mcp_usages=[],
+            skill_client=mock_skill_client,
+            skill_writer_class=mock_skill_writer_class,
+            skill_writer_kwargs={"backend": MagicMock()},
+            activity_logger=logging.getLogger("test"),
+        )
+
+        assert result is not None
+        assert len(result) == 1
+        assert result[0]["model"] == "claude-haiku-4-5-20251001"

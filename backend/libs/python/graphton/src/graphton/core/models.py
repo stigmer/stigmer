@@ -52,6 +52,9 @@ OLLAMA_DEFAULTS = {
 }
 
 
+_CACHE_CONTROL_EPHEMERAL: dict[str, str] = {"type": "ephemeral"}
+
+
 class _EagerToolStreamingChatAnthropic(ChatAnthropic):  # type: ignore[override]
     """ChatAnthropic subclass that patches the API payload for features not yet
     exposed by langchain-anthropic (as of 1.3.3).
@@ -62,13 +65,20 @@ class _EagerToolStreamingChatAnthropic(ChatAnthropic):  # type: ignore[override]
            real-time.
         2. ``output_config.effort`` — controls how aggressively Claude spends
            tokens (required for adaptive thinking on Opus 4.6 / Sonnet 4.6).
+        3. Prompt caching — explicit ``cache_control`` breakpoints on the system
+           prompt and last tool definition cache the static prefix; a top-level
+           ``cache_control`` enables automatic conversation caching so the
+           growing message history is incrementally cached across turns.
+           Cache reads cost 0.1x; break-even at 2 calls.
 
     See:
         - https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/fine-grained-tool-streaming
         - https://docs.anthropic.com/en/docs/build-with-claude/effort
+        - https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching
     """
 
     _effort: str | None = PrivateAttr(default=None)
+    _prompt_caching: bool = PrivateAttr(default=True)
 
     def _get_request_payload(
         self,
@@ -83,7 +93,60 @@ class _EagerToolStreamingChatAnthropic(ChatAnthropic):  # type: ignore[override]
                 tool["eager_input_streaming"] = True
         if self._effort is not None:
             payload["output_config"] = {"effort": self._effort}
+        if self._prompt_caching:
+            _inject_cache_control(payload)
         return payload
+
+
+def _inject_cache_control(payload: dict) -> None:
+    """Add prompt-caching directives to an Anthropic API payload.
+
+    Three layers of caching, each independent:
+
+    Layer 1 — **system prompt** (explicit breakpoint): converts a string
+    system prompt to a content-block list and marks the last block.
+
+    Layer 2 — **tool definitions** (explicit breakpoint): marks the last
+    tool definition so the full tool schema prefix is cached.
+
+    Layer 3 — **conversation history** (automatic): sets ``cache_control``
+    via ``extra_body`` so Anthropic automatically caches the growing
+    message history and advances the breakpoint each turn.  Using
+    ``extra_body`` ensures compatibility with SDK versions that don't
+    expose ``cache_control`` as a first-class kwarg.
+
+    Layers 1 and 2 create stable, independent cache entries for content
+    that rarely changes within an execution.  Layer 3 handles the
+    dynamic conversation, where the prefix grows with each model call.
+
+    The function mutates *payload* in place.  It is idempotent — explicit
+    breakpoints are not overwritten, and the top-level key is set only
+    once.
+    """
+    # --- Layer 1: system prompt ---
+    system = payload.get("system")
+    if isinstance(system, str) and system:
+        payload["system"] = [
+            {"type": "text", "text": system, "cache_control": _CACHE_CONTROL_EPHEMERAL},
+        ]
+    elif isinstance(system, list) and system:
+        last_block = system[-1]
+        if isinstance(last_block, dict) and "cache_control" not in last_block:
+            last_block["cache_control"] = _CACHE_CONTROL_EPHEMERAL
+
+    # --- Layer 2: tool definitions ---
+    tools = payload.get("tools")
+    if isinstance(tools, list) and tools:
+        last_tool = tools[-1]
+        if isinstance(last_tool, dict) and "cache_control" not in last_tool:
+            last_tool["cache_control"] = _CACHE_CONTROL_EPHEMERAL
+
+    # --- Layer 3: automatic conversation caching ---
+    # Use extra_body so this works with anthropic SDK versions that don't yet
+    # expose cache_control as a first-class kwarg on messages.create().
+    extra = payload.setdefault("extra_body", {})
+    if isinstance(extra, dict) and "cache_control" not in extra:
+        extra["cache_control"] = _CACHE_CONTROL_EPHEMERAL
 
 
 def _infer_provider(model_name: str) -> str:

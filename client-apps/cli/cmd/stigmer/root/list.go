@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/apikey"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
@@ -195,6 +196,9 @@ func routeList(info *types.TypeInfo, orgID, format string, limit int32, conn *gr
 
 	case apiresourcekind.ApiResourceKind_skill:
 		return listSkills(orgID, format, limit, conn)
+
+	case apiresourcekind.ApiResourceKind_api_key:
+		return listApiKeys(format, conn)
 
 	default:
 		return fmt.Errorf("list not implemented for %s", info.DisplayName)
@@ -450,4 +454,16 @@ func parsePhaseFilter(status string) agentexecutionv1.ExecutionPhase {
 	default:
 		return agentexecutionv1.ExecutionPhase_EXECUTION_PHASE_UNSPECIFIED
 	}
+}
+
+// listApiKeys lists all API keys for the authenticated user.
+// API keys are not search-indexed, so this uses the dedicated FindAll RPC.
+func listApiKeys(format string, conn *grpc.ClientConn) error {
+	keys, err := apikey.ListFromBackend(conn)
+	if err != nil {
+		return errors.Wrap(err, "failed to list API keys")
+	}
+
+	apikey.DisplayListResult(keys, format)
+	return nil
 }

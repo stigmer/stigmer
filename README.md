@@ -14,7 +14,7 @@ brew install stigmer/tap/stigmer
 
 # Or from source
 git clone https://github.com/stigmer/stigmer.git
-cd stigmer && make release-local
+cd stigmer && make local
 
 # Or via shell script
 curl -fsSL https://raw.githubusercontent.com/stigmer/stigmer/main/scripts/install.sh | bash

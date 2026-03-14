@@ -8,13 +8,10 @@ import time
 import traceback
 from typing import Any, cast
 
-from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
-    AgentExecutionStatus,
-    AgentMessage,
-    ApprovalAction,
-    PendingApproval,
-)
+from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentExecutionStatus
+from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
+    ApprovalAction,
     ExecutionPhase,
     MessageType,
     SubAgentStatus,
@@ -24,6 +21,7 @@ from ai.stigmer.agentic.agentexecution.v1.io_pb2 import (
     ApprovalDecisionList,
     SubmitApprovalInput,
 )
+from ai.stigmer.agentic.agentexecution.v1.message_pb2 import AgentMessage
 from graphton import SummarizationConfig, create_deep_agent
 from graphton.core import ModelRegistry
 from graphton.core.backends.platform_mount import (
@@ -929,7 +927,7 @@ def _generate_git_diff_artifact(
     """
     from datetime import UTC, datetime, timedelta
 
-    from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ExecutionArtifact
+    from ai.stigmer.agentic.agentexecution.v1.artifact_pb2 import ExecutionArtifact
     from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionArtifactKind
 
     if provision_result.source_type != SourceType.GIT_REPO:
@@ -1411,6 +1409,29 @@ async def _execute_graphton_impl(
                 clamped_rounds, recursion_limit,
             )
         
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Extract Phase 3B config: tool truncation + cost cap (from ExecutionConfig).
+        #
+        # max_tool_result_chars: 0 = platform default (30K). Always active.
+        # max_cost_usd: 0.0 = no cap.  When > 0, requires pricing from ModelRegistry.
+        # ─────────────────────────────────────────────────────────────────────────────
+        max_tool_result_chars = 0
+        max_cost_usd = 0.0
+        if execution.spec.HasField("execution_config"):
+            max_tool_result_chars = execution.spec.execution_config.max_tool_result_chars
+            max_cost_usd = execution.spec.execution_config.max_cost_usd
+
+        if max_tool_result_chars > 0:
+            activity_logger.info(
+                "Tool result truncation from execution config: max_chars=%d",
+                max_tool_result_chars,
+            )
+        if max_cost_usd > 0.0:
+            activity_logger.info(
+                "Cost cap from execution config: max_cost_usd=$%.2f",
+                max_cost_usd,
+            )
+
         # Get sandbox configuration from worker config
         setup_timer.start("sandbox")
         sandbox_config = worker_config.get_sandbox_config(session_id=session_id)
@@ -2011,14 +2032,49 @@ async def _execute_graphton_impl(
                 # Server resolution failed
                 mcp_server_status[slug] = (False, "Server not found or resolution failed", 0)
         
-        # Extract skill names from fetched skill protos
-        skill_names = [s.metadata.name for s in skills] if skills else []
-        
+        # ── Skill relevance filtering ─────────────────────────────────────
+        # When the agent has many skills, low-relevance skills are excluded
+        # from the system prompt to improve signal quality.  Excluded skills
+        # remain on disk and a brief "also available" note is appended so
+        # the agent can still activate them if needed.
+        from worker.activities.graphton.skill_relevance import filter_skills
+
+        all_skill_names = [s.metadata.name for s in skills] if skills else []
+        excluded_skill_names: list[str] = []
+
+        if skills and len(skills) >= 8:
+            filter_result = filter_skills(
+                user_message=user_message,
+                skill_names=[s.metadata.name for s in skills],
+                skill_descriptions=[s.spec.description or "" for s in skills],
+            )
+            if filter_result.excluded_names:
+                included_skills = [skills[i] for i in filter_result.included_indices]
+                excluded_skill_names = filter_result.excluded_names
+                activity_logger.info(
+                    "Skill relevance filter: %d included, %d excluded %s",
+                    len(included_skills),
+                    len(excluded_skill_names),
+                    excluded_skill_names,
+                )
+                # Rebuild the prompt section with only included skills.
+                # Skill paths are already computed for ALL skills (included
+                # and excluded) so the agent can still read excluded skills.
+                skills_prompt_section = SkillWriter.generate_prompt_section(
+                    included_skills, skill_paths,
+                )
+                skills_prompt_section += SkillWriter.generate_also_available_section(
+                    excluded_skill_names,
+                )
+                # Update the name list to reflect what is in the prompt.
+                all_skill_names = [s.metadata.name for s in included_skills]
+
         # Set resolved context on status builder
         status_builder.set_resolved_context(
             environment_keys=list(merged_env_vars.keys()),
             mcp_servers=mcp_server_status,
-            skill_names=skill_names,
+            skill_names=all_skill_names,
+            excluded_skill_names=excluded_skill_names,
         )
         
         # ─────────────────────────────────────────────────────────────────────────────
@@ -2040,6 +2096,39 @@ async def _execute_graphton_impl(
             enabled=summarization_config.enabled,
         )
         
+        # ─────────────────────────────────────────────────────────────────────────────
+        # Step 5.9: Build cost pricing for cost cap middleware (Phase 3B)
+        #
+        # Extract pricing rates from ModelRegistry for the primary model.
+        # The cost cap middleware uses these for rough cost estimation.
+        # Only built when max_cost_usd > 0 (otherwise no cap middleware).
+        # ─────────────────────────────────────────────────────────────────────────────
+        cost_pricing: dict[str, float] | None = None
+        if max_cost_usd > 0.0:
+            cost_pricing = {
+                "input_price_per_million": model_metadata.input_price_per_million or 0.0,
+                "output_price_per_million": model_metadata.output_price_per_million or 0.0,
+                "cache_read_price_per_million": model_metadata.cache_read_price_per_million or 0.0,
+            }
+            activity_logger.info(
+                "Cost pricing for cap middleware: input=$%.2f/MTok, "
+                "output=$%.2f/MTok, cache_read=$%.2f/MTok",
+                cost_pricing["input_price_per_million"],
+                cost_pricing["output_price_per_million"],
+                cost_pricing["cache_read_price_per_million"],
+            )
+
+        # Build truncation callback to wire middleware → UsageTracker (Phase 3B).
+        # The callback is invoked each time the tool truncation middleware
+        # truncates a tool result, forwarding the character count to the
+        # usage tracker for accumulation in UsageMetrics.tool_result_chars_truncated.
+        from worker.activities.graphton.usage_tracker import MAIN_SCOPE
+
+        def _on_tool_truncation(tool_name: str, chars_truncated: int) -> None:
+            status_builder.usage_tracker.record_tool_truncation(
+                chars_truncated, MAIN_SCOPE,
+            )
+
         # Step 6: Create Graphton agent at runtime with EXISTING sandbox
         # Note: MCP servers are passed if configured, providing external tool access
         setup_timer.start("agent_creation")
@@ -2319,6 +2408,10 @@ async def _execute_graphton_impl(
             approval_checker=approval_checker,
             summarization_config=summarization_config,
             summarization_callback=status_builder,
+            max_tool_result_chars=max_tool_result_chars,
+            tool_truncation_callback=_on_tool_truncation,
+            max_cost_usd=max_cost_usd,
+            cost_pricing=cost_pricing,
             **llm_kwargs,
         )
         if recursion_limit is not None:
@@ -2354,9 +2447,9 @@ async def _execute_graphton_impl(
         # Additionally, LANGGRAPH_DEFAULT_RECURSION_LIMIT=10000000 is set in
         # the agent-runner environment (daemon_process.go) as a framework-wide
         # default that also covers subagent graphs.
-        _UNLIMITED_RECURSION = 10_000_000
+        unlimited_recursion = 10_000_000
         effective_recursion_limit = (
-            recursion_limit if recursion_limit is not None else _UNLIMITED_RECURSION
+            recursion_limit if recursion_limit is not None else unlimited_recursion
         )
         config = {
             "configurable": {
@@ -3640,6 +3733,11 @@ async def _execute_graphton_impl(
             status_builder.current_status.phase = ExecutionPhase.EXECUTION_COMPLETED
         
         final_phase_name = ExecutionPhase.Name(status_builder.current_status.phase)
+        
+        # Stamp completed_at and compute final usage metrics (duration, cost)
+        if not status_builder.current_status.completed_at:
+            status_builder.current_status.completed_at = _utc_timestamp()
+        status_builder.finalize_usage()
         
         # Send final status update via gRPC with retry.
         # This is critical for data persistence — use retry to handle transient failures.

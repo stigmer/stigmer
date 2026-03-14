@@ -598,6 +598,89 @@ func (SummarizationSource) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{6}
 }
 
+// ApprovalAction represents the user's decision on an approval request.
+//
+// ## Action Semantics
+//
+// - APPROVE: Execute the tool normally, continue execution
+// - SKIP: Return "skipped by user" message to LLM, continue execution
+// - REJECT: Fail the execution immediately with rejection error
+//
+// ## LLM Behavior on Skip
+//
+// When a tool is skipped, the LLM receives a message like:
+// "Tool 'delete_repository' was skipped by user. Please proceed without this operation."
+// This allows the LLM to adapt its plan while preserving execution continuity.
+//
+// ## Usage
+//
+// Used in:
+// - ToolCall.approval_action: Records the decision made
+// - SubmitApprovalInput.action: User's submitted decision
+type ApprovalAction int32
+
+const (
+	// Unspecified action (invalid, should never be used).
+	// SubmitApproval RPC rejects this value.
+	ApprovalAction_APPROVAL_ACTION_UNSPECIFIED ApprovalAction = 0
+	// Execute the tool normally.
+	// Tool transitions from WAITING_APPROVAL to RUNNING, then executes.
+	// Execution phase returns to IN_PROGRESS.
+	ApprovalAction_APPROVAL_ACTION_APPROVE ApprovalAction = 1
+	// Skip tool execution, continue without it.
+	// Tool transitions to SKIPPED status.
+	// LLM receives: "Tool '{name}' was skipped by user. Please proceed without this operation."
+	// Execution continues - this is NOT a failure.
+	ApprovalAction_APPROVAL_ACTION_SKIP ApprovalAction = 2
+	// Reject tool execution, fail the entire execution.
+	// Execution phase transitions to FAILED.
+	// Error message includes rejection reason from user's comment.
+	ApprovalAction_APPROVAL_ACTION_REJECT ApprovalAction = 3
+)
+
+// Enum value maps for ApprovalAction.
+var (
+	ApprovalAction_name = map[int32]string{
+		0: "APPROVAL_ACTION_UNSPECIFIED",
+		1: "APPROVAL_ACTION_APPROVE",
+		2: "APPROVAL_ACTION_SKIP",
+		3: "APPROVAL_ACTION_REJECT",
+	}
+	ApprovalAction_value = map[string]int32{
+		"APPROVAL_ACTION_UNSPECIFIED": 0,
+		"APPROVAL_ACTION_APPROVE":     1,
+		"APPROVAL_ACTION_SKIP":        2,
+		"APPROVAL_ACTION_REJECT":      3,
+	}
+)
+
+func (x ApprovalAction) Enum() *ApprovalAction {
+	p := new(ApprovalAction)
+	*p = x
+	return p
+}
+
+func (x ApprovalAction) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ApprovalAction) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[7].Descriptor()
+}
+
+func (ApprovalAction) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[7]
+}
+
+func (x ApprovalAction) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ApprovalAction.Descriptor instead.
+func (ApprovalAction) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{7}
+}
+
 var File_ai_stigmer_agentic_agentexecution_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
@@ -649,7 +732,12 @@ const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
 	"\x13SummarizationSource\x12$\n" +
 	" SUMMARIZATION_SOURCE_UNSPECIFIED\x10\x00\x12\x0f\n" +
 	"\vgraph_start\x10\x01\x12\x11\n" +
-	"\rmid_execution\x10\x02B\xca\x02\n" +
+	"\rmid_execution\x10\x02*\x84\x01\n" +
+	"\x0eApprovalAction\x12\x1f\n" +
+	"\x1bAPPROVAL_ACTION_UNSPECIFIED\x10\x00\x12\x1b\n" +
+	"\x17APPROVAL_ACTION_APPROVE\x10\x01\x12\x18\n" +
+	"\x14APPROVAL_ACTION_SKIP\x10\x02\x12\x1a\n" +
+	"\x16APPROVAL_ACTION_REJECT\x10\x03B\xca\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\tEnumProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
@@ -664,7 +752,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
+var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 8)
 var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_goTypes = []any{
 	(ExecutionPhase)(0),        // 0: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
 	(MessageType)(0),           // 1: ai.stigmer.agentic.agentexecution.v1.MessageType
@@ -673,6 +761,7 @@ var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_goTypes = []any{
 	(SubAgentStatus)(0),        // 4: ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
 	(ExecutionArtifactKind)(0), // 5: ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactKind
 	(SummarizationSource)(0),   // 6: ai.stigmer.agentic.agentexecution.v1.SummarizationSource
+	(ApprovalAction)(0),        // 7: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
 }
 var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -692,7 +781,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_enum_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc)),
-			NumEnums:      7,
+			NumEnums:      8,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

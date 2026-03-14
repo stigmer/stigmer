@@ -650,10 +650,10 @@ def _check_and_handle_approval(
         
     Returns:
         - None: No approval needed OR user approved - proceed with execution
-        - str: Skip message - return this instead of executing the tool
+        - str: Skip/reject message - return this instead of executing the tool.
+            Returned for skip, reject, and unknown actions.
         
     Raises:
-        ToolExecutionRejectedError: If user rejected the tool execution
         RuntimeError: If langgraph is not available for HITL support
         
     Example:
@@ -1050,12 +1050,20 @@ def _create_write_tool(
 
     @tool
     async def write(config: RunnableConfig, path: str, content: str) -> str:
-        """Write content to a file in the workspace.
-        
+        """Create a new file or overwrite an entire file in the workspace.
+
+        This replaces the ENTIRE file content. For targeted changes to an
+        existing file (changing specific lines or sections), prefer the
+        ``edit`` tool instead — it modifies only the changed section without
+        regenerating unchanged content.
+
+        Use ``write`` for: new file creation, complete rewrites, or
+        generating files from scratch.
+
         Args:
             path: Relative path to the file within the workspace
-            content: Content to write to the file
-            
+            content: Full content to write to the file (replaces everything)
+
         Returns:
             Confirmation message
         """
@@ -1239,22 +1247,25 @@ def _create_edit_tool(
 
     @tool
     async def edit(config: RunnableConfig, path: str, old_text: str, new_text: str) -> str:
-        """Edit a file by replacing text.
-        
-        Finds the first occurrence of old_text in the file and replaces it
-        with new_text. The file must exist and contain the old_text.
-        
+        """Make a targeted change to an existing file by replacing specific text.
+
+        Finds the first occurrence of old_text and replaces it with new_text.
+        This is the preferred way to modify existing files — you only specify
+        the changed section, avoiding the cost of regenerating the entire file.
+
+        Include just enough surrounding context in old_text to uniquely
+        identify the location. For multiple changes to the same file, call
+        ``edit`` multiple times rather than rewriting the whole file with
+        ``write``.
+
         Args:
             path: Relative path to the file within the workspace
-            old_text: Text to find and replace (must exist in file)
+            old_text: Exact text to find and replace (must exist in file,
+                include enough context to be unique)
             new_text: Text to replace old_text with
-            
+
         Returns:
             Confirmation message with change details
-            
-        Raises:
-            ValueError: If old_text is not found in the file
-            RuntimeError: If file operations fail
         """
         tool_args = {"path": path, "old_text": old_text, "new_text": new_text}
         tool_run_id = str(config.get("run_id", "")) if config else ""

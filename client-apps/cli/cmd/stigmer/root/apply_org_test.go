@@ -6,8 +6,10 @@ import (
 	"os"
 	"testing"
 
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/project/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -272,6 +274,67 @@ func TestBuildAtomicTrackResult_ContainsGuidance(t *testing.T) {
 func TestBuildAtomicTrackResult_HasHint(t *testing.T) {
 	cr := buildAtomicTrackResult()
 	assert.True(t, len(cr.Hints) > 0)
+}
+
+// =============================================================================
+// warnOrgMismatch — detects accidental hardcoded org in resource YAMLs
+// =============================================================================
+
+func TestWarnOrgMismatch_DifferentOrgs(t *testing.T) {
+	var buf bytes.Buffer
+	restore := climsg.ReplaceOutput(&buf)
+	defer restore()
+
+	metadata := &apiresource.ApiResourceMetadata{Name: "my-agent", Org: "stale-org"}
+	warnOrgMismatch("agent", metadata, "project-org")
+
+	output := buf.String()
+	assert.Contains(t, output, "my-agent")
+	assert.Contains(t, output, "stale-org")
+	assert.Contains(t, output, "project-org")
+}
+
+func TestWarnOrgMismatch_SameOrg(t *testing.T) {
+	var buf bytes.Buffer
+	restore := climsg.ReplaceOutput(&buf)
+	defer restore()
+
+	metadata := &apiresource.ApiResourceMetadata{Name: "my-agent", Org: "same-org"}
+	warnOrgMismatch("agent", metadata, "same-org")
+
+	assert.Empty(t, buf.String())
+}
+
+func TestWarnOrgMismatch_EmptyResourceOrg(t *testing.T) {
+	var buf bytes.Buffer
+	restore := climsg.ReplaceOutput(&buf)
+	defer restore()
+
+	metadata := &apiresource.ApiResourceMetadata{Name: "my-agent", Org: ""}
+	warnOrgMismatch("agent", metadata, "project-org")
+
+	assert.Empty(t, buf.String())
+}
+
+func TestWarnOrgMismatch_EmptyResolvedOrg(t *testing.T) {
+	var buf bytes.Buffer
+	restore := climsg.ReplaceOutput(&buf)
+	defer restore()
+
+	metadata := &apiresource.ApiResourceMetadata{Name: "my-org", Org: "some-org"}
+	warnOrgMismatch("organization", metadata, "")
+
+	assert.Empty(t, buf.String())
+}
+
+func TestWarnOrgMismatch_NilMetadata(t *testing.T) {
+	var buf bytes.Buffer
+	restore := climsg.ReplaceOutput(&buf)
+	defer restore()
+
+	warnOrgMismatch("agent", nil, "project-org")
+
+	assert.Empty(t, buf.String())
 }
 
 // =============================================================================

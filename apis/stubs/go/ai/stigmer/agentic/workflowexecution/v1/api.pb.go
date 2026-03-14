@@ -908,7 +908,7 @@ var File_ai_stigmer_agentic_workflowexecution_v1_api_proto protoreflect.FileDesc
 
 const file_ai_stigmer_agentic_workflowexecution_v1_api_proto_rawDesc = "" +
 	"\n" +
-	"1ai/stigmer/agentic/workflowexecution/v1/api.proto\x12'ai.stigmer.agentic.workflowexecution.v1\x1a.ai/stigmer/agentic/agentexecution/v1/api.proto\x1a2ai/stigmer/agentic/workflowexecution/v1/enum.proto\x1a2ai/stigmer/agentic/workflowexecution/v1/spec.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\x87\x03\n" +
+	"1ai/stigmer/agentic/workflowexecution/v1/api.proto\x12'ai.stigmer.agentic.workflowexecution.v1\x1a3ai/stigmer/agentic/agentexecution/v1/approval.proto\x1a2ai/stigmer/agentic/workflowexecution/v1/enum.proto\x1a2ai/stigmer/agentic/workflowexecution/v1/spec.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\x87\x03\n" +
 	"\x11WorkflowExecution\x12=\n" +
 	"\vapi_version\x18\x01 \x01(\tB\x1c\xbaH\x19r\x17\n" +
 	"\x15agentic.stigmer.ai/v1R\n" +

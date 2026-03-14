@@ -234,6 +234,8 @@ func routeDelete(info *types.TypeInfo, dctx *deleteContext) error {
 		return deleteProject(dctx)
 	case apiresourcekind.ApiResourceKind_skill:
 		return deleteSkill(dctx)
+	case apiresourcekind.ApiResourceKind_api_key:
+		return deleteApiKey(dctx)
 	default:
 		return fmt.Errorf("delete not implemented for %s", info.DisplayName)
 	}

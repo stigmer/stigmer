@@ -10,9 +10,9 @@ func TestDefaultRegistry_ReturnsAllCLIRelevantTypes(t *testing.T) {
 	reg := DefaultRegistry()
 	all := reg.All()
 
-	// Should have exactly 6 CLI-relevant types
-	if len(all) != 6 {
-		t.Errorf("expected 6 types, got %d", len(all))
+	// Should have exactly 7 CLI-relevant types
+	if len(all) != 7 {
+		t.Errorf("expected 7 types, got %d", len(all))
 	}
 
 	// Verify expected types are present
@@ -23,6 +23,7 @@ func TestDefaultRegistry_ReturnsAllCLIRelevantTypes(t *testing.T) {
 		apiresourcekind.ApiResourceKind_skill:        false,
 		apiresourcekind.ApiResourceKind_mcp_server:   false,
 		apiresourcekind.ApiResourceKind_project:      false,
+		apiresourcekind.ApiResourceKind_api_key:      false,
 	}
 
 	for _, info := range all {
@@ -288,9 +289,9 @@ func TestRegistry_TypesForVerb(t *testing.T) {
 		{VerbRun, 2},      // Agent, Workflow
 		{VerbPush, 1},     // Skill only
 		{VerbSearch, 2},   // Agent, Workflow
-		{VerbGet, 6},      // All types
-		{VerbList, 6},     // All types
-		{VerbDelete, 6},   // All types
+		{VerbGet, 7},      // All types
+		{VerbList, 7},     // All types
+		{VerbDelete, 7},   // All types
 		{VerbValidate, 4}, // Agent, Workflow, McpServer, Project
 	}
 

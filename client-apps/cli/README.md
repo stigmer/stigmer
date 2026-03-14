@@ -140,7 +140,7 @@ make build
 make install
 
 # Build, install, and verify
-make release-local
+make local
 
 # Run directly without installing
 make run ARGS="server status"
@@ -181,7 +181,7 @@ client-apps/cli/
 
 ```bash
 # Build CLI with embedded binaries for your platform
-make release-local
+make local
 
 # Result: ~/bin/stigmer (123 MB, self-contained)
 ```

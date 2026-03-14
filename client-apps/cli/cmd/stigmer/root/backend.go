@@ -132,7 +132,7 @@ func handleBackendSet(backendType string, format clioutput.OutputFormat) {
 
 		result := clioutput.Success("Backend set to cloud")
 		result.Hint("Please authenticate:")
-		result.Hint("  stigmer login")
+		result.Hint("  stigmer auth login")
 		renderer.Render(result)
 
 	default:

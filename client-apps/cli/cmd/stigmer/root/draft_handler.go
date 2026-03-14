@@ -11,6 +11,12 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/spinner"
 )
 
+// systemAgentOrg is the organization that owns the system agent blueprints
+// (skill-creator, agent-creator, mcp-server-creator). These are installed by
+// the seedpack and always live in the "stigmer" org regardless of which org
+// the user is operating in.
+const systemAgentOrg = "stigmer"
+
 // draftConfig identifies which system agent to invoke and how to label
 // user-facing messages. Each draft subcommand (skill, agent, ...) provides
 // its own draftConfig while sharing the execution logic in executeDraft.
@@ -64,11 +70,11 @@ func executeDraft(cfg draftConfig, opts draftOptions) error {
 	defer prep.Conn.Close()
 
 	sp.Update("Resolving agent...")
-	agentRef := prep.OrgID + "/" + cfg.AgentName
-	agent, err := resolveAgent(agentRef, prep.OrgID, prep.Conn)
+	agentRef := systemAgentOrg + "/" + cfg.AgentName
+	agent, err := resolveAgent(agentRef, systemAgentOrg, prep.Conn)
 	if err != nil {
 		sp.Stop()
-		displayDraftAgentNotFoundError(cfg.AgentName, prep.OrgID)
+		displayDraftAgentNotFoundError(cfg.AgentName, systemAgentOrg)
 		return errors.Wrapf(err, "%s agent not found", cfg.AgentName)
 	}
 
@@ -119,11 +125,10 @@ func executeDraft(cfg draftConfig, opts draftOptions) error {
 func displayDraftAgentNotFoundError(agentName, orgID string) {
 	climsg.Error("%s agent not found in organization %q", agentName, orgID)
 	climsg.Info("")
-	climsg.Info("This system agent is created during server bootstrap.")
+	climsg.Info("System agents are installed by the seedpack in the %q organization.", systemAgentOrg)
 	climsg.Info("")
 	climsg.Info("Troubleshooting:")
-	climsg.Info("  1. Verify agents exist:  stigmer list agents")
-	climsg.Info("  2. Check active org:     stigmer config context show")
-	climsg.Info("  3. Re-bootstrap:         stigmer server reset && stigmer server")
+	climsg.Info("  1. Verify agents exist:  stigmer list agents --org %s", systemAgentOrg)
+	climsg.Info("  2. Re-apply seedpack:    stigmer apply -f seedpack/")
 	fmt.Println()
 }

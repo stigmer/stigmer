@@ -566,7 +566,8 @@ class TestApprovalAwareWrapperIntegration:
         mock_interrupt.assert_called_once()
         interrupt_payload = mock_interrupt.call_args[0][0]
         assert "res-123" in interrupt_payload["message"]
-        assert result == {"status": "deleted", "id": "res-123"}
+        assert "deleted" in result
+        assert "res-123" in result
 
     @pytest.mark.asyncio
     async def test_multiple_tools_different_policies(self, mock_middleware):
@@ -592,7 +593,8 @@ class TestApprovalAwareWrapperIntegration:
         
         # list_resources should execute without interrupt
         result = await list_wrapper.ainvoke({})
-        assert result == {"status": "deleted", "id": "res-123"}  # Mock returns same for both
+        assert "deleted" in result
+        assert "res-123" in result
         
         # delete_resource should require interrupt
         with patch("langgraph.types.interrupt") as mock_interrupt:
@@ -665,37 +667,41 @@ class TestCheckAndHandleApproval:
         assert "skipped" in result.lower()
         assert "test_tool" in result
 
-    def test_raises_error_on_reject(self):
-        """Test that rejection error is raised when user rejects."""
+    def test_returns_reject_message_on_reject(self):
+        """Test that reject returns an error message string."""
         def checker(name: str, args: dict) -> ApprovalRequirement:
             return ApprovalRequirement(requires_approval=True, message="Confirm?")
         
         with patch("langgraph.types.interrupt") as mock_interrupt:
             mock_interrupt.return_value = {"action": "reject", "approved_by": "user"}
             
-            with pytest.raises(ToolExecutionRejectedError) as exc_info:
-                _check_and_handle_approval(
-                    tool_name="test_tool",
-                    tool_args={"arg": "value"},
-                    approval_checker=checker,
-                )
+            result = _check_and_handle_approval(
+                tool_name="test_tool",
+                tool_args={"arg": "value"},
+                approval_checker=checker,
+            )
         
-        assert exc_info.value.tool_name == "test_tool"
+        assert result is not None
+        assert "test_tool" in result
+        assert "REJECTED" in result
 
-    def test_raises_error_on_unknown_action(self):
-        """Test that unknown action is treated as rejection."""
+    def test_returns_reject_message_on_unknown_action(self):
+        """Test that unknown action returns a rejection message."""
         def checker(name: str, args: dict) -> ApprovalRequirement:
             return ApprovalRequirement(requires_approval=True, message="Confirm?")
         
         with patch("langgraph.types.interrupt") as mock_interrupt:
             mock_interrupt.return_value = {"action": "something_weird"}
             
-            with pytest.raises(ToolExecutionRejectedError):
-                _check_and_handle_approval(
-                    tool_name="test_tool",
-                    tool_args={"arg": "value"},
-                    approval_checker=checker,
-                )
+            result = _check_and_handle_approval(
+                tool_name="test_tool",
+                tool_args={"arg": "value"},
+                approval_checker=checker,
+            )
+        
+        assert result is not None
+        assert "test_tool" in result
+        assert "something_weird" in result
 
     def test_includes_sub_agent_context_in_payload(self):
         """Test that sub-agent context is included in interrupt payload."""
@@ -1128,18 +1134,17 @@ class TestEditToolWrapper:
         mock_backend.write.assert_called_once_with("test.txt", "new text here")
 
     @pytest.mark.asyncio
-    async def test_edit_raises_when_text_not_found(self, mock_backend):
-        """Test that edit raises error when old_text not found."""
+    async def test_edit_returns_error_when_text_not_found(self, mock_backend):
+        """Test that edit returns error message when old_text not found."""
         tool = _create_edit_tool(mock_backend)
         
-        with pytest.raises(ValueError) as exc_info:
-            await tool.ainvoke({
-                "path": "test.txt",
-                "old_text": "nonexistent",
-                "new_text": "new"
-            })
+        result = await tool.ainvoke({
+            "path": "test.txt",
+            "old_text": "nonexistent",
+            "new_text": "new"
+        })
         
-        assert "not found" in str(exc_info.value).lower()
+        assert "not found" in result.lower()
 
     @pytest.mark.asyncio
     async def test_edit_requires_approval(self, mock_backend):
