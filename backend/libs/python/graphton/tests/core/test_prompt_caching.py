@@ -20,7 +20,6 @@ from graphton.core.models import (
     _inject_cache_control,
 )
 
-
 # =============================================================================
 # _inject_cache_control — Layer 1: system prompt
 # =============================================================================

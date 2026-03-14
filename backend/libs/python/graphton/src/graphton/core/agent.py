@@ -20,10 +20,10 @@ from pydantic import ValidationError
 from graphton.core.cost_cap import CostCapMiddleware
 from graphton.core.execution_budget import ExecutionBudgetMiddleware
 from graphton.core.loop_detection import LoopDetectionMiddleware
-from graphton.core.tool_truncation import ToolTruncationMiddleware
 from graphton.core.models import parse_model_string
 from graphton.core.prompt_enhancement import enhance_user_instructions
 from graphton.core.think_tool import create_think_tool
+from graphton.core.tool_truncation import ToolTruncationMiddleware
 
 if TYPE_CHECKING:
     from langgraph.checkpoint.base import BaseCheckpointSaver
@@ -801,22 +801,22 @@ def create_deep_agent(
     # Model tool-selection accuracy degrades with many tools (research
     # shows notable decline above ~20-25).  Log a warning when the
     # count is high so operators can tune MCP enabled_tools lists.
-    _TOOL_COUNT_WARNING_THRESHOLD = 25
-    _TOOL_DESC_MAX_CHARS = 500
+    tool_count_warning_threshold = 25
+    tool_desc_max_chars = 500
 
     total_tool_count = len(tools_list)
-    if total_tool_count > _TOOL_COUNT_WARNING_THRESHOLD:
+    if total_tool_count > tool_count_warning_threshold:
         logger.warning(
             "[TOOL-COUNT] %d tools bound (threshold=%d). "
             "High tool counts degrade model selection accuracy. "
             "Consider reducing MCP enabled_tools.",
             total_tool_count,
-            _TOOL_COUNT_WARNING_THRESHOLD,
+            tool_count_warning_threshold,
         )
     logger.info(
         "[TOOL-COUNT] total=%d (threshold=%d)",
         total_tool_count,
-        _TOOL_COUNT_WARNING_THRESHOLD,
+        tool_count_warning_threshold,
     )
 
     # Cap overly verbose MCP tool descriptions so they don't bloat
@@ -825,15 +825,15 @@ def create_deep_agent(
     truncated_count = 0
     for tool in tools_list:
         desc = getattr(tool, "description", None)
-        if desc and len(desc) > _TOOL_DESC_MAX_CHARS:
-            tool.description = desc[:_TOOL_DESC_MAX_CHARS] + "..."  # type: ignore[union-attr]
+        if desc and len(desc) > tool_desc_max_chars:
+            tool.description = desc[:tool_desc_max_chars] + "..."  # type: ignore[union-attr]
             truncated_count += 1
     if truncated_count:
         logger.info(
             "[TOOL-COUNT] Truncated descriptions on %d tool(s) "
             "exceeding %d chars",
             truncated_count,
-            _TOOL_DESC_MAX_CHARS,
+            tool_desc_max_chars,
         )
 
     # Create the Deep Agent using deepagents library.
@@ -870,8 +870,8 @@ def create_deep_agent(
     # LangGraph's merge_configs strips values equal to
     # DEFAULT_RECURSION_LIMIT (10,000), so we avoid that exact value.
     # 10,000,000 is not equal to 10,000 and will be preserved.
-    _UNLIMITED = 10_000_000
-    effective_limit = recursion_limit if recursion_limit is not None else _UNLIMITED
+    unlimited = 10_000_000
+    effective_limit = recursion_limit if recursion_limit is not None else unlimited
     configured_agent = agent.with_config({"recursion_limit": effective_limit})
     logger.info(
         "Graphton agent configured: recursion_limit=%d%s",

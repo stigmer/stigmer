@@ -24,12 +24,6 @@ from ai.stigmer.agentic.agentexecution.v1.context_pb2 import (
     ResolvedExecutionContext,
     SummarizationEvent,
 )
-from ai.stigmer.agentic.agentexecution.v1.message_pb2 import (
-    AgentMessage,
-    ComponentMetadata,
-    ToolCall,
-)
-from ai.stigmer.agentic.agentexecution.v1.subagent_pb2 import SubAgentExecution
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ExecutionPhase,
     MessageType,
@@ -38,6 +32,12 @@ from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     TodoStatus,
     ToolCallStatus,
 )
+from ai.stigmer.agentic.agentexecution.v1.message_pb2 import (
+    AgentMessage,
+    ComponentMetadata,
+    ToolCall,
+)
+from ai.stigmer.agentic.agentexecution.v1.subagent_pb2 import SubAgentExecution
 from google.protobuf.struct_pb2 import Struct
 from graphton.core import ModelRegistry
 from graphton.core.backends.platform_mount import (
@@ -3122,7 +3122,7 @@ class StatusBuilder:
             f"({event.compression_ratio * 100:.1f}% reduction), "
             f"duration={event.duration_ms}ms, "
             f"model={event.summarization_model}, "
-            f"summarization_cost=${'%.6f' % event.summarization_cost_usd}"
+            f"summarization_cost=${event.summarization_cost_usd:.6f}"
         )
     
     def on_token_count_updated(self, token_count: int) -> None:

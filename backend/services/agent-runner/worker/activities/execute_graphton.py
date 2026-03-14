@@ -17,11 +17,11 @@ from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     SubAgentStatus,
     ToolCallStatus,
 )
-from ai.stigmer.agentic.agentexecution.v1.message_pb2 import AgentMessage
 from ai.stigmer.agentic.agentexecution.v1.io_pb2 import (
     ApprovalDecisionList,
     SubmitApprovalInput,
 )
+from ai.stigmer.agentic.agentexecution.v1.message_pb2 import AgentMessage
 from graphton import SummarizationConfig, create_deep_agent
 from graphton.core import ModelRegistry
 from graphton.core.backends.platform_mount import (
@@ -2447,9 +2447,9 @@ async def _execute_graphton_impl(
         # Additionally, LANGGRAPH_DEFAULT_RECURSION_LIMIT=10000000 is set in
         # the agent-runner environment (daemon_process.go) as a framework-wide
         # default that also covers subagent graphs.
-        _UNLIMITED_RECURSION = 10_000_000
+        unlimited_recursion = 10_000_000
         effective_recursion_limit = (
-            recursion_limit if recursion_limit is not None else _UNLIMITED_RECURSION
+            recursion_limit if recursion_limit is not None else unlimited_recursion
         )
         config = {
             "configurable": {

@@ -15,8 +15,6 @@ Tests cover:
 
 from __future__ import annotations
 
-from unittest.mock import patch
-
 import pytest
 
 from worker.activities.graphton.usage_tracker import (
