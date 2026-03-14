@@ -83,6 +83,11 @@ lint: ## Run all linters and type checks
 	@cd $(AGENT_RUNNER_DIR) && poetry run ruff check .
 	@cd $(AGENT_RUNNER_DIR) && poetry install --no-interaction --quiet && \
 		poetry run mypy grpc_client/ worker/ --show-error-codes
+	@if [ -d client-apps/web/node_modules ]; then \
+		npm run lint -w client-apps/web; \
+	else \
+		echo "skip: client-apps/web lint (run npm install first)"; \
+	fi
 
 check: tidy lint build test ## Run full CI gate locally
 
@@ -192,4 +197,6 @@ clean: ## Remove all build artifacts
 	rm -rf bin/ coverage/ coverage.txt coverage.html
 	rm -rf backend/services/workflow-runner/bin/
 	rm -rf client-apps/cli/embedded/agentrunner/source/
+	rm -rf client-apps/cli/embedded/webconsole/out/
+	rm -rf client-apps/web/out/ client-apps/web/.next/
 	$(MAKE) -C apis clean

@@ -1,43 +1,36 @@
-# Build stage
+# Build stage — compile the Next.js static export
 FROM node:22-alpine AS builder
 WORKDIR /app
 
-RUN corepack enable
+# NEXT_PUBLIC_* variables are inlined into the JS bundle at build time.
+# Pass these as --build-arg to configure the target environment.
+ARG NEXT_PUBLIC_AUTH_MODE=disabled
+ARG NEXT_PUBLIC_API_URL=http://localhost:7234
+ENV NEXT_PUBLIC_AUTH_MODE=$NEXT_PUBLIC_AUTH_MODE
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
-# Copy workspace config first (for caching)
-COPY package.json yarn.lock .yarnrc.yml ./
+# Copy workspace config and dependency manifests first (layer caching)
+COPY package.json package-lock.json ./
+COPY apis/stubs/ts/package.json apis/stubs/ts/
 
-# Copy workspace packages
+# Copy the proto stubs (committed to the repo, no Buf needed)
 COPY apis/stubs/ts/ apis/stubs/ts/
+
+# Copy the web console source
 COPY client-apps/web/ client-apps/web/
 
-# Install all workspace dependencies and build the web console
-# Combined into single RUN to preserve Yarn's install state file across commands
-RUN rm -f client-apps/web/.env client-apps/web/.env.local && \
-    yarn install && \
-    cd client-apps/web && \
-    yarn build
+# Install dependencies and build
+RUN npm ci && \
+    npm run build -w client-apps/web
 
-# Prepare standalone output
-# With outputFileTracingRoot set to monorepo root, standalone output structure is:
-#   .next/standalone/
-#   ├── node_modules/                      (traced dependencies)
-#   ├── client-apps/web/           (app with server.js)
-#   └── package.json                       (root)
-RUN mkdir -p /app/standalone && \
-    cp -R client-apps/web/.next/standalone/* /app/standalone/ && \
-    cp -R client-apps/web/public /app/standalone/client-apps/web/ && \
-    cp -R client-apps/web/.next/static /app/standalone/client-apps/web/.next/
+# Runtime stage — nginx serves the static export
+FROM nginx:alpine
 
-# Runtime stage
-FROM node:22-alpine AS runtime
-
-LABEL org.opencontainers.image.source="https://github.com/stigmer/stigmer-cloud"
+LABEL org.opencontainers.image.source="https://github.com/stigmer/stigmer"
 LABEL org.opencontainers.image.vendor="Stigmer"
-LABEL org.opencontainers.image.licenses="Proprietary"
+LABEL org.opencontainers.image.licenses="Apache-2.0"
 
-# WORKDIR must match the app location inside standalone output
-WORKDIR /app/client-apps/web
+COPY --from=builder /app/client-apps/web/out /usr/share/nginx/html
+COPY client-apps/web/nginx.conf /etc/nginx/conf.d/default.conf
+
 EXPOSE 3000
-COPY --from=builder /app/standalone /app/
-CMD ["node", "server.js"]
