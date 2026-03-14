@@ -1,0 +1,50 @@
+# Stigmer Web Console
+
+Browser-based interface for Stigmer — run agents, monitor executions, manage sessions, and browse the resource catalog.
+
+## Development
+
+Prerequisites: Node.js 20+ and npm.
+
+```bash
+# From the repo root — install all workspace dependencies
+npm install
+
+# Start the dev server (port 3000)
+npm run dev -w client-apps/web
+```
+
+The dev server connects to stigmer-server at `http://localhost:8080` by default (configurable via `NEXT_PUBLIC_API_URL`).
+
+## Stack
+
+- **Framework**: Next.js 16 (App Router) / React 19
+- **Styling**: Tailwind CSS v4 / shadcn-ui
+- **API**: Connect-RPC (gRPC-Web) via `@connectrpc/connect-web`
+- **Proto stubs**: `@stigmer/protos` — generated TypeScript from `apis/stubs/ts/`
+
+## Project structure
+
+```
+src/
+├── app/            # Next.js routes (pages, layouts, error boundaries)
+├── components/     # UI components organized by domain
+│   ├── auth/       # Auth wrappers (configurable: disabled or OIDC)
+│   ├── catalog/    # Resource catalog (agents, skills, MCP servers)
+│   ├── execution/  # Agent execution streaming and controls
+│   ├── layout/     # App shell, sidebar, top bar
+│   └── ui/         # Shared primitives (shadcn-ui)
+├── config/         # App configuration (env, navigation, draft)
+├── contexts/       # React contexts (organization)
+├── hooks/          # Data-fetching and state hooks
+├── lib/            # Utilities (auth tokens, time, classnames)
+└── services/       # Connect-RPC service clients
+```
+
+## Workspace dependency
+
+This package consumes `@stigmer/protos` from `apis/stubs/ts/` via npm workspaces. If proto definitions change, regenerate stubs before starting the dev server:
+
+```bash
+make -C apis ts-stubs
+```
