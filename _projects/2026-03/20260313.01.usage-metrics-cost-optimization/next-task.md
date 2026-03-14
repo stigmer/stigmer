@@ -13,9 +13,37 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: In Progress
-- **Last Session**: 2026-03-14 (Session 8) — Fixed all 30 dep-upgrade test failures
-- **Active Task**: Dep-upgrade test failures fixed. Next: Phase 5 → Phase 6 → Phase 7
+- **Last Session**: 2026-03-14 (Session 9) — Phase 5 Server Usage Report RPCs complete (Go + Java)
+- **Active Task**: Phase 5 complete. Next: Phase 6 → Phase 7
 - **Branch**: `feat/usage-metrics-and-cost-optimization`
+
+## Session Progress (2026-03-14, Session 9)
+
+### Phase 5: Server Usage Report RPCs — COMPLETED
+
+Implemented all three Usage Report RPCs (`GetSessionUsageReport`, `GetAgentUsageReport`, `GetOrgUsageReport`) in both Go (stigmer OSS) and Java (stigmer-cloud production).
+
+**Go (stigmer)** — 5 new files + BUILD.bazel update:
+- `usage_aggregation.go` — 20+ shared aggregation helpers (pure functions)
+- `usage_aggregation_test.go` — 15 unit tests (all passing)
+- `get_session_usage_report.go` — 3-step pipeline handler
+- `get_agent_usage_report.go` — 3-step pipeline handler with agent name resolution
+- `get_org_usage_report.go` — 3-step pipeline handler with top-10 agents + daily trend
+
+**Java (stigmer-cloud)** — 4 new files + 1 modified:
+- `UsageAggregationService.java` — Shared aggregation Spring service
+- `AgentExecutionGetSessionUsageReportHandler.java` — Pipeline handler with FGA auth
+- `AgentExecutionGetAgentUsageReportHandler.java` — Pipeline handler with FGA auth + agent name resolution
+- `AgentExecutionGetOrgUsageReportHandler.java` — Pipeline handler with FGA auth + top-10 agents + daily trend
+- `AgentExecutionRepo.java` — Added `findAllBySessionId`, `findByAgentIdAndDateRange`, `findByOrgAndDateRange` query methods
+
+**Key design decisions:**
+- Go uses in-memory aggregation (matches existing OSS pattern)
+- Java uses targeted MongoDB queries with date range criteria on `status.startedAt`
+- Both use same aggregation algorithm (sub-agent cost inclusion, model breakdown merge by (model, provider), cost-descending sort)
+- Java handlers intersect FGA-authorized IDs with query results for production authorization
+
+---
 
 ## Session Progress (2026-03-14, Session 8)
 
@@ -126,23 +154,20 @@ The dependency upgrades introduced 14 test failures in graphton (agent-runner is
 
 Pick up in this order:
 
-### Immediate: Phase 5 — Server Usage Report RPCs
-Implement `GetSessionUsageReport`, `GetAgentUsageReport`, `GetOrgUsageReport` RPCs. Aggregate usage across executions/sessions/agents with time range filtering and pagination.
+### Immediate: Phase 6 — CLI Usage Display & Commands
+Add `stigmer usage` commands and per-execution usage summary display in the CLI. This consumes the RPCs implemented in Phase 5.
 
-### Then: Remaining T01 Phases
-1. **Phase 6: CLI — Usage Display & Commands** — Add `stigmer usage` commands, per-execution usage summary
-2. **Phase 7: Sub-Agent Model Routing** — Wire `model_override` on `SubAgentDefinition`
+### Then: Phase 7 — Sub-Agent Model Routing
+Wire `model_override` on `SubAgentDefinition` to enable per-sub-agent model selection.
 
 ## Context for Resume
 
-- **Three-layer caching**: `_inject_cache_control()` in `graphton/core/models.py` now has three layers: (1) explicit breakpoint on system prompt, (2) explicit breakpoint on last tool, (3) top-level `cache_control` for automatic conversation caching. All three are idempotent. Opt-out via `model._prompt_caching = False`.
-- **Automatic caching** (Layer 3) uses Anthropic's top-level `cache_control={"type": "ephemeral"}` parameter (requires `anthropic>=0.83.0`). The API automatically places a breakpoint on the last cacheable block and advances it each turn.
-- **OpenAI caching is automatic**: No code needed. 50% discount on cached tokens, prefix matching, no opt-in.
-- **All graphton tests green**: 1155 passed, 1 skipped, 0 failed. Dep-upgrade test failures all resolved.
-- **Key dep versions now**: anthropic 0.84.0, deepagents 0.4.10, langchain-core 1.2.19, langgraph 1.1.2, langchain-ollama 1.0.1, langchain-mcp-adapters 0.2.1.
-- 30/30 prompt caching tests pass (Layers 1-3 + integration + opt-out).
-- 1198/1198 agent-runner tests pass.
-- Phase 4B plan: `.cursor/plans/phase_4b_conversation_caching_1581cc1e.plan.md`
+- **Phase 5 complete**: All three Usage Report RPCs implemented in both Go and Java. Go build+tests green. Java has pre-existing build failures in unrelated files (WorkflowExecutionSearchableExtractor, SkillPushHandler, etc.) — our new files compile without errors.
+- **Phase 5 plan file**: `.cursor/plans/phase_5_usage_report_rpcs_781e9b31.plan.md`
+- **Aggregation algorithm**: Sub-agent costs are included in execution totals. Model breakdowns merged by (model, provider) key. Date filtering uses ISO 8601 string comparison. All aggregation is shared via pure functions (Go) / stateless service (Java).
+- **Three-layer caching** (Phase 4B): `_inject_cache_control()` in `graphton/core/models.py` has three layers. Opt-out via `model._prompt_caching = False`.
+- **All graphton tests green**: 1155 passed, 1 skipped, 0 failed. 1198/1198 agent-runner tests pass.
+- **Key dep versions**: anthropic 0.84.0, deepagents 0.4.10, langchain-core 1.2.19, langgraph 1.1.2.
 - T01 master plan: `tasks/T01_0_plan.md`
 
 ## Essential Files to Review
