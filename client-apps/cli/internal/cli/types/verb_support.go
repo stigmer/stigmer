@@ -70,6 +70,11 @@ var verbSupport = map[apiresourcekind.ApiResourceKind]map[Verb]bool{
 		VerbList:     true,
 		VerbDelete:   true,
 	},
+	apiresourcekind.ApiResourceKind_api_key: {
+		VerbGet:    true,
+		VerbList:   true,
+		VerbDelete: true,
+	},
 	// agent_execution is special - uses dedicated AgentExecutionQueryController RPCs
 	// not the unified SearchService. Handled as special case in commands.
 	apiresourcekind.ApiResourceKind_agent_execution: {

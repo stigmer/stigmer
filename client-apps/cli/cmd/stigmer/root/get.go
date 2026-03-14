@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/agent"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/apikey"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
@@ -174,6 +175,9 @@ func routeGet(info *types.TypeInfo, ref, orgID, format string, conn *grpc.Client
 	case apiresourcekind.ApiResourceKind_skill:
 		return getSkill(ref, orgID, format, conn)
 
+	case apiresourcekind.ApiResourceKind_api_key:
+		return getApiKey(ref, format, conn)
+
 	default:
 		return fmt.Errorf("get not implemented for %s", info.DisplayName)
 	}
@@ -300,5 +304,15 @@ func executeGetOrganization(opts getOptions) error {
 	}
 
 	organization.DisplayGetResult(result, opts.OutputFormat)
+	return nil
+}
+
+// getApiKey retrieves an API key by ID.
+func getApiKey(ref, format string, conn *grpc.ClientConn) error {
+	result, err := apikey.GetFromBackend(conn, ref)
+	if err != nil {
+		return err
+	}
+	apikey.DisplayGetResult(result, format)
 	return nil
 }
