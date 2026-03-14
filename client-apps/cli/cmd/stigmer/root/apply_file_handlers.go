@@ -15,6 +15,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/mcpserver"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/organization"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/workflow"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
 )
 
@@ -27,6 +28,23 @@ func buildResourceReference(
 		Org:  metadata.Org,
 		Kind: kind,
 		Slug: metadata.Slug,
+	}
+}
+
+// warnOrgMismatch logs a warning when a resource has an explicit metadata.org
+// that differs from the resolved project/context org. This catches accidental
+// hardcoded org values in resource YAMLs (e.g. leftover "org: default") that
+// would silently place the resource in a different organization than intended.
+//
+// No warning is emitted when the resource org is empty (normal inheritance)
+// or when no resolved org is available (e.g. file-mode Organization apply).
+func warnOrgMismatch(kind string, metadata *apiresource.ApiResourceMetadata, resolvedOrg string) {
+	if metadata == nil || resolvedOrg == "" || metadata.Org == "" {
+		return
+	}
+	if metadata.Org != resolvedOrg {
+		climsg.Warning("%s '%s' has explicit org '%s' (resolved org: '%s')",
+			kind, metadata.GetName(), metadata.Org, resolvedOrg)
 	}
 }
 
@@ -65,6 +83,8 @@ func applyAgent(item applyItem, fctx *fileApplyContext) (*apiresource.ApiResourc
 		return nil, errors.Wrap(err, "agent validation failed")
 	}
 
+	warnOrgMismatch("agent", loadResult.Agent.Metadata, fctx.orgID)
+
 	if fctx.dryRun {
 		fctx.renderer.Render(buildAgentDryRunResult(loadResult.Agent))
 		return nil, nil
@@ -94,6 +114,8 @@ func applyWorkflow(item applyItem, fctx *fileApplyContext) (*apiresource.ApiReso
 		return nil, errors.Wrap(err, "workflow validation failed")
 	}
 
+	warnOrgMismatch("workflow", loadResult.Workflow.Metadata, fctx.orgID)
+
 	if fctx.dryRun {
 		fctx.renderer.Render(buildWorkflowDryRunResult(loadResult.Workflow))
 		return nil, nil
@@ -119,6 +141,8 @@ func applyMcpServer(item applyItem, fctx *fileApplyContext) (*apiresource.ApiRes
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load MCP server")
 	}
+
+	warnOrgMismatch("MCP server", loadResult.McpServer.Metadata, fctx.orgID)
 
 	if fctx.dryRun {
 		fctx.renderer.Render(buildMcpServerDryRunResult(loadResult.McpServer))

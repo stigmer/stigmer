@@ -48,7 +48,7 @@ class TestSummarizationConfig:
         assert config.trigger_threshold == 180000
         assert config.target_tokens == 160000
         assert config.max_summary_tokens == 2000
-        assert config.summarization_model == "claude-haiku-4"
+        assert config.summarization_model == "claude-haiku-4.5"
         assert config.token_counter_method == TokenCounterMethod.ANTHROPIC_NATIVE
     
     def test_for_model_openai(self):
@@ -183,6 +183,7 @@ class TestTokenCounter:
             AIMessage(
                 content="Let me read that file.",
                 tool_calls=[{
+                    "id": "call_001",
                     "name": "read",
                     "args": {"path": "/workspace/test.py"},
                 }],
@@ -264,8 +265,9 @@ class TestTokenCounter:
     
     def test_extract_message_content_none(self):
         """None content returns empty string."""
-        msg = AIMessage(content=None)  # type: ignore
-        content = TokenCounter._extract_message_content(msg)
+        mock_msg = MagicMock()
+        mock_msg.content = None
+        content = TokenCounter._extract_message_content(mock_msg)
         assert content == ""
 
 
@@ -319,7 +321,7 @@ class TestMessageUtils:
         """AI message tool calls are preserved."""
         msg = AIMessage(
             content="Reading file",
-            tool_calls=[{"name": "read", "args": {"path": "/test"}}],
+            tool_calls=[{"id": "call_001", "name": "read", "args": {"path": "/test"}}],
         )
         result = ensure_message_ids([msg])
         
@@ -628,7 +630,7 @@ class TestSummarizationMiddlewareCallback:
     def test_middleware_accepts_callback(self):
         """Middleware can be initialized with a callback."""
         from graphton.core.summarization_callback import SummarizationEventData
-        from graphton.core.summarization_middleware import SummarizationMiddleware
+        from graphton.core.summarization_middleware import ContextSummarizationMiddleware
         
         callback_events = []
         
@@ -640,7 +642,7 @@ class TestSummarizationMiddlewareCallback:
                 pass
         
         config = SummarizationConfig.for_model("claude-sonnet-4.5")
-        middleware = SummarizationMiddleware(
+        middleware = ContextSummarizationMiddleware(
             config=config,
             callback=TestCallback(),
         )
@@ -649,10 +651,10 @@ class TestSummarizationMiddlewareCallback:
     
     def test_middleware_accepts_none_callback(self):
         """Middleware works without a callback."""
-        from graphton.core.summarization_middleware import SummarizationMiddleware
+        from graphton.core.summarization_middleware import ContextSummarizationMiddleware
         
         config = SummarizationConfig.for_model("claude-sonnet-4.5")
-        middleware = SummarizationMiddleware(config=config, callback=None)
+        middleware = ContextSummarizationMiddleware(config=config, callback=None)
         
         assert middleware._callback is None
 
@@ -844,6 +846,7 @@ class TestSerializationRoundTrip:
             original = RunningSummary(
                 summary="Test",
                 summarized_message_ids=set(),
+                last_summarized_message_id=None,
             )
             
             serialized = serialize_running_summary(original)
@@ -866,6 +869,7 @@ class TestSerializationRoundTrip:
             original = RunningSummary(
                 summary="Test",
                 summarized_message_ids={'a', 'b', 'c'},
+                last_summarized_message_id='c',
             )
             
             serialized = serialize_running_summary(original)

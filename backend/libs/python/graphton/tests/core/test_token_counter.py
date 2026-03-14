@@ -80,6 +80,7 @@ class TestTiktokenCL100K:
                 content="Let me search for that.",
                 tool_calls=[
                     {
+                        "id": "call_001",
                         "name": "search_web",
                         "args": {"query": "python best practices"},
                     }
@@ -403,7 +404,7 @@ class TestApproximateCounting:
             AIMessage(
                 content="Searching...",
                 tool_calls=[
-                    {"name": "search", "args": {"query": "test"}},
+                    {"id": "call_001", "name": "search", "args": {"query": "test"}},
                 ],
             ),
         ]
@@ -430,7 +431,11 @@ class TestEdgeCases:
 
     def test_none_content_message(self):
         """Message with None content is handled gracefully."""
-        messages = [AIMessage(content=None)]  # type: ignore
+        from unittest.mock import MagicMock
+        mock_msg = MagicMock()
+        mock_msg.content = None
+        mock_msg.tool_calls = []
+        messages = [mock_msg]
         
         count = TokenCounter.count_messages(
             messages,

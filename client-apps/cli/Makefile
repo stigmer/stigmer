@@ -3,7 +3,7 @@
 # Available commands:
 #   make build          - Build the CLI binary
 #   make install        - Build and install CLI to GOPATH/bin
-#   make release-local  - Build, install, and verify CLI (for local testing)
+#   make local          - Build, install, and verify CLI (for local testing)
 #   make run            - Build and run CLI with ARGS="..."
 #   make test           - Run tests
 #   make clean          - Clean build artifacts
@@ -24,7 +24,7 @@ help:
 	@echo ""
 	@echo "  Installation:"
 	@echo "    make install        - Build and install CLI to GOPATH/bin ($(GOPATH_BIN))"
-	@echo "    make release-local  - Build, install, and verify CLI (recommended for testing)"
+	@echo "    make local          - Build, install, and verify CLI (recommended for testing)"
 	@echo ""
 	@echo "  Maintenance:"
 	@echo "    make clean          - Clean build artifacts"
@@ -59,8 +59,8 @@ install: build
 	@echo "Verify installation:"
 	@echo "  $(BINARY_NAME) --help"
 
-.PHONY: release-local
-release-local: clean install
+.PHONY: local
+local: clean install
 	@echo ""
 	@echo "============================================"
 	@echo "Local Release Complete!"

@@ -80,6 +80,10 @@ class SummarizationEventData:
     messages_after: int
     source: str
 
+    summarization_input_tokens: int = 0
+    summarization_output_tokens: int = 0
+    summarization_cost_usd: float = 0.0
+
 
 @runtime_checkable
 class SummarizationCallback(Protocol):

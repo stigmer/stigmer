@@ -305,7 +305,7 @@ func TestExtractionFlow(t *testing.T) {
 
 ```bash
 # Build CLI with embedded binaries
-make release-local
+make local
 
 # Delete extracted binaries to simulate fresh install
 rm -rf ~/.stigmer/bin

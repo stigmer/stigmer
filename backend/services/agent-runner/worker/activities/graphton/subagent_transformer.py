@@ -398,6 +398,33 @@ async def _transform_single_subagent(
         '"Here are the contents of the files", or similar.\n'
     )
 
+    # Validate model_override against the ModelRegistry when set.
+    # Fail-fast: if the override names a model that doesn't exist in the
+    # registry, the sub-agent is skipped entirely rather than silently
+    # falling back to the parent's model.  This forces operators to fix
+    # their agent config instead of running on an unintended model.
+    model_override: str | None = None
+    if sub_agent.model_override:
+        from graphton.core.model_registry import ModelRegistry
+
+        candidate = sub_agent.model_override
+        is_known = (
+            ModelRegistry.is_registered(candidate)
+            or ModelRegistry.get_by_api_model_id(candidate) is not None
+        )
+        if not is_known:
+            log.error(
+                "Sub-agent '%s' specifies model_override='%s' which is not "
+                "recognised by the ModelRegistry. Skipping this sub-agent. "
+                "Use a registered model name (e.g. 'claude-haiku-4.5') or "
+                "a valid API model ID.",
+                name,
+                candidate,
+            )
+            return None
+        model_override = candidate
+        log.info("Sub-agent '%s' will use model override: %s", name, model_override)
+
     # Build the subagent dict in graphton format.
     # Always set ``tools`` so deepagents uses this explicit list rather
     # than falling back to the parent's tools (which would duplicate
@@ -408,6 +435,9 @@ async def _transform_single_subagent(
         "system_prompt": system_prompt,
         "tools": tools,
     }
+
+    if model_override is not None:
+        subagent_dict["model"] = model_override
     
     return subagent_dict
 

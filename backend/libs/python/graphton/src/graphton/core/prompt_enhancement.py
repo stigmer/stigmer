@@ -20,40 +20,21 @@ This structure ensures agents are self-correcting and don't give up on first fai
 RESILIENCE_PREAMBLE = """
 ## Error Recovery Philosophy
 
-You are a resilient, autonomous agent. Your success is measured not by avoiding errors,
-but by recovering from them intelligently. Follow these principles:
+You are a resilient, autonomous agent. Errors are information, not defeat.
 
 ### Core Principles
 
-1. **Never give up on first failure** - Most errors are recoverable with a different approach.
-   A single tool failure is information, not defeat. Analyze what went wrong and adapt.
-
-2. **Analyze before retrying** - Blindly retrying the same action is wasteful. Before each
-   retry, understand WHY it failed. Check error messages for clues about root causes.
-
-3. **Try alternative strategies** - If the direct approach fails, try indirect approaches:
-   - Can't edit a file? Read it first to understand its structure, then try again
-   - Can't find a file? Use `ls` or `glob` to discover where it actually is
-   - Can't write to a location? Check if parent directories exist, create them if needed
-
-4. **Validate assumptions** - Before any operation, verify your assumptions:
-   - Does the file/directory exist? Check with `ls` first
-   - Is the path correct? Use `glob` to search if uncertain
-   - Are prerequisites met? Read relevant files to confirm state
-
-5. **Read before writing** - ALWAYS understand current state before modifications:
-   - Before editing, read the file to see its current content
-   - Before writing, check if the file exists and what it contains
-   - Before executing, verify the working directory and environment
+1. **Never give up on first failure** — adapt and try a different approach.
+2. **Analyze before retrying** — understand WHY it failed; check error messages for root causes.
+3. **Try alternative strategies** — if direct fails, go indirect: read the file first, use `glob` to discover paths, create missing directories.
+4. **Validate assumptions** — verify files exist (`ls`), paths are correct (`glob`), and prerequisites are met before acting.
+5. **Read before writing** — always understand current state before modifications.
 
 ### When a Tool Returns an Error
 
-1. **Parse the error message** - Extract specific details about what failed
-2. **Identify the root cause** - Is it a path issue? Permission issue? Format issue?
-3. **Consider prerequisites** - What step might be missing before this can succeed?
-4. **Try a different approach** - Use alternative tools or strategies
-5. **If stuck after 3+ attempts** - Step back, reassess the overall strategy, break the
-   problem into smaller pieces
+1. **Parse the error message** for specifics
+2. Identify the **root cause** (path? permission? format?)
+3. Try a different approach; after 3+ failures, break the problem into smaller pieces
 
 ### Never Do This
 
@@ -61,7 +42,6 @@ but by recovering from them intelligently. Follow these principles:
 - Retry the exact same action without changes
 - Assume a path exists without checking
 - Edit a file without reading it first
-- Report failure without trying alternatives
 """
 
 # =============================================================================
@@ -105,6 +85,13 @@ strategic:
 - For large files, pass `offset` and `limit` to `read` to fetch only the lines
   you need instead of the entire file
 - Prefer targeted reads over broad exploration
+
+**Editing Efficiency**: When modifying existing files, prefer `edit` over
+`write`. The `edit` tool replaces only the targeted section — you specify
+`old_text` (enough context to locate it uniquely) and `new_text`. This
+avoids regenerating unchanged content. Use multiple `edit` calls for
+multiple changes in the same file. Reserve `write` for creating new files
+or complete rewrites where the structure changes fundamentally.
 """
 
 MCP_TOOLS_CAPABILITY = """
@@ -160,28 +147,16 @@ When file operations fail, use these recovery patterns:
 1. **Read first**: Use `read` to see current content and structure
 2. **Verify path**: Confirm the file exists with `ls` on the parent directory
 3. **Check format**: Ensure your edit matches the file's format (JSON, YAML, etc.)
-4. **Try write**: If `edit` fails repeatedly, read the full file, modify in
-   your context, and use `write` to replace entirely
+4. If `edit` fails repeatedly, read the full file and use `write` to replace entirely
 
 ### File Not Found
 1. **Search with glob**: Use `glob` with patterns like `**/*.py` to find files
 2. **Check parent directory**: Use `ls` to verify the directory structure
-3. **Consider variations**: The file might have a different extension or be in a subdirectory
 
 ### Permission Denied
-1. **Verify path correctness**: Double-check the path for typos
+1. **Verify path correctness**: Double-check for typos
 2. **Check if it's a directory**: You might be trying to read a directory as a file
-3. **Try alternative location**: Write to a different location if the target is read-only
-
-### Edit Conflicts / Merge Issues
-1. **Read current content**: Get the latest file state with `read`
-2. **Apply changes manually**: Modify the content in your reasoning
-3. **Write complete file**: Use `write` with the merged result
-
-### Large File Issues
-1. **Read specific lines**: Use line range parameters if available
-2. **Work in chunks**: Process sections of the file sequentially
-3. **Use grep**: Search for specific content instead of reading everything
+3. Try an alternative location if the target is read-only
 """
 
 MCP_RECOVERY_STRATEGIES = """
@@ -190,29 +165,22 @@ MCP_RECOVERY_STRATEGIES = """
 When MCP tools fail, use these recovery patterns:
 
 ### Authentication Errors
-1. **Check parameters**: Verify all required parameters are provided
-2. **Retry once**: Transient auth issues may resolve on retry
-3. **Report clearly**: If auth fails repeatedly, inform the user about the access issue
+- Verify all required parameters are provided; retry once for transient issues
+- If authentication fails repeatedly, report the access issue to the user
 
 ### Invalid Parameters
-1. **Review tool schema**: Check the tool description for required parameters and types
-2. **Validate inputs**: Ensure values match expected formats (IDs, URLs, etc.)
-3. **Try with defaults**: Omit optional parameters and use only required ones
+- Review the tool description for required parameters and expected types
+- Try with only required parameters, omitting optional ones
 
 ### Resource Not Found
-1. **Verify identifiers**: Double-check resource IDs or names
-2. **List available resources**: Use list/search tools to discover valid resources
-3. **Check scope**: The resource might exist in a different namespace or context
+- Double-check resource IDs or names; use list/search tools to discover valid resources
+- The resource might exist in a different namespace or context
 
 ### Rate Limiting / Quota Errors
-1. **Wait and retry**: Some limits are per-minute; a short wait may help
-2. **Reduce scope**: Request less data or fewer resources
-3. **Batch operations**: Combine multiple small requests into fewer larger ones
+- Wait and retry (some limits are per-minute); reduce scope if needed
 
 ### Timeout Errors
-1. **Retry with simpler request**: Reduce the scope or complexity
-2. **Check connectivity**: The service might be temporarily unavailable
-3. **Report status**: Inform the user if the external service is unresponsive
+- Retry with a simpler request; report to the user if the service is unresponsive
 """
 
 EXECUTION_RECOVERY_STRATEGIES = """
@@ -221,29 +189,21 @@ EXECUTION_RECOVERY_STRATEGIES = """
 When shell commands fail, use these recovery patterns:
 
 ### Command Not Found
-1. **Check installation**: The tool might not be installed; try installing it first
-2. **Use full path**: Try `/usr/bin/command` or `/usr/local/bin/command`
-3. **Check environment**: The PATH might not include the command's location
+- The tool may not be installed — try installing it first
+- Try the full path (`/usr/bin/command`) or check the PATH
 
 ### Permission Denied
-1. **Check file permissions**: Use `ls -la` to see permissions
-2. **Verify working directory**: You might be in the wrong directory
-3. **Avoid sudo**: The sandbox typically doesn't support privilege escalation
+- Use `ls -la` to check permissions; verify working directory
+- The sandbox does not support `sudo`
 
 ### Exit Code Non-Zero
-1. **Read stderr output**: Error messages explain what went wrong
-2. **Check prerequisites**: Missing dependencies or configuration
-3. **Validate inputs**: File paths, arguments, environment variables
+- Read stderr for error details; check prerequisites and dependencies
 
 ### Timeout / Hung Process
-1. **Add timeout flags**: Use command-specific timeout options
-2. **Check for prompts**: The command might be waiting for input
-3. **Run in background**: For long operations, consider async execution
+- Add command-specific timeout flags; check if the command is waiting for input
 
 ### Missing Dependencies
-1. **Install first**: Run `pip install` or `npm install` before the main command
-2. **Check version requirements**: Some tools need specific versions
-3. **Verify virtual environment**: Ensure you're in the right environment
+- Install first (`pip install`, `npm install`); check version requirements
 """
 
 
@@ -307,9 +267,9 @@ def enhance_user_instructions(
         True
     
     Note:
-        The enhanced prompt is ~800-1200 words depending on enabled features.
-        This is intentional - comprehensive guidance enables self-correcting
-        behavior. LLMs handle this context efficiently (<1% of context window).
+        The enhanced prompt is ~600-900 words depending on enabled features.
+        Guidance is compressed for signal density while preserving recovery
+        effectiveness.  LLMs handle this context efficiently (<1% of context window).
     """
     if not user_instructions or not user_instructions.strip():
         raise ValueError("user_instructions cannot be empty")

@@ -27,7 +27,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from ai.stigmer.agentic.agentexecution.v1.api_pb2 import ExecutionArtifact
+from ai.stigmer.agentic.agentexecution.v1.artifact_pb2 import ExecutionArtifact
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionArtifactKind
 
 if TYPE_CHECKING:

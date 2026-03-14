@@ -147,8 +147,10 @@ class TestModelMetadataImmutability:
             cost_tier=CostTier.ECONOMY,
         )
         # Check defaults
-        assert metadata.input_cost_per_1k is None
-        assert metadata.output_cost_per_1k is None
+        assert metadata.input_price_per_million is None
+        assert metadata.output_price_per_million is None
+        assert metadata.cache_creation_price_per_million is None
+        assert metadata.cache_read_price_per_million is None
         assert metadata.supports_tool_use is True
         assert metadata.supports_vision is False
         assert metadata.supports_streaming is True
@@ -176,12 +178,12 @@ class TestModelRegistryGet:
         assert metadata.model_id == "claude-opus-4"
         assert metadata.provider == "anthropic"
         assert metadata.cost_tier == CostTier.PREMIUM
-        assert metadata.input_cost_per_1k == 15.0
+        assert metadata.input_price_per_million == 15.0
 
     def test_get_claude_haiku_4(self):
         """Test getting Claude Haiku 4 metadata."""
-        metadata = ModelRegistry.get("claude-haiku-4")
-        assert metadata.model_id == "claude-haiku-4"
+        metadata = ModelRegistry.get("claude-haiku-4.5")
+        assert metadata.model_id == "claude-haiku-4.5"
         assert metadata.cost_tier == CostTier.ECONOMY
 
     def test_get_gpt_4(self):
@@ -205,7 +207,7 @@ class TestModelRegistryGet:
         metadata = ModelRegistry.get("gpt-4o-mini")
         assert metadata.model_id == "gpt-4o-mini"
         assert metadata.cost_tier == CostTier.ECONOMY
-        assert metadata.input_cost_per_1k == 0.15
+        assert metadata.input_price_per_million == 0.15
 
     def test_get_o1(self):
         """Test getting o1 metadata."""
@@ -220,7 +222,7 @@ class TestModelRegistryGet:
         assert metadata.model_id == "qwen2.5-coder:7b"
         assert metadata.provider == "ollama"
         assert metadata.context_window_tokens == 32768
-        assert metadata.input_cost_per_1k is None  # Local model, no cost
+        assert metadata.input_price_per_million is None  # Local model, no cost
 
     def test_get_unknown_model_raises_keyerror(self):
         """Test that getting unknown model raises KeyError."""
@@ -294,19 +296,19 @@ class TestModelRegistryGetSummarizationModel:
     """Tests for ModelRegistry.get_summarization_model() method."""
 
     def test_anthropic_uses_haiku(self):
-        """Test that Anthropic models use claude-haiku-4 for summarization."""
+        """Test that Anthropic models use claude-haiku-4.5 for summarization."""
         summarizer = ModelRegistry.get_summarization_model("claude-opus-4")
-        assert summarizer == "claude-haiku-4"
+        assert summarizer == "claude-haiku-4.5"
 
     def test_anthropic_sonnet_uses_haiku(self):
         """Test that Claude Sonnet uses Haiku for summarization."""
         summarizer = ModelRegistry.get_summarization_model("claude-sonnet-4.5")
-        assert summarizer == "claude-haiku-4"
+        assert summarizer == "claude-haiku-4.5"
 
     def test_anthropic_haiku_uses_haiku(self):
         """Test that Claude Haiku uses itself for summarization."""
-        summarizer = ModelRegistry.get_summarization_model("claude-haiku-4")
-        assert summarizer == "claude-haiku-4"
+        summarizer = ModelRegistry.get_summarization_model("claude-haiku-4.5")
+        assert summarizer == "claude-haiku-4.5"
 
     def test_openai_uses_gpt4o_mini(self):
         """Test that OpenAI models use gpt-4o-mini for summarization."""
@@ -356,7 +358,7 @@ class TestModelRegistryListByProvider:
         model_ids = [m.model_id for m in models]
         assert "claude-opus-4" in model_ids
         assert "claude-sonnet-4.5" in model_ids
-        assert "claude-haiku-4" in model_ids
+        assert "claude-haiku-4.5" in model_ids
 
     def test_list_openai_models(self):
         """Test listing all OpenAI models."""
@@ -490,7 +492,7 @@ class TestModelRegistryGetEconomyModels:
         """Test that Claude Haiku models are included."""
         models = ModelRegistry.get_economy_models()
         model_ids = [m.model_id for m in models]
-        assert "claude-haiku-4" in model_ids
+        assert "claude-haiku-4.5" in model_ids
 
     def test_includes_gpt4o_mini(self):
         """Test that GPT-4o Mini is included."""
@@ -565,18 +567,96 @@ class TestModelMetadataFields:
     def test_ollama_models_have_no_cost(self):
         """Test that Ollama models have no cost (local)."""
         for model in ModelRegistry.list_by_provider("ollama"):
-            assert model.input_cost_per_1k is None, \
+            assert model.input_price_per_million is None, \
                 f"{model.model_id} should have no input cost"
-            assert model.output_cost_per_1k is None, \
+            assert model.output_price_per_million is None, \
                 f"{model.model_id} should have no output cost"
 
     def test_paid_models_have_costs(self):
         """Test that paid models have cost information."""
         for model in ModelRegistry.list_by_provider("anthropic"):
-            assert model.input_cost_per_1k is not None, \
+            assert model.input_price_per_million is not None, \
                 f"{model.model_id} should have input cost"
-            assert model.output_cost_per_1k is not None, \
+            assert model.output_price_per_million is not None, \
                 f"{model.model_id} should have output cost"
+
+
+# =============================================================================
+# TestCachePricing - Tests for cache pricing fields
+# =============================================================================
+
+
+class TestCachePricing:
+    """Tests for cache_creation_price_per_million and cache_read_price_per_million."""
+
+    def test_anthropic_models_have_cache_pricing(self):
+        """Test that all Anthropic models have cache pricing set."""
+        for model in ModelRegistry.list_by_provider("anthropic"):
+            assert model.cache_creation_price_per_million is not None, \
+                f"{model.model_id} should have cache creation price"
+            assert model.cache_read_price_per_million is not None, \
+                f"{model.model_id} should have cache read price"
+
+    def test_openai_models_have_cache_pricing(self):
+        """Test that all OpenAI models have cache pricing set."""
+        for model in ModelRegistry.list_by_provider("openai"):
+            assert model.cache_creation_price_per_million is not None, \
+                f"{model.model_id} should have cache creation price"
+            assert model.cache_read_price_per_million is not None, \
+                f"{model.model_id} should have cache read price"
+
+    def test_ollama_models_have_no_cache_pricing(self):
+        """Test that Ollama models have no cache pricing (local, no provider caching)."""
+        for model in ModelRegistry.list_by_provider("ollama"):
+            assert model.cache_creation_price_per_million is None, \
+                f"{model.model_id} should have no cache creation price"
+            assert model.cache_read_price_per_million is None, \
+                f"{model.model_id} should have no cache read price"
+
+    def test_anthropic_cache_creation_is_1_25x_input(self):
+        """Test that Anthropic cache creation = 1.25x input (5-min ephemeral TTL)."""
+        for model in ModelRegistry.list_by_provider("anthropic"):
+            expected = model.input_price_per_million * 1.25
+            assert model.cache_creation_price_per_million == pytest.approx(expected), \
+                f"{model.model_id}: cache_creation {model.cache_creation_price_per_million} " \
+                f"!= 1.25 * input {expected}"
+
+    def test_anthropic_cache_read_is_0_1x_input(self):
+        """Test that Anthropic cache read = 0.1x input (90% discount)."""
+        for model in ModelRegistry.list_by_provider("anthropic"):
+            expected = model.input_price_per_million * 0.1
+            assert model.cache_read_price_per_million == pytest.approx(expected), \
+                f"{model.model_id}: cache_read {model.cache_read_price_per_million} " \
+                f"!= 0.1 * input {expected}"
+
+    def test_openai_cache_creation_equals_input(self):
+        """Test that OpenAI cache creation = input price (no write premium)."""
+        for model in ModelRegistry.list_by_provider("openai"):
+            assert model.cache_creation_price_per_million == model.input_price_per_million, \
+                f"{model.model_id}: cache_creation {model.cache_creation_price_per_million} " \
+                f"!= input {model.input_price_per_million}"
+
+    def test_openai_cache_read_is_0_5x_input(self):
+        """Test that OpenAI cache read = 0.5x input (50% discount)."""
+        for model in ModelRegistry.list_by_provider("openai"):
+            expected = model.input_price_per_million * 0.5
+            assert model.cache_read_price_per_million == pytest.approx(expected), \
+                f"{model.model_id}: cache_read {model.cache_read_price_per_million} " \
+                f"!= 0.5 * input {expected}"
+
+    def test_specific_sonnet_cache_pricing(self):
+        """Test exact cache pricing values for claude-sonnet-4.5."""
+        metadata = ModelRegistry.get("claude-sonnet-4.5")
+        assert metadata.input_price_per_million == 3.0
+        assert metadata.output_price_per_million == 15.0
+        assert metadata.cache_creation_price_per_million == 3.75
+        assert metadata.cache_read_price_per_million == 0.30
+
+    def test_default_metadata_has_no_cache_pricing(self):
+        """Test that unknown models get None for cache pricing."""
+        metadata = ModelRegistry.get_or_default("unknown-custom-model")
+        assert metadata.cache_creation_price_per_million is None
+        assert metadata.cache_read_price_per_million is None
 
 
 # =============================================================================
@@ -599,8 +679,8 @@ class TestModelMetadataGetApiModelId:
 
     def test_anthropic_haiku_returns_api_id(self):
         """Test that Claude Haiku returns its api_model_id."""
-        metadata = ModelRegistry.get("claude-haiku-4")
-        assert metadata.get_api_model_id() == "claude-haiku-4-20250313"
+        metadata = ModelRegistry.get("claude-haiku-4.5")
+        assert metadata.get_api_model_id() == "claude-haiku-4-5-20251001"
 
     def test_anthropic_sonnet_3_5_returns_api_id(self):
         """Test that Claude Sonnet 3.5 returns its api_model_id."""
@@ -712,7 +792,7 @@ class TestModelRegistryResolve:
         expected = {
             "claude-opus-4": "claude-opus-4-20250514",
             "claude-sonnet-4.5": "claude-sonnet-4-5-20250929",
-            "claude-haiku-4": "claude-haiku-4-20250313",
+            "claude-haiku-4.5": "claude-haiku-4-5-20251001",
             "claude-sonnet-3.5": "claude-3-5-sonnet-20241022",
             "claude-haiku-3.5": "claude-3-5-haiku-20241022",
         }
@@ -860,7 +940,7 @@ class TestSupportsThinking:
         )
 
     @pytest.mark.parametrize("model_id", [
-        "claude-haiku-4",
+        "claude-haiku-4.5",
         "claude-sonnet-3.5",
         "claude-haiku-3.5",
     ])
@@ -891,3 +971,63 @@ class TestSupportsThinking:
                 f"{model.model_id} has both supports_thinking and "
                 f"supports_adaptive_thinking set to True"
             )
+
+
+# =============================================================================
+# TestGetByApiModelId - Tests for reverse API model ID lookup (Phase 3)
+# =============================================================================
+
+
+class TestGetByApiModelId:
+    """Tests for ModelRegistry.get_by_api_model_id() reverse lookup."""
+
+    def test_lookup_by_explicit_api_model_id(self):
+        """Explicit api_model_id resolves to the correct entry."""
+        metadata = ModelRegistry.get("claude-sonnet-4.6")
+        if metadata.api_model_id:
+            result = ModelRegistry.get_by_api_model_id(metadata.api_model_id)
+            assert result is not None
+            assert result.model_id == "claude-sonnet-4.6"
+
+    def test_lookup_by_platform_model_id(self):
+        """Platform model_id also resolves via the reverse index."""
+        result = ModelRegistry.get_by_api_model_id("claude-sonnet-4.6")
+        assert result is not None
+        assert result.model_id == "claude-sonnet-4.6"
+
+    def test_lookup_unknown_returns_none(self):
+        """Unknown identifiers return None, not KeyError."""
+        assert ModelRegistry.get_by_api_model_id("nonexistent-model-xyz") is None
+
+    def test_ollama_model_resolves(self):
+        """Ollama models (api_model_id is None) resolve by model_id."""
+        if ModelRegistry.is_registered("qwen2.5-coder:7b"):
+            result = ModelRegistry.get_by_api_model_id("qwen2.5-coder:7b")
+            assert result is not None
+            assert result.provider == "ollama"
+
+    def test_openai_model_resolves(self):
+        """OpenAI platform ID resolves correctly."""
+        result = ModelRegistry.get_by_api_model_id("gpt-4o")
+        assert result is not None
+        assert result.provider == "openai"
+
+    def test_index_is_lazily_built(self):
+        """The reverse index is built once and cached."""
+        ModelRegistry._API_MODEL_ID_INDEX = None
+        _ = ModelRegistry.get_by_api_model_id("gpt-4o")
+        assert ModelRegistry._API_MODEL_ID_INDEX is not None
+        index_id = id(ModelRegistry._API_MODEL_ID_INDEX)
+        _ = ModelRegistry.get_by_api_model_id("gpt-4o")
+        assert id(ModelRegistry._API_MODEL_ID_INDEX) == index_id
+
+    def test_all_models_with_api_model_id_resolvable(self):
+        """Every model with an explicit api_model_id can be found via reverse lookup."""
+        for model in ModelRegistry.list_all():
+            if model.api_model_id:
+                result = ModelRegistry.get_by_api_model_id(model.api_model_id)
+                assert result is not None, (
+                    f"api_model_id '{model.api_model_id}' for '{model.model_id}' "
+                    f"not found via get_by_api_model_id"
+                )
+                assert result.model_id == model.model_id
