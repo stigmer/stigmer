@@ -105,6 +105,13 @@ strategic:
 - For large files, pass `offset` and `limit` to `read` to fetch only the lines
   you need instead of the entire file
 - Prefer targeted reads over broad exploration
+
+**Editing Efficiency**: When modifying existing files, prefer `edit` over
+`write`. The `edit` tool replaces only the targeted section — you specify
+`old_text` (enough context to locate it uniquely) and `new_text`. This
+avoids regenerating unchanged content. Use multiple `edit` calls for
+multiple changes in the same file. Reserve `write` for creating new files
+or complete rewrites where the structure changes fundamentally.
 """
 
 MCP_TOOLS_CAPABILITY = """
