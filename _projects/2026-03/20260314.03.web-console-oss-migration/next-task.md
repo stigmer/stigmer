@@ -19,7 +19,7 @@ Drop this file into your conversation to quickly resume work on this project.
 | Task | Title | Status |
 |------|-------|--------|
 | **T01** | Proto TypeScript Codegen Setup | ✅ DONE |
-| **T02** | Migrate Web Source to Stigmer Repo | ⏸️ TODO |
+| **T02** | Migrate Web Source to Stigmer Repo | ✅ DONE |
 | **T03** | Implement Configurable Auth | ⏸️ TODO |
 | **T04** | Configure Static Export Build | ⏸️ TODO |
 | **T05** | Embed Web UI in stigmer-server | ⏸️ TODO |
@@ -33,6 +33,8 @@ Drop this file into your conversation to quickly resume work on this project.
 - **Port**: 8234 for web console
 - **Protos**: TypeScript codegen added to OSS (`apis/buf.gen.ts.yaml`)
 - **Single codebase**: No separate web code in stigmer-cloud
+- **Package manager**: npm workspaces (decided in T02)
+- **Deployment artifacts**: Dockerfile and _kustomize/ kept in OSS (single codebase principle)
 
 ## Essential Files to Review
 
@@ -107,31 +109,47 @@ Key files for reference during migration:
 - Generated 169 TypeScript stubs (100% match with stigmer-cloud's current valid files)
 - Found and fixed bug from stigmer-cloud: `ts-stubs-clean` was cleaning `com/` instead of `ai/`, causing 435 stale files
 
-### Key Decision Made
-- `@connectrpc/connect` NOT declared in `@stigmer/protos` package.json (matches stigmer-cloud pattern; will rely on workspace hoisting from consuming app in T02)
+### T02 Completed: Migrate Web Source to Stigmer Repo
+- Created root `package.json` with npm workspace declarations (`apis/stubs/ts`, `client-apps/web`)
+- Copied 84 TypeScript source files + config + Dockerfile + _kustomize/ from stigmer-cloud
+- Updated `package.json`: removed `next-auth`, rewired `@stigmer/protos` to `"*"` (npm workspace), moved `shadcn` to devDeps, simplified build script
+- Updated `next.config.ts`: removed `output: "standalone"` and `outputFileTracingRoot`
+- Stripped next-auth: deleted 4 auth files, rewrote 3 as no-op stubs (Providers, AuthGuard, useAuthSession)
+- Removed `force-dynamic` from layout.tsx
+- Verified: `npm install` (730 packages, 0 vulnerabilities), dev server starts, app shell renders in browser
+- Created `client-apps/web/README.md`
+
+### Key Decisions Made
+- npm workspaces chosen over Yarn/pnpm (zero extra tooling, built into Node.js)
+- `@connectrpc/connect` NOT declared in `@stigmer/protos` package.json (matches stigmer-cloud pattern; relies on workspace hoisting)
+- Auth stub approach: minimal no-ops in T02, proper configurable auth in T03
+- Dockerfile and _kustomize/ included (single codebase principle — cloud deploys from OSS)
 
 ## Current Status
 
 **Created**: 2026-03-14
-**Current Task**: T02 (Migrate Web Source to Stigmer Repo)
-**Status**: T01 complete, T02 ready to start
+**Current Task**: T03 (Implement Configurable Auth)
+**Status**: T01 + T02 complete, T03 ready to start
 
 ## Next Steps
 
-1. **T02**: Copy `client-apps/web/` from stigmer-cloud, set up npm workspaces, rewire `@stigmer/protos` dependency, strip auth0/next-auth hard deps
-2. **T03**: Implement configurable auth (disabled for local, oidc for cloud)
-3. **T04**: Configure static export build for Go embedding
+1. **T03**: Implement configurable auth — `useAuth()` hook, `AuthProvider`, runtime config (`disabled` | `oidc`)
+2. **T04**: Configure static export build for Go embedding
+3. **T05**: Embed web UI in stigmer-server via `//go:embed`
 
 ## Context for Resume
 - Branch: `ref/migrate-web-to-oss`
 - TypeScript codegen is fully working: `make ts-stubs` from `apis/` directory
-- Generated stubs are committed to git (same convention as Go/Python stubs)
-- stigmer-cloud web app reference: `/Users/suresh/scm/github.com/stigmer/stigmer-cloud/client-apps/web/`
-- stigmer-cloud uses Yarn workspaces; OSS plan recommends npm workspaces (decision to finalize in T02)
+- Web app is fully migrated and running: `npm run dev -w client-apps/web` starts on port 3000
+- Auth is stubbed out (no-op) — T03 will implement configurable auth
+- `@stigmer/protos` resolves via npm workspace symlink to `apis/stubs/ts/`
+- App shell renders in browser (sidebar, navigation, dashboard cards)
+- API calls fail at runtime (expected — no stigmer-server running)
+- Pre-existing code quality issue noted: all service files use `any` cast for Connect-RPC clients
 
 ## Quick Commands
 
-- "Continue with T02" — Start migrating the web source
+- "Continue with T03" — Start implementing configurable auth
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 

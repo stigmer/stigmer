@@ -1,0 +1,37 @@
+apiVersion: kubernetes.project-planton.org/v1
+kind: KubernetesDeployment
+metadata:
+  name: stigmer-web
+  env: prod
+  labels:
+    pulumi.project-planton.org/stack.name: prod.KubernetesDeployment.stigmer-web
+spec:
+  namespace:
+    value: stigmer-prod
+  container:
+    app:
+      env:
+        variables:
+          NEXT_PUBLIC_API_URL: https://stigmer-prod-api.planton.live
+          NEXT_PUBLIC_IAM_API_AUDIENCE: $variables-group/stigmer-auth0-config/prod.api-audience
+          IAM_DOMAIN: $variables-group/stigmer-auth0-config/prod.domain
+          IAM_CLIENT_ID: $variables-group/stigmer-auth0-config/prod.web-client-id
+          IAM_API_AUDIENCE: $variables-group/stigmer-auth0-config/prod.api-audience
+          NEXTAUTH_URL: $variables-group/stigmer-web/prod.next-auth-url
+          NEXTAUTH_URL_INTERNAL: $variables-group/stigmer-web/prod.next-auth-url
+        secrets:
+          IAM_CLIENT_SECRET:
+            value: $secrets-group/stigmer-auth0-credentials/prod.web-client-secret
+          NEXTAUTH_SECRET:
+            value: $secrets-group/stigmer-web/prod.nextauth-secret
+      resources:
+        limits:
+          cpu: 2000m
+          memory: 2Gi
+        requests:
+          cpu: 250m
+          memory: 250Mi
+  ingress:
+    enabled: true
+    hostname: stigmer-prod-web.planton.live
+
