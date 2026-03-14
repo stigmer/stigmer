@@ -12,10 +12,53 @@ Drop this file into your conversation to quickly resume work on this project.
 **Components**: Proto APIs (agentexecution/v1, session/v1), agent-runner (Python/LangGraph), stigmer-server (Go), CLI (Go)
 
 ## Current State
-- **Status**: In Progress
-- **Last Session**: 2026-03-14 (Session 12) — Phase 8 Diff-Based Output Optimization complete
-- **Active Task**: Phase 8 complete. Next: Phase 9 (Smart Context / Selective Inclusion)
+- **Status**: Complete (all 9 phases delivered)
+- **Last Session**: 2026-03-14 (Session 13) — Phase 9 Smart Context / Selective Inclusion complete
+- **Active Task**: All phases complete. Project closed.
 - **Branch**: `feat/usage-metrics-and-cost-optimization`
+
+## Session Progress (2026-03-14, Session 13)
+
+### Phase 9: Smart Context / Selective Inclusion — COMPLETED
+
+Implemented skill relevance filtering, tool count observability, and system prompt compression after discovering that the original plan's assumptions were fundamentally incorrect.
+
+**Three critical discoveries that changed the plan:**
+1. Skills already use progressive disclosure (~50-70 tokens per skill metadata, not full SKILL.md) — the "30% system prompt reduction" target was unreachable via skill filtering
+2. MCP tool schemas live in the API tool-calling payload (via `bind_tools()`), not in the system prompt string — pruning removes capabilities, not tokens
+3. Phase 8 already added line-range read guidance to the filesystem capability section
+
+**9.1 Skill Relevance Filtering (BM25-based, signal quality)**
+
+New files (1 production, 1 test):
+- `skill_relevance.py` — BM25-inspired scorer: tokenizer, per-skill scoring, threshold-based filtering with safety floor (always keeps ≥ half of skills), populates `ResolvedExecutionContext.excluded_skill_names`
+- `test_skill_relevance.py` — 26 tests: tokenization, BM25 scoring, filtering thresholds, safety floor, disjoint partitions
+
+Modified files (3 production, 2 test):
+- `skill_writer.py` — Added `generate_also_available_section()`: "Also Available" note listing excluded skills with self-activation instructions
+- `execute_graphton.py` — Wired relevance filtering between skill fetching and prompt construction (only activates when ≥ 8 skills); passes `excluded_skill_names` to status builder
+- `status_builder.py` — Extended `set_resolved_context()` with `excluded_skill_names` parameter (backward-compatible, defaults to `None`)
+- `test_skill_writer.py` — 4 new tests for `generate_also_available_section()`
+- `test_status_builder.py` — 4 new tests for `excluded_skill_names` handling
+
+**9.2 Tool Count Observability and Guardrails**
+
+Modified files (1 production):
+- `agent.py` — Added tool count observability: structured warning when bound tools exceed 25 (configurable), info log with total count, and automatic description truncation at 500 chars for overly verbose MCP tool descriptions
+
+**9.3 System Prompt Compression Audit**
+
+Modified files (1 production):
+- `prompt_enhancement.py` — Compressed all sections: RESILIENCE_PREAMBLE condensed from verbose explanations to crisp directives; removed "Edit Conflicts / Merge Issues" and "Large File Issues" from FILE_RECOVERY_STRATEGIES (covered elsewhere); tightened all recovery strategy sections from numbered multi-step lists to concise bullet points. **Before: 1,530 words → After: 1,107 words (28% reduction, all 35 tests pass)**
+
+**Items explicitly deferred:**
+- Dynamic tool schema pruning — requires restructuring LangGraph graph topology (high complexity, high risk)
+- Context budget / token allocation — overlaps with existing summarization mechanism, needs own design phase
+- Embedding-based skill relevance — over-engineering for current skill counts
+
+**Verification:** All graphton tests pass (35/35 prompt enhancement tests). All agent-runner tests pass (26/26 skill relevance, 34/34 skill writer, 17/17 resolved context).
+
+---
 
 ## Session Progress (2026-03-14, Session 12)
 
@@ -237,24 +280,27 @@ The dependency upgrades introduced 14 test failures in graphton (agent-runner is
 
 ---
 
-## Next Steps
+## Project Complete
 
-Pick up in this order:
+All 9 phases delivered:
+1. **Phase 1**: Usage metrics schema foundation (proto definitions)
+2. **Phase 2**: Model pricing registry and cache-aware pricing
+3. **Phase 3**: Usage metrics population pipeline (field population, tool truncation, cost cap)
+4. **Phase 4**: Prompt caching (4A: system/tool caching, 4B: automatic conversation caching + dep upgrade)
+5. **Phase 5**: Server usage report RPCs (Go + Java)
+6. **Phase 6**: CLI usage display and commands
+7. **Phase 7**: Sub-agent model routing
+8. **Phase 8**: Diff-based output optimization
+9. **Phase 9**: Smart context / selective inclusion (skill relevance filtering, tool observability, prompt compression)
 
-### Immediate: Phase 9 — Smart Context / Selective Inclusion
-Implement skill relevance filtering and tool schema pruning to reduce system prompt token count.
+## Context for Reference
 
-## Context for Resume
-
-- **Phases 1-8 complete**: Schema, pricing, field population, caching, server RPCs, CLI display & commands, sub-agent model routing, diff-based output optimization all done.
+- **Phase 9 plan file**: `.cursor/plans/phase_9_smart_context_07d00830.plan.md`
 - **Phase 6 plan file**: `.cursor/plans/cli_usage_phase_6_9fc7721f.plan.md`
 - **Phase 5 plan file**: `.cursor/plans/phase_5_usage_report_rpcs_781e9b31.plan.md`
-- **CLI usage commands**: `stigmer usage session|agent|org` — all three subcommands consume gRPC RPCs, support `--output table|json|yaml`, use `display.NewTable()` for rendering.
-- **Panel enhancement**: EXECUTION COMPLETE panel now shows Model + Cost lines; session exit line shows cost inline.
-- **Aggregation algorithm**: Sub-agent costs included in execution totals. Model breakdowns merged by (model, provider) key.
-- **Three-layer caching** (Phase 4B): `_inject_cache_control()` in `graphton/core/models.py`. Opt-out via `model._prompt_caching = False`.
-- **All graphton tests green**: 1155 passed, 1 skipped, 0 failed. 1198/1198 agent-runner tests pass.
-- **Key dep versions**: anthropic 0.84.0, deepagents 0.4.10, langchain-core 1.2.19, langgraph 1.1.2.
+- **CLI usage commands**: `stigmer usage session|agent|org` — all three subcommands consume gRPC RPCs, support `--output table|json|yaml`
+- **Three-layer caching** (Phase 4B): `_inject_cache_control()` in `graphton/core/models.py`
+- **Key dep versions**: anthropic 0.84.0, deepagents 0.4.10, langchain-core 1.2.19, langgraph 1.1.2
 - T01 master plan: `tasks/T01_0_plan.md`
 
 ## Essential Files to Review
