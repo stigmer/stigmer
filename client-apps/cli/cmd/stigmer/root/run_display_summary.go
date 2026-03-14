@@ -137,12 +137,26 @@ func buildAgentSummaryContent(execution *agentexecutionv1.AgentExecution) string
 		sections = append(sections, "Approval:    requested")
 	}
 
+	// Model
+	if usage := execution.Status.GetUsage(); usage != nil {
+		if label := formatModelLabel(usage); label != "" {
+			sections = append(sections, fmt.Sprintf("Model:       %s", label))
+		}
+	}
+
 	// Token usage
 	if usage := execution.Status.GetUsage(); usage != nil && usage.TotalTokens > 0 {
 		sections = append(sections, fmt.Sprintf("Tokens:      %s (%s in, %s out)",
 			formatTokenCount(usage.TotalTokens),
 			formatTokenCount(usage.PromptTokens),
 			formatTokenCount(usage.CompletionTokens)))
+	}
+
+	// Cost (with cache hit rate when available)
+	if usage := execution.Status.GetUsage(); usage != nil {
+		if costLine := formatCostLine(usage); costLine != "" {
+			sections = append(sections, fmt.Sprintf("Cost:        %s", costLine))
+		}
 	}
 
 	// Context utilization
@@ -347,10 +361,13 @@ func displaySessionExitLine(sessionID string, exec *agentexecutionv1.AgentExecut
 	fmt.Fprintln(os.Stderr)
 	phase := exec.GetStatus().GetPhase()
 	duration := parseDuration(exec.GetStatus().GetStartedAt(), exec.GetStatus().GetCompletedAt())
+	cost := exec.GetStatus().GetUsage().GetEstimatedCostUsd()
 
 	switch phase {
 	case agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED:
-		if duration > 0 {
+		if duration > 0 && cost > 0 {
+			climsg.Success("Completed (%s · %s)", duration.Round(time.Second), formatCost(cost))
+		} else if duration > 0 {
 			climsg.Success("Completed (%s)", duration.Round(time.Second))
 		} else {
 			climsg.Success("Completed")
