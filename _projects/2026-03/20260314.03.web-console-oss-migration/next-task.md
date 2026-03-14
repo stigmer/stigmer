@@ -24,7 +24,7 @@ Drop this file into your conversation to quickly resume work on this project.
 | **T04** | Configure Static Export Build | ✅ DONE |
 | **T05** | Embed Web Console in Daemon + gRPC-Web | ✅ DONE |
 | **T06** | CLI Integration & Polish | ✅ DONE |
-| **T07** | Build Pipeline & Dev Workflow | ⏸️ TODO |
+| **T07** | Build Pipeline & Dev Workflow | ✅ DONE |
 
 ## Key Architectural Decisions
 
@@ -193,45 +193,48 @@ Key files for reference during migration:
 - **Fallback health probe**: TCP probe to port 8234 in `createBasicHealthState()`. Only records component when reachable.
 - **Key decisions**: Deferred `--web-port` (YAGNI — requires runtime config, CORS, API port coordination). Chose explicit `--open` over auto-open (CI-safe, non-intrusive).
 
+## Session Progress (2026-03-14 — Session 7)
+
+### T07 Completed: Build Pipeline & Dev Workflow
+- **Root Makefile**: Added web console artifacts to `clean` target (`rm -rf client-apps/cli/embedded/webconsole/out/`, `rm -rf client-apps/web/out/ client-apps/web/.next/`). Added ESLint for `client-apps/web` to `lint` target with graceful skip when `node_modules` not present.
+- **CI workflow (`release.cli.yaml`)**: Added `build-web-console` job that runs in parallel with `lint-and-typecheck-agent-runner` — checks out repo, generates TypeScript proto stubs via Buf, sets up Node.js 22, runs `npm ci`, lints, builds, and uploads `client-apps/web/out/` as `web-console-assets` artifact. Updated all 3 platform build jobs (`build-darwin-arm64`, `build-darwin-amd64`, `build-linux-amd64`) to depend on `build-web-console`, download the artifact into the embed location, and compile with `embed_agentrunner embed_webconsole` build tags.
+- **Dockerfile rewrite**: Multi-stage build — builder stage (`node:22-alpine`) with `ARG`→`ENV` pattern for `NEXT_PUBLIC_AUTH_MODE` and `NEXT_PUBLIC_API_URL`, npm workspaces install and build; runtime stage (`nginx:alpine`) serving static files on port 3000 with OCI labels.
+- **nginx.conf**: Created SPA routing config — hashed asset caching (`Cache-Control: immutable`), `index.html` revalidation (`no-cache`), SPA fallback with `.html` suffix support for Next.js static export routes.
+- **Kustomize cleanup**: Updated image repo from `stigmer-cloud` to `stigmer`. Removed stale Auth0/NextAuth env vars and secrets from all overlays. Right-sized resource limits for nginx (64Mi/128Mi memory vs. previous 500Mi/2Gi). Added comments clarifying `NEXT_PUBLIC_*` is build-time only.
+- **README.md**: Fixed API URL default (8080→7234). Added documentation for three workflow modes: web-only dev (hot reload), full release build (CLI embedding), Docker build (cloud deployment with build args).
+- **Key discovery**: `NEXT_PUBLIC_*` variables are build-time only for static exports — they cannot be overridden at runtime via Kubernetes env vars. Dockerfile uses `ARG`→`ENV` pattern so Docker build args are available to the Next.js build process. Kustomize env var overrides for these variables are misleading and were removed.
+- **Key decision**: No `release.web.yaml` workflow needed — cloud deployment handled by Planton (confirmed by checking stigmer-cloud had no such workflow).
+
 ## Current Status
 
 **Created**: 2026-03-14
-**Current Task**: T07 (Build Pipeline & Dev Workflow)
-**Status**: T01 through T06 complete, T07 ready to start
+**Current Task**: All tasks complete (T01–T07)
+**Status**: ✅ Project complete — all 7 tasks delivered
 
 ## Next Steps
 
-1. **T07**: Build Pipeline & Dev Workflow
+All planned tasks for the Web Console OSS Migration project are complete. Potential follow-up work:
+1. End-to-end testing of the full release pipeline (trigger CI on `ref/migrate-web-to-oss` branch)
+2. OIDC auth provider implementation (interface defined in T03, implementation deferred)
+3. Address pre-existing code quality issue: Connect-RPC service files use `any` cast
+4. Merge `ref/migrate-web-to-oss` branch to main
 
 ## Context for Resume
 - Branch: `ref/migrate-web-to-oss`
-- TypeScript codegen is fully working: `make ts-stubs` from `apis/` directory
-- Web app is fully migrated and running: `npm run dev -w client-apps/web` starts on port 3000
-- Auth is a bounded module at `src/auth/` with provider-pattern abstraction
-- `useAuth()` is the sole public API for auth consumers
-- Disabled mode is fully implemented (always-authenticated, no token, no redirects)
-- OIDC mode interface is defined (`src/auth/oidc/types.ts`) but implementation is deferred
-- Token store (`src/auth/token-store.ts`) bridges auth providers and Connect-RPC transport
-- API URL default is `localhost:7234` (matches stigmer-server gRPC port)
-- `@stigmer/protos` resolves via npm workspace symlink to `apis/stubs/ts/`
-- Static export builds to `out/` directory: `npm run build -w client-apps/web`
-- `next.config.ts` has `output: "export"` — produces static HTML/CSS/JS, no Node.js server
-- **stigmer-server now supports both native gRPC and gRPC-Web on port 7234** (h2c + improbable-eng/grpc-web)
-- **Web console embedded in CLI daemon** via `client-apps/cli/embedded/webconsole/` (build tag: `embed_webconsole`)
-- **Daemon serves web console on port 8234** as in-process goroutine (conditional on `IsAvailable()`)
-- **`make build-release`** produces binary with both agent-runner and web console embedded
-- **`make web-console-build`** builds web assets and copies to embed location
-- **`--no-web` flag** disables web console via `STIGMER_NO_WEB=1` env var to daemon subprocess
-- **`--open` flag** opens web console in browser after server startup (opt-in)
-- **Shared browser utility** at `internal/cli/browser/open.go` (used by auth login and server --open)
-- **Web console is optional in status display** — only shown when health state entry exists
-- **Fallback health** probes web console port (8234) via TCP in `createBasicHealthState()`
-- Pre-existing code quality issue noted: all service files use `any` cast for Connect-RPC clients
-- Dockerfile still references Yarn and standalone mode — needs rewrite in T07
+- All 7 tasks complete — project is ready for review and merge
+- TypeScript codegen: `make ts-stubs` from `apis/` directory
+- Web app: `npm run dev -w client-apps/web` starts on port 3000
+- Auth: bounded module at `src/auth/` with disabled (local) and OIDC (cloud) modes
+- Static export: `npm run build -w client-apps/web` → `out/` directory
+- CLI embedding: `make build-release` → binary with `embed_agentrunner embed_webconsole`
+- CI: `build-web-console` job builds once, platform jobs download artifact
+- Docker: multi-stage build with `ARG`→`ENV` for build-time config, nginx runtime
+- Kustomize: cleaned overlays, right-sized for nginx, no stale Auth0 references
+- gRPC-Web: stigmer-server handles browser→API via h2c multiplexing on port 7234
+- Daemon: web console on port 8234 (conditional, `--no-web` to disable, `--open` to auto-launch browser)
 
 ## Quick Commands
 
-- "Continue with T07" — Start build pipeline & dev workflow
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 

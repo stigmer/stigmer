@@ -7,26 +7,21 @@ metadata:
     project-planton.org/provisioner: pulumi
     pulumi.project-planton.org/organization: stigmer
     pulumi.project-planton.org/project: stigmer
-    kubernetes.project-planton.org/docker-config-json-file: "~/scm/github.com/stigmer/stigmer-cloud/ops/docker-config.ghcr.json"
 spec:
   container:
     app:
       image:
-        repo: ghcr.io/stigmer/stigmer-cloud/client-apps/web
-      env:
-        variables:
-          IAM_DOMAIN: $variables-group/stigmer-auth0-config/prod.domain
-          IAM_LOGOUT_REDIRECT: "/"
-        secrets:
-          NEXTAUTH_SECRET:
-            value: $secrets-group/stigmer-web/prod.nextauth-secret
+        repo: ghcr.io/stigmer/stigmer/client-apps/web
+      # NEXT_PUBLIC_* variables are baked into the JS bundle at Docker build
+      # time via --build-arg. They cannot be overridden at runtime. See the
+      # Dockerfile for available build args.
       resources:
         limits:
-          cpu: 500m
-          memory: 500Mi
+          cpu: 100m
+          memory: 64Mi
         requests:
-          cpu: 50m
-          memory: 100Mi
+          cpu: 10m
+          memory: 16Mi
       ports:
         - name: app
           containerPort: 3000
@@ -39,4 +34,3 @@ spec:
     horizontalPodAutoscaling:
       isEnabled: false
   version: main
-

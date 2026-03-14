@@ -4,7 +4,7 @@ Browser-based interface for Stigmer — run agents, monitor executions, manage s
 
 ## Development
 
-Prerequisites: Node.js 20+ and npm.
+Prerequisites: Node.js 22+ and npm.
 
 ```bash
 # From the repo root — install all workspace dependencies
@@ -14,7 +14,44 @@ npm install
 npm run dev -w client-apps/web
 ```
 
-The dev server connects to stigmer-server at `http://localhost:8080` by default (configurable via `NEXT_PUBLIC_API_URL`).
+The dev server connects to stigmer-server at `http://localhost:7234` by default (configurable via `NEXT_PUBLIC_API_URL`). Run `stigmer server` in a separate terminal to start the API.
+
+## Build modes
+
+### Web-only development (hot reload)
+
+For iterating on UI changes with instant feedback:
+
+```bash
+npm run dev -w client-apps/web
+```
+
+### Full release build (embedded in CLI)
+
+Builds the web console as a static export and embeds it in the CLI binary alongside the agent-runner:
+
+```bash
+make build-release
+```
+
+The resulting `bin/stigmer` serves the web console on port 8234 when you run `stigmer server`.
+
+### Docker build (cloud deployment)
+
+Builds a lightweight nginx container serving the static export:
+
+```bash
+docker build -f client-apps/web/Dockerfile -t stigmer-web .
+```
+
+Pass build args to configure the target environment:
+
+```bash
+docker build \
+  --build-arg NEXT_PUBLIC_AUTH_MODE=oidc \
+  --build-arg NEXT_PUBLIC_API_URL=https://api.example.com \
+  -f client-apps/web/Dockerfile -t stigmer-web .
+```
 
 ## Stack
 
@@ -28,8 +65,8 @@ The dev server connects to stigmer-server at `http://localhost:8080` by default 
 ```
 src/
 ├── app/            # Next.js routes (pages, layouts, error boundaries)
+├── auth/           # Auth module (configurable: disabled or OIDC)
 ├── components/     # UI components organized by domain
-│   ├── auth/       # Auth wrappers (configurable: disabled or OIDC)
 │   ├── catalog/    # Resource catalog (agents, skills, MCP servers)
 │   ├── execution/  # Agent execution streaming and controls
 │   ├── layout/     # App shell, sidebar, top bar
@@ -37,7 +74,7 @@ src/
 ├── config/         # App configuration (env, navigation, draft)
 ├── contexts/       # React contexts (organization)
 ├── hooks/          # Data-fetching and state hooks
-├── lib/            # Utilities (auth tokens, time, classnames)
+├── lib/            # Utilities (time, classnames)
 └── services/       # Connect-RPC service clients
 ```
 
