@@ -372,18 +372,6 @@ class StatusBuilder:
         # events from LangGraph still route to the correct proto.
         self._completed_sub_agents: dict[str, SubAgentExecution] = {}
 
-        # Monotonic counter for sub-agent invocation ordering.
-        # Each new SubAgentExecution gets the next value as its `sequence` field,
-        # making ordering an explicit domain property rather than an implicit
-        # artifact of list position.  On resume, initialized from the existing
-        # max to avoid collisions.
-        self._next_sub_agent_sequence: int = (
-            max(
-                (sa.sequence for sa in self.current_status.sub_agent_executions),
-                default=-1,
-            ) + 1
-        )
-
         # Map namespace to sub-agent run_id for event routing
         # Key: namespace string, Value: sub-agent run_id
         self._namespace_to_sub_agent_id: dict[str, str] = {}
@@ -2590,9 +2578,6 @@ class StatusBuilder:
                 subject = base + suffix
 
         now = datetime.utcnow()
-        seq = self._next_sub_agent_sequence
-        self._next_sub_agent_sequence += 1
-
         sub_agent = SubAgentExecution(
             id=run_id,
             name=sub_agent_name,
@@ -2600,7 +2585,6 @@ class StatusBuilder:
             subject=subject,
             status=SubAgentStatus.SUB_AGENT_IN_PROGRESS,
             started_at=_utc_timestamp(now),
-            sequence=seq,
         )
 
         # Append first, then store the proto-managed reference.
