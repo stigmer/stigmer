@@ -96,7 +96,7 @@ stored authentication token.`,
 }
 
 func handleAuthLogin() {
-	err := auth.Login()
+	_, err := auth.Login()
 	clierr.Handle(err)
 
 	renderer := clioutput.NewRenderer(clioutput.FormatHuman, os.Stdout, os.Stderr)
