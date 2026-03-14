@@ -40,6 +40,15 @@
 - `tools/12_draft-service-pipeline-debugger-agent.sh` — org portability section
 - `tools/rules/generate-stigmer-draft-scripts.mdc` — codified org portability rule
 
+## Session Progress (2026-03-14, session 2)
+
+### CLI Draft System Agent Alignment
+- Fixed `draft_handler.go` to resolve system agents from hardcoded `"stigmer"` org instead of user's active org
+- Added `const systemAgentOrg = "stigmer"` — mirrors the web console's `SYSTEM_AGENT_ORG`
+- Agent resolution uses `systemAgentOrg`, execution creation still uses `prep.OrgID` (two-context distinction)
+- Updated error troubleshooting text to reference seedpack re-apply instead of stale server reset steps
+- Commit: `7ef6523a`
+
 ## Next Steps
 1. ~~Task 2~~: ✅ DONE
 2. ~~Task 3~~: ✅ DONE (already existed)
@@ -49,6 +58,7 @@
    - Apply agent-fleet project — verify resources land in `planton` org
    - Test `--org` override
    - Verify `stigmer get` round-trip
+   - Verify `stigmer draft skill` resolves agent from `stigmer` org (not user's active org)
 
 ## Context for Resume
 - `resolveApplyOrganization` in `apply.go:132` — priority: `--org` flag > project `metadata.org` > CLI context > error
@@ -56,6 +66,7 @@
 - Seedpack bootstrap Phase 2 in `daemon.go` now passes `--org` sourced from `STIGMER_SEEDPACK_ORG` (default: `"stigmer"`)
 - Agent-fleet project manifest now has `metadata.org: planton`, individual resources have no `metadata.org` (inherit from project)
 - All draft scripts instruct the AI agent to omit `metadata.org` when regenerating resources
+- CLI `draft_handler.go` now uses `systemAgentOrg = "stigmer"` for system agent resolution (aligned with web console `SYSTEM_AGENT_ORG`)
 
 ## Blockers
 None.
