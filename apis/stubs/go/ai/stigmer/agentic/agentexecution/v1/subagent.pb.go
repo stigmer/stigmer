@@ -77,8 +77,19 @@ type SubAgentExecution struct {
 	// Also surfaced at parent AgentExecutionStatus.pending_approvals for
 	// top-level visibility. Cleared when the approval is resolved.
 	PendingApprovals []*PendingApproval `protobuf:"bytes,14,rep,name=pending_approvals,json=pendingApprovals,proto3" json:"pending_approvals,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// Zero-based position in the parent execution's sub-agent invocation order.
+	// Assigned at creation time by the agent-runner, monotonically increasing,
+	// and immutable after set.
+	//
+	// Clients MUST sort by this field for stable display ordering.
+	// The repeated field order in AgentExecutionStatus.sub_agent_executions
+	// SHOULD match sequence order, but sequence is the authoritative ordering key.
+	//
+	// Eliminates flicker in CLI/UI caused by array-position instability across
+	// status updates, serialization round-trips, or concurrent writes.
+	Sequence      uint32 `protobuf:"varint,15,opt,name=sequence,proto3" json:"sequence,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SubAgentExecution) Reset() {
@@ -209,11 +220,18 @@ func (x *SubAgentExecution) GetPendingApprovals() []*PendingApproval {
 	return nil
 }
 
+func (x *SubAgentExecution) GetSequence() uint32 {
+	if x != nil {
+		return x.Sequence
+	}
+	return 0
+}
+
 var File_ai_stigmer_agentic_agentexecution_v1_subagent_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentexecution_v1_subagent_proto_rawDesc = "" +
 	"\n" +
-	"3ai/stigmer/agentic/agentexecution/v1/subagent.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a3ai/stigmer/agentic/agentexecution/v1/approval.proto\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a2ai/stigmer/agentic/agentexecution/v1/message.proto\x1a0ai/stigmer/agentic/agentexecution/v1/usage.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xb1\x05\n" +
+	"3ai/stigmer/agentic/agentexecution/v1/subagent.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a3ai/stigmer/agentic/agentexecution/v1/approval.proto\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a2ai/stigmer/agentic/agentexecution/v1/message.proto\x1a0ai/stigmer/agentic/agentexecution/v1/usage.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xcd\x05\n" +
 	"\x11SubAgentExecution\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
@@ -231,7 +249,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_subagent_proto_rawDesc = "" +
 	"\bmessages\x18\v \x03(\v22.ai.stigmer.agentic.agentexecution.v1.AgentMessageR\bmessages\x12H\n" +
 	"\x05usage\x18\f \x01(\v22.ai.stigmer.agentic.agentexecution.v1.UsageMetricsR\x05usage\x12\x18\n" +
 	"\asubject\x18\r \x01(\tR\asubject\x12b\n" +
-	"\x11pending_approvals\x18\x0e \x03(\v25.ai.stigmer.agentic.agentexecution.v1.PendingApprovalR\x10pendingApprovalsB\xce\x02\n" +
+	"\x11pending_approvals\x18\x0e \x03(\v25.ai.stigmer.agentic.agentexecution.v1.PendingApprovalR\x10pendingApprovals\x12\x1a\n" +
+	"\bsequence\x18\x0f \x01(\rR\bsequenceB\xce\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\rSubagentProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
