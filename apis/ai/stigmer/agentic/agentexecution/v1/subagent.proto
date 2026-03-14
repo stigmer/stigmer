@@ -102,20 +102,4 @@ message SubAgentExecution {
   // Also surfaced at parent AgentExecutionStatus.pending_approvals for
   // top-level visibility. Cleared when the approval is resolved.
   repeated PendingApproval pending_approvals = 14;
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Ordering (Stable Display)
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  // Zero-based position in the parent execution's sub-agent invocation order.
-  // Assigned at creation time by the agent-runner, monotonically increasing,
-  // and immutable after set.
-  //
-  // Clients MUST sort by this field for stable display ordering.
-  // The repeated field order in AgentExecutionStatus.sub_agent_executions
-  // SHOULD match sequence order, but sequence is the authoritative ordering key.
-  //
-  // Eliminates flicker in CLI/UI caused by array-position instability across
-  // status updates, serialization round-trips, or concurrent writes.
-  uint32 sequence = 15;
 }
