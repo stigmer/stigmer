@@ -7,8 +7,6 @@ import { TopBar } from "@/components/layout/TopBar";
 import { ResourceList } from "@/components/catalog";
 import { useResourceCatalog } from "@/hooks/useResourceCatalog";
 
-export const dynamic = "force-dynamic";
-
 export default function AgentsPage() {
   const catalog = useResourceCatalog(ApiResourceKind.agent);
 

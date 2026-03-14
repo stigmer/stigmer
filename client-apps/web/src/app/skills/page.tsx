@@ -5,8 +5,6 @@ import { TopBar } from "@/components/layout/TopBar";
 import { ResourceList } from "@/components/catalog";
 import { useResourceCatalog } from "@/hooks/useResourceCatalog";
 
-export const dynamic = "force-dynamic";
-
 export default function SkillsPage() {
   const catalog = useResourceCatalog(ApiResourceKind.skill);
 
