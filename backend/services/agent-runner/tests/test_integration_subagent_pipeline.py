@@ -43,6 +43,7 @@ Your responsibilities:
 - Verify test coverage
 
 Be thorough but constructive in your feedback."""
+        sub_agent.model_override = ""
         
         # MCP access - only github with restricted tools
         mcp_access = MagicMock()
@@ -70,6 +71,7 @@ Your approach:
 - Analyze multiple perspectives
 - Synthesize findings into actionable insights
 - Cite sources when possible"""
+        sub_agent.model_override = ""
         
         sub_agent.mcp_access = []  # No MCP access
         sub_agent.skill_refs = []  # No skills
@@ -281,6 +283,7 @@ Run `./review.sh <path>` to analyze code.
         sub_agent.name = "restricted-agent"
         sub_agent.description = "Agent with restricted MCP access"
         sub_agent.instructions = "You have limited access."
+        sub_agent.model_override = ""
         sub_agent.skill_refs = []
         
         # Request access to github only (not slack)
@@ -334,6 +337,7 @@ Run `./review.sh <path>` to analyze code.
         sub_agent.name = "greedy-agent"
         sub_agent.description = "Agent trying to get more tools"
         sub_agent.instructions = "You want all the tools."
+        sub_agent.model_override = ""
         sub_agent.skill_refs = []
         
         # Try to request tool that parent doesn't have
@@ -383,6 +387,7 @@ Run `./review.sh <path>` to analyze code.
         sub_agent.name = "skilled-agent"
         sub_agent.description = "Agent with specialized skills"
         sub_agent.instructions = "Base instructions for the agent."
+        sub_agent.model_override = ""
         sub_agent.mcp_access = []
         
         skill_ref = MagicMock()
@@ -435,6 +440,7 @@ class TestErrorRecovery:
         sub_agent.name = "mcp-fail-agent"
         sub_agent.description = "Agent where MCP fails"
         sub_agent.instructions = "Should still work without MCP."
+        sub_agent.model_override = ""
         sub_agent.skill_refs = []
         
         mcp_access = MagicMock()
@@ -483,6 +489,7 @@ class TestErrorRecovery:
         sub_agent.name = "skill-fail-agent"
         sub_agent.description = "Agent where skills fail"
         sub_agent.instructions = "Should still work without skills."
+        sub_agent.model_override = ""
         sub_agent.mcp_access = []
         
         skill_ref = MagicMock()
@@ -521,6 +528,7 @@ class TestErrorRecovery:
         good_agent.name = "good-agent"
         good_agent.description = "Working agent"
         good_agent.instructions = "I work correctly."
+        good_agent.model_override = ""
         good_agent.mcp_access = []
         good_agent.skill_refs = []
         
@@ -529,6 +537,7 @@ class TestErrorRecovery:
         bad_agent.name = "problematic-agent"
         bad_agent.description = "Agent with issues"
         bad_agent.instructions = "I have issues."
+        bad_agent.model_override = ""
         bad_agent.mcp_access = []
         bad_agent.skill_refs = []
         
@@ -561,6 +570,7 @@ class TestGraphtonCompatibility:
         sub_agent.name = "format-test-agent"
         sub_agent.description = "Testing output format"
         sub_agent.instructions = "Verify the output format is correct for graphton."
+        sub_agent.model_override = ""
         sub_agent.mcp_access = []
         sub_agent.skill_refs = []
         
