@@ -36,7 +36,7 @@ sudo sh get-docker.sh
 git clone https://github.com/stigmer/stigmer.git
 cd stigmer
 make setup              # Install dependencies
-make release-local-full # Build CLI + Docker image (first time)
+make local-full # Build CLI + Docker image (first time)
 make test               # Run tests
 ```
 
@@ -44,13 +44,13 @@ make test               # Run tests
 
 ```bash
 # Fast CLI iteration (after Go code changes)
-make release-local
+make local
 
 # Rebuild Docker image (after agent-runner changes)
 make build-agent-runner-image
 
 # Complete rebuild (CLI + Docker image)
-make release-local-full
+make local-full
 ```
 
 ### Project Structure
