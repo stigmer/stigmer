@@ -95,29 +95,34 @@ That's it! No complex structure - just focused work.
 ## Current Status
 
 **Last Updated**: 2026-03-14  
-**Current Focus**: Task 3 — Wire auth into cloud backend connection
+**Status**: In-progress — Tasks 1-3 complete, Tasks 4-5 remaining  
+**Current Focus**: Task 4 — Delete auth from cloud CLI
 
-### Session Progress (2026-03-14, Session 2)
-- Completed Task 2: Full PKCE OAuth login flow implemented
-- Created `browser.go` (cross-platform browser opener), `callback.go` (HTTP callback server with channels), `pages.go` (success/error HTML)
-- Replaced `login.go` stub with complete PKCE orchestration: verifier generation, callback server, browser open, state validation, token exchange, config persistence
-- Updated `auth.go` handler for new `(*LoginResult, error)` return signature
-- `golang.org/x/oauth2` promoted from indirect to direct dependency
+### Session Progress (2026-03-14, Session 3)
+- Completed Task 3: Cloud backend auth fully wired
+- Discovered streaming auth gap: `WithUnaryInterceptor` only covers unary RPCs, but `stigmer run` uses server-streaming (20+ `run_stream_*.go` files). Switched to `grpc.WithPerRPCCredentials` which handles both
+- Added `tokenAuth` struct and `resolveCloudToken()` to `backend/client.go`
+- Token resolution: `STIGMER_API_KEY` env var > `backend.cloud.token` from config
+- Added `--api-key` persistent flag to root command (propagates to `STIGMER_API_KEY` env var)
+- Removed dead `authInterceptor` and `addAuthHeader` methods
 - All checks pass: `go build ./...`, `go vet ./...`, help output correct
 
-### Key Decisions Made (Session 2)
-- Always re-authenticate on `stigmer auth login` (no token validation check) — matches gcloud/gh pattern, simpler, no latency
-- Go channels for auth code transfer instead of temp files (cloud CLI uses files)
-- Validate OAuth state parameter (cloud CLI doesn't — CSRF gap)
-- Dedicated `http.ServeMux` instead of global default
-- Graceful HTTP server shutdown + 5-minute timeout
-- Skipped 1.1MB logo.svg — animated SVG checkmark/X icons are sufficient
-- `LoginResult` struct for future-proof return type
+### Key Decisions Made (Session 3)
+- `PerRPCCredentials` over unary interceptor — works for all RPC types (unary + streaming)
+- No auto-login on missing auth — clear error message instead (safer for CI/CD, no surprising browser launches)
+- Eager token resolution at `NewClient` time, not per-RPC (simpler, matches cloud CLI)
+- `tokenAuth` duplication accepted between `auth/whoami.go` and `backend/client.go` (avoids circular deps)
+- Cloud config auto-initialized to empty struct if nil (supports env-var-only auth where no cloud config exists in YAML)
+
+### Context for Resume
+- Tasks 1-3 are committed. The auth pipeline (PKCE login → token storage → gRPC bearer token) is fully functional in the OSS CLI.
+- Task 4 involves **deleting** auth code from `stigmer-cloud/client-apps/cli/`. Those files served as reference for porting and are no longer needed.
+- Task 5 is integration testing — verify the full flow: `stigmer config backend set cloud` → `stigmer auth login` → any gRPC command works against cloud backend.
+- No blockers. The remaining work is cleanup (Task 4) and verification (Task 5).
 
 ### Next Steps
-1. **Task 3**: Wire bearer token into backend.Client `addAuthHeader` interceptor
-2. **Task 4**: Delete auth from cloud CLI
-3. **Task 5**: Integration testing
+1. **Task 4**: Delete auth from cloud CLI — remove `stigmer-cloud/client-apps/cli/internal/cli/auth/` and the auth command wiring in `cmd/stigmer/auth.go`
+2. **Task 5**: Integration testing — end-to-end cloud auth verification
 
 ---
 

@@ -103,25 +103,38 @@ and token storage in `backend.cloud.token`.
 
 ## Task 3: Wire auth into cloud backend connection
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-03-14 07:13
+**Completed**: 2026-03-14
 
 Implement the `addAuthHeader` interceptor stub in the OSS CLI's backend client.
 Support `STIGMER_API_KEY` env var override. Auto-prompt login when cloud backend
 is selected but no token is available.
 
 ### Subtasks
-- [ ] Implement `addAuthHeader()` in `internal/cli/backend/client.go` (currently a TODO stub)
-- [ ] Token resolution order: `STIGMER_API_KEY` env var > `--api-key` flag > `backend.cloud.token` from config
-- [ ] Add `--api-key` global flag to root command
-- [ ] Auto-login: when cloud backend selected but no token, prompt "Authentication not found. Run stigmer auth login"
-- [ ] Wire Bearer token into gRPC `PerRPCCredentials`
-- [ ] Test: `stigmer config backend set cloud` → `stigmer auth login` → any command works
+- [x] ~~Implement `addAuthHeader()` in `internal/cli/backend/client.go`~~ — replaced with `grpc.WithPerRPCCredentials` (see critical finding below)
+- [x] Token resolution order: `STIGMER_API_KEY` env var > `--api-key` flag > `backend.cloud.token` from config
+- [x] Add `--api-key` global flag to root command
+- [x] Auth-missing error: when cloud backend selected but no token, return descriptive error (no auto-login — avoids surprising browser launches in CI/scripts)
+- [x] Wire Bearer token into gRPC `PerRPCCredentials`
+- [ ] Test: `stigmer config backend set cloud` → `stigmer auth login` → any command works (Task 5)
 
-### Notes
-- The OSS CLI's `backend/client.go` already has the cloud connection path, just needs auth wired in
-- Match the cloud CLI's `authheader.GetValue()` priority logic
-- gRPC credentials: `grpc.WithPerRPCCredentials(tokenAuth{token: t})`
+### Critical Finding: Streaming Auth Gap
+The original plan was to implement `addAuthHeader()` via `grpc.WithUnaryInterceptor`.
+During analysis, discovered this only covers unary RPCs — `stigmer run` uses
+server-streaming for execution events (20+ files in `run_stream_*.go`). Switched
+to `grpc.WithPerRPCCredentials` which handles both unary AND streaming RPCs.
+
+### Design Decisions
+- **PerRPCCredentials over interceptor**: Works for all RPC types, standard gRPC mechanism
+- **No auto-login**: Clear error message instead of auto-triggering browser (safer for CI/CD)
+- **Eager token resolution**: Token resolved once at `NewClient` time, not per-RPC
+- **tokenAuth duplication accepted**: `auth/whoami.go` keeps its own copy (avoids circular deps)
+- **Cloud config auto-initialized**: `NewClient` creates `CloudBackendConfig{}` if nil (was previously erroring on missing config, but config may be nil when only env var is set)
+
+### Files Modified
+- `client-apps/cli/internal/cli/backend/client.go` — added `tokenAuth`, `resolveCloudToken()`, replaced interceptor with PerRPCCredentials, removed dead `authInterceptor`/`addAuthHeader` methods
+- `client-apps/cli/cmd/stigmer/root.go` — added `--api-key` persistent flag, propagates to `STIGMER_API_KEY` env var in `PersistentPreRun`
 
 ### Reference Files
 - `stigmer-cloud/client-apps/cli/internal/cli/backend/authheader/get_value.go` — token resolution

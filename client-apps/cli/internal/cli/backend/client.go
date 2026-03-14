@@ -20,6 +20,43 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 )
 
+// tokenAuth implements grpc.PerRPCCredentials for bearer token authentication.
+//
+// Unlike a unary interceptor, PerRPCCredentials injects the authorization
+// header for every RPC type — unary AND streaming — which is essential
+// because `stigmer run` uses server-streaming for execution events.
+type tokenAuth struct {
+	token string
+}
+
+func (t tokenAuth) GetRequestMetadata(_ context.Context, _ ...string) (map[string]string, error) {
+	return map[string]string{
+		"authorization": "Bearer " + t.token,
+	}, nil
+}
+
+// RequireTransportSecurity returns false because transport security is
+// enforced separately by the TLS dial option in Connect(). The credential
+// is only attached in cloud mode where TLS is already configured.
+func (tokenAuth) RequireTransportSecurity() bool {
+	return false
+}
+
+// resolveCloudToken returns the bearer token for cloud mode with the
+// documented priority:
+//
+//  1. STIGMER_API_KEY env var (highest — for CI/CD, scripts, --api-key flag)
+//  2. backend.cloud.token from config (normal interactive login flow)
+func resolveCloudToken(cfg *config.Config) string {
+	if apiKey := os.Getenv("STIGMER_API_KEY"); apiKey != "" {
+		return apiKey
+	}
+	if cfg.Backend.Cloud != nil {
+		return cfg.Backend.Cloud.Token
+	}
+	return ""
+}
+
 // Client is the gRPC client for communicating with stigmer-server
 //
 // Works with both local daemon (localhost:7234) and cloud (api.stigmer.ai:443)
@@ -31,7 +68,7 @@ type Client struct {
 	endpoint string
 	conn     *grpc.ClientConn
 	isCloud  bool
-	token    string // auth token for cloud mode
+	token    string // bearer token for cloud mode (resolved from env var or config)
 
 	// gRPC service clients
 	agentCommand    agentv1.AgentCommandControllerClient
@@ -83,13 +120,16 @@ func NewClient(cfg *config.Config) (*Client, error) {
 
 	case config.BackendTypeCloud:
 		if cfg.Backend.Cloud == nil {
-			return nil, errors.New("cloud backend config is missing")
+			cfg.Backend.Cloud = &config.CloudBackendConfig{}
 		}
 		endpoint = cfg.Backend.Cloud.Endpoint
 		if endpoint == "" {
-			endpoint = "api.stigmer.ai:443" // default cloud endpoint
+			endpoint = "api.stigmer.ai:443"
 		}
-		token = cfg.Backend.Cloud.Token
+		token = resolveCloudToken(cfg)
+		if token == "" {
+			return nil, errors.New("cloud backend requires authentication — run 'stigmer auth login' or set STIGMER_API_KEY")
+		}
 		isCloud = true
 
 	default:
@@ -112,18 +152,16 @@ func (c *Client) Connect(ctx context.Context) error {
 
 	var opts []grpc.DialOption
 
-	// Configure transport security
+	// Configure transport security and authentication
 	if c.isCloud {
-		// Cloud mode: Use TLS
-		creds := credentials.NewClientTLSFromCert(nil, "")
-		opts = append(opts, grpc.WithTransportCredentials(creds))
+		opts = append(opts, grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(nil, "")))
 
-		// Add auth token interceptor
+		// PerRPCCredentials injects the Bearer token into every RPC — both
+		// unary and streaming — via the gRPC metadata mechanism.
 		if c.token != "" {
-			opts = append(opts, grpc.WithUnaryInterceptor(c.authInterceptor))
+			opts = append(opts, grpc.WithPerRPCCredentials(tokenAuth{token: c.token}))
 		}
 	} else {
-		// Local mode: Insecure (localhost)
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
 
@@ -191,30 +229,6 @@ func (c *Client) mode() string {
 		return "cloud"
 	}
 	return "local"
-}
-
-// authInterceptor adds the authorization header for cloud mode
-func (c *Client) authInterceptor(
-	ctx context.Context,
-	method string,
-	req, reply interface{},
-	cc *grpc.ClientConn,
-	invoker grpc.UnaryInvoker,
-	opts ...grpc.CallOption,
-) error {
-	// Add auth header to context
-	ctx = c.addAuthHeader(ctx)
-	return invoker(ctx, method, req, reply, cc, opts...)
-}
-
-// addAuthHeader adds the authorization header to context
-func (c *Client) addAuthHeader(ctx context.Context) context.Context {
-	if c.token == "" {
-		return ctx
-	}
-	// TODO: Add actual auth header implementation
-	// For now, just return context as-is
-	return ctx
 }
 
 // Agent Operations
