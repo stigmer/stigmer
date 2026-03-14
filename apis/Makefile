@@ -16,6 +16,7 @@ help:
 	@echo "  Stub Generation:"
 	@echo "    make go-stubs     - Generate Go stubs only"
 	@echo "    make python-stubs - Generate Python stubs only"
+	@echo "    make ts-stubs     - Generate TypeScript stubs only"
 	@echo ""
 	@echo "  Publishing:"
 	@echo "    make push         - Push protos to Buf Schema Registry (buf.build/stigmer/stigmer)"
@@ -30,7 +31,7 @@ help:
 #  Core build targets
 # --------------------------------------------------------------------------- #
 .PHONY: build
-build: lint fmt go-stubs python-stubs
+build: lint fmt go-stubs python-stubs ts-stubs
 
 .PHONY: protos
 protos: build
@@ -64,13 +65,14 @@ release: lint fmt push
 #  Cleanup and initialization
 # --------------------------------------------------------------------------- #
 .PHONY: clean
-clean: go-stubs-clean python-stubs-clean
+clean: go-stubs-clean python-stubs-clean ts-stubs-clean
 
 .PHONY: prep
 prep:
 	$(MAKE) clean
 	$(MAKE) go-stubs-init
 	$(MAKE) python-stubs-init
+	$(MAKE) ts-stubs-init
 
 # --------------------------------------------------------------------------- #
 #  Go protobuf/gRPC stub generation
@@ -165,3 +167,24 @@ python-stubs: python-stubs-clean python-stubs-init
 	@$(BUF) generate --template buf.gen.python.yaml
 	@$(MAKE) python-stubs-add-py-typed-markers
 	@echo "✓ Python stubs generated successfully"
+
+# --------------------------------------------------------------------------- #
+#  TypeScript protobuf/Connect-RPC stub generation
+# --------------------------------------------------------------------------- #
+TS_STUBS_DIR := stubs/ts
+
+.PHONY: ts-stubs-clean
+ts-stubs-clean:
+	@echo "Cleaning TypeScript stubs..."
+	@rm -rf $(TS_STUBS_DIR)/ai
+	@rm -rf $(TS_STUBS_DIR)/buf
+
+.PHONY: ts-stubs-init
+ts-stubs-init:
+	@mkdir -p $(TS_STUBS_DIR)
+
+.PHONY: ts-stubs
+ts-stubs: ts-stubs-clean ts-stubs-init
+	@echo "Generating TypeScript stubs..."
+	@$(BUF) generate --template buf.gen.ts.yaml
+	@echo "✓ TypeScript stubs generated successfully"
