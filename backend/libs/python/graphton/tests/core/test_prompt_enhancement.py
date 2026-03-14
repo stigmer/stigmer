@@ -100,6 +100,24 @@ class TestCapabilitySections:
         assert "edit_file" in lower
         assert "internal override" in lower or "do not use" in lower
 
+    def test_filesystem_capability_includes_editing_efficiency(self):
+        """Test that file system capability includes editing efficiency guidance."""
+        lower = FILESYSTEM_CAPABILITY.lower()
+        assert "editing efficiency" in lower
+        assert "`edit`" in FILESYSTEM_CAPABILITY
+        assert "`write`" in FILESYSTEM_CAPABILITY
+        assert "`old_text`" in FILESYSTEM_CAPABILITY
+        assert "`new_text`" in FILESYSTEM_CAPABILITY
+
+    def test_filesystem_capability_prefers_edit_over_write(self):
+        """Test that editing efficiency guidance steers toward edit for modifications."""
+        lower = FILESYSTEM_CAPABILITY.lower()
+        assert "prefer `edit` over" in FILESYSTEM_CAPABILITY.lower() or \
+               "prefer ``edit`` over" in FILESYSTEM_CAPABILITY.lower()
+        assert "multiple `edit` calls" in FILESYSTEM_CAPABILITY.lower() or \
+               "multiple ``edit`` calls" in FILESYSTEM_CAPABILITY.lower()
+        assert "reserve `write`" in lower or "reserve ``write``" in lower
+
     def test_mcp_tools_capability_content(self):
         """Test MCP tools capability section content."""
         assert "mcp" in MCP_TOOLS_CAPABILITY.lower()
@@ -319,9 +337,9 @@ class TestEnhanceUserInstructions:
         # Count words (rough estimate)
         word_count = len(enhanced.split())
         
-        # Should be between 600 and 1500 words for full enhancement
+        # Should be between 600 and 1600 words for full enhancement
         assert word_count >= 600, f"Prompt too short: {word_count} words"
-        assert word_count <= 1500, f"Prompt too long: {word_count} words"
+        assert word_count <= 1600, f"Prompt too long: {word_count} words"
 
 
 # =============================================================================
