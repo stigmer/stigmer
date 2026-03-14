@@ -519,6 +519,36 @@ def create_deep_agent(
                 sa_desc = sa.get("description", f"Sub-agent: {sa_name}")
                 sa_prompt = sa.get("system_prompt", "")
                 sa_middleware = list(sa.get("middleware", []))
+
+                # Resolve per-sub-agent model override.  When the sub-agent
+                # dict carries a "model" key (set by subagent_transformer
+                # from SubAgent.model_override), use it instead of the
+                # parent's model.  Strings are resolved through
+                # parse_model_string() which applies ModelRegistry
+                # resolution, provider inference, and Anthropic thinking
+                # configuration — the same path as the parent model.
+                sa_model_spec = sa.get("model")
+                if sa_model_spec is not None:
+                    if isinstance(sa_model_spec, str):
+                        sa_model = parse_model_string(
+                            model=sa_model_spec,
+                            max_tokens=max_tokens,
+                            temperature=temperature,
+                        )
+                        logger.info(
+                            "Sub-agent '%s' using model override: %s",
+                            sa_name,
+                            sa_model_spec,
+                        )
+                    else:
+                        sa_model = sa_model_spec
+                        logger.info(
+                            "Sub-agent '%s' using pre-built model instance: %s",
+                            sa_name,
+                            type(sa_model_spec).__name__,
+                        )
+                else:
+                    sa_model = model_instance
                 
                 if summarization_config is not None and summarization_config.enabled:
                     from graphton.core.summarization_middleware import (
@@ -537,7 +567,7 @@ def create_deep_agent(
                     )
                 
                 compiled_sa = compile_subagent_with_proxy(
-                    model=model_instance,
+                    model=sa_model,
                     tools=sa_tools,
                     system_prompt=sa_prompt,
                     name=sa_name,

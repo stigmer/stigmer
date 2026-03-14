@@ -13,9 +13,36 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: In Progress
-- **Last Session**: 2026-03-14 (Session 10) — Phase 6 CLI Usage Display & Commands complete
-- **Active Task**: Phase 6 complete. Next: Phase 7 (Sub-Agent Model Routing)
+- **Last Session**: 2026-03-14 (Session 11) — Phase 7 Sub-Agent Model Routing complete
+- **Active Task**: Phase 7 complete. Next: Phase 8 (Diff-Based Output Optimization)
 - **Branch**: `feat/usage-metrics-and-cost-optimization`
+
+## Session Progress (2026-03-14, Session 11)
+
+### Phase 7: Sub-Agent Model Routing — COMPLETED
+
+Wired `SubAgent.model_override` (proto field 6, already defined in Phase 1) through the agent-runner transformer and graphton's HITL sub-agent compilation path so each sub-agent can run on a different (typically cheaper) LLM model than the parent agent.
+
+**Modified files (2 production):**
+- `subagent_transformer.py` — Reads `model_override` from proto, validates against `ModelRegistry` (platform ID or API model ID), adds `"model"` key to sub-agent dict when valid, returns `None` (skip) on invalid model (fail-fast)
+- `agent.py` — In HITL compilation loop, resolves per-sub-agent `"model"` via `parse_model_string()` for strings, uses instances directly, or falls back to parent model
+
+**New files (1 test):**
+- `test_subagent_model_routing.py` — 4 HITL path tests: string resolution, instance passthrough, parent fallback, mixed list
+
+**Modified files (1 test):**
+- `test_subagent_transformer.py` — 5 new model_override tests + `model_override=""` added to all existing mock fixtures
+
+**Key design decisions:**
+- Fail-fast on invalid model_override: sub-agent is skipped entirely rather than silently falling back to parent model — forces operators to fix their agent config
+- Validation uses two-step lookup: `ModelRegistry.is_registered()` then `ModelRegistry.get_by_api_model_id()` — accepts both platform IDs and API model IDs
+- Model resolution uses `parse_model_string()` which applies Anthropic thinking config, cache control, and provider inference — same path as parent model
+- No usage tracking changes needed — `UsageTracker._resolve_metadata()` already resolves pricing from actual model reported in `on_chat_model_end`
+- Cost cap middleware conservatively overestimates when sub-agents use cheaper models (safe direction)
+
+**Verification:** All graphton tests pass (1159 passed, 1 skipped, 0 failed). All agent-runner key tests pass (291 passed, 0 failed).
+
+---
 
 ## Session Progress (2026-03-14, Session 10)
 
