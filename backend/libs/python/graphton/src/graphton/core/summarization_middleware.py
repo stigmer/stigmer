@@ -65,13 +65,13 @@ from graphton.core.message_utils import (
     extract_summary_from_result,
     serialize_running_summary,
 )
+from graphton.core.model_registry import ModelRegistry
 from graphton.core.summarization_callback import (
     SOURCE_GRAPH_START,
     SOURCE_MID_EXECUTION,
     SummarizationCallback,
     SummarizationEventData,
 )
-from graphton.core.model_registry import ModelRegistry
 from graphton.core.token_counter import TokenCounter
 
 if TYPE_CHECKING:

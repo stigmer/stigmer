@@ -6,16 +6,12 @@ the threshold-based filtering logic.
 
 from __future__ import annotations
 
-import pytest
-
 from worker.activities.graphton.skill_relevance import (
-    ScoredSkill,
     SkillFilterResult,
     _tokenize,
     filter_skills,
     score_skills,
 )
-
 
 # ─── Tokenisation ────────────────────────────────────────────────────────
 

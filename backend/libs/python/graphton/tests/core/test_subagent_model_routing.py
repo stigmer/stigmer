@@ -14,10 +14,7 @@ Tests:
 - Mixed list: each sub-agent gets the correct model.
 """
 
-from unittest.mock import MagicMock, call, patch
-
-import pytest
-
+from unittest.mock import MagicMock, patch
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -119,7 +116,7 @@ class TestSubagentModelRouting:
         parse_model_string and is passed directly to compile."""
         from graphton.core.agent import create_deep_agent
 
-        mock_parent = _stub_create_deep_agent(
+        _stub_create_deep_agent(
             mock_parse_model, mock_compile_proxy, mock_deepagents_create,
         )
 
