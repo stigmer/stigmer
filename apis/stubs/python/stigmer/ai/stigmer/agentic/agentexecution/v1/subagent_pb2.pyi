@@ -13,7 +13,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class SubAgentExecution(_message.Message):
-    __slots__ = ("id", "name", "input", "output", "status", "started_at", "completed_at", "error", "metadata", "tool_calls", "messages", "usage", "subject", "pending_approvals")
+    __slots__ = ("id", "name", "input", "output", "status", "started_at", "completed_at", "error", "metadata", "tool_calls", "messages", "usage", "subject", "pending_approvals", "sequence")
     ID_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
     INPUT_FIELD_NUMBER: _ClassVar[int]
@@ -28,6 +28,7 @@ class SubAgentExecution(_message.Message):
     USAGE_FIELD_NUMBER: _ClassVar[int]
     SUBJECT_FIELD_NUMBER: _ClassVar[int]
     PENDING_APPROVALS_FIELD_NUMBER: _ClassVar[int]
+    SEQUENCE_FIELD_NUMBER: _ClassVar[int]
     id: str
     name: str
     input: str
@@ -42,4 +43,5 @@ class SubAgentExecution(_message.Message):
     usage: _usage_pb2.UsageMetrics
     subject: str
     pending_approvals: _containers.RepeatedCompositeFieldContainer[_approval_pb2.PendingApproval]
-    def __init__(self, id: _Optional[str] = ..., name: _Optional[str] = ..., input: _Optional[str] = ..., output: _Optional[str] = ..., status: _Optional[_Union[_enum_pb2.SubAgentStatus, str]] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., error: _Optional[str] = ..., metadata: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., tool_calls: _Optional[_Iterable[_Union[_message_pb2.ToolCall, _Mapping]]] = ..., messages: _Optional[_Iterable[_Union[_message_pb2.AgentMessage, _Mapping]]] = ..., usage: _Optional[_Union[_usage_pb2.UsageMetrics, _Mapping]] = ..., subject: _Optional[str] = ..., pending_approvals: _Optional[_Iterable[_Union[_approval_pb2.PendingApproval, _Mapping]]] = ...) -> None: ...
+    sequence: int
+    def __init__(self, id: _Optional[str] = ..., name: _Optional[str] = ..., input: _Optional[str] = ..., output: _Optional[str] = ..., status: _Optional[_Union[_enum_pb2.SubAgentStatus, str]] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., error: _Optional[str] = ..., metadata: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., tool_calls: _Optional[_Iterable[_Union[_message_pb2.ToolCall, _Mapping]]] = ..., messages: _Optional[_Iterable[_Union[_message_pb2.AgentMessage, _Mapping]]] = ..., usage: _Optional[_Union[_usage_pb2.UsageMetrics, _Mapping]] = ..., subject: _Optional[str] = ..., pending_approvals: _Optional[_Iterable[_Union[_approval_pb2.PendingApproval, _Mapping]]] = ..., sequence: _Optional[int] = ...) -> None: ...
