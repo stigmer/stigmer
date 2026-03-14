@@ -21,7 +21,7 @@ Drop this file into your conversation to quickly resume work on this project.
 | **T01** | Proto TypeScript Codegen Setup | ✅ DONE |
 | **T02** | Migrate Web Source to Stigmer Repo | ✅ DONE |
 | **T03** | Implement Configurable Auth | ✅ DONE |
-| **T04** | Configure Static Export Build | ⏸️ TODO |
+| **T04** | Configure Static Export Build | ✅ DONE |
 | **T05** | Embed Web UI in stigmer-server | ⏸️ TODO |
 | **T06** | CLI Integration & Polish | ⏸️ TODO |
 | **T07** | Build Pipeline & Dev Workflow | ⏸️ TODO |
@@ -137,6 +137,16 @@ Key files for reference during migration:
 - Deleted: `useAuthSession.ts`, old `AuthGuard.tsx`, `auth-token.ts`
 - Verified: dev server starts, zero errors, full app shell renders, navigation works
 
+### T04 Completed: Configure Static Export Build
+- Added `output: "export"` to `next.config.ts`
+- Removed `export const dynamic = "force-dynamic"` from 13 page files (legacy from stigmer-cloud server-side auth)
+- Split 4 dynamic `[id]` route pages into server `page.tsx` wrappers + client component files
+- Server pages export `generateStaticParams` with `[{ id: "__placeholder__" }]` (Next.js 16 Cache Components rejects empty arrays)
+- Client components colocated in same `[id]/` directory (e.g., `AgentDetailPage.tsx`)
+- Updated `package.json` `start` script from `next start` to `npx serve out`
+- Build produces `out/` directory: 14 static pages + 4 SSG pages with placeholder pre-renders
+- Build completes in ~6 seconds, all routes verified with `npx serve`
+
 ### Key Decisions Made
 - npm workspaces chosen over Yarn/pnpm (zero extra tooling, built into Node.js)
 - `@connectrpc/connect` NOT declared in `@stigmer/protos` package.json (matches stigmer-cloud pattern; relies on workspace hoisting)
@@ -149,18 +159,22 @@ Key files for reference during migration:
 - OIDC implementation deferred — interface defined, but actual implementation waits for T04 (static export) to determine client-side vs server-side approach
 - OrgProvider makes real gRPC calls in disabled mode — server has no auth, returns orgs without tokens; error state covers "server not running"
 - Auth mode via `NEXT_PUBLIC_AUTH_MODE` env var — build-time config, extendable to runtime config in T05
+- Dynamic `[id]` routes use server/client split — Next.js 16 Turbopack rejects `generateStaticParams` in `"use client"` files
+- Placeholder params in `generateStaticParams` — Next.js 16 Cache Components rejects empty arrays; `[{ id: "__placeholder__" }]` is the workaround
+- Runtime config deferred to T05 — `NEXT_PUBLIC_*` build-time vars work for both local and cloud
+- `start` script changed to `npx serve out` — `next start` is incompatible with static export
 
 ## Current Status
 
 **Created**: 2026-03-14
-**Current Task**: T04 (Configure Static Export Build)
-**Status**: T01 + T02 + T03 complete, T04 ready to start
+**Current Task**: T05 (Embed Web UI in stigmer-server)
+**Status**: T01 + T02 + T03 + T04 complete, T05 ready to start
 
 ## Next Steps
 
-1. **T04**: Configure static export build for Go embedding
-2. **T05**: Embed web UI in stigmer-server via `//go:embed`
-3. **T06**: CLI Integration & Polish
+1. **T05**: Embed web UI in stigmer-server via `//go:embed`
+2. **T06**: CLI Integration & Polish
+3. **T07**: Build Pipeline & Dev Workflow
 
 ## Context for Resume
 - Branch: `ref/migrate-web-to-oss`
@@ -177,10 +191,17 @@ Key files for reference during migration:
 - API calls fail at runtime (expected — no stigmer-server running)
 - OrgProvider makes real gRPC calls; shows error/retry when server is down (by design)
 - Pre-existing code quality issue noted: all service files use `any` cast for Connect-RPC clients
+- Static export builds to `out/` directory: `npm run build -w client-apps/web`
+- `next.config.ts` has `output: "export"` — produces static HTML/CSS/JS, no Node.js server
+- Dynamic `[id]` routes use server/client split pattern (server `page.tsx` + colocated client component)
+- `generateStaticParams` returns `[{ id: "__placeholder__" }]` (Next.js 16 rejects empty arrays due to Cache Components)
+- `package.json` `start` script runs `npx serve out` for local static testing
+- Dockerfile still references Yarn and standalone mode — needs rewrite in T05/T07
+- Runtime config deferred to T05 — build-time `NEXT_PUBLIC_*` vars sufficient for now
 
 ## Quick Commands
 
-- "Continue with T04" — Start configuring static export build
+- "Continue with T05" — Start embedding web UI in stigmer-server
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 

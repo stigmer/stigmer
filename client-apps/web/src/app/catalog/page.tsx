@@ -18,8 +18,6 @@ import { TopBar } from "@/components/layout/TopBar";
 import { ResourceCard, CatalogEmptyState, KindTabs } from "@/components/catalog";
 import { useUnifiedCatalog } from "@/hooks/useUnifiedCatalog";
 
-export const dynamic = "force-dynamic";
-
 const KIND_PARAM_MAP: Record<string, ApiResourceKind> = {
   agent: ApiResourceKind.agent,
   skill: ApiResourceKind.skill,

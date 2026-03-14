@@ -14,8 +14,6 @@ import { isTerminalPhase } from "@/lib/execution";
 import { cn } from "@/lib/utils";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
-export const dynamic = "force-dynamic";
-
 // ---------------------------------------------------------------------------
 // Page state
 // ---------------------------------------------------------------------------
