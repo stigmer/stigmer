@@ -9,8 +9,8 @@ import (
 
 func TestRenderSessionUsageTable_BasicReport(t *testing.T) {
 	report := &agentexecutionv1.GetSessionUsageReportOutput{
-		SessionId:      "ses_abc123",
-		ExecutionCount: 3,
+		SessionId:        "ses_abc123",
+		ExecutionCount:   3,
 		FirstExecutionAt: "2026-03-10T10:00:00Z",
 		LastExecutionAt:  "2026-03-10T12:00:00Z",
 		TotalUsage: &agentexecutionv1.UsageMetrics{
