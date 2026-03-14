@@ -299,11 +299,15 @@ func RunDaemonProcess() error {
 		}
 	}
 
-	// Start the embedded web console HTTP server if assets are available.
-	// This runs as an in-process goroutine (not a subprocess) because a
-	// static file server is lightweight and cannot crash independently.
+	// Start the embedded web console HTTP server if assets are available
+	// and the user has not disabled it with --no-web.
 	var webConsoleServer *http.Server
-	if webconsole.IsAvailable() {
+	noWeb := os.Getenv("STIGMER_NO_WEB") == "1"
+
+	if noWeb {
+		hs.Components["web-console"] = &ComponentState{State: "stopped"}
+		log.Info().Msg("Web console disabled via --no-web")
+	} else if webconsole.IsAvailable() {
 		addr := fmt.Sprintf("127.0.0.1:%d", WebConsolePort)
 		webConsoleServer = &http.Server{
 			Addr:    addr,

@@ -61,6 +61,7 @@ type StartOptions struct {
 	SandboxAutoPull  bool
 	SandboxCleanup   bool
 	SandboxTTL       int
+	NoWeb            bool
 	Secrets          map[string]string
 	OnLLMSetupFailed func(err error)
 }
@@ -248,6 +249,10 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		fmt.Sprintf("STIGMER_SANDBOX_CLEANUP=%t", opts.SandboxCleanup),
 		fmt.Sprintf("STIGMER_SANDBOX_TTL=%d", opts.SandboxTTL),
 	)
+
+	if opts.NoWeb {
+		env = append(env, "STIGMER_NO_WEB=1")
+	}
 
 	for key, value := range secrets {
 		env = append(env, fmt.Sprintf("%s=%s", key, value))

@@ -151,5 +151,14 @@ func createBasicHealthState(dataDir string, daemonPID int) *daemon.HealthState {
 		hs.Components["agent-runner"] = &daemon.ComponentState{State: "stopped"}
 	}
 
+	// Web console runs in-process (no PID file). A TCP probe is the only
+	// way to detect it in the fallback path.
+	webConsoleAddr := fmt.Sprintf("localhost:%d", daemon.WebConsolePort)
+	wcConn, wcErr := net.DialTimeout("tcp", webConsoleAddr, 200*time.Millisecond)
+	if wcErr == nil {
+		wcConn.Close()
+		hs.Components["web-console"] = &daemon.ComponentState{State: "running"}
+	}
+
 	return hs
 }

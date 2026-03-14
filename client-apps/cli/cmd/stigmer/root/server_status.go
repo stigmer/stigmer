@@ -45,19 +45,24 @@ func handleServerStatus(format clioutput.OutputFormat) {
 			Field("Uptime", formatDuration(time.Since(hs.StartedAt)))
 	}
 
-	// Show all components uniformly (Temporal first as foundational dependency)
-	componentOrder := []string{"temporal", "stigmer-server", "workflow-runner", "agent-runner"}
+	componentOrder := []string{"temporal", "stigmer-server", "workflow-runner", "agent-runner", "web-console"}
 	componentLabels := map[string]string{
 		"temporal":        "Temporal",
 		"stigmer-server":  "Stigmer Server",
 		"workflow-runner": "Workflow Runner",
 		"agent-runner":    "Agent Runner",
+		"web-console":     "Web Console",
 	}
 
 	for _, name := range componentOrder {
 		label := componentLabels[name]
 		cs, ok := hs.Components[name]
 		if !ok {
+			// Web console is optional (depends on build tag and --no-web).
+			// Only show it when it has a health state entry.
+			if name == "web-console" {
+				continue
+			}
 			sec := result.AddSection(label)
 			sec.Field("Status", "Not Running ○")
 			continue
@@ -77,9 +82,19 @@ func handleServerStatus(format clioutput.OutputFormat) {
 	if ts, ok := hs.Components["temporal"]; ok && ts.State == "running" {
 		temporalRunning = true
 	}
-	if temporalRunning {
-		result.AddSection("Web UI").
-			Field("Temporal", "http://localhost:8233")
+	webConsoleRunning := false
+	if cs, ok := hs.Components["web-console"]; ok && cs.State == "running" {
+		webConsoleRunning = true
+	}
+
+	if webConsoleRunning || temporalRunning {
+		webUI := result.AddSection("Web UI")
+		if webConsoleRunning {
+			webUI.Fieldf("Console", "http://localhost:%d", daemon.WebConsolePort)
+		}
+		if temporalRunning {
+			webUI.Field("Temporal", "http://localhost:8233")
+		}
 	}
 
 	renderer.Render(result)
