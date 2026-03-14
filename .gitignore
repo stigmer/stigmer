@@ -61,6 +61,9 @@ ENV/
 *~
 .DS_Store
 
+# Node.js
+node_modules/
+
 # Stigmer specific
 .stigmer/
 *.skill
@@ -98,6 +101,9 @@ mcp-server/mcp-server-stigmer
 # CLI binaries (build artifacts, not committed)
 /cli
 client-apps/cli/embedded/binaries/
+
+# Embedded web console assets (built from client-apps/web via `make web-console-build`)
+client-apps/cli/embedded/webconsole/out/
 
 # Bazel build outputs
 bazel-*

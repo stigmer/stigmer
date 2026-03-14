@@ -1,0 +1,13 @@
+{
+  "name": "@stigmer/protos",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Generated TypeScript protobuf stubs for Stigmer APIs",
+  "type": "module",
+  "exports": {
+    "./*": "./*.ts"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "^2.5.1"
+  }
+}

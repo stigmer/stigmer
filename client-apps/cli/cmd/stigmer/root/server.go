@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	orgv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/organization/v1"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/backend"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/browser"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
@@ -46,6 +47,8 @@ Run 'stigmer server setup' to reconfigure the LLM provider at any time.`,
 	cmd.Flags().Bool("sandbox-auto-pull", true, "Auto-pull sandbox image if missing")
 	cmd.Flags().Bool("sandbox-cleanup", true, "Cleanup sandbox containers after execution")
 	cmd.Flags().Int("sandbox-ttl", 3600, "Sandbox container reuse TTL in seconds")
+	cmd.Flags().Bool("no-web", false, "Disable the embedded web console")
+	cmd.Flags().Bool("open", false, "Open the web console in your browser after startup")
 	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
 
 	cmd.AddCommand(newServerSetupCommand())
@@ -130,6 +133,8 @@ func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 	sandboxAutoPull, _ := cmd.Flags().GetBool("sandbox-auto-pull")
 	sandboxCleanup, _ := cmd.Flags().GetBool("sandbox-cleanup")
 	sandboxTTL, _ := cmd.Flags().GetInt("sandbox-ttl")
+	noWeb, _ := cmd.Flags().GetBool("no-web")
+	openBrowser, _ := cmd.Flags().GetBool("open")
 
 	startServerFresh(dataDir, daemon.StartOptions{
 		ExecutionMode:   executionMode,
@@ -137,14 +142,15 @@ func handleServerStart(cmd *cobra.Command, format clioutput.OutputFormat) {
 		SandboxAutoPull: sandboxAutoPull,
 		SandboxCleanup:  sandboxCleanup,
 		SandboxTTL:      sandboxTTL,
-	}, format)
+		NoWeb:           noWeb,
+	}, format, openBrowser)
 }
 
 // startServerFresh performs a full interactive server start with phased progress,
 // config/secret loading, readiness checks, seedpack bootstrap, org context,
 // MCP discovery, and status output. Shared by 'stigmer server' and
 // 'stigmer server reset'.
-func startServerFresh(dataDir string, startOpts daemon.StartOptions, format clioutput.OutputFormat) {
+func startServerFresh(dataDir string, startOpts daemon.StartOptions, format clioutput.OutputFormat, openConsole bool) {
 	climsg.Info("Starting Stigmer server...")
 
 	cfg, err := config.Load()
@@ -226,6 +232,13 @@ func startServerFresh(dataDir string, startOpts daemon.StartOptions, format clio
 
 	running, pid := daemon.GetStatus(dataDir)
 
+	webConsoleRunning := false
+	if hs := daemon.LoadHealthState(dataDir); hs != nil {
+		if cs, ok := hs.Components["web-console"]; ok && cs.State == "running" {
+			webConsoleRunning = true
+		}
+	}
+
 	if format == clioutput.FormatHuman {
 		climsg.Success("Ready! Stigmer server is running")
 		if running {
@@ -234,21 +247,35 @@ func startServerFresh(dataDir string, startOpts daemon.StartOptions, format clio
 			climsg.Info("  Data: %s", dataDir)
 			climsg.Info("")
 			climsg.Info("Web UI:")
+			if webConsoleRunning {
+				climsg.Info("  Console:   http://localhost:%d", daemon.WebConsolePort)
+			}
 			climsg.Info("  Temporal:  http://localhost:8233")
 		}
-		return
+	} else {
+		renderer := clioutput.NewRenderer(format, os.Stdout, os.Stderr)
+		result := clioutput.Success("Stigmer server is running")
+		if running {
+			result.AddSection("Server Details").
+				Fieldf("PID", "%d", pid).
+				Fieldf("Port", "%d", daemon.DaemonPort).
+				Field("Data", dataDir)
+
+			webUI := result.AddSection("Web UI")
+			if webConsoleRunning {
+				webUI.Fieldf("Console", "http://localhost:%d", daemon.WebConsolePort)
+			}
+			webUI.Field("Temporal", "http://localhost:8233")
+		}
+		renderer.Render(result)
 	}
 
-	renderer := clioutput.NewRenderer(format, os.Stdout, os.Stderr)
-	result := clioutput.Success("Stigmer server is running")
-	if running {
-		result.AddSection("Server Details").
-			Fieldf("PID", "%d", pid).
-			Fieldf("Port", "%d", daemon.DaemonPort).
-			Field("Data", dataDir)
+	if openConsole && webConsoleRunning {
+		consoleURL := fmt.Sprintf("http://localhost:%d", daemon.WebConsolePort)
+		if err := browser.Open(consoleURL); err != nil {
+			climsg.Warning("Could not open browser: %v", err)
+		}
 	}
-	result.Hint("Web UI: http://localhost:8233")
-	renderer.Render(result)
 }
 
 // displayLLMStatus shows the validated LLM provider status after daemon startup.

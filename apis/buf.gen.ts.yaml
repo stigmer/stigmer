@@ -1,0 +1,13 @@
+version: v2
+plugins:
+  - remote: buf.build/bufbuild/es:v2.2.2
+    out: stubs/ts
+    opt:
+      - target=ts
+    include_imports: true
+  - remote: buf.build/connectrpc/es:v1.6.1
+    out: stubs/ts
+    opt:
+      - target=ts
+inputs:
+  - directory: .

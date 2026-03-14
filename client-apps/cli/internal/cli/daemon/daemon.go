@@ -34,6 +34,10 @@ const (
 	// DaemonPort is the port stigmer-server listens on.
 	DaemonPort = 7234
 
+	// WebConsolePort is the port the embedded web console is served on.
+	// Follows the 7xxx=API, 8xxx=UI convention (Temporal UI is on 8233).
+	WebConsolePort = 8234
+
 	// PIDFileName stores the daemon process's own PID.
 	PIDFileName = "daemon.pid"
 
@@ -57,6 +61,7 @@ type StartOptions struct {
 	SandboxAutoPull  bool
 	SandboxCleanup   bool
 	SandboxTTL       int
+	NoWeb            bool
 	Secrets          map[string]string
 	OnLLMSetupFailed func(err error)
 }
@@ -244,6 +249,10 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		fmt.Sprintf("STIGMER_SANDBOX_CLEANUP=%t", opts.SandboxCleanup),
 		fmt.Sprintf("STIGMER_SANDBOX_TTL=%d", opts.SandboxTTL),
 	)
+
+	if opts.NoWeb {
+		env = append(env, "STIGMER_NO_WEB=1")
+	}
 
 	for key, value := range secrets {
 		env = append(env, fmt.Sprintf("%s=%s", key, value))

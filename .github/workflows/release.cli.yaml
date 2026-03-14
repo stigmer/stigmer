@@ -101,9 +101,49 @@ jobs:
         working-directory: backend/services/agent-runner
         run: poetry run ruff check grpc_client/ worker/
 
+  # Build web console static assets (platform-independent, built once and shared)
+  build-web-console:
+    needs: determine-version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate TypeScript proto stubs
+        run: make -C apis ts-stubs
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint web console
+        run: npm run lint -w client-apps/web
+
+      - name: Build web console
+        run: npm run build -w client-apps/web
+
+      - name: Upload web console assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-console-assets
+          path: client-apps/web/out/
+          retention-days: 1
+
   # Build for macOS Apple Silicon
   build-darwin-arm64:
-    needs: [determine-version, lint-and-typecheck-agent-runner]
+    needs: [determine-version, lint-and-typecheck-agent-runner, build-web-console]
     runs-on: macos-latest  # macOS 14 (M1)
     steps:
       - name: Checkout
@@ -130,12 +170,18 @@ jobs:
           chmod +x sync.sh
           ./sync.sh
 
+      - name: Download web console assets
+        uses: actions/download-artifact@v4
+        with:
+          name: web-console-assets
+          path: client-apps/cli/embedded/webconsole/out/
+
       - name: Build CLI
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
           cd client-apps/cli
-          go build -tags embed_agentrunner -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=$VERSION" -o ../../bin/stigmer .
+          go build -tags 'embed_agentrunner embed_webconsole' -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=$VERSION" -o ../../bin/stigmer .
 
       - name: Verify binary
         env:
@@ -161,7 +207,7 @@ jobs:
 
   # Build CLI for Intel Mac (cross-compiled from ARM runner)
   build-darwin-amd64:
-    needs: [determine-version, lint-and-typecheck-agent-runner]
+    needs: [determine-version, lint-and-typecheck-agent-runner, build-web-console]
     runs-on: macos-latest  # ARM Mac (cross-compile Go CLI to Intel)
     steps:
       - name: Checkout
@@ -188,6 +234,12 @@ jobs:
           chmod +x sync.sh
           ./sync.sh
 
+      - name: Download web console assets
+        uses: actions/download-artifact@v4
+        with:
+          name: web-console-assets
+          path: client-apps/cli/embedded/webconsole/out/
+
       - name: Build CLI (cross-compile to Intel)
         env:
           GOARCH: amd64
@@ -195,7 +247,7 @@ jobs:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
           cd client-apps/cli
-          go build -tags embed_agentrunner -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=$VERSION" -o ../../bin/stigmer .
+          go build -tags 'embed_agentrunner embed_webconsole' -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=$VERSION" -o ../../bin/stigmer .
 
       - name: Verify binary
         env:
@@ -221,7 +273,7 @@ jobs:
 
   # Build for Linux
   build-linux-amd64:
-    needs: [determine-version, lint-and-typecheck-agent-runner]
+    needs: [determine-version, lint-and-typecheck-agent-runner, build-web-console]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -248,12 +300,18 @@ jobs:
           chmod +x sync.sh
           ./sync.sh
 
+      - name: Download web console assets
+        uses: actions/download-artifact@v4
+        with:
+          name: web-console-assets
+          path: client-apps/cli/embedded/webconsole/out/
+
       - name: Build CLI
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
           cd client-apps/cli
-          go build -tags embed_agentrunner -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=$VERSION" -o ../../bin/stigmer .
+          go build -tags 'embed_agentrunner embed_webconsole' -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=$VERSION" -o ../../bin/stigmer .
 
       - name: Verify binary
         env:
