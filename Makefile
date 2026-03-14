@@ -130,11 +130,18 @@ local: ## Build + install CLI for local development
 	@echo "Then run:  stigmer server"
 	@echo ""
 
-build-release: ## Build CLI with embedded agent-runner (production-like)
+web-console-build: ## Build web console static assets for embedding
+	npm run build -w client-apps/web
+	@rm -rf client-apps/cli/embedded/webconsole/out
+	@cp -r client-apps/web/out client-apps/cli/embedded/webconsole/out
+	@echo "copied: client-apps/web/out -> client-apps/cli/embedded/webconsole/out"
+
+build-release: ## Build CLI with embedded agent-runner and web console (production-like)
 	@cd client-apps/cli/embedded/agentrunner && chmod +x sync.sh && ./sync.sh
+	@$(MAKE) web-console-build
 	@mkdir -p bin
-	cd client-apps/cli && go build -tags embed_agentrunner -o ../../bin/stigmer .
-	@echo "built: bin/stigmer (with embedded agent-runner)"
+	cd client-apps/cli && go build -tags 'embed_agentrunner embed_webconsole' -o ../../bin/stigmer .
+	@echo "built: bin/stigmer (with embedded agent-runner + web console)"
 
 # ─── Release ──────────────────────────────────
 
