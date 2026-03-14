@@ -95,27 +95,29 @@ That's it! No complex structure - just focused work.
 ## Current Status
 
 **Last Updated**: 2026-03-14  
-**Current Focus**: Task 2 — Implement PKCE login flow
+**Current Focus**: Task 3 — Wire auth into cloud backend connection
 
-### Session Progress (2026-03-14)
-- Completed Task 1: Scaffolded auth commands and PKCE config
-- Created `auth login`, `auth logout`, `auth whoami` Cobra commands
-- Created Auth0 PKCE config (no client secret) using `golang.org/x/oauth2` native PKCE
-- WhoAmI uses standalone gRPC connection with bearer token auth
-- Login is a stub (returns not-implemented) — full PKCE flow is Task 2
-- All smoke tests pass: `go build`, `go vet`, help output, error paths
+### Session Progress (2026-03-14, Session 2)
+- Completed Task 2: Full PKCE OAuth login flow implemented
+- Created `browser.go` (cross-platform browser opener), `callback.go` (HTTP callback server with channels), `pages.go` (success/error HTML)
+- Replaced `login.go` stub with complete PKCE orchestration: verifier generation, callback server, browser open, state validation, token exchange, config persistence
+- Updated `auth.go` handler for new `(*LoginResult, error)` return signature
+- `golang.org/x/oauth2` promoted from indirect to direct dependency
+- All checks pass: `go build ./...`, `go vet ./...`, help output correct
 
-### Key Decisions Made
-- Skipped custom PKCE package — `golang.org/x/oauth2` v0.34.0 has native support
-- Flat `internal/cli/auth/` package (no nested sub-packages)
-- Hardcoded Auth0 endpoints (no OIDC discovery, no `go-oidc` dep)
-- WhoAmI creates own temp gRPC connection (independent of backend.Client, which gets wired in Task 3)
+### Key Decisions Made (Session 2)
+- Always re-authenticate on `stigmer auth login` (no token validation check) — matches gcloud/gh pattern, simpler, no latency
+- Go channels for auth code transfer instead of temp files (cloud CLI uses files)
+- Validate OAuth state parameter (cloud CLI doesn't — CSRF gap)
+- Dedicated `http.ServeMux` instead of global default
+- Graceful HTTP server shutdown + 5-minute timeout
+- Skipped 1.1MB logo.svg — animated SVG checkmark/X icons are sufficient
+- `LoginResult` struct for future-proof return type
 
 ### Next Steps
-1. **Task 2**: Implement full PKCE login flow (browser open, localhost callback, token exchange, config persistence)
-2. **Task 3**: Wire bearer token into backend.Client `addAuthHeader` interceptor
-3. **Task 4**: Delete auth from cloud CLI
-4. **Task 5**: Integration testing
+1. **Task 3**: Wire bearer token into backend.Client `addAuthHeader` interceptor
+2. **Task 4**: Delete auth from cloud CLI
+3. **Task 5**: Integration testing
 
 ---
 

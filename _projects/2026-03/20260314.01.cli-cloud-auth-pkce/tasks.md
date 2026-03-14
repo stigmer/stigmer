@@ -52,32 +52,52 @@ Create PKCE-safe auth config (Auth0 domain, client ID, audience — NO client se
 
 ## Task 2: Implement PKCE OAuth login flow
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-03-14 07:13
+**Completed**: 2026-03-14 07:48
 
 Implement the full PKCE authorization code flow: local HTTP callback server,
 browser redirect to Auth0, token exchange with code_verifier (no client secret),
 and token storage in `backend.cloud.token`.
 
 ### Subtasks
-- [ ] Start local HTTP server on `localhost:8088` for callback
-- [ ] Build Auth0 authorization URL with `code_challenge`, `code_challenge_method=S256`, `response_type=code`
-- [ ] Open system browser to Auth0 authorize endpoint
-- [ ] Handle callback: extract `code` param, validate `state`
-- [ ] Exchange authorization code + `code_verifier` for access token (POST to token endpoint, no client_secret)
-- [ ] Store access token in `~/.stigmer/config.yaml` at `backend.cloud.token`
-- [ ] Serve success/error HTML page to browser after callback
-- [ ] Handle existing valid token (skip re-login)
+- [x] Start local HTTP server on `localhost:8088` for callback
+- [x] Build Auth0 authorization URL with `code_challenge`, `code_challenge_method=S256`, `response_type=code`
+- [x] Open system browser to Auth0 authorize endpoint
+- [x] Handle callback: extract `code` param, validate `state`
+- [x] Exchange authorization code + `code_verifier` for access token (POST to token endpoint, no client_secret)
+- [x] Store access token in `~/.stigmer/config.yaml` at `backend.cloud.token`
+- [x] Serve success/error HTML page to browser after callback
+- [x] ~~Handle existing valid token (skip re-login)~~ — Design decision: always re-authenticate (matches gcloud/gh pattern)
 
 ### Notes
-- Port `login.go` from cloud CLI but replace `oauthConfig.Exchange()` with manual PKCE token exchange
-- Auth0 PKCE token exchange POST body: `grant_type=authorization_code`, `client_id`, `code_verifier`, `code`, `redirect_uri`
-- No `client_secret` in the exchange — this is the whole point of PKCE
-- Consider: should `auth login` automatically set `backend.type: cloud`? Probably yes.
+- Used `golang.org/x/oauth2` native PKCE: `GenerateVerifier()`, `S256ChallengeOption()`, `VerifierOption()`
+- No manual token exchange needed — `oauthConfig.Exchange(ctx, code, oauth2.VerifierOption(verifier))` handles PKCE natively
+- Auto-sets `backend.type: cloud` on successful login
+- Skipped 1.1MB logo.svg from cloud CLI to keep OSS binary lean — pages use animated SVG checkmark/X icons instead
+- Design decision: always re-authenticate (no token validation check), matching gcloud/gh auth login behavior
+
+### Improvements Over Cloud CLI
+- Go channels instead of temp files for auth code transfer
+- State parameter validation (CSRF protection — cloud CLI never validates state)
+- Dedicated `http.ServeMux` (not global `http.DefaultServeMux`)
+- Graceful HTTP server shutdown after callback
+- 5-minute timeout (cloud CLI waits forever)
+- No `google/uuid` dependency — `oauth2.GenerateVerifier()` for state too
+
+### Files Created
+- `client-apps/cli/internal/cli/auth/browser.go` — Cross-platform browser opener
+- `client-apps/cli/internal/cli/auth/callback.go` — HTTP callback server with channel-based result passing
+- `client-apps/cli/internal/cli/auth/pages.go` — Success/error HTML templates
+
+### Files Modified
+- `client-apps/cli/internal/cli/auth/login.go` — Replaced stub with full PKCE flow
+- `client-apps/cli/cmd/stigmer/root/auth.go` — Updated for `(*LoginResult, error)` return type
+- `client-apps/cli/go.mod` — `golang.org/x/oauth2` promoted from indirect to direct
 
 ### Reference Files
 - `stigmer-cloud/client-apps/cli/internal/cli/auth/login/login.go` — full flow to port
-- `stigmer-cloud/client-apps/cli/internal/cli/auth/login/logo.svg` — success page branding
+- `stigmer-cloud/client-apps/cli/internal/cli/auth/login/logo.svg` — success page branding (skipped — 1.1MB)
 
 ---
 
