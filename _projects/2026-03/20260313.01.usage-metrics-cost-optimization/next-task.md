@@ -13,9 +13,34 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: In Progress
-- **Last Session**: 2026-03-14 (Session 11) — Phase 7 Sub-Agent Model Routing complete
-- **Active Task**: Phase 7 complete. Next: Phase 8 (Diff-Based Output Optimization)
+- **Last Session**: 2026-03-14 (Session 12) — Phase 8 Diff-Based Output Optimization complete
+- **Active Task**: Phase 8 complete. Next: Phase 9 (Smart Context / Selective Inclusion)
 - **Branch**: `feat/usage-metrics-and-cost-optimization`
+
+## Session Progress (2026-03-14, Session 12)
+
+### Phase 8: Diff-Based Output Optimization — COMPLETED
+
+Added editing efficiency guidance to system prompts and tool descriptions to steer LLMs toward using the `edit` tool (search-and-replace) instead of full-file `write` rewrites, reducing output token costs.
+
+**Codebase audit finding**: The sandbox tools already had all required capabilities — `edit` supports search-and-replace, `read` supports line-range reads, tool result truncation is fully wired. The gap was that nothing steered the LLM toward choosing `edit` over `write`.
+
+**Modified files (2 production):**
+- `prompt_enhancement.py` — Added "Editing Efficiency" sub-section to `FILESYSTEM_CAPABILITY` constant (~65 words): prefer `edit` over `write` for modifications, use multiple `edit` calls, reserve `write` for new files
+- `tool_wrappers.py` — Enhanced `write` tool docstring to signal full-file overwrite and redirect to `edit`; enhanced `edit` tool docstring to position it as the preferred modification tool with guidance on minimal `old_text` context
+
+**Modified files (1 test):**
+- `test_prompt_enhancement.py` — 2 new tests (`test_filesystem_capability_includes_editing_efficiency`, `test_filesystem_capability_prefers_edit_over_write`); bumped `test_prompt_size_reasonable` upper bound from 1500 to 1600 words to accommodate addition
+
+**Key design decisions:**
+- Tool descriptions are the highest-signal lever for LLM tool selection — enhanced docstrings are the primary optimization, system prompt guidance is secondary reinforcement
+- Added to existing `FILESYSTEM_CAPABILITY` section (not a new section) to avoid prompt bloat
+- ~65 words of system prompt addition = ~0.3% of context window — negligible cost for high signal
+- Fast-apply pipeline (two-model architecture) explicitly deferred to P2 — needs its own design phase
+
+**Verification:** All graphton tests pass (1161 passed, 1 skipped, 0 failed).
+
+---
 
 ## Session Progress (2026-03-14, Session 11)
 
@@ -216,12 +241,12 @@ The dependency upgrades introduced 14 test failures in graphton (agent-runner is
 
 Pick up in this order:
 
-### Immediate: Phase 7 — Sub-Agent Model Routing
-Wire `model_override` on `SubAgentDefinition` to enable per-sub-agent model selection.
+### Immediate: Phase 9 — Smart Context / Selective Inclusion
+Implement skill relevance filtering and tool schema pruning to reduce system prompt token count.
 
 ## Context for Resume
 
-- **Phases 1-6 complete**: Schema, pricing, field population, caching, server RPCs, CLI display & commands all done.
+- **Phases 1-8 complete**: Schema, pricing, field population, caching, server RPCs, CLI display & commands, sub-agent model routing, diff-based output optimization all done.
 - **Phase 6 plan file**: `.cursor/plans/cli_usage_phase_6_9fc7721f.plan.md`
 - **Phase 5 plan file**: `.cursor/plans/phase_5_usage_report_rpcs_781e9b31.plan.md`
 - **CLI usage commands**: `stigmer usage session|agent|org` — all three subcommands consume gRPC RPCs, support `--output table|json|yaml`, use `display.NewTable()` for rendering.
