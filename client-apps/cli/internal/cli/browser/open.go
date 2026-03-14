@@ -1,4 +1,4 @@
-package auth
+package browser
 
 import (
 	"os/exec"
@@ -7,11 +7,11 @@ import (
 	"github.com/pkg/errors"
 )
 
-// openBrowser opens the given URL in the user's default browser.
+// Open opens the given URL in the user's default browser.
 //
-// Falls back silently on failure — the caller should always print the URL
+// Falls back silently on failure — callers should always print the URL
 // as a manual fallback before calling this function.
-func openBrowser(url string) error {
+func Open(url string) error {
 	switch runtime.GOOS {
 	case "darwin":
 		return exec.Command("open", url).Start()

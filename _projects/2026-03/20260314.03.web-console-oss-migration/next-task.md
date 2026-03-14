@@ -23,7 +23,7 @@ Drop this file into your conversation to quickly resume work on this project.
 | **T03** | Implement Configurable Auth | ✅ DONE |
 | **T04** | Configure Static Export Build | ✅ DONE |
 | **T05** | Embed Web Console in Daemon + gRPC-Web | ✅ DONE |
-| **T06** | CLI Integration & Polish | ⏸️ TODO |
+| **T06** | CLI Integration & Polish | ✅ DONE |
 | **T07** | Build Pipeline & Dev Workflow | ⏸️ TODO |
 
 ## Key Architectural Decisions
@@ -182,16 +182,26 @@ Key files for reference during migration:
 - **Build coordination**: `make web-console-build` builds web assets and copies to embed location. `make build-release` now includes both `embed_agentrunner` and `embed_webconsole` tags. `.gitignore` excludes build artifacts.
 - **Critical discovery**: gRPC-Web protocol gap — browsers cannot speak native gRPC. This was not covered in the original project plan and required collaborative architectural decision-making.
 
+## Session Progress (2026-03-14 — Session 6)
+
+### T06 Completed: CLI Integration & Polish
+- **Shared browser utility**: Extracted `openBrowser()` from `auth/browser.go` into shared `internal/cli/browser/open.go`. Updated `auth/login.go` import. Deleted old file.
+- **`stigmer server` output**: Web console URL shown in both human and structured (JSON/quiet) output under "Web UI", conditional on health state.
+- **`stigmer server status`**: Added `web-console` to component list. Only displayed when health state entry exists (optional component — no misleading "Not Running" for builds without embed tag or `--no-web`).
+- **`--no-web` flag**: `server.go` flag → `StartOptions.NoWeb` → `STIGMER_NO_WEB=1` env var → `daemon_process.go` skips web console startup, records `stopped` state.
+- **`--open` flag**: Opens web console URL in default browser after server startup (opt-in, not auto-open). Graceful failure with warning.
+- **Fallback health probe**: TCP probe to port 8234 in `createBasicHealthState()`. Only records component when reachable.
+- **Key decisions**: Deferred `--web-port` (YAGNI — requires runtime config, CORS, API port coordination). Chose explicit `--open` over auto-open (CI-safe, non-intrusive).
+
 ## Current Status
 
 **Created**: 2026-03-14
-**Current Task**: T06 (CLI Integration & Polish)
-**Status**: T01 + T02 + T03 + T04 + T05 complete, T06 ready to start
+**Current Task**: T07 (Build Pipeline & Dev Workflow)
+**Status**: T01 through T06 complete, T07 ready to start
 
 ## Next Steps
 
-1. **T06**: CLI Integration & Polish
-2. **T07**: Build Pipeline & Dev Workflow
+1. **T07**: Build Pipeline & Dev Workflow
 
 ## Context for Resume
 - Branch: `ref/migrate-web-to-oss`
@@ -211,12 +221,17 @@ Key files for reference during migration:
 - **Daemon serves web console on port 8234** as in-process goroutine (conditional on `IsAvailable()`)
 - **`make build-release`** produces binary with both agent-runner and web console embedded
 - **`make web-console-build`** builds web assets and copies to embed location
+- **`--no-web` flag** disables web console via `STIGMER_NO_WEB=1` env var to daemon subprocess
+- **`--open` flag** opens web console in browser after server startup (opt-in)
+- **Shared browser utility** at `internal/cli/browser/open.go` (used by auth login and server --open)
+- **Web console is optional in status display** — only shown when health state entry exists
+- **Fallback health** probes web console port (8234) via TCP in `createBasicHealthState()`
 - Pre-existing code quality issue noted: all service files use `any` cast for Connect-RPC clients
 - Dockerfile still references Yarn and standalone mode — needs rewrite in T07
 
 ## Quick Commands
 
-- "Continue with T06" — Start CLI integration & polish
+- "Continue with T07" — Start build pipeline & dev workflow
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 

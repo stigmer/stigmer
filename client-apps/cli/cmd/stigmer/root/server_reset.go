@@ -83,7 +83,7 @@ func handleServerReset(force, includeConfig bool) {
 	}
 
 	fmt.Fprintln(os.Stderr)
-	startServerFresh(dataDir, daemon.StartOptions{}, clioutput.FormatHuman)
+	startServerFresh(dataDir, daemon.StartOptions{}, clioutput.FormatHuman, false)
 }
 
 func buildResetPrompt(configDir string, includeConfig bool) string {
