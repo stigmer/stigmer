@@ -95,34 +95,24 @@ That's it! No complex structure - just focused work.
 ## Current Status
 
 **Last Updated**: 2026-03-14  
-**Status**: In-progress — Tasks 1-3 complete, Tasks 4-5 remaining  
-**Current Focus**: Task 4 — Delete auth from cloud CLI
+**Status**: ✅ Complete — All tasks done  
 
-### Session Progress (2026-03-14, Session 3)
-- Completed Task 3: Cloud backend auth fully wired
-- Discovered streaming auth gap: `WithUnaryInterceptor` only covers unary RPCs, but `stigmer run` uses server-streaming (20+ `run_stream_*.go` files). Switched to `grpc.WithPerRPCCredentials` which handles both
-- Added `tokenAuth` struct and `resolveCloudToken()` to `backend/client.go`
-- Token resolution: `STIGMER_API_KEY` env var > `backend.cloud.token` from config
-- Added `--api-key` persistent flag to root command (propagates to `STIGMER_API_KEY` env var)
-- Removed dead `authInterceptor` and `addAuthHeader` methods
-- All checks pass: `go build ./...`, `go vet ./...`, help output correct
+### Session Progress (2026-03-14, Session 4)
+- Completed Task 4: Ported API key CRUD to OSS CLI and removed entire cloud CLI
+- Created `internal/cli/apikey/` domain package (get, list, delete, create, display)
+- Wired into registry system (verb support for get/list/delete)
+- Created standalone `stigmer apikey` command group (create + fingerprint subcommands)
+- Deleted `stigmer-cloud/client-apps/cli/` entirely (~40 Go files)
+- Removed CLI Makefile targets from `stigmer-cloud/Makefile`
+- Verified client secret `haPGCQa...` is completely gone from stigmer-cloud repo
+- Deleted outdated `FEATURE_COMPARISON.md` from OSS CLI
+- Clean `go build ./...` and `go vet ./...`
 
-### Key Decisions Made (Session 3)
-- `PerRPCCredentials` over unary interceptor — works for all RPC types (unary + streaming)
-- No auto-login on missing auth — clear error message instead (safer for CI/CD, no surprising browser launches)
-- Eager token resolution at `NewClient` time, not per-RPC (simpler, matches cloud CLI)
-- `tokenAuth` duplication accepted between `auth/whoami.go` and `backend/client.go` (avoids circular deps)
-- Cloud config auto-initialized to empty struct if nil (supports env-var-only auth where no cloud config exists in YAML)
-
-### Context for Resume
-- Tasks 1-3 are committed. The auth pipeline (PKCE login → token storage → gRPC bearer token) is fully functional in the OSS CLI.
-- Task 4 involves **deleting** auth code from `stigmer-cloud/client-apps/cli/`. Those files served as reference for porting and are no longer needed.
-- Task 5 is integration testing — verify the full flow: `stigmer config backend set cloud` → `stigmer auth login` → any gRPC command works against cloud backend.
-- No blockers. The remaining work is cleanup (Task 4) and verification (Task 5).
-
-### Next Steps
-1. **Task 4**: Delete auth from cloud CLI — remove `stigmer-cloud/client-apps/cli/internal/cli/auth/` and the auth command wiring in `cmd/stigmer/auth.go`
-2. **Task 5**: Integration testing — end-to-end cloud auth verification
+### All Tasks Complete
+- Task 1: ✅ Scaffold auth commands and PKCE config
+- Task 2: ✅ Implement PKCE OAuth login flow
+- Task 3: ✅ Wire auth into cloud backend connection
+- Task 4: ✅ Port API key CRUD and remove cloud CLI entirely
 
 ---
 

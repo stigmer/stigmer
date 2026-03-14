@@ -77,6 +77,7 @@ func init() {
 
 	// Configuration
 	rootCmd.AddCommand(withGroup(root.NewAuthCommand(), "config"))
+	rootCmd.AddCommand(withGroup(root.NewApiKeyCommand(), "config"))
 	rootCmd.AddCommand(withGroup(root.NewConfigCommand(), "config"))
 	rootCmd.AddCommand(withGroup(root.NewCompletionCommand(), "config"))
 	rootCmd.AddCommand(withGroup(root.NewVersionCommand(), "config"))

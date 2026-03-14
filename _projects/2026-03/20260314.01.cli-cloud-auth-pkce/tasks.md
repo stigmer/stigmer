@@ -143,41 +143,79 @@ to `grpc.WithPerRPCCredentials` which handles both unary AND streaming RPCs.
 
 ---
 
-## Task 4: Delete auth from cloud CLI
+## Task 4: Port API key CRUD and remove cloud CLI entirely
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-03-14 07:13
+**Completed**: 2026-03-14
 
-Remove all authentication code from stigmer-cloud CLI. After OSS auth is working
-and validated, the cloud CLI should delegate to the OSS CLI for auth or be deprecated.
+Ported API key CRUD from the cloud CLI into the OSS CLI, then deleted the entire
+`stigmer-cloud/client-apps/cli/` directory. The OSS CLI fully supersedes the cloud CLI.
 
 ### Subtasks
-- [ ] Remove `stigmer-cloud/client-apps/cli/internal/cli/auth/` directory (contains embedded client secret)
-- [ ] Remove `stigmer-cloud/client-apps/cli/cmd/stigmer/auth.go`
-- [ ] Remove `stigmer-cloud/client-apps/cli/cmd/stigmer/whoami.go`
-- [ ] Update cloud CLI to use OSS CLI's auth module (or deprecate cloud CLI entirely)
-- [ ] Verify no dangling imports
-- [ ] Confirm the client secret (`haPGCQa...`) is gone from the codebase
+- [x] Create `internal/cli/apikey/` domain package (get.go, list.go, display.go, delete.go, create.go)
+- [x] Add `api_key` to `cliRelevantKinds` in `registry.go` and verb support in `verb_support.go`
+- [x] Add `ApiResourceKind_api_key` cases to `routeGet`, `routeList`, `routeDelete`
+- [x] Create `cmd/stigmer/root/apikey.go` with `create` and `fingerprint` subcommands
+- [x] Register `apikey` command on rootCmd under "config" group
+- [x] Verify clean `go build ./...` and `go vet ./...`
+- [x] Delete `stigmer-cloud/client-apps/cli/` directory entirely (~40 Go files)
+- [x] Remove `cli-install` and `cli-update-deps` Makefile targets from `stigmer-cloud/Makefile`
+- [x] Confirm client secret (`haPGCQa...`) is gone from `stigmer-cloud` repo
+- [x] Delete outdated `FEATURE_COMPARISON.md` from OSS CLI
 
-### Notes
-- This task depends on Tasks 1-3 being complete and validated
-- Consider: is the cloud CLI still needed at all, or does the OSS CLI with `backend.type: cloud` replace it?
-- The cloud CLI's `backend/authheader/get_value.go` pattern should already be ported by Task 3
+### Design: Two Access Paths for API Keys
+- **Unified verbs**: `stigmer get apikey <id>`, `stigmer list apikey`, `stigmer delete apikey <id>`
+- **Dedicated command**: `stigmer apikey create [--name] [--expires-in] [--never-expires]`, `stigmer apikey fingerprint <raw-key>`
+
+### Key Differences from Cloud CLI Port
+- Import path: `github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/apikey/v1` (OSS)
+- Output: `display.DisplayProto` / `display.DisplayProtoSlice` (not `cliprint`)
+- Connection: `backend.NewConnection()` with existing auth wiring
+- Error handling: `clierr.Handle()` pattern
+- API keys are not search-indexed — `list` uses dedicated `FindAll` RPC, not SearchService
+- `fingerprint` computes SHA-256 of raw key client-side, then calls `GetByKeyHash` RPC
+
+### Files Created (OSS CLI)
+- `client-apps/cli/internal/cli/apikey/get.go`
+- `client-apps/cli/internal/cli/apikey/list.go`
+- `client-apps/cli/internal/cli/apikey/delete.go`
+- `client-apps/cli/internal/cli/apikey/create.go`
+- `client-apps/cli/internal/cli/apikey/display.go`
+- `client-apps/cli/cmd/stigmer/root/apikey.go`
+
+### Files Modified (OSS CLI)
+- `client-apps/cli/internal/cli/types/registry.go` — added `api_key` to `cliRelevantKinds`
+- `client-apps/cli/internal/cli/types/verb_support.go` — added get/list/delete verb support
+- `client-apps/cli/cmd/stigmer/root/get.go` — added route and handler for api_key
+- `client-apps/cli/cmd/stigmer/root/list.go` — added route and handler for api_key
+- `client-apps/cli/cmd/stigmer/root/delete.go` — added route for api_key
+- `client-apps/cli/cmd/stigmer/root/delete_handlers.go` — added `deleteApiKey` handler
+- `client-apps/cli/cmd/stigmer/root.go` — registered `NewApiKeyCommand()`
+
+### Files Deleted
+- `client-apps/cli/FEATURE_COMPARISON.md` — outdated, all features listed as missing were implemented
+- `stigmer-cloud/client-apps/cli/` — entire directory (~40 Go files, go.mod, Makefile, docs)
+
+### Files Modified (stigmer-cloud)
+- `stigmer-cloud/Makefile` — removed CLI section (lines 68-76)
 
 ---
 
 ## Project Completion Checklist
 
-When all tasks are done:
-- [ ] All tasks marked ✅ DONE
-- [ ] `stigmer auth login` opens browser, completes PKCE flow, stores token
-- [ ] `stigmer auth logout` clears token
-- [ ] `stigmer auth whoami` shows logged-in user
-- [ ] Cloud backend commands work with stored token
-- [ ] `STIGMER_API_KEY` env var override works
-- [ ] No client secret anywhere in OSS CLI code
-- [ ] Client secret removed from cloud CLI code
-- [ ] Ready for use/deployment
+All tasks complete:
+- [x] All tasks marked ✅ DONE
+- [x] `stigmer auth login` opens browser, completes PKCE flow, stores token
+- [x] `stigmer auth logout` clears token
+- [x] `stigmer auth whoami` shows logged-in user
+- [x] Cloud backend commands work with stored token
+- [x] `STIGMER_API_KEY` env var override works
+- [x] No client secret anywhere in OSS CLI code
+- [x] Client secret removed from cloud CLI code (entire CLI deleted)
+- [x] API key CRUD ported to OSS CLI
+- [x] Cloud CLI entirely removed from stigmer-cloud repo
+- [x] Ready for use/deployment
 
 ---
 

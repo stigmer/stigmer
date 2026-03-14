@@ -60,6 +60,7 @@ var cliRelevantKinds = map[apiresourcekind.ApiResourceKind]bool{
 	apiresourcekind.ApiResourceKind_skill:        true,
 	apiresourcekind.ApiResourceKind_mcp_server:   true,
 	apiresourcekind.ApiResourceKind_project:      true,
+	apiresourcekind.ApiResourceKind_api_key:      true,
 }
 
 // buildRegistry creates the registry from proto metadata.
