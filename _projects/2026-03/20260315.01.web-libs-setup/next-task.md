@@ -14,7 +14,7 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-03-15 10:31
-**Current Task**: T03 (Create @stigmer/theme)
+**Current Task**: T04 (Create @stigmer/react-ui with execution module)
 **Status**: Ready to start
 
 ## Session Progress (2026-03-15)
@@ -65,36 +65,59 @@ Key decisions:
 - `token-store.ts` NOT deleted (still used by existing services; removed in T05)
 - Deliberately omitted Planton's event buses, notification integration, env info, and local error scopes (premature for Stigmer's current needs)
 
+### T03: Create @stigmer/theme (UI Layer) — COMPLETED
+
+Accomplished:
+- Created `_libs/ui/theme/src/utils.ts` with `cn()` utility and `ClassValue` type re-export
+- Created `_libs/ui/theme/src/tokens.css` with all 35+ oklch CSS custom properties (`:root` light + `.dark` overrides)
+- Updated `_libs/ui/theme/src/index.ts` barrel export (`cn`, `ClassValue`)
+- Added `"./tokens.css"` subpath export in `package.json` for CSS imports
+- Updated `src/app/globals.css` to `@import "@stigmer/theme/tokens.css"` (single source of truth)
+- Verified: `npm install` resolves, `npm run build` passes (18 pages, zero errors)
+
+Key decisions:
+- **Tokens only** extracted from `globals.css`: `:root` and `.dark` CSS variable blocks moved to theme package
+- **`@theme inline` stays** in `globals.css`: It's Tailwind v4 configuration (bridges CSS vars to utility classes) and references Next.js font variables (`--font-geist-sans`, `--font-geist-mono`) — moving it would couple theme to Next.js font infrastructure
+- **`@custom-variant dark` stays** in `globals.css`: Tailwind dark mode strategy, not a design token
+- **`ClassValue` re-exported**: Downstream packages (`@stigmer/react-ui`) can type `className` props without direct `clsx` dependency
+- **No React theme context**: Stigmer uses Tailwind's CSS-class-based dark mode; no JS mode bridging needed (unlike Planton's MUI-based approach)
+- **No `cva`/`VariantProps` re-export**: CVA is a component authoring tool, not a theme concern — components import it directly
+- CSS `@import` of workspace packages through Tailwind v4 PostCSS pipeline confirmed working (technical risk from plan resolved)
+
 ## Task Plan Status
 
 | Task | Title | Status |
 |------|-------|--------|
 | **T01** | Set up _libs directory structure and workspace config | **COMPLETED** |
 | **T02** | Create @stigmer/rpc-client (infra layer) | **COMPLETED** |
-| **T03** | Create @stigmer/theme (ui layer) | PENDING |
+| **T03** | Create @stigmer/theme (ui layer) | **COMPLETED** |
 | **T04** | Create @stigmer/react-ui with execution module (domain layer) | PENDING |
 | **T05** | Migrate Stigmer web console to consume @stigmer packages | PENDING |
 | **T06** | Set up npm publishing (build tooling, CI) | PENDING |
 
 ## Next Steps
 
-1. **T03**: Extract `cn()` utility and CSS design tokens into `@stigmer/theme`. Decide how much of `globals.css` moves vs stays.
-2. **T04**: Extract execution components into `@stigmer/react-ui`. Wire the IoC bridge using the `useServiceClient` hook from `@stigmer/rpc-client`.
-3. T03 is a prerequisite for T04 (execution components use `cn()`).
+1. **T04**: Extract execution components into `@stigmer/react-ui`. Wire the IoC bridge using the `useServiceClient` hook from `@stigmer/rpc-client`. Components will import `cn` from `@stigmer/theme`.
+2. **T05**: Migrate Stigmer web console to consume `@stigmer/*` packages (replace `@/lib/utils` imports with `@stigmer/theme`, replace execution component imports with `@stigmer/react-ui`).
+3. T04 is a prerequisite for T05.
 
 ## Context for Resume
 
-- `@stigmer/rpc-client` is fully implemented with IoC bridge pattern (React Context + imperative factory)
+- All three layers of `_libs` now have implemented packages: infra (`@stigmer/rpc-client`), ui (`@stigmer/theme`), domain (`@stigmer/react-ui` — skeleton only)
+- `@stigmer/theme` exports: `cn()`, `ClassValue` (TypeScript), `tokens.css` (CSS subpath export)
+- `globals.css` imports tokens from theme package — tokens are single-sourced
+- `src/lib/utils.ts` still exists with the same `cn()` (console components import from `@/lib/utils` until T05)
+- `components.json` shadcn alias still points to `@/lib/utils` (updated in T05)
 - The console bridge component (`StigmerClientBridge`) will be created in T05 to wire `useAuth()` → `StigmerTransportProvider`
 - Existing `src/services/*.ts` files still use the old singleton transport — they migrate in T05
-- The plan file is at `_projects/2026-03/20260315.01.web-libs-setup/tasks/T01_0_plan.md` — T03-T06 details are all there
-- For T03: study `src/lib/utils.ts` (cn utility) and `src/app/globals.css` (CSS tokens) to determine extraction scope
+- The plan file is at `_projects/2026-03/20260315.01.web-libs-setup/tasks/T01_0_plan.md` — T04-T06 details are all there
+- For T04: study `src/components/execution/` directory to determine extraction scope and IoC bridge design
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-_projects/2026-03/20260315.01.web-libs-setup/checkpoints/2026-03-15-session-2.md
+_projects/2026-03/20260315.01.web-libs-setup/checkpoints/2026-03-15-session-3.md
 ```
 
 ### 2. Task Plan
