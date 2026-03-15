@@ -12,7 +12,7 @@ import {
   useAgentExecution,
   useApproval,
   isTerminalPhase,
-} from "@stigmer/react-ui/execution";
+} from "@stigmer/agent-execution-ui/execution";
 import { cn } from "@stigmer/theme";
 import { useDraftAgent } from "@/hooks/useDraftAgent";
 import { useActiveOrgSlug } from "@/contexts/org-context";

@@ -7,7 +7,7 @@ import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecutio
 import {
   useExecutionService,
   isTerminalPhase,
-} from "@stigmer/react-ui/execution";
+} from "@stigmer/agent-execution-ui/execution";
 import { getSession } from "@/services/session-service";
 
 export interface UseSessionDetailReturn {
