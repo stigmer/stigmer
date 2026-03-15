@@ -14,9 +14,9 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-03-15 10:31
-**Current Task**: T06 (Set up npm publishing)
-**Status**: Ready to start
-**Last Session**: 2026-03-15 — Completed T05 (migrated web console to consume @stigmer/* packages)
+**Current Task**: ALL TASKS COMPLETED
+**Status**: Complete
+**Last Session**: 2026-03-15 — Completed T06 (audit and fix npm publishing pipeline)
 
 ## Session Progress (2026-03-15)
 
@@ -122,6 +122,23 @@ Key decisions:
 - **`lib/utils.ts` and `lib/execution.ts` already absent**: These files referenced in the plan did not exist on this branch. Only the files that existed were deleted.
 - **`transport.ts` and `token-store.ts` intentionally kept**: Still depended on by session, draft, catalog, and auth services. Out of scope for T05.
 
+### T06: Audit and Fix npm Publishing Pipeline — COMPLETED
+
+Accomplished:
+- **Fixed critical double-publish bug**: Root `Makefile`'s `release` target was calling `libs-publish` locally AND the `v*` tag push triggered `release.npm-libs.yaml` CI workflow to publish the same version. Removed local publish; CI is now the sole publisher.
+- **Added package metadata**: `license: "Apache-2.0"`, `engines: { node: ">=18" }`, and relevant `keywords` to all 4 packages (`@stigmer/protos`, `@stigmer/rpc-client`, `@stigmer/theme`, `@stigmer/react-ui`).
+- **Fixed repository.url format**: Changed from `https://` to `git+https://` across all packages, eliminating npm auto-correction warnings.
+- **Enhanced publish script** (`scripts/publish-libs.mjs`): Now propagates `license`, `engines`, `keywords` into generated `dist/package.json`. Copies `src/` into `dist/src/` for declaration map IDE navigation. Copies root `LICENSE` file into each published package.
+- **Fixed build config**: Changed `module: "esnext"` to `"ES2022"` in `tsconfig.base.json` for stable emit behavior. Changed `npx @tailwindcss/cli` to `tailwindcss` in react-ui build script.
+- **Verified `buf/` necessity**: Proto stubs import from `buf/validate/` — directory must stay in build.
+- **Created README.md** for all 4 packages with install instructions, usage examples, and API summaries.
+- **End-to-end validated**: Full clean + build + dry-run publish for all 4 packages — zero errors, correct contents (LICENSE, README, src/, all metadata fields).
+
+Key decisions:
+- **Ship source (Option A)**: `src/` is copied into `dist/src/` so `.d.ts.map` declaration maps resolve to readable TypeScript. Package sizes remain small (11-44KB compressed).
+- **`buf/` stays in protos tsconfig**: Multiple proto stubs import from `buf/validate/` paths — removing it breaks the build.
+- **CI owns publishing**: `make release` pushes tags; CI workflows handle the actual npm publish and GitHub release. No local publishing.
+
 ## Task Plan Status
 
 | Task | Title | Status |
@@ -131,30 +148,30 @@ Key decisions:
 | **T03** | Create @stigmer/theme (ui layer) | **COMPLETED** |
 | **T04** | Create @stigmer/react-ui with execution module (domain layer) | **COMPLETED** |
 | **T05** | Migrate Stigmer web console to consume @stigmer packages | **COMPLETED** |
-| **T06** | Set up npm publishing (build tooling, CI) | PENDING |
+| **T06** | Audit and fix npm publishing pipeline | **COMPLETED** |
 
-## Next Steps
+## Project Complete
 
-1. **T06**: Set up npm publishing (build tooling, CI)
-   - Add build tooling (tsup or tsc) for each `_libs` package
-   - Configure `package.json` exports with proper `types`, `import`, `require` fields
-   - Set up CI pipeline for publishing to npm
-   - Add `publishConfig` and `files` fields to each package
+All 6 tasks finished. The `@stigmer/*` packages are:
+- Structured in 3 layers (infra/ui/domain) with clean dependency rules
+- Consumed by the web console (zero local execution code remains)
+- Ready to publish to npm via CI on tag push
+- Published with full metadata (license, engines, keywords, README, LICENSE, source maps)
 
-## Context for Resume
+## Context for Future Work
 
 - All three `_libs` layers implemented and the console now consumes them: infra (`@stigmer/rpc-client`), ui (`@stigmer/theme`), domain (`@stigmer/react-ui`)
 - `StigmerTransportBridge` wires `useAuth()` → `StigmerTransportProvider` in the provider tree (after `AuthGuard`)
 - Console execution pages import exclusively from `@stigmer/react-ui/execution` — zero local execution code remains
 - `cn()` imports across 13 files point to `@stigmer/theme`; `components.json` alias updated for future shadcn adds
+- npm publishing pipeline fully configured: `make release` pushes tags → CI builds + publishes packages
 - **Two transport paths (temporary)**: Execution uses `StigmerTransportProvider`. Six non-execution services still use singleton `transport.ts` + `token-store.ts`. Unifying is a future task.
-- The plan file is at `_projects/2026-03/20260315.01.web-libs-setup/tasks/T01_0_plan.md` — T06 details are there
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-_projects/2026-03/20260315.01.web-libs-setup/checkpoints/2026-03-15-session-5.md
+_projects/2026-03/20260315.01.web-libs-setup/checkpoints/2026-03-15-session-6.md
 ```
 
 ### 2. Task Plan
@@ -172,11 +189,6 @@ _projects/2026-03/20260315.01.web-libs-setup/design-decisions/001-libs-pattern-o
 _projects/2026-03/20260315.01.web-libs-setup/dont-dos/001-no-protocol-invention.md
 ```
 
-## Quick Resume
-
-To continue this project, drag this file into chat:
-`@_projects/2026-03/20260315.01.web-libs-setup/next-task.md`
-
 ---
 
-*This file provides direct paths to all project resources for quick context loading.*
+*Project complete. All 6 tasks finished.*

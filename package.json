@@ -7,5 +7,12 @@
     "client-apps/web/_libs/infra/*",
     "client-apps/web/_libs/ui/*",
     "client-apps/web/_libs/domain/*"
-  ]
+  ],
+  "scripts": {
+    "build:libs": "npm run build -w @stigmer/protos && npm run build -w @stigmer/rpc-client && npm run build -w @stigmer/theme && npm run build -w @stigmer/react-ui",
+    "clean:libs": "npm run clean -w @stigmer/protos && npm run clean -w @stigmer/rpc-client && npm run clean -w @stigmer/theme && npm run clean -w @stigmer/react-ui"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.2.1"
+  }
 }

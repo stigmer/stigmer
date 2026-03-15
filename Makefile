@@ -177,6 +177,10 @@ release: ## Tag and push a release (usage: make release [bump=patch|minor|major]
 	git tag -a "$$NEW_TAG" -m "Release $$NEW_TAG"; \
 	git tag -a "mcp-server/$$NEW_TAG" -m "Release mcp-server $$NEW_TAG"; \
 	git push origin "apis/stubs/go/$$NEW_TAG" "$$NEW_TAG" "mcp-server/$$NEW_TAG"
+	@echo ""
+	@echo "Tags pushed. CI will handle:"
+	@echo "  - CLI binaries + GitHub release  (release.cli.yaml)"
+	@echo "  - @stigmer/* npm packages        (release.npm-libs.yaml)"
 
 protos-release: ## Publish protos to Buf, then tag release
 	$(MAKE) -C apis release
