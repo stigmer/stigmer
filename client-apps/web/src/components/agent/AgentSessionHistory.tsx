@@ -3,7 +3,7 @@
 import { History, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SessionCard } from "@/components/session/SessionCard";
-import { useAgentSessions } from "@/hooks/useAgentSessions";
+import { useAgentSessionList } from "@/hooks/sessions/useAgentSessionList";
 
 interface AgentSessionHistoryProps {
   agentId: string;
@@ -11,7 +11,7 @@ interface AgentSessionHistoryProps {
 
 export function AgentSessionHistory({ agentId }: AgentSessionHistoryProps) {
   const { sessions, isLoading, error, hasMore, isLoadingMore, loadMore } =
-    useAgentSessions(agentId, { pageSize: 5 });
+    useAgentSessionList(agentId, { pageSize: 5 });
 
   return (
     <section>

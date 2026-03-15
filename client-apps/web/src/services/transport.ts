@@ -1,5 +1,13 @@
 "use client";
 
+/**
+ * @deprecated This module-level singleton transport is legacy. New code should
+ * use `useStigmerTransport()` from `@stigmer/rpc-client` (context-based).
+ *
+ * Remaining consumer: `OrgProvider` via `org-service.ts`. Full removal is
+ * deferred until OrgProvider is refactored to use a service factory + hook.
+ */
+
 import { type Interceptor } from "@connectrpc/connect";
 import { createGrpcWebTransport } from "@connectrpc/connect-web";
 import { getApiBaseUrl } from "@/config/env";

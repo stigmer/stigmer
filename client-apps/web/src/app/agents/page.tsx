@@ -5,10 +5,10 @@ import { Play } from "lucide-react";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { TopBar } from "@/components/layout/TopBar";
 import { ResourceList } from "@/components/catalog";
-import { useResourceCatalog } from "@/hooks/useResourceCatalog";
+import { useAgentList } from "@/hooks/agents/useAgentList";
 
 export default function AgentsPage() {
-  const catalog = useResourceCatalog(ApiResourceKind.agent);
+  const catalog = useAgentList();
 
   return (
     <>

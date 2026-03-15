@@ -12,9 +12,9 @@ import {
   useAgentExecution,
   useApproval,
   isTerminalPhase,
-} from "@stigmer/agent-execution-ui/execution";
+} from "@stigmer/agent-execution-ui";
 import { cn } from "@stigmer/theme";
-import { useDraftAgent } from "@/hooks/useDraftAgent";
+import { useDraftAgent } from "@/hooks/agents/useDraftAgent";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 import { Button } from "@/components/ui/button";
 import type { DraftConfig } from "@/config/draft";

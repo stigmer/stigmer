@@ -3,12 +3,12 @@
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, AlertCircle, Loader2 } from "lucide-react";
-import { useSkillDetail } from "@/hooks/useSkillDetail";
+import { useSkill } from "@/hooks/skills/useSkill";
 import { SkillDetailView } from "@/components/skill/SkillDetailView";
 
 export default function SkillDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { skill, isLoading, error } = useSkillDetail(id);
+  const { data: skill, isLoading, error } = useSkill(id);
 
   return (
     <div className="space-y-6">
@@ -37,7 +37,7 @@ export default function SkillDetailPage() {
       {error && (
         <div className="border-destructive/30 bg-destructive/5 text-destructive flex items-start gap-2 rounded-lg border p-4 text-sm">
           <AlertCircle className="mt-0.5 size-4 shrink-0" />
-          <p>{error}</p>
+          <p>{error.message}</p>
         </div>
       )}
 

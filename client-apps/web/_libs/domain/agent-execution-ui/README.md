@@ -15,7 +15,7 @@ import { StigmerTransportProvider } from "@stigmer/rpc-client";
 import {
   ExecutionStream,
   useAgentExecution,
-} from "@stigmer/agent-execution-ui/execution";
+} from "@stigmer/agent-execution-ui";
 import "@stigmer/agent-execution-ui/styles.css";
 
 function AgentView({ executionId }: { executionId: string }) {
@@ -36,7 +36,7 @@ function App() {
 
 | Import                                   | Contents                                                     |
 | ---------------------------------------- | ------------------------------------------------------------ |
-| `@stigmer/agent-execution-ui/execution`  | All execution components, hooks, helpers                     |
+| `@stigmer/agent-execution-ui`            | All execution components, hooks, helpers                     |
 | `@stigmer/agent-execution-ui/styles.css` | Pre-built Tailwind CSS (use without your own Tailwind setup) |
 
 ## Components

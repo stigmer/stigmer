@@ -4,13 +4,13 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, AlertCircle, Loader2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { useAgentDetail } from "@/hooks/useAgentDetail";
+import { useAgent } from "@/hooks/agents/useAgent";
 import { AgentDetailView } from "@/components/agent/AgentDetailView";
 import { AgentSessionHistory } from "@/components/agent/AgentSessionHistory";
 
 export default function AgentDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { agent, isLoading, error } = useAgentDetail(id);
+  const { data: agent, isLoading, error } = useAgent(id);
 
   return (
     <div className="space-y-6">
@@ -39,7 +39,7 @@ export default function AgentDetailPage() {
       {error && (
         <div className="border-destructive/30 bg-destructive/5 text-destructive flex items-start gap-2 rounded-lg border p-4 text-sm">
           <AlertCircle className="mt-0.5 size-4 shrink-0" />
-          <p>{error}</p>
+          <p>{error.message}</p>
         </div>
       )}
 

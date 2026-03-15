@@ -9,7 +9,6 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./execution": "./src/execution/index.ts",
     "./styles.css": "./src/styles.css"
   },
   "scripts": {
@@ -41,10 +40,6 @@
       ".": {
         "types": "./dist/index.d.ts",
         "import": "./dist/index.js"
-      },
-      "./execution": {
-        "types": "./dist/execution/index.d.ts",
-        "import": "./dist/execution/index.js"
       },
       "./styles.css": "./dist/styles.css"
     }

@@ -14,7 +14,7 @@ import {
   useAgentExecution,
   useApproval,
   isTerminalPhase,
-} from "@stigmer/agent-execution-ui/execution";
+} from "@stigmer/agent-execution-ui";
 import { cn } from "@stigmer/theme";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";

@@ -1,3 +1,11 @@
+/**
+ * @deprecated This service uses the legacy singleton transport. New code
+ * should use a domain service factory with context-based transport instead.
+ *
+ * Remaining consumer: `OrgProvider`. Full removal is deferred until
+ * OrgProvider is refactored to use the three-layer service pattern.
+ */
+
 import { create } from "@bufbuild/protobuf";
 import { createClient } from "@connectrpc/connect";
 import { EmptySchema } from "@bufbuild/protobuf/wkt";
