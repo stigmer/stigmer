@@ -4,7 +4,10 @@ import { useCallback, useState } from "react";
 import Link from "next/link";
 import { Play, ExternalLink } from "lucide-react";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { AgentPicker, type SelectedAgent } from "@/components/agent/AgentPicker";
+import {
+  AgentPicker,
+  type SelectedAgent,
+} from "@/components/agent/AgentPicker";
 import {
   ExecutionStream,
   MessageInput,
@@ -39,7 +42,9 @@ function derivePageState(
 
 export default function RunAgentPage() {
   const org = useActiveOrgSlug();
-  const [selectedAgent, setSelectedAgent] = useState<SelectedAgent | null>(null);
+  const [selectedAgent, setSelectedAgent] = useState<SelectedAgent | null>(
+    null,
+  );
   const [sessionId, setSessionId] = useState<string | null>(null);
 
   const { execution, phase, isConnected, error, start } = useAgentExecution();
@@ -59,7 +64,12 @@ export default function RunAgentPage() {
   }, [execution?.spec?.sessionId]);
 
   // Capture session ID whenever the execution transitions to a terminal phase.
-  if (hasExecution && isTerminalPhase(phase) && !sessionId && execution?.spec?.sessionId) {
+  if (
+    hasExecution &&
+    isTerminalPhase(phase) &&
+    !sessionId &&
+    execution?.spec?.sessionId
+  ) {
     captureSessionId();
   }
 
@@ -107,10 +117,10 @@ export default function RunAgentPage() {
     <div className="flex h-full flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 border-b px-6 py-4">
-        <Play className="size-5 text-primary" />
+        <Play className="text-primary size-5" />
         <div>
           <h1 className="text-lg font-semibold">Run Agent</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Select an agent and start a new execution
           </p>
         </div>
@@ -129,7 +139,7 @@ export default function RunAgentPage() {
 
             {showInitialInput && (
               <div className="space-y-3">
-                <label className="text-sm font-medium text-muted-foreground">
+                <label className="text-muted-foreground text-sm font-medium">
                   Message
                 </label>
                 <MessageInput
@@ -185,15 +195,17 @@ function AgentBanner({
   return (
     <div
       className={cn(
-        "flex items-center gap-2 border-b bg-muted/30 px-4 py-2 text-sm",
+        "bg-muted/30 flex items-center gap-2 border-b px-4 py-2 text-sm",
       )}
     >
       <span className="font-medium">{agent.name}</span>
-      <span className="flex-1 text-muted-foreground">{agent.qualifiedSlug}</span>
+      <span className="text-muted-foreground flex-1">
+        {agent.qualifiedSlug}
+      </span>
       {sessionId && (
         <Link
           href={`/sessions/${sessionId}`}
-          className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-xs transition-colors"
         >
           View session
           <ExternalLink className="size-3" />

@@ -2,7 +2,10 @@
 
 import { useMemo } from "react";
 import { useStigmerTransport } from "@stigmer/rpc-client";
-import { createExecutionService, type ExecutionService } from "../services/execution-service";
+import {
+  createExecutionService,
+  type ExecutionService,
+} from "../services/execution-service";
 
 /**
  * Returns an {@link ExecutionService} bound to the transport from

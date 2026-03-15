@@ -47,23 +47,23 @@ export function SubAgentCard({
     <Collapsible open={open} onOpenChange={setOpen}>
       <div
         className={cn(
-          "rounded-lg border border-dashed bg-card text-card-foreground text-sm",
+          "bg-card text-card-foreground rounded-lg border border-dashed text-sm",
           className,
         )}
       >
-        <CollapsibleTrigger className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-muted/50 transition-colors rounded-t-lg">
+        <CollapsibleTrigger className="hover:bg-muted/50 flex w-full items-center gap-2 rounded-t-lg px-3 py-2 text-left transition-colors">
           <ChevronRight
             className={cn(
-              "size-3.5 shrink-0 text-muted-foreground transition-transform",
+              "text-muted-foreground size-3.5 shrink-0 transition-transform",
               open && "rotate-90",
             )}
           />
           {isActive ? (
-            <Loader2 className="size-3.5 shrink-0 animate-spin text-muted-foreground" />
+            <Loader2 className="text-muted-foreground size-3.5 shrink-0 animate-spin" />
           ) : (
-            <Bot className="size-3.5 shrink-0 text-muted-foreground" />
+            <Bot className="text-muted-foreground size-3.5 shrink-0" />
           )}
-          <span className="truncate font-medium text-xs">
+          <span className="truncate text-xs font-medium">
             {subAgent.subject || subAgent.name}
           </span>
           <Badge
@@ -73,25 +73,28 @@ export function SubAgentCard({
             {subAgentStatusLabel(subAgent.status)}
           </Badge>
           {duration && (
-            <span className="shrink-0 text-[10px] text-muted-foreground">
+            <span className="text-muted-foreground shrink-0 text-[10px]">
               {duration}
             </span>
           )}
           {subAgent.toolCalls.length > 0 && (
-            <span className="shrink-0 text-[10px] text-muted-foreground">
-              {subAgent.toolCalls.length} tool{subAgent.toolCalls.length !== 1 && "s"}
+            <span className="text-muted-foreground shrink-0 text-[10px]">
+              {subAgent.toolCalls.length} tool
+              {subAgent.toolCalls.length !== 1 && "s"}
             </span>
           )}
         </CollapsibleTrigger>
 
         <CollapsibleContent>
-          <div className="border-t px-3 py-2 space-y-3">
+          <div className="space-y-3 border-t px-3 py-2">
             {subAgent.input && (
               <div>
-                <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                <p className="text-muted-foreground mb-1 text-[10px] font-medium tracking-wider uppercase">
                   Task
                 </p>
-                <p className="text-xs text-muted-foreground">{subAgent.input}</p>
+                <p className="text-muted-foreground text-xs">
+                  {subAgent.input}
+                </p>
               </div>
             )}
 
@@ -114,15 +117,15 @@ export function SubAgentCard({
             ))}
 
             {subAgent.error && (
-              <p className="text-xs text-destructive">{subAgent.error}</p>
+              <p className="text-destructive text-xs">{subAgent.error}</p>
             )}
 
             {subAgent.output && (
               <div>
-                <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                <p className="text-muted-foreground mb-1 text-[10px] font-medium tracking-wider uppercase">
                   Result
                 </p>
-                <pre className="overflow-x-auto rounded bg-muted p-2 text-[11px] leading-relaxed whitespace-pre-wrap">
+                <pre className="bg-muted overflow-x-auto rounded p-2 text-[11px] leading-relaxed whitespace-pre-wrap">
                   {subAgent.output}
                 </pre>
               </div>

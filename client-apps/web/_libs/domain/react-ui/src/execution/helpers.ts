@@ -38,11 +38,7 @@ export function phaseLabel(phase: ExecutionPhase): string {
   return PHASE_LABELS[phase] ?? "Unknown";
 }
 
-type BadgeVariant =
-  | "default"
-  | "secondary"
-  | "destructive"
-  | "outline";
+type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
 
 const PHASE_VARIANTS: Record<ExecutionPhase, BadgeVariant> = {
   [ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED]: "outline",
@@ -171,10 +167,7 @@ export function buildSubAgentIndex(
  * Format a qualified tool name: "mcp-server/tool-name" when an MCP server
  * slug is present, or just "tool-name" for built-in sandbox tools.
  */
-export function qualifiedToolName(
-  name: string,
-  mcpServerSlug: string,
-): string {
+export function qualifiedToolName(name: string, mcpServerSlug: string): string {
   if (mcpServerSlug) return `${mcpServerSlug}/${name}`;
   return name;
 }

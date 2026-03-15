@@ -24,10 +24,10 @@ export function CatalogEmptyState({ kind, hasQuery }: CatalogEmptyStateProps) {
 
   if (hasQuery) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-16 text-center">
-        <SearchX className="mb-3 size-10 text-muted-foreground/40" />
+      <div className="border-border flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
+        <SearchX className="text-muted-foreground/40 mb-3 size-10" />
         <p className="text-sm font-medium">No matching {label}</p>
-        <p className="mt-1 text-xs text-muted-foreground">
+        <p className="text-muted-foreground mt-1 text-xs">
           Try a different search term or clear the filter.
         </p>
       </div>
@@ -35,10 +35,10 @@ export function CatalogEmptyState({ kind, hasQuery }: CatalogEmptyStateProps) {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-16 text-center">
-      <Icon className="mb-3 size-10 text-muted-foreground/40" />
+    <div className="border-border flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
+      <Icon className="text-muted-foreground/40 mb-3 size-10" />
       <p className="text-sm font-medium">No {label} yet</p>
-      <p className="mt-1 text-xs text-muted-foreground">
+      <p className="text-muted-foreground mt-1 text-xs">
         {label.charAt(0).toUpperCase() + label.slice(1)} you create or have
         access to will appear here.
       </p>

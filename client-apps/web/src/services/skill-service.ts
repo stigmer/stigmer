@@ -2,12 +2,8 @@ import { create } from "@bufbuild/protobuf";
 import { createClient } from "@connectrpc/connect";
 import { transport } from "./transport";
 
-import {
-  SkillQueryController,
-} from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
-import {
-  SkillIdSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
+import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
+import { SkillIdSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 
 // ---------------------------------------------------------------------------

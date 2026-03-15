@@ -1,6 +1,12 @@
 import Link from "next/link";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { Card, CardHeader, CardTitle, CardDescription, CardAction } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardAction,
+} from "@/components/ui/card";
 import { MessageSquare, ChevronRight } from "lucide-react";
 import { formatRelativeTime, toDate } from "@/lib/time";
 
@@ -18,10 +24,10 @@ export function SessionCard({ session }: SessionCardProps) {
 
   return (
     <Link href={`/sessions/${id}`} className="block">
-      <Card size="sm" className="transition-colors hover:bg-accent/50">
+      <Card size="sm" className="hover:bg-accent/50 transition-colors">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="size-4 shrink-0 text-muted-foreground" />
+            <MessageSquare className="text-muted-foreground size-4 shrink-0" />
             <span className="truncate">{displayName}</span>
           </CardTitle>
           <CardDescription>
@@ -39,7 +45,7 @@ export function SessionCard({ session }: SessionCardProps) {
             </span>
           </CardDescription>
           <CardAction>
-            <ChevronRight className="size-4 text-muted-foreground" />
+            <ChevronRight className="text-muted-foreground size-4" />
           </CardAction>
         </CardHeader>
       </Card>

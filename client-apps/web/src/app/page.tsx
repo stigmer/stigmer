@@ -1,10 +1,5 @@
 import Link from "next/link";
-import {
-  Play,
-  Bot,
-  PenLine,
-  ArrowRight,
-} from "lucide-react";
+import { Play, Bot, PenLine, ArrowRight } from "lucide-react";
 import {
   Card,
   CardHeader,
@@ -24,7 +19,7 @@ const QUICK_ACTIONS = [
   {
     title: "Browse Catalog",
     description: "Explore agents, skills, and MCP servers",
-    href: "/agents",
+    href: "/catalog",
     icon: Bot,
   },
   {
@@ -49,17 +44,17 @@ export default function DashboardPage() {
             const Icon = action.icon;
             return (
               <Link key={action.href} href={action.href}>
-                <Card className="h-full transition-colors hover:bg-muted/50">
+                <Card className="hover:bg-muted/50 h-full transition-colors">
                   <CardHeader>
                     <div className="flex items-start gap-3">
-                      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                        <Icon className="size-4.5 text-primary" />
+                      <div className="bg-primary/10 flex size-9 shrink-0 items-center justify-center rounded-lg">
+                        <Icon className="text-primary size-4.5" />
                       </div>
                       <div className="flex-1">
                         <CardTitle>{action.title}</CardTitle>
                         <CardDescription>{action.description}</CardDescription>
                       </div>
-                      <ArrowRight className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                      <ArrowRight className="text-muted-foreground mt-0.5 size-4 shrink-0" />
                     </div>
                   </CardHeader>
                 </Card>

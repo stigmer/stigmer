@@ -4,7 +4,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { useExecutionService, isTerminalPhase } from "@stigmer/react-ui/execution";
+import {
+  useExecutionService,
+  isTerminalPhase,
+} from "@stigmer/react-ui/execution";
 import { getSession } from "@/services/session-service";
 
 export interface UseSessionDetailReturn {
@@ -77,19 +80,16 @@ export function useSessionDetail(sessionId: string): UseSessionDetailReturn {
     fetchData();
   }, [fetchData]);
 
-  const lastExecution = executions.length > 0
-    ? executions[executions.length - 1]
-    : null;
+  const lastExecution =
+    executions.length > 0 ? executions[executions.length - 1] : null;
 
-  const lastPhase = lastExecution?.status?.phase
-    ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+  const lastPhase =
+    lastExecution?.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
 
   const activeExecution =
     lastExecution && !isTerminalPhase(lastPhase) ? lastExecution : null;
 
-  const pastExecutions = activeExecution
-    ? executions.slice(0, -1)
-    : executions;
+  const pastExecutions = activeExecution ? executions.slice(0, -1) : executions;
 
   return {
     session,

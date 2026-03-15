@@ -27,7 +27,7 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
         "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
         active
           ? "bg-accent text-accent-foreground font-medium"
-          : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+          : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
       )}
     >
       <Icon className="size-4 shrink-0" />
@@ -44,8 +44,7 @@ function NavGroupSection({
   pathname: string;
 }) {
   const hasActiveChild = group.items.some(
-    (item) =>
-      pathname === item.href || pathname.startsWith(item.href + "/")
+    (item) => pathname === item.href || pathname.startsWith(item.href + "/"),
   );
   const [open, setOpen] = useState(hasActiveChild);
   const Icon = group.icon;
@@ -58,7 +57,7 @@ function NavGroupSection({
           "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
           hasActiveChild
             ? "text-foreground font-medium"
-            : "text-muted-foreground hover:text-foreground"
+            : "text-muted-foreground hover:text-foreground",
         )}
       >
         <Icon className="size-4 shrink-0" />
@@ -66,12 +65,12 @@ function NavGroupSection({
         <ChevronDown
           className={cn(
             "size-4 shrink-0 transition-transform",
-            open && "rotate-180"
+            open && "rotate-180",
           )}
         />
       </button>
       {open && (
-        <div className="ml-4 mt-0.5 flex flex-col gap-0.5 border-l border-border pl-2">
+        <div className="border-border mt-0.5 ml-4 flex flex-col gap-0.5 border-l pl-2">
           {group.items.map((item) => (
             <NavLink key={item.href} item={item} pathname={pathname} />
           ))}
@@ -89,10 +88,10 @@ export function Sidebar() {
   return (
     <aside
       style={{ width: SIDEBAR_WIDTH }}
-      className="fixed inset-y-0 left-0 z-30 flex flex-col border-r border-sidebar-border bg-sidebar"
+      className="border-sidebar-border bg-sidebar fixed inset-y-0 left-0 z-30 flex flex-col border-r"
     >
-      <div className="flex h-14 items-center gap-2 border-b border-sidebar-border px-4">
-        <div className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground text-xs font-bold">
+      <div className="border-sidebar-border flex h-14 items-center gap-2 border-b px-4">
+        <div className="bg-primary text-primary-foreground flex size-7 items-center justify-center rounded-md text-xs font-bold">
           S
         </div>
         <span className="text-sm font-semibold tracking-tight">
@@ -100,7 +99,7 @@ export function Sidebar() {
         </span>
       </div>
 
-      <div className="border-b border-sidebar-border">
+      <div className="border-sidebar-border border-b">
         <OrgSwitcher />
       </div>
 
@@ -115,7 +114,7 @@ export function Sidebar() {
               />
             ) : (
               <NavLink key={entry.href} item={entry} pathname={pathname} />
-            )
+            ),
           )}
         </nav>
       </ScrollArea>

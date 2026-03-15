@@ -56,22 +56,22 @@ export function ToolCallCard({
     <Collapsible open={open || isWaitingApproval} onOpenChange={setOpen}>
       <div
         className={cn(
-          "rounded-lg border bg-card text-card-foreground text-sm",
-          isWaitingApproval && "border-primary/40 ring-1 ring-primary/20",
+          "bg-card text-card-foreground rounded-lg border text-sm",
+          isWaitingApproval && "border-primary/40 ring-primary/20 ring-1",
           className,
         )}
       >
-        <CollapsibleTrigger className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-muted/50 transition-colors rounded-t-lg">
+        <CollapsibleTrigger className="hover:bg-muted/50 flex w-full items-center gap-2 rounded-t-lg px-3 py-2 text-left transition-colors">
           <ChevronRight
             className={cn(
-              "size-3.5 shrink-0 text-muted-foreground transition-transform",
+              "text-muted-foreground size-3.5 shrink-0 transition-transform",
               (open || isWaitingApproval) && "rotate-90",
             )}
           />
           {isRunning ? (
-            <Loader2 className="size-3.5 shrink-0 animate-spin text-muted-foreground" />
+            <Loader2 className="text-muted-foreground size-3.5 shrink-0 animate-spin" />
           ) : (
-            <Wrench className="size-3.5 shrink-0 text-muted-foreground" />
+            <Wrench className="text-muted-foreground size-3.5 shrink-0" />
           )}
           <span className="truncate font-mono text-xs">{displayName}</span>
           <Badge
@@ -81,17 +81,17 @@ export function ToolCallCard({
             {toolCallStatusLabel(toolCall.status)}
           </Badge>
           {duration && (
-            <span className="shrink-0 text-[10px] text-muted-foreground">
+            <span className="text-muted-foreground shrink-0 text-[10px]">
               {duration}
             </span>
           )}
         </CollapsibleTrigger>
 
         <CollapsibleContent>
-          <div className="border-t px-3 py-2 space-y-2">
+          <div className="space-y-2 border-t px-3 py-2">
             {toolCall.args && Object.keys(toolCall.args).length > 0 && (
               <ToolCallSection label="Arguments">
-                <pre className="overflow-x-auto rounded bg-muted p-2 text-[11px] leading-relaxed">
+                <pre className="bg-muted overflow-x-auto rounded p-2 text-[11px] leading-relaxed">
                   {JSON.stringify(toolCall.args, null, 2)}
                 </pre>
               </ToolCallSection>
@@ -99,7 +99,7 @@ export function ToolCallCard({
 
             {toolCall.result && (
               <ToolCallSection label="Result">
-                <pre className="overflow-x-auto rounded bg-muted p-2 text-[11px] leading-relaxed whitespace-pre-wrap">
+                <pre className="bg-muted overflow-x-auto rounded p-2 text-[11px] leading-relaxed whitespace-pre-wrap">
                   {toolCall.result}
                 </pre>
               </ToolCallSection>
@@ -107,12 +107,12 @@ export function ToolCallCard({
 
             {toolCall.error && (
               <ToolCallSection label="Error">
-                <p className="text-xs text-destructive">{toolCall.error}</p>
+                <p className="text-destructive text-xs">{toolCall.error}</p>
               </ToolCallSection>
             )}
 
             {toolCall.isStreaming && !toolCall.result && (
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
                 <Loader2 className="size-3 animate-spin" />
                 Executing...
               </div>
@@ -123,8 +123,7 @@ export function ToolCallCard({
             <div className="border-t px-3 py-2">
               <ApprovalControls
                 approvalMessage={
-                  toolCall.approvalMessage ||
-                  `Execute tool: ${displayName}`
+                  toolCall.approvalMessage || `Execute tool: ${displayName}`
                 }
                 onSubmit={handleApproval}
                 isSubmitting={isApprovalSubmitting}
@@ -146,7 +145,7 @@ function ToolCallSection({
 }) {
   return (
     <div>
-      <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+      <p className="text-muted-foreground mb-1 text-[10px] font-medium tracking-wider uppercase">
         {label}
       </p>
       {children}

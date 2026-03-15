@@ -15,7 +15,7 @@ export function AgentSessionHistory({ agentId }: AgentSessionHistoryProps) {
 
   return (
     <section>
-      <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+      <h3 className="text-muted-foreground mb-3 text-sm font-semibold tracking-wider uppercase">
         Recent Sessions
       </h3>
 
@@ -23,7 +23,7 @@ export function AgentSessionHistory({ agentId }: AgentSessionHistoryProps) {
       {error && (
         <div
           role="alert"
-          className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+          className="border-destructive/30 bg-destructive/5 text-destructive flex items-center gap-2 rounded-lg border px-4 py-3 text-sm"
         >
           <AlertCircle className="size-4 shrink-0" />
           {error}
@@ -36,7 +36,7 @@ export function AgentSessionHistory({ agentId }: AgentSessionHistoryProps) {
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
-              className="h-[52px] animate-pulse rounded-xl bg-muted/50"
+              className="bg-muted/50 h-[52px] animate-pulse rounded-xl"
             />
           ))}
         </div>
@@ -44,10 +44,10 @@ export function AgentSessionHistory({ agentId }: AgentSessionHistoryProps) {
 
       {/* Empty state */}
       {!isLoading && sessions.length === 0 && !error && (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-12 text-center">
-          <History className="mb-3 size-10 text-muted-foreground/40" />
+        <div className="border-border flex flex-col items-center justify-center rounded-lg border border-dashed py-12 text-center">
+          <History className="text-muted-foreground/40 mb-3 size-10" />
           <p className="text-sm font-medium">No sessions yet</p>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="text-muted-foreground mt-1 text-xs">
             Run this agent to create your first session.
           </p>
         </div>

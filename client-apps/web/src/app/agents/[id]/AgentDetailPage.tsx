@@ -19,7 +19,7 @@ export default function AgentDetailPage() {
         <Link
           href="/agents"
           aria-label="Back to agents"
-          className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-muted"
+          className="hover:bg-muted inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors"
         >
           <ArrowLeft className="size-4" />
         </Link>
@@ -31,13 +31,13 @@ export default function AgentDetailPage() {
       {/* Loading */}
       {isLoading && (
         <div className="flex items-center justify-center py-16">
-          <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          <Loader2 className="text-muted-foreground size-6 animate-spin" />
         </div>
       )}
 
       {/* Error */}
       {error && (
-        <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+        <div className="border-destructive/30 bg-destructive/5 text-destructive flex items-start gap-2 rounded-lg border p-4 text-sm">
           <AlertCircle className="mt-0.5 size-4 shrink-0" />
           <p>{error}</p>
         </div>

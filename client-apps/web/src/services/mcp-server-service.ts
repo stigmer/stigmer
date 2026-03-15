@@ -2,12 +2,8 @@ import { create } from "@bufbuild/protobuf";
 import { createClient } from "@connectrpc/connect";
 import { transport } from "./transport";
 
-import {
-  McpServerQueryController,
-} from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
-import {
-  ApiResourceIdSchema,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
+import { ApiResourceIdSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 
 // ---------------------------------------------------------------------------

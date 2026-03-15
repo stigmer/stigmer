@@ -86,16 +86,12 @@ export function AgentPicker({
       switch (e.key) {
         case "ArrowDown": {
           e.preventDefault();
-          setActiveIndex((prev) =>
-            prev < results.length - 1 ? prev + 1 : 0,
-          );
+          setActiveIndex((prev) => (prev < results.length - 1 ? prev + 1 : 0));
           break;
         }
         case "ArrowUp": {
           e.preventDefault();
-          setActiveIndex((prev) =>
-            prev > 0 ? prev - 1 : results.length - 1,
-          );
+          setActiveIndex((prev) => (prev > 0 ? prev - 1 : results.length - 1));
           break;
         }
         case "Enter": {
@@ -120,16 +116,16 @@ export function AgentPicker({
   if (selected) {
     return (
       <div className={cn("space-y-1", className)}>
-        <label className="text-sm font-medium text-muted-foreground">
+        <label className="text-muted-foreground text-sm font-medium">
           Agent
         </label>
-        <div className="flex items-center gap-3 rounded-lg border bg-muted/50 px-3 py-2.5">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
-            <Bot className="size-4 text-primary" />
+        <div className="bg-muted/50 flex items-center gap-3 rounded-lg border px-3 py-2.5">
+          <div className="bg-primary/10 flex size-8 shrink-0 items-center justify-center rounded-md">
+            <Bot className="text-primary size-4" />
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">{selected.name}</p>
-            <p className="truncate text-xs text-muted-foreground">
+            <p className="text-muted-foreground truncate text-xs">
               {selected.qualifiedSlug}
             </p>
           </div>
@@ -157,7 +153,7 @@ export function AgentPicker({
     <div className={cn("space-y-1", className)}>
       <label
         htmlFor={`${instanceId}-input`}
-        className="text-sm font-medium text-muted-foreground"
+        className="text-muted-foreground text-sm font-medium"
       >
         Agent
       </label>
@@ -165,7 +161,7 @@ export function AgentPicker({
       <div className="relative">
         {/* Search input */}
         <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
           <input
             ref={inputRef}
             id={`${instanceId}-input`}
@@ -180,9 +176,9 @@ export function AgentPicker({
             disabled={disabled}
             placeholder="Search agents..."
             className={cn(
-              "w-full rounded-lg border bg-background py-2.5 pl-9 pr-9 text-sm",
+              "bg-background w-full rounded-lg border py-2.5 pr-9 pl-9 text-sm",
               "placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none",
               "disabled:cursor-not-allowed disabled:opacity-50",
             )}
             onChange={(e) => {
@@ -198,7 +194,7 @@ export function AgentPicker({
             onKeyDown={handleKeyDown}
           />
           {isLoading && (
-            <Loader2 className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+            <Loader2 className="text-muted-foreground absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin" />
           )}
         </div>
 
@@ -209,13 +205,20 @@ export function AgentPicker({
             role="listbox"
             aria-label="Agent search results"
             className={cn(
-              "absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border bg-popover shadow-md",
+              "bg-popover absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border shadow-md",
               results.length === 0 && !isLoading && "p-3",
             )}
           >
             {results.length === 0 && !isLoading && (
-              <li className="text-center text-sm text-muted-foreground" role="presentation">
-                {error ? error : query ? "No agents found" : "No agents available"}
+              <li
+                className="text-muted-foreground text-center text-sm"
+                role="presentation"
+              >
+                {error
+                  ? error
+                  : query
+                    ? "No agents found"
+                    : "No agents available"}
               </li>
             )}
 
@@ -239,16 +242,16 @@ export function AgentPicker({
                 onClick={() => handleSelect(index)}
                 onMouseEnter={() => setActiveIndex(index)}
               >
-                <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 mt-0.5">
-                  <Bot className="size-3.5 text-primary" />
+                <div className="bg-primary/10 mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md">
+                  <Bot className="text-primary size-3.5" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{result.name}</p>
-                  <p className="truncate text-xs text-muted-foreground">
+                  <p className="text-muted-foreground truncate text-xs">
                     {result.qualifiedSlug}
                   </p>
                   {result.description && (
-                    <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground/70">
+                    <p className="text-muted-foreground/70 mt-0.5 line-clamp-1 text-xs">
                       {result.description}
                     </p>
                   )}

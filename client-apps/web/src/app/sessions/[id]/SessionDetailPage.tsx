@@ -69,7 +69,8 @@ export default function SessionDetailPage() {
   const effectiveExecution = liveExecution ?? activeExecution;
   const effectivePhase = liveExecution
     ? livePhase
-    : (activeExecution?.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED);
+    : (activeExecution?.status?.phase ??
+      ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED);
   const hasLiveExecution = effectiveExecution !== null;
 
   const executionId = effectiveExecution?.metadata?.id ?? "";
@@ -113,15 +114,16 @@ export default function SessionDetailPage() {
         <Link
           href="/sessions"
           aria-label="Back to sessions"
-          className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-muted"
+          className="hover:bg-muted inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors"
         >
           <ArrowLeft className="size-4" />
         </Link>
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-lg font-semibold">{displayName}</h1>
           {session?.status?.audit?.specAudit?.createdAt && (
-            <p className="text-sm text-muted-foreground">
-              Started {formatRelativeTime(session.status.audit.specAudit.createdAt)}
+            <p className="text-muted-foreground text-sm">
+              Started{" "}
+              {formatRelativeTime(session.status.audit.specAudit.createdAt)}
             </p>
           )}
         </div>
@@ -131,13 +133,13 @@ export default function SessionDetailPage() {
       <div className="flex flex-1 flex-col overflow-hidden">
         {pageState === "loading" && (
           <div className="flex flex-1 items-center justify-center">
-            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+            <Loader2 className="text-muted-foreground size-6 animate-spin" />
           </div>
         )}
 
         {pageState === "error" && (
           <div className="p-6">
-            <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+            <div className="border-destructive/30 bg-destructive/5 text-destructive flex items-start gap-2 rounded-lg border p-4 text-sm">
               <AlertCircle className="mt-0.5 size-4 shrink-0" />
               <p>{combinedError}</p>
             </div>
@@ -178,8 +180,8 @@ export default function SessionDetailPage() {
                 {/* ── Empty session ── */}
                 {pastExecutions.length === 0 && !hasLiveExecution && (
                   <div className="flex flex-col items-center gap-3 py-12 text-center">
-                    <MessageSquare className="size-8 text-muted-foreground/30" />
-                    <p className="text-sm text-muted-foreground">
+                    <MessageSquare className="text-muted-foreground/30 size-8" />
+                    <p className="text-muted-foreground text-sm">
                       No messages in this session yet
                     </p>
                   </div>
@@ -233,16 +235,12 @@ function PastExecutionThread({
       )}
 
       {messages.map((msg, index) => (
-        <MessageEntry
-          key={index}
-          message={msg}
-          subAgentIndex={subAgentIndex}
-        />
+        <MessageEntry key={index} message={msg} subAgentIndex={subAgentIndex} />
       ))}
 
       {/* Execution error */}
       {execution.status?.error && isTerminalPhase(phase) && (
-        <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+        <div className="border-destructive/30 bg-destructive/5 text-destructive flex items-start gap-2 rounded-lg border p-3 text-sm">
           <AlertCircle className="mt-0.5 size-4 shrink-0" />
           <p>{execution.status.error}</p>
         </div>
@@ -259,9 +257,7 @@ function ExecutionBoundary() {
   return (
     <div className="flex items-center gap-3 py-2">
       <Separator className="flex-1" />
-      <span className="text-xs text-muted-foreground/50">
-        continued
-      </span>
+      <span className="text-muted-foreground/50 text-xs">continued</span>
       <Separator className="flex-1" />
     </div>
   );

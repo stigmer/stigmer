@@ -50,19 +50,19 @@ export function AgentDetailView({ agent }: AgentDetailViewProps) {
                 className="size-10 rounded-lg object-cover"
               />
             ) : (
-              <div className="flex size-10 items-center justify-center rounded-lg bg-muted">
-                <Bot className="size-5 text-muted-foreground" />
+              <div className="bg-muted flex size-10 items-center justify-center rounded-lg">
+                <Bot className="text-muted-foreground size-5" />
               </div>
             )}
             <div>
               <h2 className="text-xl font-semibold">{meta?.name}</h2>
-              <p className="font-mono text-xs text-muted-foreground">
+              <p className="text-muted-foreground font-mono text-xs">
                 {qualifiedSlug}
               </p>
             </div>
           </div>
           {spec?.description && (
-            <p className="max-w-prose text-sm text-muted-foreground">
+            <p className="text-muted-foreground max-w-prose text-sm">
               {spec.description}
             </p>
           )}
@@ -87,7 +87,7 @@ export function AgentDetailView({ agent }: AgentDetailViewProps) {
         </div>
         <Link
           href={`/run?agentId=${meta?.id ?? ""}`}
-          className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex shrink-0 items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors"
         >
           <Play className="size-3.5" />
           Run Agent
@@ -100,7 +100,7 @@ export function AgentDetailView({ agent }: AgentDetailViewProps) {
           {hasLongInstructions ? (
             <CollapsibleInstructions instructions={spec.instructions} />
           ) : (
-            <pre className="whitespace-pre-wrap rounded-lg bg-muted p-4 font-mono text-xs leading-relaxed">
+            <pre className="bg-muted rounded-lg p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap">
               {spec.instructions}
             </pre>
           )}
@@ -119,18 +119,19 @@ export function AgentDetailView({ agent }: AgentDetailViewProps) {
                   : ref.slug
                 : `server-${i}`;
               return (
-                <div
-                  key={slug}
-                  className="rounded-lg border p-3 text-sm"
-                >
+                <div key={slug} className="rounded-lg border p-3 text-sm">
                   <div className="flex items-center gap-2">
-                    <Server className="size-4 shrink-0 text-muted-foreground" />
+                    <Server className="text-muted-foreground size-4 shrink-0" />
                     <span className="font-mono font-medium">{slug}</span>
                   </div>
                   {usage.enabledTools.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1">
                       {usage.enabledTools.map((tool) => (
-                        <Badge key={tool} variant="secondary" className="text-[10px]">
+                        <Badge
+                          key={tool}
+                          variant="secondary"
+                          className="text-[10px]"
+                        >
                           <Wrench className="mr-0.5 size-2.5" />
                           {tool}
                         </Badge>
@@ -138,7 +139,7 @@ export function AgentDetailView({ agent }: AgentDetailViewProps) {
                     </div>
                   )}
                   {usage.toolApprovalOverrides.length > 0 && (
-                    <div className="mt-2 text-xs text-muted-foreground">
+                    <div className="text-muted-foreground mt-2 text-xs">
                       {usage.toolApprovalOverrides.length} approval override
                       {usage.toolApprovalOverrides.length !== 1 ? "s" : ""}
                     </div>
@@ -161,7 +162,7 @@ export function AgentDetailView({ agent }: AgentDetailViewProps) {
                   key={slug || i}
                   className="flex items-center gap-2 rounded-lg border p-3 text-sm"
                 >
-                  <FileCode2 className="size-4 shrink-0 text-muted-foreground" />
+                  <FileCode2 className="text-muted-foreground size-4 shrink-0" />
                   <span className="font-mono font-medium">{slug}</span>
                 </div>
               );
@@ -175,12 +176,9 @@ export function AgentDetailView({ agent }: AgentDetailViewProps) {
         <Section title="Sub-Agents">
           <div className="space-y-3">
             {spec.subAgents.map((sub) => (
-              <div
-                key={sub.name}
-                className="rounded-lg border p-3 text-sm"
-              >
+              <div key={sub.name} className="rounded-lg border p-3 text-sm">
                 <div className="flex items-center gap-2">
-                  <Bot className="size-4 shrink-0 text-muted-foreground" />
+                  <Bot className="text-muted-foreground size-4 shrink-0" />
                   <span className="font-medium">{sub.name}</span>
                   {sub.modelOverride && (
                     <Badge variant="outline" className="text-[10px]">
@@ -189,7 +187,7 @@ export function AgentDetailView({ agent }: AgentDetailViewProps) {
                   )}
                 </div>
                 {sub.description && (
-                  <p className="mt-1 text-xs text-muted-foreground">
+                  <p className="text-muted-foreground mt-1 text-xs">
                     {sub.description}
                   </p>
                 )}
@@ -211,7 +209,7 @@ function Section({
 }) {
   return (
     <section>
-      <h3 className="mb-3 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+      <h3 className="text-muted-foreground mb-3 text-sm font-semibold tracking-wider uppercase">
         {title}
       </h3>
       {children}
@@ -219,16 +217,12 @@ function Section({
   );
 }
 
-function CollapsibleInstructions({
-  instructions,
-}: {
-  instructions: string;
-}) {
+function CollapsibleInstructions({ instructions }: { instructions: string }) {
   const [open, setOpen] = useState(false);
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <pre className="whitespace-pre-wrap rounded-lg bg-muted p-4 font-mono text-xs leading-relaxed">
+      <pre className="bg-muted rounded-lg p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap">
         {open
           ? instructions
           : instructions.slice(0, INSTRUCTIONS_COLLAPSE_THRESHOLD) + "..."}
@@ -236,7 +230,7 @@ function CollapsibleInstructions({
       <CollapsibleContent>
         {/* CollapsibleContent wraps nothing extra; full text is shown in pre above when open */}
       </CollapsibleContent>
-      <CollapsibleTrigger className="mt-2 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+      <CollapsibleTrigger className="text-muted-foreground hover:text-foreground mt-2 flex items-center gap-1 text-xs">
         <ChevronDown
           className={`size-3.5 transition-transform ${open ? "rotate-180" : ""}`}
         />

@@ -47,11 +47,12 @@ interface ResourceCardProps {
 
 export function ResourceCard({ result }: ResourceCardProps) {
   const href = kindHref(result.kind, result.id);
-  const isPublic = result.visibility === ApiResourceVisibility.visibility_public;
+  const isPublic =
+    result.visibility === ApiResourceVisibility.visibility_public;
 
   return (
     <Link href={href} className="block">
-      <Card size="sm" className="transition-colors hover:bg-accent/50">
+      <Card size="sm" className="hover:bg-accent/50 transition-colors">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             {kindIconElement(result.kind)}
@@ -79,14 +80,14 @@ export function ResourceCard({ result }: ResourceCardProps) {
             </span>
           </CardDescription>
           <CardAction>
-            <ChevronRight className="size-4 text-muted-foreground" />
+            <ChevronRight className="text-muted-foreground size-4" />
           </CardAction>
         </CardHeader>
         {(result.description || result.tags.length > 0) && (
           <CardContent>
             <div className="space-y-2">
               {result.description && (
-                <p className="line-clamp-2 text-xs text-muted-foreground">
+                <p className="text-muted-foreground line-clamp-2 text-xs">
                   {result.description}
                 </p>
               )}
@@ -102,7 +103,7 @@ export function ResourceCard({ result }: ResourceCardProps) {
                     </Badge>
                   ))}
                   {result.tags.length > 5 && (
-                    <span className="self-center text-[10px] text-muted-foreground">
+                    <span className="text-muted-foreground self-center text-[10px]">
                       +{result.tags.length - 5}
                     </span>
                   )}

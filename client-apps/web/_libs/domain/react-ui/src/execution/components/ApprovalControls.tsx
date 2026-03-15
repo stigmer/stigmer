@@ -35,7 +35,7 @@ export function ApprovalControls({
   return (
     <div
       className={cn(
-        "rounded-lg border-2 border-primary/30 bg-primary/5 p-3 space-y-3",
+        "border-primary/30 bg-primary/5 space-y-3 rounded-lg border-2 p-3",
         className,
       )}
     >
@@ -88,7 +88,7 @@ export function ApprovalControls({
             variant="ghost"
             onClick={() => setShowComment(true)}
             disabled={isSubmitting}
-            className="ml-auto text-xs text-muted-foreground"
+            className="text-muted-foreground ml-auto text-xs"
           >
             Add comment
           </Button>

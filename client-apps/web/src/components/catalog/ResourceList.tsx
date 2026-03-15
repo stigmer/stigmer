@@ -1,6 +1,12 @@
 "use client";
 
-import { Search, Loader2, ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
+import {
+  Search,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  AlertCircle,
+} from "lucide-react";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { cn } from "@stigmer/theme";
 import { Button } from "@/components/ui/button";
@@ -31,7 +37,7 @@ export function ResourceList({ kind, catalog }: ResourceListProps) {
       {/* Search + result count */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
           <input
             type="text"
             value={query}
@@ -39,17 +45,17 @@ export function ResourceList({ kind, catalog }: ResourceListProps) {
             placeholder="Search..."
             aria-label="Search resources"
             className={cn(
-              "w-full rounded-lg border bg-background py-2 pl-9 pr-9 text-sm",
+              "bg-background w-full rounded-lg border py-2 pr-9 pl-9 text-sm",
               "placeholder:text-muted-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none",
             )}
           />
           {isLoading && (
-            <Loader2 className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+            <Loader2 className="text-muted-foreground absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin" />
           )}
         </div>
         {totalCount > 0 && (
-          <p className="shrink-0 text-xs text-muted-foreground">
+          <p className="text-muted-foreground shrink-0 text-xs">
             {totalCount} {totalCount === 1 ? "result" : "results"}
           </p>
         )}
@@ -59,7 +65,7 @@ export function ResourceList({ kind, catalog }: ResourceListProps) {
       {error && (
         <div
           role="alert"
-          className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+          className="border-destructive/30 bg-destructive/5 text-destructive flex items-center gap-2 rounded-lg border px-4 py-3 text-sm"
         >
           <AlertCircle className="size-4 shrink-0" />
           {error}
@@ -72,7 +78,7 @@ export function ResourceList({ kind, catalog }: ResourceListProps) {
           {Array.from({ length: 5 }).map((_, i) => (
             <div
               key={i}
-              className="h-[72px] animate-pulse rounded-xl bg-muted/50"
+              className="bg-muted/50 h-[72px] animate-pulse rounded-xl"
             />
           ))}
         </div>
@@ -104,7 +110,7 @@ export function ResourceList({ kind, catalog }: ResourceListProps) {
           >
             <ChevronLeft className="size-4" />
           </Button>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-muted-foreground text-xs">
             Page {page} of {totalPages}
           </span>
           <Button
