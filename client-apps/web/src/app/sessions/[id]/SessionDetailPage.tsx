@@ -2,8 +2,8 @@
 
 import { useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft, AlertCircle, MessageSquare, Loader2 } from "lucide-react";
+import { AlertCircle, MessageSquare, Loader2 } from "lucide-react";
+import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
@@ -128,23 +128,20 @@ export default function SessionDetailPage() {
   return (
     <div className="flex h-full flex-col">
       {/* ── Header ── */}
-      <div className="flex items-center gap-3 border-b px-6 py-4">
-        <Link
-          href="/sessions"
-          aria-label="Back to sessions"
-          className="hover:bg-muted inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors"
-        >
-          <ArrowLeft className="size-4" />
-        </Link>
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate text-lg font-semibold">{displayName}</h1>
-          {session?.status?.audit?.specAudit?.createdAt && (
-            <p className="text-muted-foreground text-sm">
-              Started{" "}
-              {formatRelativeTime(session.status.audit.specAudit.createdAt)}
-            </p>
-          )}
-        </div>
+      <div className="space-y-1 border-b px-6 py-4">
+        <Breadcrumb
+          items={[
+            { label: "Sessions", href: "/sessions" },
+            { label: displayName },
+          ]}
+        />
+        <h1 className="truncate text-lg font-semibold">{displayName}</h1>
+        {session?.status?.audit?.specAudit?.createdAt && (
+          <p className="text-muted-foreground text-sm">
+            Started{" "}
+            {formatRelativeTime(session.status.audit.specAudit.createdAt)}
+          </p>
+        )}
       </div>
 
       {/* ── Content ── */}
