@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { History, Play, ArrowRight } from "lucide-react";
 import { SessionCard } from "@/components/session/SessionCard";
+import { ErrorMessage } from "@/components/ui/error-message";
 import { useSessionList } from "@/hooks/sessions/useSessionList";
 
 const DASHBOARD_SESSION_LIMIT = 5;
 
 export function RecentSessions() {
-  const { sessions, isLoading, error, hasMore } = useSessionList({
+  const { sessions, isLoading, error, hasMore, refresh } = useSessionList({
     pageSize: DASHBOARD_SESSION_LIMIT,
   });
 
@@ -38,19 +39,20 @@ export function RecentSessions() {
         </div>
       )}
 
-      {error && (
-        <div className="border-destructive/30 bg-destructive/5 text-destructive rounded-lg border p-3 text-sm">
-          {error}
-        </div>
-      )}
+      {error && <ErrorMessage error={error} retry={refresh} />}
 
       {!isLoading && !error && sessions.length === 0 && (
         <div className="border-border flex flex-col items-center gap-3 rounded-lg border border-dashed py-10">
           <History className="text-muted-foreground/40 size-8" />
-          <p className="text-muted-foreground text-sm">No sessions yet</p>
+          <div className="text-center">
+            <p className="text-sm font-medium">No sessions yet</p>
+            <p className="text-muted-foreground mt-1 text-xs">
+              Run an agent to start your first session.
+            </p>
+          </div>
           <Link
             href="/run"
-            className="border-border bg-background hover:bg-muted inline-flex h-7 items-center gap-1 rounded-lg border px-2.5 text-[0.8rem] font-medium transition-colors"
+            className="border-border bg-background hover:bg-muted mt-1 inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium transition-colors"
           >
             <Play className="size-3.5" />
             Run Agent

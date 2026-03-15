@@ -22,9 +22,36 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: IN PROGRESS
-- **Last Session**: 2026-03-15 — T12 (Sessions Page) completed
-- **Active Task**: None — T12 complete, ready for T13
-- **Next Task**: T13 — Dashboard Improvements (status summary cards, enhanced RecentSessions)
+- **Last Session**: 2026-03-15 — T13 (Dashboard Improvements) completed
+- **Active Task**: None — Phase 6 complete (T11 + T12 + T13)
+- **Next Task**: Phase 7 — Domain library extraction (`session-ui`, `catalog-ui`)
+
+## Session Progress (2026-03-15, Session 9)
+
+### T13: Dashboard Improvements — COMPLETED
+
+Transformed dashboard from a quick-actions page to an organizational overview with resource counts, trimmed quick actions, and enhanced RecentSessions.
+
+**New Files** (4 files):
+- `hooks/dashboard/keys.ts` — Dashboard query key factory (`dashboardKeys.all`, `dashboardKeys.counts(org)`)
+- `hooks/dashboard/useDashboardCounts.ts` — Layer 3 hook: 3 parallel search queries for agent/skill/MCP server counts via existing domain service hooks. Returns per-resource `count`, `isLoading`, `error`.
+- `components/dashboard/ResourceOverview.tsx` — Stat card grid (3 columns). Each card: icon + label + count (or skeleton/dash), links to resource list page.
+- `components/dashboard/QuickActions.tsx` — Extracted from `page.tsx`, trimmed to Run Agent + Draft Resource (2-column grid).
+
+**Modified Files** (3 files):
+- `components/dashboard/RecentSessions.tsx` — Replaced inline error div with `<ErrorMessage>` component. Improved empty state with onboarding hint and Run Agent link.
+- `hooks/sessions/useSessionList.ts` — `error` return type changed from `string | null` to `Error | null` (needed by `ErrorMessage`, consistent with `useSessionPage`).
+- `app/page.tsx` — Composes ResourceOverview + QuickActions + RecentSessions. TopBar description updated. All inline QUICK_ACTIONS code removed.
+
+**Architecture Decisions**:
+- Resource counts via domain search services with `page: { num: 1, size: 1 }` + `select` for `totalCount` — minimal payload, independent failure isolation.
+- 3 parallel `useQuery` calls (not single multi-kind request) — respects three-layer architecture, uses Layer 2 service hooks directly.
+- Dashboard query keys isolated from domain keys — stale time + `refetchOnWindowFocus` for cache invalidation.
+- Browse Agents removed from quick actions — triple-redundant with sidebar nav + stat card link.
+
+**Server API Gap**: No aggregate execution endpoints (`CountExecutionsByPhase`, `ListActiveExecutions`, `ListRecentFailedExecutions`, `ListPendingApprovals`). Execution status widgets deferred to server API work.
+
+**Verification**: `next build` clean, `eslint --max-warnings 0` clean, `prettier --check` clean on all modified/new files.
 
 ## Session Progress (2026-03-15, Session 8)
 
@@ -290,6 +317,8 @@ The pre-existing `agent-execution-ui` package had unnecessary nesting that was i
 16. **Session table Console-only** — `@stigmer/session-ui` keeps Layer 1 + Layer 2 only. The sessions list page table is Console-specific. Embeddable session components (replay viewer) are a separate future task with real usage guiding the API design.
 17. **Scoped to API surface** — T12 builds only what the Session query API supports (pagination, agent filter). Sorting, text search, date range, status filter deferred — API gaps documented for server work.
 18. **No session status column** — Session has no lifecycle status field; it's derived from the latest AgentExecution (N+1). Deferred until server adds denormalized `lifecycle_status`.
+19. **Resource counts via domain search services** — 3 parallel `useQuery` calls through Layer 2 service hooks with `page: { num: 1, size: 1 }` + `select` for `totalCount`. Respects three-layer architecture, independent failure isolation per resource type.
+20. **Execution status widgets deferred** — no aggregate execution endpoints exist. Dashboard shows resource counts (available now), not execution metrics (blocked on server API).
 
 ### Surprises Encountered
 - `searchAgents` was initially removed alongside the genuinely dead `searchSkills` and `searchMcpServers`. Build failure revealed `useAgentSearch.ts` imports it. The function was immediately restored. Lesson: always verify each removal individually, not in batches.
@@ -304,15 +333,16 @@ The pre-existing `agent-execution-ui` package had unnecessary nesting that was i
 6. ~~**T09: Error Handling Framework**~~ — **DONE** (3-tier: transport interceptors + TanStack Query retry + component display)
 7. ~~**T11: Global Header, Sidebar Polish, Breadcrumbs**~~ — **DONE** (5 new components, 4 modified, 4 detail pages updated)
 8. ~~**T12: Sessions Page**~~ — **DONE** (table layout, agent filter, pagination, empty/loading/error states; sorting/search/status deferred — API gaps documented)
-9. **T13: Dashboard Improvements** — status summary cards, enhanced RecentSessions
+9. ~~**T13: Dashboard Improvements**~~ — **DONE** (resource overview cards, trimmed quick actions, enhanced RecentSessions; execution status widgets deferred — server API gaps)
 
 ## Context for Resume
-- Phases 1-5 (T01-T09), T11, and T12 are fully committed and verified
-- T12 completed the sessions list page: data table with agent filter, pagination, all states. Reusable `table.tsx` primitives added to `components/ui/`. Server API gaps documented (sort, search, date filter, status, agent name denormalization).
-- The codebase now has: Prettier + hardened ESLint, teal brand color, dark mode, semantic status tokens, sectioned sidebar with collapse, global header, breadcrumbs, Query/Command hook pattern with domain libraries, three-tier error handling framework, reusable table primitives, sessions list page
+- Phases 1-6 (T01-T13) are fully committed and verified
+- Phase 6 complete: global header + sidebar collapse (T11), sessions page (T12), dashboard improvements (T13)
+- T13 added resource overview cards (agent/skill/MCP server counts), trimmed quick actions, and enhanced RecentSessions with ErrorMessage component
+- The codebase now has: Prettier + hardened ESLint, teal brand color, dark mode, semantic status tokens, sectioned sidebar with collapse, global header, breadcrumbs, Query/Command hook pattern with domain libraries, three-tier error handling framework, reusable table primitives, sessions list page, dashboard with resource overview
 - `transport.ts` and `org-service.ts` are deprecated with comments — last consumers of the singleton transport pattern
 - Cmd+K (global search) and notifications deferred to separate future tasks
-- T13 (Dashboard Improvements) remains in Phase 6
+- Server API gaps block execution status widgets — tracked for server-side work
 
 ## Gap Analysis Summary
 
@@ -348,7 +378,7 @@ The project addresses gaps from two analyses:
 | Phase 3 | 5 | Navigation IA design decision + catalog cleanup | UX | **DONE** |
 | Phase 4 | 6–9 | Query/Command hook pattern + service reorganization | Architecture | **DONE** |
 | Phase 5 | 10–11 | Error handling & Bridge framework | Architecture | **DONE** |
-| Phase 6 | 12–16 | Layout overhaul + View completeness (sidebar, header, sessions, dashboard) | UX | T11/T12 DONE, T13 Pending |
+| Phase 6 | 12–16 | Layout overhaul + View completeness (sidebar, header, sessions, dashboard) | UX | **DONE** |
 | Phase 7 | 17–19 | Domain library extraction (`session-ui`, `catalog-ui`) | Architecture | Pending |
 | Phase 8 | 20–24 | Workflow & IAM views (deferrable) | UX | Pending |
 | Phase 9 | 25–26 | Final polish & verification | Both | Pending |
@@ -418,12 +448,12 @@ The project addresses gaps from two analyses:
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-03-15-session-8.md`
-2. [ ] Check current task status — T12 complete, T13 (Dashboard Improvements) next
+1. [ ] Read the latest checkpoint from `checkpoints/2026-03-15-session-9.md`
+2. [ ] Check current task status — Phase 6 complete, Phase 7 (Domain library extraction) next
 3. [ ] Review design decisions in `design-decisions/` (especially `003-hook-pattern-contract.md`)
 4. [ ] Read coding guideline: `coding-guidelines/query-command-hooks.md` (includes error handling patterns)
 5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with T13: Dashboard Improvements (status summary cards, enhanced RecentSessions)
+6. [ ] Continue with Phase 7: Domain library extraction (`session-ui`, `catalog-ui` decomposition)
 
 ## Quick Resume
 
@@ -434,8 +464,8 @@ To continue this project, drag this file into chat:
 
 **Created**: 2026-03-15
 **Updated**: 2026-03-15
-**Current Task**: T13 — Dashboard Improvements
-**Status**: READY — T12 complete, T13 next
+**Current Task**: Phase 7 — Domain Library Extraction
+**Status**: READY — Phase 6 complete, Phase 7 next
 
 ---
 

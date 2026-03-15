@@ -49,7 +49,7 @@ export function useSessionList(options?: UseSessionListOptions) {
   return {
     sessions,
     isLoading: query.isLoading,
-    error: query.error ? (query.error as Error).message : null,
+    error: (query.error as Error | null) ?? null,
     hasMore: query.hasNextPage ?? false,
     isLoadingMore: query.isFetchingNextPage,
     loadMore,
