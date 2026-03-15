@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import { useParams } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft, AlertCircle, MessageSquare, Loader2 } from "lucide-react";
+import { AlertCircle, MessageSquare, Loader2 } from "lucide-react";
+import { Breadcrumb } from "@/components/layout/Breadcrumb";
+import { ErrorMessage } from "@/components/ui/error-message";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
@@ -16,10 +16,12 @@ import {
   useApproval,
   buildSubAgentIndex,
   isTerminalPhase,
-} from "@stigmer/react-ui/execution";
-import { useSessionDetail } from "@/hooks/useSessionDetail";
+} from "@stigmer/agent-execution";
+import { useSession } from "@/hooks/sessions/useSession";
+import { useSessionExecutions } from "@/hooks/sessions/useSessionExecutions";
 import { Separator } from "@/components/ui/separator";
 import { formatRelativeTime } from "@/lib/time";
+import { useDynamicRouteId } from "@/hooks/useDynamicRouteId";
 
 // ---------------------------------------------------------------------------
 // Page state
@@ -29,7 +31,7 @@ type PageState = "loading" | "error" | "history" | "streaming";
 
 function derivePageState(
   isLoading: boolean,
-  error: string | null,
+  error: Error | null,
   livePhase: ExecutionPhase,
   hasLiveExecution: boolean,
 ): PageState {
@@ -44,15 +46,32 @@ function derivePageState(
 // ---------------------------------------------------------------------------
 
 export default function SessionDetailPage() {
-  const { id } = useParams<{ id: string }>();
+  const id = useDynamicRouteId();
 
   const {
-    session,
-    pastExecutions,
-    activeExecution,
+    data: session,
     isLoading: isSessionLoading,
-    error: sessionError,
-  } = useSessionDetail(id);
+    error: sessionQueryError,
+    refetch: refetchSession,
+  } = useSession(id);
+
+  const {
+    data: executionList,
+    isLoading: isExecutionsLoading,
+    error: executionsQueryError,
+    refetch: refetchExecutions,
+  } = useSessionExecutions(id);
+
+  const executions = executionList?.entries ?? [];
+  const lastExecution =
+    executions.length > 0 ? executions[executions.length - 1] : null;
+  const lastPhase =
+    lastExecution?.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+  const activeExecution =
+    lastExecution && !isTerminalPhase(lastPhase) ? lastExecution : null;
+  const pastExecutions = activeExecution ? executions.slice(0, -1) : executions;
+
+  const queryError = sessionQueryError ?? executionsQueryError ?? null;
 
   const activeExecutionId = activeExecution?.metadata?.id;
 
@@ -69,20 +88,28 @@ export default function SessionDetailPage() {
   const effectiveExecution = liveExecution ?? activeExecution;
   const effectivePhase = liveExecution
     ? livePhase
-    : (activeExecution?.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED);
+    : (activeExecution?.status?.phase ??
+      ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED);
   const hasLiveExecution = effectiveExecution !== null;
 
   const executionId = effectiveExecution?.metadata?.id ?? "";
   const { submit: submitApproval, isSubmitting: isApprovalSubmitting } =
     useApproval({ executionId });
 
-  const combinedError = sessionError || streamError;
+  const isDataLoading = isSessionLoading || isExecutionsLoading;
+  const combinedError =
+    queryError ?? (streamError ? new Error(streamError) : null);
   const pageState = derivePageState(
-    isSessionLoading,
+    isDataLoading,
     combinedError,
     effectivePhase,
     hasLiveExecution && !isTerminalPhase(effectivePhase),
   );
+
+  const retryQueries = useCallback(() => {
+    refetchSession();
+    refetchExecutions();
+  }, [refetchSession, refetchExecutions]);
 
   const sessionId = session?.metadata?.id ?? id;
   const displayName =
@@ -109,38 +136,33 @@ export default function SessionDetailPage() {
   return (
     <div className="flex h-full flex-col">
       {/* ── Header ── */}
-      <div className="flex items-center gap-3 border-b px-6 py-4">
-        <Link
-          href="/sessions"
-          aria-label="Back to sessions"
-          className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-muted"
-        >
-          <ArrowLeft className="size-4" />
-        </Link>
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate text-lg font-semibold">{displayName}</h1>
-          {session?.status?.audit?.specAudit?.createdAt && (
-            <p className="text-sm text-muted-foreground">
-              Started {formatRelativeTime(session.status.audit.specAudit.createdAt)}
-            </p>
-          )}
-        </div>
+      <div className="space-y-1 border-b px-6 py-4">
+        <Breadcrumb
+          items={[
+            { label: "Sessions", href: "/sessions" },
+            { label: displayName },
+          ]}
+        />
+        <h1 className="truncate text-lg font-semibold">{displayName}</h1>
+        {session?.status?.audit?.specAudit?.createdAt && (
+          <p className="text-muted-foreground text-sm">
+            Started{" "}
+            {formatRelativeTime(session.status.audit.specAudit.createdAt)}
+          </p>
+        )}
       </div>
 
       {/* ── Content ── */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {pageState === "loading" && (
           <div className="flex flex-1 items-center justify-center">
-            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+            <Loader2 className="text-muted-foreground size-6 animate-spin" />
           </div>
         )}
 
         {pageState === "error" && (
           <div className="p-6">
-            <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-              <AlertCircle className="mt-0.5 size-4 shrink-0" />
-              <p>{combinedError}</p>
-            </div>
+            <ErrorMessage error={combinedError} retry={retryQueries} />
           </div>
         )}
 
@@ -178,8 +200,8 @@ export default function SessionDetailPage() {
                 {/* ── Empty session ── */}
                 {pastExecutions.length === 0 && !hasLiveExecution && (
                   <div className="flex flex-col items-center gap-3 py-12 text-center">
-                    <MessageSquare className="size-8 text-muted-foreground/30" />
-                    <p className="text-sm text-muted-foreground">
+                    <MessageSquare className="text-muted-foreground/30 size-8" />
+                    <p className="text-muted-foreground text-sm">
                       No messages in this session yet
                     </p>
                   </div>
@@ -233,16 +255,12 @@ function PastExecutionThread({
       )}
 
       {messages.map((msg, index) => (
-        <MessageEntry
-          key={index}
-          message={msg}
-          subAgentIndex={subAgentIndex}
-        />
+        <MessageEntry key={index} message={msg} subAgentIndex={subAgentIndex} />
       ))}
 
       {/* Execution error */}
       {execution.status?.error && isTerminalPhase(phase) && (
-        <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+        <div className="border-destructive/30 bg-destructive/5 text-destructive flex items-start gap-2 rounded-lg border p-3 text-sm">
           <AlertCircle className="mt-0.5 size-4 shrink-0" />
           <p>{execution.status.error}</p>
         </div>
@@ -259,9 +277,7 @@ function ExecutionBoundary() {
   return (
     <div className="flex items-center gap-3 py-2">
       <Separator className="flex-1" />
-      <span className="text-xs text-muted-foreground/50">
-        continued
-      </span>
+      <span className="text-muted-foreground/50 text-xs">continued</span>
       <Separator className="flex-1" />
     </div>
   );

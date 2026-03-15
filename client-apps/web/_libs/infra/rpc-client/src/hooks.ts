@@ -37,9 +37,7 @@ export function useStigmerTransport() {
  * const execution = await client.get(request);
  * ```
  */
-export function useServiceClient<T extends DescService>(
-  service: T,
-): Client<T> {
+export function useServiceClient<T extends DescService>(service: T): Client<T> {
   const transport = useStigmerTransport();
   return useMemo(() => createClient(service, transport), [service, transport]);
 }

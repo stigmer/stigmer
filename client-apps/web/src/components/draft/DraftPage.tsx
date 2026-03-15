@@ -12,9 +12,9 @@ import {
   useAgentExecution,
   useApproval,
   isTerminalPhase,
-} from "@stigmer/react-ui/execution";
+} from "@stigmer/agent-execution";
 import { cn } from "@stigmer/theme";
-import { useDraftAgent } from "@/hooks/useDraftAgent";
+import { useDraftAgent } from "@/hooks/agents/useDraftAgent";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 import { Button } from "@/components/ui/button";
 import type { DraftConfig } from "@/config/draft";
@@ -45,7 +45,12 @@ function deriveDraftState(
 
 export function DraftPage({ config }: { config: DraftConfig }) {
   const org = useActiveOrgSlug();
-  const { agent, isResolving, error: agentError, retry } = useDraftAgent(config.agentSlug);
+  const {
+    agent,
+    isResolving,
+    error: agentError,
+    retry,
+  } = useDraftAgent(config.agentSlug);
   const [sessionId, setSessionId] = useState<string | null>(null);
 
   const {
@@ -57,7 +62,13 @@ export function DraftPage({ config }: { config: DraftConfig }) {
   } = useAgentExecution();
 
   const hasExecution = execution !== null;
-  const state = deriveDraftState(isResolving, agentError, agent, hasExecution, phase);
+  const state = deriveDraftState(
+    isResolving,
+    agentError,
+    agent,
+    hasExecution,
+    phase,
+  );
 
   const executionId = execution?.metadata?.id ?? "";
   const { submit: submitApproval, isSubmitting: isApprovalSubmitting } =
@@ -71,7 +82,12 @@ export function DraftPage({ config }: { config: DraftConfig }) {
     }
   }, [execution?.spec?.sessionId]);
 
-  if (hasExecution && isTerminalPhase(phase) && !sessionId && execution?.spec?.sessionId) {
+  if (
+    hasExecution &&
+    isTerminalPhase(phase) &&
+    !sessionId &&
+    execution?.spec?.sessionId
+  ) {
     captureSessionId();
   }
 
@@ -115,10 +131,10 @@ export function DraftPage({ config }: { config: DraftConfig }) {
     <div className="flex h-full flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 border-b px-6 py-4">
-        <Icon className="size-5 text-primary" />
+        <Icon className="text-primary size-5" />
         <div>
           <h1 className="text-lg font-semibold">{config.title}</h1>
-          <p className="text-sm text-muted-foreground">{config.description}</p>
+          <p className="text-muted-foreground text-sm">{config.description}</p>
         </div>
       </div>
 
@@ -127,13 +143,13 @@ export function DraftPage({ config }: { config: DraftConfig }) {
         {/* Error: system agent not found */}
         {state === "error" && (
           <div className="mx-auto w-full max-w-2xl p-6">
-            <div className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
-              <AlertCircle className="mt-0.5 size-5 shrink-0 text-destructive" />
+            <div className="border-destructive/30 bg-destructive/5 flex items-start gap-3 rounded-lg border p-4">
+              <AlertCircle className="text-destructive mt-0.5 size-5 shrink-0" />
               <div className="flex-1 space-y-2">
-                <p className="text-sm font-medium text-destructive">
+                <p className="text-destructive text-sm font-medium">
                   Unable to resolve system agent
                 </p>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   The <span className="font-mono">{config.agentSlug}</span>{" "}
                   agent could not be found. Ensure the Stigmer seedpack has been
                   applied to the platform.
@@ -151,18 +167,19 @@ export function DraftPage({ config }: { config: DraftConfig }) {
         {showInput && (
           <div className="mx-auto w-full max-w-2xl space-y-4 p-6">
             {/* Agent resolution status */}
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="text-muted-foreground flex items-center gap-2 text-sm">
               {state === "resolving" ? (
                 <>
                   <Loader2 className="size-3.5 animate-spin" />
-                  <span>Resolving {config.agentSlug}...</span>
+                  <span>
+                    Resolving{" "}
+                    <span className="font-mono">{config.agentSlug}</span>...
+                  </span>
                 </>
               ) : (
                 <>
                   <span className="size-1.5 rounded-full bg-green-500" />
-                  <span>
-                    {agent?.metadata?.name ?? config.agentSlug}
-                  </span>
+                  <span>{agent?.metadata?.name ?? config.agentSlug}</span>
                 </>
               )}
             </div>
@@ -191,9 +208,7 @@ export function DraftPage({ config }: { config: DraftConfig }) {
               error={executionError}
               onApproval={handleApproval}
               isApprovalSubmitting={isApprovalSubmitting}
-              onSendMessage={
-                state === "completed" ? handleFollowUp : undefined
-              }
+              onSendMessage={state === "completed" ? handleFollowUp : undefined}
               className="flex-1 overflow-hidden"
             />
           </div>
@@ -221,16 +236,16 @@ function SystemAgentBanner({
   return (
     <div
       className={cn(
-        "flex items-center gap-2 border-b bg-muted/30 px-4 py-2 text-sm",
+        "bg-muted/30 flex items-center gap-2 border-b px-4 py-2 text-sm",
       )}
     >
       <span className="font-medium">{name}</span>
-      <span className="text-xs text-muted-foreground">System Agent</span>
+      <span className="text-muted-foreground text-xs">System Agent</span>
       <span className="flex-1" />
       {sessionId && (
         <Link
           href={`/sessions/${sessionId}`}
-          className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-xs transition-colors"
         >
           View session
           <ExternalLink className="size-3" />
