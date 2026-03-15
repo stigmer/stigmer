@@ -4,8 +4,7 @@ import {
   Bot,
   FileCode2,
   Server,
-  PenLine,
-  LayoutGrid,
+  LayoutDashboard,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -15,29 +14,32 @@ export interface NavItem {
   icon: LucideIcon;
 }
 
-export interface NavGroup {
+export interface NavSection {
   label: string;
-  icon: LucideIcon;
   items: NavItem[];
 }
 
-export type NavEntry = NavItem | NavGroup;
+export type NavEntry = NavItem | NavSection;
 
-export function isNavGroup(entry: NavEntry): entry is NavGroup {
+export function isNavSection(entry: NavEntry): entry is NavSection {
   return "items" in entry;
 }
 
 export const navigation: NavEntry[] = [
-  { label: "Run Agent", href: "/run", icon: Play },
-  { label: "Sessions", href: "/sessions", icon: History },
-  { label: "Catalog", href: "/catalog", icon: LayoutGrid },
+  { label: "Dashboard", href: "/", icon: LayoutDashboard },
   {
-    label: "Draft",
-    icon: PenLine,
+    label: "Operations",
     items: [
-      { label: "Skill", href: "/draft/skill", icon: FileCode2 },
-      { label: "Agent", href: "/draft/agent", icon: Bot },
-      { label: "MCP Server", href: "/draft/mcp-server", icon: Server },
+      { label: "Run Agent", href: "/run", icon: Play },
+      { label: "Sessions", href: "/sessions", icon: History },
+    ],
+  },
+  {
+    label: "Resources",
+    items: [
+      { label: "Agents", href: "/agents", icon: Bot },
+      { label: "Skills", href: "/skills", icon: FileCode2 },
+      { label: "MCP Servers", href: "/mcp-servers", icon: Server },
     ],
   },
 ];
