@@ -5,7 +5,23 @@ export type { StigmerRpcConfig, TokenProvider } from "./types";
 export { createStigmerTransport } from "./transport";
 
 // Interceptors (for custom transport compositions)
-export { createAuthInterceptor, errorStripInterceptor } from "./interceptors";
+export {
+  createAuthInterceptor,
+  createAuthRedirectInterceptor,
+  errorStripInterceptor,
+  rpcMetadataInterceptor,
+} from "./interceptors";
+
+// Error classification and utilities
+export type { ErrorCategory, RpcErrorMetadata } from "./errors";
+export {
+  classifyError,
+  isConnectError,
+  isRetryableError,
+  getUserMessage,
+  annotateRpcError,
+  getRpcMetadata,
+} from "./errors";
 
 // React context and provider
 export { StigmerTransportContext } from "./context";
@@ -16,6 +32,6 @@ export type { StigmerTransportProviderProps } from "./provider";
 export { useStigmerTransport, useServiceClient } from "./hooks";
 
 // Re-exports for consumer convenience
-export { createClient } from "@connectrpc/connect";
+export { createClient, ConnectError, Code } from "@connectrpc/connect";
 export type { Client, Transport, Interceptor } from "@connectrpc/connect";
 export type { DescService } from "@bufbuild/protobuf";

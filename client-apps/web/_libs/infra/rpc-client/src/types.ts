@@ -29,9 +29,22 @@ export interface StigmerRpcConfig {
   readonly getAccessToken?: TokenProvider;
 
   /**
-   * Additional Connect-RPC interceptors appended after the built-in auth
-   * and error-strip interceptors. Use this for application-specific
-   * concerns like tracing or custom error handling.
+   * Callback invoked when the server responds with UNAUTHENTICATED (code 16).
+   *
+   * Typically used to clear auth state and redirect to the login page.
+   * Invoked at most once per transport instance to prevent duplicate
+   * redirects when multiple parallel requests fail simultaneously.
+   *
+   * When omitted, UNAUTHENTICATED errors propagate normally without any
+   * redirect behavior — suitable for embeddable consumers that handle
+   * auth expiry in their own way.
+   */
+  readonly onUnauthenticated?: () => void;
+
+  /**
+   * Additional Connect-RPC interceptors appended after the built-in
+   * interceptors. Use this for application-specific concerns like tracing
+   * or custom error handling.
    */
   readonly interceptors?: Interceptor[];
 }

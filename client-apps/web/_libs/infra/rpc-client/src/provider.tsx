@@ -34,6 +34,7 @@ export interface StigmerTransportProviderProps extends StigmerRpcConfig {
 export function StigmerTransportProvider({
   serverUrl,
   getAccessToken,
+  onUnauthenticated,
   interceptors,
   children,
 }: StigmerTransportProviderProps) {
@@ -42,9 +43,10 @@ export function StigmerTransportProvider({
       createStigmerTransport({
         serverUrl,
         getAccessToken,
+        onUnauthenticated,
         interceptors,
       }),
-    [serverUrl, getAccessToken, interceptors],
+    [serverUrl, getAccessToken, onUnauthenticated, interceptors],
   );
 
   return (
