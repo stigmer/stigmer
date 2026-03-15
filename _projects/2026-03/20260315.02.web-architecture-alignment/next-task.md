@@ -22,9 +22,48 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: IN PROGRESS
-- **Last Session**: 2026-03-15 — T13 (Dashboard Improvements) completed
-- **Active Task**: None — Phase 6 complete (T11 + T12 + T13)
-- **Next Task**: Phase 7 — Domain library extraction (`session-ui`, `catalog-ui`)
+- **Last Session**: 2026-03-15 — Phase 7 (Domain UI Components + List/Detail View Enhancement) completed
+- **Active Task**: None — Phase 7 complete
+- **Next Task**: Phase 8 — Workflow & IAM views (deferrable), or Phase 9 — Final polish & verification
+
+## Session Progress (2026-03-15, Session 10)
+
+### Phase 7 (Revised): Domain UI Components + List/Detail View Enhancement — COMPLETED
+
+Revised Phase 7 scope: enriched `@stigmer/agent-ui` with embeddable card and overview components, replaced generic resource cards with domain-aware rendering, improved all three detail views, deleted all deprecated code.
+
+**Part A: `@stigmer/agent-ui` domain components** (6 new files):
+- Internal primitives: `badge.tsx`, `collapsible.tsx`, `section.tsx` (following `agent-execution-ui` pattern)
+- `AgentCard.tsx` — Embeddable card accepting `Agent` proto, renders icon/name/slug/description/stats/badges/tags. Framework-agnostic (`onClick`/`href` props, no `next/link`)
+- `AgentOverview.tsx` — Embeddable read-only overview extracted from `AgentDetailView`. Renders header, collapsible instructions, MCP server usages with tool badges, skill refs, sub-agents
+- `styles.css` — Tailwind v4 + `@stigmer/theme/tokens.css`
+- `package.json` updated: `./styles.css` export, peer deps (`@base-ui/react`, `class-variance-authority`, `lucide-react`)
+
+**Part B: Console list view enhancement** (5 new files):
+- `AgentSearchCard` — Card-style layout for grid, renders `SearchResult` with icon/name/description/tags/timestamp
+- `SkillSearchCard` — List-item layout with tag badge and description
+- `McpServerSearchCard` — List-item layout with tags and timestamp
+- `ResourceList` — Render-prop component with `layout` prop ("list" | "grid"), search/pagination/loading/empty states
+- `ResourceEmptyState` — Domain-aware empty state (replaces `CatalogEmptyState`)
+- Agents page switched to responsive card grid (1/2/3 columns). Skills and MCP Servers keep list layout.
+
+**Part C: Console detail view improvements** (3 modified files):
+- `AgentDetailPage` — Thin shell: TopBar + `AgentOverview` (from domain library) + Run Agent button + SessionHistory. Deleted `AgentDetailView.tsx`.
+- `SkillDetailView` — Added `SkillState` badges (Ready/Uploading/Failed), git provenance section, markdown rendering for SKILL.md
+- `McpServerDetailView` — Added stats row (tool count, template count, discovery metadata), environment variables section
+
+**Part D: Cleanup** (4 deleted, 1 migrated):
+- Migrated `OrgProvider` to `useStigmerTransport()` (last consumer of singleton transport)
+- Deleted `services/transport.ts`, `services/org-service.ts`, `components/agent/AgentDetailView.tsx`
+- Deleted `components/catalog/` directory (4 files: ResourceCard, ResourceList, CatalogEmptyState, index)
+
+**Key Decisions**:
+- Agent gets full domain library treatment; Skill/MCP Server stay Console-only (deferred to marketplace work)
+- Separate card types for different data contexts: domain card (full proto) vs Console search card (SearchResult)
+- Card grid for agents (browse/discover pattern), list for skills/MCP servers (operational pattern)
+- Internal primitives duplicated between `agent-ui` and `agent-execution-ui` (small surface area, avoids coupling)
+
+**Verification**: `tsc --noEmit` clean (exit code 0), no lint errors.
 
 ## Session Progress (2026-03-15, Session 9)
 
@@ -320,6 +359,11 @@ The pre-existing `agent-execution-ui` package had unnecessary nesting that was i
 19. **Resource counts via domain search services** — 3 parallel `useQuery` calls through Layer 2 service hooks with `page: { num: 1, size: 1 }` + `select` for `totalCount`. Respects three-layer architecture, independent failure isolation per resource type.
 20. **Execution status widgets deferred** — no aggregate execution endpoints exist. Dashboard shows resource counts (available now), not execution metrics (blocked on server API).
 
+21. **Phase 7 scope revised** — Original plan called for `session-ui` and `catalog-ui` extraction. Revised to focus on `agent-ui` enrichment + Console list/detail polish. `catalog-ui` concept is obsolete (no unified catalog route). `session-ui` extraction deferred — no external embedding use case yet. Agent is the only domain with clear embedding needs (marketplace, admin dashboards).
+22. **Two-tiered card strategy** — Domain card (`AgentCard`) accepts full `Agent` proto for embedding. Console search card (`AgentSearchCard`) accepts `SearchResult` for list pages. Different data access patterns, not duplication.
+23. **Card grid for agents, list for skills/MCP servers** — Agents are browse/discover resources (marketplace pattern). Skills/MCP servers are operational, text-heavy resources better suited to compact list items.
+24. **Internal primitives duplicated across domain packages** — `agent-ui` and `agent-execution-ui` each have their own `badge.tsx`, `collapsible.tsx`. Acceptable for small surface area, avoids coupling between packages. Shared primitive package deferred until 3+ packages duplicate the same component.
+
 ### Surprises Encountered
 - `searchAgents` was initially removed alongside the genuinely dead `searchSkills` and `searchMcpServers`. Build failure revealed `useAgentSearch.ts` imports it. The function was immediately restored. Lesson: always verify each removal individually, not in batches.
 - ESLint `react-hooks/set-state-in-effect` rule caught a `useState`/`useEffect` mount pattern in the initial `ThemeToggle` implementation. Refactored to use `resolvedTheme` directly from `next-themes` instead.
@@ -336,11 +380,11 @@ The pre-existing `agent-execution-ui` package had unnecessary nesting that was i
 9. ~~**T13: Dashboard Improvements**~~ — **DONE** (resource overview cards, trimmed quick actions, enhanced RecentSessions; execution status widgets deferred — server API gaps)
 
 ## Context for Resume
-- Phases 1-6 (T01-T13) are fully committed and verified
-- Phase 6 complete: global header + sidebar collapse (T11), sessions page (T12), dashboard improvements (T13)
-- T13 added resource overview cards (agent/skill/MCP server counts), trimmed quick actions, and enhanced RecentSessions with ErrorMessage component
-- The codebase now has: Prettier + hardened ESLint, teal brand color, dark mode, semantic status tokens, sectioned sidebar with collapse, global header, breadcrumbs, Query/Command hook pattern with domain libraries, three-tier error handling framework, reusable table primitives, sessions list page, dashboard with resource overview
-- `transport.ts` and `org-service.ts` are deprecated with comments — last consumers of the singleton transport pattern
+- Phases 1-7 are fully committed and verified
+- Phase 7 complete: `@stigmer/agent-ui` enriched with `AgentCard` and `AgentOverview` components, Console list pages use domain-aware search cards, agents page uses card grid layout, all three detail views improved, deprecated code fully deleted
+- The codebase now has: Prettier + hardened ESLint, teal brand color, dark mode, semantic status tokens, sectioned sidebar with collapse, global header, breadcrumbs, Query/Command hook pattern with domain libraries, three-tier error handling framework, reusable table primitives, sessions list page, dashboard with resource overview, embeddable agent components, domain-aware list rendering
+- `transport.ts` and `org-service.ts` are fully deleted — zero deprecated transport code remains
+- `OrgProvider` migrated to context-based transport (`useStigmerTransport()`)
 - Cmd+K (global search) and notifications deferred to separate future tasks
 - Server API gaps block execution status widgets — tracked for server-side work
 
@@ -379,7 +423,7 @@ The project addresses gaps from two analyses:
 | Phase 4 | 6–9 | Query/Command hook pattern + service reorganization | Architecture | **DONE** |
 | Phase 5 | 10–11 | Error handling & Bridge framework | Architecture | **DONE** |
 | Phase 6 | 12–16 | Layout overhaul + View completeness (sidebar, header, sessions, dashboard) | UX | **DONE** |
-| Phase 7 | 17–19 | Domain library extraction (`session-ui`, `catalog-ui`) | Architecture | Pending |
+| Phase 7 | 17–19 | Domain UI components + list/detail view enhancement | Architecture + UX | **DONE** |
 | Phase 8 | 20–24 | Workflow & IAM views (deferrable) | UX | Pending |
 | Phase 9 | 25–26 | Final polish & verification | Both | Pending |
 
@@ -448,12 +492,12 @@ The project addresses gaps from two analyses:
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-03-15-session-9.md`
-2. [ ] Check current task status — Phase 6 complete, Phase 7 (Domain library extraction) next
+1. [ ] Read the latest checkpoint from `checkpoints/2026-03-15-session-10.md`
+2. [ ] Check current task status — Phase 7 complete, Phase 8 (Workflow & IAM views) next
 3. [ ] Review design decisions in `design-decisions/` (especially `003-hook-pattern-contract.md`)
 4. [ ] Read coding guideline: `coding-guidelines/query-command-hooks.md` (includes error handling patterns)
 5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with Phase 7: Domain library extraction (`session-ui`, `catalog-ui` decomposition)
+6. [ ] Continue with Phase 8: Workflow & IAM views (deferrable), or Phase 9: Final polish & verification
 
 ## Quick Resume
 
@@ -464,8 +508,8 @@ To continue this project, drag this file into chat:
 
 **Created**: 2026-03-15
 **Updated**: 2026-03-15
-**Current Task**: Phase 7 — Domain Library Extraction
-**Status**: READY — Phase 6 complete, Phase 7 next
+**Current Task**: Phase 8 — Workflow & IAM Views (deferrable)
+**Status**: READY — Phase 7 complete, Phase 8 next
 
 ---
 

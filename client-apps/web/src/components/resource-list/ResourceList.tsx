@@ -7,14 +7,12 @@ import {
   ChevronRight,
   AlertCircle,
 } from "lucide-react";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { cn } from "@stigmer/theme";
 import { Button } from "@/components/ui/button";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
-import { ResourceCard } from "./ResourceCard";
-import { CatalogEmptyState } from "./CatalogEmptyState";
+import { ResourceEmptyState } from "./ResourceEmptyState";
 
-export interface ResourceCatalogData {
+export interface ResourceListData {
   results: SearchResult[];
   query: string;
   setQuery: (q: string) => void;
@@ -27,11 +25,18 @@ export interface ResourceCatalogData {
 }
 
 interface ResourceListProps {
-  kind: ApiResourceKind;
-  catalog: ResourceCatalogData;
+  kindLabel: "agents" | "skills" | "MCP servers";
+  data: ResourceListData;
+  renderItem: (result: SearchResult) => React.ReactNode;
+  layout?: "list" | "grid";
 }
 
-export function ResourceList({ kind, catalog }: ResourceListProps) {
+export function ResourceList({
+  kindLabel,
+  data,
+  renderItem,
+  layout = "list",
+}: ResourceListProps) {
   const {
     results,
     query,
@@ -42,7 +47,7 @@ export function ResourceList({ kind, catalog }: ResourceListProps) {
     totalPages,
     page,
     setPage,
-  } = catalog;
+  } = data;
 
   return (
     <div className="space-y-4">
@@ -55,7 +60,7 @@ export function ResourceList({ kind, catalog }: ResourceListProps) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search..."
-            aria-label="Search resources"
+            aria-label={`Search ${kindLabel}`}
             className={cn(
               "bg-background w-full rounded-lg border py-2 pr-9 pl-9 text-sm",
               "placeholder:text-muted-foreground",
@@ -86,25 +91,41 @@ export function ResourceList({ kind, catalog }: ResourceListProps) {
 
       {/* Loading skeleton */}
       {isLoading && results.length === 0 && !error && (
-        <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
+        <div
+          className={cn(
+            layout === "grid"
+              ? "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+              : "space-y-3",
+          )}
+        >
+          {Array.from({ length: layout === "grid" ? 6 : 5 }).map((_, i) => (
             <div
               key={i}
-              className="bg-muted/50 h-[72px] animate-pulse rounded-xl"
+              className={cn(
+                "bg-muted/50 animate-pulse rounded-xl",
+                layout === "grid" ? "h-[140px]" : "h-[72px]",
+              )}
             />
           ))}
         </div>
       )}
 
-      {/* Results */}
+      {/* Empty state */}
       {!isLoading && results.length === 0 && !error && (
-        <CatalogEmptyState kind={kind} hasQuery={query.length > 0} />
+        <ResourceEmptyState kind={kindLabel} hasQuery={query.length > 0} />
       )}
 
+      {/* Results */}
       {results.length > 0 && (
-        <div className="space-y-2">
+        <div
+          className={cn(
+            layout === "grid"
+              ? "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+              : "space-y-2",
+          )}
+        >
           {results.map((result) => (
-            <ResourceCard key={result.id} result={result} />
+            <div key={result.id}>{renderItem(result)}</div>
           ))}
         </div>
       )}

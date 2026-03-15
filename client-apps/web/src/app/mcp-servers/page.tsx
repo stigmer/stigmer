@@ -1,12 +1,14 @@
 "use client";
 
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { TopBar } from "@/components/layout/TopBar";
-import { ResourceList } from "@/components/catalog";
+import {
+  ResourceList,
+  McpServerSearchCard,
+} from "@/components/resource-list";
 import { useMcpServerList } from "@/hooks/mcp-servers/useMcpServerList";
 
 export default function McpServersPage() {
-  const catalog = useMcpServerList();
+  const data = useMcpServerList();
 
   return (
     <>
@@ -14,7 +16,11 @@ export default function McpServersPage() {
         title="MCP Servers"
         description="Browse and search MCP server configurations"
       />
-      <ResourceList kind={ApiResourceKind.mcp_server} catalog={catalog} />
+      <ResourceList
+        kindLabel="MCP servers"
+        data={data}
+        renderItem={(result) => <McpServerSearchCard result={result} />}
+      />
     </>
   );
 }

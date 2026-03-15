@@ -13,3 +13,13 @@ export type {
 // ---------------------------------------------------------------------------
 
 export { useAgentQueryService } from "./services/useAgentQueryService";
+
+// ---------------------------------------------------------------------------
+// Components (embeddable UI)
+// ---------------------------------------------------------------------------
+
+export { AgentCard } from "./components/AgentCard";
+export type { AgentCardProps } from "./components/AgentCard";
+
+export { AgentOverview } from "./components/AgentOverview";
+export type { AgentOverviewProps } from "./components/AgentOverview";
